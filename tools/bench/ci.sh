@@ -19,15 +19,18 @@ measure() {
   if [ -n "$BASE_REF" ] && git cat-file -e "$BASE_REF:tools/bench/Cargo.toml" 2>/dev/null; then
     local base_tree
     base_tree="$(mktemp -d)"
-    git worktree add --detach "$base_tree" "$BASE_REF"
+    git worktree add --detach "$base_tree" "$BASE_REF" || return 1
+    # set -e does not work inside a function that runs in an `if` condition, so every step checks itself.
+    local status=0
     (cd "$base_tree" && CARGO_TARGET_DIR="$base_tree/target" \
-      cargo bench "${BENCH_ARGS[@]}" -- --save-baseline "$BASE_BASELINE")
+      cargo bench "${BENCH_ARGS[@]}" -- --save-baseline "$BASE_BASELINE") || status=1
     git worktree remove --force "$base_tree"
+    [ "$status" -eq 0 ] || return 1
     no_base=""
   else
     echo "NOTE: no base measurement available for '${BASE_REF}'."
   fi
-  cargo bench "${BENCH_ARGS[@]}" -- --save-baseline "$HEAD_BASELINE"
+  cargo bench "${BENCH_ARGS[@]}" -- --save-baseline "$HEAD_BASELINE" || return 1
   # shellcheck disable=SC2086
   cargo run --locked -p codeskimr_bench --bin bench-check -- \
     --criterion-dir "$CRITERION_HOME" --base "$BASE_BASELINE" --new "$HEAD_BASELINE" \
