@@ -7,6 +7,7 @@ import { DetailPane } from "./DetailPane";
 import {
   applyFocus,
   collapseAll,
+  currentMember,
   currentType,
   loadOutline,
   outlineError,
@@ -19,6 +20,8 @@ import {
 } from "./explorer";
 import { useExplorerKeys } from "./keys";
 import { Overview } from "./Overview";
+import { clearSource, loadSource } from "./source";
+import { SourcePane } from "./SourcePane";
 import { TreePane } from "./TreePane";
 import { useExplorer } from "./useExplorer";
 import styles from "./ExplorerScreen.module.css";
@@ -101,11 +104,27 @@ function useReadingOfTheProject(): void {
   });
 }
 
-/** Screen 2, the explorer: tree and details (blueprint B.2, mock `Explorer.dc.html`). The source
- * column of the mock follows with the next work package. */
+/** The symbol whose source the right column shows: the member if one is picked, else the type. */
+const shownSymbol = () => currentMember() ?? currentType();
+
+/** Reads the source of the shown symbol, and forgets it when nothing is shown. */
+function useReadingOfTheSource(): void {
+  createEffect(() => {
+    const project = activeProject();
+    const symbol = shownSymbol();
+    if (project === null || symbol === null) {
+      clearSource();
+    } else {
+      void loadSource(project, symbol);
+    }
+  });
+}
+
+/** Screen 2, the explorer: tree, details and source (blueprint B.2, mock `Explorer.dc.html`). */
 export function ExplorerScreen() {
   const explorer = useExplorer();
   useReadingOfTheProject();
+  useReadingOfTheSource();
   useExplorerKeys({ collapseAll, reveal: explorer.reveal });
   return (
     <Switch>
@@ -133,6 +152,7 @@ export function ExplorerScreen() {
             note={treeNote(explorer.rows().length)}
           />
           <Details onPickMember={explorer.pickMember} />
+          <SourcePane shown={shownSymbol() !== null} />
         </div>
       </Match>
     </Switch>

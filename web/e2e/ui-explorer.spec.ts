@@ -21,6 +21,13 @@ test.describe("the explorer", () => {
     await expect(page.getByRole("heading", { name: "Calculator" })).toBeVisible();
     await expect(page.getByRole("row", { name: /Add.*public.*1/ })).toBeVisible();
     await expect(page.getByText("Members 1")).toBeVisible();
+
+    // The source column reads the file of the project folder: the type first, then a member.
+    const source = page.getByRole("region", { name: "Source" });
+    await expect(source).toContainText("public class Calculator");
+    await page.getByRole("button", { name: /Add/ }).first().click();
+    await expect(source).toContainText("public int Add(int a, int b)");
+    await expect(source).not.toContainText("public class Calculator");
     expect(await violations()).toEqual([]);
   });
 

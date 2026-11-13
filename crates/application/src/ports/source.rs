@@ -57,3 +57,33 @@ pub trait FileDiscovery: Send + Sync {
         cancel: &CancelToken,
     ) -> Result<Vec<DiscoveredFile>, CodedError>;
 }
+
+/// A run of lines of a file, as text.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Excerpt {
+    /// The lines without their line ends.
+    pub lines: Vec<String>,
+    /// Whether the run was cut at the limit and the declaration goes on.
+    pub truncated: bool,
+}
+
+/// Reads lines of a file of a project as it is now. Whoever calls this hands out source text and
+/// needs `Permission::ReadSource` (blueprint 5.2).
+pub trait SourceText: Send + Sync {
+    /// The lines `range` (first and last, counted from 1, both included) of `path` below `root`.
+    /// `limits` are the most lines to return and the most bytes the file may have.
+    ///
+    /// The path must stay inside `root`: a path that leaves it, also through a link, is treated
+    /// as not found.
+    ///
+    /// # Errors
+    /// `SRC-201` if the file is missing, not a regular file or outside the root, `SRC-501` if it
+    /// is larger than the byte limit.
+    fn excerpt(
+        &self,
+        root: &FolderPath,
+        path: &RelativePath,
+        range: (u32, u32),
+        limits: (u32, u64),
+    ) -> Result<Excerpt, CodedError>;
+}

@@ -105,6 +105,7 @@ fn the_commands_are_offered() {
         ids,
         [
             "explorer.outline",
+            "explorer.source",
             "explorer.symbol",
             "projects.add",
             "projects.list",
@@ -313,6 +314,7 @@ fn a_token_without_the_read_right_is_refused() {
     let nobody = principal::nobody();
     for id in [
         "explorer.outline",
+        "explorer.source",
         "explorer.symbol",
         "search.query",
         "status.info",
@@ -383,4 +385,82 @@ fn the_status_reports_the_memory_of_the_program() {
     let status = fixture.call("status.info", Value::Null).unwrap();
     assert!(status["memory_mb"].as_u64().unwrap() > 0);
     assert!(status.get("startup_ms").is_some());
+}
+
+fn type_id(fixture: &Fixture, project: u64) -> Value {
+    fixture
+        .call("explorer.outline", json!({ "project": project }))
+        .unwrap()["layers"][0]["namespaces"][0]["types"][0]["id"]
+        .clone()
+}
+
+#[test]
+fn the_source_of_a_type_and_of_a_member_comes_from_the_project_folder() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    let id = type_id(&fixture, project);
+    let shown = fixture
+        .call(
+            "explorer.source",
+            json!({ "project": project, "symbol": id }),
+        )
+        .unwrap();
+    assert_eq!(shown["available"], true);
+    assert_eq!(shown["path"], "Calculator.cs");
+    assert_eq!(shown["first_line"], 3);
+    assert_eq!(shown["lines"][0], "public class Calculator");
+    assert_eq!(shown["lines"].as_array().unwrap().len(), 4);
+    assert_eq!(shown["truncated"], false);
+    let member = fixture
+        .call(
+            "explorer.symbol",
+            json!({ "project": project, "symbol": id }),
+        )
+        .unwrap()["members"][0]["id"]
+        .clone();
+    let line = fixture
+        .call(
+            "explorer.source",
+            json!({ "project": project, "symbol": member }),
+        )
+        .unwrap();
+    assert_eq!(
+        line["lines"],
+        json!(["    public int Add(int a, int b) { return a + b; }"])
+    );
+}
+
+#[test]
+fn the_source_is_refused_for_an_unknown_symbol_a_missing_scan_and_a_vanished_file() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    assert_eq!(
+        fixture.call(
+            "explorer.source",
+            json!({ "project": project, "symbol": 99999 })
+        ),
+        Err("MCP-202")
+    );
+    let id = type_id(&fixture, project);
+    fs::remove_file(fixture.root.path().join("app/Calculator.cs")).unwrap();
+    assert_eq!(
+        fixture.call(
+            "explorer.source",
+            json!({ "project": project, "symbol": id })
+        ),
+        Err("SRC-201")
+    );
+}
+
+#[test]
+fn the_source_of_a_project_without_a_scan_is_refused() {
+    let fixture = Fixture::new();
+    let project = fixture.register_unscanned();
+    assert_eq!(
+        fixture.call(
+            "explorer.source",
+            json!({ "project": project, "symbol": 1 })
+        ),
+        Err("MCP-203")
+    );
 }

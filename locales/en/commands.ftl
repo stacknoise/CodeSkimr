@@ -14,3 +14,5 @@ command-search-query-title = Search symbols
 command-search-query-description = Searches the names of the types and members of the newest scan.
 command-status-info-title = Show status
 command-status-info-description = Shows the start time and the memory of the program.
+command-explorer-source-title = Show source
+command-explorer-source-description = Shows the lines of the declaration of a type or member, read from the project folder.

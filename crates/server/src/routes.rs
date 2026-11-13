@@ -8,7 +8,9 @@ use axum::http::header::CONTENT_TYPE;
 use axum::http::{HeaderMap, Method, StatusCode, Uri};
 use axum::response::{IntoResponse, Response};
 use codeskimr_application::access;
+use codeskimr_application::registry::CommandDescriptor;
 use codeskimr_codes::ErrorCode;
+use codeskimr_domain::Permission;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
@@ -22,11 +24,18 @@ pub async fn list(State(app): State<AppState>) -> Json<Vec<CommandInfo>> {
     Json(app.api.list(&app.principal))
 }
 
+/// Whether the caller must show the installation token: a command that changes something, and
+/// one that hands out source text, so that no other program on this machine can read the code
+/// through the open loopback port (ADR 0032).
+fn needs_token(descriptor: &CommandDescriptor) -> bool {
+    !descriptor.read_only || descriptor.permission == Permission::ReadSource
+}
+
 /// `POST /api/v1/commands/{id}`: runs a command with the JSON body as its input and answers with
 /// its output.
 ///
-/// The order is fixed and tested: the command must exist; a command that changes something needs
-/// the token; the caller needs the permission; only then the body is read. A denied caller sees
+/// The order is fixed and tested: the command must exist; a command that changes something or
+/// reads source text needs the token; the caller needs the permission; only then the body is read. A denied caller sees
 /// the same `AUTH-401` whatever it sends.
 pub async fn run(
     State(app): State<AppState>,
@@ -38,7 +47,7 @@ pub async fn run(
         .api
         .descriptor(&id)
         .ok_or_else(|| Failure::code(ErrorCode::CommandNotFound))?;
-    if !descriptor.read_only {
+    if needs_token(descriptor) {
         app.guard.check_token(&headers)?;
     }
     access::require(&app.principal, descriptor.permission)?;

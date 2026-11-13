@@ -7,7 +7,7 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::config::MetricThresholds;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{CodeIndex, CodeOutline, OutlineNode};
+use codeskimr_application::ports::{CodeIndex, CodeOutline, OutlineNode, SourceText};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{Layer, Permission, ProjectId, Snapshot, SymbolId};
@@ -15,12 +15,13 @@ use serde::{Deserialize, Serialize};
 
 use super::consts::{EXPLORER_OUTLINE, OUTLINE_DESCRIPTION, OUTLINE_TITLE};
 
-/// What the explorer reads: the project repository for the layers, the index for one symbol and
-/// the outline for the tree.
+/// What the explorer reads: the project repository for the layers, the index for one symbol, the
+/// outline for the tree and the project folder for the source of a declaration.
 pub struct ExplorerPorts {
     pub(super) projects: Arc<dyn codeskimr_application::ports::ProjectRepository>,
     pub(super) index: Arc<dyn CodeIndex>,
     pub(super) outline: Arc<dyn CodeOutline>,
+    pub(super) text: Arc<dyn SourceText>,
     pub(super) thresholds: MetricThresholds,
 }
 
