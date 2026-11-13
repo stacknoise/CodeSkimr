@@ -98,3 +98,24 @@ pub const METRIC_INSTABILITY: &str = "instability";
 pub const SCAN_FULL: &str = "full";
 /// Label of `ScanMode::Incremental`.
 pub const SCAN_INCREMENTAL: &str = "incremental";
+
+/// Cyclomatic complexity of a body without any decision point.
+pub const CC_BASE: u32 = 1;
+/// Constant term of the maintainability index formula.
+pub const MI_BASE: f64 = 171.0;
+/// Weight of the natural logarithm of the Halstead volume.
+pub const MI_VOLUME_WEIGHT: f64 = 5.2;
+/// Weight of the cyclomatic complexity.
+pub const MI_COMPLEXITY_WEIGHT: f64 = 0.23;
+/// Weight of the natural logarithm of the lines of code.
+pub const MI_LOC_WEIGHT: f64 = 16.2;
+/// Upper end of the maintainability index scale; the raw value is rescaled to it.
+pub const MI_MAX: f64 = 100.0;
+/// Lower end of the maintainability index scale.
+pub const MI_MIN: f64 = 0.0;
+/// Smallest value the logarithms of the maintainability index are taken of.
+pub const MI_LOG_FLOOR: f64 = 1.0;
+/// Smallest vocabulary (distinct operators plus operands) for which a Halstead volume exists.
+pub const HALSTEAD_MIN_VOCABULARY: f64 = 1.0;
+/// Halstead volume of a body without any vocabulary.
+pub const HALSTEAD_EMPTY_VOLUME: f64 = 0.0;

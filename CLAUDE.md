@@ -19,10 +19,11 @@ The binding specification is `BLUEPRINT.md`. Every rule in it applies to every p
 5. Never change repository settings or rulesets, never loosen a lint, threshold or budget, never disable or skip a test to get CI green.
 6. The ruleset requires 0 approvals because PRs are opened under the product owner's account. The reviewer agent writes its verdict as a review comment, never for its own work.
 7. Merging: an agent may enable auto-merge (squash) on a PR only when all required checks are green and the reviewer agent has given an OK in a review comment. The author agent never merges its own PR without that review. Exceptions that only Anton (the product owner) merges: PRs labelled `security-sensitive` or `new-dependency`, and any change to `BLUEPRINT.md`, `docs/adr/`, `CLAUDE.md`, `.claude/agents/` or the repository rules.
-8. A change to the blueprint, a new dependency layer, symbol kind, pattern or technology needs an ADR in `docs/adr/` and the label `blueprint-change`.
-9. A new dependency needs one sentence of justification in the PR and the label `new-dependency`.
-10. Never commit secrets, credentials, tokens, private paths or data from private projects. This repository is public.
-11. If something is unclear or blocked: set `status:blocked` and ask the coordinator. Do not guess.
+8. Review feedback: the author agent processes every reviewer comment itself before the merge, including minor remarks. It fixes what belongs to the work package in the same PR. What lies outside the package becomes a GitHub issue that is linked in the PR. Only then does the reviewer give the OK again and auto-merge may be enabled. Findings are never left open "for later" without an issue.
+9. A change to the blueprint, a new dependency layer, symbol kind, pattern or technology needs an ADR in `docs/adr/` and the label `blueprint-change`.
+10. A new dependency needs one sentence of justification in the PR and the label `new-dependency`.
+11. Never commit secrets, credentials, tokens, private paths or data from private projects. This repository is public.
+12. If something is unclear or blocked: set `status:blocked` and ask the coordinator. Do not guess.
 
 ## Binding code rules (short form, see blueprint section 3)
 

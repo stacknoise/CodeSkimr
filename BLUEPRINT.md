@@ -295,15 +295,14 @@ codeskimr/
 
 ```mermaid
 flowchart LR
-  A[Fetch source] --> B[Discover files] --> C[Parse] --> D[Extract symbols] --> E[Resolve references] --> F[Compute metrics] --> G[Persist + read models]
+  A[Fetch source] --> B[Discover files] --> C[Analyze: parse + extract symbols] --> E[Resolve references] --> F[Compute metrics] --> G[Persist + read models]
 ```
 
 | Stage | Responsibility | Parallel |
 |---|---|---|
 | Fetch source | folder: nothing to do; Git: shallow clone or fetch | I/O |
 | Discover files | walk with `.gitignore`, detect language, hash content, skip unchanged files | yes |
-| Parse | Tree-sitter per file | yes (per file) |
-| Extract symbols | run the language-pack queries, build symbols and members | yes (per file) |
+| Analyze | Tree-sitter per file, then run the language-pack queries and build symbols and members; the tree never leaves the adapter (ADR 0013) | yes (per file) |
 | Resolve references | map names to symbols (section 9) | yes (per file, after a global symbol table pass) |
 | Compute metrics | LOC, CC, MI, Ce, Ca, instability | yes |
 | Persist | one transaction per snapshot, then update read models | single writer |
@@ -805,7 +804,7 @@ Defined once in `design/tokens.toml`. TypeScript/CSS variables are generated fro
 
 ### 16.1 Budgets (MUST, measured in CI)
 
-Reference machine: a mid-range developer laptop (defined in `tools/bench/machine.toml`). CI measures relative to a stored baseline; a regression of more than 10 % fails the build.
+Reference: the budgets are meant for a mid-range developer laptop (class recorded in `tools/bench/machine.toml`). CI measures the base commit and the change one after the other on the same runner and compares the ratio (ADR 0014); a regression of more than 10 % fails the build. Absolute budgets are checked on the same runner as a coarse upper bound; exact numbers for acceptance are measured by hand on the laptop.
 
 | Measurement | Budget |
 |---|---|
@@ -967,7 +966,7 @@ Each milestone ends with a demo and acceptance by the product owner. All criteri
 | O-03 | Target platforms for 1.0 | Windows, Linux, macOS (CI builds all three) | before M1 |
 | O-04 | Repository hosting and licence | GitHub; licence to be chosen (proprietary vs. open source) | before M1 |
 | O-05 | Editor integration for "Open in editor" | VS Code URL scheme first, configurable command line for others | M3 |
-| O-06 | Reference machine for budgets | define concrete hardware | M1 |
+| O-06 | Reference machine for budgets | decided: same-runner A/B comparison, ADR 0014 | closed |
 
 ### 20.2 Risks
 
