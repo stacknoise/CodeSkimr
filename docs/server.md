@@ -42,7 +42,7 @@ The running app offers the MCP server of `docs/mcp.md` on the same listener, as 
 - **Who calls:** every request runs as the principal of the composition root, the local owner in single-user mode. After 1.0 the team edition resolves a principal per personal access token and builds one handler per caller (ADR 0019); the tools check their permission as before (`rescan` needs `scan`).
 - **Stateless:** every request is answered on its own with a JSON body, no session survives a request, and there is no `GET` stream. A restart of the app loses nothing; a client that sends `Mcp-Session-Id` is not tracked. The body is at most 1 MiB.
 - **Shared instance:** the service uses the database file of the app and the event bus of the server. A `rescan` of an agent publishes the same events as a scan from the UI, so the UI shows its progress. The store is opened a second time next to that of the commands (one connection each, same file); sharing the connection waits until the commands take a store from the composition root.
-- **Projects:** the app has no default project. A call that names none is `MCP-101` with `params.detail = project`; The ids come from `projects.list` over REST. An MCP tool that lists the projects is not part of WP-48.
+- **Projects:** the app has no default project. A call that names none is `MCP-101` with `params.detail = project`; the ids come from `projects.list` over REST. An MCP tool that lists the projects is not part of WP-48.
 - **Not yet:** the resources (`codeskimr://…`) belong to the MCP server itself, not to this transport.
 
 ## The installation token

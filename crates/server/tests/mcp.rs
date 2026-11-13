@@ -81,3 +81,17 @@ async fn without_a_service_there_is_no_mcp_route() {
     assert_eq!(reply.status, 404);
     assert_eq!(reply.code(), "API-201");
 }
+
+#[tokio::test]
+async fn other_paths_and_methods_never_reach_the_service_without_the_token() {
+    let server = start_mcp(owner()).await;
+    for (method, path) in [("HEAD", MCP), ("OPTIONS", MCP)] {
+        let reply = Call::new(method, path).send(&server).await;
+        assert_eq!(reply.status, 401, "{method}");
+    }
+    for path in ["/mcp/", "/mcp/x", "/MCP"] {
+        let reply = Call::post(path).token(TOKEN).json(BODY).send(&server).await;
+        assert_eq!(reply.status, 404, "{path}");
+        assert!(!reply.body.contains("pong"), "{path}");
+    }
+}

@@ -5,15 +5,12 @@ use std::net::TcpStream;
 use std::path::{Path, PathBuf};
 use std::sync::mpsc::channel;
 
-use codeskimr_application::ports::CredentialStore;
 use codeskimr_cli::GlobalOptions;
-use codeskimr_domain::CredentialId;
 use codeskimr_secrets::KeystoreCredentials;
-use secrecy::ExposeSecret;
 use serde_json::{Value, json};
 use tokio::sync::oneshot;
 
-use crate::consts::{TOKEN_CREDENTIAL_ID, URL_SCHEME};
+use crate::consts::URL_SCHEME;
 use crate::locations::Locations;
 use crate::mcp::http_service;
 use crate::memory_keystore::Memory;
@@ -58,15 +55,6 @@ fn post(url: &str, token: Option<&str>, body: &Value) -> (u16, Value) {
 
 fn rpc(id: u64, method: &str, params: &Value) -> Value {
     json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params})
-}
-
-fn stored_token(store: &KeystoreCredentials<Memory>) -> String {
-    let id = CredentialId::new(TOKEN_CREDENTIAL_ID).unwrap();
-    store
-        .with_credential(&id, |credential| {
-            Ok(credential.secret().expose_secret().to_owned())
-        })
-        .unwrap()
 }
 
 fn client(url: &str, token: &str) {
@@ -115,7 +103,7 @@ fn the_running_app_answers_mcp_at_slash_mcp_with_the_token_only() {
     let config = config_files::load(&locations, &GlobalOptions::default(), None).unwrap();
     let store = KeystoreCredentials::new(Memory::default());
     installation_token::load_or_create(&store).unwrap();
-    let token = stored_token(&store);
+    let token = installation_token::stored_token(&store);
     let mut parts = bare_parts(test_ui());
     parts.mcp = Some(http_service(&config, &locations, parts.events.clone()).unwrap());
     let (stop, stopped) = oneshot::channel::<()>();
