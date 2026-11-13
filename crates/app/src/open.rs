@@ -181,7 +181,7 @@ mod tests {
 
     use super::*;
     use crate::memory_keystore::Memory;
-    use crate::serve::{serve_for_test, test_ui};
+    use crate::serve::{bare_parts, serve_for_test, test_ui};
 
     /// The two answers to the exchange and the file the code was in.
     type Seen = (String, String, PathBuf);
@@ -283,7 +283,7 @@ mod tests {
             stop.send(()).unwrap();
             result
         });
-        serve_for_test(&*store, test_ui(), &found, stopped).unwrap();
+        serve_for_test(&*store, bare_parts(test_ui()), &found, stopped).unwrap();
         let (outcome, announced, (first, second, file)) = client.join().unwrap();
         outcome.unwrap();
         assert!(first.starts_with("HTTP/1.1 200"), "{first}");

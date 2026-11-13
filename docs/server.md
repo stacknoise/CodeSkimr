@@ -54,7 +54,7 @@ Messages have a `type` and ids and counts only: `scan_progressed` (`project`, `s
 
 ## Known limits
 
-- No command is exposed yet: `GET /api/v1/commands` answers `[]`. The feature packages register their commands in `serve.rs` (`command_api`).
+- The commands of the UI are registered in `crates/app/src/ui_commands/` (`command_api`): `projects.list` (read), `projects.add` (register_project, scan) and `projects.rescan` (scan). Feature packages add theirs there. `projects.add` takes an absolute folder path or a Git address without credentials, `projects.rescan` a project id; both run the scan on the thread of the call, publish progress on the event bus of the WebSocket and refuse a second scan of the same project with `PRJ-302`. A relative folder path is refused with `PRJ-101`, so the working folder of the server never decides what is scanned.
 - No OpenAPI document and no generated TypeScript client yet (needs `utoipa` and real command types, see ADR 0024).
 - The UI is served from the folder `ui.dir`; it is not embedded in the binary yet. The bare `codeskimr` does not start the app; use `codeskimr serve` and `codeskimr open`.
 - Launch file and browser start were run on Linux only.

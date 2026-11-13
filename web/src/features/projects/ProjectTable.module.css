@@ -1,0 +1,109 @@
+.wrap {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-panel);
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 860px;
+}
+
+.table th {
+    padding: var(--space-10) var(--space-8);
+    text-align: left;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 500;
+    border-bottom: 1px solid var(--line);
+}
+
+.table th:first-child,
+.table td:first-child {
+    padding-left: var(--space-16);
+}
+
+.table th:last-child,
+.table td:last-child {
+    padding-right: var(--space-16);
+}
+
+.table td {
+    padding: var(--space-12) var(--space-8);
+    border-bottom: 1px solid var(--line-soft);
+    vertical-align: top;
+}
+
+.languages {
+    width: 220px;
+}
+
+.number {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.row:hover {
+    background: var(--accent-bg);
+}
+
+.selected {
+    background: var(--accent-bg);
+}
+
+.name {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ink);
+    font: 600 13px var(--font-sans);
+    cursor: pointer;
+    text-align: left;
+}
+
+.name:hover {
+    color: var(--accent);
+}
+
+.path {
+    margin-top: 2px;
+    font: 12px var(--font-mono);
+    color: var(--muted);
+    overflow-wrap: anywhere;
+}
+
+.muted {
+    color: var(--muted);
+}
+
+.mono {
+    font: 12px var(--font-mono);
+}
+
+.state {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+}
+
+.rescan {
+    display: inline-flex;
+    padding: var(--space-4);
+    border: 0;
+    border-radius: var(--radius-button);
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+}
+
+.rescan:hover {
+    background: var(--bg);
+    color: var(--ink);
+}
+
+.rescan svg {
+    width: 16px;
+    height: 16px;
+}

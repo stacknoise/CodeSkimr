@@ -14,16 +14,31 @@ use std::sync::mpsc::channel;
 use std::thread;
 use std::time::Duration;
 
+use codeskimr_application::events::EventBus;
+use codeskimr_cli::GlobalOptions;
 use codeskimr_secrets::KeystoreCredentials;
 use tokio::sync::oneshot;
 
+use crate::locations::Locations;
 use crate::memory_keystore::Memory;
 use crate::open::{Plan, launch};
-use crate::serve::{serve_for_test, test_ui};
+use crate::serve::{Parts, serve_for_test, test_ui};
+use crate::ui_commands::command_api;
 
 const UI_DIR_VARIABLE: &str = "CODESKIMR_E2E_UI_DIR";
 const LAUNCH_COMMAND: &str = "launch";
+const LANGUAGES_PATH: &str = "../../languages";
 const CODE_LIFETIME: Duration = Duration::from_secs(60);
+
+/// Where the scans of the tests keep their data: a folder of its own, the packs of the repository.
+fn locations(data: &std::path::Path) -> Locations {
+    Locations {
+        data_dir: data.to_path_buf(),
+        languages_dir: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(LANGUAGES_PATH),
+        user_config: None,
+        bases: Vec::new(),
+    }
+}
 
 fn say(line: &str) {
     let mut out = stdout().lock();
@@ -59,8 +74,20 @@ fn serve_requests(store: &Arc<KeystoreCredentials<Memory>>, port: u16, stop: one
 #[ignore = "started by the end-to-end tests of web/"]
 fn e2e_server() {
     let ui_dir = PathBuf::from(std::env::var(UI_DIR_VARIABLE).unwrap());
+    let events = EventBus::new();
     let mut ui = test_ui();
     ui.dir = Some(ui_dir);
+    let data = tempfile::tempdir().unwrap();
+    let parts = Parts {
+        ui,
+        api: command_api(
+            &GlobalOptions::default(),
+            &locations(data.path()),
+            events.clone(),
+        )
+        .unwrap(),
+        events,
+    };
     let store = Arc::new(KeystoreCredentials::new(Memory::default()));
     let (stop, stopped) = oneshot::channel::<()>();
     let (found, url) = channel::<String>();
@@ -71,6 +98,6 @@ fn e2e_server() {
         let port = url.rsplit(':').next().unwrap().parse().unwrap();
         serve_requests(&for_requests, port, stop);
     });
-    serve_for_test(&*store, ui, &found, stopped).unwrap();
+    serve_for_test(&*store, parts, &found, stopped).unwrap();
     requests.join().unwrap();
 }

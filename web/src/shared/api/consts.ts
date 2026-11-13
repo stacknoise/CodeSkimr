@@ -17,3 +17,6 @@ export const MEDIA_JSON = "application/json";
 
 /** Status of an answer that refuses the token. */
 export const STATUS_UNAUTHORIZED = 401;
+
+/** Route prefix of the commands; the id of the command follows. */
+export const COMMANDS_PATH = "/api/v1/commands/";

@@ -8,9 +8,10 @@ use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::pipeline::{Job, JobResult, Scanner};
+use codeskimr_application::ports::ProjectRepository;
 use codeskimr_cli::{GlobalOptions, ScanArgs, ScanSummary};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Permission, Principal, Project, ProjectSource, ScanMode};
+use codeskimr_domain::{Permission, Principal, Project, ProjectId, ProjectSource, ScanMode};
 use codeskimr_storage::SqliteStore;
 
 use crate::config_files;
@@ -91,18 +92,98 @@ pub fn open(
     global: &GlobalOptions,
     locations: &Locations,
 ) -> Result<Session, CodedError> {
-    let project_dir = match &spec.source {
-        ProjectSource::Folder(folder) => Some(std::path::Path::new(folder.as_str())),
-        ProjectSource::Git { .. } => None,
-    };
-    let principal = principal::resolve();
+    open_on(
+        principal::resolve(),
+        spec,
+        global,
+        locations,
+        EventBus::new(),
+    )
+}
+
+/// Like [`open`], but the scanner publishes on `events`, so that whoever listens to that bus (the
+/// server's WebSocket) sees the progress.
+///
+/// # Errors
+/// The same as [`open`].
+pub fn open_on(
+    principal: Principal,
+    spec: SourceSpec,
+    global: &GlobalOptions,
+    locations: &Locations,
+    events: EventBus,
+) -> Result<Session, CodedError> {
     access::require(&principal, Permission::RegisterProject)?;
     access::require(&principal, Permission::Scan)?;
-    let config = config_files::load(locations, global, project_dir)?;
+    let config = config_files::load(locations, global, folder_of(&spec.source))?;
     let store = open_store(locations, &config)?;
     let project = register(&store, spec)?;
-    let events = EventBus::new();
-    let scanner = build_scanner(&store, &config, locations, events.clone())?;
+    session(
+        principal,
+        project,
+        config,
+        Wiring {
+            store: &store,
+            locations,
+            events,
+        },
+    )
+}
+
+/// The session of a project that is already registered.
+///
+/// # Errors
+/// `PRJ-201` if there is no such project, otherwise the same as [`open`].
+pub fn reopen(
+    principal: Principal,
+    project: ProjectId,
+    global: &GlobalOptions,
+    locations: &Locations,
+    events: EventBus,
+) -> Result<Session, CodedError> {
+    let defaults = config_files::load(locations, global, None)?;
+    let store = open_store(locations, &defaults)?;
+    let project = store.project(project)?;
+    let config = config_files::load(locations, global, folder_of(&project.source))?;
+    session(
+        principal,
+        project,
+        config,
+        Wiring {
+            store: &store,
+            locations,
+            events,
+        },
+    )
+}
+
+fn folder_of(source: &ProjectSource) -> Option<&std::path::Path> {
+    match source {
+        ProjectSource::Folder(folder) => Some(std::path::Path::new(folder.as_str())),
+        ProjectSource::Git { .. } => None,
+    }
+}
+
+/// What a session is built on.
+struct Wiring<'a> {
+    store: &'a std::sync::Arc<SqliteStore>,
+    locations: &'a Locations,
+    events: EventBus,
+}
+
+fn session(
+    principal: Principal,
+    project: Project,
+    config: Config,
+    wiring: Wiring<'_>,
+) -> Result<Session, CodedError> {
+    access::require(&principal, Permission::Scan)?;
+    let Wiring {
+        store,
+        locations,
+        events,
+    } = wiring;
+    let scanner = build_scanner(store, &config, locations, events.clone())?;
     Ok(Session {
         scanner,
         principal,
