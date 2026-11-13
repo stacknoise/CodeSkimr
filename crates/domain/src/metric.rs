@@ -5,10 +5,6 @@ use crate::consts::{METRIC_CA, METRIC_CC, METRIC_CE, METRIC_INSTABILITY, METRIC_
 use crate::symbol::SymbolId;
 use crate::vocabulary::labeled_enum;
 
-/// Lines of code.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
-pub struct Loc(pub u32);
-
 labeled_enum!(
     /// What a metric measures.
     MetricKind {
