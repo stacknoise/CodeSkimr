@@ -1,4 +1,4 @@
--- Schema version 5: a reference says whether level 2 produced it (ADR 0032). Every reference that
+-- Schema version 5: a reference says whether level 2 produced it (ADR 0033). Every reference that
 -- exists so far comes from level 1 and is unchecked.
 
 ALTER TABLE symbol_references ADD COLUMN verified INTEGER NOT NULL DEFAULT 0;

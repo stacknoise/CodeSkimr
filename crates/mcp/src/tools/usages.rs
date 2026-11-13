@@ -227,7 +227,7 @@ impl Tools {
             depth.clamped.then_some(depth.value),
         );
         let mut usages: Vec<Usage> = page.entries.iter().map(usage).collect();
-        usages.sort_by_key(|found| !found.verified);
+        usages.sort_by_key(|found| (!found.verified, found.depth));
         let verified = usages.iter().filter(|found| found.verified).count();
         to_json(&UsagesAnswer {
             snapshot: scope.info,
@@ -274,7 +274,7 @@ impl Tools {
             .map(|symbol| affected(&scope.project, symbol))
             .collect();
         let mut symbols = symbols;
-        symbols.sort_by_key(|symbol| !symbol.verified);
+        symbols.sort_by_key(|symbol| (!symbol.verified, symbol.depth));
         let verified = symbols.iter().filter(|symbol| symbol.verified).count();
         let notice = cut_notice(limit.value, limit.clamped, symbols.len(), page.total, None);
         to_json(&ImpactAnswer {

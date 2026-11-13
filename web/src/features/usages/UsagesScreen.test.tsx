@@ -69,7 +69,7 @@ describe("UsagesScreen", () => {
     expect(screen.getByText("0 places verified, 3 unchecked, 1 of them presumed.")).toBeTruthy();
     expect(
       screen.getByText(
-        "Reached through verified references: 0, only through unchecked references: 5.",
+        "Of the listed symbols, reached through verified references: 0, only through unchecked references: 5.",
       ),
     ).toBeTruthy();
   });
