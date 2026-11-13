@@ -155,19 +155,21 @@ fn load_namespaces(
     Ok(names)
 }
 
+/// The columns of a project row: name, source kind, location, branch, credential name.
+fn project_columns(row: &Row<'_>) -> rusqlite::Result<(String, String, String, String, String)> {
+    Ok((
+        row.get(0)?,
+        row.get(1)?,
+        row.get(2)?,
+        row.get(3)?,
+        row.get(4)?,
+    ))
+}
+
 fn load_project(conn: &Connection, id: ProjectId) -> StorageResult<Project> {
     let raw = column_int(id.get())?;
-    let row: Option<(String, String, String, String, String)> = conn
-        .query_row(sql::PROJECT_BY_ID, params![raw], |row| {
-            let cols = Cols::new(row);
-            Ok((
-                cols.take()?,
-                cols.take()?,
-                cols.take()?,
-                cols.take()?,
-                cols.take()?,
-            ))
-        })
+    let row = conn
+        .query_row(sql::PROJECT_BY_ID, params![raw], project_columns)
         .optional()?;
     let (name, kind, location, branch, credential) = row.ok_or(StorageError::ProjectNotFound)?;
     Ok(Project {
