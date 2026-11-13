@@ -1,0 +1,20 @@
+# Ruby language pack, basic tier (blueprint 8.2, WP-66): types and methods, spans, lines, CC.
+# Mapping: class -> class, module -> namespace, `def` inside a class or module -> method,
+# `def self.x` -> method, top-level `def` -> function. Ruby has no visibility keywords before a
+# declaration (`private` is a call), so symbols carry no visibility.
+id = "ruby"
+grammar = "ruby"
+tier = "basic"
+extensions = ["rb"]
+separator = "::"
+comment_nodes = ["comment"]
+manifest_files = ["Gemfile", "*.gemspec", "Rakefile"]
+test_patterns = ["**/*_spec.rb", "**/test_*.rb", "**/*_test.rb", "spec/**/*.rb", "test/**/*.rb"]
+identifier_nodes = [
+    "identifier",
+    "constant",
+    "instance_variable",
+    "class_variable",
+    "global_variable",
+]
+literal_nodes = ["integer", "float", "string", "symbol", "simple_symbol", "true", "false", "nil"]

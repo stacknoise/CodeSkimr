@@ -1,0 +1,132 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 19,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample.point"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample.color"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample.value"
+    },
+    {
+      "decisions": 3,
+      "loc": 8,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample.find"
+    },
+    {
+      "decisions": 1,
+      "loc": 3,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample.main"
+    }
+  ],
+  "loc": 19,
+  "references": [
+    {
+      "at": "24:11",
+      "from": "sample.main",
+      "kind": "call",
+      "target": "find"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "sample",
+      "parent": null,
+      "span": "0:0-26:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "struct",
+      "name": "sample.point",
+      "parent": "sample",
+      "span": "3:0-6:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "enum",
+      "name": "sample.color",
+      "parent": "sample",
+      "span": "8:0-8:25",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "union",
+      "name": "sample.value",
+      "parent": "sample",
+      "span": "10:0-10:31",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "type_alias",
+      "name": "sample.pair",
+      "parent": "sample",
+      "span": "12:0-12:31",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "sample.find",
+      "parent": "sample",
+      "span": "14:0-21:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "sample.main",
+      "parent": "sample",
+      "span": "23:0-25:1",
+      "static": false,
+      "visibility": null
+    }
+  ]
+}

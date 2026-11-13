@@ -1,0 +1,27 @@
+# Go language pack, basic tier (blueprint 8.2, WP-66): types and functions, spans, lines, CC.
+# Mapping onto the language-neutral symbol kinds:
+#   type X struct{}     -> struct       type X interface{}   -> interface
+#   type X Y, type X = Y -> type_alias  func f()             -> function
+#   func (r T) m()      -> method
+# Go has no visibility keywords (capitalisation decides), so symbols carry no visibility.
+id = "go"
+grammar = "go"
+tier = "basic"
+extensions = ["go"]
+separator = "."
+comment_nodes = ["comment"]
+manifest_files = ["go.mod", "go.work"]
+test_patterns = ["**/*_test.go"]
+# Syntax fingerprints: all names alike, literals by kind only.
+identifier_nodes = ["identifier", "field_identifier", "type_identifier", "package_identifier"]
+literal_nodes = [
+    "int_literal",
+    "float_literal",
+    "imaginary_literal",
+    "rune_literal",
+    "interpreted_string_literal",
+    "raw_string_literal",
+    "true",
+    "false",
+    "nil",
+]

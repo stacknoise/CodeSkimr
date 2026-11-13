@@ -41,4 +41,4 @@ pub use analyzer::TreeSitterAnalyzer;
 pub use error::ParsingError;
 pub use manifest::Tier;
 pub use pack::LanguagePack;
-pub use packs::LanguagePacks;
+pub use packs::{LanguagePacks, PackSummary};

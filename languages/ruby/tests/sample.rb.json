@@ -1,0 +1,163 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 20,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample"
+    },
+    {
+      "decisions": null,
+      "loc": 17,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample::Shop"
+    },
+    {
+      "decisions": null,
+      "loc": 15,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample::Shop::Order"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample::Shop::Order::initialize"
+    },
+    {
+      "decisions": 3,
+      "loc": 7,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample::Shop::Order::total"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample::Shop::Order::build"
+    },
+    {
+      "decisions": 1,
+      "loc": 3,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample::helper"
+    }
+  ],
+  "loc": 20,
+  "references": [
+    {
+      "at": "18:6",
+      "from": "sample::Shop::Order::build",
+      "kind": "call",
+      "target": "new"
+    },
+    {
+      "at": "24:4",
+      "from": "sample::helper",
+      "kind": "call",
+      "target": "each"
+    },
+    {
+      "at": "24:15",
+      "from": "sample::helper",
+      "kind": "call",
+      "target": "puts"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "sample",
+      "parent": null,
+      "span": "0:0-26:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "sample::Shop",
+      "parent": "sample",
+      "span": "1:0-21:3",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "sample::Shop::Order",
+      "parent": "sample::Shop",
+      "span": "3:2-20:5",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample::Shop::Order::initialize",
+      "parent": "sample::Shop::Order",
+      "span": "4:4-6:7",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample::Shop::Order::total",
+      "parent": "sample::Shop::Order",
+      "span": "9:4-15:7",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample::Shop::Order::build",
+      "parent": "sample::Shop::Order",
+      "span": "17:4-19:7",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "sample::helper",
+      "parent": "sample",
+      "span": "23:0-25:3",
+      "static": false,
+      "visibility": null
+    }
+  ]
+}
