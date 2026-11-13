@@ -13,7 +13,7 @@ use criterion::Criterion;
 
 mod common;
 
-use common::{SCRATCH, build_binary, build_corpus, root};
+use common::{SCRATCH, build_binary, build_corpus, measure, root};
 
 const SAMPLES: usize = 10;
 const MEASUREMENT_SECONDS: u64 = 30;
@@ -52,17 +52,12 @@ fn scans(c: &mut Criterion) -> io::Result<()> {
     let corpus = build_corpus(&scratch)?;
     let binary = build_binary()?;
     let data = scratch.join("data");
-    let mut group = c.benchmark_group("scan");
-    group.sample_size(SAMPLES);
-    group.measurement_time(Duration::from_secs(MEASUREMENT_SECONDS));
-    group.bench_function("full_100k_loc", |b| {
-        b.iter_custom(|iterations| {
-            (0..iterations)
-                .map(|_| scan_once(&binary, &corpus, &data).unwrap_or(Duration::MAX))
-                .fold(Duration::ZERO, Duration::saturating_add)
-        });
-    });
-    group.finish();
+    measure(
+        c,
+        ("scan", "full_100k_loc"),
+        (SAMPLES, MEASUREMENT_SECONDS),
+        || scan_once(&binary, &corpus, &data),
+    );
     Ok(())
 }
 

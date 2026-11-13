@@ -13,7 +13,7 @@ use criterion::Criterion;
 
 mod common;
 
-use common::{SCRATCH, build_binary, build_corpus, root};
+use common::{SCRATCH, build_binary, build_corpus, measure, root};
 
 const SAMPLES: usize = 30;
 const MEASUREMENT_SECONDS: u64 = 20;
@@ -114,17 +114,12 @@ fn rescans(c: &mut Criterion) -> io::Result<()> {
     for _ in 0..WARM_UP_RESCANS {
         watch.rescan()?;
     }
-    let mut group = c.benchmark_group("rescan");
-    group.sample_size(SAMPLES);
-    group.measurement_time(Duration::from_secs(MEASUREMENT_SECONDS));
-    group.bench_function("one_file_100k_loc", |b| {
-        b.iter_custom(|iterations| {
-            (0..iterations)
-                .map(|_| watch.rescan().unwrap_or(Duration::MAX))
-                .fold(Duration::ZERO, Duration::saturating_add)
-        });
-    });
-    group.finish();
+    measure(
+        c,
+        ("rescan", "one_file_100k_loc"),
+        (SAMPLES, MEASUREMENT_SECONDS),
+        || watch.rescan(),
+    );
     Ok(())
 }
 

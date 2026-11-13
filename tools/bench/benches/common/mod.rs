@@ -5,6 +5,9 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::Duration;
+
+use criterion::Criterion;
 
 use codeskimr_bench::random::Lcg;
 
@@ -83,4 +86,25 @@ pub fn build_binary() -> io::Result<PathBuf> {
         return Err(io::Error::other("building the codeskimr binary failed"));
     }
     Ok(root().join("target/release/codeskimr"))
+}
+
+/// Runs a benchmark whose iteration reports its own duration; a failed run counts as the longest
+/// possible time, so that the budget check fails.
+pub fn measure(
+    c: &mut Criterion,
+    (group, name): (&str, &str),
+    (samples, seconds): (usize, u64),
+    mut run: impl FnMut() -> io::Result<Duration>,
+) {
+    let mut group = c.benchmark_group(group);
+    group.sample_size(samples);
+    group.measurement_time(Duration::from_secs(seconds));
+    group.bench_function(name, |b| {
+        b.iter_custom(|iterations| {
+            (0..iterations)
+                .map(|_| run().unwrap_or(Duration::MAX))
+                .fold(Duration::ZERO, Duration::saturating_add)
+        });
+    });
+    group.finish();
 }
