@@ -7,6 +7,7 @@ use crate::consts::{
     KIND_UNION, VISIBILITY_INTERNAL, VISIBILITY_PRIVATE, VISIBILITY_PROTECTED, VISIBILITY_PUBLIC,
 };
 use crate::file::FileId;
+use crate::qualified_name::QualifiedName;
 use crate::span::Span;
 use crate::vocabulary::{id_type, labeled_enum, text_type};
 
@@ -17,10 +18,6 @@ id_type!(
 text_type!(
     /// Simple name of a symbol.
     SymbolName
-);
-text_type!(
-    /// Fully qualified name of a symbol, such as `Namespace.Type.member`.
-    QualifiedName
 );
 
 labeled_enum!(

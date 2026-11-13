@@ -1,5 +1,6 @@
 //! Registered repositories and their source.
 
+use crate::qualified_name::QualifiedName;
 use crate::vocabulary::{id_type, text_type};
 
 id_type!(
@@ -47,7 +48,7 @@ pub struct Layer {
     /// Name of the layer.
     pub name: LayerName,
     /// Namespaces that belong to the layer.
-    pub namespaces: Vec<crate::symbol::QualifiedName>,
+    pub namespaces: Vec<QualifiedName>,
 }
 
 /// A registered repository.

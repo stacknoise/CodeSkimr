@@ -9,6 +9,7 @@ mod file;
 mod layer;
 mod metric;
 mod project;
+mod qualified_name;
 mod reference;
 mod snapshot;
 mod span;
@@ -23,7 +24,8 @@ pub use project::{
     BranchName, FolderPath, GitUrl, Layer, LayerName, Project, ProjectId, ProjectName,
     ProjectSource,
 };
+pub use qualified_name::QualifiedName;
 pub use reference::{Confidence, Reference, ReferenceId, ReferenceKind};
 pub use snapshot::{CommitHash, ScanMode, Snapshot, SnapshotId, SnapshotStats, Timestamp};
 pub use span::{Position, Span};
-pub use symbol::{QualifiedName, Symbol, SymbolId, SymbolKind, SymbolName, Visibility};
+pub use symbol::{Symbol, SymbolId, SymbolKind, SymbolName, Visibility};
