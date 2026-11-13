@@ -7,8 +7,8 @@
 use std::fs;
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::time::Duration;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::ports::FetchedSource;
@@ -19,9 +19,6 @@ use crate::consts::{
     SHALLOW_CLONE_DEPTH, WORK_PREFIX, WORK_SEPARATOR,
 };
 use crate::error::{SourceError, error_chain_text};
-
-/// Counts work folders of this process, so concurrent fetches never share one.
-static WORK_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 /// Clones Git repositories below `cache_root`, one folder per URL and branch.
 #[derive(Debug, Clone)]
@@ -90,10 +87,14 @@ struct WorkFolder {
 
 impl WorkFolder {
     fn new(cache_root: &Path) -> Self {
+        // Process, thread and time tell concurrent fetches apart without shared state.
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_or(0, |elapsed| elapsed.as_nanos());
         let id = format!(
-            "{WORK_PREFIX}{}{WORK_SEPARATOR}{}",
+            "{WORK_PREFIX}{}{WORK_SEPARATOR}{:?}{WORK_SEPARATOR}{nanos}",
             std::process::id(),
-            WORK_COUNTER.fetch_add(1, Ordering::Relaxed)
+            std::thread::current().id()
         );
         Self {
             fresh: cache_root.join(&id),

@@ -33,7 +33,7 @@ pub const AUTH_FAILURE_HINTS: [&str; 4] = [
     "failed to obtain credentials",
     "could not obtain identity",
     "authentication failed",
-    "permission denied",
+    "permission denied (publickey",
 ];
 
 /// Phrase in a fetch error that shows the requested branch does not exist (lower case).
