@@ -83,3 +83,82 @@ pub const EXIT_USAGE: u8 = 2;
 
 /// Ends a printed line.
 pub const LINE_BREAK: &str = "\n";
+
+/// Environment variable that sets the log level (`error`, `warn`, `info`, `debug`, `trace`, `off`).
+pub const ENV_LOG: &str = "CODESKIMR_LOG";
+/// Log level when `CODESKIMR_LOG` is not set or not understood.
+pub const DEFAULT_LOG_LEVEL: tracing_subscriber::filter::LevelFilter =
+    tracing_subscriber::filter::LevelFilter::WARN;
+
+/// Replaces every secret that is removed from a log line.
+pub const REDACTED: &str = "[redacted]";
+/// Header and field names whose value runs to the end of the line, case-insensitive.
+pub const LINE_KEYS: [&str; 2] = ["authorization", "cookie"];
+/// Field and parameter names whose value is one word, case-insensitive.
+pub const VALUE_KEYS: [&str; 11] = [
+    "passphrase",
+    "password",
+    "passwd",
+    "secret",
+    "token",
+    "api_key",
+    "api-key",
+    "apikey",
+    "private_key",
+    "credential",
+    "session_id",
+];
+/// Scheme word of a bearer token; its value follows after a blank, case-insensitive.
+pub const BEARER_KEY: &str = "bearer";
+/// Separates a key from its value.
+pub const KEY_SEPARATORS: [char; 3] = [':', '=', '('];
+/// Quote characters around a key or a value.
+pub const QUOTES: [char; 2] = ['"', '\''];
+/// Blanks between a key, its separator and its value.
+pub const BLANKS: [char; 2] = [' ', '\t'];
+/// Characters that end an unquoted one-word value. A secret may contain commas and brackets, so
+/// only the ones that separate parameters or open a quote end it.
+pub const VALUE_END: [char; 3] = ['&', '"', '\''];
+/// Follows the separator in `"key" => "value"`.
+pub const ARROW: char = '>';
+/// Opens the content of a `Debug`-formatted wrapper such as `Some("x")` or `Token("x")`.
+pub const CALL_OPEN: char = '(';
+/// Beginning of a PEM block.
+pub const PEM_BEGIN: &str = "-----BEGIN ";
+/// What the header of a PEM block says if the block holds a private key.
+pub const PEM_PRIVATE: &str = "PRIVATE KEY";
+/// Beginning of the last line of a PEM block.
+pub const PEM_END: &str = "-----END ";
+/// Beginnings of well-known tokens: GitHub, GitLab, Slack, AWS, JWT, API keys.
+pub const TOKEN_PREFIXES: [&str; 22] = [
+    "ASIA",
+    "sk_live_",
+    "sk_test_",
+    "npm_",
+    "xapp-",
+    "xoxe-",
+    "xoxs-",
+    "xoxr-",
+    "github_pat_",
+    "ghp_",
+    "gho_",
+    "ghu_",
+    "ghs_",
+    "ghr_",
+    "glpat-",
+    "xoxa-",
+    "xoxb-",
+    "xoxp-",
+    "AKIA",
+    "eyJ",
+    "sk-",
+    "AIza",
+];
+/// A token has at least this many characters after its beginning; shorter runs are words.
+pub const TOKEN_MIN_TAIL: usize = 16;
+/// Characters besides letters and digits that occur inside tokens.
+pub const TOKEN_EXTRA_CHARS: [char; 3] = ['_', '-', '.'];
+/// Ends a line of log output.
+pub const LINE_END: char = '\n';
+/// Escapes a quote inside a `Debug`-formatted text.
+pub const ESCAPE: char = '\\';

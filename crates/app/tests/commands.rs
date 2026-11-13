@@ -85,6 +85,48 @@ fn scan_finds_files_and_symbols_and_writes_a_snapshot() {
     assert!(summary["snapshot"].as_u64().unwrap() >= 1);
 }
 
+/// A secret in this shape is found by the redaction, so it must never be printed.
+const TOKEN_CANARY: &str = "ghp_CANARY7f3a9c1e5b2d4f60aa11bb22";
+
+#[test]
+fn the_log_level_never_moves_log_lines_to_standard_output() {
+    let workspace = Workspace::new();
+    let output = workspace
+        .command()
+        .env("CODESKIMR_LOG", "trace")
+        .args(["scan", "--json"])
+        .arg(workspace.project())
+        .output()
+        .unwrap();
+    assert_eq!(json_of(&output)["files"], 1);
+    assert!(!String::from_utf8_lossy(&output.stdout).contains("DEBUG"));
+}
+
+#[test]
+fn canaries_in_arguments_reach_neither_the_log_nor_the_error_output() {
+    let workspace = Workspace::new();
+    let url = format!("https://user:{TOKEN_CANARY}@host.example/repo.git");
+    let flag = format!("--json={TOKEN_CANARY}");
+    for extra in [url, flag] {
+        let output = workspace
+            .command()
+            .env("CODESKIMR_LOG", "debug")
+            .env("CODESKIMR_CANARY", TOKEN_CANARY)
+            .arg("scan")
+            .arg(workspace.project())
+            .arg(extra)
+            .output()
+            .unwrap();
+        let (out, err) = (String::from_utf8_lossy(&output.stdout), stderr(&output));
+        assert!(!output.status.success());
+        assert!(err.contains("DEBUG"), "the log line is missing: {err}");
+        assert!(
+            !out.contains("CANARY") && !err.contains("CANARY"),
+            "leaked: {out}{err}"
+        );
+    }
+}
+
 #[test]
 fn scanning_again_reuses_the_project_and_adds_a_snapshot() {
     let workspace = Workspace::new();
