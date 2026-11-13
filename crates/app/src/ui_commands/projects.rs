@@ -219,12 +219,15 @@ impl Command for AddProject {
             return Err(SourceError::NotASource.into());
         }
         let context = &self.context;
+        let registering = context.registering();
         let session = open_on(
+            *request.principal,
             spec,
             &context.global,
             &context.locations,
             context.events.clone(),
         )?;
+        drop(registering);
         let id = session.project().id;
         let _scanning = context.running.start(id)?;
         let summary = session.scan(ScanMode::Full)?;
@@ -267,6 +270,7 @@ impl Command for RescanProject {
             .iter()
             .any(|overview| overview.project.id == id && overview.latest.is_some());
         let session = reopen(
+            *request.principal,
             id,
             &context.global,
             &context.locations,

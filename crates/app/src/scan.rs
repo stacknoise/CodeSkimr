@@ -92,7 +92,13 @@ pub fn open(
     global: &GlobalOptions,
     locations: &Locations,
 ) -> Result<Session, CodedError> {
-    open_on(spec, global, locations, EventBus::new())
+    open_on(
+        principal::resolve(),
+        spec,
+        global,
+        locations,
+        EventBus::new(),
+    )
 }
 
 /// Like [`open`], but the scanner publishes on `events`, so that whoever listens to that bus (the
@@ -101,18 +107,27 @@ pub fn open(
 /// # Errors
 /// The same as [`open`].
 pub fn open_on(
+    principal: Principal,
     spec: SourceSpec,
     global: &GlobalOptions,
     locations: &Locations,
     events: EventBus,
 ) -> Result<Session, CodedError> {
-    let principal = principal::resolve();
     access::require(&principal, Permission::RegisterProject)?;
     access::require(&principal, Permission::Scan)?;
     let config = config_files::load(locations, global, folder_of(&spec.source))?;
     let store = open_store(locations, &config)?;
     let project = register(&store, spec)?;
-    session(project, config, &store, locations, events)
+    session(
+        principal,
+        project,
+        config,
+        Wiring {
+            store: &store,
+            locations,
+            events,
+        },
+    )
 }
 
 /// The session of a project that is already registered.
@@ -120,6 +135,7 @@ pub fn open_on(
 /// # Errors
 /// `PRJ-201` if there is no such project, otherwise the same as [`open`].
 pub fn reopen(
+    principal: Principal,
     project: ProjectId,
     global: &GlobalOptions,
     locations: &Locations,
@@ -129,7 +145,16 @@ pub fn reopen(
     let store = open_store(locations, &defaults)?;
     let project = store.project(project)?;
     let config = config_files::load(locations, global, folder_of(&project.source))?;
-    session(project, config, &store, locations, events)
+    session(
+        principal,
+        project,
+        config,
+        Wiring {
+            store: &store,
+            locations,
+            events,
+        },
+    )
 }
 
 fn folder_of(source: &ProjectSource) -> Option<&std::path::Path> {
@@ -139,15 +164,25 @@ fn folder_of(source: &ProjectSource) -> Option<&std::path::Path> {
     }
 }
 
+/// What a session is built on.
+struct Wiring<'a> {
+    store: &'a std::sync::Arc<SqliteStore>,
+    locations: &'a Locations,
+    events: EventBus,
+}
+
 fn session(
+    principal: Principal,
     project: Project,
     config: Config,
-    store: &std::sync::Arc<SqliteStore>,
-    locations: &Locations,
-    events: EventBus,
+    wiring: Wiring<'_>,
 ) -> Result<Session, CodedError> {
-    let principal = principal::resolve();
     access::require(&principal, Permission::Scan)?;
+    let Wiring {
+        store,
+        locations,
+        events,
+    } = wiring;
     let scanner = build_scanner(store, &config, locations, events.clone())?;
     Ok(Session {
         scanner,

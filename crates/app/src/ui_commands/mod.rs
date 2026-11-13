@@ -8,7 +8,7 @@ mod running;
 #[cfg(test)]
 mod tests;
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
@@ -28,6 +28,17 @@ pub struct Context {
     locations: Locations,
     events: EventBus,
     running: RunningScans,
+    registration: Mutex<()>,
+}
+
+impl Context {
+    /// Held while a source is registered, so two adds of the same new source cannot both pick
+    /// the next project id.
+    fn registering(&self) -> MutexGuard<'_, ()> {
+        self.registration
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+    }
 }
 
 /// Registers the commands and exposes them over REST.
@@ -47,6 +58,7 @@ pub fn command_api(
         locations: locations.clone(),
         events,
         running: RunningScans::default(),
+        registration: Mutex::new(()),
     });
     let mut registry = Registry::new();
     registry

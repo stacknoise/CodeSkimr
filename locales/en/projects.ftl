@@ -41,3 +41,4 @@ projects-open = Open { $name }
 projects-list-label = Projects
 projects-language-mix = { $name } { $percent } %
 projects-never = never
+projects-header = { $summary } · { $hints }

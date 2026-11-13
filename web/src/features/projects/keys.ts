@@ -1,5 +1,5 @@
 import { onCleanup, onMount } from "solid-js";
-import { KEY, STEP_DOWN, STEP_UP, TYPING_TAGS } from "./consts";
+import { KEY, PRESSABLE_TAGS, STEP_DOWN, STEP_UP, TYPING_TAGS } from "./consts";
 
 /** What the keys of the project list do. */
 export interface ProjectKeys {
@@ -7,6 +7,13 @@ export interface ProjectKeys {
   rescan: () => void;
   open: () => void;
   move: (step: number) => void;
+}
+
+/** A button or a link gets `Enter` itself: it must not open the selected project instead. */
+function pressable(target: EventTarget | null): boolean {
+  return (
+    target instanceof HTMLElement && (PRESSABLE_TAGS as readonly string[]).includes(target.tagName)
+  );
 }
 
 function typing(target: EventTarget | null): boolean {
@@ -20,6 +27,9 @@ function typing(target: EventTarget | null): boolean {
 export function useProjectKeys(keys: ProjectKeys): void {
   const onKey = (event: KeyboardEvent) => {
     if (event.ctrlKey || event.altKey || event.metaKey || typing(event.target)) {
+      return;
+    }
+    if (event.key === KEY.open && pressable(event.target)) {
       return;
     }
     const handled = dispatch(event.key, keys);

@@ -97,3 +97,6 @@ export const STEP_DOWN = 1;
 export const STEP_UP = -1;
 /** Index of a project that is not in the list. */
 export const NOT_FOUND = -1;
+
+/** Elements that act on `Enter` themselves. */
+export const PRESSABLE_TAGS = ["BUTTON", "A"] as const;

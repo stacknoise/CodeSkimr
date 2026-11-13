@@ -148,6 +148,7 @@ export const I18N_KEYS = {
   PROJECTS_LIST_LABEL: "projects-list-label",
   PROJECTS_LANGUAGE_MIX: "projects-language-mix",
   PROJECTS_NEVER: "projects-never",
+  PROJECTS_HEADER: "projects-header",
   SCAN_TITLE: "scan-title",
   SCAN_STATE_RUNNING: "scan-state-running",
   SCAN_STATE_DONE: "scan-state-done",

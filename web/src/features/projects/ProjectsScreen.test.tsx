@@ -171,6 +171,16 @@ describe("ProjectsScreen", () => {
     );
   });
 
+  it("leaves Enter to a focused button instead of opening the project", async () => {
+    serve({ "projects.list": () => answer([ROW]) });
+    render(() => <ProjectsScreen />);
+    await screen.findByText("shop");
+    fireEvent.keyDown(document, { key: "ArrowDown" });
+    const button = screen.getByRole("button", { name: "Add and scan" });
+    const allowed = fireEvent.keyDown(button, { key: "Enter", cancelable: true });
+    expect(allowed).toBe(true);
+  });
+
   it("speaks German when the language is German", async () => {
     setLanguage("de");
     serve({ "projects.list": () => answer([ROW]) });
