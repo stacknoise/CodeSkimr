@@ -1,6 +1,7 @@
 //! The credential commands through the same path the server takes.
 
 use codeskimr_application::ports::{AuthError, CredentialStore};
+use codeskimr_codes::Coded;
 use codeskimr_domain::CredentialId;
 use secrecy::ExposeSecret;
 use serde_json::{Value, json};
@@ -102,4 +103,31 @@ fn a_project_cannot_log_in_with_the_installation_token_or_a_credential_for_a_fol
         json!({ "source": fixture.folder(), "credential": "work" }),
     );
     assert_eq!(folder, Err("PRJ-101"));
+}
+
+#[test]
+fn a_principal_without_the_rights_cannot_touch_credentials() {
+    let fixture = Fixture::installed(None);
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .build()
+        .unwrap();
+    let nobody = crate::principal::nobody();
+    let inputs = [
+        (
+            "credentials.set",
+            json!({ "id": "work", "user": "anton", "secret": SECRET }),
+        ),
+        ("credentials.delete", json!({ "id": "work" })),
+        ("credentials.list", Value::Null),
+    ];
+    for (id, input) in inputs {
+        let refused = runtime
+            .block_on(fixture.api.run(nobody, id, input))
+            .map_err(|error| error.code().entry().id);
+        assert_eq!(refused.unwrap_err(), "AUTH-401", "{id}");
+    }
+    // The control: nothing was stored, while the owner can store.
+    let id = CredentialId::new("work").unwrap();
+    assert!(fixture.secrets.with_credential(&id, |_| Ok(())).is_err());
+    assert!(set(&fixture, "work", SECRET).is_ok());
 }
