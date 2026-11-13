@@ -493,3 +493,40 @@ fn watch_of_a_git_url_fails_with_cli_102_before_anything_is_registered() {
     assert!(stderr(&output).contains("CLI-102"));
     assert!(!workspace.root.path().join("data/codeskimr.db").exists());
 }
+
+#[test]
+fn a_credential_for_a_folder_is_refused() {
+    let workspace = Workspace::new();
+    let output = workspace.scan(&["--credential", "work"]);
+    assert_eq!(output.status.code(), Some(1));
+    assert!(stderr(&output).contains("PRJ-101"));
+}
+
+#[test]
+fn an_empty_standard_input_stores_no_secret() {
+    let workspace = Workspace::new();
+    let mut child = workspace
+        .command()
+        .args(["credential", "set", "work", "--user", "anton"])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    drop(child.stdin.take());
+    let output = child.wait_with_output().unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    assert!(stderr(&output).contains("CLI-103"));
+}
+
+#[test]
+fn the_installation_token_is_not_a_credential_to_manage() {
+    let workspace = Workspace::new();
+    let output = workspace
+        .command()
+        .args(["credential", "delete", "installation-token"])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+    assert!(stderr(&output).contains("CLI-101"));
+}

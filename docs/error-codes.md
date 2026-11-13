@@ -96,6 +96,7 @@ Owner: `codeskimr_secrets`
 | Code | Name | Severity | Retryable | Since | Description |
 |---|---|---|---|---|---|
 | SEC-201 | `credential_not_found` | error | no | 0.1.0 | The referenced credential does not exist in the keystore. |
+| SEC-202 | `credential_damaged` | error | no | 0.1.0 | The keystore entry of the credential cannot be read; delete it and create the credential again. |
 | SEC-401 | `credential_rejected` | error | no | 0.1.0 | The platform rejected the credential. |
 | SEC-402 | `keystore_access_denied` | error | no | 0.1.0 | The OS keystore denied access. |
 | SEC-601 | `keystore_unavailable` | error | no | 0.1.0 | The OS keystore service is not available. |
@@ -155,6 +156,7 @@ Owner: `codeskimr_cli`
 |---|---|---|---|---|---|
 | CLI-101 | `cli_arguments_invalid` | error | no | 0.1.0 | Command-line arguments are invalid. |
 | CLI-102 | `watch_needs_folder` | error | no | 0.1.0 | Watch mode needs a local folder; a Git URL cannot be watched. |
+| CLI-103 | `secret_input_invalid` | error | no | 0.1.0 | No secret could be read from the terminal or standard input, or it was empty. |
 
 ## I18N – Translations
 

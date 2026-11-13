@@ -27,9 +27,13 @@ pub const AUTH_FAILURE_HINTS: [&str; 4] = [
     "permission denied (publickey",
 ];
 
-/// Phrase in a transport error that shows the remote refused the credential it was given (lower
-/// case).
-pub const REJECTED_CREDENTIAL_HINT: &str = "were not accepted by the remote";
+/// Settings that every clone starts with: no prompt on the terminal. A server, an MCP session or a
+/// scan in the background cannot answer a prompt and would hang (issue #58).
+pub const CLONE_CONFIG_OVERRIDES: [&str; 1] = ["gitoxide.credentials.terminalPrompt=false"];
+
+/// Phrase in a transport error for HTTP status 404 (lower case). `gix` has no variant for it, so
+/// the text is the only sign; `tests/login.rs` fails if a `gix` update changes it.
+pub const HTTP_NOT_FOUND_HINT: &str = "received http status 404";
 
 /// Phrase in a fetch error that shows the requested branch does not exist (lower case).
 pub const MISSING_BRANCH_HINT: &str = "didn't have any ref that matched";

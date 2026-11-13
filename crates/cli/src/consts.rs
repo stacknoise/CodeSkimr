@@ -16,6 +16,41 @@ pub const COMMAND_OPEN: &str = "open";
 /// Flag of `open` that keeps the browser from starting.
 pub const ARG_NO_BROWSER: &str = "no-browser";
 
+/// Sub-command that manages credentials for Git sources.
+pub const COMMAND_CREDENTIAL: &str = "credential";
+/// Sub-command of `credential` that stores a credential.
+pub const COMMAND_CREDENTIAL_SET: &str = "set";
+/// Sub-command of `credential` that removes a credential.
+pub const COMMAND_CREDENTIAL_DELETE: &str = "delete";
+/// Sub-command of `credential` that signs in with the OAuth device flow.
+pub const COMMAND_CREDENTIAL_LOGIN: &str = "login";
+/// Argument id of the credential name.
+pub const ARG_ID: &str = "id";
+/// Placeholder shown for the credential name.
+pub const VALUE_ID: &str = "ID";
+/// Argument id and long flag of the user name of a credential.
+pub const ARG_USER: &str = "user";
+/// Placeholder shown for the user name.
+pub const VALUE_USER: &str = "USER";
+/// Argument id and long flag of the platform.
+pub const ARG_PROVIDER: &str = "provider";
+/// Placeholder shown for the platform.
+pub const VALUE_PROVIDER: &str = "PROVIDER";
+/// Value of `--provider` for GitHub.
+pub const PROVIDER_GITHUB: &str = "github";
+/// Value of `--provider` for GitLab.
+pub const PROVIDER_GITLAB: &str = "gitlab";
+/// Argument id and long flag of the OAuth application id.
+pub const ARG_CLIENT_ID: &str = "client-id";
+/// Placeholder shown for the OAuth application id.
+pub const VALUE_CLIENT_ID: &str = "CLIENT-ID";
+/// Argument id and long flag of the address of a self-managed installation.
+pub const ARG_HOST: &str = "host";
+/// Placeholder shown for the address of a self-managed installation.
+pub const VALUE_HOST: &str = "URL";
+/// Argument id and long flag of the credential of a Git source.
+pub const ARG_CREDENTIAL: &str = "credential";
+
 /// Sub-command that checks the code against the code rules.
 pub const COMMAND_CHECK: &str = "check";
 /// Argument id of the paths of `check`.
@@ -104,6 +139,12 @@ pub mod arg {
     pub const ORIGINAL: &str = "original";
     /// `{ $findings }`: number of findings.
     pub const FINDINGS: &str = "findings";
+    /// `{ $id }`: name of a credential.
+    pub const ID: &str = "id";
+    /// `{ $uri }`: page where a sign-in code is entered.
+    pub const URI: &str = "uri";
+    /// `{ $user_code }`: the code that the user enters on that page.
+    pub const USER_CODE: &str = "user_code";
     /// `{ $codes }`: error codes, separated by `CODE_LIST_SEPARATOR`.
     pub const CODES: &str = "codes";
     /// `{ $seconds }` in the launch message is the same name as the scan duration.

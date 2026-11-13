@@ -24,9 +24,9 @@ use gix::sec::identity::Account;
 use secrecy::ExposeSecret;
 
 use crate::consts::{
-    AUTH_FAILURE_HINTS, BRANCH_REF_PREFIX, CANCEL_POLL_MS, CANCELLED_DETAIL, MISSING_BRANCH_HINT,
-    NO_LOGIN_MESSAGE, REJECTED_CREDENTIAL_HINT, SHALLOW_CLONE_DEPTH, URL_SCHEME_MARKER,
-    WORK_PREFIX, WORK_SEPARATOR,
+    AUTH_FAILURE_HINTS, BRANCH_REF_PREFIX, CANCEL_POLL_MS, CANCELLED_DETAIL,
+    CLONE_CONFIG_OVERRIDES, HTTP_NOT_FOUND_HINT, MISSING_BRANCH_HINT, NO_LOGIN_MESSAGE,
+    SHALLOW_CLONE_DEPTH, URL_SCHEME_MARKER, WORK_PREFIX, WORK_SEPARATOR,
 };
 use crate::error::{SourceError, error_chain_text};
 
@@ -204,9 +204,10 @@ fn clone_branch(
     let branch = attempt.branch;
     let depth = NonZeroU32::new(SHALLOW_CLONE_DEPTH).unwrap_or(NonZeroU32::MIN);
     let used_login = attempt.login.is_some();
-    let classify = |error: &dyn std::error::Error| classify_failure(error, branch, used_login);
+    let classify = |error: &gix::Error| classify_failure(error, branch, used_login);
     let mut prepare = gix::prepare_clone(attempt.url.as_str(), path)
         .map_err(|error| classify(&error))?
+        .with_in_memory_config_overrides(CLONE_CONFIG_OVERRIDES)
         .with_shallow(gix::remote::fetch::Shallow::DepthAtRemote(depth))
         .with_ref_name(Some(&format!("{BRANCH_REF_PREFIX}{branch}")))
         .map_err(|error| SourceError::git_failed(&error))?;
@@ -302,20 +303,24 @@ fn is_origin(context: &gix::credentials::protocol::Context, origin: &str) -> boo
 }
 
 /// Sorts a Git failure into the codes a user can act on.
-fn classify_failure(
-    error: &dyn std::error::Error,
-    branch: &BranchName,
-    used_login: bool,
-) -> SourceError {
+///
+/// The failure class comes from the error itself (`gix` marks a refused login as unauthenticated
+/// and a missing object as not found), not from its wording. Hosts such as GitHub answer an
+/// invalid token for a repository they hide with 403 or 404, so a failed login with a credential
+/// is reported as a rejected credential. The missing branch and a plain 404 are still recognised
+/// by text, because `gix` has no variant for them; `tests/login.rs` and `tests/fetch.rs` pin the wording.
+fn classify_failure(error: &gix::Error, branch: &BranchName, used_login: bool) -> SourceError {
     let text = error_chain_text(error).to_lowercase();
-    if used_login && text.contains(REJECTED_CREDENTIAL_HINT) {
-        SourceError::Credential(AuthError::Rejected)
-    } else if AUTH_FAILURE_HINTS.iter().any(|hint| text.contains(hint)) {
-        SourceError::AuthRequired
-    } else if text.contains(MISSING_BRANCH_HINT) {
+    let refused = error.is_unauthenticated() || error.is_permission_denied();
+    if text.contains(MISSING_BRANCH_HINT) {
         SourceError::BranchNotFound {
             branch: branch.clone(),
         }
+    } else if used_login && (refused || error.is_not_found() || text.contains(HTTP_NOT_FOUND_HINT))
+    {
+        SourceError::Credential(AuthError::Rejected)
+    } else if refused || AUTH_FAILURE_HINTS.iter().any(|hint| text.contains(hint)) {
+        SourceError::AuthRequired
     } else {
         SourceError::git_failed(error)
     }
