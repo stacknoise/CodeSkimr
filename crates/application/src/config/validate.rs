@@ -30,6 +30,10 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
         keys::DUPLICATE_SIMILARITY_PERCENT,
         config.conventions.duplicate_similarity_percent,
     )?;
+    positive(
+        keys::DUPLICATE_MIN_LINES,
+        config.conventions.duplicate_min_lines,
+    )?;
     percent(
         keys::DUPLICATE_SIMILARITY_PERCENT,
         config.conventions.duplicate_similarity_percent,

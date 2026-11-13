@@ -16,9 +16,16 @@ pub(super) struct Fingerprinted<'a> {
 
 /// Reports the later one of every similar pair, in path and line order, with the earlier one it
 /// copies. A function reports at most one finding: the copy with the highest similarity, the
-/// earliest on a tie.
-pub(super) fn duplicates(items: &[Fingerprinted<'_>], minimum_percent: u32) -> Vec<Finding> {
-    let mut ordered: Vec<&Fingerprinted<'_>> = items.iter().collect();
+/// earliest on a tie. Functions with fewer than `minimum_lines` code lines are not compared.
+pub(super) fn duplicates(
+    items: &[Fingerprinted<'_>],
+    minimum_percent: u32,
+    minimum_lines: u32,
+) -> Vec<Finding> {
+    let mut ordered: Vec<&Fingerprinted<'_>> = items
+        .iter()
+        .filter(|item| item.callable.lines >= minimum_lines)
+        .collect();
     ordered.sort_by_key(|item| {
         (
             item.callable.location.path.clone(),

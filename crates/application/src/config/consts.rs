@@ -85,6 +85,8 @@ pub mod keys {
     pub const MAX_FUNCTION_LINES: &str = "conventions.max_function_lines";
     /// `conventions.duplicate_similarity_percent`
     pub const DUPLICATE_SIMILARITY_PERCENT: &str = "conventions.duplicate_similarity_percent";
+    /// `conventions.duplicate_min_lines`
+    pub const DUPLICATE_MIN_LINES: &str = "conventions.duplicate_min_lines";
     /// `watcher.debounce_ms`
     pub const DEBOUNCE_MS: &str = "watcher.debounce_ms";
     /// `watcher.max_wait_ms`

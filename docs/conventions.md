@@ -26,7 +26,7 @@ The report always lists the rules it did not check (`not_checked`), so a clean r
 - The files are analysed afresh, so the check sees edits that no scan has seen. A file that cannot be analysed (no language pack, parse timeout `PRS-501`) does not stop the check; it is listed in `unchecked` with its code.
 - Duplicates are found among the selected files. To find a copy of code that is outside the selection, select the whole project (CI does). `find_similar_code` (WP-37, `docs/mcp.md`) compares against the stored project: the fingerprints are persisted with every snapshot (`docs/storage.md`). Doing the same inside the duplicate check of `check_conventions` (the changed files against the whole project) is not done yet (#94).
 - A function reports at most one duplicate finding: on the later function in path and line order, naming the earlier one and the similarity (rounded down to a whole percent). Findings are ordered by file, line and code.
-- Length is the code lines of the function (ADR 0015: no blank or comment-only lines). A nested function counts for itself and for the function around it. A function and one nested inside it are never reported as duplicates of each other.
+- Length is the code lines of the whole declaration, signature included (ADR 0015: no blank or comment-only lines). Clippy's `too_many_lines` in CI counts from the opening brace of the body, so a function with a signature over several lines can be reported here (`CHK-104`) with 41 to 43 lines while clippy accepts it. CI stays the authority; the difference is at most the extra signature lines. A nested function counts for itself and for the function around it. A function and one nested inside it are never reported as duplicates of each other.
 
 ## Configuration
 
@@ -34,9 +34,11 @@ The report always lists the rules it did not check (`not_checked`), so a clean r
 [conventions]
 max_function_lines = 40
 duplicate_similarity_percent = 85
+duplicate_min_lines = 5
+test_folders = ["tests", "benches"]
 ```
 
-Both must be positive, the second at most 100 (`CFG-101`). The similarity itself is tuned by `[similarity]` (n-gram size, window size, minimum tokens). Functions with fewer than `similarity.min_tokens` tokens have no fingerprints and are never reported as duplicates.
+The first three must be positive, the second at most 100 (`CFG-101`). `duplicate_min_lines`: a function with fewer code lines is never compared for duplicates (three-line helpers and parallel test functions are alike by nature; the CI check `jscpd` also starts at 5 lines). `test_folders`: files below a folder with one of these names (including the fixtures in `languages/*/tests/`) are skipped by all convention checks and not counted in `files_checked`. Tests inside `src` (`#[cfg(test)]` modules) are not recognised. The similarity itself is tuned by `[similarity]` (n-gram size, window size, minimum tokens). Functions with fewer than `similarity.min_tokens` tokens have no fingerprints and are never reported as duplicates.
 
 ## The MCP tool
 
