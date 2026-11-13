@@ -76,37 +76,38 @@ fn decode_place(row: LabelRow) -> StorageResult<(u64, Placed)> {
     Ok((id, placed))
 }
 
-fn load_places(conn: &Connection, snapshot: i64) -> StorageResult<HashMap<u64, Placed>> {
-    let mut statement = conn.prepare_cached(sql::SYMBOL_LABELS)?;
-    let rows = statement.query_map(params![snapshot], |row| read_label(&Cols::new(row)))?;
-    let mut found = HashMap::new();
-    for row in rows {
-        let (id, placed) = decode_place(row?)?;
-        found.insert(id, placed);
-    }
-    Ok(found)
+/// Runs `statement` for `snapshot` and collects the decoded rows into a map by id.
+fn load_map<R, V>(
+    conn: &Connection,
+    (statement, snapshot): (&str, i64),
+    read: impl Fn(&Cols<'_>) -> rusqlite::Result<R>,
+    decode: impl Fn(R) -> StorageResult<(u64, V)>,
+) -> StorageResult<HashMap<u64, V>> {
+    let mut prepared = conn.prepare_cached(statement)?;
+    let rows = prepared.query_map(params![snapshot], |row| read(&Cols::new(row)))?;
+    rows.map(|row| decode(row?)).collect()
 }
 
-fn load_files(conn: &Connection, snapshot: i64) -> StorageResult<HashMap<u64, RelativePath>> {
-    let mut statement = conn.prepare_cached(sql::FILE_PATHS)?;
-    let rows = statement.query_map(params![snapshot], |row| {
-        let cols = Cols::new(row);
-        Ok((cols.take::<i64>()?, cols.take::<String>()?))
-    })?;
-    let mut files = HashMap::new();
-    for row in rows {
-        let (id, path) = row?;
-        files.insert(id_from(id)?, RelativePath::new(path)?);
-    }
-    Ok(files)
+fn decode_file(row: (i64, String)) -> StorageResult<(u64, RelativePath)> {
+    Ok((id_from(row.0)?, RelativePath::new(row.1)?))
 }
 
 impl SnapshotLookup {
     fn load(conn: &Connection, snapshot: i64) -> StorageResult<Self> {
         Ok(Self {
             index: ReverseIndex::new(load_references(conn, snapshot)?),
-            places: load_places(conn, snapshot)?,
-            files: load_files(conn, snapshot)?,
+            places: load_map(
+                conn,
+                (sql::SYMBOL_LABELS, snapshot),
+                read_label,
+                decode_place,
+            )?,
+            files: load_map(
+                conn,
+                (sql::FILE_PATHS, snapshot),
+                |cols| Ok((cols.take()?, cols.take()?)),
+                decode_file,
+            )?,
         })
     }
 
