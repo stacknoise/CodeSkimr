@@ -4,14 +4,10 @@
 //
 // Usage: node tools/acceptance/m3-screens.mjs <project-folder> <out-folder> [language]
 // Files: <screen>-<theme>.png with screen = projects, explorer, search, settings.
-import { copyFileSync, mkdirSync, mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { createRequire } from "node:module";
-import { root, startServer } from "./server.mjs";
-
-const require = createRequire(path.join(root, "web/package.json"));
-const { chromium } = require("@playwright/test");
+import { startServer } from "./server.mjs";
+import { openUi } from "./client.mjs";
 
 const [folderArg, outArg, language = "de"] = process.argv.slice(2);
 const folder = path.resolve(folderArg);
@@ -20,26 +16,7 @@ mkdirSync(out, { recursive: true });
 const type = process.env.M3_TYPE ?? "ReverseIndex";
 
 const server = await startServer();
-const copy = path.join(
-    mkdtempSync(path.join(tmpdir(), "codeskimr-m3-")),
-    "launch.html",
-);
-copyFileSync(await server.launchFile(), copy);
-
-const browser = await chromium.launch({
-    executablePath: process.env.CODESKIMR_CHROMIUM,
-});
-const context = await browser.newContext({
-    viewport: { width: 1440, height: 900 },
-});
-const page = await context.newPage();
-await page.goto(`file://${copy}`);
-await page.getByRole("textbox").first().fill(folder);
-await page
-    .getByRole("button")
-    .filter({ hasText: /Add and scan|Hinzufügen/ })
-    .first()
-    .click();
+const { browser, page } = await openUi(server, folder, "codeskimr-m3-");
 const open = page.getByRole("button", { name: /CodeSkimr|codeskimr/ }).first();
 await open.waitFor({ timeout: 180000 });
 await page.waitForTimeout(3000);

@@ -7,60 +7,10 @@
 //
 // Usage, from the CodeSkimr root, after `npm run build` in web/:
 //   node tools/acceptance/m3-measure.mjs <project-folder> [runs]
-import { readFileSync } from "node:fs";
-import path from "node:path";
-import { root, startServer } from "./server.mjs";
-import { performance } from "node:perf_hooks";
+import { measureArgs, performance, startClient, stats } from "./client.mjs";
 
-const folder = path.resolve(process.argv[2] ?? root);
-const runs = Number(process.argv[3] ?? 50);
-
-const server = await startServer();
-const url = server.url;
-
-async function token() {
-    const file = await server.launchFile();
-    const code = /code=([0-9a-f]+)/.exec(readFileSync(file, "utf8"))[1];
-    const reply = await fetch(`${url}/api/v1/session/exchange`, {
-        method: "POST",
-        headers: { "content-type": "application/json", origin: url },
-        body: JSON.stringify({ code }),
-    });
-    return (await reply.json()).token;
-}
-
-const bearer = await token();
-async function command(id, body) {
-    const started = performance.now();
-    const reply = await fetch(`${url}/api/v1/commands/${id}`, {
-        method: "POST",
-        headers: {
-            "content-type": "application/json",
-            authorization: `Bearer ${bearer}`,
-            origin: url,
-        },
-        body: JSON.stringify(body),
-    });
-    const data = await reply.json();
-    return { data, ms: performance.now() - started, ok: reply.ok };
-}
-
-function stats(values) {
-    const sorted = [...values].sort((a, b) => a - b);
-    const at = (q) =>
-        sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))];
-    return `median ${at(0.5).toFixed(2)} ms, p95 ${at(0.95).toFixed(2)} ms, max ${sorted.at(-1).toFixed(2)} ms (n=${sorted.length})`;
-}
-
-const added = await command("projects.add", { source: folder });
-console.log(
-    "projects.add",
-    added.ok,
-    `${added.ms.toFixed(0)} ms`,
-    JSON.stringify(added.data).slice(0, 300),
-);
-const list = await command("projects.list", null);
-const project = (list.data.projects ?? list.data).at(-1).id;
+const { folder, runs } = measureArgs();
+const { server, command, project } = await startClient(folder);
 
 // Quick search: every prefix of a few names is one keystroke, as typed in the overlay.
 const words = [
