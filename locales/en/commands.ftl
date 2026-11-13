@@ -16,3 +16,5 @@ command-status-info-title = Show status
 command-status-info-description = Shows the start time and the memory of the program.
 command-explorer-source-title = Show source
 command-explorer-source-description = Shows the lines of the declaration of a type or member, read from the project folder.
+command-graph-layers-title = Show dependency map
+command-graph-layers-description = Places the layers of the newest scan and the dependencies between them for the dependency map.
