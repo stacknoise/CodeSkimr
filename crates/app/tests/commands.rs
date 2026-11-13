@@ -174,6 +174,7 @@ fn a_git_url_with_credentials_is_refused_and_never_printed() {
         String::from_utf8_lossy(&output.stdout)
     );
     assert!(all.contains("PRJ-101"));
+    assert!(all.contains("credential helper"));
     assert!(!all.contains("secret-token"));
 }
 
@@ -215,7 +216,7 @@ impl McpSession {
             .arg(workspace.project())
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
+            .stderr(Stdio::null())
             .spawn()
             .unwrap();
         let stdout = child.stdout.take().unwrap();
@@ -237,7 +238,15 @@ impl McpSession {
 
     fn call(&mut self, id: u64, method: &str, params: &Value) -> Value {
         self.send(&json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params}));
-        self.answers.recv_timeout(Duration::from_secs(30)).unwrap()
+        loop {
+            let answer = self
+                .answers
+                .recv_timeout(Duration::from_secs(30))
+                .expect("the server answered within 30 seconds");
+            if answer["id"] == id {
+                return answer;
+            }
+        }
     }
 }
 
@@ -245,6 +254,7 @@ impl McpSession {
 impl Drop for McpSession {
     fn drop(&mut self) {
         let _ = self.child.kill();
+        let _ = self.child.wait();
     }
 }
 

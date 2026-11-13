@@ -35,6 +35,7 @@ export const I18N_KEYS = {
   CLI_ARG_CONFIG: "cli-arg-config",
   CLI_ARG_SET: "cli-arg-set",
   CLI_ARG_LANGUAGES: "cli-arg-languages",
+  CLI_CREDENTIALS_HINT: "cli-credentials-hint",
   EXPLORER_TITLE: "explorer-title",
   EXPLORER_FRESHNESS: "explorer-freshness",
   EXPLORER_FILTER_TREE: "explorer-filter-tree",

@@ -13,7 +13,7 @@ Implements the first part of blueprint section 10.2: `codeskimr scan` and `codes
 codeskimr scan <path|git-url> [--branch <name>] [--json]
 ```
 
-1. The argument is an existing folder (made absolute) or a Git URL (`https://`, `http://`, `ssh://`, `git://`, `git@…`, or ending in `.git`). A Git URL with credentials in it is refused with `PRJ-101`: they would be stored in the database and printed (blueprint 12). The branch defaults to `main`.
+1. The argument is an existing folder (made absolute) or a Git URL (`https://`, `http://`, `ssh://`, `git://`, `git@…`, or ending in `.git`). A Git URL with secrets in it (user info for HTTP(S), a password anywhere, a query or a fragment, in any letter case) is refused with `PRJ-101` and a second line that names the reason: they would be stored in the database and printed (blueprint 12). A bare SSH user name (`git@host:org/repo`) is fine. `--branch` only applies to Git sources and is ignored for folders. On Windows the `\\?\` prefix of the absolute path is removed (UNC paths keep it). The branch defaults to `main`.
 2. The source is registered as a project (the same source is registered once; scanning again reuses the project).
 3. One full scan runs: fetch, discover, analyze, resolve, measure, persist. A new snapshot is written; `--json` prints `{project, snapshot, files, symbols, references, seconds}` on one line, otherwise a two-line summary in the language of the user.
 4. The mode is always full. The incremental mode is not complete yet (issues #20 and #29).
@@ -24,7 +24,7 @@ codeskimr scan <path|git-url> [--branch <name>] [--json]
 codeskimr mcp [--project <folder>]
 ```
 
-Serves the three tools of WP-26 over stdin and stdout for the project in `--project` (default: the current folder). The folder must have been scanned before; otherwise the command stops with `PRJ-201`. Nothing but the protocol is written to standard output; errors go to standard error.
+Serves the three tools of WP-26 over stdin and stdout for the project in `--project` (default: the current folder). The folder must have been scanned before; otherwise the command stops with `PRJ-201` (not registered) or `MCP-203` (registered, but no snapshot). Nothing but the protocol is written to standard output; errors go to standard error.
 
 ## Global options
 

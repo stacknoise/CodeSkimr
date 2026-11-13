@@ -12,14 +12,14 @@ use codeskimr_storage::SqliteStore;
 
 use crate::config_files;
 use crate::locations::Locations;
-use crate::source_arg::{SourceSpec, classify};
+use crate::source_arg::{SourceError, SourceSpec, classify};
 use crate::wiring::{build_scanner, open_store};
 
 /// Checks the source argument before anything is scanned or printed.
 ///
 /// # Errors
-/// `PRJ-101` if the argument is neither a folder nor a Git URL without credentials.
-pub fn prepare(args: &ScanArgs) -> Result<SourceSpec, CodedError> {
+/// [`SourceError`] (`PRJ-101`) if the argument is neither a folder nor a Git URL without secrets.
+pub fn prepare(args: &ScanArgs) -> Result<SourceSpec, SourceError> {
     classify(&args.source, args.branch.as_deref())
 }
 

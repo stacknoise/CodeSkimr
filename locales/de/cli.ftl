@@ -18,3 +18,4 @@ cli-arg-data-dir = Ordner für die Datenbank und den Git-Cache
 cli-arg-config = Benutzer-Konfigurationsdatei
 cli-arg-set = Eine Einstellung für diesen Lauf überschreiben, zum Beispiel metrics.cyclomatic_good_max=4
 cli-arg-languages = Ordner mit den Sprachpaketen
+cli-credentials-hint = Geheimnisse in einer Git-URL (Benutzerangaben, Query oder Fragment) werden nicht angenommen: Sie würden gespeichert und ausgegeben. Nutze einen Git-Credential-Helper oder einen SSH-Schlüssel.

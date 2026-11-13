@@ -52,6 +52,16 @@ pub const USERINFO_MARKER: char = '@';
 pub const HTTP_SCHEME: &str = "http";
 /// Separates user name and password in the authority part of a URL.
 pub const PASSWORD_SEPARATOR: char = ':';
+/// Characters that end the authority part of a URL.
+pub const AUTHORITY_END: [char; 3] = ['/', '?', '#'];
+/// Stands for the scheme of an address that has none.
+pub const NO_SCHEME: &str = "";
+/// Where tokens hide in a URL: query and fragment.
+pub const QUERY_MARKERS: [char; 2] = ['?', '#'];
+/// Prefix of a Windows verbatim path.
+pub const VERBATIM_PREFIX: &str = "\\\\?\\";
+/// What follows the verbatim prefix of a UNC path.
+pub const VERBATIM_UNC: &str = "UNC\\";
 /// Separates the parts of a URL path.
 pub const URL_PATH_SEPARATOR: char = '/';
 /// Separates host and path in an scp-style Git address.

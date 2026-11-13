@@ -8,9 +8,25 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{BranchName, FolderPath, GitUrl, ProjectName, ProjectSource};
 
 use crate::consts::{
-    DEFAULT_BRANCH, GIT_URL_PREFIXES, GIT_URL_SUFFIX, HTTP_SCHEME, PASSWORD_SEPARATOR,
-    SCHEME_SEPARATOR, SCP_PATH_SEPARATOR, URL_PATH_SEPARATOR, USERINFO_MARKER,
+    AUTHORITY_END, DEFAULT_BRANCH, GIT_URL_PREFIXES, GIT_URL_SUFFIX, HTTP_SCHEME, NO_SCHEME,
+    PASSWORD_SEPARATOR, QUERY_MARKERS, SCHEME_SEPARATOR, SCP_PATH_SEPARATOR, URL_PATH_SEPARATOR,
+    USERINFO_MARKER, VERBATIM_PREFIX, VERBATIM_UNC,
 };
+
+/// Why an argument is not a source.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SourceError {
+    /// Neither an existing folder nor a Git URL.
+    NotASource,
+    /// A Git URL with credentials, a query or a fragment in it.
+    HasCredentials,
+}
+
+impl From<SourceError> for CodedError {
+    fn from(_: SourceError) -> Self {
+        invalid()
+    }
+}
 
 /// A source to register and scan.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -34,16 +50,18 @@ impl SourceSpec {
 
 /// Classifies `argument`: an existing folder wins over a Git URL.
 ///
+/// The branch only applies to Git sources; for a folder it is ignored.
+///
 /// # Errors
-/// `PRJ-101` if it is neither an existing folder nor a Git URL without credentials.
-pub fn classify(argument: &str, branch: Option<&str>) -> Result<SourceSpec, CodedError> {
+/// [`SourceError`] (`PRJ-101`) if it is neither an existing folder nor a Git URL without secrets.
+pub fn classify(argument: &str, branch: Option<&str>) -> Result<SourceSpec, SourceError> {
     if let Ok(folder) = fs::canonicalize(argument) {
-        return folder_spec(&folder);
+        return folder_spec(&folder).map_err(|_| SourceError::NotASource);
     }
     if is_git_url(argument) {
         return git_spec(argument, branch.unwrap_or(DEFAULT_BRANCH));
     }
-    Err(invalid())
+    Err(SourceError::NotASource)
 }
 
 /// The spec of a folder that exists; the path is made absolute so that every run finds the project.
@@ -55,7 +73,7 @@ pub fn folder_spec(folder: &Path) -> Result<SourceSpec, CodedError> {
     if !canonical.is_dir() {
         return Err(invalid());
     }
-    let text = canonical.to_string_lossy().into_owned();
+    let text = display_path(&canonical.to_string_lossy());
     let name = canonical
         .file_name()
         .map_or_else(|| text.clone(), |name| name.to_string_lossy().into_owned());
@@ -65,10 +83,20 @@ pub fn folder_spec(folder: &Path) -> Result<SourceSpec, CodedError> {
     })
 }
 
-fn git_spec(url: &str, branch: &str) -> Result<SourceSpec, CodedError> {
+/// Windows answers `canonicalize` with a `\\?\C:\…` path; the plain form is what users know.
+/// A UNC path (`\\?\UNC\…`) keeps its prefix.
+fn display_path(path: &str) -> String {
+    path.strip_prefix(VERBATIM_PREFIX)
+        .filter(|rest| !rest.starts_with(VERBATIM_UNC))
+        .unwrap_or(path)
+        .to_owned()
+}
+
+fn git_spec(url: &str, branch: &str) -> Result<SourceSpec, SourceError> {
     if has_credentials(url) {
-        return Err(invalid());
+        return Err(SourceError::HasCredentials);
     }
+    let rejected = |_| SourceError::NotASource;
     let name = url
         .trim_end_matches(URL_PATH_SEPARATOR)
         .trim_end_matches(GIT_URL_SUFFIX)
@@ -77,32 +105,34 @@ fn git_spec(url: &str, branch: &str) -> Result<SourceSpec, CodedError> {
         .unwrap_or(url);
     Ok(SourceSpec {
         source: ProjectSource::Git {
-            url: GitUrl::new(url).map_err(|_| invalid())?,
-            branch: BranchName::new(branch).map_err(|_| invalid())?,
+            url: GitUrl::new(url).map_err(rejected)?,
+            branch: BranchName::new(branch).map_err(rejected)?,
         },
-        name: ProjectName::new(name).map_err(|_| invalid())?,
+        name: ProjectName::new(name).map_err(rejected)?,
     })
 }
 
 fn is_git_url(argument: &str) -> bool {
+    let lower = argument.to_ascii_lowercase();
     GIT_URL_PREFIXES
         .iter()
-        .any(|prefix| argument.starts_with(prefix))
-        || argument.ends_with(GIT_URL_SUFFIX)
+        .any(|prefix| lower.starts_with(prefix))
+        || lower.ends_with(GIT_URL_SUFFIX)
 }
 
-/// Credentials in a URL would end up in the database and on the screen (blueprint 12).
-/// A bare user name for SSH (`ssh://git@host/...`) is not a secret; anything for HTTP is.
+/// Secrets in a URL would end up in the database and on the screen (blueprint 12): a password
+/// anywhere, any user info for HTTP(S), and a query or fragment, which is where tokens go.
+/// A bare user name for SSH (`ssh://git@host/...`, `git@host:org/repo`) is not a secret.
 fn has_credentials(url: &str) -> bool {
-    let Some((scheme, rest)) = url.split_once(SCHEME_SEPARATOR) else {
-        return false;
-    };
-    let authority = rest.split(URL_PATH_SEPARATOR).next().unwrap_or_default();
-    authority
+    let (scheme, rest) = url.split_once(SCHEME_SEPARATOR).unwrap_or((NO_SCHEME, url));
+    let authority = rest.split(AUTHORITY_END).next().unwrap_or_default();
+    let secret_user_info = authority
         .rsplit_once(USERINFO_MARKER)
-        .is_some_and(|(userinfo, _)| {
-            scheme.starts_with(HTTP_SCHEME) || userinfo.contains(PASSWORD_SEPARATOR)
-        })
+        .is_some_and(|(user_info, _)| {
+            scheme.to_ascii_lowercase().starts_with(HTTP_SCHEME)
+                || user_info.contains(PASSWORD_SEPARATOR)
+        });
+    secret_user_info || url.contains(QUERY_MARKERS)
 }
 
 fn invalid() -> CodedError {
@@ -138,6 +168,32 @@ mod tests {
         assert!(classify("https://user:pw@example.com/a/b.git", None).is_err());
         assert!(classify("ssh://user:pw@example.com/a/b.git", None).is_err());
         assert!(classify("ssh://git@example.com/a/b.git", None).is_ok());
+        assert!(classify("git@example.com:org/repo.git", None).is_ok());
+    }
+
+    #[test]
+    fn secrets_are_found_in_every_spelling() {
+        for url in [
+            "HTTPS://token@example.com/a.git",
+            "user:pw@example.com/org/repo.git",
+            "https://example.com/a.git?token=abc",
+            "https://example.com/a.git#frag",
+        ] {
+            assert_eq!(
+                classify(url, None),
+                Err(SourceError::HasCredentials),
+                "{url}"
+            );
+        }
+    }
+
+    #[test]
+    fn a_windows_verbatim_prefix_is_dropped_but_not_for_unc() {
+        assert_eq!(display_path("\\\\?\\C:\\work\\app"), "C:\\work\\app");
+        assert_eq!(
+            display_path("\\\\?\\UNC\\srv\\share"),
+            "\\\\?\\UNC\\srv\\share"
+        );
     }
 
     #[test]

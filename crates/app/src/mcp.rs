@@ -22,7 +22,7 @@ use crate::wiring::open_store;
 /// scanned with `codeskimr scan` before. Nothing but the protocol is written to standard output.
 ///
 /// # Errors
-/// - `PRJ-201` if the folder is not a registered project.
+/// - `PRJ-201` if the folder is not a registered project, `MCP-203` if it has no snapshot yet.
 /// - `APP-901` if the runtime or the protocol fails.
 /// - Any coded failure of the configuration, the storage or the message texts.
 pub fn run(
@@ -41,6 +41,9 @@ pub fn run(
     let project = store
         .project_by_source(&spec.source)?
         .ok_or_else(|| CodedError::new(ErrorCode::ProjectNotFound))?;
+    if store.latest_snapshot(project.id)?.is_none() {
+        return Err(CodedError::new(ErrorCode::ProjectNotScanned));
+    }
     let projects: Arc<dyn ProjectRepository> = store.clone();
     let index: Arc<dyn CodeIndex> = store;
     let tools = Tools::new(

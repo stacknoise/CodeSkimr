@@ -10,6 +10,7 @@ use codeskimr_cli::{
     Action, CliError, Invocation, Parsed, error_line, language_from, parse, scan_finished,
     scan_json, scan_started,
 };
+use codeskimr_codes::i18n::CLI_CREDENTIALS_HINT;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_i18n::Messages;
 
@@ -17,6 +18,7 @@ use crate::consts::{
     ENV_LANGUAGE_TAGS, EXIT_FAILURE, EXIT_USAGE, LINE_BREAK, PLAIN_ERROR_SEPARATOR,
 };
 use crate::locations::{Locations, Lookup};
+use crate::source_arg::SourceError;
 use crate::{mcp, scan};
 
 /// Why a command did not finish: a registered code, plus the parser's text for usage errors.
@@ -103,7 +105,8 @@ fn run_invocation(
     )?;
     match &invocation.action {
         Action::Scan(args) => {
-            let spec = scan::prepare(args)?;
+            let spec =
+                scan::prepare(args).map_err(|error| source_failure(error, messages, language))?;
             if !args.json {
                 write_err(
                     &scan_started(messages, language, spec.location()).map_err(CliError::from)?,
@@ -169,5 +172,17 @@ fn emit(mut sink: impl Write, text: &str) {
         if sink.write_all(part.as_bytes()).is_err() {
             return;
         }
+    }
+}
+
+/// `PRJ-101`, with the reason for secrets in a URL, which the code alone does not say.
+fn source_failure(error: SourceError, messages: &Messages, language: &str) -> Failure {
+    let detail = match error {
+        SourceError::HasCredentials => messages.format(language, CLI_CREDENTIALS_HINT, None).ok(),
+        SourceError::NotASource => None,
+    };
+    Failure {
+        code: ErrorCode::ProjectSourceInvalid,
+        detail,
     }
 }
