@@ -1,5 +1,6 @@
 //! The protocol layer: lists the tools and runs them for `rmcp`.
 
+use std::future::Future;
 use std::sync::Arc;
 
 use codeskimr_application::error::CodedError;
@@ -110,15 +111,15 @@ impl ServerHandler for McpServer {
             .with_instructions(self.instructions.clone())
     }
 
-    async fn list_tools(
+    fn list_tools(
         &self,
         _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
-    ) -> Result<ListToolsResult, ErrorData> {
-        Ok(ListToolsResult {
+    ) -> impl Future<Output = Result<ListToolsResult, ErrorData>> + Send + '_ {
+        std::future::ready(Ok(ListToolsResult {
             tools: self.definitions.clone(),
             ..ListToolsResult::default()
-        })
+        }))
     }
 
     fn get_tool(&self, name: &str) -> Option<Tool> {
