@@ -9,7 +9,8 @@ use std::sync::mpsc::{self, RecvTimeoutError};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
-use codeskimr_domain::{FolderPath, RelativePath};
+use codeskimr_application::events::{Event as AppEvent, EventBus, FilesChanged};
+use codeskimr_domain::{FolderPath, ProjectId, RelativePath};
 use notify::{EventKind, RecommendedWatcher, RecursiveMode, Watcher};
 
 use crate::error::SourceError;
@@ -77,6 +78,27 @@ pub fn watch(
     Ok(WatchHandle {
         watcher: Some(watcher),
         worker: Some(worker),
+    })
+}
+
+/// Watches the folder of `project` and publishes `FilesChanged` on `events` for every debounced
+/// batch. Whoever reacts to it (watch mode) starts an incremental scan; the budget of blueprint 16
+/// starts when the event is published.
+///
+/// # Errors
+/// [`SourceError::WatcherFailed`] if the operating system refuses to watch the folder.
+pub fn publish_changes(
+    project: ProjectId,
+    root: &FolderPath,
+    config: WatchConfig,
+    events: EventBus,
+) -> Result<WatchHandle, SourceError> {
+    watch(root, config, move |batch| {
+        events.publish(&AppEvent::FilesChanged(FilesChanged {
+            project,
+            files: u32::try_from(batch.paths.len()).unwrap_or(u32::MAX),
+            rescan: batch.rescan,
+        }));
     })
 }
 

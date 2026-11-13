@@ -1,7 +1,7 @@
 //! Registered projects: the `ProjectRepository` port and saving a project.
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::ProjectRepository;
+use codeskimr_application::ports::{PreviousIndex, ProjectRepository};
 use codeskimr_domain::{
     BranchName, ContentHash, FileId, FolderPath, GitUrl, LanguageId, Layer, LayerName, Loc,
     Project, ProjectId, ProjectName, ProjectSource, QualifiedName, RelativePath, SnapshotId,
@@ -12,6 +12,7 @@ use rusqlite::{Connection, OptionalExtension, Row, params};
 use crate::codec::{Cols, column_int, id_from, ordinals, small_from};
 use crate::consts::{FIRST_PROJECT_ID, ID_STEP, NO_BRANCH, SOURCE_FOLDER, SOURCE_GIT};
 use crate::error::{StorageError, StorageResult};
+use crate::previous::load_latest_index;
 use crate::sql;
 use crate::store::SqliteStore;
 
@@ -229,6 +230,11 @@ impl ProjectRepository for SqliteStore {
 
     fn latest_files(&self, id: ProjectId) -> Result<Vec<SourceFile>, CodedError> {
         self.read(|conn| load_latest_files(conn, id))
+            .map_err(CodedError::from)
+    }
+
+    fn latest_index(&self, id: ProjectId) -> Result<PreviousIndex, CodedError> {
+        self.read(|conn| load_latest_index(conn, id))
             .map_err(CodedError::from)
     }
 }

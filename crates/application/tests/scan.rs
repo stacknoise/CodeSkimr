@@ -9,27 +9,37 @@ use codeskimr_application::ids::IdSequence;
 use codeskimr_application::pipeline::{Job, JobResult, Scanner, ScannerPorts};
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, DiscoveredFile, FetchedSource, FileAnalyzer, FileDiscovery, FileFacts,
-    MetricsCalculator, PendingReference, ProjectRepository, ReferenceResolver, SnapshotData,
-    SnapshotStore, SourceProvider,
+    MetricsCalculator, PendingReference, PreviousIndex, ProjectRepository, ReferenceResolver,
+    SnapshotData, SnapshotStore, SourceProvider,
 };
 use codeskimr_application::stage::StageKind;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    BranchName, CommitHash, ContentHash, FolderPath, LanguageId, Loc, Metric, MetricKind,
-    MetricValue, ModelError, Position, Project, ProjectId, ProjectName, ProjectSource,
-    QualifiedName, Reference, ReferenceKind, RelativePath, ScanMode, Snapshot, SourceFile, Span,
-    Symbol, SymbolKind, SymbolName, Timestamp,
+    BranchName, CommitHash, Confidence, ContentHash, FileId, FolderPath, LanguageId, Loc, Metric,
+    MetricKind, MetricValue, ModelError, Position, Project, ProjectId, ProjectName, ProjectSource,
+    QualifiedName, Reference, ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot,
+    SnapshotId, SourceFile, Span, Symbol, SymbolId, SymbolKind, SymbolName, Timestamp,
 };
 
+/// The newest snapshot as the repository reports it.
+#[derive(Default, Clone)]
+struct Previous {
+    files: Vec<SourceFile>,
+    index: PreviousIndex,
+}
+
 /// One fake that plays every port. `fail_at` makes that stage fail, `cancel_at` raises the token
-/// when that stage runs, `unchanged` marks the first file as not changed.
+/// when that stage runs, `previous` is the newest snapshot, `found` the files on disk as
+/// `(path, changed)`; without it the disk holds `a.rs` and `b.rs`, both changed.
 #[derive(Default)]
 struct World {
     fail_at: Option<StageKind>,
     cancel_at: Option<(StageKind, CancelToken)>,
-    unchanged: bool,
+    previous: Previous,
+    found: Option<Vec<(&'static str, bool)>>,
     missing_project: bool,
     persisted: Mutex<Vec<SnapshotData>>,
+    measured: Mutex<Vec<(usize, usize)>>,
 }
 
 impl World {
@@ -44,6 +54,18 @@ impl World {
         } else {
             Ok(())
         }
+    }
+
+    /// What the last scan handed to the store; an error stands for "nothing was persisted".
+    fn last_persisted(&self) -> Result<SnapshotData, CodedError> {
+        let persisted = self
+            .persisted
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
+        persisted
+            .last()
+            .cloned()
+            .ok_or_else(|| CodedError::new(ErrorCode::DiskFull))
     }
 
     fn persisted_count(&self) -> usize {
@@ -103,10 +125,14 @@ impl FileDiscovery for World {
         _: &CancelToken,
     ) -> Result<Vec<DiscoveredFile>, CodedError> {
         self.gate(StageKind::Discover)?;
-        Ok(vec![
-            discovered("a.rs", !self.unchanged)?,
-            discovered("b.rs", true)?,
-        ])
+        let found = self
+            .found
+            .clone()
+            .unwrap_or_else(|| vec![("a.rs", true), ("b.rs", true)]);
+        found
+            .into_iter()
+            .map(|(path, changed)| discovered(path, changed))
+            .collect()
     }
 }
 
@@ -121,12 +147,13 @@ impl FileAnalyzer for World {
             content_hash: request.file.content_hash.clone(),
             loc: Loc(3),
         };
+        let stem = request.file.path.as_str().trim_end_matches(".rs");
         let symbol = Symbol {
             id: request.ids.symbol(),
             file: file.id,
             kind: SymbolKind::Function,
-            name: model(SymbolName::new("f"))?,
-            qualified_name: model(QualifiedName::new("m::f"))?,
+            name: model(SymbolName::new(stem))?,
+            qualified_name: model(QualifiedName::new(format!("m::{stem}")))?,
             parent: None,
             visibility: None,
             is_static: false,
@@ -153,29 +180,42 @@ impl FileAnalyzer for World {
 impl ReferenceResolver for World {
     fn resolve(
         &self,
-        _: &[Symbol],
+        symbols: &[Symbol],
         pending: &[PendingReference],
         ids: &IdSequence,
     ) -> Result<Vec<Reference>, CodedError> {
         self.gate(StageKind::Resolve)?;
         Ok(pending
             .iter()
-            .map(|item| Reference {
-                id: ids.reference(),
-                from: item.from,
-                to: item.from,
-                file: item.file,
-                span: item.span,
-                kind: item.kind,
-                confidence: codeskimr_domain::Confidence::Certain,
+            .filter_map(|item| {
+                let target = symbols
+                    .iter()
+                    .find(|symbol| symbol.qualified_name == item.target)?;
+                Some(Reference {
+                    id: ids.reference(),
+                    from: item.from,
+                    to: target.id,
+                    file: item.file,
+                    span: item.span,
+                    kind: item.kind,
+                    confidence: codeskimr_domain::Confidence::Certain,
+                })
             })
             .collect())
     }
 }
 
 impl MetricsCalculator for World {
-    fn measure(&self, symbols: &[Symbol], _: &[Reference]) -> Result<Vec<Metric>, CodedError> {
+    fn measure(
+        &self,
+        symbols: &[Symbol],
+        references: &[Reference],
+    ) -> Result<Vec<Metric>, CodedError> {
         self.gate(StageKind::Measure)?;
+        self.measured
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .push((symbols.len(), references.len()));
         let value = model(MetricValue::new(3.0))?;
         Ok(symbols
             .iter()
@@ -198,7 +238,11 @@ impl ProjectRepository for World {
     }
 
     fn latest_files(&self, _: ProjectId) -> Result<Vec<SourceFile>, CodedError> {
-        Ok(Vec::new())
+        Ok(self.previous.files.clone())
+    }
+
+    fn latest_index(&self, _: ProjectId) -> Result<PreviousIndex, CodedError> {
+        Ok(self.previous.index.clone())
     }
 }
 
@@ -268,19 +312,177 @@ fn full_scan_runs_all_stages_and_persists_once() {
     assert!(matches!(events.last(), Some(Event::SnapshotCreated(_))));
 }
 
-#[test]
-fn incremental_scan_skips_unchanged_files() {
-    let world = Arc::new(World {
-        unchanged: true,
+/// The previous snapshot with `a.rs` unchanged and `b.rs` changed; `c.rs` is gone.
+fn a_unchanged_b_changed() -> Result<Arc<World>, CodedError> {
+    Ok(Arc::new(World {
+        previous: previous_snapshot()?,
+        found: Some(vec![("a.rs", false), ("b.rs", true)]),
         ..World::default()
-    });
+    }))
+}
+
+#[test]
+fn full_scan_ignores_the_previous_snapshot() -> Result<(), CodedError> {
+    let world = a_unchanged_b_changed()?;
+    let (result, _) = run(&world, ScanMode::Full);
+    let JobResult::Finished(job) = result else {
+        panic!("scan did not finish");
+    };
+    assert_eq!(job.snapshot().stats.files, 2);
+    let persisted = world.last_persisted()?;
+    assert_eq!(persisted.removed, Vec::<RelativePath>::new());
+    assert_eq!(persisted.files.len(), 2);
+    Ok(())
+}
+
+fn old_file(id: u64, path: &str) -> Result<SourceFile, CodedError> {
+    Ok(SourceFile {
+        id: FileId::new(id),
+        snapshot: SnapshotId::new(9),
+        path: model(RelativePath::new(path))?,
+        language: model(LanguageId::new("rust"))?,
+        content_hash: model(ContentHash::new("old"))?,
+        loc: Loc(3),
+    })
+}
+
+fn old_symbol(id: u64, file: u64, name: &str) -> Result<Symbol, CodedError> {
+    Ok(Symbol {
+        id: SymbolId::new(id),
+        file: FileId::new(file),
+        kind: SymbolKind::Function,
+        name: model(SymbolName::new(name))?,
+        qualified_name: model(QualifiedName::new(format!("m::{name}")))?,
+        parent: None,
+        visibility: None,
+        is_static: false,
+        span: span()?,
+        signature: None,
+        doc: None,
+    })
+}
+
+/// A call from symbol 200 in file 100.
+fn old_call(id: u64, to: u64) -> Result<Reference, CodedError> {
+    Ok(Reference {
+        id: ReferenceId::new(id),
+        from: SymbolId::new(200),
+        to: SymbolId::new(to),
+        file: FileId::new(100),
+        span: span()?,
+        kind: ReferenceKind::Call,
+        confidence: Confidence::Certain,
+    })
+}
+
+/// The newest snapshot: `a.rs` (file 100) calls `b.rs` (file 101), the removed `c.rs` (file 102)
+/// and itself.
+fn previous_snapshot() -> Result<Previous, CodedError> {
+    Ok(Previous {
+        files: vec![
+            old_file(100, "a.rs")?,
+            old_file(101, "b.rs")?,
+            old_file(102, "c.rs")?,
+        ],
+        index: PreviousIndex {
+            symbols: vec![
+                old_symbol(200, 100, "a")?,
+                old_symbol(201, 101, "b")?,
+                old_symbol(202, 102, "c")?,
+            ],
+            references: vec![
+                old_call(300, 201)?,
+                old_call(301, 202)?,
+                old_call(302, 200)?,
+            ],
+        },
+    })
+}
+
+#[test]
+fn incremental_scan_analyses_only_changed_files_and_resolves_dependents_again()
+-> Result<(), CodedError> {
+    let world = a_unchanged_b_changed()?;
     let (result, _) = run(&world, ScanMode::Incremental);
     let JobResult::Finished(job) = result else {
         panic!("scan did not finish");
     };
-    assert_eq!(job.snapshot().stats.files, 1);
-    let (full, _) = run(&world, ScanMode::Full);
-    assert!(matches!(full, JobResult::Finished(job) if job.snapshot().stats.files == 2));
+    let persisted = world.last_persisted()?;
+    let paths: Vec<_> = persisted.files.iter().map(|f| f.path.as_str()).collect();
+    assert_eq!(paths, ["b.rs"], "only the changed file is analysed");
+    assert_eq!(
+        persisted
+            .removed
+            .iter()
+            .map(RelativePath::as_str)
+            .collect::<Vec<_>>(),
+        ["c.rs"]
+    );
+    // The new `b` and the call from `a` to it, which pointed at the old `b`; the call to the
+    // removed `c` finds no target any more and is dropped.
+    assert_eq!(persisted.references.len(), 2);
+    let new_b = persisted.symbols[0].id;
+    assert!(
+        persisted
+            .references
+            .iter()
+            .any(|r| r.from.get() == 200 && r.to == new_b)
+    );
+    assert_eq!(
+        (
+            job.snapshot().stats.files,
+            job.snapshot().stats.symbols,
+            job.snapshot().stats.references
+        ),
+        (2, 2, 3),
+        "a.rs and b.rs; a and b; two new references and the call from a to itself carried over"
+    );
+    Ok(())
+}
+
+#[test]
+fn metrics_and_resolver_see_the_whole_project_in_an_incremental_scan() -> Result<(), CodedError> {
+    let world = a_unchanged_b_changed()?;
+    let _ = run(&world, ScanMode::Incremental);
+    let measured = world
+        .measured
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .clone();
+    assert_eq!(measured, [(2, 3)]);
+    Ok(())
+}
+
+#[test]
+fn a_file_the_previous_snapshot_does_not_know_is_analysed_even_if_marked_unchanged()
+-> Result<(), CodedError> {
+    let world = Arc::new(World {
+        found: Some(vec![("a.rs", false)]),
+        ..World::default()
+    });
+    let (result, _) = run(&world, ScanMode::Incremental);
+    assert!(matches!(result, JobResult::Finished(job) if job.snapshot().stats.files == 1));
+    assert_eq!(world.last_persisted()?.files.len(), 1);
+    Ok(())
+}
+
+#[test]
+fn every_stage_reports_how_much_work_it_has_and_finishes_it() {
+    let world = Arc::new(World::default());
+    let (_, events) = run(&world, ScanMode::Full);
+    for stage in StageKind::ALL {
+        let last = events.iter().rev().find_map(|event| match event {
+            Event::ScanProgressed(p) if p.stage == *stage => Some((p.done, p.total)),
+            _ => None,
+        });
+        let Some((done, total)) = last else {
+            panic!("{stage:?} reported nothing");
+        };
+        assert!(
+            total > 0 && done == total,
+            "{stage:?} ended at {done}/{total}"
+        );
+    }
 }
 
 #[test]
@@ -386,6 +588,7 @@ fn bus_delivers_to_all_and_forgets_dropped_subscribers() {
     let event = Event::FilesChanged(codeskimr_application::events::FilesChanged {
         project: ProjectId::new(1),
         files: 3,
+        rescan: false,
     });
     bus.publish(&event);
     drop(second);
@@ -403,4 +606,33 @@ fn ids_are_unique_and_stage_labels_round_trip() {
     assert_eq!(StageKind::Analyze.label(), "analyze");
     let error = CodedError::new(ErrorCode::DiskFull);
     assert_eq!(error.code(), ErrorCode::DiskFull);
+}
+
+#[test]
+fn a_reference_that_is_kept_is_not_resolved_a_second_time() -> Result<(), CodedError> {
+    let mut previous = previous_snapshot()?;
+    // `m::b` is declared in the unchanged a.rs as well; a call to it stays valid, and the call to
+    // the `b` in the changed file is resolved again to the same unchanged candidate.
+    previous.index.symbols.push(old_symbol(203, 100, "b")?);
+    previous
+        .index
+        .references
+        .extend([old_call(303, 203)?, old_call(304, 201)?]);
+    let world = Arc::new(World {
+        previous,
+        found: Some(vec![("a.rs", false), ("b.rs", true)]),
+        ..World::default()
+    });
+    let _ = run(&world, ScanMode::Incremental);
+    let calls_to_203 = world
+        .last_persisted()?
+        .references
+        .iter()
+        .filter(|r| r.to.get() == 203 && r.from.get() == 200)
+        .count();
+    assert_eq!(
+        calls_to_203, 0,
+        "the kept call to 203 is not delivered a second time"
+    );
+    Ok(())
 }
