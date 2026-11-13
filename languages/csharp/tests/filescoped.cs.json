@@ -57,6 +57,7 @@
       "kind": "module",
       "name": "filescoped",
       "parent": null,
+      "signature": null,
       "span": "0:0-21:0",
       "static": false,
       "visibility": null
@@ -66,6 +67,7 @@
       "kind": "namespace",
       "name": "filescoped.Shop.Billing",
       "parent": "filescoped",
+      "signature": null,
       "span": "0:0-21:0",
       "static": false,
       "visibility": null
@@ -75,6 +77,7 @@
       "kind": "class",
       "name": "filescoped.Shop.Billing.Invoicer",
       "parent": "filescoped.Shop.Billing",
+      "signature": null,
       "span": "6:0-18:1",
       "static": false,
       "visibility": "public"
@@ -84,6 +87,7 @@
       "kind": "property",
       "name": "filescoped.Shop.Billing.Invoicer.Total",
       "parent": "filescoped.Shop.Billing.Invoicer",
+      "signature": null,
       "span": "10:4-10:46",
       "static": false,
       "visibility": "public"
@@ -93,6 +97,7 @@
       "kind": "method",
       "name": "filescoped.Shop.Billing.Invoicer.Reset",
       "parent": "filescoped.Shop.Billing.Invoicer",
+      "signature": null,
       "span": "14:4-14:27",
       "static": false,
       "visibility": "public"
@@ -102,6 +107,7 @@
       "kind": "method",
       "name": "filescoped.Shop.Billing.Invoicer.Old",
       "parent": "filescoped.Shop.Billing.Invoicer",
+      "signature": null,
       "span": "16:4-17:34",
       "static": false,
       "visibility": "protected"
@@ -111,6 +117,7 @@
       "kind": "enum",
       "name": "filescoped.Shop.Billing.Mode",
       "parent": "filescoped.Shop.Billing",
+      "signature": null,
       "span": "20:0-20:15",
       "static": false,
       "visibility": "internal"
@@ -120,6 +127,7 @@
       "kind": "enum_member",
       "name": "filescoped.Shop.Billing.Mode.A",
       "parent": "filescoped.Shop.Billing.Mode",
+      "signature": null,
       "span": "20:12-20:13",
       "static": false,
       "visibility": "public"

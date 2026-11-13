@@ -392,6 +392,7 @@
       "kind": "module",
       "name": "declarations",
       "parent": null,
+      "signature": null,
       "span": "0:0-97:0",
       "static": false,
       "visibility": null
@@ -401,6 +402,7 @@
       "kind": "constant",
       "name": "declarations.MAX_SIZE",
       "parent": "declarations",
+      "signature": "MAX_SIZE = 10",
       "span": "4:0-4:13",
       "static": false,
       "visibility": "public"
@@ -410,6 +412,7 @@
       "kind": "class",
       "name": "declarations.Shape",
       "parent": "declarations",
+      "signature": null,
       "span": "8:0-59:26",
       "static": false,
       "visibility": "public"
@@ -419,6 +422,7 @@
       "kind": "field",
       "name": "declarations.Shape.sides",
       "parent": "declarations.Shape",
+      "signature": null,
       "span": "14:4-14:18",
       "static": false,
       "visibility": "public"
@@ -428,6 +432,7 @@
       "kind": "field",
       "name": "declarations.Shape.label",
       "parent": "declarations.Shape",
+      "signature": null,
       "span": "15:4-15:19",
       "static": false,
       "visibility": "public"
@@ -437,6 +442,7 @@
       "kind": "field",
       "name": "declarations.Shape._hidden",
       "parent": "declarations.Shape",
+      "signature": null,
       "span": "16:4-16:15",
       "static": false,
       "visibility": "internal"
@@ -446,6 +452,7 @@
       "kind": "field",
       "name": "declarations.Shape.__secret",
       "parent": "declarations.Shape",
+      "signature": null,
       "span": "17:4-17:16",
       "static": false,
       "visibility": "private"
@@ -455,6 +462,7 @@
       "kind": "constructor",
       "name": "declarations.Shape.__init__",
       "parent": "declarations.Shape",
+      "signature": null,
       "span": "19:4-21:26",
       "static": false,
       "visibility": "public"
@@ -464,6 +472,7 @@
       "kind": "method",
       "name": "declarations.Shape.area",
       "parent": "declarations.Shape",
+      "signature": null,
       "span": "23:4-25:16",
       "static": false,
       "visibility": "public"
@@ -473,6 +482,7 @@
       "kind": "method",
       "name": "declarations.Shape._helper",
       "parent": "declarations.Shape",
+      "signature": null,
       "span": "27:4-28:12",
       "static": false,
       "visibility": "internal"
@@ -482,6 +492,7 @@
       "kind": "method",
       "name": "declarations.Shape.__mangled",
       "parent": "declarations.Shape",
+      "signature": null,
       "span": "30:4-31:12",
       "static": false,
       "visibility": "private"
@@ -491,6 +502,7 @@
       "kind": "method",
       "name": "declarations.Shape.__repr__",
       "parent": "declarations.Shape",
+      "signature": null,
       "span": "33:4-34:22",
       "static": false,
       "visibility": "public"
@@ -500,6 +512,7 @@
       "kind": "method",
       "name": "declarations.Shape.create",
       "parent": "declarations.Shape",
+      "signature": null,
       "span": "37:4-39:23",
       "static": true,
       "visibility": "public"
@@ -509,6 +522,7 @@
       "kind": "method",
       "name": "declarations.Shape.from_text",
       "parent": "declarations.Shape",
+      "signature": null,
       "span": "42:4-43:29",
       "static": false,
       "visibility": "public"
@@ -518,6 +532,7 @@
       "kind": "property",
       "name": "declarations.Shape.name",
       "parent": "declarations.Shape",
+      "signature": null,
       "span": "46:4-48:25",
       "static": false,
       "visibility": "public"
@@ -527,6 +542,7 @@
       "kind": "property",
       "name": "declarations.Shape.name",
       "parent": "declarations.Shape",
+      "signature": null,
       "span": "51:4-52:26",
       "static": false,
       "visibility": "public"
@@ -536,6 +552,7 @@
       "kind": "class",
       "name": "declarations.Shape.Inner",
       "parent": "declarations.Shape",
+      "signature": null,
       "span": "54:4-59:26",
       "static": false,
       "visibility": "public"
@@ -545,6 +562,7 @@
       "kind": "method",
       "name": "declarations.Shape.Inner.method",
       "parent": "declarations.Shape.Inner",
+      "signature": null,
       "span": "55:8-59:26",
       "static": false,
       "visibility": "public"
@@ -554,6 +572,7 @@
       "kind": "function",
       "name": "declarations.Shape.Inner.method.local",
       "parent": "declarations.Shape.Inner.method",
+      "signature": null,
       "span": "56:12-57:24",
       "static": false,
       "visibility": "public"
@@ -563,6 +582,7 @@
       "kind": "function",
       "name": "declarations.top_level",
       "parent": "declarations",
+      "signature": null,
       "span": "62:0-68:19",
       "static": false,
       "visibility": "public"
@@ -572,6 +592,7 @@
       "kind": "function",
       "name": "declarations.top_level.nested",
       "parent": "declarations.top_level",
+      "signature": null,
       "span": "65:4-66:16",
       "static": false,
       "visibility": "public"
@@ -581,6 +602,7 @@
       "kind": "function",
       "name": "declarations.fetch",
       "parent": "declarations",
+      "signature": null,
       "span": "71:0-72:14",
       "static": false,
       "visibility": "public"
@@ -590,6 +612,7 @@
       "kind": "function",
       "name": "declarations.decorated",
       "parent": "declarations",
+      "signature": null,
       "span": "76:0-77:8",
       "static": false,
       "visibility": "public"
@@ -599,6 +622,7 @@
       "kind": "function",
       "name": "declarations.platform",
       "parent": "declarations",
+      "signature": null,
       "span": "82:4-83:12",
       "static": false,
       "visibility": "public"
@@ -608,6 +632,7 @@
       "kind": "function",
       "name": "declarations.property",
       "parent": "declarations",
+      "signature": null,
       "span": "86:0-92:17",
       "static": false,
       "visibility": "public"
@@ -617,6 +642,7 @@
       "kind": "function",
       "name": "declarations.property._inner",
       "parent": "declarations.property",
+      "signature": null,
       "span": "89:4-90:20",
       "static": false,
       "visibility": "internal"
@@ -626,6 +652,7 @@
       "kind": "constructor",
       "name": "declarations.__init__",
       "parent": "declarations",
+      "signature": null,
       "span": "95:0-96:8",
       "static": false,
       "visibility": "public"
