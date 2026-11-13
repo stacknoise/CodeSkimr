@@ -194,15 +194,26 @@ fn no_canary_leaves_the_running_app() {
     assert!(found("200 OK") && found(INSIDE) && found("public class"));
     // Calls without the token or with a wrong one are refused (S-04).
     assert!(found("401 Unauthorized"));
-    for answer in &outcome.answers {
-        for secret in [CREDENTIAL_CANARY, FILE_CANARY, outcome.token.as_str()] {
-            assert!(!answer.contains(secret), "{secret} in {answer}");
+    // The messages name the position, never the secret: a failing run must not log it.
+    for (n, answer) in outcome.answers.iter().enumerate() {
+        for (kind, secret) in [CREDENTIAL_CANARY, FILE_CANARY, outcome.token.as_str()]
+            .into_iter()
+            .enumerate()
+        {
+            assert!(!answer.contains(secret), "secret {kind} in answer {n}");
         }
     }
     // The database and every other file of the data folder.
     for (path, bytes) in files(folders.data.path()) {
-        for secret in [CREDENTIAL_CANARY, outcome.token.as_str()] {
-            assert!(!contains(&bytes, secret), "{secret} in {}", path.display());
+        for (kind, secret) in [CREDENTIAL_CANARY, outcome.token.as_str()]
+            .into_iter()
+            .enumerate()
+        {
+            assert!(
+                !contains(&bytes, secret),
+                "secret {kind} in {}",
+                path.display()
+            );
         }
     }
 }
