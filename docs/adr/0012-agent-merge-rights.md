@@ -26,3 +26,7 @@ Option 2.
 - The repository setting "Allow auto-merge" must be enabled once by the product owner.
 - Rules in `CLAUDE.md`, `.claude/agents/` and the planning document are updated accordingly.
 - Quality gates stay the same: required checks plus an independent review.
+
+## Addendum: review feedback
+
+The author agent processes all reviewer feedback itself before the merge, minor remarks included. Items outside the work package become GitHub issues linked in the PR. Afterwards the reviewer confirms again and auto-merge may be enabled (`CLAUDE.md`, rule 8).
