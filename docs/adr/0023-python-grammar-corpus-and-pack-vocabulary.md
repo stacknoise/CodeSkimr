@@ -36,6 +36,7 @@ Listed in `languages/python/language.toml`: `__init__` is the constructor; the d
 
 ## Limits (follow-up work)
 
+- A `def __init__` is a constructor wherever it stands, also at module level; a function named `property` or `setter` is a plain function (only decorators set the property kind). An UPPER_CASE assignment is a constant even when it is a `TypeVar` (`F = t.TypeVar(...)`).
 - Module docstrings are not read (the module symbol has no query), constants and fields inside `if`/`try` blocks are not found, instance attributes assigned through `self.x` are not symbols, enum members of an `Enum` class are fields.
 - `references.scm`: reads and writes are level-1 approximations; locals are the parameters, direct assignments in a function body, loop variables and `as` targets; a class body is not a scope; `self` and `cls` are the own receiver, `super()` the base.
 - `metrics.scm` follows ADR 0015: `match` arms count per `case` except `case _`; a guard (`if` after the pattern) and `for … else` add nothing; comprehensions count per `for` clause and per `if` clause.

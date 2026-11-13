@@ -9,8 +9,11 @@
 
 ; Functions and methods. The decorators are siblings of the definition.
 (function_definition
-  name: (identifier) @name @modifier
+  name: (identifier) @name
   body: (block . (expression_statement (string (string_content) @doc))?)) @symbol.function
+; Only the name `__init__` is a modifier: it makes the constructor (language.toml).
+(function_definition
+  name: (identifier) @name @modifier (#eq? @name "__init__")) @symbol.function
 (decorated_definition
   (decorator [(identifier) @modifier (attribute attribute: (identifier) @modifier)])
   definition: (function_definition name: (identifier) @name) @symbol.function)

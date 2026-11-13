@@ -28,6 +28,7 @@ pub struct LanguagePack {
     pub(crate) doc_prefixes: Vec<String>,
     pub(crate) static_keywords: HashSet<String>,
     pub(crate) modifier_kinds: HashMap<String, SymbolKind>,
+    /// Kind a declaration gets inside a parent: (parent kind, kind) to kind.
     kinds_by_parent: HashMap<(SymbolKind, SymbolKind), SymbolKind>,
     pub(crate) doc_summary: Option<DocSummary>,
     pub(crate) identifier_nodes: HashSet<String>,

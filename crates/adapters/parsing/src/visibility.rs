@@ -56,8 +56,8 @@ impl Visibilities {
         })
     }
 
-    /// Visibility of a declaration of `kind` named `name` that carries `words` (the texts of its visibility captures, in
-    /// source order) inside a parent of kind `parent`.
+    /// Visibility of a declaration of `kind` named `name` that carries `words` (the texts of its
+    /// visibility captures, in source order) inside a parent of kind `parent`.
     ///
     /// Words that are no keyword of the pack are ignored, so a query may capture every modifier.
     /// Several keywords together may have an entry of their own, such as `protected internal`;

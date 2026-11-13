@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 57,
+      "loc": 64,
       "operands": null,
       "operators": null,
       "symbol": "declarations"
@@ -202,9 +202,48 @@
         0
       ],
       "symbol": "declarations.platform"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "declarations.property"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "declarations.property._inner"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.__init__"
     }
   ],
-  "loc": 57,
+  "loc": 64,
   "references": [
     {
       "at": "2:7",
@@ -338,6 +377,13 @@
       "kind": "read",
       "receiver": null,
       "target": "os"
+    },
+    {
+      "at": "92:11",
+      "from": "declarations.property",
+      "kind": "read",
+      "receiver": null,
+      "target": "_inner"
     }
   ],
   "symbols": [
@@ -346,7 +392,7 @@
       "kind": "module",
       "name": "declarations",
       "parent": null,
-      "span": "0:0-84:0",
+      "span": "0:0-97:0",
       "static": false,
       "visibility": null
     },
@@ -554,6 +600,33 @@
       "name": "declarations.platform",
       "parent": "declarations",
       "span": "82:4-83:12",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "A plain function that is named like a decorator.",
+      "kind": "function",
+      "name": "declarations.property",
+      "parent": "declarations",
+      "span": "86:0-92:17",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations.property._inner",
+      "parent": "declarations.property",
+      "span": "89:4-90:20",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "constructor",
+      "name": "declarations.__init__",
+      "parent": "declarations",
+      "span": "95:0-96:8",
       "static": false,
       "visibility": "public"
     }

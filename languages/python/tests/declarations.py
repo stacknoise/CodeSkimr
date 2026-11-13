@@ -82,3 +82,16 @@ if os.name == "nt":
 
     def platform():
         pass
+
+
+def property(value):
+    """A plain function that is named like a decorator."""
+
+    def _inner():
+        return value
+
+    return _inner
+
+
+def __init__():
+    pass
