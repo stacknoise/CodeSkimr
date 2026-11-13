@@ -105,7 +105,7 @@ fn usages_pass_direction_depth_and_tests_on() {
     assert_eq!((query.depth, query.include_tests), (2, true));
     assert_eq!(answer["direction"], "outgoing");
     assert_eq!(answer["include_tests"], true);
-    assert!(list(&answer, "usages").is_empty());
+    assert_eq!(list(&answer, "usages"), Vec::<Value>::new());
 }
 
 #[test]
