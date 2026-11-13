@@ -15,9 +15,9 @@ use std::num::NonZeroUsize;
 
 use crate::ModelError;
 use crate::consts::{
-    FNV_OFFSET_BASIS, FNV_PRIME, MIX_MULTIPLIER_FIRST, MIX_MULTIPLIER_SECOND, MIX_SHIFT_FIRST,
-    MIX_SHIFT_LAST, MIX_SHIFT_SECOND, ROLLING_BASE, SIMILARITY_NONE, TOKEN_IDENTIFIER,
-    TOKEN_LITERAL,
+    FNV_OFFSET_BASIS, FNV_PRIME, HASH_START, MIX_MULTIPLIER_FIRST, MIX_MULTIPLIER_SECOND,
+    MIX_SHIFT_FIRST, MIX_SHIFT_LAST, MIX_SHIFT_SECOND, POWER_START, ROLLING_BASE, SIMILARITY_NONE,
+    TOKEN_IDENTIFIER, TOKEN_LITERAL,
 };
 
 /// One normalised syntax token, identified by a hash of its kind.
@@ -191,9 +191,9 @@ fn ngram_hashes(tokens: &[TokenId], size: usize) -> Vec<u64> {
     if tokens.len() < size {
         return Vec::new();
     }
-    let weight = (1..size).fold(1_u64, |power, _| power.wrapping_mul(ROLLING_BASE));
+    let weight = (1..size).fold(POWER_START, |power, _| power.wrapping_mul(ROLLING_BASE));
     let extend = |hash: u64, token: &TokenId| hash.wrapping_mul(ROLLING_BASE).wrapping_add(token.0);
-    let mut hash = tokens.iter().take(size).fold(0_u64, extend);
+    let mut hash = tokens.iter().take(size).fold(HASH_START, extend);
     let mut hashes = vec![mix(hash)];
     for (outgoing, incoming) in tokens.iter().zip(tokens.iter().skip(size)) {
         hash = extend(hash.wrapping_sub(outgoing.0.wrapping_mul(weight)), incoming);

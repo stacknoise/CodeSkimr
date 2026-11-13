@@ -145,3 +145,7 @@ pub const TOKEN_IDENTIFIER: &str = "<identifier>";
 pub const TOKEN_LITERAL: &str = "<literal>";
 /// Similarity of two fingerprint sets that share nothing.
 pub const SIMILARITY_NONE: f64 = 0.0;
+/// Start value of the power `ROLLING_BASE^(n-1)`, the weight of the token that leaves the window.
+pub const POWER_START: u64 = 1;
+/// Start value of the rolling hash of an n-gram.
+pub const HASH_START: u64 = 0;
