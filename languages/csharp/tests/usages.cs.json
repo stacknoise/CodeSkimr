@@ -467,6 +467,7 @@
       "kind": "module",
       "name": "usages",
       "parent": null,
+      "signature": null,
       "span": "0:0-57:0",
       "static": false,
       "visibility": null
@@ -476,6 +477,7 @@
       "kind": "namespace",
       "name": "usages.Demo",
       "parent": "usages",
+      "signature": null,
       "span": "0:0-57:0",
       "static": false,
       "visibility": null
@@ -485,6 +487,7 @@
       "kind": "class",
       "name": "usages.Demo.Names",
       "parent": "usages.Demo",
+      "signature": null,
       "span": "2:0-11:1",
       "static": true,
       "visibility": "public"
@@ -494,6 +497,7 @@
       "kind": "constant",
       "name": "usages.Demo.Names.Arg",
       "parent": "usages.Demo.Names",
+      "signature": "Arg = \"a\"",
       "span": "4:24-4:33",
       "static": false,
       "visibility": "public"
@@ -503,6 +507,7 @@
       "kind": "constant",
       "name": "usages.Demo.Names.Ret",
       "parent": "usages.Demo.Names",
+      "signature": "Ret = \"r\"",
       "span": "5:24-5:33",
       "static": false,
       "visibility": "public"
@@ -512,6 +517,7 @@
       "kind": "constant",
       "name": "usages.Demo.Names.Case",
       "parent": "usages.Demo.Names",
+      "signature": "Case = \"c\"",
       "span": "6:24-6:34",
       "static": false,
       "visibility": "public"
@@ -521,6 +527,7 @@
       "kind": "constant",
       "name": "usages.Demo.Names.Attr",
       "parent": "usages.Demo.Names",
+      "signature": "Attr = \"t\"",
       "span": "7:24-7:34",
       "static": false,
       "visibility": "public"
@@ -530,6 +537,7 @@
       "kind": "constant",
       "name": "usages.Demo.Names.Lambda",
       "parent": "usages.Demo.Names",
+      "signature": "Lambda = \"l\"",
       "span": "8:24-8:36",
       "static": false,
       "visibility": "public"
@@ -539,6 +547,7 @@
       "kind": "constant",
       "name": "usages.Demo.Names.Init",
       "parent": "usages.Demo.Names",
+      "signature": "Init = \"i\"",
       "span": "9:24-9:34",
       "static": false,
       "visibility": "public"
@@ -548,6 +557,7 @@
       "kind": "constant",
       "name": "usages.Demo.Names.Cond",
       "parent": "usages.Demo.Names",
+      "signature": "Cond = \"q\"",
       "span": "10:24-10:34",
       "static": false,
       "visibility": "public"
@@ -557,6 +567,7 @@
       "kind": "interface",
       "name": "usages.Demo.IOne",
       "parent": "usages.Demo",
+      "signature": null,
       "span": "13:0-13:57",
       "static": false,
       "visibility": "public"
@@ -566,6 +577,7 @@
       "kind": "method",
       "name": "usages.Demo.IOne.Close",
       "parent": "usages.Demo.IOne",
+      "signature": null,
       "span": "13:24-13:37",
       "static": false,
       "visibility": "public"
@@ -575,6 +587,7 @@
       "kind": "property",
       "name": "usages.Demo.IOne.Size",
       "parent": "usages.Demo.IOne",
+      "signature": null,
       "span": "13:38-13:55",
       "static": false,
       "visibility": "public"
@@ -584,6 +597,7 @@
       "kind": "interface",
       "name": "usages.Demo.ITwo",
       "parent": "usages.Demo",
+      "signature": null,
       "span": "14:0-14:39",
       "static": false,
       "visibility": "public"
@@ -593,6 +607,7 @@
       "kind": "method",
       "name": "usages.Demo.ITwo.Close",
       "parent": "usages.Demo.ITwo",
+      "signature": null,
       "span": "14:24-14:37",
       "static": false,
       "visibility": "public"
@@ -602,6 +617,7 @@
       "kind": "class",
       "name": "usages.Demo.Svc",
       "parent": "usages.Demo",
+      "signature": null,
       "span": "16:0-20:1",
       "static": false,
       "visibility": "public"
@@ -611,6 +627,7 @@
       "kind": "method",
       "name": "usages.Demo.Svc.Make",
       "parent": "usages.Demo.Svc",
+      "signature": null,
       "span": "18:4-18:31",
       "static": false,
       "visibility": "public"
@@ -620,6 +637,7 @@
       "kind": "method",
       "name": "usages.Demo.Svc.Load",
       "parent": "usages.Demo.Svc",
+      "signature": null,
       "span": "19:4-19:41",
       "static": true,
       "visibility": "public"
@@ -629,6 +647,7 @@
       "kind": "class",
       "name": "usages.Demo.Item",
       "parent": "usages.Demo",
+      "signature": null,
       "span": "22:0-22:52",
       "static": false,
       "visibility": "public"
@@ -638,6 +657,7 @@
       "kind": "property",
       "name": "usages.Demo.Item.Count",
       "parent": "usages.Demo.Item",
+      "signature": null,
       "span": "22:20-22:50",
       "static": false,
       "visibility": "public"
@@ -647,6 +667,7 @@
       "kind": "class",
       "name": "usages.Demo.Caller",
       "parent": "usages.Demo",
+      "signature": null,
       "span": "24:0-43:1",
       "static": false,
       "visibility": "public"
@@ -656,6 +677,7 @@
       "kind": "method",
       "name": "usages.Demo.Caller.Take",
       "parent": "usages.Demo.Caller",
+      "signature": null,
       "span": "26:4-26:34",
       "static": false,
       "visibility": "public"
@@ -665,6 +687,7 @@
       "kind": "method",
       "name": "usages.Demo.Caller.A",
       "parent": "usages.Demo.Caller",
+      "signature": null,
       "span": "27:4-27:40",
       "static": false,
       "visibility": "public"
@@ -674,6 +697,7 @@
       "kind": "method",
       "name": "usages.Demo.Caller.B",
       "parent": "usages.Demo.Caller",
+      "signature": null,
       "span": "28:4-28:43",
       "static": false,
       "visibility": "public"
@@ -683,6 +707,7 @@
       "kind": "method",
       "name": "usages.Demo.Caller.C",
       "parent": "usages.Demo.Caller",
+      "signature": null,
       "span": "29:4-36:5",
       "static": false,
       "visibility": "public"
@@ -692,6 +717,7 @@
       "kind": "method",
       "name": "usages.Demo.Caller.D",
       "parent": "usages.Demo.Caller",
+      "signature": null,
       "span": "37:4-38:23",
       "static": false,
       "visibility": "public"
@@ -701,6 +727,7 @@
       "kind": "method",
       "name": "usages.Demo.Caller.E",
       "parent": "usages.Demo.Caller",
+      "signature": null,
       "span": "39:4-39:50",
       "static": false,
       "visibility": "public"
@@ -710,6 +737,7 @@
       "kind": "method",
       "name": "usages.Demo.Caller.F",
       "parent": "usages.Demo.Caller",
+      "signature": null,
       "span": "40:4-40:47",
       "static": false,
       "visibility": "public"
@@ -719,6 +747,7 @@
       "kind": "method",
       "name": "usages.Demo.Caller.G",
       "parent": "usages.Demo.Caller",
+      "signature": null,
       "span": "41:4-41:57",
       "static": false,
       "visibility": "public"
@@ -728,6 +757,7 @@
       "kind": "method",
       "name": "usages.Demo.Caller.H",
       "parent": "usages.Demo.Caller",
+      "signature": null,
       "span": "42:4-42:89",
       "static": false,
       "visibility": "public"
@@ -737,6 +767,7 @@
       "kind": "class",
       "name": "usages.Demo.Client",
       "parent": "usages.Demo",
+      "signature": null,
       "span": "45:0-56:1",
       "static": false,
       "visibility": "public"
@@ -746,6 +777,7 @@
       "kind": "method",
       "name": "usages.Demo.Client.Go",
       "parent": "usages.Demo.Client",
+      "signature": null,
       "span": "47:4-55:5",
       "static": false,
       "visibility": "private"
