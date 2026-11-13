@@ -108,12 +108,14 @@
       "at": "27:4",
       "from": "sample\\Shop\\helper",
       "kind": "call",
+      "receiver": null,
       "target": "helper"
     },
     {
       "at": "27:11",
       "from": "sample\\Shop\\helper",
       "kind": "call",
+      "receiver": null,
       "target": "strlen"
     }
   ],

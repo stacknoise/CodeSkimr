@@ -80,12 +80,14 @@
       "at": "29:1",
       "from": "sample.Add",
       "kind": "call",
+      "receiver": null,
       "target": "println"
     },
     {
       "at": "29:9",
       "from": "sample.Add",
       "kind": "call",
+      "receiver": null,
       "target": "NewOrder"
     }
   ],

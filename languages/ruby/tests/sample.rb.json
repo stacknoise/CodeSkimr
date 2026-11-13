@@ -80,18 +80,21 @@
       "at": "18:6",
       "from": "sample::Shop::Order::build",
       "kind": "call",
+      "receiver": null,
       "target": "new"
     },
     {
       "at": "24:4",
       "from": "sample::helper",
       "kind": "call",
+      "receiver": null,
       "target": "each"
     },
     {
       "at": "24:15",
       "from": "sample::helper",
       "kind": "call",
+      "receiver": null,
       "target": "puts"
     }
   ],
