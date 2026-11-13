@@ -95,7 +95,7 @@ fn crossings_below(layered: &Layered, index: usize, position: &[usize]) -> usize
 
 /// Counts pairs that are in decreasing order, with a Fenwick tree in O(n log n).
 fn inversions(sequence: &[usize], width: usize) -> usize {
-    let mut tree = vec![0_usize; width + 1];
+    let mut tree = vec![0; width + 1];
     let mut total = 0;
     for (seen, &target) in sequence.iter().enumerate() {
         total += seen - prefix_sum(&tree, target + 1);
