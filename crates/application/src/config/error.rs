@@ -34,6 +34,12 @@ pub enum Violation {
     MustNotBeEmpty,
     /// The entry must be a single folder name, not a path or an empty text.
     MustBeFolderName,
+    /// The text must be a URL scheme: a letter, then letters, digits, `+`, `-` or `.`.
+    MustBeUrlScheme,
+    /// The template must start with one of the allowed schemes.
+    MustUseAllowedScheme(&'static str),
+    /// The template must contain the placeholder for the file path.
+    MustContainPath,
 }
 
 /// Errors that loading or validating the configuration can produce.

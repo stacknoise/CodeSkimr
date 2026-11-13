@@ -13,13 +13,18 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_domain::Principal;
 use tokio::net::TcpListener;
 
+use crate::assets::Assets;
 use crate::commands::CommandApi;
-use crate::consts::{COMMAND_PATH, COMMANDS_PATH, EVENTS_PATH};
-use crate::events;
+use crate::consts::{
+    COMMAND_PATH, COMMANDS_PATH, EVENTS_PATH, EXCHANGE_PATH, LAUNCH_CODE_PATH, UI_CONFIG_PATH,
+};
 use crate::guard::{Guard, screen};
-use crate::routes;
+use crate::launch::LaunchCodes;
+use crate::settings::UiOptions;
 use crate::state::AppState;
 use crate::token::InstallationToken;
+use crate::ui;
+use crate::{events, routes, session};
 
 /// The local server before it listens.
 pub struct Server {
@@ -27,6 +32,7 @@ pub struct Server {
     events: EventBus,
     principal: Principal,
     token: InstallationToken,
+    ui: UiOptions,
 }
 
 /// A server that listens and has not started to answer yet.
@@ -60,12 +66,14 @@ impl Server {
         events: EventBus,
         principal: Principal,
         token: InstallationToken,
+        ui: UiOptions,
     ) -> Self {
         Self {
             api,
             events,
             principal,
             token,
+            ui,
         }
     }
 
@@ -86,11 +94,17 @@ impl Server {
             guard: Arc::clone(&guard),
             principal: self.principal,
             events: self.events,
+            launch: Arc::new(LaunchCodes::new(self.ui.launch_lifetime)),
+            ui: Arc::new(self.ui.settings),
+            assets: self.ui.dir.map(|dir| Arc::new(Assets::new(dir))),
         };
         let router = Router::new()
             .route(COMMANDS_PATH, get(routes::list))
             .route(COMMAND_PATH, post(routes::run))
             .route(EVENTS_PATH, get(events::stream))
+            .route(UI_CONFIG_PATH, get(ui::config))
+            .route(LAUNCH_CODE_PATH, post(session::issue).get(session::state))
+            .route(EXCHANGE_PATH, post(session::exchange))
             .fallback(routes::not_found)
             .method_not_allowed_fallback(routes::wrong_method)
             .layer(from_fn_with_state(guard, screen))

@@ -35,6 +35,9 @@ pub struct Locations {
     pub languages_dir: PathBuf,
     /// The user configuration file, if any location is known.
     pub user_config: Option<UserConfig>,
+    /// Where a relative folder such as the built UI is looked up: next to the program, then in
+    /// the current folder.
+    pub bases: Vec<PathBuf>,
 }
 
 /// The platform folders that differ between data and configuration.
@@ -77,6 +80,10 @@ impl Locations {
             data_dir,
             languages_dir: languages_dir(global, env, executable_dir, current_dir),
             user_config: user_config(global, env),
+            bases: vec![
+                executable_dir.unwrap_or(current_dir).to_path_buf(),
+                current_dir.to_path_buf(),
+            ],
         })
     }
 
@@ -84,6 +91,20 @@ impl Locations {
     #[must_use]
     pub fn database(&self) -> PathBuf {
         self.data_dir.join(DATABASE_FILE)
+    }
+
+    /// The folder `configured` names: an absolute path as it is, a relative one below the first
+    /// base where it exists. `None` if there is no such folder; the server then has no UI.
+    #[must_use]
+    pub fn existing_dir(&self, configured: &str) -> Option<PathBuf> {
+        let path = Path::new(configured);
+        if path.is_absolute() {
+            return path.is_dir().then(|| path.to_path_buf());
+        }
+        self.bases
+            .iter()
+            .map(|base| base.join(path))
+            .find(|folder| folder.is_dir())
     }
 
     /// The folder of the Git clones.

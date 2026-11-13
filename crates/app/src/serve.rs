@@ -3,6 +3,7 @@
 use std::future::Future;
 use std::net::{Ipv4Addr, SocketAddr};
 use std::sync::Arc;
+use std::time::Duration;
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
@@ -11,7 +12,7 @@ use codeskimr_application::registry::Registry;
 use codeskimr_cli::GlobalOptions;
 use codeskimr_codes::ErrorCode;
 use codeskimr_secrets::{OsCredentialStore, OsKeystore};
-use codeskimr_server::{CommandApi, Server};
+use codeskimr_server::{CommandApi, EditorSettings, Server, UiOptions, UiSettings};
 
 use crate::consts::URL_SCHEME;
 use crate::locations::Locations;
@@ -34,22 +35,52 @@ pub fn run(
 ) -> Result<(), CodedError> {
     let config = config_files::load(locations, global, None)?;
     let store = OsCredentialStore::new(OsKeystore);
+    let ui = ui_options(&config, locations);
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?
-        .block_on(serve(&store, config.server.port, listening, interrupted()))
+        .block_on(serve(
+            &store,
+            config.server.port,
+            ui,
+            listening,
+            interrupted(),
+        ))
+}
+
+/// What the browser UI gets from the configuration. Without a built UI folder the server answers
+/// the API only.
+fn ui_options(config: &codeskimr_application::config::Config, locations: &Locations) -> UiOptions {
+    UiOptions {
+        dir: locations.existing_dir(&config.ui.dir),
+        launch_lifetime: Duration::from_secs(u64::from(config.ui.launch_code_seconds)),
+        settings: UiSettings {
+            editor: EditorSettings {
+                url_template: config.editor.url_template.clone(),
+                allowed_schemes: config.editor.allowed_schemes.clone(),
+            },
+            default_theme: config.ui.default_theme.clone(),
+        },
+    }
 }
 
 /// Wires the server and runs it until `shutdown` completes.
-async fn serve(
+pub(crate) async fn serve(
     store: &impl CredentialStore,
     port: u16,
+    ui: UiOptions,
     listening: impl FnOnce(&str),
     shutdown: impl Future<Output = ()> + Send + 'static,
 ) -> Result<(), CodedError> {
     let token = installation_token::load_or_create(store)?;
-    let server = Server::new(command_api(), EventBus::new(), principal::resolve(), token);
+    let server = Server::new(
+        command_api(),
+        EventBus::new(),
+        principal::resolve(),
+        token,
+        ui,
+    );
     let bound = server
         .bind(SocketAddr::from((Ipv4Addr::LOCALHOST, port)))
         .await?;
@@ -71,6 +102,39 @@ async fn interrupted() {
     if tokio::signal::ctrl_c().await.is_err() {
         std::future::pending::<()>().await;
     }
+}
+
+/// The UI options of the shipped defaults, without a UI folder, for the tests of the wiring.
+#[cfg(test)]
+pub(crate) fn test_ui() -> UiOptions {
+    let config = codeskimr_application::config::Config::defaults().unwrap();
+    let locations = Locations {
+        data_dir: std::path::PathBuf::new(),
+        languages_dir: std::path::PathBuf::new(),
+        user_config: None,
+        bases: Vec::new(),
+    };
+    ui_options(&config, &locations)
+}
+
+/// Runs the server of a test on a free port in a runtime of its own until `stopped` completes.
+/// The address is sent to `found` as soon as the server answers.
+#[cfg(test)]
+pub(crate) fn serve_for_test(
+    store: &impl CredentialStore,
+    ui: UiOptions,
+    found: &std::sync::mpsc::Sender<String>,
+    stopped: tokio::sync::oneshot::Receiver<()>,
+) -> Result<(), CodedError> {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?;
+    let listening = |url: &str| found.send(url.to_owned()).unwrap();
+    let shutdown = async {
+        stopped.await.ok();
+    };
+    runtime.block_on(serve(store, 0, ui, listening, shutdown))
 }
 
 #[cfg(test)]
@@ -118,6 +182,7 @@ mod tests {
             .block_on(serve(
                 &store,
                 0,
+                test_ui(),
                 |url| found.send(url.to_owned()).unwrap(),
                 async {
                     stopped.await.ok();

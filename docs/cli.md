@@ -27,6 +27,14 @@ codeskimr mcp [--project <folder>]
 
 Serves the three tools of WP-26 over stdin and stdout for the project in `--project` (default: the current folder). The folder must have been scanned before; otherwise the command stops with `PRJ-201` (not registered) or `MCP-203` (registered, but no snapshot). Nothing but the protocol is written to standard output; errors go to standard error.
 
+## `codeskimr open`
+
+```
+codeskimr open [--no-browser]
+```
+
+Opens the UI of the running local server in the browser. It asks the server for a one-time launch code, writes it to a private launch file (mode 0600), prints `Launch file: …` and starts the system browser with it, then waits until the code is used or has expired and deletes the file. `--no-browser` does not start a browser. Without a running server it stops with `API-601`. Details: `docs/server.md`.
+
 ## `codeskimr serve`
 
 ```

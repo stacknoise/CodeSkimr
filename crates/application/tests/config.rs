@@ -251,6 +251,48 @@ fn limits_and_folders_are_checked() {
 }
 
 #[test]
+fn the_editor_link_and_the_ui_are_checked() {
+    assert_rejected(&[
+        (
+            "[editor]\nurl_template = \"javascript:alert({path})\"\n",
+            "editor.url_template",
+            Violation::MustUseAllowedScheme("editor.allowed_schemes"),
+        ),
+        (
+            "[editor]\nurl_template = \"no-scheme-{path}\"\n",
+            "editor.url_template",
+            Violation::MustUseAllowedScheme("editor.allowed_schemes"),
+        ),
+        (
+            "[editor]\nurl_template = \"vscode://file/x\"\n",
+            "editor.url_template",
+            Violation::MustContainPath,
+        ),
+        (
+            "[editor]\nallowed_schemes = []\n",
+            "editor.allowed_schemes",
+            Violation::MustNotBeEmpty,
+        ),
+        (
+            "[editor]\nallowed_schemes = [\"VSCode\"]\n",
+            "editor.allowed_schemes",
+            Violation::MustBeUrlScheme,
+        ),
+        (
+            "[ui]\nlaunch_code_seconds = 0\n",
+            "ui.launch_code_seconds",
+            Violation::MustBePositive,
+        ),
+        (
+            "[ui]\ndefault_theme = \"\"\n",
+            "ui.default_theme",
+            Violation::MustBeFolderName,
+        ),
+        ("[ui]\ndir = \"\"\n", "ui.dir", Violation::MustNotBeEmpty),
+    ]);
+}
+
+#[test]
 fn every_error_maps_to_a_registered_code() {
     let error = Config::resolve(&[user("[watcher]\ndebounce_ms = 0\n")]).expect_err("range");
     assert_eq!(error.code().id(), "CFG-101");

@@ -97,7 +97,24 @@ pub mod keys {
     pub const MAX_SOURCE_MB: &str = "scan.max_source_mb";
     /// `server.port`
     pub const SERVER_PORT: &str = "server.port";
+    /// `editor.url_template`
+    pub const EDITOR_URL_TEMPLATE: &str = "editor.url_template";
+    /// `editor.allowed_schemes`
+    pub const EDITOR_ALLOWED_SCHEMES: &str = "editor.allowed_schemes";
+    /// `ui.default_theme`
+    pub const UI_DEFAULT_THEME: &str = "ui.default_theme";
+    /// `ui.dir`
+    pub const UI_DIR: &str = "ui.dir";
+    /// `ui.launch_code_seconds`
+    pub const UI_LAUNCH_CODE_SECONDS: &str = "ui.launch_code_seconds";
 }
 
 /// Characters that make a folder name a path.
 pub const PATH_SEPARATORS: [char; 2] = ['/', '\\'];
+
+/// Separates the scheme of a URL from the rest.
+pub const URL_SCHEME_SEPARATOR: char = ':';
+/// Placeholder of the editor template that stands for the file path.
+pub const PLACEHOLDER_PATH: &str = "{path}";
+/// Characters besides lower-case letters and digits that a URL scheme may contain.
+pub const SCHEME_EXTRA_CHARS: [char; 3] = ['+', '-', '.'];
