@@ -9,9 +9,9 @@ Responsibilities
 - Work in a separate thread from the author, with no memory of how the code was written.
 - Check: rules of section 3, definition of done 18.4, acceptance criteria of the issue, tests, error codes, texts in de and en, dependencies, budgets.
 - Write a short plain-German summary with a recommendation.
-- Write the verdict as a review comment (the ruleset requires 0 approvals; Anton's merge is the approval). For PRs labelled `security-sensitive`, only recommend; the security agent and Anton decide.
+- Write the verdict as a review comment (the ruleset requires 0 approvals). A clear "OK" from the reviewer is the precondition for auto-merge by the coordinator. For PRs labelled `security-sensitive` or `new-dependency`, or that touch the blueprint, ADRs or rules, only recommend; Anton decides (security agent too for `security-sensitive`).
 
-Must not: push code, merge, review own work.
+Must not: push code, review own work.
 Hands over to: developer (findings), Anton (recommendation).
 
 General rules: see `CLAUDE.md`.

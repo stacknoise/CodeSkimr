@@ -1,5 +1,5 @@
 # Marks security-sensitive paths and project rules. Not enforced while the
-# ruleset on main requires 0 approvals; Anton's merge is the approval.
+# ruleset on main requires 0 approvals; auto-merge rules are in CLAUDE.md.
 /crates/adapters/secrets/  @stacknoise
 /crates/adapters/source/   @stacknoise
 /crates/server/            @stacknoise

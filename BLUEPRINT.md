@@ -900,7 +900,7 @@ From milestone 1 on, the agents developing CodeSkimr connect to CodeSkimr's own 
   - new error codes
   - new dependencies with justification
   - benchmark delta
-- **Merge** only when CI is green and the product owner has approved.
+- **Merge** only when CI is green and the reviewer agent has given an OK (auto-merge, squash). PRs labelled `security-sensitive` or `new-dependency` and changes to the blueprint, ADRs or agent rules are merged by the product owner (ADR 0012).
 - **Versioning:** SemVer, with a changelog generated from the commits.
 
 ### 18.3 Architecture Decision Records
