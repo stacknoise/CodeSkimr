@@ -8,6 +8,7 @@ mod error;
 mod file;
 mod layer;
 mod metric;
+mod metrics;
 mod project;
 mod qualified_name;
 mod reference;
@@ -20,6 +21,9 @@ pub use error::ModelError;
 pub use file::{ContentHash, FileId, LanguageId, Loc, RelativePath, SourceFile};
 pub use layer::LayerEdge;
 pub use metric::{Metric, MetricKind, MetricValue};
+pub use metrics::{
+    HalsteadCounts, LineKind, cyclomatic_complexity, lines_of_code, maintainability_index,
+};
 pub use project::{
     BranchName, FolderPath, GitUrl, Layer, LayerName, Project, ProjectId, ProjectName,
     ProjectSource,
