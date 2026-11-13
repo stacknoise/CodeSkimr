@@ -76,6 +76,18 @@ describe("GraphScreen", () => {
     expect(stripe("Ui")?.style.top).toBe("0px");
   });
 
+  it("does not hide the links of the namespace level behind the violations filter", async () => {
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    await screen.findByRole("button", { name: "Domain" });
+    const filter = screen.getByLabelText("violations only") as HTMLInputElement;
+    fireEvent.click(filter);
+    expect(filter.checked).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Namespaces" }));
+    await waitFor(() => expect(filter.disabled).toBe(true));
+    expect(filter.checked).toBe(false);
+  });
+
   it("asks for the namespace level when it is chosen", async () => {
     served(GRAPH);
     render(() => <GraphScreen />);

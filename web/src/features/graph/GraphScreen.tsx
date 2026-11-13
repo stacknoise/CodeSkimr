@@ -6,7 +6,7 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject, openProject } from "../../shared/project/active";
 import { isTyping, useKeydown } from "../../shared/keys/keydown";
 import { projects, refreshProjects } from "../projects/projects";
-import { KEY } from "./consts";
+import { KEY, LEVEL } from "./consts";
 import { graphData, graphFailed, graphLevel, loadGraph, resetGraph, setGraphLevel } from "./graph";
 import { GraphCanvas } from "./GraphCanvas";
 import { Legend } from "./Legend";
@@ -35,6 +35,8 @@ export function GraphScreen() {
   const [selected, setSelected] = createSignal<string | null>(null);
   const [weak, setWeak] = createSignal(true);
   const [violationsOnly, setViolationsOnly] = createSignal(false);
+  // No violation is derived on the namespace level, so the filter only acts on the layer level.
+  const filtering = () => violationsOnly() && graphLevel() === LEVEL.layers;
   const [view, setView] = createSignal<View>({ scale: 1, x: 0, y: 0 });
   const [size, setSize] = createSignal<Size>({ width: 0, height: 0 });
   const project = createMemo(() => activeProject() ?? projects()[0]?.id ?? null);
@@ -110,7 +112,7 @@ export function GraphScreen() {
                     onLevel={setGraphLevel}
                     weak={weak()}
                     onWeak={setWeak}
-                    violationsOnly={violationsOnly()}
+                    violationsOnly={filtering()}
                     onViolationsOnly={setViolationsOnly}
                     onFit={fitView}
                   />
@@ -121,7 +123,7 @@ export function GraphScreen() {
                     view={view()}
                     onView={setView}
                     onSize={setSize}
-                    violationsOnly={violationsOnly()}
+                    violationsOnly={filtering()}
                     weak={weak()}
                   />
                   <Show when={current().links.length === 0}>
