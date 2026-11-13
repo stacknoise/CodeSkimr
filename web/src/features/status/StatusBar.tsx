@@ -7,7 +7,7 @@ import { cx } from "../../shared/ui/cx";
 import { LANGUAGES } from "../../shared/i18n/consts";
 import { projects, projectsLoaded, refreshProjects } from "../projects/projects";
 import { STATUS_DOT } from "../../app/consts";
-import { LANGUAGE_LABELS, STATUS_POLL_MS } from "./consts";
+import { COUNT_SEPARATOR, LANGUAGE_LABELS, STATUS_POLL_MS } from "./consts";
 import styles from "./StatusBar.module.css";
 import { refreshStatus, statusInfo } from "./status";
 
@@ -35,7 +35,7 @@ function Counts() {
     <Show when={projectsLoaded()}>
       <span>
         {t(I18N_KEYS.APP_STATUS_PROJECTS, { count: projects().length })}
-        {" · "}
+        {COUNT_SEPARATOR}
         {t(I18N_KEYS.APP_STATUS_TYPES, { count: types() })}
       </span>
     </Show>
