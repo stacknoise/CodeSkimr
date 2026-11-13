@@ -4,7 +4,8 @@
 //!   cloned shallowly into a cache folder.
 //! - [`WalkDiscovery`] implements `FileDiscovery`: `.gitignore`-aware walk, language detection by
 //!   extension, BLAKE3 content hashes, change detection against the previous snapshot.
-//! - [`watch`] reports debounced file changes.
+//! - [`watch`] reports debounced file changes; [`publish_changes`] turns them into `FilesChanged`
+//!   events on the event bus.
 
 mod consts;
 mod discovery;
@@ -24,4 +25,4 @@ pub use fetcher::SourceFetcher;
 pub use git::GitCache;
 pub use languages::LanguageMap;
 pub use redact::redact_credentials;
-pub use watcher::{WatchBatch, WatchConfig, WatchHandle, watch};
+pub use watcher::{WatchBatch, WatchConfig, WatchHandle, publish_changes, watch};

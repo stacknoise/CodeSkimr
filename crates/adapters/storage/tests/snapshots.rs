@@ -3,8 +3,10 @@
 #[cfg(test)]
 mod common;
 
-use codeskimr_application::ports::{ProjectRepository, SnapshotData, SnapshotStore};
-use codeskimr_domain::{MetricKind, ScanMode, SnapshotId, SymbolKind};
+use codeskimr_application::ports::{
+    PreviousIndex, ProjectRepository, SnapshotData, SnapshotStore, SymbolKey,
+};
+use codeskimr_domain::{FileId, MetricKind, RelativePath, ScanMode, SnapshotId, SymbolKind};
 use common::{PROJECT, code_of, data, file, header, metric, project, reference, store, symbol};
 
 /// Two files: `a.cs` declares `App.A` with method `Run`, `b.cs` declares `App.B`; `Run` calls `B`.
@@ -25,6 +27,16 @@ fn first_scan(snapshot: u64) -> SnapshotData {
         metric(21, MetricKind::Loc, 10.0),
         metric(22, MetricKind::CyclomaticComplexity, 3.0),
     ];
+    scan
+}
+
+/// An incremental scan that analyses `b.cs` again as snapshot 40, with its class `name` (id 42).
+#[cfg(test)]
+fn b_rewritten(name: &str, references: Vec<codeskimr_domain::Reference>) -> SnapshotData {
+    let mut scan = data(header(40, ScanMode::Incremental));
+    scan.files = vec![file(40, 41, "b.cs", "hb2")];
+    scan.symbols = vec![symbol(42, 41, SymbolKind::Class, name, None)];
+    scan.references = references;
     scan
 }
 
@@ -66,10 +78,7 @@ fn a_failing_snapshot_leaves_nothing_behind() {
 fn incremental_scan_keeps_unchanged_files_and_replaces_changed_ones() {
     let store = registered();
     store.persist(first_scan(10)).unwrap();
-    let mut scan = data(header(40, ScanMode::Incremental));
-    scan.files = vec![file(40, 41, "b.cs", "hb2")];
-    scan.symbols = vec![symbol(42, 41, SymbolKind::Class, "App.B2", None)];
-    let snapshot = store.persist(scan).unwrap();
+    let snapshot = store.persist(b_rewritten("App.B2", Vec::new())).unwrap();
     assert_eq!(
         (
             snapshot.stats.files,
@@ -208,4 +217,76 @@ fn a_failing_incremental_scan_keeps_the_previous_snapshot_intact() {
     let latest = store.latest_snapshot(PROJECT).unwrap().unwrap();
     assert_eq!((latest.id, latest.stats.files), (SnapshotId::new(10), 2));
     assert_eq!(store.latest_files(PROJECT).unwrap().len(), 2);
+}
+
+#[test]
+fn removed_files_leave_the_snapshot_with_their_symbols_and_references() {
+    let store = registered();
+    store.persist(first_scan(10)).unwrap();
+    let mut scan = data(header(40, ScanMode::Incremental));
+    scan.removed = vec![RelativePath::new("b.cs").unwrap()];
+    let snapshot = store.persist(scan).unwrap();
+    assert_eq!(
+        (
+            snapshot.stats.files,
+            snapshot.stats.symbols,
+            snapshot.stats.references
+        ),
+        (1, 2, 0),
+        "b.cs and App.B are gone, and with them the call from Run to B"
+    );
+    let files = store.latest_files(PROJECT).unwrap();
+    assert_eq!(files.len(), 1);
+    assert_eq!(files[0].path.as_str(), "a.cs");
+}
+
+#[test]
+fn resolved_again_references_of_unchanged_files_replace_the_dropped_ones() {
+    let store = registered();
+    store.persist(first_scan(10)).unwrap();
+    let again = vec![reference(43, 11, 22, 42)];
+    let snapshot = store.persist(b_rewritten("App.B", again)).unwrap();
+    assert_eq!(snapshot.stats.references, 1);
+    let index = store.latest_index(PROJECT).unwrap();
+    assert_eq!(index.references.len(), 1);
+    assert_eq!(
+        index.references[0].to,
+        symbol(42, 41, SymbolKind::Class, "x", None).id
+    );
+}
+
+#[test]
+fn new_metrics_replace_carried_ones_of_the_same_symbol_and_kind() {
+    let store = registered();
+    store.persist(first_scan(10)).unwrap();
+    let mut scan = data(header(40, ScanMode::Incremental));
+    scan.metrics = vec![metric(21, MetricKind::Loc, 99.0)];
+    store.persist(scan).unwrap();
+    let detail = store
+        .symbol_detail(
+            SnapshotId::new(40),
+            &SymbolKey::Id(symbol(21, 11, SymbolKind::Class, "x", None).id),
+        )
+        .unwrap()
+        .unwrap();
+    let loc: Vec<f64> = detail
+        .metrics
+        .iter()
+        .filter(|m| m.kind == MetricKind::Loc)
+        .map(|m| m.value.get())
+        .collect();
+    assert_eq!(loc, vec![99.0]);
+}
+
+#[test]
+fn the_latest_index_holds_every_symbol_and_reference_or_nothing() {
+    let store = registered();
+    assert_eq!(
+        store.latest_index(PROJECT).unwrap(),
+        PreviousIndex::default()
+    );
+    store.persist(first_scan(10)).unwrap();
+    let index = store.latest_index(PROJECT).unwrap();
+    assert_eq!((index.symbols.len(), index.references.len()), (3, 1));
+    assert_eq!(index.references[0].file, FileId::new(11));
 }

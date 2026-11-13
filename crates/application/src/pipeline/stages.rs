@@ -7,6 +7,7 @@ use codeskimr_domain::{
     SnapshotStats, SourceFile, Symbol,
 };
 
+use super::carry::Carried;
 use super::flow::{Interruption, Stage, StageContext};
 use crate::ids::IdSequence;
 use crate::ports::{
@@ -47,6 +48,8 @@ pub struct Discovered {
     pub run: ScanRun,
     /// All files found.
     pub files: Vec<DiscoveredFile>,
+    /// What an incremental scan keeps of the previous snapshot.
+    pub carried: Carried,
 }
 
 /// Output of the analyze stage.
@@ -60,6 +63,8 @@ pub struct Analyzed {
     pub symbols: Vec<Symbol>,
     /// Names still to resolve.
     pub pending: Vec<PendingReference>,
+    /// What an incremental scan keeps of the previous snapshot.
+    pub carried: Carried,
 }
 
 /// Output of the resolve stage.
@@ -71,8 +76,10 @@ pub struct Resolved {
     pub files: Vec<SourceFile>,
     /// Their symbols.
     pub symbols: Vec<Symbol>,
-    /// Resolved references.
+    /// Resolved references, including those of unchanged files that were resolved again.
     pub references: Vec<Reference>,
+    /// What an incremental scan keeps of the previous snapshot.
+    pub carried: Carried,
 }
 
 /// Output of the measure stage.
@@ -88,6 +95,8 @@ pub struct Measured {
     pub references: Vec<Reference>,
     /// Measured values.
     pub metrics: Vec<Metric>,
+    /// What an incremental scan keeps of the previous snapshot.
+    pub carried: Carried,
 }
 
 /// Counts a list as `u32`, saturating instead of failing.
@@ -122,6 +131,7 @@ impl Stage for FetchStage {
             root: fetched.root,
             commit: fetched.commit,
         })
+        .inspect(|_| ctx.progress(1, 1))
     }
 }
 
@@ -143,10 +153,22 @@ impl Stage for DiscoverStage {
 
     fn run(&self, run: ScanRun, ctx: &StageContext<'_>) -> Result<Discovered, Interruption> {
         let previous = self.projects.latest_files(run.project.id)?;
-        let files = self
+        let mut files = self
             .discovery
             .discover(&run.root, &previous, ctx.cancel_token())?;
-        Ok(Discovered { run, files })
+        let carried = if run.mode == ScanMode::Incremental {
+            let index = self.projects.latest_index(run.project.id)?;
+            Carried::from_previous(&mut files, previous, index)
+        } else {
+            Carried::default()
+        };
+        let found = count(&files);
+        ctx.progress(found, found);
+        Ok(Discovered {
+            run,
+            files,
+            carried,
+        })
     }
 }
 
@@ -167,7 +189,11 @@ impl Stage for AnalyzeStage {
     }
 
     fn run(&self, input: Discovered, ctx: &StageContext<'_>) -> Result<Analyzed, Interruption> {
-        let Discovered { run, files } = input;
+        let Discovered {
+            run,
+            files,
+            carried,
+        } = input;
         let due: Vec<&DiscoveredFile> = files
             .iter()
             .filter(|file| file.changed || run.mode == ScanMode::Full)
@@ -178,6 +204,7 @@ impl Stage for AnalyzeStage {
             files: Vec::new(),
             symbols: Vec::new(),
             pending: Vec::new(),
+            carried,
         };
         for (done, file) in (1..).zip(due) {
             if ctx.is_cancelled() {
@@ -215,15 +242,26 @@ impl Stage for ResolveStage {
         StageKind::Resolve
     }
 
-    fn run(&self, input: Analyzed, _ctx: &StageContext<'_>) -> Result<Resolved, Interruption> {
-        let references = self
-            .resolver
-            .resolve(&input.symbols, &input.pending, &self.ids)?;
+    fn run(&self, input: Analyzed, ctx: &StageContext<'_>) -> Result<Resolved, Interruption> {
+        let Analyzed {
+            run,
+            files,
+            symbols,
+            mut pending,
+            carried,
+        } = input;
+        pending.extend(carried.rebuilt.iter().cloned());
+        let total = count(&pending);
+        ctx.progress(0, total);
+        let table: Vec<Symbol> = carried.symbols.iter().chain(&symbols).cloned().collect();
+        let references = self.resolver.resolve(&table, &pending, &self.ids)?;
+        ctx.progress(total, total);
         Ok(Resolved {
-            run: input.run,
-            files: input.files,
-            symbols: input.symbols,
+            run,
+            files,
+            symbols,
             references,
+            carried,
         })
     }
 }
@@ -242,14 +280,32 @@ impl Stage for MeasureStage {
         StageKind::Measure
     }
 
-    fn run(&self, input: Resolved, _ctx: &StageContext<'_>) -> Result<Measured, Interruption> {
-        let metrics = self.calculator.measure(&input.symbols, &input.references)?;
+    fn run(&self, input: Resolved, ctx: &StageContext<'_>) -> Result<Measured, Interruption> {
+        let symbols: Vec<Symbol> = input
+            .carried
+            .symbols
+            .iter()
+            .chain(&input.symbols)
+            .cloned()
+            .collect();
+        let references: Vec<Reference> = input
+            .carried
+            .references
+            .iter()
+            .chain(&input.references)
+            .copied()
+            .collect();
+        let total = count(&symbols);
+        ctx.progress(0, total);
+        let metrics = self.calculator.measure(&symbols, &references)?;
+        ctx.progress(total, total);
         Ok(Measured {
             run: input.run,
             files: input.files,
             symbols: input.symbols,
             references: input.references,
             metrics,
+            carried: input.carried,
         })
     }
 }
@@ -271,7 +327,8 @@ impl Stage for PersistStage {
         StageKind::Persist
     }
 
-    fn run(&self, input: Measured, _ctx: &StageContext<'_>) -> Result<Snapshot, Interruption> {
+    fn run(&self, input: Measured, ctx: &StageContext<'_>) -> Result<Snapshot, Interruption> {
+        ctx.progress(0, 1);
         let snapshot = Snapshot {
             id: input.run.snapshot,
             project: input.run.project.id,
@@ -279,9 +336,9 @@ impl Stage for PersistStage {
             created: self.clock.now(),
             mode: input.run.mode,
             stats: SnapshotStats {
-                files: count(&input.files),
-                symbols: count(&input.symbols),
-                references: count(&input.references),
+                files: count(&input.files) + count(&input.carried.files),
+                symbols: count(&input.symbols) + count(&input.carried.symbols),
+                references: count(&input.references) + count(&input.carried.references),
             },
         };
         let data = SnapshotData {
@@ -290,7 +347,10 @@ impl Stage for PersistStage {
             symbols: input.symbols,
             references: input.references,
             metrics: input.metrics,
+            removed: input.carried.removed,
         };
-        Ok(self.store.persist(data)?)
+        let stored = self.store.persist(data)?;
+        ctx.progress(1, 1);
+        Ok(stored)
     }
 }

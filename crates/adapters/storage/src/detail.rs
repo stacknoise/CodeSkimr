@@ -14,7 +14,7 @@ use crate::sql;
 use crate::store::SqliteStore;
 
 /// The columns of `SYMBOL_SELECT`, still raw.
-struct SymbolRow {
+pub(crate) struct SymbolRow {
     id: i64,
     file: i64,
     kind: String,
@@ -29,7 +29,7 @@ struct SymbolRow {
     path: String,
 }
 
-fn read_row(cols: &Cols<'_>) -> rusqlite::Result<SymbolRow> {
+pub(crate) fn read_row(cols: &Cols<'_>) -> rusqlite::Result<SymbolRow> {
     Ok(SymbolRow {
         id: cols.take()?,
         file: cols.take()?,
@@ -58,7 +58,7 @@ fn position(line: i64, column: i64) -> StorageResult<Position> {
     })
 }
 
-fn decode(row: SymbolRow) -> StorageResult<(Symbol, RelativePath)> {
+pub(crate) fn decode(row: SymbolRow) -> StorageResult<(Symbol, RelativePath)> {
     let span = row.span;
     let symbol = Symbol {
         id: SymbolId::new(id_from(row.id)?),
