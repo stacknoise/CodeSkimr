@@ -12,6 +12,7 @@ mod cycles;
 mod detail;
 mod error;
 mod migrate;
+mod outline;
 mod previous;
 mod projects;
 mod queries;

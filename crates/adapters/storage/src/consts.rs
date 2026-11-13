@@ -82,3 +82,15 @@ pub const JSON_LIST_OPEN: char = '[';
 pub const JSON_LIST_CLOSE: char = ']';
 /// Separates the values of the JSON list.
 pub const JSON_LIST_SEPARATOR: char = ',';
+/// Kinds that appear in the explorer tree: containers and types.
+pub const OUTLINE_KINDS: &[codeskimr_domain::SymbolKind] = &[
+    codeskimr_domain::SymbolKind::Namespace,
+    codeskimr_domain::SymbolKind::Module,
+    codeskimr_domain::SymbolKind::Class,
+    codeskimr_domain::SymbolKind::Interface,
+    codeskimr_domain::SymbolKind::Trait,
+    codeskimr_domain::SymbolKind::Record,
+    codeskimr_domain::SymbolKind::Struct,
+    codeskimr_domain::SymbolKind::Enum,
+    codeskimr_domain::SymbolKind::Union,
+];

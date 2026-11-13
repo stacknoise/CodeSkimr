@@ -55,7 +55,7 @@ impl Fixture {
 }
 
 #[test]
-fn the_three_commands_are_offered() {
+fn the_commands_are_offered() {
     let fixture = Fixture::new();
     let ids: Vec<_> = fixture
         .api
@@ -63,7 +63,16 @@ fn the_three_commands_are_offered() {
         .into_iter()
         .map(|info| info.id)
         .collect();
-    assert_eq!(ids, ["projects.add", "projects.list", "projects.rescan"]);
+    assert_eq!(
+        ids,
+        [
+            "explorer.outline",
+            "explorer.symbol",
+            "projects.add",
+            "projects.list",
+            "projects.rescan"
+        ]
+    );
 }
 
 #[test]
@@ -138,4 +147,63 @@ fn an_unknown_project_cannot_be_scanned() {
     let fixture = Fixture::new();
     let result = fixture.call("projects.rescan", json!({ "project": 99 }));
     assert_eq!(result, Err("PRJ-201"));
+}
+
+fn added(fixture: &Fixture) -> u64 {
+    let scanned = fixture
+        .call("projects.add", json!({ "source": fixture.folder() }))
+        .unwrap();
+    scanned["project"].as_u64().unwrap()
+}
+
+#[test]
+fn the_outline_sorts_the_types_into_a_namespace() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    let outline = fixture
+        .call("explorer.outline", json!({ "project": project }))
+        .unwrap();
+    let namespace = &outline["layers"][0]["namespaces"][0];
+    assert_eq!(namespace["name"], "Calculator.Demo");
+    assert_eq!(namespace["types"][0]["name"], "Calculator");
+    assert_eq!(namespace["types"][0]["kind"], "class");
+}
+
+#[test]
+fn a_symbol_comes_with_breadcrumb_and_members() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    let outline = fixture
+        .call("explorer.outline", json!({ "project": project }))
+        .unwrap();
+    let id = outline["layers"][0]["namespaces"][0]["types"][0]["id"].clone();
+    let shown = fixture
+        .call(
+            "explorer.symbol",
+            json!({ "project": project, "symbol": id }),
+        )
+        .unwrap();
+    assert_eq!(shown["name"], "Calculator");
+    assert_eq!(shown["first_line"], 3);
+    assert_eq!(shown["members"][0]["name"], "Add");
+    assert_eq!(shown["members"][0]["complexity"], 1.0);
+    assert_eq!(shown["members"][0]["complexity_rating"], "good");
+    assert_eq!(shown["breadcrumb"][1]["name"], "Demo");
+}
+
+#[test]
+fn an_unknown_project_or_symbol_is_refused() {
+    let fixture = Fixture::new();
+    assert_eq!(
+        fixture.call("explorer.outline", json!({ "project": 99 })),
+        Err("PRJ-201")
+    );
+    let project = added(&fixture);
+    assert_eq!(
+        fixture.call(
+            "explorer.symbol",
+            json!({ "project": project, "symbol": 99999 })
+        ),
+        Err("MCP-202")
+    );
 }
