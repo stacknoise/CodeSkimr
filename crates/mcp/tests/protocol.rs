@@ -78,7 +78,7 @@ async fn lists_exactly_the_three_read_only_tools_with_schemas() {
     for tool in tools {
         assert_eq!(tool["annotations"]["readOnlyHint"], true);
         assert_eq!(tool["inputSchema"]["type"], "object");
-        assert!(!tool["description"].as_str().unwrap().is_empty());
+        assert_ne!(tool["description"].as_str().unwrap(), "");
     }
     assert_eq!(tools[0]["inputSchema"]["required"][0], "query");
 }
