@@ -114,7 +114,7 @@ mod tests {
                 if !skip.contains(&name) && name != ".git" {
                     sources(&path, skip, found);
                 }
-            } else if path.extension().is_some_and(|e| e == "cs") {
+            } else if path.extension().is_some_and(|e| e == "cs") && !name.ends_with(".g.cs") {
                 found.push(path);
             }
         }

@@ -4,7 +4,7 @@ Status: proposed
 
 ## Context
 
-Blueprint 17.2 named fixed counts for the private C# reference (433 types, 825 methods, 1,667 properties/fields in version 0.3.1). Nobody could say how they were counted: they appear in no file, commit or pull request of the application, and no counting variant reproduces them (measured at the release commit 0ff5367 with the C# pack and, independently, with a regex generator: 416 to 423 types, 671 to 801 methods). A reference nobody can reproduce cannot check anything.
+Blueprint 17.2 named fixed counts for the private C# reference (433 types, 825 methods, 1,667 properties/fields in version 0.3.1). Nobody could say how they were counted: they appear in no file, commit or pull request of the application, and no counting variant reproduces them (measured with the C# pack and, independently, with a regex generator, the results differ from them in both directions). A reference nobody can reproduce cannot check anything.
 
 ## Decision
 
