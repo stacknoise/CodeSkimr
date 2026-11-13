@@ -11,8 +11,10 @@ Owner: `codeskimr`
 | Code | Name | Severity | Retryable | Since | Description |
 |---|---|---|---|---|---|
 | APP-201 | `data_dir_unavailable` | error | no | 0.1.0 | The user data directory cannot be created or opened. |
+| APP-202 | `launch_file_unavailable` | error | yes | 0.1.0 | The private file for starting the browser could not be created. |
 | APP-301 | `instance_already_running` | error | no | 0.1.0 | Another CodeSkimr instance holds the workspace; connecting to it failed. |
 | APP-901 | `unexpected_internal_error` | error | no | 0.1.0 | An unexpected internal error occurred (bug). |
+| APP-601 | `browser_start_failed` | error | yes | 0.1.0 | The system did not start a browser for the launch file. |
 
 ## CFG – Configuration
 
@@ -129,7 +131,9 @@ Owner: `codeskimr_server`
 | API-301 | `server_bind_failed` | error | no | 0.1.0 | The server could not listen on its address, for example because the port is taken. |
 | API-401 | `token_missing_or_invalid` | error | no | 0.1.0 | A state-changing request lacks a valid installation token. |
 | API-402 | `host_or_origin_rejected` | error | no | 0.1.0 | The Host or Origin header of the request is not one of this server. |
+| API-403 | `launch_code_invalid` | error | no | 0.1.0 | The one-time launch code is wrong, already used or expired. |
 | API-501 | `request_too_large` | error | no | 0.1.0 | The request body is larger than the server accepts. |
+| API-601 | `server_not_reachable` | error | yes | 0.1.0 | The command needs a running local server and could not reach it. |
 
 ## MCP – MCP server
 

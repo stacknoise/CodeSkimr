@@ -1,8 +1,11 @@
 //! Range checks of the typed configuration (blueprint section 14: validated at start-up).
 
-use super::consts::{PATH_SEPARATORS, PERCENT_MAX, UNIT_MAX, UNIT_MIN, keys};
+use super::consts::{
+    PATH_SEPARATORS, PERCENT_MAX, PLACEHOLDER_PATH, SCHEME_EXTRA_CHARS, UNIT_MAX, UNIT_MIN,
+    URL_SCHEME_SEPARATOR, keys,
+};
 use super::error::{ConfigError, Violation};
-use super::model::{Budgets, Config, McpLimits, MetricThresholds, Scan};
+use super::model::{Budgets, Config, Editor, McpLimits, MetricThresholds, Scan, Ui};
 
 /// Checks every value of `config`.
 ///
@@ -31,7 +34,9 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
         keys::DUPLICATE_SIMILARITY_PERCENT,
         config.conventions.duplicate_similarity_percent,
     )?;
-    check_scan(&config.scan)
+    check_scan(&config.scan)?;
+    check_editor(&config.editor)?;
+    check_ui(&config.ui)
 }
 
 fn fail(key: &'static str, violation: Violation) -> Result<(), ConfigError> {
@@ -152,6 +157,54 @@ fn check_scan(scan: &Scan) -> Result<(), ConfigError> {
     let is_bad = |name: &String| name.is_empty() || name.contains(PATH_SEPARATORS);
     if scan.excluded_folders.iter().any(is_bad) {
         return fail(keys::EXCLUDED_FOLDERS, Violation::MustBeFolderName);
+    }
+    Ok(())
+}
+
+/// A URL scheme in the form the allow-list needs: a lower-case letter, then lower-case letters,
+/// digits, `+`, `-` or `.` (RFC 3986, lower case so that the comparison is plain).
+fn is_scheme(text: &str) -> bool {
+    let mut chars = text.chars();
+    chars.next().is_some_and(|first| first.is_ascii_lowercase())
+        && chars.all(|c| {
+            c.is_ascii_lowercase() || c.is_ascii_digit() || SCHEME_EXTRA_CHARS.contains(&c)
+        })
+}
+
+fn check_editor(editor: &Editor) -> Result<(), ConfigError> {
+    if editor.allowed_schemes.is_empty() {
+        return fail(keys::EDITOR_ALLOWED_SCHEMES, Violation::MustNotBeEmpty);
+    }
+    if !editor.allowed_schemes.iter().all(|name| is_scheme(name)) {
+        return fail(keys::EDITOR_ALLOWED_SCHEMES, Violation::MustBeUrlScheme);
+    }
+    let scheme = editor
+        .url_template
+        .split_once(URL_SCHEME_SEPARATOR)
+        .map(|(scheme, _)| scheme.to_ascii_lowercase());
+    let allowed = scheme
+        .as_ref()
+        .is_some_and(|scheme| editor.allowed_schemes.contains(scheme));
+    if !allowed {
+        return fail(
+            keys::EDITOR_URL_TEMPLATE,
+            Violation::MustUseAllowedScheme(keys::EDITOR_ALLOWED_SCHEMES),
+        );
+    }
+    if !editor.url_template.contains(PLACEHOLDER_PATH) {
+        return fail(keys::EDITOR_URL_TEMPLATE, Violation::MustContainPath);
+    }
+    Ok(())
+}
+
+fn check_ui(ui: &Ui) -> Result<(), ConfigError> {
+    positive(keys::UI_LAUNCH_CODE_SECONDS, ui.launch_code_seconds)?;
+    let is_bad = |name: &str| name.is_empty() || name.contains(PATH_SEPARATORS);
+    if is_bad(&ui.default_theme) {
+        return fail(keys::UI_DEFAULT_THEME, Violation::MustBeFolderName);
+    }
+    if ui.dir.is_empty() {
+        return fail(keys::UI_DIR, Violation::MustNotBeEmpty);
     }
     Ok(())
 }

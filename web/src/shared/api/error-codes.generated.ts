@@ -3,8 +3,10 @@
 /** Id of a registered error code, e.g. `SRC-201`. */
 export type ErrorCode =
   | "APP-201"
+  | "APP-202"
   | "APP-301"
   | "APP-901"
+  | "APP-601"
   | "CFG-101"
   | "CFG-102"
   | "CFG-103"
@@ -44,7 +46,9 @@ export type ErrorCode =
   | "API-301"
   | "API-401"
   | "API-402"
+  | "API-403"
   | "API-501"
+  | "API-601"
   | "MCP-101"
   | "MCP-201"
   | "MCP-202"
@@ -80,8 +84,10 @@ export interface ErrorCodeInfo {
 /** All registered error codes by id. */
 export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "APP-201": { id: "APP-201", name: "data_dir_unavailable", group: "APP", class: "not_found", severity: "error", retryable: false, description: "The user data directory cannot be created or opened.", since: "0.1.0", deprecated: false, messageKey: "error-APP-201" },
+  "APP-202": { id: "APP-202", name: "launch_file_unavailable", group: "APP", class: "not_found", severity: "error", retryable: true, description: "The private file for starting the browser could not be created.", since: "0.1.0", deprecated: false, messageKey: "error-APP-202" },
   "APP-301": { id: "APP-301", name: "instance_already_running", group: "APP", class: "conflict", severity: "error", retryable: false, description: "Another CodeSkimr instance holds the workspace; connecting to it failed.", since: "0.1.0", deprecated: false, messageKey: "error-APP-301" },
   "APP-901": { id: "APP-901", name: "unexpected_internal_error", group: "APP", class: "internal", severity: "error", retryable: false, description: "An unexpected internal error occurred (bug).", since: "0.1.0", deprecated: false, messageKey: "error-APP-901" },
+  "APP-601": { id: "APP-601", name: "browser_start_failed", group: "APP", class: "external", severity: "error", retryable: true, description: "The system did not start a browser for the launch file.", since: "0.1.0", deprecated: false, messageKey: "error-APP-601" },
   "CFG-101": { id: "CFG-101", name: "config_invalid_value", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration value is outside its allowed range or has the wrong type.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-101" },
   "CFG-102": { id: "CFG-102", name: "config_parse_failed", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration file is not valid TOML.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-102" },
   "CFG-103": { id: "CFG-103", name: "config_unknown_key", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration file or flag sets a key that does not exist.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-103" },
@@ -121,7 +127,9 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "API-301": { id: "API-301", name: "server_bind_failed", group: "API", class: "conflict", severity: "error", retryable: false, description: "The server could not listen on its address, for example because the port is taken.", since: "0.1.0", deprecated: false, messageKey: "error-API-301" },
   "API-401": { id: "API-401", name: "token_missing_or_invalid", group: "API", class: "permission", severity: "error", retryable: false, description: "A state-changing request lacks a valid installation token.", since: "0.1.0", deprecated: false, messageKey: "error-API-401" },
   "API-402": { id: "API-402", name: "host_or_origin_rejected", group: "API", class: "permission", severity: "error", retryable: false, description: "The Host or Origin header of the request is not one of this server.", since: "0.1.0", deprecated: false, messageKey: "error-API-402" },
+  "API-403": { id: "API-403", name: "launch_code_invalid", group: "API", class: "permission", severity: "error", retryable: false, description: "The one-time launch code is wrong, already used or expired.", since: "0.1.0", deprecated: false, messageKey: "error-API-403" },
   "API-501": { id: "API-501", name: "request_too_large", group: "API", class: "limit", severity: "error", retryable: false, description: "The request body is larger than the server accepts.", since: "0.1.0", deprecated: false, messageKey: "error-API-501" },
+  "API-601": { id: "API-601", name: "server_not_reachable", group: "API", class: "external", severity: "error", retryable: true, description: "The command needs a running local server and could not reach it.", since: "0.1.0", deprecated: false, messageKey: "error-API-601" },
   "MCP-101": { id: "MCP-101", name: "tool_arguments_invalid", group: "MCP", class: "invalid_input", severity: "error", retryable: false, description: "MCP tool arguments failed validation.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-101" },
   "MCP-201": { id: "MCP-201", name: "project_not_registered", group: "MCP", class: "not_found", severity: "error", retryable: false, description: "The requested path is not inside a registered project.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-201" },
   "MCP-202": { id: "MCP-202", name: "symbol_not_found", group: "MCP", class: "not_found", severity: "error", retryable: false, description: "No symbol with this id or qualified name exists in the newest snapshot.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-202" },

@@ -1,0 +1,101 @@
+.preview {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-panel);
+    overflow: hidden;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 11px;
+    height: 190px;
+    display: flex;
+    flex-direction: column;
+}
+
+.bar {
+    height: 22px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+    padding: 0 var(--space-8);
+}
+
+.logo {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    background: var(--ink);
+}
+
+.shortcut {
+    margin-left: auto;
+    color: var(--muted);
+}
+
+.middle {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+}
+
+.rail {
+    width: 22px;
+    background: var(--surface);
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-6);
+    padding-top: var(--space-6);
+}
+
+.rail i {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    background: var(--line);
+}
+
+.rail i.active {
+    background: var(--accent);
+}
+
+.content {
+    flex: 1;
+    padding: var(--space-8);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-6);
+    min-width: 0;
+}
+
+.heading {
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.line {
+    height: 18px;
+    border-radius: 4px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-6);
+    padding: 0 var(--space-6);
+}
+
+.line.selected {
+    background: var(--accent-bg);
+    border-color: var(--accent);
+}
+
+.button {
+    display: inline-block;
+    border-radius: 4px;
+    padding: 3px var(--space-10);
+    font-weight: 600;
+    background: var(--accent);
+    color: var(--accent-fg);
+}

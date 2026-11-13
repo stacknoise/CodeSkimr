@@ -25,6 +25,24 @@ pub(super) fn duplicates(items: &[Fingerprinted<'_>], minimum_percent: u32) -> V
             item.callable.location.span.start(),
         )
     });
+    let mut found: Vec<(usize, Finding)> = best_originals(&ordered, minimum_percent)
+        .into_iter()
+        .filter_map(|(later, (earlier, percent))| {
+            let copy = ordered.get(later)?;
+            let original = ordered.get(earlier)?;
+            Some((later, finding(copy, original, percent)))
+        })
+        .collect();
+    found.sort_by_key(|(later, _)| *later);
+    found.into_iter().map(|(_, finding)| finding).collect()
+}
+
+/// For every function that copies an earlier one: the index of the most similar earlier function
+/// and the similarity, the earliest on a tie.
+fn best_originals(
+    ordered: &[&Fingerprinted<'_>],
+    minimum_percent: u32,
+) -> HashMap<usize, (usize, u32)> {
     let bodies: Vec<&Fingerprints> = ordered.iter().map(|item| item.fingerprints).collect();
     let mut best: HashMap<usize, (usize, u32)> = HashMap::new();
     for pair in similar_pairs(&bodies, minimum_percent) {
@@ -38,26 +56,19 @@ pub(super) fn duplicates(items: &[Fingerprinted<'_>], minimum_percent: u32) -> V
             best.insert(pair.second, (pair.first, pair.percent));
         }
     }
-    let mut found: Vec<(usize, Finding)> = best
-        .into_iter()
-        .filter_map(|(later, (earlier, percent))| {
-            let copy = ordered.get(later)?;
-            let original = ordered.get(earlier)?;
-            Some((
-                later,
-                Finding {
-                    code: ErrorCode::DuplicateBlock,
-                    location: copy.callable.location.clone(),
-                    detail: Detail::Duplicate {
-                        of: original.callable.location.clone(),
-                        similarity_percent: percent,
-                    },
-                },
-            ))
-        })
-        .collect();
-    found.sort_by_key(|(later, _)| *later);
-    found.into_iter().map(|(_, finding)| finding).collect()
+    best
+}
+
+/// The finding that says `copy` resembles `original`.
+fn finding(copy: &Fingerprinted<'_>, original: &Fingerprinted<'_>, percent: u32) -> Finding {
+    Finding {
+        code: ErrorCode::DuplicateBlock,
+        location: copy.callable.location.clone(),
+        detail: Detail::Duplicate {
+            of: original.callable.location.clone(),
+            similarity_percent: percent,
+        },
+    }
 }
 
 /// Whether one function lies inside the other: an outer function always resembles its own part.

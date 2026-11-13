@@ -11,6 +11,10 @@ pub const COMMAND_SCAN: &str = "scan";
 pub const COMMAND_MCP: &str = "mcp";
 /// Sub-command that starts the local server.
 pub const COMMAND_SERVE: &str = "serve";
+/// Sub-command that opens the UI in the browser.
+pub const COMMAND_OPEN: &str = "open";
+/// Flag of `open` that keeps the browser from starting.
+pub const ARG_NO_BROWSER: &str = "no-browser";
 
 /// Sub-command that checks the code against the code rules.
 pub const COMMAND_CHECK: &str = "check";
@@ -102,6 +106,8 @@ pub mod arg {
     pub const FINDINGS: &str = "findings";
     /// `{ $codes }`: error codes, separated by `CODE_LIST_SEPARATOR`.
     pub const CODES: &str = "codes";
+    /// `{ $seconds }` in the launch message is the same name as the scan duration.
+    pub const LAUNCH_SECONDS: &str = SECONDS;
 }
 
 /// Separates the lines of a multi-line message.

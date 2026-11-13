@@ -32,3 +32,13 @@ pub const I18N_TS_PATH: &str = "web/src/shared/i18n/keys.ts";
 /// Marker line at the top of generated i18n files.
 pub const GENERATED_NOTICE_I18N: &str =
     "Generated from locales/en/*.ftl by tools/codegen. Do not edit.";
+/// Design tokens, relative to the repository root.
+pub const TOKENS_PATH: &str = "design/tokens.toml";
+/// Generated CSS variables of all themes.
+pub const TOKENS_CSS_PATH: &str = "web/src/shared/theme/tokens.css";
+/// Generated TypeScript names of themes and tokens.
+pub const TOKENS_TS_PATH: &str = "web/src/shared/theme/tokens.ts";
+/// Generated script that sets the theme before the first paint.
+pub const THEME_INIT_PATH: &str = "web/public/theme-init.js";
+/// Marker line at the top of generated token files.
+pub const TOKENS_NOTICE: &str = "Generated from design/tokens.toml by tools/codegen. Do not edit.";

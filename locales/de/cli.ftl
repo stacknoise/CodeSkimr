@@ -39,3 +39,6 @@ cli-check-summary = { $files ->
 }.
 cli-check-not-checked = Noch nicht geprüft: { $codes }.
 cli-check-unmatched = Keine Datei passt zu { $path }. Prüfe den Pfad.
+cli-cmd-open = CodeSkimr im Browser öffnen (der lokale Server muss laufen)
+cli-arg-no-browser = Keinen Browser starten, nur die Startdatei anlegen und ihren Pfad ausgeben
+cli-open-ready = Startdatei: { $path } (gültig für { $seconds } s, einmal verwendbar)

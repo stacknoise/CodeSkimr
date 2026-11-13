@@ -7,7 +7,9 @@ use codeskimr_application::events::EventBus;
 use codeskimr_application::registry::Registry;
 use codeskimr_codes::Coded;
 use codeskimr_domain::{PermissionSet, Principal};
-use codeskimr_server::{CommandApi, InstallationToken, Server, ensure_loopback};
+use codeskimr_server::{
+    CommandApi, EditorSettings, InstallationToken, Server, UiOptions, UiSettings, ensure_loopback,
+};
 
 fn server() -> Server {
     Server::new(
@@ -15,6 +17,17 @@ fn server() -> Server {
         EventBus::new(),
         Principal::limited(PermissionSet::all()),
         InstallationToken::from_token("csk_x"),
+        UiOptions {
+            dir: None,
+            launch_lifetime: std::time::Duration::from_secs(60),
+            settings: UiSettings {
+                editor: EditorSettings {
+                    url_template: String::new(),
+                    allowed_schemes: Vec::new(),
+                },
+                default_theme: String::new(),
+            },
+        },
     )
 }
 

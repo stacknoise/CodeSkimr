@@ -92,6 +92,18 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: cargo test
         run: cargo test --workspace --all-features --locked
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      # The unit tests and the type check of the UI (ADR 0028).
+      - name: UI type check and unit tests
+        run: |
+          cd web
+          npm ci
+          npm run typecheck
+          npm test
 
   deps:
     name: deps
@@ -218,9 +230,11 @@ jobs:
             echo "::error::Generated files are out of date. Run 'cargo run -p codeskimr_codegen' and commit the result."
             exit 1
           fi
-      - name: Other generators (i18n keys, tokens, OpenAPI client)
+      # The one command above also writes the i18n keys and the design tokens (CSS, TypeScript and
+      # theme-init.js) and checks the themes for completeness and contrast (blueprint 15.3).
+      - name: Other generators (OpenAPI client)
         run: |
-          echo "NOT ACTIVE YET: only the error code generator exists (tools/codegen)."
+          echo "NOT ACTIVE YET: the OpenAPI client needs real command types (ADR 0024)."
 
   bench:
     name: bench
@@ -247,10 +261,21 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: End-to-end and visual tests
+      - name: Install Rust toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      # The tests start the real server over an in-memory keystore (crates/app/src/e2e.rs) and drive
+      # the built UI with Chromium: launch code, token, content security policy, themes.
+      - name: End-to-end tests of the UI
         run: |
-          if [ -f web/package.json ]; then
-            echo "::error::web/package.json exists, wire the end-to-end tests into this job."
-            exit 1
-          fi
-          echo "NOT ACTIVE YET: no frontend project exists (web/package.json)."
+          cd web
+          npm ci
+          npm run build
+          npx playwright install --with-deps chromium
+          npm run e2e -- --trace off
+      # Visual tests of every screen in all three themes (blueprint 17.1) come with the screens.

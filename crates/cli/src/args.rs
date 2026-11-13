@@ -47,6 +47,13 @@ pub struct CheckArgs {
     pub json: bool,
 }
 
+/// Arguments of `codeskimr open`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct OpenArgs {
+    /// Only create the launch file and print its path; do not start a browser.
+    pub no_browser: bool,
+}
+
 /// The command to run.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
@@ -58,6 +65,8 @@ pub enum Action {
     Serve(ServeArgs),
     /// `codeskimr check`.
     Check(CheckArgs),
+    /// `codeskimr open`.
+    Open(OpenArgs),
 }
 
 /// A parsed command line.

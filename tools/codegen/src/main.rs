@@ -45,7 +45,8 @@ fn fail(problems: &[String]) -> ExitCode {
 fn render(root: &Path) -> Result<Vec<codeskimr_codegen::Output>, Vec<String>> {
     let registry = codeskimr_codegen::load(root)?;
     let catalog = codeskimr_codegen::i18n::load(root)?;
-    Ok(codeskimr_codegen::checked_in_outputs(&registry, &catalog).into())
+    let tokens = codeskimr_codegen::load_tokens(root)?;
+    Ok(codeskimr_codegen::checked_in_outputs(&registry, &catalog, &tokens).into())
 }
 
 fn main() -> ExitCode {
