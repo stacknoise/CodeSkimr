@@ -1,0 +1,16 @@
+[package]
+name = "codeskimr_application"
+description = "Use cases and the ports (traits) that adapters implement."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+codeskimr_domain = { path = "../domain" }
+codeskimr_codes = { path = "../codes" }
