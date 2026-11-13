@@ -422,6 +422,8 @@ pub fn checker() -> Arc<ConventionChecker> {
         Conventions {
             max_function_lines: 40,
             duplicate_similarity_percent: 85,
+            duplicate_min_lines: 5,
+            test_folders: vec!["tests".to_owned()],
         },
     ))
 }
