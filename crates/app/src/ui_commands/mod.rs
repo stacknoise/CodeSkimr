@@ -38,7 +38,7 @@ use projects::{AddProject, ListProjects, RescanProject};
 use running::RunningScans;
 use search::{SearchPorts, SearchQuery};
 use source::ExplorerSource;
-use status::StatusInfo;
+use status::{BudgetTargets, StatusInfo};
 use symbol::ExplorerSymbol;
 use usages::{UsagesPorts, UsagesQuery};
 
@@ -86,7 +86,9 @@ pub fn command_api(
     register_usages(&mut registry, &catalog, config.mcp.max_depth)?;
     register_graph(&mut registry, &catalog, config.graph.clone())?;
     registry
-        .register(StatusInfo)
+        .register(StatusInfo {
+            budgets: BudgetTargets::from(&config.budgets),
+        })
         .map_err(CodedError::caused_by)?;
     register_explorer(&mut registry, catalog, config.metrics.clone())?;
     let mut api = CommandApi::new(Arc::new(registry));

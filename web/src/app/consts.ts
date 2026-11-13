@@ -20,6 +20,7 @@ export const EXPLORER_ROUTE: Route = {
 };
 /** Screen 6; it is reached from the explorer and the graph, so it has no button in the rail. */
 export const USAGES_ROUTE = { path: "/usages", label: I18N_KEYS.USAGES_TITLE } as const;
+export const SCAN_ROUTE: Route = { path: "/scan", label: I18N_KEYS.NAV_SCAN, icon: "scan" };
 export const SETTINGS_ROUTE: Route = {
   path: "/settings",
   label: I18N_KEYS.NAV_SETTINGS,
@@ -27,7 +28,7 @@ export const SETTINGS_ROUTE: Route = {
 };
 
 /** Screens in the upper part of the rail. */
-export const MAIN_ROUTES: Route[] = [PROJECTS_ROUTE, EXPLORER_ROUTE];
+export const MAIN_ROUTES: Route[] = [PROJECTS_ROUTE, EXPLORER_ROUTE, SCAN_ROUTE];
 /** Screens in the lower part of the rail. */
 export const FOOTER_ROUTES: Route[] = [SETTINGS_ROUTE];
 

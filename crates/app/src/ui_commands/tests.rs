@@ -389,6 +389,8 @@ fn the_status_reports_the_memory_of_the_program() {
     let status = fixture.call("status.info", Value::Null).unwrap();
     assert!(status["memory_mb"].as_u64().unwrap() > 0);
     assert!(status.get("startup_ms").is_some());
+    assert_eq!(status["budgets"]["cold_start"], 300);
+    assert_eq!(status["budgets"]["incremental_rescan"], 300);
 }
 
 fn type_id(fixture: &Fixture, project: u64) -> Value {
