@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
 
 use codeskimr_application::error::CodedError;
-use codeskimr_domain::{ReverseIndex, SnapshotId};
+use codeskimr_domain::SnapshotId;
 use rusqlite::{Connection, Transaction, TransactionBehavior};
 
 use crate::consts::{
@@ -25,8 +25,9 @@ use crate::{codec, migrate};
 pub struct SqliteStore {
     conn: Mutex<Connection>,
     retention: NonZeroU32,
-    /// The reverse index of the snapshot that was asked about last; a snapshot never changes.
-    pub(crate) reverse: Mutex<Option<(SnapshotId, Arc<ReverseIndex>)>>,
+    /// The reverse index and the places of the snapshot that was asked about last; a snapshot
+    /// never changes.
+    pub(crate) reverse: Mutex<Option<(SnapshotId, Arc<crate::lookup::SnapshotLookup>)>>,
 }
 
 impl SqliteStore {

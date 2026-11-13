@@ -1,6 +1,6 @@
 # CLI and composition root (WP-25)
 
-Implements the first part of blueprint section 10.2: `codeskimr scan` and `codeskimr mcp`. `codeskimr serve` came with WP-41 (see `docs/server.md`) and `codeskimr check` with WP-35 (see `docs/conventions.md`). `codeskimr export` came with WP-75 (see `docs/export.md`). The other commands (`codes`, and the bare `codeskimr` that starts the app) follow with their packages.
+Implements the first part of blueprint section 10.2: `codeskimr scan` and `codeskimr mcp`. `codeskimr serve` came with WP-41 (see `docs/server.md`) and `codeskimr check` with WP-35 (see `docs/conventions.md`). `codeskimr export` came with WP-75 (see `docs/export.md`). The other command, `codes`, follows with its package. The bare `codeskimr` starts the server and opens the browser (see `docs/server.md`).
 
 ## Structure
 

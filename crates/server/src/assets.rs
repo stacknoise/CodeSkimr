@@ -1,4 +1,4 @@
-//! The built UI: static files from one folder (ADR 0028, ADR 0030).
+//! The built UI: static files from one folder or from the program itself (ADR 0028, ADR 0030).
 //!
 //! A path is only taken literally, never decoded: every segment may hold letters, digits, `.`,
 //! `_` and `-` and must not start with a dot. That leaves nothing for `..`, an encoded `..`, a
@@ -17,17 +17,40 @@ use crate::consts::{
 };
 use crate::error::Failure;
 
-/// The folder the UI is served from.
+/// One file of the UI inside the program: its path below the UI folder, with `/` between the
+/// segments, and its content.
+pub type EmbeddedFile = (&'static str, &'static [u8]);
+
+/// Where the UI files come from.
+#[derive(Debug, Clone)]
+enum Source {
+    /// A folder on disk, for development and for a UI folder the user puts next to the program.
+    Dir(PathBuf),
+    /// Files compiled into the program.
+    Embedded(&'static [EmbeddedFile]),
+}
+
+/// The UI files the server serves.
 #[derive(Debug, Clone)]
 pub struct Assets {
-    dir: PathBuf,
+    source: Source,
 }
 
 impl Assets {
     /// Assets below `dir`.
     #[must_use]
     pub const fn new(dir: PathBuf) -> Self {
-        Self { dir }
+        Self {
+            source: Source::Dir(dir),
+        }
+    }
+
+    /// Assets that are part of the program.
+    #[must_use]
+    pub const fn embedded(files: &'static [EmbeddedFile]) -> Self {
+        Self {
+            source: Source::Embedded(files),
+        }
     }
 
     /// The answer for a `GET` of `path`.
@@ -35,11 +58,28 @@ impl Assets {
         let Some(relative) = relative_file(path) else {
             return Failure::code(ErrorCode::CommandNotFound).into_response();
         };
-        match read(&self.dir.join(&relative)).await {
+        let body = match &self.source {
+            Source::Dir(dir) => read(&dir.join(&relative)).await,
+            Source::Embedded(files) => embedded(files, &relative),
+        };
+        match body {
             Some(body) => answer(&relative, body),
             None => Failure::code(ErrorCode::CommandNotFound).into_response(),
         }
     }
+}
+
+/// The content of the embedded file at `relative`.
+fn embedded(files: &[EmbeddedFile], relative: &Path) -> Option<Vec<u8>> {
+    let name: Vec<&str> = relative
+        .components()
+        .filter_map(|part| part.as_os_str().to_str())
+        .collect();
+    let name = name.join(&SEGMENT_SEPARATOR.to_string());
+    files
+        .iter()
+        .find(|(known, _)| *known == name)
+        .map(|(_, body)| body.to_vec())
 }
 
 /// The file below the folder that `path` names, or `None` for anything that is not a plain path.

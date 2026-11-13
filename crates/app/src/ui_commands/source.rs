@@ -1,6 +1,6 @@
 //! The command behind the source column of the explorer: the lines of one declaration, read from
 //! the project folder as it is now. It hands out source text and therefore needs `read_source`
-//! and, like every command that changes something, the installation token (ADR 0032).
+//! and, like every command that changes something, the installation token (ADR 0035).
 
 use std::sync::Arc;
 

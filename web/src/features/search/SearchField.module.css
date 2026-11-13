@@ -1,12 +1,12 @@
 .search {
-    margin-left: auto;
-    flex: 0 1 420px;
+    margin-left: var(--space-8);
+    flex: 1 1 280px;
+    max-width: 520px;
     height: 32px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: var(--space-8);
-    padding: 0 var(--space-12);
+    padding: 0 var(--space-10);
     border: 1px solid var(--line);
     border-radius: var(--radius-card);
     background: var(--bg);
@@ -20,4 +20,9 @@
     border: 1px solid var(--line);
     border-radius: var(--radius-badge);
     padding: 0 var(--space-6);
+}
+
+.hint {
+    flex: 1;
+    text-align: left;
 }

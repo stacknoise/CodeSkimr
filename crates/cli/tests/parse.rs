@@ -112,8 +112,7 @@ fn the_listening_line_names_the_address_in_both_languages() {
 #[test]
 fn missing_and_unknown_arguments_are_cli_101() {
     for arguments in [
-        &["codeskimr"][..],
-        &["codeskimr", "scan"],
+        &["codeskimr", "scan"][..],
         &["codeskimr", "scan", "repo", "--nope"],
         &["codeskimr", "nope"],
     ] {
@@ -123,6 +122,14 @@ fn missing_and_unknown_arguments_are_cli_101() {
             ErrorCode::CliArgumentsInvalid,
             "{arguments:?}"
         );
+    }
+}
+
+#[test]
+fn no_command_starts_the_app() {
+    match run(&["codeskimr"]).unwrap() {
+        Parsed::Run(invocation) => assert_eq!(invocation.action, Action::Start),
+        Parsed::Display(_) => panic!("the bare command runs"),
     }
 }
 
