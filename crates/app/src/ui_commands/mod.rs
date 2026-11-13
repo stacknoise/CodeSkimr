@@ -13,6 +13,7 @@ mod status;
 mod symbol;
 #[cfg(test)]
 mod tests;
+mod usages;
 
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
@@ -37,6 +38,7 @@ use search::{SearchPorts, SearchQuery};
 use source::ExplorerSource;
 use status::StatusInfo;
 use symbol::ExplorerSymbol;
+use usages::{UsagesPorts, UsagesQuery};
 
 /// What every command of the UI needs to scan: the command line, the folders and the event bus.
 pub struct Context {
@@ -79,6 +81,7 @@ pub fn command_api(
     let mut registry = Registry::new();
     register_projects(&mut registry, &catalog, &context)?;
     register_search(&mut registry, &catalog)?;
+    register_usages(&mut registry, &catalog, config.mcp.max_depth)?;
     registry
         .register(StatusInfo)
         .map_err(CodedError::caused_by)?;
@@ -91,6 +94,7 @@ pub fn command_api(
     api.expose::<ExplorerSymbol>()?;
     api.expose::<ExplorerSource>()?;
     api.expose::<SearchQuery>()?;
+    api.expose::<UsagesQuery>()?;
     api.expose::<StatusInfo>()?;
     Ok(api)
 }
@@ -126,6 +130,22 @@ fn register_search(registry: &mut Registry, store: &Arc<SqliteStore>) -> Result<
     });
     registry
         .register(SearchQuery { ports })
+        .map_err(CodedError::caused_by)
+}
+
+fn register_usages(
+    registry: &mut Registry,
+    store: &Arc<SqliteStore>,
+    max_depth: u32,
+) -> Result<(), CodedError> {
+    let ports = Arc::new(UsagesPorts {
+        projects: store.clone(),
+        index: store.clone(),
+        usages: store.clone(),
+        max_depth,
+    });
+    registry
+        .register(UsagesQuery { ports })
         .map_err(CodedError::caused_by)
 }
 

@@ -3,6 +3,7 @@ import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
+import { showUsages } from "../usages/usages";
 import { DetailPane } from "./DetailPane";
 import {
   applyFocus,
@@ -125,7 +126,16 @@ export function ExplorerScreen() {
   const explorer = useExplorer();
   useReadingOfTheProject();
   useReadingOfTheSource();
-  useExplorerKeys({ collapseAll, reveal: explorer.reveal });
+  useExplorerKeys({
+    collapseAll,
+    reveal: explorer.reveal,
+    usages: () => {
+      const symbol = shownSymbol();
+      if (symbol !== null) {
+        showUsages(symbol);
+      }
+    },
+  });
   return (
     <Switch>
       <Match when={activeProject() === null}>

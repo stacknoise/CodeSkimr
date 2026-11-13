@@ -1,0 +1,112 @@
+.canvas {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    overflow: auto;
+    background: var(--bg);
+}
+
+.plane {
+    position: relative;
+    min-width: 100%;
+}
+
+.heading {
+    position: absolute;
+    top: var(--space-12);
+    font: 600 10.5px var(--font-sans);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+}
+.more {
+    margin-left: var(--space-6);
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.edges {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+.edge {
+    fill: none;
+    stroke-width: 1.8;
+}
+.incoming {
+    stroke: var(--accent);
+}
+.outgoing {
+    stroke: var(--outgoing);
+}
+.test {
+    stroke: var(--kind-interface);
+}
+.probable {
+    stroke: var(--faint);
+    stroke-dasharray: 5 4;
+}
+
+.card {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 0 var(--space-10);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    text-align: left;
+}
+.card:hover {
+    border-color: var(--accent);
+}
+.card.test {
+    border-color: var(--kind-interface);
+}
+.card.focus {
+    border: 2px solid var(--ink);
+    box-shadow: 0 0 0 4px var(--mark);
+}
+
+.line {
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+    width: 100%;
+}
+.name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: 500 12px var(--font-mono);
+}
+.focus .name {
+    font-weight: 600;
+    font-size: 13px;
+}
+.count {
+    margin-left: auto;
+    padding: 0 var(--space-6);
+    border-radius: 999px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    font: 600 11px var(--font-mono);
+}
+.context {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11.5px;
+    color: var(--muted);
+}

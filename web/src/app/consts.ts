@@ -18,6 +18,8 @@ export const EXPLORER_ROUTE: Route = {
   label: I18N_KEYS.NAV_EXPLORER,
   icon: "explorer",
 };
+/** Screen 6; it is reached from the explorer and the graph, so it has no button in the rail. */
+export const USAGES_ROUTE = { path: "/usages", label: I18N_KEYS.USAGES_TITLE } as const;
 export const SETTINGS_ROUTE: Route = {
   path: "/settings",
   label: I18N_KEYS.NAV_SETTINGS,

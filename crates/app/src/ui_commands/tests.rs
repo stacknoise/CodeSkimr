@@ -111,7 +111,8 @@ fn the_commands_are_offered() {
             "projects.list",
             "projects.rescan",
             "search.query",
-            "status.info"
+            "status.info",
+            "usages.query"
         ]
     );
 }
@@ -318,6 +319,7 @@ fn a_token_without_the_read_right_is_refused() {
         "explorer.symbol",
         "search.query",
         "status.info",
+        "usages.query",
     ] {
         let refused = runtime
             .block_on(
@@ -463,4 +465,83 @@ fn the_source_of_a_project_without_a_scan_is_refused() {
         ),
         Err("MCP-203")
     );
+}
+
+const CALLER: &str = "namespace Demo;\n\npublic class Checkout\n{\n    public int Total(Calculator calculator)\n    {\n        return calculator.Add(1, 2);\n    }\n}\n";
+
+fn member_id(fixture: &Fixture, project: u64, name: &str) -> Value {
+    let id = type_id(fixture, project);
+    fixture
+        .call(
+            "explorer.symbol",
+            json!({ "project": project, "symbol": id }),
+        )
+        .unwrap()["members"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|member| member["name"] == name)
+        .unwrap()["id"]
+        .clone()
+}
+
+fn usages_of_add(fixture: &Fixture, project: u64, way: &str) -> Value {
+    let add = member_id(fixture, project, "Add");
+    fixture
+        .call(
+            "usages.query",
+            json!({ "project": project, "symbol": add, "way": way, "depth": 2, "include_tests": true }),
+        )
+        .unwrap()
+}
+
+#[test]
+fn the_usages_of_a_method_name_the_caller_and_mark_every_hit_unchecked() {
+    let fixture = Fixture::new();
+    fs::write(fixture.root.path().join("app/Checkout.cs"), CALLER).unwrap();
+    let project = added(&fixture);
+    let answer = usages_of_add(&fixture, project, "both");
+    let hits = answer["incoming"]["hits"].as_array().unwrap();
+    assert_eq!(hits.len(), 1);
+    assert!(
+        hits[0]["from"]["qualified_name"]
+            .as_str()
+            .unwrap()
+            .ends_with("Checkout.Total")
+    );
+    assert_eq!(hits[0]["kind"], "call");
+    assert_eq!(hits[0]["line"], 7);
+    assert_eq!(hits[0]["verified"], false);
+    assert_eq!(answer["summary"]["places"], 1);
+    assert_eq!(answer["summary"]["unchecked"], 1);
+    assert_eq!(answer["summary"]["verified"], 0);
+    assert_eq!(answer["level2"], "unavailable");
+    assert_eq!(answer["impact"]["total"], 1);
+    assert_eq!(answer["outgoing"]["total"], 0);
+}
+
+#[test]
+fn a_direction_leaves_out_the_other_walk() {
+    let fixture = Fixture::new();
+    fs::write(fixture.root.path().join("app/Checkout.cs"), CALLER).unwrap();
+    let project = added(&fixture);
+    let upward = usages_of_add(&fixture, project, "incoming");
+    assert_eq!(upward["outgoing"], Value::Null);
+    let downward = usages_of_add(&fixture, project, "outgoing");
+    assert_eq!(downward["incoming"], Value::Null);
+    assert_eq!(downward["summary"]["places"], 1);
+}
+
+#[test]
+fn the_usages_of_an_unknown_symbol_or_a_project_without_a_scan_are_refused() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    let input = |project: u64, symbol: u64| json!({ "project": project, "symbol": symbol, "way": "both", "depth": 0, "include_tests": false });
+    assert_eq!(
+        fixture.call("usages.query", input(project, 999_999)),
+        Err("MCP-202")
+    );
+    let unscanned = Fixture::new();
+    let id = unscanned.register_unscanned();
+    assert_eq!(unscanned.call("usages.query", input(id, 1)), Err("MCP-203"));
 }

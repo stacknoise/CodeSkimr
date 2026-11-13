@@ -16,3 +16,5 @@ command-status-info-title = Show status
 command-status-info-description = Shows the start time and the memory of the program.
 command-explorer-source-title = Show source
 command-explorer-source-description = Shows the lines of the declaration of a type or member, read from the project folder.
+command-usages-query-title = Show usages
+command-usages-query-description = Lists who uses a symbol, what it uses and what a change of it reaches, with the certainty of each reference.
