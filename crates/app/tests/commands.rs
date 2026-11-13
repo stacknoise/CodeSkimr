@@ -731,6 +731,7 @@ fn assert_clean(workspace: &Workspace, streams: &[(&str, String)]) {
         assert!(!text.contains(SECRET_CANARY), "canary in {name}");
     }
     let data = workspace.root.path().join("data");
+    assert!(data.is_dir(), "no data folder to look into");
     assert!(
         files_with(&data, SECRET_CANARY).is_empty(),
         "canary in the data folder"
@@ -740,6 +741,8 @@ fn assert_clean(workspace: &Workspace, streams: &[(&str, String)]) {
 #[test]
 fn a_secret_in_a_git_address_stays_out_of_the_output_and_the_data_folder() {
     let workspace = Workspace::new();
+    // The control that there is a data folder to look into.
+    json_of(&workspace.scan(&[]));
     let address = format!("https://user:{SECRET_CANARY}@127.0.0.1:9/repo.git");
     let output = workspace
         .command()
@@ -811,11 +814,30 @@ fn a_secret_sent_to_the_stdio_server_stays_out_of_its_log_and_the_data_folder() 
     }
     drop(stdin);
     let output = child.wait_with_output().unwrap();
-    // The control: every call was answered, so the secret really went through the server.
+    // The controls: every call was answered, the secret went into the log in redacted form
+    // (the client name is logged), and the only echo on standard output is the caller's own path
+    // in `unmatched`.
     let answers = String::from_utf8_lossy(&output.stdout).into_owned();
-    assert_eq!(answers.lines().count(), 5, "{answers}");
-    assert!(!stderr(&output).is_empty(), "the trace level logs");
-    assert_clean(&workspace, &[("stderr", stderr(&output))]);
+    assert_eq!(answers.lines().count(), 5, "not every call was answered");
+    let log = stderr(&output);
+    assert!(
+        log.contains("[redacted]"),
+        "the secret was not logged redacted"
+    );
+    // The path is echoed twice: in the text of the answer and in its structured content.
+    assert_eq!(answers.matches(SECRET_CANARY).count(), 2, "unexpected echo");
+    let echo = format!("\"unmatched\\\":[\\\"{SECRET_CANARY}");
+    assert!(
+        answers.contains(&echo),
+        "the echo is not the unmatched path"
+    );
+    assert_clean(
+        &workspace,
+        &[
+            ("stdout", answers.replace(SECRET_CANARY, "")),
+            ("stderr", log),
+        ],
+    );
 }
 
 #[test]
@@ -828,7 +850,7 @@ fn the_export_holds_no_secret_from_a_method_body_and_no_path() {
     json_of(&workspace.scan(&[]));
     let file = workspace.root.path().join("out.html");
     let output = export_to(&workspace, &file, &[("CODESKIMR_LOG", "trace")]);
-    assert!(output.status.success(), "{}", stderr(&output));
+    assert!(output.status.success(), "the export failed");
     let page = fs::read_to_string(&file).unwrap();
     // The control: the class and its method are in the page, the body is not.
     assert!(page.contains("Vault") && page.contains("Open"));
