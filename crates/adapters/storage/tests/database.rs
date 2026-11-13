@@ -67,7 +67,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 3));
+    assert_eq!((mode.as_str(), version), ("wal", 4));
 }
 
 #[test]
@@ -164,6 +164,8 @@ fn pruned_snapshots_leave_no_rows_behind() {
         ("symbols", 2),
         ("symbol_references", 1),
         ("metrics", 2),
+        ("symbol_rows", 2),
+        ("metric_rows", 2),
         ("search_index", 2),
         ("usage_counts", 1),
         ("type_summary", 1),
@@ -175,5 +177,251 @@ fn pruned_snapshots_leave_no_rows_behind() {
             })
             .unwrap();
         assert_eq!(rows, expected, "table {table}");
+    }
+}
+
+/// Number of rows of a table.
+#[cfg(test)]
+fn rows_of(conn: &Connection, table: &str) -> i64 {
+    conn.query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
+        row.get(0)
+    })
+    .unwrap()
+}
+
+/// A scan of one file `a.cs` (id `base`) with two symbols, a reference between them and a
+/// fingerprint, followed by an incremental scan that adds `b.cs` with a reference into `a.cs`.
+#[cfg(test)]
+fn full_then_incremental(store: &SqliteStore) {
+    store.persist(scan_with_every_table(10, 100)).unwrap();
+    let mut next = data(header(20, ScanMode::Incremental));
+    next.files = vec![file(20, 200, "b.cs", "h")];
+    next.symbols = vec![symbol(201, 200, SymbolKind::Class, "App.B", None)];
+    next.references = vec![reference(202, 200, 201, 101)];
+    store.persist(next).unwrap();
+}
+
+#[test]
+fn an_incremental_scan_shares_references_and_fingerprints_instead_of_copying_them() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(5)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    full_then_incremental(&store);
+    let conn = Connection::open(&db.0).unwrap();
+    // One reference of the first scan, one new one; the fingerprint is stored once.
+    assert_eq!(rows_of(&conn, "symbol_references"), 2);
+    assert_eq!(rows_of(&conn, "fingerprints"), 1);
+    // The symbols and metrics of `a.cs` exist once: two of the first scan, one of the second.
+    assert_eq!(rows_of(&conn, "symbol_rows"), 3);
+    assert_eq!(rows_of(&conn, "metric_rows"), 2);
+    let seen = |snapshot: i64| -> i64 {
+        conn.query_row(
+            "SELECT COUNT(*) FROM snapshot_references WHERE snapshot_id = ?1",
+            [snapshot],
+            |row| row.get(0),
+        )
+        .unwrap()
+    };
+    assert_eq!(seen(10), 1);
+    assert_eq!(seen(20), 2);
+}
+
+#[test]
+fn pruning_keeps_the_shared_rows_another_snapshot_still_contains() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(1)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    full_then_incremental(&store);
+    let conn = Connection::open(&db.0).unwrap();
+    // Only snapshot 20 is left: it still contains the carried file with its reference and
+    // fingerprint.
+    assert_eq!(rows_of(&conn, "snapshots"), 1);
+    assert_eq!(rows_of(&conn, "symbol_references"), 2);
+    assert_eq!(rows_of(&conn, "fingerprints"), 1);
+    store.persist(scan_with_every_table(30, 300)).unwrap();
+    // A full scan shares nothing with the snapshot it replaces.
+    assert_eq!(rows_of(&conn, "symbol_references"), 1);
+    assert_eq!(rows_of(&conn, "fingerprints"), 1);
+}
+
+/// A version three database in which both snapshots hold the same file, symbols, reference and
+/// fingerprint, as a carry copied them.
+#[cfg(test)]
+fn version_three_database(db: &TempDb) {
+    std::fs::create_dir_all(db.0.parent().unwrap()).unwrap();
+    let conn = Connection::open(&db.0).unwrap();
+    for migration in [
+        include_str!("../migrations/0001_initial.sql"),
+        include_str!("../migrations/0002_credential_reference.sql"),
+        include_str!("../migrations/0003_fingerprints.sql"),
+    ] {
+        conn.execute_batch(migration).unwrap();
+    }
+    conn.pragma_update(None, "user_version", 3).unwrap();
+    conn.execute_batch(
+        "INSERT INTO projects (id, name, source_kind, location, branch)
+           VALUES (1, 'old', 'folder', '/work/app', '');
+         INSERT INTO snapshots (id, project_id, created, mode, files, symbols, refs)
+           VALUES (10, 1, 0, 'full', 1, 2, 1), (20, 1, 1, 'incremental', 1, 2, 1);",
+    )
+    .unwrap();
+    for snapshot in [10, 20] {
+        conn.execute_batch(&format!(
+            "INSERT INTO files (snapshot_id, id, path, language, content_hash, loc)
+               VALUES ({snapshot}, 100, 'a.cs', 'csharp', 'h', 1);
+             INSERT INTO symbols (snapshot_id, id, file_id, kind, name, qualified_name, parent_id,
+               visibility, is_static, start_line, start_column, end_line, end_column, signature, doc)
+               VALUES ({snapshot}, 101, 100, 'class', 'A', 'App.A', NULL, NULL, 0, 1, 0, 1, 1, NULL, NULL),
+                      ({snapshot}, 102, 100, 'method', 'M', 'App.A.M', 101, NULL, 0, 1, 0, 1, 1, NULL, NULL);
+             INSERT INTO symbol_references (snapshot_id, id, from_symbol, to_symbol, file_id,
+               start_line, start_column, end_line, end_column, kind, confidence)
+               VALUES ({snapshot}, 103, 102, 101, 100, 1, 0, 1, 1, 'call', 'certain');
+             INSERT INTO fingerprints (snapshot_id, symbol_id, position, hash)
+               VALUES ({snapshot}, 101, 0, 7);"
+        ))
+        .unwrap();
+    }
+    version_three_second_scan(&conn);
+}
+
+/// What only snapshot 20 of the version three database has: a new file with a class, a reference,
+/// and a different value of a metric the two snapshots share.
+#[cfg(test)]
+fn version_three_second_scan(conn: &Connection) {
+    conn.execute_batch(
+        "INSERT INTO metrics (snapshot_id, symbol_id, kind, value)
+           VALUES (10, 101, 'loc', 1.0), (20, 101, 'loc', 2.0);
+         INSERT INTO files (snapshot_id, id, path, language, content_hash, loc)
+           VALUES (20, 200, 'b.cs', 'csharp', 'h', 1);
+         INSERT INTO symbols (snapshot_id, id, file_id, kind, name, qualified_name, parent_id,
+           visibility, is_static, start_line, start_column, end_line, end_column, signature, doc)
+           VALUES (20, 201, 200, 'class', 'B', 'App.B', NULL, NULL, 0, 1, 0, 1, 1, NULL, NULL);
+         INSERT INTO symbol_references (snapshot_id, id, from_symbol, to_symbol, file_id,
+           start_line, start_column, end_line, end_column, kind, confidence)
+           VALUES (20, 204, 201, 101, 200, 1, 0, 1, 1, 'call', 'certain');",
+    )
+    .unwrap();
+}
+
+/// Rows of a view or table that a snapshot contains.
+#[cfg(test)]
+fn rows_in(conn: &Connection, table: &str, snapshot: i64) -> i64 {
+    conn.query_row(
+        &format!("SELECT COUNT(*) FROM {table} WHERE snapshot_id = ?1"),
+        [snapshot],
+        |row| row.get(0),
+    )
+    .unwrap()
+}
+
+#[test]
+fn a_version_three_database_keeps_what_each_snapshot_contained() {
+    let db = TempDb::new();
+    version_three_database(&db);
+    drop(SqliteStore::open(&db.0, keep(5)).unwrap());
+    let conn = Connection::open(&db.0).unwrap();
+    // Each row exists once; the reference of the second scan is not seen by the first.
+    assert_eq!(rows_of(&conn, "symbol_references"), 2);
+    assert_eq!(rows_of(&conn, "symbol_rows"), 3);
+    assert_eq!(rows_of(&conn, "fingerprints"), 1);
+    assert_eq!(rows_in(&conn, "snapshot_references", 10), 1);
+    assert_eq!(rows_in(&conn, "snapshot_references", 20), 2);
+    assert_eq!(rows_in(&conn, "symbols", 10), 2);
+    assert_eq!(rows_in(&conn, "symbols", 20), 3);
+    // The metric the snapshots shared has the value of the newest one.
+    let loc: f64 = conn
+        .query_row(
+            "SELECT value FROM metrics WHERE snapshot_id = 10 AND symbol_id = 101",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!((loc - 2.0).abs() < f64::EPSILON);
+}
+
+#[test]
+fn pruning_right_after_a_migration_leaves_only_the_newest_snapshot() {
+    let db = TempDb::new();
+    version_three_database(&db);
+    let store = SqliteStore::open(&db.0, keep(1)).unwrap();
+    store.persist(scan_with_every_table(30, 300)).unwrap();
+    let conn = Connection::open(&db.0).unwrap();
+    for (table, expected) in [
+        ("snapshots", 1),
+        ("symbol_rows", 2),
+        ("metric_rows", 2),
+        ("symbol_references", 1),
+        ("fingerprints", 1),
+    ] {
+        assert_eq!(rows_of(&conn, table), expected, "table {table}");
+    }
+}
+
+#[test]
+fn a_rebuilt_reference_of_a_carried_file_is_not_seen_by_the_older_snapshot() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(5)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    store.persist(scan_with_every_table(10, 100)).unwrap();
+    let mut next = data(header(20, ScanMode::Incremental));
+    next.files = vec![file(20, 200, "b.cs", "h")];
+    next.symbols = vec![symbol(201, 200, SymbolKind::Class, "App.B", None)];
+    next.references = vec![reference(204, 100, 102, 101)];
+    store.persist(next).unwrap();
+    let conn = Connection::open(&db.0).unwrap();
+    assert_eq!(rows_in(&conn, "snapshot_references", 10), 1);
+    assert_eq!(rows_in(&conn, "snapshot_references", 20), 2);
+}
+
+/// The ways a scan can point at rows that it does not hold.
+#[cfg(test)]
+fn corruptions() -> Vec<fn(&mut SnapshotData)> {
+    vec![
+        |scan| {
+            scan.symbols
+                .push(symbol(900, 999, SymbolKind::Class, "X", None));
+        },
+        |scan| {
+            scan.symbols
+                .push(symbol(900, 100, SymbolKind::Method, "X.M", Some(999)));
+        },
+        |scan| scan.references.push(reference(901, 100, 998, 101)),
+        |scan| scan.references.push(reference(901, 999, 102, 101)),
+        |scan| scan.metrics.push(metric(997, MetricKind::Loc, 1.0)),
+        |scan| {
+            scan.fingerprints.push(SymbolFingerprints {
+                symbol: SymbolId::new(996),
+                fingerprints: Fingerprints::from_entries(vec![Fingerprint {
+                    hash: 1,
+                    position: 0,
+                }]),
+            });
+        },
+    ]
+}
+
+#[test]
+fn a_snapshot_with_a_row_that_points_nowhere_is_refused_and_leaves_nothing_behind() {
+    for (index, corrupt) in corruptions().into_iter().enumerate() {
+        let db = TempDb::new();
+        let store = SqliteStore::open(&db.0, keep(5)).unwrap();
+        store.save_project(&project(1, "/work/app", &[])).unwrap();
+        let mut scan = scan_with_every_table(10, 100);
+        corrupt(&mut scan);
+        let error = store.persist(scan).unwrap_err();
+        assert_eq!(code_of(&error), "STO-901", "corruption {index}");
+        let conn = Connection::open(&db.0).unwrap();
+        for table in [
+            "symbol_rows",
+            "metric_rows",
+            "symbol_references",
+            "fingerprints",
+        ] {
+            assert_eq!(
+                rows_of(&conn, table),
+                0,
+                "corruption {index}, table {table}"
+            );
+        }
     }
 }

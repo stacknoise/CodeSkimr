@@ -25,6 +25,13 @@ pub const SOURCE_MAX_LINES: u32 = 400;
 /// Largest file that `explorer.source` reads, in bytes.
 pub const SOURCE_MAX_BYTES: u64 = 4_194_304;
 
+/// Id of the command that places the layers of the dependency map.
+pub const GRAPH_LAYERS: &str = "graph.layers";
+/// Title key of `graph.layers`.
+pub const GRAPH_TITLE: &str = i18n::COMMAND_GRAPH_LAYERS_TITLE;
+/// Description key of `graph.layers`.
+pub const GRAPH_DESCRIPTION: &str = i18n::COMMAND_GRAPH_LAYERS_DESCRIPTION;
+
 /// Id of the command of the quick search.
 pub const SEARCH_QUERY: &str = "search.query";
 /// Most hits the quick search returns.

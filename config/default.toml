@@ -107,3 +107,15 @@ default_theme = "petrol"
 dir = "ui"
 # How long a one-time launch code is valid, in seconds (ADR 0028).
 launch_code_seconds = 60
+
+# Picture of the dependency map (blueprint 15, screen 3). Layout units are pixels.
+[graph]
+# Size of the box of one layer.
+node_width = 160
+node_height = 44
+# Space between two rows and between two boxes of a row.
+rank_gap = 60
+node_gap = 24
+# Effort of the layout: sweeps against crossing edges and passes that centre boxes between their neighbours.
+sweeps = 12
+placement_passes = 6

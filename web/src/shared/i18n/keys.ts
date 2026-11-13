@@ -73,6 +73,8 @@ export const I18N_KEYS = {
   COMMAND_EXPLORER_SOURCE_DESCRIPTION: "command-explorer-source-description",
   COMMAND_USAGES_QUERY_TITLE: "command-usages-query-title",
   COMMAND_USAGES_QUERY_DESCRIPTION: "command-usages-query-description",
+  COMMAND_GRAPH_LAYERS_TITLE: "command-graph-layers-title",
+  COMMAND_GRAPH_LAYERS_DESCRIPTION: "command-graph-layers-description",
   EXPLORER_TITLE: "explorer-title",
   EXPLORER_FRESHNESS: "explorer-freshness",
   EXPLORER_FILTER_TREE: "explorer-filter-tree",
