@@ -33,18 +33,27 @@ fn stale(root: &Path, outputs: &[codeskimr_codegen::Output]) -> Vec<String> {
         .collect()
 }
 
+/// Prints every problem and returns the failing exit code.
+fn fail(problems: &[String]) -> ExitCode {
+    for problem in problems {
+        eprintln!("error: {problem}");
+    }
+    ExitCode::FAILURE
+}
+
+/// Loads and validates registry and translations, then renders the checked-in files.
+fn render(root: &Path) -> Result<Vec<codeskimr_codegen::Output>, Vec<String>> {
+    let registry = codeskimr_codegen::load(root)?;
+    let catalog = codeskimr_codegen::i18n::load(root)?;
+    Ok(codeskimr_codegen::checked_in_outputs(&registry, &catalog).into())
+}
+
 fn main() -> ExitCode {
     let root = repo_root();
-    let registry = match codeskimr_codegen::load(&root) {
-        Ok(registry) => registry,
-        Err(problems) => {
-            for problem in &problems {
-                eprintln!("error: {problem}");
-            }
-            return ExitCode::FAILURE;
-        }
+    let outputs = match render(&root) {
+        Ok(outputs) => outputs,
+        Err(problems) => return fail(&problems),
     };
-    let outputs = codeskimr_codegen::checked_in_outputs(&registry);
     if std::env::args().any(|a| a == CHECK_FLAG) {
         let files = stale(&root, &outputs);
         for file in &files {
@@ -58,9 +67,6 @@ fn main() -> ExitCode {
     }
     match write_all(&root, &outputs) {
         Ok(()) => ExitCode::SUCCESS,
-        Err(e) => {
-            eprintln!("error: {e}");
-            ExitCode::FAILURE
-        }
+        Err(e) => fail(&[e]),
     }
 }

@@ -89,3 +89,71 @@ fn renderers_contain_the_code() {
     assert!(render_ts::render(&registry).contains("\"SRC-201\""));
     assert!(render_md::render(&registry).contains("| SRC-201 | `source_path_not_found`"));
 }
+
+mod i18n_catalog {
+    use codeskimr_codegen::i18n::{Catalog, render_rust, render_ts};
+    use std::collections::BTreeMap;
+
+    fn catalog(entries: &[(&str, &str, &str)]) -> Catalog {
+        let mut files: BTreeMap<String, BTreeMap<String, String>> = BTreeMap::new();
+        for (lang, file, text) in entries {
+            files
+                .entry((*lang).to_string())
+                .or_default()
+                .insert((*file).to_string(), (*text).to_string());
+        }
+        Catalog { files }
+    }
+
+    #[test]
+    fn matching_languages_have_no_problems() {
+        let c = catalog(&[
+            ("en", "app.ftl", "app-name = Name\n"),
+            ("de", "app.ftl", "app-name = Name\n"),
+        ]);
+        assert!(c.problems().is_empty());
+    }
+
+    #[test]
+    fn missing_and_extra_keys_and_files_are_reported() {
+        let c = catalog(&[
+            ("en", "app.ftl", "app-a = A\napp-b = B\n"),
+            ("en", "scan.ftl", "scan-a = A\n"),
+            ("de", "app.ftl", "app-a = A\napp-c = C\n"),
+        ]);
+        let problems = c.problems().join("\n");
+        assert!(problems.contains("de/app.ftl: key app-b is missing"));
+        assert!(problems.contains("de/app.ftl: key app-c does not exist in en"));
+        assert!(problems.contains("de/scan.ftl: file is missing"));
+    }
+
+    #[test]
+    fn duplicate_keys_and_constant_collisions_are_reported() {
+        let c = catalog(&[(
+            "en",
+            "app.ftl",
+            "app-a = A\napp-a = B\napp-x-y = C\napp-x_y = D\n",
+        )]);
+        let problems = c.problems().join("\n");
+        assert!(problems.contains("key app-a is defined twice"));
+        assert!(problems.contains("share one constant"));
+    }
+
+    #[test]
+    fn missing_reference_language_is_reported() {
+        let c = catalog(&[("de", "app.ftl", "app-a = A\n")]);
+        assert_eq!(c.problems().len(), 1);
+    }
+
+    #[test]
+    fn error_messages_are_not_part_of_the_keys() {
+        let c = catalog(&[
+            ("en", "app.ftl", "app-a = A\n"),
+            ("en", "errors.ftl", "error-APP-201 = E\n"),
+        ]);
+        let rust = render_rust(&c);
+        assert!(rust.contains("pub const APP_A: &str = \"app-a\";"));
+        assert!(!rust.contains("APP_201"));
+        assert!(render_ts(&c).contains("APP_A: \"app-a\","));
+    }
+}
