@@ -269,10 +269,12 @@ codeskimr/
 | `File` | source file | id, snapshot, path, language, content hash, loc |
 | `Symbol` | anything with a name | id, file, kind, name, qualified name, parent symbol, visibility, static, span, signature, doc |
 | `Reference` | one occurrence of a symbol | id, from symbol, to symbol, file, span, kind, confidence |
-| `Metric` | measured value | symbol, kind (loc, cc, mi, ce, ca, instability), value |
+| `Metric` | measured value | symbol, kind (loc, cc, cc_max, mi, ce, ca, instability), value |
 | `LayerEdge` | aggregated dependency between namespaces / layers | from, to, count, violates layering, part of cycle |
 
 **Symbol kinds** are language-neutral: `module`, `namespace`, `class`, `interface`, `trait`, `record`, `struct`, `enum`, `union`, `function`, `method`, `constructor`, `property`, `field`, `constant`, `event`, `enum_member`, `parameter`, `type_alias`. Language packs map their syntax onto these kinds. Free functions belong to a `module` symbol, one per file.
+
+**Metric granularity (ADR 0015).** LOC, CC and MI are measured per callable (`function`, `method`, `constructor`) and rolled up to types and modules: LOC counts the code lines of the span, CC sums over the callables, `cc_max` is the highest callable CC, MI is the LOC-weighted mean of the callables. A lambda counts for its enclosing callable; a named local function counts for itself. CC is 1 plus one per `if`/`else if`, conditional expression, loop, case or match arm, `catch` and short-circuit operator. MI uses Halstead counts of operators and operands (distinct and total) that the language pack captures per callable. Thresholds apply to callable CC and `cc_max`, not to sums. Details and counting rules: ADR 0015.
 
 **Reference kinds:** `call`, `read`, `write`, `type_use`, `inherit`, `implement`, `override`, `import`, `test`.
 
@@ -325,7 +327,7 @@ languages/csharp/
 ├─ language.toml      metadata and rules
 ├─ symbols.scm        Tree-sitter query: declarations → symbol kinds
 ├─ references.scm     Tree-sitter query: identifiers, calls, imports, scopes
-├─ complexity.scm     Tree-sitter query: decision points for CC
+├─ metrics.scm        Tree-sitter query: comments, decision points, Halstead operators and operands
 ├─ highlights.scm     syntax highlighting for the UI
 └─ tests/             small sample files + expected JSON (golden tests)
 ```
@@ -345,7 +347,7 @@ languages/csharp/
 | Tier | Delivers | Languages in 1.0 |
 |---|---|---|
 | **full** | symbols incl. members, doc comments, references with scope-aware resolution, all metrics | C#, TypeScript/JavaScript, Python, Java, Kotlin, Rust (Go after 1.0, ADR 0011) |
-| **basic** | types and functions, spans, LOC, CC; references only by unique name | every other language with a Tree-sitter grammar |
+| **basic** | types and functions, spans, LOC, CC (no MI); references only by unique name | every other language with a Tree-sitter grammar |
 
 - Full-tier grammars are compiled into the binary.
 - Basic-tier grammars are loaded on demand as language packs, which keeps the binary small (section 16).
@@ -1105,7 +1107,8 @@ This is the starting content of `errors/error-codes.toml`. Descriptions are the 
 | LOC | lines of code without blank and comment-only lines |
 | Loan pattern | a resource is lent to a closure and cleaned up afterwards |
 | MCP | Model Context Protocol – interface for code agents |
-| MI | maintainability index (0–100) |
+| MI | maintainability index (0–100), Visual Studio form, from Halstead volume, CC and LOC |
+| Halstead counts | distinct and total operators and operands of one body |
 | Port | trait in the application layer that the core depends on |
 | Read model | precomputed query structure (CQRS) |
 | SCIP | open format for compiler-precise code-intelligence indexes |
