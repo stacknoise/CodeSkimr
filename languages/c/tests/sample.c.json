@@ -71,6 +71,7 @@
       "kind": "module",
       "name": "sample",
       "parent": null,
+      "signature": null,
       "span": "0:0-26:0",
       "static": false,
       "visibility": null
@@ -80,6 +81,7 @@
       "kind": "struct",
       "name": "sample.point",
       "parent": "sample",
+      "signature": null,
       "span": "3:0-6:1",
       "static": false,
       "visibility": null
@@ -89,6 +91,7 @@
       "kind": "enum",
       "name": "sample.color",
       "parent": "sample",
+      "signature": null,
       "span": "8:0-8:25",
       "static": false,
       "visibility": null
@@ -98,6 +101,7 @@
       "kind": "union",
       "name": "sample.value",
       "parent": "sample",
+      "signature": null,
       "span": "10:0-10:31",
       "static": false,
       "visibility": null
@@ -107,6 +111,7 @@
       "kind": "type_alias",
       "name": "sample.pair",
       "parent": "sample",
+      "signature": null,
       "span": "12:0-12:31",
       "static": false,
       "visibility": null
@@ -116,6 +121,7 @@
       "kind": "function",
       "name": "sample.find",
       "parent": "sample",
+      "signature": null,
       "span": "14:0-21:1",
       "static": false,
       "visibility": null
@@ -125,6 +131,7 @@
       "kind": "function",
       "name": "sample.main",
       "parent": "sample",
+      "signature": null,
       "span": "23:0-25:1",
       "static": false,
       "visibility": null

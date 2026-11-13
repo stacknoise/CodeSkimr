@@ -25,6 +25,7 @@ A capture outside this vocabulary, an invalid query or an unknown grammar fails 
 - Pending references point at the innermost enclosing symbol; occurrences outside any declaration belong to the module.
 - `loc` counts lines that contain at least one non-comment token. Lines inside multi-line tokens (strings) count as code.
 - Failures: `PRS-101` (encoding; UTF-8 and UTF-16 with BOM are read), `PRS-201` (no pack), `PRS-301` (invalid pack), `PRS-501` (parse timeout), `SRC-201` (file cannot be read).
+- Constants without a `@signature` capture get their whole declaration as signature (`find_constants` shows the value): `const LIMIT: usize = 10;` in Rust, `MAX_SIZE = 10` in Python, `const val MAX_SIZE = 10` in Kotlin. Packs that deliver the full declaration (type, modifiers, value): Rust, Python, Kotlin. Where the grammar's declaration node is the declarator only (C#, Java, TypeScript/JavaScript) the signature is `name = value` without type and modifiers.
 
 ## The C# pack (WP-24)
 

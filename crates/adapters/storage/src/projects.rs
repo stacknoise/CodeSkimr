@@ -215,7 +215,7 @@ impl ProjectRow {
     }
 }
 
-fn load_project(conn: &Connection, id: ProjectId) -> StorageResult<Project> {
+pub fn load_project(conn: &Connection, id: ProjectId) -> StorageResult<Project> {
     let raw = column_int(id.get())?;
     let row = conn
         .query_row(sql::PROJECT_BY_ID, params![raw], ProjectRow::from_row)
