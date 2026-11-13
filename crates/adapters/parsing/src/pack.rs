@@ -77,12 +77,8 @@ impl LanguagePack {
         }
         let id = LanguageId::new(manifest.id).map_err(|e| invalid(e.to_string()))?;
         let visibility = Visibilities::resolve(manifest.visibility).map_err(invalid)?;
-        let modifier_kinds = manifest
-            .modifier_kinds
-            .into_iter()
-            .map(|(keyword, label)| Ok((keyword, SymbolKind::from_str(&label)?)))
-            .collect::<Result<_, ModelError>>()
-            .map_err(|e| invalid(e.to_string()))?;
+        let modifier_kinds =
+            modifier_kinds(manifest.modifier_kinds).map_err(|e| invalid(e.to_string()))?;
         let kinds_by_parent = parent_kinds(manifest.kinds_by_parent).map_err(invalid)?;
         Ok(Self {
             kinds_by_parent,
@@ -146,6 +142,16 @@ impl LanguagePack {
     pub fn extensions(&self) -> &[String] {
         &self.extensions
     }
+}
+
+/// The kinds that a modifier keyword gives to a declaration.
+fn modifier_kinds(
+    labels: HashMap<String, String>,
+) -> Result<HashMap<String, SymbolKind>, ModelError> {
+    labels
+        .into_iter()
+        .map(|(keyword, label)| Ok((keyword, SymbolKind::from_str(&label)?)))
+        .collect()
 }
 
 fn parent_kinds(
