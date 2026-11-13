@@ -56,6 +56,8 @@ pub struct Reached {
 #[derive(Debug, Clone, Default)]
 pub struct ReverseIndex {
     references: Vec<Reference>,
+    /// Whether any reference is verified. If none is, no path is, and a walk skips the check.
+    any_verified: bool,
     incoming: HashMap<SymbolId, Vec<usize>>,
     outgoing: HashMap<SymbolId, Vec<usize>>,
 }
@@ -74,6 +76,7 @@ impl ReverseIndex {
             outgoing.entry(reference.from).or_default().push(position);
         }
         Self {
+            any_verified: all.iter().any(|reference| reference.verified),
             references: all,
             incoming,
             outgoing,
@@ -114,6 +117,10 @@ impl ReverseIndex {
     #[must_use]
     pub fn reached(&self, query: &UsageQuery) -> Vec<Reached> {
         let mut found = Vec::new();
+        if !self.any_verified {
+            self.walk(query, |_, reached| found.extend(reached));
+            return found;
+        }
         let mut usages = Vec::new();
         self.walk(query, |usage, reached| {
             usages.push(usage);
