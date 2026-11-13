@@ -4,8 +4,8 @@
 use tree_sitter::Language;
 
 use crate::consts::{
-    GRAMMAR_CSHARP, GRAMMAR_JAVA, GRAMMAR_JAVASCRIPT, GRAMMAR_PYTHON, GRAMMAR_RUST, GRAMMAR_TSX,
-    GRAMMAR_TYPESCRIPT,
+    GRAMMAR_CSHARP, GRAMMAR_JAVA, GRAMMAR_JAVASCRIPT, GRAMMAR_KOTLIN, GRAMMAR_PYTHON, GRAMMAR_RUST,
+    GRAMMAR_TSX, GRAMMAR_TYPESCRIPT,
 };
 
 /// The built-in grammar called `name`, if there is one.
@@ -19,6 +19,7 @@ pub fn builtin(name: &str) -> Option<Language> {
         GRAMMAR_JAVASCRIPT => Some(tree_sitter_javascript::LANGUAGE.into()),
         GRAMMAR_PYTHON => Some(tree_sitter_python::LANGUAGE.into()),
         GRAMMAR_JAVA => Some(tree_sitter_java::LANGUAGE.into()),
+        GRAMMAR_KOTLIN => Some(tree_sitter_kotlin_ng::LANGUAGE.into()),
         _ => basic(name),
     }
 }

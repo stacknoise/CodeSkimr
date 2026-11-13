@@ -1,0 +1,652 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 59,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations"
+    },
+    {
+      "decisions": null,
+      "loc": 59,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes"
+    },
+    {
+      "decisions": null,
+      "loc": 37,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Shape"
+    },
+    {
+      "decisions": null,
+      "loc": 5,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Shape.Factory"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Shape.Factory.create"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Shape.area"
+    },
+    {
+      "decisions": null,
+      "loc": 3,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Shape.helper"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Shape.helper.inner"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Shape.Shape"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Shape.Shape"
+    },
+    {
+      "decisions": null,
+      "loc": 8,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Shape.Kind"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Shape.Kind.SQUARE.describe"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Shape.Kind.describe"
+    },
+    {
+      "decisions": null,
+      "loc": 3,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Shape.Singleton"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Shape.Singleton.hello"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Shape.Hidden"
+    },
+    {
+      "decisions": null,
+      "loc": 5,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Named"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Named.greet"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Named.shout"
+    },
+    {
+      "decisions": null,
+      "loc": 3,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Action"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Action.run"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Result"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Success"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Failure"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Marker"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.Color"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.shout"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.top"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shapes.hidden"
+    }
+  ],
+  "loc": 59,
+  "references": [],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "Declarations",
+      "parent": null,
+      "span": "0:0-90:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "Declarations.com.example.shapes",
+      "parent": "Declarations",
+      "span": "0:0-90:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": "A plain class with a primary constructor.",
+      "kind": "class",
+      "name": "Declarations.com.example.shapes.Shape",
+      "parent": "Declarations.com.example.shapes",
+      "span": "6:0-59:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Declarations.com.example.shapes.Shape.id",
+      "parent": "Declarations.com.example.shapes.Shape",
+      "span": "6:17-6:28",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Declarations.com.example.shapes.Shape.label",
+      "parent": "Declarations.com.example.shapes.Shape",
+      "span": "6:30-6:64",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": "Companion with a name.",
+      "kind": "class",
+      "name": "Declarations.com.example.shapes.Shape.Factory",
+      "parent": "Declarations.com.example.shapes.Shape",
+      "span": "8:4-13:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "Maximum size.",
+      "kind": "constant",
+      "name": "Declarations.com.example.shapes.Shape.Factory.MAX_SIZE",
+      "parent": "Declarations.com.example.shapes.Shape.Factory",
+      "span": "10:8-10:31",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Declarations.com.example.shapes.Shape.Factory.registry",
+      "parent": "Declarations.com.example.shapes.Shape.Factory",
+      "span": "11:8-11:57",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Declarations.com.example.shapes.Shape.Factory.create",
+      "parent": "Declarations.com.example.shapes.Shape.Factory",
+      "span": "12:8-12:46",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "Declarations.com.example.shapes.Shape.UNNAMED",
+      "parent": "Declarations.com.example.shapes.Shape",
+      "span": "16:8-16:29",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "The area.",
+      "kind": "method",
+      "name": "Declarations.com.example.shapes.Shape.area",
+      "parent": "Declarations.com.example.shapes.Shape",
+      "span": "20:4-20:33",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Declarations.com.example.shapes.Shape.helper",
+      "parent": "Declarations.com.example.shapes.Shape",
+      "span": "22:4-25:5",
+      "static": false,
+      "visibility": "protected"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "Declarations.com.example.shapes.Shape.helper.inner",
+      "parent": "Declarations.com.example.shapes.Shape.helper",
+      "span": "24:8-24:27",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Declarations.com.example.shapes.Shape.count",
+      "parent": "Declarations.com.example.shapes.Shape",
+      "span": "27:4-29:19",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Declarations.com.example.shapes.Shape.late",
+      "parent": "Declarations.com.example.shapes.Shape",
+      "span": "31:4-31:29",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Declarations.com.example.shapes.Shape.double",
+      "parent": "Declarations.com.example.shapes.Shape",
+      "span": "33:4-33:40",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constructor",
+      "name": "Declarations.com.example.shapes.Shape.Shape",
+      "parent": "Declarations.com.example.shapes.Shape",
+      "span": "35:4-35:47",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "Documented constructor.",
+      "kind": "constructor",
+      "name": "Declarations.com.example.shapes.Shape.Shape",
+      "parent": "Declarations.com.example.shapes.Shape",
+      "span": "38:4-38:57",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "enum",
+      "name": "Declarations.com.example.shapes.Shape.Kind",
+      "parent": "Declarations.com.example.shapes.Shape",
+      "span": "44:4-52:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Declarations.com.example.shapes.Shape.Kind.sides",
+      "parent": "Declarations.com.example.shapes.Shape.Kind",
+      "span": "44:20-44:34",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "enum_member",
+      "name": "Declarations.com.example.shapes.Shape.Kind.TRIANGLE",
+      "parent": "Declarations.com.example.shapes.Shape.Kind",
+      "span": "45:8-45:19",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "enum_member",
+      "name": "Declarations.com.example.shapes.Shape.Kind.SQUARE",
+      "parent": "Declarations.com.example.shapes.Shape.Kind",
+      "span": "46:8-48:9",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Declarations.com.example.shapes.Shape.Kind.SQUARE.describe",
+      "parent": "Declarations.com.example.shapes.Shape.Kind.SQUARE",
+      "span": "47:12-47:46",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Declarations.com.example.shapes.Shape.Kind.describe",
+      "parent": "Declarations.com.example.shapes.Shape.Kind",
+      "span": "51:8-51:36",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Declarations.com.example.shapes.Shape.Singleton",
+      "parent": "Declarations.com.example.shapes.Shape",
+      "span": "54:4-56:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Declarations.com.example.shapes.Shape.Singleton.hello",
+      "parent": "Declarations.com.example.shapes.Shape.Singleton",
+      "span": "55:8-55:26",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Declarations.com.example.shapes.Shape.Hidden",
+      "parent": "Declarations.com.example.shapes.Shape",
+      "span": "58:4-58:24",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": "An interface.",
+      "kind": "interface",
+      "name": "Declarations.com.example.shapes.Named",
+      "parent": "Declarations.com.example.shapes",
+      "span": "66:0-71:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Declarations.com.example.shapes.Named.name",
+      "parent": "Declarations.com.example.shapes.Named",
+      "span": "67:4-67:20",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "Greets.",
+      "kind": "method",
+      "name": "Declarations.com.example.shapes.Named.greet",
+      "parent": "Declarations.com.example.shapes.Named",
+      "span": "69:4-69:23",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Declarations.com.example.shapes.Named.shout",
+      "parent": "Declarations.com.example.shapes.Named",
+      "span": "70:4-70:45",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "Declarations.com.example.shapes.Action",
+      "parent": "Declarations.com.example.shapes",
+      "span": "73:0-75:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Declarations.com.example.shapes.Action.run",
+      "parent": "Declarations.com.example.shapes.Action",
+      "span": "74:4-74:13",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "Declarations.com.example.shapes.Result",
+      "parent": "Declarations.com.example.shapes",
+      "span": "77:0-77:23",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "record",
+      "name": "Declarations.com.example.shapes.Success",
+      "parent": "Declarations.com.example.shapes",
+      "span": "78:0-78:43",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Declarations.com.example.shapes.Success.value",
+      "parent": "Declarations.com.example.shapes.Success",
+      "span": "78:19-78:33",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "record",
+      "name": "Declarations.com.example.shapes.Failure",
+      "parent": "Declarations.com.example.shapes",
+      "span": "79:0-79:71",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Declarations.com.example.shapes.Failure.reason",
+      "parent": "Declarations.com.example.shapes.Failure",
+      "span": "79:19-79:37",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Declarations.com.example.shapes.Failure.code",
+      "parent": "Declarations.com.example.shapes.Failure",
+      "span": "79:39-79:61",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "Declarations.com.example.shapes.Marker",
+      "parent": "Declarations.com.example.shapes",
+      "span": "80:0-80:23",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "enum",
+      "name": "Declarations.com.example.shapes.Color",
+      "parent": "Declarations.com.example.shapes",
+      "span": "81:0-81:31",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "enum_member",
+      "name": "Declarations.com.example.shapes.Color.RED",
+      "parent": "Declarations.com.example.shapes.Color",
+      "span": "81:19-81:22",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "enum_member",
+      "name": "Declarations.com.example.shapes.Color.GREEN",
+      "parent": "Declarations.com.example.shapes.Color",
+      "span": "81:24-81:29",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "type_alias",
+      "name": "Declarations.com.example.shapes.Handler",
+      "parent": "Declarations.com.example.shapes",
+      "span": "82:0-82:33",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "Shouts.",
+      "kind": "function",
+      "name": "Declarations.com.example.shapes.shout",
+      "parent": "Declarations.com.example.shapes",
+      "span": "85:0-85:45",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "Declarations.com.example.shapes.top",
+      "parent": "Declarations.com.example.shapes",
+      "span": "86:0-86:29",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "Declarations.com.example.shapes.hidden",
+      "parent": "Declarations.com.example.shapes",
+      "span": "87:0-87:23",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "Declarations.com.example.shapes.TOP_LEVEL",
+      "parent": "Declarations.com.example.shapes",
+      "span": "88:0-88:23",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Declarations.com.example.shapes.topProperty",
+      "parent": "Declarations.com.example.shapes",
+      "span": "89:0-89:19",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

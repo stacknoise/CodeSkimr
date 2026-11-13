@@ -1,0 +1,9 @@
+[project]
+repository = "https://github.com/square/kotlinpoet"
+commit = "f4e88d3655b0f5f795186ea8cf3cb5a8ceb6db01"
+skip_folders = ["interop", "docs", "gradle", "jvmTest", "jsMain", "wasmJsMain", "nonJvmMain", "build"]
+language = "kotlin"
+extensions = ["kt"]
+
+[counts]
+files = 0

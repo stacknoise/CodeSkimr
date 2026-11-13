@@ -1,0 +1,88 @@
+# Kotlin language pack, full tier (blueprint 8, WP-63, ADR 0027).
+#
+# Mapping of Kotlin onto the language-neutral symbol kinds:
+#   package header                      -> namespace    class                  -> class
+#   interface, fun interface            -> interface    enum class             -> enum
+#   data class                          -> record       annotation class       -> interface
+#   object, named companion object      -> class        typealias              -> type_alias
+#   fun in a type                       -> method       fun elsewhere          -> function
+#   secondary constructor               -> constructor  property               -> property
+#   const val                           -> constant     val / var parameter of the primary
+#   enum entry                          -> enum_member    constructor          -> property
+# Not symbols: parameters, local variables and properties, lambdas and anonymous functions (they
+# count for their callable), the primary constructor itself, initializer blocks, accessors
+# (`get`, `set`), type parameters, an unnamed companion object (its members belong to the
+# surrounding class) and the members of an anonymous object (functions of the enclosing callable).
+# Visibility: `public` is the default, `internal` is visible in the module, `protected` and
+# `private` as written.
+id = "kotlin"
+grammar = "kotlin"
+tier = "full"
+extensions = ["kt", "kts"]
+separator = "."
+comment_nodes = ["line_comment", "block_comment"]
+manifest_files = [
+    "build.gradle.kts",
+    "settings.gradle.kts",
+    "build.gradle",
+    "settings.gradle",
+    "pom.xml",
+]
+test_patterns = [
+    "**/src/test/**/*.kt",
+    "**/src/*Test/**/*.kt",
+    "**/*Test.kt",
+    "**/*Tests.kt",
+    "**/*IT.kt",
+]
+# `function_body` is no `body` field in this grammar; a function without one is abstract or
+# declared in an interface and is not measured. A secondary constructor holds its `block`.
+body_nodes = ["function_body", "block"]
+# Syntax fingerprints (WP-34): all names alike, literals by kind only.
+identifier_nodes = ["identifier"]
+literal_nodes = [
+    "number_literal",
+    "float_literal",
+    "string_literal",
+    "character_literal",
+    "boolean_literal",
+    "null_literal",
+]
+
+# KDoc: the description above the first block tag (`@param`, `@return` ...) is the documentation;
+# `[Name]` links and Markdown stay in the text.
+[doc_block]
+open = "/**"
+close = "*/"
+line_prefix = "*"
+stop_at = "@"
+
+# `const val` is a constant; a class that is `enum`, `annotation` or `data` has its own kind.
+[modifier_kinds]
+const = "constant"
+enum = "enum"
+annotation = "interface"
+data = "record"
+
+# A function of a type is a method; the entries of an enum may carry a body of their own.
+[kinds_by_parent.class]
+function = "method"
+[kinds_by_parent.interface]
+function = "method"
+[kinds_by_parent.enum]
+function = "method"
+[kinds_by_parent.record]
+function = "method"
+[kinds_by_parent.enum_member]
+function = "method"
+
+[visibility]
+default = "public"
+# A package has no visibility.
+unrated_kinds = ["namespace"]
+
+[visibility.keywords]
+public = "public"
+internal = "internal"
+protected = "protected"
+private = "private"
