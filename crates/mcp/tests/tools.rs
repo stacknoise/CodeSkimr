@@ -5,7 +5,7 @@ mod common;
 
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Permission, PermissionSet, Principal};
-use codeskimr_mcp::{ArchitectureArgs, McpError, SearchArgs, SymbolArgs};
+use codeskimr_mcp::{ArchitectureArgs, ImpactArgs, McpError, SearchArgs, SymbolArgs, UsagesArgs};
 use common::{FakeIndex, NOW, SCANNED_AT, tools, tools_with};
 use serde_json::Value;
 
@@ -29,6 +29,27 @@ fn symbol(text: &str, project: Option<u64>) -> SymbolArgs {
     SymbolArgs {
         symbol: text.to_owned(),
         project,
+    }
+}
+
+#[cfg(test)]
+fn usages_of(text: &str) -> UsagesArgs {
+    UsagesArgs {
+        symbol: text.to_owned(),
+        direction: None,
+        depth: None,
+        include_tests: None,
+        project: None,
+        limit: None,
+    }
+}
+
+#[cfg(test)]
+fn impact_of(text: &str) -> ImpactArgs {
+    ImpactArgs {
+        symbol: text.to_owned(),
+        project: None,
+        limit: None,
     }
 }
 
@@ -185,9 +206,13 @@ fn a_principal_without_read_permission_gets_no_answer_from_any_tool() {
         tools.search_symbols(&nobody, &search("order", None, None)),
         tools.get_symbol(&nobody, &symbol("App.Domain.Order", None)),
         tools.get_architecture(&nobody, &ArchitectureArgs { project: None }),
+        tools.find_usages(&nobody, &usages_of("1")),
+        tools.impact_of_change(&nobody, &impact_of("1")),
     ];
     for result in errors {
-        assert_eq!(result.unwrap_err().code(), ErrorCode::PermissionDenied);
+        let error = result.unwrap_err();
+        assert_eq!(error.code(), ErrorCode::PermissionDenied);
+        assert!(error.report().params.is_empty());
     }
 }
 

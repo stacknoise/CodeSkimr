@@ -34,6 +34,10 @@ regression_tolerance_percent = 10
 [mcp]
 default_limit = 20
 max_limit = 100
+# Steps a usages walk goes when the caller gives no depth, and the most it may go (also the depth
+# of impact_of_change).
+default_depth = 1
+max_depth = 5
 
 # Snapshot retention (blueprint 6): the last N snapshots per project are kept.
 [snapshots]
@@ -43,6 +47,8 @@ retention_count = 5
 [watcher]
 # File events within this window are collapsed into one re-scan.
 debounce_ms = 200
+# A batch of file events is handed over at the latest this long after its first event, so a build that writes all the time cannot starve the re-scan.
+max_wait_ms = 2000
 
 # Syntax fingerprints for similar-code search and the duplicate check (blueprint 10.4).
 [similarity]

@@ -433,7 +433,7 @@ The registry generates:
 
 ```
 codeskimr                         start the app, open the browser
-codeskimr scan <path|git-url>     scan and print a summary (--json for machines)
+codeskimr scan <path|git-url>     scan and print a summary (--json for machines, --watch to keep scanning on changes)
 codeskimr serve                   start the server without opening a browser
 codeskimr mcp                     MCP over stdio
 codeskimr export <project> --html <file>
