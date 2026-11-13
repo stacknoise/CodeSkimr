@@ -15,7 +15,7 @@ fn a_project_without_a_scan_has_no_snapshot_and_no_languages() {
     assert_eq!(overviews.len(), 1);
     assert_eq!(overviews[0].latest, None);
     assert_eq!(overviews[0].types, 0);
-    assert!(overviews[0].languages.is_empty());
+    assert_eq!(overviews[0].languages, Vec::new());
 }
 
 #[test]
