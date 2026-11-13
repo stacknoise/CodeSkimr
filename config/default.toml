@@ -69,8 +69,8 @@ min_tokens = 30
 max_function_lines = 40
 # Two functions whose syntax fingerprints are at least this similar, in percent, are reported as CHK-102.
 duplicate_similarity_percent = 85
-# Functions with fewer code lines than this are not compared for duplicates (CHK-102); like jscpd in CI.
-duplicate_min_lines = 5
+# Functions with fewer code lines than this are not compared for duplicates (CHK-102); measured on this repository: 5 gives 21 findings, 8 gives 9, mostly real.
+duplicate_min_lines = 8
 # Files below a folder with one of these names are tests; the convention checks skip them.
 test_folders = ["tests", "benches"]
 

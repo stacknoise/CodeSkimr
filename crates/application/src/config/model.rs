@@ -124,7 +124,7 @@ pub struct Conventions {
     /// Fingerprint similarity in percent from which two functions count as duplicates.
     pub duplicate_similarity_percent: u32,
     /// Fewest code lines a function needs to be compared for duplicates; shorter ones are too
-    /// small for a copy to mean anything (the CI check `jscpd` uses 5 lines as well).
+    /// small for a copy to mean anything (measured on this repository: 5 lines give 21 findings, 8 give 9).
     pub duplicate_min_lines: u32,
     /// Folder names whose files are tests; no convention check looks at them.
     pub test_folders: Vec<String>,

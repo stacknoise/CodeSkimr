@@ -34,11 +34,11 @@ The report always lists the rules it did not check (`not_checked`), so a clean r
 [conventions]
 max_function_lines = 40
 duplicate_similarity_percent = 85
-duplicate_min_lines = 5
+duplicate_min_lines = 8
 test_folders = ["tests", "benches"]
 ```
 
-The first three must be positive, the second at most 100 (`CFG-101`). `duplicate_min_lines`: a function with fewer code lines is never compared for duplicates (three-line helpers and parallel test functions are alike by nature; the CI check `jscpd` also starts at 5 lines). `test_folders`: files below a folder with one of these names (including the fixtures in `languages/*/tests/`) are skipped by all convention checks and not counted in `files_checked`. Tests inside `src` (`#[cfg(test)]` modules) are not recognised. The similarity itself is tuned by `[similarity]` (n-gram size, window size, minimum tokens). Functions with fewer than `similarity.min_tokens` tokens have no fingerprints and are never reported as duplicates.
+The first three must be positive, the second at most 100 (`CFG-101`). `duplicate_min_lines`: a function with fewer code lines is never compared for duplicates (three-line helpers and parallel test functions are alike by nature). Measured on this repository: 5 lines give 21 duplicate findings, 8 give 9, and what stays are mostly real copies. `jscpd` in CI is stricter by tokens, not by lines. `test_folders`: files below a folder with one of these names (including the fixtures in `languages/*/tests/`) are skipped by all convention checks and not counted in `files_checked`. Tests inside `src` (`#[cfg(test)]` modules) are not recognised. The similarity itself is tuned by `[similarity]` (n-gram size, window size, minimum tokens). Functions with fewer than `similarity.min_tokens` tokens have no fingerprints and are never reported as duplicates.
 
 ## The MCP tool
 
