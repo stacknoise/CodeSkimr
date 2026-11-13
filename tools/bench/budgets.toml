@@ -1,0 +1,4 @@
+# Maps a benchmark id (criterion group and name, as the directory under target/criterion) to the
+# budget key in config/default.toml [budgets] it must stay below. Budgets are in milliseconds.
+# Add an entry together with the benchmark that measures the budgeted interaction.
+[benchmarks]
