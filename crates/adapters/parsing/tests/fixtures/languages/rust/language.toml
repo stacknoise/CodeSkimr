@@ -1,0 +1,15 @@
+# Fixture pack for the parsing engine tests. The real Rust pack lives in languages/rust/.
+id = "rust"
+grammar = "rust"
+tier = "full"
+extensions = ["rs"]
+separator = "::"
+comment_nodes = ["line_comment", "block_comment"]
+doc_prefixes = ["///"]
+
+[visibility]
+default = "private"
+
+[visibility.keywords]
+pub = "public"
+"pub(crate)" = "internal"
