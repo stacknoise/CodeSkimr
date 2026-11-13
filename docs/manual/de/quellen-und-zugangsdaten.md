@@ -20,13 +20,13 @@ Für ein Repository, das eine Anmeldung verlangt, legen Sie eine **Zugangsangabe
 ### Token oder Passwort ablegen
 
 ```
-codeskimr credential set work-github --user anton
+codeskimr credential set work-github --user alice
 ```
 
 Das Geheimnis wird ohne Anzeige vom Terminal gelesen. Ohne Terminal wird es von der Standardeingabe gelesen, was sich für Skripte eignet:
 
 ```
-printf %s "$TOKEN" | codeskimr credential set work-github --user anton
+printf %s "$TOKEN" | codeskimr credential set work-github --user alice
 ```
 
 Es gibt absichtlich **keine Option für das Geheimnis**, damit es nie in Ihrem Shell-Verlauf, einer Prozessliste oder einem Umgebungsauszug landet. Ein leeres Geheimnis wird abgelehnt (`CLI-103`). Ein erneutes `set` mit demselben Namen ersetzt die Zugangsangabe. Geheimnisse von der Standardeingabe sind auf 64 KiB begrenzt.

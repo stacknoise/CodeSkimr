@@ -20,13 +20,13 @@ For a repository that needs a login you store a **credential**: a user name and 
 ### Store a token or password
 
 ```
-codeskimr credential set work-github --user anton
+codeskimr credential set work-github --user alice
 ```
 
 The secret is read from the terminal without echo. Without a terminal it is read from standard input, which suits scripts:
 
 ```
-printf %s "$TOKEN" | codeskimr credential set work-github --user anton
+printf %s "$TOKEN" | codeskimr credential set work-github --user alice
 ```
 
 There is deliberately **no option for the secret**, so it never lands in your shell history, a process list or an environment dump. An empty secret is refused (`CLI-103`). Running `set` again for the same name replaces the credential. Secrets from standard input are limited to 64 KiB.
