@@ -240,3 +240,11 @@ pub const SYMBOL_LABEL: &str = "SELECT s.qualified_name, s.kind, s.visibility, f
 pub const FILE_PATH: &str = "SELECT path FROM files WHERE snapshot_id = ?1 AND id = ?2";
 /// Whether a snapshot is stored: snapshot.
 pub const SNAPSHOT_EXISTS: &str = "SELECT COUNT(*) FROM snapshots WHERE id = ?1";
+
+/// Ids of all registered projects in registration order.
+pub const PROJECT_IDS: &str = "SELECT id FROM projects ORDER BY id";
+/// Languages of a snapshot with files and lines of code, most lines first: snapshot.
+pub const LANGUAGE_SHARES: &str = "SELECT language, COUNT(*), COALESCE(SUM(loc), 0) FROM files \
+    WHERE snapshot_id = ?1 GROUP BY language ORDER BY SUM(loc) DESC, language";
+/// Number of types of a snapshot: snapshot.
+pub const TYPE_COUNT: &str = "SELECT COUNT(*) FROM type_summary WHERE snapshot_id = ?1";

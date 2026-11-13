@@ -362,6 +362,7 @@ dependencies = [
  "codeskimr_storage",
  "getrandom 0.4.3",
  "secrecy",
+ "serde",
  "serde_json",
  "tempfile",
  "tokio",
@@ -427,17 +428,14 @@ name = "codeskimr_domain"
 version = "0.1.0"
 dependencies = [
  "codeskimr_codes",
- "thiserror",
 ]
 
 [[package]]
 name = "codeskimr_i18n"
 version = "0.1.0"
 dependencies = [
- "codeskimr_application",
  "codeskimr_codegen",
  "codeskimr_codes",
- "codeskimr_domain",
  "fluent-bundle",
  "fluent-syntax",
  "thiserror",

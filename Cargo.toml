@@ -77,16 +77,3 @@ indexing_slicing = "deny"
 too_many_lines = "deny"
 too_many_arguments = "deny"
 cognitive_complexity = "deny"
-
-# TEMPORARY (WP-11): the skeleton crates declare their allowed dependencies (blueprint 4.2)
-# before they contain code, so cargo-machete would flag them. Remove entries as the crates get code;
-# the list must be empty at M1 (see docs/ci.md).
-[workspace.metadata.cargo-machete]
-ignored = [
-    "codeskimr_application",
-    "codeskimr_codes",
-    "codeskimr_domain",
-    "codeskimr_i18n",
-    "codeskimr_secrets",
-    "thiserror",
-]

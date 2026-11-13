@@ -45,10 +45,6 @@ Rule R-06 is enforced by a Dylint lint in `tools/lints/no_literals`. It is a sep
 Never rename a job without updating the ruleset. Never loosen a check to get a PR green.
 When a check is added, tell the product owner so it can be added as required.
 
-## Temporary exceptions
-
-- `[workspace.metadata.cargo-machete]` in `Cargo.toml` ignores the declared but not yet used workspace dependencies of the skeleton crates. Remove entries as crates get code; the list must be empty at milestone M1.
-
 ## Architecture check: scope and limits
 
 - Crate rules: direct dependencies only (normal, dev and build). Cargo rejects crate cycles itself.

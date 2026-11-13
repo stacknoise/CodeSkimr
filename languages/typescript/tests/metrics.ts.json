@@ -117,6 +117,7 @@
       "kind": "module",
       "name": "metrics",
       "parent": null,
+      "signature": null,
       "span": "0:0-68:0",
       "static": false,
       "visibility": null
@@ -126,6 +127,7 @@
       "kind": "function",
       "name": "metrics.rules",
       "parent": "metrics",
+      "signature": null,
       "span": "0:7-52:1",
       "static": false,
       "visibility": "public"
@@ -135,6 +137,7 @@
       "kind": "function",
       "name": "metrics.rules.lambda",
       "parent": "metrics.rules",
+      "signature": null,
       "span": "50:17-50:47",
       "static": false,
       "visibility": "public"
@@ -144,6 +147,7 @@
       "kind": "function",
       "name": "metrics.arrow",
       "parent": "metrics",
+      "signature": null,
       "span": "54:21-57:1",
       "static": false,
       "visibility": "public"
@@ -153,6 +157,7 @@
       "kind": "function",
       "name": "metrics.arrow.nested",
       "parent": "metrics.arrow",
+      "signature": null,
       "span": "55:17-55:29",
       "static": false,
       "visibility": "public"
@@ -162,6 +167,7 @@
       "kind": "class",
       "name": "metrics.Counter",
       "parent": "metrics",
+      "signature": null,
       "span": "59:0-67:1",
       "static": false,
       "visibility": "private"
@@ -171,6 +177,7 @@
       "kind": "method",
       "name": "metrics.Counter.tick",
       "parent": "metrics.Counter",
+      "signature": null,
       "span": "60:9-65:3",
       "static": false,
       "visibility": "public"
@@ -180,6 +187,7 @@
       "kind": "field",
       "name": "metrics.Counter.n",
       "parent": "metrics.Counter",
+      "signature": null,
       "span": "66:2-66:7",
       "static": false,
       "visibility": "public"

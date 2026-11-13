@@ -13,4 +13,3 @@ workspace = true
 
 [dependencies]
 codeskimr_codes = { path = "../codes" }
-thiserror.workspace = true

@@ -4,7 +4,7 @@
 # so it can be pasted into the project chat. Names and call sites stay in `pruefung-usages.txt`.
 #
 # Usage, from the root folder of the CodeSkimr checkout (PowerShell 5.1 or 7):
-#   .\tools\acceptance\holzbedarf.ps1 -Src 'C:\path\to\Holzbedarfskalkulation\src'
+#   .\tools\acceptance\private-reference.ps1 -Src 'C:\path\to\private-reference\src'
 param(
     [Parameter(Mandatory)][string]$Src,
     [string]$Out = (Join-Path $HOME 'codeskimr-abnahme-privat')

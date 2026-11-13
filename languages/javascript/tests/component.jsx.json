@@ -58,6 +58,7 @@
       "kind": "module",
       "name": "component",
       "parent": null,
+      "signature": null,
       "span": "0:0-6:0",
       "static": false,
       "visibility": null
@@ -67,6 +68,7 @@
       "kind": "function",
       "name": "component.Greeting",
       "parent": "component",
+      "signature": null,
       "span": "2:7-5:1",
       "static": false,
       "visibility": "public"
