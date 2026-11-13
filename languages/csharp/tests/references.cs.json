@@ -193,7 +193,7 @@
       "parent": "references",
       "span": "3:0-25:0",
       "static": false,
-      "visibility": "internal"
+      "visibility": null
     },
     {
       "doc": null,

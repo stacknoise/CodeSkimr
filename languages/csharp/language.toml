@@ -61,6 +61,8 @@ const = "constant"
 # no value for combinations).
 [visibility]
 default = "private"
+# A namespace has no visibility.
+unrated_kinds = ["namespace"]
 
 [visibility.keywords]
 public = "public"

@@ -69,7 +69,10 @@ mod tests {
             .current_dir(dir)
             .status()
             .expect("git runs");
-        assert!(status.success(), "git {args:?}");
+        assert!(
+            status.success(),
+            "git {args:?} failed; without network set CODESKIMR_CORPUS_DIR to a checkout of the pinned commit"
+        );
     }
 
     fn checkout(project: &Project) -> PathBuf {

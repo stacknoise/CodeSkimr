@@ -18,7 +18,7 @@
       "parent": "filescoped",
       "span": "0:0-21:0",
       "static": false,
-      "visibility": "internal"
+      "visibility": null
     },
     {
       "doc": "Creates the invoices of a shop.",

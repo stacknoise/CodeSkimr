@@ -8,6 +8,8 @@
 ;   match arm               switch_expression_arm without the discard pattern `_`
 ;   catch                   catch_clause (a `when` filter belongs to it and adds nothing)
 ;   short circuit           `&&`, `||`, `??` and `??=`
+; Not counted (ADR 0015): the pattern combinators `and` / `or` of C# 9 (`is` patterns outside a
+; match arm are no decision points); `&&`, `||` and `??` are the short-circuit operators.
 ; A call counts as the operator `(` and an index expression as `[`, so that distinctness by text
 ; works. Identifiers count as operands only in value positions, never as type names.
 

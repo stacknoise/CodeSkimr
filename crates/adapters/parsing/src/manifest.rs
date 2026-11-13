@@ -18,6 +18,9 @@ pub enum Tier {
 #[derive(Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct VisibilityRules {
+    /// Kind labels of symbols that have no visibility at all, such as namespaces.
+    #[serde(default)]
+    pub unrated_kinds: Vec<String>,
     /// Visibility label of a declaration without a visibility keyword.
     pub default: Option<String>,
     /// Visibility label of a declaration without a keyword, by the kind label of its parent.

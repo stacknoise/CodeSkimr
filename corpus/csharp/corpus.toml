@@ -28,7 +28,6 @@ field = 1
 file = "src/GuardClauses/Guard.cs"
 kind = "namespace"
 name = "Ardalis.GuardClauses"
-visibility = "internal"
 parent = "Guard"
 
 [[sample]]

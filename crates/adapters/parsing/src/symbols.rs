@@ -311,16 +311,17 @@ fn new_symbol(
         .map(|modifier| text_of(*modifier, ctx.source).trim())
         .collect();
     let pack = ctx.pack;
+    let kind = words
+        .iter()
+        .find_map(|word| pack.modifier_kinds.get(*word))
+        .copied()
+        .unwrap_or(declaration.kind);
     Ok(NewSymbol {
-        kind: words
-            .iter()
-            .find_map(|word| pack.modifier_kinds.get(*word))
-            .copied()
-            .unwrap_or(declaration.kind),
+        kind,
         name,
         span,
         range: node.start_byte()..end,
-        visibility: pack.visibility.of(&words, parent),
+        visibility: pack.visibility.of(kind, &words, parent),
         is_static: declaration.is_static
             || words
                 .iter()
@@ -342,17 +343,18 @@ fn doc(ctx: &SymbolContext<'_>, nodes: &[Node<'_>]) -> Option<String> {
         return None;
     }
     let text = lines.join(LINE_SEPARATOR);
-    Some(summary(ctx.pack.doc_summary.as_ref(), &text).unwrap_or(text))
+    let text = summary(ctx.pack.doc_summary.as_ref(), &text).unwrap_or(text);
+    (!text.is_empty()).then_some(text)
 }
 
-/// The text between the summary tags with its whitespace collapsed; `None` if the pack has no
-/// tags or the comment lacks them.
+/// The text between the summary tags with its whitespace collapsed (empty for an empty summary);
+/// `None` if the pack has no tags or the comment lacks them.
 fn summary(tags: Option<&DocSummary>, text: &str) -> Option<String> {
     let tags = tags?;
     let (_, rest) = text.split_once(tags.open.as_str())?;
     let (inner, _) = rest.split_once(tags.close.as_str())?;
     let words: Vec<&str> = inner.split_whitespace().collect();
-    (!words.is_empty()).then(|| words.join(WORD_SEPARATOR))
+    Some(words.join(WORD_SEPARATOR))
 }
 
 /// Removes the doc prefix; a comment without one is no documentation. A pack without prefixes
@@ -365,4 +367,31 @@ fn strip_prefix<'t>(prefixes: &[String], text: &'t str) -> Option<&'t str> {
     prefixes
         .iter()
         .find_map(|prefix| text.strip_prefix(prefix.as_str()))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn tags() -> DocSummary {
+        DocSummary {
+            open: "<s>".to_owned(),
+            close: "</s>".to_owned(),
+        }
+    }
+
+    #[test]
+    fn summary_collapses_whitespace_between_the_tags() {
+        assert_eq!(
+            summary(Some(&tags()), "<s> a\n  b </s><r>x</r>").as_deref(),
+            Some("a b")
+        );
+    }
+
+    #[test]
+    fn empty_summary_is_empty_and_missing_tags_fall_back() {
+        assert_eq!(summary(Some(&tags()), "<s> </s>").as_deref(), Some(""));
+        assert_eq!(summary(Some(&tags()), "plain"), None);
+        assert_eq!(summary(None, "<s>x</s>"), None);
+    }
 }

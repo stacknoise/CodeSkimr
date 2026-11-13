@@ -73,7 +73,7 @@
       "parent": "declarations",
       "span": "2:0-60:1",
       "static": false,
-      "visibility": "internal"
+      "visibility": null
     },
     {
       "doc": "An order of a customer.",
