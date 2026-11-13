@@ -11,6 +11,10 @@ publish = false
 [lints]
 workspace = true
 
+# The unit tests use the libtest harness, which does not know the options of criterion.
+[lib]
+bench = false
+
 [dependencies]
 codeskimr_application = { path = "../../application" }
 codeskimr_domain = { path = "../../domain" }
