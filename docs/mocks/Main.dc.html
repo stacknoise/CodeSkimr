@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Projekte</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F6F7F9}
+a{color:#2457D6;text-decoration:none}a:hover{color:#1A43A8}
+.rb{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:8px;color:#5B6370}
+.rb:hover{background:#EEF1F5;color:#14171C}
+.kbd{font:500 11px 'JetBrains Mono',monospace;color:#5B6370;border:1px solid #D5DAE1;border-bottom-width:2px;border-radius:4px;padding:0 5px;background:#fff}
+.row:hover{background:#F3F6FD}
+</style>
+</helmet>
+<div style="font-family: Inter, system-ui, sans-serif; color: #14171C; font-size: 13px; background: #F6F7F9; height: 900px; display: flex; flex-direction: column">
+
+  <header style="height: 48px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #FFFFFF; border-bottom: 1px solid #E3E6EB; flex-wrap: wrap">
+    <div style="display: flex; align-items: center; gap: 10px; width: 200px">
+      <div style="width: 24px; height: 24px; border-radius: 6px; background: #14171C; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px">{{initial}}</div>
+      <span style="font-weight: 600; font-size: 14px">{{appName}}</span>
+    </div>
+    <a href="Palette.dc.html" style="flex: 1 1 320px; max-width: 560px; height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid #E3E6EB; border-radius: 8px; background: #F6F7F9; color: #5B6370">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.5-4.5"></path></svg>
+      <span style="flex: 1">Projekt, Typ, Member, Datei oder Befehl …</span>
+      <span class="kbd">Strg K</span>
+    </a>
+    <div style="margin-left: auto; display: flex; align-items: center; gap: 8px; color: #5B6370">
+      <span>Arbeitsbereich</span><span style="font-weight: 600; color: #14171C">Lokal</span>
+    </div>
+  </header>
+
+  <div style="flex: 1; display: flex; min-height: 0; flex-wrap: wrap">
+    <nav aria-label="Ansichten" style="width: 56px; flex: none; background: #FFFFFF; border-right: 1px solid #E3E6EB; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 8px">
+      <a href="Main.dc.html" class="rb" aria-label="Projekte" style="background: #EAF0FD; color: #2457D6"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></a>
+      <a href="Explorer.dc.html" class="rb" aria-label="Explorer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 5h7M8 10h8M8 15h8M4 20h7M4 5v15"></path></svg></a>
+      <a href="Graph.dc.html" class="rb" aria-label="Abhängigkeiten"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="6" cy="6" r="2.5"></circle><circle cx="18" cy="8" r="2.5"></circle><circle cx="10" cy="18" r="2.5"></circle><path d="M8.4 6.4l7.2 1.2M7 8.3l2.2 7.4M16.6 10.2l-5 6"></path></svg></a>
+      <a href="Scan.dc.html" class="rb" aria-label="Scans und Leistung"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M13 3L5 14h6l-1 7 8-11h-6z"></path></svg></a>
+    </nav>
+
+    <main style="flex: 999 1 560px; min-width: 0; padding: 24px 32px; display: flex; flex-direction: column; gap: 20px; overflow: auto">
+      <div style="display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap">
+        <div>
+          <h1 style="margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.01em">Projekte</h1>
+          <p style="margin: 4px 0 0; color: #5B6370">4 Projekte · Enter öffnet · <span class="kbd">R</span> scannt neu · <span class="kbd">N</span> neues Projekt</p>
+        </div>
+      </div>
+
+      <form style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap; background: #FFFFFF; border: 1px dashed #C3CAD4; border-radius: 10px; padding: 12px">
+        <label for="src" style="font-weight: 600; width: 100%">Neues Projekt</label>
+        <input id="src" placeholder="Ordner-Pfad oder Git-URL einfügen – oder Ordner hierher ziehen" style="flex: 1 1 380px; height: 36px; border: 1px solid #D5DAE1; border-radius: 8px; padding: 0 12px; font: 13px Inter, sans-serif; color: #14171C">
+        <label for="br" style="color: #5B6370">Branch</label>
+        <input id="br" value="main" style="width: 110px; height: 36px; border: 1px solid #D5DAE1; border-radius: 8px; padding: 0 10px; font: 12px 'JetBrains Mono', monospace">
+        <button type="button" style="height: 36px; padding: 0 16px; border: 0; border-radius: 8px; background: #2457D6; color: #fff; font: 600 13px Inter, sans-serif; cursor: pointer">Hinzufügen &amp; scannen</button>
+      </form>
+
+      <div style="background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 10px; overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse; min-width: 860px">
+          <thead>
+            <tr style="text-align: left; color: #5B6370; font-size: 12px">
+              <th style="padding: 10px 16px; font-weight: 500; border-bottom: 1px solid #E3E6EB">Projekt</th>
+              <th style="padding: 10px 8px; font-weight: 500; border-bottom: 1px solid #E3E6EB">Quelle</th>
+              <th style="padding: 10px 8px; font-weight: 500; border-bottom: 1px solid #E3E6EB; width: 220px">Sprachen</th>
+              <th style="padding: 10px 8px; font-weight: 500; border-bottom: 1px solid #E3E6EB; text-align: right">Typen</th>
+              <th style="padding: 10px 8px; font-weight: 500; border-bottom: 1px solid #E3E6EB; text-align: right">LOC</th>
+              <th style="padding: 10px 8px; font-weight: 500; border-bottom: 1px solid #E3E6EB">Letzter Scan</th>
+              <th style="padding: 10px 16px; font-weight: 500; border-bottom: 1px solid #E3E6EB">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{projects}}" as="p" hint-placeholder-count="4">
+              <tr class="row" style="{{p.rowStyle}}">
+                <td style="padding: 12px 16px; border-bottom: 1px solid #EEF0F3"><a href="Explorer.dc.html" style="font-weight: 600; color: #14171C">{{p.name}}</a><div style="font: 12px 'JetBrains Mono', monospace; color: #5B6370; margin-top: 2px">{{p.path}}</div></td>
+                <td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; color: #5B6370">{{p.src}}</td>
+                <td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3">
+                  <div style="display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: #EEF0F3">
+                    <sc-for list="{{p.langs}}" as="l" hint-placeholder-count="2"><div style="{{l.style}}"></div></sc-for>
+                  </div>
+                  <div style="font-size: 12px; color: #5B6370; margin-top: 4px">{{p.langText}}</div>
+                </td>
+                <td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right; font-variant-numeric: tabular-nums">{{p.types}}</td>
+                <td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right; font-variant-numeric: tabular-nums">{{p.loc}}</td>
+                <td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; color: #5B6370">{{p.when}}<div style="font: 12px 'JetBrains Mono', monospace">{{p.dur}}</div></td>
+                <td style="padding: 12px 16px; border-bottom: 1px solid #EEF0F3"><span style="{{p.pill}}">{{p.status}}</span></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <footer style="height: 28px; flex: none; display: flex; align-items: center; gap: 18px; padding: 0 16px; background: #FFFFFF; border-top: 1px solid #E3E6EB; color: #5B6370; font: 11.5px 'JetBrains Mono', monospace; overflow: hidden; white-space: nowrap">
+    <span style="color: #15803D">● Beobachtung aktiv</span>
+    <span>4 Projekte · 1.212 Typen</span>
+    <span>Start 180 ms</span>
+    <span>RAM 41 MB</span>
+    <span style="margin-left: auto">Beispieldaten</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"appName":{"editor":"text","default":"CodeSkimr","section":"Marke"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const appName = this.props.appName ?? 'CodeSkimr';
+    const c = { cs: '#2457D6', ts: '#0F766E', py: '#B45309', kt: '#7C3AED', java: '#BE185D', xaml: '#94A3B8' };
+    const seg = (col, pct) => ({ style: 'width:' + pct + '%;background:' + col });
+    const pill = (bg, fg) => 'display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:500;background:' + bg + ';color:' + fg;
+    const projects = [
+      { name: 'Beispielprojekt', path: '~/projekte/beispielprojekt', src: 'Ordner', langs: [seg(c.cs, 92), seg(c.xaml, 8)], langText: 'C# 92 % · XAML 8 %', types: '433', loc: '41.208', when: 'vor 3 min', dur: '1,4 s · inkrementell 0,2 s', status: 'aktuell', pill: pill('#E7F6EC', '#15803D'), rowStyle: 'background:#F3F6FD' },
+      { name: 'haac-bridge', path: 'git · main @ 8c21f0e', src: 'Git', langs: [seg(c.kt, 71), seg(c.java, 29)], langText: 'Kotlin 71 % · Java 29 %', types: '318', loc: '27.940', when: 'gestern', dur: '0,9 s', status: '12 neue Commits', pill: pill('#FFF4E5', '#B45309'), rowStyle: '' },
+      { name: 'energy-card', path: 'git · main @ 51ab9d2', src: 'Git', langs: [seg(c.ts, 100)], langText: 'TypeScript 100 %', types: '146', loc: '12.317', when: 'vor 2 Tagen', dur: '0,4 s', status: 'aktuell', pill: pill('#E7F6EC', '#15803D'), rowStyle: '' },
+      { name: 'hass-test-data-creator', path: 'git · main @ e07c4a1', src: 'Git', langs: [seg(c.py, 100)], langText: 'Python 100 %', types: '315', loc: '18.602', when: 'läuft …', dur: '62 % · 3.810 Dateien/s', status: 'Scan läuft', pill: pill('#EAF0FD', '#2457D6'), rowStyle: '' }
+    ];
+    return { appName, initial: appName.charAt(0).toUpperCase(), projects };
+  }
+}
+</script>
+</body>
+</html>

@@ -2,7 +2,7 @@
 
 CodeSkimr scans code repositories and turns them into navigable documentation, with a browser UI, a CLI, a REST API and an MCP server. Rust core, SolidJS frontend.
 
-The binding specification is `BLUEPRINT.md` (added by work package WP-06; until it is merged, ask the coordinator for the current text). Every rule in it applies to every pull request. If a rule is wrong, change the blueprint through an ADR first, never work around it in code.
+The binding specification is `BLUEPRINT.md`. Every rule in it applies to every pull request. If a rule is wrong, change the blueprint through an ADR first, never work around it in code.
 
 ## Language
 
