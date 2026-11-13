@@ -5,7 +5,8 @@ use std::fmt;
 use codeskimr_codes::{Coded, ErrorCode};
 
 use crate::consts::{
-    MESSAGE_EMPTY, MESSAGE_INVERTED_SPAN, MESSAGE_NOT_FINITE, MESSAGE_UNKNOWN_LABEL,
+    MESSAGE_EMPTY, MESSAGE_INVERTED_SPAN, MESSAGE_NOT_FINITE, MESSAGE_NOT_POSITIVE,
+    MESSAGE_UNKNOWN_LABEL,
 };
 
 /// A value violates a rule of the domain model.
@@ -22,6 +23,8 @@ pub enum ModelError {
     UnknownLabel,
     /// A number is NaN or infinite.
     NotFinite,
+    /// A count that must be at least one is zero.
+    NotPositive,
 }
 
 impl Coded for ModelError {
@@ -37,6 +40,7 @@ impl fmt::Display for ModelError {
             Self::InvertedSpan => MESSAGE_INVERTED_SPAN,
             Self::UnknownLabel => MESSAGE_UNKNOWN_LABEL,
             Self::NotFinite => MESSAGE_NOT_FINITE,
+            Self::NotPositive => MESSAGE_NOT_POSITIVE,
         })
     }
 }

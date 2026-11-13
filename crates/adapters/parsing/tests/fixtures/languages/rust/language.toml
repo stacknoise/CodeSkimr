@@ -6,6 +6,8 @@ extensions = ["rs"]
 separator = "::"
 comment_nodes = ["line_comment", "block_comment"]
 doc_prefixes = ["///"]
+identifier_nodes = ["identifier", "field_identifier", "type_identifier"]
+literal_nodes = ["integer_literal", "float_literal", "string_literal", "raw_string_literal", "char_literal", "boolean_literal"]
 
 [visibility]
 default = "private"

@@ -73,6 +73,12 @@ pub struct PackManifest {
     /// Modifier keywords that make a declaration static.
     #[serde(default)]
     pub static_keywords: Vec<String>,
+    /// Syntax node kinds that are identifiers; fingerprints treat them all alike.
+    #[serde(default)]
+    pub identifier_nodes: Vec<String>,
+    /// Syntax node kinds that are literals, taken as one token each; fingerprints ignore values.
+    #[serde(default)]
+    pub literal_nodes: Vec<String>,
     /// Visibility rules.
     #[serde(default)]
     pub visibility: VisibilityRules,

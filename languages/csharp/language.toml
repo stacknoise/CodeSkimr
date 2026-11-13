@@ -32,6 +32,18 @@ test_patterns = [
     "**/*.UnitTests/**/*.cs",
     "**/*.IntegrationTests/**/*.cs",
 ]
+# Syntax fingerprints (WP-34): all names alike, literals by kind only.
+identifier_nodes = ["identifier"]
+literal_nodes = [
+    "integer_literal",
+    "real_literal",
+    "string_literal",
+    "character_literal",
+    "boolean_literal",
+    "null_literal",
+    "verbatim_string_literal",
+    "raw_string_literal",
+]
 # XML documentation: only `///` lines; the doc of a symbol is the text of its <summary>.
 doc_prefixes = ["///"]
 static_keywords = ["static"]

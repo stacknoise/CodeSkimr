@@ -6,6 +6,7 @@
 mod consts;
 mod error;
 mod file;
+mod fingerprint;
 mod layer;
 mod metric;
 mod metrics;
@@ -19,6 +20,7 @@ mod vocabulary;
 
 pub use error::ModelError;
 pub use file::{ContentHash, FileId, LanguageId, Loc, RelativePath, SourceFile};
+pub use fingerprint::{Fingerprint, FingerprintParams, Fingerprints, TokenId, winnow};
 pub use layer::LayerEdge;
 pub use metric::{Metric, MetricKind, MetricValue};
 pub use metrics::{
