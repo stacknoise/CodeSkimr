@@ -318,6 +318,28 @@ fn layers_come_first_and_types_of_no_layer_last() {
 }
 
 #[test]
+fn a_symbol_names_the_layer_that_owns_it() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    let outline = fixture
+        .call("explorer.outline", json!({ "project": project }))
+        .unwrap();
+    let id = outline["layers"][0]["namespaces"][0]["types"][0]["id"].clone();
+    let layer_of = |fixture: &Fixture| {
+        fixture
+            .call(
+                "explorer.symbol",
+                json!({ "project": project, "symbol": id }),
+            )
+            .unwrap()["layer"]
+            .clone()
+    };
+    assert!(layer_of(&fixture).is_null());
+    fixture.set_layers(project, &[("Core", "Calculator.Demo")]);
+    assert_eq!(layer_of(&fixture), "Core");
+}
+
+#[test]
 fn the_outline_names_the_limits_behind_the_colours() {
     let fixture = Fixture::new();
     let project = added(&fixture);

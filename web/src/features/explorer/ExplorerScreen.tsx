@@ -3,6 +3,7 @@ import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
+import { showInGraph } from "../graph/show";
 import { showUsages } from "../usages/usages";
 import { DetailPane } from "./DetailPane";
 import {
@@ -134,6 +135,13 @@ export function ExplorerScreen() {
       const symbol = shownSymbol();
       if (symbol !== null) {
         showUsages(symbol);
+      }
+    },
+    graph: () => {
+      const symbol = shownSymbol();
+      const project = activeProject();
+      if (symbol !== null && project !== null) {
+        void showInGraph(project, symbol);
       }
     },
     editor: () => {

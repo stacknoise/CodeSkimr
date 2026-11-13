@@ -5,7 +5,7 @@ import { setLanguage } from "../../shared/i18n/i18n";
 import { activeProject, openProject } from "../../shared/project/active";
 import { answer, serve, useServerSession } from "../../tests/commands";
 import type { ProjectRow } from "../projects/types";
-import { resetGraph } from "./graph";
+import { resetGraph, wantedLayer, wantLayer } from "./graph";
 import { GraphScreen } from "./GraphScreen";
 
 const ROW: ProjectRow = {
@@ -70,6 +70,15 @@ describe("GraphScreen", () => {
     expect(screen.getByText("12 references")).toBeInTheDocument();
     expect(screen.getByText("1 violation in the project:")).toBeInTheDocument();
     expect(screen.getByText(/Domain → Infra \(2\)/)).toBeInTheDocument();
+  });
+
+  it("selects the layer another screen asked for, once the map is there", async () => {
+    served(GRAPH);
+    wantLayer("Domain");
+    render(() => <GraphScreen />);
+    expect(await screen.findByText("Used by · 1")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Domain" })).toBeInTheDocument();
+    expect(wantedLayer()).toBeNull();
   });
 
   it("opens the explorer with the project", async () => {

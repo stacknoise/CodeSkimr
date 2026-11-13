@@ -9,6 +9,16 @@ const [failed, setFailed] = createSignal(false);
 /** Counts the loads, so that a slow answer for a project that is no longer shown is dropped. */
 let latest = 0;
 
+const [wanted, setWanted] = createSignal<string | null>(null);
+
+/** The layer a screen asked to have selected on the map, until the map takes it. */
+export const wantedLayer = wanted;
+
+/** Asks the map to select `layer` when it is shown; a name the map does not know is dropped. */
+export function wantLayer(layer: string | null): void {
+  setWanted(layer);
+}
+
 /** The layers of the project that was loaded last, `null` until the first answer. */
 export const graphData = data;
 /** Whether the last load failed. */

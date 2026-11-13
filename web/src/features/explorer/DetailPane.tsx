@@ -5,6 +5,7 @@ import { activeProject } from "../../shared/project/active";
 import { TONE } from "../../shared/ui/consts";
 import { Pill } from "../../shared/ui/Pill";
 import { CRUMB_SEPARATOR, HOTKEY, PILL_SEPARATOR } from "./consts";
+import { showInGraph } from "../graph/show";
 import { showUsages } from "../usages/usages";
 import { openInEditor } from "./editor";
 import { currentMember } from "./explorer";
@@ -45,8 +46,7 @@ function Action(props: { label: string; hotkey: string; onClick?: () => void }) 
   );
 }
 
-/** The three buttons of the header. The graph has no screen yet, so its button is shown but off,
- * stays reachable by keyboard and says why (deviation from the mock, see docs/ui.md). */
+/** The three buttons of the header: usages, the layer on the dependency map, the editor. */
 function Actions(props: { symbol: number }) {
   return (
     <div class={styles.actions}>
@@ -55,7 +55,16 @@ function Actions(props: { symbol: number }) {
         hotkey={HOTKEY.usages}
         onClick={() => showUsages(props.symbol)}
       />
-      <Action label={t(I18N_KEYS.EXPLORER_ACTION_GRAPH)} hotkey={HOTKEY.graph} />
+      <Action
+        label={t(I18N_KEYS.EXPLORER_ACTION_GRAPH)}
+        hotkey={HOTKEY.graph}
+        onClick={() => {
+          const project = activeProject();
+          if (project !== null) {
+            void showInGraph(project, props.symbol);
+          }
+        }}
+      />
       <Action
         label={t(I18N_KEYS.EXPLORER_ACTION_EDITOR)}
         hotkey={HOTKEY.editor}

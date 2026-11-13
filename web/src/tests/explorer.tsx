@@ -35,6 +35,7 @@ export const ORDER: SymbolInfo = {
   last_line: 40,
   signature: null,
   doc: "An order of a customer.",
+  layer: null,
   breadcrumb: [{ id: 6, name: "Shop.Domain", kind: "namespace" }],
   metrics: [
     { kind: "loc", value: 188, rating: null },
