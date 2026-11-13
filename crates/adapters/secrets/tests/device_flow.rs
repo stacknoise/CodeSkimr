@@ -232,6 +232,16 @@ fn only_https_endpoints_are_accepted() {
         )
     };
     assert!(plain("http://example.com/device").is_err());
+    for host in [
+        "http://127.0.0.1.example.com/device",
+        "http://127.0.0.1@example.com/device",
+        "http://127.0.0.1:80@example.com/device",
+        "http://localhost/device",
+        "https://user@example.com/device",
+    ] {
+        assert!(plain(host).is_err(), "{host}");
+    }
+    assert!(plain("http://127.0.0.1:8080/device").is_ok());
     assert!(plain("https://example.com/device").is_ok());
     assert!(
         Provider::GitHub
@@ -244,4 +254,31 @@ fn only_https_endpoints_are_accepted() {
             .is_ok()
     );
     assert!(Provider::GitHub.flow("", None).is_err());
+}
+
+#[test]
+fn absurd_timings_and_control_characters_from_the_server_are_handled() -> TestResult {
+    let huge = json(
+        r#"{"device_code":"d","user_code":"u","verification_uri":"v","expires_in":18446744073709551615,"interval":18446744073709551615}"#,
+    );
+    let script = Script::start(vec![
+        huge,
+        json(r#"{"error":"slow_down"}"#),
+        json(r#"{"error":"access_denied"}"#),
+    ])?;
+    let waits = RefCell::new(Vec::new());
+    let result = flow(&script)?.sign_in(|_| {}, |pause| waits.borrow_mut().push(pause));
+    assert!(result.is_err());
+    assert!(waits.borrow().iter().all(|pause| pause.as_secs() <= 60));
+
+    let escape = json(
+        r#"{"device_code":"d","user_code":"A\u001b[2JB","verification_uri":"v","expires_in":900}"#,
+    );
+    let script = Script::start(vec![escape])?;
+    assert!(flow(&script)?.sign_in(|_| {}, |_| {}).is_err());
+
+    let empty = json(r#"{"access_token":""}"#);
+    let script = Script::start(vec![device_reply(1), empty])?;
+    assert!(flow(&script)?.sign_in(|_| {}, |_| {}).is_err());
+    Ok(())
 }

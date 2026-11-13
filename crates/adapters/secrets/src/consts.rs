@@ -21,8 +21,17 @@ pub const SLOW_DOWN_STEP_SECS: u64 = 5;
 /// Start of an address that is allowed for OAuth endpoints.
 pub const HTTPS_PREFIX: &str = "https://";
 
-/// Loopback address that may use plain HTTP, for the tests of the flow.
-pub const LOOPBACK_HTTP_PREFIX: &str = "http://127.0.0.1";
+/// Start of an address that may use plain HTTP, but only to [`LOOPBACK_HOST`] (the tests).
+pub const LOOPBACK_SCHEME: &str = "http://";
+
+/// The only host that may be reached without TLS.
+pub const LOOPBACK_HOST: &str = "127.0.0.1";
+
+/// Separates host and port in the authority of a URL.
+pub const PORT_SEPARATOR: char = ':';
+
+/// Precedes the host when a URL carries user info.
+pub const USERINFO_MARKER: char = '@';
 
 /// Request header and value that ask for JSON; GitHub answers with a form without it.
 pub const ACCEPT_HEADER: &str = "accept";
@@ -90,3 +99,9 @@ pub const NIBBLE_BITS: u8 = 4;
 pub const NIBBLE_MASK: u8 = 0x0f;
 /// Radix of the escape digits.
 pub const HEX_RADIX: u32 = 16;
+
+/// Longest pause between two polls, in seconds, whatever the server says.
+pub const MAX_INTERVAL_SECS: u64 = 60;
+
+/// Longest time that a device code is waited for, in seconds (RFC 8628 suggests 15 minutes).
+pub const MAX_LIFETIME_SECS: u64 = 1_800;

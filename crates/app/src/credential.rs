@@ -5,7 +5,7 @@
 //! from the terminal, or from standard input if there is no terminal, and handed straight to the
 //! credential store. It is not printed, not logged and not part of any error.
 
-use std::io::{self, BufRead, IsTerminal, Write};
+use std::io::{self, BufRead, IsTerminal, Read, Write};
 use std::time::Duration;
 
 use codeskimr_application::error::CodedError;
@@ -17,7 +17,9 @@ use codeskimr_secrets::{OsCredentialStore, OsKeystore, Prompt, Provider};
 use secrecy::SecretString;
 use zeroize::Zeroizing;
 
-use crate::consts::{CARRIAGE_RETURN, LINE_BREAK, LINE_FEED, TOKEN_CREDENTIAL_ID};
+use crate::consts::{
+    CARRIAGE_RETURN, LINE_BREAK, LINE_FEED, MAX_SECRET_BYTES, TOKEN_CREDENTIAL_ID,
+};
 
 /// What a credential command did, for the line that reports it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -141,6 +143,7 @@ pub fn read_secret(prompt: &str) -> Result<SecretString, CodedError> {
         let mut line = Zeroizing::new(String::new());
         stdin
             .lock()
+            .take(MAX_SECRET_BYTES)
             .read_line(&mut line)
             .map_err(|_| unreadable())?;
         line

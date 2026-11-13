@@ -21,8 +21,9 @@ use crate::consts::{
     ACCEPT_HEADER, ACCEPT_JSON, CONTENT_TYPE_FORM, DEFAULT_INTERVAL_SECS, ERROR_PENDING,
     ERROR_SLOW_DOWN, ESCAPE_MARK, FIELD_CLIENT_ID, FIELD_DEVICE_CODE, FIELD_GRANT_TYPE,
     FIELD_SCOPE, FORM_ASSIGN, FORM_JOIN, FORM_SAFE, GRANT_DEVICE_CODE, HEX_RADIX, HTTPS_PREFIX,
-    LOOPBACK_HTTP_PREFIX, MAX_RESPONSE_BYTES, MIN_INTERVAL_SECS, NIBBLE_BITS, NIBBLE_MASK,
-    REQUEST_TIMEOUT_SECS, SLOW_DOWN_STEP_SECS,
+    LOOPBACK_HOST, LOOPBACK_SCHEME, MAX_INTERVAL_SECS, MAX_LIFETIME_SECS, MAX_RESPONSE_BYTES,
+    MIN_INTERVAL_SECS, NIBBLE_BITS, NIBBLE_MASK, PATH_SEPARATOR, PORT_SEPARATOR,
+    REQUEST_TIMEOUT_SECS, SLOW_DOWN_STEP_SECS, USERINFO_MARKER,
 };
 
 /// Why the sign-in did not finish. The reason is not told: the answers of the platform may
@@ -81,6 +82,22 @@ struct TokenReply {
     error: Option<String>,
 }
 
+impl DeviceReply {
+    /// What the user sees. The texts are printed on a terminal, so control characters, which
+    /// could rewrite its screen, fail the flow.
+    fn prompt(&self) -> Result<Prompt, DeviceFlowError> {
+        let clean = |text: &str| !text.chars().any(char::is_control);
+        if clean(&self.verification_uri) && clean(&self.user_code) {
+            Ok(Prompt {
+                verification_uri: self.verification_uri.clone(),
+                user_code: self.user_code.clone(),
+            })
+        } else {
+            Err(DeviceFlowError::Failed)
+        }
+    }
+}
+
 impl DeviceFlow {
     /// A flow with the two endpoints `[device code, token]`.
     ///
@@ -93,8 +110,6 @@ impl DeviceFlow {
         scope: &str,
         user: &str,
     ) -> Result<Self, DeviceFlowError> {
-        let allowed =
-            |url: &str| url.starts_with(HTTPS_PREFIX) || url.starts_with(LOOPBACK_HTTP_PREFIX);
         if !allowed(&device_url) || !allowed(&token_url) || client_id.is_empty() {
             return Err(DeviceFlowError::Failed);
         }
@@ -119,29 +134,28 @@ impl DeviceFlow {
     ) -> Result<Credential, DeviceFlowError> {
         let client = client()?;
         let reply = self.request_code(&client)?;
-        announce(&Prompt {
-            verification_uri: reply.verification_uri.clone(),
-            user_code: reply.user_code.clone(),
-        });
+        announce(&reply.prompt()?);
         let device_code = SecretString::from(reply.device_code);
-        let lifetime = Duration::from_secs(reply.expires_in);
+        let lifetime = Duration::from_secs(reply.expires_in.min(MAX_LIFETIME_SECS));
         let mut interval = Duration::from_secs(
             reply
                 .interval
                 .unwrap_or(DEFAULT_INTERVAL_SECS)
-                .max(MIN_INTERVAL_SECS),
+                .clamp(MIN_INTERVAL_SECS, MAX_INTERVAL_SECS),
         );
         // The time is counted from the waits, so that the loop ends even if `wait` does not sleep.
         let mut waited = Duration::ZERO;
         while waited < lifetime {
             wait(interval);
-            waited += interval;
+            waited = waited.saturating_add(interval);
             let answer = self.poll(&client, &device_code)?;
             match (answer.access_token, answer.error.as_deref()) {
-                (Some(token), _) => return Ok(self.credential(token)),
+                (Some(token), _) if !token.is_empty() => return Ok(self.credential(token)),
                 (None, Some(ERROR_PENDING)) => {}
                 (None, Some(ERROR_SLOW_DOWN)) => {
-                    interval += Duration::from_secs(SLOW_DOWN_STEP_SECS);
+                    interval = interval
+                        .saturating_add(Duration::from_secs(SLOW_DOWN_STEP_SECS))
+                        .min(Duration::from_secs(MAX_INTERVAL_SECS));
                 }
                 _ => return Err(DeviceFlowError::Failed),
             }
@@ -176,6 +190,26 @@ impl DeviceFlow {
         ]);
         post(client, &self.token_url, &body)
     }
+}
+
+/// Whether the endpoint may be used: HTTPS, or plain HTTP to the loopback address itself. The
+/// host is compared exactly after the scheme: `127.0.0.1.example.com` and `127.0.0.1@host` are
+/// other hosts. A URL with user info is refused.
+fn allowed(url: &str) -> bool {
+    let (secure, rest) = match (
+        url.strip_prefix(HTTPS_PREFIX),
+        url.strip_prefix(LOOPBACK_SCHEME),
+    ) {
+        (Some(rest), _) => (true, rest),
+        (None, Some(rest)) => (false, rest),
+        (None, None) => return false,
+    };
+    let authority = rest.split(PATH_SEPARATOR).next().unwrap_or_default();
+    if authority.contains(USERINFO_MARKER) {
+        return false;
+    }
+    let host = authority.split(PORT_SEPARATOR).next().unwrap_or_default();
+    secure && !host.is_empty() || host == LOOPBACK_HOST
 }
 
 fn client() -> Result<Client, DeviceFlowError> {

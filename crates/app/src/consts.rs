@@ -267,3 +267,6 @@ pub const PORT_SEPARATOR: &str = ":";
 pub const LINE_FEED: char = '\n';
 /// Precedes the line feed in input from Windows.
 pub const CARRIAGE_RETURN: char = '\r';
+
+/// Longest secret that is read from standard input, in bytes.
+pub const MAX_SECRET_BYTES: u64 = 65_536;

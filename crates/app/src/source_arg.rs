@@ -9,8 +9,8 @@ use codeskimr_domain::{BranchName, CredentialId, FolderPath, GitUrl, ProjectName
 
 use crate::consts::{
     AUTHORITY_END, DEFAULT_BRANCH, GIT_URL_PREFIXES, GIT_URL_SUFFIX, HTTP_SCHEME, NO_SCHEME,
-    PASSWORD_SEPARATOR, QUERY_MARKERS, SCHEME_SEPARATOR, SCP_PATH_SEPARATOR, URL_PATH_SEPARATOR,
-    USERINFO_MARKER, VERBATIM_PREFIX, VERBATIM_UNC,
+    PASSWORD_SEPARATOR, QUERY_MARKERS, SCHEME_SEPARATOR, SCP_PATH_SEPARATOR, TOKEN_CREDENTIAL_ID,
+    URL_PATH_SEPARATOR, USERINFO_MARKER, VERBATIM_PREFIX, VERBATIM_UNC,
 };
 
 /// Why an argument is not a source.
@@ -56,6 +56,10 @@ impl SourceSpec {
     /// # Errors
     /// [`SourceError::CredentialNotUsable`] for a folder source or an empty name.
     pub fn with_credential(mut self, name: &str) -> Result<Self, SourceError> {
+        if name == TOKEN_CREDENTIAL_ID {
+            // The token that guards the local UI must never be sent to a Git server.
+            return Err(SourceError::CredentialNotUsable);
+        }
         let id = CredentialId::new(name).map_err(|_| SourceError::CredentialNotUsable)?;
         match &mut self.source {
             ProjectSource::Git { credential, .. } => *credential = Some(id),
@@ -177,6 +181,16 @@ mod tests {
         let spec = classify("https://example.com/org/repo.git", None).unwrap();
         assert!(
             matches!(spec.source, ProjectSource::Git { branch, .. } if branch.as_str() == DEFAULT_BRANCH)
+        );
+    }
+
+    #[test]
+    fn the_installation_token_is_never_a_git_credential() {
+        let spec = classify("https://example.com/org/repo.git", None).unwrap();
+        assert!(spec.clone().with_credential("work").is_ok());
+        assert_eq!(
+            spec.with_credential(TOKEN_CREDENTIAL_ID),
+            Err(SourceError::CredentialNotUsable)
         );
     }
 
