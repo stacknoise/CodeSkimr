@@ -19,6 +19,7 @@ import {
   treeOutline,
   type Failure,
 } from "./explorer";
+import { openInEditor } from "./editor";
 import { useExplorerKeys } from "./keys";
 import { Overview } from "./Overview";
 import { clearSource, loadSource } from "./source";
@@ -133,6 +134,13 @@ export function ExplorerScreen() {
       const symbol = shownSymbol();
       if (symbol !== null) {
         showUsages(symbol);
+      }
+    },
+    editor: () => {
+      const symbol = shownSymbol();
+      const project = activeProject();
+      if (symbol !== null && project !== null) {
+        void openInEditor(project, symbol);
       }
     },
   });

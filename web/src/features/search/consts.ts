@@ -22,11 +22,11 @@ export const PREFIXES: readonly { filter: Filter; prefix: string }[] = [
 ];
 
 /** The chips under the input, in the order of the mock. */
-export const CHIPS: readonly { filter: Filter; label: MessageKey }[] = [
+export const CHIPS: readonly { filter: Filter; label: MessageKey; prefix?: string }[] = [
   { filter: FILTER.all, label: I18N_KEYS.PALETTE_FILTER_ALL },
-  { filter: FILTER.types, label: I18N_KEYS.PALETTE_FILTER_TYPES },
-  { filter: FILTER.members, label: I18N_KEYS.PALETTE_FILTER_MEMBERS },
-  { filter: FILTER.commands, label: I18N_KEYS.PALETTE_FILTER_COMMANDS },
+  { filter: FILTER.types, label: I18N_KEYS.PALETTE_FILTER_TYPES, prefix: PREFIX_OF.types },
+  { filter: FILTER.members, label: I18N_KEYS.PALETTE_FILTER_MEMBERS, prefix: PREFIX_OF.members },
+  { filter: FILTER.commands, label: I18N_KEYS.PALETTE_FILTER_COMMANDS, prefix: PREFIX_OF.commands },
 ];
 
 /** The groups of the result list. */

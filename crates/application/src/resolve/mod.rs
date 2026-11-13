@@ -97,5 +97,6 @@ fn reference_of(occurrence: &PendingReference, hit: Hit, ids: &IdSequence) -> Re
         span: occurrence.span,
         kind: hit.kind,
         confidence: hit.confidence,
+        verified: false,
     }
 }

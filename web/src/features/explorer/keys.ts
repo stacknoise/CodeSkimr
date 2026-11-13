@@ -1,3 +1,4 @@
+import { isEditorShortcut } from "../../shared/editor/editor";
 import { isTyping, useKeydown } from "../../shared/keys/keydown";
 import { KEY, NOT_FOUND } from "./consts";
 import type { TreeRow } from "./tree";
@@ -8,12 +9,19 @@ export interface ExplorerKeys {
   reveal: () => void;
   /** Shows the usages of the selected symbol. */
   usages: () => void;
+  /** Opens the selected symbol in the editor. */
+  editor: () => void;
 }
 
 /** Registers `Ctrl+Left` (close the whole tree), `Ctrl+.` (show the selection) and `U` (usages of
  * the selection) while the screen is shown. The plain arrows belong to the tree itself, so the page can still scroll. */
 export function useExplorerKeys(keys: ExplorerKeys): void {
   useKeydown((event) => {
+    if (isEditorShortcut(event)) {
+      keys.editor();
+      event.preventDefault();
+      return;
+    }
     if (
       event.key.toLowerCase() === KEY.usages &&
       !event.ctrlKey &&
