@@ -118,6 +118,16 @@ fn counts_and_percentages_are_checked() {
             Violation::MustBePositive,
         ),
         (
+            "[similarity]\nngram_size = 0\n",
+            "similarity.ngram_size",
+            Violation::MustBePositive,
+        ),
+        (
+            "[similarity]\nwindow_size = 0\n",
+            "similarity.window_size",
+            Violation::MustBePositive,
+        ),
+        (
             "[snapshots]\nretention_count = 0\n",
             "snapshots.retention_count",
             Violation::MustBePositive,

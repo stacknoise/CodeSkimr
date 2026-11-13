@@ -44,6 +44,15 @@ retention_count = 5
 # File events within this window are collapsed into one re-scan.
 debounce_ms = 200
 
+# Syntax fingerprints for similar-code search and the duplicate check (blueprint 10.4).
+[similarity]
+# Number of syntax tokens per n-gram that is hashed.
+ngram_size = 5
+# Number of consecutive n-grams per winnowing window; a shared run of window + ngram - 1 tokens is always found.
+window_size = 4
+# Functions with fewer syntax tokens than this get no fingerprints; trivial bodies are not worth matching.
+min_tokens = 30
+
 # Scanning.
 [scan]
 # Folder names that are never scanned, at any depth.

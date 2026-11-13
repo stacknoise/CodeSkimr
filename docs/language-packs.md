@@ -10,7 +10,7 @@
 | `symbols.scm` | yes | declarations to symbols |
 | `references.scm` | no | occurrences of names; without it a file yields no pending references |
 
-`language.toml` keys: `id`, `grammar` (built-in grammar name), `tier` (`full` or `basic`), `extensions`, `separator` (inside qualified names), `comment_nodes` (node kinds that are comments, used for the line classification), `doc_prefixes` (a comment captured as `@doc` counts only if it starts with one; the prefix is removed), optional `manifest_files` and `test_patterns` (read by later stages) and the table `[visibility]` with `default` and `keywords` (keyword text to visibility label).
+`language.toml` keys: `id`, `grammar` (built-in grammar name), `tier` (`full` or `basic`), `extensions`, `separator` (inside qualified names), `comment_nodes` (node kinds that are comments, used for the line classification), `doc_prefixes` (a comment captured as `@doc` counts only if it starts with one; the prefix is removed), optional `identifier_nodes` and `literal_nodes` (node kinds that syntax fingerprints abstract, see below), optional `manifest_files` and `test_patterns` (read by later stages) and the table `[visibility]` with `default` and `keywords` (keyword text to visibility label).
 
 ## Capture vocabulary
 
@@ -25,6 +25,10 @@ A capture outside this vocabulary, an invalid query or an unknown grammar fails 
 - Pending references point at the innermost enclosing symbol; occurrences outside any declaration belong to the module.
 - `loc` counts lines that contain at least one non-comment token. Lines inside multi-line tokens (strings) count as code.
 - Failures: `PRS-101` (encoding; UTF-8 and UTF-16 with BOM are read), `PRS-201` (no pack), `PRS-301` (invalid pack), `PRS-501` (parse timeout), `SRC-201` (file cannot be read).
+
+## Syntax fingerprints (WP-34)
+
+`TreeSitterAnalyzer::with_fingerprints(&config.similarity)` turns fingerprinting on; `FileFacts::fingerprints` then holds one entry per function, method or constructor with at least `similarity.min_tokens` tokens. The declaration is flattened into leaf tokens: comments are dropped, nodes listed in `identifier_nodes` all become one identifier token, nodes in `literal_nodes` become one literal token (and are not descended into), everything else keeps its node kind. The domain function `winnow` hashes all n-grams of `similarity.ngram_size` tokens and keeps the minimum of every window of `similarity.window_size` hashes. A shared run of `window_size + ngram_size - 1` tokens always yields a shared fingerprint. `Fingerprints::similarity` (Jaccard) and `containment` compare two bodies; `find_similar_code` and the duplicate check of `check_conventions` use these same functions. The hash is implemented in the domain (no new dependency, values stable across releases). A pack without the two keys still fingerprints, but names and values then influence the result. Persisting the fingerprints and the queries on top are separate packages.
 
 ## Not part of this package
 

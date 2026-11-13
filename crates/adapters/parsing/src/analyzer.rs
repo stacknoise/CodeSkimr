@@ -5,6 +5,7 @@ use std::ops::ControlFlow;
 use std::path::Path;
 use std::time::{Duration, Instant};
 
+use codeskimr_application::config::Similarity;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{AnalyzeRequest, FileAnalyzer, FileFacts};
 use codeskimr_domain::{SourceFile, lines_of_code};
@@ -12,6 +13,7 @@ use tree_sitter::{ParseOptions, ParseState, Parser, Point, Tree};
 
 use crate::encoding::decode;
 use crate::error::ParsingError;
+use crate::fingerprints::{self, FingerprintSettings};
 use crate::lines::classify;
 use crate::pack::LanguagePack;
 use crate::packs::LanguagePacks;
@@ -22,6 +24,7 @@ use crate::symbols::{self, SymbolContext};
 pub struct TreeSitterAnalyzer {
     packs: LanguagePacks,
     parse_timeout: Duration,
+    fingerprinting: Option<FingerprintSettings>,
 }
 
 impl TreeSitterAnalyzer {
@@ -32,7 +35,21 @@ impl TreeSitterAnalyzer {
         Self {
             packs,
             parse_timeout,
+            fingerprinting: None,
         }
+    }
+
+    /// Turns on syntax fingerprints for callables, as configured in the `[similarity]` section.
+    /// Without it `FileFacts::fingerprints` stays empty.
+    ///
+    /// # Errors
+    /// A model error if the configured sizes are zero, which a resolved config never has.
+    pub fn with_fingerprints(mut self, similarity: &Similarity) -> Result<Self, ParsingError> {
+        self.fingerprinting = Some(FingerprintSettings {
+            params: similarity.fingerprint_params()?,
+            min_tokens: usize::try_from(similarity.min_tokens).unwrap_or(usize::MAX),
+        });
+        Ok(self)
     }
 
     fn run(&self, request: &AnalyzeRequest<'_>) -> Result<FileFacts, ParsingError> {
@@ -51,6 +68,9 @@ impl TreeSitterAnalyzer {
         };
         let table = symbols::extract(&ctx, root)?;
         let pending = references::extract(&ctx, root, &table)?;
+        let fingerprints = self.fingerprinting.map_or_else(Vec::new, |settings| {
+            fingerprints::of_callables(pack, root, &table, settings)
+        });
         Ok(FileFacts {
             file: SourceFile {
                 id: file,
@@ -62,6 +82,7 @@ impl TreeSitterAnalyzer {
             },
             symbols: table.symbols,
             pending,
+            fingerprints,
         })
     }
 }

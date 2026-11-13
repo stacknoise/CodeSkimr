@@ -11,7 +11,7 @@ use codeskimr_domain::{
 use tree_sitter::{Node, QueryCapture, QueryCursor, StreamingIterator};
 
 use crate::captures::Capture;
-use crate::consts::{LINE_SEPARATOR, NO_EXTENSION, PATH_SEPARATOR};
+use crate::consts::{CALLABLE_KINDS, LINE_SEPARATOR, NO_EXTENSION, PATH_SEPARATOR};
 use crate::error::ParsingError;
 use crate::location::{span_of, text_of};
 use crate::pack::LanguagePack;
@@ -58,6 +58,15 @@ impl SymbolTable {
             index = self.parents.get(current).copied().flatten();
         }
         self.symbols.first()
+    }
+
+    /// The callable symbols (functions, methods, constructors) with the byte range of their
+    /// declaration.
+    pub fn callables(&self) -> impl Iterator<Item = (&Symbol, &Range<usize>)> {
+        self.symbols
+            .iter()
+            .zip(&self.ranges)
+            .filter(|(symbol, _)| CALLABLE_KINDS.contains(&symbol.kind))
     }
 }
 
