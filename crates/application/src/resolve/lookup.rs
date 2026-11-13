@@ -152,7 +152,7 @@ impl<'a> Context<'a> {
         }
     }
 
-    /// Whether a last-resort match for a member behind a receiver whose type is not known names
+    /// Whether a last-resort match for a member behind a receiver of unknown type names
     /// members of types that have nothing to do with each other (neither derives from the other). Which one is meant cannot be told, so none is
     /// reported: a wrong usage is worse than a missing one.
     fn is_ambiguous(&self, found: &Found<'a>) -> bool {
@@ -168,16 +168,14 @@ impl<'a> Context<'a> {
         })
     }
 
-    /// Whether two owners are the same type or one derives from the other.
+    /// Whether two owners are the same type, derive from each other or share a base type
+    /// (sibling overrides such as `Dog.speak` and `Cat.speak` under `Animal`).
     fn related(&self, first: Option<SymbolId>, second: Option<SymbolId>) -> bool {
-        match (first, second) {
-            (Some(a), Some(b)) => {
-                a == b
-                    || self.hierarchy.closure(a).contains(&b)
-                    || self.hierarchy.closure(b).contains(&a)
-            }
-            _ => first == second,
-        }
+        let (Some(a), Some(b)) = (first, second) else {
+            return first == second;
+        };
+        let (of_a, of_b) = (self.hierarchy.closure(a), self.hierarchy.closure(b));
+        of_a.iter().any(|id| of_b.contains(id))
     }
 
     /// The members of `root` or, if it has none of that name, of its nearest base type that has.

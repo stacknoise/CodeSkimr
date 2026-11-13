@@ -362,6 +362,27 @@ mod tests {
     }
 
     #[test]
+    fn a_receiver_of_unknown_type_keeps_sibling_overrides_of_one_base() {
+        let mut table = Table::default();
+        let animal = table.add(SymbolKind::Class, "Demo.Animal", None, 1);
+        let dog = table.add(SymbolKind::Class, "Demo.Dog", None, 2);
+        let cat = table.add(SymbolKind::Class, "Demo.Cat", None, 3);
+        let dog_speak = table.add(SymbolKind::Method, "Demo.Dog.Speak", Some(dog), 2);
+        let cat_speak = table.add(SymbolKind::Method, "Demo.Cat.Speak", Some(cat), 3);
+        let caller = table.add(SymbolKind::Method, "Demo.Zoo.Go", None, 4);
+        let bases = [
+            occurrence(dog, 2, ReferenceKind::Inherit, "Animal"),
+            occurrence(cat, 3, ReferenceKind::Inherit, "Animal"),
+        ];
+        let call = unknown(occurrence(caller, 4, ReferenceKind::Call, "Speak"));
+        let found = resolve(&table, &[bases[0].clone(), bases[1].clone(), call]);
+        let calls = of_kind(&found, ReferenceKind::Call);
+        assert_eq!(calls.len(), 2);
+        assert!(calls.contains(&dog_speak) && calls.contains(&cat_speak));
+        let _ = animal;
+    }
+
+    #[test]
     fn a_receiver_of_unknown_type_ignores_members_of_the_enclosing_type() {
         let mut table = Table::default();
         let client = table.add(SymbolKind::Class, "Demo.Client", None, 3);

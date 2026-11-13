@@ -84,8 +84,8 @@
   [(identifier) @name
    (member_access_expression name: (identifier) @name)]) @reference.read
 (cast_expression
-  [(identifier) @name
-   (member_access_expression name: (identifier) @name)]) @reference.read
+  value: [(identifier) @name
+          (member_access_expression name: (identifier) @name)]) @reference.read
 (lambda_expression
   body: [(identifier) @name
          (member_access_expression name: (identifier) @name)]) @reference.read

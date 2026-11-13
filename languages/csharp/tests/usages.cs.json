@@ -447,13 +447,6 @@
       "target": "IOne"
     },
     {
-      "at": "53:17",
-      "from": "usages.Demo.Client.Go",
-      "kind": "read",
-      "receiver": null,
-      "target": "IOne"
-    },
-    {
       "at": "53:26",
       "from": "usages.Demo.Client.Go",
       "kind": "call",

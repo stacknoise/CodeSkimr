@@ -84,15 +84,17 @@ mod tests {
         by_target
     }
 
+    fn lines_of(found: &BTreeMap<String, Vec<(u32, Confidence)>>, name: &str) -> Vec<u32> {
+        found
+            .get(&format!("usages.Demo.{name}"))
+            .map(|all| all.iter().map(|(line, _)| *line).collect())
+            .unwrap_or_default()
+    }
+
     #[test]
     fn values_in_arguments_returns_cases_attributes_and_initializers_are_usages() {
         let found = usages();
-        let lines = |name: &str| -> Vec<u32> {
-            found
-                .get(&format!("usages.Demo.{name}"))
-                .map(|all| all.iter().map(|(line, _)| *line).collect())
-                .unwrap_or_default()
-        };
+        let lines = |name: &str| lines_of(&found, name);
         assert_eq!(lines("Names.Arg"), [27]);
         assert_eq!(lines("Names.Ret"), [28]);
         assert_eq!(lines("Names.Case"), [33]);
@@ -105,12 +107,7 @@ mod tests {
     #[test]
     fn a_receiver_of_unknown_type_does_not_pick_between_unrelated_types() {
         let found = usages();
-        let lines = |name: &str| -> Vec<u32> {
-            found
-                .get(&format!("usages.Demo.{name}"))
-                .map(|all| all.iter().map(|(line, _)| *line).collect())
-                .unwrap_or_default()
-        };
+        let lines = |name: &str| lines_of(&found, name);
         // `var x = svc.Make()` and `var y = Svc.Load<ITwo>()` have no type the resolver knows:
         // `Close` is neither IOne's nor ITwo's. `var z = (IOne)...` is typed by the cast.
         assert_eq!(lines("IOne.Close"), [54]);
