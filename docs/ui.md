@@ -75,6 +75,11 @@ Screenshots (1440 x 900): [Hell](screenshots/status-hell.png), [Petrol](screensh
 - **Certainty (ADR 0033, proposed):** every hit says whether level 2 verified it. The pill of a hit reads `verified`, `unchecked` (found by name resolution only) or `presumed` (level 1 itself is unsure); the side panel counts them apart and, while no indexer exists (`level2: "unavailable"`, which is the case until ADR 0033 is implemented), says that the usages and the impact are preliminary and may be incomplete or contain wrong hits. Verified hits are sorted first. The field `verified` and the state are there already, so the indexer packages only have to fill them.
 - Deviations from the mock: the hit list shows file and line, not the code line (reading code needs `read_source` and the token, which this screen does not use; follow-up issue); "Alt + click on a symbol in the code" has no effect because the source column has no symbol spans yet (same reason as in the explorer); the hit list shows the callers (or, for "what is called", the callees), not both; the graph shows type uses of the symbol as cards too; "Open in editor" is not on this screen; the footer shows the connection, not "Reference index" or the query time.
 
+## Dependency map (screen 3, issue #163)
+
+- Toolbar: level "Layers" (default) or "Namespaces" (`graph.layers` with `level`); the choice reloads the map. Behind the boxes every layer row has a stripe with the name of the layer (`bands` of the answer). On the namespace level a box shows the number of types of its namespace.
+- Deviations from the mock: the levels "Depth 1", "Depth 2" and "Types", the focus on a type and the key `G` are not there yet (follow-up issue); the C# names carry a prefix (#137) and layer edges of C# are empty (#145), so namespaces are not assigned to layers for C# yet; the switch "violations only" is off on the namespace level because no violation is derived there yet (`violates_layering` is false for all links, issue #45); long namespace names are cut inside the fixed box width and show the full name as a tooltip; the map is drawn with HTML and SVG, not on canvas, which is enough for the sizes seen so far.
+
 ## Visual and keyboard checks (WP-43)
 
 Two Playwright files check the screens against blueprint 15.4 and 17.1; both run in the `e2e` job.

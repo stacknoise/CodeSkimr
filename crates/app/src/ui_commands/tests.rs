@@ -592,17 +592,24 @@ const LAYERED_CORE: &str =
     "namespace Demo.Core;\n\npublic class Engine\n{\n    public int Run() { return 1; }\n}\n";
 const LAYER_RULES: &str = "[[layers]]\nname = \"ui\"\nnamespaces = [\"Demo.Ui\"]\n\n[[layers]]\nname = \"core\"\nnamespaces = [\"Demo.Core\"]\n";
 
-#[test]
-fn the_graph_places_the_declared_layers_top_down_with_their_dependencies() {
+/// A layered two-project fixture and the answer of `graph.layers` with the given extra input.
+fn layered_graph(extra: &serde_json::Value) -> serde_json::Value {
     let fixture = Fixture::new();
     let app = fixture.root.path().join("app");
     fs::write(app.join("Screen.cs"), LAYERED_UI).unwrap();
     fs::write(app.join("Engine.cs"), LAYERED_CORE).unwrap();
     fs::write(app.join(".codeskimr.toml"), LAYER_RULES).unwrap();
-    let project = added(&fixture);
-    let graph = fixture
-        .call("graph.layers", json!({ "project": project }))
-        .unwrap();
+    let mut input = json!({ "project": added(&fixture) });
+    input
+        .as_object_mut()
+        .unwrap()
+        .extend(extra.as_object().unwrap().clone());
+    fixture.call("graph.layers", input).unwrap()
+}
+
+#[test]
+fn the_graph_places_the_declared_layers_top_down_with_their_dependencies() {
+    let graph = layered_graph(&json!({}));
     assert!(graph["snapshot"].is_u64());
     let boxes = graph["boxes"].as_array().unwrap();
     let names: Vec<_> = boxes.iter().map(|b| b["name"].as_str().unwrap()).collect();
@@ -611,6 +618,39 @@ fn the_graph_places_the_declared_layers_top_down_with_their_dependencies() {
     assert_eq!(boxes[0]["width"], 160);
     assert!(graph["width"].as_u64() >= boxes[0]["width"].as_u64());
     assert!(graph["height"].as_u64() > boxes[1]["y"].as_u64());
+}
+
+#[test]
+fn the_layer_map_has_a_band_behind_every_layer_row() {
+    let graph = layered_graph(&json!({}));
+    let bands = graph["bands"].as_array().unwrap();
+    let names: Vec<_> = bands.iter().map(|b| b["name"].as_str().unwrap()).collect();
+    assert_eq!(names, ["ui", "core"]);
+    let boxes = graph["boxes"].as_array().unwrap();
+    assert!(bands[0]["y"].as_u64() <= boxes[0]["y"].as_u64());
+    assert!(bands[0]["height"].as_u64() > boxes[0]["height"].as_u64());
+    let end =
+        |band: &serde_json::Value| band["y"].as_u64().unwrap() + band["height"].as_u64().unwrap();
+    assert!(end(&bands[0]) <= bands[1]["y"].as_u64().unwrap());
+    assert!(end(&bands[1]) <= graph["height"].as_u64().unwrap());
+}
+
+#[test]
+fn the_namespace_level_has_one_box_per_namespace_with_its_types_and_dependencies() {
+    let graph = layered_graph(&json!({ "level": "namespaces" }));
+    let boxes = graph["boxes"].as_array().unwrap();
+    let found: Vec<_> = boxes
+        .iter()
+        .map(|b| (b["name"].as_str().unwrap(), b["types"].as_u64().unwrap()))
+        .collect();
+    let typed = |suffix: &str| found.iter().find(|(name, _)| name.ends_with(suffix));
+    assert_eq!(typed("Demo.Core").map(|found| found.1), Some(1));
+    assert_eq!(typed("Demo.Ui").map(|found| found.1), Some(1));
+    assert!(found.iter().all(|(_, types)| *types > 0));
+    let links = graph["links"].as_array().unwrap();
+    assert_eq!(links.len(), 1);
+    assert!(links[0]["from"].as_str().unwrap().ends_with("Demo.Ui"));
+    assert!(links[0]["to"].as_str().unwrap().ends_with("Demo.Core"));
 }
 
 #[test]

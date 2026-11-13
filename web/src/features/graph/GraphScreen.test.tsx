@@ -1,9 +1,9 @@
-import { fireEvent, render, screen } from "@solidjs/testing-library";
+import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { beforeEach, describe, expect, it } from "vitest";
 import { currentPath } from "../../app/router";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { activeProject, openProject } from "../../shared/project/active";
-import { answer, serve, useServerSession } from "../../tests/commands";
+import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import type { ProjectRow } from "../projects/types";
 import { resetGraph } from "./graph";
 import { GraphScreen } from "./GraphScreen";
@@ -22,7 +22,7 @@ const ROW: ProjectRow = {
   running: false,
 };
 
-const BOX = { width: 160, height: 44, order: 0 };
+const BOX = { width: 160, height: 44, order: 0, layer: null, types: null };
 const GRAPH = {
   snapshot: 5,
   width: 400,
@@ -31,6 +31,10 @@ const GRAPH = {
     { name: "Domain", x: 120, y: 200, rank: 1, ...BOX },
     { name: "Ui", x: 120, y: 0, rank: 0, ...BOX },
     { name: "Infra", x: 300, y: 100, rank: 0, ...BOX },
+  ],
+  bands: [
+    { name: "Ui", rank: 0, y: 0, height: 60 },
+    { name: "Domain", rank: 1, y: 180, height: 60 },
   ],
   links: [
     { from: "Ui", to: "Domain", count: 12, violates_layering: false, in_cycle: false },
@@ -58,6 +62,41 @@ describe("GraphScreen", () => {
     expect(screen.getByRole("button", { name: "Ui" })).toBeInTheDocument();
     expect(screen.getByText("3 nodes · 2 edges")).toBeInTheDocument();
     expect(screen.getByText("against layering (1)")).toBeInTheDocument();
+  });
+
+  it("draws a band with the name of every layer behind the boxes", async () => {
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    await screen.findByRole("button", { name: "Domain" });
+    const stripe = (name: string) =>
+      screen.getAllByText(name).find((found) => found.parentElement?.tagName === "DIV")
+        ?.parentElement;
+    expect(stripe("Domain")?.style.top).toBe("180px");
+    expect(stripe("Domain")?.style.height).toBe("60px");
+    expect(stripe("Ui")?.style.top).toBe("0px");
+  });
+
+  it("does not hide the links of the namespace level behind the violations filter", async () => {
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    await screen.findByRole("button", { name: "Domain" });
+    const filter = screen.getByLabelText("violations only") as HTMLInputElement;
+    fireEvent.click(filter);
+    expect(filter.checked).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Namespaces" }));
+    await waitFor(() => expect(filter.disabled).toBe(true));
+    expect(filter.checked).toBe(false);
+  });
+
+  it("asks for the namespace level when it is chosen", async () => {
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    await screen.findByRole("button", { name: "Domain" });
+    fireEvent.click(screen.getByRole("button", { name: "Namespaces" }));
+    await waitFor(() => {
+      const bodies = fetchMock.mock.calls.map((call) => String(call[1]?.body ?? ""));
+      expect(bodies.some((body) => body.includes('"level":"namespaces"'))).toBe(true);
+    });
   });
 
   it("shows what a selected layer uses and what uses it", async () => {
