@@ -44,6 +44,7 @@ CodeSkimr scans code repositories, either a local folder or a Git repository, an
 - Team server with multiple users, login (OIDC and local accounts), roles and project permissions, delivered in stages T1 to T3 (ADR 0019). Only the caller-identity seam is part of 1.0.
 - Encrypted team vault for credentials (section 12.5).
 - Compiler-precise reference resolution through SCIP or Roslyn (section 9.3).
+- Analysis depth of the specialised tool of each language, C# first (section 9.5, ADR 0034).
 - WASM analysis plugins.
 - Snapshot comparison ("what changed between two releases").
 
@@ -392,6 +393,10 @@ Name resolution is based on Tree-sitter, in this order:
 ### 9.3 Level 2 – compiler-precise (after 1.0, optional)
 
 Import SCIP indexes produced by existing indexers (e.g. for TypeScript, Java/Kotlin, Python) and Roslyn for C#. Imported references replace level-1 references for the same span and are always `certain`. This is a `ReferenceResolver` strategy (section 5); no other component changes.
+
+### 9.5 Depth goal after 1.0
+
+In later versions CodeSkimr is to reach, per language, the analysis depth of the specialised tools of that language (for C# the yardstick is NDepend): semantic facts such as overloads and generics, member-level dependencies, wider metrics, rules over the code model, and comparison of snapshots. It climbs a depth ladder (D1 to D6) one language at a time, C# first, without changing 1.0. The ladder, the rough work packages and the guard rails are in ADR 0034.
 
 ### 9.4 Rules
 
@@ -1015,7 +1020,7 @@ Each milestone ends with a demo and acceptance by the product owner. All criteri
 | **M5** | Languages | full tier: TypeScript/JavaScript, Python, Java, Kotlin, Rust; basic tier for all Tree-sitter grammars (including Go) | corpus accuracy targets met per language |
 | **M6** | Sources + credentials + export | Git sources (clone, branch, update); credential handling per section 12 (keystore, Git helper, OAuth device flow); canary suite; HTML export | security suite green; private repository scanned without the secret ever appearing outside the loan scope |
 | **M7** | Release 1.0 | installers / single executables for Windows, Linux, macOS; user docs; error-code catalogue published | clean install on all three systems; all budgets green |
-| later | Team edition and depth | team server in stages T1 to T3 (personal access tokens, then users, login and roles, then PostgreSQL and the vault; ADR 0019), `SecretVault` adapter, SCIP/Roslyn level 2, WASM plugins, snapshot comparison, PR impact analysis | own ADRs and milestones |
+| later | Team edition and depth | team server in stages T1 to T3 (personal access tokens, then users, login and roles, then PostgreSQL and the vault; ADR 0019), `SecretVault` adapter, SCIP/Roslyn level 2 (ADR 0033), depth of the specialised tools per language, C# first (section 9.5, ADR 0034), WASM plugins, snapshot comparison, PR impact analysis | own ADRs and milestones |
 
 ---
 
