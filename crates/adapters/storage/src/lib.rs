@@ -10,6 +10,7 @@ mod cycles;
 mod detail;
 mod error;
 mod migrate;
+mod previous;
 mod projects;
 mod queries;
 mod read_models;

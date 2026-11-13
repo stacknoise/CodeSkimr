@@ -89,3 +89,21 @@ fn persisting_for_an_unknown_project_fails_and_writes_nothing() {
     assert_eq!(code_of(&error), "PRJ-201");
     assert!(store.latest_snapshot(PROJECT).unwrap().is_none());
 }
+
+#[test]
+fn project_is_found_by_its_source() {
+    let store = store(3);
+    let saved = project(1, "/work/app", &[("Api", &["App.Api"])]);
+    store.save_project(&saved).unwrap();
+    assert_eq!(store.project_by_source(&saved.source).unwrap(), Some(saved));
+    let other = project(2, "/work/other", &[]);
+    assert_eq!(store.project_by_source(&other.source).unwrap(), None);
+}
+
+#[test]
+fn next_project_id_follows_the_highest_registered_id() {
+    let store = store(3);
+    assert_eq!(store.next_project_id().unwrap(), ProjectId::new(1));
+    store.save_project(&project(4, "/work/app", &[])).unwrap();
+    assert_eq!(store.next_project_id().unwrap(), ProjectId::new(5));
+}

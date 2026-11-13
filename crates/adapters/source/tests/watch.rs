@@ -11,7 +11,9 @@ use std::sync::{
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
-use codeskimr_source::{WatchBatch, WatchConfig, WatchHandle, watch};
+use codeskimr_application::events::{Event, EventBus, FilesChanged};
+use codeskimr_domain::ProjectId;
+use codeskimr_source::{WatchBatch, WatchConfig, WatchHandle, publish_changes, watch};
 use common::{TestResult, folder, write};
 
 const WAIT: Duration = Duration::from_secs(10);
@@ -122,5 +124,30 @@ fn a_missing_folder_cannot_be_watched() -> TestResult {
         |_| {},
     );
     assert!(result.is_err());
+    Ok(())
+}
+
+#[test]
+fn a_batch_becomes_one_files_changed_event() -> TestResult {
+    let dir = tempfile::tempdir()?;
+    let bus = EventBus::new();
+    let events = bus.subscribe();
+    let _handle = publish_changes(
+        ProjectId::new(5),
+        &folder(dir.path())?,
+        config(300, 5_000),
+        bus,
+    )?;
+    write(dir.path(), "a.rs", "1")?;
+    write(dir.path(), "b.rs", "2")?;
+    let event = events.recv_timeout(WAIT)?;
+    assert_eq!(
+        event,
+        Event::FilesChanged(FilesChanged {
+            project: ProjectId::new(5),
+            files: 2,
+            rescan: false,
+        })
+    );
     Ok(())
 }

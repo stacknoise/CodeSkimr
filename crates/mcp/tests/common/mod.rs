@@ -6,7 +6,8 @@ use std::sync::Arc;
 use codeskimr_application::config::McpLimits;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    Clock, CodeIndex, MemberRef, ProjectRepository, SearchHit, SymbolDetail, SymbolKey,
+    Clock, CodeIndex, MemberRef, PreviousIndex, ProjectRepository, SearchHit, SymbolDetail,
+    SymbolKey,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
@@ -171,6 +172,10 @@ impl ProjectRepository for FakeProjects {
 
     fn latest_files(&self, _id: ProjectId) -> Result<Vec<SourceFile>, CodedError> {
         Ok(Vec::new())
+    }
+
+    fn latest_index(&self, _id: ProjectId) -> Result<PreviousIndex, CodedError> {
+        Ok(PreviousIndex::default())
     }
 }
 

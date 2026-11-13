@@ -115,6 +115,8 @@ fn check_mcp(mcp: &McpLimits) -> Result<(), ConfigError> {
 }
 
 fn check_scan(scan: &Scan) -> Result<(), ConfigError> {
+    positive(keys::PARSE_TIMEOUT_MS, scan.parse_timeout_ms)?;
+    positive(keys::MAX_SOURCE_MB, scan.max_source_mb)?;
     if scan.excluded_folders.is_empty() {
         return fail(keys::EXCLUDED_FOLDERS, Violation::MustNotBeEmpty);
     }

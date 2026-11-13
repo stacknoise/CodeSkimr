@@ -309,6 +309,9 @@ dependencies = [
  "codeskimr_server",
  "codeskimr_source",
  "codeskimr_storage",
+ "serde_json",
+ "tempfile",
+ "tokio",
 ]
 
 [[package]]
@@ -339,10 +342,12 @@ dependencies = [
 name = "codeskimr_cli"
 version = "0.1.0"
 dependencies = [
- "codeskimr_application",
+ "clap",
  "codeskimr_codes",
- "codeskimr_domain",
  "codeskimr_i18n",
+ "serde",
+ "serde_json",
+ "thiserror",
 ]
 
 [[package]]

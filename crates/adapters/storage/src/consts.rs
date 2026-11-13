@@ -41,6 +41,8 @@ pub const LIKE_ONE: char = '_';
 pub const FIRST_ID: u64 = 1;
 /// Distance between the highest stored id and the next free one.
 pub const ID_STEP: u64 = 1;
+/// Id of the first project of a fresh database.
+pub const FIRST_PROJECT_ID: u64 = 1;
 /// Position of the first layer, namespace or migration in their lists.
 pub const FIRST_POSITION: i64 = 0;
 /// Version of the first schema migration.

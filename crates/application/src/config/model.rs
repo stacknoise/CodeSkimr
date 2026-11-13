@@ -101,6 +101,10 @@ pub struct Watcher {
 pub struct Scan {
     /// Folder names that are never scanned, at any depth.
     pub excluded_folders: Vec<String>,
+    /// Time limit for parsing one file, in milliseconds.
+    pub parse_timeout_ms: u32,
+    /// Largest total size of the scanned files of one source, in megabytes.
+    pub max_source_mb: u32,
 }
 
 /// Syntax fingerprints (blueprint 10.4).

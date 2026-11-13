@@ -1,7 +1,7 @@
 //! Registered projects: the `ProjectRepository` port and saving a project.
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::ProjectRepository;
+use codeskimr_application::ports::{PreviousIndex, ProjectRepository};
 use codeskimr_domain::{
     BranchName, ContentHash, CredentialId, FileId, FolderPath, GitUrl, LanguageId, Layer,
     LayerName, Loc, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, RelativePath,
@@ -10,8 +10,11 @@ use codeskimr_domain::{
 use rusqlite::{Connection, OptionalExtension, Row, params};
 
 use crate::codec::{Cols, column_int, id_from, ordinals, small_from};
-use crate::consts::{NO_BRANCH, NO_CREDENTIAL, SOURCE_FOLDER, SOURCE_GIT};
+use crate::consts::{
+    FIRST_PROJECT_ID, ID_STEP, NO_BRANCH, NO_CREDENTIAL, SOURCE_FOLDER, SOURCE_GIT,
+};
 use crate::error::{StorageError, StorageResult};
+use crate::previous::load_latest_index;
 use crate::sql;
 use crate::store::SqliteStore;
 
@@ -74,6 +77,41 @@ impl SqliteStore {
     /// `PRJ-301` if another project has the same source, otherwise a coded `STO` failure.
     pub fn save_project(&self, project: &Project) -> Result<(), CodedError> {
         self.write(|tx| save(tx, project)).map_err(CodedError::from)
+    }
+
+    /// The id for the next project to register: one above the highest registered id.
+    ///
+    /// # Errors
+    /// A coded `STO` failure.
+    pub fn next_project_id(&self) -> Result<ProjectId, CodedError> {
+        self.read(|conn| {
+            let highest: Option<i64> = conn.query_row(sql::MAX_PROJECT_ID, [], |row| row.get(0))?;
+            let next = highest.map_or(Ok(FIRST_PROJECT_ID), |id| {
+                id_from(id).map(|id| id.saturating_add(ID_STEP))
+            })?;
+            Ok(ProjectId::new(next))
+        })
+        .map_err(CodedError::from)
+    }
+
+    /// The project registered for `source`, if there is one.
+    ///
+    /// # Errors
+    /// A coded `STO` failure.
+    pub fn project_by_source(&self, source: &ProjectSource) -> Result<Option<Project>, CodedError> {
+        self.read(|conn| {
+            let columns = SourceColumns::of(source);
+            let id: Option<i64> = conn
+                .query_row(
+                    sql::PROJECT_BY_SOURCE,
+                    params![columns.kind, columns.location, columns.branch],
+                    |row| row.get(0),
+                )
+                .optional()?;
+            id.map(|raw| load_project(conn, ProjectId::new(id_from(raw)?)))
+                .transpose()
+        })
+        .map_err(CodedError::from)
     }
 }
 
@@ -236,6 +274,11 @@ impl ProjectRepository for SqliteStore {
 
     fn latest_files(&self, id: ProjectId) -> Result<Vec<SourceFile>, CodedError> {
         self.read(|conn| load_latest_files(conn, id))
+            .map_err(CodedError::from)
+    }
+
+    fn latest_index(&self, id: ProjectId) -> Result<PreviousIndex, CodedError> {
+        self.read(|conn| load_latest_index(conn, id))
             .map_err(CodedError::from)
     }
 }

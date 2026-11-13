@@ -12,7 +12,9 @@ publish = false
 workspace = true
 
 [dependencies]
-codeskimr_application = { path = "../application" }
-codeskimr_domain = { path = "../domain" }
 codeskimr_codes = { path = "../codes" }
 codeskimr_i18n = { path = "../adapters/i18n" }
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true

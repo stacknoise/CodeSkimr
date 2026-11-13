@@ -20,4 +20,4 @@ pub use clock::Clock;
 pub use credentials::{AuthError, Credential, CredentialStore};
 pub use query::{CodeIndex, MemberRef, SearchHit, SymbolDetail, SymbolKey};
 pub use source::{DiscoveredFile, FetchedSource, FileDiscovery, SourceProvider};
-pub use storage::{ProjectRepository, SnapshotData, SnapshotStore};
+pub use storage::{PreviousIndex, ProjectRepository, SnapshotData, SnapshotStore};

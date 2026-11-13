@@ -45,4 +45,4 @@ A capture outside this vocabulary, an invalid query or an unknown grammar fails 
 
 ## Not part of this package
 
-The adapter does not read `metrics.scm` yet: the `FileFacts` port carries no metric inputs (ADR 0015 describes the delivery). The reference resolver does not exist yet either. The parse time limit is a constructor parameter until it is wired to the config (#32).
+The adapter does not read `metrics.scm` yet: the `FileFacts` port carries no metric inputs (ADR 0015 describes the delivery). The reference resolver does not exist yet either. The parse time limit comes from `scan.parse_timeout_ms` (default 5000), wired by the composition root (WP-25, closes #32).

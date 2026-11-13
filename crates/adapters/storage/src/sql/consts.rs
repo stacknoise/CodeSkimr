@@ -33,10 +33,15 @@ pub const MAX_ID: &str = "SELECT MAX(id) FROM (\
     SELECT MAX(id) AS id FROM snapshots UNION ALL SELECT MAX(id) FROM files \
     UNION ALL SELECT MAX(id) FROM symbols UNION ALL SELECT MAX(id) FROM symbol_references)";
 
+/// Highest id of any registered project.
+pub const MAX_PROJECT_ID: &str = "SELECT MAX(id) FROM projects";
+
 /// Files of the newest snapshot of a project: project id.
 pub const LATEST_FILES: &str = "SELECT snapshot_id, id, path, language, content_hash, loc \
     FROM files WHERE snapshot_id = (SELECT MAX(id) FROM snapshots WHERE project_id = ?1) \
     ORDER BY path";
+/// Id of the newest snapshot of a project, null without one: project id.
+pub const LATEST_SNAPSHOT_ID: &str = "SELECT MAX(id) FROM snapshots WHERE project_id = ?1";
 /// The newest snapshot of a project: project id.
 pub const LATEST_SNAPSHOT: &str = "SELECT id, commit_hash, created, mode, files, \
     symbols, refs FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT 1";
@@ -73,6 +78,8 @@ pub const REFERENCE_INSERT: &str = "INSERT INTO symbol_references (snapshot_id, 
 pub const METRIC_INSERT: &str =
     "INSERT INTO metrics (snapshot_id, symbol_id, kind, value) VALUES (?1, ?2, ?3, ?4)";
 
+/// Removes a carried file that no longer exists: snapshot, path.
+pub const FILE_REMOVE: &str = "DELETE FROM files WHERE snapshot_id = ?1 AND path = ?2";
 /// Copies the files of the previous snapshot that were not analysed again: previous, new.
 pub const CARRY_FILES: &str = "INSERT INTO files \
     (snapshot_id, id, path, language, content_hash, loc) \
@@ -96,8 +103,9 @@ pub const CARRY_REFERENCES: &str = "INSERT INTO symbol_references (snapshot_id, 
     AND r.file_id IN (SELECT id FROM files WHERE snapshot_id = ?2) \
     AND r.from_symbol IN (SELECT id FROM symbols WHERE snapshot_id = ?2) \
     AND r.to_symbol IN (SELECT id FROM symbols WHERE snapshot_id = ?2)";
-/// Copies the metrics of the carried symbols: previous, new.
-pub const CARRY_METRICS: &str = "INSERT INTO metrics (snapshot_id, symbol_id, kind, value) \
+/// Copies the metrics of the carried symbols, except those the new snapshot has already:
+/// previous, new.
+pub const CARRY_METRICS: &str = "INSERT OR IGNORE INTO metrics (snapshot_id, symbol_id, kind, value) \
     SELECT ?2, m.symbol_id, m.kind, m.value FROM metrics m WHERE m.snapshot_id = ?1 \
     AND m.symbol_id IN (SELECT id FROM symbols WHERE snapshot_id = ?2)";
 
@@ -168,6 +176,12 @@ pub const SYMBOL_SELECT: &str = "SELECT s.id, s.file_id, s.kind, s.name, s.quali
 pub const SYMBOL_BY_ID: &str = "s.id = ?2";
 /// Condition of `SYMBOL_SELECT`: qualified name; the lowest id wins.
 pub const SYMBOL_BY_NAME: &str = "s.qualified_name = ?2 ORDER BY s.id LIMIT 1";
+/// Condition of `SYMBOL_SELECT`: every symbol of the snapshot, in id order.
+pub const SYMBOL_ALL: &str = "1 = 1 ORDER BY s.id";
+/// All references of a snapshot: snapshot.
+pub const REFERENCES_OF_SNAPSHOT: &str = "SELECT id, from_symbol, to_symbol, file_id, start_line, \
+    start_column, end_line, end_column, kind, confidence FROM symbol_references \
+    WHERE snapshot_id = ?1 ORDER BY id";
 /// Direct members of a symbol: snapshot, symbol.
 pub const MEMBERS_OF: &str =
     "SELECT id, name, kind FROM symbols WHERE snapshot_id = ?1 AND parent_id = ?2 ORDER BY id";
