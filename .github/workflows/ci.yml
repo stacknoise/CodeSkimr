@@ -159,7 +159,7 @@ jobs:
         run: npx --yes jscpd@4.0.5 --config .jscpd.json
 
   # The next four checks exist so that the ruleset can already require them.
-  # They pass trivially until their tool exists, and they then run for real without a rename.
+  # They pass trivially until their tool exists (codegen is already real), and they then run for real without a rename.
   literals:
     name: literals
     runs-on: ubuntu-latest
@@ -182,13 +182,23 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Install Rust toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      # 17.3 (6): regenerate everything, then fail on any difference (also untracked files).
+      - name: Regenerate error code artifacts
+        run: cargo run --locked -p codeskimr_codegen
       - name: Generated code is up to date
         run: |
-          if [ -d tools/codegen ]; then
-            echo "::error::tools/codegen exists, wire regenerate + git diff --exit-code into this job."
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --short
+            git diff
+            echo "::error::Generated files are out of date. Run 'cargo run -p codeskimr_codegen' and commit the result."
             exit 1
           fi
-          echo "NOT ACTIVE YET: no code generators exist (tools/codegen)."
+      - name: Other generators (i18n keys, tokens, OpenAPI client)
+        run: |
+          echo "NOT ACTIVE YET: only the error code generator exists (tools/codegen)."
 
   bench:
     name: bench
@@ -214,8 +224,8 @@ jobs:
           persist-credentials: false
       - name: End-to-end and visual tests
         run: |
-          if [ -d web ]; then
-            echo "::error::web/ exists, wire the end-to-end tests into this job."
+          if [ -f web/package.json ]; then
+            echo "::error::web/package.json exists, wire the end-to-end tests into this job."
             exit 1
           fi
-          echo "NOT ACTIVE YET: no frontend exists (web/)."
+          echo "NOT ACTIVE YET: no frontend project exists (web/package.json)."

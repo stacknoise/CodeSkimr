@@ -3,7 +3,9 @@
 # Third-party crates are checked by cargo-deny, not here.
 
 [allowed]
-codeskimr_codes = []
+# Build-time generator in tools/codegen (WP-14); codes uses it as a build-dependency only.
+codeskimr_codegen = []
+codeskimr_codes = ["codeskimr_codegen"]
 codeskimr_domain = ["codeskimr_codes"]
 codeskimr_application = ["codeskimr_domain", "codeskimr_codes"]
 codeskimr_parsing = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes"]

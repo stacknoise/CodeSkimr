@@ -20,12 +20,12 @@ These names must be entered as required status checks in the ruleset `main` (nam
 | `architecture` | crate dependency direction (`tools/ci/architecture.toml`) | 4.2, R-04 |
 | `duplicates` | `jscpd`, threshold 0, 5 lines / 50 tokens (`.jscpd.json`) | R-01 |
 | `literals` | placeholder until the Dylint lint exists | R-06 |
-| `codegen` | placeholder until the generators exist | 17.3 (6) |
+| `codegen` | regenerates the error code artifacts and fails on any diff; i18n keys, tokens and OpenAPI client follow | 17.3 (6) |
 | `bench` | placeholder until benchmarks exist | 16.1 |
-| `e2e` | placeholder until `web/` exists | 17.3 |
+| `e2e` | placeholder until the frontend project (`web/package.json`) exists | 17.3 |
 
-The four placeholders pass with a clearly printed "NOT ACTIVE YET" notice.
-As soon as `tools/lints`, `tools/codegen`, `tools/bench` or `web/` appear, the matching job fails on purpose until it is wired up, so a placeholder cannot be forgotten.
+The placeholders (`literals`, `bench`, `e2e`) pass with a clearly printed "NOT ACTIVE YET" notice.
+As soon as `tools/lints`, `tools/bench` or `web/package.json` appear, the matching job fails on purpose until it is wired up, so a placeholder cannot be forgotten.
 
 ## Changing the pipeline
 
