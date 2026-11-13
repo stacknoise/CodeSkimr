@@ -17,6 +17,9 @@ const LOGIN_CANARY: &str = "ghp_LOGIN7c1e4a92d0b645f8a3e1d9c2";
 const CHALLENGE: &str = "HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Basic realm=\"canary\"\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
 const REFUSAL: &str = "HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\nConnection: close\r\n\r\n";
 const AUTHORIZATION: &str = "authorization:";
+/// `anton:` and the canary in Base64 (lower-cased like the header lines the remote keeps): the
+/// exact login of the stored credential.
+const EXPECTED_LOGIN: &str = "basic yw50b246z2hwx0xpr0lon2mxztrhotjkmgi2ndvmogezztfkowmy";
 
 /// A remote that asks for a login and refuses every one; it keeps the `Authorization` headers it
 /// was sent. Returns its address and that list.
@@ -67,8 +70,8 @@ fn a_stored_credential_reaches_the_remote_and_nothing_else() {
     assert!(outcome.answers[2].contains("\"stored\":true"));
     let headers = seen.lock().unwrap().clone();
     assert!(!headers.is_empty(), "the remote never saw a login");
-    // "anton:" in Base64: the login of the stored credential, nothing else.
-    assert!(headers.iter().all(|line| line.contains("basic yw50b246")));
+    // The secret itself reached the remote, as the login of the stored credential and nothing else.
+    assert!(headers.iter().all(|line| line.contains(EXPECTED_LOGIN)));
     assert_nothing_leaked(&outcome, &folders, &headers);
 }
 

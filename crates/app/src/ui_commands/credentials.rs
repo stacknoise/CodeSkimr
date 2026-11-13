@@ -21,13 +21,13 @@ use super::consts::{
     CREDENTIALS_LIST_DESCRIPTION, CREDENTIALS_LIST_TITLE, CREDENTIALS_SET,
     CREDENTIALS_SET_DESCRIPTION, CREDENTIALS_SET_TITLE,
 };
-use crate::consts::TOKEN_CREDENTIAL_ID;
+use crate::consts::is_token_credential;
 use crate::wiring::Secrets;
 
 /// The name of a credential that a user may manage. The installation token is not one of them:
 /// replacing it would lock the browser out, deleting it would break the next start.
 fn usable(name: &str) -> Result<CredentialId, CodedError> {
-    if name == TOKEN_CREDENTIAL_ID {
+    if is_token_credential(name) {
         return Err(CodedError::new(ErrorCode::RequestInvalid));
     }
     CredentialId::new(name).map_err(|_| CodedError::new(ErrorCode::RequestInvalid))

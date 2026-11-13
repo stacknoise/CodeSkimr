@@ -18,44 +18,14 @@ use codeskimr_application::resolve::ScopedResolver;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::CredentialId;
 use codeskimr_parsing::{LanguagePacks, TreeSitterAnalyzer};
-use codeskimr_secrets::{Keystore, KeystoreCredentials, OsKeystore};
+use codeskimr_secrets::{KeystoreCredentials, OsKeystore};
 use codeskimr_source::{DiscoveryConfig, GitCache, LanguageMap, SourceFetcher, WalkDiscovery};
 use codeskimr_storage::SqliteStore;
-use zeroize::Zeroizing;
 
 use crate::clock::SystemClock;
-use crate::consts::{BYTES_PER_MB, TOKEN_CREDENTIAL_ID};
+use crate::consts::{BYTES_PER_MB, is_token_credential};
 use crate::locations::Locations;
-
-/// A keystore that can be shared by everything that needs secrets: the operating system's in the
-/// program, a map in memory in the tests of the composition root.
-#[derive(Clone)]
-pub struct SharedKeystore(Arc<dyn Keystore>);
-
-impl SharedKeystore {
-    /// Shares `keystore`.
-    #[must_use]
-    pub fn new(keystore: impl Keystore + 'static) -> Self {
-        Self(Arc::new(keystore))
-    }
-}
-
-impl Keystore for SharedKeystore {
-    fn read(&self, name: &str) -> Result<Zeroizing<Vec<u8>>, AuthError> {
-        self.0.read(name)
-    }
-
-    fn write(&self, name: &str, bytes: &[u8]) -> Result<(), AuthError> {
-        self.0.write(name, bytes)
-    }
-
-    fn remove(&self, name: &str) -> Result<(), AuthError> {
-        self.0.remove(name)
-    }
-}
-
-/// The credential store the scanner and the credential commands share.
-pub type Secrets = KeystoreCredentials<SharedKeystore>;
+pub use crate::shared_keystore::{Secrets, SharedKeystore};
 
 /// What the fetcher of Git sources sees of the secrets: everything except the installation
 /// token. A project row that names `installation-token` (written by hand or by an older version)
@@ -68,7 +38,7 @@ impl CredentialStore for ForRemotes {
         id: &CredentialId,
         action: impl FnOnce(&Credential) -> Result<T, AuthError>,
     ) -> Result<T, AuthError> {
-        if id.as_str() == TOKEN_CREDENTIAL_ID {
+        if is_token_credential(id.as_str()) {
             return Err(AuthError::NotFound);
         }
         self.0.with_credential(id, action)
@@ -190,6 +160,7 @@ mod tests {
 
     #[test]
     fn the_fetcher_never_gets_the_installation_token() {
+        use crate::consts::TOKEN_CREDENTIAL_ID;
         let secrets = secrets();
         let token = CredentialId::new(TOKEN_CREDENTIAL_ID).unwrap();
         let work = CredentialId::new("work").unwrap();

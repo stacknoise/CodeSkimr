@@ -37,10 +37,10 @@ impl Keystore for Memory {
 }
 
 /// A credential store over a fresh in-memory keystore, in the type of the composition root.
-pub fn secrets() -> std::sync::Arc<crate::wiring::Secrets> {
+pub fn secrets() -> std::sync::Arc<crate::shared_keystore::Secrets> {
     use codeskimr_secrets::KeystoreCredentials;
 
-    use crate::wiring::SharedKeystore;
+    use crate::shared_keystore::SharedKeystore;
 
     std::sync::Arc::new(KeystoreCredentials::new(SharedKeystore::new(
         Memory::default(),

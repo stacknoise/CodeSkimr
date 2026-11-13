@@ -38,6 +38,7 @@ mod security_login_tests;
 #[cfg(test)]
 mod security_tests;
 mod serve;
+mod shared_keystore;
 mod source_arg;
 mod ui_commands;
 mod watch;

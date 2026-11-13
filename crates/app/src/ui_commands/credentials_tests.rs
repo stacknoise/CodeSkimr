@@ -49,6 +49,7 @@ fn a_credential_is_listed_once_a_project_names_it_and_removed_again() {
         "projects.add",
         json!({ "source": GIT_ADDRESS, "credential": "work" }),
     );
+    // Control: the add fails at the clone, but the project row exists and names the credential.
     assert!(added.is_err());
     assert_eq!(names(&fixture), json!([{ "id": "work", "stored": true }]));
     let removed = fixture.call("credentials.delete", json!({ "id": "work" }));
@@ -62,7 +63,13 @@ fn a_credential_is_listed_once_a_project_names_it_and_removed_again() {
 #[test]
 fn the_installation_token_and_bad_input_are_refused_without_echoing_the_secret() {
     let fixture = Fixture::installed(None);
-    for (id, secret) in [("installation-token", SECRET), ("", SECRET), ("work", "")] {
+    for (id, secret) in [
+        ("installation-token", SECRET),
+        ("Installation-Token", SECRET),
+        (" installation-token", SECRET),
+        ("", SECRET),
+        ("work", ""),
+    ] {
         let result = set(&fixture, id, secret);
         assert_eq!(result, Err("API-101"), "{id}");
     }

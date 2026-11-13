@@ -27,7 +27,7 @@ The use of the system's Git credential helper (point 1 of the preference order) 
 
 The browser UI and other REST callers manage logins with three commands (blueprint 12.4; `docs/server.md`):
 
-- `credentials.set` takes `id`, `user` and `secret` and stores them in the keystore of the system. The secret travels in this one request (it needs the installation token), is wrapped in a `SecretString` at once and is wiped after storing. The answer holds the name only. An empty name, user or secret and the name `installation-token` are refused with `API-101`; a body that does not parse is `API-101` as well and never echoes the value.
+- `credentials.set` takes `id`, `user` and `secret` and stores them in the keystore of the system. The secret travels in this one request (it needs the installation token), is wrapped in a `SecretString` at once and is wiped after storing (the request body and the JSON value it came from are not wiped: residual risk, blueprint 15). The answer holds the name only. An empty name, user or secret and the name `installation-token` are refused with `API-101`; a body that does not parse is `API-101` as well and never echoes the value (checked over HTTP in the security suite).
 - `credentials.delete` takes `id`; a missing credential is not an error.
 - `credentials.list` names the credentials that Git projects log in with and whether the keystore holds each (`stored`). It never shows a secret and needs only the read right.
 - `projects.add` takes `credential` for a Git source. The project row holds the name only.
