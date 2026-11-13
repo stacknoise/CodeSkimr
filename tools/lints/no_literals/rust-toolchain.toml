@@ -1,0 +1,5 @@
+# Pinned nightly: Dylint lints link against compiler internals (rustc_private).
+# Move this date forward together with `dylint_linting` and `dylint_testing`, see docs/ci.md.
+[toolchain]
+channel = "nightly-2026-08-20"
+components = ["llvm-tools-preview", "rustc-dev"]

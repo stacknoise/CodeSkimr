@@ -1,0 +1,12 @@
+# Reference machine for the performance budgets (blueprint 16.1, open point O-06).
+# CI never compares absolute numbers between different machines: the base commit and the pull
+# request are measured one after the other on the same runner, and only the ratio counts.
+# The absolute budgets of blueprint 16.1 are checked on the same runner as a coarse upper bound.
+
+[reference]
+# Runner the `bench` job of .github/workflows/ci.yml runs on (GitHub-hosted, shared hardware).
+ci_runner = "ubuntu-latest"
+# Class of machine the budgets are meant for when measured by hand (mid-range developer laptop).
+local_class = "mid-range developer laptop, 4 cores, 16 GB RAM, SSD"
+# O-06 decided by the product owner on 2026-11-13 (ADR 0014, docs/benchmarks.md).
+decision = "same-runner A/B comparison (ADR 0014)"
