@@ -1,0 +1,221 @@
+# CI pipeline (blueprint 17.3). Every job name below is a required check in the ruleset:
+# pr-title, fmt, clippy, test, deps, build (ubuntu-latest), build (windows-latest),
+# build (macos-latest), architecture, duplicates, literals, codegen, bench, e2e.
+# Never rename a job without telling the product owner; the ruleset matches by name.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+  RUST_BACKTRACE: "1"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  pr-title:
+    name: pr-title
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      # Conventional Commits, because the squash-merged PR title becomes the commit (CLAUDE.md rule 3).
+      - uses: amannn/action-semantic-pull-request@2252a14e810aa9b85c2d560bd7070c802206ecf6 # v6.1.2
+        with:
+          types: |
+            feat
+            fix
+            refactor
+            test
+            docs
+            chore
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  fmt:
+    name: fmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - name: cargo fmt
+        run: cargo fmt --all --check
+      - name: prettier (only once the frontend exists)
+        run: |
+          if [ -f web/package.json ]; then
+            cd web && npm ci && npx prettier --check .
+          else
+            echo "No web/ yet, prettier check skipped."
+          fi
+
+  clippy:
+    name: clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      # Workspace lints in Cargo.toml and thresholds in clippy.toml are binding; warnings are errors.
+      - name: cargo clippy
+        run: cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
+
+  test:
+    name: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - name: cargo test
+        run: cargo test --workspace --all-features --locked
+
+  deps:
+    name: deps
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
+        with:
+          tool: cargo-audit,cargo-deny,cargo-machete
+      # S-03: a known vulnerability blocks the merge.
+      - name: cargo audit
+        run: cargo audit --deny warnings
+      - name: cargo deny
+        run: cargo deny --locked check
+      # Section 16: lean dependencies, no unused ones.
+      - name: cargo machete
+        run: cargo machete
+
+  build:
+    name: build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - name: cargo build
+        run: cargo build --workspace --release --locked
+
+  architecture:
+    name: architecture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      # R-04: crate dependency direction from blueprint 4.2. Cargo already rejects crate cycles.
+      - name: Crate dependency direction
+        run: python3 tools/ci/check_architecture.py
+
+  duplicates:
+    name: duplicates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+      # R-01: zero tolerance, 5 lines / 50 tokens. Settings live in .jscpd.json.
+      - name: jscpd
+        run: npx --yes jscpd@4.0.5 --config .jscpd.json
+
+  # The next four checks exist so that the ruleset can already require them.
+  # They pass trivially until their tool exists, and they then run for real without a rename.
+  literals:
+    name: literals
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: no_literals lint (Dylint) and ESLint
+        run: |
+          if [ -d tools/lints ]; then
+            echo "::error::tools/lints exists, wire the Dylint lint into this job."
+            exit 1
+          fi
+          echo "NOT ACTIVE YET: the Dylint no_literals lint does not exist (tools/lints)."
+
+  codegen:
+    name: codegen
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Generated code is up to date
+        run: |
+          if [ -d tools/codegen ]; then
+            echo "::error::tools/codegen exists, wire regenerate + git diff --exit-code into this job."
+            exit 1
+          fi
+          echo "NOT ACTIVE YET: no code generators exist (tools/codegen)."
+
+  bench:
+    name: bench
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Benchmarks against baseline
+        run: |
+          if [ -d tools/bench ]; then
+            echo "::error::tools/bench exists, wire the baseline comparison into this job."
+            exit 1
+          fi
+          echo "NOT ACTIVE YET: no benchmarks exist (tools/bench)."
+
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: End-to-end and visual tests
+        run: |
+          if [ -d web ]; then
+            echo "::error::web/ exists, wire the end-to-end tests into this job."
+            exit 1
+          fi
+          echo "NOT ACTIVE YET: no frontend exists (web/)."
