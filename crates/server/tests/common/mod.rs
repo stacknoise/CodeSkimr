@@ -1,4 +1,5 @@
 //! A running server with test commands, and a minimal HTTP/1.1 client that can send any header.
+#![cfg(test)]
 #![allow(dead_code, missing_docs)]
 
 use std::net::SocketAddr;
@@ -11,41 +12,34 @@ use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Reg
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{Permission, PermissionSet, Principal};
 use codeskimr_server::{CommandApi, InstallationToken, Server};
-use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
 pub const TOKEN: &str = "csk_canary-installation-token-0123456789";
 
-#[derive(Deserialize)]
-pub struct EchoInput {
-    pub text: String,
-}
-
-#[derive(Serialize)]
-pub struct EchoOutput {
-    pub echo: String,
+/// Reading commands need `read`, the others need the permission they are given.
+const fn descriptor(id: &'static str, permission: Permission) -> CommandDescriptor {
+    let key = "text";
+    CommandDescriptor {
+        id: CommandId::new(id),
+        description_key: key,
+        title_key: key,
+        read_only: matches!(permission, Permission::Read),
+        shortcut: Some("Mod+T"),
+        permission,
+    }
 }
 
 /// A command that only reads.
 pub struct Echo;
 
 impl Command for Echo {
-    type Input = EchoInput;
-    type Output = EchoOutput;
-    const DESCRIPTOR: CommandDescriptor = CommandDescriptor {
-        id: CommandId::new("test.echo"),
-        title_key: "title",
-        description_key: "description",
-        shortcut: Some("Mod+E"),
-        read_only: true,
-        permission: Permission::Read,
-    };
+    type Input = String;
+    type Output = String;
+    const DESCRIPTOR: CommandDescriptor = descriptor("test.echo", Permission::Read);
 
-    fn execute(&self, request: Request<'_, EchoInput>) -> Result<EchoOutput, CodedError> {
-        Ok(EchoOutput {
-            echo: request.input.text,
-        })
+    fn execute(&self, request: Request<'_, String>) -> Result<String, CodedError> {
+        Ok(request.input.to_uppercase())
     }
 }
 
@@ -55,14 +49,7 @@ pub struct Wipe(pub Arc<AtomicUsize>);
 impl Command for Wipe {
     type Input = ();
     type Output = usize;
-    const DESCRIPTOR: CommandDescriptor = CommandDescriptor {
-        id: CommandId::new("test.wipe"),
-        title_key: "title",
-        description_key: "description",
-        shortcut: None,
-        read_only: false,
-        permission: Permission::Scan,
-    };
+    const DESCRIPTOR: CommandDescriptor = descriptor("test.wipe", Permission::Scan);
 
     fn execute(&self, _: Request<'_, ()>) -> Result<usize, CodedError> {
         Ok(self.0.fetch_add(1, Ordering::SeqCst) + 1)
@@ -75,14 +62,7 @@ pub struct Missing;
 impl Command for Missing {
     type Input = ();
     type Output = ();
-    const DESCRIPTOR: CommandDescriptor = CommandDescriptor {
-        id: CommandId::new("test.missing"),
-        title_key: "title",
-        description_key: "description",
-        shortcut: None,
-        read_only: true,
-        permission: Permission::Read,
-    };
+    const DESCRIPTOR: CommandDescriptor = descriptor("test.missing", Permission::Read);
 
     fn execute(&self, _: Request<'_, ()>) -> Result<(), CodedError> {
         Err(CodedError::new(ErrorCode::ProjectNotFound))
@@ -95,14 +75,7 @@ pub struct Explode;
 impl Command for Explode {
     type Input = ();
     type Output = ();
-    const DESCRIPTOR: CommandDescriptor = CommandDescriptor {
-        id: CommandId::new("test.explode"),
-        title_key: "title",
-        description_key: "description",
-        shortcut: None,
-        read_only: true,
-        permission: Permission::Read,
-    };
+    const DESCRIPTOR: CommandDescriptor = descriptor("test.explode", Permission::Read);
 
     fn execute(&self, _: Request<'_, ()>) -> Result<(), CodedError> {
         panic!("canary-panic-text")
@@ -164,10 +137,12 @@ pub struct Reply {
 
 impl Reply {
     pub fn header(&self, name: &str) -> Option<&str> {
-        self.headers
+        let wanted = name.to_ascii_lowercase();
+        let found = self
+            .headers
             .iter()
-            .find(|(key, _)| key.eq_ignore_ascii_case(name))
-            .map(|(_, value)| value.as_str())
+            .find(|(key, _)| key.to_ascii_lowercase() == wanted);
+        found.map(|(_, value)| value.as_str())
     }
 
     pub fn json(&self) -> serde_json::Value {
@@ -240,14 +215,18 @@ impl<'a> Call<'a> {
             .host
             .clone()
             .unwrap_or_else(|| server.address.to_string());
-        let mut text = format!(
-            "{} {} HTTP/1.1\r\nHost: {host}\r\nConnection: close\r\n",
-            self.method, self.path
+        let mut lines = vec![
+            format!("{} {} HTTP/1.1", self.method, self.path),
+            format!("Host: {host}"),
+            "Connection: close".to_owned(),
+        ];
+        lines.extend(
+            self.headers
+                .iter()
+                .map(|(name, value)| format!("{name}: {value}")),
         );
-        for (name, value) in &self.headers {
-            text.push_str(&format!("{name}: {value}\r\n"));
-        }
-        text.push_str(&format!("Content-Length: {}\r\n\r\n", self.body.len()));
+        lines.push(format!("Content-Length: {}", self.body.len()));
+        let text = format!("{}\r\n\r\n", lines.join("\r\n"));
         let mut stream = TcpStream::connect(server.address).await.unwrap();
         stream.write_all(text.as_bytes()).await.unwrap();
         stream.write_all(&self.body).await.unwrap();

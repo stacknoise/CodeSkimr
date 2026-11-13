@@ -70,40 +70,11 @@ fn hex_digit(value: u8) -> Option<char> {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use std::sync::Mutex;
-
     use codeskimr_secrets::{Keystore, KeystoreCredentials};
 
+    use crate::memory_keystore::Memory;
+
     use super::*;
-
-    #[derive(Default)]
-    struct Memory(Mutex<HashMap<String, Vec<u8>>>);
-
-    impl Keystore for Memory {
-        fn read(&self, name: &str) -> Result<Zeroizing<Vec<u8>>, AuthError> {
-            self.0
-                .lock()
-                .unwrap()
-                .get(name)
-                .cloned()
-                .map(Zeroizing::new)
-                .ok_or(AuthError::NotFound)
-        }
-
-        fn write(&self, name: &str, bytes: &[u8]) -> Result<(), AuthError> {
-            self.0
-                .lock()
-                .unwrap()
-                .insert(name.to_owned(), bytes.to_vec());
-            Ok(())
-        }
-
-        fn remove(&self, name: &str) -> Result<(), AuthError> {
-            self.0.lock().unwrap().remove(name);
-            Ok(())
-        }
-    }
 
     struct Broken;
 

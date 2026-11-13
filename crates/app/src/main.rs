@@ -13,6 +13,8 @@ mod locations;
 mod log_writer;
 mod logging;
 mod mcp;
+#[cfg(test)]
+mod memory_keystore;
 mod principal;
 mod redact;
 mod run;

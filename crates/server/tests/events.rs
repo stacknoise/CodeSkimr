@@ -15,6 +15,7 @@ use tokio::time::timeout;
 
 const UPGRADE: &str = "GET /api/v1/events HTTP/1.1\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n";
 
+#[cfg(test)]
 /// Opens the stream and returns the connection and the status line of the answer.
 async fn open(server: &Running, extra: &str) -> (TcpStream, String) {
     let mut stream = TcpStream::connect(server.address).await.unwrap();
@@ -30,6 +31,7 @@ async fn open(server: &Running, extra: &str) -> (TcpStream, String) {
     (stream, text.lines().next().unwrap().to_owned())
 }
 
+#[cfg(test)]
 /// Reads one unmasked text frame of a server.
 async fn frame(stream: &mut TcpStream) -> String {
     let mut head = [0_u8; 2];

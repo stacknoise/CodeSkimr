@@ -2,6 +2,7 @@
 
 mod common;
 
+use codeskimr_domain::Principal;
 use common::{Call, TOKEN, owner, reader, start};
 use serde_json::json;
 
@@ -11,12 +12,9 @@ const ECHO: &str = "/api/v1/commands/test.echo";
 #[tokio::test]
 async fn a_read_only_command_runs_without_a_token() {
     let server = start(owner()).await;
-    let reply = Call::post(ECHO)
-        .json(r#"{"text":"hi"}"#)
-        .send(&server)
-        .await;
+    let reply = Call::post(ECHO).json(r#""hi""#).send(&server).await;
     assert_eq!(reply.status, 200);
-    assert_eq!(reply.json(), json!({"echo": "hi"}));
+    assert_eq!(reply.json(), json!("HI"));
 }
 
 #[tokio::test]
@@ -57,32 +55,29 @@ async fn the_token_is_never_echoed() {
     assert!(bodies.iter().all(|text| !text.contains("csk_wrong")));
 }
 
+#[cfg(test)]
+async fn listed_ids(principal: Principal) -> Vec<String> {
+    let server = start(principal).await;
+    let reply = Call::get("/api/v1/commands").send(&server).await;
+    let entries = reply.json();
+    entries
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|entry| entry["id"].as_str().unwrap().to_owned())
+        .collect()
+}
+
 #[tokio::test]
 async fn the_list_shows_what_the_caller_may_run() {
-    let owner_server = start(owner()).await;
-    let reply = Call::get("/api/v1/commands").send(&owner_server).await;
-    let ids: Vec<_> = reply
-        .json()
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|entry| entry["id"].as_str().unwrap().to_owned())
-        .collect();
     assert_eq!(
-        ids,
+        listed_ids(owner()).await,
         ["test.echo", "test.explode", "test.missing", "test.wipe"]
     );
-
-    let reader_server = start(reader()).await;
-    let reply = Call::get("/api/v1/commands").send(&reader_server).await;
-    let ids: Vec<_> = reply
-        .json()
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|entry| entry["id"].as_str().unwrap().to_owned())
-        .collect();
-    assert_eq!(ids, ["test.echo", "test.explode", "test.missing"]);
+    assert_eq!(
+        listed_ids(reader()).await,
+        ["test.echo", "test.explode", "test.missing"]
+    );
 }
 
 #[tokio::test]
@@ -141,7 +136,7 @@ async fn a_bad_body_is_refused_with_a_code() {
         .await;
     assert_eq!((form.status, form.code().as_str()), (400, "API-101"));
     let plain = Call::post(ECHO)
-        .raw("text/plain", br#"{"text":"hi"}"#)
+        .raw("text/plain", br#""hi""#)
         .send(&server)
         .await;
     assert_eq!((plain.status, plain.code().as_str()), (400, "API-101"));
@@ -171,9 +166,6 @@ async fn a_panicking_command_gives_an_internal_error_without_its_text() {
     assert_eq!((reply.status, reply.code().as_str()), (500, "APP-901"));
     assert!(!reply.body.contains("canary-panic-text"));
     // The server keeps serving.
-    let again = Call::post(ECHO)
-        .json(r#"{"text":"still"}"#)
-        .send(&server)
-        .await;
+    let again = Call::post(ECHO).json(r#""still""#).send(&server).await;
     assert_eq!(again.status, 200);
 }

@@ -5,7 +5,7 @@ mod common;
 use common::{Call, TOKEN, owner, start};
 
 const ECHO: &str = "/api/v1/commands/test.echo";
-const BODY: &str = r#"{"text":"hi"}"#;
+const BODY: &str = r#""hi""#;
 
 #[tokio::test]
 async fn the_address_and_localhost_with_the_right_port_are_accepted() {
