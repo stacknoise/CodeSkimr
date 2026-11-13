@@ -399,6 +399,7 @@
       "kind": "module",
       "name": "References",
       "parent": null,
+      "signature": null,
       "span": "0:0-45:0",
       "static": false,
       "visibility": null
@@ -408,6 +409,7 @@
       "kind": "namespace",
       "name": "References.refs",
       "parent": "References",
+      "signature": null,
       "span": "0:0-45:0",
       "static": false,
       "visibility": null
@@ -417,6 +419,7 @@
       "kind": "class",
       "name": "References.refs.Base",
       "parent": "References.refs",
+      "signature": null,
       "span": "6:0-6:15",
       "static": false,
       "visibility": "public"
@@ -426,6 +429,7 @@
       "kind": "interface",
       "name": "References.refs.Walker",
       "parent": "References.refs",
+      "signature": null,
       "span": "7:0-7:16",
       "static": false,
       "visibility": "public"
@@ -435,6 +439,7 @@
       "kind": "interface",
       "name": "References.refs.Talker",
       "parent": "References.refs",
+      "signature": null,
       "span": "8:0-8:16",
       "static": false,
       "visibility": "public"
@@ -444,6 +449,7 @@
       "kind": "class",
       "name": "References.refs.Dog",
       "parent": "References.refs",
+      "signature": null,
       "span": "10:0-44:1",
       "static": false,
       "visibility": "public"
@@ -453,6 +459,7 @@
       "kind": "property",
       "name": "References.refs.Dog.name",
       "parent": "References.refs.Dog",
+      "signature": null,
       "span": "10:10-10:26",
       "static": false,
       "visibility": "public"
@@ -462,6 +469,7 @@
       "kind": "property",
       "name": "References.refs.Dog.owner",
       "parent": "References.refs.Dog",
+      "signature": null,
       "span": "10:28-10:53",
       "static": false,
       "visibility": "private"
@@ -471,6 +479,7 @@
       "kind": "property",
       "name": "References.refs.Dog.helper",
       "parent": "References.refs.Dog",
+      "signature": null,
       "span": "11:4-11:41",
       "static": false,
       "visibility": "private"
@@ -480,6 +489,7 @@
       "kind": "property",
       "name": "References.refs.Dog.count",
       "parent": "References.refs.Dog",
+      "signature": null,
       "span": "12:4-12:17",
       "static": false,
       "visibility": "public"
@@ -489,6 +499,7 @@
       "kind": "method",
       "name": "References.refs.Dog.walk",
       "parent": "References.refs.Dog",
+      "signature": null,
       "span": "14:4-36:5",
       "static": false,
       "visibility": "public"
@@ -498,6 +509,7 @@
       "kind": "method",
       "name": "References.refs.Dog.bark",
       "parent": "References.refs.Dog",
+      "signature": null,
       "span": "38:4-40:5",
       "static": false,
       "visibility": "public"
@@ -507,6 +519,7 @@
       "kind": "method",
       "name": "References.refs.Dog.handle",
       "parent": "References.refs.Dog",
+      "signature": null,
       "span": "42:4-43:29",
       "static": false,
       "visibility": "public"

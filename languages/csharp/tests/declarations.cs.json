@@ -228,6 +228,7 @@
       "kind": "module",
       "name": "declarations",
       "parent": null,
+      "signature": null,
       "span": "0:0-61:0",
       "static": false,
       "visibility": null
@@ -237,6 +238,7 @@
       "kind": "namespace",
       "name": "declarations.Shop.Orders",
       "parent": "declarations",
+      "signature": null,
       "span": "2:0-60:1",
       "static": false,
       "visibility": null
@@ -246,6 +248,7 @@
       "kind": "class",
       "name": "declarations.Shop.Orders.Order",
       "parent": "declarations.Shop.Orders",
+      "signature": null,
       "span": "5:4-36:5",
       "static": false,
       "visibility": "public"
@@ -255,6 +258,7 @@
       "kind": "constant",
       "name": "declarations.Shop.Orders.Order.MaxLines",
       "parent": "declarations.Shop.Orders.Order",
+      "signature": "MaxLines = 100",
       "span": "7:25-7:39",
       "static": false,
       "visibility": "public"
@@ -264,6 +268,7 @@
       "kind": "field",
       "name": "declarations.Shop.Orders.Order.First",
       "parent": "declarations.Shop.Orders.Order",
+      "signature": null,
       "span": "8:36-8:45",
       "static": true,
       "visibility": "private"
@@ -273,6 +278,7 @@
       "kind": "field",
       "name": "declarations.Shop.Orders.Order.Second",
       "parent": "declarations.Shop.Orders.Order",
+      "signature": null,
       "span": "8:47-8:57",
       "static": true,
       "visibility": "private"
@@ -282,6 +288,7 @@
       "kind": "field",
       "name": "declarations.Shop.Orders.Order.note",
       "parent": "declarations.Shop.Orders.Order",
+      "signature": null,
       "span": "9:24-9:28",
       "static": false,
       "visibility": "internal"
@@ -291,6 +298,7 @@
       "kind": "constructor",
       "name": "declarations.Shop.Orders.Order.Order",
       "parent": "declarations.Shop.Orders.Order",
+      "signature": null,
       "span": "11:8-11:43",
       "static": false,
       "visibility": "public"
@@ -300,6 +308,7 @@
       "kind": "property",
       "name": "declarations.Shop.Orders.Order.Id",
       "parent": "declarations.Shop.Orders.Order",
+      "signature": null,
       "span": "13:8-13:35",
       "static": false,
       "visibility": "public"
@@ -309,6 +318,7 @@
       "kind": "property",
       "name": "declarations.Shop.Orders.Order.Title",
       "parent": "declarations.Shop.Orders.Order",
+      "signature": null,
       "span": "15:8-15:54",
       "static": false,
       "visibility": "protected"
@@ -318,6 +328,7 @@
       "kind": "event",
       "name": "declarations.Shop.Orders.Order.Changed",
       "parent": "declarations.Shop.Orders.Order",
+      "signature": null,
       "span": "17:34-17:41",
       "static": false,
       "visibility": "public"
@@ -327,6 +338,7 @@
       "kind": "method",
       "name": "declarations.Shop.Orders.Order.CountAsync",
       "parent": "declarations.Shop.Orders.Order",
+      "signature": null,
       "span": "19:8-22:9",
       "static": true,
       "visibility": "public"
@@ -336,6 +348,7 @@
       "kind": "property",
       "name": "declarations.Shop.Orders.Order.this",
       "parent": "declarations.Shop.Orders.Order",
+      "signature": null,
       "span": "24:8-24:44",
       "static": false,
       "visibility": "public"
@@ -345,6 +358,7 @@
       "kind": "method",
       "name": "declarations.Shop.Orders.Order.+",
       "parent": "declarations.Shop.Orders.Order",
+      "signature": null,
       "span": "26:8-26:72",
       "static": true,
       "visibility": "public"
@@ -354,6 +368,7 @@
       "kind": "method",
       "name": "declarations.Shop.Orders.Order.ToString",
       "parent": "declarations.Shop.Orders.Order",
+      "signature": null,
       "span": "28:8-28:53",
       "static": false,
       "visibility": "public"
@@ -363,6 +378,7 @@
       "kind": "method",
       "name": "declarations.Shop.Orders.Order.Helper",
       "parent": "declarations.Shop.Orders.Order",
+      "signature": null,
       "span": "30:8-33:9",
       "static": false,
       "visibility": "private"
@@ -372,6 +388,7 @@
       "kind": "function",
       "name": "declarations.Shop.Orders.Order.Helper.Local",
       "parent": "declarations.Shop.Orders.Order.Helper",
+      "signature": null,
       "span": "32:12-32:42",
       "static": false,
       "visibility": "private"
@@ -381,6 +398,7 @@
       "kind": "class",
       "name": "declarations.Shop.Orders.Order.Line",
       "parent": "declarations.Shop.Orders.Order",
+      "signature": null,
       "span": "35:8-35:30",
       "static": false,
       "visibility": "private"
@@ -390,6 +408,7 @@
       "kind": "interface",
       "name": "declarations.Shop.Orders.IOrder",
       "parent": "declarations.Shop.Orders",
+      "signature": null,
       "span": "38:4-43:5",
       "static": false,
       "visibility": "internal"
@@ -399,6 +418,7 @@
       "kind": "method",
       "name": "declarations.Shop.Orders.IOrder.Submit",
       "parent": "declarations.Shop.Orders.IOrder",
+      "signature": null,
       "span": "40:8-40:22",
       "static": false,
       "visibility": "public"
@@ -408,6 +428,7 @@
       "kind": "property",
       "name": "declarations.Shop.Orders.IOrder.Total",
       "parent": "declarations.Shop.Orders.IOrder",
+      "signature": null,
       "span": "42:8-42:26",
       "static": false,
       "visibility": "public"
@@ -417,6 +438,7 @@
       "kind": "struct",
       "name": "declarations.Shop.Orders.Money",
       "parent": "declarations.Shop.Orders",
+      "signature": null,
       "span": "45:4-45:27",
       "static": false,
       "visibility": "public"
@@ -426,6 +448,7 @@
       "kind": "record",
       "name": "declarations.Shop.Orders.Point",
       "parent": "declarations.Shop.Orders",
+      "signature": null,
       "span": "47:4-47:54",
       "static": false,
       "visibility": "public"
@@ -435,6 +458,7 @@
       "kind": "property",
       "name": "declarations.Shop.Orders.Point.X",
       "parent": "declarations.Shop.Orders.Point",
+      "signature": null,
       "span": "47:40-47:45",
       "static": false,
       "visibility": "public"
@@ -444,6 +468,7 @@
       "kind": "property",
       "name": "declarations.Shop.Orders.Point.Y",
       "parent": "declarations.Shop.Orders.Point",
+      "signature": null,
       "span": "47:47-47:52",
       "static": false,
       "visibility": "public"
@@ -453,6 +478,7 @@
       "kind": "record",
       "name": "declarations.Shop.Orders.Customer",
       "parent": "declarations.Shop.Orders",
+      "signature": null,
       "span": "49:4-49:40",
       "static": false,
       "visibility": "public"
@@ -462,6 +488,7 @@
       "kind": "property",
       "name": "declarations.Shop.Orders.Customer.Name",
       "parent": "declarations.Shop.Orders.Customer",
+      "signature": null,
       "span": "49:27-49:38",
       "static": false,
       "visibility": "public"
@@ -471,6 +498,7 @@
       "kind": "enum",
       "name": "declarations.Shop.Orders.Status",
       "parent": "declarations.Shop.Orders",
+      "signature": null,
       "span": "51:4-55:5",
       "static": false,
       "visibility": "public"
@@ -480,6 +508,7 @@
       "kind": "enum_member",
       "name": "declarations.Shop.Orders.Status.Open",
       "parent": "declarations.Shop.Orders.Status",
+      "signature": null,
       "span": "53:8-53:12",
       "static": false,
       "visibility": "public"
@@ -489,6 +518,7 @@
       "kind": "enum_member",
       "name": "declarations.Shop.Orders.Status.Closed",
       "parent": "declarations.Shop.Orders.Status",
+      "signature": null,
       "span": "54:8-54:18",
       "static": false,
       "visibility": "public"
@@ -498,6 +528,7 @@
       "kind": "type_alias",
       "name": "declarations.Shop.Orders.Handler",
       "parent": "declarations.Shop.Orders",
+      "signature": null,
       "span": "57:4-57:44",
       "static": false,
       "visibility": "public"
@@ -507,6 +538,7 @@
       "kind": "class",
       "name": "declarations.Shop.Orders.Hidden",
       "parent": "declarations.Shop.Orders",
+      "signature": null,
       "span": "59:4-59:20",
       "static": false,
       "visibility": "internal"

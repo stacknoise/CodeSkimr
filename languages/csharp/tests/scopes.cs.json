@@ -225,6 +225,7 @@
       "kind": "module",
       "name": "scopes",
       "parent": null,
+      "signature": null,
       "span": "0:0-30:0",
       "static": false,
       "visibility": null
@@ -234,6 +235,7 @@
       "kind": "namespace",
       "name": "scopes.Shop.Orders",
       "parent": "scopes",
+      "signature": null,
       "span": "0:0-30:0",
       "static": false,
       "visibility": null
@@ -243,6 +245,7 @@
       "kind": "class",
       "name": "scopes.Shop.Orders.Order",
       "parent": "scopes.Shop.Orders",
+      "signature": null,
       "span": "2:0-29:1",
       "static": false,
       "visibility": "public"
@@ -252,6 +255,7 @@
       "kind": "field",
       "name": "scopes.Shop.Orders.Order.lines",
       "parent": "scopes.Shop.Orders.Order",
+      "signature": null,
       "span": "4:32-4:56",
       "static": false,
       "visibility": "private"
@@ -261,6 +265,7 @@
       "kind": "field",
       "name": "scopes.Shop.Orders.Order.printer",
       "parent": "scopes.Shop.Orders.Order",
+      "signature": null,
       "span": "5:20-5:27",
       "static": false,
       "visibility": "private"
@@ -270,6 +275,7 @@
       "kind": "property",
       "name": "scopes.Shop.Orders.Order.Total",
       "parent": "scopes.Shop.Orders.Order",
+      "signature": null,
       "span": "6:4-6:34",
       "static": false,
       "visibility": "public"
@@ -279,6 +285,7 @@
       "kind": "constructor",
       "name": "scopes.Shop.Orders.Order.Order",
       "parent": "scopes.Shop.Orders.Order",
+      "signature": null,
       "span": "8:4-13:5",
       "static": false,
       "visibility": "public"
@@ -288,6 +295,7 @@
       "kind": "method",
       "name": "scopes.Shop.Orders.Order.Save",
       "parent": "scopes.Shop.Orders.Order",
+      "signature": null,
       "span": "15:4-28:5",
       "static": false,
       "visibility": "public"

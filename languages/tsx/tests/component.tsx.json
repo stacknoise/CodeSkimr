@@ -126,6 +126,7 @@
       "kind": "module",
       "name": "component",
       "parent": null,
+      "signature": null,
       "span": "0:0-18:0",
       "static": false,
       "visibility": null
@@ -135,6 +136,7 @@
       "kind": "function",
       "name": "component.Greeting",
       "parent": "component",
+      "signature": null,
       "span": "3:7-6:1",
       "static": false,
       "visibility": "public"
@@ -144,6 +146,7 @@
       "kind": "class",
       "name": "component.Panel",
       "parent": "component",
+      "signature": null,
       "span": "8:7-13:1",
       "static": false,
       "visibility": "public"
@@ -153,6 +156,7 @@
       "kind": "method",
       "name": "component.Panel.render",
       "parent": "component.Panel",
+      "signature": null,
       "span": "10:2-12:3",
       "static": false,
       "visibility": "public"
@@ -162,6 +166,7 @@
       "kind": "function",
       "name": "component.Card",
       "parent": "component",
+      "signature": null,
       "span": "15:20-15:79",
       "static": false,
       "visibility": "public"
@@ -171,6 +176,7 @@
       "kind": "constant",
       "name": "component.element",
       "parent": "component",
+      "signature": "element = <div />",
       "span": "17:13-17:30",
       "static": false,
       "visibility": "public"

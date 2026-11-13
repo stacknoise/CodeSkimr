@@ -12,8 +12,6 @@ publish = false
 workspace = true
 
 [dependencies]
-codeskimr_application = { path = "../../application" }
-codeskimr_domain = { path = "../../domain" }
 codeskimr_codes = { path = "../../codes" }
 fluent-bundle = "0.16"
 unic-langid = "0.9"

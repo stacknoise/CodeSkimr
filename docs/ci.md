@@ -24,6 +24,12 @@ These names must be entered as required status checks in the ruleset `main` (nam
 | `bench` | criterion benchmarks of `tools/bench` for the base commit and the change on the same runner; fails on a slowdown above the tolerance or a budget breach (`docs/benchmarks.md`) | 16.1 |
 | `e2e` | placeholder until the frontend project (`web/package.json`) exists | 17.3 |
 
+## Temporary exception: macOS build
+
+Since 2026-11-13 the job `build (macos-latest)` has `continue-on-error: true` and the macOS build has `timeout-minutes: 20` (other build jobs 60), because the macOS runners were not available reliably and blocked all pull requests.
+A failed or timed-out macOS build now reports success to the ruleset, so the required check no longer blocks. This is a temporary exception to blueprint 17.3 (11), tracked in issue #131; the exception must be removed again (delete the `continue-on-error` line and this section).
+Limit: a job that never gets a runner stays `queued`, and `timeout-minutes` only starts once a runner picks it up. In that case the check stays pending and only a change of the ruleset (untick `build (macos-latest)` under required checks) helps.
+
 The placeholder `e2e` passes with a clearly printed "NOT ACTIVE YET" notice.
 As soon as `web/package.json` appears, the job fails on purpose until it is wired up, so a placeholder cannot be forgotten.
 
@@ -44,10 +50,6 @@ Rule R-06 is enforced by a Dylint lint in `tools/lints/no_literals`. It is a sep
 
 Never rename a job without updating the ruleset. Never loosen a check to get a PR green.
 When a check is added, tell the product owner so it can be added as required.
-
-## Temporary exceptions
-
-- `[workspace.metadata.cargo-machete]` in `Cargo.toml` ignores the declared but not yet used workspace dependencies of the skeleton crates. Remove entries as crates get code; the list must be empty at milestone M1.
 
 ## Architecture check: scope and limits
 

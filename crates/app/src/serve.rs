@@ -2,13 +2,11 @@
 
 use std::future::Future;
 use std::net::{Ipv4Addr, SocketAddr};
-use std::sync::Arc;
 use std::time::Duration;
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::ports::CredentialStore;
-use codeskimr_application::registry::Registry;
 use codeskimr_cli::GlobalOptions;
 use codeskimr_codes::ErrorCode;
 use codeskimr_secrets::{OsCredentialStore, OsKeystore};
@@ -16,7 +14,7 @@ use codeskimr_server::{CommandApi, EditorSettings, Server, UiOptions, UiSettings
 
 use crate::consts::URL_SCHEME;
 use crate::locations::Locations;
-use crate::{config_files, installation_token, principal};
+use crate::{config_files, installation_token, principal, ui_commands};
 
 /// Serves until the user interrupts the program. `listening` is called once with the address as
 /// soon as the server answers.
@@ -35,7 +33,12 @@ pub fn run(
 ) -> Result<(), CodedError> {
     let config = config_files::load(locations, global, None)?;
     let store = OsCredentialStore::new(OsKeystore);
-    let ui = ui_options(&config, locations);
+    let events = EventBus::new();
+    let parts = Parts {
+        ui: ui_options(&config, locations),
+        api: ui_commands::command_api(global, locations, events.clone())?,
+        events,
+    };
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -43,7 +46,7 @@ pub fn run(
         .block_on(serve(
             &store,
             config.server.port,
-            ui,
+            parts,
             listening,
             interrupted(),
         ))
@@ -65,21 +68,29 @@ fn ui_options(config: &codeskimr_application::config::Config, locations: &Locati
     }
 }
 
+/// What the server offers: the UI, the commands over REST and the events over the WebSocket. The
+/// commands publish on the same bus the WebSocket streams.
+pub(crate) struct Parts {
+    pub ui: UiOptions,
+    pub api: CommandApi,
+    pub events: EventBus,
+}
+
 /// Wires the server and runs it until `shutdown` completes.
 pub(crate) async fn serve(
     store: &impl CredentialStore,
     port: u16,
-    ui: UiOptions,
+    parts: Parts,
     listening: impl FnOnce(&str),
     shutdown: impl Future<Output = ()> + Send + 'static,
 ) -> Result<(), CodedError> {
     let token = installation_token::load_or_create(store)?;
     let server = Server::new(
-        command_api(),
-        EventBus::new(),
+        parts.api,
+        parts.events,
         principal::resolve(),
         token,
-        ui,
+        parts.ui,
     );
     let bound = server
         .bind(SocketAddr::from((Ipv4Addr::LOCALHOST, port)))
@@ -90,10 +101,16 @@ pub(crate) async fn serve(
     bound.serve(shutdown).await
 }
 
-/// The commands that are reachable over REST. The feature packages register their commands here
-/// and expose them with `CommandApi::expose`; there is none yet.
-fn command_api() -> CommandApi {
-    CommandApi::new(Arc::new(Registry::new()))
+/// A server without any command, for the tests of the wiring.
+#[cfg(test)]
+pub(crate) fn bare_parts(ui: UiOptions) -> Parts {
+    Parts {
+        ui,
+        api: CommandApi::new(std::sync::Arc::new(
+            codeskimr_application::registry::Registry::new(),
+        )),
+        events: EventBus::new(),
+    }
 }
 
 /// Completes when the user presses Ctrl+C. If the signal cannot be watched, the server runs on
@@ -122,7 +139,7 @@ pub(crate) fn test_ui() -> UiOptions {
 #[cfg(test)]
 pub(crate) fn serve_for_test(
     store: &impl CredentialStore,
-    ui: UiOptions,
+    parts: Parts,
     found: &std::sync::mpsc::Sender<String>,
     stopped: tokio::sync::oneshot::Receiver<()>,
 ) -> Result<(), CodedError> {
@@ -134,7 +151,7 @@ pub(crate) fn serve_for_test(
     let shutdown = async {
         stopped.await.ok();
     };
-    runtime.block_on(serve(store, 0, ui, listening, shutdown))
+    runtime.block_on(serve(store, 0, parts, listening, shutdown))
 }
 
 #[cfg(test)]
@@ -182,7 +199,7 @@ mod tests {
             .block_on(serve(
                 &store,
                 0,
-                test_ui(),
+                bare_parts(test_ui()),
                 |url| found.send(url.to_owned()).unwrap(),
                 async {
                     stopped.await.ok();

@@ -97,6 +97,7 @@
       "kind": "module",
       "name": "sample",
       "parent": null,
+      "signature": null,
       "span": "0:0-42:0",
       "static": false,
       "visibility": null
@@ -106,6 +107,7 @@
       "kind": "struct",
       "name": "sample.Order",
       "parent": "sample",
+      "signature": null,
       "span": "3:5-6:1",
       "static": false,
       "visibility": null
@@ -115,6 +117,7 @@
       "kind": "interface",
       "name": "sample.Pricer",
       "parent": "sample",
+      "signature": null,
       "span": "9:5-11:1",
       "static": false,
       "visibility": null
@@ -124,6 +127,7 @@
       "kind": "type_alias",
       "name": "sample.Money",
       "parent": "sample",
+      "signature": null,
       "span": "13:5-13:20",
       "static": false,
       "visibility": null
@@ -133,6 +137,7 @@
       "kind": "type_alias",
       "name": "sample.Code",
       "parent": "sample",
+      "signature": null,
       "span": "15:5-15:13",
       "static": false,
       "visibility": null
@@ -142,6 +147,7 @@
       "kind": "function",
       "name": "sample.NewOrder",
       "parent": "sample",
+      "signature": null,
       "span": "18:0-25:1",
       "static": false,
       "visibility": null
@@ -151,6 +157,7 @@
       "kind": "method",
       "name": "sample.Add",
       "parent": "sample",
+      "signature": null,
       "span": "28:0-35:1",
       "static": false,
       "visibility": null
@@ -160,6 +167,7 @@
       "kind": "method",
       "name": "sample.Run",
       "parent": "sample",
+      "signature": null,
       "span": "39:0-39:25",
       "static": false,
       "visibility": null
@@ -169,6 +177,7 @@
       "kind": "method",
       "name": "sample.Run",
       "parent": "sample",
+      "signature": null,
       "span": "41:0-41:24",
       "static": false,
       "visibility": null

@@ -294,6 +294,7 @@
       "kind": "module",
       "name": "metrics",
       "parent": null,
+      "signature": null,
       "span": "0:0-83:0",
       "static": false,
       "visibility": null
@@ -303,6 +304,7 @@
       "kind": "function",
       "name": "metrics::plain",
       "parent": "metrics",
+      "signature": null,
       "span": "2:0-4:1",
       "static": false,
       "visibility": "public"
@@ -312,6 +314,7 @@
       "kind": "function",
       "name": "metrics::branches",
       "parent": "metrics",
+      "signature": null,
       "span": "7:0-15:1",
       "static": false,
       "visibility": "public"
@@ -321,6 +324,7 @@
       "kind": "function",
       "name": "metrics::patterns",
       "parent": "metrics",
+      "signature": null,
       "span": "18:0-28:1",
       "static": false,
       "visibility": "public"
@@ -330,6 +334,7 @@
       "kind": "function",
       "name": "metrics::loops",
       "parent": "metrics",
+      "signature": null,
       "span": "31:0-43:1",
       "static": false,
       "visibility": "public"
@@ -339,6 +344,7 @@
       "kind": "function",
       "name": "metrics::arms",
       "parent": "metrics",
+      "signature": null,
       "span": "46:0-52:1",
       "static": false,
       "visibility": "public"
@@ -348,6 +354,7 @@
       "kind": "function",
       "name": "metrics::wildcard_guard",
       "parent": "metrics",
+      "signature": null,
       "span": "55:0-60:1",
       "static": false,
       "visibility": "public"
@@ -357,6 +364,7 @@
       "kind": "function",
       "name": "metrics::not_counted",
       "parent": "metrics",
+      "signature": null,
       "span": "63:0-69:1",
       "static": false,
       "visibility": "public"
@@ -366,6 +374,7 @@
       "kind": "function",
       "name": "metrics::outer",
       "parent": "metrics",
+      "signature": null,
       "span": "72:0-77:1",
       "static": false,
       "visibility": "public"
@@ -375,6 +384,7 @@
       "kind": "function",
       "name": "metrics::outer::local",
       "parent": "metrics::outer",
+      "signature": null,
       "span": "73:4-75:5",
       "static": false,
       "visibility": "private"
@@ -384,6 +394,7 @@
       "kind": "function",
       "name": "metrics::calls",
       "parent": "metrics",
+      "signature": null,
       "span": "79:0-82:1",
       "static": false,
       "visibility": "public"

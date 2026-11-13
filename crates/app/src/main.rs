@@ -28,6 +28,7 @@ mod run;
 mod scan;
 mod serve;
 mod source_arg;
+mod ui_commands;
 mod watch;
 mod wiring;
 
