@@ -31,7 +31,7 @@ describe("openInEditor", () => {
 
   it("opens the declaration of the symbol at its line", async () => {
     await openInEditor(7, 3);
-    expect(open).toHaveBeenCalledWith("vscode://file//work/app/src/a%20b.cs:12");
+    expect(open).toHaveBeenCalledWith("vscode://file/work/app/src/a%20b.cs:12");
   });
 
   it("swallows a failing command instead of rejecting", async () => {

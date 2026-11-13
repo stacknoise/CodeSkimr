@@ -34,6 +34,13 @@ export function encodePath(path: string): string {
     .join(PATH_SEPARATOR);
 }
 
+/** The path without its leading slash when the template already has a slash before `{path}`, so
+ * that `vscode://file/{path}` gives `vscode://file/home/a.rs` and not `vscode://file//home/a.rs`. */
+function dropDoubleSlash(template: string, path: string): string {
+  const slashBefore = template.includes(`${PATH_SEPARATOR}${PLACEHOLDER_PATH}`);
+  return slashBefore && path.startsWith(PATH_SEPARATOR) ? path.slice(PATH_SEPARATOR.length) : path;
+}
+
 /** The link that opens `path` at `line` in the editor, or `null` if the template is not usable:
  * a scheme that is not on the allow-list, no scheme, or no place for the path. The server checks
  * the same when it reads the setting; the UI does not trust the answer blindly, because the
@@ -51,7 +58,7 @@ export function buildEditorUrl(config: EditorConfig, path: string, line?: number
     line !== undefined && Number.isInteger(line) && line >= FIRST_LINE ? line : FIRST_LINE;
   return config.url_template
     .split(PLACEHOLDER_PATH)
-    .join(encodePath(path))
+    .join(encodePath(dropDoubleSlash(config.url_template, path)))
     .split(PLACEHOLDER_LINE)
     .join(String(shown));
 }
