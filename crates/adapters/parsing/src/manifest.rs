@@ -19,6 +19,19 @@ pub enum Tier {
     Basic,
 }
 
+/// A visibility that follows from the spelling of a name, such as the leading underscore of Python.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NameRule {
+    /// The name starts with this text.
+    pub prefix: String,
+    /// The name also ends with this text; without it the end does not matter.
+    #[serde(default)]
+    pub suffix: Option<String>,
+    /// Visibility label of a matching name.
+    pub visibility: String,
+}
+
 /// Visibility rules of a language.
 #[derive(Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -34,6 +47,10 @@ pub struct VisibilityRules {
     /// Keyword text to visibility label.
     #[serde(default)]
     pub keywords: HashMap<String, String>,
+    /// Rules by the spelling of the name; the first matching rule counts. They apply when no
+    /// keyword does.
+    #[serde(default)]
+    pub name_rules: Vec<NameRule>,
 }
 
 /// Tags that enclose the summary inside a documentation comment, such as `<summary>` in C#.
@@ -78,6 +95,10 @@ pub struct PackManifest {
     /// Modifier keyword to symbol kind label; a declaration with the keyword gets that kind.
     #[serde(default)]
     pub modifier_kinds: HashMap<String, String>,
+    /// Kind label of the parent to (kind label of a declaration to kind label it gets there), such
+    /// as a `function` inside a `class` being a `method`.
+    #[serde(default)]
+    pub kinds_by_parent: HashMap<String, HashMap<String, String>>,
     /// Modifier keywords that make a declaration static.
     #[serde(default)]
     pub static_keywords: Vec<String>,

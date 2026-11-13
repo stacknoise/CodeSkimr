@@ -1,0 +1,634 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 64,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations"
+    },
+    {
+      "decisions": null,
+      "loc": 40,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Shape"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        3,
+        4
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "declarations.Shape.__init__"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "declarations.Shape.area"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.Shape._helper"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.Shape.__mangled"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "declarations.Shape.__repr__"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "declarations.Shape.create"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        3
+      ],
+      "symbol": "declarations.Shape.from_text"
+    },
+    {
+      "decisions": null,
+      "loc": 5,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Shape.Inner"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "declarations.Shape.Inner.method"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "declarations.Shape.Inner.method.local"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "declarations.top_level"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "declarations.top_level.nested"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "declarations.fetch"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.decorated"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.platform"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "declarations.property"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "declarations.property._inner"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.__init__"
+    }
+  ],
+  "loc": 64,
+  "references": [
+    {
+      "at": "2:7",
+      "from": "declarations",
+      "kind": "import",
+      "receiver": null,
+      "target": "os"
+    },
+    {
+      "at": "4:0",
+      "from": "declarations.MAX_SIZE",
+      "kind": "write",
+      "receiver": null,
+      "target": "MAX_SIZE"
+    },
+    {
+      "at": "5:0",
+      "from": "declarations",
+      "kind": "write",
+      "receiver": null,
+      "target": "_cache"
+    },
+    {
+      "at": "8:12",
+      "from": "declarations.Shape",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Base"
+    },
+    {
+      "at": "14:4",
+      "from": "declarations.Shape.sides",
+      "kind": "write",
+      "receiver": null,
+      "target": "sides"
+    },
+    {
+      "at": "14:11",
+      "from": "declarations.Shape.sides",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "int"
+    },
+    {
+      "at": "15:4",
+      "from": "declarations.Shape.label",
+      "kind": "write",
+      "receiver": null,
+      "target": "label"
+    },
+    {
+      "at": "16:4",
+      "from": "declarations.Shape._hidden",
+      "kind": "write",
+      "receiver": null,
+      "target": "_hidden"
+    },
+    {
+      "at": "17:4",
+      "from": "declarations.Shape.__secret",
+      "kind": "write",
+      "receiver": null,
+      "target": "__secret"
+    },
+    {
+      "at": "21:13",
+      "from": "declarations.Shape.__init__",
+      "kind": "write",
+      "receiver": "own",
+      "target": "sides"
+    },
+    {
+      "at": "39:15",
+      "from": "declarations.Shape.create",
+      "kind": "call",
+      "receiver": null,
+      "target": "Shape"
+    },
+    {
+      "at": "43:19",
+      "from": "declarations.Shape.from_text",
+      "kind": "call",
+      "receiver": null,
+      "target": "len"
+    },
+    {
+      "at": "48:20",
+      "from": "declarations.Shape.name",
+      "kind": "read",
+      "receiver": "own",
+      "target": "label"
+    },
+    {
+      "at": "50:5",
+      "from": "declarations.Shape",
+      "kind": "read",
+      "receiver": null,
+      "target": "name"
+    },
+    {
+      "at": "52:13",
+      "from": "declarations.Shape.name",
+      "kind": "write",
+      "receiver": "own",
+      "target": "label"
+    },
+    {
+      "at": "59:19",
+      "from": "declarations.Shape.Inner.method",
+      "kind": "call",
+      "receiver": null,
+      "target": "local"
+    },
+    {
+      "at": "68:11",
+      "from": "declarations.top_level",
+      "kind": "call",
+      "receiver": null,
+      "target": "nested"
+    },
+    {
+      "at": "75:1",
+      "from": "declarations",
+      "kind": "call",
+      "receiver": null,
+      "target": "decorator"
+    },
+    {
+      "at": "80:3",
+      "from": "declarations",
+      "kind": "read",
+      "receiver": null,
+      "target": "os"
+    },
+    {
+      "at": "92:11",
+      "from": "declarations.property",
+      "kind": "read",
+      "receiver": null,
+      "target": "_inner"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "declarations",
+      "parent": null,
+      "span": "0:0-97:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "declarations.MAX_SIZE",
+      "parent": "declarations",
+      "span": "4:0-4:13",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "A shape.\n\nWith a second paragraph.",
+      "kind": "class",
+      "name": "declarations.Shape",
+      "parent": "declarations",
+      "span": "8:0-59:26",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Shape.sides",
+      "parent": "declarations.Shape",
+      "span": "14:4-14:18",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Shape.label",
+      "parent": "declarations.Shape",
+      "span": "15:4-15:19",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Shape._hidden",
+      "parent": "declarations.Shape",
+      "span": "16:4-16:15",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Shape.__secret",
+      "parent": "declarations.Shape",
+      "span": "17:4-17:16",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": "Create a shape.",
+      "kind": "constructor",
+      "name": "declarations.Shape.__init__",
+      "parent": "declarations.Shape",
+      "span": "19:4-21:26",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "Return the area.",
+      "kind": "method",
+      "name": "declarations.Shape.area",
+      "parent": "declarations.Shape",
+      "span": "23:4-25:16",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations.Shape._helper",
+      "parent": "declarations.Shape",
+      "span": "27:4-28:12",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations.Shape.__mangled",
+      "parent": "declarations.Shape",
+      "span": "30:4-31:12",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations.Shape.__repr__",
+      "parent": "declarations.Shape",
+      "span": "33:4-34:22",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "Make one.",
+      "kind": "method",
+      "name": "declarations.Shape.create",
+      "parent": "declarations.Shape",
+      "span": "37:4-39:23",
+      "static": true,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations.Shape.from_text",
+      "parent": "declarations.Shape",
+      "span": "42:4-43:29",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "The name.",
+      "kind": "property",
+      "name": "declarations.Shape.name",
+      "parent": "declarations.Shape",
+      "span": "46:4-48:25",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "declarations.Shape.name",
+      "parent": "declarations.Shape",
+      "span": "51:4-52:26",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "declarations.Shape.Inner",
+      "parent": "declarations.Shape",
+      "span": "54:4-59:26",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations.Shape.Inner.method",
+      "parent": "declarations.Shape.Inner",
+      "span": "55:8-59:26",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations.Shape.Inner.method.local",
+      "parent": "declarations.Shape.Inner.method",
+      "span": "56:12-57:24",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "Top level function.",
+      "kind": "function",
+      "name": "declarations.top_level",
+      "parent": "declarations",
+      "span": "62:0-68:19",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations.top_level.nested",
+      "parent": "declarations.top_level",
+      "span": "65:4-66:16",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations.fetch",
+      "parent": "declarations",
+      "span": "71:0-72:14",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations.decorated",
+      "parent": "declarations",
+      "span": "76:0-77:8",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations.platform",
+      "parent": "declarations",
+      "span": "82:4-83:12",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "A plain function that is named like a decorator.",
+      "kind": "function",
+      "name": "declarations.property",
+      "parent": "declarations",
+      "span": "86:0-92:17",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations.property._inner",
+      "parent": "declarations.property",
+      "span": "89:4-90:20",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "constructor",
+      "name": "declarations.__init__",
+      "parent": "declarations",
+      "span": "95:0-96:8",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

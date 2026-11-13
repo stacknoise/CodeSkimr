@@ -1,8 +1,9 @@
-//! Corpus test (blueprint 17.2): scans the pinned public C# project of `corpus/csharp` and
-//! compares the symbol counts and a hand-checked sample with `corpus/csharp/corpus.toml`.
+//! Corpus test (blueprint 17.2): scans the pinned public project of every `corpus/<language>` and
+//! compares the symbol counts and a hand-checked sample with its `corpus.toml`.
 //!
 //! The project is fetched with `git` at the pinned commit into `target/corpus/` on first use.
-//! Set `CODESKIMR_CORPUS_DIR` to use an existing checkout instead. Set `CODESKIMR_BLESS=1` to
+//! Set `CODESKIMR_CORPUS_DIR` to use an existing checkout of the C# project instead (or of the
+//! language named in `CODESKIMR_CORPUS_LANGUAGE`). Set `CODESKIMR_BLESS=1` to
 //! print the measured counts instead of comparing.
 
 #[cfg(test)]
@@ -38,6 +39,13 @@ mod tests {
         repository: String,
         commit: String,
         skip_folders: Vec<String>,
+        /// Id of the language pack that analyzes the files.
+        language: String,
+        /// File extensions of the sources, without the dot.
+        extensions: Vec<String>,
+        /// File name endings that mark generated files to skip.
+        #[serde(default)]
+        skip_suffixes: Vec<String>,
     }
 
     /// A symbol that was checked by hand in the source.
@@ -87,11 +95,15 @@ mod tests {
     /// The pinned commit in `target/corpus`; a folder that cannot be checked out again (for example
     /// pruned by a build cache) is fetched anew.
     fn checkout(project: &Project) -> PathBuf {
-        if let Some(dir) = std::env::var_os("CODESKIMR_CORPUS_DIR") {
+        let language = std::env::var("CODESKIMR_CORPUS_LANGUAGE").unwrap_or("csharp".to_owned());
+        if language == project.language
+            && let Some(dir) = std::env::var_os("CODESKIMR_CORPUS_DIR")
+        {
             return PathBuf::from(dir);
         }
         let dir = workspace()
-            .join("target/corpus/csharp")
+            .join("target/corpus")
+            .join(&project.language)
             .join(&project.commit);
         let present =
             dir.join(".git").exists() && git(&dir, &["checkout", "-q", "-f", &project.commit]);
@@ -104,17 +116,26 @@ mod tests {
         dir
     }
 
-    fn sources(dir: &Path, skip: &[String], found: &mut Vec<PathBuf>) {
+    fn is_source(project: &Project, path: &Path, name: &str) -> bool {
+        path.extension()
+            .is_some_and(|e| project.extensions.iter().any(|x| e == x.as_str()))
+            && !project
+                .skip_suffixes
+                .iter()
+                .any(|s| name.ends_with(s.as_str()))
+    }
+
+    fn sources(dir: &Path, project: &Project, found: &mut Vec<PathBuf>) {
         let mut entries: Vec<_> = fs::read_dir(dir).expect("folder").flatten().collect();
         entries.sort_by_key(fs::DirEntry::path);
         for entry in entries {
             let path = entry.path();
             let name = entry.file_name().to_string_lossy().into_owned();
             if path.is_dir() {
-                if !skip.contains(&name) && name != ".git" {
-                    sources(&path, skip, found);
+                if !project.skip_folders.contains(&name) && name != ".git" {
+                    sources(&path, project, found);
                 }
-            } else if path.extension().is_some_and(|e| e == "cs") && !name.ends_with(".g.cs") {
+            } else if is_source(project, &path, &name) {
                 found.push(path);
             }
         }
@@ -137,13 +158,13 @@ mod tests {
         references: Vec<(String, &'static str, String, u32)>,
     }
 
-    fn scan(root: &Path, skip: &[String]) -> Scan {
+    fn scan(root: &Path, project: &Project) -> Scan {
         let analyzer = TreeSitterAnalyzer::new(
             LanguagePacks::load(&workspace().join("languages")).expect("packs"),
             Duration::from_secs(10),
         );
         let mut files = Vec::new();
-        sources(root, skip, &mut files);
+        sources(root, project, &mut files);
         let folder = FolderPath::new(root.to_string_lossy()).expect("root");
         let ids = IdSequence::starting_at(1);
         let mut scan = Scan::default();
@@ -151,7 +172,7 @@ mod tests {
         for path in &files {
             let relative = path.strip_prefix(root).expect("inside root");
             let relative = relative.to_string_lossy().replace('\\', "/");
-            let facts = analyze_file(&analyzer, &ids, &folder, &relative, "csharp");
+            let facts = analyze_file(&analyzer, &ids, &folder, &relative, &project.language);
             record(&mut scan, &relative, &facts);
         }
         scan
@@ -248,16 +269,30 @@ mod tests {
 
     #[test]
     fn scan_matches_the_expected_counts_and_sample() {
-        let text = fs::read_to_string(workspace().join("corpus/csharp/corpus.toml"));
-        let corpus: Corpus =
-            toml::from_str(&text.expect("corpus.toml")).expect("valid corpus.toml");
-        let found = scan(&checkout(&corpus.project), &corpus.project.skip_folders);
-        if std::env::var_os("CODESKIMR_BLESS").is_some() {
-            println!("MEASURED {:#?}", found.counts);
-            println!("SUMMARY {:?}", summary(&found.counts));
-            return;
+        let mut folders: Vec<_> = fs::read_dir(workspace().join("corpus"))
+            .expect("corpus folder")
+            .flatten()
+            .map(|entry| entry.path())
+            .filter(|path| path.join("corpus.toml").is_file())
+            .collect();
+        folders.sort();
+        assert!(!folders.is_empty(), "no corpus.toml found");
+        for folder in folders {
+            let text = fs::read_to_string(folder.join("corpus.toml")).expect("corpus.toml");
+            let corpus: Corpus = toml::from_str(&text).expect("valid corpus.toml");
+            let found = scan(&checkout(&corpus.project), &corpus.project);
+            if std::env::var_os("CODESKIMR_BLESS").is_some() {
+                println!("MEASURED {} {:#?}", corpus.project.language, found.counts);
+                println!("SUMMARY {:?}", summary(&found.counts));
+                continue;
+            }
+            assert_eq!(
+                found.counts,
+                corpus.counts,
+                "symbol counts of {}",
+                folder.display()
+            );
+            check_samples(&corpus, &found);
         }
-        assert_eq!(found.counts, corpus.counts, "symbol counts");
-        check_samples(&corpus, &found);
     }
 }
