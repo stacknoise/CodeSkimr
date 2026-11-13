@@ -11,7 +11,7 @@ use codeskimr_domain::{
 use tree_sitter::{Node, QueryCapture, QueryCursor, StreamingIterator};
 
 use crate::captures::Capture;
-use crate::consts::{LINE_SEPARATOR, PATH_SEPARATOR};
+use crate::consts::{LINE_SEPARATOR, NO_EXTENSION, PATH_SEPARATOR};
 use crate::error::ParsingError;
 use crate::location::{span_of, text_of};
 use crate::pack::LanguagePack;
@@ -182,7 +182,7 @@ impl Builder<'_, '_> {
     fn add_module(&mut self, root: Node<'_>) -> Result<(), ParsingError> {
         let path = Path::new(self.ctx.path.as_str());
         let qualified = path
-            .with_extension("")
+            .with_extension(NO_EXTENSION)
             .to_string_lossy()
             .replace(PATH_SEPARATOR, &self.ctx.pack.separator);
         let name = path

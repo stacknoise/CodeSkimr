@@ -28,7 +28,7 @@ pub struct VisibilityRules {
 /// Parsed `language.toml`. Unknown keys are rejected so typos do not pass silently.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Manifest {
+pub struct PackManifest {
     /// Id of the language, equal to the folder name.
     pub id: String,
     /// Name of the built-in grammar.
@@ -42,8 +42,8 @@ pub struct Manifest {
     /// Syntax node kinds that are comments.
     pub comment_nodes: Vec<String>,
     /// Project manifest files such as `Cargo.toml`; used by later stages, not by parsing.
-    #[serde(default, rename = "manifest_files")]
-    pub project_files: Vec<String>,
+    #[serde(default)]
+    pub manifest_files: Vec<String>,
     /// Glob patterns of test files; used by later stages, not by parsing.
     #[serde(default)]
     pub test_patterns: Vec<String>,

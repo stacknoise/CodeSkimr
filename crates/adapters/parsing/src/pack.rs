@@ -12,7 +12,7 @@ use crate::captures::Vocabulary;
 use crate::consts::{ID_MISMATCH, MANIFEST_FILE, REFERENCES_QUERY_FILE, SYMBOLS_QUERY_FILE};
 use crate::error::ParsingError;
 use crate::grammar;
-use crate::manifest::{Manifest, Tier};
+use crate::manifest::{PackManifest, Tier};
 
 /// Everything the analyzer needs to understand one language.
 pub struct LanguagePack {
@@ -42,7 +42,7 @@ impl LanguagePack {
         let invalid = |reason: String| ParsingError::invalid(folder.clone(), reason);
         let text =
             fs::read_to_string(dir.join(MANIFEST_FILE)).map_err(|e| invalid(e.to_string()))?;
-        let manifest: Manifest = toml::from_str(&text).map_err(|e| invalid(e.to_string()))?;
+        let manifest: PackManifest = toml::from_str(&text).map_err(|e| invalid(e.to_string()))?;
         let language =
             grammar::builtin(&manifest.grammar).ok_or_else(|| invalid(manifest.grammar.clone()))?;
         let symbols = compile(&language, &dir.join(SYMBOLS_QUERY_FILE), &folder)?;
@@ -56,7 +56,7 @@ impl LanguagePack {
     }
 
     fn assemble(
-        manifest: Manifest,
+        manifest: PackManifest,
         language: Language,
         symbols: Vocabulary,
         references: Option<Vocabulary>,
@@ -83,7 +83,7 @@ impl LanguagePack {
             id,
             tier: manifest.tier,
             extensions: manifest.extensions,
-            project_files: manifest.project_files,
+            project_files: manifest.manifest_files,
             test_patterns: manifest.test_patterns,
             language,
             separator: manifest.separator,

@@ -40,3 +40,6 @@ pub const GRAMMAR_RUST: &str = "rust";
 
 /// Start of the reason when the `id` of a pack differs from its folder name.
 pub const ID_MISMATCH: &str = "id differs from the folder name: ";
+
+/// Replacement extension that removes the extension of a path.
+pub const NO_EXTENSION: &str = "";
