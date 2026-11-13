@@ -8,6 +8,7 @@ mod consts;
 mod error;
 mod file;
 mod fingerprint;
+mod graph_layout;
 mod layer;
 mod measure;
 mod metric;
@@ -25,6 +26,9 @@ pub use access::{Permission, PermissionSet, Principal};
 pub use error::ModelError;
 pub use file::{ContentHash, FileId, LanguageId, Loc, RelativePath, SourceFile};
 pub use fingerprint::{Fingerprint, FingerprintParams, Fingerprints, TokenId, winnow};
+pub use graph_layout::{
+    Layout, LayoutEdge, LayoutGraph, LayoutNode, LayoutParams, NodeIndex, NodePlacement, NodeSize,
+};
 pub use layer::LayerEdge;
 pub use measure::{BodyCounts, SymbolCounts, measure};
 pub use metric::{Metric, MetricKind, MetricValue};
