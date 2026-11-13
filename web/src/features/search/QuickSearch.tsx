@@ -3,6 +3,7 @@ import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
 import { cx } from "../../shared/ui/cx";
+import { Icon } from "../../shared/ui/Icon";
 import { ROW_HEIGHT_PX } from "../explorer/consts";
 import { KindBadge } from "../explorer/KindBadge";
 import { useWindow } from "../explorer/useWindow";
@@ -12,6 +13,7 @@ import {
   COMMAND_LETTER,
   DIALOG,
   FILTER,
+  ICON_SEARCH,
   GROUP_TITLE,
   INPUT_ID,
   LIST_ID,
@@ -114,6 +116,9 @@ function Chips() {
             aria-pressed={searchChip() === chip.filter}
             onClick={() => pickChip(chip.filter)}
           >
+            <Show when={chip.prefix}>
+              {(prefix) => <span class={styles.prefix}>{prefix()}</span>}
+            </Show>
             {t(chip.label)}
           </button>
         )}
@@ -176,6 +181,9 @@ function SearchInput(props: { entries: Entry[]; current: Entry | null }) {
   const selecting = () => input?.selectionStart !== input?.selectionEnd;
   return (
     <div class={styles.top}>
+      <span class={styles.lens}>
+        <Icon name={ICON_SEARCH} />
+      </span>
       <input
         id={INPUT_ID}
         ref={input}
@@ -199,6 +207,24 @@ function SearchInput(props: { entries: Entry[]; current: Entry | null }) {
           {t(I18N_KEYS.PALETTE_RESULT_COUNT, { count: props.entries.length, ms: searchMs() ?? 0 })}
         </span>
       </Show>
+      <kbd class={styles.key}>{t(I18N_KEYS.PALETTE_KEY_CLOSE)}</kbd>
+    </div>
+  );
+}
+
+function Footer() {
+  return (
+    <div class={styles.footer}>
+      <span>
+        <kbd class={styles.key}>{t(I18N_KEYS.PALETTE_KEY_UP)}</kbd>{" "}
+        <kbd class={styles.key}>{t(I18N_KEYS.PALETTE_KEY_DOWN)}</kbd>{" "}
+        {t(I18N_KEYS.PALETTE_HINT_SELECT)}
+      </span>
+      <span>
+        <kbd class={styles.key}>{t(I18N_KEYS.PALETTE_KEY_TAB)}</kbd>{" "}
+        {t(I18N_KEYS.PALETTE_HINT_FILTER)}
+      </span>
+      <span>{t(I18N_KEYS.PALETTE_HINT_FUZZY)}</span>
     </div>
   );
 }
@@ -235,7 +261,7 @@ function Overlay() {
           />
           <Preview hit={current()?.hit ?? null} />
         </div>
-        <div class={styles.footer}>{t(I18N_KEYS.PALETTE_HINT_FUZZY)}</div>
+        <Footer />
       </div>
     </div>
   );

@@ -42,8 +42,27 @@
     outline: none;
 }
 
-.count {
+.lens {
+    flex: none;
+    display: flex;
     color: var(--muted);
+}
+
+.key {
+    font: 11px var(--font-mono);
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-badge);
+    padding: 0 var(--space-6);
+}
+
+.prefix {
+    font-family: var(--font-mono);
+    margin-right: var(--space-4);
+}
+
+.count {
+    color: var(--good);
     font: 12px var(--font-mono);
     white-space: nowrap;
 }
@@ -219,4 +238,8 @@
     border-top: 1px solid var(--line);
     color: var(--muted);
     font: 12px var(--font-sans);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-16);
 }

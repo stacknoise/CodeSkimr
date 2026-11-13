@@ -245,6 +245,30 @@ test.describe("the screens against the mocks (1440 x 900, light)", () => {
     await shot(page, "search-hell", info);
   });
 
+  test("Settings (13)", async ({ page, harness }, info) => {
+    await openUi(page, harness);
+    await expect(page.getByText("● Connected")).toBeVisible();
+    await page.getByRole("link", { name: "Settings" }).click();
+    await expect(page.getByRole("heading", { name: "Language" })).toBeVisible();
+    const mock = await openMock(page, "Themes");
+    await compare(page, mock, [
+      ...SHELL,
+      {
+        name: "theme card",
+        mock: "main .panel",
+        real: "main section:nth-of-type(1)",
+        only: ["x", "width"],
+      },
+      {
+        name: "language card",
+        mock: "main .panel[style*='max-width:560px']",
+        real: "main section:nth-of-type(2)",
+        only: ["x", "width"],
+      },
+    ]);
+    await shot(page, "settings-hell", info);
+  });
+
   test("Scan and performance (5)", async ({ page, harness }, info) => {
     await prepare(page);
     await addScannedProject(page, harness, "visscan", SOURCE);

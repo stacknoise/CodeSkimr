@@ -123,7 +123,9 @@ describe("the quick search", () => {
     type("cart");
     fireEvent.keyDown(input(), { key: "Tab" });
     await waitFor(() => expect(screen.getAllByRole("option")).toHaveLength(1));
-    expect(screen.getByRole("button", { name: "Types" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "t: Types" }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
   });
 
   it("runs a command that was chosen with >", async () => {
@@ -228,7 +230,7 @@ describe("the quick search", () => {
     fireEvent.keyDown(input(), { key: "ArrowUp" });
     expect(screen.getAllByRole("option")[0]?.getAttribute("aria-selected")).toBe("true");
     fireEvent.keyDown(input(), { key: "Tab", shiftKey: true });
-    expect(screen.getByRole("button", { name: "Commands" }).getAttribute("aria-pressed")).toBe(
+    expect(screen.getByRole("button", { name: "> Commands" }).getAttribute("aria-pressed")).toBe(
       "true",
     );
     fireEvent.keyDown(input(), { key: "Tab" });
