@@ -1,0 +1,50 @@
+# config/default.toml - every tunable value of CodeSkimr (blueprint section 14).
+# It ships with the binary. Overrides are applied in this order:
+# user config file -> project config (.codeskimr.toml) -> command line flags.
+# Every key listed here is the complete set: unknown keys in an override are rejected (CFG-103).
+
+# Metric thresholds (blueprint 14). "good" and "medium" bounds; everything beyond is "poor".
+[metrics]
+# Cyclomatic complexity: at most this value is good, at most the medium value is medium.
+cyclomatic_good_max = 5
+cyclomatic_medium_max = 10
+# Maintainability index: at least this value is good, at least the medium value is medium.
+maintainability_good_min = 55
+maintainability_medium_min = 35
+# Instability (0.0 to 1.0): at most this value is stable, at most the medium value is medium.
+instability_stable_max = 0.5
+instability_medium_max = 0.8
+
+# Performance budgets (blueprint 16.1). CI measures them; the app uses them for self-checks.
+[budgets]
+cold_start_ms = 300
+search_keystroke_ms = 10
+explorer_switch_ms = 16
+usages_query_ms = 20
+graph_layout_ms = 50
+full_scan_100k_loc_ms = 1000
+incremental_rescan_ms = 300
+idle_cpu_percent = 0
+memory_1m_loc_mb = 500
+binary_size_mb = 60
+# A regression larger than this fails the benchmark check.
+regression_tolerance_percent = 10
+
+# Limits for MCP responses (blueprint 10): compact answers, never unbounded lists.
+[mcp]
+default_limit = 20
+max_limit = 100
+
+# Snapshot retention (blueprint 6): the last N snapshots per project are kept.
+[snapshots]
+retention_count = 5
+
+# File watcher (blueprint 7).
+[watcher]
+# File events within this window are collapsed into one re-scan.
+debounce_ms = 200
+
+# Scanning.
+[scan]
+# Folder names that are never scanned, at any depth.
+excluded_folders = ["bin", "obj", ".git", "node_modules", "target", "dist"]

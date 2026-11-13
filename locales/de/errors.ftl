@@ -5,6 +5,7 @@ error-APP-301 = Eine andere CodeSkimr-Instanz nutzt diesen Arbeitsbereich und di
 error-APP-901 = Es ist ein unerwarteter interner Fehler aufgetreten.
 error-CFG-101 = Ein Konfigurationswert liegt außerhalb des erlaubten Bereichs oder hat den falschen Typ.
 error-CFG-102 = Eine Konfigurationsdatei ist kein gültiges TOML.
+error-CFG-103 = Eine Konfigurationsdatei oder ein Parameter setzt eine Einstellung, die es nicht gibt.
 error-PRJ-101 = Die Quelle ist weder ein vorhandener Ordner noch eine gültige Git-Adresse.
 error-PRJ-201 = Es gibt kein Projekt mit dieser Kennung.
 error-PRJ-301 = Ein Projekt mit derselben Quelle ist bereits angelegt.
