@@ -294,17 +294,22 @@ fn mcp_answers_from_the_scanned_project() {
     assert!(hit.ends_with("Calculator"));
 }
 
-#[test]
-fn mcp_for_a_folder_that_was_never_scanned_fails_with_prj_201() {
-    let workspace = Workspace::new();
-    let output = workspace
+#[cfg(test)]
+fn mcp_without_input(workspace: &Workspace) -> Output {
+    workspace
         .command()
         .arg("mcp")
         .arg("--project")
         .arg(workspace.project())
         .stdin(Stdio::null())
         .output()
-        .unwrap();
+        .unwrap()
+}
+
+#[test]
+fn mcp_for_a_folder_that_was_never_scanned_fails_with_prj_201() {
+    let workspace = Workspace::new();
+    let output = mcp_without_input(&workspace);
     assert_eq!(output.status.code(), Some(1));
     assert!(stderr(&output).contains("PRJ-201"));
     assert_eq!(output.stdout, Vec::<u8>::new());
@@ -329,14 +334,7 @@ fn mcp_for_a_registered_project_without_snapshot_fails_with_mcp_203() {
     };
     store.save_project(&project).unwrap();
     drop(store);
-    let output = workspace
-        .command()
-        .arg("mcp")
-        .arg("--project")
-        .arg(workspace.project())
-        .stdin(Stdio::null())
-        .output()
-        .unwrap();
+    let output = mcp_without_input(&workspace);
     assert_eq!(output.status.code(), Some(1));
     assert!(stderr(&output).contains("MCP-203"));
 }
