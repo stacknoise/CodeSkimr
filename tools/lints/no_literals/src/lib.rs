@@ -71,7 +71,11 @@ impl NoLiterals {
                  `errors/error-codes.toml` or `languages/` (blueprint 3.2)",
             );
         };
-        cx.opt_span_lint(NO_LITERALS, Some(span), rustc_errors::DiagDecorator(decorate));
+        cx.opt_span_lint(
+            NO_LITERALS,
+            Some(span),
+            rustc_errors::DiagDecorator(decorate),
+        );
     }
 }
 

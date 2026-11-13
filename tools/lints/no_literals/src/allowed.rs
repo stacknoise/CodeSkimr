@@ -1,8 +1,8 @@
 //! The exceptions of blueprint rule R-06 and the span helpers that decide whether a literal
 //! belongs to the code under check or to a foreign macro expansion.
 
-use rustc_ast::token::{Lit, LitKind};
 use rustc_ast::Attribute;
+use rustc_ast::token::{Lit, LitKind};
 use rustc_lint::{EarlyContext, LintContext};
 use rustc_span::hygiene::{ExpnKind, MacroKind};
 use rustc_span::{FileName, Span, sym};
