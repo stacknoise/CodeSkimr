@@ -8,6 +8,7 @@ mod error;
 mod file;
 mod fingerprint;
 mod layer;
+mod measure;
 mod metric;
 mod metrics;
 mod project;
@@ -23,6 +24,7 @@ pub use error::ModelError;
 pub use file::{ContentHash, FileId, LanguageId, Loc, RelativePath, SourceFile};
 pub use fingerprint::{Fingerprint, FingerprintParams, Fingerprints, TokenId, winnow};
 pub use layer::LayerEdge;
+pub use measure::{BodyCounts, SymbolCounts, measure};
 pub use metric::{Metric, MetricKind, MetricValue};
 pub use metrics::{
     HalsteadCounts, LineKind, cyclomatic_complexity, lines_of_code, maintainability_index,

@@ -88,6 +88,8 @@ pub const CONFIDENCE_PROBABLE: &str = "probable";
 pub const METRIC_LOC: &str = "loc";
 /// Label of `MetricKind::CyclomaticComplexity`.
 pub const METRIC_CC: &str = "cc";
+/// Label of `MetricKind::CyclomaticComplexityMax`.
+pub const METRIC_CC_MAX: &str = "cc_max";
 /// Label of `MetricKind::MaintainabilityIndex`.
 pub const METRIC_MI: &str = "mi";
 /// Label of `MetricKind::EfferentCoupling`.
@@ -167,3 +169,6 @@ pub const URL_IPV6_START: char = '[';
 pub const SECRET_USER_SCHEMES: [&str; 2] = ["http", "https"];
 /// Characters besides letters and digits that a URL scheme may contain.
 pub const URL_SCHEME_EXTRA: &str = "+-.";
+
+/// Number of metrics of a measured callable: `loc`, `cc` and `mi`.
+pub const CALLABLE_METRICS: usize = 3;
