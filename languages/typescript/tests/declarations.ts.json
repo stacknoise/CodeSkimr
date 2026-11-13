@@ -306,6 +306,7 @@
       "kind": "module",
       "name": "declarations",
       "parent": null,
+      "signature": null,
       "span": "0:0-95:0",
       "static": false,
       "visibility": null
@@ -315,6 +316,7 @@
       "kind": "class",
       "name": "declarations.Order",
       "parent": "declarations",
+      "signature": null,
       "span": "8:7-43:1",
       "static": false,
       "visibility": "public"
@@ -324,6 +326,7 @@
       "kind": "field",
       "name": "declarations.Order.#secret",
       "parent": "declarations.Order",
+      "signature": null,
       "span": "9:2-9:13",
       "static": false,
       "visibility": "public"
@@ -333,6 +336,7 @@
       "kind": "field",
       "name": "declarations.Order.MAX",
       "parent": "declarations.Order",
+      "signature": null,
       "span": "10:2-10:43",
       "static": true,
       "visibility": "private"
@@ -342,6 +346,7 @@
       "kind": "field",
       "name": "declarations.Order.name",
       "parent": "declarations.Order",
+      "signature": null,
       "span": "11:2-11:21",
       "static": false,
       "visibility": "public"
@@ -351,6 +356,7 @@
       "kind": "field",
       "name": "declarations.Order.items",
       "parent": "declarations.Order",
+      "signature": null,
       "span": "12:2-12:18",
       "static": false,
       "visibility": "public"
@@ -360,6 +366,7 @@
       "kind": "method",
       "name": "declarations.Order.handler",
       "parent": "declarations.Order",
+      "signature": null,
       "span": "13:12-15:3",
       "static": false,
       "visibility": "public"
@@ -369,6 +376,7 @@
       "kind": "constructor",
       "name": "declarations.Order.constructor",
       "parent": "declarations.Order",
+      "signature": null,
       "span": "18:2-20:3",
       "static": false,
       "visibility": "public"
@@ -378,6 +386,7 @@
       "kind": "property",
       "name": "declarations.Order.total",
       "parent": "declarations.Order",
+      "signature": null,
       "span": "22:2-24:3",
       "static": false,
       "visibility": "public"
@@ -387,6 +396,7 @@
       "kind": "property",
       "name": "declarations.Order.total",
       "parent": "declarations.Order",
+      "signature": null,
       "span": "26:2-26:29",
       "static": false,
       "visibility": "public"
@@ -396,6 +406,7 @@
       "kind": "method",
       "name": "declarations.Order.create",
       "parent": "declarations.Order",
+      "signature": null,
       "span": "28:2-30:3",
       "static": true,
       "visibility": "public"
@@ -405,6 +416,7 @@
       "kind": "method",
       "name": "declarations.Order.validate",
       "parent": "declarations.Order",
+      "signature": null,
       "span": "32:2-32:40",
       "static": false,
       "visibility": "protected"
@@ -414,6 +426,7 @@
       "kind": "method",
       "name": "declarations.Order.helper",
       "parent": "declarations.Order",
+      "signature": null,
       "span": "34:2-34:21",
       "static": false,
       "visibility": "private"
@@ -423,6 +436,7 @@
       "kind": "method",
       "name": "declarations.Order.plain",
       "parent": "declarations.Order",
+      "signature": null,
       "span": "37:2-37:12",
       "static": false,
       "visibility": "public"
@@ -432,6 +446,7 @@
       "kind": "method",
       "name": "declarations.Order.overload",
       "parent": "declarations.Order",
+      "signature": null,
       "span": "40:2-40:30",
       "static": false,
       "visibility": "public"
@@ -441,6 +456,7 @@
       "kind": "method",
       "name": "declarations.Order.generate",
       "parent": "declarations.Order",
+      "signature": null,
       "span": "42:2-42:16",
       "static": false,
       "visibility": "public"
@@ -450,6 +466,7 @@
       "kind": "interface",
       "name": "declarations.Priced",
       "parent": "declarations",
+      "signature": null,
       "span": "46:7-51:1",
       "static": false,
       "visibility": "public"
@@ -459,6 +476,7 @@
       "kind": "property",
       "name": "declarations.Priced.price",
       "parent": "declarations.Priced",
+      "signature": null,
       "span": "48:2-48:15",
       "static": false,
       "visibility": "public"
@@ -468,6 +486,7 @@
       "kind": "property",
       "name": "declarations.Priced.currency",
       "parent": "declarations.Priced",
+      "signature": null,
       "span": "49:2-49:27",
       "static": false,
       "visibility": "public"
@@ -477,6 +496,7 @@
       "kind": "method",
       "name": "declarations.Priced.format",
       "parent": "declarations.Priced",
+      "signature": null,
       "span": "50:2-50:32",
       "static": false,
       "visibility": "public"
@@ -486,6 +506,7 @@
       "kind": "interface",
       "name": "declarations.Local",
       "parent": "declarations",
+      "signature": null,
       "span": "53:0-53:18",
       "static": false,
       "visibility": "private"
@@ -495,6 +516,7 @@
       "kind": "type_alias",
       "name": "declarations.Id",
       "parent": "declarations",
+      "signature": null,
       "span": "55:7-55:33",
       "static": false,
       "visibility": "public"
@@ -504,6 +526,7 @@
       "kind": "enum",
       "name": "declarations.Status",
       "parent": "declarations",
+      "signature": null,
       "span": "57:7-61:1",
       "static": false,
       "visibility": "public"
@@ -513,6 +536,7 @@
       "kind": "enum_member",
       "name": "declarations.Status.Open",
       "parent": "declarations.Status",
+      "signature": null,
       "span": "59:2-59:6",
       "static": false,
       "visibility": "public"
@@ -522,6 +546,7 @@
       "kind": "enum_member",
       "name": "declarations.Status.Closed",
       "parent": "declarations.Status",
+      "signature": null,
       "span": "60:2-60:12",
       "static": false,
       "visibility": "public"
@@ -531,6 +556,7 @@
       "kind": "constant",
       "name": "declarations.LIMIT",
       "parent": "declarations",
+      "signature": "LIMIT = 10",
       "span": "63:13-63:23",
       "static": false,
       "visibility": "public"
@@ -540,6 +566,7 @@
       "kind": "constant",
       "name": "declarations.hidden",
       "parent": "declarations",
+      "signature": "hidden = \"x\"",
       "span": "64:6-64:18",
       "static": false,
       "visibility": "private"
@@ -549,6 +576,7 @@
       "kind": "function",
       "name": "declarations.add",
       "parent": "declarations",
+      "signature": null,
       "span": "65:19-65:50",
       "static": false,
       "visibility": "public"
@@ -558,6 +586,7 @@
       "kind": "function",
       "name": "declarations.sub",
       "parent": "declarations",
+      "signature": null,
       "span": "66:12-68:1",
       "static": false,
       "visibility": "private"
@@ -567,6 +596,7 @@
       "kind": "function",
       "name": "declarations.run",
       "parent": "declarations",
+      "signature": null,
       "span": "72:7-74:1",
       "static": false,
       "visibility": "public"
@@ -576,6 +606,7 @@
       "kind": "function",
       "name": "declarations.run.inner",
       "parent": "declarations.run",
+      "signature": null,
       "span": "73:2-73:21",
       "static": false,
       "visibility": "public"
@@ -585,6 +616,7 @@
       "kind": "class",
       "name": "declarations.Main",
       "parent": "declarations",
+      "signature": null,
       "span": "76:15-76:28",
       "static": false,
       "visibility": "public"
@@ -594,6 +626,7 @@
       "kind": "namespace",
       "name": "declarations.Util",
       "parent": "declarations",
+      "signature": null,
       "span": "78:7-80:1",
       "static": false,
       "visibility": "public"
@@ -603,6 +636,7 @@
       "kind": "function",
       "name": "declarations.Util.help",
       "parent": "declarations.Util",
+      "signature": null,
       "span": "79:9-79:27",
       "static": false,
       "visibility": "public"
@@ -612,6 +646,7 @@
       "kind": "function",
       "name": "declarations.legacy",
       "parent": "declarations",
+      "signature": null,
       "span": "82:8-82:41",
       "static": false,
       "visibility": "private"
@@ -621,6 +656,7 @@
       "kind": "constant",
       "name": "declarations.VERSION",
       "parent": "declarations",
+      "signature": "VERSION: string",
       "span": "83:21-83:36",
       "static": false,
       "visibility": "public"
@@ -630,6 +666,7 @@
       "kind": "class",
       "name": "declarations.Ambient",
       "parent": "declarations",
+      "signature": null,
       "span": "84:8-87:1",
       "static": false,
       "visibility": "private"
@@ -639,6 +676,7 @@
       "kind": "method",
       "name": "declarations.Ambient.make",
       "parent": "declarations.Ambient",
+      "signature": null,
       "span": "85:2-85:24",
       "static": true,
       "visibility": "public"
@@ -648,6 +686,7 @@
       "kind": "method",
       "name": "declarations.Ambient.run",
       "parent": "declarations.Ambient",
+      "signature": null,
       "span": "86:2-86:13",
       "static": false,
       "visibility": "public"
@@ -657,6 +696,7 @@
       "kind": "constant",
       "name": "declarations.handlers",
       "parent": "declarations",
+      "signature": "handlers = {\n  onClick() {},\n}",
       "span": "89:13-91:1",
       "static": false,
       "visibility": "public"
@@ -666,6 +706,7 @@
       "kind": "class",
       "name": "declarations.Empty",
       "parent": "declarations",
+      "signature": null,
       "span": "94:7-94:21",
       "static": false,
       "visibility": "public"

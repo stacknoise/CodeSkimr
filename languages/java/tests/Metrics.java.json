@@ -260,6 +260,7 @@
       "kind": "module",
       "name": "Metrics",
       "parent": null,
+      "signature": null,
       "span": "0:0-60:0",
       "static": false,
       "visibility": null
@@ -269,6 +270,7 @@
       "kind": "class",
       "name": "Metrics.M",
       "parent": "Metrics",
+      "signature": null,
       "span": "0:0-55:1",
       "static": false,
       "visibility": "internal"
@@ -278,6 +280,7 @@
       "kind": "method",
       "name": "Metrics.M.plain",
       "parent": "Metrics.M",
+      "signature": null,
       "span": "1:4-1:29",
       "static": false,
       "visibility": "internal"
@@ -287,6 +290,7 @@
       "kind": "method",
       "name": "Metrics.M.branches",
       "parent": "Metrics.M",
+      "signature": null,
       "span": "3:4-7:5",
       "static": false,
       "visibility": "internal"
@@ -296,6 +300,7 @@
       "kind": "method",
       "name": "Metrics.M.loops",
       "parent": "Metrics.M",
+      "signature": null,
       "span": "9:4-14:5",
       "static": false,
       "visibility": "internal"
@@ -305,6 +310,7 @@
       "kind": "method",
       "name": "Metrics.M.cases",
       "parent": "Metrics.M",
+      "signature": null,
       "span": "16:4-24:5",
       "static": false,
       "visibility": "internal"
@@ -314,6 +320,7 @@
       "kind": "method",
       "name": "Metrics.M.rules",
       "parent": "Metrics.M",
+      "signature": null,
       "span": "26:4-32:5",
       "static": false,
       "visibility": "internal"
@@ -323,6 +330,7 @@
       "kind": "method",
       "name": "Metrics.M.catches",
       "parent": "Metrics.M",
+      "signature": null,
       "span": "34:4-39:5",
       "static": false,
       "visibility": "internal"
@@ -332,6 +340,7 @@
       "kind": "method",
       "name": "Metrics.M.resources",
       "parent": "Metrics.M",
+      "signature": null,
       "span": "41:4-44:5",
       "static": false,
       "visibility": "internal"
@@ -341,6 +350,7 @@
       "kind": "method",
       "name": "Metrics.M.outer",
       "parent": "Metrics.M",
+      "signature": null,
       "span": "46:4-52:5",
       "static": false,
       "visibility": "internal"
@@ -350,6 +360,7 @@
       "kind": "method",
       "name": "Metrics.M.outer.inner",
       "parent": "Metrics.M.outer",
+      "signature": null,
       "span": "49:12-49:67",
       "static": false,
       "visibility": "internal"
@@ -359,6 +370,7 @@
       "kind": "method",
       "name": "Metrics.M.noBody",
       "parent": "Metrics.M",
+      "signature": null,
       "span": "54:4-54:26",
       "static": false,
       "visibility": "internal"
@@ -368,6 +380,7 @@
       "kind": "interface",
       "name": "Metrics.Shape",
       "parent": "Metrics",
+      "signature": null,
       "span": "57:0-59:1",
       "static": false,
       "visibility": "internal"
@@ -377,6 +390,7 @@
       "kind": "method",
       "name": "Metrics.Shape.area",
       "parent": "Metrics.Shape",
+      "signature": null,
       "span": "58:4-58:15",
       "static": false,
       "visibility": "public"

@@ -182,6 +182,7 @@
       "kind": "module",
       "name": "sample",
       "parent": null,
+      "signature": null,
       "span": "0:0-34:0",
       "static": false,
       "visibility": null
@@ -191,6 +192,7 @@
       "kind": "namespace",
       "name": "sample::shop",
       "parent": "sample",
+      "signature": null,
       "span": "0:0-33:1",
       "static": false,
       "visibility": null
@@ -200,6 +202,7 @@
       "kind": "class",
       "name": "sample::shop::Order",
       "parent": "sample::shop",
+      "signature": null,
       "span": "3:0-14:1",
       "static": false,
       "visibility": null
@@ -209,6 +212,7 @@
       "kind": "method",
       "name": "sample::shop::Order::Order",
       "parent": "sample::shop::Order",
+      "signature": null,
       "span": "5:4-5:30",
       "static": false,
       "visibility": null
@@ -218,6 +222,7 @@
       "kind": "method",
       "name": "sample::shop::Order::total",
       "parent": "sample::shop::Order",
+      "signature": null,
       "span": "6:4-6:51",
       "static": false,
       "visibility": null
@@ -227,6 +232,7 @@
       "kind": "method",
       "name": "sample::shop::Order::~Order",
       "parent": "sample::shop::Order",
+      "signature": null,
       "span": "8:4-8:15",
       "static": false,
       "visibility": null
@@ -236,6 +242,7 @@
       "kind": "method",
       "name": "sample::shop::Order::self",
       "parent": "sample::shop::Order",
+      "signature": null,
       "span": "9:4-9:34",
       "static": false,
       "visibility": null
@@ -245,6 +252,7 @@
       "kind": "method",
       "name": "sample::shop::Order::operator==",
       "parent": "sample::shop::Order",
+      "signature": null,
       "span": "10:4-10:66",
       "static": false,
       "visibility": null
@@ -254,6 +262,7 @@
       "kind": "method",
       "name": "sample::shop::Order::tm",
       "parent": "sample::shop::Order",
+      "signature": null,
       "span": "11:26-11:41",
       "static": false,
       "visibility": null
@@ -263,6 +272,7 @@
       "kind": "struct",
       "name": "sample::shop::Item",
       "parent": "sample::shop",
+      "signature": null,
       "span": "16:0-16:22",
       "static": false,
       "visibility": null
@@ -272,6 +282,7 @@
       "kind": "enum",
       "name": "sample::shop::Kind",
       "parent": "sample::shop",
+      "signature": null,
       "span": "18:0-18:24",
       "static": false,
       "visibility": null
@@ -281,6 +292,7 @@
       "kind": "method",
       "name": "sample::shop::add",
       "parent": "sample::shop",
+      "signature": null,
       "span": "20:0-22:1",
       "static": false,
       "visibility": null
@@ -290,6 +302,7 @@
       "kind": "method",
       "name": "sample::shop::make",
       "parent": "sample::shop",
+      "signature": null,
       "span": "24:0-24:40",
       "static": false,
       "visibility": null
@@ -299,6 +312,7 @@
       "kind": "function",
       "name": "sample::shop::price",
       "parent": "sample::shop",
+      "signature": null,
       "span": "26:0-28:1",
       "static": false,
       "visibility": null
@@ -308,6 +322,7 @@
       "kind": "function",
       "name": "sample::shop::twice",
       "parent": "sample::shop",
+      "signature": null,
       "span": "31:0-31:30",
       "static": false,
       "visibility": null
