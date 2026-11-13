@@ -114,7 +114,7 @@ mod tests {
                 if !skip.contains(&name) && name != ".git" {
                     sources(&path, skip, found);
                 }
-            } else if path.extension().is_some_and(|e| e == "cs") {
+            } else if path.extension().is_some_and(|e| e == "cs") && !name.ends_with(".g.cs") {
                 found.push(path);
             }
         }
@@ -216,6 +216,36 @@ mod tests {
         }
     }
 
+    /// The counting rule of the private reference (ADR 0017): groups of symbol kinds.
+    const GROUPS: [(&str, &[&str]); 6] = [
+        (
+            "types",
+            &[
+                "class",
+                "struct",
+                "interface",
+                "record",
+                "enum",
+                "type_alias",
+            ],
+        ),
+        ("methods", &["method", "constructor", "function"]),
+        ("properties", &["property"]),
+        ("fields", &["field", "constant"]),
+        ("events", &["event"]),
+        ("enum_members", &["enum_member"]),
+    ];
+
+    fn summary(counts: &BTreeMap<String, usize>) -> BTreeMap<&'static str, usize> {
+        GROUPS
+            .iter()
+            .map(|(group, kinds)| {
+                let total = kinds.iter().filter_map(|kind| counts.get(*kind)).sum();
+                (*group, total)
+            })
+            .collect()
+    }
+
     #[test]
     fn scan_matches_the_expected_counts_and_sample() {
         let text = fs::read_to_string(workspace().join("corpus/csharp/corpus.toml"));
@@ -224,6 +254,7 @@ mod tests {
         let found = scan(&checkout(&corpus.project), &corpus.project.skip_folders);
         if std::env::var_os("CODESKIMR_BLESS").is_some() {
             println!("MEASURED {:#?}", found.counts);
+            println!("SUMMARY {:?}", summary(&found.counts));
             return;
         }
         assert_eq!(found.counts, corpus.counts, "symbol counts");
