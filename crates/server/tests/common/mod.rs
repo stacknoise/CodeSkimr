@@ -134,10 +134,51 @@ pub async fn start_with(
     lifetime: Duration,
 ) -> Running {
     let wipes = Arc::new(AtomicUsize::new(0));
-    let api = test_api(&wipes);
     let events = EventBus::new();
-    let server = Server::new(
-        api,
+    let server = test_server(&wipes, &events, principal, dir, lifetime);
+    run(server, wipes, events).await
+}
+
+/// Starts a server with the MCP route, answered by [`Ping`].
+pub async fn start_mcp(principal: Principal) -> Running {
+    let wipes = Arc::new(AtomicUsize::new(0));
+    let events = EventBus::new();
+    let server = test_server(&wipes, &events, principal, None, Duration::from_secs(60));
+    run(server.with_mcp(Ping), wipes, events).await
+}
+
+/// The service behind `/mcp` in the tests: it answers every request with `pong`.
+#[derive(Clone)]
+pub struct Ping;
+
+impl tower_service::Service<axum::extract::Request> for Ping {
+    type Response = axum::response::Response;
+    type Error = std::convert::Infallible;
+    type Future = std::future::Ready<Result<Self::Response, Self::Error>>;
+
+    fn poll_ready(
+        &mut self,
+        _: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Result<(), Self::Error>> {
+        std::task::Poll::Ready(Ok(()))
+    }
+
+    fn call(&mut self, _: axum::extract::Request) -> Self::Future {
+        std::future::ready(Ok(axum::response::Response::new(axum::body::Body::from(
+            "pong",
+        ))))
+    }
+}
+
+fn test_server(
+    wipes: &Arc<AtomicUsize>,
+    events: &EventBus,
+    principal: Principal,
+    dir: Option<std::path::PathBuf>,
+    lifetime: Duration,
+) -> Server {
+    Server::new(
+        test_api(wipes),
         events.clone(),
         principal,
         InstallationToken::from_token(TOKEN),
@@ -152,7 +193,10 @@ pub async fn start_with(
                 default_theme: "petrol".to_owned(),
             },
         },
-    );
+    )
+}
+
+async fn run(server: Server, wipes: Arc<AtomicUsize>, events: EventBus) -> Running {
     let bound = server.bind(([127, 0, 0, 1], 0).into()).await.unwrap();
     let address = bound.address().unwrap();
     tokio::spawn(bound.serve(std::future::pending()));
