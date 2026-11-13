@@ -25,6 +25,11 @@ text_type!(
     BranchName
 );
 text_type!(
+    /// Names a credential in the secret store. It is a reference only and never the secret itself
+    /// (blueprint 12.2), so it may be stored, shown and logged.
+    CredentialId
+);
+text_type!(
     /// Name of an architecture layer.
     LayerName
 );
@@ -40,6 +45,8 @@ pub enum ProjectSource {
         url: GitUrl,
         /// Branch that is scanned.
         branch: BranchName,
+        /// Credential to log in with; `None` leaves the login to the system's Git credential helper.
+        credential: Option<CredentialId>,
     },
 }
 

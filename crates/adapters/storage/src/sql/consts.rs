@@ -2,15 +2,15 @@
 
 /// A registered project by id: id.
 pub const PROJECT_BY_ID: &str =
-    "SELECT name, source_kind, location, branch FROM projects WHERE id = ?1";
+    "SELECT name, source_kind, location, branch, credential FROM projects WHERE id = ?1";
 /// Id of the project with the given source: kind, location, branch.
 pub const PROJECT_BY_SOURCE: &str =
     "SELECT id FROM projects WHERE source_kind = ?1 AND location = ?2 AND branch = ?3";
-/// Inserts or updates a project: id, name, kind, location, branch.
-pub const PROJECT_UPSERT: &str = "INSERT INTO projects (id, name, source_kind, location, branch) \
-    VALUES (?1, ?2, ?3, ?4, ?5) \
+/// Inserts or updates a project: id, name, kind, location, branch, credential name.
+pub const PROJECT_UPSERT: &str = "INSERT INTO projects (id, name, source_kind, location, branch, credential) \
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6) \
     ON CONFLICT (id) DO UPDATE SET name = excluded.name, source_kind = excluded.source_kind, \
-    location = excluded.location, branch = excluded.branch";
+    location = excluded.location, branch = excluded.branch, credential = excluded.credential";
 /// Whether a project exists: id.
 pub const PROJECT_EXISTS: &str = "SELECT COUNT(*) FROM projects WHERE id = ?1";
 /// Removes the layers of a project (their namespaces go with them): project id.

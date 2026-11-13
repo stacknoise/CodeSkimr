@@ -10,11 +10,16 @@ Implements the driven ports `SourceProvider` and `FileDiscovery` of `codeskimr_a
 | `LanguageMap` | Extension to language id. Filled by the composition root from the installed language packs; this crate names no language. |
 | `watch` | Batches of changed relative paths (`WatchBatch`). A batch is due after a quiet window (`debounce`) but at latest `max_wait` after its first event, so constant writes cannot starve the listener. Access events and excluded folders are ignored before the timer is touched; lost events or watch errors set `rescan`. Dropping the handle delivers what is pending and joins the thread, so never drop it inside the callback. Errors: `SRC-602`. |
 
+## Credentials (WP-71)
+
+- A Git source may name a credential (`CredentialId`). `SourceFetcher<S: CredentialStore>` then lends it to the login callback of the connection: the store is asked again for every request of the connection and nothing is cached. Without a credential the system's Git credential helper decides.
+- Secrets never go into the URL. A password in a Git URL is dropped before Git sees it (Git would write the URL into `.git/config`, issue #35); the user name stays. Tests clone with a canary secret and search the whole cache folder for it.
+- Git refuses to send credentials over plain `http://`; this stays as it is. Only the test build switches it off (`gix-transport` feature `http-client-insecure-credentials` as a dev dependency) to talk to a local server.
+- Errors: `SEC-201` the credential is not in the store, `SEC-401` the remote rejected it, `SEC-402` and `SEC-601` the keystore cannot be used. `SRC-401` stays for remotes that want credentials when none was configured.
+
 ## Limits of this package
 
-- Credentials: Git access uses what the Git library finds (credential helper). The loan pattern and keystore belong to the secrets package (blueprint section 12).
 - Files that are deleted since the previous snapshot are not listed by `FileDiscovery`; the pipeline can derive them from `previous`. Reporting them to the store is issue #20.
 - `watch` is not yet connected to the event bus (`FilesChanged`, issue #21).
 - The size limit and `max_wait` are constructor values; configuration keys for them are issue #28.
-- Credentials inside a Git URL are not written to errors, but Git stores the URL in `.git/config` of the cached clone; avoiding that belongs to the secrets package.
 - An update is a full shallow re-clone, not a fetch.

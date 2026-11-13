@@ -27,8 +27,8 @@ pub use metrics::{
     HalsteadCounts, LineKind, cyclomatic_complexity, lines_of_code, maintainability_index,
 };
 pub use project::{
-    BranchName, FolderPath, GitUrl, Layer, LayerName, Project, ProjectId, ProjectName,
-    ProjectSource,
+    BranchName, CredentialId, FolderPath, GitUrl, Layer, LayerName, Project, ProjectId,
+    ProjectName, ProjectSource,
 };
 pub use qualified_name::QualifiedName;
 pub use reference::{Confidence, Reference, ReferenceId, ReferenceKind};

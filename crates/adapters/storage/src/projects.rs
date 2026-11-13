@@ -3,23 +3,24 @@
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::ProjectRepository;
 use codeskimr_domain::{
-    BranchName, ContentHash, FileId, FolderPath, GitUrl, LanguageId, Layer, LayerName, Loc,
-    Project, ProjectId, ProjectName, ProjectSource, QualifiedName, RelativePath, SnapshotId,
-    SourceFile,
+    BranchName, ContentHash, CredentialId, FileId, FolderPath, GitUrl, LanguageId, Layer,
+    LayerName, Loc, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, RelativePath,
+    SnapshotId, SourceFile,
 };
 use rusqlite::{Connection, OptionalExtension, Row, params};
 
 use crate::codec::{Cols, column_int, id_from, ordinals, small_from};
-use crate::consts::{NO_BRANCH, SOURCE_FOLDER, SOURCE_GIT};
+use crate::consts::{NO_BRANCH, NO_CREDENTIAL, SOURCE_FOLDER, SOURCE_GIT};
 use crate::error::{StorageError, StorageResult};
 use crate::sql;
 use crate::store::SqliteStore;
 
-/// A source as stored: kind, location and branch.
+/// A source as stored: kind, location, branch and the name of the credential (never its secret).
 struct SourceColumns {
     kind: &'static str,
     location: String,
     branch: String,
+    credential: String,
 }
 
 impl SourceColumns {
@@ -29,20 +30,36 @@ impl SourceColumns {
                 kind: SOURCE_FOLDER,
                 location: path.as_str().to_owned(),
                 branch: NO_BRANCH.to_owned(),
+                credential: NO_CREDENTIAL.to_owned(),
             },
-            ProjectSource::Git { url, branch } => Self {
+            ProjectSource::Git {
+                url,
+                branch,
+                credential,
+            } => Self {
                 kind: SOURCE_GIT,
                 location: url.as_str().to_owned(),
                 branch: branch.as_str().to_owned(),
+                credential: credential
+                    .as_ref()
+                    .map_or_else(|| NO_CREDENTIAL.to_owned(), |id| id.as_str().to_owned()),
             },
         }
     }
 
-    fn source(kind: &str, location: String, branch: String) -> StorageResult<ProjectSource> {
+    fn source(
+        kind: &str,
+        location: String,
+        branch: String,
+        credential: String,
+    ) -> StorageResult<ProjectSource> {
         if kind == SOURCE_GIT {
             Ok(ProjectSource::Git {
                 url: GitUrl::new(location)?,
                 branch: BranchName::new(branch)?,
+                credential: (credential != NO_CREDENTIAL)
+                    .then(|| CredentialId::new(credential))
+                    .transpose()?,
             })
         } else {
             Ok(ProjectSource::Folder(FolderPath::new(location)?))
@@ -80,7 +97,8 @@ fn save(conn: &Connection, project: &Project) -> StorageResult<()> {
             project.name.as_str(),
             source.kind,
             source.location,
-            source.branch
+            source.branch,
+            source.credential
         ],
     )?;
     conn.execute(sql::LAYERS_DELETE, params![id])?;
@@ -139,17 +157,23 @@ fn load_namespaces(
 
 fn load_project(conn: &Connection, id: ProjectId) -> StorageResult<Project> {
     let raw = column_int(id.get())?;
-    let row: Option<(String, String, String, String)> = conn
+    let row: Option<(String, String, String, String, String)> = conn
         .query_row(sql::PROJECT_BY_ID, params![raw], |row| {
             let cols = Cols::new(row);
-            Ok((cols.take()?, cols.take()?, cols.take()?, cols.take()?))
+            Ok((
+                cols.take()?,
+                cols.take()?,
+                cols.take()?,
+                cols.take()?,
+                cols.take()?,
+            ))
         })
         .optional()?;
-    let (name, kind, location, branch) = row.ok_or(StorageError::ProjectNotFound)?;
+    let (name, kind, location, branch, credential) = row.ok_or(StorageError::ProjectNotFound)?;
     Ok(Project {
         id,
         name: ProjectName::new(name)?,
-        source: SourceColumns::source(&kind, location, branch)?,
+        source: SourceColumns::source(&kind, location, branch, credential)?,
         layers: load_layers(conn, id)?,
     })
 }

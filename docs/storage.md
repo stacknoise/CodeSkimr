@@ -5,6 +5,7 @@ SQLite database per workspace, WAL mode, schema migrations in `crates/adapters/s
 
 ## What it does
 
+- Schema version 2 adds `projects.credential`: the name of the credential a Git source logs in with (empty for none). Only the name is stored, never a secret (blueprint 12.2).
 - `SqliteStore` implements the ports `ProjectRepository`, `SnapshotStore` and `CodeIndex` (read access for the MCP server: `latest_snapshot`, `search`, `symbol`, `layer_edges`).
 - `persist` writes one snapshot and its read models in one `BEGIN IMMEDIATE` transaction, then prunes to the
   retention count. Any failure rolls everything back (STO-302 busy/locked, STO-501 disk full, STO-601 other).

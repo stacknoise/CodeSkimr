@@ -1,6 +1,7 @@
 //! Errors of the source adapter (blueprint section 11.5).
 
 use codeskimr_application::error::CodedError;
+use codeskimr_application::ports::AuthError;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{BranchName, FolderPath};
 
@@ -38,6 +39,9 @@ pub enum SourceError {
         /// What the Git library reported, without credentials.
         detail: String,
     },
+    /// The secret store could not provide the credential for the login.
+    #[error("{0}")]
+    Credential(#[from] AuthError),
     /// The file watcher could not be started or stopped unexpectedly.
     #[error("{}", ErrorCode::WatcherFailed.description())]
     WatcherFailed {
@@ -81,6 +85,7 @@ impl Coded for SourceError {
             Self::AuthRequired => ErrorCode::GitAuthRequired,
             Self::TooLarge { .. } => ErrorCode::SourceTooLarge,
             Self::GitFetchFailed { .. } => ErrorCode::GitFetchFailed,
+            Self::Credential(error) => error.code(),
             Self::WatcherFailed { .. } => ErrorCode::WatcherFailed,
         }
     }

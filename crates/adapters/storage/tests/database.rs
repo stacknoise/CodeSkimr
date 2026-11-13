@@ -65,7 +65,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 1));
+    assert_eq!((mode.as_str(), version), ("wal", 2));
 }
 
 #[test]

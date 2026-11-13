@@ -66,6 +66,7 @@ fn project() -> Result<Project, CodedError> {
         source: ProjectSource::Git {
             url: model("https://example.org/demo.git".parse())?,
             branch: model(BranchName::new("main"))?,
+            credential: None,
         },
         layers: Vec::new(),
     })
