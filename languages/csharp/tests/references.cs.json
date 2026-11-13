@@ -1,0 +1,253 @@
+{
+  "loc": 20,
+  "references": [
+    {
+      "at": "0:6",
+      "from": "references",
+      "kind": "import",
+      "target": "System.Collections.Generic"
+    },
+    {
+      "at": "1:14",
+      "from": "references",
+      "kind": "import",
+      "target": "Shop.Util"
+    },
+    {
+      "at": "5:20",
+      "from": "references.Shop.Orders.Cart",
+      "kind": "inherit",
+      "target": "Base"
+    },
+    {
+      "at": "5:31",
+      "from": "references.Shop.Orders.Cart",
+      "kind": "inherit",
+      "target": "IEnumerable"
+    },
+    {
+      "at": "5:43",
+      "from": "references.Shop.Orders.Cart",
+      "kind": "type_use",
+      "target": "Item"
+    },
+    {
+      "at": "7:21",
+      "from": "references.Shop.Orders.Cart",
+      "kind": "type_use",
+      "target": "List"
+    },
+    {
+      "at": "7:26",
+      "from": "references.Shop.Orders.Cart",
+      "kind": "type_use",
+      "target": "Item"
+    },
+    {
+      "at": "7:44",
+      "from": "references.Shop.Orders.Cart.items",
+      "kind": "type_use",
+      "target": "List"
+    },
+    {
+      "at": "7:49",
+      "from": "references.Shop.Orders.Cart.items",
+      "kind": "type_use",
+      "target": "Item"
+    },
+    {
+      "at": "8:24",
+      "from": "references.Shop.Orders.Cart.count",
+      "kind": "read",
+      "target": "Limits"
+    },
+    {
+      "at": "8:31",
+      "from": "references.Shop.Orders.Cart.count",
+      "kind": "read",
+      "target": "Max"
+    },
+    {
+      "at": "12:25",
+      "from": "references.Shop.Orders.Cart.Run",
+      "kind": "override",
+      "target": "Run"
+    },
+    {
+      "at": "14:11",
+      "from": "references.Shop.Orders.Cart.Find",
+      "kind": "type_use",
+      "target": "Item"
+    },
+    {
+      "at": "14:21",
+      "from": "references.Shop.Orders.Cart.Find",
+      "kind": "type_use",
+      "target": "Guid"
+    },
+    {
+      "at": "14:31",
+      "from": "references.Shop.Orders.Cart.Find",
+      "kind": "type_use",
+      "target": "Item"
+    },
+    {
+      "at": "16:8",
+      "from": "references.Shop.Orders.Cart.Find",
+      "kind": "read",
+      "target": "Helper"
+    },
+    {
+      "at": "16:15",
+      "from": "references.Shop.Orders.Cart.Find",
+      "kind": "call",
+      "target": "Log"
+    },
+    {
+      "at": "17:8",
+      "from": "references.Shop.Orders.Cart.Find",
+      "kind": "write",
+      "target": "count"
+    },
+    {
+      "at": "17:16",
+      "from": "references.Shop.Orders.Cart.Find",
+      "kind": "read",
+      "target": "items"
+    },
+    {
+      "at": "17:22",
+      "from": "references.Shop.Orders.Cart.Find",
+      "kind": "read",
+      "target": "Count"
+    },
+    {
+      "at": "17:30",
+      "from": "references.Shop.Orders.Cart.Find",
+      "kind": "read",
+      "target": "offset"
+    },
+    {
+      "at": "18:8",
+      "from": "references.Shop.Orders.Cart.Find",
+      "kind": "write",
+      "target": "count"
+    },
+    {
+      "at": "19:8",
+      "from": "references.Shop.Orders.Cart.Find",
+      "kind": "write",
+      "target": "Total"
+    },
+    {
+      "at": "19:16",
+      "from": "references.Shop.Orders.Cart.Find",
+      "kind": "call",
+      "target": "Compute"
+    },
+    {
+      "at": "20:26",
+      "from": "references.Shop.Orders.Cart.Find",
+      "kind": "type_use",
+      "target": "Item"
+    },
+    {
+      "at": "20:32",
+      "from": "references.Shop.Orders.Cart.Find",
+      "kind": "read",
+      "target": "Name"
+    },
+    {
+      "at": "21:19",
+      "from": "references.Shop.Orders.Cart.Find",
+      "kind": "read",
+      "target": "fallback"
+    },
+    {
+      "at": "22:15",
+      "from": "references.Shop.Orders.Cart.Find",
+      "kind": "read",
+      "target": "fallback"
+    },
+    {
+      "at": "22:31",
+      "from": "references.Shop.Orders.Cart.Find",
+      "kind": "type_use",
+      "target": "Item"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "references",
+      "parent": null,
+      "span": "0:0-25:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "references.Shop.Orders",
+      "parent": "references",
+      "span": "3:0-25:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "references.Shop.Orders.Cart",
+      "parent": "references.Shop.Orders",
+      "span": "5:0-24:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "references.Shop.Orders.Cart.items",
+      "parent": "references.Shop.Orders.Cart",
+      "span": "7:32-7:56",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "references.Shop.Orders.Cart.count",
+      "parent": "references.Shop.Orders.Cart",
+      "span": "8:16-8:34",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "constructor",
+      "name": "references.Shop.Orders.Cart.Cart",
+      "parent": "references.Shop.Orders.Cart",
+      "span": "10:4-10:38",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "references.Shop.Orders.Cart.Run",
+      "parent": "references.Shop.Orders.Cart",
+      "span": "12:4-12:34",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "references.Shop.Orders.Cart.Find",
+      "parent": "references.Shop.Orders.Cart",
+      "span": "14:4-23:5",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

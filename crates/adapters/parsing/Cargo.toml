@@ -20,3 +20,7 @@ toml = { workspace = true }
 serde = { workspace = true }
 tree-sitter = { workspace = true }
 tree-sitter-rust = { workspace = true }
+tree-sitter-c-sharp = { workspace = true }
+
+[dev-dependencies]
+serde_json = { workspace = true }

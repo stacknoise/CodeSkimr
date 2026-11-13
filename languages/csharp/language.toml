@@ -1,0 +1,83 @@
+# C# language pack, full tier (blueprint 8, WP-24).
+#
+# Mapping of C# onto the language-neutral symbol kinds:
+#   namespace / file-scoped namespace  -> namespace     delegate                    -> type_alias
+#   class / interface / struct / enum  -> same name      record, record struct       -> record
+#   method, operator, local function   -> method / function (local function)
+#   constructor                        -> constructor    property, indexer           -> property
+#   field                              -> field          const field                 -> constant
+#   positional record parameter        -> property
+#   event                              -> event          enum member                 -> enum_member
+# Not symbols: parameters, local variables, lambdas (they count for their callable), finalizers,
+# conversion operators and primary constructor parameters. Positional record parameters are
+# properties.
+id = "csharp"
+grammar = "csharp"
+tier = "full"
+extensions = ["cs"]
+separator = "."
+comment_nodes = ["comment"]
+manifest_files = [
+    "*.csproj",
+    "*.sln",
+    "*.slnx",
+    "Directory.Build.props",
+    "Directory.Packages.props",
+    "global.json",
+]
+test_patterns = [
+    "**/*Tests.cs",
+    "**/*Test.cs",
+    "**/*.Tests/**/*.cs",
+    "**/*.UnitTests/**/*.cs",
+    "**/*.IntegrationTests/**/*.cs",
+]
+# Syntax fingerprints (WP-34): all names alike, literals by kind only.
+identifier_nodes = ["identifier"]
+literal_nodes = [
+    "integer_literal",
+    "real_literal",
+    "string_literal",
+    "character_literal",
+    "boolean_literal",
+    "null_literal",
+    "verbatim_string_literal",
+    "raw_string_literal",
+]
+# XML documentation: only `///` lines; the doc of a symbol is the text of its <summary>.
+doc_prefixes = ["///"]
+static_keywords = ["static"]
+
+[doc_summary]
+open = "<summary>"
+close = "</summary>"
+
+# A `const` field is a constant.
+[modifier_kinds]
+const = "constant"
+
+# Without a keyword a member is private, a top-level type internal, a member of an interface or
+# an enum public. `protected internal` and `private protected` count as protected (the domain has
+# no value for combinations).
+[visibility]
+default = "private"
+# A namespace has no visibility.
+unrated_kinds = ["namespace"]
+
+[visibility.keywords]
+public = "public"
+internal = "internal"
+protected = "protected"
+private = "private"
+"protected internal" = "protected"
+"internal protected" = "protected"
+"private protected" = "protected"
+"protected private" = "protected"
+# Stands for the implicit visibility of positional record parameters (see symbols.scm).
+"(" = "public"
+
+[visibility.parent_defaults]
+module = "internal"
+namespace = "internal"
+interface = "public"
+enum = "public"

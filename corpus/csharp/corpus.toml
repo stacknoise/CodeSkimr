@@ -1,0 +1,100 @@
+# Public C# reference of CI (blueprint 17.2, ADR 0016). Updating the commit is a deliberate change
+# with new expected values. Counts were measured with the C# pack and checked against an independent
+# per-file count of the source (regular expressions; every differing file was reviewed by hand).
+
+[project]
+repository = "https://github.com/ardalis/GuardClauses"
+commit = "5434b262a40ba26dae6e7f2cc93c6097b9cc4824"
+skip_folders = ["bin", "obj"]
+
+# Symbols per kind over all *.cs files; `module` is one per file.
+[counts]
+files = 55
+module = 55
+namespace = 54        # Guard.cs has no namespace
+class = 179
+interface = 1
+struct = 2
+enum = 6
+enum_member = 29
+constructor = 68
+method = 522
+function = 1          # static local function IsNullableType
+property = 70
+field = 1
+
+# Hand-checked symbols: file, kind, name, visibility and parent.
+[[sample]]
+file = "src/GuardClauses/Guard.cs"
+kind = "namespace"
+name = "Ardalis.GuardClauses"
+parent = "Guard"
+
+[[sample]]
+file = "src/GuardClauses/Guard.cs"
+kind = "interface"
+name = "IGuardClause"
+visibility = "public"
+parent = "Ardalis.GuardClauses"
+
+[[sample]]
+file = "src/GuardClauses/Guard.cs"
+kind = "class"
+name = "Guard"
+visibility = "public"
+parent = "Ardalis.GuardClauses"
+
+[[sample]]
+file = "src/GuardClauses/Guard.cs"
+kind = "property"
+name = "Against"
+visibility = "public"
+parent = "Guard"
+
+[[sample]]
+file = "src/GuardClauses/Guard.cs"
+kind = "constructor"
+name = "Guard"
+visibility = "private"
+parent = "Guard"
+
+[[sample]]
+file = "src/GuardClauses/Exceptions/NotFoundException.cs"
+kind = "constructor"
+name = "NotFoundException"
+visibility = "public"
+parent = "NotFoundException"
+
+[[sample]]
+file = "src/GuardClauses/ThirdParty/JetBrains.Annotations.cs"
+kind = "enum"
+name = "ImplicitUseKindFlags"
+visibility = "internal"
+parent = "JetBrains.Annotations"
+
+[[sample]]
+file = "test/GuardClauses.UnitTests/GuardAgainstNullOrOutOfRangeForClassIComparable.cs"
+kind = "field"
+name = "_internalValue"
+visibility = "private"
+parent = "TestObj"
+
+[[sample]]
+file = "test/GuardClauses.UnitTests/GuardAgainstNull.cs"
+kind = "function"
+name = "IsNullableType"
+visibility = "private"
+parent = "ReturnsNonNullableValueTypeWhenGivenNullableValueTypeIsNotNull"
+
+# Hand-checked references: file, kind, target and 1-based line.
+[[references]]
+file = "src/GuardClauses/Guard.cs"
+kind = "inherit"
+target = "IGuardClause"
+line = 14
+
+[[references]]
+file = "src/GuardClauses/Exceptions/NotFoundException.cs"
+kind = "inherit"
+target = "Exception"
+line = 8
