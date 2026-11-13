@@ -28,7 +28,7 @@ codeskimr export <project> --html <file>
 
 The tree of layers, namespaces and types; for every type and member the breadcrumb, metrics, signature, documentation comment, file and line range; for every one of them its usages (callers and callees, as deep as `mcp.max_depth` allows, tests included, with the filters of the toolbar applied in the page); the impact of a change; the dependency map as the server placed it; the name, commit and date of the scan.
 
-**Not in it:** source text (the declaration bodies, `explorer.source`; the pane says so), the folder or address of the project, the installation token or anything from the keystore. Source text would need `read_source` (ADR 0032); a later option would have to ask for that on purpose.
+**Not in it:** source text (the declaration bodies, `explorer.source`; the pane says so), the folder or address of the project, the installation token or anything from the keystore. Source text would need `read_source` (ADR 0035); a later option would have to ask for that on purpose.
 
 **Note:** signatures and documentation comments are text from the source. If a project keeps secrets or internal remarks in them, they are in the page too. Check a page before it leaves the team.
 
