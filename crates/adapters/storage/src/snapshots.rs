@@ -11,6 +11,7 @@ use rusqlite::{Connection, OptionalExtension, Statement, params};
 use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from, small_from};
 use crate::consts::{PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON};
 use crate::error::{StorageError, StorageResult};
+use crate::integrity;
 use crate::projects::load_layers;
 use crate::read_models;
 use crate::similarity;
@@ -37,7 +38,7 @@ fn write_snapshot(conn: &Connection, data: &SnapshotData, keep: u32) -> StorageR
     if header.mode == ScanMode::Incremental {
         carry_over(conn, header.project, header.id, &data.removed)?;
     }
-    check_references(conn, header.id, &data.references)?;
+    integrity::check(conn, data)?;
     let stats = totals(conn, header.id)?;
     set_totals(conn, header.id, stats)?;
     let layers = load_layers(conn, header.project)?;
@@ -94,7 +95,7 @@ fn insert_facts(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
     }
     let mut references = conn.prepare_cached(sql::REFERENCE_INSERT)?;
     for reference in &data.references {
-        insert_reference(&mut references, reference)?;
+        insert_reference(&mut references, snapshot, reference)?;
     }
     let mut metrics = conn.prepare_cached(sql::METRIC_INSERT)?;
     for metric in &data.metrics {
@@ -141,35 +142,15 @@ fn insert_symbol(conn: &Connection, symbol: &Symbol) -> StorageResult<()> {
     Ok(())
 }
 
-/// Fails if a new reference points at a symbol or file that the snapshot does not hold.
-fn check_references(
-    conn: &Connection,
-    snapshot: SnapshotId,
-    references: &[Reference],
+fn insert_reference(
+    statement: &mut Statement<'_>,
+    snapshot: i64,
+    reference: &Reference,
 ) -> StorageResult<()> {
-    let snapshot = column_int(snapshot.get())?;
-    let mut statement = conn.prepare_cached(sql::REFERENCE_ENDS_PRESENT)?;
-    for reference in references {
-        let present: bool = statement.query_row(
-            params![
-                snapshot,
-                column_int(reference.from.get())?,
-                column_int(reference.to.get())?,
-                column_int(reference.file.get())?,
-            ],
-            |row| row.get(0),
-        )?;
-        if !present {
-            return Err(StorageError::DanglingReference);
-        }
-    }
-    Ok(())
-}
-
-fn insert_reference(statement: &mut Statement<'_>, reference: &Reference) -> StorageResult<()> {
     let span = SpanColumns::of(&reference.span);
     statement.execute(params![
         column_int(reference.id.get())?,
+        snapshot,
         column_int(reference.from.get())?,
         column_int(reference.to.get())?,
         column_int(reference.file.get())?,

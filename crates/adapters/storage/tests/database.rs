@@ -281,24 +281,147 @@ fn version_three_database(db: &TempDb) {
         ))
         .unwrap();
     }
+    version_three_second_scan(&conn);
+}
+
+/// What only snapshot 20 of the version three database has: a new file with a class, a reference,
+/// and a different value of a metric the two snapshots share.
+#[cfg(test)]
+fn version_three_second_scan(conn: &Connection) {
+    conn.execute_batch(
+        "INSERT INTO metrics (snapshot_id, symbol_id, kind, value)
+           VALUES (10, 101, 'loc', 1.0), (20, 101, 'loc', 2.0);
+         INSERT INTO files (snapshot_id, id, path, language, content_hash, loc)
+           VALUES (20, 200, 'b.cs', 'csharp', 'h', 1);
+         INSERT INTO symbols (snapshot_id, id, file_id, kind, name, qualified_name, parent_id,
+           visibility, is_static, start_line, start_column, end_line, end_column, signature, doc)
+           VALUES (20, 201, 200, 'class', 'B', 'App.B', NULL, NULL, 0, 1, 0, 1, 1, NULL, NULL);
+         INSERT INTO symbol_references (snapshot_id, id, from_symbol, to_symbol, file_id,
+           start_line, start_column, end_line, end_column, kind, confidence)
+           VALUES (20, 204, 201, 101, 200, 1, 0, 1, 1, 'call', 'certain');",
+    )
+    .unwrap();
+}
+
+/// Rows of a view or table that a snapshot contains.
+#[cfg(test)]
+fn rows_in(conn: &Connection, table: &str, snapshot: i64) -> i64 {
+    conn.query_row(
+        &format!("SELECT COUNT(*) FROM {table} WHERE snapshot_id = ?1"),
+        [snapshot],
+        |row| row.get(0),
+    )
+    .unwrap()
 }
 
 #[test]
-fn a_version_three_database_keeps_the_references_of_every_snapshot() {
+fn a_version_three_database_keeps_what_each_snapshot_contained() {
     let db = TempDb::new();
     version_three_database(&db);
     drop(SqliteStore::open(&db.0, keep(5)).unwrap());
     let conn = Connection::open(&db.0).unwrap();
-    assert_eq!(rows_of(&conn, "symbol_references"), 1);
+    // Each row exists once; the reference of the second scan is not seen by the first.
+    assert_eq!(rows_of(&conn, "symbol_references"), 2);
+    assert_eq!(rows_of(&conn, "symbol_rows"), 3);
     assert_eq!(rows_of(&conn, "fingerprints"), 1);
-    for snapshot in [10, 20] {
-        let seen: i64 = conn
-            .query_row(
-                "SELECT COUNT(*) FROM snapshot_references WHERE snapshot_id = ?1",
-                [snapshot],
-                |row| row.get(0),
-            )
-            .unwrap();
-        assert_eq!(seen, 1, "snapshot {snapshot}");
+    assert_eq!(rows_in(&conn, "snapshot_references", 10), 1);
+    assert_eq!(rows_in(&conn, "snapshot_references", 20), 2);
+    assert_eq!(rows_in(&conn, "symbols", 10), 2);
+    assert_eq!(rows_in(&conn, "symbols", 20), 3);
+    // The metric the snapshots shared has the value of the newest one.
+    let loc: f64 = conn
+        .query_row(
+            "SELECT value FROM metrics WHERE snapshot_id = 10 AND symbol_id = 101",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert!((loc - 2.0).abs() < f64::EPSILON);
+}
+
+#[test]
+fn pruning_right_after_a_migration_leaves_only_the_newest_snapshot() {
+    let db = TempDb::new();
+    version_three_database(&db);
+    let store = SqliteStore::open(&db.0, keep(1)).unwrap();
+    store.persist(scan_with_every_table(30, 300)).unwrap();
+    let conn = Connection::open(&db.0).unwrap();
+    for (table, expected) in [
+        ("snapshots", 1),
+        ("symbol_rows", 2),
+        ("metric_rows", 2),
+        ("symbol_references", 1),
+        ("fingerprints", 1),
+    ] {
+        assert_eq!(rows_of(&conn, table), expected, "table {table}");
+    }
+}
+
+#[test]
+fn a_rebuilt_reference_of_a_carried_file_is_not_seen_by_the_older_snapshot() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(5)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    store.persist(scan_with_every_table(10, 100)).unwrap();
+    let mut next = data(header(20, ScanMode::Incremental));
+    next.files = vec![file(20, 200, "b.cs", "h")];
+    next.symbols = vec![symbol(201, 200, SymbolKind::Class, "App.B", None)];
+    next.references = vec![reference(204, 100, 102, 101)];
+    store.persist(next).unwrap();
+    let conn = Connection::open(&db.0).unwrap();
+    assert_eq!(rows_in(&conn, "snapshot_references", 10), 1);
+    assert_eq!(rows_in(&conn, "snapshot_references", 20), 2);
+}
+
+/// The ways a scan can point at rows that it does not hold.
+#[cfg(test)]
+fn corruptions() -> Vec<fn(&mut SnapshotData)> {
+    vec![
+        |scan| {
+            scan.symbols
+                .push(symbol(900, 999, SymbolKind::Class, "X", None));
+        },
+        |scan| {
+            scan.symbols
+                .push(symbol(900, 100, SymbolKind::Method, "X.M", Some(999)));
+        },
+        |scan| scan.references.push(reference(901, 100, 998, 101)),
+        |scan| scan.references.push(reference(901, 999, 102, 101)),
+        |scan| scan.metrics.push(metric(997, MetricKind::Loc, 1.0)),
+        |scan| {
+            scan.fingerprints.push(SymbolFingerprints {
+                symbol: SymbolId::new(996),
+                fingerprints: Fingerprints::from_entries(vec![Fingerprint {
+                    hash: 1,
+                    position: 0,
+                }]),
+            });
+        },
+    ]
+}
+
+#[test]
+fn a_snapshot_with_a_row_that_points_nowhere_is_refused_and_leaves_nothing_behind() {
+    for (index, corrupt) in corruptions().into_iter().enumerate() {
+        let db = TempDb::new();
+        let store = SqliteStore::open(&db.0, keep(5)).unwrap();
+        store.save_project(&project(1, "/work/app", &[])).unwrap();
+        let mut scan = scan_with_every_table(10, 100);
+        corrupt(&mut scan);
+        let error = store.persist(scan).unwrap_err();
+        assert_eq!(code_of(&error), "STO-901", "corruption {index}");
+        let conn = Connection::open(&db.0).unwrap();
+        for table in [
+            "symbol_rows",
+            "metric_rows",
+            "symbol_references",
+            "fingerprints",
+        ] {
+            assert_eq!(
+                rows_of(&conn, table),
+                0,
+                "corruption {index}, table {table}"
+            );
+        }
     }
 }

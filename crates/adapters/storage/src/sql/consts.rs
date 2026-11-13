@@ -102,20 +102,21 @@ pub const SYMBOL_INSERT: &str = "INSERT INTO symbol_rows (id, file_id, kind, nam
     qualified_name, parent_id, visibility, is_static, start_line, start_column, end_line, \
     end_column, signature, doc) \
     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)";
-/// Adds a reference: snapshot, id, from, to, file, start line and column, end line and column,
-/// kind, confidence.
-pub const REFERENCE_INSERT: &str = "INSERT INTO symbol_references (id, from_symbol, \
-    to_symbol, file_id, start_line, start_column, end_line, end_column, kind, confidence) \
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)";
+/// Adds a reference: id, snapshot that writes it, from, to, file, start line and column, end line
+/// and column, kind, confidence.
+pub const REFERENCE_INSERT: &str = "INSERT INTO symbol_references (id, first_snapshot, \
+    from_symbol, to_symbol, file_id, start_line, start_column, end_line, end_column, kind, \
+    confidence) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)";
 /// Adds a metric, replacing the one of the same symbol and kind: symbol, kind, value.
 pub const METRIC_INSERT: &str =
     "INSERT OR REPLACE INTO metric_rows (symbol_id, kind, value) VALUES (?1, ?2, ?3)";
 
-/// Whether both symbols and the file of a reference are in the snapshot: snapshot, from, to, file.
-pub const REFERENCE_ENDS_PRESENT: &str = "SELECT \
-    EXISTS (SELECT 1 FROM symbols WHERE snapshot_id = ?1 AND id = ?2) \
-    AND EXISTS (SELECT 1 FROM symbols WHERE snapshot_id = ?1 AND id = ?3) \
-    AND EXISTS (SELECT 1 FROM files WHERE snapshot_id = ?1 AND id = ?4)";
+/// Whether a symbol is in a snapshot: snapshot, symbol.
+pub const SYMBOL_IN_SNAPSHOT: &str =
+    "SELECT EXISTS (SELECT 1 FROM symbols WHERE snapshot_id = ?1 AND id = ?2)";
+/// Whether a file is in a snapshot: snapshot, file.
+pub const FILE_IN_SNAPSHOT: &str =
+    "SELECT EXISTS (SELECT 1 FROM files WHERE snapshot_id = ?1 AND id = ?2)";
 
 /// Adds a fingerprint: snapshot, symbol, position, hash.
 pub const FINGERPRINT_INSERT: &str =

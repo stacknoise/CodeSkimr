@@ -10,7 +10,8 @@
 -- store, which keeps the rows that another snapshot still contains.
 
 CREATE TABLE symbol_references_shared (
-    id           INTEGER PRIMARY KEY,
+    id             INTEGER PRIMARY KEY,
+    first_snapshot INTEGER NOT NULL,
     from_symbol  INTEGER NOT NULL,
     to_symbol    INTEGER NOT NULL,
     file_id      INTEGER NOT NULL,
@@ -22,13 +23,15 @@ CREATE TABLE symbol_references_shared (
     confidence   TEXT NOT NULL
 ) STRICT;
 
--- Snapshots copied their references with the same ids, so one row per id is the whole content.
-INSERT OR IGNORE INTO symbol_references_shared
-    (id, from_symbol, to_symbol, file_id, start_line, start_column, end_line, end_column, kind,
-     confidence)
-SELECT id, from_symbol, to_symbol, file_id, start_line, start_column, end_line, end_column, kind,
-       confidence
-FROM symbol_references;
+-- Snapshots copied their references with the same ids, so one row per id is the whole content. The
+-- first snapshot that held it is the first one that sees it: later snapshots carry it on, earlier
+-- ones never had it.
+INSERT INTO symbol_references_shared
+    (id, first_snapshot, from_symbol, to_symbol, file_id, start_line, start_column, end_line,
+     end_column, kind, confidence)
+SELECT id, MIN(snapshot_id), from_symbol, to_symbol, file_id, start_line, start_column, end_line,
+       end_column, kind, confidence
+FROM symbol_references GROUP BY id;
 
 DROP TABLE symbol_references;
 ALTER TABLE symbol_references_shared RENAME TO symbol_references;
@@ -113,7 +116,8 @@ FROM files f
 JOIN symbol_rows s ON s.file_id = f.id
 JOIN metric_rows m ON m.symbol_id = s.id;
 
--- The references a snapshot contains: the file they stand in and the symbol they point to are in it.
+-- The references a snapshot contains: the file they stand in and the symbol they point to are in
+-- it, and it is not older than the scan that wrote the reference.
 CREATE VIEW snapshot_references AS
 SELECT f.snapshot_id AS snapshot_id, r.id AS id, r.from_symbol AS from_symbol,
        r.to_symbol AS to_symbol, r.file_id AS file_id, r.start_line AS start_line,
@@ -122,4 +126,5 @@ SELECT f.snapshot_id AS snapshot_id, r.id AS id, r.from_symbol AS from_symbol,
 FROM files f
 JOIN symbol_references r ON r.file_id = f.id
 JOIN symbol_rows t ON t.id = r.to_symbol
-JOIN files tf ON tf.snapshot_id = f.snapshot_id AND tf.id = t.file_id;
+JOIN files tf ON tf.snapshot_id = f.snapshot_id AND tf.id = t.file_id
+WHERE r.first_snapshot <= f.snapshot_id;
