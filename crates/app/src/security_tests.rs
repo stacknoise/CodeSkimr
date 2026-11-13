@@ -158,20 +158,28 @@ fn traffic(folder: &Path) -> impl FnOnce(&str, &str) -> Vec<String> + Send + 'st
                 answers.push(command(url, Some("csk_wrong"), id, &input));
             }
         }
-        answers.push(command(
+        answers.extend(more_traffic(url, token));
+        answers
+    }
+}
+
+/// The remaining REST and MCP calls of the traffic.
+fn more_traffic(url: &str, token: &str) -> Vec<String> {
+    let mut answers = vec![
+        command(
             url,
             Some(token),
             "explorer.outline",
             &json!({ "project": 1 }),
-        ));
-        answers.push(command(url, Some(token), "status.info", &json!({})));
-        answers.push(mcp(url, Some(token), 1, "tools/list", &json!({})));
-        let call = json!({ "name": "get_architecture", "arguments": { "project": 99 } });
-        answers.push(mcp(url, Some(token), 2, "tools/call", &call));
-        answers.push(mcp(url, Some("csk_wrong"), 3, "tools/list", &json!({})));
-        answers.push(mcp(url, None, 4, "tools/list", &json!({})));
-        answers
-    }
+        ),
+        command(url, Some(token), "status.info", &json!({})),
+    ];
+    answers.push(mcp(url, Some(token), 1, "tools/list", &json!({})));
+    let call = json!({ "name": "get_architecture", "arguments": { "project": 99 } });
+    answers.push(mcp(url, Some(token), 2, "tools/call", &call));
+    answers.push(mcp(url, Some("csk_wrong"), 3, "tools/list", &json!({})));
+    answers.push(mcp(url, None, 4, "tools/list", &json!({})));
+    answers
 }
 
 #[test]
@@ -184,13 +192,8 @@ fn no_canary_leaves_the_running_app() {
     // served, so that the missing outside class means something.
     let found = |text: &str| outcome.answers.iter().any(|answer| answer.contains(text));
     assert!(found("200 OK") && found(INSIDE) && found("public class"));
-    // The legitimate calls really ran: the project was registered and listed.
-    assert!(
-        outcome
-            .answers
-            .iter()
-            .any(|answer| answer.contains("200 OK"))
-    );
+    // Calls without the token or with a wrong one are refused (S-04).
+    assert!(found("401 Unauthorized"));
     for answer in &outcome.answers {
         for secret in [CREDENTIAL_CANARY, FILE_CANARY, outcome.token.as_str()] {
             assert!(!answer.contains(secret), "{secret} in {answer}");

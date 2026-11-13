@@ -534,7 +534,6 @@ fn the_installation_token_is_not_a_credential_to_manage() {
 // --- Security suite (WP-74, blueprint S-02 and S-05) through the real binary ---------------
 
 /// A class name that is found if a scan or a check reads the file that holds it.
-#[cfg(test)]
 const OUTSIDE_CLASS: &str = "CanaryOutside6b1d";
 
 /// Writes a C# file with a very long method at `path`.
@@ -548,7 +547,6 @@ fn write_long_file(path: &Path, class: &str) {
 }
 
 /// The same file next to the project, outside of it.
-#[cfg(test)]
 fn write_outside_file(workspace: &Workspace) -> PathBuf {
     let path = workspace.root.path().join("outside.cs");
     write_long_file(&path, OUTSIDE_CLASS);
@@ -556,13 +554,24 @@ fn write_outside_file(workspace: &Workspace) -> PathBuf {
 }
 
 /// The whole text of `output`, both streams.
-#[cfg(test)]
 fn all_text(output: &Output) -> String {
     format!(
         "{}{}",
         String::from_utf8_lossy(&output.stdout),
         stderr(output)
     )
+}
+
+/// `src/link.cs` inside the project, pointing at `outside`; its path relative to the project.
+/// Only where symlinks can be made without privileges: on Windows the path stays a plain
+/// missing file, which the test also has to refuse.
+#[cfg(test)]
+fn link_outside(workspace: &Workspace, outside: &Path) -> &'static str {
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(outside, workspace.project().join("src/link.cs")).unwrap();
+    #[cfg(not(unix))]
+    let _ = (workspace, outside);
+    "src/link.cs"
 }
 
 #[test]
@@ -580,13 +589,23 @@ fn check_conventions_never_reads_a_file_outside_the_project() {
     );
     assert!(inside.to_string().contains("CHK-104"), "{inside}");
     let absolute = outside.display().to_string();
-    for path in ["../outside.cs", absolute.as_str(), "src/../../outside.cs"] {
+    let link = link_outside(&workspace, &outside);
+    for path in [
+        "../outside.cs",
+        absolute.as_str(),
+        "src/../../outside.cs",
+        link,
+    ] {
         let answer = session.call(
             2,
             "tools/call",
             &json!({"name": "check_conventions", "arguments": {"paths": [path]}}),
         );
         let text = answer.to_string();
+        // A controlled refusal: nothing was checked and the path is reported as unmatched.
+        let result = &answer["result"]["structuredContent"];
+        assert_eq!(result["files_checked"], 0, "{path}: {text}");
+        assert_eq!(result["unmatched"], json!([path]), "{path}: {text}");
         assert!(!text.contains(OUTSIDE_CLASS), "{path}: {text}");
         assert!(!text.contains("CHK-104"), "{path}: {text}");
     }
@@ -607,8 +626,13 @@ fn the_cli_check_never_reads_a_file_outside_the_current_folder() {
     };
     assert!(all_text(&check("src/Inside.cs")).contains("CHK-104"));
     let absolute = outside.display().to_string();
-    for path in ["../outside.cs", absolute.as_str()] {
-        let text = all_text(&check(path));
+    let link = link_outside(&workspace, &outside);
+    for path in ["../outside.cs", absolute.as_str(), link] {
+        let output = check(path);
+        let text = all_text(&output);
+        // A controlled refusal: exit code 1 and the "no file matches" message, no crash.
+        assert_eq!(output.status.code(), Some(1), "{path}: {text}");
+        assert!(text.contains("No file matches"), "{path}: {text}");
         assert!(!text.contains("CHK-104"), "{path}: {text}");
         assert!(!text.contains(OUTSIDE_CLASS), "{path}: {text}");
     }
