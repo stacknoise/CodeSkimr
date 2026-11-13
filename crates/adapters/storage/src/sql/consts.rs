@@ -230,7 +230,7 @@ pub const LANGUAGE_SHARES: &str = "SELECT language, COUNT(*), COALESCE(SUM(loc),
 pub const TYPE_COUNT: &str = "SELECT COUNT(*) FROM type_summary WHERE snapshot_id = ?1";
 
 /// Namespaces, modules and types of one kind with their member count: snapshot, kind.
-pub const OUTLINE_OF_KIND: &str = "SELECT s.id, s.name, s.qualified_name, s.kind, s.parent_id, \
+pub const OUTLINE_OF_KIND: &str = "SELECT s.kind, s.id, s.name, s.qualified_name, s.parent_id, \
     (SELECT COUNT(*) FROM symbols m WHERE m.snapshot_id = s.snapshot_id AND m.parent_id = s.id) \
     FROM symbols s WHERE s.snapshot_id = ?1 AND s.kind = ?2";
 /// Member table of a symbol: snapshot, symbol, complexity metric.

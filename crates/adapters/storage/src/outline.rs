@@ -3,13 +3,51 @@
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{CodeOutline, MemberRow, OutlineNode};
 use codeskimr_domain::{MetricKind, QualifiedName, SnapshotId, SymbolId, SymbolName};
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, Row, params};
 
 use crate::codec::{Cols, column_int, id_from, label_from, small_from};
-use crate::consts::OUTLINE_KINDS;
+use crate::consts::{CONTAINER_KINDS, TYPE_KINDS};
 use crate::error::StorageResult;
 use crate::sql;
 use crate::store::SqliteStore;
+
+/// A row of `OUTLINE_OF_KIND` as stored.
+struct NodeRow {
+    kind: String,
+    id: i64,
+    name: String,
+    qualified: String,
+    parent: Option<i64>,
+    members: i64,
+}
+
+impl NodeRow {
+    fn from_row(row: &Row<'_>) -> rusqlite::Result<Self> {
+        let cols = Cols::new(row);
+        Ok(Self {
+            kind: cols.take()?,
+            id: cols.take()?,
+            name: cols.take()?,
+            qualified: cols.take()?,
+            parent: cols.take()?,
+            members: cols.take()?,
+        })
+    }
+
+    fn node(self) -> StorageResult<OutlineNode> {
+        Ok(OutlineNode {
+            id: SymbolId::new(id_from(self.id)?),
+            name: SymbolName::new(self.name)?,
+            qualified_name: QualifiedName::new(self.qualified)?,
+            kind: label_from(&self.kind)?,
+            parent: self
+                .parent
+                .map(|parent| id_from(parent).map(SymbolId::new))
+                .transpose()?,
+            members: small_from(self.members)?,
+        })
+    }
+}
 
 fn nodes_of_kind(
     conn: &Connection,
@@ -18,29 +56,8 @@ fn nodes_of_kind(
     nodes: &mut Vec<OutlineNode>,
 ) -> StorageResult<()> {
     let mut statement = conn.prepare_cached(sql::OUTLINE_OF_KIND)?;
-    let rows = statement.query_map(params![snapshot, kind], |row| {
-        let cols = Cols::new(row);
-        Ok((
-            cols.take::<i64>()?,
-            cols.take::<String>()?,
-            cols.take::<String>()?,
-            cols.take::<String>()?,
-            cols.take::<Option<i64>>()?,
-            cols.take::<i64>()?,
-        ))
-    })?;
-    for row in rows {
-        let (id, name, qualified, kind, parent, members) = row?;
-        nodes.push(OutlineNode {
-            id: SymbolId::new(id_from(id)?),
-            name: SymbolName::new(name)?,
-            qualified_name: QualifiedName::new(qualified)?,
-            kind: label_from(&kind)?,
-            parent: parent
-                .map(|parent| id_from(parent).map(SymbolId::new))
-                .transpose()?,
-            members: small_from(members)?,
-        });
+    for row in statement.query_map(params![snapshot, kind], NodeRow::from_row)? {
+        nodes.push(row?.node()?);
     }
     Ok(())
 }
@@ -48,7 +65,7 @@ fn nodes_of_kind(
 fn outline(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<OutlineNode>> {
     let raw = column_int(snapshot.get())?;
     let mut nodes = Vec::new();
-    for kind in OUTLINE_KINDS {
+    for kind in CONTAINER_KINDS.iter().chain(TYPE_KINDS) {
         nodes_of_kind(conn, raw, kind.label(), &mut nodes)?;
     }
     nodes.sort_by(|a, b| {
@@ -59,47 +76,64 @@ fn outline(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<Outline
     Ok(nodes)
 }
 
+/// A row of `MEMBER_ROWS` as stored.
+struct MemberColumns {
+    id: i64,
+    name: String,
+    kind: String,
+    visibility: Option<String>,
+    signature: Option<String>,
+    first: i64,
+    last: i64,
+    complexity: Option<f64>,
+    usages: i64,
+}
+
+impl MemberColumns {
+    fn from_row(row: &Row<'_>) -> rusqlite::Result<Self> {
+        let cols = Cols::new(row);
+        Ok(Self {
+            id: cols.take()?,
+            name: cols.take()?,
+            kind: cols.take()?,
+            visibility: cols.take()?,
+            signature: cols.take()?,
+            first: cols.take()?,
+            last: cols.take()?,
+            complexity: cols.take()?,
+            usages: cols.take()?,
+        })
+    }
+
+    fn member(self) -> StorageResult<MemberRow> {
+        Ok(MemberRow {
+            id: SymbolId::new(id_from(self.id)?),
+            name: SymbolName::new(self.name)?,
+            kind: label_from(&self.kind)?,
+            visibility: self.visibility.as_deref().map(label_from).transpose()?,
+            signature: self.signature,
+            complexity: self.complexity,
+            usages: small_from(self.usages)?,
+            first_line: small_from(self.first)?,
+            last_line: small_from(self.last)?,
+        })
+    }
+}
+
 fn member_rows(
     conn: &Connection,
     snapshot: SnapshotId,
     symbol: SymbolId,
 ) -> StorageResult<Vec<MemberRow>> {
     let mut statement = conn.prepare_cached(sql::MEMBER_ROWS)?;
-    let rows = statement.query_map(
-        params![
-            column_int(snapshot.get())?,
-            column_int(symbol.get())?,
-            MetricKind::CyclomaticComplexity.label()
-        ],
-        |row| {
-            let cols = Cols::new(row);
-            Ok((
-                cols.take::<i64>()?,
-                cols.take::<String>()?,
-                cols.take::<String>()?,
-                cols.take::<Option<String>>()?,
-                cols.take::<Option<String>>()?,
-                cols.take::<i64>()?,
-                cols.take::<i64>()?,
-                cols.take::<Option<f64>>()?,
-                cols.take::<i64>()?,
-            ))
-        },
-    )?;
+    let params = params![
+        column_int(snapshot.get())?,
+        column_int(symbol.get())?,
+        MetricKind::CyclomaticComplexity.label()
+    ];
     let mut found = Vec::new();
-    for row in rows {
-        let (id, name, kind, visibility, signature, first, last, complexity, usages) = row?;
-        found.push(MemberRow {
-            id: SymbolId::new(id_from(id)?),
-            name: SymbolName::new(name)?,
-            kind: label_from(&kind)?,
-            visibility: visibility.as_deref().map(label_from).transpose()?,
-            signature,
-            complexity,
-            usages: small_from(usages)?,
-            first_line: small_from(first)?,
-            last_line: small_from(last)?,
-        });
+    for row in statement.query_map(params, MemberColumns::from_row)? {
+        found.push(row?.member()?);
     }
     Ok(found)
 }

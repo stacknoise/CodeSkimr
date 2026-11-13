@@ -1,0 +1,31 @@
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    width: 16px;
+    height: 16px;
+    border-radius: var(--radius-badge);
+    font: 700 10px var(--font-sans);
+    color: var(--accent-fg);
+    background: var(--muted);
+}
+
+.class {
+    background: var(--kind-class);
+}
+.interface {
+    background: var(--kind-interface);
+}
+.record {
+    background: var(--kind-record);
+}
+.struct {
+    background: var(--kind-struct);
+}
+.enum {
+    background: var(--kind-enum);
+}
+.other {
+    background: var(--muted);
+}

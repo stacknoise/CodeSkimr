@@ -11,37 +11,35 @@ const SNAPSHOT: SnapshotId = SnapshotId::new(10);
 
 #[cfg(test)]
 fn store() -> codeskimr_storage::SqliteStore {
-    let symbols = vec![
-        symbol(20, 11, SymbolKind::Namespace, "App", None),
-        symbol(21, 11, SymbolKind::Class, "App.Order", Some(20)),
-        symbol(22, 11, SymbolKind::Method, "App.Order.Total", Some(21)),
-        symbol(23, 11, SymbolKind::Field, "App.Order.Id", Some(21)),
-        symbol(24, 11, SymbolKind::Interface, "App.IOrder", Some(20)),
-    ];
-    let metrics = vec![metric(22, MetricKind::CyclomaticComplexity, 4.0)];
-    scanned(&[], symbols, vec![], metrics)
+    let namespace = symbol(40, 11, SymbolKind::Namespace, "Shop", None);
+    let cart = symbol(41, 11, SymbolKind::Class, "Shop.Cart", Some(40));
+    let add = symbol(42, 11, SymbolKind::Method, "Shop.Cart.Add", Some(41));
+    let id = symbol(43, 11, SymbolKind::Field, "Shop.Cart.Id", Some(41));
+    let item = symbol(44, 11, SymbolKind::Interface, "Shop.IItem", Some(40));
+    let measured = vec![metric(42, MetricKind::CyclomaticComplexity, 4.0)];
+    scanned(&[], vec![namespace, cart, add, id, item], vec![], measured)
 }
 
 #[test]
 fn the_outline_holds_containers_and_types_but_no_members() {
     let nodes = store().outline(SNAPSHOT).unwrap();
     let names: Vec<_> = nodes.iter().map(|n| n.qualified_name.as_str()).collect();
-    assert_eq!(names, ["App", "App.IOrder", "App.Order"]);
+    assert_eq!(names, ["Shop", "Shop.Cart", "Shop.IItem"]);
 }
 
 #[test]
 fn a_node_knows_its_parent_and_its_member_count() {
     let nodes = store().outline(SNAPSHOT).unwrap();
-    let order = nodes.iter().find(|n| n.name.as_str() == "Order").unwrap();
-    assert_eq!(order.parent, Some(SymbolId::new(20)));
-    assert_eq!(order.members, 2);
+    let cart = nodes.iter().find(|n| n.name.as_str() == "Cart").unwrap();
+    assert_eq!(cart.parent, Some(SymbolId::new(40)));
+    assert_eq!(cart.members, 2);
 }
 
 #[test]
 fn member_rows_carry_complexity_and_lines() {
-    let rows = store().member_rows(SNAPSHOT, SymbolId::new(21)).unwrap();
+    let rows = store().member_rows(SNAPSHOT, SymbolId::new(41)).unwrap();
     assert_eq!(rows.len(), 2);
-    assert_eq!(rows[0].name.as_str(), "Total");
+    assert_eq!(rows[0].name.as_str(), "Add");
     assert_eq!(rows[0].complexity, Some(4.0));
     assert_eq!(rows[1].complexity, None);
     assert_eq!(rows[0].usages, 0);
