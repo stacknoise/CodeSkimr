@@ -1,0 +1,17 @@
+[package]
+name = "codeskimr_i18n"
+description = "Fluent message bundles for the backend."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+codeskimr_application = { path = "../../application" }
+codeskimr_domain = { path = "../../domain" }
+codeskimr_codes = { path = "../../codes" }

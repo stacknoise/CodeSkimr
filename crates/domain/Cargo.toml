@@ -1,0 +1,16 @@
+[package]
+name = "codeskimr_domain"
+description = "Domain model, metrics and rules. Knows nothing about databases, file systems, networks or parsers."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+codeskimr_codes = { path = "../codes" }
+thiserror.workspace = true

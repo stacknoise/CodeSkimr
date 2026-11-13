@@ -1,0 +1,25 @@
+[package]
+name = "codeskimr"
+description = "Composition root: the only place where concrete adapters are created and wired."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+codeskimr_application = { path = "../application" }
+codeskimr_domain = { path = "../domain" }
+codeskimr_codes = { path = "../codes" }
+codeskimr_parsing = { path = "../adapters/parsing" }
+codeskimr_storage = { path = "../adapters/storage" }
+codeskimr_source = { path = "../adapters/source" }
+codeskimr_secrets = { path = "../adapters/secrets" }
+codeskimr_i18n = { path = "../adapters/i18n" }
+codeskimr_server = { path = "../server" }
+codeskimr_cli = { path = "../cli" }
+codeskimr_mcp = { path = "../mcp" }
