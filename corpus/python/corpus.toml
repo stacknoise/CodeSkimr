@@ -1,0 +1,76 @@
+# Public Python reference of CI (blueprint 17.2, ADR 0023). Updating the commit is a deliberate
+# change with new expected values. Tests, docs and examples are skipped: the library is scanned.
+
+[project]
+repository = "https://github.com/pallets/click"
+commit = "e38188e9e205005d5af5f9e59df51904c984586a"
+skip_folders = ["tests", "docs", "examples", "__pycache__"]
+language = "python"
+extensions = ["py"]
+
+# Symbols per kind over all *.py files of the library; `module` is one per file.
+[counts]
+files = 17
+module = 17
+class = 85
+constructor = 50
+function = 195
+method = 320
+property = 23
+field = 243
+constant = 32         # UPPER_CASE assignments directly in the module; not those in `if` blocks
+
+[[sample]]
+file = "src/click/core.py"
+kind = "class"
+name = "Context"
+visibility = "public"
+parent = "core"
+
+[[sample]]
+file = "src/click/core.py"
+kind = "property"
+name = "protected_args"
+visibility = "public"
+parent = "Context"
+
+[[sample]]
+file = "src/click/core.py"
+kind = "constructor"
+name = "__init__"
+visibility = "public"
+parent = "Context"
+
+[[sample]]
+file = "src/click/exceptions.py"
+kind = "class"
+name = "ClickException"
+visibility = "public"
+parent = "exceptions"
+
+[[sample]]
+file = "src/click/_compat.py"
+kind = "function"
+name = "_make_text_stream"
+visibility = "internal"
+parent = "_compat"
+
+[[sample]]
+file = "src/click/_winconsole.py"
+kind = "method"
+name = "_get_error_message"
+visibility = "internal"
+parent = "_WindowsConsoleWriter"
+
+# Hand-checked references: file, kind, target and 1-based line.
+[[references]]
+file = "src/click/exceptions.py"
+kind = "inherit"
+target = "ClickException"
+line = 68
+
+[[references]]
+file = "src/click/exceptions.py"
+kind = "inherit"
+target = "Exception"
+line = 35

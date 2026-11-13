@@ -340,12 +340,14 @@ fn new_symbol(
         .find_map(|word| pack.modifier_kinds.get(*word))
         .copied()
         .unwrap_or(declaration.kind);
+    let kind = pack.kind_in(parent, kind);
+    let visibility = pack.visibility.of(kind, &name, &words, parent);
     Ok(NewSymbol {
         kind,
         name,
         span,
         range: node.start_byte()..end,
-        visibility: pack.visibility.of(kind, &words, parent),
+        visibility,
         is_static: declaration.is_static
             || words
                 .iter()
@@ -362,12 +364,13 @@ fn doc(ctx: &SymbolContext<'_>, nodes: &[Node<'_>]) -> Option<String> {
     let lines: Vec<&str> = nodes
         .iter()
         .filter_map(|node| strip_prefix(&ctx.pack.doc_prefixes, text_of(*node, ctx.source)))
+        .flat_map(str::lines)
         .map(str::trim)
         .collect();
     if lines.is_empty() {
         return None;
     }
-    let text = lines.join(LINE_SEPARATOR);
+    let text = lines.join(LINE_SEPARATOR).trim().to_owned();
     let text = summary(ctx.pack.doc_summary.as_ref(), &text).unwrap_or(text);
     (!text.is_empty()).then_some(text)
 }

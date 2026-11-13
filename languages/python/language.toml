@@ -1,0 +1,73 @@
+# Python language pack, full tier (blueprint 8, WP-61, ADR 0023).
+#
+# Mapping of Python onto the language-neutral symbol kinds:
+#   class                              -> class
+#   def at module level or in a def    -> function     def in a class body   -> method
+#   def __init__                       -> constructor  @property / .setter   -> property
+#   assignment in a class body         -> field        NAME = ... in module  -> constant when
+#                                                      the name is UPPER_CASE
+# Not symbols: parameters, local variables, lambdas (they count for their callable), nested
+# comprehension variables, `__all__` entries, type aliases written as plain assignments.
+# Visibility follows the naming convention (there are no keywords): `__x` is private (name
+# mangling), `_x` is internal, everything else and the dunder names are public. Documentation is
+# the docstring: the first statement of the body of a class or function.
+id = "python"
+grammar = "python"
+tier = "full"
+extensions = ["py", "pyi"]
+separator = "."
+comment_nodes = ["comment"]
+manifest_files = [
+    "pyproject.toml",
+    "setup.py",
+    "setup.cfg",
+    "requirements.txt",
+    "Pipfile",
+    "tox.ini",
+]
+test_patterns = [
+    "**/test_*.py",
+    "**/*_test.py",
+    "**/tests/**/*.py",
+    "**/test/**/*.py",
+    "**/conftest.py",
+]
+# Syntax fingerprints (WP-34): all names alike, literals by kind only.
+identifier_nodes = ["identifier"]
+literal_nodes = ["integer", "float", "string", "concatenated_string", "true", "false", "none"]
+# A docstring is not a comment with a prefix: the query captures its text.
+static_keywords = ["staticmethod"]
+
+# Decorators that change the kind (the query captures every decorator name as a modifier), and
+# the constructor by its name.
+[modifier_kinds]
+property = "property"
+cached_property = "property"
+getter = "property"
+setter = "property"
+deleter = "property"
+__init__ = "constructor"
+
+# A `def` in a class body is a method.
+[kinds_by_parent.class]
+function = "method"
+
+[visibility]
+default = "public"
+# A module has no members of its own that are hidden by anything but the name.
+unrated_kinds = []
+
+# First rule that fits counts: dunder names are public API, `__x` is mangled (private), `_x` is
+# for internal use.
+[[visibility.name_rules]]
+prefix = "__"
+suffix = "__"
+visibility = "public"
+
+[[visibility.name_rules]]
+prefix = "__"
+visibility = "private"
+
+[[visibility.name_rules]]
+prefix = "_"
+visibility = "internal"

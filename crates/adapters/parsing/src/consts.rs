@@ -82,6 +82,8 @@ pub const UTF16_UNIT_BYTES: usize = 2;
 pub const GRAMMAR_RUST: &str = "rust";
 /// Grammar name of C# in `language.toml`.
 pub const GRAMMAR_CSHARP: &str = "csharp";
+/// Grammar name of Python in `language.toml`.
+pub const GRAMMAR_PYTHON: &str = "python";
 
 /// Grammar name of Go in `language.toml` (basic tier).
 #[cfg(feature = "basic-grammars")]

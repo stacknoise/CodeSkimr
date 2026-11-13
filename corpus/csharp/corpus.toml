@@ -6,6 +6,9 @@
 repository = "https://github.com/ardalis/GuardClauses"
 commit = "5434b262a40ba26dae6e7f2cc93c6097b9cc4824"
 skip_folders = ["bin", "obj"]
+language = "csharp"
+extensions = ["cs"]
+skip_suffixes = [".g.cs"]
 
 # Symbols per kind over all *.cs files; `module` is one per file.
 [counts]
