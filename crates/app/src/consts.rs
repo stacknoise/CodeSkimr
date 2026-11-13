@@ -70,3 +70,6 @@ pub const OS_MACOS: &str = "macos";
 pub const EXIT_FAILURE: u8 = 1;
 /// Exit code: the command line is invalid.
 pub const EXIT_USAGE: u8 = 2;
+
+/// Ends a printed line.
+pub const LINE_BREAK: &str = "\n";

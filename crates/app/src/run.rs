@@ -13,7 +13,9 @@ use codeskimr_cli::{
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_i18n::Messages;
 
-use crate::consts::{ENV_LANGUAGE_TAGS, EXIT_FAILURE, EXIT_USAGE, PLAIN_ERROR_SEPARATOR};
+use crate::consts::{
+    ENV_LANGUAGE_TAGS, EXIT_FAILURE, EXIT_USAGE, LINE_BREAK, PLAIN_ERROR_SEPARATOR,
+};
 use crate::locations::{Locations, Lookup};
 use crate::{mcp, scan};
 
@@ -154,9 +156,18 @@ fn exit_status(code: ErrorCode) -> u8 {
 
 fn write_out(text: &str) {
     // A closed pipe is the reader's decision; there is nobody left to tell.
-    let _ = writeln!(io::stdout(), "{text}");
+    emit(io::stdout(), text);
 }
 
 fn write_err(text: &str) {
-    let _ = writeln!(io::stderr(), "{text}");
+    emit(io::stderr(), text);
+}
+
+/// Writes `text` and a line break.
+fn emit(mut sink: impl Write, text: &str) {
+    for part in [text, LINE_BREAK] {
+        if sink.write_all(part.as_bytes()).is_err() {
+            return;
+        }
+    }
 }
