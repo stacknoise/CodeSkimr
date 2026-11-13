@@ -1,7 +1,7 @@
 # Public Java reference of CI (blueprint 17.2, ADR 0025). Updating the commit is a deliberate
 # change with new expected values. Tests, the other modules (extras, proto, metrics, shrinker and
 # native-image tests) and the Maven template are skipped: the `gson` library itself is scanned
-# (85 files of `gson/src/main/java` plus `module-info.java`).
+# (86 files of `gson/src/main/java` with a package plus `module-info.java`).
 # Counts were measured with the Java pack and checked against an independent count with the
 # `com.sun.source` tree API of the JDK (parse only, same mapping rules, different parser); every
 # kind agrees. The library targets Java 8, so it has no records; the golden files of the pack cover
