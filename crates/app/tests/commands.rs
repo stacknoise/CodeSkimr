@@ -309,3 +309,34 @@ fn mcp_for_a_folder_that_was_never_scanned_fails_with_prj_201() {
     assert!(stderr(&output).contains("PRJ-201"));
     assert_eq!(output.stdout, Vec::<u8>::new());
 }
+
+#[test]
+fn mcp_for_a_registered_project_without_snapshot_fails_with_mcp_203() {
+    let workspace = Workspace::new();
+    let folder = fs::canonicalize(workspace.project()).unwrap();
+    let store = codeskimr_storage::SqliteStore::open(
+        &workspace.root.path().join("data/codeskimr.db"),
+        std::num::NonZeroU32::new(5).unwrap(),
+    )
+    .unwrap();
+    let project = codeskimr_domain::Project {
+        id: codeskimr_domain::ProjectId::new(1),
+        name: codeskimr_domain::ProjectName::new("project").unwrap(),
+        source: codeskimr_domain::ProjectSource::Folder(
+            codeskimr_domain::FolderPath::new(folder.to_string_lossy().into_owned()).unwrap(),
+        ),
+        layers: Vec::new(),
+    };
+    store.save_project(&project).unwrap();
+    drop(store);
+    let output = workspace
+        .command()
+        .arg("mcp")
+        .arg("--project")
+        .arg(workspace.project())
+        .stdin(Stdio::null())
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    assert!(stderr(&output).contains("MCP-203"));
+}
