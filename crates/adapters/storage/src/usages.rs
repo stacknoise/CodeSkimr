@@ -29,28 +29,39 @@ struct Placed {
     path: RelativePath,
 }
 
+/// The columns of `SYMBOL_LABEL`, still raw.
+struct LabelRow {
+    qualified: String,
+    kind: String,
+    visibility: Option<String>,
+    path: String,
+}
+
+fn read_label(cols: &Cols<'_>) -> rusqlite::Result<LabelRow> {
+    Ok(LabelRow {
+        qualified: cols.take()?,
+        kind: cols.take()?,
+        visibility: cols.take()?,
+        path: cols.take()?,
+    })
+}
+
 fn placed(conn: &Connection, snapshot: i64, symbol: SymbolId) -> StorageResult<Placed> {
     let row = conn
         .prepare_cached(sql::SYMBOL_LABEL)?
         .query_row(params![snapshot, column_int(symbol.get())?], |row| {
-            let cols = Cols::new(row);
-            Ok((
-                cols.take::<String>()?,
-                cols.take::<String>()?,
-                cols.take::<Option<String>>()?,
-                cols.take::<String>()?,
-            ))
+            read_label(&Cols::new(row))
         })
-        .optional()?;
-    let (qualified, kind, visibility, path) = row.ok_or(StorageError::DanglingReference)?;
+        .optional()?
+        .ok_or(StorageError::DanglingReference)?;
     Ok(Placed {
         label: SymbolLabel {
             id: symbol,
-            qualified_name: QualifiedName::new(qualified)?,
-            kind: label_from(&kind)?,
+            qualified_name: QualifiedName::new(row.qualified)?,
+            kind: label_from(&row.kind)?,
         },
-        visibility: visibility.as_deref().map(label_from).transpose()?,
-        path: RelativePath::new(path)?,
+        visibility: row.visibility.as_deref().map(label_from).transpose()?,
+        path: RelativePath::new(row.path)?,
     })
 }
 
