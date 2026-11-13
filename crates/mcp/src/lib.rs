@@ -2,8 +2,8 @@
 //!
 //! The server is a driving adapter (blueprint 4.1, 10.4): it reads through the ports of
 //! `codeskimr_application` and never touches a database itself. [`Tools`] holds the synchronous
-//! logic of `search_symbols`, `get_symbol`, `get_architecture`, `find_usages` and
-//! `impact_of_change`; [`McpServer`] wraps it for the protocol and [`serve_stdio`] runs it over
+//! logic of `search_symbols`, `get_symbol`, `get_architecture`, `find_usages`,
+//! `impact_of_change`, `find_similar_code`, `find_constants` and `check_conventions`; [`McpServer`] wraps it for the protocol and [`serve_stdio`] runs it over
 //! standard input and output.
 
 mod args;
@@ -12,7 +12,10 @@ mod error;
 mod server;
 mod tools;
 
-pub use args::{ArchitectureArgs, ImpactArgs, SearchArgs, SymbolArgs, UsagesArgs};
+pub use args::{
+    ArchitectureArgs, ConstantsArgs, ConventionsArgs, ImpactArgs, SearchArgs, SimilarArgs,
+    SymbolArgs, UsagesArgs,
+};
 pub use error::{CodeReport, McpError};
 pub use server::McpServer;
 pub use tools::{Ports, SnapshotInfo, Tools};

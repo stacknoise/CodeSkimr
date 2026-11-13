@@ -189,6 +189,27 @@ fn the_default_depth_must_not_exceed_the_maximum() {
 }
 
 #[test]
+fn the_similar_code_settings_are_checked() {
+    assert_rejected(&[
+        (
+            "[mcp]\ndefault_similarity_percent = 0\n",
+            "mcp.default_similarity_percent",
+            Violation::MustBePositive,
+        ),
+        (
+            "[mcp]\ndefault_similarity_percent = 101\n",
+            "mcp.default_similarity_percent",
+            Violation::MustBePercent,
+        ),
+        (
+            "[mcp]\nmax_snippet_bytes = 0\n",
+            "mcp.max_snippet_bytes",
+            Violation::MustBePositive,
+        ),
+    ]);
+}
+
+#[test]
 fn limits_and_folders_are_checked() {
     assert_rejected(&[
         (

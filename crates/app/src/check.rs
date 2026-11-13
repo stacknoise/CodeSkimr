@@ -36,6 +36,7 @@ pub fn run(
     let Analysis {
         discovery,
         analyzer,
+        ..
     } = build_analysis(&config, locations)?;
     let checker = ConventionChecker::new(discovery, analyzer, config.conventions);
     let paths: Vec<String> = args

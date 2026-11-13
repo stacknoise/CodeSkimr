@@ -120,6 +120,7 @@ pub fn data(snapshot: Snapshot) -> SnapshotData {
         symbols: Vec::new(),
         references: Vec::new(),
         metrics: Vec::new(),
+        fingerprints: Vec::new(),
         removed: Vec::new(),
     }
 }

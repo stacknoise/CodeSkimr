@@ -4,6 +4,7 @@ use codeskimr_domain::{
     Metric, Project, ProjectId, Reference, RelativePath, Snapshot, SourceFile, Symbol,
 };
 
+use super::SymbolFingerprints;
 use crate::error::CodedError;
 
 /// Everything one scan produced, written as one unit.
@@ -26,6 +27,9 @@ pub struct SnapshotData {
     pub references: Vec<Reference>,
     /// Measured values.
     pub metrics: Vec<Metric>,
+    /// Syntax fingerprints of the callables of the analysed files. The store carries those of
+    /// the other files over, like their symbols.
+    pub fingerprints: Vec<SymbolFingerprints>,
     /// Paths of files that were in the previous snapshot and no longer exist; empty in a full scan.
     pub removed: Vec<RelativePath>,
 }

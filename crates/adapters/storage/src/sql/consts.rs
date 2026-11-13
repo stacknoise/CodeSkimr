@@ -78,6 +78,30 @@ pub const REFERENCE_INSERT: &str = "INSERT INTO symbol_references (snapshot_id, 
 pub const METRIC_INSERT: &str =
     "INSERT INTO metrics (snapshot_id, symbol_id, kind, value) VALUES (?1, ?2, ?3, ?4)";
 
+/// Adds a fingerprint: snapshot, symbol, position, hash.
+pub const FINGERPRINT_INSERT: &str = "INSERT INTO fingerprints \
+    (snapshot_id, symbol_id, position, hash) VALUES (?1, ?2, ?3, ?4)";
+/// Copies the fingerprints of the carried symbols: previous, new.
+pub const CARRY_FINGERPRINTS: &str = "INSERT INTO fingerprints \
+    (snapshot_id, symbol_id, position, hash) \
+    SELECT ?2, f.symbol_id, f.position, f.hash FROM fingerprints f WHERE f.snapshot_id = ?1 \
+    AND f.symbol_id IN (SELECT id FROM symbols WHERE snapshot_id = ?2)";
+/// The fingerprints of one symbol in order: snapshot, symbol.
+pub const FINGERPRINTS_OF: &str = "SELECT position, hash FROM fingerprints \
+    WHERE snapshot_id = ?1 AND symbol_id = ?2 ORDER BY position";
+/// Per symbol, how many distinct hashes of a JSON list it holds: snapshot, list.
+pub const FINGERPRINTS_SHARED: &str = "SELECT symbol_id, COUNT(DISTINCT hash) FROM fingerprints \
+    WHERE snapshot_id = ?1 AND hash IN (SELECT value FROM json_each(?2)) GROUP BY symbol_id";
+/// Per symbol of a JSON list, how many distinct hashes it holds: snapshot, list.
+pub const FINGERPRINTS_SIZES: &str = "SELECT symbol_id, COUNT(DISTINCT hash) FROM fingerprints \
+    WHERE snapshot_id = ?1 AND symbol_id IN (SELECT value FROM json_each(?2)) \
+    GROUP BY symbol_id";
+/// The label of the symbols of a JSON list: snapshot, list.
+pub const SIMILAR_LABELS: &str = "SELECT s.id, s.qualified_name, s.kind, f.path, s.start_line, \
+    s.start_column, s.end_line, s.end_column FROM symbols s \
+    JOIN files f ON f.snapshot_id = s.snapshot_id AND f.id = s.file_id \
+    WHERE s.snapshot_id = ?1 AND s.id IN (SELECT value FROM json_each(?2))";
+
 /// Removes a carried file that no longer exists: snapshot, path.
 pub const FILE_REMOVE: &str = "DELETE FROM files WHERE snapshot_id = ?1 AND path = ?2";
 /// Copies the files of the previous snapshot that were not analysed again: previous, new.

@@ -4,7 +4,7 @@
 use std::ops::Range;
 
 use codeskimr_application::ports::SymbolFingerprints;
-use codeskimr_domain::{FingerprintParams, TokenId, winnow};
+use codeskimr_domain::{FingerprintParams, Fingerprints, TokenId, winnow};
 use tree_sitter::Node;
 
 use crate::pack::LanguagePack;
@@ -41,6 +41,21 @@ pub fn of_callables(
             })
         })
         .collect()
+}
+
+/// The fingerprints of a whole piece of source: the tokens of the entire tree. Only leaves count,
+/// so a function that stands alone has the tokens of the same function inside a file.
+#[must_use]
+pub fn of_source(
+    pack: &LanguagePack,
+    root: Node<'_>,
+    settings: FingerprintSettings,
+) -> Fingerprints {
+    let tokens = tokens_in(pack, root, &(root.start_byte()..root.end_byte()));
+    if tokens.len() < settings.min_tokens {
+        return Fingerprints::default();
+    }
+    winnow(&tokens, settings.params)
 }
 
 /// The normalised tokens of the smallest node that covers `range`: comments are dropped,

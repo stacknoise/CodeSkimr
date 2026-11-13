@@ -7,8 +7,9 @@ use std::time::{Duration, Instant};
 
 use codeskimr_application::config::Similarity;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{AnalyzeRequest, FileAnalyzer, FileFacts};
-use codeskimr_domain::{SourceFile, lines_of_code};
+use codeskimr_application::ports::{AnalyzeRequest, FileAnalyzer, FileFacts, SnippetFingerprinter};
+use codeskimr_codes::ErrorCode;
+use codeskimr_domain::{Fingerprints, LanguageId, SourceFile, lines_of_code};
 use tree_sitter::{ParseOptions, ParseState, Parser, Point, Tree};
 
 use crate::encoding::decode;
@@ -94,6 +95,17 @@ impl TreeSitterAnalyzer {
 impl FileAnalyzer for TreeSitterAnalyzer {
     fn analyze(&self, request: &AnalyzeRequest<'_>) -> Result<FileFacts, CodedError> {
         self.run(request).map_err(CodedError::caused_by)
+    }
+}
+
+impl SnippetFingerprinter for TreeSitterAnalyzer {
+    fn fingerprint(&self, language: &LanguageId, source: &str) -> Result<Fingerprints, CodedError> {
+        let settings = self
+            .fingerprinting
+            .ok_or_else(|| CodedError::new(ErrorCode::UnexpectedInternalError))?;
+        let pack = self.packs.get(language).map_err(CodedError::caused_by)?;
+        let tree = parse(pack, source, self.parse_timeout).map_err(CodedError::caused_by)?;
+        Ok(fingerprints::of_source(pack, tree.root_node(), settings))
     }
 }
 

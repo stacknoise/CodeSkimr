@@ -4,6 +4,7 @@
 pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0001_initial.sql"),
     include_str!("../migrations/0002_credential_reference.sql"),
+    include_str!("../migrations/0003_fingerprints.sql"),
 ];
 
 /// Name of the pragma that holds the schema version.
@@ -70,3 +71,14 @@ pub const PRAGMA_DEFER_FOREIGN_KEYS: &str = "defer_foreign_keys";
 pub const PRAGMA_ON: bool = true;
 /// Weight of one reference in the layer graph.
 pub const EDGE_STEP: u32 = 1;
+
+/// Bits of a fingerprint hash; the column holds them as a signed integer of the same width.
+pub const HASH_BYTES: usize = 8;
+/// A percentage is this many percent points of the whole.
+pub const PERCENT_BASE: u64 = 100;
+/// Opens the JSON list that carries the values of an `IN` condition.
+pub const JSON_LIST_OPEN: char = '[';
+/// Closes the JSON list.
+pub const JSON_LIST_CLOSE: char = ']';
+/// Separates the values of the JSON list.
+pub const JSON_LIST_SEPARATOR: char = ',';

@@ -7,8 +7,8 @@ use std::num::NonZeroU32;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use codeskimr_application::ports::{ProjectRepository, SnapshotStore};
-use codeskimr_domain::{ScanMode, SymbolKind};
+use codeskimr_application::ports::{ProjectRepository, SnapshotStore, SymbolFingerprints};
+use codeskimr_domain::{Fingerprint, Fingerprints, ScanMode, SymbolId, SymbolKind};
 use codeskimr_storage::SqliteStore;
 use common::{PROJECT, code_of, data, file, header, project, symbol};
 use rusqlite::Connection;
@@ -65,7 +65,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 2));
+    assert_eq!((mode.as_str(), version), ("wal", 3));
 }
 
 #[test]
@@ -125,6 +125,13 @@ fn pruned_snapshots_leave_no_rows_behind() {
         let mut scan = data(header(snapshot, ScanMode::Full));
         scan.files = vec![file(snapshot, base, "a.cs", "h")];
         scan.symbols = vec![symbol(base + 1, base, SymbolKind::Class, "App.A", None)];
+        scan.fingerprints = vec![SymbolFingerprints {
+            symbol: SymbolId::new(base + 1),
+            fingerprints: Fingerprints::from_entries(vec![Fingerprint {
+                hash: base,
+                position: 0,
+            }]),
+        }];
         store.persist(scan).unwrap();
     }
     let conn = Connection::open(&db.0).unwrap();
@@ -134,6 +141,7 @@ fn pruned_snapshots_leave_no_rows_behind() {
         "symbols",
         "search_index",
         "type_summary",
+        "fingerprints",
     ] {
         let rows: i64 = conn
             .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {

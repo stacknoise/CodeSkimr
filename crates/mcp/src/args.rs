@@ -69,3 +69,49 @@ pub struct ImpactArgs {
     /// Number of symbols; the configured default if left out, never more than the configured maximum.
     pub limit: Option<u32>,
 }
+
+/// Arguments of `find_similar_code`. Exactly one of `symbol` and `snippet` is given.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+#[schemars(crate = "rmcp::schemars")]
+pub struct SimilarArgs {
+    /// A symbol id (digits only) or a qualified name of a function: find functions that resemble it.
+    pub symbol: Option<String>,
+    /// Code to compare with the project, ideally one complete function.
+    pub snippet: Option<String>,
+    /// Id of the language pack the snippet is written in, such as `csharp`; required with `snippet`.
+    pub language: Option<String>,
+    /// Smallest similarity in percent (1 to 100); the configured default if left out.
+    pub min_similarity_percent: Option<u32>,
+    /// Id of the project; the project of this server if left out.
+    pub project: Option<u64>,
+    /// Number of results; the configured default if left out, never more than the configured maximum.
+    pub limit: Option<u32>,
+}
+
+/// Arguments of `find_constants`.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+#[schemars(crate = "rmcp::schemars")]
+pub struct ConstantsArgs {
+    /// Part of the constant name; the characters must appear in this order, case does not matter.
+    pub query: String,
+    /// Id of the project; the project of this server if left out.
+    pub project: Option<u64>,
+    /// Number of results; the configured default if left out, never more than the configured maximum.
+    pub limit: Option<u32>,
+}
+
+/// Arguments of `check_conventions`.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+#[schemars(crate = "rmcp::schemars")]
+pub struct ConventionsArgs {
+    /// Files or folders of the project to check, relative to its root, for example the files
+    /// of a change; everything if left out. A path that is not part of the project selects nothing.
+    pub paths: Option<Vec<String>>,
+    /// Id of the project; the project of this server if left out.
+    pub project: Option<u64>,
+    /// Number of findings; the configured default if left out, never more than the configured maximum.
+    pub limit: Option<u32>,
+}

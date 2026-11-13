@@ -3,11 +3,12 @@
 use std::str::FromStr;
 
 use codeskimr_application::access;
+use codeskimr_application::ports::SearchHit;
 use codeskimr_domain::{Principal, SymbolKind};
 use serde::Serialize;
 use serde_json::Value;
 
-use super::{SnapshotInfo, Tools, to_json, truncation_notice};
+use super::{AppliedLimit, Scope, SnapshotInfo, Tools, to_json, truncation_notice};
 use crate::args::SearchArgs;
 use crate::consts::{ARG_KIND, ARG_QUERY, READ_TOOL_PERMISSION};
 use crate::error::{CodeReport, McpError};
@@ -55,20 +56,9 @@ impl Tools {
         let kind = parse_kind(args.kind.as_deref())?;
         let scope = self.scope(args.project)?;
         let limit = self.apply_limit(args.limit);
-        // One more than asked tells whether results were left out. A kind filter is applied
-        // after the search, so look at the widest result first.
-        let wanted = usize::try_from(limit.value).unwrap_or(usize::MAX);
-        let fetch = if kind.is_some() {
-            self.max_limit()
-        } else {
-            limit.value
-        };
-        let found = self
-            .index()
-            .search(scope.snapshot.id, &args.query, fetch.saturating_add(1))?;
-        let mut hits: Vec<Hit> = found
+        let (found, cut) = self.search_of_kind(&scope, &args.query, kind, &limit)?;
+        let hits: Vec<Hit> = found
             .into_iter()
-            .filter(|hit| kind.is_none_or(|wanted| hit.kind == wanted))
             .map(|hit| Hit {
                 id: hit.symbol.get(),
                 name: hit.name.as_str().to_owned(),
@@ -77,12 +67,35 @@ impl Tools {
                 path: hit.path.as_str().to_owned(),
             })
             .collect();
-        let cut = limit.clamped || hits.len() > wanted;
-        hits.truncate(wanted);
         to_json(&Answer {
             snapshot: scope.info,
             hits,
             notice: cut.then(|| truncation_notice(limit.value, None)),
         })
+    }
+
+    /// The best hits of a name search, restricted to one kind if given, at most the limit.
+    /// The flag tells whether results were left out. A kind filter is applied after the
+    /// search, so the widest allowed result is looked at first.
+    pub(crate) fn search_of_kind(
+        &self,
+        scope: &Scope,
+        query: &str,
+        kind: Option<SymbolKind>,
+        limit: &AppliedLimit,
+    ) -> Result<(Vec<SearchHit>, bool), McpError> {
+        let wanted = usize::try_from(limit.value).unwrap_or(usize::MAX);
+        let fetch = if kind.is_some() {
+            self.max_limit()
+        } else {
+            limit.value
+        };
+        let mut hits = self
+            .index()
+            .search(scope.snapshot.id, query, fetch.saturating_add(1))?;
+        hits.retain(|hit| kind.is_none_or(|wanted| hit.kind == wanted));
+        let cut = limit.clamped || hits.len() > wanted;
+        hits.truncate(wanted);
+        Ok((hits, cut))
     }
 }

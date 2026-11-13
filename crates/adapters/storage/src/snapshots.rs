@@ -13,6 +13,7 @@ use crate::consts::{PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON};
 use crate::error::{StorageError, StorageResult};
 use crate::projects::load_layers;
 use crate::read_models;
+use crate::similarity;
 use crate::sql;
 use crate::store::SqliteStore;
 
@@ -78,6 +79,7 @@ fn insert_facts(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
     for metric in &data.metrics {
         insert_metric(conn, snapshot, metric)?;
     }
+    similarity::insert_all(conn, snapshot, &data.fingerprints)?;
     Ok(())
 }
 
@@ -173,6 +175,7 @@ fn carry_over(
         sql::CARRY_SYMBOLS,
         sql::CARRY_REFERENCES,
         sql::CARRY_METRICS,
+        sql::CARRY_FINGERPRINTS,
     ] {
         conn.execute(statement, params![previous, new])?;
     }

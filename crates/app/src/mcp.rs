@@ -3,19 +3,22 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
+use codeskimr_application::config::Config;
+use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{CodeIndex, ProjectRepository, UsageIndex};
+use codeskimr_application::ports::{CodeIndex, ProjectRepository, SimilarityIndex, UsageIndex};
 use codeskimr_cli::{GlobalOptions, McpArgs};
 use codeskimr_codes::ErrorCode;
 use codeskimr_i18n::Messages;
 use codeskimr_mcp::{McpServer, Ports, Tools, serve_stdio};
+use codeskimr_storage::SqliteStore;
 
 use crate::clock::SystemClock;
 use crate::config_files;
 use crate::locations::Locations;
 use crate::principal;
 use crate::source_arg::folder_spec;
-use crate::wiring::open_store;
+use crate::wiring::{Analysis, build_analysis, open_store};
 
 /// Serves MCP until the client disconnects.
 ///
@@ -45,15 +48,7 @@ pub fn run(
     if store.latest_snapshot(project.id)?.is_none() {
         return Err(CodedError::new(ErrorCode::ProjectNotScanned));
     }
-    let projects: Arc<dyn ProjectRepository> = store.clone();
-    let usages: Arc<dyn UsageIndex> = store.clone();
-    let index: Arc<dyn CodeIndex> = store;
-    let ports = Ports {
-        projects,
-        index,
-        usages,
-        clock: Arc::new(SystemClock),
-    };
+    let ports = build_ports(store, &config, locations)?;
     let tools = Tools::new(ports, config.mcp, project.id);
     let messages = Messages::load().map_err(CodedError::caused_by)?;
     let server = McpServer::new(tools, &messages, principal::resolve())?;
@@ -62,4 +57,32 @@ pub fn run(
         .build()
         .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?
         .block_on(serve_stdio(server))
+}
+
+/// The ports of the tools: the store for everything it implements, and the analysis ports the
+/// convention check and the snippet fingerprints read files and language packs through.
+fn build_ports(
+    store: Arc<SqliteStore>,
+    config: &Config,
+    locations: &Locations,
+) -> Result<Ports, CodedError> {
+    let Analysis {
+        discovery,
+        analyzer,
+        snippets,
+    } = build_analysis(config, locations)?;
+    let checker = ConventionChecker::new(discovery, analyzer, config.conventions.clone());
+    let projects: Arc<dyn ProjectRepository> = store.clone();
+    let usages: Arc<dyn UsageIndex> = store.clone();
+    let similarity: Arc<dyn SimilarityIndex> = store.clone();
+    let index: Arc<dyn CodeIndex> = store;
+    Ok(Ports {
+        projects,
+        index,
+        usages,
+        similarity,
+        snippets,
+        checker: Arc::new(checker),
+        clock: Arc::new(SystemClock),
+    })
 }

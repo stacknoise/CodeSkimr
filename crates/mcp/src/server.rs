@@ -7,8 +7,9 @@ use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
 use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
-    MCP_SERVER_INSTRUCTIONS, MCP_TOOL_FIND_USAGES, MCP_TOOL_GET_ARCHITECTURE, MCP_TOOL_GET_SYMBOL,
-    MCP_TOOL_IMPACT_OF_CHANGE, MCP_TOOL_SEARCH_SYMBOLS,
+    MCP_SERVER_INSTRUCTIONS, MCP_TOOL_CHECK_CONVENTIONS, MCP_TOOL_FIND_CONSTANTS,
+    MCP_TOOL_FIND_SIMILAR_CODE, MCP_TOOL_FIND_USAGES, MCP_TOOL_GET_ARCHITECTURE,
+    MCP_TOOL_GET_SYMBOL, MCP_TOOL_IMPACT_OF_CHANGE, MCP_TOOL_SEARCH_SYMBOLS,
 };
 use codeskimr_domain::Principal;
 use codeskimr_i18n::Messages;
@@ -24,10 +25,14 @@ use rmcp::service::{RequestContext, RoleServer};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::args::{ArchitectureArgs, ImpactArgs, SearchArgs, SymbolArgs, UsagesArgs};
+use crate::args::{
+    ArchitectureArgs, ConstantsArgs, ConventionsArgs, ImpactArgs, SearchArgs, SimilarArgs,
+    SymbolArgs, UsagesArgs,
+};
 use crate::consts::{
-    READ_TOOL_PERMISSION, SERVER_NAME, SERVER_VERSION, TEXT_LANGUAGE, TOOL_FIND_USAGES,
-    TOOL_GET_ARCHITECTURE, TOOL_GET_SYMBOL, TOOL_IMPACT_OF_CHANGE, TOOL_SEARCH_SYMBOLS,
+    READ_TOOL_PERMISSION, SERVER_NAME, SERVER_VERSION, TEXT_LANGUAGE, TOOL_CHECK_CONVENTIONS,
+    TOOL_FIND_CONSTANTS, TOOL_FIND_SIMILAR_CODE, TOOL_FIND_USAGES, TOOL_GET_ARCHITECTURE,
+    TOOL_GET_SYMBOL, TOOL_IMPACT_OF_CHANGE, TOOL_SEARCH_SYMBOLS,
 };
 use crate::error::McpError;
 use crate::tools::Tools;
@@ -59,6 +64,14 @@ fn parse_arguments<A: DeserializeOwned>(arguments: Option<JsonObject>) -> Result
         .map_err(|error| McpError::ArgumentsInvalid(error.to_string()))
 }
 
+/// Parses the arguments as the type the tool takes and runs the tool with them.
+fn call<A: DeserializeOwned>(
+    arguments: Option<JsonObject>,
+    tool: impl FnOnce(A) -> Result<Value, McpError>,
+) -> Result<Value, McpError> {
+    parse_arguments(arguments).and_then(tool)
+}
+
 fn failure(error: &McpError) -> CallToolResult {
     let report = error.report();
     let mut result = CallToolResult::error(vec![ContentBlock::text(
@@ -66,6 +79,24 @@ fn failure(error: &McpError) -> CallToolResult {
     )]);
     result.structured_content = serde_json::to_value(&report).ok();
     result
+}
+
+/// The tools the server announces, in the order of the list.
+fn definitions(messages: &Messages) -> Result<Vec<Tool>, CodedError> {
+    Ok(vec![
+        definition::<SearchArgs>(messages, TOOL_SEARCH_SYMBOLS, MCP_TOOL_SEARCH_SYMBOLS)?,
+        definition::<SymbolArgs>(messages, TOOL_GET_SYMBOL, MCP_TOOL_GET_SYMBOL)?,
+        definition::<ArchitectureArgs>(messages, TOOL_GET_ARCHITECTURE, MCP_TOOL_GET_ARCHITECTURE)?,
+        definition::<UsagesArgs>(messages, TOOL_FIND_USAGES, MCP_TOOL_FIND_USAGES)?,
+        definition::<ImpactArgs>(messages, TOOL_IMPACT_OF_CHANGE, MCP_TOOL_IMPACT_OF_CHANGE)?,
+        definition::<SimilarArgs>(messages, TOOL_FIND_SIMILAR_CODE, MCP_TOOL_FIND_SIMILAR_CODE)?,
+        definition::<ConstantsArgs>(messages, TOOL_FIND_CONSTANTS, MCP_TOOL_FIND_CONSTANTS)?,
+        definition::<ConventionsArgs>(
+            messages,
+            TOOL_CHECK_CONVENTIONS,
+            MCP_TOOL_CHECK_CONVENTIONS,
+        )?,
+    ])
 }
 
 impl McpServer {
@@ -83,21 +114,7 @@ impl McpServer {
         Ok(Self {
             principal,
             tools: Arc::new(tools),
-            definitions: vec![
-                definition::<SearchArgs>(messages, TOOL_SEARCH_SYMBOLS, MCP_TOOL_SEARCH_SYMBOLS)?,
-                definition::<SymbolArgs>(messages, TOOL_GET_SYMBOL, MCP_TOOL_GET_SYMBOL)?,
-                definition::<ArchitectureArgs>(
-                    messages,
-                    TOOL_GET_ARCHITECTURE,
-                    MCP_TOOL_GET_ARCHITECTURE,
-                )?,
-                definition::<UsagesArgs>(messages, TOOL_FIND_USAGES, MCP_TOOL_FIND_USAGES)?,
-                definition::<ImpactArgs>(
-                    messages,
-                    TOOL_IMPACT_OF_CHANGE,
-                    MCP_TOOL_IMPACT_OF_CHANGE,
-                )?,
-            ],
+            definitions: definitions(messages)?,
             instructions: messages
                 .format(TEXT_LANGUAGE, MCP_SERVER_INSTRUCTIONS, None)
                 .map_err(CodedError::caused_by)?,
@@ -117,19 +134,22 @@ impl McpServer {
             return failure(&McpError::from(denied));
         }
         let outcome = match name {
-            TOOL_SEARCH_SYMBOLS => {
-                parse_arguments(arguments).and_then(|args| tools.search_symbols(&principal, &args))
+            TOOL_SEARCH_SYMBOLS => call(arguments, |args| tools.search_symbols(&principal, &args)),
+            TOOL_GET_SYMBOL => call(arguments, |args| tools.get_symbol(&principal, &args)),
+            TOOL_GET_ARCHITECTURE => {
+                call(arguments, |args| tools.get_architecture(&principal, &args))
             }
-            TOOL_GET_SYMBOL => {
-                parse_arguments(arguments).and_then(|args| tools.get_symbol(&principal, &args))
+            TOOL_FIND_USAGES => call(arguments, |args| tools.find_usages(&principal, &args)),
+            TOOL_IMPACT_OF_CHANGE => {
+                call(arguments, |args| tools.impact_of_change(&principal, &args))
             }
-            TOOL_GET_ARCHITECTURE => parse_arguments(arguments)
-                .and_then(|args| tools.get_architecture(&principal, &args)),
-            TOOL_FIND_USAGES => {
-                parse_arguments(arguments).and_then(|args| tools.find_usages(&principal, &args))
+            TOOL_FIND_SIMILAR_CODE => {
+                call(arguments, |args| tools.find_similar_code(&principal, &args))
             }
-            TOOL_IMPACT_OF_CHANGE => parse_arguments(arguments)
-                .and_then(|args| tools.impact_of_change(&principal, &args)),
+            TOOL_FIND_CONSTANTS => call(arguments, |args| tools.find_constants(&principal, &args)),
+            TOOL_CHECK_CONVENTIONS => {
+                call(arguments, |args| tools.check_conventions(&principal, &args))
+            }
             _ => Err(McpError::ArgumentsInvalid(name.to_owned())),
         };
         outcome.map_or_else(|error| failure(&error), CallToolResult::structured)

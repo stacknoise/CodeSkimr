@@ -3,19 +3,23 @@
 
 use std::sync::{Arc, Mutex};
 
-use codeskimr_application::config::McpLimits;
+use codeskimr_application::cancel::CancelToken;
+use codeskimr_application::config::{Conventions, McpLimits};
+use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    Clock, CodeIndex, ImpactPage, ImpactedSymbol, MemberRef, PreviousIndex, ProjectRepository,
-    SearchHit, SymbolDetail, SymbolKey, SymbolLabel, UsageEntry, UsageIndex, UsagePage,
+    AnalyzeRequest, Clock, CodeIndex, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts,
+    ImpactPage, ImpactedSymbol, MemberRef, PreviousIndex, ProjectRepository, SearchHit, SimilarHit,
+    SimilarQuery, SimilarityIndex, SnippetFingerprinter, SymbolDetail, SymbolKey, SymbolLabel,
+    UsageEntry, UsageIndex, UsagePage,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
-    Confidence, Direction, FileId, FolderPath, Layer, LayerEdge, LayerName, Metric, MetricKind,
-    MetricValue, Position, Project, ProjectId, ProjectName, ProjectSource, QualifiedName,
-    Reference, ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId,
-    SnapshotStats, SourceFile, Span, Symbol, SymbolId, SymbolKind, SymbolName, Timestamp,
-    UsageQuery, Visibility,
+    BodyCounts, Confidence, ContentHash, Direction, FileId, Fingerprint, Fingerprints, FolderPath,
+    LanguageId, Layer, LayerEdge, LayerName, Loc, Metric, MetricKind, MetricValue, Position,
+    Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference, ReferenceId,
+    ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId, SnapshotStats, SourceFile, Span,
+    Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName, Timestamp, UsageQuery, Visibility,
 };
 use codeskimr_mcp::{Ports, Tools};
 
@@ -30,6 +34,8 @@ pub fn limits() -> McpLimits {
         max_limit: 3,
         default_depth: 1,
         max_depth: 3,
+        default_similarity_percent: 50,
+        max_snippet_bytes: 64,
     }
 }
 
@@ -287,16 +293,170 @@ impl UsageIndex for FakeUsages {
     }
 }
 
+/// Stored fingerprints: symbol 1 has some, the three functions it finds are made up.
+pub struct FakeSimilarity {
+    pub asked: Mutex<Vec<(u32, Option<SymbolId>, u32)>>,
+    /// Whether symbol 1 has stored fingerprints.
+    pub has_prints: bool,
+}
+
+pub fn prints(hashes: &[u64]) -> Fingerprints {
+    let entries = (0..).zip(hashes).map(|(position, hash)| Fingerprint {
+        hash: *hash,
+        position,
+    });
+    Fingerprints::from_entries(entries.collect())
+}
+
+impl SimilarityIndex for FakeSimilarity {
+    fn fingerprints_of(
+        &self,
+        _snapshot: SnapshotId,
+        symbol: SymbolId,
+    ) -> Result<Option<Fingerprints>, CodedError> {
+        Ok((self.has_prints && symbol.get() == 1).then(|| prints(&[1, 2, 3])))
+    }
+
+    fn similar(
+        &self,
+        _snapshot: SnapshotId,
+        query: &SimilarQuery<'_>,
+    ) -> Result<Vec<SimilarHit>, CodedError> {
+        let (minimum_percent, limit) = (query.minimum_percent, query.limit);
+        self.asked
+            .lock()
+            .unwrap()
+            .push((minimum_percent, query.exclude, limit));
+        let start = Position { line: 4, column: 0 };
+        let end = Position { line: 9, column: 1 };
+        let all = [(30, 92), (31, 71), (32, 55)];
+        Ok(all
+            .iter()
+            .map(|(id, percent)| SimilarHit {
+                symbol: SymbolId::new(*id),
+                qualified_name: QualifiedName::new(format!("App.Copy{id}")).unwrap(),
+                kind: SymbolKind::Method,
+                path: RelativePath::new("src/copy.cs").unwrap(),
+                span: Span::new(start, end).unwrap(),
+                percent: *percent,
+            })
+            .filter(|hit| hit.percent >= minimum_percent)
+            .take(limit as usize)
+            .collect())
+    }
+}
+
+/// Fingerprints every snippet of the language `csharp` as `[7, 8]`; anything else has no pack,
+/// and a snippet that says `short` is too short to have fingerprints.
+pub struct FakeSnippets;
+
+impl SnippetFingerprinter for FakeSnippets {
+    fn fingerprint(&self, language: &LanguageId, source: &str) -> Result<Fingerprints, CodedError> {
+        if language.as_str() != "csharp" {
+            return Err(CodedError::new(ErrorCode::LanguagePackMissing));
+        }
+        Ok(if source.contains("short") {
+            Fingerprints::default()
+        } else {
+            prints(&[7, 8])
+        })
+    }
+}
+
+/// A disk with one function of 50 code lines.
+pub struct FakeDisk;
+
+impl FileDiscovery for FakeDisk {
+    fn discover(
+        &self,
+        _root: &FolderPath,
+        _previous: &[SourceFile],
+        _cancel: &CancelToken,
+    ) -> Result<Vec<DiscoveredFile>, CodedError> {
+        Ok(vec![DiscoveredFile {
+            path: RelativePath::new("src/big.cs").unwrap(),
+            language: LanguageId::new("csharp").unwrap(),
+            content_hash: ContentHash::new("h").unwrap(),
+            changed: true,
+        }])
+    }
+}
+
+impl FileAnalyzer for FakeDisk {
+    fn analyze(&self, request: &AnalyzeRequest<'_>) -> Result<FileFacts, CodedError> {
+        let file = SourceFile {
+            loc: Loc(60),
+            content_hash: request.file.content_hash.clone(),
+            language: request.file.language.clone(),
+            path: request.file.path.clone(),
+            snapshot: request.snapshot,
+            id: request.ids.file(),
+        };
+        let mut function = symbol_named(
+            request.ids.symbol().get(),
+            SymbolKind::Method,
+            "App.Big.Run",
+        );
+        function.file = file.id;
+        let counts = SymbolCounts {
+            symbol: function.id,
+            loc: Loc(50),
+            body: Some(BodyCounts::default()),
+            counted: true,
+        };
+        Ok(FileFacts {
+            file,
+            symbols: vec![function],
+            pending: Vec::new(),
+            fingerprints: Vec::new(),
+            counts: vec![counts],
+        })
+    }
+}
+
+pub fn checker() -> Arc<ConventionChecker> {
+    let disk = Arc::new(FakeDisk);
+    Arc::new(ConventionChecker::new(
+        disk.clone(),
+        disk,
+        Conventions {
+            max_function_lines: 40,
+            duplicate_similarity_percent: 85,
+        },
+    ))
+}
+
 pub fn tools_with(index: FakeIndex) -> Tools {
     tools_using(index, Arc::new(FakeUsages::default()))
 }
 
+pub fn tools_without_prints() -> Tools {
+    build(scanned(), Arc::new(FakeUsages::default()), false)
+}
+
+fn scanned() -> FakeIndex {
+    FakeIndex {
+        scanned: true,
+        fail: false,
+    }
+}
+
 pub fn tools_using(index: FakeIndex, usages: Arc<FakeUsages>) -> Tools {
+    build(index, usages, true)
+}
+
+fn build(index: FakeIndex, usages: Arc<FakeUsages>, has_prints: bool) -> Tools {
     Tools::new(
         Ports {
             projects: Arc::new(FakeProjects),
             index: Arc::new(index),
             usages,
+            similarity: Arc::new(FakeSimilarity {
+                asked: Mutex::default(),
+                has_prints,
+            }),
+            snippets: Arc::new(FakeSnippets),
+            checker: checker(),
             clock: Arc::new(FixedClock),
         },
         limits(),

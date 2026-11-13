@@ -75,7 +75,7 @@ async fn connected_as(principal: Principal) -> Client {
 }
 
 #[tokio::test]
-async fn lists_exactly_the_five_read_only_tools_with_schemas() {
+async fn lists_exactly_the_eight_read_only_tools_with_schemas() {
     let mut client = connected().await;
     let listed = client.call(2, "tools/list", json!({})).await;
     let tools = listed["result"]["tools"].as_array().unwrap();
@@ -87,7 +87,10 @@ async fn lists_exactly_the_five_read_only_tools_with_schemas() {
             "get_symbol",
             "get_architecture",
             "find_usages",
-            "impact_of_change"
+            "impact_of_change",
+            "find_similar_code",
+            "find_constants",
+            "check_conventions"
         ]
     );
     for tool in tools {
