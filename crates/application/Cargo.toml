@@ -14,3 +14,6 @@ workspace = true
 [dependencies]
 codeskimr_domain = { path = "../domain" }
 codeskimr_codes = { path = "../codes" }
+serde.workspace = true
+toml.workspace = true
+thiserror.workspace = true

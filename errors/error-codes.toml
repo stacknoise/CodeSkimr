@@ -111,6 +111,14 @@ description = "A configuration file is not valid TOML."
 since = "0.1.0"
 
 [[codes]]
+id = "CFG-103"
+name = "config_unknown_key"
+severity = "error"
+retryable = false
+description = "A configuration file or flag sets a key that does not exist."
+since = "0.1.0"
+
+[[codes]]
 id = "PRJ-101"
 name = "project_source_invalid"
 severity = "error"

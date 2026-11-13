@@ -140,8 +140,10 @@ jobs:
           persist-credentials: false
       - name: Install Rust toolchain
         run: rustup show active-toolchain || rustup toolchain install
-      # R-04: crate dependency direction from blueprint 4.2. Cargo already rejects crate cycles.
-      - name: Crate dependency direction
+      # R-04: crate dependency direction (4.2) and module cycles inside each crate.
+      - name: Unit tests of the check
+        run: python3 -m unittest discover -s tools/ci
+      - name: Crate dependency direction and module cycles
         run: python3 tools/ci/check_architecture.py
 
   duplicates:
