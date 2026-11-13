@@ -9,9 +9,10 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
     MCP_SERVER_INSTRUCTIONS, MCP_TOOL_CHECK_CONVENTIONS, MCP_TOOL_FIND_CONSTANTS,
     MCP_TOOL_FIND_SIMILAR_CODE, MCP_TOOL_FIND_USAGES, MCP_TOOL_GET_ARCHITECTURE,
-    MCP_TOOL_GET_SYMBOL, MCP_TOOL_IMPACT_OF_CHANGE, MCP_TOOL_SEARCH_SYMBOLS,
+    MCP_TOOL_GET_DEPENDENCIES, MCP_TOOL_GET_SYMBOL, MCP_TOOL_IMPACT_OF_CHANGE, MCP_TOOL_RESCAN,
+    MCP_TOOL_SEARCH_SYMBOLS,
 };
-use codeskimr_domain::Principal;
+use codeskimr_domain::{Permission, Principal};
 use codeskimr_i18n::Messages;
 use rmcp::ErrorData;
 use rmcp::ServerHandler;
@@ -26,13 +27,14 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 use crate::args::{
-    ArchitectureArgs, ConstantsArgs, ConventionsArgs, ImpactArgs, SearchArgs, SimilarArgs,
-    SymbolArgs, UsagesArgs,
+    ArchitectureArgs, ConstantsArgs, ConventionsArgs, DependenciesArgs, ImpactArgs, RescanArgs,
+    SearchArgs, SimilarArgs, SymbolArgs, UsagesArgs,
 };
 use crate::consts::{
-    READ_TOOL_PERMISSION, SERVER_NAME, SERVER_VERSION, TEXT_LANGUAGE, TOOL_CHECK_CONVENTIONS,
-    TOOL_FIND_CONSTANTS, TOOL_FIND_SIMILAR_CODE, TOOL_FIND_USAGES, TOOL_GET_ARCHITECTURE,
-    TOOL_GET_SYMBOL, TOOL_IMPACT_OF_CHANGE, TOOL_SEARCH_SYMBOLS,
+    READ_TOOL_PERMISSION, SCAN_TOOL_PERMISSION, SERVER_NAME, SERVER_VERSION, TEXT_LANGUAGE,
+    TOOL_CHECK_CONVENTIONS, TOOL_FIND_CONSTANTS, TOOL_FIND_SIMILAR_CODE, TOOL_FIND_USAGES,
+    TOOL_GET_ARCHITECTURE, TOOL_GET_DEPENDENCIES, TOOL_GET_SYMBOL, TOOL_IMPACT_OF_CHANGE,
+    TOOL_RESCAN, TOOL_SEARCH_SYMBOLS,
 };
 use crate::error::McpError;
 use crate::tools::Tools;
@@ -50,12 +52,22 @@ fn definition<A: JsonSchema + 'static>(
     name: &'static str,
     description_key: &str,
 ) -> Result<Tool, CodedError> {
+    definition_with::<A>(messages, name, description_key, true)
+}
+
+/// A tool definition; `read_only` tells clients whether calling the tool changes anything.
+fn definition_with<A: JsonSchema + 'static>(
+    messages: &Messages,
+    name: &'static str,
+    description_key: &str,
+    read_only: bool,
+) -> Result<Tool, CodedError> {
     let description = messages
         .format(TEXT_LANGUAGE, description_key, None)
         .map_err(CodedError::caused_by)?;
     Ok(Tool::new(name, description, JsonObject::new())
         .with_input_schema::<A>()
-        .with_annotations(ToolAnnotations::new().read_only(true)))
+        .with_annotations(ToolAnnotations::new().read_only(read_only)))
 }
 
 /// The arguments of a call as the type of the tool.
@@ -89,6 +101,7 @@ fn definitions(messages: &Messages) -> Result<Vec<Tool>, CodedError> {
         definition::<ArchitectureArgs>(messages, TOOL_GET_ARCHITECTURE, MCP_TOOL_GET_ARCHITECTURE)?,
         definition::<UsagesArgs>(messages, TOOL_FIND_USAGES, MCP_TOOL_FIND_USAGES)?,
         definition::<ImpactArgs>(messages, TOOL_IMPACT_OF_CHANGE, MCP_TOOL_IMPACT_OF_CHANGE)?,
+        definition::<DependenciesArgs>(messages, TOOL_GET_DEPENDENCIES, MCP_TOOL_GET_DEPENDENCIES)?,
         definition::<SimilarArgs>(messages, TOOL_FIND_SIMILAR_CODE, MCP_TOOL_FIND_SIMILAR_CODE)?,
         definition::<ConstantsArgs>(messages, TOOL_FIND_CONSTANTS, MCP_TOOL_FIND_CONSTANTS)?,
         definition::<ConventionsArgs>(
@@ -96,7 +109,18 @@ fn definitions(messages: &Messages) -> Result<Vec<Tool>, CodedError> {
             TOOL_CHECK_CONVENTIONS,
             MCP_TOOL_CHECK_CONVENTIONS,
         )?,
+        definition_with::<RescanArgs>(messages, TOOL_RESCAN, MCP_TOOL_RESCAN, false)?,
     ])
+}
+
+/// The permission a call of the tool needs. An unknown name needs `read`, like most tools, so a
+/// caller who may read learns nothing from the permission check alone.
+fn required_permission(name: &str) -> Permission {
+    if name == TOOL_RESCAN {
+        SCAN_TOOL_PERMISSION
+    } else {
+        READ_TOOL_PERMISSION
+    }
 }
 
 impl McpServer {
@@ -130,7 +154,7 @@ impl McpServer {
     ) -> CallToolResult {
         // The permission comes first: before the tool name or the arguments are looked at, so a
         // denied caller cannot tell valid names or argument shapes from invalid ones.
-        if let Err(denied) = access::require(&principal, READ_TOOL_PERMISSION) {
+        if let Err(denied) = access::require(&principal, required_permission(name)) {
             return failure(&McpError::from(denied));
         }
         let outcome = match name {
@@ -143,6 +167,10 @@ impl McpServer {
             TOOL_IMPACT_OF_CHANGE => {
                 call(arguments, |args| tools.impact_of_change(&principal, &args))
             }
+            TOOL_GET_DEPENDENCIES => {
+                call(arguments, |args| tools.get_dependencies(&principal, &args))
+            }
+            TOOL_RESCAN => call(arguments, |args| tools.rescan(&principal, &args)),
             TOOL_FIND_SIMILAR_CODE => {
                 call(arguments, |args| tools.find_similar_code(&principal, &args))
             }

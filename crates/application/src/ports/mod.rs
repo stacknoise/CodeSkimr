@@ -10,6 +10,7 @@ mod catalog;
 mod clock;
 mod credentials;
 mod query;
+mod rescan;
 mod similarity;
 mod source;
 mod storage;
@@ -23,7 +24,11 @@ pub use catalog::{LanguageShare, ProjectCatalog, ProjectOverview};
 pub use clock::Clock;
 pub use credentials::{AuthError, Credential, CredentialStore};
 pub use query::{CodeIndex, MemberRef, SearchHit, SymbolDetail, SymbolKey};
+pub use rescan::ProjectScanner;
 pub use similarity::{SimilarHit, SimilarQuery, SimilarityIndex};
 pub use source::{DiscoveredFile, FetchedSource, FileDiscovery, SourceProvider};
 pub use storage::{PreviousIndex, ProjectRepository, SnapshotData, SnapshotStore};
-pub use usages::{ImpactPage, ImpactedSymbol, SymbolLabel, UsageEntry, UsageIndex, UsagePage};
+pub use usages::{
+    DependencyEdge, DependencyPage, DependencyQuery, ImpactPage, ImpactedSymbol, SymbolLabel,
+    UsageEntry, UsageIndex, UsagePage,
+};

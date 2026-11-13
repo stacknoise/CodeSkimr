@@ -4,6 +4,8 @@
 mod architecture;
 mod constants;
 mod conventions;
+mod dependencies;
+mod rescan;
 mod search;
 mod similar;
 mod symbol;
@@ -15,8 +17,8 @@ use codeskimr_application::config::McpLimits;
 use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    Clock, CodeIndex, ProjectRepository, SimilarityIndex, SnippetFingerprinter, SymbolDetail,
-    SymbolKey, UsageIndex,
+    Clock, CodeIndex, ProjectRepository, ProjectScanner, SimilarityIndex, SnippetFingerprinter,
+    SymbolDetail, SymbolKey, UsageIndex,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Project, ProjectId, QualifiedName, Snapshot, SymbolId};
@@ -73,9 +75,11 @@ pub struct Ports {
     pub checker: Arc<ConventionChecker>,
     /// The time, for the age of a snapshot.
     pub clock: Arc<dyn Clock>,
+    /// Scans a project again, for `rescan`.
+    pub scanner: Arc<dyn ProjectScanner>,
 }
 
-/// The read-only tools of the server.
+/// The tools of the server; all of them only read except `rescan`.
 pub struct Tools {
     projects: Arc<dyn ProjectRepository>,
     index: Arc<dyn CodeIndex>,
@@ -84,6 +88,7 @@ pub struct Tools {
     snippets: Arc<dyn SnippetFingerprinter>,
     checker: Arc<ConventionChecker>,
     clock: Arc<dyn Clock>,
+    scanner: Arc<dyn ProjectScanner>,
     limits: McpLimits,
     default_project: ProjectId,
 }
@@ -100,6 +105,7 @@ impl Tools {
             snippets: ports.snippets,
             checker: ports.checker,
             clock: ports.clock,
+            scanner: ports.scanner,
             limits,
             default_project,
         }
@@ -156,16 +162,25 @@ impl Tools {
             .index
             .latest_snapshot(id)?
             .ok_or(McpError::ProjectNotScanned(id.get()))?;
-        let age = self.clock.now().0.saturating_sub(snapshot.created.0);
-        let info = SnapshotInfo {
-            id: snapshot.id.get(),
-            age_seconds: u64::try_from(age).unwrap_or_default(),
-        };
+        let info = self.snapshot_info(&snapshot);
         Ok(Scope {
             project,
             snapshot,
             info,
         })
+    }
+
+    /// Which snapshot it is and how old it is now.
+    pub(crate) fn snapshot_info(&self, snapshot: &Snapshot) -> SnapshotInfo {
+        let age = self.clock.now().0.saturating_sub(snapshot.created.0);
+        SnapshotInfo {
+            id: snapshot.id.get(),
+            age_seconds: u64::try_from(age).unwrap_or_default(),
+        }
+    }
+
+    pub(crate) fn scanner(&self) -> &dyn ProjectScanner {
+        self.scanner.as_ref()
     }
 
     pub(crate) fn index(&self) -> &dyn CodeIndex {
