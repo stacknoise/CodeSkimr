@@ -16,37 +16,4 @@ export const DARK_THEME: ThemeName = "dunkel";
 export const THEME_STORAGE_KEY = "codeskimr.theme";
 
 /** The colour tokens every theme defines. */
-export const COLOR_TOKENS = [
-  "bg",
-  "surface",
-  "line",
-  "line-soft",
-  "ink",
-  "ink-2",
-  "muted",
-  "faint",
-  "accent",
-  "accent-bg",
-  "accent-hover",
-  "accent-fg",
-  "good",
-  "good-bg",
-  "warn",
-  "warn-bg",
-  "bad",
-  "bad-bg",
-  "outgoing",
-  "highlight",
-  "mark",
-  "kind-class",
-  "kind-interface",
-  "kind-record",
-  "kind-struct",
-  "kind-enum",
-  "layer-1",
-  "layer-2",
-  "layer-3",
-  "layer-4",
-  "layer-5",
-  "layer-6",
-] as const;
+export const COLOR_TOKENS = ["bg", "surface", "line", "line-soft", "ink", "ink-2", "muted", "faint", "accent", "accent-bg", "accent-hover", "accent-fg", "good", "good-bg", "warn", "warn-bg", "bad", "bad-bg", "outgoing", "highlight", "mark", "kind-class", "kind-interface", "kind-record", "kind-struct", "kind-enum", "layer-1", "layer-2", "layer-3", "layer-4", "layer-5", "layer-6"] as const;

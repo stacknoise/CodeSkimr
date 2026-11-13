@@ -22,10 +22,14 @@ export async function openInEditor(project: number, symbol: number): Promise<voi
   if (config === null) {
     return;
   }
-  const info = await runCommand<SymbolInfo>(COMMAND.symbol, { project, symbol });
-  const path = absolutePath(project, info.path);
-  const url = path === null ? null : buildEditorUrl(config.editor, path, info.first_line);
-  if (url !== null) {
-    openLink(url);
+  try {
+    const info = await runCommand<SymbolInfo>(COMMAND.symbol, { project, symbol });
+    const path = absolutePath(project, info.path);
+    const url = path === null ? null : buildEditorUrl(config.editor, path, info.first_line);
+    if (url !== null) {
+      openLink(url);
+    }
+  } catch {
+    // The callers fire and forget; a symbol that cannot be read just opens nothing.
   }
 }

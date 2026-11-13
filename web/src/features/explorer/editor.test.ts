@@ -34,6 +34,12 @@ describe("openInEditor", () => {
     expect(open).toHaveBeenCalledWith("vscode://file//work/app/src/a%20b.cs:12");
   });
 
+  it("swallows a failing command instead of rejecting", async () => {
+    run.mockRejectedValue(new Error("MCP-202"));
+    await expect(openInEditor(7, 3)).resolves.toBeUndefined();
+    expect(open).not.toHaveBeenCalled();
+  });
+
   it("does nothing for a Git project or while the settings are not loaded", async () => {
     rows.mockReturnValue([{ id: 7, kind: "git", location: "https://example.test/x.git" }]);
     await openInEditor(7, 3);
