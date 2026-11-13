@@ -23,6 +23,10 @@ bench = false
 name = "domain"
 harness = false
 
+[[bench]]
+name = "graph_layout"
+harness = false
+
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true
