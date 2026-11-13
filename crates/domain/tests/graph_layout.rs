@@ -36,10 +36,24 @@ mod tests {
     }
 
     fn no_overlap(layout: &Layout) {
-        for (i, a) in layout.placements.iter().enumerate() {
-            for b in &layout.placements[i + 1..] {
-                let apart_x = a.x + 100 <= b.x || b.x + 100 <= a.x;
-                let apart_y = a.y + 30 <= b.y || b.y + 30 <= a.y;
+        assert_no_overlap(
+            layout,
+            &vec![
+                NodeSize {
+                    width: 100,
+                    height: 30
+                };
+                layout.placements.len()
+            ],
+        );
+    }
+
+    fn assert_no_overlap(layout: &Layout, sizes: &[NodeSize]) {
+        let boxes: Vec<_> = layout.placements.iter().zip(sizes).collect();
+        for (i, (a, sa)) in boxes.iter().enumerate() {
+            for (b, sb) in &boxes[i + 1..] {
+                let apart_x = a.x + sa.width <= b.x || b.x + sb.width <= a.x;
+                let apart_y = a.y + sa.height <= b.y || b.y + sb.height <= a.y;
                 assert!(apart_x || apart_y, "boxes overlap: {a:?} {b:?}");
             }
         }
@@ -81,8 +95,48 @@ mod tests {
         let layout = LayoutGraph::new(nodes, vec![edge(0, 1)])
             .unwrap()
             .layout(&PARAMS);
-        assert_eq!(layout.placements[0].rank, 2);
+        assert_eq!(layout.placements[0].rank, 1);
         assert_eq!(layout.placements[1].rank, 0);
+    }
+
+    #[test]
+    fn huge_fixed_rank_costs_no_memory_and_closes_the_gap() {
+        let nodes = vec![node(Some(u32::MAX)), node(Some(0)), node(None)];
+        let layout = LayoutGraph::new(nodes, vec![edge(1, 0), edge(2, 0)])
+            .unwrap()
+            .layout(&PARAMS);
+        let ranks: Vec<u32> = layout.placements.iter().map(|p| p.rank).collect();
+        assert_eq!(ranks, [1, 0, 0]);
+    }
+
+    #[test]
+    fn fixed_ranks_with_a_gap_are_closed_up_in_order() {
+        let nodes = vec![node(Some(0)), node(Some(3)), node(None)];
+        let layout = LayoutGraph::new(nodes, vec![edge(0, 1), edge(1, 2)])
+            .unwrap()
+            .layout(&PARAMS);
+        let ranks: Vec<u32> = layout.placements.iter().map(|p| p.rank).collect();
+        assert_eq!(ranks, [0, 1, 2]);
+    }
+
+    #[test]
+    fn boxes_of_different_sizes_do_not_overlap() {
+        let sizes: Vec<NodeSize> = (0..30)
+            .map(|i| NodeSize {
+                width: 20 + 17 * (i % 7),
+                height: 10 + 9 * (i % 5),
+            })
+            .collect();
+        let nodes = sizes
+            .iter()
+            .map(|&size| LayoutNode { size, rank: None })
+            .collect();
+        let edges = (0..29)
+            .map(|i| edge(i, (i * 7 + 3) % 30))
+            .chain((0..20).map(|i| edge(i, i + 5)))
+            .collect();
+        let layout = LayoutGraph::new(nodes, edges).unwrap().layout(&PARAMS);
+        assert_no_overlap(&layout, &sizes);
     }
 
     #[test]

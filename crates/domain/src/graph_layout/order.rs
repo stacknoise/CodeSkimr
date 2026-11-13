@@ -3,7 +3,7 @@
 //! Every sweep sorts one row by the median position of each node's neighbours in the previous
 //! row, going down and then up again. The order with the fewest crossings seen is kept.
 
-use super::consts::{KEY_SCALE, SWEEP_CYCLE};
+use super::consts::{KEY_SCALE, MIDDLE_DIVISOR, SWEEP_CYCLE};
 use super::layers::Layered;
 use super::slots::{list, set, value};
 
@@ -28,12 +28,16 @@ pub fn minimize(layered: &mut Layered, sweeps: u32) {
 
 /// Sorts every row once, in sweep direction.
 fn sweep_once(layered: &mut Layered, position: &mut [usize], downward: bool) {
-    for index in layered.sweep_rows(downward) {
-        let anchors = if downward { &layered.up } else { &layered.down };
-        if let Some(layer) = layered.layers.get_mut(index) {
+    // The rows are taken out so that the anchors of `layered` can be read while a row is sorted.
+    let rows = layered.sweep_rows(downward);
+    let mut layers = std::mem::take(&mut layered.layers);
+    let anchors = layered.anchors(downward);
+    for index in rows {
+        if let Some(layer) = layers.get_mut(index) {
             reorder(layer, anchors, position);
         }
     }
+    layered.layers = layers;
 }
 
 /// Sorts one row by the median of the anchors; nodes without anchors keep their place.
@@ -57,9 +61,9 @@ fn reorder(layer: &mut [usize], anchors: &[Vec<usize>], position: &mut [usize]) 
 fn median_key(anchors: &[usize], position: &[usize]) -> Option<usize> {
     let mut spots: Vec<usize> = anchors.iter().map(|&node| value(position, node)).collect();
     spots.sort_unstable();
-    let middle = spots.len() / KEY_SCALE;
+    let middle = spots.len() / MIDDLE_DIVISOR;
     let upper = *spots.get(middle)?;
-    if spots.len() % KEY_SCALE == 1 {
+    if spots.len() % MIDDLE_DIVISOR == 1 {
         return Some(upper * KEY_SCALE);
     }
     Some(upper + *spots.get(middle.checked_sub(1)?)?)
@@ -104,7 +108,7 @@ fn prefix_sum(tree: &[usize], mut index: usize) -> usize {
     let mut sum = 0;
     while index > 0 {
         sum += value(tree, index);
-        index -= index & index.wrapping_neg();
+        index -= lowest_bit(index);
     }
     sum
 }
@@ -114,6 +118,11 @@ fn add_one(tree: &mut [usize], mut index: usize) {
         if let Some(slot) = tree.get_mut(index) {
             *slot += 1;
         }
-        index += index & index.wrapping_neg();
+        index += lowest_bit(index);
     }
+}
+
+/// The lowest set bit, which is the step size of the Fenwick tree.
+fn lowest_bit(index: usize) -> usize {
+    index & index.wrapping_neg()
 }

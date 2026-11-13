@@ -9,7 +9,7 @@ LayoutGraph::new(nodes, edges)?   // checks that every edge names an existing no
 graph.layout(&LayoutParams)       // -> Layout { placements, width, height }
 ```
 
-- `LayoutNode` has a box size and an optional fixed `rank`. Fixed ranks are for layer bands (outer layers on top); without one the row follows from the edges.
+- `LayoutNode` has a box size and an optional fixed `rank`. Fixed ranks are for layer bands (outer layers on top); without one the row follows from the edges. Used ranks are renumbered without gaps (order kept), so a huge rank costs no memory and empty bands take no space.
 - `NodePlacement` gives the top-left corner, the row (`rank`) and the position inside the row (`order`) of each node, in input order.
 - `LayoutParams` (row gap, node gap, number of sweeps, number of placement passes) are tunable values. They move into `config/default.toml` when the API is wired (after WP-41); the module itself has no defaults.
 

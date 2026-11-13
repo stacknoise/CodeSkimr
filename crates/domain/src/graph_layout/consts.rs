@@ -8,3 +8,5 @@ pub const KEY_SCALE: usize = 2;
 pub const SWEEP_CYCLE: u32 = 2;
 /// Placement passes alternate between downward (even) and upward (odd).
 pub const PASS_CYCLE: u32 = 2;
+/// Divisor that finds the middle of a list.
+pub const MIDDLE_DIVISOR: usize = 2;

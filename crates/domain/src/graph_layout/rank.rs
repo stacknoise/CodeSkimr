@@ -1,6 +1,6 @@
 //! Rank assignment: which row of the picture every node belongs to.
 //!
-//! Nodes with a fixed rank (layer bands) keep it. All others get the longest path from a source.
+//! Nodes with a fixed rank (layer bands) keep their order relative to each other; unused ranks are closed up. All others get the longest path from a source.
 //! Cycles are broken by ignoring the edges that point backwards in a depth-first order, so the
 //! result is always defined.
 
@@ -32,7 +32,19 @@ pub fn assign(graph: &LayoutGraph) -> Vec<usize> {
         );
         set(&mut rank, node, assigned);
     }
+    compact(&mut rank);
     rank
+}
+
+/// Renumbers the used ranks without gaps, keeping their order. A huge fixed rank therefore costs
+/// no memory, and empty rows never take space in the picture.
+fn compact(rank: &mut [usize]) {
+    let mut used = rank.to_vec();
+    used.sort_unstable();
+    used.dedup();
+    for entry in rank.iter_mut() {
+        *entry = used.binary_search(entry).unwrap_or_default();
+    }
 }
 
 /// One step further than the deepest predecessor that comes earlier in the order.
