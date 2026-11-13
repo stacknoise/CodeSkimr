@@ -1,3 +1,4 @@
+// Runs after projects.spec.ts on purpose: the worker shares one server, and the project list test expects it empty.
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
