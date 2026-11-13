@@ -107,8 +107,8 @@ mod tests {
     #[test]
     fn zero_depth_and_unknown_symbols_find_nothing() {
         let index = chain();
-        assert!(index.usages(&query(3, Direction::Incoming, 0)).is_empty());
-        assert!(index.usages(&query(99, Direction::Incoming, 3)).is_empty());
+        assert_eq!(index.usages(&query(3, Direction::Incoming, 0)).len(), 0);
+        assert_eq!(index.usages(&query(99, Direction::Incoming, 3)).len(), 0);
     }
 
     #[test]
@@ -119,7 +119,7 @@ mod tests {
         assert_eq!(forward.usages(&question), backward.usages(&question));
         assert_eq!(forward.usage_count(SymbolId::new(3)), 2);
         assert_eq!(forward.len(), 2);
-        assert!(ReverseIndex::default().is_empty());
+        assert_eq!(ReverseIndex::default().len(), 0);
     }
 
     #[test]
