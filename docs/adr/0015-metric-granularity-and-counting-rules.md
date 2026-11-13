@@ -1,6 +1,6 @@
 # 0015 – Metric granularity, counting rules and Halstead counts
 
-Status: proposed
+Status: accepted
 
 ## Context
 
