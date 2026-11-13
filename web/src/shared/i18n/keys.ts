@@ -174,6 +174,8 @@ export const I18N_KEYS = {
   EXPORT_LIMITS: "export-limits",
   EXPORT_NAV_LABEL: "export-nav-label",
   GRAPH_TITLE: "graph-title",
+  GRAPH_LEVEL_LABEL: "graph-level-label",
+  GRAPH_MODE_LAYERS: "graph-mode-layers",
   GRAPH_MODE_NAMESPACES: "graph-mode-namespaces",
   GRAPH_MODE_TYPE_FOCUS: "graph-mode-type-focus",
   GRAPH_DEPTH_ONE: "graph-depth-one",

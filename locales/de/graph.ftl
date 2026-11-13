@@ -1,6 +1,8 @@
 # Abhängigkeitsgraph.
 
 graph-title = Abhängigkeiten
+graph-level-label = Ebene
+graph-mode-layers = Schichten
 graph-mode-namespaces = Namespaces
 graph-mode-type-focus = Typ-Fokus
 graph-depth-one = 1 Stufe

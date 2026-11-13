@@ -1,10 +1,15 @@
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { cx } from "../../shared/ui/cx";
+import { LEVEL } from "./consts";
+import type { Level } from "./types";
 import styles from "./Toolbar.module.css";
 
-/** The switches above the map (mock 3): "all connections weak", "violations only" and the hint on
- * the mouse; `F` fits the picture to the view. */
+/** The switches above the map (mock 3): the level, "all connections weak", "violations only" and
+ * the hint on the mouse; `F` fits the picture to the view. */
 export function Toolbar(props: {
+  level: Level;
+  onLevel: (level: Level) => void;
   weak: boolean;
   onWeak: (on: boolean) => void;
   violationsOnly: boolean;
@@ -13,6 +18,24 @@ export function Toolbar(props: {
 }) {
   return (
     <div class={styles.bar}>
+      <div class={styles.levels} role="group" aria-label={t(I18N_KEYS.GRAPH_LEVEL_LABEL)}>
+        <button
+          type="button"
+          class={cx(styles.level, props.level === LEVEL.layers && styles.on)}
+          aria-pressed={props.level === LEVEL.layers}
+          onClick={() => props.onLevel(LEVEL.layers)}
+        >
+          {t(I18N_KEYS.GRAPH_MODE_LAYERS)}
+        </button>
+        <button
+          type="button"
+          class={cx(styles.level, props.level === LEVEL.namespaces && styles.on)}
+          aria-pressed={props.level === LEVEL.namespaces}
+          onClick={() => props.onLevel(LEVEL.namespaces)}
+        >
+          {t(I18N_KEYS.GRAPH_MODE_NAMESPACES)}
+        </button>
+      </div>
       <label class={styles.toggle}>
         <input
           type="checkbox"

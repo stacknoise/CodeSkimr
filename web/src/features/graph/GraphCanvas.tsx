@@ -116,6 +116,21 @@ export function GraphCanvas(props: {
           transform: transformOf(props.view),
         }}
       >
+        <For each={props.data.bands}>
+          {(band) => (
+            <div
+              class={styles.band}
+              style={{
+                top: band.y + PX,
+                height: band.height + PX,
+                width: props.data.width + PX,
+                [BOX_COLOR_PROPERTY]: rankColor(band.rank),
+              }}
+            >
+              <span class={styles.bandName}>{band.name}</span>
+            </div>
+          )}
+        </For>
         <svg class={styles.edges} width={props.data.width} height={props.data.height} aria-hidden>
           <ArrowHeads />
           <For each={props.data.links}>
@@ -146,6 +161,7 @@ export function GraphCanvas(props: {
               onClick={() => props.onSelect(box.name)}
             >
               <span class={styles.name}>{box.name}</span>
+              <Show when={box.types}>{(types) => <span class={styles.types}>{types()}</span>}</Show>
             </button>
           )}
         </For>

@@ -14,6 +14,7 @@ mod layer_map;
 mod measure;
 mod metric;
 mod metrics;
+mod namespace_graph;
 mod project;
 mod qualified_name;
 mod reference;
@@ -39,6 +40,7 @@ pub use metric::{Metric, MetricKind, MetricValue};
 pub use metrics::{
     HalsteadCounts, LineKind, cyclomatic_complexity, lines_of_code, maintainability_index,
 };
+pub use namespace_graph::{NamespaceEdge, NamespaceGraph, NamespaceNode, namespace_graph};
 pub use project::{
     BranchName, CredentialId, FolderPath, GitUrl, Layer, LayerName, Project, ProjectId,
     ProjectName, ProjectSource,

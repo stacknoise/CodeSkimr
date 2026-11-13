@@ -12,6 +12,8 @@ const box = (name: string, x: number, y: number): LayerBox => ({
   height: 40,
   rank: 0,
   order: 0,
+  layer: null,
+  types: null,
 });
 const link = (from: string, to: string, count = 1, violates = false): LayerLink => ({
   from,

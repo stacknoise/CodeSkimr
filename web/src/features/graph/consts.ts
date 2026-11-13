@@ -1,6 +1,9 @@
 /** Id of the command that places the layers (crates/app/src/ui_commands/consts.rs). */
 export const GRAPH_COMMAND = "graph.layers";
 
+/** The levels of the map, as the command names them. */
+export const LEVEL = { layers: "layers", namespaces: "namespaces" } as const;
+
 /** The look of an edge. */
 export const EDGE = { out: "out", in: "in", violation: "violation", weak: "weak" } as const;
 

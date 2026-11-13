@@ -7,7 +7,7 @@ import { activeProject, openProject } from "../../shared/project/active";
 import { isTyping, useKeydown } from "../../shared/keys/keydown";
 import { projects, refreshProjects } from "../projects/projects";
 import { KEY } from "./consts";
-import { graphData, graphFailed, loadGraph, resetGraph } from "./graph";
+import { graphData, graphFailed, graphLevel, loadGraph, resetGraph, setGraphLevel } from "./graph";
 import { GraphCanvas } from "./GraphCanvas";
 import { Legend } from "./Legend";
 import { neighboursOf, violations } from "./neighbours";
@@ -56,6 +56,19 @@ export function GraphScreen() {
     }),
   );
   createEffect(on([() => graphData()?.snapshot, size], fitView));
+  createEffect(
+    on(
+      graphLevel,
+      () => {
+        const id = project();
+        if (id !== null) {
+          setSelected(null);
+          void loadGraph(id);
+        }
+      },
+      { defer: true },
+    ),
+  );
   useKeydown((event) => {
     if (event.ctrlKey || event.altKey || event.metaKey || isTyping(event.target)) {
       return;
@@ -93,6 +106,8 @@ export function GraphScreen() {
               <>
                 <div class={styles.map}>
                   <Toolbar
+                    level={graphLevel()}
+                    onLevel={setGraphLevel}
                     weak={weak()}
                     onWeak={setWeak}
                     violationsOnly={violationsOnly()}
