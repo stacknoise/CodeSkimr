@@ -570,6 +570,7 @@ dependencies = [
  "codeskimr_application",
  "codeskimr_codes",
  "codeskimr_domain",
+ "criterion",
  "rusqlite",
 ]
 

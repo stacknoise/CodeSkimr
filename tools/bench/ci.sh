@@ -9,7 +9,7 @@ ROOT="$(git rev-parse --show-toplevel)"
 BASE_REF="${1:-}"
 BASE_BASELINE="ci-base"
 HEAD_BASELINE="ci-head"
-BENCH_ARGS=(-p codeskimr_bench --benches --locked)
+BENCH_ARGS=(-p codeskimr_bench -p codeskimr_storage --benches --locked)
 export CRITERION_HOME="$ROOT/target/criterion"
 
 measure() {

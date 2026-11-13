@@ -16,3 +16,10 @@ codeskimr_application = { path = "../../application" }
 codeskimr_domain = { path = "../../domain" }
 codeskimr_codes = { path = "../../codes" }
 rusqlite = { version = "0.42.0", features = ["bundled"] }
+
+[dev-dependencies]
+criterion.workspace = true
+
+[[bench]]
+name = "usages_page"
+harness = false
