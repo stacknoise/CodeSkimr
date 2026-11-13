@@ -27,6 +27,8 @@ export type ErrorCode =
   | "STO-301"
   | "STO-302"
   | "STO-501"
+  | "STO-601"
+  | "STO-901"
   | "SEC-201"
   | "SEC-401"
   | "SEC-402"
@@ -93,6 +95,8 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "STO-301": { id: "STO-301", name: "schema_migration_failed", group: "STO", class: "conflict", severity: "error", retryable: false, description: "Applying a database migration failed.", since: "0.1.0", deprecated: false, messageKey: "error-STO-301" },
   "STO-302": { id: "STO-302", name: "transaction_conflict", group: "STO", class: "conflict", severity: "error", retryable: true, description: "A concurrent write conflicted; the operation can be retried.", since: "0.1.0", deprecated: false, messageKey: "error-STO-302" },
   "STO-501": { id: "STO-501", name: "disk_full", group: "STO", class: "limit", severity: "error", retryable: false, description: "Not enough disk space to persist the snapshot.", since: "0.1.0", deprecated: false, messageKey: "error-STO-501" },
+  "STO-601": { id: "STO-601", name: "database_failed", group: "STO", class: "external", severity: "error", retryable: false, description: "The database reported an error that is not covered by a more specific code.", since: "0.1.0", deprecated: false, messageKey: "error-STO-601" },
+  "STO-901": { id: "STO-901", name: "stored_data_invalid", group: "STO", class: "internal", severity: "error", retryable: false, description: "Data read from the database violates the domain model; this is a bug or a damaged database.", since: "0.1.0", deprecated: false, messageKey: "error-STO-901" },
   "SEC-201": { id: "SEC-201", name: "credential_not_found", group: "SEC", class: "not_found", severity: "error", retryable: false, description: "The referenced credential does not exist in the keystore.", since: "0.1.0", deprecated: false, messageKey: "error-SEC-201" },
   "SEC-401": { id: "SEC-401", name: "credential_rejected", group: "SEC", class: "permission", severity: "error", retryable: false, description: "The platform rejected the credential.", since: "0.1.0", deprecated: false, messageKey: "error-SEC-401" },
   "SEC-402": { id: "SEC-402", name: "keystore_access_denied", group: "SEC", class: "permission", severity: "error", retryable: false, description: "The OS keystore denied access.", since: "0.1.0", deprecated: false, messageKey: "error-SEC-402" },
