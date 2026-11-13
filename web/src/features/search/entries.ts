@@ -1,6 +1,7 @@
 import { t } from "../../shared/i18n/i18n";
+import { TYPE_KINDS } from "../explorer/consts";
 import type { UiCommand } from "./commands";
-import { FILTER, GROUP, NONE, TYPE_KINDS, type Filter, type GroupId } from "./consts";
+import { FILTER, GROUP, NONE, type Filter, type GroupId } from "./consts";
 import type { Hit } from "./types";
 
 /** A line of the list that can be chosen: a symbol or a command. */

@@ -3,8 +3,9 @@ import { navigate } from "../../app/router";
 import { EXPLORER_ROUTE } from "../../app/consts";
 import { runCommand } from "../../shared/api/commands";
 import { activeProject } from "../../shared/project/active";
+import { TYPE_KINDS } from "../explorer/consts";
 import { requestFocus } from "../explorer/explorer";
-import { FILTER, MS_DIGITS, SEARCH_COMMAND, TYPE_KINDS, type Filter } from "./consts";
+import { FILTER, MS_DIGITS, SEARCH_COMMAND, type Filter } from "./consts";
 import { parseQuery } from "./parse";
 import type { Hit, SearchResult } from "./types";
 
@@ -40,8 +41,12 @@ export const choose = setSelected;
 
 /** Shows the overlay with an empty input. */
 export function openSearch(): void {
+  if (open()) {
+    return;
+  }
   sequence += 1;
   setRaw("");
+  setChip(FILTER.all);
   setHits([]);
   setTook(null);
   setFailed(false);
@@ -79,6 +84,7 @@ export async function runSearch(): Promise<void> {
   } catch {
     if (mine === sequence) {
       setHits([]);
+      setTook(null);
       setFailed(true);
     }
   }

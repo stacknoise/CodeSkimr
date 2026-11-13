@@ -3,6 +3,7 @@ import { ConnectionScreen } from "../features/session/ConnectionScreen";
 import { ExplorerScreen } from "../features/explorer/ExplorerScreen";
 import { ProjectsScreen } from "../features/projects/ProjectsScreen";
 import { QuickSearch } from "../features/search/QuickSearch";
+import { SearchField } from "../features/search/SearchField";
 import { useSearchShortcut } from "../features/search/keys";
 import { openSearch } from "../features/search/search";
 import { SettingsScreen } from "../features/settings/SettingsScreen";
@@ -71,16 +72,6 @@ function Screen() {
         <ExplorerScreen />
       </Match>
     </Switch>
-  );
-}
-
-/** The search field of the top bar: it opens the quick search (blueprint 15.2). */
-function SearchField() {
-  return (
-    <button type="button" class={styles.search} onClick={openSearch}>
-      <span>{t(I18N_KEYS.APP_SEARCH_PLACEHOLDER)}</span>
-      <kbd>{t(I18N_KEYS.APP_SEARCH_SHORTCUT)}</kbd>
-    </button>
   );
 }
 

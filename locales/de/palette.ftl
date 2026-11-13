@@ -31,6 +31,5 @@ palette-start = Namen eingeben. Mit { $types } nur Typen, mit { $members } nur M
 palette-no-project = Öffne zuerst ein Projekt, dann kannst du es durchsuchen.
 palette-not-scanned = Dieses Projekt wurde noch nicht gescannt.
 palette-failed = Die Suche ist fehlgeschlagen.
-palette-close = Schließen
 palette-results-label = Treffer
 palette-command-rescan = Projekt neu scannen

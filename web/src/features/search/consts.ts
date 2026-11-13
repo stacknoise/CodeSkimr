@@ -40,17 +40,6 @@ export const GROUP_TITLE: Record<GroupId, MessageKey> = {
   commands: I18N_KEYS.PALETTE_GROUP_COMMANDS,
 };
 
-/** Kinds that count as types; every other kind is a member. */
-export const TYPE_KINDS: readonly string[] = [
-  "class",
-  "interface",
-  "trait",
-  "record",
-  "struct",
-  "enum",
-  "union",
-];
-
 /** The letter of the badge of a command entry. */
 export const COMMAND_LETTER = ">";
 

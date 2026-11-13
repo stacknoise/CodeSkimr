@@ -6,7 +6,7 @@
     justify-content: center;
     align-items: flex-start;
     padding-top: 12vh;
-    background: rgb(0 0 0 / 35%);
+    background: color-mix(in srgb, var(--ink) 40%, transparent);
 }
 
 .dialog {
@@ -18,7 +18,7 @@
     color: var(--ink);
     border: 1px solid var(--line);
     border-radius: var(--radius-dialog);
-    box-shadow: 0 20px 50px rgb(0 0 0 / 30%);
+    box-shadow: 0 20px 50px color-mix(in srgb, var(--ink) 30%, transparent);
     overflow: hidden;
 }
 

@@ -21,6 +21,8 @@ pub struct SearchHit {
     pub kind: SymbolKind,
     /// File that declares it.
     pub path: RelativePath,
+    /// The enclosing symbol, `None` for top-level symbols.
+    pub parent: Option<SymbolId>,
 }
 
 /// How a caller names one symbol.

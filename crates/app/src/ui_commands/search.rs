@@ -4,9 +4,9 @@ use std::sync::Arc;
 
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{CodeIndex, ProjectRepository, SearchHit, SymbolKey};
+use codeskimr_application::ports::{CodeIndex, ProjectRepository, SearchHit};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
-use codeskimr_domain::{Permission, ProjectId, SnapshotId, SymbolId};
+use codeskimr_domain::{Permission, ProjectId, SymbolId};
 use serde::{Deserialize, Serialize};
 
 use super::consts::{SEARCH_DESCRIPTION, SEARCH_LIMIT, SEARCH_QUERY, SEARCH_TITLE};
@@ -52,21 +52,14 @@ pub struct SearchPorts {
     pub(super) index: Arc<dyn CodeIndex>,
 }
 
-impl SearchPorts {
-    fn hit(&self, snapshot: SnapshotId, hit: &SearchHit) -> Result<HitOut, CodedError> {
-        let parent = self
-            .index
-            .symbol(snapshot, &SymbolKey::Id(hit.symbol))?
-            .and_then(|detail| detail.symbol.parent)
-            .map(SymbolId::get);
-        Ok(HitOut {
-            id: hit.symbol.get(),
-            name: hit.name.to_string(),
-            qualified_name: hit.qualified_name.to_string(),
-            kind: hit.kind.label(),
-            path: hit.path.to_string(),
-            parent,
-        })
+fn hit_out(hit: &SearchHit) -> HitOut {
+    HitOut {
+        id: hit.symbol.get(),
+        name: hit.name.to_string(),
+        qualified_name: hit.qualified_name.to_string(),
+        kind: hit.kind.label(),
+        path: hit.path.to_string(),
+        parent: hit.parent.map(SymbolId::get),
     }
 }
 
@@ -102,13 +95,9 @@ impl Command for SearchQuery {
         let found = ports
             .index
             .search(snapshot.id, &request.input.query, SEARCH_LIMIT)?;
-        let hits = found
-            .iter()
-            .map(|hit| ports.hit(snapshot.id, hit))
-            .collect::<Result<_, _>>()?;
         Ok(SearchOut {
             snapshot: Some(snapshot.id.get()),
-            hits,
+            hits: found.iter().map(hit_out).collect(),
         })
     }
 }

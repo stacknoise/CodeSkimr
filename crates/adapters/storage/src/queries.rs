@@ -71,18 +71,22 @@ fn search(
                 cols.take::<String>()?,
                 cols.take::<String>()?,
                 cols.take::<String>()?,
+                cols.take::<Option<i64>>()?,
             ))
         },
     )?;
     let mut hits = Vec::new();
     for row in rows {
-        let (symbol, name, qualified, kind, path) = row?;
+        let (symbol, name, qualified, kind, path, parent) = row?;
         hits.push(SearchHit {
             symbol: SymbolId::new(id_from(symbol)?),
             name: SymbolName::new(name)?,
             qualified_name: QualifiedName::new(qualified)?,
             kind: label_from(&kind)?,
             path: RelativePath::new(path)?,
+            parent: parent
+                .map(|id| id_from(id).map(SymbolId::new))
+                .transpose()?,
         });
     }
     Ok(hits)

@@ -3,7 +3,7 @@
 app-name = CodeSkimr
 app-workspace = Workspace
 app-workspace-local = Local
-app-search-placeholder = Type, member, file or command …
+app-search-placeholder = Type, member or command …
 app-search-shortcut = Ctrl K
 app-watching = Watching for changes
 app-sample-data = Sample data

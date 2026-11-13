@@ -177,10 +177,11 @@ pub const USAGES_OF: &str =
     "SELECT usages FROM usage_counts WHERE snapshot_id = ?1 AND symbol_id = ?2";
 /// Fuzzy search: snapshot, subsequence pattern, exact text, prefix pattern, substring text,
 /// limit. Exact matches come first, then prefix, substring and the rest, shorter names first.
-pub const SEARCH: &str = "SELECT symbol_id, name, qualified_name, kind, path FROM search_index \
-    WHERE snapshot_id = ?1 AND name_lower LIKE ?2 ESCAPE '\\' \
-    ORDER BY CASE WHEN name_lower = ?3 THEN 0 WHEN name_lower LIKE ?4 ESCAPE '\\' THEN 1 \
-    WHEN instr(name_lower, ?5) > 0 THEN 2 ELSE 3 END, length(name_lower), name_lower \
+pub const SEARCH: &str = "SELECT i.symbol_id, i.name, i.qualified_name, i.kind, i.path, s.parent_id \
+    FROM search_index i JOIN symbols s ON s.snapshot_id = i.snapshot_id AND s.id = i.symbol_id \
+    WHERE i.snapshot_id = ?1 AND i.name_lower LIKE ?2 ESCAPE '\\' \
+    ORDER BY CASE WHEN i.name_lower = ?3 THEN 0 WHEN i.name_lower LIKE ?4 ESCAPE '\\' THEN 1 \
+    WHEN instr(i.name_lower, ?5) > 0 THEN 2 ELSE 3 END, length(i.name_lower), i.name_lower \
     LIMIT ?6";
 /// Layer graph of a snapshot: snapshot.
 pub const EDGES: &str = "SELECT from_layer, to_layer, edge_count, violates_layering, in_cycle \

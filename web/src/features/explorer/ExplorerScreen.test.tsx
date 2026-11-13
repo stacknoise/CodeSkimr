@@ -292,6 +292,8 @@ describe("a navigation from another screen", () => {
     const tree = screen.getByRole("tree");
     expect(await within(tree).findByText("Total")).toBeTruthy();
     expect(within(tree).getByText("Shop.Domain")).toBeTruthy();
+    const cursor = tree.getAttribute("aria-activedescendant") ?? "";
+    expect(document.getElementById(cursor)?.textContent).toContain("Total");
   });
 
   it("opens the rows down to a type", async () => {

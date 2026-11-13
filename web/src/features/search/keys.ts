@@ -58,7 +58,12 @@ export function onSearchKey(
     actions.activate(entry);
   } else if (event.key === KEY.tab) {
     actions.chip(event.shiftKey ? STEP_UP : STEP_DOWN);
-  } else if (event.ctrlKey && event.key.toLowerCase() === KEY.copy && entry && !hasSelection) {
+  } else if (
+    (event.ctrlKey || event.metaKey) &&
+    event.key.toLowerCase() === KEY.copy &&
+    entry &&
+    !hasSelection
+  ) {
     if (!actions.copy(entry)) {
       return;
     }

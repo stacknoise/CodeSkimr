@@ -184,7 +184,6 @@ export const I18N_KEYS = {
   PALETTE_NO_PROJECT: "palette-no-project",
   PALETTE_NOT_SCANNED: "palette-not-scanned",
   PALETTE_FAILED: "palette-failed",
-  PALETTE_CLOSE: "palette-close",
   PALETTE_RESULTS_LABEL: "palette-results-label",
   PALETTE_COMMAND_RESCAN: "palette-command-rescan",
   PROJECTS_TITLE: "projects-title",
