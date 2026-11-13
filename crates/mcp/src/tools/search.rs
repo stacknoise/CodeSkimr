@@ -2,12 +2,15 @@
 
 use std::str::FromStr;
 
+use codeskimr_application::access;
+use codeskimr_domain::Principal;
 use codeskimr_domain::SymbolKind;
 use serde::Serialize;
 use serde_json::Value;
 
 use super::{SnapshotInfo, Tools, to_json, truncation_notice};
 use crate::args::SearchArgs;
+use crate::consts::READ_TOOL_PERMISSION;
 use crate::consts::{ARG_KIND, ARG_QUERY};
 use crate::error::{CodeReport, McpError};
 
@@ -40,9 +43,14 @@ impl Tools {
     /// Fuzzy search over symbol names, best match first.
     ///
     /// # Errors
-    /// `MCP-101` for an empty query or an unknown kind, `MCP-201` and `MCP-203` for the project,
+    /// `AUTH-401` if the principal may not read, `MCP-101` for an empty query or an unknown kind, `MCP-201` and `MCP-203` for the project,
     /// or the code of a failing port.
-    pub fn search_symbols(&self, args: &SearchArgs) -> Result<Value, McpError> {
+    pub fn search_symbols(
+        &self,
+        principal: &Principal,
+        args: &SearchArgs,
+    ) -> Result<Value, McpError> {
+        access::require(principal, READ_TOOL_PERMISSION)?;
         if args.query.trim().is_empty() {
             return Err(invalid(ARG_QUERY));
         }

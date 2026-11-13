@@ -12,6 +12,7 @@ use codeskimr_storage::SqliteStore;
 
 use crate::config_files;
 use crate::locations::Locations;
+use crate::principal;
 use crate::source_arg::{SourceError, SourceSpec, classify};
 use crate::wiring::{build_scanner, open_store};
 
@@ -43,7 +44,7 @@ pub fn run(
     let project = register(&store, spec)?;
     let scanner = build_scanner(&store, &config, locations, EventBus::new())?;
     let started = Instant::now();
-    match scanner.run(Job::new(project.id, ScanMode::Full)) {
+    match scanner.run(&principal::resolve(), Job::new(project.id, ScanMode::Full)) {
         JobResult::Finished(job) => {
             let snapshot = job.snapshot();
             Ok(ScanSummary {

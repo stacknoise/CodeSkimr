@@ -1,11 +1,14 @@
 //! `get_architecture`.
 
+use codeskimr_application::access;
+use codeskimr_domain::Principal;
 use codeskimr_domain::{Layer, LayerEdge};
 use serde::Serialize;
 use serde_json::Value;
 
 use super::{SnapshotInfo, Tools, to_json};
 use crate::args::ArchitectureArgs;
+use crate::consts::READ_TOOL_PERMISSION;
 use crate::error::McpError;
 
 #[derive(Serialize)]
@@ -56,8 +59,13 @@ impl Tools {
     /// The layers of a project with their namespaces and the dependencies between them.
     ///
     /// # Errors
-    /// `MCP-201` and `MCP-203` for the project, or the code of a failing port.
-    pub fn get_architecture(&self, args: &ArchitectureArgs) -> Result<Value, McpError> {
+    /// `AUTH-401` if the principal may not read, `MCP-201` and `MCP-203` for the project, or the code of a failing port.
+    pub fn get_architecture(
+        &self,
+        principal: &Principal,
+        args: &ArchitectureArgs,
+    ) -> Result<Value, McpError> {
+        access::require(principal, READ_TOOL_PERMISSION)?;
         let scope = self.scope(args.project)?;
         let edges = self.index().layer_edges(scope.snapshot.id)?;
         to_json(&Answer {

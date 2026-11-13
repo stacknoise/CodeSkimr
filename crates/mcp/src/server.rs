@@ -9,6 +9,7 @@ use codeskimr_codes::i18n::{
     MCP_SERVER_INSTRUCTIONS, MCP_TOOL_GET_ARCHITECTURE, MCP_TOOL_GET_SYMBOL,
     MCP_TOOL_SEARCH_SYMBOLS,
 };
+use codeskimr_domain::Principal;
 use codeskimr_i18n::Messages;
 use rmcp::ErrorData;
 use rmcp::ServerHandler;
@@ -35,6 +36,7 @@ pub struct McpServer {
     tools: Arc<Tools>,
     definitions: Vec<Tool>,
     instructions: String,
+    principal: Principal,
 }
 
 fn definition<A: JsonSchema + 'static>(
@@ -66,12 +68,19 @@ fn failure(error: &McpError) -> CallToolResult {
 }
 
 impl McpServer {
-    /// Builds the server around `tools`.
+    /// Builds the server around `tools`. Every call runs as `principal`, which the composition
+    /// root resolved: stdio is single-user, so it is the local owner. A transport that
+    /// authenticates its callers builds one server per caller.
     ///
     /// # Errors
     /// `I18N-201` if a text of the tool list is missing.
-    pub fn new(tools: Tools, messages: &Messages) -> Result<Self, CodedError> {
+    pub fn new(
+        tools: Tools,
+        messages: &Messages,
+        principal: Principal,
+    ) -> Result<Self, CodedError> {
         Ok(Self {
+            principal,
             tools: Arc::new(tools),
             definitions: vec![
                 definition::<SearchArgs>(messages, TOOL_SEARCH_SYMBOLS, MCP_TOOL_SEARCH_SYMBOLS)?,
@@ -89,15 +98,21 @@ impl McpServer {
     }
 
     /// Runs one tool. A failing tool is an answer with `is_error`, not a protocol error.
-    fn run(tools: &Tools, name: &str, arguments: Option<JsonObject>) -> CallToolResult {
+    fn run(
+        tools: &Tools,
+        principal: Principal,
+        name: &str,
+        arguments: Option<JsonObject>,
+    ) -> CallToolResult {
         let outcome = match name {
             TOOL_SEARCH_SYMBOLS => {
-                parse_arguments(arguments).and_then(|args| tools.search_symbols(&args))
+                parse_arguments(arguments).and_then(|args| tools.search_symbols(&principal, &args))
             }
-            TOOL_GET_SYMBOL => parse_arguments(arguments).and_then(|args| tools.get_symbol(&args)),
-            TOOL_GET_ARCHITECTURE => {
-                parse_arguments(arguments).and_then(|args| tools.get_architecture(&args))
+            TOOL_GET_SYMBOL => {
+                parse_arguments(arguments).and_then(|args| tools.get_symbol(&principal, &args))
             }
+            TOOL_GET_ARCHITECTURE => parse_arguments(arguments)
+                .and_then(|args| tools.get_architecture(&principal, &args)),
             _ => Err(McpError::ArgumentsInvalid(name.to_owned())),
         };
         outcome.map_or_else(|error| failure(&error), CallToolResult::structured)
@@ -135,8 +150,9 @@ impl ServerHandler for McpServer {
         _context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, ErrorData> {
         let tools = Arc::clone(&self.tools);
+        let principal = self.principal;
         let result = tokio::task::spawn_blocking(move || {
-            Self::run(&tools, &request.name, request.arguments)
+            Self::run(&tools, principal, &request.name, request.arguments)
         })
         .await
         .map_err(|_| {

@@ -14,6 +14,7 @@ mod log_writer;
 mod logging;
 mod mcp;
 mod placeholders;
+mod principal;
 mod redact;
 mod run;
 mod scan;

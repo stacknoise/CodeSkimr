@@ -109,6 +109,14 @@ Owner: `codeskimr_source`
 | NET-502 | `rate_limited` | error | yes | 0.1.0 | The external platform rate-limited the request. |
 | NET-601 | `oauth_flow_failed` | error | no | 0.1.0 | The OAuth device flow did not complete. |
 
+## AUTH – Caller identity and permissions
+
+Owner: `codeskimr_application`
+
+| Code | Name | Severity | Retryable | Since | Description |
+|---|---|---|---|---|---|
+| AUTH-401 | `permission_denied` | error | no | 0.1.0 | The caller lacks the permission this action needs. |
+
 ## API – REST and WebSocket
 
 Owner: `codeskimr_server`

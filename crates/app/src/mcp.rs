@@ -13,6 +13,7 @@ use codeskimr_mcp::{McpServer, Tools, serve_stdio};
 use crate::clock::SystemClock;
 use crate::config_files;
 use crate::locations::Locations;
+use crate::principal;
 use crate::source_arg::folder_spec;
 use crate::wiring::open_store;
 
@@ -54,7 +55,7 @@ pub fn run(
         project.id,
     );
     let messages = Messages::load().map_err(CodedError::caused_by)?;
-    let server = McpServer::new(tools, &messages)?;
+    let server = McpServer::new(tools, &messages, principal::resolve())?;
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()

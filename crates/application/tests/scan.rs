@@ -16,10 +16,10 @@ use codeskimr_application::stage::StageKind;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
     BranchName, CommitHash, Confidence, ContentHash, FileId, FolderPath, LanguageId, Loc, Metric,
-    MetricKind, MetricValue, ModelError, Position, Project, ProjectId, ProjectName, ProjectSource,
-    QualifiedName, Reference, ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot,
-    SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName,
-    Timestamp,
+    MetricKind, MetricValue, ModelError, Permission, PermissionSet, Position, Principal, Project,
+    ProjectId, ProjectName, ProjectSource, QualifiedName, Reference, ReferenceId, ReferenceKind,
+    RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId,
+    SymbolKind, SymbolName, Timestamp,
 };
 
 /// The newest snapshot as the repository reports it.
@@ -301,7 +301,8 @@ fn scanner(world: &Arc<World>, bus: &EventBus) -> Scanner {
 fn run(world: &Arc<World>, mode: ScanMode) -> (JobResult, Vec<Event>) {
     let bus = EventBus::new();
     let events = bus.subscribe();
-    let result = scanner(world, &bus).run(Job::new(ProjectId::new(7), mode));
+    let result =
+        scanner(world, &bus).run(&Principal::local_owner(), Job::new(ProjectId::new(7), mode));
     (result, events.try_iter().collect())
 }
 
@@ -550,7 +551,7 @@ fn cancelled_run(cancel_at: StageKind, fail: bool) -> (JobResult, Vec<Event>, Ar
         fail_at: fail.then_some(cancel_at),
         ..World::default()
     });
-    let result = scanner(&world, &bus).run(job);
+    let result = scanner(&world, &bus).run(&Principal::local_owner(), job);
     (result, events.try_iter().collect(), world)
 }
 
@@ -582,7 +583,7 @@ fn token_raised_before_start_cancels_without_any_work() {
     let world = Arc::new(World::default());
     let job = Job::new(ProjectId::new(7), ScanMode::Full);
     job.cancel_token().cancel();
-    let result = scanner(&world, &bus).run(job);
+    let result = scanner(&world, &bus).run(&Principal::local_owner(), job);
     assert!(matches!(result, JobResult::Cancelled(_)));
     assert_eq!(world.persisted_count(), 0);
     assert!(
@@ -672,4 +673,19 @@ fn the_calculator_gets_the_counts_of_the_analysed_files_only() -> Result<(), Cod
         "only b.rs was analysed, so only its counts exist"
     );
     Ok(())
+}
+
+#[test]
+fn a_caller_without_the_scan_permission_is_denied_and_nothing_happens() {
+    let world = Arc::new(World::default());
+    let bus = EventBus::new();
+    let events = bus.subscribe();
+    let reader = Principal::limited(PermissionSet::none().with(Permission::Read));
+    let result = scanner(&world, &bus).run(&reader, Job::new(ProjectId::new(7), ScanMode::Full));
+    let JobResult::Failed(job) = result else {
+        panic!("a caller without permission must not scan");
+    };
+    assert_eq!(job.code(), ErrorCode::PermissionDenied);
+    assert_eq!(world.persisted_count(), 0);
+    assert_eq!(events.try_iter().count(), 0);
 }

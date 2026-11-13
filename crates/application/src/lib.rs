@@ -4,6 +4,7 @@
 //! (pipes and filters), the event bus (observer), the command registry and the typestate of a
 //! scan job. It knows no database, file system, network or parser.
 
+pub mod access;
 pub mod cancel;
 pub mod config;
 mod consts;

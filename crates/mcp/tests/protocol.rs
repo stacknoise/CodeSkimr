@@ -3,6 +3,7 @@
 #[cfg(test)]
 mod common;
 
+use codeskimr_domain::Principal;
 use codeskimr_i18n::Messages;
 use codeskimr_mcp::McpServer;
 use common::tools;
@@ -39,7 +40,7 @@ impl Client {
 #[cfg(test)]
 async fn connected() -> Client {
     let messages = Messages::load().unwrap();
-    let server = McpServer::new(tools(), &messages).unwrap();
+    let server = McpServer::new(tools(), &messages, Principal::local_owner()).unwrap();
     let (near, far) = tokio::io::duplex(64 * 1024);
     tokio::spawn(async move {
         let running = server.serve(far).await.unwrap();

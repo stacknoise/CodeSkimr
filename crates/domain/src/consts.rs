@@ -172,3 +172,16 @@ pub const URL_SCHEME_EXTRA: &str = "+-.";
 
 /// Number of metrics of a measured callable: `loc`, `cc` and `mi`.
 pub const CALLABLE_METRICS: usize = 3;
+
+/// Label of `Permission::Read`.
+pub const PERMISSION_READ: &str = "read";
+/// Label of `Permission::ReadSource`.
+pub const PERMISSION_READ_SOURCE: &str = "read_source";
+/// Label of `Permission::Scan`.
+pub const PERMISSION_SCAN: &str = "scan";
+/// Label of `Permission::Manage`.
+pub const PERMISSION_MANAGE: &str = "manage";
+/// Label of `Permission::RegisterProject`.
+pub const PERMISSION_REGISTER_PROJECT: &str = "register_project";
+/// Label of `Permission::Admin`.
+pub const PERMISSION_ADMIN: &str = "admin";
