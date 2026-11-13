@@ -25,7 +25,7 @@ use crate::serve::{Parts, serve_for_test, test_ui};
 use crate::ui_commands::command_api;
 use crate::{config_files, installation_token};
 
-const CREDENTIAL_CANARY: &str = "ghp_CANARY0c4e7a91d2b84f6e9a30cc11";
+pub(crate) const CREDENTIAL_CANARY: &str = "ghp_CANARY0c4e7a91d2b84f6e9a30cc11";
 /// A class name, so that a scan that followed the link would index it as a symbol.
 const FILE_CANARY: &str = "CanaryOutside6b1d";
 /// The same, inside the project: the control that the search finds what is really there.
@@ -33,18 +33,18 @@ const INSIDE: &str = "CanaryInside6b1d";
 const COMMANDS: &str = "/api/v1/commands";
 
 /// Everything one run of the server leaves behind for the checks.
-struct Run {
-    token: String,
-    answers: Vec<String>,
+pub(crate) struct Run {
+    pub(crate) token: String,
+    pub(crate) answers: Vec<String>,
 }
 
 /// A project folder, an outside file that must stay unreachable, and a data folder.
-struct Folders {
-    data: tempfile::TempDir,
-    project: std::path::PathBuf,
+pub(crate) struct Folders {
+    pub(crate) data: tempfile::TempDir,
+    pub(crate) project: std::path::PathBuf,
 }
 
-fn folders() -> Folders {
+pub(crate) fn folders() -> Folders {
     let data = tempfile::tempdir().unwrap();
     let project = data.path().join("project");
     fs::create_dir_all(project.join("src")).unwrap();
@@ -60,7 +60,10 @@ fn folders() -> Folders {
 
 /// Starts the real server (REST and MCP, both with the token) over an in-memory keystore that
 /// holds the canary credential, runs `traffic` against it and returns what was answered.
-fn run(folders: &Folders, traffic: impl FnOnce(&str, &str) -> Vec<String> + Send + 'static) -> Run {
+pub(crate) fn run(
+    folders: &Folders,
+    traffic: impl FnOnce(&str, &str) -> Vec<String> + Send + 'static,
+) -> Run {
     let locations = locations(&folders.data.path().join("state"));
     let config = config_files::load(&locations, &GlobalOptions::default(), None).unwrap();
     let store = KeystoreCredentials::new(Memory::default());
@@ -94,7 +97,7 @@ fn run(folders: &Folders, traffic: impl FnOnce(&str, &str) -> Vec<String> + Send
     }
 }
 
-fn command(url: &str, token: Option<&str>, id: &str, input: &Value) -> String {
+pub(crate) fn command(url: &str, token: Option<&str>, id: &str, input: &Value) -> String {
     send(
         url,
         ("POST", &format!("{COMMANDS}/{id}")),

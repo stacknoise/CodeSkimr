@@ -11,8 +11,19 @@ publish = false
 [lints]
 workspace = true
 
+# The unit tests use the libtest harness, which does not know the options of criterion.
+[lib]
+bench = false
+
 [dependencies]
 codeskimr_application = { path = "../../application" }
 codeskimr_domain = { path = "../../domain" }
 codeskimr_codes = { path = "../../codes" }
 rusqlite = { version = "0.42.0", features = ["bundled"] }
+
+[dev-dependencies]
+criterion.workspace = true
+
+[[bench]]
+name = "usages_page"
+harness = false
