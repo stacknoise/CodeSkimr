@@ -129,6 +129,10 @@ jobs:
   build:
     name: build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    # TEMPORARY (see docs/ci.md): macOS runners are not available reliably, so a failing or
+    # hanging macOS build must not block merges. The check still reports.
+    continue-on-error: ${{ matrix.os == 'macos-latest' }}
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
