@@ -1,6 +1,6 @@
 # MCP server (WP-26)
 
-Implements the first part of blueprint section 10.4: the stdio server with the three tools of milestone M1. The remaining tools (`find_usages`, `impact_of_change`, `get_dependencies`, `find_similar_code`, `find_constants`, `check_conventions`, `rescan`), the resources and the HTTP transport follow in M2. The command `codeskimr mcp` is wired up in WP-25.
+Implements the first part of blueprint section 10.4: the stdio server with the three tools of milestone M1. The remaining tools (`find_usages`, `impact_of_change`, `get_dependencies`, `find_similar_code`, `find_constants`, `check_conventions`, `rescan`), the resources and the HTTP transport follow in M2. `codeskimr mcp` is wired up in WP-25 (see `docs/cli.md`).
 
 ## Structure
 

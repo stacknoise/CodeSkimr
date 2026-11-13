@@ -33,6 +33,9 @@ pub const MAX_ID: &str = "SELECT MAX(id) FROM (\
     SELECT MAX(id) AS id FROM snapshots UNION ALL SELECT MAX(id) FROM files \
     UNION ALL SELECT MAX(id) FROM symbols UNION ALL SELECT MAX(id) FROM symbol_references)";
 
+/// Highest id of any registered project.
+pub const MAX_PROJECT_ID: &str = "SELECT MAX(id) FROM projects";
+
 /// Files of the newest snapshot of a project: project id.
 pub const LATEST_FILES: &str = "SELECT snapshot_id, id, path, language, content_hash, loc \
     FROM files WHERE snapshot_id = (SELECT MAX(id) FROM snapshots WHERE project_id = ?1) \

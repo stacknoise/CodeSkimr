@@ -33,6 +33,11 @@ impl LanguagePacks {
         Ok(Self { packs })
     }
 
+    /// All installed packs, in no particular order.
+    pub fn iter(&self) -> impl Iterator<Item = &LanguagePack> {
+        self.packs.values()
+    }
+
     /// The pack for `language`.
     ///
     /// # Errors
