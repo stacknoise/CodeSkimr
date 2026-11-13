@@ -15,7 +15,7 @@ use zeroize::Zeroizing;
 
 use crate::consts::{
     HEX_DIGIT_BITS, HEX_LOW_MASK, HEX_RADIX, TOKEN_CREDENTIAL_ID, TOKEN_CREDENTIAL_USER,
-    TOKEN_RANDOM_BYTES,
+    TOKEN_HEX_LEN, TOKEN_RANDOM_BYTES,
 };
 
 /// The digest of the installation token; the token is created and stored if there is none yet.
@@ -49,10 +49,10 @@ fn digest_of(
 }
 
 fn fresh_credential() -> Result<Credential, CodedError> {
-    let mut bytes = Zeroizing::new([0_u8; TOKEN_RANDOM_BYTES]);
+    let mut bytes = Zeroizing::new([u8::default(); TOKEN_RANDOM_BYTES]);
     getrandom::fill(bytes.as_mut())
         .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?;
-    let mut text = String::with_capacity(TOKEN_PREFIX.len() + 2 * TOKEN_RANDOM_BYTES);
+    let mut text = String::with_capacity(TOKEN_PREFIX.len() + TOKEN_HEX_LEN);
     text.push_str(TOKEN_PREFIX);
     for byte in bytes.iter() {
         text.extend(hex_digit(byte >> HEX_DIGIT_BITS));

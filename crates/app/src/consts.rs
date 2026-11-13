@@ -171,6 +171,8 @@ pub const TOKEN_CREDENTIAL_ID: &str = "installation-token";
 pub const TOKEN_CREDENTIAL_USER: &str = "local-owner";
 /// Number of random bytes of an installation token: 256 bits (ADR 0019).
 pub const TOKEN_RANDOM_BYTES: usize = 32;
+/// Length of the hexadecimal text of the random bytes: two digits per byte.
+pub const TOKEN_HEX_LEN: usize = 2 * TOKEN_RANDOM_BYTES;
 /// Radix of the text form of the random bytes.
 pub const HEX_RADIX: u32 = 16;
 /// Bits in one hexadecimal digit.
