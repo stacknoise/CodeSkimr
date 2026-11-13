@@ -2,8 +2,8 @@
 
 use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
-    CLI_ERROR_LINE, CLI_SCAN_DETAILS, CLI_SCAN_FINISHED, CLI_SCAN_STARTED, CLI_WATCH_STARTED,
-    CLI_WATCH_UPDATED,
+    CLI_ERROR_LINE, CLI_SCAN_DETAILS, CLI_SCAN_FINISHED, CLI_SCAN_STARTED, CLI_SERVE_LISTENING,
+    CLI_WATCH_STARTED, CLI_WATCH_UPDATED,
 };
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
 use serde::Serialize;
@@ -39,6 +39,16 @@ pub fn scan_started(
     let mut args = FluentArgs::new();
     args.set(arg::PATH, source.to_owned());
     messages.format(language, CLI_SCAN_STARTED, Some(&args))
+}
+
+/// The line that tells where the local server listens.
+///
+/// # Errors
+/// `I18N-201` if the message is missing.
+pub fn serve_started(messages: &Messages, language: &str, url: &str) -> Result<String, I18nError> {
+    let mut args = FluentArgs::new();
+    args.set(arg::URL, url.to_owned());
+    messages.format(language, CLI_SERVE_LISTENING, Some(&args))
 }
 
 /// The two lines that close a scan.

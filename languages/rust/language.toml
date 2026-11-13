@@ -1,0 +1,72 @@
+# Rust language pack, full tier (blueprint 8, WP-65, ADR 0026).
+#
+# Mapping of Rust onto the language-neutral symbol kinds:
+#   mod                                -> namespace    struct               -> struct
+#   union                              -> union        enum, enum variant   -> enum / enum_member
+#   trait                              -> trait        type alias           -> type_alias
+#   associated type (in a trait)       -> type_alias   const, static        -> constant
+#   fn in a module or in a function    -> function     fn in impl or trait  -> method
+#   named field of a struct or variant -> field
+# Not symbols: `impl` blocks (their functions belong to the enclosing module, the type is only
+# named in references), parameters, local variables, closures (they count for their function),
+# tuple struct fields, `use` declarations, macros (`macro_rules!` and their calls), `extern`
+# blocks and associated consts of impls that are not constants of a trait. Documentation is
+# `///` and `/** */` directly above the declaration (attributes may stand between); `//!` and
+# `/*! */` (documentation of a module or crate) are not read.
+# Visibility follows `pub`: `pub` is public, `pub(crate)` and `pub(in path)` internal,
+# `pub(super)` protected, `pub(self)` and no keyword private. Variants of an enum and members of a
+# trait are public, and so is a function of a trait implementation (`impl Trait for Type`).
+# A function without `self` in an impl or trait is static.
+id = "rust"
+grammar = "rust"
+tier = "full"
+extensions = ["rs"]
+separator = "::"
+comment_nodes = ["line_comment", "block_comment"]
+manifest_files = ["Cargo.toml", "rust-toolchain.toml", "rust-toolchain"]
+test_patterns = [
+    "**/tests/**/*.rs",
+    "**/benches/**/*.rs",
+    "**/*_test.rs",
+    "**/*_tests.rs",
+    "**/tests.rs",
+]
+# Syntax fingerprints (WP-34): all names alike, literals by kind only.
+identifier_nodes = ["identifier", "field_identifier", "type_identifier"]
+literal_nodes = [
+    "integer_literal",
+    "float_literal",
+    "string_literal",
+    "raw_string_literal",
+    "char_literal",
+    "boolean_literal",
+]
+# Doc comments: `///` lines and `/** */` blocks.
+doc_prefixes = ["///"]
+
+[doc_block]
+open = "/**"
+close = "*/"
+line_prefix = "*"
+
+[visibility]
+default = "private"
+
+# The words are the tokens of the visibility modifier: `pub(crate)` is the words `pub crate`.
+[visibility.keywords]
+pub = "public"
+crate = "internal"
+super = "protected"
+self = "private"
+in = "internal"
+"pub crate" = "internal"
+"pub in" = "internal"
+"pub super" = "protected"
+"pub self" = "private"
+# A function of a trait implementation takes the visibility of the trait (see symbols.scm).
+for = "public"
+
+[visibility.parent_defaults]
+trait = "public"
+enum = "public"
+enum_member = "public"

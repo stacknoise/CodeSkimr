@@ -7,8 +7,8 @@ use std::process::ExitCode;
 
 use codeskimr_application::error::CodedError;
 use codeskimr_cli::{
-    Action, CliError, GlobalOptions, Invocation, Parsed, ScanArgs, ScanSummary, error_line,
-    language_from, parse, scan_finished, scan_json, scan_started, watch_started, watch_updated,
+    Action, CliError, Invocation, Parsed, ScanArgs, ScanSummary, error_line, language_from, parse,
+    scan_finished, scan_json, scan_started, serve_started, watch_started, watch_updated,
 };
 use codeskimr_codes::i18n::CLI_CREDENTIALS_HINT;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -22,7 +22,7 @@ use crate::log_writer::RedactingWriter;
 use crate::logging;
 use crate::source_arg::SourceError;
 use crate::watch::{self, Report};
-use crate::{mcp, scan};
+use crate::{mcp, scan, serve};
 
 /// Why a command did not finish: a registered code, plus the parser's text for usage errors.
 struct Failure {
@@ -108,20 +108,25 @@ fn run_invocation(
         &current_dir,
     )?;
     match &invocation.action {
-        Action::Scan(args) => run_scan(args, &invocation.global, &locations, messages, language),
+        Action::Scan(args) => run_scan(args, invocation, &locations, messages, language),
         Action::Mcp(args) => Ok(mcp::run(
             args,
             &invocation.global,
             &locations,
             &current_dir,
         )?),
+        Action::Serve(_) => Ok(serve::run(&invocation.global, &locations, |url| {
+            if let Ok(line) = serve_started(messages, language, url) {
+                write_out(&line);
+            }
+        })?),
     }
 }
 
 /// `codeskimr scan`, once or, with `--watch`, until the user stops it.
 fn run_scan(
     args: &ScanArgs,
-    global: &GlobalOptions,
+    invocation: &Invocation,
     locations: &Locations,
     messages: &Messages,
     language: &str,
@@ -134,11 +139,11 @@ fn run_scan(
         write_err(&scan_started(messages, language, spec.location()).map_err(CliError::from)?);
     }
     if args.watch {
-        let session = scan::open(spec, global, locations)?;
+        let session = scan::open(spec, &invocation.global, locations)?;
         let mut show = |report| show_report(report, args.json, messages, language);
         return Ok(watch::run(&session, &mut show)?);
     }
-    let summary = scan::run(spec, global, locations)?;
+    let summary = scan::run(spec, &invocation.global, locations)?;
     write_out(&summary_text(&summary, args.json, messages, language)?);
     Ok(())
 }

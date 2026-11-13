@@ -184,6 +184,29 @@ fn an_unknown_setting_fails_with_cfg_103() {
 }
 
 #[test]
+fn serve_refuses_port_zero_with_cfg_101_before_it_starts_anything() {
+    let workspace = Workspace::new();
+    let output = workspace
+        .command()
+        .args(["serve", "--set", "server.port=0"])
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    assert!(stderr(&output).contains("CFG-101"), "{}", stderr(&output));
+}
+
+#[test]
+fn serve_has_no_flag_for_another_address() {
+    let workspace = Workspace::new();
+    let output = workspace
+        .command()
+        .args(["serve", "--bind", "0.0.0.0"])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(2));
+}
+
+#[test]
 fn a_missing_named_config_file_fails() {
     let workspace = Workspace::new();
     let output = workspace.scan(&["--config", "/no/such/file.toml"]);

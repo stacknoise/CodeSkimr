@@ -9,6 +9,8 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const COMMAND_SCAN: &str = "scan";
 /// Sub-command that serves MCP over standard input and output.
 pub const COMMAND_MCP: &str = "mcp";
+/// Sub-command that starts the local server.
+pub const COMMAND_SERVE: &str = "serve";
 
 /// Argument id and long flag of the source to scan.
 pub const ARG_SOURCE: &str = "source";
@@ -75,6 +77,8 @@ pub mod arg {
     pub const CHANGED: &str = "changed";
     /// `{ $millis }`: duration of a re-scan in milliseconds.
     pub const MILLIS: &str = "millis";
+    /// `{ $url }`: address of the local server.
+    pub const URL: &str = "url";
 }
 
 /// Separates the lines of a multi-line message.

@@ -1,0 +1,850 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 81,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations"
+    },
+    {
+      "decisions": null,
+      "loc": 53,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations::shapes"
+    },
+    {
+      "decisions": null,
+      "loc": 5,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations::shapes::Point"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations::shapes::Marker"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations::shapes::Bits"
+    },
+    {
+      "decisions": null,
+      "loc": 5,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations::shapes::Style"
+    },
+    {
+      "decisions": null,
+      "loc": 9,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations::shapes::Shape"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations::shapes::Shape::area"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "declarations::shapes::Shape::describe"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations::shapes::Shape::unit"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "declarations::shapes::new"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        3,
+        4
+      ],
+      "symbol": "declarations::shapes::shifted"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations::shapes::parent_only"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations::shapes::in_path"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations::shapes::private_helper"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        5,
+        6
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "declarations::shapes::origin"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations::shapes::area"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations::shapes::unit"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "declarations::double"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "declarations::double::twice"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations::private_function"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations::run"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations::raw"
+    },
+    {
+      "decisions": null,
+      "loc": 7,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations::tests"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "declarations::tests::doubles"
+    }
+  ],
+  "loc": 81,
+  "references": [
+    {
+      "at": "2:9",
+      "from": "declarations",
+      "kind": "import",
+      "receiver": "named std",
+      "target": "fmt"
+    },
+    {
+      "at": "12:15",
+      "from": "declarations::shapes::Point::label",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "27:35",
+      "from": "declarations::shapes::Style::Custom::color",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "34:26",
+      "from": "declarations::shapes::Shape",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Debug"
+    },
+    {
+      "at": "42:30",
+      "from": "declarations::shapes::Shape::describe",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "49:9",
+      "from": "declarations::shapes",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Point"
+    },
+    {
+      "at": "52:38",
+      "from": "declarations::shapes::new",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Self"
+    },
+    {
+      "at": "53:12",
+      "from": "declarations::shapes::new",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Self"
+    },
+    {
+      "at": "53:32",
+      "from": "declarations::shapes::new",
+      "kind": "read",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "53:40",
+      "from": "declarations::shapes::new",
+      "kind": "call",
+      "receiver": "named String",
+      "target": "new"
+    },
+    {
+      "at": "56:49",
+      "from": "declarations::shapes::shifted",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Self"
+    },
+    {
+      "at": "57:18",
+      "from": "declarations::shapes::shifted",
+      "kind": "call",
+      "receiver": "own",
+      "target": "new"
+    },
+    {
+      "at": "57:27",
+      "from": "declarations::shapes::shifted",
+      "kind": "read",
+      "receiver": "own",
+      "target": "x"
+    },
+    {
+      "at": "57:40",
+      "from": "declarations::shapes::shifted",
+      "kind": "read",
+      "receiver": "own",
+      "target": "y"
+    },
+    {
+      "at": "66:33",
+      "from": "declarations::shapes::origin",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Self"
+    },
+    {
+      "at": "67:12",
+      "from": "declarations::shapes::origin",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Self"
+    },
+    {
+      "at": "67:42",
+      "from": "declarations::shapes::origin",
+      "kind": "read",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "67:50",
+      "from": "declarations::shapes::origin",
+      "kind": "call",
+      "receiver": "named String",
+      "target": "new"
+    },
+    {
+      "at": "71:9",
+      "from": "declarations::shapes",
+      "kind": "implement",
+      "receiver": null,
+      "target": "Shape"
+    },
+    {
+      "at": "71:19",
+      "from": "declarations::shapes",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Point"
+    },
+    {
+      "at": "74:11",
+      "from": "declarations::shapes::area",
+      "kind": "override",
+      "receiver": null,
+      "target": "area"
+    },
+    {
+      "at": "78:11",
+      "from": "declarations::shapes::unit",
+      "kind": "override",
+      "receiver": null,
+      "target": "unit"
+    },
+    {
+      "at": "83:28",
+      "from": "declarations::shapes::Pair",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Point"
+    },
+    {
+      "at": "83:35",
+      "from": "declarations::shapes::Pair",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Point"
+    },
+    {
+      "at": "84:18",
+      "from": "declarations::shapes::Hidden",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Vec"
+    },
+    {
+      "at": "84:22",
+      "from": "declarations::shapes::Hidden",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Point"
+    },
+    {
+      "at": "99:4",
+      "from": "declarations::double",
+      "kind": "call",
+      "receiver": null,
+      "target": "twice"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "declarations",
+      "parent": null,
+      "span": "0:0-127:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": "A public module.",
+      "kind": "namespace",
+      "name": "declarations::shapes",
+      "parent": "declarations",
+      "span": "5:0-85:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "A point on the plane.",
+      "kind": "struct",
+      "name": "declarations::shapes::Point",
+      "parent": "declarations::shapes",
+      "span": "8:4-13:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "The horizontal coordinate.",
+      "kind": "field",
+      "name": "declarations::shapes::Point::x",
+      "parent": "declarations::shapes::Point",
+      "span": "10:8-10:18",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations::shapes::Point::y",
+      "parent": "declarations::shapes::Point",
+      "span": "11:8-11:25",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations::shapes::Point::label",
+      "parent": "declarations::shapes::Point",
+      "span": "12:8-12:21",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "struct",
+      "name": "declarations::shapes::Marker",
+      "parent": "declarations::shapes",
+      "span": "15:4-15:34",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "union",
+      "name": "declarations::shapes::Bits",
+      "parent": "declarations::shapes",
+      "span": "17:4-20:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations::shapes::Bits::whole",
+      "parent": "declarations::shapes::Bits",
+      "span": "18:8-18:22",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations::shapes::Bits::parts",
+      "parent": "declarations::shapes::Bits",
+      "span": "19:8-19:22",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": "The ways to draw.",
+      "kind": "enum",
+      "name": "declarations::shapes::Style",
+      "parent": "declarations::shapes",
+      "span": "23:4-28:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "No line at all.",
+      "kind": "enum_member",
+      "name": "declarations::shapes::Style::Plain",
+      "parent": "declarations::shapes::Style",
+      "span": "25:8-25:13",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "enum_member",
+      "name": "declarations::shapes::Style::Dashed",
+      "parent": "declarations::shapes::Style",
+      "span": "26:8-26:18",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "enum_member",
+      "name": "declarations::shapes::Style::Custom",
+      "parent": "declarations::shapes::Style",
+      "span": "27:8-27:43",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations::shapes::Style::Custom::width",
+      "parent": "declarations::shapes::Style::Custom",
+      "span": "27:17-27:26",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations::shapes::Style::Custom::color",
+      "parent": "declarations::shapes::Style::Custom",
+      "span": "27:28-27:41",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "Something that has an area.\nThe second line.",
+      "kind": "trait",
+      "name": "declarations::shapes::Shape",
+      "parent": "declarations::shapes",
+      "span": "34:4-47:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "The unit of the area.",
+      "kind": "type_alias",
+      "name": "declarations::shapes::Shape::Unit",
+      "parent": "declarations::shapes::Shape",
+      "span": "36:8-36:18",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "declarations::shapes::Shape::SIDES",
+      "parent": "declarations::shapes::Shape",
+      "span": "37:8-37:27",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "The area of the shape.",
+      "kind": "method",
+      "name": "declarations::shapes::Shape::area",
+      "parent": "declarations::shapes::Shape",
+      "span": "40:8-40:30",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations::shapes::Shape::describe",
+      "parent": "declarations::shapes::Shape",
+      "span": "42:8-44:9",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations::shapes::Shape::unit",
+      "parent": "declarations::shapes::Shape",
+      "span": "46:8-46:34",
+      "static": true,
+      "visibility": "public"
+    },
+    {
+      "doc": "Creates a point.",
+      "kind": "method",
+      "name": "declarations::shapes::new",
+      "parent": "declarations::shapes",
+      "span": "52:8-54:9",
+      "static": true,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations::shapes::shifted",
+      "parent": "declarations::shapes",
+      "span": "56:8-58:9",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations::shapes::parent_only",
+      "parent": "declarations::shapes",
+      "span": "60:8-60:43",
+      "static": false,
+      "visibility": "protected"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations::shapes::in_path",
+      "parent": "declarations::shapes",
+      "span": "62:8-62:50",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations::shapes::private_helper",
+      "parent": "declarations::shapes",
+      "span": "64:8-64:39",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations::shapes::origin",
+      "parent": "declarations::shapes",
+      "span": "66:8-68:9",
+      "static": true,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "type_alias",
+      "name": "declarations::shapes::Unit",
+      "parent": "declarations::shapes",
+      "span": "72:8-72:23",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations::shapes::area",
+      "parent": "declarations::shapes",
+      "span": "74:8-76:9",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations::shapes::unit",
+      "parent": "declarations::shapes",
+      "span": "78:8-80:9",
+      "static": true,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "type_alias",
+      "name": "declarations::shapes::Pair",
+      "parent": "declarations::shapes",
+      "span": "83:4-83:42",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "type_alias",
+      "name": "declarations::shapes::Hidden",
+      "parent": "declarations::shapes",
+      "span": "84:4-84:29",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": "The default scale.",
+      "kind": "constant",
+      "name": "declarations::SCALE",
+      "parent": "declarations",
+      "span": "88:0-88:27",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "declarations::LIMIT",
+      "parent": "declarations",
+      "span": "89:0-89:24",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "declarations::COUNTER",
+      "parent": "declarations",
+      "span": "90:0-90:32",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "Doubles a number.\n\nAdds nothing else.",
+      "kind": "function",
+      "name": "declarations::double",
+      "parent": "declarations",
+      "span": "95:0-100:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations::double::twice",
+      "parent": "declarations::double",
+      "span": "96:4-98:5",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations::private_function",
+      "parent": "declarations",
+      "span": "103:0-103:24",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": "Runs in a block.",
+      "kind": "function",
+      "name": "declarations::run",
+      "parent": "declarations",
+      "span": "106:0-106:21",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations::raw",
+      "parent": "declarations",
+      "span": "108:0-108:22",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "declarations::tests",
+      "parent": "declarations",
+      "span": "119:0-126:1",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations::tests::doubles",
+      "parent": "declarations::tests",
+      "span": "123:4-125:5",
+      "static": false,
+      "visibility": "private"
+    }
+  ]
+}

@@ -83,6 +83,8 @@ pub mod keys {
     pub const PARSE_TIMEOUT_MS: &str = "scan.parse_timeout_ms";
     /// `scan.max_source_mb`
     pub const MAX_SOURCE_MB: &str = "scan.max_source_mb";
+    /// `server.port`
+    pub const SERVER_PORT: &str = "server.port";
 }
 
 /// Characters that make a folder name a path.

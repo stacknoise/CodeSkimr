@@ -63,3 +63,8 @@ excluded_folders = ["bin", "obj", ".git", "node_modules", "target", "dist"]
 parse_timeout_ms = 5000
 # Largest total size of the scanned files of one source, in megabytes; a larger source fails with SRC-501.
 max_source_mb = 2048
+
+# Local server (blueprint 10.3, S-04). It listens on the loopback address 127.0.0.1 only.
+[server]
+# TCP port of the local server. A port that is already taken fails with API-301.
+port = 7421
