@@ -17,6 +17,7 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     positive(keys::NGRAM_SIZE, config.similarity.ngram_size)?;
     positive(keys::WINDOW_SIZE, config.similarity.window_size)?;
     positive(keys::MIN_TOKENS, config.similarity.min_tokens)?;
+    positive(keys::SERVER_PORT, u32::from(config.server.port))?;
     check_scan(&config.scan)
 }
 

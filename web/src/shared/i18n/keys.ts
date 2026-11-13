@@ -27,6 +27,8 @@ export const I18N_KEYS = {
   CLI_ABOUT: "cli-about",
   CLI_CMD_SCAN: "cli-cmd-scan",
   CLI_CMD_MCP: "cli-cmd-mcp",
+  CLI_CMD_SERVE: "cli-cmd-serve",
+  CLI_SERVE_LISTENING: "cli-serve-listening",
   CLI_ARG_SOURCE: "cli-arg-source",
   CLI_ARG_BRANCH: "cli-arg-branch",
   CLI_ARG_JSON: "cli-arg-json",

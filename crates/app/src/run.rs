@@ -7,8 +7,8 @@ use std::process::ExitCode;
 
 use codeskimr_application::error::CodedError;
 use codeskimr_cli::{
-    Action, CliError, Invocation, Parsed, error_line, language_from, parse, scan_finished,
-    scan_json, scan_started,
+    Action, CliError, Invocation, Parsed, ScanArgs, error_line, language_from, parse,
+    scan_finished, scan_json, scan_started, serve_started,
 };
 use codeskimr_codes::i18n::CLI_CREDENTIALS_HINT;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -21,7 +21,7 @@ use crate::locations::{Locations, Lookup};
 use crate::log_writer::RedactingWriter;
 use crate::logging;
 use crate::source_arg::SourceError;
-use crate::{mcp, scan};
+use crate::{mcp, scan, serve};
 
 /// Why a command did not finish: a registered code, plus the parser's text for usage errors.
 struct Failure {
@@ -107,31 +107,40 @@ fn run_invocation(
         &current_dir,
     )?;
     match &invocation.action {
-        Action::Scan(args) => {
-            let spec =
-                scan::prepare(args).map_err(|error| source_failure(error, messages, language))?;
-            if !args.json {
-                write_err(
-                    &scan_started(messages, language, spec.location()).map_err(CliError::from)?,
-                );
-            }
-            let summary = scan::run(spec, &invocation.global, &locations)?;
-            let text = if args.json {
-                scan_json(&summary)
-                    .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?
-            } else {
-                scan_finished(messages, language, &summary).map_err(CliError::from)?
-            };
-            write_out(&text);
-            Ok(())
-        }
+        Action::Scan(args) => run_scan(args, invocation, &locations, messages, language),
         Action::Mcp(args) => Ok(mcp::run(
             args,
             &invocation.global,
             &locations,
             &current_dir,
         )?),
+        Action::Serve(_) => Ok(serve::run(&invocation.global, &locations, |url| {
+            if let Ok(line) = serve_started(messages, language, url) {
+                write_out(&line);
+            }
+        })?),
     }
+}
+
+fn run_scan(
+    args: &ScanArgs,
+    invocation: &Invocation,
+    locations: &Locations,
+    messages: &Messages,
+    language: &str,
+) -> Result<(), Failure> {
+    let spec = scan::prepare(args).map_err(|error| source_failure(error, messages, language))?;
+    if !args.json {
+        write_err(&scan_started(messages, language, spec.location()).map_err(CliError::from)?);
+    }
+    let summary = scan::run(spec, &invocation.global, locations)?;
+    let text = if args.json {
+        scan_json(&summary).map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?
+    } else {
+        scan_finished(messages, language, &summary).map_err(CliError::from)?
+    };
+    write_out(&text);
+    Ok(())
 }
 
 fn report(messages: &Messages, language: &str, failure: &Failure) -> ExitCode {
