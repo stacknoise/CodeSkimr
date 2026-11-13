@@ -335,12 +335,7 @@ fn new_symbol(
         .map(|modifier| text_of(*modifier, ctx.source).trim())
         .collect();
     let pack = ctx.pack;
-    let kind = words
-        .iter()
-        .find_map(|word| pack.modifier_kinds.get(*word))
-        .copied()
-        .unwrap_or(declaration.kind);
-    let kind = pack.kind_in(parent, kind);
+    let kind = kind_of(pack, declaration, &words, parent);
     let visibility = pack.visibility.of(kind, &name, &words, parent);
     Ok(NewSymbol {
         kind,
@@ -358,6 +353,21 @@ fn new_symbol(
         doc: doc(ctx, &declaration.docs),
         has_body: has_body(pack, declaration.node),
     })
+}
+
+/// The kind of the declaration: a modifier can change it, and the parent can give it another one.
+fn kind_of(
+    pack: &LanguagePack,
+    declaration: &Declaration<'_>,
+    words: &[&str],
+    parent: Option<SymbolKind>,
+) -> SymbolKind {
+    let kind = words
+        .iter()
+        .find_map(|word| pack.modifier_kinds.get(*word))
+        .copied()
+        .unwrap_or(declaration.kind);
+    pack.kind_in(parent, kind)
 }
 
 /// Whether the declaration has a body: the grammar's `body` field or a child the pack calls a body.
