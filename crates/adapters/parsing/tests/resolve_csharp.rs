@@ -11,13 +11,13 @@ mod tests {
 
     use super::common::analyze_file;
     use codeskimr_application::ids::IdSequence;
-    use codeskimr_application::ports::ReferenceResolver;
+    use codeskimr_application::ports::{FileFacts, ReferenceResolver};
     use codeskimr_application::resolve::ScopedResolver;
-    use codeskimr_domain::{Confidence, FolderPath, ReferenceKind};
+    use codeskimr_domain::{Confidence, FolderPath, Reference, ReferenceKind};
     use codeskimr_parsing::{LanguagePacks, TreeSitterAnalyzer};
 
-    #[test]
-    fn locals_hide_members_and_members_of_the_enclosing_type_are_certain() {
+    /// Analyzes and resolves one sample file of the C# pack.
+    fn resolved(file: &str) -> (FileFacts, Vec<Reference>) {
         let languages = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../languages");
         let analyzer = TreeSitterAnalyzer::new(
             LanguagePacks::load(&languages).expect("packs"),
@@ -25,10 +25,16 @@ mod tests {
         );
         let root = FolderPath::new(languages.join("csharp/tests").to_string_lossy()).expect("root");
         let ids = IdSequence::starting_at(1);
-        let facts = analyze_file(&analyzer, &ids, &root, "scopes.cs", "csharp");
+        let facts = analyze_file(&analyzer, &ids, &root, file, "csharp");
         let found = ScopedResolver
             .resolve(&facts.symbols, &facts.pending, &ids)
             .expect("resolves");
+        (facts, found)
+    }
+
+    #[test]
+    fn locals_hide_members_and_members_of_the_enclosing_type_are_certain() {
+        let (facts, found) = resolved("scopes.cs");
         let name_of = |id| {
             facts
                 .symbols
@@ -59,17 +65,7 @@ mod tests {
 
     /// Resolves `usages.cs` once and lists the `(line, confidence)` of every usage per target.
     fn usages() -> BTreeMap<String, Vec<(u32, Confidence)>> {
-        let languages = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../languages");
-        let analyzer = TreeSitterAnalyzer::new(
-            LanguagePacks::load(&languages).expect("packs"),
-            Duration::from_secs(10),
-        );
-        let root = FolderPath::new(languages.join("csharp/tests").to_string_lossy()).expect("root");
-        let ids = IdSequence::starting_at(1);
-        let facts = analyze_file(&analyzer, &ids, &root, "usages.cs", "csharp");
-        let found = ScopedResolver
-            .resolve(&facts.symbols, &facts.pending, &ids)
-            .expect("resolves");
+        let (facts, found) = resolved("usages.cs");
         let mut by_target: BTreeMap<String, Vec<(u32, Confidence)>> = BTreeMap::new();
         for reference in &found {
             let name = facts
