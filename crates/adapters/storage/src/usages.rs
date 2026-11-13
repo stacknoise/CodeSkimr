@@ -179,6 +179,25 @@ impl SqliteStore {
     }
 }
 
+/// The columns of `DEPENDENCIES_*`, still raw.
+struct EdgeRow {
+    id: i64,
+    qualified: String,
+    kind: String,
+    path: String,
+    count: i64,
+}
+
+fn read_edge(cols: &Cols<'_>) -> rusqlite::Result<EdgeRow> {
+    Ok(EdgeRow {
+        id: cols.take()?,
+        qualified: cols.take()?,
+        kind: cols.take()?,
+        path: cols.take()?,
+        count: cols.take()?,
+    })
+}
+
 fn dependency_edges(
     conn: &Connection,
     snapshot: i64,
@@ -196,28 +215,19 @@ fn dependency_edges(
             query.include_tests,
             ReferenceKind::Test.label()
         ],
-        |row| {
-            let cols = Cols::new(row);
-            Ok((
-                cols.take::<i64>()?,
-                cols.take::<String>()?,
-                cols.take::<String>()?,
-                cols.take::<String>()?,
-                cols.take::<i64>()?,
-            ))
-        },
+        |row| read_edge(&Cols::new(row)),
     )?;
     let mut edges = Vec::new();
     for row in rows {
-        let (id, qualified, kind, path, count) = row?;
+        let row = row?;
         edges.push(DependencyEdge {
             other: SymbolLabel {
-                id: SymbolId::new(u64::try_from(id).map_err(|_| StorageError::OutOfRange)?),
-                qualified_name: QualifiedName::new(qualified)?,
-                kind: label_from(&kind)?,
+                id: SymbolId::new(u64::try_from(row.id).map_err(|_| StorageError::OutOfRange)?),
+                qualified_name: QualifiedName::new(row.qualified)?,
+                kind: label_from(&row.kind)?,
             },
-            path: RelativePath::new(path)?,
-            count: small_from(count)?,
+            path: RelativePath::new(row.path)?,
+            count: small_from(row.count)?,
         });
     }
     Ok(edges)
