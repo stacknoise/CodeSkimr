@@ -1,0 +1,55 @@
+.area {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg);
+    min-height: 320px;
+}
+
+.grab {
+    cursor: grab;
+}
+
+.stage {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: 0 0;
+}
+
+.edges {
+    position: absolute;
+    inset: 0;
+    overflow: visible;
+}
+
+.box {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 var(--space-10);
+    border: 1px solid var(--line);
+    border-left-width: 4px;
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+}
+
+.box:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.selected {
+    border-color: var(--ink);
+    box-shadow: 0 0 0 4px var(--mark);
+}
+
+.name {
+    font: 500 12px var(--font-mono);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

@@ -19,3 +19,23 @@ graph-violation-title =
        *[other] { $count } violations in the project:
     }
 graph-violation-show = Show
+
+nav-graph = Dependencies
+graph-subtitle = Layers of { $project }
+graph-aria-map = Dependency map
+graph-aria-selection = Selection
+graph-selected-kind = Layer
+graph-stat-references = References
+graph-stat-uses = Uses
+graph-stat-used-by = Used by
+graph-uses-title = Uses · { $count }
+graph-used-by-title = Used by · { $count }
+graph-link-references = { $count } references
+graph-violation-pair = { $from } → { $to } ({ $count })
+graph-empty-title = No layers to show
+graph-empty-text = This project has no layers yet. Declare them in .codeskimr.toml and scan again.
+graph-no-project = Open a project first, then its layers show up here.
+graph-no-edges = No dependencies between the layers were found yet.
+graph-failed = The map could not be loaded.
+graph-fit-key = F
+graph-open-key = Enter

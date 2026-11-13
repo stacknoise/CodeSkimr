@@ -1,5 +1,6 @@
 import { createEffect, For, Match, onCleanup, Show, Switch } from "solid-js";
 import { ConnectionScreen } from "../features/session/ConnectionScreen";
+import { GraphScreen } from "../features/graph/GraphScreen";
 import { ExplorerScreen } from "../features/explorer/ExplorerScreen";
 import { listenToScans } from "../features/scan/events";
 import { ScanScreen } from "../features/scan/ScanScreen";
@@ -19,7 +20,9 @@ import { Icon } from "../shared/ui/Icon";
 import {
   CURRENT_PAGE,
   EXPLORER_ROUTE,
+  FLUSH_PATHS,
   FOOTER_ROUTES,
+  GRAPH_ROUTE,
   LOGO_LETTER,
   MAIN_ROUTES,
   SCAN_ROUTE,
@@ -52,6 +55,9 @@ function Screen() {
     <Switch fallback={<ProjectsScreen />}>
       <Match when={currentPath() === SETTINGS_ROUTE.path}>
         <SettingsScreen />
+      </Match>
+      <Match when={currentPath() === GRAPH_ROUTE.path}>
+        <GraphScreen />
       </Match>
       <Match when={currentPath() === SCAN_ROUTE.path}>
         <ScanScreen />
@@ -90,7 +96,7 @@ export function App() {
           <div class={styles.spacer} />
           <For each={FOOTER_ROUTES}>{(route) => <RailLink route={route} />}</For>
         </nav>
-        <main class={cx(styles.main, currentPath() === EXPLORER_ROUTE.path && styles.flush)}>
+        <main class={cx(styles.main, FLUSH_PATHS.includes(currentPath()) && styles.flush)}>
           <Show
             when={sessionState().kind === KIND.connected}
             fallback={<ConnectionScreen state={sessionState()} />}
