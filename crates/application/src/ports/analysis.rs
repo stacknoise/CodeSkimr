@@ -1,8 +1,8 @@
 //! Understanding code (adapters: `codeskimr_parsing` and the metrics of `codeskimr_domain`).
 
 use codeskimr_domain::{
-    FileId, Fingerprints, FolderPath, Metric, QualifiedName, Reference, ReferenceKind, SnapshotId,
-    SourceFile, Span, Symbol, SymbolId,
+    Confidence, FileId, Fingerprints, FolderPath, Metric, QualifiedName, Reference, ReferenceKind,
+    SnapshotId, SourceFile, Span, Symbol, SymbolId,
 };
 
 use super::DiscoveredFile;
@@ -22,6 +22,21 @@ pub struct AnalyzeRequest<'a> {
     pub ids: &'a IdSequence,
 }
 
+/// What the syntax says about the thing in front of the dot of `receiver.name` (blueprint 9.2,
+/// step 3). The adapter reports only what it can read from the syntax of the file.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Receiver {
+    /// The receiver is a variable whose declared type is written in the file, or a creation
+    /// expression such as `new Foo()`.
+    Typed(QualifiedName),
+    /// The receiver is a name as written; it may be a type (static access) or a member.
+    Named(QualifiedName),
+    /// The receiver is the enclosing object itself (`this`, `self`).
+    Own,
+    /// The receiver is the base of the enclosing object (`base`, `super`).
+    Base,
+}
+
 /// An occurrence of a name that is not yet mapped to a symbol.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PendingReference {
@@ -33,8 +48,13 @@ pub struct PendingReference {
     pub span: Span,
     /// Kind of use.
     pub kind: ReferenceKind,
-    /// The name as written, to be resolved.
+    /// The name as written, to be resolved. A name that equals the qualified name of a symbol
+    /// stands for exactly that symbol (this is how references are resolved again).
     pub target: QualifiedName,
+    /// What the syntax says about the receiver in front of the name, if there is one.
+    pub receiver: Option<Receiver>,
+    /// The confidence of an earlier resolution of this occurrence; the resolver never raises it.
+    pub previous: Option<Confidence>,
 }
 
 /// The syntax fingerprints of one function-like symbol (blueprint 10.4).

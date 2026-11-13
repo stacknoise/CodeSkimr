@@ -5,174 +5,189 @@
       "at": "0:6",
       "from": "references",
       "kind": "import",
+      "receiver": null,
       "target": "System.Collections.Generic"
     },
     {
       "at": "1:14",
       "from": "references",
       "kind": "import",
+      "receiver": null,
       "target": "Shop.Util"
     },
     {
       "at": "5:20",
       "from": "references.Shop.Orders.Cart",
       "kind": "inherit",
+      "receiver": null,
       "target": "Base"
     },
     {
       "at": "5:31",
       "from": "references.Shop.Orders.Cart",
       "kind": "inherit",
+      "receiver": null,
       "target": "IEnumerable"
     },
     {
       "at": "5:43",
       "from": "references.Shop.Orders.Cart",
       "kind": "type_use",
+      "receiver": null,
       "target": "Item"
     },
     {
       "at": "7:21",
       "from": "references.Shop.Orders.Cart",
       "kind": "type_use",
+      "receiver": null,
       "target": "List"
     },
     {
       "at": "7:26",
       "from": "references.Shop.Orders.Cart",
       "kind": "type_use",
+      "receiver": null,
       "target": "Item"
     },
     {
       "at": "7:44",
       "from": "references.Shop.Orders.Cart.items",
       "kind": "type_use",
+      "receiver": null,
       "target": "List"
     },
     {
       "at": "7:49",
       "from": "references.Shop.Orders.Cart.items",
       "kind": "type_use",
+      "receiver": null,
       "target": "Item"
     },
     {
       "at": "8:24",
       "from": "references.Shop.Orders.Cart.count",
       "kind": "read",
+      "receiver": null,
       "target": "Limits"
     },
     {
       "at": "8:31",
       "from": "references.Shop.Orders.Cart.count",
       "kind": "read",
+      "receiver": "named Limits",
       "target": "Max"
     },
     {
       "at": "12:25",
       "from": "references.Shop.Orders.Cart.Run",
       "kind": "override",
+      "receiver": null,
       "target": "Run"
     },
     {
       "at": "14:11",
       "from": "references.Shop.Orders.Cart.Find",
       "kind": "type_use",
+      "receiver": null,
       "target": "Item"
     },
     {
       "at": "14:21",
       "from": "references.Shop.Orders.Cart.Find",
       "kind": "type_use",
+      "receiver": null,
       "target": "Guid"
     },
     {
       "at": "14:31",
       "from": "references.Shop.Orders.Cart.Find",
       "kind": "type_use",
+      "receiver": null,
       "target": "Item"
     },
     {
       "at": "16:8",
       "from": "references.Shop.Orders.Cart.Find",
       "kind": "read",
+      "receiver": null,
       "target": "Helper"
     },
     {
       "at": "16:15",
       "from": "references.Shop.Orders.Cart.Find",
       "kind": "call",
+      "receiver": "named Helper",
       "target": "Log"
     },
     {
       "at": "17:8",
       "from": "references.Shop.Orders.Cart.Find",
       "kind": "write",
+      "receiver": null,
       "target": "count"
     },
     {
       "at": "17:16",
       "from": "references.Shop.Orders.Cart.Find",
       "kind": "read",
+      "receiver": null,
       "target": "items"
     },
     {
       "at": "17:22",
       "from": "references.Shop.Orders.Cart.Find",
       "kind": "read",
+      "receiver": "typed List",
       "target": "Count"
     },
     {
       "at": "17:30",
       "from": "references.Shop.Orders.Cart.Find",
       "kind": "read",
+      "receiver": null,
       "target": "offset"
     },
     {
       "at": "18:8",
       "from": "references.Shop.Orders.Cart.Find",
       "kind": "write",
+      "receiver": null,
       "target": "count"
     },
     {
       "at": "19:8",
       "from": "references.Shop.Orders.Cart.Find",
       "kind": "write",
+      "receiver": null,
       "target": "Total"
     },
     {
       "at": "19:16",
       "from": "references.Shop.Orders.Cart.Find",
       "kind": "call",
+      "receiver": null,
       "target": "Compute"
     },
     {
       "at": "20:26",
       "from": "references.Shop.Orders.Cart.Find",
       "kind": "type_use",
+      "receiver": null,
       "target": "Item"
     },
     {
       "at": "20:32",
       "from": "references.Shop.Orders.Cart.Find",
       "kind": "read",
+      "receiver": null,
       "target": "Name"
-    },
-    {
-      "at": "21:19",
-      "from": "references.Shop.Orders.Cart.Find",
-      "kind": "read",
-      "target": "fallback"
-    },
-    {
-      "at": "22:15",
-      "from": "references.Shop.Orders.Cart.Find",
-      "kind": "read",
-      "target": "fallback"
     },
     {
       "at": "22:31",
       "from": "references.Shop.Orders.Cart.Find",
       "kind": "type_use",
+      "receiver": null,
       "target": "Item"
     }
   ],

@@ -145,6 +145,8 @@ fn names_to_resolve(
                 span: reference.span,
                 kind: reference.kind,
                 target: target.clone(),
+                receiver: None,
+                previous: Some(reference.confidence),
             });
         }
     }

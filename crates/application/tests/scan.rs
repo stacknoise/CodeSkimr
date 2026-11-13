@@ -167,6 +167,8 @@ impl FileAnalyzer for World {
             span: span()?,
             kind: ReferenceKind::Call,
             target: symbol.qualified_name.clone(),
+            receiver: None,
+            previous: None,
         }];
         Ok(FileFacts {
             file,

@@ -15,7 +15,7 @@ mod tests {
 
     use super::common::analyze_file;
     use codeskimr_application::ids::IdSequence;
-    use codeskimr_application::ports::FileFacts;
+    use codeskimr_application::ports::{FileFacts, Receiver};
     use codeskimr_domain::{FolderPath, Position, Visibility};
     use codeskimr_parsing::{LanguagePack, LanguagePacks, TreeSitterAnalyzer};
     use serde_json::{Value, json};
@@ -26,6 +26,15 @@ mod tests {
 
     fn at(position: Position) -> String {
         format!("{}:{}", position.line, position.column)
+    }
+
+    fn receiver(receiver: &Receiver) -> String {
+        match receiver {
+            Receiver::Typed(name) => format!("typed {name}"),
+            Receiver::Named(name) => format!("named {name}"),
+            Receiver::Own => "own".to_owned(),
+            Receiver::Base => "base".to_owned(),
+        }
     }
 
     fn describe(facts: &FileFacts) -> Value {
@@ -57,6 +66,7 @@ mod tests {
                     "from": names.get(&r.from),
                     "kind": r.kind.label(),
                     "target": r.target.to_string(),
+                    "receiver": r.receiver.as_ref().map(receiver),
                     "at": at(r.span.start()),
                 })
             })
