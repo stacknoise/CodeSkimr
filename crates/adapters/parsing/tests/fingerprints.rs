@@ -65,7 +65,7 @@ mod tests {
 
     #[test]
     fn nothing_is_fingerprinted_unless_enabled() {
-        assert!(analyze(false).fingerprints.iter().next().is_none());
+        assert!(matches!(analyze(false).fingerprints.as_slice(), []));
     }
 
     #[test]

@@ -59,9 +59,7 @@ impl SymbolTable {
         }
         self.symbols.first()
     }
-}
 
-impl SymbolTable {
     /// The callable symbols (functions, methods, constructors) with the byte range of their
     /// declaration.
     pub fn callables(&self) -> impl Iterator<Item = (&Symbol, &Range<usize>)> {

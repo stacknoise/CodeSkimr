@@ -103,4 +103,63 @@ mod tests {
         assert!(part.containment(&whole) > 0.8);
         assert!(whole.containment(&part) < 0.8);
     }
+
+    #[test]
+    fn values_are_pinned_because_storage_keeps_them() {
+        // Computed with an independent implementation of FNV-1a, the rolling hash and the mix.
+        let expected = [(0x0f29_73c6_8ac0_548e, 1), (0x45d7_f058_4f84_08d3, 4)];
+        let stream = tokens(&["a", "b", "c", "d", "e", "f"]);
+        let prints = winnow(&stream, params(2, 3));
+        let actual: Vec<(u64, u32)> = prints
+            .entries()
+            .iter()
+            .map(|e| (e.hash, e.position))
+            .collect();
+        assert_eq!(actual, expected);
+        assert_eq!(TokenId::node_kind("if"), TokenId::node_kind("if"));
+        assert_ne!(TokenId::node_kind("if"), TokenId::node_kind("fi"));
+    }
+
+    #[test]
+    fn equal_hashes_pick_the_rightmost_position() {
+        let same: Vec<TokenId> = std::iter::repeat_n(TokenId::node_kind("x"), 10).collect();
+        let prints = winnow(&same, params(1, 3));
+        let positions: Vec<u32> = prints.entries().iter().map(|e| e.position).collect();
+        assert_eq!(positions, (2..10).collect::<Vec<u32>>());
+    }
+
+    #[test]
+    fn rolling_hash_equals_hashing_each_ngram_alone() {
+        let stream = numbered(0..40);
+        let size = 5;
+        let all = winnow(&stream, params(size, 1));
+        assert_eq!(all.entries().len(), 40 - size + 1);
+        for (index, entry) in all.entries().iter().enumerate() {
+            let alone = winnow(&stream[index..index + size], params(size, 1));
+            assert_eq!(alone.entries().len(), 1);
+            assert_eq!(alone.entries()[0].hash, entry.hash, "n-gram at {index}");
+        }
+    }
+
+    #[test]
+    fn guarantee_holds_for_every_shift_and_size() {
+        for (ngram, window) in [(1, 1), (2, 3), (3, 5), (5, 4), (4, 9)] {
+            let run = numbered(500..500 + u32::try_from(ngram + window - 1).expect("small"));
+            for shift in 0..13 {
+                let mut left = numbered(0..7);
+                left.extend(run.clone());
+                left.extend(numbered(100..105));
+                let mut right = numbered(1000..1000 + shift);
+                right.extend(run.clone());
+                right.extend(numbered(2000..2009));
+                let a = winnow(&left, params(ngram, window));
+                let b = winnow(&right, params(ngram, window));
+                let shared = a
+                    .entries()
+                    .iter()
+                    .any(|x| b.entries().iter().any(|y| x.hash == y.hash));
+                assert!(shared, "ngram {ngram}, window {window}, shift {shift}");
+            }
+        }
+    }
 }
