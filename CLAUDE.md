@@ -16,12 +16,13 @@ The binding specification is `BLUEPRINT.md`. Every rule in it applies to every p
 2. Read the blueprint sections named in the issue before writing code.
 3. Branches: agent sessions work on `claude/...` branches. The PR title uses Conventional Commits (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`); the PR is squash-merged, so the title becomes the commit.
 4. From milestone M1 on, use CodeSkimr's own MCP server: `find_similar_code` and `find_constants` before writing new code, `check_conventions` before every commit.
-5. Never merge, never change repository settings or rulesets, never loosen a lint, threshold or budget, never disable or skip a test to get CI green.
-6. The ruleset requires 0 approvals because PRs are opened under the product owner's account. The reviewer agent writes its verdict as a review comment, never for its own work. Only the product owner (Anton) merges.
-7. A change to the blueprint, a new dependency layer, symbol kind, pattern or technology needs an ADR in `docs/adr/` and the label `blueprint-change`.
-8. A new dependency needs one sentence of justification in the PR and the label `new-dependency`.
-9. Never commit secrets, credentials, tokens, private paths or data from private projects. This repository is public.
-10. If something is unclear or blocked: set `status:blocked` and ask the coordinator. Do not guess.
+5. Never change repository settings or rulesets, never loosen a lint, threshold or budget, never disable or skip a test to get CI green.
+6. The ruleset requires 0 approvals because PRs are opened under the product owner's account. The reviewer agent writes its verdict as a review comment, never for its own work.
+7. Merging: an agent may enable auto-merge (squash) on a PR only when all required checks are green and the reviewer agent has given an OK in a review comment. The author agent never merges its own PR without that review. Exceptions that only Anton (the product owner) merges: PRs labelled `security-sensitive` or `new-dependency`, and any change to `BLUEPRINT.md`, `docs/adr/`, `CLAUDE.md`, `.claude/agents/` or the repository rules.
+8. A change to the blueprint, a new dependency layer, symbol kind, pattern or technology needs an ADR in `docs/adr/` and the label `blueprint-change`.
+9. A new dependency needs one sentence of justification in the PR and the label `new-dependency`.
+10. Never commit secrets, credentials, tokens, private paths or data from private projects. This repository is public.
+11. If something is unclear or blocked: set `status:blocked` and ask the coordinator. Do not guess.
 
 ## Binding code rules (short form, see blueprint section 3)
 
@@ -33,4 +34,4 @@ Blueprint 18.4: rules met and CI green, tests on the right level, texts in de an
 
 ## Roles
 
-Role descriptions are in `.claude/agents/`. Workflow: coordinator releases a package, developer implements and opens the PR, CI runs, reviewer checks and comments (security reviews `security-sensitive` PRs), Anton merges.
+Role descriptions are in `.claude/agents/`. Workflow: coordinator releases a package, developer implements and opens the PR, CI runs, reviewer checks and comments (security reviews `security-sensitive` PRs), then the PR is merged by auto-merge once checks are green and the reviewer gave an OK; Anton merges the exceptions from rule 7.
