@@ -3,14 +3,10 @@
 // of WP-54. Needs `npm run build` in web/ and a Chromium (CODESKIMR_CHROMIUM).
 //
 // Usage: node tools/acceptance/m4-screens.mjs <project-folder> <out-folder> [theme] [language]
-import { copyFileSync, mkdirSync, mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync } from "node:fs";
 import path from "node:path";
-import { root, startServer } from "./server.mjs";
-import { createRequire } from "node:module";
-
-const require = createRequire(path.join(root, "web/package.json"));
-const { chromium } = require("@playwright/test");
+import { startServer } from "./server.mjs";
+import { openUi } from "./client.mjs";
 
 const [folderArg, outArg, theme = "hell", language = "de"] =
     process.argv.slice(2);
@@ -19,35 +15,16 @@ const out = path.resolve(outArg);
 mkdirSync(out, { recursive: true });
 
 const server = await startServer();
-const launch = await server.launchFile();
-const copy = path.join(
-    mkdtempSync(path.join(tmpdir(), "codeskimr-m4-")),
-    "launch.html",
-);
-copyFileSync(launch, copy);
-
-const browser = await chromium.launch({
-    executablePath: process.env.CODESKIMR_CHROMIUM,
-});
-const context = await browser.newContext({
-    viewport: { width: 1440, height: 900 },
-    deviceScaleFactor: 1,
-});
-await context.addInitScript(
+const init = [
     ([t, l]) => {
         localStorage.setItem("codeskimr.theme", t);
         localStorage.setItem("codeskimr.language", l);
     },
     [theme, language],
-);
-const page = await context.newPage();
-await page.goto(`file://${copy}`);
-await page.getByRole("textbox").first().fill(folder);
-await page
-    .getByRole("button")
-    .filter({ hasText: /Add and scan|Hinzufügen/ })
-    .first()
-    .click();
+];
+const { browser, page } = await openUi(server, folder, "codeskimr-m4-", {
+    init,
+});
 await page.waitForTimeout(500);
 const snap = (name) =>
     page.screenshot({ path: path.join(out, `${name}-${theme}.png`) });
