@@ -13,16 +13,41 @@ Blueprint 9.3 plans level 2 "after 1.0, optional". This ADR moves it forward and
 - **A. Improve level 1 only.** Types from initializers, return types, chains. No toolchain needed, but it rebuilds a compiler piece by piece and never becomes reliable (estimate 70 to 85 % exact for typed languages, unmeasured).
 - **B. Level 2 only, nothing without a toolchain.** Accurate where it runs, nothing (or the old wrong answers) elsewhere.
 - **C. Level 2 plus an honest level 1 (chosen).** Level 2 from indexers where the toolchain exists; level 1 keeps every match and marks it as unchecked.
+- **C+. Same as C, with indexers delivered by CodeSkimr as optional downloadable packs per language** (see "Delivering the indexers"). Chosen as the way to supply the indexers; the user does not install them by hand.
 
 ## Decision
 
 ### Source and mapping
 
-1. **Level 2 imports SCIP indexes.** Indexers (to be confirmed by the spike): C# scip-dotnet (Roslyn), TypeScript and JavaScript scip-typescript, Python scip-python, Rust `rust-analyzer scip`, Java and Kotlin scip-java. Only **installed, configured and version-checked** indexers are run; CodeSkimr never downloads or runs a package at scan time (no `npx`). Go and the basic-tier languages have no level 2 and stay on level 1. A project with several languages indexes each language on its own.
+1. **Level 2 imports SCIP indexes.** Indexers (to be confirmed by the spike): C# scip-dotnet (Roslyn), TypeScript and JavaScript scip-typescript, Python scip-python, Rust `rust-analyzer scip`, Java and Kotlin scip-java. Only **installed, configured and version-checked** indexers are run. CodeSkimr never downloads or runs a package during a scan (no `npx`); installing an indexer is a separate action the user starts (see "Delivering the indexers"). Go and the basic-tier languages have no level 2 and stay on level 1. A project with several languages indexes each language on its own.
 2. **Mapping.** An occurrence maps to a CodeSkimr symbol by file and the range of its definition. Rules for partial classes, generated code and overloads are fixed in the import package; a mapping rate below a configured threshold (`level2.min_mapped`) makes the index count as failed for that language. Occurrences that map to no project symbol are dropped and counted in the scan summary.
 3. **Replacement per file (change to blueprint 9.3).** For every file the index covers, level 2 references replace **all** level 1 references of that file, not only those of the same span, because level 1 may hold wrong matches in the same file. They are `certain`. Files without an index keep level 1.
 4. **The index is untrusted input.** Paths are canonicalised against the project root (blueprint S-05), indexes above `level2.max_index_bytes` are refused, the decoder works on bounded buffers, and a corrupt or unreadable index is an error (new code) that leaves level 1 in place. It never panics.
 5. **`scip.proto` is generated at build time** from a pinned copy that is checked in under the import crate; the decoding library is one new dependency (label `new-dependency`, decided in the import package).
+
+### Delivering the indexers
+
+The product owner asked whether CodeSkimr can ship everything so that users install nothing (13 November 2026). Answer: the **indexers and their runtimes** can be shipped, the **dependencies and the build environment of the scanned project** cannot.
+
+What can be shipped, as one optional pack per language that the user installs from CodeSkimr (UI and `codeskimr tools install <language>`), not inside the base installer:
+
+| Language | Pack content | Size (measured here where marked, else estimate) | License (from memory, verify before shipping) |
+|---|---|---|---|
+| C# | scip-dotnet with Roslyn, plus a .NET SDK | scip-dotnet tool 264 MB, .NET 8 SDK with runtimes 479 MB (measured) | MIT / Apache-2.0 |
+| TypeScript, JavaScript | scip-typescript (0.5 MB), Node (120 MB measured), `typescript` | about 150 MB | Apache-2.0, MIT |
+| Python | scip-python (20 MB, bundles Pyright), Node | about 140 MB | MIT, Node MIT |
+| Rust | `rust-analyzer` binary (estimate 30 to 40 MB); needs `cargo` metadata and std sources of a Rust toolchain | estimate 40 MB, a toolchain adds hundreds of MB | MIT / Apache-2.0 |
+| Java, Kotlin | scip-java and a JRE (JDK on this machine: 286 MB) | about 300 MB | Apache-2.0, OpenJDK GPL-2.0 with Classpath Exception |
+
+Rules for packs: pinned versions with a checksum in a signed manifest, downloaded only on the user's action and shown with size and license before, stored in the data directory, updated by an explicit action, removable. Only the pack of a language the user has a project in is offered. All packs together are about 1 GB, so a pack per language is the right unit. Redistribution licenses are checked per pack before the first release.
+
+What cannot be shipped and must exist on the user's machine, and what the spike already showed:
+
+- **The project's own dependencies and build.** NuGet packages (restore), `node_modules` (`npm install`), the Python environment of the project, Cargo dependencies, Gradle or Maven build. Without them the index is incomplete. These steps run package scripts of the project, so the consent in decision 9 applies to them too.
+- **The right SDK version.** In the spike, `scip-dotnet` ran (9 s for the public C# corpus) but its restore failed with `NETSDK1045` because the project targets a newer .NET than the installed SDK 8. One bundled SDK is not enough; a project needs an SDK that supports its target. The tool check on load (decision 8) must compare the SDK the project needs with the available ones and say which is missing.
+- Rust needs a toolchain that matches the project; Java a JDK that matches the build.
+
+Effect on the decisions: the tool check on load (decision 8) also offers "install pack" for a missing indexer and states what the project still needs. Updates of packs are part of the update flow of the application.
 
 ### Level 1 and what the user sees
 
