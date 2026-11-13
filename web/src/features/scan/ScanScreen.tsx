@@ -2,6 +2,7 @@ import { createMemo, onMount, Show } from "solid-js";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import type { MessageKey } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { measuredTimes } from "../../shared/api/timings";
 import { activeProject } from "../../shared/project/active";
 import { SCAN_MODE } from "../projects/consts";
 import { seconds } from "../projects/format";
@@ -54,7 +55,7 @@ function linesPerSecond(row: ProjectRow | undefined, run: Run | undefined): numb
 
 /** What this session measured of the budgets. */
 function measured(row: ProjectRow | undefined, run: Run | undefined): Measured {
-  const result: Measured = {};
+  const result: Measured = { ...measuredTimes() };
   const start = statusInfo()?.startup_ms;
   if (start != null) {
     result.cold_start = start;
@@ -62,6 +63,9 @@ function measured(row: ProjectRow | undefined, run: Run | undefined): Measured {
   const took = duration(run);
   if (run?.state === STATE.done && row?.scan?.mode === SCAN_MODE.incremental && took !== null) {
     result.incremental_rescan = took * MS_PER_SECOND;
+  }
+  if (run?.state === STATE.done && row?.scan?.mode === SCAN_MODE.full && took !== null) {
+    result.full_scan_100k_loc = took * MS_PER_SECOND;
   }
   return result;
 }

@@ -1,6 +1,7 @@
 import { render, screen, within } from "@solidjs/testing-library";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setLanguage } from "../../shared/i18n/i18n";
+import { recordTime, resetTimings } from "../../shared/api/timings";
 import { answer, serve, useServerSession } from "../../tests/commands";
 import type { ProjectRow } from "../projects/types";
 import { refreshProjects } from "../projects/projects";
@@ -70,7 +71,10 @@ beforeEach(() => {
   });
 });
 
-afterEach(() => resetRuns());
+afterEach(() => {
+  resetRuns();
+  resetTimings();
+});
 
 async function shown() {
   await refreshProjects();
@@ -91,6 +95,18 @@ describe("ScanScreen", () => {
     expect(screen.getByText("C#")).toBeInTheDocument();
     expect(screen.getByText("38,000")).toBeInTheDocument();
     expect(screen.getByText("shop · full")).toBeInTheDocument();
+    stop();
+  });
+
+  it("shows the times this session measured and a dash for the rest", async () => {
+    setLanguage("en");
+    recordTime("search_keystroke", 4.2);
+    recordTime("graph_layout", 61);
+    const stop = await shown();
+    await screen.findByText("No scan running");
+    expect(screen.getByText("4 ms")).toBeInTheDocument();
+    expect(screen.getByText("61 ms")).toBeInTheDocument();
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(2);
     stop();
   });
 

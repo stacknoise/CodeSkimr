@@ -12,6 +12,7 @@ export const I18N_KEYS = {
   APP_SAMPLE_DATA: "app-sample-data",
   APP_LANGUAGE: "app-language",
   APP_STARTUP_TIME: "app-startup-time",
+  APP_QUERY_TIME: "app-query-time",
   APP_MEMORY_USAGE: "app-memory-usage",
   APP_STATUS_PROJECTS: "app-status-projects",
   APP_STATUS_TYPES: "app-status-types",
