@@ -1,0 +1,76 @@
+# TSX (TypeScript with JSX) language pack, full tier (blueprint 8, WP-60, ADR 0022).
+#
+# Mapping of TypeScript onto the language-neutral symbol kinds:
+#   namespace / module block        -> namespace   class, abstract class       -> class
+#   interface                       -> interface   enum, enum member           -> enum / enum_member
+#   type alias                      -> type_alias  function, generator         -> function
+#   const with a function value     -> function    other module-level const    -> constant
+#   method, abstract method         -> method      constructor                 -> constructor
+#   get / set accessor              -> property    interface property          -> property
+#   class field                     -> field       field with an arrow function-> method
+# Not symbols: parameters (also parameter properties), local variables, `let` and `var`, overload
+# signatures, index and call signatures, class static blocks, `export { x }` lists, anonymous
+# default exports. Names that are strings, numbers or computed are skipped.
+id = "tsx"
+grammar = "tsx"
+tier = "full"
+extensions = ["tsx"]
+separator = "."
+comment_nodes = ["comment"]
+manifest_files = ["package.json", "tsconfig.json", "tsconfig.*.json", "deno.json"]
+test_patterns = [
+    "**/*.test.tsx",
+    "**/*.spec.tsx",
+    "**/__tests__/**/*.tsx",
+    "**/test/**/*.tsx",
+    "**/tests/**/*.tsx",
+    "**/e2e/**/*.tsx",
+]
+# Syntax fingerprints: all names alike, literals by kind only.
+identifier_nodes = [
+    "identifier",
+    "property_identifier",
+    "shorthand_property_identifier",
+    "type_identifier",
+    "private_property_identifier",
+]
+literal_nodes = [
+    "number",
+    "string",
+    "template_string",
+    "regex",
+    "true",
+    "false",
+    "null",
+    "undefined",
+]
+static_keywords = ["static"]
+
+# JSDoc: the description above the first block tag (`@param`, `@returns` …) is the documentation.
+[doc_block]
+open = "/**"
+close = "*/"
+line_prefix = "*"
+stop_at = "@"
+
+# A `const` is a constant; accessors are properties.
+[modifier_kinds]
+const = "constant"
+get = "property"
+set = "property"
+
+# A top-level declaration is visible outside its file only with `export`; members are public unless
+# `private` or `protected` says otherwise. (`#name` fields are private in the language but carry no
+# keyword; see ADR 0022.)
+[visibility]
+default = "public"
+
+[visibility.keywords]
+export = "public"
+public = "public"
+protected = "protected"
+private = "private"
+
+[visibility.parent_defaults]
+module = "private"
+namespace = "private"

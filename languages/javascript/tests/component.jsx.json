@@ -1,0 +1,75 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 5,
+      "operands": null,
+      "operators": null,
+      "symbol": "component"
+    },
+    {
+      "decisions": 1,
+      "loc": 4,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "component.Greeting"
+    }
+  ],
+  "loc": 5,
+  "references": [
+    {
+      "at": "0:9",
+      "from": "component",
+      "kind": "import",
+      "receiver": null,
+      "target": "Button"
+    },
+    {
+      "at": "3:16",
+      "from": "component.Greeting",
+      "kind": "read",
+      "receiver": null,
+      "target": "name"
+    },
+    {
+      "at": "4:10",
+      "from": "component.Greeting",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Button"
+    },
+    {
+      "at": "4:32",
+      "from": "component.Greeting",
+      "kind": "read",
+      "receiver": null,
+      "target": "name"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "component",
+      "parent": null,
+      "span": "0:0-6:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "component.Greeting",
+      "parent": "component",
+      "span": "2:7-5:1",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

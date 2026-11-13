@@ -3,7 +3,10 @@
 
 use tree_sitter::Language;
 
-use crate::consts::{GRAMMAR_CSHARP, GRAMMAR_PYTHON, GRAMMAR_RUST};
+use crate::consts::{
+    GRAMMAR_CSHARP, GRAMMAR_JAVASCRIPT, GRAMMAR_PYTHON, GRAMMAR_RUST, GRAMMAR_TSX,
+    GRAMMAR_TYPESCRIPT,
+};
 
 /// The built-in grammar called `name`, if there is one.
 #[must_use]
@@ -11,6 +14,9 @@ pub fn builtin(name: &str) -> Option<Language> {
     match name {
         GRAMMAR_RUST => Some(tree_sitter_rust::LANGUAGE.into()),
         GRAMMAR_CSHARP => Some(tree_sitter_c_sharp::LANGUAGE.into()),
+        GRAMMAR_TYPESCRIPT => Some(tree_sitter_typescript::LANGUAGE_TYPESCRIPT.into()),
+        GRAMMAR_TSX => Some(tree_sitter_typescript::LANGUAGE_TSX.into()),
+        GRAMMAR_JAVASCRIPT => Some(tree_sitter_javascript::LANGUAGE.into()),
         GRAMMAR_PYTHON => Some(tree_sitter_python::LANGUAGE.into()),
         _ => basic(name),
     }

@@ -1,0 +1,119 @@
+# Public TypeScript reference of CI (blueprint 17.2, ADR 0022). Updating the commit is a deliberate
+# change with new expected values. Tests, end-to-end tests, dev stubs and scripts are skipped: the
+# source of the card is scanned (the 62 files of `src` and the two configuration files in the
+# root, `playwright.config.ts` and `vite.config.ts`). Counts were measured with the TypeScript pack and checked against
+# an independent count with the TypeScript compiler API (same mapping rules, different parser);
+# every kind agrees. Parameter properties of constructors are not symbols (ADR 0022).
+
+[project]
+repository = "https://github.com/stacknoise/detailed-energy-card"
+commit = "c9ffe3a32a1c2a1d5e6831154628acff860e453c"
+skip_folders = ["test", "e2e", "dev", "scripts", "docs", "node_modules", "dist"]
+language = "typescript"
+extensions = ["ts"]
+
+# Symbols per kind over all *.ts files of `src`; `module` is one per file.
+[counts]
+files = 64
+module = 64
+class = 15
+interface = 121
+type_alias = 38
+constant = 210
+function = 428       # functions and `const` arrow functions, local ones included
+constructor = 6
+method = 293         # includes class fields with an arrow function
+property = 660       # interface properties and get/set accessors
+field = 130
+
+# Hand-checked symbols: file, kind, name, visibility and parent.
+[[sample]]
+file = "src/model/house.ts"
+kind = "constant"
+name = "HOUSE_CARD_TYPE"
+visibility = "public"
+parent = "house"
+
+[[sample]]
+file = "src/model/house.ts"
+kind = "interface"
+name = "RoomLayout"
+visibility = "public"
+parent = "house"
+
+[[sample]]
+file = "src/model/house.ts"
+kind = "type_alias"
+name = "Vec3"
+visibility = "public"
+parent = "house"
+
+[[sample]]
+file = "src/house-card.ts"
+kind = "class"
+name = "DetailedEnergy3DCard"
+visibility = "public"
+parent = "house-card"
+
+[[sample]]
+file = "src/house-card.ts"
+kind = "field"
+name = "_ro"
+visibility = "private"
+parent = "DetailedEnergy3DCard"
+
+[[sample]]
+file = "src/house-card.ts"
+kind = "method"
+name = "getStubConfig"
+visibility = "public"
+parent = "DetailedEnergy3DCard"
+
+[[sample]]
+file = "src/house-card.ts"
+kind = "property"
+name = "_namedConfig"
+visibility = "private"
+parent = "DetailedEnergy3DCard"
+
+[[sample]]
+file = "src/model/energy-store.ts"
+kind = "constructor"
+name = "constructor"
+visibility = "public"
+parent = "EnergyStore"
+
+[[sample]]
+file = "src/model/compute.ts"
+kind = "function"
+name = "computeRoom"
+visibility = "private"
+parent = "compute"
+
+[[sample]]
+file = "src/model/compute.ts"
+kind = "function"
+name = "consumerSum"
+visibility = "private"
+parent = "compute"
+
+[[sample]]
+file = "src/model/compute.ts"
+kind = "function"
+name = "listedConsumers"
+visibility = "public"
+parent = "compute"
+
+[[sample]]
+file = "src/model/compute.ts"
+kind = "constant"
+name = "MISSING"
+visibility = "private"
+parent = "compute"
+
+# Hand-checked references: file, kind, target and line.
+[[references]]
+file = "src/house-card.ts"
+kind = "inherit"
+target = "LitElement"
+line = 50

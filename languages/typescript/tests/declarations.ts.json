@@ -1,0 +1,674 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 61,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations"
+    },
+    {
+      "decisions": null,
+      "loc": 25,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Order"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "declarations.Order.handler"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "declarations.Order.constructor"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "declarations.Order.create"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Order.validate"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.Order.helper"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.Order.plain"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.Order.overload"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.Order.generate"
+    },
+    {
+      "decisions": null,
+      "loc": 5,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Priced"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Priced.format"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Local"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Status"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "declarations.add"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "declarations.sub"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.run"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.run.inner"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Main"
+    },
+    {
+      "decisions": null,
+      "loc": 3,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Util"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.Util.help"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.legacy"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Ambient"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Ambient.make"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Ambient.run"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Empty"
+    }
+  ],
+  "loc": 61,
+  "references": [
+    {
+      "at": "0:9",
+      "from": "declarations",
+      "kind": "import",
+      "receiver": null,
+      "target": "Base"
+    },
+    {
+      "at": "8:39",
+      "from": "declarations.Order",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Base"
+    },
+    {
+      "at": "8:55",
+      "from": "declarations.Order",
+      "kind": "implement",
+      "receiver": null,
+      "target": "Priced"
+    },
+    {
+      "at": "28:42",
+      "from": "declarations.Order.create",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Promise"
+    },
+    {
+      "at": "28:50",
+      "from": "declarations.Order.create",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Order"
+    },
+    {
+      "at": "85:17",
+      "from": "declarations.Ambient.make",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Ambient"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "declarations",
+      "parent": null,
+      "span": "0:0-95:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": "An order of a customer.\n\nLonger text.",
+      "kind": "class",
+      "name": "declarations.Order",
+      "parent": "declarations",
+      "span": "8:7-43:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Order.#secret",
+      "parent": "declarations.Order",
+      "span": "9:2-9:13",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Order.MAX",
+      "parent": "declarations.Order",
+      "span": "10:2-10:43",
+      "static": true,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Order.name",
+      "parent": "declarations.Order",
+      "span": "11:2-11:21",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Order.items",
+      "parent": "declarations.Order",
+      "span": "12:2-12:18",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations.Order.handler",
+      "parent": "declarations.Order",
+      "span": "13:12-15:3",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "Creates an order.",
+      "kind": "constructor",
+      "name": "declarations.Order.constructor",
+      "parent": "declarations.Order",
+      "span": "18:2-20:3",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "declarations.Order.total",
+      "parent": "declarations.Order",
+      "span": "22:2-24:3",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "declarations.Order.total",
+      "parent": "declarations.Order",
+      "span": "26:2-26:29",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations.Order.create",
+      "parent": "declarations.Order",
+      "span": "28:2-30:3",
+      "static": true,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations.Order.validate",
+      "parent": "declarations.Order",
+      "span": "32:2-32:40",
+      "static": false,
+      "visibility": "protected"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations.Order.helper",
+      "parent": "declarations.Order",
+      "span": "34:2-34:21",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations.Order.plain",
+      "parent": "declarations.Order",
+      "span": "37:2-37:12",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations.Order.overload",
+      "parent": "declarations.Order",
+      "span": "40:2-40:30",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations.Order.generate",
+      "parent": "declarations.Order",
+      "span": "42:2-42:16",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "A priced thing.",
+      "kind": "interface",
+      "name": "declarations.Priced",
+      "parent": "declarations",
+      "span": "46:7-51:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "The price.",
+      "kind": "property",
+      "name": "declarations.Priced.price",
+      "parent": "declarations.Priced",
+      "span": "48:2-48:15",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "declarations.Priced.currency",
+      "parent": "declarations.Priced",
+      "span": "49:2-49:27",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations.Priced.format",
+      "parent": "declarations.Priced",
+      "span": "50:2-50:32",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "declarations.Local",
+      "parent": "declarations",
+      "span": "53:0-53:18",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "type_alias",
+      "name": "declarations.Id",
+      "parent": "declarations",
+      "span": "55:7-55:33",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "enum",
+      "name": "declarations.Status",
+      "parent": "declarations",
+      "span": "57:7-61:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "Open.",
+      "kind": "enum_member",
+      "name": "declarations.Status.Open",
+      "parent": "declarations.Status",
+      "span": "59:2-59:6",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "enum_member",
+      "name": "declarations.Status.Closed",
+      "parent": "declarations.Status",
+      "span": "60:2-60:12",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "declarations.LIMIT",
+      "parent": "declarations",
+      "span": "63:13-63:23",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "declarations.hidden",
+      "parent": "declarations",
+      "span": "64:6-64:18",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations.add",
+      "parent": "declarations",
+      "span": "65:19-65:50",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations.sub",
+      "parent": "declarations",
+      "span": "66:12-68:1",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": "Does things.",
+      "kind": "function",
+      "name": "declarations.run",
+      "parent": "declarations",
+      "span": "72:7-74:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations.run.inner",
+      "parent": "declarations.run",
+      "span": "73:2-73:21",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "declarations.Main",
+      "parent": "declarations",
+      "span": "76:15-76:28",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "declarations.Util",
+      "parent": "declarations",
+      "span": "78:7-80:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations.Util.help",
+      "parent": "declarations.Util",
+      "span": "79:9-79:27",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations.legacy",
+      "parent": "declarations",
+      "span": "82:8-82:41",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "declarations.VERSION",
+      "parent": "declarations",
+      "span": "83:21-83:36",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "declarations.Ambient",
+      "parent": "declarations",
+      "span": "84:8-87:1",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations.Ambient.make",
+      "parent": "declarations.Ambient",
+      "span": "85:2-85:24",
+      "static": true,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations.Ambient.run",
+      "parent": "declarations.Ambient",
+      "span": "86:2-86:13",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "declarations.handlers",
+      "parent": "declarations",
+      "span": "89:13-91:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "declarations.Empty",
+      "parent": "declarations",
+      "span": "94:7-94:21",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}
