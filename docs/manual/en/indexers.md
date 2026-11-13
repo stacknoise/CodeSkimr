@@ -1,6 +1,6 @@
 # Language indexers
 
-> **State:** the indexers described here are planned in ADR 0032 (status: proposed) and are built in separate packages. Until they are, every usage is "unchecked" ([Usages](usages.md#certainty-verified-unchecked-presumed)) and the usages screen says that no indexer is set up. This chapter describes how it works once they exist, so you know what to install.
+> **State:** the indexers described here are planned in ADR 0033 (status: proposed) and are built in separate packages. Until they are, every usage is "unchecked" ([Usages](usages.md#certainty-verified-unchecked-presumed)) and the usages screen says that no indexer is set up. This chapter describes how it works once they exist, so you know what to install.
 
 ## Why
 
@@ -20,7 +20,7 @@ CodeSkimr **never downloads or installs** an indexer and never runs a package fr
 
 Go, C, C++, PHP and Ruby (basic tier) have no level 2; their usages stay unchecked.
 
-The final list and versions are fixed by the spike of ADR 0032; this table may change.
+The final list and versions are fixed by the spike of ADR 0033; this table may change.
 
 ## What CodeSkimr shows you
 
