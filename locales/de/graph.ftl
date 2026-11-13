@@ -19,3 +19,22 @@ graph-violation-title =
        *[other] { $count } Verstöße im Projekt:
     }
 graph-violation-show = Ansehen
+
+nav-graph = Abhängigkeiten
+graph-aria-map = Abhängigkeitskarte
+graph-aria-selection = Auswahl
+graph-selected-kind = Schicht
+graph-stat-references = Verweise
+graph-stat-uses = Nutzt
+graph-stat-used-by = Genutzt von
+graph-uses-title = Nutzt · { $count }
+graph-used-by-title = Wird genutzt von · { $count }
+graph-link-references = { $count } Verweise
+graph-violation-pair = { $from } → { $to } ({ $count })
+graph-empty-title = Keine Schichten zu zeigen
+graph-empty-text = Dieses Projekt hat noch keine Schichten. Lege sie in .codeskimr.toml an und scanne neu.
+graph-no-project = Öffne zuerst ein Projekt, dann erscheinen hier seine Schichten.
+graph-no-edges = Zwischen den Schichten wurden noch keine Abhängigkeiten gefunden.
+graph-failed = Die Karte konnte nicht geladen werden.
+graph-fit-key = F
+graph-open-key = Enter
