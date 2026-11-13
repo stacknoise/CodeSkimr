@@ -16,6 +16,7 @@ pub use error::{ConfigError, LayerSource, Violation};
 pub use layer::ConfigLayer;
 pub use model::{Budgets, Config, McpLimits, MetricThresholds, Scan, SnapshotRetention, Watcher};
 
+use consts::NO_PREFIX;
 use toml::{Table, Value};
 
 impl Config {
@@ -38,7 +39,7 @@ impl Config {
         let defaults = parse_defaults()?;
         let mut merged = defaults.clone();
         for layer in layers {
-            if let Some(key) = layer::find_unknown_key(layer.table(), &defaults, "") {
+            if let Some(key) = layer::find_unknown_key(layer.table(), &defaults, NO_PREFIX) {
                 return Err(ConfigError::UnknownKey {
                     source_layer: layer.source(),
                     key,

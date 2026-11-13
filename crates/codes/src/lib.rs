@@ -5,26 +5,29 @@
 
 mod consts;
 
-use consts::{SEVERITY_ERROR, SEVERITY_INFO, SEVERITY_WARNING};
+use consts::{
+    CLASS_CONFLICT, CLASS_EXTERNAL, CLASS_INTERNAL, CLASS_INVALID_INPUT, CLASS_LIMIT,
+    CLASS_NOT_FOUND, CLASS_PERMISSION, SEVERITY_ERROR, SEVERITY_INFO, SEVERITY_WARNING,
+};
 
 /// Error class, the hundreds digit of a code (blueprint 11.2).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[repr(u8)]
 pub enum Class {
     /// Invalid input or validation failure.
-    InvalidInput = 1,
+    InvalidInput = CLASS_INVALID_INPUT,
     /// Not found or unavailable.
-    NotFound = 2,
+    NotFound = CLASS_NOT_FOUND,
     /// Conflict or invalid state.
-    Conflict = 3,
+    Conflict = CLASS_CONFLICT,
     /// Authentication or permission problem.
-    Permission = 4,
+    Permission = CLASS_PERMISSION,
     /// Limit, timeout or resource problem.
-    Limit = 5,
+    Limit = CLASS_LIMIT,
     /// An external system failed.
-    External = 6,
+    External = CLASS_EXTERNAL,
     /// Internal error (bug).
-    Internal = 9,
+    Internal = CLASS_INTERNAL,
 }
 
 impl Class {

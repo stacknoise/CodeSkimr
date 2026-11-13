@@ -160,8 +160,9 @@ jobs:
       - name: jscpd
         run: npx --yes jscpd@4.0.5 --config .jscpd.json
 
-  # The next four checks exist so that the ruleset can already require them.
-  # They pass trivially until their tool exists (codegen is already real), and they then run for real without a rename.
+  # The next checks exist so that the ruleset can already require them.
+  # They pass trivially until their tool exists (literals and codegen are already real), and they then run for real without a rename.
+  # R-06: Dylint lint `no_literals` (tools/lints) on the product crates, then its own test cases, then ESLint for web/.
   literals:
     name: literals
     runs-on: ubuntu-latest
@@ -169,13 +170,32 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: no_literals lint (Dylint) and ESLint
+      # The lint is pinned to its own nightly toolchain (tools/lints/no_literals/rust-toolchain.toml).
+      - name: Install lint toolchain
+        working-directory: tools/lints/no_literals
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+        with:
+          workspaces: |
+            .
+            tools/lints/no_literals
+      - name: Install cargo-dylint
+        working-directory: tools/lints/no_literals
+        run: cargo install --locked cargo-dylint@6.4.0 dylint-link@6.4.0
+      - name: Lint test cases
+        working-directory: tools/lints/no_literals
+        run: cargo test --locked
+      - name: no_literals on the workspace
+        run: cargo dylint --path tools/lints/no_literals --workspace
+      - name: ESLint (no-magic-numbers, i18next/no-literal-string)
         run: |
-          if [ -d tools/lints ]; then
-            echo "::error::tools/lints exists, wire the Dylint lint into this job."
-            exit 1
+          if [ -f web/package.json ]; then
+            cd web
+            npm ci
+            npx eslint --config eslint.literals.config.js src
+          else
+            echo "ESLint part not active yet: web/package.json does not exist (rules are prepared in web/eslint.literals.config.js)."
           fi
-          echo "NOT ACTIVE YET: the Dylint no_literals lint does not exist (tools/lints)."
 
   codegen:
     name: codegen
@@ -209,13 +229,16 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Benchmarks against baseline
-        run: |
-          if [ -d tools/bench ]; then
-            echo "::error::tools/bench exists, wire the baseline comparison into this job."
-            exit 1
-          fi
-          echo "NOT ACTIVE YET: no benchmarks exist (tools/bench)."
+          fetch-depth: 0
+      - name: Install Rust toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      # Base commit and change are measured one after the other on this runner; only the ratio
+      # counts (docs/benchmarks.md). A slowdown above regression_tolerance_percent fails the job.
+      - name: Benchmarks against base commit and budgets
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: tools/bench/ci.sh "$BASE_SHA"
 
   e2e:
     name: e2e
