@@ -32,7 +32,7 @@ CodeSkimr scans code repositories, either a local folder or a Git repository, an
 - Local single-user application: one executable, local web server, UI in the browser.
 - Sources: local folders and Git repositories (clone, branch, update).
 - Languages:
-  - Full tier for C#, TypeScript/JavaScript, Python, Java, Kotlin, Go and Rust.
+  - Full tier for C#, TypeScript/JavaScript, Python, Java, Kotlin and Rust. Go follows in the full tier after 1.0 (ADR 0011); in 1.0 it has the basic tier.
   - Basic tier for every language with a Tree-sitter grammar.
 - Explorer, dependency map, usages per symbol, quick search, scan and performance view.
 - MCP server (stdio and HTTP).
@@ -345,7 +345,7 @@ languages/csharp/
 
 | Tier | Delivers | Languages in 1.0 |
 |---|---|---|
-| **full** | symbols incl. members, doc comments, references with scope-aware resolution, all metrics | C#, TypeScript/JavaScript, Python, Java, Kotlin, Go, Rust |
+| **full** | symbols incl. members, doc comments, references with scope-aware resolution, all metrics | C#, TypeScript/JavaScript, Python, Java, Kotlin, Rust (Go after 1.0, ADR 0011) |
 | **basic** | types and functions, spans, LOC, CC; references only by unique name | every other language with a Tree-sitter grammar |
 
 - Full-tier grammars are compiled into the binary.
@@ -851,7 +851,8 @@ Coverage target: ≥ 80 % lines for `domain` and `application`; adapters are cov
 ### 17.2 Corpus and accuracy
 
 - `corpus/` holds pinned versions of real repositories per full-tier language, with expected results (counts and a sample of exact symbols and references).
-- The C# reference is a pinned public C# project, chosen by ADR. Its expected counts (types, methods, properties/fields) are recorded in `corpus/` when it is pinned. CodeSkimr MUST reproduce these counts or document every difference as an improvement.
+- There are two C# references. The **private reference** is the product owner's own C# application, available only on the product owner's machine and never copied into this repository: 433 types, 825 methods and 1,667 properties/fields in version 0.3.1. CodeSkimr MUST reproduce these counts or document every difference as an improvement. The **public reference** is a pinned public C# project chosen by ADR with its expected counts recorded in `corpus/`; CI uses only this one.
+- Corpus projects follow the product owner's own repositories (ADR 0011): TypeScript/JavaScript, Python, Kotlin and Java use public repositories of the product owner; Rust uses CodeSkimr itself at a pinned commit, with part of the expected values checked by hand. Only public projects are used in CI.
 - Accuracy targets per full-tier language:
   - symbols ≥ 99 %
   - references marked `certain` ≥ 98 % correct
@@ -944,11 +945,11 @@ Each milestone ends with a demo and acceptance by the product owner. All criteri
 | # | Milestone | Content | Acceptance criteria |
 |---|---|---|---|
 | **M0** | Blueprint | this document, mocks | blueprint approved |
-| **M1** | Foundation + MCP basics | workspace and crates; full CI (section 17.3) incl. no-literals lint and duplicate check; codegen for error codes and i18n; config; SQLite; C# language pack (full); `codeskimr scan` → JSON; MCP over stdio with `search_symbols`, `get_symbol`, `get_architecture` | CI blocks a PR containing a literal or a duplicate block; scan of the C# reference project reproduces the recorded counts (17.2); 100k LOC scanned in < 1 s; Claude Code can query CodeSkimr through MCP |
-| **M2** | References + full MCP | reference index level 1; `find_usages`, `impact_of_change`, `get_dependencies`, `find_similar_code`, `find_constants`, `check_conventions`, `rescan`; watch mode, incremental scans | usages of a method/constant in the C# reference project correct in a sample of 20; incremental re-scan < 300 ms; the agent developing CodeSkimr uses the MCP tools (17.4) |
+| **M1** | Foundation + MCP basics | workspace and crates; full CI (section 17.3) incl. no-literals lint and duplicate check; codegen for error codes and i18n; config; SQLite; C# language pack (full); `codeskimr scan` → JSON; MCP over stdio with `search_symbols`, `get_symbol`, `get_architecture` | CI blocks a PR containing a literal or a duplicate block; scan of the private C# reference reproduces its counts and scan of the public C# reference reproduces the counts in `corpus/` (17.2); 100k LOC scanned in < 1 s; Claude Code can query CodeSkimr through MCP |
+| **M2** | References + full MCP | reference index level 1; `find_usages`, `impact_of_change`, `get_dependencies`, `find_similar_code`, `find_constants`, `check_conventions`, `rescan`; watch mode, incremental scans | usages of a method/constant in the private C# reference correct in a sample of 20; incremental re-scan < 300 ms; the agent developing CodeSkimr uses the MCP tools (17.4) |
 | **M3** | Server + UI core | axum server, embedded UI, screens 1 (projects), 2 (explorer), 4 (quick search); status bar with live measurements; de/en switch | screens match the mocks (visual review); keyboard paths of 15.4 work; budgets for search and type switch are met |
 | **M4** | Visualisation | screens 3 (dependencies), 5 (scan & performance), 6 (usages); jump explorer → usages | screens match the mocks; graph layout < 50 ms; usages depth 2 < 20 ms |
-| **M5** | Languages | full tier: TypeScript/JavaScript, Python, Java, Kotlin, Go, Rust; basic tier for all Tree-sitter grammars | corpus accuracy targets met per language |
+| **M5** | Languages | full tier: TypeScript/JavaScript, Python, Java, Kotlin, Rust; basic tier for all Tree-sitter grammars (including Go) | corpus accuracy targets met per language |
 | **M6** | Sources + credentials + export | Git sources (clone, branch, update); credential handling per section 12 (keystore, Git helper, OAuth device flow); canary suite; HTML export | security suite green; private repository scanned without the secret ever appearing outside the loan scope |
 | **M7** | Release 1.0 | installers / single executables for Windows, Linux, macOS; user docs; error-code catalogue published | clean install on all three systems; all budgets green |
 | later | Team edition and depth | team server with authentication, `SecretVault` adapter, PostgreSQL, SCIP/Roslyn level 2, WASM plugins, snapshot comparison, PR impact analysis | own ADRs and milestones |
