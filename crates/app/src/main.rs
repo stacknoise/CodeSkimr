@@ -20,6 +20,8 @@ mod log_writer;
 mod logging;
 mod mcp;
 #[cfg(test)]
+mod mcp_http_tests;
+#[cfg(test)]
 mod memory_keystore;
 mod open;
 mod principal;

@@ -97,3 +97,6 @@ pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Between the code and its description in the text of an error.
 pub const ID_SEPARATOR: &str = ": ";
+
+/// Largest request body of the HTTP transport in bytes: a tool call is a few arguments.
+pub const HTTP_MAX_BODY_BYTES: usize = 1024 * 1024;

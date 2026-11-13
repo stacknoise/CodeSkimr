@@ -1,6 +1,6 @@
 # MCP server (WP-26, WP-36, WP-37, issue #109)
 
-Implements the first part of blueprint section 10.4: the stdio server with the three tools of milestone M1 and, since WP-36, the query tools `find_usages` and `impact_of_change` and, since WP-37, the check tools `find_similar_code`, `find_constants` and `check_conventions`. Issue #109 adds `get_dependencies` and `rescan`, which completes the tool list of milestone M2. The resources and the HTTP transport follow. `codeskimr mcp` is wired up in WP-25 (see `docs/cli.md`).
+Implements the first part of blueprint section 10.4: the stdio server with the three tools of milestone M1 and, since WP-36, the query tools `find_usages` and `impact_of_change` and, since WP-37, the check tools `find_similar_code`, `find_constants` and `check_conventions`. Issue #109 adds `get_dependencies` and `rescan`, which completes the tool list of milestone M2. The resources follow. WP-48 added the HTTP transport (below). `codeskimr mcp` is wired up in WP-25 (see `docs/cli.md`).
 
 ## Structure
 
@@ -8,6 +8,11 @@ Implements the first part of blueprint section 10.4: the stdio server with the t
 - `codeskimr_mcp::McpServer` implements `rmcp::ServerHandler`: tool list, argument parsing, error mapping. Tool calls run on a blocking thread, so a slow query never stalls the protocol loop.
 - `codeskimr_mcp::serve_stdio(server)` serves one client over stdin/stdout. The composition root builds `Tools` (store, clock, `config.mcp`, default project) and `McpServer::new(tools, &Messages::load()?)`.
 - The ports are handed over as one `Ports` value (projects, index, usages, similarity, snippets, checker, clock, scanner), so a tool that needs another port adds a field instead of a constructor argument. The port `CodeIndex` (`codeskimr_application::ports`) offers `latest_snapshot`, `search`, `symbol` and `layer_edges`. `codeskimr_storage::SqliteStore` implements it. The crate rule stays: `mcp` never depends on `secrets` or on an adapter.
+
+## Transports
+
+- **stdio:** `codeskimr mcp`, one project (default project of the calls), the local owner.
+- **Streamable HTTP:** `POST /mcp` of the running app (`codeskimr serve`), see `docs/server.md`. `codeskimr_mcp::http_service(&server)` returns the `tower` service; it is stateless and answers with JSON. Tools are built with `Tools::unscoped`, so a call without `project` is `MCP-101` (`params.detail = project`). The token and the `Host` and `Origin` checks are the job of the web server, not of this crate.
 
 ## Tools
 

@@ -25,7 +25,7 @@ use codeskimr_domain::{Project, ProjectId, QualifiedName, Snapshot, SymbolId};
 use serde::Serialize;
 use serde_json::Value;
 
-use crate::consts::{ARG_DEPTH, ARG_SYMBOL, MIN_LIMIT};
+use crate::consts::{ARG_DEPTH, ARG_SYMBOL, MIN_LIMIT, PARAM_PROJECT};
 use crate::error::{CodeReport, McpError};
 
 /// Which snapshot an answer is based on and how old it is.
@@ -90,13 +90,25 @@ pub struct Tools {
     clock: Arc<dyn Clock>,
     scanner: Arc<dyn ProjectScanner>,
     limits: McpLimits,
-    default_project: ProjectId,
+    default_project: Option<ProjectId>,
 }
 
 impl Tools {
     /// Builds the tools. `default_project` answers calls that name no project.
     #[must_use]
     pub fn new(ports: Ports, limits: McpLimits, default_project: ProjectId) -> Self {
+        Self::build(ports, limits, Some(default_project))
+    }
+
+    /// Builds tools without a default project, for a server that serves every registered
+    /// project (the app). A call that names no project is `MCP-101` with `params.detail =
+    /// project`.
+    #[must_use]
+    pub fn unscoped(ports: Ports, limits: McpLimits) -> Self {
+        Self::build(ports, limits, None)
+    }
+
+    fn build(ports: Ports, limits: McpLimits, default_project: Option<ProjectId>) -> Self {
         Self {
             projects: ports.projects,
             index: ports.index,
@@ -144,7 +156,11 @@ impl Tools {
 
     /// Finds the registered project, without looking at its snapshots.
     pub(crate) fn project(&self, requested: Option<u64>) -> Result<Project, McpError> {
-        let id = requested.map_or(self.default_project, ProjectId::new);
+        let id = match (requested, self.default_project) {
+            (Some(id), _) => ProjectId::new(id),
+            (None, Some(default)) => default,
+            (None, None) => return Err(McpError::ArgumentsInvalid(PARAM_PROJECT.to_owned())),
+        };
         self.projects.project(id).map_err(|error| {
             if error.code() == ErrorCode::ProjectNotFound {
                 McpError::ProjectNotRegistered(id.get())

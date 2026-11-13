@@ -1,12 +1,15 @@
 //! Starting the server: the address check of S-04, the router and the serve loop.
 
+use std::convert::Infallible;
 use std::future::Future;
 use std::net::SocketAddr;
 use std::sync::Arc;
 
 use axum::Router;
+use axum::body::Body;
+use axum::extract::Request;
 use axum::middleware::from_fn_with_state;
-use axum::routing::{get, post};
+use axum::routing::{MethodRouter, any_service, get, post};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_codes::ErrorCode;
@@ -16,9 +19,10 @@ use tokio::net::TcpListener;
 use crate::assets::Assets;
 use crate::commands::CommandApi;
 use crate::consts::{
-    COMMAND_PATH, COMMANDS_PATH, EVENTS_PATH, EXCHANGE_PATH, LAUNCH_CODE_PATH, UI_CONFIG_PATH,
+    COMMAND_PATH, COMMANDS_PATH, EVENTS_PATH, EXCHANGE_PATH, LAUNCH_CODE_PATH, MCP_PATH,
+    UI_CONFIG_PATH,
 };
-use crate::guard::{Guard, screen};
+use crate::guard::{Guard, require_token, screen};
 use crate::launch::LaunchCodes;
 use crate::settings::UiOptions;
 use crate::state::AppState;
@@ -33,6 +37,7 @@ pub struct Server {
     principal: Principal,
     token: InstallationToken,
     ui: UiOptions,
+    mcp: Option<MethodRouter<AppState>>,
 }
 
 /// A server that listens and has not started to answer yet.
@@ -57,6 +62,27 @@ pub fn ensure_loopback(address: SocketAddr) -> Result<(), CodedError> {
     }
 }
 
+/// The routes of the server with the layers every request passes. The MCP route, if there is
+/// one, is checked for the token on top of that.
+fn build_router(state: AppState, guard: Arc<Guard>, mcp: Option<MethodRouter<AppState>>) -> Router {
+    let mut router = Router::new()
+        .route(COMMANDS_PATH, get(routes::list))
+        .route(COMMAND_PATH, post(routes::run))
+        .route(EVENTS_PATH, get(events::stream))
+        .route(UI_CONFIG_PATH, get(ui::config))
+        .route(LAUNCH_CODE_PATH, post(session::issue).get(session::state))
+        .route(EXCHANGE_PATH, post(session::exchange))
+        .fallback(routes::not_found)
+        .method_not_allowed_fallback(routes::wrong_method);
+    if let Some(mcp) = mcp {
+        let checked = mcp.layer(from_fn_with_state(Arc::clone(&guard), require_token));
+        router = router.route(MCP_PATH, checked);
+    }
+    router
+        .layer(from_fn_with_state(guard, screen))
+        .with_state(state)
+}
+
 impl Server {
     /// A server that offers `api`, streams the events of `events`, and runs every request as
     /// `principal`. Changes need `token`.
@@ -74,7 +100,27 @@ impl Server {
             principal,
             token,
             ui,
+            mcp: None,
         }
+    }
+
+    /// Offers MCP at `/mcp` through `service`, on the same listener, with the same `Host` and
+    /// `Origin` checks as every route. Every request to it needs the installation token, also a
+    /// read: MCP answers carry code structure, and no other program on this machine may read it
+    /// through the open loopback port (blueprint S-04).
+    #[must_use]
+    pub fn with_mcp<S>(mut self, service: S) -> Self
+    where
+        S: tower_service::Service<Request<Body>, Error = Infallible>
+            + Clone
+            + Send
+            + Sync
+            + 'static,
+        S::Response: axum::response::IntoResponse + 'static,
+        S::Future: Send + 'static,
+    {
+        self.mcp = Some(any_service(service));
+        self
     }
 
     /// Listens on `address`; with port 0 the system picks a free port, see
@@ -98,17 +144,7 @@ impl Server {
             ui: Arc::new(self.ui.settings),
             assets: self.ui.dir.map(|dir| Arc::new(Assets::new(dir))),
         };
-        let router = Router::new()
-            .route(COMMANDS_PATH, get(routes::list))
-            .route(COMMAND_PATH, post(routes::run))
-            .route(EVENTS_PATH, get(events::stream))
-            .route(UI_CONFIG_PATH, get(ui::config))
-            .route(LAUNCH_CODE_PATH, post(session::issue).get(session::state))
-            .route(EXCHANGE_PATH, post(session::exchange))
-            .fallback(routes::not_found)
-            .method_not_allowed_fallback(routes::wrong_method)
-            .layer(from_fn_with_state(guard, screen))
-            .with_state(state);
+        let router = build_router(state, guard, self.mcp);
         Ok(BoundServer { listener, router })
     }
 }
