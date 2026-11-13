@@ -254,7 +254,8 @@ impl Stage for ResolveStage {
         let total = count(&pending);
         ctx.progress(0, total);
         let table: Vec<Symbol> = carried.symbols.iter().chain(&symbols).cloned().collect();
-        let references = self.resolver.resolve(&table, &pending, &self.ids)?;
+        let mut references = self.resolver.resolve(&table, &pending, &self.ids)?;
+        carried.drop_duplicates_of_kept(&mut references);
         ctx.progress(total, total);
         Ok(Resolved {
             run,

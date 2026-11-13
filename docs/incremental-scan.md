@@ -30,14 +30,18 @@ A full scan does none of this: `Carried` is empty and `removed` is empty.
   scan restores the original confidence.
 - A name that matched nothing in the previous snapshot is not stored. If a changed file now declares it,
   the reference from an unchanged file appears only after that file changes or after a full scan.
+- A reference that was resolved again is dropped if an identical one was kept (a name with candidates in
+  an unchanged and a changed file).
 - `LayerEdge.violates_layering` still depends on the allowed directions of a layer (issue #45).
 
 ## Progress and events
 
 Every stage reports its amount of work through `ScanProgressed` (`done` of `total`, both set at the end).
-The scan view of mock 5 shows six rows (get source, find files, parse, symbols, resolve, metrics and save);
-the application layer has six stages with Parse and Extract in one (ADR 0013), so the view maps its rows
-onto the stages, no stage is added for it.
+A stage with nothing to do ends with 0 of 0. The scan view of mock 5 shows six rows (get source, find
+files, parse, symbols, resolve, metrics and save), the application layer has six stages with Parse and
+Extract in one (ADR 0013). The rows do not map one to one: parse and symbols both follow the Analyze
+stage, metrics and save follow Measure and Persist. The frontend package decides how the view derives
+its rows from the events; no stage is added for it.
 
 `codeskimr_source::publish_changes` watches a project folder and publishes `FilesChanged` (count of changed
 files, `rescan` if the operating system lost events) after the debounce window. Starting the incremental

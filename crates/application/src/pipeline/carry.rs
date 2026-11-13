@@ -33,6 +33,14 @@ pub struct Carried {
 type Occurrence = (SymbolId, FileId, Span, ReferenceKind);
 
 impl Carried {
+    /// Removes the references of `resolved` that the kept references already contain. A name with
+    /// candidates in an unchanged and in a changed file is resolved again to both; the unchanged
+    /// one is still kept from before.
+    pub fn drop_duplicates_of_kept(&self, resolved: &mut Vec<Reference>) {
+        let kept: HashSet<_> = self.references.iter().map(edge).collect();
+        resolved.retain(|reference| !kept.contains(&edge(reference)));
+    }
+
     /// Splits the previous snapshot into what is kept and what is gone, and marks every
     /// discovered file that the previous snapshot does not know as changed.
     #[must_use]
@@ -97,6 +105,19 @@ impl Carried {
             ..Self::default()
         }
     }
+}
+
+/// What makes two references the same occurrence of the same target.
+fn edge(reference: &Reference) -> (Occurrence, SymbolId) {
+    (
+        (
+            reference.from,
+            reference.file,
+            reference.span,
+            reference.kind,
+        ),
+        reference.to,
+    )
 }
 
 /// The names to resolve again, one per occurrence and target name. An occurrence that had several

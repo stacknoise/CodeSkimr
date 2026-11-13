@@ -607,3 +607,32 @@ fn ids_are_unique_and_stage_labels_round_trip() {
     let error = CodedError::new(ErrorCode::DiskFull);
     assert_eq!(error.code(), ErrorCode::DiskFull);
 }
+
+#[test]
+fn a_reference_that_is_kept_is_not_resolved_a_second_time() -> Result<(), CodedError> {
+    let mut previous = previous_snapshot()?;
+    // `m::b` is declared in the unchanged a.rs as well; a call to it stays valid, and the call to
+    // the `b` in the changed file is resolved again to the same unchanged candidate.
+    previous.index.symbols.push(old_symbol(203, 100, "b")?);
+    previous
+        .index
+        .references
+        .extend([old_call(303, 203)?, old_call(304, 201)?]);
+    let world = Arc::new(World {
+        previous,
+        found: Some(vec![("a.rs", false), ("b.rs", true)]),
+        ..World::default()
+    });
+    let _ = run(&world, ScanMode::Incremental);
+    let calls_to_203 = world
+        .last_persisted()?
+        .references
+        .iter()
+        .filter(|r| r.to.get() == 203 && r.from.get() == 200)
+        .count();
+    assert_eq!(
+        calls_to_203, 0,
+        "the kept call to 203 is not delivered a second time"
+    );
+    Ok(())
+}
