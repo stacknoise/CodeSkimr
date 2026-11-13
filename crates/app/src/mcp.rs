@@ -6,7 +6,10 @@ use std::sync::Arc;
 use codeskimr_application::config::Config;
 use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{CodeIndex, ProjectRepository, SimilarityIndex, UsageIndex};
+use codeskimr_application::events::EventBus;
+use codeskimr_application::ports::{
+    CodeIndex, ProjectRepository, ProjectScanner, SimilarityIndex, UsageIndex,
+};
 use codeskimr_cli::{GlobalOptions, McpArgs};
 use codeskimr_codes::ErrorCode;
 use codeskimr_i18n::Messages;
@@ -18,7 +21,7 @@ use crate::config_files;
 use crate::locations::Locations;
 use crate::principal;
 use crate::source_arg::folder_spec;
-use crate::wiring::{Analysis, build_analysis, open_store};
+use crate::wiring::{Analysis, build_analysis, build_scanner, open_store};
 
 /// Serves MCP until the client disconnects.
 ///
@@ -59,8 +62,9 @@ pub fn run(
         .block_on(serve_stdio(server))
 }
 
-/// The ports of the tools: the store for everything it implements, and the analysis ports the
-/// convention check and the snippet fingerprints read files and language packs through.
+/// The ports of the tools: the store for everything it implements, the analysis ports the
+/// convention check and the snippet fingerprints read files and language packs through, and the
+/// scanner for `rescan`.
 fn build_ports(
     store: Arc<SqliteStore>,
     config: &Config,
@@ -72,6 +76,8 @@ fn build_ports(
         snippets,
     } = build_analysis(config, locations)?;
     let checker = ConventionChecker::new(discovery, analyzer, config.conventions.clone());
+    let scanner: Arc<dyn ProjectScanner> =
+        Arc::new(build_scanner(&store, config, locations, EventBus::new())?);
     let projects: Arc<dyn ProjectRepository> = store.clone();
     let usages: Arc<dyn UsageIndex> = store.clone();
     let similarity: Arc<dyn SimilarityIndex> = store.clone();
@@ -84,5 +90,6 @@ fn build_ports(
         snippets,
         checker: Arc::new(checker),
         clock: Arc::new(SystemClock),
+        scanner,
     })
 }

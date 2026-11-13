@@ -11,6 +11,8 @@ pub const MESSAGE_NOT_FINITE: &str = "value must be a finite number";
 
 /// Separates the parts of a qualified name.
 pub const NAME_SEPARATOR: char = '.';
+/// Separator of qualified names in language packs that use paths of modules (Rust).
+pub const MODULE_NAME_SEPARATOR: &str = "::";
 
 /// Label of `SymbolKind::Module`.
 pub const KIND_MODULE: &str = "module";

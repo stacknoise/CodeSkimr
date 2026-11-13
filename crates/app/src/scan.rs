@@ -117,7 +117,7 @@ pub fn open_on(
     access::require(&principal, Permission::Scan)?;
     let config = config_files::load(locations, global, folder_of(&spec.source))?;
     let store = open_store(locations, &config)?;
-    let project = register(&store, spec)?;
+    let project = with_layers(&store, register(&store, spec)?, &config)?;
     session(
         principal,
         project,
@@ -145,6 +145,7 @@ pub fn reopen(
     let store = open_store(locations, &defaults)?;
     let project = store.project(project)?;
     let config = config_files::load(locations, global, folder_of(&project.source))?;
+    let project = with_layers(&store, project, &config)?;
     session(
         principal,
         project,
@@ -206,6 +207,21 @@ pub fn run(
     locations: &Locations,
 ) -> Result<ScanSummary, CodedError> {
     open(spec, global, locations)?.scan(ScanMode::Full)
+}
+
+/// The project with the layers of the configuration (ADR 0031); saved when they changed, so that
+/// the read models of the next scan are built with them.
+fn with_layers(
+    store: &SqliteStore,
+    mut project: Project,
+    config: &Config,
+) -> Result<Project, CodedError> {
+    let layers = config.project_layers();
+    if project.layers != layers {
+        project.layers = layers;
+        store.save_project(&project)?;
+    }
+    Ok(project)
 }
 
 /// The project of this source: the registered one, or a new one.

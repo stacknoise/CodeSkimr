@@ -2,8 +2,8 @@
 
 use std::sync::Arc;
 
-use codeskimr_codes::Coded;
-use codeskimr_domain::{Permission, Principal, ProjectId};
+use codeskimr_codes::{Coded, ErrorCode};
+use codeskimr_domain::{Permission, Principal, ProjectId, ScanMode, Snapshot};
 
 use super::flow::{Chain, Halt, Pipeline, Single, StageContext};
 use super::job::{Cancelled, Failed, Finished, Job, Queued};
@@ -11,11 +11,12 @@ use super::stages::{
     AnalyzeStage, DiscoverStage, FetchStage, MeasureStage, PersistStage, ResolveStage, ScanRequest,
 };
 use crate::access;
+use crate::error::CodedError;
 use crate::events::{Event, EventBus, ScanStopped, SnapshotCreated, StopReason};
 use crate::ids::IdSequence;
 use crate::ports::{
-    Clock, FileAnalyzer, FileDiscovery, MetricsCalculator, ProjectRepository, ReferenceResolver,
-    SnapshotStore, SourceProvider,
+    Clock, FileAnalyzer, FileDiscovery, MetricsCalculator, ProjectRepository, ProjectScanner,
+    ReferenceResolver, SnapshotStore, SourceProvider,
 };
 
 /// Everything the scanner needs from the adapters, wired by the composition root.
@@ -141,5 +142,15 @@ impl Scanner {
     fn stopped(&self, project: ProjectId, reason: StopReason) {
         self.events
             .publish(&Event::ScanStopped(ScanStopped { project, reason }));
+    }
+}
+
+impl ProjectScanner for Scanner {
+    fn rescan(&self, principal: &Principal, project: ProjectId) -> Result<Snapshot, CodedError> {
+        match self.run(principal, Job::new(project, ScanMode::Incremental)) {
+            JobResult::Finished(job) => Ok(job.snapshot().clone()),
+            JobResult::Failed(job) => Err(CodedError::new(job.code())),
+            JobResult::Cancelled(_) => Err(CodedError::new(ErrorCode::UnexpectedInternalError)),
+        }
     }
 }

@@ -63,7 +63,7 @@ The data folder holds `codeskimr.db` and the Git cache `git/`. A config file nam
 
 ## Configuration chain
 
-Blueprint section 14, in this order, later wins: the defaults of `config/default.toml`, the user config file, `.codeskimr.toml` in the scanned folder (folders only; a Git source is read after the fetch, which is not wired yet), then `--set key=value` flags (`--set scan.excluded_folders=["a","b"]`; the value is TOML). Unknown keys and invalid values fail with `CFG-103` and `CFG-101`.
+Blueprint section 14, in this order, later wins: the defaults of `config/default.toml`, the user config file, `.codeskimr.toml` in the scanned folder (folders only; a Git source is read after the fetch, which is not wired yet), then `--set key=value` flags (`--set scan.excluded_folders=["a","b"]`; the value is TOML). Unknown keys and invalid values fail with `CFG-103` and `CFG-101`. The architecture layers of a project are set with `[[layers]]` tables (`name`, `namespaces` = qualified-name prefixes, `.` or `::` as separator; the first layer that owns a name wins) in the project's `.codeskimr.toml`; they apply at the next scan (ADR 0031, this repository's own file is an example).
 
 The package added two keys: `scan.parse_timeout_ms` (default 5000, `PRS-501` on expiry) and `scan.max_source_mb` (default 2048, `SRC-501` above it).
 

@@ -13,6 +13,11 @@ export interface Route {
 }
 
 export const PROJECTS_ROUTE: Route = { path: "/", label: I18N_KEYS.NAV_PROJECTS, icon: "projects" };
+export const EXPLORER_ROUTE: Route = {
+  path: "/explorer",
+  label: I18N_KEYS.NAV_EXPLORER,
+  icon: "explorer",
+};
 export const SETTINGS_ROUTE: Route = {
   path: "/settings",
   label: I18N_KEYS.NAV_SETTINGS,
@@ -20,7 +25,7 @@ export const SETTINGS_ROUTE: Route = {
 };
 
 /** Screens in the upper part of the rail. */
-export const MAIN_ROUTES: Route[] = [PROJECTS_ROUTE];
+export const MAIN_ROUTES: Route[] = [PROJECTS_ROUTE, EXPLORER_ROUTE];
 /** Screens in the lower part of the rail. */
 export const FOOTER_ROUTES: Route[] = [SETTINGS_ROUTE];
 

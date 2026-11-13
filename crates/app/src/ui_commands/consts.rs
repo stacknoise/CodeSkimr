@@ -9,6 +9,11 @@ pub const PROJECTS_ADD: &str = "projects.add";
 /// Id of the command that scans a registered project again.
 pub const PROJECTS_RESCAN: &str = "projects.rescan";
 
+/// Id of the command that returns the explorer tree.
+pub const EXPLORER_OUTLINE: &str = "explorer.outline";
+/// Id of the command that returns one symbol of the explorer.
+pub const EXPLORER_SYMBOL: &str = "explorer.symbol";
+
 /// Shortcut of the new-project form.
 pub const SHORTCUT_NEW: &str = "N";
 /// Shortcut of the re-scan.
@@ -31,3 +36,24 @@ pub const RESCAN_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_RESCAN_DESCRIPTION;
 pub const KIND_FOLDER: &str = "folder";
 /// How a Git source is named on the wire.
 pub const KIND_GIT: &str = "git";
+
+/// Title key of `explorer.outline`.
+pub const OUTLINE_TITLE: &str = i18n::COMMAND_EXPLORER_OUTLINE_TITLE;
+/// Description key of `explorer.outline`.
+pub const OUTLINE_DESCRIPTION: &str = i18n::COMMAND_EXPLORER_OUTLINE_DESCRIPTION;
+/// Title key of `explorer.symbol`.
+pub const SYMBOL_TITLE: &str = i18n::COMMAND_EXPLORER_SYMBOL_TITLE;
+/// Description key of `explorer.symbol`.
+pub const SYMBOL_DESCRIPTION: &str = i18n::COMMAND_EXPLORER_SYMBOL_DESCRIPTION;
+
+/// Lines are stored from 0, the screen counts from 1.
+pub const LINE_OFFSET: u32 = 1;
+/// Longest chain of enclosing symbols in the breadcrumb.
+pub const BREADCRUMB_DEPTH: usize = 8;
+
+/// Rating label of a value within the good range.
+pub const RATING_GOOD: &str = "good";
+/// Rating label of a value within the medium range.
+pub const RATING_MEDIUM: &str = "medium";
+/// Rating label of a value beyond the medium range.
+pub const RATING_POOR: &str = "poor";

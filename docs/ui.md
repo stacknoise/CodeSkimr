@@ -18,7 +18,7 @@ codeskimr open
 ## Structure
 
 - `src/shared`: API client, session (launch code exchange, token in `sessionStorage`), theme store, texts (Fluent files from `locales/`), editor link, small UI parts.
-- `src/features`: settings (theme cards with preview, language, editor), connection screen, projects (screen 1, WP-44).
+- `src/features`: settings (theme cards with preview, language, editor), connection screen, projects (screen 1, WP-44), explorer (screen 2, WP-45).
 - Themes Hell, Petrol (default) and Dunkel are CSS variables generated from `design/tokens.toml` by `cargo run -p codeskimr_codegen`; never edit the generated files.
 - No literals in the code: values live in `consts.ts` files, texts in `locales/`.
 
@@ -27,6 +27,16 @@ codeskimr open
 The screen calls three commands over `POST /api/v1/commands/{id}` (`shared/api/commands.ts`): `projects.list`, `projects.add` and `projects.rescan` (see `docs/server.md`).
 
 - `projects.ts` keeps the list, the failure of the last action and the scans started in this tab. While a scan runs, the list is read every 1.5 s, so a running scan shows up as "scan running".
-- Keys: `N` focuses the source field, arrow keys move the selection, `Enter` opens the project (it becomes the active project, `shared/project/active.ts`), `R` scans it again. Typing in a field and Ctrl, Alt or Meta combinations never trigger them.
+- Keys: `N` focuses the source field, arrow keys move the selection, `Enter` opens the project (it becomes the active project, `shared/project/active.ts`, and the explorer is shown), `R` scans it again. Typing in a field and Ctrl, Alt or Meta combinations never trigger them.
 - Drop: a `file://` address or text dropped on the window goes into the source field. A browser does not tell the path of a dropped folder in every system; the screen then says so and asks to paste the path.
 - Deviations from the mock: a small "scan again" button sits next to the status pill (so the re-scan has a mouse path, not only the key R); the status "new commits" and the scan duration of earlier sessions are missing because the data model has neither (the duration of scans started in this tab is shown); language colours come from the layer tokens.
+
+## Explorer (screen 2, WP-45)
+
+The screen shows the active project (`shared/project/active.ts`) with two commands: `explorer.outline` (the tree) and `explorer.symbol` (one type with breadcrumb, metrics and member table); both need only the read right (see `docs/server.md`). The source column of the mock follows in WP-45b, which also brings the `read_source` right. Screenshots: `docs/screenshots/explorer-hell.png`, `explorer-petrol.png`, `explorer-dunkel.png`.
+
+- Tree: layer (with its colour dot), namespace, type (nested types are rows below their type), then the groups "Fields etc.", "Methods" and nested types with their members. The tree is virtualised: only the rows in view (plus a margin) are in the DOM. It is one `tree` with `aria-activedescendant`; the group rows are expandable `treeitem`s as well. Click rules (blueprint 15.4): the caret only opens and closes; a click on an unselected type selects it; a click on the selected type opens or closes it; groups open and close on their own; selecting from inside the tree never changes what is open; at the start everything is closed and the overview is shown. The filter keeps the types whose name contains the text, with their layer and namespace opened.
+- **Deviation from blueprint 15.4, rule 1:** the blueprint says a click on an unselected type "selects and expands it" but also that a selection from inside the tree never changes the open state. The explorer follows the second rule: the first click only selects, a click on the selected type opens or closes it. Issue #140 asks for a decision and, if needed, an ADR.
+- Keys: Up and Down move the cursor, Right opens (or goes to the first child), Left closes (or goes to the parent), Home and End jump, Enter and Space select or toggle, `Ctrl+Left` closes everything, `Ctrl+.` shows the selection.
+- Details: breadcrumb, name with kind and visibility, documentation, ten metric tiles, member table with the chips All, Properties, Methods and "public only". The colour of a metric and of the complexity of a member comes from the thresholds in `config/default.toml` (`metrics.*`), which `explorer.outline` delivers; the number is always shown too, and the tooltip of a column or tile names the limits. A failure of the symbol keeps the tree.
+- Deviations from the mock: the source column is missing (WP-45b); the buttons "Usages", "Graph" and "Open in editor" are shown but off (`aria-disabled`, with a hint) until their screens exist; the tab "Dependencies", the metric "Test names the type" and the base type in the header are missing (the data model has none of them); the access column shows the visibility only; the usage count is not a link yet; the signature column shows a dash where the language pack stores none; kind and visibility are shown as the keywords of the language, not translated; the C# qualified name of a type carries a prefix (issue #137).

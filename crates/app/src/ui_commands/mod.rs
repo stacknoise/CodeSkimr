@@ -3,13 +3,17 @@
 //! command on its blocking pool, and progress reaches the UI through the event bus.
 
 mod consts;
+mod explorer;
 mod projects;
+mod rating;
 mod running;
+mod symbol;
 #[cfg(test)]
 mod tests;
 
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
+use codeskimr_application::config::MetricThresholds;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::registry::Registry;
@@ -19,8 +23,11 @@ use codeskimr_server::CommandApi;
 use crate::config_files;
 use crate::locations::Locations;
 use crate::wiring::open_store;
+use codeskimr_storage::SqliteStore;
+use explorer::{ExplorerOutline, ExplorerPorts};
 use projects::{AddProject, ListProjects, RescanProject};
 use running::RunningScans;
+use symbol::ExplorerSymbol;
 
 /// What every command of the UI needs to scan: the command line, the folders and the event bus.
 pub struct Context {
@@ -61,23 +68,58 @@ pub fn command_api(
         registration: Mutex::new(()),
     });
     let mut registry = Registry::new();
-    registry
-        .register(ListProjects {
-            catalog: catalog.clone(),
-            context: Arc::clone(&context),
-        })
-        .map_err(CodedError::caused_by)?;
-    registry
-        .register(AddProject {
-            context: Arc::clone(&context),
-        })
-        .map_err(CodedError::caused_by)?;
-    registry
-        .register(RescanProject { catalog, context })
-        .map_err(CodedError::caused_by)?;
+    register_projects(&mut registry, &catalog, &context)?;
+    register_explorer(&mut registry, catalog, config.metrics.clone())?;
     let mut api = CommandApi::new(Arc::new(registry));
     api.expose::<ListProjects>()?;
     api.expose::<AddProject>()?;
     api.expose::<RescanProject>()?;
+    api.expose::<ExplorerOutline>()?;
+    api.expose::<ExplorerSymbol>()?;
     Ok(api)
+}
+
+fn register_projects(
+    registry: &mut Registry,
+    catalog: &Arc<SqliteStore>,
+    context: &Arc<Context>,
+) -> Result<(), CodedError> {
+    registry
+        .register(ListProjects {
+            catalog: catalog.clone(),
+            context: Arc::clone(context),
+        })
+        .map_err(CodedError::caused_by)?;
+    registry
+        .register(AddProject {
+            context: Arc::clone(context),
+        })
+        .map_err(CodedError::caused_by)?;
+    registry
+        .register(RescanProject {
+            catalog: catalog.clone(),
+            context: Arc::clone(context),
+        })
+        .map_err(CodedError::caused_by)
+}
+
+fn register_explorer(
+    registry: &mut Registry,
+    store: Arc<SqliteStore>,
+    thresholds: MetricThresholds,
+) -> Result<(), CodedError> {
+    let ports = Arc::new(ExplorerPorts {
+        projects: store.clone(),
+        index: store.clone(),
+        outline: store,
+        thresholds,
+    });
+    registry
+        .register(ExplorerOutline {
+            ports: Arc::clone(&ports),
+        })
+        .map_err(CodedError::caused_by)?;
+    registry
+        .register(ExplorerSymbol { ports })
+        .map_err(CodedError::caused_by)
 }

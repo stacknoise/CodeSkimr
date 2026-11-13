@@ -1,5 +1,7 @@
 //! Range checks of the typed configuration (blueprint section 14: validated at start-up).
 
+use std::collections::HashSet;
+
 use super::consts::{
     PATH_SEPARATORS, PERCENT_MAX, PLACEHOLDER_PATH, SCHEME_EXTRA_CHARS, UNIT_MAX, UNIT_MIN,
     URL_SCHEME_SEPARATOR, keys,
@@ -30,13 +32,30 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
         keys::DUPLICATE_SIMILARITY_PERCENT,
         config.conventions.duplicate_similarity_percent,
     )?;
+    positive(
+        keys::DUPLICATE_MIN_LINES,
+        config.conventions.duplicate_min_lines,
+    )?;
     percent(
         keys::DUPLICATE_SIMILARITY_PERCENT,
         config.conventions.duplicate_similarity_percent,
     )?;
+    check_layers(config)?;
     check_scan(&config.scan)?;
     check_editor(&config.editor)?;
     check_ui(&config.ui)
+}
+
+fn check_layers(config: &Config) -> Result<(), ConfigError> {
+    let mut seen = HashSet::new();
+    let valid = config.layers.iter().all(|rule| {
+        !rule.namespaces.is_empty() && rule.to_layer().is_some() && seen.insert(rule.name.as_str())
+    });
+    if valid {
+        Ok(())
+    } else {
+        fail(keys::LAYERS, Violation::MustBeLayerRule)
+    }
 }
 
 fn fail(key: &'static str, violation: Violation) -> Result<(), ConfigError> {

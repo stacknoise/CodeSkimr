@@ -15,7 +15,7 @@ pub use consts::PROJECT_CONFIG_FILE;
 pub use error::{ConfigError, LayerSource, Violation};
 pub use layer::ConfigLayer;
 pub use model::{
-    Budgets, Config, Conventions, Editor, McpLimits, MetricThresholds, Scan, Similarity,
+    Budgets, Config, Conventions, Editor, LayerRule, McpLimits, MetricThresholds, Scan, Similarity,
     SnapshotRetention, Ui, Watcher,
 };
 
@@ -55,6 +55,15 @@ impl Config {
             .map_err(|cause| ConfigError::WrongType { cause })?;
         validate::validate(&config)?;
         Ok(config)
+    }
+}
+
+impl Config {
+    /// The layers of the project as the domain model has them. Entries that do not form a valid
+    /// layer are left out; [`Config::resolve`] has rejected them already.
+    #[must_use]
+    pub fn project_layers(&self) -> Vec<codeskimr_domain::Layer> {
+        self.layers.iter().filter_map(LayerRule::to_layer).collect()
     }
 }
 

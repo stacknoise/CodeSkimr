@@ -3,7 +3,7 @@
 use std::sync::Arc;
 
 use codeskimr_codes::{Coded, ErrorCode};
-use codeskimr_domain::{Permission, SnapshotId};
+use codeskimr_domain::{Permission, RelativePath, SnapshotId};
 
 use super::duplicates::{Fingerprinted, duplicates};
 use super::length::{Callable, callables, too_long};
@@ -12,7 +12,7 @@ use super::selection::Selection;
 use crate::access;
 use crate::cancel::CancelToken;
 use crate::config::Conventions;
-use crate::consts::{CHECK_FIRST_ID, CHECK_SNAPSHOT_ID};
+use crate::consts::{CHECK_FIRST_ID, CHECK_SNAPSHOT_ID, PATH_SEPARATOR};
 use crate::error::CodedError;
 use crate::ids::IdSequence;
 use crate::ports::{AnalyzeRequest, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts};
@@ -72,7 +72,10 @@ impl ConventionChecker {
         let ids = IdSequence::starting_at(CHECK_FIRST_ID);
         let mut analysed = Vec::new();
         let mut unchecked = Vec::new();
-        for file in files.iter().filter(|file| selection.contains(&file.path)) {
+        let wanted = |file: &&DiscoveredFile| {
+            selection.contains(&file.path) && !in_test_folder(&file.path, &self.limits.test_folders)
+        };
+        for file in files.iter().filter(wanted) {
             match self.analyse(request, file, &ids) {
                 Ok(done) => analysed.push(done),
                 Err(error) => unchecked.push(Unchecked {
@@ -114,7 +117,11 @@ impl ConventionChecker {
             .flat_map(|done| too_long(&done.callables, self.limits.max_function_lines))
             .collect();
         let items = fingerprinted(analysed);
-        findings.extend(duplicates(&items, self.limits.duplicate_similarity_percent));
+        findings.extend(duplicates(
+            &items,
+            self.limits.duplicate_similarity_percent,
+            self.limits.duplicate_min_lines,
+        ));
         findings.sort_by_key(|finding| {
             (
                 finding.location.path.clone(),
@@ -130,6 +137,15 @@ impl ConventionChecker {
             unmatched,
         }
     }
+}
+
+/// Whether a folder on the way to `path` is one of the test folders.
+fn in_test_folder(path: &RelativePath, test_folders: &[String]) -> bool {
+    let mut parts: Vec<&str> = path.as_str().split(PATH_SEPARATOR).collect();
+    parts.pop();
+    parts
+        .iter()
+        .any(|part| test_folders.iter().any(|folder| folder == part))
 }
 
 /// The callables that have fingerprints, paired with them.
