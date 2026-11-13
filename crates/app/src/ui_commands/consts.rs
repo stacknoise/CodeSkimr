@@ -23,6 +23,15 @@ pub const SEARCH_TITLE: &str = i18n::COMMAND_SEARCH_QUERY_TITLE;
 /// Description key of `search.query`.
 pub const SEARCH_DESCRIPTION: &str = i18n::COMMAND_SEARCH_QUERY_DESCRIPTION;
 
+/// Id of the command of the status bar.
+pub const STATUS_INFO: &str = "status.info";
+/// Title key of `status.info`.
+pub const STATUS_TITLE: &str = i18n::COMMAND_STATUS_INFO_TITLE;
+/// Description key of `status.info`.
+pub const STATUS_DESCRIPTION: &str = i18n::COMMAND_STATUS_INFO_DESCRIPTION;
+/// Bytes in a megabyte, for the memory shown in the status bar.
+pub const BYTES_PER_MEGABYTE: u64 = 1_048_576;
+
 /// Shortcut of the new-project form.
 pub const SHORTCUT_NEW: &str = "N";
 /// Shortcut of the re-scan.

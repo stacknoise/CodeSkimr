@@ -49,3 +49,12 @@ The screen shows the active project (`shared/project/active.ts`) with two comman
 - Keys: Up and Down choose, `Enter` opens the hit in the explorer (the rows down to it open, because external navigation opens nodes), `Tab` and `Shift+Tab` change the chip, `Ctrl+C` (`Cmd+C` on a Mac) copies the qualified name when no text of the input is selected; `Ctrl+K` while the overlay is open keeps text and hits, `Esc` closes and gives the focus back to where it was.
 - Commands (`>`): the screens (projects, explorer, settings) and "scan project again" for the active project.
 - Deviations from the mock: no group "Files" and no scope `@` (all projects), because the index holds names of symbols only and the UI works on one project; the preview shows kind, qualified name and file but not the doc and the metrics; "Show in graph" and "Open in editor" are listed but off until the graph screen exists and the hit carries a line; the key hints of the preview say `Ctrl` (the `Cmd` variants work on a Mac); the time shown is the round trip of the command, not the time of the query alone; the hit of a member of a nested type opens the member within the nested type.
+
+## Status bar and language switch (WP-47)
+
+The footer of every screen (blueprint 15.2, 15.5, mock `Main.dc.html`) shows only measured values: the connection state, the number of projects and types (summed from `projects.list`), the start time and the memory of the program (command `status.info`, read right, read again every 5 seconds), and on the right a switch `EN | DE`. The switch calls `setLanguage`, like the language field in the settings, so both stay in step and the choice is stored in the browser. Numbers are written in the chosen language (`1,220` / `1.220`).
+
+- Start time: milliseconds from the start of the program (`run::execute`) until the server answers on its port. A server that is not started by `codeskimr serve` (the test server) reports none, and the bar leaves the item out. Memory is the physical memory of the process (crate `memory-stats`, Linux, macOS, Windows); if the system does not tell, the item is left out.
+- Deviations from the mock: "Watching for changes" and "Sample data" are not shown. The server of the UI does not watch folders (only `scan --watch` does) and there is no sample data, so showing them would be decoration. The texts `app-watching` and `app-sample-data` stay in `locales/` for the packages that add them.
+
+Screenshots (1440 x 900): [Hell](screenshots/status-hell.png), [Petrol](screenshots/status-petrol.png), [Dunkel](screenshots/status-dunkel.png).

@@ -6,6 +6,7 @@ import { QuickSearch } from "../features/search/QuickSearch";
 import { SearchField } from "../features/search/SearchField";
 import { useSearchShortcut } from "../features/search/keys";
 import { openSearch } from "../features/search/search";
+import { StatusBar } from "../features/status/StatusBar";
 import { SettingsScreen } from "../features/settings/SettingsScreen";
 import { t } from "../shared/i18n/i18n";
 import { I18N_KEYS } from "../shared/i18n/keys";
@@ -18,7 +19,6 @@ import {
   EXPLORER_ROUTE,
   FOOTER_ROUTES,
   LOGO_LETTER,
-  STATUS_DOT,
   MAIN_ROUTES,
   SETTINGS_ROUTE,
   type Route,
@@ -40,24 +40,6 @@ function RailLink(props: { route: Route }) {
     >
       <Icon name={props.route.icon} />
     </a>
-  );
-}
-
-function StatusText() {
-  return (
-    <Switch>
-      <Match when={sessionState().kind === KIND.connected}>
-        <span class={styles.ok}>
-          {STATUS_DOT} {t(I18N_KEYS.STATUS_CONNECTED)}
-        </span>
-      </Match>
-      <Match when={sessionState().kind === KIND.connecting}>
-        <span>{t(I18N_KEYS.STATUS_CONNECTING)}</span>
-      </Match>
-      <Match when={true}>
-        <span>{t(I18N_KEYS.STATUS_DISCONNECTED)}</span>
-      </Match>
-    </Switch>
   );
 }
 
@@ -107,9 +89,7 @@ export function App() {
         </main>
       </div>
       <QuickSearch />
-      <footer class={styles.status}>
-        <StatusText />
-      </footer>
+      <StatusBar />
     </div>
   );
 }

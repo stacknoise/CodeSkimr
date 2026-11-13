@@ -35,7 +35,7 @@ test.describe("the project list", () => {
     await expect(page.getByText(folder)).toBeVisible();
     await expect(page.getByText("C# 100 %")).toBeVisible({ timeout: SCAN_MS });
     await expect(page.getByText("current", { exact: true })).toBeVisible();
-    await expect(page.getByText(/^1 project · 1 type/)).toBeVisible();
+    await expect(page.getByRole("main").getByText(/^1 project · 1 type/)).toBeVisible();
     expect(await violations()).toEqual([]);
 
     // The list survives a reload, and the key R scans the project again.

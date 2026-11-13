@@ -25,6 +25,7 @@ codeskimr_cli = { path = "../cli" }
 codeskimr_mcp = { path = "../mcp" }
 tokio = { workspace = true, features = ["rt", "signal", "sync"] }
 getrandom.workspace = true
+memory-stats.workspace = true
 secrecy.workspace = true
 zeroize.workspace = true
 tracing.workspace = true

@@ -8,6 +8,7 @@ mod projects;
 mod rating;
 mod running;
 mod search;
+mod status;
 mod symbol;
 #[cfg(test)]
 mod tests;
@@ -21,6 +22,8 @@ use codeskimr_application::registry::Registry;
 use codeskimr_cli::GlobalOptions;
 use codeskimr_server::CommandApi;
 
+pub(crate) use status::{mark_ready, mark_started};
+
 use crate::config_files;
 use crate::locations::Locations;
 use crate::wiring::open_store;
@@ -29,6 +32,7 @@ use explorer::{ExplorerOutline, ExplorerPorts};
 use projects::{AddProject, ListProjects, RescanProject};
 use running::RunningScans;
 use search::{SearchPorts, SearchQuery};
+use status::StatusInfo;
 use symbol::ExplorerSymbol;
 
 /// What every command of the UI needs to scan: the command line, the folders and the event bus.
@@ -72,6 +76,9 @@ pub fn command_api(
     let mut registry = Registry::new();
     register_projects(&mut registry, &catalog, &context)?;
     register_search(&mut registry, &catalog)?;
+    registry
+        .register(StatusInfo)
+        .map_err(CodedError::caused_by)?;
     register_explorer(&mut registry, catalog, config.metrics.clone())?;
     let mut api = CommandApi::new(Arc::new(registry));
     api.expose::<ListProjects>()?;
@@ -80,6 +87,7 @@ pub fn command_api(
     api.expose::<ExplorerOutline>()?;
     api.expose::<ExplorerSymbol>()?;
     api.expose::<SearchQuery>()?;
+    api.expose::<StatusInfo>()?;
     Ok(api)
 }
 

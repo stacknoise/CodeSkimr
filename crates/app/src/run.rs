@@ -24,7 +24,7 @@ use crate::log_writer::RedactingWriter;
 use crate::logging;
 use crate::source_arg::SourceError;
 use crate::watch::{self, Report};
-use crate::{check, mcp, open, scan, serve};
+use crate::{check, mcp, open, scan, serve, ui_commands};
 
 /// Why a command did not finish: a registered code, plus the parser's text for usage errors.
 struct Failure {
@@ -66,6 +66,7 @@ pub fn execute<I>(arguments: I, env: Lookup<'_>) -> ExitCode
 where
     I: IntoIterator<Item = OsString>,
 {
+    ui_commands::mark_started();
     logging::init(env);
     let tags: Vec<String> = ENV_LANGUAGE_TAGS
         .iter()

@@ -109,7 +109,8 @@ fn the_commands_are_offered() {
             "projects.add",
             "projects.list",
             "projects.rescan",
-            "search.query"
+            "search.query",
+            "status.info"
         ]
     );
 }
@@ -310,7 +311,12 @@ fn a_token_without_the_read_right_is_refused() {
         .build()
         .unwrap();
     let nobody = principal::nobody();
-    for id in ["explorer.outline", "explorer.symbol", "search.query"] {
+    for id in [
+        "explorer.outline",
+        "explorer.symbol",
+        "search.query",
+        "status.info",
+    ] {
         let refused = runtime
             .block_on(
                 fixture
@@ -369,4 +375,12 @@ fn the_search_of_a_project_without_a_scan_or_without_text_is_empty() {
         fixture.call("search.query", json!({ "project": 99, "query": "a" })),
         Err("PRJ-201")
     );
+}
+
+#[test]
+fn the_status_reports_the_memory_of_the_program() {
+    let fixture = Fixture::new();
+    let status = fixture.call("status.info", Value::Null).unwrap();
+    assert!(status["memory_mb"].as_u64().unwrap() > 0);
+    assert!(status.get("startup_ms").is_some());
 }

@@ -100,23 +100,6 @@
     gap: var(--space-16);
 }
 
-.status {
-    height: 28px;
-    flex: none;
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    padding: 0 var(--space-16);
-    background: var(--surface);
-    border-top: 1px solid var(--line);
-    color: var(--muted);
-    font: 11.5px var(--font-mono);
-}
-
-.ok {
-    color: var(--good);
-}
-
 @media (max-width: 1000px) {
     .main {
         padding: var(--space-16);
