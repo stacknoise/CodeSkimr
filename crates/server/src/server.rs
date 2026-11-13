@@ -20,9 +20,10 @@ use crate::consts::{
 };
 use crate::guard::{Guard, screen};
 use crate::launch::LaunchCodes;
+use crate::settings::UiOptions;
 use crate::state::AppState;
 use crate::token::InstallationToken;
-use crate::ui::{self, UiOptions};
+use crate::ui;
 use crate::{events, routes, session};
 
 /// The local server before it listens.

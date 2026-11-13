@@ -156,3 +156,28 @@ async fn only_the_documented_methods_are_allowed() {
     assert_eq!(Call::get(EXCHANGE).send(&server).await.status, 405);
     assert_eq!(Call::new("PUT", ISSUE).send(&server).await.status, 405);
 }
+
+#[tokio::test]
+async fn no_failure_answer_reveals_the_token_or_a_waiting_code() {
+    let server = start(owner()).await;
+    let code = issue(&server).await;
+    let answers = [
+        exchange(&server, &"0".repeat(32)).await,
+        exchange(&server, "").await,
+        Call::post(EXCHANGE).json("not json").send(&server).await,
+        Call::post(ISSUE).send(&server).await,
+        Call::post(ISSUE).token("csk_wrong").send(&server).await,
+        Call::get(ISSUE).send(&server).await,
+        Call::post(EXCHANGE)
+            .header("Origin", "http://evil.example")
+            .json(&format!(r#"{{"code":"{code}"}}"#))
+            .send(&server)
+            .await,
+    ];
+    for reply in answers {
+        let everything = format!("{} {:?}", reply.body, reply.headers);
+        assert!(!everything.contains(TOKEN), "{everything}");
+        assert!(!everything.contains(&code), "{everything}");
+    }
+    assert_eq!(exchange(&server, &code).await.status, 200);
+}

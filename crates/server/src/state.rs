@@ -9,7 +9,7 @@ use crate::assets::Assets;
 use crate::commands::CommandApi;
 use crate::guard::Guard;
 use crate::launch::LaunchCodes;
-use crate::ui::UiSettings;
+use crate::settings::UiSettings;
 
 /// The shared state of the router. Cloning is cheap: everything is behind an `Arc` or `Copy`.
 #[derive(Clone)]

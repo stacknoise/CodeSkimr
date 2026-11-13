@@ -20,7 +20,7 @@ use crate::routes::read_json;
 use crate::state::AppState;
 
 /// Answer of `POST /api/v1/session/launch-code`.
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 pub struct IssuedCode {
     /// The code. It is shown once, to the caller that has the token.
     code: String,
@@ -36,13 +36,13 @@ pub struct CodeState {
 }
 
 /// Body of `POST /api/v1/session/exchange`.
-#[derive(Debug, Deserialize)]
+#[derive(Deserialize)]
 pub struct ExchangeRequest {
     code: String,
 }
 
 /// Answer of `POST /api/v1/session/exchange`.
-#[derive(Debug, Serialize)]
+#[derive(Serialize)]
 pub struct Exchanged {
     /// The installation token. The UI keeps it in `sessionStorage` and sends it as a bearer.
     token: String,

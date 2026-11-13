@@ -18,6 +18,10 @@ ADR 0028 decided the framework, the editor link, the theme build and the launch 
 8. **Theme and language** live in the browser's `localStorage` until a settings store exists on the server.
 9. **Not part of WP-42:** the bare `codeskimr` start command, embedding the UI in the binary, and tests of the launch file and browser start on Windows and macOS (the code has paths for them; they were run on Linux only).
 
+10. **Exception to blueprint 10.1:** the launch code and exchange routes are not commands of the registry and take no `Principal`; the installation token (or the code) takes that role. They are the only such routes besides the UI files.
+11. **Accepted risk:** `codeskimr open` sends the installation token over plain loopback HTTP to the configured port. A local user who listens on that port while no server runs could read it. This is accepted for the single-user mode; the team server (ADR 0019) uses its own login. `open` also refuses a code that is not 32 hexadecimal digits before it writes the launch page.
+12. **Known gap:** decision 7 (project files cannot set `editor.*` and `ui.*`) holds because `serve` and `open` load the configuration without a project file. The configuration layer does not reject these keys yet; see the follow-up issue.
+
 ## Consequences
 
 - The threat note in `docs/server.md` describes what a local attacker can and cannot do with the launch file and the 60-second window.

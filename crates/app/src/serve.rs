@@ -117,6 +117,26 @@ pub(crate) fn test_ui() -> UiOptions {
     ui_options(&config, &locations)
 }
 
+/// Runs the server of a test on a free port in a runtime of its own until `stopped` completes.
+/// The address is sent to `found` as soon as the server answers.
+#[cfg(test)]
+pub(crate) fn serve_for_test(
+    store: &impl CredentialStore,
+    ui: UiOptions,
+    found: &std::sync::mpsc::Sender<String>,
+    stopped: tokio::sync::oneshot::Receiver<()>,
+) -> Result<(), CodedError> {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?;
+    let listening = |url: &str| found.send(url.to_owned()).unwrap();
+    let shutdown = async {
+        stopped.await.ok();
+    };
+    runtime.block_on(serve(store, 0, ui, listening, shutdown))
+}
+
 #[cfg(test)]
 mod tests {
     use std::io::{Read, Write};

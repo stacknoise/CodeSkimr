@@ -19,7 +19,7 @@ use tokio::sync::oneshot;
 
 use crate::memory_keystore::Memory;
 use crate::open::{Plan, launch};
-use crate::serve::{serve, test_ui};
+use crate::serve::{serve_for_test, test_ui};
 
 const UI_DIR_VARIABLE: &str = "CODESKIMR_E2E_UI_DIR";
 const LAUNCH_COMMAND: &str = "launch";
@@ -71,16 +71,6 @@ fn e2e_server() {
         let port = url.rsplit(':').next().unwrap().parse().unwrap();
         serve_requests(&for_requests, port, stop);
     });
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap();
-    let listening = |url: &str| found.send(url.to_owned()).unwrap();
-    let shutdown = async {
-        stopped.await.ok();
-    };
-    runtime
-        .block_on(serve(&*store, 0, ui, listening, shutdown))
-        .unwrap();
+    serve_for_test(&*store, ui, &found, stopped).unwrap();
     requests.join().unwrap();
 }

@@ -35,14 +35,14 @@ CORS is closed: no `Access-Control-*` header is ever sent and there is no `OPTIO
 
 ## The installation token
 
-`csk_` and 64 hex digits (256 random bits), created at the first `serve` and kept in the credential store (OS keystore). The server keeps only the BLAKE3 digest. The token text is read in one place (`installation_token::digest_of`, one `expose_secret()` call) and never leaves the loan. The prefix is masked by the log redaction (S-01). There is no command that shows the token. The browser UI gets it through a launch code:
+`csk_` and 64 hex digits (256 random bits), created at the first `serve` and kept in the credential store (OS keystore). The server keeps the BLAKE3 digest for checking requests. The token text is read in `installation_token::digest_of` and, while a launch code is waiting, held as a secret string (see below); it is never logged and not part of any `Debug` output. The prefix is masked by the log redaction (S-01). There is no command that shows the token. The browser UI gets it through a launch code:
 
 1. `codeskimr open` reads the token from the keystore and asks the server for a code (128 random bits, valid `ui.launch_code_seconds`, default 60, usable once, one code at a time).
 2. It writes a redirect page to a launch file (mode 0600, created exclusively, in a private folder with mode 0700) and starts the browser with that `file://` path. The code is never on a command line. `--no-browser` only prints the path.
 3. The page redirects to `http://127.0.0.1:PORT/#code=…`. The fragment is not sent to the server. The UI removes it with `history.replaceState`, then posts the code to the exchange route and keeps the token in `sessionStorage` only.
 4. `open` polls until the code is taken or has expired and then deletes the file.
 
-Threat note: the server holds the token text for at most the life of the code. Another OS user cannot read the launch file (0600 in a 0700 folder). A process of the same user could read it, but that user can read the keystore anyway. Within the 60 seconds a local process that guesses the code would need 2^128 tries, and a wrong code does not burn the valid one. A used or expired code is gone for good.
+Threat note: `codeskimr open` sends the token to the port of `server.port` over plain HTTP on the loopback address. If no server runs there, another local user could listen on that port and read it; This is an accepted risk of the single-user mode (ADR 0030). the server holds the token text for at most the life of the code. Another OS user cannot read the launch file (0600 in a 0700 folder). A process of the same user could read it, but that user can read the keystore anyway. Within the 60 seconds a local process that guesses the code would need 2^128 tries, and a wrong code does not burn the valid one. A used or expired code is gone for good.
 
 ## Events
 

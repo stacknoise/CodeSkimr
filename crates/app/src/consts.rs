@@ -210,6 +210,8 @@ pub const LAUNCH_PAGE_HEAD: &str = "<!doctype html>\n<meta charset=\"utf-8\">\n<
 pub const LAUNCH_PAGE_TAIL: &str = "\">\n";
 /// Fragment parameter that carries the launch code (ADR 0028).
 pub const LAUNCH_FRAGMENT: &str = "/#code=";
+/// Characters of a launch code: 128 bits as hexadecimal digits.
+pub const LAUNCH_CODE_CHARS: usize = 32;
 /// Path of the launch code route on the local server.
 pub const LAUNCH_CODE_PATH: &str = "/api/v1/session/launch-code";
 /// Name of the field with the code in the answer.

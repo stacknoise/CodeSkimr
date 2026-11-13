@@ -20,9 +20,9 @@ use serde_json::Value;
 use zeroize::Zeroizing;
 
 use crate::consts::{
-    APP_DIR, CODE_POLL_MS, ENV_XDG_RUNTIME_DIR, FIELD_CODE, FIELD_PENDING, LAUNCH_CODE_PATH,
-    LAUNCH_DIR, LAUNCH_FRAGMENT, LOOPBACK_HOST, METHOD_GET, METHOD_POST, TOKEN_CREDENTIAL_ID,
-    URL_SCHEME,
+    APP_DIR, CODE_POLL_MS, ENV_XDG_RUNTIME_DIR, FIELD_CODE, FIELD_PENDING, LAUNCH_CODE_CHARS,
+    LAUNCH_CODE_PATH, LAUNCH_DIR, LAUNCH_FRAGMENT, LOOPBACK_HOST, METHOD_GET, METHOD_POST,
+    TOKEN_CREDENTIAL_ID, URL_SCHEME,
 };
 use crate::launch_file::LaunchFile;
 use crate::local_http::{Call, call};
@@ -121,8 +121,15 @@ fn request_code(port: u16, token: &str) -> Result<Zeroizing<String>, CodedError>
     answer
         .get(FIELD_CODE)
         .and_then(Value::as_str)
+        .filter(|code| is_launch_code(code))
         .map(|code| Zeroizing::new(code.to_owned()))
         .ok_or_else(|| CodedError::new(ErrorCode::ServerNotReachable))
+}
+
+/// Whether `code` has the shape of a launch code. The text goes into a page that the browser
+/// opens, so anything else (a rogue listener on the port) is refused before it is written.
+fn is_launch_code(code: &str) -> bool {
+    code.len() == LAUNCH_CODE_CHARS && code.chars().all(|c| c.is_ascii_hexdigit())
 }
 
 /// Waits until the server says that no code is waiting any more, but not longer than `lifetime`.
@@ -170,7 +177,7 @@ mod tests {
 
     use super::*;
     use crate::memory_keystore::Memory;
-    use crate::serve::{serve, test_ui};
+    use crate::serve::{serve_for_test, test_ui};
 
     /// The two answers to the exchange and the file the code was in.
     type Seen = (String, String, PathBuf);
@@ -187,6 +194,20 @@ mod tests {
         let mut answer = String::new();
         stream.read_to_string(&mut answer).unwrap();
         answer
+    }
+
+    #[test]
+    fn only_a_code_of_the_right_shape_goes_into_the_page() {
+        assert!(is_launch_code(&"a1".repeat(16)));
+        for text in [
+            "",
+            "abc",
+            &"g".repeat(32),
+            "\"><script>x</script>",
+            &"a".repeat(33),
+        ] {
+            assert!(!is_launch_code(text), "{text}");
+        }
     }
 
     /// The code in the redirect page, the way the browser would read it from the address.
@@ -249,26 +270,16 @@ mod tests {
     fn the_whole_way_from_the_file_to_the_token_and_back_to_nothing() {
         let dir = tempfile::tempdir().unwrap();
         let store = Arc::new(KeystoreCredentials::new(Memory::default()));
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .unwrap();
         let (stop, stopped) = oneshot::channel::<()>();
-        let (found, url) = oneshot::channel::<String>();
+        let (found, url) = std::sync::mpsc::channel::<String>();
         let launch_dir = dir.path().to_path_buf();
         let for_client = Arc::clone(&store);
         let client = thread::spawn(move || {
-            let result = client_side(&for_client, &url.blocking_recv().unwrap(), launch_dir);
+            let result = client_side(&for_client, &url.recv().unwrap(), launch_dir);
             stop.send(()).unwrap();
             result
         });
-        let listening = |url: &str| found.send(url.to_owned()).unwrap();
-        let shutdown = async {
-            stopped.await.ok();
-        };
-        runtime
-            .block_on(serve(&*store, 0, test_ui(), listening, shutdown))
-            .unwrap();
+        serve_for_test(&*store, test_ui(), &found, stopped).unwrap();
         let (outcome, announced, (first, second, file)) = client.join().unwrap();
         outcome.unwrap();
         assert!(first.starts_with("HTTP/1.1 200"), "{first}");
