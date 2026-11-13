@@ -39,7 +39,9 @@ use crate::consts::{
 use crate::error::McpError;
 use crate::tools::Tools;
 
-/// The MCP server: the tools plus the texts it announces to clients.
+/// The MCP server: the tools plus the texts it announces to clients. Cloning is cheap: the tools
+/// are shared, so a transport can hand one handler to every request.
+#[derive(Clone)]
 pub struct McpServer {
     tools: Arc<Tools>,
     definitions: Vec<Tool>,

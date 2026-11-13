@@ -13,7 +13,7 @@ use codeskimr_application::ports::{
 use codeskimr_cli::{GlobalOptions, McpArgs};
 use codeskimr_codes::ErrorCode;
 use codeskimr_i18n::Messages;
-use codeskimr_mcp::{McpServer, Ports, Tools, serve_stdio};
+use codeskimr_mcp::{HttpService, McpServer, Ports, Tools, serve_stdio};
 use codeskimr_storage::SqliteStore;
 
 use crate::clock::SystemClock;
@@ -51,7 +51,7 @@ pub fn run(
     if store.latest_snapshot(project.id)?.is_none() {
         return Err(CodedError::new(ErrorCode::ProjectNotScanned));
     }
-    let ports = build_ports(store, &config, locations)?;
+    let ports = build_ports(store, &config, locations, EventBus::new())?;
     let tools = Tools::new(ports, config.mcp, project.id);
     let messages = Messages::load().map_err(CodedError::caused_by)?;
     let server = McpServer::new(tools, &messages, principal::resolve())?;
@@ -62,6 +62,26 @@ pub fn run(
         .block_on(serve_stdio(server))
 }
 
+/// The MCP tools over streamable HTTP for the running app (blueprint 10.4): every registered
+/// project, no default one, the same store file as the UI and the same event bus, so a `rescan`
+/// of an agent shows up in the UI like a scan from the UI. The caller is the local owner; the web
+/// server lets only requests with the installation token reach the service.
+///
+/// # Errors
+/// Any coded failure of opening the store, loading the language packs or the message texts.
+pub fn http_service(
+    config: &Config,
+    locations: &Locations,
+    events: EventBus,
+) -> Result<HttpService, CodedError> {
+    let store = open_store(locations, config)?;
+    let ports = build_ports(store, config, locations, events)?;
+    let tools = Tools::unscoped(ports, config.mcp.clone());
+    let messages = Messages::load().map_err(CodedError::caused_by)?;
+    let server = McpServer::new(tools, &messages, principal::resolve())?;
+    Ok(codeskimr_mcp::http_service(&server))
+}
+
 /// The ports of the tools: the store for everything it implements, the analysis ports the
 /// convention check and the snippet fingerprints read files and language packs through, and the
 /// scanner for `rescan`.
@@ -69,6 +89,7 @@ fn build_ports(
     store: Arc<SqliteStore>,
     config: &Config,
     locations: &Locations,
+    events: EventBus,
 ) -> Result<Ports, CodedError> {
     let Analysis {
         discovery,
@@ -77,7 +98,7 @@ fn build_ports(
     } = build_analysis(config, locations)?;
     let checker = ConventionChecker::new(discovery, analyzer, config.conventions.clone());
     let scanner: Arc<dyn ProjectScanner> =
-        Arc::new(build_scanner(&store, config, locations, EventBus::new())?);
+        Arc::new(build_scanner(&store, config, locations, events)?);
     let projects: Arc<dyn ProjectRepository> = store.clone();
     let usages: Arc<dyn UsageIndex> = store.clone();
     let similarity: Arc<dyn SimilarityIndex> = store.clone();

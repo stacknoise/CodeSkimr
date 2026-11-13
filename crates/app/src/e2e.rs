@@ -86,6 +86,7 @@ fn e2e_server() {
             events.clone(),
         )
         .unwrap(),
+        mcp: None,
         events,
     };
     let store = Arc::new(KeystoreCredentials::new(Memory::default()));

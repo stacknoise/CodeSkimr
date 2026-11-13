@@ -9,12 +9,13 @@ use codeskimr_application::events::EventBus;
 use codeskimr_application::ports::CredentialStore;
 use codeskimr_cli::GlobalOptions;
 use codeskimr_codes::ErrorCode;
+use codeskimr_mcp::HttpService;
 use codeskimr_secrets::{OsCredentialStore, OsKeystore};
 use codeskimr_server::{CommandApi, EditorSettings, Server, UiOptions, UiSettings};
 
 use crate::consts::URL_SCHEME;
 use crate::locations::Locations;
-use crate::{config_files, installation_token, principal, ui_commands};
+use crate::{config_files, installation_token, mcp, principal, ui_commands};
 
 /// Serves until the user interrupts the program. `listening` is called once with the address as
 /// soon as the server answers.
@@ -37,6 +38,7 @@ pub fn run(
     let parts = Parts {
         ui: ui_options(&config, locations),
         api: ui_commands::command_api(global, locations, events.clone())?,
+        mcp: Some(mcp::http_service(&config, locations, events.clone())?),
         events,
     };
     tokio::runtime::Builder::new_current_thread()
@@ -73,6 +75,7 @@ fn ui_options(config: &codeskimr_application::config::Config, locations: &Locati
 pub(crate) struct Parts {
     pub ui: UiOptions,
     pub api: CommandApi,
+    pub mcp: Option<HttpService>,
     pub events: EventBus,
 }
 
@@ -92,6 +95,10 @@ pub(crate) async fn serve(
         token,
         parts.ui,
     );
+    let server = match parts.mcp {
+        Some(service) => server.with_mcp(service),
+        None => server,
+    };
     let bound = server
         .bind(SocketAddr::from((Ipv4Addr::LOCALHOST, port)))
         .await?;
@@ -107,6 +114,7 @@ pub(crate) async fn serve(
 pub(crate) fn bare_parts(ui: UiOptions) -> Parts {
     Parts {
         ui,
+        mcp: None,
         api: CommandApi::new(std::sync::Arc::new(
             codeskimr_application::registry::Registry::new(),
         )),
