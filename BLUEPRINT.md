@@ -295,15 +295,14 @@ codeskimr/
 
 ```mermaid
 flowchart LR
-  A[Fetch source] --> B[Discover files] --> C[Parse] --> D[Extract symbols] --> E[Resolve references] --> F[Compute metrics] --> G[Persist + read models]
+  A[Fetch source] --> B[Discover files] --> C[Analyze: parse + extract symbols] --> E[Resolve references] --> F[Compute metrics] --> G[Persist + read models]
 ```
 
 | Stage | Responsibility | Parallel |
 |---|---|---|
 | Fetch source | folder: nothing to do; Git: shallow clone or fetch | I/O |
 | Discover files | walk with `.gitignore`, detect language, hash content, skip unchanged files | yes |
-| Parse | Tree-sitter per file | yes (per file) |
-| Extract symbols | run the language-pack queries, build symbols and members | yes (per file) |
+| Analyze | Tree-sitter per file, then run the language-pack queries and build symbols and members; the tree never leaves the adapter (ADR 0013) | yes (per file) |
 | Resolve references | map names to symbols (section 9) | yes (per file, after a global symbol table pass) |
 | Compute metrics | LOC, CC, MI, Ce, Ca, instability | yes |
 | Persist | one transaction per snapshot, then update read models | single writer |

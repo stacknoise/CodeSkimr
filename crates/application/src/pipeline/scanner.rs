@@ -1,0 +1,139 @@
+//! The entry point of a scan: builds the pipeline from the ports and drives one job through it.
+
+use std::sync::Arc;
+
+use codeskimr_codes::Coded;
+use codeskimr_domain::ProjectId;
+
+use super::flow::{Chain, Halt, Pipeline, Single, StageContext};
+use super::job::{Cancelled, Failed, Finished, Job, Queued};
+use super::stages::{
+    AnalyzeStage, DiscoverStage, FetchStage, MeasureStage, PersistStage, ResolveStage, ScanRequest,
+};
+use crate::events::{Event, EventBus, ScanStopped, SnapshotCreated, StopReason};
+use crate::ids::IdSequence;
+use crate::ports::{
+    Clock, FileAnalyzer, FileDiscovery, MetricsCalculator, ProjectRepository, ReferenceResolver,
+    SnapshotStore, SourceProvider,
+};
+
+/// Everything the scanner needs from the adapters, wired by the composition root.
+pub struct ScannerPorts {
+    /// Makes the source available.
+    pub source: Arc<dyn SourceProvider>,
+    /// Lists and hashes files.
+    pub discovery: Arc<dyn FileDiscovery>,
+    /// Parses and extracts.
+    pub analyzer: Arc<dyn FileAnalyzer>,
+    /// Resolves references.
+    pub resolver: Arc<dyn ReferenceResolver>,
+    /// Computes metrics.
+    pub metrics: Arc<dyn MetricsCalculator>,
+    /// Reads projects and writes snapshots.
+    pub projects: Arc<dyn ProjectRepository>,
+    /// Writes snapshots.
+    pub store: Arc<dyn SnapshotStore>,
+    /// Current time.
+    pub clock: Arc<dyn Clock>,
+}
+
+/// The six stages in order, with every type spelled out by the compiler.
+type ScanFlow = Chain<
+    Chain<
+        Chain<Chain<Chain<Single<FetchStage>, DiscoverStage>, AnalyzeStage>, ResolveStage>,
+        MeasureStage,
+    >,
+    PersistStage,
+>;
+
+/// How a job ended.
+#[derive(Debug)]
+pub enum JobResult {
+    /// A snapshot was written.
+    Finished(Job<Finished>),
+    /// The user cancelled; no snapshot was written.
+    Cancelled(Job<Cancelled>),
+    /// A stage failed; no snapshot was written.
+    Failed(Job<Failed>),
+}
+
+/// Runs scan jobs. Create one per application and reuse it.
+pub struct Scanner {
+    pipeline: Pipeline<ScanFlow>,
+    projects: Arc<dyn ProjectRepository>,
+    events: EventBus,
+}
+
+impl Scanner {
+    /// Wires the six stages from `ports`; `ids` must continue after the highest stored id.
+    #[must_use]
+    pub fn new(ports: ScannerPorts, ids: &Arc<IdSequence>, events: EventBus) -> Self {
+        let pipeline = Pipeline::new(FetchStage {
+            source: ports.source,
+            ids: Arc::clone(ids),
+        })
+        .then(DiscoverStage {
+            discovery: ports.discovery,
+            projects: Arc::clone(&ports.projects),
+        })
+        .then(AnalyzeStage {
+            analyzer: ports.analyzer,
+            ids: Arc::clone(ids),
+        })
+        .then(ResolveStage {
+            resolver: ports.resolver,
+            ids: Arc::clone(ids),
+        })
+        .then(MeasureStage {
+            calculator: ports.metrics,
+        })
+        .then(PersistStage {
+            store: ports.store,
+            clock: ports.clock,
+        });
+        Self {
+            pipeline,
+            projects: ports.projects,
+            events,
+        }
+    }
+
+    /// Runs `job` to its end and publishes `SnapshotCreated` or `ScanStopped`.
+    ///
+    /// A job that fails to load its project ends as `Failed`, like any stage failure.
+    #[must_use]
+    pub fn run(&self, job: Job<Queued>) -> JobResult {
+        let project_id = job.project();
+        let mode = job.mode();
+        let job = job.start();
+        let project = match self.projects.project(project_id) {
+            Ok(project) => project,
+            Err(cause) => return self.fail(job.fail(cause.code()), project_id),
+        };
+        let ctx = StageContext::new(project_id, job.token(), &self.events);
+        match self.pipeline.run(ScanRequest { project, mode }, &ctx) {
+            Ok(snapshot) => {
+                self.events
+                    .publish(&Event::SnapshotCreated(SnapshotCreated {
+                        snapshot: snapshot.clone(),
+                    }));
+                JobResult::Finished(job.finish(snapshot))
+            }
+            Err(Halt::Cancelled(_)) => {
+                self.stopped(project_id, StopReason::Cancelled);
+                JobResult::Cancelled(job.cancel())
+            }
+            Err(Halt::Failed(error)) => self.fail(job.fail(error.code()), project_id),
+        }
+    }
+
+    fn fail(&self, job: Job<Failed>, project: ProjectId) -> JobResult {
+        self.stopped(project, StopReason::Failed(job.code()));
+        JobResult::Failed(job)
+    }
+
+    fn stopped(&self, project: ProjectId, reason: StopReason) {
+        self.events
+            .publish(&Event::ScanStopped(ScanStopped { project, reason }));
+    }
+}
