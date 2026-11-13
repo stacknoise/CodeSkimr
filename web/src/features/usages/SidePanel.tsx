@@ -52,7 +52,7 @@ function Impact(props: { answer: UsagesAnswer }) {
 }
 
 /** How sure the usages are, and the reason when no indexer checked them. This is what keeps the
- * screen honest: unchecked results are counted apart from verified ones (ADR 0032). */
+ * screen honest: unchecked results are counted apart from verified ones (ADR 0033). */
 function Accuracy(props: { answer: UsagesAnswer }) {
   const summary = () => props.answer.summary;
   return (

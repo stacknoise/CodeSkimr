@@ -49,7 +49,7 @@ pub const USAGES_TITLE: &str = i18n::COMMAND_USAGES_QUERY_TITLE;
 pub const USAGES_DESCRIPTION: &str = i18n::COMMAND_USAGES_QUERY_DESCRIPTION;
 /// Most references and symbols of one walk that `usages.query` returns.
 pub const USAGES_LIMIT: u32 = 500;
-/// State of level 2 while no indexer is wired (ADR 0032).
+/// State of level 2 while no indexer is wired (ADR 0033).
 pub const LEVEL2_UNAVAILABLE: &str = "unavailable";
 
 /// Id of the command of the status bar.
