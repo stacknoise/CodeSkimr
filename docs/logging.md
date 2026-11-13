@@ -20,6 +20,12 @@ Every log line passes through `RedactingWriter` (`crates/app/src/log_writer.rs`)
 
 Masking errs on the safe side: a value that only looks like a secret is hidden as well, and text such as `token: expired` loses its value. Applying `redact` twice gives the same result.
 
+Also masked: `Debug` shapes (`Some("x")`, `Token("x")`, `"key" => "x"`, JSON with escaped quotes), longer key names (`AWS_SECRET_ACCESS_KEY`, `secret_key`, `passphrase`), PEM private key blocks and more token formats (`ASIA`, `sk_live_`, `npm_`, `xapp-`). An unquoted value runs to the next blank or `&`, so commas and brackets inside a password do not end it.
+
+## Error output
+
+Text that the program prints to standard error (error lines and the parser's text for wrong arguments, which can echo an argument with a secret) passes through the same writer. Standard output (command results, MCP) is not filtered; it never carries log lines.
+
 ## Panics
 
 `logging::init` replaces the default panic hook. A panic is logged as an `ERROR` event with `code=APP-901`, the location and the message, and therefore goes through the same redaction. With `CODESKIMR_LOG=off` a panic prints nothing, and `RUST_BACKTRACE` has no effect because the default hook is gone. This is intended: a panic text can carry a secret, and a backtrace cannot be masked reliably. The hook is only replaced if this subscriber was installed.
@@ -28,11 +34,13 @@ Masking errs on the safe side: a value that only looks like a secret is hidden a
 
 Redaction recognises shapes, not values. A secret in an unknown shape (a random password inside an ordinary sentence) is not found. This is why secrets never reach a log in the first place (blueprint 12.4: no `format!`, `SecretString` never prints its content); the redaction layer is the second line of defence.
 
+Known gaps: a quoted value that itself contains an escaped quote ends at that quote; presigned-URL signatures (`X-Amz-Signature=…`) and scp-style `user:password@host:path` are not recognised; `codeskimr_source::redact_credentials` leaves a password that contains an unencoded `/` or `?` (issue linked in the PR).
+
 ## Tests
 
 - `redact.rs`: canaries in every shape (also inside `Debug`-escaped JSON, where quotes appear as `\"`), ordinary text stays unchanged, idempotence.
 - `log_writer.rs`: a secret split over several writes is masked.
 - `logging.rs`: canaries in messages, fields, `Debug` output and a panic never reach the output of a real subscriber.
-- `tests/commands.rs`: the log level does not disturb standard output.
+- `tests/commands.rs`: through the real binary, a canary in an argument appears neither in the log (`CODESKIMR_LOG=debug`, whose line must be present) nor in the error output, and the log level does not disturb standard output.
 
 The full canary suite S-02 (REST/MCP responses, the database file, crash output of a child process) belongs to the security role and builds on these tests.

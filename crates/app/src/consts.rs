@@ -95,7 +95,8 @@ pub const REDACTED: &str = "[redacted]";
 /// Header and field names whose value runs to the end of the line, case-insensitive.
 pub const LINE_KEYS: [&str; 2] = ["authorization", "cookie"];
 /// Field and parameter names whose value is one word, case-insensitive.
-pub const VALUE_KEYS: [&str; 10] = [
+pub const VALUE_KEYS: [&str; 11] = [
+    "passphrase",
     "password",
     "passwd",
     "secret",
@@ -108,17 +109,36 @@ pub const VALUE_KEYS: [&str; 10] = [
     "session_id",
 ];
 /// Scheme word of a bearer token; its value follows after a blank, case-insensitive.
-pub const BEARER_KEY: &str = "bearer ";
+pub const BEARER_KEY: &str = "bearer";
 /// Separates a key from its value.
-pub const KEY_SEPARATORS: [char; 2] = [':', '='];
+pub const KEY_SEPARATORS: [char; 3] = [':', '=', '('];
 /// Quote characters around a key or a value.
 pub const QUOTES: [char; 2] = ['"', '\''];
 /// Blanks between a key, its separator and its value.
 pub const BLANKS: [char; 2] = [' ', '\t'];
-/// Characters that end an unquoted one-word value.
-pub const VALUE_END: [char; 9] = ['&', ',', ';', ')', '}', ']', '"', '\'', '`'];
+/// Characters that end an unquoted one-word value. A secret may contain commas and brackets, so
+/// only the ones that separate parameters or open a quote end it.
+pub const VALUE_END: [char; 3] = ['&', '"', '\''];
+/// Follows the separator in `"key" => "value"`.
+pub const ARROW: char = '>';
+/// Opens the content of a `Debug`-formatted wrapper such as `Some("x")` or `Token("x")`.
+pub const CALL_OPEN: char = '(';
+/// Beginning of a PEM block.
+pub const PEM_BEGIN: &str = "-----BEGIN ";
+/// What the header of a PEM block says if the block holds a private key.
+pub const PEM_PRIVATE: &str = "PRIVATE KEY";
+/// Beginning of the last line of a PEM block.
+pub const PEM_END: &str = "-----END ";
 /// Beginnings of well-known tokens: GitHub, GitLab, Slack, AWS, JWT, API keys.
-pub const TOKEN_PREFIXES: [&str; 14] = [
+pub const TOKEN_PREFIXES: [&str; 22] = [
+    "ASIA",
+    "sk_live_",
+    "sk_test_",
+    "npm_",
+    "xapp-",
+    "xoxe-",
+    "xoxs-",
+    "xoxr-",
     "github_pat_",
     "ghp_",
     "gho_",

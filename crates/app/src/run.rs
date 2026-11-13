@@ -18,6 +18,7 @@ use crate::consts::{
     ENV_LANGUAGE_TAGS, EXIT_FAILURE, EXIT_USAGE, LINE_BREAK, PLAIN_ERROR_SEPARATOR,
 };
 use crate::locations::{Locations, Lookup};
+use crate::log_writer::RedactingWriter;
 use crate::logging;
 use crate::source_arg::SourceError;
 use crate::{mcp, scan};
@@ -134,6 +135,7 @@ fn run_invocation(
 }
 
 fn report(messages: &Messages, language: &str, failure: &Failure) -> ExitCode {
+    tracing::debug!(code = failure.code.id(), detail = ?failure.detail);
     let Ok(line) = error_line(messages, language, failure.code) else {
         return report_plain(failure.code);
     };
@@ -164,8 +166,10 @@ fn write_out(text: &str) {
     emit(io::stdout(), text);
 }
 
+/// Error output passes through the redaction layer like the log: an error text may echo an
+/// argument that holds a secret (blueprint S-01, S-02).
 fn write_err(text: &str) {
-    emit(io::stderr(), text);
+    emit(RedactingWriter::new(io::stderr()), text);
 }
 
 /// Writes `text` and a line break.
