@@ -15,3 +15,12 @@ workspace = true
 codeskimr_application = { path = "../../application" }
 codeskimr_domain = { path = "../../domain" }
 codeskimr_codes = { path = "../../codes" }
+fluent-bundle = "0.16"
+unic-langid = "0.9"
+thiserror = { workspace = true }
+
+[build-dependencies]
+codeskimr_codegen = { path = "../../../tools/codegen" }
+
+[dev-dependencies]
+fluent-syntax = "0.12"

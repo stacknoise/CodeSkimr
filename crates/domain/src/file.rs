@@ -1,6 +1,5 @@
 //! Source files of a snapshot.
 
-use crate::metric::Loc;
 use crate::snapshot::SnapshotId;
 use crate::vocabulary::{id_type, text_type};
 
@@ -20,6 +19,10 @@ text_type!(
     /// Hash of the file content, used to skip unchanged files.
     ContentHash
 );
+
+/// Lines of code.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Default)]
+pub struct Loc(pub u32);
 
 /// A source file.
 #[derive(Debug, Clone, PartialEq, Eq)]

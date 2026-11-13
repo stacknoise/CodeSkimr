@@ -23,3 +23,12 @@ pub const CLASS_DIGITS: [u8; 7] = [1, 2, 3, 4, 5, 6, 9];
 /// Marker line at the top of every generated file.
 pub const GENERATED_NOTICE: &str =
     "Generated from errors/error-codes.toml by tools/codegen. Do not edit.";
+/// File extension of Fluent files.
+pub const FTL_EXTENSION: &str = "ftl";
+/// Language whose files define the key set; every other language is checked against it.
+pub const REFERENCE_LANGUAGE: &str = "en";
+/// Generated TypeScript i18n keys, relative to the repository root.
+pub const I18N_TS_PATH: &str = "web/src/shared/i18n/keys.ts";
+/// Marker line at the top of generated i18n files.
+pub const GENERATED_NOTICE_I18N: &str =
+    "Generated from locales/en/*.ftl by tools/codegen. Do not edit.";

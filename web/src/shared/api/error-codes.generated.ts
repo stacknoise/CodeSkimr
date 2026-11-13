@@ -7,6 +7,7 @@ export type ErrorCode =
   | "APP-901"
   | "CFG-101"
   | "CFG-102"
+  | "CFG-103"
   | "PRJ-101"
   | "PRJ-201"
   | "PRJ-301"
@@ -72,6 +73,7 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "APP-901": { id: "APP-901", name: "unexpected_internal_error", group: "APP", class: "internal", severity: "error", retryable: false, description: "An unexpected internal error occurred (bug).", since: "0.1.0", deprecated: false, messageKey: "error-APP-901" },
   "CFG-101": { id: "CFG-101", name: "config_invalid_value", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration value is outside its allowed range or has the wrong type.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-101" },
   "CFG-102": { id: "CFG-102", name: "config_parse_failed", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration file is not valid TOML.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-102" },
+  "CFG-103": { id: "CFG-103", name: "config_unknown_key", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration file or flag sets a key that does not exist.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-103" },
   "PRJ-101": { id: "PRJ-101", name: "project_source_invalid", group: "PRJ", class: "invalid_input", severity: "error", retryable: false, description: "The given source is neither an existing folder nor a valid Git URL.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-101" },
   "PRJ-201": { id: "PRJ-201", name: "project_not_found", group: "PRJ", class: "not_found", severity: "error", retryable: false, description: "No project with this id exists.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-201" },
   "PRJ-301": { id: "PRJ-301", name: "project_already_registered", group: "PRJ", class: "conflict", severity: "error", retryable: false, description: "A project with the same source is already registered.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-301" },
