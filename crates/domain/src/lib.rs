@@ -16,9 +16,9 @@ mod symbol;
 mod vocabulary;
 
 pub use error::ModelError;
-pub use file::{ContentHash, FileId, LanguageId, RelativePath, SourceFile};
+pub use file::{ContentHash, FileId, LanguageId, Loc, RelativePath, SourceFile};
 pub use layer::LayerEdge;
-pub use metric::{Loc, Metric, MetricKind, MetricValue};
+pub use metric::{Metric, MetricKind, MetricValue};
 pub use project::{
     BranchName, FolderPath, GitUrl, Layer, LayerName, Project, ProjectId, ProjectName,
     ProjectSource,
