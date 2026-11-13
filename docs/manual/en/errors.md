@@ -49,6 +49,7 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | `MCP-202` | symbol not found | take the id from `search_symbols` |
 | `MCP-203` | the project has no snapshot | scan it |
 | `MCP-501` | not an error: the result was cut to the limit | ask for less, or raise `limit` |
+| `EXP-201`, `EXP-601` | the export page is missing, or the export file cannot be written | see [HTML export](export.md#errors) |
 | `STO-501` | disk full | free space |
 | `CLI-101` | invalid command-line arguments | see `codeskimr --help` |
 | `*-901` | an unexpected internal error | report it with the code |

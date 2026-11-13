@@ -15,9 +15,8 @@ CodeSkimr scannt Code-Repositories und macht sie als Dokumentation navigierbar: 
 | Language indexers / Sprach-Indexer | [en/indexers.md](en/indexers.md) | [de/indexer.md](de/indexer.md) |
 | MCP setup / MCP einrichten | [en/mcp.md](en/mcp.md) | [de/mcp.md](de/mcp.md) |
 | Sources and credentials / Quellen und Zugangsdaten | [en/sources-and-credentials.md](en/sources-and-credentials.md) | [de/quellen-und-zugangsdaten.md](de/quellen-und-zugangsdaten.md) |
+| HTML export / HTML-Export | [en/export.md](en/export.md) | [de/export.md](de/export.md) |
 | Error codes / Fehlercodes | [en/errors.md](en/errors.md) | [de/fehler.md](de/fehler.md) |
-
-The chapter on exporting follows with the export command / Das Kapitel zum Export folgt mit dem Export-Befehl.
 
 The manual describes what the program does today. Where a feature is planned but not built yet, the text says so. Technical background for developers lives in the other files of `docs/`.
 

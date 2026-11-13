@@ -49,6 +49,7 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 | `MCP-202` | Symbol nicht gefunden | die ID aus `search_symbols` nehmen |
 | `MCP-203` | das Projekt hat keinen Snapshot | scannen |
 | `MCP-501` | kein Fehler: das Ergebnis wurde auf das Limit gekürzt | weniger verlangen oder `limit` erhöhen |
+| `EXP-201`, `EXP-601` | die Export-Seite fehlt, oder die Exportdatei kann nicht geschrieben werden | siehe [HTML-Export](export.md#fehler) |
 | `STO-501` | Datenträger voll | Platz schaffen |
 | `CLI-101` | ungültige Kommandozeilenargumente | siehe `codeskimr --help` |
 | `*-901` | ein unerwarteter interner Fehler | mit dem Code melden |
