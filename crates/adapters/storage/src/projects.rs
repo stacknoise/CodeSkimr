@@ -155,27 +155,43 @@ fn load_namespaces(
     Ok(names)
 }
 
-/// The columns of a project row: name, source kind, location, branch, credential name.
-fn project_columns(row: &Row<'_>) -> rusqlite::Result<(String, String, String, String, String)> {
-    Ok((
-        row.get(0)?,
-        row.get(1)?,
-        row.get(2)?,
-        row.get(3)?,
-        row.get(4)?,
-    ))
+/// A row of `projects` as stored.
+struct ProjectRow {
+    name: String,
+    kind: String,
+    location: String,
+    branch: String,
+    credential: String,
+}
+
+impl ProjectRow {
+    fn from_row(row: &Row<'_>) -> rusqlite::Result<Self> {
+        let cols = Cols::new(row);
+        Ok(Self {
+            name: cols.take()?,
+            kind: cols.take()?,
+            location: cols.take()?,
+            branch: cols.take()?,
+            credential: cols.take()?,
+        })
+    }
 }
 
 fn load_project(conn: &Connection, id: ProjectId) -> StorageResult<Project> {
     let raw = column_int(id.get())?;
     let row = conn
-        .query_row(sql::PROJECT_BY_ID, params![raw], project_columns)
+        .query_row(sql::PROJECT_BY_ID, params![raw], ProjectRow::from_row)
         .optional()?;
-    let (name, kind, location, branch, credential) = row.ok_or(StorageError::ProjectNotFound)?;
+    let stored = row.ok_or(StorageError::ProjectNotFound)?;
     Ok(Project {
         id,
-        name: ProjectName::new(name)?,
-        source: SourceColumns::source(&kind, location, branch, credential)?,
+        name: ProjectName::new(stored.name)?,
+        source: SourceColumns::source(
+            &stored.kind,
+            stored.location,
+            stored.branch,
+            stored.credential,
+        )?,
         layers: load_layers(conn, id)?,
     })
 }
