@@ -12,3 +12,6 @@ publish = false
 workspace = true
 
 [dependencies]
+
+[build-dependencies]
+codeskimr_codegen = { path = "../../tools/codegen" }
