@@ -1,5 +1,17 @@
 //! Building blocks that give the model its closed vocabulary: ids, validated texts and labelled enums.
 
+/// Implements `Display` by displaying a value derived from `self`.
+macro_rules! display_as {
+    ($name:ident, $value:ident => $view:expr) => {
+        impl ::std::fmt::Display for $name {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+                let $value = self;
+                ::std::fmt::Display::fmt(&$view, f)
+            }
+        }
+    };
+}
+
 /// Defines an id newtype over `u64`. Ids of different entities can never be mixed up.
 macro_rules! id_type {
     ($(#[$meta:meta])* $name:ident) => {
@@ -21,11 +33,7 @@ macro_rules! id_type {
             }
         }
 
-        impl ::std::fmt::Display for $name {
-            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                ::std::fmt::Display::fmt(&self.0, f)
-            }
-        }
+        $crate::vocabulary::display_as!($name, value => value.0);
     };
 }
 
@@ -58,11 +66,7 @@ macro_rules! text_type {
             }
         }
 
-        impl ::std::fmt::Display for $name {
-            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                f.write_str(&self.0)
-            }
-        }
+        $crate::vocabulary::display_as!($name, value => value.0.as_str());
 
         impl ::std::str::FromStr for $name {
             type Err = $crate::ModelError;
@@ -101,11 +105,7 @@ macro_rules! labeled_enum {
             }
         }
 
-        impl ::std::fmt::Display for $name {
-            fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
-                f.write_str(self.label())
-            }
-        }
+        $crate::vocabulary::display_as!($name, value => value.label());
 
         impl ::std::str::FromStr for $name {
             type Err = $crate::ModelError;
@@ -121,4 +121,4 @@ macro_rules! labeled_enum {
     };
 }
 
-pub(crate) use {id_type, labeled_enum, text_type};
+pub(crate) use {display_as, id_type, labeled_enum, text_type};
