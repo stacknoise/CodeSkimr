@@ -44,6 +44,10 @@ pub struct VisibilityRules {
     /// Visibility label of a declaration without a keyword, by the kind label of its parent.
     #[serde(default)]
     pub parent_defaults: HashMap<String, String>,
+    /// Visibility label of a declaration without a keyword, by its own kind label. It wins over
+    /// the default of the parent kind.
+    #[serde(default)]
+    pub kind_defaults: HashMap<String, String>,
     /// Keyword text to visibility label.
     #[serde(default)]
     pub keywords: HashMap<String, String>,

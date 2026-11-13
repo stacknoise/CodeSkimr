@@ -4,7 +4,7 @@
 use tree_sitter::Language;
 
 use crate::consts::{
-    GRAMMAR_CSHARP, GRAMMAR_JAVASCRIPT, GRAMMAR_PYTHON, GRAMMAR_RUST, GRAMMAR_TSX,
+    GRAMMAR_CSHARP, GRAMMAR_JAVA, GRAMMAR_JAVASCRIPT, GRAMMAR_PYTHON, GRAMMAR_RUST, GRAMMAR_TSX,
     GRAMMAR_TYPESCRIPT,
 };
 
@@ -18,6 +18,7 @@ pub fn builtin(name: &str) -> Option<Language> {
         GRAMMAR_TSX => Some(tree_sitter_typescript::LANGUAGE_TSX.into()),
         GRAMMAR_JAVASCRIPT => Some(tree_sitter_javascript::LANGUAGE.into()),
         GRAMMAR_PYTHON => Some(tree_sitter_python::LANGUAGE.into()),
+        GRAMMAR_JAVA => Some(tree_sitter_java::LANGUAGE.into()),
         _ => basic(name),
     }
 }

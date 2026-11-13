@@ -1,0 +1,82 @@
+# Java language pack, full tier (blueprint 8, WP-62, ADR 0025).
+#
+# Mapping of Java onto the language-neutral symbol kinds:
+#   package declaration                 -> namespace    class                  -> class
+#   interface, annotation interface     -> interface    enum                   -> enum
+#   record                              -> record       enum constant          -> enum_member
+#   method, annotation element          -> method       constructor, compact constructor
+#                                                                               -> constructor
+#   record component                    -> property     field                  -> field
+#   static final field, interface field -> constant
+# Not symbols: parameters, local variables, lambdas (they count for their callable), static and
+# instance initializer blocks, type parameters, module declarations (`module-info.java`).
+# Members of anonymous classes are symbols of their enclosing method.
+# Visibility: no keyword means package-private, which the domain calls `internal`; members of an
+# interface, enum constants and record components are public.
+id = "java"
+grammar = "java"
+tier = "full"
+extensions = ["java"]
+separator = "."
+comment_nodes = ["line_comment", "block_comment"]
+manifest_files = [
+    "pom.xml",
+    "build.gradle",
+    "build.gradle.kts",
+    "settings.gradle",
+    "settings.gradle.kts",
+]
+test_patterns = [
+    "**/src/test/**/*.java",
+    "**/*Test.java",
+    "**/*Tests.java",
+    "**/*IT.java",
+]
+# Syntax fingerprints (WP-34): all names alike, literals by kind only.
+identifier_nodes = ["identifier", "type_identifier"]
+literal_nodes = [
+    "decimal_integer_literal",
+    "hex_integer_literal",
+    "octal_integer_literal",
+    "binary_integer_literal",
+    "decimal_floating_point_literal",
+    "hex_floating_point_literal",
+    "string_literal",
+    "character_literal",
+    "true",
+    "false",
+    "null_literal",
+]
+static_keywords = ["static"]
+
+# Javadoc: the description above the first block tag (`@param`, `@return` ...) is the
+# documentation; inline tags such as `{@link X}` stay in the text.
+[doc_block]
+open = "/**"
+close = "*/"
+line_prefix = "*"
+stop_at = "@"
+
+# A field that is `static final` is a constant: the query captures `final` as a modifier only
+# for such fields.
+[modifier_kinds]
+final = "constant"
+
+[visibility]
+default = "internal"
+# A package has no visibility.
+unrated_kinds = ["namespace"]
+
+[visibility.keywords]
+public = "public"
+protected = "protected"
+private = "private"
+
+# Enum constants and record components are public whatever surrounds them; members of an interface
+# are public unless they say `private`.
+[visibility.kind_defaults]
+enum_member = "public"
+property = "public"
+
+[visibility.parent_defaults]
+interface = "public"
