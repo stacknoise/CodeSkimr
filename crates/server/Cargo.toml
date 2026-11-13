@@ -16,6 +16,7 @@ codeskimr_application = { path = "../application" }
 codeskimr_domain = { path = "../domain" }
 codeskimr_codes = { path = "../codes" }
 axum.workspace = true
+tower-service.workspace = true
 blake3.workspace = true
 serde.workspace = true
 serde_json.workspace = true

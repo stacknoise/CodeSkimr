@@ -19,6 +19,7 @@
 | `POST /api/v1/session/launch-code` | Bearer token; returns a new one-time launch code |
 | `GET /api/v1/session/launch-code` | Bearer token; `pending` is true while a code waits to be used |
 | `POST /api/v1/session/exchange` | body `{ "code": … }`; returns the token once (`API-403` if wrong, used or expired) |
+| `/mcp` | MCP over streamable HTTP (WP-48); every request needs the Bearer token, see below |
 | everything else | files of the UI folder; paths without extension give `index.html` |
 
 Every error answer is `{ "code": "API-401", "description": "…" }` with the HTTP status of the code's class. Unknown paths give `API-201`, a wrong method `API-101` (405).
@@ -32,6 +33,17 @@ Every error answer is `{ "code": "API-401", "description": "…" }` with the HTT
 5. The body is at most 1 MiB (`API-501`, 413) and, if there is one, `application/json` (`API-101`).
 
 CORS is closed: no `Access-Control-*` header is ever sent and there is no `OPTIONS` route. Every answer has `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `Cross-Origin-Opener-Policy: same-origin` and a strict `Content-Security-Policy` (no inline script or style, no framing, connections only to the own host).
+
+## MCP at `/mcp` (WP-48)
+
+The running app offers the MCP server of `docs/mcp.md` on the same listener, as blueprint 10.4 asks: `codeskimr serve` builds the tools once (`crates/app/src/mcp.rs`, `http_service`) and hands the `tower` service of `codeskimr_mcp::http_service` to `Server::with_mcp`. The server crate does not know `rmcp`; it only mounts a service at `/mcp`.
+
+- **Checks:** the `Host` and `Origin` checks of step 1 come first, as for every route. Then the token: every request to `/mcp`, whatever its method, needs `Authorization: Bearer <installation token>` (`API-401`, 401), also a pure read. Tool answers carry the structure of the code, and without the token any program on this machine could read it through the open loopback port; the token proves that the caller can read the keystore, like in ADR 0032. A client such as Claude Code or Cursor is configured with the URL `http://127.0.0.1:7421/mcp` and the header `Authorization: Bearer <token>`. How the token reaches such a client is the task of the installation (the token is never shown by a command, see below).
+- **Who calls:** every request runs as the principal of the composition root, the local owner in single-user mode. After 1.0 the team edition resolves a principal per personal access token and builds one handler per caller (ADR 0019); the tools check their permission as before (`rescan` needs `scan`).
+- **Stateless:** every request is answered on its own with a JSON body, no session survives a request, and there is no `GET` stream. A restart of the app loses nothing; a client that sends `Mcp-Session-Id` is not tracked. The body is at most 1 MiB.
+- **Shared instance:** the service uses the database file of the app and the event bus of the server. A `rescan` of an agent publishes the same events as a scan from the UI, so the UI shows its progress. The store is opened a second time next to that of the commands (one connection each, same file); sharing the connection waits until the commands take a store from the composition root.
+- **Projects:** the app has no default project. A call that names none is `MCP-101` with `params.detail = project`; the ids come from `projects.list` over REST. An MCP tool that lists the projects is not part of WP-48.
+- **Not yet:** the resources (`codeskimr://…`) belong to the MCP server itself, not to this transport.
 
 ## The installation token
 

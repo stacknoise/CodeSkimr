@@ -127,6 +127,19 @@ pub async fn screen(State(guard): State<Arc<Guard>>, request: Request, next: Nex
     response
 }
 
+/// The layer of a route that is never open: refuses a request without the installation token
+/// before the route sees it.
+pub async fn require_token(
+    State(guard): State<Arc<Guard>>,
+    request: Request,
+    next: Next,
+) -> Response {
+    match guard.check_token(request.headers()) {
+        Ok(()) => next.run(request).await,
+        Err(error) => Failure(error).into_response(),
+    }
+}
+
 /// Sets the headers that every answer carries.
 fn harden(headers: &mut HeaderMap, policy: &HeaderValue) {
     let fixed = [

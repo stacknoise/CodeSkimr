@@ -68,6 +68,17 @@ fn hex_digit(value: u8) -> Option<char> {
     char::from_digit(u32::from(value), HEX_RADIX)
 }
 
+/// The token text of a test keystore, for the tests that act as a client of the server.
+#[cfg(test)]
+pub(crate) fn stored_token(store: &impl CredentialStore) -> String {
+    let id = CredentialId::new(TOKEN_CREDENTIAL_ID).unwrap();
+    store
+        .with_credential(&id, |credential| {
+            Ok(credential.secret().expose_secret().to_owned())
+        })
+        .unwrap()
+}
+
 #[cfg(test)]
 mod tests {
     use codeskimr_secrets::{Keystore, KeystoreCredentials};
@@ -90,15 +101,6 @@ mod tests {
         fn remove(&self, _: &str) -> Result<(), AuthError> {
             Ok(())
         }
-    }
-
-    fn stored_token(store: &KeystoreCredentials<Memory>) -> String {
-        let id = CredentialId::new(TOKEN_CREDENTIAL_ID).unwrap();
-        store
-            .with_credential(&id, |credential| {
-                Ok(credential.secret().expose_secret().to_owned())
-            })
-            .unwrap()
     }
 
     #[test]

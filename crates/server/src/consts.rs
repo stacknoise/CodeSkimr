@@ -12,6 +12,8 @@ pub const EVENTS_PATH: &str = "/api/v1/events";
 pub const LAUNCH_CODE_PATH: &str = "/api/v1/session/launch-code";
 /// Route that exchanges the launch code for the installation token (ADR 0028).
 pub const EXCHANGE_PATH: &str = "/api/v1/session/exchange";
+/// Path of the MCP endpoint (streamable HTTP, blueprint 10.4).
+pub const MCP_PATH: &str = "/mcp";
 /// Route with the settings the UI needs before it shows anything.
 pub const UI_CONFIG_PATH: &str = "/api/v1/ui-config";
 /// Start of every API path; what is below it and unknown is an API error, not a page.
