@@ -12,7 +12,7 @@ use codeskimr_codes::ErrorCode;
 use serde_json::Value;
 
 use crate::commands::CommandInfo;
-use crate::consts::{MAX_BODY_BYTES, MEDIA_JSON};
+use crate::consts::{MAX_BODY_BYTES, MEDIA_JSON, MEDIA_PARAMETER_SEPARATOR};
 use crate::error::Failure;
 use crate::state::AppState;
 
@@ -60,7 +60,8 @@ async fn read_input(headers: &HeaderMap, body: Body) -> Result<Value, Failure> {
     let is_json = headers
         .get(CONTENT_TYPE)
         .and_then(|value| value.to_str().ok())
-        .is_some_and(|value| value.starts_with(MEDIA_JSON));
+        .and_then(|value| value.split(MEDIA_PARAMETER_SEPARATOR).next())
+        .is_some_and(|media| media.trim().eq_ignore_ascii_case(MEDIA_JSON));
     if !is_json {
         return Err(Failure::code(ErrorCode::RequestInvalid));
     }

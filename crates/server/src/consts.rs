@@ -16,6 +16,8 @@ pub const BEARER_SCHEME: &str = "Bearer ";
 
 /// Media type of request and response bodies.
 pub const MEDIA_JSON: &str = "application/json";
+/// Separates the media type from its parameters in a `Content-Type` value.
+pub const MEDIA_PARAMETER_SEPARATOR: char = ';';
 /// Largest request body in bytes; a command input is small.
 pub const MAX_BODY_BYTES: usize = 1024 * 1024;
 /// Largest message a WebSocket client may send in bytes. The stream is one-way, so this is small.

@@ -26,4 +26,5 @@ Blueprint 10.1 says the command registry generates the REST endpoints, 10.3 desc
 - The log redaction masks the `csk_` prefix (S-01).
 - A command must have JSON-serialisable input and output to be exposed over REST (`DeserializeOwned`, `Serialize`).
 - Risks: (a) the token sits in the keystore, so on a headless Linux without Secret Service `serve` stops with `SEC-601` instead of running unprotected; a file-based fallback needs its own decision. (b) A local process of the same user can read the keystore and use the token: S-04 protects against web pages and the network, not against code running as the user.
+- Known limits, tracked in #88: no cap on WebSocket connections and unbounded event queues, no HTTP timeouts, and a command id is no secret (unknown id gives `API-201`, a known one without right gives `API-401` or `AUTH-401`); for the team stage this has to be compared with S-06.
 - The team server (ADR 0019, T1) replaces the single token by named tokens and sessions behind the same route shape; the guard order stays.

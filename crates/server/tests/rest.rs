@@ -135,6 +135,19 @@ async fn a_bad_body_is_refused_with_a_code() {
         .send(&server)
         .await;
     assert_eq!((form.status, form.code().as_str()), (400, "API-101"));
+    let lookalike = Call::post(ECHO)
+        .raw("application/jsonx", br#""hi""#)
+        .send(&server)
+        .await;
+    assert_eq!(
+        (lookalike.status, lookalike.code().as_str()),
+        (400, "API-101")
+    );
+    let spelled = Call::post(ECHO)
+        .raw("Application/JSON; charset=utf-8", br#""hi""#)
+        .send(&server)
+        .await;
+    assert_eq!(spelled.status, 200);
     let plain = Call::post(ECHO)
         .raw("text/plain", br#""hi""#)
         .send(&server)
