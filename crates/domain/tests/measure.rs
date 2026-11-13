@@ -133,7 +133,7 @@ fn counts_of_unknown_symbols_and_other_kinds_are_ignored() -> Result<(), ModelEr
     let mut symbols = file()?;
     symbols.push(symbol(8, SymbolKind::Field, Some(2))?);
     let metrics = measure(&symbols, &[counts(8, 1, None), counts(99, 1, None)])?;
-    assert!(metrics.is_empty());
+    assert_eq!(metrics, Vec::<codeskimr_domain::Metric>::new());
     Ok(())
 }
 
