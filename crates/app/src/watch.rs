@@ -233,7 +233,7 @@ mod tests {
     #[test]
     fn other_projects_and_other_events_are_ignored() {
         let (modes, _) = replay(&[change(OTHER, 4, false)], false);
-        assert!(modes.is_empty());
+        assert_eq!(modes, Vec::<ScanMode>::new());
     }
 
     #[test]
