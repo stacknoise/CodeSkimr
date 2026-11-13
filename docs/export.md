@@ -30,6 +30,8 @@ The tree of layers, namespaces and types; for every type and member the breadcru
 
 **Not in it:** source text (the declaration bodies, `explorer.source`; the pane says so), the folder or address of the project, the installation token or anything from the keystore. Source text would need `read_source` (ADR 0032); a later option would have to ask for that on purpose.
 
+**Note:** signatures and documentation comments are text from the source. If a project keeps secrets or internal remarks in them, they are in the page too. Check a page before it leaves the team.
+
 ## Unchecked usages
 
 Every usage keeps its `verified` and `confidence` fields. The usages screen of the page shows the same pills as the app (`unchecked`, `presumed`) and the same notice that no indexer verified anything (ADR 0032). The strip under the top bar of every screen counts the verified and unchecked direct usages of the whole export, so a page that is read months later still says how far it can be trusted.
