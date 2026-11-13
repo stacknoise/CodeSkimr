@@ -1,0 +1,16 @@
+.banner {
+    flex: none;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-4) var(--space-16);
+    padding: var(--space-8) var(--space-16);
+    background: var(--bg);
+    border-bottom: 1px solid var(--line);
+    color: var(--muted);
+    font-size: 12px;
+}
+
+.banner b {
+    color: var(--ink);
+}

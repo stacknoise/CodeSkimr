@@ -494,6 +494,60 @@ fn watch_of_a_git_url_fails_with_cli_102_before_anything_is_registered() {
     assert!(!workspace.root.path().join("data/codeskimr.db").exists());
 }
 
+#[cfg(test)]
+const EXPORT_PAGE: &str = "<html><script id=\"codeskimr-data\" type=\"application/json\">__CODESKIMR_EXPORT_DATA__</script></html>";
+
+#[cfg(test)]
+fn export_ui(workspace: &Workspace) -> String {
+    let ui = workspace.root.path().join("ui");
+    fs::create_dir_all(ui.join("export")).unwrap();
+    fs::write(ui.join("export/export.html"), EXPORT_PAGE).unwrap();
+    format!("ui.dir='{}'", ui.display())
+}
+
+#[test]
+fn export_writes_one_page_with_the_scan_and_no_source_text() {
+    let workspace = Workspace::new();
+    json_of(&workspace.scan(&[]));
+    let file = workspace.root.path().join("out.html");
+    let output = workspace
+        .command()
+        .args(["--set", &export_ui(&workspace), "export"])
+        .arg(workspace.project())
+        .arg("--html")
+        .arg(&file)
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{}", stderr(&output));
+    assert!(String::from_utf8_lossy(&output.stdout).contains("Export written to"));
+    let page = fs::read_to_string(&file).unwrap();
+    assert!(page.contains("Calculator"));
+    assert!(!page.contains("return a + b"));
+}
+
+#[test]
+fn export_by_project_id_and_the_failures_with_their_codes() {
+    let workspace = Workspace::new();
+    json_of(&workspace.scan(&[]));
+    let file = workspace.root.path().join("out.html");
+    let run = |project: &str, target: &Path, ui: &str| {
+        workspace
+            .command()
+            .args(["--set", ui, "export", project, "--html"])
+            .arg(target)
+            .output()
+            .unwrap()
+    };
+    let ui = export_ui(&workspace);
+    assert!(run("1", &file, &ui).status.success());
+    let unknown = run("99", &file, &ui);
+    assert!(stderr(&unknown).contains("PRJ-201"), "{}", stderr(&unknown));
+    let nowhere = workspace.root.path().join("no/such/folder/out.html");
+    assert!(stderr(&run("1", &nowhere, &ui)).contains("EXP-601"));
+    let no_page = run("1", &file, "ui.dir='/does/not/exist'");
+    assert!(stderr(&no_page).contains("EXP-201"));
+}
+
 #[test]
 fn a_credential_for_a_folder_is_refused() {
     let workspace = Workspace::new();

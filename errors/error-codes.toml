@@ -531,6 +531,14 @@ description = "A message key is missing for the active language (falls back to E
 since = "0.1.0"
 
 [[codes]]
+id = "EXP-201"
+name = "export_bundle_missing"
+severity = "error"
+retryable = false
+description = "The built export page of the UI is missing or unusable."
+since = "0.1.0"
+
+[[codes]]
 id = "EXP-601"
 name = "export_write_failed"
 severity = "error"

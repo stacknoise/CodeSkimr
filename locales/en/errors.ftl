@@ -57,6 +57,7 @@ error-CLI-101 = The command-line arguments are invalid.
 error-CLI-102 = Watch mode needs a local folder; a Git URL cannot be watched.
 error-CLI-103 = No secret could be read from the terminal or standard input, or it was empty.
 error-I18N-201 = A text is missing for the selected language. English is shown instead.
+error-EXP-201 = The built export page is missing or unusable. Build the UI with "npm run build" in web/.
 error-EXP-601 = The export file could not be written.
 error-UI-201 = The interface cannot reach the local server.
 error-UI-901 = An unexpected error occurred in the interface.

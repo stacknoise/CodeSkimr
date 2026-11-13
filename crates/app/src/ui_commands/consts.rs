@@ -104,3 +104,26 @@ pub const RATING_GOOD: &str = "good";
 pub const RATING_MEDIUM: &str = "medium";
 /// Rating label of a value beyond the medium range.
 pub const RATING_POOR: &str = "poor";
+
+/// Id of the command that exports a project as one HTML page.
+pub const EXPORT_HTML: &str = "export.html";
+/// Title key of `export.html`.
+pub const EXPORT_TITLE: &str = i18n::COMMAND_EXPORT_HTML_TITLE;
+/// Description key of `export.html`.
+pub const EXPORT_DESCRIPTION: &str = i18n::COMMAND_EXPORT_HTML_DESCRIPTION;
+/// Version of the data block inside the export, so the page can refuse data it does not know.
+pub const EXPORT_FORMAT: u32 = 1;
+/// Folder of the UI folder that holds the export page.
+pub const EXPORT_BUNDLE_DIR: &str = "export";
+/// The page the export is made from: the built UI in one file, with a place for the data.
+pub const EXPORT_BUNDLE_FILE: &str = "export.html";
+/// The place in that file where the data block goes, exactly once.
+pub const EXPORT_DATA_PLACEHOLDER: &str = "__CODESKIMR_EXPORT_DATA__";
+/// A character that must not stand in the data block as it is: it could end the script element.
+pub const EXPORT_ESCAPED_CHAR: char = '<';
+/// What takes its place; JSON reads it back as the character.
+pub const EXPORT_ESCAPE: &str = "\\u003c";
+/// Steps of the usages walk in the export: as deep as the configuration allows.
+pub const EXPORT_DEPTH: u32 = 0;
+/// Steps of the walk that counts the direct usages.
+pub const EXPORT_DIRECT_DEPTH: u32 = 1;
