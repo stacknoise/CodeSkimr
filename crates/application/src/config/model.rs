@@ -25,6 +25,10 @@ pub struct Config {
     pub scan: Scan,
     /// The local server.
     pub server: Server,
+    /// The link that opens a source position in the editor.
+    pub editor: Editor,
+    /// The web UI.
+    pub ui: Ui,
 }
 
 /// Thresholds for the metric ratings.
@@ -139,6 +143,28 @@ pub struct Scan {
 pub struct Server {
     /// TCP port on the loopback address.
     pub port: u16,
+}
+
+/// The editor link of the UI (blueprint 15.4, ADR 0028).
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Editor {
+    /// URL template with the placeholders `{path}` and `{line}`.
+    pub url_template: String,
+    /// The schemes a template may use.
+    pub allowed_schemes: Vec<String>,
+}
+
+/// The web UI (blueprint 15.3, ADR 0028).
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Ui {
+    /// Name of the theme used until the user chooses one.
+    pub default_theme: String,
+    /// Folder with the built UI.
+    pub dir: String,
+    /// How long a one-time launch code is valid, in seconds.
+    pub launch_code_seconds: u32,
 }
 
 /// Syntax fingerprints (blueprint 10.4).

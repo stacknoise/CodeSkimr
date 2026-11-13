@@ -8,9 +8,9 @@ use std::process::ExitCode;
 use codeskimr_application::conventions::CheckReport;
 use codeskimr_application::error::CodedError;
 use codeskimr_cli::{
-    Action, CliError, Invocation, Parsed, ScanArgs, ScanSummary, check_json, check_text,
-    error_line, language_from, parse, scan_finished, scan_json, scan_started, serve_started,
-    watch_started, watch_updated,
+    Action, CliError, Invocation, OpenArgs, Parsed, ScanArgs, ScanSummary, check_json, check_text,
+    error_line, language_from, open_ready, parse, scan_finished, scan_json, scan_started,
+    serve_started, watch_started, watch_updated,
 };
 use codeskimr_codes::i18n::CLI_CREDENTIALS_HINT;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -24,7 +24,7 @@ use crate::log_writer::RedactingWriter;
 use crate::logging;
 use crate::source_arg::SourceError;
 use crate::watch::{self, Report};
-use crate::{check, mcp, scan, serve};
+use crate::{check, mcp, open, scan, serve};
 
 /// Why a command did not finish: a registered code, plus the parser's text for usage errors.
 struct Failure {
@@ -123,6 +123,7 @@ fn run_invocation(
             mcp::run(args, &invocation.global, &locations, &current_dir)?;
             Ok(Outcome::Done)
         }
+        Action::Open(args) => run_open(*args, invocation, &locations, env, (messages, language)),
         Action::Serve(_) => {
             serve::run(&invocation.global, &locations, |url| {
                 if let Ok(line) = serve_started(messages, language, url) {
@@ -136,6 +137,24 @@ fn run_invocation(
             print_check(args.json, &report, messages, language)
         }
     }
+}
+
+/// `codeskimr open`: tells where the launch file is, then waits until the browser has used it.
+fn run_open(
+    args: OpenArgs,
+    invocation: &Invocation,
+    locations: &Locations,
+    env: Lookup<'_>,
+    (messages, language): (&Messages, &str),
+) -> Result<Outcome, Failure> {
+    let announce = |ready: &open::Ready<'_>| {
+        let path = ready.path.display().to_string();
+        if let Ok(line) = open_ready(messages, language, &path, ready.seconds) {
+            write_out(&line);
+        }
+    };
+    open::run(args, &invocation.global, locations, env, announce)?;
+    Ok(Outcome::Done)
 }
 
 /// `codeskimr scan`, once or, with `--watch`, until the user stops it.

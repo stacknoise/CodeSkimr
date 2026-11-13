@@ -508,9 +508,14 @@ dependencies = [
  "codeskimr_application",
  "codeskimr_codes",
  "codeskimr_domain",
+ "getrandom 0.4.3",
+ "secrecy",
  "serde",
  "serde_json",
+ "tempfile",
  "tokio",
+ "tracing",
+ "zeroize",
 ]
 
 [[package]]

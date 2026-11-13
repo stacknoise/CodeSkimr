@@ -1,8 +1,10 @@
 # User-facing error messages (blueprint 11.4). One entry per code in errors/error-codes.toml.
 
 error-APP-201 = The data directory cannot be created or opened.
+error-APP-202 = The private file for starting the browser could not be created.
 error-APP-301 = Another CodeSkimr instance is using this workspace and connecting to it failed.
 error-APP-901 = An unexpected internal error occurred.
+error-APP-601 = The browser could not be started.
 error-CFG-101 = A configuration value is out of range or has the wrong type.
 error-CFG-102 = A configuration file is not valid TOML.
 error-CFG-103 = A configuration file or flag sets a setting that does not exist.
@@ -42,7 +44,9 @@ error-API-201 = This command or route does not exist.
 error-API-301 = The server could not start on its port. It may already be in use.
 error-API-401 = This change requires a valid installation token.
 error-API-402 = The request does not come from this computer's own address.
+error-API-403 = The launch code is wrong, already used or expired.
 error-API-501 = The request is too large.
+error-API-601 = The local server is not running or cannot be reached. Start it with "codeskimr serve".
 error-MCP-101 = The MCP tool arguments are invalid.
 error-MCP-201 = The given path is not inside a registered project.
 error-MCP-202 = No symbol with this id or qualified name exists.

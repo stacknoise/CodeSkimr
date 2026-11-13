@@ -181,3 +181,73 @@ pub const HEX_DIGIT_BITS: u32 = 4;
 pub const HEX_LOW_MASK: u8 = 0x0f;
 /// Scheme of the address the local server is reached at.
 pub const URL_SCHEME: &str = "http://";
+
+/// Folder of the launch files below the data folder (ADR 0028).
+pub const LAUNCH_DIR: &str = "launch";
+/// Environment variable of the private runtime folder of the user on Linux.
+pub const ENV_XDG_RUNTIME_DIR: &str = "XDG_RUNTIME_DIR";
+/// Beginning of the name of a launch file.
+pub const LAUNCH_FILE_PREFIX: &str = "launch-";
+/// End of the name of a launch file.
+pub const LAUNCH_FILE_SUFFIX: &str = ".html";
+/// Random bytes in the name of a launch file: 128 bits, so that the name cannot be guessed.
+pub const LAUNCH_FILE_RANDOM_BYTES: usize = 16;
+/// Mode of a launch file: the owner may read and write, nobody else.
+#[cfg(unix)]
+pub const LAUNCH_FILE_MODE: u32 = 0o600;
+/// Mode of the folder of the launch files: the owner only.
+#[cfg(unix)]
+pub const LAUNCH_DIR_MODE: u32 = 0o700;
+/// Mode bits that give a group or others any access.
+#[cfg(unix)]
+pub const OTHERS_MODE_MASK: u32 = 0o077;
+/// Launch files older than this many seconds beyond the lifetime of a code are removed.
+pub const LAUNCH_FILE_GRACE_SECONDS: u64 = 60;
+
+/// Start of the launch page; the address follows.
+pub const LAUNCH_PAGE_HEAD: &str = "<!doctype html>\n<meta charset=\"utf-8\">\n<meta name=\"referrer\" content=\"no-referrer\">\n<meta http-equiv=\"refresh\" content=\"0;url=";
+/// End of the launch page.
+pub const LAUNCH_PAGE_TAIL: &str = "\">\n";
+/// Fragment parameter that carries the launch code (ADR 0028).
+pub const LAUNCH_FRAGMENT: &str = "/#code=";
+/// Path of the launch code route on the local server.
+pub const LAUNCH_CODE_PATH: &str = "/api/v1/session/launch-code";
+/// Name of the field with the code in the answer.
+pub const FIELD_CODE: &str = "code";
+/// Name of the field that says whether a code is still waiting.
+pub const FIELD_PENDING: &str = "pending";
+/// Status of a successful answer.
+pub const HTTP_OK: u16 = 200;
+/// Status of an answer that refuses the token.
+pub const HTTP_UNAUTHORIZED: u16 = 401;
+/// Loopback address the local server listens on.
+pub const LOOPBACK_HOST: &str = "127.0.0.1";
+/// Longest wait for a connection to the local server, in milliseconds.
+pub const CONNECT_TIMEOUT_MS: u64 = 2_000;
+/// Longest wait for an answer of the local server, in milliseconds.
+pub const REPLY_TIMEOUT_MS: u64 = 5_000;
+/// Pause between two looks at whether the launch code has been taken, in milliseconds.
+pub const CODE_POLL_MS: u64 = 500;
+/// Largest answer of the local server that is read, in bytes.
+pub const MAX_REPLY_BYTES: u64 = 65_536;
+/// Separates the head of an HTTP message from its body.
+pub const HTTP_HEAD_END: &str = "\r\n\r\n";
+/// Line break of an HTTP message.
+pub const HTTP_LINE_BREAK: &str = "\r\n";
+/// Position of the status code in the status line.
+pub const HTTP_STATUS_FIELD: usize = 1;
+
+/// Program that opens a file with its default application on Linux and other Unix systems.
+pub const OPENER_UNIX: &str = "xdg-open";
+/// Program that opens a file with its default application on macOS.
+pub const OPENER_MACOS: &str = "open";
+/// Program that opens a file with its default application on Windows.
+pub const OPENER_WINDOWS: &str = "explorer";
+/// Protocol version in the request line.
+pub const HTTP_VERSION: &str = "HTTP/1.1";
+/// Headers of every request to the local server: no body, and the connection ends after the answer.
+pub const HTTP_FIXED_HEADERS: [&str; 2] = ["Content-Length: 0", "Connection: close"];
+/// Method of a call that reads.
+pub const METHOD_GET: &str = "GET";
+/// Method of a call that changes something.
+pub const METHOD_POST: &str = "POST";

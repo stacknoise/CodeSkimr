@@ -1,0 +1,10 @@
+dist
+node_modules
+package-lock.json
+src/shared/api/error-codes.generated.ts
+src/shared/i18n/keys.ts
+src/shared/theme/tokens.ts
+src/shared/theme/tokens.css
+public/theme-init.js
+test-results
+playwright-report

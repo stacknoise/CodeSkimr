@@ -8,6 +8,73 @@ pub const COMMANDS_PATH: &str = "/api/v1/commands";
 pub const COMMAND_PATH: &str = "/api/v1/commands/{id}";
 /// Route of the WebSocket that streams the domain events.
 pub const EVENTS_PATH: &str = "/api/v1/events";
+/// Route that creates (`POST`) and reports (`GET`) the one-time launch code (ADR 0030).
+pub const LAUNCH_CODE_PATH: &str = "/api/v1/session/launch-code";
+/// Route that exchanges the launch code for the installation token (ADR 0028).
+pub const EXCHANGE_PATH: &str = "/api/v1/session/exchange";
+/// Route with the settings the UI needs before it shows anything.
+pub const UI_CONFIG_PATH: &str = "/api/v1/ui-config";
+/// Start of every API path; what is below it and unknown is an API error, not a page.
+pub const API_PREFIX: &str = "/api/";
+/// The page every unknown path of the UI falls back to.
+pub const INDEX_FILE: &str = "index.html";
+
+/// Random bytes of a launch code: 128 bits (ADR 0028).
+pub const LAUNCH_CODE_BYTES: usize = 16;
+/// Hexadecimal digits of a launch code.
+pub const LAUNCH_CODE_HEX_LEN: usize = 32;
+/// Bits in a hexadecimal digit.
+pub const HEX_DIGIT_BITS: u32 = 4;
+/// Mask of the low hexadecimal digit of a byte.
+pub const HEX_LOW_MASK: u8 = 0x0F;
+/// Radix of hexadecimal digits.
+pub const HEX_RADIX: u32 = 16;
+/// Largest body of the exchange request: a small JSON object with the code.
+pub const MAX_EXCHANGE_BYTES: usize = 256;
+/// Event name in the log when a launch code was created. The code itself is never logged.
+pub const LOG_LAUNCH_CODE_ISSUED: &str = "launch_code_issued";
+/// Event name in the log when a launch code was exchanged.
+pub const LOG_LAUNCH_CODE_USED: &str = "launch_code_used";
+/// Event name in the log when an exchange failed.
+pub const LOG_LAUNCH_CODE_REFUSED: &str = "launch_code_refused";
+
+/// Name of the `Content-Security-Policy` header.
+pub const CSP_HEADER: &str = "content-security-policy";
+/// Directives of the policy that do not depend on the address (ADR 0028): everything from this
+/// origin only, no inline script or style, no framing, no base tag, no form, no plug-in.
+pub const CSP_FIXED: &str = "default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'";
+/// Separates the sources of a directive.
+pub const CSP_SEPARATOR: char = ' ';
+/// Start of the `connect-src` directive; the WebSocket addresses follow (Safari does not let
+/// `'self'` cover `ws:`).
+pub const CSP_CONNECT: &str = "; connect-src 'self'";
+/// Scheme of the WebSocket addresses in `connect-src`.
+pub const WEBSOCKET_SCHEME: &str = "ws://";
+/// Name of the `Referrer-Policy` header and its value.
+pub const REFERRER_HEADER: &str = "referrer-policy";
+/// Value of the `Referrer-Policy` header.
+pub const REFERRER_VALUE: &str = "no-referrer";
+/// Name of the `Cross-Origin-Opener-Policy` header.
+pub const OPENER_HEADER: &str = "cross-origin-opener-policy";
+/// Value of the `Cross-Origin-Opener-Policy` header.
+pub const OPENER_VALUE: &str = "same-origin";
+
+/// Media types of the files the UI consists of, by extension.
+pub const MEDIA_TYPES: [(&str, &str); 11] = [
+    ("html", "text/html; charset=utf-8"),
+    ("js", "text/javascript; charset=utf-8"),
+    ("mjs", "text/javascript; charset=utf-8"),
+    ("css", "text/css; charset=utf-8"),
+    ("json", "application/json"),
+    ("svg", "image/svg+xml"),
+    ("png", "image/png"),
+    ("ico", "image/x-icon"),
+    ("woff2", "font/woff2"),
+    ("txt", "text/plain; charset=utf-8"),
+    ("map", "application/json"),
+];
+/// Media type of a file with an unknown extension.
+pub const MEDIA_UNKNOWN: &str = "application/octet-stream";
 
 /// Prefix of every token the installation hands out (ADR 0019): the log redaction matches it.
 pub const TOKEN_PREFIX: &str = "csk_";

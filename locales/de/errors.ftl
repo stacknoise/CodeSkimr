@@ -1,8 +1,10 @@
 # Fehlermeldungen für Anwender (Blueprint 11.4). Ein Eintrag je Code in errors/error-codes.toml.
 
 error-APP-201 = Das Datenverzeichnis kann nicht angelegt oder geöffnet werden.
+error-APP-202 = Die private Datei zum Starten des Browsers konnte nicht angelegt werden.
 error-APP-301 = Eine andere CodeSkimr-Instanz nutzt diesen Arbeitsbereich und die Verbindung zu ihr ist fehlgeschlagen.
 error-APP-901 = Es ist ein unerwarteter interner Fehler aufgetreten.
+error-APP-601 = Der Browser konnte nicht gestartet werden.
 error-CFG-101 = Ein Konfigurationswert liegt außerhalb des erlaubten Bereichs oder hat den falschen Typ.
 error-CFG-102 = Eine Konfigurationsdatei ist kein gültiges TOML.
 error-CFG-103 = Eine Konfigurationsdatei oder ein Parameter setzt eine Einstellung, die es nicht gibt.
@@ -42,7 +44,9 @@ error-API-201 = Diesen Befehl oder diese Adresse gibt es nicht.
 error-API-301 = Der Server konnte auf seinem Port nicht starten. Der Port ist vielleicht schon belegt.
 error-API-401 = Für diese Änderung fehlt ein gültiges Installations-Token.
 error-API-402 = Die Anfrage kommt nicht von der eigenen Adresse dieses Rechners.
+error-API-403 = Der Startcode ist falsch, schon benutzt oder abgelaufen.
 error-API-501 = Die Anfrage ist zu groß.
+error-API-601 = Der lokale Server läuft nicht oder ist nicht erreichbar. Starte ihn mit „codeskimr serve“.
 error-MCP-101 = Die Argumente des MCP-Werkzeugs sind ungültig.
 error-MCP-201 = Der angegebene Pfad liegt in keinem registrierten Projekt.
 error-MCP-202 = Es gibt kein Symbol mit dieser ID oder diesem qualifizierten Namen.

@@ -83,3 +83,19 @@ max_source_mb = 2048
 [server]
 # TCP port of the local server. A port that is already taken fails with API-301.
 port = 7421
+
+# Editor link of the UI (blueprint 15.4, ADR 0028): "Open in editor" makes the browser open this URL.
+[editor]
+# {path} and {line} are percent-encoded when inserted. The scheme must be one of allowed_schemes.
+url_template = "vscode://file/{path}:{line}"
+# Schemes a template may use; any other scheme is refused with CFG-101.
+allowed_schemes = ["vscode", "vscode-insiders", "vscodium", "cursor", "idea", "zed", "subl"]
+
+# Web UI (blueprint 15.3, ADR 0028, ADR 0030).
+[ui]
+# Theme used until the user chooses one (without a dark operating system setting).
+default_theme = "petrol"
+# Folder with the built UI. A relative path is looked up next to the program, then in the current folder.
+dir = "ui"
+# How long a one-time launch code is valid, in seconds (ADR 0028).
+launch_code_seconds = 60

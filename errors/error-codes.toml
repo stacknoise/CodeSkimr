@@ -83,6 +83,14 @@ description = "The user data directory cannot be created or opened."
 since = "0.1.0"
 
 [[codes]]
+id = "APP-202"
+name = "launch_file_unavailable"
+severity = "error"
+retryable = true
+description = "The private file for starting the browser could not be created."
+since = "0.1.0"
+
+[[codes]]
 id = "APP-301"
 name = "instance_already_running"
 severity = "error"
@@ -96,6 +104,14 @@ name = "unexpected_internal_error"
 severity = "error"
 retryable = false
 description = "An unexpected internal error occurred (bug)."
+since = "0.1.0"
+
+[[codes]]
+id = "APP-601"
+name = "browser_start_failed"
+severity = "error"
+retryable = true
+description = "The system did not start a browser for the launch file."
 since = "0.1.0"
 
 [[codes]]
@@ -411,11 +427,27 @@ description = "The Host or Origin header of the request is not one of this serve
 since = "0.1.0"
 
 [[codes]]
+id = "API-403"
+name = "launch_code_invalid"
+severity = "error"
+retryable = false
+description = "The one-time launch code is wrong, already used or expired."
+since = "0.1.0"
+
+[[codes]]
 id = "API-501"
 name = "request_too_large"
 severity = "error"
 retryable = false
 description = "The request body is larger than the server accepts."
+since = "0.1.0"
+
+[[codes]]
+id = "API-601"
+name = "server_not_reachable"
+severity = "error"
+retryable = true
+description = "The command needs a running local server and could not reach it."
 since = "0.1.0"
 
 [[codes]]

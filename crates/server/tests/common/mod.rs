@@ -5,13 +5,16 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::time::Duration;
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Registry, Request};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{Permission, PermissionSet, Principal};
-use codeskimr_server::{CommandApi, InstallationToken, Server};
+use codeskimr_server::{
+    CommandApi, EditorSettings, InstallationToken, Server, UiOptions, UiSettings,
+};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
 
@@ -89,8 +92,17 @@ pub struct Running {
     pub events: EventBus,
 }
 
-/// Starts a server that runs every request as `principal`.
+/// Starts a server that runs every request as `principal` and has no UI.
 pub async fn start(principal: Principal) -> Running {
+    start_with(principal, None, Duration::from_secs(60)).await
+}
+
+/// Starts a server that serves the UI in `dir`; its launch codes live for `lifetime`.
+pub async fn start_with(
+    principal: Principal,
+    dir: Option<std::path::PathBuf>,
+    lifetime: Duration,
+) -> Running {
     let wipes = Arc::new(AtomicUsize::new(0));
     let mut registry = Registry::new();
     registry.register(Echo).unwrap();
@@ -108,6 +120,17 @@ pub async fn start(principal: Principal) -> Running {
         events.clone(),
         principal,
         InstallationToken::from_token(TOKEN),
+        UiOptions {
+            dir,
+            launch_lifetime: lifetime,
+            settings: UiSettings {
+                editor: EditorSettings {
+                    url_template: "vscode://file/{path}:{line}".to_owned(),
+                    allowed_schemes: vec!["vscode".to_owned()],
+                },
+                default_theme: "petrol".to_owned(),
+            },
+        },
     );
     let bound = server.bind(([127, 0, 0, 1], 0).into()).await.unwrap();
     let address = bound.address().unwrap();

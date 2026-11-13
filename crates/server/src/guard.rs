@@ -13,8 +13,9 @@ use codeskimr_application::error::CodedError;
 use codeskimr_codes::ErrorCode;
 
 use crate::consts::{
-    BEARER_SCHEME, CACHE_CONTROL_VALUE, HOST_PORT_SEPARATOR, LOCALHOST_NAME, NO_SNIFF_HEADER,
-    NO_SNIFF_VALUE, ORIGIN_SCHEME,
+    BEARER_SCHEME, CACHE_CONTROL_VALUE, CSP_CONNECT, CSP_FIXED, CSP_HEADER, CSP_SEPARATOR,
+    HOST_PORT_SEPARATOR, LOCALHOST_NAME, NO_SNIFF_HEADER, NO_SNIFF_VALUE, OPENER_HEADER,
+    OPENER_VALUE, ORIGIN_SCHEME, REFERRER_HEADER, REFERRER_VALUE, WEBSOCKET_SCHEME,
 };
 use crate::error::Failure;
 use crate::token::InstallationToken;
@@ -24,6 +25,7 @@ use crate::token::InstallationToken;
 pub struct Guard {
     hosts: Vec<String>,
     token: InstallationToken,
+    policy: HeaderValue,
 }
 
 impl Guard {
@@ -38,7 +40,12 @@ impl Guard {
             name.push_str(&bound.port().to_string());
             hosts.push(name);
         }
-        Self { hosts, token }
+        let policy = content_security_policy(&hosts);
+        Self {
+            hosts,
+            token,
+            policy,
+        }
     }
 
     fn knows(&self, host: &str) -> bool {
@@ -74,15 +81,34 @@ impl Guard {
     /// `API-401` if the header is missing, malformed or holds another token. The answer is the
     /// same in each case.
     pub fn check_token(&self, headers: &HeaderMap) -> Result<(), CodedError> {
-        let accepted = text(headers, &AUTHORIZATION)
-            .and_then(|value| value.strip_prefix(BEARER_SCHEME))
-            .is_some_and(|token| self.token.accepts(token));
-        if accepted {
-            Ok(())
-        } else {
-            Err(CodedError::new(ErrorCode::TokenMissingOrInvalid))
-        }
+        self.bearer(headers).map(|_| ())
     }
+
+    /// The installation token a request carries, after it was found to be the right one. The
+    /// launch code store keeps it for the browser (ADR 0030).
+    ///
+    /// # Errors
+    /// `API-401`, as for [`Guard::check_token`].
+    pub fn bearer<'a>(&self, headers: &'a HeaderMap) -> Result<&'a str, CodedError> {
+        text(headers, &AUTHORIZATION)
+            .and_then(|value| value.strip_prefix(BEARER_SCHEME))
+            .filter(|token| self.token.accepts(token))
+            .ok_or_else(|| CodedError::new(ErrorCode::TokenMissingOrInvalid))
+    }
+}
+
+/// The policy of every answer (ADR 0028): scripts and styles from this origin only, no inline
+/// code, no framing. The WebSocket addresses are named because not every browser lets `'self'`
+/// cover them.
+fn content_security_policy(hosts: &[String]) -> HeaderValue {
+    let mut policy = String::from(CSP_FIXED);
+    policy.push_str(CSP_CONNECT);
+    for host in hosts {
+        policy.push(CSP_SEPARATOR);
+        policy.push_str(WEBSOCKET_SCHEME);
+        policy.push_str(host);
+    }
+    HeaderValue::from_str(&policy).unwrap_or_else(|_| HeaderValue::from_static(CSP_FIXED))
 }
 
 /// The value of a header that is present and plain text.
@@ -91,17 +117,29 @@ fn text<'a>(headers: &'a HeaderMap, name: &HeaderName) -> Option<&'a str> {
 }
 
 /// The layer around every route: refuses a foreign `Host` or `Origin`, and marks every answer as
-/// not to be cached or sniffed.
+/// not to be cached or sniffed, with the content security policy.
 pub async fn screen(State(guard): State<Arc<Guard>>, request: Request, next: Next) -> Response {
     let mut response = match guard.check_origin(request.headers()) {
         Ok(()) => next.run(request).await,
         Err(error) => Failure(error).into_response(),
     };
-    let headers = response.headers_mut();
-    headers.insert(CACHE_CONTROL, HeaderValue::from_static(CACHE_CONTROL_VALUE));
-    headers.insert(
-        HeaderName::from_static(NO_SNIFF_HEADER),
-        HeaderValue::from_static(NO_SNIFF_VALUE),
-    );
+    harden(response.headers_mut(), &guard.policy);
     response
+}
+
+/// Sets the headers that every answer carries.
+fn harden(headers: &mut HeaderMap, policy: &HeaderValue) {
+    let fixed = [
+        (CACHE_CONTROL.as_str(), CACHE_CONTROL_VALUE),
+        (NO_SNIFF_HEADER, NO_SNIFF_VALUE),
+        (REFERRER_HEADER, REFERRER_VALUE),
+        (OPENER_HEADER, OPENER_VALUE),
+    ];
+    for (name, value) in fixed {
+        headers.insert(
+            HeaderName::from_static(name),
+            HeaderValue::from_static(value),
+        );
+    }
+    headers.insert(HeaderName::from_static(CSP_HEADER), policy.clone());
 }

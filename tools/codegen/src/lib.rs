@@ -11,6 +11,7 @@ pub mod registry;
 pub mod render_md;
 pub mod render_rust;
 pub mod render_ts;
+pub mod tokens;
 pub mod validate;
 
 use std::path::Path;
@@ -35,12 +36,33 @@ pub fn load(root: &Path) -> Result<Registry, Vec<String>> {
 /// A generated file: path relative to the repository root and its content.
 pub type Output = (&'static str, String);
 
+/// Loads and validates the design tokens under the repository `root`.
+///
+/// # Errors
+/// Returns every problem found as one message each.
+pub fn load_tokens(root: &Path) -> Result<tokens::Tokens, Vec<String>> {
+    let path = root.join(consts::TOKENS_PATH);
+    let text =
+        std::fs::read_to_string(&path).map_err(|e| vec![format!("{}: {e}", path.display())])?;
+    let parsed =
+        tokens::Tokens::parse(&text).map_err(|e| vec![format!("{}: {e}", consts::TOKENS_PATH)])?;
+    parsed.validate()?;
+    Ok(parsed)
+}
+
 /// The files that are checked in (everything except the Rust output).
 #[must_use]
-pub fn checked_in_outputs(registry: &Registry, catalog: &i18n::Catalog) -> [Output; 3] {
+pub fn checked_in_outputs(
+    registry: &Registry,
+    catalog: &i18n::Catalog,
+    design: &tokens::Tokens,
+) -> [Output; 6] {
     [
         (consts::TS_PATH, render_ts::render(registry)),
         (consts::DOCS_PATH, render_md::render(registry)),
         (consts::I18N_TS_PATH, i18n::render_ts(catalog)),
+        (consts::TOKENS_CSS_PATH, tokens::render_css(design)),
+        (consts::TOKENS_TS_PATH, tokens::render_ts(design)),
+        (consts::THEME_INIT_PATH, tokens::render_init(design)),
     ]
 }
