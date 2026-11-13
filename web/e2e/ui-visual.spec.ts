@@ -8,11 +8,19 @@
 //
 // `UPDATE_SCREENSHOTS=1` writes the screens to docs/screenshots/visual/ for the review by eye.
 // Runs after ui-usages.spec.ts: the worker shares one server and every scan adds a project.
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { Page, TestInfo } from "@playwright/test";
-import { addScannedProject, expect, keepLaunchFile, SCAN_MS, test, type Harness } from "./fixtures";
+import {
+  addLayeredProject,
+  addScannedProject,
+  expect,
+  keepLaunchFile,
+  SCAN_MS,
+  selectAdd,
+  test,
+  type Harness,
+} from "./fixtures";
 
 const MOCKS = path.resolve(import.meta.dirname, "../../docs/mocks");
 const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/visual");
@@ -144,16 +152,6 @@ const SOURCE = [
   "",
 ].join("\n");
 
-const LAYERS = `
-[[layers]]
-name = "Presentation"
-namespaces = ["Vis.Ui"]
-
-[[layers]]
-name = "Domain"
-namespaces = ["Vis.Domain"]
-`;
-
 test.describe("the screens against the mocks (1440 x 900, light)", () => {
   test.use({ viewport: VIEWPORT });
 
@@ -258,12 +256,7 @@ test.describe("the screens against the mocks (1440 x 900, light)", () => {
   test("Usages (6)", async ({ page, harness }, info) => {
     await prepare(page);
     const row = await addScannedProject(page, harness, "visusages", SOURCE);
-    await row.click({ position: { x: 4, y: 4 } });
-    await page.keyboard.press("Enter");
-    await page.getByText("(no layer)").click();
-    await page.getByText("visusages.Vis", { exact: true }).click();
-    await page.getByText("Calculator", { exact: true }).click();
-    await page.getByRole("button", { name: /Add/ }).first().click();
+    await selectAdd(page, row, "visusages.Vis");
     await page.keyboard.press("u");
     await expect(page.getByRole("region", { name: "Usage graph" })).toBeVisible();
     await expect(page.getByText("Hits 1")).toBeVisible();
@@ -285,24 +278,7 @@ test.describe("the screens against the mocks (1440 x 900, light)", () => {
   test("Dependencies (3)", async ({ page, harness }, info) => {
     await openUi(page, harness);
     await expect(page.getByText("● Connected")).toBeVisible();
-    const folder = path.join(mkdtempSync(path.join(tmpdir(), "codeskimr-e2e-")), "visgraph");
-    mkdirSync(folder);
-    writeFileSync(path.join(folder, ".codeskimr.toml"), LAYERS);
-    writeFileSync(
-      path.join(folder, "Order.cs"),
-      "namespace Vis.Domain;\n\npublic class Order\n{\n    public int Total() { return 1; }\n}\n",
-    );
-    writeFileSync(
-      path.join(folder, "OrderView.cs"),
-      "namespace Vis.Ui;\n\nusing Vis.Domain;\n\npublic class OrderView\n{\n    public int Show(Order order) { return order.Total(); }\n}\n",
-    );
-    await page.getByLabel("New project").fill(folder);
-    await page.getByRole("button", { name: "Add and scan" }).click();
-    const open = page.getByRole("button", { name: "Open visgraph" });
-    await expect(open).toBeVisible({ timeout: SCAN_MS });
-    await expect(
-      page.getByRole("row", { name: /visgraph/ }).getByText("current", { exact: true }),
-    ).toBeVisible({ timeout: SCAN_MS });
+    const open = await addLayeredProject(page, harness, "visgraph");
     await open.click();
     await page.getByRole("link", { name: "Dependencies" }).click();
     await page.getByRole("button", { name: "Domain" }).click();

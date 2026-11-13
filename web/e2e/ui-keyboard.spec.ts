@@ -1,13 +1,10 @@
 // Keyboard paths and click rules of blueprint 15.4. Runs after ui-graph.spec.ts and before the
 // other screens: the worker shares one server and every scan adds a project.
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import path from "node:path";
 import type { Locator, Page } from "@playwright/test";
 import {
+  addLayeredProject,
   addScannedProject,
   expect,
-  keepLaunchFile,
   SCAN_MS,
   test,
   watchPolicy,
@@ -221,39 +218,12 @@ test.describe("quick search and Esc (15.4)", () => {
   });
 });
 
-const LAYERS = `
-[[layers]]
-name = "Presentation"
-namespaces = ["Kbd.Ui"]
-
-[[layers]]
-name = "Domain"
-namespaces = ["Kbd.Domain"]
-`;
-const DOMAIN =
-  "namespace Kbd.Domain;\n\npublic class Order\n{\n    public int Total() { return 1; }\n}\n";
-const UI =
-  "namespace Kbd.Ui;\n\nusing Kbd.Domain;\n\npublic class OrderView\n{\n    public int Show(Order order) { return order.Total(); }\n}\n";
-
 test.describe("the dependency map (15.4)", () => {
   test("F fits the map to the view and Enter opens the selected layer in the explorer", async ({
     page,
     harness,
   }) => {
-    const folder = path.join(mkdtempSync(path.join(tmpdir(), "codeskimr-e2e-")), "kbdgraph");
-    mkdirSync(folder);
-    writeFileSync(path.join(folder, ".codeskimr.toml"), LAYERS);
-    writeFileSync(path.join(folder, "Order.cs"), DOMAIN);
-    writeFileSync(path.join(folder, "OrderView.cs"), UI);
-    const { copy } = keepLaunchFile(await harness.launchFile());
-    await page.goto(`file://${copy}`);
-    await page.getByLabel("New project").fill(folder);
-    await page.getByRole("button", { name: "Add and scan" }).click();
-    const open = page.getByRole("button", { name: "Open kbdgraph" });
-    await expect(open).toBeVisible({ timeout: SCAN_MS });
-    await expect(
-      page.getByRole("row", { name: /kbdgraph/ }).getByText("current", { exact: true }),
-    ).toBeVisible({ timeout: SCAN_MS });
+    const open = await addLayeredProject(page, harness, "kbdgraph");
     await open.click();
     await page.getByRole("link", { name: "Dependencies" }).click();
     const domain = page.getByRole("button", { name: "Domain" });
