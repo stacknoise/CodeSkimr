@@ -1,0 +1,188 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 66,
+      "operands": null,
+      "operators": null,
+      "symbol": "metrics"
+    },
+    {
+      "decisions": 17,
+      "loc": 52,
+      "operands": [
+        28,
+        71
+      ],
+      "operators": [
+        31,
+        55
+      ],
+      "symbol": "metrics.rules"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        3,
+        4
+      ],
+      "operators": [
+        4,
+        4
+      ],
+      "symbol": "metrics.rules.lambda"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        2
+      ],
+      "operators": [
+        3,
+        3
+      ],
+      "symbol": "metrics.arrow"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "metrics.arrow.nested"
+    },
+    {
+      "decisions": null,
+      "loc": 9,
+      "operands": null,
+      "operators": null,
+      "symbol": "metrics.Counter"
+    },
+    {
+      "decisions": 1,
+      "loc": 6,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        4,
+        5
+      ],
+      "symbol": "metrics.Counter.tick"
+    }
+  ],
+  "loc": 66,
+  "references": [
+    {
+      "at": "37:12",
+      "from": "metrics.rules",
+      "kind": "read",
+      "receiver": null,
+      "target": "JSON"
+    },
+    {
+      "at": "37:17",
+      "from": "metrics.rules",
+      "kind": "call",
+      "receiver": "named JSON",
+      "target": "parse"
+    },
+    {
+      "at": "49:22",
+      "from": "metrics.rules",
+      "kind": "read",
+      "receiver": "typed string[]",
+      "target": "length"
+    },
+    {
+      "at": "61:13",
+      "from": "metrics.Counter.tick",
+      "kind": "read",
+      "receiver": "own",
+      "target": "n"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "metrics",
+      "parent": null,
+      "span": "0:0-68:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics.rules",
+      "parent": "metrics",
+      "span": "0:7-52:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics.rules.lambda",
+      "parent": "metrics.rules",
+      "span": "50:17-50:47",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics.arrow",
+      "parent": "metrics",
+      "span": "54:21-57:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics.arrow.nested",
+      "parent": "metrics.arrow",
+      "span": "55:17-55:29",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "metrics.Counter",
+      "parent": "metrics",
+      "span": "59:0-67:1",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "metrics.Counter.tick",
+      "parent": "metrics.Counter",
+      "span": "60:9-65:3",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "metrics.Counter.n",
+      "parent": "metrics.Counter",
+      "span": "66:2-66:7",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

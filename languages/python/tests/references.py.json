@@ -1,0 +1,300 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 25,
+      "operands": null,
+      "operators": null,
+      "symbol": "references"
+    },
+    {
+      "decisions": null,
+      "loc": 2,
+      "operands": null,
+      "operators": null,
+      "symbol": "references.Base"
+    },
+    {
+      "decisions": null,
+      "loc": 16,
+      "operands": null,
+      "operators": null,
+      "symbol": "references.Child"
+    },
+    {
+      "decisions": 1,
+      "loc": 12,
+      "operands": [
+        21,
+        29
+      ],
+      "operators": [
+        7,
+        20
+      ],
+      "symbol": "references.Child.run"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "references.Child.stop"
+    },
+    {
+      "decisions": 0,
+      "loc": 4,
+      "operands": [
+        4,
+        6
+      ],
+      "operators": [
+        4,
+        5
+      ],
+      "symbol": "references.make"
+    }
+  ],
+  "loc": 25,
+  "references": [
+    {
+      "at": "0:7",
+      "from": "references",
+      "kind": "import",
+      "receiver": null,
+      "target": "os"
+    },
+    {
+      "at": "1:7",
+      "from": "references",
+      "kind": "import",
+      "receiver": null,
+      "target": "pkg.mod"
+    },
+    {
+      "at": "2:5",
+      "from": "references",
+      "kind": "import",
+      "receiver": null,
+      "target": "pkg.sub"
+    },
+    {
+      "at": "2:20",
+      "from": "references",
+      "kind": "import",
+      "receiver": null,
+      "target": "Thing"
+    },
+    {
+      "at": "2:27",
+      "from": "references",
+      "kind": "import",
+      "receiver": null,
+      "target": "Other"
+    },
+    {
+      "at": "9:12",
+      "from": "references.Child",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Base"
+    },
+    {
+      "at": "9:18",
+      "from": "references.Child",
+      "kind": "read",
+      "receiver": null,
+      "target": "mixins"
+    },
+    {
+      "at": "9:25",
+      "from": "references.Child",
+      "kind": "inherit",
+      "receiver": "named mixins",
+      "target": "Mixin"
+    },
+    {
+      "at": "10:4",
+      "from": "references.Child.attr",
+      "kind": "write",
+      "receiver": null,
+      "target": "attr"
+    },
+    {
+      "at": "10:10",
+      "from": "references.Child.attr",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Thing"
+    },
+    {
+      "at": "12:24",
+      "from": "references.Child.run",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Thing"
+    },
+    {
+      "at": "12:43",
+      "from": "references.Child.run",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Other"
+    },
+    {
+      "at": "13:17",
+      "from": "references.Child.run",
+      "kind": "call",
+      "receiver": null,
+      "target": "Thing"
+    },
+    {
+      "at": "14:21",
+      "from": "references.Child.run",
+      "kind": "read",
+      "receiver": "own",
+      "target": "attr"
+    },
+    {
+      "at": "15:15",
+      "from": "references.Child.run",
+      "kind": "call",
+      "receiver": "typed Thing",
+      "target": "go"
+    },
+    {
+      "at": "16:8",
+      "from": "references.Child.run",
+      "kind": "call",
+      "receiver": null,
+      "target": "super"
+    },
+    {
+      "at": "16:16",
+      "from": "references.Child.run",
+      "kind": "call",
+      "receiver": "base",
+      "target": "run"
+    },
+    {
+      "at": "17:13",
+      "from": "references.Child.run",
+      "kind": "call",
+      "receiver": "own",
+      "target": "stop"
+    },
+    {
+      "at": "18:8",
+      "from": "references.Child.run",
+      "kind": "read",
+      "receiver": null,
+      "target": "os"
+    },
+    {
+      "at": "18:16",
+      "from": "references.Child.run",
+      "kind": "call",
+      "receiver": null,
+      "target": "join"
+    },
+    {
+      "at": "20:12",
+      "from": "references.Child.run",
+      "kind": "call",
+      "receiver": null,
+      "target": "print"
+    },
+    {
+      "at": "29:14",
+      "from": "references.make",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Child"
+    },
+    {
+      "at": "30:12",
+      "from": "references.make",
+      "kind": "call",
+      "receiver": null,
+      "target": "Child"
+    },
+    {
+      "at": "31:10",
+      "from": "references.make",
+      "kind": "call",
+      "receiver": "typed Child",
+      "target": "run"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "references",
+      "parent": null,
+      "span": "0:0-33:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "references.Base",
+      "parent": "references",
+      "span": "5:0-6:8",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "references.Child",
+      "parent": "references",
+      "span": "9:0-26:12",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "references.Child.attr",
+      "parent": "references.Child",
+      "span": "10:4-10:22",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "references.Child.run",
+      "parent": "references.Child",
+      "span": "12:4-23:21",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "references.Child.stop",
+      "parent": "references.Child",
+      "span": "25:4-26:12",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "references.make",
+      "parent": "references",
+      "span": "29:0-32:16",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

@@ -19,6 +19,19 @@ pub enum Tier {
     Basic,
 }
 
+/// A visibility that follows from the spelling of a name, such as the leading underscore of Python.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct NameRule {
+    /// The name starts with this text.
+    pub prefix: String,
+    /// The name also ends with this text; without it the end does not matter.
+    #[serde(default)]
+    pub suffix: Option<String>,
+    /// Visibility label of a matching name.
+    pub visibility: String,
+}
+
 /// Visibility rules of a language.
 #[derive(Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -34,6 +47,10 @@ pub struct VisibilityRules {
     /// Keyword text to visibility label.
     #[serde(default)]
     pub keywords: HashMap<String, String>,
+    /// Rules by the spelling of the name; the first matching rule counts. They apply when no
+    /// keyword does.
+    #[serde(default)]
+    pub name_rules: Vec<NameRule>,
 }
 
 /// Tags that enclose the summary inside a documentation comment, such as `<summary>` in C#.
@@ -44,6 +61,20 @@ pub struct DocSummary {
     pub open: String,
     /// Closing tag.
     pub close: String,
+}
+
+/// Delimiters of a block documentation comment such as `JSDoc` (`/** ... */`, ADR 0021).
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DocBlock {
+    /// Text that opens the comment, such as `/**`.
+    pub open: String,
+    /// Text that closes the comment, such as `*/`.
+    pub close: String,
+    /// Marker that may start every line inside the comment, such as `*`.
+    pub line_prefix: String,
+    /// A line that starts with this text, such as `@`, ends the description.
+    pub stop_at: Option<String>,
 }
 
 /// Parsed `language.toml`. Unknown keys are rejected so typos do not pass silently.
@@ -75,9 +106,17 @@ pub struct PackManifest {
     /// comment is.
     #[serde(default)]
     pub doc_summary: Option<DocSummary>,
+    /// Block documentation comments (`JSDoc`); with it and without `doc_prefixes` only block
+    /// comments are documentation.
+    #[serde(default)]
+    pub doc_block: Option<DocBlock>,
     /// Modifier keyword to symbol kind label; a declaration with the keyword gets that kind.
     #[serde(default)]
     pub modifier_kinds: HashMap<String, String>,
+    /// Kind label of the parent to (kind label of a declaration to kind label it gets there), such
+    /// as a `function` inside a `class` being a `method`.
+    #[serde(default)]
+    pub kinds_by_parent: HashMap<String, HashMap<String, String>>,
     /// Modifier keywords that make a declaration static.
     #[serde(default)]
     pub static_keywords: Vec<String>,

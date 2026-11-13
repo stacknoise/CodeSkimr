@@ -1,0 +1,416 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 34,
+      "operands": null,
+      "operators": null,
+      "symbol": "references"
+    },
+    {
+      "decisions": null,
+      "loc": 19,
+      "operands": null,
+      "operators": null,
+      "symbol": "references.Cart"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "references.Cart.constructor"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "references.Cart.run"
+    },
+    {
+      "decisions": 1,
+      "loc": 11,
+      "operands": [
+        15,
+        20
+      ],
+      "operators": [
+        10,
+        20
+      ],
+      "symbol": "references.Cart.find"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "references.Named"
+    },
+    {
+      "decisions": 2,
+      "loc": 11,
+      "operands": [
+        4,
+        5
+      ],
+      "operators": [
+        6,
+        6
+      ],
+      "symbol": "references.helper"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "references.mapper"
+    }
+  ],
+  "loc": 34,
+  "references": [
+    {
+      "at": "0:7",
+      "from": "references",
+      "kind": "import",
+      "receiver": null,
+      "target": "Default"
+    },
+    {
+      "at": "0:18",
+      "from": "references",
+      "kind": "import",
+      "receiver": null,
+      "target": "Named"
+    },
+    {
+      "at": "1:12",
+      "from": "references",
+      "kind": "import",
+      "receiver": null,
+      "target": "ns"
+    },
+    {
+      "at": "3:26",
+      "from": "references.Cart",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Base"
+    },
+    {
+      "at": "3:50",
+      "from": "references.Cart",
+      "kind": "implement",
+      "receiver": null,
+      "target": "Iterable"
+    },
+    {
+      "at": "3:59",
+      "from": "references.Cart",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Item"
+    },
+    {
+      "at": "3:66",
+      "from": "references.Cart",
+      "kind": "implement",
+      "receiver": null,
+      "target": "Priced"
+    },
+    {
+      "at": "4:26",
+      "from": "references.Cart.items",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Item"
+    },
+    {
+      "at": "5:22",
+      "from": "references.Cart.store",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Store"
+    },
+    {
+      "at": "6:37",
+      "from": "references.Cart.constructor",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Repo"
+    },
+    {
+      "at": "10:11",
+      "from": "references.Cart.run",
+      "kind": "override",
+      "receiver": null,
+      "target": "run"
+    },
+    {
+      "at": "12:31",
+      "from": "references.Cart.find",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Item"
+    },
+    {
+      "at": "12:38",
+      "from": "references.Cart.find",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Item"
+    },
+    {
+      "at": "13:4",
+      "from": "references.Cart.find",
+      "kind": "call",
+      "receiver": null,
+      "target": "helper"
+    },
+    {
+      "at": "14:9",
+      "from": "references.Cart.find",
+      "kind": "write",
+      "receiver": "own",
+      "target": "count"
+    },
+    {
+      "at": "14:28",
+      "from": "references.Cart.find",
+      "kind": "read",
+      "receiver": null,
+      "target": "length"
+    },
+    {
+      "at": "14:37",
+      "from": "references.Cart.find",
+      "kind": "read",
+      "receiver": null,
+      "target": "offset"
+    },
+    {
+      "at": "15:9",
+      "from": "references.Cart.find",
+      "kind": "write",
+      "receiver": "own",
+      "target": "count"
+    },
+    {
+      "at": "17:19",
+      "from": "references.Cart.find",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Item"
+    },
+    {
+      "at": "17:30",
+      "from": "references.Cart.find",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Item"
+    },
+    {
+      "at": "18:18",
+      "from": "references.Cart.find",
+      "kind": "call",
+      "receiver": null,
+      "target": "compute"
+    },
+    {
+      "at": "18:39",
+      "from": "references.Cart.find",
+      "kind": "read",
+      "receiver": "own",
+      "target": "count"
+    },
+    {
+      "at": "19:14",
+      "from": "references.Cart.find",
+      "kind": "call",
+      "receiver": null,
+      "target": "save"
+    },
+    {
+      "at": "20:4",
+      "from": "references.Cart.find",
+      "kind": "read",
+      "receiver": null,
+      "target": "ns"
+    },
+    {
+      "at": "20:7",
+      "from": "references.Cart.find",
+      "kind": "call",
+      "receiver": "named ns",
+      "target": "log"
+    },
+    {
+      "at": "25:31",
+      "from": "references.Named",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Base"
+    },
+    {
+      "at": "27:19",
+      "from": "references.helper",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Named"
+    },
+    {
+      "at": "27:29",
+      "from": "references.helper",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Cart"
+    },
+    {
+      "at": "27:38",
+      "from": "references.helper",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Promise"
+    },
+    {
+      "at": "27:46",
+      "from": "references.helper",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Cart"
+    },
+    {
+      "at": "36:28",
+      "from": "references.helper",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Promise"
+    },
+    {
+      "at": "36:36",
+      "from": "references.helper",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Cart"
+    },
+    {
+      "at": "39:42",
+      "from": "references.mapper",
+      "kind": "read",
+      "receiver": null,
+      "target": "LIMIT"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "references",
+      "parent": null,
+      "span": "0:0-40:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "references.Cart",
+      "parent": "references",
+      "span": "3:7-23:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "references.Cart.items",
+      "parent": "references.Cart",
+      "span": "4:2-4:37",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "references.Cart.store",
+      "parent": "references.Cart",
+      "span": "5:2-5:29",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "constructor",
+      "name": "references.Cart.constructor",
+      "parent": "references.Cart",
+      "span": "6:2-8:3",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "references.Cart.run",
+      "parent": "references.Cart",
+      "span": "10:2-10:25",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "references.Cart.find",
+      "parent": "references.Cart",
+      "span": "12:2-22:3",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "references.Named",
+      "parent": "references",
+      "span": "25:7-25:38",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "references.helper",
+      "parent": "references",
+      "span": "27:0-37:1",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "references.mapper",
+      "parent": "references",
+      "span": "39:15-39:47",
+      "static": false,
+      "visibility": "private"
+    }
+  ]
+}

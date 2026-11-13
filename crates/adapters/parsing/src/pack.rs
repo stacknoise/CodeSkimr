@@ -12,7 +12,7 @@ use crate::captures::{MetricsQuery, Vocabulary};
 use crate::consts::{ID_MISMATCH, METRICS_QUERY_FILE, REFERENCES_QUERY_FILE, SYMBOLS_QUERY_FILE};
 use crate::error::ParsingError;
 use crate::grammar;
-use crate::manifest::{DocSummary, PackManifest, Tier};
+use crate::manifest::{DocBlock, DocSummary, PackManifest, Tier};
 use crate::visibility::Visibilities;
 
 /// Everything the analyzer needs to understand one language.
@@ -28,7 +28,10 @@ pub struct LanguagePack {
     pub(crate) doc_prefixes: Vec<String>,
     pub(crate) static_keywords: HashSet<String>,
     pub(crate) modifier_kinds: HashMap<String, SymbolKind>,
+    /// Kind a declaration gets inside a parent: (parent kind, kind) to kind.
+    kinds_by_parent: HashMap<(SymbolKind, SymbolKind), SymbolKind>,
     pub(crate) doc_summary: Option<DocSummary>,
+    pub(crate) doc_block: Option<DocBlock>,
     pub(crate) identifier_nodes: HashSet<String>,
     pub(crate) literal_nodes: HashSet<String>,
     pub(crate) visibility: Visibilities,
@@ -79,7 +82,9 @@ impl LanguagePack {
             .map(|(keyword, label)| Ok((keyword, SymbolKind::from_str(&label)?)))
             .collect::<Result<_, ModelError>>()
             .map_err(|e| invalid(e.to_string()))?;
+        let kinds_by_parent = parent_kinds(manifest.kinds_by_parent).map_err(invalid)?;
         Ok(Self {
+            kinds_by_parent,
             id,
             tier: manifest.tier,
             extensions: manifest.extensions,
@@ -92,6 +97,7 @@ impl LanguagePack {
             static_keywords: manifest.static_keywords.into_iter().collect(),
             modifier_kinds,
             doc_summary: manifest.doc_summary,
+            doc_block: manifest.doc_block,
             identifier_nodes: manifest.identifier_nodes.into_iter().collect(),
             literal_nodes: manifest.literal_nodes.into_iter().collect(),
             visibility,
@@ -99,6 +105,14 @@ impl LanguagePack {
             references,
             metrics,
         })
+    }
+
+    /// The kind a declaration of `kind` gets inside a parent of kind `parent`.
+    pub(crate) fn kind_in(&self, parent: Option<SymbolKind>, kind: SymbolKind) -> SymbolKind {
+        parent
+            .and_then(|parent| self.kinds_by_parent.get(&(parent, kind)))
+            .copied()
+            .unwrap_or(kind)
     }
 
     /// Id of the language.
@@ -130,6 +144,19 @@ impl LanguagePack {
     pub fn extensions(&self) -> &[String] {
         &self.extensions
     }
+}
+
+fn parent_kinds(
+    rules: HashMap<String, HashMap<String, String>>,
+) -> Result<HashMap<(SymbolKind, SymbolKind), SymbolKind>, String> {
+    let parse = |label: &str| SymbolKind::from_str(label).map_err(|_| label.to_owned());
+    let mut kinds = HashMap::new();
+    for (parent, inner) in rules {
+        for (from, to) in inner {
+            kinds.insert((parse(&parent)?, parse(&from)?), parse(&to)?);
+        }
+    }
+    Ok(kinds)
 }
 
 fn folder_name(dir: &Path) -> String {

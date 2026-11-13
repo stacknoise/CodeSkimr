@@ -1,0 +1,372 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 42,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations"
+    },
+    {
+      "decisions": null,
+      "loc": 20,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Order"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "declarations.Order.handler"
+    },
+    {
+      "decisions": 0,
+      "loc": 4,
+      "operands": [
+        1,
+        2
+      ],
+      "operators": [
+        3,
+        3
+      ],
+      "symbol": "declarations.Order.constructor"
+    },
+    {
+      "decisions": 0,
+      "loc": 4,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "declarations.Order.create"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.Order.generate"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "declarations.add"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "declarations.sub"
+    },
+    {
+      "decisions": 3,
+      "loc": 8,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        6,
+        6
+      ],
+      "symbol": "declarations.run"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.run.inner"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.gen"
+    }
+  ],
+  "loc": 42,
+  "references": [
+    {
+      "at": "0:9",
+      "from": "declarations",
+      "kind": "import",
+      "receiver": null,
+      "target": "Base"
+    },
+    {
+      "at": "6:27",
+      "from": "declarations.Order",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Base"
+    },
+    {
+      "at": "17:9",
+      "from": "declarations.Order.constructor",
+      "kind": "write",
+      "receiver": "own",
+      "target": "id"
+    },
+    {
+      "at": "21:16",
+      "from": "declarations.Order.total",
+      "kind": "read",
+      "receiver": "own",
+      "target": "id"
+    },
+    {
+      "at": "25:22",
+      "from": "declarations.Order.create",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Order"
+    },
+    {
+      "at": "44:16",
+      "from": "declarations.run",
+      "kind": "read",
+      "receiver": null,
+      "target": "counter"
+    },
+    {
+      "at": "45:6",
+      "from": "declarations.run",
+      "kind": "write",
+      "receiver": null,
+      "target": "counter"
+    },
+    {
+      "at": "48:9",
+      "from": "declarations.run",
+      "kind": "call",
+      "receiver": null,
+      "target": "inner"
+    },
+    {
+      "at": "53:0",
+      "from": "declarations",
+      "kind": "read",
+      "receiver": null,
+      "target": "module"
+    },
+    {
+      "at": "53:7",
+      "from": "declarations",
+      "kind": "write",
+      "receiver": "named module",
+      "target": "exports"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "declarations",
+      "parent": null,
+      "span": "0:0-56:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": "An order of a customer.",
+      "kind": "class",
+      "name": "declarations.Order",
+      "parent": "declarations",
+      "span": "6:7-30:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Order.MAX",
+      "parent": "declarations.Order",
+      "span": "7:2-7:18",
+      "static": true,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Order.#secret",
+      "parent": "declarations.Order",
+      "span": "8:2-8:13",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Order.name",
+      "parent": "declarations.Order",
+      "span": "9:2-9:6",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations.Order.handler",
+      "parent": "declarations.Order",
+      "span": "10:12-12:3",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "Creates an order.",
+      "kind": "constructor",
+      "name": "declarations.Order.constructor",
+      "parent": "declarations.Order",
+      "span": "15:2-18:3",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "declarations.Order.total",
+      "parent": "declarations.Order",
+      "span": "20:2-22:3",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations.Order.create",
+      "parent": "declarations.Order",
+      "span": "24:2-27:3",
+      "static": true,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "declarations.Order.generate",
+      "parent": "declarations.Order",
+      "span": "29:2-29:16",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "declarations.LIMIT",
+      "parent": "declarations",
+      "span": "32:13-32:23",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "declarations.hidden",
+      "parent": "declarations",
+      "span": "33:6-33:18",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations.add",
+      "parent": "declarations",
+      "span": "34:19-34:34",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations.sub",
+      "parent": "declarations",
+      "span": "35:12-37:1",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": "Does things.",
+      "kind": "function",
+      "name": "declarations.run",
+      "parent": "declarations",
+      "span": "41:7-49:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations.run.inner",
+      "parent": "declarations.run",
+      "span": "42:2-42:21",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "declarations.view",
+      "parent": "declarations",
+      "span": "51:13-51:27",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations.gen",
+      "parent": "declarations",
+      "span": "52:19-52:34",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}
