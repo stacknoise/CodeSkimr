@@ -35,18 +35,29 @@ pub struct SymbolTable {
     /// Symbols in source order; the first one is the module of the file.
     pub symbols: Vec<Symbol>,
     ranges: Vec<Range<usize>>,
+    parents: Vec<Option<usize>>,
 }
 
 impl SymbolTable {
     /// The innermost symbol that contains the byte offset; the module if no other does.
+    ///
+    /// Symbols are sorted by start, so the last one that starts at or before the offset is the
+    /// candidate; its enclosing chain is as deep as the nesting, not as long as the file.
     #[must_use]
     pub fn innermost(&self, offset: usize) -> Option<&Symbol> {
-        self.ranges
-            .iter()
-            .zip(&self.symbols)
-            .rfind(|(range, _)| range.contains(&offset))
-            .map(|(_, symbol)| symbol)
-            .or_else(|| self.symbols.first())
+        let started = self.ranges.partition_point(|range| range.start <= offset);
+        let mut index = started.checked_sub(1);
+        while let Some(current) = index {
+            if self
+                .ranges
+                .get(current)
+                .is_some_and(|range| range.contains(&offset))
+            {
+                return self.symbols.get(current);
+            }
+            index = self.parents.get(current).copied().flatten();
+        }
+        self.symbols.first()
     }
 }
 
@@ -112,11 +123,14 @@ fn collect<'t>(ctx: &SymbolContext<'_>, root: Node<'t>) -> Vec<Declaration<'t>> 
         found.extend(parts.finish());
     }
     found.sort_by_key(|d| (d.node.start_byte(), Reverse(d.node.end_byte())));
+    // Several patterns may describe the same declaration; the first one wins.
+    found.dedup_by_key(|d| (d.node.id(), d.kind));
     found
 }
 
 struct Frame {
     end: usize,
+    index: usize,
     id: SymbolId,
     qualified: String,
 }
@@ -137,6 +151,7 @@ struct Builder<'a, 'c> {
     ctx: &'c SymbolContext<'a>,
     symbols: Vec<Symbol>,
     ranges: Vec<Range<usize>>,
+    parents: Vec<Option<usize>>,
     stack: Vec<Frame>,
 }
 
@@ -149,6 +164,7 @@ pub fn extract(ctx: &SymbolContext<'_>, root: Node<'_>) -> Result<SymbolTable, P
         ctx,
         symbols: Vec::new(),
         ranges: Vec::new(),
+        parents: Vec::new(),
         stack: Vec::new(),
     };
     builder.add_module(root)?;
@@ -158,6 +174,7 @@ pub fn extract(ctx: &SymbolContext<'_>, root: Node<'_>) -> Result<SymbolTable, P
     Ok(SymbolTable {
         symbols: builder.symbols,
         ranges: builder.ranges,
+        parents: builder.parents,
     })
 }
 
@@ -219,6 +236,9 @@ impl Builder<'_, '_> {
 
     fn push(&mut self, qualified: String, new: NewSymbol) -> Result<(), ParsingError> {
         let id = self.ctx.ids.symbol();
+        let index = self.symbols.len();
+        self.parents
+            .push(self.stack.last().map(|frame| frame.index));
         self.symbols.push(Symbol {
             id,
             file: self.ctx.file,
@@ -234,6 +254,7 @@ impl Builder<'_, '_> {
         });
         self.stack.push(Frame {
             end: new.range.end,
+            index,
             id,
             qualified,
         });
@@ -253,15 +274,20 @@ fn visibility(ctx: &SymbolContext<'_>, declaration: &Declaration<'_>) -> Option<
 fn doc(ctx: &SymbolContext<'_>, nodes: &[Node<'_>]) -> Option<String> {
     let lines: Vec<&str> = nodes
         .iter()
-        .map(|node| strip_prefix(&ctx.pack.doc_prefixes, text_of(*node, ctx.source)).trim())
+        .filter_map(|node| strip_prefix(&ctx.pack.doc_prefixes, text_of(*node, ctx.source)))
+        .map(str::trim)
         .collect();
     (!lines.is_empty()).then(|| lines.join(LINE_SEPARATOR))
 }
 
-fn strip_prefix<'t>(prefixes: &[String], text: &'t str) -> &'t str {
+/// Removes the doc prefix; a comment without one is no documentation. A pack without prefixes
+/// marks documentation through its query alone and keeps the text as written.
+fn strip_prefix<'t>(prefixes: &[String], text: &'t str) -> Option<&'t str> {
     let text = text.trim_start();
+    if prefixes.is_empty() {
+        return Some(text);
+    }
     prefixes
         .iter()
         .find_map(|prefix| text.strip_prefix(prefix.as_str()))
-        .unwrap_or(text)
 }

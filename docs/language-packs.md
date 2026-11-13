@@ -10,11 +10,11 @@
 | `symbols.scm` | yes | declarations to symbols |
 | `references.scm` | no | occurrences of names; without it a file yields no pending references |
 
-`language.toml` keys: `id`, `grammar` (built-in grammar name), `tier` (`full` or `basic`), `extensions`, `separator` (inside qualified names), `comment_nodes` (node kinds that are comments, used for the line classification), `doc_prefixes` (removed from doc comment lines) and the table `[visibility]` with `default` and `keywords` (keyword text to visibility label).
+`language.toml` keys: `id`, `grammar` (built-in grammar name), `tier` (`full` or `basic`), `extensions`, `separator` (inside qualified names), `comment_nodes` (node kinds that are comments, used for the line classification), `doc_prefixes` (a comment captured as `@doc` counts only if it starts with one; the prefix is removed), optional `manifest_files` and `test_patterns` (read by later stages) and the table `[visibility]` with `default` and `keywords` (keyword text to visibility label).
 
 ## Capture vocabulary
 
-- `symbols.scm`: `@symbol.<kind>` marks the whole declaration (`<kind>` is a symbol kind label such as `class` or `enum_member`), `@name` its simple name (required). Optional: `@visibility`, `@static`, `@doc` (may repeat; lines are joined), `@signature`.
+- `symbols.scm` (a declaration found by several patterns is stored once): `@symbol.<kind>` marks the whole declaration (`<kind>` is a symbol kind label such as `class` or `enum_member`), `@name` its simple name (required). Optional: `@visibility`, `@static`, `@doc` (may repeat; lines are joined), `@signature`.
 - `references.scm`: `@reference.<kind>` marks an occurrence (`<kind>` is a reference kind label). `@name` narrows the target text; without it the marked node is the target.
 
 A capture outside this vocabulary, an invalid query or an unknown grammar fails the load with `PRS-301`.
@@ -28,4 +28,4 @@ A capture outside this vocabulary, an invalid query or an unknown grammar fails 
 
 ## Not part of this package
 
-Cyclomatic complexity and Halstead counts are not extracted yet: the `FileFacts` port carries no metric inputs and issue #15 (granularity, counting rules) is open. See the PR description.
+Cyclomatic complexity and Halstead counts are not extracted yet: the `FileFacts` port carries no metric inputs and issue #15 (granularity, counting rules) is open. The parse time limit is a constructor parameter until it is wired to the config (#32).

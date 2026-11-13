@@ -41,6 +41,12 @@ pub struct Manifest {
     pub separator: String,
     /// Syntax node kinds that are comments.
     pub comment_nodes: Vec<String>,
+    /// Project manifest files such as `Cargo.toml`; used by later stages, not by parsing.
+    #[serde(default, rename = "manifest_files")]
+    pub project_files: Vec<String>,
+    /// Glob patterns of test files; used by later stages, not by parsing.
+    #[serde(default)]
+    pub test_patterns: Vec<String>,
     /// Prefixes removed from documentation comment lines.
     #[serde(default)]
     pub doc_prefixes: Vec<String>,

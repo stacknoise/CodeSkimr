@@ -19,6 +19,8 @@ pub struct LanguagePack {
     pub(crate) id: LanguageId,
     pub(crate) tier: Tier,
     pub(crate) extensions: Vec<String>,
+    project_files: Vec<String>,
+    test_patterns: Vec<String>,
     pub(crate) language: Language,
     pub(crate) separator: String,
     pub(crate) comment_nodes: HashSet<String>,
@@ -61,6 +63,9 @@ impl LanguagePack {
         folder: &str,
     ) -> Result<Self, ParsingError> {
         let invalid = |reason: String| ParsingError::invalid(folder, reason);
+        if manifest.id != folder {
+            return Err(invalid(manifest.id));
+        }
         let id = LanguageId::new(manifest.id).map_err(|e| invalid(e.to_string()))?;
         let mut visibility = HashMap::new();
         for (keyword, label) in manifest.visibility.keywords {
@@ -78,6 +83,8 @@ impl LanguagePack {
             id,
             tier: manifest.tier,
             extensions: manifest.extensions,
+            project_files: manifest.project_files,
+            test_patterns: manifest.test_patterns,
             language,
             separator: manifest.separator,
             comment_nodes: manifest.comment_nodes.into_iter().collect(),
@@ -99,6 +106,18 @@ impl LanguagePack {
     #[must_use]
     pub const fn tier(&self) -> Tier {
         self.tier
+    }
+
+    /// Project manifest files of the language, such as `Cargo.toml`.
+    #[must_use]
+    pub fn project_files(&self) -> &[String] {
+        &self.project_files
+    }
+
+    /// Glob patterns that match test files.
+    #[must_use]
+    pub fn test_patterns(&self) -> &[String] {
+        &self.test_patterns
     }
 
     /// File extensions the pack claims, without the dot.

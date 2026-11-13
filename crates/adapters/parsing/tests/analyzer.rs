@@ -221,4 +221,59 @@ mod tests {
         assert!(names(&wide).contains(&("wide::a".to_owned(), SymbolKind::Function)));
         std::fs::remove_dir_all(dir).ok();
     }
+
+    fn scratch_file(name: &str, bytes: &[u8]) -> PathBuf {
+        let dir = std::env::temp_dir().join(format!("codeskimr-an-{name}-{}", std::process::id()));
+        std::fs::create_dir_all(&dir).expect("temp dir");
+        std::fs::write(dir.join("a.rs"), bytes).expect("write");
+        dir
+    }
+
+    #[test]
+    fn reads_utf8_bom_and_utf16_big_endian() {
+        let timeout = Duration::from_secs(5);
+        let mut bom = vec![0xEF_u8, 0xBB, 0xBF];
+        bom.extend_from_slice(b"fn a() {}\n");
+        let dir = scratch_file("bom", &bom);
+        assert!(analyze_in(&dir, "a.rs", "rust", timeout).is_ok());
+        let big: Vec<u8> = [0xFE_u8, 0xFF]
+            .into_iter()
+            .chain("fn b() {}\n".encode_utf16().flat_map(u16::to_be_bytes))
+            .collect();
+        let dir_be = scratch_file("be", &big);
+        let facts = analyze_in(&dir_be, "a.rs", "rust", timeout).expect("utf16 be");
+        assert!(names(&facts).contains(&("a::b".to_owned(), SymbolKind::Function)));
+        let odd = scratch_file("odd", &[0xFF_u8, 0xFE, 0x61]);
+        assert_eq!(
+            analyze_in(&odd, "a.rs", "rust", timeout).err(),
+            Some(ErrorCode::FileEncodingUnsupported)
+        );
+        for d in [dir, dir_be, odd] {
+            std::fs::remove_dir_all(d).ok();
+        }
+    }
+
+    #[test]
+    fn plain_comments_are_not_documentation_and_declarations_are_not_duplicated() {
+        let source = b"// plain\n/// first\n/// second\npub struct S;\n";
+        let dir = scratch_file("doc", source);
+        let facts = analyze_in(&dir, "a.rs", "rust", Duration::from_secs(5)).expect("analyzes");
+        let structs: Vec<_> = facts
+            .symbols
+            .iter()
+            .filter(|s| s.kind == SymbolKind::Struct)
+            .collect();
+        assert_eq!(structs.len(), 1);
+        assert_eq!(structs[0].doc.as_deref(), Some("first\nsecond"));
+        std::fs::remove_dir_all(dir).ok();
+    }
+
+    #[test]
+    fn references_outside_declarations_belong_to_the_module() {
+        let dir = scratch_file("top", b"use std::fmt;\n");
+        let facts = analyze_in(&dir, "a.rs", "rust", Duration::from_secs(5)).expect("analyzes");
+        assert_eq!(facts.pending.len(), 1);
+        assert_eq!(facts.pending[0].from, facts.symbols[0].id);
+        std::fs::remove_dir_all(dir).ok();
+    }
 }

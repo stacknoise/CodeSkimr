@@ -14,13 +14,24 @@ mod tests {
     }
 
     fn scratch(name: &str) -> PathBuf {
-        let dir =
-            std::env::temp_dir().join(format!("codeskimr-packs-{name}-{}", std::process::id()));
+        let dir = std::env::temp_dir()
+            .join(format!("codeskimr-packs-{name}-{}", std::process::id()))
+            .join("rust");
         fs::create_dir_all(&dir).expect("temp dir");
         for file in ["language.toml", "symbols.scm"] {
             fs::copy(fixture_pack().join(file), dir.join(file)).expect("copy");
         }
         dir
+    }
+
+    fn remove(dir: &Path) {
+        fs::remove_dir_all(dir.parent().expect("parent")).ok();
+    }
+
+    fn assert_invalid(dir: &Path, name: &str) {
+        let error = LanguagePack::load(dir).err().expect("invalid");
+        assert_eq!(error.code(), ErrorCode::LanguagePackInvalid, "{name}");
+        remove(dir);
     }
 
     #[test]
@@ -42,7 +53,7 @@ mod tests {
         .expect("write");
         let error = LanguagePack::load(&dir).err().expect("invalid");
         assert_eq!(error.code(), ErrorCode::LanguagePackInvalid);
-        fs::remove_dir_all(dir).ok();
+        remove(&dir);
     }
 
     #[test]
@@ -53,26 +64,21 @@ mod tests {
         ] {
             let dir = scratch(name);
             fs::write(dir.join("symbols.scm"), query).expect("write");
-            let error = LanguagePack::load(&dir).err().expect("invalid");
-            assert_eq!(error.code(), ErrorCode::LanguagePackInvalid, "{name}");
-            fs::remove_dir_all(dir).ok();
+            assert_invalid(&dir, name);
         }
     }
 
     #[test]
-    fn rejects_an_unknown_grammar() {
-        let dir = scratch("grammar");
-        let manifest = fs::read_to_string(dir.join("language.toml")).expect("read");
-        fs::write(
-            dir.join("language.toml"),
-            manifest.replace("grammar = \"rust\"", "grammar = \"klingon\""),
-        )
-        .expect("write");
-        assert_eq!(
-            LanguagePack::load(&dir).err().expect("invalid").code(),
-            ErrorCode::LanguagePackInvalid
-        );
-        fs::remove_dir_all(dir).ok();
+    fn rejects_manifests_with_an_unknown_grammar_or_a_foreign_id() {
+        for (name, from, to) in [
+            ("grammar", "grammar = \"rust\"", "grammar = \"klingon\""),
+            ("id", "id = \"rust\"", "id = \"other\""),
+        ] {
+            let dir = scratch(name);
+            let manifest = fs::read_to_string(dir.join("language.toml")).expect("read");
+            fs::write(dir.join("language.toml"), manifest.replace(from, to)).expect("write");
+            assert_invalid(&dir, name);
+        }
     }
 
     #[test]
@@ -84,5 +90,30 @@ mod tests {
             .err()
             .expect("missing");
         assert_eq!(missing.code(), ErrorCode::LanguagePackMissing);
+    }
+
+    #[test]
+    fn requires_symbols_but_not_references() {
+        let dir = scratch("files");
+        assert!(
+            LanguagePack::load(&dir).is_ok(),
+            "references.scm is optional"
+        );
+        fs::remove_file(dir.join("symbols.scm")).expect("remove");
+        assert_eq!(
+            LanguagePack::load(&dir).err().expect("invalid").code(),
+            ErrorCode::LanguagePackInvalid
+        );
+        remove(&dir);
+    }
+
+    #[test]
+    fn accepts_manifest_files_and_test_patterns() {
+        let dir = scratch("extra");
+        let manifest = fs::read_to_string(dir.join("language.toml")).expect("read");
+        let extra = "manifest_files = [\"Cargo.toml\"]\ntest_patterns = [\"tests/**\"]\n";
+        fs::write(dir.join("language.toml"), format!("{extra}{manifest}")).expect("write");
+        assert!(LanguagePack::load(&dir).is_ok());
+        remove(&dir);
     }
 }
