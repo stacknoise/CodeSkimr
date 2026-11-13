@@ -1,0 +1,15 @@
+name: Bug report
+description: Something does not work as described
+labels: ["type:fix"]
+body:
+  - type: textarea
+    id: what
+    attributes: { label: What happened, description: "Include the error code (e.g. SRC-201) if shown." }
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes: { label: Steps to reproduce }
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes: { label: CodeSkimr version and operating system }

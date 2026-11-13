@@ -1,0 +1,10 @@
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+  # Add when the manifests exist:
+  #   cargo  -> directory /     (WP-10, Cargo workspace)
+  #   npm    -> directory /web  (WP-42, frontend)
+  # Group minor and patch updates, keep majors as separate PRs.

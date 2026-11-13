@@ -1,0 +1,12 @@
+# Security-sensitive paths and project rules need the product owner's approval
+# (the ruleset on main requires code owner review). Everything else is
+# reviewed by the reviewer agent.
+/crates/adapters/secrets/  @stacknoise
+/crates/adapters/source/   @stacknoise
+/crates/server/            @stacknoise
+/crates/mcp/               @stacknoise
+/.github/                  @stacknoise
+/.claude/                  @stacknoise
+/CLAUDE.md                 @stacknoise
+/errors/                   @stacknoise
+/LICENSE                   @stacknoise
