@@ -394,14 +394,14 @@ Name resolution is based on Tree-sitter, in this order:
 
 Import SCIP indexes produced by existing indexers (e.g. for TypeScript, Java/Kotlin, Python) and Roslyn for C#. Imported references replace level-1 references for the same span and are always `certain`. This is a `ReferenceResolver` strategy (section 5); no other component changes.
 
-### 9.5 Depth goal after 1.0
-
-In later versions CodeSkimr is to play in the top league in every language it supports, that is to reach the analysis depth of the best specialised tools of that language (for C# the yardstick is NDepend): semantic facts such as overloads and generics, member-level dependencies, wider metrics, rules over the code model, and comparison of snapshots. It climbs a depth ladder (D1 to D6) one language at a time, C# first, without changing 1.0. The ladder, the rough work packages and the guard rails are in ADR 0034.
-
 ### 9.4 Rules
 
 - Every reference stores its confidence. UI and MCP MUST show `probable` references visibly (dashed edge, label).
 - Usage counts and the reverse index are updated incrementally together with the snapshot.
+
+### 9.5 Depth goal after 1.0
+
+In later versions CodeSkimr is to play in the top league in every language it supports, that is to reach the analysis depth of the best specialised tools of that language (for C# the yardstick is NDepend): semantic facts such as overloads and generics, member-level dependencies, wider metrics, rules over the code model, and comparison of snapshots. It climbs a depth ladder (D1 to D6) one language at a time, C# first, without changing 1.0. The ladder, the rough work packages and the guard rails are in ADR 0034.
 
 ---
 

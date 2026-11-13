@@ -57,6 +57,6 @@ The other languages follow in this order, one depth package per language each (f
 
 ## Consequences
 
-- Blueprint 1 (out of scope for 1.0), 9.5 (new, short) and 19 (row "later") refer to this ADR; the planning document gets a section "After 1.0: depth".
+- Blueprint 1 (out of scope for 1.0), 9.5 (new, short) and 19 (row "later") refer to this ADR.
 - The package numbers above are a plan, not a commitment; each package gets its own issue and, where it changes the model, its own ADR.
 - NDepend is named as a yardstick only; this ADR does not copy its features one to one.
