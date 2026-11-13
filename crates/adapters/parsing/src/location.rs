@@ -18,6 +18,17 @@ pub fn span_of(node: Node<'_>) -> Result<Span, ParsingError> {
     )?)
 }
 
+/// Domain span from the start of `first` to the end of `last`.
+///
+/// # Errors
+/// A model error if `last` ends before `first` starts.
+pub fn span_between(first: Node<'_>, last: Node<'_>) -> Result<Span, ParsingError> {
+    Ok(Span::new(
+        position(first.start_position()),
+        position(last.end_position()),
+    )?)
+}
+
 fn position(point: Point) -> Position {
     Position {
         line: saturate(point.row),

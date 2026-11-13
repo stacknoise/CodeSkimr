@@ -5,14 +5,15 @@ use std::fs;
 use std::path::Path;
 use std::str::FromStr;
 
-use codeskimr_domain::{LanguageId, Visibility};
+use codeskimr_domain::{LanguageId, ModelError, SymbolKind};
 use tree_sitter::{Language, Query};
 
 use crate::captures::Vocabulary;
 use crate::consts::{ID_MISMATCH, MANIFEST_FILE, REFERENCES_QUERY_FILE, SYMBOLS_QUERY_FILE};
 use crate::error::ParsingError;
 use crate::grammar;
-use crate::manifest::{PackManifest, Tier};
+use crate::manifest::{DocSummary, PackManifest, Tier};
+use crate::visibility::Visibilities;
 
 /// Everything the analyzer needs to understand one language.
 pub struct LanguagePack {
@@ -25,10 +26,12 @@ pub struct LanguagePack {
     pub(crate) separator: String,
     pub(crate) comment_nodes: HashSet<String>,
     pub(crate) doc_prefixes: Vec<String>,
+    pub(crate) static_keywords: HashSet<String>,
+    pub(crate) modifier_kinds: HashMap<String, SymbolKind>,
+    pub(crate) doc_summary: Option<DocSummary>,
     pub(crate) identifier_nodes: HashSet<String>,
     pub(crate) literal_nodes: HashSet<String>,
-    pub(crate) default_visibility: Option<Visibility>,
-    pub(crate) visibility: HashMap<String, Visibility>,
+    pub(crate) visibility: Visibilities,
     pub(crate) symbols: Vocabulary,
     pub(crate) references: Option<Vocabulary>,
 }
@@ -69,18 +72,13 @@ impl LanguagePack {
             return Err(invalid([ID_MISMATCH, manifest.id.as_str()].concat()));
         }
         let id = LanguageId::new(manifest.id).map_err(|e| invalid(e.to_string()))?;
-        let mut visibility = HashMap::new();
-        for (keyword, label) in manifest.visibility.keywords {
-            visibility.insert(
-                keyword,
-                Visibility::from_str(&label).map_err(|e| invalid(e.to_string()))?,
-            );
-        }
-        let default_visibility = manifest
-            .visibility
-            .default
-            .map(|label| Visibility::from_str(&label).map_err(|e| invalid(e.to_string())))
-            .transpose()?;
+        let visibility = Visibilities::resolve(manifest.visibility).map_err(invalid)?;
+        let modifier_kinds = manifest
+            .modifier_kinds
+            .into_iter()
+            .map(|(keyword, label)| Ok((keyword, SymbolKind::from_str(&label)?)))
+            .collect::<Result<_, ModelError>>()
+            .map_err(|e| invalid(e.to_string()))?;
         Ok(Self {
             id,
             tier: manifest.tier,
@@ -91,9 +89,11 @@ impl LanguagePack {
             separator: manifest.separator,
             comment_nodes: manifest.comment_nodes.into_iter().collect(),
             doc_prefixes: manifest.doc_prefixes,
+            static_keywords: manifest.static_keywords.into_iter().collect(),
+            modifier_kinds,
+            doc_summary: manifest.doc_summary,
             identifier_nodes: manifest.identifier_nodes.into_iter().collect(),
             literal_nodes: manifest.literal_nodes.into_iter().collect(),
-            default_visibility,
             visibility,
             symbols,
             references,
