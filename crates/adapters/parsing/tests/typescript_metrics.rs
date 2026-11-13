@@ -56,10 +56,10 @@ mod tests {
         let read = |pack: &str, file: &str| {
             std::fs::read_to_string(languages().join(pack).join(file)).expect("file")
         };
-        assert_eq!(
-            read("tsx", "symbols.scm"),
-            read("typescript", "symbols.scm")
-        );
+        // The TSX pack adds the JSX values to the values of a constant.
+        let jsx =
+            read("tsx", "symbols.scm").replace(" (jsx_element) (jsx_self_closing_element)", "");
+        assert_eq!(jsx, read("typescript", "symbols.scm"));
         assert_eq!(
             read("tsx", "metrics.scm"),
             read("typescript", "metrics.scm")

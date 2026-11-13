@@ -48,3 +48,9 @@ export function run(items) {
   }
   return inner();
 }
+
+export const view = <div />;
+export const gen = function* () {};
+module.exports = {
+  helper() {},
+};

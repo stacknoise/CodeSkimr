@@ -86,3 +86,10 @@ declare class Ambient {
   static make(): Ambient;
   run(): void;
 }
+
+export const handlers = {
+  onClick() {},
+};
+
+/**/
+export class Empty {}

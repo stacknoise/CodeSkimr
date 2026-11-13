@@ -383,9 +383,24 @@ fn doc(ctx: &SymbolContext<'_>, nodes: &[Node<'_>]) -> Option<String> {
 fn doc_text(pack: &LanguagePack, comment: &str) -> Option<String> {
     let text = comment.trim_start();
     match &pack.doc_block {
-        Some(block) if text.starts_with(block.open.as_str()) => Some(block_text(block, text)),
+        Some(block) if is_block(block, text) => Some(block_text(block, text)),
         Some(_) if pack.doc_prefixes.is_empty() => None,
         _ => strip_prefix(&pack.doc_prefixes, text).map(str::to_owned),
+    }
+}
+
+/// Whether `text` is a complete block comment; `/**/` is an empty comment, not a block.
+fn is_block(block: &DocBlock, text: &str) -> bool {
+    text.starts_with(block.open.as_str())
+        && text.ends_with(block.close.as_str())
+        && text.len() >= block.open.len() + block.close.len()
+}
+
+/// The line without its marker; a marker that is part of the text (`**bold**`) stays.
+fn without_marker<'t>(line: &'t str, marker: &str) -> &'t str {
+    match line.strip_prefix(marker) {
+        Some(rest) if rest.is_empty() || rest.starts_with(char::is_whitespace) => rest.trim(),
+        _ => line,
     }
 }
 
@@ -394,12 +409,9 @@ fn doc_text(pack: &LanguagePack, comment: &str) -> Option<String> {
 fn block_text(block: &DocBlock, text: &str) -> String {
     let inner = text.strip_prefix(block.open.as_str()).unwrap_or(text);
     let inner = inner.strip_suffix(block.close.as_str()).unwrap_or(inner);
-    let lines = inner.lines().map(|line| {
-        let line = line.trim();
-        line.strip_prefix(block.line_prefix.as_str())
-            .unwrap_or(line)
-            .trim()
-    });
+    let lines = inner
+        .lines()
+        .map(|line| without_marker(line.trim(), block.line_prefix.as_str()));
     let kept: Vec<&str> = match block.stop_at.as_deref() {
         Some(stop) => lines.take_while(|line| !line.starts_with(stop)).collect(),
         None => lines.collect(),
@@ -463,6 +475,16 @@ mod tests {
         assert_eq!(block_text(&jsdoc(), text), "First line.\n\nSecond line.");
         assert_eq!(block_text(&jsdoc(), "/** One line. */"), "One line.");
         assert_eq!(block_text(&jsdoc(), "/** @internal */"), "");
+        assert_eq!(
+            block_text(&jsdoc(), "/**\n * **bold** text\n */"),
+            "**bold** text"
+        );
+    }
+
+    #[test]
+    fn an_empty_block_comment_is_no_documentation() {
+        assert!(!is_block(&jsdoc(), "/**/"));
+        assert!(is_block(&jsdoc(), "/** */"));
     }
 
     #[test]

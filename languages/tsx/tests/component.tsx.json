@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 11,
+      "loc": 12,
       "operands": null,
       "operators": null,
       "symbol": "component"
@@ -54,7 +54,7 @@
       "symbol": "component.Card"
     }
   ],
-  "loc": 11,
+  "loc": 12,
   "references": [
     {
       "at": "0:9",
@@ -126,7 +126,7 @@
       "kind": "module",
       "name": "component",
       "parent": null,
-      "span": "0:0-16:0",
+      "span": "0:0-18:0",
       "static": false,
       "visibility": null
     },
@@ -163,6 +163,15 @@
       "name": "component.Card",
       "parent": "component",
       "span": "15:20-15:79",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "component.element",
+      "parent": "component",
+      "span": "17:13-17:30",
       "static": false,
       "visibility": "public"
     }

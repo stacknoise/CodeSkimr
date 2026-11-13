@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 57,
+      "loc": 61,
       "operands": null,
       "operators": null,
       "symbol": "declarations"
@@ -246,9 +246,16 @@
       "operands": null,
       "operators": null,
       "symbol": "declarations.Ambient.run"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Empty"
     }
   ],
-  "loc": 57,
+  "loc": 61,
   "references": [
     {
       "at": "0:9",
@@ -299,7 +306,7 @@
       "kind": "module",
       "name": "declarations",
       "parent": null,
-      "span": "0:0-88:0",
+      "span": "0:0-95:0",
       "static": false,
       "visibility": null
     },
@@ -642,6 +649,24 @@
       "name": "declarations.Ambient.run",
       "parent": "declarations.Ambient",
       "span": "86:2-86:13",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "declarations.handlers",
+      "parent": "declarations",
+      "span": "89:13-91:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "declarations.Empty",
+      "parent": "declarations",
+      "span": "94:7-94:21",
       "static": false,
       "visibility": "public"
     }

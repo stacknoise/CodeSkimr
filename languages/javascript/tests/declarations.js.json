@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 37,
+      "loc": 42,
       "operands": null,
       "operators": null,
       "symbol": "declarations"
@@ -117,9 +117,22 @@
         0
       ],
       "symbol": "declarations.run.inner"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.gen"
     }
   ],
-  "loc": 37,
+  "loc": 42,
   "references": [
     {
       "at": "0:9",
@@ -176,6 +189,20 @@
       "kind": "call",
       "receiver": null,
       "target": "inner"
+    },
+    {
+      "at": "53:0",
+      "from": "declarations",
+      "kind": "read",
+      "receiver": null,
+      "target": "module"
+    },
+    {
+      "at": "53:7",
+      "from": "declarations",
+      "kind": "write",
+      "receiver": "named module",
+      "target": "exports"
     }
   ],
   "symbols": [
@@ -184,7 +211,7 @@
       "kind": "module",
       "name": "declarations",
       "parent": null,
-      "span": "0:0-50:0",
+      "span": "0:0-56:0",
       "static": false,
       "visibility": null
     },
@@ -320,6 +347,24 @@
       "name": "declarations.run.inner",
       "parent": "declarations.run",
       "span": "42:2-42:21",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "declarations.view",
+      "parent": "declarations",
+      "span": "51:13-51:27",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations.gen",
+      "parent": "declarations",
+      "span": "52:19-52:34",
       "static": false,
       "visibility": "public"
     }

@@ -14,3 +14,5 @@ export class Panel extends Base<Props> {
 }
 
 export const Card = (props: Props) => <div className="card">{props.title}</div>;
+
+export const element = <div />;

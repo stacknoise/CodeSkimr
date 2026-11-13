@@ -102,23 +102,35 @@
  .
  (lexical_declaration
   (variable_declarator name: (identifier) @name
-   value: [(arrow_function) (function_expression)] @symbol.function)))
+   value: [(arrow_function) (function_expression) (generator_function)] @symbol.function)))
 ((comment)* @doc
  .
  (export_statement "export" @modifier declaration: (lexical_declaration
   (variable_declarator name: (identifier) @name
-   value: [(arrow_function) (function_expression)] @symbol.function))))
+   value: [(arrow_function) (function_expression) (generator_function)] @symbol.function))))
 
 ; Members of a class. Modifiers (`public`, `static`, `readonly`, `abstract`, `async`, `get`, `set`)
 ; are captured as they come; `get` and `set` make a property, an arrow function value a method.
-((comment)* @doc
+(class_body
+ (comment)+ @doc
  .
  (method_definition
   [(accessibility_modifier) "static" "override" "async" "get" "set" "*"]* @modifier
   name: [(property_identifier) (private_property_identifier)] @name
   (#not-eq? @name "constructor")) @symbol.method)
-((comment)* @doc
+(class_body
+ (comment)+ @doc
  .
+ (method_definition
+  (accessibility_modifier)? @modifier
+  name: (property_identifier) @name
+  (#eq? @name "constructor")) @symbol.constructor)
+(class_body
+ (method_definition
+  [(accessibility_modifier) "static" "override" "async" "get" "set" "*"]* @modifier
+  name: [(property_identifier) (private_property_identifier)] @name
+  (#not-eq? @name "constructor")) @symbol.method)
+(class_body
  (method_definition
   (accessibility_modifier)? @modifier
   name: (property_identifier) @name
@@ -149,7 +161,7 @@
  (public_field_definition
   [(accessibility_modifier) "static" "override"]* @modifier
   name: [(property_identifier) (private_property_identifier)] @name
-  value: [(arrow_function) (function_expression)] @symbol.method))
+  value: [(arrow_function) (function_expression) (generator_function)] @symbol.method))
 
 ; Members of an interface and of a declared class, and the members of an enum.
 (interface_body
@@ -173,7 +185,7 @@
 (ambient_declaration
  (class_declaration
   body: (class_body
-   (comment)* @doc
+   (comment)+ @doc
    .
    (method_signature
     [(accessibility_modifier) "static" "get" "set"]* @modifier
