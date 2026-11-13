@@ -92,6 +92,8 @@ pub const GRAMMAR_JAVASCRIPT: &str = "javascript";
 pub const GRAMMAR_PYTHON: &str = "python";
 /// Grammar name of Java in `language.toml`.
 pub const GRAMMAR_JAVA: &str = "java";
+/// Grammar name of Kotlin in `language.toml`.
+pub const GRAMMAR_KOTLIN: &str = "kotlin";
 
 /// Grammar name of Go in `language.toml` (basic tier).
 #[cfg(feature = "basic-grammars")]
