@@ -105,3 +105,7 @@ export const STATE_ATTRIBUTE = "data-state";
 
 /** Index of a run that is not in the list. */
 export const NOT_FOUND = -1;
+
+/** The budget that is defined for a project of a given size, and that size in lines of code. */
+export const FULL_SCAN_BUDGET = "full_scan_100k_loc";
+export const FULL_SCAN_LOC = 100_000;

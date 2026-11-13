@@ -10,14 +10,14 @@ import { projects, refreshProjects } from "../projects/projects";
 import type { ProjectRow } from "../projects/types";
 import { refreshStatus, statusInfo } from "../status/status";
 import { Budgets, type Measured } from "./Budgets";
-import { STATE, MS_PER_SECOND } from "./consts";
+import { FULL_SCAN_BUDGET, FULL_SCAN_LOC, STATE, MS_PER_SECOND } from "./consts";
 import { scanRuns } from "./events";
 import { Languages } from "./Languages";
 import { Pipeline } from "./Pipeline";
 import { Progress } from "./Progress";
 import { Recent } from "./Recent";
 import { focusProject, latestRun } from "./run";
-import type { Run } from "./types";
+import type { BudgetTargets, Run } from "./types";
 import styles from "./ScanScreen.module.css";
 
 const TITLE: Record<Run["state"] | "idle", MessageKey> = {
@@ -68,6 +68,12 @@ function measured(row: ProjectRow | undefined, run: Run | undefined): Measured {
     result.full_scan_100k_loc = took * MS_PER_SECOND;
   }
   return result;
+}
+
+/** The budgets whose measured value says less than the target: the full scan budget is for
+ * 100k lines, so the scan of a smaller project is shown but not rated. */
+function unrated(row: ProjectRow | undefined): Array<keyof BudgetTargets> {
+  return row !== undefined && row.loc < FULL_SCAN_LOC ? [FULL_SCAN_BUDGET] : [];
 }
 
 function Idle(props: { hasProjects: boolean }) {
@@ -123,7 +129,11 @@ export function ScanScreen() {
         </Show>
       </div>
       <aside class={styles.aside}>
-        <Budgets targets={statusInfo()?.budgets ?? null} measured={measured(row(), run())} />
+        <Budgets
+          targets={statusInfo()?.budgets ?? null}
+          measured={measured(row(), run())}
+          unrated={unrated(row())}
+        />
         <Recent rows={projects()} />
       </aside>
     </section>

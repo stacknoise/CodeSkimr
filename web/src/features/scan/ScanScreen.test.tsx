@@ -110,6 +110,24 @@ describe("ScanScreen", () => {
     stop();
   });
 
+  it("shows the full scan time of a small project without a good or bad colour", async () => {
+    setLanguage("en");
+    const stop = await shown();
+    FakeSocket.last?.send({
+      type: "scan_progressed",
+      project: 1,
+      stage: "analyze",
+      done: 1,
+      total: 2,
+    });
+    FakeSocket.last?.send({ type: "snapshot_created", project: 1, snapshot: 6 });
+    await screen.findByText("Scan finished");
+    const row = screen.getByText("Scan 100k lines").parentElement as HTMLElement;
+    const value = row.lastElementChild as HTMLElement;
+    expect(value.className).not.toMatch(/good|bad/);
+    stop();
+  });
+
   it("follows a scan over the stream, stage by stage", async () => {
     setLanguage("en");
     const stop = await shown();
