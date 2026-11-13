@@ -6,8 +6,8 @@
 use codeskimr_source::redact_credentials;
 
 use crate::consts::{
-    BEARER_KEY, BLANKS, KEY_SEPARATORS, LINE_END, LINE_KEYS, QUOTES, REDACTED, TOKEN_EXTRA_CHARS,
-    TOKEN_MIN_TAIL, TOKEN_PREFIXES, VALUE_END, VALUE_KEYS,
+    BEARER_KEY, BLANKS, ESCAPE, KEY_SEPARATORS, LINE_END, LINE_KEYS, QUOTES, REDACTED,
+    TOKEN_EXTRA_CHARS, TOKEN_MIN_TAIL, TOKEN_PREFIXES, VALUE_END, VALUE_KEYS,
 };
 
 /// Where the value of a key ends and how the key is followed by it.
@@ -84,7 +84,7 @@ fn mask_values(text: &str, key: &str, shape: Shape<'_>) -> String {
 
 /// Where the value begins inside `rest` (the text behind a key), and the quote that opened it.
 fn value_start(rest: &str, separators: &[char]) -> Option<(usize, Option<char>)> {
-    let after_key = rest.trim_start_matches(QUOTES);
+    let after_key = rest.trim_start_matches(|c| QUOTES.contains(&c) || c == ESCAPE);
     let after_separator = if separators.is_empty() {
         after_key
     } else {
@@ -93,8 +93,10 @@ fn value_start(rest: &str, separators: &[char]) -> Option<(usize, Option<char>)>
             .strip_prefix(separators)?
     };
     let value = after_separator.trim_start_matches(BLANKS);
-    let quote = value.chars().next().filter(|c| QUOTES.contains(c));
-    let body = quote.map_or(value, |q| value.strip_prefix(q).unwrap_or(value));
+    // Debug output escapes the quotes of a JSON text with a backslash.
+    let unescaped = value.trim_start_matches(ESCAPE);
+    let quote = unescaped.chars().next().filter(|c| QUOTES.contains(c));
+    let body = quote.map_or(value, |q| unescaped.strip_prefix(q).unwrap_or(value));
     (!body.is_empty()).then_some((rest.len() - body.len(), quote))
 }
 
@@ -184,6 +186,19 @@ mod tests {
     fn authorization_masks_the_scheme_too_and_keeps_other_lines() {
         let output = redact(&format!("Authorization: Bearer {CANARY}\nnext line"));
         assert_eq!(output, "Authorization: [redacted]\nnext line");
+    }
+
+    #[test]
+    fn masks_secrets_in_debug_escaped_json() {
+        for text in [
+            format!(r#"\"password\":\"{CANARY}\""#),
+            format!(r#"\"token\": \"{CANARY}\", \"x\": 1"#),
+            format!(r#"\"Authorization\": \"Basic {CANARY}\""#),
+            format!(r#"\\\"api_key\\\":\\\"{CANARY}\\\""#),
+            format!(r"\'secret\': \'{CANARY}\'"),
+        ] {
+            assert_hidden(&text);
+        }
     }
 
     #[test]

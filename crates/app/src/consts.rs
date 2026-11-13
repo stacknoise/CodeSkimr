@@ -140,3 +140,5 @@ pub const TOKEN_MIN_TAIL: usize = 16;
 pub const TOKEN_EXTRA_CHARS: [char; 3] = ['_', '-', '.'];
 /// Ends a line of log output.
 pub const LINE_END: char = '\n';
+/// Escapes a quote inside a `Debug`-formatted text.
+pub const ESCAPE: char = '\\';

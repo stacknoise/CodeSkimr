@@ -21,9 +21,10 @@ pub fn init(env: Lookup<'_>) {
     let level = env(ENV_LOG)
         .and_then(|value| value.parse::<LevelFilter>().ok())
         .unwrap_or(DEFAULT_LOG_LEVEL);
-    // Another subscriber may be installed already; keeping it is the right outcome.
-    let _ = tracing::subscriber::set_global_default(subscriber(level, io::stderr));
-    std::panic::set_hook(Box::new(report_panic));
+    // Another subscriber may be installed already; then it stays, and so does the panic hook.
+    if tracing::subscriber::set_global_default(subscriber(level, io::stderr)).is_ok() {
+        std::panic::set_hook(Box::new(report_panic));
+    }
 }
 
 /// A subscriber that writes every log line through a [`RedactingWriter`] around `sink()`.
@@ -116,6 +117,8 @@ mod tests {
 
     #[test]
     fn a_panic_is_reported_without_its_secret() {
+        // The hook is process-wide. This is the only test that replaces it, and it restores the
+        // previous hook right after, so other tests lose at most the panic text of a failure.
         let previous = std::panic::take_hook();
         std::panic::set_hook(Box::new(report_panic));
         let text = logged(LevelFilter::ERROR, || {

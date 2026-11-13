@@ -22,7 +22,7 @@ Masking errs on the safe side: a value that only looks like a secret is hidden a
 
 ## Panics
 
-`logging::init` replaces the default panic hook. A panic is logged as an `ERROR` event with `code=APP-901`, the location and the message, and therefore goes through the same redaction. With `CODESKIMR_LOG=off` a panic prints nothing.
+`logging::init` replaces the default panic hook. A panic is logged as an `ERROR` event with `code=APP-901`, the location and the message, and therefore goes through the same redaction. With `CODESKIMR_LOG=off` a panic prints nothing, and `RUST_BACKTRACE` has no effect because the default hook is gone. This is intended: a panic text can carry a secret, and a backtrace cannot be masked reliably. The hook is only replaced if this subscriber was installed.
 
 ## Limits
 
@@ -30,7 +30,7 @@ Redaction recognises shapes, not values. A secret in an unknown shape (a random 
 
 ## Tests
 
-- `redact.rs`: canaries in every shape, ordinary text stays unchanged, idempotence.
+- `redact.rs`: canaries in every shape (also inside `Debug`-escaped JSON, where quotes appear as `\"`), ordinary text stays unchanged, idempotence.
 - `log_writer.rs`: a secret split over several writes is masked.
 - `logging.rs`: canaries in messages, fields, `Debug` output and a panic never reach the output of a real subscriber.
 - `tests/commands.rs`: the log level does not disturb standard output.
