@@ -31,8 +31,19 @@ fn scan_takes_a_source_a_branch_and_the_json_switch() {
             source: "repo".to_owned(),
             branch: Some("dev".to_owned()),
             json: true,
+            watch: false,
         })
     );
+}
+
+#[test]
+fn scan_watch_is_an_opt_in_switch() {
+    let parsed = invocation(&["codeskimr", "scan", "repo", "--watch"]);
+    let Action::Scan(args) = parsed.action else {
+        panic!("scan expected");
+    };
+    assert!(args.watch);
+    assert!(!args.json);
 }
 
 #[test]

@@ -51,6 +51,7 @@ export type ErrorCode =
   | "MCP-203"
   | "MCP-501"
   | "CLI-101"
+  | "CLI-102"
   | "I18N-201"
   | "EXP-601"
   | "UI-201"
@@ -127,6 +128,7 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "MCP-203": { id: "MCP-203", name: "project_not_scanned", group: "MCP", class: "not_found", severity: "error", retryable: true, description: "The project has no snapshot yet; scan it first.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-203" },
   "MCP-501": { id: "MCP-501", name: "response_limit_exceeded", group: "MCP", class: "limit", severity: "info", retryable: false, description: "The result was truncated to the configured limit.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-501" },
   "CLI-101": { id: "CLI-101", name: "cli_arguments_invalid", group: "CLI", class: "invalid_input", severity: "error", retryable: false, description: "Command-line arguments are invalid.", since: "0.1.0", deprecated: false, messageKey: "error-CLI-101" },
+  "CLI-102": { id: "CLI-102", name: "watch_needs_folder", group: "CLI", class: "invalid_input", severity: "error", retryable: false, description: "Watch mode needs a local folder; a Git URL cannot be watched.", since: "0.1.0", deprecated: false, messageKey: "error-CLI-102" },
   "I18N-201": { id: "I18N-201", name: "message_key_missing", group: "I18N", class: "not_found", severity: "error", retryable: false, description: "A message key is missing for the active language (falls back to English).", since: "0.1.0", deprecated: false, messageKey: "error-I18N-201" },
   "EXP-601": { id: "EXP-601", name: "export_write_failed", group: "EXP", class: "external", severity: "error", retryable: false, description: "The export file could not be written.", since: "0.1.0", deprecated: false, messageKey: "error-EXP-601" },
   "UI-201": { id: "UI-201", name: "api_unreachable", group: "UI", class: "not_found", severity: "error", retryable: false, description: "The UI cannot reach the local server.", since: "0.1.0", deprecated: false, messageKey: "error-UI-201" },

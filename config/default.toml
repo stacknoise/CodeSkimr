@@ -47,6 +47,8 @@ retention_count = 5
 [watcher]
 # File events within this window are collapsed into one re-scan.
 debounce_ms = 200
+# A batch of file events is handed over at the latest this long after its first event, so a build that writes all the time cannot starve the re-scan.
+max_wait_ms = 2000
 
 # Syntax fingerprints for similar-code search and the duplicate check (blueprint 10.4).
 [similarity]

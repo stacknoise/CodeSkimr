@@ -264,6 +264,30 @@ fn help_is_shown_in_the_chosen_language() {
     assert!(String::from_utf8_lossy(&output.stdout).contains("Ordner oder eine Git-URL"));
 }
 
+/// Starts `command` and forwards every line of its output that is JSON, as it arrives.
+#[cfg(test)]
+fn spawn_json_lines(
+    mut command: Command,
+    stdin: Stdio,
+) -> (std::process::Child, mpsc::Receiver<Value>) {
+    let mut child = command
+        .stdin(stdin)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap();
+    let stdout = child.stdout.take().unwrap();
+    let (sender, lines) = mpsc::channel();
+    thread::spawn(move || {
+        for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+            if let Ok(value) = serde_json::from_str::<Value>(&line) {
+                let _ = sender.send(value);
+            }
+        }
+    });
+    (child, lines)
+}
+
 /// A running `codeskimr mcp` process that answers line by line.
 #[cfg(test)]
 struct McpSession {
@@ -274,25 +298,9 @@ struct McpSession {
 #[cfg(test)]
 impl McpSession {
     fn start(workspace: &Workspace) -> Self {
-        let mut child = workspace
-            .command()
-            .arg("mcp")
-            .arg("--project")
-            .arg(workspace.project())
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::null())
-            .spawn()
-            .unwrap();
-        let stdout = child.stdout.take().unwrap();
-        let (sender, answers) = mpsc::channel();
-        thread::spawn(move || {
-            for line in BufReader::new(stdout).lines().map_while(Result::ok) {
-                if let Ok(value) = serde_json::from_str::<Value>(&line) {
-                    let _ = sender.send(value);
-                }
-            }
-        });
+        let mut command = workspace.command();
+        command.arg("mcp").arg("--project").arg(workspace.project());
+        let (child, answers) = spawn_json_lines(command, Stdio::piped());
         Self { child, answers }
     }
 
@@ -402,4 +410,66 @@ fn mcp_for_a_registered_project_without_snapshot_fails_with_mcp_203() {
     let output = mcp_without_input(&workspace);
     assert_eq!(output.status.code(), Some(1));
     assert!(stderr(&output).contains("MCP-203"));
+}
+
+/// A running `codeskimr scan --watch --json` process; every scan is one line of JSON.
+#[cfg(test)]
+struct WatchSession {
+    child: std::process::Child,
+    summaries: mpsc::Receiver<Value>,
+}
+
+#[cfg(test)]
+impl WatchSession {
+    fn start(workspace: &Workspace) -> Self {
+        let mut command = workspace.command();
+        command
+            .args(["scan", "--watch", "--json"])
+            .arg(workspace.project());
+        let (child, summaries) = spawn_json_lines(command, Stdio::null());
+        Self { child, summaries }
+    }
+
+    fn next_summary(&self) -> Value {
+        self.summaries
+            .recv_timeout(Duration::from_secs(30))
+            .expect("a scan was reported within 30 seconds")
+    }
+}
+
+#[cfg(test)]
+impl Drop for WatchSession {
+    fn drop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}
+
+#[test]
+fn watch_scans_again_when_a_file_is_added() {
+    let workspace = Workspace::new();
+    let session = WatchSession::start(&workspace);
+    let first = session.next_summary();
+    assert_eq!(first["files"], 1);
+    fs::write(
+        workspace.project().join("src/Other.cs"),
+        "namespace Demo.Core;\n\npublic class Other\n{\n}\n",
+    )
+    .unwrap();
+    let second = session.next_summary();
+    assert_eq!(second["files"], 2);
+    assert!(second["snapshot"].as_u64() > first["snapshot"].as_u64());
+}
+
+#[test]
+fn watch_of_a_git_url_fails_with_cli_102_before_anything_is_registered() {
+    let workspace = Workspace::new();
+    let output = workspace
+        .command()
+        .args(["scan", "--watch", "https://example.com/team/repo.git"])
+        .output()
+        .unwrap();
+    assert_eq!(output.status.code(), Some(1));
+    assert!(stderr(&output).contains("CLI-102"));
+    assert!(!workspace.root.path().join("data/codeskimr.db").exists());
 }

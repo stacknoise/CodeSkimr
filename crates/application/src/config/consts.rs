@@ -79,6 +79,8 @@ pub mod keys {
     pub const MIN_TOKENS: &str = "similarity.min_tokens";
     /// `watcher.debounce_ms`
     pub const DEBOUNCE_MS: &str = "watcher.debounce_ms";
+    /// `watcher.max_wait_ms`
+    pub const MAX_WAIT_MS: &str = "watcher.max_wait_ms";
     /// `scan.excluded_folders`
     pub const EXCLUDED_FOLDERS: &str = "scan.excluded_folders";
     /// `scan.parse_timeout_ms`
