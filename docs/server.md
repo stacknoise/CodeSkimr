@@ -42,7 +42,7 @@ CORS is closed: no `Access-Control-*` header is ever sent and there is no `OPTIO
 3. The page redirects to `http://127.0.0.1:PORT/#code=…`. The fragment is not sent to the server. The UI removes it with `history.replaceState`, then posts the code to the exchange route and keeps the token in `sessionStorage` only.
 4. `open` polls until the code is taken or has expired and then deletes the file.
 
-Threat note: `codeskimr open` sends the token to the port of `server.port` over plain HTTP on the loopback address. If no server runs there, another local user could listen on that port and read it; This is an accepted risk of the single-user mode (ADR 0030). the server holds the token text for at most the life of the code. Another OS user cannot read the launch file (0600 in a 0700 folder). A process of the same user could read it, but that user can read the keystore anyway. Within the 60 seconds a local process that guesses the code would need 2^128 tries, and a wrong code does not burn the valid one. A used or expired code is gone for good.
+Threat note: `codeskimr open` sends the token to the port of `server.port` over plain HTTP on the loopback address. If no server runs there, another local user could listen on that port and read it. This is an accepted risk of the single-user mode (ADR 0030). The server holds the token text for at most the life of the code. Another OS user cannot read the launch file (0600 in a 0700 folder). A process of the same user could read it, but that user can read the keystore anyway. Within the 60 seconds a local process that guesses the code would need 2^128 tries, and a wrong code does not burn the valid one. A used or expired code is gone for good.
 
 ## Events
 
