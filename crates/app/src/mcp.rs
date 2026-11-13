@@ -21,7 +21,7 @@ use crate::config_files;
 use crate::locations::Locations;
 use crate::principal;
 use crate::source_arg::folder_spec;
-use crate::wiring::{Analysis, build_analysis, build_scanner, open_store};
+use crate::wiring::{Analysis, Secrets, build_analysis, build_scanner, open_store, os_secrets};
 
 /// Serves MCP until the client disconnects.
 ///
@@ -51,7 +51,7 @@ pub fn run(
     if store.latest_snapshot(project.id)?.is_none() {
         return Err(CodedError::new(ErrorCode::ProjectNotScanned));
     }
-    let ports = build_ports(store, &config, locations, EventBus::new())?;
+    let ports = build_ports(store, &config, locations, (EventBus::new(), &os_secrets()))?;
     let tools = Tools::new(ports, config.mcp, project.id);
     let messages = Messages::load().map_err(CodedError::caused_by)?;
     let server = McpServer::new(tools, &messages, principal::resolve())?;
@@ -72,10 +72,10 @@ pub fn run(
 pub fn http_service(
     config: &Config,
     locations: &Locations,
-    events: EventBus,
+    (events, secrets): (EventBus, &Arc<Secrets>),
 ) -> Result<HttpService, CodedError> {
     let store = open_store(locations, config)?;
-    let ports = build_ports(store, config, locations, events)?;
+    let ports = build_ports(store, config, locations, (events, secrets))?;
     let tools = Tools::unscoped(ports, config.mcp.clone());
     let messages = Messages::load().map_err(CodedError::caused_by)?;
     let server = McpServer::new(tools, &messages, principal::resolve())?;
@@ -89,7 +89,7 @@ fn build_ports(
     store: Arc<SqliteStore>,
     config: &Config,
     locations: &Locations,
-    events: EventBus,
+    (events, secrets): (EventBus, &Arc<Secrets>),
 ) -> Result<Ports, CodedError> {
     let Analysis {
         discovery,
@@ -98,7 +98,7 @@ fn build_ports(
     } = build_analysis(config, locations)?;
     let checker = ConventionChecker::new(discovery, analyzer, config.conventions.clone());
     let scanner: Arc<dyn ProjectScanner> =
-        Arc::new(build_scanner(&store, config, locations, events)?);
+        Arc::new(build_scanner(&store, config, locations, events, secrets)?);
     let projects: Arc<dyn ProjectRepository> = store.clone();
     let usages: Arc<dyn UsageIndex> = store.clone();
     let similarity: Arc<dyn SimilarityIndex> = store.clone();

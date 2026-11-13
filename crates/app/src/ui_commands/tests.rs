@@ -22,6 +22,7 @@ use codeskimr_storage::SqliteStore;
 use super::command_api;
 use crate::locations::Locations;
 use crate::principal;
+use crate::wiring::Secrets;
 
 const SOURCE: &str = "namespace Demo;\n\npublic class Calculator\n{\n    public int Add(int a, int b) { return a + b; }\n}\n";
 
@@ -29,6 +30,7 @@ pub(super) struct Fixture {
     pub(super) root: TempDir,
     pub(super) locations: Locations,
     pub(super) api: Arc<CommandApi>,
+    pub(super) secrets: Arc<Secrets>,
 }
 
 impl Fixture {
@@ -56,11 +58,13 @@ impl Fixture {
             overrides: vec![("ui.dir".to_owned(), format!("'{}'", ui.display()))],
             ..GlobalOptions::default()
         };
-        let api = command_api(&global, &locations, EventBus::new()).unwrap();
+        let secrets = crate::memory_keystore::secrets();
+        let api = command_api(&global, &locations, EventBus::new(), Arc::clone(&secrets)).unwrap();
         Self {
             root,
             locations,
             api: Arc::new(api),
+            secrets,
         }
     }
 
@@ -118,6 +122,9 @@ fn the_commands_are_offered() {
     assert_eq!(
         ids,
         [
+            "credentials.delete",
+            "credentials.list",
+            "credentials.set",
             "explorer.outline",
             "explorer.source",
             "explorer.symbol",

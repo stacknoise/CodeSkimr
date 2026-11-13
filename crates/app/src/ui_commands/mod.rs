@@ -3,6 +3,9 @@
 //! command on its blocking pool, and progress reaches the UI through the event bus.
 
 mod consts;
+mod credentials;
+#[cfg(test)]
+mod credentials_tests;
 mod explorer;
 mod export;
 #[cfg(test)]
@@ -33,8 +36,9 @@ pub(crate) use status::{mark_ready, mark_started};
 
 use crate::config_files;
 use crate::locations::Locations;
-use crate::wiring::open_store;
+use crate::wiring::{Secrets, open_store};
 use codeskimr_storage::SqliteStore;
+use credentials::{DeleteCredential, ListCredentials, SetCredential};
 use explorer::{ExplorerOutline, ExplorerPorts};
 pub(crate) use export::{ExportInput, HtmlExport};
 use graph::{GraphLayers, GraphPorts};
@@ -51,6 +55,7 @@ pub struct Context {
     global: GlobalOptions,
     locations: Locations,
     events: EventBus,
+    secrets: Arc<Secrets>,
     running: RunningScans,
     registration: Mutex<()>,
 }
@@ -74,6 +79,7 @@ pub fn command_api(
     global: &GlobalOptions,
     locations: &Locations,
     events: EventBus,
+    secrets: Arc<Secrets>,
 ) -> Result<CommandApi, CodedError> {
     let config = config_files::load(locations, global, None)?;
     let catalog = open_store(locations, &config)?;
@@ -81,11 +87,13 @@ pub fn command_api(
         global: global.clone(),
         locations: locations.clone(),
         events,
+        secrets,
         running: RunningScans::default(),
         registration: Mutex::new(()),
     });
     let mut registry = Registry::new();
     register_projects(&mut registry, &catalog, &context)?;
+    register_credentials(&mut registry, &catalog, &context)?;
     register_search(&mut registry, &catalog)?;
     register_usages(&mut registry, &catalog, config.mcp.max_depth)?;
     register_graph(&mut registry, &catalog, config.graph.clone())?;
@@ -99,9 +107,18 @@ pub fn command_api(
         .register(export_command(&catalog, &config, locations))
         .map_err(CodedError::caused_by)?;
     let mut api = CommandApi::new(Arc::new(registry));
+    expose_all(&mut api)?;
+    Ok(api)
+}
+
+/// Makes every registered command of the UI reachable over REST.
+fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<ListProjects>()?;
     api.expose::<AddProject>()?;
     api.expose::<RescanProject>()?;
+    api.expose::<ListCredentials>()?;
+    api.expose::<SetCredential>()?;
+    api.expose::<DeleteCredential>()?;
     api.expose::<ExplorerOutline>()?;
     api.expose::<ExplorerSymbol>()?;
     api.expose::<ExplorerSource>()?;
@@ -110,7 +127,7 @@ pub fn command_api(
     api.expose::<GraphLayers>()?;
     api.expose::<StatusInfo>()?;
     api.expose::<HtmlExport>()?;
-    Ok(api)
+    Ok(())
 }
 
 fn register_projects(
@@ -133,6 +150,29 @@ fn register_projects(
         .register(RescanProject {
             catalog: catalog.clone(),
             context: Arc::clone(context),
+        })
+        .map_err(CodedError::caused_by)
+}
+
+fn register_credentials(
+    registry: &mut Registry,
+    catalog: &Arc<SqliteStore>,
+    context: &Arc<Context>,
+) -> Result<(), CodedError> {
+    registry
+        .register(ListCredentials {
+            catalog: catalog.clone(),
+            secrets: Arc::clone(&context.secrets),
+        })
+        .map_err(CodedError::caused_by)?;
+    registry
+        .register(SetCredential {
+            secrets: Arc::clone(&context.secrets),
+        })
+        .map_err(CodedError::caused_by)?;
+    registry
+        .register(DeleteCredential {
+            secrets: Arc::clone(&context.secrets),
         })
         .map_err(CodedError::caused_by)
 }

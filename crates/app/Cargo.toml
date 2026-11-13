@@ -36,3 +36,6 @@ serde_json.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
+# Test-only: the login canary test talks to a local server over plain HTTP, which Git refuses for
+# credentials in the product build. The feature is not enabled for the release build.
+gix-transport = { workspace = true, features = ["http-client-insecure-credentials"] }

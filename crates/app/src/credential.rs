@@ -18,7 +18,7 @@ use secrecy::SecretString;
 use zeroize::Zeroizing;
 
 use crate::consts::{
-    CARRIAGE_RETURN, LINE_BREAK, LINE_FEED, MAX_SECRET_BYTES, TOKEN_CREDENTIAL_ID,
+    CARRIAGE_RETURN, LINE_BREAK, LINE_FEED, MAX_SECRET_BYTES, is_token_credential,
 };
 
 /// What a credential command did, for the line that reports it.
@@ -117,7 +117,7 @@ const fn provider_of(choice: ProviderChoice) -> Provider {
 /// The name of a credential that a user may manage. The installation token is not one of them:
 /// replacing it would lock the browser out, deleting it would break the next `serve`.
 fn usable_id(name: &str) -> Result<CredentialId, CodedError> {
-    if name == TOKEN_CREDENTIAL_ID {
+    if is_token_credential(name) {
         return Err(invalid());
     }
     CredentialId::new(name).map_err(|_| invalid())
@@ -166,6 +166,7 @@ mod tests {
     use secrecy::ExposeSecret;
 
     use super::*;
+    use crate::consts::TOKEN_CREDENTIAL_ID;
     use crate::memory_keystore::Memory;
 
     const CANARY: &str = "CANARY-secret-4d21";
