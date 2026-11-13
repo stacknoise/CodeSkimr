@@ -180,6 +180,8 @@ impl FileAnalyzer for World {
             span: span()?,
             kind: ReferenceKind::Call,
             target: symbol.qualified_name.clone(),
+            receiver: None,
+            previous: None,
         }];
         let counts = vec![counted(symbol.id)];
         Ok(FileFacts {

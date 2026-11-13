@@ -162,54 +162,63 @@
       "at": "0:6",
       "from": "declarations",
       "kind": "import",
+      "receiver": null,
       "target": "System"
     },
     {
       "at": "5:40",
       "from": "declarations.Shop.Orders.Order",
       "kind": "inherit",
+      "receiver": null,
       "target": "Entity"
     },
     {
       "at": "5:48",
       "from": "declarations.Shop.Orders.Order",
       "kind": "inherit",
+      "receiver": null,
       "target": "IOrder"
     },
     {
       "at": "17:21",
       "from": "declarations.Shop.Orders.Order",
       "kind": "type_use",
+      "receiver": null,
       "target": "EventHandler"
     },
     {
       "at": "19:28",
       "from": "declarations.Shop.Orders.Order.CountAsync",
       "kind": "type_use",
+      "receiver": null,
       "target": "Task"
     },
     {
       "at": "26:22",
       "from": "declarations.Shop.Orders.Order.+",
       "kind": "type_use",
+      "receiver": null,
       "target": "Order"
     },
     {
       "at": "26:39",
       "from": "declarations.Shop.Orders.Order.+",
       "kind": "type_use",
+      "receiver": null,
       "target": "Order"
     },
     {
       "at": "26:51",
       "from": "declarations.Shop.Orders.Order.+",
       "kind": "type_use",
+      "receiver": null,
       "target": "Order"
     },
     {
       "at": "28:31",
       "from": "declarations.Shop.Orders.Order.ToString",
       "kind": "override",
+      "receiver": null,
       "target": "ToString"
     }
   ],

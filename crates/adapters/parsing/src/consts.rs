@@ -42,6 +42,24 @@ pub const SIGNATURE_CAPTURE: &str = "signature";
 /// Capture of the node whose end closes the scope of a declaration that does not enclose its
 /// members itself, such as a file-scoped namespace.
 pub const SCOPE_END_CAPTURE: &str = "scope_end";
+/// Capture of a receiver that is a name: a variable, a field or a type.
+pub const RECEIVER_CAPTURE: &str = "receiver";
+/// Capture of the type name of a receiver that is a creation expression.
+pub const RECEIVER_TYPE_CAPTURE: &str = "receiver.type";
+/// Capture of a receiver that is the enclosing object itself.
+pub const RECEIVER_OWN_CAPTURE: &str = "receiver.own";
+/// Capture of a receiver that is the base of the enclosing object.
+pub const RECEIVER_BASE_CAPTURE: &str = "receiver.base";
+/// Capture of any other receiver; the syntax says nothing more about it.
+pub const RECEIVER_OTHER_CAPTURE: &str = "receiver.other";
+/// Capture of the name of a local variable or parameter that hides members of the same name.
+pub const LOCAL_CAPTURE: &str = "local";
+/// Capture of the name of a field or property whose declared type tells the type of a receiver.
+pub const FIELD_CAPTURE: &str = "field";
+/// Capture of the type name written in a declaration or created by its initializer.
+pub const DECLARED_TYPE_CAPTURE: &str = "declared_type";
+/// Capture of a node that opens a scope for the names declared in it.
+pub const SCOPE_CAPTURE: &str = "scope";
 /// Separator between visibility keywords that together name one visibility.
 pub const KEYWORD_SEPARATOR: &str = " ";
 

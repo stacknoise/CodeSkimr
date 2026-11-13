@@ -172,6 +172,7 @@
       "at": "27:19",
       "from": "sample::shop::price",
       "kind": "call",
+      "receiver": null,
       "target": "total"
     }
   ],

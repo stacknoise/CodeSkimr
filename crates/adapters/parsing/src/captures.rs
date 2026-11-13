@@ -6,10 +6,27 @@ use codeskimr_domain::{ReferenceKind, SymbolKind};
 use tree_sitter::Query;
 
 use crate::consts::{
-    COMMENT_CAPTURE, DECISION_CAPTURE, DOC_CAPTURE, MODIFIER_CAPTURE, NAME_CAPTURE,
-    OPERAND_CAPTURE, OPERATOR_CAPTURE, REFERENCE_CAPTURE_PREFIX, SCOPE_END_CAPTURE,
+    COMMENT_CAPTURE, DECISION_CAPTURE, DECLARED_TYPE_CAPTURE, DOC_CAPTURE, FIELD_CAPTURE,
+    LOCAL_CAPTURE, MODIFIER_CAPTURE, NAME_CAPTURE, OPERAND_CAPTURE, OPERATOR_CAPTURE,
+    RECEIVER_BASE_CAPTURE, RECEIVER_CAPTURE, RECEIVER_OTHER_CAPTURE, RECEIVER_OWN_CAPTURE,
+    RECEIVER_TYPE_CAPTURE, REFERENCE_CAPTURE_PREFIX, SCOPE_CAPTURE, SCOPE_END_CAPTURE,
     SIGNATURE_CAPTURE, STATIC_CAPTURE, SYMBOL_CAPTURE_PREFIX, VISIBILITY_CAPTURE,
 };
+
+/// What the syntax says about the receiver in front of a member name.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ReceiverRole {
+    /// A name: a variable, a field or a type.
+    Name,
+    /// The type of a creation expression.
+    Type,
+    /// The enclosing object itself.
+    Own,
+    /// The base of the enclosing object.
+    Base,
+    /// Anything else; nothing is known about it.
+    Other,
+}
 
 /// What a capture of a query stands for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -32,6 +49,16 @@ pub enum Capture {
     Signature,
     /// Node whose end is the end of the symbol's scope.
     ScopeEnd,
+    /// The receiver in front of the captured name.
+    Receiver(ReceiverRole),
+    /// The name of a local variable or parameter.
+    Local,
+    /// The name of a field or property.
+    Field,
+    /// The type named in a declaration.
+    DeclaredType,
+    /// A node that opens a scope.
+    Scope,
 }
 
 impl Capture {
@@ -52,6 +79,15 @@ impl Capture {
             DOC_CAPTURE => Some(Self::Doc),
             SIGNATURE_CAPTURE => Some(Self::Signature),
             SCOPE_END_CAPTURE => Some(Self::ScopeEnd),
+            RECEIVER_CAPTURE => Some(Self::Receiver(ReceiverRole::Name)),
+            RECEIVER_TYPE_CAPTURE => Some(Self::Receiver(ReceiverRole::Type)),
+            RECEIVER_OWN_CAPTURE => Some(Self::Receiver(ReceiverRole::Own)),
+            RECEIVER_BASE_CAPTURE => Some(Self::Receiver(ReceiverRole::Base)),
+            RECEIVER_OTHER_CAPTURE => Some(Self::Receiver(ReceiverRole::Other)),
+            LOCAL_CAPTURE => Some(Self::Local),
+            FIELD_CAPTURE => Some(Self::Field),
+            DECLARED_TYPE_CAPTURE => Some(Self::DeclaredType),
+            SCOPE_CAPTURE => Some(Self::Scope),
             _ => None,
         }
     }

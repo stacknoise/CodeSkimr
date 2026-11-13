@@ -53,7 +53,7 @@ The package added two keys: `scan.parse_timeout_ms` (default 5000, `PRS-501` on 
 
 ## Known limits
 
-- The reference resolver and the metrics calculator do not exist yet (blueprint 9, ADR 0015, issues #39 and #44). `crates/app/src/placeholders.rs` stands in for both: a scan stores files and symbols but no references and no metrics, and `get_symbol` shows none. The placeholders are replaced in that one file.
+- References come from the level-1 resolver (`docs/references.md`).
 - The language packs are read from a folder (see `--languages`); embedding them in the binary comes with the release package.
 - `Ctrl+C` ends the process; cancelling a scan cleanly (`CancelToken`) is wired with the server.
 - A user config error that is not TOML syntax (unreadable file) is reported as `CFG-102`.

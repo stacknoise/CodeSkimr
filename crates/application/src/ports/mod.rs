@@ -13,7 +13,7 @@ mod source;
 mod storage;
 
 pub use analysis::{
-    AnalyzeRequest, FileAnalyzer, FileFacts, MetricsCalculator, PendingReference,
+    AnalyzeRequest, FileAnalyzer, FileFacts, MetricsCalculator, PendingReference, Receiver,
     ReferenceResolver, SymbolFingerprints,
 };
 pub use clock::Clock;
