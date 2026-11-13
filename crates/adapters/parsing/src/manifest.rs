@@ -20,9 +20,22 @@ pub enum Tier {
 pub struct VisibilityRules {
     /// Visibility label of a declaration without a visibility keyword.
     pub default: Option<String>,
+    /// Visibility label of a declaration without a keyword, by the kind label of its parent.
+    #[serde(default)]
+    pub parent_defaults: HashMap<String, String>,
     /// Keyword text to visibility label.
     #[serde(default)]
     pub keywords: HashMap<String, String>,
+}
+
+/// Tags that enclose the summary inside a documentation comment, such as `<summary>` in C#.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DocSummary {
+    /// Opening tag.
+    pub open: String,
+    /// Closing tag.
+    pub close: String,
 }
 
 /// Parsed `language.toml`. Unknown keys are rejected so typos do not pass silently.
@@ -50,6 +63,16 @@ pub struct PackManifest {
     /// Prefixes removed from documentation comment lines.
     #[serde(default)]
     pub doc_prefixes: Vec<String>,
+    /// Documentation text between these tags is the doc of the symbol; without them the whole
+    /// comment is.
+    #[serde(default)]
+    pub doc_summary: Option<DocSummary>,
+    /// Modifier keyword to symbol kind label; a declaration with the keyword gets that kind.
+    #[serde(default)]
+    pub modifier_kinds: HashMap<String, String>,
+    /// Modifier keywords that make a declaration static.
+    #[serde(default)]
+    pub static_keywords: Vec<String>,
     /// Visibility rules.
     #[serde(default)]
     pub visibility: VisibilityRules,

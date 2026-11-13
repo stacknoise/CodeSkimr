@@ -6,8 +6,8 @@ use codeskimr_domain::{ReferenceKind, SymbolKind};
 use tree_sitter::Query;
 
 use crate::consts::{
-    DOC_CAPTURE, NAME_CAPTURE, REFERENCE_CAPTURE_PREFIX, SIGNATURE_CAPTURE, STATIC_CAPTURE,
-    SYMBOL_CAPTURE_PREFIX, VISIBILITY_CAPTURE,
+    DOC_CAPTURE, MODIFIER_CAPTURE, NAME_CAPTURE, REFERENCE_CAPTURE_PREFIX, SCOPE_END_CAPTURE,
+    SIGNATURE_CAPTURE, STATIC_CAPTURE, SYMBOL_CAPTURE_PREFIX, VISIBILITY_CAPTURE,
 };
 
 /// What a capture of a query stands for.
@@ -19,14 +19,18 @@ pub enum Capture {
     Reference(ReferenceKind),
     /// Simple name of a declaration or target of a reference.
     Name,
-    /// Visibility keyword.
+    /// Visibility keyword; may occur several times, such as `protected` and `internal`.
     Visibility,
+    /// Any modifier keyword; the pack decides which ones set visibility or static.
+    Modifier,
     /// Marker for static declarations.
     Static,
     /// Documentation comment.
     Doc,
     /// Signature text.
     Signature,
+    /// Node whose end is the end of the symbol's scope.
+    ScopeEnd,
 }
 
 impl Capture {
@@ -42,9 +46,11 @@ impl Capture {
         match name {
             NAME_CAPTURE => Some(Self::Name),
             VISIBILITY_CAPTURE => Some(Self::Visibility),
+            MODIFIER_CAPTURE => Some(Self::Modifier),
             STATIC_CAPTURE => Some(Self::Static),
             DOC_CAPTURE => Some(Self::Doc),
             SIGNATURE_CAPTURE => Some(Self::Signature),
+            SCOPE_END_CAPTURE => Some(Self::ScopeEnd),
             _ => None,
         }
     }

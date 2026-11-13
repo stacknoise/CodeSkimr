@@ -43,6 +43,22 @@ mod tests {
     }
 
     #[test]
+    fn rejects_unknown_kind_and_visibility_labels() {
+        for (name, extra) in [
+            ("kind", "\n[modifier_kinds]\nconst = \"nonsense\"\n"),
+            (
+                "parent",
+                "\n[visibility.parent_defaults]\nnonsense = \"public\"\n",
+            ),
+        ] {
+            let dir = scratch(name);
+            let manifest = fs::read_to_string(dir.join("language.toml")).expect("read");
+            fs::write(dir.join("language.toml"), format!("{manifest}{extra}")).expect("write");
+            assert_invalid(&dir, name);
+        }
+    }
+
+    #[test]
     fn rejects_unknown_manifest_keys() {
         let dir = scratch("keys");
         let manifest = fs::read_to_string(dir.join("language.toml")).expect("read");

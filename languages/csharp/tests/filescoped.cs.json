@@ -1,0 +1,78 @@
+{
+  "loc": 9,
+  "references": [],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "filescoped",
+      "parent": null,
+      "span": "0:0-21:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "filescoped.Shop.Billing",
+      "parent": "filescoped",
+      "span": "0:0-21:0",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": "Creates the invoices of a shop.",
+      "kind": "class",
+      "name": "filescoped.Shop.Billing.Invoicer",
+      "parent": "filescoped.Shop.Billing",
+      "span": "6:0-18:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "Total of all invoices.",
+      "kind": "property",
+      "name": "filescoped.Shop.Billing.Invoicer.Total",
+      "parent": "filescoped.Shop.Billing.Invoicer",
+      "span": "10:4-10:46",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "<inheritdoc/>",
+      "kind": "method",
+      "name": "filescoped.Shop.Billing.Invoicer.Reset",
+      "parent": "filescoped.Shop.Billing.Invoicer",
+      "span": "14:4-14:27",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "filescoped.Shop.Billing.Invoicer.Old",
+      "parent": "filescoped.Shop.Billing.Invoicer",
+      "span": "16:4-17:34",
+      "static": false,
+      "visibility": "protected"
+    },
+    {
+      "doc": null,
+      "kind": "enum",
+      "name": "filescoped.Shop.Billing.Mode",
+      "parent": "filescoped.Shop.Billing",
+      "span": "20:0-20:15",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "enum_member",
+      "name": "filescoped.Shop.Billing.Mode.A",
+      "parent": "filescoped.Shop.Billing.Mode",
+      "span": "20:12-20:13",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

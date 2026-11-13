@@ -11,9 +11,10 @@ use codeskimr_domain::{
 use tree_sitter::{Node, QueryCapture, QueryCursor, StreamingIterator};
 
 use crate::captures::Capture;
-use crate::consts::{LINE_SEPARATOR, NO_EXTENSION, PATH_SEPARATOR};
+use crate::consts::{LINE_SEPARATOR, NO_EXTENSION, PATH_SEPARATOR, WORD_SEPARATOR};
 use crate::error::ParsingError;
-use crate::location::{span_of, text_of};
+use crate::location::{span_between, span_of, text_of};
+use crate::manifest::DocSummary;
 use crate::pack::LanguagePack;
 
 /// What the extraction needs to know about the file.
@@ -65,20 +66,22 @@ struct Declaration<'t> {
     node: Node<'t>,
     kind: SymbolKind,
     name: Node<'t>,
-    visibility: Option<Node<'t>>,
+    modifiers: Vec<Node<'t>>,
     is_static: bool,
     docs: Vec<Node<'t>>,
     signature: Option<Node<'t>>,
+    scope_end: Option<Node<'t>>,
 }
 
 #[derive(Default)]
 struct Parts<'t> {
     declaration: Option<(Node<'t>, SymbolKind)>,
     name: Option<Node<'t>>,
-    visibility: Option<Node<'t>>,
+    modifiers: Vec<Node<'t>>,
     is_static: bool,
     docs: Vec<Node<'t>>,
     signature: Option<Node<'t>>,
+    scope_end: Option<Node<'t>>,
 }
 
 impl<'t> Parts<'t> {
@@ -86,10 +89,11 @@ impl<'t> Parts<'t> {
         match capture {
             Capture::Symbol(kind) => self.declaration = Some((node, kind)),
             Capture::Name => self.name = Some(node),
-            Capture::Visibility => self.visibility = Some(node),
+            Capture::Visibility | Capture::Modifier => self.modifiers.push(node),
             Capture::Static => self.is_static = true,
             Capture::Doc => self.docs.push(node),
             Capture::Signature => self.signature = Some(node),
+            Capture::ScopeEnd => self.scope_end = Some(node),
             Capture::Reference(_) => {}
         }
     }
@@ -100,10 +104,11 @@ impl<'t> Parts<'t> {
             node,
             kind,
             name: self.name?,
-            visibility: self.visibility,
+            modifiers: self.modifiers,
             is_static: self.is_static,
             docs: self.docs,
             signature: self.signature,
+            scope_end: self.scope_end,
         })
     }
 }
@@ -123,12 +128,39 @@ fn collect<'t>(ctx: &SymbolContext<'_>, root: Node<'t>) -> Vec<Declaration<'t>> 
         found.extend(parts.finish());
     }
     found.sort_by_key(|d| (d.node.start_byte(), Reverse(d.node.end_byte()), d.node.id()));
-    // Several patterns may describe the same declaration; the first one wins.
-    found.dedup_by_key(|d| (d.node.id(), d.kind));
+    // Several matches may describe the same declaration, for example one per subset of a
+    // repeated capture; they are merged into the first one.
+    found.dedup_by(|later, first| {
+        let same = (later.node.id(), later.kind) == (first.node.id(), first.kind);
+        if same {
+            first.absorb(later);
+        }
+        same
+    });
     found
 }
 
+impl<'t> Declaration<'t> {
+    /// Adds the repeated captures of another match of the same declaration.
+    fn absorb(&mut self, other: &mut Declaration<'t>) {
+        self.is_static |= other.is_static;
+        self.scope_end = self.scope_end.or(other.scope_end);
+        self.signature = self.signature.or(other.signature);
+        merge_nodes(&mut self.modifiers, &mut other.modifiers);
+        merge_nodes(&mut self.docs, &mut other.docs);
+    }
+}
+
+/// Appends the nodes of `more` that `nodes` lacks and restores source order.
+fn merge_nodes<'t>(nodes: &mut Vec<Node<'t>>, more: &mut Vec<Node<'t>>) {
+    nodes.append(more);
+    nodes.sort_by_key(Node::id);
+    nodes.dedup_by_key(|node| node.id());
+    nodes.sort_by_key(Node::start_byte);
+}
+
 struct Frame {
+    kind: SymbolKind,
     end: usize,
     index: usize,
     id: SymbolId,
@@ -217,21 +249,9 @@ impl Builder<'_, '_> {
             .last()
             .map_or_else(<&str>::default, |frame| frame.qualified.as_str());
         let qualified = [prefix, ctx.pack.separator.as_str(), name.as_str()].concat();
-        self.push(
-            qualified,
-            NewSymbol {
-                kind: declaration.kind,
-                name,
-                span: span_of(declaration.node)?,
-                range: declaration.node.byte_range(),
-                visibility: visibility(ctx, declaration),
-                is_static: declaration.is_static,
-                signature: declaration
-                    .signature
-                    .map(|node| text_of(node, ctx.source).trim().to_owned()),
-                doc: doc(ctx, &declaration.docs),
-            },
-        )
+        let parent = self.stack.last().map(|frame| frame.kind);
+        let new = new_symbol(ctx, declaration, name, parent)?;
+        self.push(qualified, new)
     }
 
     fn push(&mut self, qualified: String, new: NewSymbol) -> Result<(), ParsingError> {
@@ -253,6 +273,7 @@ impl Builder<'_, '_> {
             doc: new.doc,
         });
         self.stack.push(Frame {
+            kind: new.kind,
             end: new.range.end,
             index,
             id,
@@ -263,12 +284,43 @@ impl Builder<'_, '_> {
     }
 }
 
-fn visibility(ctx: &SymbolContext<'_>, declaration: &Declaration<'_>) -> Option<Visibility> {
-    declaration
-        .visibility
-        .and_then(|node| ctx.pack.visibility.get(text_of(node, ctx.source).trim()))
-        .copied()
-        .or(ctx.pack.default_visibility)
+/// The symbol for `declaration`; a scope end node stretches span and range beyond the declaration.
+fn new_symbol(
+    ctx: &SymbolContext<'_>,
+    declaration: &Declaration<'_>,
+    name: String,
+    parent: Option<SymbolKind>,
+) -> Result<NewSymbol, ParsingError> {
+    let node = declaration.node;
+    let (span, end) = match declaration.scope_end {
+        Some(last) => (span_between(node, last)?, last.end_byte()),
+        None => (span_of(node)?, node.end_byte()),
+    };
+    let words: Vec<&str> = declaration
+        .modifiers
+        .iter()
+        .map(|modifier| text_of(*modifier, ctx.source).trim())
+        .collect();
+    let pack = ctx.pack;
+    Ok(NewSymbol {
+        kind: words
+            .iter()
+            .find_map(|word| pack.modifier_kinds.get(*word))
+            .copied()
+            .unwrap_or(declaration.kind),
+        name,
+        span,
+        range: node.start_byte()..end,
+        visibility: pack.visibility.of(&words, parent),
+        is_static: declaration.is_static
+            || words
+                .iter()
+                .any(|word| pack.static_keywords.contains(*word)),
+        signature: declaration
+            .signature
+            .map(|node| text_of(node, ctx.source).trim().to_owned()),
+        doc: doc(ctx, &declaration.docs),
+    })
 }
 
 fn doc(ctx: &SymbolContext<'_>, nodes: &[Node<'_>]) -> Option<String> {
@@ -277,7 +329,21 @@ fn doc(ctx: &SymbolContext<'_>, nodes: &[Node<'_>]) -> Option<String> {
         .filter_map(|node| strip_prefix(&ctx.pack.doc_prefixes, text_of(*node, ctx.source)))
         .map(str::trim)
         .collect();
-    (!lines.is_empty()).then(|| lines.join(LINE_SEPARATOR))
+    if lines.is_empty() {
+        return None;
+    }
+    let text = lines.join(LINE_SEPARATOR);
+    Some(summary(ctx.pack.doc_summary.as_ref(), &text).unwrap_or(text))
+}
+
+/// The text between the summary tags with its whitespace collapsed; `None` if the pack has no
+/// tags or the comment lacks them.
+fn summary(tags: Option<&DocSummary>, text: &str) -> Option<String> {
+    let tags = tags?;
+    let (_, rest) = text.split_once(tags.open.as_str())?;
+    let (inner, _) = rest.split_once(tags.close.as_str())?;
+    let words: Vec<&str> = inner.split_whitespace().collect();
+    (!words.is_empty()).then(|| words.join(WORD_SEPARATOR))
 }
 
 /// Removes the doc prefix; a comment without one is no documentation. A pack without prefixes

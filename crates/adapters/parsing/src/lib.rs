@@ -11,6 +11,14 @@
 //! `@static`, `@doc` (repeatable) and `@signature`. `references.scm` marks an occurrence with
 //! `@reference.<kind>` (a reference kind label); the target is the `@name` capture if present,
 //! otherwise the marked node.
+//!
+//! Further captures of `symbols.scm`: `@modifier` (repeatable; every modifier keyword, the pack
+//! decides in `language.toml` which ones set visibility, `static_keywords` or a kind through
+//! `modifier_kinds`) and `@scope_end` (the node whose end closes the scope of a declaration that
+//! does not enclose its members, such as a file-scoped namespace). Several matches of one
+//! declaration are merged, so a query may repeat captures freely. `language.toml` may set
+//! `doc_summary` tags to keep only the summary of a documentation comment and
+//! `visibility.parent_defaults` for the visibility of declarations without a keyword.
 
 mod analyzer;
 mod captures;
@@ -25,6 +33,7 @@ mod pack;
 mod packs;
 mod references;
 mod symbols;
+mod visibility;
 
 pub use analyzer::TreeSitterAnalyzer;
 pub use error::ParsingError;

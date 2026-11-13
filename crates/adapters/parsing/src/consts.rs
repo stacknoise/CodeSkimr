@@ -15,15 +15,24 @@ pub const REFERENCE_CAPTURE_PREFIX: &str = "reference.";
 pub const NAME_CAPTURE: &str = "name";
 /// Capture of the keyword that sets the visibility.
 pub const VISIBILITY_CAPTURE: &str = "visibility";
+/// Capture of any modifier keyword (`public`, `static`, `async` …); may occur several times.
+pub const MODIFIER_CAPTURE: &str = "modifier";
 /// Capture whose presence marks a static declaration.
 pub const STATIC_CAPTURE: &str = "static";
 /// Capture of a documentation comment; may occur several times.
 pub const DOC_CAPTURE: &str = "doc";
 /// Capture of the signature text.
 pub const SIGNATURE_CAPTURE: &str = "signature";
+/// Capture of the node whose end closes the scope of a declaration that does not enclose its
+/// members itself, such as a file-scoped namespace.
+pub const SCOPE_END_CAPTURE: &str = "scope_end";
+/// Separator between visibility keywords that together name one visibility.
+pub const KEYWORD_SEPARATOR: &str = " ";
 
 /// Separator between the lines of a joined documentation comment.
 pub const LINE_SEPARATOR: &str = "\n";
+/// Separator between the words of a collapsed documentation summary.
+pub const WORD_SEPARATOR: &str = " ";
 /// Separator of folders in a path inside the project.
 pub const PATH_SEPARATOR: char = '/';
 /// Byte order mark of UTF-8 files.
@@ -37,6 +46,8 @@ pub const UTF16_UNIT_BYTES: usize = 2;
 
 /// Grammar name of Rust in `language.toml`.
 pub const GRAMMAR_RUST: &str = "rust";
+/// Grammar name of C# in `language.toml`.
+pub const GRAMMAR_CSHARP: &str = "csharp";
 
 /// Start of the reason when the `id` of a pack differs from its folder name.
 pub const ID_MISMATCH: &str = "id differs from the folder name: ";
