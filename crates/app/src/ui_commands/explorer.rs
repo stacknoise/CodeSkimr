@@ -69,13 +69,45 @@ pub struct LayerNode {
     pub namespaces: Vec<NamespaceNode>,
 }
 
+/// The limits behind the colours of the metrics, so the column tooltips can name them.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub struct Thresholds {
+    /// Complexity up to this value is good.
+    pub complexity_good_max: u32,
+    /// Complexity up to this value is medium.
+    pub complexity_medium_max: u32,
+    /// Maintainability from this value is good.
+    pub maintainability_good_min: u32,
+    /// Maintainability from this value is medium.
+    pub maintainability_medium_min: u32,
+    /// Instability up to this value is stable.
+    pub instability_stable_max: f64,
+    /// Instability up to this value is medium.
+    pub instability_medium_max: f64,
+}
+
+impl From<&MetricThresholds> for Thresholds {
+    fn from(config: &MetricThresholds) -> Self {
+        Self {
+            complexity_good_max: config.cyclomatic_good_max,
+            complexity_medium_max: config.cyclomatic_medium_max,
+            maintainability_good_min: config.maintainability_good_min,
+            maintainability_medium_min: config.maintainability_medium_min,
+            instability_stable_max: config.instability_stable_max,
+            instability_medium_max: config.instability_medium_max,
+        }
+    }
+}
+
 /// The tree of the newest snapshot.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Outline {
     /// Id of the snapshot, `None` before the first scan.
     pub snapshot: Option<u64>,
     /// Layers in their declared order; types that belong to none come last, with an empty name.
     pub layers: Vec<LayerNode>,
+    /// The limits behind the colours of the metrics.
+    pub thresholds: Thresholds,
 }
 
 /// The input of both commands.
@@ -190,12 +222,14 @@ impl Command for ExplorerOutline {
             return Ok(Outline {
                 snapshot: None,
                 layers: Vec::new(),
+                thresholds: Thresholds::from(&ports.thresholds),
             });
         };
         let nodes = ports.outline.outline(snapshot.id)?;
         Ok(Outline {
             snapshot: Some(snapshot.id.get()),
             layers: build(&project.layers, &nodes),
+            thresholds: Thresholds::from(&ports.thresholds),
         })
     }
 }

@@ -13,8 +13,33 @@
 
 .tab {
     padding: 8px var(--space-12);
+    border: 0;
     border-bottom: 2px solid var(--accent);
-    font-weight: 600;
+    background: none;
+    color: var(--ink);
+    font: 600 13px var(--font-sans);
+}
+
+.empty {
+    margin: var(--space-12) 0 0;
+    color: var(--muted);
+}
+
+.pick {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-6);
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.pick:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
 }
 
 .chips {

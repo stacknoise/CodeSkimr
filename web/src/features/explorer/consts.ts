@@ -58,6 +58,16 @@ export const FIELD_KINDS: readonly string[] = [
   "event",
   "enum_member",
 ];
+/** Kinds of types: a type inside a type is listed under "Nested types". */
+export const TYPE_KINDS: readonly string[] = [
+  "class",
+  "interface",
+  "trait",
+  "record",
+  "struct",
+  "enum",
+  "union",
+];
 /** Kinds that the tree groups under "Methods". */
 export const METHOD_KINDS: readonly string[] = ["method", "constructor", "function"];
 /** Kinds that the "Properties" chip of the member table shows. */
@@ -71,6 +81,10 @@ export const KEY = {
   up: "ArrowUp",
   right: "ArrowRight",
   left: "ArrowLeft",
+  home: "Home",
+  end: "End",
+  enter: "Enter",
+  space: " ",
   reveal: ".",
 } as const;
 /** One row down and up. */
@@ -79,6 +93,12 @@ export const STEP_UP = -1;
 export const NOT_FOUND = -1;
 
 /** What a row of the tree is. */
+/** Depth of the rows below a namespace row. */
+export const TYPE_DEPTH = 2;
+
+/** Id of the complexity metric, which names the limits of its column. */
+export const CC_METRIC = "cc";
+
 export const ROW = {
   layer: "layer",
   namespace: "namespace",
@@ -99,7 +119,7 @@ export const BASE_INDENT_PX = 8;
 export const CARET = { closed: "▶", open: "▼" } as const;
 
 /** The member groups of the tree. */
-export const GROUP = { fields: "fields", methods: "methods" } as const;
+export const GROUP = { fields: "fields", methods: "methods", nested: "nested" } as const;
 
 /** The chips of the member table. */
 export const CHIP = {
@@ -110,15 +130,75 @@ export const CHIP = {
 } as const;
 export type ChipId = (typeof CHIP)[keyof typeof CHIP];
 
-/** Metrics of the strip: stored kind, label and tip. */
-export const METRICS = [
-  { kind: "loc", label: I18N_KEYS.EXPLORER_METRIC_LOC, tip: I18N_KEYS.EXPLORER_METRIC_LOC_TIP },
-  { kind: "cc", label: I18N_KEYS.EXPLORER_METRIC_CC, tip: I18N_KEYS.EXPLORER_METRIC_CC_TIP },
-  { kind: "mi", label: I18N_KEYS.EXPLORER_METRIC_MI, tip: I18N_KEYS.EXPLORER_METRIC_MI_TIP },
-  { kind: "ce", label: I18N_KEYS.EXPLORER_METRIC_CE, tip: I18N_KEYS.EXPLORER_METRIC_CE_TIP },
-  { kind: "ca", label: I18N_KEYS.EXPLORER_METRIC_CA, tip: I18N_KEYS.EXPLORER_METRIC_CA_TIP },
+/** Kinds that the tile "Fields etc." counts: the field group without the properties. */
+export const FIELD_KINDS_OTHER: readonly string[] = ["field", "constant", "event", "enum_member"];
+
+/** Where the value of a tile comes from: a stored metric, or a count of the member kinds. */
+export const TILE_SOURCE = { metric: "metric", members: "members", kinds: "kinds" } as const;
+
+/** The tiles of the metric strip in the order of the mock: source, label, tip and, for counts,
+ * the kinds that are counted. `limits` names the thresholds the tip mentions. */
+export const TILES = [
   {
-    kind: "instability",
+    id: "members",
+    source: TILE_SOURCE.members,
+    label: I18N_KEYS.EXPLORER_METRIC_MEMBERS,
+    tip: I18N_KEYS.EXPLORER_METRIC_MEMBERS_TIP,
+  },
+  {
+    id: "loc",
+    source: TILE_SOURCE.metric,
+    label: I18N_KEYS.EXPLORER_METRIC_LOC,
+    tip: I18N_KEYS.EXPLORER_METRIC_LOC_TIP,
+  },
+  {
+    id: "cc",
+    source: TILE_SOURCE.metric,
+    label: I18N_KEYS.EXPLORER_METRIC_CC,
+    tip: I18N_KEYS.EXPLORER_METRIC_CC_TIP,
+  },
+  {
+    id: "mi",
+    source: TILE_SOURCE.metric,
+    label: I18N_KEYS.EXPLORER_METRIC_MI,
+    tip: I18N_KEYS.EXPLORER_METRIC_MI_TIP,
+  },
+  {
+    id: "properties",
+    source: TILE_SOURCE.kinds,
+    kinds: PROPERTY_KINDS,
+    label: I18N_KEYS.EXPLORER_METRIC_PROPERTIES,
+    tip: I18N_KEYS.EXPLORER_METRIC_PROPERTIES_TIP,
+  },
+  {
+    id: "fields",
+    source: TILE_SOURCE.kinds,
+    kinds: FIELD_KINDS_OTHER,
+    label: I18N_KEYS.EXPLORER_METRIC_FIELDS,
+    tip: I18N_KEYS.EXPLORER_METRIC_FIELDS_TIP,
+  },
+  {
+    id: "methods",
+    source: TILE_SOURCE.kinds,
+    kinds: METHOD_KINDS,
+    label: I18N_KEYS.EXPLORER_METRIC_METHODS,
+    tip: I18N_KEYS.EXPLORER_METRIC_METHODS_TIP,
+  },
+  {
+    id: "ce",
+    source: TILE_SOURCE.metric,
+    label: I18N_KEYS.EXPLORER_METRIC_CE,
+    tip: I18N_KEYS.EXPLORER_METRIC_CE_TIP,
+  },
+  {
+    id: "ca",
+    source: TILE_SOURCE.metric,
+    label: I18N_KEYS.EXPLORER_METRIC_CA,
+    tip: I18N_KEYS.EXPLORER_METRIC_CA_TIP,
+  },
+  {
+    id: "instability",
+    source: TILE_SOURCE.metric,
     label: I18N_KEYS.EXPLORER_METRIC_INSTABILITY,
     tip: I18N_KEYS.EXPLORER_METRIC_INSTABILITY_TIP,
   },
@@ -146,3 +226,17 @@ export const ICON_LOCATE = "locate";
 export const PILL_SEPARATOR = " · ";
 /** Separates the symbols of the breadcrumb. */
 export const CRUMB_SEPARATOR = "›";
+
+/** Height of a tree row in pixels; the windowing of the tree counts with it. */
+export const ROW_HEIGHT_PX = 26;
+/** Rows drawn above and below the visible ones, so scrolling shows no gaps. */
+export const OVERSCAN_ROWS = 8;
+/** Rows assumed for the height of the tree before it has been measured. */
+export const FALLBACK_VIEWPORT_ROWS = 40;
+/** Prefix of the ids of the rows, for `aria-activedescendant`. */
+export const ROW_ID_PREFIX = "explorer-row-";
+/** Number of colour dots for the layers (`layer-1` to `layer-6` of the tokens). */
+export const LAYER_TONES = 6;
+
+/** Keyboard hints on the three buttons of the header. */
+export const HOTKEY = { usages: "U", graph: "G", editor: "E" } as const;

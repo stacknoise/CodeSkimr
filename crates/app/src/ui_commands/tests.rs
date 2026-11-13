@@ -11,6 +11,14 @@ use codeskimr_server::CommandApi;
 use serde_json::{Value, json};
 use tempfile::TempDir;
 
+use std::num::NonZeroU32;
+
+use codeskimr_application::ports::ProjectRepository;
+use codeskimr_domain::{
+    FolderPath, Layer, LayerName, Project, ProjectId, ProjectName, ProjectSource, QualifiedName,
+};
+use codeskimr_storage::SqliteStore;
+
 use super::command_api;
 use crate::locations::Locations;
 use crate::principal;
@@ -19,6 +27,7 @@ const SOURCE: &str = "namespace Demo;\n\npublic class Calculator\n{\n    public 
 
 struct Fixture {
     root: TempDir,
+    locations: Locations,
     api: Arc<CommandApi>,
 }
 
@@ -36,8 +45,37 @@ impl Fixture {
         let api = command_api(&GlobalOptions::default(), &locations, EventBus::new()).unwrap();
         Self {
             root,
+            locations,
             api: Arc::new(api),
         }
+    }
+
+    /// Gives the project these layers, through a second connection to the same database.
+    fn set_layers(&self, project: u64, layers: &[(&str, &str)]) {
+        let store = SqliteStore::open(&self.locations.database(), NonZeroU32::MIN).unwrap();
+        let mut stored = store.project(ProjectId::new(project)).unwrap();
+        stored.layers = layers
+            .iter()
+            .map(|(name, namespace)| Layer {
+                name: LayerName::new(*name).unwrap(),
+                namespaces: vec![QualifiedName::new(*namespace).unwrap()],
+            })
+            .collect();
+        store.save_project(&stored).unwrap();
+    }
+
+    /// Registers the folder without scanning it, so the project has no snapshot.
+    fn register_unscanned(&self) -> u64 {
+        let store = SqliteStore::open(&self.locations.database(), NonZeroU32::MIN).unwrap();
+        let source = ProjectSource::Folder(FolderPath::new(self.folder()).unwrap());
+        let project = Project {
+            id: ProjectId::new(1),
+            name: ProjectName::new("app").unwrap(),
+            source,
+            layers: Vec::new(),
+        };
+        store.save_project(&project).unwrap();
+        project.id.get()
     }
 
     fn folder(&self) -> String {
@@ -206,4 +244,79 @@ fn an_unknown_project_or_symbol_is_refused() {
         ),
         Err("MCP-202")
     );
+}
+
+#[test]
+fn a_project_without_a_scan_has_an_empty_outline_and_no_symbols() {
+    let fixture = Fixture::new();
+    let project = fixture.register_unscanned();
+    let outline = fixture
+        .call("explorer.outline", json!({ "project": project }))
+        .unwrap();
+    assert_eq!(outline["snapshot"], Value::Null);
+    assert_eq!(outline["layers"], json!([]));
+    assert_eq!(
+        fixture.call(
+            "explorer.symbol",
+            json!({ "project": project, "symbol": 1 })
+        ),
+        Err("MCP-203")
+    );
+}
+
+#[test]
+fn layers_come_first_and_types_of_no_layer_last() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    fixture.set_layers(
+        project,
+        &[("Core", "Calculator.Demo"), ("Other", "Nowhere")],
+    );
+    let outline = fixture
+        .call("explorer.outline", json!({ "project": project }))
+        .unwrap();
+    assert_eq!(outline["layers"].as_array().unwrap().len(), 2);
+    assert_eq!(outline["layers"][0]["name"], "Core");
+    assert_eq!(outline["layers"][1]["namespaces"], json!([]));
+
+    fixture.set_layers(project, &[("Other", "Nowhere")]);
+    let outline = fixture
+        .call("explorer.outline", json!({ "project": project }))
+        .unwrap();
+    assert_eq!(outline["layers"][1]["name"], "");
+    assert_eq!(
+        outline["layers"][1]["namespaces"][0]["types"][0]["name"],
+        "Calculator"
+    );
+}
+
+#[test]
+fn the_outline_names_the_limits_behind_the_colours() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    let outline = fixture
+        .call("explorer.outline", json!({ "project": project }))
+        .unwrap();
+    assert_eq!(outline["thresholds"]["complexity_good_max"], 5);
+    assert_eq!(outline["thresholds"]["maintainability_medium_min"], 35);
+}
+
+#[test]
+fn a_token_without_the_read_right_is_refused() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .build()
+        .unwrap();
+    let nobody = principal::nobody();
+    for id in ["explorer.outline", "explorer.symbol"] {
+        let refused = runtime
+            .block_on(
+                fixture
+                    .api
+                    .run(nobody, id, json!({ "project": project, "symbol": 1 })),
+            )
+            .map_err(|error| error.code().entry().id);
+        assert_eq!(refused.unwrap_err(), "AUTH-401", "{id}");
+    }
 }

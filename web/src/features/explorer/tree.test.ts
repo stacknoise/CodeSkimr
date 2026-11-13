@@ -7,10 +7,19 @@ const LABELS: TreeLabels = {
   noNamespace: "root",
   fields: "Fields",
   methods: "Methods",
+  nested: "Nested",
 };
 
 const OUTLINE: Outline = {
   snapshot: 1,
+  thresholds: {
+    complexity_good_max: 5,
+    complexity_medium_max: 10,
+    maintainability_good_min: 65,
+    maintainability_medium_min: 35,
+    instability_stable_max: 0.3,
+    instability_medium_max: 0.7,
+  },
   layers: [
     {
       name: "Domain",

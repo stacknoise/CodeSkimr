@@ -18,10 +18,21 @@ export interface LayerNode {
   namespaces: NamespaceNode[];
 }
 
+/** The limits behind the colours of the metrics. */
+export interface Thresholds {
+  complexity_good_max: number;
+  complexity_medium_max: number;
+  maintainability_good_min: number;
+  maintainability_medium_min: number;
+  instability_stable_max: number;
+  instability_medium_max: number;
+}
+
 /** The answer of `explorer.outline`. */
 export interface Outline {
   snapshot: number | null;
   layers: LayerNode[];
+  thresholds: Thresholds;
 }
 
 /** A symbol in the breadcrumb. */

@@ -52,7 +52,7 @@ pub trait CodeOutline: Send + Sync {
     /// A coded failure of the `STO` group.
     fn outline(&self, snapshot: SnapshotId) -> Result<Vec<OutlineNode>, CodedError>;
 
-    /// The direct members of a symbol as table rows, in declaration order.
+    /// The direct members of a symbol as table rows, in declaration order (by start line, then column).
     ///
     /// # Errors
     /// A coded failure of the `STO` group.

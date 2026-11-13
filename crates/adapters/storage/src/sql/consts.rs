@@ -240,4 +240,4 @@ pub const MEMBER_ROWS: &str = "SELECT s.id, s.name, s.kind, s.visibility, s.sign
         AND x.kind = ?3), \
     COALESCE((SELECT u.usages FROM usage_counts u WHERE u.snapshot_id = s.snapshot_id \
         AND u.symbol_id = s.id), 0) \
-    FROM symbols s WHERE s.snapshot_id = ?1 AND s.parent_id = ?2 ORDER BY s.id";
+    FROM symbols s WHERE s.snapshot_id = ?1 AND s.parent_id = ?2 ORDER BY s.start_line, s.start_column, s.id";

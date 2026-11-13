@@ -59,3 +59,24 @@
     color: var(--ink-2);
     line-height: 1.5;
 }
+
+.kbd {
+    padding: 0 var(--space-4);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-badge);
+    background: var(--bg);
+    font: 11px var(--font-mono);
+}
+
+.actions button[aria-disabled="true"] {
+    color: var(--muted);
+    cursor: not-allowed;
+}
+
+.hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+}

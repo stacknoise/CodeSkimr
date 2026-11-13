@@ -7,6 +7,14 @@ import type { Outline, SymbolInfo } from "./types";
 
 const OUTLINE: Outline = {
   snapshot: 5,
+  thresholds: {
+    complexity_good_max: 5,
+    complexity_medium_max: 10,
+    maintainability_good_min: 65,
+    maintainability_medium_min: 35,
+    instability_stable_max: 0.3,
+    instability_medium_max: 0.7,
+  },
   layers: [
     {
       name: "Domain",
@@ -92,7 +100,7 @@ describe("ExplorerScreen", () => {
     expect(screen.getByText("188")).toBeTruthy();
     expect(screen.getByText("decimal Total()")).toBeTruthy();
     expect(screen.getByText("Members 2")).toBeTruthy();
-    expect(await screen.findByText("Properties & fields")).toBeTruthy();
+    expect(await screen.findByText("Fields etc.")).toBeTruthy();
   });
 
   it("filters the member table by chip", async () => {

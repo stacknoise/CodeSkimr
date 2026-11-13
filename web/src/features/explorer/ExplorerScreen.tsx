@@ -1,120 +1,100 @@
-import { createEffect, createMemo, createSignal, Match, on, Show, Switch } from "solid-js";
+import { createEffect, Match, on, Show, Switch } from "solid-js";
+import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
-import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { activeProject } from "../../shared/project/active";
-import { ROW } from "./consts";
 import { DetailPane } from "./DetailPane";
 import {
   collapseAll,
-  currentMember,
   currentType,
-  explorerFailure,
   loadOutline,
-  openRow,
-  selectType,
+  outlineError,
+  outlineLoading,
   symbolDetails,
-  toggleRow,
+  symbolError,
   treeOutline,
+  type Failure,
 } from "./explorer";
-import { stepIndex, useExplorerKeys } from "./keys";
-import { revealKeys, typeKey, type TreeRow } from "./tree";
-import { TreePane, useRows } from "./TreePane";
+import { useExplorerKeys } from "./keys";
+import { Overview } from "./Overview";
+import { TreePane } from "./TreePane";
+import { useExplorer } from "./useExplorer";
 import styles from "./ExplorerScreen.module.css";
 
-function Message(props: { title?: string; text: string }) {
+function Message(props: { title?: string; text: string; alert?: boolean }) {
   return (
-    <div class={styles.message}>
+    <div class={styles.message} role={props.alert ? "alert" : undefined}>
       <Show when={props.title}>{(title) => <h2>{title()}</h2>}</Show>
       <p>{props.text}</p>
     </div>
   );
 }
 
-/** What the middle column shows while there is no type to show. */
-function Empty(props: { snapshot: number | null | undefined }) {
+function failureText(failure: Failure): string {
+  return failure.code === null
+    ? t(I18N_KEYS.EXPLORER_LOAD_FAILED)
+    : errorText(failure.code as ErrorCode);
+}
+
+/** The note under the filter while the tree has no rows: reading, or nothing to show. */
+function treeNote(rowCount: number): string | null {
+  if (outlineLoading()) {
+    return t(I18N_KEYS.EXPLORER_LOADING);
+  }
+  return treeOutline() !== null && rowCount === 0 ? t(I18N_KEYS.EXPLORER_NO_TYPES) : null;
+}
+
+/** The middle column: the failure of a read, the selected type, or the overview. */
+function Details(props: { onPickMember: ReturnType<typeof useExplorer>["pickMember"] }) {
+  const info = () => {
+    const type = currentType();
+    return type === null ? null : (symbolDetails().get(type) ?? null);
+  };
   return (
-    <Switch fallback={<Message text={t(I18N_KEYS.EXPLORER_NOTHING_SELECTED)} />}>
-      <Match when={props.snapshot === null}>
-        <Message text={t(I18N_KEYS.EXPLORER_NOT_SCANNED)} />
+    <Switch>
+      <Match when={symbolError()}>
+        {(failure) => (
+          <div class={styles.centered}>
+            <Message text={failureText(failure())} alert />
+          </div>
+        )}
+      </Match>
+      <Match when={info()}>
+        {(detail) => (
+          <DetailPane
+            info={detail()}
+            thresholds={treeOutline()?.thresholds ?? null}
+            onPickMember={(row) => props.onPickMember(detail().id, row)}
+          />
+        )}
+      </Match>
+      <Match when={true}>
+        <div class={styles.centered}>
+          <Show when={treeOutline()?.snapshot === null}>
+            <Message text={t(I18N_KEYS.EXPLORER_NOT_SCANNED)} />
+          </Show>
+          <Overview outline={treeOutline()?.snapshot === null ? null : treeOutline()} />
+        </div>
       </Match>
     </Switch>
   );
 }
 
-/** A click on a row: a type is shown first and folded on the second click, a member is shown,
- * every other row folds. */
-function act(project: number, row: TreeRow): void {
-  const shown = row.kind === ROW.type && row.type === currentType() && currentMember() === null;
-  if ((row.kind === ROW.type || row.kind === ROW.member) && row.type !== null && !shown) {
-    void selectType(project, row.type, row.member);
-  } else if (row.expandable && row.kind !== ROW.member) {
-    toggleRow(row.key);
-  }
-}
-
-/** Opens (`close` false) or closes (`close` true) the row under the cursor, if it can. */
-function fold(rows: TreeRow[], cursor: string | null, close: boolean): void {
-  const row = rows.find((candidate) => candidate.key === cursor);
-  if (row?.expandable && row.open === close) {
-    toggleRow(row.key);
-  }
-}
-
 /** Screen 2, the explorer: tree and details (blueprint B.2, mock `Explorer.dc.html`). The source
  * column of the mock follows with the next work package. */
 export function ExplorerScreen() {
-  const project = () => activeProject();
-  const rows = useRows();
-  const [cursor, setCursor] = createSignal<string | null>(null);
+  const explorer = useExplorer();
   createEffect(
-    on(project, (id) => {
+    on(activeProject, (id) => {
       if (id !== null) {
         void loadOutline(id);
       }
     }),
   );
-  const info = createMemo(() => {
-    const type = currentType();
-    return type === null ? null : (symbolDetails().get(type) ?? null);
-  });
-  const pick = (row: TreeRow) => {
-    setCursor(row.key);
-    const id = project();
-    if (id !== null) {
-      act(id, row);
-    }
-  };
-  const reveal = () => {
-    const outline = treeOutline();
-    const type = currentType();
-    if (outline && type !== null) {
-      revealKeys(outline, type).forEach((key) => key !== typeKey(type) && openRow(key));
-    }
-  };
-  useExplorerKeys({
-    move: (step) => {
-      const list = rows();
-      const next =
-        list[
-          stepIndex(
-            list.map((row) => row.key),
-            cursor(),
-            step,
-          )
-        ];
-      if (next) {
-        pick({ ...next, expandable: false });
-      }
-    },
-    open: () => fold(rows(), cursor(), false),
-    close: () => fold(rows(), cursor(), true),
-    collapseAll,
-    reveal,
-  });
+  useExplorerKeys({ collapseAll, reveal: explorer.reveal });
   return (
     <Switch>
-      <Match when={project() === null}>
+      <Match when={activeProject() === null}>
         <div class={styles.centered}>
           <Message
             title={t(I18N_KEYS.EXPLORER_NO_PROJECT_TITLE)}
@@ -122,42 +102,22 @@ export function ExplorerScreen() {
           />
         </div>
       </Match>
-      <Match when={explorerFailure()}>
+      <Match when={outlineError()}>
         {(failure) => (
           <div class={styles.centered}>
-            <Message
-              text={
-                failure().code === null
-                  ? t(I18N_KEYS.EXPLORER_LOAD_FAILED)
-                  : errorText(failure().code as ErrorCode)
-              }
-            />
+            <Message text={failureText(failure())} alert />
           </div>
         )}
       </Match>
       <Match when={true}>
         <div class={styles.screen}>
-          <TreePane rows={rows()} onPick={pick} onReveal={reveal} />
-          <Show
-            when={info()}
-            fallback={
-              <div class={styles.centered}>
-                <Empty snapshot={treeOutline()?.snapshot} />
-              </div>
-            }
-          >
-            {(detail) => (
-              <DetailPane
-                info={detail()}
-                onPickMember={(member) => {
-                  const id = project();
-                  if (id !== null) {
-                    void selectType(id, detail().id, member);
-                  }
-                }}
-              />
-            )}
-          </Show>
+          <TreePane
+            rows={explorer.rows()}
+            cursor={explorer.cursor()}
+            actions={explorer.actions}
+            note={treeNote(explorer.rows().length)}
+          />
+          <Details onPickMember={explorer.pickMember} />
         </div>
       </Match>
     </Switch>
