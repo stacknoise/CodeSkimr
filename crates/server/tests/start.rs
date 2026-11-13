@@ -19,6 +19,7 @@ fn server() -> Server {
         InstallationToken::from_token("csk_x"),
         UiOptions {
             dir: None,
+            embedded: &[],
             launch_lifetime: std::time::Duration::from_secs(60),
             settings: UiSettings {
                 editor: EditorSettings {

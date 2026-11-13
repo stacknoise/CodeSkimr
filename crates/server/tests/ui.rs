@@ -5,7 +5,7 @@ mod common;
 use std::fs;
 use std::time::Duration;
 
-use common::{Call, owner, start, start_with};
+use common::{Call, owner, start, start_embedded, start_with};
 
 #[cfg(test)]
 fn ui_folder() -> tempfile::TempDir {
@@ -163,4 +163,27 @@ async fn the_settings_are_public_and_hold_no_secret() {
         .send(&server)
         .await;
     assert_eq!(foreign.status, 403);
+}
+
+const EMBEDDED: &[(&str, &[u8])] = &[
+    ("index.html", b"<!doctype html><title>inside</title>"),
+    ("assets/app-1.js", b"export {}"),
+];
+
+#[tokio::test]
+async fn the_ui_inside_the_program_is_served_without_a_folder() {
+    let server = start_embedded(EMBEDDED).await;
+    let page = Call::get("/settings").send(&server).await;
+    assert_eq!(page.status, 200);
+    assert!(page.body.contains("inside"));
+    let script = Call::get("/assets/app-1.js").send(&server).await;
+    assert_eq!(
+        script.header("content-type"),
+        Some("text/javascript; charset=utf-8")
+    );
+    assert_eq!(
+        Call::get("/assets/other.js").send(&server).await.status,
+        404
+    );
+    assert_eq!(Call::get("/../index.html").send(&server).await.status, 404);
 }

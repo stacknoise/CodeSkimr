@@ -58,8 +58,6 @@ fn definition(messages: &Messages, language: &str) -> Result<Command, CliError> 
     Ok(Command::new(BINARY_NAME)
         .version(VERSION)
         .about(say(CLI_ABOUT)?)
-        .subcommand_required(true)
-        .arg_required_else_help(true)
         .args(global_args(messages, language)?)
         .subcommand(scan_command(messages, language)?)
         .subcommand(check_command(messages, language)?)
@@ -187,6 +185,7 @@ fn invocation(matches: &ArgMatches) -> Result<Invocation, CliError> {
             no_browser: open.get_flag(ARG_NO_BROWSER),
         }),
         Some((COMMAND_EXPORT, export)) => Action::Export(export_args(export)),
+        None => Action::Start,
         _ => return Err(CliError::Arguments(String::new())),
     };
     Ok(Invocation {

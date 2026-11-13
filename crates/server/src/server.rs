@@ -142,7 +142,7 @@ impl Server {
             events: self.events,
             launch: Arc::new(LaunchCodes::new(self.ui.launch_lifetime)),
             ui: Arc::new(self.ui.settings),
-            assets: self.ui.dir.map(|dir| Arc::new(Assets::new(dir))),
+            assets: assets_of(self.ui.dir, self.ui.embedded),
         };
         let router = build_router(state, guard, self.mcp);
         Ok(BoundServer { listener, router })
@@ -172,5 +172,17 @@ impl BoundServer {
             .with_graceful_shutdown(shutdown)
             .await
             .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))
+    }
+}
+
+/// The UI files: the folder if there is one, else the files in the program, else none.
+fn assets_of(
+    dir: Option<std::path::PathBuf>,
+    embedded: &'static [crate::assets::EmbeddedFile],
+) -> Option<Arc<Assets>> {
+    match dir {
+        Some(dir) => Some(Arc::new(Assets::new(dir))),
+        None if embedded.is_empty() => None,
+        None => Some(Arc::new(Assets::embedded(embedded))),
     }
 }
