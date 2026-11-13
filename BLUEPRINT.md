@@ -220,7 +220,7 @@ codeskimr/
 | MCP | `rmcp` (official Rust SDK) | protocol compliance |
 | OpenAPI | `utoipa` | generates the TypeScript API client |
 | i18n | `fluent-bundle`, `icu4x` | shared `.ftl` files with the frontend |
-| Secrets | `keyring`, `secrecy`, `zeroize`, `memsec` | section 12 |
+| Secrets | `keyring-core` with the native stores, `secrecy`, `zeroize`, `memsec` | section 12, ADR 0018 |
 | Errors | `thiserror` | typed errors per crate |
 | Logging | `tracing` | structured, with secret redaction |
 | Frontend | TypeScript, **SolidJS**, Vite | fine-grained reactivity, small bundle (see 20, O-01) |
@@ -608,7 +608,7 @@ Handle credentials as carefully as is technically possible. CodeSkimr cannot con
 
 1. **Store nothing.** For Git, use the system's Git credential helper.
 2. **Tokens instead of passwords.** For GitHub and GitLab, use the OAuth device flow with minimal scopes and short-lived tokens.
-3. **OS keystore** for anything that must be stored: Windows Credential Manager (DPAPI), macOS Keychain, Linux Secret Service, via the `keyring` crate.
+3. **OS keystore** for anything that must be stored: Windows Credential Manager (DPAPI), macOS Keychain, Linux Secret Service, via `keyring-core` and the native stores (ADR 0018).
 4. **Never** in SQLite, config files, environment dumps, logs or exports. The database only stores a `CredentialId`.
 
 ### 12.3 Lifetime in memory (MUST)

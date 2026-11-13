@@ -107,6 +107,7 @@ fn git_spec(url: &str, branch: &str) -> Result<SourceSpec, SourceError> {
         source: ProjectSource::Git {
             url: GitUrl::new(url).map_err(rejected)?,
             branch: BranchName::new(branch).map_err(rejected)?,
+            credential: None,
         },
         name: ProjectName::new(name).map_err(rejected)?,
     })

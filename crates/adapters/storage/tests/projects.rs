@@ -4,7 +4,7 @@
 mod common;
 
 use codeskimr_application::ports::{ProjectRepository, SnapshotStore};
-use codeskimr_domain::{ProjectId, ScanMode};
+use codeskimr_domain::{BranchName, CredentialId, GitUrl, ProjectId, ProjectSource, ScanMode};
 use common::{PROJECT, code_of, data, file, header, project, store};
 
 #[test]
@@ -17,6 +17,21 @@ fn project_with_layers_round_trips() {
     );
     store.save_project(&saved).unwrap();
     assert_eq!(store.project(PROJECT).unwrap(), saved);
+}
+
+#[test]
+fn a_git_source_keeps_the_name_of_its_credential_and_nothing_else() {
+    let store = store(3);
+    let mut saved = project(1, "/work/app", &[]);
+    for credential in [Some(CredentialId::new("work").unwrap()), None] {
+        saved.source = ProjectSource::Git {
+            url: GitUrl::new("https://example.org/app.git").unwrap(),
+            branch: BranchName::new("main").unwrap(),
+            credential,
+        };
+        store.save_project(&saved).unwrap();
+        assert_eq!(store.project(PROJECT).unwrap(), saved);
+    }
 }
 
 #[test]

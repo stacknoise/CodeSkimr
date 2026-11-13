@@ -1,7 +1,10 @@
 //! Fixed values of the storage adapter. SQL statements live in `sql`.
 
 /// Schema migrations in order; the position plus one is the schema version.
-pub const MIGRATIONS: &[&str] = &[include_str!("../migrations/0001_initial.sql")];
+pub const MIGRATIONS: &[&str] = &[
+    include_str!("../migrations/0001_initial.sql"),
+    include_str!("../migrations/0002_credential_reference.sql"),
+];
 
 /// Name of the pragma that holds the schema version.
 pub const PRAGMA_USER_VERSION: &str = "user_version";
@@ -24,6 +27,8 @@ pub const SOURCE_FOLDER: &str = "folder";
 pub const SOURCE_GIT: &str = "git";
 /// Stored branch of a folder source, which has none.
 pub const NO_BRANCH: &str = "";
+/// Stored credential name of a source that uses none (a folder, or Git with the system's helper).
+pub const NO_CREDENTIAL: &str = "";
 
 /// Escapes `LIKE` wildcards in search queries.
 pub const LIKE_ESCAPE: char = '\\';
