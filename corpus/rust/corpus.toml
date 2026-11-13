@@ -1,0 +1,105 @@
+# Rust reference of CI (blueprint 17.2, ADR 0026). Updating the commit is a deliberate change with
+# new expected values. The reference is CodeSkimr itself at a pinned commit; the source of the
+# crates is scanned, tests, benchmarks, tools, the web UI and the data folders are skipped.
+
+[project]
+repository = "https://github.com/stacknoise/CodeSkimr"
+commit = "bcc970e90cb99c2d052457f79090a78194dfaa8e"
+skip_folders = ["tests", "benches", "tools", "web", "target", "node_modules", "languages", "corpus", "docs", "locales", "errors", "config"]
+language = "rust"
+extensions = ["rs"]
+
+# Symbols per kind over all *.rs files of the crates; `module` is one per file. `namespace` counts
+# every `mod` item, with and without body (also `mod tests` inside a source file); `constant`
+# counts `const` and `static` items, also the associated constants of traits and impls; `method`
+# every function of an `impl` or trait; `field` the named fields of structs, unions and enum
+# variants; `type_alias` also associated types.
+[counts]
+files = 147
+module = 147
+namespace = 150
+struct = 182
+enum = 32
+enum_member = 127
+trait = 18
+type_alias = 34
+constant = 383
+function = 340
+method = 375
+field = 581
+
+# Hand-checked symbols: file, kind, name, visibility and parent.
+[[sample]]
+file = "crates/application/src/ports/analysis.rs"
+kind = "trait"
+name = "FileAnalyzer"
+visibility = "public"
+parent = "analysis"
+
+[[sample]]
+file = "crates/adapters/parsing/src/analyzer.rs"
+kind = "struct"
+name = "TreeSitterAnalyzer"
+visibility = "public"
+parent = "analyzer"
+
+[[sample]]
+file = "crates/adapters/parsing/src/analyzer.rs"
+kind = "field"
+name = "packs"
+visibility = "private"
+parent = "TreeSitterAnalyzer"
+
+# A function of a trait implementation is public.
+[[sample]]
+file = "crates/adapters/parsing/src/analyzer.rs"
+kind = "method"
+name = "analyze"
+visibility = "public"
+parent = "analyzer"
+
+[[sample]]
+file = "crates/adapters/parsing/src/pack.rs"
+kind = "method"
+name = "kind_in"
+visibility = "internal"
+parent = "pack"
+
+[[sample]]
+file = "crates/adapters/storage/src/detail.rs"
+kind = "function"
+name = "read_row"
+visibility = "internal"
+parent = "detail"
+
+[[sample]]
+file = "crates/adapters/parsing/src/consts.rs"
+kind = "constant"
+name = "GRAMMAR_RUST"
+visibility = "public"
+parent = "consts"
+
+# Hand-checked references: file, kind, target and 1-based line.
+[[references]]
+file = "crates/adapters/parsing/src/analyzer.rs"
+kind = "import"
+target = "ParseOptions"
+line = 12
+
+[[references]]
+file = "crates/adapters/parsing/src/analyzer.rs"
+kind = "implement"
+target = "FileAnalyzer"
+line = 94
+
+[[references]]
+file = "crates/adapters/parsing/src/analyzer.rs"
+kind = "override"
+target = "analyze"
+line = 95
+
+[[references]]
+file = "crates/adapters/parsing/src/analyzer.rs"
+kind = "type_use"
+target = "Duration"
+line = 27

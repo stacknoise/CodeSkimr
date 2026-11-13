@@ -1,0 +1,531 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 48,
+      "operands": null,
+      "operators": null,
+      "symbol": "references"
+    },
+    {
+      "decisions": null,
+      "loc": 3,
+      "operands": null,
+      "operators": null,
+      "symbol": "references::Priced"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "references::Priced::price"
+    },
+    {
+      "decisions": null,
+      "loc": 6,
+      "operands": null,
+      "operators": null,
+      "symbol": "references::Order"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "references::price"
+    },
+    {
+      "decisions": 3,
+      "loc": 28,
+      "operands": [
+        34,
+        44
+      ],
+      "operators": [
+        11,
+        50
+      ],
+      "symbol": "references::find"
+    }
+  ],
+  "loc": 48,
+  "references": [
+    {
+      "at": "2:23",
+      "from": "references",
+      "kind": "import",
+      "receiver": null,
+      "target": "BTreeMap"
+    },
+    {
+      "at": "2:43",
+      "from": "references",
+      "kind": "import",
+      "receiver": "named hash_map",
+      "target": "Entry"
+    },
+    {
+      "at": "3:9",
+      "from": "references",
+      "kind": "import",
+      "receiver": "named std",
+      "target": "fmt"
+    },
+    {
+      "at": "4:18",
+      "from": "references",
+      "kind": "import",
+      "receiver": "named model",
+      "target": "Cart"
+    },
+    {
+      "at": "6:18",
+      "from": "references::Priced",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Sized"
+    },
+    {
+      "at": "6:26",
+      "from": "references::Priced",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Named"
+    },
+    {
+      "at": "11:11",
+      "from": "references::Order::items",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Vec"
+    },
+    {
+      "at": "11:15",
+      "from": "references::Order::items",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Item"
+    },
+    {
+      "at": "12:11",
+      "from": "references::Order::owner",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Option"
+    },
+    {
+      "at": "12:18",
+      "from": "references::Order::owner",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Owner"
+    },
+    {
+      "at": "13:19",
+      "from": "references::Order::cart",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Cart"
+    },
+    {
+      "at": "17:5",
+      "from": "references",
+      "kind": "implement",
+      "receiver": null,
+      "target": "Priced"
+    },
+    {
+      "at": "17:16",
+      "from": "references",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Order"
+    },
+    {
+      "at": "18:7",
+      "from": "references::price",
+      "kind": "override",
+      "receiver": null,
+      "target": "price"
+    },
+    {
+      "at": "23:8",
+      "from": "references",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Bound"
+    },
+    {
+      "at": "23:15",
+      "from": "references",
+      "kind": "implement",
+      "receiver": null,
+      "target": "Wrapper"
+    },
+    {
+      "at": "23:23",
+      "from": "references",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "T"
+    },
+    {
+      "at": "23:30",
+      "from": "references",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Order"
+    },
+    {
+      "at": "23:45",
+      "from": "references",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Other"
+    },
+    {
+      "at": "25:5",
+      "from": "references",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Order"
+    },
+    {
+      "at": "26:48",
+      "from": "references::find",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Item"
+    },
+    {
+      "at": "26:57",
+      "from": "references::find",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Result"
+    },
+    {
+      "at": "26:64",
+      "from": "references::find",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Item"
+    },
+    {
+      "at": "26:77",
+      "from": "references::find",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Err"
+    },
+    {
+      "at": "27:8",
+      "from": "references::find",
+      "kind": "call",
+      "receiver": null,
+      "target": "helper"
+    },
+    {
+      "at": "28:13",
+      "from": "references::find",
+      "kind": "write",
+      "receiver": "own",
+      "target": "total"
+    },
+    {
+      "at": "29:13",
+      "from": "references::find",
+      "kind": "write",
+      "receiver": "own",
+      "target": "total"
+    },
+    {
+      "at": "29:26",
+      "from": "references::find",
+      "kind": "read",
+      "receiver": "own",
+      "target": "total"
+    },
+    {
+      "at": "29:34",
+      "from": "references::find",
+      "kind": "read",
+      "receiver": null,
+      "target": "OFFSET"
+    },
+    {
+      "at": "31:21",
+      "from": "references::find",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Item"
+    },
+    {
+      "at": "31:28",
+      "from": "references::find",
+      "kind": "read",
+      "receiver": null,
+      "target": "Item"
+    },
+    {
+      "at": "31:34",
+      "from": "references::find",
+      "kind": "call",
+      "receiver": "named Item",
+      "target": "new"
+    },
+    {
+      "at": "32:28",
+      "from": "references::find",
+      "kind": "call",
+      "receiver": null,
+      "target": "pair"
+    },
+    {
+      "at": "33:19",
+      "from": "references::find",
+      "kind": "read",
+      "receiver": null,
+      "target": "Item"
+    },
+    {
+      "at": "33:25",
+      "from": "references::find",
+      "kind": "call",
+      "receiver": "named Item",
+      "target": "default"
+    },
+    {
+      "at": "34:22",
+      "from": "references::find",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Item"
+    },
+    {
+      "at": "35:20",
+      "from": "references::find",
+      "kind": "call",
+      "receiver": null,
+      "target": "compute"
+    },
+    {
+      "at": "35:40",
+      "from": "references::find",
+      "kind": "read",
+      "receiver": "own",
+      "target": "total"
+    },
+    {
+      "at": "36:18",
+      "from": "references::find",
+      "kind": "call",
+      "receiver": null,
+      "target": "add"
+    },
+    {
+      "at": "37:14",
+      "from": "references::find",
+      "kind": "call",
+      "receiver": "own",
+      "target": "build"
+    },
+    {
+      "at": "38:8",
+      "from": "references::find",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Item"
+    },
+    {
+      "at": "38:20",
+      "from": "references::find",
+      "kind": "call",
+      "receiver": "named Item",
+      "target": "create"
+    },
+    {
+      "at": "39:21",
+      "from": "references::find",
+      "kind": "call",
+      "receiver": "named util",
+      "target": "log"
+    },
+    {
+      "at": "40:20",
+      "from": "references::find",
+      "kind": "read",
+      "receiver": null,
+      "target": "Style"
+    },
+    {
+      "at": "40:27",
+      "from": "references::find",
+      "kind": "read",
+      "receiver": "named Style",
+      "target": "Plain"
+    },
+    {
+      "at": "42:32",
+      "from": "references::find",
+      "kind": "call",
+      "receiver": null,
+      "target": "iter"
+    },
+    {
+      "at": "43:18",
+      "from": "references::find",
+      "kind": "call",
+      "receiver": null,
+      "target": "touch"
+    },
+    {
+      "at": "45:34",
+      "from": "references::find",
+      "kind": "call",
+      "receiver": "typed Item",
+      "target": "lookup"
+    },
+    {
+      "at": "46:18",
+      "from": "references::find",
+      "kind": "call",
+      "receiver": null,
+      "target": "run"
+    },
+    {
+      "at": "50:12",
+      "from": "references::find",
+      "kind": "read",
+      "receiver": null,
+      "target": "Style"
+    },
+    {
+      "at": "50:19",
+      "from": "references::find",
+      "kind": "read",
+      "receiver": "named Style",
+      "target": "Plain"
+    },
+    {
+      "at": "50:28",
+      "from": "references::find",
+      "kind": "call",
+      "receiver": null,
+      "target": "Ok"
+    },
+    {
+      "at": "51:17",
+      "from": "references::find",
+      "kind": "call",
+      "receiver": null,
+      "target": "Err"
+    },
+    {
+      "at": "51:29",
+      "from": "references::find",
+      "kind": "call",
+      "receiver": "typed Item",
+      "target": "into"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "references",
+      "parent": null,
+      "span": "0:0-55:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "trait",
+      "name": "references::Priced",
+      "parent": "references",
+      "span": "6:0-8:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "references::Priced::price",
+      "parent": "references::Priced",
+      "span": "7:4-7:27",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "struct",
+      "name": "references::Order",
+      "parent": "references",
+      "span": "10:0-15:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "references::Order::items",
+      "parent": "references::Order",
+      "span": "11:4-11:20",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "references::Order::owner",
+      "parent": "references::Order",
+      "span": "12:4-12:24",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "references::Order::cart",
+      "parent": "references::Order",
+      "span": "13:4-13:23",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "references::Order::total",
+      "parent": "references::Order",
+      "span": "14:4-14:14",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "references::price",
+      "parent": "references",
+      "span": "18:4-20:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "references::find",
+      "parent": "references",
+      "span": "26:4-53:5",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}
