@@ -27,6 +27,6 @@ Blueprint 17.2 changes accordingly: the fixed numbers are replaced by the baseli
 
 ## Consequences
 
-- Version 0.3.1 of the application (commit 0ff5367, `src`) is the first baseline: 433 types would only match by chance at another version, so the baseline is measured at the version the product owner names.
+- The baseline is measured once by the product owner, at the application version he names, and kept locally.
 - Later scans must reproduce the baseline or list each difference as an improvement; the rule changes only through a new ADR.
 - Positional record parameters are properties, which is why the property group is larger than a plain regex count.
