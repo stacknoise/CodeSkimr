@@ -17,6 +17,16 @@ mod tests {
     }
 
     impl Table {
+        /// A namespace with one class `Tool` in it.
+        fn add_tool(&mut self, namespace: &str, file: u64) -> (SymbolId, SymbolId) {
+            let outer = self.add(SymbolKind::Namespace, namespace, None, file);
+            let class = format!("{namespace}.Tool");
+            (
+                outer,
+                self.add(SymbolKind::Class, &class, Some(outer), file),
+            )
+        }
+
         fn add(
             &mut self,
             kind: SymbolKind,
@@ -138,10 +148,7 @@ mod tests {
     #[test]
     fn a_name_that_only_matches_globally_is_probable() {
         let mut shop = shop();
-        let elsewhere = shop.table.add(SymbolKind::Namespace, "Elsewhere", None, 3);
-        let tool = shop
-            .table
-            .add(SymbolKind::Class, "Elsewhere.Tool", Some(elsewhere), 3);
+        let (_, tool) = shop.table.add_tool("Elsewhere", 3);
         let found = resolve(
             &shop.table,
             &[occurrence(shop.save, 2, ReferenceKind::TypeUse, "Tool")],
@@ -153,10 +160,7 @@ mod tests {
     #[test]
     fn an_import_makes_the_name_certain() {
         let mut shop = shop();
-        let elsewhere = shop.table.add(SymbolKind::Namespace, "Elsewhere", None, 3);
-        let tool = shop
-            .table
-            .add(SymbolKind::Class, "Elsewhere.Tool", Some(elsewhere), 3);
+        let (elsewhere, tool) = shop.table.add_tool("Elsewhere", 3);
         let pending = [
             occurrence(shop.save, 2, ReferenceKind::Import, "Elsewhere"),
             occurrence(shop.save, 2, ReferenceKind::TypeUse, "Tool"),
@@ -169,10 +173,8 @@ mod tests {
     #[test]
     fn several_candidates_are_all_probable() {
         let mut shop = shop();
-        let one = shop.table.add(SymbolKind::Namespace, "One", None, 3);
-        let two = shop.table.add(SymbolKind::Namespace, "Two", None, 4);
-        let first = shop.table.add(SymbolKind::Class, "One.Tool", Some(one), 3);
-        let second = shop.table.add(SymbolKind::Class, "Two.Tool", Some(two), 4);
+        let (_, first) = shop.table.add_tool("One", 3);
+        let (_, second) = shop.table.add_tool("Two", 4);
         let found = resolve(
             &shop.table,
             &[occurrence(shop.save, 2, ReferenceKind::TypeUse, "Tool")],
@@ -235,7 +237,10 @@ mod tests {
             occurrence(shop.save, 2, ReferenceKind::Call, "Print"),
             "TextWriter",
         )];
-        assert!(resolve(&shop.table, &pending).is_empty());
+        assert_eq!(
+            targets(&resolve(&shop.table, &pending)),
+            Vec::<SymbolId>::new()
+        );
     }
 
     #[test]
