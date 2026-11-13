@@ -5,11 +5,13 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
 import { DetailPane } from "./DetailPane";
 import {
+  applyFocus,
   collapseAll,
   currentType,
   loadOutline,
   outlineError,
   outlineLoading,
+  pendingFocus,
   symbolDetails,
   symbolError,
   treeOutline,
@@ -80,10 +82,9 @@ function Details(props: { onPickMember: ReturnType<typeof useExplorer>["pickMemb
   );
 }
 
-/** Screen 2, the explorer: tree and details (blueprint B.2, mock `Explorer.dc.html`). The source
- * column of the mock follows with the next work package. */
-export function ExplorerScreen() {
-  const explorer = useExplorer();
+/** Reads the tree when the active project changes, and goes where another screen asked once the
+ * tree is there. */
+function useReadingOfTheProject(): void {
   createEffect(
     on(activeProject, (id) => {
       if (id !== null) {
@@ -91,6 +92,20 @@ export function ExplorerScreen() {
       }
     }),
   );
+  createEffect(() => {
+    const tree = treeOutline();
+    const project = activeProject();
+    if (tree !== null && project !== null && pendingFocus() !== null) {
+      void applyFocus(project, tree);
+    }
+  });
+}
+
+/** Screen 2, the explorer: tree and details (blueprint B.2, mock `Explorer.dc.html`). The source
+ * column of the mock follows with the next work package. */
+export function ExplorerScreen() {
+  const explorer = useExplorer();
+  useReadingOfTheProject();
   useExplorerKeys({ collapseAll, reveal: explorer.reveal });
   return (
     <Switch>

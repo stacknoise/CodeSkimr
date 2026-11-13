@@ -40,7 +40,6 @@
 }
 
 .workspace {
-    margin-left: auto;
     display: flex;
     gap: var(--space-8);
     color: var(--muted);

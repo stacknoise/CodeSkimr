@@ -7,6 +7,7 @@ mod explorer;
 mod projects;
 mod rating;
 mod running;
+mod search;
 mod symbol;
 #[cfg(test)]
 mod tests;
@@ -27,6 +28,7 @@ use codeskimr_storage::SqliteStore;
 use explorer::{ExplorerOutline, ExplorerPorts};
 use projects::{AddProject, ListProjects, RescanProject};
 use running::RunningScans;
+use search::{SearchPorts, SearchQuery};
 use symbol::ExplorerSymbol;
 
 /// What every command of the UI needs to scan: the command line, the folders and the event bus.
@@ -69,6 +71,7 @@ pub fn command_api(
     });
     let mut registry = Registry::new();
     register_projects(&mut registry, &catalog, &context)?;
+    register_search(&mut registry, &catalog)?;
     register_explorer(&mut registry, catalog, config.metrics.clone())?;
     let mut api = CommandApi::new(Arc::new(registry));
     api.expose::<ListProjects>()?;
@@ -76,6 +79,7 @@ pub fn command_api(
     api.expose::<RescanProject>()?;
     api.expose::<ExplorerOutline>()?;
     api.expose::<ExplorerSymbol>()?;
+    api.expose::<SearchQuery>()?;
     Ok(api)
 }
 
@@ -100,6 +104,16 @@ fn register_projects(
             catalog: catalog.clone(),
             context: Arc::clone(context),
         })
+        .map_err(CodedError::caused_by)
+}
+
+fn register_search(registry: &mut Registry, store: &Arc<SqliteStore>) -> Result<(), CodedError> {
+    let ports = Arc::new(SearchPorts {
+        projects: store.clone(),
+        index: store.clone(),
+    });
+    registry
+        .register(SearchQuery { ports })
         .map_err(CodedError::caused_by)
 }
 

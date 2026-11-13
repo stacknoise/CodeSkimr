@@ -18,7 +18,7 @@ fn searchable() -> codeskimr_storage::SqliteStore {
     let symbols = vec![
         symbol(21, 11, SymbolKind::Class, "App.Order", None),
         symbol(22, 11, SymbolKind::Class, "App.OrderService", None),
-        symbol(23, 11, SymbolKind::Method, "App.Reorder", None),
+        symbol(23, 11, SymbolKind::Method, "App.Reorder", Some(22)),
         symbol(24, 11, SymbolKind::Method, "App.Other_x", None),
         symbol(25, 11, SymbolKind::Parameter, "App.order", None),
     ];
@@ -29,6 +29,14 @@ fn searchable() -> codeskimr_storage::SqliteStore {
 fn search_ranks_exact_then_prefix_then_substring_then_fuzzy() {
     let hits = searchable().search(SNAPSHOT, "order", 10).unwrap();
     assert_eq!(names(&hits), ["Order", "OrderService", "Reorder"]);
+}
+
+#[test]
+fn a_hit_names_its_enclosing_symbol() {
+    let hits = searchable().search(SNAPSHOT, "reorder", 10).unwrap();
+    assert_eq!(hits[0].parent, Some(SymbolId::new(22)));
+    let hits = searchable().search(SNAPSHOT, "orderservice", 10).unwrap();
+    assert_eq!(hits[0].parent, None);
 }
 
 #[test]

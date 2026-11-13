@@ -3,7 +3,7 @@ import { ApiError } from "../../shared/api/client";
 import { runCommand } from "../../shared/api/commands";
 import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { COMMAND, GROUP } from "./consts";
-import { groupKey, typeKey } from "./tree";
+import { groupKey, groupOfKind, memberKey, revealKeys, typeKey } from "./tree";
 import type { Outline, SymbolInfo } from "./types";
 
 /** Why a read failed: a registered code, or `null` if the server could not be reached. */
@@ -18,6 +18,16 @@ const [expanded, setExpanded] = createSignal<ReadonlySet<string>>(new Set<string
 const [selectedType, setSelectedType] = createSignal<number | null>(null);
 const [selectedMember, setSelectedMember] = createSignal<number | null>(null);
 const [filter, setFilter] = createSignal("");
+const [cursor, setCursor] = createSignal<string | null>(null);
+const [pending, setPending] = createSignal<Focus | null>(null);
+
+/** Where another screen (the quick search) wants the tree to go: a type, or a member of it. */
+export interface Focus {
+  type: number;
+  member: number | null;
+  /** Kind of the member, to open the group that holds it. */
+  kind: string | null;
+}
 
 /** Counts the projects read so far; an answer for an earlier one is dropped. */
 let generation = 0;
@@ -38,6 +48,12 @@ export const expandedRows = expanded;
 export const currentType = selectedType;
 /** The member that is highlighted in the tree and in the table. */
 export const currentMember = selectedMember;
+/** The row of the tree that the keys act on. */
+export const treeCursor = cursor;
+export const setTreeCursor = setCursor;
+/** The navigation that waits for the tree to be read. */
+export const pendingFocus = pending;
+export const requestFocus = setPending;
 /** What the filter field holds. */
 export const treeFilter = filter;
 export const setTreeFilter = setFilter;
@@ -55,6 +71,7 @@ export async function loadOutline(project: number): Promise<void> {
   setExpanded(new Set<string>());
   setSelectedType(null);
   setSelectedMember(null);
+  setCursor(null);
   setSymbolFailure(null);
   setOutlineFailure(null);
   setLoading(true);
@@ -148,4 +165,22 @@ export async function toggleType(project: number, id: number): Promise<void> {
 export async function revealNested(project: number, parent: number, id: number): Promise<void> {
   openRows([typeKey(parent), groupKey(parent, GROUP.nested)]);
   await selectType(project, id);
+}
+
+/** Goes where the pending navigation asks: opens the rows down to the type (and the group of the
+ * member), shows the type and puts the cursor on the row. External navigation opens nodes
+ * (blueprint 15.4). */
+export async function applyFocus(project: number, tree: Outline): Promise<void> {
+  const target = pending();
+  if (target === null) {
+    return;
+  }
+  setPending(null);
+  const group = target.kind === null ? null : groupOfKind(target.kind);
+  openRows([
+    ...revealKeys(tree, target.type),
+    ...(target.member !== null && group !== null ? [groupKey(target.type, group)] : []),
+  ]);
+  setCursor(target.member === null ? typeKey(target.type) : memberKey(target.member));
+  await selectType(project, target.type, target.member);
 }

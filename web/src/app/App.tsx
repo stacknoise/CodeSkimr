@@ -2,6 +2,10 @@ import { For, Match, Show, Switch } from "solid-js";
 import { ConnectionScreen } from "../features/session/ConnectionScreen";
 import { ExplorerScreen } from "../features/explorer/ExplorerScreen";
 import { ProjectsScreen } from "../features/projects/ProjectsScreen";
+import { QuickSearch } from "../features/search/QuickSearch";
+import { SearchField } from "../features/search/SearchField";
+import { useSearchShortcut } from "../features/search/keys";
+import { openSearch } from "../features/search/search";
 import { SettingsScreen } from "../features/settings/SettingsScreen";
 import { t } from "../shared/i18n/i18n";
 import { I18N_KEYS } from "../shared/i18n/keys";
@@ -73,6 +77,7 @@ function Screen() {
 
 /** The frame of every screen: top bar, rail, main area and status bar (blueprint 15.2). */
 export function App() {
+  useSearchShortcut(openSearch);
   return (
     <div class={styles.root}>
       <header class={styles.top}>
@@ -80,6 +85,7 @@ export function App() {
           <span class={styles.logo}>{LOGO_LETTER}</span>
           <span class={styles.name}>{t(I18N_KEYS.APP_NAME)}</span>
         </div>
+        <SearchField />
         <div class={styles.workspace}>
           <span>{t(I18N_KEYS.APP_WORKSPACE)}</span>
           <b>{t(I18N_KEYS.APP_WORKSPACE_LOCAL)}</b>
@@ -100,6 +106,7 @@ export function App() {
           </Show>
         </main>
       </div>
+      <QuickSearch />
       <footer class={styles.status}>
         <StatusText />
       </footer>
