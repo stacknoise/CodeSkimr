@@ -5,6 +5,7 @@
 //! `config_files` find and read folders and configuration, `wiring` creates the adapters, `scan`
 //! `mcp` and `serve` are the commands that need wiring.
 
+mod check;
 mod clock;
 mod config_files;
 mod consts;

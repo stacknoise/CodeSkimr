@@ -399,6 +399,7 @@ name = "codeskimr_cli"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "codeskimr_application",
  "codeskimr_codes",
  "codeskimr_i18n",
  "serde",

@@ -18,6 +18,18 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     positive(keys::WINDOW_SIZE, config.similarity.window_size)?;
     positive(keys::MIN_TOKENS, config.similarity.min_tokens)?;
     positive(keys::SERVER_PORT, u32::from(config.server.port))?;
+    positive(
+        keys::MAX_FUNCTION_LINES,
+        config.conventions.max_function_lines,
+    )?;
+    positive(
+        keys::DUPLICATE_SIMILARITY_PERCENT,
+        config.conventions.duplicate_similarity_percent,
+    )?;
+    percent(
+        keys::DUPLICATE_SIMILARITY_PERCENT,
+        config.conventions.duplicate_similarity_percent,
+    )?;
     check_scan(&config.scan)
 }
 

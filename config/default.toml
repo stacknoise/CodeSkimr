@@ -57,6 +57,13 @@ window_size = 4
 # Functions with fewer syntax tokens than this get no fingerprints; trivial bodies are not worth matching.
 min_tokens = 30
 
+# Convention checks (blueprint 3 and 10.4, `check_conventions`).
+[conventions]
+# Longest function in code lines (R-02); a longer one is reported as CHK-104.
+max_function_lines = 40
+# Two functions whose syntax fingerprints are at least this similar, in percent, are reported as CHK-102.
+duplicate_similarity_percent = 85
+
 # Scanning.
 [scan]
 # Folder names that are never scanned, at any depth.

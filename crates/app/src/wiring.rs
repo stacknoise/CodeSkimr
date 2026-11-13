@@ -12,6 +12,7 @@ use codeskimr_application::events::EventBus;
 use codeskimr_application::ids::IdSequence;
 use codeskimr_application::metrics::StandardMetrics;
 use codeskimr_application::pipeline::{Scanner, ScannerPorts};
+use codeskimr_application::ports::{FileAnalyzer, FileDiscovery};
 use codeskimr_application::resolve::ScopedResolver;
 use codeskimr_codes::ErrorCode;
 use codeskimr_parsing::{LanguagePacks, TreeSitterAnalyzer};
@@ -44,6 +45,41 @@ pub fn build_scanner(
     locations: &Locations,
     events: EventBus,
 ) -> Result<Scanner, CodedError> {
+    let Analysis {
+        discovery,
+        analyzer,
+    } = build_analysis(config, locations)?;
+    let ports = ScannerPorts {
+        source: Arc::new(SourceFetcher::new(
+            GitCache::new(locations.git_cache()),
+            Arc::new(OsCredentialStore::new(OsKeystore)),
+        )),
+        discovery,
+        analyzer,
+        resolver: Arc::new(ScopedResolver),
+        metrics: Arc::new(StandardMetrics),
+        projects: store.clone(),
+        store: store.clone(),
+        clock: Arc::new(SystemClock),
+    };
+    let ids = Arc::new(IdSequence::starting_at(store.next_free_id()?));
+    Ok(Scanner::new(ports, &ids, events))
+}
+
+/// The two ports that read code: walking the files and analysing one of them. The scan and the
+/// convention check use the same pair, so both see the same files.
+pub struct Analysis {
+    /// Walks the folder.
+    pub discovery: Arc<dyn FileDiscovery>,
+    /// Parses one file; fingerprints are on.
+    pub analyzer: Arc<dyn FileAnalyzer>,
+}
+
+/// Builds the discovery and the analyzer from the installed language packs.
+///
+/// # Errors
+/// `PRS` failures if the language packs cannot be loaded.
+pub fn build_analysis(config: &Config, locations: &Locations) -> Result<Analysis, CodedError> {
     let packs = LanguagePacks::load(&locations.languages_dir).map_err(CodedError::caused_by)?;
     let languages: LanguageMap = packs
         .iter()
@@ -64,19 +100,8 @@ pub fn build_scanner(
         },
         languages,
     );
-    let ports = ScannerPorts {
-        source: Arc::new(SourceFetcher::new(
-            GitCache::new(locations.git_cache()),
-            Arc::new(OsCredentialStore::new(OsKeystore)),
-        )),
+    Ok(Analysis {
         discovery: Arc::new(discovery),
         analyzer: Arc::new(analyzer),
-        resolver: Arc::new(ScopedResolver),
-        metrics: Arc::new(StandardMetrics),
-        projects: store.clone(),
-        store: store.clone(),
-        clock: Arc::new(SystemClock),
-    };
-    let ids = Arc::new(IdSequence::starting_at(store.next_free_id()?));
-    Ok(Scanner::new(ports, &ids, events))
+    })
 }

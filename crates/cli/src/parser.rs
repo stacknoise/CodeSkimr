@@ -8,15 +8,19 @@ use clap::error::ErrorKind;
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use codeskimr_codes::i18n::{
     CLI_ABOUT, CLI_ARG_BRANCH, CLI_ARG_CONFIG, CLI_ARG_DATA_DIR, CLI_ARG_JSON, CLI_ARG_LANGUAGES,
-    CLI_ARG_PROJECT, CLI_ARG_SET, CLI_ARG_SOURCE, CLI_CMD_MCP, CLI_CMD_SCAN, CLI_CMD_SERVE,
+    CLI_ARG_PATHS, CLI_ARG_PROJECT, CLI_ARG_SET, CLI_ARG_SOURCE, CLI_CMD_CHECK, CLI_CMD_MCP,
+    CLI_CMD_SCAN, CLI_CMD_SERVE,
 };
 use codeskimr_i18n::Messages;
 
-use crate::args::{Action, GlobalOptions, Invocation, McpArgs, Parsed, ScanArgs, ServeArgs};
+use crate::args::{
+    Action, CheckArgs, GlobalOptions, Invocation, McpArgs, Parsed, ScanArgs, ServeArgs,
+};
 use crate::consts::{
-    ARG_BRANCH, ARG_CONFIG, ARG_DATA_DIR, ARG_JSON, ARG_LANGUAGES, ARG_PROJECT, ARG_SET,
-    ARG_SOURCE, BINARY_NAME, COMMAND_MCP, COMMAND_SCAN, COMMAND_SERVE, OVERRIDE_SEPARATOR,
-    VALUE_BRANCH, VALUE_DIR, VALUE_FILE, VALUE_OVERRIDE, VALUE_SOURCE, VERSION,
+    ARG_BRANCH, ARG_CONFIG, ARG_DATA_DIR, ARG_JSON, ARG_LANGUAGES, ARG_PATHS, ARG_PROJECT, ARG_SET,
+    ARG_SOURCE, BINARY_NAME, COMMAND_CHECK, COMMAND_MCP, COMMAND_SCAN, COMMAND_SERVE,
+    OVERRIDE_SEPARATOR, VALUE_BRANCH, VALUE_DIR, VALUE_FILE, VALUE_OVERRIDE, VALUE_PATH,
+    VALUE_SOURCE, VERSION,
 };
 use crate::error::CliError;
 
@@ -54,6 +58,7 @@ fn definition(messages: &Messages, language: &str) -> Result<Command, CliError> 
         .arg_required_else_help(true)
         .args(global_args(messages, language)?)
         .subcommand(scan_command(messages, language)?)
+        .subcommand(check_command(messages, language)?)
         .subcommand(
             Command::new(COMMAND_MCP)
                 .about(say(CLI_CMD_MCP)?)
@@ -77,6 +82,25 @@ fn scan_command(messages: &Messages, language: &str) -> Result<Command, CliError
                 .long(ARG_BRANCH)
                 .value_name(VALUE_BRANCH)
                 .help(say(CLI_ARG_BRANCH)?),
+        )
+        .arg(
+            Arg::new(ARG_JSON)
+                .long(ARG_JSON)
+                .action(ArgAction::SetTrue)
+                .help(say(CLI_ARG_JSON)?),
+        ))
+}
+
+fn check_command(messages: &Messages, language: &str) -> Result<Command, CliError> {
+    let say = |key: &str| text(messages, language, key);
+    Ok(Command::new(COMMAND_CHECK)
+        .about(say(CLI_CMD_CHECK)?)
+        .arg(
+            Arg::new(ARG_PATHS)
+                .value_name(VALUE_PATH)
+                .value_parser(clap::value_parser!(PathBuf))
+                .num_args(0..)
+                .help(say(CLI_ARG_PATHS)?),
         )
         .arg(
             Arg::new(ARG_JSON)
@@ -123,6 +147,15 @@ fn invocation(matches: &ArgMatches) -> Result<Invocation, CliError> {
             project: mcp.get_one::<PathBuf>(ARG_PROJECT).cloned(),
         }),
         Some((COMMAND_SERVE, _)) => Action::Serve(ServeArgs),
+        Some((COMMAND_CHECK, check)) => Action::Check(CheckArgs {
+            paths: check
+                .get_many::<PathBuf>(ARG_PATHS)
+                .into_iter()
+                .flatten()
+                .cloned()
+                .collect(),
+            json: check.get_flag(ARG_JSON),
+        }),
         _ => return Err(CliError::Arguments(String::new())),
     };
     Ok(Invocation {

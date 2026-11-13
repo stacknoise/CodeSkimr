@@ -19,6 +19,8 @@ pub struct Config {
     pub watcher: Watcher,
     /// Syntax fingerprints for similar-code search and duplicate detection.
     pub similarity: Similarity,
+    /// Limits of the convention checks.
+    pub conventions: Conventions,
     /// Scan behaviour.
     pub scan: Scan,
     /// The local server.
@@ -99,6 +101,16 @@ pub struct SnapshotRetention {
 pub struct Watcher {
     /// File events within this window are collapsed into one re-scan, in milliseconds.
     pub debounce_ms: u32,
+}
+
+/// Limits of the convention checks (blueprint 3, `check_conventions`).
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Conventions {
+    /// Longest allowed function in code lines.
+    pub max_function_lines: u32,
+    /// Fingerprint similarity in percent from which two functions count as duplicates.
+    pub duplicate_similarity_percent: u32,
 }
 
 /// Scan behaviour.

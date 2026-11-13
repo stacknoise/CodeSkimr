@@ -15,7 +15,8 @@ pub use consts::PROJECT_CONFIG_FILE;
 pub use error::{ConfigError, LayerSource, Violation};
 pub use layer::ConfigLayer;
 pub use model::{
-    Budgets, Config, McpLimits, MetricThresholds, Scan, Similarity, SnapshotRetention, Watcher,
+    Budgets, Config, Conventions, McpLimits, MetricThresholds, Scan, Similarity, SnapshotRetention,
+    Watcher,
 };
 
 use consts::NO_PREFIX;

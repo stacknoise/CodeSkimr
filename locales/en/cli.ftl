@@ -21,3 +21,11 @@ cli-arg-config = User configuration file
 cli-arg-set = Override a setting for this run, for example metrics.cyclomatic_good_max=4
 cli-arg-languages = Folder with the language packs
 cli-credentials-hint = Secrets in a Git URL (user info, query or fragment) are not accepted: they would be stored and printed. Use a Git credential helper or an SSH key.
+cli-cmd-check = Check files against the code rules (length, duplicates) and exit with 1 if there are findings
+cli-arg-paths = Files or folders to check, relative to the current folder (default: everything)
+cli-check-finding = { $path }:{ $line }: { $code } { $message }
+cli-check-too-long = { $name } has { $lines } code lines, at most { $limit } are allowed.
+cli-check-duplicate = { $name } copies { $original } ({ $path }:{ $line }), { $percent } % similar.
+cli-check-unchecked = Skipped { $path }: { $code } { $message }
+cli-check-summary = { $files } files checked, { $findings } findings.
+cli-check-not-checked = Not checked yet: { $codes }.

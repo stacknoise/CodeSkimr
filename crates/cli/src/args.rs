@@ -36,6 +36,14 @@ pub struct McpArgs {
 /// Arguments of `codeskimr serve`: none yet; the port comes from the setting `server.port`.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub struct ServeArgs;
+/// Arguments of `codeskimr check`.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct CheckArgs {
+    /// Files or folders to check, relative to the current folder; all of it if empty.
+    pub paths: Vec<PathBuf>,
+    /// Print the report as JSON.
+    pub json: bool,
+}
 
 /// The command to run.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -46,6 +54,8 @@ pub enum Action {
     Mcp(McpArgs),
     /// `codeskimr serve`.
     Serve(ServeArgs),
+    /// `codeskimr check`.
+    Check(CheckArgs),
 }
 
 /// A parsed command line.

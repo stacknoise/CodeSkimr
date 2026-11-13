@@ -12,6 +12,7 @@ publish = false
 workspace = true
 
 [dependencies]
+codeskimr_application = { path = "../application" }
 codeskimr_codes = { path = "../codes" }
 codeskimr_i18n = { path = "../adapters/i18n" }
 clap.workspace = true

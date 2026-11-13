@@ -12,6 +12,13 @@ pub const COMMAND_MCP: &str = "mcp";
 /// Sub-command that starts the local server.
 pub const COMMAND_SERVE: &str = "serve";
 
+/// Sub-command that checks the code against the code rules.
+pub const COMMAND_CHECK: &str = "check";
+/// Argument id of the paths of `check`.
+pub const ARG_PATHS: &str = "paths";
+/// Placeholder shown for a file or folder to check.
+pub const VALUE_PATH: &str = "PATH";
+
 /// Argument id and long flag of the source to scan.
 pub const ARG_SOURCE: &str = "source";
 /// Argument id and long flag of the Git branch.
@@ -73,7 +80,26 @@ pub mod arg {
     pub const SECONDS: &str = "seconds";
     /// `{ $url }`: address of the local server.
     pub const URL: &str = "url";
+    /// `{ $line }`: one-based line of a finding.
+    pub const LINE: &str = "line";
+    /// `{ $name }`: qualified name of a function.
+    pub const NAME: &str = "name";
+    /// `{ $lines }`: code lines of a function.
+    pub const LINES: &str = "lines";
+    /// `{ $limit }`: the configured maximum.
+    pub const LIMIT: &str = "limit";
+    /// `{ $percent }`: similarity in percent.
+    pub const PERCENT: &str = "percent";
+    /// `{ $original }`: qualified name of the function that was copied.
+    pub const ORIGINAL: &str = "original";
+    /// `{ $findings }`: number of findings.
+    pub const FINDINGS: &str = "findings";
+    /// `{ $codes }`: error codes, separated by `CODE_LIST_SEPARATOR`.
+    pub const CODES: &str = "codes";
 }
 
 /// Separates the lines of a multi-line message.
 pub const LINE_BREAK: &str = "\n";
+
+/// Separates the codes in a list of codes.
+pub const CODE_LIST_SEPARATOR: &str = ", ";

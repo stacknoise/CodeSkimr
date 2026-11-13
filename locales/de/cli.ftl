@@ -21,3 +21,11 @@ cli-arg-config = Benutzer-Konfigurationsdatei
 cli-arg-set = Eine Einstellung für diesen Lauf überschreiben, zum Beispiel metrics.cyclomatic_good_max=4
 cli-arg-languages = Ordner mit den Sprachpaketen
 cli-credentials-hint = Geheimnisse in einer Git-URL (Benutzerangaben, Query oder Fragment) werden nicht angenommen: Sie würden gespeichert und ausgegeben. Nutze einen Git-Credential-Helper oder einen SSH-Schlüssel.
+cli-cmd-check = Dateien gegen die Code-Regeln prüfen (Länge, Duplikate) und bei Funden mit 1 beenden
+cli-arg-paths = Dateien oder Ordner, relativ zum aktuellen Ordner (Standard: alles)
+cli-check-finding = { $path }:{ $line }: { $code } { $message }
+cli-check-too-long = { $name } hat { $lines } Codezeilen, erlaubt sind höchstens { $limit }.
+cli-check-duplicate = { $name } kopiert { $original } ({ $path }:{ $line }), zu { $percent } % ähnlich.
+cli-check-unchecked = { $path } übersprungen: { $code } { $message }
+cli-check-summary = { $files } Dateien geprüft, { $findings } Funde.
+cli-check-not-checked = Noch nicht geprüft: { $codes }.
