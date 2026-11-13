@@ -7,22 +7,23 @@ use std::path::PathBuf;
 use clap::error::ErrorKind;
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use codeskimr_codes::i18n::{
-    CLI_ABOUT, CLI_ARG_BRANCH, CLI_ARG_CONFIG, CLI_ARG_DATA_DIR, CLI_ARG_JSON, CLI_ARG_LANGUAGES,
-    CLI_ARG_NO_BROWSER, CLI_ARG_PATHS, CLI_ARG_PROJECT, CLI_ARG_SCAN_CREDENTIAL, CLI_ARG_SET,
-    CLI_ARG_SOURCE, CLI_ARG_WATCH, CLI_CMD_CHECK, CLI_CMD_MCP, CLI_CMD_OPEN, CLI_CMD_SCAN,
-    CLI_CMD_SERVE,
+    CLI_ABOUT, CLI_ARG_BRANCH, CLI_ARG_CONFIG, CLI_ARG_DATA_DIR, CLI_ARG_EXPORT_PROJECT,
+    CLI_ARG_HTML, CLI_ARG_JSON, CLI_ARG_LANGUAGES, CLI_ARG_NO_BROWSER, CLI_ARG_PATHS,
+    CLI_ARG_PROJECT, CLI_ARG_SCAN_CREDENTIAL, CLI_ARG_SET, CLI_ARG_SOURCE, CLI_ARG_WATCH,
+    CLI_CMD_CHECK, CLI_CMD_EXPORT, CLI_CMD_MCP, CLI_CMD_OPEN, CLI_CMD_SCAN, CLI_CMD_SERVE,
 };
 use codeskimr_i18n::Messages;
 
 use crate::args::{
-    Action, CheckArgs, GlobalOptions, Invocation, McpArgs, OpenArgs, Parsed, ScanArgs, ServeArgs,
+    Action, CheckArgs, ExportArgs, GlobalOptions, Invocation, McpArgs, OpenArgs, Parsed, ScanArgs,
+    ServeArgs,
 };
 use crate::consts::{
-    ARG_BRANCH, ARG_CONFIG, ARG_CREDENTIAL, ARG_DATA_DIR, ARG_JSON, ARG_LANGUAGES, ARG_NO_BROWSER,
-    ARG_PATHS, ARG_PROJECT, ARG_SET, ARG_SOURCE, ARG_WATCH, BINARY_NAME, COMMAND_CHECK,
-    COMMAND_CREDENTIAL, COMMAND_MCP, COMMAND_OPEN, COMMAND_SCAN, COMMAND_SERVE, OVERRIDE_SEPARATOR,
-    VALUE_BRANCH, VALUE_DIR, VALUE_FILE, VALUE_ID, VALUE_OVERRIDE, VALUE_PATH, VALUE_SOURCE,
-    VERSION,
+    ARG_BRANCH, ARG_CONFIG, ARG_CREDENTIAL, ARG_DATA_DIR, ARG_EXPORT_PROJECT, ARG_HTML, ARG_JSON,
+    ARG_LANGUAGES, ARG_NO_BROWSER, ARG_PATHS, ARG_PROJECT, ARG_SET, ARG_SOURCE, ARG_WATCH,
+    BINARY_NAME, COMMAND_CHECK, COMMAND_CREDENTIAL, COMMAND_EXPORT, COMMAND_MCP, COMMAND_OPEN,
+    COMMAND_SCAN, COMMAND_SERVE, OVERRIDE_SEPARATOR, VALUE_BRANCH, VALUE_DIR, VALUE_EXPORT_PROJECT,
+    VALUE_FILE, VALUE_ID, VALUE_OVERRIDE, VALUE_PATH, VALUE_SOURCE, VERSION,
 };
 use crate::credential;
 use crate::error::CliError;
@@ -62,6 +63,7 @@ fn definition(messages: &Messages, language: &str) -> Result<Command, CliError> 
         .args(global_args(messages, language)?)
         .subcommand(scan_command(messages, language)?)
         .subcommand(check_command(messages, language)?)
+        .subcommand(export_command(messages, language)?)
         .subcommand(credential::command(&say)?)
         .subcommand(
             Command::new(COMMAND_MCP)
@@ -134,6 +136,19 @@ fn check_command(messages: &Messages, language: &str) -> Result<Command, CliErro
         ))
 }
 
+fn export_command(messages: &Messages, language: &str) -> Result<Command, CliError> {
+    let say = |key: &str| text(messages, language, key);
+    Ok(Command::new(COMMAND_EXPORT)
+        .about(say(CLI_CMD_EXPORT)?)
+        .arg(
+            Arg::new(ARG_EXPORT_PROJECT)
+                .value_name(VALUE_EXPORT_PROJECT)
+                .help(say(CLI_ARG_EXPORT_PROJECT)?)
+                .required(true),
+        )
+        .arg(path_arg(ARG_HTML, VALUE_FILE, say(CLI_ARG_HTML)?).required(true)))
+}
+
 fn global_args(messages: &Messages, language: &str) -> Result<Vec<Arg>, CliError> {
     let say = |key: &str| text(messages, language, key);
     Ok(vec![
@@ -159,16 +174,7 @@ fn path_arg(id: &'static str, value_name: &'static str, help: String) -> Arg {
 
 fn invocation(matches: &ArgMatches) -> Result<Invocation, CliError> {
     let action = match matches.subcommand() {
-        Some((COMMAND_SCAN, scan)) => Action::Scan(ScanArgs {
-            source: scan
-                .get_one::<String>(ARG_SOURCE)
-                .cloned()
-                .unwrap_or_default(),
-            branch: scan.get_one::<String>(ARG_BRANCH).cloned(),
-            json: scan.get_flag(ARG_JSON),
-            watch: scan.get_flag(ARG_WATCH),
-            credential: scan.get_one::<String>(ARG_CREDENTIAL).cloned(),
-        }),
+        Some((COMMAND_SCAN, scan)) => Action::Scan(scan_args(scan)),
         Some((COMMAND_CREDENTIAL, credential)) => {
             Action::Credential(credential::action(credential)?)
         }
@@ -176,24 +182,55 @@ fn invocation(matches: &ArgMatches) -> Result<Invocation, CliError> {
             project: mcp.get_one::<PathBuf>(ARG_PROJECT).cloned(),
         }),
         Some((COMMAND_SERVE, _)) => Action::Serve(ServeArgs),
-        Some((COMMAND_CHECK, check)) => Action::Check(CheckArgs {
-            paths: check
-                .get_many::<PathBuf>(ARG_PATHS)
-                .into_iter()
-                .flatten()
-                .cloned()
-                .collect(),
-            json: check.get_flag(ARG_JSON),
-        }),
+        Some((COMMAND_CHECK, check)) => Action::Check(check_args(check)),
         Some((COMMAND_OPEN, open)) => Action::Open(OpenArgs {
             no_browser: open.get_flag(ARG_NO_BROWSER),
         }),
+        Some((COMMAND_EXPORT, export)) => Action::Export(export_args(export)),
         _ => return Err(CliError::Arguments(String::new())),
     };
     Ok(Invocation {
         global: global_options(matches)?,
         action,
     })
+}
+
+fn scan_args(scan: &ArgMatches) -> ScanArgs {
+    ScanArgs {
+        source: scan
+            .get_one::<String>(ARG_SOURCE)
+            .cloned()
+            .unwrap_or_default(),
+        branch: scan.get_one::<String>(ARG_BRANCH).cloned(),
+        json: scan.get_flag(ARG_JSON),
+        watch: scan.get_flag(ARG_WATCH),
+        credential: scan.get_one::<String>(ARG_CREDENTIAL).cloned(),
+    }
+}
+
+fn check_args(check: &ArgMatches) -> CheckArgs {
+    CheckArgs {
+        paths: check
+            .get_many::<PathBuf>(ARG_PATHS)
+            .into_iter()
+            .flatten()
+            .cloned()
+            .collect(),
+        json: check.get_flag(ARG_JSON),
+    }
+}
+
+fn export_args(export: &ArgMatches) -> ExportArgs {
+    ExportArgs {
+        project: export
+            .get_one::<String>(ARG_EXPORT_PROJECT)
+            .cloned()
+            .unwrap_or_default(),
+        html: export
+            .get_one::<PathBuf>(ARG_HTML)
+            .cloned()
+            .unwrap_or_default(),
+    }
 }
 
 fn global_options(matches: &ArgMatches) -> Result<GlobalOptions, CliError> {

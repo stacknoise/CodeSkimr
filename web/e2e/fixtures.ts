@@ -3,7 +3,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } fro
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline";
-import { test as base, expect, type Page } from "@playwright/test";
+import { test as base, expect, type Locator, type Page } from "@playwright/test";
 
 /** The server of the tests: the real one, over an in-memory keystore (crates/app/src/e2e.rs). */
 export interface Harness {
@@ -110,4 +110,50 @@ export async function addScannedProject(
   const row = page.getByRole("row", { name: new RegExp(name) });
   await expect(row.getByText("current", { exact: true })).toBeVisible({ timeout: SCAN_MS });
   return row;
+}
+
+/** The layer file and the two sources of a small project with a Domain and a Presentation layer. */
+function layeredFiles(prefix: string): Record<string, string> {
+  return {
+    ".codeskimr.toml": [
+      `[[layers]]\nname = "Presentation"\nnamespaces = ["${prefix}.Ui"]`,
+      `[[layers]]\nname = "Domain"\nnamespaces = ["${prefix}.Domain"]`,
+    ].join("\n\n"),
+    "Order.cs": `namespace ${prefix}.Domain;\n\npublic class Order\n{\n    public int Total() { return 1; }\n}\n`,
+    "OrderView.cs": `namespace ${prefix}.Ui;\n\nusing ${prefix}.Domain;\n\npublic class OrderView\n{\n    public int Show(Order order) { return order.Total(); }\n}\n`,
+  };
+}
+
+/** Opens the UI (unless `page` shows it already), adds a project with the layers Domain and
+ * Presentation as `name` (namespaces `<Name>.Domain` and `<Name>.Ui`), waits for its scan and
+ * returns the button that opens it. */
+export async function addLayeredProject(page: Page, harness: Harness, name: string) {
+  const folder = path.join(mkdtempSync(path.join(tmpdir(), "codeskimr-e2e-")), name);
+  mkdirSync(folder);
+  for (const [file, text] of Object.entries(layeredFiles(name))) {
+    writeFileSync(path.join(folder, file), text);
+  }
+  if (!page.url().startsWith(harness.url)) {
+    const { copy } = keepLaunchFile(await harness.launchFile());
+    await page.goto(`file://${copy}`);
+  }
+  await page.getByLabel("New project").fill(folder);
+  await page.getByRole("button", { name: "Add and scan" }).click();
+  const open = page.getByRole("button", { name: `Open ${name}` });
+  await expect(open).toBeVisible({ timeout: SCAN_MS });
+  await expect(
+    page.getByRole("row", { name: new RegExp(name) }).getByText("current", { exact: true }),
+  ).toBeVisible({ timeout: SCAN_MS });
+  return open;
+}
+
+/** From a project row: opens it in the explorer and selects the member `Add` of the type
+ * `Calculator` in `namespace` (the layer is "(no layer)"). */
+export async function selectAdd(page: Page, row: Locator, namespace: string): Promise<void> {
+  await row.click({ position: { x: 4, y: 4 } });
+  await page.keyboard.press("Enter");
+  await page.getByText("(no layer)").click();
+  await page.getByText(namespace, { exact: true }).click();
+  await page.getByText("Calculator", { exact: true }).click();
+  await page.getByRole("button", { name: /Add/ }).first().click();
 }

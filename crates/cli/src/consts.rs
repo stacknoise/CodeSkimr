@@ -16,6 +16,15 @@ pub const COMMAND_OPEN: &str = "open";
 /// Flag of `open` that keeps the browser from starting.
 pub const ARG_NO_BROWSER: &str = "no-browser";
 
+/// Sub-command that exports a project.
+pub const COMMAND_EXPORT: &str = "export";
+/// Argument id of the project of `export`.
+pub const ARG_EXPORT_PROJECT: &str = "export-project";
+/// Placeholder shown for the project of `export`.
+pub const VALUE_EXPORT_PROJECT: &str = "PROJECT";
+/// Argument id and long flag of the HTML file of `export`.
+pub const ARG_HTML: &str = "html";
+
 /// Sub-command that manages credentials for Git sources.
 pub const COMMAND_CREDENTIAL: &str = "credential";
 /// Sub-command of `credential` that stores a credential.
@@ -147,6 +156,8 @@ pub mod arg {
     pub const USER_CODE: &str = "user_code";
     /// `{ $codes }`: error codes, separated by `CODE_LIST_SEPARATOR`.
     pub const CODES: &str = "codes";
+    /// `{ $kilobytes }`: size of an export file.
+    pub const KILOBYTES: &str = "kilobytes";
     /// `{ $seconds }` in the launch message is the same name as the scan duration.
     pub const LAUNCH_SECONDS: &str = SECONDS;
 }

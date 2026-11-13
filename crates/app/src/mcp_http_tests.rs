@@ -20,7 +20,7 @@ use crate::{config_files, installation_token};
 const ACCEPT: &str = "application/json, text/event-stream";
 const LANGUAGES_PATH: &str = "../../languages";
 
-fn locations(data: &Path) -> Locations {
+pub(crate) fn locations(data: &Path) -> Locations {
     Locations {
         data_dir: data.to_path_buf(),
         languages_dir: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(LANGUAGES_PATH),
@@ -29,13 +29,19 @@ fn locations(data: &Path) -> Locations {
     }
 }
 
-/// One POST to `/mcp` with an optional token; the status and the JSON body of the answer.
-fn post(url: &str, token: Option<&str>, body: &Value) -> (u16, Value) {
+/// One request with an optional bearer token and JSON body; the status and the whole answer
+/// (headers and body) as text.
+pub(crate) fn send(
+    url: &str,
+    (method, path): (&str, &str),
+    token: Option<&str>,
+    body: Option<&Value>,
+) -> (u16, String) {
     let address = url.trim_start_matches(URL_SCHEME);
-    let text = body.to_string();
+    let text = body.map(Value::to_string).unwrap_or_default();
     let auth = token.map_or_else(String::new, |t| format!("Authorization: Bearer {t}\r\n"));
     let request = format!(
-        "POST /mcp HTTP/1.1\r\nHost: {address}\r\n{auth}Accept: {ACCEPT}\r\n\
+        "{method} {path} HTTP/1.1\r\nHost: {address}\r\n{auth}Accept: {ACCEPT}\r\n\
          Content-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{text}",
         text.len()
     );
@@ -44,6 +50,12 @@ fn post(url: &str, token: Option<&str>, body: &Value) -> (u16, Value) {
     let mut answer = String::new();
     stream.read_to_string(&mut answer).unwrap();
     let status = answer.split_whitespace().nth(1).unwrap().parse().unwrap();
+    (status, answer)
+}
+
+/// One POST to `/mcp` with an optional token; the status and the JSON body of the answer.
+fn post(url: &str, token: Option<&str>, body: &Value) -> (u16, Value) {
+    let (status, answer) = send(url, ("POST", "/mcp"), token, Some(body));
     let payload = answer.split_once("\r\n\r\n").unwrap().1;
     let json = payload
         .lines()
@@ -53,7 +65,7 @@ fn post(url: &str, token: Option<&str>, body: &Value) -> (u16, Value) {
     (status, json)
 }
 
-fn rpc(id: u64, method: &str, params: &Value) -> Value {
+pub(crate) fn rpc(id: u64, method: &str, params: &Value) -> Value {
     json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params})
 }
 

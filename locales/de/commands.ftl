@@ -20,3 +20,5 @@ command-usages-query-title = Verwendungen anzeigen
 command-usages-query-description = Listet, wer ein Symbol nutzt, was es nutzt und was eine Änderung erreicht, mit der Sicherheit jeder Fundstelle.
 command-graph-layers-title = Abhängigkeiten zeigen
 command-graph-layers-description = Ordnet die Schichten des letzten Scans und die Abhängigkeiten zwischen ihnen für die Abhängigkeitskarte an.
+command-export-html-title = Als HTML exportieren
+command-export-html-description = Schreibt Explorer, Abhängigkeitskarte und Verwendungen des neuesten Scans in eine einzelne, eigenständige HTML-Seite. Der Quelltext ist nicht enthalten.
