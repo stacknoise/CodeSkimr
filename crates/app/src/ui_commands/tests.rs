@@ -537,11 +537,19 @@ fn the_usages_of_a_method_name_the_caller_and_mark_every_hit_unchecked() {
     assert_eq!(answer["level2"], "unavailable");
     assert_eq!(answer["impact"]["total"], 1);
     assert_eq!(answer["impact"]["public_interfaces"], 1);
-    assert_eq!(answer["impact"]["verified"], 0);
-    assert_eq!(answer["impact"]["unchecked"], 1);
     assert_eq!(answer["summary"]["probable"], 0);
     assert_eq!(answer["summary"]["files"], 1);
     assert_eq!(answer["outgoing"]["total"], 0);
+}
+
+#[test]
+fn the_impact_counts_unchecked_symbols_apart() {
+    let fixture = Fixture::new();
+    fs::write(fixture.root.path().join("app/Checkout.cs"), CALLER).unwrap();
+    let project = added(&fixture);
+    let answer = usages_of_add(&fixture, project, "both");
+    assert_eq!(answer["impact"]["verified"], 0);
+    assert_eq!(answer["impact"]["unchecked"], 1);
 }
 
 #[test]
