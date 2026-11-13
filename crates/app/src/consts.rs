@@ -83,3 +83,60 @@ pub const EXIT_USAGE: u8 = 2;
 
 /// Ends a printed line.
 pub const LINE_BREAK: &str = "\n";
+
+/// Environment variable that sets the log level (`error`, `warn`, `info`, `debug`, `trace`, `off`).
+pub const ENV_LOG: &str = "CODESKIMR_LOG";
+/// Log level when `CODESKIMR_LOG` is not set or not understood.
+pub const DEFAULT_LOG_LEVEL: tracing_subscriber::filter::LevelFilter =
+    tracing_subscriber::filter::LevelFilter::WARN;
+
+/// Replaces every secret that is removed from a log line.
+pub const REDACTED: &str = "[redacted]";
+/// Header and field names whose value runs to the end of the line, case-insensitive.
+pub const LINE_KEYS: [&str; 2] = ["authorization", "cookie"];
+/// Field and parameter names whose value is one word, case-insensitive.
+pub const VALUE_KEYS: [&str; 10] = [
+    "password",
+    "passwd",
+    "secret",
+    "token",
+    "api_key",
+    "api-key",
+    "apikey",
+    "private_key",
+    "credential",
+    "session_id",
+];
+/// Scheme word of a bearer token; its value follows after a blank, case-insensitive.
+pub const BEARER_KEY: &str = "bearer ";
+/// Separates a key from its value.
+pub const KEY_SEPARATORS: [char; 2] = [':', '='];
+/// Quote characters around a key or a value.
+pub const QUOTES: [char; 2] = ['"', '\''];
+/// Blanks between a key, its separator and its value.
+pub const BLANKS: [char; 2] = [' ', '\t'];
+/// Characters that end an unquoted one-word value.
+pub const VALUE_END: [char; 9] = ['&', ',', ';', ')', '}', ']', '"', '\'', '`'];
+/// Beginnings of well-known tokens: GitHub, GitLab, Slack, AWS, JWT, API keys.
+pub const TOKEN_PREFIXES: [&str; 14] = [
+    "github_pat_",
+    "ghp_",
+    "gho_",
+    "ghu_",
+    "ghs_",
+    "ghr_",
+    "glpat-",
+    "xoxa-",
+    "xoxb-",
+    "xoxp-",
+    "AKIA",
+    "eyJ",
+    "sk-",
+    "AIza",
+];
+/// A token has at least this many characters after its beginning; shorter runs are words.
+pub const TOKEN_MIN_TAIL: usize = 16;
+/// Characters besides letters and digits that occur inside tokens.
+pub const TOKEN_EXTRA_CHARS: [char; 3] = ['_', '-', '.'];
+/// Ends a line of log output.
+pub const LINE_END: char = '\n';

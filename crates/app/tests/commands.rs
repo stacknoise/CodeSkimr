@@ -86,6 +86,20 @@ fn scan_finds_files_and_symbols_and_writes_a_snapshot() {
 }
 
 #[test]
+fn the_log_level_never_moves_log_lines_to_standard_output() {
+    let workspace = Workspace::new();
+    let output = workspace
+        .command()
+        .env("CODESKIMR_LOG", "trace")
+        .args(["scan", "--json"])
+        .arg(workspace.project())
+        .output()
+        .unwrap();
+    let summary = json_of(&output);
+    assert_eq!(summary["files"], 1);
+}
+
+#[test]
 fn scanning_again_reuses_the_project_and_adds_a_snapshot() {
     let workspace = Workspace::new();
     let first = json_of(&workspace.scan(&[]));

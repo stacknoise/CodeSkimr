@@ -18,6 +18,7 @@ use crate::consts::{
     ENV_LANGUAGE_TAGS, EXIT_FAILURE, EXIT_USAGE, LINE_BREAK, PLAIN_ERROR_SEPARATOR,
 };
 use crate::locations::{Locations, Lookup};
+use crate::logging;
 use crate::source_arg::SourceError;
 use crate::{mcp, scan};
 
@@ -54,6 +55,7 @@ pub fn execute<I>(arguments: I, env: Lookup<'_>) -> ExitCode
 where
     I: IntoIterator<Item = OsString>,
 {
+    logging::init(env);
     let tags: Vec<String> = ENV_LANGUAGE_TAGS
         .iter()
         .filter_map(|name| env(name))
