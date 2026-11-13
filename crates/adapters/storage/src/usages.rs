@@ -5,143 +5,22 @@
 //! symbols and files that name the entries of an answer are loaded with it, so an answer is
 //! assembled in memory.
 
-use std::collections::HashMap;
 use std::sync::{Arc, PoisonError};
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    DependencyEdge, DependencyPage, DependencyQuery, ImpactPage, ImpactedSymbol, SymbolLabel,
-    UsageEntry, UsageIndex, UsagePage,
+    DependencyEdge, DependencyPage, DependencyQuery, ImpactPage, SymbolLabel, UsageIndex, UsagePage,
 };
 use codeskimr_domain::{
-    Direction, QualifiedName, ReferenceKind, RelativePath, ReverseIndex, SnapshotId, SymbolId,
-    UsageQuery, Visibility,
+    Direction, QualifiedName, ReferenceKind, RelativePath, SnapshotId, SymbolId, UsageQuery,
 };
 use rusqlite::{Connection, params};
 
-use crate::codec::{Cols, column_int, id_from, label_from, small_from};
+use crate::codec::{Cols, column_int, label_from, small_from};
 use crate::error::{StorageError, StorageResult};
-use crate::previous::load_references;
+use crate::lookup::SnapshotLookup;
 use crate::sql;
 use crate::store::SqliteStore;
-
-/// A symbol as it is stored: its label, visibility and file.
-#[derive(Debug, Clone)]
-struct Placed {
-    label: SymbolLabel,
-    visibility: Option<Visibility>,
-    path: RelativePath,
-}
-
-/// What a query needs from one snapshot: the reverse index, and the places of all symbols and
-/// the paths of all files, so that the entries of an answer are looked up in memory and not one
-/// by one in the database. Built once per snapshot, which never changes.
-#[derive(Debug, Default)]
-pub(crate) struct SnapshotLookup {
-    index: ReverseIndex,
-    places: HashMap<u64, Placed>,
-    files: HashMap<u64, RelativePath>,
-}
-
-/// The columns of `SYMBOL_LABELS`, still raw.
-struct LabelRow {
-    id: i64,
-    qualified: String,
-    kind: String,
-    visibility: Option<String>,
-    path: String,
-}
-
-fn read_label(cols: &Cols<'_>) -> rusqlite::Result<LabelRow> {
-    Ok(LabelRow {
-        id: cols.take()?,
-        qualified: cols.take()?,
-        kind: cols.take()?,
-        visibility: cols.take()?,
-        path: cols.take()?,
-    })
-}
-
-fn decode_place(row: LabelRow) -> StorageResult<(u64, Placed)> {
-    let id = id_from(row.id)?;
-    let placed = Placed {
-        label: SymbolLabel {
-            id: SymbolId::new(id),
-            qualified_name: QualifiedName::new(row.qualified)?,
-            kind: label_from(&row.kind)?,
-        },
-        visibility: row.visibility.as_deref().map(label_from).transpose()?,
-        path: RelativePath::new(row.path)?,
-    };
-    Ok((id, placed))
-}
-
-/// Runs `statement` for `snapshot` and collects the decoded rows into a map by id.
-fn load_map<R, V>(
-    conn: &Connection,
-    (statement, snapshot): (&str, i64),
-    read: impl Fn(&Cols<'_>) -> rusqlite::Result<R>,
-    decode: impl Fn(R) -> StorageResult<(u64, V)>,
-) -> StorageResult<HashMap<u64, V>> {
-    let mut prepared = conn.prepare_cached(statement)?;
-    let rows = prepared.query_map(params![snapshot], |row| read(&Cols::new(row)))?;
-    rows.map(|row| decode(row?)).collect()
-}
-
-fn decode_file(row: (i64, String)) -> StorageResult<(u64, RelativePath)> {
-    Ok((id_from(row.0)?, RelativePath::new(row.1)?))
-}
-
-impl SnapshotLookup {
-    fn load(conn: &Connection, snapshot: i64) -> StorageResult<Self> {
-        Ok(Self {
-            index: ReverseIndex::new(load_references(conn, snapshot)?),
-            places: load_map(
-                conn,
-                (sql::SYMBOL_LABELS, snapshot),
-                read_label,
-                decode_place,
-            )?,
-            files: load_map(
-                conn,
-                (sql::FILE_PATHS, snapshot),
-                |cols| Ok((cols.take()?, cols.take()?)),
-                decode_file,
-            )?,
-        })
-    }
-
-    fn placed(&self, symbol: SymbolId) -> StorageResult<&Placed> {
-        self.places
-            .get(&symbol.get())
-            .ok_or(StorageError::DanglingReference)
-    }
-
-    fn entry(&self, usage: &codeskimr_domain::Usage) -> StorageResult<UsageEntry> {
-        let reference = usage.reference;
-        Ok(UsageEntry {
-            depth: usage.depth,
-            reference,
-            path: self
-                .files
-                .get(&reference.file.get())
-                .cloned()
-                .ok_or(StorageError::DanglingReference)?,
-            from: self.placed(reference.from)?.label.clone(),
-            to: self.placed(reference.to)?.label.clone(),
-        })
-    }
-
-    fn impacted(&self, reached: &codeskimr_domain::Reached) -> StorageResult<ImpactedSymbol> {
-        let found = self.placed(reached.symbol)?;
-        Ok(ImpactedSymbol {
-            label: found.label.clone(),
-            depth: reached.depth,
-            visibility: found.visibility,
-            path: found.path.clone(),
-        })
-    }
-}
 
 impl SqliteStore {
     /// The reverse index of a snapshot, built on first use. A snapshot that is not stored (never

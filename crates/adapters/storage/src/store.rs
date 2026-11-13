@@ -27,7 +27,7 @@ pub struct SqliteStore {
     retention: NonZeroU32,
     /// The reverse index and the places of the snapshot that was asked about last; a snapshot
     /// never changes.
-    pub(crate) reverse: Mutex<Option<(SnapshotId, Arc<crate::usages::SnapshotLookup>)>>,
+    pub(crate) reverse: Mutex<Option<(SnapshotId, Arc<crate::lookup::SnapshotLookup>)>>,
 }
 
 impl SqliteStore {
