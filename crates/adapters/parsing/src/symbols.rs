@@ -356,8 +356,16 @@ fn new_symbol(
             .signature
             .map(|node| text_of(node, ctx.source).trim().to_owned()),
         doc: doc(ctx, &declaration.docs),
-        has_body: declaration.node.child_by_field_name(BODY_FIELD).is_some(),
+        has_body: has_body(pack, declaration.node),
     })
+}
+
+/// Whether the declaration has a body: the grammar's `body` field or a child the pack calls a body.
+fn has_body(pack: &LanguagePack, node: Node<'_>) -> bool {
+    node.child_by_field_name(BODY_FIELD).is_some()
+        || (0..node.child_count())
+            .filter_map(|index| node.child(index))
+            .any(|child| pack.body_nodes.contains(child.kind()))
 }
 
 fn doc(ctx: &SymbolContext<'_>, nodes: &[Node<'_>]) -> Option<String> {

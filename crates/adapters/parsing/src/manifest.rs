@@ -124,6 +124,10 @@ pub struct PackManifest {
     /// Modifier keywords that make a declaration static.
     #[serde(default)]
     pub static_keywords: Vec<String>,
+    /// Syntax node kinds that make a child a body when the grammar has no `body` field; a callable
+    /// with such a child is measured.
+    #[serde(default)]
+    pub body_nodes: Vec<String>,
     /// Syntax node kinds that are identifiers; fingerprints treat them all alike.
     #[serde(default)]
     pub identifier_nodes: Vec<String>,
