@@ -84,7 +84,7 @@ mod tests {
         assert!(output.status.success());
         let json = report(&output);
         assert_eq!(json["files_checked"], 2);
-        assert!(json["findings"].as_array().unwrap().is_empty());
+        assert_eq!(json["findings"], serde_json::json!([]));
         assert_eq!(json["not_checked"].as_array().unwrap().len(), 3);
     }
 
