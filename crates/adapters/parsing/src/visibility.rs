@@ -6,7 +6,7 @@ use std::str::FromStr;
 use codeskimr_domain::{SymbolKind, Visibility};
 
 use crate::consts::KEYWORD_SEPARATOR;
-use crate::manifest::VisibilityRules;
+use crate::manifest::{NameRule, VisibilityRules};
 
 /// How keywords and the place of a declaration decide its visibility.
 pub struct Visibilities {
@@ -14,6 +14,7 @@ pub struct Visibilities {
     keywords: HashMap<String, Visibility>,
     parent_defaults: HashMap<SymbolKind, Visibility>,
     unrated: HashSet<SymbolKind>,
+    name_rules: Vec<(NameRule, Visibility)>,
 }
 
 impl Visibilities {
@@ -38,25 +39,35 @@ impl Visibilities {
             .map(|kind| parse::<SymbolKind>(kind))
             .collect::<Result<_, _>>()?;
         let default = rules.default.map(|label| parse(&label)).transpose()?;
+        let name_rules = rules
+            .name_rules
+            .into_iter()
+            .map(|rule| {
+                let visibility = parse(&rule.visibility)?;
+                Ok((rule, visibility))
+            })
+            .collect::<Result<_, String>>()?;
         Ok(Self {
             default,
             keywords,
             parent_defaults,
             unrated,
+            name_rules,
         })
     }
 
-    /// Visibility of a declaration of `kind` that carries `words` (the texts of its visibility captures, in
-    /// source order) inside a parent of kind `parent`.
+    /// Visibility of a declaration of `kind` named `name` that carries `words` (the texts of its
+    /// visibility captures, in source order) inside a parent of kind `parent`.
     ///
     /// Words that are no keyword of the pack are ignored, so a query may capture every modifier.
     /// Several keywords together may have an entry of their own, such as `protected internal`;
-    /// otherwise the first keyword counts. Without a keyword the default of the parent kind, then
-    /// the default of the pack applies.
+    /// otherwise the first keyword counts. Without a keyword the first name rule that fits the
+    /// name counts, then the default of the parent kind, then the default of the pack.
     #[must_use]
     pub fn of(
         &self,
         kind: SymbolKind,
+        name: &str,
         words: &[&str],
         parent: Option<SymbolKind>,
     ) -> Option<Visibility> {
@@ -71,9 +82,23 @@ impl Visibilities {
         self.keywords
             .get(known.join(KEYWORD_SEPARATOR).as_str())
             .or_else(|| known.first().and_then(|word| self.keywords.get(*word)))
+            .or_else(|| self.by_name(name))
             .or_else(|| parent.and_then(|kind| self.parent_defaults.get(&kind)))
             .or(self.default.as_ref())
             .copied()
+    }
+
+    fn by_name(&self, name: &str) -> Option<&Visibility> {
+        self.name_rules
+            .iter()
+            .find(|(rule, _)| {
+                name.starts_with(rule.prefix.as_str())
+                    && rule
+                        .suffix
+                        .as_deref()
+                        .is_none_or(|suffix| name.ends_with(suffix))
+            })
+            .map(|(_, visibility)| visibility)
     }
 }
 
@@ -107,11 +132,11 @@ mod tests {
         let rules = rules();
         let class = SymbolKind::Class;
         assert_eq!(
-            rules.of(class, &["static", "public", "sealed"], None),
+            rules.of(class, "a", &["static", "public", "sealed"], None),
             Some(Visibility::Public)
         );
         assert_eq!(
-            rules.of(class, &["static"], None),
+            rules.of(class, "a", &["static"], None),
             Some(Visibility::Private)
         );
     }
@@ -121,7 +146,10 @@ mod tests {
         let rules = rules();
         let method = SymbolKind::Method;
         for words in [["protected", "internal"], ["internal", "protected"]] {
-            assert_eq!(rules.of(method, &words, None), Some(Visibility::Protected));
+            assert_eq!(
+                rules.of(method, "a", &words, None),
+                Some(Visibility::Protected)
+            );
         }
     }
 
@@ -130,20 +158,68 @@ mod tests {
         let rules = rules();
         let method = SymbolKind::Method;
         let module = Some(SymbolKind::Module);
-        assert_eq!(rules.of(method, &[], module), Some(Visibility::Internal));
         assert_eq!(
-            rules.of(method, &[], Some(SymbolKind::Interface)),
+            rules.of(method, "a", &[], module),
+            Some(Visibility::Internal)
+        );
+        assert_eq!(
+            rules.of(method, "a", &[], Some(SymbolKind::Interface)),
             Some(Visibility::Public)
         );
         assert_eq!(
-            rules.of(method, &[], Some(SymbolKind::Class)),
+            rules.of(method, "a", &[], Some(SymbolKind::Class)),
             Some(Visibility::Private)
         );
-        assert_eq!(rules.of(method, &[], None), Some(Visibility::Private));
+        assert_eq!(rules.of(method, "a", &[], None), Some(Visibility::Private));
     }
 
     #[test]
     fn unrated_kinds_have_no_visibility() {
-        assert_eq!(rules().of(SymbolKind::Namespace, &["public"], None), None);
+        assert_eq!(
+            rules().of(SymbolKind::Namespace, "a", &["public"], None),
+            None
+        );
+    }
+
+    fn by_name_rules() -> Visibilities {
+        let toml = r#"
+            default = "public"
+            [[name_rules]]
+            prefix = "__"
+            suffix = "__"
+            visibility = "public"
+            [[name_rules]]
+            prefix = "__"
+            visibility = "private"
+            [[name_rules]]
+            prefix = "_"
+            visibility = "internal"
+        "#;
+        Visibilities::resolve(toml::from_str(toml).expect("rules")).expect("labels")
+    }
+
+    #[test]
+    fn the_first_name_rule_that_fits_counts() {
+        let rules = by_name_rules();
+        let of = |name| rules.of(SymbolKind::Method, name, &[], None);
+        assert_eq!(of("run"), Some(Visibility::Public));
+        assert_eq!(of("_run"), Some(Visibility::Internal));
+        assert_eq!(of("__run"), Some(Visibility::Private));
+        assert_eq!(of("__init__"), Some(Visibility::Public));
+    }
+
+    #[test]
+    fn a_keyword_wins_over_a_name_rule() {
+        let toml = r#"
+            [keywords]
+            open = "public"
+            [[name_rules]]
+            prefix = "_"
+            visibility = "private"
+        "#;
+        let rules = Visibilities::resolve(toml::from_str(toml).expect("rules")).expect("labels");
+        let of = |words: &[&str]| rules.of(SymbolKind::Method, "_x", words, None);
+        assert_eq!(of(&["open"]), Some(Visibility::Public));
+        assert_eq!(of(&[]), Some(Visibility::Private));
     }
 }

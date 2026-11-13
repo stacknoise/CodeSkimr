@@ -1,0 +1,244 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 49,
+      "operands": null,
+      "operators": null,
+      "symbol": "metrics"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "metrics.plain"
+    },
+    {
+      "decisions": 4,
+      "loc": 7,
+      "operands": [
+        6,
+        11
+      ],
+      "operators": [
+        7,
+        11
+      ],
+      "symbol": "metrics.branches"
+    },
+    {
+      "decisions": 1,
+      "loc": 2,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        3,
+        3
+      ],
+      "symbol": "metrics.conditional"
+    },
+    {
+      "decisions": 4,
+      "loc": 8,
+      "operands": [
+        4,
+        7
+      ],
+      "operators": [
+        6,
+        7
+      ],
+      "symbol": "metrics.loops"
+    },
+    {
+      "decisions": 2,
+      "loc": 8,
+      "operands": [
+        6,
+        6
+      ],
+      "operators": [
+        3,
+        7
+      ],
+      "symbol": "metrics.cases"
+    },
+    {
+      "decisions": 2,
+      "loc": 11,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        3
+      ],
+      "symbol": "metrics.handlers"
+    },
+    {
+      "decisions": 1,
+      "loc": 3,
+      "operands": [
+        6,
+        8
+      ],
+      "operators": [
+        7,
+        8
+      ],
+      "symbol": "metrics.outer"
+    },
+    {
+      "decisions": 1,
+      "loc": 4,
+      "operands": [
+        2,
+        3
+      ],
+      "operators": [
+        2,
+        3
+      ],
+      "symbol": "metrics.outer.local"
+    },
+    {
+      "decisions": 0,
+      "loc": 4,
+      "operands": [
+        6,
+        9
+      ],
+      "operators": [
+        7,
+        8
+      ],
+      "symbol": "metrics.calls"
+    }
+  ],
+  "loc": 49,
+  "references": [
+    {
+      "at": "56:22",
+      "from": "metrics.outer",
+      "kind": "call",
+      "receiver": null,
+      "target": "local"
+    },
+    {
+      "at": "61:13",
+      "from": "metrics.calls",
+      "kind": "call",
+      "receiver": null,
+      "target": "len"
+    },
+    {
+      "at": "63:13",
+      "from": "metrics.calls",
+      "kind": "call",
+      "receiver": null,
+      "target": "get"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "metrics",
+      "parent": null,
+      "span": "0:0-64:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics.plain",
+      "parent": "metrics",
+      "span": "0:0-1:12",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics.branches",
+      "parent": "metrics",
+      "span": "4:0-10:16",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics.conditional",
+      "parent": "metrics",
+      "span": "13:0-14:24",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics.loops",
+      "parent": "metrics",
+      "span": "17:0-24:35",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics.cases",
+      "parent": "metrics",
+      "span": "27:0-34:22",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics.handlers",
+      "parent": "metrics",
+      "span": "37:0-47:12",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics.outer",
+      "parent": "metrics",
+      "span": "50:0-56:30",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics.outer.local",
+      "parent": "metrics.outer",
+      "span": "52:4-55:16",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics.calls",
+      "parent": "metrics",
+      "span": "59:0-63:27",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

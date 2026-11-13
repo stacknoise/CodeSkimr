@@ -2,16 +2,18 @@
 
 use std::time::Instant;
 
+use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::pipeline::{Job, JobResult};
 use codeskimr_cli::{GlobalOptions, ScanArgs, ScanSummary};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Project, ProjectSource, ScanMode};
+use codeskimr_domain::{Permission, Project, ProjectSource, ScanMode};
 use codeskimr_storage::SqliteStore;
 
 use crate::config_files;
 use crate::locations::Locations;
+use crate::principal;
 use crate::source_arg::{SourceError, SourceSpec, classify};
 use crate::wiring::{build_scanner, open_store};
 
@@ -38,12 +40,15 @@ pub fn run(
         ProjectSource::Folder(folder) => Some(std::path::Path::new(folder.as_str())),
         ProjectSource::Git { .. } => None,
     };
+    let principal = principal::resolve();
+    access::require(&principal, Permission::RegisterProject)?;
+    access::require(&principal, Permission::Scan)?;
     let config = config_files::load(locations, global, project_dir)?;
     let store = open_store(locations, &config)?;
     let project = register(&store, spec)?;
     let scanner = build_scanner(&store, &config, locations, EventBus::new())?;
     let started = Instant::now();
-    match scanner.run(Job::new(project.id, ScanMode::Full)) {
+    match scanner.run(&principal, Job::new(project.id, ScanMode::Full)) {
         JobResult::Finished(job) => {
             let snapshot = job.snapshot();
             Ok(ScanSummary {

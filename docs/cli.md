@@ -57,3 +57,7 @@ The package added two keys: `scan.parse_timeout_ms` (default 5000, `PRS-501` on 
 - The language packs are read from a folder (see `--languages`); embedding them in the binary comes with the release package.
 - `Ctrl+C` ends the process; cancelling a scan cleanly (`CancelToken`) is wired with the server.
 - A user config error that is not TOML syntax (unreadable file) is reported as `CFG-102`.
+
+## Caller identity
+
+Both commands run as the local owner of the installation (`crates/app/src/principal.rs`), who holds every permission, so nothing changes for the user. The scanner and the MCP tools check the permission they need (`scan`, `read`) before they do anything; a caller without it gets `AUTH-401`. See blueprint 10.1 and ADR 0019.

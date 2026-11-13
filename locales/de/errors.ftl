@@ -35,6 +35,7 @@ error-SEC-901 = Geheimer Speicher konnte nicht gegen Auslagerung gesperrt werden
 error-NET-501 = Die Anfrage an die externe Plattform hat zu lange gedauert.
 error-NET-502 = Die externe Plattform hat die Anfrage wegen zu vieler Zugriffe abgelehnt.
 error-NET-601 = Die Anmeldung über OAuth wurde nicht abgeschlossen.
+error-AUTH-401 = Für diese Aktion fehlt die erforderliche Berechtigung.
 error-API-101 = Die Anfrage ist ungültig.
 error-API-401 = Für diese Änderung fehlt ein gültiges Installations-Token.
 error-MCP-101 = Die Argumente des MCP-Werkzeugs sind ungültig.

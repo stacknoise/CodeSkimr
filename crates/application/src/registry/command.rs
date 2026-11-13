@@ -1,5 +1,7 @@
 //! What a command is.
 
+use codeskimr_domain::{Permission, Principal};
+
 use crate::error::CodedError;
 
 /// Stable identifier of a command, such as `scan.start`.
@@ -33,6 +35,17 @@ pub struct CommandDescriptor {
     pub shortcut: Option<&'static str>,
     /// Whether the command only reads; MCP exposes only these by default.
     pub read_only: bool,
+    /// What a caller must hold; the registry checks it before the command runs.
+    pub permission: Permission,
+}
+
+/// One call of a command: who calls and with what input.
+#[derive(Debug, Clone, Copy)]
+pub struct Request<'a, I> {
+    /// The authenticated caller.
+    pub principal: &'a Principal,
+    /// The command input.
+    pub input: I,
 }
 
 /// A user action. It is implemented exactly once and offered on every surface.
@@ -45,9 +58,10 @@ pub trait Command: Send + Sync + 'static {
     /// The metadata of this command.
     const DESCRIPTOR: CommandDescriptor;
 
-    /// Runs the command.
+    /// Runs the command. The registry has already checked `DESCRIPTOR.permission`; a command that
+    /// needs more (a permission on one project) checks that itself with `request.principal`.
     ///
     /// # Errors
     /// A coded failure; each command documents its own codes.
-    fn execute(&self, input: Self::Input) -> Result<Self::Output, CodedError>;
+    fn execute(&self, request: Request<'_, Self::Input>) -> Result<Self::Output, CodedError>;
 }

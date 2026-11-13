@@ -37,6 +37,7 @@ export type ErrorCode =
   | "NET-501"
   | "NET-502"
   | "NET-601"
+  | "AUTH-401"
   | "API-101"
   | "API-401"
   | "MCP-101"
@@ -107,6 +108,7 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "NET-501": { id: "NET-501", name: "request_timeout", group: "NET", class: "limit", severity: "error", retryable: true, description: "A request to an external platform timed out.", since: "0.1.0", deprecated: false, messageKey: "error-NET-501" },
   "NET-502": { id: "NET-502", name: "rate_limited", group: "NET", class: "limit", severity: "error", retryable: true, description: "The external platform rate-limited the request.", since: "0.1.0", deprecated: false, messageKey: "error-NET-502" },
   "NET-601": { id: "NET-601", name: "oauth_flow_failed", group: "NET", class: "external", severity: "error", retryable: false, description: "The OAuth device flow did not complete.", since: "0.1.0", deprecated: false, messageKey: "error-NET-601" },
+  "AUTH-401": { id: "AUTH-401", name: "permission_denied", group: "AUTH", class: "permission", severity: "error", retryable: false, description: "The caller lacks the permission this action needs.", since: "0.1.0", deprecated: false, messageKey: "error-AUTH-401" },
   "API-101": { id: "API-101", name: "request_invalid", group: "API", class: "invalid_input", severity: "error", retryable: false, description: "The REST request failed validation.", since: "0.1.0", deprecated: false, messageKey: "error-API-101" },
   "API-401": { id: "API-401", name: "token_missing_or_invalid", group: "API", class: "permission", severity: "error", retryable: false, description: "A state-changing request lacks a valid installation token.", since: "0.1.0", deprecated: false, messageKey: "error-API-401" },
   "MCP-101": { id: "MCP-101", name: "tool_arguments_invalid", group: "MCP", class: "invalid_input", severity: "error", retryable: false, description: "MCP tool arguments failed validation.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-101" },

@@ -29,7 +29,7 @@ CodeSkimr scans code repositories, either a local folder or a Git repository, an
 
 **In scope for 1.0:**
 
-- Local single-user application: one executable, local web server, UI in the browser.
+- Local single-user application: one executable, local web server, UI in the browser. Every action already carries the caller's identity (a `Principal`, always the local owner in 1.0), so the team edition needs no signature changes (section 10.1, ADR 0019).
 - Sources: local folders and Git repositories (clone, branch, update).
 - Languages:
   - Full tier for C#, TypeScript/JavaScript, Python, Java, Kotlin and Rust. Go follows in the full tier after 1.0 (ADR 0011); in 1.0 it has the basic tier.
@@ -41,7 +41,7 @@ CodeSkimr scans code repositories, either a local folder or a Git repository, an
 
 **Out of scope for 1.0, but already designed so it can be added without rework:**
 
-- Team server with multiple users and authentication.
+- Team server with multiple users, login (OIDC and local accounts), roles and project permissions, delivered in stages T1 to T3 (ADR 0019). Only the caller-identity seam is part of 1.0.
 - Encrypted team vault for credentials (section 12.5).
 - Compiler-precise reference resolution through SCIP or Roslyn (section 9.3).
 - WASM analysis plugins.
@@ -115,7 +115,7 @@ All rules in this section are **MUST** and are enforced in CI (section 17.3).
 
 ### 4.1 Style: hexagonal (ports and adapters)
 
-The domain core knows nothing about databases, file systems, networks, Tree-sitter or HTTP. It defines **ports** (Rust traits). **Adapters** implement them. **Driving adapters** (UI server, CLI, MCP) call the application layer; **driven adapters** (storage, parsing, source, secrets, i18n) are called by it.
+The domain core knows nothing about databases, file systems, networks, Tree-sitter or HTTP. It defines **ports** (Rust traits). **Adapters** implement them. **Driving adapters** (UI server, CLI, MCP) call the application layer with the identity of the caller (a `Principal`, section 10.1); **driven adapters** (storage, parsing, source, secrets, i18n, and after 1.0 auth) are called by it.
 
 Every layer is its **own crate**. The compiler therefore enforces the dependency direction: if a crate imports something it may not use, the build fails.
 
@@ -136,6 +136,7 @@ flowchart TB
     SRC[codeskimr_source]
     SEC[codeskimr_secrets]
     I18[codeskimr_i18n]
+    AUT[codeskimr_auth<br/>after 1.0]
   end
   SRV --> APP
   CLI --> APP
@@ -146,7 +147,8 @@ flowchart TB
   SRC -.implements ports.-> APP
   SEC -.implements ports.-> APP
   I18 -.implements ports.-> APP
-  BIN[codeskimr<br/>composition root] --> SRV & CLI & MCP & PAR & STO & SRC & SEC & I18
+  AUT -.implements ports.-> APP
+  BIN[codeskimr<br/>composition root] --> SRV & CLI & MCP & PAR & STO & SRC & SEC & I18 & AUT
 ```
 
 ### 4.2 Repository layout and namespaces
@@ -157,14 +159,15 @@ codeskimr/
 ├─ BLUEPRINT.md                this document
 ├─ crates/
 │  ├─ domain/                  codeskimr_domain
-│  │  └─ src/{symbol,member,reference,snapshot,project,metrics,layer,language,ids,consts,error}.rs
+│  │  └─ src/{symbol,member,reference,snapshot,project,metrics,layer,language,access,ids,consts,error}.rs
 │  ├─ application/             codeskimr_application
-│  │  └─ src/{ports/, commands/, queries/, pipeline/, events/, registry/, consts.rs, error.rs}
+│  │  └─ src/{ports/, commands/, queries/, pipeline/, events/, registry/, access.rs, consts.rs, error.rs}
 │  ├─ adapters/
 │  │  ├─ parsing/              codeskimr_parsing       Tree-sitter, language-pack interpreter
 │  │  ├─ storage/              codeskimr_storage       SQLite, read models, search index
 │  │  ├─ source/               codeskimr_source        file system, Git, file watcher
 │  │  ├─ secrets/              codeskimr_secrets       credential store, vault (later)
+│  │  ├─ auth/                 codeskimr_auth          users, login, tokens (after 1.0, ADR 0019)
 │  │  └─ i18n/                 codeskimr_i18n          Fluent bundles
 │  ├─ server/                  codeskimr_server        axum: REST, WebSocket, embedded UI
 │  ├─ cli/                     codeskimr_cli           clap
@@ -191,6 +194,7 @@ codeskimr/
 | `application` | `domain`, `codes` |
 | `parsing`, `storage`, `source`, `i18n` | `application`, `domain`, `codes` |
 | `secrets` | `application`, `domain`, `codes` – and **no** other adapter |
+| `auth` (after 1.0) | `application`, `domain`, `codes` – and **no** other adapter; password hashing and OIDC libraries stay inside it |
 | `server`, `cli` | `application`, `domain`, `codes`, `i18n` |
 | `mcp` | `application`, `domain`, `codes`, `i18n` – **never** `secrets` |
 | `app` (binary) | everything; the only place where adapters are wired |
@@ -200,7 +204,8 @@ codeskimr/
 - **One process.** `codeskimr` starts the local server, opens the browser and keeps the index in memory. `codeskimr mcp` and `codeskimr scan` reuse a running instance if there is one; otherwise they run standalone.
 - **Async for I/O** (Tokio): HTTP, WebSocket, Git, file watching, database.
 - **Parallel for CPU** (Rayon): parsing, resolving, metrics. CPU work never blocks the async runtime; the boundary is a dedicated pool.
-- **Bind address:** `127.0.0.1` only in 1.0. Remote access is a team-server feature.
+- **Bind address:** `127.0.0.1` only in 1.0. Remote access exists only in the team server's server mode, with TLS or a trusted reverse proxy (ADR 0019, S-04). Server mode is chosen at start and cannot be switched at runtime.
+- **Caller identity:** the composition root resolves the `Principal` once (single-user: the local owner; team server: from the request's credentials through the `Authenticator`). Adapters receive it and never create one.
 
 ### 4.4 Technology stack
 
@@ -406,6 +411,7 @@ Every user-facing action is a `Command` with:
 - input and output types
 - a default keyboard shortcut (optional)
 - a flag saying whether it is read-only
+- the `Permission` a caller needs (`read`, `read_source`, `scan`, `manage`, `register_project`, `admin`)
 
 The registry generates:
 
@@ -415,6 +421,13 @@ The registry generates:
 - MCP tools
 
 **No action is implemented twice.**
+
+**Caller identity and permissions (MUST, ADR 0019):**
+
+- `Principal` and `Permission` are pure types in `codeskimr_domain`. In 1.0 the only principal is `LocalOwner`, who holds every permission; it is created only in the single-user composition root (a test enforces this). A principal with fewer permissions is built only by an authenticator or in tests.
+- Every command and every use case receives the `Principal` inside its request or context struct (so the parameter limit R-02 holds). Commands run only through `Registry::execute`, which checks the declared permission once, before the command starts; the registry hands out no handler that could skip the check. Registering a command fails if its read-only flag contradicts its permission (a read-only command needs `read` or `read_source`, any other command needs something else). Use cases that are not commands yet (the scanner, the MCP tools) call `access::require` first, before they read anything or validate arguments.
+- Denial gives the registered error `AUTH-401` and names neither the permission nor a project; "not found" and "not allowed" must not become an oracle. A denied scan starts nothing and publishes no event.
+- Any source text a command, route, tool or export returns needs `read_source`.
 
 ### 10.2 CLI
 
@@ -428,11 +441,14 @@ codeskimr check <path>            run the convention checks (for CI)
 codeskimr codes [<code>]          list error codes / explain one code
 ```
 
+The local commands run as the local owner without login. After 1.0 the team edition adds `codeskimr serve --team`, `login --server <url>`, `user …` and `token …` (ADR 0019); local commands keep working without login.
+
 ### 10.3 REST and WebSocket
 
 - **REST** under `/api/v1`, described by OpenAPI (generated by `utoipa`). The TypeScript client is generated from it.
 - **WebSocket** at `/api/v1/events` streams domain events: scan progress, snapshot created, files changed.
 - Every error response carries the error code (section 11).
+- Every route resolves a `Principal` before it calls the application layer. In single-user mode that is the local owner; in server mode it comes from the session cookie or a personal access token (ADR 0019).
 
 ### 10.4 MCP server
 
@@ -459,8 +475,9 @@ codeskimr codes [<code>]          list error codes / explain one code
 **Rules:**
 
 - Read-only by default; `rescan` is the only tool with a side effect.
-- Bound to `127.0.0.1`. HTTP requires a per-installation token.
-- Access only to registered projects.
+- stdio is single-user and local and runs as the local owner. Streamable HTTP is bound to `127.0.0.1` and requires a per-installation token in 1.0; in the team edition it requires a personal access token, and tools and resources see only the projects granted to that token's principal (ADR 0019).
+- Every tool declares the permission it needs (all current tools: `read`) and checks it before reading anything.
+- Access only to registered projects (in the team edition: only granted ones).
 - No access to credentials at all (crate rule in 4.2).
 - Responses are token-efficient: paginated, with fixed limits from config, and they state the snapshot id and its age.
 - `find_similar_code` uses normalised syntax-tree fingerprints (identifiers and literals abstracted, winnowing). It shares this logic with the duplicate check in `check_conventions`; there is one implementation.
@@ -493,7 +510,7 @@ codeskimr codes [<code>]          list error codes / explain one code
 | `1` | invalid input / validation |
 | `2` | not found / unavailable |
 | `3` | conflict / invalid state |
-| `4` | authentication / permission |
+| `4` | authentication / permission (`AUTH-401` permission denied; `API-401` installation token) |
 | `5` | limit / timeout / resources |
 | `6` | external system failed (Git host, OS, network) |
 | `9` | internal error (bug) |
@@ -512,6 +529,7 @@ codeskimr codes [<code>]          list error codes / explain one code
 | `STO` | persistence | `storage` |
 | `SEC` | credentials and security | `secrets` |
 | `NET` | network and platforms (GitHub, GitLab …) | `source`, `secrets` |
+| `AUTH` | caller identity, permissions, later login and tokens | `application`, later `auth` |
 | `API` | REST and WebSocket | `server` |
 | `MCP` | MCP server | `mcp` |
 | `CLI` | command line | `cli` |
@@ -655,17 +673,18 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
 - **Encryption:** envelope encryption.
   - One data key per secret, XChaCha20-Poly1305.
   - Data keys wrapped by a master key held in the OS keystore, an HSM or a cloud KMS.
-  - Associated data binds each ciphertext to project id and credential id.
-- **Storage:** separate table or file, never in the analysis database. Optimistic versioning and audit entries (who used which credential when; never the value).
+  - Associated data binds each ciphertext to project id and credential id; the binding must survive project deletion and id reuse (no re-binding of ciphertext to a reused id). The owning grant is an access check, not part of the key (ADR 0019, stage T3).
+- **Storage:** separate table or file, never in the analysis database. Optimistic versioning and audit entries (who used which credential when; never the value). A maintainer can use only credentials explicitly assigned to that project.
 - **Rotation:** master-key rotation re-wraps data keys without decrypting secrets in bulk.
 
 ### 12.6 Rules and tests
 
-- **S-01** Logs are filtered through a redaction layer: token patterns, `Authorization` headers and URL user-info are masked.
+- **S-01** Logs are filtered through a redaction layer: token patterns (including the `csk_` access-token prefix), `Authorization` and `Cookie`/`Set-Cookie` headers, OIDC `code`, `state` and `id_token`, and URL user-info are masked.
 - **S-02** A test suite runs logins, failures and panics with canary secrets and asserts that the canary never appears in logs, error messages, REST/MCP responses, crash output or the database file.
 - **S-03** Dependency audit (`cargo-audit`, `cargo-deny`) in every CI run; a known vulnerability blocks the merge.
-- **S-04** Server and MCP bind to `127.0.0.1`. HTTP endpoints that change state require the per-installation token. CORS is closed.
-- **S-05** Paths from API/MCP input are canonicalised and checked against registered project roots (no path traversal).
+- **S-04** In single-user mode, server and MCP bind to `127.0.0.1` and HTTP endpoints that change state require the per-installation token. Non-loopback binding is allowed only in the team server's server mode and only with TLS configured or behind a configured trusted reverse proxy; otherwise start fails with a registered error code. `X-Forwarded-*` is accepted only from trusted peers. CORS is closed; Host and Origin are validated (DNS rebinding).
+- **S-05** Paths from API/MCP input are canonicalised and checked against registered project roots (no path traversal). In the team edition the check also covers the caller's grant, and registrable roots and clone URLs follow a server-side allow-list (path traversal, SSRF).
+- **S-06** Authorisation lives once, in the registry check (10.1). Adapters never decide. Tests cover every command with a restricted principal; for the team edition each route, WebSocket message, CLI command and MCP tool is tested with each role and with "no grant", and denial and "not found" are compared for identical responses. The canary suite (S-02) also scans the identity database.
 
 ---
 
@@ -676,7 +695,7 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
 - **Generated keys:** `tools/codegen` generates key constants for Rust (`codeskimr_codes::i18n`) and TypeScript (`shared/i18n/keys.ts`) from the English files. Code never contains a message string (R-06), and an unknown key does not compile.
 - **Completeness:** CI fails if a key is missing in any language or exists in only one.
 - **Formatting:** numbers, dates and durations through ICU4X / `Intl` per locale. In German, `0,90` and `1.667`, as in the mocks.
-- **Language selection:** system language by default, switchable in the UI; the choice is stored per user.
+- **Language selection:** system language by default, switchable in the UI; the choice is stored per user. The theme (15.3) is stored the same way.
 - **Adding a language** means adding a folder under `locales/`; no code changes.
 - **Not translated:** identifiers from scanned code, file paths, error code ids.
 
@@ -703,7 +722,7 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
 
 > **The goal is to match the mocks as closely as possible.** Layout, proportions, colours, fonts, spacing, labels, icons, keyboard hints and interactions follow the [UI mocks](https://claude.ai/artifact/FRpzF7hdgZVdHCm2mxRuNZ). Their sources are in `docs/mocks/` and contain the exact values. Deviations are only allowed where a mock shows sample data or where a behaviour is technically impossible, and each deviation MUST be listed in the PR with a screenshot. Changing the look intentionally means updating the mocks and this blueprint first.
 
-The six screens (details in Appendix B):
+The screens (details in Appendix B):
 
 | # | Screen | Mock file |
 |---|---|---|
@@ -713,6 +732,15 @@ The six screens (details in Appendix B):
 | 4 | Quick search (Ctrl+K) | `docs/mocks/Palette.dc.html` |
 | 5 | Scan and performance | `docs/mocks/Scan.dc.html` |
 | 6 | Usages (symbol level) | `docs/mocks/Usages.dc.html` |
+| 7 | Sign-in (team server) | `docs/mocks/Login.dc.html` |
+| 8 | Users and project grants | `docs/mocks/Users.dc.html` |
+| 9 | Groups and roles | `docs/mocks/Roles.dc.html` |
+| 10 | Access tokens | `docs/mocks/Tokens.dc.html` |
+| 11 | Audit log | `docs/mocks/Audit.dc.html` |
+| 12 | Single sign-on | `docs/mocks/Sso.dc.html` |
+| 13 | Settings: themes and language | `docs/mocks/Themes.dc.html` |
+
+Screens 7 to 12 belong to the team edition (after 1.0, ADR 0019, milestone T2) and exist as mocks so that the UI can be built to them; screen 13 belongs to 1.0 (ADR 0021). The mocks 7 to 13 take a `theme` property (15.3); mocks 1 to 6 are drawn in the theme Hell (layout binding, colours follow the active theme, see 15.3).
 
 The mock sources are written in a design-canvas format; render them through the link above. Read the files for exact values (inline styles). All numbers and names in them are **sample data**.
 
@@ -720,8 +748,8 @@ The mock sources are written in a design-canvas format; render them through the 
 
 | Element | Size | Content |
 |---|---|---|
-| Top bar | height 48 px | logo + product name, project breadcrumb, branch / working-folder chip, search field opening the quick search (shows `Strg K` / `Ctrl K`) |
-| Navigation rail | width 56 px | Projects, Explorer, Dependencies, Scans & performance; active item tinted |
+| Top bar | height 48 px | logo + product name, project breadcrumb, branch / working-folder chip, search field opening the quick search (shows `Strg K` / `Ctrl K`); in team mode also server name and user menu |
+| Navigation rail | width 56 px | Projects, Explorer, Dependencies, Scans & performance at the top; at the bottom Administration (admins in team mode only) and Settings; active item tinted |
 | Status bar | height 28 px | live measurements (watch state, counts, last query time, memory), monospace |
 | Explorer tree | width 290 px | filter, collapse all, show selection |
 | Source pane | width 560 px (shrinks) | file path, member position, code |
@@ -731,7 +759,7 @@ Below 1,000 px width, columns stack; the page never scrolls horizontally (16 px 
 
 ### 15.3 Design tokens
 
-Defined once in `design/tokens.toml`. TypeScript/CSS variables are generated from it (section 5). Values taken from the mocks:
+Defined once in `design/tokens.toml`. TypeScript/CSS variables are generated from it (section 5). Values taken from the first mocks (theme **Hell**; the other themes are in "Themes" below):
 
 | Token | Value | Use |
 |---|---|---|
@@ -742,7 +770,7 @@ Defined once in `design/tokens.toml`. TypeScript/CSS variables are generated fro
 | `muted` / `faint` | `#5B6370` / `#6B7280` | labels / meta (both ≥ 4.5:1 on white) |
 | `accent` / `accent-bg` / `accent-hover` | `#2457D6` / `#EAF0FD` / `#1A43A8` | selection, links, primary action, incoming edges |
 | `outgoing` | `#C2410C` | "uses" edges |
-| `good` / `good-bg` | `#15803D` / `#E7F6EC` | status OK, metric good |
+| `good` / `good-bg` | `#15803D` / `#EAF7EF` | status OK, metric good |
 | `warn` / `warn-bg` | `#B45309` / `#FFF4E5` | metric medium, attention |
 | `bad` / `bad-bg` | `#B91C1C` / `#FDF2F2` | metric bad, violations |
 | `highlight` / `mark` | `#FFF7D6` / `#FDE68A` | selected member lines / search hit, focus ring |
@@ -757,7 +785,38 @@ Defined once in `design/tokens.toml`. TypeScript/CSS variables are generated fro
 - JetBrains Mono 12–12.5 px for code and names, 20 px line height, ligatures off (`font-variant-ligatures: none`).
 - Fonts are **bundled with the app** (offline, no third-party requests).
 
-**Dark mode:** planned, with the same tokens and dark values. The values are defined in a mock update before the UI milestone (O-02).
+#### Themes
+
+The UI offers three themes in the first version (ADR 0021). Every theme defines every token in `design/tokens.toml`; the generated CSS variables are scoped by `data-theme`. Components use variables only.
+
+| Token | Hell | Petrol (default) | Dunkel |
+|---|---|---|---|
+| `bg` | `#F6F7F9` | `#F4F6F8` | `#12171D` |
+| `surface` | `#FFFFFF` | `#FFFFFF` | `#1A212A` |
+| `line` / `line-soft` | `#E3E6EB` / `#EEF0F3` | `#DDE3EA` / `#E8EDF2` | `#2C3643` / `#232C37` |
+| `ink` / `ink-2` | `#14171C` / `#3A414C` | `#1B2430` / `#3A4656` | `#E6EBF1` / `#C5CED9` |
+| `muted` / `faint` | `#5B6370` / `#6B7280` | `#5D6B7C` / `#5F6E80` | `#97A4B4` / `#8996A6` |
+| `accent` / `accent-bg` / `accent-hover` | `#2457D6` / `#EAF0FD` / `#1A43A8` | `#0C727B` / `#DFF1F2` / `#095A62` | `#3BB6C1` / `#16363B` / `#66CAD3` |
+| `accent-fg` (text on accent) | `#FFFFFF` | `#FFFFFF` | `#06222A` |
+| `good` / `good-bg` | `#15803D` / `#EAF7EF` | `#1F7A45` / `#DDF3E5` | `#5FD18B` / `#173826` |
+| `warn` / `warn-bg` | `#B45309` / `#FFF4E5` | `#8A5A00` / `#FBECCB` | `#F0BD5A` / `#3A2D10` |
+| `bad` / `bad-bg` | `#B91C1C` / `#FDF2F2` | `#A82D2D` / `#F9DCDC` | `#FF8C8C` / `#401B1B` |
+| `outgoing` | `#C2410C` | `#C2410C` | `#FB923C` |
+| `highlight` / `mark` | `#FFF7D6` / `#FDE68A` | `#FFF7D6` / `#FDE68A` | `#3A3413` / `#6B5A12` |
+
+Kind and layer colours of Petrol equal those of Hell. Dunkel uses lighter variants of the same hues:
+
+| Token | Dunkel |
+|---|---|
+| kind colours | class `#6E9BFF`, interface `#A78BFA`, record `#2DD4BF`, struct `#F59E0B`, enum `#F472B6` |
+| layer colours | `#6E9BFF`, `#2DD4BF`, `#A78BFA`, `#F59E0B`, `#F472B6`, `#97A4B4`, … |
+
+In Hell, `good-bg` is `#EAF7EF`; the value `#E7F6EC` of the first mock version reached only 4.49:1 with `good` and was replaced in all mocks.
+
+- **Rules:** a theme is a table in `tokens.toml` plus its name in `locales/`; adding one needs no code change, an ADR decides which themes ship. CI (job `codegen`) fails if a theme misses a token or if a text/background pair (`ink`, `ink-2`, `muted`, `faint` on `bg` and `surface`; `accent` on `surface`, `bg` and `accent-bg`; `good`, `warn`, `bad` on their `-bg` and on `surface`; `accent-fg` on `accent`; `ink-2` on `line-soft`; `ink` on `accent-bg`; `outgoing`, kind and layer colours on `surface`) is below 4.5:1. `faint` is used on `bg` and `surface` only, never on tinted backgrounds.
+- **Choice:** stored per user (see 13); without a team server in the local settings. Until the user chooses, the theme is Petrol, or Dunkel when the operating system is set to dark. The default key is in `config/default.toml`.
+- **Settings page (mock 13):** one preview card per theme with the name, a colour strip and a miniature of the real UI (top bar, rail, list, badges, button) drawn by the actual components inside a container with that `data-theme`. Selecting a card applies it at once. Petrol is the default theme and is drawn as selected in mock 13 and used by mocks 7 to 13. Mocks 1 to 6 are drawn in Hell; for them layout, proportions and labels are binding and the colours follow the active theme, so a Petrol build is not a deviation from them.
+- **Delivery:** themes and the settings page ship with the UI milestone M3. Every new screen is checked in all three themes by the visual tests (17.1).
 
 ### 15.4 Interaction rules (MUST)
 
@@ -933,6 +992,7 @@ Context – Options – Decision – Consequences
 - [ ] Tests on the right level exist and pass.
 - [ ] User-visible texts exist in `de` and `en`.
 - [ ] New errors are registered with code and messages.
+- [ ] Every new command or use case takes a `Principal` and declares or checks its permission (10.1); a test with a restricted principal covers the denial.
 - [ ] Budgets in section 16 are kept.
 - [ ] UI matches the mock (screenshot in the PR).
 - [ ] Docs updated (README, ADR if needed, generated catalogues).
@@ -948,12 +1008,12 @@ Each milestone ends with a demo and acceptance by the product owner. All criteri
 | **M0** | Blueprint | this document, mocks | blueprint approved |
 | **M1** | Foundation + MCP basics | workspace and crates; full CI (section 17.3) incl. no-literals lint and duplicate check; codegen for error codes and i18n; config; SQLite; C# language pack (full); `codeskimr scan` → JSON; MCP over stdio with `search_symbols`, `get_symbol`, `get_architecture` | CI blocks a PR containing a literal or a duplicate block; scan of the private C# reference reproduces its counts and scan of the public C# reference reproduces the counts in `corpus/` (17.2); 100k LOC scanned in < 1 s; Claude Code can query CodeSkimr through MCP |
 | **M2** | References + full MCP | reference index level 1; `find_usages`, `impact_of_change`, `get_dependencies`, `find_similar_code`, `find_constants`, `check_conventions`, `rescan`; watch mode, incremental scans | usages of a method/constant in the private C# reference correct in a sample of 20; incremental re-scan < 300 ms; the agent developing CodeSkimr uses the MCP tools (17.4) |
-| **M3** | Server + UI core | axum server, embedded UI, screens 1 (projects), 2 (explorer), 4 (quick search); status bar with live measurements; de/en switch | screens match the mocks (visual review); keyboard paths of 15.4 work; budgets for search and type switch are met |
+| **M3** | Server + UI core | caller-identity seam in place (WP-59); axum server, embedded UI, screens 1 (projects), 2 (explorer), 4 (quick search), 13 (settings with themes); status bar with live measurements; de/en switch | screens match the mocks (visual review); keyboard paths of 15.4 work; budgets for search and type switch are met; screen 13 (settings) offers the themes Hell, Petrol and Dunkel with live preview, the choice is stored and applied, and every screen passes the visual test in all three themes and the contrast check of 15.3 |
 | **M4** | Visualisation | screens 3 (dependencies), 5 (scan & performance), 6 (usages); jump explorer → usages | screens match the mocks; graph layout < 50 ms; usages depth 2 < 20 ms |
 | **M5** | Languages | full tier: TypeScript/JavaScript, Python, Java, Kotlin, Rust; basic tier for all Tree-sitter grammars (including Go) | corpus accuracy targets met per language |
 | **M6** | Sources + credentials + export | Git sources (clone, branch, update); credential handling per section 12 (keystore, Git helper, OAuth device flow); canary suite; HTML export | security suite green; private repository scanned without the secret ever appearing outside the loan scope |
 | **M7** | Release 1.0 | installers / single executables for Windows, Linux, macOS; user docs; error-code catalogue published | clean install on all three systems; all budgets green |
-| later | Team edition and depth | team server with authentication, `SecretVault` adapter, PostgreSQL, SCIP/Roslyn level 2, WASM plugins, snapshot comparison, PR impact analysis | own ADRs and milestones |
+| later | Team edition and depth | team server in stages T1 to T3 (personal access tokens, then users, login and roles, then PostgreSQL and the vault; ADR 0019), `SecretVault` adapter, SCIP/Roslyn level 2, WASM plugins, snapshot comparison, PR impact analysis | own ADRs and milestones |
 
 ---
 
@@ -964,7 +1024,7 @@ Each milestone ends with a demo and acceptance by the product owner. All criteri
 | ID | Topic | Proposal | Decide by |
 |---|---|---|---|
 | O-01 | Frontend framework | SolidJS (performance, small bundle); React would be the mainstream alternative | before M3 |
-| O-02 | Dark mode values | derive from tokens, add a dark mock | before M3 |
+| O-02 | Dark mode values | decided: three themes Hell, Petrol, Dunkel with values in 15.3 (ADR 0021); mock 13 shows them | closed |
 | O-03 | Target platforms for 1.0 | Windows, Linux, macOS (CI builds all three) | before M1 |
 | O-04 | Repository hosting and licence | GitHub; licence to be chosen (proprietary vs. open source) | before M1 |
 | O-05 | Editor integration for "Open in editor" | VS Code URL scheme first, configurable command line for others | M3 |
@@ -1020,6 +1080,7 @@ This is the starting content of `errors/error-codes.toml`. Descriptions are the 
 | NET-501 | `request_timeout` | A request to an external platform timed out. |
 | NET-502 | `rate_limited` | The external platform rate-limited the request. |
 | NET-601 | `oauth_flow_failed` | The OAuth device flow did not complete. |
+| AUTH-401 | `permission_denied` | The caller lacks the permission this action needs. |
 | API-101 | `request_invalid` | The REST request failed validation. |
 | API-401 | `token_missing_or_invalid` | A state-changing request lacks a valid installation token. |
 | MCP-101 | `tool_arguments_invalid` | MCP tool arguments failed validation. |
@@ -1090,6 +1151,42 @@ This is the starting content of `errors/error-codes.toml`. Descriptions are the 
 - **Graph columns:** callers level 2 | callers level 1 | focus | calls/reads. Counts on cards; probable edges dashed; tests in violet.
 - **Hit list:** kind (call / test / probable), location, code line with the symbol marked, line number; `F8` and `Enter`.
 - **Side panel:** signature, counts (places, files, layers), "impact of a change", note that constants, properties and interfaces work the same, accuracy (certain vs. probable).
+
+### B.7 Sign-in (`Login.dc.html`, team edition)
+
+- **Card** with product name and server name. Primary button "Sign in with" the configured identity provider, divider "or local account", e-mail and password fields, second button.
+- **Note** that local accounts are meant for the first admin and small setups and can be switched off once SSO works.
+
+### B.8 Users and project grants (`Users.dc.html`)
+
+- **Tabs** of the administration: Users, Groups and roles, Access tokens, Audit log, Single sign-on.
+- **User table:** avatar, name and e-mail, global role pill, sign-in source (local / SSO), number of projects, status pill (active · invited · blocked), last activity. Search field and "Invite user".
+- **Side panel** of the selected user: global role, groups, permission to register projects, open sessions, and the grant table (project, role, source: direct or group). Buttons "Reset password", "End sessions", "Block". Note that a project without a grant is invisible and that role changes end open sessions.
+
+### B.9 Groups and roles (`Roles.dc.html`)
+
+- **Role matrix:** permissions (`read`, `read_source`, `scan`, `manage`, `register_project`, `admin`) against Admin (global), Maintainer, Member, Viewer. Note that Viewer sees no source excerpts and that admin access without a grant is audited.
+- **Group cards:** members, SSO claim value, grants per project.
+
+### B.10 Access tokens (`Tokens.dc.html`)
+
+- **Table:** name and prefix (`csk_…`), owner, scope (all projects or one project, read-only pill), expiry, last used, status (active · expired · revoked), "Revoke".
+- **Created token:** shown once with copy button, expiry and the server's maximum lifetime.
+
+### B.11 Audit log (`Audit.dc.html`)
+
+- **Table:** time, who, action, details, result pill (success · conspicuous · failure). Search, filter, export.
+- **Footer note:** hash chain verified up to entry N, retention from the server settings.
+
+### B.12 Single sign-on (`Sso.dc.html`)
+
+- **Provider panel:** name, issuer, client id, client secret (shows only "in keystore"), redirect URI, status, "Test connection".
+- **Group mapping:** claim value to group, note that it is evaluated at every sign-in and never grants admin. Option to switch local password sign-in off.
+
+### B.13 Settings: themes and language (`Themes.dc.html`)
+
+- **Theme cards** (Hell, Petrol, Dunkel) with live miniature preview, name, short description, colour strip and "Select" or "Selected" pill. Option "Follow system setting".
+- **Language** select. Note that theme and language are stored per user.
 
 ---
 

@@ -2,3 +2,4 @@
 # budget key in config/default.toml [budgets] it must stay below. Budgets are in milliseconds.
 # Add an entry together with the benchmark that measures the budgeted interaction.
 [benchmarks]
+"graph_layout/nodes_200" = "graph_layout_ms"

@@ -340,12 +340,14 @@ fn new_symbol(
         .find_map(|word| pack.modifier_kinds.get(*word))
         .copied()
         .unwrap_or(declaration.kind);
+    let kind = pack.kind_in(parent, kind);
+    let visibility = pack.visibility.of(kind, &name, &words, parent);
     Ok(NewSymbol {
         kind,
         name,
         span,
         range: node.start_byte()..end,
-        visibility: pack.visibility.of(kind, &words, parent),
+        visibility,
         is_static: declaration.is_static
             || words
                 .iter()
@@ -362,11 +364,16 @@ fn doc(ctx: &SymbolContext<'_>, nodes: &[Node<'_>]) -> Option<String> {
     let lines: Vec<String> = nodes
         .iter()
         .filter_map(|node| doc_text(ctx.pack, text_of(*node, ctx.source)))
+        .flat_map(|text| {
+            text.lines()
+                .map(|line| line.trim().to_owned())
+                .collect::<Vec<_>>()
+        })
         .collect();
     if lines.is_empty() {
         return None;
     }
-    let text = lines.join(LINE_SEPARATOR);
+    let text = lines.join(LINE_SEPARATOR).trim().to_owned();
     let text = summary(ctx.pack.doc_summary.as_ref(), &text).unwrap_or(text);
     (!text.is_empty()).then_some(text)
 }
@@ -378,7 +385,7 @@ fn doc_text(pack: &LanguagePack, comment: &str) -> Option<String> {
     match &pack.doc_block {
         Some(block) if text.starts_with(block.open.as_str()) => Some(block_text(block, text)),
         Some(_) if pack.doc_prefixes.is_empty() => None,
-        _ => strip_prefix(&pack.doc_prefixes, text).map(|line| line.trim().to_owned()),
+        _ => strip_prefix(&pack.doc_prefixes, text).map(str::to_owned),
     }
 }
 
