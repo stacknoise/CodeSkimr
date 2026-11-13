@@ -248,3 +248,16 @@ pub const LANGUAGE_SHARES: &str = "SELECT language, COUNT(*), COALESCE(SUM(loc),
     WHERE snapshot_id = ?1 GROUP BY language ORDER BY SUM(loc) DESC, language";
 /// Number of types of a snapshot: snapshot.
 pub const TYPE_COUNT: &str = "SELECT COUNT(*) FROM type_summary WHERE snapshot_id = ?1";
+
+/// Namespaces, modules and types of one kind with their member count: snapshot, kind.
+pub const OUTLINE_OF_KIND: &str = "SELECT s.kind, s.id, s.name, s.qualified_name, s.parent_id, \
+    (SELECT COUNT(*) FROM symbols m WHERE m.snapshot_id = s.snapshot_id AND m.parent_id = s.id) \
+    FROM symbols s WHERE s.snapshot_id = ?1 AND s.kind = ?2";
+/// Member table of a symbol: snapshot, symbol, complexity metric.
+pub const MEMBER_ROWS: &str = "SELECT s.id, s.name, s.kind, s.visibility, s.signature, \
+    s.start_line, s.end_line, \
+    (SELECT x.value FROM metrics x WHERE x.snapshot_id = s.snapshot_id AND x.symbol_id = s.id \
+        AND x.kind = ?3), \
+    COALESCE((SELECT u.usages FROM usage_counts u WHERE u.snapshot_id = s.snapshot_id \
+        AND u.symbol_id = s.id), 0) \
+    FROM symbols s WHERE s.snapshot_id = ?1 AND s.parent_id = ?2 ORDER BY s.start_line, s.start_column, s.id";

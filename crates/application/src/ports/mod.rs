@@ -9,6 +9,7 @@ mod analysis;
 mod catalog;
 mod clock;
 mod credentials;
+mod outline;
 mod query;
 mod rescan;
 mod similarity;
@@ -23,6 +24,7 @@ pub use analysis::{
 pub use catalog::{LanguageShare, ProjectCatalog, ProjectOverview};
 pub use clock::Clock;
 pub use credentials::{AuthError, Credential, CredentialStore};
+pub use outline::{CodeOutline, MemberRow, OutlineNode};
 pub use query::{CodeIndex, MemberRef, SearchHit, SymbolDetail, SymbolKey};
 pub use rescan::ProjectScanner;
 pub use similarity::{SimilarHit, SimilarQuery, SimilarityIndex};

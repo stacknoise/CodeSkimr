@@ -123,3 +123,8 @@
         padding: var(--space-16);
     }
 }
+
+.flush {
+    padding: 0;
+    gap: 0;
+}

@@ -76,8 +76,6 @@ export const KEY = {
   down: "ArrowDown",
   up: "ArrowUp",
 } as const;
-/** Elements in which typing must not trigger a shortcut. */
-export const TYPING_TAGS = ["INPUT", "TEXTAREA", "SELECT"] as const;
 
 /** What a drop carried. */
 export const DROP = { text: "text", opaque: "opaque", empty: "empty" } as const;

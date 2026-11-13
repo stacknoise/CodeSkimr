@@ -1,6 +1,8 @@
 import { createSignal, onMount, Show } from "solid-js";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { EXPLORER_ROUTE } from "../../app/consts";
+import { navigate } from "../../app/router";
 import { activeProject, openProject } from "../../shared/project/active";
 import { count } from "./format";
 import { useProjectKeys } from "./keys";
@@ -42,6 +44,12 @@ function Empty() {
   );
 }
 
+/** Makes the project the active one and shows its structure. */
+function openInExplorer(id: number): void {
+  openProject(id);
+  navigate(EXPLORER_ROUTE.path);
+}
+
 /** Screen 1, the project list (blueprint B.1, mock `Main.dc.html`). */
 export function ProjectsScreen() {
   const [source, setSource] = createSignal("");
@@ -52,7 +60,7 @@ export function ProjectsScreen() {
   useProjectKeys({
     newProject: () => input?.focus(),
     rescan: selection.act((id) => void rescanProject(id)),
-    open: selection.act(openProject),
+    open: selection.act(openInExplorer),
     move: selection.move,
   });
   return (
@@ -75,7 +83,7 @@ export function ProjectsScreen() {
           onSelect={selection.setSelected}
           onOpen={(id) => {
             selection.setSelected(id);
-            openProject(id);
+            openInExplorer(id);
           }}
           onRescan={(id) => void rescanProject(id)}
         />

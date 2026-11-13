@@ -1,5 +1,6 @@
 import { For, Match, Show, Switch } from "solid-js";
 import { ConnectionScreen } from "../features/session/ConnectionScreen";
+import { ExplorerScreen } from "../features/explorer/ExplorerScreen";
 import { ProjectsScreen } from "../features/projects/ProjectsScreen";
 import { SettingsScreen } from "../features/settings/SettingsScreen";
 import { t } from "../shared/i18n/i18n";
@@ -10,6 +11,7 @@ import { cx } from "../shared/ui/cx";
 import { Icon } from "../shared/ui/Icon";
 import {
   CURRENT_PAGE,
+  EXPLORER_ROUTE,
   FOOTER_ROUTES,
   LOGO_LETTER,
   STATUS_DOT,
@@ -55,6 +57,20 @@ function StatusText() {
   );
 }
 
+/** The screen of the current path. */
+function Screen() {
+  return (
+    <Switch fallback={<ProjectsScreen />}>
+      <Match when={currentPath() === SETTINGS_ROUTE.path}>
+        <SettingsScreen />
+      </Match>
+      <Match when={currentPath() === EXPLORER_ROUTE.path}>
+        <ExplorerScreen />
+      </Match>
+    </Switch>
+  );
+}
+
 /** The frame of every screen: top bar, rail, main area and status bar (blueprint 15.2). */
 export function App() {
   return (
@@ -75,14 +91,12 @@ export function App() {
           <div class={styles.spacer} />
           <For each={FOOTER_ROUTES}>{(route) => <RailLink route={route} />}</For>
         </nav>
-        <main class={styles.main}>
+        <main class={cx(styles.main, currentPath() === EXPLORER_ROUTE.path && styles.flush)}>
           <Show
             when={sessionState().kind === KIND.connected}
             fallback={<ConnectionScreen state={sessionState()} />}
           >
-            <Show when={currentPath() === SETTINGS_ROUTE.path} fallback={<ProjectsScreen />}>
-              <SettingsScreen />
-            </Show>
+            <Screen />
           </Show>
         </main>
       </div>

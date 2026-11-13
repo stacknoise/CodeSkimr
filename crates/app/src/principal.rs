@@ -11,3 +11,10 @@ use codeskimr_domain::Principal;
 pub const fn resolve() -> Principal {
     Principal::local_owner()
 }
+
+/// A caller without any right, for the tests that check a refusal.
+#[cfg(test)]
+#[must_use]
+pub fn nobody() -> Principal {
+    Principal::limited(codeskimr_domain::PermissionSet::none())
+}

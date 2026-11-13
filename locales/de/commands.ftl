@@ -6,3 +6,7 @@ command-projects-add-title = Projekt hinzufügen
 command-projects-add-description = Registriert einen Ordner oder ein Git-Repository als Projekt und scannt es.
 command-projects-rescan-title = Projekt neu scannen
 command-projects-rescan-description = Scannt ein Projekt erneut; war es schon gescannt, werden nur geänderte Dateien gelesen.
+command-explorer-outline-title = Struktur anzeigen
+command-explorer-outline-description = Listet Schichten, Namensräume und Typen des neuesten Scans auf.
+command-explorer-symbol-title = Symbol anzeigen
+command-explorer-symbol-description = Zeigt einen Typ oder ein Member mit Metriken und Mitgliedern.
