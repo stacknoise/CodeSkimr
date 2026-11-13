@@ -1,11 +1,9 @@
 import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setLanguage } from "../../shared/i18n/i18n";
-import { storeToken } from "../../shared/session/token";
+import { describe, expect, it, vi } from "vitest";
+import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { ProjectsScreen } from "./ProjectsScreen";
 import type { ProjectRow } from "./types";
-
-const fetchMock = vi.fn();
 
 const ROW: ProjectRow = {
   id: 1,
@@ -24,29 +22,7 @@ const ROW: ProjectRow = {
   running: false,
 };
 
-function answer(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), { status });
-}
-
-/** Answers the calls of the screen by command id. */
-function serve(handlers: Record<string, () => Response>) {
-  fetchMock.mockImplementation((path: string) => {
-    const id = path.replace("/api/v1/commands/", "");
-    return Promise.resolve(handlers[id]?.() ?? answer({ code: "API-201" }, 404));
-  });
-}
-
-beforeEach(() => {
-  vi.stubGlobal("fetch", fetchMock);
-  sessionStorage.clear();
-  storeToken("csk_t");
-  setLanguage("en");
-});
-
-afterEach(() => {
-  fetchMock.mockReset();
-  vi.unstubAllGlobals();
-});
+useServerSession();
 
 describe("ProjectsScreen", () => {
   it("says how a first project gets here when there is none", async () => {

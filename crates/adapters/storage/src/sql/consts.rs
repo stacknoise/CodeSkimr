@@ -185,6 +185,26 @@ pub const SEARCH: &str = "SELECT symbol_id, name, qualified_name, kind, path FRO
 /// Layer graph of a snapshot: snapshot.
 pub const EDGES: &str = "SELECT from_layer, to_layer, edge_count, violates_layering, in_cycle \
     FROM layer_graph WHERE snapshot_id = ?1 ORDER BY from_layer, to_layer";
+/// Symbols outside a scope (a symbol and everything it contains) that the scope uses: snapshot,
+/// scope symbol, whether tests count, label of the test kind.
+pub const DEPENDENCIES_OUTGOING: &str = "WITH RECURSIVE scope(id) AS (SELECT ?2 UNION SELECT s.id FROM symbols s \
+    JOIN scope c ON s.parent_id = c.id WHERE s.snapshot_id = ?1) \
+    SELECT t.id, t.qualified_name, t.kind, f.path, COUNT(*) FROM symbol_references r \
+    JOIN symbols t ON t.snapshot_id = r.snapshot_id AND t.id = r.to_symbol \
+    JOIN files f ON f.snapshot_id = t.snapshot_id AND f.id = t.file_id \
+    WHERE r.snapshot_id = ?1 AND r.from_symbol IN (SELECT id FROM scope) \
+    AND r.to_symbol NOT IN (SELECT id FROM scope) AND (?3 OR r.kind <> ?4) \
+    GROUP BY t.id ORDER BY COUNT(*) DESC, t.qualified_name, t.id";
+/// Symbols outside a scope (a symbol and everything it contains) that use the scope: snapshot,
+/// scope symbol, whether tests count, label of the test kind.
+pub const DEPENDENCIES_INCOMING: &str = "WITH RECURSIVE scope(id) AS (SELECT ?2 UNION SELECT s.id FROM symbols s \
+    JOIN scope c ON s.parent_id = c.id WHERE s.snapshot_id = ?1) \
+    SELECT t.id, t.qualified_name, t.kind, f.path, COUNT(*) FROM symbol_references r \
+    JOIN symbols t ON t.snapshot_id = r.snapshot_id AND t.id = r.from_symbol \
+    JOIN files f ON f.snapshot_id = t.snapshot_id AND f.id = t.file_id \
+    WHERE r.snapshot_id = ?1 AND r.to_symbol IN (SELECT id FROM scope) \
+    AND r.from_symbol NOT IN (SELECT id FROM scope) AND (?3 OR r.kind <> ?4) \
+    GROUP BY t.id ORDER BY COUNT(*) DESC, t.qualified_name, t.id";
 /// Summary of one type: snapshot, symbol.
 pub const TYPE_SUMMARY: &str = "SELECT member_count, loc, max_complexity, maintainability \
     FROM type_summary WHERE snapshot_id = ?1 AND symbol_id = ?2";
@@ -228,3 +248,16 @@ pub const LANGUAGE_SHARES: &str = "SELECT language, COUNT(*), COALESCE(SUM(loc),
     WHERE snapshot_id = ?1 GROUP BY language ORDER BY SUM(loc) DESC, language";
 /// Number of types of a snapshot: snapshot.
 pub const TYPE_COUNT: &str = "SELECT COUNT(*) FROM type_summary WHERE snapshot_id = ?1";
+
+/// Namespaces, modules and types of one kind with their member count: snapshot, kind.
+pub const OUTLINE_OF_KIND: &str = "SELECT s.kind, s.id, s.name, s.qualified_name, s.parent_id, \
+    (SELECT COUNT(*) FROM symbols m WHERE m.snapshot_id = s.snapshot_id AND m.parent_id = s.id) \
+    FROM symbols s WHERE s.snapshot_id = ?1 AND s.kind = ?2";
+/// Member table of a symbol: snapshot, symbol, complexity metric.
+pub const MEMBER_ROWS: &str = "SELECT s.id, s.name, s.kind, s.visibility, s.signature, \
+    s.start_line, s.end_line, \
+    (SELECT x.value FROM metrics x WHERE x.snapshot_id = s.snapshot_id AND x.symbol_id = s.id \
+        AND x.kind = ?3), \
+    COALESCE((SELECT u.usages FROM usage_counts u WHERE u.snapshot_id = s.snapshot_id \
+        AND u.symbol_id = s.id), 0) \
+    FROM symbols s WHERE s.snapshot_id = ?1 AND s.parent_id = ?2 ORDER BY s.start_line, s.start_column, s.id";

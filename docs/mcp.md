@@ -1,17 +1,17 @@
-# MCP server (WP-26, WP-36, WP-37)
+# MCP server (WP-26, WP-36, WP-37, issue #109)
 
-Implements the first part of blueprint section 10.4: the stdio server with the three tools of milestone M1 and, since WP-36, the query tools `find_usages` and `impact_of_change` and, since WP-37, the check tools `find_similar_code`, `find_constants` and `check_conventions`. The remaining tools (`get_dependencies`, `rescan`), the resources and the HTTP transport follow in M2. `codeskimr mcp` is wired up in WP-25 (see `docs/cli.md`).
+Implements the first part of blueprint section 10.4: the stdio server with the three tools of milestone M1 and, since WP-36, the query tools `find_usages` and `impact_of_change` and, since WP-37, the check tools `find_similar_code`, `find_constants` and `check_conventions`. Issue #109 adds `get_dependencies` and `rescan`, which completes the tool list of milestone M2. The resources and the HTTP transport follow. `codeskimr mcp` is wired up in WP-25 (see `docs/cli.md`).
 
 ## Structure
 
 - `codeskimr_mcp::Tools` holds the logic, synchronous, behind the ports `ProjectRepository`, `CodeIndex` and `Clock`. It is tested without any protocol.
 - `codeskimr_mcp::McpServer` implements `rmcp::ServerHandler`: tool list, argument parsing, error mapping. Tool calls run on a blocking thread, so a slow query never stalls the protocol loop.
 - `codeskimr_mcp::serve_stdio(server)` serves one client over stdin/stdout. The composition root builds `Tools` (store, clock, `config.mcp`, default project) and `McpServer::new(tools, &Messages::load()?)`.
-- The ports are handed over as one `Ports` value (projects, index, usages, similarity, snippets, checker, clock), so a tool that needs another port adds a field instead of a constructor argument. The port `CodeIndex` (`codeskimr_application::ports`) offers `latest_snapshot`, `search`, `symbol` and `layer_edges`. `codeskimr_storage::SqliteStore` implements it. The crate rule stays: `mcp` never depends on `secrets` or on an adapter.
+- The ports are handed over as one `Ports` value (projects, index, usages, similarity, snippets, checker, clock, scanner), so a tool that needs another port adds a field instead of a constructor argument. The port `CodeIndex` (`codeskimr_application::ports`) offers `latest_snapshot`, `search`, `symbol` and `layer_edges`. `codeskimr_storage::SqliteStore` implements it. The crate rule stays: `mcp` never depends on `secrets` or on an adapter.
 
 ## Tools
 
-All of them are read-only (`readOnlyHint`). Every answer is structured JSON and states the snapshot it is based on (`snapshot.id`, `snapshot.age_seconds`). `project` is optional everywhere and defaults to the project the server was started for.
+All of them are read-only (`readOnlyHint`) except `rescan`, which is announced with `readOnlyHint: false`. Every answer is structured JSON and states the snapshot it is based on (`snapshot.id`, `snapshot.age_seconds`). `project` is optional everywhere and defaults to the project the server was started for.
 
 | Tool | Arguments | Answer |
 |---|---|---|
@@ -19,10 +19,12 @@ All of them are read-only (`readOnlyHint`). Every answer is structured JSON and 
 | `get_symbol` | `symbol` (id or qualified name), `project?` | signature, doc, visibility, lines (one-based), layer, metrics, members |
 | `find_usages` | `symbol`, `direction?`, `depth?`, `include_tests?`, `project?`, `limit?` | `usages` (nearest step first): `depth`, `kind`, `confidence`, `path`, `line` and `column` (one-based), `from` and `to` symbol; `total`, `direction`, `depth` as applied |
 | `impact_of_change` | `symbol`, `project?`, `limit?` | `symbols` a change can reach: `depth`, `layer`, `visibility`, `public_interface`; `layers` with counts; `public_interfaces`; `total` |
+| `get_dependencies` | `symbol` or `layer`, `direction?`, `include_tests?`, `project?`, `limit?` | `target`, `direction`, `dependencies` (most references first): id, qualified name, kind, `path`, `layer`, `count`, `violates_layering`; `layers` with count, `violates_layering`, `in_cycle`; `violations`, `total` |
 | `find_similar_code` | `symbol` or `snippet` + `language`, `min_similarity_percent?`, `project?`, `limit?` | `matches` (most similar first): id, qualified name, kind, `path`, `line`, `end_line` (one-based), `similarity_percent`; `min_similarity_percent` as applied |
 | `find_constants` | `query`, `project?`, `limit?` | `constants`: id, name, qualified name, `path`, `signature` (the declaration as written, `null` if the pack has none) |
 | `check_conventions` | `paths?`, `project?`, `limit?` | `findings` with `CHK` codes, `total`, `files_checked`, `unchecked`, `unmatched`, `not_checked` (see `docs/conventions.md`) |
 | `get_architecture` | `project?` | `layers` with their namespaces, `dependencies` between layers with count, `violates_layering`, `in_cycle` |
+| `rescan` | `project?` | `snapshot` (the new one), `mode` (`incremental`), `files`, `symbols`, `references`, `duration_ms` |
 
 ## Usages and impact
 
@@ -33,6 +35,15 @@ Both tools sit on the `UsageIndex` port (`docs/usages.md`) and share the rules o
 - `confidence` is `certain` or `probable` on every usage. A probable usage is the resolver's best guess (blueprint 9.4); an agent should verify it before relying on it.
 - Usages end at the symbol that contains the occurrence: the usages of a type do not include those of its members.
 - `impact_of_change` always walks `mcp.max_depth` steps and always counts references from tests. It lists the symbols reached, nearest first, with their layer (by namespace, as in `get_symbol`) and `public_interface` (visibility `public`). `layers` and `public_interfaces` count the symbols that are listed, so with a cut result they cover the first `limit` symbols; `total` is the full number.
+
+## Dependencies and rescan
+
+- `get_dependencies` takes exactly one of `symbol` and `layer` (both or neither is `MCP-101` with `params.detail = symbol or layer`). `direction` is `outgoing` (default: what the target uses) or `incoming`.
+- With `symbol` (id or qualified name) the target is the symbol and everything it contains, so a namespace or a type gives the dependencies of the whole unit. References between the members of the unit are not dependencies. `dependencies` lists the symbols on the far side with the number of references (`UsageIndex::dependencies`); references from tests count only with `include_tests`. `layer` of a dependency is the layer that owns its namespace, `null` if none does.
+- `violates_layering` is taken from the layer graph of the snapshot (`get_architecture`): a dependency breaks the layering if the recorded edge between the layer of the target and the layer of the other symbol does, in the direction of the dependency. Dependencies inside one layer, and dependencies of a target or to a symbol that no layer owns, never violate. `layers` adds the dependencies up per other layer and also carries `in_cycle`; `violations` counts the listed dependencies (before the cut) that break the layering.
+- With `layer` (a name from `get_architecture`, otherwise `MCP-101` with `params.detail = layer`) the answer is the recorded layer graph for that layer: `layers` has one entry per other layer, `dependencies` is empty and `include_tests` has no effect.
+- `limit` cuts `dependencies` (or, for a layer, `layers`); `total` is the full number and `notice` (`MCP-501`) says so. `layers` of a symbol answer is always computed from all dependencies.
+- `rescan` runs an incremental scan of the project through the `ProjectScanner` port, implemented by the scanner of the application layer: only files with a changed hash are processed (blueprint 10.4). It needs the permission `scan`, checked before the tool name and the arguments are looked at, like `read` for the others; a caller without it gets `AUTH-401` and nothing is scanned. The answer names the new snapshot and the time the scan took; every other tool answers from that snapshot from then on. A failed scan keeps the code of the failed stage. The blueprint table lists an optional `paths` argument; it is not offered, because an incremental scan already restricts itself to changed files and a path argument would only add a path to validate (S-05). Two scans of the same project at the same time are not coordinated yet.
 
 ## Similar code and constants
 
@@ -65,5 +76,5 @@ Tool descriptions and the server instructions are written for code agents and li
 ## Known limits
 
 - `get_architecture` returns the layers and the measured dependencies. Layers come from the `[[layers]]` list of the configuration (`docs/cli.md`, ADR 0031); without it the list is empty. The allowed directions and the conventions are not part of the project model yet (see `docs/storage.md`, `violates_layering`); they join the answer with the layer rule of `check_conventions` (issue #45). The use case behind `check_conventions` and the tool exist (`docs/conventions.md`, `codeskimr check`); the layer rule joins it with issue #45.
-- Paths from arguments (blueprint S-05): `check_conventions` takes paths, but only to select among the files of the project's own file list; a path is never opened, so `..` or an absolute path selects nothing. `rescan` will have to canonicalise against the registered roots.
+- Paths from arguments (blueprint S-05): `check_conventions` takes paths, but only to select among the files of the project's own file list; a path is never opened, so `..` or an absolute path selects nothing. `rescan` takes no paths, so there is nothing to canonicalise.
 - A qualified name shared by several symbols (overloads) answers with the lowest symbol id; use the id from `search_symbols` to be exact.

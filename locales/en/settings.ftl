@@ -2,6 +2,7 @@
 
 nav-label = Views
 nav-projects = Projects
+nav-explorer = Explorer
 nav-settings = Settings
 settings-title = Settings
 settings-subtitle = Appearance and language

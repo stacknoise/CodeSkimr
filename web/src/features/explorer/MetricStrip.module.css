@@ -1,0 +1,34 @@
+.strip {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    overflow: hidden;
+}
+
+.tile {
+    padding: var(--space-8) var(--space-12);
+    border-right: 1px solid var(--line-soft);
+    border-bottom: 1px solid var(--line-soft);
+}
+
+.value {
+    font: 600 18px var(--font-mono);
+    color: var(--ink);
+}
+
+.label {
+    font-size: 11.5px;
+    color: var(--muted);
+}
+
+.good {
+    color: var(--good);
+}
+.medium {
+    color: var(--warn);
+}
+.poor {
+    color: var(--bad);
+}

@@ -3,7 +3,7 @@
 #[cfg(test)]
 mod common;
 
-use codeskimr_domain::{PermissionSet, Principal};
+use codeskimr_domain::{Permission, PermissionSet, Principal};
 use codeskimr_i18n::Messages;
 use codeskimr_mcp::McpServer;
 use common::tools;
@@ -75,7 +75,7 @@ async fn connected_as(principal: Principal) -> Client {
 }
 
 #[tokio::test]
-async fn lists_exactly_the_eight_read_only_tools_with_schemas() {
+async fn lists_exactly_the_ten_tools_with_schemas_and_only_rescan_writes() {
     let mut client = connected().await;
     let listed = client.call(2, "tools/list", json!({})).await;
     let tools = listed["result"]["tools"].as_array().unwrap();
@@ -88,13 +88,18 @@ async fn lists_exactly_the_eight_read_only_tools_with_schemas() {
             "get_architecture",
             "find_usages",
             "impact_of_change",
+            "get_dependencies",
             "find_similar_code",
             "find_constants",
-            "check_conventions"
+            "check_conventions",
+            "rescan"
         ]
     );
     for tool in tools {
-        assert_eq!(tool["annotations"]["readOnlyHint"], true);
+        assert_eq!(
+            tool["annotations"]["readOnlyHint"],
+            tool["name"] != "rescan"
+        );
         assert_eq!(tool["inputSchema"]["type"], "object");
         assert_ne!(tool["description"].as_str().unwrap(), "");
     }
@@ -137,7 +142,11 @@ async fn bad_arguments_come_back_as_a_tool_error_with_code_and_params() {
 async fn an_unknown_tool_is_a_tool_error_too() {
     let mut client = connected().await;
     let answer = client
-        .call(5, "tools/call", json!({"name": "rescan", "arguments": {}}))
+        .call(
+            5,
+            "tools/call",
+            json!({"name": "rescan_all", "arguments": {}}),
+        )
         .await;
     assert_eq!(answer["result"]["isError"], true);
     assert_eq!(answer["result"]["structuredContent"]["code"], "MCP-101");
@@ -150,6 +159,8 @@ async fn a_denied_caller_gets_the_same_answer_for_bad_arguments_and_unknown_tool
         json!({"name": "search_symbols", "arguments": {"limit": 5}}),
         json!({"name": "search_symbols", "arguments": {"query": "order"}}),
         json!({"name": "rescan", "arguments": {}}),
+        json!({"name": "get_dependencies", "arguments": {}}),
+        json!({"name": "get_dependencies", "arguments": {"symbol": "1"}}),
         json!({"name": "find_usages", "arguments": {"depth": 0}}),
         json!({"name": "find_usages", "arguments": {"symbol": "1"}}),
         json!({"name": "impact_of_change", "arguments": {"limit": 5}}),
@@ -162,4 +173,33 @@ async fn a_denied_caller_gets_the_same_answer_for_bad_arguments_and_unknown_tool
         assert_eq!(report["code"], "AUTH-401");
         assert_eq!(report["params"], json!({}));
     }
+}
+
+#[tokio::test]
+async fn a_caller_who_may_only_read_cannot_rescan_but_can_ask_for_dependencies() {
+    let read_only = Principal::limited(PermissionSet::none().with(Permission::Read));
+    let mut client = connected_as(read_only).await;
+    let denied = client
+        .call(7, "tools/call", json!({"name": "rescan", "arguments": {}}))
+        .await;
+    assert_eq!(denied["result"]["structuredContent"]["code"], "AUTH-401");
+    let allowed = client
+        .call(
+            8,
+            "tools/call",
+            json!({"name": "get_dependencies", "arguments": {"symbol": "1"}}),
+        )
+        .await;
+    assert_ne!(allowed["result"]["isError"], true);
+}
+
+#[tokio::test]
+async fn a_caller_who_may_only_scan_can_rescan() {
+    let scan_only = Principal::limited(PermissionSet::none().with(Permission::Scan));
+    let mut client = connected_as(scan_only).await;
+    let answer = client
+        .call(9, "tools/call", json!({"name": "rescan", "arguments": {}}))
+        .await;
+    assert_ne!(answer["result"]["isError"], true);
+    assert_eq!(answer["result"]["structuredContent"]["snapshot"]["id"], 11);
 }

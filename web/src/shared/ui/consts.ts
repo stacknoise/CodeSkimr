@@ -9,6 +9,9 @@ export const ICON_ROUND = "round";
 /** Paths of the icons of the rail. */
 export const ICON_PATHS = {
   projects: ["M3 7h6l2 2h10v10H3z"],
+  explorer: ["M4 5h7M8 10h8M8 15h8M4 20h7M4 5v15"],
+  collapse: ["M7 15l5-5 5 5", "M7 9l5-5 5 5"],
+  locate: ["M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z", "M12 2v4M12 18v4M2 12h4M18 12h4"],
   refresh: ["M20 11a8 8 0 1 0-2.3 5.7", "M20 4v7h-7"],
   settings: [
     "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",

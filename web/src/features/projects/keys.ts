@@ -1,5 +1,5 @@
-import { onCleanup, onMount } from "solid-js";
-import { KEY, PRESSABLE_TAGS, STEP_DOWN, STEP_UP, TYPING_TAGS } from "./consts";
+import { isTyping, useKeydown } from "../../shared/keys/keydown";
+import { KEY, PRESSABLE_TAGS, STEP_DOWN, STEP_UP } from "./consts";
 
 /** What the keys of the project list do. */
 export interface ProjectKeys {
@@ -16,17 +16,11 @@ function pressable(target: EventTarget | null): boolean {
   );
 }
 
-function typing(target: EventTarget | null): boolean {
-  return (
-    target instanceof HTMLElement && (TYPING_TAGS as readonly string[]).includes(target.tagName)
-  );
-}
-
 /** Registers `N`, `R`, `Enter` and the arrow keys of the project list while the screen is shown
  * (blueprint 15.4). Typing in a field and combinations with Ctrl, Alt or Meta are left alone. */
 export function useProjectKeys(keys: ProjectKeys): void {
   const onKey = (event: KeyboardEvent) => {
-    if (event.ctrlKey || event.altKey || event.metaKey || typing(event.target)) {
+    if (event.ctrlKey || event.altKey || event.metaKey || isTyping(event.target)) {
       return;
     }
     if (event.key === KEY.open && pressable(event.target)) {
@@ -37,8 +31,7 @@ export function useProjectKeys(keys: ProjectKeys): void {
       event.preventDefault();
     }
   };
-  onMount(() => document.addEventListener("keydown", onKey));
-  onCleanup(() => document.removeEventListener("keydown", onKey));
+  useKeydown(onKey);
 }
 
 function dispatch(key: string, keys: ProjectKeys): boolean {
