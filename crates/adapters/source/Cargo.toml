@@ -15,3 +15,11 @@ workspace = true
 codeskimr_application = { path = "../../application" }
 codeskimr_domain = { path = "../../domain" }
 codeskimr_codes = { path = "../../codes" }
+thiserror = { workspace = true }
+blake3 = { workspace = true }
+gix = { workspace = true }
+ignore = { workspace = true }
+notify = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

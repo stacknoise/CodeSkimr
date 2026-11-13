@@ -27,6 +27,11 @@ repository = "https://github.com/stacknoise/CodeSkimr"
 thiserror = "2"
 serde = { version = "1", features = ["derive"] }
 toml = "1"
+blake3 = "1"
+gix = { version = "0.90", default-features = false, features = ["sha1", "blocking-network-client", "blocking-http-transport-reqwest-native-tls", "worktree-mutation"] }
+ignore = "0.4"
+notify = "8"
+tempfile = "3"
 
 # Binding rules from blueprint section 3 and 17.3. Thresholds live in clippy.toml.
 [workspace.lints.rust]
