@@ -14,3 +14,5 @@ command-search-query-title = Symbole suchen
 command-search-query-description = Durchsucht die Namen der Typen und Member des neuesten Scans.
 command-status-info-title = Status anzeigen
 command-status-info-description = Zeigt die Startzeit und den Speicher des Programms.
+command-explorer-source-title = Quelltext anzeigen
+command-explorer-source-description = Zeigt die Zeilen der Deklaration eines Typs oder Members, gelesen aus dem Projektordner.

@@ -28,7 +28,9 @@ pub use outline::{CodeOutline, MemberRow, OutlineNode};
 pub use query::{CodeIndex, MemberRef, SearchHit, SymbolDetail, SymbolKey};
 pub use rescan::ProjectScanner;
 pub use similarity::{SimilarHit, SimilarQuery, SimilarityIndex};
-pub use source::{DiscoveredFile, FetchedSource, FileDiscovery, SourceProvider};
+pub use source::{
+    DiscoveredFile, Excerpt, FetchedSource, FileDiscovery, SourceProvider, SourceText,
+};
 pub use storage::{PreviousIndex, ProjectRepository, SnapshotData, SnapshotStore};
 pub use usages::{
     DependencyEdge, DependencyPage, DependencyQuery, ImpactPage, ImpactedSymbol, SymbolLabel,

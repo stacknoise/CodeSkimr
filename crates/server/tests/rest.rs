@@ -7,6 +7,7 @@ use common::{Call, TOKEN, owner, reader, start};
 use serde_json::json;
 
 const WIPE: &str = "/api/v1/commands/test.wipe";
+const PEEK: &str = "/api/v1/commands/test.peek";
 const ECHO: &str = "/api/v1/commands/test.echo";
 
 #[tokio::test]
@@ -36,6 +37,27 @@ async fn a_command_that_changes_something_needs_the_token() {
     let reply = Call::post(WIPE).token(TOKEN).send(&server).await;
     assert_eq!(reply.status, 200);
     assert_eq!(reply.json(), json!(1));
+}
+
+#[tokio::test]
+async fn a_command_that_returns_source_text_needs_the_token_although_it_only_reads() {
+    let server = start(owner()).await;
+    for call in [Call::post(PEEK), Call::post(PEEK).token("csk_wrong")] {
+        let reply = call.send(&server).await;
+        assert_eq!((reply.status, reply.code().as_str()), (401, "API-401"));
+        assert!(!reply.body.contains("main"));
+    }
+    let reply = Call::post(PEEK).token(TOKEN).send(&server).await;
+    assert_eq!(reply.status, 200);
+    assert_eq!(reply.json(), json!("fn main() {}"));
+}
+
+#[tokio::test]
+async fn a_caller_without_read_source_is_refused_even_with_the_token() {
+    let server = start(reader()).await;
+    let reply = Call::post(PEEK).token(TOKEN).send(&server).await;
+    assert_eq!((reply.status, reply.code().as_str()), (403, "AUTH-401"));
+    assert!(!reply.body.contains("main"));
 }
 
 #[tokio::test]
@@ -72,7 +94,13 @@ async fn listed_ids(principal: Principal) -> Vec<String> {
 async fn the_list_shows_what_the_caller_may_run() {
     assert_eq!(
         listed_ids(owner()).await,
-        ["test.echo", "test.explode", "test.missing", "test.wipe"]
+        [
+            "test.echo",
+            "test.explode",
+            "test.missing",
+            "test.peek",
+            "test.wipe"
+        ]
     );
     assert_eq!(
         listed_ids(reader()).await,

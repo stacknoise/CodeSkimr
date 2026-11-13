@@ -134,7 +134,11 @@ fn crumb(detail: &SymbolDetail) -> Crumb {
 }
 
 impl ExplorerPorts {
-    fn lookup(&self, snapshot: SnapshotId, id: SymbolId) -> Result<SymbolDetail, CodedError> {
+    pub(super) fn lookup(
+        &self,
+        snapshot: SnapshotId,
+        id: SymbolId,
+    ) -> Result<SymbolDetail, CodedError> {
         self.index
             .symbol(snapshot, &SymbolKey::Id(id))?
             .ok_or_else(|| CodedError::new(ErrorCode::SymbolNotFound))

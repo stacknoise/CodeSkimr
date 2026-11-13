@@ -4,6 +4,7 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 export const COMMAND = {
   outline: "explorer.outline",
   symbol: "explorer.symbol",
+  source: "explorer.source",
 } as const;
 
 /** Letter of the badge of a symbol kind, as in the mock. */

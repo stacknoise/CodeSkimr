@@ -8,6 +8,7 @@ mod projects;
 mod rating;
 mod running;
 mod search;
+mod source;
 mod status;
 mod symbol;
 #[cfg(test)]
@@ -21,6 +22,7 @@ use codeskimr_application::events::EventBus;
 use codeskimr_application::registry::Registry;
 use codeskimr_cli::GlobalOptions;
 use codeskimr_server::CommandApi;
+use codeskimr_source::FolderText;
 
 pub(crate) use status::{mark_ready, mark_started};
 
@@ -32,6 +34,7 @@ use explorer::{ExplorerOutline, ExplorerPorts};
 use projects::{AddProject, ListProjects, RescanProject};
 use running::RunningScans;
 use search::{SearchPorts, SearchQuery};
+use source::ExplorerSource;
 use status::StatusInfo;
 use symbol::ExplorerSymbol;
 
@@ -86,6 +89,7 @@ pub fn command_api(
     api.expose::<RescanProject>()?;
     api.expose::<ExplorerOutline>()?;
     api.expose::<ExplorerSymbol>()?;
+    api.expose::<ExplorerSource>()?;
     api.expose::<SearchQuery>()?;
     api.expose::<StatusInfo>()?;
     Ok(api)
@@ -134,10 +138,16 @@ fn register_explorer(
         projects: store.clone(),
         index: store.clone(),
         outline: store,
+        text: Arc::new(FolderText),
         thresholds,
     });
     registry
         .register(ExplorerOutline {
+            ports: Arc::clone(&ports),
+        })
+        .map_err(CodedError::caused_by)?;
+    registry
+        .register(ExplorerSource {
             ports: Arc::clone(&ports),
         })
         .map_err(CodedError::caused_by)?;

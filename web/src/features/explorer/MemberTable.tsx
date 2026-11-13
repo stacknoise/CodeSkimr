@@ -6,7 +6,6 @@ import { cx } from "../../shared/ui/cx";
 import {
   CC_METRIC,
   CHIP,
-  LINE_RANGE_SEPARATOR,
   METHOD_KINDS,
   MISSING,
   PROPERTY_KINDS,
@@ -15,7 +14,7 @@ import {
   type ChipId,
 } from "./consts";
 import { currentMember } from "./explorer";
-import { metricValue } from "./format";
+import { lineRange, metricValue } from "./format";
 import { KindBadge } from "./KindBadge";
 import { tipFor } from "./metrics";
 import { ratingClass } from "./ratingClass";
@@ -43,9 +42,7 @@ function keeps(chip: ChipId, row: MemberRow): boolean {
 }
 
 function lines(row: MemberRow): string {
-  return row.first_line === row.last_line
-    ? String(row.first_line)
-    : `${row.first_line}${LINE_RANGE_SEPARATOR}${row.last_line}`;
+  return lineRange(row.first_line, row.last_line);
 }
 
 function Row(props: { row: MemberRow; onPick: (row: MemberRow) => void }) {

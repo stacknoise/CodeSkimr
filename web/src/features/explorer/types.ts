@@ -81,3 +81,16 @@ export interface SymbolInfo {
   metrics: MetricRow[];
   members: MemberRow[];
 }
+
+/** The output of `explorer.source`: the declaration of one symbol as it is in the project folder. */
+export interface SourceInfo {
+  path: string;
+  /** First line of the declaration, counted from 1. */
+  first_line: number;
+  last_line: number;
+  /** False for a project that is not a folder on this machine. */
+  available: boolean;
+  lines: string[];
+  /** Whether the declaration is longer than `lines`. */
+  truncated: boolean;
+}

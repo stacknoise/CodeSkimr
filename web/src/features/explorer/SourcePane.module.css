@@ -1,0 +1,70 @@
+.pane {
+    flex: 0 1 560px;
+    min-width: 280px;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    border-left: 1px solid var(--line);
+}
+
+.head {
+    height: 40px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    padding: 0 var(--space-12);
+    border-bottom: 1px solid var(--line);
+    font: 12px var(--font-mono);
+    color: var(--muted);
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.path {
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.code {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    padding: 6px 0;
+    font: 12.5px/20px var(--font-mono);
+}
+
+.gutter,
+.text {
+    margin: 0;
+    font: inherit;
+}
+
+.gutter {
+    flex: none;
+    min-width: 44px;
+    padding-right: 14px;
+    text-align: right;
+    color: var(--muted);
+    user-select: none;
+}
+
+.text {
+    flex: 1 0 auto;
+    padding-right: var(--space-12);
+    color: var(--ink);
+}
+
+.text code {
+    font: inherit;
+}
+
+.note {
+    margin: 0;
+    padding: var(--space-12);
+    color: var(--muted);
+    font-size: 12.5px;
+}

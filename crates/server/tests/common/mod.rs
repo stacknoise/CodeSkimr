@@ -27,7 +27,7 @@ const fn descriptor(id: &'static str, permission: Permission) -> CommandDescript
         id: CommandId::new(id),
         description_key: key,
         title_key: key,
-        read_only: matches!(permission, Permission::Read),
+        read_only: matches!(permission, Permission::Read | Permission::ReadSource),
         shortcut: Some("Mod+T"),
         permission,
     }
@@ -43,6 +43,19 @@ impl Command for Echo {
 
     fn execute(&self, request: Request<'_, String>) -> Result<String, CodedError> {
         Ok(request.input.to_uppercase())
+    }
+}
+
+/// A command that hands out source text.
+pub struct Peek;
+
+impl Command for Peek {
+    type Input = ();
+    type Output = String;
+    const DESCRIPTOR: CommandDescriptor = descriptor("test.peek", Permission::ReadSource);
+
+    fn execute(&self, _: Request<'_, ()>) -> Result<String, CodedError> {
+        Ok("fn main() {}".to_owned())
     }
 }
 
@@ -97,6 +110,23 @@ pub async fn start(principal: Principal) -> Running {
     start_with(principal, None, Duration::from_secs(60)).await
 }
 
+/// The commands of the test server.
+fn test_api(wipes: &Arc<AtomicUsize>) -> CommandApi {
+    let mut registry = Registry::new();
+    registry.register(Echo).unwrap();
+    registry.register(Peek).unwrap();
+    registry.register(Wipe(Arc::clone(wipes))).unwrap();
+    registry.register(Missing).unwrap();
+    registry.register(Explode).unwrap();
+    let mut api = CommandApi::new(Arc::new(registry));
+    api.expose::<Echo>().unwrap();
+    api.expose::<Peek>().unwrap();
+    api.expose::<Wipe>().unwrap();
+    api.expose::<Missing>().unwrap();
+    api.expose::<Explode>().unwrap();
+    api
+}
+
 /// Starts a server that serves the UI in `dir`; its launch codes live for `lifetime`.
 pub async fn start_with(
     principal: Principal,
@@ -104,16 +134,7 @@ pub async fn start_with(
     lifetime: Duration,
 ) -> Running {
     let wipes = Arc::new(AtomicUsize::new(0));
-    let mut registry = Registry::new();
-    registry.register(Echo).unwrap();
-    registry.register(Wipe(Arc::clone(&wipes))).unwrap();
-    registry.register(Missing).unwrap();
-    registry.register(Explode).unwrap();
-    let mut api = CommandApi::new(Arc::new(registry));
-    api.expose::<Echo>().unwrap();
-    api.expose::<Wipe>().unwrap();
-    api.expose::<Missing>().unwrap();
-    api.expose::<Explode>().unwrap();
+    let api = test_api(&wipes);
     let events = EventBus::new();
     let server = Server::new(
         api,

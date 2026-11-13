@@ -1,13 +1,11 @@
 import { createSignal } from "solid-js";
-import { ApiError } from "../../shared/api/client";
 import { runCommand } from "../../shared/api/commands";
-import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { COMMAND, GROUP } from "./consts";
+import { failed, type Failure } from "./failure";
 import { groupKey, groupOfKind, memberKey, revealKeys, typeKey } from "./tree";
 import type { Outline, SymbolInfo } from "./types";
 
-/** Why a read failed: a registered code, or `null` if the server could not be reached. */
-export type Failure = { code: ErrorCode | null };
+export type { Failure };
 
 const [outline, setOutline] = createSignal<Outline | null>(null);
 const [outlineFailure, setOutlineFailure] = createSignal<Failure | null>(null);
@@ -57,10 +55,6 @@ export const requestFocus = setPending;
 /** What the filter field holds. */
 export const treeFilter = filter;
 export const setTreeFilter = setFilter;
-
-function failed(error: unknown): Failure {
-  return { code: error instanceof ApiError ? error.code : null };
-}
 
 /** Reads the tree of `project` and forgets everything that was read for another one. */
 export async function loadOutline(project: number): Promise<void> {

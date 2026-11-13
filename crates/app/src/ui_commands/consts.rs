@@ -14,6 +14,17 @@ pub const EXPLORER_OUTLINE: &str = "explorer.outline";
 /// Id of the command that returns one symbol of the explorer.
 pub const EXPLORER_SYMBOL: &str = "explorer.symbol";
 
+/// Id of the command that returns the source of one symbol.
+pub const EXPLORER_SOURCE: &str = "explorer.source";
+/// Title key of `explorer.source`.
+pub const SOURCE_TITLE: &str = i18n::COMMAND_EXPLORER_SOURCE_TITLE;
+/// Description key of `explorer.source`.
+pub const SOURCE_DESCRIPTION: &str = i18n::COMMAND_EXPLORER_SOURCE_DESCRIPTION;
+/// Most lines of one declaration that `explorer.source` returns.
+pub const SOURCE_MAX_LINES: u32 = 400;
+/// Largest file that `explorer.source` reads, in bytes.
+pub const SOURCE_MAX_BYTES: u64 = 4_194_304;
+
 /// Id of the command of the quick search.
 pub const SEARCH_QUERY: &str = "search.query";
 /// Most hits the quick search returns.
