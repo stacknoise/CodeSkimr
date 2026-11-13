@@ -264,6 +264,30 @@ fn help_is_shown_in_the_chosen_language() {
     assert!(String::from_utf8_lossy(&output.stdout).contains("Ordner oder eine Git-URL"));
 }
 
+/// Starts `command` and forwards every line of its output that is JSON, as it arrives.
+#[cfg(test)]
+fn spawn_json_lines(
+    mut command: Command,
+    stdin: Stdio,
+) -> (std::process::Child, mpsc::Receiver<Value>) {
+    let mut child = command
+        .stdin(stdin)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::null())
+        .spawn()
+        .unwrap();
+    let stdout = child.stdout.take().unwrap();
+    let (sender, lines) = mpsc::channel();
+    thread::spawn(move || {
+        for line in BufReader::new(stdout).lines().map_while(Result::ok) {
+            if let Ok(value) = serde_json::from_str::<Value>(&line) {
+                let _ = sender.send(value);
+            }
+        }
+    });
+    (child, lines)
+}
+
 /// A running `codeskimr mcp` process that answers line by line.
 #[cfg(test)]
 struct McpSession {
@@ -274,25 +298,9 @@ struct McpSession {
 #[cfg(test)]
 impl McpSession {
     fn start(workspace: &Workspace) -> Self {
-        let mut child = workspace
-            .command()
-            .arg("mcp")
-            .arg("--project")
-            .arg(workspace.project())
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::null())
-            .spawn()
-            .unwrap();
-        let stdout = child.stdout.take().unwrap();
-        let (sender, answers) = mpsc::channel();
-        thread::spawn(move || {
-            for line in BufReader::new(stdout).lines().map_while(Result::ok) {
-                if let Ok(value) = serde_json::from_str::<Value>(&line) {
-                    let _ = sender.send(value);
-                }
-            }
-        });
+        let mut command = workspace.command();
+        command.arg("mcp").arg("--project").arg(workspace.project());
+        let (child, answers) = spawn_json_lines(command, Stdio::piped());
         Self { child, answers }
     }
 
@@ -414,23 +422,11 @@ struct WatchSession {
 #[cfg(test)]
 impl WatchSession {
     fn start(workspace: &Workspace) -> Self {
-        let mut child = workspace
-            .command()
+        let mut command = workspace.command();
+        command
             .args(["scan", "--watch", "--json"])
-            .arg(workspace.project())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::null())
-            .spawn()
-            .unwrap();
-        let stdout = child.stdout.take().unwrap();
-        let (sender, summaries) = mpsc::channel();
-        thread::spawn(move || {
-            for line in BufReader::new(stdout).lines().map_while(Result::ok) {
-                if let Ok(value) = serde_json::from_str::<Value>(&line) {
-                    let _ = sender.send(value);
-                }
-            }
-        });
+            .arg(workspace.project());
+        let (child, summaries) = spawn_json_lines(command, Stdio::null());
         Self { child, summaries }
     }
 
