@@ -93,6 +93,5 @@ console.log(
     "document scroll height",
     await page.evaluate(() => document.documentElement.scrollHeight),
 );
-if (process.env.M4_KEEP) await new Promise(() => {});
 server.stop();
 await browser.close();
