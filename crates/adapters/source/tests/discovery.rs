@@ -121,12 +121,75 @@ fn missing_folder_is_reported() -> TestResult {
 }
 
 #[test]
-fn a_cancelled_walk_returns_without_files() -> TestResult {
+fn a_cancelled_walk_returns_the_partial_list_as_documented() -> TestResult {
     let dir = tempfile::tempdir()?;
     write(dir.path(), "a.rs", "fn a() {}")?;
     let cancel = CancelToken::new();
     cancel.cancel();
     let files = discovery(u64::MAX)?.discover(&folder(dir.path())?, &[], &cancel)?;
     assert_eq!(files, Vec::new());
+    Ok(())
+}
+
+#[test]
+fn scans_hidden_files_but_never_the_git_folder() -> TestResult {
+    let dir = tempfile::tempdir()?;
+    write(dir.path(), ".hidden/secret.rs", "fn a() {}")?;
+    write(dir.path(), ".git/hooks/x.rs", "fn b() {}")?;
+    let files = discovery(u64::MAX)?.discover(&folder(dir.path())?, &[], &CancelToken::new())?;
+    assert_eq!(paths(&files), [".hidden/secret.rs"]);
+    Ok(())
+}
+
+#[test]
+fn ignore_files_of_parent_folders_do_not_count() -> TestResult {
+    let dir = tempfile::tempdir()?;
+    write(dir.path(), ".gitignore", "*.rs\n")?;
+    write(dir.path(), "project/code.rs", "fn a() {}")?;
+    let root = dir.path().join("project");
+    let files = discovery(u64::MAX)?.discover(&folder(&root)?, &[], &CancelToken::new())?;
+    assert_eq!(paths(&files), ["code.rs"]);
+    Ok(())
+}
+
+#[test]
+fn files_without_a_known_language_do_not_count_against_the_limit() -> TestResult {
+    let dir = tempfile::tempdir()?;
+    write(dir.path(), "big.bin", &"x".repeat(1_000))?;
+    write(dir.path(), "small.rs", "fn a() {}")?;
+    let files = discovery(100)?.discover(&folder(dir.path())?, &[], &CancelToken::new())?;
+    assert_eq!(paths(&files), ["small.rs"]);
+    Ok(())
+}
+
+#[test]
+fn a_changed_language_marks_the_file_changed() -> TestResult {
+    let dir = tempfile::tempdir()?;
+    write(dir.path(), "same.rs", "fn a() {}")?;
+    let first = discovery(u64::MAX)?.discover(&folder(dir.path())?, &[], &CancelToken::new())?;
+    let mut previous: Vec<SourceFile> = first.iter().map(stored).collect();
+    previous[0].language = codeskimr_domain::LanguageId::new("other")?;
+    let second =
+        discovery(u64::MAX)?.discover(&folder(dir.path())?, &previous, &CancelToken::new())?;
+    assert!(second[0].changed);
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
+fn an_unreadable_file_fails_the_run() -> TestResult {
+    use std::os::unix::fs::PermissionsExt;
+    let dir = tempfile::tempdir()?;
+    write(dir.path(), "locked.rs", "fn a() {}")?;
+    let locked = dir.path().join("locked.rs");
+    std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o000))?;
+    if std::fs::read(&locked).is_ok() {
+        // Running with rights that ignore file modes (for example as root): nothing to test.
+        return Ok(());
+    }
+    let error = discovery(u64::MAX)?
+        .discover(&folder(dir.path())?, &[], &CancelToken::new())
+        .unwrap_err();
+    assert_eq!(error.code(), ErrorCode::SourcePathNotFound);
     Ok(())
 }

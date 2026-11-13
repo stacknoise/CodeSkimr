@@ -1,12 +1,13 @@
 //! Git sources: shallow clone of one branch into a cache folder (blueprint section 7, "Fetch").
 //!
-//! An update clones the branch again next to the old copy and swaps the two, so a failed or
-//! cancelled update never damages the copy that exists.
+//! An update clones the branch again into a private work folder and then swaps it in: the old copy
+//! is parked, the new one is moved into place, and only then the old one is deleted. If anything
+//! fails or the scan is cancelled, the old copy is back in place and the work folder is removed.
 
 use std::fs;
 use std::num::NonZeroU32;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
 
 use codeskimr_application::cancel::CancelToken;
@@ -14,10 +15,13 @@ use codeskimr_application::ports::FetchedSource;
 use codeskimr_domain::{BranchName, CommitHash, FolderPath, GitUrl};
 
 use crate::consts::{
-    AUTH_FAILURE_HINTS, BRANCH_REF_PREFIX, CANCEL_POLL_MS, MISSING_BRANCH_HINTS,
-    SHALLOW_CLONE_DEPTH, STAGING_SUFFIX,
+    AUTH_FAILURE_HINTS, BRANCH_REF_PREFIX, CANCEL_POLL_MS, CANCELLED_DETAIL, MISSING_BRANCH_HINT,
+    SHALLOW_CLONE_DEPTH, WORK_PREFIX, WORK_SEPARATOR,
 };
 use crate::error::{SourceError, error_chain_text};
+
+/// Counts work folders of this process, so concurrent fetches never share one.
+static WORK_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 /// Clones Git repositories below `cache_root`, one folder per URL and branch.
 #[derive(Debug, Clone)]
@@ -36,27 +40,34 @@ impl GitCache {
     ///
     /// # Errors
     /// [`SourceError::BranchNotFound`], [`SourceError::AuthRequired`] or
-    /// [`SourceError::GitFetchFailed`].
+    /// [`SourceError::GitFetchFailed`] (also when `cancel` was raised).
     pub fn fetch(
         &self,
         url: &GitUrl,
         branch: &BranchName,
         cancel: &CancelToken,
     ) -> Result<FetchedSource, SourceError> {
-        let target = self.cache_root.join(folder_name(url, branch));
-        let staging = staging_path(&target);
+        if cancel.is_cancelled() {
+            return Err(cancelled());
+        }
         fs::create_dir_all(&self.cache_root).map_err(|error| SourceError::git_failed(&error))?;
-        remove_if_present(&staging)?;
-        clone_polling(url, branch, &staging, cancel)?;
-        let commit = head_commit(&staging)?;
-        remove_if_present(&target)?;
-        fs::rename(&staging, &target).map_err(|error| SourceError::git_failed(&error))?;
+        let target = self.cache_root.join(folder_name(url, branch));
+        let work = WorkFolder::new(&self.cache_root);
+        clone_polling(url, branch, &work.fresh, cancel)?;
+        let commit = head_commit(&work.fresh)?;
+        work.swap_into(&target)?;
         let root = FolderPath::new(target.to_string_lossy().into_owned())
             .map_err(|error| SourceError::git_failed(&error))?;
         Ok(FetchedSource {
             root,
             commit: Some(commit),
         })
+    }
+}
+
+fn cancelled() -> SourceError {
+    SourceError::GitFetchFailed {
+        detail: CANCELLED_DETAIL.to_owned(),
     }
 }
 
@@ -69,17 +80,49 @@ fn folder_name(url: &GitUrl, branch: &BranchName) -> String {
     hasher.finalize().to_hex().to_string()
 }
 
-fn staging_path(target: &Path) -> PathBuf {
-    let mut name = target.as_os_str().to_owned();
-    name.push(STAGING_SUFFIX);
-    PathBuf::from(name)
+/// The private folders of one fetch. Dropping it removes whatever is left in them.
+struct WorkFolder {
+    /// Where the new clone is prepared.
+    fresh: PathBuf,
+    /// Where the old copy is parked during the swap.
+    parked: PathBuf,
 }
 
-fn remove_if_present(path: &Path) -> Result<(), SourceError> {
-    match fs::remove_dir_all(path) {
-        Ok(()) => Ok(()),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(error) => Err(SourceError::git_failed(&error)),
+impl WorkFolder {
+    fn new(cache_root: &Path) -> Self {
+        let id = format!(
+            "{WORK_PREFIX}{}{WORK_SEPARATOR}{}",
+            std::process::id(),
+            WORK_COUNTER.fetch_add(1, Ordering::Relaxed)
+        );
+        Self {
+            fresh: cache_root.join(&id),
+            parked: cache_root.join(format!("{id}{WORK_SEPARATOR}{WORK_PREFIX}")),
+        }
+    }
+
+    /// Replaces `target` by the new clone; on failure the old copy is restored.
+    fn swap_into(&self, target: &Path) -> Result<(), SourceError> {
+        let had_old = target.exists();
+        if had_old {
+            fs::rename(target, &self.parked).map_err(|error| SourceError::git_failed(&error))?;
+        }
+        if let Err(error) = fs::rename(&self.fresh, target) {
+            if had_old {
+                // Best effort: the old copy is the only valid state left.
+                let _ = fs::rename(&self.parked, target);
+            }
+            return Err(SourceError::git_failed(&error));
+        }
+        Ok(())
+    }
+}
+
+impl Drop for WorkFolder {
+    fn drop(&mut self) {
+        // Leftovers of a failed fetch; nothing useful can be done if the removal fails.
+        let _ = fs::remove_dir_all(&self.fresh);
+        let _ = fs::remove_dir_all(&self.parked);
     }
 }
 
@@ -135,7 +178,7 @@ fn classify_failure(error: &dyn std::error::Error, branch: &BranchName) -> Sourc
     let text = error_chain_text(error).to_lowercase();
     if AUTH_FAILURE_HINTS.iter().any(|hint| text.contains(hint)) {
         SourceError::AuthRequired
-    } else if MISSING_BRANCH_HINTS.iter().any(|hint| text.contains(hint)) {
+    } else if text.contains(MISSING_BRANCH_HINT) {
         SourceError::BranchNotFound {
             branch: branch.clone(),
         }

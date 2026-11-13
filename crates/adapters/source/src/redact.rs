@@ -45,7 +45,7 @@ mod tests {
     }
 
     #[test]
-    fn leaves_plain_urls_and_text_alone() {
+    fn keeps_hosts_and_text_and_strips_user_only_urls() {
         let text = "see https://host.example/a@b and ssh://git@host/x? no";
         assert_eq!(
             redact_credentials(text),

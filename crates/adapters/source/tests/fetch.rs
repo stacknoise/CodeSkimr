@@ -30,6 +30,23 @@ fn git_source(url: &GitUrl, branch: &str) -> TestResult<ProjectSource> {
     })
 }
 
+/// A local origin repository, an empty cache and the Git source that points at the origin.
+struct Fixture {
+    remote: tempfile::TempDir,
+    cache: tempfile::TempDir,
+    source: ProjectSource,
+}
+
+fn fixture() -> TestResult<Fixture> {
+    let remote = tempfile::tempdir()?;
+    let url = origin(remote.path())?;
+    Ok(Fixture {
+        source: git_source(&url, "main")?,
+        remote,
+        cache: tempfile::tempdir()?,
+    })
+}
+
 #[test]
 fn a_folder_source_is_used_in_place() -> TestResult {
     let dir = tempfile::tempdir()?;
@@ -88,20 +105,57 @@ fn a_missing_branch_is_reported() -> TestResult {
 
 #[test]
 fn an_unreachable_remote_is_a_fetch_failure_and_keeps_the_old_copy() -> TestResult {
-    let remote = tempfile::tempdir()?;
-    let cache = tempfile::tempdir()?;
-    let url = origin(remote.path())?;
-    let source = git_source(&url, "main")?;
+    let Fixture {
+        remote,
+        cache,
+        source,
+    } = fixture()?;
     let first = fetcher(cache.path()).fetch(&source, &CancelToken::new())?;
     drop(remote);
     let error = fetcher(cache.path())
         .fetch(&source, &CancelToken::new())
         .unwrap_err();
     assert_eq!(error.code(), ErrorCode::GitFetchFailed);
-    assert!(
-        std::path::Path::new(first.root.as_str())
-            .join("lib.rs")
-            .exists()
-    );
+    assert_eq!(entries(cache.path())?, 1);
+    assert!(Path::new(first.root.as_str()).join("lib.rs").exists());
+    Ok(())
+}
+
+fn entries(dir: &Path) -> TestResult<usize> {
+    Ok(std::fs::read_dir(dir)?.count())
+}
+
+#[test]
+fn a_cancelled_fetch_does_not_touch_the_old_copy() -> TestResult {
+    let Fixture {
+        remote: _remote,
+        cache,
+        source,
+    } = fixture()?;
+    let first = fetcher(cache.path()).fetch(&source, &CancelToken::new())?;
+    let cancel = CancelToken::new();
+    cancel.cancel();
+    assert!(fetcher(cache.path()).fetch(&source, &cancel).is_err());
+    assert_eq!(entries(cache.path())?, 1);
+    assert!(Path::new(first.root.as_str()).join("lib.rs").exists());
+    Ok(())
+}
+
+#[test]
+fn credentials_in_a_url_never_show_up_in_a_failure() -> TestResult {
+    const CANARY: &str = "CANARY-7c1f9e";
+    let cache = tempfile::tempdir()?;
+    let url = GitUrl::new(format!("https://user:{CANARY}@127.0.0.1:1/repo.git"))?;
+    let error = fetcher(cache.path())
+        .fetch(&git_source(&url, "main")?, &CancelToken::new())
+        .unwrap_err();
+    let mut texts = vec![error.to_string(), format!("{error:?}")];
+    let mut next = std::error::Error::source(&error);
+    while let Some(inner) = next {
+        texts.push(inner.to_string());
+        texts.push(format!("{inner:?}"));
+        next = inner.source();
+    }
+    assert!(texts.iter().all(|text| !text.contains(CANARY)), "{texts:?}");
     Ok(())
 }

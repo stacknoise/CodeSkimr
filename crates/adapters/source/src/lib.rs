@@ -24,4 +24,4 @@ pub use fetcher::SourceFetcher;
 pub use git::GitCache;
 pub use languages::LanguageMap;
 pub use redact::redact_credentials;
-pub use watcher::{WatchConfig, WatchHandle, watch};
+pub use watcher::{WatchBatch, WatchConfig, WatchHandle, watch};
