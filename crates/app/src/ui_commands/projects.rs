@@ -191,6 +191,9 @@ pub struct AddInput {
     pub source: String,
     /// Branch of a Git source.
     pub branch: Option<String>,
+    /// Name of the stored credential a Git source logs in with (`credentials.set`).
+    #[serde(default)]
+    pub credential: Option<String>,
 }
 
 /// Registers a folder or a Git repository as a project and scans it.
@@ -215,6 +218,10 @@ impl Command for AddProject {
         access::require(request.principal, Permission::Scan)?;
         let text = request.input.source.trim();
         let spec = classify(text, request.input.branch.as_deref())?;
+        let spec = match request.input.credential.as_deref() {
+            Some(name) => spec.with_credential(name)?,
+            None => spec,
+        };
         if matches!(spec.source, ProjectSource::Folder(_)) && !Path::new(text).is_absolute() {
             return Err(SourceError::NotASource.into());
         }
@@ -225,7 +232,7 @@ impl Command for AddProject {
             spec,
             &context.global,
             &context.locations,
-            context.events.clone(),
+            (context.events.clone(), &context.secrets),
         )?;
         drop(registering);
         let id = session.project().id;
@@ -274,7 +281,7 @@ impl Command for RescanProject {
             id,
             &context.global,
             &context.locations,
-            context.events.clone(),
+            (context.events.clone(), &context.secrets),
         )?;
         let _scanning = context.running.start(id)?;
         let mode = if scanned_before {

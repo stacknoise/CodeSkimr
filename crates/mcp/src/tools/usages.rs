@@ -46,6 +46,8 @@ struct Usage {
     kind: &'static str,
     /// `certain` or `probable`; a probable usage is the resolver's best guess.
     confidence: &'static str,
+    /// `true` only if level 2 (an index of the language's own tooling) produced the usage.
+    verified: bool,
     path: String,
     line: u32,
     column: u32,
@@ -59,6 +61,7 @@ fn usage(entry: &UsageEntry) -> Usage {
         depth: entry.depth,
         kind: entry.reference.kind.label(),
         confidence: entry.reference.confidence.label(),
+        verified: entry.reference.verified,
         path: entry.path.as_str().to_owned(),
         line: start.line + LINE_OFFSET,
         column: start.column + COLUMN_OFFSET,
@@ -75,6 +78,12 @@ struct UsagesAnswer {
     depth: u32,
     include_tests: bool,
     total: usize,
+    /// Of the listed usages, those that level 2 verified.
+    verified: usize,
+    /// Of the listed usages, those that only level 1 found; they may be wrong or incomplete.
+    unchecked: usize,
+    /// `true` if any listed usage is unchecked: the answer is preliminary.
+    preliminary: bool,
     usages: Vec<Usage>,
     notice: Option<CodeReport>,
 }
@@ -127,6 +136,8 @@ struct Affected {
     visibility: Option<&'static str>,
     /// Whether the symbol is public and so part of an interface others may build on.
     public_interface: bool,
+    /// `true` only if every reference on the way to the symbol is verified by level 2.
+    verified: bool,
     layer: Option<String>,
 }
 
@@ -139,6 +150,7 @@ fn affected(project: &Project, symbol: &ImpactedSymbol) -> Affected {
         path: symbol.path.as_str().to_owned(),
         visibility: symbol.visibility.map(Visibility::label),
         public_interface: symbol.visibility == Some(Visibility::Public),
+        verified: symbol.verified,
         layer: layer_of(project, &symbol.label.qualified_name),
     }
 }
@@ -173,6 +185,12 @@ struct ImpactAnswer {
     /// Layers of the listed symbols, with the number of symbols in each.
     layers: Vec<LayerCount>,
     public_interfaces: usize,
+    /// Of the listed symbols, those that only verified references lead to.
+    verified: usize,
+    /// Of the listed symbols, those that at least one unchecked reference leads to.
+    unchecked: usize,
+    /// `true` if any listed symbol is unchecked: the analysis is preliminary.
+    preliminary: bool,
     symbols: Vec<Affected>,
     notice: Option<CodeReport>,
 }
@@ -208,6 +226,9 @@ impl Tools {
             page.total,
             depth.clamped.then_some(depth.value),
         );
+        let mut usages: Vec<Usage> = page.entries.iter().map(usage).collect();
+        usages.sort_by_key(|found| (!found.verified, found.depth));
+        let verified = usages.iter().filter(|found| found.verified).count();
         to_json(&UsagesAnswer {
             snapshot: scope.info,
             symbol: place_of(&found.symbol),
@@ -215,7 +236,10 @@ impl Tools {
             depth: depth.value,
             include_tests: query.include_tests,
             total: page.total,
-            usages: page.entries.iter().map(usage).collect(),
+            verified,
+            unchecked: usages.len() - verified,
+            preliminary: verified < usages.len(),
+            usages,
             notice,
         })
     }
@@ -249,6 +273,9 @@ impl Tools {
             .iter()
             .map(|symbol| affected(&scope.project, symbol))
             .collect();
+        let mut symbols = symbols;
+        symbols.sort_by_key(|symbol| (!symbol.verified, symbol.depth));
+        let verified = symbols.iter().filter(|symbol| symbol.verified).count();
         let notice = cut_notice(limit.value, limit.clamped, symbols.len(), page.total, None);
         to_json(&ImpactAnswer {
             snapshot: scope.info,
@@ -257,6 +284,9 @@ impl Tools {
             total: page.total,
             layers: count_layers(&symbols),
             public_interfaces: symbols.iter().filter(|s| s.public_interface).count(),
+            verified,
+            unchecked: symbols.len() - verified,
+            preliminary: verified < symbols.len(),
             symbols,
             notice,
         })

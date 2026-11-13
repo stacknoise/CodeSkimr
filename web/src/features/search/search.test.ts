@@ -1,10 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { UI_COMMANDS } from "./commands";
 import { FILTER } from "./consts";
 import { buildEntries, listRows } from "./entries";
-import { moveChoice, nextChip } from "./keys";
+import { moveChoice, nextChip, onSearchKey } from "./keys";
 import { parseQuery, splitMatch } from "./parse";
 import type { Hit } from "./types";
 
@@ -88,5 +88,32 @@ describe("the keys", () => {
   it("changes the chip with Tab and wraps around", () => {
     expect(nextChip(FILTER.all, 1)).toBe(FILTER.types);
     expect(nextChip(FILTER.all, -1)).toBe(FILTER.commands);
+  });
+
+  it("opens in the editor with Alt+Enter and only opens with a plain Enter", () => {
+    const entries = buildEntries(HITS, UI_COMMANDS, FILTER.all, "a");
+    const press = (init: KeyboardEventInit) => {
+      const actions = {
+        close: vi.fn(),
+        choose: vi.fn(),
+        activate: vi.fn(),
+        chip: vi.fn(),
+        copy: vi.fn(),
+        editor: vi.fn(),
+      };
+      const event = new KeyboardEvent("keydown", { key: "Enter", cancelable: true, ...init });
+      onSearchKey(event, entries, 0, actions, false);
+      return { actions, event };
+    };
+    const alt = press({ altKey: true });
+    expect(alt.actions.editor).toHaveBeenCalledWith(entries[0]);
+    expect(alt.actions.activate).not.toHaveBeenCalled();
+    expect(alt.event.defaultPrevented).toBe(true);
+    const plain = press({});
+    expect(plain.actions.activate).toHaveBeenCalledWith(entries[0]);
+    expect(plain.actions.editor).not.toHaveBeenCalled();
+    const both = press({ altKey: true, ctrlKey: true });
+    expect(both.actions.editor).not.toHaveBeenCalled();
+    expect(both.actions.activate).not.toHaveBeenCalled();
   });
 });

@@ -117,7 +117,14 @@ fn the_running_app_answers_mcp_at_slash_mcp_with_the_token_only() {
     installation_token::load_or_create(&store).unwrap();
     let token = installation_token::stored_token(&store);
     let mut parts = bare_parts(test_ui());
-    parts.mcp = Some(http_service(&config, &locations, parts.events.clone()).unwrap());
+    parts.mcp = Some(
+        http_service(
+            &config,
+            &locations,
+            (parts.events.clone(), &crate::memory_keystore::secrets()),
+        )
+        .unwrap(),
+    );
     let (stop, stopped) = oneshot::channel::<()>();
     let (found, url) = channel::<String>();
     let requests = std::thread::spawn(move || {

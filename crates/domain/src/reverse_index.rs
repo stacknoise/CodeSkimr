@@ -47,12 +47,17 @@ pub struct Reached {
     pub symbol: SymbolId,
     /// Step of the walk, starting at one.
     pub depth: u32,
+    /// Whether every reference on the way to the symbol is verified by level 2. One unchecked
+    /// step makes the whole path unchecked (ADR 0033).
+    pub verified: bool,
 }
 
 /// The references of one snapshot, indexed by both ends.
 #[derive(Debug, Clone, Default)]
 pub struct ReverseIndex {
     references: Vec<Reference>,
+    /// Whether any reference is verified. If none is, no path is, and a walk skips the check.
+    any_verified: bool,
     incoming: HashMap<SymbolId, Vec<usize>>,
     outgoing: HashMap<SymbolId, Vec<usize>>,
 }
@@ -71,6 +76,7 @@ impl ReverseIndex {
             outgoing.entry(reference.from).or_default().push(position);
         }
         Self {
+            any_verified: all.iter().any(|reference| reference.verified),
             references: all,
             incoming,
             outgoing,
@@ -106,11 +112,21 @@ impl ReverseIndex {
     }
 
     /// The symbols a walk reaches, nearest first, each once, without the start symbol. With
-    /// `Direction::Incoming` this is everything a change of the start symbol can affect.
+    /// `Direction::Incoming` this is everything a change of the start symbol can affect. A symbol
+    /// counts as verified if one path of verified references reaches it in the nearest step.
     #[must_use]
     pub fn reached(&self, query: &UsageQuery) -> Vec<Reached> {
         let mut found = Vec::new();
-        self.walk(query, |_, reached| found.extend(reached));
+        if !self.any_verified {
+            self.walk(query, |_, reached| found.extend(reached));
+            return found;
+        }
+        let mut usages = Vec::new();
+        self.walk(query, |usage, reached| {
+            usages.push(usage);
+            found.extend(reached);
+        });
+        mark_verified(query, &usages, &mut found);
         found
     }
 
@@ -146,7 +162,11 @@ impl ReverseIndex {
             .filter(|reference| query.include_tests || reference.kind != ReferenceKind::Test);
         for &reference in candidates {
             let far = far_end(&reference, query.direction);
-            let reached = seen.insert(far).then_some(Reached { symbol: far, depth });
+            let reached = seen.insert(far).then_some(Reached {
+                symbol: far,
+                depth,
+                verified: false,
+            });
             if reached.is_some() {
                 next.push(far);
             }
@@ -179,5 +199,34 @@ const fn far_end(reference: &Reference, direction: Direction) -> SymbolId {
     match direction {
         Direction::Incoming => reference.from,
         Direction::Outgoing => reference.to,
+    }
+}
+
+/// Sets `verified` of every reached symbol: true if a path of verified references leads to it
+/// from the start symbol in the step that reached it first. `usages` come in the order of the
+/// steps, so the symbols of the step before are final when a step is read.
+fn mark_verified(query: &UsageQuery, usages: &[Usage], found: &mut [Reached]) {
+    let mut verified: HashMap<SymbolId, bool> = HashMap::from([(query.symbol, true)]);
+    let depth_of: HashMap<SymbolId, u32> = found.iter().map(|r| (r.symbol, r.depth)).collect();
+    for usage in usages {
+        let reference = &usage.reference;
+        let far = far_end(reference, query.direction);
+        if depth_of.get(&far) != Some(&usage.depth) {
+            continue;
+        }
+        let near = near_end(reference, query.direction);
+        let path = verified.get(&near).copied().unwrap_or(false) && reference.verified;
+        *verified.entry(far).or_insert(false) |= path;
+    }
+    for reached in found {
+        reached.verified = verified.get(&reached.symbol).copied().unwrap_or(false);
+    }
+}
+
+/// The end of a reference that lies at the start of the step.
+const fn near_end(reference: &Reference, direction: Direction) -> SymbolId {
+    match direction {
+        Direction::Incoming => reference.to,
+        Direction::Outgoing => reference.from,
     }
 }

@@ -16,6 +16,7 @@ struct ReferenceRow {
     span: SpanColumns,
     kind: String,
     confidence: String,
+    verified: bool,
 }
 
 fn read_reference(cols: &Cols<'_>) -> rusqlite::Result<ReferenceRow> {
@@ -27,6 +28,7 @@ fn read_reference(cols: &Cols<'_>) -> rusqlite::Result<ReferenceRow> {
         span: SpanColumns::read(cols)?,
         kind: cols.take()?,
         confidence: cols.take()?,
+        verified: cols.take()?,
     })
 }
 
@@ -39,6 +41,7 @@ fn decode_reference(row: &ReferenceRow) -> StorageResult<Reference> {
         span: row.span.span()?,
         kind: label_from::<ReferenceKind>(&row.kind)?,
         confidence: label_from::<Confidence>(&row.confidence)?,
+        verified: row.verified,
     })
 }
 

@@ -38,6 +38,7 @@ fn reference(id: usize, random: &mut Lcg) -> Option<Reference> {
         span: Span::new(position, position).ok()?,
         kind: ReferenceKind::Call,
         confidence: Confidence::Certain,
+        verified: false,
     })
 }
 

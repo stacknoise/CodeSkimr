@@ -29,6 +29,16 @@ Numbers over all drawn symbols: precision = usages of ours that the tool confirm
 
 ## Results
 
+After the reversal of the ambiguity rule (ADR 0033, 150 symbols, seed 1, 2026-11-13): level 1 keeps every match and marks it unchecked.
+
+| Language | exact | precision | recall |
+|---|---|---|---|
+| Python | 32.0 % | 32.3 % | 81.1 % |
+| TypeScript | 21.3 % | 27.7 % | 60.5 % |
+
+Recall is back at the level before PR #133 (Python 80.6 %, TypeScript 60.5 %); precision is back there too, which is why results are counted apart as unchecked.
+
+
 150 symbols, seed 1, before and after PR #133 (2026-11-13). The reading and the follow-up work are in #145.
 
 | Language | exact | precision | recall |

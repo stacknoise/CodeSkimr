@@ -75,4 +75,7 @@ pub struct Reference {
     pub kind: ReferenceKind,
     /// Confidence of the resolution.
     pub confidence: Confidence,
+    /// Whether level 2 (an index from the language's own tooling) produced the reference. Level 1
+    /// never does, so its references are unchecked (ADR 0033).
+    pub verified: bool,
 }

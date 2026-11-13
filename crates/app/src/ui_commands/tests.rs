@@ -22,6 +22,7 @@ use codeskimr_storage::SqliteStore;
 use super::command_api;
 use crate::locations::Locations;
 use crate::principal;
+use crate::wiring::Secrets;
 
 const SOURCE: &str = "namespace Demo;\n\npublic class Calculator\n{\n    public int Add(int a, int b) { return a + b; }\n}\n";
 
@@ -29,6 +30,7 @@ pub(super) struct Fixture {
     pub(super) root: TempDir,
     pub(super) locations: Locations,
     pub(super) api: Arc<CommandApi>,
+    pub(super) secrets: Arc<Secrets>,
 }
 
 impl Fixture {
@@ -56,11 +58,13 @@ impl Fixture {
             overrides: vec![("ui.dir".to_owned(), format!("'{}'", ui.display()))],
             ..GlobalOptions::default()
         };
-        let api = command_api(&global, &locations, EventBus::new()).unwrap();
+        let secrets = crate::memory_keystore::secrets();
+        let api = command_api(&global, &locations, EventBus::new(), Arc::clone(&secrets)).unwrap();
         Self {
             root,
             locations,
             api: Arc::new(api),
+            secrets,
         }
     }
 
@@ -118,6 +122,9 @@ fn the_commands_are_offered() {
     assert_eq!(
         ids,
         [
+            "credentials.delete",
+            "credentials.list",
+            "credentials.set",
             "explorer.outline",
             "explorer.source",
             "explorer.symbol",
@@ -514,12 +521,17 @@ fn usages_of_add(fixture: &Fixture, project: u64, way: &str) -> Value {
         .unwrap()
 }
 
-#[test]
-fn the_usages_of_a_method_name_the_caller_and_mark_every_hit_unchecked() {
+/// The usages answer for `Add` in a project where `Checkout.Total` calls it.
+fn answer_with_caller() -> Value {
     let fixture = Fixture::new();
     fs::write(fixture.root.path().join("app/Checkout.cs"), CALLER).unwrap();
     let project = added(&fixture);
-    let answer = usages_of_add(&fixture, project, "both");
+    usages_of_add(&fixture, project, "both")
+}
+
+#[test]
+fn the_usages_of_a_method_name_the_caller_and_mark_every_hit_unchecked() {
+    let answer = answer_with_caller();
     let hits = answer["incoming"]["hits"].as_array().unwrap();
     assert_eq!(hits.len(), 1);
     assert!(
@@ -540,6 +552,13 @@ fn the_usages_of_a_method_name_the_caller_and_mark_every_hit_unchecked() {
     assert_eq!(answer["summary"]["probable"], 0);
     assert_eq!(answer["summary"]["files"], 1);
     assert_eq!(answer["outgoing"]["total"], 0);
+}
+
+#[test]
+fn the_impact_counts_unchecked_symbols_apart() {
+    let answer = answer_with_caller();
+    assert_eq!(answer["impact"]["verified"], 0);
+    assert_eq!(answer["impact"]["unchecked"], 1);
 }
 
 #[test]

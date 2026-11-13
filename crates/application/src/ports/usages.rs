@@ -49,6 +49,8 @@ pub struct ImpactedSymbol {
     pub label: SymbolLabel,
     /// Step of the walk it was reached in, starting at one.
     pub depth: u32,
+    /// Whether every reference on the way to it is verified by level 2.
+    pub verified: bool,
     /// Its visibility; a public one is part of an interface.
     pub visibility: Option<Visibility>,
     /// File that declares it.
