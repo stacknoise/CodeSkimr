@@ -3,10 +3,11 @@
 use std::fs;
 use std::num::NonZeroU32;
 use std::path::Path;
-use std::sync::{Mutex, MutexGuard, PoisonError};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
 
 use codeskimr_application::error::CodedError;
+use codeskimr_domain::{ReverseIndex, SnapshotId};
 use rusqlite::{Connection, Transaction, TransactionBehavior};
 
 use crate::consts::{
@@ -23,6 +24,8 @@ use crate::{codec, migrate};
 pub struct SqliteStore {
     conn: Mutex<Connection>,
     retention: NonZeroU32,
+    /// The reverse index of the snapshot that was asked about last; a snapshot never changes.
+    pub(crate) reverse: Mutex<Option<(SnapshotId, Arc<ReverseIndex>)>>,
 }
 
 impl SqliteStore {
@@ -62,6 +65,7 @@ impl SqliteStore {
         Ok(Self {
             conn: Mutex::new(conn),
             retention,
+            reverse: Mutex::new(None),
         })
     }
 

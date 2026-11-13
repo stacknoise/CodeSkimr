@@ -73,7 +73,7 @@ fn decode_reference(row: &ReferenceRow) -> StorageResult<Reference> {
     })
 }
 
-fn load_references(conn: &Connection, snapshot: i64) -> StorageResult<Vec<Reference>> {
+pub(crate) fn load_references(conn: &Connection, snapshot: i64) -> StorageResult<Vec<Reference>> {
     let mut prepared = conn.prepare_cached(sql::REFERENCES_OF_SNAPSHOT)?;
     let rows = prepared.query_map(params![snapshot], |row| read_reference(&Cols::new(row)))?;
     let mut references = Vec::new();
