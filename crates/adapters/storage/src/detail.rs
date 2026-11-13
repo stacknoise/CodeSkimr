@@ -3,18 +3,18 @@
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{CodeIndex, MemberRef, SearchHit, SymbolDetail, SymbolKey};
 use codeskimr_domain::{
-    FileId, LayerEdge, Metric, MetricValue, Position, ProjectId, QualifiedName, RelativePath,
-    Snapshot, SnapshotId, Span, Symbol, SymbolId, SymbolName,
+    FileId, LayerEdge, Metric, MetricValue, ProjectId, QualifiedName, RelativePath, Snapshot,
+    SnapshotId, Symbol, SymbolId, SymbolName,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 
-use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from, small_from};
+use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from};
 use crate::error::StorageResult;
 use crate::sql;
 use crate::store::SqliteStore;
 
 /// The columns of `SYMBOL_SELECT`, still raw.
-struct SymbolRow {
+pub(crate) struct SymbolRow {
     id: i64,
     file: i64,
     kind: String,
@@ -29,7 +29,7 @@ struct SymbolRow {
     path: String,
 }
 
-fn read_row(cols: &Cols<'_>) -> rusqlite::Result<SymbolRow> {
+pub(crate) fn read_row(cols: &Cols<'_>) -> rusqlite::Result<SymbolRow> {
     Ok(SymbolRow {
         id: cols.take()?,
         file: cols.take()?,
@@ -39,27 +39,14 @@ fn read_row(cols: &Cols<'_>) -> rusqlite::Result<SymbolRow> {
         parent: cols.take()?,
         visibility: cols.take()?,
         is_static: cols.take()?,
-        span: SpanColumns {
-            start_line: cols.take()?,
-            start_column: cols.take()?,
-            end_line: cols.take()?,
-            end_column: cols.take()?,
-        },
+        span: SpanColumns::read(cols)?,
         signature: cols.take()?,
         doc: cols.take()?,
         path: cols.take()?,
     })
 }
 
-fn position(line: i64, column: i64) -> StorageResult<Position> {
-    Ok(Position {
-        line: small_from(line)?,
-        column: small_from(column)?,
-    })
-}
-
-fn decode(row: SymbolRow) -> StorageResult<(Symbol, RelativePath)> {
-    let span = row.span;
+pub(crate) fn decode(row: SymbolRow) -> StorageResult<(Symbol, RelativePath)> {
     let symbol = Symbol {
         id: SymbolId::new(id_from(row.id)?),
         file: FileId::new(id_from(row.file)?),
@@ -72,10 +59,7 @@ fn decode(row: SymbolRow) -> StorageResult<(Symbol, RelativePath)> {
             .transpose()?,
         visibility: row.visibility.as_deref().map(label_from).transpose()?,
         is_static: row.is_static,
-        span: Span::new(
-            position(span.start_line, span.start_column)?,
-            position(span.end_line, span.end_column)?,
-        )?,
+        span: row.span.span()?,
         signature: row.signature,
         doc: row.doc,
     };

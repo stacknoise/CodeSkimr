@@ -2,7 +2,7 @@
 
 use std::str::FromStr;
 
-use codeskimr_domain::Span;
+use codeskimr_domain::{Position, Span};
 
 use std::cell::Cell;
 
@@ -49,6 +49,35 @@ pub struct SpanColumns {
 }
 
 impl SpanColumns {
+    /// Reads the four columns of a span from the next columns of a row.
+    ///
+    /// # Errors
+    /// A `rusqlite` error if a column is missing or not a number.
+    pub fn read(cols: &Cols<'_>) -> rusqlite::Result<Self> {
+        Ok(Self {
+            start_line: cols.take()?,
+            start_column: cols.take()?,
+            end_line: cols.take()?,
+            end_column: cols.take()?,
+        })
+    }
+
+    /// The span these columns describe.
+    ///
+    /// # Errors
+    /// `OutOfRange` for a negative column, a model error for an inverted span.
+    pub fn span(&self) -> StorageResult<Span> {
+        let start = Position {
+            line: small_from(self.start_line)?,
+            column: small_from(self.start_column)?,
+        };
+        let end = Position {
+            line: small_from(self.end_line)?,
+            column: small_from(self.end_column)?,
+        };
+        Ok(Span::new(start, end)?)
+    }
+
     /// Splits a span into its columns.
     pub fn of(span: &Span) -> Self {
         let (start, end) = (span.start(), span.end());

@@ -3,8 +3,8 @@
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{SnapshotData, SnapshotStore};
 use codeskimr_domain::{
-    CommitHash, Metric, ProjectId, Reference, ScanMode, Snapshot, SnapshotId, SnapshotStats,
-    SourceFile, Symbol, Timestamp, Visibility,
+    CommitHash, Metric, ProjectId, Reference, RelativePath, ScanMode, Snapshot, SnapshotId,
+    SnapshotStats, SourceFile, Symbol, Timestamp, Visibility,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 
@@ -34,7 +34,7 @@ fn write_snapshot(conn: &Connection, data: &SnapshotData, keep: u32) -> StorageR
     insert_header(conn, header)?;
     insert_facts(conn, data)?;
     if header.mode == ScanMode::Incremental {
-        carry_over(conn, header.project, header.id)?;
+        carry_over(conn, header.project, header.id, &data.removed)?;
     }
     let stats = totals(conn, header.id)?;
     set_totals(conn, header.id, stats)?;
@@ -148,8 +148,14 @@ fn insert_metric(conn: &Connection, snapshot: i64, metric: &Metric) -> StorageRe
     Ok(())
 }
 
-/// Takes over what an incremental scan did not analyse again from the previous snapshot.
-fn carry_over(conn: &Connection, project: ProjectId, snapshot: SnapshotId) -> StorageResult<()> {
+/// Takes over what an incremental scan did not analyse again from the previous snapshot, except
+/// the files that were removed; their symbols and references stay behind with them.
+fn carry_over(
+    conn: &Connection,
+    project: ProjectId,
+    snapshot: SnapshotId,
+    removed: &[RelativePath],
+) -> StorageResult<()> {
     let new = column_int(snapshot.get())?;
     let previous: Option<i64> = conn.query_row(
         sql::PREVIOUS_SNAPSHOT,
@@ -159,8 +165,11 @@ fn carry_over(conn: &Connection, project: ProjectId, snapshot: SnapshotId) -> St
     let Some(previous) = previous else {
         return Ok(());
     };
+    conn.execute(sql::CARRY_FILES, params![previous, new])?;
+    for path in removed {
+        conn.execute(sql::FILE_REMOVE, params![new, path.as_str()])?;
+    }
     for statement in [
-        sql::CARRY_FILES,
         sql::CARRY_SYMBOLS,
         sql::CARRY_REFERENCES,
         sql::CARRY_METRICS,

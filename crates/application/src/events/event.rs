@@ -45,6 +45,9 @@ pub struct FilesChanged {
     pub project: ProjectId,
     /// Number of changed files.
     pub files: u32,
+    /// The operating system lost events; scan the whole folder instead of trusting the list of
+    /// changed files.
+    pub rescan: bool,
 }
 
 /// Why a scan ended without a snapshot.
