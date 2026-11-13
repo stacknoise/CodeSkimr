@@ -26,6 +26,8 @@ pub struct ScanArgs {
     pub json: bool,
     /// Keep running after the scan and re-scan whenever files change.
     pub watch: bool,
+    /// Name of the stored credential that logs in to a Git source.
+    pub credential: Option<String>,
 }
 
 /// Arguments of `codeskimr mcp`.
@@ -54,9 +56,49 @@ pub struct OpenArgs {
     pub no_browser: bool,
 }
 
+/// The platforms that `credential login` can sign in to.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProviderChoice {
+    /// GitHub.
+    GitHub,
+    /// GitLab.
+    GitLab,
+}
+
+/// What `codeskimr credential` is asked to do. The secret is never an argument: it is read from
+/// the terminal without echo or from standard input.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CredentialAction {
+    /// Stores or replaces the credential `id` for the user name `user`.
+    Set {
+        /// Name of the credential.
+        id: String,
+        /// User name that goes with the secret.
+        user: String,
+    },
+    /// Removes the credential `id`.
+    Delete {
+        /// Name of the credential.
+        id: String,
+    },
+    /// Signs in with the OAuth device flow and stores the token as the credential `id`.
+    Login {
+        /// Name of the credential.
+        id: String,
+        /// The platform.
+        provider: ProviderChoice,
+        /// Id of the OAuth application that is registered at the platform.
+        client_id: String,
+        /// Address of a self-managed installation, for example `https://git.example.com`.
+        host: Option<String>,
+    },
+}
+
 /// The command to run.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
+    /// `codeskimr credential`.
+    Credential(CredentialAction),
     /// `codeskimr scan <source>`.
     Scan(ScanArgs),
     /// `codeskimr mcp`.

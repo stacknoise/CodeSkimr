@@ -3,7 +3,8 @@
 use std::path::PathBuf;
 
 use codeskimr_cli::{
-    Action, CliError, Parsed, ScanArgs, ServeArgs, language_from, parse, serve_started,
+    Action, CliError, CredentialAction, Parsed, ProviderChoice, ScanArgs, ServeArgs, language_from,
+    parse, serve_started,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_i18n::Messages;
@@ -32,6 +33,7 @@ fn scan_takes_a_source_a_branch_and_the_json_switch() {
             branch: Some("dev".to_owned()),
             json: true,
             watch: false,
+            credential: None,
         })
     );
 }
@@ -140,4 +142,77 @@ fn the_language_comes_from_the_first_non_empty_tag() {
     assert_eq!(language_from(["DE"]), "de");
     assert_eq!(language_from(["fr_FR"]), "en");
     assert_eq!(language_from([]), "en");
+}
+
+#[test]
+fn scan_can_name_a_credential() {
+    let parsed = invocation(&[
+        "codeskimr",
+        "scan",
+        "https://example.com/a.git",
+        "--credential",
+        "work",
+    ]);
+    let Action::Scan(args) = parsed.action else {
+        panic!("scan expected");
+    };
+    assert_eq!(args.credential.as_deref(), Some("work"));
+}
+
+#[test]
+fn credential_set_takes_a_name_and_a_user_but_never_the_secret() {
+    let parsed = invocation(&["codeskimr", "credential", "set", "work", "--user", "anton"]);
+    assert_eq!(
+        parsed.action,
+        Action::Credential(CredentialAction::Set {
+            id: "work".to_owned(),
+            user: "anton".to_owned(),
+        })
+    );
+    // There is no flag for the secret, so it cannot end up in a shell history.
+    for flag in ["--secret", "--password", "--token"] {
+        let attempt = run(&[
+            "codeskimr",
+            "credential",
+            "set",
+            "work",
+            "--user",
+            "a",
+            flag,
+            "x",
+        ]);
+        assert!(attempt.is_err(), "{flag}");
+    }
+}
+
+#[test]
+fn credential_delete_and_login_are_parsed() {
+    let deleted = invocation(&["codeskimr", "credential", "delete", "work"]);
+    assert_eq!(
+        deleted.action,
+        Action::Credential(CredentialAction::Delete {
+            id: "work".to_owned()
+        })
+    );
+    let login = invocation(&[
+        "codeskimr",
+        "credential",
+        "login",
+        "work",
+        "--provider",
+        "gitlab",
+        "--client-id",
+        "app",
+        "--host",
+        "https://git.example.com",
+    ]);
+    assert_eq!(
+        login.action,
+        Action::Credential(CredentialAction::Login {
+            id: "work".to_owned(),
+            provider: ProviderChoice::GitLab,
+            client_id: "app".to_owned(),
+            host: Some("https://git.example.com".to_owned()),
+        })
+    );
 }

@@ -106,14 +106,14 @@ fn a_failure_of_the_action_passes_through_without_the_secret() -> TestResult {
 }
 
 #[test]
-fn a_damaged_entry_is_treated_as_missing() -> TestResult {
+fn a_damaged_entry_has_its_own_code() -> TestResult {
     let id = CredentialId::new("work")?;
     let store = KeystoreCredentials::new(MemoryKeystore::default());
     store
         .keystore()
         .write("work", b"no separator, only a secret")?;
     let error = store.with_credential(&id, |_| Ok(())).unwrap_err();
-    assert_eq!(error.code(), ErrorCode::CredentialNotFound);
+    assert_eq!(error.code(), ErrorCode::CredentialDamaged);
     Ok(())
 }
 

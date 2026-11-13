@@ -92,3 +92,18 @@ impl CredentialStore for TestStore {
         Err(AuthError::AccessDenied)
     }
 }
+
+/// Creates the bare repository `repo.git` below `root` with one commit on `main`.
+pub fn bare_repo(root: &Path) -> TestResult {
+    let work = tempfile::tempdir()?;
+    git(work.path(), &["init", "-q", "-b", "main"])?;
+    write(work.path(), "lib.rs", "fn one() {}")?;
+    git(work.path(), &["add", "."])?;
+    git(work.path(), &["commit", "-q", "-m", "one"])?;
+    let bare = root.join("repo.git");
+    let bare_text = bare.to_string_lossy().into_owned();
+    git(
+        work.path(),
+        &["clone", "-q", "--bare", ".", bare_text.as_str()],
+    )
+}
