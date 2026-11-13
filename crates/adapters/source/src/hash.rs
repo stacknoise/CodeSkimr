@@ -15,8 +15,8 @@ use crate::consts::HASH_BUFFER_BYTES;
 pub fn hash_file(path: &Path) -> io::Result<(u64, ContentHash)> {
     let mut file = File::open(path)?;
     let mut hasher = blake3::Hasher::new();
-    let mut buffer = vec![0_u8; HASH_BUFFER_BYTES];
-    let mut size = 0_u64;
+    let mut buffer = vec![u8::MIN; HASH_BUFFER_BYTES];
+    let mut size = u64::MIN;
     loop {
         let read = file.read(&mut buffer)?;
         if read == 0 {

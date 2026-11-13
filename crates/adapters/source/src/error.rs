@@ -33,13 +33,13 @@ pub enum SourceError {
         limit_bytes: u64,
     },
     /// Cloning or fetching failed.
-    #[error("{}: {detail}", ErrorCode::GitFetchFailed.description())]
+    #[error("{}", ErrorCode::GitFetchFailed.description())]
     GitFetchFailed {
         /// What the Git library reported, without credentials.
         detail: String,
     },
     /// The file watcher could not be started or stopped unexpectedly.
-    #[error("{}: {detail}", ErrorCode::WatcherFailed.description())]
+    #[error("{}", ErrorCode::WatcherFailed.description())]
     WatcherFailed {
         /// What the notification library reported.
         detail: String,
