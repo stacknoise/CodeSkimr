@@ -11,7 +11,11 @@ graph.layout(&LayoutParams)       // -> Layout { placements, width, height }
 
 - `LayoutNode` has a box size and an optional fixed `rank`. Fixed ranks are for layer bands (outer layers on top); without one the row follows from the edges. Used ranks are renumbered without gaps (order kept), so a huge rank costs no memory and empty bands take no space.
 - `NodePlacement` gives the top-left corner, the row (`rank`) and the position inside the row (`order`) of each node, in input order.
-- `LayoutParams` (row gap, node gap, number of sweeps, number of placement passes) are tunable values. They move into `config/default.toml` when the API is wired (after WP-41); the module itself has no defaults.
+- `LayoutParams` (row gap, node gap, number of sweeps, number of placement passes) are tunable values. They are the `[graph]` settings of `config/default.toml` (`rank_gap`, `node_gap`, `sweeps`, `placement_passes`, plus the box size `node_width` and `node_height`); the module itself has no defaults.
+
+## Command `graph.layers`
+
+`codeskimr_domain::layer_map` turns the declared layers and the aggregated layer edges (`layer_graph` read model) into a `LayerMap`: one box per layer, each declared layer fixed to the row of its position, outer layers first (ADR 0031). The command `graph.layers` (`crates/app/src/ui_commands/graph.rs`, REST `POST /api/v1/commands/graph.layers`, permission `read`) reads the newest snapshot and answers with boxes, links and the picture size, see `docs/server.md`.
 
 ## Algorithm (layered, Sugiyama style, no dependency)
 
@@ -24,4 +28,4 @@ The result is deterministic: same input, same output. Edge routing is not part o
 
 ## Performance
 
-Benchmark `graph_layout/nodes_200` is checked against `budgets.graph_layout_ms` (50 ms, blueprint 16.1) by the `bench` job; `graph_layout/nodes_1000` only guards against regressions. On the development machine 200 nodes take well below 1 ms.
+Benchmark `graph_layout/nodes_200` is checked against `budgets.graph_layout_ms` (50 ms, blueprint 16.1) by the `bench` job; `graph_layout/nodes_1000` only guards against regressions. `graph_layers/layers_200` measures the step the command adds (layers and edges to boxes, 200 layers in 200 rows) against the same budget; it takes about 0.4 ms. On the development machine 200 nodes take well below 1 ms.

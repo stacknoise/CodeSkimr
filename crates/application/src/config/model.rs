@@ -1,6 +1,8 @@
 //! The typed configuration. There is no string-keyed access anywhere (blueprint section 14).
 
-use codeskimr_domain::{FingerprintParams, Layer, LayerName, ModelError, QualifiedName};
+use codeskimr_domain::{
+    FingerprintParams, Layer, LayerName, LayoutParams, ModelError, NodeSize, QualifiedName,
+};
 use serde::Deserialize;
 
 /// The complete, validated configuration. Built by [`crate::config::Config::resolve`].
@@ -31,6 +33,8 @@ pub struct Config {
     pub editor: Editor,
     /// The web UI.
     pub ui: Ui,
+    /// The picture of the dependency map.
+    pub graph: Graph,
 }
 
 /// One architecture layer as written in `.codeskimr.toml`.
@@ -221,4 +225,44 @@ impl Similarity {
 
 fn widen(value: u32) -> usize {
     usize::try_from(value).unwrap_or(usize::MAX)
+}
+
+/// The picture of the dependency map (blueprint 15, screen 3), in layout units.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Graph {
+    /// Width of the box of one layer.
+    pub node_width: u32,
+    /// Height of the box of one layer.
+    pub node_height: u32,
+    /// Vertical space between two rows.
+    pub rank_gap: u32,
+    /// Horizontal space between two boxes of a row.
+    pub node_gap: u32,
+    /// Most sweeps against crossing edges.
+    pub sweeps: u32,
+    /// Number of passes that move the boxes towards their neighbours.
+    pub placement_passes: u32,
+}
+
+impl Graph {
+    /// The size of one box.
+    #[must_use]
+    pub const fn node_size(&self) -> NodeSize {
+        NodeSize {
+            width: self.node_width,
+            height: self.node_height,
+        }
+    }
+
+    /// The spacing and effort of the layout.
+    #[must_use]
+    pub const fn layout_params(&self) -> LayoutParams {
+        LayoutParams {
+            rank_gap: self.rank_gap,
+            node_gap: self.node_gap,
+            sweeps: self.sweeps,
+            placement_passes: self.placement_passes,
+        }
+    }
 }

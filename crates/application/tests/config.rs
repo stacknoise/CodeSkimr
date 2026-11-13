@@ -293,6 +293,22 @@ fn the_editor_link_and_the_ui_are_checked() {
 }
 
 #[test]
+fn the_size_of_a_graph_box_must_be_positive() {
+    assert_rejected(&[
+        (
+            "[graph]\nnode_width = 0\n",
+            "graph.node_width",
+            Violation::MustBePositive,
+        ),
+        (
+            "[graph]\nnode_height = 0\n",
+            "graph.node_height",
+            Violation::MustBePositive,
+        ),
+    ]);
+}
+
+#[test]
 fn every_error_maps_to_a_registered_code() {
     let error = Config::resolve(&[user("[watcher]\ndebounce_ms = 0\n")]).expect_err("range");
     assert_eq!(error.code().id(), "CFG-101");

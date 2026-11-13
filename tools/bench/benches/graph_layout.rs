@@ -5,7 +5,8 @@ use std::hint::black_box;
 
 use codeskimr_bench::random::Lcg;
 use codeskimr_domain::{
-    LayoutEdge, LayoutGraph, LayoutNode, LayoutParams, ModelError, NodeIndex, NodeSize,
+    Layer, LayerEdge, LayerName, LayoutEdge, LayoutGraph, LayoutNode, LayoutParams, ModelError,
+    NodeIndex, NodeSize, QualifiedName, layer_map,
 };
 use criterion::Criterion;
 
@@ -44,6 +45,50 @@ fn dependency_graph(nodes: usize) -> Result<LayoutGraph, ModelError> {
     LayoutGraph::new(list, edges)
 }
 
+/// Layers as the command `graph.layers` gets them: each in its own row, most edges to a layer
+/// close below, a few that jump.
+fn layer_inputs(count: usize) -> Result<(Vec<Layer>, Vec<LayerEdge>), ModelError> {
+    let mut random = Lcg::new(7);
+    let layers = (0..count)
+        .map(|index| {
+            let name = format!("layer{index}");
+            Ok(Layer {
+                name: LayerName::new(&name)?,
+                namespaces: vec![QualifiedName::new(&name)?],
+            })
+        })
+        .collect::<Result<Vec<_>, ModelError>>()?;
+    let mut edges = Vec::new();
+    for from in 0..count - 1 {
+        for _ in 0..EDGES_PER_NODE {
+            let jump = 1 + usize::from(random.below(8) == 0) * random.below(3);
+            let to = (from + jump).min(count - 1);
+            edges.push(LayerEdge {
+                from: LayerName::new(format!("layer{from}"))?,
+                to: LayerName::new(format!("layer{to}"))?,
+                count: 1,
+                violates_layering: false,
+                in_cycle: false,
+            });
+        }
+    }
+    Ok((layers, edges))
+}
+
+fn layer_maps(c: &mut Criterion) -> Result<(), ModelError> {
+    let node = NodeSize {
+        width: 160,
+        height: 44,
+    };
+    let (layers, edges) = layer_inputs(200)?;
+    let mut group = c.benchmark_group("graph_layers");
+    group.bench_function("layers_200", |b| {
+        b.iter(|| black_box(layer_map(&layers, &edges, node, &PARAMS)));
+    });
+    group.finish();
+    Ok(())
+}
+
 fn layouts(c: &mut Criterion) -> Result<(), ModelError> {
     let mut group = c.benchmark_group("graph_layout");
     let small = dependency_graph(200)?;
@@ -59,6 +104,7 @@ fn layouts(c: &mut Criterion) -> Result<(), ModelError> {
 fn main() -> Result<(), ModelError> {
     let mut criterion = Criterion::default().configure_from_args();
     layouts(&mut criterion)?;
+    layer_maps(&mut criterion)?;
     criterion.final_summary();
     Ok(())
 }

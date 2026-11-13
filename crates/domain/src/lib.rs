@@ -10,6 +10,7 @@ mod file;
 mod fingerprint;
 mod graph_layout;
 mod layer;
+mod layer_map;
 mod measure;
 mod metric;
 mod metrics;
@@ -32,6 +33,7 @@ pub use graph_layout::{
     Layout, LayoutEdge, LayoutGraph, LayoutNode, LayoutParams, NodeIndex, NodePlacement, NodeSize,
 };
 pub use layer::LayerEdge;
+pub use layer_map::{LayerMap, layer_map};
 pub use measure::{BodyCounts, SymbolCounts, measure};
 pub use metric::{Metric, MetricKind, MetricValue};
 pub use metrics::{
