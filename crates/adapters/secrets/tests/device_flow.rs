@@ -9,7 +9,7 @@ use std::thread::JoinHandle;
 use std::time::Duration;
 
 use codeskimr_codes::{Coded, ErrorCode};
-use codeskimr_secrets::{DeviceFlow, Provider};
+use codeskimr_secrets::{DeviceFlow, DeviceFlowError, Provider};
 use secrecy::ExposeSecret;
 
 type TestResult<T = ()> = Result<T, Box<dyn std::error::Error>>;
@@ -101,11 +101,20 @@ fn device_reply(interval: u32) -> String {
 
 fn flow(script: &Script) -> TestResult<DeviceFlow> {
     Ok(DeviceFlow::new(
-        [script.url("/device"), script.url("/token")],
+        script.url("/device"),
+        script.url("/token"),
         "client 1",
         "repo",
         "token-user",
     )?)
+}
+
+/// The error of a flow that is expected to fail.
+fn failure(script: &Script) -> TestResult<DeviceFlowError> {
+    flow(script)?
+        .sign_in(|_| {}, |_| {})
+        .err()
+        .ok_or_else(|| "the flow should fail".into())
 }
 
 #[test]
@@ -160,10 +169,7 @@ fn the_requests_carry_the_form_fields_escaped() -> TestResult {
 fn a_denied_sign_in_is_net_601_and_names_no_secret() -> TestResult {
     let script = Script::start(vec![device_reply(1), json(r#"{"error":"access_denied"}"#)])?;
 
-    let error = flow(&script)?
-        .sign_in(|_| {}, |_| {})
-        .err()
-        .ok_or("the flow should fail")?;
+    let error = failure(&script)?;
 
     assert_eq!(error.code(), ErrorCode::OauthFlowFailed);
     let texts = [error.to_string(), format!("{error:?}")];
@@ -182,10 +188,7 @@ fn a_code_that_runs_out_ends_the_flow() -> TestResult {
         pending(),
         pending(),
     ])?;
-    let error = flow(&script)?
-        .sign_in(|_| {}, |_| {})
-        .err()
-        .ok_or("the flow should fail")?;
+    let error = failure(&script)?;
     assert_eq!(error.code(), ErrorCode::OauthFlowFailed);
     Ok(())
 }
@@ -193,10 +196,7 @@ fn a_code_that_runs_out_ends_the_flow() -> TestResult {
 #[test]
 fn nonsense_from_the_server_is_net_601() -> TestResult {
     let script = Script::start(vec![json("not json")])?;
-    let error = flow(&script)?
-        .sign_in(|_| {}, |_| {})
-        .err()
-        .ok_or("the flow should fail")?;
+    let error = failure(&script)?;
     assert_eq!(error.code(), ErrorCode::OauthFlowFailed);
     Ok(())
 }
@@ -211,10 +211,7 @@ fn a_redirect_is_not_followed() -> TestResult {
     );
     let script = Script::start(vec![redirect])?;
 
-    let error = flow(&script)?
-        .sign_in(|_| {}, |_| {})
-        .err()
-        .ok_or("the flow should fail")?;
+    let error = failure(&script)?;
 
     assert_eq!(error.code(), ErrorCode::OauthFlowFailed);
     assert!(elsewhere.accept().is_err());
@@ -225,7 +222,8 @@ fn a_redirect_is_not_followed() -> TestResult {
 fn only_https_endpoints_are_accepted() {
     let plain = |url: &str| {
         DeviceFlow::new(
-            [url.to_owned(), "https://example.com/token".to_owned()],
+            url.to_owned(),
+            "https://example.com/token".to_owned(),
             "id",
             "repo",
             "user",
@@ -275,10 +273,10 @@ fn absurd_timings_and_control_characters_from_the_server_are_handled() -> TestRe
         r#"{"device_code":"d","user_code":"A\u001b[2JB","verification_uri":"v","expires_in":900}"#,
     );
     let script = Script::start(vec![escape])?;
-    assert!(flow(&script)?.sign_in(|_| {}, |_| {}).is_err());
+    failure(&script)?;
 
     let empty = json(r#"{"access_token":""}"#);
     let script = Script::start(vec![device_reply(1), empty])?;
-    assert!(flow(&script)?.sign_in(|_| {}, |_| {}).is_err());
+    failure(&script)?;
     Ok(())
 }

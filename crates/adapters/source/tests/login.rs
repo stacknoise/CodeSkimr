@@ -11,12 +11,13 @@ use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
 use codeskimr_application::cancel::CancelToken;
+use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::SourceProvider;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{BranchName, CredentialId, GitUrl, ProjectSource};
 use codeskimr_source::{GitCache, SourceFetcher};
 use common::http::GitHttpServer;
-use common::{TestResult, TestStore, git, write};
+use common::{TestResult, TestStore};
 
 const CANARY: &str = "CANARY-5e2a1b9d";
 const USER: &str = "anton";
@@ -29,17 +30,7 @@ struct Remote {
 
 fn remote() -> TestResult<Remote> {
     let root = tempfile::tempdir()?;
-    let work = tempfile::tempdir()?;
-    git(work.path(), &["init", "-q", "-b", "main"])?;
-    write(work.path(), "lib.rs", "fn one() {}")?;
-    git(work.path(), &["add", "."])?;
-    git(work.path(), &["commit", "-q", "-m", "one"])?;
-    let bare = root.path().join("repo.git");
-    let bare_text = bare.to_string_lossy().into_owned();
-    git(
-        work.path(),
-        &["clone", "-q", "--bare", ".", bare_text.as_str()],
-    )?;
+    common::bare_repo(root.path())?;
     Ok(Remote {
         root,
         cache: tempfile::tempdir()?,
@@ -123,16 +114,22 @@ fn a_credential_the_store_does_not_have_is_reported_by_its_code() -> TestResult 
     Ok(())
 }
 
+/// The error of a clone from the local server on `port` with the credential `work`.
+fn failed_login(cache: &Path, port: u16) -> TestResult<CodedError> {
+    let store = Arc::new(TestStore::with("work", USER, CANARY));
+    let url = format!("http://127.0.0.1:{port}/repo.git");
+    fetcher(cache, store)
+        .fetch(&source(&url, Some("work"))?, &CancelToken::new())
+        .err()
+        .ok_or_else(|| "the clone should fail".into())
+}
+
 #[test]
 fn a_rejected_credential_is_an_authentication_failure_without_the_secret() -> TestResult {
     let Remote { root, cache } = remote()?;
     let server = GitHttpServer::start(root.path(), Some((USER, "something-else")))?;
-    let store = Arc::new(TestStore::with("work", USER, CANARY));
-    let url = format!("http://127.0.0.1:{}/repo.git", server.port);
 
-    let error = fetcher(cache.path(), store)
-        .fetch(&source(&url, Some("work"))?, &CancelToken::new())
-        .unwrap_err();
+    let error = failed_login(cache.path(), server.port)?;
 
     assert_eq!(error.code(), ErrorCode::CredentialRejected, "{error:?}");
     let mut texts = vec![error.to_string(), format!("{error:?}")];
@@ -189,12 +186,8 @@ fn a_host_that_hides_the_repository_from_a_bad_token_is_a_credential_problem() -
     for status in [403, 404] {
         let Remote { cache, .. } = remote()?;
         let server = GitHttpServer::refusing_with(status)?;
-        let store = Arc::new(TestStore::with("work", USER, CANARY));
-        let url = format!("http://127.0.0.1:{}/repo.git", server.port);
 
-        let error = fetcher(cache.path(), store)
-            .fetch(&source(&url, Some("work"))?, &CancelToken::new())
-            .unwrap_err();
+        let error = failed_login(cache.path(), server.port)?;
 
         assert_eq!(
             error.code(),

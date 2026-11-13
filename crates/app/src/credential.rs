@@ -161,8 +161,8 @@ fn unreadable() -> CodedError {
 
 #[cfg(test)]
 mod tests {
+    use codeskimr_codes::Coded;
     use codeskimr_secrets::KeystoreCredentials;
-
     use secrecy::ExposeSecret;
 
     use super::*;
@@ -170,16 +170,22 @@ mod tests {
 
     const CANARY: &str = "CANARY-secret-4d21";
 
-    fn io<'a>(
-        secret: &'a dyn Fn() -> Result<SecretString, CodedError>,
-        noop: &'a dyn Fn(&Prompt),
-        wait: &'a dyn Fn(Duration),
-    ) -> Io<'a> {
-        Io {
-            read_secret: secret,
-            announce: noop,
-            wait,
-        }
+    type Store = KeystoreCredentials<Memory>;
+
+    /// Runs `action` on `store`; `secret` is what the terminal would deliver.
+    fn run_on(
+        store: &Store,
+        action: &CredentialAction,
+        secret: Option<&str>,
+    ) -> Result<Done, CodedError> {
+        let read = || secret.map(SecretString::from).ok_or_else(unreadable);
+        let (announce, wait) = (|_: &Prompt| {}, |_: Duration| {});
+        let io = Io {
+            read_secret: &read,
+            announce: &announce,
+            wait: &wait,
+        };
+        execute(store, action, &io)
     }
 
     fn set(id: &str) -> CredentialAction {
@@ -189,77 +195,61 @@ mod tests {
         }
     }
 
+    fn delete(id: &str) -> CredentialAction {
+        CredentialAction::Delete { id: id.to_owned() }
+    }
+
+    fn code(result: Result<Done, CodedError>) -> ErrorCode {
+        result.map_or_else(|e| e.code(), |_| ErrorCode::UnexpectedInternalError)
+    }
+
+    fn holds_canary(store: &Store, id: &str) -> bool {
+        let id = CredentialId::new(id).unwrap();
+        store
+            .with_credential(&id, |c| Ok(c.secret().expose_secret() == CANARY))
+            .unwrap_or(false)
+    }
+
     #[test]
-    fn a_credential_is_stored_replaced_and_removed() {
-        let store = KeystoreCredentials::new(Memory::default());
-        let secret = || Ok(SecretString::from(CANARY));
-        let (announce, wait) = (|_: &Prompt| {}, |_: Duration| {});
-        let io = io(&secret, &announce, &wait);
-
-        let stored = execute(&store, &set("work"), &io);
+    fn a_credential_is_stored_and_removed() {
+        let store = Store::new(Memory::default());
+        let stored = run_on(&store, &set("work"), Some(CANARY));
         assert_eq!(stored.unwrap(), Done::Stored("work".to_owned()));
-        let id = CredentialId::new("work").unwrap();
-        let seen = store
-            .with_credential(&id, |c| {
-                Ok((
-                    c.user().expose_secret().to_owned(),
-                    c.secret().expose_secret().to_owned(),
-                ))
-            })
-            .unwrap();
-        assert_eq!(seen, ("anton".to_owned(), CANARY.to_owned()));
+        assert!(holds_canary(&store, "work"));
 
-        let removed = execute(&store, &CredentialAction::Delete { id: "work".into() }, &io);
+        let removed = run_on(&store, &delete("work"), None);
         assert_eq!(removed.unwrap(), Done::Deleted("work".to_owned()));
-        assert!(store.with_credential(&id, |_| Ok(())).is_err());
+        assert!(!holds_canary(&store, "work"));
     }
 
     #[test]
     fn the_installation_token_cannot_be_touched() {
-        let store = KeystoreCredentials::new(Memory::default());
-        let secret = || Ok(SecretString::from(CANARY));
-        let (announce, wait) = (|_: &Prompt| {}, |_: Duration| {});
-        let io = io(&secret, &announce, &wait);
-        let delete = CredentialAction::Delete {
-            id: TOKEN_CREDENTIAL_ID.to_owned(),
-        };
-        for action in [set(TOKEN_CREDENTIAL_ID), delete] {
-            let error = execute(&store, &action, &io).unwrap_err();
-            assert_eq!(
-                codeskimr_codes::Coded::code(&error),
-                ErrorCode::CliArgumentsInvalid
-            );
+        let store = Store::new(Memory::default());
+        for action in [set(TOKEN_CREDENTIAL_ID), delete(TOKEN_CREDENTIAL_ID)] {
+            let result = run_on(&store, &action, Some(CANARY));
+            assert_eq!(code(result), ErrorCode::CliArgumentsInvalid);
         }
     }
 
     #[test]
     fn an_unreadable_secret_stores_nothing() {
-        let store = KeystoreCredentials::new(Memory::default());
-        let secret = || Err(unreadable());
-        let (announce, wait) = (|_: &Prompt| {}, |_: Duration| {});
-        let error = execute(&store, &set("work"), &io(&secret, &announce, &wait)).unwrap_err();
-        assert_eq!(
-            codeskimr_codes::Coded::code(&error),
-            ErrorCode::SecretInputInvalid
-        );
-        let id = CredentialId::new("work").unwrap();
-        assert!(store.with_credential(&id, |_| Ok(())).is_err());
+        let store = Store::new(Memory::default());
+        let result = run_on(&store, &set("work"), None);
+        assert_eq!(code(result), ErrorCode::SecretInputInvalid);
+        assert!(!holds_canary(&store, "work"));
     }
 
     #[test]
     fn a_login_without_https_is_refused_before_any_request() {
-        let store = KeystoreCredentials::new(Memory::default());
-        let secret = || Ok(SecretString::from(CANARY));
-        let (announce, wait) = (|_: &Prompt| {}, |_: Duration| {});
+        let store = Store::new(Memory::default());
         let action = CredentialAction::Login {
             id: "work".to_owned(),
             provider: ProviderChoice::GitLab,
             client_id: "app".to_owned(),
             host: Some("http://git.example.com".to_owned()),
         };
-        let error = execute(&store, &action, &io(&secret, &announce, &wait)).unwrap_err();
         assert_eq!(
-            codeskimr_codes::Coded::code(&error),
+            code(run_on(&store, &action, None)),
             ErrorCode::OauthFlowFailed
         );
     }

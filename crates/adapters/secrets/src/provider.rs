@@ -41,7 +41,8 @@ impl Provider {
         };
         let base = host.unwrap_or(public_host).trim_end_matches(PATH_SEPARATOR);
         DeviceFlow::new(
-            [format!("{base}{device}"), format!("{base}{token}")],
+            format!("{base}{device}"),
+            format!("{base}{token}"),
             client_id,
             scope,
             user,

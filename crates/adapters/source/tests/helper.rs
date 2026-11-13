@@ -18,7 +18,7 @@ use codeskimr_application::ports::SourceProvider;
 use codeskimr_domain::{BranchName, CredentialId, GitUrl, ProjectSource};
 use codeskimr_source::{GitCache, SourceFetcher};
 use common::http::GitHttpServer;
-use common::{TestResult, TestStore, git, write};
+use common::{TestResult, TestStore};
 
 const CHILD_URL: &str = "CODESKIMR_TEST_URL";
 const CHILD_CACHE: &str = "CODESKIMR_TEST_CACHE";
@@ -54,17 +54,7 @@ fn child_fetches_once() -> TestResult {
 /// Runs the child with a helper that creates `marker`; returns whether the helper was asked.
 fn helper_was_asked(with_credential: bool) -> TestResult<bool> {
     let root = tempfile::tempdir()?;
-    let work = tempfile::tempdir()?;
-    git(work.path(), &["init", "-q", "-b", "main"])?;
-    write(work.path(), "lib.rs", "fn one() {}")?;
-    git(work.path(), &["add", "."])?;
-    git(work.path(), &["commit", "-q", "-m", "one"])?;
-    let bare = root.path().join("repo.git");
-    let bare_text = bare.to_string_lossy().into_owned();
-    git(
-        work.path(),
-        &["clone", "-q", "--bare", ".", bare_text.as_str()],
-    )?;
+    common::bare_repo(root.path())?;
     let server = GitHttpServer::start(root.path(), Some((USER, SECRET)))?;
 
     let home = tempfile::tempdir()?;

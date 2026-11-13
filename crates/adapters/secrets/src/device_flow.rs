@@ -99,13 +99,14 @@ impl DeviceReply {
 }
 
 impl DeviceFlow {
-    /// A flow with the two endpoints `[device code, token]`.
+    /// A flow with the endpoints of the device code and of the token.
     ///
     /// # Errors
     /// `NET-601` if an endpoint is not an HTTPS address. Plain HTTP is only accepted for the
     /// loopback address, which the tests use.
     pub fn new(
-        [device_url, token_url]: [String; 2],
+        device_url: String,
+        token_url: String,
         client_id: &str,
         scope: &str,
         user: &str,
