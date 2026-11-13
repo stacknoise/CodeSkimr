@@ -169,6 +169,12 @@ pub const ESCAPE: char = '\\';
 
 /// Name under which the installation token lives in the credential store (blueprint 12.2).
 pub const TOKEN_CREDENTIAL_ID: &str = "installation-token";
+/// Whether `name` is the installation token under any spelling a keystore could fold together
+/// (case, surrounding blanks): such a name must never be managed or lent to a remote.
+#[must_use]
+pub fn is_token_credential(name: &str) -> bool {
+    name.trim().eq_ignore_ascii_case(TOKEN_CREDENTIAL_ID)
+}
 /// User name stored next to the installation token; the credential format needs one.
 pub const TOKEN_CREDENTIAL_USER: &str = "local-owner";
 /// Number of random bytes of an installation token: 256 bits (ADR 0019).

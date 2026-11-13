@@ -21,16 +21,14 @@ Each traversal test has a positive control (a class inside the project is found)
 | `commands::a_secret_in_a_git_address_stays_out_of_the_output_and_the_data_folder` | CLI `scan`, trace log | The canary in a Git address is in no output and no file of the data folder. |
 | `commands::a_secret_sent_to_the_stdio_server_stays_out_of_its_log_and_the_data_folder` | MCP stdio, trace log | The canary sent in every place a client can (client name, query, paths, tool arguments) is not in the log or the data folder. |
 | `commands::the_export_holds_no_secret_from_a_method_body_and_no_path` | CLI `export --html` | A secret in a method body, and the project and data folder paths, are not in the page. |
+| `security_login_tests::a_stored_credential_reaches_the_remote_and_nothing_else` | REST, Git login | A credential stored over `credentials.set` is used for a login at a remote (the remote saw `Basic` for that user), and neither the secret nor the installation token is in any answer or file of the data folder; the remote never got the installation token. |
 
 Crash output is covered by the unit test `logging::tests::a_panic_is_reported_without_its_secret`:
 the binary has no input that makes it panic, so the hook is tested in the process.
 
 ## Known gaps
 
-- The credential store of the test app is in memory and no REST or MCP path reads it, so the
-  credential canary reaches the app only through the Git address; "not in the data folder" is
-  therefore weak for stored credentials. Login with a real keystore cannot run in CI (issue
-  #184).
+- The tests use an in-memory keystore; the keystore of the operating system cannot run in CI.
 - Among the REST commands and MCP tools only `check_conventions` takes file paths (`paths` in
   `ConventionsArgs`, `crates/mcp/src/args.rs`); the others take ids, which the symbol loop of the
   canary test walks. A new command with a path input needs its own traversal test.
