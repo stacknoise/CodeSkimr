@@ -52,3 +52,12 @@ pub const NO_LOGIN_MESSAGE: &str = "no credential available";
 
 /// Marker that separates the scheme of a URL from the host.
 pub const URL_SCHEME_MARKER: &str = "://";
+
+/// Ends a line of a source file.
+pub const LINE_END: u8 = b'\n';
+
+/// Precedes `LINE_END` in files with Windows line ends; it is not part of the line.
+pub const CARRIAGE_RETURN: char = '\r';
+
+/// Number of the first line of a file.
+pub const FIRST_LINE: u32 = 1;

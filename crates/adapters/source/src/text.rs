@@ -1,7 +1,7 @@
 //! Reading lines of a file of a folder source.
 
 use std::fs::{self, File};
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read};
 use std::path::{Path, PathBuf};
 
 use codeskimr_application::error::CodedError;
@@ -9,7 +9,7 @@ use codeskimr_application::ports::{Excerpt, SourceText};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{FolderPath, RelativePath};
 
-use crate::consts::RELATIVE_PATH_SEPARATOR;
+use crate::consts::{CARRIAGE_RETURN, FIRST_LINE, LINE_END, RELATIVE_PATH_SEPARATOR};
 
 /// Reads lines of the files below a folder.
 #[derive(Debug, Clone, Copy, Default)]
@@ -32,20 +32,27 @@ fn not_found() -> CodedError {
     CodedError::new(ErrorCode::SourcePathNotFound)
 }
 
-fn lines_of(file: &Path, range: (u32, u32), limit: u32) -> Result<Excerpt, CodedError> {
+/// The lines `range` of the opened file. Reading stops at `max_bytes`, so a file that grows after
+/// the size check cannot make the answer larger than the limit.
+fn lines_of(file: File, range: (u32, u32), limits: (u32, u64)) -> Result<Excerpt, CodedError> {
     let (first, last) = range;
-    let reader = BufReader::new(File::open(file).map_err(|_| not_found())?);
-    let wanted = last.saturating_sub(first).saturating_add(1);
-    let take = wanted.min(limit);
-    let skip = usize::try_from(first.saturating_sub(1)).unwrap_or(usize::MAX);
+    let (max_lines, max_bytes) = limits;
+    let size = file.metadata().map_err(|_| not_found())?.len();
+    if size > max_bytes {
+        return Err(CodedError::new(ErrorCode::SourceTooLarge));
+    }
+    let reader = BufReader::new(file.take(max_bytes));
+    let wanted = last.saturating_sub(first).saturating_add(FIRST_LINE);
+    let take = wanted.min(max_lines);
+    let skip = usize::try_from(first.saturating_sub(FIRST_LINE)).unwrap_or(usize::MAX);
     let lines: Vec<String> = reader
-        .split(b'\n')
+        .split(LINE_END)
         .skip(skip)
         .take(usize::try_from(take).unwrap_or(usize::MAX))
         .map(|line| {
             let bytes = line.map_err(|_| not_found())?;
             Ok(String::from_utf8_lossy(&bytes)
-                .trim_end_matches('\r')
+                .trim_end_matches(CARRIAGE_RETURN)
                 .to_owned())
         })
         .collect::<Result<_, CodedError>>()?;
@@ -63,13 +70,9 @@ impl SourceText for FolderText {
         range: (u32, u32),
         limits: (u32, u64),
     ) -> Result<Excerpt, CodedError> {
-        let (max_lines, max_bytes) = limits;
-        let file = inside(Path::new(root.as_str()), path).ok_or_else(not_found)?;
-        let size = fs::metadata(&file).map_err(|_| not_found())?.len();
-        if size > max_bytes {
-            return Err(CodedError::new(ErrorCode::SourceTooLarge));
-        }
-        lines_of(&file, range, max_lines)
+        let real = inside(Path::new(root.as_str()), path).ok_or_else(not_found)?;
+        let file = File::open(real).map_err(|_| not_found())?;
+        lines_of(file, range, limits)
     }
 }
 
@@ -142,6 +145,49 @@ mod tests {
         let error = read(&inner, "link.txt", (1, 1)).unwrap_err();
         assert_eq!(error.code().entry().id, "SRC-201");
         drop(root);
+    }
+
+    #[test]
+    fn an_absolute_path_is_not_found() {
+        let (dir, root) = folder(&[("a.cs", "x"), ("secret.txt", "key")]);
+        let outside = dir.path().join("secret.txt");
+        let error = read(&root, outside.to_str().unwrap(), (1, 1)).unwrap_err();
+        assert_eq!(error.code().entry().id, "SRC-201");
+    }
+
+    #[test]
+    fn one_very_long_line_stays_inside_the_byte_limit() {
+        let (_dir, root) = folder(&[("long.cs", &"x".repeat(900))]);
+        let excerpt = FolderText
+            .excerpt(
+                &root,
+                &RelativePath::new("long.cs").unwrap(),
+                (1, 1),
+                (3, 1000),
+            )
+            .unwrap();
+        assert_eq!(excerpt.lines[0].len(), 900);
+        let error = FolderText
+            .excerpt(
+                &root,
+                &RelativePath::new("long.cs").unwrap(),
+                (1, 1),
+                (3, 899),
+            )
+            .unwrap_err();
+        assert_eq!(error.code().entry().id, "SRC-501");
+    }
+
+    #[test]
+    fn reading_stops_at_the_byte_limit_even_if_the_size_check_was_outdated() {
+        let (dir, _root) = folder(&[("grown.cs", "0123456789\n0123456789\n")]);
+        let file = File::open(dir.path().join("grown.cs")).unwrap();
+        // The limit is 15 bytes, the file has 22: the size check refuses it...
+        assert!(lines_of(file, (1, 2), (3, 15)).is_err());
+        // ...and a file that passes the check is read at most up to the limit.
+        let file = File::open(dir.path().join("grown.cs")).unwrap();
+        let excerpt = lines_of(file, (1, 2), (3, 22)).unwrap();
+        assert_eq!(excerpt.lines, ["0123456789", "0123456789"]);
     }
 
     #[test]
