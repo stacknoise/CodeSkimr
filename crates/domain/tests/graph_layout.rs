@@ -48,7 +48,7 @@ mod tests {
     #[test]
     fn empty_graph_gives_empty_layout() {
         let layout = graph(0, &[]).layout(&PARAMS);
-        assert!(layout.placements.is_empty());
+        assert_eq!(layout.placements.len(), 0);
         assert_eq!((layout.width, layout.height), (0, 0));
     }
 
