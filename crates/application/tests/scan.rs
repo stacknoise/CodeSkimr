@@ -9,8 +9,8 @@ use codeskimr_application::ids::IdSequence;
 use codeskimr_application::pipeline::{Job, JobResult, Scanner, ScannerPorts};
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, DiscoveredFile, FetchedSource, FileAnalyzer, FileDiscovery, FileFacts,
-    MetricsCalculator, PendingReference, PreviousIndex, ProjectRepository, ReferenceResolver,
-    SnapshotData, SnapshotStore, SourceProvider, SymbolFingerprints,
+    MetricsCalculator, PendingReference, PreviousIndex, ProjectRepository, ProjectScanner,
+    ReferenceResolver, SnapshotData, SnapshotStore, SourceProvider, SymbolFingerprints,
 };
 use codeskimr_application::stage::StageKind;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -709,4 +709,30 @@ fn a_caller_without_the_scan_permission_is_denied_and_nothing_happens() {
     assert_eq!(job.code(), ErrorCode::PermissionDenied);
     assert_eq!(world.persisted_count(), 0);
     assert_eq!(events.try_iter().count(), 0);
+}
+
+#[test]
+fn rescan_runs_an_incremental_scan_and_returns_its_snapshot() -> Result<(), CodedError> {
+    let world = a_unchanged_b_changed()?;
+    let snapshot =
+        scanner(&world, &EventBus::new()).rescan(&Principal::local_owner(), ProjectId::new(7))?;
+    assert_eq!(snapshot.mode, ScanMode::Incremental);
+    assert_eq!(world.persisted_count(), 1);
+    Ok(())
+}
+
+#[test]
+fn rescan_keeps_the_code_of_a_denied_caller_and_of_a_failed_stage() {
+    let world = Arc::new(World::default());
+    let reader = Principal::limited(PermissionSet::none().with(Permission::Read));
+    let denied = scanner(&world, &EventBus::new()).rescan(&reader, ProjectId::new(7));
+    assert_eq!(denied.unwrap_err().code(), ErrorCode::PermissionDenied);
+    assert_eq!(world.persisted_count(), 0);
+    let broken = Arc::new(World {
+        fail_at: Some(StageKind::ALL[0]),
+        ..World::default()
+    });
+    let failed =
+        scanner(&broken, &EventBus::new()).rescan(&Principal::local_owner(), ProjectId::new(7));
+    assert_eq!(failed.unwrap_err().code(), ErrorCode::GitFetchFailed);
 }

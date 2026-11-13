@@ -79,15 +79,20 @@ struct UsagesAnswer {
     notice: Option<CodeReport>,
 }
 
-fn parse_direction(text: Option<&str>) -> Result<Direction, McpError> {
+/// The direction a caller named, or `default` if it named none.
+pub(super) fn parse_direction(
+    text: Option<&str>,
+    default: Direction,
+) -> Result<Direction, McpError> {
     match text {
-        None | Some(DIRECTION_INCOMING) => Ok(Direction::Incoming),
+        None => Ok(default),
+        Some(DIRECTION_INCOMING) => Ok(Direction::Incoming),
         Some(DIRECTION_OUTGOING) => Ok(Direction::Outgoing),
         Some(_) => Err(McpError::ArgumentsInvalid(ARG_DIRECTION.to_owned())),
     }
 }
 
-const fn direction_label(direction: Direction) -> &'static str {
+pub(super) const fn direction_label(direction: Direction) -> &'static str {
     match direction {
         Direction::Incoming => DIRECTION_INCOMING,
         Direction::Outgoing => DIRECTION_OUTGOING,
@@ -95,7 +100,7 @@ const fn direction_label(direction: Direction) -> &'static str {
 }
 
 /// The notice that tells a caller its request was cut or reduced, if it was.
-fn cut_notice(
+pub(super) fn cut_notice(
     limit: u32,
     limit_clamped: bool,
     shown: usize,
@@ -182,7 +187,7 @@ impl Tools {
     pub fn find_usages(&self, principal: &Principal, args: &UsagesArgs) -> Result<Value, McpError> {
         access::require(principal, READ_TOOL_PERMISSION)?;
         parse_key(&args.symbol)?;
-        let direction = parse_direction(args.direction.as_deref())?;
+        let direction = parse_direction(args.direction.as_deref(), Direction::Incoming)?;
         let depth = self.apply_depth(args.depth)?;
         let scope = self.scope(args.project)?;
         let limit = self.apply_limit(args.limit);

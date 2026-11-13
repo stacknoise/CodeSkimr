@@ -5,7 +5,7 @@ mod common;
 
 #[cfg(test)]
 mod tests {
-    use codeskimr_application::ports::{SnapshotStore, UsageIndex};
+    use codeskimr_application::ports::{DependencyQuery, SnapshotStore, UsageIndex};
     use codeskimr_domain::{
         Direction, ReferenceKind, ScanMode, SnapshotId, SymbolId, SymbolKind, UsageQuery,
         Visibility,
@@ -186,5 +186,77 @@ mod tests {
         assert_eq!(shallow.total, 2);
         let cut = store.impact(SNAPSHOT, SymbolId::new(23), 5, 1).unwrap();
         assert_eq!((cut.total, cut.symbols.len()), (3, 1));
+    }
+
+    /// `App.Service` contains `Run` and `Stop`; `Main` uses `Run`, `Run` calls `Repo.Save` twice
+    /// and `Stop` once, a test calls `Run`, and `Run` and `Stop` call each other.
+    fn service() -> codeskimr_storage::SqliteStore {
+        let symbols = vec![
+            symbol(20, 11, SymbolKind::Class, "App.Service", None),
+            symbol(22, 11, SymbolKind::Method, "App.Service.Run", Some(20)),
+            symbol(25, 11, SymbolKind::Method, "App.Service.Stop", Some(20)),
+            symbol(21, 11, SymbolKind::Method, "App.Main", None),
+            symbol(23, 11, SymbolKind::Method, "App.Repo.Save", None),
+            symbol(24, 11, SymbolKind::Method, "App.Tests.RunWorks", None),
+        ];
+        let mut in_test = reference(36, 11, 24, 22);
+        in_test.kind = ReferenceKind::Test;
+        let references = vec![
+            reference(31, 11, 21, 22),
+            reference(32, 11, 22, 23),
+            reference(33, 11, 22, 23),
+            reference(34, 11, 25, 23),
+            reference(35, 11, 22, 25),
+            in_test,
+        ];
+        scanned(&[], symbols, references, vec![])
+    }
+
+    fn scope(direction: Direction, include_tests: bool) -> DependencyQuery {
+        DependencyQuery {
+            symbol: SymbolId::new(20),
+            direction,
+            include_tests,
+        }
+    }
+
+    #[test]
+    fn dependencies_count_references_of_the_whole_scope_and_skip_inner_ones() {
+        let page = service()
+            .dependencies(SNAPSHOT, &scope(Direction::Outgoing, false), 10)
+            .unwrap();
+        let seen: Vec<_> = page
+            .edges
+            .iter()
+            .map(|edge| (edge.other.qualified_name.as_str(), edge.count))
+            .collect();
+        assert_eq!(seen, vec![("App.Repo.Save", 3)]);
+        assert_eq!(page.total, 1);
+    }
+
+    #[test]
+    fn incoming_dependencies_and_tests_follow_the_question() {
+        let store = service();
+        let without = store
+            .dependencies(SNAPSHOT, &scope(Direction::Incoming, false), 10)
+            .unwrap();
+        assert_eq!(without.total, 1);
+        let with = store
+            .dependencies(SNAPSHOT, &scope(Direction::Incoming, true), 10)
+            .unwrap();
+        assert_eq!(with.total, 2);
+        assert_eq!(with.edges[0].path.as_str(), "src/order.cs");
+    }
+
+    #[test]
+    fn dependencies_are_cut_to_the_limit_and_missing_scopes_are_empty() {
+        let store = service();
+        let cut = store
+            .dependencies(SNAPSHOT, &scope(Direction::Incoming, true), 1)
+            .unwrap();
+        assert_eq!((cut.total, cut.edges.len()), (2, 1));
+        let mut missing = scope(Direction::Outgoing, true);
+        missing.symbol = SymbolId::new(99);
+        assert_eq!(store.dependencies(SNAPSHOT, &missing, 10).unwrap().total, 0);
     }
 }

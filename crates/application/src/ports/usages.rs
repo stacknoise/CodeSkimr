@@ -1,8 +1,8 @@
 //! Usages and impact of a symbol (adapter: `codeskimr_storage`), blueprint 9.
 
 use codeskimr_domain::{
-    QualifiedName, Reference, RelativePath, SnapshotId, SymbolId, SymbolKind, UsageQuery,
-    Visibility,
+    Direction, QualifiedName, Reference, RelativePath, SnapshotId, SymbolId, SymbolKind,
+    UsageQuery, Visibility,
 };
 
 use crate::error::CodedError;
@@ -64,6 +64,37 @@ pub struct ImpactPage {
     pub symbols: Vec<ImpactedSymbol>,
 }
 
+/// One symbol outside a scope that the scope depends on, or that depends on the scope.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DependencyEdge {
+    /// The symbol on the far side of the edge.
+    pub other: SymbolLabel,
+    /// File that declares it.
+    pub path: RelativePath,
+    /// Number of references between the scope and this symbol.
+    pub count: u32,
+}
+
+/// The dependencies of one symbol and everything it contains, cut to a limit.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DependencyPage {
+    /// Number of symbols on the far side, also those that were cut.
+    pub total: usize,
+    /// The symbols with the most references first.
+    pub edges: Vec<DependencyEdge>,
+}
+
+/// The question of [`UsageIndex::dependencies`].
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct DependencyQuery {
+    /// The scope: a symbol with everything it contains.
+    pub symbol: SymbolId,
+    /// Which way the edges go.
+    pub direction: Direction,
+    /// Whether references from tests count.
+    pub include_tests: bool,
+}
+
 /// The reverse index of the newest snapshots. A symbol or snapshot that does not exist has no
 /// usages; ask `CodeIndex::symbol` first to tell the two apart.
 pub trait UsageIndex: Send + Sync {
@@ -91,4 +122,18 @@ pub trait UsageIndex: Send + Sync {
         depth: u32,
         limit: u32,
     ) -> Result<ImpactPage, CodedError>;
+
+    /// The symbols outside `symbol` and its members that it uses (`Direction::Outgoing`) or that
+    /// use it (`Direction::Incoming`), with the number of references to each, at most `limit`
+    /// of them. A namespace or type is a scope that contains its members. References from
+    /// tests count only with `include_tests`.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn dependencies(
+        &self,
+        snapshot: SnapshotId,
+        query: &DependencyQuery,
+        limit: u32,
+    ) -> Result<DependencyPage, CodedError>;
 }

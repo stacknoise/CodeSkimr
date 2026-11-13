@@ -101,6 +101,8 @@ export const I18N_KEYS = {
   MCP_TOOL_FIND_SIMILAR_CODE: "mcp-tool-find-similar-code",
   MCP_TOOL_FIND_CONSTANTS: "mcp-tool-find-constants",
   MCP_TOOL_CHECK_CONVENTIONS: "mcp-tool-check-conventions",
+  MCP_TOOL_GET_DEPENDENCIES: "mcp-tool-get-dependencies",
+  MCP_TOOL_RESCAN: "mcp-tool-rescan",
   PALETTE_TITLE: "palette-title",
   PALETTE_PLACEHOLDER: "palette-placeholder",
   PALETTE_RESULT_COUNT: "palette-result-count",
