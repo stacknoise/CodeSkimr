@@ -10,16 +10,16 @@ use codeskimr_application::pipeline::{Job, JobResult, Scanner, ScannerPorts};
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, DiscoveredFile, FetchedSource, FileAnalyzer, FileDiscovery, FileFacts,
     MetricsCalculator, PendingReference, PreviousIndex, ProjectRepository, ReferenceResolver,
-    SnapshotData, SnapshotStore, SourceProvider,
+    SnapshotData, SnapshotStore, SourceProvider, SymbolFingerprints,
 };
 use codeskimr_application::stage::StageKind;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    BranchName, CommitHash, Confidence, ContentHash, FileId, FolderPath, LanguageId, Loc, Metric,
-    MetricKind, MetricValue, ModelError, Permission, PermissionSet, Position, Principal, Project,
-    ProjectId, ProjectName, ProjectSource, QualifiedName, Reference, ReferenceId, ReferenceKind,
-    RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId,
-    SymbolKind, SymbolName, Timestamp,
+    BranchName, CommitHash, Confidence, ContentHash, FileId, Fingerprint, Fingerprints, FolderPath,
+    LanguageId, Loc, Metric, MetricKind, MetricValue, ModelError, Permission, PermissionSet,
+    Position, Principal, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference,
+    ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile, Span,
+    Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName, Timestamp,
 };
 
 /// The newest snapshot as the repository reports it.
@@ -183,14 +183,23 @@ impl FileAnalyzer for World {
             receiver: None,
             previous: None,
         }];
-        let counts = vec![counted(symbol.id)];
         Ok(FileFacts {
             file,
-            symbols: vec![symbol],
             pending,
-            fingerprints: Vec::new(),
-            counts,
+            fingerprints: vec![fingerprinted(symbol.id)],
+            counts: vec![counted(symbol.id)],
+            symbols: vec![symbol],
         })
+    }
+}
+
+fn fingerprinted(symbol: SymbolId) -> SymbolFingerprints {
+    SymbolFingerprints {
+        symbol,
+        fingerprints: Fingerprints::from_entries(vec![Fingerprint {
+            hash: 1,
+            position: 0,
+        }]),
     }
 }
 
@@ -355,6 +364,11 @@ fn full_scan_ignores_the_previous_snapshot() -> Result<(), CodedError> {
     let persisted = world.last_persisted()?;
     assert_eq!(persisted.removed, Vec::<RelativePath>::new());
     assert_eq!(persisted.files.len(), 2);
+    assert_eq!(
+        persisted.fingerprints.len(),
+        2,
+        "every analysed callable is fingerprinted"
+    );
     Ok(())
 }
 
@@ -433,6 +447,11 @@ fn incremental_scan_analyses_only_changed_files_and_resolves_dependents_again()
     let persisted = world.last_persisted()?;
     let paths: Vec<_> = persisted.files.iter().map(|f| f.path.as_str()).collect();
     assert_eq!(paths, ["b.rs"], "only the changed file is analysed");
+    assert_eq!(
+        persisted.fingerprints.len(),
+        1,
+        "the store carries the fingerprints of the unchanged files"
+    );
     assert_eq!(
         persisted
             .removed

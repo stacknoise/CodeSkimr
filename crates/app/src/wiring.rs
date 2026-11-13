@@ -12,7 +12,7 @@ use codeskimr_application::events::EventBus;
 use codeskimr_application::ids::IdSequence;
 use codeskimr_application::metrics::StandardMetrics;
 use codeskimr_application::pipeline::{Scanner, ScannerPorts};
-use codeskimr_application::ports::{FileAnalyzer, FileDiscovery};
+use codeskimr_application::ports::{FileAnalyzer, FileDiscovery, SnippetFingerprinter};
 use codeskimr_application::resolve::ScopedResolver;
 use codeskimr_codes::ErrorCode;
 use codeskimr_parsing::{LanguagePacks, TreeSitterAnalyzer};
@@ -48,6 +48,7 @@ pub fn build_scanner(
     let Analysis {
         discovery,
         analyzer,
+        ..
     } = build_analysis(config, locations)?;
     let ports = ScannerPorts {
         source: Arc::new(SourceFetcher::new(
@@ -73,6 +74,8 @@ pub struct Analysis {
     pub discovery: Arc<dyn FileDiscovery>,
     /// Parses one file; fingerprints are on.
     pub analyzer: Arc<dyn FileAnalyzer>,
+    /// Fingerprints a snippet with the same parameters as the analyzer.
+    pub snippets: Arc<dyn SnippetFingerprinter>,
 }
 
 /// Builds the discovery and the analyzer from the installed language packs.
@@ -100,8 +103,10 @@ pub fn build_analysis(config: &Config, locations: &Locations) -> Result<Analysis
         },
         languages,
     );
+    let analyzer = Arc::new(analyzer);
     Ok(Analysis {
         discovery: Arc::new(discovery),
-        analyzer: Arc::new(analyzer),
+        snippets: analyzer.clone(),
+        analyzer,
     })
 }

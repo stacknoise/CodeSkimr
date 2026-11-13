@@ -7,7 +7,10 @@ mod tests {
 
     use codeskimr_application::config::Config;
     use codeskimr_application::ids::IdSequence;
-    use codeskimr_application::ports::{AnalyzeRequest, DiscoveredFile, FileAnalyzer, FileFacts};
+    use codeskimr_application::ports::{
+        AnalyzeRequest, DiscoveredFile, FileAnalyzer, FileFacts, SnippetFingerprinter,
+    };
+    use codeskimr_codes::Coded;
     use codeskimr_domain::{ContentHash, FolderPath, LanguageId, RelativePath, SnapshotId};
     use codeskimr_parsing::{LanguagePacks, TreeSitterAnalyzer};
 
@@ -84,5 +87,50 @@ mod tests {
         assert!(prints_of(&facts, "tiny").is_none());
         assert!(prints_of(&facts, "twins").is_none());
         assert_eq!(facts.fingerprints.len(), 3);
+    }
+
+    fn snippet_of(
+        text: &str,
+    ) -> Result<codeskimr_domain::Fingerprints, codeskimr_application::error::CodedError> {
+        analyzer(true).fingerprint(&LanguageId::new("rust").expect("language"), text)
+    }
+
+    #[test]
+    fn a_snippet_of_a_function_matches_the_function_in_its_file() {
+        let facts = analyze(true);
+        let price = prints_of(&facts, "total_price").expect("total_price");
+        let copy = snippet_of(
+            "fn amount(rows: &[u32], pct: u32) -> u32 {\n    let mut acc = 1;\n    for row in rows {\n        \
+             if *row > 4 {\n            acc += row * pct;\n        } else {\n            acc += row + 2;\n        }\n    }\n    acc\n}\n",
+        )
+        .expect("fingerprints");
+        assert!(copy.similarity(price) > 0.95);
+    }
+
+    #[test]
+    fn a_short_snippet_has_no_fingerprints_and_an_unknown_language_fails() {
+        assert!(
+            snippet_of("fn tiny() -> u32 { 1 }")
+                .expect("fingerprints")
+                .is_empty()
+        );
+        let error = analyzer(true)
+            .fingerprint(&LanguageId::new("cobol").expect("language"), "x")
+            .expect_err("no pack");
+        assert_eq!(
+            error.code(),
+            codeskimr_codes::ErrorCode::LanguagePackMissing
+        );
+    }
+
+    #[test]
+    fn a_snippet_needs_fingerprinting_to_be_switched_on() {
+        let error = analyzer(false)
+            .fingerprint(&LanguageId::new("rust").expect("language"), "fn a() {}")
+            .expect_err("off");
+        assert_eq!(
+            error.code(),
+            codeskimr_codes::ErrorCode::UnexpectedInternalError
+        );
     }
 }

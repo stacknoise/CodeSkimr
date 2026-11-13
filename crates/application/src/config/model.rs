@@ -85,6 +85,11 @@ pub struct McpLimits {
     pub default_depth: u32,
     /// Most steps a walk may go; the depth of the impact analysis.
     pub max_depth: u32,
+    /// Similarity in percent from which `find_similar_code` lists a function, when the caller
+    /// gives none.
+    pub default_similarity_percent: u32,
+    /// Largest snippet `find_similar_code` takes, in bytes.
+    pub max_snippet_bytes: u32,
 }
 
 /// Snapshot retention.

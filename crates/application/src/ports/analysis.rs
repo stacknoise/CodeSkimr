@@ -1,8 +1,8 @@
 //! Understanding code (adapters: `codeskimr_parsing` and the metrics of `codeskimr_domain`).
 
 use codeskimr_domain::{
-    Confidence, FileId, Fingerprints, FolderPath, Metric, QualifiedName, Reference, ReferenceKind,
-    SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId,
+    Confidence, FileId, Fingerprints, FolderPath, LanguageId, Metric, QualifiedName, Reference,
+    ReferenceKind, SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId,
 };
 
 use super::DiscoveredFile;
@@ -88,6 +88,19 @@ pub trait FileAnalyzer: Send + Sync {
     /// # Errors
     /// A coded failure such as `PRS-101`, `PRS-201` or `PRS-501`.
     fn analyze(&self, request: &AnalyzeRequest<'_>) -> Result<FileFacts, CodedError>;
+}
+
+/// Fingerprints a piece of code that is not part of a scanned file, for `find_similar_code`
+/// (blueprint 10.4). It uses the same normalisation and parameters as the fingerprints of a scan,
+/// so the values are comparable with the stored ones.
+pub trait SnippetFingerprinter: Send + Sync {
+    /// The fingerprints of `source`, which is parsed as the content of a file of `language`.
+    /// The result is empty if the snippet is shorter than the configured minimum.
+    ///
+    /// # Errors
+    /// `PRS-201` if no language pack is installed for `language`, `PRS-501` if parsing takes too
+    /// long, or another coded failure of the `PRS` group.
+    fn fingerprint(&self, language: &LanguageId, source: &str) -> Result<Fingerprints, CodedError>;
 }
 
 /// Maps pending references to symbols (blueprint section 9).

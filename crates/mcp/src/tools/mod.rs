@@ -2,16 +2,21 @@
 //! the protocol.
 
 mod architecture;
+mod constants;
+mod conventions;
 mod search;
+mod similar;
 mod symbol;
 mod usages;
 
 use std::sync::Arc;
 
 use codeskimr_application::config::McpLimits;
+use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    Clock, CodeIndex, ProjectRepository, SymbolDetail, SymbolKey, UsageIndex,
+    Clock, CodeIndex, ProjectRepository, SimilarityIndex, SnippetFingerprinter, SymbolDetail,
+    SymbolKey, UsageIndex,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Project, ProjectId, QualifiedName, Snapshot, SymbolId};
@@ -60,6 +65,12 @@ pub struct Ports {
     pub index: Arc<dyn CodeIndex>,
     /// Usages and impact (the reverse index).
     pub usages: Arc<dyn UsageIndex>,
+    /// The stored fingerprints, for `find_similar_code`.
+    pub similarity: Arc<dyn SimilarityIndex>,
+    /// Fingerprints of a snippet, with the same normalisation as a scan.
+    pub snippets: Arc<dyn SnippetFingerprinter>,
+    /// The convention check, which reads the files of a project afresh.
+    pub checker: Arc<ConventionChecker>,
     /// The time, for the age of a snapshot.
     pub clock: Arc<dyn Clock>,
 }
@@ -69,6 +80,9 @@ pub struct Tools {
     projects: Arc<dyn ProjectRepository>,
     index: Arc<dyn CodeIndex>,
     usages: Arc<dyn UsageIndex>,
+    similarity: Arc<dyn SimilarityIndex>,
+    snippets: Arc<dyn SnippetFingerprinter>,
+    checker: Arc<ConventionChecker>,
     clock: Arc<dyn Clock>,
     limits: McpLimits,
     default_project: ProjectId,
@@ -82,6 +96,9 @@ impl Tools {
             projects: ports.projects,
             index: ports.index,
             usages: ports.usages,
+            similarity: ports.similarity,
+            snippets: ports.snippets,
+            checker: ports.checker,
             clock: ports.clock,
             limits,
             default_project,
@@ -119,16 +136,22 @@ impl Tools {
         self.limits.max_limit
     }
 
-    /// Finds the registered project and its newest snapshot.
-    pub(crate) fn scope(&self, requested: Option<u64>) -> Result<Scope, McpError> {
+    /// Finds the registered project, without looking at its snapshots.
+    pub(crate) fn project(&self, requested: Option<u64>) -> Result<Project, McpError> {
         let id = requested.map_or(self.default_project, ProjectId::new);
-        let project = self.projects.project(id).map_err(|error| {
+        self.projects.project(id).map_err(|error| {
             if error.code() == ErrorCode::ProjectNotFound {
                 McpError::ProjectNotRegistered(id.get())
             } else {
                 McpError::from(error)
             }
-        })?;
+        })
+    }
+
+    /// Finds the registered project and its newest snapshot.
+    pub(crate) fn scope(&self, requested: Option<u64>) -> Result<Scope, McpError> {
+        let project = self.project(requested)?;
+        let id = project.id;
         let snapshot = self
             .index
             .latest_snapshot(id)?
@@ -147,6 +170,22 @@ impl Tools {
 
     pub(crate) fn index(&self) -> &dyn CodeIndex {
         self.index.as_ref()
+    }
+
+    pub(crate) fn similarity(&self) -> &dyn SimilarityIndex {
+        self.similarity.as_ref()
+    }
+
+    pub(crate) fn snippets(&self) -> &dyn SnippetFingerprinter {
+        self.snippets.as_ref()
+    }
+
+    pub(crate) fn checker(&self) -> &ConventionChecker {
+        self.checker.as_ref()
+    }
+
+    pub(crate) const fn limits(&self) -> &McpLimits {
+        &self.limits
     }
 
     pub(crate) fn usage_index(&self) -> &dyn UsageIndex {

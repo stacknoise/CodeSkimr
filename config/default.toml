@@ -38,6 +38,10 @@ max_limit = 100
 # of impact_of_change).
 default_depth = 1
 max_depth = 5
+# find_similar_code lists functions from this similarity in percent when the caller gives none,
+# and takes snippets up to this size in bytes.
+default_similarity_percent = 50
+max_snippet_bytes = 32768
 
 # Snapshot retention (blueprint 6): the last N snapshots per project are kept.
 [snapshots]

@@ -13,7 +13,7 @@ use crate::ids::IdSequence;
 use crate::ports::{
     AnalyzeRequest, Clock, DiscoveredFile, FileAnalyzer, FileDiscovery, MetricsCalculator,
     PendingReference, ProjectRepository, ReferenceResolver, SnapshotData, SnapshotStore,
-    SourceProvider,
+    SourceProvider, SymbolFingerprints,
 };
 use crate::stage::StageKind;
 
@@ -65,6 +65,8 @@ pub struct Analyzed {
     pub pending: Vec<PendingReference>,
     /// The counts behind the metrics of the analysed files.
     pub counts: Vec<SymbolCounts>,
+    /// The syntax fingerprints of the callables of the analysed files.
+    pub fingerprints: Vec<SymbolFingerprints>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
 }
@@ -82,6 +84,8 @@ pub struct Resolved {
     pub references: Vec<Reference>,
     /// The counts behind the metrics of the analysed files.
     pub counts: Vec<SymbolCounts>,
+    /// The syntax fingerprints of the callables of the analysed files.
+    pub fingerprints: Vec<SymbolFingerprints>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
 }
@@ -99,6 +103,8 @@ pub struct Measured {
     pub references: Vec<Reference>,
     /// Measured values.
     pub metrics: Vec<Metric>,
+    /// The syntax fingerprints of the callables of the analysed files.
+    pub fingerprints: Vec<SymbolFingerprints>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
 }
@@ -209,6 +215,7 @@ impl Stage for AnalyzeStage {
             symbols: Vec::new(),
             pending: Vec::new(),
             counts: Vec::new(),
+            fingerprints: Vec::new(),
             carried,
         };
         for (done, file) in (1..).zip(due) {
@@ -226,6 +233,7 @@ impl Stage for AnalyzeStage {
             out.symbols.extend(facts.symbols);
             out.pending.extend(facts.pending);
             out.counts.extend(facts.counts);
+            out.fingerprints.extend(facts.fingerprints);
             ctx.progress(done, total);
         }
         Ok(out)
@@ -255,6 +263,7 @@ impl Stage for ResolveStage {
             symbols,
             mut pending,
             counts,
+            fingerprints,
             carried,
         } = input;
         pending.extend(carried.rebuilt.iter().cloned());
@@ -271,6 +280,7 @@ impl Stage for ResolveStage {
             symbols,
             references,
             counts,
+            fingerprints,
             carried,
         })
     }
@@ -317,6 +327,7 @@ impl Stage for MeasureStage {
             symbols: input.symbols,
             references: input.references,
             metrics,
+            fingerprints: input.fingerprints,
             carried: input.carried,
         })
     }
@@ -359,6 +370,7 @@ impl Stage for PersistStage {
             symbols: input.symbols,
             references: input.references,
             metrics: input.metrics,
+            fingerprints: input.fingerprints,
             removed: input.carried.removed,
         };
         let stored = self.store.persist(data)?;

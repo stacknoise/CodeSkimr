@@ -132,7 +132,15 @@ fn check_mcp(mcp: &McpLimits) -> Result<(), ConfigError> {
             Violation::MustNotExceed(keys::MCP_MAX_DEPTH),
         );
     }
-    Ok(())
+    positive(
+        keys::MCP_DEFAULT_SIMILARITY_PERCENT,
+        mcp.default_similarity_percent,
+    )?;
+    percent(
+        keys::MCP_DEFAULT_SIMILARITY_PERCENT,
+        mcp.default_similarity_percent,
+    )?;
+    positive(keys::MCP_MAX_SNIPPET_BYTES, mcp.max_snippet_bytes)
 }
 
 fn check_scan(scan: &Scan) -> Result<(), ConfigError> {

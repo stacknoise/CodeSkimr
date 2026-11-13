@@ -69,6 +69,10 @@ pub mod keys {
     pub const MCP_DEFAULT_DEPTH: &str = "mcp.default_depth";
     /// `mcp.max_depth`
     pub const MCP_MAX_DEPTH: &str = "mcp.max_depth";
+    /// `mcp.default_similarity_percent`
+    pub const MCP_DEFAULT_SIMILARITY_PERCENT: &str = "mcp.default_similarity_percent";
+    /// `mcp.max_snippet_bytes`
+    pub const MCP_MAX_SNIPPET_BYTES: &str = "mcp.max_snippet_bytes";
     /// `snapshots.retention_count`
     pub const RETENTION_COUNT: &str = "snapshots.retention_count";
     /// `similarity.ngram_size`

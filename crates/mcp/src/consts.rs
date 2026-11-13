@@ -16,6 +16,12 @@ pub const TOOL_GET_ARCHITECTURE: &str = "get_architecture";
 pub const TOOL_FIND_USAGES: &str = "find_usages";
 /// Name of the tool that shows what a change of a symbol can reach.
 pub const TOOL_IMPACT_OF_CHANGE: &str = "impact_of_change";
+/// Name of the tool that looks for functions that resemble a piece of code.
+pub const TOOL_FIND_SIMILAR_CODE: &str = "find_similar_code";
+/// Name of the tool that looks for existing constants.
+pub const TOOL_FIND_CONSTANTS: &str = "find_constants";
+/// Name of the tool that checks code against the rules of blueprint section 3.
+pub const TOOL_CHECK_CONVENTIONS: &str = "check_conventions";
 
 /// Value of `direction`: the walk follows the users of the symbol.
 pub const DIRECTION_INCOMING: &str = "incoming";
@@ -57,6 +63,17 @@ pub const ARG_SYMBOL: &str = "symbol";
 pub const ARG_DIRECTION: &str = "direction";
 /// Argument name reported when its value is invalid: the depth of a walk.
 pub const ARG_DEPTH: &str = "depth";
+
+/// Argument name reported when its value is invalid: the code snippet.
+pub const ARG_SNIPPET: &str = "snippet";
+/// Argument name reported when its value is invalid: the language of the snippet.
+pub const ARG_LANGUAGE: &str = "language";
+/// Argument name reported when its value is invalid: the minimum similarity.
+pub const ARG_MIN_SIMILARITY: &str = "min_similarity_percent";
+/// Argument name reported when `symbol` and `snippet` are both given or both missing.
+pub const ARG_SYMBOL_OR_SNIPPET: &str = "symbol or snippet";
+/// Largest similarity in percent.
+pub const PERCENT_MAX: u32 = 100;
 
 /// Version the server reports in the `initialize` answer.
 pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
