@@ -1,0 +1,23 @@
+.search {
+    margin-left: auto;
+    flex: 0 1 420px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-8);
+    padding: 0 var(--space-12);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--bg);
+    color: var(--muted);
+    font: 13px var(--font-sans);
+    cursor: pointer;
+}
+
+.search kbd {
+    font: 11px var(--font-mono);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-badge);
+    padding: 0 var(--space-6);
+}

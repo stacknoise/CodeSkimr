@@ -14,6 +14,15 @@ pub const EXPLORER_OUTLINE: &str = "explorer.outline";
 /// Id of the command that returns one symbol of the explorer.
 pub const EXPLORER_SYMBOL: &str = "explorer.symbol";
 
+/// Id of the command of the quick search.
+pub const SEARCH_QUERY: &str = "search.query";
+/// Most hits the quick search returns.
+pub const SEARCH_LIMIT: u32 = 50;
+/// Title key of `search.query`.
+pub const SEARCH_TITLE: &str = i18n::COMMAND_SEARCH_QUERY_TITLE;
+/// Description key of `search.query`.
+pub const SEARCH_DESCRIPTION: &str = i18n::COMMAND_SEARCH_QUERY_DESCRIPTION;
+
 /// Shortcut of the new-project form.
 pub const SHORTCUT_NEW: &str = "N";
 /// Shortcut of the re-scan.

@@ -68,6 +68,7 @@ fn hit(id: u64, kind: SymbolKind, qualified: &str) -> SearchHit {
         qualified_name: symbol.qualified_name,
         kind,
         path: RelativePath::new("src/order.cs").unwrap(),
+        parent: symbol.parent,
     }
 }
 

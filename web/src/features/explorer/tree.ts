@@ -50,7 +50,7 @@ export const namespaceKey = (layer: string, name: string): string =>
 export const typeKey = (id: number): string => [ROW.type, String(id)].join(KEY_SEPARATOR);
 export const groupKey = (id: number, group: string): string =>
   [ROW.group, String(id), group].join(KEY_SEPARATOR);
-const memberKey = (id: number): string => [ROW.member, String(id)].join(KEY_SEPARATOR);
+export const memberKey = (id: number): string => [ROW.member, String(id)].join(KEY_SEPARATOR);
 
 export function indent(depth: number): number {
   return BASE_INDENT_PX + depth * INDENT_PX;
@@ -95,6 +95,17 @@ interface Context {
  * is not known before it is read. */
 function nestedNode(member: MemberRow): TypeNode {
   return { id: member.id, name: member.name, kind: member.kind, members: 0 };
+}
+
+/** The group of the tree that holds a member of this kind, `null` if it has none. */
+export function groupOfKind(kind: string): string | null {
+  if (FIELD_KINDS.includes(kind)) {
+    return GROUP.fields;
+  }
+  if (METHOD_KINDS.includes(kind)) {
+    return GROUP.methods;
+  }
+  return TYPE_KINDS.includes(kind) ? GROUP.nested : null;
 }
 
 function groupRow(info: SymbolInfo, depth: number, id: string, label: string, count: number) {

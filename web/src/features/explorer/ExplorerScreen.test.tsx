@@ -4,6 +4,7 @@ import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { ExplorerScreen } from "./ExplorerScreen";
+import { requestFocus } from "./explorer";
 import type { Outline, SymbolInfo } from "./types";
 
 const OUTLINE: Outline = {
@@ -280,5 +281,25 @@ describe("the details", () => {
     await openOrder();
     fireEvent.click(await screen.findByRole("button", { name: /Line/ }));
     expect(await screen.findByRole("treeitem", { name: /Line/ })).toBeTruthy();
+  });
+});
+
+describe("a navigation from another screen", () => {
+  it("opens the rows down to a member and shows its type", async () => {
+    requestFocus({ type: 7, member: 8, kind: "method" });
+    renderOrder();
+    expect(await screen.findByRole("heading", { name: "Order" })).toBeTruthy();
+    const tree = screen.getByRole("tree");
+    expect(await within(tree).findByText("Total")).toBeTruthy();
+    expect(within(tree).getByText("Shop.Domain")).toBeTruthy();
+    const cursor = tree.getAttribute("aria-activedescendant") ?? "";
+    expect(document.getElementById(cursor)?.textContent).toContain("Total");
+  });
+
+  it("opens the rows down to a type", async () => {
+    requestFocus({ type: 7, member: null, kind: null });
+    renderOrder();
+    expect(await screen.findByRole("heading", { name: "Order" })).toBeTruthy();
+    expect(within(screen.getByRole("tree")).getByText("Shop.Domain")).toBeTruthy();
   });
 });
