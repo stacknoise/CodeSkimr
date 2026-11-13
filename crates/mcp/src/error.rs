@@ -7,7 +7,7 @@ use codeskimr_application::error::CodedError;
 use codeskimr_codes::{Coded, ErrorCode};
 use serde::Serialize;
 
-use crate::consts::{PARAM_DETAIL, PARAM_PROJECT, PARAM_SYMBOL};
+use crate::consts::{ID_SEPARATOR, PARAM_DETAIL, PARAM_PROJECT, PARAM_SYMBOL};
 
 /// Why a tool call failed. Each variant has exactly one registered code.
 #[derive(Debug)]
@@ -44,7 +44,9 @@ impl Coded for McpError {
 
 impl fmt::Display for McpError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}: {}", self.code().id(), self.code().description())
+        f.write_str(self.code().id())?;
+        f.write_str(ID_SEPARATOR)?;
+        f.write_str(self.code().description())
     }
 }
 

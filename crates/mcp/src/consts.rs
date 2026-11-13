@@ -37,3 +37,6 @@ pub const ARG_SYMBOL: &str = "symbol";
 
 /// Version the server reports in the `initialize` answer.
 pub const SERVER_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// Between the code and its description in the text of an error.
+pub const ID_SEPARATOR: &str = ": ";

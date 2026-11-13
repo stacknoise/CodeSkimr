@@ -8,7 +8,7 @@ use codeskimr_domain::{
 };
 use rusqlite::{Connection, OptionalExtension, params};
 
-use crate::codec::{Cols, column_int, id_from, label_from, small_from};
+use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from, small_from};
 use crate::error::StorageResult;
 use crate::sql;
 use crate::store::SqliteStore;
@@ -23,7 +23,7 @@ struct SymbolRow {
     parent: Option<i64>,
     visibility: Option<String>,
     is_static: bool,
-    span: [i64; 4],
+    span: SpanColumns,
     signature: Option<String>,
     doc: Option<String>,
     path: String,
@@ -39,7 +39,12 @@ fn read_row(cols: &Cols<'_>) -> rusqlite::Result<SymbolRow> {
         parent: cols.take()?,
         visibility: cols.take()?,
         is_static: cols.take()?,
-        span: [cols.take()?, cols.take()?, cols.take()?, cols.take()?],
+        span: SpanColumns {
+            start_line: cols.take()?,
+            start_column: cols.take()?,
+            end_line: cols.take()?,
+            end_column: cols.take()?,
+        },
         signature: cols.take()?,
         doc: cols.take()?,
         path: cols.take()?,
@@ -54,7 +59,7 @@ fn position(line: i64, column: i64) -> StorageResult<Position> {
 }
 
 fn decode(row: SymbolRow) -> StorageResult<(Symbol, RelativePath)> {
-    let [start_line, start_column, end_line, end_column] = row.span;
+    let span = row.span;
     let symbol = Symbol {
         id: SymbolId::new(id_from(row.id)?),
         file: FileId::new(id_from(row.file)?),
@@ -68,8 +73,8 @@ fn decode(row: SymbolRow) -> StorageResult<(Symbol, RelativePath)> {
         visibility: row.visibility.as_deref().map(label_from).transpose()?,
         is_static: row.is_static,
         span: Span::new(
-            position(start_line, start_column)?,
-            position(end_line, end_column)?,
+            position(span.start_line, span.start_column)?,
+            position(span.end_line, span.end_column)?,
         )?,
         signature: row.signature,
         doc: row.doc,

@@ -42,7 +42,7 @@ fn finds_a_symbol_by_qualified_name() {
     let found = store().symbol(SNAPSHOT, &key).unwrap().unwrap();
     assert_eq!(found.symbol.id, SymbolId::new(22));
     assert_eq!(found.symbol.parent, Some(SymbolId::new(21)));
-    assert!(found.members.is_empty());
+    assert_eq!(found.members, Vec::new());
 }
 
 #[test]
