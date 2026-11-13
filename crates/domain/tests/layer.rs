@@ -22,4 +22,14 @@ mod tests {
         assert!(!layer().owns("App.DomainX.Order"));
         assert!(!layer().owns("App"));
     }
+
+    #[test]
+    fn owns_what_lies_below_it_in_module_paths_too() {
+        let layer = Layer {
+            name: LayerName::new("Domain").unwrap(),
+            namespaces: vec![QualifiedName::new("crates::domain").unwrap()],
+        };
+        assert!(layer.owns("crates::domain::src::lib::Order"));
+        assert!(!layer.owns("crates::domain_extra::src::lib"));
+    }
 }

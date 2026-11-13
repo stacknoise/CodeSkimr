@@ -26,5 +26,6 @@ SQLite database per workspace, WAL mode, schema migrations in `crates/adapters/s
 ## Known limits
 
 - Search is case-insensitive for ASCII only (SQLite `lower`); the query is lowered the same way.
+- The project's layers come from the configuration and are saved with the project at every scan (ADR 0031).
 - `layer_graph.violates_layering` is always false until the project model carries the allowed directions.
 - Deleted files are reported by the pipeline (`SnapshotData::removed`); the store trusts that list.

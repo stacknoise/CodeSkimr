@@ -1,0 +1,26 @@
+# CodeSkimr's own layers (blueprint 4.2, ADR 0031), outermost first. The first layer that owns a
+# qualified name wins; names are module paths of this repository.
+
+[[layers]]
+name = "app"
+namespaces = ["crates::app"]
+
+[[layers]]
+name = "driving adapters"
+namespaces = ["crates::server", "crates::cli", "crates::mcp"]
+
+[[layers]]
+name = "driven adapters"
+namespaces = ["crates::adapters"]
+
+[[layers]]
+name = "application"
+namespaces = ["crates::application"]
+
+[[layers]]
+name = "domain"
+namespaces = ["crates::domain"]
+
+[[layers]]
+name = "codes"
+namespaces = ["crates::codes"]

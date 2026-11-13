@@ -81,6 +81,8 @@ pub mod keys {
     pub const WINDOW_SIZE: &str = "similarity.window_size";
     /// `similarity.min_tokens`
     pub const MIN_TOKENS: &str = "similarity.min_tokens";
+    /// `layers`
+    pub const LAYERS: &str = "layers";
     /// `conventions.max_function_lines`
     pub const MAX_FUNCTION_LINES: &str = "conventions.max_function_lines";
     /// `conventions.duplicate_similarity_percent`
