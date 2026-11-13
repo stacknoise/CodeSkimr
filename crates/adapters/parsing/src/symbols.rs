@@ -347,12 +347,21 @@ fn new_symbol(
             || words
                 .iter()
                 .any(|word| pack.static_keywords.contains(*word)),
-        signature: declaration
-            .signature
-            .map(|node| text_of(node, ctx.source).trim().to_owned()),
+        signature: signature_of(kind, declaration, ctx.source),
         doc: doc(ctx, &declaration.docs),
         has_body: has_body(pack, declaration.node),
     })
+}
+
+/// The signature text: the `@signature` capture of the pack. A constant without one gets its whole
+/// declaration, so that its value is visible (`find_constants`).
+fn signature_of(kind: SymbolKind, declaration: &Declaration<'_>, source: &str) -> Option<String> {
+    let node = match (declaration.signature, kind) {
+        (Some(node), _) => node,
+        (None, SymbolKind::Constant) => declaration.node,
+        (None, _) => return None,
+    };
+    Some(text_of(node, source).trim().to_owned())
 }
 
 /// The kind of the declaration: a modifier can change it, and the parent can give it another one.

@@ -442,6 +442,7 @@
       "kind": "module",
       "name": "references",
       "parent": null,
+      "signature": null,
       "span": "0:0-55:0",
       "static": false,
       "visibility": null
@@ -451,6 +452,7 @@
       "kind": "trait",
       "name": "references::Priced",
       "parent": "references",
+      "signature": null,
       "span": "6:0-8:1",
       "static": false,
       "visibility": "public"
@@ -460,6 +462,7 @@
       "kind": "method",
       "name": "references::Priced::price",
       "parent": "references::Priced",
+      "signature": null,
       "span": "7:4-7:27",
       "static": false,
       "visibility": "public"
@@ -469,6 +472,7 @@
       "kind": "struct",
       "name": "references::Order",
       "parent": "references",
+      "signature": null,
       "span": "10:0-15:1",
       "static": false,
       "visibility": "public"
@@ -478,6 +482,7 @@
       "kind": "field",
       "name": "references::Order::items",
       "parent": "references::Order",
+      "signature": null,
       "span": "11:4-11:20",
       "static": false,
       "visibility": "private"
@@ -487,6 +492,7 @@
       "kind": "field",
       "name": "references::Order::owner",
       "parent": "references::Order",
+      "signature": null,
       "span": "12:4-12:24",
       "static": false,
       "visibility": "private"
@@ -496,6 +502,7 @@
       "kind": "field",
       "name": "references::Order::cart",
       "parent": "references::Order",
+      "signature": null,
       "span": "13:4-13:23",
       "static": false,
       "visibility": "private"
@@ -505,6 +512,7 @@
       "kind": "field",
       "name": "references::Order::total",
       "parent": "references::Order",
+      "signature": null,
       "span": "14:4-14:14",
       "static": false,
       "visibility": "private"
@@ -514,6 +522,7 @@
       "kind": "method",
       "name": "references::price",
       "parent": "references",
+      "signature": null,
       "span": "18:4-20:5",
       "static": false,
       "visibility": "public"
@@ -523,6 +532,7 @@
       "kind": "method",
       "name": "references::find",
       "parent": "references",
+      "signature": null,
       "span": "26:4-53:5",
       "static": false,
       "visibility": "public"

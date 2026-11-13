@@ -545,6 +545,7 @@
       "kind": "module",
       "name": "Declarations",
       "parent": null,
+      "signature": null,
       "span": "0:0-90:0",
       "static": false,
       "visibility": null
@@ -554,6 +555,7 @@
       "kind": "namespace",
       "name": "Declarations.com.example.shapes",
       "parent": "Declarations",
+      "signature": null,
       "span": "0:0-90:0",
       "static": false,
       "visibility": null
@@ -563,6 +565,7 @@
       "kind": "class",
       "name": "Declarations.com.example.shapes.Shape",
       "parent": "Declarations.com.example.shapes",
+      "signature": null,
       "span": "6:0-59:1",
       "static": false,
       "visibility": "public"
@@ -572,6 +575,7 @@
       "kind": "property",
       "name": "Declarations.com.example.shapes.Shape.id",
       "parent": "Declarations.com.example.shapes.Shape",
+      "signature": null,
       "span": "6:17-6:28",
       "static": false,
       "visibility": "public"
@@ -581,6 +585,7 @@
       "kind": "property",
       "name": "Declarations.com.example.shapes.Shape.label",
       "parent": "Declarations.com.example.shapes.Shape",
+      "signature": null,
       "span": "6:30-6:64",
       "static": false,
       "visibility": "private"
@@ -590,6 +595,7 @@
       "kind": "class",
       "name": "Declarations.com.example.shapes.Shape.Factory",
       "parent": "Declarations.com.example.shapes.Shape",
+      "signature": null,
       "span": "8:4-13:5",
       "static": false,
       "visibility": "public"
@@ -599,6 +605,7 @@
       "kind": "constant",
       "name": "Declarations.com.example.shapes.Shape.Factory.MAX_SIZE",
       "parent": "Declarations.com.example.shapes.Shape.Factory",
+      "signature": "const val MAX_SIZE = 10",
       "span": "10:8-10:31",
       "static": false,
       "visibility": "public"
@@ -608,6 +615,7 @@
       "kind": "property",
       "name": "Declarations.com.example.shapes.Shape.Factory.registry",
       "parent": "Declarations.com.example.shapes.Shape.Factory",
+      "signature": null,
       "span": "11:8-11:57",
       "static": false,
       "visibility": "private"
@@ -617,6 +625,7 @@
       "kind": "method",
       "name": "Declarations.com.example.shapes.Shape.Factory.create",
       "parent": "Declarations.com.example.shapes.Shape.Factory",
+      "signature": null,
       "span": "12:8-12:46",
       "static": false,
       "visibility": "public"
@@ -626,6 +635,7 @@
       "kind": "constant",
       "name": "Declarations.com.example.shapes.Shape.UNNAMED",
       "parent": "Declarations.com.example.shapes.Shape",
+      "signature": "const val UNNAMED = 1",
       "span": "16:8-16:29",
       "static": false,
       "visibility": "public"
@@ -635,6 +645,7 @@
       "kind": "method",
       "name": "Declarations.com.example.shapes.Shape.area",
       "parent": "Declarations.com.example.shapes.Shape",
+      "signature": null,
       "span": "20:4-20:33",
       "static": false,
       "visibility": "public"
@@ -644,6 +655,7 @@
       "kind": "method",
       "name": "Declarations.com.example.shapes.Shape.helper",
       "parent": "Declarations.com.example.shapes.Shape",
+      "signature": null,
       "span": "22:4-25:5",
       "static": false,
       "visibility": "protected"
@@ -653,6 +665,7 @@
       "kind": "function",
       "name": "Declarations.com.example.shapes.Shape.helper.inner",
       "parent": "Declarations.com.example.shapes.Shape.helper",
+      "signature": null,
       "span": "24:8-24:27",
       "static": false,
       "visibility": "public"
@@ -662,6 +675,7 @@
       "kind": "property",
       "name": "Declarations.com.example.shapes.Shape.count",
       "parent": "Declarations.com.example.shapes.Shape",
+      "signature": null,
       "span": "27:4-27:31",
       "static": false,
       "visibility": "internal"
@@ -671,6 +685,7 @@
       "kind": "property",
       "name": "Declarations.com.example.shapes.Shape.late",
       "parent": "Declarations.com.example.shapes.Shape",
+      "signature": null,
       "span": "31:4-31:29",
       "static": false,
       "visibility": "public"
@@ -680,6 +695,7 @@
       "kind": "property",
       "name": "Declarations.com.example.shapes.Shape.double",
       "parent": "Declarations.com.example.shapes.Shape",
+      "signature": null,
       "span": "33:4-33:40",
       "static": false,
       "visibility": "public"
@@ -689,6 +705,7 @@
       "kind": "constructor",
       "name": "Declarations.com.example.shapes.Shape.Shape",
       "parent": "Declarations.com.example.shapes.Shape",
+      "signature": null,
       "span": "35:4-35:47",
       "static": false,
       "visibility": "public"
@@ -698,6 +715,7 @@
       "kind": "constructor",
       "name": "Declarations.com.example.shapes.Shape.Shape",
       "parent": "Declarations.com.example.shapes.Shape",
+      "signature": null,
       "span": "38:4-38:57",
       "static": false,
       "visibility": "private"
@@ -707,6 +725,7 @@
       "kind": "enum",
       "name": "Declarations.com.example.shapes.Shape.Kind",
       "parent": "Declarations.com.example.shapes.Shape",
+      "signature": null,
       "span": "44:4-52:5",
       "static": false,
       "visibility": "public"
@@ -716,6 +735,7 @@
       "kind": "property",
       "name": "Declarations.com.example.shapes.Shape.Kind.sides",
       "parent": "Declarations.com.example.shapes.Shape.Kind",
+      "signature": null,
       "span": "44:20-44:34",
       "static": false,
       "visibility": "public"
@@ -725,6 +745,7 @@
       "kind": "enum_member",
       "name": "Declarations.com.example.shapes.Shape.Kind.TRIANGLE",
       "parent": "Declarations.com.example.shapes.Shape.Kind",
+      "signature": null,
       "span": "45:8-45:19",
       "static": false,
       "visibility": "public"
@@ -734,6 +755,7 @@
       "kind": "enum_member",
       "name": "Declarations.com.example.shapes.Shape.Kind.SQUARE",
       "parent": "Declarations.com.example.shapes.Shape.Kind",
+      "signature": null,
       "span": "46:8-48:9",
       "static": false,
       "visibility": "public"
@@ -743,6 +765,7 @@
       "kind": "method",
       "name": "Declarations.com.example.shapes.Shape.Kind.SQUARE.describe",
       "parent": "Declarations.com.example.shapes.Shape.Kind.SQUARE",
+      "signature": null,
       "span": "47:12-47:46",
       "static": false,
       "visibility": "public"
@@ -752,6 +775,7 @@
       "kind": "method",
       "name": "Declarations.com.example.shapes.Shape.Kind.describe",
       "parent": "Declarations.com.example.shapes.Shape.Kind",
+      "signature": null,
       "span": "51:8-51:36",
       "static": false,
       "visibility": "public"
@@ -761,6 +785,7 @@
       "kind": "class",
       "name": "Declarations.com.example.shapes.Shape.Singleton",
       "parent": "Declarations.com.example.shapes.Shape",
+      "signature": null,
       "span": "54:4-56:5",
       "static": false,
       "visibility": "public"
@@ -770,6 +795,7 @@
       "kind": "method",
       "name": "Declarations.com.example.shapes.Shape.Singleton.hello",
       "parent": "Declarations.com.example.shapes.Shape.Singleton",
+      "signature": null,
       "span": "55:8-55:26",
       "static": false,
       "visibility": "public"
@@ -779,6 +805,7 @@
       "kind": "class",
       "name": "Declarations.com.example.shapes.Shape.Hidden",
       "parent": "Declarations.com.example.shapes.Shape",
+      "signature": null,
       "span": "58:4-58:24",
       "static": false,
       "visibility": "private"
@@ -788,6 +815,7 @@
       "kind": "interface",
       "name": "Declarations.com.example.shapes.Named",
       "parent": "Declarations.com.example.shapes",
+      "signature": null,
       "span": "66:0-71:1",
       "static": false,
       "visibility": "public"
@@ -797,6 +825,7 @@
       "kind": "property",
       "name": "Declarations.com.example.shapes.Named.name",
       "parent": "Declarations.com.example.shapes.Named",
+      "signature": null,
       "span": "67:4-67:20",
       "static": false,
       "visibility": "public"
@@ -806,6 +835,7 @@
       "kind": "method",
       "name": "Declarations.com.example.shapes.Named.greet",
       "parent": "Declarations.com.example.shapes.Named",
+      "signature": null,
       "span": "69:4-69:23",
       "static": false,
       "visibility": "public"
@@ -815,6 +845,7 @@
       "kind": "method",
       "name": "Declarations.com.example.shapes.Named.shout",
       "parent": "Declarations.com.example.shapes.Named",
+      "signature": null,
       "span": "70:4-70:45",
       "static": false,
       "visibility": "public"
@@ -824,6 +855,7 @@
       "kind": "interface",
       "name": "Declarations.com.example.shapes.Action",
       "parent": "Declarations.com.example.shapes",
+      "signature": null,
       "span": "73:0-75:1",
       "static": false,
       "visibility": "public"
@@ -833,6 +865,7 @@
       "kind": "method",
       "name": "Declarations.com.example.shapes.Action.run",
       "parent": "Declarations.com.example.shapes.Action",
+      "signature": null,
       "span": "74:4-74:13",
       "static": false,
       "visibility": "public"
@@ -842,6 +875,7 @@
       "kind": "interface",
       "name": "Declarations.com.example.shapes.Result",
       "parent": "Declarations.com.example.shapes",
+      "signature": null,
       "span": "77:0-77:23",
       "static": false,
       "visibility": "public"
@@ -851,6 +885,7 @@
       "kind": "record",
       "name": "Declarations.com.example.shapes.Success",
       "parent": "Declarations.com.example.shapes",
+      "signature": null,
       "span": "78:0-78:43",
       "static": false,
       "visibility": "public"
@@ -860,6 +895,7 @@
       "kind": "property",
       "name": "Declarations.com.example.shapes.Success.value",
       "parent": "Declarations.com.example.shapes.Success",
+      "signature": null,
       "span": "78:19-78:33",
       "static": false,
       "visibility": "public"
@@ -869,6 +905,7 @@
       "kind": "record",
       "name": "Declarations.com.example.shapes.Failure",
       "parent": "Declarations.com.example.shapes",
+      "signature": null,
       "span": "79:0-79:71",
       "static": false,
       "visibility": "public"
@@ -878,6 +915,7 @@
       "kind": "property",
       "name": "Declarations.com.example.shapes.Failure.reason",
       "parent": "Declarations.com.example.shapes.Failure",
+      "signature": null,
       "span": "79:19-79:37",
       "static": false,
       "visibility": "public"
@@ -887,6 +925,7 @@
       "kind": "property",
       "name": "Declarations.com.example.shapes.Failure.code",
       "parent": "Declarations.com.example.shapes.Failure",
+      "signature": null,
       "span": "79:39-79:61",
       "static": false,
       "visibility": "internal"
@@ -896,6 +935,7 @@
       "kind": "interface",
       "name": "Declarations.com.example.shapes.Marker",
       "parent": "Declarations.com.example.shapes",
+      "signature": null,
       "span": "80:0-80:23",
       "static": false,
       "visibility": "public"
@@ -905,6 +945,7 @@
       "kind": "enum",
       "name": "Declarations.com.example.shapes.Color",
       "parent": "Declarations.com.example.shapes",
+      "signature": null,
       "span": "81:0-81:31",
       "static": false,
       "visibility": "public"
@@ -914,6 +955,7 @@
       "kind": "enum_member",
       "name": "Declarations.com.example.shapes.Color.RED",
       "parent": "Declarations.com.example.shapes.Color",
+      "signature": null,
       "span": "81:19-81:22",
       "static": false,
       "visibility": "public"
@@ -923,6 +965,7 @@
       "kind": "enum_member",
       "name": "Declarations.com.example.shapes.Color.GREEN",
       "parent": "Declarations.com.example.shapes.Color",
+      "signature": null,
       "span": "81:24-81:29",
       "static": false,
       "visibility": "public"
@@ -932,6 +975,7 @@
       "kind": "type_alias",
       "name": "Declarations.com.example.shapes.Handler",
       "parent": "Declarations.com.example.shapes",
+      "signature": null,
       "span": "82:0-82:33",
       "static": false,
       "visibility": "public"
@@ -941,6 +985,7 @@
       "kind": "function",
       "name": "Declarations.com.example.shapes.shout",
       "parent": "Declarations.com.example.shapes",
+      "signature": null,
       "span": "85:0-85:45",
       "static": false,
       "visibility": "public"
@@ -950,6 +995,7 @@
       "kind": "function",
       "name": "Declarations.com.example.shapes.top",
       "parent": "Declarations.com.example.shapes",
+      "signature": null,
       "span": "86:0-86:29",
       "static": false,
       "visibility": "internal"
@@ -959,6 +1005,7 @@
       "kind": "function",
       "name": "Declarations.com.example.shapes.hidden",
       "parent": "Declarations.com.example.shapes",
+      "signature": null,
       "span": "87:0-87:23",
       "static": false,
       "visibility": "private"
@@ -968,6 +1015,7 @@
       "kind": "constant",
       "name": "Declarations.com.example.shapes.TOP_LEVEL",
       "parent": "Declarations.com.example.shapes",
+      "signature": "const val TOP_LEVEL = 3",
       "span": "88:0-88:23",
       "static": false,
       "visibility": "public"
@@ -977,6 +1025,7 @@
       "kind": "property",
       "name": "Declarations.com.example.shapes.topProperty",
       "parent": "Declarations.com.example.shapes",
+      "signature": null,
       "span": "89:0-89:19",
       "static": false,
       "visibility": "public"

@@ -55,13 +55,8 @@ mod tests {
             .collect()
     }
 
-    fn describe(facts: &FileFacts) -> Value {
-        let names: HashMap<_, _> = facts
-            .symbols
-            .iter()
-            .map(|s| (s.id, s.qualified_name.to_string()))
-            .collect();
-        let symbols: Vec<Value> = facts
+    fn describe_symbols(facts: &FileFacts, names: &HashMap<SymbolId, String>) -> Vec<Value> {
+        facts
             .symbols
             .iter()
             .map(|s| {
@@ -72,10 +67,20 @@ mod tests {
                     "visibility": s.visibility.map(Visibility::label),
                     "static": s.is_static,
                     "span": format!("{}-{}", at(s.span.start()), at(s.span.end())),
+                    "signature": s.signature,
                     "doc": s.doc,
                 })
             })
+            .collect()
+    }
+
+    fn describe(facts: &FileFacts) -> Value {
+        let names: HashMap<_, _> = facts
+            .symbols
+            .iter()
+            .map(|s| (s.id, s.qualified_name.to_string()))
             .collect();
+        let symbols = describe_symbols(facts, &names);
         let references: Vec<Value> = facts
             .pending
             .iter()

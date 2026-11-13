@@ -184,6 +184,7 @@
       "kind": "module",
       "name": "metrics",
       "parent": null,
+      "signature": null,
       "span": "0:0-56:0",
       "static": false,
       "visibility": null
@@ -193,6 +194,7 @@
       "kind": "class",
       "name": "metrics.M",
       "parent": "metrics",
+      "signature": null,
       "span": "0:0-49:1",
       "static": false,
       "visibility": "internal"
@@ -202,6 +204,7 @@
       "kind": "method",
       "name": "metrics.M.PlainMethod",
       "parent": "metrics.M",
+      "signature": null,
       "span": "2:4-2:35",
       "static": false,
       "visibility": "private"
@@ -211,6 +214,7 @@
       "kind": "method",
       "name": "metrics.M.Branches",
       "parent": "metrics.M",
+      "signature": null,
       "span": "4:4-11:5",
       "static": false,
       "visibility": "private"
@@ -220,6 +224,7 @@
       "kind": "method",
       "name": "metrics.M.Loops",
       "parent": "metrics.M",
+      "signature": null,
       "span": "13:4-19:5",
       "static": false,
       "visibility": "private"
@@ -229,6 +234,7 @@
       "kind": "method",
       "name": "metrics.M.Cases",
       "parent": "metrics.M",
+      "signature": null,
       "span": "21:4-31:5",
       "static": false,
       "visibility": "private"
@@ -238,6 +244,7 @@
       "kind": "method",
       "name": "metrics.M.Arms",
       "parent": "metrics.M",
+      "signature": null,
       "span": "33:4-33:76",
       "static": false,
       "visibility": "private"
@@ -247,6 +254,7 @@
       "kind": "method",
       "name": "metrics.M.Catches",
       "parent": "metrics.M",
+      "signature": null,
       "span": "35:4-41:5",
       "static": false,
       "visibility": "private"
@@ -256,6 +264,7 @@
       "kind": "method",
       "name": "metrics.M.Outer",
       "parent": "metrics.M",
+      "signature": null,
       "span": "43:4-48:5",
       "static": false,
       "visibility": "private"
@@ -265,6 +274,7 @@
       "kind": "function",
       "name": "metrics.M.Outer.Local",
       "parent": "metrics.M.Outer",
+      "signature": null,
       "span": "46:8-46:63",
       "static": false,
       "visibility": "private"
@@ -274,6 +284,7 @@
       "kind": "class",
       "name": "metrics.Shape",
       "parent": "metrics",
+      "signature": null,
       "span": "51:0-55:1",
       "static": false,
       "visibility": "internal"
@@ -283,6 +294,7 @@
       "kind": "method",
       "name": "metrics.Shape.NoBody",
       "parent": "metrics.Shape",
+      "signature": null,
       "span": "53:4-53:33",
       "static": false,
       "visibility": "public"
@@ -292,6 +304,7 @@
       "kind": "field",
       "name": "metrics.Shape.Field",
       "parent": "metrics.Shape",
+      "signature": null,
       "span": "54:8-54:21",
       "static": false,
       "visibility": "private"

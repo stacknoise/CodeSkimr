@@ -266,6 +266,7 @@
       "kind": "module",
       "name": "references",
       "parent": null,
+      "signature": null,
       "span": "0:0-25:0",
       "static": false,
       "visibility": null
@@ -275,6 +276,7 @@
       "kind": "namespace",
       "name": "references.Shop.Orders",
       "parent": "references",
+      "signature": null,
       "span": "3:0-25:0",
       "static": false,
       "visibility": null
@@ -284,6 +286,7 @@
       "kind": "class",
       "name": "references.Shop.Orders.Cart",
       "parent": "references.Shop.Orders",
+      "signature": null,
       "span": "5:0-24:1",
       "static": false,
       "visibility": "public"
@@ -293,6 +296,7 @@
       "kind": "field",
       "name": "references.Shop.Orders.Cart.items",
       "parent": "references.Shop.Orders.Cart",
+      "signature": null,
       "span": "7:32-7:56",
       "static": false,
       "visibility": "private"
@@ -302,6 +306,7 @@
       "kind": "field",
       "name": "references.Shop.Orders.Cart.count",
       "parent": "references.Shop.Orders.Cart",
+      "signature": null,
       "span": "8:16-8:34",
       "static": false,
       "visibility": "private"
@@ -311,6 +316,7 @@
       "kind": "constructor",
       "name": "references.Shop.Orders.Cart.Cart",
       "parent": "references.Shop.Orders.Cart",
+      "signature": null,
       "span": "10:4-10:38",
       "static": false,
       "visibility": "public"
@@ -320,6 +326,7 @@
       "kind": "method",
       "name": "references.Shop.Orders.Cart.Run",
       "parent": "references.Shop.Orders.Cart",
+      "signature": null,
       "span": "12:4-12:34",
       "static": false,
       "visibility": "public"
@@ -329,6 +336,7 @@
       "kind": "method",
       "name": "references.Shop.Orders.Cart.Find",
       "parent": "references.Shop.Orders.Cart",
+      "signature": null,
       "span": "14:4-23:5",
       "static": false,
       "visibility": "public"

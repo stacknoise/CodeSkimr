@@ -327,6 +327,7 @@
       "kind": "module",
       "name": "references",
       "parent": null,
+      "signature": null,
       "span": "0:0-40:0",
       "static": false,
       "visibility": null
@@ -336,6 +337,7 @@
       "kind": "class",
       "name": "references.Cart",
       "parent": "references",
+      "signature": null,
       "span": "3:7-23:1",
       "static": false,
       "visibility": "public"
@@ -345,6 +347,7 @@
       "kind": "field",
       "name": "references.Cart.items",
       "parent": "references.Cart",
+      "signature": null,
       "span": "4:2-4:37",
       "static": false,
       "visibility": "private"
@@ -354,6 +357,7 @@
       "kind": "field",
       "name": "references.Cart.store",
       "parent": "references.Cart",
+      "signature": null,
       "span": "5:2-5:29",
       "static": false,
       "visibility": "private"
@@ -363,6 +367,7 @@
       "kind": "constructor",
       "name": "references.Cart.constructor",
       "parent": "references.Cart",
+      "signature": null,
       "span": "6:2-8:3",
       "static": false,
       "visibility": "public"
@@ -372,6 +377,7 @@
       "kind": "method",
       "name": "references.Cart.run",
       "parent": "references.Cart",
+      "signature": null,
       "span": "10:2-10:25",
       "static": false,
       "visibility": "public"
@@ -381,6 +387,7 @@
       "kind": "method",
       "name": "references.Cart.find",
       "parent": "references.Cart",
+      "signature": null,
       "span": "12:2-22:3",
       "static": false,
       "visibility": "public"
@@ -390,6 +397,7 @@
       "kind": "interface",
       "name": "references.Named",
       "parent": "references",
+      "signature": null,
       "span": "25:7-25:38",
       "static": false,
       "visibility": "public"
@@ -399,6 +407,7 @@
       "kind": "function",
       "name": "references.helper",
       "parent": "references",
+      "signature": null,
       "span": "27:0-37:1",
       "static": false,
       "visibility": "private"
@@ -408,6 +417,7 @@
       "kind": "function",
       "name": "references.mapper",
       "parent": "references",
+      "signature": null,
       "span": "39:15-39:47",
       "static": false,
       "visibility": "private"

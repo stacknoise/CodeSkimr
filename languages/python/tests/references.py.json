@@ -238,6 +238,7 @@
       "kind": "module",
       "name": "references",
       "parent": null,
+      "signature": null,
       "span": "0:0-33:0",
       "static": false,
       "visibility": null
@@ -247,6 +248,7 @@
       "kind": "class",
       "name": "references.Base",
       "parent": "references",
+      "signature": null,
       "span": "5:0-6:8",
       "static": false,
       "visibility": "public"
@@ -256,6 +258,7 @@
       "kind": "class",
       "name": "references.Child",
       "parent": "references",
+      "signature": null,
       "span": "9:0-26:12",
       "static": false,
       "visibility": "public"
@@ -265,6 +268,7 @@
       "kind": "field",
       "name": "references.Child.attr",
       "parent": "references.Child",
+      "signature": null,
       "span": "10:4-10:22",
       "static": false,
       "visibility": "public"
@@ -274,6 +278,7 @@
       "kind": "method",
       "name": "references.Child.run",
       "parent": "references.Child",
+      "signature": null,
       "span": "12:4-23:21",
       "static": false,
       "visibility": "public"
@@ -283,6 +288,7 @@
       "kind": "method",
       "name": "references.Child.stop",
       "parent": "references.Child",
+      "signature": null,
       "span": "25:4-26:12",
       "static": false,
       "visibility": "public"
@@ -292,6 +298,7 @@
       "kind": "function",
       "name": "references.make",
       "parent": "references",
+      "signature": null,
       "span": "29:0-32:16",
       "static": false,
       "visibility": "public"
