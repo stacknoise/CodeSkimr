@@ -1,4 +1,4 @@
-# 0027 – Watch mode is `codeskimr scan --watch`
+# 0029 – Watch mode is `codeskimr scan --watch`
 
 Status: proposed
 

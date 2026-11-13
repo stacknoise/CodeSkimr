@@ -17,7 +17,7 @@ codeskimr scan <path|git-url> [--branch <name>] [--json] [--watch]
 2. The source is registered as a project (the same source is registered once; scanning again reuses the project).
 3. One full scan runs: fetch, discover, analyze, resolve, measure, persist. A new snapshot is written; `--json` prints `{project, snapshot, files, symbols, references, seconds}` on one line, otherwise a two-line summary in the language of the user.
 4. Without `--watch` the scan is full and the command ends.
-5. With `--watch` (ADR 0027) the command keeps running after the first full scan. The watcher (`watcher.debounce_ms`, `watcher.max_wait_ms`, `scan.excluded_folders`) publishes `FilesChanged`; `watch.rs` turns the changes that piled up into one incremental scan, or into a full scan if the operating system lost events. Scans never overlap. Each re-scan prints one line (`N changed files scanned again in M ms.`; with `--json` the usual summary line). A failed re-scan prints its error and watching goes on. Only folders can be watched: a Git URL fails with `CLI-102`. Stop with Ctrl+C.
+5. With `--watch` (ADR 0029) the command keeps running after the first full scan. The watcher (`watcher.debounce_ms`, `watcher.max_wait_ms`, `scan.excluded_folders`) publishes `FilesChanged`; `watch.rs` turns the changes that piled up into one incremental scan, or into a full scan if the operating system lost events. Scans never overlap. Each re-scan prints one line (`N changed files scanned again in M ms.`; with `--json` the usual summary line). A failed re-scan prints its error and watching goes on. Only folders can be watched: a Git URL fails with `CLI-102`. Stop with Ctrl+C.
 
 ## `codeskimr mcp`
 
