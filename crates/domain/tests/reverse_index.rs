@@ -20,6 +20,7 @@ mod tests {
             span: Span::new(position, position).unwrap(),
             kind,
             confidence: Confidence::Certain,
+            verified: false,
         }
     }
 
@@ -99,7 +100,7 @@ mod tests {
         let reached = index.reached(&query(2, Direction::Incoming, 5));
         let ordered: Vec<(u64, u32)> = reached
             .iter()
-            .map(|Reached { symbol, depth }| (symbol.get(), *depth))
+            .map(|Reached { symbol, depth, .. }| (symbol.get(), *depth))
             .collect();
         assert_eq!(ordered, [(1, 1), (3, 1), (4, 2)]);
     }
@@ -142,5 +143,37 @@ mod tests {
         assert_eq!(ids(&index, &question), [(1, 10), (2, 11)]);
         question.include_tests = false;
         assert_eq!(ids(&index, &question), [(1, 10)]);
+    }
+
+    fn verified_call(id: u64, from: u64, to: u64) -> Reference {
+        Reference {
+            verified: true,
+            ..call(id, from, to)
+        }
+    }
+
+    #[test]
+    fn a_symbol_is_verified_only_if_a_whole_path_of_verified_references_reaches_it() {
+        // 2 and 3 use 1 (3 only through unchecked), 4 uses 2 (verified), 5 uses 3 (verified).
+        let index = ReverseIndex::new([
+            verified_call(10, 2, 1),
+            call(11, 3, 1),
+            verified_call(12, 4, 2),
+            verified_call(13, 5, 3),
+        ]);
+        let reached = index.reached(&query(1, Direction::Incoming, 5));
+        let verified: Vec<(u64, bool)> = reached
+            .iter()
+            .map(|r| (r.symbol.get(), r.verified))
+            .collect();
+        assert_eq!(verified, [(2, true), (3, false), (4, true), (5, false)]);
+    }
+
+    #[test]
+    fn one_verified_reference_in_the_same_step_makes_the_symbol_verified() {
+        let index = ReverseIndex::new([call(10, 2, 1), verified_call(11, 2, 1)]);
+        let reached = index.reached(&query(1, Direction::Incoming, 1));
+        assert_eq!(reached.len(), 1);
+        assert!(reached[0].verified);
     }
 }

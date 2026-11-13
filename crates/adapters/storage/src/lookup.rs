@@ -126,6 +126,7 @@ impl SnapshotLookup {
         Ok(ImpactedSymbol {
             label: found.label.clone(),
             depth: reached.depth,
+            verified: reached.verified,
             visibility: found.visibility,
             path: found.path.clone(),
         })

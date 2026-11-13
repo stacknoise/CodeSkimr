@@ -91,6 +91,7 @@ pub fn reference(id: u64, file: u64, from: u64, to: u64) -> Reference {
         span: span(2),
         kind: ReferenceKind::Call,
         confidence: Confidence::Certain,
+        verified: false,
     }
 }
 

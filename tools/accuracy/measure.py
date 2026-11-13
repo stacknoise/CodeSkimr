@@ -54,7 +54,7 @@ def ours(db):
         "select id, file_id, kind, name, qualified_name, start_line, start_column from symbols where snapshot_id=?", (snapshot,))}
     used = {}
     for to, file, line, kind, conf in db.execute(
-            "select to_symbol, file_id, start_line, kind, confidence from symbol_references where snapshot_id=?", (snapshot,)):
+            "select to_symbol, file_id, start_line, kind, confidence from snapshot_references where snapshot_id=?", (snapshot,)):
         if kind in ("import",):
             continue
         used.setdefault(to, set()).add((files[file].replace("\\", "/"), line + 1))

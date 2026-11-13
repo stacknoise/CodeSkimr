@@ -70,6 +70,7 @@ fn reference(id: u64) -> Option<Reference> {
         span: span(u32::try_from(id).ok()? % LINES)?,
         kind: ReferenceKind::Call,
         confidence: Confidence::Certain,
+        verified: false,
     })
 }
 

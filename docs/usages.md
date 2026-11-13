@@ -16,6 +16,7 @@ The `usage_counts` read model (the "Usages" column) stays as it is; `ReverseInde
 - A reference is listed once. A symbol that was reached before is not walked again, so cycles end; the reference that closes a cycle is still listed.
 - Within one symbol the references are ordered by file, position and id; the answer is the same for the same snapshot.
 - References of the kind `test` count only if `include_tests` is set. Impact always includes them.
+- A reference carries `verified` (true only if level 2 produced it; every level-1 reference is unchecked, ADR 0033). A reached symbol of `impact` is verified only if a path of verified references leads to it in its nearest step. UI and MCP count verified and unchecked results apart and list verified ones first, then nearest step first, within the listed page (the cut by `limit` comes before this order).
 - The walk follows references of any confidence. Every entry carries its `confidence`; UI and MCP must show `probable` entries as such (blueprint 9.4).
 - References end at the symbol that contains the occurrence. The usages of a type do not include the usages of its members; ask for the members separately.
 - A symbol that does not exist has no usages. Ask `CodeIndex::symbol` first to tell "unknown symbol" from "no usages".
