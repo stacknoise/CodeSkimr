@@ -6,8 +6,8 @@
 
 use crate::ModelError;
 use crate::consts::{
-    CC_BASE, MI_BASE, MI_COMPLEXITY_WEIGHT, MI_LOC_WEIGHT, MI_LOG_FLOOR, MI_MAX, MI_MIN,
-    MI_VOLUME_WEIGHT,
+    CC_BASE, HALSTEAD_EMPTY_VOLUME, HALSTEAD_MIN_VOCABULARY, MI_BASE, MI_COMPLEXITY_WEIGHT,
+    MI_LOC_WEIGHT, MI_LOG_FLOOR, MI_MAX, MI_MIN, MI_VOLUME_WEIGHT,
 };
 use crate::file::Loc;
 use crate::metric::MetricValue;
@@ -42,8 +42,8 @@ impl HalsteadCounts {
     pub fn volume(self) -> f64 {
         let length = f64::from(self.total_operators) + f64::from(self.total_operands);
         let vocabulary = f64::from(self.distinct_operators) + f64::from(self.distinct_operands);
-        if vocabulary < MI_LOG_FLOOR {
-            MI_MIN
+        if vocabulary < HALSTEAD_MIN_VOCABULARY {
+            HALSTEAD_EMPTY_VOLUME
         } else {
             length * vocabulary.log2()
         }

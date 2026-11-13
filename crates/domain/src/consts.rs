@@ -115,3 +115,7 @@ pub const MI_MAX: f64 = 100.0;
 pub const MI_MIN: f64 = 0.0;
 /// Smallest value the logarithms of the maintainability index are taken of.
 pub const MI_LOG_FLOOR: f64 = 1.0;
+/// Smallest vocabulary (distinct operators plus operands) for which a Halstead volume exists.
+pub const HALSTEAD_MIN_VOCABULARY: f64 = 1.0;
+/// Halstead volume of a body without any vocabulary.
+pub const HALSTEAD_EMPTY_VOLUME: f64 = 0.0;
