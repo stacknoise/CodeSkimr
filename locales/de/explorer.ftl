@@ -70,3 +70,4 @@ explorer-source-empty = Die Datei ist kürzer als beim letzten Scan. Scanne das 
 explorer-source-truncated = Zeigt die ersten { $count } Zeilen der Deklaration.
 explorer-source-pick = Wähle einen Typ oder ein Member, um den Quelltext zu sehen.
 explorer-uses-open = Verwendungen anzeigen
+explorer-source-excluded = Der Quelltext ist nicht Teil dieses Exports.

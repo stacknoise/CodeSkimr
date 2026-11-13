@@ -15,3 +15,8 @@ export function navigate(to: string): void {
     setPath(to);
   }
 }
+
+/** The address a link to `path` carries. */
+export function hrefOf(path: string): string {
+  return path;
+}

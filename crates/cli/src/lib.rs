@@ -14,15 +14,15 @@ mod parser;
 mod render;
 
 pub use args::{
-    Action, CheckArgs, CredentialAction, GlobalOptions, Invocation, McpArgs, OpenArgs, Parsed,
-    ProviderChoice, ScanArgs, ServeArgs,
+    Action, CheckArgs, CredentialAction, ExportArgs, GlobalOptions, Invocation, McpArgs, OpenArgs,
+    Parsed, ProviderChoice, ScanArgs, ServeArgs,
 };
 pub use check::{check_json, check_text};
 pub use error::CliError;
 pub use locale::language_from;
 pub use parser::parse;
 pub use render::{
-    ScanSummary, credential_deleted, credential_stored, device_prompt, error_line, open_ready,
-    scan_finished, scan_json, scan_started, secret_prompt, serve_started, watch_started,
-    watch_updated,
+    ScanSummary, credential_deleted, credential_stored, device_prompt, error_line, export_written,
+    open_ready, scan_finished, scan_json, scan_started, secret_prompt, serve_started,
+    watch_started, watch_updated,
 };

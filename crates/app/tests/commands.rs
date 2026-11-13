@@ -494,6 +494,60 @@ fn watch_of_a_git_url_fails_with_cli_102_before_anything_is_registered() {
     assert!(!workspace.root.path().join("data/codeskimr.db").exists());
 }
 
+#[cfg(test)]
+const EXPORT_PAGE: &str = "<html><script id=\"codeskimr-data\" type=\"application/json\">__CODESKIMR_EXPORT_DATA__</script></html>";
+
+#[cfg(test)]
+fn export_ui(workspace: &Workspace) -> String {
+    let ui = workspace.root.path().join("ui");
+    fs::create_dir_all(ui.join("export")).unwrap();
+    fs::write(ui.join("export/export.html"), EXPORT_PAGE).unwrap();
+    format!("ui.dir='{}'", ui.display())
+}
+
+#[test]
+fn export_writes_one_page_with_the_scan_and_no_source_text() {
+    let workspace = Workspace::new();
+    json_of(&workspace.scan(&[]));
+    let file = workspace.root.path().join("out.html");
+    let output = workspace
+        .command()
+        .args(["--set", &export_ui(&workspace), "export"])
+        .arg(workspace.project())
+        .arg("--html")
+        .arg(&file)
+        .output()
+        .unwrap();
+    assert!(output.status.success(), "{}", stderr(&output));
+    assert!(String::from_utf8_lossy(&output.stdout).contains("Export written to"));
+    let page = fs::read_to_string(&file).unwrap();
+    assert!(page.contains("Calculator"));
+    assert!(!page.contains("return a + b"));
+}
+
+#[test]
+fn export_by_project_id_and_the_failures_with_their_codes() {
+    let workspace = Workspace::new();
+    json_of(&workspace.scan(&[]));
+    let file = workspace.root.path().join("out.html");
+    let run = |project: &str, target: &Path, ui: &str| {
+        workspace
+            .command()
+            .args(["--set", ui, "export", project, "--html"])
+            .arg(target)
+            .output()
+            .unwrap()
+    };
+    let ui = export_ui(&workspace);
+    assert!(run("1", &file, &ui).status.success());
+    let unknown = run("99", &file, &ui);
+    assert!(stderr(&unknown).contains("PRJ-201"), "{}", stderr(&unknown));
+    let nowhere = workspace.root.path().join("no/such/folder/out.html");
+    assert!(stderr(&run("1", &nowhere, &ui)).contains("EXP-601"));
+    let no_page = run("1", &file, "ui.dir='/does/not/exist'");
+    assert!(stderr(&no_page).contains("EXP-201"));
+}
+
 #[test]
 fn a_credential_for_a_folder_is_refused() {
     let workspace = Workspace::new();
@@ -529,4 +583,111 @@ fn the_installation_token_is_not_a_credential_to_manage() {
         .unwrap();
     assert_eq!(output.status.code(), Some(2));
     assert!(stderr(&output).contains("CLI-101"));
+}
+
+// --- Security suite (WP-74, blueprint S-02 and S-05) through the real binary ---------------
+
+/// A class name that is found if a scan or a check reads the file that holds it.
+const OUTSIDE_CLASS: &str = "CanaryOutside6b1d";
+
+/// Writes a C# file with a very long method at `path`.
+#[cfg(test)]
+fn write_long_file(path: &Path, class: &str) {
+    let body = "        var x = 1;\n".repeat(60);
+    let source = format!(
+        "namespace Out;\npublic class {class}\n{{\n    public void Long()\n    {{\n{body}    }}\n}}\n"
+    );
+    fs::write(path, source).unwrap();
+}
+
+/// The same file next to the project, outside of it.
+fn write_outside_file(workspace: &Workspace) -> PathBuf {
+    let path = workspace.root.path().join("outside.cs");
+    write_long_file(&path, OUTSIDE_CLASS);
+    path
+}
+
+/// The whole text of `output`, both streams.
+fn all_text(output: &Output) -> String {
+    format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        stderr(output)
+    )
+}
+
+/// `src/link.cs` inside the project, pointing at `outside`; its path relative to the project.
+/// Only where symlinks can be made without privileges: on Windows the path stays a plain
+/// missing file, which the test also has to refuse.
+#[cfg(test)]
+fn link_outside(workspace: &Workspace, outside: &Path) -> &'static str {
+    #[cfg(unix)]
+    std::os::unix::fs::symlink(outside, workspace.project().join("src/link.cs")).unwrap();
+    #[cfg(not(unix))]
+    let _ = (workspace, outside);
+    "src/link.cs"
+}
+
+#[test]
+fn check_conventions_never_reads_a_file_outside_the_project() {
+    let workspace = Workspace::new();
+    let outside = write_outside_file(&workspace);
+    write_long_file(&workspace.project().join("src/Inside.cs"), "Inside");
+    json_of(&workspace.scan(&[]));
+    let mut session = initialized(&workspace);
+    // The control: the same file inside the project is checked and found too long.
+    let inside = session.call(
+        2,
+        "tools/call",
+        &json!({"name": "check_conventions", "arguments": {"paths": ["src/Inside.cs"]}}),
+    );
+    assert!(inside.to_string().contains("CHK-104"), "{inside}");
+    let absolute = outside.display().to_string();
+    let link = link_outside(&workspace, &outside);
+    for path in [
+        "../outside.cs",
+        absolute.as_str(),
+        "src/../../outside.cs",
+        link,
+    ] {
+        let answer = session.call(
+            2,
+            "tools/call",
+            &json!({"name": "check_conventions", "arguments": {"paths": [path]}}),
+        );
+        let text = answer.to_string();
+        // A controlled refusal: nothing was checked and the path is reported as unmatched.
+        let result = &answer["result"]["structuredContent"];
+        assert_eq!(result["files_checked"], 0, "{path}: {text}");
+        assert_eq!(result["unmatched"], json!([path]), "{path}: {text}");
+        assert!(!text.contains(OUTSIDE_CLASS), "{path}: {text}");
+        assert!(!text.contains("CHK-104"), "{path}: {text}");
+    }
+}
+
+#[test]
+fn the_cli_check_never_reads_a_file_outside_the_current_folder() {
+    let workspace = Workspace::new();
+    let outside = write_outside_file(&workspace);
+    write_long_file(&workspace.project().join("src/Inside.cs"), "Inside");
+    let check = |path: &str| {
+        workspace
+            .command()
+            .current_dir(workspace.project())
+            .args(["check", path])
+            .output()
+            .unwrap()
+    };
+    assert!(all_text(&check("src/Inside.cs")).contains("CHK-104"));
+    let absolute = outside.display().to_string();
+    let link = link_outside(&workspace, &outside);
+    for path in ["../outside.cs", absolute.as_str(), link] {
+        let output = check(path);
+        let text = all_text(&output);
+        // A controlled refusal: exit code 1 and the "no file matches" message, no crash.
+        assert_eq!(output.status.code(), Some(1), "{path}: {text}");
+        assert!(text.contains("No file matches"), "{path}: {text}");
+        assert!(!text.contains("CHK-104"), "{path}: {text}");
+        assert!(!text.contains(OUTSIDE_CLASS), "{path}: {text}");
+    }
 }
