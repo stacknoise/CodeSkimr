@@ -1,5 +1,5 @@
 import { t } from "../../shared/i18n/i18n";
-import { TILE_SOURCE, TILES } from "./consts";
+import { MISSING, TILE_SOURCE, TILES } from "./consts";
 import { metricValue } from "./format";
 import type { SymbolInfo, Thresholds } from "./types";
 
@@ -13,10 +13,18 @@ export interface Tile {
   rating: string | null;
 }
 
-/** The numbers a tip names, by metric. */
-function limits(id: string, thresholds: Thresholds | null): Record<string, number> | undefined {
-  if (thresholds === null) {
+const LIMITED: readonly string[] = ["cc", "mi", "instability"];
+
+/** The numbers a tip names, by metric; a dash for each while the thresholds are not known. */
+function limits(
+  id: string,
+  thresholds: Thresholds | null,
+): Record<string, number | string> | undefined {
+  if (!LIMITED.includes(id)) {
     return undefined;
+  }
+  if (thresholds === null) {
+    return { good: MISSING, medium: MISSING };
   }
   switch (id) {
     case "cc":
@@ -26,10 +34,8 @@ function limits(id: string, thresholds: Thresholds | null): Record<string, numbe
         good: thresholds.maintainability_good_min,
         medium: thresholds.maintainability_medium_min,
       };
-    case "instability":
-      return { good: thresholds.instability_stable_max, medium: thresholds.instability_medium_max };
     default:
-      return undefined;
+      return { good: thresholds.instability_stable_max, medium: thresholds.instability_medium_max };
   }
 }
 

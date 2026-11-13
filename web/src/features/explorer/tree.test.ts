@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { buildRows, layerKey, namespaceKey, revealKeys, typeKey, type TreeLabels } from "./tree";
+import {
+  buildRows,
+  groupKey,
+  layerKey,
+  namespaceKey,
+  revealKeys,
+  typeKey,
+  type TreeLabels,
+} from "./tree";
 import type { Outline, SymbolInfo } from "./types";
 
 const LABELS: TreeLabels = {
@@ -127,6 +135,33 @@ describe("buildRows", () => {
   it("names the layer and the namespace that have no name", () => {
     const rows = buildRows(OUTLINE, new Set([layerKey("")]), new Map(), "", LABELS);
     expect(labels(rows)).toContain("root");
+  });
+});
+
+describe("nested types", () => {
+  const NESTED = {
+    ...ORDER,
+    members: [
+      ...ORDER.members,
+      { ...ORDER.members[0]!, id: 12, name: "Line", kind: "class", signature: null },
+    ],
+  };
+  const open = (...extra: string[]) =>
+    new Set([layerKey("Domain"), namespaceKey("Domain", "App.Domain"), typeKey(1), ...extra]);
+
+  it("gives them a group of their own, closed at first", () => {
+    const rows = buildRows(OUTLINE, open(), new Map([[1, NESTED]]), "", LABELS);
+    expect(labels(rows)).toContain("Nested");
+    expect(labels(rows)).not.toContain("Line");
+  });
+
+  it("shows them as type rows below the group once it is open", () => {
+    const group = groupKey(1, "nested");
+    const rows = buildRows(OUTLINE, open(group), new Map([[1, NESTED]]), "", LABELS);
+    const line = rows.find((row) => row.label === "Line");
+    expect(line?.kind).toBe("type");
+    expect(line?.type).toBe(12);
+    expect(line?.depth).toBeGreaterThan(rows.find((row) => row.label === "Nested")?.depth ?? 0);
   });
 });
 

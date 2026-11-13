@@ -7,7 +7,6 @@ import {
   CARET,
   ICON_COLLAPSE,
   ICON_LOCATE,
-  KEY,
   LAYER_TONES,
   NOT_FOUND,
   ROLE,
@@ -18,7 +17,7 @@ import {
 } from "./consts";
 import { collapseAll, currentMember, currentType, setTreeFilter, treeFilter } from "./explorer";
 import { KindBadge } from "./KindBadge";
-import { cursorTarget } from "./keys";
+import { onTreeKey } from "./keys";
 import { indent, type TreeRow } from "./tree";
 import { useWindow } from "./useWindow";
 import styles from "./TreePane.module.css";
@@ -46,6 +45,23 @@ function Dot(props: { index: number | null }) {
   return <span class={cx(styles.dot, styles[tone()])} aria-hidden={true} />;
 }
 
+function Caret(props: { row: TreeRow; onToggle: (row: TreeRow) => void }) {
+  return (
+    <span
+      class={styles.caret}
+      aria-hidden={true}
+      onClick={(event) => {
+        event.stopPropagation();
+        if (props.row.expandable) {
+          props.onToggle(props.row);
+        }
+      }}
+    >
+      {props.row.expandable ? (props.row.open ? CARET.open : CARET.closed) : ""}
+    </span>
+  );
+}
+
 function Item(props: { row: TreeRow; index: number; cursor: boolean; actions: TreeActions }) {
   const row = () => props.row;
   return (
@@ -68,18 +84,7 @@ function Item(props: { row: TreeRow; index: number; cursor: boolean; actions: Tr
       aria-expanded={row().expandable ? row().open : undefined}
       onClick={() => props.actions.onActivate(row())}
     >
-      <span
-        class={styles.caret}
-        aria-hidden={true}
-        onClick={(event) => {
-          event.stopPropagation();
-          if (row().expandable) {
-            props.actions.onToggle(row());
-          }
-        }}
-      >
-        {row().expandable ? (row().open ? CARET.open : CARET.closed) : ""}
-      </span>
+      <Caret row={row()} onToggle={props.actions.onToggle} />
       <Show when={row().layerIndex !== null}>
         <Dot index={row().layerIndex} />
       </Show>
@@ -122,28 +127,6 @@ function Tools(props: { onReveal: () => void }) {
       </button>
     </div>
   );
-}
-
-/** The keys of the tree: the arrows move the cursor (the row that `aria-activedescendant` names),
- * `Right` and `Left` open and close, `Enter` and `Space` act like a click. */
-function onTreeKey(event: KeyboardEvent, rows: TreeRow[], cursor: number, actions: TreeActions) {
-  const row = rows[cursor];
-  const target = cursorTarget(event.key, cursor, rows.length);
-  if (event.ctrlKey || event.altKey || event.metaKey) {
-    return;
-  }
-  if (target !== null && rows[target]) {
-    actions.onCursor(rows[target].key);
-  } else if (row && event.key === KEY.right && row.expandable && !row.open) {
-    actions.onToggle(row);
-  } else if (row && event.key === KEY.left && row.open) {
-    actions.onToggle(row);
-  } else if (row && (event.key === KEY.enter || event.key === KEY.space)) {
-    actions.onActivate(row);
-  } else {
-    return;
-  }
-  event.preventDefault();
 }
 
 /** The left column: filter, the two buttons and the tree (mock 2). The tree draws only the rows

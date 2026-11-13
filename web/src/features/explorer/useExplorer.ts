@@ -54,8 +54,8 @@ export function fold(project: number, row: TreeRow): void {
   }
 }
 
-/** Everything the explorer screen does with the tree and the table. */
-export function useExplorer() {
+/** The rows of the tree and the cursor on them, with the reveal of the selection. */
+function useTree() {
   const [cursor, setCursor] = createSignal<string | null>(null);
   const rows = createMemo<TreeRow[]>(() => {
     const outline = treeOutline();
@@ -63,12 +63,6 @@ export function useExplorer() {
       ? buildRows(outline, expandedRows(), symbolDetails(), treeFilter(), labels())
       : [];
   });
-  const withProject = (run: (project: number) => void) => () => {
-    const project = activeProject();
-    if (project !== null) {
-      run(project);
-    }
-  };
   const reveal = () => {
     const outline = treeOutline();
     const type = currentType();
@@ -77,26 +71,42 @@ export function useExplorer() {
       setCursor(typeKey(type));
     }
   };
+  return { rows, cursor, setCursor, reveal };
+}
+
+/** A click on a member of the table: a nested type is revealed in the tree, any other member is
+ * shown with its type. */
+export function pick(project: number, owner: number, member: MemberRow): void {
+  if (TYPE_KINDS.includes(member.kind)) {
+    void revealNested(project, owner, member.id);
+  } else {
+    void selectType(project, owner, member.id);
+  }
+}
+
+/** Everything the explorer screen does with the tree and the table. */
+export function useExplorer() {
+  const tree = useTree();
+  const withProject = (run: (project: number) => void) => {
+    const project = activeProject();
+    if (project !== null) {
+      run(project);
+    }
+  };
   return {
-    rows,
-    cursor,
-    reveal,
+    rows: tree.rows,
+    cursor: tree.cursor,
+    reveal: tree.reveal,
     actions: {
-      onCursor: setCursor,
-      onReveal: reveal,
+      onCursor: tree.setCursor,
+      onReveal: tree.reveal,
       onActivate: (row: TreeRow) => {
-        setCursor(row.key);
-        withProject((project) => activate(project, row))();
+        tree.setCursor(row.key);
+        withProject((project) => activate(project, row));
       },
-      onToggle: (row: TreeRow) => withProject((project) => fold(project, row))(),
+      onToggle: (row: TreeRow) => withProject((project) => fold(project, row)),
     },
     pickMember: (owner: number, member: MemberRow) =>
-      withProject((project) => {
-        if (TYPE_KINDS.includes(member.kind)) {
-          void revealNested(project, owner, member.id);
-        } else {
-          void selectType(project, owner, member.id);
-        }
-      })(),
+      withProject((project) => pick(project, owner, member)),
   };
 }

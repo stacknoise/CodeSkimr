@@ -1,5 +1,6 @@
 import { isTyping, useKeydown } from "../../shared/keys/keydown";
 import { KEY, NOT_FOUND } from "./consts";
+import type { TreeRow } from "./tree";
 
 /** What the document-wide keys of the explorer do. */
 export interface ExplorerKeys {
@@ -41,4 +42,38 @@ export function cursorTarget(key: string, at: number, count: number): number | n
     default:
       return null;
   }
+}
+
+/** What the keys of the tree can do. */
+export interface TreeKeyActions {
+  onCursor: (key: string) => void;
+  onToggle: (row: TreeRow) => void;
+  onActivate: (row: TreeRow) => void;
+}
+
+/** The keys of the tree: the arrows move the cursor (the row that `aria-activedescendant` names),
+ * `Right` and `Left` open and close, `Enter` and `Space` act like a click. */
+export function onTreeKey(
+  event: KeyboardEvent,
+  rows: TreeRow[],
+  cursor: number,
+  actions: TreeKeyActions,
+): void {
+  const row = rows[cursor];
+  const target = cursorTarget(event.key, cursor, rows.length);
+  if (event.ctrlKey || event.altKey || event.metaKey) {
+    return;
+  }
+  if (target !== null && rows[target]) {
+    actions.onCursor(rows[target].key);
+  } else if (row && event.key === KEY.right && row.expandable && !row.open) {
+    actions.onToggle(row);
+  } else if (row && event.key === KEY.left && row.open) {
+    actions.onToggle(row);
+  } else if (row && (event.key === KEY.enter || event.key === KEY.space)) {
+    actions.onActivate(row);
+  } else {
+    return;
+  }
+  event.preventDefault();
 }
