@@ -107,6 +107,7 @@ fn the_commands_are_offered() {
             "explorer.outline",
             "explorer.source",
             "explorer.symbol",
+            "graph.layers",
             "projects.add",
             "projects.list",
             "projects.rescan",
@@ -316,6 +317,7 @@ fn a_token_without_the_read_right_is_refused() {
         "explorer.outline",
         "explorer.source",
         "explorer.symbol",
+        "graph.layers",
         "search.query",
         "status.info",
     ] {
@@ -462,5 +464,58 @@ fn the_source_of_a_project_without_a_scan_is_refused() {
             json!({ "project": project, "symbol": 1 })
         ),
         Err("MCP-203")
+    );
+}
+
+const LAYERED_UI: &str = "using Demo.Core;\n\nnamespace Demo.Ui;\n\npublic class Screen\n{\n    public int Show() { Engine engine = new Engine(); return engine.Run(); }\n}\n";
+const LAYERED_CORE: &str =
+    "namespace Demo.Core;\n\npublic class Engine\n{\n    public int Run() { return 1; }\n}\n";
+const LAYER_RULES: &str = "[[layers]]\nname = \"ui\"\nnamespaces = [\"Demo.Ui\"]\n\n[[layers]]\nname = \"core\"\nnamespaces = [\"Demo.Core\"]\n";
+
+#[test]
+fn the_graph_places_the_declared_layers_top_down_with_their_dependencies() {
+    let fixture = Fixture::new();
+    let app = fixture.root.path().join("app");
+    fs::write(app.join("Screen.cs"), LAYERED_UI).unwrap();
+    fs::write(app.join("Engine.cs"), LAYERED_CORE).unwrap();
+    fs::write(app.join(".codeskimr.toml"), LAYER_RULES).unwrap();
+    let project = added(&fixture);
+    let graph = fixture
+        .call("graph.layers", json!({ "project": project }))
+        .unwrap();
+    assert!(graph["snapshot"].is_u64());
+    let boxes = graph["boxes"].as_array().unwrap();
+    let names: Vec<_> = boxes.iter().map(|b| b["name"].as_str().unwrap()).collect();
+    assert_eq!(names, ["ui", "core"]);
+    assert!(boxes[0]["y"].as_u64() < boxes[1]["y"].as_u64());
+    assert_eq!(boxes[0]["width"], 160);
+    assert!(graph["width"].as_u64() >= boxes[0]["width"].as_u64());
+    assert!(graph["height"].as_u64() > boxes[1]["y"].as_u64());
+}
+
+#[test]
+fn the_graph_of_a_project_without_layers_or_without_a_scan_is_empty() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    let graph = fixture
+        .call("graph.layers", json!({ "project": project }))
+        .unwrap();
+    assert_eq!(graph["boxes"], json!([]));
+    assert_eq!(graph["links"], json!([]));
+    let other = Fixture::new();
+    let unscanned = other.register_unscanned();
+    let graph = other
+        .call("graph.layers", json!({ "project": unscanned }))
+        .unwrap();
+    assert_eq!(graph["snapshot"], Value::Null);
+    assert_eq!(graph["boxes"], json!([]));
+}
+
+#[test]
+fn the_graph_of_an_unknown_project_is_refused() {
+    let fixture = Fixture::new();
+    assert_eq!(
+        fixture.call("graph.layers", json!({ "project": 99 })),
+        Err("PRJ-201")
     );
 }
