@@ -24,7 +24,9 @@ const GENERATED_DIR_VAR: &str = "OUT_DIR";
 /// Top-level directory of developer tooling (code generator, CI scripts, lints): not product code.
 const TOOLS_DIR: &str = "tools";
 /// Directories that only contain test or benchmark code.
-const TEST_DIRS: [&str; 3] = ["tests", "benches", "examples"];
+const TEST_DIRS: [&str; 2] = ["tests", "benches"];
+/// Marks the root folder of a crate.
+const MANIFEST: &str = "Cargo.toml";
 
 /// `0` and `1` (any integer suffix), booleans and error tokens are always allowed.
 pub fn is_free_literal(lit: &Lit) -> bool {
@@ -88,7 +90,7 @@ pub fn in_consts_module(cx: &EarlyContext<'_>, span: Span) -> bool {
     file_name_is(cx, span, CONSTS_FILE)
 }
 
-/// Build scripts, developer tooling below `tools/` (relative path), generated code in `OUT_DIR` and files below `tests/`, `benches/` or `examples/` are exempt as a whole.
+/// Build scripts, developer tooling below `tools/` (relative path), generated code in `OUT_DIR` and files in `tests/` or `benches/` directly below a crate root are exempt as a whole.
 pub fn in_exempt_file(cx: &EarlyContext<'_>, span: Span) -> bool {
     if file_name_is(cx, span, BUILD_SCRIPT) {
         return true;
@@ -98,10 +100,70 @@ pub fn in_exempt_file(cx: &EarlyContext<'_>, span: Span) -> bool {
             .is_some_and(|dir| path.starts_with(std::path::Path::new(&dir)));
         generated
             || path.starts_with(TOOLS_DIR)
-            || path
-                .components()
-                .any(|part| TEST_DIRS.iter().any(|dir| part.as_os_str() == *dir))
+            || is_test_dir_path(&path, |dir| dir.join(MANIFEST).is_file())
     })
+}
+
+/// A file is test code when it lies in `tests/` or `benches/` directly below a crate root.
+/// A module that is merely named `tests` or `examples` inside `src/` does not count.
+fn is_test_dir_path(
+    path: &std::path::Path,
+    is_crate_root: impl Fn(&std::path::Path) -> bool,
+) -> bool {
+    path.ancestors().any(|dir| {
+        let is_test_dir = dir
+            .file_name()
+            .is_some_and(|name| TEST_DIRS.iter().any(|wanted| name == *wanted));
+        is_test_dir && dir.parent().is_some_and(&is_crate_root)
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_test_dir_path;
+    use std::path::Path;
+
+    fn root(dir: &Path) -> bool {
+        dir == Path::new("crates/domain")
+    }
+
+    #[test]
+    fn tests_directory_below_crate_root_is_exempt() {
+        assert!(is_test_dir_path(
+            Path::new("crates/domain/tests/model.rs"),
+            root
+        ));
+        assert!(is_test_dir_path(
+            Path::new("crates/domain/benches/scan/a.rs"),
+            root
+        ));
+    }
+
+    #[test]
+    fn modules_with_test_like_names_are_not_exempt() {
+        assert!(!is_test_dir_path(
+            Path::new("crates/domain/src/tests/mod.rs"),
+            root
+        ));
+        assert!(!is_test_dir_path(
+            Path::new("crates/domain/src/examples/mod.rs"),
+            root
+        ));
+    }
+}
+
+/// The literal comes out of `concat!`: the call site in the checked code, if it is there.
+pub fn concat_call_in_own_source(span: Span) -> Option<Span> {
+    if !span.from_expansion() {
+        return None;
+    }
+    let data = span.ctxt().outer_expn_data();
+    match data.kind {
+        ExpnKind::Macro(MacroKind::Bang, name) if name == sym::concat => {
+            macro_call_in_own_source(data.call_site)
+        }
+        _ => None,
+    }
 }
 
 /// A literal belongs to the checked code when it was written there, or inside a macro defined

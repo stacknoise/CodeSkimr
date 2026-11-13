@@ -9,7 +9,7 @@ import tseslint from "typescript-eslint";
 const TEST_FILES = ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx", "**/tests/**"];
 const CONST_FILES = ["**/consts.ts"];
 /** Generated files are checked at their source, see tools/codegen. */
-const GENERATED_FILES = ["**/*.generated.ts", "**/shared/i18n/keys.ts"];
+const GENERATED_FILES = ["**/*.generated.ts", "**/shared/i18n/keys.ts", "**/theme/tokens.ts"];
 
 export default tseslint.config(
   {

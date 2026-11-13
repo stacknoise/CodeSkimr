@@ -115,5 +115,13 @@ LL |     local!()
    = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
    = note: this error originates in the macro `local` (in Nightly b$DIRlds, run with -Z macro-backtrace for more info)
 
-error: aborting due to 14 previous errors
+error: literal in production code (CHK-101)
+  --> $DIR/flagged.rs:50:5
+   |
+LL |     concat!("code", "skimr")
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+
+error: aborting due to 15 previous errors
 

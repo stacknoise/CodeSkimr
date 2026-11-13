@@ -46,4 +46,8 @@ fn local_macro() -> u32 {
     local!()
 }
 
+fn joined() -> &'static str {
+    concat!("code", "skimr")
+}
+
 fn main() {}

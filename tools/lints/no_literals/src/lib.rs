@@ -112,6 +112,8 @@ impl EarlyLintPass for NoLiterals {
             ExprKind::Lit(lit) if !allowed::is_free_literal(lit) => {
                 if allowed::own_source(expr.span) && allowed::is_written_literal(cx, expr.span) {
                     Self::report(cx, expr.span);
+                } else if let Some(call) = allowed::concat_call_in_own_source(expr.span) {
+                    Self::report(cx, call);
                 }
             }
             ExprKind::FormatArgs(args) => {
