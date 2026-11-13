@@ -358,13 +358,13 @@ mod tests {
         assert_eq!(found[0].confidence, Confidence::Probable);
         let two = table.add(SymbolKind::Interface, "Demo.ITwo", None, 2);
         table.add(SymbolKind::Method, "Demo.ITwo.Close", Some(two), 2);
-        assert!(resolve(&table, &[call]).is_empty());
+        assert_eq!(targets(&resolve(&table, &[call])), Vec::<SymbolId>::new());
     }
 
     #[test]
     fn a_receiver_of_unknown_type_keeps_sibling_overrides_of_one_base() {
         let mut table = Table::default();
-        let animal = table.add(SymbolKind::Class, "Demo.Animal", None, 1);
+        table.add(SymbolKind::Class, "Demo.Animal", None, 1);
         let dog = table.add(SymbolKind::Class, "Demo.Dog", None, 2);
         let cat = table.add(SymbolKind::Class, "Demo.Cat", None, 3);
         let dog_speak = table.add(SymbolKind::Method, "Demo.Dog.Speak", Some(dog), 2);
@@ -379,7 +379,6 @@ mod tests {
         let calls = of_kind(&found, ReferenceKind::Call);
         assert_eq!(calls.len(), 2);
         assert!(calls.contains(&dog_speak) && calls.contains(&cat_speak));
-        let _ = animal;
     }
 
     #[test]
@@ -453,7 +452,10 @@ mod tests {
             "sink",
         );
         // `Print` exists in two unrelated types, so no one of them is reported.
-        assert!(resolve(&shop.table, &[call]).is_empty());
+        assert_eq!(
+            targets(&resolve(&shop.table, &[call])),
+            Vec::<SymbolId>::new()
+        );
     }
 
     #[test]

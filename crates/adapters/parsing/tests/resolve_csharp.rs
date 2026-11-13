@@ -107,6 +107,6 @@ mod tests {
         // `var x = svc.Make()` and `var y = Svc.Load<ITwo>()` have no type the resolver knows:
         // `Close` is neither IOne's nor ITwo's. `var z = (IOne)...` is typed by the cast.
         assert_eq!(lines("IOne.Close"), [54]);
-        assert!(lines("ITwo.Close").is_empty());
+        assert_eq!(lines("ITwo.Close"), Vec::<u32>::new());
     }
 }

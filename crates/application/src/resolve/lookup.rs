@@ -153,8 +153,9 @@ impl<'a> Context<'a> {
     }
 
     /// Whether a last-resort match for a member behind a receiver of unknown type names
-    /// members of types that have nothing to do with each other (neither derives from the other). Which one is meant cannot be told, so none is
-    /// reported: a wrong usage is worse than a missing one.
+    /// members of types that have nothing to do with each other (neither derives from the other
+    /// and they share no base type). Which one is meant cannot be told, so none is reported: a
+    /// wrong usage is worse than a missing one.
     fn is_ambiguous(&self, found: &Found<'a>) -> bool {
         if !found.global {
             return false;
