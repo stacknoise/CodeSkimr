@@ -1,4 +1,106 @@
 {
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 20,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample"
+    },
+    {
+      "decisions": null,
+      "loc": 20,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample::shop"
+    },
+    {
+      "decisions": null,
+      "loc": 8,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample::shop::Order"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample::shop::Order::Order"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample::shop::Order::total"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample::shop::Item"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample::shop::Kind"
+    },
+    {
+      "decisions": 1,
+      "loc": 3,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample::shop::add"
+    },
+    {
+      "decisions": 1,
+      "loc": 3,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample::shop::price"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample::shop::twice"
+    }
+  ],
   "loc": 20,
   "references": [
     {

@@ -1,7 +1,9 @@
 //! Measured values per symbol.
 
 use crate::ModelError;
-use crate::consts::{METRIC_CA, METRIC_CC, METRIC_CE, METRIC_INSTABILITY, METRIC_LOC, METRIC_MI};
+use crate::consts::{
+    METRIC_CA, METRIC_CC, METRIC_CC_MAX, METRIC_CE, METRIC_INSTABILITY, METRIC_LOC, METRIC_MI,
+};
 use crate::symbol::SymbolId;
 use crate::vocabulary::labeled_enum;
 
@@ -10,8 +12,10 @@ labeled_enum!(
     MetricKind {
         /// Lines of code.
         Loc => METRIC_LOC,
-        /// Cyclomatic complexity.
+        /// Cyclomatic complexity: of a callable, the sum over the callables below a type or module.
         CyclomaticComplexity => METRIC_CC,
+        /// Highest cyclomatic complexity of a callable below a type or module (ADR 0015).
+        CyclomaticComplexityMax => METRIC_CC_MAX,
         /// Maintainability index.
         MaintainabilityIndex => METRIC_MI,
         /// Efferent coupling: how many others it depends on.

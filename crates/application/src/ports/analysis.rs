@@ -2,7 +2,7 @@
 
 use codeskimr_domain::{
     FileId, Fingerprints, FolderPath, Metric, QualifiedName, Reference, ReferenceKind, SnapshotId,
-    SourceFile, Span, Symbol, SymbolId,
+    SourceFile, Span, Symbol, SymbolCounts, SymbolId,
 };
 
 use super::DiscoveredFile;
@@ -57,6 +57,8 @@ pub struct FileFacts {
     pub pending: Vec<PendingReference>,
     /// Fingerprints of the callable symbols that are long enough; empty if fingerprinting is off.
     pub fingerprints: Vec<SymbolFingerprints>,
+    /// The counts behind the metrics of the file's callables, types and module (ADR 0015).
+    pub counts: Vec<SymbolCounts>,
 }
 
 /// Parses one file and extracts its symbols (Parse and Extract of blueprint section 7).
@@ -85,7 +87,10 @@ pub trait ReferenceResolver: Send + Sync {
 
 /// Computes the metrics of blueprint section 6.1 (strategy: interchangeable by configuration).
 pub trait MetricsCalculator: Send + Sync {
-    /// Measures every symbol.
+    /// Measures what the scan analysed. `symbols` and `references` are those of the whole
+    /// snapshot, also of unchanged files in an incremental scan, so coupling is computed on
+    /// complete data. `counts` come from the files that were analysed; the metrics of the other
+    /// files stay as they are.
     ///
     /// # Errors
     /// A coded failure if a value cannot be computed.
@@ -93,5 +98,6 @@ pub trait MetricsCalculator: Send + Sync {
         &self,
         symbols: &[Symbol],
         references: &[Reference],
+        counts: &[SymbolCounts],
     ) -> Result<Vec<Metric>, CodedError>;
 }

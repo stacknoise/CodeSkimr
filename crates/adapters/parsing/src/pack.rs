@@ -8,8 +8,8 @@ use std::str::FromStr;
 use codeskimr_domain::{LanguageId, ModelError, SymbolKind};
 use tree_sitter::{Language, Query};
 
-use crate::captures::Vocabulary;
-use crate::consts::{ID_MISMATCH, REFERENCES_QUERY_FILE, SYMBOLS_QUERY_FILE};
+use crate::captures::{MetricsQuery, Vocabulary};
+use crate::consts::{ID_MISMATCH, METRICS_QUERY_FILE, REFERENCES_QUERY_FILE, SYMBOLS_QUERY_FILE};
 use crate::error::ParsingError;
 use crate::grammar;
 use crate::manifest::{DocSummary, PackManifest, Tier};
@@ -34,10 +34,12 @@ pub struct LanguagePack {
     pub(crate) visibility: Visibilities,
     pub(crate) symbols: Vocabulary,
     pub(crate) references: Option<Vocabulary>,
+    pub(crate) metrics: Option<MetricsQuery>,
 }
 
 impl LanguagePack {
-    /// Loads the pack in `dir`: `language.toml`, `symbols.scm` and the optional `references.scm`.
+    /// Loads the pack in `dir`: `language.toml`, `symbols.scm` and the optional `references.scm` and
+    /// `metrics.scm`.
     ///
     /// # Errors
     /// [`ParsingError::PackInvalid`] if a file is missing or malformed, the grammar is unknown, a
@@ -55,14 +57,14 @@ impl LanguagePack {
         } else {
             None
         };
-        Self::assemble(manifest, language, symbols, references, &folder)
+        let metrics = load_metrics(&language, &dir.join(METRICS_QUERY_FILE), &folder)?;
+        Self::assemble(manifest, language, (symbols, references, metrics), &folder)
     }
 
     fn assemble(
         manifest: PackManifest,
         language: Language,
-        symbols: Vocabulary,
-        references: Option<Vocabulary>,
+        (symbols, references, metrics): (Vocabulary, Option<Vocabulary>, Option<MetricsQuery>),
         folder: &str,
     ) -> Result<Self, ParsingError> {
         let invalid = |reason: String| ParsingError::invalid(folder, reason);
@@ -95,6 +97,7 @@ impl LanguagePack {
             visibility,
             symbols,
             references,
+            metrics,
         })
     }
 
@@ -133,6 +136,20 @@ fn folder_name(dir: &Path) -> String {
     dir.file_name()
         .map(|name| name.to_string_lossy().into_owned())
         .unwrap_or_default()
+}
+
+fn load_metrics(
+    language: &Language,
+    path: &Path,
+    folder: &str,
+) -> Result<Option<MetricsQuery>, ParsingError> {
+    if !path.is_file() {
+        return Ok(None);
+    }
+    let invalid = |reason: String| ParsingError::invalid(folder, reason);
+    let source = fs::read_to_string(path).map_err(|e| invalid(e.to_string()))?;
+    let query = Query::new(language, &source).map_err(|e| invalid(e.to_string()))?;
+    MetricsQuery::new(query).map(Some).map_err(invalid)
 }
 
 fn compile(language: &Language, path: &Path, folder: &str) -> Result<Vocabulary, ParsingError> {

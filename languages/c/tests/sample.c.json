@@ -1,4 +1,60 @@
 {
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 19,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample.point"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample.color"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample.value"
+    },
+    {
+      "decisions": 3,
+      "loc": 8,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample.find"
+    },
+    {
+      "decisions": 1,
+      "loc": 3,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample.main"
+    }
+  ],
   "loc": 19,
   "references": [
     {

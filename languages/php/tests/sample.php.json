@@ -1,4 +1,107 @@
 {
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 23,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample"
+    },
+    {
+      "decisions": null,
+      "loc": 22,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample\\Shop"
+    },
+    {
+      "decisions": null,
+      "loc": 13,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample\\Shop\\Order"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample\\Shop\\Order\\__construct"
+    },
+    {
+      "decisions": 2,
+      "loc": 6,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample\\Shop\\Order\\total"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample\\Shop\\Priced"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample\\Shop\\Priced\\price"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample\\Shop\\Loggable"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample\\Shop\\Loggable\\log"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample\\Shop\\Kind"
+    },
+    {
+      "decisions": 2,
+      "loc": 5,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample\\Shop\\helper"
+    }
+  ],
   "loc": 23,
   "references": [
     {

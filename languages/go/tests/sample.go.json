@@ -1,4 +1,53 @@
 {
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 26,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample.Order"
+    },
+    {
+      "decisions": null,
+      "loc": 3,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample.Pricer"
+    },
+    {
+      "decisions": 3,
+      "loc": 8,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample.NewOrder"
+    },
+    {
+      "decisions": 1,
+      "loc": 8,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample.Add"
+    }
+  ],
   "loc": 26,
   "references": [
     {
