@@ -84,7 +84,7 @@ describe("onTreeKey", () => {
 
 describe("useExplorerKeys", () => {
   function shown() {
-    const keys = { collapseAll: vi.fn(), reveal: vi.fn() };
+    const keys = { collapseAll: vi.fn(), reveal: vi.fn(), usages: vi.fn() };
     const view = render(() => {
       useExplorerKeys(keys);
       return <input aria-label="field" />;
@@ -98,6 +98,14 @@ describe("useExplorerKeys", () => {
     fireEvent.keyDown(document.body, { key: ".", ctrlKey: true });
     expect(keys.collapseAll).toHaveBeenCalledOnce();
     expect(keys.reveal).toHaveBeenCalledOnce();
+  });
+
+  it("shows the usages on U, but not with a modifier or while the user types", () => {
+    const { keys, view } = shown();
+    fireEvent.keyDown(document.body, { key: "u" });
+    fireEvent.keyDown(document.body, { key: "u", ctrlKey: true });
+    fireEvent.keyDown(view.getByLabelText("field"), { key: "u" });
+    expect(keys.usages).toHaveBeenCalledOnce();
   });
 
   it("ignores the keys without Ctrl and while the user types", () => {

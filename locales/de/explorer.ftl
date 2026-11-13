@@ -69,3 +69,4 @@ explorer-source-unavailable = Der Quelltext eines Git-Projekts wird hier noch ni
 explorer-source-empty = Die Datei ist kürzer als beim letzten Scan. Scanne das Projekt neu.
 explorer-source-truncated = Zeigt die ersten { $count } Zeilen der Deklaration.
 explorer-source-pick = Wähle einen Typ oder ein Member, um den Quelltext zu sehen.
+explorer-uses-open = Verwendungen anzeigen

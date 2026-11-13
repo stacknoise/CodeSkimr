@@ -69,3 +69,4 @@ explorer-source-unavailable = The source of a Git project is not shown here yet.
 explorer-source-empty = The file is shorter than at the last scan. Scan the project again.
 explorer-source-truncated = Shows the first { $count } lines of the declaration.
 explorer-source-pick = Pick a type or a member to see its source.
+explorer-uses-open = Show the usages

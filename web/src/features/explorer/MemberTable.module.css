@@ -132,6 +132,12 @@ th.number {
     color: var(--accent);
     text-align: center;
     font: 600 11.5px var(--font-mono);
+    border: 0;
+    cursor: pointer;
+}
+.uses:hover {
+    background: var(--accent);
+    color: var(--accent-fg);
 }
 .good {
     color: var(--good);

@@ -6,12 +6,25 @@ import type { TreeRow } from "./tree";
 export interface ExplorerKeys {
   collapseAll: () => void;
   reveal: () => void;
+  /** Shows the usages of the selected symbol. */
+  usages: () => void;
 }
 
-/** Registers `Ctrl+Left` (close the whole tree) and `Ctrl+.` (show the selection) while the
- * screen is shown. The plain arrows belong to the tree itself, so the page can still scroll. */
+/** Registers `Ctrl+Left` (close the whole tree), `Ctrl+.` (show the selection) and `U` (usages of
+ * the selection) while the screen is shown. The plain arrows belong to the tree itself, so the page can still scroll. */
 export function useExplorerKeys(keys: ExplorerKeys): void {
   useKeydown((event) => {
+    if (
+      event.key.toLowerCase() === KEY.usages &&
+      !event.ctrlKey &&
+      !event.altKey &&
+      !event.metaKey &&
+      !isTyping(event.target)
+    ) {
+      keys.usages();
+      event.preventDefault();
+      return;
+    }
     if (!event.ctrlKey || event.altKey || event.metaKey || isTyping(event.target)) {
       return;
     }
