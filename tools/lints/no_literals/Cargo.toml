@@ -1,0 +1,22 @@
+[package]
+name = "no_literals"
+version = "0.1.0"
+description = "Dylint lint for blueprint rule R-06: no literals in production code"
+edition = "2024"
+license = "MIT"
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+dylint_linting = "6.4"
+
+[dev-dependencies]
+dylint_testing = "6.4"
+
+[package.metadata.rust-analyzer]
+rustc_private = true
+
+# Own workspace: this crate needs a nightly toolchain and must not be part of the stable workspace.
+[workspace]

@@ -12,6 +12,12 @@ pub const KEY_SEPARATOR: char = '.';
 /// Key under which a raw command-line value is wrapped so that it parses as TOML.
 pub const OVERRIDE_VALUE_KEY: &str = "value";
 
+/// Joins a key and its value in a TOML line.
+pub const ASSIGNMENT: &str = " = ";
+
+/// Key path prefix of the top level of a table.
+pub const NO_PREFIX: &str = "";
+
 /// Smallest allowed share (instability).
 pub const UNIT_MIN: f64 = 0.0;
 /// Largest allowed share (instability).

@@ -2,7 +2,7 @@
 
 use toml::{Table, Value};
 
-use super::consts::{KEY_SEPARATOR, OVERRIDE_VALUE_KEY};
+use super::consts::{ASSIGNMENT, KEY_SEPARATOR, OVERRIDE_VALUE_KEY};
 use super::error::{ConfigError, LayerSource};
 
 /// A parsed, not yet validated set of overrides.
@@ -58,7 +58,7 @@ impl ConfigLayer {
 
 /// Parses a bare TOML value by giving it a key to live under.
 fn parse_raw_value(raw: &str) -> Result<Value, ConfigError> {
-    let wrapped = format!("{OVERRIDE_VALUE_KEY} = {raw}");
+    let wrapped = format!("{OVERRIDE_VALUE_KEY}{ASSIGNMENT}{raw}");
     let mut table = wrapped
         .parse::<Table>()
         .map_err(|cause| ConfigError::ParseFailed {

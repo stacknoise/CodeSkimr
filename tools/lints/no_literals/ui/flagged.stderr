@@ -1,0 +1,119 @@
+error: literal in production code (CHK-101)
+  --> $DIR/flagged.rs:5:18
+   |
+LL |     let buffer = 4096;
+   |                  ^^^^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+   = note: `#[deny(no_literals)]` on by default
+
+error: literal in production code (CHK-101)
+  --> $DIR/flagged.rs:6:17
+   |
+LL |     let ratio = 0.5;
+   |                 ^^^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+
+error: literal in production code (CHK-101)
+  --> $DIR/flagged.rs:7:22
+   |
+LL |     let zero_float = 0.0;
+   |                      ^^^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+
+error: literal in production code (CHK-101)
+  --> $DIR/flagged.rs:8:15
+   |
+LL |     let hex = 0x1;
+   |               ^^^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+
+error: literal in production code (CHK-101)
+  --> $DIR/flagged.rs:13:16
+   |
+LL |     let name = "codeskimr";
+   |                ^^^^^^^^^^^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+
+error: literal in production code (CHK-101)
+  --> $DIR/flagged.rs:14:18
+   |
+LL |     let letter = 'x';
+   |                  ^^^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+
+error: literal in production code (CHK-101)
+  --> $DIR/flagged.rs:15:15
+   |
+LL |     let raw = b"abc";
+   |               ^^^^^^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+
+error: literal in production code (CHK-101)
+  --> $DIR/flagged.rs:16:16
+   |
+LL |     let byte = b'a';
+   |                ^^^^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+
+error: literal in production code (CHK-101)
+  --> $DIR/flagged.rs:19:20
+   |
+LL | fn array() -> [u8; 4] {
+   |                    ^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+
+error: literal in production code (CHK-101)
+  --> $DIR/flagged.rs:20:9
+   |
+LL |     [0; 4]
+   |         ^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+
+error: literal in production code (CHK-101)
+  --> $DIR/flagged.rs:25:9
+   |
+LL |         2 => true,
+   |         ^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+
+error: literal in production code (CHK-101)
+  --> $DIR/flagged.rs:31:14
+   |
+LL |     println!("scanned");
+   |              ^^^^^^^^^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+
+error: literal in production code (CHK-101)
+  --> $DIR/flagged.rs:32:24
+   |
+LL |     panic_free(format!("{count} files"))
+   |                        ^^^^^^^^^^^^^^^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+
+error: literal in production code (CHK-101)
+  --> $DIR/flagged.rs:41:9
+   |
+LL |         7
+   |         ^
+...
+LL |     local!()
+   |     -------- in this macro invocation
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+   = note: this error originates in the macro `local` (in Nightly b$DIRlds, run with -Z macro-backtrace for more info)
+
+error: aborting due to 14 previous errors
+
