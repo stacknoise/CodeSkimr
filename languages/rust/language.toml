@@ -1,4 +1,4 @@
-# Rust language pack, full tier (blueprint 8, WP-65, ADR 0024).
+# Rust language pack, full tier (blueprint 8, WP-65, ADR 0026).
 #
 # Mapping of Rust onto the language-neutral symbol kinds:
 #   mod                                -> namespace    struct               -> struct

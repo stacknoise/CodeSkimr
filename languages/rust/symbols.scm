@@ -1,4 +1,4 @@
-; Rust declarations -> symbol kinds (blueprint 8.1, ADR 0024). `///` and `/** */` comments directly
+; Rust declarations -> symbol kinds (blueprint 8.1, ADR 0026). `///` and `/** */` comments directly
 ; above a declaration (attributes may sit in between) are its documentation; the tokens of a
 ; visibility modifier (`pub`, `crate`, `super`, `self`, `in`) are the visibility words.
 ; `impl` blocks are no symbols, so a function inside one is a method of the enclosing module (a

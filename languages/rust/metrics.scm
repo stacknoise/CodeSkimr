@@ -1,4 +1,4 @@
-; Rust metrics captures (ADR 0015, ADR 0024): comments, decision points, Halstead operators and
+; Rust metrics captures (ADR 0015, ADR 0026): comments, decision points, Halstead operators and
 ; operands.
 ; Mapping of the counting rules to nodes (golden test: crates/adapters/parsing/tests/rust_metrics.rs):
 ;   if / else if            if_expression (an `else if` is an if_expression in the else clause);
