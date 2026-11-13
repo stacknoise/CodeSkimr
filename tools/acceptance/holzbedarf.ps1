@@ -10,6 +10,7 @@ param(
     [string]$Out = (Join-Path $HOME 'codeskimr-abnahme-privat')
 )
 $ErrorActionPreference = 'Continue'
+$env:CODESKIMR_LANG = 'en'
 if (-not (Test-Path (Join-Path $PWD 'BLUEPRINT.md'))) { throw 'Bitte im CodeSkimr-Ordner starten.' }
 if (-not (Test-Path $Src)) { throw "Ordner nicht gefunden: $Src" }
 $Src = (Resolve-Path $Src).Path
@@ -54,6 +55,7 @@ robocopy $Src $copy /MIR /XD bin obj /NFL /NDL /NJH /NJS /NP | Out-Null
 $env:CODESKIMR_DATA_DIR = Join-Path $Out 'db-watch'
 $outFile = Join-Path $Out 'watch.out'
 $watch = Start-Process $exe -ArgumentList 'scan', "`"$copy`"", '--watch' -PassThru -WindowStyle Hidden -RedirectStandardOutput $outFile -RedirectStandardError (Join-Path $Out 'watch.err')
+try {
 $deadline = (Get-Date).AddMinutes(10)
 while ((Get-Date) -lt $deadline -and -not ((Get-Content $outFile -ErrorAction SilentlyContinue) -match 'Watching')) { Start-Sleep 1 }
 $target = (Get-ChildItem $copy -Recurse -Filter *.cs | Where-Object { $_.Name -notlike '*.g.cs' -and $_.FullName -notmatch '\\(bin|obj)\\' } | Select-Object -First 1).FullName
@@ -63,7 +65,7 @@ foreach ($i in 1..5) {
     $stop = (Get-Date).AddSeconds(60)
     while ((Get-Date) -lt $stop -and @(Get-Content $outFile | Where-Object { $_ -match '\d+ ms' }).Count -lt $i) { Start-Sleep -Milliseconds 200 }
 }
-Stop-Process -Id $watch.Id -Force
+} finally { Stop-Process -Id $watch.Id -Force -ErrorAction SilentlyContinue }
 $times = @(Get-Content $outFile | ForEach-Object { if ($_ -match '(\d+) ms') { [int]$Matches[1] } })
 Log ("Inkrementelle Scans in ms: " + ($times -join ' / ') + ", Median: " + $(if ($times.Count) { Median $times } else { 'keine Messung' }))
 
@@ -72,18 +74,18 @@ $env:CODESKIMR_DATA_DIR = Join-Path $Out 'db1'
 $psi = New-Object Diagnostics.ProcessStartInfo $exe, "mcp --project `"$Src`""
 $psi.UseShellExecute = $false; $psi.RedirectStandardInput = $true; $psi.RedirectStandardOutput = $true
 $psi.StandardOutputEncoding = New-Object Text.UTF8Encoding($false)
-$psi.StandardInputEncoding = New-Object Text.UTF8Encoding($false)
 $mcp = [Diagnostics.Process]::Start($psi)
+$writer = New-Object IO.StreamWriter($mcp.StandardInput.BaseStream, (New-Object Text.UTF8Encoding($false)))
 $script:id = 0
 function Rpc([string]$method, $params) {
     $script:id++
-    $mcp.StandardInput.WriteLine((@{ jsonrpc = '2.0'; id = $script:id; method = $method; params = $params } | ConvertTo-Json -Depth 8 -Compress))
-    $mcp.StandardInput.Flush()
+    $writer.WriteLine((@{ jsonrpc = '2.0'; id = $script:id; method = $method; params = $params } | ConvertTo-Json -Depth 8 -Compress))
+    $writer.Flush()
     $mcp.StandardOutput.ReadLine() | ConvertFrom-Json
 }
 function Tool([string]$name, $arguments) { (Rpc 'tools/call' @{ name = $name; arguments = $arguments }).result }
 $null = Rpc 'initialize' @{ protocolVersion = '2025-03-26'; capabilities = @{}; clientInfo = @{ name = 'abnahme'; version = '0' } }
-$mcp.StandardInput.WriteLine('{"jsonrpc":"2.0","method":"notifications/initialized"}'); $mcp.StandardInput.Flush()
+$writer.WriteLine('{"jsonrpc":"2.0","method":"notifications/initialized"}'); $writer.Flush()
 $tools = @((Rpc 'tools/list' @{}).result.tools | ForEach-Object { $_.name })
 Log ("MCP-Werkzeuge ($($tools.Count)): " + ($tools -join ', '))
 
@@ -102,7 +104,8 @@ $picked = @()
 foreach ($group in @(@('method'), @('constant', 'property'))) {
     $all = @($pool.Values | Where-Object { $group -contains $_.kind } | Sort-Object id)
     $stride = [math]::Max(1, [int][math]::Floor($all.Count / 60))
-    $c = @(for ($k = 0; $k -lt $all.Count; $k += $stride) { $all[$k] } | Where-Object { $n = @(Text-Hits $_.name).Count; $n -ge 2 -and $n -le 30 })
+    $sampled = @(for ($k = 0; $k -lt $all.Count; $k += $stride) { $all[$k] })
+    $c = @($sampled | Where-Object { $n = @(Text-Hits $_.name).Count; $n -ge 2 -and $n -le 30 })
     $step = [math]::Max(1, [int][math]::Floor($c.Count / 10))
     for ($k = 0; $k -lt $c.Count -and $k -lt 10 * $step; $k += $step) { $picked += $c[$k] }
 }
@@ -117,7 +120,7 @@ foreach ($s in $picked) {
     $rows += [pscustomobject]@{ Total = $u.total; Certain = $certain; Ms = $timer.Elapsed.TotalMilliseconds }
     Add-Content $review ("`n## [$($s.kind)] $($s.qualified_name)`nTextsuche: " + (@(Text-Hits $s.name) -join ' ') + "`nCodeSkimr ($($u.total), davon certain $certain): " + (@($u.usages | ForEach-Object { "$($_.path):$($_.line)" }) -join ' '))
 }
-$mcp.StandardInput.Close(); $mcp.WaitForExit(5000) | Out-Null
+$writer.Close(); $mcp.WaitForExit(5000) | Out-Null
 Log ("Stichprobe: $($rows.Count) Symbole, Verwendungen gesamt $(($rows | Measure-Object Total -Sum).Sum), davon certain $(($rows | Measure-Object Certain -Sum).Sum), langsamste Abfrage $([math]::Round(($rows | Measure-Object Ms -Maximum).Maximum, 1)) ms")
-Log "Zur Beurteilung: $review (bleibt lokal)."
+Log "Zur Beurteilung: pruefung-usages.txt im Ausgabeordner (bleibt lokal)."
 Write-Host "`nFertig. Bitte den Inhalt von $report in den Projekt-Chat kopieren und sagen, wie viele der 20 Symbole in $review stimmen."
