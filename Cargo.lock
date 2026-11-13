@@ -362,6 +362,7 @@ dependencies = [
  "codeskimr_storage",
  "getrandom 0.4.3",
  "secrecy",
+ "serde",
  "serde_json",
  "tempfile",
  "tokio",

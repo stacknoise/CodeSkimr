@@ -6,6 +6,7 @@
 //! application layer only sees finished results.
 
 mod analysis;
+mod catalog;
 mod clock;
 mod credentials;
 mod query;
@@ -18,6 +19,7 @@ pub use analysis::{
     AnalyzeRequest, FileAnalyzer, FileFacts, MetricsCalculator, PendingReference, Receiver,
     ReferenceResolver, SnippetFingerprinter, SymbolFingerprints,
 };
+pub use catalog::{LanguageShare, ProjectCatalog, ProjectOverview};
 pub use clock::Clock;
 pub use credentials::{AuthError, Credential, CredentialStore};
 pub use query::{CodeIndex, MemberRef, SearchHit, SymbolDetail, SymbolKey};

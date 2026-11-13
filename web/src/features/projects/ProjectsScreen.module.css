@@ -1,3 +1,21 @@
+.screen {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.screen h1 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.hint {
+    margin: var(--space-4) 0 0;
+    color: var(--muted);
+}
+
 .empty {
     max-width: 560px;
     display: flex;
@@ -9,7 +27,8 @@
     border-radius: var(--radius-dialog);
 }
 
-.empty h1 {
+.empty h2 {
+    margin: 0;
     font-size: 18px;
 }
 
