@@ -347,7 +347,7 @@ languages/csharp/
 | Tier | Delivers | Languages in 1.0 |
 |---|---|---|
 | **full** | symbols incl. members, doc comments, references with scope-aware resolution, all metrics | C#, TypeScript/JavaScript, Python, Java, Kotlin, Rust (Go after 1.0, ADR 0011) |
-| **basic** | types and functions, spans, LOC, CC (no MI); references only by unique name | every other language with a Tree-sitter grammar |
+| **basic** | types and functions, spans, LOC, CC, `cc_max` (no MI); references only by unique name | every other language with a Tree-sitter grammar |
 
 - Full-tier grammars are compiled into the binary.
 - Basic-tier grammars are loaded on demand as language packs, which keeps the binary small (section 16).
