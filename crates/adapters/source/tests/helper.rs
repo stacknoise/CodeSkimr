@@ -72,7 +72,7 @@ fn helper_was_asked(with_credential: bool) -> TestResult<bool> {
     let config = home.path().join("gitconfig");
     std::fs::write(
         &config,
-        format!("[credential]\n\thelper = !touch {} #\n", marker.display()),
+        format!("[credential]\n\thelper = !touch {}\n", marker.display()),
     )?;
     let mut child = Command::new(std::env::current_exe()?);
     child
@@ -84,6 +84,8 @@ fn helper_was_asked(with_credential: bool) -> TestResult<bool> {
         .env(CHILD_CACHE, home.path().join("cache"))
         .env("GIT_CONFIG_GLOBAL", &config)
         .env("GIT_CONFIG_NOSYSTEM", "1")
+        // The helper is run as `touch <marker> get`, which also creates a file called `get`.
+        .current_dir(home.path())
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null());
