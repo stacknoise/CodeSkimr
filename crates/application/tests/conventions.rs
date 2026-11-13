@@ -273,7 +273,7 @@ mod tests {
         )
         .expect("checked");
         assert_eq!(report.files_checked, 1);
-        assert!(report.findings.is_empty());
+        assert_eq!(report.findings.len(), 0);
     }
 
     #[test]
