@@ -111,7 +111,7 @@ mod i18n_catalog {
             ("en", "app.ftl", "app-name = Name\n"),
             ("de", "app.ftl", "app-name = Name\n"),
         ]);
-        assert!(c.problems().is_empty());
+        assert_eq!(c.problems(), Vec::<String>::new());
     }
 
     #[test]
