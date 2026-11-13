@@ -24,7 +24,7 @@ mod tests {
     #[test]
     fn unrelated_bodies_form_no_pair() {
         let (a, b) = (body(0..40), body(100..140));
-        assert!(similar_pairs(&[&a, &b], 10).is_empty());
+        assert_eq!(similar_pairs(&[&a, &b], 10), Vec::new());
     }
 
     #[test]
@@ -44,6 +44,6 @@ mod tests {
         let (a, b) = (body(0..40), body(20..60));
         let empty = Fingerprints::default();
         assert_eq!(similar_pairs(&[&a, &b, &empty, &empty], 0).len(), 1);
-        assert!(similar_pairs(&[&a, &b], 99).is_empty());
+        assert_eq!(similar_pairs(&[&a, &b], 99), Vec::new());
     }
 }

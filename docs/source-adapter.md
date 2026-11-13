@@ -22,6 +22,6 @@ Implements the driven ports `SourceProvider` and `FileDiscovery` of `codeskimr_a
 ## Limits of this package
 
 - Files that are deleted since the previous snapshot are not listed by `FileDiscovery`; the pipeline derives them from `previous` and reports them to the store (`docs/incremental-scan.md`).
-- `publish_changes` connects `watch` to the event bus: every batch becomes a `FilesChanged` event. Starting the scan on it is up to the composition root.
+- `publish_changes` connects `watch` to the event bus: every batch becomes a `FilesChanged` event. Starting the scan on it is up to the composition root (`codeskimr scan --watch`, ADR 0029).
 - The size limit comes from `scan.max_source_mb` (default 2048, WP-25, closes #28); `max_wait` is still a constructor value.
 - An update is a full shallow re-clone, not a fetch.

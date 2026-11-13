@@ -8,8 +8,8 @@ use clap::error::ErrorKind;
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use codeskimr_codes::i18n::{
     CLI_ABOUT, CLI_ARG_BRANCH, CLI_ARG_CONFIG, CLI_ARG_DATA_DIR, CLI_ARG_JSON, CLI_ARG_LANGUAGES,
-    CLI_ARG_PATHS, CLI_ARG_PROJECT, CLI_ARG_SET, CLI_ARG_SOURCE, CLI_CMD_CHECK, CLI_CMD_MCP,
-    CLI_CMD_SCAN, CLI_CMD_SERVE,
+    CLI_ARG_PATHS, CLI_ARG_PROJECT, CLI_ARG_SET, CLI_ARG_SOURCE, CLI_ARG_WATCH, CLI_CMD_CHECK,
+    CLI_CMD_MCP, CLI_CMD_SCAN, CLI_CMD_SERVE,
 };
 use codeskimr_i18n::Messages;
 
@@ -18,7 +18,7 @@ use crate::args::{
 };
 use crate::consts::{
     ARG_BRANCH, ARG_CONFIG, ARG_DATA_DIR, ARG_JSON, ARG_LANGUAGES, ARG_PATHS, ARG_PROJECT, ARG_SET,
-    ARG_SOURCE, BINARY_NAME, COMMAND_CHECK, COMMAND_MCP, COMMAND_SCAN, COMMAND_SERVE,
+    ARG_SOURCE, ARG_WATCH, BINARY_NAME, COMMAND_CHECK, COMMAND_MCP, COMMAND_SCAN, COMMAND_SERVE,
     OVERRIDE_SEPARATOR, VALUE_BRANCH, VALUE_DIR, VALUE_FILE, VALUE_OVERRIDE, VALUE_PATH,
     VALUE_SOURCE, VERSION,
 };
@@ -88,6 +88,12 @@ fn scan_command(messages: &Messages, language: &str) -> Result<Command, CliError
                 .long(ARG_JSON)
                 .action(ArgAction::SetTrue)
                 .help(say(CLI_ARG_JSON)?),
+        )
+        .arg(
+            Arg::new(ARG_WATCH)
+                .long(ARG_WATCH)
+                .action(ArgAction::SetTrue)
+                .help(say(CLI_ARG_WATCH)?),
         ))
 }
 
@@ -142,6 +148,7 @@ fn invocation(matches: &ArgMatches) -> Result<Invocation, CliError> {
                 .unwrap_or_default(),
             branch: scan.get_one::<String>(ARG_BRANCH).cloned(),
             json: scan.get_flag(ARG_JSON),
+            watch: scan.get_flag(ARG_WATCH),
         }),
         Some((COMMAND_MCP, mcp)) => Action::Mcp(McpArgs {
             project: mcp.get_one::<PathBuf>(ARG_PROJECT).cloned(),

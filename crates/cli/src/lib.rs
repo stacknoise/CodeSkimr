@@ -19,4 +19,7 @@ pub use check::{check_json, check_text};
 pub use error::CliError;
 pub use locale::language_from;
 pub use parser::parse;
-pub use render::{ScanSummary, error_line, scan_finished, scan_json, scan_started, serve_started};
+pub use render::{
+    ScanSummary, error_line, scan_finished, scan_json, scan_started, serve_started, watch_started,
+    watch_updated,
+};

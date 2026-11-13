@@ -3,7 +3,7 @@
 //! `main` hands the command line and the environment to [`run::execute`]. The modules:
 //! `logging`, `log_writer` and `redact` write the log with secrets masked, `locations` and
 //! `config_files` find and read folders and configuration, `wiring` creates the adapters, `scan`
-//! `mcp` and `serve` are the commands that need wiring.
+//! `mcp` and `serve` are the commands that need wiring, `watch` is the watch mode of `scan`.
 
 mod check;
 mod clock;
@@ -22,6 +22,7 @@ mod run;
 mod scan;
 mod serve;
 mod source_arg;
+mod watch;
 mod wiring;
 
 use std::process::ExitCode;

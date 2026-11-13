@@ -101,6 +101,9 @@ pub struct SnapshotRetention {
 pub struct Watcher {
     /// File events within this window are collapsed into one re-scan, in milliseconds.
     pub debounce_ms: u32,
+    /// A batch of file events is handed over at the latest this long after its first event, in
+    /// milliseconds.
+    pub max_wait_ms: u32,
 }
 
 /// Limits of the convention checks (blueprint 3, `check_conventions`).

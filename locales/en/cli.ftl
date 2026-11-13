@@ -21,6 +21,9 @@ cli-arg-config = User configuration file
 cli-arg-set = Override a setting for this run, for example metrics.cyclomatic_good_max=4
 cli-arg-languages = Folder with the language packs
 cli-credentials-hint = Secrets in a Git URL (user info, query or fragment) are not accepted: they would be stored and printed. Use a Git credential helper or an SSH key.
+cli-arg-watch = Keep running after the scan and scan again when files change
+cli-watch-started = Watching for changes. Press Ctrl+C to stop.
+cli-watch-updated = { $changed } changed files scanned again in { $millis } ms.
 cli-cmd-check = Check files against the code rules (length, duplicates) and exit with 1 if there are findings
 cli-arg-paths = Files or folders to check, relative to the current folder (default: everything)
 cli-check-finding = { $path }:{ $line }: { $code } { $message }

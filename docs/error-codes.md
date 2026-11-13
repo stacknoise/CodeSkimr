@@ -150,6 +150,7 @@ Owner: `codeskimr_cli`
 | Code | Name | Severity | Retryable | Since | Description |
 |---|---|---|---|---|---|
 | CLI-101 | `cli_arguments_invalid` | error | no | 0.1.0 | Command-line arguments are invalid. |
+| CLI-102 | `watch_needs_folder` | error | no | 0.1.0 | Watch mode needs a local folder; a Git URL cannot be watched. |
 
 ## I18N – Translations
 
