@@ -10,7 +10,7 @@ use std::time::Duration;
 use serde_json::{Value, json};
 
 use crate::consts::URL_SCHEME;
-use crate::security_tests::{CREDENTIAL_CANARY, command, folders, run};
+use crate::security_tests::{CREDENTIAL_CANARY, assert_answers_clean, command, folders, run};
 
 const EVENTS: &str = "/api/v1/events";
 const COMMANDS: &str = "/api/v1/commands";
@@ -143,6 +143,35 @@ fn token_per_call(url: &str, token: &str, source: &str) {
         bearer(token),
     ];
     assert_eq!(status(&raw(url, "POST /mcp HTTP/1.1", &headers, &rpc)), 200);
+}
+
+/// Storing and deleting credentials needs the token, and a body that does not parse never echoes
+/// the secret in it.
+fn credentials_need_the_token(url: &str, token: &str) -> Vec<String> {
+    let stored = json!({ "id": "work", "user": "anton", "secret": CREDENTIAL_CANARY });
+    let bad_body = json!({ "id": "work", "user": "anton", "secret": [CREDENTIAL_CANARY] });
+    let delete = json!({ "id": "work" });
+    for wrong in [None, Some("csk_wrong"), Some("")] {
+        let headers: Vec<String> = wrong.map(bearer).into_iter().collect();
+        for (id, body) in [
+            ("credentials.set", &stored),
+            ("credentials.delete", &delete),
+        ] {
+            let answer = command_request(url, id, &headers, body);
+            assert_eq!(status(&answer), 401, "{id}, token {wrong:?}");
+            assert!(answer.contains("API-401"), "{id}");
+        }
+    }
+    let right = [bearer(token)];
+    let bad = command_request(url, "credentials.set", &right, &bad_body);
+    assert_eq!(status(&bad), 400);
+    assert!(bad.contains("API-101"));
+    // The controls: the right token stores and deletes.
+    let set = command_request(url, "credentials.set", &right, &stored);
+    let gone = command_request(url, "credentials.delete", &right, &delete);
+    assert_eq!(status(&set), 200);
+    assert_eq!(status(&gone), 200);
+    vec![bad, set, gone]
 }
 
 /// A foreign `Host` or `Origin` is refused with `API-402`, whatever the token.
@@ -288,7 +317,8 @@ fn bad_tokens_hosts_and_origins_are_refused_and_the_event_stream_leaks_nothing()
     let outcome = run(&folders, move |url, token| {
         token_per_call(url, token, &source);
         host_and_origin(url, token, &source);
-        let mut answers = cors_and_headers(url, token);
+        let mut answers = credentials_need_the_token(url, token);
+        answers.extend(cors_and_headers(url, token));
         let (foreign, stream) = event_stream(url, token, &source);
         answers.push(foreign);
         answers.push(stream);
@@ -299,12 +329,8 @@ fn bad_tokens_hosts_and_origins_are_refused_and_the_event_stream_leaks_nothing()
     assert!(stream.contains("101 Switching"));
     let body = stream.split_once("\r\n\r\n").map_or("", |parts| parts.1);
     assert!(!body.is_empty(), "no event arrived");
-    for (kind, secret) in [CREDENTIAL_CANARY, outcome.token.as_str()]
-        .into_iter()
-        .enumerate()
-    {
-        for (n, answer) in outcome.answers.iter().enumerate() {
-            assert!(!answer.contains(secret), "secret {kind} in answer {n}");
-        }
-    }
+    assert_answers_clean(
+        &outcome.answers,
+        &[CREDENTIAL_CANARY, outcome.token.as_str()],
+    );
 }

@@ -84,6 +84,7 @@ fn e2e_server() {
             &GlobalOptions::default(),
             &locations(data.path()),
             events.clone(),
+            crate::memory_keystore::secrets(),
         )
         .unwrap(),
         mcp: None,

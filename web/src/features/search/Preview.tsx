@@ -17,7 +17,7 @@ interface Action {
 const ACTIONS: readonly Action[] = [
   { label: I18N_KEYS.PALETTE_ACTION_EXPLORER, key: I18N_KEYS.PALETTE_KEY_EXPLORER, ready: true },
   { label: I18N_KEYS.PALETTE_ACTION_GRAPH, key: I18N_KEYS.PALETTE_KEY_GRAPH, ready: false },
-  { label: I18N_KEYS.PALETTE_ACTION_EDITOR, key: I18N_KEYS.PALETTE_KEY_EDITOR, ready: false },
+  { label: I18N_KEYS.PALETTE_ACTION_EDITOR, key: I18N_KEYS.PALETTE_KEY_EDITOR, ready: true },
   { label: I18N_KEYS.PALETTE_ACTION_COPY, key: I18N_KEYS.PALETTE_KEY_COPY, ready: true },
 ];
 

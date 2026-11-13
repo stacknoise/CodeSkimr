@@ -9,8 +9,8 @@ use codeskimr_domain::{BranchName, CredentialId, FolderPath, GitUrl, ProjectName
 
 use crate::consts::{
     AUTHORITY_END, DEFAULT_BRANCH, GIT_URL_PREFIXES, GIT_URL_SUFFIX, HTTP_SCHEME, NO_SCHEME,
-    PASSWORD_SEPARATOR, QUERY_MARKERS, SCHEME_SEPARATOR, SCP_PATH_SEPARATOR, TOKEN_CREDENTIAL_ID,
-    URL_PATH_SEPARATOR, USERINFO_MARKER, VERBATIM_PREFIX, VERBATIM_UNC,
+    PASSWORD_SEPARATOR, QUERY_MARKERS, SCHEME_SEPARATOR, SCP_PATH_SEPARATOR, URL_PATH_SEPARATOR,
+    USERINFO_MARKER, VERBATIM_PREFIX, VERBATIM_UNC, is_token_credential,
 };
 
 /// Why an argument is not a source.
@@ -56,7 +56,7 @@ impl SourceSpec {
     /// # Errors
     /// [`SourceError::CredentialNotUsable`] for a folder source or an empty name.
     pub fn with_credential(mut self, name: &str) -> Result<Self, SourceError> {
-        if name == TOKEN_CREDENTIAL_ID {
+        if is_token_credential(name) {
             // The token that guards the local UI must never be sent to a Git server.
             return Err(SourceError::CredentialNotUsable);
         }
@@ -164,6 +164,7 @@ fn invalid() -> CodedError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::consts::TOKEN_CREDENTIAL_ID;
 
     fn name_of(url: &str) -> String {
         classify(url, None).unwrap().name.to_string()
@@ -189,9 +190,17 @@ mod tests {
         let spec = classify("https://example.com/org/repo.git", None).unwrap();
         assert!(spec.clone().with_credential("work").is_ok());
         assert_eq!(
-            spec.with_credential(TOKEN_CREDENTIAL_ID),
+            spec.clone().with_credential(TOKEN_CREDENTIAL_ID),
             Err(SourceError::CredentialNotUsable)
         );
+        // A keystore may fold case and blanks together: those spellings are the token too.
+        for variant in ["Installation-Token", " installation-token"] {
+            assert_eq!(
+                spec.clone().with_credential(variant),
+                Err(SourceError::CredentialNotUsable),
+                "{variant:?}"
+            );
+        }
     }
 
     #[test]

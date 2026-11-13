@@ -84,7 +84,7 @@ describe("onTreeKey", () => {
 
 describe("useExplorerKeys", () => {
   function shown() {
-    const keys = { collapseAll: vi.fn(), reveal: vi.fn(), usages: vi.fn() };
+    const keys = { collapseAll: vi.fn(), reveal: vi.fn(), usages: vi.fn(), editor: vi.fn() };
     const view = render(() => {
       useExplorerKeys(keys);
       return <input aria-label="field" />;
@@ -106,6 +106,15 @@ describe("useExplorerKeys", () => {
     fireEvent.keyDown(document.body, { key: "u", ctrlKey: true });
     fireEvent.keyDown(view.getByLabelText("field"), { key: "u" });
     expect(keys.usages).toHaveBeenCalledOnce();
+  });
+
+  it("opens the editor on E and Alt+Enter, but not with Ctrl or while the user types", () => {
+    const { keys, view } = shown();
+    fireEvent.keyDown(document.body, { key: "e" });
+    fireEvent.keyDown(document.body, { key: "Enter", altKey: true });
+    fireEvent.keyDown(document.body, { key: "e", ctrlKey: true });
+    fireEvent.keyDown(view.getByLabelText("field"), { key: "e" });
+    expect(keys.editor).toHaveBeenCalledTimes(2);
   });
 
   it("ignores the keys without Ctrl and while the user types", () => {

@@ -34,7 +34,7 @@ ignore = "0.4"
 notify = "8"
 memory-stats = "1"
 tempfile = "3"
-secrecy = "0.10"
+secrecy = { version = "0.10", features = ["serde"] }
 zeroize = "1"
 keyring-core = "1"
 # Reads a secret from the terminal without echo.
