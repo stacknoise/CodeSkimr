@@ -3,6 +3,7 @@ import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import type { MessageKey } from "../../shared/i18n/i18n";
 import { cx } from "../../shared/ui/cx";
+import { showUsages } from "../usages/usages";
 import {
   CC_METRIC,
   CHIP,
@@ -65,7 +66,14 @@ function Row(props: { row: MemberRow; onPick: (row: MemberRow) => void }) {
         {metricValue(row().complexity ?? undefined, currentLanguage())}
       </td>
       <td class={styles.number}>
-        <span class={styles.uses}>{metricValue(row().usages, currentLanguage())}</span>
+        <button
+          type="button"
+          class={styles.uses}
+          title={t(I18N_KEYS.EXPLORER_USES_OPEN)}
+          onClick={() => showUsages(row().id)}
+        >
+          {metricValue(row().usages, currentLanguage())}
+        </button>
       </td>
       <td class={styles.number}>{lines(row())}</td>
     </tr>

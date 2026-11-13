@@ -41,6 +41,17 @@ pub const SEARCH_TITLE: &str = i18n::COMMAND_SEARCH_QUERY_TITLE;
 /// Description key of `search.query`.
 pub const SEARCH_DESCRIPTION: &str = i18n::COMMAND_SEARCH_QUERY_DESCRIPTION;
 
+/// Id of the command of the usages screen.
+pub const USAGES_QUERY: &str = "usages.query";
+/// Title key of `usages.query`.
+pub const USAGES_TITLE: &str = i18n::COMMAND_USAGES_QUERY_TITLE;
+/// Description key of `usages.query`.
+pub const USAGES_DESCRIPTION: &str = i18n::COMMAND_USAGES_QUERY_DESCRIPTION;
+/// Most references and symbols of one walk that `usages.query` returns.
+pub const USAGES_LIMIT: u32 = 500;
+/// State of level 2 while no indexer is wired (ADR 0032).
+pub const LEVEL2_UNAVAILABLE: &str = "unavailable";
+
 /// Id of the command of the status bar.
 pub const STATUS_INFO: &str = "status.info";
 /// Title key of `status.info`.

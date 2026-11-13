@@ -4,6 +4,8 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 import { TONE } from "../../shared/ui/consts";
 import { Pill } from "../../shared/ui/Pill";
 import { CRUMB_SEPARATOR, HOTKEY, PILL_SEPARATOR } from "./consts";
+import { showUsages } from "../usages/usages";
+import { currentMember } from "./explorer";
 import { MemberTable } from "./MemberTable";
 import { MetricStrip } from "./MetricStrip";
 import type { MemberRow, SymbolInfo, Thresholds } from "./types";
@@ -28,20 +30,29 @@ function Breadcrumb(props: { info: SymbolInfo }) {
   );
 }
 
-function Action(props: { label: string; hotkey: string }) {
+function Action(props: { label: string; hotkey: string; onClick?: () => void }) {
   return (
-    <button type="button" aria-disabled={true} aria-describedby={SOON_ID}>
+    <button
+      type="button"
+      aria-disabled={props.onClick ? undefined : true}
+      aria-describedby={props.onClick ? undefined : SOON_ID}
+      onClick={() => props.onClick?.()}
+    >
       {props.label} <kbd class={styles.kbd}>{props.hotkey}</kbd>
     </button>
   );
 }
 
-/** The three buttons of the header. Usages and graph have no screen yet, so they are shown but
- * off, stay reachable by keyboard and say why (deviation from the mock, see docs/ui.md). */
-function Actions() {
+/** The three buttons of the header. The graph has no screen yet, so its button is shown but off,
+ * stays reachable by keyboard and says why (deviation from the mock, see docs/ui.md). */
+function Actions(props: { symbol: number }) {
   return (
     <div class={styles.actions}>
-      <Action label={t(I18N_KEYS.EXPLORER_ACTION_USES)} hotkey={HOTKEY.usages} />
+      <Action
+        label={t(I18N_KEYS.EXPLORER_ACTION_USES)}
+        hotkey={HOTKEY.usages}
+        onClick={() => showUsages(props.symbol)}
+      />
       <Action label={t(I18N_KEYS.EXPLORER_ACTION_GRAPH)} hotkey={HOTKEY.graph} />
       <Action label={t(I18N_KEYS.EXPLORER_ACTION_EDITOR)} hotkey={HOTKEY.editor} />
       <span id={SOON_ID} class={styles.hidden}>
@@ -57,7 +68,7 @@ function Title(props: { info: SymbolInfo }) {
     <div class={styles.title}>
       <h1>{props.info.name}</h1>
       <Pill tone={TONE.accent}>{kind()}</Pill>
-      <Actions />
+      <Actions symbol={currentMember() ?? props.info.id} />
     </div>
   );
 }
