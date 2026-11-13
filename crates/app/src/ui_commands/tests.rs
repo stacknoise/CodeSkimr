@@ -25,24 +25,38 @@ use crate::principal;
 
 const SOURCE: &str = "namespace Demo;\n\npublic class Calculator\n{\n    public int Add(int a, int b) { return a + b; }\n}\n";
 
-struct Fixture {
-    root: TempDir,
-    locations: Locations,
-    api: Arc<CommandApi>,
+pub(super) struct Fixture {
+    pub(super) root: TempDir,
+    pub(super) locations: Locations,
+    pub(super) api: Arc<CommandApi>,
 }
 
 impl Fixture {
     fn new() -> Self {
+        Self::installed(None)
+    }
+
+    /// An installation whose UI folder holds `page` as the export page, or no UI folder at all.
+    pub(super) fn installed(page: Option<&str>) -> Self {
         let root = tempfile::tempdir().unwrap();
         fs::create_dir_all(root.path().join("app")).unwrap();
         fs::write(root.path().join("app/Calculator.cs"), SOURCE).unwrap();
+        let ui = root.path().join("ui");
+        if let Some(page) = page {
+            fs::create_dir_all(ui.join("export")).unwrap();
+            fs::write(ui.join("export/export.html"), page).unwrap();
+        }
         let locations = Locations {
             data_dir: root.path().join("data"),
             languages_dir: Path::new(env!("CARGO_MANIFEST_DIR")).join("../../languages"),
             user_config: None,
             bases: Vec::new(),
         };
-        let api = command_api(&GlobalOptions::default(), &locations, EventBus::new()).unwrap();
+        let global = GlobalOptions {
+            overrides: vec![("ui.dir".to_owned(), format!("'{}'", ui.display()))],
+            ..GlobalOptions::default()
+        };
+        let api = command_api(&global, &locations, EventBus::new()).unwrap();
         Self {
             root,
             locations,
@@ -78,11 +92,11 @@ impl Fixture {
         project.id.get()
     }
 
-    fn folder(&self) -> String {
+    pub(super) fn folder(&self) -> String {
         self.root.path().join("app").to_string_lossy().into_owned()
     }
 
-    fn call(&self, id: &str, input: Value) -> Result<Value, &'static str> {
+    pub(super) fn call(&self, id: &str, input: Value) -> Result<Value, &'static str> {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .build()
             .unwrap();
@@ -107,6 +121,7 @@ fn the_commands_are_offered() {
             "explorer.outline",
             "explorer.source",
             "explorer.symbol",
+            "export.html",
             "graph.layers",
             "projects.add",
             "projects.list",

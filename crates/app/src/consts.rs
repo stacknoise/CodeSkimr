@@ -69,6 +69,8 @@ pub const SCP_PATH_SEPARATOR: char = ':';
 
 /// Bytes in a megabyte, for the size limit of a source.
 pub const BYTES_PER_MB: u64 = 1_048_576;
+/// Bytes in a kilobyte, for the size of an export file.
+pub const BYTES_PER_KILOBYTE: usize = 1_024;
 
 /// Separates code and description when no message texts could be loaded.
 pub const PLAIN_ERROR_SEPARATOR: &str = ": ";

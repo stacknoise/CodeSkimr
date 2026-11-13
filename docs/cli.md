@@ -1,6 +1,6 @@
 # CLI and composition root (WP-25)
 
-Implements the first part of blueprint section 10.2: `codeskimr scan` and `codeskimr mcp`. `codeskimr serve` came with WP-41 (see `docs/server.md`) and `codeskimr check` with WP-35 (see `docs/conventions.md`). The other commands (`export`, `codes`, and the bare `codeskimr` that starts the app) follow with their packages.
+Implements the first part of blueprint section 10.2: `codeskimr scan` and `codeskimr mcp`. `codeskimr serve` came with WP-41 (see `docs/server.md`) and `codeskimr check` with WP-35 (see `docs/conventions.md`). `codeskimr export` came with WP-75 (see `docs/export.md`). The other commands (`codes`, and the bare `codeskimr` that starts the app) follow with their packages.
 
 ## Structure
 
@@ -49,6 +49,14 @@ codeskimr check [PATH ...] [--json]
 ```
 
 Runs the convention checks (`docs/conventions.md`) over the current folder, or over the files and folders named, relative to it. Nothing is stored and no scan is needed. The text output has two lines per finding (`path:line: CHK-104 message`, then the numbers), the files that were skipped, a summary and the rules that are not checked yet; `--json` prints one line with `files_checked`, `findings`, `unchecked` and `not_checked` (lines are one-based). The exit code is `1` if there is at least one finding or a named path matches no file, so CI can fail on it.
+
+## `codeskimr export`
+
+```
+codeskimr export <project> --html <file>
+```
+
+Writes the explorer, the dependency map, the usages and the search of a scanned project into one self-contained HTML file, without source text (`docs/export.md`). `<project>` is a project id or the folder or Git URL it was scanned from. The UI folder (`ui.dir`) must hold the built export page (`npm run build` in `web/`), otherwise the command stops with `EXP-201`; an unwritable file is `EXP-601`.
 
 ## Global options
 

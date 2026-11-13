@@ -170,6 +170,7 @@ Owner: `codeskimr_application`
 
 | Code | Name | Severity | Retryable | Since | Description |
 |---|---|---|---|---|---|
+| EXP-201 | `export_bundle_missing` | error | no | 0.1.0 | The built export page of the UI is missing or unusable. |
 | EXP-601 | `export_write_failed` | error | no | 0.1.0 | The export file could not be written. |
 
 ## UI – Frontend

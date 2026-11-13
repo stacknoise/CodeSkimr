@@ -42,3 +42,7 @@ cli-check-unmatched = No file matches { $path }. Check the path.
 cli-cmd-open = Open CodeSkimr in the browser (the local server must be running)
 cli-arg-no-browser = Do not start a browser; only create the launch file and print its path
 cli-open-ready = Launch file: { $path } (valid for { $seconds } s, works once)
+cli-cmd-export = Export a scanned project as one self-contained HTML file (without source code)
+cli-arg-export-project = Id of the project, or the folder or Git URL it was scanned from
+cli-arg-html = File that the HTML export is written to
+cli-export-written = Export written to { $path } ({ $symbols } symbols, { $kilobytes } KiB). The source code is not included.

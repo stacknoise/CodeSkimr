@@ -13,13 +13,14 @@ mod parser;
 mod render;
 
 pub use args::{
-    Action, CheckArgs, GlobalOptions, Invocation, McpArgs, OpenArgs, Parsed, ScanArgs, ServeArgs,
+    Action, CheckArgs, ExportArgs, GlobalOptions, Invocation, McpArgs, OpenArgs, Parsed, ScanArgs,
+    ServeArgs,
 };
 pub use check::{check_json, check_text};
 pub use error::CliError;
 pub use locale::language_from;
 pub use parser::parse;
 pub use render::{
-    ScanSummary, error_line, open_ready, scan_finished, scan_json, scan_started, serve_started,
-    watch_started, watch_updated,
+    ScanSummary, error_line, export_written, open_ready, scan_finished, scan_json, scan_started,
+    serve_started, watch_started, watch_updated,
 };

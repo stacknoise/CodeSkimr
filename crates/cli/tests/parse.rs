@@ -141,3 +141,21 @@ fn the_language_comes_from_the_first_non_empty_tag() {
     assert_eq!(language_from(["fr_FR"]), "en");
     assert_eq!(language_from([]), "en");
 }
+
+#[test]
+fn export_takes_a_project_and_the_html_file() {
+    let parsed = invocation(&["codeskimr", "export", "7", "--html", "out.html"]);
+    assert_eq!(
+        parsed.action,
+        Action::Export(codeskimr_cli::ExportArgs {
+            project: "7".to_owned(),
+            html: PathBuf::from("out.html"),
+        })
+    );
+}
+
+#[test]
+fn export_without_the_html_file_is_a_usage_error() {
+    let error = run(&["codeskimr", "export", "7"]).unwrap_err();
+    assert_eq!(error.code(), ErrorCode::CliArgumentsInvalid);
+}

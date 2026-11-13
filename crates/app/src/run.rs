@@ -8,9 +8,9 @@ use std::process::ExitCode;
 use codeskimr_application::conventions::CheckReport;
 use codeskimr_application::error::CodedError;
 use codeskimr_cli::{
-    Action, CliError, Invocation, OpenArgs, Parsed, ScanArgs, ScanSummary, check_json, check_text,
-    error_line, language_from, open_ready, parse, scan_finished, scan_json, scan_started,
-    serve_started, watch_started, watch_updated,
+    Action, CliError, ExportArgs, Invocation, OpenArgs, Parsed, ScanArgs, ScanSummary, check_json,
+    check_text, error_line, export_written, language_from, open_ready, parse, scan_finished,
+    scan_json, scan_started, serve_started, watch_started, watch_updated,
 };
 use codeskimr_codes::i18n::CLI_CREDENTIALS_HINT;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -24,7 +24,7 @@ use crate::log_writer::RedactingWriter;
 use crate::logging;
 use crate::source_arg::SourceError;
 use crate::watch::{self, Report};
-use crate::{check, mcp, open, scan, serve, ui_commands};
+use crate::{check, export, mcp, open, scan, serve, ui_commands};
 
 /// Why a command did not finish: a registered code, plus the parser's text for usage errors.
 struct Failure {
@@ -133,6 +133,7 @@ fn run_invocation(
             })?;
             Ok(Outcome::Done)
         }
+        Action::Export(args) => run_export(args, invocation, &locations, messages, language),
         Action::Check(args) => {
             let report = check::run(args, &invocation.global, &locations, &current_dir)?;
             print_check(args.json, &report, messages, language)
@@ -155,6 +156,28 @@ fn run_open(
         }
     };
     open::run(args, &invocation.global, locations, env, announce)?;
+    Ok(Outcome::Done)
+}
+
+/// `codeskimr export`: writes the page and says where it is.
+fn run_export(
+    args: &ExportArgs,
+    invocation: &Invocation,
+    locations: &Locations,
+    messages: &Messages,
+    language: &str,
+) -> Result<Outcome, Failure> {
+    let written = export::run(args, &invocation.global, locations)?;
+    let path = args.html.display().to_string();
+    let line = export_written(
+        messages,
+        language,
+        &path,
+        written.symbols,
+        written.kilobytes,
+    )
+    .map_err(CliError::from)?;
+    write_out(&line);
     Ok(Outcome::Done)
 }
 

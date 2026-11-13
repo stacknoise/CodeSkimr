@@ -54,6 +54,15 @@ pub struct OpenArgs {
     pub no_browser: bool,
 }
 
+/// Arguments of `codeskimr export`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExportArgs {
+    /// Id of the project, or the folder or Git URL it was scanned from.
+    pub project: String,
+    /// The HTML file to write.
+    pub html: PathBuf,
+}
+
 /// The command to run.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
@@ -67,6 +76,8 @@ pub enum Action {
     Check(CheckArgs),
     /// `codeskimr open`.
     Open(OpenArgs),
+    /// `codeskimr export`.
+    Export(ExportArgs),
 }
 
 /// A parsed command line.
