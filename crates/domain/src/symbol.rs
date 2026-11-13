@@ -78,6 +78,35 @@ labeled_enum!(
     }
 );
 
+impl SymbolKind {
+    /// Whether the symbol has a body that is measured: function, method or constructor.
+    #[must_use]
+    pub const fn is_callable(self) -> bool {
+        matches!(self, Self::Function | Self::Method | Self::Constructor)
+    }
+
+    /// Whether the symbol is a type that holds members.
+    #[must_use]
+    pub const fn is_type(self) -> bool {
+        matches!(
+            self,
+            Self::Class
+                | Self::Interface
+                | Self::Trait
+                | Self::Record
+                | Self::Struct
+                | Self::Enum
+                | Self::Union
+        )
+    }
+
+    /// Whether callables roll up into the symbol: a type, module or namespace (ADR 0015).
+    #[must_use]
+    pub const fn is_rollup_target(self) -> bool {
+        self.is_type() || matches!(self, Self::Module | Self::Namespace)
+    }
+}
+
 /// Anything with a name.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Symbol {

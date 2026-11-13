@@ -10,6 +10,7 @@ use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::ids::IdSequence;
+use codeskimr_application::metrics::StandardMetrics;
 use codeskimr_application::pipeline::{Scanner, ScannerPorts};
 use codeskimr_codes::ErrorCode;
 use codeskimr_parsing::{LanguagePacks, TreeSitterAnalyzer};
@@ -19,7 +20,7 @@ use codeskimr_storage::SqliteStore;
 use crate::clock::SystemClock;
 use crate::consts::BYTES_PER_MB;
 use crate::locations::Locations;
-use crate::placeholders::{NoMetrics, NoReferences};
+use crate::placeholders::NoReferences;
 
 /// Opens (and creates, if needed) the database of the data folder.
 ///
@@ -67,7 +68,7 @@ pub fn build_scanner(
         discovery: Arc::new(discovery),
         analyzer: Arc::new(analyzer),
         resolver: Arc::new(NoReferences),
-        metrics: Arc::new(NoMetrics),
+        metrics: Arc::new(StandardMetrics),
         projects: store.clone(),
         store: store.clone(),
         clock: Arc::new(SystemClock),

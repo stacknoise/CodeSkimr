@@ -6,7 +6,8 @@ use codeskimr_domain::{ReferenceKind, SymbolKind};
 use tree_sitter::Query;
 
 use crate::consts::{
-    DOC_CAPTURE, MODIFIER_CAPTURE, NAME_CAPTURE, REFERENCE_CAPTURE_PREFIX, SCOPE_END_CAPTURE,
+    COMMENT_CAPTURE, DECISION_CAPTURE, DOC_CAPTURE, MODIFIER_CAPTURE, NAME_CAPTURE,
+    OPERAND_CAPTURE, OPERATOR_CAPTURE, REFERENCE_CAPTURE_PREFIX, SCOPE_END_CAPTURE,
     SIGNATURE_CAPTURE, STATIC_CAPTURE, SYMBOL_CAPTURE_PREFIX, VISIBILITY_CAPTURE,
 };
 
@@ -81,5 +82,49 @@ impl Vocabulary {
     #[must_use]
     pub fn role(&self, index: u32) -> Option<Capture> {
         self.roles.get(usize::try_from(index).ok()?).copied()
+    }
+}
+
+/// What a capture of `metrics.scm` stands for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MetricRole {
+    /// A comment; the line kinds come from `comment_nodes`, so the capture is accepted but unused.
+    Comment,
+    /// A decision point.
+    Decision,
+    /// An operator token.
+    Operator,
+    /// An operand.
+    Operand,
+}
+
+/// The compiled `metrics.scm` of a pack.
+pub struct MetricsQuery {
+    pub(crate) query: Query,
+    pub(crate) roles: Vec<MetricRole>,
+}
+
+impl MetricsQuery {
+    /// Resolves every capture name of `query`.
+    ///
+    /// # Errors
+    /// The offending capture name if it is not one of the four of ADR 0015.
+    pub fn new(query: Query) -> Result<Self, String> {
+        let roles = query
+            .capture_names()
+            .iter()
+            .map(|name| role_of(name).ok_or_else(|| (*name).to_owned()))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(Self { query, roles })
+    }
+}
+
+fn role_of(name: &str) -> Option<MetricRole> {
+    match name {
+        COMMENT_CAPTURE => Some(MetricRole::Comment),
+        DECISION_CAPTURE => Some(MetricRole::Decision),
+        OPERATOR_CAPTURE => Some(MetricRole::Operator),
+        OPERAND_CAPTURE => Some(MetricRole::Operand),
+        _ => None,
     }
 }

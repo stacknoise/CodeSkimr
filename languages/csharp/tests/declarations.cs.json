@@ -1,4 +1,161 @@
 {
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 41,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations"
+    },
+    {
+      "decisions": null,
+      "loc": 40,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Shop.Orders"
+    },
+    {
+      "decisions": null,
+      "loc": 22,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Shop.Orders.Order"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.Shop.Orders.Order.Order"
+    },
+    {
+      "decisions": 0,
+      "loc": 4,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "declarations.Shop.Orders.Order.CountAsync"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.Shop.Orders.Order.+"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.Shop.Orders.Order.ToString"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.Shop.Orders.Order.Helper"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations.Shop.Orders.Order.Helper.Local"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Shop.Orders.Order.Line"
+    },
+    {
+      "decisions": null,
+      "loc": 5,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Shop.Orders.IOrder"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Shop.Orders.IOrder.Submit"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Shop.Orders.Money"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Shop.Orders.Point"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Shop.Orders.Customer"
+    },
+    {
+      "decisions": null,
+      "loc": 5,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Shop.Orders.Status"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Shop.Orders.Hidden"
+    }
+  ],
   "loc": 41,
   "references": [
     {
