@@ -15,6 +15,7 @@ use codeskimr_application::pipeline::{Scanner, ScannerPorts};
 use codeskimr_application::resolve::ScopedResolver;
 use codeskimr_codes::ErrorCode;
 use codeskimr_parsing::{LanguagePacks, TreeSitterAnalyzer};
+use codeskimr_secrets::{OsCredentialStore, OsKeystore};
 use codeskimr_source::{DiscoveryConfig, GitCache, LanguageMap, SourceFetcher, WalkDiscovery};
 use codeskimr_storage::SqliteStore;
 
@@ -64,7 +65,10 @@ pub fn build_scanner(
         languages,
     );
     let ports = ScannerPorts {
-        source: Arc::new(SourceFetcher::new(GitCache::new(locations.git_cache()))),
+        source: Arc::new(SourceFetcher::new(
+            GitCache::new(locations.git_cache()),
+            Arc::new(OsCredentialStore::new(OsKeystore)),
+        )),
         discovery: Arc::new(discovery),
         analyzer: Arc::new(analyzer),
         resolver: Arc::new(ScopedResolver),
