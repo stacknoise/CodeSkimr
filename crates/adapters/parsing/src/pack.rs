@@ -26,6 +26,7 @@ pub struct LanguagePack {
     pub(crate) separator: String,
     pub(crate) comment_nodes: HashSet<String>,
     pub(crate) doc_prefixes: Vec<String>,
+    pub(crate) doc_before_declaration: Option<HashSet<String>>,
     pub(crate) static_keywords: HashSet<String>,
     pub(crate) modifier_kinds: HashMap<String, SymbolKind>,
     /// Kind a declaration gets inside a parent: (parent kind, kind) to kind.
@@ -91,6 +92,9 @@ impl LanguagePack {
             separator: manifest.separator,
             comment_nodes: manifest.comment_nodes.into_iter().collect(),
             doc_prefixes: manifest.doc_prefixes,
+            doc_before_declaration: manifest
+                .doc_before_declaration
+                .map(|kinds| kinds.into_iter().collect()),
             static_keywords: manifest.static_keywords.into_iter().collect(),
             modifier_kinds,
             doc_summary: manifest.doc_summary,

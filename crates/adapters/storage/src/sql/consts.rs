@@ -57,8 +57,24 @@ pub const SNAPSHOT_TOTALS: &str =
 pub const PREVIOUS_SNAPSHOT: &str =
     "SELECT MAX(id) FROM snapshots WHERE project_id = ?1 AND id <> ?2";
 /// Deletes all but the newest snapshots of a project: project id, number to keep.
-pub const SNAPSHOT_PRUNE: &str = "DELETE FROM snapshots WHERE project_id = ?1 AND id NOT IN \
+pub const SNAPSHOT_PRUNE: &str = "DELETE FROM snapshots WHERE id = ?1";
+/// The snapshots of a project that are older than the newest ones: project id, number to keep.
+pub const SNAPSHOTS_EXPIRED: &str = "SELECT id FROM snapshots WHERE project_id = ?1 AND id NOT IN \
     (SELECT id FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT ?2)";
+/// What a snapshot owns, children before parents: each takes the snapshot id. Deleting them one
+/// table at a time is much faster than the cascade of the foreign keys, which looks up the
+/// children of every single row (issue #108).
+pub const SNAPSHOT_CONTENT_DELETE: &[&str] = &[
+    "DELETE FROM fingerprints WHERE snapshot_id = ?1",
+    "DELETE FROM metrics WHERE snapshot_id = ?1",
+    "DELETE FROM symbol_references WHERE snapshot_id = ?1",
+    "DELETE FROM type_summary WHERE snapshot_id = ?1",
+    "DELETE FROM search_index WHERE snapshot_id = ?1",
+    "DELETE FROM usage_counts WHERE snapshot_id = ?1",
+    "DELETE FROM layer_graph WHERE snapshot_id = ?1",
+    "DELETE FROM symbols WHERE snapshot_id = ?1",
+    "DELETE FROM files WHERE snapshot_id = ?1",
+];
 
 /// Adds a file: snapshot, id, path, language, hash, loc.
 pub const FILE_INSERT: &str = "INSERT INTO files \
@@ -152,16 +168,13 @@ pub const USAGES_REBUILD: &str = "INSERT INTO usage_counts (snapshot_id, symbol_
 /// maintainability metric.
 pub const TYPE_SUMMARY_REBUILD: &str = "INSERT INTO type_summary \
     (snapshot_id, symbol_id, member_count, loc, max_complexity, maintainability) \
-    SELECT t.snapshot_id, t.id, \
-    (SELECT COUNT(*) FROM symbols m WHERE m.snapshot_id = t.snapshot_id AND m.parent_id = t.id), \
-    (SELECT x.value FROM metrics x WHERE x.snapshot_id = t.snapshot_id \
-        AND x.symbol_id = t.id AND x.kind = ?3), \
-    (SELECT MAX(x.value) FROM metrics x JOIN symbols m \
-        ON m.snapshot_id = x.snapshot_id AND m.id = x.symbol_id \
-        WHERE x.snapshot_id = t.snapshot_id AND m.parent_id = t.id AND x.kind = ?4), \
-    (SELECT x.value FROM metrics x WHERE x.snapshot_id = t.snapshot_id \
-        AND x.symbol_id = t.id AND x.kind = ?5) \
-    FROM symbols t WHERE t.snapshot_id = ?1 AND t.kind = ?2";
+    SELECT t.snapshot_id, t.id, COUNT(m.id), MAX(l.value), MAX(c.value), MAX(i.value) \
+    FROM symbols t \
+    LEFT JOIN symbols m ON m.snapshot_id = t.snapshot_id AND m.parent_id = t.id \
+    LEFT JOIN metrics c ON c.snapshot_id = m.snapshot_id AND c.symbol_id = m.id AND c.kind = ?4 \
+    LEFT JOIN metrics l ON l.snapshot_id = t.snapshot_id AND l.symbol_id = t.id AND l.kind = ?3 \
+    LEFT JOIN metrics i ON i.snapshot_id = t.snapshot_id AND i.symbol_id = t.id AND i.kind = ?5 \
+    WHERE t.snapshot_id = ?1 AND t.kind = ?2 GROUP BY t.id";
 /// Names of the symbols of a snapshot: snapshot.
 pub const SYMBOL_NAMES: &str = "SELECT id, qualified_name FROM symbols WHERE snapshot_id = ?1";
 /// Ends of all references of a snapshot: snapshot.

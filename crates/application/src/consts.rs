@@ -25,3 +25,17 @@ pub const CURRENT_DIR_PREFIX: &str = "./";
 pub const CHECK_FIRST_ID: u64 = 1;
 /// Snapshot id used for the throw-away analysis of a check; nothing is stored.
 pub const CHECK_SNAPSHOT_ID: u64 = 0;
+
+/// At least one analysis worker, whatever the machine reports.
+pub const MIN_WORKERS: usize = 1;
+/// Index of the first file handed to the analysis workers.
+pub const FIRST_INDEX: usize = 0;
+/// Step between two file indexes handed to the analysis workers.
+pub const INDEX_STEP: usize = 1;
+/// Files analysed so far when the analysis starts.
+pub const NONE_DONE: u32 = 0;
+/// Files one worker adds to the progress after each file.
+pub const DONE_STEP: u32 = 1;
+/// Ids reserved for the file and symbols of one analysed file. A file that needs more fails the
+/// scan instead of taking ids of its neighbour.
+pub const FILE_ID_BLOCK: u64 = 1 << 24;

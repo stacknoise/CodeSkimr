@@ -106,6 +106,11 @@ pub struct PackManifest {
     /// Prefixes removed from documentation comment lines.
     #[serde(default)]
     pub doc_prefixes: Vec<String>,
+    /// Documentation is the run of comments directly before the declaration; the listed node kinds
+    /// (attributes) may stand between. Without it the query captures the comments with `@doc`.
+    /// A query with a quantified comment in front of a declaration is slow, this is not.
+    #[serde(default)]
+    pub doc_before_declaration: Option<Vec<String>>,
     /// Documentation text between these tags is the doc of the symbol; without them the whole
     /// comment is.
     #[serde(default)]

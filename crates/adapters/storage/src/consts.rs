@@ -19,6 +19,15 @@ pub const PRAGMA_FOREIGN_KEYS: &str = "foreign_keys";
 pub const PRAGMA_SYNCHRONOUS: &str = "synchronous";
 /// With WAL, `NORMAL` is durable enough and much faster than `FULL`.
 pub const SYNCHRONOUS_NORMAL: &str = "NORMAL";
+/// Name of the pragma that sets the page cache size.
+pub const PRAGMA_CACHE_SIZE: &str = "cache_size";
+/// Page cache of 64 MiB (a negative value is a size in KiB): a scan writes many rows and their
+/// indexes in one transaction, and the default cache of 2 MiB spills to the file.
+pub const CACHE_SIZE_KIB: i64 = -65_536;
+/// Name of the pragma that selects where temporary tables and indexes live.
+pub const PRAGMA_TEMP_STORE: &str = "temp_store";
+/// Temporary structures of a statement stay in memory.
+pub const TEMP_STORE_MEMORY: i64 = 2;
 /// How long a connection waits for a lock before reporting a conflict.
 pub const BUSY_TIMEOUT_MS: u64 = 5_000;
 

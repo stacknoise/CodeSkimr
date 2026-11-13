@@ -162,7 +162,34 @@ fn collect<'t>(ctx: &SymbolContext<'_>, root: Node<'t>) -> Vec<Declaration<'t>> 
         }
         same
     });
+    if let Some(skipped) = &ctx.pack.doc_before_declaration {
+        for declaration in &mut found {
+            declaration.docs = comments_before(ctx.pack, declaration.node, skipped);
+        }
+    }
     found
+}
+
+/// The run of comments directly before `node`, in source order; nodes of the `skipped` kinds
+/// (attributes) between the comments and the declaration do not break the run.
+fn comments_before<'t>(
+    pack: &LanguagePack,
+    node: Node<'t>,
+    skipped: &HashSet<String>,
+) -> Vec<Node<'t>> {
+    let mut comments = Vec::new();
+    let mut previous = node.prev_sibling();
+    while let Some(sibling) = previous {
+        let kind = sibling.kind();
+        if pack.comment_nodes.contains(kind) {
+            comments.push(sibling);
+        } else if !skipped.contains(kind) {
+            break;
+        }
+        previous = sibling.prev_sibling();
+    }
+    comments.reverse();
+    comments
 }
 
 impl<'t> Declaration<'t> {
