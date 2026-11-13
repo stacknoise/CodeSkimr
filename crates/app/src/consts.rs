@@ -262,3 +262,8 @@ pub const HTTP_HOST_HEADER: &str = "Host: ";
 pub const HTTP_BEARER_HEADER: &str = "Authorization: Bearer ";
 /// Separates the host and the port of an address.
 pub const PORT_SEPARATOR: &str = ":";
+
+/// Ends a line of standard input.
+pub const LINE_FEED: char = '\n';
+/// Precedes the line feed in input from Windows.
+pub const CARRIAGE_RETURN: char = '\r';

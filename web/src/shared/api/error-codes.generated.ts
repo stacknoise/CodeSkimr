@@ -32,6 +32,7 @@ export type ErrorCode =
   | "STO-601"
   | "STO-901"
   | "SEC-201"
+  | "SEC-202"
   | "SEC-401"
   | "SEC-402"
   | "SEC-601"
@@ -56,6 +57,7 @@ export type ErrorCode =
   | "MCP-501"
   | "CLI-101"
   | "CLI-102"
+  | "CLI-103"
   | "I18N-201"
   | "EXP-601"
   | "UI-201"
@@ -113,6 +115,7 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "STO-601": { id: "STO-601", name: "database_failed", group: "STO", class: "external", severity: "error", retryable: false, description: "The database reported an error that is not covered by a more specific code.", since: "0.1.0", deprecated: false, messageKey: "error-STO-601" },
   "STO-901": { id: "STO-901", name: "stored_data_invalid", group: "STO", class: "internal", severity: "error", retryable: false, description: "Data read from the database violates the domain model; this is a bug or a damaged database.", since: "0.1.0", deprecated: false, messageKey: "error-STO-901" },
   "SEC-201": { id: "SEC-201", name: "credential_not_found", group: "SEC", class: "not_found", severity: "error", retryable: false, description: "The referenced credential does not exist in the keystore.", since: "0.1.0", deprecated: false, messageKey: "error-SEC-201" },
+  "SEC-202": { id: "SEC-202", name: "credential_damaged", group: "SEC", class: "not_found", severity: "error", retryable: false, description: "The keystore entry of the credential cannot be read; delete it and create the credential again.", since: "0.1.0", deprecated: false, messageKey: "error-SEC-202" },
   "SEC-401": { id: "SEC-401", name: "credential_rejected", group: "SEC", class: "permission", severity: "error", retryable: false, description: "The platform rejected the credential.", since: "0.1.0", deprecated: false, messageKey: "error-SEC-401" },
   "SEC-402": { id: "SEC-402", name: "keystore_access_denied", group: "SEC", class: "permission", severity: "error", retryable: false, description: "The OS keystore denied access.", since: "0.1.0", deprecated: false, messageKey: "error-SEC-402" },
   "SEC-601": { id: "SEC-601", name: "keystore_unavailable", group: "SEC", class: "external", severity: "error", retryable: false, description: "The OS keystore service is not available.", since: "0.1.0", deprecated: false, messageKey: "error-SEC-601" },
@@ -137,6 +140,7 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "MCP-501": { id: "MCP-501", name: "response_limit_exceeded", group: "MCP", class: "limit", severity: "info", retryable: false, description: "The result was truncated to the configured limit.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-501" },
   "CLI-101": { id: "CLI-101", name: "cli_arguments_invalid", group: "CLI", class: "invalid_input", severity: "error", retryable: false, description: "Command-line arguments are invalid.", since: "0.1.0", deprecated: false, messageKey: "error-CLI-101" },
   "CLI-102": { id: "CLI-102", name: "watch_needs_folder", group: "CLI", class: "invalid_input", severity: "error", retryable: false, description: "Watch mode needs a local folder; a Git URL cannot be watched.", since: "0.1.0", deprecated: false, messageKey: "error-CLI-102" },
+  "CLI-103": { id: "CLI-103", name: "secret_input_invalid", group: "CLI", class: "invalid_input", severity: "error", retryable: false, description: "No secret could be read from the terminal or standard input, or it was empty.", since: "0.1.0", deprecated: false, messageKey: "error-CLI-103" },
   "I18N-201": { id: "I18N-201", name: "message_key_missing", group: "I18N", class: "not_found", severity: "error", retryable: false, description: "A message key is missing for the active language (falls back to English).", since: "0.1.0", deprecated: false, messageKey: "error-I18N-201" },
   "EXP-601": { id: "EXP-601", name: "export_write_failed", group: "EXP", class: "external", severity: "error", retryable: false, description: "The export file could not be written.", since: "0.1.0", deprecated: false, messageKey: "error-EXP-601" },
   "UI-201": { id: "UI-201", name: "api_unreachable", group: "UI", class: "not_found", severity: "error", retryable: false, description: "The UI cannot reach the local server.", since: "0.1.0", deprecated: false, messageKey: "error-UI-201" },

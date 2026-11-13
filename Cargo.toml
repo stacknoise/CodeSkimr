@@ -37,6 +37,10 @@ tempfile = "3"
 secrecy = "0.10"
 zeroize = "1"
 keyring-core = "1"
+# Reads a secret from the terminal without echo.
+rpassword = "7"
+# Same version and TLS backend as the one `gix` already uses for Git over HTTPS.
+reqwest = { version = "0.13", default-features = false, features = ["blocking", "native-tls"] }
 # Test-only, must match the version `gix` uses (see crates/adapters/source/Cargo.toml).
 gix-transport = "0.62"
 tree-sitter = "0.27"

@@ -10,7 +10,7 @@ Implements the first part of blueprint section 10.2: `codeskimr scan` and `codes
 ## `codeskimr scan <path|git-url>`
 
 ```
-codeskimr scan <path|git-url> [--branch <name>] [--json] [--watch]
+codeskimr scan <path|git-url> [--branch <name>] [--json] [--watch] [--credential <id>]
 ```
 
 1. The argument is an existing folder (made absolute) or a Git URL (`https://`, `http://`, `ssh://`, `git://`, `git@…`, or ending in `.git`). A Git URL with secrets in it (user info for HTTP(S), a password anywhere, a query or a fragment, in any letter case) is refused with `PRJ-101` and a second line that names the reason: they would be stored in the database and printed (blueprint 12). A bare SSH user name (`git@host:org/repo`) is fine. `--branch` only applies to Git sources and is ignored for folders. On Windows the `\\?\` prefix of the absolute path is removed (UNC paths keep it). The branch defaults to `main`.
@@ -26,6 +26,20 @@ codeskimr mcp [--project <folder>]
 ```
 
 Serves the three tools of WP-26 over stdin and stdout for the project in `--project` (default: the current folder). The folder must have been scanned before; otherwise the command stops with `PRJ-201` (not registered) or `MCP-203` (registered, but no snapshot). Nothing but the protocol is written to standard output; errors go to standard error.
+
+`--credential <id>` names a stored credential (see below) that logs in to a Git source; for a folder it fails with `PRJ-101`. Without it the system's Git credential helper decides, and there is never a prompt on the terminal (the clone runs with `gitoxide.credentials.terminalPrompt=false`), so a server or an MCP session cannot hang on a login.
+
+## `codeskimr credential`
+
+```text
+codeskimr credential set <id> --user <name>
+codeskimr credential delete <id>
+codeskimr credential login <id> --provider github|gitlab --client-id <id> [--host <https-url>]
+```
+
+Manages the credentials in the keystore of the operating system (blueprint 12.2, `docs/secrets.md`). `set` stores or replaces one: the secret is read without echo from the terminal, or from standard input if there is none (`printf %s "$TOKEN" | codeskimr credential set work --user anton`). There is no flag for the secret, so it never lands in a shell history, a process list or an environment dump. An empty secret fails with `CLI-103`. `delete` removes the entry; a missing one is not an error. `login` runs the OAuth device flow: it prints a page and a short code, waits until the user has approved in the browser and stores the token (`NET-601` if the sign-in does not finish). The name `installation-token` belongs to the local server and is refused (`CLI-101`). Only the name of the credential is ever printed.
+
+`--client-id` is the id of an OAuth application that is registered at the platform (not a secret). `--host` selects a self-managed installation and must be an HTTPS address.
 
 ## `codeskimr open`
 

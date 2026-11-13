@@ -13,11 +13,12 @@ Implements the driven ports `SourceProvider` and `FileDiscovery` of `codeskimr_a
 
 ## Credentials (WP-71)
 
-- A Git source may name a credential (`CredentialId`). `SourceFetcher<S: CredentialStore>` then lends it to the login callback of the connection: the store is asked again for every request of the connection and nothing is cached. Without a credential the system's Git credential helper decides.
+- A Git source may name a credential (`CredentialId`). `SourceFetcher<S: CredentialStore>` then lends it to the login callback of the connection: the store is asked again for every request of the connection and nothing is cached. Without a credential the system's Git credential helper decides; a terminal prompt is always off (issue #58).
 - Secrets never go into the URL. `GitUrl` removes credentials when it is created (Git would write the URL into `.git/config`, issue #35): the password always, for `http` and `https` also the user (a token is often put there), for other schemes the user stays (`ssh://git@host`). Whoever used a password in the URL so far must create a credential instead; without one the remote answers `SRC-401`.
 - The credential is only given to the server the source points at. After a redirect to another host Git asks again for that address and gets nothing (test with two local servers). Tests clone with a canary secret and search the whole cache folder for it.
 - Git refuses to send credentials over plain `http://`; this stays as it is. Only the test build switches it off (`gix-transport` feature `http-client-insecure-credentials` as a dev dependency) to talk to a local server.
-- Errors: `SEC-201` the credential is not in the store, `SEC-401` the remote rejected it, `SEC-402` and `SEC-601` the keystore cannot be used. `SRC-401` stays for remotes that want credentials when none was configured.
+- A failed login with a credential is classified by the class `gix` puts on the error (unauthenticated, permission denied), not by its wording. GitHub answers an invalid token for a hidden repository with 403 or 404; with a credential these are `SEC-401` too (`tests/login.rs`). The two texts that `gix` has no variant for (a missing branch and a plain 404) are pinned by tests, so a `gix` update that changes them fails there. CI checks with `cargo tree` that `http-client-insecure-credentials` is not part of the product.
+- Errors: `SEC-201` the credential is not in the store, `SEC-202` its entry is damaged, `SEC-401` the remote rejected it, `SEC-402` and `SEC-601` the keystore cannot be used. `SRC-401` stays for remotes that want credentials when none was configured.
 
 ## Limits of this package
 

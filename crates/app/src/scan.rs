@@ -23,9 +23,14 @@ use crate::wiring::{build_scanner, open_store};
 /// Checks the source argument before anything is scanned or printed.
 ///
 /// # Errors
-/// [`SourceError`] (`PRJ-101`) if the argument is neither a folder nor a Git URL without secrets.
+/// [`SourceError`] (`PRJ-101`) if the argument is neither a folder nor a Git URL without secrets,
+/// or if a credential is named for a folder.
 pub fn prepare(args: &ScanArgs) -> Result<SourceSpec, SourceError> {
-    classify(&args.source, args.branch.as_deref())
+    let spec = classify(&args.source, args.branch.as_deref())?;
+    match &args.credential {
+        Some(name) => spec.with_credential(name),
+        None => Ok(spec),
+    }
 }
 
 /// A registered project with everything needed to scan it again and again.

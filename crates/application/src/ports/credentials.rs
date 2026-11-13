@@ -45,6 +45,9 @@ pub enum AuthError {
     /// The credential does not exist in the store.
     #[error("{}", ErrorCode::CredentialNotFound.description())]
     NotFound,
+    /// The keystore entry exists but cannot be read as a credential.
+    #[error("{}", ErrorCode::CredentialDamaged.description())]
+    Damaged,
     /// The platform rejected the credential.
     #[error("{}", ErrorCode::CredentialRejected.description())]
     Rejected,
@@ -63,6 +66,7 @@ impl Coded for AuthError {
     fn code(&self) -> ErrorCode {
         match self {
             Self::NotFound => ErrorCode::CredentialNotFound,
+            Self::Damaged => ErrorCode::CredentialDamaged,
             Self::Rejected => ErrorCode::CredentialRejected,
             Self::AccessDenied => ErrorCode::KeystoreAccessDenied,
             Self::Unavailable => ErrorCode::KeystoreUnavailable,

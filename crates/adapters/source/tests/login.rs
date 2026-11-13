@@ -182,3 +182,25 @@ fn a_redirect_to_another_host_never_gets_the_credential() -> TestResult {
     }));
     Ok(())
 }
+
+#[test]
+fn a_host_that_hides_the_repository_from_a_bad_token_is_a_credential_problem() -> TestResult {
+    // GitHub answers an invalid token for a private repository with 403 or 404, not with 401.
+    for status in [403, 404] {
+        let Remote { cache, .. } = remote()?;
+        let server = GitHttpServer::refusing_with(status)?;
+        let store = Arc::new(TestStore::with("work", USER, CANARY));
+        let url = format!("http://127.0.0.1:{}/repo.git", server.port);
+
+        let error = fetcher(cache.path(), store)
+            .fetch(&source(&url, Some("work"))?, &CancelToken::new())
+            .unwrap_err();
+
+        assert_eq!(
+            error.code(),
+            ErrorCode::CredentialRejected,
+            "{status}: {error:?}"
+        );
+    }
+    Ok(())
+}
