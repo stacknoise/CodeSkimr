@@ -43,7 +43,7 @@ export function SettingsScreen() {
           </span>
         </label>
       </section>
-      <section class={styles.panel}>
+      <section class={`${styles.panel} ${styles.narrow}`}>
         <h2>{t(I18N_KEYS.SETTINGS_LANGUAGE_TITLE)}</h2>
         <select
           id={LANGUAGE_FIELD_ID}
@@ -66,7 +66,7 @@ export function SettingsScreen() {
       </section>
       <Show when={uiConfig()}>
         {(config) => (
-          <section class={styles.panel}>
+          <section class={`${styles.panel} ${styles.narrow}`}>
             <h2>{t(I18N_KEYS.SETTINGS_EDITOR_TITLE)}</h2>
             <p class={styles.note}>{t(I18N_KEYS.SETTINGS_EDITOR_NOTE)}</p>
             <dl class={styles.facts}>
