@@ -33,17 +33,12 @@ fn from_column(value: i64) -> u64 {
 }
 
 /// Writes the fingerprints of the analysed callables.
-pub fn insert_all(
-    conn: &Connection,
-    snapshot: i64,
-    fingerprints: &[SymbolFingerprints],
-) -> StorageResult<()> {
+pub fn insert_all(conn: &Connection, fingerprints: &[SymbolFingerprints]) -> StorageResult<()> {
     let mut statement = conn.prepare_cached(sql::FINGERPRINT_INSERT)?;
     for found in fingerprints {
         let symbol = column_int(found.symbol.get())?;
         for entry in found.fingerprints.entries() {
             statement.execute(params![
-                snapshot,
                 symbol,
                 i64::from(entry.position),
                 to_column(entry.hash)

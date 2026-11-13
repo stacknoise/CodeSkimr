@@ -11,6 +11,7 @@ use rusqlite::{Connection, OptionalExtension, Statement, params};
 use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from, small_from};
 use crate::consts::{PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON};
 use crate::error::{StorageError, StorageResult};
+use crate::integrity;
 use crate::projects::load_layers;
 use crate::read_models;
 use crate::similarity;
@@ -37,6 +38,7 @@ fn write_snapshot(conn: &Connection, data: &SnapshotData, keep: u32) -> StorageR
     if header.mode == ScanMode::Incremental {
         carry_over(conn, header.project, header.id, &data.removed)?;
     }
+    integrity::check(conn, data)?;
     let stats = totals(conn, header.id)?;
     set_totals(conn, header.id, stats)?;
     let layers = load_layers(conn, header.project)?;
@@ -55,7 +57,10 @@ fn prune(conn: &Connection, project: i64, keep: u32) -> StorageResult<()> {
         .query_map(params![project, keep], |row| row.get::<_, i64>(0))?
         .collect::<Result<Vec<_>, _>>()?;
     for snapshot in expired {
-        for delete in sql::SNAPSHOT_CONTENT_DELETE {
+        for delete in sql::SHARED_ROWS_DELETE
+            .iter()
+            .chain(sql::SNAPSHOT_CONTENT_DELETE)
+        {
             conn.prepare_cached(delete)?.execute(params![snapshot])?;
         }
         conn.execute(sql::SNAPSHOT_PRUNE, params![snapshot])?;
@@ -86,7 +91,7 @@ fn insert_facts(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
         insert_file(conn, snapshot, file)?;
     }
     for symbol in &data.symbols {
-        insert_symbol(conn, snapshot, symbol)?;
+        insert_symbol(conn, symbol)?;
     }
     let mut references = conn.prepare_cached(sql::REFERENCE_INSERT)?;
     for reference in &data.references {
@@ -94,9 +99,9 @@ fn insert_facts(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
     }
     let mut metrics = conn.prepare_cached(sql::METRIC_INSERT)?;
     for metric in &data.metrics {
-        insert_metric(&mut metrics, snapshot, metric)?;
+        insert_metric(&mut metrics, metric)?;
     }
-    similarity::insert_all(conn, snapshot, &data.fingerprints)?;
+    similarity::insert_all(conn, &data.fingerprints)?;
     Ok(())
 }
 
@@ -112,14 +117,13 @@ fn insert_file(conn: &Connection, snapshot: i64, file: &SourceFile) -> StorageRe
     Ok(())
 }
 
-fn insert_symbol(conn: &Connection, snapshot: i64, symbol: &Symbol) -> StorageResult<()> {
+fn insert_symbol(conn: &Connection, symbol: &Symbol) -> StorageResult<()> {
     let parent = symbol
         .parent
         .map(|parent| column_int(parent.get()))
         .transpose()?;
     let span = SpanColumns::of(&symbol.span);
     conn.prepare_cached(sql::SYMBOL_INSERT)?.execute(params![
-        snapshot,
         column_int(symbol.id.get())?,
         column_int(symbol.file.get())?,
         symbol.kind.label(),
@@ -145,8 +149,8 @@ fn insert_reference(
 ) -> StorageResult<()> {
     let span = SpanColumns::of(&reference.span);
     statement.execute(params![
-        snapshot,
         column_int(reference.id.get())?,
+        snapshot,
         column_int(reference.from.get())?,
         column_int(reference.to.get())?,
         column_int(reference.file.get())?,
@@ -160,13 +164,8 @@ fn insert_reference(
     Ok(())
 }
 
-fn insert_metric(
-    statement: &mut Statement<'_>,
-    snapshot: i64,
-    metric: &Metric,
-) -> StorageResult<()> {
+fn insert_metric(statement: &mut Statement<'_>, metric: &Metric) -> StorageResult<()> {
     statement.execute(params![
-        snapshot,
         column_int(metric.symbol.get())?,
         metric.kind.label(),
         metric.value.get(),
@@ -195,14 +194,7 @@ fn carry_over(
     for path in removed {
         conn.execute(sql::FILE_REMOVE, params![new, path.as_str()])?;
     }
-    for statement in [
-        sql::CARRY_SYMBOLS,
-        sql::CARRY_REFERENCES,
-        sql::CARRY_METRICS,
-        sql::CARRY_FINGERPRINTS,
-    ] {
-        conn.execute(statement, params![previous, new])?;
-    }
+    // Symbols, metrics, references and fingerprints are shared and need no copy (ADR 0032).
     Ok(())
 }
 

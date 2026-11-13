@@ -68,7 +68,7 @@ fn a_failing_snapshot_leaves_nothing_behind() {
     let mut broken = first_scan(10);
     broken.references.push(reference(32, 11, 22, 999));
     let error = store.persist(broken).unwrap_err();
-    assert_eq!(code_of(&error), "STO-601");
+    assert_eq!(code_of(&error), "STO-901");
     assert!(store.latest_snapshot(PROJECT).unwrap().is_none());
     assert_eq!(store.latest_files(PROJECT).unwrap(), Vec::new());
     assert_eq!(store.next_free_id().unwrap(), 1);

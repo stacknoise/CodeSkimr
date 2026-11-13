@@ -31,7 +31,7 @@ pub const NAMESPACES_OF_LAYER: &str = "SELECT namespace FROM layer_namespaces \
 /// Highest id of any stored snapshot, file, symbol or reference.
 pub const MAX_ID: &str = "SELECT MAX(id) FROM (\
     SELECT MAX(id) AS id FROM snapshots UNION ALL SELECT MAX(id) FROM files \
-    UNION ALL SELECT MAX(id) FROM symbols UNION ALL SELECT MAX(id) FROM symbol_references)";
+    UNION ALL SELECT MAX(id) FROM symbol_rows UNION ALL SELECT MAX(id) FROM symbol_references)";
 
 /// Highest id of any registered project.
 pub const MAX_PROJECT_ID: &str = "SELECT MAX(id) FROM projects";
@@ -61,57 +61,77 @@ pub const SNAPSHOT_PRUNE: &str = "DELETE FROM snapshots WHERE id = ?1";
 /// The snapshots of a project that are older than the newest ones: project id, number to keep.
 pub const SNAPSHOTS_EXPIRED: &str = "SELECT id FROM snapshots WHERE project_id = ?1 AND id NOT IN \
     (SELECT id FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT ?2)";
-/// What a snapshot owns, children before parents: each takes the snapshot id. Deleting them one
-/// table at a time is much faster than the cascade of the foreign keys, which looks up the
-/// children of every single row (issue #108).
+/// What a snapshot owns alone, children before parents: each takes the snapshot id. Deleting them
+/// one table at a time is much faster than the cascade of the foreign keys, which looks up the
+/// children of every single row (issue #108). References and fingerprints are shared and are
+/// removed by `SHARED_ROWS_DELETE` first.
 pub const SNAPSHOT_CONTENT_DELETE: &[&str] = &[
-    "DELETE FROM fingerprints WHERE snapshot_id = ?1",
-    "DELETE FROM metrics WHERE snapshot_id = ?1",
-    "DELETE FROM symbol_references WHERE snapshot_id = ?1",
     "DELETE FROM type_summary WHERE snapshot_id = ?1",
     "DELETE FROM search_index WHERE snapshot_id = ?1",
     "DELETE FROM usage_counts WHERE snapshot_id = ?1",
     "DELETE FROM layer_graph WHERE snapshot_id = ?1",
-    "DELETE FROM symbols WHERE snapshot_id = ?1",
     "DELETE FROM files WHERE snapshot_id = ?1",
+];
+/// The shared rows only the snapshot ?1 contains, children before parents. They belong to the
+/// files that no other snapshot has: the references standing in such a file or pointing into one,
+/// and the fingerprints, metrics and symbols of such a file. Run before the files are deleted.
+pub const SHARED_ROWS_DELETE: &[&str] = &[
+    "DELETE FROM symbol_references WHERE file_id IN \
+        (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND NOT EXISTS \
+        (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1))",
+    "DELETE FROM symbol_references WHERE to_symbol IN (SELECT s.id FROM symbol_rows s \
+        WHERE s.file_id IN (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND NOT EXISTS \
+        (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1)))",
+    "DELETE FROM fingerprints WHERE symbol_id IN (SELECT s.id FROM symbol_rows s \
+        WHERE s.file_id IN (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND NOT EXISTS \
+        (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1)))",
+    "DELETE FROM metric_rows WHERE symbol_id IN (SELECT s.id FROM symbol_rows s \
+        WHERE s.file_id IN (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND NOT EXISTS \
+        (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1)))",
+    "DELETE FROM symbol_rows WHERE file_id IN \
+        (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND NOT EXISTS \
+        (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1))",
 ];
 
 /// Adds a file: snapshot, id, path, language, hash, loc.
 pub const FILE_INSERT: &str = "INSERT INTO files \
     (snapshot_id, id, path, language, content_hash, loc) VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
-/// Adds a symbol: snapshot, id, file, kind, name, qualified name, parent, visibility, static,
+/// Adds a symbol: id, file, kind, name, qualified name, parent, visibility, static,
 /// start line and column, end line and column, signature, doc.
-pub const SYMBOL_INSERT: &str = "INSERT INTO symbols (snapshot_id, id, file_id, kind, name, \
+pub const SYMBOL_INSERT: &str = "INSERT INTO symbol_rows (id, file_id, kind, name, \
     qualified_name, parent_id, visibility, is_static, start_line, start_column, end_line, \
     end_column, signature, doc) \
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)";
-/// Adds a reference: snapshot, id, from, to, file, start line and column, end line and column,
-/// kind, confidence.
-pub const REFERENCE_INSERT: &str = "INSERT INTO symbol_references (snapshot_id, id, from_symbol, \
-    to_symbol, file_id, start_line, start_column, end_line, end_column, kind, confidence) \
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)";
-/// Adds a metric: snapshot, symbol, kind, value.
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)";
+/// Adds a reference: id, snapshot that writes it, from, to, file, start line and column, end line
+/// and column, kind, confidence.
+pub const REFERENCE_INSERT: &str = "INSERT INTO symbol_references (id, first_snapshot, \
+    from_symbol, to_symbol, file_id, start_line, start_column, end_line, end_column, kind, \
+    confidence) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)";
+/// Adds a metric, replacing the one of the same symbol and kind: symbol, kind, value.
 pub const METRIC_INSERT: &str =
-    "INSERT INTO metrics (snapshot_id, symbol_id, kind, value) VALUES (?1, ?2, ?3, ?4)";
+    "INSERT OR REPLACE INTO metric_rows (symbol_id, kind, value) VALUES (?1, ?2, ?3)";
+
+/// Whether a symbol is in a snapshot: snapshot, symbol.
+pub const SYMBOL_IN_SNAPSHOT: &str =
+    "SELECT EXISTS (SELECT 1 FROM symbols WHERE snapshot_id = ?1 AND id = ?2)";
+/// Whether a file is in a snapshot: snapshot, file.
+pub const FILE_IN_SNAPSHOT: &str =
+    "SELECT EXISTS (SELECT 1 FROM files WHERE snapshot_id = ?1 AND id = ?2)";
 
 /// Adds a fingerprint: snapshot, symbol, position, hash.
-pub const FINGERPRINT_INSERT: &str = "INSERT INTO fingerprints \
-    (snapshot_id, symbol_id, position, hash) VALUES (?1, ?2, ?3, ?4)";
-/// Copies the fingerprints of the carried symbols: previous, new.
-pub const CARRY_FINGERPRINTS: &str = "INSERT INTO fingerprints \
-    (snapshot_id, symbol_id, position, hash) \
-    SELECT ?2, f.symbol_id, f.position, f.hash FROM fingerprints f WHERE f.snapshot_id = ?1 \
-    AND f.symbol_id IN (SELECT id FROM symbols WHERE snapshot_id = ?2)";
+pub const FINGERPRINT_INSERT: &str =
+    "INSERT INTO fingerprints (symbol_id, position, hash) VALUES (?1, ?2, ?3)";
 /// The fingerprints of one symbol in order: snapshot, symbol.
 pub const FINGERPRINTS_OF: &str = "SELECT position, hash FROM fingerprints \
-    WHERE snapshot_id = ?1 AND symbol_id = ?2 ORDER BY position";
+    WHERE symbol_id = ?2 \
+    AND EXISTS (SELECT 1 FROM symbols WHERE snapshot_id = ?1 AND id = ?2) ORDER BY position";
 /// Per symbol, how many distinct hashes of a JSON list it holds: snapshot, list.
 pub const FINGERPRINTS_SHARED: &str = "SELECT symbol_id, COUNT(DISTINCT hash) FROM fingerprints \
-    WHERE snapshot_id = ?1 AND hash IN (SELECT value FROM json_each(?2)) GROUP BY symbol_id";
+    WHERE hash IN (SELECT value FROM json_each(?2)) \
+    AND symbol_id IN (SELECT id FROM symbols WHERE snapshot_id = ?1) GROUP BY symbol_id";
 /// Per symbol of a JSON list, how many distinct hashes it holds: snapshot, list.
 pub const FINGERPRINTS_SIZES: &str = "SELECT symbol_id, COUNT(DISTINCT hash) FROM fingerprints \
-    WHERE snapshot_id = ?1 AND symbol_id IN (SELECT value FROM json_each(?2)) \
-    GROUP BY symbol_id";
+    WHERE symbol_id IN (SELECT value FROM json_each(?2)) GROUP BY symbol_id";
 /// The label of the symbols of a JSON list: snapshot, list.
 pub const SIMILAR_LABELS: &str = "SELECT s.id, s.qualified_name, s.kind, f.path, s.start_line, \
     s.start_column, s.end_line, s.end_column FROM symbols s \
@@ -125,61 +145,37 @@ pub const CARRY_FILES: &str = "INSERT INTO files \
     (snapshot_id, id, path, language, content_hash, loc) \
     SELECT ?2, id, path, language, content_hash, loc FROM files \
     WHERE snapshot_id = ?1 AND path NOT IN (SELECT path FROM files WHERE snapshot_id = ?2)";
-/// Copies the symbols of the carried files: previous, new.
-pub const CARRY_SYMBOLS: &str = "INSERT INTO symbols (snapshot_id, id, file_id, kind, name, \
-    qualified_name, parent_id, visibility, is_static, start_line, start_column, end_line, \
-    end_column, signature, doc) \
-    SELECT ?2, s.id, s.file_id, s.kind, s.name, s.qualified_name, s.parent_id, s.visibility, \
-    s.is_static, s.start_line, s.start_column, s.end_line, s.end_column, s.signature, s.doc \
-    FROM symbols s WHERE s.snapshot_id = ?1 AND s.file_id IN \
-    (SELECT id FROM files WHERE snapshot_id = ?2) \
-    AND s.file_id IN (SELECT id FROM files WHERE snapshot_id = ?1)";
-/// Copies the references whose both ends survived: previous, new.
-pub const CARRY_REFERENCES: &str = "INSERT INTO symbol_references (snapshot_id, id, from_symbol, \
-    to_symbol, file_id, start_line, start_column, end_line, end_column, kind, confidence) \
-    SELECT ?2, r.id, r.from_symbol, r.to_symbol, r.file_id, r.start_line, r.start_column, \
-    r.end_line, r.end_column, r.kind, r.confidence FROM symbol_references r \
-    WHERE r.snapshot_id = ?1 \
-    AND r.file_id IN (SELECT id FROM files WHERE snapshot_id = ?2) \
-    AND r.from_symbol IN (SELECT id FROM symbols WHERE snapshot_id = ?2) \
-    AND r.to_symbol IN (SELECT id FROM symbols WHERE snapshot_id = ?2)";
-/// Copies the metrics of the carried symbols, except those the new snapshot has already:
-/// previous, new.
-pub const CARRY_METRICS: &str = "INSERT OR IGNORE INTO metrics (snapshot_id, symbol_id, kind, value) \
-    SELECT ?2, m.symbol_id, m.kind, m.value FROM metrics m WHERE m.snapshot_id = ?1 \
-    AND m.symbol_id IN (SELECT id FROM symbols WHERE snapshot_id = ?2)";
-
 /// Number of files, symbols and references of a snapshot: snapshot.
 pub const TOTALS: &str = "SELECT (SELECT COUNT(*) FROM files WHERE snapshot_id = ?1), \
     (SELECT COUNT(*) FROM symbols WHERE snapshot_id = ?1), \
-    (SELECT COUNT(*) FROM symbol_references WHERE snapshot_id = ?1)";
+    (SELECT COUNT(*) FROM snapshot_references WHERE snapshot_id = ?1)";
 
 /// Fills `search_index`: snapshot, kind that is left out.
 pub const SEARCH_REBUILD: &str = "INSERT INTO search_index \
     (snapshot_id, symbol_id, name_lower, name, qualified_name, kind, path) \
-    SELECT s.snapshot_id, s.id, lower(s.name), s.name, s.qualified_name, s.kind, f.path \
-    FROM symbols s JOIN files f ON f.snapshot_id = s.snapshot_id AND f.id = s.file_id \
-    WHERE s.snapshot_id = ?1 AND s.kind <> ?2";
+    SELECT f.snapshot_id, s.id, lower(s.name), s.name, s.qualified_name, s.kind, f.path \
+    FROM files f JOIN symbol_rows s ON s.file_id = f.id \
+    WHERE f.snapshot_id = ?1 AND s.kind <> ?2";
 /// Fills `usage_counts`: snapshot.
 pub const USAGES_REBUILD: &str = "INSERT INTO usage_counts (snapshot_id, symbol_id, usages) \
-    SELECT snapshot_id, to_symbol, COUNT(*) FROM symbol_references \
+    SELECT snapshot_id, to_symbol, COUNT(*) FROM snapshot_references \
     WHERE snapshot_id = ?1 GROUP BY to_symbol";
 /// Fills `type_summary` for one kind: snapshot, kind, LOC metric, complexity metric,
 /// maintainability metric.
 pub const TYPE_SUMMARY_REBUILD: &str = "INSERT INTO type_summary \
     (snapshot_id, symbol_id, member_count, loc, max_complexity, maintainability) \
-    SELECT t.snapshot_id, t.id, COUNT(m.id), MAX(l.value), MAX(c.value), MAX(i.value) \
-    FROM symbols t \
-    LEFT JOIN symbols m ON m.snapshot_id = t.snapshot_id AND m.parent_id = t.id \
-    LEFT JOIN metrics c ON c.snapshot_id = m.snapshot_id AND c.symbol_id = m.id AND c.kind = ?4 \
-    LEFT JOIN metrics l ON l.snapshot_id = t.snapshot_id AND l.symbol_id = t.id AND l.kind = ?3 \
-    LEFT JOIN metrics i ON i.snapshot_id = t.snapshot_id AND i.symbol_id = t.id AND i.kind = ?5 \
-    WHERE t.snapshot_id = ?1 AND t.kind = ?2 GROUP BY t.id";
+    SELECT f.snapshot_id, t.id, COUNT(m.id), MAX(l.value), MAX(c.value), MAX(i.value) \
+    FROM files f JOIN symbol_rows t ON t.file_id = f.id AND t.kind = ?2 \
+    LEFT JOIN symbol_rows m ON m.parent_id = t.id \
+    LEFT JOIN metric_rows c ON c.symbol_id = m.id AND c.kind = ?4 \
+    LEFT JOIN metric_rows l ON l.symbol_id = t.id AND l.kind = ?3 \
+    LEFT JOIN metric_rows i ON i.symbol_id = t.id AND i.kind = ?5 \
+    WHERE f.snapshot_id = ?1 GROUP BY t.id";
 /// Names of the symbols of a snapshot: snapshot.
 pub const SYMBOL_NAMES: &str = "SELECT id, qualified_name FROM symbols WHERE snapshot_id = ?1";
 /// Ends of all references of a snapshot: snapshot.
 pub const REFERENCE_ENDS: &str =
-    "SELECT from_symbol, to_symbol FROM symbol_references WHERE snapshot_id = ?1";
+    "SELECT from_symbol, to_symbol FROM snapshot_references WHERE snapshot_id = ?1";
 /// Adds a layer graph edge: snapshot, from, to, count, violates, in cycle.
 pub const EDGE_INSERT: &str = "INSERT INTO layer_graph \
     (snapshot_id, from_layer, to_layer, edge_count, violates_layering, in_cycle) \
@@ -203,7 +199,7 @@ pub const EDGES: &str = "SELECT from_layer, to_layer, edge_count, violates_layer
 /// scope symbol, whether tests count, label of the test kind.
 pub const DEPENDENCIES_OUTGOING: &str = "WITH RECURSIVE scope(id) AS (SELECT ?2 UNION SELECT s.id FROM symbols s \
     JOIN scope c ON s.parent_id = c.id WHERE s.snapshot_id = ?1) \
-    SELECT t.id, t.qualified_name, t.kind, f.path, COUNT(*) FROM symbol_references r \
+    SELECT t.id, t.qualified_name, t.kind, f.path, COUNT(*) FROM snapshot_references r \
     JOIN symbols t ON t.snapshot_id = r.snapshot_id AND t.id = r.to_symbol \
     JOIN files f ON f.snapshot_id = t.snapshot_id AND f.id = t.file_id \
     WHERE r.snapshot_id = ?1 AND r.from_symbol IN (SELECT id FROM scope) \
@@ -213,7 +209,7 @@ pub const DEPENDENCIES_OUTGOING: &str = "WITH RECURSIVE scope(id) AS (SELECT ?2 
 /// scope symbol, whether tests count, label of the test kind.
 pub const DEPENDENCIES_INCOMING: &str = "WITH RECURSIVE scope(id) AS (SELECT ?2 UNION SELECT s.id FROM symbols s \
     JOIN scope c ON s.parent_id = c.id WHERE s.snapshot_id = ?1) \
-    SELECT t.id, t.qualified_name, t.kind, f.path, COUNT(*) FROM symbol_references r \
+    SELECT t.id, t.qualified_name, t.kind, f.path, COUNT(*) FROM snapshot_references r \
     JOIN symbols t ON t.snapshot_id = r.snapshot_id AND t.id = r.from_symbol \
     JOIN files f ON f.snapshot_id = t.snapshot_id AND f.id = t.file_id \
     WHERE r.snapshot_id = ?1 AND r.to_symbol IN (SELECT id FROM scope) \
@@ -238,7 +234,7 @@ pub const SYMBOL_BY_NAME: &str = "s.qualified_name = ?2 ORDER BY s.id LIMIT 1";
 pub const SYMBOL_ALL: &str = "1 = 1 ORDER BY s.id";
 /// All references of a snapshot: snapshot.
 pub const REFERENCES_OF_SNAPSHOT: &str = "SELECT id, from_symbol, to_symbol, file_id, start_line, \
-    start_column, end_line, end_column, kind, confidence FROM symbol_references \
+    start_column, end_line, end_column, kind, confidence FROM snapshot_references \
     WHERE snapshot_id = ?1 ORDER BY id";
 /// Direct members of a symbol: snapshot, symbol.
 pub const MEMBERS_OF: &str =
