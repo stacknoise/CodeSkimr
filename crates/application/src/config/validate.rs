@@ -1,5 +1,7 @@
 //! Range checks of the typed configuration (blueprint section 14: validated at start-up).
 
+use std::collections::HashSet;
+
 use super::consts::{
     PATH_SEPARATORS, PERCENT_MAX, PLACEHOLDER_PATH, SCHEME_EXTRA_CHARS, UNIT_MAX, UNIT_MIN,
     URL_SCHEME_SEPARATOR, keys,
@@ -45,7 +47,7 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
 }
 
 fn check_layers(config: &Config) -> Result<(), ConfigError> {
-    let mut seen = std::collections::HashSet::new();
+    let mut seen = HashSet::new();
     let valid = config.layers.iter().all(|rule| {
         !rule.namespaces.is_empty() && rule.to_layer().is_some() && seen.insert(rule.name.as_str())
     });
