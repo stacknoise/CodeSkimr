@@ -26,7 +26,7 @@ pub async fn list(State(app): State<AppState>) -> Json<Vec<CommandInfo>> {
 
 /// Whether the caller must show the installation token: a command that changes something, and
 /// one that hands out source text, so that no other program on this machine can read the code
-/// through the open loopback port (ADR 0032).
+/// through the open loopback port (ADR 0035).
 fn needs_token(descriptor: &CommandDescriptor) -> bool {
     !descriptor.read_only || descriptor.permission == Permission::ReadSource
 }
