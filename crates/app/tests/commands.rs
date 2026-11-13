@@ -755,7 +755,10 @@ fn a_secret_in_a_git_address_stays_out_of_the_output_and_the_data_folder() {
         "the unreachable address must fail"
     );
     // The control: the failure is reported on standard error.
-    assert!(!stderr(&output).is_empty());
+    assert!(
+        stderr(&output).lines().next().is_some(),
+        "no error was reported"
+    );
     let streams = [
         (
             "stdout",
