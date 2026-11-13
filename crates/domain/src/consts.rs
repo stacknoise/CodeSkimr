@@ -172,3 +172,5 @@ pub const URL_SCHEME_EXTRA: &str = "+-.";
 
 /// Number of metrics of a measured callable: `loc`, `cc` and `mi`.
 pub const CALLABLE_METRICS: usize = 3;
+/// Message of `ModelError::UnknownNode`.
+pub const MESSAGE_UNKNOWN_NODE: &str = "edge names a node that does not exist";
