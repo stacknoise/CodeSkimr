@@ -158,7 +158,6 @@ export const I18N_KEYS = {
   GRAPH_VIOLATION_TITLE: "graph-violation-title",
   GRAPH_VIOLATION_SHOW: "graph-violation-show",
   NAV_GRAPH: "nav-graph",
-  GRAPH_SUBTITLE: "graph-subtitle",
   GRAPH_ARIA_MAP: "graph-aria-map",
   GRAPH_ARIA_SELECTION: "graph-aria-selection",
   GRAPH_SELECTED_KIND: "graph-selected-kind",

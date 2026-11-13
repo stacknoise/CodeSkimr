@@ -1,4 +1,5 @@
 import { createSignal, onCleanup, onMount } from "solid-js";
+import { isTyping } from "../../shared/keys/keydown";
 import { BUTTON_MIDDLE, KEY } from "./consts";
 import type { View } from "./types";
 import { notches, pan, zoomAt } from "./viewport";
@@ -20,7 +21,9 @@ export function useNavigation(
     onView(zoomAt(view(), notches(event.deltaY), at));
   };
   const space = (down: boolean) => (event: KeyboardEvent) => {
-    if (event.key === KEY.pan) {
+    if (event.key === KEY.pan && !isTyping(event.target)) {
+      // Space on a focused box would press it when released: it pans instead.
+      event.preventDefault();
       setSpaceDown(down);
     }
   };

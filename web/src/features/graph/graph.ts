@@ -6,7 +6,6 @@ import type { GraphData } from "./types";
 
 const [data, setData] = createSignal<GraphData | null>(null);
 const [failed, setFailed] = createSignal(false);
-const [loading, setLoading] = createSignal(false);
 /** Counts the loads, so that a slow answer for a project that is no longer shown is dropped. */
 let latest = 0;
 
@@ -14,13 +13,10 @@ let latest = 0;
 export const graphData = data;
 /** Whether the last load failed. */
 export const graphFailed = failed;
-/** Whether a load is running. */
-export const graphLoading = loading;
 
 /** Loads the map of a project. A failure is kept for the screen; the old map stays. */
 export async function loadGraph(project: number): Promise<void> {
   const mine = ++latest;
-  setLoading(true);
   try {
     const answer = await runCommand<GraphData>(GRAPH_COMMAND, { project });
     if (mine === latest) {
@@ -31,10 +27,6 @@ export async function loadGraph(project: number): Promise<void> {
     if (mine === latest) {
       setFailed(error instanceof ApiError || error instanceof TypeError);
     }
-  } finally {
-    if (mine === latest) {
-      setLoading(false);
-    }
   }
 }
 
@@ -43,5 +35,4 @@ export function resetGraph(): void {
   latest += 1;
   setData(null);
   setFailed(false);
-  setLoading(false);
 }

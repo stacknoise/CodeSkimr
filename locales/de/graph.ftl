@@ -21,7 +21,6 @@ graph-violation-title =
 graph-violation-show = Ansehen
 
 nav-graph = Abhängigkeiten
-graph-subtitle = Schichten von { $project }
 graph-aria-map = Abhängigkeitskarte
 graph-aria-selection = Auswahl
 graph-selected-kind = Schicht

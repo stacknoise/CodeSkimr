@@ -21,7 +21,6 @@ graph-violation-title =
 graph-violation-show = Show
 
 nav-graph = Dependencies
-graph-subtitle = Layers of { $project }
 graph-aria-map = Dependency map
 graph-aria-selection = Selection
 graph-selected-kind = Layer

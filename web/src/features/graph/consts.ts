@@ -53,7 +53,6 @@ export const KEY = { fit: "f", pan: " ", open: "Enter" } as const;
 
 /** Wheel and pointer values. */
 export const BUTTON_MIDDLE = 1;
-export const COLOR_DEFAULT_LAYER = 4;
 
 /** How many colours the layers cycle through (`--layer-1` to `--layer-N`). */
 export const LAYER_COLORS = 4;
