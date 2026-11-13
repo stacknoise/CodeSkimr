@@ -371,11 +371,51 @@ description = "The REST request failed validation."
 since = "0.1.0"
 
 [[codes]]
+id = "API-102"
+name = "bind_address_not_local"
+severity = "error"
+retryable = false
+description = "The server was asked to listen on an address that is not a loopback address."
+since = "0.1.0"
+
+[[codes]]
+id = "API-201"
+name = "command_not_found"
+severity = "error"
+retryable = false
+description = "The REST request names a command or route that does not exist."
+since = "0.1.0"
+
+[[codes]]
+id = "API-301"
+name = "server_bind_failed"
+severity = "error"
+retryable = false
+description = "The server could not listen on its address, for example because the port is taken."
+since = "0.1.0"
+
+[[codes]]
 id = "API-401"
 name = "token_missing_or_invalid"
 severity = "error"
 retryable = false
 description = "A state-changing request lacks a valid installation token."
+since = "0.1.0"
+
+[[codes]]
+id = "API-402"
+name = "host_or_origin_rejected"
+severity = "error"
+retryable = false
+description = "The Host or Origin header of the request is not one of this server."
+since = "0.1.0"
+
+[[codes]]
+id = "API-501"
+name = "request_too_large"
+severity = "error"
+retryable = false
+description = "The request body is larger than the server accepts."
 since = "0.1.0"
 
 [[codes]]
@@ -424,6 +464,14 @@ name = "cli_arguments_invalid"
 severity = "error"
 retryable = false
 description = "Command-line arguments are invalid."
+since = "0.1.0"
+
+[[codes]]
+id = "CLI-102"
+name = "watch_needs_folder"
+severity = "error"
+retryable = false
+description = "Watch mode needs a local folder; a Git URL cannot be watched."
 since = "0.1.0"
 
 [[codes]]

@@ -55,6 +55,8 @@ serde_json = "1"
 criterion = { version = "0.7", default-features = false }
 rmcp = { version = "3.10", default-features = false, features = ["server", "schemars", "transport-io"] }
 tokio = { version = "1.54", default-features = false }
+axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "ws"] }
+getrandom = "0.4"
 tracing = { version = "0.1", default-features = false, features = ["std"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "std"] }
 clap = { version = "4", default-features = false, features = ["std", "help", "usage", "error-context"] }
@@ -86,6 +88,5 @@ ignored = [
     "codeskimr_domain",
     "codeskimr_i18n",
     "codeskimr_secrets",
-    "codeskimr_server",
     "thiserror",
 ]

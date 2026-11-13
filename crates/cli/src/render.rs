@@ -2,7 +2,8 @@
 
 use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
-    CLI_ERROR_LINE, CLI_SCAN_DETAILS, CLI_SCAN_FINISHED, CLI_SCAN_STARTED,
+    CLI_ERROR_LINE, CLI_SCAN_DETAILS, CLI_SCAN_FINISHED, CLI_SCAN_STARTED, CLI_SERVE_LISTENING,
+    CLI_WATCH_STARTED, CLI_WATCH_UPDATED,
 };
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
 use serde::Serialize;
@@ -40,6 +41,16 @@ pub fn scan_started(
     messages.format(language, CLI_SCAN_STARTED, Some(&args))
 }
 
+/// The line that tells where the local server listens.
+///
+/// # Errors
+/// `I18N-201` if the message is missing.
+pub fn serve_started(messages: &Messages, language: &str, url: &str) -> Result<String, I18nError> {
+    let mut args = FluentArgs::new();
+    args.set(arg::URL, url.to_owned());
+    messages.format(language, CLI_SERVE_LISTENING, Some(&args))
+}
+
 /// The two lines that close a scan.
 ///
 /// # Errors
@@ -59,6 +70,30 @@ pub fn scan_finished(
     let first = messages.format(language, CLI_SCAN_FINISHED, Some(&finished))?;
     let second = messages.format(language, CLI_SCAN_DETAILS, Some(&details))?;
     Ok(format!("{first}{LINE_BREAK}{second}"))
+}
+
+/// The line that tells watch mode is on.
+///
+/// # Errors
+/// `I18N-201` if the message is missing.
+pub fn watch_started(messages: &Messages, language: &str) -> Result<String, I18nError> {
+    messages.format(language, CLI_WATCH_STARTED, None)
+}
+
+/// The line that reports one re-scan in watch mode: `changed` files in `millis` milliseconds.
+///
+/// # Errors
+/// `I18N-201` if the message is missing.
+pub fn watch_updated(
+    messages: &Messages,
+    language: &str,
+    changed: u32,
+    millis: u64,
+) -> Result<String, I18nError> {
+    let mut args = FluentArgs::new();
+    args.set(arg::CHANGED, FluentValue::from(changed));
+    args.set(arg::MILLIS, FluentValue::from(millis));
+    messages.format(language, CLI_WATCH_UPDATED, Some(&args))
 }
 
 /// The summary as one line of JSON.

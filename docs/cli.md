@@ -1,6 +1,6 @@
 # CLI and composition root (WP-25)
 
-Implements the first part of blueprint section 10.2: `codeskimr scan` and `codeskimr mcp`. The other commands (`serve`, `export`, `check`, `codes`, and the bare `codeskimr` that starts the app) follow with their packages.
+Implements the first part of blueprint section 10.2: `codeskimr scan` and `codeskimr mcp`. `codeskimr serve` came with WP-41 (see `docs/server.md`). The other commands (`export`, `check`, `codes`, and the bare `codeskimr` that starts the app) follow with their packages.
 
 ## Structure
 
@@ -10,13 +10,14 @@ Implements the first part of blueprint section 10.2: `codeskimr scan` and `codes
 ## `codeskimr scan <path|git-url>`
 
 ```
-codeskimr scan <path|git-url> [--branch <name>] [--json]
+codeskimr scan <path|git-url> [--branch <name>] [--json] [--watch]
 ```
 
 1. The argument is an existing folder (made absolute) or a Git URL (`https://`, `http://`, `ssh://`, `git://`, `git@…`, or ending in `.git`). A Git URL with secrets in it (user info for HTTP(S), a password anywhere, a query or a fragment, in any letter case) is refused with `PRJ-101` and a second line that names the reason: they would be stored in the database and printed (blueprint 12). A bare SSH user name (`git@host:org/repo`) is fine. `--branch` only applies to Git sources and is ignored for folders. On Windows the `\\?\` prefix of the absolute path is removed (UNC paths keep it). The branch defaults to `main`.
 2. The source is registered as a project (the same source is registered once; scanning again reuses the project).
 3. One full scan runs: fetch, discover, analyze, resolve, measure, persist. A new snapshot is written; `--json` prints `{project, snapshot, files, symbols, references, seconds}` on one line, otherwise a two-line summary in the language of the user.
-4. The mode is always full. The incremental mode is not complete yet (issues #20 and #29).
+4. Without `--watch` the scan is full and the command ends.
+5. With `--watch` (ADR 0029) the command keeps running after the first full scan. The watcher (`watcher.debounce_ms`, `watcher.max_wait_ms`, `scan.excluded_folders`) publishes `FilesChanged`; `watch.rs` turns the changes that piled up into one incremental scan, or into a full scan if the operating system lost events. Scans never overlap. Each re-scan prints one line (`N changed files scanned again in M ms.`; with `--json` the usual summary line). A failed re-scan prints its error and watching goes on. Only folders can be watched: a Git URL fails with `CLI-102`. Stop with Ctrl+C.
 
 ## `codeskimr mcp`
 
@@ -25,6 +26,14 @@ codeskimr mcp [--project <folder>]
 ```
 
 Serves the three tools of WP-26 over stdin and stdout for the project in `--project` (default: the current folder). The folder must have been scanned before; otherwise the command stops with `PRJ-201` (not registered) or `MCP-203` (registered, but no snapshot). Nothing but the protocol is written to standard output; errors go to standard error.
+
+## `codeskimr serve`
+
+```
+codeskimr serve
+```
+
+Starts the local server (`docs/server.md`) on `127.0.0.1` and the port `server.port` (default 7421), prints `Listening on http://127.0.0.1:7421` and runs until Ctrl+C. There is no option for the address: the server never listens anywhere else (blueprint S-04, `API-102`). On the first start it creates the installation token in the keystore of the operating system; without a usable keystore it stops with `SEC-601`. A taken port is `API-301`.
 
 ## Global options
 

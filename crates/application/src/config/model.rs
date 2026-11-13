@@ -21,6 +21,8 @@ pub struct Config {
     pub similarity: Similarity,
     /// Scan behaviour.
     pub scan: Scan,
+    /// The local server.
+    pub server: Server,
 }
 
 /// Thresholds for the metric ratings.
@@ -77,6 +79,10 @@ pub struct McpLimits {
     pub default_limit: u32,
     /// Largest number of results a caller may ask for.
     pub max_limit: u32,
+    /// Steps a usages walk goes when the caller gives no depth.
+    pub default_depth: u32,
+    /// Most steps a walk may go; the depth of the impact analysis.
+    pub max_depth: u32,
 }
 
 /// Snapshot retention.
@@ -93,6 +99,9 @@ pub struct SnapshotRetention {
 pub struct Watcher {
     /// File events within this window are collapsed into one re-scan, in milliseconds.
     pub debounce_ms: u32,
+    /// A batch of file events is handed over at the latest this long after its first event, in
+    /// milliseconds.
+    pub max_wait_ms: u32,
 }
 
 /// Scan behaviour.
@@ -105,6 +114,14 @@ pub struct Scan {
     pub parse_timeout_ms: u32,
     /// Largest total size of the scanned files of one source, in megabytes.
     pub max_source_mb: u32,
+}
+
+/// The local server (blueprint 10.3).
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Server {
+    /// TCP port on the loopback address.
+    pub port: u16,
 }
 
 /// Syntax fingerprints (blueprint 10.4).

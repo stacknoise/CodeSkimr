@@ -39,13 +39,19 @@ export type ErrorCode =
   | "NET-601"
   | "AUTH-401"
   | "API-101"
+  | "API-102"
+  | "API-201"
+  | "API-301"
   | "API-401"
+  | "API-402"
+  | "API-501"
   | "MCP-101"
   | "MCP-201"
   | "MCP-202"
   | "MCP-203"
   | "MCP-501"
   | "CLI-101"
+  | "CLI-102"
   | "I18N-201"
   | "EXP-601"
   | "UI-201"
@@ -110,13 +116,19 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "NET-601": { id: "NET-601", name: "oauth_flow_failed", group: "NET", class: "external", severity: "error", retryable: false, description: "The OAuth device flow did not complete.", since: "0.1.0", deprecated: false, messageKey: "error-NET-601" },
   "AUTH-401": { id: "AUTH-401", name: "permission_denied", group: "AUTH", class: "permission", severity: "error", retryable: false, description: "The caller lacks the permission this action needs.", since: "0.1.0", deprecated: false, messageKey: "error-AUTH-401" },
   "API-101": { id: "API-101", name: "request_invalid", group: "API", class: "invalid_input", severity: "error", retryable: false, description: "The REST request failed validation.", since: "0.1.0", deprecated: false, messageKey: "error-API-101" },
+  "API-102": { id: "API-102", name: "bind_address_not_local", group: "API", class: "invalid_input", severity: "error", retryable: false, description: "The server was asked to listen on an address that is not a loopback address.", since: "0.1.0", deprecated: false, messageKey: "error-API-102" },
+  "API-201": { id: "API-201", name: "command_not_found", group: "API", class: "not_found", severity: "error", retryable: false, description: "The REST request names a command or route that does not exist.", since: "0.1.0", deprecated: false, messageKey: "error-API-201" },
+  "API-301": { id: "API-301", name: "server_bind_failed", group: "API", class: "conflict", severity: "error", retryable: false, description: "The server could not listen on its address, for example because the port is taken.", since: "0.1.0", deprecated: false, messageKey: "error-API-301" },
   "API-401": { id: "API-401", name: "token_missing_or_invalid", group: "API", class: "permission", severity: "error", retryable: false, description: "A state-changing request lacks a valid installation token.", since: "0.1.0", deprecated: false, messageKey: "error-API-401" },
+  "API-402": { id: "API-402", name: "host_or_origin_rejected", group: "API", class: "permission", severity: "error", retryable: false, description: "The Host or Origin header of the request is not one of this server.", since: "0.1.0", deprecated: false, messageKey: "error-API-402" },
+  "API-501": { id: "API-501", name: "request_too_large", group: "API", class: "limit", severity: "error", retryable: false, description: "The request body is larger than the server accepts.", since: "0.1.0", deprecated: false, messageKey: "error-API-501" },
   "MCP-101": { id: "MCP-101", name: "tool_arguments_invalid", group: "MCP", class: "invalid_input", severity: "error", retryable: false, description: "MCP tool arguments failed validation.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-101" },
   "MCP-201": { id: "MCP-201", name: "project_not_registered", group: "MCP", class: "not_found", severity: "error", retryable: false, description: "The requested path is not inside a registered project.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-201" },
   "MCP-202": { id: "MCP-202", name: "symbol_not_found", group: "MCP", class: "not_found", severity: "error", retryable: false, description: "No symbol with this id or qualified name exists in the newest snapshot.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-202" },
   "MCP-203": { id: "MCP-203", name: "project_not_scanned", group: "MCP", class: "not_found", severity: "error", retryable: true, description: "The project has no snapshot yet; scan it first.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-203" },
   "MCP-501": { id: "MCP-501", name: "response_limit_exceeded", group: "MCP", class: "limit", severity: "info", retryable: false, description: "The result was truncated to the configured limit.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-501" },
   "CLI-101": { id: "CLI-101", name: "cli_arguments_invalid", group: "CLI", class: "invalid_input", severity: "error", retryable: false, description: "Command-line arguments are invalid.", since: "0.1.0", deprecated: false, messageKey: "error-CLI-101" },
+  "CLI-102": { id: "CLI-102", name: "watch_needs_folder", group: "CLI", class: "invalid_input", severity: "error", retryable: false, description: "Watch mode needs a local folder; a Git URL cannot be watched.", since: "0.1.0", deprecated: false, messageKey: "error-CLI-102" },
   "I18N-201": { id: "I18N-201", name: "message_key_missing", group: "I18N", class: "not_found", severity: "error", retryable: false, description: "A message key is missing for the active language (falls back to English).", since: "0.1.0", deprecated: false, messageKey: "error-I18N-201" },
   "EXP-601": { id: "EXP-601", name: "export_write_failed", group: "EXP", class: "external", severity: "error", retryable: false, description: "The export file could not be written.", since: "0.1.0", deprecated: false, messageKey: "error-EXP-601" },
   "UI-201": { id: "UI-201", name: "api_unreachable", group: "UI", class: "not_found", severity: "error", retryable: false, description: "The UI cannot reach the local server.", since: "0.1.0", deprecated: false, messageKey: "error-UI-201" },

@@ -4,11 +4,11 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{CodeIndex, ProjectRepository};
+use codeskimr_application::ports::{CodeIndex, ProjectRepository, UsageIndex};
 use codeskimr_cli::{GlobalOptions, McpArgs};
 use codeskimr_codes::ErrorCode;
 use codeskimr_i18n::Messages;
-use codeskimr_mcp::{McpServer, Tools, serve_stdio};
+use codeskimr_mcp::{McpServer, Ports, Tools, serve_stdio};
 
 use crate::clock::SystemClock;
 use crate::config_files;
@@ -46,14 +46,15 @@ pub fn run(
         return Err(CodedError::new(ErrorCode::ProjectNotScanned));
     }
     let projects: Arc<dyn ProjectRepository> = store.clone();
+    let usages: Arc<dyn UsageIndex> = store.clone();
     let index: Arc<dyn CodeIndex> = store;
-    let tools = Tools::new(
+    let ports = Ports {
         projects,
         index,
-        Arc::new(SystemClock),
-        config.mcp,
-        project.id,
-    );
+        usages,
+        clock: Arc::new(SystemClock),
+    };
+    let tools = Tools::new(ports, config.mcp, project.id);
     let messages = Messages::load().map_err(CodedError::caused_by)?;
     let server = McpServer::new(tools, &messages, principal::resolve())?;
     tokio::runtime::Builder::new_current_thread()

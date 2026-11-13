@@ -2,7 +2,9 @@
 
 use std::path::PathBuf;
 
-use codeskimr_cli::{Action, CliError, Parsed, ScanArgs, language_from, parse};
+use codeskimr_cli::{
+    Action, CliError, Parsed, ScanArgs, ServeArgs, language_from, parse, serve_started,
+};
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_i18n::Messages;
 
@@ -29,8 +31,19 @@ fn scan_takes_a_source_a_branch_and_the_json_switch() {
             source: "repo".to_owned(),
             branch: Some("dev".to_owned()),
             json: true,
+            watch: false,
         })
     );
+}
+
+#[test]
+fn scan_watch_is_an_opt_in_switch() {
+    let parsed = invocation(&["codeskimr", "scan", "repo", "--watch"]);
+    let Action::Scan(args) = parsed.action else {
+        panic!("scan expected");
+    };
+    assert!(args.watch);
+    assert!(!args.json);
 }
 
 #[test]
@@ -73,6 +86,25 @@ fn mcp_takes_an_optional_project_folder() {
     let without = invocation(&["codeskimr", "mcp"]);
     assert!(matches!(with.action, Action::Mcp(args) if args.project == Some(PathBuf::from("p"))));
     assert!(matches!(without.action, Action::Mcp(args) if args.project.is_none()));
+}
+
+#[test]
+fn serve_takes_no_argument_of_its_own() {
+    let parsed = invocation(&["codeskimr", "serve", "--set", "server.port=9000"]);
+    assert_eq!(parsed.action, Action::Serve(ServeArgs));
+    assert_eq!(parsed.global.overrides.len(), 1);
+    let error = run(&["codeskimr", "serve", "--bind", "0.0.0.0"]).unwrap_err();
+    assert_eq!(error.code(), ErrorCode::CliArgumentsInvalid);
+}
+
+#[test]
+fn the_listening_line_names_the_address_in_both_languages() {
+    let messages = Messages::load().unwrap();
+    let url = "http://127.0.0.1:7421";
+    for language in ["en", "de"] {
+        let line = serve_started(&messages, language, url).unwrap();
+        assert!(line.contains(url), "{language}: {line}");
+    }
 }
 
 #[test]

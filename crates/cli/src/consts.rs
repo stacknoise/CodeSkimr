@@ -9,6 +9,8 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 pub const COMMAND_SCAN: &str = "scan";
 /// Sub-command that serves MCP over standard input and output.
 pub const COMMAND_MCP: &str = "mcp";
+/// Sub-command that starts the local server.
+pub const COMMAND_SERVE: &str = "serve";
 
 /// Argument id and long flag of the source to scan.
 pub const ARG_SOURCE: &str = "source";
@@ -16,6 +18,8 @@ pub const ARG_SOURCE: &str = "source";
 pub const ARG_BRANCH: &str = "branch";
 /// Argument id and long flag of the JSON output switch.
 pub const ARG_JSON: &str = "json";
+/// Argument id and long flag of the watch mode switch.
+pub const ARG_WATCH: &str = "watch";
 /// Argument id and long flag of the project folder of `mcp`.
 pub const ARG_PROJECT: &str = "project";
 /// Argument id and long flag of the data folder.
@@ -69,6 +73,12 @@ pub mod arg {
     pub const SNAPSHOT: &str = "snapshot";
     /// `{ $seconds }`: duration of the scan.
     pub const SECONDS: &str = "seconds";
+    /// `{ $changed }`: number of files that changed since the last scan.
+    pub const CHANGED: &str = "changed";
+    /// `{ $millis }`: duration of a re-scan in milliseconds.
+    pub const MILLIS: &str = "millis";
+    /// `{ $url }`: address of the local server.
+    pub const URL: &str = "url";
 }
 
 /// Separates the lines of a multi-line message.

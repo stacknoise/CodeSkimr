@@ -27,6 +27,7 @@ fn defaults_match_the_blueprint() {
     }
     assert_eq!(config.scan.parse_timeout_ms, 5000);
     assert_eq!(config.scan.max_source_mb, 2048);
+    assert_eq!(config.server.port, 7421);
 }
 
 #[test]
@@ -179,6 +180,15 @@ fn metric_thresholds_are_checked() {
 }
 
 #[test]
+fn the_default_depth_must_not_exceed_the_maximum() {
+    assert_rejected(&[(
+        "[mcp]\ndefault_depth = 9\n",
+        "mcp.default_depth",
+        Violation::MustNotExceed("mcp.max_depth"),
+    )]);
+}
+
+#[test]
 fn limits_and_folders_are_checked() {
     assert_rejected(&[
         (
@@ -209,6 +219,11 @@ fn limits_and_folders_are_checked() {
         (
             "[scan]\nmax_source_mb = 0\n",
             "scan.max_source_mb",
+            Violation::MustBePositive,
+        ),
+        (
+            "[server]\nport = 0\n",
+            "server.port",
             Violation::MustBePositive,
         ),
     ]);

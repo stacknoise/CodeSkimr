@@ -65,6 +65,10 @@ pub mod keys {
     pub const MCP_DEFAULT_LIMIT: &str = "mcp.default_limit";
     /// `mcp.max_limit`
     pub const MCP_MAX_LIMIT: &str = "mcp.max_limit";
+    /// `mcp.default_depth`
+    pub const MCP_DEFAULT_DEPTH: &str = "mcp.default_depth";
+    /// `mcp.max_depth`
+    pub const MCP_MAX_DEPTH: &str = "mcp.max_depth";
     /// `snapshots.retention_count`
     pub const RETENTION_COUNT: &str = "snapshots.retention_count";
     /// `similarity.ngram_size`
@@ -75,12 +79,16 @@ pub mod keys {
     pub const MIN_TOKENS: &str = "similarity.min_tokens";
     /// `watcher.debounce_ms`
     pub const DEBOUNCE_MS: &str = "watcher.debounce_ms";
+    /// `watcher.max_wait_ms`
+    pub const MAX_WAIT_MS: &str = "watcher.max_wait_ms";
     /// `scan.excluded_folders`
     pub const EXCLUDED_FOLDERS: &str = "scan.excluded_folders";
     /// `scan.parse_timeout_ms`
     pub const PARSE_TIMEOUT_MS: &str = "scan.parse_timeout_ms";
     /// `scan.max_source_mb`
     pub const MAX_SOURCE_MB: &str = "scan.max_source_mb";
+    /// `server.port`
+    pub const SERVER_PORT: &str = "server.port";
 }
 
 /// Characters that make a folder name a path.

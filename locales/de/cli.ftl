@@ -10,6 +10,8 @@ cli-scan-details = { $symbols } Symbole, { $references } Verweise, Snapshot { $s
 cli-about = CodeSkimr macht aus Code-Repositories eine navigierbare Dokumentation.
 cli-cmd-scan = Einen Ordner oder eine Git-URL scannen und eine Zusammenfassung ausgeben
 cli-cmd-mcp = Das MCP-Protokoll über Standardein- und -ausgabe bereitstellen
+cli-cmd-serve = Den lokalen Server starten, ohne den Browser zu öffnen
+cli-serve-listening = Lauscht auf { $url }. Beenden mit Strg+C.
 cli-arg-source = Ordner oder Git-URL, die gescannt werden soll
 cli-arg-branch = Branch einer Git-Quelle (Standard: main)
 cli-arg-json = Die Zusammenfassung als JSON ausgeben
@@ -19,3 +21,6 @@ cli-arg-config = Benutzer-Konfigurationsdatei
 cli-arg-set = Eine Einstellung für diesen Lauf überschreiben, zum Beispiel metrics.cyclomatic_good_max=4
 cli-arg-languages = Ordner mit den Sprachpaketen
 cli-credentials-hint = Geheimnisse in einer Git-URL (Benutzerangaben, Query oder Fragment) werden nicht angenommen: Sie würden gespeichert und ausgegeben. Nutze einen Git-Credential-Helper oder einen SSH-Schlüssel.
+cli-arg-watch = Nach dem Scan weiterlaufen und bei Dateiänderungen erneut scannen
+cli-watch-started = Änderungen werden beobachtet. Mit Strg+C beenden.
+cli-watch-updated = { $changed } geänderte Dateien in { $millis } ms erneut gescannt.
