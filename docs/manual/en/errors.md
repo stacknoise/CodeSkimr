@@ -34,6 +34,8 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | `PRJ-302` | a scan of this project is already running | wait for it |
 | `SRC-201` | the source folder or a file does not exist or cannot be read | check the path and rights |
 | `SRC-401`, `SEC-*` | login to a Git remote or the keystore failed | see [Sources and credentials](sources-and-credentials.md#problems) |
+| `NET-601` | the browser sign-in of `credential login` did not finish | run it again |
+| `CLI-103` | no secret could be read, or it was empty | pipe it in or type it at the prompt |
 | `SRC-501` | the source or a file is too large | raise `scan.max_source_mb` or exclude folders (`scan.excluded_folders`) |
 | `PRS-201` | no language pack for a file type | the files of that type are not analysed; install the pack |
 | `PRS-501` | a file took too long to parse | raise `scan.parse_timeout_ms` if the file is legitimate |
