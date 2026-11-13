@@ -2,6 +2,7 @@
 
 use std::sync::mpsc::RecvTimeoutError;
 use std::thread;
+use std::time::Duration;
 
 use axum::extract::State;
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
@@ -15,6 +16,7 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_domain::Permission;
 use serde::Serialize;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
+use tokio::time::timeout;
 
 use crate::consts::{
     EVENT_POLL, EVENT_THREAD_NAME, MAX_SOCKET_MESSAGE_BYTES, REASON_CANCELLED, REASON_FAILED,
@@ -153,20 +155,31 @@ pub async fn stream(State(app): State<AppState>, upgrade: WebSocketUpgrade) -> R
 }
 
 /// Sends events until the client goes away or the bus ends. What the client sends is ignored.
+///
+/// While no event comes, the socket is looked at every `EVENT_POLL`, so a client that left is
+/// noticed without waiting for the next event.
 async fn pump(mut socket: WebSocket, mut events: UnboundedReceiver<Event>) {
     loop {
-        tokio::select! {
-            event = events.recv() => {
-                let Some(event) = event else { return };
-                let Ok(text) = serde_json::to_string(&WireEvent::from(&event)) else { continue };
+        match timeout(EVENT_POLL, events.recv()).await {
+            Ok(Some(event)) => {
+                let Ok(text) = serde_json::to_string(&WireEvent::from(&event)) else {
+                    continue;
+                };
                 if socket.send(Message::Text(text.into())).await.is_err() {
                     return;
                 }
             }
-            incoming = socket.recv() => match incoming {
-                None | Some(Err(_) | Ok(Message::Close(_))) => return,
-                Some(Ok(_)) => {}
-            },
+            Ok(None) => return,
+            Err(_) if client_left(&mut socket).await => return,
+            Err(_) => {}
         }
+    }
+}
+
+/// Whether the client closed the socket or it failed. Looks once and does not wait.
+async fn client_left(socket: &mut WebSocket) -> bool {
+    match timeout(Duration::ZERO, socket.recv()).await {
+        Ok(None | Some(Err(_) | Ok(Message::Close(_)))) => true,
+        Ok(Some(Ok(_))) | Err(_) => false,
     }
 }
