@@ -43,10 +43,52 @@
 (prefix_unary_expression ["++" "--"] (identifier) @name) @reference.write
 
 ; Reads: names in value positions (not the function of a call, not an assignment target)
-([(argument) (return_statement) (arrow_expression_clause)
-  (interpolation) (parenthesized_expression) (await_expression) (throw_expression)]
+; One pattern per parent: an alternation in front of the children never matches (issue #77).
+(argument
   [(identifier) @name
    (member_access_expression name: (identifier) @name)]) @reference.read
+(return_statement
+  [(identifier) @name
+   (member_access_expression name: (identifier) @name)]) @reference.read
+(arrow_expression_clause
+  [(identifier) @name
+   (member_access_expression name: (identifier) @name)]) @reference.read
+(interpolation
+  [(identifier) @name
+   (member_access_expression name: (identifier) @name)]) @reference.read
+(parenthesized_expression
+  [(identifier) @name
+   (member_access_expression name: (identifier) @name)]) @reference.read
+(await_expression
+  [(identifier) @name
+   (member_access_expression name: (identifier) @name)]) @reference.read
+(throw_expression
+  [(identifier) @name
+   (member_access_expression name: (identifier) @name)]) @reference.read
+(attribute_argument
+  [(identifier) @name
+   (member_access_expression name: (identifier) @name)]) @reference.read
+(constant_pattern
+  [(identifier) @name
+   (member_access_expression name: (identifier) @name)]) @reference.read
+(switch_section
+  [(identifier) @name
+   (member_access_expression name: (identifier) @name)]) @reference.read
+(initializer_expression
+  [(identifier) @name
+   (member_access_expression name: (identifier) @name)]) @reference.read
+(anonymous_object_creation_expression
+  [(identifier) @name
+   (member_access_expression name: (identifier) @name)]) @reference.read
+(yield_statement
+  [(identifier) @name
+   (member_access_expression name: (identifier) @name)]) @reference.read
+(cast_expression
+  value: [(identifier) @name
+          (member_access_expression name: (identifier) @name)]) @reference.read
+(lambda_expression
+  body: [(identifier) @name
+         (member_access_expression name: (identifier) @name)]) @reference.read
 (variable_declarator
   name: (_)
   .
@@ -109,6 +151,7 @@
     name: (identifier) @local)))
 (class_declaration (parameter_list (parameter name: (identifier) @local)))
 (struct_declaration (parameter_list (parameter name: (identifier) @local)))
+(indexer_declaration parameters: (bracketed_parameter_list (parameter name: (identifier) @local)))
 (lambda_expression parameters: (implicit_parameter) @local)
 
 (local_declaration_statement
@@ -144,11 +187,23 @@
            (predefined_type) @declared_type
            (array_type) @declared_type]
     (variable_declarator name: (identifier) @local)))
+; `var x = new T()`, `var x = (T)e` and `var x = e as T`: the initializer names the type.
 (variable_declaration
   type: (implicit_type)
   (variable_declarator
     name: (identifier) @local
-    (object_creation_expression type: (identifier) @declared_type)))
+    [(object_creation_expression
+       type: [(identifier) @declared_type
+              (generic_name . (identifier) @declared_type)
+              (qualified_name name: (identifier) @declared_type)])
+     (cast_expression
+       type: [(identifier) @declared_type
+              (generic_name . (identifier) @declared_type)
+              (qualified_name name: (identifier) @declared_type)])
+     (as_expression
+       right: [(identifier) @declared_type
+               (generic_name . (identifier) @declared_type)
+               (qualified_name name: (identifier) @declared_type)])]))
 (foreach_statement left: (identifier) @local)
 (foreach_statement
   type: [(identifier) @declared_type
