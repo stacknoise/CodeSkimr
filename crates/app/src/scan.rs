@@ -1,6 +1,7 @@
 //! `codeskimr scan`: registers the source as a project and runs one full scan. The [`Session`] is
 //! what watch mode scans again and again.
 
+use std::sync::Arc;
 use std::time::Instant;
 
 use codeskimr_application::access;
@@ -18,7 +19,7 @@ use crate::config_files;
 use crate::locations::Locations;
 use crate::principal;
 use crate::source_arg::{SourceError, SourceSpec, classify};
-use crate::wiring::{build_scanner, open_store};
+use crate::wiring::{Secrets, build_scanner, open_store};
 
 /// Checks the source argument before anything is scanned or printed.
 ///
@@ -96,13 +97,14 @@ pub fn open(
     spec: SourceSpec,
     global: &GlobalOptions,
     locations: &Locations,
+    secrets: &Arc<Secrets>,
 ) -> Result<Session, CodedError> {
     open_on(
         principal::resolve(),
         spec,
         global,
         locations,
-        EventBus::new(),
+        (EventBus::new(), secrets),
     )
 }
 
@@ -116,7 +118,7 @@ pub fn open_on(
     spec: SourceSpec,
     global: &GlobalOptions,
     locations: &Locations,
-    events: EventBus,
+    (events, secrets): (EventBus, &Arc<Secrets>),
 ) -> Result<Session, CodedError> {
     access::require(&principal, Permission::RegisterProject)?;
     access::require(&principal, Permission::Scan)?;
@@ -131,6 +133,7 @@ pub fn open_on(
             store: &store,
             locations,
             events,
+            secrets,
         },
     )
 }
@@ -144,7 +147,7 @@ pub fn reopen(
     project: ProjectId,
     global: &GlobalOptions,
     locations: &Locations,
-    events: EventBus,
+    (events, secrets): (EventBus, &Arc<Secrets>),
 ) -> Result<Session, CodedError> {
     let defaults = config_files::load(locations, global, None)?;
     let store = open_store(locations, &defaults)?;
@@ -159,6 +162,7 @@ pub fn reopen(
             store: &store,
             locations,
             events,
+            secrets,
         },
     )
 }
@@ -175,6 +179,7 @@ struct Wiring<'a> {
     store: &'a std::sync::Arc<SqliteStore>,
     locations: &'a Locations,
     events: EventBus,
+    secrets: &'a Arc<Secrets>,
 }
 
 fn session(
@@ -188,8 +193,9 @@ fn session(
         store,
         locations,
         events,
+        secrets,
     } = wiring;
-    let scanner = build_scanner(store, &config, locations, events.clone())?;
+    let scanner = build_scanner(store, &config, locations, events.clone(), secrets)?;
     Ok(Session {
         scanner,
         principal,
@@ -210,8 +216,9 @@ pub fn run(
     spec: SourceSpec,
     global: &GlobalOptions,
     locations: &Locations,
+    secrets: &Arc<Secrets>,
 ) -> Result<ScanSummary, CodedError> {
-    open(spec, global, locations)?.scan(ScanMode::Full)
+    open(spec, global, locations, secrets)?.scan(ScanMode::Full)
 }
 
 /// The project with the layers of the configuration (ADR 0031); saved when they changed, so that

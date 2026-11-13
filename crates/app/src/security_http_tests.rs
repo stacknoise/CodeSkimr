@@ -10,7 +10,7 @@ use std::time::Duration;
 use serde_json::{Value, json};
 
 use crate::consts::URL_SCHEME;
-use crate::security_tests::{CREDENTIAL_CANARY, command, folders, run};
+use crate::security_tests::{CREDENTIAL_CANARY, assert_answers_clean, command, folders, run};
 
 const EVENTS: &str = "/api/v1/events";
 const COMMANDS: &str = "/api/v1/commands";
@@ -299,12 +299,8 @@ fn bad_tokens_hosts_and_origins_are_refused_and_the_event_stream_leaks_nothing()
     assert!(stream.contains("101 Switching"));
     let body = stream.split_once("\r\n\r\n").map_or("", |parts| parts.1);
     assert!(!body.is_empty(), "no event arrived");
-    for (kind, secret) in [CREDENTIAL_CANARY, outcome.token.as_str()]
-        .into_iter()
-        .enumerate()
-    {
-        for (n, answer) in outcome.answers.iter().enumerate() {
-            assert!(!answer.contains(secret), "secret {kind} in answer {n}");
-        }
-    }
+    assert_answers_clean(
+        &outcome.answers,
+        &[CREDENTIAL_CANARY, outcome.token.as_str()],
+    );
 }

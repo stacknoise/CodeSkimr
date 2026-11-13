@@ -127,3 +127,22 @@ pub const EXPORT_ESCAPE: &str = "\\u003c";
 pub const EXPORT_DEPTH: u32 = 0;
 /// Steps of the walk that counts the direct usages.
 pub const EXPORT_DIRECT_DEPTH: u32 = 1;
+
+/// Id of the command that lists the credentials of the Git projects.
+pub const CREDENTIALS_LIST: &str = "credentials.list";
+/// Id of the command that stores a credential.
+pub const CREDENTIALS_SET: &str = "credentials.set";
+/// Id of the command that removes a credential.
+pub const CREDENTIALS_DELETE: &str = "credentials.delete";
+/// Title key of `credentials.list`.
+pub const CREDENTIALS_LIST_TITLE: &str = i18n::COMMAND_CREDENTIALS_LIST_TITLE;
+/// Description key of `credentials.list`.
+pub const CREDENTIALS_LIST_DESCRIPTION: &str = i18n::COMMAND_CREDENTIALS_LIST_DESCRIPTION;
+/// Title key of `credentials.set`.
+pub const CREDENTIALS_SET_TITLE: &str = i18n::COMMAND_CREDENTIALS_SET_TITLE;
+/// Description key of `credentials.set`.
+pub const CREDENTIALS_SET_DESCRIPTION: &str = i18n::COMMAND_CREDENTIALS_SET_DESCRIPTION;
+/// Title key of `credentials.delete`.
+pub const CREDENTIALS_DELETE_TITLE: &str = i18n::COMMAND_CREDENTIALS_DELETE_TITLE;
+/// Description key of `credentials.delete`.
+pub const CREDENTIALS_DELETE_DESCRIPTION: &str = i18n::COMMAND_CREDENTIALS_DELETE_DESCRIPTION;

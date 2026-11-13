@@ -12,17 +12,82 @@ use codeskimr_application::events::EventBus;
 use codeskimr_application::ids::IdSequence;
 use codeskimr_application::metrics::StandardMetrics;
 use codeskimr_application::pipeline::{Scanner, ScannerPorts};
+use codeskimr_application::ports::{AuthError, Credential, CredentialStore};
 use codeskimr_application::ports::{FileAnalyzer, FileDiscovery, SnippetFingerprinter};
 use codeskimr_application::resolve::ScopedResolver;
 use codeskimr_codes::ErrorCode;
+use codeskimr_domain::CredentialId;
 use codeskimr_parsing::{LanguagePacks, TreeSitterAnalyzer};
-use codeskimr_secrets::{OsCredentialStore, OsKeystore};
+use codeskimr_secrets::{Keystore, KeystoreCredentials, OsKeystore};
 use codeskimr_source::{DiscoveryConfig, GitCache, LanguageMap, SourceFetcher, WalkDiscovery};
 use codeskimr_storage::SqliteStore;
+use zeroize::Zeroizing;
 
 use crate::clock::SystemClock;
-use crate::consts::BYTES_PER_MB;
+use crate::consts::{BYTES_PER_MB, TOKEN_CREDENTIAL_ID};
 use crate::locations::Locations;
+
+/// A keystore that can be shared by everything that needs secrets: the operating system's in the
+/// program, a map in memory in the tests of the composition root.
+#[derive(Clone)]
+pub struct SharedKeystore(Arc<dyn Keystore>);
+
+impl SharedKeystore {
+    /// Shares `keystore`.
+    #[must_use]
+    pub fn new(keystore: impl Keystore + 'static) -> Self {
+        Self(Arc::new(keystore))
+    }
+}
+
+impl Keystore for SharedKeystore {
+    fn read(&self, name: &str) -> Result<Zeroizing<Vec<u8>>, AuthError> {
+        self.0.read(name)
+    }
+
+    fn write(&self, name: &str, bytes: &[u8]) -> Result<(), AuthError> {
+        self.0.write(name, bytes)
+    }
+
+    fn remove(&self, name: &str) -> Result<(), AuthError> {
+        self.0.remove(name)
+    }
+}
+
+/// The credential store the scanner and the credential commands share.
+pub type Secrets = KeystoreCredentials<SharedKeystore>;
+
+/// What the fetcher of Git sources sees of the secrets: everything except the installation
+/// token. A project row that names `installation-token` (written by hand or by an older version)
+/// must not make a clone send the token of this installation to a remote.
+pub struct ForRemotes(Arc<Secrets>);
+
+impl CredentialStore for ForRemotes {
+    fn with_credential<T>(
+        &self,
+        id: &CredentialId,
+        action: impl FnOnce(&Credential) -> Result<T, AuthError>,
+    ) -> Result<T, AuthError> {
+        if id.as_str() == TOKEN_CREDENTIAL_ID {
+            return Err(AuthError::NotFound);
+        }
+        self.0.with_credential(id, action)
+    }
+
+    fn store(&self, id: &CredentialId, credential: &Credential) -> Result<(), AuthError> {
+        self.0.store(id, credential)
+    }
+
+    fn delete(&self, id: &CredentialId) -> Result<(), AuthError> {
+        self.0.delete(id)
+    }
+}
+
+/// The credential store of the operating system.
+#[must_use]
+pub fn os_secrets() -> Arc<Secrets> {
+    Arc::new(KeystoreCredentials::new(SharedKeystore::new(OsKeystore)))
+}
 
 /// Opens (and creates, if needed) the database of the data folder.
 ///
@@ -35,7 +100,7 @@ pub fn open_store(locations: &Locations, config: &Config) -> Result<Arc<SqliteSt
     SqliteStore::open(&locations.database(), retention).map(Arc::new)
 }
 
-/// Builds the scanner with every port wired to its adapter.
+/// Builds the scanner with every port wired to its adapter; Git logins read from `secrets`.
 ///
 /// # Errors
 /// `PRS` failures if the language packs cannot be loaded, `STO` failures of the id lookup.
@@ -44,6 +109,7 @@ pub fn build_scanner(
     config: &Config,
     locations: &Locations,
     events: EventBus,
+    secrets: &Arc<Secrets>,
 ) -> Result<Scanner, CodedError> {
     let Analysis {
         discovery,
@@ -53,7 +119,7 @@ pub fn build_scanner(
     let ports = ScannerPorts {
         source: Arc::new(SourceFetcher::new(
             GitCache::new(locations.git_cache()),
-            Arc::new(OsCredentialStore::new(OsKeystore)),
+            Arc::new(ForRemotes(Arc::clone(secrets))),
         )),
         discovery,
         analyzer,
@@ -109,4 +175,33 @@ pub fn build_analysis(config: &Config, locations: &Locations) -> Result<Analysis
         snippets: analyzer.clone(),
         analyzer,
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use secrecy::SecretString;
+
+    use super::*;
+    use crate::memory_keystore::secrets;
+
+    fn credential() -> Credential {
+        Credential::new(SecretString::from("user"), SecretString::from("secret"))
+    }
+
+    #[test]
+    fn the_fetcher_never_gets_the_installation_token() {
+        let secrets = secrets();
+        let token = CredentialId::new(TOKEN_CREDENTIAL_ID).unwrap();
+        let work = CredentialId::new("work").unwrap();
+        secrets.store(&token, &credential()).unwrap();
+        secrets.store(&work, &credential()).unwrap();
+        let remotes = ForRemotes(Arc::clone(&secrets));
+        // The token exists, the fetcher still cannot see it; any other credential is lent.
+        assert!(secrets.with_credential(&token, |_| Ok(())).is_ok());
+        assert!(matches!(
+            remotes.with_credential(&token, |_| Ok(())),
+            Err(AuthError::NotFound)
+        ));
+        assert!(remotes.with_credential(&work, |_| Ok(())).is_ok());
+    }
 }

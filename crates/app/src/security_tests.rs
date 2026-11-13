@@ -8,19 +8,19 @@
 
 use std::fs;
 use std::path::Path;
+use std::sync::Arc;
 use std::sync::mpsc::channel;
 
 use codeskimr_application::ports::{Credential, CredentialStore};
 use codeskimr_cli::GlobalOptions;
 use codeskimr_domain::CredentialId;
-use codeskimr_secrets::KeystoreCredentials;
 use secrecy::SecretString;
 use serde_json::{Value, json};
 use tokio::sync::oneshot;
 
 use crate::mcp::http_service;
 use crate::mcp_http_tests::{locations, rpc, send};
-use crate::memory_keystore::Memory;
+use crate::memory_keystore::secrets as memory_secrets;
 use crate::serve::{Parts, serve_for_test, test_ui};
 use crate::ui_commands::command_api;
 use crate::{config_files, installation_token};
@@ -66,20 +66,26 @@ pub(crate) fn run(
 ) -> Run {
     let locations = locations(&folders.data.path().join("state"));
     let config = config_files::load(&locations, &GlobalOptions::default(), None).unwrap();
-    let store = KeystoreCredentials::new(Memory::default());
+    let secrets = memory_secrets();
     let id = CredentialId::new("work").unwrap();
     let canary = Credential::new(
         SecretString::from("anton"),
         SecretString::from(CREDENTIAL_CANARY),
     );
-    store.store(&id, &canary).unwrap();
-    installation_token::load_or_create(&store).unwrap();
-    let token = installation_token::stored_token(&store);
+    secrets.store(&id, &canary).unwrap();
+    installation_token::load_or_create(&*secrets).unwrap();
+    let token = installation_token::stored_token(&*secrets);
     let events = codeskimr_application::events::EventBus::new();
     let parts = Parts {
         ui: test_ui(),
-        api: command_api(&GlobalOptions::default(), &locations, events.clone()).unwrap(),
-        mcp: Some(http_service(&config, &locations, events.clone()).unwrap()),
+        api: command_api(
+            &GlobalOptions::default(),
+            &locations,
+            events.clone(),
+            Arc::clone(&secrets),
+        )
+        .unwrap(),
+        mcp: Some(http_service(&config, &locations, (events.clone(), &secrets)).unwrap()),
         events,
     };
     let (stop, stopped) = oneshot::channel::<()>();
@@ -90,7 +96,7 @@ pub(crate) fn run(
         stop.send(()).unwrap();
         answers
     });
-    serve_for_test(&store, parts, &found, stopped).unwrap();
+    serve_for_test(&*secrets, parts, &found, stopped).unwrap();
     Run {
         token,
         answers: client.join().unwrap(),
@@ -112,7 +118,7 @@ fn mcp(url: &str, token: Option<&str>, id: u64, method: &str, params: &Value) ->
 }
 
 /// Every file below `dir`, read as bytes, with its path.
-fn files(dir: &Path) -> Vec<(std::path::PathBuf, Vec<u8>)> {
+pub(crate) fn files(dir: &Path) -> Vec<(std::path::PathBuf, Vec<u8>)> {
     let mut found = Vec::new();
     for entry in fs::read_dir(dir).unwrap() {
         let path = entry.unwrap().path();
@@ -125,7 +131,7 @@ fn files(dir: &Path) -> Vec<(std::path::PathBuf, Vec<u8>)> {
     found
 }
 
-fn contains(haystack: &[u8], needle: &str) -> bool {
+pub(crate) fn contains(haystack: &[u8], needle: &str) -> bool {
     haystack
         .windows(needle.len())
         .any(|window| window == needle.as_bytes())
@@ -217,6 +223,16 @@ fn no_canary_leaves_the_running_app() {
                 "secret {kind} in {}",
                 path.display()
             );
+        }
+    }
+}
+
+/// No answer holds any of `secrets`. The messages name the position, never the secret: a failing
+/// run must not log it.
+pub(crate) fn assert_answers_clean(answers: &[String], secrets: &[&str]) {
+    for (kind, secret) in secrets.iter().enumerate() {
+        for (n, answer) in answers.iter().enumerate() {
+            assert!(!answer.contains(secret), "secret {kind} in answer {n}");
         }
     }
 }

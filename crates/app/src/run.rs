@@ -26,6 +26,7 @@ use crate::log_writer::RedactingWriter;
 use crate::logging;
 use crate::source_arg::SourceError;
 use crate::watch::{self, Report};
+use crate::wiring::os_secrets;
 use crate::{check, credential, export, mcp, open, scan, serve, ui_commands};
 
 /// Why a command did not finish: a registered code, plus the parser's text for usage errors.
@@ -235,12 +236,12 @@ fn run_scan(
         write_err(&scan_started(messages, language, spec.location()).map_err(CliError::from)?);
     }
     if args.watch {
-        let session = scan::open(spec, &invocation.global, locations)?;
+        let session = scan::open(spec, &invocation.global, locations, &os_secrets())?;
         let mut show = |report| show_report(report, args.json, messages, language);
         watch::run(&session, &mut show)?;
         return Ok(Outcome::Done);
     }
-    let summary = scan::run(spec, &invocation.global, locations)?;
+    let summary = scan::run(spec, &invocation.global, locations, &os_secrets())?;
     write_out(&summary_text(&summary, args.json, messages, language)?);
     Ok(Outcome::Done)
 }
