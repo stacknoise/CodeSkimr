@@ -5,12 +5,12 @@
     display: flex;
     justify-content: center;
     align-items: flex-start;
-    padding-top: 12vh;
+    padding-top: 96px;
     background: color-mix(in srgb, var(--ink) 40%, transparent);
 }
 
 .dialog {
-    width: min(860px, calc(100vw - 32px));
+    width: min(880px, calc(100vw - 32px));
     max-height: 70vh;
     display: flex;
     flex-direction: column;
@@ -26,7 +26,8 @@
     display: flex;
     align-items: center;
     gap: var(--space-12);
-    padding: var(--space-12) var(--space-16);
+    height: 56px;
+    padding: 0 var(--space-16);
     border-bottom: 1px solid var(--line);
 }
 
@@ -36,7 +37,7 @@
     border: 0;
     background: transparent;
     color: var(--ink);
-    font: 16px var(--font-sans);
+    font: 500 17px var(--font-sans);
     outline: none;
 }
 
@@ -65,9 +66,9 @@
 }
 
 .chip.on {
-    background: var(--accent-bg);
-    border-color: var(--accent);
-    color: var(--accent);
+    background: var(--ink);
+    border-color: var(--ink);
+    color: var(--surface);
 }
 
 .body {
@@ -159,8 +160,8 @@
 }
 
 .preview {
-    width: 260px;
-    flex: none;
+    flex: 0 1 320px;
+    min-width: 0;
     padding: var(--space-12) var(--space-16);
     border-left: 1px solid var(--line);
     background: var(--bg);
