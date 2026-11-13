@@ -23,13 +23,13 @@ Der erste Scan eines Projekts ist vollständig. Spätere Scans sind **inkremente
 ## Auf der Kommandozeile
 
 ```
-codeskimr scan <Pfad|Git-Adresse> [--branch <Name>] [--json] [--watch]
+codeskimr scan <Pfad|Git-Adresse> [--branch <Name>] [--json] [--watch] [--credential <Name>]
 ```
 
 - Das Argument ist ein vorhandener Ordner oder eine Git-Adresse (`https://`, `http://`, `ssh://`, `git://`, `git@host:org/repo` oder mit der Endung `.git`). Ein Ordner wird absolut gemacht. `--branch` gilt nur für Git-Quellen und ist `main`, wenn nichts angegeben ist.
 - Der Befehl trägt die Quelle (einmalig) als Projekt ein und führt einen vollständigen Scan aus. Ergebnis ist eine Zusammenfassung in zwei Zeilen oder mit `--json` eine JSON-Zeile: `{project, snapshot, files, symbols, references, seconds}`.
 - **`--watch`** lässt den Befehl nach dem ersten Scan weiterlaufen. Ändern sich Dateien im Ordner, werden sie einen kurzen Moment gesammelt und inkrementell neu gescannt; jeder Neuscan gibt eine Zeile aus. Nur Ordner lassen sich beobachten (`CLI-102` bei einer Git-Adresse). Beenden mit Strg+C. Ein fehlgeschlagener Neuscan gibt seinen Fehler aus, das Beobachten geht weiter.
-- **Geheimnisse in einer Git-Adresse** (Benutzername und Passwort, ein Token, eine Query oder ein Fragment) werden mit `PRJ-101` abgelehnt. Den richtigen Weg zeigt [Quellen und Zugangsdaten](quellen-und-zugangsdaten.md).
+- **Geheimnisse in einer Git-Adresse** (Benutzername und Passwort, ein Token, eine Query oder ein Fragment) werden mit `PRJ-101` abgelehnt. Den richtigen Weg zeigt [Quellen und Zugangsdaten](quellen-und-zugangsdaten.md) (`--credential`).
 
 Weitere Befehle: `codeskimr serve` startet den lokalen Server, `codeskimr open` öffnet den Browser, `codeskimr mcp` startet den MCP-Server über Standardeingabe und -ausgabe ([MCP einrichten](mcp.md)), und `codeskimr check` führt die Konventionsprüfungen über einen Ordner aus, ohne Scan.
 

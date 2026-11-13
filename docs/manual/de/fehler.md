@@ -34,6 +34,8 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 | `PRJ-302` | ein Scan dieses Projekts läuft schon | abwarten |
 | `SRC-201` | der Quellordner oder eine Datei existiert nicht oder ist nicht lesbar | Pfad und Rechte prüfen |
 | `SRC-401`, `SEC-*` | Anmeldung an einer Git-Gegenstelle oder der Schlüsselspeicher ist fehlgeschlagen | siehe [Quellen und Zugangsdaten](quellen-und-zugangsdaten.md#probleme) |
+| `NET-601` | die Browser-Anmeldung von `credential login` wurde nicht abgeschlossen | erneut ausführen |
+| `CLI-103` | es konnte kein Geheimnis gelesen werden, oder es war leer | per Pipe übergeben oder am Prompt eingeben |
 | `SRC-501` | die Quelle oder eine Datei ist zu groß | `scan.max_source_mb` erhöhen oder Ordner ausschließen (`scan.excluded_folders`) |
 | `PRS-201` | kein Sprachpaket für einen Dateityp | die Dateien dieses Typs werden nicht analysiert; Paket installieren |
 | `PRS-501` | eine Datei brauchte zu lange zum Parsen | `scan.parse_timeout_ms` erhöhen, wenn die Datei in Ordnung ist |
