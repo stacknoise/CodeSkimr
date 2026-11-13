@@ -22,7 +22,7 @@ use zeroize::Zeroizing;
 use crate::consts::{
     APP_DIR, CODE_POLL_MS, ENV_XDG_RUNTIME_DIR, FIELD_CODE, FIELD_PENDING, LAUNCH_CODE_CHARS,
     LAUNCH_CODE_PATH, LAUNCH_DIR, LAUNCH_FRAGMENT, LOOPBACK_HOST, METHOD_GET, METHOD_POST,
-    TOKEN_CREDENTIAL_ID, URL_SCHEME,
+    PORT_SEPARATOR, TOKEN_CREDENTIAL_ID, URL_SCHEME,
 };
 use crate::launch_file::LaunchFile;
 use crate::local_http::{Call, call};
@@ -77,11 +77,15 @@ pub(crate) fn launch(
 ) -> Result<(), CodedError> {
     let token = read_token(store)?;
     let code = request_code(plan.port, &token)?;
-    let url = format!(
-        "{URL_SCHEME}{LOOPBACK_HOST}:{}{LAUNCH_FRAGMENT}{}",
-        plan.port,
-        code.as_str()
-    );
+    let url = [
+        URL_SCHEME,
+        LOOPBACK_HOST,
+        PORT_SEPARATOR,
+        &plan.port.to_string(),
+        LAUNCH_FRAGMENT,
+        code.as_str(),
+    ]
+    .concat();
     let file = LaunchFile::create(&plan.dir, &url, plan.lifetime)?;
     drop(code);
     ready(&Ready {

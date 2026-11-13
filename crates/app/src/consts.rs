@@ -253,3 +253,12 @@ pub const HTTP_FIXED_HEADERS: [&str; 2] = ["Content-Length: 0", "Connection: clo
 pub const METHOD_GET: &str = "GET";
 /// Method of a call that changes something.
 pub const METHOD_POST: &str = "POST";
+
+/// Separates the parts of an HTTP request line.
+pub const HTTP_REQUEST_SEPARATOR: &str = " ";
+/// Start of the `Host` header line.
+pub const HTTP_HOST_HEADER: &str = "Host: ";
+/// Start of the `Authorization` header line.
+pub const HTTP_BEARER_HEADER: &str = "Authorization: Bearer ";
+/// Separates the host and the port of an address.
+pub const PORT_SEPARATOR: &str = ":";

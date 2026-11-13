@@ -12,12 +12,10 @@ use axum::http::header::CONTENT_TYPE;
 use axum::response::{IntoResponse, Response};
 use codeskimr_codes::ErrorCode;
 
-use crate::consts::{INDEX_FILE, MEDIA_TYPES, MEDIA_UNKNOWN};
+use crate::consts::{
+    EXTENSION_SEPARATOR, INDEX_FILE, MEDIA_TYPES, MEDIA_UNKNOWN, SEGMENT_EXTRA, SEGMENT_SEPARATOR,
+};
 use crate::error::Failure;
-
-const SEGMENT_SEPARATOR: char = '/';
-const EXTENSION_SEPARATOR: char = '.';
-const SEGMENT_EXTRA: [char; 3] = ['.', '_', '-'];
 
 /// The folder the UI is served from.
 #[derive(Debug, Clone)]

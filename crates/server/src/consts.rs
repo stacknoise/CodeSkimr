@@ -113,3 +113,10 @@ pub const EVENT_THREAD_NAME: &str = "codeskimr-events";
 pub const REASON_CANCELLED: &str = "cancelled";
 /// Reason of a stopped scan on the wire: a stage failed.
 pub const REASON_FAILED: &str = "failed";
+
+/// Separates the segments of a request path.
+pub const SEGMENT_SEPARATOR: char = '/';
+/// Separates a file name from its extension.
+pub const EXTENSION_SEPARATOR: char = '.';
+/// Characters besides letters and digits that a path segment may hold.
+pub const SEGMENT_EXTRA: [char; 3] = ['.', '_', '-'];

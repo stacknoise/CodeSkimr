@@ -12,9 +12,9 @@ use codeskimr_codes::ErrorCode;
 use serde_json::Value;
 
 use crate::consts::{
-    CONNECT_TIMEOUT_MS, HTTP_FIXED_HEADERS, HTTP_HEAD_END, HTTP_LINE_BREAK, HTTP_OK,
-    HTTP_STATUS_FIELD, HTTP_UNAUTHORIZED, HTTP_VERSION, LOOPBACK_HOST, MAX_REPLY_BYTES,
-    REPLY_TIMEOUT_MS,
+    CONNECT_TIMEOUT_MS, HTTP_BEARER_HEADER, HTTP_FIXED_HEADERS, HTTP_HEAD_END, HTTP_HOST_HEADER,
+    HTTP_LINE_BREAK, HTTP_OK, HTTP_REQUEST_SEPARATOR, HTTP_STATUS_FIELD, HTTP_UNAUTHORIZED,
+    HTTP_VERSION, LOOPBACK_HOST, MAX_REPLY_BYTES, PORT_SEPARATOR, REPLY_TIMEOUT_MS,
 };
 
 /// A call to the local server.
@@ -63,9 +63,15 @@ pub fn call(request: &Call<'_>) -> Result<Value, CodedError> {
 
 fn message(request: &Call<'_>) -> String {
     let mut lines = vec![
-        format!("{} {} {HTTP_VERSION}", request.method, request.path),
-        format!("Host: {LOOPBACK_HOST}:{}", request.port),
-        format!("Authorization: Bearer {}", request.token),
+        [request.method, request.path, HTTP_VERSION].join(HTTP_REQUEST_SEPARATOR),
+        [
+            HTTP_HOST_HEADER,
+            LOOPBACK_HOST,
+            PORT_SEPARATOR,
+            &request.port.to_string(),
+        ]
+        .concat(),
+        [HTTP_BEARER_HEADER, request.token].concat(),
     ];
     lines.extend(HTTP_FIXED_HEADERS.iter().map(|line| (*line).to_owned()));
     format!("{}{HTTP_HEAD_END}", lines.join(HTTP_LINE_BREAK))
