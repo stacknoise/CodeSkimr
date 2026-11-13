@@ -48,7 +48,7 @@ pub struct Reached {
     /// Step of the walk, starting at one.
     pub depth: u32,
     /// Whether every reference on the way to the symbol is verified by level 2. One unchecked
-    /// step makes the whole path unchecked (ADR 0032).
+    /// step makes the whole path unchecked (ADR 0033).
     pub verified: bool,
 }
 

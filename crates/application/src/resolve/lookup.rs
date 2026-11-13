@@ -143,7 +143,7 @@ impl<'a> Context<'a> {
     /// A member of a receiver of unknown type: the scopes of the enclosing symbols say nothing,
     /// so only the name is left. It is the last resort and never more than `probable`. Every
     /// candidate is kept, also if the owners have nothing to do with each other: level 1 never
-    /// drops a match, the reference is marked unchecked instead (ADR 0032).
+    /// drops a match, the reference is marked unchecked instead (ADR 0033).
     fn unknown(named: &[&'a Symbol]) -> Found<'a> {
         Found {
             symbols: named.to_vec(),

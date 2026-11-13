@@ -29,7 +29,7 @@ Numbers over all drawn symbols: precision = usages of ours that the tool confirm
 
 ## Results
 
-After the reversal of the ambiguity rule (ADR 0032, 150 symbols, seed 1, 2026-11-13): level 1 keeps every match and marks it unchecked.
+After the reversal of the ambiguity rule (ADR 0033, 150 symbols, seed 1, 2026-11-13): level 1 keeps every match and marks it unchecked.
 
 | Language | exact | precision | recall |
 |---|---|---|---|

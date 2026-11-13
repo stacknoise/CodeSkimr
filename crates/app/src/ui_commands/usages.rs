@@ -1,6 +1,6 @@
 //! The command of the usages screen: who uses a symbol, what it uses and what a change reaches
 //! (blueprint 9, mock 6). Every reference says whether it is verified; until level 2 exists
-//! (ADR 0032, proposed) none is, and the screen shows that.
+//! (ADR 0033, proposed) none is, and the screen shows that.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;

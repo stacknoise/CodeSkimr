@@ -388,7 +388,7 @@ Name resolution is based on Tree-sitter, in this order:
 
 - A reference resolved through steps 1–4 is `certain`.
 - A reference resolved through step 5, through an interface or base-class dispatch, or with several candidates is `probable`. It points to all candidates.
-- **Level 1 never drops a candidate** (ADR 0032). A name that matches members of unrelated types is reported for all of them, as `probable`. A missing usage makes an impact analysis worthless, so recall ranks above precision here; level 1 makes up for it by marking what it found as unchecked (section 9.4).
+- **Level 1 never drops a candidate** (ADR 0033). A name that matches members of unrelated types is reported for all of them, as `probable`. A missing usage makes an impact analysis worthless, so recall ranks above precision here; level 1 makes up for it by marking what it found as unchecked (section 9.4).
 
 ### 9.3 Level 2 – compiler-precise (after 1.0, optional)
 
