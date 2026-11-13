@@ -1,7 +1,10 @@
 //! Fixed values of the storage adapter. SQL statements live in `sql`.
 
+/// SQL statements.
+pub mod sql;
+
 /// Schema migrations in order; the position plus one is the schema version.
-pub const MIGRATIONS: &[&str] = &[include_str!("../migrations/0001_initial.sql")];
+pub const MIGRATIONS: &[&str] = &[include_str!("../../migrations/0001_initial.sql")];
 
 /// Name of the pragma that holds the schema version.
 pub const PRAGMA_USER_VERSION: &str = "user_version";
@@ -42,3 +45,22 @@ pub const ID_STEP: u64 = 1;
 pub const FIRST_POSITION: i64 = 0;
 /// Version of the first schema migration.
 pub const FIRST_VERSION: i64 = 1;
+
+/// Index of the first column of a row.
+pub const FIRST_COLUMN: usize = 0;
+/// Distance between two neighbouring columns.
+pub const COLUMN_STEP: usize = 1;
+/// Whether an edge of the layer graph violates the layering; not computed yet (see docs).
+pub const NOT_VIOLATING: bool = false;
+/// Kinds that get an entry in `type_summary`.
+pub const TYPE_KINDS: &[codeskimr_domain::SymbolKind] = &[
+    codeskimr_domain::SymbolKind::Class,
+    codeskimr_domain::SymbolKind::Interface,
+    codeskimr_domain::SymbolKind::Trait,
+    codeskimr_domain::SymbolKind::Record,
+    codeskimr_domain::SymbolKind::Struct,
+    codeskimr_domain::SymbolKind::Enum,
+    codeskimr_domain::SymbolKind::Union,
+];
+/// Checks foreign keys at commit instead of per statement, so new rows may refer to carried ones.
+pub const PRAGMA_DEFER_FOREIGN_KEYS: &str = "defer_foreign_keys";

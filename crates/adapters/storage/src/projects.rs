@@ -9,10 +9,10 @@ use codeskimr_domain::{
 };
 use rusqlite::{Connection, OptionalExtension, Row, params};
 
-use crate::codec::{column_int, id_from, ordinals, small_from};
+use crate::codec::{Cols, column_int, id_from, ordinals, small_from};
+use crate::consts::sql;
 use crate::consts::{NO_BRANCH, SOURCE_FOLDER, SOURCE_GIT};
 use crate::error::{StorageError, StorageResult};
-use crate::sql;
 use crate::store::SqliteStore;
 
 /// A source as stored: kind, location and branch.
@@ -109,7 +109,8 @@ pub fn load_layers(conn: &Connection, project: ProjectId) -> StorageResult<Vec<L
     let id = column_int(project.get())?;
     let mut statement = conn.prepare_cached(sql::LAYERS_OF_PROJECT)?;
     let rows = statement.query_map(params![id], |row| {
-        Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+        let cols = Cols::new(row);
+        Ok((cols.take::<i64>()?, cols.take::<String>()?))
     })?;
     let mut layers = Vec::new();
     for row in rows {
@@ -140,7 +141,8 @@ fn load_project(conn: &Connection, id: ProjectId) -> StorageResult<Project> {
     let raw = column_int(id.get())?;
     let row: Option<(String, String, String, String)> = conn
         .query_row(sql::PROJECT_BY_ID, params![raw], |row| {
-            Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+            let cols = Cols::new(row);
+            Ok((cols.take()?, cols.take()?, cols.take()?, cols.take()?))
         })
         .optional()?;
     let (name, kind, location, branch) = row.ok_or(StorageError::ProjectNotFound)?;
@@ -154,13 +156,14 @@ fn load_project(conn: &Connection, id: ProjectId) -> StorageResult<Project> {
 
 /// A file from a row of `files`: snapshot, id, path, language, hash, loc.
 fn file_from(row: &Row<'_>) -> rusqlite::Result<(i64, i64, String, String, String, i64)> {
+    let cols = Cols::new(row);
     Ok((
-        row.get(0)?,
-        row.get(1)?,
-        row.get(2)?,
-        row.get(3)?,
-        row.get(4)?,
-        row.get(5)?,
+        cols.take()?,
+        cols.take()?,
+        cols.take()?,
+        cols.take()?,
+        cols.take()?,
+        cols.take()?,
     ))
 }
 

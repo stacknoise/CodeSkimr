@@ -38,7 +38,7 @@ pub const LATEST_FILES: &str = "SELECT snapshot_id, id, path, language, content_
     FROM files WHERE snapshot_id = (SELECT MAX(id) FROM snapshots WHERE project_id = ?1) \
     ORDER BY path";
 /// The newest snapshot of a project: project id.
-pub const LATEST_SNAPSHOT: &str = "SELECT id, project_id, commit_hash, created, mode, files, \
+pub const LATEST_SNAPSHOT: &str = "SELECT id, commit_hash, created, mode, files, \
     symbols, refs FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT 1";
 
 /// Adds a snapshot header: id, project, commit, created, mode, files, symbols, references.

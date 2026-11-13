@@ -168,3 +168,44 @@ fn next_free_id_is_above_every_stored_id() {
     store.persist(first_scan(10)).unwrap();
     assert_eq!(store.next_free_id().unwrap(), 32);
 }
+
+/// Incremental scan 40 that analyses only `c.cs` and adds the given references.
+#[cfg(test)]
+fn scan_of_c(references: Vec<codeskimr_domain::Reference>) -> SnapshotData {
+    let mut scan = data(header(40, ScanMode::Incremental));
+    scan.files = vec![file(40, 41, "c.cs", "hc")];
+    scan.references = references;
+    scan
+}
+
+#[cfg(test)]
+#[test]
+fn new_references_may_point_at_carried_symbols() {
+    let store = registered();
+    store.persist(first_scan(10)).unwrap();
+    let mut scan = scan_of_c(vec![reference(43, 41, 42, 21)]);
+    scan.symbols = vec![symbol(42, 41, SymbolKind::Method, "App.C.Go", None)];
+    let snapshot = store.persist(scan).unwrap();
+    assert_eq!(snapshot.stats.references, 2);
+    assert_eq!(
+        store
+            .usage_count(snapshot.id, codeskimr_domain::SymbolId::new(21))
+            .unwrap(),
+        1
+    );
+}
+
+#[cfg(test)]
+#[test]
+fn a_failing_incremental_scan_keeps_the_previous_snapshot_intact() {
+    let store = registered();
+    store.persist(first_scan(10)).unwrap();
+    assert!(
+        store
+            .persist(scan_of_c(vec![reference(43, 41, 998, 999)]))
+            .is_err()
+    );
+    let latest = store.latest_snapshot(PROJECT).unwrap().unwrap();
+    assert_eq!((latest.id, latest.stats.files), (SnapshotId::new(10), 2));
+    assert_eq!(store.latest_files(PROJECT).unwrap().len(), 2);
+}

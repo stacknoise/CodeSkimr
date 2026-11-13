@@ -18,6 +18,6 @@ SQLite database per workspace, WAL mode, schema migrations in `crates/adapters/s
 
 ## Known limits
 
-- Search is case-insensitive for ASCII only (SQLite `lower`).
+- Search is case-insensitive for ASCII only (SQLite `lower`); the query is lowered the same way.
 - `layer_graph.violates_layering` is always false until the project model carries the allowed directions.
 - A deleted file cannot be told apart from an unchanged one, because `SnapshotData` only lists analysed files.

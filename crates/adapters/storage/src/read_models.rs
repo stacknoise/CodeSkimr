@@ -8,22 +8,11 @@ use std::collections::BTreeMap;
 use codeskimr_domain::{Layer, MetricKind, SnapshotId, SymbolKind};
 use rusqlite::{Connection, params};
 
-use crate::codec::{column_int, id_from};
-use crate::consts::NAME_SEPARATOR;
+use crate::codec::{Cols, column_int, id_from};
+use crate::consts::sql;
+use crate::consts::{NAME_SEPARATOR, NOT_VIOLATING, TYPE_KINDS};
 use crate::cycles::edges_in_cycles;
 use crate::error::StorageResult;
-use crate::sql;
-
-/// Kinds that get an entry in `type_summary`.
-const TYPE_KINDS: [SymbolKind; 7] = [
-    SymbolKind::Class,
-    SymbolKind::Interface,
-    SymbolKind::Trait,
-    SymbolKind::Record,
-    SymbolKind::Struct,
-    SymbolKind::Enum,
-    SymbolKind::Union,
-];
 
 /// Fills `search_index`, `usage_counts`, `type_summary` and `layer_graph` of a snapshot.
 pub fn rebuild(conn: &Connection, snapshot: SnapshotId, layers: &[Layer]) -> StorageResult<()> {
@@ -33,7 +22,7 @@ pub fn rebuild(conn: &Connection, snapshot: SnapshotId, layers: &[Layer]) -> Sto
         params![id, SymbolKind::Parameter.label()],
     )?;
     conn.execute(sql::USAGES_REBUILD, params![id])?;
-    for kind in TYPE_KINDS {
+    for kind in TYPE_KINDS.iter().copied() {
         conn.execute(
             sql::TYPE_SUMMARY_REBUILD,
             params![
@@ -69,7 +58,8 @@ fn layer_of_symbols(
 ) -> StorageResult<BTreeMap<u64, usize>> {
     let mut statement = conn.prepare_cached(sql::SYMBOL_NAMES)?;
     let rows = statement.query_map(params![snapshot], |row| {
-        Ok((row.get::<_, i64>(0)?, row.get::<_, String>(1)?))
+        let cols = Cols::new(row);
+        Ok((cols.take::<i64>()?, cols.take::<String>()?))
     })?;
     let mut owners = BTreeMap::new();
     for row in rows {
@@ -89,7 +79,8 @@ fn count_edges(
 ) -> StorageResult<BTreeMap<(usize, usize), u32>> {
     let mut statement = conn.prepare_cached(sql::REFERENCE_ENDS)?;
     let rows = statement.query_map(params![snapshot], |row| {
-        Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?))
+        let cols = Cols::new(row);
+        Ok((cols.take::<i64>()?, cols.take::<i64>()?))
     })?;
     let mut counts = BTreeMap::new();
     for row in rows {
@@ -124,7 +115,7 @@ fn rebuild_layer_graph(conn: &Connection, snapshot: i64, layers: &[Layer]) -> St
                     from_layer.name.as_str(),
                     to_layer.name.as_str(),
                     i64::from(count),
-                    false,
+                    NOT_VIOLATING,
                     cyclic.contains(&(from, to)),
                 ],
             )?;

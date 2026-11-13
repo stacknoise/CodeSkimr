@@ -4,7 +4,12 @@ use std::str::FromStr;
 
 use codeskimr_domain::Span;
 
-use crate::consts::FIRST_POSITION;
+use std::cell::Cell;
+
+use rusqlite::Row;
+use rusqlite::types::FromSql;
+
+use crate::consts::{COLUMN_STEP, FIRST_COLUMN, FIRST_POSITION};
 use crate::error::{StorageError, StorageResult};
 
 /// An id or count as a column value.
@@ -30,20 +35,52 @@ where
     Ok(text.parse::<T>()?)
 }
 
-/// The four numbers of a span: start line, start column, end line, end column.
+/// The four numbers of a span.
 #[derive(Debug, Clone, Copy)]
-pub struct SpanColumns(pub i64, pub i64, pub i64, pub i64);
+pub struct SpanColumns {
+    /// Start line.
+    pub start_line: i64,
+    /// Start column.
+    pub start_column: i64,
+    /// End line.
+    pub end_line: i64,
+    /// End column.
+    pub end_column: i64,
+}
 
 impl SpanColumns {
     /// Splits a span into its columns.
     pub fn of(span: &Span) -> Self {
         let (start, end) = (span.start(), span.end());
-        Self(
-            i64::from(start.line),
-            i64::from(start.column),
-            i64::from(end.line),
-            i64::from(end.column),
-        )
+        Self {
+            start_line: i64::from(start.line),
+            start_column: i64::from(start.column),
+            end_line: i64::from(end.line),
+            end_column: i64::from(end.column),
+        }
+    }
+}
+
+/// Reads the columns of a row one after the other, so no column index is spelled out.
+pub struct Cols<'a> {
+    row: &'a Row<'a>,
+    next: Cell<usize>,
+}
+
+impl<'a> Cols<'a> {
+    /// Starts at the first column.
+    pub const fn new(row: &'a Row<'a>) -> Self {
+        Self {
+            row,
+            next: Cell::new(FIRST_COLUMN),
+        }
+    }
+
+    /// The next column.
+    pub fn take<T: FromSql>(&self) -> rusqlite::Result<T> {
+        let index = self.next.get();
+        self.next.set(index + COLUMN_STEP);
+        self.row.get(index)
     }
 }
 

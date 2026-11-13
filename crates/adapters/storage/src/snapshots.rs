@@ -8,11 +8,12 @@ use codeskimr_domain::{
 };
 use rusqlite::{Connection, OptionalExtension, params};
 
-use crate::codec::{SpanColumns, column_int, id_from, label_from, small_from};
+use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from, small_from};
+use crate::consts::{PRAGMA_DEFER_FOREIGN_KEYS, sql};
 use crate::error::{StorageError, StorageResult};
 use crate::projects::load_layers;
+use crate::read_models;
 use crate::store::SqliteStore;
-use crate::{read_models, sql};
 
 impl SnapshotStore for SqliteStore {
     fn persist(&self, data: SnapshotData) -> Result<Snapshot, CodedError> {
@@ -28,6 +29,7 @@ fn write_snapshot(conn: &Connection, data: &SnapshotData, keep: u32) -> StorageR
     if known == 0 {
         return Err(StorageError::ProjectNotFound);
     }
+    conn.pragma_update(None, PRAGMA_DEFER_FOREIGN_KEYS, true)?;
     insert_header(conn, header)?;
     insert_facts(conn, data)?;
     if header.mode == ScanMode::Incremental {
@@ -106,10 +108,10 @@ fn insert_symbol(conn: &Connection, snapshot: i64, symbol: &Symbol) -> StorageRe
         parent,
         symbol.visibility.map(Visibility::label),
         symbol.is_static,
-        span.0,
-        span.1,
-        span.2,
-        span.3,
+        span.start_line,
+        span.start_column,
+        span.end_line,
+        span.end_column,
         symbol.signature,
         symbol.doc,
     ])?;
@@ -125,10 +127,10 @@ fn insert_reference(conn: &Connection, snapshot: i64, reference: &Reference) -> 
             column_int(reference.from.get())?,
             column_int(reference.to.get())?,
             column_int(reference.file.get())?,
-            span.0,
-            span.1,
-            span.2,
-            span.3,
+            span.start_line,
+            span.start_column,
+            span.end_line,
+            span.end_column,
             reference.kind.label(),
             reference.confidence.label(),
         ])?;
@@ -170,7 +172,8 @@ fn carry_over(conn: &Connection, project: ProjectId, snapshot: SnapshotId) -> St
 fn totals(conn: &Connection, snapshot: SnapshotId) -> StorageResult<SnapshotStats> {
     let (files, symbols, references): (i64, i64, i64) =
         conn.query_row(sql::TOTALS, params![column_int(snapshot.get())?], |row| {
-            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+            let cols = Cols::new(row);
+            Ok((cols.take()?, cols.take()?, cols.take()?))
         })?;
     Ok(SnapshotStats {
         files: small_from(files)?,
@@ -199,15 +202,16 @@ pub fn latest_snapshot(conn: &Connection, project: ProjectId) -> StorageResult<O
             sql::LATEST_SNAPSHOT,
             params![column_int(project.get())?],
             |row| {
+                let cols = Cols::new(row);
                 Ok((
-                    row.get::<_, i64>(0)?,
-                    row.get::<_, Option<String>>(2)?,
-                    row.get::<_, i64>(3)?,
-                    row.get::<_, String>(4)?,
+                    cols.take::<i64>()?,
+                    cols.take::<Option<String>>()?,
+                    cols.take::<i64>()?,
+                    cols.take::<String>()?,
                     (
-                        row.get::<_, i64>(5)?,
-                        row.get::<_, i64>(6)?,
-                        row.get::<_, i64>(7)?,
+                        cols.take::<i64>()?,
+                        cols.take::<i64>()?,
+                        cols.take::<i64>()?,
                     ),
                 ))
             },

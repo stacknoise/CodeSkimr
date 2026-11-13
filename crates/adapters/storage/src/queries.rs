@@ -2,14 +2,15 @@
 
 use codeskimr_application::error::CodedError;
 use codeskimr_domain::{
-    LayerEdge, LayerName, QualifiedName, RelativePath, SnapshotId, SymbolId, SymbolKind, SymbolName,
+    LayerEdge, LayerName, ProjectId, QualifiedName, RelativePath, Snapshot, SnapshotId, SymbolId,
+    SymbolKind, SymbolName,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 
-use crate::codec::{column_int, id_from, label_from, small_from};
+use crate::codec::{Cols, column_int, id_from, label_from, small_from};
+use crate::consts::sql;
 use crate::consts::{LIKE_ANY, LIKE_ESCAPE, LIKE_ONE};
 use crate::error::StorageResult;
-use crate::sql;
 use crate::store::SqliteStore;
 
 /// One result of the quick search.
@@ -68,7 +69,7 @@ fn search(
     query: &str,
     limit: u32,
 ) -> StorageResult<Vec<SearchHit>> {
-    let query = query.to_lowercase();
+    let query = query.to_ascii_lowercase();
     if query.is_empty() {
         return Ok(Vec::new());
     }
@@ -77,12 +78,13 @@ fn search(
     let rows = statement.query_map(
         params![snapshot, fuzzy, query, prefix, query, i64::from(limit)],
         |row| {
+            let cols = Cols::new(row);
             Ok((
-                row.get::<_, i64>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-                row.get::<_, String>(3)?,
-                row.get::<_, String>(4)?,
+                cols.take::<i64>()?,
+                cols.take::<String>()?,
+                cols.take::<String>()?,
+                cols.take::<String>()?,
+                cols.take::<String>()?,
             ))
         },
     )?;
@@ -103,12 +105,13 @@ fn search(
 fn layer_edges(conn: &Connection, snapshot: i64) -> StorageResult<Vec<LayerEdge>> {
     let mut statement = conn.prepare_cached(sql::EDGES)?;
     let rows = statement.query_map(params![snapshot], |row| {
+        let cols = Cols::new(row);
         Ok((
-            row.get::<_, String>(0)?,
-            row.get::<_, String>(1)?,
-            row.get::<_, i64>(2)?,
-            row.get::<_, bool>(3)?,
-            row.get::<_, bool>(4)?,
+            cols.take::<String>()?,
+            cols.take::<String>()?,
+            cols.take::<i64>()?,
+            cols.take::<bool>()?,
+            cols.take::<bool>()?,
         ))
     })?;
     let mut edges = Vec::new();
@@ -132,11 +135,12 @@ fn type_summary(
 ) -> StorageResult<Option<TypeSummary>> {
     let row = conn
         .query_row(sql::TYPE_SUMMARY, params![snapshot, symbol], |row| {
+            let cols = Cols::new(row);
             Ok((
-                row.get::<_, i64>(0)?,
-                row.get::<_, Option<f64>>(1)?,
-                row.get::<_, Option<f64>>(2)?,
-                row.get::<_, Option<f64>>(3)?,
+                cols.take::<i64>()?,
+                cols.take::<Option<f64>>()?,
+                cols.take::<Option<f64>>()?,
+                cols.take::<Option<f64>>()?,
             ))
         })
         .optional()?;
@@ -212,10 +216,7 @@ impl SqliteStore {
     ///
     /// # Errors
     /// A coded `STO` failure.
-    pub fn latest_snapshot(
-        &self,
-        project: codeskimr_domain::ProjectId,
-    ) -> Result<Option<codeskimr_domain::Snapshot>, CodedError> {
+    pub fn latest_snapshot(&self, project: ProjectId) -> Result<Option<Snapshot>, CodedError> {
         self.read(|conn| crate::snapshots::latest_snapshot(conn, project))
             .map_err(CodedError::from)
     }

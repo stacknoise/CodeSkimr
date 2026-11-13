@@ -31,14 +31,12 @@ pub(crate) enum StorageError {
 }
 
 impl StorageError {
-    /// A failed migration; a full disk keeps its own code.
+    /// A failed migration; busy, locked and full-disk failures keep their own codes.
     pub(crate) fn migration(cause: rusqlite::Error) -> Self {
-        match Self::from(cause) {
-            Self::Sqlite(error) if sqlite_code(&error) == ErrorCode::DiskFull => {
-                Self::Sqlite(error)
-            }
-            Self::Sqlite(error) => Self::Migration(error),
-            other => other,
+        if sqlite_code(&cause) == ErrorCode::DatabaseFailed {
+            Self::Migration(cause)
+        } else {
+            Self::Sqlite(cause)
         }
     }
 }
