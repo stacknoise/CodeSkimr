@@ -93,4 +93,6 @@ export interface SourceInfo {
   lines: string[];
   /** Whether the declaration is longer than `lines`. */
   truncated: boolean;
+  /** True in the HTML export, which never holds source text. */
+  excluded?: boolean;
 }

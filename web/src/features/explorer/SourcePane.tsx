@@ -37,6 +37,9 @@ function Code(props: { info: SourceInfo }) {
 function Lines(props: { info: SourceInfo }) {
   return (
     <Switch>
+      <Match when={props.info.excluded}>
+        <Note text={t(I18N_KEYS.EXPLORER_SOURCE_EXCLUDED)} />
+      </Match>
       <Match when={!props.info.available}>
         <Note text={t(I18N_KEYS.EXPLORER_SOURCE_UNAVAILABLE)} />
       </Match>

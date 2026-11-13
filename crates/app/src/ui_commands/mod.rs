@@ -4,6 +4,9 @@
 
 mod consts;
 mod explorer;
+mod export;
+#[cfg(test)]
+mod export_tests;
 mod graph;
 mod projects;
 mod rating;
@@ -18,7 +21,7 @@ mod usages;
 
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
-use codeskimr_application::config::{Graph, MetricThresholds};
+use codeskimr_application::config::{Config, Graph, MetricThresholds};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::registry::Registry;
@@ -33,6 +36,7 @@ use crate::locations::Locations;
 use crate::wiring::open_store;
 use codeskimr_storage::SqliteStore;
 use explorer::{ExplorerOutline, ExplorerPorts};
+pub(crate) use export::{ExportInput, HtmlExport};
 use graph::{GraphLayers, GraphPorts};
 use projects::{AddProject, ListProjects, RescanProject};
 use running::RunningScans;
@@ -90,7 +94,10 @@ pub fn command_api(
             budgets: BudgetTargets::from(&config.budgets),
         })
         .map_err(CodedError::caused_by)?;
-    register_explorer(&mut registry, catalog, config.metrics.clone())?;
+    register_explorer(&mut registry, &catalog, config.metrics.clone())?;
+    registry
+        .register(export_command(&catalog, &config, locations))
+        .map_err(CodedError::caused_by)?;
     let mut api = CommandApi::new(Arc::new(registry));
     api.expose::<ListProjects>()?;
     api.expose::<AddProject>()?;
@@ -102,6 +109,7 @@ pub fn command_api(
     api.expose::<UsagesQuery>()?;
     api.expose::<GraphLayers>()?;
     api.expose::<StatusInfo>()?;
+    api.expose::<HtmlExport>()?;
     Ok(api)
 }
 
@@ -144,14 +152,10 @@ fn register_usages(
     store: &Arc<SqliteStore>,
     max_depth: u32,
 ) -> Result<(), CodedError> {
-    let ports = Arc::new(UsagesPorts {
-        projects: store.clone(),
-        index: store.clone(),
-        usages: store.clone(),
-        max_depth,
-    });
     registry
-        .register(UsagesQuery { ports })
+        .register(UsagesQuery {
+            ports: usages_ports(store, max_depth),
+        })
         .map_err(CodedError::caused_by)
 }
 
@@ -160,28 +164,19 @@ fn register_graph(
     store: &Arc<SqliteStore>,
     look: Graph,
 ) -> Result<(), CodedError> {
-    let ports = Arc::new(GraphPorts {
-        projects: store.clone(),
-        index: store.clone(),
-        look,
-    });
     registry
-        .register(GraphLayers { ports })
+        .register(GraphLayers {
+            ports: graph_ports(store, look),
+        })
         .map_err(CodedError::caused_by)
 }
 
 fn register_explorer(
     registry: &mut Registry,
-    store: Arc<SqliteStore>,
+    store: &Arc<SqliteStore>,
     thresholds: MetricThresholds,
 ) -> Result<(), CodedError> {
-    let ports = Arc::new(ExplorerPorts {
-        projects: store.clone(),
-        index: store.clone(),
-        outline: store,
-        text: Arc::new(FolderText),
-        thresholds,
-    });
+    let ports = explorer_ports(store, thresholds);
     registry
         .register(ExplorerOutline {
             ports: Arc::clone(&ports),
@@ -195,4 +190,58 @@ fn register_explorer(
     registry
         .register(ExplorerSymbol { ports })
         .map_err(CodedError::caused_by)
+}
+
+fn usages_ports(store: &Arc<SqliteStore>, max_depth: u32) -> Arc<UsagesPorts> {
+    Arc::new(UsagesPorts {
+        projects: store.clone(),
+        index: store.clone(),
+        usages: store.clone(),
+        max_depth,
+    })
+}
+
+fn graph_ports(store: &Arc<SqliteStore>, look: Graph) -> Arc<GraphPorts> {
+    Arc::new(GraphPorts {
+        projects: store.clone(),
+        index: store.clone(),
+        look,
+    })
+}
+
+fn explorer_ports(store: &Arc<SqliteStore>, thresholds: MetricThresholds) -> Arc<ExplorerPorts> {
+    Arc::new(ExplorerPorts {
+        projects: store.clone(),
+        index: store.clone(),
+        outline: store.clone(),
+        text: Arc::new(FolderText),
+        thresholds,
+    })
+}
+
+/// The HTML export: it reads through the commands of the explorer, the usages and the map, so its
+/// pages show exactly what the browser UI shows.
+pub(crate) fn export_command(
+    store: &Arc<SqliteStore>,
+    config: &Config,
+    locations: &Locations,
+) -> HtmlExport {
+    let explorer = explorer_ports(store, config.metrics.clone());
+    HtmlExport::new(
+        export::ExportParts {
+            projects: store.clone(),
+            index: store.clone(),
+            outline: ExplorerOutline {
+                ports: Arc::clone(&explorer),
+            },
+            symbol: ExplorerSymbol { ports: explorer },
+            usages: UsagesQuery {
+                ports: usages_ports(store, config.mcp.max_depth),
+            },
+            graph: GraphLayers {
+                ports: graph_ports(store, config.graph.clone()),
+            },
+        },
+        locations.existing_dir(&config.ui.dir),
+    )
 }

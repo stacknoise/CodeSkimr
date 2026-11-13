@@ -6,7 +6,6 @@ import { listenToScans } from "../features/scan/events";
 import { ScanScreen } from "../features/scan/ScanScreen";
 import { ProjectsScreen } from "../features/projects/ProjectsScreen";
 import { QuickSearch } from "../features/search/QuickSearch";
-import { SearchField } from "../features/search/SearchField";
 import { useSearchShortcut } from "../features/search/keys";
 import { openSearch } from "../features/search/search";
 import { UsagesScreen } from "../features/usages/UsagesScreen";
@@ -17,39 +16,19 @@ import { I18N_KEYS } from "../shared/i18n/keys";
 import { KIND } from "../shared/session/consts";
 import { sessionState } from "../shared/session/session";
 import { cx } from "../shared/ui/cx";
-import { Icon } from "../shared/ui/Icon";
 import {
-  CURRENT_PAGE,
   EXPLORER_ROUTE,
   FLUSH_PATHS,
   FOOTER_ROUTES,
   GRAPH_ROUTE,
-  LOGO_LETTER,
   MAIN_ROUTES,
   SCAN_ROUTE,
   SETTINGS_ROUTE,
   USAGES_ROUTE,
-  type Route,
 } from "./consts";
 import styles from "./App.module.css";
-import { currentPath, navigate } from "./router";
-
-function RailLink(props: { route: Route }) {
-  return (
-    <a
-      href={props.route.path}
-      class={cx(styles.railButton, currentPath() === props.route.path && styles.on)}
-      aria-label={t(props.route.label)}
-      aria-current={currentPath() === props.route.path ? CURRENT_PAGE : undefined}
-      onClick={(event) => {
-        event.preventDefault();
-        navigate(props.route.path);
-      }}
-    >
-      <Icon name={props.route.icon} />
-    </a>
-  );
-}
+import { RailLink, TopBar } from "./Frame";
+import { currentPath } from "./router";
 
 /** The screen of the current path. */
 function Screen() {
@@ -84,17 +63,7 @@ export function App() {
   });
   return (
     <div class={styles.root}>
-      <header class={styles.top}>
-        <div class={styles.brand}>
-          <span class={styles.logo}>{LOGO_LETTER}</span>
-          <span class={styles.name}>{t(I18N_KEYS.APP_NAME)}</span>
-        </div>
-        <SearchField />
-        <div class={styles.workspace}>
-          <span>{t(I18N_KEYS.APP_WORKSPACE)}</span>
-          <b>{t(I18N_KEYS.APP_WORKSPACE_LOCAL)}</b>
-        </div>
-      </header>
+      <TopBar workspace={t(I18N_KEYS.APP_WORKSPACE)} name={t(I18N_KEYS.APP_WORKSPACE_LOCAL)} />
       <div class={styles.body}>
         <nav class={styles.rail} aria-label={t(I18N_KEYS.NAV_LABEL)}>
           <For each={MAIN_ROUTES}>{(route) => <RailLink route={route} />}</For>
