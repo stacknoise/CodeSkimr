@@ -1,0 +1,22 @@
+# Allowed dependencies between workspace crates (blueprint 4.2, table "Allowed dependencies").
+# Key: crate name. Value: workspace crates it may depend on. Anything not listed is forbidden.
+# Third-party crates are checked by cargo-deny, not here.
+
+[allowed]
+# Build-time generator in tools/codegen (WP-14); codes uses it as a build-dependency only.
+codeskimr_codegen = []
+codeskimr_codes = ["codeskimr_codegen"]
+codeskimr_domain = ["codeskimr_codes"]
+codeskimr_application = ["codeskimr_domain", "codeskimr_codes"]
+codeskimr_parsing = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes"]
+codeskimr_storage = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes"]
+codeskimr_source = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes"]
+codeskimr_i18n = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes"]
+codeskimr_secrets = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes"]
+codeskimr_server = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes", "codeskimr_i18n"]
+codeskimr_cli = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes", "codeskimr_i18n"]
+codeskimr_mcp = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes", "codeskimr_i18n"]
+
+# The composition root may use every workspace crate.
+[wildcard]
+crates = ["codeskimr"]

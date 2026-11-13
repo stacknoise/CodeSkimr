@@ -1,0 +1,26 @@
+{
+  "threshold": 0,
+  "minLines": 5,
+  "minTokens": 50,
+  "format": [
+    "rust",
+    "typescript",
+    "tsx",
+    "javascript"
+  ],
+  "path": [
+    "."
+  ],
+  "ignore": [
+    "**/target/**",
+    "**/node_modules/**",
+    "**/generated/**",
+    "docs/**",
+    "corpus/**"
+  ],
+  "gitignore": true,
+  "reporters": [
+    "console"
+  ],
+  "exitCode": 1
+}
