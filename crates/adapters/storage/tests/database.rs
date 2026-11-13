@@ -7,10 +7,12 @@ use std::num::NonZeroU32;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 
-use codeskimr_application::ports::{ProjectRepository, SnapshotStore, SymbolFingerprints};
-use codeskimr_domain::{Fingerprint, Fingerprints, ScanMode, SymbolId, SymbolKind};
+use codeskimr_application::ports::{
+    ProjectRepository, SnapshotData, SnapshotStore, SymbolFingerprints,
+};
+use codeskimr_domain::{Fingerprint, Fingerprints, MetricKind, ScanMode, SymbolId, SymbolKind};
 use codeskimr_storage::SqliteStore;
-use common::{PROJECT, code_of, data, file, header, project, symbol};
+use common::{PROJECT, code_of, data, file, header, metric, project, reference, symbol};
 use rusqlite::Connection;
 
 static NEXT: AtomicU32 = AtomicU32::new(0);
@@ -116,38 +118,62 @@ fn a_folder_instead_of_a_file_is_a_database_failure() {
     assert_eq!(code_of(&error), "STO-601");
 }
 
+/// A scan with one file, a class with a method, a reference, metrics and a fingerprint.
+fn scan_with_every_table(snapshot: u64, base: u64) -> SnapshotData {
+    let mut scan = data(header(snapshot, ScanMode::Full));
+    scan.files = vec![file(snapshot, base, "a.cs", "h")];
+    scan.symbols = vec![
+        symbol(base + 1, base, SymbolKind::Class, "App.A", None),
+        symbol(
+            base + 2,
+            base,
+            SymbolKind::Method,
+            "App.A.M",
+            Some(base + 1),
+        ),
+    ];
+    scan.references = vec![reference(base + 3, base, base + 2, base + 1)];
+    scan.metrics = vec![
+        metric(base + 1, MetricKind::Loc, 10.0),
+        metric(base + 2, MetricKind::CyclomaticComplexity, 2.0),
+    ];
+    scan.fingerprints = vec![SymbolFingerprints {
+        symbol: SymbolId::new(base + 1),
+        fingerprints: Fingerprints::from_entries(vec![Fingerprint {
+            hash: base,
+            position: 0,
+        }]),
+    }];
+    scan
+}
+
 #[test]
 fn pruned_snapshots_leave_no_rows_behind() {
     let db = TempDb::new();
     let store = SqliteStore::open(&db.0, keep(1)).unwrap();
     store.save_project(&project(1, "/work/app", &[])).unwrap();
     for (snapshot, base) in [(10, 100), (20, 200)] {
-        let mut scan = data(header(snapshot, ScanMode::Full));
-        scan.files = vec![file(snapshot, base, "a.cs", "h")];
-        scan.symbols = vec![symbol(base + 1, base, SymbolKind::Class, "App.A", None)];
-        scan.fingerprints = vec![SymbolFingerprints {
-            symbol: SymbolId::new(base + 1),
-            fingerprints: Fingerprints::from_entries(vec![Fingerprint {
-                hash: base,
-                position: 0,
-            }]),
-        }];
-        store.persist(scan).unwrap();
+        store
+            .persist(scan_with_every_table(snapshot, base))
+            .unwrap();
     }
     let conn = Connection::open(&db.0).unwrap();
-    for table in [
-        "snapshots",
-        "files",
-        "symbols",
-        "search_index",
-        "type_summary",
-        "fingerprints",
+    for (table, expected) in [
+        ("snapshots", 1),
+        ("files", 1),
+        ("symbols", 2),
+        ("symbol_references", 1),
+        ("metrics", 2),
+        ("search_index", 2),
+        ("usage_counts", 1),
+        ("type_summary", 1),
+        ("fingerprints", 1),
     ] {
         let rows: i64 = conn
             .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
                 row.get(0)
             })
             .unwrap();
-        assert_eq!(rows, 1, "table {table}");
+        assert_eq!(rows, expected, "table {table}");
     }
 }

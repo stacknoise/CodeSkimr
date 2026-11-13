@@ -11,8 +11,9 @@ use codeskimr_domain::{ReverseIndex, SnapshotId};
 use rusqlite::{Connection, Transaction, TransactionBehavior};
 
 use crate::consts::{
-    BUSY_TIMEOUT_MS, FIRST_ID, ID_STEP, JOURNAL_MODE_WAL, PRAGMA_FOREIGN_KEYS, PRAGMA_JOURNAL_MODE,
-    PRAGMA_ON, PRAGMA_SYNCHRONOUS, SYNCHRONOUS_NORMAL,
+    BUSY_TIMEOUT_MS, CACHE_SIZE_KIB, FIRST_ID, ID_STEP, JOURNAL_MODE_WAL, PRAGMA_CACHE_SIZE,
+    PRAGMA_FOREIGN_KEYS, PRAGMA_JOURNAL_MODE, PRAGMA_ON, PRAGMA_SYNCHRONOUS, PRAGMA_TEMP_STORE,
+    SYNCHRONOUS_NORMAL, TEMP_STORE_MEMORY,
 };
 use crate::error::StorageResult;
 use crate::sql;
@@ -61,6 +62,8 @@ impl SqliteStore {
         conn.pragma_update(None, PRAGMA_FOREIGN_KEYS, PRAGMA_ON)?;
         conn.pragma_update(None, PRAGMA_JOURNAL_MODE, JOURNAL_MODE_WAL)?;
         conn.pragma_update(None, PRAGMA_SYNCHRONOUS, SYNCHRONOUS_NORMAL)?;
+        conn.pragma_update(None, PRAGMA_CACHE_SIZE, CACHE_SIZE_KIB)?;
+        conn.pragma_update(None, PRAGMA_TEMP_STORE, TEMP_STORE_MEMORY)?;
         migrate::apply(&mut conn)?;
         Ok(Self {
             conn: Mutex::new(conn),

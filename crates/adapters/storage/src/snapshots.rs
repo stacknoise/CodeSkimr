@@ -6,7 +6,7 @@ use codeskimr_domain::{
     CommitHash, Metric, ProjectId, Reference, RelativePath, ScanMode, Snapshot, SnapshotId,
     SnapshotStats, SourceFile, Symbol, Timestamp, Visibility,
 };
-use rusqlite::{Connection, OptionalExtension, params};
+use rusqlite::{Connection, OptionalExtension, Statement, params};
 
 use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from, small_from};
 use crate::consts::{PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON};
@@ -41,11 +41,26 @@ fn write_snapshot(conn: &Connection, data: &SnapshotData, keep: u32) -> StorageR
     set_totals(conn, header.id, stats)?;
     let layers = load_layers(conn, header.project)?;
     read_models::rebuild(conn, header.id, &layers)?;
-    conn.execute(sql::SNAPSHOT_PRUNE, params![project, keep])?;
+    prune(conn, project, keep)?;
     Ok(Snapshot {
         stats,
         ..header.clone()
     })
+}
+
+/// Deletes all but the newest `keep` snapshots of the project, table by table.
+fn prune(conn: &Connection, project: i64, keep: u32) -> StorageResult<()> {
+    let mut statement = conn.prepare_cached(sql::SNAPSHOTS_EXPIRED)?;
+    let expired = statement
+        .query_map(params![project, keep], |row| row.get::<_, i64>(0))?
+        .collect::<Result<Vec<_>, _>>()?;
+    for snapshot in expired {
+        for delete in sql::SNAPSHOT_CONTENT_DELETE {
+            conn.prepare_cached(delete)?.execute(params![snapshot])?;
+        }
+        conn.execute(sql::SNAPSHOT_PRUNE, params![snapshot])?;
+    }
+    Ok(())
 }
 
 fn insert_header(conn: &Connection, snapshot: &Snapshot) -> StorageResult<()> {
@@ -73,11 +88,13 @@ fn insert_facts(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
     for symbol in &data.symbols {
         insert_symbol(conn, snapshot, symbol)?;
     }
+    let mut references = conn.prepare_cached(sql::REFERENCE_INSERT)?;
     for reference in &data.references {
-        insert_reference(conn, snapshot, reference)?;
+        insert_reference(&mut references, snapshot, reference)?;
     }
+    let mut metrics = conn.prepare_cached(sql::METRIC_INSERT)?;
     for metric in &data.metrics {
-        insert_metric(conn, snapshot, metric)?;
+        insert_metric(&mut metrics, snapshot, metric)?;
     }
     similarity::insert_all(conn, snapshot, &data.fingerprints)?;
     Ok(())
@@ -121,27 +138,34 @@ fn insert_symbol(conn: &Connection, snapshot: i64, symbol: &Symbol) -> StorageRe
     Ok(())
 }
 
-fn insert_reference(conn: &Connection, snapshot: i64, reference: &Reference) -> StorageResult<()> {
+fn insert_reference(
+    statement: &mut Statement<'_>,
+    snapshot: i64,
+    reference: &Reference,
+) -> StorageResult<()> {
     let span = SpanColumns::of(&reference.span);
-    conn.prepare_cached(sql::REFERENCE_INSERT)?
-        .execute(params![
-            snapshot,
-            column_int(reference.id.get())?,
-            column_int(reference.from.get())?,
-            column_int(reference.to.get())?,
-            column_int(reference.file.get())?,
-            span.start_line,
-            span.start_column,
-            span.end_line,
-            span.end_column,
-            reference.kind.label(),
-            reference.confidence.label(),
-        ])?;
+    statement.execute(params![
+        snapshot,
+        column_int(reference.id.get())?,
+        column_int(reference.from.get())?,
+        column_int(reference.to.get())?,
+        column_int(reference.file.get())?,
+        span.start_line,
+        span.start_column,
+        span.end_line,
+        span.end_column,
+        reference.kind.label(),
+        reference.confidence.label(),
+    ])?;
     Ok(())
 }
 
-fn insert_metric(conn: &Connection, snapshot: i64, metric: &Metric) -> StorageResult<()> {
-    conn.prepare_cached(sql::METRIC_INSERT)?.execute(params![
+fn insert_metric(
+    statement: &mut Statement<'_>,
+    snapshot: i64,
+    metric: &Metric,
+) -> StorageResult<()> {
+    statement.execute(params![
         snapshot,
         column_int(metric.symbol.get())?,
         metric.kind.label(),

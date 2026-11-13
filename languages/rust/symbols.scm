@@ -4,10 +4,11 @@
 ; `impl` blocks are no symbols, so a function inside one is a method of the enclosing module (a
 ; `for` in the head makes the methods of a trait implementation public, see language.toml).
 
-; Declarations that look the same wherever they stand.
-(([(line_comment) (block_comment)]* @doc) .
- (attribute_item)* .
- [(mod_item
+; Declarations that look the same wherever they stand. Documentation is not queried: the adapter
+; takes the comments before the declaration (`doc_before_declaration` in language.toml), because a
+; quantified comment pattern makes the query slow (issue #107).
+
+[(mod_item
    (visibility_modifier ["pub" "in" (crate) (super) (self)] @modifier)*
    name: (identifier) @name) @symbol.namespace
   (struct_item
@@ -35,32 +36,25 @@
   (enum_variant name: (identifier) @name) @symbol.enum_member
   (field_declaration
    (visibility_modifier ["pub" "in" (crate) (super) (self)] @modifier)*
-   name: (field_identifier) @name) @symbol.field])
+   name: (field_identifier) @name) @symbol.field]
 
 ; Functions. A function directly in a module, a function body or at the top of a file is a
 ; `function`; in an `impl` or a trait it is a `method`. The adapter merges the matches of one
-; declaration, so the name, the documentation, the visibility and `static` are queried by patterns
-; of their own (a quantified comment in front of a declaration inside a parent matches nothing
-; without a comment, ADR 0022).
+; declaration, so the name, the visibility and `static` are queried by patterns of their own.
 
 ; Functions of a module or a block
 [(source_file (function_item name: (identifier) @name ) @symbol.function)
  (mod_item body: (declaration_list (function_item name: (identifier) @name ) @symbol.function))
  (block (function_item name: (identifier) @name ) @symbol.function)]
-[(source_file [(line_comment) (block_comment)]+ @doc . (attribute_item)* . (function_item name: (identifier) @name ) @symbol.function)
- (mod_item body: (declaration_list [(line_comment) (block_comment)]+ @doc . (attribute_item)* . (function_item name: (identifier) @name ) @symbol.function))
- (block [(line_comment) (block_comment)]+ @doc . (attribute_item)* . (function_item name: (identifier) @name ) @symbol.function)]
 [(source_file (function_item (visibility_modifier ["pub" "in" (crate) (super) (self)] @modifier)* name: (identifier) @name ) @symbol.function)
  (mod_item body: (declaration_list (function_item (visibility_modifier ["pub" "in" (crate) (super) (self)] @modifier)* name: (identifier) @name ) @symbol.function))
  (block (function_item (visibility_modifier ["pub" "in" (crate) (super) (self)] @modifier)* name: (identifier) @name ) @symbol.function)]
 
 ; Methods of an impl block; a `for` in its head is a trait implementation
 (impl_item "for"? @modifier body: (declaration_list (function_item name: (identifier) @name ) @symbol.method))
-(impl_item  body: (declaration_list [(line_comment) (block_comment)]+ @doc . (attribute_item)* . (function_item name: (identifier) @name ) @symbol.method))
 (impl_item  body: (declaration_list (function_item (visibility_modifier ["pub" "in" (crate) (super) (self)] @modifier)* name: (identifier) @name ) @symbol.method))
 (impl_item  body: (declaration_list (function_item name: (identifier) @name parameters: [(parameters . (parameter)) (parameters . "(" . ")")] @static) @symbol.method))
 
 ; Methods of a trait: with a default body or only a signature
 (trait_item body: (declaration_list [(function_item name: (identifier) @name ) @symbol.method (function_signature_item name: (identifier) @name ) @symbol.method]))
-(trait_item body: (declaration_list [(line_comment) (block_comment)]+ @doc . (attribute_item)* . [(function_item name: (identifier) @name ) @symbol.method (function_signature_item name: (identifier) @name ) @symbol.method]))
 (trait_item body: (declaration_list [(function_item name: (identifier) @name parameters: [(parameters . (parameter)) (parameters . "(" . ")")] @static) @symbol.method (function_signature_item name: (identifier) @name parameters: [(parameters . (parameter)) (parameters . "(" . ")")] @static) @symbol.method]))

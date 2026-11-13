@@ -39,6 +39,7 @@ struct World {
     previous: Previous,
     found: Option<Vec<(&'static str, bool)>>,
     missing_project: bool,
+    panic_in_analyze: bool,
     persisted: Mutex<Vec<SnapshotData>>,
     measured: Mutex<Vec<(usize, usize)>>,
     counted: Mutex<Vec<usize>>,
@@ -152,6 +153,7 @@ fn counted(symbol: SymbolId) -> SymbolCounts {
 impl FileAnalyzer for World {
     fn analyze(&self, request: &AnalyzeRequest<'_>) -> Result<FileFacts, CodedError> {
         self.gate(StageKind::Analyze)?;
+        assert!(!self.panic_in_analyze, "the analyzer panics");
         let file = SourceFile {
             id: request.ids.file(),
             snapshot: request.snapshot,
@@ -735,4 +737,101 @@ fn rescan_keeps_the_code_of_a_denied_caller_and_of_a_failed_stage() {
     let failed =
         scanner(&broken, &EventBus::new()).rescan(&Principal::local_owner(), ProjectId::new(7));
     assert_eq!(failed.unwrap_err().code(), ErrorCode::GitFetchFailed);
+}
+
+/// A disk with `count` changed files, `f0000.rs` to `f{count-1}.rs`.
+fn many_files(count: usize) -> Vec<(&'static str, bool)> {
+    (0..count)
+        .map(|n| -> (&'static str, bool) {
+            (Box::leak(format!("f{n:04}.rs").into_boxed_str()), true)
+        })
+        .collect()
+}
+
+fn many_world() -> World {
+    World {
+        found: Some(many_files(200)),
+        ..World::default()
+    }
+}
+
+#[test]
+fn many_files_are_analysed_in_discovery_order_with_the_same_ids_every_time()
+-> Result<(), CodedError> {
+    let mut runs = Vec::new();
+    for _ in 0..3 {
+        let world = Arc::new(many_world());
+        let (result, _) = run(&world, ScanMode::Full);
+        assert!(matches!(result, JobResult::Finished(_)));
+        let data = world.last_persisted()?;
+        let paths: Vec<&str> = data.files.iter().map(|f| f.path.as_str()).collect();
+        let expected: Vec<String> = (0..200).map(|n| format!("f{n:04}.rs")).collect();
+        assert_eq!(paths, expected);
+        let ids: Vec<(u64, u64)> = data
+            .files
+            .iter()
+            .zip(&data.symbols)
+            .map(|(file, symbol)| (file.id.get(), symbol.id.get()))
+            .collect();
+        runs.push(ids);
+    }
+    assert_eq!(runs.first(), runs.get(1));
+    assert_eq!(runs.get(1), runs.get(2));
+    Ok(())
+}
+
+#[test]
+fn progress_of_the_analyze_stage_never_runs_backwards_and_ends_at_the_total() {
+    for _ in 0..20 {
+        let world = Arc::new(many_world());
+        let (_, events) = run(&world, ScanMode::Full);
+        let counts: Vec<(u32, u32)> = events
+            .iter()
+            .filter_map(|event| match event {
+                Event::ScanProgressed(p) if p.stage == StageKind::Analyze => {
+                    Some((p.done, p.total))
+                }
+                _ => None,
+            })
+            .collect();
+        assert!(counts.windows(2).all(|pair| pair[0].0 <= pair[1].0));
+        assert_eq!(counts.last(), Some(&(200, 200)));
+    }
+}
+
+#[test]
+fn a_failing_file_among_many_ends_the_scan_with_its_code_and_no_snapshot() {
+    let world = Arc::new(World {
+        fail_at: Some(StageKind::Analyze),
+        ..many_world()
+    });
+    let (result, _) = run(&world, ScanMode::Full);
+    assert!(matches!(result, JobResult::Failed(job) if job.code() == ErrorCode::GitFetchFailed));
+    assert_eq!(world.persisted_count(), 0);
+}
+
+#[test]
+fn cancelling_during_the_analysis_of_many_files_writes_nothing() {
+    let bus = EventBus::new();
+    let job = Job::new(ProjectId::new(7), ScanMode::Full);
+    let world = Arc::new(World {
+        cancel_at: Some((StageKind::Analyze, job.cancel_token())),
+        ..many_world()
+    });
+    let result = scanner(&world, &bus).run(&Principal::local_owner(), job);
+    assert!(matches!(result, JobResult::Cancelled(_)));
+    assert_eq!(world.persisted_count(), 0);
+}
+
+#[test]
+fn a_panicking_analysis_worker_fails_the_scan_with_an_internal_error() {
+    let world = Arc::new(World {
+        panic_in_analyze: true,
+        ..many_world()
+    });
+    let (result, _) = run(&world, ScanMode::Full);
+    assert!(
+        matches!(result, JobResult::Failed(job) if job.code() == ErrorCode::UnexpectedInternalError)
+    );
+    assert_eq!(world.persisted_count(), 0);
 }

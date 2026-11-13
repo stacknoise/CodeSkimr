@@ -4,3 +4,4 @@
 [benchmarks]
 "graph_layout/nodes_200" = "graph_layout_ms"
 "usages/depth_2" = "usages_query_ms"
+"scan/full_100k_loc" = "full_scan_100k_loc_ms"

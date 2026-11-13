@@ -43,6 +43,8 @@ literal_nodes = [
 ]
 # Doc comments: `///` lines and `/** */` blocks.
 doc_prefixes = ["///"]
+# The comments directly above a declaration (attributes may stand between) are its documentation.
+doc_before_declaration = ["attribute_item"]
 
 [doc_block]
 open = "/**"

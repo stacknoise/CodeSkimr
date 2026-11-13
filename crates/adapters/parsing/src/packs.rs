@@ -4,10 +4,11 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
+use std::thread;
 
 use codeskimr_domain::LanguageId;
 
-use crate::consts::{ID_MISMATCH, MANIFEST_FILE};
+use crate::consts::{ID_MISMATCH, LOAD_PANICKED, MANIFEST_FILE};
 use crate::error::ParsingError;
 use crate::manifest::{PackManifest, Tier};
 use crate::pack::LanguagePack;
@@ -101,13 +102,37 @@ impl LanguagePacks {
     /// [`ParsingError::Unreadable`] if `root` cannot be listed, or the error of the first pack that
     /// is invalid.
     pub fn load(root: &Path) -> Result<Self, ParsingError> {
-        let mut slots = HashMap::new();
+        let mut dirs = Vec::new();
         for entry in fs::read_dir(root).map_err(ParsingError::Unreadable)? {
             let dir = entry.map_err(ParsingError::Unreadable)?.path();
             if dir.join(MANIFEST_FILE).is_file() {
-                let slot = Slot::read(dir)?;
-                slots.insert(slot.summary.id.clone(), slot);
+                dirs.push(dir);
             }
+        }
+        // Compiling the queries of a full-tier pack takes long, so the packs are read in parallel;
+        // the error reported is the one of the first pack in the order of the folders.
+        dirs.sort();
+        let read: Vec<Result<Slot, ParsingError>> = thread::scope(|scope| {
+            let handles: Vec<_> = dirs
+                .into_iter()
+                .map(|dir| scope.spawn(|| Slot::read(dir)))
+                .collect();
+            handles
+                .into_iter()
+                .map(|handle| {
+                    handle.join().unwrap_or_else(|_| {
+                        Err(ParsingError::invalid(
+                            String::new(),
+                            LOAD_PANICKED.to_owned(),
+                        ))
+                    })
+                })
+                .collect()
+        });
+        let mut slots = HashMap::new();
+        for slot in read {
+            let slot = slot?;
+            slots.insert(slot.summary.id.clone(), slot);
         }
         Ok(Self { slots })
     }
