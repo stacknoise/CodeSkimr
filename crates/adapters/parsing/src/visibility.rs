@@ -13,6 +13,7 @@ pub struct Visibilities {
     default: Option<Visibility>,
     keywords: HashMap<String, Visibility>,
     parent_defaults: HashMap<SymbolKind, Visibility>,
+    kind_defaults: HashMap<SymbolKind, Visibility>,
     unrated: HashSet<SymbolKind>,
     name_rules: Vec<(NameRule, Visibility)>,
 }
@@ -30,6 +31,11 @@ impl Visibilities {
             .collect::<Result<_, String>>()?;
         let parent_defaults = rules
             .parent_defaults
+            .into_iter()
+            .map(|(kind, label)| Ok((parse::<SymbolKind>(&kind)?, parse::<Visibility>(&label)?)))
+            .collect::<Result<_, String>>()?;
+        let kind_defaults = rules
+            .kind_defaults
             .into_iter()
             .map(|(kind, label)| Ok((parse::<SymbolKind>(&kind)?, parse::<Visibility>(&label)?)))
             .collect::<Result<_, String>>()?;
@@ -51,6 +57,7 @@ impl Visibilities {
             default,
             keywords,
             parent_defaults,
+            kind_defaults,
             unrated,
             name_rules,
         })
@@ -62,7 +69,8 @@ impl Visibilities {
     /// Words that are no keyword of the pack are ignored, so a query may capture every modifier.
     /// Several keywords together may have an entry of their own, such as `protected internal`;
     /// otherwise the first keyword counts. Without a keyword the first name rule that fits the
-    /// name counts, then the default of the parent kind, then the default of the pack.
+    /// name counts, then the default of the kind, then the default of the parent kind, then the
+    /// default of the pack.
     #[must_use]
     pub fn of(
         &self,
@@ -83,6 +91,7 @@ impl Visibilities {
             .get(known.join(KEYWORD_SEPARATOR).as_str())
             .or_else(|| known.first().and_then(|word| self.keywords.get(*word)))
             .or_else(|| self.by_name(name))
+            .or_else(|| self.kind_defaults.get(&kind))
             .or_else(|| parent.and_then(|kind| self.parent_defaults.get(&kind)))
             .or(self.default.as_ref())
             .copied()
@@ -120,6 +129,8 @@ mod tests {
             internal = "internal"
             "protected internal" = "protected"
             "internal protected" = "protected"
+            [kind_defaults]
+            enum_member = "public"
             [parent_defaults]
             module = "internal"
             interface = "public"
@@ -171,6 +182,20 @@ mod tests {
             Some(Visibility::Private)
         );
         assert_eq!(rules.of(method, "a", &[], None), Some(Visibility::Private));
+    }
+
+    #[test]
+    fn the_default_of_the_kind_wins_over_the_one_of_the_parent() {
+        let rules = rules();
+        let parent = Some(SymbolKind::Enum);
+        assert_eq!(
+            rules.of(SymbolKind::EnumMember, "A", &[], parent),
+            Some(Visibility::Public)
+        );
+        assert_eq!(
+            rules.of(SymbolKind::Method, "a", &[], parent),
+            Some(Visibility::Private)
+        );
     }
 
     #[test]

@@ -1,0 +1,871 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 69,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations"
+    },
+    {
+      "decisions": null,
+      "loc": 69,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shop"
+    },
+    {
+      "decisions": null,
+      "loc": 67,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shop.Cart"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Declarations.com.example.shop.Cart.Cart"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Declarations.com.example.shop.Cart.Cart"
+    },
+    {
+      "decisions": 0,
+      "loc": 4,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Declarations.com.example.shop.Cart.add"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        3,
+        3
+      ],
+      "symbol": "Declarations.com.example.shop.Cart.count"
+    },
+    {
+      "decisions": null,
+      "loc": 3,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shop.Cart.Inner"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shop.Cart.Inner.run"
+    },
+    {
+      "decisions": null,
+      "loc": 8,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shop.Cart.Priced"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shop.Cart.Priced.price"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "Declarations.com.example.shop.Cart.Priced.label"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "Declarations.com.example.shop.Cart.Priced.hidden"
+    },
+    {
+      "decisions": null,
+      "loc": 3,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shop.Cart.Marker"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shop.Cart.Marker.value"
+    },
+    {
+      "decisions": null,
+      "loc": 15,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shop.Cart.Colour"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "Declarations.com.example.shop.Cart.Colour.GREEN.paint"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "Declarations.com.example.shop.Cart.Colour.Colour"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Declarations.com.example.shop.Cart.Colour.Colour"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "Declarations.com.example.shop.Cart.Colour.paint"
+    },
+    {
+      "decisions": null,
+      "loc": 10,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shop.Cart.Point"
+    },
+    {
+      "decisions": 1,
+      "loc": 5,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        4,
+        4
+      ],
+      "symbol": "Declarations.com.example.shop.Cart.Point.Point"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        4,
+        6
+      ],
+      "operators": [
+        5,
+        6
+      ],
+      "symbol": "Declarations.com.example.shop.Cart.Point.length"
+    },
+    {
+      "decisions": 0,
+      "loc": 4,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "Declarations.com.example.shop.Cart.local"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "Declarations.com.example.shop.Cart.local.run"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Declarations.com.example.shop.Cart.local.Local"
+    }
+  ],
+  "loc": 69,
+  "references": [
+    {
+      "at": "3:17",
+      "from": "Declarations.com.example.shop",
+      "kind": "import",
+      "receiver": null,
+      "target": "List"
+    },
+    {
+      "at": "12:28",
+      "from": "Declarations.com.example.shop.Cart",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Item"
+    },
+    {
+      "at": "12:42",
+      "from": "Declarations.com.example.shop.Cart",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Base"
+    },
+    {
+      "at": "12:58",
+      "from": "Declarations.com.example.shop.Cart",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Priced"
+    },
+    {
+      "at": "12:66",
+      "from": "Declarations.com.example.shop.Cart",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Comparable"
+    },
+    {
+      "at": "12:77",
+      "from": "Declarations.com.example.shop.Cart",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Cart"
+    },
+    {
+      "at": "12:82",
+      "from": "Declarations.com.example.shop.Cart",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "T"
+    },
+    {
+      "at": "15:17",
+      "from": "Declarations.com.example.shop.Cart",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "17:18",
+      "from": "Declarations.com.example.shop.Cart",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "List"
+    },
+    {
+      "at": "17:23",
+      "from": "Declarations.com.example.shop.Cart",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "T"
+    },
+    {
+      "at": "23:13",
+      "from": "Declarations.com.example.shop.Cart.Cart",
+      "kind": "write",
+      "receiver": "own",
+      "target": "items"
+    },
+    {
+      "at": "26:9",
+      "from": "Declarations.com.example.shop.Cart.Cart",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "List"
+    },
+    {
+      "at": "26:14",
+      "from": "Declarations.com.example.shop.Cart.Cart",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "T"
+    },
+    {
+      "at": "27:13",
+      "from": "Declarations.com.example.shop.Cart.Cart",
+      "kind": "write",
+      "receiver": "own",
+      "target": "items"
+    },
+    {
+      "at": "35:5",
+      "from": "Declarations.com.example.shop.Cart.add",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Override"
+    },
+    {
+      "at": "36:16",
+      "from": "Declarations.com.example.shop.Cart.add",
+      "kind": "override",
+      "receiver": null,
+      "target": "add"
+    },
+    {
+      "at": "36:20",
+      "from": "Declarations.com.example.shop.Cart.add",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "T"
+    },
+    {
+      "at": "37:8",
+      "from": "Declarations.com.example.shop.Cart.add",
+      "kind": "read",
+      "receiver": null,
+      "target": "items"
+    },
+    {
+      "at": "37:14",
+      "from": "Declarations.com.example.shop.Cart.add",
+      "kind": "call",
+      "receiver": "typed List",
+      "target": "add"
+    },
+    {
+      "at": "40:29",
+      "from": "Declarations.com.example.shop.Cart.count",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "List"
+    },
+    {
+      "at": "41:20",
+      "from": "Declarations.com.example.shop.Cart.count",
+      "kind": "call",
+      "receiver": "typed List",
+      "target": "size"
+    },
+    {
+      "at": "54:16",
+      "from": "Declarations.com.example.shop.Cart.Priced.label",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "62:8",
+      "from": "Declarations.com.example.shop.Cart.Marker.value",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "70:13",
+      "from": "Declarations.com.example.shop.Cart.Colour.GREEN.paint",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Override"
+    },
+    {
+      "at": "71:17",
+      "from": "Declarations.com.example.shop.Cart.Colour.GREEN.paint",
+      "kind": "override",
+      "receiver": null,
+      "target": "paint"
+    },
+    {
+      "at": "74:22",
+      "from": "Declarations.com.example.shop.Cart.Colour",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "80:15",
+      "from": "Declarations.com.example.shop.Cart.Colour.Colour",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "81:17",
+      "from": "Declarations.com.example.shop.Cart.Colour.Colour",
+      "kind": "write",
+      "receiver": "own",
+      "target": "code"
+    },
+    {
+      "at": "91:26",
+      "from": "Declarations.com.example.shop.Cart.Point.Point",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IllegalArgumentException"
+    },
+    {
+      "at": "96:19",
+      "from": "Declarations.com.example.shop.Cart.Point.length",
+      "kind": "read",
+      "receiver": null,
+      "target": "Math"
+    },
+    {
+      "at": "96:24",
+      "from": "Declarations.com.example.shop.Cart.Point.length",
+      "kind": "call",
+      "receiver": "named Math",
+      "target": "sqrt"
+    },
+    {
+      "at": "101:8",
+      "from": "Declarations.com.example.shop.Cart.local",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Runnable"
+    },
+    {
+      "at": "101:25",
+      "from": "Declarations.com.example.shop.Cart.local",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Runnable"
+    },
+    {
+      "at": "102:13",
+      "from": "Declarations.com.example.shop.Cart.local.run",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Override"
+    },
+    {
+      "at": "103:24",
+      "from": "Declarations.com.example.shop.Cart.local.run",
+      "kind": "override",
+      "receiver": null,
+      "target": "run"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "Declarations",
+      "parent": null,
+      "span": "0:0-108:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "Declarations.com.example.shop",
+      "parent": "Declarations",
+      "span": "1:0-108:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": "A shopping cart.\n\n<p>Holds {@link Item}s.",
+      "kind": "class",
+      "name": "Declarations.com.example.shop.Cart",
+      "parent": "Declarations.com.example.shop",
+      "span": "12:0-107:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "Upper limit of items.",
+      "kind": "constant",
+      "name": "Declarations.com.example.shop.Cart.MAX_ITEMS",
+      "parent": "Declarations.com.example.shop.Cart",
+      "span": "14:28-14:43",
+      "static": true,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "Declarations.com.example.shop.Cart.NAME",
+      "parent": "Declarations.com.example.shop.Cart",
+      "span": "15:24-15:37",
+      "static": true,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "Declarations.com.example.shop.Cart.SEED",
+      "parent": "Declarations.com.example.shop.Cart",
+      "span": "16:22-16:31",
+      "static": true,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Declarations.com.example.shop.Cart.items",
+      "parent": "Declarations.com.example.shop.Cart",
+      "span": "17:26-17:31",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Declarations.com.example.shop.Cart.a",
+      "parent": "Declarations.com.example.shop.Cart",
+      "span": "18:18-18:19",
+      "static": false,
+      "visibility": "protected"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Declarations.com.example.shop.Cart.b",
+      "parent": "Declarations.com.example.shop.Cart",
+      "span": "18:21-18:22",
+      "static": false,
+      "visibility": "protected"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Declarations.com.example.shop.Cart.packageLevel",
+      "parent": "Declarations.com.example.shop.Cart",
+      "span": "19:8-19:20",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": "Creates an empty cart.",
+      "kind": "constructor",
+      "name": "Declarations.com.example.shop.Cart.Cart",
+      "parent": "Declarations.com.example.shop.Cart",
+      "span": "22:4-24:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constructor",
+      "name": "Declarations.com.example.shop.Cart.Cart",
+      "parent": "Declarations.com.example.shop.Cart",
+      "span": "26:4-28:5",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": "Adds an item.",
+      "kind": "method",
+      "name": "Declarations.com.example.shop.Cart.add",
+      "parent": "Declarations.com.example.shop.Cart",
+      "span": "35:4-38:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Declarations.com.example.shop.Cart.count",
+      "parent": "Declarations.com.example.shop.Cart",
+      "span": "40:4-42:5",
+      "static": true,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Declarations.com.example.shop.Cart.Inner",
+      "parent": "Declarations.com.example.shop.Cart",
+      "span": "44:4-46:5",
+      "static": true,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Declarations.com.example.shop.Cart.Inner.run",
+      "parent": "Declarations.com.example.shop.Cart.Inner",
+      "span": "45:8-45:28",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "Declarations.com.example.shop.Cart.Priced",
+      "parent": "Declarations.com.example.shop.Cart",
+      "span": "48:4-59:5",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "Declarations.com.example.shop.Cart.Priced.LIMIT",
+      "parent": "Declarations.com.example.shop.Cart.Priced",
+      "span": "49:12-49:21",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "The price.",
+      "kind": "method",
+      "name": "Declarations.com.example.shop.Cart.Priced.price",
+      "parent": "Declarations.com.example.shop.Cart.Priced",
+      "span": "52:8-52:23",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Declarations.com.example.shop.Cart.Priced.label",
+      "parent": "Declarations.com.example.shop.Cart.Priced",
+      "span": "54:8-56:9",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Declarations.com.example.shop.Cart.Priced.hidden",
+      "parent": "Declarations.com.example.shop.Cart.Priced",
+      "span": "58:8-58:32",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "Declarations.com.example.shop.Cart.Marker",
+      "parent": "Declarations.com.example.shop.Cart",
+      "span": "61:4-63:5",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Declarations.com.example.shop.Cart.Marker.value",
+      "parent": "Declarations.com.example.shop.Cart.Marker",
+      "span": "62:8-62:34",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "Colours.",
+      "kind": "enum",
+      "name": "Declarations.com.example.shop.Cart.Colour",
+      "parent": "Declarations.com.example.shop.Cart",
+      "span": "66:4-85:5",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": "Red.",
+      "kind": "enum_member",
+      "name": "Declarations.com.example.shop.Cart.Colour.RED",
+      "parent": "Declarations.com.example.shop.Cart.Colour",
+      "span": "68:8-68:11",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "enum_member",
+      "name": "Declarations.com.example.shop.Cart.Colour.GREEN",
+      "parent": "Declarations.com.example.shop.Cart.Colour",
+      "span": "69:8-72:9",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Declarations.com.example.shop.Cart.Colour.GREEN.paint",
+      "parent": "Declarations.com.example.shop.Cart.Colour.GREEN",
+      "span": "70:12-71:27",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Declarations.com.example.shop.Cart.Colour.code",
+      "parent": "Declarations.com.example.shop.Cart.Colour",
+      "span": "74:29-74:33",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "constructor",
+      "name": "Declarations.com.example.shop.Cart.Colour.Colour",
+      "parent": "Declarations.com.example.shop.Cart.Colour",
+      "span": "76:8-78:9",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "constructor",
+      "name": "Declarations.com.example.shop.Cart.Colour.Colour",
+      "parent": "Declarations.com.example.shop.Cart.Colour",
+      "span": "80:8-82:9",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Declarations.com.example.shop.Cart.Colour.paint",
+      "parent": "Declarations.com.example.shop.Cart.Colour",
+      "span": "84:8-84:23",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": "A point.",
+      "kind": "record",
+      "name": "Declarations.com.example.shop.Cart.Point",
+      "parent": "Declarations.com.example.shop.Cart",
+      "span": "88:4-98:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Declarations.com.example.shop.Cart.Point.x",
+      "parent": "Declarations.com.example.shop.Cart.Point",
+      "span": "88:24-88:29",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Declarations.com.example.shop.Cart.Point.y",
+      "parent": "Declarations.com.example.shop.Cart.Point",
+      "span": "88:31-88:36",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constructor",
+      "name": "Declarations.com.example.shop.Cart.Point.Point",
+      "parent": "Declarations.com.example.shop.Cart.Point",
+      "span": "89:8-93:9",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Declarations.com.example.shop.Cart.Point.length",
+      "parent": "Declarations.com.example.shop.Cart.Point",
+      "span": "95:8-97:9",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Declarations.com.example.shop.Cart.local",
+      "parent": "Declarations.com.example.shop.Cart",
+      "span": "100:4-106:5",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Declarations.com.example.shop.Cart.local.run",
+      "parent": "Declarations.com.example.shop.Cart.local",
+      "span": "102:12-103:32",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Declarations.com.example.shop.Cart.local.Local",
+      "parent": "Declarations.com.example.shop.Cart.local",
+      "span": "105:8-105:22",
+      "static": false,
+      "visibility": "internal"
+    }
+  ]
+}
