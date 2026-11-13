@@ -23,3 +23,5 @@ Mocks 7 to 13 have a `theme` property (`hell`, `petrol`, `dunkel`; values in blu
 The files are written in a design-canvas format and do not render on their own in a browser. Read them for exact values (inline styles); to look at the rendered screens, open the published canvas: <https://claude.ai/artifact/FRpzF7hdgZVdHCm2mxRuNZ> (the link works for the owner of the canvas).
 
 All names and numbers in the mocks are sample data.
+
+The `THEMES` block at the top of each script in mocks 7 to 13 (and the miniatures in mock 13) holds the same values; when a theme value changes in blueprint 15.3, update all of them together. The mocks draw Petrol as selected sample data; the product default is Hell.

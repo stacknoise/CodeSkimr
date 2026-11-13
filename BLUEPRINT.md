@@ -751,7 +751,7 @@ Defined once in `design/tokens.toml`. TypeScript/CSS variables are generated fro
 | `muted` / `faint` | `#5B6370` / `#6B7280` | labels / meta (both ≥ 4.5:1 on white) |
 | `accent` / `accent-bg` / `accent-hover` | `#2457D6` / `#EAF0FD` / `#1A43A8` | selection, links, primary action, incoming edges |
 | `outgoing` | `#C2410C` | "uses" edges |
-| `good` / `good-bg` | `#15803D` / `#E7F6EC` | status OK, metric good |
+| `good` / `good-bg` | `#15803D` / `#EAF7EF` | status OK, metric good |
 | `warn` / `warn-bg` | `#B45309` / `#FFF4E5` | metric medium, attention |
 | `bad` / `bad-bg` | `#B91C1C` / `#FDF2F2` | metric bad, violations |
 | `highlight` / `mark` | `#FFF7D6` / `#FDE68A` | selected member lines / search hit, focus ring |
@@ -785,11 +785,18 @@ The UI offers three themes in the first version (ADR 0021). Every theme defines 
 | `outgoing` | `#C2410C` | `#C2410C` | `#FB923C` |
 | `highlight` / `mark` | `#FFF7D6` / `#FDE68A` | `#FFF7D6` / `#FDE68A` | `#3A3413` / `#6B5A12` |
 
-Kind and layer colours of Petrol equal those of Hell. For Dunkel, lighter variants of the same hues are defined in `tokens.toml` and pass the contrast check on the dark surface. In Hell, `good-bg` is `#EAF7EF` (the first mocks used `#E7F6EC`, which reached only 4.49:1 with `good`).
+Kind and layer colours of Petrol equal those of Hell. Dunkel uses lighter variants of the same hues:
 
-- **Rules:** a theme is a table in `tokens.toml` plus its name in `locales/`; adding one needs no code change, an ADR decides which themes ship. CI (job `codegen`) fails if a theme misses a token or if a text/background pair (`ink`, `ink-2`, `muted`, `faint` on `bg` and `surface`; `accent` on `surface`, `bg` and `accent-bg`; `good`, `warn`, `bad` on their `-bg` and on `surface`; `accent-fg` on `accent`) is below 4.5:1.
+| Token | Dunkel |
+|---|---|
+| kind colours | class `#6E9BFF`, interface `#A78BFA`, record `#2DD4BF`, struct `#F59E0B`, enum `#F472B6` |
+| layer colours | `#6E9BFF`, `#2DD4BF`, `#A78BFA`, `#F59E0B`, `#F472B6`, `#97A4B4`, … |
+
+ In Hell, `good-bg` is `#EAF7EF`; the value `#E7F6EC` of the first mock version reached only 4.49:1 with `good` and was replaced in all mocks.
+
+- **Rules:** a theme is a table in `tokens.toml` plus its name in `locales/`; adding one needs no code change, an ADR decides which themes ship. CI (job `codegen`) fails if a theme misses a token or if a text/background pair (`ink`, `ink-2`, `muted`, `faint` on `bg` and `surface`; `accent` on `surface`, `bg` and `accent-bg`; `good`, `warn`, `bad` on their `-bg` and on `surface`; `accent-fg` on `accent`; `ink-2` on `line-soft`; `ink` on `accent-bg`; `outgoing`, kind and layer colours on `surface`) is below 4.5:1. `faint` is used on `bg` and `surface` only, never on tinted backgrounds.
 - **Choice:** stored per user (see 13); without a team server in the local settings. Until the user chooses, the theme follows the operating system (Hell or Dunkel). The default key is in `config/default.toml`.
-- **Settings page (mock 13):** one preview card per theme with the name, a colour strip and a miniature of the real UI (top bar, rail, list, badges, button) drawn by the actual components inside a container with that `data-theme`. Selecting a card applies it at once.
+- **Settings page (mock 13):** one preview card per theme with the name, a colour strip and a miniature of the real UI (top bar, rail, list, badges, button) drawn by the actual components inside a container with that `data-theme`. Selecting a card applies it at once. In the mocks, Petrol is drawn as selected and used by mocks 7 to 13 as sample data; the product default is Hell.
 - **Delivery:** themes and the settings page ship with the UI milestone M3. Every new screen is checked in all three themes by the visual tests (17.1).
 
 ### 15.4 Interaction rules (MUST)
@@ -981,7 +988,7 @@ Each milestone ends with a demo and acceptance by the product owner. All criteri
 | **M0** | Blueprint | this document, mocks | blueprint approved |
 | **M1** | Foundation + MCP basics | workspace and crates; full CI (section 17.3) incl. no-literals lint and duplicate check; codegen for error codes and i18n; config; SQLite; C# language pack (full); `codeskimr scan` → JSON; MCP over stdio with `search_symbols`, `get_symbol`, `get_architecture` | CI blocks a PR containing a literal or a duplicate block; scan of the private C# reference reproduces its counts and scan of the public C# reference reproduces the counts in `corpus/` (17.2); 100k LOC scanned in < 1 s; Claude Code can query CodeSkimr through MCP |
 | **M2** | References + full MCP | reference index level 1; `find_usages`, `impact_of_change`, `get_dependencies`, `find_similar_code`, `find_constants`, `check_conventions`, `rescan`; watch mode, incremental scans | usages of a method/constant in the private C# reference correct in a sample of 20; incremental re-scan < 300 ms; the agent developing CodeSkimr uses the MCP tools (17.4) |
-| **M3** | Server + UI core | axum server, embedded UI, screens 1 (projects), 2 (explorer), 4 (quick search); status bar with live measurements; de/en switch | screens match the mocks (visual review); keyboard paths of 15.4 work; budgets for search and type switch are met |
+| **M3** | Server + UI core | axum server, embedded UI, screens 1 (projects), 2 (explorer), 4 (quick search), 13 (settings with themes); status bar with live measurements; de/en switch | screens match the mocks (visual review); keyboard paths of 15.4 work; budgets for search and type switch are met; screen 13 (settings) offers the themes Hell, Petrol and Dunkel with live preview, the choice is stored and applied, and every screen passes the visual test in all three themes and the contrast check of 15.3 |
 | **M4** | Visualisation | screens 3 (dependencies), 5 (scan & performance), 6 (usages); jump explorer → usages | screens match the mocks; graph layout < 50 ms; usages depth 2 < 20 ms |
 | **M5** | Languages | full tier: TypeScript/JavaScript, Python, Java, Kotlin, Rust; basic tier for all Tree-sitter grammars (including Go) | corpus accuracy targets met per language |
 | **M6** | Sources + credentials + export | Git sources (clone, branch, update); credential handling per section 12 (keystore, Git helper, OAuth device flow); canary suite; HTML export | security suite green; private repository scanned without the secret ever appearing outside the loan scope |
