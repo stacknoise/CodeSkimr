@@ -113,10 +113,11 @@ test.describe("the explorer tree (15.4)", () => {
   }) => {
     await openExplorer(page, harness, "kbdarrows");
     const root = tree(page);
+    const layer = item(page, /\(no layer\)/);
+    await expect(layer).toBeVisible();
     await root.focus();
     await page.keyboard.press("ArrowDown");
     await expect(root).toHaveAttribute("aria-activedescendant", /.+/);
-    const layer = item(page, /\(no layer\)/);
     await page.keyboard.press("ArrowRight");
     await expect(layer).toHaveAttribute("aria-expanded", "true");
     await page.keyboard.press("ArrowLeft");
