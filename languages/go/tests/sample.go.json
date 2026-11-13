@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 26,
+      "loc": 28,
       "operands": null,
       "operators": null,
       "symbol": "sample"
@@ -46,9 +46,35 @@
         0
       ],
       "symbol": "sample.Add"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample.Run"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample.Run"
     }
   ],
-  "loc": 26,
+  "loc": 28,
   "references": [
     {
       "at": "29:1",
@@ -69,7 +95,7 @@
       "kind": "module",
       "name": "sample",
       "parent": null,
-      "span": "0:0-36:0",
+      "span": "0:0-42:0",
       "static": false,
       "visibility": null
     },
@@ -124,6 +150,24 @@
       "name": "sample.Add",
       "parent": "sample",
       "span": "28:0-35:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample.Run",
+      "parent": "sample",
+      "span": "39:0-39:25",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample.Run",
+      "parent": "sample",
+      "span": "41:0-41:24",
       "static": false,
       "visibility": null
     }

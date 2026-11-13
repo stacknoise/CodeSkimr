@@ -2,21 +2,21 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 20,
+      "loc": 25,
       "operands": null,
       "operators": null,
       "symbol": "sample"
     },
     {
       "decisions": null,
-      "loc": 20,
+      "loc": 25,
       "operands": null,
       "operators": null,
       "symbol": "sample::shop"
     },
     {
       "decisions": null,
-      "loc": 8,
+      "loc": 12,
       "operands": null,
       "operators": null,
       "symbol": "sample::shop::Order"
@@ -48,6 +48,58 @@
       "symbol": "sample::shop::Order::total"
     },
     {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample::shop::Order::~Order"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample::shop::Order::self"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample::shop::Order::operator=="
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample::shop::Order::tm"
+    },
+    {
       "decisions": null,
       "loc": 1,
       "operands": null,
@@ -73,6 +125,19 @@
         0
       ],
       "symbol": "sample::shop::add"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample::shop::make"
     },
     {
       "decisions": 1,
@@ -101,10 +166,10 @@
       "symbol": "sample::shop::twice"
     }
   ],
-  "loc": 20,
+  "loc": 25,
   "references": [
     {
-      "at": "21:19",
+      "at": "27:19",
       "from": "sample::shop::price",
       "kind": "call",
       "target": "total"
@@ -116,7 +181,7 @@
       "kind": "module",
       "name": "sample",
       "parent": null,
-      "span": "0:0-28:0",
+      "span": "0:0-34:0",
       "static": false,
       "visibility": null
     },
@@ -125,7 +190,7 @@
       "kind": "namespace",
       "name": "sample::shop",
       "parent": "sample",
-      "span": "0:0-27:1",
+      "span": "0:0-33:1",
       "static": false,
       "visibility": null
     },
@@ -134,7 +199,7 @@
       "kind": "class",
       "name": "sample::shop::Order",
       "parent": "sample::shop",
-      "span": "3:0-10:1",
+      "span": "3:0-14:1",
       "static": false,
       "visibility": null
     },
@@ -158,10 +223,46 @@
     },
     {
       "doc": null,
+      "kind": "method",
+      "name": "sample::shop::Order::~Order",
+      "parent": "sample::shop::Order",
+      "span": "8:4-8:15",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample::shop::Order::self",
+      "parent": "sample::shop::Order",
+      "span": "9:4-9:34",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample::shop::Order::operator==",
+      "parent": "sample::shop::Order",
+      "span": "10:4-10:66",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample::shop::Order::tm",
+      "parent": "sample::shop::Order",
+      "span": "11:26-11:41",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
       "kind": "struct",
       "name": "sample::shop::Item",
       "parent": "sample::shop",
-      "span": "12:0-12:22",
+      "span": "16:0-16:22",
       "static": false,
       "visibility": null
     },
@@ -170,7 +271,7 @@
       "kind": "enum",
       "name": "sample::shop::Kind",
       "parent": "sample::shop",
-      "span": "14:0-14:24",
+      "span": "18:0-18:24",
       "static": false,
       "visibility": null
     },
@@ -179,7 +280,16 @@
       "kind": "method",
       "name": "sample::shop::add",
       "parent": "sample::shop",
-      "span": "16:0-18:1",
+      "span": "20:0-22:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample::shop::make",
+      "parent": "sample::shop",
+      "span": "24:0-24:40",
       "static": false,
       "visibility": null
     },
@@ -188,7 +298,7 @@
       "kind": "function",
       "name": "sample::shop::price",
       "parent": "sample::shop",
-      "span": "20:0-22:1",
+      "span": "26:0-28:1",
       "static": false,
       "visibility": null
     },
@@ -197,7 +307,7 @@
       "kind": "function",
       "name": "sample::shop::twice",
       "parent": "sample::shop",
-      "span": "25:0-25:30",
+      "span": "31:0-31:30",
       "static": false,
       "visibility": null
     }

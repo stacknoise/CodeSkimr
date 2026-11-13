@@ -10,8 +10,6 @@ mod tests {
     use codeskimr_domain::LanguageId;
     use codeskimr_parsing::{LanguagePack, LanguagePacks, PackSummary, Tier};
 
-    const BASIC_LANGUAGES: [&str; 5] = ["go", "c", "cpp", "ruby", "php"];
-
     fn languages() -> PathBuf {
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../languages")
     }
@@ -40,6 +38,28 @@ mod tests {
         LanguageId::new(name).expect("id")
     }
 
+    /// Folder names of all packs in `languages/` whose manifest says `tier = "basic"`.
+    fn basic_languages() -> Vec<String> {
+        let mut names: Vec<String> = fs::read_dir(languages())
+            .expect("languages folder")
+            .filter_map(|entry| {
+                let dir = entry.expect("entry").path();
+                let manifest = fs::read_to_string(dir.join("language.toml")).ok()?;
+                let basic = manifest
+                    .lines()
+                    .any(|line| line.trim() == "tier = \"basic\"");
+                basic.then(|| {
+                    dir.file_name()
+                        .expect("name")
+                        .to_string_lossy()
+                        .into_owned()
+                })
+            })
+            .collect();
+        names.sort();
+        names
+    }
+
     #[test]
     fn lists_every_pack_with_its_tier() {
         let packs = LanguagePacks::load(&languages()).expect("packs load");
@@ -50,15 +70,17 @@ mod tests {
                 .map(PackSummary::tier)
         };
         assert_eq!(tier_of("csharp"), Some(Tier::Full));
-        for name in BASIC_LANGUAGES {
+        let basic = basic_languages();
+        assert!(basic.len() >= 5, "{basic:?}");
+        for name in &basic {
             assert_eq!(tier_of(name), Some(Tier::Basic), "{name}");
         }
     }
 
     #[test]
     fn every_basic_pack_loads_and_claims_extensions() {
-        for name in BASIC_LANGUAGES {
-            let pack = LanguagePack::load(&languages().join(name)).expect(name);
+        for name in basic_languages() {
+            let pack = LanguagePack::load(&languages().join(&name)).expect(&name);
             assert_eq!(pack.tier(), Tier::Basic, "{name}");
             assert!(!pack.extensions().is_empty(), "{name}");
         }

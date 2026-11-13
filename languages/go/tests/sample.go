@@ -34,3 +34,9 @@ func (o *Order) Add(x float64) {
 	default:
 	}
 }
+
+// Known gap of the basic tier: a method does not carry its receiver type in its name, so two
+// methods with the same name in one file have the same qualified name.
+func (p Pricer2) Run() {}
+
+func (q *Queue) Run() {}

@@ -6,6 +6,10 @@ public:
     Order(int id) : id_(id) {}
     int total() const { return id_ > 0 ? id_ : 0; }
     void add(int x);
+    ~Order() {}
+    Order* self() { return this; }
+    bool operator==(const Order& o) const { return id_ == o.id_; }
+    template <typename T> void tm(T v) {}
 private:
     int id_;
 };
@@ -17,6 +21,8 @@ enum class Kind { A, B };
 void Order::add(int x) {
     while (x > 0) { x--; }
 }
+
+Order* Order::make() { return nullptr; }
 
 int price(const Order& o) {
     try { return o.total(); } catch (...) { return 0; }
