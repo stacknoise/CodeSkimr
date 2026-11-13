@@ -84,6 +84,8 @@ Owner: `codeskimr_storage`
 | STO-301 | `schema_migration_failed` | error | no | 0.1.0 | Applying a database migration failed. |
 | STO-302 | `transaction_conflict` | error | yes | 0.1.0 | A concurrent write conflicted; the operation can be retried. |
 | STO-501 | `disk_full` | error | no | 0.1.0 | Not enough disk space to persist the snapshot. |
+| STO-601 | `database_failed` | error | no | 0.1.0 | The database reported an error that is not covered by a more specific code. |
+| STO-901 | `stored_data_invalid` | error | no | 0.1.0 | Data read from the database violates the domain model; this is a bug or a damaged database. |
 
 ## SEC – Credentials and security
 

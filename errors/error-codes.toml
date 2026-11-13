@@ -271,6 +271,22 @@ description = "Not enough disk space to persist the snapshot."
 since = "0.1.0"
 
 [[codes]]
+id = "STO-601"
+name = "database_failed"
+severity = "error"
+retryable = false
+description = "The database reported an error that is not covered by a more specific code."
+since = "0.1.0"
+
+[[codes]]
+id = "STO-901"
+name = "stored_data_invalid"
+severity = "error"
+retryable = false
+description = "Data read from the database violates the domain model; this is a bug or a damaged database."
+since = "0.1.0"
+
+[[codes]]
 id = "SEC-201"
 name = "credential_not_found"
 severity = "error"

@@ -1,0 +1,158 @@
+//! SQL statements. Parameters are numbered; every statement documents what they are.
+
+/// A registered project by id: id.
+pub const PROJECT_BY_ID: &str =
+    "SELECT name, source_kind, location, branch FROM projects WHERE id = ?1";
+/// Id of the project with the given source: kind, location, branch.
+pub const PROJECT_BY_SOURCE: &str =
+    "SELECT id FROM projects WHERE source_kind = ?1 AND location = ?2 AND branch = ?3";
+/// Inserts or updates a project: id, name, kind, location, branch.
+pub const PROJECT_UPSERT: &str = "INSERT INTO projects (id, name, source_kind, location, branch) \
+    VALUES (?1, ?2, ?3, ?4, ?5) \
+    ON CONFLICT (id) DO UPDATE SET name = excluded.name, source_kind = excluded.source_kind, \
+    location = excluded.location, branch = excluded.branch";
+/// Whether a project exists: id.
+pub const PROJECT_EXISTS: &str = "SELECT COUNT(*) FROM projects WHERE id = ?1";
+/// Removes the layers of a project (their namespaces go with them): project id.
+pub const LAYERS_DELETE: &str = "DELETE FROM layers WHERE project_id = ?1";
+/// Adds a layer: project id, position, name.
+pub const LAYER_INSERT: &str =
+    "INSERT INTO layers (project_id, position, name) VALUES (?1, ?2, ?3)";
+/// Adds a namespace to a layer: project id, layer position, position, namespace.
+pub const NAMESPACE_INSERT: &str = "INSERT INTO layer_namespaces \
+    (project_id, layer_position, position, namespace) VALUES (?1, ?2, ?3, ?4)";
+/// Layers of a project in order: project id.
+pub const LAYERS_OF_PROJECT: &str =
+    "SELECT position, name FROM layers WHERE project_id = ?1 ORDER BY position";
+/// Namespaces of one layer in order: project id, layer position.
+pub const NAMESPACES_OF_LAYER: &str = "SELECT namespace FROM layer_namespaces \
+    WHERE project_id = ?1 AND layer_position = ?2 ORDER BY position";
+
+/// Highest id of any stored snapshot, file, symbol or reference.
+pub const MAX_ID: &str = "SELECT MAX(id) FROM (\
+    SELECT MAX(id) AS id FROM snapshots UNION ALL SELECT MAX(id) FROM files \
+    UNION ALL SELECT MAX(id) FROM symbols UNION ALL SELECT MAX(id) FROM symbol_references)";
+
+/// Files of the newest snapshot of a project: project id.
+pub const LATEST_FILES: &str = "SELECT snapshot_id, id, path, language, content_hash, loc \
+    FROM files WHERE snapshot_id = (SELECT MAX(id) FROM snapshots WHERE project_id = ?1) \
+    ORDER BY path";
+/// The newest snapshot of a project: project id.
+pub const LATEST_SNAPSHOT: &str = "SELECT id, project_id, commit_hash, created, mode, files, \
+    symbols, refs FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT 1";
+
+/// Adds a snapshot header: id, project, commit, created, mode, files, symbols, references.
+pub const SNAPSHOT_INSERT: &str = "INSERT INTO snapshots \
+    (id, project_id, commit_hash, created, mode, files, symbols, refs) \
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)";
+/// Writes the final totals: id, files, symbols, references.
+pub const SNAPSHOT_TOTALS: &str =
+    "UPDATE snapshots SET files = ?2, symbols = ?3, refs = ?4 WHERE id = ?1";
+/// Newest snapshot of a project other than the given one: project id, snapshot id.
+pub const PREVIOUS_SNAPSHOT: &str =
+    "SELECT MAX(id) FROM snapshots WHERE project_id = ?1 AND id <> ?2";
+/// Deletes all but the newest snapshots of a project: project id, number to keep.
+pub const SNAPSHOT_PRUNE: &str = "DELETE FROM snapshots WHERE project_id = ?1 AND id NOT IN \
+    (SELECT id FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT ?2)";
+
+/// Adds a file: snapshot, id, path, language, hash, loc.
+pub const FILE_INSERT: &str = "INSERT INTO files \
+    (snapshot_id, id, path, language, content_hash, loc) VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
+/// Adds a symbol: snapshot, id, file, kind, name, qualified name, parent, visibility, static,
+/// start line and column, end line and column, signature, doc.
+pub const SYMBOL_INSERT: &str = "INSERT INTO symbols (snapshot_id, id, file_id, kind, name, \
+    qualified_name, parent_id, visibility, is_static, start_line, start_column, end_line, \
+    end_column, signature, doc) \
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)";
+/// Adds a reference: snapshot, id, from, to, file, start line and column, end line and column,
+/// kind, confidence.
+pub const REFERENCE_INSERT: &str = "INSERT INTO symbol_references (snapshot_id, id, from_symbol, \
+    to_symbol, file_id, start_line, start_column, end_line, end_column, kind, confidence) \
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)";
+/// Adds a metric: snapshot, symbol, kind, value.
+pub const METRIC_INSERT: &str =
+    "INSERT INTO metrics (snapshot_id, symbol_id, kind, value) VALUES (?1, ?2, ?3, ?4)";
+
+/// Copies the files of the previous snapshot that were not analysed again: previous, new.
+pub const CARRY_FILES: &str = "INSERT INTO files \
+    (snapshot_id, id, path, language, content_hash, loc) \
+    SELECT ?2, id, path, language, content_hash, loc FROM files \
+    WHERE snapshot_id = ?1 AND path NOT IN (SELECT path FROM files WHERE snapshot_id = ?2)";
+/// Copies the symbols of the carried files: previous, new.
+pub const CARRY_SYMBOLS: &str = "INSERT INTO symbols (snapshot_id, id, file_id, kind, name, \
+    qualified_name, parent_id, visibility, is_static, start_line, start_column, end_line, \
+    end_column, signature, doc) \
+    SELECT ?2, s.id, s.file_id, s.kind, s.name, s.qualified_name, s.parent_id, s.visibility, \
+    s.is_static, s.start_line, s.start_column, s.end_line, s.end_column, s.signature, s.doc \
+    FROM symbols s WHERE s.snapshot_id = ?1 AND s.file_id IN \
+    (SELECT id FROM files WHERE snapshot_id = ?2) \
+    AND s.file_id IN (SELECT id FROM files WHERE snapshot_id = ?1)";
+/// Copies the references whose both ends survived: previous, new.
+pub const CARRY_REFERENCES: &str = "INSERT INTO symbol_references (snapshot_id, id, from_symbol, \
+    to_symbol, file_id, start_line, start_column, end_line, end_column, kind, confidence) \
+    SELECT ?2, r.id, r.from_symbol, r.to_symbol, r.file_id, r.start_line, r.start_column, \
+    r.end_line, r.end_column, r.kind, r.confidence FROM symbol_references r \
+    WHERE r.snapshot_id = ?1 \
+    AND r.file_id IN (SELECT id FROM files WHERE snapshot_id = ?2) \
+    AND r.from_symbol IN (SELECT id FROM symbols WHERE snapshot_id = ?2) \
+    AND r.to_symbol IN (SELECT id FROM symbols WHERE snapshot_id = ?2)";
+/// Copies the metrics of the carried symbols: previous, new.
+pub const CARRY_METRICS: &str = "INSERT INTO metrics (snapshot_id, symbol_id, kind, value) \
+    SELECT ?2, m.symbol_id, m.kind, m.value FROM metrics m WHERE m.snapshot_id = ?1 \
+    AND m.symbol_id IN (SELECT id FROM symbols WHERE snapshot_id = ?2)";
+
+/// Number of files, symbols and references of a snapshot: snapshot.
+pub const TOTALS: &str = "SELECT (SELECT COUNT(*) FROM files WHERE snapshot_id = ?1), \
+    (SELECT COUNT(*) FROM symbols WHERE snapshot_id = ?1), \
+    (SELECT COUNT(*) FROM symbol_references WHERE snapshot_id = ?1)";
+
+/// Fills `search_index`: snapshot, kind that is left out.
+pub const SEARCH_REBUILD: &str = "INSERT INTO search_index \
+    (snapshot_id, symbol_id, name_lower, name, qualified_name, kind, path) \
+    SELECT s.snapshot_id, s.id, lower(s.name), s.name, s.qualified_name, s.kind, f.path \
+    FROM symbols s JOIN files f ON f.snapshot_id = s.snapshot_id AND f.id = s.file_id \
+    WHERE s.snapshot_id = ?1 AND s.kind <> ?2";
+/// Fills `usage_counts`: snapshot.
+pub const USAGES_REBUILD: &str = "INSERT INTO usage_counts (snapshot_id, symbol_id, usages) \
+    SELECT snapshot_id, to_symbol, COUNT(*) FROM symbol_references \
+    WHERE snapshot_id = ?1 GROUP BY to_symbol";
+/// Fills `type_summary` for one kind: snapshot, kind, LOC metric, complexity metric,
+/// maintainability metric.
+pub const TYPE_SUMMARY_REBUILD: &str = "INSERT INTO type_summary \
+    (snapshot_id, symbol_id, member_count, loc, max_complexity, maintainability) \
+    SELECT t.snapshot_id, t.id, \
+    (SELECT COUNT(*) FROM symbols m WHERE m.snapshot_id = t.snapshot_id AND m.parent_id = t.id), \
+    (SELECT x.value FROM metrics x WHERE x.snapshot_id = t.snapshot_id \
+        AND x.symbol_id = t.id AND x.kind = ?3), \
+    (SELECT MAX(x.value) FROM metrics x JOIN symbols m \
+        ON m.snapshot_id = x.snapshot_id AND m.id = x.symbol_id \
+        WHERE x.snapshot_id = t.snapshot_id AND m.parent_id = t.id AND x.kind = ?4), \
+    (SELECT x.value FROM metrics x WHERE x.snapshot_id = t.snapshot_id \
+        AND x.symbol_id = t.id AND x.kind = ?5) \
+    FROM symbols t WHERE t.snapshot_id = ?1 AND t.kind = ?2";
+/// Names of the symbols of a snapshot: snapshot.
+pub const SYMBOL_NAMES: &str = "SELECT id, qualified_name FROM symbols WHERE snapshot_id = ?1";
+/// Ends of all references of a snapshot: snapshot.
+pub const REFERENCE_ENDS: &str =
+    "SELECT from_symbol, to_symbol FROM symbol_references WHERE snapshot_id = ?1";
+/// Adds a layer graph edge: snapshot, from, to, count, violates, in cycle.
+pub const EDGE_INSERT: &str = "INSERT INTO layer_graph \
+    (snapshot_id, from_layer, to_layer, edge_count, violates_layering, in_cycle) \
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
+
+/// Usages of a symbol: snapshot, symbol.
+pub const USAGES_OF: &str =
+    "SELECT usages FROM usage_counts WHERE snapshot_id = ?1 AND symbol_id = ?2";
+/// Fuzzy search: snapshot, subsequence pattern, exact text, prefix pattern, substring text,
+/// limit. Exact matches come first, then prefix, substring and the rest, shorter names first.
+pub const SEARCH: &str = "SELECT symbol_id, name, qualified_name, kind, path FROM search_index \
+    WHERE snapshot_id = ?1 AND name_lower LIKE ?2 ESCAPE '\\' \
+    ORDER BY CASE WHEN name_lower = ?3 THEN 0 WHEN name_lower LIKE ?4 ESCAPE '\\' THEN 1 \
+    WHEN instr(name_lower, ?5) > 0 THEN 2 ELSE 3 END, length(name_lower), name_lower \
+    LIMIT ?6";
+/// Layer graph of a snapshot: snapshot.
+pub const EDGES: &str = "SELECT from_layer, to_layer, edge_count, violates_layering, in_cycle \
+    FROM layer_graph WHERE snapshot_id = ?1 ORDER BY from_layer, to_layer";
+/// Summary of one type: snapshot, symbol.
+pub const TYPE_SUMMARY: &str = "SELECT member_count, loc, max_complexity, maintainability \
+    FROM type_summary WHERE snapshot_id = ?1 AND symbol_id = ?2";
