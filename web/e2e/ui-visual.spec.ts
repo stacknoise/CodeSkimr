@@ -262,7 +262,7 @@ test.describe("the screens against the mocks (1440 x 900, light)", () => {
       {
         name: "language card",
         mock: "main .panel[style*='max-width:560px']",
-        real: "main section:nth-of-type(2)",
+        real: "main section:has(select)",
         only: ["x", "width"],
       },
     ]);

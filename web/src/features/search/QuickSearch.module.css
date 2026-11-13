@@ -49,11 +49,13 @@
 }
 
 .key {
-    font: 11px var(--font-mono);
+    font: 500 11px var(--font-mono);
     color: var(--muted);
     border: 1px solid var(--line);
+    border-bottom-width: 2px;
     border-radius: var(--radius-badge);
-    padding: 0 var(--space-6);
+    padding: 0 5px;
+    background: var(--surface);
 }
 
 .prefix {
