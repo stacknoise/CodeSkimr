@@ -16,8 +16,6 @@ pub const TEXT_LANGUAGE: &str = "en";
 pub const MIN_LIMIT: u32 = 1;
 /// Lines in domain spans are zero-based, in the answers one-based.
 pub const LINE_OFFSET: u32 = 1;
-/// Separates the parts of a qualified name.
-pub const NAME_SEPARATOR: char = '.';
 
 /// Parameter of an error: the project id.
 pub const PARAM_PROJECT: &str = "project";

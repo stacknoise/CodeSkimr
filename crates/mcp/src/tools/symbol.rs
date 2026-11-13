@@ -9,7 +9,7 @@ use serde_json::Value;
 
 use super::{SnapshotInfo, Tools, to_json, truncation_notice};
 use crate::args::SymbolArgs;
-use crate::consts::{ARG_SYMBOL, LINE_OFFSET, NAME_SEPARATOR};
+use crate::consts::{ARG_SYMBOL, LINE_OFFSET};
 use crate::error::{CodeReport, McpError};
 
 #[derive(Serialize)]
@@ -43,7 +43,8 @@ struct Answer {
 /// A symbol id if the text is all digits, otherwise a qualified name.
 fn parse_key(text: &str) -> Result<SymbolKey, McpError> {
     let invalid = || McpError::ArgumentsInvalid(ARG_SYMBOL.to_owned());
-    if let Ok(id) = text.parse::<u64>() {
+    let digits_only = text.bytes().all(|byte| byte.is_ascii_digit());
+    if let Some(id) = digits_only.then(|| text.parse::<u64>().ok()).flatten() {
         return Ok(SymbolKey::Id(SymbolId::new(id)));
     }
     QualifiedName::new(text)
@@ -51,21 +52,12 @@ fn parse_key(text: &str) -> Result<SymbolKey, McpError> {
         .map_err(|_| invalid())
 }
 
-/// The first layer that owns the namespace of the symbol, or that namespace's parent.
+/// The first layer that owns the symbol, by its namespace.
 fn layer_of(project: &Project, qualified: &QualifiedName) -> Option<String> {
-    let name = qualified.as_str();
     project
         .layers
         .iter()
-        .find(|layer| {
-            layer.namespaces.iter().any(|namespace| {
-                let prefix = namespace.as_str();
-                name == prefix
-                    || name
-                        .strip_prefix(prefix)
-                        .is_some_and(|rest| rest.starts_with(NAME_SEPARATOR))
-            })
-        })
+        .find(|layer| layer.owns(qualified.as_str()))
         .map(|layer| layer.name.as_str().to_owned())
 }
 

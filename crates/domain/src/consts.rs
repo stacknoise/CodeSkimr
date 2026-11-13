@@ -9,6 +9,9 @@ pub const MESSAGE_UNKNOWN_LABEL: &str = "unknown label";
 /// Message of `ModelError::NotFinite`.
 pub const MESSAGE_NOT_FINITE: &str = "value must be a finite number";
 
+/// Separates the parts of a qualified name.
+pub const NAME_SEPARATOR: char = '.';
+
 /// Label of `SymbolKind::Module`.
 pub const KIND_MODULE: &str = "module";
 /// Label of `SymbolKind::Namespace`.

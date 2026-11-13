@@ -25,8 +25,6 @@ pub const SOURCE_GIT: &str = "git";
 /// Stored branch of a folder source, which has none.
 pub const NO_BRANCH: &str = "";
 
-/// Separates the parts of a qualified name.
-pub const NAME_SEPARATOR: char = '.';
 /// Escapes `LIKE` wildcards in search queries.
 pub const LIKE_ESCAPE: char = '\\';
 /// `LIKE` wildcard for any run of characters.

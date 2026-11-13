@@ -39,9 +39,24 @@ fn search_uses_the_default_limit_and_reports_the_snapshot_age() {
     assert_eq!(count(&answer, "hits"), 2);
     assert_eq!(answer["snapshot"]["id"], 10);
     assert_eq!(answer["snapshot"]["age_seconds"], NOW - SCANNED_AT);
-    assert!(answer["notice"].is_null());
+    assert_eq!(answer["notice"]["code"], "MCP-501");
     assert_eq!(answer["hits"][0]["qualified_name"], "App.Order");
     assert_eq!(answer["hits"][0]["kind"], "class");
+}
+
+#[test]
+fn search_says_so_when_more_hits_exist_than_the_limit() {
+    let answer = tools()
+        .search_symbols(&search("order", None, Some(1)))
+        .unwrap();
+    assert_eq!(count(&answer, "hits"), 1);
+    assert_eq!(answer["notice"]["code"], "MCP-501");
+}
+
+#[test]
+fn get_symbol_takes_only_digits_as_an_id() {
+    let error = tools().get_symbol(&symbol("+1", None)).unwrap_err();
+    assert_eq!(error.report().code, "MCP-202");
 }
 
 #[test]
@@ -65,7 +80,8 @@ fn search_filters_by_kind_and_still_fills_the_limit() {
         .iter()
         .map(|hit| hit["kind"].as_str().unwrap())
         .collect();
-    assert_eq!(kinds, ["class"]);
+    assert_eq!(kinds, ["class", "class"]);
+    assert!(answer["notice"].is_null());
 }
 
 #[test]

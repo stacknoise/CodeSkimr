@@ -44,7 +44,7 @@ impl Coded for McpError {
 
 impl fmt::Display for McpError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_str(self.code().description())
+        write!(f, "{}: {}", self.code().id(), self.code().description())
     }
 }
 

@@ -21,7 +21,7 @@ All three are read-only (`readOnlyHint`). Every answer is structured JSON and st
 
 ## Limits
 
-`limit` defaults to `mcp.default_limit` and is held to `1..=mcp.max_limit` (`config/default.toml`, 20 and 100). When a request is cut to the maximum, or when `get_symbol` lists more members than the maximum, the answer carries a `notice` with code `MCP-501` and the applied `limit` (and `total` for members). A `kind` filter is applied after the search over the widest allowed result, so it can return fewer hits than `limit` even if more exist.
+`limit` defaults to `mcp.default_limit` and is held to `1..=mcp.max_limit` (`config/default.toml`, 20 and 100). When a request is cut to the maximum, when `search_symbols` has more hits than `limit`, or when `get_symbol` lists more members than the maximum, the answer carries a `notice` with code `MCP-501` and the applied `limit` (and `total` for members). A `kind` filter is applied after the search over the widest allowed result, so it can return fewer hits than `limit` even if more exist.
 
 ## Errors
 

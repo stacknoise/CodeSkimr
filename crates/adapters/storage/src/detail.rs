@@ -103,15 +103,14 @@ fn find_symbol(
     found.map(decode).transpose()
 }
 
+fn read_member(cols: &Cols<'_>) -> rusqlite::Result<(i64, String, String)> {
+    Ok((cols.take()?, cols.take()?, cols.take()?))
+}
+
 fn members(conn: &Connection, snapshot: i64, symbol: SymbolId) -> StorageResult<Vec<MemberRef>> {
     let mut statement = conn.prepare_cached(sql::MEMBERS_OF)?;
     let rows = statement.query_map(params![snapshot, column_int(symbol.get())?], |row| {
-        let cols = Cols::new(row);
-        Ok((
-            cols.take::<i64>()?,
-            cols.take::<String>()?,
-            cols.take::<String>()?,
-        ))
+        read_member(&Cols::new(row))
     })?;
     let mut found = Vec::new();
     for row in rows {
