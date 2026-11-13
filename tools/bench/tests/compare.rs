@@ -52,3 +52,13 @@ fn missing_base_is_not_a_failure() {
     );
     assert!(!has_failure(&rows));
 }
+
+#[test]
+fn benchmark_missing_in_change_is_reported_not_failed() {
+    let rows = compare(&Medians::new(), &medians(1_000.0), &BTreeMap::new(), 10.0);
+    assert_eq!(
+        rows.first().map(|r| r.verdict.clone()),
+        Some(Verdict::Removed)
+    );
+    assert!(!has_failure(&rows));
+}

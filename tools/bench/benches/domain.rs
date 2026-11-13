@@ -13,12 +13,17 @@ const NAMES: [&str; 4] = [
     "A.B.C.D.E.F.G.H",
 ];
 
+/// Repetitions per iteration, so that one measurement is long enough to be stable.
+const REPEATS: usize = 1_000;
+
 fn qualified_names(c: &mut Criterion) {
     let mut group = c.benchmark_group("domain");
     group.bench_function("qualified_name_new", |b| {
         b.iter(|| {
-            for name in NAMES {
-                let _ = black_box(QualifiedName::new(black_box(name)));
+            for _ in 0..REPEATS {
+                for name in NAMES {
+                    let _ = black_box(QualifiedName::new(black_box(name)));
+                }
             }
         });
     });

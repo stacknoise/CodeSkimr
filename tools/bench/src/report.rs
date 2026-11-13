@@ -1,7 +1,7 @@
 //! Text report of a comparison.
 
 use crate::compare::{Row, Verdict};
-use crate::consts::{NS_PER_US, text};
+use crate::consts::{MISSING, NS_PER_US, text};
 
 /// Renders one line per benchmark.
 #[must_use]
@@ -9,20 +9,30 @@ pub fn render(rows: &[Row]) -> String {
     rows.iter().map(line).collect::<Vec<_>>().join("\n")
 }
 
-fn line(row: &Row) -> String {
-    let base = row
-        .base_ns
-        .map_or_else(|| "-".to_owned(), |ns| format!("{:.2} us", ns / NS_PER_US));
-    let marker = match &row.verdict {
+fn micros(ns: Option<f64>) -> String {
+    ns.map_or_else(
+        || MISSING.to_owned(),
+        |ns| format!("{:.2} us", ns / NS_PER_US),
+    )
+}
+
+fn marker(verdict: &Verdict) -> String {
+    match verdict {
         Verdict::Ok => text::OK.to_owned(),
         Verdict::Regression(change) => format!("{} (+{change:.1} %)", text::REGRESSION),
         Verdict::OverBudget(budget) => format!("{} (budget {budget} ms)", text::OVER_BUDGET),
         Verdict::NewBench => text::NEW_BENCH.to_owned(),
-    };
+        Verdict::Removed => text::REMOVED.to_owned(),
+    }
+}
+
+fn line(row: &Row) -> String {
     format!(
-        "{:<40} new {:.2} us  base {base}  {marker}",
+        "{:<40} new {}  base {}  {}",
         row.id,
-        row.new_ns / NS_PER_US
+        micros(row.new_ns),
+        micros(row.base_ns),
+        marker(&row.verdict)
     )
 }
 

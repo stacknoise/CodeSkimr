@@ -2,11 +2,12 @@
 
 use std::collections::BTreeMap;
 use std::fs;
+use std::io::ErrorKind;
 use std::path::Path;
 
 use serde::Deserialize;
 
-use crate::consts::ESTIMATES_FILE;
+use crate::consts::{ESTIMATES_FILE, ID_SEPARATOR, WINDOWS_SEPARATOR};
 use crate::error::BenchError;
 
 #[derive(Deserialize)]
@@ -22,10 +23,17 @@ struct Estimates {
 /// Median time in nanoseconds per benchmark id (`group/name`).
 pub type Medians = BTreeMap<String, f64>;
 
+fn io_error(path: &Path, source: std::io::Error) -> BenchError {
+    BenchError::Io {
+        path: path.to_path_buf(),
+        source,
+    }
+}
+
 /// Collects the medians of one named baseline below `criterion_dir`.
 ///
 /// # Errors
-/// Returns an error when a directory or an estimates file cannot be read.
+/// Returns an error when a directory or an estimates file cannot be read or parsed.
 pub fn collect(criterion_dir: &Path, baseline: &str) -> Result<Medians, BenchError> {
     let mut medians = Medians::new();
     walk(criterion_dir, criterion_dir, baseline, &mut medians)?;
@@ -33,12 +41,8 @@ pub fn collect(criterion_dir: &Path, baseline: &str) -> Result<Medians, BenchErr
 }
 
 fn walk(root: &Path, dir: &Path, baseline: &str, medians: &mut Medians) -> Result<(), BenchError> {
-    let entries = fs::read_dir(dir).map_err(|source| BenchError::Io {
-        path: dir.to_path_buf(),
-        source,
-    })?;
-    for entry in entries.flatten() {
-        let path = entry.path();
+    for entry in fs::read_dir(dir).map_err(|source| io_error(dir, source))? {
+        let path = entry.map_err(|source| io_error(dir, source))?.path();
         if !path.is_dir() {
             continue;
         }
@@ -58,8 +62,10 @@ fn record(
     medians: &mut Medians,
 ) -> Result<(), BenchError> {
     let file = baseline_dir.join(ESTIMATES_FILE);
-    let Ok(text) = fs::read_to_string(&file) else {
-        return Ok(());
+    let text = match fs::read_to_string(&file) {
+        Ok(text) => text,
+        Err(source) if source.kind() == ErrorKind::NotFound => return Ok(()),
+        Err(source) => return Err(io_error(&file, source)),
     };
     let parsed: Estimates =
         serde_json::from_str(&text).map_err(|source| BenchError::Estimates {
@@ -70,7 +76,7 @@ fn record(
         .strip_prefix(root)
         .unwrap_or(bench_dir)
         .to_string_lossy()
-        .replace('\\', "/");
+        .replace(WINDOWS_SEPARATOR, ID_SEPARATOR);
     medians.insert(id, parsed.median.point_estimate);
     Ok(())
 }

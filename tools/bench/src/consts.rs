@@ -21,6 +21,24 @@ pub const BUDGET_MAP_PATH: &str = "tools/bench/budgets.toml";
 /// Table of the default configuration that holds the budgets.
 pub const BUDGETS_TABLE: &str = "budgets";
 
+/// Key of the benchmark table inside the budget mapping.
+pub const BENCHMARKS_KEY: &str = "benchmarks";
+
+/// Zero, as a floating point number.
+pub const ZERO: f64 = 0.0;
+
+/// One, as a floating point number.
+pub const ONE: f64 = 1.0;
+
+/// Path separator that criterion directories use on Windows.
+pub const WINDOWS_SEPARATOR: char = '\\';
+
+/// Separator of benchmark ids.
+pub const ID_SEPARATOR: &str = "/";
+
+/// Shown where a measurement is missing.
+pub const MISSING: &str = "-";
+
 /// Key of the regression tolerance inside the budgets table.
 pub const TOLERANCE_KEY: &str = "regression_tolerance_percent";
 
@@ -34,6 +52,8 @@ pub mod flags {
     pub const NEW: &str = "--new";
     /// Repository root.
     pub const ROOT: &str = "--root";
+    /// The base measurement was skipped on purpose (no harness on the base commit).
+    pub const NO_BASE: &str = "--no-base";
 }
 
 /// Default values of the command-line flags.
@@ -56,6 +76,8 @@ pub mod text {
     pub const REGRESSION: &str = "REGRESSION";
     /// Marker for a benchmark above its absolute budget.
     pub const OVER_BUDGET: &str = "OVER BUDGET";
+    /// Marker for a benchmark that exists on the base but no longer in the change.
+    pub const REMOVED: &str = "removed (no new measurement)";
     /// Marker for a benchmark without a base measurement.
     pub const NEW_BENCH: &str = "new (no base)";
     /// Printed when no benchmark results were found.

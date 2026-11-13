@@ -6,7 +6,7 @@ use std::path::Path;
 
 use toml::Table;
 
-use crate::consts::{BUDGET_MAP_PATH, BUDGETS_TABLE, CONFIG_PATH, TOLERANCE_KEY};
+use crate::consts::{BENCHMARKS_KEY, BUDGET_MAP_PATH, BUDGETS_TABLE, CONFIG_PATH, TOLERANCE_KEY};
 use crate::error::BenchError;
 
 /// The tolerance and the budget per benchmark id, in milliseconds.
@@ -50,13 +50,16 @@ pub fn load(root: &Path) -> Result<Limits, BenchError> {
 
 fn map_budgets(mapping: &Table, budgets: &Table) -> Result<BTreeMap<String, f64>, BenchError> {
     let mut out = BTreeMap::new();
-    let Some(benchmarks) = mapping.get("benchmarks").and_then(toml::Value::as_table) else {
+    let Some(benchmarks) = mapping.get(BENCHMARKS_KEY).and_then(toml::Value::as_table) else {
         return Ok(out);
     };
     for (id, key) in benchmarks {
         let key = key.as_str().unwrap_or_default();
+        if !budgets.contains_key(key) {
+            return Err(BenchError::UnknownBudget(key.to_owned()));
+        }
         let value =
-            number(budgets, key).ok_or_else(|| BenchError::UnknownBudget(key.to_owned()))?;
+            number(budgets, key).ok_or_else(|| BenchError::InvalidBudget(key.to_owned()))?;
         out.insert(id.clone(), value);
     }
     Ok(out)

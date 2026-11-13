@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use crate::consts::{NS_PER_MS, PERCENT};
+use crate::consts::{NS_PER_MS, ONE, PERCENT, ZERO};
 use crate::estimates::Medians;
 
 /// Outcome for one benchmark.
@@ -16,6 +16,8 @@ pub enum Verdict {
     OverBudget(f64),
     /// No base measurement exists for this benchmark.
     NewBench,
+    /// The base has this benchmark, the change does not (deleted or renamed).
+    Removed,
 }
 
 impl Verdict {
@@ -31,8 +33,8 @@ impl Verdict {
 pub struct Row {
     /// Benchmark id.
     pub id: String,
-    /// Median of the new measurement in nanoseconds.
-    pub new_ns: f64,
+    /// Median of the new measurement in nanoseconds, when there is one.
+    pub new_ns: Option<f64>,
     /// Median of the base measurement in nanoseconds, when there is one.
     pub base_ns: Option<f64>,
     /// Outcome.
@@ -40,6 +42,7 @@ pub struct Row {
 }
 
 /// Compares every new median with its base and with its budget in milliseconds.
+/// Benchmarks that only exist in the base are reported as removed.
 #[must_use]
 pub fn compare(
     new: &Medians,
@@ -47,7 +50,8 @@ pub fn compare(
     budgets_ms: &BTreeMap<String, f64>,
     tolerance_percent: f64,
 ) -> Vec<Row> {
-    new.iter()
+    let mut rows: Vec<Row> = new
+        .iter()
         .map(|(id, &new_ns)| {
             let base_ns = base.get(id).copied();
             let verdict = judge(
@@ -58,12 +62,20 @@ pub fn compare(
             );
             Row {
                 id: id.clone(),
-                new_ns,
+                new_ns: Some(new_ns),
                 base_ns,
                 verdict,
             }
         })
-        .collect()
+        .collect();
+    let removed = base.iter().filter(|(id, _)| !new.contains_key(*id));
+    rows.extend(removed.map(|(id, &base_ns)| Row {
+        id: id.clone(),
+        new_ns: None,
+        base_ns: Some(base_ns),
+        verdict: Verdict::Removed,
+    }));
+    rows
 }
 
 fn judge(new_ns: f64, base_ns: Option<f64>, budget_ms: Option<f64>, tolerance: f64) -> Verdict {
@@ -72,8 +84,8 @@ fn judge(new_ns: f64, base_ns: Option<f64>, budget_ms: Option<f64>, tolerance: f
     }
     match base_ns {
         None => Verdict::NewBench,
-        Some(base) if base > 0.0 => {
-            let change = (new_ns / base - 1.0) * PERCENT;
+        Some(base) if base > ZERO => {
+            let change = (new_ns / base - ONE) * PERCENT;
             if change > tolerance {
                 Verdict::Regression(change)
             } else {

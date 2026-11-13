@@ -28,6 +28,8 @@ repository = "https://github.com/stacknoise/CodeSkimr"
 thiserror = "2"
 serde = { version = "1", features = ["derive"] }
 toml = "1"
+serde_json = "1"
+criterion = { version = "0.7", default-features = false }
 
 # Binding rules from blueprint section 3 and 17.3. Thresholds live in clippy.toml.
 [workspace.lints.rust]
