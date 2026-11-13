@@ -1,0 +1,385 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 51,
+      "operands": null,
+      "operators": null,
+      "symbol": "Metrics"
+    },
+    {
+      "decisions": null,
+      "loc": 48,
+      "operands": null,
+      "operators": null,
+      "symbol": "Metrics.M"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "Metrics.M.plain"
+    },
+    {
+      "decisions": 5,
+      "loc": 5,
+      "operands": [
+        5,
+        14
+      ],
+      "operators": [
+        8,
+        14
+      ],
+      "symbol": "Metrics.M.branches"
+    },
+    {
+      "decisions": 4,
+      "loc": 6,
+      "operands": [
+        7,
+        11
+      ],
+      "operators": [
+        8,
+        9
+      ],
+      "symbol": "Metrics.M.loops"
+    },
+    {
+      "decisions": 1,
+      "loc": 9,
+      "operands": [
+        5,
+        5
+      ],
+      "operators": [
+        3,
+        5
+      ],
+      "symbol": "Metrics.M.cases"
+    },
+    {
+      "decisions": 2,
+      "loc": 7,
+      "operands": [
+        7,
+        7
+      ],
+      "operators": [
+        3,
+        4
+      ],
+      "symbol": "Metrics.M.rules"
+    },
+    {
+      "decisions": 2,
+      "loc": 6,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        3,
+        4
+      ],
+      "symbol": "Metrics.M.catches"
+    },
+    {
+      "decisions": 1,
+      "loc": 4,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        3,
+        4
+      ],
+      "symbol": "Metrics.M.resources"
+    },
+    {
+      "decisions": 1,
+      "loc": 6,
+      "operands": [
+        6,
+        9
+      ],
+      "operators": [
+        8,
+        8
+      ],
+      "symbol": "Metrics.M.outer"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        2,
+        4
+      ],
+      "operators": [
+        3,
+        4
+      ],
+      "symbol": "Metrics.M.outer.inner"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Metrics.M.noBody"
+    },
+    {
+      "decisions": null,
+      "loc": 3,
+      "operands": null,
+      "operators": null,
+      "symbol": "Metrics.Shape"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Metrics.Shape.area"
+    }
+  ],
+  "loc": 51,
+  "references": [
+    {
+      "at": "12:18",
+      "from": "Metrics.M.loops",
+      "kind": "read",
+      "receiver": "typed int[]",
+      "target": "length"
+    },
+    {
+      "at": "16:4",
+      "from": "Metrics.M.cases",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "26:4",
+      "from": "Metrics.M.rules",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "35:14",
+      "from": "Metrics.M.catches",
+      "kind": "call",
+      "receiver": null,
+      "target": "work"
+    },
+    {
+      "at": "36:23",
+      "from": "Metrics.M.catches",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IOException"
+    },
+    {
+      "at": "37:15",
+      "from": "Metrics.M.catches",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "RuntimeException"
+    },
+    {
+      "at": "37:34",
+      "from": "Metrics.M.catches",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Error"
+    },
+    {
+      "at": "42:21",
+      "from": "Metrics.M.resources",
+      "kind": "call",
+      "receiver": null,
+      "target": "open"
+    },
+    {
+      "at": "42:31",
+      "from": "Metrics.M.resources",
+      "kind": "call",
+      "receiver": null,
+      "target": "work"
+    },
+    {
+      "at": "43:15",
+      "from": "Metrics.M.resources",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Exception"
+    },
+    {
+      "at": "47:27",
+      "from": "Metrics.M.outer",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IntUnaryOperator"
+    },
+    {
+      "at": "48:8",
+      "from": "Metrics.M.outer",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Object"
+    },
+    {
+      "at": "48:23",
+      "from": "Metrics.M.outer",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Object"
+    },
+    {
+      "at": "51:17",
+      "from": "Metrics.M.outer",
+      "kind": "call",
+      "receiver": "typed IntUnaryOperator",
+      "target": "applyAsInt"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "Metrics",
+      "parent": null,
+      "span": "0:0-60:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Metrics.M",
+      "parent": "Metrics",
+      "span": "0:0-55:1",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Metrics.M.plain",
+      "parent": "Metrics.M",
+      "span": "1:4-1:29",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Metrics.M.branches",
+      "parent": "Metrics.M",
+      "span": "3:4-7:5",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Metrics.M.loops",
+      "parent": "Metrics.M",
+      "span": "9:4-14:5",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Metrics.M.cases",
+      "parent": "Metrics.M",
+      "span": "16:4-24:5",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Metrics.M.rules",
+      "parent": "Metrics.M",
+      "span": "26:4-32:5",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Metrics.M.catches",
+      "parent": "Metrics.M",
+      "span": "34:4-39:5",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Metrics.M.resources",
+      "parent": "Metrics.M",
+      "span": "41:4-44:5",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Metrics.M.outer",
+      "parent": "Metrics.M",
+      "span": "46:4-52:5",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Metrics.M.outer.inner",
+      "parent": "Metrics.M.outer",
+      "span": "49:12-49:67",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Metrics.M.noBody",
+      "parent": "Metrics.M",
+      "span": "54:4-54:26",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "Metrics.Shape",
+      "parent": "Metrics",
+      "span": "57:0-59:1",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Metrics.Shape.area",
+      "parent": "Metrics.Shape",
+      "span": "58:4-58:15",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

@@ -1,0 +1,129 @@
+# Public Java reference of CI (blueprint 17.2, ADR 0025). Updating the commit is a deliberate
+# change with new expected values. Tests, the other modules (extras, proto, metrics, shrinker and
+# native-image tests) and the Maven template are skipped: the `gson` library itself is scanned
+# (86 files of `gson/src/main/java` with a package plus `module-info.java`).
+# Counts were measured with the Java pack and checked against an independent count with the
+# `com.sun.source` tree API of the JDK (parse only, same mapping rules, different parser); every
+# kind agrees. The library targets Java 8, so it has no records; the golden files of the pack cover
+# them.
+
+[project]
+repository = "https://github.com/google/gson"
+commit = "a961b0fe088f8558d00cc1b56e506a3656907a91"
+skip_folders = [
+    "extras", "metrics", "proto", "test", "test-graal-native-image", "test-jpms", "test-shrinker",
+    "java-templates", "target", "docs",
+]
+language = "java"
+extensions = ["java"]
+
+# Symbols per kind over all *.java files of the library; `module` is one per file and `namespace`
+# one per package declaration.
+[counts]
+files = 87
+module = 87
+namespace = 86       # `module-info.java` has no package
+class = 91           # includes nested, local and static classes
+interface = 18       # includes annotation interfaces
+enum = 6
+enum_member = 30
+constructor = 97
+method = 879         # includes methods of anonymous classes
+field = 205
+constant = 175       # `static final` fields and fields of interfaces
+
+[[sample]]
+file = "gson/src/main/java/com/google/gson/Gson.java"
+kind = "class"
+name = "Gson"
+visibility = "public"
+parent = "com.google.gson"
+
+[[sample]]
+file = "gson/src/main/java/com/google/gson/Gson.java"
+kind = "constructor"
+name = "Gson"
+visibility = "public"
+parent = "Gson"
+
+[[sample]]
+file = "gson/src/main/java/com/google/gson/Gson.java"
+kind = "constructor"
+name = "Gson"
+visibility = "internal"
+parent = "Gson"
+
+[[sample]]
+file = "gson/src/main/java/com/google/gson/Gson.java"
+kind = "constant"
+name = "JSON_NON_EXECUTABLE_PREFIX"
+visibility = "private"
+parent = "Gson"
+
+[[sample]]
+file = "gson/src/main/java/com/google/gson/Gson.java"
+kind = "method"
+name = "toJson"
+visibility = "public"
+parent = "Gson"
+
+[[sample]]
+file = "gson/src/main/java/com/google/gson/GsonBuilder.java"
+kind = "constant"
+name = "DEFAULT"
+visibility = "internal"
+parent = "GsonBuilder"
+
+[[sample]]
+file = "gson/src/main/java/com/google/gson/FieldNamingPolicy.java"
+kind = "enum"
+name = "FieldNamingPolicy"
+visibility = "public"
+parent = "com.google.gson"
+
+[[sample]]
+file = "gson/src/main/java/com/google/gson/FieldNamingPolicy.java"
+kind = "enum_member"
+name = "IDENTITY"
+visibility = "public"
+parent = "FieldNamingPolicy"
+
+[[sample]]
+file = "gson/src/main/java/com/google/gson/ExclusionStrategy.java"
+kind = "interface"
+name = "ExclusionStrategy"
+visibility = "public"
+parent = "com.google.gson"
+
+[[sample]]
+file = "gson/src/main/java/com/google/gson/TypeAdapter.java"
+kind = "class"
+name = "NullSafeTypeAdapter"
+visibility = "private"
+parent = "TypeAdapter"
+
+[[sample]]
+file = "gson/src/main/java/com/google/gson/JsonParser.java"
+kind = "method"
+name = "parseString"
+visibility = "public"
+parent = "JsonParser"
+
+# Hand-checked references: file, kind, target and 1-based line.
+[[references]]
+file = "gson/src/main/java/com/google/gson/JsonObject.java"
+kind = "inherit"
+target = "JsonElement"
+line = 40
+
+[[references]]
+file = "gson/src/main/java/com/google/gson/TypeAdapter.java"
+kind = "inherit"
+target = "TypeAdapter"
+line = 299
+
+[[references]]
+file = "gson/src/main/java/com/google/gson/FieldNamingPolicy.java"
+kind = "inherit"
+target = "FieldNamingStrategy"
+line = 31
