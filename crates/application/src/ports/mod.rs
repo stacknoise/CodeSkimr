@@ -10,7 +10,8 @@ mod source;
 mod storage;
 
 pub use analysis::{
-    AnalyzeRequest, FileAnalyzer, FileFacts, MetricsCalculator, PendingReference, ReferenceResolver,
+    AnalyzeRequest, FileAnalyzer, FileFacts, MetricsCalculator, PendingReference,
+    ReferenceResolver, SymbolFingerprints,
 };
 pub use clock::Clock;
 pub use query::{CodeIndex, MemberRef, SearchHit, SymbolDetail, SymbolKey};

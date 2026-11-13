@@ -1,8 +1,8 @@
 //! Understanding code (adapters: `codeskimr_parsing` and the metrics of `codeskimr_domain`).
 
 use codeskimr_domain::{
-    FileId, FolderPath, Metric, QualifiedName, Reference, ReferenceKind, SnapshotId, SourceFile,
-    Span, Symbol, SymbolId,
+    FileId, Fingerprints, FolderPath, Metric, QualifiedName, Reference, ReferenceKind, SnapshotId,
+    SourceFile, Span, Symbol, SymbolId,
 };
 
 use super::DiscoveredFile;
@@ -37,6 +37,15 @@ pub struct PendingReference {
     pub target: QualifiedName,
 }
 
+/// The syntax fingerprints of one function-like symbol (blueprint 10.4).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SymbolFingerprints {
+    /// The function, method or constructor.
+    pub symbol: SymbolId,
+    /// Its winnowed fingerprints; never empty.
+    pub fingerprints: Fingerprints,
+}
+
 /// Everything the analysis found in one file.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileFacts {
@@ -46,6 +55,8 @@ pub struct FileFacts {
     pub symbols: Vec<Symbol>,
     /// Names used in the file that still need resolving.
     pub pending: Vec<PendingReference>,
+    /// Fingerprints of the callable symbols that are long enough; empty if fingerprinting is off.
+    pub fingerprints: Vec<SymbolFingerprints>,
 }
 
 /// Parses one file and extracts its symbols (Parse and Extract of blueprint section 7).

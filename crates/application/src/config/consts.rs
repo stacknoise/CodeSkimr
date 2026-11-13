@@ -67,6 +67,12 @@ pub mod keys {
     pub const MCP_MAX_LIMIT: &str = "mcp.max_limit";
     /// `snapshots.retention_count`
     pub const RETENTION_COUNT: &str = "snapshots.retention_count";
+    /// `similarity.ngram_size`
+    pub const NGRAM_SIZE: &str = "similarity.ngram_size";
+    /// `similarity.window_size`
+    pub const WINDOW_SIZE: &str = "similarity.window_size";
+    /// `similarity.min_tokens`
+    pub const MIN_TOKENS: &str = "similarity.min_tokens";
     /// `watcher.debounce_ms`
     pub const DEBOUNCE_MS: &str = "watcher.debounce_ms";
     /// `scan.excluded_folders`

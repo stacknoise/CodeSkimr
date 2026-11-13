@@ -119,3 +119,33 @@ pub const MI_LOG_FLOOR: f64 = 1.0;
 pub const HALSTEAD_MIN_VOCABULARY: f64 = 1.0;
 /// Halstead volume of a body without any vocabulary.
 pub const HALSTEAD_EMPTY_VOLUME: f64 = 0.0;
+
+/// Message of `ModelError::NotPositive`.
+pub const MESSAGE_NOT_POSITIVE: &str = "value must be greater than zero";
+
+/// Offset basis of the 64-bit FNV-1a hash that turns token text into a token id.
+pub const FNV_OFFSET_BASIS: u64 = 0xcbf2_9ce4_8422_2325;
+/// Prime of the 64-bit FNV-1a hash.
+pub const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
+/// Odd base of the rolling hash over a run of token ids.
+pub const ROLLING_BASE: u64 = 0x9e37_79b9_7f4a_7c15;
+/// First multiplier of the finalising mix that spreads the bits of a rolling hash.
+pub const MIX_MULTIPLIER_FIRST: u64 = 0xbf58_476d_1ce4_e5b9;
+/// Second multiplier of the finalising mix.
+pub const MIX_MULTIPLIER_SECOND: u64 = 0x94d0_49bb_1331_11eb;
+/// Shift of the first xor-shift step of the finalising mix.
+pub const MIX_SHIFT_FIRST: u32 = 30;
+/// Shift of the second xor-shift step of the finalising mix.
+pub const MIX_SHIFT_SECOND: u32 = 27;
+/// Shift of the last xor-shift step of the finalising mix.
+pub const MIX_SHIFT_LAST: u32 = 31;
+/// Text hashed for every identifier, so names do not influence a fingerprint.
+pub const TOKEN_IDENTIFIER: &str = "<identifier>";
+/// Text hashed for every literal, so values do not influence a fingerprint.
+pub const TOKEN_LITERAL: &str = "<literal>";
+/// Similarity of two fingerprint sets that share nothing.
+pub const SIMILARITY_NONE: f64 = 0.0;
+/// Start value of the power `ROLLING_BASE^(n-1)`, the weight of the token that leaves the window.
+pub const POWER_START: u64 = 1;
+/// Start value of the rolling hash of an n-gram.
+pub const HASH_START: u64 = 0;

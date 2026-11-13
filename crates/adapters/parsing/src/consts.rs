@@ -1,5 +1,7 @@
 //! Fixed values of this crate: file names of a language pack, capture vocabulary, encodings.
 
+use codeskimr_domain::SymbolKind;
+
 /// File with the metadata and rules of a language pack.
 pub const MANIFEST_FILE: &str = "language.toml";
 /// Tree-sitter query that maps declarations onto symbol kinds.
@@ -43,3 +45,10 @@ pub const ID_MISMATCH: &str = "id differs from the folder name: ";
 
 /// Replacement extension that removes the extension of a path.
 pub const NO_EXTENSION: &str = "";
+
+/// Symbol kinds whose bodies get syntax fingerprints.
+pub const CALLABLE_KINDS: [SymbolKind; 3] = [
+    SymbolKind::Function,
+    SymbolKind::Method,
+    SymbolKind::Constructor,
+];

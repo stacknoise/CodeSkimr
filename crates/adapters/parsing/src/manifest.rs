@@ -50,6 +50,12 @@ pub struct PackManifest {
     /// Prefixes removed from documentation comment lines.
     #[serde(default)]
     pub doc_prefixes: Vec<String>,
+    /// Syntax node kinds that are identifiers; fingerprints treat them all alike.
+    #[serde(default)]
+    pub identifier_nodes: Vec<String>,
+    /// Syntax node kinds that are literals, taken as one token each; fingerprints ignore values.
+    #[serde(default)]
+    pub literal_nodes: Vec<String>,
     /// Visibility rules.
     #[serde(default)]
     pub visibility: VisibilityRules,

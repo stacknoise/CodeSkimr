@@ -145,6 +145,7 @@ impl FileAnalyzer for World {
             file,
             symbols: vec![symbol],
             pending,
+            fingerprints: Vec::new(),
         })
     }
 }

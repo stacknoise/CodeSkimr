@@ -17,6 +17,7 @@ mod captures;
 mod consts;
 mod encoding;
 mod error;
+mod fingerprints;
 mod grammar;
 mod lines;
 mod location;
