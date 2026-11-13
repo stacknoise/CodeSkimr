@@ -3,7 +3,7 @@
 #[cfg(test)]
 mod common;
 
-use codeskimr_domain::Principal;
+use codeskimr_domain::{PermissionSet, Principal};
 use codeskimr_i18n::Messages;
 use codeskimr_mcp::McpServer;
 use common::tools;
@@ -39,8 +39,13 @@ impl Client {
 
 #[cfg(test)]
 async fn connected() -> Client {
+    connected_as(Principal::local_owner()).await
+}
+
+#[cfg(test)]
+async fn connected_as(principal: Principal) -> Client {
     let messages = Messages::load().unwrap();
-    let server = McpServer::new(tools(), &messages, Principal::local_owner()).unwrap();
+    let server = McpServer::new(tools(), &messages, principal).unwrap();
     let (near, far) = tokio::io::duplex(64 * 1024);
     tokio::spawn(async move {
         let running = server.serve(far).await.unwrap();
@@ -124,4 +129,21 @@ async fn an_unknown_tool_is_a_tool_error_too() {
         .await;
     assert_eq!(answer["result"]["isError"], true);
     assert_eq!(answer["result"]["structuredContent"]["code"], "MCP-101");
+}
+
+#[tokio::test]
+async fn a_denied_caller_gets_the_same_answer_for_bad_arguments_and_unknown_tools() {
+    let mut client = connected_as(Principal::limited(PermissionSet::none())).await;
+    let calls = [
+        json!({"name": "search_symbols", "arguments": {"limit": 5}}),
+        json!({"name": "search_symbols", "arguments": {"query": "order"}}),
+        json!({"name": "rescan", "arguments": {}}),
+    ];
+    for (id, call) in (6..).zip(calls) {
+        let answer = client.call(id, "tools/call", call).await;
+        assert_eq!(answer["result"]["isError"], true);
+        let report = &answer["result"]["structuredContent"];
+        assert_eq!(report["code"], "AUTH-401");
+        assert_eq!(report["params"], json!({}));
+    }
 }

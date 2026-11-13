@@ -3,6 +3,7 @@
 use std::future::Future;
 use std::sync::Arc;
 
+use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
 use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
@@ -25,8 +26,8 @@ use serde_json::Value;
 
 use crate::args::{ArchitectureArgs, SearchArgs, SymbolArgs};
 use crate::consts::{
-    SERVER_NAME, SERVER_VERSION, TEXT_LANGUAGE, TOOL_GET_ARCHITECTURE, TOOL_GET_SYMBOL,
-    TOOL_SEARCH_SYMBOLS,
+    READ_TOOL_PERMISSION, SERVER_NAME, SERVER_VERSION, TEXT_LANGUAGE, TOOL_GET_ARCHITECTURE,
+    TOOL_GET_SYMBOL, TOOL_SEARCH_SYMBOLS,
 };
 use crate::error::McpError;
 use crate::tools::Tools;
@@ -104,6 +105,11 @@ impl McpServer {
         name: &str,
         arguments: Option<JsonObject>,
     ) -> CallToolResult {
+        // The permission comes first: before the tool name or the arguments are looked at, so a
+        // denied caller cannot tell valid names or argument shapes from invalid ones.
+        if let Err(denied) = access::require(&principal, READ_TOOL_PERMISSION) {
+            return failure(&McpError::from(denied));
+        }
         let outcome = match name {
             TOOL_SEARCH_SYMBOLS => {
                 parse_arguments(arguments).and_then(|args| tools.search_symbols(&principal, &args))

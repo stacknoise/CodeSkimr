@@ -119,3 +119,27 @@ fn a_denial_looks_the_same_for_every_missing_permission() {
         .unwrap_err();
     assert_eq!(first.to_string(), second.to_string());
 }
+
+struct Mislabelled;
+
+impl Command for Mislabelled {
+    type Input = ();
+    type Output = ();
+    const DESCRIPTOR: CommandDescriptor = descriptor("c.mislabelled", false, Permission::Read);
+
+    fn execute(&self, _request: Request<'_, ()>) -> Result<(), CodedError> {
+        Ok(())
+    }
+}
+
+#[test]
+fn a_command_whose_read_only_flag_contradicts_its_permission_is_rejected() {
+    let mut registry = Registry::new();
+    assert_eq!(
+        registry.register(Mislabelled),
+        Err(RegistryError::PermissionMismatch(
+            Mislabelled::DESCRIPTOR.id
+        ))
+    );
+    assert_eq!(registry.descriptors().count(), 0);
+}

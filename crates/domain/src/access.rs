@@ -29,6 +29,9 @@ labeled_enum!(
     }
 );
 
+// The set stores one bit per permission in a `u8`.
+const _: () = assert!(Permission::ALL.len() <= u8::BITS as usize);
+
 impl Permission {
     const fn bit(self) -> u8 {
         1 << self as u8

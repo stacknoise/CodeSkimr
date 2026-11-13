@@ -4,15 +4,13 @@ use std::collections::BTreeMap;
 
 use codeskimr_application::access;
 use codeskimr_application::ports::{MemberRef, SymbolDetail, SymbolKey};
-use codeskimr_domain::Principal;
-use codeskimr_domain::{Project, QualifiedName, SymbolId, Visibility};
+use codeskimr_domain::{Principal, Project, QualifiedName, SymbolId, Visibility};
 use serde::Serialize;
 use serde_json::Value;
 
 use super::{SnapshotInfo, Tools, to_json, truncation_notice};
 use crate::args::SymbolArgs;
-use crate::consts::READ_TOOL_PERMISSION;
-use crate::consts::{ARG_SYMBOL, LINE_OFFSET};
+use crate::consts::{ARG_SYMBOL, LINE_OFFSET, READ_TOOL_PERMISSION};
 use crate::error::{CodeReport, McpError};
 
 #[derive(Serialize)]
@@ -109,8 +107,9 @@ impl Tools {
     /// One symbol with signature, documentation, members, metrics and layer.
     ///
     /// # Errors
-    /// `AUTH-401` if the principal may not read, `MCP-101` for an invalid symbol, `MCP-202` if it does not exist, `MCP-201` and `MCP-203`
-    /// for the project, or the code of a failing port.
+    /// `AUTH-401` if the principal may not read, `MCP-101` for an invalid symbol, `MCP-202`
+    /// if it does not exist, `MCP-201` and `MCP-203` for the project, or the code of a
+    /// failing port.
     pub fn get_symbol(&self, principal: &Principal, args: &SymbolArgs) -> Result<Value, McpError> {
         access::require(principal, READ_TOOL_PERMISSION)?;
         let key = parse_key(&args.symbol)?;

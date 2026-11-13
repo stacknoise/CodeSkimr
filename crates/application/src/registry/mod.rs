@@ -19,7 +19,7 @@ use std::collections::BTreeMap;
 use std::sync::Arc;
 
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::Principal;
+use codeskimr_domain::{Permission, Principal};
 
 use crate::access;
 use crate::error::CodedError;
@@ -45,9 +45,17 @@ impl Registry {
     /// Registers a command under the id of its descriptor.
     ///
     /// # Errors
-    /// `RegistryError::DuplicateId` if the id is taken; nothing changes then.
+    /// `RegistryError::DuplicateId` if the id is taken, `RegistryError::PermissionMismatch` if
+    /// `read_only` and the declared permission contradict each other; nothing changes then.
     pub fn register<C: Command>(&mut self, command: C) -> Result<(), RegistryError> {
         let descriptor = C::DESCRIPTOR;
+        let reads = matches!(
+            descriptor.permission,
+            Permission::Read | Permission::ReadSource
+        );
+        if descriptor.read_only != reads {
+            return Err(RegistryError::PermissionMismatch(descriptor.id));
+        }
         if self.entries.contains_key(&descriptor.id) {
             return Err(RegistryError::DuplicateId(descriptor.id));
         }

@@ -1,8 +1,7 @@
 //! `get_architecture`.
 
 use codeskimr_application::access;
-use codeskimr_domain::Principal;
-use codeskimr_domain::{Layer, LayerEdge};
+use codeskimr_domain::{Layer, LayerEdge, Principal};
 use serde::Serialize;
 use serde_json::Value;
 
@@ -59,7 +58,8 @@ impl Tools {
     /// The layers of a project with their namespaces and the dependencies between them.
     ///
     /// # Errors
-    /// `AUTH-401` if the principal may not read, `MCP-201` and `MCP-203` for the project, or the code of a failing port.
+    /// `AUTH-401` if the principal may not read, `MCP-201` and `MCP-203` for the project,
+    /// or the code of a failing port.
     pub fn get_architecture(
         &self,
         principal: &Principal,

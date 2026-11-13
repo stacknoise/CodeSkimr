@@ -425,7 +425,7 @@ The registry generates:
 **Caller identity and permissions (MUST, ADR 0019):**
 
 - `Principal` and `Permission` are pure types in `codeskimr_domain`. In 1.0 the only principal is `LocalOwner`, who holds every permission; it is created only in the single-user composition root (a test enforces this). A principal with fewer permissions is built only by an authenticator or in tests.
-- Every command and every use case receives the `Principal` inside its request or context struct (so the parameter limit R-02 holds). Commands run only through `Registry::execute`, which checks the declared permission once, before the command starts; the registry hands out no handler that could skip the check. Use cases that are not commands yet (the scanner, the MCP tools) call `access::require` first, before they read anything or validate arguments.
+- Every command and every use case receives the `Principal` inside its request or context struct (so the parameter limit R-02 holds). Commands run only through `Registry::execute`, which checks the declared permission once, before the command starts; the registry hands out no handler that could skip the check. Registering a command fails if its read-only flag contradicts its permission (a read-only command needs `read` or `read_source`, any other command needs something else). Use cases that are not commands yet (the scanner, the MCP tools) call `access::require` first, before they read anything or validate arguments.
 - Denial gives the registered error `AUTH-401` and names neither the permission nor a project; "not found" and "not allowed" must not become an oracle. A denied scan starts nothing and publishes no event.
 - Any source text a command, route, tool or export returns needs `read_source`.
 
