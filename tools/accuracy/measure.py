@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Usage accuracy of `find_usages` per language against the tooling of the language (issue #126).
+"""Usage accuracy of `find_usages` per language against the tooling of the language (issue #134).
 
 For one public corpus (`corpus/<language>/corpus.toml`) the script scans the pinned checkout with
 `codeskimr scan`, picks symbols with a fixed seed, asks a reference tool of the language where
@@ -77,7 +77,7 @@ def truth(lang, source, targets):
 def main():
     args = argparse.ArgumentParser()
     args.add_argument("language")
-    args.add_argument("--samples", type=int, default=40)
+    args.add_argument("--samples", type=int, default=150)
     args.add_argument("--seed", type=int, default=1)
     args.add_argument("--codeskimr", default=str(ROOT / "target/debug/codeskimr"))
     args.add_argument("--languages", default=str(ROOT / "languages"), help="language packs that belong to the binary")
@@ -91,9 +91,10 @@ def main():
         filtered_copy(src, project, tmp / "src")
         db = scan(opt.codeskimr, opt.languages, tmp / "src", tmp / "data")
         files, symbols, used = ours(db)
-        pool = sorted(i for i, s in symbols.items() if s[2] in KINDS and not s[3].startswith("_") or s[2] in KINDS and s[3].startswith("__") and s[3].endswith("__") and False)
+        # Drawn by qualified name so that two versions of the scanner see the same symbols.
+        pool = sorted((s[4], i) for i, s in symbols.items() if s[2] in KINDS and not s[3].startswith("_"))
         rng = random.Random(opt.seed)
-        picked = rng.sample(pool, min(opt.samples, len(pool)))
+        picked = [i for _, i in rng.sample(pool, min(opt.samples, len(pool)))]
         targets = [{"file": files[symbols[i][1]].replace("\\", "/"), "line": symbols[i][5] + 1, "column": symbols[i][6], "name": symbols[i][3]} for i in picked]
         sets = truth(opt.language, tmp / "src", targets)
     rows, exact, tp, fp, fn = [], 0, 0, 0, 0
