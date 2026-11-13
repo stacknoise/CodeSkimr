@@ -5,6 +5,7 @@ app-workspace = Arbeitsbereich
 app-workspace-local = Lokal
 app-search-placeholder = Typ, Member oder Befehl …
 app-search-shortcut = Strg K
+app-chip-folder = Arbeitsordner
 app-watching = Beobachtung aktiv
 app-sample-data = Beispieldaten
 app-language = Sprache

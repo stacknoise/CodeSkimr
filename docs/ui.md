@@ -51,6 +51,10 @@ The screen shows the active project (`shared/project/active.ts`) with two comman
 - Commands (`>`): the screens (projects, explorer, settings) and "scan project again" for the active project.
 - Deviations from the mock: no group "Files" and no scope `@` (all projects), because the index holds names of symbols only and the UI works on one project; the preview shows kind, qualified name and file but not the doc and the metrics; "Show in graph" and "Open in editor" are listed but off until the graph screen exists and the hit carries a line; the key hints of the preview say `Ctrl` (the `Cmd` variants work on a Mac); the time shown is the round trip of the command, not the time of the query alone; the hit of a member of a nested type opens the member within the nested type.
 
+## Top bar (blueprint 15.2, issue #167)
+
+Logo and product name, then, once a project is open, a slash, the project name (a link to the projects screen) and a chip, then the search field with a magnifier, which takes the room left of it up to 520 px as in the mocks. The chip shows the branch of a Git source or "Working folder" for a folder, and how old the newest scan is (`app-chip-folder`). Nothing is shown for the project while none is open. The HTML export uses the same bar with the project name and no chip. Deviation: the chip never says "Beobachtung aktiv": the server of the UI does not watch folders (see below).
+
 ## Status bar and language switch (WP-47)
 
 The footer of every screen (blueprint 15.2, 15.5, mock `Main.dc.html`) shows only measured values: the connection state, the number of projects and types (summed from `projects.list`), the start time and the memory of the program (command `status.info`, read right, read again every 5 seconds), and on the right a switch `EN | DE`. The switch calls `setLanguage`, like the language field in the settings, so both stay in step and the choice is stored in the browser. Numbers are written in the chosen language (`1,220` / `1.220`).

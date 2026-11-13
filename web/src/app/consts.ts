@@ -36,6 +36,12 @@ export const FOOTER_ROUTES: Route[] = [SETTINGS_ROUTE];
 /** Logo letter of the top bar. */
 export const LOGO_LETTER = "C";
 
+/** Separates the product name from the project in the top bar. */
+export const BREADCRUMB_SLASH = "/";
+
+/** Separates the parts of the chip next to the project name. */
+export const CHIP_SEPARATOR = " · ";
+
 /** Event of the browser when the user goes back or forward. */
 export const POPSTATE_EVENT = "popstate";
 

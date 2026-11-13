@@ -5,6 +5,7 @@ app-workspace = Workspace
 app-workspace-local = Local
 app-search-placeholder = Type, member or command …
 app-search-shortcut = Ctrl K
+app-chip-folder = Working folder
 app-watching = Watching for changes
 app-sample-data = Sample data
 app-language = Language

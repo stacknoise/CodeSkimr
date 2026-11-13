@@ -28,6 +28,7 @@ import {
 } from "./consts";
 import styles from "./App.module.css";
 import { RailLink, TopBar } from "./Frame";
+import { ProjectCrumb } from "./ProjectCrumb";
 import { currentPath } from "./router";
 
 /** The screen of the current path. */
@@ -63,7 +64,9 @@ export function App() {
   });
   return (
     <div class={styles.root}>
-      <TopBar workspace={t(I18N_KEYS.APP_WORKSPACE)} name={t(I18N_KEYS.APP_WORKSPACE_LOCAL)} />
+      <TopBar>
+        <ProjectCrumb />
+      </TopBar>
       <div class={styles.body}>
         <nav class={styles.rail} aria-label={t(I18N_KEYS.NAV_LABEL)}>
           <For each={MAIN_ROUTES}>{(route) => <RailLink route={route} />}</For>
