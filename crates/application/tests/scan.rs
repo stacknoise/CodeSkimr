@@ -227,6 +227,7 @@ impl ReferenceResolver for World {
                     span: item.span,
                     kind: item.kind,
                     confidence: codeskimr_domain::Confidence::Certain,
+                    verified: false,
                 })
             })
             .collect())
@@ -411,6 +412,7 @@ fn old_call(id: u64, to: u64) -> Result<Reference, CodedError> {
         span: span()?,
         kind: ReferenceKind::Call,
         confidence: Confidence::Certain,
+        verified: false,
     })
 }
 

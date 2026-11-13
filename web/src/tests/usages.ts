@@ -55,6 +55,8 @@ export const ANSWER: UsagesAnswer = {
   impact: {
     total: 5,
     public_interfaces: 2,
+    verified: 0,
+    unchecked: 5,
     layers: [
       { layer: "Domain", count: 2 },
       { layer: "Ui", count: 3 },

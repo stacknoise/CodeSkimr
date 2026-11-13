@@ -67,7 +67,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 4));
+    assert_eq!((mode.as_str(), version), ("wal", 5));
 }
 
 #[test]
@@ -424,4 +424,23 @@ fn a_snapshot_with_a_row_that_points_nowhere_is_refused_and_leaves_nothing_behin
             );
         }
     }
+}
+
+#[test]
+fn the_verified_mark_of_a_reference_survives_storing_and_loading() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    let mut scan = scan_with_every_table(10, 100);
+    scan.references[0].verified = true;
+    store.persist(scan).unwrap();
+    let conn = Connection::open(&db.0).unwrap();
+    let verified: i64 = conn
+        .query_row(
+            "SELECT verified FROM snapshot_references WHERE snapshot_id = 10",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(verified, 1);
 }

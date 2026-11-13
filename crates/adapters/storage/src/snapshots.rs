@@ -160,6 +160,7 @@ fn insert_reference(
         span.end_column,
         reference.kind.label(),
         reference.confidence.label(),
+        reference.verified,
     ])?;
     Ok(())
 }

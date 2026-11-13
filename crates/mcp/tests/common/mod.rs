@@ -238,6 +238,7 @@ fn entry(depth: u32, kind: ReferenceKind, confidence: Confidence) -> UsageEntry 
             span: Span::new(start, end).unwrap(),
             kind,
             confidence,
+            verified: false,
         },
         path: RelativePath::new("src/app/service.cs").unwrap(),
         from: label(20, SymbolKind::Method, "App.Application.Service.Run"),
@@ -249,6 +250,7 @@ fn affected(id: u64, qualified: &str, visibility: Option<Visibility>) -> Impacte
     ImpactedSymbol {
         label: label(id, SymbolKind::Method, qualified),
         depth: 1,
+        verified: false,
         visibility,
         path: RelativePath::new("src/app/service.cs").unwrap(),
     }
@@ -262,8 +264,10 @@ impl UsageIndex for FakeUsages {
         limit: u32,
     ) -> Result<UsagePage, CodedError> {
         self.asked.lock().unwrap().push((*query, limit));
+        let mut verified = entry(1, ReferenceKind::Call, Confidence::Certain);
+        verified.reference.verified = true;
         let all = vec![
-            entry(1, ReferenceKind::Call, Confidence::Certain),
+            verified,
             entry(2, ReferenceKind::Read, Confidence::Probable),
             entry(2, ReferenceKind::TypeUse, Confidence::Certain),
         ];
@@ -283,8 +287,10 @@ impl UsageIndex for FakeUsages {
         limit: u32,
     ) -> Result<ImpactPage, CodedError> {
         self.impact_asked.lock().unwrap().push((depth, limit));
+        let mut verified = affected(20, "App.Application.Service.Run", Some(Visibility::Public));
+        verified.verified = true;
         let all = vec![
-            affected(20, "App.Application.Service.Run", Some(Visibility::Public)),
+            verified,
             affected(
                 21,
                 "App.Application.Service.Helper",

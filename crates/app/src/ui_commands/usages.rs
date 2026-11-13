@@ -13,8 +13,8 @@ use codeskimr_application::ports::{
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
-    Confidence, Direction, Permission, Project, ProjectId, Reference, SnapshotId, SymbolId,
-    UsageQuery, Visibility,
+    Confidence, Direction, Permission, Project, ProjectId, SnapshotId, SymbolId, UsageQuery,
+    Visibility,
 };
 use serde::{Deserialize, Serialize};
 
@@ -125,6 +125,10 @@ pub struct Impact {
     pub total: usize,
     /// Public symbols among the listed ones: they are part of an interface.
     pub public_interfaces: usize,
+    /// Symbols that only verified references lead to.
+    pub verified: usize,
+    /// Symbols that at least one unchecked reference leads to; the impact is preliminary for them.
+    pub unchecked: usize,
     /// The listed symbols per layer.
     pub layers: Vec<LayerShare>,
 }
@@ -162,11 +166,6 @@ pub struct UsagesPorts {
     pub(super) max_depth: u32,
 }
 
-/// Whether level 2 produced the reference. It cannot yet: no indexer is wired (ADR 0033).
-const fn is_verified(_reference: &Reference) -> bool {
-    false
-}
-
 fn place(project: &Project, label: &SymbolLabel) -> Place {
     Place {
         id: label.id.get(),
@@ -182,7 +181,7 @@ fn hit(project: &Project, entry: &UsageEntry) -> Hit {
         depth: entry.depth,
         kind: reference.kind.label(),
         confidence: reference.confidence.label(),
-        verified: is_verified(reference),
+        verified: reference.verified,
         path: entry.path.to_string(),
         line: reference.span.start().line + LINE_OFFSET,
         from: place(project, &entry.from),
@@ -199,7 +198,7 @@ impl UsagesPorts {
     ) -> Result<Walk, CodedError> {
         let page = self.usages.usages(snapshot, query, USAGES_LIMIT)?;
         let mut hits: Vec<Hit> = page.entries.iter().map(|e| hit(project, e)).collect();
-        hits.sort_by_key(|found| !found.verified);
+        hits.sort_by_key(|found| (!found.verified, found.depth));
         Ok(Walk {
             total: page.total,
             hits,
@@ -242,8 +241,15 @@ impl UsagesPorts {
                 *layers.entry(layer).or_default() += 1;
             }
         }
+        let verified = page
+            .symbols
+            .iter()
+            .filter(|reached| reached.verified)
+            .count();
         Ok(Impact {
             total: page.total,
+            verified,
+            unchecked: page.symbols.len() - verified,
             public_interfaces: page
                 .symbols
                 .iter()
