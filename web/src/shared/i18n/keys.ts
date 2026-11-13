@@ -7,6 +7,7 @@ export const I18N_KEYS = {
   APP_WORKSPACE_LOCAL: "app-workspace-local",
   APP_SEARCH_PLACEHOLDER: "app-search-placeholder",
   APP_SEARCH_SHORTCUT: "app-search-shortcut",
+  APP_CHIP_FOLDER: "app-chip-folder",
   APP_WATCHING: "app-watching",
   APP_SAMPLE_DATA: "app-sample-data",
   APP_LANGUAGE: "app-language",
