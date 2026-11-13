@@ -41,6 +41,8 @@ export type ErrorCode =
   | "API-401"
   | "MCP-101"
   | "MCP-201"
+  | "MCP-202"
+  | "MCP-203"
   | "MCP-501"
   | "CLI-101"
   | "I18N-201"
@@ -109,6 +111,8 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "API-401": { id: "API-401", name: "token_missing_or_invalid", group: "API", class: "permission", severity: "error", retryable: false, description: "A state-changing request lacks a valid installation token.", since: "0.1.0", deprecated: false, messageKey: "error-API-401" },
   "MCP-101": { id: "MCP-101", name: "tool_arguments_invalid", group: "MCP", class: "invalid_input", severity: "error", retryable: false, description: "MCP tool arguments failed validation.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-101" },
   "MCP-201": { id: "MCP-201", name: "project_not_registered", group: "MCP", class: "not_found", severity: "error", retryable: false, description: "The requested path is not inside a registered project.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-201" },
+  "MCP-202": { id: "MCP-202", name: "symbol_not_found", group: "MCP", class: "not_found", severity: "error", retryable: false, description: "No symbol with this id or qualified name exists in the newest snapshot.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-202" },
+  "MCP-203": { id: "MCP-203", name: "project_not_scanned", group: "MCP", class: "not_found", severity: "error", retryable: true, description: "The project has no snapshot yet; scan it first.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-203" },
   "MCP-501": { id: "MCP-501", name: "response_limit_exceeded", group: "MCP", class: "limit", severity: "info", retryable: false, description: "The result was truncated to the configured limit.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-501" },
   "CLI-101": { id: "CLI-101", name: "cli_arguments_invalid", group: "CLI", class: "invalid_input", severity: "error", retryable: false, description: "Command-line arguments are invalid.", since: "0.1.0", deprecated: false, messageKey: "error-CLI-101" },
   "I18N-201": { id: "I18N-201", name: "message_key_missing", group: "I18N", class: "not_found", severity: "error", retryable: false, description: "A message key is missing for the active language (falls back to English).", since: "0.1.0", deprecated: false, messageKey: "error-I18N-201" },

@@ -156,3 +156,21 @@ pub const EDGES: &str = "SELECT from_layer, to_layer, edge_count, violates_layer
 /// Summary of one type: snapshot, symbol.
 pub const TYPE_SUMMARY: &str = "SELECT member_count, loc, max_complexity, maintainability \
     FROM type_summary WHERE snapshot_id = ?1 AND symbol_id = ?2";
+
+/// Start of the lookup of one symbol with its file path: snapshot. A condition from
+/// `SYMBOL_BY_ID` or `SYMBOL_BY_NAME` follows.
+pub const SYMBOL_SELECT: &str = "SELECT s.id, s.file_id, s.kind, s.name, s.qualified_name, \
+    s.parent_id, s.visibility, s.is_static, s.start_line, s.start_column, s.end_line, \
+    s.end_column, s.signature, s.doc, f.path FROM symbols s \
+    JOIN files f ON f.snapshot_id = s.snapshot_id AND f.id = s.file_id \
+    WHERE s.snapshot_id = ?1 AND ";
+/// Condition of `SYMBOL_SELECT`: symbol id.
+pub const SYMBOL_BY_ID: &str = "s.id = ?2";
+/// Condition of `SYMBOL_SELECT`: qualified name; the lowest id wins.
+pub const SYMBOL_BY_NAME: &str = "s.qualified_name = ?2 ORDER BY s.id LIMIT 1";
+/// Direct members of a symbol: snapshot, symbol.
+pub const MEMBERS_OF: &str =
+    "SELECT id, name, kind FROM symbols WHERE snapshot_id = ?1 AND parent_id = ?2 ORDER BY id";
+/// Metrics of a symbol: snapshot, symbol.
+pub const METRICS_OF: &str =
+    "SELECT kind, value FROM metrics WHERE snapshot_id = ?1 AND symbol_id = ?2 ORDER BY kind";

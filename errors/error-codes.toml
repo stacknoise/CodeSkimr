@@ -383,6 +383,22 @@ description = "The requested path is not inside a registered project."
 since = "0.1.0"
 
 [[codes]]
+id = "MCP-202"
+name = "symbol_not_found"
+severity = "error"
+retryable = false
+description = "No symbol with this id or qualified name exists in the newest snapshot."
+since = "0.1.0"
+
+[[codes]]
+id = "MCP-203"
+name = "project_not_scanned"
+severity = "error"
+retryable = true
+description = "The project has no snapshot yet; scan it first."
+since = "0.1.0"
+
+[[codes]]
 id = "MCP-501"
 name = "response_limit_exceeded"
 severity = "info"

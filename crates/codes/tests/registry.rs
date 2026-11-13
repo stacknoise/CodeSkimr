@@ -43,8 +43,9 @@ fn known_codes_carry_their_data() {
 
 #[test]
 fn appendix_a_is_complete() {
-    // 47 codes from blueprint Appendix A plus CFG-103 (WP-17), STO-601 and STO-901 (WP-21).
-    assert_eq!(ErrorCode::ALL.len(), 50);
+    // 47 codes from blueprint Appendix A plus CFG-103 (WP-17), STO-601 and STO-901 (WP-21),
+    // MCP-202 and MCP-203 (WP-26).
+    assert_eq!(ErrorCode::ALL.len(), 52);
     assert_eq!(Group::ALL.len(), 17);
 }
 

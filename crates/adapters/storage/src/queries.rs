@@ -1,9 +1,10 @@
 //! Queries on the read models.
 
 use codeskimr_application::error::CodedError;
+use codeskimr_application::ports::SearchHit;
 use codeskimr_domain::{
     LayerEdge, LayerName, ProjectId, QualifiedName, RelativePath, Snapshot, SnapshotId, SymbolId,
-    SymbolKind, SymbolName,
+    SymbolName,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 
@@ -12,21 +13,6 @@ use crate::consts::{LIKE_ANY, LIKE_ESCAPE, LIKE_ONE};
 use crate::error::StorageResult;
 use crate::sql;
 use crate::store::SqliteStore;
-
-/// One result of the quick search.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct SearchHit {
-    /// The symbol.
-    pub symbol: SymbolId,
-    /// Its simple name.
-    pub name: SymbolName,
-    /// Its qualified name.
-    pub qualified_name: QualifiedName,
-    /// Its kind.
-    pub kind: SymbolKind,
-    /// File that declares it.
-    pub path: RelativePath,
-}
 
 /// The metric strip of a type: members and the metrics of the type and its members.
 #[derive(Debug, Clone, Copy, PartialEq)]

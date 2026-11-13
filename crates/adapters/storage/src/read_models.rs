@@ -9,7 +9,7 @@ use codeskimr_domain::{Layer, MetricKind, SnapshotId, SymbolKind};
 use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, column_int, id_from};
-use crate::consts::{EDGE_STEP, NAME_SEPARATOR, NOT_VIOLATING, TYPE_KINDS};
+use crate::consts::{EDGE_STEP, NOT_VIOLATING, TYPE_KINDS};
 use crate::cycles::edges_in_cycles;
 use crate::error::StorageResult;
 use crate::sql;
@@ -40,15 +40,7 @@ pub fn rebuild(conn: &Connection, snapshot: SnapshotId, layers: &[Layer]) -> Sto
 /// Index of the layer a qualified name belongs to: the first layer with a namespace that equals
 /// the name or is a prefix of it up to a separator.
 fn layer_of(layers: &[Layer], name: &str) -> Option<usize> {
-    layers.iter().position(|layer| {
-        layer.namespaces.iter().any(|namespace| {
-            let prefix = namespace.as_str();
-            name == prefix
-                || name
-                    .strip_prefix(prefix)
-                    .is_some_and(|rest| rest.starts_with(NAME_SEPARATOR))
-        })
-    })
+    layers.iter().position(|layer| layer.owns(name))
 }
 
 fn layer_of_symbols(

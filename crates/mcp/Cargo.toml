@@ -16,3 +16,10 @@ codeskimr_application = { path = "../application" }
 codeskimr_domain = { path = "../domain" }
 codeskimr_codes = { path = "../codes" }
 codeskimr_i18n = { path = "../adapters/i18n" }
+rmcp.workspace = true
+tokio = { workspace = true, features = ["rt", "io-std"] }
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["rt", "macros", "io-util", "time"] }
