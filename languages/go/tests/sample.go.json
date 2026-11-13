@@ -1,0 +1,175 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 28,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample.Order"
+    },
+    {
+      "decisions": null,
+      "loc": 3,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample.Pricer"
+    },
+    {
+      "decisions": 3,
+      "loc": 8,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample.NewOrder"
+    },
+    {
+      "decisions": 1,
+      "loc": 8,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample.Add"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample.Run"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample.Run"
+    }
+  ],
+  "loc": 28,
+  "references": [
+    {
+      "at": "29:1",
+      "from": "sample.Add",
+      "kind": "call",
+      "target": "println"
+    },
+    {
+      "at": "29:9",
+      "from": "sample.Add",
+      "kind": "call",
+      "target": "NewOrder"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "sample",
+      "parent": null,
+      "span": "0:0-42:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "struct",
+      "name": "sample.Order",
+      "parent": "sample",
+      "span": "3:5-6:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "sample.Pricer",
+      "parent": "sample",
+      "span": "9:5-11:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "type_alias",
+      "name": "sample.Money",
+      "parent": "sample",
+      "span": "13:5-13:20",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "type_alias",
+      "name": "sample.Code",
+      "parent": "sample",
+      "span": "15:5-15:13",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "sample.NewOrder",
+      "parent": "sample",
+      "span": "18:0-25:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample.Add",
+      "parent": "sample",
+      "span": "28:0-35:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample.Run",
+      "parent": "sample",
+      "span": "39:0-39:25",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample.Run",
+      "parent": "sample",
+      "span": "41:0-41:24",
+      "static": false,
+      "visibility": null
+    }
+  ]
+}

@@ -118,9 +118,11 @@ mod tests {
         let mut checked = 0;
         for entry in fs::read_dir(languages()).expect("languages folder") {
             let pack_dir = entry.expect("entry").path();
-            let Ok(pack) = LanguagePack::load(&pack_dir) else {
+            if !pack_dir.is_dir() {
                 continue;
-            };
+            }
+            let pack = LanguagePack::load(&pack_dir)
+                .unwrap_or_else(|error| panic!("{}: {error}", pack_dir.display()));
             let tests = pack_dir.join("tests");
             for file in fs::read_dir(&tests).expect("tests folder") {
                 let path = file.expect("entry").path();

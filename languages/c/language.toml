@@ -1,0 +1,22 @@
+# C language pack, basic tier (blueprint 8.2, WP-66): types and functions, spans, lines, CC.
+# Mapping: struct -> struct, union -> union, enum -> enum, function definition -> function.
+# Only definitions with a body are symbols, a plain `struct x;` or a prototype is not. C has no
+# visibility keywords in the sense of the domain, so symbols carry no visibility.
+id = "c"
+grammar = "c"
+tier = "basic"
+extensions = ["c", "h"]
+separator = "."
+comment_nodes = ["comment"]
+manifest_files = ["CMakeLists.txt", "Makefile", "meson.build"]
+test_patterns = ["**/test_*.c", "**/*_test.c", "**/tests/**/*.c"]
+identifier_nodes = ["identifier", "field_identifier", "type_identifier", "statement_identifier"]
+literal_nodes = [
+    "number_literal",
+    "string_literal",
+    "char_literal",
+    "concatenated_string",
+    "true",
+    "false",
+    "null",
+]

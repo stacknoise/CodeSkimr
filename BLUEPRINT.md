@@ -237,7 +237,7 @@ codeskimr/
 | **Ports and adapters / dependency inversion** | all crates | The core only knows traits. Adapters implement them. |
 | **Composition root** | `crates/app/src/main.rs` | The only place where concrete adapters are created and wired. No service locator, no singletons. |
 | **Pipes and filters** | scan pipeline (section 7) | Each stage implements `Stage`; stages are independent and testable on their own. |
-| **Interpreter (data-driven)** | language packs (section 8) | Language knowledge is data. One interpreter serves all languages. No per-language Rust code for the basic tier. |
+| **Interpreter (data-driven)** | language packs (section 8) | Language knowledge is data. One interpreter serves all languages. No per-language Rust code for the basic tier beyond one grammar registration (ADR 0020). |
 | **Strategy** | reference resolution, exporters, metrics | Interchangeable behind a trait, chosen by configuration. |
 | **Registry** | languages, commands, exporters, analyses, MCP tools | Extensions register themselves; the core looks them up by key. |
 | **Command** | all user actions | **One** command registry feeds the quick search, keyboard shortcuts, CLI, REST and MCP. Each action is implemented exactly once. |
@@ -350,8 +350,8 @@ languages/csharp/
 | **basic** | types and functions, spans, LOC, CC, `cc_max` (no MI); references only by unique name | every other language with a Tree-sitter grammar |
 
 - Full-tier grammars are compiled into the binary.
-- Basic-tier grammars are loaded on demand as language packs, which keeps the binary small (section 16).
-- Adding a language MUST NOT require changes outside `languages/<lang>/`, unless the language needs a new symbol kind. In that case: ADR first.
+- Basic-tier grammars are compiled in behind the cargo feature `basic-grammars` (default on) and their packs are loaded on first use, which keeps start-up and a slim build small (section 16, ADR 0020). A loader for shared libraries needs its own ADR because of R-08.
+- Adding a language MUST NOT require changes outside `languages/<lang>/`, unless the language needs a new symbol kind (ADR first) or, as long as grammars are compiled in, its grammar: one dependency, one grammar name constant and one line in the grammar registry of `codeskimr_parsing` (ADR 0020).
 
 ### 8.3 Acceptance per language
 

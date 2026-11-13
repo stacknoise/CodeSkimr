@@ -1,0 +1,31 @@
+# C++ language pack, basic tier (blueprint 8.2, WP-66): types, namespaces and functions, spans,
+# lines, CC. Mapping: class -> class, struct -> struct, union -> union, enum -> enum,
+# namespace -> namespace, function inside a class body -> method, any other function definition
+# (also `Class::name` outside the class) -> function. Constructors and destructors count as methods.
+# `.h` belongs to the C pack; C++ headers use the other extensions. No visibility.
+id = "cpp"
+grammar = "cpp"
+tier = "basic"
+extensions = ["cpp", "cc", "cxx", "hpp", "hh", "hxx"]
+separator = "::"
+comment_nodes = ["comment"]
+manifest_files = ["CMakeLists.txt", "Makefile", "meson.build", "conanfile.txt", "vcpkg.json"]
+test_patterns = ["**/*_test.cpp", "**/*Test.cpp", "**/*_test.cc", "**/tests/**/*.cpp"]
+identifier_nodes = [
+    "identifier",
+    "field_identifier",
+    "type_identifier",
+    "namespace_identifier",
+    "statement_identifier",
+]
+literal_nodes = [
+    "number_literal",
+    "string_literal",
+    "raw_string_literal",
+    "char_literal",
+    "concatenated_string",
+    "true",
+    "false",
+    "null",
+    "nullptr",
+]
