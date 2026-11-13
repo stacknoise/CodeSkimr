@@ -6,7 +6,7 @@ SQLite database per workspace, WAL mode, schema migrations in `crates/adapters/s
 ## What it does
 
 - Schema version 2 adds `projects.credential`: the name of the credential a Git source logs in with (empty for none). Only the name is stored, never a secret (blueprint 12.2).
-- `SqliteStore` implements the ports `ProjectRepository`, `SnapshotStore` and `CodeIndex` (read access for the MCP server: `latest_snapshot`, `search`, `symbol`, `layer_edges`).
+- `SqliteStore` implements the ports `ProjectRepository`, `SnapshotStore`, `CodeIndex` and `UsageIndex` (read access for the MCP server: `latest_snapshot`, `search`, `symbol`, `layer_edges`).
 - `persist` writes one snapshot and its read models in one `BEGIN IMMEDIATE` transaction, then prunes to the
   retention count. Any failure rolls everything back (STO-302 busy/locked, STO-501 disk full, STO-601 other).
 - Incremental scans (`ScanMode::Incremental`): files that were not analysed again are copied from the
@@ -17,6 +17,7 @@ SQLite database per workspace, WAL mode, schema migrations in `crates/adapters/s
 - Read models (rebuilt per snapshot, inside the same transaction): `search_index`, `usage_counts`,
   `type_summary`, `layer_graph`. Queries: `search`, `usage_count`, `type_summary`, `layer_edges`, `symbol_detail`
   (one symbol by id or qualified name with its members and metrics).
+- `UsageIndex` (usages and impact of a symbol, `docs/usages.md`): the references of a snapshot are kept as a `ReverseIndex` in memory for the snapshot that was asked about last.
 - Outside the ports: `save_project` (registers a project, PRJ-301 for a duplicate source),
   `latest_snapshot`, `next_free_id` (start value for `IdSequence`).
 

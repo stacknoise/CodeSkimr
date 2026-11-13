@@ -10,6 +10,7 @@ pub mod config;
 pub mod consts;
 pub mod error;
 pub mod estimates;
+pub mod random;
 pub mod report;
 
 pub use error::BenchError;
