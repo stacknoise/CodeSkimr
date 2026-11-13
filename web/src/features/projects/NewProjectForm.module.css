@@ -1,0 +1,75 @@
+.form {
+    display: flex;
+    gap: var(--space-8);
+    align-items: center;
+    flex-wrap: wrap;
+    background: var(--surface);
+    border: 1px dashed var(--line);
+    border-radius: var(--radius-panel);
+    padding: var(--space-12);
+}
+
+.dragging {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+}
+
+.title {
+    font-weight: 600;
+    width: 100%;
+}
+
+.source,
+.branch {
+    height: 36px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    color: var(--ink);
+    padding: 0 var(--space-12);
+    font: 13px var(--font-sans);
+}
+
+.source {
+    flex: 1 1 380px;
+}
+
+.branch {
+    width: 110px;
+    padding: 0 var(--space-10);
+    font: 12px var(--font-mono);
+}
+
+.branchLabel {
+    color: var(--muted);
+}
+
+.button {
+    height: 36px;
+    padding: 0 var(--space-16);
+    border: 0;
+    border-radius: var(--radius-card);
+    background: var(--accent);
+    color: var(--accent-fg);
+    font: 600 13px var(--font-sans);
+    cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+    background: var(--accent-hover);
+}
+
+.button:disabled {
+    opacity: 0.7;
+    cursor: progress;
+}
+
+.message {
+    width: 100%;
+    margin: 0;
+    color: var(--muted);
+}
+
+.error {
+    color: var(--bad);
+}
