@@ -104,7 +104,7 @@ export const LAYER_TONES = 6;
 export const LAYER_CLASS = "layer";
 /** Value of `aria-current` for the selected hit. */
 export const TRUE = "true";
-/** State of level 2 while no indexer exists for the project (ADR 0032). */
+/** State of level 2 while no indexer exists for the project (ADR 0033). */
 export const LEVEL2_UNAVAILABLE = "unavailable";
 /** Separates kind and layer under the name of the symbol. */
 export const KIND_SEPARATOR = " · ";
