@@ -80,7 +80,7 @@ export const RECENT_LIMIT = 6;
 export const PERCENT_SIGN = "%";
 /** Range of the progress bar for assistive technology. */
 export const PROGRESS_MIN = 0;
-export const PROGRESS_MAX = 100;
+export const PROGRESS_MAX = PERCENT;
 
 /** How a stage of a run stands. */
 export const STAGE_STATE = {

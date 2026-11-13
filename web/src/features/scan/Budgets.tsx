@@ -12,14 +12,14 @@ export type Measured = Partial<Record<keyof BudgetTargets, number>>;
 function Value(props: { target: number; measured: number | undefined }) {
   return (
     <Show
-      when={props.measured}
+      when={props.measured !== undefined}
       fallback={<span class={styles.value}>{t(I18N_KEYS.SCAN_UNAVAILABLE)}</span>}
     >
-      {(ms) => (
-        <span class={cx(styles.value, ms() <= props.target ? styles.good : styles.bad)}>
-          {t(I18N_KEYS.SCAN_BUDGET_MEASURED, { ms: Math.round(ms()) })}
-        </span>
-      )}
+      <span
+        class={cx(styles.value, (props.measured ?? 0) <= props.target ? styles.good : styles.bad)}
+      >
+        {t(I18N_KEYS.SCAN_BUDGET_MEASURED, { ms: Math.round(props.measured ?? 0) })}
+      </span>
     </Show>
   );
 }
