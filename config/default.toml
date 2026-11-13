@@ -34,6 +34,10 @@ regression_tolerance_percent = 10
 [mcp]
 default_limit = 20
 max_limit = 100
+# Steps a usages walk goes when the caller gives no depth, and the most it may go (also the depth
+# of impact_of_change).
+default_depth = 1
+max_depth = 5
 
 # Snapshot retention (blueprint 6): the last N snapshots per project are kept.
 [snapshots]

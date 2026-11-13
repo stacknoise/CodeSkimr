@@ -187,6 +187,11 @@ fn limits_and_folders_are_checked() {
             Violation::MustNotExceed("mcp.max_limit"),
         ),
         (
+            "[mcp]\ndefault_depth = 9\n",
+            "mcp.default_depth",
+            Violation::MustNotExceed("mcp.max_depth"),
+        ),
+        (
             "[scan]\nexcluded_folders = []\n",
             "scan.excluded_folders",
             Violation::MustNotBeEmpty,

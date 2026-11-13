@@ -75,12 +75,21 @@ async fn connected_as(principal: Principal) -> Client {
 }
 
 #[tokio::test]
-async fn lists_exactly_the_three_read_only_tools_with_schemas() {
+async fn lists_exactly_the_five_read_only_tools_with_schemas() {
     let mut client = connected().await;
     let listed = client.call(2, "tools/list", json!({})).await;
     let tools = listed["result"]["tools"].as_array().unwrap();
     let names: Vec<_> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
-    assert_eq!(names, ["search_symbols", "get_symbol", "get_architecture"]);
+    assert_eq!(
+        names,
+        [
+            "search_symbols",
+            "get_symbol",
+            "get_architecture",
+            "find_usages",
+            "impact_of_change"
+        ]
+    );
     for tool in tools {
         assert_eq!(tool["annotations"]["readOnlyHint"], true);
         assert_eq!(tool["inputSchema"]["type"], "object");

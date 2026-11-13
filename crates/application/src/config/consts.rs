@@ -65,6 +65,10 @@ pub mod keys {
     pub const MCP_DEFAULT_LIMIT: &str = "mcp.default_limit";
     /// `mcp.max_limit`
     pub const MCP_MAX_LIMIT: &str = "mcp.max_limit";
+    /// `mcp.default_depth`
+    pub const MCP_DEFAULT_DEPTH: &str = "mcp.default_depth";
+    /// `mcp.max_depth`
+    pub const MCP_MAX_DEPTH: &str = "mcp.max_depth";
     /// `snapshots.retention_count`
     pub const RETENTION_COUNT: &str = "snapshots.retention_count";
     /// `similarity.ngram_size`

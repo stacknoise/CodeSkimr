@@ -77,6 +77,10 @@ pub struct McpLimits {
     pub default_limit: u32,
     /// Largest number of results a caller may ask for.
     pub max_limit: u32,
+    /// Steps a usages walk goes when the caller gives no depth.
+    pub default_depth: u32,
+    /// Most steps a walk may go; the depth of the impact analysis.
+    pub max_depth: u32,
 }
 
 /// Snapshot retention.
