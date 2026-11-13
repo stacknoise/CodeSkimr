@@ -129,8 +129,10 @@ pub const PEM_BEGIN: &str = "-----BEGIN ";
 pub const PEM_PRIVATE: &str = "PRIVATE KEY";
 /// Beginning of the last line of a PEM block.
 pub const PEM_END: &str = "-----END ";
-/// Beginnings of well-known tokens: GitHub, GitLab, Slack, AWS, JWT, API keys.
-pub const TOKEN_PREFIXES: [&str; 22] = [
+/// Beginnings of well-known tokens: GitHub, GitLab, Slack, AWS, JWT, API keys, and the `csk_`
+/// tokens of CodeSkimr itself (ADR 0019, S-01).
+pub const TOKEN_PREFIXES: [&str; 23] = [
+    "csk_",
     "ASIA",
     "sk_live_",
     "sk_test_",
@@ -162,3 +164,18 @@ pub const TOKEN_EXTRA_CHARS: [char; 3] = ['_', '-', '.'];
 pub const LINE_END: char = '\n';
 /// Escapes a quote inside a `Debug`-formatted text.
 pub const ESCAPE: char = '\\';
+
+/// Name under which the installation token lives in the credential store (blueprint 12.2).
+pub const TOKEN_CREDENTIAL_ID: &str = "installation-token";
+/// User name stored next to the installation token; the credential format needs one.
+pub const TOKEN_CREDENTIAL_USER: &str = "local-owner";
+/// Number of random bytes of an installation token: 256 bits (ADR 0019).
+pub const TOKEN_RANDOM_BYTES: usize = 32;
+/// Radix of the text form of the random bytes.
+pub const HEX_RADIX: u32 = 16;
+/// Bits in one hexadecimal digit.
+pub const HEX_DIGIT_BITS: u32 = 4;
+/// Mask of the low hexadecimal digit of a byte.
+pub const HEX_LOW_MASK: u8 = 0x0f;
+/// Scheme of the address the local server is reached at.
+pub const URL_SCHEME: &str = "http://";

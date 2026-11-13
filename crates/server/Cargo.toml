@@ -15,4 +15,11 @@ workspace = true
 codeskimr_application = { path = "../application" }
 codeskimr_domain = { path = "../domain" }
 codeskimr_codes = { path = "../codes" }
-codeskimr_i18n = { path = "../adapters/i18n" }
+axum.workspace = true
+blake3.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["net", "rt", "sync", "macros"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["net", "rt", "sync", "macros", "time", "io-util"] }
