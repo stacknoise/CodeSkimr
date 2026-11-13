@@ -330,7 +330,7 @@ fn full_scan_ignores_the_previous_snapshot() -> Result<(), CodedError> {
     };
     assert_eq!(job.snapshot().stats.files, 2);
     let persisted = world.last_persisted()?;
-    assert!(persisted.removed.is_empty());
+    assert_eq!(persisted.removed, Vec::<RelativePath>::new());
     assert_eq!(persisted.files.len(), 2);
     Ok(())
 }
