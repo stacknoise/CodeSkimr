@@ -683,7 +683,7 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
 - **S-01** Logs are filtered through a redaction layer: token patterns (including the `csk_` access-token prefix), `Authorization` and `Cookie`/`Set-Cookie` headers, OIDC `code`, `state` and `id_token`, and URL user-info are masked.
 - **S-02** A test suite runs logins, failures and panics with canary secrets and asserts that the canary never appears in logs, error messages, REST/MCP responses, crash output or the database file.
 - **S-03** Dependency audit (`cargo-audit`, `cargo-deny`) in every CI run; a known vulnerability blocks the merge.
-- **S-04** In single-user mode, server and MCP bind to `127.0.0.1` and HTTP endpoints that change state require the per-installation token. Non-loopback binding is allowed only in the team server's server mode and only with TLS configured or behind a configured trusted reverse proxy; otherwise start fails with a registered error code. `X-Forwarded-*` is accepted only from trusted peers. CORS is closed; Host and Origin are validated (DNS rebinding).
+- **S-04** In single-user mode, server and MCP bind to `127.0.0.1` and HTTP endpoints that change state require the per-installation token. Non-loopback binding is allowed only in the team server's server mode and only with TLS configured or behind a configured trusted reverse proxy; otherwise start fails with a registered error code. `X-Forwarded-*` is accepted only from trusted peers. CORS is closed; Host and Origin are validated (DNS rebinding). The one exception to the token rule is the exchange of the one-time launch code for the token (`/api/v1/session/exchange`, ADR 0028): it needs a valid, unused code that lives 60 seconds, and `Host` and `Origin` are still checked. Pages are served with a strict Content-Security-Policy (no inline scripts).
 - **S-05** Paths from API/MCP input are canonicalised and checked against registered project roots (no path traversal). In the team edition the check also covers the caller's grant, and registrable roots and clone URLs follow a server-side allow-list (path traversal, SSRF).
 - **S-06** Authorisation lives once, in the registry check (10.1). Adapters never decide. Tests cover every command with a restricted principal; for the team edition each route, WebSocket message, CLI command and MCP tool is tested with each role and with "no grant", and denial and "not found" are compared for identical responses. The canary suite (S-02) also scans the identity database.
 
@@ -817,7 +817,7 @@ In Hell, `good-bg` is `#EAF7EF`; the value `#E7F6EC` of the first mock version r
 - **Rules:** a theme is a table in `tokens.toml` plus its name in `locales/`; adding one needs no code change, an ADR decides which themes ship. CI (job `codegen`) fails if a theme misses a token or if a text/background pair (`ink`, `ink-2`, `muted`, `faint` on `bg` and `surface`; `accent` on `surface`, `bg` and `accent-bg`; `good`, `warn`, `bad` on their `-bg` and on `surface`; `accent-fg` on `accent`; `ink-2` on `line-soft`; `ink` on `accent-bg`; `outgoing`, kind and layer colours on `surface`) is below 4.5:1. `faint` is used on `bg` and `surface` only, never on tinted backgrounds.
 - **Choice:** stored per user (see 13); without a team server in the local settings. Until the user chooses, the theme is Petrol, or Dunkel when the operating system is set to dark. The default key is in `config/default.toml`.
 - **Settings page (mock 13):** one preview card per theme with the name, a colour strip and a miniature of the real UI (top bar, rail, list, badges, button) drawn by the actual components inside a container with that `data-theme`. Selecting a card applies it at once. Petrol is the default theme and is drawn as selected in mock 13 and used by mocks 7 to 13. Mocks 1 to 6 are drawn in Hell; for them layout, proportions and labels are binding and the colours follow the active theme, so a Petrol build is not a deviation from them.
-- **Build:** `tokens.toml` generates one CSS file with the variables of all themes, scoped by `data-theme`; the theme is set on `<html>` before the first paint (ADR 0028).
+- **Build:** `tokens.toml` generates one CSS file with the variables of all themes, scoped by `data-theme`; the theme is set on `<html>` before the first paint by a same-origin script that reads a `localStorage` mirror of the choice (ADR 0028).
 - **Delivery:** themes and the settings page ship with the UI milestone M3. Every new screen is checked in all three themes by the visual tests (17.1).
 
 ### 15.4 Interaction rules (MUST)
@@ -829,7 +829,7 @@ In Hell, `good-bg` is `#EAF7EF`; the value `#E7F6EC` of the first mock version r
 | `Ctrl K` | quick search (types, members, files, commands; prefixes `t:` `m:` `f:` `>` `@`) |
 | `G` | show selection in the dependency graph |
 | `U` | show usages of the selection |
-| `E` | open in editor at the line (URL scheme from the setting `editor.url_template`, default `vscode://file/{path}:{line}`; the server starts no process, ADR 0028) |
+| `E` | open in editor at the line (URL scheme from the setting `editor.url_template`, default `vscode://file/{path}:{line}`, scheme on the allow-list `editor.allowed_schemes`; the server starts no process, ADR 0028) |
 | `R` | re-scan project |
 | `N` | new project |
 | `F` | fit graph to view |
