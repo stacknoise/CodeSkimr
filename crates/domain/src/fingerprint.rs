@@ -111,7 +111,7 @@ impl Fingerprints {
         self.0.is_empty()
     }
 
-    fn hashes(&self) -> HashSet<u64> {
+    pub(crate) fn hashes(&self) -> HashSet<u64> {
         self.0.iter().map(|entry| entry.hash).collect()
     }
 
@@ -135,7 +135,7 @@ impl Fingerprints {
     }
 }
 
-fn ratio(part: usize, whole: usize) -> f64 {
+pub(crate) fn ratio(part: usize, whole: usize) -> f64 {
     if whole == 0 {
         return SIMILARITY_NONE;
     }

@@ -8,6 +8,7 @@ pub mod access;
 pub mod cancel;
 pub mod config;
 mod consts;
+pub mod conventions;
 pub mod error;
 pub mod events;
 pub mod ids;

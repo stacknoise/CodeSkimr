@@ -5,10 +5,12 @@ use std::io::{self, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
+use codeskimr_application::conventions::CheckReport;
 use codeskimr_application::error::CodedError;
 use codeskimr_cli::{
-    Action, CliError, Invocation, Parsed, ScanArgs, ScanSummary, error_line, language_from, parse,
-    scan_finished, scan_json, scan_started, serve_started, watch_started, watch_updated,
+    Action, CliError, Invocation, Parsed, ScanArgs, ScanSummary, check_json, check_text,
+    error_line, language_from, parse, scan_finished, scan_json, scan_started, serve_started,
+    watch_started, watch_updated,
 };
 use codeskimr_codes::i18n::CLI_CREDENTIALS_HINT;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -22,7 +24,7 @@ use crate::log_writer::RedactingWriter;
 use crate::logging;
 use crate::source_arg::SourceError;
 use crate::watch::{self, Report};
-use crate::{mcp, scan, serve};
+use crate::{check, mcp, scan, serve};
 
 /// Why a command did not finish: a registered code, plus the parser's text for usage errors.
 struct Failure {
@@ -52,6 +54,13 @@ impl From<CliError> for Failure {
     }
 }
 
+/// How a command that ran ended: findings are a result, not a failure, but CI needs them in the
+/// exit code.
+enum Outcome {
+    Done,
+    FindingsReported,
+}
+
 /// Runs the program with `arguments` (the first is the program name) and returns its exit code.
 pub fn execute<I>(arguments: I, env: Lookup<'_>) -> ExitCode
 where
@@ -67,7 +76,8 @@ where
         return report_plain(ErrorCode::UnexpectedInternalError);
     };
     match dispatch(arguments, env, &messages, language) {
-        Ok(()) => ExitCode::SUCCESS,
+        Ok(Outcome::Done) => ExitCode::SUCCESS,
+        Ok(Outcome::FindingsReported) => ExitCode::from(EXIT_FAILURE),
         Err(failure) => report(&messages, language, &failure),
     }
 }
@@ -77,14 +87,14 @@ fn dispatch<I>(
     env: Lookup<'_>,
     messages: &Messages,
     language: &str,
-) -> Result<(), Failure>
+) -> Result<Outcome, Failure>
 where
     I: IntoIterator<Item = OsString>,
 {
     match parse(arguments, messages, language)? {
         Parsed::Display(text) => {
             write_out(&text);
-            Ok(())
+            Ok(Outcome::Done)
         }
         Parsed::Run(invocation) => run_invocation(&invocation, env, messages, language),
     }
@@ -95,7 +105,7 @@ fn run_invocation(
     env: Lookup<'_>,
     messages: &Messages,
     language: &str,
-) -> Result<(), Failure> {
+) -> Result<Outcome, Failure> {
     let current_dir =
         std::env::current_dir().map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?;
     let executable_dir = std::env::current_exe()
@@ -109,17 +119,22 @@ fn run_invocation(
     )?;
     match &invocation.action {
         Action::Scan(args) => run_scan(args, invocation, &locations, messages, language),
-        Action::Mcp(args) => Ok(mcp::run(
-            args,
-            &invocation.global,
-            &locations,
-            &current_dir,
-        )?),
-        Action::Serve(_) => Ok(serve::run(&invocation.global, &locations, |url| {
-            if let Ok(line) = serve_started(messages, language, url) {
-                write_out(&line);
-            }
-        })?),
+        Action::Mcp(args) => {
+            mcp::run(args, &invocation.global, &locations, &current_dir)?;
+            Ok(Outcome::Done)
+        }
+        Action::Serve(_) => {
+            serve::run(&invocation.global, &locations, |url| {
+                if let Ok(line) = serve_started(messages, language, url) {
+                    write_out(&line);
+                }
+            })?;
+            Ok(Outcome::Done)
+        }
+        Action::Check(args) => {
+            let report = check::run(args, &invocation.global, &locations, &current_dir)?;
+            print_check(args.json, &report, messages, language)
+        }
     }
 }
 
@@ -130,7 +145,7 @@ fn run_scan(
     locations: &Locations,
     messages: &Messages,
     language: &str,
-) -> Result<(), Failure> {
+) -> Result<Outcome, Failure> {
     let spec = scan::prepare(args).map_err(|error| source_failure(error, messages, language))?;
     if args.watch {
         watch::require_folder(&spec)?;
@@ -141,11 +156,34 @@ fn run_scan(
     if args.watch {
         let session = scan::open(spec, &invocation.global, locations)?;
         let mut show = |report| show_report(report, args.json, messages, language);
-        return Ok(watch::run(&session, &mut show)?);
+        watch::run(&session, &mut show)?;
+        return Ok(Outcome::Done);
     }
     let summary = scan::run(spec, &invocation.global, locations)?;
     write_out(&summary_text(&summary, args.json, messages, language)?);
-    Ok(())
+    Ok(Outcome::Done)
+}
+
+/// Prints the report of `check` and tells whether it found anything.
+fn print_check(
+    json: bool,
+    report: &CheckReport,
+    messages: &Messages,
+    language: &str,
+) -> Result<Outcome, Failure> {
+    let text = if json {
+        check_json(report).map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?
+    } else {
+        check_text(messages, language, report).map_err(CliError::from)?
+    };
+    write_out(&text);
+    Ok(
+        if report.findings.is_empty() && report.unmatched.is_empty() {
+            Outcome::Done
+        } else {
+            Outcome::FindingsReported
+        },
+    )
 }
 
 fn summary_text(

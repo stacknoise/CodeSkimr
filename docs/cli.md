@@ -1,11 +1,11 @@
 # CLI and composition root (WP-25)
 
-Implements the first part of blueprint section 10.2: `codeskimr scan` and `codeskimr mcp`. `codeskimr serve` came with WP-41 (see `docs/server.md`). The other commands (`export`, `check`, `codes`, and the bare `codeskimr` that starts the app) follow with their packages.
+Implements the first part of blueprint section 10.2: `codeskimr scan` and `codeskimr mcp`. `codeskimr serve` came with WP-41 (see `docs/server.md`) and `codeskimr check` with WP-35 (see `docs/conventions.md`). The other commands (`export`, `codes`, and the bare `codeskimr` that starts the app) follow with their packages.
 
 ## Structure
 
 - `codeskimr_cli` knows no adapter. It defines the commands with clap (help texts come from `locales/{de,en}/cli.ftl`), turns `argv` into an `Invocation` and renders the summary and the error line.
-- `codeskimr` (`crates/app`) is the composition root. `main.rs` only starts `run::execute`. `wiring.rs` is the only place that creates adapters: `SqliteStore`, `SourceFetcher`, `WalkDiscovery`, `TreeSitterAnalyzer` (with fingerprints from `config.similarity`, closes #41) and the `Scanner`. `scan.rs` and `mcp.rs` are the two commands.
+- `codeskimr` (`crates/app`) is the composition root. `main.rs` only starts `run::execute`. `wiring.rs` is the only place that creates adapters: `SqliteStore`, `SourceFetcher`, `WalkDiscovery`, `TreeSitterAnalyzer` (with fingerprints from `config.similarity`, closes #41) and the `Scanner`. `scan.rs`, `mcp.rs` and `check.rs` are the commands; `build_analysis` creates the discovery and the analyzer that scan and check share.
 
 ## `codeskimr scan <path|git-url>`
 
@@ -34,6 +34,13 @@ codeskimr serve
 ```
 
 Starts the local server (`docs/server.md`) on `127.0.0.1` and the port `server.port` (default 7421), prints `Listening on http://127.0.0.1:7421` and runs until Ctrl+C. There is no option for the address: the server never listens anywhere else (blueprint S-04, `API-102`). On the first start it creates the installation token in the keystore of the operating system; without a usable keystore it stops with `SEC-601`. A taken port is `API-301`.
+## `codeskimr check`
+
+```
+codeskimr check [PATH ...] [--json]
+```
+
+Runs the convention checks (`docs/conventions.md`) over the current folder, or over the files and folders named, relative to it. Nothing is stored and no scan is needed. The text output has two lines per finding (`path:line: CHK-104 message`, then the numbers), the files that were skipped, a summary and the rules that are not checked yet; `--json` prints one line with `files_checked`, `findings`, `unchecked` and `not_checked` (lines are one-based). The exit code is `1` if there is at least one finding or a named path matches no file, so CI can fail on it.
 
 ## Global options
 
@@ -58,7 +65,7 @@ The package added two keys: `scan.parse_timeout_ms` (default 5000, `PRS-501` on 
 
 ## Exit codes
 
-`0` success, `1` a command failed (`error[CODE]: text` on standard error), `2` invalid arguments (`CLI-101`, with the parser's explanation).
+`0` success, `1` a command failed (`error[CODE]: text` on standard error) or `check` found violations, `2` invalid arguments (`CLI-101`, with the parser's explanation).
 
 ## Known limits
 

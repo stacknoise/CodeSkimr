@@ -187,3 +187,6 @@ pub const PERMISSION_MANAGE: &str = "manage";
 pub const PERMISSION_REGISTER_PROJECT: &str = "register_project";
 /// Label of `Permission::Admin`.
 pub const PERMISSION_ADMIN: &str = "admin";
+
+/// Whole percent of a share of 1.0, for integer percent arithmetic.
+pub const PERCENT_BASE: usize = 100;

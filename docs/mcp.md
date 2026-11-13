@@ -54,6 +54,6 @@ Tool descriptions and the server instructions are written for code agents and li
 
 ## Known limits
 
-- `get_architecture` returns the layers and the measured dependencies. The allowed directions and the conventions are not part of the project model yet (see `docs/storage.md`, `violates_layering`); they join the answer with `check_conventions` in M2.
+- `get_architecture` returns the layers and the measured dependencies. The allowed directions and the conventions are not part of the project model yet (see `docs/storage.md`, `violates_layering`); they join the answer with the layer rule of `check_conventions` (issue #45). The use case behind `check_conventions` exists (`docs/conventions.md`, `codeskimr check`); the tool follows in WP-37.
 - Paths from arguments (blueprint S-05) do not occur yet: no tool takes a path. `check_conventions` and `rescan` must canonicalise against registered roots.
 - A qualified name shared by several symbols (overloads) answers with the lowest symbol id; use the id from `search_symbols` to be exact.

@@ -24,3 +24,18 @@ cli-credentials-hint = Geheimnisse in einer Git-URL (Benutzerangaben, Query oder
 cli-arg-watch = Nach dem Scan weiterlaufen und bei Dateiänderungen erneut scannen
 cli-watch-started = Änderungen werden beobachtet. Mit Strg+C beenden.
 cli-watch-updated = { $changed } geänderte Dateien in { $millis } ms erneut gescannt.
+cli-cmd-check = Dateien gegen die Code-Regeln prüfen (Länge, Duplikate) und bei Funden mit 1 beenden
+cli-arg-paths = Dateien oder Ordner, relativ zum aktuellen Ordner (Standard: alles)
+cli-check-finding = { $path }:{ $line }: { $code } { $message }
+cli-check-too-long = { $name } hat { $lines } Codezeilen, erlaubt sind höchstens { $limit }.
+cli-check-duplicate = { $name } kopiert { $original } ({ $path }:{ $line }), zu { $percent } % ähnlich.
+cli-check-unchecked = { $path } übersprungen: { $code } { $message }
+cli-check-summary = { $files ->
+    [one] 1 Datei
+   *[other] { $files } Dateien
+} geprüft, { $findings ->
+    [one] 1 Fund
+   *[other] { $findings } Funde
+}.
+cli-check-not-checked = Noch nicht geprüft: { $codes }.
+cli-check-unmatched = Keine Datei passt zu { $path }. Prüfe den Pfad.

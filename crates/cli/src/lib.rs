@@ -5,13 +5,17 @@
 //! composition root (`codeskimr`) runs the request against the wired application.
 
 mod args;
+mod check;
 mod consts;
 mod error;
 mod locale;
 mod parser;
 mod render;
 
-pub use args::{Action, GlobalOptions, Invocation, McpArgs, Parsed, ScanArgs, ServeArgs};
+pub use args::{
+    Action, CheckArgs, GlobalOptions, Invocation, McpArgs, Parsed, ScanArgs, ServeArgs,
+};
+pub use check::{check_json, check_text};
 pub use error::CliError;
 pub use locale::language_from;
 pub use parser::parse;

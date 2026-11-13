@@ -77,6 +77,10 @@ pub mod keys {
     pub const WINDOW_SIZE: &str = "similarity.window_size";
     /// `similarity.min_tokens`
     pub const MIN_TOKENS: &str = "similarity.min_tokens";
+    /// `conventions.max_function_lines`
+    pub const MAX_FUNCTION_LINES: &str = "conventions.max_function_lines";
+    /// `conventions.duplicate_similarity_percent`
+    pub const DUPLICATE_SIMILARITY_PERCENT: &str = "conventions.duplicate_similarity_percent";
     /// `watcher.debounce_ms`
     pub const DEBOUNCE_MS: &str = "watcher.debounce_ms";
     /// `watcher.max_wait_ms`
