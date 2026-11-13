@@ -9,12 +9,12 @@ use std::time::Duration;
 use codeskimr_application::error::CodedError;
 use rusqlite::{Connection, Transaction, TransactionBehavior};
 
-use crate::consts::sql;
 use crate::consts::{
     BUSY_TIMEOUT_MS, FIRST_ID, ID_STEP, JOURNAL_MODE_WAL, PRAGMA_FOREIGN_KEYS, PRAGMA_JOURNAL_MODE,
     PRAGMA_ON, PRAGMA_SYNCHRONOUS, SYNCHRONOUS_NORMAL,
 };
 use crate::error::StorageResult;
+use crate::sql;
 use crate::{codec, migrate};
 
 /// The `SQLite` database of one workspace. It implements the storage ports and offers the queries

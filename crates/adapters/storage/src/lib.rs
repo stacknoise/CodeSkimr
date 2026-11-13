@@ -13,6 +13,7 @@ mod projects;
 mod queries;
 mod read_models;
 mod snapshots;
+mod sql;
 mod store;
 
 pub use queries::{SearchHit, TypeSummary};

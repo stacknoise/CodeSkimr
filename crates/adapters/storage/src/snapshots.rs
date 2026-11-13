@@ -9,10 +9,11 @@ use codeskimr_domain::{
 use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from, small_from};
-use crate::consts::{PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON, sql};
+use crate::consts::{PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON};
 use crate::error::{StorageError, StorageResult};
 use crate::projects::load_layers;
 use crate::read_models;
+use crate::sql;
 use crate::store::SqliteStore;
 
 impl SnapshotStore for SqliteStore {

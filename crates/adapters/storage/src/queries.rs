@@ -8,9 +8,9 @@ use codeskimr_domain::{
 use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::codec::{Cols, column_int, id_from, label_from, small_from};
-use crate::consts::sql;
 use crate::consts::{LIKE_ANY, LIKE_ESCAPE, LIKE_ONE};
 use crate::error::StorageResult;
+use crate::sql;
 use crate::store::SqliteStore;
 
 /// One result of the quick search.

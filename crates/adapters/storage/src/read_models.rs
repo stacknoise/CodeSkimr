@@ -9,10 +9,10 @@ use codeskimr_domain::{Layer, MetricKind, SnapshotId, SymbolKind};
 use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, column_int, id_from};
-use crate::consts::sql;
-use crate::consts::{NAME_SEPARATOR, NOT_VIOLATING, TYPE_KINDS};
+use crate::consts::{EDGE_STEP, NAME_SEPARATOR, NOT_VIOLATING, TYPE_KINDS};
 use crate::cycles::edges_in_cycles;
 use crate::error::StorageResult;
+use crate::sql;
 
 /// Fills `search_index`, `usage_counts`, `type_summary` and `layer_graph` of a snapshot.
 pub fn rebuild(conn: &Connection, snapshot: SnapshotId, layers: &[Layer]) -> StorageResult<()> {
@@ -89,7 +89,8 @@ fn count_edges(
         if let (Some(&from), Some(&to)) = ends
             && from != to
         {
-            *counts.entry((from, to)).or_insert(0_u32) += 1;
+            let count: &mut u32 = counts.entry((from, to)).or_default();
+            *count += EDGE_STEP;
         }
     }
     Ok(counts)

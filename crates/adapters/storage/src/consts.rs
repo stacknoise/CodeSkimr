@@ -1,10 +1,7 @@
 //! Fixed values of the storage adapter. SQL statements live in `sql`.
 
-/// SQL statements.
-pub mod sql;
-
 /// Schema migrations in order; the position plus one is the schema version.
-pub const MIGRATIONS: &[&str] = &[include_str!("../../migrations/0001_initial.sql")];
+pub const MIGRATIONS: &[&str] = &[include_str!("../migrations/0001_initial.sql")];
 
 /// Name of the pragma that holds the schema version.
 pub const PRAGMA_USER_VERSION: &str = "user_version";
@@ -66,3 +63,5 @@ pub const TYPE_KINDS: &[codeskimr_domain::SymbolKind] = &[
 pub const PRAGMA_DEFER_FOREIGN_KEYS: &str = "defer_foreign_keys";
 /// Value that turns a boolean pragma on.
 pub const PRAGMA_ON: bool = true;
+/// Weight of one reference in the layer graph.
+pub const EDGE_STEP: u32 = 1;

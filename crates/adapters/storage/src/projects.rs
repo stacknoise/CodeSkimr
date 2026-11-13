@@ -10,9 +10,9 @@ use codeskimr_domain::{
 use rusqlite::{Connection, OptionalExtension, Row, params};
 
 use crate::codec::{Cols, column_int, id_from, ordinals, small_from};
-use crate::consts::sql;
 use crate::consts::{NO_BRANCH, SOURCE_FOLDER, SOURCE_GIT};
 use crate::error::{StorageError, StorageResult};
+use crate::sql;
 use crate::store::SqliteStore;
 
 /// A source as stored: kind, location and branch.
