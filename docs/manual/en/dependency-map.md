@@ -21,4 +21,4 @@ The layout is calculated by CodeSkimr (layered drawing), so the same project alw
 
 ## Known limits
 
-The map shows layer relations only. Which direction between two layers is **allowed** is not part of the project model yet; what counts as "against the layering" follows the layer graph that the scan recorded (see the open issue about the layer rule). Use it as a hint, not as a verdict.
+The map shows layer relations only. Which direction between two layers is **allowed** is not part of the project model yet; what counts as "against the layering" follows the layer graph that the scan recorded (see the open issue #45 about the layer rule). Use it as a hint, not as a verdict.

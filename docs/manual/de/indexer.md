@@ -1,6 +1,6 @@
 # Sprach-Indexer
 
-> **Stand:** Die hier beschriebenen Indexer sind in ADR 0032 beschlossen und entstehen in eigenen Arbeitspaketen. Bis dahin ist jede Verwendung „ungeprüft“ ([Verwendungen](verwendungen.md#verlässlichkeit-geprüft-ungeprüft-vermutet)), und der Verwendungs-Bildschirm sagt, dass kein Indexer eingerichtet ist. Dieses Kapitel beschreibt, wie es funktioniert, sobald sie da sind, damit Sie wissen, was Sie installieren müssen.
+> **Stand:** Die hier beschriebenen Indexer sind in ADR 0032 vorgeschlagen (Status: proposed) und entstehen in eigenen Arbeitspaketen. Bis dahin ist jede Verwendung „ungeprüft“ ([Verwendungen](verwendungen.md#verlässlichkeit-geprüft-ungeprüft-vermutet)), und der Verwendungs-Bildschirm sagt, dass kein Indexer eingerichtet ist. Dieses Kapitel beschreibt, wie es funktioniert, sobald sie da sind, damit Sie wissen, was Sie installieren müssen.
 
 ## Wozu
 
