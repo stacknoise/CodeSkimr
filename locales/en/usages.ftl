@@ -27,6 +27,7 @@ usages-legend-count = Number = places
 usages-hits = Hits { $count }
 usages-hits-label = Hits
 usages-hits-empty = No usages found.
+usages-hits-empty-unchecked = Without an indexer this does not rule out usages that were missed.
 usages-hits-cut = The first { $shown } of { $total } hits are shown.
 usages-hits-next = next
 usages-hits-open = in Explorer

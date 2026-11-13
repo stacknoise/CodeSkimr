@@ -7,6 +7,7 @@ import { TONE as PILL_TONE } from "../../shared/ui/consts";
 import { cx } from "../../shared/ui/cx";
 import {
   KEY,
+  LEVEL2_UNAVAILABLE,
   LOCATION_JOIN,
   SCROLL_NEAREST,
   REF,
@@ -15,9 +16,9 @@ import {
   TRUE,
   type State,
 } from "./consts";
-import { countKinds, stateOf } from "./hits";
+import { countKinds, listedPlace, stateOf } from "./hits";
 import { selectedHit, setSelectedHit } from "./usages";
-import type { Hit, UsagesAnswer } from "./types";
+import type { Hit, Place, UsagesAnswer } from "./types";
 import styles from "./HitList.module.css";
 
 const STATE_LABEL: Record<State, MessageKey> = {
@@ -35,7 +36,7 @@ function location(hit: Hit): string {
   return `${hit.path}${LOCATION_JOIN}${hit.line}`;
 }
 
-function Row(props: { hit: Hit; index: number; onOpen: (hit: Hit) => void }) {
+function Row(props: { hit: Hit; place: Place; index: number; onOpen: (hit: Hit) => void }) {
   const state = () => stateOf(props.hit);
   let row: HTMLDivElement | undefined;
   createEffect(() => {
@@ -54,8 +55,8 @@ function Row(props: { hit: Hit; index: number; onOpen: (hit: Hit) => void }) {
       <span class={cx(styles.kind, props.hit.kind === REF.test && styles.test)}>
         {kindText(props.hit)}
       </span>
-      <span class={styles.where} title={props.hit.from.qualified_name}>
-        {props.hit.from.qualified_name}
+      <span class={styles.where} title={props.place.qualified_name}>
+        {props.place.qualified_name}
       </span>
       <span class={styles.place}>{location(props.hit)}</span>
       <span
@@ -104,10 +105,24 @@ export function HitList(props: { answer: UsagesAnswer; hits: Hit[]; onOpen: (hit
       <div class={styles.rows}>
         <Show
           when={props.hits.length > 0}
-          fallback={<p class={styles.empty}>{t(I18N_KEYS.USAGES_HITS_EMPTY)}</p>}
+          fallback={
+            <p class={styles.empty}>
+              {t(I18N_KEYS.USAGES_HITS_EMPTY)}
+              <Show when={props.answer.level2 === LEVEL2_UNAVAILABLE}>
+                {t(I18N_KEYS.USAGES_HITS_EMPTY_UNCHECKED)}
+              </Show>
+            </p>
+          }
         >
           <For each={props.hits}>
-            {(hit, index) => <Row hit={hit} index={index()} onOpen={props.onOpen} />}
+            {(hit, index) => (
+              <Row
+                hit={hit}
+                place={listedPlace(props.answer, hit)}
+                index={index()}
+                onOpen={props.onOpen}
+              />
+            )}
           </For>
         </Show>
       </div>

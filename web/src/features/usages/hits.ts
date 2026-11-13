@@ -1,5 +1,5 @@
 import { CONFIDENCE, REF, STATE, type State } from "./consts";
-import type { Hit, UsagesAnswer } from "./types";
+import type { Hit, Place, UsagesAnswer } from "./types";
 
 /** The hits the list shows: the callers if the answer has them, else the callees. */
 export function listedHits(answer: UsagesAnswer): Hit[] {
@@ -20,4 +20,10 @@ export function countKinds(hits: Hit[]): { tests: number; presumed: number } {
     tests: hits.filter((hit) => hit.kind === REF.test).length,
     presumed: hits.filter((hit) => stateOf(hit) === STATE.presumed).length,
   };
+}
+
+/** The symbol a hit of the list names: the caller for callers, the callee for the callees that the
+ * list shows when the answer has no callers (there `from` is always the symbol in focus). */
+export function listedPlace(answer: UsagesAnswer, hit: Hit): Place {
+  return answer.incoming === null ? hit.to : hit.from;
 }

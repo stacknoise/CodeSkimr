@@ -362,6 +362,7 @@ export const I18N_KEYS = {
   USAGES_HITS: "usages-hits",
   USAGES_HITS_LABEL: "usages-hits-label",
   USAGES_HITS_EMPTY: "usages-hits-empty",
+  USAGES_HITS_EMPTY_UNCHECKED: "usages-hits-empty-unchecked",
   USAGES_HITS_CUT: "usages-hits-cut",
   USAGES_HITS_NEXT: "usages-hits-next",
   USAGES_HITS_OPEN: "usages-hits-open",

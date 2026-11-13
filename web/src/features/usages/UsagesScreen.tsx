@@ -6,7 +6,8 @@ import { activeProject } from "../../shared/project/active";
 import type { Failure } from "../explorer/failure";
 import { GraphView } from "./GraphView";
 import { HitList } from "./HitList";
-import { listedHits } from "./hits";
+import { ROLE } from "./consts";
+import { listedHits, listedPlace } from "./hits";
 import { nextHit, useUsagesKeys } from "./keys";
 import { SidePanel } from "./SidePanel";
 import { Toolbar } from "./Toolbar";
@@ -31,7 +32,7 @@ import styles from "./UsagesScreen.module.css";
 function Message(props: { title?: string; text: string; alert?: boolean }) {
   return (
     <div class={styles.centered}>
-      <div class={styles.message} role={props.alert ? "alert" : undefined}>
+      <div class={styles.message} role={props.alert ? ROLE.alert : undefined}>
         <Show when={props.title}>{(title) => <h2>{title()}</h2>}</Show>
         <p>{props.text}</p>
       </div>
@@ -63,6 +64,10 @@ function useReading(): void {
 function Body(props: { answer: UsagesAnswer }) {
   const hits = () => listedHits(props.answer);
   const project = () => activeProject();
+  const selectedPlace = () => {
+    const hit = hits()[selectedHit()];
+    return hit ? listedPlace(props.answer, hit) : undefined;
+  };
   const open = (place: Hit["from"]) => {
     const id = project();
     if (id !== null) {
@@ -71,7 +76,7 @@ function Body(props: { answer: UsagesAnswer }) {
   };
   useUsagesKeys({
     step: (step) => setSelectedHit(nextHit(selectedHit(), step, hits().length)),
-    open: () => open(hits()[selectedHit()]?.from ?? props.answer.symbol),
+    open: () => open(selectedPlace() ?? props.answer.symbol),
   });
   return (
     <div class={styles.screen}>
@@ -81,7 +86,11 @@ function Body(props: { answer: UsagesAnswer }) {
           answer={props.answer}
           onPick={(card) => !card.focus && showUsages(card.place.id)}
         />
-        <HitList answer={props.answer} hits={hits()} onOpen={(hit) => open(hit.from)} />
+        <HitList
+          answer={props.answer}
+          hits={hits()}
+          onOpen={(hit) => open(listedPlace(props.answer, hit))}
+        />
       </section>
       <SidePanel answer={props.answer} onOpen={() => open(props.answer.symbol)} />
     </div>

@@ -65,7 +65,7 @@ function Accuracy(props: { answer: UsagesAnswer }) {
           presumed: summary().probable,
         })}
       </p>
-      <Show when={props.answer.level2 === LEVEL2_UNAVAILABLE}>
+      <Show when={props.answer.level2 === LEVEL2_UNAVAILABLE || summary().unchecked > 0}>
         <p class={styles.warning}>{t(I18N_KEYS.USAGES_LEVEL2_UNAVAILABLE)}</p>
       </Show>
     </section>

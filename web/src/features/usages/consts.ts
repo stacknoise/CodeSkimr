@@ -90,7 +90,7 @@ export const MISSING = "–";
 export const LOCATION_JOIN = ":";
 
 /** Roles of the groups of the toolbar. */
-export const ROLE = { group: "group", region: "region" } as const;
+export const ROLE = { group: "group", region: "region", alert: "alert" } as const;
 /** Rating of the verification of a hit, named as the styles name it. */
 export const STATE = {
   verified: "verified",
@@ -113,3 +113,7 @@ export const END = { from: "from", to: "to" } as const;
 export type End = (typeof END)[keyof typeof END];
 /** Keeps the selected hit in view without moving the list more than needed. */
 export const SCROLL_NEAREST: ScrollIntoViewOptions = { block: "nearest" };
+/** Commands and separators of the SVG path of an edge, and of the key of a pair of symbols. */
+export const PATH = { move: "M", curve: "C", space: " " } as const;
+export const PAIR_SEPARATOR = ">";
+export const JOIN_NONE = "";

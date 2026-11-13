@@ -27,6 +27,7 @@ usages-legend-count = Zahl = Anzahl Stellen
 usages-hits = Fundstellen { $count }
 usages-hits-label = Fundstellen
 usages-hits-empty = Keine Verwendungen gefunden.
+usages-hits-empty-unchecked = Ohne Indexer schließt das übersehene Verwendungen nicht aus.
 usages-hits-cut = Gezeigt werden die ersten { $shown } von { $total } Fundstellen.
 usages-hits-next = nächste
 usages-hits-open = im Explorer

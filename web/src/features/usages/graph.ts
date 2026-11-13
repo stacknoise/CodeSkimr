@@ -3,6 +3,9 @@ import {
   CONFIDENCE,
   END,
   GRAPH,
+  JOIN_NONE,
+  PAIR_SEPARATOR,
+  PATH,
   REF,
   TONE,
   type ColumnKind,
@@ -94,7 +97,25 @@ function curve(from: Card, to: Card): string {
   const startY = from.y + from.height / GRAPH.half;
   const endY = to.y + to.height / GRAPH.half;
   const middle = (startX + to.x) / GRAPH.half;
-  return `M${startX} ${startY} C${middle} ${startY} ${middle} ${endY} ${to.x} ${endY}`;
+  return [
+    PATH.move,
+    startX,
+    PATH.space,
+    startY,
+    PATH.space,
+    PATH.curve,
+    middle,
+    PATH.space,
+    startY,
+    PATH.space,
+    middle,
+    PATH.space,
+    endY,
+    PATH.space,
+    to.x,
+    PATH.space,
+    endY,
+  ].join(JOIN_NONE);
 }
 
 /** Column index of a level: callers to the left of the focus, callees to the right. */
@@ -147,7 +168,7 @@ interface Pair {
 function pairsOf(hits: Hit[]): Map<string, Pair> {
   const pairs = new Map<string, Pair>();
   for (const hit of hits) {
-    const key = `${hit.from.id}>${hit.to.id}`;
+    const key = [hit.from.id, hit.to.id].join(PAIR_SEPARATOR);
     const pair = pairs.get(key) ?? { from: hit.from, to: hit.to, hits: [] };
     pair.hits.push(hit);
     pairs.set(key, pair);

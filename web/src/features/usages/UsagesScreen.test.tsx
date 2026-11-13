@@ -90,6 +90,22 @@ describe("UsagesScreen", () => {
     await waitFor(() => expect(lastRequest().include_tests).toBe(false));
   });
 
+  it("names the callee of an outgoing hit and opens it, not the symbol in focus", async () => {
+    shown({ ...ANSWER, incoming: null });
+    await screen.findByText("Hits 1");
+    const list = screen.getByText("Hits 1").closest("div")!.parentElement!;
+    expect(within(list).getByText("Shop.Domain.Price.Value")).toBeTruthy();
+    fireEvent.keyDown(document.body, { key: "F8" });
+    fireEvent.keyDown(document.body, { key: "Enter" });
+    await waitFor(() => expect(currentPath()).toBe("/explorer"));
+    expect(pendingFocus()?.member).toBe(14);
+  });
+
+  it("warns about missing indexers also on an empty list", async () => {
+    shown({ ...ANSWER, incoming: { total: 0, hits: [] }, outgoing: null });
+    expect(await screen.findByText(/does not rule out usages that were missed/)).toBeTruthy();
+  });
+
   it("makes a clicked card the focus", async () => {
     shown();
     const graph = await screen.findByRole("region", { name: "Usage graph" });
@@ -113,7 +129,7 @@ describe("UsagesScreen", () => {
       outgoing: null,
       impact: { total: 0, public_interfaces: 0, layers: [] },
     });
-    expect(await screen.findByText("No usages found.")).toBeTruthy();
+    expect(await screen.findByText(/No usages found/)).toBeTruthy();
     expect(screen.getByText("A change reaches no other symbol.")).toBeTruthy();
   });
 
