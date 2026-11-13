@@ -1,6 +1,8 @@
-import { For, Match, Show, Switch } from "solid-js";
+import { createEffect, For, Match, onCleanup, Show, Switch } from "solid-js";
 import { ConnectionScreen } from "../features/session/ConnectionScreen";
 import { ExplorerScreen } from "../features/explorer/ExplorerScreen";
+import { listenToScans } from "../features/scan/events";
+import { ScanScreen } from "../features/scan/ScanScreen";
 import { ProjectsScreen } from "../features/projects/ProjectsScreen";
 import { QuickSearch } from "../features/search/QuickSearch";
 import { SearchField } from "../features/search/SearchField";
@@ -20,6 +22,7 @@ import {
   FOOTER_ROUTES,
   LOGO_LETTER,
   MAIN_ROUTES,
+  SCAN_ROUTE,
   SETTINGS_ROUTE,
   type Route,
 } from "./consts";
@@ -50,6 +53,9 @@ function Screen() {
       <Match when={currentPath() === SETTINGS_ROUTE.path}>
         <SettingsScreen />
       </Match>
+      <Match when={currentPath() === SCAN_ROUTE.path}>
+        <ScanScreen />
+      </Match>
       <Match when={currentPath() === EXPLORER_ROUTE.path}>
         <ExplorerScreen />
       </Match>
@@ -60,6 +66,11 @@ function Screen() {
 /** The frame of every screen: top bar, rail, main area and status bar (blueprint 15.2). */
 export function App() {
   useSearchShortcut(openSearch);
+  createEffect(() => {
+    if (sessionState().kind === KIND.connected) {
+      onCleanup(listenToScans());
+    }
+  });
   return (
     <div class={styles.root}>
       <header class={styles.top}>
