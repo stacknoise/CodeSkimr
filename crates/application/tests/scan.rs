@@ -21,12 +21,12 @@ use codeskimr_domain::{
     Symbol, SymbolKind, SymbolName, Timestamp,
 };
 
-/// One fake that plays every port. `fail_at` makes that stage fail, `cancel_on_analyze` raises the
-/// token while the first file is analysed, `unchanged` marks the first file as not changed.
+/// One fake that plays every port. `fail_at` makes that stage fail, `cancel_at` raises the token
+/// when that stage runs, `unchanged` marks the first file as not changed.
 #[derive(Default)]
 struct World {
     fail_at: Option<StageKind>,
-    cancel_on_analyze: Option<CancelToken>,
+    cancel_at: Option<(StageKind, CancelToken)>,
     unchanged: bool,
     missing_project: bool,
     persisted: Mutex<Vec<SnapshotData>>,
@@ -34,6 +34,11 @@ struct World {
 
 impl World {
     fn gate(&self, stage: StageKind) -> Result<(), CodedError> {
+        if let Some((at, token)) = &self.cancel_at
+            && *at == stage
+        {
+            token.cancel();
+        }
         if self.fail_at == Some(stage) {
             Err(CodedError::new(ErrorCode::GitFetchFailed))
         } else {
@@ -108,9 +113,6 @@ impl FileDiscovery for World {
 impl FileAnalyzer for World {
     fn analyze(&self, request: &AnalyzeRequest<'_>) -> Result<FileFacts, CodedError> {
         self.gate(StageKind::Analyze)?;
-        if let Some(token) = &self.cancel_on_analyze {
-            token.cancel();
-        }
         let file = SourceFile {
             id: request.ids.file(),
             snapshot: request.snapshot,
@@ -282,9 +284,9 @@ fn incremental_scan_skips_unchanged_files() {
 
 #[test]
 fn failing_stage_ends_the_job_without_a_snapshot() {
-    for stage in [StageKind::Fetch, StageKind::Resolve, StageKind::Persist] {
+    for stage in StageKind::ALL {
         let world = Arc::new(World {
-            fail_at: Some(stage),
+            fail_at: Some(*stage),
             ..World::default()
         });
         let (result, events) = run(&world, ScanMode::Full);
@@ -315,24 +317,56 @@ fn unknown_project_fails_with_its_code() {
     assert!(matches!(result, JobResult::Failed(job) if job.code() == ErrorCode::ProjectNotFound));
 }
 
-#[test]
-fn cancelling_during_analysis_leaves_nothing_behind() {
+/// Runs a job whose token the fake raises when `cancel_at` runs and optionally makes that stage fail.
+fn cancelled_run(cancel_at: StageKind, fail: bool) -> (JobResult, Vec<Event>, Arc<World>) {
     let bus = EventBus::new();
     let events = bus.subscribe();
     let job = Job::new(ProjectId::new(7), ScanMode::Full);
-    // The fake raises the job's own token while it analyses the first file.
     let world = Arc::new(World {
-        cancel_on_analyze: Some(job.cancel_token()),
+        cancel_at: Some((cancel_at, job.cancel_token())),
+        fail_at: fail.then_some(cancel_at),
         ..World::default()
     });
     let result = scanner(&world, &bus).run(job);
+    (result, events.try_iter().collect(), world)
+}
+
+#[test]
+fn cancelling_at_any_stage_writes_nothing() {
+    // Measure is the last stage before Persist: the boundary where a partial write could happen.
+    for stage in [StageKind::Fetch, StageKind::Analyze, StageKind::Measure] {
+        let (result, events, world) = cancelled_run(stage, false);
+        assert!(matches!(result, JobResult::Cancelled(_)), "{stage:?}");
+        assert_eq!(world.persisted_count(), 0);
+        assert!(matches!(
+            events.last(),
+            Some(Event::ScanStopped(stopped)) if stopped.reason == StopReason::Cancelled
+        ));
+    }
+}
+
+#[test]
+fn adapter_error_after_cancellation_counts_as_cancelled() {
+    let (result, _, world) = cancelled_run(StageKind::Discover, true);
     assert!(matches!(result, JobResult::Cancelled(_)));
     assert_eq!(world.persisted_count(), 0);
-    let last = events.try_iter().last();
-    assert!(matches!(
-        last,
-        Some(Event::ScanStopped(stopped)) if stopped.reason == StopReason::Cancelled
-    ));
+}
+
+#[test]
+fn token_raised_before_start_cancels_without_any_work() {
+    let bus = EventBus::new();
+    let events = bus.subscribe();
+    let world = Arc::new(World::default());
+    let job = Job::new(ProjectId::new(7), ScanMode::Full);
+    job.cancel_token().cancel();
+    let result = scanner(&world, &bus).run(job);
+    assert!(matches!(result, JobResult::Cancelled(_)));
+    assert_eq!(world.persisted_count(), 0);
+    assert!(
+        !events
+            .try_iter()
+            .any(|e| matches!(e, Event::ScanProgressed(_)))
+    );
 }
 
 #[test]

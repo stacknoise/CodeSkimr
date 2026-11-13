@@ -31,7 +31,8 @@ pub struct DiscoveredFile {
 
 /// Makes a project source available as a local folder.
 pub trait SourceProvider: Send + Sync {
-    /// Fetches or opens `source`; a folder source needs no work.
+    /// Fetches or opens `source`; a folder source needs no work. If `cancel` is raised the adapter
+    /// stops and may return any error; the pipeline then reports a cancellation, not a failure.
     ///
     /// # Errors
     /// A coded failure such as `SRC-201`, `SRC-401` or `SRC-601`.
@@ -44,7 +45,8 @@ pub trait SourceProvider: Send + Sync {
 
 /// Walks a folder, honours ignore rules, detects languages and hashes contents.
 pub trait FileDiscovery: Send + Sync {
-    /// Lists the files below `root` and marks those that differ from `previous`.
+    /// Lists the files below `root` and marks those that differ from `previous`. Cancellation
+    /// works as for `SourceProvider::fetch`.
     ///
     /// # Errors
     /// A coded failure such as `SRC-201` or `SRC-501`.

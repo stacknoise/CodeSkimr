@@ -159,7 +159,10 @@ impl<S: Stage> Flow for Single<S> {
         let ctx = ctx.entering(kind);
         ctx.progress(0, 0);
         self.0.run(input, &ctx).map_err(|stop| match stop {
+            // An adapter that stops because of the token can only report an error; that is
+            // still a cancellation, not a failure.
             Interruption::Cancelled => Halt::Cancelled(kind),
+            Interruption::Failed(_) if ctx.is_cancelled() => Halt::Cancelled(kind),
             Interruption::Failed(cause) => Halt::Failed(PipelineError { stage: kind, cause }),
         })
     }
