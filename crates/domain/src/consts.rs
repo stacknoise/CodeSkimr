@@ -154,3 +154,5 @@ pub const SIMILARITY_NONE: f64 = 0.0;
 pub const POWER_START: u64 = 1;
 /// Start value of the rolling hash of an n-gram.
 pub const HASH_START: u64 = 0;
+/// Number of metrics of a measured callable: `loc`, `cc` and `mi`.
+pub const CALLABLE_METRICS: usize = 3;

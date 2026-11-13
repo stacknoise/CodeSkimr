@@ -7,6 +7,7 @@
 use std::collections::HashMap;
 
 use crate::ModelError;
+use crate::consts::CALLABLE_METRICS;
 use crate::file::Loc;
 use crate::metric::{Metric, MetricKind, MetricValue};
 use crate::metrics::{HalsteadCounts, cyclomatic_complexity, maintainability_index};
@@ -108,7 +109,7 @@ fn callable(
     body: BodyCounts,
     by_id: &HashMap<SymbolId, &Symbol>,
     rollups: &mut HashMap<SymbolId, Rollup>,
-) -> Result<[Metric; 3], ModelError> {
+) -> Result<[Metric; CALLABLE_METRICS], ModelError> {
     let cc = cyclomatic_complexity(body.decisions);
     let mi = maintainability_index(body.halstead, cc, loc)?;
     let mut parent = symbol.parent;
