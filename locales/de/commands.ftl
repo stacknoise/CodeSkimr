@@ -10,3 +10,5 @@ command-explorer-outline-title = Struktur anzeigen
 command-explorer-outline-description = Listet Schichten, Namensräume und Typen des neuesten Scans auf.
 command-explorer-symbol-title = Symbol anzeigen
 command-explorer-symbol-description = Zeigt einen Typ oder ein Member mit Metriken und Mitgliedern.
+command-search-query-title = Symbole suchen
+command-search-query-description = Durchsucht die Namen der Typen und Member des neuesten Scans.

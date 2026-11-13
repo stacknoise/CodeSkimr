@@ -1,5 +1,5 @@
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
-import { copyFileSync, mkdtempSync, readFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline";
@@ -84,4 +84,30 @@ export async function watchPolicy(page: Page): Promise<() => Promise<string[]>> 
     });
   });
   return () => page.evaluate(() => (window as unknown as { __violations: string[] }).__violations);
+}
+
+/** A scan in a debug build loads the language packs and takes a few seconds. */
+export const SCAN_MS = 60_000;
+
+/** Opens the UI, adds a folder with one C# file as the project `name` and waits until its scan
+ * is listed. Returns the row of the project. */
+export async function addScannedProject(
+  page: Page,
+  harness: Harness,
+  name: string,
+  source: string,
+) {
+  const folder = path.join(mkdtempSync(path.join(tmpdir(), "codeskimr-e2e-")), name);
+  mkdirSync(folder);
+  writeFileSync(path.join(folder, `${name}.cs`), source);
+  const { copy } = keepLaunchFile(await harness.launchFile());
+  await page.goto(`file://${copy}`);
+  const add = page.getByRole("button", { name: "Add and scan" });
+  await page.getByLabel("New project").fill(folder);
+  await add.click();
+  const open = page.getByRole("button", { name: `Open ${name}` });
+  await expect(open).toBeVisible({ timeout: SCAN_MS });
+  const row = page.getByRole("row", { name: new RegExp(name) });
+  await expect(row.getByText("current", { exact: true })).toBeVisible({ timeout: SCAN_MS });
+  return row;
 }

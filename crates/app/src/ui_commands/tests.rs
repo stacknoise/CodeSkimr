@@ -108,7 +108,8 @@ fn the_commands_are_offered() {
             "explorer.symbol",
             "projects.add",
             "projects.list",
-            "projects.rescan"
+            "projects.rescan",
+            "search.query"
         ]
     );
 }
@@ -309,7 +310,7 @@ fn a_token_without_the_read_right_is_refused() {
         .build()
         .unwrap();
     let nobody = principal::nobody();
-    for id in ["explorer.outline", "explorer.symbol"] {
+    for id in ["explorer.outline", "explorer.symbol", "search.query"] {
         let refused = runtime
             .block_on(
                 fixture
@@ -319,4 +320,53 @@ fn a_token_without_the_read_right_is_refused() {
             .map_err(|error| error.code().entry().id);
         assert_eq!(refused.unwrap_err(), "AUTH-401", "{id}");
     }
+}
+
+#[test]
+fn the_search_finds_a_member_by_a_part_of_its_name_and_names_its_type() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    let found = fixture
+        .call(
+            "search.query",
+            json!({ "project": project, "query": "add" }),
+        )
+        .unwrap();
+    assert!(found["snapshot"].is_u64());
+    let hit = &found["hits"][0];
+    assert_eq!(hit["name"], "Add");
+    assert_eq!(hit["kind"], "method");
+    assert_eq!(hit["path"], "Calculator.cs");
+    assert!(hit["parent"].is_u64());
+    let kinds: Vec<_> = fixture
+        .call(
+            "search.query",
+            json!({ "project": project, "query": "calc" }),
+        )
+        .unwrap()["hits"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|hit| hit["kind"].clone())
+        .collect();
+    assert!(kinds.contains(&json!("class")));
+}
+
+#[test]
+fn the_search_of_a_project_without_a_scan_or_without_text_is_empty() {
+    let fixture = Fixture::new();
+    let project = fixture.register_unscanned();
+    let found = fixture
+        .call("search.query", json!({ "project": project, "query": "a" }))
+        .unwrap();
+    assert_eq!(found, json!({ "snapshot": null, "hits": [] }));
+    let scanned = added(&fixture);
+    let blank = fixture
+        .call("search.query", json!({ "project": scanned, "query": "" }))
+        .unwrap();
+    assert_eq!(blank["hits"], json!([]));
+    assert_eq!(
+        fixture.call("search.query", json!({ "project": 99, "query": "a" })),
+        Err("PRJ-201")
+    );
 }

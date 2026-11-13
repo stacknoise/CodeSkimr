@@ -1,4 +1,4 @@
-import { createMemo, createSignal } from "solid-js";
+import { createMemo } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
@@ -9,6 +9,8 @@ import {
   expandedRows,
   openRows,
   revealNested,
+  setTreeCursor,
+  treeCursor,
   selectType,
   symbolDetails,
   toggleRow,
@@ -56,7 +58,6 @@ export function fold(project: number, row: TreeRow): void {
 
 /** The rows of the tree and the cursor on them, with the reveal of the selection. */
 function useTree() {
-  const [cursor, setCursor] = createSignal<string | null>(null);
   const rows = createMemo<TreeRow[]>(() => {
     const outline = treeOutline();
     return outline
@@ -68,10 +69,10 @@ function useTree() {
     const type = currentType();
     if (outline && type !== null) {
       openRows(revealKeys(outline, type).filter((key) => key !== typeKey(type)));
-      setCursor(typeKey(type));
+      setTreeCursor(typeKey(type));
     }
   };
-  return { rows, cursor, setCursor, reveal };
+  return { rows, cursor: treeCursor, setCursor: setTreeCursor, reveal };
 }
 
 /** A click on a member of the table: a nested type is revealed in the tree, any other member is
