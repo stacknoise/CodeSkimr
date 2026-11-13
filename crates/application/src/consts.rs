@@ -36,3 +36,6 @@ pub const INDEX_STEP: usize = 1;
 pub const NONE_DONE: u32 = 0;
 /// Files one worker adds to the progress after each file.
 pub const DONE_STEP: u32 = 1;
+/// Ids reserved for the file and symbols of one analysed file. A file that needs more fails the
+/// scan instead of taking ids of its neighbour.
+pub const FILE_ID_BLOCK: u64 = 1 << 24;

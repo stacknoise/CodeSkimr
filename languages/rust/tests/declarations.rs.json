@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 81,
+      "loc": 86,
       "operands": null,
       "operators": null,
       "symbol": "declarations"
@@ -264,9 +264,35 @@
         1
       ],
       "symbol": "declarations::tests::doubles"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations::documented_around_attributes"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "declarations::without_documentation"
     }
   ],
-  "loc": 81,
+  "loc": 86,
   "references": [
     {
       "at": "2:9",
@@ -465,7 +491,7 @@
       "name": "declarations",
       "parent": null,
       "signature": null,
-      "span": "0:0-127:0",
+      "span": "0:0-137:0",
       "static": false,
       "visibility": null
     },
@@ -888,6 +914,36 @@
       "span": "123:4-125:5",
       "static": false,
       "visibility": "private"
+    },
+    {
+      "doc": "First line of the documentation.\nSecond line, after an attribute.",
+      "kind": "function",
+      "name": "declarations::documented_around_attributes",
+      "parent": "declarations",
+      "signature": null,
+      "span": "132:0-132:40",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "Documentation that a statement separates from the function below.",
+      "kind": "constant",
+      "name": "declarations::SEPARATOR",
+      "parent": "declarations",
+      "signature": "const SEPARATOR: u8 = 1;",
+      "span": "135:0-135:24",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "declarations::without_documentation",
+      "parent": "declarations",
+      "signature": null,
+      "span": "136:0-136:33",
+      "static": false,
+      "visibility": "public"
     }
   ]
 }

@@ -24,6 +24,20 @@ impl IdSequence {
         self.next.fetch_add(1, Ordering::Relaxed)
     }
 
+    /// Reserves `count` consecutive ids and returns the first one, so that several workers can
+    /// hand out ids from blocks of their own and the result does not depend on their timing.
+    #[must_use]
+    pub fn reserve(&self, count: u64) -> u64 {
+        self.next.fetch_add(count, Ordering::Relaxed)
+    }
+
+    /// The next id this sequence would hand out; the difference to the first id is the number of
+    /// ids handed out so far.
+    #[must_use]
+    pub fn peek(&self) -> u64 {
+        self.next.load(Ordering::Relaxed)
+    }
+
     /// The next free snapshot id.
     #[must_use]
     pub fn snapshot(&self) -> SnapshotId {

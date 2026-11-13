@@ -16,7 +16,7 @@ use criterion::Criterion;
 /// Files of the corpus.
 const FILES: usize = 400;
 /// Functions per file; every function is about eight lines, with the type around it a file has
-/// about 125 lines.
+/// about 270 lines.
 const FUNCTIONS: usize = 14;
 /// Files per folder.
 const FILES_PER_FOLDER: usize = 25;

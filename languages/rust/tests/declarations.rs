@@ -125,3 +125,13 @@ mod tests {
         assert_eq!(double(2), 4);
     }
 }
+
+/// First line of the documentation.
+#[inline]
+/// Second line, after an attribute.
+#[must_use]
+pub fn documented_around_attributes() {}
+
+/// Documentation that a statement separates from the function below.
+const SEPARATOR: u8 = 1;
+pub fn without_documentation() {}

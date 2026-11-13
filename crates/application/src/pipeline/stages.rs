@@ -1,8 +1,8 @@
 //! The six concrete stages, each built from the ports it needs, and the values passed between them.
 
 use std::num::NonZeroUsize;
-use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, AtomicU32, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::{Arc, Mutex, PoisonError};
 use std::thread;
 
 use codeskimr_domain::{
@@ -14,7 +14,7 @@ use codeskimr_codes::ErrorCode;
 
 use super::carry::Carried;
 use super::flow::{Interruption, Stage, StageContext};
-use crate::consts::{DONE_STEP, FIRST_INDEX, INDEX_STEP, MIN_WORKERS, NONE_DONE};
+use crate::consts::{DONE_STEP, FILE_ID_BLOCK, FIRST_INDEX, INDEX_STEP, MIN_WORKERS, NONE_DONE};
 use crate::error::CodedError;
 use crate::ids::IdSequence;
 use crate::ports::{
@@ -243,12 +243,28 @@ fn internal_failure() -> Interruption {
 /// What the analysis workers share: the next file to take, the files done and a stop flag.
 struct Shared {
     next: AtomicUsize,
-    done: AtomicU32,
+    /// Files done so far. Progress is reported while the lock is held, so the events arrive in
+    /// the order of the counts and the last one is `total` of `total`.
+    done: Mutex<u32>,
     stopped: AtomicBool,
+    /// First id of the block of the first file; file `n` gets the block from `first + n * BLOCK`.
+    first_id: u64,
 }
 
 /// The result of one file, with the index of the file in the list of due files.
 type Slot = (usize, Result<FileFacts, Interruption>);
+
+impl Shared {
+    /// First id of the block of the file at `index`.
+    fn block(&self, index: usize) -> u64 {
+        self.first_id + u64::try_from(index).unwrap_or_default() * FILE_ID_BLOCK
+    }
+}
+
+/// Counts a list as `u64`.
+fn count_u64<T>(items: &[T]) -> u64 {
+    u64::try_from(items.len()).unwrap_or(u64::MAX)
+}
 
 impl AnalyzeStage {
     /// Analyses the files on all cores. The result keeps the order of `due`; the first failure
@@ -261,7 +277,8 @@ impl AnalyzeStage {
     ) -> Result<Vec<FileFacts>, Interruption> {
         let shared = Shared {
             next: AtomicUsize::new(FIRST_INDEX),
-            done: AtomicU32::new(NONE_DONE),
+            done: Mutex::new(NONE_DONE),
+            first_id: self.ids.reserve(count_u64(due) * FILE_ID_BLOCK),
             stopped: AtomicBool::new(false),
         };
         let workers = thread::available_parallelism().map_or(MIN_WORKERS, NonZeroUsize::get);
@@ -295,31 +312,41 @@ impl AnalyzeStage {
         while !shared.stopped.load(Ordering::Relaxed) {
             let index = shared.next.fetch_add(INDEX_STEP, Ordering::Relaxed);
             let Some(file) = due.get(index) else { break };
-            let result = self.analyze_one(run, file, ctx);
+            let result = self.analyze_one(run, file, shared.block(index), ctx);
             shared.stopped.fetch_or(result.is_err(), Ordering::Relaxed);
-            let done = shared.done.fetch_add(DONE_STEP, Ordering::Relaxed) + DONE_STEP;
-            ctx.progress(done, total);
+            let mut done = shared.done.lock().unwrap_or_else(PoisonError::into_inner);
+            *done += DONE_STEP;
+            ctx.progress(*done, total);
+            drop(done);
             mine.push((index, result));
         }
         mine
     }
 
+    /// Analyses one file with ids from its own block, so that the ids of a scan do not depend on
+    /// which worker was faster.
     fn analyze_one(
         &self,
         run: &ScanRun,
         file: &DiscoveredFile,
+        first_id: u64,
         ctx: &StageContext<'_>,
     ) -> Result<FileFacts, Interruption> {
         if ctx.is_cancelled() {
             return Err(Interruption::Cancelled);
         }
+        let ids = IdSequence::starting_at(first_id);
         let request = AnalyzeRequest {
             root: &run.root,
             snapshot: run.snapshot,
             file,
-            ids: &self.ids,
+            ids: &ids,
         };
-        Ok(self.analyzer.analyze(&request)?)
+        let facts = self.analyzer.analyze(&request)?;
+        if ids.peek() - first_id > FILE_ID_BLOCK {
+            return Err(internal_failure());
+        }
+        Ok(facts)
     }
 }
 
