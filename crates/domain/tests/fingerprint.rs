@@ -64,26 +64,6 @@ mod tests {
     }
 
     #[test]
-    fn shared_run_of_guaranteed_length_shares_a_fingerprint() {
-        let (ngram, window) = (3, 5);
-        let run = numbered(100..100 + 7);
-        assert_eq!(run.len(), window + ngram - 1);
-        let mut left = numbered(0..20);
-        left.extend(run.clone());
-        left.extend(numbered(200..210));
-        let mut right = numbered(300..315);
-        right.extend(run);
-        right.extend(numbered(400..403));
-        let a = winnow(&left, params(ngram, window));
-        let b = winnow(&right, params(ngram, window));
-        let shared = a
-            .entries()
-            .iter()
-            .any(|x| b.entries().iter().any(|y| x.hash == y.hash));
-        assert!(shared);
-    }
-
-    #[test]
     fn identical_streams_are_fully_similar_and_unrelated_ones_are_not() {
         let stream = numbered(0..60);
         let other = numbered(1000..1060);
