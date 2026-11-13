@@ -64,6 +64,6 @@ Tool descriptions and the server instructions are written for code agents and li
 
 ## Known limits
 
-- `get_architecture` returns the layers and the measured dependencies. The allowed directions and the conventions are not part of the project model yet (see `docs/storage.md`, `violates_layering`); they join the answer with the layer rule of `check_conventions` (issue #45). The use case behind `check_conventions` and the tool exist (`docs/conventions.md`, `codeskimr check`); the layer rule joins it with issue #45.
+- `get_architecture` returns the layers and the measured dependencies. Layers come from the `[[layers]]` list of the configuration (`docs/cli.md`, ADR 0031); without it the list is empty. The allowed directions and the conventions are not part of the project model yet (see `docs/storage.md`, `violates_layering`); they join the answer with the layer rule of `check_conventions` (issue #45). The use case behind `check_conventions` and the tool exist (`docs/conventions.md`, `codeskimr check`); the layer rule joins it with issue #45.
 - Paths from arguments (blueprint S-05): `check_conventions` takes paths, but only to select among the files of the project's own file list; a path is never opened, so `..` or an absolute path selects nothing. `rescan` will have to canonicalise against the registered roots.
 - A qualified name shared by several symbols (overloads) answers with the lowest symbol id; use the id from `search_symbols` to be exact.

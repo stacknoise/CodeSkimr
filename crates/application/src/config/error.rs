@@ -40,6 +40,8 @@ pub enum Violation {
     MustUseAllowedScheme(&'static str),
     /// The template must contain the placeholder for the file path.
     MustContainPath,
+    /// A layer needs a valid name that no other layer has, and at least one valid namespace.
+    MustBeLayerRule,
 }
 
 /// Errors that loading or validating the configuration can produce.

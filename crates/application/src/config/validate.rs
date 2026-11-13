@@ -38,9 +38,22 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
         keys::DUPLICATE_SIMILARITY_PERCENT,
         config.conventions.duplicate_similarity_percent,
     )?;
+    check_layers(config)?;
     check_scan(&config.scan)?;
     check_editor(&config.editor)?;
     check_ui(&config.ui)
+}
+
+fn check_layers(config: &Config) -> Result<(), ConfigError> {
+    let mut seen = std::collections::HashSet::new();
+    let valid = config.layers.iter().all(|rule| {
+        !rule.namespaces.is_empty() && rule.to_layer().is_some() && seen.insert(rule.name.as_str())
+    });
+    if valid {
+        Ok(())
+    } else {
+        fail(keys::LAYERS, Violation::MustBeLayerRule)
+    }
 }
 
 fn fail(key: &'static str, violation: Violation) -> Result<(), ConfigError> {
