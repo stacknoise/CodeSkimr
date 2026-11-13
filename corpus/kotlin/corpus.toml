@@ -1,9 +1,131 @@
+# Public Kotlin reference of CI (blueprint 17.2, ADR 0027). Updating the commit is a deliberate
+# change with new expected values. The two Kotlin repositories of the product owner were not
+# available to this work package, so ADR 0011 allows a well-known permissively licensed project:
+# KotlinPoet (Apache-2.0). Scanned are the library sources of the `commonMain` and `jvmMain`
+# source sets of the `kotlinpoet` module (39 files); tests, the other platforms, the interop
+# modules, the docs and the build files are skipped.
+# Counts were measured with the Kotlin pack and checked against an independent count with the PSI
+# parser of the Kotlin compiler (`kotlin-compiler-embeddable` 2.0.21, parse only, same mapping
+# rules, a different parser than the pack's Tree-sitter grammar); every kind agrees.
+
 [project]
 repository = "https://github.com/square/kotlinpoet"
 commit = "f4e88d3655b0f5f795186ea8cf3cb5a8ceb6db01"
-skip_folders = ["interop", "docs", "gradle", "jvmTest", "jsMain", "wasmJsMain", "nonJvmMain", "build"]
+skip_folders = [
+    "interop", "docs", "gradle", "jvmTest", "jsMain", "wasmJsMain", "nonJvmMain", "build",
+]
 language = "kotlin"
 extensions = ["kt"]
 
+# Symbols per kind over all *.kt files of the library; `module` is one per file and `namespace`
+# one per package header.
 [counts]
-files = 0
+files = 39
+module = 39
+namespace = 39
+class = 36           # classes and objects, nested and local; an unnamed companion is none
+interface = 20       # includes `fun interface` and annotation classes
+enum = 5
+enum_member = 77
+record = 2           # data classes
+constructor = 15     # secondary constructors
+function = 129       # functions that are not members of a type
+method = 539
+property = 385       # includes `val` and `var` parameters of primary constructors
+constant = 10        # `const val`
+
+[[sample]]
+file = "kotlinpoet/src/jvmMain/kotlin/com/squareup/kotlinpoet/FileSpec.kt"
+kind = "class"
+name = "FileSpec"
+visibility = "public"
+parent = "com.squareup.kotlinpoet"
+
+[[sample]]
+file = "kotlinpoet/src/jvmMain/kotlin/com/squareup/kotlinpoet/FileSpec.kt"
+kind = "constant"
+name = "DEFAULT_INDENT"
+visibility = "internal"
+parent = "com.squareup.kotlinpoet"
+
+[[sample]]
+file = "kotlinpoet/src/jvmMain/kotlin/com/squareup/kotlinpoet/TypeName.kt"
+kind = "class"
+name = "TypeName"
+visibility = "public"
+parent = "com.squareup.kotlinpoet"
+
+[[sample]]
+file = "kotlinpoet/src/jvmMain/kotlin/com/squareup/kotlinpoet/Taggable.kt"
+kind = "interface"
+name = "Taggable"
+visibility = "public"
+parent = "com.squareup.kotlinpoet"
+
+[[sample]]
+file = "kotlinpoet/src/commonMain/kotlin/com/squareup/kotlinpoet/KModifier.kt"
+kind = "enum"
+name = "KModifier"
+visibility = "public"
+parent = "com.squareup.kotlinpoet"
+
+[[sample]]
+file = "kotlinpoet/src/commonMain/kotlin/com/squareup/kotlinpoet/KModifier.kt"
+kind = "enum_member"
+name = "INTERNAL"
+visibility = "public"
+parent = "KModifier"
+
+[[sample]]
+file = "kotlinpoet/src/commonMain/kotlin/com/squareup/kotlinpoet/Import.kt"
+kind = "record"
+name = "Import"
+visibility = "public"
+parent = "com.squareup.kotlinpoet"
+
+[[sample]]
+file = "kotlinpoet/src/commonMain/kotlin/com/squareup/kotlinpoet/NameAllocator.kt"
+kind = "constructor"
+name = "NameAllocator"
+visibility = "public"
+parent = "NameAllocator"
+
+[[sample]]
+file = "kotlinpoet/src/jvmMain/kotlin/com/squareup/kotlinpoet/CodeBlock.kt"
+kind = "constant"
+name = "ARG_NAME"
+visibility = "private"
+parent = "CodeBlock"
+
+[[sample]]
+file = "kotlinpoet/src/jvmMain/kotlin/com/squareup/kotlinpoet/CodeBlock.kt"
+kind = "method"
+name = "isEmpty"
+visibility = "public"
+parent = "CodeBlock"
+
+[[sample]]
+file = "kotlinpoet/src/jvmMain/kotlin/com/squareup/kotlinpoet/ClassName.kt"
+kind = "class"
+name = "ClassName"
+visibility = "public"
+parent = "com.squareup.kotlinpoet"
+
+# Hand-checked references: file, kind, target and 1-based line.
+[[references]]
+file = "kotlinpoet/src/commonMain/kotlin/com/squareup/kotlinpoet/Import.kt"
+kind = "inherit"
+target = "Comparable"
+line = 20
+
+[[references]]
+file = "kotlinpoet/src/jvmMain/kotlin/com/squareup/kotlinpoet/ClassName.kt"
+kind = "inherit"
+target = "TypeName"
+line = 35
+
+[[references]]
+file = "kotlinpoet/src/jvmMain/kotlin/com/squareup/kotlinpoet/ClassName.kt"
+kind = "inherit"
+target = "Comparable"
+line = 35

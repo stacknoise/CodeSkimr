@@ -1,0 +1,515 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 39,
+      "operands": null,
+      "operators": null,
+      "symbol": "References"
+    },
+    {
+      "decisions": null,
+      "loc": 39,
+      "operands": null,
+      "operators": null,
+      "symbol": "References.refs"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "References.refs.Base"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "References.refs.Walker"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "References.refs.Talker"
+    },
+    {
+      "decisions": null,
+      "loc": 32,
+      "operands": null,
+      "operators": null,
+      "symbol": "References.refs.Dog"
+    },
+    {
+      "decisions": 2,
+      "loc": 23,
+      "operands": [
+        26,
+        39
+      ],
+      "operators": [
+        11,
+        24
+      ],
+      "symbol": "References.refs.Dog.walk"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "References.refs.Dog.bark"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "References.refs.Dog.handle"
+    }
+  ],
+  "loc": 39,
+  "references": [
+    {
+      "at": "2:24",
+      "from": "References.refs",
+      "kind": "import",
+      "receiver": null,
+      "target": "Helper"
+    },
+    {
+      "at": "3:24",
+      "from": "References.refs",
+      "kind": "import",
+      "receiver": null,
+      "target": "Tools"
+    },
+    {
+      "at": "10:20",
+      "from": "References.refs.Dog.name",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "10:47",
+      "from": "References.refs.Dog.owner",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Owner"
+    },
+    {
+      "at": "10:57",
+      "from": "References.refs.Dog",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Base"
+    },
+    {
+      "at": "10:65",
+      "from": "References.refs.Dog",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Walker"
+    },
+    {
+      "at": "10:73",
+      "from": "References.refs.Dog",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Talker"
+    },
+    {
+      "at": "11:24",
+      "from": "References.refs.Dog.helper",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Helper"
+    },
+    {
+      "at": "11:33",
+      "from": "References.refs.Dog.helper",
+      "kind": "call",
+      "receiver": null,
+      "target": "Helper"
+    },
+    {
+      "at": "14:17",
+      "from": "References.refs.Dog.walk",
+      "kind": "override",
+      "receiver": null,
+      "target": "walk"
+    },
+    {
+      "at": "15:15",
+      "from": "References.refs.Dog.walk",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Count"
+    },
+    {
+      "at": "16:16",
+      "from": "References.refs.Dog.walk",
+      "kind": "call",
+      "receiver": null,
+      "target": "Helper"
+    },
+    {
+      "at": "17:20",
+      "from": "References.refs.Dog.walk",
+      "kind": "read",
+      "receiver": null,
+      "target": "count"
+    },
+    {
+      "at": "18:17",
+      "from": "References.refs.Dog.walk",
+      "kind": "read",
+      "receiver": null,
+      "target": "helper"
+    },
+    {
+      "at": "18:24",
+      "from": "References.refs.Dog.walk",
+      "kind": "read",
+      "receiver": "typed Helper",
+      "target": "size"
+    },
+    {
+      "at": "19:8",
+      "from": "References.refs.Dog.walk",
+      "kind": "write",
+      "receiver": null,
+      "target": "count"
+    },
+    {
+      "at": "20:8",
+      "from": "References.refs.Dog.walk",
+      "kind": "write",
+      "receiver": null,
+      "target": "count"
+    },
+    {
+      "at": "21:8",
+      "from": "References.refs.Dog.walk",
+      "kind": "read",
+      "receiver": null,
+      "target": "helper"
+    },
+    {
+      "at": "21:15",
+      "from": "References.refs.Dog.walk",
+      "kind": "call",
+      "receiver": "typed Helper",
+      "target": "run"
+    },
+    {
+      "at": "22:13",
+      "from": "References.refs.Dog.walk",
+      "kind": "call",
+      "receiver": "own",
+      "target": "bark"
+    },
+    {
+      "at": "23:14",
+      "from": "References.refs.Dog.walk",
+      "kind": "call",
+      "receiver": "base",
+      "target": "walk"
+    },
+    {
+      "at": "24:8",
+      "from": "References.refs.Dog.walk",
+      "kind": "read",
+      "receiver": null,
+      "target": "T"
+    },
+    {
+      "at": "24:10",
+      "from": "References.refs.Dog.walk",
+      "kind": "call",
+      "receiver": "named T",
+      "target": "log"
+    },
+    {
+      "at": "24:14",
+      "from": "References.refs.Dog.walk",
+      "kind": "read",
+      "receiver": null,
+      "target": "name"
+    },
+    {
+      "at": "25:18",
+      "from": "References.refs.Dog.walk",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "List"
+    },
+    {
+      "at": "25:23",
+      "from": "References.refs.Dog.walk",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Item"
+    },
+    {
+      "at": "25:31",
+      "from": "References.refs.Dog.walk",
+      "kind": "call",
+      "receiver": null,
+      "target": "listOf"
+    },
+    {
+      "at": "27:12",
+      "from": "References.refs.Dog.walk",
+      "kind": "call",
+      "receiver": null,
+      "target": "handle"
+    },
+    {
+      "at": "29:21",
+      "from": "References.refs.Dog.walk",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Int"
+    },
+    {
+      "at": "30:12",
+      "from": "References.refs.Dog.walk",
+      "kind": "read",
+      "receiver": null,
+      "target": "owner"
+    },
+    {
+      "at": "30:21",
+      "from": "References.refs.Dog.walk",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Owner"
+    },
+    {
+      "at": "31:12",
+      "from": "References.refs.Dog.walk",
+      "kind": "call",
+      "receiver": null,
+      "target": "println"
+    },
+    {
+      "at": "31:20",
+      "from": "References.refs.Dog.walk",
+      "kind": "read",
+      "receiver": null,
+      "target": "owner"
+    },
+    {
+      "at": "31:26",
+      "from": "References.refs.Dog.walk",
+      "kind": "read",
+      "receiver": "typed Owner",
+      "target": "name"
+    },
+    {
+      "at": "33:16",
+      "from": "References.refs.Dog.walk",
+      "kind": "read",
+      "receiver": null,
+      "target": "other"
+    },
+    {
+      "at": "33:25",
+      "from": "References.refs.Dog.walk",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Other"
+    },
+    {
+      "at": "34:18",
+      "from": "References.refs.Dog.walk",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Dog"
+    },
+    {
+      "at": "35:20",
+      "from": "References.refs.Dog.walk",
+      "kind": "read",
+      "receiver": null,
+      "target": "handle"
+    },
+    {
+      "at": "38:16",
+      "from": "References.refs.Dog.bark",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Int"
+    },
+    {
+      "at": "38:22",
+      "from": "References.refs.Dog.bark",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Result"
+    },
+    {
+      "at": "38:29",
+      "from": "References.refs.Dog.bark",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Sound"
+    },
+    {
+      "at": "39:14",
+      "from": "References.refs.Dog.bark",
+      "kind": "call",
+      "receiver": null,
+      "target": "IllegalStateException"
+    },
+    {
+      "at": "42:5",
+      "from": "References.refs.Dog.handle",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Deprecated"
+    },
+    {
+      "at": "43:21",
+      "from": "References.refs.Dog.handle",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Item"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "References",
+      "parent": null,
+      "span": "0:0-45:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "References.refs",
+      "parent": "References",
+      "span": "0:0-45:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "References.refs.Base",
+      "parent": "References.refs",
+      "span": "6:0-6:15",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "References.refs.Walker",
+      "parent": "References.refs",
+      "span": "7:0-7:16",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "References.refs.Talker",
+      "parent": "References.refs",
+      "span": "8:0-8:16",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "References.refs.Dog",
+      "parent": "References.refs",
+      "span": "10:0-44:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "References.refs.Dog.name",
+      "parent": "References.refs.Dog",
+      "span": "10:10-10:26",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "References.refs.Dog.owner",
+      "parent": "References.refs.Dog",
+      "span": "10:28-10:53",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "References.refs.Dog.helper",
+      "parent": "References.refs.Dog",
+      "span": "11:4-11:41",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "References.refs.Dog.count",
+      "parent": "References.refs.Dog",
+      "span": "12:4-12:17",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "References.refs.Dog.walk",
+      "parent": "References.refs.Dog",
+      "span": "14:4-36:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "References.refs.Dog.bark",
+      "parent": "References.refs.Dog",
+      "span": "38:4-40:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "References.refs.Dog.handle",
+      "parent": "References.refs.Dog",
+      "span": "42:4-43:29",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

@@ -19,7 +19,7 @@ pub fn builtin(name: &str) -> Option<Language> {
         GRAMMAR_JAVASCRIPT => Some(tree_sitter_javascript::LANGUAGE.into()),
         GRAMMAR_PYTHON => Some(tree_sitter_python::LANGUAGE.into()),
         GRAMMAR_JAVA => Some(tree_sitter_java::LANGUAGE.into()),
-        GRAMMAR_KOTLIN => Some(tree_sitter_kotlin_ng::LANGUAGE.into()),
+        GRAMMAR_KOTLIN => Some(tree_sitter_kotlin_sg::LANGUAGE.into()),
         _ => basic(name),
     }
 }

@@ -29,31 +29,55 @@
       "symbol": "Declarations.com.example.shapes.Shape.Factory"
     },
     {
-      "decisions": null,
+      "decisions": 0,
       "loc": 1,
-      "operands": null,
-      "operators": null,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        1,
+        1
+      ],
       "symbol": "Declarations.com.example.shapes.Shape.Factory.create"
     },
     {
-      "decisions": null,
+      "decisions": 0,
       "loc": 1,
-      "operands": null,
-      "operators": null,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        0,
+        0
+      ],
       "symbol": "Declarations.com.example.shapes.Shape.area"
     },
     {
-      "decisions": null,
+      "decisions": 0,
       "loc": 3,
-      "operands": null,
-      "operators": null,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        0,
+        0
+      ],
       "symbol": "Declarations.com.example.shapes.Shape.helper"
     },
     {
-      "decisions": null,
+      "decisions": 0,
       "loc": 1,
-      "operands": null,
-      "operators": null,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        0,
+        0
+      ],
       "symbol": "Declarations.com.example.shapes.Shape.helper.inner"
     },
     {
@@ -78,17 +102,29 @@
       "symbol": "Declarations.com.example.shapes.Shape.Kind"
     },
     {
-      "decisions": null,
+      "decisions": 0,
       "loc": 1,
-      "operands": null,
-      "operators": null,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        0,
+        0
+      ],
       "symbol": "Declarations.com.example.shapes.Shape.Kind.SQUARE.describe"
     },
     {
-      "decisions": null,
+      "decisions": 0,
       "loc": 1,
-      "operands": null,
-      "operators": null,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        0,
+        0
+      ],
       "symbol": "Declarations.com.example.shapes.Shape.Kind.describe"
     },
     {
@@ -99,10 +135,16 @@
       "symbol": "Declarations.com.example.shapes.Shape.Singleton"
     },
     {
-      "decisions": null,
+      "decisions": 0,
       "loc": 1,
-      "operands": null,
-      "operators": null,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        0,
+        0
+      ],
       "symbol": "Declarations.com.example.shapes.Shape.Singleton.hello"
     },
     {
@@ -127,10 +169,16 @@
       "symbol": "Declarations.com.example.shapes.Named.greet"
     },
     {
-      "decisions": null,
+      "decisions": 0,
       "loc": 1,
-      "operands": null,
-      "operators": null,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        3
+      ],
       "symbol": "Declarations.com.example.shapes.Named.shout"
     },
     {
@@ -183,29 +231,314 @@
       "symbol": "Declarations.com.example.shapes.Color"
     },
     {
-      "decisions": null,
+      "decisions": 0,
       "loc": 1,
-      "operands": null,
-      "operators": null,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        2,
+        2
+      ],
       "symbol": "Declarations.com.example.shapes.shout"
     },
     {
-      "decisions": null,
+      "decisions": 0,
       "loc": 1,
-      "operands": null,
-      "operators": null,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        1,
+        1
+      ],
       "symbol": "Declarations.com.example.shapes.top"
     },
     {
-      "decisions": null,
+      "decisions": 0,
       "loc": 1,
-      "operands": null,
-      "operators": null,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
       "symbol": "Declarations.com.example.shapes.hidden"
     }
   ],
   "loc": 59,
-  "references": [],
+  "references": [
+    {
+      "at": "2:24",
+      "from": "Declarations.com.example.shapes",
+      "kind": "import",
+      "receiver": null,
+      "target": "Base"
+    },
+    {
+      "at": "3:24",
+      "from": "Declarations.com.example.shapes",
+      "kind": "import",
+      "receiver": null,
+      "target": "Named"
+    },
+    {
+      "at": "6:25",
+      "from": "Declarations.com.example.shapes.Shape.id",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Int"
+    },
+    {
+      "at": "6:49",
+      "from": "Declarations.com.example.shapes.Shape.label",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "6:68",
+      "from": "Declarations.com.example.shapes.Shape",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Base"
+    },
+    {
+      "at": "6:76",
+      "from": "Declarations.com.example.shapes.Shape",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Named"
+    },
+    {
+      "at": "11:31",
+      "from": "Declarations.com.example.shapes.Shape.Factory.registry",
+      "kind": "call",
+      "receiver": null,
+      "target": "mutableMapOf"
+    },
+    {
+      "at": "11:44",
+      "from": "Declarations.com.example.shapes.Shape.Factory.registry",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Int"
+    },
+    {
+      "at": "11:49",
+      "from": "Declarations.com.example.shapes.Shape.Factory.registry",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Shape"
+    },
+    {
+      "at": "12:23",
+      "from": "Declarations.com.example.shapes.Shape.Factory.create",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Int"
+    },
+    {
+      "at": "12:29",
+      "from": "Declarations.com.example.shapes.Shape.Factory.create",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Shape"
+    },
+    {
+      "at": "12:37",
+      "from": "Declarations.com.example.shapes.Shape.Factory.create",
+      "kind": "call",
+      "receiver": null,
+      "target": "Shape"
+    },
+    {
+      "at": "20:21",
+      "from": "Declarations.com.example.shapes.Shape.area",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Double"
+    },
+    {
+      "at": "27:24",
+      "from": "Declarations.com.example.shapes.Shape.count",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Int"
+    },
+    {
+      "at": "28:16",
+      "from": "Declarations.com.example.shapes.Shape",
+      "kind": "read",
+      "receiver": null,
+      "target": "field"
+    },
+    {
+      "at": "31:23",
+      "from": "Declarations.com.example.shapes.Shape.late",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "33:8",
+      "from": "Declarations.com.example.shapes.Shape.double",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Int"
+    },
+    {
+      "at": "33:20",
+      "from": "Declarations.com.example.shapes.Shape.double",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Int"
+    },
+    {
+      "at": "35:23",
+      "from": "Declarations.com.example.shapes.Shape.Shape",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "38:28",
+      "from": "Declarations.com.example.shapes.Shape.Shape",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Int"
+    },
+    {
+      "at": "38:40",
+      "from": "Declarations.com.example.shapes.Shape.Shape",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Shape"
+    },
+    {
+      "at": "41:8",
+      "from": "Declarations.com.example.shapes.Shape",
+      "kind": "call",
+      "receiver": null,
+      "target": "println"
+    },
+    {
+      "at": "44:31",
+      "from": "Declarations.com.example.shapes.Shape.Kind.sides",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Int"
+    },
+    {
+      "at": "47:25",
+      "from": "Declarations.com.example.shapes.Shape.Kind.SQUARE.describe",
+      "kind": "override",
+      "receiver": null,
+      "target": "describe"
+    },
+    {
+      "at": "67:14",
+      "from": "Declarations.com.example.shapes.Named.name",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "69:17",
+      "from": "Declarations.com.example.shapes.Named.greet",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "70:17",
+      "from": "Declarations.com.example.shapes.Named.shout",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "70:26",
+      "from": "Declarations.com.example.shapes.Named.shout",
+      "kind": "call",
+      "receiver": null,
+      "target": "greet"
+    },
+    {
+      "at": "70:34",
+      "from": "Declarations.com.example.shapes.Named.shout",
+      "kind": "call",
+      "receiver": null,
+      "target": "uppercase"
+    },
+    {
+      "at": "78:30",
+      "from": "Declarations.com.example.shapes.Success.value",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Int"
+    },
+    {
+      "at": "78:37",
+      "from": "Declarations.com.example.shapes.Success",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Result"
+    },
+    {
+      "at": "79:31",
+      "from": "Declarations.com.example.shapes.Failure.reason",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "79:58",
+      "from": "Declarations.com.example.shapes.Failure.code",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Int"
+    },
+    {
+      "at": "79:65",
+      "from": "Declarations.com.example.shapes.Failure",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Result"
+    },
+    {
+      "at": "85:4",
+      "from": "Declarations.com.example.shapes.shout",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "85:20",
+      "from": "Declarations.com.example.shapes.shout",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "85:34",
+      "from": "Declarations.com.example.shapes.shout",
+      "kind": "call",
+      "receiver": "own",
+      "target": "uppercase"
+    },
+    {
+      "at": "86:21",
+      "from": "Declarations.com.example.shapes.top",
+      "kind": "call",
+      "receiver": null,
+      "target": "Shape"
+    }
+  ],
   "symbols": [
     {
       "doc": null,
@@ -329,7 +662,7 @@
       "kind": "property",
       "name": "Declarations.com.example.shapes.Shape.count",
       "parent": "Declarations.com.example.shapes.Shape",
-      "span": "27:4-29:19",
+      "span": "27:4-27:31",
       "static": false,
       "visibility": "internal"
     },

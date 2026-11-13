@@ -20,7 +20,7 @@ grammar = "kotlin"
 tier = "full"
 extensions = ["kt", "kts"]
 separator = "."
-comment_nodes = ["line_comment", "block_comment"]
+comment_nodes = ["line_comment", "multiline_comment"]
 manifest_files = [
     "build.gradle.kts",
     "settings.gradle.kts",
@@ -35,14 +35,17 @@ test_patterns = [
     "**/*Tests.kt",
     "**/*IT.kt",
 ]
-# `function_body` is no `body` field in this grammar; a function without one is abstract or
-# declared in an interface and is not measured. A secondary constructor holds its `block`.
-body_nodes = ["function_body", "block"]
+# The grammar has no `body` field: a function without a `function_body` is abstract or declared in
+# an interface and is not measured; a secondary constructor holds its `statements`.
+body_nodes = ["function_body", "statements"]
 # Syntax fingerprints (WP-34): all names alike, literals by kind only.
-identifier_nodes = ["identifier"]
+identifier_nodes = ["simple_identifier", "type_identifier"]
 literal_nodes = [
-    "number_literal",
-    "float_literal",
+    "integer_literal",
+    "long_literal",
+    "hex_literal",
+    "bin_literal",
+    "real_literal",
     "string_literal",
     "character_literal",
     "boolean_literal",
