@@ -21,6 +21,8 @@ pub struct Config {
     pub similarity: Similarity,
     /// Scan behaviour.
     pub scan: Scan,
+    /// The local server.
+    pub server: Server,
 }
 
 /// Thresholds for the metric ratings.
@@ -109,6 +111,14 @@ pub struct Scan {
     pub parse_timeout_ms: u32,
     /// Largest total size of the scanned files of one source, in megabytes.
     pub max_source_mb: u32,
+}
+
+/// The local server (blueprint 10.3).
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Server {
+    /// TCP port on the loopback address.
+    pub port: u16,
 }
 
 /// Syntax fingerprints (blueprint 10.4).

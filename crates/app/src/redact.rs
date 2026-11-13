@@ -318,6 +318,7 @@ mod tests {
     fn masks_well_known_token_formats() {
         for token in [
             format!("ghp_{CANARY}"),
+            format!("{}{CANARY}", codeskimr_server::TOKEN_PREFIX),
             format!("github_pat_11{CANARY}_abc"),
             format!("glpat-{CANARY}"),
             format!("xoxb-123456-{CANARY}"),

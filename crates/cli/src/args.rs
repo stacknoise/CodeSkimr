@@ -33,6 +33,10 @@ pub struct McpArgs {
     pub project: Option<PathBuf>,
 }
 
+/// Arguments of `codeskimr serve`: none yet; the port comes from the setting `server.port`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct ServeArgs;
+
 /// The command to run.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
@@ -40,6 +44,8 @@ pub enum Action {
     Scan(ScanArgs),
     /// `codeskimr mcp`.
     Mcp(McpArgs),
+    /// `codeskimr serve`.
+    Serve(ServeArgs),
 }
 
 /// A parsed command line.

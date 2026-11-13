@@ -39,6 +39,16 @@ A capture outside this vocabulary, an invalid query or an unknown grammar fails 
 - Golden tests: `languages/csharp/tests/*.cs` with the expected result in `<file>.json` (`CODESKIMR_BLESS=1 cargo test -p codeskimr_parsing --test language_packs` rewrites them; review the diff).
 - Corpus: `corpus/csharp/corpus.toml` pins a public project (ADR 0016); `tests/corpus.rs` fetches it into `target/corpus/` with `git` and compares counts and a hand-checked sample. `CODESKIMR_CORPUS_DIR` points the test at another checkout (for the private reference: only locally; `CODESKIMR_BLESS=1` prints the counts per kind and the `SUMMARY` line of the counting rule in ADR 0017).
 
+## The Rust pack (WP-65, ADR 0026)
+
+`languages/rust/` is a full-tier pack; `language.toml` documents the mapping. Decisions worth knowing:
+
+- Qualified names use `::`. `mod` is a `namespace`, `trait` a `trait`, `union` a `union`; `const` and `static` are `constant`s; named fields are `field`s. A function in an `impl` or a trait is a `method` (static without `self`), any other one a `function`. There is no constructor kind.
+- `impl` blocks are no symbols: their methods belong to the enclosing module and the `implement` reference of `impl Trait for Type` belongs to the module (limit, ADR 0026).
+- Visibility from `pub`, `pub(crate)`, `pub(in path)`, `pub(super)`; trait members, variants and functions of trait implementations are public. Documentation is `///` and `/** */`, attributes may stand between.
+- Declarations are queried by patterns of their own for the name, the documentation, the visibility and `static`, because a quantified comment inside a parent pattern only matches the first declaration of the list (see ADR 0026).
+- Golden tests: `languages/rust/tests/*.rs`, `tests/rust_metrics.rs`. Corpus: `corpus/rust/corpus.toml` pins CodeSkimr itself, counts checked with `syn`.
+
 ## The basic tier (WP-66, ADR 0020)
 
 `languages/go`, `c`, `cpp`, `ruby` and `php` are basic-tier packs (`tier = "basic"`): types, namespaces and functions with their spans, lines of code, decision points for CC (`metrics.scm` with `@comment` and `@decision`, no Halstead counts, so no MI), calls as references by name and syntax fingerprints. No doc comments and no visibility. Adding a language is a folder of data plus one dependency, one name constant and one line in `grammar.rs` (the exception to blueprint 8.2 that ADR 0020 records).

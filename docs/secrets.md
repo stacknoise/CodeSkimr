@@ -13,6 +13,10 @@ Implements blueprint section 12 for 1.0. Depends on `application`, `domain` and 
 
 The database stores only the `CredentialId` (`projects.credential`). `SourceFetcher` lends the credential to the Git login (see `source-adapter.md`).
 
+## Installation token of the local server
+
+The token that protects state-changing requests to the local server (`csk_` plus 64 hex digits) is kept in the same credential store, under the name `installation-token`, and created at the first `codeskimr serve`. The server holds only its digest. See `docs/server.md` and ADR 0024.
+
 ## Errors
 
 `SEC-201` not found, `SEC-401` rejected, `SEC-402` access denied, `SEC-601` keystore unavailable. Keystore errors are mapped by variant and dropped unread, because some of them carry the bytes of the entry.
