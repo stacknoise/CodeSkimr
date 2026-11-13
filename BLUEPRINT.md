@@ -676,7 +676,7 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
 - **Generated keys:** `tools/codegen` generates key constants for Rust (`codeskimr_codes::i18n`) and TypeScript (`shared/i18n/keys.ts`) from the English files. Code never contains a message string (R-06), and an unknown key does not compile.
 - **Completeness:** CI fails if a key is missing in any language or exists in only one.
 - **Formatting:** numbers, dates and durations through ICU4X / `Intl` per locale. In German, `0,90` and `1.667`, as in the mocks.
-- **Language selection:** system language by default, switchable in the UI; the choice is stored per user.
+- **Language selection:** system language by default, switchable in the UI; the choice is stored per user. The theme (15.3) is stored the same way.
 - **Adding a language** means adding a folder under `locales/`; no code changes.
 - **Not translated:** identifiers from scanned code, file paths, error code ids.
 
@@ -703,7 +703,7 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
 
 > **The goal is to match the mocks as closely as possible.** Layout, proportions, colours, fonts, spacing, labels, icons, keyboard hints and interactions follow the [UI mocks](https://claude.ai/artifact/FRpzF7hdgZVdHCm2mxRuNZ). Their sources are in `docs/mocks/` and contain the exact values. Deviations are only allowed where a mock shows sample data or where a behaviour is technically impossible, and each deviation MUST be listed in the PR with a screenshot. Changing the look intentionally means updating the mocks and this blueprint first.
 
-The six screens (details in Appendix B):
+The screens (details in Appendix B):
 
 | # | Screen | Mock file |
 |---|---|---|
@@ -713,6 +713,15 @@ The six screens (details in Appendix B):
 | 4 | Quick search (Ctrl+K) | `docs/mocks/Palette.dc.html` |
 | 5 | Scan and performance | `docs/mocks/Scan.dc.html` |
 | 6 | Usages (symbol level) | `docs/mocks/Usages.dc.html` |
+| 7 | Sign-in (team server) | `docs/mocks/Login.dc.html` |
+| 8 | Users and project grants | `docs/mocks/Users.dc.html` |
+| 9 | Groups and roles | `docs/mocks/Roles.dc.html` |
+| 10 | Access tokens | `docs/mocks/Tokens.dc.html` |
+| 11 | Audit log | `docs/mocks/Audit.dc.html` |
+| 12 | Single sign-on | `docs/mocks/Sso.dc.html` |
+| 13 | Settings: themes and language | `docs/mocks/Themes.dc.html` |
+
+Screens 7 to 12 belong to the team edition (after 1.0, ADR 0019, milestone T2) and exist as mocks so that the UI can be built to them; screen 13 belongs to 1.0 (ADR 0021). The mocks 7 to 13 take a `theme` property (15.3); mocks 1 to 6 are drawn in the theme Hell.
 
 The mock sources are written in a design-canvas format; render them through the link above. Read the files for exact values (inline styles). All numbers and names in them are **sample data**.
 
@@ -720,8 +729,8 @@ The mock sources are written in a design-canvas format; render them through the 
 
 | Element | Size | Content |
 |---|---|---|
-| Top bar | height 48 px | logo + product name, project breadcrumb, branch / working-folder chip, search field opening the quick search (shows `Strg K` / `Ctrl K`) |
-| Navigation rail | width 56 px | Projects, Explorer, Dependencies, Scans & performance; active item tinted |
+| Top bar | height 48 px | logo + product name, project breadcrumb, branch / working-folder chip, search field opening the quick search (shows `Strg K` / `Ctrl K`); in team mode also server name and user menu |
+| Navigation rail | width 56 px | Projects, Explorer, Dependencies, Scans & performance at the top; at the bottom Administration (admins in team mode only) and Settings; active item tinted |
 | Status bar | height 28 px | live measurements (watch state, counts, last query time, memory), monospace |
 | Explorer tree | width 290 px | filter, collapse all, show selection |
 | Source pane | width 560 px (shrinks) | file path, member position, code |
@@ -731,7 +740,7 @@ Below 1,000 px width, columns stack; the page never scrolls horizontally (16 px 
 
 ### 15.3 Design tokens
 
-Defined once in `design/tokens.toml`. TypeScript/CSS variables are generated from it (section 5). Values taken from the mocks:
+Defined once in `design/tokens.toml`. TypeScript/CSS variables are generated from it (section 5). Values taken from the mocks (theme **Hell**; the other themes are in "Themes" below):
 
 | Token | Value | Use |
 |---|---|---|
@@ -757,7 +766,31 @@ Defined once in `design/tokens.toml`. TypeScript/CSS variables are generated fro
 - JetBrains Mono 12–12.5 px for code and names, 20 px line height, ligatures off (`font-variant-ligatures: none`).
 - Fonts are **bundled with the app** (offline, no third-party requests).
 
-**Dark mode:** planned, with the same tokens and dark values. The values are defined in a mock update before the UI milestone (O-02).
+#### Themes
+
+The UI offers three themes in the first version (ADR 0021). Every theme defines every token in `design/tokens.toml`; the generated CSS variables are scoped by `data-theme`. Components use variables only.
+
+| Token | Hell (default) | Petrol | Dunkel |
+|---|---|---|---|
+| `bg` | `#F6F7F9` | `#F4F6F8` | `#12171D` |
+| `surface` | `#FFFFFF` | `#FFFFFF` | `#1A212A` |
+| `line` / `line-soft` | `#E3E6EB` / `#EEF0F3` | `#DDE3EA` / `#E8EDF2` | `#2C3643` / `#232C37` |
+| `ink` / `ink-2` | `#14171C` / `#3A414C` | `#1B2430` / `#3A4656` | `#E6EBF1` / `#C5CED9` |
+| `muted` / `faint` | `#5B6370` / `#6B7280` | `#5D6B7C` / `#5F6E80` | `#97A4B4` / `#8996A6` |
+| `accent` / `accent-bg` / `accent-hover` | `#2457D6` / `#EAF0FD` / `#1A43A8` | `#0C727B` / `#DFF1F2` / `#095A62` | `#3BB6C1` / `#16363B` / `#66CAD3` |
+| `accent-fg` (text on accent) | `#FFFFFF` | `#FFFFFF` | `#06222A` |
+| `good` / `good-bg` | `#15803D` / `#EAF7EF` | `#1F7A45` / `#DDF3E5` | `#5FD18B` / `#173826` |
+| `warn` / `warn-bg` | `#B45309` / `#FFF4E5` | `#8A5A00` / `#FBECCB` | `#F0BD5A` / `#3A2D10` |
+| `bad` / `bad-bg` | `#B91C1C` / `#FDF2F2` | `#A82D2D` / `#F9DCDC` | `#FF8C8C` / `#401B1B` |
+| `outgoing` | `#C2410C` | `#C2410C` | `#FB923C` |
+| `highlight` / `mark` | `#FFF7D6` / `#FDE68A` | `#FFF7D6` / `#FDE68A` | `#3A3413` / `#6B5A12` |
+
+Kind and layer colours of Petrol equal those of Hell. For Dunkel, lighter variants of the same hues are defined in `tokens.toml` and pass the contrast check on the dark surface. In Hell, `good-bg` is `#EAF7EF` (the first mocks used `#E7F6EC`, which reached only 4.49:1 with `good`).
+
+- **Rules:** a theme is a table in `tokens.toml` plus its name in `locales/`; adding one needs no code change, an ADR decides which themes ship. CI (job `codegen`) fails if a theme misses a token or if a text/background pair (`ink`, `ink-2`, `muted`, `faint` on `bg` and `surface`; `accent` on `surface`, `bg` and `accent-bg`; `good`, `warn`, `bad` on their `-bg` and on `surface`; `accent-fg` on `accent`) is below 4.5:1.
+- **Choice:** stored per user (see 13); without a team server in the local settings. Until the user chooses, the theme follows the operating system (Hell or Dunkel). The default key is in `config/default.toml`.
+- **Settings page (mock 13):** one preview card per theme with the name, a colour strip and a miniature of the real UI (top bar, rail, list, badges, button) drawn by the actual components inside a container with that `data-theme`. Selecting a card applies it at once.
+- **Delivery:** themes and the settings page ship with the UI milestone M3. Every new screen is checked in all three themes by the visual tests (17.1).
 
 ### 15.4 Interaction rules (MUST)
 
@@ -964,7 +997,7 @@ Each milestone ends with a demo and acceptance by the product owner. All criteri
 | ID | Topic | Proposal | Decide by |
 |---|---|---|---|
 | O-01 | Frontend framework | SolidJS (performance, small bundle); React would be the mainstream alternative | before M3 |
-| O-02 | Dark mode values | derive from tokens, add a dark mock | before M3 |
+| O-02 | Dark mode values | decided: three themes Hell, Petrol, Dunkel with values in 15.3 (ADR 0021); mock 13 shows them | closed |
 | O-03 | Target platforms for 1.0 | Windows, Linux, macOS (CI builds all three) | before M1 |
 | O-04 | Repository hosting and licence | GitHub; licence to be chosen (proprietary vs. open source) | before M1 |
 | O-05 | Editor integration for "Open in editor" | VS Code URL scheme first, configurable command line for others | M3 |
@@ -1090,6 +1123,42 @@ This is the starting content of `errors/error-codes.toml`. Descriptions are the 
 - **Graph columns:** callers level 2 | callers level 1 | focus | calls/reads. Counts on cards; probable edges dashed; tests in violet.
 - **Hit list:** kind (call / test / probable), location, code line with the symbol marked, line number; `F8` and `Enter`.
 - **Side panel:** signature, counts (places, files, layers), "impact of a change", note that constants, properties and interfaces work the same, accuracy (certain vs. probable).
+
+### B.7 Sign-in (`Login.dc.html`, team edition)
+
+- **Card** with product name and server name. Primary button "Sign in with" the configured identity provider, divider "or local account", e-mail and password fields, second button.
+- **Note** that local accounts are meant for the first admin and small setups and can be switched off once SSO works.
+
+### B.8 Users and project grants (`Users.dc.html`)
+
+- **Tabs** of the administration: Users, Groups and roles, Access tokens, Audit log, Single sign-on.
+- **User table:** avatar, name and e-mail, global role pill, sign-in source (local / SSO), number of projects, status pill (active · invited · blocked), last activity. Search field and "Invite user".
+- **Side panel** of the selected user: global role, groups, permission to register projects, open sessions, and the grant table (project, role, source: direct or group). Buttons "Reset password", "End sessions", "Block". Note that a project without a grant is invisible and that role changes end open sessions.
+
+### B.9 Groups and roles (`Roles.dc.html`)
+
+- **Role matrix:** permissions (`read`, `read_source`, `scan`, `manage`, `register_project`, `admin`) against Admin (global), Maintainer, Member, Viewer. Note that Viewer sees no source excerpts and that admin access without a grant is audited.
+- **Group cards:** members, SSO claim value, grants per project.
+
+### B.10 Access tokens (`Tokens.dc.html`)
+
+- **Table:** name and prefix (`csk_…`), owner, scope (all projects or one project, read-only pill), expiry, last used, status (active · expired · revoked), "Revoke".
+- **Created token:** shown once with copy button, expiry and the server's maximum lifetime.
+
+### B.11 Audit log (`Audit.dc.html`)
+
+- **Table:** time, who, action, details, result pill (success · conspicuous · failure). Search, filter, export.
+- **Footer note:** hash chain verified up to entry N, retention from the server settings.
+
+### B.12 Single sign-on (`Sso.dc.html`)
+
+- **Provider panel:** name, issuer, client id, client secret (shows only "in keystore"), redirect URI, status, "Test connection".
+- **Group mapping:** claim value to group, note that it is evaluated at every sign-in and never grants admin. Option to switch local password sign-in off.
+
+### B.13 Settings: themes and language (`Themes.dc.html`)
+
+- **Theme cards** (Hell, Petrol, Dunkel) with live miniature preview, name, short description, colour strip and "Select" or "Selected" pill. Option "Follow system setting".
+- **Language** select. Note that theme and language are stored per user.
 
 ---
 

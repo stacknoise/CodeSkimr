@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Darstellung</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:var(--bg)}
+*{box-sizing:border-box}
+a{color:var(--accent);text-decoration:none}a:hover{color:var(--accent-hover)}
+.root{font-family:Inter,system-ui,sans-serif;color:var(--ink);font-size:13px;background:var(--bg);height:900px;display:flex;flex-direction:column}
+.mono{font-family:'JetBrains Mono',monospace;font-size:12px}
+.muted{color:var(--muted)}
+.kbd{font:500 11px 'JetBrains Mono',monospace;color:var(--muted);border:1px solid var(--line);border-bottom-width:2px;border-radius:4px;padding:0 5px;background:var(--surface)}
+.top{height:48px;flex:none;display:flex;align-items:center;gap:16px;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--line);flex-wrap:wrap}
+.logo{width:24px;height:24px;border-radius:6px;background:var(--ink);color:var(--surface);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+.search{flex:1 1 320px;max-width:560px;height:32px;display:flex;align-items:center;gap:8px;padding:0 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--muted)}
+.body{flex:1;display:flex;min-height:0;flex-wrap:wrap}
+.rail{width:56px;flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 0}
+.rb{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:8px;color:var(--muted)}
+.rb:hover{background:var(--bg);color:var(--ink)}
+.rb.on{background:var(--accent-bg);color:var(--accent)}
+.main{flex:999 1 560px;min-width:0;padding:24px 32px;display:flex;flex-direction:column;gap:16px;overflow:auto}
+h1{margin:0;font-size:22px;font-weight:700;letter-spacing:-.01em}
+.sub{margin:4px 0 0;color:var(--muted)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tab{padding:8px 12px;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
+.tab.on{color:var(--accent);border-color:var(--accent);font-weight:600}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;min-width:0}
+.pad{padding:16px}
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;color:var(--muted);font-size:12px;font-weight:500;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tr.sel td{background:var(--accent-bg)}
+.pill{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:500;background:var(--line-soft);color:var(--ink2);white-space:nowrap}
+.pill.acc{background:var(--accent-bg);color:var(--accent)}
+.pill.ok{background:var(--good-bg);color:var(--good)}
+.pill.warn{background:var(--warn-bg);color:var(--warn)}
+.pill.bad{background:var(--bad-bg);color:var(--bad)}
+.av{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--accent-bg);color:var(--accent);font-weight:600;font-size:12px;flex:none}
+.btn{height:32px;padding:0 12px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);font:500 13px Inter,sans-serif;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-fg);font-weight:600}
+.btn.danger{color:var(--bad)}
+.btn.sm{height:24px;padding:0 8px;font-size:12px}
+.inp{height:32px;border:1px solid var(--line);border-radius:6px;padding:0 10px;background:var(--surface);color:var(--ink);font:13px Inter,sans-serif;display:flex;align-items:center;min-width:0}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.split{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+.split>.l{flex:3 1 560px;min-width:0}.split>.r{flex:1 1 320px;min-width:0}
+.kv{display:grid;grid-template-columns:130px minmax(0,1fr);gap:8px 12px;margin:0}
+.kv dt{color:var(--muted)}.kv dd{margin:0;overflow-wrap:anywhere}
+.ck{text-align:center;font-weight:700}.ck.y{color:var(--good)}.ck.n{color:var(--faint);font-weight:400}
+.note{font-size:12px;color:var(--muted);margin:0}
+.h2{font-size:14px;font-weight:600;margin:0}
+.foot{height:28px;flex:none;display:flex;align-items:center;gap:18px;padding:0 16px;background:var(--surface);border-top:1px solid var(--line);color:var(--muted);font:11.5px 'JetBrains Mono',monospace;overflow:hidden;white-space:nowrap}
+.foot .ok{color:var(--good)}
+.hit:hover{background:var(--bg)}
+.login{flex:1;display:flex;align-items:center;justify-content:center;padding:24px}
+.card{width:400px;max-width:100%;display:flex;flex-direction:column;gap:12px;padding:24px;background:var(--surface);border:1px solid var(--line);border-radius:14px}
+.or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px}.or:before,.or:after{content:"";height:1px;background:var(--line);flex:1}
+.fld{display:flex;flex-direction:column;gap:4px}.fld label{color:var(--muted);font-size:12px}
+.theme{border:2px solid var(--line);border-radius:14px;background:var(--surface);padding:12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.theme.on{border-color:var(--accent)}
+.pv{border:1px solid var(--pv-line);border-radius:10px;overflow:hidden;background:var(--pv-bg);color:var(--pv-ink);font-size:11px;height:190px;display:flex;flex-direction:column}
+.pv .bar{height:22px;background:var(--pv-surface);border-bottom:1px solid var(--pv-line);display:flex;align-items:center;gap:6px;padding:0 8px}
+.pv .mid{flex:1;display:flex;min-height:0}
+.pv .rl{width:22px;background:var(--pv-surface);border-right:1px solid var(--pv-line);display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:6px}
+.pv .rl i{width:10px;height:10px;border-radius:3px;background:var(--pv-line)}.pv .rl i.a{background:var(--pv-accent)}
+.pv .cn{flex:1;padding:8px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.pv .ln{height:18px;border-radius:4px;background:var(--pv-surface);border:1px solid var(--pv-line);display:flex;align-items:center;gap:6px;padding:0 6px}
+.pv .ln.s{background:var(--pv-accent-bg);border-color:var(--pv-accent)}
+.pv .b{border-radius:4px;padding:0 5px;font-weight:600}
+.sw{display:flex;gap:4px}.sw i{width:16px;height:16px;border-radius:4px;border:1px solid var(--line)}
+</style>
+</helmet>
+<div class="root" style="{{vars}}">
+<header class="top">
+  <div class="row" style="width:200px;gap:10px"><div class="logo">C</div><span style="font-weight:600;font-size:14px">CodeSkimr</span></div>
+  <a href="Palette.dc.html" class="search"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg><span style="flex:1">Projekt, Typ, Member, Datei oder Befehl …</span><span class="kbd">Strg K</span></a>
+  <div class="row" style="margin-left:auto;gap:12px;color:var(--muted)"><span>Team-Server</span><span style="font-weight:600;color:var(--ink)">Entwicklung</span><span class="av" title="Anton, Admin">AG</span></div>
+</header>
+<div class="body">
+  <nav class="rail" aria-label="Ansichten"><a href="Main.dc.html" class="rb" aria-label="Projekte"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h6l2 2h10v10H3z"/></svg></a><a href="Explorer.dc.html" class="rb" aria-label="Explorer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h7M8 10h8M8 15h8M4 20h7M4 5v15" stroke-linecap="round"/></svg></a><a href="Graph.dc.html" class="rb" aria-label="Abhängigkeiten"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8 7l8 1M7 8l4 8M17 10l-4 6"/></svg></a><a href="Scan.dc.html" class="rb" aria-label="Scans und Leistung"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M13 3L5 14h6l-1 7 8-11h-6z"/></svg></a><div style="flex:1"></div><a href="Users.dc.html" class="rb" aria-label="Verwaltung"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M9 12l2 2 4-4" stroke-linecap="round"/></svg></a><a href="Themes.dc.html" class="rb on" aria-label="Einstellungen"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1" stroke-linecap="round"/></svg></a></nav>
+  <main class="main"><div class="row" style="align-items:flex-end"><div><h1>Einstellungen</h1><p class="sub">Darstellung und Sprache</p></div><div class="row" style="margin-left:auto"></div></div>
+<div class="panel pad" style="display:flex;flex-direction:column;gap:14px">
+ <div><div class="h2">Theme</div><p class="note">Gilt für dein Konto auf jedem Gerät. Die Vorschau zeigt das Theme, bevor du es übernimmst.</p></div>
+ <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+  <div class="theme"><div class="pv" style="--pv-bg:#F6F7F9;--pv-surface:#FFFFFF;--pv-line:#E3E6EB;--pv-ink:#14171C;--pv-muted:#5B6370;--pv-accent:#2457D6;--pv-accent-bg:#EAF0FD;--pv-accent-fg:#FFFFFF;--pv-good:#15803D;--pv-good-bg:#EAF7EF;--pv-warn:#B45309;--pv-warn-bg:#FFF4E5" aria-hidden="true"><div class="bar"><span style="width:10px;height:10px;border-radius:3px;background:var(--pv-ink)"></span><b>CodeSkimr</b><span style="margin-left:auto;color:var(--pv-muted)">Strg K</span></div>
+<div class="mid"><div class="rl"><i class="a"></i><i></i><i></i></div><div class="cn">
+<div style="font-weight:700;font-size:13px">Projekte</div>
+<div class="ln s"><b>Beispielprojekt</b><span class="b" style="margin-left:auto;background:var(--pv-good-bg);color:var(--pv-good)">aktuell</span></div>
+<div class="ln"><span>haac-bridge</span><span class="b" style="margin-left:auto;background:var(--pv-warn-bg);color:var(--pv-warn)">12 neu</span></div>
+<div class="ln"><span style="color:var(--pv-muted)">energy-card</span></div>
+<div><span class="b" style="display:inline-block;padding:3px 10px;background:var(--pv-accent);color:var(--pv-accent-fg)">Hinzufügen</span></div></div></div></div><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div><div class="h2">Hell</div><div class="muted">Standard, blauer Akzent</div></div><span class="btn sm">Auswählen</span></div><div class="sw"><i style="background:#F6F7F9"></i><i style="background:#FFFFFF"></i><i style="background:#14171C"></i><i style="background:#2457D6"></i><i style="background:#15803D"></i><i style="background:#B45309"></i><i style="background:#B91C1C"></i></div></div><div class="theme on"><div class="pv" style="--pv-bg:#F4F6F8;--pv-surface:#FFFFFF;--pv-line:#DDE3EA;--pv-ink:#1B2430;--pv-muted:#5D6B7C;--pv-accent:#0C727B;--pv-accent-bg:#DFF1F2;--pv-accent-fg:#FFFFFF;--pv-good:#1F7A45;--pv-good-bg:#DDF3E5;--pv-warn:#8A5A00;--pv-warn-bg:#FBECCB" aria-hidden="true"><div class="bar"><span style="width:10px;height:10px;border-radius:3px;background:var(--pv-ink)"></span><b>CodeSkimr</b><span style="margin-left:auto;color:var(--pv-muted)">Strg K</span></div>
+<div class="mid"><div class="rl"><i class="a"></i><i></i><i></i></div><div class="cn">
+<div style="font-weight:700;font-size:13px">Projekte</div>
+<div class="ln s"><b>Beispielprojekt</b><span class="b" style="margin-left:auto;background:var(--pv-good-bg);color:var(--pv-good)">aktuell</span></div>
+<div class="ln"><span>haac-bridge</span><span class="b" style="margin-left:auto;background:var(--pv-warn-bg);color:var(--pv-warn)">12 neu</span></div>
+<div class="ln"><span style="color:var(--pv-muted)">energy-card</span></div>
+<div><span class="b" style="display:inline-block;padding:3px 10px;background:var(--pv-accent);color:var(--pv-accent-fg)">Hinzufügen</span></div></div></div></div><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div><div class="h2">Petrol</div><div class="muted">Hell, petrolfarbener Akzent</div></div><span class="pill acc">Ausgewählt</span></div><div class="sw"><i style="background:#F4F6F8"></i><i style="background:#FFFFFF"></i><i style="background:#1B2430"></i><i style="background:#0C727B"></i><i style="background:#1F7A45"></i><i style="background:#8A5A00"></i><i style="background:#A82D2D"></i></div></div><div class="theme"><div class="pv" style="--pv-bg:#12171D;--pv-surface:#1A212A;--pv-line:#2C3643;--pv-ink:#E6EBF1;--pv-muted:#97A4B4;--pv-accent:#3BB6C1;--pv-accent-bg:#16363B;--pv-accent-fg:#06222A;--pv-good:#5FD18B;--pv-good-bg:#173826;--pv-warn:#F0BD5A;--pv-warn-bg:#3A2D10" aria-hidden="true"><div class="bar"><span style="width:10px;height:10px;border-radius:3px;background:var(--pv-ink)"></span><b>CodeSkimr</b><span style="margin-left:auto;color:var(--pv-muted)">Strg K</span></div>
+<div class="mid"><div class="rl"><i class="a"></i><i></i><i></i></div><div class="cn">
+<div style="font-weight:700;font-size:13px">Projekte</div>
+<div class="ln s"><b>Beispielprojekt</b><span class="b" style="margin-left:auto;background:var(--pv-good-bg);color:var(--pv-good)">aktuell</span></div>
+<div class="ln"><span>haac-bridge</span><span class="b" style="margin-left:auto;background:var(--pv-warn-bg);color:var(--pv-warn)">12 neu</span></div>
+<div class="ln"><span style="color:var(--pv-muted)">energy-card</span></div>
+<div><span class="b" style="display:inline-block;padding:3px 10px;background:var(--pv-accent);color:var(--pv-accent-fg)">Hinzufügen</span></div></div></div></div><div class="row" style="justify-content:space-between;flex-wrap:nowrap"><div><div class="h2">Dunkel</div><div class="muted">Dunkler Hintergrund, petrolfarbener Akzent</div></div><span class="btn sm">Auswählen</span></div><div class="sw"><i style="background:#12171D"></i><i style="background:#1A212A"></i><i style="background:#E6EBF1"></i><i style="background:#3BB6C1"></i><i style="background:#5FD18B"></i><i style="background:#F0BD5A"></i><i style="background:#FF8C8C"></i></div></div>
+ </div>
+ <div class="row" style="flex-wrap:nowrap;gap:8px"><span class="inp" style="width:16px;height:16px;padding:0"></span><span>Systemeinstellung folgen <span class="muted">(Hell bei hellem, Dunkel bei dunklem Betriebssystem, bis du selbst ein Theme wählst)</span></span></div>
+</div>
+<div class="panel pad" style="display:flex;flex-direction:column;gap:10px;max-width:560px"><div class="h2">Sprache</div><div class="inp" style="width:240px;justify-content:space-between">Deutsch<span class="muted">▾</span></div><p class="note">Theme und Sprache werden pro Benutzer gespeichert. Ohne Team-Server lokal in den Einstellungen.</p></div></main>
+</div>
+<footer class="foot"><span class="ok">● Verbunden</span><span>skimr.example.org · TLS</span><span>Angemeldet als Anton (Admin) · SSO</span><span style="margin-left:auto">Beispieldaten</span></footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme": {"editor": "select", "options": ["hell", "petrol", "dunkel"], "default": "petrol", "section": "Darstellung"}, "$preview": {"width": 1440, "height": 900}}'>
+// Theme values: same names and values as design/tokens.toml (blueprint 15.3). Layout never depends on the theme.
+const THEMES = {
+ "hell": {
+  "bg": "#F6F7F9",
+  "surface": "#FFFFFF",
+  "line": "#E3E6EB",
+  "line-soft": "#EEF0F3",
+  "ink": "#14171C",
+  "ink2": "#3A414C",
+  "muted": "#5B6370",
+  "faint": "#6B7280",
+  "accent": "#2457D6",
+  "accent-bg": "#EAF0FD",
+  "accent-hover": "#1A43A8",
+  "accent-fg": "#FFFFFF",
+  "good": "#15803D",
+  "good-bg": "#EAF7EF",
+  "warn": "#B45309",
+  "warn-bg": "#FFF4E5",
+  "bad": "#B91C1C",
+  "bad-bg": "#FDF2F2",
+  "outgoing": "#C2410C",
+  "highlight": "#FFF7D6",
+  "mark": "#FDE68A"
+ },
+ "petrol": {
+  "bg": "#F4F6F8",
+  "surface": "#FFFFFF",
+  "line": "#DDE3EA",
+  "line-soft": "#E8EDF2",
+  "ink": "#1B2430",
+  "ink2": "#3A4656",
+  "muted": "#5D6B7C",
+  "faint": "#5F6E80",
+  "accent": "#0C727B",
+  "accent-bg": "#DFF1F2",
+  "accent-hover": "#095A62",
+  "accent-fg": "#FFFFFF",
+  "good": "#1F7A45",
+  "good-bg": "#DDF3E5",
+  "warn": "#8A5A00",
+  "warn-bg": "#FBECCB",
+  "bad": "#A82D2D",
+  "bad-bg": "#F9DCDC",
+  "outgoing": "#C2410C",
+  "highlight": "#FFF7D6",
+  "mark": "#FDE68A"
+ },
+ "dunkel": {
+  "bg": "#12171D",
+  "surface": "#1A212A",
+  "line": "#2C3643",
+  "line-soft": "#232C37",
+  "ink": "#E6EBF1",
+  "ink2": "#C5CED9",
+  "muted": "#97A4B4",
+  "faint": "#8996A6",
+  "accent": "#3BB6C1",
+  "accent-bg": "#16363B",
+  "accent-hover": "#66CAD3",
+  "accent-fg": "#06222A",
+  "good": "#5FD18B",
+  "good-bg": "#173826",
+  "warn": "#F0BD5A",
+  "warn-bg": "#3A2D10",
+  "bad": "#FF8C8C",
+  "bad-bg": "#401B1B",
+  "outgoing": "#FB923C",
+  "highlight": "#3A3413",
+  "mark": "#6B5A12"
+ }
+};
+class Component extends DCLogic {
+  renderVals() {
+    const t = THEMES[this.props.theme] || THEMES.petrol;
+    const vars = Object.keys(t).map(k => '--' + k + ':' + t[k]).join(';');
+    return { vars };
+  }
+}
+</script>
+</body>
+</html>
