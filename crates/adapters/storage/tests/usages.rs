@@ -160,4 +160,31 @@ mod tests {
             .unwrap();
         assert_eq!(again, before);
     }
+
+    #[test]
+    fn a_snapshot_that_is_not_stored_is_empty_and_keeps_the_cache() {
+        let store = calls();
+        let question = query(23, Direction::Incoming, 1);
+        assert_eq!(store.usages(SNAPSHOT, &question, 10).unwrap().total, 2);
+        let missing = store.usages(SnapshotId::new(99), &question, 10).unwrap();
+        assert_eq!((missing.total, missing.entries.len()), (0, 0));
+        assert_eq!(store.usages(SNAPSHOT, &question, 10).unwrap().total, 2);
+    }
+
+    #[test]
+    fn outgoing_walks_skip_tests_when_not_asked_for() {
+        let mut question = query(24, Direction::Outgoing, 2);
+        assert_eq!(calls().usages(SNAPSHOT, &question, 10).unwrap().total, 1);
+        question.include_tests = false;
+        assert_eq!(calls().usages(SNAPSHOT, &question, 10).unwrap().total, 0);
+    }
+
+    #[test]
+    fn impact_respects_depth_and_limit() {
+        let store = calls();
+        let shallow = store.impact(SNAPSHOT, SymbolId::new(23), 1, 10).unwrap();
+        assert_eq!(shallow.total, 2);
+        let cut = store.impact(SNAPSHOT, SymbolId::new(23), 5, 1).unwrap();
+        assert_eq!((cut.total, cut.symbols.len()), (3, 1));
+    }
 }

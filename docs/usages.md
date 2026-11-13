@@ -22,10 +22,10 @@ The `usage_counts` read model (the "Usages" column) stays as it is; `ReverseInde
 
 ## Budget
 
-`tools/bench/benches/usages.rs` measures depth 1 and 2 on 100 000 references and 20 000 symbols with a few heavily used symbols; depth 2 takes some microseconds against the budget `usages_query_ms` (20 ms, blueprint 16.1). The lookup of the entries (at most `limit` rows) comes on top.
+`tools/bench/benches/usages.rs` measures depth 1 and 2 on 100 000 references and 20 000 symbols with such a hub; a hub symbol that every 20th reference points at (about 5 000 direct users) takes about 2.4 ms at depth 2 on the development machine (depth 1: about 0.2 ms), against the budget `usages_query_ms` (20 ms, blueprint 16.1). The lookup of the entries (at most `limit` rows) comes on top.
 
 ## Not part of this package
 
 - The MCP tools `find_usages` and `impact_of_change`, the REST route and the UI screen use this port; they follow in their own packages (clamping of `depth` and `limit` to the configured maximum belongs there).
 - Grouping the impact by layer and marking public interfaces: the answer carries the qualified name and the visibility of each symbol, the project's layers decide the rest.
-- Re-resolving dependent references of an incremental scan through this index (issue #49) is unchanged.
+- Blueprint 9.4 ("updated incrementally together with the snapshot"): the index is derived from the references of each new snapshot, which the store already writes incrementally, so it is always in step with the snapshot. A snapshot that is not stored (never existed, or pruned) answers empty. Re-resolving dependent references of an incremental scan through this index (blueprint 7, issue #49) is unchanged.

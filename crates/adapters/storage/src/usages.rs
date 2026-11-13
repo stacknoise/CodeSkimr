@@ -105,15 +105,24 @@ fn impacted(
 }
 
 impl SqliteStore {
-    /// The reverse index of a snapshot, built on first use.
+    /// The reverse index of a snapshot, built on first use. A snapshot that is not stored (never
+    /// existed, or pruned by the retention) has an empty index that is not kept; like the other
+    /// queries, usages of such a snapshot are empty.
     fn reverse_index(&self, snapshot: SnapshotId) -> StorageResult<Arc<ReverseIndex>> {
+        let raw = column_int(snapshot.get())?;
+        let stored: i64 = self.read(|conn| {
+            Ok(conn.query_row(sql::SNAPSHOT_EXISTS, params![raw], |row| row.get(0))?)
+        })?;
+        if stored == 0 {
+            return Ok(Arc::new(ReverseIndex::default()));
+        }
         let mut cached = self.reverse.lock().unwrap_or_else(PoisonError::into_inner);
         if let Some((id, index)) = cached.as_ref()
             && *id == snapshot
         {
             return Ok(Arc::clone(index));
         }
-        let references = self.read(|conn| load_references(conn, column_int(snapshot.get())?))?;
+        let references = self.read(|conn| load_references(conn, raw))?;
         let index = Arc::new(ReverseIndex::new(references));
         *cached = Some((snapshot, Arc::clone(&index)));
         Ok(index)

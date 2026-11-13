@@ -64,8 +64,8 @@ pub struct ImpactPage {
     pub symbols: Vec<ImpactedSymbol>,
 }
 
-/// The reverse index of the newest snapshots. A symbol that does not exist has no usages; ask
-/// `CodeIndex::symbol` first to tell the two apart.
+/// The reverse index of the newest snapshots. A symbol or snapshot that does not exist has no
+/// usages; ask `CodeIndex::symbol` first to tell the two apart.
 pub trait UsageIndex: Send + Sync {
     /// The references a walk from `query.symbol` finds, at most `limit` of them.
     ///
@@ -79,7 +79,8 @@ pub trait UsageIndex: Send + Sync {
     ) -> Result<UsagePage, CodedError>;
 
     /// The symbols that an incoming walk from `symbol` reaches, `depth` steps deep, at most
-    /// `limit` of them.
+    /// `limit` of them. References from tests always count. The caller holds `depth` and `limit`
+    /// to the configured maximum; the index does not.
     ///
     /// # Errors
     /// A coded failure of the `STO` group.

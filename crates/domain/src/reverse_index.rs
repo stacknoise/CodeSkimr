@@ -129,30 +129,49 @@ impl ReverseIndex {
             .filter_map(|&position| self.references.get(position))
     }
 
+    /// One step of a walk: the references of every symbol in `frontier`. Returns the symbols that
+    /// were reached for the first time.
+    fn step(
+        &self,
+        step: Step<'_>,
+        frontier: &[SymbolId],
+        seen: &mut HashSet<SymbolId>,
+        visit: &mut impl FnMut(Usage, Option<Reached>),
+    ) -> Vec<SymbolId> {
+        let Step { query, depth } = step;
+        let mut next = Vec::new();
+        let candidates = frontier
+            .iter()
+            .flat_map(|&symbol| self.neighbours(symbol, query.direction))
+            .filter(|reference| query.include_tests || reference.kind != ReferenceKind::Test);
+        for &reference in candidates {
+            let far = far_end(&reference, query.direction);
+            let reached = seen.insert(far).then_some(Reached { symbol: far, depth });
+            if reached.is_some() {
+                next.push(far);
+            }
+            visit(Usage { depth, reference }, reached);
+        }
+        next
+    }
+
     fn walk(&self, query: &UsageQuery, mut visit: impl FnMut(Usage, Option<Reached>)) {
         let mut seen = HashSet::from([query.symbol]);
         let mut frontier = vec![query.symbol];
         for depth in 1..=query.depth {
-            let mut next = Vec::new();
-            for symbol in frontier {
-                for &reference in self.neighbours(symbol, query.direction) {
-                    if !query.include_tests && reference.kind == ReferenceKind::Test {
-                        continue;
-                    }
-                    let far = far_end(&reference, query.direction);
-                    let reached = seen.insert(far).then_some(Reached { symbol: far, depth });
-                    if reached.is_some() {
-                        next.push(far);
-                    }
-                    visit(Usage { depth, reference }, reached);
-                }
-            }
-            if next.is_empty() {
+            frontier = self.step(Step { query, depth }, &frontier, &mut seen, &mut visit);
+            if frontier.is_empty() {
                 return;
             }
-            frontier = next;
         }
     }
+}
+
+/// The question and the number of the step a walk is in.
+#[derive(Clone, Copy)]
+struct Step<'a> {
+    query: &'a UsageQuery,
+    depth: u32,
 }
 
 /// The end of a reference that lies away from the start of the step.

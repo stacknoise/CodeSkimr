@@ -121,4 +121,26 @@ mod tests {
         assert_eq!(forward.len(), 2);
         assert!(ReverseIndex::default().is_empty());
     }
+
+    #[test]
+    fn a_symbol_reached_twice_is_listed_once_and_both_references_show() {
+        let index = ReverseIndex::new([
+            call(10, 2, 1),
+            call(11, 3, 1),
+            call(12, 4, 2),
+            call(13, 4, 3),
+        ]);
+        let question = query(1, Direction::Incoming, 3);
+        assert_eq!(ids(&index, &question), [(1, 10), (1, 11), (2, 12), (2, 13)]);
+        assert_eq!(index.reached(&question).len(), 3);
+    }
+
+    #[test]
+    fn tests_are_left_out_at_later_steps_too() {
+        let index = ReverseIndex::new([call(10, 2, 1), reference(11, 3, 2, ReferenceKind::Test)]);
+        let mut question = query(1, Direction::Incoming, 3);
+        assert_eq!(ids(&index, &question), [(1, 10), (2, 11)]);
+        question.include_tests = false;
+        assert_eq!(ids(&index, &question), [(1, 10)]);
+    }
 }

@@ -194,3 +194,5 @@ pub const SYMBOL_LABEL: &str = "SELECT s.qualified_name, s.kind, s.visibility, f
     WHERE s.snapshot_id = ?1 AND s.id = ?2";
 /// Path of a file: snapshot, file.
 pub const FILE_PATH: &str = "SELECT path FROM files WHERE snapshot_id = ?1 AND id = ?2";
+/// Whether a snapshot is stored: snapshot.
+pub const SNAPSHOT_EXISTS: &str = "SELECT COUNT(*) FROM snapshots WHERE id = ?1";
