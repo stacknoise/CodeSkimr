@@ -37,7 +37,7 @@ A capture outside this vocabulary, an invalid query or an unknown grammar fails 
 - `references.scm` is level 1 (names only). `new Foo()` is a type use; a base type is `inherit` (the resolver can refine it to `implement`); reads are reported for names in value positions and for receivers of member accesses.
 - `metrics.scm` holds the captures of ADR 0015 (`@comment`, `@decision`, `@operator`, `@operand`); `tests/csharp_metrics.rs` checks one case per counting rule. `highlights.scm` is for the UI.
 - Golden tests: `languages/csharp/tests/*.cs` with the expected result in `<file>.json` (`CODESKIMR_BLESS=1 cargo test -p codeskimr_parsing --test language_packs` rewrites them; review the diff).
-- Corpus: `corpus/csharp/corpus.toml` pins a public project (ADR 0016); `tests/corpus.rs` fetches it into `target/corpus/` with `git` and compares counts and a hand-checked sample. `CODESKIMR_CORPUS_DIR` points the test at another checkout (for the private reference: only locally, `CODESKIMR_BLESS=1` prints the counts).
+- Corpus: `corpus/csharp/corpus.toml` pins a public project (ADR 0016); `tests/corpus.rs` fetches it into `target/corpus/` with `git` and compares counts and a hand-checked sample. `CODESKIMR_CORPUS_DIR` points the test at another checkout (for the private reference: only locally; `CODESKIMR_BLESS=1` prints the counts per kind and the `SUMMARY` line of the counting rule in ADR 0017).
 
 ## Syntax fingerprints (WP-34)
 
