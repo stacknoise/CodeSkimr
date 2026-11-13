@@ -1,6 +1,5 @@
-# Security-sensitive paths and project rules need the product owner's approval
-# (the ruleset on main requires code owner review). Everything else is
-# reviewed by the reviewer agent.
+# Marks security-sensitive paths and project rules. Not enforced while the
+# ruleset on main requires 0 approvals; Anton's merge is the approval.
 /crates/adapters/secrets/  @stacknoise
 /crates/adapters/source/   @stacknoise
 /crates/server/            @stacknoise
