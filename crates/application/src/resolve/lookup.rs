@@ -201,7 +201,11 @@ impl<'a> Context<'a> {
     /// reach more targets than the written one make every hit probable (blueprint 9.2).
     fn hits(&self, occurrence: &PendingReference, found: Found<'a>) -> Vec<Hit> {
         let mut targets = found.symbols;
-        let others = self.dispatch_targets(&targets);
+        let others = if occurrence.kind == ReferenceKind::Override {
+            Vec::new()
+        } else {
+            self.dispatch_targets(&targets)
+        };
         let probable = found.global || targets.len() > 1 || !others.is_empty();
         targets.extend(others);
         targets.sort_by_key(|symbol| symbol.id);

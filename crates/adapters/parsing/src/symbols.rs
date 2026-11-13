@@ -1,6 +1,7 @@
 //! Extraction of symbols from a syntax tree with the declaration query of a language pack.
 
 use std::cmp::Reverse;
+use std::collections::HashSet;
 use std::ops::Range;
 use std::path::Path;
 
@@ -11,7 +12,9 @@ use codeskimr_domain::{
 use tree_sitter::{Node, QueryCapture, QueryCursor, StreamingIterator};
 
 use crate::captures::Capture;
-use crate::consts::{CALLABLE_KINDS, LINE_SEPARATOR, NO_EXTENSION, PATH_SEPARATOR, WORD_SEPARATOR};
+use crate::consts::{
+    BODY_FIELD, CALLABLE_KINDS, LINE_SEPARATOR, NO_EXTENSION, PATH_SEPARATOR, WORD_SEPARATOR,
+};
 use crate::error::ParsingError;
 use crate::location::{span_between, span_of, text_of};
 use crate::manifest::DocSummary;
@@ -37,9 +40,17 @@ pub struct SymbolTable {
     pub symbols: Vec<Symbol>,
     ranges: Vec<Range<usize>>,
     parents: Vec<Option<usize>>,
+    with_body: HashSet<SymbolId>,
 }
 
 impl SymbolTable {
+    /// Whether the declaration has a body (the grammar's `body` field); abstract and interface
+    /// members have none and are not measured.
+    #[must_use]
+    pub fn has_body(&self, symbol: SymbolId) -> bool {
+        self.with_body.contains(&symbol)
+    }
+
     /// The innermost symbol that contains the byte offset; the module if no other does.
     ///
     /// Symbols are sorted by start, so the last one that starts at or before the offset is the
@@ -191,6 +202,7 @@ struct NewSymbol {
     is_static: bool,
     signature: Option<String>,
     doc: Option<String>,
+    has_body: bool,
 }
 
 struct Builder<'a, 'c> {
@@ -198,6 +210,7 @@ struct Builder<'a, 'c> {
     symbols: Vec<Symbol>,
     ranges: Vec<Range<usize>>,
     parents: Vec<Option<usize>>,
+    with_body: HashSet<SymbolId>,
     stack: Vec<Frame>,
 }
 
@@ -211,6 +224,7 @@ pub fn extract(ctx: &SymbolContext<'_>, root: Node<'_>) -> Result<SymbolTable, P
         symbols: Vec::new(),
         ranges: Vec::new(),
         parents: Vec::new(),
+        with_body: HashSet::new(),
         stack: Vec::new(),
     };
     builder.add_module(root)?;
@@ -221,6 +235,7 @@ pub fn extract(ctx: &SymbolContext<'_>, root: Node<'_>) -> Result<SymbolTable, P
         symbols: builder.symbols,
         ranges: builder.ranges,
         parents: builder.parents,
+        with_body: builder.with_body,
     })
 }
 
@@ -246,6 +261,7 @@ impl Builder<'_, '_> {
                 is_static: false,
                 signature: None,
                 doc: None,
+                has_body: false,
             },
         )
     }
@@ -286,6 +302,9 @@ impl Builder<'_, '_> {
             signature: new.signature,
             doc: new.doc,
         });
+        if new.has_body {
+            self.with_body.insert(id);
+        }
         self.stack.push(Frame {
             kind: new.kind,
             end: new.range.end,
@@ -335,6 +354,7 @@ fn new_symbol(
             .signature
             .map(|node| text_of(node, ctx.source).trim().to_owned()),
         doc: doc(ctx, &declaration.docs),
+        has_body: declaration.node.child_by_field_name(BODY_FIELD).is_some(),
     })
 }
 

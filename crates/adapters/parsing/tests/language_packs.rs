@@ -16,7 +16,7 @@ mod tests {
     use super::common::analyze_file;
     use codeskimr_application::ids::IdSequence;
     use codeskimr_application::ports::{FileFacts, Receiver};
-    use codeskimr_domain::{FolderPath, Position, Visibility};
+    use codeskimr_domain::{FolderPath, Position, SymbolId, Visibility};
     use codeskimr_parsing::{LanguagePack, LanguagePacks, TreeSitterAnalyzer};
     use serde_json::{Value, json};
 
@@ -35,6 +35,23 @@ mod tests {
             Receiver::Own => "own".to_owned(),
             Receiver::Base => "base".to_owned(),
         }
+    }
+
+    fn describe_counts(facts: &FileFacts, names: &HashMap<SymbolId, String>) -> Vec<Value> {
+        facts
+            .counts
+            .iter()
+            .map(|c| {
+                let h = c.body.map(|b| b.halstead);
+                json!({
+                    "symbol": names.get(&c.symbol),
+                    "loc": c.loc.0,
+                    "decisions": c.body.map(|b| b.decisions),
+                    "operators": h.map(|h| [h.distinct_operators, h.total_operators]),
+                    "operands": h.map(|h| [h.distinct_operands, h.total_operands]),
+                })
+            })
+            .collect()
     }
 
     fn describe(facts: &FileFacts) -> Value {
@@ -71,7 +88,13 @@ mod tests {
                 })
             })
             .collect();
-        json!({ "loc": facts.file.loc.0, "symbols": symbols, "references": references })
+        let counts = describe_counts(facts, &names);
+        json!({
+            "loc": facts.file.loc.0,
+            "symbols": symbols,
+            "references": references,
+            "counts": counts,
+        })
     }
 
     fn check(expected: &Path, actual: &Value, bless: bool) -> Option<String> {

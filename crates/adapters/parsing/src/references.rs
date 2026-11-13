@@ -73,7 +73,7 @@ impl<'t> Roles<'t> {
                 }
                 Some(Capture::Name) => roles.name = Some(node),
                 Some(Capture::Receiver(role)) => {
-                    roles.receiver = roles.receiver.or(Some((role, node)))
+                    roles.receiver = roles.receiver.or(Some((role, node)));
                 }
                 Some(Capture::Local) => roles.local = Some(node),
                 Some(Capture::Field) => roles.field = Some(node),
@@ -92,12 +92,12 @@ impl<'t> Facts<'t> {
         let mut cursor = QueryCursor::new();
         let mut matches = cursor.matches(&vocabulary.query, root, ctx.source.as_bytes());
         while let Some(found) = matches.next() {
-            facts.take(ctx, Roles::of(vocabulary, found));
+            facts.take(ctx, &Roles::of(vocabulary, found));
         }
         facts
     }
 
-    fn take(&mut self, ctx: &SymbolContext<'_>, roles: Roles<'t>) {
+    fn take(&mut self, ctx: &SymbolContext<'_>, roles: &Roles<'t>) {
         if let Some(scope) = roles.scope {
             self.scopes.push(scope.byte_range());
         }

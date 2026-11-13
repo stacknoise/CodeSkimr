@@ -1,5 +1,139 @@
 {
-  "loc": 44,
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 49,
+      "operands": null,
+      "operators": null,
+      "symbol": "metrics"
+    },
+    {
+      "decisions": null,
+      "loc": 44,
+      "operands": null,
+      "operators": null,
+      "symbol": "metrics.M"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "metrics.M.PlainMethod"
+    },
+    {
+      "decisions": 7,
+      "loc": 8,
+      "operands": [
+        7,
+        19
+      ],
+      "operators": [
+        10,
+        16
+      ],
+      "symbol": "metrics.M.Branches"
+    },
+    {
+      "decisions": 4,
+      "loc": 7,
+      "operands": [
+        6,
+        9
+      ],
+      "operators": [
+        10,
+        10
+      ],
+      "symbol": "metrics.M.Loops"
+    },
+    {
+      "decisions": 1,
+      "loc": 11,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        3,
+        5
+      ],
+      "symbol": "metrics.M.Cases"
+    },
+    {
+      "decisions": 2,
+      "loc": 1,
+      "operands": [
+        5,
+        5
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "metrics.M.Arms"
+    },
+    {
+      "decisions": 2,
+      "loc": 7,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        4,
+        5
+      ],
+      "symbol": "metrics.M.Catches"
+    },
+    {
+      "decisions": 1,
+      "loc": 5,
+      "operands": [
+        5,
+        7
+      ],
+      "operators": [
+        6,
+        6
+      ],
+      "symbol": "metrics.M.Outer"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        2,
+        3
+      ],
+      "operators": [
+        3,
+        4
+      ],
+      "symbol": "metrics.M.Outer.Local"
+    },
+    {
+      "decisions": null,
+      "loc": 5,
+      "operands": null,
+      "operators": null,
+      "symbol": "metrics.Shape"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "metrics.Shape.NoBody"
+    }
+  ],
+  "loc": 49,
   "references": [
     {
       "at": "17:18",
@@ -50,7 +184,7 @@
       "kind": "module",
       "name": "metrics",
       "parent": null,
-      "span": "0:0-50:0",
+      "span": "0:0-56:0",
       "static": false,
       "visibility": null
     },
@@ -132,6 +266,33 @@
       "name": "metrics.M.Outer.Local",
       "parent": "metrics.M.Outer",
       "span": "46:8-46:63",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "metrics.Shape",
+      "parent": "metrics",
+      "span": "51:0-55:1",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "metrics.Shape.NoBody",
+      "parent": "metrics.Shape",
+      "span": "53:4-53:33",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "metrics.Shape.Field",
+      "parent": "metrics.Shape",
+      "span": "54:8-54:21",
       "static": false,
       "visibility": "private"
     }

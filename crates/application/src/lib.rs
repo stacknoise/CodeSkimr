@@ -10,6 +10,7 @@ mod consts;
 pub mod error;
 pub mod events;
 pub mod ids;
+pub mod metrics;
 pub mod pipeline;
 pub mod ports;
 pub mod registry;

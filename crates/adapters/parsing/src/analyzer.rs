@@ -15,6 +15,7 @@ use crate::encoding::decode;
 use crate::error::ParsingError;
 use crate::fingerprints::{self, FingerprintSettings};
 use crate::lines::classify;
+use crate::metrics;
 use crate::pack::LanguagePack;
 use crate::packs::LanguagePacks;
 use crate::references;
@@ -68,6 +69,8 @@ impl TreeSitterAnalyzer {
         };
         let table = symbols::extract(&ctx, root)?;
         let pending = references::extract(&ctx, root, &table)?;
+        let lines = classify(root, &pack.comment_nodes);
+        let counts = metrics::counts_of(pack.metrics.as_ref(), root, &source, &table, &lines);
         let fingerprints = self.fingerprinting.map_or_else(Vec::new, |settings| {
             fingerprints::of_callables(pack, root, &table, settings)
         });
@@ -78,11 +81,12 @@ impl TreeSitterAnalyzer {
                 path: request.file.path.clone(),
                 language: request.file.language.clone(),
                 content_hash: request.file.content_hash.clone(),
-                loc: lines_of_code(classify(root, &pack.comment_nodes)),
+                loc: lines_of_code(lines),
             },
             symbols: table.symbols,
             pending,
             fingerprints,
+            counts,
         })
     }
 }

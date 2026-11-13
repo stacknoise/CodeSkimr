@@ -30,6 +30,7 @@ mod grammar;
 mod lines;
 mod location;
 mod manifest;
+mod metrics;
 mod pack;
 mod packs;
 mod references;

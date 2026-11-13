@@ -9,6 +9,20 @@ pub const SYMBOLS_QUERY_FILE: &str = "symbols.scm";
 /// Tree-sitter query for identifiers, calls and imports; optional.
 pub const REFERENCES_QUERY_FILE: &str = "references.scm";
 
+/// Tree-sitter query with the counts of the metrics (ADR 0015); optional.
+pub const METRICS_QUERY_FILE: &str = "metrics.scm";
+/// Capture of a comment node in `metrics.scm`; line kinds come from `comment_nodes` of the pack.
+pub const COMMENT_CAPTURE: &str = "comment";
+/// Capture of a decision point in `metrics.scm`.
+pub const DECISION_CAPTURE: &str = "decision";
+/// Capture of an operator token in `metrics.scm`.
+pub const OPERATOR_CAPTURE: &str = "operator";
+/// Capture of an operand (identifier or literal) in `metrics.scm`.
+pub const OPERAND_CAPTURE: &str = "operand";
+/// Field name that holds the body of a callable declaration in the grammar; a callable without it
+/// (abstract, interface member, extern) is not measured.
+pub const BODY_FIELD: &str = "body";
+
 /// Prefix of a capture that marks a whole declaration; the rest is the symbol kind label.
 pub const SYMBOL_CAPTURE_PREFIX: &str = "symbol.";
 /// Prefix of a capture that marks an occurrence; the rest is the reference kind label.

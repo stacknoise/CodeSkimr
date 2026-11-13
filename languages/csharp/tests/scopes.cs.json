@@ -1,4 +1,53 @@
 {
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 27,
+      "operands": null,
+      "operators": null,
+      "symbol": "scopes"
+    },
+    {
+      "decisions": null,
+      "loc": 27,
+      "operands": null,
+      "operators": null,
+      "symbol": "scopes.Shop.Orders"
+    },
+    {
+      "decisions": null,
+      "loc": 26,
+      "operands": null,
+      "operators": null,
+      "symbol": "scopes.Shop.Orders.Order"
+    },
+    {
+      "decisions": 0,
+      "loc": 6,
+      "operands": [
+        3,
+        6
+      ],
+      "operators": [
+        2,
+        5
+      ],
+      "symbol": "scopes.Shop.Orders.Order.Order"
+    },
+    {
+      "decisions": 1,
+      "loc": 14,
+      "operands": [
+        12,
+        15
+      ],
+      "operators": [
+        5,
+        17
+      ],
+      "symbol": "scopes.Shop.Orders.Order.Save"
+    }
+  ],
   "loc": 27,
   "references": [
     {

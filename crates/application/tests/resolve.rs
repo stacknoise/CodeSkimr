@@ -1,0 +1,324 @@
+//! Tests of the level-1 reference resolver (blueprint 9.2) on a small symbol table.
+
+#[cfg(test)]
+mod tests {
+    use codeskimr_application::ids::IdSequence;
+    use codeskimr_application::ports::{PendingReference, Receiver, ReferenceResolver};
+    use codeskimr_application::resolve::ScopedResolver;
+    use codeskimr_domain::{
+        Confidence, FileId, Position, QualifiedName, Reference, ReferenceKind, Span, Symbol,
+        SymbolId, SymbolKind, SymbolName,
+    };
+
+    /// A symbol table that is built symbol by symbol; ids are handed out in order.
+    #[derive(Default)]
+    struct Table {
+        symbols: Vec<Symbol>,
+    }
+
+    impl Table {
+        fn add(
+            &mut self,
+            kind: SymbolKind,
+            qualified: &str,
+            parent: Option<SymbolId>,
+            file: u64,
+        ) -> SymbolId {
+            let id = SymbolId::new(u64::try_from(self.symbols.len()).expect("small") + 1);
+            let name = qualified.rsplit('.').next().expect("name");
+            let position = Position { line: 0, column: 0 };
+            self.symbols.push(Symbol {
+                id,
+                file: FileId::new(file),
+                kind,
+                name: SymbolName::new(name).expect("name"),
+                qualified_name: QualifiedName::new(qualified).expect("qualified"),
+                parent,
+                visibility: None,
+                is_static: false,
+                span: Span::new(position, position).expect("span"),
+                signature: None,
+                doc: None,
+            });
+            id
+        }
+    }
+
+    fn occurrence(
+        from: SymbolId,
+        file: u64,
+        kind: ReferenceKind,
+        target: &str,
+    ) -> PendingReference {
+        let position = Position { line: 1, column: 1 };
+        PendingReference {
+            from,
+            file: FileId::new(file),
+            span: Span::new(position, position).expect("span"),
+            kind,
+            target: QualifiedName::new(target).expect("target"),
+            receiver: None,
+            previous: None,
+        }
+    }
+
+    fn typed(mut pending: PendingReference, type_name: &str) -> PendingReference {
+        pending.receiver = Some(Receiver::Typed(
+            QualifiedName::new(type_name).expect("type"),
+        ));
+        pending
+    }
+
+    fn resolve(table: &Table, pending: &[PendingReference]) -> Vec<Reference> {
+        ScopedResolver
+            .resolve(&table.symbols, pending, &IdSequence::starting_at(1000))
+            .expect("resolves")
+    }
+
+    fn targets(references: &[Reference]) -> Vec<SymbolId> {
+        references.iter().map(|reference| reference.to).collect()
+    }
+
+    /// `Shop` with `IPrinter`/`Printer` (both with `Print`) and `Order` with `Save`.
+    struct Shop {
+        table: Table,
+        interface_print: SymbolId,
+        printer: SymbolId,
+        printer_print: SymbolId,
+        order: SymbolId,
+        save: SymbolId,
+    }
+
+    fn shop() -> Shop {
+        let mut table = Table::default();
+        let shop = table.add(SymbolKind::Namespace, "Shop", None, 1);
+        let interface = table.add(SymbolKind::Interface, "Shop.IPrinter", Some(shop), 1);
+        let interface_print = table.add(
+            SymbolKind::Method,
+            "Shop.IPrinter.Print",
+            Some(interface),
+            1,
+        );
+        let printer = table.add(SymbolKind::Class, "Shop.Printer", Some(shop), 1);
+        let printer_print = table.add(SymbolKind::Method, "Shop.Printer.Print", Some(printer), 1);
+        let order = table.add(SymbolKind::Class, "Shop.Order", Some(shop), 2);
+        let save = table.add(SymbolKind::Method, "Shop.Order.Save", Some(order), 2);
+        Shop {
+            table,
+            interface_print,
+            printer,
+            printer_print,
+            order,
+            save,
+        }
+    }
+
+    #[test]
+    fn a_type_of_the_same_namespace_is_certain() {
+        let shop = shop();
+        let found = resolve(
+            &shop.table,
+            &[occurrence(shop.save, 2, ReferenceKind::TypeUse, "Printer")],
+        );
+        assert_eq!(targets(&found), [shop.printer]);
+        assert_eq!(found[0].confidence, Confidence::Certain);
+    }
+
+    #[test]
+    fn a_member_of_the_enclosing_type_is_certain() {
+        let shop = shop();
+        let found = resolve(
+            &shop.table,
+            &[occurrence(shop.save, 2, ReferenceKind::Call, "Save")],
+        );
+        assert_eq!(targets(&found), [shop.save]);
+        assert_eq!(found[0].confidence, Confidence::Certain);
+    }
+
+    #[test]
+    fn a_name_that_only_matches_globally_is_probable() {
+        let mut shop = shop();
+        let elsewhere = shop.table.add(SymbolKind::Namespace, "Elsewhere", None, 3);
+        let tool = shop
+            .table
+            .add(SymbolKind::Class, "Elsewhere.Tool", Some(elsewhere), 3);
+        let found = resolve(
+            &shop.table,
+            &[occurrence(shop.save, 2, ReferenceKind::TypeUse, "Tool")],
+        );
+        assert_eq!(targets(&found), [tool]);
+        assert_eq!(found[0].confidence, Confidence::Probable);
+    }
+
+    #[test]
+    fn an_import_makes_the_name_certain() {
+        let mut shop = shop();
+        let elsewhere = shop.table.add(SymbolKind::Namespace, "Elsewhere", None, 3);
+        let tool = shop
+            .table
+            .add(SymbolKind::Class, "Elsewhere.Tool", Some(elsewhere), 3);
+        let pending = [
+            occurrence(shop.save, 2, ReferenceKind::Import, "Elsewhere"),
+            occurrence(shop.save, 2, ReferenceKind::TypeUse, "Tool"),
+        ];
+        let found = resolve(&shop.table, &pending);
+        assert_eq!(targets(&found), [elsewhere, tool]);
+        assert!(found.iter().all(|r| r.confidence == Confidence::Certain));
+    }
+
+    #[test]
+    fn several_candidates_are_all_probable() {
+        let mut shop = shop();
+        let one = shop.table.add(SymbolKind::Namespace, "One", None, 3);
+        let two = shop.table.add(SymbolKind::Namespace, "Two", None, 4);
+        let first = shop.table.add(SymbolKind::Class, "One.Tool", Some(one), 3);
+        let second = shop.table.add(SymbolKind::Class, "Two.Tool", Some(two), 4);
+        let found = resolve(
+            &shop.table,
+            &[occurrence(shop.save, 2, ReferenceKind::TypeUse, "Tool")],
+        );
+        assert_eq!(targets(&found), [first, second]);
+        assert!(found.iter().all(|r| r.confidence == Confidence::Probable));
+    }
+
+    #[test]
+    fn a_base_type_that_is_an_interface_is_implemented() {
+        let shop = shop();
+        let pending = [occurrence(
+            shop.printer,
+            1,
+            ReferenceKind::Inherit,
+            "IPrinter",
+        )];
+        let found = resolve(&shop.table, &pending);
+        assert_eq!(found[0].kind, ReferenceKind::Implement);
+    }
+
+    #[test]
+    fn a_call_through_an_interface_reaches_every_implementation() {
+        let shop = shop();
+        let pending = [
+            occurrence(shop.printer, 1, ReferenceKind::Inherit, "IPrinter"),
+            typed(
+                occurrence(shop.save, 2, ReferenceKind::Call, "Print"),
+                "IPrinter",
+            ),
+        ];
+        let found = resolve(&shop.table, &pending);
+        let calls: Vec<&Reference> = found
+            .iter()
+            .filter(|r| r.kind == ReferenceKind::Call)
+            .collect();
+        assert_eq!(
+            calls.iter().map(|r| r.to).collect::<Vec<_>>(),
+            [shop.interface_print, shop.printer_print]
+        );
+        assert!(calls.iter().all(|r| r.confidence == Confidence::Probable));
+    }
+
+    #[test]
+    fn a_call_on_a_class_receiver_is_certain() {
+        let shop = shop();
+        let pending = [typed(
+            occurrence(shop.save, 2, ReferenceKind::Call, "Print"),
+            "Printer",
+        )];
+        let found = resolve(&shop.table, &pending);
+        assert_eq!(targets(&found), [shop.printer_print]);
+        assert_eq!(found[0].confidence, Confidence::Certain);
+    }
+
+    #[test]
+    fn a_member_of_an_outside_type_is_not_taken_for_a_project_symbol() {
+        let shop = shop();
+        let pending = [typed(
+            occurrence(shop.save, 2, ReferenceKind::Call, "Print"),
+            "TextWriter",
+        )];
+        assert!(resolve(&shop.table, &pending).is_empty());
+    }
+
+    #[test]
+    fn an_inherited_member_is_found_through_the_base_type() {
+        let mut shop = shop();
+        let helper = shop.table.add(
+            SymbolKind::Method,
+            "Shop.Printer.Flush",
+            Some(shop.printer),
+            1,
+        );
+        let pending = [
+            occurrence(shop.order, 2, ReferenceKind::Inherit, "Printer"),
+            occurrence(shop.save, 2, ReferenceKind::Call, "Flush"),
+        ];
+        let mut with_own = pending.to_vec();
+        with_own[1].receiver = Some(Receiver::Own);
+        let found = resolve(&shop.table, &with_own);
+        let call: Vec<&Reference> = found
+            .iter()
+            .filter(|r| r.kind == ReferenceKind::Call)
+            .collect();
+        assert_eq!(call.len(), 1);
+        assert_eq!(
+            (call[0].to, call[0].confidence),
+            (helper, Confidence::Certain)
+        );
+    }
+
+    #[test]
+    fn an_override_points_to_the_base_member_and_not_to_itself() {
+        let mut shop = shop();
+        let derived = shop.table.add(SymbolKind::Class, "Shop.Fancy", None, 5);
+        let fancy_print = shop
+            .table
+            .add(SymbolKind::Method, "Shop.Fancy.Print", Some(derived), 5);
+        let pending = [
+            occurrence(derived, 5, ReferenceKind::Inherit, "Printer"),
+            occurrence(fancy_print, 5, ReferenceKind::Override, "Print"),
+        ];
+        let found = resolve(&shop.table, &pending);
+        let overrides: Vec<&Reference> = found
+            .iter()
+            .filter(|r| r.kind == ReferenceKind::Override)
+            .collect();
+        assert_eq!(
+            overrides.iter().map(|r| r.to).collect::<Vec<_>>(),
+            [shop.printer_print]
+        );
+    }
+
+    #[test]
+    fn a_name_in_a_value_position_that_is_a_type_is_a_type_use() {
+        let shop = shop();
+        let found = resolve(
+            &shop.table,
+            &[occurrence(shop.save, 2, ReferenceKind::Read, "Printer")],
+        );
+        assert_eq!(
+            (found[0].to, found[0].kind),
+            (shop.printer, ReferenceKind::TypeUse)
+        );
+    }
+
+    #[test]
+    fn a_reference_that_is_resolved_again_keeps_its_confidence() {
+        let shop = shop();
+        let mut again = occurrence(shop.save, 2, ReferenceKind::TypeUse, "Shop.Printer");
+        again.previous = Some(Confidence::Probable);
+        let found = resolve(&shop.table, &[again]);
+        assert_eq!(targets(&found), [shop.printer]);
+        assert_eq!(found[0].confidence, Confidence::Probable);
+    }
+
+    #[test]
+    fn unknown_names_and_the_same_occurrence_twice_give_one_or_no_reference() {
+        let shop = shop();
+        let twice = occurrence(shop.save, 2, ReferenceKind::TypeUse, "Printer");
+        let pending = [
+            twice.clone(),
+            twice,
+            occurrence(shop.save, 2, ReferenceKind::TypeUse, "Nothing"),
+        ];
+        assert_eq!(resolve(&shop.table, &pending).len(), 1);
+    }
+}
