@@ -530,3 +530,86 @@ fn the_installation_token_is_not_a_credential_to_manage() {
     assert_eq!(output.status.code(), Some(2));
     assert!(stderr(&output).contains("CLI-101"));
 }
+
+// --- Security suite (WP-74, blueprint S-02 and S-05) through the real binary ---------------
+
+/// A class name that is found if a scan or a check reads the file that holds it.
+#[cfg(test)]
+const OUTSIDE_CLASS: &str = "CanaryOutside6b1d";
+
+/// Writes a C# file with a very long method at `path`.
+#[cfg(test)]
+fn write_long_file(path: &Path, class: &str) {
+    let body = "        var x = 1;\n".repeat(60);
+    let source = format!(
+        "namespace Out;\npublic class {class}\n{{\n    public void Long()\n    {{\n{body}    }}\n}}\n"
+    );
+    fs::write(path, source).unwrap();
+}
+
+/// The same file next to the project, outside of it.
+#[cfg(test)]
+fn write_outside_file(workspace: &Workspace) -> PathBuf {
+    let path = workspace.root.path().join("outside.cs");
+    write_long_file(&path, OUTSIDE_CLASS);
+    path
+}
+
+/// The whole text of `output`, both streams.
+#[cfg(test)]
+fn all_text(output: &Output) -> String {
+    format!(
+        "{}{}",
+        String::from_utf8_lossy(&output.stdout),
+        stderr(output)
+    )
+}
+
+#[test]
+fn check_conventions_never_reads_a_file_outside_the_project() {
+    let workspace = Workspace::new();
+    let outside = write_outside_file(&workspace);
+    write_long_file(&workspace.project().join("src/Inside.cs"), "Inside");
+    json_of(&workspace.scan(&[]));
+    let mut session = initialized(&workspace);
+    // The control: the same file inside the project is checked and found too long.
+    let inside = session.call(
+        2,
+        "tools/call",
+        &json!({"name": "check_conventions", "arguments": {"paths": ["src/Inside.cs"]}}),
+    );
+    assert!(inside.to_string().contains("CHK-104"), "{inside}");
+    let absolute = outside.display().to_string();
+    for path in ["../outside.cs", absolute.as_str(), "src/../../outside.cs"] {
+        let answer = session.call(
+            2,
+            "tools/call",
+            &json!({"name": "check_conventions", "arguments": {"paths": [path]}}),
+        );
+        let text = answer.to_string();
+        assert!(!text.contains(OUTSIDE_CLASS), "{path}: {text}");
+        assert!(!text.contains("CHK-104"), "{path}: {text}");
+    }
+}
+
+#[test]
+fn the_cli_check_never_reads_a_file_outside_the_current_folder() {
+    let workspace = Workspace::new();
+    let outside = write_outside_file(&workspace);
+    write_long_file(&workspace.project().join("src/Inside.cs"), "Inside");
+    let check = |path: &str| {
+        workspace
+            .command()
+            .current_dir(workspace.project())
+            .args(["check", path])
+            .output()
+            .unwrap()
+    };
+    assert!(all_text(&check("src/Inside.cs")).contains("CHK-104"));
+    let absolute = outside.display().to_string();
+    for path in ["../outside.cs", absolute.as_str()] {
+        let text = all_text(&check(path));
+        assert!(!text.contains("CHK-104"), "{path}: {text}");
+        assert!(!text.contains(OUTSIDE_CLASS), "{path}: {text}");
+    }
+}
