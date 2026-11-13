@@ -9,6 +9,7 @@ import { QuickSearch } from "../features/search/QuickSearch";
 import { SearchField } from "../features/search/SearchField";
 import { useSearchShortcut } from "../features/search/keys";
 import { openSearch } from "../features/search/search";
+import { UsagesScreen } from "../features/usages/UsagesScreen";
 import { StatusBar } from "../features/status/StatusBar";
 import { SettingsScreen } from "../features/settings/SettingsScreen";
 import { t } from "../shared/i18n/i18n";
@@ -27,6 +28,7 @@ import {
   MAIN_ROUTES,
   SCAN_ROUTE,
   SETTINGS_ROUTE,
+  USAGES_ROUTE,
   type Route,
 } from "./consts";
 import styles from "./App.module.css";
@@ -64,6 +66,9 @@ function Screen() {
       </Match>
       <Match when={currentPath() === EXPLORER_ROUTE.path}>
         <ExplorerScreen />
+      </Match>
+      <Match when={currentPath() === USAGES_ROUTE.path}>
+        <UsagesScreen />
       </Match>
     </Switch>
   );

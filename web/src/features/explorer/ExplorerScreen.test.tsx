@@ -1,5 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { currentPath, navigate } from "../../app/router";
+import { clearUsages, focusSymbol } from "../usages/usages";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
@@ -8,6 +10,10 @@ import { ExplorerScreen } from "./ExplorerScreen";
 import { requestFocus } from "./explorer";
 
 useServerSession();
+afterEach(() => {
+  clearUsages();
+  navigate("/");
+});
 
 /** Renders the screen for a project whose tree and type the server answers. */
 function renderOrder() {
@@ -31,6 +37,21 @@ describe("ExplorerScreen", () => {
     expect(screen.getByText("decimal Total()")).toBeTruthy();
     expect(screen.getByText("Members 2")).toBeTruthy();
     expect(await screen.findByText("Fields etc.")).toBeTruthy();
+  });
+
+  it("opens the usages of a member from its count, of the type from the button and with U", async () => {
+    renderOrder();
+    await openOrder();
+    await screen.findByText("decimal Total()");
+    fireEvent.click(screen.getAllByTitle("Show the usages")[0]!);
+    expect(currentPath()).toBe("/usages");
+    expect(focusSymbol()).toBe(8);
+    navigate("/explorer");
+    fireEvent.click(screen.getByRole("button", { name: /^Usages/ }));
+    expect(focusSymbol()).toBe(7);
+    navigate("/explorer");
+    fireEvent.keyDown(document.body, { key: "u" });
+    expect(currentPath()).toBe("/usages");
   });
 
   it("filters the member table by chip", async () => {

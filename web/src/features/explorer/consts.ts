@@ -87,6 +87,7 @@ export const KEY = {
   enter: "Enter",
   space: " ",
   reveal: ".",
+  usages: "u",
 } as const;
 /** One row down and up. */
 export const STEP_DOWN = 1;

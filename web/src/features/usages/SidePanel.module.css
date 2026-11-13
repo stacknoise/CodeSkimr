@@ -1,0 +1,125 @@
+.panel {
+    width: 300px;
+    flex: none;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px;
+    background: var(--surface);
+    border-left: 1px solid var(--line);
+}
+.kind {
+    font-size: 11.5px;
+    color: var(--muted);
+}
+.panel h2 {
+    margin: 2px 0 0;
+    font: 700 17px var(--font-mono);
+    overflow-wrap: anywhere;
+}
+.signature {
+    margin-top: var(--space-6);
+    font: 12px/1.5 var(--font-mono);
+    color: var(--ink-2);
+    overflow-wrap: anywhere;
+}
+
+.tiles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-6);
+}
+.tile {
+    padding: var(--space-8);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+}
+.tile div {
+    font: 600 16px var(--font-mono);
+}
+.tile .accent {
+    color: var(--accent);
+}
+.tile span {
+    font-size: 11.5px;
+    color: var(--muted);
+}
+
+.block,
+.accuracy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    padding-top: var(--space-12);
+    border-top: 1px solid var(--line-soft);
+}
+.block h3,
+.accuracy h3 {
+    margin: 0;
+    font-size: 13px;
+}
+.block p,
+.accuracy p {
+    margin: 0;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--ink-2);
+}
+.accuracy {
+    padding: var(--space-10) var(--space-12);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--bg);
+}
+.accuracy .warning {
+    color: var(--warn);
+}
+
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-4);
+}
+.chips span {
+    padding: 1px var(--space-8);
+    border-radius: 999px;
+    font-size: 11.5px;
+    color: var(--surface);
+}
+.layer1 {
+    background: var(--layer-1);
+}
+.layer2 {
+    background: var(--layer-2);
+}
+.layer3 {
+    background: var(--layer-3);
+}
+.layer4 {
+    background: var(--layer-4);
+}
+.layer5 {
+    background: var(--layer-5);
+}
+.layer6 {
+    background: var(--layer-6);
+}
+
+.open {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: var(--space-8);
+    height: 34px;
+    border: 0;
+    border-radius: var(--radius-card);
+    background: var(--ink);
+    color: var(--surface);
+    font: 600 13px var(--font-sans);
+    cursor: pointer;
+}
+.open kbd {
+    font: 500 11px var(--font-mono);
+    opacity: 0.75;
+}
