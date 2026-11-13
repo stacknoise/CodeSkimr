@@ -22,12 +22,12 @@ pub fn encode(credential: &Credential) -> Result<Zeroizing<Vec<u8>>, AuthError> 
     Ok(bytes)
 }
 
-/// Unpacks a stored entry. A damaged entry counts as missing: it cannot be used for a login.
+/// Unpacks a stored entry. A damaged entry is `SEC-202`, not a missing one: the entry exists and has to be replaced.
 pub fn decode(bytes: &[u8]) -> Result<Credential, AuthError> {
     let split = bytes
         .iter()
         .position(|byte| *byte == FIELD_SEPARATOR)
-        .ok_or(AuthError::NotFound)?;
+        .ok_or(AuthError::Damaged)?;
     let (user, rest) = bytes.split_at(split);
     let secret = rest.get(1..).unwrap_or_default();
     Ok(Credential::new(text(user)?, text(secret)?))
@@ -39,7 +39,7 @@ fn text(bytes: &[u8]) -> Result<SecretString, AuthError> {
         .map_err(|error| {
             // The failed copy still holds secret bytes.
             error.into_bytes().zeroize();
-            AuthError::NotFound
+            AuthError::Damaged
         })
 }
 

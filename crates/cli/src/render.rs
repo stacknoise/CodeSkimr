@@ -2,8 +2,9 @@
 
 use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
-    CLI_ERROR_LINE, CLI_EXPORT_WRITTEN, CLI_OPEN_READY, CLI_SCAN_DETAILS, CLI_SCAN_FINISHED,
-    CLI_SCAN_STARTED, CLI_SERVE_LISTENING, CLI_WATCH_STARTED, CLI_WATCH_UPDATED,
+    CLI_CREDENTIAL_DELETED, CLI_CREDENTIAL_DEVICE_PROMPT, CLI_CREDENTIAL_STORED, CLI_ERROR_LINE,
+    CLI_EXPORT_WRITTEN, CLI_OPEN_READY, CLI_SCAN_DETAILS, CLI_SCAN_FINISHED, CLI_SCAN_STARTED,
+    CLI_SECRET_PROMPT, CLI_SERVE_LISTENING, CLI_WATCH_STARTED, CLI_WATCH_UPDATED,
 };
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
 use serde::Serialize;
@@ -27,6 +28,20 @@ pub struct ScanSummary {
     pub seconds: f64,
 }
 
+/// Formats `key` with text arguments.
+fn format_with(
+    messages: &Messages,
+    language: &str,
+    key: &str,
+    values: &[(&str, &str)],
+) -> Result<String, I18nError> {
+    let mut args = FluentArgs::new();
+    for (name, value) in values {
+        args.set(*name, (*value).to_owned());
+    }
+    messages.format(language, key, Some(&args))
+}
+
 /// The line that announces a scan.
 ///
 /// # Errors
@@ -36,9 +51,7 @@ pub fn scan_started(
     language: &str,
     source: &str,
 ) -> Result<String, I18nError> {
-    let mut args = FluentArgs::new();
-    args.set(arg::PATH, source.to_owned());
-    messages.format(language, CLI_SCAN_STARTED, Some(&args))
+    format_with(messages, language, CLI_SCAN_STARTED, &[(arg::PATH, source)])
 }
 
 /// The line that tells where the local server listens.
@@ -46,9 +59,7 @@ pub fn scan_started(
 /// # Errors
 /// `I18N-201` if the message is missing.
 pub fn serve_started(messages: &Messages, language: &str, url: &str) -> Result<String, I18nError> {
-    let mut args = FluentArgs::new();
-    args.set(arg::URL, url.to_owned());
-    messages.format(language, CLI_SERVE_LISTENING, Some(&args))
+    format_with(messages, language, CLI_SERVE_LISTENING, &[(arg::URL, url)])
 }
 
 /// The line that tells where the launch file is and how long it is good for.
@@ -83,6 +94,57 @@ pub fn export_written(
     args.set(arg::SYMBOLS, symbols);
     args.set(arg::KILOBYTES, kilobytes);
     messages.format(language, CLI_EXPORT_WRITTEN, Some(&args))
+}
+
+/// The line that tells that a credential was stored or replaced. It names the credential, never
+/// the secret.
+///
+/// # Errors
+/// `I18N-201` if the message is missing.
+pub fn credential_stored(
+    messages: &Messages,
+    language: &str,
+    id: &str,
+) -> Result<String, I18nError> {
+    format_with(messages, language, CLI_CREDENTIAL_STORED, &[(arg::ID, id)])
+}
+
+/// The line that tells that a credential was removed.
+///
+/// # Errors
+/// `I18N-201` if the message is missing.
+pub fn credential_deleted(
+    messages: &Messages,
+    language: &str,
+    id: &str,
+) -> Result<String, I18nError> {
+    format_with(messages, language, CLI_CREDENTIAL_DELETED, &[(arg::ID, id)])
+}
+
+/// The prompt in front of the hidden input of a secret.
+///
+/// # Errors
+/// `I18N-201` if the message is missing.
+pub fn secret_prompt(messages: &Messages, language: &str) -> Result<String, I18nError> {
+    messages.format(language, CLI_SECRET_PROMPT, None)
+}
+
+/// What the user does to approve a device sign-in: open the page and enter the code.
+///
+/// # Errors
+/// `I18N-201` if the message is missing.
+pub fn device_prompt(
+    messages: &Messages,
+    language: &str,
+    uri: &str,
+    user_code: &str,
+) -> Result<String, I18nError> {
+    format_with(
+        messages,
+        language,
+        CLI_CREDENTIAL_DEVICE_PROMPT,
+        &[(arg::URI, uri), (arg::USER_CODE, user_code)],
+    )
 }
 
 /// The two lines that close a scan.

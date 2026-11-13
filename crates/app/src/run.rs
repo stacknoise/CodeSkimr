@@ -8,13 +8,15 @@ use std::process::ExitCode;
 use codeskimr_application::conventions::CheckReport;
 use codeskimr_application::error::CodedError;
 use codeskimr_cli::{
-    Action, CliError, ExportArgs, Invocation, OpenArgs, Parsed, ScanArgs, ScanSummary, check_json,
-    check_text, error_line, export_written, language_from, open_ready, parse, scan_finished,
-    scan_json, scan_started, serve_started, watch_started, watch_updated,
+    Action, CliError, CredentialAction, ExportArgs, Invocation, OpenArgs, Parsed, ScanArgs,
+    ScanSummary, check_json, check_text, credential_deleted, credential_stored, device_prompt,
+    error_line, export_written, language_from, open_ready, parse, scan_finished, scan_json,
+    scan_started, secret_prompt, serve_started, watch_started, watch_updated,
 };
-use codeskimr_codes::i18n::CLI_CREDENTIALS_HINT;
+use codeskimr_codes::i18n::{CLI_CREDENTIAL_UNUSABLE_HINT, CLI_CREDENTIALS_HINT};
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_i18n::Messages;
+use codeskimr_secrets::Prompt;
 
 use crate::consts::{
     ENV_LANGUAGE_TAGS, EXIT_FAILURE, EXIT_USAGE, LINE_BREAK, PLAIN_ERROR_SEPARATOR,
@@ -24,7 +26,7 @@ use crate::log_writer::RedactingWriter;
 use crate::logging;
 use crate::source_arg::SourceError;
 use crate::watch::{self, Report};
-use crate::{check, export, mcp, open, scan, serve, ui_commands};
+use crate::{check, credential, export, mcp, open, scan, serve, ui_commands};
 
 /// Why a command did not finish: a registered code, plus the parser's text for usage errors.
 struct Failure {
@@ -119,6 +121,7 @@ fn run_invocation(
         &current_dir,
     )?;
     match &invocation.action {
+        Action::Credential(action) => run_credential(action, messages, language),
         Action::Scan(args) => run_scan(args, invocation, &locations, messages, language),
         Action::Mcp(args) => {
             mcp::run(args, &invocation.global, &locations, &current_dir)?;
@@ -139,6 +142,41 @@ fn run_invocation(
             print_check(args.json, &report, messages, language)
         }
     }
+}
+
+/// `codeskimr credential ...`: the secret comes from the terminal or standard input, and only the
+/// name of the credential is ever printed.
+fn run_credential(
+    action: &CredentialAction,
+    messages: &Messages,
+    language: &str,
+) -> Result<Outcome, Failure> {
+    let read_secret = || {
+        let prompt = secret_prompt(messages, language).unwrap_or_default();
+        credential::read_secret(&prompt)
+    };
+    let announce = |prompt: &Prompt| {
+        let text = device_prompt(
+            messages,
+            language,
+            &prompt.verification_uri,
+            &prompt.user_code,
+        );
+        if let Ok(line) = text {
+            write_err(&line);
+        }
+    };
+    let io = credential::Io {
+        read_secret: &read_secret,
+        announce: &announce,
+        wait: &std::thread::sleep,
+    };
+    let line = match credential::run(action, &io)? {
+        credential::Done::Stored(id) => credential_stored(messages, language, &id),
+        credential::Done::Deleted(id) => credential_deleted(messages, language, &id),
+    };
+    write_out(&line.map_err(CliError::from)?);
+    Ok(Outcome::Done)
 }
 
 /// `codeskimr open`: tells where the launch file is, then waits until the browser has used it.
@@ -323,6 +361,9 @@ fn emit(mut sink: impl Write, text: &str) {
 fn source_failure(error: SourceError, messages: &Messages, language: &str) -> Failure {
     let detail = match error {
         SourceError::HasCredentials => messages.format(language, CLI_CREDENTIALS_HINT, None).ok(),
+        SourceError::CredentialNotUsable => messages
+            .format(language, CLI_CREDENTIAL_UNUSABLE_HINT, None)
+            .ok(),
         SourceError::NotASource => None,
     };
     Failure {

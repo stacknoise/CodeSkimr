@@ -35,6 +35,15 @@ pub fn base64(input: &[u8]) -> String {
     out
 }
 
+/// An answer that replaces the repository for every request.
+#[derive(Clone, Copy)]
+enum Fixed {
+    /// Redirect to the same path on this port.
+    Redirect(u16),
+    /// Refuse with this status code and no authentication challenge.
+    Status(u16),
+}
+
 /// Serves the repositories below `root`; with `login` every request needs those Basic credentials.
 pub struct GitHttpServer {
     pub port: u16,
@@ -50,10 +59,16 @@ impl GitHttpServer {
 
     /// A server that answers every request with a redirect to the same path on `port`.
     pub fn redirecting_to(port: u16) -> TestResult<Self> {
-        Self::launch(Path::new(""), None, Some(port))
+        Self::launch(Path::new(""), None, Some(Fixed::Redirect(port)))
     }
 
-    fn launch(root: &Path, login: Option<(&str, &str)>, redirect: Option<u16>) -> TestResult<Self> {
+    /// A server that refuses every request with `status`, like a host that hides private
+    /// repositories from an invalid token (403 or 404).
+    pub fn refusing_with(status: u16) -> TestResult<Self> {
+        Self::launch(Path::new(""), None, Some(Fixed::Status(status)))
+    }
+
+    fn launch(root: &Path, login: Option<(&str, &str)>, fixed: Option<Fixed>) -> TestResult<Self> {
         let listener = TcpListener::bind("127.0.0.1:0")?;
         listener.set_nonblocking(true)?;
         let port = listener.local_addr()?.port();
@@ -69,7 +84,7 @@ impl GitHttpServer {
                     Ok((stream, _)) => {
                         let (root, expected, seen) = (root.clone(), expected.clone(), seen.clone());
                         std::thread::spawn(move || {
-                            let _ = serve(stream, &root, expected.as_deref(), redirect, &seen);
+                            let _ = serve(stream, &root, expected.as_deref(), fixed, &seen);
                         });
                     }
                     Err(_) => std::thread::sleep(Duration::from_millis(10)),
@@ -183,18 +198,30 @@ fn serve(
     stream: TcpStream,
     root: &Path,
     expected: Option<&str>,
-    redirect: Option<u16>,
+    fixed: Option<Fixed>,
     seen: &Mutex<Vec<String>>,
 ) -> TestResult {
     let mut reader = BufReader::new(stream.try_clone()?);
     let request = read_request(&mut reader)?;
     let mut stream = stream;
-    if let Some(port) = redirect {
-        let location = format!("http://127.0.0.1:{port}{}", request.target);
-        stream.write_all(
-            format!("HTTP/1.1 307 Temporary Redirect\r\nLocation: {location}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").as_bytes(),
-        )?;
-        return Ok(());
+    match fixed {
+        Some(Fixed::Redirect(port)) => {
+            let location = format!("http://127.0.0.1:{port}{}", request.target);
+            stream.write_all(
+                format!("HTTP/1.1 307 Temporary Redirect\r\nLocation: {location}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").as_bytes(),
+            )?;
+            return Ok(());
+        }
+        Some(Fixed::Status(status)) => {
+            stream.write_all(
+                format!(
+                    "HTTP/1.1 {status} Refused\r\nContent-Length: 0\r\nConnection: close\r\n\r\n"
+                )
+                .as_bytes(),
+            )?;
+            return Ok(());
+        }
+        None => {}
     }
     let given = request.header("authorization");
     if let (Some(given), Ok(mut seen)) = (given, seen.lock()) {

@@ -10,6 +10,7 @@ mod check;
 mod clock;
 mod config_files;
 mod consts;
+mod credential;
 #[cfg(test)]
 mod e2e;
 mod export;

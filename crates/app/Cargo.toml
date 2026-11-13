@@ -27,6 +27,7 @@ tokio = { workspace = true, features = ["rt", "signal", "sync"] }
 getrandom.workspace = true
 memory-stats.workspace = true
 secrecy.workspace = true
+rpassword.workspace = true
 zeroize.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
