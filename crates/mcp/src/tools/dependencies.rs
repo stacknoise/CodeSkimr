@@ -9,7 +9,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use super::usages::{cut_notice, direction_label, parse_direction};
-use super::{Scope, SnapshotInfo, Tools, layer_of, to_json};
+use super::{Scope, SnapshotInfo, Tools, to_json};
 use crate::args::DependenciesArgs;
 use crate::consts::{ARG_LAYER, ARG_SYMBOL_OR_LAYER, READ_TOOL_PERMISSION};
 use crate::error::{CodeReport, McpError};
@@ -90,7 +90,7 @@ fn dependency(
     scope: (Direction, Option<&str>),
     edge: &DependencyEdge,
 ) -> Dependency {
-    let layer = layer_of(project, &edge.other.qualified_name);
+    let layer = project.layer_name_of(edge.other.qualified_name.as_str());
     let violates_layering = layer_pair(scope.0, scope.1, layer.as_deref())
         .and_then(|(from, to)| edge_between(layers, from, to))
         .is_some_and(|found| found.violates_layering);
@@ -223,7 +223,9 @@ impl Tools {
         let page = self
             .usage_index()
             .dependencies(scope.snapshot.id, &query, u32::MAX)?;
-        let own = layer_of(&scope.project, &found.symbol.qualified_name);
+        let own = scope
+            .project
+            .layer_name_of(found.symbol.qualified_name.as_str());
         let context = (direction, own.as_deref());
         let dependencies: Vec<Dependency> = page
             .edges

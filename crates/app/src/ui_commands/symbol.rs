@@ -8,7 +8,7 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{MemberRow, SymbolDetail, SymbolKey};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Layer, Permission, ProjectId, SnapshotId, SymbolId, Visibility};
+use codeskimr_domain::{Permission, ProjectId, SnapshotId, SymbolId, Visibility};
 use serde::{Deserialize, Serialize};
 
 use super::consts::{
@@ -172,14 +172,6 @@ struct Place {
     breadcrumb: Vec<Crumb>,
 }
 
-/// The name of the first layer that owns `qualified_name`.
-fn layer_of(layers: &[Layer], qualified_name: &str) -> Option<String> {
-    layers
-        .iter()
-        .find(|layer| layer.owns(qualified_name))
-        .map(|layer| layer.name.to_string())
-}
-
 fn answer(
     snapshot: SnapshotId,
     detail: &SymbolDetail,
@@ -244,7 +236,7 @@ impl Command for ExplorerSymbol {
         let project = ports
             .projects
             .project(ProjectId::new(request.input.project))?;
-        let layer = layer_of(&project.layers, detail.symbol.qualified_name.as_str());
+        let layer = project.layer_name_of(detail.symbol.qualified_name.as_str());
         let place = Place { layer, breadcrumb };
         let rows = ports.outline.member_rows(snapshot, id)?;
         Ok(answer(snapshot, &detail, place, &rows, &ports.thresholds))

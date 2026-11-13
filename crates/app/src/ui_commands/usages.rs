@@ -167,20 +167,12 @@ const fn is_verified(_reference: &Reference) -> bool {
     false
 }
 
-fn layer_of(project: &Project, label: &SymbolLabel) -> Option<String> {
-    project
-        .layers
-        .iter()
-        .find(|layer| layer.owns(label.qualified_name.as_str()))
-        .map(|layer| layer.name.as_str().to_owned())
-}
-
 fn place(project: &Project, label: &SymbolLabel) -> Place {
     Place {
         id: label.id.get(),
         qualified_name: label.qualified_name.to_string(),
         kind: label.kind.label(),
-        layer: layer_of(project, label),
+        layer: project.layer_name_of(label.qualified_name.as_str()),
     }
 }
 
@@ -246,7 +238,7 @@ impl UsagesPorts {
             .impact(snapshot, symbol, self.max_depth, USAGES_LIMIT)?;
         let mut layers: BTreeMap<String, usize> = BTreeMap::new();
         for reached in &page.symbols {
-            if let Some(layer) = layer_of(project, &reached.label) {
+            if let Some(layer) = project.layer_name_of(reached.label.qualified_name.as_str()) {
                 *layers.entry(layer).or_default() += 1;
             }
         }

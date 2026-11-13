@@ -19,7 +19,6 @@ explorer-column-lines = Zeilen
 explorer-status-totals = { $types } Typen · { $methods } Methoden · { $properties } Properties
 explorer-status-virtualised = Baum virtualisiert: { $rendered } von { $total } Zeilen gerendert
 explorer-action-editor = Im Editor öffnen
-explorer-action-soon = Folgt mit dem Bildschirm, der noch fehlt
 explorer-collapse-all = Alles einklappen
 explorer-reveal-selection = Auswahl im Baum zeigen
 explorer-structure-label = Struktur

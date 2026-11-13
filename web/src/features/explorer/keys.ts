@@ -31,8 +31,13 @@ export function useExplorerKeys(keys: ExplorerKeys): void {
       return;
     }
     const plain = plainKey(event);
-    if (plain === KEY.usages || plain === KEY.graph) {
-      (plain === KEY.usages ? keys.usages : keys.graph)();
+    if (plain === KEY.usages) {
+      keys.usages();
+      event.preventDefault();
+      return;
+    }
+    if (plain === KEY.graph) {
+      keys.graph();
       event.preventDefault();
       return;
     }

@@ -14,9 +14,6 @@ import { MetricStrip } from "./MetricStrip";
 import type { MemberRow, SymbolInfo, Thresholds } from "./types";
 import styles from "./DetailPane.module.css";
 
-/** Id of the text that says why the three buttons are off. */
-const SOON_ID = "explorer-action-soon";
-
 function Breadcrumb(props: { info: SymbolInfo }) {
   return (
     <div class={styles.crumbs}>
@@ -33,14 +30,9 @@ function Breadcrumb(props: { info: SymbolInfo }) {
   );
 }
 
-function Action(props: { label: string; hotkey: string; onClick?: () => void }) {
+function Action(props: { label: string; hotkey: string; onClick: () => void }) {
   return (
-    <button
-      type="button"
-      aria-disabled={props.onClick ? undefined : true}
-      aria-describedby={props.onClick ? undefined : SOON_ID}
-      onClick={() => props.onClick?.()}
-    >
+    <button type="button" onClick={() => props.onClick()}>
       {props.label} <kbd class={styles.kbd}>{props.hotkey}</kbd>
     </button>
   );
@@ -75,9 +67,6 @@ function Actions(props: { symbol: number }) {
           }
         }}
       />
-      <span id={SOON_ID} class={styles.hidden}>
-        {t(I18N_KEYS.EXPLORER_ACTION_SOON)}
-      </span>
     </div>
   );
 }
