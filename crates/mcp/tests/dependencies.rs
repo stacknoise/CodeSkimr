@@ -123,7 +123,7 @@ fn a_layer_shows_its_recorded_links() {
     assert_eq!(answer["violations"], 1);
     assert_eq!(answer["layers"][0]["layer"], "Application");
     assert_eq!(answer["layers"][0]["count"], 2);
-    assert!(list(&answer, "dependencies").is_empty());
+    assert_eq!(list(&answer, "dependencies").len(), 0);
 }
 
 #[test]
@@ -194,7 +194,7 @@ fn rescan_without_the_scan_permission_starts_nothing() {
         .rescan(&reader, &RescanArgs { project: None })
         .unwrap_err();
     assert_eq!(error.code(), ErrorCode::PermissionDenied);
-    assert!(scanner.asked.lock().unwrap().is_empty());
+    assert_eq!(scanner.asked.lock().unwrap().len(), 0);
 }
 
 #[test]
@@ -204,7 +204,7 @@ fn rescan_of_an_unknown_project_starts_nothing() {
         .rescan(&owner(), &RescanArgs { project: Some(99) })
         .unwrap_err();
     assert_eq!(error.code(), ErrorCode::ProjectNotRegistered);
-    assert!(scanner.asked.lock().unwrap().is_empty());
+    assert_eq!(scanner.asked.lock().unwrap().len(), 0);
 }
 
 #[test]
