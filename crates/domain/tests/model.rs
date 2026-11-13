@@ -101,6 +101,6 @@ fn every_model_error_has_a_registered_code() {
         ModelError::NotFinite,
     ] {
         assert_eq!(error.code(), ErrorCode::UnexpectedInternalError);
-        assert!(!error.to_string().is_empty());
+        assert_ne!(error.to_string(), "");
     }
 }
