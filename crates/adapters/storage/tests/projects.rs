@@ -50,7 +50,7 @@ fn second_project_with_the_same_source_is_rejected() {
 fn latest_files_are_empty_before_the_first_snapshot() {
     let store = store(3);
     store.save_project(&project(1, "/work/app", &[])).unwrap();
-    assert!(store.latest_files(PROJECT).unwrap().is_empty());
+    assert_eq!(store.latest_files(PROJECT).unwrap(), Vec::new());
 }
 
 #[test]

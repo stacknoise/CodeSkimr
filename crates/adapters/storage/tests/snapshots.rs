@@ -58,7 +58,7 @@ fn a_failing_snapshot_leaves_nothing_behind() {
     let error = store.persist(broken).unwrap_err();
     assert_eq!(code_of(&error), "STO-601");
     assert!(store.latest_snapshot(PROJECT).unwrap().is_none());
-    assert!(store.latest_files(PROJECT).unwrap().is_empty());
+    assert_eq!(store.latest_files(PROJECT).unwrap(), Vec::new());
     assert_eq!(store.next_free_id().unwrap(), 1);
 }
 

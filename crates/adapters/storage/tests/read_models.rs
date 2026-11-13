@@ -44,8 +44,8 @@ fn search_treats_like_wildcards_as_text_and_skips_parameters() {
         names(&store.search(SNAPSHOT, "_x", 10).unwrap()),
         ["Other_x"]
     );
-    assert!(store.search(SNAPSHOT, "%", 10).unwrap().is_empty());
-    assert!(store.search(SNAPSHOT, "", 10).unwrap().is_empty());
+    assert_eq!(store.search(SNAPSHOT, "%", 10).unwrap(), Vec::new());
+    assert_eq!(store.search(SNAPSHOT, "", 10).unwrap(), Vec::new());
 }
 
 #[test]
@@ -156,5 +156,5 @@ fn layer_graph_aggregates_references_between_layers() {
 #[test]
 fn project_without_layers_has_no_layer_graph() {
     let store = searchable();
-    assert!(store.layer_edges(SNAPSHOT).unwrap().is_empty());
+    assert_eq!(store.layer_edges(SNAPSHOT).unwrap(), Vec::new());
 }
