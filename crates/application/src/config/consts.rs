@@ -77,6 +77,10 @@ pub mod keys {
     pub const DEBOUNCE_MS: &str = "watcher.debounce_ms";
     /// `scan.excluded_folders`
     pub const EXCLUDED_FOLDERS: &str = "scan.excluded_folders";
+    /// `scan.parse_timeout_ms`
+    pub const PARSE_TIMEOUT_MS: &str = "scan.parse_timeout_ms";
+    /// `scan.max_source_mb`
+    pub const MAX_SOURCE_MB: &str = "scan.max_source_mb";
 }
 
 /// Characters that make a folder name a path.
