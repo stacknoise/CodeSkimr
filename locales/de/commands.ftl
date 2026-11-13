@@ -16,3 +16,5 @@ command-status-info-title = Status anzeigen
 command-status-info-description = Zeigt die Startzeit und den Speicher des Programms.
 command-explorer-source-title = Quelltext anzeigen
 command-explorer-source-description = Zeigt die Zeilen der Deklaration eines Typs oder Members, gelesen aus dem Projektordner.
+command-graph-layers-title = Abhängigkeiten zeigen
+command-graph-layers-description = Ordnet die Schichten des letzten Scans und die Abhängigkeiten zwischen ihnen für die Abhängigkeitskarte an.

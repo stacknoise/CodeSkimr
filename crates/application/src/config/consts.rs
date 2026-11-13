@@ -75,6 +75,10 @@ pub mod keys {
     pub const MCP_MAX_SNIPPET_BYTES: &str = "mcp.max_snippet_bytes";
     /// `snapshots.retention_count`
     pub const RETENTION_COUNT: &str = "snapshots.retention_count";
+    /// `graph.node_width`
+    pub const GRAPH_NODE_WIDTH: &str = "graph.node_width";
+    /// `graph.node_height`
+    pub const GRAPH_NODE_HEIGHT: &str = "graph.node_height";
     /// `similarity.ngram_size`
     pub const NGRAM_SIZE: &str = "similarity.ngram_size";
     /// `similarity.window_size`

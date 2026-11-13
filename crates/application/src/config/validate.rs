@@ -43,7 +43,9 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     check_layers(config)?;
     check_scan(&config.scan)?;
     check_editor(&config.editor)?;
-    check_ui(&config.ui)
+    check_ui(&config.ui)?;
+    positive(keys::GRAPH_NODE_WIDTH, config.graph.node_width)?;
+    positive(keys::GRAPH_NODE_HEIGHT, config.graph.node_height)
 }
 
 fn check_layers(config: &Config) -> Result<(), ConfigError> {
