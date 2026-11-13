@@ -28,19 +28,24 @@ mod tests {
         }
     }
 
-    fn analyze(fingerprints: bool) -> FileFacts {
-        let file = DiscoveredFile {
-            path: RelativePath::new("src/twins.rs").expect("path"),
-            language: LanguageId::new("rust").expect("language"),
-            content_hash: ContentHash::new("hash").expect("hash"),
+    fn twins() -> DiscoveredFile {
+        let language = LanguageId::new("rust").expect("language");
+        let path = RelativePath::new("src/twins.rs").expect("path");
+        DiscoveredFile {
+            content_hash: ContentHash::new("twins").expect("hash"),
             changed: true,
-        };
-        let root = FolderPath::new(fixtures().join("project").to_string_lossy()).expect("root");
+            language,
+            path,
+        }
+    }
+
+    fn analyze(fingerprints: bool) -> FileFacts {
+        let folder = fixtures().join("project");
         let ids = IdSequence::starting_at(1);
         let request = AnalyzeRequest {
-            root: &root,
             snapshot: SnapshotId::new(1),
-            file: &file,
+            root: &FolderPath::new(folder.to_string_lossy()).expect("root"),
+            file: &twins(),
             ids: &ids,
         };
         analyzer(fingerprints).analyze(&request).expect("analysis")
