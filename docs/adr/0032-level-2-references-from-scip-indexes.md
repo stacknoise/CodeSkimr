@@ -1,44 +1,62 @@
-# 0032 – Level 2 references come from SCIP indexes and are checked against them
+# 0032 – Level 2 references come from SCIP indexes; level 1 keeps every match and marks it unchecked
 
 Status: proposed
 
 ## Context
 
-Level 1 (blueprint 9.2) resolves names without type information. The accuracy measurement (`tools/accuracy`, `docs/accuracy.md`, issues #134 and #145) shows that this does not get reliable: with 150 sampled symbols, 35 % (Python) and 23 % (TypeScript) have exactly the usages the language tooling finds, and the first sample on a private C# project had 8 of 20 correct. Making level 1 better rebuilds parts of a compiler and has no end. The purpose of CodeSkimr is documentation and judging extensions and reworks (`impact_of_change`); that needs usages that are complete first and correct second. The product owner ranks missing usages above speed (13 November 2026).
+Level 1 (blueprint 9.2) resolves names without type information. The accuracy measurement (`tools/accuracy`, `docs/accuracy.md`, issues #134 and #145) shows that this does not get reliable: with 150 sampled symbols, 35 % (Python) and 23 % (TypeScript) have exactly the usages the language tooling finds, and the first sample on a private C# project had 8 of 20 correct. The purpose of CodeSkimr is documentation and judging extensions and reworks (`impact_of_change`). The product owner ranks missing usages above speed and above a few wrong ones, and wants to see when a result is not checked (13 November 2026).
 
-Blueprint 9.3 already plans level 2 (SCIP indexes and Roslyn) "after 1.0, optional". This ADR moves it forward and fixes the rules.
+Blueprint 9.3 plans level 2 "after 1.0, optional". This ADR moves it forward and fixes the rules.
+
+## Options considered
+
+- **A. Improve level 1 only.** Types from initializers, return types, chains. No toolchain needed, but it rebuilds a compiler piece by piece and never becomes reliable (estimate 70 to 85 % exact for typed languages, unmeasured).
+- **B. Level 2 only, nothing without a toolchain.** Accurate where it runs, nothing (or the old wrong answers) elsewhere.
+- **C. Level 2 plus an honest level 1 (chosen).** Level 2 from indexers where the toolchain exists; level 1 keeps every match and marks it as unchecked.
 
 ## Decision
 
-1. **Level 2 is a `ReferenceResolver` strategy that imports SCIP indexes** (blueprint 9.3, section 5). No other component changes. Indexers, by language (to be confirmed by the spike below):
+### Source and mapping
 
-   | Language | Indexer | Needs |
-   |---|---|---|
-   | C# | scip-dotnet (Roslyn) | .NET SDK, restorable project |
-   | TypeScript, JavaScript | scip-typescript | Node, installed dependencies |
-   | Python | scip-python | Node, the Python environment of the project |
-   | Rust | `rust-analyzer scip` | Rust toolchain |
-   | Java, Kotlin | scip-java | JDK, Gradle or Maven |
+1. **Level 2 imports SCIP indexes.** Indexers (to be confirmed by the spike): C# scip-dotnet (Roslyn), TypeScript and JavaScript scip-typescript, Python scip-python, Rust `rust-analyzer scip`, Java and Kotlin scip-java. Only **installed, configured and version-checked** indexers are run; CodeSkimr never downloads or runs a package at scan time (no `npx`). Go and the basic-tier languages have no level 2 and stay on level 1. A project with several languages indexes each language on its own.
+2. **Mapping.** An occurrence maps to a CodeSkimr symbol by file and the range of its definition. Rules for partial classes, generated code and overloads are fixed in the import package; a mapping rate below a configured threshold (`level2.min_mapped`) makes the index count as failed for that language. Occurrences that map to no project symbol are dropped and counted in the scan summary.
+3. **Replacement per file (change to blueprint 9.3).** For every file the index covers, level 2 references replace **all** level 1 references of that file, not only those of the same span, because level 1 may hold wrong matches in the same file. They are `certain`. Files without an index keep level 1.
+4. **The index is untrusted input.** Paths are canonicalised against the project root (blueprint S-05), indexes above `level2.max_index_bytes` are refused, the decoder works on bounded buffers, and a corrupt or unreadable index is an error (new code) that leaves level 1 in place. It never panics.
+5. **`scip.proto` is generated at build time** from a pinned copy that is checked in under the import crate; the decoding library is one new dependency (label `new-dependency`, decided in the import package).
 
-2. **Mapping.** An index occurrence is mapped to a CodeSkimr symbol by file and the range of its definition. Occurrences that map to no project symbol (framework, outside the project) are dropped. A symbol that SCIP knows and CodeSkimr does not, or the reverse, is counted and reported by the scan, not hidden.
-3. **Replacement per file.** For every file that the index covers, the level 2 references replace all level 1 references of that file; they are `certain`. Files without index keep their level 1 references.
-4. **Nothing is dropped silently.** Level 1 keeps every name match; it never discards a candidate. A match that no type evidence supports is stored as `probable`, and in a project or file without level 2 it is shown as unchecked. (This reverses the ambiguity rule of PR #133, which dropped matches and lowered the recall in TypeScript from 61 % to 42 %.) The exact wording of "unchecked" in UI and MCP is open question 1.
-5. **Completeness is visible.** `find_usages` and `impact_of_change` report how many results are `certain` and how many are not, and whether level 2 ran for the files involved. An analysis without level 2 is labelled preliminary.
-6. **Running an indexer is opt-in and security-sensitive.** Indexers restore dependencies and compile the project, which runs build scripts of the scanned code. Level 2 therefore runs only for a project whose `.codeskimr.toml` or user setting enables it (`level2 = true`) and only after the user confirmed it for that project. Limits: time, memory, output size, no execution for a Git URL that was not confirmed, the environment passed on is minimal. The pull request that adds the runner is labelled `security-sensitive` and gets a security review.
-7. **Order of work.** Spike first (open question 2), then the import and merge (language independent), then per language: C#, Rust, TypeScript, Python, Java/Kotlin.
-8. **Acceptance** (added to `docs/acceptance`): loading a project whose tool is missing shows the missing tool and the install hint in UI, CLI summary and MCP, and the results of that language carry the "unchecked" mark (test with a project whose indexer is not installed); with level 2, recall of at least 99 % and at least 99 % correct among `certain` references on a sample of at least 150 symbols per language with `tools/accuracy`, which gets SCIP results as a second reference; the private C# sample of 20 symbols has at least 19 complete and without wrong usages. Without level 2: recall at least as high as before PR #133.
-9. **Tools are checked whenever a project is loaded.** On every load of a project (registration, scan, reopen) CodeSkimr checks, per language of the project, whether the indexer and its toolchain exist on this machine (executable found, version usable). The result is stored with the project and shown to the user: which languages have level 2 ready, and for each missing tool its name, what it is needed for and how to install it (UI, `codeskimr scan` summary, MCP `get_project`). A missing tool never stops the scan; the project falls back to level 1 for that language, marked as unchecked (decision 4). The check itself runs no project code.
-10. **Speed is secondary.** Level 1 answers first; level 2 completes later and replaces. A scan with level 2 may take minutes.
+### Level 1 and what the user sees
 
-## Open questions
+6. **Level 1 never drops a candidate.** This reverses the ambiguity rule of PR #133 (`resolve/lookup.rs::is_ambiguous`), which lowered the recall in TypeScript from 61 % to 42 %. The same package changes `docs/references.md`, blueprint 9.2, and the tests of #133 in `resolve.rs` and `resolve_csharp.rs`. It is done first, before any level 2 work.
+7. **Unchecked results are marked.** A reference carries `verified`: `true` if level 2 produced it, `false` otherwise. Level 1 keeps `certain` and `probable` as before; `verified = false` is shown as "unchecked" (wording in the UI package, de and en). `find_usages`, `impact_of_change`, REST and UI count and show verified and unverified results separately and sort verified first. Without level 2, precision falls again (TypeScript from 58 % to about 28 % by the measurement), which is why the separate count and order are required. An analysis without level 2 for the files involved is labelled preliminary.
+8. **Tools are checked whenever a project is loaded.** On every load (registration, scan, reopen) CodeSkimr checks per language of the project whether the indexer and its toolchain exist and have a usable version. The result is stored with the project and shown: which languages have level 2 ready, and for each missing tool its name, what it is needed for and how to install it (UI, `codeskimr scan` summary, MCP `get_project`). A missing tool never stops a scan. The check runs no project code.
 
-1. Storage of "unchecked" for level 1 results: a flag `verified = false` next to `probable`, so the stored confidence values stay `certain` and `probable`. The product owner decided on 13 November 2026 that level 1 results without level 2 are kept and marked as unchecked, and that missing tools are shown on load (decision 9). Exact UI wording is left to the UI package, texts in German and English.
-2. Spike result: which of the indexers run on the public corpora at all, how long they take, and how many of the symbols of the corpus they cover. Not yet run: the environment used for this draft could not install the .NET SDK. The spike starts with C# and Rust.
-3. Protobuf decoding needs one new dependency (SCIP is protobuf); the choice is part of the pull request that adds the import (label `new-dependency`).
+### Running an indexer
+
+9. **Opt-in, trusted configuration only.** Level 2 runs only if the user enabled it for the project in the **user configuration or the user's own project record** and confirmed it once. A `level2` key in the project's `.codeskimr.toml` is ignored (blueprint 14 lets the project file override the user file; this key is the exception), so a scanned repository cannot switch on running its own build scripts.
+10. **Who may start it.** Only the local owner. Confirming and starting an indexer need their own `Permission` in the registry; MCP, REST tokens, watch mode and CI never stand in for the confirmation. A restricted principal gets `SEC-…` (new code); a test covers it. The team server of ADR 0019 does not run indexers until a later ADR says so.
+11. **Limits, all configuration keys with defaults in `config/default.toml`:** `level2.timeout_seconds`, `level2.max_memory_mb`, `level2.max_output_bytes`, `level2.max_index_bytes`, `level2.min_mapped`. The process starts in its own process group and is killed as a group on timeout or cancel. The environment is built from an allow list (no credentials, no tokens of the application), output goes to a temporary directory inside the data directory, and the output of the indexer is redacted before it is logged. Network: not blocked in the first version (restoring dependencies needs it), which is the main residual risk and the reason for the consent. A sandbox (container or OS-level) is decided in the security review of the runner package.
+12. **The runner is security-sensitive.** The package that starts indexers carries `security-sensitive` and gets a security review.
+
+### Pipeline
+
+13. **A second pass, not part of Resolve.** Level 1 runs inside the scan as today (ADR 0013) and the snapshot is complete and usable. Level 2 is an `IndexRunner` port (new) used by a second pass that writes into the same snapshot in one transaction per language and replaces references per file (decision 3). Cancellation stops the process and leaves level 1 unchanged. An index counts as current for a file if the content hash of the file equals the one at indexing time; a changed file (incremental scan, watch mode) falls back to level 1 and is marked unchecked until level 2 runs again, which happens on the next scan or on demand. The statement "no other component changes" of blueprint 9.3 is therefore replaced: new are the `IndexRunner` port, a consent store, the configuration keys above, the permissions and the error codes (with de and en texts).
+
+### Acceptance
+
+14. **Acceptance** (added to `docs/acceptance`, replacing the 98 % of blueprint 17.2 with the numbers below):
+   - Loading a project whose tool is missing shows the missing tool and the install hint in UI, CLI summary and MCP, and the results carry the unchecked mark (test with a project whose indexer is not installed).
+   - With level 2, per language with an indexer: recall at least 99 % and at least 99 % correct among verified references on at least 150 sampled symbols. The reference is **independent of level 2**: the language tooling of `tools/accuracy` (Jedi, TypeScript language service, rust-analyzer, javac, Roslyn), not the SCIP index. The private C# sample of 20 symbols is complete and without wrong usages for **all 20** (an individual miss must be explained and fixed or recorded as an issue with the reason).
+   - Without level 2: recall at least as high as before PR #133, measured for every language with a reference tool (first Python and TypeScript, then Rust and Java).
+   - `tools/accuracy` is extended to those languages and run by the acceptance, not by CI.
+
+### Order of work
+
+15. (1) Level 1 keeps all matches and `verified` (decision 6 and 7). (2) Tool check on load (decision 8). (3) Spike: indexers on the public corpora, C# and Rust first. (4) `IndexRunner`, consent, permissions, limits. (5) Import and mapping. (6) Per language: C#, Rust, TypeScript, Python, Java and Kotlin.
 
 ## Consequences
 
-- Blueprint 9.3 and the roadmap (section "later") change: level 2 comes before 1.0, as an opt-in step. The blueprint is changed by the pull request that implements the import, with the label `blueprint-change`.
-- Users need the toolchain of the language to get full accuracy; without it they get level 1, clearly marked.
-- A new, security-relevant function (running build tools) with explicit consent.
-- `tools/accuracy` becomes part of the acceptance criteria.
+- Blueprint changes (by the pull request that implements packages 1 and 5, with the label `blueprint-change`): sections 1 and 7 (scope and levels), 9.2 to 9.4, 14 (the `level2` exception and keys), 16.1 (time of a level 2 scan), 17.2 (acceptance numbers) and 20.2 (roadmap: level 2 before 1.0); `docs/usages.md`, `docs/mcp.md`, `docs/references.md`.
+- Users need the toolchain of the language for full accuracy; without it they get level 1, marked.
+- Running build tools is a new security-relevant function with consent, limits and review.
+- New error codes with texts in de and en (index corrupt, tool missing, permission, limit exceeded), registered in `errors/error-codes.toml`.
+- The reversal of #133 costs precision without level 2; the marking and the separate count carry that.
