@@ -505,19 +505,26 @@ fn export_ui(workspace: &Workspace) -> String {
     format!("ui.dir='{}'", ui.display())
 }
 
+/// Runs `codeskimr export --html <file>` for the project, with extra environment variables.
+#[cfg(test)]
+fn export_to(workspace: &Workspace, file: &Path, env: &[(&str, &str)]) -> Output {
+    let mut command = workspace.command();
+    command.envs(env.iter().copied());
+    command
+        .args(["--set", &export_ui(workspace), "export"])
+        .arg(workspace.project())
+        .arg("--html")
+        .arg(file)
+        .output()
+        .unwrap()
+}
+
 #[test]
 fn export_writes_one_page_with_the_scan_and_no_source_text() {
     let workspace = Workspace::new();
     json_of(&workspace.scan(&[]));
     let file = workspace.root.path().join("out.html");
-    let output = workspace
-        .command()
-        .args(["--set", &export_ui(&workspace), "export"])
-        .arg(workspace.project())
-        .arg("--html")
-        .arg(&file)
-        .output()
-        .unwrap();
+    let output = export_to(&workspace, &file, &[]);
     assert!(output.status.success(), "{}", stderr(&output));
     assert!(String::from_utf8_lossy(&output.stdout).contains("Export written to"));
     let page = fs::read_to_string(&file).unwrap();
@@ -809,4 +816,37 @@ fn a_secret_sent_to_the_stdio_server_stays_out_of_its_log_and_the_data_folder() 
     assert_eq!(answers.lines().count(), 5, "{answers}");
     assert!(!stderr(&output).is_empty(), "the trace level logs");
     assert_clean(&workspace, &[("stderr", stderr(&output))]);
+}
+
+#[test]
+fn the_export_holds_no_secret_from_a_method_body_and_no_path() {
+    let workspace = Workspace::new();
+    let source = format!(
+        "namespace Demo.Core;\npublic class Vault\n{{\n    public string Open()\n    {{\n        return \"{SECRET_CANARY}\";\n    }}\n}}\n"
+    );
+    fs::write(workspace.project().join("src/Vault.cs"), source).unwrap();
+    json_of(&workspace.scan(&[]));
+    let file = workspace.root.path().join("out.html");
+    let output = export_to(&workspace, &file, &[("CODESKIMR_LOG", "trace")]);
+    assert!(output.status.success(), "{}", stderr(&output));
+    let page = fs::read_to_string(&file).unwrap();
+    // The control: the class and its method are in the page, the body is not.
+    assert!(page.contains("Vault") && page.contains("Open"));
+    assert!(!page.contains(SECRET_CANARY), "canary in the export");
+    for folder in [workspace.project(), workspace.root.path().join("data")] {
+        assert!(
+            !page.contains(&folder.display().to_string()),
+            "a folder path in the export"
+        );
+    }
+    assert_clean(
+        &workspace,
+        &[
+            (
+                "stdout",
+                String::from_utf8_lossy(&output.stdout).into_owned(),
+            ),
+            ("stderr", stderr(&output)),
+        ],
+    );
 }

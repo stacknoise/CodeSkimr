@@ -3,6 +3,8 @@
 
 use std::io::{Read, Write};
 use std::net::TcpStream;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use serde_json::{Value, json};
@@ -13,19 +15,15 @@ use crate::security_tests::{CREDENTIAL_CANARY, command, folders, run};
 const EVENTS: &str = "/api/v1/events";
 const COMMANDS: &str = "/api/v1/commands";
 const FOREIGN: &str = "evil.example";
-/// How long the event stream is listened to after the traffic.
-const LISTEN: Duration = Duration::from_secs(3);
+/// How long a stream may be silent before the listener looks at its stop flag.
+const QUIET: Duration = Duration::from_millis(300);
 /// How long a request may take on a loaded machine; the server closes the connection sooner.
+/// The time events need to reach a listener after the last command answered.
+const AFTER_TRAFFIC: Duration = Duration::from_millis(800);
 const PATIENCE: Duration = Duration::from_secs(60);
 
-/// One raw request: `lines` are the headers after the request line, and the answer is read to
-/// the end of the connection (or to `LISTEN` for a stream).
-fn raw(url: &str, request: &str, headers: &[String], body: &str) -> String {
-    let wait = if request.contains(EVENTS) {
-        LISTEN
-    } else {
-        PATIENCE
-    };
+/// Opens a connection and sends one raw request: `headers` follow the request line.
+fn connect(url: &str, request: &str, headers: &[String], body: &str) -> TcpStream {
     let address = url.trim_start_matches(URL_SCHEME);
     let mut lines = vec![request.to_owned()];
     if !headers.iter().any(|line| line.starts_with("Host:")) {
@@ -35,10 +33,32 @@ fn raw(url: &str, request: &str, headers: &[String], body: &str) -> String {
     lines.push(format!("Content-Length: {}", body.len()));
     let text = format!("{}\r\n\r\n{body}", lines.join("\r\n"));
     let mut stream = TcpStream::connect(address).unwrap();
-    stream.set_read_timeout(Some(wait)).unwrap();
     stream.write_all(text.as_bytes()).unwrap();
+    stream
+}
+
+/// One raw request; the answer is read to the end of the connection.
+fn raw(url: &str, request: &str, headers: &[String], body: &str) -> String {
+    let mut stream = connect(url, request, headers, body);
+    stream.set_read_timeout(Some(PATIENCE)).unwrap();
     let mut bytes = Vec::new();
     let _ = stream.read_to_end(&mut bytes);
+    String::from_utf8_lossy(&bytes).into_owned()
+}
+
+/// Everything a connection sends until `stop` is set and it has been quiet for a moment.
+fn listen(mut stream: TcpStream, stop: &AtomicBool) -> String {
+    stream.set_read_timeout(Some(QUIET)).unwrap();
+    let mut bytes = Vec::new();
+    let mut chunk = [0_u8; 4096];
+    loop {
+        match stream.read(&mut chunk) {
+            Ok(0) => break,
+            Ok(count) => bytes.extend_from_slice(&chunk[..count]),
+            Err(_) if stop.load(Ordering::SeqCst) => break,
+            Err(_) => {}
+        }
+    }
     String::from_utf8_lossy(&bytes).into_owned()
 }
 
@@ -150,28 +170,40 @@ fn cors_and_headers(url: &str, token: &str) -> Vec<String> {
     answers
 }
 
-fn upgrade(url: &str, origin: Option<String>) -> String {
-    let mut headers = vec![
+fn upgrade_headers(origin: String) -> Vec<String> {
+    vec![
         "Connection: Upgrade".to_owned(),
         "Upgrade: websocket".to_owned(),
         "Sec-WebSocket-Version: 13".to_owned(),
         "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==".to_owned(),
-    ];
-    headers.extend(origin);
-    raw(url, &format!("GET {EVENTS} HTTP/1.1"), &headers, "")
+        origin,
+    ]
+}
+
+fn upgrade(url: &str, origin: String) -> TcpStream {
+    connect(
+        url,
+        &format!("GET {EVENTS} HTTP/1.1"),
+        &upgrade_headers(origin),
+        "",
+    )
 }
 
 /// The event stream refuses a foreign origin; for our own it streams, and nothing it sends is a
 /// secret.
 fn event_stream(url: &str, token: &str, source: &str) -> (String, String) {
     let address = url.trim_start_matches(URL_SCHEME);
-    let foreign = upgrade(url, Some(format!("Origin: http://{FOREIGN}")));
+    let foreign = listen(
+        upgrade(url, format!("Origin: http://{FOREIGN}")),
+        &AtomicBool::new(true),
+    );
     assert!(foreign.contains("API-402"));
     assert!(!foreign.contains("101 Switching"));
     // Listen on one connection while the traffic runs on others.
-    let url_for_listener = url.to_owned();
-    let own = format!("Origin: http://{address}");
-    let listener = std::thread::spawn(move || upgrade(&url_for_listener, Some(own)));
+    let stop = Arc::new(AtomicBool::new(false));
+    let stream = upgrade(url, format!("Origin: http://{address}"));
+    let flag = Arc::clone(&stop);
+    let listener = std::thread::spawn(move || listen(stream, &flag));
     std::thread::sleep(Duration::from_millis(300));
     let secret = format!("https://user:{CREDENTIAL_CANARY}@127.0.0.1:9/r.git");
     let _ = command(
@@ -186,6 +218,8 @@ fn event_stream(url: &str, token: &str, source: &str) -> (String, String) {
         "projects.add",
         &json!({ "source": source }),
     );
+    std::thread::sleep(AFTER_TRAFFIC);
+    stop.store(true, Ordering::SeqCst);
     (foreign, listener.join().unwrap())
 }
 
