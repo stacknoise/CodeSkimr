@@ -21,9 +21,6 @@ export const PREFIXES: readonly { filter: Filter; prefix: string }[] = [
   { filter: FILTER.commands, prefix: PREFIX_OF.commands },
 ];
 
-/** The magnifier in front of the input. */
-export const ICON_SEARCH = "search";
-
 /** The chips under the input, in the order of the mock. */
 export const CHIPS: readonly { filter: Filter; label: MessageKey; prefix?: string }[] = [
   { filter: FILTER.all, label: I18N_KEYS.PALETTE_FILTER_ALL },

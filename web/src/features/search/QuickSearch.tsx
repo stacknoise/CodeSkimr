@@ -3,6 +3,7 @@ import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
 import { cx } from "../../shared/ui/cx";
+import { ICON_SEARCH } from "../../shared/ui/consts";
 import { Icon } from "../../shared/ui/Icon";
 import { ROW_HEIGHT_PX } from "../explorer/consts";
 import { KindBadge } from "../explorer/KindBadge";
@@ -14,7 +15,6 @@ import {
   DIALOG,
   FILTER,
   GROUP_TITLE,
-  ICON_SEARCH,
   INPUT_ID,
   LIST_ID,
   OPTION_ID_PREFIX,
