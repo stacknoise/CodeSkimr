@@ -9,7 +9,11 @@ ROOT="$(git rev-parse --show-toplevel)"
 BASE_REF="${1:-}"
 BASE_BASELINE="ci-base"
 HEAD_BASELINE="ci-head"
-BENCH_ARGS=(-p codeskimr_bench -p codeskimr_storage --benches --locked)
+BENCH_ARGS=(-p codeskimr_bench --benches --locked)
+# The store benchmark is named, because the unit tests of its crate cannot take the options of
+# criterion. A base without this benchmark is measured without it and reports it as new.
+STORE_BENCH="crates/adapters/storage/benches/usages_page.rs"
+STORE_ARGS=(-p codeskimr_storage --bench usages_page --locked)
 export CRITERION_HOME="$ROOT/target/criterion"
 
 measure() {
@@ -23,7 +27,9 @@ measure() {
     # set -e does not work inside a function that runs in an `if` condition, so every step checks itself.
     local status=0
     (cd "$base_tree" && CARGO_TARGET_DIR="$base_tree/target" \
-      cargo bench "${BENCH_ARGS[@]}" -- --save-baseline "$BASE_BASELINE") || status=1
+      cargo bench "${BENCH_ARGS[@]}" -- --save-baseline "$BASE_BASELINE" &&
+      { [ ! -f "$STORE_BENCH" ] ||
+        cargo bench "${STORE_ARGS[@]}" -- --save-baseline "$BASE_BASELINE"; }) || status=1
     git worktree remove --force "$base_tree"
     [ "$status" -eq 0 ] || return 1
     no_base=""
@@ -31,6 +37,7 @@ measure() {
     echo "NOTE: no base measurement available for '${BASE_REF}'."
   fi
   cargo bench "${BENCH_ARGS[@]}" -- --save-baseline "$HEAD_BASELINE" || return 1
+  cargo bench "${STORE_ARGS[@]}" -- --save-baseline "$HEAD_BASELINE" || return 1
   # shellcheck disable=SC2086
   cargo run --locked -p codeskimr_bench --bin bench-check -- \
     --criterion-dir "$CRITERION_HOME" --base "$BASE_BASELINE" --new "$HEAD_BASELINE" \
