@@ -108,12 +108,19 @@ mod tests {
         let project = Project::new();
         let english = String::from_utf8_lossy(&project.check(&[]).stdout).into_owned();
         assert!(english.contains("src/Ledger.cs:5: CHK-102"), "{english}");
-        assert!(
-            english.contains("3 files checked, 1 findings."),
-            "{english}"
-        );
+        assert!(english.contains("3 files checked, 1 finding."), "{english}");
         let german = String::from_utf8_lossy(&project.check_in("de", &[]).stdout).into_owned();
-        assert!(german.contains("3 Dateien geprüft, 1 Funde."), "{german}");
+        assert!(german.contains("3 Dateien geprüft, 1 Fund."), "{german}");
         assert!(german.contains("kopiert"), "{german}");
+    }
+
+    #[test]
+    fn a_path_that_matches_no_file_fails_the_check() {
+        let project = Project::new();
+        let output = project.check(&["--json", "src/typo"]);
+        assert_eq!(output.status.code(), Some(1));
+        let json = report(&output);
+        assert_eq!(json["files_checked"], 0);
+        assert_eq!(json["unmatched"][0], "src/typo");
     }
 }

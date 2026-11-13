@@ -1,9 +1,9 @@
 //! Finding the similar pairs in a set of fingerprinted bodies.
 //!
 //! The duplicate check of `check_conventions` and `find_similar_code` share this measure with
-//! [`Fingerprints::similarity`] (blueprint 10.4: one implementation). Comparing every pair would
-//! cost the square of the number of bodies, so the pairs come from an inverted index of the
-//! hashes: only bodies that share at least one hash are ever counted together.
+//! [`Fingerprints::similarity`] (blueprint 10.4: one implementation). The pairs come from an
+//! inverted index of the hashes, so bodies that share no hash are never compared. A hash that
+//! very many bodies share still costs the square of that number.
 
 use std::collections::{HashMap, HashSet};
 

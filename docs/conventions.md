@@ -16,17 +16,17 @@ The report always lists the rules it did not check (`not_checked`), so a clean r
 
 ## Where it lives
 
-- `codeskimr_domain::similar_pairs` finds all similar pairs in a set of fingerprinted bodies. It works on an inverted index of the hashes, so the cost follows the number of shared hashes, not the square of the number of functions. Its value is the same Jaccard similarity as `Fingerprints::similarity` (a test compares them), and it is the function `find_similar_code` will use as well (blueprint 10.4: one implementation).
+- `codeskimr_domain::similar_pairs` finds all similar pairs in a set of fingerprinted bodies. It works on an inverted index of the hashes, so bodies that share no hash are never compared; a hash that very many functions share still costs the square of that number (to be measured on a large project before it is capped). Its value is the same Jaccard similarity as `Fingerprints::similarity` (a test compares them), and it is the function `find_similar_code` will use as well (blueprint 10.4: one implementation).
 - `codeskimr_application::conventions::ConventionChecker` is the use case. It takes the ports `FileDiscovery` and `FileAnalyzer` that a scan uses, so both see the same files (`scan.excluded_folders`, the installed language packs). It needs `read_source` (`AUTH-401` otherwise) and stores nothing.
 - `codeskimr_cli` renders the report (`check.rs`), `crates/app/src/check.rs` runs it.
 
 ## How a request is read
 
-- `paths` select files from the project's own file list: a file, or a folder with everything below it; no path or `.` selects everything. Separators may be `/` or `\`, a leading `./` is dropped. A path is never opened itself, so `..` or an absolute path outside the root selects nothing (blueprint S-05); it can never widen the selection.
+- `paths` select files from the project's own file list: a file, or a folder with everything below it; no path or `.` selects everything. Separators may be `/` or `\`, a leading `./` is dropped. A path is never opened itself, so `..` or an absolute path outside the root selects nothing (blueprint S-05); it can never widen the selection. A named path that selects no file is listed in `unmatched`, and `codeskimr check` exits with 1 then, so a typo cannot pass as a clean check.
 - The files are analysed afresh, so the check sees edits that no scan has seen. A file that cannot be analysed (no language pack, parse timeout `PRS-501`) does not stop the check; it is listed in `unchecked` with its code.
 - Duplicates are found among the selected files. To find a copy of code that is outside the selection, select the whole project (CI does). Comparing against the stored project needs persisted fingerprints (#94, with the MCP tool in WP-37).
 - A function reports at most one duplicate finding: on the later function in path and line order, naming the earlier one and the similarity (rounded down to a whole percent). Findings are ordered by file, line and code.
-- Length is the code lines of the function (ADR 0015: no blank or comment-only lines). A nested function counts for itself and for the function around it.
+- Length is the code lines of the function (ADR 0015: no blank or comment-only lines). A nested function counts for itself and for the function around it. A function and one nested inside it are never reported as duplicates of each other.
 
 ## Configuration
 

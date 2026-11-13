@@ -49,6 +49,7 @@ export const I18N_KEYS = {
   CLI_CHECK_UNCHECKED: "cli-check-unchecked",
   CLI_CHECK_SUMMARY: "cli-check-summary",
   CLI_CHECK_NOT_CHECKED: "cli-check-not-checked",
+  CLI_CHECK_UNMATCHED: "cli-check-unmatched",
   EXPLORER_TITLE: "explorer-title",
   EXPLORER_FRESHNESS: "explorer-freshness",
   EXPLORER_FILTER_TREE: "explorer-filter-tree",

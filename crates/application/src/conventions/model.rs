@@ -74,6 +74,9 @@ pub struct CheckReport {
     pub findings: Vec<Finding>,
     /// Selected files that could not be analysed.
     pub unchecked: Vec<Unchecked>,
+    /// Requested paths that selected no file, as the check read them. A caller that gets one
+    /// back should treat the check as not done: the path may be a typo.
+    pub unmatched: Vec<String>,
     /// Rules of blueprint section 3 this version does not check yet; a clean report says nothing
     /// about them.
     pub not_checked: Vec<ErrorCode>,

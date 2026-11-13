@@ -22,6 +22,8 @@ mod tests {
     struct Body {
         loc: u32,
         seed: u32,
+        /// A second function with the same body inside the first one.
+        inner: bool,
     }
 
     /// Files by path; `broken` fails to analyse.
@@ -57,8 +59,19 @@ mod tests {
         }
     }
 
-    fn function(request: &AnalyzeRequest<'_>, file: &SourceFile) -> Result<Symbol, CodedError> {
-        let at = Position { line: 4, column: 0 };
+    fn function(
+        request: &AnalyzeRequest<'_>,
+        file: &SourceFile,
+        lines: (u32, u32),
+    ) -> Result<Symbol, CodedError> {
+        let start = Position {
+            line: lines.0,
+            column: 0,
+        };
+        let end = Position {
+            line: lines.1,
+            column: 0,
+        };
         let path = request.file.path.as_str();
         Ok(Symbol {
             id: request.ids.symbol(),
@@ -69,7 +82,7 @@ mod tests {
             parent: None,
             visibility: None,
             is_static: false,
-            span: model(Span::new(at, at))?,
+            span: model(Span::new(start, end))?,
             signature: None,
             doc: None,
         })
@@ -105,16 +118,25 @@ mod tests {
                 snapshot: request.snapshot,
                 language: request.file.language.clone(),
             };
-            let symbol = function(request, &file)?;
+            let mut symbols = vec![function(request, &file, (4, 40))?];
+            if body.inner {
+                symbols.push(function(request, &file, (10, 12))?);
+            }
             Ok(FileFacts {
-                fingerprints: vec![prints(body, &symbol)?],
-                counts: vec![SymbolCounts {
-                    symbol: symbol.id,
-                    loc: Loc(body.loc),
-                    body: Some(BodyCounts::default()),
-                    counted: true,
-                }],
-                symbols: vec![symbol],
+                fingerprints: symbols
+                    .iter()
+                    .map(|symbol| prints(body, symbol))
+                    .collect::<Result<_, _>>()?,
+                counts: symbols
+                    .iter()
+                    .map(|symbol| SymbolCounts {
+                        symbol: symbol.id,
+                        loc: Loc(body.loc),
+                        body: Some(BodyCounts::default()),
+                        counted: true,
+                    })
+                    .collect(),
+                symbols,
                 pending: Vec::new(),
                 file,
             })
@@ -153,9 +175,30 @@ mod tests {
     fn sample() -> Disk {
         Disk {
             files: vec![
-                ("src/a.rs", Body { loc: 12, seed: 0 }),
-                ("src/b.rs", Body { loc: 90, seed: 0 }),
-                ("tests/c.rs", Body { loc: 8, seed: 500 }),
+                (
+                    "src/a.rs",
+                    Body {
+                        loc: 12,
+                        seed: 0,
+                        inner: false,
+                    },
+                ),
+                (
+                    "src/b.rs",
+                    Body {
+                        loc: 90,
+                        seed: 0,
+                        inner: false,
+                    },
+                ),
+                (
+                    "tests/c.rs",
+                    Body {
+                        loc: 8,
+                        seed: 500,
+                        inner: false,
+                    },
+                ),
             ],
             broken: None,
         }
@@ -243,5 +286,72 @@ mod tests {
         let reader = Principal::limited(PermissionSet::none().with(Permission::Read));
         let error = run(&checker(sample()), reader, &[]).expect_err("denied");
         assert_eq!(error.code(), ErrorCode::PermissionDenied);
+    }
+
+    fn only(files: Vec<(&'static str, Body)>) -> ConventionChecker {
+        checker(Disk {
+            files,
+            broken: None,
+        })
+    }
+
+    #[test]
+    fn every_copy_names_the_first_original_and_reports_once() {
+        let copy = || Body {
+            loc: 5,
+            seed: 0,
+            inner: false,
+        };
+        let checker = only(vec![("a.rs", copy()), ("b.rs", copy()), ("c.rs", copy())]);
+        let report = run(&checker, Principal::local_owner(), &[]).expect("checked");
+        let found: Vec<(&str, &str)> = report
+            .findings
+            .iter()
+            .filter_map(|finding| match &finding.detail {
+                Detail::Duplicate { of, .. } => {
+                    Some((finding.location.path.as_str(), of.path.as_str()))
+                }
+                Detail::TooLong { .. } => None,
+            })
+            .collect();
+        assert_eq!(found, [("b.rs", "a.rs"), ("c.rs", "a.rs")]);
+    }
+
+    #[test]
+    fn a_function_and_one_inside_it_are_no_duplicates() {
+        let nested = Body {
+            loc: 5,
+            seed: 0,
+            inner: true,
+        };
+        let report =
+            run(&only(vec![("a.rs", nested)]), Principal::local_owner(), &[]).expect("checked");
+        assert!(report.findings.is_empty(), "{:?}", report.findings);
+    }
+
+    #[test]
+    fn a_path_that_selects_nothing_is_reported_and_a_name_prefix_is_no_match() {
+        let checker = only(vec![
+            (
+                "src/a.rs",
+                Body {
+                    loc: 5,
+                    seed: 0,
+                    inner: false,
+                },
+            ),
+            (
+                "src/ab.rs",
+                Body {
+                    loc: 5,
+                    seed: 9,
+                    inner: false,
+                },
+            ),
+        ]);
+        let report =
+            run(&checker, Principal::local_owner(), &["src/a", "src/ab.rs"]).expect("checked");
+        assert_eq!(report.unmatched, ["src/a"]);
+        assert_eq!(report.files_checked, 1);
     }
 }

@@ -20,7 +20,7 @@ use crate::ports::{AnalyzeRequest, DiscoveredFile, FileAnalyzer, FileDiscovery, 
 /// The rules with a `CHK` code that this version cannot check yet. Literals and cognitive
 /// complexity need counts the language packs do not deliver; layering needs the allowed
 /// directions, which the project model does not carry (issue #45).
-const NOT_CHECKED: [ErrorCode; 3] = [
+const NOT_CHECKED: &[ErrorCode] = &[
     ErrorCode::LiteralFound,
     ErrorCode::LayerViolation,
     ErrorCode::ComplexityTooHigh,
@@ -81,7 +81,8 @@ impl ConventionChecker {
                 }),
             }
         }
-        Ok(self.report(&analysed, unchecked))
+        let unmatched = selection.unmatched(&files);
+        Ok(self.report(&analysed, unchecked, unmatched))
     }
 
     fn analyse(
@@ -102,7 +103,12 @@ impl ConventionChecker {
         })
     }
 
-    fn report(&self, analysed: &[Analysed], unchecked: Vec<Unchecked>) -> CheckReport {
+    fn report(
+        &self,
+        analysed: &[Analysed],
+        unchecked: Vec<Unchecked>,
+        unmatched: Vec<String>,
+    ) -> CheckReport {
         let mut findings: Vec<Finding> = analysed
             .iter()
             .flat_map(|done| too_long(&done.callables, self.limits.max_function_lines))
@@ -121,6 +127,7 @@ impl ConventionChecker {
             findings,
             unchecked,
             not_checked: NOT_CHECKED.to_vec(),
+            unmatched,
         }
     }
 }

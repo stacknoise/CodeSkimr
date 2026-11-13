@@ -4,7 +4,7 @@ use codeskimr_application::conventions::{CheckReport, Detail, Finding, Location}
 use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
     CLI_CHECK_DUPLICATE, CLI_CHECK_FINDING, CLI_CHECK_NOT_CHECKED, CLI_CHECK_SUMMARY,
-    CLI_CHECK_TOO_LONG, CLI_CHECK_UNCHECKED,
+    CLI_CHECK_TOO_LONG, CLI_CHECK_UNCHECKED, CLI_CHECK_UNMATCHED,
 };
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
 use serde::Serialize;
@@ -32,6 +32,11 @@ pub fn check_text(
         args.set(arg::CODE, skipped.code.id());
         args.set(arg::MESSAGE, say(messages, language, skipped.code)?);
         lines.push(messages.format(language, CLI_CHECK_UNCHECKED, Some(&args))?);
+    }
+    for path in &report.unmatched {
+        let mut args = FluentArgs::new();
+        args.set(arg::PATH, path.clone());
+        lines.push(messages.format(language, CLI_CHECK_UNMATCHED, Some(&args))?);
     }
     let mut summary = FluentArgs::new();
     summary.set(arg::FILES, FluentValue::from(report.files_checked));
@@ -120,10 +125,11 @@ struct JsonUnchecked {
 }
 
 #[derive(Serialize)]
-struct JsonReport {
+struct JsonReport<'a> {
     files_checked: u32,
     findings: Vec<JsonFinding>,
     unchecked: Vec<JsonUnchecked>,
+    unmatched: &'a [String],
     not_checked: Vec<&'static str>,
 }
 
@@ -176,6 +182,7 @@ pub fn check_json(report: &CheckReport) -> Result<String, serde_json::Error> {
                 code: skipped.code.id(),
             })
             .collect(),
+        unmatched: &report.unmatched,
         not_checked: report.not_checked.iter().map(|code| code.id()).collect(),
     })
 }

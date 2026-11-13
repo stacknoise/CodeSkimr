@@ -177,11 +177,13 @@ fn print_check(
         check_text(messages, language, report).map_err(CliError::from)?
     };
     write_out(&text);
-    Ok(if report.findings.is_empty() {
-        Outcome::Done
-    } else {
-        Outcome::FindingsReported
-    })
+    Ok(
+        if report.findings.is_empty() && report.unmatched.is_empty() {
+            Outcome::Done
+        } else {
+            Outcome::FindingsReported
+        },
+    )
 }
 
 fn summary_text(

@@ -30,5 +30,12 @@ cli-check-finding = { $path }:{ $line }: { $code } { $message }
 cli-check-too-long = { $name } has { $lines } code lines, at most { $limit } are allowed.
 cli-check-duplicate = { $name } copies { $original } ({ $path }:{ $line }), { $percent } % similar.
 cli-check-unchecked = Skipped { $path }: { $code } { $message }
-cli-check-summary = { $files } files checked, { $findings } findings.
+cli-check-summary = { $files ->
+    [one] 1 file
+   *[other] { $files } files
+} checked, { $findings ->
+    [one] 1 finding
+   *[other] { $findings } findings
+}.
 cli-check-not-checked = Not checked yet: { $codes }.
+cli-check-unmatched = No file matches { $path }. Check the path.

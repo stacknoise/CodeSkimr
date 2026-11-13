@@ -40,7 +40,7 @@ Starts the local server (`docs/server.md`) on `127.0.0.1` and the port `server.p
 codeskimr check [PATH ...] [--json]
 ```
 
-Runs the convention checks (`docs/conventions.md`) over the current folder, or over the files and folders named, relative to it. Nothing is stored and no scan is needed. The text output has two lines per finding (`path:line: CHK-104 message`, then the numbers), the files that were skipped, a summary and the rules that are not checked yet; `--json` prints one line with `files_checked`, `findings`, `unchecked` and `not_checked` (lines are one-based). The exit code is `1` if there is at least one finding, so CI can fail on it.
+Runs the convention checks (`docs/conventions.md`) over the current folder, or over the files and folders named, relative to it. Nothing is stored and no scan is needed. The text output has two lines per finding (`path:line: CHK-104 message`, then the numbers), the files that were skipped, a summary and the rules that are not checked yet; `--json` prints one line with `files_checked`, `findings`, `unchecked` and `not_checked` (lines are one-based). The exit code is `1` if there is at least one finding or a named path matches no file, so CI can fail on it.
 
 ## Global options
 
