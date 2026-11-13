@@ -25,6 +25,9 @@ version = "0.1.0"
 dependencies = [
  "codeskimr_codes",
  "codeskimr_domain",
+ "serde",
+ "thiserror",
+ "toml",
 ]
 
 [[package]]

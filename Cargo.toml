@@ -25,6 +25,8 @@ repository = "https://github.com/stacknoise/CodeSkimr"
 
 [workspace.dependencies]
 thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+toml = "1"
 
 # Binding rules from blueprint section 3 and 17.3. Thresholds live in clippy.toml.
 [workspace.lints.rust]
