@@ -11,7 +11,7 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import type { Page } from "@playwright/test";
+import type { Page, TestInfo } from "@playwright/test";
 import { addScannedProject, expect, keepLaunchFile, SCAN_MS, test, type Harness } from "./fixtures";
 
 const MOCKS = path.resolve(import.meta.dirname, "../../docs/mocks");
@@ -120,7 +120,7 @@ async function openUi(page: Page, harness: Harness): Promise<void> {
 }
 
 /** Saves the screen for the review by eye when asked to, and always attaches it to the report. */
-async function shot(page: Page, name: string, info: { attach: Function }): Promise<void> {
+async function shot(page: Page, name: string, info: TestInfo): Promise<void> {
   const body = await page.screenshot();
   await info.attach(name, { body, contentType: "image/png" });
   if (process.env["UPDATE_SCREENSHOTS"]) {
@@ -163,7 +163,6 @@ test.describe("the screens against the mocks (1440 x 900, light)", () => {
     const mock = await openMock(page, "Main");
     const wanted = await frameStyle(mock);
     const actual = await frameStyle(page);
-    // The mock has no border on the top bar's own height: compare what is drawn.
     expect(actual).toEqual(wanted);
     await compare(page, mock, SHELL);
   });

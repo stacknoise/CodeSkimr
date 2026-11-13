@@ -170,9 +170,11 @@ test.describe("the explorer tree (15.4)", () => {
     await filter.focus();
     await page.keyboard.type("urg");
     await expect(filter).toHaveValue("urg");
-    // U would open the usages and R rescan; both are text here.
-    await expect(page.getByRole("tree")).toBeVisible();
-    await expect(page).toHaveURL(/\/$|\/explorer/);
+    // U would open the usages and R would scan again; here both are text.
+    await expect(page.getByRole("region", { name: "Usage graph" })).toHaveCount(0);
+    await expect(tree(page)).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Ledger" })).toBeVisible();
+    await expect(page.getByText(/^incremental/)).toHaveCount(0);
   });
 });
 
@@ -205,8 +207,11 @@ test.describe("quick search and Esc (15.4)", () => {
     harness,
   }) => {
     await openExplorer(page, harness, "kbdenter");
+    await tree(page).focus();
     await page.keyboard.press("Escape");
     await expect(tree(page)).toBeVisible();
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(tree(page)).toBeFocused();
     await page.keyboard.press("Control+k");
     await page.getByRole("combobox").fill("m:show");
     await expect(page.getByRole("option", { name: /Show/ }).first()).toBeVisible();
