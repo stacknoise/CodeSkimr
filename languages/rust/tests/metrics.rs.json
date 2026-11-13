@@ -1,0 +1,392 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 66,
+      "operands": null,
+      "operators": null,
+      "symbol": "metrics"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "metrics::plain"
+    },
+    {
+      "decisions": 4,
+      "loc": 9,
+      "operands": [
+        6,
+        11
+      ],
+      "operators": [
+        5,
+        8
+      ],
+      "symbol": "metrics::branches"
+    },
+    {
+      "decisions": 2,
+      "loc": 11,
+      "operands": [
+        7,
+        14
+      ],
+      "operators": [
+        6,
+        14
+      ],
+      "symbol": "metrics::patterns"
+    },
+    {
+      "decisions": 2,
+      "loc": 13,
+      "operands": [
+        5,
+        11
+      ],
+      "operators": [
+        9,
+        9
+      ],
+      "symbol": "metrics::loops"
+    },
+    {
+      "decisions": 2,
+      "loc": 7,
+      "operands": [
+        8,
+        8
+      ],
+      "operators": [
+        3,
+        5
+      ],
+      "symbol": "metrics::arms"
+    },
+    {
+      "decisions": 1,
+      "loc": 6,
+      "operands": [
+        5,
+        7
+      ],
+      "operators": [
+        4,
+        6
+      ],
+      "symbol": "metrics::wildcard_guard"
+    },
+    {
+      "decisions": 0,
+      "loc": 7,
+      "operands": [
+        7,
+        8
+      ],
+      "operators": [
+        5,
+        11
+      ],
+      "symbol": "metrics::not_counted"
+    },
+    {
+      "decisions": 1,
+      "loc": 3,
+      "operands": [
+        7,
+        7
+      ],
+      "operators": [
+        6,
+        13
+      ],
+      "symbol": "metrics::outer"
+    },
+    {
+      "decisions": 1,
+      "loc": 3,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "metrics::outer::local"
+    },
+    {
+      "decisions": 0,
+      "loc": 4,
+      "operands": [
+        4,
+        5
+      ],
+      "operators": [
+        6,
+        6
+      ],
+      "symbol": "metrics::calls"
+    }
+  ],
+  "loc": 66,
+  "references": [
+    {
+      "at": "18:23",
+      "from": "metrics::patterns",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Vec"
+    },
+    {
+      "at": "18:27",
+      "from": "metrics::patterns",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Option"
+    },
+    {
+      "at": "20:37",
+      "from": "metrics::patterns",
+      "kind": "call",
+      "receiver": "typed Vec",
+      "target": "first"
+    },
+    {
+      "at": "21:17",
+      "from": "metrics::patterns",
+      "kind": "read",
+      "receiver": null,
+      "target": "first"
+    },
+    {
+      "at": "23:25",
+      "from": "metrics::patterns",
+      "kind": "call",
+      "receiver": "typed Vec",
+      "target": "into_iter"
+    },
+    {
+      "at": "24:38",
+      "from": "metrics::patterns",
+      "kind": "call",
+      "receiver": null,
+      "target": "next"
+    },
+    {
+      "at": "25:17",
+      "from": "metrics::patterns",
+      "kind": "read",
+      "receiver": null,
+      "target": "next"
+    },
+    {
+      "at": "49:13",
+      "from": "metrics::arms",
+      "kind": "read",
+      "receiver": null,
+      "target": "n"
+    },
+    {
+      "at": "63:34",
+      "from": "metrics::not_counted",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Option"
+    },
+    {
+      "at": "64:22",
+      "from": "metrics::not_counted",
+      "kind": "call",
+      "receiver": null,
+      "target": "parse"
+    },
+    {
+      "at": "64:37",
+      "from": "metrics::not_counted",
+      "kind": "call",
+      "receiver": null,
+      "target": "ok"
+    },
+    {
+      "at": "65:30",
+      "from": "metrics::not_counted",
+      "kind": "call",
+      "receiver": null,
+      "target": "checked_mul"
+    },
+    {
+      "at": "66:15",
+      "from": "metrics::not_counted",
+      "kind": "read",
+      "receiver": null,
+      "target": "None"
+    },
+    {
+      "at": "68:13",
+      "from": "metrics::not_counted",
+      "kind": "call",
+      "receiver": null,
+      "target": "Some"
+    },
+    {
+      "at": "68:18",
+      "from": "metrics::not_counted",
+      "kind": "read",
+      "receiver": null,
+      "target": "double"
+    },
+    {
+      "at": "72:32",
+      "from": "metrics::outer",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Vec"
+    },
+    {
+      "at": "76:11",
+      "from": "metrics::outer",
+      "kind": "call",
+      "receiver": null,
+      "target": "iter"
+    },
+    {
+      "at": "76:18",
+      "from": "metrics::outer",
+      "kind": "call",
+      "receiver": null,
+      "target": "map"
+    },
+    {
+      "at": "76:46",
+      "from": "metrics::outer",
+      "kind": "call",
+      "receiver": null,
+      "target": "local"
+    },
+    {
+      "at": "76:74",
+      "from": "metrics::outer",
+      "kind": "call",
+      "receiver": null,
+      "target": "collect"
+    },
+    {
+      "at": "81:18",
+      "from": "metrics::calls",
+      "kind": "call",
+      "receiver": null,
+      "target": "len"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "metrics",
+      "parent": null,
+      "span": "0:0-83:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics::plain",
+      "parent": "metrics",
+      "span": "2:0-4:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics::branches",
+      "parent": "metrics",
+      "span": "7:0-15:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics::patterns",
+      "parent": "metrics",
+      "span": "18:0-28:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics::loops",
+      "parent": "metrics",
+      "span": "31:0-43:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics::arms",
+      "parent": "metrics",
+      "span": "46:0-52:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics::wildcard_guard",
+      "parent": "metrics",
+      "span": "55:0-60:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics::not_counted",
+      "parent": "metrics",
+      "span": "63:0-69:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics::outer",
+      "parent": "metrics",
+      "span": "72:0-77:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics::outer::local",
+      "parent": "metrics::outer",
+      "span": "73:4-75:5",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "metrics::calls",
+      "parent": "metrics",
+      "span": "79:0-82:1",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}
