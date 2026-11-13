@@ -28,6 +28,7 @@ fn counts(id: u64, loc: u32, decisions: Option<u32>) -> SymbolCounts {
     SymbolCounts {
         symbol: SymbolId::new(id),
         loc: Loc(loc),
+        counted: true,
         body: decisions.map(|decisions| BodyCounts {
             decisions,
             halstead: HalsteadCounts {
@@ -74,7 +75,7 @@ fn counted() -> Vec<SymbolCounts> {
 }
 
 #[test]
-fn callables_get_loc_cc_and_mi_and_bodyless_ones_only_loc() -> Result<(), ModelError> {
+fn callables_get_loc_cc_and_mi_and_bodyless_ones_nothing() -> Result<(), ModelError> {
     let metrics = measure(&file()?, &counted())?;
     assert_eq!(
         value(&metrics, 3, MetricKind::CyclomaticComplexity),
@@ -85,7 +86,7 @@ fn callables_get_loc_cc_and_mi_and_bodyless_ones_only_loc() -> Result<(), ModelE
         Some(1.0)
     );
     assert!(value(&metrics, 3, MetricKind::MaintainabilityIndex).is_some());
-    assert_eq!(value(&metrics, 5, MetricKind::Loc), Some(1.0));
+    assert_eq!(value(&metrics, 5, MetricKind::Loc), None);
     assert_eq!(value(&metrics, 5, MetricKind::CyclomaticComplexity), None);
     assert_eq!(value(&metrics, 5, MetricKind::MaintainabilityIndex), None);
     Ok(())
@@ -133,5 +134,22 @@ fn counts_of_unknown_symbols_and_other_kinds_are_ignored() -> Result<(), ModelEr
     symbols.push(symbol(8, SymbolKind::Field, Some(2))?);
     let metrics = measure(&symbols, &[counts(8, 1, None), counts(99, 1, None)])?;
     assert!(metrics.is_empty());
+    Ok(())
+}
+
+#[test]
+fn without_counting_types_and_modules_only_get_loc() -> Result<(), ModelError> {
+    let uncounted: Vec<SymbolCounts> = counted()
+        .into_iter()
+        .map(|c| SymbolCounts {
+            counted: false,
+            body: None,
+            ..c
+        })
+        .collect();
+    let metrics = measure(&file()?, &uncounted)?;
+    assert_eq!(value(&metrics, 2, MetricKind::Loc), Some(20.0));
+    assert_eq!(value(&metrics, 2, MetricKind::CyclomaticComplexity), None);
+    assert_eq!(value(&metrics, 3, MetricKind::Loc), None);
     Ok(())
 }

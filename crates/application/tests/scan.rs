@@ -144,6 +144,7 @@ fn counted(symbol: SymbolId) -> SymbolCounts {
         symbol,
         loc: Loc(3),
         body: None,
+        counted: true,
     }
 }
 

@@ -16,6 +16,6 @@ Implements the driven ports `SourceProvider` and `FileDiscovery` of `codeskimr_a
 - Credentials: Git access uses what the Git library finds (credential helper). The loan pattern and keystore belong to the secrets package (blueprint section 12).
 - Files that are deleted since the previous snapshot are not listed by `FileDiscovery`; the pipeline derives them from `previous` and reports them to the store (`docs/incremental-scan.md`).
 - `publish_changes` connects `watch` to the event bus: every batch becomes a `FilesChanged` event. Starting the scan on it is up to the composition root.
-- The size limit and `max_wait` are constructor values; configuration keys for them are issue #28.
+- The size limit comes from `scan.max_source_mb` (default 2048, WP-25, closes #28); `max_wait` is still a constructor value.
 - Credentials inside a Git URL are not written to errors, but Git stores the URL in `.git/config` of the cached clone; avoiding that belongs to the secrets package.
 - An update is a full shallow re-clone, not a fetch.

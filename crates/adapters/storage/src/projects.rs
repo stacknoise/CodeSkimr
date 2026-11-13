@@ -10,7 +10,7 @@ use codeskimr_domain::{
 use rusqlite::{Connection, OptionalExtension, Row, params};
 
 use crate::codec::{Cols, column_int, id_from, ordinals, small_from};
-use crate::consts::{NO_BRANCH, SOURCE_FOLDER, SOURCE_GIT};
+use crate::consts::{FIRST_PROJECT_ID, ID_STEP, NO_BRANCH, SOURCE_FOLDER, SOURCE_GIT};
 use crate::error::{StorageError, StorageResult};
 use crate::previous::load_latest_index;
 use crate::sql;
@@ -58,6 +58,41 @@ impl SqliteStore {
     /// `PRJ-301` if another project has the same source, otherwise a coded `STO` failure.
     pub fn save_project(&self, project: &Project) -> Result<(), CodedError> {
         self.write(|tx| save(tx, project)).map_err(CodedError::from)
+    }
+
+    /// The id for the next project to register: one above the highest registered id.
+    ///
+    /// # Errors
+    /// A coded `STO` failure.
+    pub fn next_project_id(&self) -> Result<ProjectId, CodedError> {
+        self.read(|conn| {
+            let highest: Option<i64> = conn.query_row(sql::MAX_PROJECT_ID, [], |row| row.get(0))?;
+            let next = highest.map_or(Ok(FIRST_PROJECT_ID), |id| {
+                id_from(id).map(|id| id.saturating_add(ID_STEP))
+            })?;
+            Ok(ProjectId::new(next))
+        })
+        .map_err(CodedError::from)
+    }
+
+    /// The project registered for `source`, if there is one.
+    ///
+    /// # Errors
+    /// A coded `STO` failure.
+    pub fn project_by_source(&self, source: &ProjectSource) -> Result<Option<Project>, CodedError> {
+        self.read(|conn| {
+            let columns = SourceColumns::of(source);
+            let id: Option<i64> = conn
+                .query_row(
+                    sql::PROJECT_BY_SOURCE,
+                    params![columns.kind, columns.location, columns.branch],
+                    |row| row.get(0),
+                )
+                .optional()?;
+            id.map(|raw| load_project(conn, ProjectId::new(id_from(raw)?)))
+                .transpose()
+        })
+        .map_err(CodedError::from)
     }
 }
 

@@ -88,7 +88,7 @@ mod tests {
     fn methods_without_a_body_are_not_measured_and_initialisers_count_no_decisions() {
         let found = by_name(&facts());
         assert!(found["NoBody"].body.is_none());
-        assert_eq!(found["NoBody"].loc.0, 1);
+        assert!(found["Shape"].counted);
         assert!(found["Shape"].body.is_none());
     }
 

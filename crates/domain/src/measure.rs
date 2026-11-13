@@ -31,6 +31,9 @@ pub struct SymbolCounts {
     /// Counts of the body; `None` for anything but a callable with a body, and for a language
     /// pack without `metrics.scm`.
     pub body: Option<BodyCounts>,
+    /// Whether the language pack counts decision points at all (it has `metrics.scm`). Without it
+    /// a type or module has no `cc`, because 0 would be a measurement that did not happen.
+    pub counted: bool,
 }
 
 /// Running totals of the callables below one type, namespace or module.
@@ -74,18 +77,19 @@ pub fn measure(symbols: &[Symbol], counts: &[SymbolCounts]) -> Result<Vec<Metric
         let Some(symbol) = by_id.get(&count.symbol) else {
             continue;
         };
-        if symbol.kind.is_callable() || symbol.kind.is_rollup_target() {
+        if symbol.kind.is_rollup_target() {
             metrics.push(metric(
                 count.symbol,
                 MetricKind::Loc,
                 f64::from(count.loc.0),
             )?);
         }
+        // A callable without a body gets no metrics and takes no part in rollups.
         if let (true, Some(body)) = (symbol.kind.is_callable(), count.body) {
             metrics.extend(callable(symbol, count.loc, body, &by_id, &mut rollups)?);
         }
     }
-    for count in counts {
+    for count in counts.iter().filter(|count| count.counted) {
         if by_id
             .get(&count.symbol)
             .is_some_and(|s| s.kind.is_rollup_target())
@@ -97,14 +101,14 @@ pub fn measure(symbols: &[Symbol], counts: &[SymbolCounts]) -> Result<Vec<Metric
     Ok(metrics)
 }
 
-/// `cc` and `mi` of a callable; adds them to every type, namespace and module above it.
+/// `loc`, `cc` and `mi` of a callable with a body; adds them to every type, namespace and module above it.
 fn callable(
     symbol: &Symbol,
     loc: Loc,
     body: BodyCounts,
     by_id: &HashMap<SymbolId, &Symbol>,
     rollups: &mut HashMap<SymbolId, Rollup>,
-) -> Result<[Metric; 2], ModelError> {
+) -> Result<[Metric; 3], ModelError> {
     let cc = cyclomatic_complexity(body.decisions);
     let mi = maintainability_index(body.halstead, cc, loc)?;
     let mut parent = symbol.parent;
@@ -115,6 +119,7 @@ fn callable(
         parent = owner.parent;
     }
     Ok([
+        metric(symbol.id, MetricKind::Loc, f64::from(loc.0))?,
         metric(symbol.id, MetricKind::CyclomaticComplexity, f64::from(cc))?,
         Metric {
             symbol: symbol.id,

@@ -133,6 +133,7 @@ pub fn counts_of(
                 symbol: symbol.id,
                 loc: code_lines(lines, rows(&symbol.span), except),
                 body: body_of(symbol, table, tallies.as_ref()),
+                counted: tallies.is_some(),
             }
         })
         .collect()
