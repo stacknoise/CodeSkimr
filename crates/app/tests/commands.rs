@@ -637,3 +637,122 @@ fn the_cli_check_never_reads_a_file_outside_the_current_folder() {
         assert!(!text.contains(OUTSIDE_CLASS), "{path}: {text}");
     }
 }
+
+// --- Canaries in logs and process output (WP-74, blueprint S-02) ---------------------------
+
+/// A credential-shaped secret that appears only as input, never as something the app stores.
+const SECRET_CANARY: &str = "ghp_CANARY91e4b7c2d0a845f3b6c1d9e2";
+
+/// Every file below `dir` that holds `needle`.
+#[cfg(test)]
+fn files_with(dir: &Path, needle: &str) -> Vec<PathBuf> {
+    let mut found = Vec::new();
+    for entry in fs::read_dir(dir).into_iter().flatten().flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            found.extend(files_with(&path, needle));
+        } else if fs::read(&path).is_ok_and(|bytes| {
+            bytes
+                .windows(needle.len())
+                .any(|window| window == needle.as_bytes())
+        }) {
+            found.push(path);
+        }
+    }
+    found
+}
+
+/// No canary in the text and none in a file of the data folder. The messages name the stream,
+/// never the secret.
+#[cfg(test)]
+fn assert_clean(workspace: &Workspace, streams: &[(&str, String)]) {
+    for (name, text) in streams {
+        assert!(!text.contains(SECRET_CANARY), "canary in {name}");
+    }
+    let data = workspace.root.path().join("data");
+    assert!(
+        files_with(&data, SECRET_CANARY).is_empty(),
+        "canary in the data folder"
+    );
+}
+
+#[test]
+fn a_secret_in_a_git_address_stays_out_of_the_output_and_the_data_folder() {
+    let workspace = Workspace::new();
+    let address = format!("https://user:{SECRET_CANARY}@127.0.0.1:9/repo.git");
+    let output = workspace
+        .command()
+        .env("CODESKIMR_LOG", "trace")
+        .args(["scan", "--json", &address])
+        .output()
+        .unwrap();
+    assert!(
+        !output.status.success(),
+        "the unreachable address must fail"
+    );
+    // The control: the failure is reported on standard error.
+    assert!(!stderr(&output).is_empty());
+    let streams = [
+        (
+            "stdout",
+            String::from_utf8_lossy(&output.stdout).into_owned(),
+        ),
+        ("stderr", stderr(&output)),
+    ];
+    assert_clean(&workspace, &streams);
+}
+
+/// The requests of a stdio session that carry the secret in every place a client can put one.
+#[cfg(test)]
+fn stdio_requests() -> [Value; 6] {
+    let rpc = |id: u64, method: &str, params: Value| json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params});
+    let call = |id: u64, name: &str, arguments: Value| {
+        rpc(
+            id,
+            "tools/call",
+            json!({"name": name, "arguments": arguments}),
+        )
+    };
+    [
+        rpc(
+            1,
+            "initialize",
+            json!({"protocolVersion": "2025-06-18", "capabilities": {},
+                   "clientInfo": {"name": SECRET_CANARY, "version": "0"}}),
+        ),
+        json!({"jsonrpc": "2.0", "method": "notifications/initialized"}),
+        call(2, "search_symbols", json!({"query": SECRET_CANARY})),
+        call(3, "check_conventions", json!({"paths": [SECRET_CANARY]})),
+        call(4, "get_architecture", json!({"project": 99})),
+        call(5, "no_such_tool", json!({"token": SECRET_CANARY})),
+    ]
+}
+
+#[test]
+fn a_secret_sent_to_the_stdio_server_stays_out_of_its_log_and_the_data_folder() {
+    let workspace = Workspace::new();
+    json_of(&workspace.scan(&[]));
+    let mut child = workspace
+        .command()
+        .env("CODESKIMR_LOG", "trace")
+        .arg("mcp")
+        .arg("--project")
+        .arg(workspace.project())
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let requests = stdio_requests();
+    let mut stdin = child.stdin.take().unwrap();
+    for request in &requests {
+        writeln!(stdin, "{request}").unwrap();
+    }
+    drop(stdin);
+    let output = child.wait_with_output().unwrap();
+    // The control: every call was answered, so the secret really went through the server.
+    let answers = String::from_utf8_lossy(&output.stdout).into_owned();
+    assert_eq!(answers.lines().count(), 5, "{answers}");
+    assert!(!stderr(&output).is_empty(), "the trace level logs");
+    assert_clean(&workspace, &[("stderr", stderr(&output))]);
+}
