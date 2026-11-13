@@ -38,7 +38,7 @@ enum Pass {
     Usages,
 }
 
-const PASSES: [Pass; 3] = [Pass::Imports, Pass::Inheritance, Pass::Usages];
+const PASSES: &[Pass] = &[Pass::Imports, Pass::Inheritance, Pass::Usages];
 
 impl Pass {
     const fn of(kind: ReferenceKind) -> Self {
@@ -63,7 +63,7 @@ impl ReferenceResolver for ScopedResolver {
         let mut context = Context::new(SymbolTable::new(symbols));
         let mut seen: HashSet<Edge> = HashSet::new();
         let mut references = Vec::new();
-        for pass in PASSES {
+        for &pass in PASSES {
             for occurrence in pending.iter().filter(|p| Pass::of(p.kind) == pass) {
                 let hits = context.lookup(occurrence);
                 context.learn(occurrence, &hits);
