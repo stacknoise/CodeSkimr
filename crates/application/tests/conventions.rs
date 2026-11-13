@@ -143,16 +143,22 @@ mod tests {
         }
     }
 
+    fn limits() -> Conventions {
+        Conventions {
+            max_function_lines: 40,
+            duplicate_similarity_percent: 85,
+            duplicate_min_lines: 5,
+            test_folders: vec!["spec".to_owned()],
+        }
+    }
+
     fn checker(disk: Disk) -> ConventionChecker {
+        checker_with(disk, limits())
+    }
+
+    fn checker_with(disk: Disk, limits: Conventions) -> ConventionChecker {
         let disk = Arc::new(disk);
-        ConventionChecker::new(
-            disk.clone(),
-            disk,
-            Conventions {
-                max_function_lines: 40,
-                duplicate_similarity_percent: 85,
-            },
-        )
+        ConventionChecker::new(disk.clone(), disk, limits)
     }
 
     fn root() -> FolderPath {
@@ -236,6 +242,38 @@ mod tests {
         };
         assert_eq!(of.path.as_str(), "src/a.rs");
         assert_eq!(*similarity_percent, 100);
+    }
+
+    #[test]
+    fn small_functions_are_not_compared_for_duplicates() {
+        let limits = Conventions {
+            duplicate_min_lines: 100,
+            ..limits()
+        };
+        let report = run(
+            &checker_with(sample(), limits),
+            Principal::local_owner(),
+            &[],
+        )
+        .expect("checked");
+        let codes: Vec<ErrorCode> = report.findings.iter().map(|f| f.code).collect();
+        assert_eq!(codes, [ErrorCode::FunctionTooLong]);
+    }
+
+    #[test]
+    fn files_in_test_folders_are_not_checked() {
+        let limits = Conventions {
+            test_folders: vec!["src".to_owned()],
+            ..limits()
+        };
+        let report = run(
+            &checker_with(sample(), limits),
+            Principal::local_owner(),
+            &[],
+        )
+        .expect("checked");
+        assert_eq!(report.files_checked, 1);
+        assert_eq!(report.findings.len(), 0);
     }
 
     #[test]

@@ -8,15 +8,16 @@ use std::sync::{Arc, PoisonError};
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    ImpactPage, ImpactedSymbol, SymbolLabel, UsageEntry, UsageIndex, UsagePage,
+    DependencyEdge, DependencyPage, DependencyQuery, ImpactPage, ImpactedSymbol, SymbolLabel,
+    UsageEntry, UsageIndex, UsagePage,
 };
 use codeskimr_domain::{
-    Direction, QualifiedName, RelativePath, ReverseIndex, SnapshotId, SymbolId, UsageQuery,
-    Visibility,
+    Direction, QualifiedName, ReferenceKind, RelativePath, ReverseIndex, SnapshotId, SymbolId,
+    UsageQuery, Visibility,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 
-use crate::codec::{Cols, column_int, label_from};
+use crate::codec::{Cols, column_int, label_from, small_from};
 use crate::error::{StorageError, StorageResult};
 use crate::previous::load_references;
 use crate::sql;
@@ -178,6 +179,60 @@ impl SqliteStore {
     }
 }
 
+/// The columns of `DEPENDENCIES_*`, still raw.
+struct EdgeRow {
+    id: i64,
+    qualified: String,
+    kind: String,
+    path: String,
+    count: i64,
+}
+
+fn read_edge(cols: &Cols<'_>) -> rusqlite::Result<EdgeRow> {
+    Ok(EdgeRow {
+        id: cols.take()?,
+        qualified: cols.take()?,
+        kind: cols.take()?,
+        path: cols.take()?,
+        count: cols.take()?,
+    })
+}
+
+fn dependency_edges(
+    conn: &Connection,
+    snapshot: i64,
+    query: &DependencyQuery,
+) -> StorageResult<Vec<DependencyEdge>> {
+    let sql = match query.direction {
+        Direction::Outgoing => sql::DEPENDENCIES_OUTGOING,
+        Direction::Incoming => sql::DEPENDENCIES_INCOMING,
+    };
+    let mut statement = conn.prepare_cached(sql)?;
+    let rows = statement.query_map(
+        params![
+            snapshot,
+            column_int(query.symbol.get())?,
+            query.include_tests,
+            ReferenceKind::Test.label()
+        ],
+        |row| read_edge(&Cols::new(row)),
+    )?;
+    let mut edges = Vec::new();
+    for row in rows {
+        let row = row?;
+        edges.push(DependencyEdge {
+            other: SymbolLabel {
+                id: SymbolId::new(u64::try_from(row.id).map_err(|_| StorageError::OutOfRange)?),
+                qualified_name: QualifiedName::new(row.qualified)?,
+                kind: label_from(&row.kind)?,
+            },
+            path: RelativePath::new(row.path)?,
+            count: small_from(row.count)?,
+        });
+    }
+    Ok(edges)
+}
+
 impl UsageIndex for SqliteStore {
     fn usages(
         &self,
@@ -198,5 +253,20 @@ impl UsageIndex for SqliteStore {
     ) -> Result<ImpactPage, CodedError> {
         self.impact_page(snapshot, symbol, depth, limit)
             .map_err(CodedError::from)
+    }
+
+    fn dependencies(
+        &self,
+        snapshot: SnapshotId,
+        query: &DependencyQuery,
+        limit: u32,
+    ) -> Result<DependencyPage, CodedError> {
+        let raw = column_int(snapshot.get()).map_err(CodedError::from)?;
+        let mut edges = self
+            .read(|conn| dependency_edges(conn, raw, query))
+            .map_err(CodedError::from)?;
+        let total = edges.len();
+        edges.truncate(limit as usize);
+        Ok(DependencyPage { total, edges })
     }
 }

@@ -185,6 +185,26 @@ pub const SEARCH: &str = "SELECT symbol_id, name, qualified_name, kind, path FRO
 /// Layer graph of a snapshot: snapshot.
 pub const EDGES: &str = "SELECT from_layer, to_layer, edge_count, violates_layering, in_cycle \
     FROM layer_graph WHERE snapshot_id = ?1 ORDER BY from_layer, to_layer";
+/// Symbols outside a scope (a symbol and everything it contains) that the scope uses: snapshot,
+/// scope symbol, whether tests count, label of the test kind.
+pub const DEPENDENCIES_OUTGOING: &str = "WITH RECURSIVE scope(id) AS (SELECT ?2 UNION SELECT s.id FROM symbols s \
+    JOIN scope c ON s.parent_id = c.id WHERE s.snapshot_id = ?1) \
+    SELECT t.id, t.qualified_name, t.kind, f.path, COUNT(*) FROM symbol_references r \
+    JOIN symbols t ON t.snapshot_id = r.snapshot_id AND t.id = r.to_symbol \
+    JOIN files f ON f.snapshot_id = t.snapshot_id AND f.id = t.file_id \
+    WHERE r.snapshot_id = ?1 AND r.from_symbol IN (SELECT id FROM scope) \
+    AND r.to_symbol NOT IN (SELECT id FROM scope) AND (?3 OR r.kind <> ?4) \
+    GROUP BY t.id ORDER BY COUNT(*) DESC, t.qualified_name, t.id";
+/// Symbols outside a scope (a symbol and everything it contains) that use the scope: snapshot,
+/// scope symbol, whether tests count, label of the test kind.
+pub const DEPENDENCIES_INCOMING: &str = "WITH RECURSIVE scope(id) AS (SELECT ?2 UNION SELECT s.id FROM symbols s \
+    JOIN scope c ON s.parent_id = c.id WHERE s.snapshot_id = ?1) \
+    SELECT t.id, t.qualified_name, t.kind, f.path, COUNT(*) FROM symbol_references r \
+    JOIN symbols t ON t.snapshot_id = r.snapshot_id AND t.id = r.from_symbol \
+    JOIN files f ON f.snapshot_id = t.snapshot_id AND f.id = t.file_id \
+    WHERE r.snapshot_id = ?1 AND r.to_symbol IN (SELECT id FROM scope) \
+    AND r.from_symbol NOT IN (SELECT id FROM scope) AND (?3 OR r.kind <> ?4) \
+    GROUP BY t.id ORDER BY COUNT(*) DESC, t.qualified_name, t.id";
 /// Summary of one type: snapshot, symbol.
 pub const TYPE_SUMMARY: &str = "SELECT member_count, loc, max_complexity, maintainability \
     FROM type_summary WHERE snapshot_id = ?1 AND symbol_id = ?2";

@@ -8,18 +8,20 @@ use codeskimr_application::config::{Conventions, McpLimits};
 use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    AnalyzeRequest, Clock, CodeIndex, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts,
-    ImpactPage, ImpactedSymbol, MemberRef, PreviousIndex, ProjectRepository, SearchHit, SimilarHit,
-    SimilarQuery, SimilarityIndex, SnippetFingerprinter, SymbolDetail, SymbolKey, SymbolLabel,
-    UsageEntry, UsageIndex, UsagePage,
+    AnalyzeRequest, Clock, CodeIndex, DependencyEdge, DependencyPage, DependencyQuery,
+    DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, ImpactPage, ImpactedSymbol, MemberRef,
+    PreviousIndex, ProjectRepository, ProjectScanner, SearchHit, SimilarHit, SimilarQuery,
+    SimilarityIndex, SnippetFingerprinter, SymbolDetail, SymbolKey, SymbolLabel, UsageEntry,
+    UsageIndex, UsagePage,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
     BodyCounts, Confidence, ContentHash, Direction, FileId, Fingerprint, Fingerprints, FolderPath,
     LanguageId, Layer, LayerEdge, LayerName, Loc, Metric, MetricKind, MetricValue, Position,
-    Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference, ReferenceId,
-    ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId, SnapshotStats, SourceFile, Span,
-    Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName, Timestamp, UsageQuery, Visibility,
+    Principal, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference,
+    ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId, SnapshotStats,
+    SourceFile, Span, Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName, Timestamp,
+    UsageQuery, Visibility,
 };
 use codeskimr_mcp::{Ports, Tools};
 
@@ -125,13 +127,17 @@ impl CodeIndex for FakeIndex {
     }
 
     fn layer_edges(&self, _snapshot: SnapshotId) -> Result<Vec<LayerEdge>, CodedError> {
-        Ok(vec![LayerEdge {
-            from: LayerName::new("Application").unwrap(),
-            to: LayerName::new("Domain").unwrap(),
-            count: 7,
-            violates_layering: false,
-            in_cycle: false,
-        }])
+        let edge = |from: &str, to: &str, count: u32, bad: bool| LayerEdge {
+            from: LayerName::new(from).unwrap(),
+            to: LayerName::new(to).unwrap(),
+            count,
+            violates_layering: bad,
+            in_cycle: bad,
+        };
+        Ok(vec![
+            edge("Application", "Domain", 7, false),
+            edge("Domain", "Application", 2, true),
+        ])
     }
 }
 
@@ -201,6 +207,7 @@ impl Clock for FixedClock {
 pub struct FakeUsages {
     pub asked: Mutex<Vec<(UsageQuery, u32)>>,
     pub impact_asked: Mutex<Vec<(u32, u32)>>,
+    pub dependencies_asked: Mutex<Vec<DependencyQuery>>,
 }
 
 fn label(id: u64, kind: SymbolKind, qualified: &str) -> SymbolLabel {
@@ -290,6 +297,67 @@ impl UsageIndex for FakeUsages {
             total,
             symbols: all.into_iter().take(limit as usize).collect(),
         })
+    }
+
+    fn dependencies(
+        &self,
+        _snapshot: SnapshotId,
+        query: &DependencyQuery,
+        limit: u32,
+    ) -> Result<DependencyPage, CodedError> {
+        self.dependencies_asked.lock().unwrap().push(*query);
+        let all = Self::far_sides();
+        Ok(DependencyPage {
+            total: all.len(),
+            edges: all.into_iter().take(limit as usize).collect(),
+        })
+    }
+}
+
+/// Scans nothing: remembers who asked and answers with snapshot 11, or fails.
+#[derive(Default)]
+pub struct FakeScanner {
+    pub asked: Mutex<Vec<(Principal, ProjectId)>>,
+    pub fail: bool,
+}
+
+impl ProjectScanner for FakeScanner {
+    fn rescan(&self, principal: &Principal, project: ProjectId) -> Result<Snapshot, CodedError> {
+        self.asked.lock().unwrap().push((*principal, project));
+        if self.fail {
+            return Err(CodedError::new(ErrorCode::UnexpectedInternalError));
+        }
+        Ok(Snapshot {
+            id: SnapshotId::new(11),
+            project,
+            commit: None,
+            created: Timestamp(NOW - 5),
+            mode: ScanMode::Incremental,
+            stats: SnapshotStats {
+                files: 3,
+                symbols: 40,
+                references: 90,
+            },
+        })
+    }
+}
+
+fn far_side(id: u64, qualified: &str, count: u32) -> DependencyEdge {
+    DependencyEdge {
+        other: label(id, SymbolKind::Class, qualified),
+        path: RelativePath::new("src/far.cs").unwrap(),
+        count,
+    }
+}
+
+impl FakeUsages {
+    /// What the fake index finds around `App.Domain.Order`, whichever way it is asked.
+    fn far_sides() -> Vec<DependencyEdge> {
+        vec![
+            far_side(22, "App.Domain.Invoice", 4),
+            far_side(20, "App.Application.Service", 2),
+            far_side(40, "Other.Thing", 1),
+        ]
     }
 }
 
@@ -422,6 +490,8 @@ pub fn checker() -> Arc<ConventionChecker> {
         Conventions {
             max_function_lines: 40,
             duplicate_similarity_percent: 85,
+            duplicate_min_lines: 5,
+            test_folders: vec!["tests".to_owned()],
         },
     ))
 }
@@ -445,7 +515,20 @@ pub fn tools_using(index: FakeIndex, usages: Arc<FakeUsages>) -> Tools {
     build(index, usages, true)
 }
 
+pub fn tools_scanning(scanner: Arc<FakeScanner>) -> Tools {
+    assemble(scanned(), Arc::new(FakeUsages::default()), true, scanner)
+}
+
 fn build(index: FakeIndex, usages: Arc<FakeUsages>, has_prints: bool) -> Tools {
+    assemble(index, usages, has_prints, Arc::new(FakeScanner::default()))
+}
+
+fn assemble(
+    index: FakeIndex,
+    usages: Arc<FakeUsages>,
+    has_prints: bool,
+    scanner: Arc<FakeScanner>,
+) -> Tools {
     Tools::new(
         Ports {
             projects: Arc::new(FakeProjects),
@@ -458,6 +541,7 @@ fn build(index: FakeIndex, usages: Arc<FakeUsages>, has_prints: bool) -> Tools {
             snippets: Arc::new(FakeSnippets),
             checker: checker(),
             clock: Arc::new(FixedClock),
+            scanner,
         },
         limits(),
         PROJECT,

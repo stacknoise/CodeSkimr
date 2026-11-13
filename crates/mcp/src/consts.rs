@@ -6,6 +6,9 @@ use codeskimr_domain::Permission;
 /// signatures. A tool that returns source text would need `Permission::ReadSource` instead.
 pub const READ_TOOL_PERMISSION: Permission = Permission::Read;
 
+/// What `rescan` needs: it changes the stored snapshots.
+pub const SCAN_TOOL_PERMISSION: Permission = Permission::Scan;
+
 /// Name of the tool that searches symbols by name.
 pub const TOOL_SEARCH_SYMBOLS: &str = "search_symbols";
 /// Name of the tool that shows one symbol.
@@ -22,11 +25,25 @@ pub const TOOL_FIND_SIMILAR_CODE: &str = "find_similar_code";
 pub const TOOL_FIND_CONSTANTS: &str = "find_constants";
 /// Name of the tool that checks code against the rules of blueprint section 3.
 pub const TOOL_CHECK_CONVENTIONS: &str = "check_conventions";
+/// Name of the tool that lists the dependencies of a symbol, namespace or layer.
+pub const TOOL_GET_DEPENDENCIES: &str = "get_dependencies";
+/// Name of the tool that scans the project again.
+pub const TOOL_RESCAN: &str = "rescan";
 
 /// Value of `direction`: the walk follows the users of the symbol.
 pub const DIRECTION_INCOMING: &str = "incoming";
 /// Value of `direction`: the walk follows what the symbol uses.
 pub const DIRECTION_OUTGOING: &str = "outgoing";
+
+/// Argument name reported when its value is invalid: the layer.
+pub const ARG_LAYER: &str = "layer";
+/// Argument name reported when `symbol` and `layer` are both given or both missing.
+pub const ARG_SYMBOL_OR_LAYER: &str = "symbol or layer";
+
+/// Value of `target.kind`: a symbol, namespace or type.
+pub const TARGET_SYMBOL: &str = "symbol";
+/// Value of `target.kind`: a layer.
+pub const TARGET_LAYER: &str = "layer";
 
 /// Name the server reports in the `initialize` answer.
 pub const SERVER_NAME: &str = "codeskimr";
