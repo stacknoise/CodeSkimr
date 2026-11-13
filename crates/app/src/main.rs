@@ -13,6 +13,7 @@ mod consts;
 mod credential;
 #[cfg(test)]
 mod e2e;
+mod embedded_ui;
 mod export;
 mod installation_token;
 mod launch_file;
