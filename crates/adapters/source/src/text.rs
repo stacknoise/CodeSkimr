@@ -115,7 +115,10 @@ mod tests {
     #[test]
     fn a_range_behind_the_end_is_empty() {
         let (_dir, root) = folder(&[("a.cs", "1\n")]);
-        assert!(read(&root, "a.cs", (9, 12)).unwrap().lines.is_empty());
+        assert_eq!(
+            read(&root, "a.cs", (9, 12)).unwrap().lines,
+            Vec::<String>::new()
+        );
     }
 
     #[test]
