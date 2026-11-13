@@ -53,7 +53,7 @@ The package added two keys: `scan.parse_timeout_ms` (default 5000, `PRS-501` on 
 
 ## Known limits
 
-- References come from the level-1 resolver (`docs/references.md`). 
+- References come from the level-1 resolver (`docs/references.md`).
 - The language packs are read from a folder (see `--languages`); embedding them in the binary comes with the release package.
 - `Ctrl+C` ends the process; cancelling a scan cleanly (`CancelToken`) is wired with the server.
 - A user config error that is not TOML syntax (unreadable file) is reported as `CFG-102`.

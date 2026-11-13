@@ -6,7 +6,9 @@ use codeskimr_domain::{Confidence, FileId, ReferenceKind, Symbol, SymbolId, Symb
 
 use super::consts::NAME_JOINER;
 use super::context::Context;
-use super::kinds::{OVERRIDABLE, TYPES, candidates, is_overridable, is_type, reported};
+use super::kinds::{
+    OVERRIDABLE, TYPES, candidates, is_contract, is_overridable, is_type, reported,
+};
 use crate::ports::{PendingReference, Receiver};
 
 /// One symbol that a pending name resolves to.
@@ -92,10 +94,25 @@ impl<'a> Context<'a> {
                 .map(|own| self.hierarchy.direct_bases_of(own)),
             (Some(Receiver::Typed(name)), _) => Some(self.type_ids(occurrence, name.as_str())),
             (Some(Receiver::Named(name)), _) => {
-                Some(self.type_ids(occurrence, name.as_str())).filter(|ids| !ids.is_empty())
+                self.named_receiver_types(occurrence, name.as_str())
             }
             (None, _) => None,
         }
+    }
+
+    /// A receiver name that is a project type gives that type. One that no project symbol bears
+    /// is an outside type or variable: its members are not project symbols. Any other name may be
+    /// a variable of unknown type, which tells nothing.
+    fn named_receiver_types(
+        &self,
+        occurrence: &PendingReference,
+        name: &str,
+    ) -> Option<Vec<SymbolId>> {
+        let types = self.type_ids(occurrence, name);
+        if !types.is_empty() {
+            return Some(types);
+        }
+        self.table.named(name).is_empty().then(Vec::new)
     }
 
     fn enclosing_type(&self, from: SymbolId) -> Option<SymbolId> {
@@ -206,7 +223,12 @@ impl<'a> Context<'a> {
         } else {
             self.dispatch_targets(&targets)
         };
-        let probable = found.global || targets.len() > 1 || !others.is_empty();
+        let probable = found.global
+            || targets.len() > 1
+            || !others.is_empty()
+            || targets
+                .iter()
+                .any(|symbol| self.is_declared_by_contract(symbol));
         targets.extend(others);
         targets.sort_by_key(|symbol| symbol.id);
         targets.dedup_by_key(|symbol| symbol.id);
@@ -223,6 +245,14 @@ impl<'a> Context<'a> {
                 confidence,
             })
             .collect()
+    }
+
+    /// Whether the symbol is a member of an interface or trait: a call of it is a dispatch.
+    fn is_declared_by_contract(&self, symbol: &Symbol) -> bool {
+        symbol
+            .parent
+            .and_then(|parent| self.table.get(parent))
+            .is_some_and(|parent| is_contract(parent.kind))
     }
 
     /// The members of subtypes that replace or implement a member of `targets`: a call through

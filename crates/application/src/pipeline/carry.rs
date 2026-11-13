@@ -41,6 +41,31 @@ impl Carried {
         resolved.retain(|reference| !kept.contains(&edge(reference)));
     }
 
+    /// The kept base-list references as names to resolve again. The resolver learns the type
+    /// hierarchy from base lists only, so without these it would not know which unchanged type
+    /// derives from which. The results duplicate kept references and are dropped again.
+    #[must_use]
+    pub fn inheritance_seed(&self) -> Vec<PendingReference> {
+        let names: HashMap<SymbolId, &QualifiedName> = self
+            .symbols
+            .iter()
+            .map(|symbol| (symbol.id, &symbol.qualified_name))
+            .collect();
+        self.references
+            .iter()
+            .filter(|reference| {
+                matches!(
+                    reference.kind,
+                    ReferenceKind::Inherit | ReferenceKind::Implement
+                )
+            })
+            .filter_map(|reference| {
+                let target = names.get(&reference.to)?;
+                Some(resolved_again(reference, (*target).clone()))
+            })
+            .collect()
+    }
+
     /// Splits the previous snapshot into what is kept and what is gone, and marks every
     /// discovered file that the previous snapshot does not know as changed.
     #[must_use]
@@ -139,16 +164,21 @@ fn names_to_resolve(
             reference.kind,
         );
         if seen.insert((occurrence, target)) {
-            pending.push(PendingReference {
-                from: reference.from,
-                file: reference.file,
-                span: reference.span,
-                kind: reference.kind,
-                target: target.clone(),
-                receiver: None,
-                previous: Some(reference.confidence),
-            });
+            pending.push(resolved_again(reference, target.clone()));
         }
     }
     pending
+}
+
+/// A reference as a name to resolve again by the qualified name of its target.
+fn resolved_again(reference: &Reference, target: QualifiedName) -> PendingReference {
+    PendingReference {
+        from: reference.from,
+        file: reference.file,
+        span: reference.span,
+        kind: reference.kind,
+        target,
+        receiver: None,
+        previous: Some(reference.confidence),
+    }
 }

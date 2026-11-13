@@ -13,7 +13,7 @@ Blueprint 9.2. The resolver turns the names that the analysis found (`PendingRef
 
 Three passes, because later ones need what earlier ones found: imports, then inheritance (base lists), then everything else.
 
-1. A receiver gives the types in which the member is searched, with their base types (nearest type first). A receiver of a type outside the project finds nothing: its members are never mistaken for project symbols of the same name.
+1. A receiver gives the types in which the member is searched, with their base types (nearest type first). A receiver of a type outside the project finds nothing: its members are never mistaken for project symbols of the same name. This holds for a declared type, and for a receiver name that no project symbol bears (`Console.WriteLine`). A receiver name that is a variable or member of unknown type tells nothing, and the member falls back to the last resort. A receiver type that itself was found only by the last resort still gives a `certain` member if the member is found in it.
 2. Without usable receiver: the enclosing symbols from the inside out (members of the enclosing type and its bases, enclosing namespaces including their parent namespaces), then the namespaces the file imports.
 3. Last resort: the name alone.
 
@@ -21,7 +21,7 @@ Which kinds a name can point to depends on the kind of occurrence (`resolve/kind
 
 ## Confidence
 
-`certain`: one candidate found in steps 1 to 4. `probable`: several candidates (all are stored), the last resort, or a dispatch: if the target is a method, property or event that subtypes replace or implement, the members of those subtypes are added as candidates (a call through an interface or base class can end up in any of them). `RES-301` is not reported yet. A reference that is resolved again in an incremental scan keeps its earlier confidence.
+`certain`: one candidate found in steps 1 to 4. `probable`: several candidates (all are stored), the last resort, a member of an interface or trait (the implementation is unknown), or a dispatch: if the target is a method, property or event that subtypes replace or implement, the members of those subtypes are added as candidates (a call through an interface or base class can end up in any of them). `RES-301` is not reported yet. A reference that is resolved again in an incremental scan keeps its earlier confidence, and the kept base lists are resolved again so that the hierarchy is complete (`docs/incremental-scan.md`).
 
 ## Known limits (follow-up work)
 

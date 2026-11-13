@@ -27,6 +27,15 @@ mod tests {
             )
         }
 
+        /// A class `Shop.Fancy` with a method `Print`.
+        fn add_fancy(&mut self) -> (SymbolId, SymbolId) {
+            let class = self.add(SymbolKind::Class, "Shop.Fancy", None, 5);
+            (
+                class,
+                self.add(SymbolKind::Method, "Shop.Fancy.Print", Some(class), 5),
+            )
+        }
+
         fn add(
             &mut self,
             kind: SymbolKind,
@@ -83,6 +92,14 @@ mod tests {
         ScopedResolver
             .resolve(&table.symbols, pending, &IdSequence::starting_at(1000))
             .expect("resolves")
+    }
+
+    fn of_kind(references: &[Reference], kind: ReferenceKind) -> Vec<SymbolId> {
+        references
+            .iter()
+            .filter(|reference| reference.kind == kind)
+            .map(|reference| reference.to)
+            .collect()
     }
 
     fn targets(references: &[Reference]) -> Vec<SymbolId> {
@@ -273,10 +290,7 @@ mod tests {
     #[test]
     fn an_override_points_to_the_base_member_and_not_to_itself() {
         let mut shop = shop();
-        let derived = shop.table.add(SymbolKind::Class, "Shop.Fancy", None, 5);
-        let fancy_print = shop
-            .table
-            .add(SymbolKind::Method, "Shop.Fancy.Print", Some(derived), 5);
+        let (derived, fancy_print) = shop.table.add_fancy();
         let pending = [
             occurrence(derived, 5, ReferenceKind::Inherit, "Printer"),
             occurrence(fancy_print, 5, ReferenceKind::Override, "Print"),
@@ -325,5 +339,95 @@ mod tests {
             occurrence(shop.save, 2, ReferenceKind::TypeUse, "Nothing"),
         ];
         assert_eq!(resolve(&shop.table, &pending).len(), 1);
+    }
+
+    fn named(mut pending: PendingReference, name: &str) -> PendingReference {
+        pending.receiver = Some(Receiver::Named(QualifiedName::new(name).expect("name")));
+        pending
+    }
+
+    #[test]
+    fn a_type_of_an_enclosing_namespace_is_certain() {
+        let mut shop = shop();
+        let inner = shop
+            .table
+            .add(SymbolKind::Namespace, "Shop.Orders", None, 6);
+        let cart = shop
+            .table
+            .add(SymbolKind::Class, "Shop.Orders.Cart", Some(inner), 6);
+        let found = resolve(
+            &shop.table,
+            &[occurrence(cart, 6, ReferenceKind::TypeUse, "Printer")],
+        );
+        assert_eq!(targets(&found), [shop.printer]);
+        assert_eq!(found[0].confidence, Confidence::Certain);
+    }
+
+    #[test]
+    fn a_call_on_the_base_reaches_the_base_member_only() {
+        let mut shop = shop();
+        let (derived, fancy_print) = shop.table.add_fancy();
+        let mut call = occurrence(fancy_print, 5, ReferenceKind::Call, "Print");
+        call.receiver = Some(Receiver::Base);
+        let pending = [
+            occurrence(derived, 5, ReferenceKind::Inherit, "Printer"),
+            call,
+        ];
+        let found = resolve(&shop.table, &pending);
+        let calls = of_kind(&found, ReferenceKind::Call);
+        assert_eq!(calls, [shop.printer_print, fancy_print]);
+    }
+
+    #[test]
+    fn a_receiver_name_that_no_project_symbol_bears_is_outside() {
+        let shop = shop();
+        let call = named(
+            occurrence(shop.save, 2, ReferenceKind::Call, "Print"),
+            "Console",
+        );
+        assert_eq!(
+            targets(&resolve(&shop.table, &[call])),
+            Vec::<SymbolId>::new()
+        );
+    }
+
+    #[test]
+    fn a_receiver_name_of_unknown_type_falls_back_to_the_name() {
+        let mut shop = shop();
+        shop.table
+            .add(SymbolKind::Field, "Shop.Order.sink", Some(shop.order), 2);
+        let call = named(
+            occurrence(shop.save, 2, ReferenceKind::Call, "Print"),
+            "sink",
+        );
+        let found = resolve(&shop.table, &[call]);
+        assert!(found.iter().all(|r| r.confidence == Confidence::Probable));
+        assert_eq!(found.len(), 2);
+    }
+
+    #[test]
+    fn a_call_of_an_interface_member_is_probable_even_without_implementer() {
+        let shop = shop();
+        let call = typed(
+            occurrence(shop.save, 2, ReferenceKind::Call, "Print"),
+            "IPrinter",
+        );
+        let found = resolve(&shop.table, &[call]);
+        assert_eq!(targets(&found), [shop.interface_print]);
+        assert_eq!(found[0].confidence, Confidence::Probable);
+    }
+
+    #[test]
+    fn base_lists_resolved_again_still_tell_the_hierarchy() {
+        let shop = shop();
+        let mut seed = occurrence(shop.printer, 1, ReferenceKind::Implement, "Shop.IPrinter");
+        seed.previous = Some(Confidence::Certain);
+        let call = typed(
+            occurrence(shop.save, 2, ReferenceKind::Call, "Print"),
+            "IPrinter",
+        );
+        let found = resolve(&shop.table, &[seed, call]);
+        let calls = of_kind(&found, ReferenceKind::Call);
+        assert_eq!(calls, [shop.interface_print, shop.printer_print]);
     }
 }
