@@ -851,7 +851,7 @@ Coverage target: ≥ 80 % lines for `domain` and `application`; adapters are cov
 ### 17.2 Corpus and accuracy
 
 - `corpus/` holds pinned versions of real repositories per full-tier language, with expected results (counts and a sample of exact symbols and references).
-- The C# reference is the existing documentation of *Holzbedarf* (433 types, 825 methods, 1,667 properties/fields in version 0.3.1). CodeSkimr MUST reproduce these counts or document every difference as an improvement.
+- The C# reference is a pinned public C# project, chosen by ADR. Its expected counts (types, methods, properties/fields) are recorded in `corpus/` when it is pinned. CodeSkimr MUST reproduce these counts or document every difference as an improvement.
 - Accuracy targets per full-tier language:
   - symbols ≥ 99 %
   - references marked `certain` ≥ 98 % correct
@@ -944,8 +944,8 @@ Each milestone ends with a demo and acceptance by the product owner. All criteri
 | # | Milestone | Content | Acceptance criteria |
 |---|---|---|---|
 | **M0** | Blueprint | this document, mocks | blueprint approved |
-| **M1** | Foundation + MCP basics | workspace and crates; full CI (section 17.3) incl. no-literals lint and duplicate check; codegen for error codes and i18n; config; SQLite; C# language pack (full); `codeskimr scan` → JSON; MCP over stdio with `search_symbols`, `get_symbol`, `get_architecture` | CI blocks a PR containing a literal or a duplicate block; scan of Holzbedarf reproduces the reference counts (17.2); 100k LOC scanned in < 1 s; Claude Code can query CodeSkimr through MCP |
-| **M2** | References + full MCP | reference index level 1; `find_usages`, `impact_of_change`, `get_dependencies`, `find_similar_code`, `find_constants`, `check_conventions`, `rescan`; watch mode, incremental scans | usages of a method/constant in Holzbedarf correct in a sample of 20; incremental re-scan < 300 ms; the agent developing CodeSkimr uses the MCP tools (17.4) |
+| **M1** | Foundation + MCP basics | workspace and crates; full CI (section 17.3) incl. no-literals lint and duplicate check; codegen for error codes and i18n; config; SQLite; C# language pack (full); `codeskimr scan` → JSON; MCP over stdio with `search_symbols`, `get_symbol`, `get_architecture` | CI blocks a PR containing a literal or a duplicate block; scan of the C# reference project reproduces the recorded counts (17.2); 100k LOC scanned in < 1 s; Claude Code can query CodeSkimr through MCP |
+| **M2** | References + full MCP | reference index level 1; `find_usages`, `impact_of_change`, `get_dependencies`, `find_similar_code`, `find_constants`, `check_conventions`, `rescan`; watch mode, incremental scans | usages of a method/constant in the C# reference project correct in a sample of 20; incremental re-scan < 300 ms; the agent developing CodeSkimr uses the MCP tools (17.4) |
 | **M3** | Server + UI core | axum server, embedded UI, screens 1 (projects), 2 (explorer), 4 (quick search); status bar with live measurements; de/en switch | screens match the mocks (visual review); keyboard paths of 15.4 work; budgets for search and type switch are met |
 | **M4** | Visualisation | screens 3 (dependencies), 5 (scan & performance), 6 (usages); jump explorer → usages | screens match the mocks; graph layout < 50 ms; usages depth 2 < 20 ms |
 | **M5** | Languages | full tier: TypeScript/JavaScript, Python, Java, Kotlin, Go, Rust; basic tier for all Tree-sitter grammars | corpus accuracy targets met per language |
