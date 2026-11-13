@@ -12,7 +12,7 @@ use rusqlite::{Connection, Transaction, TransactionBehavior};
 use crate::consts::sql;
 use crate::consts::{
     BUSY_TIMEOUT_MS, FIRST_ID, ID_STEP, JOURNAL_MODE_WAL, PRAGMA_FOREIGN_KEYS, PRAGMA_JOURNAL_MODE,
-    PRAGMA_SYNCHRONOUS, SYNCHRONOUS_NORMAL,
+    PRAGMA_ON, PRAGMA_SYNCHRONOUS, SYNCHRONOUS_NORMAL,
 };
 use crate::error::StorageResult;
 use crate::{codec, migrate};
@@ -55,7 +55,7 @@ impl SqliteStore {
 
     fn prepared(mut conn: Connection, retention: NonZeroU32) -> StorageResult<Self> {
         conn.busy_timeout(Duration::from_millis(BUSY_TIMEOUT_MS))?;
-        conn.pragma_update(None, PRAGMA_FOREIGN_KEYS, true)?;
+        conn.pragma_update(None, PRAGMA_FOREIGN_KEYS, PRAGMA_ON)?;
         conn.pragma_update(None, PRAGMA_JOURNAL_MODE, JOURNAL_MODE_WAL)?;
         conn.pragma_update(None, PRAGMA_SYNCHRONOUS, SYNCHRONOUS_NORMAL)?;
         migrate::apply(&mut conn)?;

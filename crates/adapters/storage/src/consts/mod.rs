@@ -64,3 +64,5 @@ pub const TYPE_KINDS: &[codeskimr_domain::SymbolKind] = &[
 ];
 /// Checks foreign keys at commit instead of per statement, so new rows may refer to carried ones.
 pub const PRAGMA_DEFER_FOREIGN_KEYS: &str = "defer_foreign_keys";
+/// Value that turns a boolean pragma on.
+pub const PRAGMA_ON: bool = true;

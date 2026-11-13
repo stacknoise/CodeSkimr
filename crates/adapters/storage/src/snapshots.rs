@@ -9,7 +9,7 @@ use codeskimr_domain::{
 use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from, small_from};
-use crate::consts::{PRAGMA_DEFER_FOREIGN_KEYS, sql};
+use crate::consts::{PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON, sql};
 use crate::error::{StorageError, StorageResult};
 use crate::projects::load_layers;
 use crate::read_models;
@@ -29,7 +29,7 @@ fn write_snapshot(conn: &Connection, data: &SnapshotData, keep: u32) -> StorageR
     if known == 0 {
         return Err(StorageError::ProjectNotFound);
     }
-    conn.pragma_update(None, PRAGMA_DEFER_FOREIGN_KEYS, true)?;
+    conn.pragma_update(None, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON)?;
     insert_header(conn, header)?;
     insert_facts(conn, data)?;
     if header.mode == ScanMode::Incremental {
