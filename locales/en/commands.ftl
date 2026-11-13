@@ -12,3 +12,5 @@ command-explorer-symbol-title = Show symbol
 command-explorer-symbol-description = Shows one type or member with its metrics and members.
 command-search-query-title = Search symbols
 command-search-query-description = Searches the names of the types and members of the newest scan.
+command-status-info-title = Show status
+command-status-info-description = Shows the start time and the memory of the program.

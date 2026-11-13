@@ -1,0 +1,49 @@
+.status {
+    height: 28px;
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 0 var(--space-16);
+    background: var(--surface);
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font: 11.5px var(--font-mono);
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.ok {
+    color: var(--good);
+}
+
+.language {
+    margin-left: auto;
+    display: flex;
+    gap: 2px;
+}
+
+.choice {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    padding: 1px 6px;
+    cursor: pointer;
+}
+
+.choice:hover {
+    color: var(--ink);
+}
+
+.choice:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+.on {
+    color: var(--ink);
+    border-color: var(--line);
+    background: var(--bg);
+}

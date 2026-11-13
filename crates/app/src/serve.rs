@@ -97,6 +97,7 @@ pub(crate) async fn serve(
         .await?;
     let mut url = String::from(URL_SCHEME);
     url.push_str(&bound.address()?.to_string());
+    ui_commands::mark_ready();
     listening(&url);
     bound.serve(shutdown).await
 }

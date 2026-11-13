@@ -10,12 +10,12 @@ test.describe("the explorer", () => {
     harness,
   }) => {
     const violations = await watchPolicy(page);
-    const row = await addScannedProject(page, harness, "calculator", SOURCE);
+    const row = await addScannedProject(page, harness, "explorerdemo", SOURCE);
     await row.click({ position: { x: 4, y: 4 } });
     await page.keyboard.press("Enter");
     await expect(page.getByRole("tree")).toBeVisible();
     await page.getByText("(no layer)").click();
-    await page.getByText("Calculator.Demo", { exact: true }).click();
+    await page.getByText("explorerdemo.Demo", { exact: true }).click();
     await page.getByText("Calculator", { exact: true }).click();
 
     await expect(page.getByRole("heading", { name: "Calculator" })).toBeVisible();
