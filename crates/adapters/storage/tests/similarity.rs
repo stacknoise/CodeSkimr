@@ -179,6 +179,6 @@ fn removed_files_leave_no_fingerprints_behind() {
     next.removed = vec![codeskimr_domain::RelativePath::new("a.cs").unwrap()];
     store.persist(next).unwrap();
     let hits = ask(&store, SnapshotId::new(40), &[1, 2, 3, 4], 1);
-    assert!(hits.is_empty());
+    assert_eq!(hits, Vec::new());
     assert_eq!(PROJECT.get(), 1);
 }

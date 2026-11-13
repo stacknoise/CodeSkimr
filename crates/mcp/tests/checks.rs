@@ -73,7 +73,7 @@ fn a_snippet_finds_similar_functions_with_one_based_lines() {
 #[test]
 fn a_stored_function_does_not_find_itself() {
     let answer = tools().find_similar_code(&owner(), &symbol("1")).unwrap();
-    assert!(!answer["matches"].as_array().unwrap().is_empty());
+    assert_eq!(answer["matches"].as_array().unwrap().len(), 3);
 }
 
 #[test]
