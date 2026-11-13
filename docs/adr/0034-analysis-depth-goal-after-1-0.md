@@ -1,10 +1,10 @@
-# 0034 – Side goal after 1.0: the analysis depth of specialised tools, language by language
+# 0034 – Side goal after 1.0: top-league analysis depth in every supported language
 
 Status: proposed
 
 ## Context
 
-The product owner wants CodeSkimr, in later versions, to reach for each language the analysis depth of the specialised tools of that language (13 November 2026). The yardstick for C# is NDepend: dependencies between types and between members, metrics at every level, rules over the code model, overloads, generics and similar. 1.0 does not change (blueprint 1 and 19): it ships level 1 references, the metrics of ADR 0015 and `check_conventions`. Level 2 references from SCIP indexes (ADR 0033) is the first step on this road and is already decided.
+The product owner wants CodeSkimr, in later versions, to play in the top league in every language it supports: for each language, the analysis depth of the best specialised tools of that language (13 November 2026). C# is the first, not the only, target. The yardstick for C# is NDepend: dependencies between types and between members, metrics at every level, rules over the code model, overloads, generics and similar. 1.0 does not change (blueprint 1 and 19): it ships level 1 references, the metrics of ADR 0015 and `check_conventions`. Level 2 references from SCIP indexes (ADR 0033) is the first step on this road and is already decided.
 
 ## Options considered
 
@@ -13,6 +13,8 @@ The product owner wants CodeSkimr, in later versions, to reach for each language
 - **C. A depth ladder with the same rungs for every language, one language at a time, C# first (chosen).** The rungs are language independent; each language climbs them in its own packages.
 
 ## Decision
+
+**The ambition is the top league in all supported languages.** A language counts as top league when it reaches the rungs below and passes its acceptance against the yardstick tool that the product owner names for it. Languages that are only in the basic tier are promoted to the full tier first (ADR 0011), then climb the ladder.
 
 ### The depth ladder
 
