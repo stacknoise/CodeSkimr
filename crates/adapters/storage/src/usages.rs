@@ -100,6 +100,7 @@ fn impacted(
     Ok(ImpactedSymbol {
         label: found.label,
         depth: reached.depth,
+        verified: reached.verified,
         visibility: found.visibility,
         path: found.path,
     })

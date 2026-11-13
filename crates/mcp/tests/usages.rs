@@ -232,3 +232,26 @@ fn an_unscanned_project_has_no_usages() {
         .unwrap_err();
     assert_eq!(error.code(), ErrorCode::ProjectNotScanned);
 }
+
+#[test]
+fn usages_count_verified_and_unchecked_apart_and_list_verified_first() {
+    let mut args = usages("1");
+    args.limit = Some(10);
+    let answer = tools().find_usages(&owner(), &args).unwrap();
+    assert_eq!(answer["usages"][0]["verified"], true);
+    assert_eq!(answer["usages"][1]["verified"], false);
+    assert_eq!(answer["verified"], 1);
+    assert_eq!(answer["unchecked"], 2);
+    assert_eq!(answer["preliminary"], true);
+}
+
+#[test]
+fn impact_counts_verified_and_unchecked_apart() {
+    let answer = tools()
+        .impact_of_change(&owner(), &impact("1", Some(10)))
+        .unwrap();
+    assert_eq!(answer["symbols"][0]["verified"], true);
+    assert_eq!(answer["verified"], 1);
+    assert_eq!(answer["unchecked"], 2);
+    assert_eq!(answer["preliminary"], true);
+}

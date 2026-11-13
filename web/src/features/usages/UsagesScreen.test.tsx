@@ -67,6 +67,11 @@ describe("UsagesScreen", () => {
     expect(screen.getAllByText("presumed").length).toBeGreaterThan(0);
     expect(screen.getByText(/No indexer is set up for this project/)).toBeTruthy();
     expect(screen.getByText("0 places verified, 3 unchecked, 1 of them presumed.")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Reached through verified references: 0, only through unchecked references: 5.",
+      ),
+    ).toBeTruthy();
   });
 
   it("shows a verified hit as verified", async () => {
@@ -127,7 +132,7 @@ describe("UsagesScreen", () => {
       ...ANSWER,
       incoming: { total: 0, hits: [] },
       outgoing: null,
-      impact: { total: 0, public_interfaces: 0, layers: [] },
+      impact: { total: 0, public_interfaces: 0, verified: 0, unchecked: 0, layers: [] },
     });
     expect(await screen.findByText(/No usages found/)).toBeTruthy();
     expect(screen.getByText("A change reaches no other symbol.")).toBeTruthy();

@@ -388,6 +388,7 @@ Name resolution is based on Tree-sitter, in this order:
 
 - A reference resolved through steps 1–4 is `certain`.
 - A reference resolved through step 5, through an interface or base-class dispatch, or with several candidates is `probable`. It points to all candidates.
+- **Level 1 never drops a candidate** (ADR 0032). A name that matches members of unrelated types is reported for all of them, as `probable`. A missing usage makes an impact analysis worthless, so recall ranks above precision here; level 1 makes up for it by marking what it found as unchecked (section 9.4).
 
 ### 9.3 Level 2 – compiler-precise (after 1.0, optional)
 
@@ -396,6 +397,7 @@ Import SCIP indexes produced by existing indexers (e.g. for TypeScript, Java/Kot
 ### 9.4 Rules
 
 - Every reference stores its confidence. UI and MCP MUST show `probable` references visibly (dashed edge, label).
+- Every reference stores `verified`: `true` only if level 2 produced it, `false` for every level-1 reference. `find_usages`, `impact_of_change`, REST and UI count verified and unchecked results separately, list verified ones first, and call an analysis **preliminary** while any result of it is unchecked. An impact symbol is verified only if a path of verified references leads to it.
 - Usage counts and the reverse index are updated incrementally together with the snapshot.
 
 ---

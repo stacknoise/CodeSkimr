@@ -37,6 +37,10 @@ export interface Summary {
 export interface Impact {
   total: number;
   public_interfaces: number;
+  /** Symbols reached through verified references only. */
+  verified: number;
+  /** Symbols reached through at least one unchecked reference. */
+  unchecked: number;
   layers: { layer: string; count: number }[];
 }
 

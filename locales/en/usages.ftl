@@ -49,6 +49,7 @@ usages-files = Files
 usages-layers = Layers
 usages-impact-title = Impact of a change
 usages-impact-text = A change reaches { $count } symbols in { $layers } layers, { $public } of them public and so part of an interface.
+usages-impact-accuracy = Reached through verified references: { $verified }, only through unchecked references: { $unchecked }.
 usages-impact-none = A change reaches no other symbol.
 usages-works-title = Works for every symbol
 usages-works-text = Constants, properties and interface members work the same way. The usages of a type do not include the usages of its members; ask for the members separately.

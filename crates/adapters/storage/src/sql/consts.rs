@@ -103,10 +103,10 @@ pub const SYMBOL_INSERT: &str = "INSERT INTO symbol_rows (id, file_id, kind, nam
     end_column, signature, doc) \
     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)";
 /// Adds a reference: id, snapshot that writes it, from, to, file, start line and column, end line
-/// and column, kind, confidence.
+/// and column, kind, confidence, verified.
 pub const REFERENCE_INSERT: &str = "INSERT INTO symbol_references (id, first_snapshot, \
     from_symbol, to_symbol, file_id, start_line, start_column, end_line, end_column, kind, \
-    confidence) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)";
+    confidence, verified) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)";
 /// Adds a metric, replacing the one of the same symbol and kind: symbol, kind, value.
 pub const METRIC_INSERT: &str =
     "INSERT OR REPLACE INTO metric_rows (symbol_id, kind, value) VALUES (?1, ?2, ?3)";
@@ -234,7 +234,7 @@ pub const SYMBOL_BY_NAME: &str = "s.qualified_name = ?2 ORDER BY s.id LIMIT 1";
 pub const SYMBOL_ALL: &str = "1 = 1 ORDER BY s.id";
 /// All references of a snapshot: snapshot.
 pub const REFERENCES_OF_SNAPSHOT: &str = "SELECT id, from_symbol, to_symbol, file_id, start_line, \
-    start_column, end_line, end_column, kind, confidence FROM snapshot_references \
+    start_column, end_line, end_column, kind, confidence, verified FROM snapshot_references \
     WHERE snapshot_id = ?1 ORDER BY id";
 /// Direct members of a symbol: snapshot, symbol.
 pub const MEMBERS_OF: &str =

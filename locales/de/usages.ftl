@@ -49,6 +49,7 @@ usages-files = Dateien
 usages-layers = Schichten
 usages-impact-title = Auswirkung einer Änderung
 usages-impact-text = Eine Änderung erreicht { $count } Symbole in { $layers } Schichten, davon { $public } öffentlich und damit Teil einer Schnittstelle.
+usages-impact-accuracy = Davon über geprüfte Verweise erreicht: { $verified }, nur über ungeprüfte Verweise: { $unchecked }.
 usages-impact-none = Eine Änderung erreicht kein anderes Symbol.
 usages-works-title = Funktioniert für jedes Symbol
 usages-works-text = Konstanten, Properties und Interface-Member funktionieren genauso. Die Verwendungen eines Typs enthalten nicht die seiner Member; die Member fragt man getrennt ab.

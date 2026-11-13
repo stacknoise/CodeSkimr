@@ -47,6 +47,9 @@ pub struct Reached {
     pub symbol: SymbolId,
     /// Step of the walk, starting at one.
     pub depth: u32,
+    /// Whether every reference on the way to the symbol is verified by level 2. One unchecked
+    /// step makes the whole path unchecked (ADR 0032).
+    pub verified: bool,
 }
 
 /// The references of one snapshot, indexed by both ends.
@@ -100,18 +103,15 @@ impl ReverseIndex {
     /// were reached before are not walked again, so cycles end.
     #[must_use]
     pub fn usages(&self, query: &UsageQuery) -> Vec<Usage> {
-        let mut found = Vec::new();
-        self.walk(query, |usage, _| found.push(usage));
-        found
+        self.walk(query).0
     }
 
     /// The symbols a walk reaches, nearest first, each once, without the start symbol. With
-    /// `Direction::Incoming` this is everything a change of the start symbol can affect.
+    /// `Direction::Incoming` this is everything a change of the start symbol can affect. A symbol
+    /// counts as verified if one path of verified references reaches it in the nearest step.
     #[must_use]
     pub fn reached(&self, query: &UsageQuery) -> Vec<Reached> {
-        let mut found = Vec::new();
-        self.walk(query, |_, reached| found.extend(reached));
-        found
+        self.walk(query).1
     }
 
     fn neighbours(
@@ -129,41 +129,57 @@ impl ReverseIndex {
             .filter_map(|&position| self.references.get(position))
     }
 
-    /// One step of a walk: the references of every symbol in `frontier`. Returns the symbols that
-    /// were reached for the first time.
+    /// One step of a walk: the references of every symbol in `frontier`, which carries whether
+    /// the path to it is verified. Returns the symbols that were reached for the first time.
     fn step(
         &self,
         step: Step<'_>,
-        frontier: &[SymbolId],
+        frontier: &[(SymbolId, bool)],
         seen: &mut HashSet<SymbolId>,
-        visit: &mut impl FnMut(Usage, Option<Reached>),
-    ) -> Vec<SymbolId> {
+        usages: &mut Vec<Usage>,
+    ) -> Vec<Reached> {
         let Step { query, depth } = step;
-        let mut next = Vec::new();
-        let candidates = frontier
-            .iter()
-            .flat_map(|&symbol| self.neighbours(symbol, query.direction))
-            .filter(|reference| query.include_tests || reference.kind != ReferenceKind::Test);
-        for &reference in candidates {
-            let far = far_end(&reference, query.direction);
-            let reached = seen.insert(far).then_some(Reached { symbol: far, depth });
-            if reached.is_some() {
-                next.push(far);
+        let mut reached: Vec<Reached> = Vec::new();
+        let mut at: HashMap<SymbolId, usize> = HashMap::new();
+        for &(symbol, path_verified) in frontier {
+            let candidates = self
+                .neighbours(symbol, query.direction)
+                .filter(|reference| query.include_tests || reference.kind != ReferenceKind::Test);
+            for &reference in candidates {
+                let far = far_end(&reference, query.direction);
+                let verified = path_verified && reference.verified;
+                if seen.contains(&far)
+                    && let Some(&position) = at.get(&far)
+                    && let Some(entry) = reached.get_mut(position)
+                {
+                    entry.verified |= verified;
+                } else if seen.insert(far) {
+                    at.insert(far, reached.len());
+                    reached.push(Reached {
+                        symbol: far,
+                        depth,
+                        verified,
+                    });
+                }
+                usages.push(Usage { depth, reference });
             }
-            visit(Usage { depth, reference }, reached);
         }
-        next
+        reached
     }
 
-    fn walk(&self, query: &UsageQuery, mut visit: impl FnMut(Usage, Option<Reached>)) {
+    fn walk(&self, query: &UsageQuery) -> (Vec<Usage>, Vec<Reached>) {
         let mut seen = HashSet::from([query.symbol]);
-        let mut frontier = vec![query.symbol];
+        let mut frontier = vec![(query.symbol, true)];
+        let (mut usages, mut found) = (Vec::new(), Vec::new());
         for depth in 1..=query.depth {
-            frontier = self.step(Step { query, depth }, &frontier, &mut seen, &mut visit);
+            let reached = self.step(Step { query, depth }, &frontier, &mut seen, &mut usages);
+            frontier = reached.iter().map(|r| (r.symbol, r.verified)).collect();
+            found.extend(reached);
             if frontier.is_empty() {
-                return;
+                break;
             }
         }
+        (usages, found)
     }
 }
 

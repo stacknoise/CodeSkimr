@@ -429,6 +429,7 @@ export const I18N_KEYS = {
   USAGES_LAYERS: "usages-layers",
   USAGES_IMPACT_TITLE: "usages-impact-title",
   USAGES_IMPACT_TEXT: "usages-impact-text",
+  USAGES_IMPACT_ACCURACY: "usages-impact-accuracy",
   USAGES_IMPACT_NONE: "usages-impact-none",
   USAGES_WORKS_TITLE: "usages-works-title",
   USAGES_WORKS_TEXT: "usages-works-text",

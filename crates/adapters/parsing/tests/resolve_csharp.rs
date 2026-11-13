@@ -101,12 +101,13 @@ mod tests {
     }
 
     #[test]
-    fn a_receiver_of_unknown_type_does_not_pick_between_unrelated_types() {
+    fn a_receiver_of_unknown_type_keeps_every_unrelated_type() {
         let found = usages();
         let lines = |name: &str| lines_of(&found, name);
         // `var x = svc.Make()` and `var y = Svc.Load<ITwo>()` have no type the resolver knows:
-        // `Close` is neither IOne's nor ITwo's. `var z = (IOne)...` is typed by the cast.
-        assert_eq!(lines("IOne.Close"), [54]);
-        assert_eq!(lines("ITwo.Close"), Vec::<u32>::new());
+        // `Close` could be IOne's or ITwo's: both are kept, as unchecked. `var z = (IOne)...` is
+        // typed by the cast.
+        assert_eq!(lines("IOne.Close"), [50, 52, 54]);
+        assert_eq!(lines("ITwo.Close"), [50, 52]);
     }
 }

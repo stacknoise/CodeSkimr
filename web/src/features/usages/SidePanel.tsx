@@ -38,6 +38,14 @@ function Impact(props: { answer: UsagesAnswer }) {
               public: impact().public_interfaces,
             })}
       </p>
+      <Show when={impact().total > 0}>
+        <p>
+          {t(I18N_KEYS.USAGES_IMPACT_ACCURACY, {
+            verified: impact().verified,
+            unchecked: impact().unchecked,
+          })}
+        </p>
+      </Show>
       <div class={styles.chips}>
         <For each={impact().layers}>
           {(share, index) => (
