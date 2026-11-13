@@ -210,7 +210,9 @@ fn a_principal_without_read_permission_gets_no_answer_from_any_tool() {
         tools.impact_of_change(&nobody, &impact_of("1")),
     ];
     for result in errors {
-        assert_eq!(result.unwrap_err().code(), ErrorCode::PermissionDenied);
+        let error = result.unwrap_err();
+        assert_eq!(error.code(), ErrorCode::PermissionDenied);
+        assert!(error.report().params.is_empty());
     }
 }
 

@@ -147,6 +147,10 @@ async fn a_denied_caller_gets_the_same_answer_for_bad_arguments_and_unknown_tool
         json!({"name": "search_symbols", "arguments": {"limit": 5}}),
         json!({"name": "search_symbols", "arguments": {"query": "order"}}),
         json!({"name": "rescan", "arguments": {}}),
+        json!({"name": "find_usages", "arguments": {"depth": 0}}),
+        json!({"name": "find_usages", "arguments": {"symbol": "1"}}),
+        json!({"name": "impact_of_change", "arguments": {"limit": 5}}),
+        json!({"name": "impact_of_change", "arguments": {"symbol": "1"}}),
     ];
     for (id, call) in (6..).zip(calls) {
         let answer = client.call(id, "tools/call", call).await;
