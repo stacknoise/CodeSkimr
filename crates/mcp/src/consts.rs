@@ -1,5 +1,11 @@
 //! Fixed values of the MCP server.
 
+use codeskimr_domain::Permission;
+
+/// What every tool of this server needs: all of them only read structure, metrics and symbol
+/// signatures. A tool that returns source text would need `Permission::ReadSource` instead.
+pub const READ_TOOL_PERMISSION: Permission = Permission::Read;
+
 /// Name of the tool that searches symbols by name.
 pub const TOOL_SEARCH_SYMBOLS: &str = "search_symbols";
 /// Name of the tool that shows one symbol.

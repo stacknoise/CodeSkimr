@@ -35,6 +35,7 @@ error-SEC-901 = Locking secret memory against swapping failed.
 error-NET-501 = The request to the external platform timed out.
 error-NET-502 = The external platform rejected the request because of too many requests.
 error-NET-601 = The OAuth sign-in did not complete.
+error-AUTH-401 = You do not have the permission this action needs.
 error-API-101 = The request is invalid.
 error-API-401 = This change requires a valid installation token.
 error-MCP-101 = The MCP tool arguments are invalid.

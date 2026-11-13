@@ -1,6 +1,6 @@
 # 0019 – Team server with user management (after 1.0)
 
-Status: proposed
+Status: accepted
 
 ## Context
 

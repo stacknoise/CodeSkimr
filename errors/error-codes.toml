@@ -42,6 +42,10 @@ crate = "codeskimr_secrets"
 title = "Network and platforms (GitHub, GitLab ...)"
 crate = "codeskimr_source"
 
+[groups.AUTH]
+title = "Caller identity and permissions"
+crate = "codeskimr_application"
+
 [groups.API]
 title = "REST and WebSocket"
 crate = "codeskimr_server"
@@ -348,6 +352,14 @@ name = "oauth_flow_failed"
 severity = "error"
 retryable = false
 description = "The OAuth device flow did not complete."
+since = "0.1.0"
+
+[[codes]]
+id = "AUTH-401"
+name = "permission_denied"
+severity = "error"
+retryable = false
+description = "The caller lacks the permission this action needs."
 since = "0.1.0"
 
 [[codes]]

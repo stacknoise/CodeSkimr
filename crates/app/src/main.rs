@@ -12,6 +12,7 @@ mod locations;
 mod log_writer;
 mod logging;
 mod mcp;
+mod principal;
 mod redact;
 mod run;
 mod scan;

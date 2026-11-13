@@ -11,6 +11,9 @@ use super::CommandId;
 pub enum RegistryError {
     /// Another command already uses this id.
     DuplicateId(CommandId),
+    /// A read-only command must need a read permission, and a command that changes something
+    /// must not: otherwise a read-only caller could change things or the other way round.
+    PermissionMismatch(CommandId),
 }
 
 impl Coded for RegistryError {

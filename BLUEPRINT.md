@@ -29,7 +29,7 @@ CodeSkimr scans code repositories, either a local folder or a Git repository, an
 
 **In scope for 1.0:**
 
-- Local single-user application: one executable, local web server, UI in the browser.
+- Local single-user application: one executable, local web server, UI in the browser. Every action already carries the caller's identity (a `Principal`, always the local owner in 1.0), so the team edition needs no signature changes (section 10.1, ADR 0019).
 - Sources: local folders and Git repositories (clone, branch, update).
 - Languages:
   - Full tier for C#, TypeScript/JavaScript, Python, Java, Kotlin and Rust. Go follows in the full tier after 1.0 (ADR 0011); in 1.0 it has the basic tier.
@@ -41,7 +41,7 @@ CodeSkimr scans code repositories, either a local folder or a Git repository, an
 
 **Out of scope for 1.0, but already designed so it can be added without rework:**
 
-- Team server with multiple users and authentication.
+- Team server with multiple users, login (OIDC and local accounts), roles and project permissions, delivered in stages T1 to T3 (ADR 0019). Only the caller-identity seam is part of 1.0.
 - Encrypted team vault for credentials (section 12.5).
 - Compiler-precise reference resolution through SCIP or Roslyn (section 9.3).
 - WASM analysis plugins.
@@ -115,7 +115,7 @@ All rules in this section are **MUST** and are enforced in CI (section 17.3).
 
 ### 4.1 Style: hexagonal (ports and adapters)
 
-The domain core knows nothing about databases, file systems, networks, Tree-sitter or HTTP. It defines **ports** (Rust traits). **Adapters** implement them. **Driving adapters** (UI server, CLI, MCP) call the application layer; **driven adapters** (storage, parsing, source, secrets, i18n) are called by it.
+The domain core knows nothing about databases, file systems, networks, Tree-sitter or HTTP. It defines **ports** (Rust traits). **Adapters** implement them. **Driving adapters** (UI server, CLI, MCP) call the application layer with the identity of the caller (a `Principal`, section 10.1); **driven adapters** (storage, parsing, source, secrets, i18n, and after 1.0 auth) are called by it.
 
 Every layer is its **own crate**. The compiler therefore enforces the dependency direction: if a crate imports something it may not use, the build fails.
 
@@ -136,6 +136,7 @@ flowchart TB
     SRC[codeskimr_source]
     SEC[codeskimr_secrets]
     I18[codeskimr_i18n]
+    AUT[codeskimr_auth<br/>after 1.0]
   end
   SRV --> APP
   CLI --> APP
@@ -146,7 +147,8 @@ flowchart TB
   SRC -.implements ports.-> APP
   SEC -.implements ports.-> APP
   I18 -.implements ports.-> APP
-  BIN[codeskimr<br/>composition root] --> SRV & CLI & MCP & PAR & STO & SRC & SEC & I18
+  AUT -.implements ports.-> APP
+  BIN[codeskimr<br/>composition root] --> SRV & CLI & MCP & PAR & STO & SRC & SEC & I18 & AUT
 ```
 
 ### 4.2 Repository layout and namespaces
@@ -157,14 +159,15 @@ codeskimr/
 ├─ BLUEPRINT.md                this document
 ├─ crates/
 │  ├─ domain/                  codeskimr_domain
-│  │  └─ src/{symbol,member,reference,snapshot,project,metrics,layer,language,ids,consts,error}.rs
+│  │  └─ src/{symbol,member,reference,snapshot,project,metrics,layer,language,access,ids,consts,error}.rs
 │  ├─ application/             codeskimr_application
-│  │  └─ src/{ports/, commands/, queries/, pipeline/, events/, registry/, consts.rs, error.rs}
+│  │  └─ src/{ports/, commands/, queries/, pipeline/, events/, registry/, access.rs, consts.rs, error.rs}
 │  ├─ adapters/
 │  │  ├─ parsing/              codeskimr_parsing       Tree-sitter, language-pack interpreter
 │  │  ├─ storage/              codeskimr_storage       SQLite, read models, search index
 │  │  ├─ source/               codeskimr_source        file system, Git, file watcher
 │  │  ├─ secrets/              codeskimr_secrets       credential store, vault (later)
+│  │  ├─ auth/                 codeskimr_auth          users, login, tokens (after 1.0, ADR 0019)
 │  │  └─ i18n/                 codeskimr_i18n          Fluent bundles
 │  ├─ server/                  codeskimr_server        axum: REST, WebSocket, embedded UI
 │  ├─ cli/                     codeskimr_cli           clap
@@ -191,6 +194,7 @@ codeskimr/
 | `application` | `domain`, `codes` |
 | `parsing`, `storage`, `source`, `i18n` | `application`, `domain`, `codes` |
 | `secrets` | `application`, `domain`, `codes` – and **no** other adapter |
+| `auth` (after 1.0) | `application`, `domain`, `codes` – and **no** other adapter; password hashing and OIDC libraries stay inside it |
 | `server`, `cli` | `application`, `domain`, `codes`, `i18n` |
 | `mcp` | `application`, `domain`, `codes`, `i18n` – **never** `secrets` |
 | `app` (binary) | everything; the only place where adapters are wired |
@@ -200,7 +204,8 @@ codeskimr/
 - **One process.** `codeskimr` starts the local server, opens the browser and keeps the index in memory. `codeskimr mcp` and `codeskimr scan` reuse a running instance if there is one; otherwise they run standalone.
 - **Async for I/O** (Tokio): HTTP, WebSocket, Git, file watching, database.
 - **Parallel for CPU** (Rayon): parsing, resolving, metrics. CPU work never blocks the async runtime; the boundary is a dedicated pool.
-- **Bind address:** `127.0.0.1` only in 1.0. Remote access is a team-server feature.
+- **Bind address:** `127.0.0.1` only in 1.0. Remote access exists only in the team server's server mode, with TLS or a trusted reverse proxy (ADR 0019, S-04). Server mode is chosen at start and cannot be switched at runtime.
+- **Caller identity:** the composition root resolves the `Principal` once (single-user: the local owner; team server: from the request's credentials through the `Authenticator`). Adapters receive it and never create one.
 
 ### 4.4 Technology stack
 
@@ -406,6 +411,7 @@ Every user-facing action is a `Command` with:
 - input and output types
 - a default keyboard shortcut (optional)
 - a flag saying whether it is read-only
+- the `Permission` a caller needs (`read`, `read_source`, `scan`, `manage`, `register_project`, `admin`)
 
 The registry generates:
 
@@ -415,6 +421,13 @@ The registry generates:
 - MCP tools
 
 **No action is implemented twice.**
+
+**Caller identity and permissions (MUST, ADR 0019):**
+
+- `Principal` and `Permission` are pure types in `codeskimr_domain`. In 1.0 the only principal is `LocalOwner`, who holds every permission; it is created only in the single-user composition root (a test enforces this). A principal with fewer permissions is built only by an authenticator or in tests.
+- Every command and every use case receives the `Principal` inside its request or context struct (so the parameter limit R-02 holds). Commands run only through `Registry::execute`, which checks the declared permission once, before the command starts; the registry hands out no handler that could skip the check. Registering a command fails if its read-only flag contradicts its permission (a read-only command needs `read` or `read_source`, any other command needs something else). Use cases that are not commands yet (the scanner, the MCP tools) call `access::require` first, before they read anything or validate arguments.
+- Denial gives the registered error `AUTH-401` and names neither the permission nor a project; "not found" and "not allowed" must not become an oracle. A denied scan starts nothing and publishes no event.
+- Any source text a command, route, tool or export returns needs `read_source`.
 
 ### 10.2 CLI
 
@@ -428,11 +441,14 @@ codeskimr check <path>            run the convention checks (for CI)
 codeskimr codes [<code>]          list error codes / explain one code
 ```
 
+The local commands run as the local owner without login. After 1.0 the team edition adds `codeskimr serve --team`, `login --server <url>`, `user …` and `token …` (ADR 0019); local commands keep working without login.
+
 ### 10.3 REST and WebSocket
 
 - **REST** under `/api/v1`, described by OpenAPI (generated by `utoipa`). The TypeScript client is generated from it.
 - **WebSocket** at `/api/v1/events` streams domain events: scan progress, snapshot created, files changed.
 - Every error response carries the error code (section 11).
+- Every route resolves a `Principal` before it calls the application layer. In single-user mode that is the local owner; in server mode it comes from the session cookie or a personal access token (ADR 0019).
 
 ### 10.4 MCP server
 
@@ -459,8 +475,9 @@ codeskimr codes [<code>]          list error codes / explain one code
 **Rules:**
 
 - Read-only by default; `rescan` is the only tool with a side effect.
-- Bound to `127.0.0.1`. HTTP requires a per-installation token.
-- Access only to registered projects.
+- stdio is single-user and local and runs as the local owner. Streamable HTTP is bound to `127.0.0.1` and requires a per-installation token in 1.0; in the team edition it requires a personal access token, and tools and resources see only the projects granted to that token's principal (ADR 0019).
+- Every tool declares the permission it needs (all current tools: `read`) and checks it before reading anything.
+- Access only to registered projects (in the team edition: only granted ones).
 - No access to credentials at all (crate rule in 4.2).
 - Responses are token-efficient: paginated, with fixed limits from config, and they state the snapshot id and its age.
 - `find_similar_code` uses normalised syntax-tree fingerprints (identifiers and literals abstracted, winnowing). It shares this logic with the duplicate check in `check_conventions`; there is one implementation.
@@ -493,7 +510,7 @@ codeskimr codes [<code>]          list error codes / explain one code
 | `1` | invalid input / validation |
 | `2` | not found / unavailable |
 | `3` | conflict / invalid state |
-| `4` | authentication / permission |
+| `4` | authentication / permission (`AUTH-401` permission denied; `API-401` installation token) |
 | `5` | limit / timeout / resources |
 | `6` | external system failed (Git host, OS, network) |
 | `9` | internal error (bug) |
@@ -512,6 +529,7 @@ codeskimr codes [<code>]          list error codes / explain one code
 | `STO` | persistence | `storage` |
 | `SEC` | credentials and security | `secrets` |
 | `NET` | network and platforms (GitHub, GitLab …) | `source`, `secrets` |
+| `AUTH` | caller identity, permissions, later login and tokens | `application`, later `auth` |
 | `API` | REST and WebSocket | `server` |
 | `MCP` | MCP server | `mcp` |
 | `CLI` | command line | `cli` |
@@ -655,17 +673,18 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
 - **Encryption:** envelope encryption.
   - One data key per secret, XChaCha20-Poly1305.
   - Data keys wrapped by a master key held in the OS keystore, an HSM or a cloud KMS.
-  - Associated data binds each ciphertext to project id and credential id.
-- **Storage:** separate table or file, never in the analysis database. Optimistic versioning and audit entries (who used which credential when; never the value).
+  - Associated data binds each ciphertext to project id and credential id; the binding must survive project deletion and id reuse (no re-binding of ciphertext to a reused id). The owning grant is an access check, not part of the key (ADR 0019, stage T3).
+- **Storage:** separate table or file, never in the analysis database. Optimistic versioning and audit entries (who used which credential when; never the value). A maintainer can use only credentials explicitly assigned to that project.
 - **Rotation:** master-key rotation re-wraps data keys without decrypting secrets in bulk.
 
 ### 12.6 Rules and tests
 
-- **S-01** Logs are filtered through a redaction layer: token patterns, `Authorization` headers and URL user-info are masked.
+- **S-01** Logs are filtered through a redaction layer: token patterns (including the `csk_` access-token prefix), `Authorization` and `Cookie`/`Set-Cookie` headers, OIDC `code`, `state` and `id_token`, and URL user-info are masked.
 - **S-02** A test suite runs logins, failures and panics with canary secrets and asserts that the canary never appears in logs, error messages, REST/MCP responses, crash output or the database file.
 - **S-03** Dependency audit (`cargo-audit`, `cargo-deny`) in every CI run; a known vulnerability blocks the merge.
-- **S-04** Server and MCP bind to `127.0.0.1`. HTTP endpoints that change state require the per-installation token. CORS is closed.
-- **S-05** Paths from API/MCP input are canonicalised and checked against registered project roots (no path traversal).
+- **S-04** In single-user mode, server and MCP bind to `127.0.0.1` and HTTP endpoints that change state require the per-installation token. Non-loopback binding is allowed only in the team server's server mode and only with TLS configured or behind a configured trusted reverse proxy; otherwise start fails with a registered error code. `X-Forwarded-*` is accepted only from trusted peers. CORS is closed; Host and Origin are validated (DNS rebinding).
+- **S-05** Paths from API/MCP input are canonicalised and checked against registered project roots (no path traversal). In the team edition the check also covers the caller's grant, and registrable roots and clone URLs follow a server-side allow-list (path traversal, SSRF).
+- **S-06** Authorisation lives once, in the registry check (10.1). Adapters never decide. Tests cover every command with a restricted principal; for the team edition each route, WebSocket message, CLI command and MCP tool is tested with each role and with "no grant", and denial and "not found" are compared for identical responses. The canary suite (S-02) also scans the identity database.
 
 ---
 
@@ -973,6 +992,7 @@ Context – Options – Decision – Consequences
 - [ ] Tests on the right level exist and pass.
 - [ ] User-visible texts exist in `de` and `en`.
 - [ ] New errors are registered with code and messages.
+- [ ] Every new command or use case takes a `Principal` and declares or checks its permission (10.1); a test with a restricted principal covers the denial.
 - [ ] Budgets in section 16 are kept.
 - [ ] UI matches the mock (screenshot in the PR).
 - [ ] Docs updated (README, ADR if needed, generated catalogues).
@@ -988,12 +1008,12 @@ Each milestone ends with a demo and acceptance by the product owner. All criteri
 | **M0** | Blueprint | this document, mocks | blueprint approved |
 | **M1** | Foundation + MCP basics | workspace and crates; full CI (section 17.3) incl. no-literals lint and duplicate check; codegen for error codes and i18n; config; SQLite; C# language pack (full); `codeskimr scan` → JSON; MCP over stdio with `search_symbols`, `get_symbol`, `get_architecture` | CI blocks a PR containing a literal or a duplicate block; scan of the private C# reference reproduces its counts and scan of the public C# reference reproduces the counts in `corpus/` (17.2); 100k LOC scanned in < 1 s; Claude Code can query CodeSkimr through MCP |
 | **M2** | References + full MCP | reference index level 1; `find_usages`, `impact_of_change`, `get_dependencies`, `find_similar_code`, `find_constants`, `check_conventions`, `rescan`; watch mode, incremental scans | usages of a method/constant in the private C# reference correct in a sample of 20; incremental re-scan < 300 ms; the agent developing CodeSkimr uses the MCP tools (17.4) |
-| **M3** | Server + UI core | axum server, embedded UI, screens 1 (projects), 2 (explorer), 4 (quick search), 13 (settings with themes); status bar with live measurements; de/en switch | screens match the mocks (visual review); keyboard paths of 15.4 work; budgets for search and type switch are met; screen 13 (settings) offers the themes Hell, Petrol and Dunkel with live preview, the choice is stored and applied, and every screen passes the visual test in all three themes and the contrast check of 15.3 |
+| **M3** | Server + UI core | caller-identity seam in place (WP-59); axum server, embedded UI, screens 1 (projects), 2 (explorer), 4 (quick search), 13 (settings with themes); status bar with live measurements; de/en switch | screens match the mocks (visual review); keyboard paths of 15.4 work; budgets for search and type switch are met; screen 13 (settings) offers the themes Hell, Petrol and Dunkel with live preview, the choice is stored and applied, and every screen passes the visual test in all three themes and the contrast check of 15.3 |
 | **M4** | Visualisation | screens 3 (dependencies), 5 (scan & performance), 6 (usages); jump explorer → usages | screens match the mocks; graph layout < 50 ms; usages depth 2 < 20 ms |
 | **M5** | Languages | full tier: TypeScript/JavaScript, Python, Java, Kotlin, Rust; basic tier for all Tree-sitter grammars (including Go) | corpus accuracy targets met per language |
 | **M6** | Sources + credentials + export | Git sources (clone, branch, update); credential handling per section 12 (keystore, Git helper, OAuth device flow); canary suite; HTML export | security suite green; private repository scanned without the secret ever appearing outside the loan scope |
 | **M7** | Release 1.0 | installers / single executables for Windows, Linux, macOS; user docs; error-code catalogue published | clean install on all three systems; all budgets green |
-| later | Team edition and depth | team server with authentication, `SecretVault` adapter, PostgreSQL, SCIP/Roslyn level 2, WASM plugins, snapshot comparison, PR impact analysis | own ADRs and milestones |
+| later | Team edition and depth | team server in stages T1 to T3 (personal access tokens, then users, login and roles, then PostgreSQL and the vault; ADR 0019), `SecretVault` adapter, SCIP/Roslyn level 2, WASM plugins, snapshot comparison, PR impact analysis | own ADRs and milestones |
 
 ---
 
@@ -1060,6 +1080,7 @@ This is the starting content of `errors/error-codes.toml`. Descriptions are the 
 | NET-501 | `request_timeout` | A request to an external platform timed out. |
 | NET-502 | `rate_limited` | The external platform rate-limited the request. |
 | NET-601 | `oauth_flow_failed` | The OAuth device flow did not complete. |
+| AUTH-401 | `permission_denied` | The caller lacks the permission this action needs. |
 | API-101 | `request_invalid` | The REST request failed validation. |
 | API-401 | `token_missing_or_invalid` | A state-changing request lacks a valid installation token. |
 | MCP-101 | `tool_arguments_invalid` | MCP tool arguments failed validation. |

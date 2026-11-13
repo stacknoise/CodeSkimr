@@ -3,13 +3,14 @@
 use std::sync::Arc;
 
 use codeskimr_codes::Coded;
-use codeskimr_domain::ProjectId;
+use codeskimr_domain::{Permission, Principal, ProjectId};
 
 use super::flow::{Chain, Halt, Pipeline, Single, StageContext};
 use super::job::{Cancelled, Failed, Finished, Job, Queued};
 use super::stages::{
     AnalyzeStage, DiscoverStage, FetchStage, MeasureStage, PersistStage, ResolveStage, ScanRequest,
 };
+use crate::access;
 use crate::events::{Event, EventBus, ScanStopped, SnapshotCreated, StopReason};
 use crate::ids::IdSequence;
 use crate::ports::{
@@ -98,14 +99,19 @@ impl Scanner {
         }
     }
 
-    /// Runs `job` to its end and publishes `SnapshotCreated` or `ScanStopped`.
+    /// Runs `job` for `principal` to its end and publishes `SnapshotCreated` or `ScanStopped`.
     ///
-    /// A job that fails to load its project ends as `Failed`, like any stage failure.
+    /// A caller without `Permission::Scan` gets `Failed` with `AUTH-401`; nothing is read and no
+    /// event is published, so a denied caller learns nothing about the project. A job that fails
+    /// to load its project ends as `Failed`, like any stage failure.
     #[must_use]
-    pub fn run(&self, job: Job<Queued>) -> JobResult {
+    pub fn run(&self, principal: &Principal, job: Job<Queued>) -> JobResult {
         let project_id = job.project();
         let mode = job.mode();
         let job = job.start();
+        if let Err(denied) = access::require(principal, Permission::Scan) {
+            return JobResult::Failed(job.fail(denied.code()));
+        }
         let project = match self.projects.project(project_id) {
             Ok(project) => project,
             Err(cause) => return self.fail(job.fail(cause.code()), project_id),
