@@ -31,6 +31,7 @@ As soon as `tools/bench` or `web/package.json` appear, the matching job fails on
 
 Rule R-06 is enforced by a Dylint lint in `tools/lints/no_literals`. It is a separate Cargo workspace with its own pinned nightly toolchain (`rust-toolchain.toml`), because lints link against compiler internals.
 
+- Run it from the repository root: the check for `tests/` and `benches/` looks for `Cargo.toml` by relative path. Elsewhere, test files would be reported (safe direction).
 - Run it locally: `cargo install --locked cargo-dylint@6.4.0 dylint-link@6.4.0`, then `cargo dylint --path tools/lints/no_literals --workspace` in the repository root.
 - Its test cases are UI tests in `tools/lints/no_literals/ui/` (`flagged.rs`, `exempt.rs`, `consts.rs`, `build.rs` with their `.stderr`). Run them with `cargo test` inside the lint folder. When the lint output changes on purpose, copy the new actual output (printed as `/tmp/<name>.stage-id.stderr`) over the `.stderr` file.
 - What is reported: numbers other than `0` and `1` (also `0.0`), strings, characters, byte strings, floats, enum discriminants, array lengths and `concat!` calls and format strings with fixed text (`format!("{a}/{b}")`; `println!`/`eprintln!` always, because of the line break, `write!(f, "{x}")` only if it has fixed text). Error code `CHK-101`.

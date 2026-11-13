@@ -118,40 +118,6 @@ fn is_test_dir_path(
     })
 }
 
-#[cfg(test)]
-mod tests {
-    use super::is_test_dir_path;
-    use std::path::Path;
-
-    fn root(dir: &Path) -> bool {
-        dir == Path::new("crates/domain")
-    }
-
-    #[test]
-    fn tests_directory_below_crate_root_is_exempt() {
-        assert!(is_test_dir_path(
-            Path::new("crates/domain/tests/model.rs"),
-            root
-        ));
-        assert!(is_test_dir_path(
-            Path::new("crates/domain/benches/scan/a.rs"),
-            root
-        ));
-    }
-
-    #[test]
-    fn modules_with_test_like_names_are_not_exempt() {
-        assert!(!is_test_dir_path(
-            Path::new("crates/domain/src/tests/mod.rs"),
-            root
-        ));
-        assert!(!is_test_dir_path(
-            Path::new("crates/domain/src/examples/mod.rs"),
-            root
-        ));
-    }
-}
-
 /// The literal comes out of `concat!`: the call site in the checked code, if it is there.
 pub fn concat_call_in_own_source(span: Span) -> Option<Span> {
     if !span.from_expansion() {
@@ -196,4 +162,38 @@ pub fn macro_call_in_own_source(span: Span) -> Option<Span> {
         }
     }
     Some(current)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_test_dir_path;
+    use std::path::Path;
+
+    fn root(dir: &Path) -> bool {
+        dir == Path::new("crates/domain")
+    }
+
+    #[test]
+    fn tests_directory_below_crate_root_is_exempt() {
+        assert!(is_test_dir_path(
+            Path::new("crates/domain/tests/model.rs"),
+            root
+        ));
+        assert!(is_test_dir_path(
+            Path::new("crates/domain/benches/scan/a.rs"),
+            root
+        ));
+    }
+
+    #[test]
+    fn modules_with_test_like_names_are_not_exempt() {
+        assert!(!is_test_dir_path(
+            Path::new("crates/domain/src/tests/mod.rs"),
+            root
+        ));
+        assert!(!is_test_dir_path(
+            Path::new("crates/domain/src/examples/mod.rs"),
+            root
+        ));
+    }
 }
