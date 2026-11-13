@@ -1,0 +1,30 @@
+[package]
+name = "codeskimr_bench"
+description = "Benchmark harness: criterion benchmarks, comparison against a baseline and the budget check of blueprint 16.1."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "bench-check"
+path = "src/main.rs"
+
+[[bench]]
+name = "domain"
+harness = false
+
+[dependencies]
+serde.workspace = true
+serde_json = "1"
+toml.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+codeskimr_domain = { path = "../../crates/domain" }
+criterion = { version = "0.7", default-features = false }

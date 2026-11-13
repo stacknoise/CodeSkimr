@@ -21,11 +21,11 @@ These names must be entered as required status checks in the ruleset `main` (nam
 | `duplicates` | `jscpd`, threshold 0, 5 lines / 50 tokens (`.jscpd.json`) | R-01 |
 | `literals` | placeholder until the Dylint lint exists | R-06 |
 | `codegen` | regenerates the error code artifacts and fails on any diff; i18n keys, tokens and OpenAPI client follow | 17.3 (6) |
-| `bench` | placeholder until benchmarks exist | 16.1 |
+| `bench` | criterion benchmarks of `tools/bench` for the base commit and the change on the same runner; fails on a slowdown above the tolerance or a budget breach (`docs/benchmarks.md`) | 16.1 |
 | `e2e` | placeholder until the frontend project (`web/package.json`) exists | 17.3 |
 
-The placeholders (`literals`, `bench`, `e2e`) pass with a clearly printed "NOT ACTIVE YET" notice.
-As soon as `tools/lints`, `tools/bench` or `web/package.json` appear, the matching job fails on purpose until it is wired up, so a placeholder cannot be forgotten.
+The placeholders (`literals`, `e2e`) pass with a clearly printed "NOT ACTIVE YET" notice.
+As soon as `tools/lints` or `web/package.json` appear, the matching job fails on purpose until it is wired up, so a placeholder cannot be forgotten.
 
 ## Changing the pipeline
 

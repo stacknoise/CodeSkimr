@@ -5,6 +5,8 @@
 [allowed]
 # Build-time generator in tools/codegen (WP-14); codes uses it as a build-dependency only.
 codeskimr_codegen = []
+# Benchmark harness in tools/bench (WP-27); measures the domain crate in its benchmarks only.
+codeskimr_bench = ["codeskimr_domain"]
 codeskimr_codes = ["codeskimr_codegen"]
 codeskimr_domain = ["codeskimr_codes"]
 codeskimr_application = ["codeskimr_domain", "codeskimr_codes"]

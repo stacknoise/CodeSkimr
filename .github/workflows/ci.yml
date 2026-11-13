@@ -209,13 +209,16 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Benchmarks against baseline
-        run: |
-          if [ -d tools/bench ]; then
-            echo "::error::tools/bench exists, wire the baseline comparison into this job."
-            exit 1
-          fi
-          echo "NOT ACTIVE YET: no benchmarks exist (tools/bench)."
+          fetch-depth: 0
+      - name: Install Rust toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      # Base commit and change are measured one after the other on this runner; only the ratio
+      # counts (docs/benchmarks.md). A slowdown above regression_tolerance_percent fails the job.
+      - name: Benchmarks against base commit and budgets
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: tools/bench/ci.sh "$BASE_SHA"
 
   e2e:
     name: e2e
