@@ -3,8 +3,8 @@
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{CodeIndex, MemberRef, SearchHit, SymbolDetail, SymbolKey};
 use codeskimr_domain::{
-    FileId, LayerEdge, Metric, MetricValue, ProjectId, QualifiedName, RelativePath, Snapshot,
-    SnapshotId, Symbol, SymbolId, SymbolName,
+    FileId, LayerEdge, Metric, MetricValue, NamespaceGraph, ProjectId, QualifiedName, RelativePath,
+    Snapshot, SnapshotId, Symbol, SymbolId, SymbolName,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 
@@ -186,5 +186,9 @@ impl CodeIndex for SqliteStore {
 
     fn layer_edges(&self, snapshot: SnapshotId) -> Result<Vec<LayerEdge>, CodedError> {
         Self::layer_edges(self, snapshot)
+    }
+
+    fn namespace_graph(&self, snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError> {
+        Self::namespace_graph(self, snapshot)
     }
 }
