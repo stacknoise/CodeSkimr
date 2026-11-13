@@ -18,14 +18,14 @@ While the product owner reviewed the new administration mock, he liked its petro
 
 Option 2.
 
-- Three themes in the first version: **Hell** (the existing values, blue accent, default), **Petrol** (light, petrol accent, the colours of the administration mock) and **Dunkel** (dark, petrol-leaning accent). Values are in blueprint 15.3.
+- Three themes in the first version: **Hell** (the existing values, blue accent), **Petrol** (light, petrol accent, the colours of the administration mock; the default, decided by the product owner on 2026-11-13) and **Dunkel** (dark, petrol-leaning accent). Values are in blueprint 15.3.
 - Every theme defines every token. `tools/codegen` generates the CSS variables per theme from `design/tokens.toml` (`[data-theme="…"]`). Components use variables only (R-05 and the no-literals rule already require this).
 - A CI check in the `codegen` job fails when a theme lacks a token, and when a listed text/background pair falls below 4.5:1 (the rule of 15.4). The check is the acceptance test for every future theme.
-- The choice is stored per user (blueprint 13 already stores language per user); without a team server it lives in the local settings. First start: follow the operating system (Hell or Dunkel) until the user picks one. The default key lives in `config/default.toml`.
+- The choice is stored per user (blueprint 13 already stores language per user); without a team server it lives in the local settings. First start: Petrol, or Dunkel when the operating system is set to dark, until the user picks one. The default key lives in `config/default.toml`.
 - The settings page shows one preview card per theme. The preview renders the real components in a container with the theme's `data-theme`, not a screenshot.
 - Adding a theme is a table in `tokens.toml` plus a name in `locales/`; no code change.
 - The administration screens (login, users, groups and roles, tokens, audit log, single sign-on) get mocks 7 to 12 now, the settings page gets mock 13. The screens are built after 1.0 (milestone T2 of ADR 0019); themes and the settings page belong to the 1.0 UI.
-- Mocks 7 to 13 take a `theme` property. Mocks 1 to 6 stay in Hell; mock 13 shows all three themes. This closes open point O-02.
+- Mocks 7 to 13 take a `theme` property. Mocks 1 to 6 stay in Hell (layout binding, colours follow the active theme); mock 13 shows all three themes. This closes open point O-02.
 
 ## Consequences
 

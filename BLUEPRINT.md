@@ -740,7 +740,7 @@ Below 1,000 px width, columns stack; the page never scrolls horizontally (16 px 
 
 ### 15.3 Design tokens
 
-Defined once in `design/tokens.toml`. TypeScript/CSS variables are generated from it (section 5). Values taken from the mocks (theme **Hell**; the other themes are in "Themes" below):
+Defined once in `design/tokens.toml`. TypeScript/CSS variables are generated from it (section 5). Values taken from the first mocks (theme **Hell**; the other themes are in "Themes" below):
 
 | Token | Value | Use |
 |---|---|---|
@@ -770,7 +770,7 @@ Defined once in `design/tokens.toml`. TypeScript/CSS variables are generated fro
 
 The UI offers three themes in the first version (ADR 0021). Every theme defines every token in `design/tokens.toml`; the generated CSS variables are scoped by `data-theme`. Components use variables only.
 
-| Token | Hell (default) | Petrol | Dunkel |
+| Token | Hell | Petrol (default) | Dunkel |
 |---|---|---|---|
 | `bg` | `#F6F7F9` | `#F4F6F8` | `#12171D` |
 | `surface` | `#FFFFFF` | `#FFFFFF` | `#1A212A` |
@@ -795,8 +795,8 @@ Kind and layer colours of Petrol equal those of Hell. Dunkel uses lighter varian
  In Hell, `good-bg` is `#EAF7EF`; the value `#E7F6EC` of the first mock version reached only 4.49:1 with `good` and was replaced in all mocks.
 
 - **Rules:** a theme is a table in `tokens.toml` plus its name in `locales/`; adding one needs no code change, an ADR decides which themes ship. CI (job `codegen`) fails if a theme misses a token or if a text/background pair (`ink`, `ink-2`, `muted`, `faint` on `bg` and `surface`; `accent` on `surface`, `bg` and `accent-bg`; `good`, `warn`, `bad` on their `-bg` and on `surface`; `accent-fg` on `accent`; `ink-2` on `line-soft`; `ink` on `accent-bg`; `outgoing`, kind and layer colours on `surface`) is below 4.5:1. `faint` is used on `bg` and `surface` only, never on tinted backgrounds.
-- **Choice:** stored per user (see 13); without a team server in the local settings. Until the user chooses, the theme follows the operating system (Hell or Dunkel). The default key is in `config/default.toml`.
-- **Settings page (mock 13):** one preview card per theme with the name, a colour strip and a miniature of the real UI (top bar, rail, list, badges, button) drawn by the actual components inside a container with that `data-theme`. Selecting a card applies it at once. In the mocks, Petrol is drawn as selected and used by mocks 7 to 13 as sample data; the product default is Hell.
+- **Choice:** stored per user (see 13); without a team server in the local settings. Until the user chooses, the theme is Petrol, or Dunkel when the operating system is set to dark. The default key is in `config/default.toml`.
+- **Settings page (mock 13):** one preview card per theme with the name, a colour strip and a miniature of the real UI (top bar, rail, list, badges, button) drawn by the actual components inside a container with that `data-theme`. Selecting a card applies it at once. Petrol is the default theme and is drawn as selected in mock 13 and used by mocks 7 to 13. Mocks 1 to 6 are drawn in Hell; for them layout, proportions and labels are binding and the colours follow the active theme, so a Petrol build is not a deviation from them.
 - **Delivery:** themes and the settings page ship with the UI milestone M3. Every new screen is checked in all three themes by the visual tests (17.1).
 
 ### 15.4 Interaction rules (MUST)

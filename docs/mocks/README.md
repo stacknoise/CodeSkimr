@@ -24,4 +24,4 @@ The files are written in a design-canvas format and do not render on their own i
 
 All names and numbers in the mocks are sample data.
 
-The `THEMES` block at the top of each script in mocks 7 to 13 (and the miniatures in mock 13) holds the same values; when a theme value changes in blueprint 15.3, update all of them together. The mocks draw Petrol as selected sample data; the product default is Hell.
+The `THEMES` block at the top of each script in mocks 7 to 13 (and the miniatures in mock 13) holds the same values; when a theme value changes in blueprint 15.3, update all of them together. Petrol is the default theme of the product and is drawn as selected.
