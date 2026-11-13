@@ -88,6 +88,8 @@ pub const CONFIDENCE_PROBABLE: &str = "probable";
 pub const METRIC_LOC: &str = "loc";
 /// Label of `MetricKind::CyclomaticComplexity`.
 pub const METRIC_CC: &str = "cc";
+/// Label of `MetricKind::CyclomaticComplexityMax`.
+pub const METRIC_CC_MAX: &str = "cc_max";
 /// Label of `MetricKind::MaintainabilityIndex`.
 pub const METRIC_MI: &str = "mi";
 /// Label of `MetricKind::EfferentCoupling`.
