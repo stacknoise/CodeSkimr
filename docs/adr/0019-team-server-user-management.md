@@ -23,7 +23,7 @@ Option 3, in three stages, each with its own work packages and its own milestone
 ### Scope of the team edition
 
 - Same executable, started in **server mode** (`codeskimr serve --team`). Single-user mode stays the default and behaves exactly as in 1.0 (one implicit local owner, no login, `127.0.0.1`).
-- **Users and login.** Local accounts with password (Argon2id) in the first version; OIDC (single sign-on) as an optional second adapter. Sessions via short-lived, server-side session tokens in a `Secure`, `HttpOnly`, `SameSite=Strict` cookie. Personal access tokens for CLI, REST and MCP.
+- **Users and login.** Single sign-on through OIDC from the first login stage (decided by the product owner), next to local accounts with password (Argon2id), which remain for the bootstrap admin and small setups. Sessions via short-lived, server-side session tokens in a `Secure`, `HttpOnly`, `SameSite=Strict` cookie. Personal access tokens for CLI, REST and MCP.
 - **Roles** (fixed in the first version): `admin` (users, settings, all projects), `maintainer` (registers projects, triggers scans, manages members of own projects), `member` (reads and searches projects granted to them), `viewer` (read-only, no export of source excerpts). Custom roles are not in scope.
 - **Permissions per project** (`ProjectGrant`: user or group, project, role). No grant means the project does not exist for that user: lists, search, MCP tools and resources never reveal it (no "forbidden" that leaks existence).
 - **Audit log:** who did what and when (login, failed login, token creation, grants, scans, credential use). Never values, never secrets.
@@ -32,8 +32,8 @@ Option 3, in three stages, each with its own work packages and its own milestone
 ### Stages
 
 1. **Stage A – tokens for MCP over HTTP (can ship first).** Several named personal access tokens instead of the single installation token, each with project scope and read-only flag, revocable, stored hashed. No UI beyond a token page and CLI commands.
-2. **Stage B – users, login, roles, grants** on SQLite, plus the admin UI. Authorisation enforced in the application layer for REST, WebSocket, CLI-against-server and MCP alike.
-3. **Stage C – scale and integration:** PostgreSQL adapter (already named in blueprint 4.4), OIDC, team vault (12.5) wired to the user and project model, audit export.
+2. **Stage B – users, login (OIDC and local accounts), roles, grants** on SQLite, plus the admin UI. OIDC group claims can be mapped to groups and roles. Authorisation enforced in the application layer for REST, WebSocket, CLI-against-server and MCP alike.
+3. **Stage C – scale and integration:** PostgreSQL adapter (already named in blueprint 4.4), team vault (12.5) wired to the user and project model, audit export.
 
 ### Domain and ports
 
@@ -96,8 +96,8 @@ This work is `security-sensitive`; every work package of it needs the security r
 | Milestone | Content | Acceptance |
 |---|---|---|
 | **T1** | Stage A: personal access tokens for MCP/REST with project scope, auth crate skeleton, `Principal` in the command registry | an agent reads only the granted project through `/mcp`; revoked token fails; canary suite extended |
-| **T2** | Stage B: users, login, roles, grants, admin UI, audit log, TLS rule | role × route/tool matrix test green; no existence leak for foreign projects; security review passed |
-| **T3** | Stage C: PostgreSQL adapter, OIDC, team vault integration | same test matrix on PostgreSQL; vault access follows grants |
+| **T2** | Stage B: users, login with OIDC and local accounts, roles, grants, admin UI, audit log, TLS rule | role × route/tool matrix test green; no existence leak for foreign projects; security review passed |
+| **T3** | Stage C: PostgreSQL adapter, team vault integration | same test matrix on PostgreSQL; vault access follows grants |
 
 Each milestone is split into work packages when it is released; each needs the labels `security-sensitive` and, where a library is added, `new-dependency`.
 
@@ -111,6 +111,6 @@ Each milestone is split into work packages when it is released; each needs the l
 
 ## Open questions for the product owner (answered: the 1.0 seam is wanted; the rest is open)
 
-1. Is OIDC (company single sign-on) needed for the first team release, or are local accounts enough?
+1. ~~OIDC in the first release?~~ Answered: yes, OIDC is part of Stage B.
 2. Are the four fixed roles enough, or are groups and custom roles expected early?
 3. Should "viewer" be able to see source excerpts, or only metrics and structure?
