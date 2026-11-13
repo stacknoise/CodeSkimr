@@ -1,0 +1,16 @@
+name: ADR proposal
+description: Propose an architecture decision (changes to the blueprint need one)
+labels: ["type:adr", "blueprint-change"]
+body:
+  - type: textarea
+    id: context
+    attributes: { label: Context }
+    validations: { required: true }
+  - type: textarea
+    id: options
+    attributes: { label: Options }
+    validations: { required: true }
+  - type: textarea
+    id: decision
+    attributes: { label: Proposed decision and consequences }
+    validations: { required: true }
