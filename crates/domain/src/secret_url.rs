@@ -55,7 +55,7 @@ fn kept<'a>(userinfo: &'a str, scheme: &str, cut: Cut) -> &'a str {
         .iter()
         .any(|name| name.eq_ignore_ascii_case(scheme));
     if cut == Cut::All || web {
-        return "";
+        return <&str>::default();
     }
     userinfo
         .split(URL_PASSWORD_START)

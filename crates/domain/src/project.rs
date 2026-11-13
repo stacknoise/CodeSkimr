@@ -49,7 +49,7 @@ impl GitUrl {
     #[must_use]
     pub fn origin(&self) -> &str {
         let Some(marker) = self.0.find(URL_SCHEME_MARKER) else {
-            return "";
+            return <&str>::default();
         };
         let start = marker + URL_SCHEME_MARKER.len();
         let after = self.0.get(start..).unwrap_or_default();
