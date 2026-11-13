@@ -25,6 +25,7 @@ A capture outside this vocabulary, an invalid query or an unknown grammar fails 
 - Pending references point at the innermost enclosing symbol; occurrences outside any declaration belong to the module.
 - `loc` counts lines that contain at least one non-comment token. Lines inside multi-line tokens (strings) count as code.
 - Failures: `PRS-101` (encoding; UTF-8 and UTF-16 with BOM are read), `PRS-201` (no pack), `PRS-301` (invalid pack), `PRS-501` (parse timeout), `SRC-201` (file cannot be read).
+- Constants without a `@signature` capture get their whole declaration as signature (`find_constants` shows the value): `const LIMIT: usize = 10;` in Rust, `MAX_SIZE = 10` in Python, `const val MAX_SIZE = 10` in Kotlin. Packs that deliver the full declaration (type, modifiers, value): Rust, Python, Kotlin. Where the grammar's declaration node is the declarator only (C#, Java, TypeScript/JavaScript) the signature is `name = value` without type and modifiers.
 
 ## The C# pack (WP-24)
 
@@ -36,7 +37,6 @@ A capture outside this vocabulary, an invalid query or an unknown grammar fails 
 - The doc of a symbol is the text of its `<summary>`; inner markup such as `<see cref="X"/>` stays as written. A comment without `<summary>` (for example `<inheritdoc/>`) is kept whole.
 - `references.scm` is level 1 (names, receivers, locals and scopes). `new Foo()` is a type use; a base type is `inherit` (the resolver can refine it to `implement`); reads are reported for names in value positions and for receivers of member accesses.
 - `metrics.scm` holds the captures of ADR 0015 (`@comment`, `@decision`, `@operator`, `@operand`). The adapter runs it once per file; `tests/csharp_metrics.rs` and the golden files (`counts`) check one case per counting rule. `highlights.scm` is for the UI.
-- Constants without a `@signature` capture get their whole declaration as signature (`find_constants` shows the value): `const LIMIT: usize = 10;` in Rust, `MAX_SIZE = 10` in Python, `const val MAX_SIZE = 10` in Kotlin. Where the grammar's declaration node is the declarator only (C#, Java, TypeScript/JavaScript) the signature is `name = value` without type and modifiers.
 - Golden tests: `languages/csharp/tests/*.cs` with the expected result in `<file>.json` (`CODESKIMR_BLESS=1 cargo test -p codeskimr_parsing --test language_packs` rewrites them; review the diff).
 - Corpus: `corpus/csharp/corpus.toml` pins a public project (ADR 0016); `tests/corpus.rs` fetches it into `target/corpus/` with `git` and compares counts and a hand-checked sample. `CODESKIMR_CORPUS_DIR` points the test at another checkout (for the private reference: only locally; `CODESKIMR_BLESS=1` prints the counts per kind and the `SUMMARY` line of the counting rule in ADR 0017).
 
