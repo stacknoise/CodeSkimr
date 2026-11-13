@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Explorer</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F6F7F9}
+a{color:#2457D6;text-decoration:none}a:hover{color:#1A43A8}
+.rb{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:8px;color:#5B6370}
+.rb:hover{background:#EEF1F5;color:#14171C}
+.kbd{font:500 11px 'JetBrains Mono',monospace;color:#5B6370;border:1px solid #D5DAE1;border-bottom-width:2px;border-radius:4px;padding:0 5px;background:#fff}
+.tr:hover{background:#F3F6FD}
+.code{font-variant-ligatures:none}
+</style>
+</helmet>
+<div style="font-family: Inter, system-ui, sans-serif; color: #14171C; font-size: 13px; background: #F6F7F9; height: 900px; display: flex; flex-direction: column">
+
+  <header style="height: 48px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #FFFFFF; border-bottom: 1px solid #E3E6EB">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <div style="width: 24px; height: 24px; border-radius: 6px; background: #14171C; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px">{{initial}}</div>
+      <span style="font-weight: 600; font-size: 14px">{{appName}}</span>
+    </div>
+    <span style="color: #C3CAD4">/</span>
+    <a href="Main.dc.html" style="color: #14171C; font-weight: 600">Holzbedarf</a>
+    <span style="display: inline-flex; align-items: center; gap: 6px; font: 12px 'JetBrains Mono', monospace; color: #5B6370; border: 1px solid #E3E6EB; border-radius: 6px; padding: 3px 8px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="6" cy="5" r="2"></circle><circle cx="6" cy="19" r="2"></circle><circle cx="18" cy="7" r="2"></circle><path d="M6 7v10M18 9c0 5-12 3-12 8"></path></svg>
+      Arbeitsordner · 0,2 s alt
+    </span>
+    <a href="Palette.dc.html" style="flex: 1 1 280px; max-width: 520px; margin-left: 8px; height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid #E3E6EB; border-radius: 8px; background: #F6F7F9; color: #5B6370">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.5-4.5"></path></svg>
+      <span style="flex: 1">Typ, Member, Datei oder Befehl …</span>
+      <span class="kbd">Strg K</span>
+    </a>
+  </header>
+
+  <div style="flex: 1; display: flex; min-height: 0">
+    <nav aria-label="Ansichten" style="width: 56px; flex: none; background: #FFFFFF; border-right: 1px solid #E3E6EB; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 8px">
+      <a href="Main.dc.html" class="rb" aria-label="Projekte"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></a>
+      <a href="Explorer.dc.html" class="rb" aria-label="Explorer" style="background: #EAF0FD; color: #2457D6"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 5h7M8 10h8M8 15h8M4 20h7M4 5v15"></path></svg></a>
+      <a href="Graph.dc.html" class="rb" aria-label="Abhängigkeiten"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="6" cy="6" r="2.5"></circle><circle cx="18" cy="8" r="2.5"></circle><circle cx="10" cy="18" r="2.5"></circle><path d="M8.4 6.4l7.2 1.2M7 8.3l2.2 7.4M16.6 10.2l-5 6"></path></svg></a>
+      <a href="Scan.dc.html" class="rb" aria-label="Scans und Leistung"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M13 3L5 14h6l-1 7 8-11h-6z"></path></svg></a>
+    </nav>
+
+    <!-- Baum -->
+    <section aria-label="Struktur" style="width: 290px; flex: none; background: #FFFFFF; border-right: 1px solid #E3E6EB; display: flex; flex-direction: column; min-height: 0">
+      <div style="padding: 10px; border-bottom: 1px solid #EEF0F3; display: flex; gap: 6px">
+        <label for="flt" style="position: absolute; left: -9999px">Baum filtern</label>
+        <input id="flt" placeholder="Filtern …" style="flex: 1; height: 30px; border: 1px solid #E3E6EB; border-radius: 6px; padding: 0 8px; font: 13px Inter, sans-serif">
+        <button type="button" aria-label="Alles einklappen" title="Alles einklappen (Strg ←)" style="width: 30px; height: 30px; border: 1px solid #E3E6EB; border-radius: 6px; background: #fff; color: #5B6370; cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M7 15l5-5 5 5M7 9l5-5 5 5"></path></svg></button>
+        <button type="button" aria-label="Auswahl im Baum zeigen" title="Auswahl zeigen (Strg .)" style="width: 30px; height: 30px; border: 1px solid #E3E6EB; border-radius: 6px; background: #fff; color: #5B6370; cursor: pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v4M12 18v4M2 12h4M18 12h4"></path></svg></button>
+      </div>
+      <div style="flex: 1; overflow: auto; padding: 4px 0">
+        <sc-for list="{{tree}}" as="r" hint-placeholder-count="20">
+          <div class="tr" style="{{r.style}}">
+            <span style="width: 12px; color: #8A919C; font-size: 9px">{{r.caret}}</span>
+            <sc-if value="{{r.hasBadge}}" hint-placeholder-val="{{ true }}"><span style="{{r.badge}}">{{r.letter}}</span></sc-if>
+            <span style="{{r.labelStyle}}">{{r.label}}</span>
+            <span style="margin-left: auto; color: #6B7280; font: 11.5px 'JetBrains Mono', monospace; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{r.meta}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <!-- Details -->
+    <section aria-label="Details" style="flex: 1 1 420px; min-width: 0; overflow: auto; padding: 18px 22px; display: flex; flex-direction: column; gap: 14px">
+      <div style="font: 12px 'JetBrains Mono', monospace; color: #5B6370">App <span style="color: #C3CAD4">›</span> App.Controls <span style="color: #C3CAD4">›</span> <span style="color: #14171C">BoardBar</span></div>
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+        <h1 style="margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.01em; font-family: 'JetBrains Mono', monospace">BoardBar</h1>
+        <span style="font-size: 11px; font-weight: 600; color: #2457D6; background: #EAF0FD; padding: 2px 8px; border-radius: 999px">class · public</span>
+        <span style="font-size: 12px; color: #5B6370">: <a href="#">UserControl</a></span>
+        <div style="margin-left: auto; display: flex; gap: 6px">
+          <a href="Usages.dc.html" style="display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid #2457D6; border-radius: 6px; background: #EAF0FD; color: #2457D6; font-weight: 500">Verwendungen <span class="kbd">U</span></a>
+          <a href="Graph.dc.html" style="display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid #E3E6EB; border-radius: 6px; background: #fff; color: #14171C">Graph <span class="kbd">G</span></a>
+          <button type="button" style="display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px; border: 1px solid #E3E6EB; border-radius: 6px; background: #fff; color: #14171C; font: 13px Inter, sans-serif; cursor: pointer">Im Editor öffnen <span class="kbd">E</span></button>
+        </div>
+      </div>
+      <p style="margin: -4px 0 0; color: #3A414C; line-height: 1.5; max-width: 640px">Zeichnet ein Brett als Balken: Zuschnitte, Sägeschnitte und Rest, Breite nach Anteil an der Brettlänge.</p>
+
+      <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); border: 1px solid #E3E6EB; border-radius: 8px; background: #fff; overflow: hidden">
+        <sc-for list="{{metrics}}" as="m" hint-placeholder-count="10">
+          <div style="padding: 8px 12px; border-right: 1px solid #EEF0F3; border-bottom: 1px solid #EEF0F3" title="{{m.tip}}">
+            <div style="{{m.vstyle}}">{{m.v}}</div>
+            <div style="font-size: 11.5px; color: #5B6370">{{m.k}}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 4px; border-bottom: 1px solid #E3E6EB">
+        <button type="button" style="height: 34px; padding: 0 12px; border: 0; border-bottom: 2px solid #2457D6; background: none; font: 600 13px Inter, sans-serif; color: #14171C; cursor: pointer">Member 35</button>
+        <button type="button" style="height: 34px; padding: 0 12px; border: 0; border-bottom: 2px solid transparent; background: none; font: 13px Inter, sans-serif; color: #5B6370; cursor: pointer">Abhängigkeiten 10</button>
+        <div style="margin-left: auto; display: flex; gap: 4px; font-size: 12px">
+          <button type="button" style="height: 24px; padding: 0 8px; border: 1px solid #2457D6; border-radius: 999px; background: #EAF0FD; color: #2457D6; font: 500 12px Inter, sans-serif">Alle</button>
+          <button type="button" style="height: 24px; padding: 0 8px; border: 1px solid #E3E6EB; border-radius: 999px; background: #fff; color: #5B6370; font: 12px Inter, sans-serif">Properties</button>
+          <button type="button" style="height: 24px; padding: 0 8px; border: 1px solid #E3E6EB; border-radius: 999px; background: #fff; color: #5B6370; font: 12px Inter, sans-serif">Methoden</button>
+          <button type="button" style="height: 24px; padding: 0 8px; border: 1px solid #E3E6EB; border-radius: 999px; background: #fff; color: #5B6370; font: 12px Inter, sans-serif">nur public</button>
+        </div>
+      </div>
+
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse; min-width: 560px">
+          <thead>
+            <tr style="text-align: left; color: #5B6370; font-size: 11.5px">
+              <th style="padding: 4px 6px; font-weight: 500" title="Member-Name und Art">Name</th>
+              <th style="padding: 4px 6px; font-weight: 500" title="Typ bzw. Signatur wie im Quelltext">Typ / Signatur</th>
+              <th style="padding: 4px 6px; font-weight: 500" title="Zugriff (get/set/init/readonly) bzw. Sichtbarkeit">Zugriff</th>
+              <th style="padding: 4px 6px; font-weight: 500; text-align: right" title="Zyklomatische Komplexität: ≤5 gut, ≤10 mittel, sonst hoch">CC</th>
+              <th style="padding: 4px 6px; font-weight: 500; text-align: right" title="Anzahl der Stellen, an denen der Member verwendet wird · Klick öffnet die Verwendungen">Verw.</th>
+              <th style="padding: 4px 6px; font-weight: 500; text-align: right" title="Zeilen im Quelltext">Zeilen</th>
+            </tr>
+          </thead>
+          <tbody>
+            <sc-for list="{{members}}" as="x" hint-placeholder-count="10">
+              <tr class="tr" style="{{x.rowStyle}}">
+                <td style="padding: 6px; border-top: 1px solid #EEF0F3; white-space: nowrap"><span style="{{x.badge}}">{{x.letter}}</span> <span style="font: 500 12.5px 'JetBrains Mono', monospace">{{x.n}}</span></td>
+                <td style="padding: 6px; border-top: 1px solid #EEF0F3; font: 12px 'JetBrains Mono', monospace; color: #3A414C; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{x.t}}</td>
+                <td style="padding: 6px; border-top: 1px solid #EEF0F3; color: #5B6370; font-size: 12px">{{x.acc}}</td>
+                <td style="padding: 6px; border-top: 1px solid #EEF0F3; text-align: right; font: 12px 'JetBrains Mono', monospace; {{x.ccStyle}}">{{x.cc}}</td>
+                <td style="padding: 6px; border-top: 1px solid #EEF0F3; text-align: right"><a href="Usages.dc.html" title="Verwendungen anzeigen" style="display: inline-block; min-width: 26px; text-align: center; font: 600 11.5px 'JetBrains Mono', monospace; color: #2457D6; background: #EAF0FD; border-radius: 999px; padding: 1px 6px">{{x.uses}}</a></td>
+                <td style="padding: 6px; border-top: 1px solid #EEF0F3; text-align: right; font: 12px 'JetBrains Mono', monospace; color: #5B6370">{{x.l}}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Quelltext -->
+    <section aria-label="Quelltext" style="flex: 0 1 560px; min-width: 0; background: #FFFFFF; border-left: 1px solid #E3E6EB; display: flex; flex-direction: column; min-height: 0; position: relative">
+      <div style="height: 40px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 12px; border-bottom: 1px solid #EEF0F3; font: 12px 'JetBrains Mono', monospace; color: #5B6370">
+        <span style="color: #14171C">Controls/BoardBar.cs</span>
+        <span>· Property BoardId · 61–65</span>
+        <span style="margin-left: auto" class="kbd">Alt ↑↓ Member</span>
+      </div>
+      <div class="code" style="flex: 1; overflow: hidden; padding: 6px 0; font: 12.5px/20px 'JetBrains Mono', monospace">
+        <sc-for list="{{code}}" as="c" hint-placeholder-count="30">
+          <div style="{{c.style}}"><span style="width: 44px; flex: none; text-align: right; padding-right: 14px; color: #9AA1AC">{{c.n}}</span><span style="white-space: pre"><sc-for list="{{c.toks}}" as="t" hint-placeholder-count="5"><span style="{{t.s}}">{{t.v}}</span></sc-for></span></div>
+        </sc-for>
+      </div>
+
+      <div role="tooltip" style="position: absolute; top: 210px; left: 210px; width: 290px; background: #FFFFFF; border: 1px solid #D5DAE1; border-radius: 10px; box-shadow: 0 8px 24px rgba(20,23,28,0.14); padding: 12px 14px; display: flex; flex-direction: column; gap: 6px">
+        <div style="display: flex; align-items: center; gap: 8px"><span style="font: 700 10px Inter, sans-serif; color: #fff; background: #0F766E; border-radius: 4px; padding: 1px 5px">R</span><span style="font: 600 13px 'JetBrains Mono', monospace">SegmentRow</span><span style="font-size: 11.5px; color: #5B6370; margin-left: auto">Presentation</span></div>
+        <div style="font-size: 12px; color: #3A414C; line-height: 1.45">Eine Zeile im Brett-Balken: Art, Anteil, Farbe, Tooltip.</div>
+        <div style="font: 11.5px 'JetBrains Mono', monospace; color: #5B6370">6 Properties · genutzt von 9 · nutzt 2</div>
+        <div style="font-size: 11.5px; color: #5B6370; border-top: 1px solid #EEF0F3; padding-top: 6px">Klick öffnet · <span class="kbd">Alt</span>+Klick <a href="Usages.dc.html">Verwendungen</a></div>
+      </div>
+    </section>
+  </div>
+
+  <footer style="height: 28px; flex: none; display: flex; align-items: center; gap: 18px; padding: 0 16px; background: #FFFFFF; border-top: 1px solid #E3E6EB; color: #5B6370; font: 11.5px 'JetBrains Mono', monospace; overflow: hidden; white-space: nowrap">
+    <span style="color: #15803D">● Beobachtung aktiv</span>
+    <span>433 Typen · 825 Methoden · 1.667 Properties</span>
+    <span>Auswahl 3 ms</span>
+    <span>Baum virtualisiert · 38 von 2.925 Zeilen gerendert</span>
+    <span style="margin-left: auto">Beispieldaten</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"appName":{"editor":"text","default":"CodeSkimr","section":"Marke"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const appName = this.props.appName ?? 'CodeSkimr';
+    const KC = { C: '#2457D6', I: '#7C3AED', R: '#0F766E', S: '#B45309', E: '#BE185D', P: '#2457D6', F: '#5B6370', K: '#7C3AED', M: '#0F766E', V: '#B45309', W: '#BE185D' };
+    const badge = (L) => 'display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;font:700 10px Inter,sans-serif;color:#fff;background:' + (KC[L] || '#5B6370');
+    const lay = { Domain: '#2457D6', Application: '#0F766E', Infrastructure: '#7C3AED', Presentation: '#B45309', App: '#BE185D', Mcp: '#5B6370' };
+    const row = (depth, caret, label, meta, opt) => {
+      opt = opt || {};
+      const sel = opt.sel ? 'background:#EAF0FD;box-shadow:inset 2px 0 0 #2457D6;' : (opt.cur ? 'background:#F3F6FD;' : '');
+      return {
+        style: 'display:flex;align-items:center;gap:6px;height:26px;padding:0 10px 0 ' + (8 + depth * 14) + 'px;cursor:pointer;' + sel,
+        caret, label, meta,
+        hasBadge: !!opt.letter, letter: opt.letter || '', badge: opt.dot ? ('width:8px;height:8px;border-radius:50%;background:' + opt.dot) : badge(opt.letter),
+        labelStyle: opt.group ? 'font:600 10.5px Inter,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#5B6370' : (opt.layer ? 'font-weight:600' : (opt.mono ? "font:12.5px 'JetBrains Mono',monospace" : ''))
+      };
+    };
+    const L = (name, n, open) => { const r = row(0, open ? '▼' : '▶', name, String(n), { layer: true, letter: ' ' }); r.badge = 'width:8px;height:8px;border-radius:50%;background:' + lay[name]; r.letter = ''; return r; };
+    const tree = [
+      L('Domain', 53), L('Application', 130), L('Infrastructure', 86), L('Presentation', 90), L('App', 27, true),
+      row(1, '▶', '(Wurzel)', '2'), row(1, '▶', 'Composition', '1'), row(1, '▼', 'Controls', '6'),
+      row(2, '▼', 'BoardBar', '188', { letter: 'C', mono: true, cur: true }),
+      row(3, '▼', 'Properties & Felder', '23', { group: true }),
+      row(4, '', 'BoardId', 'int', { letter: 'P', mono: true, sel: true }),
+      row(4, '', 'Segments', 'IReadOnlyList<…>', { letter: 'P', mono: true }),
+      row(4, '', 'PieceDragStarted', 'EventHandler<…>', { letter: 'E', mono: true }),
+      row(4, '', 'PieceTapped', 'EventHandler<…>', { letter: 'E', mono: true }),
+      row(4, '', '_grid', 'Grid', { letter: 'F', mono: true }),
+      row(4, '', 'BarHeight', 'double', { letter: 'K', mono: true }),
+      row(4, '', '… 17 weitere', '', {}),
+      row(3, '▶', 'Methoden', '12', { group: true }),
+      row(2, '▶', 'PieceChip', '64', { letter: 'C', mono: true }),
+      row(2, '▶', 'ResultBrushes', '41', { letter: 'C', mono: true }),
+      row(2, '▶', 'IBoardHost', '9', { letter: 'I', mono: true }),
+      L('Mcp', 47)
+    ];
+    const tone = (c) => "font:600 18px 'JetBrains Mono',monospace;color:" + c;
+    const metrics = [
+      { k: 'Codezeilen', v: '188', vstyle: tone('#14171C'), tip: 'LOC ohne Leer- und Kommentarzeilen' },
+      { k: 'Σ Komplexität', v: '26', vstyle: tone('#B45309'), tip: 'Summe der zyklomatischen Komplexität' },
+      { k: 'Wartbarkeit', v: '25', vstyle: tone('#B91C1C'), tip: 'MI 0–100: ≥55 gut, ≥35 mittel' },
+      { k: 'Properties', v: '2', vstyle: tone('#14171C'), tip: 'Properties, Indexer, Record-Parameter' },
+      { k: 'Felder u. a.', v: '21', vstyle: tone('#14171C'), tip: 'Felder, Konstanten, Ereignisse' },
+      { k: 'Methoden', v: '12', vstyle: tone('#14171C'), tip: 'Methoden und Konstruktoren' },
+      { k: 'nutzt (Ce)', v: '9', vstyle: tone('#14171C'), tip: 'Ausgehende Kopplung' },
+      { k: 'genutzt von (Ca)', v: '1', vstyle: tone('#14171C'), tip: 'Eingehende Kopplung' },
+      { k: 'Instabilität', v: '0,90', vstyle: tone('#B91C1C'), tip: 'Ce/(Ca+Ce): ≤0,5 stabil' },
+      { k: 'Test nennt Typ', v: 'nein', vstyle: tone('#B91C1C'), tip: 'Ein Test erwähnt den Typnamen' }
+    ];
+    const cc = (n) => n > 10 ? 'color:#B91C1C;font-weight:600' : (n > 5 ? 'color:#B45309;font-weight:600' : 'color:#15803D');
+    const mem = (letter, n, t, acc, c, l, sel) => ({ letter, n, t, acc, cc: c === '' ? '' : String(c), ccStyle: c === '' ? '' : cc(c), l, badge: badge(letter), rowStyle: sel ? 'background:#FFF7D6' : '' });
+    const members = [
+      mem('P', 'BoardId', 'int', 'get; set', '', '61–65', true),
+      mem('P', 'Segments', 'IReadOnlyList<SegmentRow>?', 'get; set', '', '67–71'),
+      mem('E', 'PieceDragStarted', 'EventHandler<PieceDragEventArgs>?', 'public', '', '49'),
+      mem('E', 'PieceTapped', 'EventHandler<PieceDragEventArgs>?', 'public', '', '59'),
+      mem('F', '_grid', 'Grid', 'readonly', '', '31'),
+      mem('K', 'BarHeight', 'double = 28', 'const', '', '22'),
+      mem('C', 'BoardBar', 'public BoardBar()', 'public', 1, '35–41'),
+      mem('M', 'Rebuild', 'private void Rebuild()', 'private', 9, '76–133'),
+      mem('M', 'MakeDraggable', 'void MakeDraggable(Border, PieceRow, string)', 'private', 6, '135–168'),
+      mem('M', 'OnSegmentsChanged', 'static void OnSegmentsChanged(DependencyObject, …)', 'private static', 1, '73–74')
+    ];
+    [4, 6, 1, 2, 9, 3, 2, 5, 1, 1].forEach((u, i) => { members[i].uses = String(u); });
+    const KW = new Set(['public','private','static','void','int','get','set','var','new','foreach','in','if','event','return','readonly','is','double']);
+    const TY = new Set(['SegmentRow','BoardBar','LayoutSegmentKind','PieceDragEventArgs','ResultBrushes']);
+    const src = [
+      [59, '    public event EventHandler<PieceDragEventArgs>? PieceTapped;'],
+      [60, ''],
+      [61, '    public int BoardId'],
+      [62, '    {'],
+      [63, '        get => (int)GetValue(BoardIdProperty);'],
+      [64, '        set => SetValue(BoardIdProperty, value);'],
+      [65, '    }'],
+      [66, ''],
+      [67, '    public IReadOnlyList<SegmentRow>? Segments'],
+      [68, '    {'],
+      [69, '        get => (IReadOnlyList<SegmentRow>?)GetValue(SegmentsProperty);'],
+      [70, '        set => SetValue(SegmentsProperty, value);'],
+      [71, '    }'],
+      [72, ''],
+      [73, '    private static void OnSegmentsChanged(DependencyObject s, ...)'],
+      [74, '        => ((BoardBar)s).Rebuild();'],
+      [75, ''],
+      [76, '    private void Rebuild()'],
+      [77, '    {'],
+      [78, '        _grid.Children.Clear();'],
+      [79, '        _grid.ColumnDefinitions.Clear();'],
+      [80, '        _pieces.Clear();'],
+      [81, '        foreach (var segment in Segments ?? [])'],
+      [82, '        {'],
+      [83, '            var column = new ColumnDefinition();'],
+      [84, '            if (segment.Kind == LayoutSegmentKind.Kerf)'],
+      [85, '            {'],
+      [86, '                column.MinWidth = KerfMinWidth;'],
+      [87, '            }'],
+      [88, '            _grid.ColumnDefinitions.Add(column);'],
+      [89, '            var cell = new Border'],
+      [90, '            {'],
+      [91, '                Background = ResultBrushes.For(segment),'],
+      [92, '                Opacity = segment.Kind == LayoutSegmentKind.Rest ? 0.5 : 1,'],
+      [93, '            };'],
+      [94, '            Grid.SetColumn(cell, _grid.ColumnDefinitions.Count - 1);'],
+      [95, '        }'],
+      [96, '    }']
+    ];
+    const tok = (s) => {
+      const out = []; const re = /([A-Za-z_]\w*)|(\s+)|([^\sA-Za-z_]+)/g; let m;
+      while ((m = re.exec(s))) {
+        const v = m[0];
+        let st = 'color:#14171C';
+        if (m[1] && KW.has(v)) st = 'color:#7C3AED';
+        else if (m[1] && TY.has(v)) st = 'color:#2457D6;text-decoration:underline;text-decoration-color:#B9C8F2;text-underline-offset:3px';
+        else if (m[3] && /^[0-9.]+$/.test(v)) st = 'color:#B45309';
+        out.push({ v, s: st });
+      }
+      return out;
+    };
+    const code = src.map(([n, s]) => ({
+      n: String(n), toks: tok(s),
+      style: 'display:flex;' + (n >= 61 && n <= 65 ? 'background:#FFF7D6;' : (n === 67 ? 'background:#EEF3FD;' : ''))
+    }));
+    return { appName, initial: appName.charAt(0).toUpperCase(), tree, metrics, members, code };
+  }
+}
+</script>
+</body>
+</html>

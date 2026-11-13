@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Verwendungen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#F6F7F9}
+a{color:#2457D6;text-decoration:none}a:hover{color:#1A43A8}
+.rb{display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:8px;color:#5B6370}
+.rb:hover{background:#EEF1F5;color:#14171C}
+.kbd{font:500 11px 'JetBrains Mono',monospace;color:#5B6370;border:1px solid #D5DAE1;border-bottom-width:2px;border-radius:4px;padding:0 5px;background:#fff}
+.hit:hover{background:#F3F6FD}
+.code{font-variant-ligatures:none}
+</style>
+</helmet>
+<div style="font-family: Inter, system-ui, sans-serif; color: #14171C; font-size: 13px; background: #F6F7F9; height: 900px; display: flex; flex-direction: column">
+
+  <header style="height: 48px; flex: none; display: flex; align-items: center; gap: 16px; padding: 0 16px; background: #FFFFFF; border-bottom: 1px solid #E3E6EB">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <div style="width: 24px; height: 24px; border-radius: 6px; background: #14171C; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px">{{initial}}</div>
+      <span style="font-weight: 600; font-size: 14px">{{appName}}</span>
+    </div>
+    <span style="color: #C3CAD4">/</span>
+    <a href="Main.dc.html" style="color: #14171C; font-weight: 600">Holzbedarf</a>
+    <a href="Palette.dc.html" style="flex: 1 1 280px; max-width: 520px; margin-left: 8px; height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid #E3E6EB; border-radius: 8px; background: #F6F7F9; color: #5B6370">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6"></circle><path d="M20 20l-4.5-4.5"></path></svg>
+      <span style="flex: 1">Typ, Member, Datei oder Befehl …</span>
+      <span class="kbd">Strg K</span>
+    </a>
+  </header>
+
+  <div style="flex: 1; display: flex; min-height: 0">
+    <nav aria-label="Ansichten" style="width: 56px; flex: none; background: #FFFFFF; border-right: 1px solid #E3E6EB; display: flex; flex-direction: column; align-items: center; gap: 4px; padding-top: 8px">
+      <a href="Main.dc.html" class="rb" aria-label="Projekte"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></a>
+      <a href="Explorer.dc.html" class="rb" aria-label="Explorer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M4 5h7M8 10h8M8 15h8M4 20h7M4 5v15"></path></svg></a>
+      <a href="Graph.dc.html" class="rb" aria-label="Abhängigkeiten" style="background: #EAF0FD; color: #2457D6"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="6" cy="6" r="2.5"></circle><circle cx="18" cy="8" r="2.5"></circle><circle cx="10" cy="18" r="2.5"></circle><path d="M8.4 6.4l7.2 1.2M7 8.3l2.2 7.4M16.6 10.2l-5 6"></path></svg></a>
+      <a href="Scan.dc.html" class="rb" aria-label="Scans und Leistung"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M13 3L5 14h6l-1 7 8-11h-6z"></path></svg></a>
+    </nav>
+
+    <section aria-label="Verwendungen" style="flex: 1 1 600px; min-width: 0; display: flex; flex-direction: column">
+      <div style="height: 44px; flex: none; display: flex; align-items: center; gap: 12px; padding: 0 16px; border-bottom: 1px solid #E3E6EB; background: #FFFFFF; flex-wrap: wrap">
+        <div role="group" aria-label="Ebene" style="display: flex; border: 1px solid #E3E6EB; border-radius: 7px; overflow: hidden">
+          <a href="Graph.dc.html" style="height: 28px; display: flex; align-items: center; padding: 0 12px; background: #fff; color: #3A414C; font-size: 12.5px">Namespaces</a>
+          <a href="Graph.dc.html" style="height: 28px; display: flex; align-items: center; padding: 0 12px; background: #fff; color: #3A414C; font-size: 12.5px; border-left: 1px solid #E3E6EB">Typen</a>
+          <span style="height: 28px; display: flex; align-items: center; padding: 0 12px; background: #14171C; color: #fff; font-weight: 500; font-size: 12.5px">Symbol</span>
+        </div>
+        <div role="group" aria-label="Richtung" style="display: flex; border: 1px solid #E3E6EB; border-radius: 7px; overflow: hidden">
+          <button type="button" style="height: 28px; padding: 0 10px; border: 0; background: #EAF0FD; color: #2457D6; font: 500 12.5px Inter, sans-serif">beide</button>
+          <button type="button" style="height: 28px; padding: 0 10px; border: 0; background: #fff; color: #3A414C; font: 12.5px Inter, sans-serif">wer ruft auf</button>
+          <button type="button" style="height: 28px; padding: 0 10px; border: 0; background: #fff; color: #3A414C; font: 12.5px Inter, sans-serif">was wird aufgerufen</button>
+        </div>
+        <label style="display: flex; align-items: center; gap: 6px; color: #3A414C">Tiefe
+          <select style="height: 28px; border: 1px solid #E3E6EB; border-radius: 6px; font: 12.5px Inter, sans-serif"><option>2</option><option>1</option><option>3</option><option>alle</option></select>
+        </label>
+        <label style="display: flex; align-items: center; gap: 6px; color: #3A414C"><input type="checkbox" checked> Tests zeigen</label>
+        <span style="margin-left: auto; font: 11.5px 'JetBrains Mono', monospace; color: #5B6370"><span class="kbd">Alt</span>+Klick auf ein Symbol im Code öffnet diese Ansicht</span>
+      </div>
+
+      <div style="flex: 1; position: relative; overflow: hidden; background: #FBFBFC; min-height: 0">
+        <div style="position: absolute; top: 12px; left: 24px; right: 24px; display: grid; grid-template-columns: 266px 270px 260px 236px; justify-content: start; font: 600 10.5px Inter, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: #5B6370">
+          <span>Aufrufer · Stufe 2</span><span>Aufrufer · Stufe 1</span><span style="text-align: center">Im Fokus</span><span>Ruft auf / liest</span>
+        </div>
+        <svg width="100%" height="100%" style="position: absolute; inset: 0" aria-hidden="true">
+          <sc-for list="{{edges}}" as="e" hint-placeholder-count="10">
+            <path d="{{e.d}}" fill="none" stroke="{{e.c}}" stroke-width="{{e.w}}" stroke-dasharray="{{e.dash}}"></path>
+          </sc-for>
+        </svg>
+        <sc-for list="{{cards}}" as="k" hint-placeholder-count="12">
+          <button type="button" style="{{k.style}}">
+            <span style="display: flex; align-items: center; gap: 6px; width: 100%"><span style="{{k.badge}}">{{k.letter}}</span><span style="{{k.nameStyle}}">{{k.name}}</span><span style="{{k.countStyle}}">{{k.count}}</span></span>
+            <span style="font-size: 11.5px; color: #5B6370; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%; text-align: left">{{k.ctx}}</span>
+          </button>
+        </sc-for>
+        <div style="position: absolute; left: 16px; bottom: 12px; display: flex; gap: 14px; align-items: center; background: #FFFFFF; border: 1px solid #E3E6EB; border-radius: 8px; padding: 6px 12px; font-size: 12px; color: #3A414C">
+          <span><span style="display: inline-block; width: 18px; height: 2px; background: #2457D6; vertical-align: middle"></span> ruft auf</span>
+          <span><span style="display: inline-block; width: 18px; height: 2px; background: #C2410C; vertical-align: middle"></span> nutzt</span>
+          <span><span style="display: inline-block; width: 18px; border-top: 2px dashed #8A919C; vertical-align: middle"></span> vermutet (über Interface)</span>
+          <span style="color: #5B6370">Zahl = Anzahl Stellen</span>
+        </div>
+      </div>
+
+      <div style="height: 250px; flex: none; background: #FFFFFF; border-top: 1px solid #E3E6EB; display: flex; flex-direction: column; min-height: 0">
+        <div style="height: 38px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 16px; border-bottom: 1px solid #EEF0F3">
+          <span style="font-weight: 600">Fundstellen 14</span>
+          <span style="padding: 1px 8px; border-radius: 999px; background: #EAF0FD; color: #2457D6; font-size: 12px">Aufruf 10</span>
+          <span style="padding: 1px 8px; border-radius: 999px; background: #F3E8FF; color: #6D28D9; font-size: 12px">Test 4</span>
+          <span style="padding: 1px 8px; border-radius: 999px; background: #EEF0F3; color: #3A414C; font-size: 12px">vermutet 1</span>
+          <span style="margin-left: auto; font: 11.5px 'JetBrains Mono', monospace; color: #5B6370"><span class="kbd">F8</span> nächste · <span class="kbd">Enter</span> im Explorer</span>
+        </div>
+        <div class="code" style="flex: 1; overflow: auto">
+          <sc-for list="{{hits}}" as="h" hint-placeholder-count="6">
+            <a href="Explorer.dc.html" class="hit" style="display: grid; grid-template-columns: 76px 260px minmax(0, 1fr) 70px; align-items: center; gap: 12px; padding: 6px 16px; border-bottom: 1px solid #F1F3F6; color: #14171C">
+              <span style="{{h.pill}}">{{h.kind}}</span>
+              <span style="font: 12px 'JetBrains Mono', monospace; color: #3A414C; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{h.where}}</span>
+              <span style="font: 12px 'JetBrains Mono', monospace; white-space: pre; overflow: hidden; text-overflow: ellipsis">{{h.pre}}<mark style="background: #FDE68A; color: #14171C; border-radius: 2px">{{h.sym}}</mark>{{h.post}}</span>
+              <span style="font: 11.5px 'JetBrains Mono', monospace; color: #6B7280; text-align: right">{{h.line}}</span>
+            </a>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <aside aria-label="Symbol" style="width: 300px; flex: none; background: #FFFFFF; border-left: 1px solid #E3E6EB; overflow: auto; padding: 18px; display: flex; flex-direction: column; gap: 14px">
+      <div>
+        <div style="font-size: 11.5px; color: #5B6370">Methode · Application.Cutting</div>
+        <h2 style="margin: 2px 0 0; font: 700 17px 'JetBrains Mono', monospace">CutPlanner.<wbr>AssignBoards</h2>
+        <div style="font: 12px 'JetBrains Mono', monospace; color: #3A414C; margin-top: 6px; line-height: 1.5">public CutPlan AssignBoards(IReadOnlyList&lt;Part&gt; parts, IReadOnlyList&lt;Board&gt; boards)</div>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px">
+        <div style="border: 1px solid #E3E6EB; border-radius: 8px; padding: 8px"><div style="font: 600 16px 'JetBrains Mono', monospace; color: #2457D6">14</div><div style="font-size: 11.5px; color: #5B6370">Stellen</div></div>
+        <div style="border: 1px solid #E3E6EB; border-radius: 8px; padding: 8px"><div style="font: 600 16px 'JetBrains Mono', monospace">5</div><div style="font-size: 11.5px; color: #5B6370">Dateien</div></div>
+        <div style="border: 1px solid #E3E6EB; border-radius: 8px; padding: 8px"><div style="font: 600 16px 'JetBrains Mono', monospace">4</div><div style="font-size: 11.5px; color: #5B6370">Schichten</div></div>
+      </div>
+      <div style="border-top: 1px solid #EEF0F3; padding-top: 12px; display: flex; flex-direction: column; gap: 8px">
+        <div style="font-weight: 600">Auswirkung einer Änderung</div>
+        <div style="font-size: 12.5px; color: #3A414C; line-height: 1.5">Eine Signaturänderung erreicht <strong>9 Methoden</strong> in <strong>4 Schichten</strong>, darunter das MCP-Werkzeug <span style="font-family: 'JetBrains Mono', monospace">plan_cuts</span> (öffentliche Schnittstelle).</div>
+        <div style="display: flex; gap: 4px; flex-wrap: wrap">
+          <span style="padding: 1px 8px; border-radius: 999px; font-size: 11.5px; background: #FCE7F3; color: #9D174D">Mcp</span>
+          <span style="padding: 1px 8px; border-radius: 999px; font-size: 11.5px; background: #FEF3C7; color: #92400E">Presentation</span>
+          <span style="padding: 1px 8px; border-radius: 999px; font-size: 11.5px; background: #CCFBF1; color: #115E59">Application</span>
+          <span style="padding: 1px 8px; border-radius: 999px; font-size: 11.5px; background: #DBEAFE; color: #1E40AF">Domain</span>
+        </div>
+      </div>
+      <div style="border-top: 1px solid #EEF0F3; padding-top: 12px; display: flex; flex-direction: column; gap: 6px">
+        <div style="font-weight: 600">Funktioniert für jedes Symbol</div>
+        <div style="font-size: 12.5px; color: #3A414C; line-height: 1.5">Konstante <span style="font-family: 'JetBrains Mono', monospace">KerfWidth</span>: 7 Stellen lesen den Wert, 0 schreiben. Property: getrennt nach Lesen und Schreiben. Interface-Methode: alle Implementierungen.</div>
+      </div>
+      <div style="border: 1px solid #E3E6EB; background: #FAFBFC; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #3A414C; line-height: 1.45">
+        <strong>Genauigkeit:</strong> 13 Stellen sicher aufgelöst, 1 vermutet (Aufruf über <span style="font-family: 'JetBrains Mono', monospace">ICutPlanner</span>).
+      </div>
+      <a href="Explorer.dc.html" style="display: inline-flex; justify-content: center; align-items: center; gap: 8px; height: 34px; border-radius: 8px; background: #14171C; color: #fff; font-weight: 600">Im Explorer öffnen <span style="font: 500 11px 'JetBrains Mono', monospace; color: #C3CAD4">Enter</span></a>
+    </aside>
+  </div>
+
+  <footer style="height: 28px; flex: none; display: flex; align-items: center; gap: 18px; padding: 0 16px; background: #FFFFFF; border-top: 1px solid #E3E6EB; color: #5B6370; font: 11.5px 'JetBrains Mono', monospace; overflow: hidden; white-space: nowrap">
+    <span style="color: #15803D">● Beobachtung aktiv</span>
+    <span>Referenz-Index 48.210 Einträge</span>
+    <span>Abfrage 4 ms</span>
+    <span style="margin-left: auto">Beispieldaten</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"appName":{"editor":"text","default":"CodeSkimr","section":"Marke"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const appName = this.props.appName ?? 'CodeSkimr';
+    const KC = { M: '#0F766E', C: '#2457D6', K: '#7C3AED', P: '#2457D6', T: '#6D28D9' };
+    const badge = (L) => 'display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:4px;font:700 10px Inter,sans-serif;color:#fff;flex:none;background:' + (KC[L] || '#5B6370');
+    const COLX = [24, 290, 560, 820];
+    const CW = [236, 236, 236, 236];
+    const H = 50;
+    const P = {};
+    const card = (id, col, y, letter, name, ctx, count, opt) => {
+      opt = opt || {};
+      P[id] = { x: COLX[col], y, w: CW[col] };
+      const focus = !!opt.focus;
+      return {
+        letter, name, ctx, count: count ? String(count) : '', badge: badge(letter),
+        nameStyle: "font:" + (focus ? '600 13px' : '500 12px') + " 'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis",
+        countStyle: count ? "margin-left:auto;font:600 11px 'JetBrains Mono',monospace;color:#2457D6;background:#EAF0FD;border-radius:999px;padding:0 6px" : 'display:none',
+        style: 'position:absolute;left:' + COLX[col] + 'px;top:' + y + 'px;width:' + CW[col] + 'px;height:' + (focus ? 64 : H) + 'px;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:0 10px;border-radius:8px;cursor:pointer;background:#fff;color:#14171C;' +
+          (focus ? 'border:2px solid #14171C;box-shadow:0 0 0 4px #FDE68A' : (opt.dashed ? 'border:1px dashed #8A919C' : 'border:1px solid #D5DAE1'))
+      };
+    };
+    const cards = [
+      card('v', 0, 52, 'C', 'PlanView', 'App.Views · Klick „Berechnen“', 1),
+      card('srv', 0, 122, 'M', 'McpServer.Dispatch', 'Mcp.Server', 1),
+      card('imp', 0, 192, 'M', 'ImportService.Finish', 'Infrastructure.Import', 1),
+      card('vm', 1, 52, 'M', 'PlanViewModel.Recalculate', 'Presentation.ViewModels', 2),
+      card('tool', 1, 122, 'M', 'PlanCutsTool.Run', 'Mcp.Tools · MCP „plan_cuts“', 1),
+      card('cmd', 1, 192, 'M', 'PlanCommandHandler.Handle', 'Application.Planning', 2, { dashed: true }),
+      card('test', 1, 262, 'T', 'CutPlannerTests', 'Tests · 4 Testfälle', 4),
+      card('f', 2, 150, 'M', 'CutPlanner.AssignBoards', 'Application.Cutting · CC 7 · 41 LOC', 0, { focus: true }),
+      card('rl', 3, 52, 'M', 'Board.RemainingLength', 'Domain.Boards', 3),
+      card('kw', 3, 122, 'K', 'Units.KerfWidth', 'Domain.Units · const = 4 mm', 2),
+      card('pl', 3, 192, 'P', 'Part.Length', 'Domain.Parts · gelesen', 4),
+      card('sbl', 3, 262, 'M', 'SortByLength', 'Application.Cutting · private', 1)
+    ];
+    const R = (id) => { const p = P[id]; const h = id === 'f' ? 64 : H; return { x: p.x + p.w, y: p.y + h / 2 }; };
+    const Lf = (id) => { const p = P[id]; const h = id === 'f' ? 64 : H; return { x: p.x, y: p.y + h / 2 }; };
+    const E = (a, b, c, dash) => { const s = R(a), t = Lf(b); const mx = (s.x + t.x) / 2; return { d: 'M' + s.x + ' ' + s.y + ' C' + mx + ' ' + s.y + ' ' + mx + ' ' + t.y + ' ' + t.x + ' ' + t.y, c, w: 1.8, dash: dash || '' }; };
+    const blue = '#2457D6', org = '#C2410C';
+    const edges = [
+      E('v', 'vm', blue), E('srv', 'tool', blue), E('imp', 'cmd', blue),
+      E('vm', 'f', blue), E('tool', 'f', blue), E('cmd', 'f', '#8A919C', '5 4'), E('test', 'f', '#6D28D9'),
+      E('f', 'rl', org), E('f', 'kw', org), E('f', 'pl', org), E('f', 'sbl', org)
+    ];
+    const pill = (bg, fg) => 'padding:1px 8px;border-radius:999px;font-size:11.5px;font-weight:500;text-align:center;background:' + bg + ';color:' + fg;
+    const A = pill('#EAF0FD', '#2457D6'), T = pill('#F3E8FF', '#6D28D9'), V = pill('#EEF0F3', '#3A414C');
+    const hits = [
+      { kind: 'Aufruf', pill: A, where: 'PlanViewModel.Recalculate', pre: '        var plan = _planner.', sym: 'AssignBoards', post: '(Parts, Boards);', line: ':88' },
+      { kind: 'Aufruf', pill: A, where: 'PlanViewModel.Recalculate', pre: '            ?? _planner.', sym: 'AssignBoards', post: '(Parts, [Board.Default]);', line: ':94' },
+      { kind: 'Aufruf', pill: A, where: 'PlanCutsTool.Run', pre: '        return Json(planner.', sym: 'AssignBoards', post: '(req.Parts, req.Boards));', line: ':41' },
+      { kind: 'vermutet', pill: V, where: 'PlanCommandHandler.Handle', pre: '        var result = _cutPlanner.', sym: 'AssignBoards', post: '(cmd.Parts, stock);', line: ':57' },
+      { kind: 'Test', pill: T, where: 'CutPlannerTests.EmptyParts', pre: '        var plan = sut.', sym: 'AssignBoards', post: '([], boards);', line: ':22' },
+      { kind: 'Test', pill: T, where: 'CutPlannerTests.KerfIsRespected', pre: '        var plan = sut.', sym: 'AssignBoards', post: '(parts, [board]);', line: ':48' }
+    ];
+    return { appName, initial: appName.charAt(0).toUpperCase(), cards, edges, hits };
+  }
+}
+</script>
+</body>
+</html>
