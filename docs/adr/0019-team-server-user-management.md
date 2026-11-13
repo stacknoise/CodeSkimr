@@ -108,13 +108,13 @@ Each milestone is split into work packages when it is released; each needs the l
 ## Consequences
 
 - **1.0 stays single-user** with unchanged budgets and milestones; it gains only the caller-identity seam above, as one extra work package. After this ADR is accepted, blueprint sections 1, 4.1, 4.2, 4.3, 10.1 to 10.4, 11.2/11.3, 12.5, 12.6, 18.4 and 19 and `tools/ci/architecture.toml` get the matching text (S-04 and the 10.4 token line change, they do not only get a pointer) in a separate `blueprint-change` PR; until then nothing in the blueprint is edited by this PR.
-- The caller-identity seam goes into 1.0 (decided by the product owner), tracked in #59. A follow-up issue tracks the `blueprint-change` PR with the blueprint text changes.
+- The caller-identity seam goes into 1.0 (decided by the product owner), tracked in #59. Issue #62 tracks the `blueprint-change` PR with the blueprint text changes.
 - New crate `codeskimr_auth` needs an entry in the dependency diagram when accepted.
 - New dependencies (password hashing, OIDC, TLS, PostgreSQL driver) are decided per work package with the `new-dependency` label.
-- Risks: a team server enlarges the attack surface (network exposure, accounts). Mitigation: off by default, TLS-only, audit log, security review for every package.
+- Risks: a team server enlarges the attack surface (network exposure, accounts). Mitigation: off by default, TLS or trusted proxy only, audit log, security review for every package.
 
 ## Open questions for the product owner (answered: the 1.0 seam is wanted; the rest is open)
 
 1. ~~OIDC in the first release?~~ Answered: yes, OIDC is part of Stage B.
-2. Are the four fixed roles enough, or are groups and custom roles expected early?
+2. Are the fixed roles (global admin/user plus project roles maintainer, member, viewer) enough, or are custom roles expected early?
 3. The `viewer` role is provisionally without source excerpts (permission `read_source`). Is that right?
