@@ -1,10 +1,12 @@
 import { For, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { activeProject } from "../../shared/project/active";
 import { TONE } from "../../shared/ui/consts";
 import { Pill } from "../../shared/ui/Pill";
 import { CRUMB_SEPARATOR, HOTKEY, PILL_SEPARATOR } from "./consts";
 import { showUsages } from "../usages/usages";
+import { openInEditor } from "./editor";
 import { currentMember } from "./explorer";
 import { MemberTable } from "./MemberTable";
 import { MetricStrip } from "./MetricStrip";
@@ -54,7 +56,16 @@ function Actions(props: { symbol: number }) {
         onClick={() => showUsages(props.symbol)}
       />
       <Action label={t(I18N_KEYS.EXPLORER_ACTION_GRAPH)} hotkey={HOTKEY.graph} />
-      <Action label={t(I18N_KEYS.EXPLORER_ACTION_EDITOR)} hotkey={HOTKEY.editor} />
+      <Action
+        label={t(I18N_KEYS.EXPLORER_ACTION_EDITOR)}
+        hotkey={HOTKEY.editor}
+        onClick={() => {
+          const project = activeProject();
+          if (project !== null) {
+            void openInEditor(project, props.symbol);
+          }
+        }}
+      />
       <span id={SOON_ID} class={styles.hidden}>
         {t(I18N_KEYS.EXPLORER_ACTION_SOON)}
       </span>

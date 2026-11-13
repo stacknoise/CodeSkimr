@@ -37,6 +37,7 @@ export interface SearchKeyActions {
   activate: (entry: Entry) => void;
   chip: (step: number) => void;
   copy: (entry: Entry) => boolean;
+  editor: (entry: Entry) => void;
 }
 
 /** The keys of the overlay: arrows choose, `Enter` opens, `Tab` changes the filter, `Ctrl+C`
@@ -54,6 +55,8 @@ export function onSearchKey(
     actions.close();
   } else if (moved !== NONE) {
     actions.choose(moved);
+  } else if (event.key === KEY.enter && entry && event.altKey && !event.ctrlKey) {
+    actions.editor(entry);
   } else if (event.key === KEY.enter && entry && !event.ctrlKey && !event.altKey) {
     actions.activate(entry);
   } else if (event.key === KEY.tab) {

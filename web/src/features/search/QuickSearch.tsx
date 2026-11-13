@@ -6,6 +6,7 @@ import { cx } from "../../shared/ui/cx";
 import { ICON_SEARCH } from "../../shared/ui/consts";
 import { Icon } from "../../shared/ui/Icon";
 import { ROW_HEIGHT_PX } from "../explorer/consts";
+import { openInEditor } from "../explorer/editor";
 import { KindBadge } from "../explorer/KindBadge";
 import { useWindow } from "../explorer/useWindow";
 import { UI_COMMANDS } from "./commands";
@@ -61,12 +62,22 @@ function copyName(entry: Entry): boolean {
   return true;
 }
 
+/** `Alt+Enter`: opens the declaration of the chosen hit in the editor and closes the search. */
+function openInEditorFrom(entry: Entry): void {
+  const project = activeProject();
+  if (entry.hit && project !== null) {
+    closeSearch();
+    void openInEditor(project, entry.hit.id);
+  }
+}
+
 const ACTIONS: SearchKeyActions = {
   close: closeSearch,
   choose,
   activate,
   chip: (step) => pickChip(nextChip(searchChip(), step)),
   copy: copyName,
+  editor: openInEditorFrom,
 };
 
 function Row(props: { row: ListRow; text: string }) {
