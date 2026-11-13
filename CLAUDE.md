@@ -17,7 +17,7 @@ The binding specification is `BLUEPRINT.md` (added by work package WP-06; until 
 3. Branches: agent sessions work on `claude/...` branches. The PR title uses Conventional Commits (`feat:`, `fix:`, `refactor:`, `test:`, `docs:`, `chore:`); the PR is squash-merged, so the title becomes the commit.
 4. From milestone M1 on, use CodeSkimr's own MCP server: `find_similar_code` and `find_constants` before writing new code, `check_conventions` before every commit.
 5. Never merge, never change repository settings or rulesets, never loosen a lint, threshold or budget, never disable or skip a test to get CI green.
-6. Only the reviewer agent approves, and never the author of the PR. Only the product owner (Anton) merges.
+6. The ruleset requires 0 approvals because PRs are opened under the product owner's account. The reviewer agent writes its verdict as a review comment, never for its own work. Only the product owner (Anton) merges.
 7. A change to the blueprint, a new dependency layer, symbol kind, pattern or technology needs an ADR in `docs/adr/` and the label `blueprint-change`.
 8. A new dependency needs one sentence of justification in the PR and the label `new-dependency`.
 9. Never commit secrets, credentials, tokens, private paths or data from private projects. This repository is public.
@@ -33,4 +33,4 @@ Blueprint 18.4: rules met and CI green, tests on the right level, texts in de an
 
 ## Roles
 
-Role descriptions are in `.claude/agents/`. Workflow: coordinator releases a package, developer implements and opens the PR, CI runs, reviewer checks (security reviews `security-sensitive` PRs), Anton merges.
+Role descriptions are in `.claude/agents/`. Workflow: coordinator releases a package, developer implements and opens the PR, CI runs, reviewer checks and comments (security reviews `security-sensitive` PRs), Anton merges.
