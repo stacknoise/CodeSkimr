@@ -1,5 +1,6 @@
 //! The typed configuration. There is no string-keyed access anywhere (blueprint section 14).
 
+use codeskimr_domain::{FingerprintParams, ModelError};
 use serde::Deserialize;
 
 /// The complete, validated configuration. Built by [`crate::config::Config::resolve`].
@@ -16,6 +17,8 @@ pub struct Config {
     pub snapshots: SnapshotRetention,
     /// File watcher behaviour.
     pub watcher: Watcher,
+    /// Syntax fingerprints for similar-code search and duplicate detection.
+    pub similarity: Similarity,
     /// Scan behaviour.
     pub scan: Scan,
 }
@@ -98,4 +101,30 @@ pub struct Watcher {
 pub struct Scan {
     /// Folder names that are never scanned, at any depth.
     pub excluded_folders: Vec<String>,
+}
+
+/// Syntax fingerprints (blueprint 10.4).
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Similarity {
+    /// Number of syntax tokens per hashed n-gram.
+    pub ngram_size: u32,
+    /// Number of consecutive n-grams per winnowing window.
+    pub window_size: u32,
+    /// Functions with fewer syntax tokens get no fingerprints.
+    pub min_tokens: u32,
+}
+
+impl Similarity {
+    /// The winnowing parameters of this section.
+    ///
+    /// # Errors
+    /// [`ModelError::NotPositive`] if a value is zero; a resolved [`Config`] never is.
+    pub fn fingerprint_params(&self) -> Result<FingerprintParams, ModelError> {
+        FingerprintParams::new(widen(self.ngram_size), widen(self.window_size))
+    }
+}
+
+fn widen(value: u32) -> usize {
+    usize::try_from(value).unwrap_or(usize::MAX)
 }
