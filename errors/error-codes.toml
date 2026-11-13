@@ -1,0 +1,447 @@
+# errors/error-codes.toml - single source of truth for all error codes (blueprint section 11).
+# Codes are never reused or renumbered; retire one with `deprecated = true`.
+# Every code needs an `error-<id>` message in locales/<lang>/errors.ftl for each language.
+
+[groups.APP]
+title = "Application start and lifecycle"
+crate = "codeskimr"
+
+[groups.CFG]
+title = "Configuration"
+crate = "codeskimr_application"
+
+[groups.PRJ]
+title = "Projects and snapshots"
+crate = "codeskimr_application"
+
+[groups.SRC]
+title = "Sources: file system, Git, watcher"
+crate = "codeskimr_source"
+
+[groups.PRS]
+title = "Parsing and language packs"
+crate = "codeskimr_parsing"
+
+[groups.RES]
+title = "Reference resolution"
+crate = "codeskimr_parsing"
+
+[groups.IDX]
+title = "Search and read models"
+crate = "codeskimr_storage"
+
+[groups.STO]
+title = "Persistence"
+crate = "codeskimr_storage"
+
+[groups.SEC]
+title = "Credentials and security"
+crate = "codeskimr_secrets"
+
+[groups.NET]
+title = "Network and platforms (GitHub, GitLab ...)"
+crate = "codeskimr_source"
+
+[groups.API]
+title = "REST and WebSocket"
+crate = "codeskimr_server"
+
+[groups.MCP]
+title = "MCP server"
+crate = "codeskimr_mcp"
+
+[groups.CLI]
+title = "Command line"
+crate = "codeskimr_cli"
+
+[groups.I18N]
+title = "Translations"
+crate = "codeskimr_i18n"
+
+[groups.EXP]
+title = "Export"
+crate = "codeskimr_application"
+
+[groups.UI]
+title = "Frontend"
+crate = "web"
+
+[groups.CHK]
+title = "Convention-check findings (not failures)"
+crate = "codeskimr_application"
+
+[[codes]]
+id = "APP-201"
+name = "data_dir_unavailable"
+severity = "error"
+retryable = false
+description = "The user data directory cannot be created or opened."
+since = "0.1.0"
+
+[[codes]]
+id = "APP-301"
+name = "instance_already_running"
+severity = "error"
+retryable = false
+description = "Another CodeSkimr instance holds the workspace; connecting to it failed."
+since = "0.1.0"
+
+[[codes]]
+id = "APP-901"
+name = "unexpected_internal_error"
+severity = "error"
+retryable = false
+description = "An unexpected internal error occurred (bug)."
+since = "0.1.0"
+
+[[codes]]
+id = "CFG-101"
+name = "config_invalid_value"
+severity = "error"
+retryable = false
+description = "A configuration value is outside its allowed range or has the wrong type."
+since = "0.1.0"
+
+[[codes]]
+id = "CFG-102"
+name = "config_parse_failed"
+severity = "error"
+retryable = false
+description = "A configuration file is not valid TOML."
+since = "0.1.0"
+
+[[codes]]
+id = "PRJ-101"
+name = "project_source_invalid"
+severity = "error"
+retryable = false
+description = "The given source is neither an existing folder nor a valid Git URL."
+since = "0.1.0"
+
+[[codes]]
+id = "PRJ-201"
+name = "project_not_found"
+severity = "error"
+retryable = false
+description = "No project with this id exists."
+since = "0.1.0"
+
+[[codes]]
+id = "PRJ-301"
+name = "project_already_registered"
+severity = "error"
+retryable = false
+description = "A project with the same source is already registered."
+since = "0.1.0"
+
+[[codes]]
+id = "PRJ-302"
+name = "snapshot_in_progress"
+severity = "error"
+retryable = false
+description = "A scan for this project is already running."
+since = "0.1.0"
+
+[[codes]]
+id = "SRC-201"
+name = "source_path_not_found"
+severity = "error"
+retryable = false
+description = "The configured source folder does not exist or is not readable."
+since = "0.1.0"
+
+[[codes]]
+id = "SRC-202"
+name = "git_branch_not_found"
+severity = "error"
+retryable = false
+description = "The requested branch does not exist on the remote."
+since = "0.1.0"
+
+[[codes]]
+id = "SRC-401"
+name = "git_auth_required"
+severity = "error"
+retryable = false
+description = "The remote requires authentication and no usable credential is available."
+since = "0.1.0"
+
+[[codes]]
+id = "SRC-501"
+name = "source_too_large"
+severity = "error"
+retryable = false
+description = "The source exceeds the configured size limit."
+since = "0.1.0"
+
+[[codes]]
+id = "SRC-601"
+name = "git_fetch_failed"
+severity = "error"
+retryable = true
+description = "Fetching from the Git remote failed (network or remote error)."
+since = "0.1.0"
+
+[[codes]]
+id = "SRC-602"
+name = "watcher_failed"
+severity = "error"
+retryable = false
+description = "The file-system watcher could not be started or stopped unexpectedly."
+since = "0.1.0"
+
+[[codes]]
+id = "PRS-101"
+name = "file_encoding_unsupported"
+severity = "error"
+retryable = false
+description = "A source file is not valid UTF-8/UTF-16 and was skipped."
+since = "0.1.0"
+
+[[codes]]
+id = "PRS-201"
+name = "language_pack_missing"
+severity = "error"
+retryable = false
+description = "No language pack is installed for this file type."
+since = "0.1.0"
+
+[[codes]]
+id = "PRS-301"
+name = "language_pack_invalid"
+severity = "error"
+retryable = false
+description = "A language pack's TOML or query files are invalid."
+since = "0.1.0"
+
+[[codes]]
+id = "PRS-501"
+name = "parse_timeout"
+severity = "error"
+retryable = false
+description = "Parsing a single file exceeded the configured time limit."
+since = "0.1.0"
+
+[[codes]]
+id = "RES-301"
+name = "ambiguous_reference"
+severity = "warning"
+retryable = false
+description = "A reference matches several symbols; it was stored as probable."
+since = "0.1.0"
+
+[[codes]]
+id = "IDX-301"
+name = "read_model_stale"
+severity = "info"
+retryable = false
+description = "A read model is older than the current snapshot and is being rebuilt."
+since = "0.1.0"
+
+[[codes]]
+id = "STO-301"
+name = "schema_migration_failed"
+severity = "error"
+retryable = false
+description = "Applying a database migration failed."
+since = "0.1.0"
+
+[[codes]]
+id = "STO-302"
+name = "transaction_conflict"
+severity = "error"
+retryable = true
+description = "A concurrent write conflicted; the operation can be retried."
+since = "0.1.0"
+
+[[codes]]
+id = "STO-501"
+name = "disk_full"
+severity = "error"
+retryable = false
+description = "Not enough disk space to persist the snapshot."
+since = "0.1.0"
+
+[[codes]]
+id = "SEC-201"
+name = "credential_not_found"
+severity = "error"
+retryable = false
+description = "The referenced credential does not exist in the keystore."
+since = "0.1.0"
+
+[[codes]]
+id = "SEC-401"
+name = "credential_rejected"
+severity = "error"
+retryable = false
+description = "The platform rejected the credential."
+since = "0.1.0"
+
+[[codes]]
+id = "SEC-402"
+name = "keystore_access_denied"
+severity = "error"
+retryable = false
+description = "The OS keystore denied access."
+since = "0.1.0"
+
+[[codes]]
+id = "SEC-601"
+name = "keystore_unavailable"
+severity = "error"
+retryable = false
+description = "The OS keystore service is not available."
+since = "0.1.0"
+
+[[codes]]
+id = "SEC-901"
+name = "memory_lock_failed"
+severity = "error"
+retryable = false
+description = "Locking secret memory against swapping failed."
+since = "0.1.0"
+
+[[codes]]
+id = "NET-501"
+name = "request_timeout"
+severity = "error"
+retryable = true
+description = "A request to an external platform timed out."
+since = "0.1.0"
+
+[[codes]]
+id = "NET-502"
+name = "rate_limited"
+severity = "error"
+retryable = true
+description = "The external platform rate-limited the request."
+since = "0.1.0"
+
+[[codes]]
+id = "NET-601"
+name = "oauth_flow_failed"
+severity = "error"
+retryable = false
+description = "The OAuth device flow did not complete."
+since = "0.1.0"
+
+[[codes]]
+id = "API-101"
+name = "request_invalid"
+severity = "error"
+retryable = false
+description = "The REST request failed validation."
+since = "0.1.0"
+
+[[codes]]
+id = "API-401"
+name = "token_missing_or_invalid"
+severity = "error"
+retryable = false
+description = "A state-changing request lacks a valid installation token."
+since = "0.1.0"
+
+[[codes]]
+id = "MCP-101"
+name = "tool_arguments_invalid"
+severity = "error"
+retryable = false
+description = "MCP tool arguments failed validation."
+since = "0.1.0"
+
+[[codes]]
+id = "MCP-201"
+name = "project_not_registered"
+severity = "error"
+retryable = false
+description = "The requested path is not inside a registered project."
+since = "0.1.0"
+
+[[codes]]
+id = "MCP-501"
+name = "response_limit_exceeded"
+severity = "info"
+retryable = false
+description = "The result was truncated to the configured limit."
+since = "0.1.0"
+
+[[codes]]
+id = "CLI-101"
+name = "cli_arguments_invalid"
+severity = "error"
+retryable = false
+description = "Command-line arguments are invalid."
+since = "0.1.0"
+
+[[codes]]
+id = "I18N-201"
+name = "message_key_missing"
+severity = "error"
+retryable = false
+description = "A message key is missing for the active language (falls back to English)."
+since = "0.1.0"
+
+[[codes]]
+id = "EXP-601"
+name = "export_write_failed"
+severity = "error"
+retryable = false
+description = "The export file could not be written."
+since = "0.1.0"
+
+[[codes]]
+id = "UI-201"
+name = "api_unreachable"
+severity = "error"
+retryable = false
+description = "The UI cannot reach the local server."
+since = "0.1.0"
+
+[[codes]]
+id = "UI-901"
+name = "unexpected_ui_error"
+severity = "error"
+retryable = false
+description = "An uncaught exception was converted at a feature boundary (bug)."
+since = "0.1.0"
+
+[[codes]]
+id = "CHK-101"
+name = "literal_found"
+severity = "error"
+retryable = false
+description = "A literal outside the allowed exceptions was found."
+since = "0.1.0"
+
+[[codes]]
+id = "CHK-102"
+name = "duplicate_block"
+severity = "error"
+retryable = false
+description = "A code block duplicates existing code."
+since = "0.1.0"
+
+[[codes]]
+id = "CHK-103"
+name = "layer_violation"
+severity = "error"
+retryable = false
+description = "A dependency points against the allowed direction."
+since = "0.1.0"
+
+[[codes]]
+id = "CHK-104"
+name = "function_too_long"
+severity = "error"
+retryable = false
+description = "A function exceeds the configured length."
+since = "0.1.0"
+
+[[codes]]
+id = "CHK-105"
+name = "complexity_too_high"
+severity = "error"
+retryable = false
+description = "A function exceeds the configured cognitive complexity."
+since = "0.1.0"
