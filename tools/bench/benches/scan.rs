@@ -24,6 +24,8 @@ const SEED: u64 = 7;
 const SAMPLES: usize = 10;
 const MEASUREMENT_SECONDS: u64 = 30;
 const SCRATCH: &str = "target/bench-scan";
+/// Field of the JSON summary that holds the duration of the scan in seconds.
+const SECONDS_FIELD: &str = "seconds";
 
 fn root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
@@ -91,25 +93,31 @@ fn build_binary() -> io::Result<PathBuf> {
     Ok(root().join("target/release/codeskimr"))
 }
 
-fn scan_once(binary: &Path, corpus: &Path, data: &Path) -> io::Result<()> {
+/// Runs one scan with a fresh database and returns the time the scan itself reports. Starting the
+/// process and loading the language packs have a budget of their own (cold start).
+fn scan_once(binary: &Path, corpus: &Path, data: &Path) -> io::Result<Duration> {
     fs::remove_dir_all(data).or_else(|error| match error.kind() {
         io::ErrorKind::NotFound => Ok(()),
         _ => Err(error),
     })?;
-    let status = Command::new(binary)
+    let output = Command::new(binary)
         .current_dir(root())
         .arg("scan")
         .arg(corpus)
         .arg("--json")
         .arg("--data-dir")
         .arg(data)
-        .stdout(Stdio::null())
-        .status()?;
-    if status.success() {
-        Ok(())
-    } else {
-        Err(io::Error::other("the scan failed"))
+        .stdout(Stdio::piped())
+        .output()?;
+    if !output.status.success() {
+        return Err(io::Error::other("the scan failed"));
     }
+    let summary: serde_json::Value = serde_json::from_slice(&output.stdout)?;
+    summary
+        .get(SECONDS_FIELD)
+        .and_then(serde_json::Value::as_f64)
+        .map(Duration::from_secs_f64)
+        .ok_or_else(|| io::Error::other("the summary has no duration"))
 }
 
 fn scans(c: &mut Criterion) -> io::Result<()> {
@@ -121,7 +129,11 @@ fn scans(c: &mut Criterion) -> io::Result<()> {
     group.sample_size(SAMPLES);
     group.measurement_time(Duration::from_secs(MEASUREMENT_SECONDS));
     group.bench_function("full_100k_loc", |b| {
-        b.iter(|| scan_once(&binary, &corpus, &data).is_ok());
+        b.iter_custom(|iterations| {
+            (0..iterations)
+                .map(|_| scan_once(&binary, &corpus, &data).unwrap_or(Duration::MAX))
+                .fold(Duration::ZERO, Duration::saturating_add)
+        });
     });
     group.finish();
     Ok(())

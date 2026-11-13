@@ -123,3 +123,6 @@ pub const CALLABLE_KINDS: [SymbolKind; 3] = [
     SymbolKind::Method,
     SymbolKind::Constructor,
 ];
+
+/// Reason of the error when the thread that loads a pack panics.
+pub const LOAD_PANICKED: &str = "loading the pack panicked";

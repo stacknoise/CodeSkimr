@@ -39,7 +39,7 @@ A failed comparison is measured once more before the job fails, because one run 
 
 ## Scan benchmark
 
-`scan/full_100k_loc` (`benches/scan.rs`) builds the release binary, generates a corpus of 400 Rust files (about 100k lines, no duplicate names) and times `codeskimr scan` on it with a fresh database, against `full_scan_100k_loc_ms`. The corpus is generated so that it is the same everywhere and does not multiply references through equal names. Find the slow stage of a scan with `CODESKIMR_LOG=info`: every pipeline stage logs its duration (`stage` and `elapsed_ms`).
+`scan/full_100k_loc` (`benches/scan.rs`) builds the release binary, generates a corpus of 400 Rust files (about 100k lines, no duplicate names) and takes the scan time that `codeskimr scan --json` reports for it with a fresh database (starting the process has the cold start budget), against `full_scan_100k_loc_ms`. The corpus is generated so that it is the same everywhere and does not multiply references through equal names. Find the slow stage of a scan with `CODESKIMR_LOG=info`: every pipeline stage logs its duration (`stage` and `elapsed_ms`).
 
 ## Output of the tools
 
