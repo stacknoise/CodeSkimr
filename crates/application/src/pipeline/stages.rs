@@ -258,6 +258,7 @@ impl Stage for ResolveStage {
             carried,
         } = input;
         pending.extend(carried.rebuilt.iter().cloned());
+        pending.extend(carried.inheritance_seed());
         let total = count(&pending);
         ctx.progress(0, total);
         let table: Vec<Symbol> = carried.symbols.iter().chain(&symbols).cloned().collect();

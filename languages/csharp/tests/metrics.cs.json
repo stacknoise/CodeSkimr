@@ -136,147 +136,45 @@
   "loc": 49,
   "references": [
     {
-      "at": "6:12",
-      "from": "metrics.M.Branches",
-      "kind": "read",
-      "target": "a"
-    },
-    {
-      "at": "6:21",
-      "from": "metrics.M.Branches",
-      "kind": "read",
-      "target": "b"
-    },
-    {
-      "at": "7:17",
-      "from": "metrics.M.Branches",
-      "kind": "read",
-      "target": "a"
-    },
-    {
-      "at": "7:26",
-      "from": "metrics.M.Branches",
-      "kind": "read",
-      "target": "b"
-    },
-    {
-      "at": "8:16",
-      "from": "metrics.M.Branches",
-      "kind": "read",
-      "target": "a"
-    },
-    {
-      "at": "8:21",
-      "from": "metrics.M.Branches",
-      "kind": "read",
-      "target": "b"
-    },
-    {
-      "at": "9:8",
-      "from": "metrics.M.Branches",
-      "kind": "write",
-      "target": "c"
-    },
-    {
-      "at": "10:15",
-      "from": "metrics.M.Branches",
-      "kind": "read",
-      "target": "a"
-    },
-    {
-      "at": "10:19",
-      "from": "metrics.M.Branches",
-      "kind": "read",
-      "target": "b"
-    },
-    {
-      "at": "10:23",
-      "from": "metrics.M.Branches",
-      "kind": "read",
-      "target": "a"
-    },
-    {
-      "at": "10:27",
-      "from": "metrics.M.Branches",
-      "kind": "read",
-      "target": "b"
-    },
-    {
-      "at": "15:24",
-      "from": "metrics.M.Loops",
-      "kind": "read",
-      "target": "i"
-    },
-    {
-      "at": "15:31",
-      "from": "metrics.M.Loops",
-      "kind": "write",
-      "target": "i"
-    },
-    {
-      "at": "17:15",
-      "from": "metrics.M.Loops",
-      "kind": "read",
-      "target": "xs"
-    },
-    {
       "at": "17:18",
       "from": "metrics.M.Loops",
       "kind": "read",
+      "receiver": "typed int[]",
       "target": "Length"
     },
     {
       "at": "37:14",
       "from": "metrics.M.Catches",
       "kind": "call",
+      "receiver": null,
       "target": "Work"
     },
     {
       "at": "38:25",
       "from": "metrics.M.Catches",
       "kind": "type_use",
+      "receiver": null,
       "target": "IOException"
-    },
-    {
-      "at": "38:46",
-      "from": "metrics.M.Catches",
-      "kind": "read",
-      "target": "e"
     },
     {
       "at": "39:22",
       "from": "metrics.M.Catches",
       "kind": "type_use",
+      "receiver": null,
       "target": "Exception"
     },
     {
       "at": "45:8",
       "from": "metrics.M.Outer",
       "kind": "type_use",
+      "receiver": null,
       "target": "Func"
-    },
-    {
-      "at": "45:32",
-      "from": "metrics.M.Outer",
-      "kind": "read",
-      "target": "x"
-    },
-    {
-      "at": "45:40",
-      "from": "metrics.M.Outer",
-      "kind": "read",
-      "target": "x"
-    },
-    {
-      "at": "46:31",
-      "from": "metrics.M.Outer.Local",
-      "kind": "read",
-      "target": "y"
     },
     {
       "at": "47:15",
       "from": "metrics.M.Outer",
       "kind": "call",
+      "receiver": null,
       "target": "Local"
     }
   ],

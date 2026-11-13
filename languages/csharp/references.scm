@@ -66,3 +66,118 @@
    alternative: (identifier) @name]) @reference.read
 ; The receiver of a member access: a variable or a type
 (member_access_expression expression: (identifier) @name) @reference.read
+
+; ---------------------------------------------------------------------------------------------
+; Receivers: what the syntax says about the thing in front of the dot (blueprint 9.2, step 3).
+; These patterns add facts to the occurrences above, they do not create occurrences.
+(member_access_expression
+  expression: ["this" @receiver.own
+               "base" @receiver.base
+               (identifier) @receiver
+               (object_creation_expression type: (identifier) @receiver.type)
+               (_) @receiver.other]
+  name: [(identifier) @name (generic_name . (identifier) @name)])
+(conditional_access_expression
+  condition: ["this" @receiver.own
+              "base" @receiver.base
+              (identifier) @receiver
+              (_) @receiver.other]
+  (member_binding_expression name: [(identifier) @name (generic_name . (identifier) @name)]))
+
+; ---------------------------------------------------------------------------------------------
+; Scopes: nodes in which a declared name is visible.
+([(block) (for_statement) (foreach_statement) (using_statement) (lambda_expression)
+  (anonymous_method_expression) (method_declaration) (constructor_declaration)
+  (operator_declaration) (local_function_statement) (accessor_declaration) (catch_clause)
+  (switch_section) (class_declaration) (struct_declaration) (record_declaration)
+  (interface_declaration)] @scope)
+
+; ---------------------------------------------------------------------------------------------
+; Locals and parameters hide members of the same name (step 1). A declared type, or the type of
+; `new Foo()` behind `var`, tells the type of a receiver. A type outside the project is a type
+; too; its members are not project symbols. Positional record parameters are properties and are
+; not listed here.
+(_ parameters: (parameter_list (parameter name: (identifier) @local)))
+(_ parameters: (parameter_list
+  (parameter
+    type: [(identifier) @declared_type
+           (generic_name . (identifier) @declared_type)
+           (qualified_name name: (identifier) @declared_type)
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (predefined_type) @declared_type
+           (array_type) @declared_type]
+    name: (identifier) @local)))
+(class_declaration (parameter_list (parameter name: (identifier) @local)))
+(struct_declaration (parameter_list (parameter name: (identifier) @local)))
+(lambda_expression parameters: (implicit_parameter) @local)
+
+(local_declaration_statement
+  (variable_declaration (variable_declarator name: (identifier) @local)))
+(for_statement
+  initializer: (variable_declaration (variable_declarator name: (identifier) @local)))
+(using_statement
+  (variable_declaration (variable_declarator name: (identifier) @local)))
+(local_declaration_statement
+  (variable_declaration
+    type: [(identifier) @declared_type
+           (generic_name . (identifier) @declared_type)
+           (qualified_name name: (identifier) @declared_type)
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (predefined_type) @declared_type
+           (array_type) @declared_type]
+    (variable_declarator name: (identifier) @local)))
+(for_statement initializer:
+  (variable_declaration
+    type: [(identifier) @declared_type
+           (generic_name . (identifier) @declared_type)
+           (qualified_name name: (identifier) @declared_type)
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (predefined_type) @declared_type
+           (array_type) @declared_type]
+    (variable_declarator name: (identifier) @local)))
+(using_statement
+  (variable_declaration
+    type: [(identifier) @declared_type
+           (generic_name . (identifier) @declared_type)
+           (qualified_name name: (identifier) @declared_type)
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (predefined_type) @declared_type
+           (array_type) @declared_type]
+    (variable_declarator name: (identifier) @local)))
+(variable_declaration
+  type: (implicit_type)
+  (variable_declarator
+    name: (identifier) @local
+    (object_creation_expression type: (identifier) @declared_type)))
+(foreach_statement left: (identifier) @local)
+(foreach_statement
+  type: [(identifier) @declared_type
+         (generic_name . (identifier) @declared_type)
+         (qualified_name name: (identifier) @declared_type)
+         (predefined_type) @declared_type]
+  left: (identifier) @local)
+(catch_declaration name: (identifier) @local)
+(catch_declaration
+  type: [(identifier) @declared_type (qualified_name name: (identifier) @declared_type)]
+  name: (identifier) @local)
+(declaration_pattern name: (identifier) @local)
+(declaration_expression name: (identifier) @local)
+
+; Fields and properties tell the type of a receiver, but an occurrence of them is a reference.
+(field_declaration
+  (variable_declaration
+    type: [(identifier) @declared_type
+           (generic_name . (identifier) @declared_type)
+           (qualified_name name: (identifier) @declared_type)
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (predefined_type) @declared_type
+           (array_type) @declared_type]
+    (variable_declarator name: (identifier) @field)))
+(property_declaration
+  type: [(identifier) @declared_type
+         (generic_name . (identifier) @declared_type)
+         (qualified_name name: (identifier) @declared_type)
+         (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+         (predefined_type) @declared_type
+         (array_type) @declared_type]
+  name: (identifier) @field)

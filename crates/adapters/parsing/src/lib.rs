@@ -34,6 +34,7 @@ mod metrics;
 mod pack;
 mod packs;
 mod references;
+mod scopes;
 mod symbols;
 mod visibility;
 

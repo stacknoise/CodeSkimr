@@ -61,6 +61,7 @@
       "at": "24:11",
       "from": "sample.main",
       "kind": "call",
+      "receiver": null,
       "target": "find"
     }
   ],

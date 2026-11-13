@@ -114,7 +114,12 @@ impl<'t> Parts<'t> {
             Capture::Doc => self.docs.push(node),
             Capture::Signature => self.signature = Some(node),
             Capture::ScopeEnd => self.scope_end = Some(node),
-            Capture::Reference(_) => {}
+            Capture::Reference(_)
+            | Capture::Receiver(_)
+            | Capture::Local
+            | Capture::Field
+            | Capture::DeclaredType
+            | Capture::Scope => {}
         }
     }
 

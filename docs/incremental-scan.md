@@ -27,9 +27,10 @@ A full scan does none of this: `Carried` is empty and `removed` is empty.
 
 ## Limits
 
-- A reference that is resolved again by the qualified name of its old target may lose `certain` where the
-  first resolution used a local scope or an import; the resolver decides again with less context. A full
-  scan restores the original confidence.
+- A reference that is resolved again by the qualified name of its old target keeps its earlier
+  confidence (`PendingReference::previous`); the resolver never raises it. The kept base-list references
+  are resolved again as well, so that the resolver knows the type hierarchy between unchanged files
+  (`Carried::inheritance_seed`).
 - A name that matched nothing in the previous snapshot is not stored. If a changed file now declares it,
   the reference from an unchanged file appears only after that file changes or after a full scan.
 - A reference that was resolved again is dropped if an identical one was kept (a name with candidates in
