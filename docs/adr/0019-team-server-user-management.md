@@ -6,7 +6,7 @@ Status: proposed
 
 Blueprint section 1 lists "Team server with multiple users and authentication" as out of scope for 1.0 but "already designed so it can be added without rework". Section 12.5 designs the team vault, section 4.3 and S-04 bind everything to `127.0.0.1`, and the roadmap has a "later" row for the team edition. The product owner confirmed: a team server with login is wanted, planned **after 1.0**.
 
-This ADR is the concept for that step. **It does not change the scope, milestones or budgets of 1.0.** It only fixes the seams that 1.0 must keep open, and describes the team edition so that it can be planned and split into work packages later. Nothing here is implemented before M7.
+This ADR is the concept for that step. **The team edition itself is not part of 1.0.** The one exception is a small seam, the caller identity in the use cases and the command registry (see "Seam in 1.0"), which the product owner decided to include in 1.0 because it is cheap now and expensive to retrofit. Everything else is implemented after M7.
 
 Readings considered: (a) local profiles on one machine, (b) team server with login, roles and project permissions, (c) token authentication only for MCP over HTTP. Decision: (b); (c) becomes its first stage, (a) is covered by (b) and not built separately.
 
@@ -50,9 +50,19 @@ New ports in `codeskimr_application`:
 
 Rules:
 
-- **Every command and query takes a `Principal`.** This is the one change that 1.0 must anticipate: in 1.0 all use cases already receive a `Principal` that is always `LocalOwner`, and the command registry (blueprint 10.1) declares the required `Permission` per command. Authorisation then lives once in the registry, not in each adapter (single source, R-01). Whether this is added in 1.0 or in Stage B is decided when Stage B is planned; this ADR only records that adding it later must not change the signatures of the ports for analysis, parsing or source.
+- **Every command and query takes a `Principal`.** This is the one change that 1.0 must anticipate: in 1.0 all use cases already receive a `Principal` that is always `LocalOwner`, and the command registry (blueprint 10.1) declares the required `Permission` per command. Authorisation then lives once in the registry, not in each adapter (single source, R-01). This is part of 1.0 (see "Seam in 1.0").
 - `codeskimr_auth` is a driven adapter: it depends on `application` only, like the other adapters. Password hashing and OIDC libraries stay inside it. The dependency direction in blueprint 4.2 does not change.
 - `codeskimr_secrets` stays free of user data. The team vault binds ciphertext to project id and credential id (12.5); Stage C adds the owning grant as access check, not as part of the key.
+
+### Seam in 1.0 (decided by the product owner)
+
+Work package "caller identity", before M7, no behaviour change for users:
+
+- `Principal` and `Permission` exist in `codeskimr_domain`; the only principal in 1.0 is `LocalOwner`, which holds every permission.
+- Every use case of the application layer takes a `Principal`; driving adapters (CLI, REST, MCP) pass `LocalOwner`.
+- The command registry (10.1) declares the required `Permission` per command; one central check runs before execution.
+- No login, no user storage, no new dependencies, no UI, no new error codes beyond one for "permission denied" (class 4).
+- Tests: the check is covered by unit tests with a restricted test principal.
 
 ### Storage
 
@@ -93,15 +103,14 @@ Each milestone is split into work packages when it is released; each needs the l
 
 ## Consequences
 
-- **1.0 is unchanged:** scope, budgets, milestones M1 to M7 and the single-user behaviour stay as they are. After this ADR is accepted, blueprint section 1, 4.3, 10.4, 12.5, 12.6 and 19 get a short pointer to this ADR in a separate `blueprint-change` PR; until then nothing in the blueprint is edited by this PR.
-- Open seam for 1.0 work (recommendation, not a rule yet): use cases take a caller identity parameter and the command registry carries the required permission. Cheap to do now, expensive to retrofit later. The product owner decides whether this goes into an M-package.
+- **1.0 stays single-user** with unchanged budgets and milestones; it gains only the caller-identity seam above, as one extra work package. After this ADR is accepted, blueprint section 1, 4.3, 10.4, 12.5, 12.6 and 19 get a short pointer to this ADR in a separate `blueprint-change` PR; until then nothing in the blueprint is edited by this PR.
+- The caller-identity seam goes into 1.0 (decided by the product owner). Blueprint 10.1 and 18.4 get the matching rule in the `blueprint-change` PR after acceptance.
 - New crate `codeskimr_auth` needs an entry in the dependency diagram when accepted.
 - New dependencies (password hashing, OIDC, TLS, PostgreSQL driver) are decided per work package with the `new-dependency` label.
 - Risks: a team server enlarges the attack surface (network exposure, accounts). Mitigation: off by default, TLS-only, audit log, security review for every package.
 
-## Open questions for the product owner
+## Open questions for the product owner (answered: the 1.0 seam is wanted; the rest is open)
 
 1. Is OIDC (company single sign-on) needed for the first team release, or are local accounts enough?
 2. Are the four fixed roles enough, or are groups and custom roles expected early?
 3. Should "viewer" be able to see source excerpts, or only metrics and structure?
-4. Is the 1.0 seam (identity parameter and permission in the command registry) wanted now?
