@@ -1,11 +1,14 @@
 # CI pipeline (blueprint 17.3). Every job name below is a required check in the ruleset:
 # pr-title, fmt, clippy, test, deps, build (ubuntu-latest), build (windows-latest),
 # build (macos-latest), architecture, duplicates, literals, codegen, bench, e2e.
+# Temporary: build (macos-latest) is non-blocking, see docs/ci.md and issue #131.
 # Never rename a job without telling the product owner; the ruleset matches by name.
 name: CI
 
 on:
   pull_request:
+    # edited: re-check the PR title after a rename (pr-title would stay red otherwise).
+    types: [opened, synchronize, reopened, edited]
   push:
     branches: [main]
   workflow_dispatch:
@@ -129,6 +132,10 @@ jobs:
   build:
     name: build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    # TEMPORARY (see docs/ci.md, issue #131): macOS runners are not available reliably, so a failing or
+    # hanging macOS build must not block merges. The check still reports.
+    continue-on-error: ${{ matrix.os == 'macos-latest' }}
+    timeout-minutes: ${{ matrix.os == 'macos-latest' && 20 || 60 }}
     strategy:
       fail-fast: false
       matrix:
