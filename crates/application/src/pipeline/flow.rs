@@ -3,6 +3,7 @@
 
 use std::error::Error;
 use std::fmt;
+use std::time::Instant;
 
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::ProjectId;
@@ -143,6 +144,11 @@ pub trait Flow {
     fn run(&self, input: Self::Input, ctx: &StageContext<'_>) -> Result<Self::Output, Halt>;
 }
 
+/// Milliseconds since `started`, saturating, for the log of a stage.
+fn elapsed_ms(started: Instant) -> u64 {
+    u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX)
+}
+
 /// A chain of one stage.
 #[derive(Debug, Clone, Copy)]
 pub struct Single<S>(S);
@@ -158,7 +164,10 @@ impl<S: Stage> Flow for Single<S> {
         }
         let ctx = ctx.entering(kind);
         ctx.progress(0, 0);
-        self.0.run(input, &ctx).map_err(|stop| match stop {
+        let started = Instant::now();
+        let result = self.0.run(input, &ctx);
+        tracing::info!(stage = kind.label(), elapsed_ms = elapsed_ms(started));
+        result.map_err(|stop| match stop {
             // An adapter that stops because of the token can only report an error; that is
             // still a cancellation, not a failure.
             Interruption::Cancelled => Halt::Cancelled(kind),

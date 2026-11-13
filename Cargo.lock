@@ -380,6 +380,7 @@ dependencies = [
  "serde",
  "thiserror",
  "toml",
+ "tracing",
 ]
 
 [[package]]
