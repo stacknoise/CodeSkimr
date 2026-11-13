@@ -1,5 +1,5 @@
 // Runs after the other screens on purpose: the worker shares one server (see projects.spec.ts).
-import { addScannedProject, expect, test, watchPolicy } from "./fixtures";
+import { addScannedProject, selectAdd, expect, test, watchPolicy } from "./fixtures";
 
 const SOURCE = [
   "namespace Demo;",
@@ -26,12 +26,7 @@ test.describe("the usages screen", () => {
   }) => {
     const violations = await watchPolicy(page);
     const row = await addScannedProject(page, harness, "usagesdemo", SOURCE);
-    await row.click({ position: { x: 4, y: 4 } });
-    await page.keyboard.press("Enter");
-    await page.getByText("(no layer)").click();
-    await page.getByText("usagesdemo.Demo", { exact: true }).click();
-    await page.getByText("Calculator", { exact: true }).click();
-    await page.getByRole("button", { name: /Add/ }).first().click();
+    await selectAdd(page, row, "usagesdemo.Demo");
 
     await page.keyboard.press("u");
     const graph = page.getByRole("region", { name: "Usage graph" });
