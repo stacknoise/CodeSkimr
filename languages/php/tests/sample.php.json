@@ -1,0 +1,118 @@
+{
+  "loc": 23,
+  "references": [
+    {
+      "at": "27:4",
+      "from": "sample\\Shop\\helper",
+      "kind": "call",
+      "target": "helper"
+    },
+    {
+      "at": "27:11",
+      "from": "sample\\Shop\\helper",
+      "kind": "call",
+      "target": "strlen"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "sample",
+      "parent": null,
+      "span": "0:0-30:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "sample\\Shop",
+      "parent": "sample",
+      "span": "1:0-30:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "sample\\Shop\\Order",
+      "parent": "sample\\Shop",
+      "span": "4:0-19:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample\\Shop\\Order\\__construct",
+      "parent": "sample\\Shop\\Order",
+      "span": "8:4-10:5",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample\\Shop\\Order\\total",
+      "parent": "sample\\Shop\\Order",
+      "span": "13:4-18:5",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "sample\\Shop\\Priced",
+      "parent": "sample\\Shop",
+      "span": "21:0-21:50",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample\\Shop\\Priced\\price",
+      "parent": "sample\\Shop\\Priced",
+      "span": "21:19-21:48",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "trait",
+      "name": "sample\\Shop\\Loggable",
+      "parent": "sample\\Shop",
+      "span": "22:0-22:43",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample\\Shop\\Loggable\\log",
+      "parent": "sample\\Shop\\Loggable",
+      "span": "22:17-22:41",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "enum",
+      "name": "sample\\Shop\\Kind",
+      "parent": "sample\\Shop",
+      "span": "23:0-23:29",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "sample\\Shop\\helper",
+      "parent": "sample\\Shop",
+      "span": "25:0-29:1",
+      "static": false,
+      "visibility": null
+    }
+  ]
+}

@@ -350,7 +350,7 @@ languages/csharp/
 | **basic** | types and functions, spans, LOC, CC, `cc_max` (no MI); references only by unique name | every other language with a Tree-sitter grammar |
 
 - Full-tier grammars are compiled into the binary.
-- Basic-tier grammars are loaded on demand as language packs, which keeps the binary small (section 16).
+- Basic-tier grammars are compiled in behind the cargo feature `basic-grammars` (default on) and their packs are loaded on first use, which keeps start-up and a slim build small (section 16, ADR 0020). A loader for shared libraries needs its own ADR because of R-08.
 - Adding a language MUST NOT require changes outside `languages/<lang>/`, unless the language needs a new symbol kind. In that case: ADR first.
 
 ### 8.3 Acceptance per language

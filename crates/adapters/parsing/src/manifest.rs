@@ -1,8 +1,13 @@
 //! The `language.toml` of a language pack.
 
 use std::collections::HashMap;
+use std::fs;
+use std::path::Path;
 
 use serde::Deserialize;
+
+use crate::consts::MANIFEST_FILE;
+use crate::error::ParsingError;
 
 /// How much a language pack delivers (blueprint 8.2).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -85,4 +90,21 @@ pub struct PackManifest {
     /// Visibility rules.
     #[serde(default)]
     pub visibility: VisibilityRules,
+}
+
+impl PackManifest {
+    /// Reads and parses the `language.toml` in `dir`.
+    ///
+    /// # Errors
+    /// [`ParsingError::PackInvalid`] if the file is missing or malformed.
+    pub fn read(dir: &Path) -> Result<Self, ParsingError> {
+        let folder = dir
+            .file_name()
+            .map(|name| name.to_string_lossy().into_owned())
+            .unwrap_or_default();
+        let invalid = |reason: String| ParsingError::invalid(folder.clone(), reason);
+        let text =
+            fs::read_to_string(dir.join(MANIFEST_FILE)).map_err(|e| invalid(e.to_string()))?;
+        toml::from_str(&text).map_err(|e| invalid(e.to_string()))
+    }
 }

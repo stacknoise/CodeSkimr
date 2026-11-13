@@ -9,7 +9,7 @@ use codeskimr_domain::{LanguageId, ModelError, SymbolKind};
 use tree_sitter::{Language, Query};
 
 use crate::captures::Vocabulary;
-use crate::consts::{ID_MISMATCH, MANIFEST_FILE, REFERENCES_QUERY_FILE, SYMBOLS_QUERY_FILE};
+use crate::consts::{ID_MISMATCH, REFERENCES_QUERY_FILE, SYMBOLS_QUERY_FILE};
 use crate::error::ParsingError;
 use crate::grammar;
 use crate::manifest::{DocSummary, PackManifest, Tier};
@@ -45,9 +45,7 @@ impl LanguagePack {
     pub fn load(dir: &Path) -> Result<Self, ParsingError> {
         let folder = folder_name(dir);
         let invalid = |reason: String| ParsingError::invalid(folder.clone(), reason);
-        let text =
-            fs::read_to_string(dir.join(MANIFEST_FILE)).map_err(|e| invalid(e.to_string()))?;
-        let manifest: PackManifest = toml::from_str(&text).map_err(|e| invalid(e.to_string()))?;
+        let manifest = PackManifest::read(dir)?;
         let language =
             grammar::builtin(&manifest.grammar).ok_or_else(|| invalid(manifest.grammar.clone()))?;
         let symbols = compile(&language, &dir.join(SYMBOLS_QUERY_FILE), &folder)?;

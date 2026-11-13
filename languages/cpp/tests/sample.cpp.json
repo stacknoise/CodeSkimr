@@ -1,0 +1,103 @@
+{
+  "loc": 20,
+  "references": [
+    {
+      "at": "21:19",
+      "from": "sample::shop::price",
+      "kind": "call",
+      "target": "total"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "sample",
+      "parent": null,
+      "span": "0:0-28:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "sample::shop",
+      "parent": "sample",
+      "span": "0:0-27:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "sample::shop::Order",
+      "parent": "sample::shop",
+      "span": "3:0-10:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample::shop::Order::Order",
+      "parent": "sample::shop::Order",
+      "span": "5:4-5:30",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample::shop::Order::total",
+      "parent": "sample::shop::Order",
+      "span": "6:4-6:51",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "struct",
+      "name": "sample::shop::Item",
+      "parent": "sample::shop",
+      "span": "12:0-12:22",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "enum",
+      "name": "sample::shop::Kind",
+      "parent": "sample::shop",
+      "span": "14:0-14:24",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample::shop::add",
+      "parent": "sample::shop",
+      "span": "16:0-18:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "sample::shop::price",
+      "parent": "sample::shop",
+      "span": "20:0-22:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "sample::shop::twice",
+      "parent": "sample::shop",
+      "span": "25:0-25:30",
+      "static": false,
+      "visibility": null
+    }
+  ]
+}

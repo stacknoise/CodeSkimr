@@ -1,0 +1,14 @@
+# PHP language pack, basic tier (blueprint 8.2, WP-66): types and functions, spans, lines, CC.
+# Mapping: class -> class, interface -> interface, trait -> trait, enum -> enum,
+# namespace -> namespace, `function` -> function, method -> method. Visibility keywords are not
+# read in the basic tier.
+id = "php"
+grammar = "php"
+tier = "basic"
+extensions = ["php"]
+separator = "\\"
+comment_nodes = ["comment"]
+manifest_files = ["composer.json"]
+test_patterns = ["**/*Test.php", "tests/**/*.php"]
+identifier_nodes = ["name", "variable_name"]
+literal_nodes = ["integer", "float", "string", "encapsed_string", "heredoc", "boolean", "null"]

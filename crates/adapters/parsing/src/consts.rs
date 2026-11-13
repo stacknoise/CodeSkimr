@@ -51,6 +51,22 @@ pub const GRAMMAR_RUST: &str = "rust";
 /// Grammar name of C# in `language.toml`.
 pub const GRAMMAR_CSHARP: &str = "csharp";
 
+/// Grammar name of Go in `language.toml` (basic tier).
+#[cfg(feature = "basic-grammars")]
+pub const GRAMMAR_GO: &str = "go";
+/// Grammar name of C in `language.toml` (basic tier).
+#[cfg(feature = "basic-grammars")]
+pub const GRAMMAR_C: &str = "c";
+/// Grammar name of C++ in `language.toml` (basic tier).
+#[cfg(feature = "basic-grammars")]
+pub const GRAMMAR_CPP: &str = "cpp";
+/// Grammar name of Ruby in `language.toml` (basic tier).
+#[cfg(feature = "basic-grammars")]
+pub const GRAMMAR_RUBY: &str = "ruby";
+/// Grammar name of PHP in `language.toml` (basic tier).
+#[cfg(feature = "basic-grammars")]
+pub const GRAMMAR_PHP: &str = "php";
+
 /// Start of the reason when the `id` of a pack differs from its folder name.
 pub const ID_MISMATCH: &str = "id differs from the folder name: ";
 
