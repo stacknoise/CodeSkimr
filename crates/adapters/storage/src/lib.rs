@@ -11,6 +11,7 @@ mod consts;
 mod cycles;
 mod detail;
 mod error;
+mod integrity;
 mod migrate;
 mod outline;
 mod previous;

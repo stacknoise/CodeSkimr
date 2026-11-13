@@ -41,6 +41,8 @@ A failed comparison is measured once more before the job fails, because one run 
 
 `scan/full_100k_loc` (`benches/scan.rs`) builds the release binary, generates a corpus of 400 Rust files (about 100k lines, no duplicate names) and takes the scan time that `codeskimr scan --json` reports for it with a fresh database (starting the process has the cold start budget), against `full_scan_100k_loc_ms`. The corpus is generated so that it is the same everywhere and does not multiply references through equal names. Find the slow stage of a scan with `CODESKIMR_LOG=info`: every pipeline stage logs its duration (`stage` and `elapsed_ms`).
 
+`rescan/one_file_100k_loc` (`benches/rescan.rs`) starts `codeskimr scan --watch` on the same corpus, appends a line to one file and takes the time that watch mode reports for the rescan ("scanned again in N ms"), against `incremental_rescan_ms`. The first rescans fill the retention of snapshots, so the measured ones also prune the oldest snapshot. A rescan writes only what changed (ADR 0032); what is left is discovery, the rebuild of the read models and the prune, each visible with `CODESKIMR_LOG=info`.
+
 ## Output of the tools
 
 Format strings and error messages of `tools/` are exempt from the no-literals rule (ADR 0014); values still live in `consts.rs`.
