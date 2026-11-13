@@ -7,7 +7,7 @@ use codeskimr_domain::{
 };
 use rusqlite::{Connection, params};
 
-use crate::codec::{Cols, column_int, id_from, label_from, small_from};
+use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from, small_from};
 use crate::detail::{decode, read_row};
 use crate::error::StorageResult;
 use crate::sql;
@@ -45,7 +45,7 @@ struct ReferenceRow {
     from: i64,
     to: i64,
     file: i64,
-    span: [i64; 4],
+    span: SpanColumns,
     kind: String,
     confidence: String,
 }
@@ -56,21 +56,26 @@ fn read_reference(cols: &Cols<'_>) -> rusqlite::Result<ReferenceRow> {
         from: cols.take()?,
         to: cols.take()?,
         file: cols.take()?,
-        span: [cols.take()?, cols.take()?, cols.take()?, cols.take()?],
+        span: SpanColumns {
+            start_line: cols.take()?,
+            start_column: cols.take()?,
+            end_line: cols.take()?,
+            end_column: cols.take()?,
+        },
         kind: cols.take()?,
         confidence: cols.take()?,
     })
 }
 
 fn decode_reference(row: &ReferenceRow) -> StorageResult<Reference> {
-    let [start_line, start_column, end_line, end_column] = row.span;
+    let span = &row.span;
     let start = Position {
-        line: small_from(start_line)?,
-        column: small_from(start_column)?,
+        line: small_from(span.start_line)?,
+        column: small_from(span.start_column)?,
     };
     let end = Position {
-        line: small_from(end_line)?,
-        column: small_from(end_column)?,
+        line: small_from(span.end_line)?,
+        column: small_from(span.end_column)?,
     };
     Ok(Reference {
         id: ReferenceId::new(id_from(row.id)?),
