@@ -108,6 +108,8 @@ pub enum CredentialAction {
 pub enum Action {
     /// `codeskimr credential`.
     Credential(CredentialAction),
+    /// `codeskimr` without a command: start the server and open the browser.
+    Start,
     /// `codeskimr scan <source>`.
     Scan(ScanArgs),
     /// `codeskimr mcp`.

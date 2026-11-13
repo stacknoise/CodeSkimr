@@ -25,6 +25,7 @@ mod state;
 mod token;
 mod ui;
 
+pub use assets::EmbeddedFile;
 pub use commands::{CommandApi, CommandInfo};
 pub use consts::TOKEN_PREFIX;
 pub use error::{ErrorBody, status_of};

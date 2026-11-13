@@ -11,7 +11,7 @@ import { cx } from "../shared/ui/cx";
 import { EXPLORER_ROUTE, FLUSH_PATHS, GRAPH_ROUTE, USAGES_ROUTE, type Route } from "../app/consts";
 import appStyles from "../app/App.module.css";
 import { BANNER_SEPARATOR, MS_PER_SECOND, SHORT_COMMIT } from "./consts";
-import { RailLink, TopBar } from "../app/Frame";
+import { Crumb, RailLink, TopBar } from "../app/Frame";
 import { currentPath } from "./router";
 import type { ExportData } from "./types";
 import styles from "./ExportApp.module.css";
@@ -74,7 +74,9 @@ export function ExportApp(props: { data: ExportData }) {
   useSearchShortcut(openSearch);
   return (
     <div class={appStyles.root}>
-      <TopBar workspace={t(I18N_KEYS.EXPORT_NAV_LABEL)} name={props.data.project.name} />
+      <TopBar>
+        <Crumb name={props.data.project.name} />
+      </TopBar>
       <Banner data={props.data} />
       <div class={appStyles.body}>
         <nav class={appStyles.rail} aria-label={t(I18N_KEYS.NAV_LABEL)}>

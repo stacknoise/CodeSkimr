@@ -27,8 +27,11 @@ pub struct UiSettings {
 /// Everything the UI side of the server needs from the configuration.
 #[derive(Debug, Clone)]
 pub struct UiOptions {
-    /// Folder with the built UI; without one the server only answers the API.
+    /// Folder with the built UI; it wins over the embedded files, so that a UI under development
+    /// can be tried without building the program.
     pub dir: Option<PathBuf>,
+    /// The UI files compiled into the program; used when there is no `dir`. Empty: none.
+    pub embedded: &'static [crate::assets::EmbeddedFile],
     /// How long a launch code is valid.
     pub launch_lifetime: Duration,
     /// The settings the UI reads at start.

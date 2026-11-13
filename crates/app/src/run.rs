@@ -128,6 +128,7 @@ fn run_invocation(
             mcp::run(args, &invocation.global, &locations, &current_dir)?;
             Ok(Outcome::Done)
         }
+        Action::Start => run_start(invocation, &locations, env, (messages, language)),
         Action::Open(args) => run_open(*args, invocation, &locations, env, (messages, language)),
         Action::Serve(_) => {
             serve::run(&invocation.global, &locations, |url| {
@@ -196,6 +197,44 @@ fn run_open(
     };
     open::run(args, &invocation.global, locations, env, announce)?;
     Ok(Outcome::Done)
+}
+
+/// `codeskimr` without a command: the server runs on its own thread, and as soon as it listens the
+/// browser gets the launch code. The server keeps running until it is interrupted, also when the
+/// browser could not be started.
+fn run_start(
+    invocation: &Invocation,
+    locations: &Locations,
+    env: Lookup<'_>,
+    (messages, language): (&Messages, &str),
+) -> Result<Outcome, Failure> {
+    let (listening, listened) = std::sync::mpsc::channel::<String>();
+    std::thread::scope(|scope| {
+        let server = scope.spawn(|| {
+            serve::run(&invocation.global, locations, move |url| {
+                let _ = listening.send(url.to_owned());
+            })
+        });
+        if let Ok(url) = listened.recv() {
+            if let Ok(line) = serve_started(messages, language, &url) {
+                write_out(&line);
+            }
+            let opened = run_open(
+                OpenArgs { no_browser: false },
+                invocation,
+                locations,
+                env,
+                (messages, language),
+            );
+            if let Err(failure) = opened {
+                let _ = report(messages, language, &failure);
+            }
+        }
+        server
+            .join()
+            .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))??;
+        Ok(Outcome::Done)
+    })
 }
 
 /// `codeskimr export`: writes the page and says where it is.

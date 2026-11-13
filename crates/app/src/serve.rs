@@ -66,6 +66,7 @@ pub fn run(
 fn ui_options(config: &codeskimr_application::config::Config, locations: &Locations) -> UiOptions {
     UiOptions {
         dir: locations.existing_dir(&config.ui.dir),
+        embedded: crate::embedded_ui::FILES,
         launch_lifetime: Duration::from_secs(u64::from(config.ui.launch_code_seconds)),
         settings: UiSettings {
             editor: EditorSettings {

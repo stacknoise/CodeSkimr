@@ -39,14 +39,24 @@
     font-size: 14px;
 }
 
-.workspace {
-    display: flex;
-    gap: var(--space-8);
-    color: var(--muted);
+.slash {
+    color: var(--line-strong);
 }
 
-.workspace b {
+.crumb {
     color: var(--ink);
+    font-weight: 600;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-6);
+    font: 12px var(--font-mono);
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-badge);
+    padding: 3px var(--space-8);
 }
 
 .body {

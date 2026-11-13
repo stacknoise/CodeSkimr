@@ -25,7 +25,13 @@ The program is `target/release/codeskimr` (`codeskimr.exe` on Windows). The buil
 ## First start
 
 ```
-codeskimr --set ui.dir=web/dist serve
+codeskimr
+```
+
+starts the server and opens the browser; the UI is part of the program (build `web/` before `cargo build`). The two steps also work on their own:
+
+```
+codeskimr serve
 ```
 
 in one terminal prints `Listening on http://127.0.0.1:7421` and keeps running until Ctrl+C. In a second terminal:

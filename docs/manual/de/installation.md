@@ -25,7 +25,13 @@ Das Programm liegt in `target/release/codeskimr` (`codeskimr.exe` unter Windows)
 ## Erster Start
 
 ```
-codeskimr --set ui.dir=web/dist serve
+codeskimr
+```
+
+startet den Server und öffnet den Browser; die Oberfläche ist Teil des Programms (vor `cargo build` `web/` bauen). Die zwei Schritte gehen auch einzeln:
+
+```
+codeskimr serve
 ```
 
 in einem Terminal gibt `Listening on http://127.0.0.1:7421` aus und läuft bis Strg+C. In einem zweiten Terminal:
