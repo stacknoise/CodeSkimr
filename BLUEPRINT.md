@@ -721,7 +721,7 @@ The screens (details in Appendix B):
 | 12 | Single sign-on | `docs/mocks/Sso.dc.html` |
 | 13 | Settings: themes and language | `docs/mocks/Themes.dc.html` |
 
-Screens 7 to 12 belong to the team edition (after 1.0, ADR 0019, milestone T2) and exist as mocks so that the UI can be built to them; screen 13 belongs to 1.0 (ADR 0021). The mocks 7 to 13 take a `theme` property (15.3); mocks 1 to 6 are drawn in the theme Hell.
+Screens 7 to 12 belong to the team edition (after 1.0, ADR 0019, milestone T2) and exist as mocks so that the UI can be built to them; screen 13 belongs to 1.0 (ADR 0021). The mocks 7 to 13 take a `theme` property (15.3); mocks 1 to 6 are drawn in the theme Hell (layout binding, colours follow the active theme, see 15.3).
 
 The mock sources are written in a design-canvas format; render them through the link above. Read the files for exact values (inline styles). All numbers and names in them are **sample data**.
 
@@ -792,7 +792,7 @@ Kind and layer colours of Petrol equal those of Hell. Dunkel uses lighter varian
 | kind colours | class `#6E9BFF`, interface `#A78BFA`, record `#2DD4BF`, struct `#F59E0B`, enum `#F472B6` |
 | layer colours | `#6E9BFF`, `#2DD4BF`, `#A78BFA`, `#F59E0B`, `#F472B6`, `#97A4B4`, … |
 
- In Hell, `good-bg` is `#EAF7EF`; the value `#E7F6EC` of the first mock version reached only 4.49:1 with `good` and was replaced in all mocks.
+In Hell, `good-bg` is `#EAF7EF`; the value `#E7F6EC` of the first mock version reached only 4.49:1 with `good` and was replaced in all mocks.
 
 - **Rules:** a theme is a table in `tokens.toml` plus its name in `locales/`; adding one needs no code change, an ADR decides which themes ship. CI (job `codegen`) fails if a theme misses a token or if a text/background pair (`ink`, `ink-2`, `muted`, `faint` on `bg` and `surface`; `accent` on `surface`, `bg` and `accent-bg`; `good`, `warn`, `bad` on their `-bg` and on `surface`; `accent-fg` on `accent`; `ink-2` on `line-soft`; `ink` on `accent-bg`; `outgoing`, kind and layer colours on `surface`) is below 4.5:1. `faint` is used on `bg` and `surface` only, never on tinted backgrounds.
 - **Choice:** stored per user (see 13); without a team server in the local settings. Until the user chooses, the theme is Petrol, or Dunkel when the operating system is set to dark. The default key is in `config/default.toml`.
