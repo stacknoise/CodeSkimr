@@ -1,4 +1,66 @@
 {
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 20,
+      "operands": null,
+      "operators": null,
+      "symbol": "references"
+    },
+    {
+      "decisions": null,
+      "loc": 18,
+      "operands": null,
+      "operators": null,
+      "symbol": "references.Shop.Orders"
+    },
+    {
+      "decisions": null,
+      "loc": 17,
+      "operands": null,
+      "operators": null,
+      "symbol": "references.Shop.Orders.Cart"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "references.Shop.Orders.Cart.Cart"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "references.Shop.Orders.Cart.Run"
+    },
+    {
+      "decisions": 1,
+      "loc": 10,
+      "operands": [
+        11,
+        13
+      ],
+      "operators": [
+        9,
+        13
+      ],
+      "symbol": "references.Shop.Orders.Cart.Find"
+    }
+  ],
   "loc": 20,
   "references": [
     {

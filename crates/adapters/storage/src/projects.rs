@@ -3,24 +3,27 @@
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{PreviousIndex, ProjectRepository};
 use codeskimr_domain::{
-    BranchName, ContentHash, FileId, FolderPath, GitUrl, LanguageId, Layer, LayerName, Loc,
-    Project, ProjectId, ProjectName, ProjectSource, QualifiedName, RelativePath, SnapshotId,
-    SourceFile,
+    BranchName, ContentHash, CredentialId, FileId, FolderPath, GitUrl, LanguageId, Layer,
+    LayerName, Loc, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, RelativePath,
+    SnapshotId, SourceFile,
 };
 use rusqlite::{Connection, OptionalExtension, Row, params};
 
 use crate::codec::{Cols, column_int, id_from, ordinals, small_from};
-use crate::consts::{NO_BRANCH, SOURCE_FOLDER, SOURCE_GIT};
+use crate::consts::{
+    FIRST_PROJECT_ID, ID_STEP, NO_BRANCH, NO_CREDENTIAL, SOURCE_FOLDER, SOURCE_GIT,
+};
 use crate::error::{StorageError, StorageResult};
 use crate::previous::load_latest_index;
 use crate::sql;
 use crate::store::SqliteStore;
 
-/// A source as stored: kind, location and branch.
+/// A source as stored: kind, location, branch and the name of the credential (never its secret).
 struct SourceColumns {
     kind: &'static str,
     location: String,
     branch: String,
+    credential: String,
 }
 
 impl SourceColumns {
@@ -30,20 +33,36 @@ impl SourceColumns {
                 kind: SOURCE_FOLDER,
                 location: path.as_str().to_owned(),
                 branch: NO_BRANCH.to_owned(),
+                credential: NO_CREDENTIAL.to_owned(),
             },
-            ProjectSource::Git { url, branch } => Self {
+            ProjectSource::Git {
+                url,
+                branch,
+                credential,
+            } => Self {
                 kind: SOURCE_GIT,
                 location: url.as_str().to_owned(),
                 branch: branch.as_str().to_owned(),
+                credential: credential
+                    .as_ref()
+                    .map_or_else(|| NO_CREDENTIAL.to_owned(), |id| id.as_str().to_owned()),
             },
         }
     }
 
-    fn source(kind: &str, location: String, branch: String) -> StorageResult<ProjectSource> {
+    fn source(
+        kind: &str,
+        location: String,
+        branch: String,
+        credential: String,
+    ) -> StorageResult<ProjectSource> {
         if kind == SOURCE_GIT {
             Ok(ProjectSource::Git {
                 url: GitUrl::new(location)?,
                 branch: BranchName::new(branch)?,
+                credential: (credential != NO_CREDENTIAL)
+                    .then(|| CredentialId::new(credential))
+                    .transpose()?,
             })
         } else {
             Ok(ProjectSource::Folder(FolderPath::new(location)?))
@@ -58,6 +77,41 @@ impl SqliteStore {
     /// `PRJ-301` if another project has the same source, otherwise a coded `STO` failure.
     pub fn save_project(&self, project: &Project) -> Result<(), CodedError> {
         self.write(|tx| save(tx, project)).map_err(CodedError::from)
+    }
+
+    /// The id for the next project to register: one above the highest registered id.
+    ///
+    /// # Errors
+    /// A coded `STO` failure.
+    pub fn next_project_id(&self) -> Result<ProjectId, CodedError> {
+        self.read(|conn| {
+            let highest: Option<i64> = conn.query_row(sql::MAX_PROJECT_ID, [], |row| row.get(0))?;
+            let next = highest.map_or(Ok(FIRST_PROJECT_ID), |id| {
+                id_from(id).map(|id| id.saturating_add(ID_STEP))
+            })?;
+            Ok(ProjectId::new(next))
+        })
+        .map_err(CodedError::from)
+    }
+
+    /// The project registered for `source`, if there is one.
+    ///
+    /// # Errors
+    /// A coded `STO` failure.
+    pub fn project_by_source(&self, source: &ProjectSource) -> Result<Option<Project>, CodedError> {
+        self.read(|conn| {
+            let columns = SourceColumns::of(source);
+            let id: Option<i64> = conn
+                .query_row(
+                    sql::PROJECT_BY_SOURCE,
+                    params![columns.kind, columns.location, columns.branch],
+                    |row| row.get(0),
+                )
+                .optional()?;
+            id.map(|raw| load_project(conn, ProjectId::new(id_from(raw)?)))
+                .transpose()
+        })
+        .map_err(CodedError::from)
     }
 }
 
@@ -81,7 +135,8 @@ fn save(conn: &Connection, project: &Project) -> StorageResult<()> {
             project.name.as_str(),
             source.kind,
             source.location,
-            source.branch
+            source.branch,
+            source.credential
         ],
     )?;
     conn.execute(sql::LAYERS_DELETE, params![id])?;
@@ -138,19 +193,43 @@ fn load_namespaces(
     Ok(names)
 }
 
+/// A row of `projects` as stored.
+struct ProjectRow {
+    name: String,
+    kind: String,
+    location: String,
+    branch: String,
+    credential: String,
+}
+
+impl ProjectRow {
+    fn from_row(row: &Row<'_>) -> rusqlite::Result<Self> {
+        let cols = Cols::new(row);
+        Ok(Self {
+            name: cols.take()?,
+            kind: cols.take()?,
+            location: cols.take()?,
+            branch: cols.take()?,
+            credential: cols.take()?,
+        })
+    }
+}
+
 fn load_project(conn: &Connection, id: ProjectId) -> StorageResult<Project> {
     let raw = column_int(id.get())?;
-    let row: Option<(String, String, String, String)> = conn
-        .query_row(sql::PROJECT_BY_ID, params![raw], |row| {
-            let cols = Cols::new(row);
-            Ok((cols.take()?, cols.take()?, cols.take()?, cols.take()?))
-        })
+    let row = conn
+        .query_row(sql::PROJECT_BY_ID, params![raw], ProjectRow::from_row)
         .optional()?;
-    let (name, kind, location, branch) = row.ok_or(StorageError::ProjectNotFound)?;
+    let stored = row.ok_or(StorageError::ProjectNotFound)?;
     Ok(Project {
         id,
-        name: ProjectName::new(name)?,
-        source: SourceColumns::source(&kind, location, branch)?,
+        name: ProjectName::new(stored.name)?,
+        source: SourceColumns::source(
+            &stored.kind,
+            stored.location,
+            stored.branch,
+            stored.credential,
+        )?,
         layers: load_layers(conn, id)?,
     })
 }

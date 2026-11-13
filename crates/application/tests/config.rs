@@ -25,6 +25,8 @@ fn defaults_match_the_blueprint() {
     for folder in ["bin", "obj", ".git", "node_modules", "target", "dist"] {
         assert!(config.scan.excluded_folders.iter().any(|f| f == folder));
     }
+    assert_eq!(config.scan.parse_timeout_ms, 5000);
+    assert_eq!(config.scan.max_source_mb, 2048);
 }
 
 #[test]
@@ -198,6 +200,16 @@ fn limits_and_folders_are_checked() {
             "[scan]\nexcluded_folders = [\"\"]\n",
             "scan.excluded_folders",
             Violation::MustBeFolderName,
+        ),
+        (
+            "[scan]\nparse_timeout_ms = 0\n",
+            "scan.parse_timeout_ms",
+            Violation::MustBePositive,
+        ),
+        (
+            "[scan]\nmax_source_mb = 0\n",
+            "scan.max_source_mb",
+            Violation::MustBePositive,
         ),
     ]);
 }

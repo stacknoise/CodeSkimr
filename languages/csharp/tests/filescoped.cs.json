@@ -1,4 +1,54 @@
 {
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 9,
+      "operands": null,
+      "operators": null,
+      "symbol": "filescoped"
+    },
+    {
+      "decisions": null,
+      "loc": 9,
+      "operands": null,
+      "operators": null,
+      "symbol": "filescoped.Shop.Billing"
+    },
+    {
+      "decisions": null,
+      "loc": 7,
+      "operands": null,
+      "operators": null,
+      "symbol": "filescoped.Shop.Billing.Invoicer"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "filescoped.Shop.Billing.Invoicer.Reset"
+    },
+    {
+      "decisions": null,
+      "loc": 2,
+      "operands": null,
+      "operators": null,
+      "symbol": "filescoped.Shop.Billing.Invoicer.Old"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "filescoped.Shop.Billing.Mode"
+    }
+  ],
   "loc": 9,
   "references": [],
   "symbols": [

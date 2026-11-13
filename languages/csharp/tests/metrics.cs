@@ -48,3 +48,9 @@ class M
         return Local(1);
     }
 }
+
+abstract class Shape
+{
+    public abstract int NoBody();
+    int Field = 1 + 2;
+}

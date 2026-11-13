@@ -18,7 +18,8 @@ use codeskimr_domain::{
     BranchName, CommitHash, Confidence, ContentHash, FileId, FolderPath, LanguageId, Loc, Metric,
     MetricKind, MetricValue, ModelError, Position, Project, ProjectId, ProjectName, ProjectSource,
     QualifiedName, Reference, ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot,
-    SnapshotId, SourceFile, Span, Symbol, SymbolId, SymbolKind, SymbolName, Timestamp,
+    SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName,
+    Timestamp,
 };
 
 /// The newest snapshot as the repository reports it.
@@ -40,6 +41,7 @@ struct World {
     missing_project: bool,
     persisted: Mutex<Vec<SnapshotData>>,
     measured: Mutex<Vec<(usize, usize)>>,
+    counted: Mutex<Vec<usize>>,
 }
 
 impl World {
@@ -88,6 +90,7 @@ fn project() -> Result<Project, CodedError> {
         source: ProjectSource::Git {
             url: model("https://example.org/demo.git".parse())?,
             branch: model(BranchName::new("main"))?,
+            credential: None,
         },
         layers: Vec::new(),
     })
@@ -136,6 +139,16 @@ impl FileDiscovery for World {
     }
 }
 
+/// The counts the fake analyzer reports for a symbol: three code lines, no body.
+fn counted(symbol: SymbolId) -> SymbolCounts {
+    SymbolCounts {
+        symbol,
+        loc: Loc(3),
+        body: None,
+        counted: true,
+    }
+}
+
 impl FileAnalyzer for World {
     fn analyze(&self, request: &AnalyzeRequest<'_>) -> Result<FileFacts, CodedError> {
         self.gate(StageKind::Analyze)?;
@@ -168,11 +181,13 @@ impl FileAnalyzer for World {
             kind: ReferenceKind::Call,
             target: symbol.qualified_name.clone(),
         }];
+        let counts = vec![counted(symbol.id)];
         Ok(FileFacts {
             file,
             symbols: vec![symbol],
             pending,
             fingerprints: Vec::new(),
+            counts,
         })
     }
 }
@@ -210,8 +225,13 @@ impl MetricsCalculator for World {
         &self,
         symbols: &[Symbol],
         references: &[Reference],
+        counts: &[SymbolCounts],
     ) -> Result<Vec<Metric>, CodedError> {
         self.gate(StageKind::Measure)?;
+        self.counted
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .push(counts.len());
         self.measured
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
@@ -633,6 +653,23 @@ fn a_reference_that_is_kept_is_not_resolved_a_second_time() -> Result<(), CodedE
     assert_eq!(
         calls_to_203, 0,
         "the kept call to 203 is not delivered a second time"
+    );
+    Ok(())
+}
+
+#[test]
+fn the_calculator_gets_the_counts_of_the_analysed_files_only() -> Result<(), CodedError> {
+    let world = a_unchanged_b_changed()?;
+    let _ = run(&world, ScanMode::Incremental);
+    let counted = world
+        .counted
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .clone();
+    assert_eq!(
+        counted,
+        [1],
+        "only b.rs was analysed, so only its counts exist"
     );
     Ok(())
 }

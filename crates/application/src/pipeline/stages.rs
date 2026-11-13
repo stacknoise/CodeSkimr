@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use codeskimr_domain::{
     CommitHash, FolderPath, Metric, Project, Reference, ScanMode, Snapshot, SnapshotId,
-    SnapshotStats, SourceFile, Symbol,
+    SnapshotStats, SourceFile, Symbol, SymbolCounts,
 };
 
 use super::carry::Carried;
@@ -63,6 +63,8 @@ pub struct Analyzed {
     pub symbols: Vec<Symbol>,
     /// Names still to resolve.
     pub pending: Vec<PendingReference>,
+    /// The counts behind the metrics of the analysed files.
+    pub counts: Vec<SymbolCounts>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
 }
@@ -78,6 +80,8 @@ pub struct Resolved {
     pub symbols: Vec<Symbol>,
     /// Resolved references, including those of unchanged files that were resolved again.
     pub references: Vec<Reference>,
+    /// The counts behind the metrics of the analysed files.
+    pub counts: Vec<SymbolCounts>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
 }
@@ -204,6 +208,7 @@ impl Stage for AnalyzeStage {
             files: Vec::new(),
             symbols: Vec::new(),
             pending: Vec::new(),
+            counts: Vec::new(),
             carried,
         };
         for (done, file) in (1..).zip(due) {
@@ -220,6 +225,7 @@ impl Stage for AnalyzeStage {
             out.files.push(facts.file);
             out.symbols.extend(facts.symbols);
             out.pending.extend(facts.pending);
+            out.counts.extend(facts.counts);
             ctx.progress(done, total);
         }
         Ok(out)
@@ -248,6 +254,7 @@ impl Stage for ResolveStage {
             files,
             symbols,
             mut pending,
+            counts,
             carried,
         } = input;
         pending.extend(carried.rebuilt.iter().cloned());
@@ -262,6 +269,7 @@ impl Stage for ResolveStage {
             files,
             symbols,
             references,
+            counts,
             carried,
         })
     }
@@ -298,7 +306,9 @@ impl Stage for MeasureStage {
             .collect();
         let total = count(&symbols);
         ctx.progress(0, total);
-        let metrics = self.calculator.measure(&symbols, &references)?;
+        let metrics = self
+            .calculator
+            .measure(&symbols, &references, &input.counts)?;
         ctx.progress(total, total);
         Ok(Measured {
             run: input.run,

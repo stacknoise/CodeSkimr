@@ -4,7 +4,7 @@
 mod common;
 
 use codeskimr_application::ports::{ProjectRepository, SnapshotStore};
-use codeskimr_domain::{ProjectId, ScanMode};
+use codeskimr_domain::{BranchName, CredentialId, GitUrl, ProjectId, ProjectSource, ScanMode};
 use common::{PROJECT, code_of, data, file, header, project, store};
 
 #[test]
@@ -17,6 +17,21 @@ fn project_with_layers_round_trips() {
     );
     store.save_project(&saved).unwrap();
     assert_eq!(store.project(PROJECT).unwrap(), saved);
+}
+
+#[test]
+fn a_git_source_keeps_the_name_of_its_credential_and_nothing_else() {
+    let store = store(3);
+    let mut saved = project(1, "/work/app", &[]);
+    for credential in [Some(CredentialId::new("work").unwrap()), None] {
+        saved.source = ProjectSource::Git {
+            url: GitUrl::new("https://example.org/app.git").unwrap(),
+            branch: BranchName::new("main").unwrap(),
+            credential,
+        };
+        store.save_project(&saved).unwrap();
+        assert_eq!(store.project(PROJECT).unwrap(), saved);
+    }
 }
 
 #[test]
@@ -73,4 +88,22 @@ fn persisting_for_an_unknown_project_fails_and_writes_nothing() {
     let error = store.persist(data(header(10, ScanMode::Full))).unwrap_err();
     assert_eq!(code_of(&error), "PRJ-201");
     assert!(store.latest_snapshot(PROJECT).unwrap().is_none());
+}
+
+#[test]
+fn project_is_found_by_its_source() {
+    let store = store(3);
+    let saved = project(1, "/work/app", &[("Api", &["App.Api"])]);
+    store.save_project(&saved).unwrap();
+    assert_eq!(store.project_by_source(&saved.source).unwrap(), Some(saved));
+    let other = project(2, "/work/other", &[]);
+    assert_eq!(store.project_by_source(&other.source).unwrap(), None);
+}
+
+#[test]
+fn next_project_id_follows_the_highest_registered_id() {
+    let store = store(3);
+    assert_eq!(store.next_project_id().unwrap(), ProjectId::new(1));
+    store.save_project(&project(4, "/work/app", &[])).unwrap();
+    assert_eq!(store.next_project_id().unwrap(), ProjectId::new(5));
 }
