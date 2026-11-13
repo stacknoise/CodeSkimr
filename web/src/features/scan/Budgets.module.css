@@ -1,0 +1,49 @@
+.card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-panel);
+    padding: var(--space-16);
+}
+
+.title {
+    font-weight: 600;
+    margin-bottom: var(--space-4);
+}
+
+.hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: var(--space-10);
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+    padding: 7px 0;
+    border-top: 1px solid var(--line-soft);
+}
+
+.name {
+    flex: 1;
+}
+
+.goal {
+    font: 12px var(--font-mono);
+    color: var(--muted);
+}
+
+.value {
+    font: 600 12px var(--font-mono);
+    min-width: 64px;
+    text-align: right;
+    color: var(--muted);
+}
+
+.good {
+    color: var(--good);
+}
+
+.bad {
+    color: var(--bad);
+}

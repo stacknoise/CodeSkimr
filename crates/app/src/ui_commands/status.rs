@@ -5,6 +5,7 @@ use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 
 use codeskimr_application::access;
+use codeskimr_application::config::Budgets;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_domain::Permission;
@@ -35,6 +36,41 @@ pub struct StatusOut {
     pub startup_ms: Option<u64>,
     /// Memory of the program in megabytes; `None` if the system does not tell.
     pub memory_mb: Option<u64>,
+    /// The time budgets of blueprint 16.1 in the configuration, for the performance screen.
+    pub budgets: BudgetTargets,
+}
+
+/// The targets of the time budgets, all in milliseconds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct BudgetTargets {
+    /// Cold start until the UI is usable.
+    pub cold_start: u32,
+    /// Quick search per keystroke.
+    pub search_keystroke: u32,
+    /// Switching the selected type in the explorer.
+    pub explorer_switch: u32,
+    /// Usages query at depth 2.
+    pub usages_query: u32,
+    /// Graph layout of up to 200 nodes.
+    pub graph_layout: u32,
+    /// Full scan of 100k lines of code.
+    pub full_scan_100k_loc: u32,
+    /// Incremental re-scan after saving one file.
+    pub incremental_rescan: u32,
+}
+
+impl From<&Budgets> for BudgetTargets {
+    fn from(budgets: &Budgets) -> Self {
+        Self {
+            cold_start: budgets.cold_start_ms,
+            search_keystroke: budgets.search_keystroke_ms,
+            explorer_switch: budgets.explorer_switch_ms,
+            usages_query: budgets.usages_query_ms,
+            graph_layout: budgets.graph_layout_ms,
+            full_scan_100k_loc: budgets.full_scan_100k_loc_ms,
+            incremental_rescan: budgets.incremental_rescan_ms,
+        }
+    }
 }
 
 fn startup_ms() -> Option<u64> {
@@ -51,7 +87,9 @@ fn memory_mb() -> Option<u64> {
 }
 
 /// Reports how long the start took and how much memory the program holds.
-pub struct StatusInfo;
+pub struct StatusInfo {
+    pub(super) budgets: BudgetTargets,
+}
 
 impl Command for StatusInfo {
     type Input = ();
@@ -71,6 +109,7 @@ impl Command for StatusInfo {
         Ok(StatusOut {
             startup_ms: startup_ms(),
             memory_mb: memory_mb(),
+            budgets: self.budgets,
         })
     }
 }
