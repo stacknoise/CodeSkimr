@@ -29,6 +29,8 @@ mod principal;
 mod redact;
 mod run;
 mod scan;
+#[cfg(test)]
+mod security_tests;
 mod serve;
 mod source_arg;
 mod ui_commands;
