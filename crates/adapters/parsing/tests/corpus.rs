@@ -63,18 +63,29 @@ mod tests {
         Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..")
     }
 
-    fn git(dir: &Path, args: &[&str]) {
-        let status = Command::new("git")
+    fn git(dir: &Path, args: &[&str]) -> bool {
+        Command::new("git")
             .args(args)
             .current_dir(dir)
             .status()
-            .expect("git runs");
-        assert!(
-            status.success(),
-            "git {args:?} failed; without network set CODESKIMR_CORPUS_DIR to a checkout of the pinned commit"
-        );
+            .is_ok_and(|status| status.success())
     }
 
+    /// Fetches the pinned commit into a fresh folder.
+    fn fetch(dir: &Path, project: &Project) -> bool {
+        fs::remove_dir_all(dir).ok();
+        fs::create_dir_all(dir).is_ok()
+            && git(dir, &["init", "-q"])
+            && git(dir, &["remote", "add", "origin", &project.repository])
+            && git(
+                dir,
+                &["fetch", "-q", "--depth", "1", "origin", &project.commit],
+            )
+            && git(dir, &["checkout", "-q", "-f", "FETCH_HEAD"])
+    }
+
+    /// The pinned commit in `target/corpus`; a folder that cannot be checked out again (for example
+    /// pruned by a build cache) is fetched anew.
     fn checkout(project: &Project) -> PathBuf {
         if let Some(dir) = std::env::var_os("CODESKIMR_CORPUS_DIR") {
             return PathBuf::from(dir);
@@ -82,16 +93,14 @@ mod tests {
         let dir = workspace()
             .join("target/corpus/csharp")
             .join(&project.commit);
-        if !dir.join(".git").exists() {
-            fs::create_dir_all(&dir).expect("corpus folder");
-            git(&dir, &["init", "-q"]);
-            git(&dir, &["remote", "add", "origin", &project.repository]);
-            git(
-                &dir,
-                &["fetch", "-q", "--depth", "1", "origin", &project.commit],
-            );
-            git(&dir, &["checkout", "-q", "FETCH_HEAD"]);
-        }
+        let present =
+            dir.join(".git").exists() && git(&dir, &["checkout", "-q", "-f", &project.commit]);
+        assert!(
+            present || fetch(&dir, project),
+            "cannot fetch {} at {}; without network set CODESKIMR_CORPUS_DIR to a checkout of the pinned commit",
+            project.repository,
+            project.commit
+        );
         dir
     }
 
