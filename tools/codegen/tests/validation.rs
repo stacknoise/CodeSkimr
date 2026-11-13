@@ -78,7 +78,8 @@ fn missing_message_and_orphan_are_reported() {
 fn deprecated_code_needs_no_message() {
     let text = GOOD.replace("since = \"0.1.0\"", "since = \"0.1.0\"\ndeprecated = true");
     let registry = Registry::parse(&text).expect("parses");
-    assert!(check_messages(&registry, "de", "").is_empty());
+    let missing = check_messages(&registry, "de", "");
+    assert!(missing.is_empty(), "unexpected findings: {missing:?}");
 }
 
 #[test]
