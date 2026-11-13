@@ -1,22 +1,23 @@
 //! Fakes of the ports and builders for the tests of the MCP server.
 #![allow(dead_code, missing_docs)]
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use codeskimr_application::config::McpLimits;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    Clock, CodeIndex, MemberRef, PreviousIndex, ProjectRepository, SearchHit, SymbolDetail,
-    SymbolKey,
+    Clock, CodeIndex, ImpactPage, ImpactedSymbol, MemberRef, PreviousIndex, ProjectRepository,
+    SearchHit, SymbolDetail, SymbolKey, SymbolLabel, UsageEntry, UsageIndex, UsagePage,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
-    FileId, FolderPath, Layer, LayerEdge, LayerName, Metric, MetricKind, MetricValue, Position,
-    Project, ProjectId, ProjectName, ProjectSource, QualifiedName, RelativePath, ScanMode,
-    Snapshot, SnapshotId, SnapshotStats, SourceFile, Span, Symbol, SymbolId, SymbolKind,
-    SymbolName, Timestamp, Visibility,
+    Confidence, Direction, FileId, FolderPath, Layer, LayerEdge, LayerName, Metric, MetricKind,
+    MetricValue, Position, Project, ProjectId, ProjectName, ProjectSource, QualifiedName,
+    Reference, ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId,
+    SnapshotStats, SourceFile, Span, Symbol, SymbolId, SymbolKind, SymbolName, Timestamp,
+    UsageQuery, Visibility,
 };
-use codeskimr_mcp::Tools;
+use codeskimr_mcp::{Ports, Tools};
 
 pub const PROJECT: ProjectId = ProjectId::new(1);
 pub const SNAPSHOT: SnapshotId = SnapshotId::new(10);
@@ -27,6 +28,8 @@ pub fn limits() -> McpLimits {
     McpLimits {
         default_limit: 2,
         max_limit: 3,
+        default_depth: 1,
+        max_depth: 3,
     }
 }
 
@@ -187,11 +190,115 @@ impl Clock for FixedClock {
     }
 }
 
+/// Remembers what it was asked, so a test can see how limits and depth were held.
+#[derive(Default)]
+pub struct FakeUsages {
+    pub asked: Mutex<Vec<(UsageQuery, u32)>>,
+    pub impact_asked: Mutex<Vec<(u32, u32)>>,
+}
+
+fn label(id: u64, kind: SymbolKind, qualified: &str) -> SymbolLabel {
+    SymbolLabel {
+        id: SymbolId::new(id),
+        qualified_name: QualifiedName::new(qualified).unwrap(),
+        kind,
+    }
+}
+
+fn entry(depth: u32, kind: ReferenceKind, confidence: Confidence) -> UsageEntry {
+    let start = Position {
+        line: 11,
+        column: 7,
+    };
+    let end = Position {
+        line: 11,
+        column: 12,
+    };
+    UsageEntry {
+        depth,
+        reference: Reference {
+            id: ReferenceId::new(u64::from(depth)),
+            from: SymbolId::new(20),
+            to: SymbolId::new(1),
+            file: FileId::new(2),
+            span: Span::new(start, end).unwrap(),
+            kind,
+            confidence,
+        },
+        path: RelativePath::new("src/app/service.cs").unwrap(),
+        from: label(20, SymbolKind::Method, "App.Application.Service.Run"),
+        to: label(1, SymbolKind::Class, "App.Domain.Order"),
+    }
+}
+
+fn affected(id: u64, qualified: &str, visibility: Option<Visibility>) -> ImpactedSymbol {
+    ImpactedSymbol {
+        label: label(id, SymbolKind::Method, qualified),
+        depth: 1,
+        visibility,
+        path: RelativePath::new("src/app/service.cs").unwrap(),
+    }
+}
+
+impl UsageIndex for FakeUsages {
+    fn usages(
+        &self,
+        _snapshot: SnapshotId,
+        query: &UsageQuery,
+        limit: u32,
+    ) -> Result<UsagePage, CodedError> {
+        self.asked.lock().unwrap().push((*query, limit));
+        let all = vec![
+            entry(1, ReferenceKind::Call, Confidence::Certain),
+            entry(2, ReferenceKind::Read, Confidence::Probable),
+            entry(2, ReferenceKind::TypeUse, Confidence::Certain),
+        ];
+        let total = all.len();
+        let entries = match query.direction {
+            Direction::Incoming => all.into_iter().take(limit as usize).collect(),
+            Direction::Outgoing => Vec::new(),
+        };
+        Ok(UsagePage { total, entries })
+    }
+
+    fn impact(
+        &self,
+        _snapshot: SnapshotId,
+        _symbol: SymbolId,
+        depth: u32,
+        limit: u32,
+    ) -> Result<ImpactPage, CodedError> {
+        self.impact_asked.lock().unwrap().push((depth, limit));
+        let all = vec![
+            affected(20, "App.Application.Service.Run", Some(Visibility::Public)),
+            affected(
+                21,
+                "App.Application.Service.Helper",
+                Some(Visibility::Private),
+            ),
+            affected(22, "App.Domain.Invoice.Pay", Some(Visibility::Public)),
+            affected(23, "Other.Thing", None),
+        ];
+        let total = all.len();
+        Ok(ImpactPage {
+            total,
+            symbols: all.into_iter().take(limit as usize).collect(),
+        })
+    }
+}
+
 pub fn tools_with(index: FakeIndex) -> Tools {
+    tools_using(index, Arc::new(FakeUsages::default()))
+}
+
+pub fn tools_using(index: FakeIndex, usages: Arc<FakeUsages>) -> Tools {
     Tools::new(
-        Arc::new(FakeProjects),
-        Arc::new(index),
-        Arc::new(FixedClock),
+        Ports {
+            projects: Arc::new(FakeProjects),
+            index: Arc::new(index),
+            usages,
+            clock: Arc::new(FixedClock),
+        },
         limits(),
         PROJECT,
     )

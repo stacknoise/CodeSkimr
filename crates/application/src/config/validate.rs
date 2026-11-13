@@ -112,6 +112,13 @@ fn check_mcp(mcp: &McpLimits) -> Result<(), ConfigError> {
             Violation::MustNotExceed(keys::MCP_MAX_LIMIT),
         );
     }
+    positive(keys::MCP_DEFAULT_DEPTH, mcp.default_depth)?;
+    if mcp.default_depth > mcp.max_depth {
+        return fail(
+            keys::MCP_DEFAULT_DEPTH,
+            Violation::MustNotExceed(keys::MCP_MAX_DEPTH),
+        );
+    }
     Ok(())
 }
 

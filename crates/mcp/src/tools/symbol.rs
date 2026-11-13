@@ -3,14 +3,14 @@
 use std::collections::BTreeMap;
 
 use codeskimr_application::access;
-use codeskimr_application::ports::{MemberRef, SymbolDetail, SymbolKey};
-use codeskimr_domain::{Principal, Project, QualifiedName, SymbolId, Visibility};
+use codeskimr_application::ports::{MemberRef, SymbolDetail};
+use codeskimr_domain::{Principal, Project, Visibility};
 use serde::Serialize;
 use serde_json::Value;
 
-use super::{SnapshotInfo, Tools, to_json, truncation_notice};
+use super::{SnapshotInfo, Tools, layer_of, parse_key, to_json, truncation_notice};
 use crate::args::SymbolArgs;
-use crate::consts::{ARG_SYMBOL, LINE_OFFSET, READ_TOOL_PERMISSION};
+use crate::consts::{LINE_OFFSET, READ_TOOL_PERMISSION};
 use crate::error::{CodeReport, McpError};
 
 #[derive(Serialize)]
@@ -39,27 +39,6 @@ struct Answer {
     member_count: usize,
     members: Vec<Member>,
     notice: Option<CodeReport>,
-}
-
-/// A symbol id if the text is all digits, otherwise a qualified name.
-fn parse_key(text: &str) -> Result<SymbolKey, McpError> {
-    let invalid = || McpError::ArgumentsInvalid(ARG_SYMBOL.to_owned());
-    let digits_only = text.bytes().all(|byte| byte.is_ascii_digit());
-    if let Some(id) = digits_only.then(|| text.parse::<u64>().ok()).flatten() {
-        return Ok(SymbolKey::Id(SymbolId::new(id)));
-    }
-    QualifiedName::new(text)
-        .map(SymbolKey::Qualified)
-        .map_err(|_| invalid())
-}
-
-/// The first layer that owns the symbol, by its namespace.
-fn layer_of(project: &Project, qualified: &QualifiedName) -> Option<String> {
-    project
-        .layers
-        .iter()
-        .find(|layer| layer.owns(qualified.as_str()))
-        .map(|layer| layer.name.as_str().to_owned())
 }
 
 fn member(member: &MemberRef) -> Member {
@@ -112,12 +91,10 @@ impl Tools {
     /// failing port.
     pub fn get_symbol(&self, principal: &Principal, args: &SymbolArgs) -> Result<Value, McpError> {
         access::require(principal, READ_TOOL_PERMISSION)?;
-        let key = parse_key(&args.symbol)?;
+        // Validate the argument before the project is looked up, as before.
+        parse_key(&args.symbol)?;
         let scope = self.scope(args.project)?;
-        let detail = self
-            .index()
-            .symbol(scope.snapshot.id, &key)?
-            .ok_or_else(|| McpError::SymbolNotFound(args.symbol.clone()))?;
+        let detail = self.find_symbol(&scope, &args.symbol)?;
         let limit = usize::try_from(self.max_limit()).unwrap_or(usize::MAX);
         let members = detail
             .members

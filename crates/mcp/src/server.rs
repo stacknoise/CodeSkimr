@@ -7,8 +7,8 @@ use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
 use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
-    MCP_SERVER_INSTRUCTIONS, MCP_TOOL_GET_ARCHITECTURE, MCP_TOOL_GET_SYMBOL,
-    MCP_TOOL_SEARCH_SYMBOLS,
+    MCP_SERVER_INSTRUCTIONS, MCP_TOOL_FIND_USAGES, MCP_TOOL_GET_ARCHITECTURE, MCP_TOOL_GET_SYMBOL,
+    MCP_TOOL_IMPACT_OF_CHANGE, MCP_TOOL_SEARCH_SYMBOLS,
 };
 use codeskimr_domain::Principal;
 use codeskimr_i18n::Messages;
@@ -24,10 +24,10 @@ use rmcp::service::{RequestContext, RoleServer};
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
-use crate::args::{ArchitectureArgs, SearchArgs, SymbolArgs};
+use crate::args::{ArchitectureArgs, ImpactArgs, SearchArgs, SymbolArgs, UsagesArgs};
 use crate::consts::{
-    READ_TOOL_PERMISSION, SERVER_NAME, SERVER_VERSION, TEXT_LANGUAGE, TOOL_GET_ARCHITECTURE,
-    TOOL_GET_SYMBOL, TOOL_SEARCH_SYMBOLS,
+    READ_TOOL_PERMISSION, SERVER_NAME, SERVER_VERSION, TEXT_LANGUAGE, TOOL_FIND_USAGES,
+    TOOL_GET_ARCHITECTURE, TOOL_GET_SYMBOL, TOOL_IMPACT_OF_CHANGE, TOOL_SEARCH_SYMBOLS,
 };
 use crate::error::McpError;
 use crate::tools::Tools;
@@ -91,6 +91,12 @@ impl McpServer {
                     TOOL_GET_ARCHITECTURE,
                     MCP_TOOL_GET_ARCHITECTURE,
                 )?,
+                definition::<UsagesArgs>(messages, TOOL_FIND_USAGES, MCP_TOOL_FIND_USAGES)?,
+                definition::<ImpactArgs>(
+                    messages,
+                    TOOL_IMPACT_OF_CHANGE,
+                    MCP_TOOL_IMPACT_OF_CHANGE,
+                )?,
             ],
             instructions: messages
                 .format(TEXT_LANGUAGE, MCP_SERVER_INSTRUCTIONS, None)
@@ -119,6 +125,11 @@ impl McpServer {
             }
             TOOL_GET_ARCHITECTURE => parse_arguments(arguments)
                 .and_then(|args| tools.get_architecture(&principal, &args)),
+            TOOL_FIND_USAGES => {
+                parse_arguments(arguments).and_then(|args| tools.find_usages(&principal, &args))
+            }
+            TOOL_IMPACT_OF_CHANGE => parse_arguments(arguments)
+                .and_then(|args| tools.impact_of_change(&principal, &args)),
             _ => Err(McpError::ArgumentsInvalid(name.to_owned())),
         };
         outcome.map_or_else(|error| failure(&error), CallToolResult::structured)
