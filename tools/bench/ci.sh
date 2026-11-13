@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Runs the benchmarks for the base commit and for the working tree on the same machine and
-# compares both (blueprint 16.1, ADR 0013). Usage: tools/bench/ci.sh [base-commit]
+# compares both (blueprint 16.1, ADR 0014). Usage: tools/bench/ci.sh [base-commit]
 # Without a base commit, or when the base has no harness yet, only the budgets are checked.
 # A failed comparison is measured once more, because one run on a shared runner can be an outlier.
 set -euo pipefail

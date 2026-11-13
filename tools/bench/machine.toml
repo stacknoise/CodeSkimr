@@ -8,5 +8,5 @@
 ci_runner = "ubuntu-latest"
 # Class of machine the budgets are meant for when measured by hand (mid-range developer laptop).
 local_class = "mid-range developer laptop, 4 cores, 16 GB RAM, SSD"
-# O-06 decided by the product owner on 2026-11-13 (ADR 0013, docs/benchmarks.md).
-decision = "same-runner A/B comparison (ADR 0013)"
+# O-06 decided by the product owner on 2026-11-13 (ADR 0014, docs/benchmarks.md).
+decision = "same-runner A/B comparison (ADR 0014)"
