@@ -37,3 +37,6 @@ pub const UTF16_UNIT_BYTES: usize = 2;
 
 /// Grammar name of Rust in `language.toml`.
 pub const GRAMMAR_RUST: &str = "rust";
+
+/// Start of the reason when the `id` of a pack differs from its folder name.
+pub const ID_MISMATCH: &str = "id differs from the folder name: ";

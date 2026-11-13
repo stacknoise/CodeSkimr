@@ -122,7 +122,7 @@ fn collect<'t>(ctx: &SymbolContext<'_>, root: Node<'t>) -> Vec<Declaration<'t>> 
         }
         found.extend(parts.finish());
     }
-    found.sort_by_key(|d| (d.node.start_byte(), Reverse(d.node.end_byte())));
+    found.sort_by_key(|d| (d.node.start_byte(), Reverse(d.node.end_byte()), d.node.id()));
     // Several patterns may describe the same declaration; the first one wins.
     found.dedup_by_key(|d| (d.node.id(), d.kind));
     found

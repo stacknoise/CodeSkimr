@@ -9,7 +9,7 @@ use codeskimr_domain::{LanguageId, Visibility};
 use tree_sitter::{Language, Query};
 
 use crate::captures::Vocabulary;
-use crate::consts::{MANIFEST_FILE, REFERENCES_QUERY_FILE, SYMBOLS_QUERY_FILE};
+use crate::consts::{ID_MISMATCH, MANIFEST_FILE, REFERENCES_QUERY_FILE, SYMBOLS_QUERY_FILE};
 use crate::error::ParsingError;
 use crate::grammar;
 use crate::manifest::{Manifest, Tier};
@@ -64,7 +64,7 @@ impl LanguagePack {
     ) -> Result<Self, ParsingError> {
         let invalid = |reason: String| ParsingError::invalid(folder, reason);
         if manifest.id != folder {
-            return Err(invalid(manifest.id));
+            return Err(invalid([ID_MISMATCH, manifest.id.as_str()].concat()));
         }
         let id = LanguageId::new(manifest.id).map_err(|e| invalid(e.to_string()))?;
         let mut visibility = HashMap::new();
