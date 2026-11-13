@@ -3,63 +3,17 @@
 
 #[cfg(test)]
 mod common;
+#[cfg(test)]
+#[path = "common/metrics.rs"]
+mod support;
 
 #[cfg(test)]
 mod tests {
-    use codeskimr_application::ids::IdSequence;
-    use codeskimr_application::ports::FileFacts;
-    use codeskimr_domain::{BodyCounts, FolderPath, SymbolCounts};
-    use codeskimr_parsing::{LanguagePacks, TreeSitterAnalyzer};
-    use tree_sitter::Query;
-
-    use super::common::analyze_file;
-    use std::collections::HashMap;
-    use std::path::{Path, PathBuf};
-    use std::time::Duration;
-
-    fn languages() -> PathBuf {
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../languages")
-    }
-
-    fn facts() -> FileFacts {
-        let analyzer = TreeSitterAnalyzer::new(
-            LanguagePacks::load(&languages()).expect("packs load"),
-            Duration::from_secs(10),
-        );
-        let root =
-            FolderPath::new(languages().join("csharp/tests").to_string_lossy()).expect("root");
-        analyze_file(
-            &analyzer,
-            &IdSequence::starting_at(1),
-            &root,
-            "metrics.cs",
-            "csharp",
-        )
-    }
-
-    /// Counts by the simple name of the symbol.
-    fn by_name(facts: &FileFacts) -> HashMap<String, SymbolCounts> {
-        let names: HashMap<_, _> = facts
-            .symbols
-            .iter()
-            .map(|s| (s.id, s.name.to_string()))
-            .collect();
-        facts
-            .counts
-            .iter()
-            .map(|c| (names[&c.symbol].clone(), *c))
-            .collect()
-    }
-
-    fn body(counts: &HashMap<String, SymbolCounts>, name: &str) -> BodyCounts {
-        counts[name]
-            .body
-            .unwrap_or_else(|| panic!("{name} has no body counts"))
-    }
+    use super::support::{body, by_name, facts, highlights_compile};
 
     #[test]
     fn decision_points_follow_the_counting_rules() {
-        let found = by_name(&facts());
+        let found = by_name(&facts("csharp", "metrics.cs"));
         let cc = |name: &str| 1 + body(&found, name).decisions;
         // if, &&, else if, ||, ??, ??=, ?:
         assert_eq!(cc("Branches"), 8);
@@ -74,7 +28,7 @@ mod tests {
 
     #[test]
     fn halstead_counts_of_a_small_body() {
-        let found = by_name(&facts());
+        let found = by_name(&facts("csharp", "metrics.cs"));
         // `return 1;` is one operator and one operand.
         let plain = body(&found, "PlainMethod").halstead;
         assert_eq!((plain.distinct_operators, plain.total_operators), (1, 1));
@@ -86,7 +40,7 @@ mod tests {
 
     #[test]
     fn methods_without_a_body_are_not_measured_and_initialisers_count_no_decisions() {
-        let found = by_name(&facts());
+        let found = by_name(&facts("csharp", "metrics.cs"));
         assert!(found["NoBody"].body.is_none());
         assert!(found["Shape"].counted);
         assert!(found["Shape"].body.is_none());
@@ -94,7 +48,7 @@ mod tests {
 
     #[test]
     fn the_loc_of_a_callable_leaves_out_its_local_function() {
-        let found = by_name(&facts());
+        let found = by_name(&facts("csharp", "metrics.cs"));
         // Outer: signature, two braces, the lambda line and the return; `Local` has its own line.
         assert_eq!(found["Local"].loc.0, 1);
         assert_eq!(found["Outer"].loc.0, 5);
@@ -102,8 +56,6 @@ mod tests {
 
     #[test]
     fn highlights_compile_against_the_grammar() {
-        let text =
-            std::fs::read_to_string(languages().join("csharp/highlights.scm")).expect("query");
-        Query::new(&tree_sitter_c_sharp::LANGUAGE.into(), &text).expect("highlights.scm compiles");
+        highlights_compile("csharp", &tree_sitter_c_sharp::LANGUAGE.into());
     }
 }

@@ -17,7 +17,7 @@ use crate::consts::{
 };
 use crate::error::ParsingError;
 use crate::location::{span_between, span_of, text_of};
-use crate::manifest::DocSummary;
+use crate::manifest::{DocBlock, DocSummary};
 use crate::pack::LanguagePack;
 
 /// What the extraction needs to know about the file.
@@ -359,10 +359,9 @@ fn new_symbol(
 }
 
 fn doc(ctx: &SymbolContext<'_>, nodes: &[Node<'_>]) -> Option<String> {
-    let lines: Vec<&str> = nodes
+    let lines: Vec<String> = nodes
         .iter()
-        .filter_map(|node| strip_prefix(&ctx.pack.doc_prefixes, text_of(*node, ctx.source)))
-        .map(str::trim)
+        .filter_map(|node| doc_text(ctx.pack, text_of(*node, ctx.source)))
         .collect();
     if lines.is_empty() {
         return None;
@@ -370,6 +369,35 @@ fn doc(ctx: &SymbolContext<'_>, nodes: &[Node<'_>]) -> Option<String> {
     let text = lines.join(LINE_SEPARATOR);
     let text = summary(ctx.pack.doc_summary.as_ref(), &text).unwrap_or(text);
     (!text.is_empty()).then_some(text)
+}
+
+/// The documentation in one comment: the description of a block comment (`JSDoc`), or the text of a
+/// line comment after its doc prefix. A pack with blocks and without prefixes ignores line comments.
+fn doc_text(pack: &LanguagePack, comment: &str) -> Option<String> {
+    let text = comment.trim_start();
+    match &pack.doc_block {
+        Some(block) if text.starts_with(block.open.as_str()) => Some(block_text(block, text)),
+        Some(_) if pack.doc_prefixes.is_empty() => None,
+        _ => strip_prefix(&pack.doc_prefixes, text).map(|line| line.trim().to_owned()),
+    }
+}
+
+/// The description inside a block comment: delimiters and line markers removed, ending at the
+/// first line that starts with `stop_at`.
+fn block_text(block: &DocBlock, text: &str) -> String {
+    let inner = text.strip_prefix(block.open.as_str()).unwrap_or(text);
+    let inner = inner.strip_suffix(block.close.as_str()).unwrap_or(inner);
+    let lines = inner.lines().map(|line| {
+        let line = line.trim();
+        line.strip_prefix(block.line_prefix.as_str())
+            .unwrap_or(line)
+            .trim()
+    });
+    let kept: Vec<&str> = match block.stop_at.as_deref() {
+        Some(stop) => lines.take_while(|line| !line.starts_with(stop)).collect(),
+        None => lines.collect(),
+    };
+    kept.join(LINE_SEPARATOR).trim().to_owned()
 }
 
 /// The text between the summary tags with its whitespace collapsed (empty for an empty summary);
@@ -411,6 +439,23 @@ mod tests {
             summary(Some(&tags()), "<s> a\n  b </s><r>x</r>").as_deref(),
             Some("a b")
         );
+    }
+
+    fn jsdoc() -> DocBlock {
+        DocBlock {
+            open: "/**".to_owned(),
+            close: "*/".to_owned(),
+            line_prefix: "*".to_owned(),
+            stop_at: Some("@".to_owned()),
+        }
+    }
+
+    #[test]
+    fn block_text_drops_delimiters_markers_and_tags() {
+        let text = "/**\n * First line.\n *\n * Second line.\n * @param x the value\n */";
+        assert_eq!(block_text(&jsdoc(), text), "First line.\n\nSecond line.");
+        assert_eq!(block_text(&jsdoc(), "/** One line. */"), "One line.");
+        assert_eq!(block_text(&jsdoc(), "/** @internal */"), "");
     }
 
     #[test]

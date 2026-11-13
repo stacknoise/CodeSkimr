@@ -1,0 +1,170 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 11,
+      "operands": null,
+      "operators": null,
+      "symbol": "component"
+    },
+    {
+      "decisions": 1,
+      "loc": 4,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "component.Greeting"
+    },
+    {
+      "decisions": null,
+      "loc": 5,
+      "operands": null,
+      "operators": null,
+      "symbol": "component.Panel"
+    },
+    {
+      "decisions": 1,
+      "loc": 3,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        4,
+        5
+      ],
+      "symbol": "component.Panel.render"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "component.Card"
+    }
+  ],
+  "loc": 11,
+  "references": [
+    {
+      "at": "0:9",
+      "from": "component",
+      "kind": "import",
+      "receiver": null,
+      "target": "Button"
+    },
+    {
+      "at": "4:16",
+      "from": "component.Greeting",
+      "kind": "read",
+      "receiver": null,
+      "target": "name"
+    },
+    {
+      "at": "5:10",
+      "from": "component.Greeting",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Button"
+    },
+    {
+      "at": "5:32",
+      "from": "component.Greeting",
+      "kind": "read",
+      "receiver": null,
+      "target": "name"
+    },
+    {
+      "at": "8:27",
+      "from": "component.Panel",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Base"
+    },
+    {
+      "at": "8:32",
+      "from": "component.Panel",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Props"
+    },
+    {
+      "at": "11:33",
+      "from": "component.Panel.render",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Greeting"
+    },
+    {
+      "at": "15:28",
+      "from": "component.Card",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Props"
+    },
+    {
+      "at": "15:67",
+      "from": "component.Card",
+      "kind": "read",
+      "receiver": "typed Props",
+      "target": "title"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "component",
+      "parent": null,
+      "span": "0:0-16:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": "A greeting.",
+      "kind": "function",
+      "name": "component.Greeting",
+      "parent": "component",
+      "span": "3:7-6:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "component.Panel",
+      "parent": "component",
+      "span": "8:7-13:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": "Renders the panel.",
+      "kind": "method",
+      "name": "component.Panel.render",
+      "parent": "component.Panel",
+      "span": "10:2-12:3",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "component.Card",
+      "parent": "component",
+      "span": "15:20-15:79",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

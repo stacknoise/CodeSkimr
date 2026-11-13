@@ -46,6 +46,20 @@ pub struct DocSummary {
     pub close: String,
 }
 
+/// Delimiters of a block documentation comment such as `JSDoc` (`/** ... */`, ADR 0021).
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DocBlock {
+    /// Text that opens the comment, such as `/**`.
+    pub open: String,
+    /// Text that closes the comment, such as `*/`.
+    pub close: String,
+    /// Marker that may start every line inside the comment, such as `*`.
+    pub line_prefix: String,
+    /// A line that starts with this text, such as `@`, ends the description.
+    pub stop_at: Option<String>,
+}
+
 /// Parsed `language.toml`. Unknown keys are rejected so typos do not pass silently.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -75,6 +89,10 @@ pub struct PackManifest {
     /// comment is.
     #[serde(default)]
     pub doc_summary: Option<DocSummary>,
+    /// Block documentation comments (`JSDoc`); with it and without `doc_prefixes` only block
+    /// comments are documentation.
+    #[serde(default)]
+    pub doc_block: Option<DocBlock>,
     /// Modifier keyword to symbol kind label; a declaration with the keyword gets that kind.
     #[serde(default)]
     pub modifier_kinds: HashMap<String, String>,

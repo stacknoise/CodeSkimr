@@ -12,7 +12,7 @@ use crate::captures::{MetricsQuery, Vocabulary};
 use crate::consts::{ID_MISMATCH, METRICS_QUERY_FILE, REFERENCES_QUERY_FILE, SYMBOLS_QUERY_FILE};
 use crate::error::ParsingError;
 use crate::grammar;
-use crate::manifest::{DocSummary, PackManifest, Tier};
+use crate::manifest::{DocBlock, DocSummary, PackManifest, Tier};
 use crate::visibility::Visibilities;
 
 /// Everything the analyzer needs to understand one language.
@@ -29,6 +29,7 @@ pub struct LanguagePack {
     pub(crate) static_keywords: HashSet<String>,
     pub(crate) modifier_kinds: HashMap<String, SymbolKind>,
     pub(crate) doc_summary: Option<DocSummary>,
+    pub(crate) doc_block: Option<DocBlock>,
     pub(crate) identifier_nodes: HashSet<String>,
     pub(crate) literal_nodes: HashSet<String>,
     pub(crate) visibility: Visibilities,
@@ -92,6 +93,7 @@ impl LanguagePack {
             static_keywords: manifest.static_keywords.into_iter().collect(),
             modifier_kinds,
             doc_summary: manifest.doc_summary,
+            doc_block: manifest.doc_block,
             identifier_nodes: manifest.identifier_nodes.into_iter().collect(),
             literal_nodes: manifest.literal_nodes.into_iter().collect(),
             visibility,
