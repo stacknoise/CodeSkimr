@@ -35,6 +35,10 @@ pub enum Receiver {
     Own,
     /// The receiver is the base of the enclosing object (`base`, `super`).
     Base,
+    /// There is a receiver, but the syntax does not tell its type: a variable without a written
+    /// type (`var x = make()`), a call result or a chain. The member name alone may then belong
+    /// to any type, so the resolver must not pick a scope member of the enclosing type for it.
+    Unknown,
 }
 
 /// An occurrence of a name that is not yet mapped to a symbol.

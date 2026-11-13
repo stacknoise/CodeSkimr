@@ -341,6 +341,37 @@ mod tests {
         assert_eq!(resolve(&shop.table, &pending).len(), 1);
     }
 
+    fn unknown(mut pending: PendingReference) -> PendingReference {
+        pending.receiver = Some(Receiver::Unknown);
+        pending
+    }
+
+    #[test]
+    fn a_receiver_of_unknown_type_is_probable_for_one_type_and_dropped_for_unrelated_types() {
+        let mut table = Table::default();
+        let one = table.add(SymbolKind::Interface, "Demo.IOne", None, 1);
+        let one_close = table.add(SymbolKind::Method, "Demo.IOne.Close", Some(one), 1);
+        let caller = table.add(SymbolKind::Method, "Demo.Client.Go", None, 3);
+        let call = unknown(occurrence(caller, 3, ReferenceKind::Call, "Close"));
+        let found = resolve(&table, std::slice::from_ref(&call));
+        assert_eq!(targets(&found), [one_close]);
+        assert_eq!(found[0].confidence, Confidence::Probable);
+        let two = table.add(SymbolKind::Interface, "Demo.ITwo", None, 2);
+        table.add(SymbolKind::Method, "Demo.ITwo.Close", Some(two), 2);
+        assert!(resolve(&table, &[call]).is_empty());
+    }
+
+    #[test]
+    fn a_receiver_of_unknown_type_ignores_members_of_the_enclosing_type() {
+        let mut table = Table::default();
+        let client = table.add(SymbolKind::Class, "Demo.Client", None, 3);
+        table.add(SymbolKind::Method, "Demo.Client.Close", Some(client), 3);
+        let go = table.add(SymbolKind::Method, "Demo.Client.Go", Some(client), 3);
+        let call = unknown(occurrence(go, 3, ReferenceKind::Call, "Close"));
+        let found = resolve(&table, &[call]);
+        assert_eq!(found[0].confidence, Confidence::Probable);
+    }
+
     fn named(mut pending: PendingReference, name: &str) -> PendingReference {
         pending.receiver = Some(Receiver::Named(QualifiedName::new(name).expect("name")));
         pending
@@ -392,7 +423,7 @@ mod tests {
     }
 
     #[test]
-    fn a_receiver_name_of_unknown_type_falls_back_to_the_name() {
+    fn a_receiver_name_of_unknown_type_does_not_pick_between_unrelated_types() {
         let mut shop = shop();
         shop.table
             .add(SymbolKind::Field, "Shop.Order.sink", Some(shop.order), 2);
@@ -400,9 +431,8 @@ mod tests {
             occurrence(shop.save, 2, ReferenceKind::Call, "Print"),
             "sink",
         );
-        let found = resolve(&shop.table, &[call]);
-        assert!(found.iter().all(|r| r.confidence == Confidence::Probable));
-        assert_eq!(found.len(), 2);
+        // `Print` exists in two unrelated types, so no one of them is reported.
+        assert!(resolve(&shop.table, &[call]).is_empty());
     }
 
     #[test]

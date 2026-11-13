@@ -34,6 +34,7 @@ mod tests {
             Receiver::Named(name) => format!("named {name}"),
             Receiver::Own => "own".to_owned(),
             Receiver::Base => "base".to_owned(),
+            Receiver::Unknown => "unknown".to_owned(),
         }
     }
 

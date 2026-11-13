@@ -149,6 +149,13 @@
       "target": "Add"
     },
     {
+      "at": "19:17",
+      "from": "scopes.Shop.Orders.Order.Save",
+      "kind": "read",
+      "receiver": null,
+      "target": "Total"
+    },
+    {
       "at": "20:8",
       "from": "scopes.Shop.Orders.Order.Save",
       "kind": "read",
@@ -205,6 +212,13 @@
       "target": "Add"
     },
     {
+      "at": "25:21",
+      "from": "scopes.Shop.Orders.Order.Save",
+      "kind": "read",
+      "receiver": null,
+      "target": "Total"
+    },
+    {
       "at": "27:8",
       "from": "scopes.Shop.Orders.Order.Save",
       "kind": "type_use",
@@ -215,7 +229,7 @@
       "at": "27:34",
       "from": "scopes.Shop.Orders.Order.Save",
       "kind": "call",
-      "receiver": null,
+      "receiver": "unknown",
       "target": "ToString"
     }
   ],

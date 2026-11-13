@@ -200,7 +200,7 @@
       "at": "18:16",
       "from": "references.Child.run",
       "kind": "call",
-      "receiver": null,
+      "receiver": "unknown",
       "target": "join"
     },
     {

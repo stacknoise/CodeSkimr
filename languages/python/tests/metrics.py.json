@@ -145,7 +145,7 @@
       "at": "63:13",
       "from": "metrics.calls",
       "kind": "call",
-      "receiver": null,
+      "receiver": "unknown",
       "target": "get"
     }
   ],
