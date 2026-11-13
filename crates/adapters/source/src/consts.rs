@@ -19,15 +19,6 @@ pub const CANCEL_POLL_MS: u64 = 50;
 /// Prefix of a branch name in a full reference name.
 pub const BRANCH_REF_PREFIX: &str = "refs/heads/";
 
-/// Marker that separates the scheme of a URL from the rest.
-pub const URL_SCHEME_MARKER: &str = "://";
-
-/// Character that ends the credentials part of a URL.
-pub const URL_USERINFO_END: char = '@';
-
-/// Characters that end the authority part of a URL.
-pub const URL_AUTHORITY_END: [char; 3] = ['/', '?', '#'];
-
 /// Phrases in a transport error that show the remote asked for credentials (lower case).
 pub const AUTH_FAILURE_HINTS: [&str; 4] = [
     "failed to obtain credentials",
@@ -35,6 +26,10 @@ pub const AUTH_FAILURE_HINTS: [&str; 4] = [
     "authentication failed",
     "permission denied (publickey",
 ];
+
+/// Phrase in a transport error that shows the remote refused the credential it was given (lower
+/// case).
+pub const REJECTED_CREDENTIAL_HINT: &str = "were not accepted by the remote";
 
 /// Phrase in a fetch error that shows the requested branch does not exist (lower case).
 pub const MISSING_BRANCH_HINT: &str = "didn't have any ref that matched";
@@ -50,3 +45,10 @@ pub const WORK_SEPARATOR: char = '-';
 
 /// Separator between the messages of an error chain.
 pub const CHAIN_SEPARATOR: &str = ": ";
+
+/// Text of the failure that stops a Git login when the secret store has no usable credential. The
+/// reason itself travels as a coded error.
+pub const NO_LOGIN_MESSAGE: &str = "no credential available";
+
+/// Marker that separates the scheme of a URL from the host.
+pub const URL_SCHEME_MARKER: &str = "://";

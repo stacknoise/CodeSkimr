@@ -8,11 +8,15 @@ use codeskimr_application::ports::SourceProvider;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{BranchName, GitUrl, ProjectSource};
 use codeskimr_source::{GitCache, SourceFetcher};
-use common::{TestResult, folder, git, write};
+use common::{TestResult, TestStore, folder, git, write};
 use std::path::Path;
+use std::sync::Arc;
 
-fn fetcher(cache: &Path) -> SourceFetcher {
-    SourceFetcher::new(GitCache::new(cache.to_path_buf()))
+fn fetcher(cache: &Path) -> SourceFetcher<TestStore> {
+    SourceFetcher::new(
+        GitCache::new(cache.to_path_buf()),
+        Arc::new(TestStore::default()),
+    )
 }
 
 fn origin(dir: &Path) -> TestResult<GitUrl> {
@@ -27,6 +31,7 @@ fn git_source(url: &GitUrl, branch: &str) -> TestResult<ProjectSource> {
     Ok(ProjectSource::Git {
         url: url.clone(),
         branch: BranchName::new(branch)?,
+        credential: None,
     })
 }
 

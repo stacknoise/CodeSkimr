@@ -14,6 +14,7 @@ mod metrics;
 mod project;
 mod qualified_name;
 mod reference;
+mod secret_url;
 mod snapshot;
 mod span;
 mod symbol;
@@ -29,11 +30,12 @@ pub use metrics::{
     HalsteadCounts, LineKind, cyclomatic_complexity, lines_of_code, maintainability_index,
 };
 pub use project::{
-    BranchName, FolderPath, GitUrl, Layer, LayerName, Project, ProjectId, ProjectName,
-    ProjectSource,
+    BranchName, CredentialId, FolderPath, GitUrl, Layer, LayerName, Project, ProjectId,
+    ProjectName, ProjectSource,
 };
 pub use qualified_name::QualifiedName;
 pub use reference::{Confidence, Reference, ReferenceId, ReferenceKind};
+pub use secret_url::{without_secrets, without_userinfo};
 pub use snapshot::{CommitHash, ScanMode, Snapshot, SnapshotId, SnapshotStats, Timestamp};
 pub use span::{Position, Span};
 pub use symbol::{Symbol, SymbolId, SymbolKind, SymbolName, Visibility};

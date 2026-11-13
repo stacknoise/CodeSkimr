@@ -33,6 +33,11 @@ gix = { version = "0.90", default-features = false, features = ["sha1", "blockin
 ignore = "0.4"
 notify = "8"
 tempfile = "3"
+secrecy = "0.10"
+zeroize = "1"
+keyring-core = "1"
+# Test-only, must match the version `gix` uses (see crates/adapters/source/Cargo.toml).
+gix-transport = "0.62"
 tree-sitter = "0.27"
 tree-sitter-rust = "0.24"
 tree-sitter-c-sharp = "0.23"
