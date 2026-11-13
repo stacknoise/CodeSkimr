@@ -24,6 +24,8 @@ pub(crate) enum StorageError {
     Model(ModelError),
     /// A number does not fit the range of its column or type.
     OutOfRange,
+    /// A reference points at a symbol or file that the snapshot does not hold.
+    DanglingReference,
     /// The project does not exist.
     ProjectNotFound,
     /// Another project already has this source.
@@ -58,7 +60,9 @@ impl Coded for StorageError {
             Self::Migration(_) | Self::SchemaTooNew => ErrorCode::SchemaMigrationFailed,
             Self::Io(error) if error.kind() == io::ErrorKind::StorageFull => ErrorCode::DiskFull,
             Self::Io(_) => ErrorCode::DatabaseFailed,
-            Self::Model(_) | Self::OutOfRange => ErrorCode::StoredDataInvalid,
+            Self::Model(_) | Self::OutOfRange | Self::DanglingReference => {
+                ErrorCode::StoredDataInvalid
+            }
             Self::ProjectNotFound => ErrorCode::ProjectNotFound,
             Self::ProjectExists => ErrorCode::ProjectAlreadyRegistered,
         }
@@ -77,9 +81,11 @@ impl Error for StorageError {
             Self::Sqlite(error) | Self::Migration(error) => Some(error),
             Self::Io(error) => Some(error),
             Self::Model(error) => Some(error),
-            Self::SchemaTooNew | Self::OutOfRange | Self::ProjectNotFound | Self::ProjectExists => {
-                None
-            }
+            Self::SchemaTooNew
+            | Self::OutOfRange
+            | Self::DanglingReference
+            | Self::ProjectNotFound
+            | Self::ProjectExists => None,
         }
     }
 }

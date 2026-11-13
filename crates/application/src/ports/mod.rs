@@ -11,6 +11,7 @@ mod credentials;
 mod query;
 mod source;
 mod storage;
+mod usages;
 
 pub use analysis::{
     AnalyzeRequest, FileAnalyzer, FileFacts, MetricsCalculator, PendingReference, Receiver,
@@ -21,3 +22,4 @@ pub use credentials::{AuthError, Credential, CredentialStore};
 pub use query::{CodeIndex, MemberRef, SearchHit, SymbolDetail, SymbolKey};
 pub use source::{DiscoveredFile, FetchedSource, FileDiscovery, SourceProvider};
 pub use storage::{PreviousIndex, ProjectRepository, SnapshotData, SnapshotStore};
+pub use usages::{ImpactPage, ImpactedSymbol, SymbolLabel, UsageEntry, UsageIndex, UsagePage};

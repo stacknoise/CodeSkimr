@@ -89,3 +89,10 @@ pub mod text {
     /// Printed on failure.
     pub const FAILED: &str = "benchmark check FAILED";
 }
+
+/// Multiplier of the pseudo-random generator of the benchmarks (Knuth's MMIX).
+pub const LCG_MULTIPLIER: u64 = 6_364_136_223_846_793_005;
+/// Increment of the pseudo-random generator of the benchmarks.
+pub const LCG_INCREMENT: u64 = 1_442_695_040_888_963_407;
+/// Low bits that are dropped from a generated number, because they repeat quickly.
+pub const LCG_SHIFT: u32 = 33;

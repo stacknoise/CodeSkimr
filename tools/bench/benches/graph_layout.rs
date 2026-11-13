@@ -3,6 +3,7 @@
 
 use std::hint::black_box;
 
+use codeskimr_bench::random::Lcg;
 use codeskimr_domain::{
     LayoutEdge, LayoutGraph, LayoutNode, LayoutParams, ModelError, NodeIndex, NodeSize,
 };
@@ -17,21 +18,8 @@ const PARAMS: LayoutParams = LayoutParams {
 const ROWS: usize = 8;
 const EDGES_PER_NODE: usize = 3;
 
-/// Deterministic pseudo-random numbers, so every run measures the same graph.
-struct Lcg(u64);
-
-impl Lcg {
-    fn below(&mut self, limit: usize) -> usize {
-        self.0 = self
-            .0
-            .wrapping_mul(6_364_136_223_846_793_005)
-            .wrapping_add(1_442_695_040_888_963_407);
-        usize::try_from(self.0 >> 33).unwrap_or_default() % limit
-    }
-}
-
 fn dependency_graph(nodes: usize) -> Result<LayoutGraph, ModelError> {
-    let mut random = Lcg(42);
+    let mut random = Lcg::new(42);
     let per_row = nodes / ROWS;
     let list = (0..nodes)
         .map(|_| LayoutNode {
