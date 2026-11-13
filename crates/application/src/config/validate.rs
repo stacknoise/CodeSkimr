@@ -14,6 +14,7 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     check_mcp(&config.mcp)?;
     positive(keys::RETENTION_COUNT, config.snapshots.retention_count)?;
     positive(keys::DEBOUNCE_MS, config.watcher.debounce_ms)?;
+    positive(keys::MAX_WAIT_MS, config.watcher.max_wait_ms)?;
     positive(keys::NGRAM_SIZE, config.similarity.ngram_size)?;
     positive(keys::WINDOW_SIZE, config.similarity.window_size)?;
     positive(keys::MIN_TOKENS, config.similarity.min_tokens)?;

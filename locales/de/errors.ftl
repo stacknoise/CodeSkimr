@@ -44,6 +44,7 @@ error-MCP-202 = Es gibt kein Symbol mit dieser ID oder diesem qualifizierten Nam
 error-MCP-203 = Das Projekt wurde noch nicht gescannt.
 error-MCP-501 = Das Ergebnis wurde auf das eingestellte Limit gekürzt.
 error-CLI-101 = Die Kommandozeilen-Argumente sind ungültig.
+error-CLI-102 = Der Beobachtungsmodus braucht einen lokalen Ordner; eine Git-URL kann nicht beobachtet werden.
 error-I18N-201 = Für die gewählte Sprache fehlt ein Text. Es wird Englisch angezeigt.
 error-EXP-601 = Die Exportdatei konnte nicht geschrieben werden.
 error-UI-201 = Die Oberfläche erreicht den lokalen Server nicht.

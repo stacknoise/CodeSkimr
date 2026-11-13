@@ -427,6 +427,14 @@ description = "Command-line arguments are invalid."
 since = "0.1.0"
 
 [[codes]]
+id = "CLI-102"
+name = "watch_needs_folder"
+severity = "error"
+retryable = false
+description = "Watch mode needs a local folder; a Git URL cannot be watched."
+since = "0.1.0"
+
+[[codes]]
 id = "I18N-201"
 name = "message_key_missing"
 severity = "error"

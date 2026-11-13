@@ -48,4 +48,4 @@ its rows from the events; no stage is added for it.
 
 `codeskimr_source::publish_changes` watches a project folder and publishes `FilesChanged` (count of changed
 files, `rescan` if the operating system lost events) after the debounce window. Starting the incremental
-scan on that event belongs to the watch mode of the composition root.
+scan on that event is the watch mode of the composition root (`crates/app/src/watch.rs`, `codeskimr scan --watch`, ADR 0027): the changes that piled up while a scan ran become one incremental scan, or a full scan if `rescan` is set.

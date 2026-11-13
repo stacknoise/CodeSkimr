@@ -1,14 +1,16 @@
-//! `codeskimr scan`: registers the source as a project and runs one full scan.
+//! `codeskimr scan`: registers the source as a project and runs one full scan. The [`Session`] is
+//! what watch mode scans again and again.
 
 use std::time::Instant;
 
 use codeskimr_application::access;
+use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
-use codeskimr_application::pipeline::{Job, JobResult};
+use codeskimr_application::pipeline::{Job, JobResult, Scanner};
 use codeskimr_cli::{GlobalOptions, ScanArgs, ScanSummary};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Permission, Project, ProjectSource, ScanMode};
+use codeskimr_domain::{Permission, Principal, Project, ProjectSource, ScanMode};
 use codeskimr_storage::SqliteStore;
 
 use crate::config_files;
@@ -25,17 +27,70 @@ pub fn prepare(args: &ScanArgs) -> Result<SourceSpec, SourceError> {
     classify(&args.source, args.branch.as_deref())
 }
 
-/// Runs the scan and reports what it found.
-///
-/// The mode is always full: the incremental mode is not complete yet (issues #20 and #29).
+/// A registered project with everything needed to scan it again and again.
+pub struct Session {
+    scanner: Scanner,
+    principal: Principal,
+    project: Project,
+    config: Config,
+    events: EventBus,
+}
+
+impl Session {
+    /// The project that is scanned.
+    #[must_use]
+    pub const fn project(&self) -> &Project {
+        &self.project
+    }
+
+    /// The configuration of this run.
+    #[must_use]
+    pub const fn config(&self) -> &Config {
+        &self.config
+    }
+
+    /// The bus the scanner publishes on; whoever subscribes sees every scan of this session.
+    #[must_use]
+    pub const fn events(&self) -> &EventBus {
+        &self.events
+    }
+
+    /// Runs one scan in `mode` and reports what it found.
+    ///
+    /// # Errors
+    /// The code of the failed stage, or `APP-901` if the scan was cancelled (nothing cancels it here).
+    pub fn scan(&self, mode: ScanMode) -> Result<ScanSummary, CodedError> {
+        let started = Instant::now();
+        match self
+            .scanner
+            .run(&self.principal, Job::new(self.project.id, mode))
+        {
+            JobResult::Finished(job) => {
+                let snapshot = job.snapshot();
+                Ok(ScanSummary {
+                    project: self.project.name.to_string(),
+                    snapshot: snapshot.id.get(),
+                    files: snapshot.stats.files,
+                    symbols: snapshot.stats.symbols,
+                    references: snapshot.stats.references,
+                    seconds: started.elapsed().as_secs_f64(),
+                })
+            }
+            JobResult::Failed(job) => Err(CodedError::new(job.code())),
+            JobResult::Cancelled(_) => Err(CodedError::new(ErrorCode::UnexpectedInternalError)),
+        }
+    }
+}
+
+/// Registers the source as a project and wires everything a scan needs.
 ///
 /// # Errors
-/// Any coded failure of the configuration, the source, the parsing or the storage.
-pub fn run(
+/// Any coded failure of the permission check, the configuration, the storage or the language packs.
+pub fn open(
     spec: SourceSpec,
     global: &GlobalOptions,
     locations: &Locations,
-) -> Result<ScanSummary, CodedError> {
+) -> Result<Session, CodedError> {
     let project_dir = match &spec.source {
         ProjectSource::Folder(folder) => Some(std::path::Path::new(folder.as_str())),
         ProjectSource::Git { .. } => None,
@@ -46,23 +101,30 @@ pub fn run(
     let config = config_files::load(locations, global, project_dir)?;
     let store = open_store(locations, &config)?;
     let project = register(&store, spec)?;
-    let scanner = build_scanner(&store, &config, locations, EventBus::new())?;
-    let started = Instant::now();
-    match scanner.run(&principal, Job::new(project.id, ScanMode::Full)) {
-        JobResult::Finished(job) => {
-            let snapshot = job.snapshot();
-            Ok(ScanSummary {
-                project: project.name.to_string(),
-                snapshot: snapshot.id.get(),
-                files: snapshot.stats.files,
-                symbols: snapshot.stats.symbols,
-                references: snapshot.stats.references,
-                seconds: started.elapsed().as_secs_f64(),
-            })
-        }
-        JobResult::Failed(job) => Err(CodedError::new(job.code())),
-        JobResult::Cancelled(_) => Err(CodedError::new(ErrorCode::UnexpectedInternalError)),
-    }
+    let events = EventBus::new();
+    let scanner = build_scanner(&store, &config, locations, events.clone())?;
+    Ok(Session {
+        scanner,
+        principal,
+        project,
+        config,
+        events,
+    })
+}
+
+/// Registers the source and runs one full scan.
+///
+/// The mode is always full: this is the first scan of a run. Watch mode continues from here with
+/// incremental scans (`watch.rs`).
+///
+/// # Errors
+/// Any coded failure of [`open`] or of the scan.
+pub fn run(
+    spec: SourceSpec,
+    global: &GlobalOptions,
+    locations: &Locations,
+) -> Result<ScanSummary, CodedError> {
+    open(spec, global, locations)?.scan(ScanMode::Full)
 }
 
 /// The project of this source: the registered one, or a new one.

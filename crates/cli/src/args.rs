@@ -24,6 +24,8 @@ pub struct ScanArgs {
     pub branch: Option<String>,
     /// Print the summary as JSON.
     pub json: bool,
+    /// Keep running after the scan and re-scan whenever files change.
+    pub watch: bool,
 }
 
 /// Arguments of `codeskimr mcp`.

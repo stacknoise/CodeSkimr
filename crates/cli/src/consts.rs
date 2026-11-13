@@ -16,6 +16,8 @@ pub const ARG_SOURCE: &str = "source";
 pub const ARG_BRANCH: &str = "branch";
 /// Argument id and long flag of the JSON output switch.
 pub const ARG_JSON: &str = "json";
+/// Argument id and long flag of the watch mode switch.
+pub const ARG_WATCH: &str = "watch";
 /// Argument id and long flag of the project folder of `mcp`.
 pub const ARG_PROJECT: &str = "project";
 /// Argument id and long flag of the data folder.
@@ -69,6 +71,10 @@ pub mod arg {
     pub const SNAPSHOT: &str = "snapshot";
     /// `{ $seconds }`: duration of the scan.
     pub const SECONDS: &str = "seconds";
+    /// `{ $changed }`: number of files that changed since the last scan.
+    pub const CHANGED: &str = "changed";
+    /// `{ $millis }`: duration of a re-scan in milliseconds.
+    pub const MILLIS: &str = "millis";
 }
 
 /// Separates the lines of a multi-line message.

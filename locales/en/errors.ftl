@@ -44,6 +44,7 @@ error-MCP-202 = No symbol with this id or qualified name exists.
 error-MCP-203 = The project has not been scanned yet.
 error-MCP-501 = The result was truncated to the configured limit.
 error-CLI-101 = The command-line arguments are invalid.
+error-CLI-102 = Watch mode needs a local folder; a Git URL cannot be watched.
 error-I18N-201 = A text is missing for the selected language. English is shown instead.
 error-EXP-601 = The export file could not be written.
 error-UI-201 = The interface cannot reach the local server.

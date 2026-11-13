@@ -7,8 +7,8 @@ use std::process::ExitCode;
 
 use codeskimr_application::error::CodedError;
 use codeskimr_cli::{
-    Action, CliError, Invocation, Parsed, error_line, language_from, parse, scan_finished,
-    scan_json, scan_started,
+    Action, CliError, GlobalOptions, Invocation, Parsed, ScanArgs, ScanSummary, error_line,
+    language_from, parse, scan_finished, scan_json, scan_started, watch_started, watch_updated,
 };
 use codeskimr_codes::i18n::CLI_CREDENTIALS_HINT;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -21,6 +21,7 @@ use crate::locations::{Locations, Lookup};
 use crate::log_writer::RedactingWriter;
 use crate::logging;
 use crate::source_arg::SourceError;
+use crate::watch::{self, Report};
 use crate::{mcp, scan};
 
 /// Why a command did not finish: a registered code, plus the parser's text for usage errors.
@@ -107,30 +108,81 @@ fn run_invocation(
         &current_dir,
     )?;
     match &invocation.action {
-        Action::Scan(args) => {
-            let spec =
-                scan::prepare(args).map_err(|error| source_failure(error, messages, language))?;
-            if !args.json {
-                write_err(
-                    &scan_started(messages, language, spec.location()).map_err(CliError::from)?,
-                );
-            }
-            let summary = scan::run(spec, &invocation.global, &locations)?;
-            let text = if args.json {
-                scan_json(&summary)
-                    .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?
-            } else {
-                scan_finished(messages, language, &summary).map_err(CliError::from)?
-            };
-            write_out(&text);
-            Ok(())
-        }
+        Action::Scan(args) => run_scan(args, &invocation.global, &locations, messages, language),
         Action::Mcp(args) => Ok(mcp::run(
             args,
             &invocation.global,
             &locations,
             &current_dir,
         )?),
+    }
+}
+
+/// `codeskimr scan`, once or, with `--watch`, until the user stops it.
+fn run_scan(
+    args: &ScanArgs,
+    global: &GlobalOptions,
+    locations: &Locations,
+    messages: &Messages,
+    language: &str,
+) -> Result<(), Failure> {
+    let spec = scan::prepare(args).map_err(|error| source_failure(error, messages, language))?;
+    if args.watch {
+        watch::require_folder(&spec)?;
+    }
+    if !args.json {
+        write_err(&scan_started(messages, language, spec.location()).map_err(CliError::from)?);
+    }
+    if args.watch {
+        let session = scan::open(spec, global, locations)?;
+        let mut show = |report| show_report(report, args.json, messages, language);
+        return Ok(watch::run(&session, &mut show)?);
+    }
+    let summary = scan::run(spec, global, locations)?;
+    write_out(&summary_text(&summary, args.json, messages, language)?);
+    Ok(())
+}
+
+fn summary_text(
+    summary: &ScanSummary,
+    json: bool,
+    messages: &Messages,
+    language: &str,
+) -> Result<String, Failure> {
+    if json {
+        Ok(scan_json(summary).map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?)
+    } else {
+        Ok(scan_finished(messages, language, summary).map_err(CliError::from)?)
+    }
+}
+
+/// Prints what watch mode reports: the first summary, then one line per re-scan. A failure ends
+/// nothing here; it is printed and watching goes on.
+fn show_report(report: Report, json: bool, messages: &Messages, language: &str) {
+    let show = |text: Result<String, Failure>| match text {
+        Ok(text) => write_out(&text),
+        Err(failure) => {
+            let _ = self::report(messages, language, &failure);
+        }
+    };
+    let cli = |error| Failure::from(CliError::from(error));
+    match report {
+        Report::Initial(summary) => {
+            show(summary_text(&summary, json, messages, language));
+            if !json {
+                show(watch_started(messages, language).map_err(cli));
+            }
+        }
+        Report::Updated {
+            summary,
+            changed,
+            millis,
+        } => show(if json {
+            summary_text(&summary, json, messages, language)
+        } else {
+            watch_updated(messages, language, changed, millis).map_err(cli)
+        }),
+        Report::Failed(error) => show(Err(Failure::from(error))),
     }
 }
 
