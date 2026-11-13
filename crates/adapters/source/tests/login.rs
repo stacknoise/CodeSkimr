@@ -72,14 +72,17 @@ fn files(dir: &Path) -> TestResult<Vec<std::path::PathBuf>> {
     Ok(found)
 }
 
-/// Whether any file below `dir` contains `needle` (as it is, and as part of a Basic header value).
+/// Whether any file below `dir` contains the secret as it is, or inside a Basic header value.
 fn contains_anywhere(dir: &Path, needle: &str) -> TestResult<bool> {
+    let encoded = common::http::base64(format!("{USER}:{needle}").as_bytes());
+    let needles = [needle.to_owned(), encoded];
     for path in files(dir)? {
         let content = std::fs::read(&path)?;
-        if content
-            .windows(needle.len())
-            .any(|window| window == needle.as_bytes())
-        {
+        if needles.iter().any(|n| {
+            content
+                .windows(n.len())
+                .any(|window| window == n.as_bytes())
+        }) {
             return Ok(true);
         }
     }
@@ -103,20 +106,6 @@ fn a_lent_credential_logs_in_and_never_reaches_the_clone() -> TestResult {
     assert!(!contains_anywhere(cache.path(), CANARY)?);
     let config = std::fs::read_to_string(Path::new(fetched.root.as_str()).join(".git/config"))?;
     assert!(config.contains(&url), "{config}");
-    Ok(())
-}
-
-#[test]
-fn a_password_in_the_url_is_dropped_before_git_writes_the_url_down() -> TestResult {
-    let Remote { root, cache } = remote()?;
-    let server = GitHttpServer::start(root.path(), None)?;
-    let url = format!("http://{USER}:{CANARY}@127.0.0.1:{}/repo.git", server.port);
-
-    let fetched = fetcher(cache.path(), Arc::new(TestStore::default()))
-        .fetch(&source(&url, None)?, &CancelToken::new())?;
-
-    assert!(Path::new(fetched.root.as_str()).join("lib.rs").exists());
-    assert!(!contains_anywhere(cache.path(), CANARY)?);
     Ok(())
 }
 
@@ -154,5 +143,42 @@ fn a_rejected_credential_is_an_authentication_failure_without_the_secret() -> Te
     }
     assert!(texts.iter().all(|text| !text.contains(CANARY)), "{texts:?}");
     assert!(!contains_anywhere(cache.path(), CANARY)?);
+    Ok(())
+}
+
+#[test]
+fn a_password_or_token_in_the_url_is_dropped_before_git_writes_the_url_down() -> TestResult {
+    for userinfo in [format!("{USER}:{CANARY}"), CANARY.to_owned()] {
+        let Remote { root, cache } = remote()?;
+        let server = GitHttpServer::start(root.path(), None)?;
+        let url = format!("http://{userinfo}@127.0.0.1:{}/repo.git", server.port);
+
+        let fetched = fetcher(cache.path(), Arc::new(TestStore::default()))
+            .fetch(&source(&url, None)?, &CancelToken::new())?;
+
+        assert!(Path::new(fetched.root.as_str()).join("lib.rs").exists());
+        assert!(!contains_anywhere(cache.path(), CANARY)?);
+    }
+    Ok(())
+}
+
+#[test]
+fn a_redirect_to_another_host_never_gets_the_credential() -> TestResult {
+    let Remote { root, cache } = remote()?;
+    let target = GitHttpServer::start(root.path(), Some((USER, CANARY)))?;
+    let redirector = GitHttpServer::redirecting_to(target.port)?;
+    let store = Arc::new(TestStore::with("work", USER, CANARY));
+    let url = format!("http://127.0.0.1:{}/repo.git", redirector.port);
+
+    let result = fetcher(cache.path(), store.clone())
+        .fetch(&source(&url, Some("work"))?, &CancelToken::new());
+
+    assert!(result.is_err());
+    assert_eq!(store.lent.load(Ordering::Relaxed), 0);
+    assert!(!contains_anywhere(cache.path(), CANARY)?);
+    assert!(target.authorizations.lock().is_ok_and(|seen| {
+        seen.iter()
+            .all(|h| !h.contains(&common::http::base64(format!("{USER}:{CANARY}").as_bytes())))
+    }));
     Ok(())
 }

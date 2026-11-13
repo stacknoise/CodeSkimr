@@ -23,5 +23,5 @@ pub use error::SourceError;
 pub use fetcher::SourceFetcher;
 pub use git::{GitCache, Login};
 pub use languages::LanguageMap;
-pub use redact::{redact_credentials, without_password};
+pub use redact::redact_credentials;
 pub use watcher::{WatchBatch, WatchConfig, WatchHandle, watch};

@@ -16,7 +16,7 @@ use super::TestResult;
 
 const BASE64: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
-fn base64(input: &[u8]) -> String {
+pub fn base64(input: &[u8]) -> String {
     let mut out = String::new();
     for chunk in input.chunks(3) {
         let bits = chunk
@@ -45,6 +45,15 @@ pub struct GitHttpServer {
 
 impl GitHttpServer {
     pub fn start(root: &Path, login: Option<(&str, &str)>) -> TestResult<Self> {
+        Self::launch(root, login, None)
+    }
+
+    /// A server that answers every request with a redirect to the same path on `port`.
+    pub fn redirecting_to(port: u16) -> TestResult<Self> {
+        Self::launch(Path::new(""), None, Some(port))
+    }
+
+    fn launch(root: &Path, login: Option<(&str, &str)>, redirect: Option<u16>) -> TestResult<Self> {
         let listener = TcpListener::bind("127.0.0.1:0")?;
         listener.set_nonblocking(true)?;
         let port = listener.local_addr()?.port();
@@ -60,7 +69,7 @@ impl GitHttpServer {
                     Ok((stream, _)) => {
                         let (root, expected, seen) = (root.clone(), expected.clone(), seen.clone());
                         std::thread::spawn(move || {
-                            let _ = serve(stream, &root, expected.as_deref(), &seen);
+                            let _ = serve(stream, &root, expected.as_deref(), redirect, &seen);
                         });
                     }
                     Err(_) => std::thread::sleep(Duration::from_millis(10)),
@@ -174,11 +183,19 @@ fn serve(
     stream: TcpStream,
     root: &Path,
     expected: Option<&str>,
+    redirect: Option<u16>,
     seen: &Mutex<Vec<String>>,
 ) -> TestResult {
     let mut reader = BufReader::new(stream.try_clone()?);
     let request = read_request(&mut reader)?;
     let mut stream = stream;
+    if let Some(port) = redirect {
+        let location = format!("http://127.0.0.1:{port}{}", request.target);
+        stream.write_all(
+            format!("HTTP/1.1 307 Temporary Redirect\r\nLocation: {location}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n").as_bytes(),
+        )?;
+        return Ok(());
+    }
     let given = request.header("authorization");
     if let (Some(given), Ok(mut seen)) = (given, seen.lock()) {
         seen.push(given.to_owned());

@@ -12,7 +12,7 @@ use crate::error::CodedError;
 /// A user name and a secret (password or token) for one login.
 ///
 /// It is neither `Clone`, `Debug` nor `Serialize`, and the memory of both texts is wiped when the
-/// value is dropped. The only way to read the content is the explicit `expose_secret()` of
+/// value is dropped (`SecretString` zeroizes on drop, which is the `ZeroizeOnDrop` of blueprint 12.3). The only way to read the content is the explicit `expose_secret()` of
 /// `secrecy`, which CI lists for review.
 pub struct Credential {
     user: SecretString,
@@ -94,7 +94,8 @@ pub trait CredentialStore: Send + Sync {
     /// Saves `credential` under `id` and replaces an existing one.
     ///
     /// # Errors
-    /// `SEC-402` or `SEC-601` if the keystore cannot be used.
+    /// `SEC-401` if the credential cannot be stored in the form of the keystore (a user name with
+    /// a zero byte), `SEC-402` or `SEC-601` if the keystore cannot be used.
     fn store(&self, id: &CredentialId, credential: &Credential) -> Result<(), AuthError>;
 
     /// Removes the credential; a missing one is not an error.

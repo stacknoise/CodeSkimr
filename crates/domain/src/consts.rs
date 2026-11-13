@@ -152,3 +152,18 @@ pub const SIMILARITY_NONE: f64 = 0.0;
 pub const POWER_START: u64 = 1;
 /// Start value of the rolling hash of an n-gram.
 pub const HASH_START: u64 = 0;
+
+/// Marker that separates the scheme of a URL from the rest.
+pub const URL_SCHEME_MARKER: &str = "://";
+/// Character that ends the credentials part of a URL.
+pub const URL_USERINFO_END: char = '@';
+/// Character that starts the password inside the credentials part of a URL.
+pub const URL_PASSWORD_START: char = ':';
+/// Characters that end the authority part of a URL. `\` counts like `/` for browsers.
+pub const URL_AUTHORITY_END: [char; 4] = ['/', '?', '#', '\\'];
+/// Opens an IPv6 host, whose colons are no password separators.
+pub const URL_IPV6_START: char = '[';
+/// Schemes whose user name can be a secret (a token), so the whole credentials part goes.
+pub const SECRET_USER_SCHEMES: [&str; 2] = ["http", "https"];
+/// Characters besides letters and digits that a URL scheme may contain.
+pub const URL_SCHEME_EXTRA: &str = "+-.";

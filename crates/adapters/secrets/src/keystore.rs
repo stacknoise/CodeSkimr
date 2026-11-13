@@ -1,6 +1,6 @@
 //! Where the bytes of a credential are kept.
 
-use std::sync::LazyLock;
+use std::sync::OnceLock;
 
 use codeskimr_application::ports::AuthError;
 use keyring_core::{Entry, Error};
@@ -35,9 +35,7 @@ pub struct OsKeystore;
 
 impl OsKeystore {
     fn entry(name: &str) -> Result<Entry, AuthError> {
-        if !*STORE_READY {
-            return Err(AuthError::Unavailable);
-        }
+        ensure_store()?;
         Entry::new(KEYSTORE_SERVICE, name).map_err(|error| map_error(&error))
     }
 }
@@ -64,8 +62,18 @@ impl Keystore for OsKeystore {
     }
 }
 
-/// Whether the platform store was set up; it is done once, on first use.
-static STORE_READY: LazyLock<bool> = LazyLock::new(|| install_platform_store().is_ok());
+/// Set once the platform store is installed. A failed attempt is not remembered, so a Secret
+/// Service that starts later is found without restarting the program.
+static STORE_READY: OnceLock<()> = OnceLock::new();
+
+fn ensure_store() -> Result<(), AuthError> {
+    if STORE_READY.get().is_none() {
+        install_platform_store().map_err(|_| AuthError::Unavailable)?;
+        // Another thread may have been faster; both installed the same kind of store.
+        let _ = STORE_READY.set(());
+    }
+    Ok(())
+}
 
 /// Makes the keystore of this platform the default of `keyring-core`.
 #[cfg(target_os = "windows")]
@@ -94,8 +102,10 @@ fn install_platform_store() -> keyring_core::Result<()> {
     Err(Error::NoDefaultStore)
 }
 
-/// Sorts a keystore failure into the registered codes. The error itself is dropped unread: some
-/// variants carry the bytes of the entry.
+/// Sorts a keystore failure into the registered codes: no entry is `SEC-201`, a denied access is
+/// `SEC-402`, everything else (no service, platform failure, invalid or too long names, ambiguous
+/// entries, bad encoding) is `SEC-601`. The error itself is dropped unread: some variants carry
+/// the bytes of the entry.
 fn map_error(error: &Error) -> AuthError {
     match error {
         Error::NoEntry => AuthError::NotFound,

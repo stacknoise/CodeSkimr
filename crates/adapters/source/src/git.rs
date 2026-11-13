@@ -4,8 +4,8 @@
 //! is parked, the new one is moved into place, and only then the old one is deleted. If anything
 //! fails or the scan is cancelled, the old copy is back in place and the work folder is removed.
 //!
-//! Secrets never reach the clone: a password in the URL is dropped before Git sees it (Git would
-//! write the URL into `.git/config`), and a credential from the secret store is lent to the login
+//! Secrets never reach the clone: `GitUrl` carries no credentials (Git would write the URL into
+//! `.git/config`), and a credential from the secret store is lent to the login
 //! callback of the connection for exactly one attempt (blueprint 12.2, 12.3).
 
 use std::fs;
@@ -25,10 +25,10 @@ use secrecy::ExposeSecret;
 
 use crate::consts::{
     AUTH_FAILURE_HINTS, BRANCH_REF_PREFIX, CANCEL_POLL_MS, CANCELLED_DETAIL, MISSING_BRANCH_HINT,
-    NO_LOGIN_MESSAGE, REJECTED_CREDENTIAL_HINT, SHALLOW_CLONE_DEPTH, WORK_PREFIX, WORK_SEPARATOR,
+    NO_LOGIN_MESSAGE, REJECTED_CREDENTIAL_HINT, SHALLOW_CLONE_DEPTH, URL_SCHEME_MARKER,
+    WORK_PREFIX, WORK_SEPARATOR,
 };
 use crate::error::{SourceError, error_chain_text};
-use crate::redact::without_password;
 
 /// Lends the credential of a login to a closure, once per call. It reads from the secret store
 /// every time and nothing is kept between calls.
@@ -66,8 +66,7 @@ impl GitCache {
 
     /// Makes the newest commit of `branch` available and returns where it lies.
     ///
-    /// Without `login` the system's Git credential helper decides how to log in. A password in
-    /// `url` is ignored.
+    /// Without `login` the system's Git credential helper decides how to log in.
     ///
     /// # Errors
     /// [`SourceError::BranchNotFound`], [`SourceError::AuthRequired`],
@@ -84,13 +83,10 @@ impl GitCache {
             return Err(cancelled());
         }
         fs::create_dir_all(&self.cache_root).map_err(|error| SourceError::git_failed(&error))?;
-        // Git writes the URL it was given into `.git/config`, so it never gets a password.
-        let url = GitUrl::new(without_password(url.as_str()))
-            .map_err(|error| SourceError::git_failed(&error))?;
-        let target = self.cache_root.join(folder_name(&url, branch));
+        let target = self.cache_root.join(folder_name(url, branch));
         let work = WorkFolder::new(&self.cache_root);
         let attempt = Attempt {
-            url: &url,
+            url,
             branch,
             login,
             cancel,
@@ -217,10 +213,11 @@ fn clone_branch(
     let refusal = LoginRefusal::default();
     if let Some(login) = attempt.login {
         let (login, refusal) = (login.clone(), refusal.clone());
+        let origin = attempt.url.origin().to_owned();
         // Every request of the connection asks the secret store again; nothing is kept in between.
         prepare = prepare.configure_connection(move |connection| {
-            let (login, refusal) = (login.clone(), refusal.clone());
-            connection.set_credentials(move |action| answer(&login, &refusal, action));
+            let (login, refusal, origin) = (login.clone(), refusal.clone(), origin.clone());
+            connection.set_credentials(move |action| answer(&login, &refusal, &origin, action));
             Ok(())
         });
     }
@@ -257,10 +254,21 @@ impl LoginRefusal {
 
 /// Answers one request of the connection. Only `Get` needs a secret; Git is not told to store or
 /// erase anything, because the secret store is the only place that keeps credentials.
-fn answer(login: &Login, refusal: &LoginRefusal, action: Action) -> gix::Result<Option<Outcome>> {
+///
+/// The credential is only given to the server the source points at. After a redirect to another
+/// host Git asks again with the new address; that request gets no credential.
+fn answer(
+    login: &Login,
+    refusal: &LoginRefusal,
+    origin: &str,
+    action: Action,
+) -> gix::Result<Option<Outcome>> {
     let Action::Get(context) = action else {
         return Ok(None);
     };
+    if !is_origin(&context, origin) {
+        return Ok(None);
+    }
     let mut outcome = None;
     let lent = (login.lender)(&mut |credential| {
         outcome = Some(Outcome {
@@ -279,6 +287,18 @@ fn answer(login: &Login, refusal: &LoginRefusal, action: Action) -> gix::Result<
             Err(gix::error::Exn::from(gix::error::message(NO_LOGIN_MESSAGE)).into())
         }
     }
+}
+
+/// Whether the request is for `origin` (`scheme://host[:port]`).
+fn is_origin(context: &gix::credentials::protocol::Context, origin: &str) -> bool {
+    let mut parts = context.clone();
+    if parts.destructure_url_in_place(false).is_err() {
+        return false;
+    }
+    let (Some(protocol), Some(host)) = (&parts.protocol, &parts.host) else {
+        return false;
+    };
+    format!("{protocol}{URL_SCHEME_MARKER}{host}").eq_ignore_ascii_case(origin)
 }
 
 /// Sorts a Git failure into the codes a user can act on.

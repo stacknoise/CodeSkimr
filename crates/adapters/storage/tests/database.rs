@@ -69,6 +69,33 @@ fn file_database_uses_wal_and_the_current_schema_version() {
 }
 
 #[test]
+fn a_version_one_database_gets_projects_without_a_credential() {
+    let db = TempDb::new();
+    std::fs::create_dir_all(db.0.parent().unwrap()).unwrap();
+    let conn = Connection::open(&db.0).unwrap();
+    conn.execute_batch(include_str!("../migrations/0001_initial.sql"))
+        .unwrap();
+    conn.execute(
+        "INSERT INTO projects (id, name, source_kind, location, branch) \
+         VALUES (1, 'old', 'git', 'https://example.org/a.git', 'main')",
+        [],
+    )
+    .unwrap();
+    conn.pragma_update(None, "user_version", 1).unwrap();
+    drop(conn);
+
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    let loaded = store.project(PROJECT).unwrap();
+    assert!(matches!(
+        loaded.source,
+        codeskimr_domain::ProjectSource::Git {
+            credential: None,
+            ..
+        }
+    ));
+}
+
+#[test]
 fn database_of_a_newer_version_is_refused() {
     let db = TempDb::new();
     SqliteStore::open(&db.0, keep(3)).unwrap();

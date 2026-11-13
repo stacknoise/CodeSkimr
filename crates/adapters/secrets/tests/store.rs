@@ -132,3 +132,18 @@ fn the_os_keystore_answers_with_a_code_and_never_panics() -> TestResult {
     ));
     Ok(())
 }
+
+#[test]
+fn a_panic_inside_the_action_leaves_the_store_usable() -> TestResult {
+    let id = CredentialId::new("work")?;
+    let store = store_with(&id)?;
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let _ = store.with_credential(&id, |_| -> Result<(), AuthError> { panic!("boom") });
+    }));
+    assert!(result.is_err());
+    store.with_credential(&id, |c| {
+        assert_eq!(c.secret().expose_secret(), CANARY);
+        Ok(())
+    })?;
+    Ok(())
+}
