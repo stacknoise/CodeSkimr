@@ -367,6 +367,26 @@ fn mcp_answers_from_the_scanned_project() {
     assert!(hit.ends_with("Calculator"));
 }
 
+#[test]
+fn layers_of_the_project_file_reach_get_architecture() {
+    let workspace = Workspace::new();
+    fs::write(
+        workspace.project().join(".codeskimr.toml"),
+        "[[layers]]\nname = \"core\"\nnamespaces = [\"Demo.Core\"]\n",
+    )
+    .unwrap();
+    json_of(&workspace.scan(&[]));
+    let mut session = initialized(&workspace);
+    let answer = session.call(
+        2,
+        "tools/call",
+        &json!({"name": "get_architecture", "arguments": {}}),
+    );
+    let result = &answer["result"];
+    assert_ne!(result["isError"], true, "{result}");
+    assert_eq!(result["structuredContent"]["layers"][0]["name"], "core");
+}
+
 #[cfg(test)]
 fn mcp_without_input(workspace: &Workspace) -> Output {
     workspace

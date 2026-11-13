@@ -179,7 +179,7 @@
       "at": "24:38",
       "from": "metrics::patterns",
       "kind": "call",
-      "receiver": null,
+      "receiver": "unknown",
       "target": "next"
     },
     {
@@ -207,21 +207,21 @@
       "at": "64:22",
       "from": "metrics::not_counted",
       "kind": "call",
-      "receiver": null,
+      "receiver": "unknown",
       "target": "parse"
     },
     {
       "at": "64:37",
       "from": "metrics::not_counted",
       "kind": "call",
-      "receiver": null,
+      "receiver": "unknown",
       "target": "ok"
     },
     {
       "at": "65:30",
       "from": "metrics::not_counted",
       "kind": "call",
-      "receiver": null,
+      "receiver": "unknown",
       "target": "checked_mul"
     },
     {
@@ -256,14 +256,14 @@
       "at": "76:11",
       "from": "metrics::outer",
       "kind": "call",
-      "receiver": null,
+      "receiver": "unknown",
       "target": "iter"
     },
     {
       "at": "76:18",
       "from": "metrics::outer",
       "kind": "call",
-      "receiver": null,
+      "receiver": "unknown",
       "target": "map"
     },
     {
@@ -277,14 +277,14 @@
       "at": "76:74",
       "from": "metrics::outer",
       "kind": "call",
-      "receiver": null,
+      "receiver": "unknown",
       "target": "collect"
     },
     {
       "at": "81:18",
       "from": "metrics::calls",
       "kind": "call",
-      "receiver": null,
+      "receiver": "unknown",
       "target": "len"
     }
   ],

@@ -1,12 +1,14 @@
 //! The typed configuration. There is no string-keyed access anywhere (blueprint section 14).
 
-use codeskimr_domain::{FingerprintParams, ModelError};
+use codeskimr_domain::{FingerprintParams, Layer, LayerName, ModelError, QualifiedName};
 use serde::Deserialize;
 
 /// The complete, validated configuration. Built by [`crate::config::Config::resolve`].
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Config {
+    /// The architecture layers of the scanned project, in order (ADR 0031). Empty means none.
+    pub layers: Vec<LayerRule>,
     /// Thresholds that rate metric values as good, medium or poor.
     pub metrics: MetricThresholds,
     /// Performance budgets.
@@ -29,6 +31,29 @@ pub struct Config {
     pub editor: Editor,
     /// The web UI.
     pub ui: Ui,
+}
+
+/// One architecture layer as written in `.codeskimr.toml`.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LayerRule {
+    /// Name of the layer, unique in the project.
+    pub name: String,
+    /// Qualified-name prefixes that belong to the layer; the first layer that owns a name wins.
+    pub namespaces: Vec<String>,
+}
+
+impl LayerRule {
+    /// The domain layer, or `None` if the name or a namespace is not valid.
+    #[must_use]
+    pub fn to_layer(&self) -> Option<Layer> {
+        let namespaces: Result<Vec<_>, _> =
+            self.namespaces.iter().map(QualifiedName::new).collect();
+        Some(Layer {
+            name: LayerName::new(&self.name).ok()?,
+            namespaces: namespaces.ok()?,
+        })
+    }
 }
 
 /// Thresholds for the metric ratings.

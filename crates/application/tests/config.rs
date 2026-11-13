@@ -301,3 +301,36 @@ fn every_error_maps_to_a_registered_code() {
         ErrorCode::ConfigInvalidValue.description()
     );
 }
+
+#[test]
+fn layers_are_empty_by_default_and_come_from_the_project_file() {
+    assert_eq!(Config::defaults().expect("defaults").layers.len(), 0);
+    let text = "[[layers]]\nname = \"domain\"\nnamespaces = [\"crates::domain\"]\n\n[[layers]]\nname = \"app\"\nnamespaces = [\"crates::app\", \"crates::cli\"]\n";
+    let config = Config::resolve(&[project(text)]).expect("valid layers");
+    let layers = config.project_layers();
+    let names: Vec<&str> = layers.iter().map(|layer| layer.name.as_str()).collect();
+    assert_eq!(names, ["domain", "app"]);
+    assert!(layers[1].owns("crates::cli::src::main"));
+    assert!(!layers[1].owns("crates::application"));
+}
+
+#[test]
+fn a_layer_needs_a_unique_name_and_a_namespace() {
+    assert_rejected(&[
+        (
+            "[[layers]]\nname = \"a\"\nnamespaces = []\n",
+            "layers",
+            Violation::MustBeLayerRule,
+        ),
+        (
+            "[[layers]]\nname = \"a\"\nnamespaces = [\"x\"]\n[[layers]]\nname = \"a\"\nnamespaces = [\"y\"]\n",
+            "layers",
+            Violation::MustBeLayerRule,
+        ),
+        (
+            "[[layers]]\nname = \"\"\nnamespaces = [\"x\"]\n",
+            "layers",
+            Violation::MustBeLayerRule,
+        ),
+    ]);
+}

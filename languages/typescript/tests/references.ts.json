@@ -198,7 +198,7 @@
       "at": "14:28",
       "from": "references.Cart.find",
       "kind": "read",
-      "receiver": null,
+      "receiver": "unknown",
       "target": "length"
     },
     {
@@ -247,7 +247,7 @@
       "at": "19:14",
       "from": "references.Cart.find",
       "kind": "call",
-      "receiver": null,
+      "receiver": "unknown",
       "target": "save"
     },
     {

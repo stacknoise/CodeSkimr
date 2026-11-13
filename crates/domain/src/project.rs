@@ -1,7 +1,7 @@
 //! Registered repositories and their source.
 
 use crate::ModelError;
-use crate::consts::{NAME_SEPARATOR, URL_AUTHORITY_END, URL_SCHEME_MARKER};
+use crate::consts::{MODULE_NAME_SEPARATOR, NAME_SEPARATOR, URL_AUTHORITY_END, URL_SCHEME_MARKER};
 use crate::qualified_name::QualifiedName;
 use crate::secret_url::without_secrets;
 use crate::vocabulary::{display_as, id_type, text_type};
@@ -108,15 +108,15 @@ pub struct Layer {
 
 impl Layer {
     /// Whether a qualified name belongs to this layer: it equals one of the namespaces or lies
-    /// below it, up to a separator (`App.Domain` owns `App.Domain.Order`, not `App.DomainX`).
+    /// below it, up to a separator, `.` or `::` (`App.Domain` owns `App.Domain.Order`, not `App.DomainX`).
     #[must_use]
     pub fn owns(&self, name: &str) -> bool {
         self.namespaces.iter().any(|namespace| {
             let prefix = namespace.as_str();
             name == prefix
-                || name
-                    .strip_prefix(prefix)
-                    .is_some_and(|rest| rest.starts_with(NAME_SEPARATOR))
+                || name.strip_prefix(prefix).is_some_and(|rest| {
+                    rest.starts_with(NAME_SEPARATOR) || rest.starts_with(MODULE_NAME_SEPARATOR)
+                })
         })
     }
 }

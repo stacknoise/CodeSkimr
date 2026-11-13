@@ -472,7 +472,7 @@
       "at": "70:34",
       "from": "Declarations.com.example.shapes.Named.shout",
       "kind": "call",
-      "receiver": null,
+      "receiver": "unknown",
       "target": "uppercase"
     },
     {

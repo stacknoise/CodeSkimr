@@ -232,6 +232,13 @@
       "target": "Compute"
     },
     {
+      "at": "19:29",
+      "from": "references.Shop.Orders.Cart.Find",
+      "kind": "read",
+      "receiver": null,
+      "target": "count"
+    },
+    {
       "at": "20:26",
       "from": "references.Shop.Orders.Cart.Find",
       "kind": "type_use",
@@ -242,7 +249,7 @@
       "at": "20:32",
       "from": "references.Shop.Orders.Cart.Find",
       "kind": "read",
-      "receiver": null,
+      "receiver": "unknown",
       "target": "Name"
     },
     {

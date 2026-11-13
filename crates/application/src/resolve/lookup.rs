@@ -49,8 +49,12 @@ impl<'a> Context<'a> {
             let named = self.named_of(occurrence.target.as_str(), kinds);
             let found = match &receiver {
                 Some(types) => self.in_types(types, &named),
+                None if occurrence.receiver == Some(Receiver::Unknown) => Self::unknown(&named),
                 None => self.in_scope(occurrence.from, occurrence.file, &named),
             };
+            if occurrence.receiver.is_some() && self.is_ambiguous(&found) {
+                return Vec::new();
+            }
             if !found.symbols.is_empty() {
                 return self.hits(occurrence, found);
             }
@@ -96,7 +100,7 @@ impl<'a> Context<'a> {
             (Some(Receiver::Named(name)), _) => {
                 self.named_receiver_types(occurrence, name.as_str())
             }
-            (None, _) => None,
+            (Some(Receiver::Unknown) | None, _) => None,
         }
     }
 
@@ -137,6 +141,42 @@ impl<'a> Context<'a> {
         found.sort_by_key(|symbol| symbol.id);
         found.dedup_by_key(|symbol| symbol.id);
         Found::near(found)
+    }
+
+    /// A member of a receiver of unknown type: the scopes of the enclosing symbols say nothing,
+    /// so only the name is left. It is the last resort and never more than `probable`.
+    fn unknown(named: &[&'a Symbol]) -> Found<'a> {
+        Found {
+            symbols: named.to_vec(),
+            global: true,
+        }
+    }
+
+    /// Whether a last-resort match for a member behind a receiver of unknown type names
+    /// members of types that have nothing to do with each other (neither derives from the other
+    /// and they share no base type). Which one is meant cannot be told, so none is reported: a
+    /// wrong usage is worse than a missing one.
+    fn is_ambiguous(&self, found: &Found<'a>) -> bool {
+        if !found.global {
+            return false;
+        }
+        let owners: Vec<Option<SymbolId>> = found.symbols.iter().map(|s| s.parent).collect();
+        owners.iter().enumerate().any(|(index, &first)| {
+            owners
+                .iter()
+                .skip(index + 1)
+                .any(|&second| !self.related(first, second))
+        })
+    }
+
+    /// Whether two owners are the same type, derive from each other or share a base type
+    /// (sibling overrides such as `Dog.speak` and `Cat.speak` under `Animal`).
+    fn related(&self, first: Option<SymbolId>, second: Option<SymbolId>) -> bool {
+        let (Some(a), Some(b)) = (first, second) else {
+            return first == second;
+        };
+        let (of_a, of_b) = (self.hierarchy.closure(a), self.hierarchy.closure(b));
+        of_a.iter().any(|id| of_b.contains(id))
     }
 
     /// The members of `root` or, if it has none of that name, of its nearest base type that has.

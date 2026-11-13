@@ -327,7 +327,7 @@
       "at": "36:18",
       "from": "references::find",
       "kind": "call",
-      "receiver": null,
+      "receiver": "unknown",
       "target": "add"
     },
     {
@@ -376,14 +376,14 @@
       "at": "42:32",
       "from": "references::find",
       "kind": "call",
-      "receiver": null,
+      "receiver": "unknown",
       "target": "iter"
     },
     {
       "at": "43:18",
       "from": "references::find",
       "kind": "call",
-      "receiver": null,
+      "receiver": "unknown",
       "target": "touch"
     },
     {
@@ -397,7 +397,7 @@
       "at": "46:18",
       "from": "references::find",
       "kind": "call",
-      "receiver": null,
+      "receiver": "unknown",
       "target": "run"
     },
     {

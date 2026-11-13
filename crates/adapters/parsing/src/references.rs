@@ -210,13 +210,15 @@ fn receiver_of(seen: &Seen, scopes: &Scopes) -> Option<Receiver> {
     match seen {
         Seen::Own => Some(Receiver::Own),
         Seen::Base => Some(Receiver::Base),
-        Seen::Other => None,
+        Seen::Other => Some(Receiver::Unknown),
         Seen::Type(name) => QualifiedName::new(name).ok().map(Receiver::Typed),
         Seen::Name(name, at) => match scopes.find(name, *at) {
-            Some(declared) => declared
-                .declared_type
-                .and_then(|text| QualifiedName::new(text).ok())
-                .map(Receiver::Typed),
+            Some(declared) => Some(
+                declared
+                    .declared_type
+                    .and_then(|text| QualifiedName::new(text).ok())
+                    .map_or(Receiver::Unknown, Receiver::Typed),
+            ),
             None => QualifiedName::new(name).ok().map(Receiver::Named),
         },
     }
