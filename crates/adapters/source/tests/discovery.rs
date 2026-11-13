@@ -127,6 +127,6 @@ fn a_cancelled_walk_returns_without_files() -> TestResult {
     let cancel = CancelToken::new();
     cancel.cancel();
     let files = discovery(u64::MAX)?.discover(&folder(dir.path())?, &[], &cancel)?;
-    assert!(files.is_empty());
+    assert_eq!(files, Vec::new());
     Ok(())
 }
