@@ -610,10 +610,10 @@ fn the_layer_map_has_a_band_behind_every_layer_row() {
     let boxes = graph["boxes"].as_array().unwrap();
     assert!(bands[0]["y"].as_u64() <= boxes[0]["y"].as_u64());
     assert!(bands[0]["height"].as_u64() > boxes[0]["height"].as_u64());
-    assert!(
-        bands[0]["y"].as_u64().unwrap() + bands[0]["height"].as_u64().unwrap()
-            <= bands[1]["y"].as_u64().unwrap() + bands[1]["height"].as_u64().unwrap()
-    );
+    let end =
+        |band: &serde_json::Value| band["y"].as_u64().unwrap() + band["height"].as_u64().unwrap();
+    assert!(end(&bands[0]) <= bands[1]["y"].as_u64().unwrap());
+    assert!(end(&bands[1]) <= graph["height"].as_u64().unwrap());
 }
 
 #[test]

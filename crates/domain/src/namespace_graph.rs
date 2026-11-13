@@ -52,13 +52,14 @@ fn enclosing<'a>(known: &Known<'a>, name: &str) -> Option<&'a str> {
 }
 
 type Known<'a> = HashMap<&'a str, &'a QualifiedName>;
+type Types<'a> = BTreeMap<&'a str, u32>;
 type Owners<'a> = HashMap<SymbolId, &'a str>;
 
 /// The namespace of every symbol that has one, and the number of types of every namespace.
 fn assign<'a>(
     symbols: &[(SymbolId, SymbolKind, &'a QualifiedName)],
     known: &Known<'a>,
-) -> (BTreeMap<&'a str, u32>, Owners<'a>) {
+) -> (Types<'a>, Owners<'a>) {
     let mut types: BTreeMap<&str, u32> = known.keys().map(|name| (*name, 0)).collect();
     let mut owner = Owners::new();
     for (id, kind, name) in symbols {
@@ -112,6 +113,15 @@ pub fn namespace_graph<'a>(
         .map(|(index, name)| (*name, index))
         .collect();
     let counts = count_pairs(&owner, &position, references);
+    keep_used(&types, &known, counts)
+}
+
+/// Drops the namespaces without types and without edges and renumbers the edges to the rest.
+fn keep_used(
+    types: &Types<'_>,
+    known: &Known<'_>,
+    counts: BTreeMap<(usize, usize), u32>,
+) -> NamespaceGraph {
     let linked: HashSet<usize> = counts.keys().flat_map(|(a, b)| [*a, *b]).collect();
     let mut kept = Vec::new();
     let mut moved: HashMap<usize, usize> = HashMap::new();
@@ -126,18 +136,19 @@ pub fn namespace_graph<'a>(
             });
         }
     }
+    let edges = counts
+        .into_iter()
+        .filter_map(|((from, to), count)| {
+            Some(NamespaceEdge {
+                from: *moved.get(&from)?,
+                to: *moved.get(&to)?,
+                count,
+            })
+        })
+        .collect();
     NamespaceGraph {
         namespaces: kept,
-        edges: counts
-            .into_iter()
-            .filter_map(|((from, to), count)| {
-                Some(NamespaceEdge {
-                    from: *moved.get(&from)?,
-                    to: *moved.get(&to)?,
-                    count,
-                })
-            })
-            .collect(),
+        edges,
     }
 }
 

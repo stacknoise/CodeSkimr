@@ -163,11 +163,12 @@ fn bands_out(layers: &[Layer], boxes: &[BoxOut], look: &Graph) -> Vec<BandOut> {
             };
             let top = owned().map(|found| found.y).min()?;
             let bottom = owned().map(|found| found.y + found.height).max()?;
+            let from = top.saturating_sub(pad);
             Some(BandOut {
                 name: layer.name.as_str().to_owned(),
                 rank,
-                y: top.saturating_sub(pad),
-                height: bottom - top + 2 * pad,
+                y: from,
+                height: bottom + pad - from,
             })
         })
         .collect()
@@ -201,6 +202,8 @@ impl Command for GraphLayers {
         };
         out.snapshot = Some(snapshot.id.get());
         out.bands = bands_out(&project.layers, &out.boxes, look);
+        let reach = out.bands.iter().map(|band| band.y + band.height).max();
+        out.height = out.height.max(reach.unwrap_or(0));
         Ok(out)
     }
 }

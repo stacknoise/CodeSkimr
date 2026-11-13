@@ -78,7 +78,7 @@ Screenshots (1440 x 900): [Hell](screenshots/status-hell.png), [Petrol](screensh
 ## Dependency map (screen 3, issue #163)
 
 - Toolbar: level "Layers" (default) or "Namespaces" (`graph.layers` with `level`); the choice reloads the map. Behind the boxes every layer row has a stripe with the name of the layer (`bands` of the answer). On the namespace level a box shows the number of types of its namespace.
-- Deviations from the mock: the levels "Depth 1", "Depth 2" and "Types", the focus on a type and the key `G` are not there yet (follow-up issue); the C# names carry a prefix (#137) and layer edges of C# are empty (#145), so namespaces are not assigned to layers for C# yet; the map is drawn with HTML and SVG, not on canvas, which is enough for the sizes seen so far.
+- Deviations from the mock: the levels "Depth 1", "Depth 2" and "Types", the focus on a type and the key `G` are not there yet (follow-up issue); the C# names carry a prefix (#137) and layer edges of C# are empty (#145), so namespaces are not assigned to layers for C# yet; the switch "violations only" is off on the namespace level because no violation is derived there yet (`violates_layering` is false for all links, issue #45); long namespace names are cut inside the fixed box width and show the full name as a tooltip; the map is drawn with HTML and SVG, not on canvas, which is enough for the sizes seen so far.
 
 ## Visual and keyboard checks (WP-43)
 

@@ -1,8 +1,7 @@
 import { createSignal } from "solid-js";
 import { ApiError } from "../../shared/api/client";
 import { runCommand } from "../../shared/api/commands";
-import { GRAPH_COMMAND } from "./consts";
-import { LEVEL } from "./consts";
+import { GRAPH_COMMAND, LEVEL } from "./consts";
 import type { GraphData, Level } from "./types";
 
 const [data, setData] = createSignal<GraphData | null>(null);

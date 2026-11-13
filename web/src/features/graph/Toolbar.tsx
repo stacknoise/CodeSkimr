@@ -48,6 +48,7 @@ export function Toolbar(props: {
         <input
           type="checkbox"
           checked={props.violationsOnly}
+          disabled={props.level === LEVEL.namespaces}
           onChange={(event) => props.onViolationsOnly(event.currentTarget.checked)}
         />
         {t(I18N_KEYS.GRAPH_TOGGLE_VIOLATIONS_ONLY)}

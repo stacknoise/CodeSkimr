@@ -68,7 +68,12 @@ describe("GraphScreen", () => {
     served(GRAPH);
     render(() => <GraphScreen />);
     await screen.findByRole("button", { name: "Domain" });
-    expect(screen.getAllByText("Domain").length).toBeGreaterThan(1);
+    const stripe = (name: string) =>
+      screen.getAllByText(name).find((found) => found.parentElement?.tagName === "DIV")
+        ?.parentElement;
+    expect(stripe("Domain")?.style.top).toBe("180px");
+    expect(stripe("Domain")?.style.height).toBe("60px");
+    expect(stripe("Ui")?.style.top).toBe("0px");
   });
 
   it("asks for the namespace level when it is chosen", async () => {

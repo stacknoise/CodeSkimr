@@ -160,7 +160,9 @@ export function GraphCanvas(props: {
               aria-pressed={props.selected === box.name}
               onClick={() => props.onSelect(box.name)}
             >
-              <span class={styles.name}>{box.name}</span>
+              <span class={styles.name} title={box.name}>
+                {box.name}
+              </span>
               <Show when={box.types}>{(types) => <span class={styles.types}>{types()}</span>}</Show>
             </button>
           )}
