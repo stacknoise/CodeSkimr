@@ -26,6 +26,6 @@ The `usage_counts` read model (the "Usages" column) stays as it is; `ReverseInde
 
 ## Not part of this package
 
-- The MCP tools `find_usages` and `impact_of_change`, the REST route and the UI screen use this port; they follow in their own packages (clamping of `depth` and `limit` to the configured maximum belongs there).
+- The MCP tools `find_usages` and `impact_of_change` use this port (WP-36, `docs/mcp.md`) and clamp `depth` and `limit` to the configured maximum (`mcp.max_depth`, `mcp.max_limit`). The REST route and the UI screen follow in their own packages.
 - Grouping the impact by layer and marking public interfaces: the answer carries the qualified name and the visibility of each symbol, the project's layers decide the rest.
 - Blueprint 9.4 ("updated incrementally together with the snapshot"): the index is derived from the references of each new snapshot, which the store already writes incrementally, so it is always in step with the snapshot. A snapshot that is not stored (never existed, or pruned) answers empty. Re-resolving dependent references of an incremental scan through this index (blueprint 7, issue #49) is unchanged.

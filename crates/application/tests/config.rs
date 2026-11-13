@@ -180,6 +180,15 @@ fn metric_thresholds_are_checked() {
 }
 
 #[test]
+fn the_default_depth_must_not_exceed_the_maximum() {
+    assert_rejected(&[(
+        "[mcp]\ndefault_depth = 9\n",
+        "mcp.default_depth",
+        Violation::MustNotExceed("mcp.max_depth"),
+    )]);
+}
+
+#[test]
 fn limits_and_folders_are_checked() {
     assert_rejected(&[
         (

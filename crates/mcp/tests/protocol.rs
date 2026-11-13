@@ -75,12 +75,21 @@ async fn connected_as(principal: Principal) -> Client {
 }
 
 #[tokio::test]
-async fn lists_exactly_the_three_read_only_tools_with_schemas() {
+async fn lists_exactly_the_five_read_only_tools_with_schemas() {
     let mut client = connected().await;
     let listed = client.call(2, "tools/list", json!({})).await;
     let tools = listed["result"]["tools"].as_array().unwrap();
     let names: Vec<_> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
-    assert_eq!(names, ["search_symbols", "get_symbol", "get_architecture"]);
+    assert_eq!(
+        names,
+        [
+            "search_symbols",
+            "get_symbol",
+            "get_architecture",
+            "find_usages",
+            "impact_of_change"
+        ]
+    );
     for tool in tools {
         assert_eq!(tool["annotations"]["readOnlyHint"], true);
         assert_eq!(tool["inputSchema"]["type"], "object");
@@ -138,6 +147,10 @@ async fn a_denied_caller_gets_the_same_answer_for_bad_arguments_and_unknown_tool
         json!({"name": "search_symbols", "arguments": {"limit": 5}}),
         json!({"name": "search_symbols", "arguments": {"query": "order"}}),
         json!({"name": "rescan", "arguments": {}}),
+        json!({"name": "find_usages", "arguments": {"depth": 0}}),
+        json!({"name": "find_usages", "arguments": {"symbol": "1"}}),
+        json!({"name": "impact_of_change", "arguments": {"limit": 5}}),
+        json!({"name": "impact_of_change", "arguments": {"symbol": "1"}}),
     ];
     for (id, call) in (6..).zip(calls) {
         let answer = client.call(id, "tools/call", call).await;
