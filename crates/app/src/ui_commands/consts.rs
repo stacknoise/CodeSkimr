@@ -172,6 +172,8 @@ pub const CREDENTIALS_DELETE_DESCRIPTION: &str = i18n::COMMAND_CREDENTIALS_DELET
 
 /// Most types drawn on each side of the type in the middle of the map; the rest is counted.
 pub const TYPE_SIDE_MAX: usize = 12;
+/// Between the qualified name and the id in the name of a box, if two drawn types share a name.
+pub const BOX_ID_SEPARATOR: &str = " #";
 /// Row of the types that use the type in the middle.
 pub const TYPE_ROW_USERS: u32 = 0;
 /// Row of the type in the middle.

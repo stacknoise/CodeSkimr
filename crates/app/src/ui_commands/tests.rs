@@ -839,18 +839,23 @@ fn type_named(fixture: &Fixture, project: u64, name: &str) -> Value {
         .clone()
 }
 
+/// The map of the type level around `focus`.
+fn type_map(fixture: &Fixture, project: u64, focus: &Value) -> Value {
+    fixture
+        .call(
+            "graph.layers",
+            json!({ "project": project, "level": "types", "focus": focus }),
+        )
+        .unwrap()
+}
+
 #[test]
 fn the_type_level_puts_the_type_in_the_middle_between_its_users_and_what_it_uses() {
     let fixture = Fixture::new();
     fs::write(fixture.root.path().join("app/Checkout.cs"), CALLER).unwrap();
     let project = added(&fixture);
     let calculator = type_named(&fixture, project, "Calculator");
-    let map = fixture
-        .call(
-            "graph.layers",
-            json!({ "project": project, "level": "types", "focus": calculator }),
-        )
-        .unwrap();
+    let map = type_map(&fixture, project, &calculator);
     assert_eq!(map["focus"]["symbol"], calculator);
     assert_eq!(map["focus"]["users_more"], 0);
     let boxes = map["boxes"].as_array().unwrap();
@@ -863,6 +868,32 @@ fn the_type_level_puts_the_type_in_the_middle_between_its_users_and_what_it_uses
     assert_eq!(map["links"][0]["to"], middle["name"]);
     assert_eq!(map["links"][0]["count"], 2);
     assert_eq!(map["bands"], json!([]));
+}
+
+#[test]
+fn the_type_level_tells_two_types_of_the_same_name_apart() {
+    let fixture = Fixture::new();
+    fs::write(fixture.root.path().join("app/Checkout.cs"), CALLER).unwrap();
+    fs::write(fixture.root.path().join("app/Checkout2.cs"), CALLER).unwrap();
+    let project = added(&fixture);
+    let calculator = type_named(&fixture, project, "Calculator");
+    let map = type_map(&fixture, project, &calculator);
+    let names: Vec<&str> = map["boxes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|b| b["symbol"] != calculator)
+        .map(|b| b["name"].as_str().unwrap())
+        .collect();
+    assert_eq!(names.len(), 2);
+    assert_ne!(names[0], names[1]);
+    let linked: Vec<&str> = map["links"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|l| l["from"].as_str().unwrap())
+        .collect();
+    assert!(names.iter().all(|name| linked.contains(name)));
 }
 
 #[test]
