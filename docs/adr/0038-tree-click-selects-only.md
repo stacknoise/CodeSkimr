@@ -1,4 +1,4 @@
-# 0037 – A click on an unselected type selects it and does not open it
+# 0038 – A click on an unselected type selects it and does not open it
 
 Status: accepted
 
