@@ -6,7 +6,7 @@ import { cx } from "../../shared/ui/cx";
 import { treeOutline } from "../explorer/explorer";
 import { KindBadge } from "../explorer/KindBadge";
 import { tilesOf } from "../explorer/metrics";
-import { ratingClass } from "../explorer/ratingClass";
+import { TileGrid } from "../explorer/TileGrid";
 import { PREVIEW_TILES } from "./consts";
 import { loadPreview, previewInfo } from "./preview";
 import type { Hit } from "./types";
@@ -24,6 +24,16 @@ const ACTIONS: readonly Action[] = [
   { label: I18N_KEYS.PALETTE_ACTION_EDITOR, key: I18N_KEYS.PALETTE_KEY_EDITOR },
   { label: I18N_KEYS.PALETTE_ACTION_COPY, key: I18N_KEYS.PALETTE_KEY_COPY },
 ];
+
+const tileClasses = {
+  grid: styles.previewTiles,
+  tile: styles.previewTile,
+  value: styles.previewValue,
+  label: styles.previewLabel,
+  good: styles.good,
+  medium: styles.medium,
+  poor: styles.poor,
+};
 
 /** The documentation and the three numbers of the chosen hit (mock 4), once they are read. */
 function Details(props: { id: number }) {
@@ -43,18 +53,7 @@ function Details(props: { id: number }) {
           <Show when={shown().doc}>
             <p class={styles.previewDoc}>{shown().doc}</p>
           </Show>
-          <div class={styles.previewTiles}>
-            <For each={tiles()}>
-              {(tile) => (
-                <div class={styles.previewTile} title={tile.tip}>
-                  <div class={cx(styles.previewValue, ratingClass(tile.rating, styles))}>
-                    {tile.value}
-                  </div>
-                  <div class={styles.previewLabel}>{tile.label}</div>
-                </div>
-              )}
-            </For>
-          </div>
+          <TileGrid tiles={tiles()} classes={tileClasses} />
         </>
       )}
     </Show>
