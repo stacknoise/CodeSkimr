@@ -58,7 +58,11 @@ Threat note: `codeskimr open` sends the token to the port of `server.port` over 
 
 ## Events
 
-Messages have a `type` and ids and counts only: `scan_progressed` (`project`, `stage`, `done`, `total`, `elapsed_ms` = milliseconds since the stage started; a stage reports once more when it is over, with its last counts and its whole time), `snapshot_created` (`project`, `snapshot`), `files_changed` (`project`, `files`, `rescan`), `scan_stopped` (`project`, `reason` = `cancelled` or `failed`, `code`). The stream needs the `read` permission; messages from the client are ignored (limit 1 KiB). A thread per connection carries the events from the bus (which is synchronous) to the runtime and ends when the socket is gone.
+Messages have a `type` and ids and counts only: `scan_progressed` (`project`, `stage`, `done`, `total`, `elapsed_ms` = milliseconds since the stage started; a stage reports once more when it is over, with its last counts and its whole time), `snapshot_created` (`project`, `snapshot`), `files_changed` (`project`, `files`, `rescan`), `scan_stopped` (`project`, `reason` = `cancelled` or `failed`, `code`). The stream needs the `read` permission; messages from the client are ignored (limit 1 KiB). A thread per connection carries the events from the bus (which is synchronous) to a bounded queue (256 events) of the runtime and ends when the socket is gone. A client that does not keep up and fills the queue, or does not take a message within 10 seconds, is disconnected (close code 1013, "try again later") and connects again. An idle stream is pinged every 20 seconds and ends if it hears nothing for 90 seconds. At most 16 streams run at once; one more gets `API-502` (503).
+
+## Limits against clients that hold resources
+
+The server holds at most 256 connections; a further client waits in the backlog of the system until a slot is free. The server speaks HTTP/1 only. A connection that does not finish the head of its request within 10 seconds, also one that sends nothing at all, is closed (hyper's `header_read_timeout`), and the body of a JSON request to a command or to the session routes has 30 seconds, then `API-503` (408); the MCP route is not covered yet (#273). Running commands have no time limit of their own: a scan may take as long as it needs. On shutdown the event streams get a close frame (1001) and open connections have 5 seconds to finish. This stops a client that opens connections and sends nothing, or sends a byte at a time, but is no replacement for a reverse proxy in the server mode of the team server (ADR 0019).
 
 ## Configuration
 
@@ -72,6 +76,7 @@ Messages have a `type` and ids and counts only: `scan_progressed` (`project`, `s
 - The bare `codeskimr` starts the server and opens the browser with the launch code (blueprint 10.2); the server keeps running until Ctrl+C, also if no browser could be started. `codeskimr serve` and `codeskimr open` remain for the two steps on their own.
 - Launch file and browser start were run on Linux only.
 - No TLS and no non-loopback binding: that is the team server's server mode (ADR 0019).
+- Open in #88 and #269: a command id is no secret (unknown id gives `API-201`, a known one without the right `AUTH-401`), which has to be compared with S-06 for the team stage; two first starts at the same moment can each create a token (the later one wins, the earlier process then holds a token that does not match; restart it).
 - `serve` needs a usable keystore. On a headless Linux without a Secret Service it stops with `SEC-601`.
 - Events are not filtered per principal; in single-user mode there is only the local owner.
 
