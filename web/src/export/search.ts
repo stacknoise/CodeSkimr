@@ -57,6 +57,8 @@ export function searchSymbols(data: ExportData, text: string): Hit[] {
       kind: symbol.kind,
       path: symbol.path,
       parent: symbol.breadcrumb[symbol.breadcrumb.length - 1]?.id ?? null,
+      project: 0,
+      project_name: "",
     };
     const rank = rankOf(hit, needle);
     if (rank !== null) {
