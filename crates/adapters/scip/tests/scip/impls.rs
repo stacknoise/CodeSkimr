@@ -346,3 +346,69 @@ fn hostile_or_broken_impl_symbols_map_to_nothing_and_do_not_fail() {
     let outcome = run_with(&bytes, (&files, &symbols, &[]), 0.0).expect("imports");
     assert_eq!(target(&outcome), [(1, 1, ReferenceKind::TypeUse)]);
 }
+
+/// How long the large indexes below may take; the quadratic versions needed minutes.
+const LARGE_INDEX_SECONDS: u64 = 20;
+/// The size limit for the large indexes.
+const LARGE_INDEX_BYTES: u64 = 64 << 20;
+
+/// Imports a large index and returns how long it took.
+fn timed(
+    bytes: &[u8],
+    files: &[SourceFile],
+    symbols: &[Symbol],
+) -> (codeskimr_scip::ImportOutcome, std::time::Duration) {
+    let decoded = codeskimr_scip::decode_index(bytes, LARGE_INDEX_BYTES).expect("decodes");
+    let view = codeskimr_scip::SnapshotView {
+        files,
+        symbols,
+        references: &[],
+    };
+    let started = std::time::Instant::now();
+    let outcome = codeskimr_scip::import_references(&decoded, &view, 0.0).expect("imports");
+    (outcome, started.elapsed())
+}
+
+#[test]
+fn many_types_of_one_name_in_a_document_do_not_make_the_import_slow() {
+    let (files, symbols) = world();
+    let mut occurrences = vec![
+        definition(&[0, 11, 17], &rust("a/Prints#")),
+        usage(&[8, 2, 8], &rust("a/Prints#")),
+        usage(&[4, 20, 24], &rust("b/impl#[Prints]")),
+    ];
+    // Two hundred thousand different library types that share the name of the one in question.
+    occurrences.extend((0..200_000).map(|n| usage(&[9, 1, 7], &rust(&format!("lib{n}/Prints#")))));
+    let bytes = index("", &[document("src/a.rs", &occurrences)]);
+    let (outcome, took) = timed(&bytes, &files, &symbols);
+    assert!(took.as_secs() < LARGE_INDEX_SECONDS, "{took:?}");
+    // The impl of `b` is ambiguous (the library types occur too) and maps to nothing.
+    assert_eq!(target(&outcome), [(1, 1, ReferenceKind::TypeUse)]);
+}
+
+#[test]
+fn many_impl_symbols_against_many_candidates_do_not_make_the_import_slow() {
+    let files = vec![file(1, "src/a.rs")];
+    let types: Vec<Symbol> = (0..3000_u32)
+        .map(|n| {
+            symbol(
+                u64::from(n) + 1,
+                1,
+                SymbolKind::Struct,
+                "Foo",
+                ((n, 0), (n, 20)),
+            )
+        })
+        .collect();
+    let mut occurrences: Vec<Vec<u8>> = (0..3000_u32)
+        .map(|n| definition(&[n, 7, 10], &rust(&format!("m{n}/Foo#"))))
+        .collect();
+    occurrences.push(usage(&[1, 2, 5], &rust("m0/Foo#")));
+    // Fifty thousand blocks whose path fits none of them.
+    occurrences
+        .extend((0..50_000).map(|n| usage(&[1, 2, 5], &rust(&format!("x/impl#[`zz{n}::Foo`]")))));
+    let bytes = index("", &[document("src/a.rs", &occurrences)]);
+    let (outcome, took) = timed(&bytes, &files, &types);
+    assert!(took.as_secs() < LARGE_INDEX_SECONDS, "{took:?}");
+    assert_eq!(target(&outcome), [(2, 1, ReferenceKind::TypeUse)]);
+}

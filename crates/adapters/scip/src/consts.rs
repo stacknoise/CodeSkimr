@@ -119,6 +119,10 @@ pub(crate) const IMPL_MARKER: &str = "impl#[";
 pub(crate) const OPEN_GENERIC: char = '<';
 /// Separates the segments of a Rust path.
 pub(crate) const PATH_SEPARATOR: &str = "::";
+/// Most modules of a path that are looked up; a longer path maps nothing.
+pub(crate) const MAX_PATH_DEPTH: usize = 8;
+/// The owner of a symbol that has none (a type is looked up without one).
+pub(crate) const NO_OWNER: &str = "";
 /// The first segment of a path that starts at the crate root.
 pub(crate) const ROOT_SEGMENT: &str = "crate";
 /// Segments of a path that are relative to the module of the block; they are not resolved.
