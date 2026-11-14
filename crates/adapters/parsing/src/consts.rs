@@ -45,6 +45,9 @@ pub const SCOPE_END_CAPTURE: &str = "scope_end";
 /// Capture of a block that is no symbol but belongs to the type its `@name` capture names, such as
 /// a Rust `impl` block (ADR 0039).
 pub const CONTAINER_CAPTURE: &str = "container";
+/// Capture of the simple name of the type a declaration belongs to although it is written outside
+/// the type (a Go method, a C++ method defined out of its class), see ADR 0042.
+pub const OWNER_CAPTURE: &str = "owner";
 /// Capture of a receiver that is a name: a variable, a field or a type.
 pub const RECEIVER_CAPTURE: &str = "receiver";
 /// Capture of the type name of a receiver that is a creation expression.
@@ -167,8 +170,8 @@ pub const NAMING_NAMESPACED: &str = "namespace";
 
 /// Revision of the naming rules of the engine itself, part of the text of the naming rules: it
 /// changes when names change for reasons other than a pack key (2: members of an `impl` carry
-/// their type, ADR 0039).
-pub const NAMING_REVISION: &str = "revision=2";
+/// their type, ADR 0039; 3: methods of Go and C++ carry their owner, ADR 0042).
+pub const NAMING_REVISION: &str = "revision=3";
 
 /// Ends a signature that was cut at `scan.max_signature_chars`.
 pub const SIGNATURE_CUT: &str = "…";

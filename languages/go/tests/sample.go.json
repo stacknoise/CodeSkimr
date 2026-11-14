@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 28,
+      "loc": 31,
       "operands": null,
       "operators": null,
       "symbol": "sample"
@@ -45,7 +45,7 @@
         0,
         0
       ],
-      "symbol": "sample.Add"
+      "symbol": "sample.Order.Add"
     },
     {
       "decisions": 0,
@@ -58,7 +58,7 @@
         0,
         0
       ],
-      "symbol": "sample.Run"
+      "symbol": "sample.Pricer2.Run"
     },
     {
       "decisions": 0,
@@ -71,21 +71,60 @@
         0,
         0
       ],
-      "symbol": "sample.Run"
+      "symbol": "sample.Queue.Run"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample.Code.String"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample.Box.Get"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample.Order.Run"
     }
   ],
-  "loc": 28,
+  "loc": 31,
   "references": [
     {
       "at": "29:1",
-      "from": "sample.Add",
+      "from": "sample.Order.Add",
       "kind": "call",
       "receiver": null,
       "target": "println"
     },
     {
       "at": "29:9",
-      "from": "sample.Add",
+      "from": "sample.Order.Add",
       "kind": "call",
       "receiver": null,
       "target": "NewOrder"
@@ -98,7 +137,7 @@
       "name": "sample",
       "parent": null,
       "signature": null,
-      "span": "0:0-42:0",
+      "span": "0:0-47:0",
       "static": false,
       "visibility": null
     },
@@ -155,8 +194,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "sample.Add",
-      "parent": "sample",
+      "name": "sample.Order.Add",
+      "parent": "sample.Order",
       "signature": null,
       "span": "28:0-35:1",
       "static": false,
@@ -165,20 +204,50 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "sample.Run",
+      "name": "sample.Pricer2.Run",
       "parent": "sample",
       "signature": null,
-      "span": "39:0-39:25",
+      "span": "38:0-38:25",
       "static": false,
       "visibility": null
     },
     {
       "doc": null,
       "kind": "method",
-      "name": "sample.Run",
+      "name": "sample.Queue.Run",
       "parent": "sample",
       "signature": null,
-      "span": "41:0-41:24",
+      "span": "40:0-40:24",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample.Code.String",
+      "parent": "sample.Code",
+      "signature": null,
+      "span": "42:0-42:47",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample.Box.Get",
+      "parent": "sample",
+      "signature": null,
+      "span": "44:0-44:52",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample.Order.Run",
+      "parent": "sample.Order",
+      "signature": null,
+      "span": "46:0-46:23",
       "static": false,
       "visibility": null
     }

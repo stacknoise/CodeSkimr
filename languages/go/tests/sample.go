@@ -35,8 +35,13 @@ func (o *Order) Add(x float64) {
 	}
 }
 
-// Known gap of the basic tier: a method does not carry its receiver type in its name, so two
-// methods with the same name in one file have the same qualified name.
+// Methods of different types with the same name do not collide: each belongs to its receiver type.
 func (p Pricer2) Run() {}
 
 func (q *Queue) Run() {}
+
+func (c Code) String() string { return "code" }
+
+func (b *Box[T]) Get() T { var zero T; return zero }
+
+func (o Order) Run() {}

@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 23,
+      "loc": 27,
       "operands": null,
       "operators": null,
       "symbol": "sample"
@@ -100,9 +100,36 @@
         0
       ],
       "symbol": "sample\\Shop\\helper"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample\\Other"
+    },
+    {
+      "decisions": null,
+      "loc": 3,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample\\Other\\Second"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample\\Other\\Second\\run"
     }
   ],
-  "loc": 23,
+  "loc": 27,
   "references": [
     {
       "at": "27:4",
@@ -126,7 +153,7 @@
       "name": "sample",
       "parent": null,
       "signature": null,
-      "span": "0:0-30:0",
+      "span": "0:0-36:0",
       "static": false,
       "visibility": null
     },
@@ -136,7 +163,7 @@
       "name": "sample\\Shop",
       "parent": "sample",
       "signature": null,
-      "span": "1:0-30:0",
+      "span": "1:0-29:1",
       "static": false,
       "visibility": null
     },
@@ -227,6 +254,36 @@
       "parent": "sample\\Shop",
       "signature": null,
       "span": "25:0-29:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "sample\\Other",
+      "parent": "sample",
+      "signature": null,
+      "span": "31:0-36:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "sample\\Other\\Second",
+      "parent": "sample\\Other",
+      "signature": null,
+      "span": "33:0-35:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample\\Other\\Second\\run",
+      "parent": "sample\\Other\\Second",
+      "signature": null,
+      "span": "34:4-34:28",
       "static": false,
       "visibility": null
     }

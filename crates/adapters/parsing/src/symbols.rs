@@ -1,7 +1,7 @@
 //! Extraction of symbols from a syntax tree with the declaration query of a language pack.
 
 use std::cmp::Reverse;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::ops::Range;
 use std::path::Path;
 
@@ -119,6 +119,8 @@ struct Declaration<'t> {
     scope_end: Option<Node<'t>>,
     /// A block without a symbol whose members belong to the type `name` (`@container`).
     container: bool,
+    /// The type the declaration belongs to although it is written outside it (`@owner`).
+    owner: Option<Node<'t>>,
 }
 
 #[derive(Default)]
@@ -131,6 +133,7 @@ struct Parts<'t> {
     signature: Option<Node<'t>>,
     scope_end: Option<Node<'t>>,
     container: Option<Node<'t>>,
+    owner: Option<Node<'t>>,
 }
 
 impl<'t> Parts<'t> {
@@ -144,6 +147,7 @@ impl<'t> Parts<'t> {
             Capture::Signature => self.signature = Some(node),
             Capture::ScopeEnd => self.scope_end = Some(node),
             Capture::Container => self.container = Some(node),
+            Capture::Owner => self.owner = Some(node),
             Capture::Reference(_)
             | Capture::Receiver(_)
             | Capture::Local
@@ -160,6 +164,7 @@ impl<'t> Parts<'t> {
             .or_else(|| self.container.map(|node| (node, SymbolKind::Namespace)))?;
         Some(Declaration {
             container,
+            owner: self.owner,
             node,
             kind,
             name: self.name?,
@@ -197,12 +202,33 @@ fn collect<'t>(ctx: &SymbolContext<'_>, root: Node<'t>) -> Vec<Declaration<'t>> 
         }
         same
     });
+    end_stretched_scopes(&mut found);
     if let Some(skipped) = &ctx.pack.doc_before_declaration {
         for declaration in &mut found {
             declaration.docs = comments_before(ctx.pack, declaration.node, skipped);
         }
     }
     found
+}
+
+/// A declaration whose scope was stretched (`@scope_end`, a namespace without braces that holds the
+/// rest of the file) ends where the next one of the same kind under the same parent begins, so
+/// `namespace A; ... namespace B; ...` gives two siblings and not a namespace inside a namespace.
+fn end_stretched_scopes(found: &mut [Declaration<'_>]) {
+    let mut open: HashMap<(usize, SymbolKind), usize> = HashMap::new();
+    for index in 0..found.len() {
+        let Some(declaration) = found.get(index) else {
+            continue;
+        };
+        let (Some(_), Some(parent)) = (declaration.scope_end, declaration.node.parent()) else {
+            continue;
+        };
+        let key = (parent.id(), declaration.kind);
+        let before = declaration.node.prev_sibling();
+        if let Some(earlier) = open.insert(key, index).and_then(|at| found.get_mut(at)) {
+            earlier.scope_end = before;
+        }
+    }
 }
 
 /// The run of comments directly before `node`, in source order; nodes of the `skipped` kinds
@@ -232,6 +258,7 @@ impl<'t> Declaration<'t> {
     fn absorb(&mut self, other: &mut Declaration<'t>) {
         self.is_static |= other.is_static;
         self.scope_end = self.scope_end.or(other.scope_end);
+        self.owner = self.owner.or(other.owner);
         self.signature = self.signature.or(other.signature);
         merge_nodes(&mut self.modifiers, &mut other.modifiers);
         merge_nodes(&mut self.docs, &mut other.docs);
@@ -349,6 +376,10 @@ impl Builder<'_, '_> {
             self.add_container(declaration);
             return Ok(());
         }
+        if let Some(owner) = declaration.owner {
+            let owner = text_of(owner, ctx.source);
+            self.enter_owner(owner, declaration.node.end_byte(), true);
+        }
         let name = text_of(declaration.name, ctx.source).to_owned();
         let prefix = self
             .stack
@@ -370,32 +401,54 @@ impl Builder<'_, '_> {
     /// wherever the block stands.
     fn add_container(&mut self, declaration: &Declaration<'_>) {
         let name = text_of(declaration.name, self.ctx.source);
-        let Some(top) = self.stack.last() else {
-            return;
-        };
-        let owner = self.symbols.iter().position(|symbol| {
-            symbol.kind.is_type() && symbol.name.as_str() == name && symbol.parent == Some(top.id)
-        });
-        let qualified = [
-            top.qualified.as_str(),
-            self.ctx.pack.separator.as_str(),
-            name,
-        ]
-        .concat();
-        let (index, id) = owner
-            .and_then(|index| Some((index, self.symbols.get(index)?.id)))
-            .unwrap_or((top.index, top.id));
         let range = declaration.node.byte_range();
-        if owner.is_some() {
-            self.containers.push((range.clone(), index));
+        if let Some(owner) = self.enter_owner(name, range.end, false) {
+            self.containers.push((range, owner));
         }
+    }
+
+    /// Opens a frame without a symbol until byte `end`, so that the declarations inside it belong
+    /// to the type `name`: they are named `<scope>::<name>::<member>`. The type becomes their
+    /// parent if one of that name is declared in the same scope or, with `anywhere`, if exactly
+    /// one is declared earlier in the file (its own name is then the prefix). Returns the index of
+    /// that type.
+    fn enter_owner(&mut self, name: &str, end: usize, anywhere: bool) -> Option<usize> {
+        let top = self.stack.last()?;
+        let is_owner = |symbol: &Symbol| {
+            (symbol.kind.is_type() || symbol.kind == SymbolKind::TypeAlias)
+                && symbol.name.as_str() == name
+        };
+        let same_scope = self
+            .symbols
+            .iter()
+            .position(|symbol| is_owner(symbol) && symbol.parent == Some(top.id));
+        let found = same_scope.or_else(|| {
+            let mut all = (0..self.symbols.len())
+                .filter(|index| self.symbols.get(*index).is_some_and(is_owner));
+            let only = all.next().filter(|_| all.next().is_none());
+            only.filter(|_| anywhere)
+        });
+        let known = found.and_then(|index| Some((index, self.symbols.get(index)?)));
+        let qualified = known.map_or_else(
+            || {
+                [
+                    top.qualified.as_str(),
+                    self.ctx.pack.separator.as_str(),
+                    name,
+                ]
+                .concat()
+            },
+            |(_, symbol)| symbol.qualified_name.to_string(),
+        );
+        let (index, id) = known.map_or((top.index, top.id), |(index, symbol)| (index, symbol.id));
         self.stack.push(Frame {
             kind: SymbolKind::Namespace,
-            end: range.end,
+            end,
             index,
             id,
             qualified,
         });
+        found
     }
 
     /// Adds a symbol with its qualified name and the prefix the names of its children start with.

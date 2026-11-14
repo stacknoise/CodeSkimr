@@ -8,10 +8,10 @@ use tree_sitter::Query;
 use crate::consts::{
     COMMENT_CAPTURE, CONTAINER_CAPTURE, DECISION_CAPTURE, DECLARED_TYPE_CAPTURE, DOC_CAPTURE,
     FIELD_CAPTURE, LOCAL_CAPTURE, MODIFIER_CAPTURE, NAME_CAPTURE, OPERAND_CAPTURE,
-    OPERATOR_CAPTURE, RECEIVER_BASE_CAPTURE, RECEIVER_CAPTURE, RECEIVER_MEMBER_CAPTURE,
-    RECEIVER_OTHER_CAPTURE, RECEIVER_OWN_CAPTURE, RECEIVER_TYPE_CAPTURE, REFERENCE_CAPTURE_PREFIX,
-    SCOPE_CAPTURE, SCOPE_END_CAPTURE, SIGNATURE_CAPTURE, STATIC_CAPTURE, SYMBOL_CAPTURE_PREFIX,
-    VISIBILITY_CAPTURE,
+    OPERATOR_CAPTURE, OWNER_CAPTURE, RECEIVER_BASE_CAPTURE, RECEIVER_CAPTURE,
+    RECEIVER_MEMBER_CAPTURE, RECEIVER_OTHER_CAPTURE, RECEIVER_OWN_CAPTURE, RECEIVER_TYPE_CAPTURE,
+    REFERENCE_CAPTURE_PREFIX, SCOPE_CAPTURE, SCOPE_END_CAPTURE, SIGNATURE_CAPTURE, STATIC_CAPTURE,
+    SYMBOL_CAPTURE_PREFIX, VISIBILITY_CAPTURE,
 };
 
 /// What the syntax says about the receiver in front of a member name.
@@ -64,6 +64,8 @@ pub enum Capture {
     Scope,
     /// A block without a symbol of its own whose members belong to the type named by `@name`.
     Container,
+    /// The type a declaration written outside the type belongs to (ADR 0042).
+    Owner,
 }
 
 impl Capture {
@@ -95,6 +97,7 @@ impl Capture {
             DECLARED_TYPE_CAPTURE => Some(Self::DeclaredType),
             SCOPE_CAPTURE => Some(Self::Scope),
             CONTAINER_CAPTURE => Some(Self::Container),
+            OWNER_CAPTURE => Some(Self::Owner),
             _ => None,
         }
     }

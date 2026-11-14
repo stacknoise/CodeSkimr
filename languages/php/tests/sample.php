@@ -28,3 +28,9 @@ function helper(int $x): int {
     helper(strlen("a"));
     return $x ?: 0;
 }
+
+namespace Other;
+
+class Second {
+    public function run() {}
+}
