@@ -1,5 +1,7 @@
 //! Starting: only loopback addresses (S-04), and a taken port is a coded failure.
 
+mod common;
+
 use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::sync::Arc;
 
@@ -83,10 +85,7 @@ async fn the_server_stops_when_asked() {
         .bind(SocketAddr::from((Ipv4Addr::LOCALHOST, 0)))
         .await
         .unwrap();
-    let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
-    let task = tokio::spawn(bound.serve(async move {
-        stopped.await.ok();
-    }));
+    let (stop, task) = common::serve_until_told(bound);
     stop.send(()).unwrap();
     task.await.unwrap().unwrap();
 }

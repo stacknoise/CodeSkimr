@@ -464,6 +464,54 @@ fn the_search_finds_a_member_by_a_part_of_its_name_and_names_its_type() {
 }
 
 #[test]
+fn the_search_finds_the_files_whose_path_matches_and_names_their_first_type() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    let found = fixture
+        .call(
+            "search.query",
+            json!({ "project": project, "query": "calcu" }),
+        )
+        .unwrap();
+    let file = &found["files"][0];
+    assert_eq!(file["path"], "Calculator.cs");
+    assert_eq!(file["first_type"], type_id(&fixture, project));
+    assert!(file["loc"].as_u64().unwrap() > 0);
+    assert_eq!(file["project"], project);
+    let none = fixture
+        .call(
+            "search.query",
+            json!({ "project": project, "query": "zzz" }),
+        )
+        .unwrap();
+    assert_eq!(none["files"], json!([]));
+}
+
+#[test]
+fn a_search_over_all_projects_names_the_project_of_every_hit_and_skips_unscanned_ones() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    fixture.register_unscanned();
+    let found = fixture
+        .call(
+            "search.query",
+            json!({ "project": 0, "query": "add", "all_projects": true }),
+        )
+        .unwrap();
+    let hit = &found["hits"][0];
+    assert_eq!(hit["name"], "Add");
+    assert_eq!(hit["project"], project);
+    assert_ne!(hit["project_name"].as_str().unwrap(), "");
+    let own = fixture
+        .call(
+            "search.query",
+            json!({ "project": project, "query": "add" }),
+        )
+        .unwrap();
+    assert_eq!(own["hits"], found["hits"]);
+}
+
+#[test]
 fn the_search_of_a_project_without_a_scan_or_without_text_is_empty() {
     let fixture = Fixture::new();
     let project = fixture.register_unscanned();
@@ -472,7 +520,7 @@ fn the_search_of_a_project_without_a_scan_or_without_text_is_empty() {
         .unwrap();
     assert_eq!(
         found,
-        json!({ "snapshot": null, "entries": null, "hits": [] })
+        json!({ "snapshot": null, "entries": null, "hits": [], "files": [] })
     );
     let scanned = added(&fixture);
     let blank = fixture
@@ -909,4 +957,43 @@ fn the_graph_of_an_unknown_project_is_refused() {
         fixture.call("graph.layers", json!({ "project": 99 })),
         Err("PRJ-201")
     );
+}
+
+/// A number of an answer as an index.
+fn index(value: &Value) -> usize {
+    usize::try_from(value.as_u64().unwrap()).unwrap()
+}
+
+#[test]
+fn the_source_names_the_places_where_a_symbol_is_used() {
+    let fixture = Fixture::new();
+    fs::write(fixture.root.path().join("app/Checkout.cs"), CALLER).unwrap();
+    let project = added(&fixture);
+    let checkout = type_named(&fixture, project, "Checkout");
+    let total = fixture
+        .call(
+            "explorer.symbol",
+            json!({ "project": project, "symbol": checkout }),
+        )
+        .unwrap()["members"][0]["id"]
+        .clone();
+    let add = member_id(&fixture, project, "Add");
+    let shown = fixture
+        .call(
+            "explorer.source",
+            json!({ "project": project, "symbol": total }),
+        )
+        .unwrap();
+    let lines = shown["lines"].as_array().unwrap();
+    let call = shown["spans"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|span| span["symbol"] == add)
+        .expect("the call of Add is a place");
+    let line = lines[index(&call["line"])].as_str().unwrap();
+    let chars: Vec<char> = line.chars().collect();
+    let start = index(&call["start"]);
+    let end = index(&call["end"]);
+    assert_eq!(chars[start..end].iter().collect::<String>(), "Add");
 }

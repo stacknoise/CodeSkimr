@@ -7,3 +7,4 @@
 /web/playwright-report
 /tools/accuracy/truth_csharp/bin/
 /tools/accuracy/truth_csharp/obj/
+/dist

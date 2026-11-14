@@ -16,6 +16,7 @@ The layout is calculated by CodeSkimr (layered drawing), so the same project alw
 
 - Mouse wheel zooms; hold `Space` and drag to pan; `F` (or the button "Fit to view") fits the map to the window.
 - Click a box to select it. Its lines are coloured by direction ("uses" and "used by"), all other lines turn weak. The side panel shows the layer, its number of references, what it **uses** and what it is **used by**, each with the count.
+- The level "Layers" (default) or "Namespaces" in the toolbar reloads the map. "Type focus" shows one type in the middle, the types that use it above and the types it uses below; it is available when the explorer has a type selected. More than 12 types per side are cut and noted.
 - The switch "all connections weak" shows or hides the lines that do not belong to the selection; "violations only" hides every line that does not break the layering.
 - `Enter` with a layer selected opens the explorer for the project.
 

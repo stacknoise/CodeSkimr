@@ -9,6 +9,7 @@ import { HitList } from "./HitList";
 import { ROLE } from "./consts";
 import { listedHits, listedPlace } from "./hits";
 import { nextHit, useUsagesKeys } from "./keys";
+import { showUsages } from "../../shared/navigation/navigation";
 import { SidePanel } from "./SidePanel";
 import { Toolbar } from "./Toolbar";
 import type { Hit, UsagesAnswer } from "./types";
@@ -20,7 +21,6 @@ import {
   openInExplorer,
   selectedHit,
   setSelectedHit,
-  showUsages,
   testsShown,
   usagesAnswer,
   usagesFailure,

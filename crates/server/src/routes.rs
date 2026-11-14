@@ -13,9 +13,12 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_domain::Permission;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
+use tokio::time::timeout;
 
 use crate::commands::CommandInfo;
-use crate::consts::{API_PREFIX, MAX_BODY_BYTES, MEDIA_JSON, MEDIA_PARAMETER_SEPARATOR};
+use crate::consts::{
+    API_PREFIX, BODY_READ_TIMEOUT, MAX_BODY_BYTES, MEDIA_JSON, MEDIA_PARAMETER_SEPARATOR,
+};
 use crate::error::Failure;
 use crate::state::AppState;
 
@@ -80,8 +83,9 @@ pub async fn read_json<T: DeserializeOwned>(
 /// Anything but `application/json` is refused: a form or a plain-text request from another site
 /// needs no CORS preflight, a JSON one does, and CORS is closed (S-04).
 async fn read_body(headers: &HeaderMap, body: Body, limit: usize) -> Result<Bytes, Failure> {
-    let bytes = to_bytes(body, limit)
+    let bytes = timeout(BODY_READ_TIMEOUT, to_bytes(body, limit))
         .await
+        .map_err(|_| Failure::code(ErrorCode::RequestTimedOut))?
         .map_err(|_| Failure::code(ErrorCode::RequestTooLarge))?;
     if bytes.is_empty() {
         return Ok(bytes);

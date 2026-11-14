@@ -276,4 +276,44 @@ mod tests {
         assert_eq!(facts.pending[0].from, facts.symbols[0].id);
         std::fs::remove_dir_all(dir).ok();
     }
+
+    #[test]
+    fn a_long_signature_is_cut_and_marked() {
+        let root = std::env::temp_dir().join(format!("codeskimr-signature-{}", std::process::id()));
+        std::fs::create_dir_all(root.join("src")).expect("temp dir");
+        std::fs::write(
+            root.join("src/long.rs"),
+            "pub const LIST: &[u32] = &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10];\npub const N: u32 = 3;\n",
+        )
+        .expect("write");
+        let file = DiscoveredFile {
+            path: RelativePath::new("src/long.rs").expect("path"),
+            language: LanguageId::new("rust").expect("language"),
+            content_hash: ContentHash::new("hash").expect("hash"),
+            changed: true,
+        };
+        let folder = FolderPath::new(root.to_string_lossy()).expect("root");
+        let ids = IdSequence::starting_at(1);
+        let request = AnalyzeRequest {
+            root: &folder,
+            snapshot: SnapshotId::new(1),
+            file: &file,
+            ids: &ids,
+        };
+        let facts = analyzer(Duration::from_secs(5))
+            .with_signature_limit(21)
+            .analyze(&request)
+            .expect("analyzes");
+        let signature = |name: &str| {
+            facts
+                .symbols
+                .iter()
+                .find(|symbol| symbol.qualified_name.to_string().ends_with(name))
+                .and_then(|symbol| symbol.signature.clone())
+        };
+        assert_eq!(signature("LIST").as_deref(), Some("pub const LIST: &[u3…"));
+        assert!(signature("LIST").is_some_and(|text| text.chars().count() <= 21));
+        assert_eq!(signature("N").as_deref(), Some("pub const N: u32 = 3;"));
+        std::fs::remove_dir_all(root).ok();
+    }
 }

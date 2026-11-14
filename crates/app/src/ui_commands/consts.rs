@@ -33,6 +33,8 @@ pub const SOURCE_DESCRIPTION: &str = i18n::COMMAND_EXPLORER_SOURCE_DESCRIPTION;
 pub const SOURCE_MAX_LINES: u32 = 400;
 /// Largest file that `explorer.source` reads, in bytes.
 pub const SOURCE_MAX_BYTES: u64 = 4_194_304;
+/// The most places in a declaration where a symbol is named that the source column gets.
+pub const SOURCE_MAX_SPANS: usize = 4_000;
 
 /// Id of the command that places the layers of the dependency map.
 pub const GRAPH_LAYERS: &str = "graph.layers";
@@ -45,6 +47,10 @@ pub const GRAPH_DESCRIPTION: &str = i18n::COMMAND_GRAPH_LAYERS_DESCRIPTION;
 pub const SEARCH_QUERY: &str = "search.query";
 /// Most hits the quick search returns.
 pub const SEARCH_LIMIT: u32 = 50;
+/// The fewest hits a project gets in a search over all projects.
+pub const SEARCH_MIN_SHARE: u32 = 5;
+/// The most files a search returns.
+pub const SEARCH_FILE_LIMIT: u32 = 10;
 /// Title key of `search.query`.
 pub const SEARCH_TITLE: &str = i18n::COMMAND_SEARCH_QUERY_TITLE;
 /// Description key of `search.query`.

@@ -37,7 +37,7 @@ CodeSkimr findet Verwendungen auf zwei Wegen. **Ebene 1** löst Namen ohne Typin
 
 Geprüfte Treffer stehen zuerst. Das Seitenfeld zählt die drei getrennt („N Stellen geprüft, M ungeprüft, davon K vermutet“).
 
-**Ohne Indexer für das Projekt ist jeder Treffer ungeprüft**, und der Bildschirm sagt das: Verwendungen und Auswirkung sind vorläufig und können unvollständig sein oder falsche Treffer enthalten. Nehmen Sie das für Entscheidungen ernst: Eine fehlende Verwendung kann heißen, dass Sie Code brechen, von dem Sie nichts wussten. Eine leere Liste ohne Indexer schließt Verwendungen nicht aus.
+**Solange kein Treffer der Antwort geprüft ist** (kein Indexer lief für das Projekt, [Sprach-Indexer](indexer.md)), ist jeder Treffer ungeprüft, und der Bildschirm sagt das: Verwendungen und Auswirkung sind vorläufig und können unvollständig sein oder falsche Treffer enthalten. Nehmen Sie das für Entscheidungen ernst: Eine fehlende Verwendung kann heißen, dass Sie Code brechen, von dem Sie nichts wussten. Eine leere Liste ohne Ebene 2 schließt Verwendungen nicht aus. Hat Ebene 2 für eine Datei gelaufen, sind ihre Treffer geprüft und stehen zuerst; Dateien, die sie nicht abdeckte (oder die sich danach änderten), bleiben ungeprüft, ein Projekt kann also beides zeigen.
 
 ## Dasselbe Wissen anderswo
 

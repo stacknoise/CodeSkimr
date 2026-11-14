@@ -544,7 +544,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 | `PRJ` | projects and snapshots | `application`, `storage` |
 | `SRC` | sources: file system, Git, watcher | `source` |
 | `PRS` | parsing and language packs | `parsing` |
-| `RES` | reference resolution | `parsing`, `application` |
+| `RES` | reference resolution | `parsing`, `application`; level 2 (ADR 0033): `scip`, `indexer` |
 | `IDX` | search and read models | `storage` |
 | `STO` | persistence | `storage` |
 | `SEC` | credentials and security | `secrets` |
@@ -863,7 +863,7 @@ In Hell, `good-bg` is `#EAF7EF`; the value `#E7F6EC` of the first mock version r
 
 - **Tree click rules** (from the original code documentation guideline, proven in practice):
   - The caret only expands/collapses; the selection stays.
-  - A click on an unselected type selects and expands it.
+  - A click on an unselected type selects it; it does not open it (ADR 0038).
   - A click on the selected type toggles it.
   - Group nodes ("Properties & fields", "Methods") toggle independently.
   - A selection from inside the tree never overrides the open/closed state. Only external navigation (link, chip, graph, search) opens nodes automatically.

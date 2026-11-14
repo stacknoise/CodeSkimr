@@ -15,15 +15,17 @@ use codeskimr_application::events::EventBus;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::Principal;
 use tokio::net::TcpListener;
+use tokio::sync::{Semaphore, watch};
 
 use crate::assets::Assets;
 use crate::commands::CommandApi;
 use crate::consts::{
-    COMMAND_PATH, COMMANDS_PATH, EVENTS_PATH, EXCHANGE_PATH, LAUNCH_CODE_PATH, MCP_PATH,
-    UI_CONFIG_PATH,
+    COMMAND_PATH, COMMANDS_PATH, EVENTS_PATH, EXCHANGE_PATH, LAUNCH_CODE_PATH, MAX_EVENT_STREAMS,
+    MCP_PATH, UI_CONFIG_PATH,
 };
 use crate::guard::{Guard, require_token, screen};
 use crate::launch::LaunchCodes;
+use crate::listen;
 use crate::settings::UiOptions;
 use crate::state::AppState;
 use crate::token::InstallationToken;
@@ -44,6 +46,7 @@ pub struct Server {
 pub struct BoundServer {
     listener: TcpListener,
     router: Router,
+    stop: watch::Sender<()>,
 }
 
 /// Lets `address` pass if it is a loopback address (blueprint S-04).
@@ -135,17 +138,24 @@ impl Server {
         let listener = TcpListener::bind(address).await.map_err(bind_failed)?;
         let bound = listener.local_addr().map_err(bind_failed)?;
         let guard = Arc::new(Guard::new(bound, self.token));
+        let (stop, stopped) = watch::channel(());
         let state = AppState {
+            stop: stopped,
             api: Arc::new(self.api),
             guard: Arc::clone(&guard),
             principal: self.principal,
             events: self.events,
+            streams: Arc::new(Semaphore::new(MAX_EVENT_STREAMS)),
             launch: Arc::new(LaunchCodes::new(self.ui.launch_lifetime)),
             ui: Arc::new(self.ui.settings),
             assets: assets_of(self.ui.dir, self.ui.embedded),
         };
         let router = build_router(state, guard, self.mcp);
-        Ok(BoundServer { listener, router })
+        Ok(BoundServer {
+            listener,
+            router,
+            stop,
+        })
     }
 }
 
@@ -163,15 +173,13 @@ impl BoundServer {
     /// Answers requests until `shutdown` completes, then lets running requests finish.
     ///
     /// # Errors
-    /// `APP-901` if the serve loop fails.
+    /// None today; the result stays so that a failing serve loop can be reported.
     pub async fn serve(
         self,
         shutdown: impl Future<Output = ()> + Send + 'static,
     ) -> Result<(), CodedError> {
-        axum::serve(self.listener, self.router)
-            .with_graceful_shutdown(shutdown)
-            .await
-            .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))
+        listen::run(self.listener, self.router, self.stop, shutdown).await;
+        Ok(())
     }
 }
 

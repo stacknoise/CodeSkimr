@@ -2,15 +2,16 @@ import { t } from "../../shared/i18n/i18n";
 import { TYPE_KINDS } from "../explorer/consts";
 import type { UiCommand } from "./commands";
 import { FILTER, GROUP, NONE, type Filter, type GroupId } from "./consts";
-import type { Hit } from "./types";
+import type { FileHit, Hit } from "./types";
 
-/** A line of the list that can be chosen: a symbol or a command. */
+/** A line of the list that can be chosen: a symbol, a file or a command. */
 export interface Entry {
   key: string;
   group: GroupId;
   /** The text of the line. */
   label: string;
   hit: Hit | null;
+  file: FileHit | null;
   command: UiCommand | null;
 }
 
@@ -25,30 +26,47 @@ export interface ListRow {
 
 const shows = (filter: Filter, wanted: Filter) => filter === FILTER.all || filter === wanted;
 
-/** The entries for a filter and a text, grouped: types, members, commands. Symbols come from the
- * server in the order of their rank; a command is kept if its text contains the search text, and
- * all of them show for `>` alone. */
+/** The entries for a filter and a text, grouped: types, members, files, commands. Symbols and
+ * files come from the server in the order of their rank; a command is kept if its text contains
+ * the search text, and all of them show for `>` alone. `@` (all projects) shows what the server
+ * found in every project, without commands. */
 export function buildEntries(
   hits: Hit[],
+  files: FileHit[],
   commands: readonly UiCommand[],
   filter: Filter,
   text: string,
 ): Entry[] {
   const symbol = (group: GroupId, hit: Hit): Entry => ({
-    key: `${group}-${hit.id}`,
+    key: `${group}-${hit.project}-${hit.id}`,
     group,
     label: hit.name,
     hit,
+    file: null,
     command: null,
   });
   const isType = (hit: Hit) => TYPE_KINDS.includes(hit.kind);
-  const types = shows(filter, FILTER.types)
-    ? hits.filter(isType).map((hit) => symbol(GROUP.types, hit))
-    : [];
-  const members = shows(filter, FILTER.members)
-    ? hits.filter((hit) => !isType(hit)).map((hit) => symbol(GROUP.members, hit))
-    : [];
-  return [...types, ...members, ...commandEntries(commands, filter, text)];
+  const wide = filter === FILTER.projects;
+  const types =
+    shows(filter, FILTER.types) || wide
+      ? hits.filter(isType).map((hit) => symbol(GROUP.types, hit))
+      : [];
+  const members =
+    shows(filter, FILTER.members) || wide
+      ? hits.filter((hit) => !isType(hit)).map((hit) => symbol(GROUP.members, hit))
+      : [];
+  const named: Entry[] =
+    shows(filter, FILTER.files) || wide
+      ? files.map((file) => ({
+          key: `${GROUP.files}-${file.project}-${file.path}`,
+          group: GROUP.files,
+          label: file.path,
+          hit: null,
+          file,
+          command: null,
+        }))
+      : [];
+  return [...types, ...members, ...named, ...commandEntries(commands, filter, text)];
 }
 
 function commandEntries(commands: readonly UiCommand[], filter: Filter, text: string): Entry[] {
@@ -61,6 +79,7 @@ function commandEntries(commands: readonly UiCommand[], filter: Filter, text: st
       group: GROUP.commands,
       label: t(command.label),
       hit: null,
+      file: null,
       command,
     }));
 }

@@ -20,6 +20,7 @@ app-status-types = { $count ->
     [one] { $count } Typ
    *[other] { $count } Typen
 }
+app-status-references = Referenz-Index { $count }
 app-action-cancel = Abbrechen
 app-action-open-in-editor = Im Editor öffnen
 app-action-open-in-explorer = Im Explorer öffnen

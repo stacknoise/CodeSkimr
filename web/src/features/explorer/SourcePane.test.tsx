@@ -1,5 +1,6 @@
 import { fireEvent, render, screen } from "@solidjs/testing-library";
 import { describe, expect, it } from "vitest";
+import { focusSymbol } from "../../shared/navigation/navigation";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { openOrder, ORDER, OUTLINE } from "../../tests/explorer";
@@ -101,5 +102,32 @@ describe("the source column", () => {
     expect(
       await screen.findByText("The file is shorter than at the last scan. Scan the project again."),
     ).toBeTruthy();
+  });
+});
+
+describe("the names of symbols in the code", () => {
+  const WITH_NAMES: SourceInfo = {
+    ...TYPE_SOURCE,
+    spans: [{ line: 2, start: 4, end: 11, symbol: 41 }],
+  };
+
+  it("open the usages on Alt+click and do nothing on a plain click", async () => {
+    renderWith(() => answer(WITH_NAMES));
+    await openOrder();
+    const name = await screen.findByText("decimal");
+    expect(name.dataset.symbol).toBe("41");
+    fireEvent.click(name);
+    expect(focusSymbol()).toBeNull();
+    fireEvent.click(name, { altKey: true });
+    expect(focusSymbol()).toBe(41);
+  });
+
+  it("keep the text of the lines whole", async () => {
+    renderWith(() => answer(WITH_NAMES));
+    await openOrder();
+    await screen.findByText("decimal");
+    expect(screen.getByRole("region", { name: "Source" }).textContent).toContain(
+      "    decimal Total() => 1m;",
+    );
   });
 });

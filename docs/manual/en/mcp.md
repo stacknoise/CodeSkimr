@@ -32,7 +32,7 @@ Every request, also a pure read, needs the installation token as `Authorization:
 
 ## The tools
 
-All tools only read, except `rescan`. Every answer is structured JSON and says which snapshot it is based on (`snapshot.id`, `snapshot.age_seconds`).
+All tools only read, except `rescan` (and `get_project` runs the tool check, a few short processes). Every answer is structured JSON and says which snapshot it is based on (`snapshot.id`, `snapshot.age_seconds`).
 
 | Tool | Use it to |
 |---|---|
@@ -45,14 +45,15 @@ All tools only read, except `rescan`. Every answer is structured JSON and says w
 | `find_similar_code` | does this already exist? Give a `symbol` or a `snippet` with its `language` |
 | `find_constants` | find existing constants by name before adding a literal |
 | `check_conventions` | run the convention checks over files of the project |
-| `rescan` | read changed files again (incremental); needs the right to scan |
+| `get_project` | languages of the project and the **tool check** of level 2: which indexers are ready, missing or too old, with purpose and install hint |
+| `rescan` | read changed files again (incremental); needs the right to scan. It never starts level 2 |
 
 Good habits for agents: call `find_similar_code` and `find_constants` before writing new code and `check_conventions` before a commit.
 
 ## Reading results
 
 - **Limits.** `limit` defaults to 20 and is held to at most 100. A cut result carries a `notice` with `MCP-501` and the applied limit; `total` says how many exist.
-- **Certainty.** Every usage has a `confidence`, `certain` or `probable`. A probable one is a best guess that an agent should verify. Hits of level 1 are not checked by a compiler; see [Usages](usages.md#certainty-verified-unchecked-presumed). The level 2 mark ([Language indexers](indexers.md)) reaches MCP with the indexer packages.
+- **Certainty.** Every usage has a `confidence`, `certain` or `probable`. A probable one is a best guess that an agent should verify. Hits of level 1 are not checked by a compiler; see [Usages](usages.md#certainty-verified-unchecked-presumed). Every usage and every symbol of the impact also carries `verified` (true only if level 2 produced it); the answer counts `verified` and `unchecked` apart, lists verified ones first and sets `preliminary` to true while any listed one is unchecked. **An agent must not treat a preliminary answer as complete or exact** ([Language indexers](indexers.md)).
 - **Unknown symbol** is `MCP-202`, never an empty list: "no usages" and "no such symbol" are different answers. A name shared by several overloads answers with the lowest id; take the id from `search_symbols` to be exact.
 - **Errors** are normal tool results with `isError: true` and `{ "code", "description", "params" }`. The description is always English, for agents. See [Error codes](errors.md).
 

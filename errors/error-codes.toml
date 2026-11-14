@@ -26,7 +26,7 @@ crate = "codeskimr_parsing"
 # and in the indexer runner (issue #218: the group has several owners, listed here and in blueprint 11.3).
 [groups.RES]
 title = "Reference resolution"
-crate = "codeskimr_parsing, codeskimr_scip, codeskimr_indexer"
+crate = "codeskimr_parsing, codeskimr_application, codeskimr_scip, codeskimr_indexer"
 
 [groups.IDX]
 title = "Search and read models"
@@ -541,6 +541,22 @@ description = "The request body is larger than the server accepts."
 since = "0.1.0"
 
 [[codes]]
+id = "API-502"
+name = "server_busy"
+severity = "error"
+retryable = true
+description = "The server already serves as many event streams as it allows."
+since = "0.1.0"
+
+[[codes]]
+id = "API-503"
+name = "request_timed_out"
+severity = "error"
+retryable = true
+description = "The request took longer than the server waits for it."
+since = "0.1.0"
+
+[[codes]]
 id = "API-601"
 name = "server_not_reachable"
 severity = "error"
@@ -585,7 +601,7 @@ id = "MCP-501"
 name = "response_limit_exceeded"
 severity = "info"
 retryable = false
-description = "The result was truncated to the configured limit."
+description = "The result was truncated to the configured limit: its size, or for usages the requested depth (parameter depth)."
 since = "0.1.0"
 
 [[codes]]

@@ -20,6 +20,12 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     positive(keys::RETENTION_COUNT, config.snapshots.retention_count)?;
     positive(keys::DEBOUNCE_MS, config.watcher.debounce_ms)?;
     positive(keys::MAX_WAIT_MS, config.watcher.max_wait_ms)?;
+    if config.watcher.max_wait_ms < config.watcher.debounce_ms {
+        return fail(
+            keys::MAX_WAIT_MS,
+            Violation::MustNotBeBelow(keys::DEBOUNCE_MS),
+        );
+    }
     positive(keys::NGRAM_SIZE, config.similarity.ngram_size)?;
     positive(keys::WINDOW_SIZE, config.similarity.window_size)?;
     positive(keys::MIN_TOKENS, config.similarity.min_tokens)?;
@@ -188,6 +194,7 @@ fn check_level2(level2: &Level2) -> Result<(), ConfigError> {
 fn check_scan(scan: &Scan) -> Result<(), ConfigError> {
     positive(keys::PARSE_TIMEOUT_MS, scan.parse_timeout_ms)?;
     positive(keys::MAX_SOURCE_MB, scan.max_source_mb)?;
+    positive(keys::MAX_SIGNATURE_CHARS, scan.max_signature_chars)?;
     if scan.excluded_folders.is_empty() {
         return fail(keys::EXCLUDED_FOLDERS, Violation::MustNotBeEmpty);
     }

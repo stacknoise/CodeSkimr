@@ -11,6 +11,7 @@ use codeskimr_cli::ScanSummary;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{FolderPath, ProjectId, ProjectSource, ScanMode};
 use codeskimr_source::{WatchConfig, publish_changes};
+use std::path::Path;
 use std::time::{Duration, Instant};
 
 use crate::scan::Session;
@@ -76,13 +77,17 @@ impl Pending {
 /// - `CLI-102` if the project is a Git repository.
 /// - `SRC-602` if the operating system refuses to watch the folder.
 /// - Any coded failure of the first scan. Later failures are reported and watching continues.
-pub fn run(session: &Session, report: &mut impl FnMut(Report)) -> Result<(), CodedError> {
+pub fn run(
+    session: &Session,
+    data_dir: &Path,
+    report: &mut impl FnMut(Report),
+) -> Result<(), CodedError> {
     let folder = watched_folder(session)?;
     let changes = session.events().subscribe();
     let _watch = publish_changes(
         session.project().id,
         &folder,
-        watch_config(session),
+        watch_config(session, data_dir),
         session.events().clone(),
     )
     .map_err(CodedError::caused_by)?;
@@ -114,12 +119,16 @@ fn watched_folder(session: &Session) -> Result<FolderPath, CodedError> {
     }
 }
 
-fn watch_config(session: &Session) -> WatchConfig {
+/// The settings of the watcher. The data folder is ignored even if it lies inside the watched
+/// folder: every scan writes the database there, and that must not start the next scan.
+fn watch_config(session: &Session, data_dir: &Path) -> WatchConfig {
     let config = session.config();
+    let data = std::fs::canonicalize(data_dir).unwrap_or_else(|_| data_dir.to_path_buf());
     WatchConfig {
         debounce: Duration::from_millis(u64::from(config.watcher.debounce_ms)),
         max_wait: Duration::from_millis(u64::from(config.watcher.max_wait_ms)),
         excluded_folders: config.scan.excluded_folders.clone(),
+        excluded_paths: vec![data],
     }
 }
 

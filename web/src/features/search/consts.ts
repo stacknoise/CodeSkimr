@@ -10,15 +10,25 @@ export const FILTER = {
   types: "types",
   members: "members",
   commands: "commands",
+  files: "files",
+  projects: "projects",
 } as const;
 export type Filter = (typeof FILTER)[keyof typeof FILTER];
 
 /** The prefixes of the input that choose a filter. */
-export const PREFIX_OF = { types: "t:", members: "m:", commands: ">" } as const;
+export const PREFIX_OF = {
+  types: "t:",
+  members: "m:",
+  commands: ">",
+  files: "f:",
+  projects: "@",
+} as const;
 export const PREFIXES: readonly { filter: Filter; prefix: string }[] = [
   { filter: FILTER.types, prefix: PREFIX_OF.types },
   { filter: FILTER.members, prefix: PREFIX_OF.members },
   { filter: FILTER.commands, prefix: PREFIX_OF.commands },
+  { filter: FILTER.files, prefix: PREFIX_OF.files },
+  { filter: FILTER.projects, prefix: PREFIX_OF.projects },
 ];
 
 /** The chips under the input, in the order of the mock. */
@@ -27,21 +37,35 @@ export const CHIPS: readonly { filter: Filter; label: MessageKey; prefix?: strin
   { filter: FILTER.types, label: I18N_KEYS.PALETTE_FILTER_TYPES, prefix: PREFIX_OF.types },
   { filter: FILTER.members, label: I18N_KEYS.PALETTE_FILTER_MEMBERS, prefix: PREFIX_OF.members },
   { filter: FILTER.commands, label: I18N_KEYS.PALETTE_FILTER_COMMANDS, prefix: PREFIX_OF.commands },
+  { filter: FILTER.files, label: I18N_KEYS.PALETTE_FILTER_FILES, prefix: PREFIX_OF.files },
+  {
+    filter: FILTER.projects,
+    label: I18N_KEYS.PALETTE_SCOPE_ALL_PROJECTS,
+    prefix: PREFIX_OF.projects,
+  },
 ];
 
 /** The groups of the result list. */
-export const GROUP = { types: "types", members: "members", commands: "commands" } as const;
+export const GROUP = {
+  types: "types",
+  members: "members",
+  files: "files",
+  commands: "commands",
+} as const;
 export type GroupId = (typeof GROUP)[keyof typeof GROUP];
 
 /** Title of each group. */
 export const GROUP_TITLE: Record<GroupId, MessageKey> = {
   types: I18N_KEYS.PALETTE_GROUP_TYPES,
   members: I18N_KEYS.PALETTE_GROUP_MEMBERS,
+  files: I18N_KEYS.PALETTE_GROUP_FILES,
   commands: I18N_KEYS.PALETTE_GROUP_COMMANDS,
 };
 
 /** The letter of the badge of a command entry. */
 export const COMMAND_LETTER = ">";
+/** The letter of the badge of a file entry (mock 4). */
+export const FILE_LETTER = "D";
 
 /** Keys of the overlay. */
 export const KEY = {
@@ -74,3 +98,6 @@ export const MS_DIGITS = 0;
 
 /** The tiles of the metric strip that the preview of a hit shows, in this order (mock 4). */
 export const PREVIEW_TILES: readonly string[] = ["loc", "members", "mi"];
+
+/** Separates the folders of a path; the name of a file is what follows the last one. */
+export const PATH_SEPARATOR = "/";

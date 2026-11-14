@@ -64,7 +64,7 @@ Owner: `codeskimr_parsing`
 
 ## RES – Reference resolution
 
-Owner: `codeskimr_parsing, codeskimr_scip, codeskimr_indexer`
+Owner: `codeskimr_parsing, codeskimr_application, codeskimr_scip, codeskimr_indexer`
 
 | Code | Name | Severity | Retryable | Since | Description |
 |---|---|---|---|---|---|
@@ -145,6 +145,8 @@ Owner: `codeskimr_server`
 | API-402 | `host_or_origin_rejected` | error | no | 0.1.0 | The Host or Origin header of the request is not one of this server. |
 | API-403 | `launch_code_invalid` | error | no | 0.1.0 | The one-time launch code is wrong, already used or expired. |
 | API-501 | `request_too_large` | error | no | 0.1.0 | The request body is larger than the server accepts. |
+| API-502 | `server_busy` | error | yes | 0.1.0 | The server already serves as many event streams as it allows. |
+| API-503 | `request_timed_out` | error | yes | 0.1.0 | The request took longer than the server waits for it. |
 | API-601 | `server_not_reachable` | error | yes | 0.1.0 | The command needs a running local server and could not reach it. |
 
 ## MCP – MCP server
@@ -157,7 +159,7 @@ Owner: `codeskimr_mcp`
 | MCP-201 | `project_not_registered` | error | no | 0.1.0 | The requested path is not inside a registered project. |
 | MCP-202 | `symbol_not_found` | error | no | 0.1.0 | No symbol with this id or qualified name exists in the newest snapshot. |
 | MCP-203 | `project_not_scanned` | error | yes | 0.1.0 | The project has no snapshot yet; scan it first. |
-| MCP-501 | `response_limit_exceeded` | info | no | 0.1.0 | The result was truncated to the configured limit. |
+| MCP-501 | `response_limit_exceeded` | info | no | 0.1.0 | The result was truncated to the configured limit: its size, or for usages the requested depth (parameter depth). |
 
 ## CLI – Command line
 

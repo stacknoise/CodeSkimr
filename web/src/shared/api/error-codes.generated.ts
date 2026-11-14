@@ -60,6 +60,8 @@ export type ErrorCode =
   | "API-402"
   | "API-403"
   | "API-501"
+  | "API-502"
+  | "API-503"
   | "API-601"
   | "MCP-101"
   | "MCP-201"
@@ -155,12 +157,14 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "API-402": { id: "API-402", name: "host_or_origin_rejected", group: "API", class: "permission", severity: "error", retryable: false, description: "The Host or Origin header of the request is not one of this server.", since: "0.1.0", deprecated: false, messageKey: "error-API-402" },
   "API-403": { id: "API-403", name: "launch_code_invalid", group: "API", class: "permission", severity: "error", retryable: false, description: "The one-time launch code is wrong, already used or expired.", since: "0.1.0", deprecated: false, messageKey: "error-API-403" },
   "API-501": { id: "API-501", name: "request_too_large", group: "API", class: "limit", severity: "error", retryable: false, description: "The request body is larger than the server accepts.", since: "0.1.0", deprecated: false, messageKey: "error-API-501" },
+  "API-502": { id: "API-502", name: "server_busy", group: "API", class: "limit", severity: "error", retryable: true, description: "The server already serves as many event streams as it allows.", since: "0.1.0", deprecated: false, messageKey: "error-API-502" },
+  "API-503": { id: "API-503", name: "request_timed_out", group: "API", class: "limit", severity: "error", retryable: true, description: "The request took longer than the server waits for it.", since: "0.1.0", deprecated: false, messageKey: "error-API-503" },
   "API-601": { id: "API-601", name: "server_not_reachable", group: "API", class: "external", severity: "error", retryable: true, description: "The command needs a running local server and could not reach it.", since: "0.1.0", deprecated: false, messageKey: "error-API-601" },
   "MCP-101": { id: "MCP-101", name: "tool_arguments_invalid", group: "MCP", class: "invalid_input", severity: "error", retryable: false, description: "MCP tool arguments failed validation.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-101" },
   "MCP-201": { id: "MCP-201", name: "project_not_registered", group: "MCP", class: "not_found", severity: "error", retryable: false, description: "The requested path is not inside a registered project.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-201" },
   "MCP-202": { id: "MCP-202", name: "symbol_not_found", group: "MCP", class: "not_found", severity: "error", retryable: false, description: "No symbol with this id or qualified name exists in the newest snapshot.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-202" },
   "MCP-203": { id: "MCP-203", name: "project_not_scanned", group: "MCP", class: "not_found", severity: "error", retryable: true, description: "The project has no snapshot yet; scan it first.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-203" },
-  "MCP-501": { id: "MCP-501", name: "response_limit_exceeded", group: "MCP", class: "limit", severity: "info", retryable: false, description: "The result was truncated to the configured limit.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-501" },
+  "MCP-501": { id: "MCP-501", name: "response_limit_exceeded", group: "MCP", class: "limit", severity: "info", retryable: false, description: "The result was truncated to the configured limit: its size, or for usages the requested depth (parameter depth).", since: "0.1.0", deprecated: false, messageKey: "error-MCP-501" },
   "CLI-101": { id: "CLI-101", name: "cli_arguments_invalid", group: "CLI", class: "invalid_input", severity: "error", retryable: false, description: "Command-line arguments are invalid.", since: "0.1.0", deprecated: false, messageKey: "error-CLI-101" },
   "CLI-102": { id: "CLI-102", name: "watch_needs_folder", group: "CLI", class: "invalid_input", severity: "error", retryable: false, description: "Watch mode needs a local folder; a Git URL cannot be watched.", since: "0.1.0", deprecated: false, messageKey: "error-CLI-102" },
   "CLI-103": { id: "CLI-103", name: "secret_input_invalid", group: "CLI", class: "invalid_input", severity: "error", retryable: false, description: "No secret could be read from the terminal or standard input, or it was empty.", since: "0.1.0", deprecated: false, messageKey: "error-CLI-103" },

@@ -200,24 +200,33 @@ fn test_server(
     ),
     lifetime: Duration,
 ) -> Server {
+    let mut options = ui_options();
+    options.dir = ui.0;
+    options.embedded = ui.1;
+    options.launch_lifetime = lifetime;
     Server::new(
         test_api(wipes),
         events.clone(),
         principal,
         InstallationToken::from_token(TOKEN),
-        UiOptions {
-            dir: ui.0,
-            embedded: ui.1,
-            launch_lifetime: lifetime,
-            settings: UiSettings {
-                editor: EditorSettings {
-                    url_template: "vscode://file/{path}:{line}".to_owned(),
-                    allowed_schemes: vec!["vscode".to_owned()],
-                },
-                default_theme: "petrol".to_owned(),
-            },
-        },
+        options,
     )
+}
+
+/// UI options without a UI folder and with the default editor link.
+pub fn ui_options() -> UiOptions {
+    UiOptions {
+        dir: None,
+        embedded: &[],
+        launch_lifetime: Duration::from_secs(60),
+        settings: UiSettings {
+            editor: EditorSettings {
+                url_template: "vscode://file/{path}:{line}".to_owned(),
+                allowed_schemes: vec!["vscode".to_owned()],
+            },
+            default_theme: "petrol".to_owned(),
+        },
+    }
 }
 
 async fn run(server: Server, wipes: Arc<AtomicUsize>, events: EventBus) -> Running {
@@ -369,4 +378,18 @@ fn parse(raw: &[u8]) -> Reply {
         headers,
         body: body.to_owned(),
     }
+}
+
+/// Serves `bound` until the returned sender is used; the handle ends with the server.
+pub fn serve_until_told(
+    bound: codeskimr_server::BoundServer,
+) -> (
+    tokio::sync::oneshot::Sender<()>,
+    tokio::task::JoinHandle<Result<(), CodedError>>,
+) {
+    let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
+    let task = tokio::spawn(bound.serve(async move {
+        stopped.await.ok();
+    }));
+    (stop, task)
 }

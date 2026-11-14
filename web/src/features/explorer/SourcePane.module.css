@@ -38,6 +38,15 @@
 }
 
 .gutter,
+.name {
+    cursor: default;
+}
+
+.name:hover {
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+}
+
 .text {
     margin: 0;
     font: inherit;

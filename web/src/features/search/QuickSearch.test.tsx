@@ -2,10 +2,10 @@ import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-lib
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { currentPath, navigate } from "../../app/router";
 import { setLanguage } from "../../shared/i18n/i18n";
-import { openProject } from "../../shared/project/active";
+import { activeProject, openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { ORDER } from "../../tests/explorer";
-import { pendingFocus, requestFocus } from "../explorer/explorer";
+import { pendingFocus, requestFocus } from "../../shared/navigation/navigation";
 import { useSearchShortcut } from "./keys";
 import { QuickSearch } from "./QuickSearch";
 import { SearchField } from "./SearchField";
@@ -19,6 +19,8 @@ const CART: Hit = {
   qualified_name: "Shop.Cart",
   path: "src/Cart.cs",
   parent: 2,
+  project: 1,
+  project_name: "shop",
 };
 const ADD: Hit = {
   id: 9,
@@ -27,6 +29,8 @@ const ADD: Hit = {
   qualified_name: "Shop.Cart.AddItem",
   path: "src/Cart.cs",
   parent: 4,
+  project: 1,
+  project_name: "shop",
 };
 
 useServerSession();
@@ -38,7 +42,7 @@ afterEach(() => {
 
 function shown(hits: Hit[] = [CART, ADD], snapshot: number | null = 1) {
   openProject(1);
-  serve({ "search.query": () => answer({ snapshot, hits }) });
+  serve({ "search.query": () => answer({ files: [], snapshot, hits }) });
   const view = render(() => {
     useSearchShortcut(openSearch);
     return <QuickSearch />;
@@ -52,7 +56,8 @@ function shown(hits: Hit[] = [CART, ADD], snapshot: number | null = 1) {
 function previewed(more: Parameters<typeof serve>[0]) {
   openProject(1);
   serve({
-    "search.query": () => answer({ snapshot: 1, hits: [{ ...CART, id: ORDER.id }, ADD] }),
+    "search.query": () =>
+      answer({ files: [], snapshot: 1, hits: [{ ...CART, id: ORDER.id }, ADD] }),
     ...more,
   });
   render(() => <QuickSearch />);
@@ -143,7 +148,9 @@ describe("the quick search", () => {
     let symbols = 0;
     fetchMock.mockImplementation((path: string) => {
       if (path.endsWith("search.query")) {
-        return Promise.resolve(answer({ snapshot: 1, hits: [{ ...CART, id: ORDER.id }, ADD] }));
+        return Promise.resolve(
+          answer({ files: [], snapshot: 1, hits: [{ ...CART, id: ORDER.id }, ADD] }),
+        );
       }
       symbols += 1;
       return symbols === 1
@@ -163,7 +170,9 @@ describe("the quick search", () => {
 
   it("tells how many symbols the index holds once a search has run", async () => {
     openProject(1);
-    serve({ "search.query": () => answer({ snapshot: 1, entries: 3007, hits: [CART] }) });
+    serve({
+      "search.query": () => answer({ files: [], snapshot: 1, entries: 3007, hits: [CART] }),
+    });
     render(() => <QuickSearch />);
     openSearch();
     expect(screen.queryByText(/entries/)).toBeNull();
@@ -304,9 +313,9 @@ describe("the quick search", () => {
     fireEvent.keyDown(input(), { key: "ArrowUp" });
     expect(screen.getAllByRole("option")[0]?.getAttribute("aria-selected")).toBe("true");
     fireEvent.keyDown(input(), { key: "Tab", shiftKey: true });
-    expect(screen.getByRole("button", { name: "> Commands" }).getAttribute("aria-pressed")).toBe(
-      "true",
-    );
+    expect(
+      screen.getByRole("button", { name: "@ all projects" }).getAttribute("aria-pressed"),
+    ).toBe("true");
     fireEvent.keyDown(input(), { key: "Tab" });
     fireEvent.click(await screen.findByText("AddItem", { selector: "[class*=label]" }));
     expect(pendingFocus()?.member).toBe(9);
@@ -317,13 +326,15 @@ describe("the quick search", () => {
     let release: (value: Response) => void = () => undefined;
     fetchMock
       .mockImplementationOnce(() => new Promise<Response>((resolve) => (release = resolve)))
-      .mockImplementationOnce(() => Promise.resolve(answer({ snapshot: 1, hits: [ADD] })));
+      .mockImplementationOnce(() =>
+        Promise.resolve(answer({ files: [], snapshot: 1, hits: [ADD] })),
+      );
     render(() => <QuickSearch />);
     openSearch();
     type("a");
     type("ad");
     await screen.findByRole("option", { name: /AddItem/ });
-    release(answer({ snapshot: 1, hits: [CART] }));
+    release(answer({ files: [], snapshot: 1, hits: [CART] }));
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(screen.queryByText("Cart", { selector: "[class*=label]" })).toBeNull();
     expect(screen.getAllByRole("option")).toHaveLength(1);
@@ -348,5 +359,39 @@ describe("the quick search", () => {
     serve({ "search.query": () => answer({ code: "PRJ-201" }, 404) });
     type("zzzz");
     expect(await screen.findByText("Die Suche ist fehlgeschlagen.")).toBeTruthy();
+  });
+
+  it("lists the files after the symbols and opens the first type of a file with Enter", async () => {
+    openProject(1);
+    const file = { path: "src/Cart.cs", loc: 232, first_type: 4, project: 1, project_name: "shop" };
+    serve({ "search.query": () => answer({ snapshot: 1, hits: [CART], files: [file] }) });
+    render(() => <QuickSearch />);
+    openSearch();
+    type("f:cart");
+    const options = await screen.findAllByRole("option");
+    expect(options).toHaveLength(1);
+    expect(options[0]?.textContent).toContain("src/Cart.cs");
+    expect(options[0]?.textContent).toContain("232 lines");
+    fireEvent.keyDown(input(), { key: "Enter" });
+    expect(pendingFocus()).toEqual({ type: 4, member: null, kind: null });
+    expect(currentPath()).toBe("/explorer");
+  });
+
+  it("asks all projects for @ and switches to the project of the hit it opens", async () => {
+    openProject(1);
+    const other = { ...CART, id: 77, project: 2, project_name: "billing" };
+    serve({ "search.query": () => answer({ snapshot: 1, hits: [other], files: [] }) });
+    render(() => <QuickSearch />);
+    openSearch();
+    type("@cart");
+    const option = await screen.findByRole("option");
+    expect(option.textContent).toContain("billing · Shop.Cart");
+    const body = fetchMock.mock.calls
+      .filter(([path]) => String(path).endsWith("search.query"))
+      .map(([, init]) => JSON.parse((init as RequestInit).body as string));
+    expect(body.at(-1)).toMatchObject({ query: "cart", all_projects: true });
+    fireEvent.keyDown(input(), { key: "Enter" });
+    expect(activeProject()).toBe(2);
+    expect(pendingFocus()?.type).toBe(77);
   });
 });

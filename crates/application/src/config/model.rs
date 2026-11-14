@@ -175,6 +175,9 @@ pub struct Scan {
     pub parse_timeout_ms: u32,
     /// Largest total size of the scanned files of one source, in megabytes.
     pub max_source_mb: u32,
+    /// Most characters of a signature (for a constant: its declaration with the value); a longer
+    /// one is cut and ends with `…`.
+    pub max_signature_chars: u32,
 }
 
 /// Settings and limits of level 2: running indexers and importing their indexes (ADR 0033).

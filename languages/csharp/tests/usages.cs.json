@@ -2,14 +2,14 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 51,
+      "loc": 60,
       "operands": null,
       "operators": null,
       "symbol": "usages.cs"
     },
     {
       "decisions": null,
-      "loc": 51,
+      "loc": 60,
       "operands": null,
       "operators": null,
       "symbol": "Demo"
@@ -232,9 +232,36 @@
         12
       ],
       "symbol": "Demo.Client.Go"
+    },
+    {
+      "decisions": null,
+      "loc": 5,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Keys"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Chooser"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        4,
+        5
+      ],
+      "operators": [
+        3,
+        4
+      ],
+      "symbol": "Demo.Chooser.Pick"
     }
   ],
-  "loc": 51,
+  "loc": 60,
   "references": [
     {
       "at": "18:11",
@@ -459,6 +486,34 @@
       "kind": "call",
       "receiver": "typed IOne",
       "target": "Close"
+    },
+    {
+      "at": "66:44",
+      "from": "Demo.Chooser.Pick",
+      "kind": "read",
+      "receiver": null,
+      "target": "Keys"
+    },
+    {
+      "at": "66:49",
+      "from": "Demo.Chooser.Pick",
+      "kind": "read",
+      "receiver": "named Keys",
+      "target": "First"
+    },
+    {
+      "at": "66:57",
+      "from": "Demo.Chooser.Pick",
+      "kind": "read",
+      "receiver": null,
+      "target": "Keys"
+    },
+    {
+      "at": "66:62",
+      "from": "Demo.Chooser.Pick",
+      "kind": "read",
+      "receiver": "named Keys",
+      "target": "Second"
     }
   ],
   "symbols": [
@@ -468,7 +523,7 @@
       "name": "usages.cs",
       "parent": null,
       "signature": null,
-      "span": "0:0-57:0",
+      "span": "0:0-68:0",
       "static": false,
       "visibility": null
     },
@@ -478,7 +533,7 @@
       "name": "Demo",
       "parent": "usages.cs",
       "signature": null,
-      "span": "0:0-57:0",
+      "span": "0:0-68:0",
       "static": false,
       "visibility": null
     },
@@ -497,7 +552,7 @@
       "kind": "constant",
       "name": "Demo.Names.Arg",
       "parent": "Demo.Names",
-      "signature": "Arg = \"a\"",
+      "signature": "public const string Arg = \"a\";",
       "span": "4:24-4:33",
       "static": false,
       "visibility": "public"
@@ -507,7 +562,7 @@
       "kind": "constant",
       "name": "Demo.Names.Ret",
       "parent": "Demo.Names",
-      "signature": "Ret = \"r\"",
+      "signature": "public const string Ret = \"r\";",
       "span": "5:24-5:33",
       "static": false,
       "visibility": "public"
@@ -517,7 +572,7 @@
       "kind": "constant",
       "name": "Demo.Names.Case",
       "parent": "Demo.Names",
-      "signature": "Case = \"c\"",
+      "signature": "public const string Case = \"c\";",
       "span": "6:24-6:34",
       "static": false,
       "visibility": "public"
@@ -527,7 +582,7 @@
       "kind": "constant",
       "name": "Demo.Names.Attr",
       "parent": "Demo.Names",
-      "signature": "Attr = \"t\"",
+      "signature": "public const string Attr = \"t\";",
       "span": "7:24-7:34",
       "static": false,
       "visibility": "public"
@@ -537,7 +592,7 @@
       "kind": "constant",
       "name": "Demo.Names.Lambda",
       "parent": "Demo.Names",
-      "signature": "Lambda = \"l\"",
+      "signature": "public const string Lambda = \"l\";",
       "span": "8:24-8:36",
       "static": false,
       "visibility": "public"
@@ -547,7 +602,7 @@
       "kind": "constant",
       "name": "Demo.Names.Init",
       "parent": "Demo.Names",
-      "signature": "Init = \"i\"",
+      "signature": "public const string Init = \"i\";",
       "span": "9:24-9:34",
       "static": false,
       "visibility": "public"
@@ -557,7 +612,7 @@
       "kind": "constant",
       "name": "Demo.Names.Cond",
       "parent": "Demo.Names",
-      "signature": "Cond = \"q\"",
+      "signature": "public const string Cond = \"q\";",
       "span": "10:24-10:34",
       "static": false,
       "visibility": "public"
@@ -781,6 +836,56 @@
       "span": "47:4-55:5",
       "static": false,
       "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Keys",
+      "parent": "Demo",
+      "signature": null,
+      "span": "58:0-62:1",
+      "static": true,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "Demo.Keys.First",
+      "parent": "Demo.Keys",
+      "signature": "public const string First = \"f\";",
+      "span": "60:24-60:35",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "Demo.Keys.Second",
+      "parent": "Demo.Keys",
+      "signature": "public const string Second = \"s\";",
+      "span": "61:24-61:36",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Chooser",
+      "parent": "Demo",
+      "signature": null,
+      "span": "64:0-67:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Chooser.Pick",
+      "parent": "Demo.Chooser",
+      "signature": null,
+      "span": "66:4-66:69",
+      "static": false,
+      "visibility": "public"
     }
   ]
 }

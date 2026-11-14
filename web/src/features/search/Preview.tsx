@@ -6,9 +6,9 @@ import { treeOutline } from "../explorer/explorer";
 import { KindBadge } from "../explorer/KindBadge";
 import { tilesOf } from "../explorer/metrics";
 import { TileGrid } from "../explorer/TileGrid";
-import { PREVIEW_TILES } from "./consts";
-import { loadPreview, previewInfo } from "./preview";
-import type { Hit } from "./types";
+import { FILE_LETTER, PATH_SEPARATOR, PREVIEW_TILES } from "./consts";
+import { loadPreview, previewInfo } from "./previewState";
+import type { FileHit, Hit } from "./types";
 import styles from "./QuickSearch.module.css";
 
 /** An action of the preview: its text and its key. */
@@ -60,12 +60,11 @@ function Details(props: { id: number }) {
 }
 
 /** The right column: the chosen hit and what the keys do with it (mock 4). */
-export function Preview(props: { hit: Hit | null }) {
+export function Preview(props: { hit: Hit | null; file: FileHit | null }) {
   createEffect(() => {
-    const project = activeProject();
     const hit = props.hit;
-    if (project !== null && hit !== null) {
-      void loadPreview(project, hit.id);
+    if (hit !== null) {
+      void loadPreview(hit.project, hit.id);
     }
   });
   return (
@@ -90,6 +89,26 @@ export function Preview(props: { hit: Hit | null }) {
                   </li>
                 )}
               </For>
+            </ul>
+          </>
+        )}
+      </Show>
+      <Show when={props.file}>
+        {(file) => (
+          <>
+            <div class={styles.previewName}>
+              <span class={styles.letter}>{FILE_LETTER}</span>
+              <b>{file().path.split(PATH_SEPARATOR).pop()}</b>
+            </div>
+            <p class={styles.previewPath}>{file().path}</p>
+            <p class={styles.previewPath}>
+              {t(I18N_KEYS.PALETTE_FILE_LINES, { count: file().loc })}
+            </p>
+            <ul class={styles.actions}>
+              <li class={styles.action}>
+                <span>{t(I18N_KEYS.PALETTE_ACTION_EXPLORER)}</span>
+                <kbd>{t(I18N_KEYS.PALETTE_KEY_EXPLORER)}</kbd>
+              </li>
             </ul>
           </>
         )}

@@ -15,6 +15,8 @@ const hit = (id: number, name: string, kind: string): Hit => ({
   qualified_name: `Shop.${name}`,
   path: "Shop.cs",
   parent: null,
+  project: 1,
+  project_name: "shop",
 });
 const HITS = [hit(1, "Cart", "class"), hit(2, "Add", "method"), hit(3, "ICart", "interface")];
 
@@ -23,6 +25,8 @@ describe("parseQuery", () => {
     expect(parseQuery("t: cart", FILTER.all)).toEqual({ filter: FILTER.types, text: "cart" });
     expect(parseQuery("m:add", FILTER.all)).toEqual({ filter: FILTER.members, text: "add" });
     expect(parseQuery(">  scan", FILTER.all)).toEqual({ filter: FILTER.commands, text: "scan" });
+    expect(parseQuery("f: Cart.cs", FILTER.all)).toEqual({ filter: FILTER.files, text: "Cart.cs" });
+    expect(parseQuery("@cart", FILTER.all)).toEqual({ filter: FILTER.projects, text: "cart" });
   });
 
   it("takes the chip when there is no prefix", () => {
@@ -41,32 +45,49 @@ describe("splitMatch", () => {
   });
 });
 
+describe("buildEntries, files and all projects", () => {
+  const FILE = { path: "src/Cart.cs", loc: 232, first_type: 1, project: 1, project_name: "shop" };
+
+  it("shows the files after the members, and alone for the filter f:", () => {
+    const all = buildEntries(HITS, [FILE], UI_COMMANDS, FILTER.all, "cart");
+    expect(all.map((entry) => entry.group)).toEqual(["types", "types", "members", "files"]);
+    const only = buildEntries(HITS, [FILE], UI_COMMANDS, FILTER.files, "cart");
+    expect(only.map((entry) => entry.label)).toEqual(["src/Cart.cs"]);
+    expect(only[0]?.file).toEqual(FILE);
+  });
+
+  it("keeps symbols and files, but no commands, for all projects", () => {
+    const wide = buildEntries(HITS, [FILE], UI_COMMANDS, FILTER.projects, "scan");
+    expect(wide.map((entry) => entry.group)).toEqual(["types", "types", "members", "files"]);
+  });
+});
+
 describe("buildEntries", () => {
   it("sorts the hits into types and members, types first", () => {
-    const entries = buildEntries(HITS, UI_COMMANDS, FILTER.all, "a");
+    const entries = buildEntries(HITS, [], UI_COMMANDS, FILTER.all, "a");
     expect(entries.map((entry) => entry.group).slice(0, 3)).toEqual(["types", "types", "members"]);
   });
 
   it("keeps only one group for a filter", () => {
-    const members = buildEntries(HITS, UI_COMMANDS, FILTER.members, "a");
+    const members = buildEntries(HITS, [], UI_COMMANDS, FILTER.members, "a");
     expect(members.map((entry) => entry.label)).toEqual(["Add"]);
   });
 
   it("offers every command for a bare > and the matching ones for a text", () => {
     setLanguage("en");
-    expect(buildEntries([], UI_COMMANDS, FILTER.commands, "")).toHaveLength(UI_COMMANDS.length);
-    const found = buildEntries([], UI_COMMANDS, FILTER.commands, "explorer");
+    expect(buildEntries([], [], UI_COMMANDS, FILTER.commands, "")).toHaveLength(UI_COMMANDS.length);
+    const found = buildEntries([], [], UI_COMMANDS, FILTER.commands, "explorer");
     expect(found.map((entry) => entry.command?.label)).toEqual([I18N_KEYS.NAV_EXPLORER]);
   });
 
   it("shows no command for an empty text under All", () => {
-    expect(buildEntries([], UI_COMMANDS, FILTER.all, "")).toEqual([]);
+    expect(buildEntries([], [], UI_COMMANDS, FILTER.all, "")).toEqual([]);
   });
 });
 
 describe("listRows", () => {
   it("puts a title before each group", () => {
-    const rows = listRows(buildEntries(HITS, UI_COMMANDS, FILTER.all, "cart"));
+    const rows = listRows(buildEntries(HITS, [], UI_COMMANDS, FILTER.all, "cart"));
     expect(rows.filter((row) => row.entry === null).map((row) => row.group)).toEqual([
       "types",
       "members",
@@ -87,11 +108,12 @@ describe("the keys", () => {
 
   it("changes the chip with Tab and wraps around", () => {
     expect(nextChip(FILTER.all, 1)).toBe(FILTER.types);
-    expect(nextChip(FILTER.all, -1)).toBe(FILTER.commands);
+    expect(nextChip(FILTER.all, -1)).toBe(FILTER.projects);
+    expect(nextChip(FILTER.projects, 1)).toBe(FILTER.all);
   });
 
   it("opens in the editor with Alt+Enter, in the map with Ctrl+Enter and only opens with a plain Enter", () => {
-    const entries = buildEntries(HITS, UI_COMMANDS, FILTER.all, "a");
+    const entries = buildEntries(HITS, [], UI_COMMANDS, FILTER.all, "a");
     const press = (init: KeyboardEventInit) => {
       const actions = {
         close: vi.fn(),

@@ -20,7 +20,7 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+version = "0.9.0-preview.1"
 edition = "2024"
 rust-version = "1.88"
 license = "MIT"
@@ -68,6 +68,8 @@ criterion = { version = "0.7", default-features = false }
 rmcp = { version = "3.10", default-features = false, features = ["server", "schemars", "transport-io", "transport-streamable-http-server"] }
 tokio = { version = "1.54", default-features = false }
 tower-service = "0.3"
+hyper = { version = "1", default-features = false, features = ["http1", "server"] }
+hyper-util = { version = "0.1", default-features = false, features = ["tokio"] }
 axum = { version = "0.8", default-features = false, features = ["http1", "json", "tokio", "ws"] }
 getrandom = "0.4"
 tracing = { version = "0.1", default-features = false, features = ["std"] }
