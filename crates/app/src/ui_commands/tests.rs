@@ -501,7 +501,7 @@ fn a_search_over_all_projects_names_the_project_of_every_hit_and_skips_unscanned
     let hit = &found["hits"][0];
     assert_eq!(hit["name"], "Add");
     assert_eq!(hit["project"], project);
-    assert!(!hit["project_name"].as_str().unwrap().is_empty());
+    assert_ne!(hit["project_name"].as_str().unwrap(), "");
     let own = fixture
         .call(
             "search.query",
