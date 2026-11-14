@@ -11,8 +11,8 @@ use std::path::{Component, Path, PathBuf};
 use codeskimr_application::ports::IndexerSpec;
 
 use crate::consts::{
-    APPLICATION_ENV_PREFIX, BASE_ENV_ALLOW, FIXED_ENV, HOME_ENV, HOME_SETTINGS_ENV, PATH_ENV,
-    SECRET_NAME_PARTS, TEMP_ENV,
+    APPLICATION_ENV_PREFIX, BASE_ENV_ALLOW, FIXED_ENV, FORBIDDEN_ENV_NAME_CHARS, HOME_ENV,
+    HOME_SETTINGS_ENV, PATH_ENV, SECRET_NAME_PARTS, TEMP_ENV,
 };
 
 /// Name/value pairs for `Command::env` after `env_clear`.
@@ -119,7 +119,7 @@ fn is_allowed(name: &OsStr, spec: &IndexerSpec) -> bool {
 
 /// A name that can be an environment variable: not empty, without `=` and NUL.
 fn is_safe_variable(name: &str) -> bool {
-    !name.is_empty() && !name.contains(['=', '\0'])
+    !name.is_empty() && !name.contains(FORBIDDEN_ENV_NAME_CHARS)
 }
 
 /// A relative path made of plain names only: no root, no drive, no `.` or `..`.

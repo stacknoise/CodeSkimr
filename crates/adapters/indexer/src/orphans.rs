@@ -144,7 +144,21 @@ fn end_indexer(folder: &Path, system: &System) {
     else {
         return;
     };
-    let mut members = vec![Pid::from_u32(indexer.pid)];
+    let members = tree_of(system, Pid::from_u32(indexer.pid));
+    // The leader first, so that it cannot start more. Never this process or its parent: the notes
+    // can be written by the indexer, which must not be able to point the cleanup at them.
+    let own = Pid::from_u32(std::process::id());
+    let parent = system.process(own).and_then(sysinfo::Process::parent);
+    for pid in members {
+        if pid != own && Some(pid) != parent {
+            kill_if_unchanged(system, pid);
+        }
+    }
+}
+
+/// `root` and every process below it, parents before children.
+fn tree_of(system: &System, root: Pid) -> Vec<Pid> {
+    let mut members = vec![root];
     let mut next: usize = 0;
     while let Some(pid) = members.get(next).copied() {
         next = next.saturating_add(1);
@@ -160,15 +174,7 @@ fn end_indexer(folder: &Path, system: &System) {
             .collect::<Vec<_>>();
         members.extend(children);
     }
-    // The leader first, so that it cannot start more. Never this process or its parent: the notes
-    // can be written by the indexer, which must not be able to point the cleanup at them.
-    let own = Pid::from_u32(std::process::id());
-    let parent = system.process(own).and_then(sysinfo::Process::parent);
-    for pid in members {
-        if pid != own && Some(pid) != parent {
-            kill_if_unchanged(system, pid);
-        }
-    }
+    members
 }
 
 /// Kills `pid` if it is still the process of the snapshot: the start time is read again right

@@ -114,3 +114,5 @@ pub const NO_SUCH_PROCESS: &str = "no such process";
 /// How many seconds the start time of a process may differ from the one in a note: the start
 /// time is computed from the boot time of the system, which can shift a little.
 pub const START_TOLERANCE_SECONDS: u64 = 2;
+/// Characters that cannot be part of the name of an environment variable.
+pub const FORBIDDEN_ENV_NAME_CHARS: [char; 2] = ['=', '\0'];
