@@ -16,6 +16,7 @@ use codeskimr_domain::{
 use serde::{Deserialize, Serialize};
 
 use super::consts::{BAND_PAD_DIVISOR, GRAPH_DESCRIPTION, GRAPH_LAYERS, GRAPH_TITLE};
+use super::graph_types::types_out;
 
 /// What a box of the map stands for.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
@@ -26,6 +27,8 @@ pub enum Level {
     Layers,
     /// One box per namespace, in the row of its layer.
     Namespaces,
+    /// One type in the middle, the types that use it above and the types it uses below.
+    Types,
 }
 
 /// The input of `graph.layers`.
@@ -40,6 +43,9 @@ pub struct GraphInput {
     /// left out) keeps every namespace.
     #[serde(default)]
     pub depth: u32,
+    /// On the level `types`: id of the type in the middle.
+    #[serde(default)]
+    pub focus: Option<u64>,
 }
 
 /// One layer box of the map. `x` and `y` are the top-left corner in layout units.
@@ -63,6 +69,8 @@ pub struct BoxOut {
     pub layer: Option<String>,
     /// Number of types in a namespace box; `None` on the layer level.
     pub types: Option<u32>,
+    /// Id of the type of a box on the level `types`; `None` on the other levels.
+    pub symbol: Option<u64>,
 }
 
 /// The background of one layer: a stripe over the whole width behind the rows of its boxes.
@@ -108,6 +116,21 @@ pub struct GraphOut {
     pub bands: Vec<BandOut>,
     /// The dependencies between the layers.
     pub links: Vec<LinkOut>,
+    /// On the level `types`: the type in the middle and what the picture leaves out.
+    pub focus: Option<FocusOut>,
+}
+
+/// The type in the middle of a map on the level `types`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct FocusOut {
+    /// Id of the type.
+    pub symbol: u64,
+    /// Qualified name of the type, as the name of its box.
+    pub name: String,
+    /// Number of types that use it and are not drawn.
+    pub users_more: u32,
+    /// Number of types it uses that are not drawn.
+    pub used_more: u32,
 }
 
 /// What the map reads: the project repository for the layers, the index for the layer graph, and
@@ -148,6 +171,7 @@ fn boxes_out(map: &LayerMap, look: &Graph) -> Vec<BoxOut> {
             order: place.order,
             layer: Some(name.as_str().to_owned()),
             types: None,
+            symbol: None,
         })
         .collect()
 }
@@ -205,9 +229,12 @@ impl Command for GraphLayers {
             Level::Namespaces => {
                 namespaces_out(ports, &project.layers, snapshot.id, request.input.depth)?
             }
+            Level::Types => types_out(ports, &project, snapshot.id, request.input.focus)?,
         };
         out.snapshot = Some(snapshot.id.get());
-        out.bands = bands_out(&project.layers, &out.boxes, look);
+        if request.input.level != Level::Types {
+            out.bands = bands_out(&project.layers, &out.boxes, look);
+        }
         let reach = out.bands.iter().map(|band| band.y + band.height).max();
         out.height = out.height.max(reach.unwrap_or(0));
         Ok(out)
@@ -285,6 +312,7 @@ fn namespace_boxes(
             order: place.order,
             layer: layer.map(|found| found.name.as_str().to_owned()),
             types: Some(node.types),
+            symbol: None,
         })
         .collect()
 }

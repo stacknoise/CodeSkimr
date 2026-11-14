@@ -11,6 +11,8 @@ export interface LayerBox {
   layer: string | null;
   /** Number of types in a namespace box; `null` on the layer level. */
   types: number | null;
+  /** Id of the type of a box on the type level; `null` on the other levels. */
+  symbol: number | null;
 }
 
 /** The stripe of one layer behind the rows of its boxes (`BandOut`). */
@@ -22,7 +24,7 @@ export interface LayerBand {
 }
 
 /** What a box stands for. */
-export type Level = "layers" | "namespaces";
+export type Level = "layers" | "namespaces" | "types";
 
 /** One dependency between two layers. */
 export interface LayerLink {
@@ -33,6 +35,14 @@ export interface LayerLink {
   in_cycle: boolean;
 }
 
+/** The type in the middle of the map on the type level, and what the picture leaves out. */
+export interface FocusInfo {
+  symbol: number;
+  name: string;
+  users_more: number;
+  used_more: number;
+}
+
 /** The answer of `graph.layers`. */
 export interface GraphData {
   snapshot: number | null;
@@ -41,6 +51,8 @@ export interface GraphData {
   boxes: LayerBox[];
   bands: LayerBand[];
   links: LayerLink[];
+  /** The type in the middle; `null` on the other levels. */
+  focus: FocusInfo | null;
 }
 
 /** Zoom and shift of the picture: a point of the layout appears at `x + scale * point`. */

@@ -24,6 +24,7 @@ mod similar;
 mod snapshot;
 mod span;
 mod symbol;
+mod type_neighbours;
 mod vocabulary;
 
 pub use access::{Permission, PermissionSet, Principal};
@@ -53,3 +54,4 @@ pub use similar::{SimilarPair, similar_pairs};
 pub use snapshot::{CommitHash, ScanMode, Snapshot, SnapshotId, SnapshotStats, Timestamp};
 pub use span::{Position, Span};
 pub use symbol::{Symbol, SymbolId, SymbolKind, SymbolName, Visibility};
+pub use type_neighbours::{TypeLink, TypeNeighbours, type_neighbours};

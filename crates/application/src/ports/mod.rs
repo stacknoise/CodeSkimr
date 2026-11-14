@@ -35,7 +35,9 @@ pub use indexer::{
 };
 pub use level2::{ImportRequest, Imported, ReferenceImporter};
 pub use outline::{CodeOutline, MemberRow, OutlineNode};
-pub use query::{CodeIndex, MemberRef, SearchHit, SymbolDetail, SymbolKey};
+pub use query::{
+    CodeIndex, MemberRef, SearchHit, SymbolDetail, SymbolKey, TypeFocus, TypeNeighbour,
+};
 pub use rescan::ProjectScanner;
 pub use similarity::{SimilarHit, SimilarQuery, SimilarityIndex};
 pub use source::{

@@ -1,7 +1,9 @@
 //! The lookup of one symbol and the `CodeIndex` port.
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{CodeIndex, MemberRef, SearchHit, SymbolDetail, SymbolKey};
+use codeskimr_application::ports::{
+    CodeIndex, MemberRef, SearchHit, SymbolDetail, SymbolKey, TypeFocus,
+};
 use codeskimr_domain::{
     FileId, LayerEdge, Metric, MetricValue, NamespaceGraph, ProjectId, QualifiedName, RelativePath,
     Snapshot, SnapshotId, Symbol, SymbolId, SymbolName,
@@ -190,5 +192,13 @@ impl CodeIndex for SqliteStore {
 
     fn namespace_graph(&self, snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError> {
         Self::namespace_graph(self, snapshot)
+    }
+
+    fn type_focus(
+        &self,
+        snapshot: SnapshotId,
+        symbol: SymbolId,
+    ) -> Result<Option<TypeFocus>, CodedError> {
+        Self::type_focus(self, snapshot, symbol)
     }
 }
