@@ -18,11 +18,11 @@ Everything runs on your machine. The server listens on `127.0.0.1` only; your co
 
 ## Install
 
-Preview packages for Windows (x86_64), Linux (x86_64) and macOS (Apple Silicon) are attached to the releases of this repository (`LIES-MICH.md` / `README-PREVIEW.md` in the package explain the first start). Installers come with 1.0. Otherwise build from source:
+Preview packages for Windows (x86_64), Linux (x86_64) and macOS (Apple Silicon) are attached to the releases of this repository once the first preview is published (`LIES-MICH.md` / `README-PREVIEW.md` in the package explain the first start). Installers come with 1.0. Otherwise build from source:
 
 ```
 cd web && npm ci && npm run build && cd ..
-cargo build --release -p codeskimr
+cargo build --release --locked -p codeskimr
 ```
 
 Requirements and the full steps: [installation](docs/manual/en/installation.md).
