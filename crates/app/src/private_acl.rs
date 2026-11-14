@@ -10,12 +10,12 @@
 use std::ffi::OsString;
 use std::path::Path;
 
-#[cfg(windows)]
-use crate::consts::{ACL_TOOL, ENV_SYSTEM_ROOT, SYSTEM_TOOLS_DIR};
 use crate::consts::{
     ACCOUNT_SEPARATOR, ACL_FULL_RULE, ACL_GRANT, ACL_NO_INHERIT, ACL_QUIET, ENV_USERDOMAIN,
     ENV_USERNAME,
 };
+#[cfg(windows)]
+use crate::consts::{ACL_TOOL, ENV_SYSTEM_ROOT, SYSTEM_TOOLS_DIR};
 
 /// The account of the user as `DOMAIN\name`, or just the name without a domain. `None` if the
 /// environment does not say who the user is.
