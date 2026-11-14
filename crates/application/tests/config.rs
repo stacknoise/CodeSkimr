@@ -31,6 +31,13 @@ fn defaults_match_the_blueprint() {
 }
 
 #[test]
+fn level2_defaults_are_256_mib_and_half() {
+    let config = Config::defaults().expect("shipped defaults are valid");
+    assert_eq!(config.level2.max_index_bytes, 256 * 1024 * 1024);
+    assert!((config.level2.min_mapped - 0.5).abs() < f64::EPSILON);
+}
+
+#[test]
 fn later_layers_win_and_untouched_values_stay() {
     let layers = [
         user("[metrics]\ncyclomatic_good_max = 4\ncyclomatic_medium_max = 8\n"),
@@ -246,6 +253,22 @@ fn limits_and_folders_are_checked() {
             "[server]\nport = 0\n",
             "server.port",
             Violation::MustBePositive,
+        ),
+    ]);
+}
+
+#[test]
+fn level2_limits_are_checked() {
+    assert_rejected(&[
+        (
+            "[level2]\nmax_index_bytes = 0\n",
+            "level2.max_index_bytes",
+            Violation::MustBePositive,
+        ),
+        (
+            "[level2]\nmin_mapped = 1.5\n",
+            "level2.min_mapped",
+            Violation::MustBeShare,
         ),
     ]);
 }

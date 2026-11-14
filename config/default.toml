@@ -87,6 +87,13 @@ parse_timeout_ms = 5000
 # Largest total size of the scanned files of one source, in megabytes; a larger source fails with SRC-501.
 max_source_mb = 2048
 
+# Level 2 references from SCIP indexes (ADR 0033). Only the import reads these keys so far.
+[level2]
+# Largest SCIP index file that is read, in bytes (256 MiB); a larger one is refused with RES-501 and level 1 stays.
+max_index_bytes = 268435456
+# Share of the reference occurrences of an index that must map onto project symbols; a lower share fails the index with RES-302 and level 1 stays.
+min_mapped = 0.5
+
 # Local server (blueprint 10.3, S-04). It listens on the loopback address 127.0.0.1 only.
 [server]
 # TCP port of the local server. A port that is already taken fails with API-301.
