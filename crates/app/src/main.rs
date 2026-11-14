@@ -34,6 +34,8 @@ mod memory_keystore;
 mod oauth_stub;
 mod open;
 mod principal;
+#[cfg(any(windows, test))]
+mod private_acl;
 mod redact;
 mod refresh;
 mod run;
@@ -48,6 +50,7 @@ mod security_tests;
 mod serve;
 mod shared_keystore;
 mod source_arg;
+mod start;
 #[cfg(test)]
 mod tool_check_tests;
 mod ui_commands;

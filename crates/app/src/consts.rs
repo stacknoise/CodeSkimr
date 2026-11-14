@@ -264,6 +264,46 @@ pub const LAUNCH_DIR_MODE: u32 = 0o700;
 /// Mode bits that give a group or others any access.
 #[cfg(unix)]
 pub const OTHERS_MODE_MASK: u32 = 0o077;
+/// The Windows tool that sets access rules.
+#[cfg(windows)]
+pub const ACL_TOOL: &str = "icacls.exe";
+/// Environment variable with the Windows folder, below which the tool is looked for.
+#[cfg(windows)]
+pub const ENV_SYSTEM_ROOT: &str = "SYSTEMROOT";
+/// Folder of the system programs below the Windows folder.
+#[cfg(windows)]
+pub const SYSTEM_TOOLS_DIR: &str = "System32";
+/// `icacls` option: drop the rules the folder inherits (from a drive root they may give others access).
+#[cfg(any(windows, test))]
+pub const ACL_NO_INHERIT: &str = "/inheritance:r";
+/// `icacls` option: replace the rules for the named account.
+#[cfg(any(windows, test))]
+pub const ACL_GRANT: &str = "/grant:r";
+/// `icacls` option: no message about every file that was changed.
+#[cfg(any(windows, test))]
+pub const ACL_QUIET: &str = "/q";
+/// Rule for the account: full access to the folder and, by inheritance, to the files created in it.
+#[cfg(any(windows, test))]
+pub const ACL_FULL_RULE: &str = ":(OI)(CI)F";
+/// Environment variable with the name of the user on Windows.
+#[cfg(any(windows, test))]
+pub const ENV_USERNAME: &str = "USERNAME";
+/// Environment variable with the domain (or computer name) of the user on Windows.
+#[cfg(any(windows, test))]
+pub const ENV_USERDOMAIN: &str = "USERDOMAIN";
+/// Separates domain and user in a Windows account name.
+#[cfg(any(windows, test))]
+pub const ACCOUNT_SEPARATOR: &str = "\\";
+/// Mode bit that lets everybody write. The group bit is left out on purpose: on many systems every
+/// user has a private group and creates folders with group write.
+#[cfg(unix)]
+pub const OTHERS_WRITE_MASK: u32 = 0o002;
+/// Mode bit of a folder in which only the owner of an entry may remove or rename it (`/tmp`).
+#[cfg(unix)]
+pub const STICKY_MASK: u32 = 0o1000;
+/// The user id of the system administrator, who may own the folders above the launch folder.
+#[cfg(unix)]
+pub const ROOT_UID: u32 = 0;
 /// Launch files older than this many seconds beyond the lifetime of a code are removed.
 pub const LAUNCH_FILE_GRACE_SECONDS: u64 = 60;
 

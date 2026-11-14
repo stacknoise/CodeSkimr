@@ -99,6 +99,32 @@ async fn paths_cannot_leave_the_folder() {
     }
 }
 
+#[cfg(unix)]
+#[tokio::test]
+async fn links_inside_the_ui_folder_are_not_followed() {
+    let dir = ui_folder();
+    let outside = tempfile::tempdir().unwrap();
+    fs::write(outside.path().join("stolen.js"), "stolen").unwrap();
+    std::os::unix::fs::symlink(outside.path().join("stolen.js"), dir.path().join("link.js"))
+        .unwrap();
+    std::os::unix::fs::symlink(outside.path(), dir.path().join("folder")).unwrap();
+    let server = start_with(
+        owner(),
+        Some(dir.path().to_path_buf()),
+        Duration::from_secs(60),
+    )
+    .await;
+    for path in ["/link.js", "/folder/stolen.js"] {
+        let reply = Call::get(path).send(&server).await;
+        assert_eq!(reply.status, 404, "{path}");
+        assert!(!reply.body.contains("stolen"), "{path}");
+    }
+    assert_eq!(
+        Call::get("/assets/app-1.js").send(&server).await.status,
+        200
+    );
+}
+
 #[tokio::test]
 async fn without_a_ui_folder_every_unknown_path_is_an_api_error() {
     let server = start(owner()).await;
@@ -143,6 +169,8 @@ async fn every_answer_carries_the_policy() {
         assert!(!policy.contains('*'), "{policy}");
         assert_eq!(reply.header("referrer-policy"), Some("no-referrer"));
         assert_eq!(reply.header("x-content-type-options"), Some("nosniff"));
+        let features = reply.header("permissions-policy").unwrap_or_default();
+        assert!(features.contains("camera=()"), "{features}");
     }
 }
 

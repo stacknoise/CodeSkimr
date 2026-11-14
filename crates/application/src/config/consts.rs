@@ -139,8 +139,14 @@ pub const PLACEHOLDER_PATH: &str = "{path}";
 /// Characters besides lower-case letters and digits that a URL scheme may contain.
 pub const SCHEME_EXTRA_CHARS: [char; 3] = ['+', '-', '.'];
 
-/// Name of the table of the project file that is never read (ADR 0033, decision 9).
-pub const UNTRUSTED_PROJECT_TABLE: &str = "level2";
+/// Tables of the project file that are never read: a scanned repository must not switch on
+/// running its own build scripts (`level2`, ADR 0033, decision 9), allow other URL schemes for
+/// "open in editor" (`editor`) or point the server at a folder (`ui`) (ADR 0030, decisions 7, 12).
+pub const UNTRUSTED_PROJECT_TABLES: [&str; 3] = ["level2", "editor", "ui"];
+
+/// URL schemes that run script or open local files in a browser. They are refused in
+/// `editor.allowed_schemes` in every layer (ADR 0030).
+pub const FORBIDDEN_EDITOR_SCHEMES: [&str; 4] = ["javascript", "data", "file", "vbscript"];
 
 /// Table that holds the scan limits.
 pub const SCAN_TABLE: &str = "scan";

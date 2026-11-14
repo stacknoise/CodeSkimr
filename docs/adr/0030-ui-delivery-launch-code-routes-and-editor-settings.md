@@ -20,7 +20,7 @@ ADR 0028 decided the framework, the editor link, the theme build and the launch 
 
 10. **Exception to blueprint 10.1:** the launch code and exchange routes are not commands of the registry and take no `Principal`; the installation token (or the code) takes that role. They are the only such routes besides the UI files.
 11. **Accepted risk:** `codeskimr open` sends the installation token over plain loopback HTTP to the configured port. A local user who listens on that port while no server runs could read it. This is accepted for the single-user mode; the team server (ADR 0019) uses its own login. `open` also refuses a code that is not 32 hexadecimal digits before it writes the launch page.
-12. **Known gap:** decision 7 (project files cannot set `editor.*` and `ui.*`) holds because `serve` and `open` load the configuration without a project file. The configuration layer does not reject these keys yet; see the follow-up issue.
+12. **Known gap (closed by ADR 0041):** decision 7 (project files cannot set `editor.*` and `ui.*`) holds because `serve` and `open` load the configuration without a project file. The configuration layer does not reject these keys yet; see the follow-up issue.
 
 ## Consequences
 
