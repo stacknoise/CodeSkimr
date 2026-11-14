@@ -102,18 +102,28 @@ impl ProcessIndexRunner {
         // Consent is read again right before the process starts: it may have been withdrawn, or
         // the project pointed elsewhere, since the permit was issued.
         job.permit.recheck().map_err(IndexerError::NotConfirmed)?;
-        match run_guarded(&launch, cancel) {
-            Ok(finished) => self.finish(&finished, output),
-            Err(RunError::Io(cause)) => {
-                Err(failed(FailureReason::Io(cause.to_string()), String::new()))
-            }
-            Err(RunError::Stopped { stop, survived }) => {
-                if survived {
-                    Self::keep_for_sweep(&job.spec.name, output);
-                }
-                Err(stopped(stop))
-            }
+        self.run_launched(job, &launch, cancel, output)
+    }
+
+    /// Runs the process and turns its end into the result; a leader that outlived the kill keeps
+    /// the run folder for the sweep.
+    fn run_launched(
+        &self,
+        job: &IndexJob<'_>,
+        launch: &Launch,
+        cancel: &CancelToken,
+        output: OutputDir,
+    ) -> Result<IndexArtifact, IndexerError> {
+        let (error, survived) = match run_guarded(launch, cancel) {
+            Ok(finished) => return self.finish(&finished, output),
+            Err(RunError::Io(cause)) => (io_failure(&cause), false),
+            Err(RunError::Watch { cause, survived }) => (io_failure(&cause), survived),
+            Err(RunError::Stopped { stop, survived }) => (stopped(stop), survived),
+        };
+        if survived {
+            Self::keep_for_sweep(&job.spec.name, output);
         }
+        Err(error)
     }
 
     /// The leader outlived the kill: the folder with the notes stays, so that the next start finds
@@ -157,6 +167,10 @@ impl ProcessIndexRunner {
         }
         tracing::warn!({ LOG_INDEXER } = %spec.name, { LOG_CODE } = error.code().id(), { LOG_EXCERPT } = %excerpt);
     }
+}
+
+fn io_failure(cause: &std::io::Error) -> IndexerError {
+    failed(FailureReason::Io(cause.to_string()), String::new())
 }
 
 fn failed(reason: FailureReason, excerpt: String) -> IndexerError {

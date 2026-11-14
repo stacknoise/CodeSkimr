@@ -69,8 +69,16 @@ pub enum Stop {
 /// Why a run gave no result.
 #[derive(Debug)]
 pub enum RunError {
-    /// The process could not be started or watched.
+    /// The process could not be started.
     Io(io::Error),
+    /// The process could not be watched any more (its state cannot be read) and was killed.
+    /// `survived` is set if the leader was still running after the bound for the wait.
+    Watch {
+        /// What went wrong.
+        cause: io::Error,
+        /// Whether the leader outlived the kill.
+        survived: bool,
+    },
     /// The run was stopped and its process group killed. `survived` is set if the leader was
     /// still running after the bound for the wait: nothing may delete what it could still use.
     Stopped {
@@ -286,12 +294,14 @@ fn folder_bytes(dir: &Path, depth: usize) -> u64 {
         .fold(0, u64::saturating_add)
 }
 
-/// Starts the program and waits for it under the limits. The process group is dead when this
-/// returns, whatever the result.
+/// Starts the program and waits for it under the limits. The process group is killed when this
+/// returns, whatever the result. Only if the leader was still running ten seconds after the kill
+/// (`survived` of [`RunError::Stopped`] and [`RunError::Watch`]) can something of it be left, and
+/// the caller must then keep the run folder for the sweep of the next start.
 ///
 /// # Errors
-/// [`RunError::Io`] if the process cannot be started or watched, [`RunError::Stopped`] if a limit
-/// or the cancel token ended it.
+/// [`RunError::Io`] if the process cannot be started, [`RunError::Watch`] if it cannot be watched,
+/// [`RunError::Stopped`] if a limit or the cancel token ended it.
 pub fn run_guarded(launch: &Launch, cancel: &CancelToken) -> Result<Finished, RunError> {
     let memory = TreeMemory::new().map_err(RunError::Io)?;
     let mut group = spawn(launch).map_err(RunError::Io)?;
@@ -333,8 +343,13 @@ pub fn run_guarded(launch: &Launch, cancel: &CancelToken) -> Result<Finished, Ru
 
 fn wait_for(group: &mut Group, watch: &mut Watch<'_>) -> Result<ExitStatus, RunError> {
     loop {
-        if let Some(status) = group.0.try_wait().map_err(RunError::Io)? {
-            return Ok(status);
+        match group.0.try_wait() {
+            Ok(Some(status)) => return Ok(status),
+            Ok(None) => {}
+            Err(cause) => {
+                let survived = !group.kill();
+                return Err(RunError::Watch { cause, survived });
+            }
         }
         if let Some(stop) = watch.verdict(group.0.id()) {
             let survived = !group.kill();
