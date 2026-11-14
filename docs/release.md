@@ -6,3 +6,5 @@
 4. The product owner tries the packages and publishes the draft (this creates the tag). Nothing is public before that.
 
 macOS is not part of the preview (issue #131). The package contains the program, `languages/`, `default.toml`, the manual, the licence and the two preview notes.
+
+The Node version has one source, `.node-version`. `web/package.json` carries the same version as the program (it is not published on its own).

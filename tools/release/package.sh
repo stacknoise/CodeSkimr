@@ -27,7 +27,7 @@ cp docs/release/preview-en.md "${stage}/README-PREVIEW.md"
 
 case "${platform}" in
   windows*)
-    (cd dist && tar -a -cf "${name}.zip" "${name}")
+    (cd dist && 7z a -tzip -bso0 "${name}.zip" "${name}" && 7z t -bso0 "${name}.zip")
     archive="${name}.zip"
     ;;
   *)
@@ -36,5 +36,6 @@ case "${platform}" in
     ;;
 esac
 
+rm -rf "${stage}"
 (cd dist && sha256sum "${archive}" > "${archive}.sha256")
 echo "dist/${archive}"

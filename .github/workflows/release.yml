@@ -24,6 +24,19 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+      - name: Version has the right form and matches Cargo.toml
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$'; then
+            echo "Not a version: $VERSION" >&2
+            exit 1
+          fi
+          found=$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)
+          if [ "$found" != "$VERSION" ]; then
+            echo "Cargo.toml has version $found, the input is $VERSION" >&2
+            exit 1
+          fi
       - name: Create the draft pre-release (empty, the packages are added by the next jobs)
         env:
           GH_TOKEN: ${{ github.token }}
@@ -54,21 +67,12 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - name: Version matches Cargo.toml
-        env:
-          VERSION: ${{ inputs.version }}
-        run: |
-          found=$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)
-          if [ "$found" != "$VERSION" ]; then
-            echo "Cargo.toml has version $found, the input is $VERSION" >&2
-            exit 1
-          fi
       - name: Install Rust toolchain
         run: rustup show active-toolchain || rustup toolchain install
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: "22"
+          node-version-file: .node-version
           cache: npm
           cache-dependency-path: web/package-lock.json
       # The UI is embedded into the program by crates/app/build.rs, so it is built first.

@@ -1,7 +1,7 @@
 {
   "name": "codeskimr-web",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.9.0-preview.1",
   "description": "The browser UI of CodeSkimr (blueprint 15, ADR 0028).",
   "license": "MIT",
   "engines": {
