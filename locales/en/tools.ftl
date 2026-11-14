@@ -13,8 +13,6 @@ tool-node-install = Install Node.js from nodejs.org or with a version manager, i
 
 tool-scip-python-purpose = scip-python reads the exact usages of Python code from the type checker (level 2). Without it, usages are shown as unchecked.
 tool-scip-python-install = Install it with "npm install -g @sourcegraph/scip-python".
-tool-python3-purpose = Python runs the indexer's analysis in the environment of the project, in the version the project asks for (.python-version).
-tool-python3-install = Install Python 3 from python.org or with a version manager, in the version .python-version names.
 
 tool-rust-analyzer-purpose = rust-analyzer reads the exact usages of Rust code (level 2). Without it, usages are shown as unchecked.
 tool-rust-analyzer-install = Install it with "rustup component add rust-analyzer".

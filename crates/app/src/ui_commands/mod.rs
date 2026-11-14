@@ -28,7 +28,7 @@ use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 use codeskimr_application::config::{Config, Graph, MetricThresholds};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
-use codeskimr_application::ports::{ProjectToolCheck, ToolProbe};
+use codeskimr_application::ports::{IndexRunner, ProjectToolCheck};
 use codeskimr_application::registry::Registry;
 use codeskimr_cli::GlobalOptions;
 use codeskimr_server::CommandApi;
@@ -38,7 +38,7 @@ pub(crate) use status::{mark_ready, mark_started};
 
 use crate::config_files;
 use crate::locations::Locations;
-use crate::wiring::{Secrets, open_store, process_probe, tool_checker};
+use crate::wiring::{Secrets, index_runner, open_store, tool_checker};
 use codeskimr_storage::SqliteStore;
 use credentials::{DeleteCredential, ListCredentials, SetCredential};
 use explorer::{ExplorerOutline, ExplorerPorts};
@@ -104,7 +104,7 @@ pub fn command_api(
     command_api_probing(global, locations, (events, secrets), None)
 }
 
-/// Like [`command_api`], but the tools are started through `probe` instead of as real processes
+/// Like [`command_api`], but the tools are started through `runner` instead of as real processes
 /// (tests use this to say which tools exist).
 ///
 /// # Errors
@@ -113,12 +113,12 @@ pub fn command_api_probing(
     global: &GlobalOptions,
     locations: &Locations,
     (events, secrets): (EventBus, Arc<Secrets>),
-    probe: Option<Arc<dyn ToolProbe>>,
+    runner: Option<Arc<dyn IndexRunner>>,
 ) -> Result<CommandApi, CodedError> {
     let config = config_files::load(locations, global, None)?;
     let catalog = open_store(locations, &config)?;
-    let probe = probe.unwrap_or_else(|| process_probe(&config, locations));
-    let tools = tool_checker(&catalog, &config, (locations, probe))?;
+    let runner = runner.unwrap_or_else(|| index_runner(locations));
+    let tools = tool_checker(&catalog, (locations, runner))?;
     let context = Arc::new(Context {
         global: global.clone(),
         locations: locations.clone(),

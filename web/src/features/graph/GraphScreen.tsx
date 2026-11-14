@@ -10,9 +10,11 @@ import { KEY, LEVEL } from "./consts";
 import {
   graphData,
   graphFailed,
+  graphDepth,
   graphLevel,
   loadGraph,
   resetGraph,
+  setGraphDepth,
   setGraphLevel,
   wantedLayer,
   wantLayer,
@@ -78,7 +80,7 @@ export function GraphScreen() {
   });
   createEffect(
     on(
-      graphLevel,
+      [graphLevel, graphDepth],
       () => {
         const id = project();
         if (id !== null) {
@@ -128,6 +130,8 @@ export function GraphScreen() {
                   <Toolbar
                     level={graphLevel()}
                     onLevel={setGraphLevel}
+                    depth={graphDepth()}
+                    onDepth={setGraphDepth}
                     weak={weak()}
                     onWeak={setWeak}
                     violationsOnly={filtering()}

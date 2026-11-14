@@ -5,5 +5,5 @@ mod judge;
 mod view;
 
 pub use checker::{ToolCheckPorts, ToolChecker};
-pub use judge::judge;
+pub use judge::findings_of;
 pub use view::{Readiness, ToolView, ToolsView};

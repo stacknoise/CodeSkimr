@@ -31,6 +31,13 @@ fn defaults_match_the_blueprint() {
 }
 
 #[test]
+fn level2_defaults_are_256_mib_and_half() {
+    let config = Config::defaults().expect("shipped defaults are valid");
+    assert_eq!(config.level2.max_index_bytes, 256 * 1024 * 1024);
+    assert!((config.level2.min_mapped - 0.5).abs() < f64::EPSILON);
+}
+
+#[test]
 fn later_layers_win_and_untouched_values_stay() {
     let layers = [
         user("[metrics]\ncyclomatic_good_max = 4\ncyclomatic_medium_max = 8\n"),
@@ -251,6 +258,22 @@ fn limits_and_folders_are_checked() {
 }
 
 #[test]
+fn level2_limits_are_checked() {
+    assert_rejected(&[
+        (
+            "[level2]\nmax_index_bytes = 0\n",
+            "level2.max_index_bytes",
+            Violation::MustBePositive,
+        ),
+        (
+            "[level2]\nmin_mapped = 1.5\n",
+            "level2.min_mapped",
+            Violation::MustBeShare,
+        ),
+    ]);
+}
+
+#[test]
 fn the_editor_link_and_the_ui_are_checked() {
     assert_rejected(&[
         (
@@ -347,42 +370,6 @@ fn a_layer_needs_a_unique_name_and_a_namespace() {
             "[[layers]]\nname = \"\"\nnamespaces = [\"x\"]\n",
             "layers",
             Violation::MustBeLayerRule,
-        ),
-    ]);
-}
-
-#[test]
-fn the_tool_check_has_defaults_and_its_limits_are_checked() {
-    let config = Config::defaults().expect("shipped defaults are valid");
-    assert_eq!(config.tools.probe_timeout_ms, 5000);
-    assert!(config.tools.env_allowlist.iter().any(|name| name == "PATH"));
-    assert!(
-        !config
-            .tools
-            .env_allowlist
-            .iter()
-            .any(|name| name.contains("TOKEN"))
-    );
-    assert_rejected(&[
-        (
-            "[tools]\nprobe_timeout_ms = 0\n",
-            "tools.probe_timeout_ms",
-            Violation::MustBePositive,
-        ),
-        (
-            "[tools]\nprobe_max_output_bytes = 0\n",
-            "tools.probe_max_output_bytes",
-            Violation::MustBePositive,
-        ),
-        (
-            "[tools]\nrequirement_max_bytes = 0\n",
-            "tools.requirement_max_bytes",
-            Violation::MustBePositive,
-        ),
-        (
-            "[tools]\nenv_allowlist = [\"\"]\n",
-            "tools.env_allowlist",
-            Violation::MustNotBeEmpty,
         ),
     ]);
 }

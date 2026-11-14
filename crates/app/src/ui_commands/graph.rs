@@ -36,6 +36,10 @@ pub struct GraphInput {
     /// What a box stands for; the layers if left out.
     #[serde(default)]
     pub level: Level,
+    /// On the level `namespaces`: merge the namespaces into their first `depth` segments; zero (or
+    /// left out) keeps every namespace.
+    #[serde(default)]
+    pub depth: u32,
 }
 
 /// One layer box of the map. `x` and `y` are the top-left corner in layout units.
@@ -198,7 +202,9 @@ impl Command for GraphLayers {
         let look = &ports.look;
         let mut out = match request.input.level {
             Level::Layers => layers_out(ports, &project.layers, snapshot.id)?,
-            Level::Namespaces => namespaces_out(ports, &project.layers, snapshot.id)?,
+            Level::Namespaces => {
+                namespaces_out(ports, &project.layers, snapshot.id, request.input.depth)?
+            }
         };
         out.snapshot = Some(snapshot.id.get());
         out.bands = bands_out(&project.layers, &out.boxes, look);
@@ -309,8 +315,10 @@ fn namespaces_out(
     ports: &GraphPorts,
     layers: &[Layer],
     snapshot: SnapshotId,
+    depth: u32,
 ) -> Result<GraphOut, CodedError> {
-    let graph = ports.index.namespace_graph(snapshot)?;
+    let depth = usize::try_from(depth).unwrap_or_default();
+    let graph = ports.index.namespace_graph(snapshot)?.collapsed(depth);
     let positions: Vec<Option<usize>> = graph
         .namespaces
         .iter()

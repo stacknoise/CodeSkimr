@@ -1,8 +1,20 @@
+import { I18N_KEYS } from "../../shared/i18n/keys";
+
 /** Id of the command that places the layers (crates/app/src/ui_commands/consts.rs). */
 export const GRAPH_COMMAND = "graph.layers";
 
 /** The levels of the map, as the command names them. */
 export const LEVEL = { layers: "layers", namespaces: "namespaces" } as const;
+
+/** The depths of the namespace level: how many segments of a name stay (0 keeps them all), with
+ * the text of the button. */
+export const DEPTHS = [
+  { value: 0, label: I18N_KEYS.GRAPH_DEPTH_ALL },
+  { value: 1, label: I18N_KEYS.GRAPH_DEPTH_1 },
+  { value: 2, label: I18N_KEYS.GRAPH_DEPTH_2 },
+] as const;
+/** Depth that keeps every namespace. */
+export const DEPTH_ALL = 0;
 
 /** The look of an edge. */
 export const EDGE = { out: "out", in: "in", violation: "violation", weak: "weak" } as const;

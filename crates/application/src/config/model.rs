@@ -4,6 +4,10 @@ use codeskimr_domain::{
     FingerprintParams, Layer, LayerName, LayoutParams, ModelError, NodeSize, QualifiedName,
 };
 use serde::Deserialize;
+use std::time::Duration;
+
+use crate::consts::BYTES_PER_MIB;
+use crate::ports::IndexLimits;
 
 /// The complete, validated configuration. Built by [`crate::config::Config::resolve`].
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -27,8 +31,8 @@ pub struct Config {
     pub conventions: Conventions,
     /// Scan behaviour.
     pub scan: Scan,
-    /// The check of the tools that level 2 needs.
-    pub tools: Tools,
+    /// Level 2 references from SCIP indexes.
+    pub level2: Level2,
     /// The local server.
     pub server: Server,
     /// The link that opens a source position in the editor.
@@ -173,18 +177,24 @@ pub struct Scan {
     pub max_source_mb: u32,
 }
 
-/// The check of the tools a project needs for level 2 (ADR 0033, decision 8).
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+/// Settings and limits of level 2: running indexers and importing their indexes (ADR 0033).
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
-pub struct Tools {
-    /// Time a tool has to print its version, in milliseconds; then the process is killed.
-    pub probe_timeout_ms: u32,
-    /// Most bytes of output that are read from a tool; the rest is dropped.
-    pub probe_max_output_bytes: u32,
-    /// Largest file that is read for the version a project requires, in bytes.
-    pub requirement_max_bytes: u32,
-    /// Names of the environment variables a tool process gets; it sees no other.
-    pub env_allowlist: Vec<String>,
+pub struct Level2 {
+    /// Master switch for running indexers. Only the user config and command line flags can set
+    /// it; the project file cannot (ADR 0033, decision 9).
+    pub enabled: bool,
+    /// Longest time one indexer may run, in seconds.
+    pub timeout_seconds: u32,
+    /// Most memory one indexer with its child processes may hold, in megabytes.
+    pub max_memory_mb: u32,
+    /// Most bytes one indexer may write in total (console and output directory).
+    pub max_output_bytes: u64,
+    /// Largest index file that is read, in bytes.
+    pub max_index_bytes: u64,
+    /// Smallest share `mapped / (mapped + unmapped)` among the uses of project symbols (symbols
+    /// the index defines itself; library symbols are not counted), from 0 to 1.
+    pub min_mapped: f64,
 }
 
 /// The local server (blueprint 10.3).
@@ -279,6 +289,18 @@ impl Graph {
             node_gap: self.node_gap,
             sweeps: self.sweeps,
             placement_passes: self.placement_passes,
+        }
+    }
+}
+
+impl Level2 {
+    /// The limits of one indexer run.
+    #[must_use]
+    pub fn limits(&self) -> IndexLimits {
+        IndexLimits {
+            timeout: Duration::from_secs(u64::from(self.timeout_seconds)),
+            max_memory_bytes: u64::from(self.max_memory_mb).saturating_mul(BYTES_PER_MIB),
+            max_output_bytes: self.max_output_bytes,
         }
     }
 }

@@ -55,6 +55,5 @@ pub use snapshot::{CommitHash, ScanMode, Snapshot, SnapshotId, SnapshotStats, Ti
 pub use span::{Position, Span};
 pub use symbol::{Symbol, SymbolId, SymbolKind, SymbolName, Visibility};
 pub use tool::{
-    RequirementFormat, RequirementSpec, ToolEntry, ToolFinding, ToolReport, ToolRole, ToolSpec,
-    ToolState, ToolVersion,
+    RequirementFormat, RequirementSpec, ToolEntry, ToolFinding, ToolReport, ToolRole, ToolState,
 };

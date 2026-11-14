@@ -7,6 +7,7 @@
 
 mod catalog;
 mod codec;
+mod consent;
 mod consts;
 mod cycles;
 mod detail;

@@ -2,8 +2,6 @@
 
 mod report;
 mod spec;
-mod version;
 
 pub use report::{ToolEntry, ToolFinding, ToolReport, ToolState};
-pub use spec::{RequirementFormat, RequirementSpec, ToolRole, ToolSpec};
-pub use version::ToolVersion;
+pub use spec::{RequirementFormat, RequirementSpec, ToolRole};

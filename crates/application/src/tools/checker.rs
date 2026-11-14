@@ -1,23 +1,22 @@
 //! The service behind `ProjectToolCheck`.
 
-use std::collections::HashMap;
 use std::sync::Arc;
 
-use codeskimr_domain::{ProjectId, ProjectSource, ToolReport, ToolSpec};
+use codeskimr_domain::{ProjectId, ProjectSource, ToolReport};
 
-use super::judge::judge;
+use super::judge::findings_of;
 use crate::error::CodedError;
 use crate::ports::{
-    Clock, ProbeOutcome, ProjectCatalog, ProjectRepository, ProjectToolCheck, RequirementReader,
-    ToolCatalog, ToolProbe, ToolReportStore,
+    Clock, IndexRunner, IndexerSpec, IndexerStatus, ProjectCatalog, ProjectRepository,
+    ProjectToolCheck, RequirementReader, ToolCatalog, ToolPlan, ToolReportStore, ToolVersion,
 };
 
 /// Everything the check needs from the adapters, wired by the composition root.
 pub struct ToolCheckPorts {
-    /// The tools the language packs ask for.
+    /// The plans the language packs ask for.
     pub catalog: Arc<dyn ToolCatalog>,
-    /// Starts a tool for its version.
-    pub probe: Arc<dyn ToolProbe>,
+    /// Finds out whether an indexer and its toolchain are installed (starts no project code).
+    pub runner: Arc<dyn IndexRunner>,
     /// Reads the versions the project requires.
     pub requirements: Arc<dyn RequirementReader>,
     /// Keeps the report with the project.
@@ -42,48 +41,57 @@ impl ToolChecker {
         Self { ports }
     }
 
-    /// The tools of all languages of the project, in the order of the languages.
-    fn specs(&self, project: ProjectId) -> Result<Vec<ToolSpec>, CodedError> {
-        Ok(self
-            .ports
-            .overview
-            .languages(project)?
-            .iter()
-            .flat_map(|share| self.ports.catalog.tools_of(&share.language))
-            .collect())
-    }
-
-    /// Probes every distinct command once: TypeScript and JavaScript share their tools.
-    fn probe_all(&self, specs: &[ToolSpec]) -> HashMap<(String, Vec<String>), ProbeOutcome> {
-        let mut outcomes = HashMap::new();
-        for spec in specs {
-            outcomes
-                .entry((spec.command.clone(), spec.version_args.clone()))
-                .or_insert_with(|| self.ports.probe.probe(&spec.command, &spec.version_args));
+    /// The indexer of `plan` with every toolchain version raised to what the project asks for, if
+    /// that is newer than what the pack asks for.
+    fn asked_for(&self, source: &ProjectSource, plan: ToolPlan) -> IndexerSpec {
+        let mut spec = plan.indexer;
+        for requirement in &plan.requirements {
+            let Some(text) = self.ports.requirements.read(source, &requirement.file) else {
+                continue;
+            };
+            let Some(asked) = ToolVersion::parse_requirement(&text) else {
+                continue;
+            };
+            for tool in &mut spec.toolchain {
+                if tool.program == requirement.program && tool.min_version < asked {
+                    tool.min_version = asked;
+                }
+            }
         }
-        outcomes
+        spec
     }
+}
 
-    fn requirement(&self, source: &ProjectSource, spec: &ToolSpec) -> Option<String> {
-        let requirement = spec.requirement.as_ref()?;
-        self.ports.requirements.read(source, requirement)
+impl ToolChecker {
+    /// What the runner says about `spec`, asked once per distinct spec.
+    fn status_of(
+        &self,
+        checked: &mut Vec<(IndexerSpec, IndexerStatus)>,
+        spec: &IndexerSpec,
+    ) -> IndexerStatus {
+        if let Some((_, status)) = checked.iter().find(|(seen, _)| seen == spec) {
+            return status.clone();
+        }
+        let status = self.ports.runner.check(spec);
+        checked.push((spec.clone(), status.clone()));
+        status
     }
 }
 
 impl ProjectToolCheck for ToolChecker {
     fn check(&self, project: ProjectId) -> Result<ToolReport, CodedError> {
         let source = self.ports.projects.project(project)?.source;
-        let specs = self.specs(project)?;
-        let outcomes = self.probe_all(&specs);
-        let findings = specs
-            .iter()
-            .filter_map(|spec| {
-                let key = (spec.command.clone(), spec.version_args.clone());
-                let outcome = outcomes.get(&key)?;
-                let required = self.requirement(&source, spec);
-                Some(judge(spec, outcome, required.as_deref()))
-            })
-            .collect();
+        // TypeScript, JavaScript and TSX share their tools: each distinct spec is checked once.
+        let mut checked: Vec<(IndexerSpec, IndexerStatus)> = Vec::new();
+        let mut findings = Vec::new();
+        for share in self.ports.overview.languages(project)? {
+            let Some(plan) = self.ports.catalog.plan_of(&share.language) else {
+                continue;
+            };
+            let spec = self.asked_for(&source, plan);
+            let status = self.status_of(&mut checked, &spec);
+            findings.extend(findings_of(&share.language, &spec, &status));
+        }
         let report = ToolReport {
             checked_at: self.ports.clock.now(),
             findings,

@@ -1,7 +1,8 @@
+import { For, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
-import { LEVEL } from "./consts";
+import { DEPTHS, LEVEL } from "./consts";
 import type { Level } from "./types";
 import styles from "./Toolbar.module.css";
 
@@ -10,6 +11,8 @@ import styles from "./Toolbar.module.css";
 export function Toolbar(props: {
   level: Level;
   onLevel: (level: Level) => void;
+  depth: number;
+  onDepth: (depth: number) => void;
   weak: boolean;
   onWeak: (on: boolean) => void;
   violationsOnly: boolean;
@@ -36,6 +39,22 @@ export function Toolbar(props: {
           {t(I18N_KEYS.GRAPH_MODE_NAMESPACES)}
         </button>
       </div>
+      <Show when={props.level === LEVEL.namespaces}>
+        <div class={styles.levels} role="group" aria-label={t(I18N_KEYS.GRAPH_DEPTH_LABEL)}>
+          <For each={DEPTHS}>
+            {(item) => (
+              <button
+                type="button"
+                class={cx(styles.level, props.depth === item.value && styles.on)}
+                aria-pressed={props.depth === item.value}
+                onClick={() => props.onDepth(item.value)}
+              >
+                {t(item.label)}
+              </button>
+            )}
+          </For>
+        </div>
+      </Show>
       <label class={styles.toggle}>
         <input
           type="checkbox"

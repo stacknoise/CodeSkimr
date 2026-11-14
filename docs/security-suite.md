@@ -23,6 +23,16 @@ Each traversal test has a positive control (a class inside the project is found)
 | `commands::the_export_holds_no_secret_from_a_method_body_and_no_path` | CLI `export --html` | A secret in a method body, and the project and data folder paths, are not in the page. |
 | `security_login_tests::a_stored_credential_reaches_the_remote_and_nothing_else` | REST, Git login | A credential stored over `credentials.set` is used for a login at a remote (the remote saw `Basic` for that user), and neither the secret nor the installation token is in any answer or file of the data folder; the remote never got the installation token. |
 
+## Added with the level 2 runner (ADR 0033)
+
+| Test | Surface | Proves |
+| --- | --- | --- |
+| `codeskimr_indexer` `the_environment_holds_no_secret_and_nothing_unlisted` | environment of an indexer | Canary values in variables named like tokens, passwords, keys and in `CODESKIMR_*`, and in a variable that no allow list names, are not in the environment of the indexer; a variable that a pack lists but whose name looks secret is dropped as well (S-02). |
+| `a_failing_indexer_is_reported_with_its_redacted_output` | console output of an indexer | A canary in the console output is not in the error or its `Debug` text (S-01, S-02). |
+| `a_program_inside_the_project_is_never_used` | program lookup | A copy of the indexer inside the project folder, on the `PATH`, is not started (S-05). |
+| `the_project_file_cannot_switch_level_2_on_or_raise_its_limits`, `by_default_nothing_runs` | consent | The `level2` table of `.codeskimr.toml` has no effect. |
+| `a_restricted_principal_may_neither_confirm_nor_start` | permissions | Without `confirm_indexer` or `run_indexer` the call gets `SEC-403` and nothing is written (S-06). |
+
 Crash output is covered by the unit test `logging::tests::a_panic_is_reported_without_its_secret`:
 the binary has no input that makes it panic, so the hook is tested in the process.
 

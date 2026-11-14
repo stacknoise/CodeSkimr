@@ -40,3 +40,7 @@ graph-no-edges = Zwischen den Schichten wurden noch keine Abhängigkeiten gefund
 graph-failed = Die Karte konnte nicht geladen werden.
 graph-fit-key = F
 graph-open-key = Enter
+graph-depth-label = Tiefe
+graph-depth-all = alle
+graph-depth-1 = 1 Stufe
+graph-depth-2 = 2 Stufen

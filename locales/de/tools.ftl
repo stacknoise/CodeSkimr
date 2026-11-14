@@ -14,8 +14,6 @@ tool-node-install = Node.js von nodejs.org oder mit einem Versionsmanager instal
 
 tool-scip-python-purpose = scip-python liest die genauen Verwendungen von Python-Code aus dem Typprüfer (Stufe 2). Ohne es werden Verwendungen als ungeprüft angezeigt.
 tool-scip-python-install = Installation mit "npm install -g @sourcegraph/scip-python".
-tool-python3-purpose = Python führt die Analyse des Indexers in der Umgebung des Projekts aus, in der Version, die das Projekt verlangt (.python-version).
-tool-python3-install = Python 3 von python.org oder mit einem Versionsmanager installieren, in der Version, die .python-version nennt.
 
 tool-rust-analyzer-purpose = rust-analyzer liest die genauen Verwendungen von Rust-Code (Stufe 2). Ohne es werden Verwendungen als ungeprüft angezeigt.
 tool-rust-analyzer-install = Installation mit "rustup component add rust-analyzer".

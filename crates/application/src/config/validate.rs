@@ -7,7 +7,7 @@ use super::consts::{
     URL_SCHEME_SEPARATOR, keys,
 };
 use super::error::{ConfigError, Violation};
-use super::model::{Budgets, Config, Editor, McpLimits, MetricThresholds, Scan, Tools, Ui};
+use super::model::{Budgets, Config, Editor, Level2, McpLimits, MetricThresholds, Scan, Ui};
 
 /// Checks every value of `config`.
 ///
@@ -42,7 +42,7 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     )?;
     check_layers(config)?;
     check_scan(&config.scan)?;
-    check_tools(&config.tools)?;
+    check_level2(&config.level2)?;
     check_editor(&config.editor)?;
     check_ui(&config.ui)?;
     positive(keys::GRAPH_NODE_WIDTH, config.graph.node_width)?;
@@ -170,6 +170,21 @@ fn check_mcp(mcp: &McpLimits) -> Result<(), ConfigError> {
     positive(keys::MCP_MAX_SNIPPET_BYTES, mcp.max_snippet_bytes)
 }
 
+fn check_level2(level2: &Level2) -> Result<(), ConfigError> {
+    if level2.max_index_bytes == 0 {
+        return fail(keys::LEVEL2_MAX_INDEX_BYTES, Violation::MustBePositive);
+    }
+    positive(keys::LEVEL2_TIMEOUT_SECONDS, level2.timeout_seconds)?;
+    positive(keys::LEVEL2_MAX_MEMORY_MB, level2.max_memory_mb)?;
+    if level2.max_output_bytes < level2.max_index_bytes {
+        return fail(
+            keys::LEVEL2_MAX_OUTPUT_BYTES,
+            Violation::MustNotBeBelow(keys::LEVEL2_MAX_INDEX_BYTES),
+        );
+    }
+    share(keys::LEVEL2_MIN_MAPPED, level2.min_mapped)
+}
+
 fn check_scan(scan: &Scan) -> Result<(), ConfigError> {
     positive(keys::PARSE_TIMEOUT_MS, scan.parse_timeout_ms)?;
     positive(keys::MAX_SOURCE_MB, scan.max_source_mb)?;
@@ -179,22 +194,6 @@ fn check_scan(scan: &Scan) -> Result<(), ConfigError> {
     let is_bad = |name: &String| name.is_empty() || name.contains(PATH_SEPARATORS);
     if scan.excluded_folders.iter().any(is_bad) {
         return fail(keys::EXCLUDED_FOLDERS, Violation::MustBeFolderName);
-    }
-    Ok(())
-}
-
-fn check_tools(tools: &Tools) -> Result<(), ConfigError> {
-    positive(keys::TOOLS_PROBE_TIMEOUT_MS, tools.probe_timeout_ms)?;
-    positive(
-        keys::TOOLS_PROBE_MAX_OUTPUT_BYTES,
-        tools.probe_max_output_bytes,
-    )?;
-    positive(
-        keys::TOOLS_REQUIREMENT_MAX_BYTES,
-        tools.requirement_max_bytes,
-    )?;
-    if tools.env_allowlist.iter().any(String::is_empty) {
-        return fail(keys::TOOLS_ENV_ALLOWLIST, Violation::MustNotBeEmpty);
     }
     Ok(())
 }

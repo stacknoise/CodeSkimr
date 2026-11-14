@@ -72,27 +72,21 @@ visibility = "private"
 prefix = "_"
 visibility = "internal"
 
-# Tools that level 2 needs (ADR 0033, decisions 1 and 8). On every load of a project CodeSkimr
-# checks that each exists and, where a version is stated, is new enough. The indexer and its
-# version are settled by the spike of ADR 0033, so `min_version` stays out until then; a version
-# the project itself names (see `requirement`) is always checked.
+# Level 2 (ADR 0033): scip-python (Pyright) indexes the Python files of the project folder.
+# Only runs when the user enabled and confirmed level 2 for the project. CodeSkimr never downloads or
+# installs anything: the user installs the indexer and its toolchain.
+[indexer]
+name = "scip-python"
+install_hint = "npm install --global @sourcegraph/scip-python (needs Node.js and the Python environment of the project)"
+args = ["index", "{project}", "--output", "{output}"]
+env_allow = ["NODE_PATH", "NVM_DIR", "VOLTA_HOME", "FNM_DIR", "VIRTUAL_ENV", "PYTHONHOME", "CONDA_PREFIX"]
 
-[[tools]]
-id = "scip-python"
-role = "indexer"
-command = "scip-python"
+[indexer.tool]
+program = "scip-python"
 version_args = ["--version"]
-purpose_key = "tool-scip-python-purpose"
-install_key = "tool-scip-python-install"
+min_version = "0.6.0"
 
-[[tools]]
-id = "python3"
-role = "toolchain"
-command = "python3"
+[[indexer.toolchain]]
+program = "node"
 version_args = ["--version"]
-purpose_key = "tool-python3-purpose"
-install_key = "tool-python3-install"
-
-[tools.requirement]
-file = ".python-version"
-format = "text"
+min_version = "18.0.0"

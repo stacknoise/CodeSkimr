@@ -30,3 +30,7 @@ Which kinds a name can point to depends on the kind of occurrence (`resolve/kind
 - Extension methods, `using static`, generic type parameters and members reached through a chain (`a.b.c()`) fall back to the last resort or to nothing.
 - The kind `test` is not produced yet.
 - Resolution is sequential; ids are handed out in a fixed order.
+
+## Level 2 (ADR 0033)
+
+Level 2 references come from SCIP indexes of the language tooling and replace the level 1 references of every file the index covers; they are `certain` and `verified`. The import (decoder, mapping, replacing per file) is `crates/adapters/scip`, see `docs/level2-import.md`. It is not wired into the scan yet.

@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use codeskimr_application::ports::ToolCatalog;
 use codeskimr_codes::{Coded, ErrorCode};
-use codeskimr_domain::{LanguageId, RequirementFormat, ToolRole};
+use codeskimr_domain::{LanguageId, RequirementFormat};
 use codeskimr_parsing::PackTools;
 
 fn shipped() -> PathBuf {
@@ -28,29 +28,30 @@ fn pack_with(name: &str, manifest: &str) -> tempfile::TempDir {
 
 const BASE: &str = "grammar = \"rust\"\ntier = \"full\"\nextensions = [\"rs\"]\nseparator = \".\"\ncomment_nodes = []\n";
 
+const INDEXER: &str = "\n[indexer]\nname = \"x\"\ninstall_hint = \"y\"\nargs = [\"{output}\"]\n[indexer.tool]\nprogram = \"x\"\nversion_args = []\nmin_version = \"1.0.0\"\n";
+
 #[test]
 fn csharp_needs_an_indexer_and_the_sdk_the_project_names() {
     let tools = PackTools::load(&shipped()).unwrap();
-    let specs = tools.tools_of(&language("csharp"));
-    let ids: Vec<_> = specs
+    let plan = tools.plan_of(&language("csharp")).unwrap();
+    assert_eq!(plan.indexer.indexer.program, "scip-dotnet");
+    let toolchain: Vec<_> = plan
+        .indexer
+        .toolchain
         .iter()
-        .map(|spec| (spec.id.as_str(), spec.role))
+        .map(|t| t.program.as_str())
         .collect();
-    assert_eq!(
-        ids,
-        [
-            ("scip-dotnet", ToolRole::Indexer),
-            ("dotnet", ToolRole::Toolchain)
-        ]
-    );
-    let requirement = specs[1].requirement.as_ref().unwrap();
-    assert_eq!(requirement.file, "global.json");
-    assert_eq!(requirement.format, RequirementFormat::Json);
-    assert_eq!(requirement.path, ["sdk", "version"]);
+    assert_eq!(toolchain, ["dotnet"]);
+    assert_eq!(plan.requirements.len(), 1);
+    let requirement = &plan.requirements[0];
+    assert_eq!(requirement.program, "dotnet");
+    assert_eq!(requirement.file.file, "global.json");
+    assert_eq!(requirement.file.format, RequirementFormat::Json);
+    assert_eq!(requirement.file.path, ["sdk", "version"]);
 }
 
 #[test]
-fn the_languages_of_the_adr_have_tools_and_the_basic_tier_has_none() {
+fn the_languages_of_the_adr_have_a_plan_and_the_basic_tier_has_none() {
     let tools = PackTools::load(&shipped()).unwrap();
     for name in [
         "csharp",
@@ -62,34 +63,56 @@ fn the_languages_of_the_adr_have_tools_and_the_basic_tier_has_none() {
         "java",
         "kotlin",
     ] {
-        assert_eq!(tools.tools_of(&language(name)).len(), 2, "{name}");
+        let plan = tools.plan_of(&language(name)).expect(name);
+        assert_eq!(plan.indexer.toolchain.len(), 1, "{name}");
     }
     for name in ["go", "c", "cpp", "ruby", "php", "unknown"] {
-        assert!(tools.tools_of(&language(name)).is_empty(), "{name}");
+        assert!(tools.plan_of(&language(name)).is_none(), "{name}");
     }
 }
 
 #[test]
-fn a_tool_with_a_wrong_role_or_format_makes_the_pack_invalid() {
-    let tool = "\n[[tools]]\nid = \"x\"\ncommand = \"x\"\nversion_args = []\npurpose_key = \"p\"\ninstall_key = \"i\"\n";
-    for (name, extra) in [
-        ("role", format!("{tool}role = \"compiler\"\n")),
+fn every_tool_of_a_pack_has_its_purpose_and_install_hint_in_german_and_english() {
+    let tools = PackTools::load(&shipped()).unwrap();
+    for name in ["csharp", "typescript", "python", "rust", "java", "kotlin"] {
+        let plan = tools.plan_of(&language(name)).unwrap();
+        let programs = std::iter::once(&plan.indexer.indexer).chain(&plan.indexer.toolchain);
+        for tool in programs {
+            for tongue in ["de", "en"] {
+                let file = Path::new(env!("CARGO_MANIFEST_DIR"))
+                    .join("../../../locales")
+                    .join(tongue)
+                    .join("tools.ftl");
+                let text = fs::read_to_string(file).unwrap();
+                for suffix in ["purpose", "install"] {
+                    let key = format!("tool-{}-{suffix} =", tool.program);
+                    assert!(text.contains(&key), "{tongue}: {key}");
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn a_wrong_requirement_makes_the_pack_invalid() {
+    let toolchain =
+        "\n[[indexer.toolchain]]\nprogram = \"y\"\nversion_args = []\nmin_version = \"1.0.0\"\n";
+    for (name, requirement) in [
         (
             "format",
-            format!(
-                "{tool}role = \"indexer\"\n[tools.requirement]\nfile = \"a\"\nformat = \"xml\"\n"
-            ),
+            "requirement = { file = \"a\", format = \"xml\" }\n",
         ),
         (
             "empty",
-            format!("{tool}role = \"indexer\"\n").replace("id = \"x\"", "id = \"\""),
+            "requirement = { file = \"\", format = \"text\" }\n",
         ),
         (
             "typo",
-            format!("{tool}role = \"indexer\"\nmin_versoin = \"1\"\n"),
+            "requirement = { file = \"a\", format = \"text\", pth = [] }\n",
         ),
     ] {
-        let root = pack_with("rust", &format!("id = \"rust\"\n{BASE}{extra}"));
+        let manifest = format!("id = \"rust\"\n{BASE}{INDEXER}{toolchain}{requirement}");
+        let root = pack_with("rust", &manifest);
         let error = PackTools::load(root.path()).expect_err(name);
         assert_eq!(error.code(), ErrorCode::LanguagePackInvalid, "{name}");
     }

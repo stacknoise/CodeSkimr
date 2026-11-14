@@ -275,6 +275,19 @@ pub const MEMBER_ROWS: &str = "SELECT s.id, s.name, s.kind, s.visibility, s.sign
         AND u.symbol_id = s.id), 0) \
     FROM symbols s WHERE s.snapshot_id = ?1 AND s.parent_id = ?2 ORDER BY s.start_line, s.start_column, s.id";
 
+/// The consent of a project: project id; yields enabled and confirmed, where confirmed holds only
+/// while the project still has the source it had at the confirmation.
+pub const CONSENT_BY_PROJECT: &str = "SELECT c.enabled, \
+    c.confirmed AND c.source_kind = p.source_kind AND c.location = p.location AND c.branch = p.branch \
+    FROM level2_consent c JOIN projects p ON p.id = c.project_id WHERE c.project_id = ?1";
+/// Replaces the consent of a project and binds it to the current source: project id, enabled,
+/// confirmed. Inserts nothing for a project that does not exist.
+pub const CONSENT_UPSERT: &str = "INSERT INTO level2_consent \
+    (project_id, enabled, confirmed, source_kind, location, branch) \
+    SELECT id, ?2, ?3, source_kind, location, branch FROM projects WHERE id = ?1 \
+    ON CONFLICT (project_id) DO UPDATE SET enabled = excluded.enabled, \
+    confirmed = excluded.confirmed, source_kind = excluded.source_kind, \
+    location = excluded.location, branch = excluded.branch";
 /// Removes the report of a project (its findings go with it): project id.
 pub const TOOL_REPORT_DELETE: &str = "DELETE FROM tool_reports WHERE project_id = ?1";
 /// Adds the report header: project id, time of the check.

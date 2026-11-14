@@ -1,16 +1,18 @@
 //! Acceptance of ADR 0033, decision 8: a project whose indexer is not installed shows what is
 //! missing in all three places, the UI command, the summary of `codeskimr scan` and the MCP tool
-//! `get_project`. The tools are started through a probe that says which exist; no process runs.
+//! `get_project`. A fake runner says which tools exist; no process runs.
 
-use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
 use std::sync::Arc;
 use std::sync::mpsc::channel;
 
+use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
-use codeskimr_application::ports::{ProbeOutcome, ProjectToolCheck, ToolProbe};
+use codeskimr_application::ports::{
+    IndexArtifact, IndexJob, IndexRunner, IndexerSpec, IndexerStatus, ProjectToolCheck, ToolIssue,
+    ToolProblem, ToolVersion,
+};
 use codeskimr_cli::{GlobalOptions, ScanArgs, scan_finished, scan_json};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{ProjectId, ScanMode, ToolReport};
@@ -27,25 +29,37 @@ use crate::wiring::{open_store, tool_checker};
 use crate::{config_files, principal, scan, ui_commands};
 
 const SOURCE: &str = "namespace Demo;\n\npublic class Calculator\n{\n    public int Add(int a, int b) { return a + b; }\n}\n";
-/// The project asks for SDK 9.0.100 and the machine has 8.0.404; the indexer is not installed.
+/// The project asks for SDK 9.0.100 (the pack's check raises the minimum to it).
 const GLOBAL_JSON: &str = r#"{ "sdk": { "version": "9.0.100" } }"#;
 const INSTALLED_SDK: &str = "8.0.404\n";
 
-/// What the machine has: the SDK, but no indexer.
-struct Machine(HashMap<&'static str, &'static str>);
+/// What the runner says about every indexer it is asked about.
+struct Machine(IndexerStatus);
 
-impl ToolProbe for Machine {
-    fn probe(&self, command: &str, _args: &[String]) -> ProbeOutcome {
-        self.0
-            .get(command)
-            .map_or(ProbeOutcome::NotFound, |output| {
-                ProbeOutcome::Ran((*output).to_owned())
-            })
+impl IndexRunner for Machine {
+    fn check(&self, _: &IndexerSpec) -> IndexerStatus {
+        self.0.clone()
+    }
+
+    fn run(&self, _: &IndexJob<'_>, _: &CancelToken) -> Result<IndexArtifact, CodedError> {
+        Err(CodedError::new(ErrorCode::UnexpectedInternalError))
     }
 }
 
-fn machine() -> Arc<dyn ToolProbe> {
-    Arc::new(Machine(HashMap::from([("dotnet", INSTALLED_SDK)])))
+/// The SDK is older than `global.json` asks (9.0.100), and the indexer is not installed.
+fn machine() -> Arc<dyn IndexRunner> {
+    let sdk = ToolProblem {
+        program: "dotnet".to_owned(),
+        issue: ToolIssue::TooOld {
+            found: INSTALLED_SDK.trim().to_owned(),
+            required: ToolVersion::parse_requirement("9.0.100").unwrap(),
+        },
+    };
+    let indexer = ToolProblem {
+        program: "scip-dotnet".to_owned(),
+        issue: ToolIssue::Missing,
+    };
+    Arc::new(Machine(IndexerStatus::Unavailable(vec![indexer, sdk])))
 }
 
 /// A project folder and an installation, both in one temporary folder.
@@ -200,7 +214,7 @@ fn summary_of(world: &World) -> codeskimr_cli::ScanSummary {
     };
     let config = config_files::load(&world.locations, &global, None).unwrap();
     let store = open_store(&world.locations, &config).unwrap();
-    let checker = tool_checker(&store, &config, (&world.locations, machine())).unwrap();
+    let checker = tool_checker(&store, (&world.locations, machine())).unwrap();
     let spec = scan::prepare(&args).unwrap();
     scan::open(spec, &global, &world.locations, &secrets())
         .unwrap()
@@ -252,11 +266,8 @@ fn a_scan_whose_tools_are_all_there_prints_no_tool_line() {
     let global = GlobalOptions::default();
     let config = config_files::load(&world.locations, &global, None).unwrap();
     let store = open_store(&world.locations, &config).unwrap();
-    let everything = Machine(HashMap::from([
-        ("dotnet", "9.0.101"),
-        ("scip-dotnet", "0.2.1"),
-    ]));
-    let checker = tool_checker(&store, &config, (&world.locations, Arc::new(everything))).unwrap();
+    let everything = Machine(IndexerStatus::Ready);
+    let checker = tool_checker(&store, (&world.locations, Arc::new(everything))).unwrap();
     let args = ScanArgs {
         source: world.project(),
         branch: None,
@@ -327,35 +338,4 @@ fn assert_get_project_answer(content: &Value) {
     assert!(purpose.contains("exact usages"));
     let install = indexer["install"].as_str().unwrap();
     assert!(install.contains("dotnet tool install"));
-}
-
-/// Every message a language pack names must exist in both languages, or the user would see a key.
-#[test]
-fn every_tool_text_the_language_packs_name_exists_in_german_and_english() {
-    let packs = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../languages");
-    let catalog = codeskimr_parsing::PackTools::load(&packs).unwrap();
-    let messages = Messages::load().unwrap();
-    let mut checked = 0;
-    for name in [
-        "csharp",
-        "typescript",
-        "javascript",
-        "tsx",
-        "python",
-        "rust",
-        "java",
-        "kotlin",
-    ] {
-        let language = codeskimr_domain::LanguageId::new(name).unwrap();
-        for spec in codeskimr_application::ports::ToolCatalog::tools_of(&catalog, &language) {
-            for key in [&spec.purpose_key, &spec.install_key] {
-                for text_language in ["en", "de"] {
-                    let text = messages.format(text_language, key, None).unwrap();
-                    assert_ne!(&text, key);
-                    checked += 1;
-                }
-            }
-        }
-    }
-    assert_eq!(checked, 8 * 2 * 2 * 2);
 }

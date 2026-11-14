@@ -73,28 +73,25 @@ trait = "public"
 enum = "public"
 enum_member = "public"
 
-# Tools that level 2 needs (ADR 0033, decisions 1 and 8). On every load of a project CodeSkimr
-# checks that each exists and, where a version is stated, is new enough. The indexer and its
-# version are settled by the spike of ADR 0033, so `min_version` stays out until then; a version
-# the project itself names (see `requirement`) is always checked.
+# Level 2 (ADR 0033): `rust-analyzer scip` indexes the cargo workspace in the project folder.
+# Only runs when the user enabled and confirmed level 2 for the project. CodeSkimr never downloads or
+# installs anything: the user installs the indexer and its toolchain.
+[indexer]
+name = "rust-analyzer"
+install_hint = "rustup component add rust-analyzer (needs the Rust toolchain with cargo)"
+args = ["scip", "{project}", "--output", "{output}"]
+env_allow = ["CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN"]
+# The rustup proxy would download the toolchain that a `rust-toolchain.toml` of the project names.
+env = { RUSTUP_AUTO_INSTALL = "0" }
 
-[[tools]]
-id = "rust-analyzer"
-role = "indexer"
-command = "rust-analyzer"
+[indexer.tool]
+program = "rust-analyzer"
 version_args = ["--version"]
-purpose_key = "tool-rust-analyzer-purpose"
-install_key = "tool-rust-analyzer-install"
+min_version = "1.78.0"
 
-[[tools]]
-id = "cargo"
-role = "toolchain"
-command = "cargo"
+[[indexer.toolchain]]
+program = "cargo"
 version_args = ["--version"]
-purpose_key = "tool-cargo-purpose"
-install_key = "tool-cargo-install"
-
-[tools.requirement]
-file = "rust-toolchain.toml"
-format = "toml"
-path = ["toolchain", "channel"]
+min_version = "1.78.0"
+# The version the project asks for (checked besides min_version; the newer one counts).
+requirement = { file = "rust-toolchain.toml", format = "toml", path = ["toolchain", "channel"] }

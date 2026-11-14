@@ -4,18 +4,18 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
-use codeskimr_application::ports::ToolCatalog;
-use codeskimr_domain::{LanguageId, ToolSpec};
+use codeskimr_application::ports::{ToolCatalog, ToolPlan};
+use codeskimr_domain::LanguageId;
 
 use crate::consts::{MANIFEST_FILE, TOOL_INVALID};
 use crate::error::ParsingError;
 use crate::manifest::PackManifest;
 use crate::pack::pack_id;
 
-/// The `[[tools]]` of all language packs below one folder, by language.
+/// The `[indexer]` of all language packs below one folder, by language.
 #[derive(Debug, Default)]
 pub struct PackTools {
-    by_language: HashMap<LanguageId, Vec<ToolSpec>>,
+    by_language: HashMap<LanguageId, ToolPlan>,
 }
 
 impl PackTools {
@@ -37,30 +37,33 @@ impl PackTools {
                 .file_name()
                 .map(|name| name.to_string_lossy().into_owned())
                 .unwrap_or_default();
-            let (language, specs) = specs_of(&manifest, &folder)?;
-            by_language.insert(language, specs);
+            if let Some((language, plan)) = plan_of(&manifest, &folder)? {
+                by_language.insert(language, plan);
+            }
         }
         Ok(Self { by_language })
     }
 }
 
-fn specs_of(
+fn plan_of(
     manifest: &PackManifest,
     folder: &str,
-) -> Result<(LanguageId, Vec<ToolSpec>), ParsingError> {
-    let invalid = |reason: String| ParsingError::invalid(folder, reason);
+) -> Result<Option<(LanguageId, ToolPlan)>, ParsingError> {
+    let invalid =
+        |reason: String| ParsingError::invalid(folder, [TOOL_INVALID, reason.as_str()].concat());
+    let Some(indexer) = &manifest.indexer else {
+        return Ok(None);
+    };
     let language = pack_id(&manifest.id, folder)?;
-    let specs = manifest
-        .tools
-        .iter()
-        .map(|tool| tool.to_spec(&language))
-        .collect::<Result<Vec<_>, String>>()
-        .map_err(|detail| invalid([TOOL_INVALID, detail.as_str()].concat()))?;
-    Ok((language, specs))
+    let plan = ToolPlan {
+        indexer: indexer.spec().map_err(invalid)?,
+        requirements: indexer.requirements().map_err(invalid)?,
+    };
+    Ok(Some((language, plan)))
 }
 
 impl ToolCatalog for PackTools {
-    fn tools_of(&self, language: &LanguageId) -> Vec<ToolSpec> {
-        self.by_language.get(language).cloned().unwrap_or_default()
+    fn plan_of(&self, language: &LanguageId) -> Option<ToolPlan> {
+        self.by_language.get(language).cloned()
     }
 }

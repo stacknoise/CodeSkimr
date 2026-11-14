@@ -69,27 +69,23 @@ export = "public"
 [visibility.parent_defaults]
 module = "private"
 
-# Tools that level 2 needs (ADR 0033, decisions 1 and 8). On every load of a project CodeSkimr
-# checks that each exists and, where a version is stated, is new enough. The indexer and its
-# version are settled by the spike of ADR 0033, so `min_version` stays out until then; a version
-# the project itself names (see `requirement`) is always checked.
+# Level 2 (ADR 0033): scip-typescript indexes TypeScript and JavaScript; --infer-tsconfig lets it index a project without a tsconfig.json.
+# Only runs when the user enabled and confirmed level 2 for the project. CodeSkimr never downloads or
+# installs anything: the user installs the indexer and its toolchain.
+[indexer]
+name = "scip-typescript"
+install_hint = "npm install --global @sourcegraph/scip-typescript (needs Node.js and the installed node_modules of the project)"
+args = ["index", "--output", "{output}", "--infer-tsconfig"]
+env_allow = ["NODE_PATH", "NVM_DIR", "VOLTA_HOME", "FNM_DIR", "NPM_CONFIG_CACHE"]
 
-[[tools]]
-id = "scip-typescript"
-role = "indexer"
-command = "scip-typescript"
+[indexer.tool]
+program = "scip-typescript"
 version_args = ["--version"]
-purpose_key = "tool-scip-typescript-purpose"
-install_key = "tool-scip-typescript-install"
+min_version = "0.3.0"
 
-[[tools]]
-id = "node"
-role = "toolchain"
-command = "node"
+[[indexer.toolchain]]
+program = "node"
 version_args = ["--version"]
-purpose_key = "tool-node-purpose"
-install_key = "tool-node-install"
-
-[tools.requirement]
-file = ".nvmrc"
-format = "text"
+min_version = "18.0.0"
+# The version the project asks for (checked besides min_version; the newer one counts).
+requirement = { file = ".nvmrc", format = "text" }

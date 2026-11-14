@@ -1,10 +1,9 @@
-//! What a language pack says about the tools its level 2 needs.
+//! What a language pack says about the project files that name the version of a tool.
 
 use crate::consts::{
     REQUIREMENT_FORMAT_JSON, REQUIREMENT_FORMAT_TEXT, REQUIREMENT_FORMAT_TOML, TOOL_ROLE_INDEXER,
     TOOL_ROLE_TOOLCHAIN,
 };
-use crate::file::LanguageId;
 use crate::vocabulary::labeled_enum;
 
 labeled_enum!(
@@ -38,27 +37,4 @@ pub struct RequirementSpec {
     pub format: RequirementFormat,
     /// The keys down to the version for `Json` and `Toml`; empty for `Text`.
     pub path: Vec<String>,
-}
-
-/// One tool that level 2 of a language needs, as its language pack describes it.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ToolSpec {
-    /// The language the tool serves.
-    pub language: LanguageId,
-    /// Name of the tool, such as `scip-dotnet`.
-    pub id: String,
-    /// Indexer or toolchain.
-    pub role: ToolRole,
-    /// The program to start.
-    pub command: String,
-    /// The fixed arguments that make it print its version and nothing else.
-    pub version_args: Vec<String>,
-    /// The oldest version the program accepts, if the pack knows one.
-    pub min_version: Option<String>,
-    /// Message key of the sentence that says what the tool is needed for.
-    pub purpose_key: String,
-    /// Message key of the sentence that says how to install it.
-    pub install_key: String,
-    /// Where the project states the version it needs, if the language has such a file.
-    pub requirement: Option<RequirementSpec>,
 }

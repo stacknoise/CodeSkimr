@@ -206,6 +206,7 @@ impl HtmlExport {
             input: GraphInput {
                 project,
                 level: Level::Layers,
+                depth: 0,
             },
         })?;
         Ok(Data {

@@ -13,21 +13,23 @@ use codeskimr_application::ids::IdSequence;
 use codeskimr_application::metrics::StandardMetrics;
 use codeskimr_application::pipeline::{Scanner, ScannerPorts};
 use codeskimr_application::ports::{AuthError, Credential, CredentialStore};
-use codeskimr_application::ports::{FileAnalyzer, FileDiscovery, SnippetFingerprinter, ToolProbe};
+use codeskimr_application::ports::{
+    FileAnalyzer, FileDiscovery, IndexRunner, SnippetFingerprinter,
+};
 use codeskimr_application::resolve::ScopedResolver;
 use codeskimr_application::tools::{ToolCheckPorts, ToolChecker};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::CredentialId;
+use codeskimr_indexer::ProcessIndexRunner;
 use codeskimr_parsing::{LanguagePacks, PackTools, TreeSitterAnalyzer};
 use codeskimr_secrets::{KeystoreCredentials, OsKeystore};
 use codeskimr_source::{
-    DiscoveryConfig, GitCache, LanguageMap, ProbeSettings, ProcessProbe, ProjectRequirements,
-    SourceFetcher, WalkDiscovery,
+    DiscoveryConfig, GitCache, LanguageMap, ProjectRequirements, SourceFetcher, WalkDiscovery,
 };
 use codeskimr_storage::SqliteStore;
 
 use crate::clock::SystemClock;
-use crate::consts::{BYTES_PER_MB, is_token_credential};
+use crate::consts::{BYTES_PER_MB, REQUIREMENT_MAX_BYTES, is_token_credential};
 use crate::locations::Locations;
 pub use crate::shared_keystore::{Secrets, SharedKeystore};
 
@@ -107,34 +109,31 @@ pub fn build_scanner(
     Ok(Scanner::new(ports, &ids, events))
 }
 
-/// The probe that starts the real tools for the check of ADR 0033: version queries only, in the
-/// data folder (never in a project), with the allow-listed environment of the configuration.
+/// The runner that finds out which tools exist, for the check of ADR 0033: version queries only,
+/// in the data folder (never in a project), with the allow-listed environment of the indexer.
 #[must_use]
-pub fn process_probe(config: &Config, locations: &Locations) -> Arc<dyn ToolProbe> {
-    Arc::new(ProcessProbe::new(ProbeSettings {
-        timeout: Duration::from_millis(u64::from(config.tools.probe_timeout_ms)),
-        max_output: u64::from(config.tools.probe_max_output_bytes),
-        env_allowlist: config.tools.env_allowlist.clone(),
-        work_dir: locations.data_dir.clone(),
-    }))
+pub fn index_runner(locations: &Locations) -> Arc<dyn IndexRunner> {
+    Arc::new(ProcessIndexRunner::new(
+        locations.data_dir.clone(),
+        crate::redact::redact,
+    ))
 }
 
-/// Builds the check of the tools that level 2 needs, starting tools through `probe`.
+/// Builds the check of the tools that level 2 needs, asking `runner` which tools exist.
 ///
 /// # Errors
 /// `PRS` failures if the language packs cannot be read.
 pub fn tool_checker(
     store: &Arc<SqliteStore>,
-    config: &Config,
-    (locations, probe): (&Locations, Arc<dyn ToolProbe>),
+    (locations, runner): (&Locations, Arc<dyn IndexRunner>),
 ) -> Result<Arc<ToolChecker>, CodedError> {
     let catalog = PackTools::load(&locations.languages_dir).map_err(CodedError::caused_by)?;
     Ok(Arc::new(ToolChecker::new(ToolCheckPorts {
         catalog: Arc::new(catalog),
-        probe,
+        runner,
         requirements: Arc::new(ProjectRequirements::new(
             GitCache::new(locations.git_cache()),
-            u64::from(config.tools.requirement_max_bytes),
+            REQUIREMENT_MAX_BYTES,
         )),
         store: store.clone(),
         projects: store.clone(),

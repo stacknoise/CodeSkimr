@@ -1,41 +1,38 @@
 //! The check of the tools that level 2 needs (ADR 0033, decision 8).
 //!
-//! The ports here are the only way the check touches the machine: a probe that starts a tool with
-//! its fixed version arguments, a reader for the files in which a project names the versions it
-//! needs, and the store of the result. None of them runs project code.
+//! The check asks the indexer runner (`IndexRunner::check`) whether the tools exist and are new
+//! enough. The ports here add what the pack says about the project's own version files, a reader
+//! for those files, and the store of the result. None of them runs project code.
 
-use codeskimr_domain::{
-    LanguageId, ProjectId, ProjectSource, RequirementSpec, ToolReport, ToolSpec,
-};
+use codeskimr_domain::{LanguageId, ProjectId, ProjectSource, RequirementSpec, ToolReport};
 
+use super::IndexerSpec;
 use crate::error::CodedError;
 
-/// How starting a tool for its version ended. The probe never fails: every way it can go wrong is
-/// one of these.
+/// Where a project names the version of one program of the toolchain, such as `global.json` for
+/// `dotnet`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum ProbeOutcome {
-    /// The tool ran and printed this (standard output and standard error, cut at a limit).
-    Ran(String),
-    /// The tool could not be started: it is not installed or not on the search path.
-    NotFound,
-    /// The tool did not finish in time and was killed.
-    TimedOut,
+pub struct ToolRequirement {
+    /// The program the file speaks about.
+    pub program: String,
+    /// Where and how the version is written.
+    pub file: RequirementSpec,
+}
+
+/// What the language pack of one language asks for: how to run its indexer (`[indexer]`) and where
+/// the project names the versions of the toolchain.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ToolPlan {
+    /// The indexer with its toolchain.
+    pub indexer: IndexerSpec,
+    /// The files in which a project names versions of the toolchain.
+    pub requirements: Vec<ToolRequirement>,
 }
 
 /// Knows which tools the language packs ask for (adapter: `codeskimr_parsing`).
 pub trait ToolCatalog: Send + Sync {
-    /// The tools level 2 of `language` needs; empty for a language without level 2.
-    fn tools_of(&self, language: &LanguageId) -> Vec<ToolSpec>;
-}
-
-/// Starts a tool to learn its version (adapter: `codeskimr_source`).
-///
-/// An adapter starts `command` with exactly `args` and no shell, in a folder that is not a
-/// project, with an allow-listed environment and a time limit after which the process is killed.
-/// It reads no project file and runs no project code.
-pub trait ToolProbe: Send + Sync {
-    /// Runs the tool once.
-    fn probe(&self, command: &str, args: &[String]) -> ProbeOutcome;
+    /// The plan of level 2 for `language`; `None` for a language without an indexer.
+    fn plan_of(&self, language: &LanguageId) -> Option<ToolPlan>;
 }
 
 /// Reads the version a project requires from one of its files (adapter: `codeskimr_source`).

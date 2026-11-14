@@ -4,16 +4,18 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, PoisonError};
 
+use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    Clock, LanguageShare, PreviousIndex, ProbeOutcome, ProjectCatalog, ProjectOverview,
-    ProjectRepository, ProjectToolCheck, RequirementReader, ToolCatalog, ToolProbe,
-    ToolReportStore,
+    Clock, IndexArtifact, IndexJob, IndexRunner, IndexerSpec, IndexerStatus, LanguageShare,
+    PreviousIndex, ProjectCatalog, ProjectOverview, ProjectRepository, ProjectToolCheck,
+    RequirementReader, ToolCatalog, ToolIssue, ToolPlan, ToolProblem, ToolReportStore,
+    ToolRequirement, ToolSpec, ToolVersion,
 };
 use codeskimr_application::tools::{ToolCheckPorts, ToolChecker};
 use codeskimr_domain::{
     FolderPath, LanguageId, Project, ProjectId, ProjectName, ProjectSource, RequirementFormat,
-    RequirementSpec, SourceFile, Timestamp, ToolReport, ToolRole, ToolSpec, ToolState,
+    RequirementSpec, SourceFile, Timestamp, ToolReport, ToolState,
 };
 
 const PROJECT: ProjectId = ProjectId::new(1);
@@ -22,21 +24,40 @@ fn language(name: &str) -> LanguageId {
     LanguageId::new(name).unwrap()
 }
 
-fn spec(language_name: &str, id: &str, role: ToolRole, requirement: Option<&str>) -> ToolSpec {
+fn version(text: &str) -> ToolVersion {
+    ToolVersion::find_in(text).unwrap()
+}
+
+fn tool(program: &str, min: &str) -> ToolSpec {
     ToolSpec {
-        language: language(language_name),
-        id: id.to_owned(),
-        role,
-        command: id.to_owned(),
+        program: program.to_owned(),
         version_args: vec!["--version".to_owned()],
-        min_version: None,
-        purpose_key: format!("tool-{id}-purpose"),
-        install_key: format!("tool-{id}-install"),
-        requirement: requirement.map(|file| RequirementSpec {
-            file: file.to_owned(),
-            format: RequirementFormat::Text,
-            path: Vec::new(),
-        }),
+        min_version: version(min),
+    }
+}
+
+fn plan(indexer: &str, toolchain: &str, requirement: Option<&str>) -> ToolPlan {
+    ToolPlan {
+        indexer: IndexerSpec {
+            name: indexer.to_owned(),
+            indexer: tool(indexer, "0.2.0"),
+            toolchain: vec![tool(toolchain, "8.0.0")],
+            args: vec!["{output}".to_owned()],
+            env_allow: Vec::new(),
+            env: Vec::new(),
+            install_hint: "install it".to_owned(),
+        },
+        requirements: requirement
+            .map(|file| ToolRequirement {
+                program: toolchain.to_owned(),
+                file: RequirementSpec {
+                    file: file.to_owned(),
+                    format: RequirementFormat::Text,
+                    path: Vec::new(),
+                },
+            })
+            .into_iter()
+            .collect(),
     }
 }
 
@@ -44,34 +65,55 @@ fn spec(language_name: &str, id: &str, role: ToolRole, requirement: Option<&str>
 #[derive(Default)]
 struct World {
     languages: Vec<&'static str>,
-    specs: Vec<ToolSpec>,
-    outcomes: HashMap<String, ProbeOutcome>,
+    plans: HashMap<String, ToolPlan>,
+    /// What each installed program prints for its version.
+    installed: HashMap<String, String>,
     files: HashMap<String, String>,
-    probed: Mutex<Vec<String>>,
+    asked: Mutex<Vec<IndexerSpec>>,
     stored: Mutex<Option<ToolReport>>,
     missing_project: bool,
 }
 
 impl ToolCatalog for World {
-    fn tools_of(&self, language: &LanguageId) -> Vec<ToolSpec> {
-        self.specs
-            .iter()
-            .filter(|spec| &spec.language == language)
-            .cloned()
-            .collect()
+    fn plan_of(&self, language: &LanguageId) -> Option<ToolPlan> {
+        self.plans.get(language.as_str()).cloned()
     }
 }
 
-impl ToolProbe for World {
-    fn probe(&self, command: &str, _args: &[String]) -> ProbeOutcome {
-        self.probed
+impl IndexRunner for World {
+    fn check(&self, spec: &IndexerSpec) -> IndexerStatus {
+        self.asked
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
-            .push(command.to_owned());
-        self.outcomes
-            .get(command)
-            .cloned()
-            .unwrap_or(ProbeOutcome::NotFound)
+            .push(spec.clone());
+        let problems: Vec<ToolProblem> = std::iter::once(&spec.indexer)
+            .chain(&spec.toolchain)
+            .filter_map(|tool| {
+                let issue = match self.installed.get(&tool.program) {
+                    None => ToolIssue::Missing,
+                    Some(output) => match ToolVersion::find_in(output) {
+                        Some(found) if found >= tool.min_version => return None,
+                        _ => ToolIssue::TooOld {
+                            found: output.clone(),
+                            required: tool.min_version,
+                        },
+                    },
+                };
+                Some(ToolProblem {
+                    program: tool.program.clone(),
+                    issue,
+                })
+            })
+            .collect();
+        if problems.is_empty() {
+            IndexerStatus::Ready
+        } else {
+            IndexerStatus::Unavailable(problems)
+        }
+    }
+
+    fn run(&self, _: &IndexJob<'_>, _: &CancelToken) -> Result<IndexArtifact, CodedError> {
+        unreachable!("the check never runs an indexer")
     }
 }
 
@@ -147,7 +189,7 @@ fn run(world: World) -> (Arc<World>, Result<ToolReport, CodedError>) {
     let world = Arc::new(world);
     let checker = ToolChecker::new(ToolCheckPorts {
         catalog: world.clone(),
-        probe: world.clone(),
+        runner: world.clone(),
         requirements: world.clone(),
         store: world.clone(),
         projects: world.clone(),
@@ -158,26 +200,22 @@ fn run(world: World) -> (Arc<World>, Result<ToolReport, CodedError>) {
     (world, result)
 }
 
-fn csharp_world(outcomes: &[(&str, ProbeOutcome)], global_json: Option<&str>) -> World {
+fn csharp_world(installed: &[(&str, &str)], global_json: Option<&str>) -> World {
     World {
         languages: vec!["csharp"],
-        specs: vec![
-            spec("csharp", "scip-dotnet", ToolRole::Indexer, None),
-            spec("csharp", "dotnet", ToolRole::Toolchain, Some("global.json")),
-        ],
-        outcomes: outcomes
+        plans: HashMap::from([(
+            "csharp".to_owned(),
+            plan("scip-dotnet", "dotnet", Some("global.json")),
+        )]),
+        installed: installed
             .iter()
-            .map(|(command, outcome)| ((*command).to_owned(), outcome.clone()))
+            .map(|(program, output)| ((*program).to_owned(), (*output).to_owned()))
             .collect(),
         files: global_json
             .map(|text| HashMap::from([("global.json".to_owned(), text.to_owned())]))
             .unwrap_or_default(),
         ..World::default()
     }
-}
-
-fn ran(text: &str) -> ProbeOutcome {
-    ProbeOutcome::Ran(text.to_owned())
 }
 
 fn states(report: &ToolReport) -> Vec<(&str, ToolState)> {
@@ -190,10 +228,7 @@ fn states(report: &ToolReport) -> Vec<(&str, ToolState)> {
 
 #[test]
 fn a_tool_that_is_installed_is_ready() {
-    let world = csharp_world(
-        &[("scip-dotnet", ran("0.2.1")), ("dotnet", ran("8.0.404"))],
-        None,
-    );
+    let world = csharp_world(&[("scip-dotnet", "0.2.1"), ("dotnet", "8.0.404")], None);
     let (_, report) = run(world);
     let report = report.unwrap();
     assert_eq!(
@@ -204,12 +239,16 @@ fn a_tool_that_is_installed_is_ready() {
         ]
     );
     assert!(report.level2_ready(&language("csharp")));
-    assert_eq!(report.findings[1].found.as_deref(), Some("8.0.404"));
+    assert_eq!(
+        report.findings[1].found, None,
+        "a ready tool reports no version"
+    );
+    assert_eq!(report.findings[1].required.as_deref(), Some("8.0.0"));
 }
 
 #[test]
 fn a_tool_that_is_not_installed_is_missing_and_names_what_to_show() {
-    let (_, report) = run(csharp_world(&[("dotnet", ran("8.0.404"))], None));
+    let (_, report) = run(csharp_world(&[("dotnet", "8.0.404")], None));
     let report = report.unwrap();
     let problems = report.problems();
     assert_eq!(problems.len(), 1);
@@ -224,7 +263,7 @@ fn a_tool_that_is_not_installed_is_missing_and_names_what_to_show() {
 fn an_sdk_older_than_the_one_in_global_json_is_too_old() {
     let json_version = "9.0.100";
     let world = csharp_world(
-        &[("scip-dotnet", ran("0.2.1")), ("dotnet", ran("8.0.404"))],
+        &[("scip-dotnet", "0.2.1"), ("dotnet", "8.0.404")],
         Some(json_version),
     );
     let (_, report) = run(world);
@@ -236,9 +275,9 @@ fn an_sdk_older_than_the_one_in_global_json_is_too_old() {
 }
 
 #[test]
-fn a_version_the_project_requires_but_the_tool_does_not_print_is_unknown() {
+fn a_tool_that_prints_no_version_is_of_unknown_version() {
     let world = csharp_world(
-        &[("scip-dotnet", ran("")), ("dotnet", ran("no digits here"))],
+        &[("scip-dotnet", "0.2.1"), ("dotnet", "no digits here")],
         Some("9.0.100"),
     );
     let (_, report) = run(world);
@@ -252,16 +291,9 @@ fn a_version_the_project_requires_but_the_tool_does_not_print_is_unknown() {
 }
 
 #[test]
-fn without_a_requirement_a_tool_that_runs_is_ready_whatever_it_prints() {
-    let world = csharp_world(&[("scip-dotnet", ran("")), ("dotnet", ran("?"))], None);
-    let (_, report) = run(world);
-    assert!(report.unwrap().level2_ready(&language("csharp")));
-}
-
-#[test]
 fn a_requirement_that_is_not_a_number_is_met() {
     let world = csharp_world(
-        &[("scip-dotnet", ran("1.0")), ("dotnet", ran("8.0.404"))],
+        &[("scip-dotnet", "1.0"), ("dotnet", "8.0.404")],
         Some("stable"),
     );
     let (_, report) = run(world);
@@ -269,31 +301,9 @@ fn a_requirement_that_is_not_a_number_is_met() {
 }
 
 #[test]
-fn a_tool_that_does_not_answer_in_time_is_of_unknown_version_and_does_not_fail_the_check() {
-    let world = csharp_world(
-        &[
-            ("scip-dotnet", ProbeOutcome::TimedOut),
-            ("dotnet", ran("8.0.404")),
-        ],
-        None,
-    );
-    let (_, report) = run(world);
-    assert_eq!(
-        states(&report.unwrap()),
-        [
-            ("scip-dotnet", ToolState::VersionUnknown),
-            ("dotnet", ToolState::Ready)
-        ]
-    );
-}
-
-#[test]
 fn the_version_of_the_pack_is_a_minimum_too_and_the_stricter_one_counts() {
-    let mut world = csharp_world(
-        &[("scip-dotnet", ran("0.2.1")), ("dotnet", ran("8.0.404"))],
-        None,
-    );
-    world.specs[1].min_version = Some("8.0.100".to_owned());
+    // The pack asks for 8.0.0, the project for 8.0.500: the machine has 8.0.404.
+    let mut world = csharp_world(&[("scip-dotnet", "0.2.1"), ("dotnet", "8.0.404")], None);
     world.files = HashMap::from([("global.json".to_owned(), "8.0.500".to_owned())]);
     let (_, report) = run(world);
     let report = report.unwrap();
@@ -321,30 +331,69 @@ fn a_project_that_was_not_scanned_has_no_languages_and_an_empty_report() {
 }
 
 #[test]
-fn tools_that_languages_share_are_started_once() {
+fn tools_that_languages_share_are_asked_for_once() {
+    let shared = plan("scip-typescript", "node", None);
     let world = World {
         languages: vec!["typescript", "javascript"],
-        specs: ["typescript", "javascript"]
-            .into_iter()
-            .map(|name| spec(name, "node", ToolRole::Toolchain, None))
-            .collect(),
-        outcomes: HashMap::from([("node".to_owned(), ran("v20.11.1"))]),
+        plans: HashMap::from([
+            ("typescript".to_owned(), shared.clone()),
+            ("javascript".to_owned(), shared),
+        ]),
+        installed: HashMap::from([
+            ("scip-typescript".to_owned(), "0.3.0".to_owned()),
+            ("node".to_owned(), "v20.11.1".to_owned()),
+        ]),
         ..World::default()
     };
     let (world, report) = run(world);
-    assert_eq!(report.unwrap().findings.len(), 2);
-    assert_eq!(world.probed.lock().unwrap().len(), 1);
+    assert_eq!(report.unwrap().findings.len(), 4);
+    assert_eq!(world.asked.lock().unwrap().len(), 1);
+}
+
+#[test]
+fn the_requirement_is_read_as_a_number_a_tool_prints_or_a_project_writes() {
+    for (output, expected) in [
+        ("8.0.404\n", "8.0.404"),
+        ("v20.11.1", "20.11.1"),
+        ("Python 3.12.1", "3.12.1"),
+        ("cargo 1.82.0 (8f40fc59f 2024-08-21)", "1.82.0"),
+    ] {
+        assert_eq!(version(output).to_string(), expected, "{output}");
+    }
+    assert_eq!(
+        ToolVersion::parse_requirement("20").unwrap().to_string(),
+        "20.0.0"
+    );
+    assert_eq!(
+        ToolVersion::parse_requirement(" v18.19.0\n")
+            .unwrap()
+            .to_string(),
+        "18.19.0"
+    );
+    assert_eq!(
+        ToolVersion::parse_requirement("3.12.1-rc1")
+            .unwrap()
+            .to_string(),
+        "3.12.1"
+    );
+    for text in [
+        "stable",
+        "nightly-2024-01-01",
+        "lts/*",
+        "pypy3.10",
+        "",
+        ">=8",
+    ] {
+        assert!(ToolVersion::parse_requirement(text).is_none(), "{text}");
+    }
 }
 
 #[test]
 fn a_new_check_replaces_the_stored_report() {
-    let first = csharp_world(&[("dotnet", ran("8.0.404"))], None);
+    let first = csharp_world(&[("dotnet", "8.0.404")], None);
     let (world, _) = run(first);
     assert_eq!(world.load(PROJECT).unwrap().unwrap().problems().len(), 1);
-    let second = csharp_world(
-        &[("scip-dotnet", ran("0.2.1")), ("dotnet", ran("8.0.404"))],
-        None,
-    );
+    let second = csharp_world(&[("scip-dotnet", "0.2.1"), ("dotnet", "8.0.404")], None);
     let (world, _) = run(second);
     assert_eq!(world.load(PROJECT).unwrap().unwrap().problems().len(), 0);
 }

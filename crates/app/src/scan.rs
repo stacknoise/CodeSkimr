@@ -22,7 +22,7 @@ use crate::consts::LOG_TOOL_CHECK_FAILED;
 use crate::locations::Locations;
 use crate::principal;
 use crate::source_arg::{SourceError, SourceSpec, classify};
-use crate::wiring::{Secrets, build_scanner, open_store, process_probe, tool_checker};
+use crate::wiring::{Secrets, build_scanner, index_runner, open_store, tool_checker};
 
 /// Checks the source argument before anything is scanned or printed.
 ///
@@ -239,11 +239,7 @@ fn session(
         secrets,
     } = wiring;
     let scanner = build_scanner(store, &config, locations, events.clone(), secrets)?;
-    let tools = tool_checker(
-        store,
-        &config,
-        (locations, process_probe(&config, locations)),
-    )?;
+    let tools = tool_checker(store, (locations, index_runner(locations)))?;
     Ok(Session {
         scanner,
         tools,

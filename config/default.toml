@@ -87,21 +87,26 @@ parse_timeout_ms = 5000
 # Largest total size of the scanned files of one source, in megabytes; a larger source fails with SRC-501.
 max_source_mb = 2048
 
-# Check of the tools that level 2 needs (ADR 0033, decision 8). On every load of a project CodeSkimr starts
-# each tool of its languages once with a version argument (never in the project folder, never through a shell)
-# and compares the version with what the project requires. Nothing is downloaded or installed.
-[tools]
-# Time a tool has to print its version, in milliseconds; a tool that takes longer is killed and counts as not answering.
-probe_timeout_ms = 5000
-# Most bytes of output that are read from one tool.
-probe_max_output_bytes = 4096
-# Largest file that is read for the version a project requires (global.json, .nvmrc and so on), in bytes.
-requirement_max_bytes = 65536
-# The environment variables a tool process gets; it sees no other, so no token or password of this program reaches it.
-env_allowlist = [
-    "PATH", "HOME", "USERPROFILE", "LANG", "LC_ALL", "TMPDIR", "TEMP", "TMP", "SystemRoot", "PATHEXT",
-    "DOTNET_ROOT", "JAVA_HOME", "CARGO_HOME", "RUSTUP_HOME", "NVM_DIR", "PYENV_ROOT", "VOLTA_HOME",
-]
+# Level 2 references from SCIP indexes (ADR 0033). The whole table is read from the default file, the
+# user config file and command line flags only; a `level2` table in the `.codeskimr.toml` of a project
+# is ignored, so that a scanned repository cannot switch on running its own build scripts.
+[level2]
+# Master switch for running indexers (their build tools run project code). Off by default; even when
+# it is on, every project needs one confirmation by the local owner before an indexer starts.
+enabled = false
+# Longest time one indexer may run, in seconds; then it is stopped together with all its child
+# processes and fails with RES-502 (level 1 stays).
+timeout_seconds = 900
+# Most memory, in megabytes, that an indexer and its child processes together may hold; more fails
+# with RES-504 (level 1 stays).
+max_memory_mb = 4096
+# Most bytes an indexer may write in total, console output and files in its temporary output
+# directory (512 MiB, above max_index_bytes); more fails with RES-503 (level 1 stays).
+max_output_bytes = 536870912
+# Largest SCIP index file that is read, in bytes (256 MiB); a larger one is refused with RES-501 and level 1 stays.
+max_index_bytes = 268435456
+# Share mapped / (mapped + unmapped) among the uses of project symbols (symbols the index itself defines; library symbols are not counted) that an index must reach; a lower share, or an index where no use maps, fails with RES-302 and level 1 stays.
+min_mapped = 0.5
 
 # Local server (blueprint 10.3, S-04). It listens on the loopback address 127.0.0.1 only.
 [server]

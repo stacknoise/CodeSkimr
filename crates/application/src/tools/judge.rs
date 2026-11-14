@@ -1,56 +1,63 @@
-//! Turns what a probe returned into a finding.
+//! Turns what the indexer runner found into findings.
 
-use codeskimr_domain::{ToolFinding, ToolSpec, ToolState, ToolVersion};
+use codeskimr_domain::{LanguageId, ToolFinding, ToolRole, ToolState};
 
-use crate::ports::ProbeOutcome;
+use crate::consts::{TOOL_INSTALL_SUFFIX, TOOL_KEY_PREFIX, TOOL_PURPOSE_SUFFIX};
+use crate::ports::{IndexerSpec, IndexerStatus, ToolIssue, ToolProblem, ToolSpec, ToolVersion};
 
-/// The strictest of the versions that apply: the one the pack names and the one the project names.
-/// A version that is not a number (`stable`) asks for nothing.
-fn strictest(spec: &ToolSpec, project: Option<&str>) -> Option<ToolVersion> {
-    [spec.min_version.as_deref(), project]
-        .into_iter()
-        .flatten()
-        .filter_map(ToolVersion::parse_requirement)
-        .max()
-}
-
-fn state_of(
-    outcome: &ProbeOutcome,
-    found: Option<&ToolVersion>,
-    required: Option<&ToolVersion>,
-) -> ToolState {
-    match (outcome, required, found) {
-        (ProbeOutcome::NotFound, _, _) => ToolState::Missing,
-        (ProbeOutcome::TimedOut, _, _) | (ProbeOutcome::Ran(_), Some(_), None) => {
-            ToolState::VersionUnknown
-        }
-        (ProbeOutcome::Ran(_), Some(required), Some(found)) if found < required => {
-            ToolState::TooOld
-        }
-        (ProbeOutcome::Ran(_), _, _) => ToolState::Ready,
-    }
-}
-
-/// The finding for `spec`, given what the probe returned and the version text the project names
-/// (from `global.json`, `.nvmrc` and the like).
-///
-/// A tool that ran is ready unless a version is required: then it is ready if its version is at
-/// least the required one, too old if it is lower, and of unknown version if it printed none.
-#[must_use]
-pub fn judge(spec: &ToolSpec, outcome: &ProbeOutcome, project: Option<&str>) -> ToolFinding {
-    let found = match outcome {
-        ProbeOutcome::Ran(output) => ToolVersion::find_in(output),
-        ProbeOutcome::NotFound | ProbeOutcome::TimedOut => None,
+/// The state and the version found of `tool`, given the problems the runner reported.
+fn outcome(tool: &ToolSpec, problems: &[ToolProblem]) -> (ToolState, Option<String>) {
+    let Some(problem) = problems.iter().find(|p| p.program == tool.program) else {
+        return (ToolState::Ready, None);
     };
-    let required = strictest(spec, project);
-    ToolFinding {
-        language: spec.language.clone(),
-        tool: spec.id.clone(),
-        role: spec.role,
-        state: state_of(outcome, found.as_ref(), required.as_ref()),
-        found: found.map(|version| version.to_string()),
-        required: required.map(|version| version.to_string()),
-        purpose_key: spec.purpose_key.clone(),
-        install_key: spec.install_key.clone(),
+    match &problem.issue {
+        ToolIssue::Missing => (ToolState::Missing, None),
+        ToolIssue::TooOld { found, .. } => match ToolVersion::find_in(found) {
+            Some(version) => (ToolState::TooOld, Some(version.to_string())),
+            None => (ToolState::VersionUnknown, None),
+        },
     }
+}
+
+fn finding(
+    language: &LanguageId,
+    role: ToolRole,
+    tool: &ToolSpec,
+    status: &IndexerStatus,
+) -> ToolFinding {
+    let problems: &[ToolProblem] = match status {
+        IndexerStatus::Ready => &[],
+        IndexerStatus::Unavailable(problems) => problems,
+    };
+    let (state, found) = outcome(tool, problems);
+    let key = |suffix: &str| [TOOL_KEY_PREFIX, tool.program.as_str(), suffix].concat();
+    ToolFinding {
+        language: language.clone(),
+        tool: tool.program.clone(),
+        role,
+        state,
+        found,
+        required: Some(tool.min_version.to_string()),
+        purpose_key: key(TOOL_PURPOSE_SUFFIX),
+        install_key: key(TOOL_INSTALL_SUFFIX),
+    }
+}
+
+/// One finding for the indexer and one for each tool of its toolchain, in that order. `spec`
+/// carries the versions that were asked for (the pack's and the project's, whichever is newer),
+/// `status` is what `IndexRunner::check` said about it.
+#[must_use]
+pub fn findings_of(
+    language: &LanguageId,
+    spec: &IndexerSpec,
+    status: &IndexerStatus,
+) -> Vec<ToolFinding> {
+    std::iter::once((ToolRole::Indexer, &spec.indexer))
+        .chain(
+            spec.toolchain
+                .iter()
+                .map(|tool| (ToolRole::Toolchain, tool)),
+        )
+        .map(|(role, tool)| finding(language, role, tool, status))
+        .collect()
 }

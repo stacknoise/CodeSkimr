@@ -8,7 +8,7 @@ use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::ports::{
-    CodeIndex, ProjectCatalog, ProjectRepository, ProjectScanner, SimilarityIndex, ToolProbe,
+    CodeIndex, IndexRunner, ProjectCatalog, ProjectRepository, ProjectScanner, SimilarityIndex,
     UsageIndex,
 };
 use codeskimr_cli::{GlobalOptions, McpArgs};
@@ -23,7 +23,7 @@ use crate::locations::Locations;
 use crate::principal;
 use crate::source_arg::folder_spec;
 use crate::wiring::{
-    Analysis, Secrets, build_analysis, build_scanner, open_store, os_secrets, process_probe,
+    Analysis, Secrets, build_analysis, build_scanner, index_runner, open_store, os_secrets,
     tool_checker,
 };
 
@@ -56,11 +56,11 @@ pub fn run(
         return Err(CodedError::new(ErrorCode::ProjectNotScanned));
     }
     let messages = Arc::new(Messages::load().map_err(CodedError::caused_by)?);
-    let probe = process_probe(&config, locations);
+    let runner = index_runner(locations);
     let wiring = Wiring {
         locations,
         messages: Arc::clone(&messages),
-        probe,
+        runner,
     };
     let ports = build_ports(store, &config, wiring, (EventBus::new(), &os_secrets()))?;
     let tools = Tools::new(ports, config.mcp, project.id);
@@ -87,7 +87,7 @@ pub fn http_service(
     http_service_probing(config, locations, (events, secrets), None)
 }
 
-/// Like [`http_service`], but the tools are started through `probe` instead of as real processes
+/// Like [`http_service`], but the tools are started through `runner` instead of as real processes
 /// (tests use this to say which tools exist).
 ///
 /// # Errors
@@ -96,14 +96,14 @@ pub fn http_service_probing(
     config: &Config,
     locations: &Locations,
     (events, secrets): (EventBus, &Arc<Secrets>),
-    probe: Option<Arc<dyn ToolProbe>>,
+    runner: Option<Arc<dyn IndexRunner>>,
 ) -> Result<HttpService, CodedError> {
     let store = open_store(locations, config)?;
     let messages = Arc::new(Messages::load().map_err(CodedError::caused_by)?);
     let wiring = Wiring {
         locations,
         messages: Arc::clone(&messages),
-        probe: probe.unwrap_or_else(|| process_probe(config, locations)),
+        runner: runner.unwrap_or_else(|| index_runner(locations)),
     };
     let ports = build_ports(store, config, wiring, (events, secrets))?;
     let tools = Tools::unscoped(ports, config.mcp.clone());
@@ -115,7 +115,7 @@ pub fn http_service_probing(
 struct Wiring<'a> {
     locations: &'a Locations,
     messages: Arc<Messages>,
-    probe: Arc<dyn ToolProbe>,
+    runner: Arc<dyn IndexRunner>,
 }
 
 /// The ports of the tools: the store for everything it implements, the analysis ports the
@@ -130,7 +130,7 @@ fn build_ports(
     let Wiring {
         locations,
         messages,
-        probe,
+        runner,
     } = wiring;
     let Analysis {
         discovery,
@@ -144,7 +144,7 @@ fn build_ports(
     let usages: Arc<dyn UsageIndex> = store.clone();
     let similarity: Arc<dyn SimilarityIndex> = store.clone();
     let catalog: Arc<dyn ProjectCatalog> = store.clone();
-    let tool_check = tool_checker(&store, config, (locations, probe))?;
+    let tool_check = tool_checker(&store, (locations, runner))?;
     let index: Arc<dyn CodeIndex> = store;
     Ok(Ports {
         projects,

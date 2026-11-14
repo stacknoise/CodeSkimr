@@ -27,6 +27,7 @@ mod encoding;
 mod error;
 mod fingerprints;
 mod grammar;
+mod indexer;
 mod lines;
 mod location;
 mod manifest;

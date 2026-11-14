@@ -1,4 +1,4 @@
--- Schema version 6: the result of checking the tools a project needs for level 2 (ADR 0033,
+-- Schema version 7: the result of checking the tools a project needs for level 2 (ADR 0033,
 -- decision 8). One report per project, replaced by every check; its findings follow in order.
 
 CREATE TABLE tool_reports (
