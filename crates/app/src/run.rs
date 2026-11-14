@@ -126,11 +126,15 @@ fn run_invocation(
     let executable_dir = std::env::current_exe()
         .ok()
         .and_then(|path| path.parent().map(PathBuf::from));
-    let locations = Locations::resolve(
+    let locations = crate::embedded_packs::prefer_embedded(
+        Locations::resolve(
+            &invocation.global,
+            env,
+            executable_dir.as_deref(),
+            &current_dir,
+        )?,
         &invocation.global,
         env,
-        executable_dir.as_deref(),
-        &current_dir,
     )?;
     match &invocation.action {
         Action::Credential(action) => run_credential(action, messages, language),

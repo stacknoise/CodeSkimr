@@ -20,7 +20,7 @@ cd web && npm ci && npm run build && cd ..
 cargo build --release --locked
 ```
 
-The program is `target/release/codeskimr` (`codeskimr.exe` on Windows). The built UI is in `web/dist` and is embedded when building, which is why `web/` comes first. Node.js 22 (`.node-version`). The language packs are read from the `languages/` folder, first next to the program, then in the current folder (option `--languages` or `CODESKIMR_LANGUAGES_DIR` names another folder). Embedding them in the program comes with the release package.
+The program is `target/release/codeskimr` (`codeskimr.exe` on Windows). The built UI is in `web/dist` and is embedded when building, which is why `web/` comes first. Node.js 22 (`.node-version`). The language packs from `languages/` are embedded in the program as well; on the first start it writes them to the data folder (`languages/<id>/`). A `languages/` folder next to the program or in the current folder takes precedence, and so do the option `--languages` and `CODESKIMR_LANGUAGES_DIR`; this lets you change packs without rebuilding.
 
 ## First start
 

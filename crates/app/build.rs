@@ -1,5 +1,7 @@
-//! Embeds the built UI (`web/dist`) into the program (ADR 0030). Without a build the list of
-//! files is empty and the server answers the API only, or serves a UI folder.
+//! Embeds the built UI (`web/dist`, ADR 0030) and the language packs (`languages/`) into the program.
+//! Without a UI build the list of UI files is empty and the server answers the API only, or serves a
+//! UI folder. The language packs are always there; they are written to the data folder when no pack
+//! folder exists (`embedded_packs.rs`).
 
 use std::fmt::Write as _;
 use std::fs;
@@ -16,20 +18,34 @@ const SOURCE_MAP_SUFFIX: &str = ".map";
 const INDEX_FILE: &str = "index.html";
 /// The generated file inside `OUT_DIR`.
 const OUTPUT_FILE: &str = "embedded_ui.rs";
+/// The language packs, relative to this crate.
+const PACKS_DIR: &str = "../../languages";
+/// The generated table of the language packs inside `OUT_DIR`.
+const PACKS_OUTPUT_FILE: &str = "embedded_packs.rs";
+/// Test files of a pack; they are not needed to load it.
+const PACK_TESTS_DIR: &str = "tests";
+/// FNV-1a, 64 bit: start value and prime. A fingerprint of the embedded packs, not a security check.
+const FNV_OFFSET: u64 = 0xcbf2_9ce4_8422_2325;
+const FNV_PRIME: u64 = 0x0000_0100_0000_01b3;
 
 /// Every file below `dir`, with the path relative to `base`, in a fixed order.
-fn files_below(base: &Path, dir: &Path, found: &mut Vec<PathBuf>) -> std::io::Result<()> {
+fn files_below(
+    base: &Path,
+    dir: &Path,
+    keep: fn(&Path) -> bool,
+    found: &mut Vec<PathBuf>,
+) -> std::io::Result<()> {
     let mut entries = Vec::new();
     for entry in fs::read_dir(dir)? {
         entries.push(entry?.path());
     }
     entries.sort();
     for path in entries {
-        if !is_served(&path) {
+        if !keep(&path) {
             continue;
         }
         if path.is_dir() {
-            files_below(base, &path, found)?;
+            files_below(base, &path, keep, found)?;
         } else if let Ok(relative) = path.strip_prefix(base) {
             found.push(relative.to_path_buf());
         }
@@ -45,6 +61,16 @@ fn is_served(path: &Path) -> bool {
         .map(|name| name.to_string_lossy().into_owned())
         .unwrap_or_default();
     !name.starts_with(HIDDEN_PREFIX) && !name.ends_with(SOURCE_MAP_SUFFIX)
+}
+
+/// Whether `path` is part of a language pack that is needed to load it: no hidden files and no
+/// folder of test files.
+fn is_pack_file(path: &Path) -> bool {
+    let name = path
+        .file_name()
+        .map(|name| name.to_string_lossy().into_owned())
+        .unwrap_or_default();
+    !(name.starts_with(HIDDEN_PREFIX) || path.is_dir() && name == PACK_TESTS_DIR)
 }
 
 /// The Rust source of the table of files.
@@ -67,6 +93,34 @@ fn render(base: &Path, files: &[PathBuf]) -> String {
     source
 }
 
+/// The fingerprint of the packs: names and contents, in the order of the table.
+fn fingerprint(base: &Path, files: &[PathBuf]) -> std::io::Result<u64> {
+    let mut hash = FNV_OFFSET;
+    for relative in files {
+        let content = fs::read(base.join(relative))?;
+        let name = relative.to_string_lossy().into_owned();
+        for byte in name.bytes().chain(content) {
+            hash = (hash ^ u64::from(byte)).wrapping_mul(FNV_PRIME);
+        }
+    }
+    Ok(hash)
+}
+
+/// Writes the table of the language packs and its fingerprint.
+fn embed_packs(root: &Path, out_dir: &Path) -> std::io::Result<()> {
+    let base = root.join(PACKS_DIR);
+    println!("cargo:rerun-if-changed={}", base.display());
+    let mut files = Vec::new();
+    files_below(&base, &base, is_pack_file, &mut files)?;
+    let mut source = render(&base, &files);
+    let _ = writeln!(
+        source,
+        "pub const FINGERPRINT: &str = {:?};",
+        format!("{:016x}", fingerprint(&base, &files)?)
+    );
+    fs::write(out_dir.join(PACKS_OUTPUT_FILE), source)
+}
+
 fn main() -> ExitCode {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let base = root.join(UI_DIST);
@@ -79,7 +133,7 @@ fn main() -> ExitCode {
     println!("cargo:rerun-if-changed={}", base.display());
     let mut files = Vec::new();
     if base.join(INDEX_FILE).is_file() {
-        if files_below(&base, &base, &mut files).is_err() {
+        if files_below(&base, &base, is_served, &mut files).is_err() {
             eprintln!("embedded UI: cannot read {}", base.display());
             return ExitCode::FAILURE;
         }
@@ -91,8 +145,11 @@ fn main() -> ExitCode {
     let Some(out_dir) = std::env::var_os("OUT_DIR") else {
         return ExitCode::FAILURE;
     };
-    match fs::write(Path::new(&out_dir).join(OUTPUT_FILE), render(&base, &files)) {
-        Ok(()) => ExitCode::SUCCESS,
-        Err(_) => ExitCode::FAILURE,
+    let out_dir = Path::new(&out_dir);
+    let written = fs::write(out_dir.join(OUTPUT_FILE), render(&base, &files));
+    if written.is_err() || embed_packs(root, out_dir).is_err() {
+        eprintln!("embedded packs: cannot read {PACKS_DIR}");
+        return ExitCode::FAILURE;
     }
+    ExitCode::SUCCESS
 }

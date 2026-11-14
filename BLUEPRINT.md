@@ -1098,6 +1098,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 |---|---|---|
 | APP-201 | `data_dir_unavailable` | The user data directory cannot be created or opened. |
 | APP-202 | `launch_file_unavailable` | The private file for starting the browser could not be created. |
+| APP-203 | `language_packs_unavailable` | The language packs built into the program could not be written to the data directory. |
 | APP-301 | `instance_already_running` | Another CodeSkimr instance holds the workspace; connecting to it failed. |
 | APP-901 | `unexpected_internal_error` | An unexpected internal error occurred (bug). |
 | APP-601 | `browser_start_failed` | The system did not start a browser for the launch file. |

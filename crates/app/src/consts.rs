@@ -45,6 +45,12 @@ pub const GIT_CACHE_DIR: &str = "git";
 pub const USER_CONFIG_FILE: &str = "config.toml";
 /// The folder of the language packs next to the executable or the current folder.
 pub const LANGUAGES_DIR: &str = "languages";
+/// The folder inside the data folder that holds the language packs written from the program.
+pub const PACKS_CACHE_DIR: &str = "languages";
+/// The file that says a folder of embedded packs was written completely.
+pub const PACKS_COMPLETE_MARKER: &str = ".complete";
+/// Between the fingerprint and the process number in the name of a folder that is being written.
+pub const PACKS_STAGING_SEPARATOR: &str = ".writing-";
 
 /// Branch of a Git source when none is given.
 pub const DEFAULT_BRANCH: &str = "main";
