@@ -205,12 +205,16 @@ jobs:
       # Preview.tsx and preview.ts), so the repository must not contain such a pair.
       - name: No paths that differ only in case
         run: |
-          duplicates=$(git ls-files | tr 'A-Z' 'a-z' | sort | uniq -d)
-          if [ -n "$duplicates" ]; then
-            echo "Paths that differ only in case:" >&2
-            echo "$duplicates" >&2
-            exit 1
-          fi
+          git -c core.quotePath=false ls-files | python3 -c '
+          import collections, sys
+          seen = collections.defaultdict(list)
+          for line in sys.stdin.read().splitlines():
+              seen[line.casefold()].append(line)
+          clashes = [names for names in seen.values() if len(names) > 1]
+          for names in clashes:
+              print("Paths that differ only in case:", *names, file=sys.stderr)
+          sys.exit(1 if clashes else 0)
+          '
       # Blueprint 12.4: every expose_secret() call in product code is on the approved list.
       - name: Approved expose_secret() call sites
         run: python3 tools/ci/check_expose_secret.py
