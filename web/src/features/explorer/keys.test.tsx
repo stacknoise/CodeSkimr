@@ -90,6 +90,7 @@ describe("useExplorerKeys", () => {
       usages: vi.fn(),
       graph: vi.fn(),
       editor: vi.fn(),
+      member: vi.fn(),
     };
     const view = render(() => {
       useExplorerKeys(keys);
@@ -130,6 +131,16 @@ describe("useExplorerKeys", () => {
     fireEvent.keyDown(document.body, { key: "e", ctrlKey: true });
     fireEvent.keyDown(view.getByLabelText("field"), { key: "e" });
     expect(keys.editor).toHaveBeenCalledTimes(2);
+  });
+
+  it("steps to the next and previous member on Alt+Down and Alt+Up only", () => {
+    const { keys, view } = shown();
+    fireEvent.keyDown(document.body, { key: "ArrowDown", altKey: true });
+    fireEvent.keyDown(document.body, { key: "ArrowUp", altKey: true });
+    fireEvent.keyDown(document.body, { key: "ArrowDown" });
+    fireEvent.keyDown(document.body, { key: "ArrowDown", altKey: true, ctrlKey: true });
+    fireEvent.keyDown(view.getByLabelText("field"), { key: "ArrowDown", altKey: true });
+    expect(keys.member.mock.calls).toEqual([[1], [-1]]);
   });
 
   it("ignores the keys without Ctrl and while the user types", () => {

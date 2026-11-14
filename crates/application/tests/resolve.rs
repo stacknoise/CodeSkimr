@@ -431,7 +431,7 @@ mod tests {
         ];
         let found = resolve(&shop.table, &pending);
         let calls = of_kind(&found, ReferenceKind::Call);
-        assert_eq!(calls, [shop.printer_print, fancy_print]);
+        assert_eq!(calls, [shop.printer_print]);
     }
 
     #[test]

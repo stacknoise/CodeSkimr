@@ -18,7 +18,7 @@ import {
 import { collapseAll, currentMember, currentType, setTreeFilter, treeFilter } from "./explorer";
 import { KindBadge } from "./KindBadge";
 import { onTreeKey } from "./keys";
-import { indent, type TreeRow } from "./tree";
+import { indent, siblingPlaces, type Place, type TreeRow } from "./tree";
 import { useWindow } from "./useWindow";
 import styles from "./TreePane.module.css";
 
@@ -62,7 +62,13 @@ function Caret(props: { row: TreeRow; onToggle: (row: TreeRow) => void }) {
   );
 }
 
-function Item(props: { row: TreeRow; index: number; cursor: boolean; actions: TreeActions }) {
+function Item(props: {
+  row: TreeRow;
+  place: Place | undefined;
+  index: number;
+  cursor: boolean;
+  actions: TreeActions;
+}) {
   const row = () => props.row;
   return (
     <div
@@ -80,6 +86,8 @@ function Item(props: { row: TreeRow; index: number; cursor: boolean; actions: Tr
         "padding-left": `${indent(row().depth)}px`,
       }}
       aria-level={row().depth + 1}
+      aria-setsize={props.place?.size}
+      aria-posinset={props.place?.position}
       aria-selected={selected(row()) ? TRUE : undefined}
       aria-expanded={row().expandable ? row().open : undefined}
       onClick={() => props.actions.onActivate(row())}
@@ -139,6 +147,7 @@ export function TreePane(props: {
 }) {
   const cursorIndex = createMemo(() => props.rows.findIndex((row) => row.key === props.cursor));
   const view = useWindow(() => props.rows, cursorIndex);
+  const places = createMemo(() => siblingPlaces(props.rows));
   return (
     <section class={styles.pane} aria-label={t(I18N_KEYS.EXPLORER_STRUCTURE_LABEL)}>
       <Tools onReveal={props.actions.onReveal} />
@@ -160,6 +169,7 @@ export function TreePane(props: {
             {(place) => (
               <Item
                 row={place.item}
+                place={places()[place.index]}
                 index={place.index}
                 cursor={place.index === cursorIndex()}
                 actions={props.actions}

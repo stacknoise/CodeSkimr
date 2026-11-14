@@ -3,7 +3,7 @@ import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import type { MessageKey } from "../../shared/i18n/i18n";
 import { cx } from "../../shared/ui/cx";
-import { showUsages } from "../usages/usages";
+import { showUsages } from "../../shared/navigation/navigation";
 import {
   CC_METRIC,
   CHIP,

@@ -1,7 +1,7 @@
 //! Queries on the read models.
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::SearchHit;
+use codeskimr_application::ports::{FileHit, SearchHit};
 use codeskimr_domain::{
     LayerEdge, LayerName, ProjectId, QualifiedName, RelativePath, Snapshot, SnapshotId, SymbolId,
     SymbolName,
@@ -92,6 +92,38 @@ fn search(
     Ok(hits)
 }
 
+fn search_files(
+    conn: &Connection,
+    snapshot: i64,
+    query: &str,
+    limit: u32,
+) -> StorageResult<Vec<FileHit>> {
+    let query = query.to_lowercase();
+    if query.is_empty() {
+        return Ok(Vec::new());
+    }
+    let (fuzzy, _) = patterns(&query);
+    let mut statement = conn.prepare_cached(sql::SEARCH_FILES)?;
+    let rows = statement.query_map(params![snapshot, fuzzy, query, i64::from(limit)], |row| {
+        let cols = Cols::new(row);
+        Ok((
+            cols.take::<String>()?,
+            cols.take::<i64>()?,
+            cols.take::<i64>()?,
+        ))
+    })?;
+    let mut hits = Vec::new();
+    for row in rows {
+        let (path, loc, first) = row?;
+        hits.push(FileHit {
+            path: RelativePath::new(path)?,
+            loc: small_from(loc)?,
+            first_type: SymbolId::new(id_from(first)?),
+        });
+    }
+    Ok(hits)
+}
+
 fn layer_edges(conn: &Connection, snapshot: i64) -> StorageResult<Vec<LayerEdge>> {
     let mut statement = conn.prepare_cached(sql::EDGES)?;
     let rows = statement.query_map(params![snapshot], |row| {
@@ -177,6 +209,21 @@ impl SqliteStore {
         limit: u32,
     ) -> Result<Vec<SearchHit>, CodedError> {
         self.read(|conn| search(conn, column_int(snapshot.get())?, query, limit))
+            .map_err(CodedError::from)
+    }
+
+    /// Fuzzy search over the paths of the files that declare a type: the characters of `query`
+    /// must appear in the path in that order, case-insensitively.
+    ///
+    /// # Errors
+    /// A coded `STO` failure.
+    pub fn search_files(
+        &self,
+        snapshot: SnapshotId,
+        query: &str,
+        limit: u32,
+    ) -> Result<Vec<FileHit>, CodedError> {
+        self.read(|conn| search_files(conn, column_int(snapshot.get())?, query, limit))
             .map_err(CodedError::from)
     }
 
