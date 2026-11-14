@@ -5,12 +5,12 @@
 //! differ elsewhere, so the stored span of a reference and the lookup of the level 1 kind at the
 //! same place would be off. The conversion needs the text of the lines.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use codeskimr_domain::{Position, RelativePath, Span};
 
-use crate::consts::MAX_LOCAL_NAME_BYTES;
+use crate::consts::{IDENTIFIER_EXTRA_CHARS, MAX_LOCAL_NAME_BYTES, MAX_LOCAL_NAME_TOTAL_BYTES};
 use crate::model::{Occurrence, PositionEncoding, ScipDocument, ScipIndex, SymbolRef};
 use crate::symbol::is_local;
 
@@ -90,13 +90,49 @@ fn text_at(lines: &[String], range: Span) -> Option<&str> {
     line.get(usize::try_from(start.column).ok()?..usize::try_from(end.column).ok()?)
 }
 
+/// Whether `text` can be the name of a symbol: letters, digits and a few marks, nothing else.
+fn is_identifier(text: &str) -> bool {
+    !text.is_empty()
+        && text
+            .chars()
+            .all(|c| c.is_alphanumeric() || IDENTIFIER_EXTRA_CHARS.contains(&c))
+}
+
+/// Keeps each name text of the local symbols once over the whole index, and only texts that
+/// can be names, up to a total size: a hostile index cannot make it grow without bound.
+#[derive(Default)]
+struct NameInterner {
+    names: HashSet<Arc<str>>,
+    bytes: usize,
+}
+
+impl NameInterner {
+    /// The shared text, or `None` if it is no identifier or the total size is used up.
+    fn share(&mut self, text: &str) -> Option<Arc<str>> {
+        if !is_identifier(text) {
+            return None;
+        }
+        if let Some(known) = self.names.get(text) {
+            return Some(Arc::clone(known));
+        }
+        let total = self.bytes.checked_add(text.len())?;
+        if total > MAX_LOCAL_NAME_TOTAL_BYTES {
+            return None;
+        }
+        let shared: Arc<str> = Arc::from(text);
+        self.bytes = total;
+        self.names.insert(Arc::clone(&shared));
+        Some(shared)
+    }
+}
+
 /// The names of the local symbols a document defines: the text of their definitions. A symbol
 /// whose definitions do not read the same gets none. Needs columns in bytes.
 fn local_names(
     document: &ScipDocument,
     lines: &[String],
     symbols: &[String],
-    interner: &mut HashMap<String, Arc<str>>,
+    interner: &mut NameInterner,
 ) -> HashMap<SymbolRef, Arc<str>> {
     let mut names: HashMap<SymbolRef, Option<&str>> = HashMap::new();
     let definitions = document.occurrences.iter().filter(|o| o.is_definition());
@@ -117,13 +153,7 @@ fn local_names(
     // The same few names (`i`, `e`, `cb`) recur over a project: each text is kept once.
     names
         .into_iter()
-        .filter_map(|(symbol, text)| {
-            let text = text?;
-            let shared = interner
-                .entry(text.to_owned())
-                .or_insert_with(|| Arc::from(text));
-            Some((symbol, Arc::clone(shared)))
-        })
+        .filter_map(|(symbol, text)| Some((symbol, interner.share(text?)?)))
         .collect()
 }
 
@@ -164,7 +194,7 @@ pub fn convert_columns(
         let path = |at: &usize| documents.get(*at).map(|document| document.path.as_str());
         path(a).cmp(&path(b))
     });
-    let mut interner: HashMap<String, Arc<str>> = HashMap::new();
+    let mut interner = NameInterner::default();
     let mut current: Option<(String, Option<Vec<String>>)> = None;
     for at in order {
         let Some(document) = documents.get_mut(at) else {
@@ -220,6 +250,30 @@ mod tests {
         let lines = vec![line.to_owned()];
         convert_columns(&mut index, &mut |_| Some(lines.clone()));
         index.documents[0].occurrences[0].range
+    }
+
+    #[test]
+    fn interner_keeps_only_identifiers_once_up_to_the_total() {
+        let mut interner = NameInterner::default();
+        let first = interner.share("cb").unwrap();
+        assert!(Arc::ptr_eq(&first, &interner.share("cb").unwrap()));
+        assert!(interner.share("a b").is_none());
+        assert!(interner.share("f(x)").is_none());
+        assert!(interner.share("").is_none());
+        assert!(interner.share("$el_1").is_some());
+        // Overlapping texts of one long name are all different texts, each kept once.
+        let long = "a".repeat(usize::try_from(MAX_LOCAL_NAME_BYTES).unwrap());
+        for end in 1..=long.len() {
+            assert!(interner.share(&long[..end]).is_some());
+        }
+        // Endless different names: the total stops it, never above the limit.
+        let mut number = u32::default();
+        while interner.share(&format!("n{number}")).is_some() {
+            number += 1;
+        }
+        assert!(interner.bytes <= MAX_LOCAL_NAME_TOTAL_BYTES);
+        assert!(interner.bytes + "n".len() + 1 > MAX_LOCAL_NAME_TOTAL_BYTES - 8);
+        assert!(interner.share("cb").is_some());
     }
 
     #[test]
