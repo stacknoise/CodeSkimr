@@ -1,7 +1,6 @@
 # CI pipeline (blueprint 17.3). Every job name below is a required check in the ruleset:
 # pr-title, fmt, clippy, test, deps, build (ubuntu-latest), build (windows-latest),
 # build (macos-latest), architecture, duplicates, literals, codegen, bench, e2e.
-# Temporary: build (macos-latest) is non-blocking, see docs/ci.md and issue #131.
 # Never rename a job without telling the product owner; the ruleset matches by name.
 name: CI
 
@@ -130,6 +129,20 @@ jobs:
         run: cargo machete
       # Section 12: Git must never send credentials over plain HTTP. The feature that allows it is a
       # dev-dependency of the login tests and must not be part of the product (issue #58).
+      # Issue #243: the two tool workspaces have their own Cargo.lock, so the checks above do not see them.
+      # import_scip gets the same strict checks. The lint tree (no_literals, developer tool, never shipped)
+      # pulls in the unmaintained `paste` through dylint_linting (RUSTSEC-2024-0436, no fix exists), so for
+      # it audit and deny fail on vulnerabilities, licenses, bans and sources but not on that notice.
+      - name: cargo audit, deny and machete for tools/accuracy/import_scip
+        run: |
+          cargo audit --deny warnings -f tools/accuracy/import_scip/Cargo.lock
+          cargo deny --manifest-path tools/accuracy/import_scip/Cargo.toml --config deny.toml --locked check
+          cargo machete tools/accuracy/import_scip
+      - name: cargo audit, deny and machete for tools/lints/no_literals
+        run: |
+          cargo audit -f tools/lints/no_literals/Cargo.lock
+          cargo deny --manifest-path tools/lints/no_literals/Cargo.toml --config deny.toml --locked check bans licenses sources
+          cargo machete tools/lints/no_literals
       - name: no plain-HTTP credentials in the product
         run: |
           # Capture first: a failing `cargo tree` must fail the step, not look like "no match".
@@ -143,10 +156,7 @@ jobs:
   build:
     name: build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    # TEMPORARY (see docs/ci.md, issue #131): macOS runners are not available reliably, so a failing or
-    # hanging macOS build must not block merges. The check still reports.
-    continue-on-error: ${{ matrix.os == 'macos-latest' }}
-    timeout-minutes: ${{ matrix.os == 'macos-latest' && 20 || 60 }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
