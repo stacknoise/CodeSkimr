@@ -60,7 +60,7 @@ fn the_importer_returns_the_new_references_of_the_covered_files() {
             .iter()
             .all(|reference| reference.verified)
     );
-    assert!(!imported.files.is_empty());
+    assert_ne!(imported.files.len(), 0);
 }
 
 #[test]
@@ -139,7 +139,7 @@ fn only_files_of_the_snapshot_are_read_and_only_up_to_the_limit() {
         min_mapped: 0.0,
     });
     let asked = recording.0.lock().expect("lock").clone();
-    assert!(!asked.is_empty());
+    assert_ne!(asked.len(), 0);
     assert!(
         asked.iter().all(|(path, limit)| {
             (path == "src/a.cs" || path == "src/b.cs") && *limit == FILE_LIMIT

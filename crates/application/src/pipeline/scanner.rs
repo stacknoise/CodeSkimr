@@ -133,12 +133,16 @@ impl Scanner {
         let ctx = StageContext::new(project_id, job.token(), &self.events);
         match self.pipeline.run(ScanRequest { project, mode }, &ctx) {
             Ok(persisted) => {
-                let (snapshot, reports) =
-                    self.second_pass(*principal, persisted, (job.token(), job.level2_wanted()));
-                self.events
-                    .publish(&Event::SnapshotCreated(SnapshotCreated {
-                        snapshot: snapshot.clone(),
-                    }));
+                // Level 1 is complete and usable now; level 2 may take minutes.
+                self.created(&persisted.snapshot);
+                let (snapshot, reports) = self.second_pass(
+                    *principal,
+                    persisted.clone(),
+                    (job.token(), job.level2_wanted()),
+                );
+                if snapshot != persisted.snapshot {
+                    self.created(&snapshot);
+                }
                 JobResult::Finished(job.finish(snapshot, reports))
             }
             Err(Halt::Cancelled(_)) => {
@@ -164,6 +168,13 @@ impl Scanner {
             }
             _ => (persisted.snapshot, Vec::new()),
         }
+    }
+
+    fn created(&self, snapshot: &Snapshot) {
+        self.events
+            .publish(&Event::SnapshotCreated(SnapshotCreated {
+                snapshot: snapshot.clone(),
+            }));
     }
 
     fn fail(&self, job: Job<Failed>, project: ProjectId) -> JobResult {

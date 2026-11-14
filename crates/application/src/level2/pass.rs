@@ -199,6 +199,9 @@ impl Level2Pass {
                 min_mapped: self.settings.min_mapped,
             })
             .map_err(Skipped::from)?;
+        if scan.cancel.is_cancelled() {
+            return Err(Skipped::Cancelled);
+        }
         self.replace(scan.snapshot, &imported, stale)
     }
 

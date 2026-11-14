@@ -53,7 +53,9 @@ pub struct LanguageReport {
 /// What the second pass leaves behind.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Level2Result {
-    /// One entry per language that has an indexer and files in the snapshot.
+    /// One entry per language that has an indexer and files in the snapshot. If the snapshot or
+    /// the project cannot be read, the files are unknown, so there is one failed entry for every
+    /// language that has an indexer.
     pub reports: Vec<LanguageReport>,
     /// The snapshot with the totals after the replacement; the one the scan wrote if nothing
     /// was replaced.
