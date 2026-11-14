@@ -87,7 +87,7 @@ pub(crate) fn decode_bounded(
     refuse_above(size, max_index_bytes)?;
     let mut symbols = Interner::new(limits.symbols);
     let mut index = ScipIndex::default();
-    let mut occurrences = 0_usize;
+    let mut occurrences: usize = 0;
     for field in Fields::new(bytes) {
         match field? {
             (INDEX_METADATA, Value::Bytes(message)) => {
