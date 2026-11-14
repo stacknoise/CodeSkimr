@@ -100,6 +100,7 @@ impl Tools {
             i18n_folders: sources.i18n_folders.clone(),
             max_files: sources.max_files,
             max_file_kb: sources.max_file_kb,
+            max_depth: sources.max_depth,
         };
         let all = self.project_keys().keys(root, &search)?;
         let mut hits: Vec<Key> = all

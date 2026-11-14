@@ -702,6 +702,7 @@ pub fn key_sources() -> KeySources {
         i18n_folders: vec!["locales".to_owned()],
         max_files: 10,
         max_file_kb: 1,
+        max_depth: 2,
     }
 }
 

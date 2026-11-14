@@ -91,6 +91,8 @@ pub mod keys {
     pub const MAX_FUNCTION_LINES: &str = "conventions.max_function_lines";
     /// `keys.max_files`
     pub const KEYS_MAX_FILES: &str = "keys.max_files";
+    /// `keys.max_depth`
+    pub const KEYS_MAX_DEPTH: &str = "keys.max_depth";
     /// `keys.max_file_kb`
     pub const KEYS_MAX_FILE_KB: &str = "keys.max_file_kb";
     /// `conventions.duplicate_similarity_percent`

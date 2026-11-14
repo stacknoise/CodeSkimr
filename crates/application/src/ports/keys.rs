@@ -38,6 +38,8 @@ pub struct KeySearch {
     pub max_files: u32,
     /// Largest file read, in kilobytes.
     pub max_file_kb: u32,
+    /// How many folder levels below a configured folder are looked into.
+    pub max_depth: u32,
 }
 
 /// Lists the keys of the files below the folders of `search`. Paths come from the folder walk,

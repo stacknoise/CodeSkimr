@@ -13,7 +13,8 @@ use super::model::{
 
 fn check_keys(sources: &KeySources) -> Result<(), ConfigError> {
     positive(keys::KEYS_MAX_FILES, sources.max_files)?;
-    positive(keys::KEYS_MAX_FILE_KB, sources.max_file_kb)
+    positive(keys::KEYS_MAX_FILE_KB, sources.max_file_kb)?;
+    positive(keys::KEYS_MAX_DEPTH, sources.max_depth)
 }
 
 /// Checks every value of `config`.

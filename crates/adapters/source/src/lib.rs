@@ -17,6 +17,7 @@ mod fetcher;
 mod folder;
 mod git;
 mod hash;
+mod key_text;
 mod keys;
 mod languages;
 mod paths;

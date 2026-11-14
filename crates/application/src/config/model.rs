@@ -59,6 +59,8 @@ pub struct KeySources {
     pub max_files: u32,
     /// Largest file that is read, in kilobytes; larger ones are skipped.
     pub max_file_kb: u32,
+    /// Folder levels below a configured folder that are looked into.
+    pub max_depth: u32,
 }
 
 /// One architecture layer as written in `.codeskimr.toml`.

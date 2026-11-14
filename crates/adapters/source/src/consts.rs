@@ -101,3 +101,25 @@ pub const KEY_SEPARATOR: &str = ".";
 
 /// Characters besides letters and digits that a Fluent message id may contain.
 pub const NAME_EXTRA: &str = "-_";
+
+/// Opens an inline table in a TOML value.
+pub const TABLE_VALUE_OPEN: char = '{';
+
+/// Closes an inline table in a TOML value.
+pub const TABLE_VALUE_CLOSE: char = '}';
+
+/// Quotes a literal TOML string.
+pub const SINGLE_QUOTE: char = '\'';
+
+/// Opens and closes a TOML string over several lines.
+pub const TRIPLE_QUOTE: &str = "\"\"\"";
+
+/// Opens and closes a literal TOML string over several lines.
+pub const TRIPLE_SINGLE_QUOTE: &str = "'''";
+
+/// Escapes in a basic TOML string.
+pub const BACKSLASH: char = '\\';
+
+/// Characters besides letters and digits that a bare TOML key may contain, and the dot of a
+/// dotted key.
+pub const TOML_KEY_EXTRA: &str = "-_.";
