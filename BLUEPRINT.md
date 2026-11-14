@@ -575,7 +575,7 @@ id = "SRC-201"
 name = "source_path_not_found"          # → ErrorCode::SourcePathNotFound
 severity = "error"                      # error | warning | info
 retryable = false
-description = "The configured source folder does not exist or is not readable."
+description = "A source folder, a source file or a language pack folder does not exist or cannot be read."
 since = "0.1.0"
 
 [[codes]]
@@ -1109,7 +1109,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | PRJ-301 | `project_already_registered` | A project with the same source is already registered. |
 | PRJ-302 | `snapshot_in_progress` | A scan for this project is already running. |
 | PRJ-303 | `scan_cancelled` | The scan was cancelled by the user; no snapshot was written. (info) |
-| SRC-201 | `source_path_not_found` | The configured source folder does not exist or is not readable. |
+| SRC-201 | `source_path_not_found` | A source folder, a source file or a language pack folder does not exist or cannot be read. |
 | SRC-202 | `git_branch_not_found` | The requested branch does not exist on the remote. |
 | SRC-401 | `git_auth_required` | The remote requires authentication and no usable credential is available. |
 | SRC-501 | `source_too_large` | The source exceeds the configured size limit. |
