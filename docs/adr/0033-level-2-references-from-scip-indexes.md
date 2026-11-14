@@ -69,3 +69,11 @@ The import package deviates from the text above in three points:
 - Running build tools is a new security-relevant function with consent, limits and review.
 - New error codes with texts in de and en (index corrupt, tool missing, permission, limit exceeded), registered in `errors/error-codes.toml`.
 - The reversal of #133 costs precision without level 2; the marking and the separate count carry that.
+
+## Addendum: decisions made while wiring level 2
+
+- **Who starts indexers.** Decision 10 forbids that MCP, REST, watch mode and CI stand in for the confirmation. Beyond that, after the owner confirmed, only the scan of the command line (`codeskimr scan`, the first scan of `--watch`) runs the second pass. `ProjectScanner::rescan` (MCP, UI) and later watch scans are level 1 only (`Job::without_level2`), so an AI agent or a browser client cannot start the build tools of a project. A test pins it.
+- **Where confirming lives.** Only `codeskimr level2 confirm|revoke` calls `level2::confirm`/`revoke`, on a terminal, after a text that names file and network access, the missing sandbox and the binding to source, location and branch. A test in `crates/app/tests/consent_origin.rs` fails if another product file calls them. The confirmation is not bound to a commit; a later pull of new build scripts runs under it (issue #230).
+- **Run folder.** `authorize_run` takes the folder from the project record (folder source) or the clone folder of the source adapter (Git), never from the caller.
+- **Replacing across snapshots.** Rows are shared between snapshots (ADR 0032), so a replacement also updates the totals and read models of every snapshot that holds the file.
+- **Usages answer.** `level2` is `active` if at least one direct usage of the answer is verified, otherwise `unavailable`.

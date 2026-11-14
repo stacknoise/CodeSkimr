@@ -19,7 +19,8 @@ use codeskimr_domain::{
 use serde::{Deserialize, Serialize};
 
 use super::consts::{
-    LEVEL2_ACTIVE, LEVEL2_UNAVAILABLE, LINE_OFFSET, USAGES_DESCRIPTION, USAGES_LIMIT, USAGES_QUERY, USAGES_TITLE,
+    LEVEL2_ACTIVE, LEVEL2_UNAVAILABLE, LINE_OFFSET, USAGES_DESCRIPTION, USAGES_LIMIT, USAGES_QUERY,
+    USAGES_TITLE,
 };
 
 /// Which way the screen walks the references.
@@ -375,7 +376,10 @@ mod level2_tests {
             probable: 0,
         };
         assert_eq!(level2_state(&none), LEVEL2_UNAVAILABLE);
-        let some = Summary { verified: 1, ..none };
+        let some = Summary {
+            verified: 1,
+            ..none
+        };
         assert_eq!(level2_state(&some), LEVEL2_ACTIVE);
     }
 }

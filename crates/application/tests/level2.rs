@@ -297,16 +297,16 @@ mod cases {
             version("java version \"1.8.0_392\""),
             ToolVersion::parse("1.8.0")
         );
-        assert!(version("2023-10-17 nothing").is_none());
+        assert_eq!(version("2023-10-17 nothing"), None);
         for dated in [
             "tool version 2024-05-01",
             "tool version 2024/05/01",
             "tool version 20240501",
             "tool version \"2024-05-01\"",
         ] {
-            assert!(version(dated).is_none(), "{dated}");
+            assert_eq!(version(dated), None, "{dated}");
         }
-        assert!(version("version").is_none());
+        assert_eq!(version("version"), None);
         assert!(ToolVersion::parse("1.10.0") > ToolVersion::parse("1.9.9"));
         assert_eq!(ToolVersion::parse("1.8.0_392"), ToolVersion::parse("1.8.0"));
     }

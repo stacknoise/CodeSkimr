@@ -42,6 +42,10 @@ Manages the credentials in the keystore of the operating system (blueprint 12.2,
 
 `--client-id` is the id of an OAuth application that is registered at the platform (not a secret). `--host` selects a self-managed installation and must be an HTTPS address.
 
+## `codeskimr level2 confirm|revoke <project>`
+
+Allows or forbids level 2 (the indexers of ADR 0033, which run the build tools of the project) for one project. `<project>` is the project id or the folder or Git URL it was scanned from, as for `export`. `confirm` needs a terminal on standard input and output: it prints what level 2 runs and with which rights (file and network access, no sandbox, the binding to source, location and branch and not to a commit) and starts only if the user types the confirmation word of their language (`yes`, `ja`). Without a terminal it fails with `SEC-403`; nothing can pass the word as an argument or through a pipe. `revoke` forbids it again at once. Nothing else confirms level 2: not MCP, not the server, not watch mode (`tests/consent_origin.rs` checks the source). Only `codeskimr scan` starts the indexers; `scan` prints one line per language with an indexer: "Level 2: ... checked" or "skipped (reason)".
+
 ## `codeskimr open`
 
 ```

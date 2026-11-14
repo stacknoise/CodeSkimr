@@ -1,17 +1,19 @@
 //! The program: reads the command line, runs the command and reports the outcome.
 
 use std::ffi::OsString;
-use std::io::{self, Write};
+use std::io::{self, BufRead, IsTerminal, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
 use codeskimr_application::conventions::CheckReport;
 use codeskimr_application::error::CodedError;
 use codeskimr_cli::{
-    Action, CliError, CredentialAction, ExportArgs, Invocation, OpenArgs, Parsed, ScanArgs,
-    ScanSummary, check_json, check_text, credential_deleted, credential_stored, device_prompt,
-    error_line, export_written, language_from, open_ready, parse, scan_finished, scan_json,
-    scan_started, secret_prompt, serve_started, watch_started, watch_updated,
+    Action, CliError, CredentialAction, ExportArgs, Invocation, Level2Action, OpenArgs, Parsed,
+    ScanArgs, ScanSummary, check_json, check_text, confirm_prompt, confirm_warning, confirm_word,
+    credential_deleted, credential_stored, device_prompt, error_line, export_written,
+    language_from, level2_confirmed, level2_declined, level2_revoked, open_ready, parse,
+    scan_finished, scan_json, scan_started, secret_prompt, serve_started, watch_started,
+    watch_updated,
 };
 use codeskimr_codes::i18n::{CLI_CREDENTIAL_UNUSABLE_HINT, CLI_CREDENTIALS_HINT};
 use codeskimr_codes::{Coded, ErrorCode};
@@ -27,7 +29,7 @@ use crate::logging;
 use crate::source_arg::SourceError;
 use crate::watch::{self, Report};
 use crate::wiring::os_secrets;
-use crate::{check, credential, export, mcp, open, scan, serve, ui_commands};
+use crate::{check, credential, export, level2_consent, mcp, open, scan, serve, ui_commands};
 
 /// Why a command did not finish: a registered code, plus the parser's text for usage errors.
 struct Failure {
@@ -123,6 +125,7 @@ fn run_invocation(
     )?;
     match &invocation.action {
         Action::Credential(action) => run_credential(action, messages, language),
+        Action::Level2(action) => run_level2(action, invocation, &locations, messages, language),
         Action::Scan(args) => run_scan(args, invocation, &locations, messages, language),
         Action::Mcp(args) => {
             mcp::run(args, &invocation.global, &locations, &current_dir)?;
@@ -176,6 +179,43 @@ fn run_credential(
     let line = match credential::run(action, &io)? {
         credential::Done::Stored(id) => credential_stored(messages, language, &id),
         credential::Done::Deleted(id) => credential_deleted(messages, language, &id),
+    };
+    write_out(&line.map_err(CliError::from)?);
+    Ok(Outcome::Done)
+}
+
+/// `codeskimr level2`: asks the user on the terminal; without one nothing is confirmed.
+fn run_level2(
+    action: &Level2Action,
+    invocation: &Invocation,
+    locations: &Locations,
+    messages: &Messages,
+    language: &str,
+) -> Result<Outcome, Failure> {
+    let project = match action {
+        Level2Action::Confirm { project } | Level2Action::Revoke { project } => project,
+    };
+    let ask = || -> Result<bool, CodedError> {
+        if !(io::stdin().is_terminal() && io::stdout().is_terminal()) {
+            return Err(CodedError::new(ErrorCode::IndexerNotPermitted));
+        }
+        let warning = confirm_warning(messages, language).map_err(CodedError::caused_by)?;
+        let prompt = confirm_prompt(messages, language, project).map_err(CodedError::caused_by)?;
+        let word = confirm_word(messages, language).map_err(CodedError::caused_by)?;
+        write_out(&warning);
+        write_out(&prompt);
+        let mut answer = String::new();
+        io::stdin()
+            .lock()
+            .read_line(&mut answer)
+            .map_err(|_| CodedError::new(ErrorCode::IndexerNotPermitted))?;
+        Ok(answer.trim().to_lowercase() == word.to_lowercase())
+    };
+    let done = level2_consent::run(action, &invocation.global, locations, &ask)?;
+    let line = match &done {
+        level2_consent::Done::Confirmed(name) => level2_confirmed(messages, language, name),
+        level2_consent::Done::Declined(name) => level2_declined(messages, language, name),
+        level2_consent::Done::Revoked(name) => level2_revoked(messages, language, name),
     };
     write_out(&line.map_err(CliError::from)?);
     Ok(Outcome::Done)

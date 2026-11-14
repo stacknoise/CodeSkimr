@@ -6,8 +6,8 @@
 
 mod args;
 mod check;
-mod consts;
 mod consent;
+mod consts;
 mod credential;
 mod error;
 mod level2;
@@ -16,15 +16,15 @@ mod parser;
 mod render;
 
 pub use args::{
-    Action, CheckArgs, CredentialAction, ExportArgs, GlobalOptions, Invocation, Level2Action, McpArgs,
-    OpenArgs,
-    Parsed, ProviderChoice, ScanArgs, ServeArgs,
+    Action, CheckArgs, CredentialAction, ExportArgs, GlobalOptions, Invocation, Level2Action,
+    McpArgs, OpenArgs, Parsed, ProviderChoice, ScanArgs, ServeArgs,
 };
 pub use check::{check_json, check_text};
-pub use error::CliError;
 pub use consent::{
-    confirm_prompt, confirm_warning, confirm_word, level2_confirmed, level2_declined, level2_revoked,
+    confirm_prompt, confirm_warning, confirm_word, level2_confirmed, level2_declined,
+    level2_revoked,
 };
+pub use error::CliError;
 pub use level2::{Level2Line, Level2Reason};
 pub use locale::language_from;
 pub use parser::parse;
