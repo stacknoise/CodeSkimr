@@ -30,15 +30,17 @@ fn languages(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<Langu
             cols.take::<String>()?,
             cols.take::<i64>()?,
             cols.take::<i64>()?,
+            cols.take::<i64>()?,
         ))
     })?;
     let mut shares = Vec::new();
     for row in rows {
-        let (language, files, loc) = row?;
+        let (language, files, loc, symbols) = row?;
         shares.push(LanguageShare {
             language: LanguageId::new(language)?,
             files: small_from(files)?,
             loc: small_from(loc)?,
+            symbols: small_from(symbols)?,
         });
     }
     Ok(shares)

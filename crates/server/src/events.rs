@@ -39,6 +39,8 @@ pub enum WireEvent {
         done: u32,
         /// Units in total, zero if unknown.
         total: u32,
+        /// Milliseconds since the stage started.
+        elapsed_ms: u64,
     },
     /// A snapshot was written.
     SnapshotCreated {
@@ -75,11 +77,13 @@ impl From<&Event> for WireEvent {
                 stage,
                 done,
                 total,
+                elapsed_ms,
             }) => Self::ScanProgressed {
                 project: project.get(),
                 stage: stage.label(),
                 done: *done,
                 total: *total,
+                elapsed_ms: *elapsed_ms,
             },
             Event::SnapshotCreated(SnapshotCreated { snapshot }) => Self::SnapshotCreated {
                 project: snapshot.project.get(),

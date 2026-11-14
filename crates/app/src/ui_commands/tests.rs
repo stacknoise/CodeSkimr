@@ -164,6 +164,8 @@ fn an_added_folder_is_scanned_and_listed_with_its_language() {
     assert_eq!(row["types"], 1);
     assert_eq!(row["scan"]["mode"], "full");
     assert_eq!(row["languages"][0]["language"], "csharp");
+    assert_eq!(row["languages"][0]["tier"], "full");
+    assert_eq!(row["languages"][0]["symbols"], scanned["symbols"]);
     assert_eq!(row["running"], false);
 }
 

@@ -22,7 +22,8 @@ mod symbol;
 mod tests;
 mod usages;
 
-use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::collections::BTreeMap;
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 
 use codeskimr_application::config::{Config, Graph, MetricThresholds};
 use codeskimr_application::error::CodedError;
@@ -58,9 +59,28 @@ pub struct Context {
     secrets: Arc<Secrets>,
     running: RunningScans,
     registration: Mutex<()>,
+    tiers: OnceLock<BTreeMap<String, &'static str>>,
 }
 
 impl Context {
+    /// The tier of a language pack, `full` or `basic`; `None` if no installed pack has that id (or
+    /// the packs cannot be read, which the scan reports on its own).
+    fn tier_of(&self, language: &str) -> Option<&'static str> {
+        self.tiers
+            .get_or_init(|| {
+                codeskimr_parsing::tiers(&self.locations.languages_dir)
+                    .map(|found| {
+                        found
+                            .into_iter()
+                            .map(|(id, tier)| (id, tier.label()))
+                            .collect()
+                    })
+                    .unwrap_or_default()
+            })
+            .get(language)
+            .copied()
+    }
+
     /// Held while a source is registered, so two adds of the same new source cannot both pick
     /// the next project id.
     fn registering(&self) -> MutexGuard<'_, ()> {
@@ -90,6 +110,7 @@ pub fn command_api(
         secrets,
         running: RunningScans::default(),
         registration: Mutex::new(()),
+        tiers: OnceLock::new(),
     });
     let mut registry = Registry::new();
     register_projects(&mut registry, &catalog, &context)?;

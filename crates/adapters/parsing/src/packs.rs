@@ -89,6 +89,23 @@ fn folder(dir: &Path) -> String {
         .unwrap_or_default()
 }
 
+/// The tier of every pack below `root`, read from the manifests alone: no grammar and no query is
+/// compiled, so this is cheap enough for a screen that asks often.
+///
+/// # Errors
+/// [`ParsingError::Unreadable`] if `root` cannot be listed, or the error of an invalid manifest.
+pub fn tiers(root: &Path) -> Result<Vec<(String, Tier)>, ParsingError> {
+    let mut found = Vec::new();
+    for entry in fs::read_dir(root).map_err(ParsingError::Unreadable)? {
+        let dir = entry.map_err(ParsingError::Unreadable)?.path();
+        if dir.join(MANIFEST_FILE).is_file() {
+            let manifest = PackManifest::read(&dir)?;
+            found.push((manifest.id, manifest.tier));
+        }
+    }
+    Ok(found)
+}
+
 /// All language packs found below one folder, by language id.
 pub struct LanguagePacks {
     slots: HashMap<LanguageId, Slot>,

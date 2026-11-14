@@ -103,4 +103,14 @@ mod tests {
         assert_eq!(error.code(), ErrorCode::LanguagePackInvalid);
         fs::remove_dir_all(root).ok();
     }
+
+    #[test]
+    fn the_tiers_are_read_from_the_manifests_alone() {
+        let tiers = codeskimr_parsing::tiers(&languages()).expect("tiers");
+        let tier_of = |id: &str| tiers.iter().find(|(found, _)| found == id).map(|(_, t)| *t);
+        assert_eq!(tier_of("csharp"), Some(Tier::Full));
+        assert_eq!(tier_of("go"), Some(Tier::Basic));
+        assert_eq!(Tier::Full.label(), "full");
+        assert_eq!(Tier::Basic.label(), "basic");
+    }
 }

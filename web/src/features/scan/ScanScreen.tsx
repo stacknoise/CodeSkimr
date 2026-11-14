@@ -12,7 +12,15 @@ import { refreshStatus, statusInfo } from "../status/status";
 import { isTyping, useKeydown } from "../../shared/keys/keydown";
 import { Budgets, type Measured } from "./Budgets";
 import { cancelScan } from "./cancel";
-import { CANCEL_KEY, FULL_SCAN_BUDGET, FULL_SCAN_LOC, STATE, MS_PER_SECOND } from "./consts";
+import {
+  BRANCH_COMMIT_JOIN,
+  CANCEL_KEY,
+  FULL_SCAN_BUDGET,
+  FULL_SCAN_LOC,
+  MS_PER_SECOND,
+  SHORT_COMMIT_LENGTH,
+  STATE,
+} from "./consts";
 import { scanRuns } from "./events";
 import { Languages } from "./Languages";
 import { Pipeline } from "./Pipeline";
@@ -42,6 +50,13 @@ function modeText(row: ProjectRow | undefined, run: Run | undefined): string {
   const incremental =
     run?.state === STATE.running ? scanned : row?.scan?.mode === SCAN_MODE.incremental;
   return t(incremental ? I18N_KEYS.SCAN_MODE_INCREMENTAL : I18N_KEYS.SCAN_MODE_FULL);
+}
+
+/** The place of the scan in the history of the source: `main @ e07c4a1`, or what is known of it. */
+export function positionText(row: ProjectRow): string | null {
+  const commit = row.commit?.slice(0, SHORT_COMMIT_LENGTH);
+  const parts = [row.branch, commit].filter((part): part is string => !!part);
+  return parts.length === 0 ? null : parts.join(BRANCH_COMMIT_JOIN);
 }
 
 function duration(run: Run | undefined): number | null {
@@ -116,7 +131,9 @@ export function ScanScreen() {
           <Show when={row()}>
             {(project) => (
               <span class={styles.meta}>
-                {project().name} · {modeText(project(), run())}
+                {project().name} ·{" "}
+                <Show when={positionText(project())}>{(place) => <>{place()} · </>}</Show>
+                {modeText(project(), run())}
                 <Show when={duration(run())}>
                   {(took) => (
                     <>
