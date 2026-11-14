@@ -15,12 +15,14 @@ import javax.tools.*;
  *
  * Usage: java TruthJava.java source-root classpath extra-source-root < targets.tsv
  * `classpath` may be empty, `extra-source-root` holds generated sources that are compiled but never reported.
- * Targets are tab-separated lines (file, line, name); the output
+ * Targets are tab-separated lines (file, line, name, category); the category (`type`, `method`, `constructor`,
+ * `field`) keeps a method and its parameter of the same name, or a class and its constructor, apart, because
+ * the declarations are found by place and name and the window below would otherwise take the neighbour. The output
  * is one JSON array per target, each entry [file, line].
  */
 public class TruthJava {
     /** Declaration key: file, line of the name, simple name. */
-    record Key(String file, int line, String name) {}
+    record Key(String file, int line, String name, String category) {}
 
     static Path root;
     static Trees trees;
@@ -59,10 +61,15 @@ public class TruthJava {
             int line = Integer.parseInt(t[1]);
             Set<String> found = new TreeSet<>();
             // The declaration may start above the name (annotations, modifiers): accept the next lines.
-            for (int d = 0; d < 8 && found.isEmpty(); d++) {
+            // The nearest declaration of that name and category counts, whether or not it is used.
+            boolean declared = false;
+            for (int d = 0; d < 8 && !declared; d++) {
                 for (int l : new int[] {line + d, line - d}) {
-                    List<String> hit = uses.get(new Key(t[0], l, t[2]));
-                    if (hit != null) found.addAll(hit);
+                    List<String> hit = uses.get(new Key(t[0], l, t[2], t[3]));
+                    if (hit != null) {
+                        found.addAll(hit);
+                        declared = true;
+                    }
                 }
             }
             out.append(i > 0 ? "," : "").append("[");
@@ -115,9 +122,18 @@ public class TruthJava {
             String name = e.getSimpleName().toString();
             if (e.getKind() == ElementKind.CONSTRUCTOR) name = e.getEnclosingElement().getSimpleName().toString();
             long pos = positions.getStartPosition(cu, decl);
-            Key key = new Key(f, (int) cu.getLineMap().getLineNumber(pos), name);
+            Key key = new Key(f, (int) cu.getLineMap().getLineNumber(pos), name, category(e.getKind()));
             keys.put(e, key);
             return key;
+        }
+
+        /** The category of a declaration, as the targets name it; parameters and locals have none of them. */
+        static String category(ElementKind kind) {
+            if (kind.isClass() || kind.isInterface()) return "type";
+            if (kind == ElementKind.METHOD) return "method";
+            if (kind == ElementKind.CONSTRUCTOR) return "constructor";
+            if (kind == ElementKind.FIELD || kind == ElementKind.ENUM_CONSTANT) return "field";
+            return "other";
         }
 
         void use(Tree tree) {
@@ -125,6 +141,15 @@ public class TruthJava {
             if (k != null && file != null) uses.computeIfAbsent(k, x -> new ArrayList<>()).add(file + ":" + line(tree));
         }
 
+        /** A declaration is known even if nothing uses it, so that a neighbour of the same name cannot stand in for it. */
+        void declare(Tree tree) {
+            Key k = key(trees.getElement(getCurrentPath()));
+            if (k != null && file != null) uses.computeIfAbsent(k, x -> new ArrayList<>());
+        }
+
+        @Override public Void visitClass(ClassTree tree, Void v) { declare(tree); return super.visitClass(tree, v); }
+        @Override public Void visitMethod(MethodTree tree, Void v) { declare(tree); return super.visitMethod(tree, v); }
+        @Override public Void visitVariable(VariableTree tree, Void v) { declare(tree); return super.visitVariable(tree, v); }
         @Override public Void visitImport(ImportTree tree, Void v) { return null; }
         @Override public Void visitIdentifier(IdentifierTree tree, Void v) { use(tree); return super.visitIdentifier(tree, v); }
         @Override public Void visitMemberSelect(MemberSelectTree tree, Void v) { use(tree); return super.visitMemberSelect(tree, v); }

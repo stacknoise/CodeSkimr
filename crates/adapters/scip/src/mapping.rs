@@ -126,6 +126,14 @@ impl<'a> LevelOne<'a> {
         Self { by_line }
     }
 
+    /// Whether level 1 has a reference at the same start that points at `target`.
+    fn reads_at(&self, file: FileId, span: Span, target: SymbolId) -> Option<ReferenceKind> {
+        let line = self.by_line.get(&(file, span.start().line))?;
+        line.iter()
+            .find(|r| r.span.start() == span.start() && r.to == target)
+            .map(|r| r.kind)
+    }
+
     /// The kind level 1 gave to the same place: a reference at the same start that points at the
     /// same target, else one at the same start, else one whose span holds the occurrence.
     fn kind_at(&self, file: FileId, span: Span, targets: &[SymbolId]) -> Option<ReferenceKind> {
@@ -138,6 +146,15 @@ impl<'a> LevelOne<'a> {
             .or_else(|| line.iter().find(holds))
             .map(|r| r.kind)
     }
+}
+
+/// The type of every constructor of the project that has one.
+fn constructor_owners(symbols: &[Symbol]) -> HashMap<SymbolId, SymbolId> {
+    symbols
+        .iter()
+        .filter(|symbol| symbol.kind == SymbolKind::Constructor)
+        .filter_map(|symbol| Some((symbol.id, symbol.parent?)))
+        .collect()
 }
 
 /// The kind of a level 2 reference when level 1 has none at the place: by the target's kind.
@@ -167,6 +184,7 @@ struct Importer<'a> {
     table: SymbolTable<'a>,
     shapes: Vec<Shape>,
     kinds_of: HashMap<SymbolId, SymbolKind>,
+    owners: HashMap<SymbolId, SymbolId>,
     targets: HashMap<SymbolRef, Vec<SymbolId>>,
     defined: HashSet<SymbolRef>,
     heads: HashSet<(FileId, Position, SymbolRef)>,
@@ -198,6 +216,7 @@ impl<'a> Importer<'a> {
             overrides: HashMap::new(),
             trait_members: members_of_traits(snapshot.symbols),
             kinds_of: snapshot.symbols.iter().map(|s| (s.id, s.kind)).collect(),
+            owners: constructor_owners(snapshot.symbols),
             targets: HashMap::new(),
             defined: HashSet::new(),
             heads: HashSet::new(),
@@ -276,10 +295,14 @@ impl<'a> Importer<'a> {
     /// first one and lists the heads of the others, and of the implementation, as plain
     /// occurrences. An occurrence that stands on the declaration of a function of the same name,
     /// in the same file and in the same parent as a definition of its symbol, is that function's
-    /// own head: the function becomes a target of the symbol, and the occurrence is no use.
+    /// own head: the function becomes a target of the symbol, and the occurrence is no use. A
+    /// function that is the target of a symbol already has its own symbol, so it is no head: a
+    /// call on the line of a one-line method of the same name (C#, `IEnumerator IEnumerable.
+    /// GetEnumerator() => GetEnumerator();`) stays a use.
     fn collect_overload_heads(&mut self, covered: &[(&ScipDocument, FileId)]) {
         let by_id: HashMap<SymbolId, &Symbol> =
             self.snapshot.symbols.iter().map(|s| (s.id, s)).collect();
+        let mut owned: HashSet<SymbolId> = self.targets.values().flatten().copied().collect();
         for (document, file) in covered {
             let mut ordered: Vec<&Occurrence> = document
                 .occurrences
@@ -291,7 +314,7 @@ impl<'a> Importer<'a> {
             for occurrence in ordered {
                 let at = occurrence.range.start();
                 if looked_at.insert((at.line, occurrence.symbol))
-                    && self.adopt_head(&by_id, *file, occurrence)
+                    && self.adopt_head(&by_id, &mut owned, *file, occurrence)
                 {
                     self.heads.insert((*file, at, occurrence.symbol));
                 }
@@ -304,6 +327,7 @@ impl<'a> Importer<'a> {
     fn adopt_head(
         &mut self,
         by_id: &HashMap<SymbolId, &Symbol>,
+        owned: &mut HashSet<SymbolId>,
         file: FileId,
         occurrence: &Occurrence,
     ) -> bool {
@@ -334,8 +358,9 @@ impl<'a> Importer<'a> {
                 .is_some_and(|s| s.file == head.file && s.parent == head.parent)
         };
         match self.targets.get_mut(&occurrence.symbol) {
-            Some(targets) if !targets.contains(&head.id) && targets.iter().any(sibling) => {
+            Some(targets) if !owned.contains(&head.id) && targets.iter().any(sibling) => {
                 targets.push(head.id);
+                owned.insert(head.id);
                 true
             }
             _ => false,
@@ -560,20 +585,47 @@ impl<'a> Importer<'a> {
         };
         self.stats.mapped += 1;
         let level_one_kind = level_one.kind_at(file, occurrence.range, &targets);
-        let mut placed = Vec::with_capacity(targets.len());
-        for to in targets {
+        let types = self.types_of_constructors(file, occurrence.range, &targets, level_one);
+        let mut aims: Vec<(SymbolId, ReferenceKind)> = targets
+            .into_iter()
+            .map(|to| {
+                let kind = level_one_kind.unwrap_or_else(|| self.kind_of_target(to));
+                (to, kind)
+            })
+            .collect();
+        aims.extend(types);
+        let mut placed = Vec::with_capacity(aims.len());
+        for (to, kind) in aims {
             placed.push(Reference {
                 id: self.fresh_id(),
                 from: from.id,
                 to,
                 file,
                 span: occurrence.range,
-                kind: level_one_kind.unwrap_or_else(|| self.kind_of_target(to)),
+                kind,
                 confidence: Confidence::Certain,
                 verified: true,
             });
         }
         placed
+    }
+
+    /// A constructor reference (`new Gson(...)`) is a use of its type too, where level 1 reads the
+    /// type name at the same place: the types, with the kind level 1 gave. `this(...)` and
+    /// `super(...)` stand on a keyword, level 1 has no reference to the type there, and so none is
+    /// added.
+    fn types_of_constructors(
+        &self,
+        file: FileId,
+        span: Span,
+        targets: &[SymbolId],
+        level_one: &LevelOne<'_>,
+    ) -> Vec<(SymbolId, ReferenceKind)> {
+        targets
+            .iter()
+            .filter_map(|to| self.owners.get(to).copied())
+            .filter_map(|owner| Some((owner, level_one.reads_at(file, span, owner)?)))
+            .collect()
     }
 
     /// The `override` reference that the definition of a method of a trait implementation stands
