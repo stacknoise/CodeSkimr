@@ -2,36 +2,18 @@
 
 #[cfg(test)]
 mod cases {
-    use std::sync::{Arc, Mutex};
+    use std::sync::Arc;
 
-    use codeskimr_application::config::{Config, ConfigLayer, LayerSource};
+    use codeskimr_application::config::{Config, ConfigLayer, LayerSource, Level2};
     use codeskimr_application::error::CodedError;
     use codeskimr_application::level2::{
-        ConsentRecord, ConsentStore, authorize_run, confirm, revoke,
+        ConsentRecord, ConsentStore, InMemoryConsent, authorize_run, confirm, revoke,
     };
     use codeskimr_application::ports::ToolVersion;
     use codeskimr_codes::{Coded, ErrorCode};
     use codeskimr_domain::{Permission, PermissionSet, Principal, ProjectId};
 
     const PROJECT: ProjectId = ProjectId::new(1);
-
-    #[derive(Default)]
-    struct Memory(Mutex<ConsentRecord>);
-
-    impl ConsentStore for Memory {
-        fn consent(&self, _project: ProjectId) -> Result<ConsentRecord, CodedError> {
-            Ok(*self.0.lock().unwrap())
-        }
-
-        fn store_consent(
-            &self,
-            _project: ProjectId,
-            record: ConsentRecord,
-        ) -> Result<(), CodedError> {
-            *self.0.lock().unwrap() = record;
-            Ok(())
-        }
-    }
 
     fn config(layers: &[(LayerSource, &str)]) -> Config {
         let layers: Vec<_> = layers
@@ -45,41 +27,37 @@ mod cases {
         result.unwrap_err().code()
     }
 
-    #[test]
-    fn by_default_nothing_runs() {
-        let settings = config(&[]).level2;
-        assert!(!settings.enabled);
-        let store: Arc<dyn ConsentStore> = Arc::new(Memory::default());
+    fn assert_not_confirmed(settings: &Level2, store: &Arc<dyn ConsentStore>) {
         assert_eq!(
             code(authorize_run(
                 &Principal::local_owner(),
-                &settings,
-                &store,
+                settings,
+                store,
                 PROJECT
             )),
             ErrorCode::IndexerNotConfirmed
         );
+    }
+
+    #[test]
+    fn by_default_nothing_runs() {
+        let settings = config(&[]).level2;
+        assert!(!settings.enabled);
+        let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
+        assert_not_confirmed(&settings, &store);
     }
 
     #[test]
     fn enabling_in_the_user_config_alone_is_not_enough() {
         let settings = config(&[(LayerSource::User, "[level2]\nenabled = true\n")]).level2;
-        let store: Arc<dyn ConsentStore> = Arc::new(Memory::default());
-        assert_eq!(
-            code(authorize_run(
-                &Principal::local_owner(),
-                &settings,
-                &store,
-                PROJECT
-            )),
-            ErrorCode::IndexerNotConfirmed
-        );
+        let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
+        assert_not_confirmed(&settings, &store);
     }
 
     #[test]
     fn a_confirmation_alone_is_enough_because_it_enables_the_project() {
         let owner = Principal::local_owner();
-        let store: Arc<dyn ConsentStore> = Arc::new(Memory::default());
+        let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
         confirm(&owner, store.as_ref(), PROJECT).unwrap();
         authorize_run(&owner, &config(&[]).level2, &store, PROJECT).unwrap();
         revoke(&owner, store.as_ref(), PROJECT).unwrap();
@@ -93,7 +71,7 @@ mod cases {
     fn the_user_config_enables_for_every_project_but_each_needs_its_confirmation() {
         let owner = Principal::local_owner();
         let settings = config(&[(LayerSource::User, "[level2]\nenabled = true\n")]).level2;
-        let store: Arc<dyn ConsentStore> = Arc::new(Memory::default());
+        let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
         store
             .store_consent(
                 PROJECT,
@@ -120,7 +98,7 @@ mod cases {
         )]);
         assert_eq!(mixed.scan.parse_timeout_ms, 7);
         assert!(!mixed.level2.enabled);
-        let store: Arc<dyn ConsentStore> = Arc::new(Memory::default());
+        let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
         assert_eq!(
             code(authorize_run(
                 &Principal::local_owner(),
@@ -146,7 +124,7 @@ mod cases {
 
     #[test]
     fn a_restricted_principal_may_neither_confirm_nor_start() {
-        let store: Arc<dyn ConsentStore> = Arc::new(Memory::default());
+        let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
         let nobody = Principal::limited(PermissionSet::none());
         let reader = Principal::limited(PermissionSet::from_iter([
             Permission::Read,
@@ -179,7 +157,7 @@ mod cases {
 
     #[test]
     fn starting_and_confirming_are_separate_rights() {
-        let store: Arc<dyn ConsentStore> = Arc::new(Memory::default());
+        let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
         let starter = Principal::limited(PermissionSet::from_iter([Permission::RunIndexer]));
         let confirmer = Principal::limited(PermissionSet::from_iter([Permission::ConfirmIndexer]));
         confirm(&confirmer, store.as_ref(), PROJECT).unwrap();

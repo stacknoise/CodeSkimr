@@ -1,17 +1,17 @@
 use std::error::Error;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use std::thread;
 use std::time::{Duration, Instant};
 
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::level2;
+use codeskimr_application::level2::{self, InMemoryConsent};
 use codeskimr_application::ports::{
-    ConsentRecord, ConsentStore, IndexJob, IndexLimits, IndexRunner, IndexerSpec, IndexerStatus,
-    RunPermit, ToolIssue, ToolSpec, ToolVersion,
+    ConsentStore, IndexJob, IndexLimits, IndexRunner, IndexerSpec, IndexerStatus, RunPermit,
+    ToolIssue, ToolSpec, ToolVersion,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{LanguageId, Principal, ProjectId};
@@ -85,22 +85,8 @@ fn source_env(dir: &Path, inherit_path: bool) -> Vec<(OsString, OsString)> {
     source
 }
 
-#[derive(Default)]
-struct Memory(Mutex<ConsentRecord>);
-
-impl ConsentStore for Memory {
-    fn consent(&self, _project: ProjectId) -> Result<ConsentRecord, CodedError> {
-        Ok(*self.0.lock().unwrap())
-    }
-
-    fn store_consent(&self, _project: ProjectId, record: ConsentRecord) -> Result<(), CodedError> {
-        *self.0.lock().unwrap() = record;
-        Ok(())
-    }
-}
-
 fn confirmed_store() -> Arc<dyn ConsentStore> {
-    let store: Arc<dyn ConsentStore> = Arc::new(Memory::default());
+    let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
     level2::confirm(&Principal::local_owner(), store.as_ref(), ProjectId::new(1)).unwrap();
     store
 }
@@ -165,6 +151,23 @@ impl Fixture {
     fn run(&self, mode: &str) -> Result<codeskimr_application::ports::IndexArtifact, CodedError> {
         self.run_with(&spec(mode), limits(), &CancelToken::new())
     }
+}
+
+fn failure_reason(error: &CodedError) -> Option<FailureReason> {
+    match error.source()?.downcast_ref::<IndexerError>()? {
+        IndexerError::Failed { reason, .. } => Some(reason.clone()),
+        _ => None,
+    }
+}
+
+/// The problem the check reports for a copy of the indexer that wants version 9.
+fn too_old_issue(fixture: &Fixture) -> ToolIssue {
+    let mut old = spec("ok");
+    old.indexer.min_version = ToolVersion::parse("9.0.0").unwrap();
+    let IndexerStatus::Unavailable(problems) = fixture.runner.check(&old) else {
+        panic!("ready");
+    };
+    problems.into_iter().next().expect("a problem").issue
 }
 
 fn code_of<T>(result: Result<T, CodedError>) -> ErrorCode {
@@ -331,16 +334,7 @@ fn a_failing_indexer_is_reported_with_its_redacted_output() {
 fn an_indexer_that_writes_no_index_fails() {
     let fixture = Fixture::new();
     let error = fixture.run("no-index").unwrap_err();
-    let cause = error
-        .source()
-        .and_then(|s| s.downcast_ref::<IndexerError>());
-    assert!(matches!(
-        cause,
-        Some(IndexerError::Failed {
-            reason: FailureReason::NoIndex,
-            ..
-        })
-    ));
+    assert_eq!(failure_reason(&error), Some(FailureReason::NoIndex));
 }
 
 #[test]
@@ -364,14 +358,9 @@ fn a_missing_indexer_is_unavailable_and_nothing_runs() {
 #[test]
 fn an_indexer_older_than_required_is_unavailable() {
     let fixture = Fixture::new();
-    let mut old = spec("ok");
-    old.indexer.min_version = ToolVersion::parse("9.0.0").unwrap();
-    let IndexerStatus::Unavailable(problems) = fixture.runner.check(&old) else {
-        panic!("ready");
-    };
     assert!(matches!(
-        problems.first().map(|p| &p.issue),
-        Some(ToolIssue::TooOld { found, .. }) if found.contains("1.2.3")
+        too_old_issue(&fixture),
+        ToolIssue::TooOld { found, .. } if found.contains("1.2.3")
     ));
     assert_eq!(fixture.runner.check(&spec("ok")), IndexerStatus::Ready);
 }
@@ -420,12 +409,7 @@ fn a_secret_across_the_cut_of_the_excerpt_is_masked_before_it_is_cut() {
 #[test]
 fn the_version_output_in_a_problem_is_short_and_redacted() {
     let fixture = Fixture::new();
-    let mut old = spec("ok");
-    old.indexer.min_version = ToolVersion::parse("9.0.0").unwrap();
-    let IndexerStatus::Unavailable(problems) = fixture.runner.check(&old) else {
-        panic!("ready");
-    };
-    let Some(ToolIssue::TooOld { found, .. }) = problems.first().map(|p| &p.issue) else {
+    let ToolIssue::TooOld { found, .. } = too_old_issue(&fixture) else {
         panic!("not too old");
     };
     assert!(found.len() <= 200);
@@ -450,14 +434,5 @@ fn consent_withdrawn_after_the_permit_stops_the_run_before_it_starts() {
 fn a_link_in_place_of_the_index_is_not_an_index() {
     let fixture = Fixture::new();
     let error = fixture.run("link-index").unwrap_err();
-    let cause = error
-        .source()
-        .and_then(|s| s.downcast_ref::<IndexerError>());
-    assert!(matches!(
-        cause,
-        Some(IndexerError::Failed {
-            reason: FailureReason::NoIndex,
-            ..
-        })
-    ));
+    assert_eq!(failure_reason(&error), Some(FailureReason::NoIndex));
 }

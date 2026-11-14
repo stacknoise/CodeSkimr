@@ -7,7 +7,7 @@
 //! tokens, watch mode and CI have no way to confirm, and a missing confirmation stops them like
 //! everybody else.
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, PoisonError};
 
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{Permission, Principal, ProjectId};
@@ -15,6 +15,21 @@ use codeskimr_domain::{Permission, Principal, ProjectId};
 use crate::config::Level2;
 use crate::error::CodedError;
 pub use crate::ports::{ConsentRecord, ConsentStore, RunPermit};
+
+/// A consent store that lives in memory only: for tests and for callers without a database.
+#[derive(Debug, Default)]
+pub struct InMemoryConsent(Mutex<ConsentRecord>);
+
+impl ConsentStore for InMemoryConsent {
+    fn consent(&self, _project: ProjectId) -> Result<ConsentRecord, CodedError> {
+        Ok(*self.0.lock().unwrap_or_else(PoisonError::into_inner))
+    }
+
+    fn store_consent(&self, _project: ProjectId, record: ConsentRecord) -> Result<(), CodedError> {
+        *self.0.lock().unwrap_or_else(PoisonError::into_inner) = record;
+        Ok(())
+    }
+}
 
 /// Enables level 2 for `project` and records the confirmation. The caller (an interactive screen
 /// or command of the local owner) must have asked the user; nothing else calls this.
