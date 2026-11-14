@@ -346,7 +346,7 @@ mod tests {
     #[test]
     fn a_function_at_the_limits_is_clean() {
         let report = run(&checker(counted(15, 5)), Principal::local_owner(), &[]).expect("checked");
-        assert!(report.findings.is_empty());
+        assert_eq!(report.findings.len(), 0);
     }
 
     #[test]
