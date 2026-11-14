@@ -196,7 +196,7 @@ test.describe("the screens against the mocks (1440 x 900, light)", () => {
     await row.click({ position: { x: 4, y: 4 } });
     await page.keyboard.press("Enter");
     await page.getByText("(no layer)").click();
-    await page.getByText("visexplorer.Vis", { exact: true }).click();
+    await page.getByText("Vis", { exact: true }).click();
     await page.getByText("Calculator", { exact: true }).click();
     await expect(page.getByRole("heading", { name: "Calculator" })).toBeVisible();
     const mock = await openMock(page, "Explorer");
@@ -296,7 +296,7 @@ test.describe("the screens against the mocks (1440 x 900, light)", () => {
   test("Usages (6)", async ({ page, harness }, info) => {
     await prepare(page);
     const row = await addScannedProject(page, harness, "visusages", SOURCE);
-    await selectAdd(page, row, "visusages.Vis");
+    await selectAdd(page, row, "Vis");
     await page.keyboard.press("u");
     await expect(page.getByRole("region", { name: "Usage graph" })).toBeVisible();
     await expect(page.getByText("Hits 1")).toBeVisible();

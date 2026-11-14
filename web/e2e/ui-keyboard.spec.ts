@@ -41,9 +41,9 @@ async function openExplorer(page: Page, harness: Harness, name: string): Promise
 }
 
 /** Opens the layer and the namespace, so the two types are rows. */
-async function openNamespace(page: Page, name: string): Promise<void> {
+async function openNamespace(page: Page): Promise<void> {
   await item(page, /\(no layer\)/).click();
-  await item(page, new RegExp(`${name}\\.Kbd`)).click();
+  await item(page, /Kbd/).click();
 }
 
 test.describe("the explorer tree (15.4)", () => {
@@ -65,7 +65,7 @@ test.describe("the explorer tree (15.4)", () => {
     harness,
   }) => {
     await openExplorer(page, harness, "kbdclick");
-    await openNamespace(page, "kbdclick");
+    await openNamespace(page);
     const ledger = item(page, /Ledger/);
     const report = item(page, /Report/);
 
@@ -146,7 +146,7 @@ test.describe("the explorer tree (15.4)", () => {
     harness,
   }) => {
     await openExplorer(page, harness, "kbdreveal");
-    await openNamespace(page, "kbdreveal");
+    await openNamespace(page);
     await item(page, /Ledger/).click();
     await expect(page.getByRole("heading", { name: "Ledger" })).toBeVisible();
 
@@ -162,7 +162,7 @@ test.describe("the explorer tree (15.4)", () => {
 
   test("hotkeys do not fire while text is typed in a field", async ({ page, harness }) => {
     await openExplorer(page, harness, "kbdtyping");
-    await openNamespace(page, "kbdtyping");
+    await openNamespace(page);
     await item(page, /Ledger/).click();
     const filter = page.getByRole("textbox", { name: "Filter tree" });
     await filter.focus();
