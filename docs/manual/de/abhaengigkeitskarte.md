@@ -16,6 +16,7 @@ Das Layout berechnet CodeSkimr selbst (geschichtetes Zeichnen), sodass dasselbe 
 
 - Das Mausrad zoomt; mit gehaltener `Leertaste` ziehen verschiebt; `F` (oder der Knopf „Einpassen“) passt die Karte ins Fenster ein.
 - Ein Klick auf einen Kasten wählt ihn. Seine Linien sind nach Richtung gefärbt („Nutzt“ und „Genutzt von“), alle übrigen werden schwach. Das Seitenfeld zeigt die Schicht, ihre Zahl der Verweise, was sie **nutzt** und wovon sie **genutzt wird**, jeweils mit der Anzahl.
+- Die Ebene „Schichten“ (Vorgabe) oder „Namespaces“ in der Werkzeugleiste lädt die Karte neu. „Typ-Fokus“ zeigt einen Typ in der Mitte, oben die Typen, die ihn nutzen, unten die Typen, die er nutzt; es ist verfügbar, wenn im Explorer ein Typ gewählt ist. Mehr als 12 Typen je Seite werden gekürzt und vermerkt.
 - Der Schalter „alle Verbindungen schwach“ zeigt oder verbirgt die Linien, die nicht zur Auswahl gehören; „nur Verstöße“ verbirgt jede Linie, die die Schichtung nicht verletzt.
 - `Enter` bei gewählter Schicht öffnet den Explorer für das Projekt.
 

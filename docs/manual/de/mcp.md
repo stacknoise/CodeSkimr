@@ -32,7 +32,7 @@ Jede Anfrage, auch ein reines Lesen, braucht das Installations-Token als `Author
 
 ## Die Werkzeuge
 
-Alle Werkzeuge lesen nur, außer `rescan`. Jede Antwort ist strukturiertes JSON und nennt den Snapshot, auf dem sie beruht (`snapshot.id`, `snapshot.age_seconds`).
+Alle Werkzeuge lesen nur, außer `rescan` (und `get_project` führt die Werkzeugprüfung aus, einige kurze Prozesse). Jede Antwort ist strukturiertes JSON und nennt den Snapshot, auf dem sie beruht (`snapshot.id`, `snapshot.age_seconds`).
 
 | Werkzeug | Wofür |
 |---|---|
@@ -45,14 +45,15 @@ Alle Werkzeuge lesen nur, außer `rescan`. Jede Antwort ist strukturiertes JSON 
 | `find_similar_code` | gibt es das schon? Ein `symbol` oder ein `snippet` mit seiner `language` angeben |
 | `find_constants` | vorhandene Konstanten nach Namen finden, bevor ein Literal dazukommt |
 | `check_conventions` | die Konventionsprüfungen über Dateien des Projekts ausführen |
-| `rescan` | geänderte Dateien neu einlesen (inkrementell); braucht das Recht zum Scannen |
+| `get_project` | Sprachen des Projekts und die **Werkzeugprüfung** der Ebene 2: welche Indexer bereit, fehlend oder zu alt sind, mit Zweck und Installationshinweis |
+| `rescan` | geänderte Dateien neu einlesen (inkrementell); braucht das Recht zum Scannen. Es startet nie Ebene 2 |
 
 Gute Gewohnheiten für Agenten: `find_similar_code` und `find_constants` aufrufen, bevor neuer Code entsteht, und `check_conventions` vor einem Commit.
 
 ## Ergebnisse lesen
 
 - **Grenzen.** `limit` ist 20, wenn nichts angegeben ist, und wird auf höchstens 100 begrenzt. Ein gekürztes Ergebnis trägt einen `notice` mit `MCP-501` und dem angewandten Limit; `total` sagt, wie viele es gibt.
-- **Verlässlichkeit.** Jede Verwendung hat eine `confidence`, `certain` oder `probable`. Eine wahrscheinliche ist ein bester Tipp, den ein Agent prüfen sollte. Treffer der Ebene 1 sind nicht von einem Compiler geprüft; siehe [Verwendungen](verwendungen.md#verlässlichkeit-geprüft-ungeprüft-vermutet). Die Markierung der Ebene 2 ([Sprach-Indexer](indexer.md)) erreicht MCP mit den Indexer-Paketen.
+- **Verlässlichkeit.** Jede Verwendung hat eine `confidence`, `certain` oder `probable`. Eine wahrscheinliche ist ein bester Tipp, den ein Agent prüfen sollte. Treffer der Ebene 1 sind nicht von einem Compiler geprüft; siehe [Verwendungen](verwendungen.md#verlässlichkeit-geprüft-ungeprüft-vermutet). Jede Verwendung und jedes Symbol der Auswirkung trägt zudem `verified` (nur wahr, wenn Ebene 2 es geliefert hat); die Antwort zählt `verified` und `unchecked` getrennt, listet geprüfte zuerst und setzt `preliminary` auf wahr, solange eine aufgelistete Verwendung ungeprüft ist. **Ein Agent darf eine vorläufige Antwort nicht als vollständig oder exakt behandeln** ([Sprach-Indexer](indexer.md)).
 - **Unbekanntes Symbol** ergibt `MCP-202`, nie eine leere Liste: „keine Verwendungen“ und „kein solches Symbol“ sind verschiedene Antworten. Ein Name, den mehrere Überladungen teilen, antwortet mit der niedrigsten ID; nehmen Sie die ID aus `search_symbols`, um genau zu sein.
 - **Fehler** sind normale Werkzeugergebnisse mit `isError: true` und `{ "code", "description", "params" }`. Die Beschreibung ist immer Englisch, für Agenten. Siehe [Fehlercodes](fehler.md).
 

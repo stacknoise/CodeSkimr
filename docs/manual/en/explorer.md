@@ -40,4 +40,4 @@ The footer of every screen shows the connection, the number of projects and type
 
 ## Open in editor
 
-The explorer can open a member in your editor through a link. The template is `editor.url_template` (and the allowed link schemes `editor.allowed_schemes`) in the settings or the configuration; the settings screen has a field for it. These buttons are off until the position of a hit is available.
+The explorer can open a member in your editor through a link. The template is `editor.url_template` (and the allowed link schemes `editor.allowed_schemes`) in the settings or the configuration; the settings screen has a field for it. `E` or `Alt+Enter` opens the selected member in the editor (only for a project that is a folder on your machine). `G` opens the [dependency map](dependency-map.md) with the layer of the selection selected.
