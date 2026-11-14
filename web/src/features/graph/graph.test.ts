@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { LEVEL } from "./consts";
+import { graphLevel, resetGraph, setGraphFocus, setGraphLevel } from "./graph";
 import { edgeKind, edgePath, shown } from "./geometry";
 import { neighboursOf, violations } from "./neighbours";
 import type { LayerBox, LayerLink } from "./types";
@@ -96,5 +98,17 @@ describe("viewport", () => {
 
   it("pans by the distance of the pointer", () => {
     expect(pan({ scale: 2, x: 1, y: 2 }, 10, -5)).toEqual({ scale: 2, x: 11, y: -3 });
+  });
+});
+
+describe("resetGraph", () => {
+  it("leaves the type level, because the focus it needs is forgotten", () => {
+    setGraphLevel(LEVEL.types);
+    setGraphFocus(7);
+    resetGraph();
+    expect(graphLevel()).toBe(LEVEL.layers);
+    setGraphLevel(LEVEL.namespaces);
+    resetGraph();
+    expect(graphLevel()).toBe(LEVEL.namespaces);
   });
 });

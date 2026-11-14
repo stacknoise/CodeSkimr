@@ -63,10 +63,12 @@ export async function loadGraph(project: number): Promise<void> {
   }
 }
 
-/** Forgets the map; for tests and when the project changes. */
+/** Forgets the map; for tests and when the project changes. The type level needs a focus, which
+ * is forgotten too, so the level goes back to the layers. */
 export function resetGraph(): void {
   latest += 1;
   setData(null);
   setFocus(null);
+  setLevel((chosen) => (chosen === LEVEL.types ? LEVEL.layers : chosen));
   setFailed(false);
 }
