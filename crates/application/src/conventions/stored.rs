@@ -9,7 +9,7 @@ use super::duplicates::Fingerprinted;
 use super::model::{Detail, Finding, Location, StoredProject};
 use crate::consts::STORED_DUPLICATE_HITS;
 use crate::error::CodedError;
-use crate::ports::SimilarQuery;
+use crate::ports::{SimilarHit, SimilarQuery};
 
 /// What decides which functions are compared and which stored hits count.
 pub(super) struct Rules<'a> {
@@ -39,32 +39,44 @@ pub(super) fn against_stored(
         if !compared || reported.iter().any(|finding| finding.location == *place) {
             continue;
         }
-        let hits = stored.index.similar(
-            stored.snapshot,
-            &SimilarQuery {
-                fingerprints: item.fingerprints,
-                minimum_percent: rules.minimum_percent,
-                exclude: None,
-                limit: STORED_DUPLICATE_HITS,
-            },
-        )?;
-        let original = hits
-            .into_iter()
-            .find(|hit| !rules.checked.contains(&hit.path) && !(rules.is_test)(&hit.path));
-        if let Some(hit) = original {
-            found.push(Finding {
-                code: ErrorCode::DuplicateBlock,
-                location: place.clone(),
-                detail: Detail::Duplicate {
-                    of: Location {
-                        path: hit.path,
-                        span: hit.span,
-                        symbol: hit.qualified_name,
-                    },
-                    similarity_percent: hit.percent,
-                },
-            });
+        if let Some(hit) = original(item, stored, rules)? {
+            found.push(finding(place, hit));
         }
     }
     Ok(found)
+}
+
+/// The most similar stored function that counts as an original of `item`.
+fn original(
+    item: &Fingerprinted<'_>,
+    stored: &StoredProject<'_>,
+    rules: &Rules<'_>,
+) -> Result<Option<SimilarHit>, CodedError> {
+    let hits = stored.index.similar(
+        stored.snapshot,
+        &SimilarQuery {
+            fingerprints: item.fingerprints,
+            minimum_percent: rules.minimum_percent,
+            exclude: None,
+            limit: STORED_DUPLICATE_HITS,
+        },
+    )?;
+    Ok(hits
+        .into_iter()
+        .find(|hit| !rules.checked.contains(&hit.path) && !(rules.is_test)(&hit.path)))
+}
+
+fn finding(place: &Location, hit: SimilarHit) -> Finding {
+    Finding {
+        code: ErrorCode::DuplicateBlock,
+        location: place.clone(),
+        detail: Detail::Duplicate {
+            of: Location {
+                path: hit.path,
+                span: hit.span,
+                symbol: hit.qualified_name,
+            },
+            similarity_percent: hit.percent,
+        },
+    }
 }

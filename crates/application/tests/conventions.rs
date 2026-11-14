@@ -121,7 +121,11 @@ mod tests {
                 snapshot: request.snapshot,
                 language: request.file.language.clone(),
             };
-            let mut symbols = vec![function(request, &file, (4, 40))?];
+            // A body without code lines is an empty file: no function at all.
+            let mut symbols = Vec::new();
+            if body.loc > 0 {
+                symbols.push(function(request, &file, (4, 40))?);
+            }
             if body.inner {
                 symbols.push(function(request, &file, (10, 12))?);
             }
@@ -451,6 +455,27 @@ mod tests {
         assert_eq!(found, [("a.rs".to_owned(), "lib/y.rs".to_owned())]);
         let none = duplicates_against(&Stored(vec![hit("a.rs", 100)]), vec![("a.rs", short(0))]);
         assert_eq!(none, []);
+    }
+
+    #[test]
+    fn the_stored_version_of_a_checked_file_without_functions_is_no_original() {
+        // A function moved from empty-now.rs to a.rs: the stored copy lies in a checked file.
+        let stored = Stored(vec![hit("gone.rs", 100)]);
+        let found = duplicates_against(
+            &stored,
+            vec![
+                ("a.rs", short(0)),
+                (
+                    "gone.rs",
+                    Body {
+                        loc: 0,
+                        seed: 0,
+                        inner: false,
+                    },
+                ),
+            ],
+        );
+        assert_eq!(found, []);
     }
 
     #[test]

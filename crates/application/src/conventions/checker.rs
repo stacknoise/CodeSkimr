@@ -30,6 +30,7 @@ const NOT_CHECKED: &[ErrorCode] = &[
 
 /// A file after analysis, with the callables it declares.
 struct Analysed {
+    path: RelativePath,
     callables: Vec<Callable>,
     facts: FileFacts,
 }
@@ -103,6 +104,7 @@ impl ConventionChecker {
             ids,
         })?;
         Ok(Analysed {
+            path: file.path.clone(),
             callables: callables(&file.path, &facts),
             facts,
         })
@@ -151,11 +153,8 @@ impl ConventionChecker {
         stored: &StoredProject<'_>,
         inside: &[Finding],
     ) -> Result<Vec<Finding>, CodedError> {
-        let checked: HashSet<RelativePath> = analysed
-            .iter()
-            .flat_map(|done| done.callables.iter())
-            .map(|callable| callable.location.path.clone())
-            .collect();
+        let checked: HashSet<RelativePath> =
+            analysed.iter().map(|done| done.path.clone()).collect();
         let folders = &self.limits.test_folders;
         let is_test = |path: &RelativePath| in_test_folder(path, folders);
         let rules = Rules {
