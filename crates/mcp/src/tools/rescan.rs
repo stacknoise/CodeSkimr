@@ -3,10 +3,12 @@
 use std::time::Instant;
 
 use codeskimr_application::access;
+use codeskimr_application::tools::ToolsView;
 use codeskimr_domain::Principal;
 use serde::Serialize;
 use serde_json::Value;
 
+use super::project::ToolInfo;
 use super::{SnapshotInfo, Tools, to_json};
 use crate::args::RescanArgs;
 use crate::consts::SCAN_TOOL_PERMISSION;
@@ -21,6 +23,9 @@ struct Answer {
     symbols: u32,
     references: u32,
     duration_ms: u64,
+    /// The tools level 2 needs, checked after the scan; empty if the check failed or the project
+    /// has no languages with level 2.
+    tools: Vec<ToolInfo>,
 }
 
 impl Tools {
@@ -36,6 +41,11 @@ impl Tools {
         let started = Instant::now();
         let snapshot = self.scanner().rescan(principal, project.id)?;
         let elapsed = started.elapsed();
+        // A failing check never fails the scan: the answer then lists no tools.
+        let view = self
+            .tool_check()
+            .check(project.id)
+            .map_or_else(|_| ToolsView::unchecked(), |report| ToolsView::of(&report));
         to_json(&Answer {
             snapshot: self.snapshot_info(&snapshot),
             mode: snapshot.mode.label(),
@@ -43,6 +53,7 @@ impl Tools {
             symbols: snapshot.stats.symbols,
             references: snapshot.stats.references,
             duration_ms: u64::try_from(elapsed.as_millis()).unwrap_or(u64::MAX),
+            tools: self.tool_infos(&view),
         })
     }
 }

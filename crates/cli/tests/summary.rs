@@ -2,6 +2,7 @@
 
 #[cfg(test)]
 mod cases {
+    use codeskimr_application::tools::ToolsView;
     use codeskimr_cli::{Level2Line, Level2Reason, ScanSummary, scan_finished, scan_json};
     use codeskimr_i18n::Messages;
 
@@ -14,6 +15,7 @@ mod cases {
             references: 30,
             seconds: 1.5,
             level2,
+            tools: ToolsView::unchecked(),
         }
     }
 

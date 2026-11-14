@@ -52,3 +52,14 @@ pub const PLACEHOLDER_PROJECT: &str = "{project}";
 pub const PLACEHOLDER_OUTPUT: &str = "{output}";
 /// The word before the version in the output of `java -version`.
 pub const VERSION_WORD: &str = "version";
+
+/// In front of the name of a tool in the message keys of its purpose and install hint.
+pub const TOOL_KEY_PREFIX: &str = "tool-";
+/// After the name of a tool: the message key of what the tool is needed for.
+pub const TOOL_PURPOSE_SUFFIX: &str = "-purpose";
+/// After the name of a tool: the message key of how to install it.
+pub const TOOL_INSTALL_SUFFIX: &str = "-install";
+/// Separators of a date such as `2024-05-01` or `2024/05/01`.
+pub const DATE_SEPARATORS: &[char] = &['-', '/'];
+/// A number of this many digits or more is a date or an id (`20240501`), not a version.
+pub const DATE_MIN_DIGITS: usize = 8;

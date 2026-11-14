@@ -9,10 +9,11 @@ use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, CodeIndex, DependencyEdge, DependencyPage, DependencyQuery,
-    DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, ImpactPage, ImpactedSymbol, MemberRef,
-    PreviousIndex, ProjectRepository, ProjectScanner, SearchHit, SimilarHit, SimilarQuery,
-    SimilarityIndex, SnippetFingerprinter, SymbolDetail, SymbolKey, SymbolLabel, TypeFocus,
-    UsageEntry, UsageIndex, UsagePage,
+    DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, ImpactPage, ImpactedSymbol,
+    LanguageShare, MemberRef, PreviousIndex, ProjectCatalog, ProjectOverview, ProjectRepository,
+    ProjectScanner, ProjectToolCheck, SearchHit, SimilarHit, SimilarQuery, SimilarityIndex,
+    SnippetFingerprinter, SymbolDetail, SymbolKey, SymbolLabel, TypeFocus, UsageEntry, UsageIndex,
+    UsagePage,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
@@ -21,8 +22,9 @@ use codeskimr_domain::{
     Position, Principal, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference,
     ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId, SnapshotStats,
     SourceFile, Span, Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName, Timestamp,
-    UsageQuery, Visibility,
+    ToolFinding, ToolReport, ToolRole, ToolState, UsageQuery, Visibility,
 };
+use codeskimr_i18n::Messages;
 use codeskimr_mcp::{Ports, Tools};
 
 pub const PROJECT: ProjectId = ProjectId::new(1);
@@ -535,18 +537,34 @@ pub fn tools_using(index: FakeIndex, usages: Arc<FakeUsages>) -> Tools {
 }
 
 pub fn tools_scanning(scanner: Arc<FakeScanner>) -> Tools {
-    assemble(scanned(), Arc::new(FakeUsages::default()), true, scanner)
+    assemble(
+        (scanned(), Arc::new(FakeUsages::default()), true),
+        scanner,
+        Arc::new(FakeToolCheck::default()),
+    )
 }
 
 fn build(index: FakeIndex, usages: Arc<FakeUsages>, has_prints: bool) -> Tools {
-    assemble(index, usages, has_prints, Arc::new(FakeScanner::default()))
+    assemble(
+        (index, usages, has_prints),
+        Arc::new(FakeScanner::default()),
+        Arc::new(FakeToolCheck::default()),
+    )
+}
+
+/// Tools whose tool check is `check`.
+pub fn tools_checking(check: Arc<FakeToolCheck>) -> Tools {
+    assemble(
+        (scanned(), Arc::new(FakeUsages::default()), true),
+        Arc::new(FakeScanner::default()),
+        check,
+    )
 }
 
 fn assemble(
-    index: FakeIndex,
-    usages: Arc<FakeUsages>,
-    has_prints: bool,
+    (index, usages, has_prints): (FakeIndex, Arc<FakeUsages>, bool),
     scanner: Arc<FakeScanner>,
+    tool_check: Arc<FakeToolCheck>,
 ) -> Tools {
     Tools::new(
         Ports {
@@ -561,6 +579,9 @@ fn assemble(
             checker: checker(),
             clock: Arc::new(FixedClock),
             scanner,
+            catalog: Arc::new(FakeCatalog),
+            tool_check,
+            messages: Arc::new(Messages::load().unwrap()),
         },
         limits(),
         PROJECT,
@@ -572,4 +593,83 @@ pub fn tools() -> Tools {
         scanned: true,
         fail: false,
     })
+}
+
+/// The languages of the project: C# and Go.
+pub struct FakeCatalog;
+
+impl ProjectCatalog for FakeCatalog {
+    fn overviews(&self) -> Result<Vec<ProjectOverview>, CodedError> {
+        Ok(Vec::new())
+    }
+
+    fn languages(&self, _id: ProjectId) -> Result<Vec<LanguageShare>, CodedError> {
+        Ok(["csharp", "go"]
+            .into_iter()
+            .map(|name| LanguageShare {
+                language: LanguageId::new(name).unwrap(),
+                files: 3,
+                loc: 120,
+                symbols: 30,
+            })
+            .collect())
+    }
+}
+
+/// A tool check with a fixed answer that counts how often it ran.
+pub struct FakeToolCheck {
+    pub states: Vec<(&'static str, ToolState)>,
+    pub runs: Mutex<u32>,
+    pub fail: bool,
+}
+
+impl Default for FakeToolCheck {
+    /// The indexer is not installed, the SDK is.
+    fn default() -> Self {
+        Self::with(&[
+            ("scip-dotnet", ToolState::Missing),
+            ("dotnet", ToolState::Ready),
+        ])
+    }
+}
+
+impl FakeToolCheck {
+    pub fn with(states: &[(&'static str, ToolState)]) -> Self {
+        Self {
+            states: states.to_vec(),
+            runs: Mutex::new(0),
+            fail: false,
+        }
+    }
+}
+
+impl ProjectToolCheck for FakeToolCheck {
+    fn check(&self, _project: ProjectId) -> Result<ToolReport, CodedError> {
+        *self.runs.lock().unwrap() += 1;
+        if self.fail {
+            return Err(CodedError::new(ErrorCode::UnexpectedInternalError));
+        }
+        let finding = |(tool, state): &(&str, ToolState)| ToolFinding {
+            language: LanguageId::new("csharp").unwrap(),
+            tool: (*tool).to_owned(),
+            role: if *tool == "dotnet" {
+                ToolRole::Toolchain
+            } else {
+                ToolRole::Indexer
+            },
+            state: *state,
+            found: (*state == ToolState::Ready).then(|| "8.0.404".to_owned()),
+            required: Some("9.0.100".to_owned()),
+            purpose_key: format!("tool-{tool}-purpose"),
+            install_key: format!("tool-{tool}-install"),
+        };
+        Ok(ToolReport {
+            checked_at: Timestamp(NOW),
+            findings: self.states.iter().map(finding).collect(),
+        })
+    }
+
+    fn stored(&self, _project: ProjectId) -> Result<Option<ToolReport>, CodedError> {
+        self.check(PROJECT).map(Some)
+    }
 }

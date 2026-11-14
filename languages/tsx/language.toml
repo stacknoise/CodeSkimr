@@ -93,3 +93,5 @@ min_version = "0.3.0"
 program = "node"
 version_args = ["--version"]
 min_version = "18.0.0"
+# The version the project asks for (checked besides min_version; the newer one counts).
+requirement = { file = ".nvmrc", format = "text" }

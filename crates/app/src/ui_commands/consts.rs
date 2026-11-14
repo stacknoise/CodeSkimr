@@ -9,6 +9,12 @@ pub const PROJECTS_ADD: &str = "projects.add";
 /// Id of the command that scans a registered project again.
 pub const PROJECTS_RESCAN: &str = "projects.rescan";
 
+/// Id of the command that checks the tools of a project.
+pub const PROJECTS_TOOLS: &str = "projects.tools";
+/// Title key of `projects.tools`.
+pub const TOOLS_TITLE: &str = i18n::COMMAND_PROJECTS_TOOLS_TITLE;
+/// Description key of `projects.tools`.
+pub const TOOLS_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_TOOLS_DESCRIPTION;
 /// Id of the command that cancels a running scan.
 pub const PROJECTS_CANCEL: &str = "projects.cancel";
 
@@ -64,8 +70,11 @@ pub const USAGES_CODE_MAX_HITS: usize = 200;
 pub const USAGES_CODE_MAX_SPAN: u32 = 5_000;
 /// Most characters of one code line `usages.code` returns.
 pub const USAGES_CODE_MAX_CHARS: usize = 240;
-/// State of level 2 while no indexer is wired (ADR 0033).
+/// State of level 2 when no hit of the answer was verified by an indexer (ADR 0033): level 2 is off,
+/// was not run, or did not reach the symbol.
 pub const LEVEL2_UNAVAILABLE: &str = "unavailable";
+/// State of level 2 when at least one hit of the answer was verified by an indexer.
+pub const LEVEL2_ACTIVE: &str = "active";
 
 /// Id of the command of the status bar.
 pub const STATUS_INFO: &str = "status.info";

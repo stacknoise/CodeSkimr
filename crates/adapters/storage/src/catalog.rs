@@ -84,7 +84,18 @@ fn overview(conn: &Connection, id: ProjectId) -> StorageResult<ProjectOverview> 
     })
 }
 
+fn languages_of(conn: &Connection, id: ProjectId) -> StorageResult<Vec<LanguageShare>> {
+    load_project(conn, id)?;
+    latest_snapshot(conn, id)?
+        .map_or_else(|| Ok(Vec::new()), |snapshot| languages(conn, snapshot.id))
+}
+
 impl ProjectCatalog for SqliteStore {
+    fn languages(&self, project: ProjectId) -> Result<Vec<LanguageShare>, CodedError> {
+        self.read(|conn| languages_of(conn, project))
+            .map_err(CodedError::from)
+    }
+
     fn overviews(&self) -> Result<Vec<ProjectOverview>, CodedError> {
         self.read(|conn| {
             project_ids(conn)?

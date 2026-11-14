@@ -137,6 +137,7 @@ fn the_commands_are_offered() {
             "projects.cancel",
             "projects.list",
             "projects.rescan",
+            "projects.tools",
             "search.query",
             "status.info",
             "usages.code",

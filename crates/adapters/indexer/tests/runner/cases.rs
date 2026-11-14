@@ -1,20 +1,22 @@
 use std::error::Error;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::level2::{self, InMemoryConsent};
+use codeskimr_application::level2;
 use codeskimr_application::ports::{
-    ConsentStore, IndexJob, IndexLimits, IndexRunner, IndexerSpec, IndexerStatus, RunPermit,
-    ToolIssue, ToolSpec, ToolVersion,
+    ConsentGrant, ConsentRecord, ConsentStore, IndexJob, IndexLimits, IndexRunner, IndexerSpec,
+    IndexerStatus, RunPermit, ToolIssue, ToolSpec, ToolVersion,
 };
 use codeskimr_codes::{Coded, ErrorCode};
-use codeskimr_domain::{LanguageId, Principal, ProjectId};
+use codeskimr_domain::{
+    FolderPath, LanguageId, Principal, Project, ProjectId, ProjectName, ProjectSource,
+};
 use codeskimr_indexer::{FailureReason, IndexerError, ProcessIndexRunner};
 use sysinfo::{Pid, ProcessesToUpdate, System};
 use tempfile::TempDir;
@@ -85,8 +87,34 @@ fn source_env(dir: &Path, inherit_path: bool) -> Vec<(OsString, OsString)> {
     source
 }
 
+fn project_record(folder: &Path) -> Project {
+    Project {
+        id: ProjectId::new(1),
+        name: ProjectName::new("app").unwrap(),
+        source: ProjectSource::Folder(FolderPath::new(folder.to_str().unwrap()).unwrap()),
+        layers: Vec::new(),
+    }
+}
+
+/// A consent store that keeps the two flags in memory.
+#[derive(Default)]
+struct Flags(Mutex<(bool, bool)>);
+
+impl ConsentStore for Flags {
+    fn consent(&self, _: ProjectId) -> Result<ConsentRecord, CodedError> {
+        let (enabled, confirmed) = *self.0.lock().unwrap();
+        Ok(ConsentRecord { enabled, confirmed })
+    }
+
+    fn store_consent(&self, grant: &ConsentGrant) -> Result<(), CodedError> {
+        let record = grant.record();
+        *self.0.lock().unwrap() = (record.enabled, record.confirmed);
+        Ok(())
+    }
+}
+
 fn confirmed_store() -> Arc<dyn ConsentStore> {
-    let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
+    let store: Arc<dyn ConsentStore> = Arc::new(Flags::default());
     level2::confirm(&Principal::local_owner(), store.as_ref(), ProjectId::new(1)).unwrap();
     store
 }
@@ -119,8 +147,8 @@ impl Fixture {
             &Principal::local_owner(),
             &config.level2,
             &store,
-            ProjectId::new(1),
-            project.path(),
+            &project_record(project.path()),
+            &FolderPath::new("unused").unwrap(),
         )
         .unwrap();
         Self {

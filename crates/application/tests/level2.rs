@@ -1,21 +1,41 @@
 //! Consent and permission for running indexers (ADR 0033, decisions 9 and 10).
 
 #[cfg(test)]
+mod common;
+
+#[cfg(test)]
 mod cases {
+    use super::common::InMemoryConsent;
     use std::path::Path;
     use std::sync::Arc;
 
     use codeskimr_application::config::{Config, ConfigLayer, LayerSource, Level2};
     use codeskimr_application::error::CodedError;
     use codeskimr_application::level2::{
-        ConsentRecord, ConsentStore, InMemoryConsent, authorize_run, confirm, revoke,
+        ConsentRecord, ConsentStore, authorize_run, confirm, revoke,
     };
     use codeskimr_application::ports::ToolVersion;
     use codeskimr_codes::{Coded, ErrorCode};
-    use codeskimr_domain::{Permission, PermissionSet, Principal, ProjectId};
+    use codeskimr_domain::{
+        BranchName, FolderPath, Permission, PermissionSet, Principal, Project, ProjectId,
+        ProjectName, ProjectSource,
+    };
 
     const PROJECT: ProjectId = ProjectId::new(1);
     const ROOT: &str = "work/app";
+
+    fn folder_project() -> Project {
+        Project {
+            id: PROJECT,
+            name: ProjectName::new("app").unwrap(),
+            source: ProjectSource::Folder(FolderPath::new(ROOT).unwrap()),
+            layers: Vec::new(),
+        }
+    }
+
+    fn clone() -> FolderPath {
+        FolderPath::new("cache/clone").unwrap()
+    }
 
     fn config(layers: &[(LayerSource, &str)]) -> Config {
         let layers: Vec<_> = layers
@@ -35,11 +55,31 @@ mod cases {
                 &Principal::local_owner(),
                 settings,
                 store,
-                PROJECT,
-                Path::new(ROOT)
+                &folder_project(),
+                &clone()
             )),
             ErrorCode::IndexerNotConfirmed
         );
+    }
+
+    #[test]
+    fn a_folder_project_runs_in_its_own_folder_and_a_git_project_in_the_clone() {
+        let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
+        let owner = Principal::local_owner();
+        confirm(&owner, store.as_ref(), PROJECT).unwrap();
+        let settings = config(&[]).level2;
+        let folder = authorize_run(&owner, &settings, &store, &folder_project(), &clone()).unwrap();
+        assert_eq!(folder.project_root(), Path::new(ROOT));
+        let git = Project {
+            source: ProjectSource::Git {
+                url: "https://example.org/app.git".parse().unwrap(),
+                branch: BranchName::new("main").unwrap(),
+                credential: None,
+            },
+            ..folder_project()
+        };
+        let cloned = authorize_run(&owner, &settings, &store, &git, &clone()).unwrap();
+        assert_eq!(cloned.project_root(), Path::new("cache/clone"));
     }
 
     #[test]
@@ -66,8 +106,8 @@ mod cases {
             &owner,
             &config(&[]).level2,
             &store,
-            PROJECT,
-            Path::new(ROOT),
+            &folder_project(),
+            &clone(),
         )
         .unwrap();
         revoke(&owner, store.as_ref(), PROJECT).unwrap();
@@ -76,8 +116,8 @@ mod cases {
                 &owner,
                 &config(&[]).level2,
                 &store,
-                PROJECT,
-                Path::new(ROOT)
+                &folder_project(),
+                &clone()
             )),
             ErrorCode::IndexerNotConfirmed
         );
@@ -87,17 +127,13 @@ mod cases {
     fn the_user_config_enables_for_every_project_but_each_needs_its_confirmation() {
         let owner = Principal::local_owner();
         let settings = config(&[(LayerSource::User, "[level2]\nenabled = true\n")]).level2;
-        let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
-        store
-            .store_consent(
-                PROJECT,
-                ConsentRecord {
-                    enabled: false,
-                    confirmed: true,
-                },
-            )
-            .unwrap();
-        authorize_run(&owner, &settings, &store, PROJECT, Path::new(ROOT)).unwrap();
+        let consent = Arc::new(InMemoryConsent::default());
+        consent.set(ConsentRecord {
+            enabled: false,
+            confirmed: true,
+        });
+        let store: Arc<dyn ConsentStore> = consent;
+        authorize_run(&owner, &settings, &store, &folder_project(), &clone()).unwrap();
     }
 
     #[test]
@@ -120,8 +156,8 @@ mod cases {
                 &Principal::local_owner(),
                 &resolved.level2,
                 &store,
-                PROJECT,
-                Path::new(ROOT)
+                &folder_project(),
+                &clone()
             )),
             ErrorCode::IndexerNotConfirmed
         );
@@ -163,8 +199,8 @@ mod cases {
                     &principal,
                     &config(&[]).level2,
                     &store,
-                    PROJECT,
-                    Path::new(ROOT)
+                    &folder_project(),
+                    &clone()
                 )),
                 ErrorCode::IndexerNotPermitted
             );
@@ -184,8 +220,8 @@ mod cases {
                 &confirmer,
                 &config(&[]).level2,
                 &store,
-                PROJECT,
-                Path::new(ROOT)
+                &folder_project(),
+                &clone()
             )),
             ErrorCode::IndexerNotPermitted
         );
@@ -193,8 +229,8 @@ mod cases {
             &starter,
             &config(&[]).level2,
             &store,
-            PROJECT,
-            Path::new(ROOT),
+            &folder_project(),
+            &clone(),
         )
         .unwrap();
         assert_eq!(
@@ -212,8 +248,8 @@ mod cases {
             &owner,
             &config(&[]).level2,
             &store,
-            PROJECT,
-            Path::new(ROOT),
+            &folder_project(),
+            &clone(),
         )
         .unwrap();
         assert_eq!(permit.project_root(), Path::new(ROOT));
@@ -261,8 +297,16 @@ mod cases {
             version("java version \"1.8.0_392\""),
             ToolVersion::parse("1.8.0")
         );
-        assert!(version("2023-10-17 nothing").is_none());
-        assert!(version("version").is_none());
+        assert_eq!(version("2023-10-17 nothing"), None);
+        for dated in [
+            "tool version 2024-05-01",
+            "tool version 2024/05/01",
+            "tool version 20240501",
+            "tool version \"2024-05-01\"",
+        ] {
+            assert_eq!(version(dated), None, "{dated}");
+        }
+        assert_eq!(version("version"), None);
         assert!(ToolVersion::parse("1.10.0") > ToolVersion::parse("1.9.9"));
         assert_eq!(ToolVersion::parse("1.8.0_392"), ToolVersion::parse("1.8.0"));
     }

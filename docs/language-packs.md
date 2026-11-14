@@ -83,3 +83,7 @@ The `StandardMetrics` calculator (`codeskimr_application::metrics`) turns the co
 ## Not part of this package
 
 The reference resolver does not exist yet. The parse time limit comes from `scan.parse_timeout_ms` (default 5000), wired by the composition root (WP-25, closes #32).
+
+## Project version files (`requirement` of `[[indexer.toolchain]]`, ADR 0033 decision 8)
+
+A toolchain entry may carry `requirement = { file, format, path }`: the file of the project that names the version it needs (`format` is `json`, `toml` or `text`; `path` is the key path for json and toml, such as `["sdk", "version"]`). The check of the tools (`docs/tools-check.md`) raises the pack's `min_version` of that program to it when it is newer; the runner ignores it. The purpose and install hint of every program are Fluent keys `tool-<program>-purpose` and `tool-<program>-install` in `locales/`. The adapter reads only the manifests (`PackTools`).

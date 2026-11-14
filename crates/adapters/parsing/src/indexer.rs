@@ -4,8 +4,9 @@
 
 use codeskimr_application::ports::ToolVersion;
 use codeskimr_application::ports::{
-    IndexerSpec, PLACEHOLDER_OUTPUT, PLACEHOLDER_PROJECT, ToolSpec,
+    IndexerSpec, PLACEHOLDER_OUTPUT, PLACEHOLDER_PROJECT, ToolRequirement, ToolSpec,
 };
+use codeskimr_domain::{RequirementFormat, RequirementSpec};
 use std::collections::BTreeMap;
 
 use serde::Deserialize;
@@ -14,6 +15,36 @@ use crate::consts::{
     INDEXER_BAD_PROGRAM, INDEXER_BAD_VERSION, INDEXER_NO_OUTPUT, INDEXER_UNKNOWN_PLACEHOLDER,
     NOTHING, PATH_SEPARATORS, PLACEHOLDER_CLOSE, PLACEHOLDER_OPEN,
 };
+
+/// The file in which a project names the version of a tool it needs, such as `global.json`.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RequirementManifest {
+    /// The file, relative to the project root.
+    pub file: String,
+    /// `json`, `toml` or `text`.
+    pub format: String,
+    /// The keys down to the version in a `json` or `toml` file.
+    #[serde(default)]
+    pub path: Vec<String>,
+}
+
+impl RequirementManifest {
+    fn spec(&self) -> Result<RequirementSpec, String> {
+        let format = self
+            .format
+            .parse::<RequirementFormat>()
+            .map_err(|_| self.format.clone())?;
+        if self.file.trim().is_empty() {
+            return Err(self.file.clone());
+        }
+        Ok(RequirementSpec {
+            file: self.file.clone(),
+            format,
+            path: self.path.clone(),
+        })
+    }
+}
 
 /// A program the user installs, in `language.toml`.
 #[derive(Debug, Deserialize)]
@@ -25,6 +56,10 @@ pub struct ToolManifest {
     pub version_args: Vec<String>,
     /// Oldest version that works, such as `0.2.0`.
     pub min_version: String,
+    /// Where the project names the version it needs (the check of the tools reads it; the runner
+    /// does not).
+    #[serde(default)]
+    pub requirement: Option<RequirementManifest>,
 }
 
 /// `[indexer]` of `language.toml`.
@@ -66,6 +101,23 @@ impl ToolManifest {
 }
 
 impl IndexerManifest {
+    /// The files in which a project names the versions of the toolchain.
+    ///
+    /// # Errors
+    /// The reason, if a file or format is empty or unknown.
+    pub fn requirements(&self) -> Result<Vec<ToolRequirement>, String> {
+        self.toolchain
+            .iter()
+            .filter_map(|tool| {
+                let file = tool.requirement.as_ref()?;
+                Some(file.spec().map(|file| ToolRequirement {
+                    program: tool.program.clone(),
+                    file,
+                }))
+            })
+            .collect()
+    }
+
     /// Checks the table and turns it into what the runner needs.
     ///
     /// # Errors

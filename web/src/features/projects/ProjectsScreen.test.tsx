@@ -3,6 +3,7 @@ import { setLanguage } from "../../shared/i18n/i18n";
 import { describe, expect, it, vi } from "vitest";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { ProjectsScreen } from "./ProjectsScreen";
+import { UNCHECKED, rescanAsked, rescanned } from "../../tests/scanned";
 import type { ProjectRow } from "./types";
 
 const ROW: ProjectRow = {
@@ -70,6 +71,7 @@ describe("ProjectsScreen", () => {
           symbols: 9,
           references: 4,
           seconds: 1.4,
+          tools: UNCHECKED,
         });
       },
     });
@@ -120,19 +122,14 @@ describe("ProjectsScreen", () => {
   it("scans the selected project again on R and moves with the arrow keys", async () => {
     serve({
       "projects.list": () => answer([ROW, { ...ROW, id: 2, name: "other" }]),
-      "projects.rescan": () =>
-        answer({ project: 2, snapshot: 6, files: 3, symbols: 9, references: 4, seconds: 0.2 }),
+      "projects.rescan": () => answer(rescanned(2)),
     });
     render(() => <ProjectsScreen />);
     await screen.findByText("other");
     fireEvent.keyDown(document, { key: "ArrowDown" });
     fireEvent.keyDown(document, { key: "ArrowDown" });
     fireEvent.keyDown(document, { key: "r" });
-    await waitFor(() =>
-      expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith("projects.rescan"))).toBe(
-        true,
-      ),
-    );
+    await rescanAsked();
     const call = fetchMock.mock.calls.find(([path]) => String(path).endsWith("projects.rescan"));
     expect(JSON.parse(call?.[1].body)).toEqual({ project: 2 });
   });

@@ -18,6 +18,7 @@ mod rescan;
 mod similarity;
 mod source;
 mod storage;
+mod tools;
 mod usages;
 mod version;
 
@@ -27,7 +28,7 @@ pub use analysis::{
 };
 pub use catalog::{LanguageShare, ProjectCatalog, ProjectOverview};
 pub use clock::Clock;
-pub use consent::{ConsentRecord, ConsentStore, RunPermit};
+pub use consent::{ConsentGrant, ConsentRecord, ConsentStore, RunPermit};
 pub use credentials::{AuthError, Credential, CredentialStore};
 pub use indexer::{
     IndexArtifact, IndexJob, IndexLimits, IndexRunner, IndexerSpec, IndexerStatus,
@@ -45,6 +46,9 @@ pub use source::{
 };
 pub use storage::{
     PreviousIndex, ProjectRepository, ReferenceReplacement, SnapshotData, SnapshotStore,
+};
+pub use tools::{
+    ProjectToolCheck, RequirementReader, ToolCatalog, ToolPlan, ToolReportStore, ToolRequirement,
 };
 pub use usages::{
     DependencyEdge, DependencyPage, DependencyQuery, ImpactPage, ImpactedSymbol, SymbolLabel,
