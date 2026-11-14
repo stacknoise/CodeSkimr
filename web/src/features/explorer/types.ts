@@ -84,6 +84,18 @@ export interface SymbolInfo {
   members: MemberRow[];
 }
 
+/** A place in the code where a symbol is named. */
+export interface SourceSpan {
+  /** Index of the line within `lines`, counted from 0. */
+  line: number;
+  /** First character of the name in the line, counted from 0. */
+  start: number;
+  /** Position right after its last character. */
+  end: number;
+  /** The symbol that is named there. */
+  symbol: number;
+}
+
 /** The output of `explorer.source`: the declaration of one symbol as it is in the project folder. */
 export interface SourceInfo {
   path: string;
@@ -95,6 +107,8 @@ export interface SourceInfo {
   lines: string[];
   /** Whether the declaration is longer than `lines`. */
   truncated: boolean;
+  /** Where a symbol is named, in the order of the text; left out where none is known. */
+  spans?: SourceSpan[];
   /** True in the HTML export, which never holds source text. */
   excluded?: boolean;
 }

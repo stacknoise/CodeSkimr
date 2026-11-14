@@ -1,9 +1,11 @@
-import { createMemo, Match, Show, Switch } from "solid-js";
+import { createMemo, For, Match, Show, Switch } from "solid-js";
 import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { showUsages } from "../../shared/navigation/navigation";
 import { PILL_SEPARATOR } from "./consts";
 import { lineRange } from "./format";
+import { segments } from "./segments";
 import { sourceError, sourceInfo, sourceLoading } from "./source";
 import type { SourceInfo } from "./types";
 import styles from "./SourcePane.module.css";
@@ -16,19 +18,44 @@ function Note(props: { text: string; alert?: boolean }) {
   );
 }
 
-/** The line numbers and the code side by side; both are plain text, so a long declaration costs
- * two nodes, not hundreds. */
+/** Alt+click on the name of a symbol in the code opens its usages (blueprint 15.4). */
+function onNameClick(event: MouseEvent): void {
+  const target = event.target;
+  const symbol = target instanceof HTMLElement ? target.dataset.symbol : undefined;
+  if (event.altKey && symbol !== undefined) {
+    showUsages(Number(symbol));
+    event.preventDefault();
+  }
+}
+
+/** The line numbers and the code side by side. The line numbers are plain text; the code is plain
+ * text too, but for the names of symbols, which are small elements of their own. */
 function Code(props: { info: SourceInfo }) {
   const numbers = createMemo(() =>
     props.info.lines.map((_, index) => props.info.first_line + index).join("\n"),
   );
+  const pieces = createMemo(() => segments(props.info.lines, props.info.spans ?? []));
   return (
     <div class={styles.code}>
       <pre class={styles.gutter} aria-hidden="true">
         {numbers()}
       </pre>
-      <pre class={styles.text}>
-        <code>{props.info.lines.join("\n")}</code>
+      <pre class={styles.text} onClick={onNameClick}>
+        <code>
+          <For each={pieces()}>
+            {(piece) => (
+              <Show when={piece.symbol !== null} fallback={piece.text}>
+                <span
+                  class={styles.name}
+                  data-symbol={piece.symbol}
+                  title={t(I18N_KEYS.EXPLORER_SOURCE_NAME_HINT)}
+                >
+                  {piece.text}
+                </span>
+              </Show>
+            )}
+          </For>
+        </code>
       </pre>
     </div>
   );

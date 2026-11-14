@@ -206,6 +206,14 @@ pub const SEARCH: &str = "SELECT i.symbol_id, i.name, i.qualified_name, i.kind, 
     ORDER BY CASE WHEN i.name_lower = ?3 THEN 0 WHEN i.name_lower LIKE ?4 ESCAPE '\\' THEN 1 \
     WHEN instr(i.name_lower, ?5) > 0 THEN 2 ELSE 3 END, length(i.name_lower), i.name_lower \
     LIMIT ?6";
+/// Fuzzy search over file paths: snapshot, subsequence pattern, substring text, limit. Only files
+/// that declare a type count; the first type is the one with the lowest id.
+pub const SEARCH_FILES: &str = "SELECT f.path, f.loc, MIN(t.symbol_id) FROM files f \
+    JOIN symbol_rows s ON s.file_id = f.id \
+    JOIN type_summary t ON t.snapshot_id = f.snapshot_id AND t.symbol_id = s.id \
+    WHERE f.snapshot_id = ?1 AND lower(f.path) LIKE ?2 ESCAPE '\\' GROUP BY f.id \
+    ORDER BY CASE WHEN instr(lower(f.path), ?3) > 0 THEN 0 ELSE 1 END, length(f.path), f.path \
+    LIMIT ?4";
 /// Layer graph of a snapshot: snapshot.
 pub const EDGES: &str = "SELECT from_layer, to_layer, edge_count, violates_layering, in_cycle \
     FROM layer_graph WHERE snapshot_id = ?1 ORDER BY from_layer, to_layer";
@@ -229,6 +237,12 @@ pub const DEPENDENCIES_INCOMING: &str = "WITH RECURSIVE scope(id) AS (SELECT ?2 
     WHERE r.snapshot_id = ?1 AND r.to_symbol IN (SELECT id FROM scope) \
     AND r.from_symbol NOT IN (SELECT id FROM scope) AND (?3 OR r.kind <> ?4) \
     GROUP BY t.id ORDER BY COUNT(*) DESC, t.qualified_name, t.id";
+/// The one-line references of a file in a range of lines: snapshot, path, first line, last line.
+pub const SPANS_IN_LINES: &str = "SELECT r.to_symbol, r.start_line, r.start_column, r.end_line, \
+    r.end_column FROM snapshot_references r \
+    JOIN files f ON f.snapshot_id = r.snapshot_id AND f.id = r.file_id \
+    WHERE r.snapshot_id = ?1 AND f.path = ?2 AND r.start_line >= ?3 AND r.start_line <= ?4 \
+    AND r.end_line = r.start_line ORDER BY r.start_line, r.start_column, r.id";
 /// Summary of one type: snapshot, symbol.
 pub const TYPE_SUMMARY: &str = "SELECT member_count, loc, max_complexity, maintainability \
     FROM type_summary WHERE snapshot_id = ?1 AND symbol_id = ?2";

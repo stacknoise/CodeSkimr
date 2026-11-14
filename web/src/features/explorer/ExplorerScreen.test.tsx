@@ -1,13 +1,14 @@
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { currentPath, navigate } from "../../app/router";
-import { clearUsages, focusSymbol } from "../usages/usages";
+import { focusSymbol } from "../../shared/navigation/navigation";
+import { clearUsages } from "../usages/usages";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { openOrder, ORDER, OUTLINE } from "../../tests/explorer";
 import { ExplorerScreen } from "./ExplorerScreen";
-import { requestFocus } from "./explorer";
+import { requestFocus } from "../../shared/navigation/navigation";
 
 useServerSession();
 afterEach(() => {

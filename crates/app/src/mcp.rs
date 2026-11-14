@@ -21,6 +21,7 @@ use crate::clock::SystemClock;
 use crate::config_files;
 use crate::locations::Locations;
 use crate::principal;
+use crate::running::{ExclusiveScans, RunningScans};
 use crate::source_arg::folder_spec;
 use crate::wiring::{
     Secrets, build_analysis, index_runner, open_store, os_secrets, scanner_over, tool_checker,
@@ -64,6 +65,7 @@ pub fn run(
         locations,
         messages: Arc::clone(&messages),
         runner,
+        running: RunningScans::default(),
     };
     let ports = build_ports(store, &config, wiring, (EventBus::new(), &os_secrets()))?;
     let tools = Tools::new(ports, config.mcp, project.id);
@@ -82,12 +84,32 @@ pub fn run(
 ///
 /// # Errors
 /// Any coded failure of opening the store, loading the language packs or the message texts.
+#[cfg(test)]
 pub fn http_service(
     config: &Config,
     locations: &Locations,
     (events, secrets): (EventBus, &Arc<Secrets>),
 ) -> Result<HttpService, CodedError> {
-    http_service_probing(config, locations, (events, secrets), None)
+    http_service_probing(
+        config,
+        locations,
+        (events, secrets),
+        (None, RunningScans::default()),
+    )
+}
+
+/// Like [`http_service`], but a `rescan` and the scans of the UI share `running`, so a second
+/// scan of the same project is refused with `PRJ-302` whichever side started the first.
+///
+/// # Errors
+/// The same as [`http_service`].
+pub fn http_service_sharing(
+    config: &Config,
+    locations: &Locations,
+    (events, secrets): (EventBus, &Arc<Secrets>),
+    running: RunningScans,
+) -> Result<HttpService, CodedError> {
+    http_service_probing(config, locations, (events, secrets), (None, running))
 }
 
 /// Like [`http_service`], but the tools are started through `runner` instead of as real processes
@@ -99,7 +121,7 @@ pub fn http_service_probing(
     config: &Config,
     locations: &Locations,
     (events, secrets): (EventBus, &Arc<Secrets>),
-    runner: Option<Arc<dyn IndexRunner>>,
+    (runner, running): (Option<Arc<dyn IndexRunner>>, RunningScans),
 ) -> Result<HttpService, CodedError> {
     let store = open_store(locations, config)?;
     let messages = Arc::new(Messages::load().map_err(CodedError::caused_by)?);
@@ -107,6 +129,7 @@ pub fn http_service_probing(
         locations,
         messages: Arc::clone(&messages),
         runner: runner.unwrap_or_else(|| index_runner(locations)),
+        running,
     };
     let ports = build_ports(store, config, wiring, (events, secrets))?;
     let tools = Tools::unscoped(ports, config.mcp.clone());
@@ -119,6 +142,7 @@ struct Wiring<'a> {
     locations: &'a Locations,
     messages: Arc<Messages>,
     runner: Arc<dyn IndexRunner>,
+    running: RunningScans,
 }
 
 /// The ports of the tools: the store for everything it implements, the analysis ports the
@@ -134,6 +158,7 @@ fn build_ports(
         locations,
         messages,
         runner,
+        running,
     } = wiring;
     let analysis = build_analysis(config, locations)?;
     let checker = ConventionChecker::new(
@@ -141,11 +166,10 @@ fn build_ports(
         Arc::clone(&analysis.analyzer),
         config.conventions.clone(),
     );
-    let scanner: Arc<dyn ProjectScanner> = Arc::new(scanner_over(
-        &analysis,
-        (&store, config, locations),
-        (events, secrets),
-    )?);
+    let scanner: Arc<dyn ProjectScanner> = Arc::new(ExclusiveScans::new(
+        scanner_over(&analysis, (&store, config, locations), (events, secrets))?,
+        running,
+    ));
     let snippets = analysis.snippets;
     let projects: Arc<dyn ProjectRepository> = store.clone();
     let usages: Arc<dyn UsageIndex> = store.clone();
