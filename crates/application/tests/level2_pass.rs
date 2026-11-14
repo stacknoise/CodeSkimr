@@ -79,6 +79,7 @@ mod cases {
         files: Vec<SourceFile>,
         changed: Vec<&'static str>,
         replaced: Mutex<Vec<ReferenceReplacement>>,
+        files_fail: bool,
     }
 
     impl ProjectRepository for World {
@@ -92,6 +93,9 @@ mod cases {
         }
 
         fn latest_files(&self, _: ProjectId) -> Result<Vec<SourceFile>, CodedError> {
+            if self.files_fail {
+                return Err(CodedError::new(ErrorCode::ProjectNotFound));
+            }
             Ok(self.files.clone())
         }
 
@@ -167,6 +171,7 @@ mod cases {
     struct Importer {
         seen: Mutex<Vec<Vec<String>>>,
         fails: Option<ErrorCode>,
+        cancels: Option<CancelToken>,
     }
 
     impl ReferenceImporter for Importer {
@@ -181,6 +186,9 @@ mod cases {
                         .map(|f| f.path.as_str().to_owned())
                         .collect(),
                 );
+            if let Some(token) = &self.cancels {
+                token.cancel();
+            }
             if let Some(code) = self.fails {
                 return Err(CodedError::new(code));
             }
@@ -219,6 +227,8 @@ mod cases {
         status: IndexerStatus,
         run_fails: Option<ErrorCode>,
         import_fails: Option<ErrorCode>,
+        cancel_in_import: bool,
+        files_fail: bool,
         confirmed: bool,
     }
 
@@ -231,6 +241,8 @@ mod cases {
                 status: IndexerStatus::Ready,
                 run_fails: None,
                 import_fails: None,
+                cancel_in_import: false,
+                files_fail: false,
                 confirmed: true,
             }
         }
@@ -258,21 +270,30 @@ mod cases {
         consent
     }
 
-    fn pass_for(setup: Setup) -> (Level2Pass, Fakes) {
-        let world = Arc::new(World {
-            files: setup.files,
-            changed: setup.changed,
-            replaced: Mutex::default(),
-        });
-        let runner = Arc::new(Runner {
-            runs: Mutex::default(),
-            status: setup.status,
-            fails: setup.run_fails,
-        });
-        let importer = Arc::new(Importer {
-            seen: Mutex::default(),
-            fails: setup.import_fails,
-        });
+    fn fakes_for(setup: &mut Setup, cancel: &CancelToken) -> Fakes {
+        Fakes {
+            world: Arc::new(World {
+                files: std::mem::take(&mut setup.files),
+                changed: std::mem::take(&mut setup.changed),
+                replaced: Mutex::default(),
+                files_fail: setup.files_fail,
+            }),
+            runner: Arc::new(Runner {
+                runs: Mutex::default(),
+                status: setup.status.clone(),
+                fails: setup.run_fails,
+            }),
+            importer: Arc::new(Importer {
+                seen: Mutex::default(),
+                fails: setup.import_fails,
+                cancels: setup.cancel_in_import.then(|| cancel.clone()),
+            }),
+        }
+    }
+
+    fn pass_for(mut setup: Setup, cancel: &CancelToken) -> (Level2Pass, Fakes) {
+        let fakes = fakes_for(&mut setup, cancel);
+        let (world, runner, importer) = (&fakes.world, &fakes.runner, &fakes.importer);
         let consent = consent(setup.confirmed);
         let indexers = setup
             .indexers
@@ -291,18 +312,11 @@ mod cases {
             settings: Config::resolve(&[]).unwrap().level2,
             indexers,
         };
-        (
-            pass,
-            Fakes {
-                world,
-                runner,
-                importer,
-            },
-        )
+        (pass, fakes)
     }
 
     fn run_with(setup: Setup, principal: Principal, cancel: &CancelToken) -> Outcome {
-        let (pass, fakes) = pass_for(setup);
+        let (pass, fakes) = pass_for(setup, cancel);
         let root = FolderPath::new("/work").unwrap();
         let result = pass.run(&principal, &snapshot(), &root, cancel);
         let runs = *fakes.runner.runs.lock().unwrap();
@@ -494,5 +508,27 @@ mod cases {
             &import_failed,
             &Skipped::Failed(ErrorCode::ScipMappingTooLow),
         );
+    }
+
+    #[test]
+    fn a_cancel_after_the_import_replaces_nothing() {
+        let outcome = run(Setup {
+            cancel_in_import: true,
+            ..Setup::default()
+        });
+        assert_eq!(outcome.imports.len(), 1);
+        assert_level_one_stays(&outcome, &Skipped::Cancelled);
+    }
+
+    #[test]
+    fn when_the_snapshot_cannot_be_read_every_indexer_language_is_reported_failed() {
+        let outcome = run(Setup {
+            files_fail: true,
+            indexers: vec![("csharp", "scip-dotnet"), ("java", "scip-java")],
+            ..Setup::default()
+        });
+        assert_eq!(outcome.runs, 0);
+        let failed = Skipped::Failed(ErrorCode::ProjectNotFound);
+        assert_eq!(skipped(&outcome), vec![&failed, &failed]);
     }
 }
