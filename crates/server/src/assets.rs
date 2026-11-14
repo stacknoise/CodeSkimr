@@ -11,6 +11,7 @@ use axum::http::StatusCode;
 use axum::http::header::CONTENT_TYPE;
 use axum::response::{IntoResponse, Response};
 use codeskimr_codes::ErrorCode;
+use tokio::io::AsyncReadExt;
 
 use crate::consts::{
     EXTENSION_SEPARATOR, INDEX_FILE, MEDIA_TYPES, MEDIA_UNKNOWN, SEGMENT_EXTRA, SEGMENT_SEPARATOR,
@@ -120,11 +121,29 @@ async fn read(dir: &Path, relative: &Path) -> Option<Vec<u8>> {
             return None;
         }
     }
-    let meta = tokio::fs::metadata(&path).await.ok()?;
-    if !meta.is_file() {
+    let mut file = tokio::fs::File::open(&path).await.ok()?;
+    let opened = file.metadata().await.ok()?;
+    let named = tokio::fs::symlink_metadata(&path).await.ok()?;
+    if !opened.is_file() || !is_same_file(&opened, &named) {
         return None;
     }
-    tokio::fs::read(&path).await.ok()
+    let mut body = Vec::new();
+    file.read_to_end(&mut body).await.ok()?;
+    Some(body)
+}
+
+/// Whether the path still names the file that was opened: a link put in place between the walk
+/// and the open shows up as another file (or as a link).
+#[cfg(unix)]
+fn is_same_file(opened: &std::fs::Metadata, named: &std::fs::Metadata) -> bool {
+    use std::os::unix::fs::MetadataExt;
+    opened.dev() == named.dev() && opened.ino() == named.ino()
+}
+
+/// Without file identities the path is only checked not to be a link.
+#[cfg(not(unix))]
+fn is_same_file(_opened: &std::fs::Metadata, named: &std::fs::Metadata) -> bool {
+    !named.file_type().is_symlink()
 }
 
 fn answer(file: &Path, body: Vec<u8>) -> Response {

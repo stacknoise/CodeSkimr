@@ -50,7 +50,11 @@ pub fn call(request: &Call<'_>) -> Result<Value, CodedError> {
         .write_all(message(request).as_bytes())
         .map_err(|_| unreachable())?;
     // The answer may hold a launch code, the request holds the token: both are wiped when dropped.
-    let mut raw = Zeroizing::new(String::new());
+    // The buffer has its full size from the start, so that reading never moves the answer to a new
+    // allocation and leaves an unwiped copy behind.
+    let mut raw = Zeroizing::new(String::with_capacity(
+        usize::try_from(MAX_REPLY_BYTES).unwrap_or_default(),
+    ));
     stream
         .take(MAX_REPLY_BYTES)
         .read_to_string(&mut raw)
