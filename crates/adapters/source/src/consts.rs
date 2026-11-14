@@ -127,3 +127,5 @@ pub const BACKSLASH: char = '\\';
 /// Characters besides letters and digits that a bare TOML key may contain, and the dot of a
 /// dotted key.
 pub const TOML_KEY_EXTRA: &str = "-_.";
+/// Bytes read beyond the announced length of a file: one is enough to see that it grew.
+pub const GROWTH_PROBE_BYTES: u64 = 1;

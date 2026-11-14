@@ -15,13 +15,9 @@ workspace = true
 codeskimr_application = { path = "../../application" }
 codeskimr_domain = { path = "../../domain" }
 codeskimr_codes = { path = "../../codes" }
+codeskimr_fsguard = { path = "../fsguard" }
 thiserror = { workspace = true }
 
-[target.'cfg(unix)'.dependencies]
-libc = { workspace = true }
-
-[target.'cfg(windows)'.dependencies]
-windows-sys = { workspace = true, features = ["Win32_Storage_FileSystem"] }
 
 [dev-dependencies]
 tempfile = { workspace = true }
