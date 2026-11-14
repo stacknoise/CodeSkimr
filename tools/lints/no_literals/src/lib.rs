@@ -11,6 +11,8 @@ extern crate rustc_span;
 
 mod allowed;
 
+use rustc_ast::token::TokenKind;
+use rustc_ast::tokenstream::{TokenStream, TokenTree};
 use rustc_ast::{Attribute, Expr, ExprKind, FormatArgsPiece, Item, ItemKind};
 use rustc_lint::{EarlyContext, EarlyLintPass, LintContext};
 use rustc_span::Span;
@@ -79,6 +81,25 @@ impl NoLiterals {
     }
 }
 
+impl NoLiterals {
+    /// A `macro_rules!` body is checked where the macro is defined: the crate that defines it
+    /// never expands it, and the crates that use it see it as foreign code.
+    fn check_macro_body(cx: &EarlyContext<'_>, tokens: &TokenStream) {
+        for tree in tokens.iter() {
+            match tree {
+                TokenTree::Token(token, _) => {
+                    if let TokenKind::Literal(lit) = &token.kind {
+                        if !allowed::is_free_literal(lit) {
+                            Self::report(cx, token.span);
+                        }
+                    }
+                }
+                TokenTree::Delimited(_, _, _, inner) => Self::check_macro_body(cx, inner),
+            }
+        }
+    }
+}
+
 impl EarlyLintPass for NoLiterals {
     fn check_attribute(&mut self, _cx: &EarlyContext<'_>, attr: &Attribute) {
         self.attribute = Some(attr.span);
@@ -91,6 +112,11 @@ impl EarlyLintPass for NoLiterals {
         let is_value = matches!(item.kind, ItemKind::Const(_) | ItemKind::Static(_));
         if is_value && allowed::in_consts_module(cx, item.span) {
             self.const_depth += 1;
+        }
+        if let ItemKind::MacroDef(_, def) = &item.kind {
+            if !self.exempt() {
+                Self::check_macro_body(cx, &def.body.tokens);
+            }
         }
     }
 
@@ -110,7 +136,11 @@ impl EarlyLintPass for NoLiterals {
         }
         match &expr.kind {
             ExprKind::Lit(lit) if !allowed::is_free_literal(lit) => {
-                if allowed::own_source(expr.span) && allowed::is_written_literal(cx, expr.span) {
+                if allowed::from_local_macro(expr.span) {
+                    // Reported once where the macro is defined (`check_macro_body`).
+                } else if allowed::own_source(expr.span)
+                    && allowed::is_written_literal(cx, expr.span)
+                {
                     Self::report(cx, expr.span);
                 } else if let Some(call) = allowed::concat_call_in_own_source(expr.span) {
                     Self::report(cx, call);
@@ -123,7 +153,10 @@ impl EarlyLintPass for NoLiterals {
                     .any(|piece| matches!(piece, FormatArgsPiece::Literal(_)));
                 if has_text {
                     if let Some(span) = allowed::macro_call_in_own_source(args.span) {
-                        Self::report(cx, span);
+                        // A call inside a local macro is reported at its definition.
+                        if !span.from_expansion() {
+                            Self::report(cx, span);
+                        }
                     }
                 }
             }

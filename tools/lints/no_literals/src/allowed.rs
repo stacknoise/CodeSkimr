@@ -147,6 +147,12 @@ pub fn own_source(span: Span) -> bool {
         .is_some_and(|def| def.is_local())
 }
 
+/// The span comes out of a `macro_rules!` of the checked crate. Such a macro is checked once at
+/// its definition, not again at every use.
+pub fn from_local_macro(span: Span) -> bool {
+    span.from_expansion() && own_source(span)
+}
+
 /// For a format string: the span of the call (`format!`, `println!`, ...) in the checked code.
 /// Walks outwards through foreign function-like macros and gives up at derives and attributes.
 pub fn macro_call_in_own_source(span: Span) -> Option<Span> {

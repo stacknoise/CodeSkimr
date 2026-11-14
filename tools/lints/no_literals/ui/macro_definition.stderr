@@ -1,0 +1,27 @@
+error: literal in production code (CHK-101)
+  --> $DIR/macro_definition.rs:7:9
+   |
+LL |         4096
+   |         ^^^^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+   = note: `#[deny(no_literals)]` on by default
+
+error: literal in production code (CHK-101)
+  --> $DIR/macro_definition.rs:13:16
+   |
+LL |         [0, 1, 2]
+   |                ^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+
+error: literal in production code (CHK-101)
+  --> $DIR/macro_definition.rs:32:18
+   |
+LL |         println!("scanned")
+   |                  ^^^^^^^^^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+
+error: aborting due to 3 previous errors
+
