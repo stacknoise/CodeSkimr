@@ -41,6 +41,8 @@ pub struct Level2Pass {
     pub store: Arc<dyn SnapshotStore>,
     /// Ids of the new references.
     pub ids: Arc<IdSequence>,
+    /// Largest source file whose text the importer may read, in bytes (the scan's own limit).
+    pub max_file_bytes: u64,
     /// The settings of the user (`level2.*`).
     pub settings: Level2,
     /// How to run the indexer of each language that has one. Languages that name the same
@@ -193,6 +195,7 @@ impl Level2Pass {
                 symbols: &scan.index.symbols,
                 references: &scan.index.references,
                 max_index_bytes: self.settings.max_index_bytes,
+                max_file_bytes: self.max_file_bytes,
                 min_mapped: self.settings.min_mapped,
             })
             .map_err(Skipped::from)?;

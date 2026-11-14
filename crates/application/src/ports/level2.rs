@@ -22,6 +22,8 @@ pub struct ImportRequest<'a> {
     pub references: &'a [Reference],
     /// Largest index file that is read, in bytes.
     pub max_index_bytes: u64,
+    /// Largest source file whose lines are read to convert columns, in bytes.
+    pub max_file_bytes: u64,
     /// Smallest share of mapped uses among the uses of project symbols, from 0 to 1.
     pub min_mapped: f64,
 }

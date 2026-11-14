@@ -31,3 +31,7 @@ An indexer runs the build tools of the project, which is project code. So the ru
 - A test with the real `redact` of the app (Bearer line, URL with credentials, secret across the cut) comes with the wiring, because the indexer crate cannot depend on the app.
 - Files and network: the indexer can read what the user can read and use the network. Tracked in a follow-up issue (sandbox, empty `HOME`).
 - Confirming needs a screen or command of the local owner (the second package, with the wiring into the scan).
+
+## Who starts indexers
+
+Only the scan of the command line (`codeskimr scan`, first scan of watch mode) runs the second pass. `ProjectScanner::rescan`, which MCP and the UI use, builds its job `without_level2`, so an AI agent or a browser client can never start the build tools of a project, even after the owner confirmed level 2. Later scans of watch mode are level 1 too. A test in `crates/application/tests/scan.rs` pins all three. The confirmation is bound to source, location and branch, not to the commit (issue #230).

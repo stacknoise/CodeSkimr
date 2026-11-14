@@ -1,11 +1,12 @@
 //! The `ReferenceImporter` port: reads an index, converts its columns and maps it onto the
 //! snapshot (ADR 0033).
 
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{ImportRequest, Imported, ReferenceImporter, SourceText};
-use codeskimr_domain::{FolderPath, Reference};
+use codeskimr_domain::{FolderPath, Reference, RelativePath};
 
 use crate::columns::convert_columns;
 use crate::consts::FIRST_LINE;
@@ -26,13 +27,9 @@ impl ScipImporter {
     }
 
     /// The lines of a file; `None` if it cannot be read, which leaves its occurrences unchanged.
-    fn lines(
-        &self,
-        root: &FolderPath,
-        path: &codeskimr_domain::RelativePath,
-    ) -> Option<Vec<String>> {
+    fn lines(&self, root: &FolderPath, path: &RelativePath, max_bytes: u64) -> Option<Vec<String>> {
         self.text
-            .excerpt(root, path, (FIRST_LINE, u32::MAX), (u32::MAX, u64::MAX))
+            .excerpt(root, path, (FIRST_LINE, u32::MAX), (u32::MAX, max_bytes))
             .ok()
             .map(|excerpt| excerpt.lines)
     }
@@ -48,7 +45,15 @@ impl ReferenceImporter for ScipImporter {
     fn import(&self, request: &ImportRequest<'_>) -> Result<Imported, CodedError> {
         let mut index =
             read_index(request.index, request.max_index_bytes).map_err(CodedError::caused_by)?;
-        convert_columns(&mut index, &mut |path| self.lines(request.root, path));
+        let known: HashSet<&RelativePath> = request.files.iter().map(|file| &file.path).collect();
+        // Only files of the snapshot are read, and only up to the limit: the paths come from a
+        // process that ran project code.
+        convert_columns(&mut index, &mut |path| {
+            known
+                .contains(path)
+                .then(|| self.lines(request.root, path, request.max_file_bytes))
+                .flatten()
+        });
         let view = SnapshotView {
             files: request.files,
             symbols: request.symbols,

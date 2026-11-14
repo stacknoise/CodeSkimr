@@ -65,13 +65,13 @@ fn convert_occurrence(
 
 fn convert_document(document: &mut ScipDocument, lines: &[String]) {
     let encoding = document.encoding;
-    for occurrence in &mut document.occurrences {
-        // An occurrence that cannot be placed in the text keeps its columns: the file changed
-        // since the index was made, which the caller's hash check has ruled out already.
-        if let Some(converted) = convert_occurrence(occurrence, lines, encoding) {
-            *occurrence = converted;
-        }
-    }
+    // An occurrence that cannot be placed in the text (a column behind the end of its line) is
+    // dropped: the file changed since the index was made, and a guessed span would point at the
+    // wrong place. Only then can the whole document be called UTF-8.
+    document.occurrences = std::mem::take(&mut document.occurrences)
+        .iter()
+        .filter_map(|occurrence| convert_occurrence(occurrence, lines, encoding))
+        .collect();
     document.encoding = PositionEncoding::Utf8;
 }
 
@@ -155,13 +155,19 @@ mod tests {
     }
 
     #[test]
-    fn a_column_behind_the_line_or_a_missing_text_leaves_the_occurrence_alone() {
-        assert_eq!(
-            convert(PositionEncoding::Utf16, "ä", span(0, 4, 9)),
-            span(0, 4, 9)
-        );
+    fn a_column_behind_the_line_drops_the_occurrence() {
+        let mut index = index(PositionEncoding::Utf16, span(0, 4, 9));
+        let lines = vec!["ä".to_owned()];
+        convert_columns(&mut index, &mut |_| Some(lines.clone()));
+        assert!(index.documents[0].occurrences.is_empty());
+        assert_eq!(index.documents[0].encoding, PositionEncoding::Utf8);
+    }
+
+    #[test]
+    fn a_missing_text_leaves_the_document_alone() {
         let mut index = index(PositionEncoding::Utf16, span(0, 1, 2));
         convert_columns(&mut index, &mut |_| None);
         assert_eq!(index.documents[0].encoding, PositionEncoding::Utf16);
+        assert_eq!(index.documents[0].occurrences.len(), 1);
     }
 }
