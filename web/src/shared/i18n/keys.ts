@@ -238,7 +238,6 @@ export const I18N_KEYS = {
   PALETTE_HINT_SELECT: "palette-hint-select",
   PALETTE_HINT_FILTER: "palette-hint-filter",
   PALETTE_HINT_FUZZY: "palette-hint-fuzzy",
-  PALETTE_HINT_INDEX: "palette-hint-index",
   PALETTE_INDEX_SIZE: "palette-index-size",
   PALETTE_GROUP_TYPES: "palette-group-types",
   PALETTE_GROUP_MEMBERS: "palette-group-members",

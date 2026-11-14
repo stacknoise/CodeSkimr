@@ -12,7 +12,6 @@ palette-scope-all-projects = alle Projekte
 palette-preview = Vorschau
 palette-hint-select = wählen
 palette-hint-filter = Filter
-palette-hint-index = Index · { $count } Einträge
 palette-hint-fuzzy = Unscharfe Suche: "bbar" findet BoardBar
 palette-index-size = Index im Speicher · { $count } Einträge
 palette-group-types = Typen

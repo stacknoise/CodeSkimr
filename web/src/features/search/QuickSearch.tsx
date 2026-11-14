@@ -248,14 +248,12 @@ function Footer() {
         {t(I18N_KEYS.PALETTE_HINT_FILTER)}
       </span>
       <span>{t(I18N_KEYS.PALETTE_HINT_FUZZY)}</span>
-      <Show when={searchEntries()}>
-        {(count) => (
-          <span class={styles.entries}>
-            {t(I18N_KEYS.PALETTE_HINT_INDEX, {
-              count: new Intl.NumberFormat(currentLanguage()).format(count()),
-            })}
-          </span>
-        )}
+      <Show when={searchEntries() !== null}>
+        <span class={styles.entries}>
+          {t(I18N_KEYS.PALETTE_INDEX_SIZE, {
+            count: new Intl.NumberFormat(currentLanguage()).format(searchEntries() ?? 0),
+          })}
+        </span>
       </Show>
     </div>
   );

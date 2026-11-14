@@ -168,7 +168,7 @@ describe("the quick search", () => {
     openSearch();
     expect(screen.queryByText(/entries/)).toBeNull();
     type("cart");
-    expect(await screen.findByText("Index · 3,007 entries")).toBeTruthy();
+    expect(await screen.findByText("Index in memory · 3,007 entries")).toBeTruthy();
   });
 
   it("opens a type in the explorer with Enter", async () => {
