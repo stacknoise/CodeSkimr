@@ -99,6 +99,17 @@ async function shown() {
   return stop;
 }
 
+/** The screen with a server that also answers `projects.cancel`. */
+async function shownWithCancel() {
+  setLanguage("en");
+  serve({
+    "projects.list": () => answer([ROW]),
+    "status.info": () => answer(STATUS),
+    "projects.cancel": () => answer({ cancelled: true }),
+  });
+  return shown();
+}
+
 describe("ScanScreen", () => {
   it("shows the budgets with the measured start time, the languages and recent scans when idle", async () => {
     setLanguage("en");
@@ -146,13 +157,7 @@ describe("ScanScreen", () => {
   });
 
   it("leaves a running scan alone when Esc is pressed in a field or was already used", async () => {
-    setLanguage("en");
-    serve({
-      "projects.list": () => answer([ROW]),
-      "status.info": () => answer(STATUS),
-      "projects.cancel": () => answer({ cancelled: true }),
-    });
-    const stop = await shown();
+    const stop = await shownWithCancel();
     FakeSocket.last?.send(RUNNING);
     await screen.findByRole("button", { name: /Cancel/ });
     const field = document.body.appendChild(document.createElement("input"));
@@ -166,13 +171,7 @@ describe("ScanScreen", () => {
   });
 
   it("cancels the running scan with the button and with Esc", async () => {
-    setLanguage("en");
-    serve({
-      "projects.list": () => answer([ROW]),
-      "status.info": () => answer(STATUS),
-      "projects.cancel": () => answer({ cancelled: true }),
-    });
-    const stop = await shown();
+    const stop = await shownWithCancel();
     expect(screen.queryByRole("button", { name: /Cancel/ })).toBeNull();
     FakeSocket.last?.send(RUNNING);
     fireEvent.click(await screen.findByRole("button", { name: /Cancel/ }));
