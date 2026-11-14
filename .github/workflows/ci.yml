@@ -137,6 +137,12 @@ jobs:
       # Cargo.lock, so the checks above do not see it. Same strict rules. (The lint workspace is covered above.)
       - name: cargo audit, deny and machete (import_scip workspace)
         run: |
+          # This lock file follows the product crates it depends on (path dependencies): a PR that adds or
+          # changes a dependency of them must refresh it, otherwise this step fails here with a clear hint.
+          if ! cargo metadata --locked --format-version 1 --manifest-path tools/accuracy/import_scip/Cargo.toml > /dev/null; then
+            echo "::error::tools/accuracy/import_scip/Cargo.lock is out of date. Run 'cargo update --workspace --manifest-path tools/accuracy/import_scip/Cargo.toml' and commit it."
+            exit 1
+          fi
           cargo audit --deny warnings -f tools/accuracy/import_scip/Cargo.lock
           cargo deny --manifest-path tools/accuracy/import_scip/Cargo.toml --config deny.toml --locked check
           cargo machete tools/accuracy/import_scip
