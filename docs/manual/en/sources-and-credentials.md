@@ -40,7 +40,7 @@ codeskimr credential login work-gitlab --provider gitlab --client-id <id> --host
 
 This is the OAuth device flow: the command prints a web page and a short code, you open the page in your browser, enter the code and approve, and the command stores the token. You need the `--client-id` of an OAuth application registered at the platform; it is not a secret. `--host` selects a self-managed installation and must be an HTTPS address. The token gets the smallest scope that reading needs (GitHub `repo`, GitLab `read_repository`). If you do not finish in the browser the command fails with `NET-601`.
 
-GitHub tokens from an OAuth application do not expire. GitLab tokens expire after two hours and CodeSkimr cannot refresh them yet: run `credential login` again when `SEC-401` appears.
+GitHub tokens from an OAuth application do not expire. GitLab tokens expire after two hours. `credential login` also keeps the refresh token the platform sends, in the keystore next to the token; when a Git source is rejected with `SEC-401`, CodeSkimr trades it for a new token once and repeats the fetch. If the platform refuses the refresh token (revoked, or you removed the application), run `credential login` again. A token that you stored with `credential set` has no refresh token and is never renewed.
 
 ### Remove a credential
 
@@ -57,6 +57,10 @@ codeskimr scan https://github.com/org/private-repo --credential work-github
 ```
 
 `--credential` only applies to Git sources; naming one for a folder is `PRJ-101`. Without `--credential` the credential helper of your system decides, as it does for `git` itself. **There is never a prompt on the terminal**, so a server or an MCP session cannot hang on a login question; if no login is available the scan fails with `SRC-401`.
+
+### In the browser
+
+On the project screen, the form "New project" has a field **Login**. "Store a new login" opens three fields (name, user name, token or password); the secret is a password field, goes to the keystore of the computer that runs the server and is emptied from the page at once. The new name is selected for the project you add next. Only names that a project already uses, or that you stored in this tab, are offered; the browser never reads a stored secret back. Logins from `credential login` (OAuth) are done on the command line.
 
 ### What CodeSkimr does with the secret
 
@@ -79,7 +83,7 @@ A second secret exists: the **installation token** (`csk_` and 64 hex digits). I
 | `SEC-202` | the keystore entry is damaged | `credential delete` it and create it again |
 | `NET-601` | the browser sign-in did not finish | run `credential login` again and approve in time |
 | `CLI-103` | no secret could be read, or it was empty | pipe the secret in or type it at the prompt |
-| `SEC-401` | the remote rejected the credential (GitHub also answers an invalid token for a hidden repository this way) | check user name and secret and the rights of the token; tokens expire (GitLab OAuth tokens after two hours) |
+| `SEC-401` | the remote rejected the credential (GitHub also answers an invalid token for a hidden repository this way) | check user name and secret and the rights of the token; tokens expire (GitLab OAuth tokens after two hours; a token from `credential login` is renewed automatically, otherwise log in again) |
 | `SEC-402` | the keystore denied access | allow access in the system prompt |
 | `SEC-601` | no keystore available | on Linux start a Secret Service (for example GNOME Keyring); `serve` needs it |
 | `SRC-202` | the branch does not exist on the remote | check the name with `--branch` |

@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 34,
+      "loc": 39,
       "operands": null,
       "operators": null,
       "symbol": "references"
@@ -44,8 +44,8 @@
       "decisions": 1,
       "loc": 11,
       "operands": [
-        15,
-        20
+        16,
+        23
       ],
       "operators": [
         10,
@@ -64,8 +64,8 @@
       "decisions": 2,
       "loc": 11,
       "operands": [
-        4,
-        5
+        5,
+        6
       ],
       "operators": [
         6,
@@ -87,7 +87,7 @@
       "symbol": "references.mapper"
     }
   ],
-  "loc": 34,
+  "loc": 39,
   "references": [
     {
       "at": "0:7",
@@ -319,6 +319,62 @@
       "kind": "read",
       "receiver": null,
       "target": "LIMIT"
+    },
+    {
+      "at": "41:16",
+      "from": "references.names",
+      "kind": "read",
+      "receiver": null,
+      "target": "LIMIT"
+    },
+    {
+      "at": "42:18",
+      "from": "references",
+      "kind": "read",
+      "receiver": null,
+      "target": "names"
+    },
+    {
+      "at": "43:2",
+      "from": "references",
+      "kind": "read",
+      "receiver": null,
+      "target": "names"
+    },
+    {
+      "at": "45:15",
+      "from": "references.picked",
+      "kind": "read",
+      "receiver": null,
+      "target": "LIMIT"
+    },
+    {
+      "at": "45:27",
+      "from": "references.picked",
+      "kind": "read",
+      "receiver": null,
+      "target": "names"
+    },
+    {
+      "at": "45:33",
+      "from": "references.picked",
+      "kind": "read",
+      "receiver": "named names",
+      "target": "LIMIT"
+    },
+    {
+      "at": "45:41",
+      "from": "references.picked",
+      "kind": "read",
+      "receiver": null,
+      "target": "names"
+    },
+    {
+      "at": "45:47",
+      "from": "references.picked",
+      "kind": "read",
+      "receiver": "named names",
+      "target": "size"
     }
   ],
   "symbols": [
@@ -328,7 +384,7 @@
       "name": "references",
       "parent": null,
       "signature": null,
-      "span": "0:0-40:0",
+      "span": "0:0-46:0",
       "static": false,
       "visibility": null
     },
@@ -419,6 +475,26 @@
       "parent": "references",
       "signature": null,
       "span": "39:15-39:47",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "references.names",
+      "parent": "references",
+      "signature": "names = { LIMIT }",
+      "span": "41:6-41:23",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "references.picked",
+      "parent": "references",
+      "signature": "picked = LIMIT > 1 ? names.LIMIT : names.size",
+      "span": "45:6-45:51",
       "static": false,
       "visibility": "private"
     }

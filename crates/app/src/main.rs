@@ -10,6 +10,7 @@ mod check;
 mod clock;
 mod config_files;
 mod consts;
+mod cpu_time;
 mod credential;
 #[cfg(test)]
 mod e2e;
@@ -30,9 +31,14 @@ mod mcp;
 mod mcp_http_tests;
 #[cfg(test)]
 mod memory_keystore;
+#[cfg(test)]
+mod oauth_stub;
 mod open;
 mod principal;
+#[cfg(any(windows, test))]
+mod private_acl;
 mod redact;
+mod refresh;
 mod run;
 mod running;
 mod scan;
@@ -45,6 +51,7 @@ mod security_tests;
 mod serve;
 mod shared_keystore;
 mod source_arg;
+mod start;
 #[cfg(test)]
 mod tool_check_tests;
 mod ui_commands;

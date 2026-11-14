@@ -133,6 +133,8 @@ fn the_commands_are_offered() {
             "explorer.symbol",
             "export.html",
             "graph.layers",
+            "preferences.get",
+            "preferences.set",
             "projects.add",
             "projects.cancel",
             "projects.list",
@@ -996,4 +998,58 @@ fn the_source_names_the_places_where_a_symbol_is_used() {
     let start = index(&call["start"]);
     let end = index(&call["end"]);
     assert_eq!(chars[start..end].iter().collect::<String>(), "Add");
+}
+
+#[test]
+fn the_preferences_are_kept_on_the_server_and_checked() {
+    let fixture = Fixture::new();
+    let none = fixture.call("preferences.get", json!(null)).unwrap();
+    assert_eq!(none, json!({"theme": null, "language": null}));
+    let chosen = json!({"theme": "petrol", "language": "de"});
+    assert_eq!(
+        fixture.call("preferences.set", chosen.clone()).unwrap(),
+        chosen
+    );
+    assert_eq!(
+        fixture.call("preferences.get", json!(null)).unwrap(),
+        chosen
+    );
+    let bad = fixture.call(
+        "preferences.set",
+        json!({"theme": "../x", "language": null}),
+    );
+    assert_eq!(bad, Err("API-101"));
+    assert_eq!(
+        fixture.call("preferences.get", json!(null)).unwrap(),
+        chosen
+    );
+    let cleared = json!({"theme": null, "language": null});
+    fixture.call("preferences.set", cleared.clone()).unwrap();
+    assert_eq!(
+        fixture.call("preferences.get", json!(null)).unwrap(),
+        cleared
+    );
+}
+
+#[test]
+fn only_a_manager_may_change_the_preferences() {
+    let fixture = Fixture::new();
+    let chosen = json!({"theme": "dunkel", "language": "en"});
+    let as_reader = |id: &str, input: Value| run_as(&fixture, principal::reader(), id, input);
+    assert!(as_reader("preferences.get", json!(null)).is_ok());
+    assert_eq!(
+        as_reader("preferences.set", chosen.clone()).unwrap_err(),
+        "AUTH-401"
+    );
+    let nobody = run_as(
+        &fixture,
+        principal::nobody(),
+        "preferences.get",
+        json!(null),
+    );
+    assert_eq!(nobody.unwrap_err(), "AUTH-401");
+    assert_eq!(
+        fixture.call("preferences.get", json!(null)).unwrap(),
+        json!({"theme": null, "language": null})
+    );
 }

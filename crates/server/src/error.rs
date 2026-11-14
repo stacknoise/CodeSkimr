@@ -1,11 +1,14 @@
 //! The error answer of every route: a registered code and its English description.
 
 use axum::Json;
-use axum::http::StatusCode;
+use axum::http::header::RETRY_AFTER;
+use axum::http::{HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
 use codeskimr_application::error::CodedError;
 use codeskimr_codes::{Class, Coded, ErrorCode};
 use serde::Serialize;
+
+use crate::consts::RETRY_AFTER_SECONDS;
 
 /// The body of an error response (blueprint 11.5). It names a code and nothing else: neither the
 /// permission that was missing nor the cause, so a denial is no oracle (blueprint 10.1, S-06).
@@ -61,6 +64,13 @@ impl IntoResponse for Failure {
             code: code.id(),
             description: code.description(),
         };
-        (status_of(code), Json(body)).into_response()
+        let mut response = (status_of(code), Json(body)).into_response();
+        if code == ErrorCode::ServerBusy {
+            // The limit is a count of places; one frees up as soon as a client leaves.
+            response
+                .headers_mut()
+                .insert(RETRY_AFTER, HeaderValue::from_static(RETRY_AFTER_SECONDS));
+        }
+        response
     }
 }

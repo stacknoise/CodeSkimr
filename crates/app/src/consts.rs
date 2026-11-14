@@ -1,5 +1,7 @@
 //! Fixed values of the composition root: environment variables, folder and file names.
 
+use std::time::Duration;
+
 /// Environment variable that sets the data folder.
 pub const ENV_DATA_DIR: &str = "CODESKIMR_DATA_DIR";
 /// Environment variable that sets the language pack folder.
@@ -31,6 +33,12 @@ pub const HOME_MACOS_PARTS: [&str; 2] = ["Library", "Application Support"];
 
 /// The `SQLite` database inside the data folder.
 pub const DATABASE_FILE: &str = "codeskimr.db";
+/// Empty file whose lock serialises the creation of the installation token.
+/// How long the first start waits for the token lock of another program.
+pub const TOKEN_LOCK_WAIT: Duration = Duration::from_secs(10);
+/// How often it looks at the lock while it waits.
+pub const TOKEN_LOCK_POLL: Duration = Duration::from_millis(50);
+pub const TOKEN_LOCK_FILE: &str = "token.lock";
 /// The folder of the Git clones inside the data folder.
 pub const GIT_CACHE_DIR: &str = "git";
 /// The user configuration file inside the configuration folder.
@@ -119,7 +127,7 @@ pub const REDACTED: &str = "[redacted]";
 /// Header and field names whose value runs to the end of the line, case-insensitive.
 pub const LINE_KEYS: [&str; 2] = ["authorization", "cookie"];
 /// Field and parameter names whose value is one word, case-insensitive.
-pub const VALUE_KEYS: [&str; 11] = [
+pub const VALUE_KEYS: [&str; 15] = [
     "passphrase",
     "password",
     "passwd",
@@ -131,6 +139,11 @@ pub const VALUE_KEYS: [&str; 11] = [
     "private_key",
     "credential",
     "session_id",
+    // Pre-signed URLs: `X-Amz-Signature`, `X-Amz-Credential`, Azure `?sig=`.
+    "signature",
+    "x-amz-credential",
+    "?sig",
+    "&sig",
 ];
 /// Scheme word of a bearer token; its value follows after a blank, case-insensitive.
 pub const BEARER_KEY: &str = "bearer";
@@ -188,6 +201,8 @@ pub const TOKEN_EXTRA_CHARS: [char; 3] = ['_', '-', '.'];
 pub const LINE_END: char = '\n';
 /// Escapes a quote inside a `Debug`-formatted text.
 pub const ESCAPE: char = '\\';
+/// Backslashes that escape each other: an even run does not escape the character behind it.
+pub const ESCAPE_PAIR: usize = 2;
 
 /// Name under which the installation token lives in the credential store (blueprint 12.2).
 pub const TOKEN_CREDENTIAL_ID: &str = "installation-token";
@@ -196,6 +211,24 @@ pub const TOKEN_CREDENTIAL_ID: &str = "installation-token";
 #[must_use]
 pub fn is_token_credential(name: &str) -> bool {
     name.trim().eq_ignore_ascii_case(TOKEN_CREDENTIAL_ID)
+}
+/// Ending of the name under which the refresh token of a credential is kept.
+pub const REFRESH_SUFFIX: &str = ".refresh";
+/// Number of fields in the user field of a refresh entry: provider, application id and host.
+pub const REFRESH_LINK_FIELDS: usize = 3;
+/// Separates provider, application id and host in the user field of a refresh entry.
+pub const REFRESH_LINK_SEPARATOR: char = '\t';
+/// Whether `name` is the refresh entry of another credential: it belongs to the program, a user
+/// manages the credential and never the entry next to it.
+#[must_use]
+pub fn is_refresh_credential(name: &str) -> bool {
+    name.trim().to_ascii_lowercase().ends_with(REFRESH_SUFFIX)
+}
+/// Whether `name` belongs to the program and is neither managed by a user nor lent to a remote:
+/// the installation token and the refresh entry of a credential.
+#[must_use]
+pub fn is_reserved_credential(name: &str) -> bool {
+    is_token_credential(name) || is_refresh_credential(name)
 }
 /// User name stored next to the installation token; the credential format needs one.
 pub const TOKEN_CREDENTIAL_USER: &str = "local-owner";
@@ -231,6 +264,46 @@ pub const LAUNCH_DIR_MODE: u32 = 0o700;
 /// Mode bits that give a group or others any access.
 #[cfg(unix)]
 pub const OTHERS_MODE_MASK: u32 = 0o077;
+/// The Windows tool that sets access rules.
+#[cfg(windows)]
+pub const ACL_TOOL: &str = "icacls.exe";
+/// Environment variable with the Windows folder, below which the tool is looked for.
+#[cfg(windows)]
+pub const ENV_SYSTEM_ROOT: &str = "SYSTEMROOT";
+/// Folder of the system programs below the Windows folder.
+#[cfg(windows)]
+pub const SYSTEM_TOOLS_DIR: &str = "System32";
+/// `icacls` option: drop the rules the folder inherits (from a drive root they may give others access).
+#[cfg(any(windows, test))]
+pub const ACL_NO_INHERIT: &str = "/inheritance:r";
+/// `icacls` option: replace the rules for the named account.
+#[cfg(any(windows, test))]
+pub const ACL_GRANT: &str = "/grant:r";
+/// `icacls` option: no message about every file that was changed.
+#[cfg(any(windows, test))]
+pub const ACL_QUIET: &str = "/q";
+/// Rule for the account: full access to the folder and, by inheritance, to the files created in it.
+#[cfg(any(windows, test))]
+pub const ACL_FULL_RULE: &str = ":(OI)(CI)F";
+/// Environment variable with the name of the user on Windows.
+#[cfg(any(windows, test))]
+pub const ENV_USERNAME: &str = "USERNAME";
+/// Environment variable with the domain (or computer name) of the user on Windows.
+#[cfg(any(windows, test))]
+pub const ENV_USERDOMAIN: &str = "USERDOMAIN";
+/// Separates domain and user in a Windows account name.
+#[cfg(any(windows, test))]
+pub const ACCOUNT_SEPARATOR: &str = "\\";
+/// Mode bit that lets everybody write. The group bit is left out on purpose: on many systems every
+/// user has a private group and creates folders with group write.
+#[cfg(unix)]
+pub const OTHERS_WRITE_MASK: u32 = 0o002;
+/// Mode bit of a folder in which only the owner of an entry may remove or rename it (`/tmp`).
+#[cfg(unix)]
+pub const STICKY_MASK: u32 = 0o1000;
+/// The user id of the system administrator, who may own the folders above the launch folder.
+#[cfg(unix)]
+pub const ROOT_UID: u32 = 0;
 /// Launch files older than this many seconds beyond the lifetime of a code are removed.
 pub const LAUNCH_FILE_GRACE_SECONDS: u64 = 60;
 
@@ -260,8 +333,10 @@ pub const CONNECT_TIMEOUT_MS: u64 = 2_000;
 pub const REPLY_TIMEOUT_MS: u64 = 5_000;
 /// Pause between two looks at whether the launch code has been taken, in milliseconds.
 pub const CODE_POLL_MS: u64 = 500;
-/// Largest answer of the local server that is read, in bytes.
-pub const MAX_REPLY_BYTES: u64 = 65_536;
+/// Largest answer of the local server that is read, in bytes, as a buffer size.
+pub const MAX_REPLY_LEN: usize = 65_536;
+/// Largest answer of the local server that is read, in bytes, as the reader counts them.
+pub const MAX_REPLY_BYTES: u64 = MAX_REPLY_LEN as u64;
 /// Separates the head of an HTTP message from its body.
 pub const HTTP_HEAD_END: &str = "\r\n\r\n";
 /// Line break of an HTTP message.

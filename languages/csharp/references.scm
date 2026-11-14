@@ -111,6 +111,12 @@
    alternative: (member_access_expression name: (identifier) @name)]) @reference.read
 ; The receiver of a member access: a variable or a type
 (member_access_expression expression: (identifier) @name) @reference.read
+; A member that is itself the receiver of a chain: `Against` in `Guard.Against.Null(x)` (issue #183)
+(member_access_expression expression: (member_access_expression name: (identifier) @name)) @reference.read
+; Null-conditional access: `a?.B`, `a?.B?.C` and `a?[0]` read the receiver `a` and the member `B`
+; (`a?.B()` is a call: the extraction keeps the call only).
+(conditional_access_expression condition: (identifier) @name) @reference.read
+(conditional_access_expression (member_binding_expression name: (identifier) @name)) @reference.read
 
 ; ---------------------------------------------------------------------------------------------
 ; Receivers: what the syntax says about the thing in front of the dot (blueprint 9.2, step 3).
@@ -147,6 +153,12 @@
   expression: (member_access_expression expression: "this" name: (identifier) @receiver.member)
   name: [(identifier) @name (generic_name . (identifier) @name)])
 (conditional_access_expression
+  condition: (postfix_unary_expression . (identifier) @receiver .)
+  (member_binding_expression name: [(identifier) @name (generic_name . (identifier) @name)]))
+(conditional_access_expression
+  condition: (member_access_expression expression: "this" name: (identifier) @receiver.member)
+  (member_binding_expression name: [(identifier) @name (generic_name . (identifier) @name)]))
+(conditional_access_expression
   condition: (await_expression . (identifier) @receiver .)
   (member_binding_expression name: [(identifier) @name (generic_name . (identifier) @name)]))
 (object_creation_expression
@@ -172,7 +184,7 @@
     type: [(identifier) @declared_type
            (generic_name . (identifier) @declared_type)
            (qualified_name name: (identifier) @declared_type)
-           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type) (qualified_name name: (identifier) @declared_type)])
            (predefined_type) @declared_type
            (array_type) @declared_type]
     name: (identifier) @local)))
@@ -192,7 +204,7 @@
     type: [(identifier) @declared_type
            (generic_name . (identifier) @declared_type)
            (qualified_name name: (identifier) @declared_type)
-           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type) (qualified_name name: (identifier) @declared_type)])
            (predefined_type) @declared_type
            (array_type) @declared_type]
     (variable_declarator name: (identifier) @local)))
@@ -201,7 +213,7 @@
     type: [(identifier) @declared_type
            (generic_name . (identifier) @declared_type)
            (qualified_name name: (identifier) @declared_type)
-           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type) (qualified_name name: (identifier) @declared_type)])
            (predefined_type) @declared_type
            (array_type) @declared_type]
     (variable_declarator name: (identifier) @local)))
@@ -210,7 +222,7 @@
     type: [(identifier) @declared_type
            (generic_name . (identifier) @declared_type)
            (qualified_name name: (identifier) @declared_type)
-           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type) (qualified_name name: (identifier) @declared_type)])
            (predefined_type) @declared_type
            (array_type) @declared_type]
     (variable_declarator name: (identifier) @local)))
@@ -252,7 +264,7 @@
   type: [(identifier) @declared_type
            (generic_name . (identifier) @declared_type)
            (qualified_name name: (identifier) @declared_type)
-           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type) (qualified_name name: (identifier) @declared_type)])
            (predefined_type) @declared_type
            (array_type) @declared_type]
   name: (identifier) @local)
@@ -266,7 +278,7 @@
   type: [(identifier) @declared_type
            (generic_name . (identifier) @declared_type)
            (qualified_name name: (identifier) @declared_type)
-           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type) (qualified_name name: (identifier) @declared_type)])
            (predefined_type) @declared_type
            (array_type) @declared_type]
   name: (identifier) @local)
@@ -274,7 +286,7 @@
   type: [(identifier) @declared_type
            (generic_name . (identifier) @declared_type)
            (qualified_name name: (identifier) @declared_type)
-           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type) (qualified_name name: (identifier) @declared_type)])
            (predefined_type) @declared_type
            (array_type) @declared_type]
   name: (identifier) @local)
@@ -282,7 +294,7 @@
   type: [(identifier) @declared_type
            (generic_name . (identifier) @declared_type)
            (qualified_name name: (identifier) @declared_type)
-           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type) (qualified_name name: (identifier) @declared_type)])
            (predefined_type) @declared_type
            (array_type) @declared_type]
   name: (identifier) @local)
@@ -290,7 +302,7 @@
   type: [(identifier) @declared_type
            (generic_name . (identifier) @declared_type)
            (qualified_name name: (identifier) @declared_type)
-           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type) (qualified_name name: (identifier) @declared_type)])
            (predefined_type) @declared_type
            (array_type) @declared_type]
   name: (identifier) @local)))
@@ -298,7 +310,7 @@
   type: [(identifier) @declared_type
            (generic_name . (identifier) @declared_type)
            (qualified_name name: (identifier) @declared_type)
-           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type) (qualified_name name: (identifier) @declared_type)])
            (predefined_type) @declared_type
            (array_type) @declared_type]
   name: (identifier) @local)))
@@ -306,7 +318,7 @@
   type: [(identifier) @declared_type
            (generic_name . (identifier) @declared_type)
            (qualified_name name: (identifier) @declared_type)
-           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type) (qualified_name name: (identifier) @declared_type)])
            (predefined_type) @declared_type
            (array_type) @declared_type]
   name: (identifier) @field)))
@@ -317,7 +329,7 @@
     type: [(identifier) @declared_type
            (generic_name . (identifier) @declared_type)
            (qualified_name name: (identifier) @declared_type)
-           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type) (qualified_name name: (identifier) @declared_type)])
            (predefined_type) @declared_type
            (array_type) @declared_type]
     (variable_declarator name: (identifier) @field)))
@@ -325,7 +337,7 @@
   type: [(identifier) @declared_type
          (generic_name . (identifier) @declared_type)
          (qualified_name name: (identifier) @declared_type)
-         (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+         (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type) (qualified_name name: (identifier) @declared_type)])
          (predefined_type) @declared_type
          (array_type) @declared_type]
   name: (identifier) @field)

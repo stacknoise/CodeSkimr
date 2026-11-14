@@ -83,6 +83,7 @@ name = "rust-analyzer"
 install_hint = "rustup component add rust-analyzer (needs the Rust toolchain with cargo)"
 args = ["scip", "{project}", "--output", "{output}"]
 env_allow = ["CARGO_HOME", "RUSTUP_HOME", "RUSTUP_TOOLCHAIN"]
+home_dirs = { CARGO_HOME = ".cargo", RUSTUP_HOME = ".rustup" }
 # The rustup proxy would download the toolchain that a `rust-toolchain.toml` of the project names.
 env = { RUSTUP_AUTO_INSTALL = "0" }
 

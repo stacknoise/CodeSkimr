@@ -169,6 +169,8 @@ pub const URL_AUTHORITY_END: [char; 4] = ['/', '?', '#', '\\'];
 pub const URL_IPV6_START: char = '[';
 /// Schemes whose user name can be a secret (a token), so the whole credentials part goes.
 pub const SECRET_USER_SCHEMES: [&str; 2] = ["http", "https"];
+/// Characters besides letters and digits in the host of an scp-style address.
+pub const SCP_HOST_EXTRA: &str = ".-_";
 /// Characters besides letters and digits that a URL scheme may contain.
 pub const URL_SCHEME_EXTRA: &str = "+-.";
 
@@ -215,3 +217,11 @@ pub const REQUIREMENT_FORMAT_JSON: &str = "json";
 pub const REQUIREMENT_FORMAT_TOML: &str = "toml";
 /// Label of `RequirementFormat::Text`.
 pub const REQUIREMENT_FORMAT_TEXT: &str = "text";
+
+/// Multiplier of the cheap id hasher: the 64-bit golden ratio constant.
+pub const ID_HASH_MULTIPLIER: u64 = 0x9E37_79B9_7F4A_7C15;
+/// Rotation of the id hasher between two numbers.
+pub const ID_HASH_ROTATION: u32 = 5;
+/// Rotation of the id hasher at the end: the best mixed bits of the product are the top ones, and
+/// the hash tables read the bottom ones.
+pub const ID_HASH_FINISH_ROTATION: u32 = 26;

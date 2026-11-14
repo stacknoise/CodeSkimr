@@ -34,3 +34,7 @@ command-credentials-set-title = Zugangsdaten speichern
 command-credentials-set-description = Speichert oder ersetzt die Anmeldung einer Git-Quelle im Schlüsselspeicher des Systems. Das Geheimnis wird nur hierher gesendet und nie zurückgegeben.
 command-credentials-delete-title = Zugangsdaten entfernen
 command-credentials-delete-description = Entfernt eine gespeicherte Anmeldung aus dem Schlüsselspeicher des Systems.
+command-preferences-get-title = Einstellungen anzeigen
+command-preferences-get-description = Zeigt das Theme und die Sprache, die der Benutzer für die Oberfläche gewählt hat.
+command-preferences-set-title = Einstellungen speichern
+command-preferences-set-description = Speichert Theme und Sprache der Oberfläche, damit jeder Browser des Benutzers sie zeigt.

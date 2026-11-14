@@ -39,7 +39,8 @@ export function toolsOf(row: ProjectRow): ToolsInfo | null {
 /** Duration in seconds of the last scan that this tab started, by project id. */
 export const scanSeconds = lastSeconds;
 
-function failed(error: unknown): Failure {
+/** The failure of a caught error, in the shape the screen shows. */
+export function failed(error: unknown): Failure {
   return { code: error instanceof ApiError ? error.code : null };
 }
 
@@ -96,11 +97,16 @@ export async function checkTools(project: number): Promise<void> {
 }
 
 /** Registers a folder or a Git address and scans it. Returns whether it worked. */
-export async function addProject(source: string, branch: string): Promise<boolean> {
+export async function addProject(
+  source: string,
+  branch: string,
+  credential?: string,
+): Promise<boolean> {
   setAdding(true);
   setActionFailure(null);
+  const input = credential ? { source, branch, credential } : { source, branch };
   try {
-    remember(await whileReading(() => runCommand<Scanned>(COMMAND.add, { source, branch })));
+    remember(await whileReading(() => runCommand<Scanned>(COMMAND.add, input)));
     return true;
   } catch (error) {
     setActionFailure(failed(error));

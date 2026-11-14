@@ -41,6 +41,26 @@ pub struct Config {
     pub ui: Ui,
     /// The picture of the dependency map.
     pub graph: Graph,
+    /// Where `find_constants` looks for configuration and translation keys.
+    pub keys: KeySources,
+}
+
+/// The folders of a project whose files hold keys that `find_constants` lists (blueprint 10.4):
+/// the keys of TOML files below `config_folders` and the message ids of Fluent files below
+/// `i18n_folders`. Folders are relative to the project root; one that is not there is skipped.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct KeySources {
+    /// Folders with `.toml` files.
+    pub config_folders: Vec<String>,
+    /// Folders with `.ftl` files.
+    pub i18n_folders: Vec<String>,
+    /// Most files read per call; the rest is not looked at.
+    pub max_files: u32,
+    /// Largest file that is read, in kilobytes; larger ones are skipped.
+    pub max_file_kb: u32,
+    /// Folder levels below a configured folder that are looked into.
+    pub max_depth: u32,
 }
 
 /// One architecture layer as written in `.codeskimr.toml`.
@@ -161,6 +181,10 @@ pub struct Conventions {
     /// Fewest code lines a function needs to be compared for duplicates; shorter ones are too
     /// small for a copy to mean anything (measured on this repository: 5 lines give 21 findings, 8 give 9).
     pub duplicate_min_lines: u32,
+    /// Most functions that may share a fingerprint for it to make them candidates for the duplicate
+    /// check; a fingerprint that more functions share is boilerplate and costs the square of that
+    /// number.
+    pub duplicate_max_owners: u32,
     /// Folder names whose files are tests; no convention check looks at them.
     pub test_folders: Vec<String>,
 }
@@ -173,6 +197,8 @@ pub struct Scan {
     pub excluded_folders: Vec<String>,
     /// Time limit for parsing one file, in milliseconds.
     pub parse_timeout_ms: u32,
+    /// Most threads that analyse files at the same time; 0 means one per core.
+    pub max_workers: u32,
     /// Largest total size of the scanned files of one source, in megabytes.
     pub max_source_mb: u32,
     /// Most characters of a signature (for a constant: its declaration with the value); a longer

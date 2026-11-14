@@ -280,3 +280,58 @@ fn absurd_timings_and_control_characters_from_the_server_are_handled() -> TestRe
     failure(&script)?;
     Ok(())
 }
+
+const REFRESH: &str = "CANARY-refresh-5d2e";
+const RENEWED: &str = "CANARY-renewed-71c0";
+const NEXT_REFRESH: &str = "CANARY-refresh-next-0b9a";
+
+#[test]
+fn the_refresh_token_of_a_sign_in_is_kept_and_trades_for_a_new_token() -> TestResult {
+    let script = Script::start(vec![
+        device_reply(1),
+        json(&format!(
+            r#"{{"access_token":"{TOKEN}","refresh_token":"{REFRESH}"}}"#
+        )),
+        json(&format!(
+            r#"{{"access_token":"{RENEWED}","refresh_token":"{NEXT_REFRESH}"}}"#
+        )),
+    ])?;
+    let flow = flow(&script)?;
+
+    let signed = flow.sign_in_with_refresh(|_| {}, |_| {})?;
+    let refresh = signed.refresh.ok_or("no refresh token")?;
+    assert_eq!(refresh.expose_secret(), REFRESH);
+
+    let renewed = flow.refresh(&refresh)?;
+    assert_eq!(renewed.credential.user().expose_secret(), "token-user");
+    assert_eq!(renewed.credential.secret().expose_secret(), RENEWED);
+    let next = renewed.refresh.ok_or("no rotated refresh token")?;
+    assert_eq!(next.expose_secret(), NEXT_REFRESH);
+    assert_eq!(
+        script.bodies()[2],
+        format!("client_id=client%201&refresh_token={REFRESH}&grant_type=refresh_token")
+    );
+    Ok(())
+}
+
+#[test]
+fn a_refused_refresh_is_net_601_and_names_no_secret() -> TestResult {
+    let script = Script::start(vec![json(r#"{"error":"invalid_grant"}"#), json("nonsense")])?;
+    let flow = flow(&script)?;
+    let token = secrecy::SecretString::from(REFRESH);
+    for _ in 0..2 {
+        let error = flow.refresh(&token).err().ok_or("should fail")?;
+        assert_eq!(error.code(), ErrorCode::OauthFlowFailed);
+        let texts = [error.to_string(), format!("{error:?}")];
+        assert!(texts.iter().all(|text| !text.contains(REFRESH)));
+    }
+    Ok(())
+}
+
+#[test]
+fn a_platform_is_found_again_by_its_name() {
+    for provider in [Provider::GitHub, Provider::GitLab] {
+        assert_eq!(Provider::from_name(provider.name()), Some(provider));
+    }
+    assert_eq!(Provider::from_name("bitbucket"), None);
+}

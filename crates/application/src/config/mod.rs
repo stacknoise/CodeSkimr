@@ -15,8 +15,8 @@ pub use consts::PROJECT_CONFIG_FILE;
 pub use error::{ConfigError, LayerSource, Violation};
 pub use layer::ConfigLayer;
 pub use model::{
-    Budgets, Config, Conventions, Editor, Graph, LayerRule, Level2, McpLimits, MetricThresholds,
-    Scan, Similarity, SnapshotRetention, Ui, Watcher,
+    Budgets, Config, Conventions, Editor, Graph, KeySources, LayerRule, Level2, McpLimits,
+    MetricThresholds, Scan, Similarity, SnapshotRetention, Ui, Watcher,
 };
 
 use consts::NO_PREFIX;
@@ -68,14 +68,18 @@ impl Config {
     }
 }
 
-/// What of a layer counts. The project file may not touch `level2` (ADR 0033, decision 9): a
-/// scanned repository must not switch on running its own build scripts or raise the limits, so the
-/// table is dropped before anything is checked or merged. The scan limits of the project file
-/// only count as far as they lower what `merged` (defaults and user file) already holds (#54).
+/// What of a layer counts. The project file may not touch the tables of
+/// `consts::UNTRUSTED_PROJECT_TABLES` (`level2`, `editor`, `ui`): a scanned repository must not
+/// switch on running its own build scripts, allow other URL schemes or point the server at a
+/// folder, so these tables are dropped before anything is checked or merged. The scan limits of
+/// the project file only count as far as they lower what `merged` (defaults and user file)
+/// already holds (#54).
 fn trusted_table(layer: &ConfigLayer, merged: &Table) -> Table {
     let mut table = layer.table().clone();
     if layer.source() == LayerSource::Project {
-        table.remove(consts::UNTRUSTED_PROJECT_TABLE);
+        for name in consts::UNTRUSTED_PROJECT_TABLES {
+            table.remove(name);
+        }
         lower_only(&mut table, merged);
     }
     table

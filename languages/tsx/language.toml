@@ -60,8 +60,7 @@ get = "property"
 set = "property"
 
 # A top-level declaration is visible outside its file only with `export`; members are public unless
-# `private` or `protected` says otherwise. (`#name` fields are private in the language but carry no
-# keyword; see ADR 0022.)
+# `private` or `protected` says otherwise. (`#name` members are private by the rule below.)
 [visibility]
 default = "public"
 
@@ -75,6 +74,11 @@ private = "private"
 module = "private"
 namespace = "private"
 
+# A `#name` member is private in the language without a keyword (issue #81).
+[[visibility.name_rules]]
+prefix = "#"
+visibility = "private"
+
 # Level 2 (ADR 0033): scip-typescript indexes TypeScript and JavaScript; --infer-tsconfig lets it index a project without a tsconfig.json.
 # Only runs when the user enabled and confirmed level 2 for the project. CodeSkimr never downloads or
 # installs anything: the user installs the indexer and its toolchain.
@@ -83,6 +87,7 @@ name = "scip-typescript"
 install_hint = "npm install --global @sourcegraph/scip-typescript (needs Node.js and the installed node_modules of the project)"
 args = ["index", "--output", "{output}", "--infer-tsconfig"]
 env_allow = ["NODE_PATH", "NVM_DIR", "VOLTA_HOME", "FNM_DIR", "NPM_CONFIG_CACHE"]
+home_dirs = { NPM_CONFIG_CACHE = ".npm" }
 
 [indexer.tool]
 program = "scip-typescript"

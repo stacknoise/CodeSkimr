@@ -3,14 +3,16 @@
 
 use axum::Json;
 use axum::body::{Body, Bytes, to_bytes};
-use axum::extract::{Path, State};
+use axum::extract::{Path, Request, State};
 use axum::http::header::CONTENT_TYPE;
 use axum::http::{HeaderMap, Method, StatusCode, Uri};
+use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
 use codeskimr_application::access;
 use codeskimr_application::registry::CommandDescriptor;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::Permission;
+use http_body_util::LengthLimitError;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 use tokio::time::timeout;
@@ -100,6 +102,34 @@ async fn read_body(headers: &HeaderMap, body: Body, limit: usize) -> Result<Byte
     } else {
         Err(Failure::code(ErrorCode::RequestInvalid))
     }
+}
+
+/// The layer of the MCP route: reads the whole body within `BODY_READ_TIMEOUT` and `MAX_BODY_BYTES`
+/// before the MCP service sees it, so a client that trickles its body cannot hold a connection
+/// (S-04). It runs after the token check, so only a caller with the token gets this far.
+pub async fn bound_body(request: Request, next: Next) -> Response {
+    let (parts, body) = request.into_parts();
+    match timeout(BODY_READ_TIMEOUT, to_bytes(body, MAX_BODY_BYTES)).await {
+        Err(_) => Failure::code(ErrorCode::RequestTimedOut).into_response(),
+        Ok(Err(error)) => Failure::code(read_failure(&error)).into_response(),
+        Ok(Ok(bytes)) => {
+            next.run(Request::from_parts(parts, Body::from(bytes)))
+                .await
+        }
+    }
+}
+
+/// The too-large code only if the body was longer than the limit; a client that left or sent a broken
+/// body is a plain invalid request.
+fn read_failure(error: &axum::Error) -> ErrorCode {
+    let mut cause: Option<&(dyn std::error::Error + 'static)> = std::error::Error::source(error);
+    while let Some(inner) = cause {
+        if inner.is::<LengthLimitError>() {
+            return ErrorCode::RequestTooLarge;
+        }
+        cause = inner.source();
+    }
+    ErrorCode::RequestInvalid
 }
 
 /// Any other path: a file of the UI for a `GET`, if the server has a UI, else `API-201`.

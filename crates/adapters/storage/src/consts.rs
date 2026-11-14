@@ -11,6 +11,7 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0007_tool_reports.sql"),
     include_str!("../migrations/0008_naming_rules.sql"),
     include_str!("../migrations/0009_parse_times.sql"),
+    include_str!("../migrations/0010_coupling_rows.sql"),
 ];
 
 /// Name of the pragma that holds the schema version.
@@ -36,6 +37,15 @@ pub const PRAGMA_TEMP_STORE: &str = "temp_store";
 pub const TEMP_STORE_MEMORY: i64 = 2;
 /// How long a connection waits for a lock before reporting a conflict.
 pub const BUSY_TIMEOUT_MS: u64 = 5_000;
+/// Name of the pragma that reports how many pages the database file has.
+pub const PRAGMA_PAGE_COUNT: &str = "page_count";
+/// Name of the pragma that caps how many pages the database file may have.
+pub const PRAGMA_MAX_PAGE_COUNT: &str = "max_page_count";
+/// How often switching a new file to the write-ahead log is tried again while another connection
+/// holds the file. `SQLite` reports that case at once, without calling the busy handler.
+pub const WAL_SWITCH_ATTEMPTS: u32 = 100;
+/// Pause between two tries to switch to the write-ahead log.
+pub const WAL_SWITCH_PAUSE_MS: u64 = 20;
 
 /// Stored form of `ProjectSource::Folder`.
 pub const SOURCE_FOLDER: &str = "folder";

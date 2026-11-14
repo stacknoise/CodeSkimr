@@ -15,12 +15,12 @@ ADR 0028 decided the framework, the editor link, the theme build and the launch 
 5. **Headers on every answer:** besides `no-store` and `nosniff`: `Content-Security-Policy: default-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'; object-src 'none'; connect-src 'self' ws://<own hosts>`, `Referrer-Policy: no-referrer` and `Cross-Origin-Opener-Policy: same-origin`.
 6. **The launch file** is created exclusively (`create_new`) with mode 0600 in a private folder (0700): `$XDG_RUNTIME_DIR/codeskimr/launch` if that is an absolute path, else `<data folder>/launch`. A stale file of an earlier run is removed first. This covers issue 97.
 7. **Editor links:** the path is encoded per path part, backslashes become slashes and a drive colon is kept. `editor.url_template` must contain `{path}` and a scheme from `editor.allowed_schemes`; otherwise the configuration fails with its registered code. `editor.*` and `ui.*` are read from the user file and the command line only, not from project files, because a project file must not choose the scheme the browser opens (see issue 54).
-8. **Theme and language** live in the browser's `localStorage` until a settings store exists on the server.
+8. **Theme and language** live in the browser's `localStorage` until a settings store exists on the server. *Done in #105:* the commands `preferences.get` (read) and `preferences.set` (manage) keep both in `preferences.json` in the data folder; the browser keeps its `localStorage` copy only so that the first paint (`theme-init.js`) needs no request. See `docs/server.md`.
 9. **Not part of WP-42:** the bare `codeskimr` start command, embedding the UI in the binary, and tests of the launch file and browser start on Windows and macOS (the code has paths for them; they were run on Linux only).
 
 10. **Exception to blueprint 10.1:** the launch code and exchange routes are not commands of the registry and take no `Principal`; the installation token (or the code) takes that role. They are the only such routes besides the UI files.
 11. **Accepted risk:** `codeskimr open` sends the installation token over plain loopback HTTP to the configured port. A local user who listens on that port while no server runs could read it. This is accepted for the single-user mode; the team server (ADR 0019) uses its own login. `open` also refuses a code that is not 32 hexadecimal digits before it writes the launch page.
-12. **Known gap:** decision 7 (project files cannot set `editor.*` and `ui.*`) holds because `serve` and `open` load the configuration without a project file. The configuration layer does not reject these keys yet; see the follow-up issue.
+12. **Known gap (closed by ADR 0041):** decision 7 (project files cannot set `editor.*` and `ui.*`) holds because `serve` and `open` load the configuration without a project file. The configuration layer does not reject these keys yet; see the follow-up issue.
 
 ## Consequences
 

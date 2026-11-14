@@ -32,6 +32,13 @@ fn defaults_match_the_blueprint() {
 }
 
 #[test]
+fn defaults_use_all_cores_and_limit_shared_fingerprints() {
+    let config = Config::defaults().expect("shipped defaults are valid");
+    assert_eq!(config.scan.max_workers, 0);
+    assert_eq!(config.conventions.duplicate_max_owners, 50);
+}
+
+#[test]
 fn level2_defaults_are_256_mib_and_half() {
     let config = Config::defaults().expect("shipped defaults are valid");
     assert_eq!(config.level2.max_index_bytes, 256 * 1024 * 1024);
@@ -268,6 +275,15 @@ fn limits_and_folders_are_checked() {
 }
 
 #[test]
+fn the_limit_of_shared_fingerprints_is_checked() {
+    assert_rejected(&[(
+        "[conventions]\nduplicate_max_owners = 0\n",
+        "conventions.duplicate_max_owners",
+        Violation::MustBePositive,
+    )]);
+}
+
+#[test]
 fn level2_limits_are_checked() {
     assert_rejected(&[
         (
@@ -419,4 +435,47 @@ fn the_signature_limit_must_be_positive() {
         "scan.max_signature_chars",
         Violation::MustBePositive,
     )]);
+}
+
+#[test]
+fn a_project_file_cannot_change_the_editor_or_the_ui() {
+    let text = "[editor]\nurl_template = \"evil://{path}\"\nallowed_schemes = [\"evil\"]\n[ui]\ndir = \"/tmp/elsewhere\"\nlaunch_code_seconds = 3600\n";
+    let from_project = Config::resolve(&[project(text)]).expect("the tables are dropped");
+    let defaults = Config::defaults().expect("defaults");
+    assert_eq!(
+        from_project.editor.url_template,
+        defaults.editor.url_template
+    );
+    assert_eq!(
+        from_project.editor.allowed_schemes,
+        defaults.editor.allowed_schemes
+    );
+    assert_eq!(from_project.ui.dir, defaults.ui.dir);
+    assert_eq!(
+        from_project.ui.launch_code_seconds,
+        defaults.ui.launch_code_seconds
+    );
+    let from_user = Config::resolve(&[user("[ui]\ndir = \"/tmp/elsewhere\"\n")]).expect("valid");
+    assert_eq!(from_user.ui.dir, "/tmp/elsewhere");
+}
+
+#[test]
+fn schemes_that_run_code_or_read_files_are_never_editor_schemes() {
+    assert_rejected(&[
+        (
+            "[editor]\nallowed_schemes = [\"vscode\", \"javascript\"]\n",
+            "editor.allowed_schemes",
+            Violation::MustNotRunCode,
+        ),
+        (
+            "[editor]\nallowed_schemes = [\"file\"]\nurl_template = \"file://{path}\"\n",
+            "editor.allowed_schemes",
+            Violation::MustNotRunCode,
+        ),
+        (
+            "[editor]\nallowed_schemes = [\"vbscript\", \"data\"]\n",
+            "editor.allowed_schemes",
+            Violation::MustNotRunCode,
+        ),
+    ]);
 }

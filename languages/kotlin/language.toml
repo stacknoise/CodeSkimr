@@ -99,6 +99,7 @@ name = "scip-java"
 install_hint = "install scip-java with Coursier: cs install scip-java (needs a JDK and the Gradle or Maven build of the project)"
 args = ["index", "--output", "{output}"]
 env_allow = ["JAVA_HOME", "GRADLE_USER_HOME", "GRADLE_HOME", "MAVEN_HOME", "M2_HOME", "COURSIER_CACHE"]
+home_dirs = { GRADLE_USER_HOME = ".gradle", COURSIER_CACHE = ".cache/coursier" }
 
 [indexer.tool]
 program = "scip-java"

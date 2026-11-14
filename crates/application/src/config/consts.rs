@@ -89,10 +89,18 @@ pub mod keys {
     pub const LAYERS: &str = "layers";
     /// `conventions.max_function_lines`
     pub const MAX_FUNCTION_LINES: &str = "conventions.max_function_lines";
+    /// `keys.max_files`
+    pub const KEYS_MAX_FILES: &str = "keys.max_files";
+    /// `keys.max_depth`
+    pub const KEYS_MAX_DEPTH: &str = "keys.max_depth";
+    /// `keys.max_file_kb`
+    pub const KEYS_MAX_FILE_KB: &str = "keys.max_file_kb";
     /// `conventions.duplicate_similarity_percent`
     pub const DUPLICATE_SIMILARITY_PERCENT: &str = "conventions.duplicate_similarity_percent";
     /// `conventions.duplicate_min_lines`
     pub const DUPLICATE_MIN_LINES: &str = "conventions.duplicate_min_lines";
+    /// `conventions.duplicate_max_owners`
+    pub const DUPLICATE_MAX_OWNERS: &str = "conventions.duplicate_max_owners";
     /// `watcher.debounce_ms`
     pub const DEBOUNCE_MS: &str = "watcher.debounce_ms";
     /// `watcher.max_wait_ms`
@@ -139,8 +147,14 @@ pub const PLACEHOLDER_PATH: &str = "{path}";
 /// Characters besides lower-case letters and digits that a URL scheme may contain.
 pub const SCHEME_EXTRA_CHARS: [char; 3] = ['+', '-', '.'];
 
-/// Name of the table of the project file that is never read (ADR 0033, decision 9).
-pub const UNTRUSTED_PROJECT_TABLE: &str = "level2";
+/// Tables of the project file that are never read: a scanned repository must not switch on
+/// running its own build scripts (`level2`, ADR 0033, decision 9), allow other URL schemes for
+/// "open in editor" (`editor`) or point the server at a folder (`ui`) (ADR 0030, decisions 7, 12).
+pub const UNTRUSTED_PROJECT_TABLES: [&str; 3] = ["level2", "editor", "ui"];
+
+/// URL schemes that run script or open local files in a browser. They are refused in
+/// `editor.allowed_schemes` in every layer (ADR 0030).
+pub const FORBIDDEN_EDITOR_SCHEMES: [&str; 4] = ["javascript", "data", "file", "vbscript"];
 
 /// Table that holds the scan limits.
 pub const SCAN_TABLE: &str = "scan";

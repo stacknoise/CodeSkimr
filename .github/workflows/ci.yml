@@ -1,7 +1,6 @@
 # CI pipeline (blueprint 17.3). Every job name below is a required check in the ruleset:
 # pr-title, fmt, clippy, test, deps, build (ubuntu-latest), build (windows-latest),
 # build (macos-latest), architecture, duplicates, literals, codegen, bench, e2e.
-# Temporary: build (macos-latest) is non-blocking, see docs/ci.md and issue #131.
 # Never rename a job without telling the product owner; the ruleset matches by name.
 name: CI
 
@@ -125,9 +124,22 @@ jobs:
         run: cargo audit --deny warnings
       - name: cargo deny
         run: cargo deny --locked check
+      # The lint lives in its own Cargo workspace (about 120 packages), which the two checks above do
+      # not see. It runs in CI with the same rules (issue #25).
+      - name: cargo audit (lint workspace)
+        run: cargo audit --file tools/lints/no_literals/Cargo.lock --deny warnings --ignore RUSTSEC-2024-0436
+      - name: cargo deny (lint workspace)
+        run: cargo deny --locked --manifest-path tools/lints/no_literals/Cargo.toml --config deny.toml check
       # Section 16: lean dependencies, no unused ones.
       - name: cargo machete
         run: cargo machete
+      # Issue #243: the measuring tool tools/accuracy/import_scip is a workspace of its own with its own
+      # Cargo.lock, so the checks above do not see it. Same strict rules. (The lint workspace is covered above.)
+      - name: cargo audit, deny and machete (import_scip workspace)
+        run: |
+          cargo audit --deny warnings -f tools/accuracy/import_scip/Cargo.lock
+          cargo deny --manifest-path tools/accuracy/import_scip/Cargo.toml --config deny.toml --locked check
+          cargo machete tools/accuracy/import_scip
       # Section 12: Git must never send credentials over plain HTTP. The feature that allows it is a
       # dev-dependency of the login tests and must not be part of the product (issue #58).
       - name: no plain-HTTP credentials in the product
@@ -143,10 +155,7 @@ jobs:
   build:
     name: build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    # TEMPORARY (see docs/ci.md, issue #131): macOS runners are not available reliably, so a failing or
-    # hanging macOS build must not block merges. The check still reports.
-    continue-on-error: ${{ matrix.os == 'macos-latest' }}
-    timeout-minutes: ${{ matrix.os == 'macos-latest' && 20 || 60 }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
@@ -192,6 +201,9 @@ jobs:
         run: python3 -m unittest discover -s tools/ci
       - name: Crate dependency direction and module cycles
         run: python3 tools/ci/check_architecture.py
+      # Blueprint 12.4: every expose_secret() call in product code is on the approved list.
+      - name: Approved expose_secret() call sites
+        run: python3 tools/ci/check_expose_secret.py
 
   duplicates:
     name: duplicates
@@ -226,6 +238,18 @@ jobs:
           workspaces: |
             .
             tools/lints/no_literals
+      # The lint must not be silenced (CLAUDE.md rule 5, issue #25): the name may only appear inside
+      # its own folder. This also catches `cfg_attr`, multi-line attributes, `[lints]` tables and flags.
+      - name: no_literals is not silenced
+        run: |
+          # git grep: 0 = found, 1 = nothing found, anything else = the search itself failed.
+          status=0
+          git grep -n 'no_literals' -- '*.rs' '*Cargo.toml' '.cargo' ':!tools/lints/no_literals' || status=$?
+          if [ "$status" -eq 0 ]; then
+            echo "::error::no_literals is named outside tools/lints/no_literals; silencing the lint is not allowed"
+            exit 1
+          fi
+          test "$status" -eq 1
       - name: Install cargo-dylint
         working-directory: tools/lints/no_literals
         run: cargo install --locked cargo-dylint@6.4.0 dylint-link@6.4.0
