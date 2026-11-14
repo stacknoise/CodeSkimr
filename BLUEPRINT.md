@@ -731,7 +731,7 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
   - watcher debounce
   - level 2 (`level2.*`: switch, time, memory and output limits, index size, share of mappable uses). Only the user config and CLI flags may set them; the project file cannot
   - excluded folders (`bin`, `obj`, `.git`, `node_modules`, `target`, `dist` …)
-- **Overrides,** applied in this order: user config file → project config (`.codeskimr.toml` in the repository) → CLI flags.
+- **Overrides,** applied in this order: user config file → project config (`.codeskimr.toml` in the repository) → CLI flags. The project config may only lower `scan.max_source_mb` and `scan.parse_timeout_ms`, not raise them above the value of the defaults and the user file, so that a scanned repository cannot lift the protection of the scanning machine (ADR 0040).
 - **Typed config:** the config is deserialised into typed structs and validated at start-up. Invalid values produce `CFG-1xx` errors. There is no `config.get("string")` anywhere in the code.
 - **`consts.rs` / `consts.ts`:** technical constants that are not tunable. One file per crate or feature, never a global constants file.
 

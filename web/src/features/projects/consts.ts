@@ -70,6 +70,10 @@ export const TIME_UNITS: readonly [Intl.RelativeTimeFormatUnit, number][] = [
 export const MS_PER_SECOND = 1000;
 /** Decimals of a scan duration. */
 export const SECONDS_DECIMALS = 1;
+/** Microseconds in a second, for the parse time. */
+export const MICROS_PER_SECOND = 1_000_000;
+/** Decimals of the parse time in seconds. */
+export const PARSE_TIME_DECIMALS = 2;
 
 /** Prefix of the address of a dropped file or folder. */
 export const FILE_SCHEME = "file://";

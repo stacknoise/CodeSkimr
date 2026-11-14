@@ -2,6 +2,8 @@
 
 Status: proposed
 
+*Update: the limit on `impl` blocks (decision 3 and the first item under Limits) is lifted by ADR 0039.*
+
 ## Context
 
 WP-65 delivers the full-tier Rust pack (blueprint 8.2). ADR 0011 fixes the reference for Rust: CodeSkimr itself at a pinned commit, with part of the expected values checked by hand. ADR 0016, 0022 and 0023 are the pattern for a language ADR. The `rust` grammar has been a dependency of `codeskimr_parsing` since the parsing engine (WP-23) and is registered in `grammar.rs`, so this package needs no new dependency and no change outside `languages/rust/`, `corpus/rust/` and the tests. The pack format of ADR 0016, 0022 and 0023 is sufficient; nothing is added to it.
