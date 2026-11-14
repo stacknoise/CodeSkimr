@@ -4,6 +4,7 @@
 
 use std::ffi::OsString;
 use std::io::{self, Read};
+use std::ops::ControlFlow;
 use std::path::{Path, PathBuf};
 use std::process::{ExitStatus, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -176,26 +177,33 @@ impl Group {
     /// per call. If the loop has taken the last message before it saw the exit of the leader,
     /// `wait` would wait for a message that never comes, so the end of the run polls instead.
     ///
-    /// Returns whether the leader is gone. `false` means it was still running when the bound
-    /// passed: the caller must then keep the run folder, whose notes let the next start find it.
+    /// Returns whether the leader is confirmed gone. `false` means it was still running when the
+    /// bound passed, or its state could not be read, so the end is not confirmed: the caller
+    /// must then keep the run folder, whose notes let the next start find it.
     fn kill(&mut self) -> bool {
         // The group may be gone already; that is the goal, not an error.
         drop(self.0.start_kill());
-        // `Some` when the leader is gone, an error when it cannot be asked any more.
-        wait_until(KILL_WAIT, || !matches!(self.0.try_wait(), Ok(None)))
+        wait_until(KILL_WAIT, || match self.0.try_wait() {
+            Ok(Some(_)) => ControlFlow::Break(true),
+            // The state cannot be read: the end is not confirmed, so it counts as not ended.
+            Err(_) => ControlFlow::Break(false),
+            Ok(None) => ControlFlow::Continue(()),
+        })
     }
 }
 
-/// Asks `done` every [`KILL_POLL`] until it says yes or `bound` has passed; whether it said yes.
-fn wait_until(bound: Duration, mut done: impl FnMut() -> bool) -> bool {
+/// Asks `check` every [`KILL_POLL`] until it ends the wait or `bound` has passed. Whether the
+/// leader is confirmed gone: `Break(true)` is a yes, `Break(false)` (an error) and the end of the
+/// bound are not.
+fn wait_until(bound: Duration, mut check: impl FnMut() -> ControlFlow<bool>) -> bool {
     let until = Instant::now() + bound;
     while Instant::now() < until {
-        if done() {
-            return true;
+        if let ControlFlow::Break(gone) = check() {
+            return gone;
         }
         thread::sleep(KILL_POLL);
     }
-    done()
+    matches!(check(), ControlFlow::Break(true))
 }
 
 impl Drop for Group {
@@ -361,6 +369,7 @@ fn wait_for(group: &mut Group, watch: &mut Watch<'_>) -> Result<ExitStatus, RunE
 
 #[cfg(test)]
 mod tests {
+    use std::ops::ControlFlow;
     use std::time::Duration;
 
     use super::wait_until;
@@ -370,13 +379,28 @@ mod tests {
         let mut asked = 0;
         let gone = wait_until(Duration::from_secs(5), || {
             asked += 1;
-            asked >= 3
+            if asked >= 3 {
+                ControlFlow::Break(true)
+            } else {
+                ControlFlow::Continue(())
+            }
         });
         assert!(gone);
     }
 
     #[test]
     fn a_leader_that_outlives_the_bound_is_reported_alive() {
-        assert!(!wait_until(Duration::from_millis(50), || false));
+        let alive = || ControlFlow::Continue(());
+        assert!(!wait_until(Duration::from_millis(50), alive));
+    }
+
+    #[test]
+    fn an_error_is_not_a_confirmed_end() {
+        let started = std::time::Instant::now();
+        assert!(!wait_until(Duration::from_secs(5), || ControlFlow::Break(
+            false
+        )));
+        // It does not wait for the bound either.
+        assert!(started.elapsed() < Duration::from_secs(5));
     }
 }
