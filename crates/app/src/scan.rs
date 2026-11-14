@@ -17,6 +17,7 @@ use codeskimr_domain::{Permission, Principal, Project, ProjectId, ProjectSource,
 use codeskimr_storage::SqliteStore;
 
 use crate::config_files;
+use crate::consts::LOG_TOOL_CHECK_FAILED;
 use crate::locations::Locations;
 use crate::principal;
 use crate::source_arg::{SourceError, SourceSpec, classify};
@@ -77,7 +78,7 @@ impl Session {
         match self.tools.check(self.project.id) {
             Ok(report) => ToolsView::of(&report),
             Err(error) => {
-                tracing::warn!(code = error.code().id(), "the tool check failed");
+                tracing::warn!(event = LOG_TOOL_CHECK_FAILED, code = error.code().id());
                 ToolsView::unchecked()
             }
         }
