@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { describe, expect, it } from "vitest";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
+import { rescanAsked, rescanned } from "../../tests/scanned";
 import { ProjectsScreen } from "./ProjectsScreen";
 import type { ProjectRow, ToolsInfo } from "./types";
 
@@ -141,26 +142,13 @@ describe("the tools of a project", () => {
     serve({
       "projects.list": () => answer([{ ...ROW, tools: MISSING }]),
       "projects.tools": () => answer(MISSING),
-      "projects.rescan": () =>
-        answer({
-          project: 1,
-          snapshot: 6,
-          files: 3,
-          symbols: 9,
-          references: 4,
-          seconds: 0.2,
-          tools: { checked_at: null, languages: [], tools: [] } satisfies ToolsInfo,
-        }),
+      "projects.rescan": () => answer(rescanned(1)),
     });
     render(() => <ProjectsScreen />);
     fireEvent.click(await screen.findByText("/work/shop"));
     await screen.findByRole("status");
     fireEvent.keyDown(document, { key: "r" });
-    await waitFor(() =>
-      expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith("projects.rescan"))).toBe(
-        true,
-      ),
-    );
+    await rescanAsked();
     await waitFor(() => expect(screen.getByText("2 tools missing")).toBeInTheDocument());
     expect(screen.getByRole("status")).toHaveTextContent("scip-dotnet");
   });
