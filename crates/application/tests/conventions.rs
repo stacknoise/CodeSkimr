@@ -164,6 +164,7 @@ mod tests {
             max_function_lines: 40,
             duplicate_similarity_percent: 85,
             duplicate_min_lines: 5,
+            duplicate_max_owners: 50,
             test_folders: vec!["spec".to_owned()],
         }
     }
@@ -261,20 +262,33 @@ mod tests {
         assert_eq!(*similarity_percent, 100);
     }
 
-    #[test]
-    fn small_functions_are_not_compared_for_duplicates() {
-        let limits = Conventions {
-            duplicate_min_lines: 100,
-            ..limits()
-        };
+    /// The codes of the findings for the sample files under `limits`.
+    fn codes_with(limits: Conventions) -> Vec<ErrorCode> {
         let report = run(
             &checker_with(sample(), limits),
             Principal::local_owner(),
             &[],
         )
         .expect("checked");
-        let codes: Vec<ErrorCode> = report.findings.iter().map(|f| f.code).collect();
-        assert_eq!(codes, [ErrorCode::FunctionTooLong]);
+        report.findings.iter().map(|f| f.code).collect()
+    }
+
+    #[test]
+    fn small_functions_are_not_compared_for_duplicates() {
+        let limits = Conventions {
+            duplicate_min_lines: 100,
+            ..limits()
+        };
+        assert_eq!(codes_with(limits), [ErrorCode::FunctionTooLong]);
+    }
+
+    #[test]
+    fn a_fingerprint_shared_by_more_functions_than_the_limit_finds_no_copies() {
+        let limits = Conventions {
+            duplicate_max_owners: 1,
+            ..limits()
+        };
+        assert_eq!(codes_with(limits), [ErrorCode::FunctionTooLong]);
     }
 
     #[test]

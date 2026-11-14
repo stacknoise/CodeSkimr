@@ -3,7 +3,10 @@
 //! The duplicate check of `check_conventions` and `find_similar_code` share this measure with
 //! [`Fingerprints::similarity`] (blueprint 10.4: one implementation). The pairs come from an
 //! inverted index of the hashes, so bodies that share no hash are never compared. A hash that
-//! very many bodies share still costs the square of that number.
+//! more bodies share than `max_owners` (getters, constructors, boilerplate) does not make bodies
+//! candidates: it would cost the square of its owners and says little about a copy. The
+//! similarity of a candidate pair is still computed from all hashes, so it equals
+//! [`Fingerprints::similarity`].
 
 use std::collections::{HashMap, HashSet};
 
@@ -24,9 +27,14 @@ pub struct SimilarPair {
 }
 
 /// All pairs of `bodies` with a similarity of at least `minimum_percent`, ordered by
-/// `first`, then `second`. Bodies without fingerprints are never part of a pair.
+/// `first`, then `second`. Bodies without fingerprints are never part of a pair. Two bodies are
+/// only compared if they share a hash that no more than `max_owners` bodies have.
 #[must_use]
-pub fn similar_pairs(bodies: &[&Fingerprints], minimum_percent: u32) -> Vec<SimilarPair> {
+pub fn similar_pairs(
+    bodies: &[&Fingerprints],
+    minimum_percent: u32,
+    max_owners: usize,
+) -> Vec<SimilarPair> {
     let sets: Vec<_> = bodies.iter().map(|body| body.hashes()).collect();
     let mut owners: HashMap<u64, Vec<usize>> = HashMap::new();
     for (index, set) in sets.iter().enumerate() {
@@ -34,18 +42,19 @@ pub fn similar_pairs(bodies: &[&Fingerprints], minimum_percent: u32) -> Vec<Simi
             owners.entry(*hash).or_default().push(index);
         }
     }
-    let mut shared: HashMap<(usize, usize), usize> = HashMap::new();
-    for indexes in owners.values() {
+    let mut candidates: HashSet<(usize, usize)> = HashSet::new();
+    for indexes in owners.values().filter(|owners| owners.len() <= max_owners) {
         for (at, first) in indexes.iter().enumerate() {
             for second in indexes.iter().skip(at + 1) {
-                *shared.entry((*first, *second)).or_default() += 1;
+                candidates.insert((*first, *second));
             }
         }
     }
     let size = |index: usize| sets.get(index).map_or(0, HashSet::len);
-    let mut pairs: Vec<SimilarPair> = shared
+    let mut pairs: Vec<SimilarPair> = candidates
         .into_iter()
-        .filter_map(|((first, second), common)| {
+        .filter_map(|(first, second)| {
+            let common = sets.get(first)?.intersection(sets.get(second)?).count();
             let total = size(first) + size(second) - common;
             let percent = common.saturating_mul(PERCENT_BASE) / total;
             Some(SimilarPair {

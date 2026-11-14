@@ -30,6 +30,9 @@ pub struct ScanSummary {
     pub references: u32,
     /// Duration of the scan in seconds.
     pub seconds: f64,
+    /// CPU time of the scan in seconds, summed over all threads (the energy proxy of blueprint
+    /// 16.2); 0 if the system does not tell. Higher than `seconds` when the scan uses several cores.
+    pub cpu_seconds: f64,
     /// What level 2 did for each language that has an indexer; empty if it is not wired.
     pub level2: Vec<Level2Line>,
     /// What the check of the tools found (ADR 0033); a tool that is not ready is shown below the
@@ -265,6 +268,7 @@ pub fn watch_updated(
 pub fn scan_json(summary: &ScanSummary) -> Result<String, serde_json::Error> {
     serde_json::to_string(&ScanSummary {
         seconds: rounded(summary.seconds),
+        cpu_seconds: rounded(summary.cpu_seconds),
         ..summary.clone()
     })
 }

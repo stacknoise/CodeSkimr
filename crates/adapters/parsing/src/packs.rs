@@ -2,21 +2,68 @@
 
 use std::collections::HashMap;
 use std::fs;
+use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::thread;
 
 use codeskimr_application::ports::IndexerSpec;
 use codeskimr_domain::LanguageId;
 
 use crate::consts::{
-    ID_MISMATCH, LOAD_PANICKED, MANIFEST_FILE, NAMING_FILE_IN_NAMES, NAMING_NAMESPACED,
-    NAMING_REVISION, NAMING_RULE_SEPARATOR, NAMING_RULES_SEPARATOR,
+    ID_MISMATCH, LOAD_PANICKED, MANIFEST_FILE, MIN_LOAD_THREADS, NAMING_FILE_IN_NAMES,
+    NAMING_NAMESPACED, NAMING_REVISION, NAMING_RULE_SEPARATOR, NAMING_RULES_SEPARATOR,
 };
 use crate::error::ParsingError;
 use crate::indexer::IndexerManifest;
 use crate::manifest::{PackManifest, Tier};
 use crate::pack::LanguagePack;
+
+/// Reads the packs of `dirs` on at most one thread per core, so that the number of threads does not
+/// grow with the number of installed packs. The result keeps the order of `dirs`.
+fn read_all(dirs: &[PathBuf]) -> Vec<Result<Slot, ParsingError>> {
+    let next = AtomicUsize::new(0);
+    let workers = load_workers(dirs.len());
+    let mut done: Vec<(usize, Result<Slot, ParsingError>)> = thread::scope(|scope| {
+        let handles: Vec<_> = (0..workers)
+            .map(|_| scope.spawn(|| read_next(dirs, &next)))
+            .collect();
+        handles
+            .into_iter()
+            .flat_map(|handle| handle.join().unwrap_or_default())
+            .collect()
+    });
+    done.sort_by_key(|(index, _)| *index);
+    let mut read: Vec<_> = done.into_iter().map(|(_, slot)| slot).collect();
+    if read.len() < dirs.len() {
+        // A worker panicked and took its results with it.
+        read.push(Err(ParsingError::invalid(
+            String::new(),
+            LOAD_PANICKED.to_owned(),
+        )));
+    }
+    read
+}
+
+/// Threads that load `packs` packs: one per core at most, and no more than there are packs.
+fn load_workers(packs: usize) -> usize {
+    thread::available_parallelism()
+        .map_or(MIN_LOAD_THREADS, NonZeroUsize::get)
+        .min(packs.max(MIN_LOAD_THREADS))
+}
+
+/// One loading thread: takes the next pack folder until none is left.
+fn read_next(dirs: &[PathBuf], next: &AtomicUsize) -> Vec<(usize, Result<Slot, ParsingError>)> {
+    let mut done = Vec::new();
+    loop {
+        let index = next.fetch_add(1, Ordering::Relaxed);
+        let Some(dir) = dirs.get(index) else {
+            return done;
+        };
+        done.push((index, Slot::read(dir.clone())));
+    }
+}
 
 /// What is known about a pack without loading its grammar and queries: enough to route files to
 /// languages and to show the tier.
@@ -173,23 +220,7 @@ impl LanguagePacks {
         let dirs = pack_dirs(root)?;
         // Compiling the queries of a full-tier pack takes long, so the packs are read in parallel;
         // the error reported is the one of the first pack in the order of the folders.
-        let read: Vec<Result<Slot, ParsingError>> = thread::scope(|scope| {
-            let handles: Vec<_> = dirs
-                .into_iter()
-                .map(|dir| scope.spawn(|| Slot::read(dir)))
-                .collect();
-            handles
-                .into_iter()
-                .map(|handle| {
-                    handle.join().unwrap_or_else(|_| {
-                        Err(ParsingError::invalid(
-                            String::new(),
-                            LOAD_PANICKED.to_owned(),
-                        ))
-                    })
-                })
-                .collect()
-        });
+        let read = read_all(&dirs);
         let mut slots = HashMap::new();
         for slot in read {
             let slot = slot?;
@@ -237,5 +268,18 @@ impl LanguagePacks {
             .get(language)
             .ok_or_else(|| ParsingError::PackMissing(language.to_string()))?
             .pack()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::load_workers;
+
+    #[test]
+    fn loading_never_uses_more_threads_than_packs_or_cores() {
+        let cores = std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
+        assert_eq!(load_workers(1), 1);
+        assert_eq!(load_workers(0), 1);
+        assert_eq!(load_workers(10_000), cores);
     }
 }

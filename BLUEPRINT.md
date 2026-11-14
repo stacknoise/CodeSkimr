@@ -1109,6 +1109,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | PRJ-301 | `project_already_registered` | A project with the same source is already registered. |
 | PRJ-302 | `snapshot_in_progress` | A scan for this project is already running. |
 | PRJ-303 | `scan_cancelled` | The scan was cancelled by the user; no snapshot was written. (info) |
+| PRJ-501 | `too_many_scans` | As many scans run at the same time as the server allows; try again when one has ended. |
 | SRC-201 | `source_path_not_found` | The configured source folder does not exist or is not readable. |
 | SRC-202 | `git_branch_not_found` | The requested branch does not exist on the remote. |
 | SRC-401 | `git_auth_required` | The remote requires authentication and no usable credential is available. |
@@ -1154,12 +1155,14 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | API-402 | `host_or_origin_rejected` | The Host or Origin header of the request is not one of this server. |
 | API-403 | `launch_code_invalid` | The one-time launch code is wrong, already used or expired. |
 | API-501 | `request_too_large` | The request body is larger than the server accepts. |
+| API-502 | `server_busy` | The server already serves as many event streams as it allows. |
+| API-503 | `request_timed_out` | The request took longer than the server waits for it. |
 | API-601 | `server_not_reachable` | The command needs a running local server and could not reach it. |
 | MCP-101 | `tool_arguments_invalid` | MCP tool arguments failed validation. |
 | MCP-201 | `project_not_registered` | The requested path is not inside a registered project. |
 | MCP-202 | `symbol_not_found` | No symbol with this id or qualified name exists in the newest snapshot. |
 | MCP-203 | `project_not_scanned` | The project has no snapshot yet; scan it first. |
-| MCP-501 | `response_limit_exceeded` | The result was truncated to the configured limit. (info) |
+| MCP-501 | `response_limit_exceeded` | The result was truncated to the configured limit: its size, or for usages the requested depth (parameter depth). (info) |
 | CLI-101 | `cli_arguments_invalid` | Command-line arguments are invalid. |
 | CLI-102 | `watch_needs_folder` | Watch mode needs a local folder; a Git URL cannot be watched. |
 | CLI-103 | `secret_input_invalid` | No secret could be read from the terminal or standard input, or it was empty. |

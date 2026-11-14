@@ -47,6 +47,14 @@ A failed comparison is measured once more before the job fails, because one run 
 
 Format strings and error messages of `tools/` are exempt from the no-literals rule (ADR 0014); values still live in `consts.rs`.
 
+## Quick search and duplicate check
+
+`search/typed_1` (`crates/adapters/storage/benches/search.rs`) runs the query behind `search.query` on a snapshot with 20,000 symbols, for the first character of a query: it matches the most symbols and is the slowest keystroke. It is checked against `search_keystroke_ms`. The store benchmarks share their snapshot builder (`benches/common`).
+
+`similar/pairs_boilerplate_5k` (`benches/similar.rs`) runs `similar_pairs` over 5,000 bodies that all start with the same boilerplate, so some hashes have 5,000 owners. Without `conventions.duplicate_max_owners` this takes minutes (it grows with the square of the owners); with the default of 50 it takes about 20 ms. It has no absolute budget, a regression against the base fails like for every benchmark.
+
 ## Energy proxy
 
-Blueprint 16.2 asks for CPU time per scan next to wall time. criterion measures wall time only; the CPU-time figure comes with the scan benchmarks (WP-23 onwards) and extends the report then.
+Blueprint 16.2 asks for CPU time per scan next to wall time. criterion measures wall time only, so `scan --json` reports `cpu_seconds` (the CPU time of all threads of the scan, from the operating system) next to `seconds`. `scan/full_100k_loc` writes the median of its CPU times to `cpu.json` beside its criterion results, and `bench-check` prints it under "CPU time per benchmark". It is a report; there is no budget for it. The rescan benchmark has no CPU figure, because watch mode does not report one.
+
+The number of analysis threads is `scan.max_workers` (0 means one per core). Language packs are loaded on at most one thread per core. Reducing the threads on battery power or with a hidden window needs the power state of the device, which std does not offer; it stays open in issue #141.

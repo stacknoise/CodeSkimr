@@ -4,7 +4,7 @@ use std::process::ExitCode;
 
 use codeskimr_bench::consts::text;
 use codeskimr_bench::estimates::Medians;
-use codeskimr_bench::{BenchError, args, compare::compare, config, estimates, report};
+use codeskimr_bench::{BenchError, args, compare::compare, config, cpu, estimates, report};
 
 fn run() -> Result<bool, BenchError> {
     let args = args::parse(std::env::args().skip(1))?;
@@ -26,6 +26,10 @@ fn run() -> Result<bool, BenchError> {
     };
     let rows = compare(&new, &base, &limits.budgets_ms, limits.tolerance_percent);
     println!("{}", report::render(&rows));
+    let cpu = cpu::collect(&args.criterion_dir, new.keys());
+    if !cpu.is_empty() {
+        println!("{}", report::render_cpu(&cpu));
+    }
     Ok(!report::has_failure(&rows))
 }
 
