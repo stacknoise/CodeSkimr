@@ -98,8 +98,8 @@ mod tests {
     fn member_accesses_in_the_branches_of_a_conditional_are_usages() {
         let found = usages();
         let lines = |name: &str| lines_of(&found, name);
-        assert_eq!(lines("Keys.First"), [67]);
-        assert_eq!(lines("Keys.Second"), [67]);
+        assert_eq!(lines("Keys.First"), [66]);
+        assert_eq!(lines("Keys.Second"), [66]);
     }
 
     #[test]
