@@ -167,8 +167,8 @@ impl ProjectRequirements {
     /// bounded in depth and in the number of files.
     fn manifests(root: &Path, name: &str) -> Vec<PathBuf> {
         let mut found = Vec::new();
-        let mut open = vec![(root.to_path_buf(), 0_usize)];
-        let mut visited = 0_usize;
+        let mut open = vec![(root.to_path_buf(), usize::default())];
+        let mut visited = usize::default();
         while let Some((folder, depth)) = open.pop() {
             // Enough files, or enough folders looked at: a huge tree must not keep the check busy.
             visited = visited.saturating_add(1);
