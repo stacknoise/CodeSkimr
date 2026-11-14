@@ -187,7 +187,10 @@ fn a_git_project_has_no_requirement_before_its_first_scan_and_has_one_after_it()
     };
     let reader = ProjectRequirements::new(git.clone(), 65_536);
     // Before the first scan there is no clone: nothing is required (docs/tools-check.md).
-    assert!(reader.read_all(&source, &sdk("global.json")).is_empty());
+    assert_eq!(
+        reader.read_all(&source, &sdk("global.json")),
+        Vec::<String>::new()
+    );
     // The first scan leaves the clone; the next check finds the file in it.
     let clone = git.checkout_dir(&url, &branch);
     fs::create_dir_all(&clone).unwrap();
