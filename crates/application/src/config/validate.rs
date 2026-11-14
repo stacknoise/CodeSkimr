@@ -8,8 +8,14 @@ use super::consts::{
 };
 use super::error::{ConfigError, Violation};
 use super::model::{
-    Budgets, Config, Conventions, Editor, Level2, McpLimits, MetricThresholds, Scan, Ui,
+    Budgets, Config, Conventions, Editor, KeySources, Level2, McpLimits, MetricThresholds, Scan, Ui,
 };
+
+fn check_keys(sources: &KeySources) -> Result<(), ConfigError> {
+    positive(keys::KEYS_MAX_FILES, sources.max_files)?;
+    positive(keys::KEYS_MAX_FILE_KB, sources.max_file_kb)?;
+    positive(keys::KEYS_MAX_DEPTH, sources.max_depth)
+}
 
 /// Checks every value of `config`.
 ///
@@ -33,6 +39,7 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     positive(keys::MIN_TOKENS, config.similarity.min_tokens)?;
     positive(keys::SERVER_PORT, u32::from(config.server.port))?;
     check_conventions(&config.conventions)?;
+    check_keys(&config.keys)?;
     check_layers(config)?;
     check_scan(&config.scan)?;
     check_level2(&config.level2)?;

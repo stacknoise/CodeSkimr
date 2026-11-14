@@ -11,6 +11,7 @@ mod clock;
 mod consent;
 mod credentials;
 mod indexer;
+mod keys;
 mod level2;
 mod outline;
 mod query;
@@ -34,6 +35,7 @@ pub use indexer::{
     IndexArtifact, IndexJob, IndexLimits, IndexRunner, IndexerSpec, IndexerStatus,
     PLACEHOLDER_OUTPUT, PLACEHOLDER_PROJECT, ToolIssue, ToolProblem, ToolSpec,
 };
+pub use keys::{KeyEntry, KeyKind, KeySearch, ProjectKeys};
 pub use level2::{ImportRequest, Imported, ReferenceImporter};
 pub use outline::{CodeOutline, MemberRow, OutlineNode};
 pub use query::{
