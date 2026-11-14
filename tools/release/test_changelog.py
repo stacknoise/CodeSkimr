@@ -12,6 +12,10 @@ class ParseSubject(unittest.TestCase):
         kind, text, pr, breaking = changelog.parse_subject("fix(server)!: close the socket")
         self.assertEqual((kind, text, pr, breaking), ("fix", "close the socket", None, True))
 
+    def test_rejects_german_title(self):
+        with self.assertRaises(ValueError):
+            changelog.parse_subject("fix: Oberfläche baut unter Windows (#285)")
+
     def test_rejects_free_text(self):
         with self.assertRaises(ValueError):
             changelog.parse_subject("Merge branch main")
