@@ -4,6 +4,7 @@
 
 use std::ffi::OsString;
 use std::io::{self, Read};
+use std::ops::ControlFlow;
 use std::path::{Path, PathBuf};
 use std::process::{ExitStatus, Stdio};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -16,9 +17,11 @@ use codeskimr_application::cancel::CancelToken;
 use process_wrap::std::{ChildWrapper, CommandWrap};
 
 use crate::consts::{
-    CAPTURE_BYTES, DRAIN_GRACE, MAX_SCAN_DEPTH, MEASURE_INTERVAL, POLL_INTERVAL, READ_CHUNK,
+    CAPTURE_BYTES, DRAIN_GRACE, KILL_POLL, KILL_WAIT, MAX_SCAN_DEPTH, MEASURE_INTERVAL,
+    POLL_INTERVAL, READ_CHUNK,
 };
 use crate::memory::TreeMemory;
+use crate::orphans;
 
 /// The limits of one run.
 #[derive(Debug, Clone, Copy)]
@@ -46,6 +49,9 @@ pub struct Launch {
     pub limits: Limits,
     /// A folder whose size counts toward the output limit.
     pub watch_dir: Option<PathBuf>,
+    /// A folder in which the started process is noted, so that the next start of the application
+    /// can end it if this one dies without cleaning up (issue #223).
+    pub note_dir: Option<PathBuf>,
 }
 
 /// Why a run was stopped from outside.
@@ -64,10 +70,24 @@ pub enum Stop {
 /// Why a run gave no result.
 #[derive(Debug)]
 pub enum RunError {
-    /// The process could not be started or watched.
+    /// The process could not be started.
     Io(io::Error),
-    /// The run was stopped and its process group killed.
-    Stopped(Stop),
+    /// The process could not be watched any more (its state cannot be read) and was killed.
+    /// `survived` is set if the leader was still running after the bound for the wait.
+    Watch {
+        /// What went wrong.
+        cause: io::Error,
+        /// Whether the leader outlived the kill.
+        survived: bool,
+    },
+    /// The run was stopped and its process group killed. `survived` is set if the leader was
+    /// still running after the bound for the wait: nothing may delete what it could still use.
+    Stopped {
+        /// Why it was stopped.
+        stop: Stop,
+        /// Whether the leader outlived the kill.
+        survived: bool,
+    },
 }
 
 /// A run that ended by itself.
@@ -150,11 +170,40 @@ impl Capture {
 struct Group(Box<dyn ChildWrapper>);
 
 impl Group {
-    fn kill(&mut self) {
+    /// Kills the whole group and waits for the leader, but never without a bound.
+    ///
+    /// `ChildWrapper::wait` of a Windows job object ends with a blocking read of the completion
+    /// port of the job, and `try_wait` (called in the watch loop) takes one message of that port
+    /// per call. If the loop has taken the last message before it saw the exit of the leader,
+    /// `wait` would wait for a message that never comes, so the end of the run polls instead.
+    ///
+    /// Returns whether the leader is confirmed gone. `false` means it was still running when the
+    /// bound passed, or its state could not be read, so the end is not confirmed: the caller
+    /// must then keep the run folder, whose notes let the next start find it.
+    fn kill(&mut self) -> bool {
         // The group may be gone already; that is the goal, not an error.
         drop(self.0.start_kill());
-        drop(self.0.wait());
+        wait_until(KILL_WAIT, || match self.0.try_wait() {
+            Ok(Some(_)) => ControlFlow::Break(true),
+            // The state cannot be read: the end is not confirmed, so it counts as not ended.
+            Err(_) => ControlFlow::Break(false),
+            Ok(None) => ControlFlow::Continue(()),
+        })
     }
+}
+
+/// Asks `check` every [`KILL_POLL`] until it ends the wait or `bound` has passed. Whether the
+/// leader is confirmed gone: `Break(true)` is a yes, `Break(false)` (an error) and the end of the
+/// bound are not.
+fn wait_until(bound: Duration, mut check: impl FnMut() -> ControlFlow<bool>) -> bool {
+    let until = Instant::now() + bound;
+    while Instant::now() < until {
+        if let ControlFlow::Break(gone) = check() {
+            return gone;
+        }
+        thread::sleep(KILL_POLL);
+    }
+    matches!(check(), ControlFlow::Break(true))
 }
 
 impl Drop for Group {
@@ -253,15 +302,21 @@ fn folder_bytes(dir: &Path, depth: usize) -> u64 {
         .fold(0, u64::saturating_add)
 }
 
-/// Starts the program and waits for it under the limits. The process group is dead when this
-/// returns, whatever the result.
+/// Starts the program and waits for it under the limits. The process group is killed when this
+/// returns, whatever the result. Only if the leader was still running ten seconds after the kill
+/// (`survived` of [`RunError::Stopped`] and [`RunError::Watch`]) can something of it be left, and
+/// the caller must then keep the run folder for the sweep of the next start.
 ///
 /// # Errors
-/// [`RunError::Io`] if the process cannot be started or watched, [`RunError::Stopped`] if a limit
-/// or the cancel token ended it.
+/// [`RunError::Io`] if the process cannot be started, [`RunError::Watch`] if it cannot be watched,
+/// [`RunError::Stopped`] if a limit or the cancel token ended it.
 pub fn run_guarded(launch: &Launch, cancel: &CancelToken) -> Result<Finished, RunError> {
     let memory = TreeMemory::new().map_err(RunError::Io)?;
     let mut group = spawn(launch).map_err(RunError::Io)?;
+    if let Some(folder) = &launch.note_dir {
+        // Best effort: without the note the process is simply not found after a hard stop.
+        drop(orphans::note_indexer(folder, group.0.id()));
+    }
     let written = Arc::new(AtomicU64::new(0));
     let stdout = group
         .0
@@ -296,13 +351,56 @@ pub fn run_guarded(launch: &Launch, cancel: &CancelToken) -> Result<Finished, Ru
 
 fn wait_for(group: &mut Group, watch: &mut Watch<'_>) -> Result<ExitStatus, RunError> {
     loop {
-        if let Some(status) = group.0.try_wait().map_err(RunError::Io)? {
-            return Ok(status);
+        match group.0.try_wait() {
+            Ok(Some(status)) => return Ok(status),
+            Ok(None) => {}
+            Err(cause) => {
+                let survived = !group.kill();
+                return Err(RunError::Watch { cause, survived });
+            }
         }
         if let Some(stop) = watch.verdict(group.0.id()) {
-            group.kill();
-            return Err(RunError::Stopped(stop));
+            let survived = !group.kill();
+            return Err(RunError::Stopped { stop, survived });
         }
         thread::sleep(POLL_INTERVAL);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ops::ControlFlow;
+    use std::time::Duration;
+
+    use super::wait_until;
+
+    #[test]
+    fn a_leader_that_is_gone_in_time_is_reported_gone() {
+        let mut asked = 0;
+        let gone = wait_until(Duration::from_secs(5), || {
+            asked += 1;
+            if asked >= 3 {
+                ControlFlow::Break(true)
+            } else {
+                ControlFlow::Continue(())
+            }
+        });
+        assert!(gone);
+    }
+
+    #[test]
+    fn a_leader_that_outlives_the_bound_is_reported_alive() {
+        let alive = || ControlFlow::Continue(());
+        assert!(!wait_until(Duration::from_millis(50), alive));
+    }
+
+    #[test]
+    fn an_error_is_not_a_confirmed_end() {
+        let started = std::time::Instant::now();
+        assert!(!wait_until(Duration::from_secs(5), || ControlFlow::Break(
+            false
+        )));
+        // It does not wait for the bound either.
+        assert!(started.elapsed() < Duration::from_secs(5));
     }
 }

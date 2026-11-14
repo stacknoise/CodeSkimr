@@ -17,5 +17,11 @@ codeskimr_domain = { path = "../../domain" }
 codeskimr_codes = { path = "../../codes" }
 thiserror = { workspace = true }
 
+[target.'cfg(unix)'.dependencies]
+libc = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true }
+
 [dev-dependencies]
 tempfile = { workspace = true }

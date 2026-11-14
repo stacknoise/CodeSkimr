@@ -87,6 +87,7 @@ fn version_output(program: &Path, tool: &ToolSpec, probe: &Probe<'_>) -> String 
             max_output_bytes: PROBE_MAX_OUTPUT,
         },
         watch_dir: None,
+        note_dir: None,
     };
     match run_guarded(&launch, &CancelToken::new()) {
         Ok(finished) if finished.success => {

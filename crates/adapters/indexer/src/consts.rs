@@ -8,22 +8,26 @@ use std::time::Duration;
 pub const BASE_ENV_ALLOW: &[&str] = &[
     "PATH",
     "PATHEXT",
-    "HOME",
-    "USERPROFILE",
-    "HOMEDRIVE",
-    "HOMEPATH",
     "SYSTEMROOT",
     "SYSTEMDRIVE",
     "WINDIR",
     "COMSPEC",
-    "APPDATA",
-    "LOCALAPPDATA",
     "PROGRAMFILES",
     "PROGRAMFILES(X86)",
     "PROGRAMDATA",
     "LANG",
     "LC_ALL",
     "LC_CTYPE",
+];
+/// Variables that name the home of the user. The indexer gets an empty folder instead, so a tool
+/// that looks for `~/.ssh`, `~/.aws`, `~/.npmrc` or `~/.git-credentials` finds nothing; what a tool
+/// needs from the real home is named by the pack (`home_dirs`).
+pub const HOME_ENV: &[&str] = &["HOME", "USERPROFILE"];
+/// Variables that name a folder of settings below the home on Windows, with the folder below the
+/// empty home they point to.
+pub const HOME_SETTINGS_ENV: &[(&str, &[&str])] = &[
+    ("APPDATA", &["AppData", "Roaming"]),
+    ("LOCALAPPDATA", &["AppData", "Local"]),
 ];
 /// A variable whose name contains one of these parts never reaches an indexer, even if a language
 /// pack lists it: the name says it holds a secret.
@@ -54,6 +58,8 @@ pub const PATH_ENV: &str = "PATH";
 pub const OUTPUT_DIR_PREFIX: &str = "level2-";
 /// Name of the index file inside the output folder.
 pub const INDEX_FILE_NAME: &str = "index.scip";
+/// Name of the empty home folder of the indexer, inside the output folder.
+pub const HOME_DIR_NAME: &str = "home";
 /// Name of the folder where the indexer may write besides its index (cache, logs).
 pub const SCRATCH_DIR_NAME: &str = "scratch";
 
@@ -92,3 +98,27 @@ pub const LOG_INDEXER: &str = "indexer";
 pub const LOG_CODE: &str = "code";
 /// Joins the console streams of a version probe.
 pub const WORD_SEPARATOR: &str = " ";
+
+/// Name of the note in a run folder that says which application instance owns it.
+pub const OWNER_NOTE_NAME: &str = "owner";
+/// Name of the note in a run folder that says which process the run started.
+pub const INDEXER_NOTE_NAME: &str = "indexer";
+/// Separates the process id from its start time in a note.
+pub const NOTE_SEPARATOR: char = ' ';
+/// How long a run folder without a note is left alone: it may just have been created.
+pub const ORPHAN_GRACE: Duration = Duration::from_secs(60);
+/// Reason of an error: the list of running processes cannot be read.
+pub const NO_PROCESS_LIST: &str = "no process list";
+/// Reason of an error: a process to note does not exist.
+pub const NO_SUCH_PROCESS: &str = "no such process";
+/// How many seconds the start time of a process may differ from the one in a note: the start
+/// time is computed from the boot time of the system, which can shift a little.
+pub const START_TOLERANCE_SECONDS: u64 = 2;
+/// Characters that cannot be part of the name of an environment variable.
+pub const FORBIDDEN_ENV_NAME_CHARS: [char; 2] = ['=', '\0'];
+/// How long the end of a run waits for the leader to be gone after the group was killed.
+pub const KILL_WAIT: Duration = Duration::from_secs(10);
+/// How often the end of a run asks whether the leader is gone.
+pub const KILL_POLL: Duration = Duration::from_millis(10);
+/// Value of the log field `code` when a stopped indexer was still running after the kill.
+pub const SURVIVED_CODE: &str = "indexer-survived-kill";
