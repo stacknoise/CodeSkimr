@@ -123,3 +123,20 @@ pub const BACKSLASH: char = '\\';
 /// Characters besides letters and digits that a bare TOML key may contain, and the dot of a
 /// dotted key.
 pub const TOML_KEY_EXTRA: &str = "-_.";
+/// Deepest folder level below the project root in which requirement files are looked for.
+pub const REQUIREMENT_MAX_DEPTH: usize = 6;
+/// Most requirement files of one name that are read.
+pub const REQUIREMENT_MAX_FILES: usize = 32;
+/// Folders that are not entered when requirement files are looked for: dependencies, build output
+/// and virtual environments hold files of other projects.
+pub const REQUIREMENT_SKIPPED_FOLDERS: &[&str] = &[
+    ".git",
+    "node_modules",
+    "target",
+    "bin",
+    "obj",
+    "vendor",
+    "dist",
+    ".venv",
+    "venv",
+];

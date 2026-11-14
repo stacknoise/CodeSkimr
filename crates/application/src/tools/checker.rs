@@ -46,15 +46,15 @@ impl ToolChecker {
     fn asked_for(&self, source: &ProjectSource, plan: ToolPlan) -> IndexerSpec {
         let mut spec = plan.indexer;
         for requirement in &plan.requirements {
-            let Some(text) = self.ports.requirements.read(source, &requirement.file) else {
-                continue;
-            };
-            let Some(asked) = ToolVersion::parse_requirement(&text) else {
-                continue;
-            };
-            for tool in &mut spec.toolchain {
-                if tool.program == requirement.program && tool.min_version < asked {
-                    tool.min_version = asked;
+            // Every manifest folder asks; the newest version counts.
+            for text in self.ports.requirements.read_all(source, &requirement.file) {
+                let Some(asked) = ToolVersion::parse_requirement(&text) else {
+                    continue;
+                };
+                for tool in &mut spec.toolchain {
+                    if tool.program == requirement.program && tool.min_version < asked {
+                        tool.min_version = asked;
+                    }
                 }
             }
         }

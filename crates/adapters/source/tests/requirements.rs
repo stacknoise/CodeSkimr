@@ -121,3 +121,80 @@ fn a_link_that_points_out_of_the_project_is_not_followed() {
     let requirement = spec(".nvmrc", RequirementFormat::Text, &[]);
     assert_eq!(reader(65_536).read(&source, &requirement), None);
 }
+
+fn sdk(file: &str) -> RequirementSpec {
+    spec(file, RequirementFormat::Json, &["sdk", "version"])
+}
+
+#[test]
+fn global_json_may_hold_comments_and_trailing_commas_like_the_sdk_accepts() {
+    let json = r#"
+    // which SDK
+    {
+      /* the sdk */
+      "sdk": {
+        "version": "9.0.100", // trailing comma follows
+        "comment": "a // inside a string and /* here */ stay",
+        "rollForward": "latestFeature",
+      },
+    }"#;
+    assert_eq!(
+        read(&[("global.json", json)], &sdk("global.json")).as_deref(),
+        Some("9.0.100")
+    );
+    // A quote that is escaped does not end the string.
+    let escaped = r#"{ "sdk": { "version": "8.0.1\"//", } }"#;
+    assert_eq!(
+        read(&[("global.json", escaped)], &sdk("global.json")).as_deref(),
+        Some("8.0.1\"//")
+    );
+}
+
+#[test]
+fn every_manifest_folder_is_read_but_not_dependencies_or_build_output() {
+    let (_dir, source) = project(&[
+        ("global.json", r#"{"sdk":{"version":"8.0.100"}}"#),
+        (
+            "services/api/global.json",
+            r#"{"sdk":{"version":"9.0.200"}}"#,
+        ),
+        (
+            "node_modules/pkg/global.json",
+            r#"{"sdk":{"version":"99.0.0"}}"#,
+        ),
+        ("bin/global.json", r#"{"sdk":{"version":"98.0.0"}}"#),
+    ]);
+    let mut found = reader(65_536).read_all(&source, &sdk("global.json"));
+    found.sort();
+    assert_eq!(found, ["8.0.100", "9.0.200"]);
+    // A name with a folder in it is the one file, as before.
+    let one = reader(65_536).read_all(&source, &sdk("services/api/global.json"));
+    assert_eq!(one, ["9.0.200"]);
+}
+
+#[test]
+fn a_git_project_has_no_requirement_before_its_first_scan_and_has_one_after_it() {
+    use codeskimr_domain::{BranchName, GitUrl};
+
+    let cache = tempfile::tempdir().unwrap();
+    let git = GitCache::new(cache.path().to_path_buf());
+    let url = GitUrl::new("https://example.invalid/team/repo.git").unwrap();
+    let branch = BranchName::new("main").unwrap();
+    let source = ProjectSource::Git {
+        url: url.clone(),
+        branch: branch.clone(),
+        credential: None,
+    };
+    let reader = ProjectRequirements::new(git.clone(), 65_536);
+    // Before the first scan there is no clone: nothing is required (docs/tools-check.md).
+    assert!(reader.read_all(&source, &sdk("global.json")).is_empty());
+    // The first scan leaves the clone; the next check finds the file in it.
+    let clone = git.checkout_dir(&url, &branch);
+    fs::create_dir_all(&clone).unwrap();
+    fs::write(
+        clone.join("global.json"),
+        r#"{"sdk":{"version":"9.0.100"}}"#,
+    )
+    .unwrap();
+    assert_eq!(reader.read_all(&source, &sdk("global.json")), ["9.0.100"]);
+}
