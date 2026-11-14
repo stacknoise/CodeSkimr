@@ -120,6 +120,7 @@ impl Fixture {
             &config.level2,
             &store,
             ProjectId::new(1),
+            project.path(),
         )
         .unwrap();
         Self {
@@ -141,7 +142,6 @@ impl Fixture {
         let job = IndexJob {
             language: &self.language,
             spec,
-            project_root: self.project.path(),
             limits,
             permit: &self.permit,
         };

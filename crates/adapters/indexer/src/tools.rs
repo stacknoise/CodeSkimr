@@ -14,15 +14,14 @@ use crate::consts::{
     EXECUTABLE_SUFFIXES, PATH_ENV, PROBE_MAX_MEMORY, PROBE_MAX_OUTPUT, PROBE_TIMEOUT,
     VERSION_EXCERPT_CHARS, WORD_SEPARATOR,
 };
-use crate::env::{Environment, safe_path};
+use crate::env::{Environment, safe_dirs};
 use crate::process::{Launch, Limits, run_guarded};
 use crate::redact::{Redact, excerpt};
 
 /// Finds `program` in `path`, skipping entries that are relative or inside `project_root`.
 #[must_use]
 pub fn resolve(program: &str, path: &OsStr, project_root: &Path) -> Option<PathBuf> {
-    let safe = safe_path(path, project_root);
-    std::env::split_paths(&safe).find_map(|dir| {
+    safe_dirs(path, project_root).into_iter().find_map(|dir| {
         EXECUTABLE_SUFFIXES
             .iter()
             .map(|suffix| dir.join([program, suffix].concat()))
@@ -94,5 +93,24 @@ fn version_output(program: &Path, tool: &ToolSpec, probe: &Probe<'_>) -> String 
             [finished.stdout_text(), finished.stderr_text()].join(WORD_SEPARATOR)
         }
         _ => String::new(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::ffi::OsStr;
+    use std::path::Path;
+
+    use super::resolve;
+
+    /// A file of the folder the tests run in must not be found through an empty or relative path.
+    #[test]
+    fn a_program_in_the_working_folder_is_not_found_through_an_empty_or_relative_path() {
+        let root = std::env::temp_dir();
+        let program = if cfg!(windows) { "Cargo" } else { "Cargo.toml" };
+        for path in ["", ".", "./", ".."] {
+            assert_eq!(resolve(program, OsStr::new(path), &root), None, "{path:?}");
+        }
+        assert!(Path::new("Cargo.toml").is_file());
     }
 }

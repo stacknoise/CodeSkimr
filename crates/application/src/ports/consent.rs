@@ -1,5 +1,6 @@
 //! The user's consent to run indexers and the proof that it was checked (ADR 0033).
 
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use codeskimr_codes::ErrorCode;
@@ -41,6 +42,7 @@ pub trait ConsentStore: Send + Sync {
 pub struct RunPermit {
     store: Arc<dyn ConsentStore>,
     project: ProjectId,
+    project_root: PathBuf,
     enabled_in_config: bool,
 }
 
@@ -48,11 +50,13 @@ impl RunPermit {
     pub(crate) fn new(
         store: Arc<dyn ConsentStore>,
         project: ProjectId,
+        project_root: PathBuf,
         enabled_in_config: bool,
     ) -> Self {
         Self {
             store,
             project,
+            project_root,
             enabled_in_config,
         }
     }
@@ -61,6 +65,13 @@ impl RunPermit {
     #[must_use]
     pub const fn project(&self) -> ProjectId {
         self.project
+    }
+
+    /// The folder of the project; the indexer runs in it. It belongs to the permit, so a permit
+    /// of one project cannot be used with the folder of another.
+    #[must_use]
+    pub fn project_root(&self) -> &Path {
+        &self.project_root
     }
 
     /// Reads the consent again.

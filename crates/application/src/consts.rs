@@ -50,3 +50,5 @@ pub const VERSION_DECORATION: &[char] = &['"', '\'', 'v', 'V', '(', ')', ',', ';
 pub const PLACEHOLDER_PROJECT: &str = "{project}";
 /// Placeholder of an indexer argument for the index file the indexer writes.
 pub const PLACEHOLDER_OUTPUT: &str = "{output}";
+/// The word before the version in the output of `java -version`.
+pub const VERSION_WORD: &str = "version";

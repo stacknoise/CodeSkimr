@@ -75,15 +75,21 @@ fn keep_safe_path(name: OsString, value: OsString, project_root: &Path) -> (OsSt
     }
 }
 
-/// `PATH` without relative entries (they would resolve inside the project, which is the working
-/// folder of the indexer) and without entries inside the project.
+/// The entries of `path` that an indexer may use: absolute, not empty and not inside the project.
+/// A relative or empty entry would be looked up relative to a working folder, which is the project
+/// for the indexer and wherever the user started `CodeSkimr`.
+#[must_use]
+pub fn safe_dirs(path: &OsStr, project_root: &Path) -> Vec<PathBuf> {
+    let root = canonical(project_root);
+    env::split_paths(path)
+        .filter(|entry| entry.is_absolute() && !canonical(entry).starts_with(&root))
+        .collect()
+}
+
+/// `PATH` as text, limited to [`safe_dirs`].
 #[must_use]
 pub fn safe_path(path: &OsStr, project_root: &Path) -> OsString {
-    let root = canonical(project_root);
-    let kept: Vec<PathBuf> = env::split_paths(path)
-        .filter(|entry| entry.is_absolute() && !canonical(entry).starts_with(&root))
-        .collect();
-    env::join_paths(kept).unwrap_or_default()
+    env::join_paths(safe_dirs(path, project_root)).unwrap_or_default()
 }
 
 fn canonical(path: &Path) -> PathBuf {
@@ -106,5 +112,20 @@ mod tests {
         let safe = safe_path(&joined, &root);
         let kept: Vec<_> = std::env::split_paths(&safe).collect();
         assert_eq!(kept, [outside]);
+    }
+}
+
+#[cfg(test)]
+mod search_tests {
+    use std::path::Path;
+
+    use super::safe_dirs;
+
+    #[test]
+    fn an_empty_or_only_relative_path_leaves_no_directory() {
+        let root = std::env::temp_dir();
+        assert!(safe_dirs(std::ffi::OsStr::new(""), &root).is_empty());
+        let relative = std::env::join_paths([Path::new("."), Path::new("bin")]).unwrap();
+        assert!(safe_dirs(&relative, &root).is_empty());
     }
 }

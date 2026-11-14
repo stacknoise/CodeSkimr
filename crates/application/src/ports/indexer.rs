@@ -67,12 +67,10 @@ pub struct IndexJob<'a> {
     pub language: &'a LanguageId,
     /// How to run its indexer.
     pub spec: &'a IndexerSpec,
-    /// The folder of the project; the indexer runs in it.
-    pub project_root: &'a Path,
     /// The limits of the run.
     pub limits: IndexLimits,
-    /// Proof that consent and permission were checked; the runner reads the consent once more
-    /// before it starts the process.
+    /// Proof that consent and permission were checked, and the folder of the project the indexer
+    /// runs in. The runner reads the consent once more before it starts the process.
     pub permit: &'a RunPermit,
 }
 

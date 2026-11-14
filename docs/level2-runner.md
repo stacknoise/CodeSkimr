@@ -24,6 +24,8 @@ An indexer runs the build tools of the project, which is project code. So the ru
 
 ## Not done here
 
+- The indexer builds in the project folder (`obj`, `bin`, `target`, `node_modules`); that is not counted against the output limit. Folders inside the project are removed from `PATH`, so a virtual environment inside the project (`.venv`) is not found for scip-python; the user activates it outside or installs the tools globally.
+- The permit carries the folder of its project (`RunPermit::project_root`), so a permit cannot be used with another project's folder. The caller must take the id and the folder from the same project record.
 - The network is not blocked (restoring dependencies needs it); that stays the main residual risk of decision 11 and the reason for the consent. A sandbox is a later decision.
 - The memory limit is polled: a process that allocates very fast can exceed it for up to a quarter of a second.
 - A test with the real `redact` of the app (Bearer line, URL with credentials, secret across the cut) comes with the wiring, because the indexer crate cannot depend on the app.

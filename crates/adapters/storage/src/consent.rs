@@ -6,6 +6,7 @@ use codeskimr_domain::ProjectId;
 use rusqlite::{OptionalExtension, params};
 
 use crate::codec::column_int;
+use crate::error::StorageError;
 use crate::sql;
 use crate::store::SqliteStore;
 
@@ -30,10 +31,14 @@ impl ConsentStore for SqliteStore {
 
     fn store_consent(&self, project: ProjectId, record: ConsentRecord) -> Result<(), CodedError> {
         self.write(|tx| {
-            tx.execute(
+            let written = tx.execute(
                 sql::CONSENT_UPSERT,
                 params![column_int(project.get())?, record.enabled, record.confirmed],
             )?;
+            // Nothing is written for a project that does not exist, and that is not a success.
+            if written == 0 {
+                return Err(StorageError::ProjectNotFound);
+            }
             Ok(())
         })
         .map_err(CodedError::from)

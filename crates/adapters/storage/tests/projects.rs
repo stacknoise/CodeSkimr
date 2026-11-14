@@ -109,7 +109,7 @@ fn next_project_id_follows_the_highest_registered_id() {
 }
 
 #[test]
-fn consent_for_level_2_starts_empty_round_trips_and_goes_with_the_project() {
+fn consent_for_level_2_starts_empty_and_round_trips() {
     use codeskimr_application::ports::{ConsentRecord, ConsentStore};
 
     let store = store(3);
@@ -172,11 +172,11 @@ fn a_confirmation_does_not_survive_a_change_of_the_projects_source() {
 }
 
 #[test]
-fn consent_for_a_project_that_does_not_exist_is_not_stored() {
+fn consent_for_a_project_that_does_not_exist_is_refused() {
     use codeskimr_application::ports::{ConsentRecord, ConsentStore};
 
     let store = store(3);
-    store
+    let error = store
         .store_consent(
             ProjectId::new(7),
             ConsentRecord {
@@ -184,7 +184,8 @@ fn consent_for_a_project_that_does_not_exist_is_not_stored() {
                 confirmed: true,
             },
         )
-        .unwrap();
+        .unwrap_err();
+    assert_eq!(code_of(&error), "PRJ-201");
     assert_eq!(
         store.consent(ProjectId::new(7)).unwrap(),
         ConsentRecord::default()

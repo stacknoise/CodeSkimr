@@ -20,7 +20,7 @@ A pack may name the indexer that gives level 2 references. The table holds every
 - `[indexer.tool]` with `program` (a bare name, looked up in the `PATH` of the user and never in the project), `version_args` and `min_version`, and one `[[indexer.toolchain]]` per tool that must also exist (SDK, runtime) with the same three keys. The version is the first number sequence with a dot in the output of `version_args` (standard output and standard error).
 - A pack without `[indexer]` stays on level 1 (Go and the basic-tier languages). TypeScript, JavaScript and TSX name the same indexer; Java and Kotlin too.
 
-The command lines are those of the indexers' own documentation and have not been run against real installations of every language in CI; the first run in each language is part of the acceptance (ADR 0033, decision 14). `docs/level2-runner.md` says how they are run.
+**Provisional.** The command lines and minimum versions are those of the indexers' own documentation and have not been run against real installations of every language in CI; the first run in each language is part of the acceptance (ADR 0033, decision 14). `docs/level2-runner.md` says how they are run.
 
 ## Capture vocabulary
 

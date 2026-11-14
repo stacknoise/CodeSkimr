@@ -7,6 +7,7 @@
 //! tokens, watch mode and CI have no way to confirm, and a missing confirmation stops them like
 //! everybody else.
 
+use std::path::Path;
 use std::sync::{Arc, Mutex, PoisonError};
 
 use codeskimr_codes::ErrorCode;
@@ -66,7 +67,7 @@ pub fn revoke(
     store.store_consent(project, ConsentRecord::default())
 }
 
-/// Lets a run of indexers for `project` pass and returns the proof the runner needs: the principal
+/// Lets a run of indexers for `project`, whose files are in `project_root`, pass and returns the proof the runner needs: the principal
 /// may start them, level 2 is enabled in the user configuration or the project record, and the
 /// project record holds a confirmation for the source the project has now.
 ///
@@ -81,9 +82,15 @@ pub fn authorize_run(
     settings: &Level2,
     store: &Arc<dyn ConsentStore>,
     project: ProjectId,
+    project_root: &Path,
 ) -> Result<RunPermit, CodedError> {
     require(*principal, Permission::RunIndexer)?;
-    let permit = RunPermit::new(Arc::clone(store), project, settings.enabled);
+    let permit = RunPermit::new(
+        Arc::clone(store),
+        project,
+        project_root.to_path_buf(),
+        settings.enabled,
+    );
     permit.recheck()?;
     Ok(permit)
 }

@@ -2,6 +2,7 @@
 
 #[cfg(test)]
 mod cases {
+    use std::path::Path;
     use std::sync::Arc;
 
     use codeskimr_application::config::{Config, ConfigLayer, LayerSource, Level2};
@@ -14,6 +15,7 @@ mod cases {
     use codeskimr_domain::{Permission, PermissionSet, Principal, ProjectId};
 
     const PROJECT: ProjectId = ProjectId::new(1);
+    const ROOT: &str = "work/app";
 
     fn config(layers: &[(LayerSource, &str)]) -> Config {
         let layers: Vec<_> = layers
@@ -33,7 +35,8 @@ mod cases {
                 &Principal::local_owner(),
                 settings,
                 store,
-                PROJECT
+                PROJECT,
+                Path::new(ROOT)
             )),
             ErrorCode::IndexerNotConfirmed
         );
@@ -59,10 +62,23 @@ mod cases {
         let owner = Principal::local_owner();
         let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
         confirm(&owner, store.as_ref(), PROJECT).unwrap();
-        authorize_run(&owner, &config(&[]).level2, &store, PROJECT).unwrap();
+        authorize_run(
+            &owner,
+            &config(&[]).level2,
+            &store,
+            PROJECT,
+            Path::new(ROOT),
+        )
+        .unwrap();
         revoke(&owner, store.as_ref(), PROJECT).unwrap();
         assert_eq!(
-            code(authorize_run(&owner, &config(&[]).level2, &store, PROJECT)),
+            code(authorize_run(
+                &owner,
+                &config(&[]).level2,
+                &store,
+                PROJECT,
+                Path::new(ROOT)
+            )),
             ErrorCode::IndexerNotConfirmed
         );
     }
@@ -81,7 +97,7 @@ mod cases {
                 },
             )
             .unwrap();
-        authorize_run(&owner, &settings, &store, PROJECT).unwrap();
+        authorize_run(&owner, &settings, &store, PROJECT, Path::new(ROOT)).unwrap();
     }
 
     #[test]
@@ -104,7 +120,8 @@ mod cases {
                 &Principal::local_owner(),
                 &resolved.level2,
                 &store,
-                PROJECT
+                PROJECT,
+                Path::new(ROOT)
             )),
             ErrorCode::IndexerNotConfirmed
         );
@@ -146,7 +163,8 @@ mod cases {
                     &principal,
                     &config(&[]).level2,
                     &store,
-                    PROJECT
+                    PROJECT,
+                    Path::new(ROOT)
                 )),
                 ErrorCode::IndexerNotPermitted
             );
@@ -166,15 +184,40 @@ mod cases {
                 &confirmer,
                 &config(&[]).level2,
                 &store,
-                PROJECT
+                PROJECT,
+                Path::new(ROOT)
             )),
             ErrorCode::IndexerNotPermitted
         );
-        authorize_run(&starter, &config(&[]).level2, &store, PROJECT).unwrap();
+        authorize_run(
+            &starter,
+            &config(&[]).level2,
+            &store,
+            PROJECT,
+            Path::new(ROOT),
+        )
+        .unwrap();
         assert_eq!(
             code(confirm(&starter, store.as_ref(), PROJECT)),
             ErrorCode::IndexerNotPermitted
         );
+    }
+
+    #[test]
+    fn the_permit_carries_the_folder_of_its_project() {
+        let owner = Principal::local_owner();
+        let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
+        confirm(&owner, store.as_ref(), PROJECT).unwrap();
+        let permit = authorize_run(
+            &owner,
+            &config(&[]).level2,
+            &store,
+            PROJECT,
+            Path::new(ROOT),
+        )
+        .unwrap();
+        assert_eq!(permit.project_root(), Path::new(ROOT));
+        assert_eq!(permit.project(), PROJECT);
     }
 
     #[test]
@@ -202,7 +245,24 @@ mod cases {
             ToolVersion::parse("17.0.9")
         );
         assert_eq!(version("Python 3.12"), ToolVersion::parse("3.12.0"));
+        assert_eq!(
+            version("openjdk version \"21\" 2023-09-19"),
+            ToolVersion::parse("21.0.0")
+        );
+        assert_eq!(
+            version("openjdk version \"21.0.2\" 2024-01-16"),
+            ToolVersion::parse("21.0.2")
+        );
+        assert_eq!(
+            version("openjdk version \"17-ea\" 2021-09-14"),
+            ToolVersion::parse("17.0.0")
+        );
+        assert_eq!(
+            version("java version \"1.8.0_392\""),
+            ToolVersion::parse("1.8.0")
+        );
         assert!(version("2023-10-17 nothing").is_none());
+        assert!(version("version").is_none());
         assert!(ToolVersion::parse("1.10.0") > ToolVersion::parse("1.9.9"));
         assert_eq!(ToolVersion::parse("1.8.0_392"), ToolVersion::parse("1.8.0"));
     }

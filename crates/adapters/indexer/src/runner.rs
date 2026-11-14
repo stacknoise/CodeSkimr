@@ -73,12 +73,12 @@ impl ProcessIndexRunner {
         cancel: &CancelToken,
     ) -> Result<IndexArtifact, IndexerError> {
         let output = OutputDir::create(&self.data_dir)?;
-        let environment = self.environment(job.spec, &output.scratch, job.project_root);
+        let environment = self.environment(job.spec, &output.scratch, job.permit.project_root());
         let probe = Probe {
             env: &environment,
             redact: self.redact,
             neutral_dir: &output.scratch,
-            project_root: job.project_root,
+            project_root: job.permit.project_root(),
         };
         let problems = Self::problems(job.spec, &probe);
         if !problems.is_empty() {
@@ -121,6 +121,14 @@ impl ProcessIndexRunner {
             IndexerError::Failed { excerpt, .. } => excerpt.as_str(),
             _ => Default::default(),
         };
+        // A cancel by the user or a missing tool is routine, not a warning.
+        if matches!(
+            error,
+            IndexerError::Cancelled | IndexerError::Unavailable(_)
+        ) {
+            tracing::info!({ LOG_INDEXER } = %spec.name, { LOG_CODE } = error.code().id());
+            return;
+        }
         tracing::warn!({ LOG_INDEXER } = %spec.name, { LOG_CODE } = error.code().id(), { LOG_EXCERPT } = %excerpt);
     }
 }
@@ -175,13 +183,14 @@ fn launch_of(
         .find(|(name, _)| name.to_string_lossy().eq_ignore_ascii_case(PATH_ENV))
         .map(|(_, value)| value.clone())
         .unwrap_or_default();
-    let program = resolve(&job.spec.indexer.program, &path, job.project_root).ok_or_else(|| {
-        IndexerError::Unavailable(vec![ToolProblem {
-            program: job.spec.indexer.program.clone(),
-            issue: codeskimr_application::ports::ToolIssue::Missing,
-        }])
-    })?;
-    let root = job.project_root.to_string_lossy();
+    let program =
+        resolve(&job.spec.indexer.program, &path, job.permit.project_root()).ok_or_else(|| {
+            IndexerError::Unavailable(vec![ToolProblem {
+                program: job.spec.indexer.program.clone(),
+                issue: codeskimr_application::ports::ToolIssue::Missing,
+            }])
+        })?;
+    let root = job.permit.project_root().to_string_lossy();
     let index = output.index();
     let index_text = index.to_string_lossy();
     let replacements = [
@@ -198,7 +207,7 @@ fn launch_of(
         program,
         args,
         env: environment.clone(),
-        cwd: job.project_root.to_path_buf(),
+        cwd: job.permit.project_root().to_path_buf(),
         limits: Limits {
             timeout: job.limits.timeout,
             max_memory_bytes: job.limits.max_memory_bytes,
