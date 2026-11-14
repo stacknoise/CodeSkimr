@@ -13,6 +13,8 @@ pub struct LanguageShare {
     pub files: u32,
     /// Lines of code of its files.
     pub loc: u32,
+    /// Number of symbols declared in its files.
+    pub symbols: u32,
 }
 
 /// A project with what its newest snapshot says about it.

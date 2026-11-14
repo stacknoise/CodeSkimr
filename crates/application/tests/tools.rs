@@ -131,6 +131,7 @@ impl ProjectCatalog for World {
                 language: language(name),
                 files: 1,
                 loc: 1,
+                symbols: 1,
             })
             .collect())
     }

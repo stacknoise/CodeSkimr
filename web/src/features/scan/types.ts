@@ -5,7 +5,15 @@ export type Stage = (typeof STAGES)[number];
 
 /** One event of the stream. */
 export type WireEvent =
-  | { type: typeof EVENT.progressed; project: number; stage: Stage; done: number; total: number }
+  | {
+      type: typeof EVENT.progressed;
+      project: number;
+      stage: Stage;
+      done: number;
+      total: number;
+      /** Milliseconds since the stage started, as the server measured them. */
+      elapsed_ms?: number;
+    }
   | { type: typeof EVENT.created; project: number; snapshot: number }
   | { type: typeof EVENT.changed; project: number; files: number; rescan: boolean }
   | {
@@ -21,6 +29,8 @@ export interface StageRun {
   total: number;
   startedAt: number;
   endedAt: number | null;
+  /** What the server measured for the stage; `null` while it has told nothing. */
+  tookMs: number | null;
 }
 
 /** How a run stands. */

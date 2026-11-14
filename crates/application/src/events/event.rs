@@ -29,6 +29,8 @@ pub struct ScanProgressed {
     pub done: u32,
     /// Units in total, or zero if unknown.
     pub total: u32,
+    /// Milliseconds since the stage started, so that a screen need not time the stream itself.
+    pub elapsed_ms: u64,
 }
 
 /// A snapshot was persisted.

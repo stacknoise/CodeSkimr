@@ -36,6 +36,7 @@ fn types_and_languages_come_from_the_newest_snapshot() {
     assert_eq!(overview.languages.len(), 1);
     assert_eq!(overview.languages[0].language.as_str(), "csharp");
     assert_eq!(overview.languages[0].loc, 10);
+    assert_eq!(overview.languages[0].symbols, 2);
 }
 
 #[test]

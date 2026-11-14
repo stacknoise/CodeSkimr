@@ -601,6 +601,7 @@ impl ProjectCatalog for FakeCatalog {
                 language: LanguageId::new(name).unwrap(),
                 files: 3,
                 loc: 120,
+                symbols: 30,
             })
             .collect())
     }

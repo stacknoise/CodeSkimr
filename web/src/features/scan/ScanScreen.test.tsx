@@ -27,8 +27,8 @@ const ROW: ProjectRow = {
   types: 433,
   loc: 41_208,
   languages: [
-    { language: "csharp", files: 3000, loc: 38_000 },
-    { language: "xaml", files: 12, loc: 3208 },
+    { language: "csharp", files: 3000, loc: 38_000, symbols: 10, tier: "full" },
+    { language: "xaml", files: 12, loc: 3208, symbols: 10, tier: "full" },
   ],
   running: false,
 };
@@ -121,6 +121,37 @@ describe("ScanScreen", () => {
     expect(screen.getByText("C#")).toBeInTheDocument();
     expect(screen.getByText("38,000")).toBeInTheDocument();
     expect(screen.getByText("shop · full")).toBeInTheDocument();
+    stop();
+  });
+
+  it("lists tier, files, lines and symbols per language and the place of the scan", async () => {
+    setLanguage("en");
+    serve({
+      "projects.list": () =>
+        answer([
+          {
+            ...ROW,
+            branch: "main",
+            commit: "e07c4a1b9d",
+            languages: [
+              { language: "csharp", files: 3000, loc: 38_000, symbols: 9120, tier: "full" },
+              { language: "go", files: 12, loc: 3208, symbols: 212, tier: "basic" },
+              { language: "xaml", files: 4, loc: 80, symbols: 0, tier: null },
+            ],
+          },
+        ]),
+      "status.info": () => answer(STATUS),
+    });
+    const stop = await shown();
+    expect(
+      await screen.findByText("shop · main @ e07c4a1 · full (first scan)"),
+    ).toBeInTheDocument();
+    const table = screen.getByRole("table");
+    expect(within(table).getByText("Tier")).toBeInTheDocument();
+    expect(within(table).getByText("Symbols")).toBeInTheDocument();
+    expect(within(table).getByText("full")).toBeInTheDocument();
+    expect(within(table).getByText("basic")).toBeInTheDocument();
+    expect(within(table).getByText("9,120")).toBeInTheDocument();
     stop();
   });
 
@@ -231,6 +262,16 @@ describe("ScanScreen", () => {
     FakeSocket.last?.send({ type: "snapshot_created", project: 1, snapshot: 6 });
     expect(await screen.findByText("Scan finished")).toBeInTheDocument();
     expect(screen.getByText("100 %")).toBeInTheDocument();
+    stop();
+  });
+
+  it("shows the time a stage took as the server measured it", async () => {
+    setLanguage("en");
+    const stop = await shown();
+    FakeSocket.last?.send({ ...RUNNING, stage: "fetch", done: 1, total: 1, elapsed_ms: 1200 });
+    FakeSocket.last?.send({ ...RUNNING, stage: "analyze", elapsed_ms: 40 });
+    const pipeline = (await screen.findByText("Pipeline")).parentElement as HTMLElement;
+    expect(within(pipeline).getByText("1.2 s")).toBeInTheDocument();
     stop();
   });
 

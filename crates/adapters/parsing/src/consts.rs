@@ -128,3 +128,8 @@ pub const CALLABLE_KINDS: [SymbolKind; 3] = [
 
 /// Reason of the error when the thread that loads a pack panics.
 pub const LOAD_PANICKED: &str = "loading the pack panicked";
+
+/// Label of the full tier, as the language table shows it.
+pub const TIER_FULL: &str = "full";
+/// Label of the basic tier.
+pub const TIER_BASIC: &str = "basic";

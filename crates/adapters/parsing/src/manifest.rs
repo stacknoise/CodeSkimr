@@ -7,7 +7,7 @@ use std::path::Path;
 use codeskimr_domain::{LanguageId, RequirementFormat, RequirementSpec, ToolRole, ToolSpec};
 use serde::Deserialize;
 
-use crate::consts::MANIFEST_FILE;
+use crate::consts::{MANIFEST_FILE, TIER_BASIC, TIER_FULL};
 use crate::error::ParsingError;
 
 /// How much a language pack delivers (blueprint 8.2).
@@ -18,6 +18,17 @@ pub enum Tier {
     Full,
     /// Types and functions only.
     Basic,
+}
+
+impl Tier {
+    /// The word for the tier in the language table and on the wire.
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Full => TIER_FULL,
+            Self::Basic => TIER_BASIC,
+        }
+    }
 }
 
 /// A visibility that follows from the spelling of a name, such as the leading underscore of Python.

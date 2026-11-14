@@ -16,6 +16,9 @@ export interface LanguageInfo {
   language: string;
   files: number;
   loc: number;
+  symbols: number;
+  /** Tier of the language pack; `null` if no pack of that id is installed. */
+  tier: "full" | "basic" | null;
 }
 
 /** One tool that level 2 needs, and the languages of the project that need it. */

@@ -46,20 +46,24 @@ async fn frame(stream: &mut TcpStream) -> String {
     String::from_utf8(payload).unwrap()
 }
 
+/// A report of the analyze stage: three of ten files after a quarter of a second.
+fn progressed(project: ProjectId) -> Event {
+    Event::ScanProgressed(ScanProgressed {
+        project,
+        stage: StageKind::Analyze,
+        done: 3,
+        total: 10,
+        elapsed_ms: 250,
+    })
+}
+
 #[tokio::test]
 async fn events_arrive_as_json_in_order() {
     let server = start(owner()).await;
     let (mut stream, status) = open(&server, "").await;
     assert!(status.contains("101"), "{status}");
     let project = ProjectId::new(7);
-    server
-        .events
-        .publish(&Event::ScanProgressed(ScanProgressed {
-            project,
-            stage: StageKind::Analyze,
-            done: 3,
-            total: 10,
-        }));
+    server.events.publish(&progressed(project));
     server.events.publish(&Event::FilesChanged(FilesChanged {
         project,
         files: 2,
@@ -82,7 +86,7 @@ async fn events_arrive_as_json_in_order() {
     assert_eq!(
         seen,
         [
-            serde_json::json!({"type":"scan_progressed","project":7,"stage":"analyze","done":3,"total":10}),
+            serde_json::json!({"type":"scan_progressed","project":7,"stage":"analyze","done":3,"total":10,"elapsed_ms":250}),
             serde_json::json!({"type":"files_changed","project":7,"files":2,"rescan":true}),
             serde_json::json!({"type":"scan_stopped","project":7,"reason":"failed","code":"PRJ-201"}),
             serde_json::json!({"type":"scan_stopped","project":7,"reason":"cancelled","code":null}),

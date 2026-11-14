@@ -378,6 +378,8 @@ export const I18N_KEYS = {
   SCAN_MEMORY_VALUE: "scan-memory-value",
   SCAN_STAGE_COUNTS: "scan-stage-counts",
   SCAN_STAGE_TIME: "scan-stage-time",
+  SCAN_TIER_FULL: "scan-tier-full",
+  SCAN_TIER_BASIC: "scan-tier-basic",
   NAV_LABEL: "nav-label",
   NAV_PROJECTS: "nav-projects",
   NAV_EXPLORER: "nav-explorer",

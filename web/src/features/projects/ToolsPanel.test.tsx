@@ -50,7 +50,7 @@ const ROW: ProjectRow = {
   scan: null,
   types: 0,
   loc: 0,
-  languages: [{ language: "csharp", files: 3, loc: 38_000 }],
+  languages: [{ language: "csharp", files: 3, loc: 38_000, symbols: 10, tier: "full" }],
   running: false,
   tools: null,
 };

@@ -532,6 +532,29 @@ fn every_stage_reports_how_much_work_it_has_and_finishes_it() {
 }
 
 #[test]
+fn a_stage_reports_its_time_and_repeats_its_last_counts_when_it_is_over() {
+    let world = Arc::new(World::default());
+    let (_, events) = run(&world, ScanMode::Full);
+    for stage in StageKind::ALL {
+        let reports: Vec<_> = events
+            .iter()
+            .filter_map(|event| match event {
+                Event::ScanProgressed(p) if p.stage == *stage => Some(p),
+                _ => None,
+            })
+            .collect();
+        let [.., before, closing] = reports.as_slice() else {
+            panic!("{stage:?} reported less than twice");
+        };
+        assert_eq!((closing.done, closing.total), (before.done, before.total));
+        assert!(
+            closing.elapsed_ms >= before.elapsed_ms,
+            "{stage:?} ran backwards in time"
+        );
+    }
+}
+
+#[test]
 fn failing_stage_ends_the_job_without_a_snapshot() {
     for stage in StageKind::ALL {
         let world = Arc::new(World {
