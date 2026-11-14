@@ -5,6 +5,7 @@
 
 mod access;
 mod consts;
+mod coupling;
 mod error;
 mod file;
 mod fingerprint;
@@ -29,6 +30,7 @@ mod type_neighbours;
 mod vocabulary;
 
 pub use access::{Permission, PermissionSet, Principal};
+pub use coupling::coupling;
 pub use error::ModelError;
 pub use file::{ContentHash, FileId, LanguageId, Loc, RelativePath, SourceFile};
 pub use fingerprint::{Fingerprint, FingerprintParams, Fingerprints, TokenId, winnow};

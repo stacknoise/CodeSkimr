@@ -6,7 +6,7 @@ use codeskimr_domain::{
     CommitHash, Metric, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile,
     Symbol, Visibility,
 };
-use rusqlite::{Connection, Statement, params};
+use rusqlite::{Connection, params};
 
 use crate::codec::{SpanColumns, column_int};
 use crate::consts::{PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON};
@@ -110,9 +110,8 @@ fn insert_facts(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
     for reference in &data.references {
         insert_reference(&mut references, snapshot, reference)?;
     }
-    let mut metrics = conn.prepare_cached(sql::METRIC_INSERT)?;
     for metric in &data.metrics {
-        insert_metric(&mut metrics, metric)?;
+        insert_metric(conn, snapshot, metric)?;
     }
     similarity::insert_all(conn, &data.fingerprints)?;
     Ok(())
@@ -155,12 +154,24 @@ fn insert_symbol(conn: &Connection, symbol: &Symbol) -> StorageResult<()> {
     Ok(())
 }
 
-fn insert_metric(statement: &mut Statement<'_>, metric: &Metric) -> StorageResult<()> {
-    statement.execute(params![
-        column_int(metric.symbol.get())?,
-        metric.kind.label(),
-        metric.value.get(),
-    ])?;
+/// A metric of its own file is shared by all snapshots; coupling belongs to this snapshot alone
+/// (ADR 0037).
+fn insert_metric(conn: &Connection, snapshot: i64, metric: &Metric) -> StorageResult<()> {
+    let symbol = column_int(metric.symbol.get())?;
+    if metric.kind.is_per_snapshot() {
+        conn.prepare_cached(sql::COUPLING_INSERT)?.execute(params![
+            snapshot,
+            symbol,
+            metric.kind.label(),
+            metric.value.get(),
+        ])?;
+    } else {
+        conn.prepare_cached(sql::METRIC_INSERT)?.execute(params![
+            symbol,
+            metric.kind.label(),
+            metric.value.get(),
+        ])?;
+    }
     Ok(())
 }
 

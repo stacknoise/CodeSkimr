@@ -77,6 +77,7 @@ pub const SNAPSHOT_CONTENT_DELETE: &[&str] = &[
     "DELETE FROM search_index WHERE snapshot_id = ?1",
     "DELETE FROM usage_counts WHERE snapshot_id = ?1",
     "DELETE FROM layer_graph WHERE snapshot_id = ?1",
+    "DELETE FROM coupling_rows WHERE snapshot_id = ?1",
     "DELETE FROM files WHERE snapshot_id = ?1",
 ];
 /// The read models of a snapshot, emptied before they are built again: snapshot.
@@ -124,6 +125,10 @@ pub const REFERENCE_INSERT: &str = "INSERT INTO symbol_references (id, first_sna
 /// Adds a metric, replacing the one of the same symbol and kind: symbol, kind, value.
 pub const METRIC_INSERT: &str =
     "INSERT OR REPLACE INTO metric_rows (symbol_id, kind, value) VALUES (?1, ?2, ?3)";
+/// Adds a metric of one snapshot, replacing the one of the same symbol and kind: snapshot, symbol,
+/// kind, value.
+pub const COUPLING_INSERT: &str = "INSERT OR REPLACE INTO coupling_rows \
+    (snapshot_id, symbol_id, kind, value) VALUES (?1, ?2, ?3, ?4)";
 
 /// Whether a symbol is in a snapshot: snapshot, symbol.
 pub const SYMBOL_IN_SNAPSHOT: &str =

@@ -290,3 +290,57 @@ fn the_latest_index_holds_every_symbol_and_reference_or_nothing() {
     assert_eq!((index.symbols.len(), index.references.len()), (3, 1));
     assert_eq!(index.references[0].file, FileId::new(11));
 }
+
+/// The Ce values of the class `App.A` (id 21) in a snapshot.
+#[cfg(test)]
+fn ce_of_a(store: &codeskimr_storage::SqliteStore, snapshot: u64) -> Vec<f64> {
+    let key = SymbolKey::Id(symbol(21, 11, SymbolKind::Class, "x", None).id);
+    store
+        .symbol_detail(SnapshotId::new(snapshot), &key)
+        .unwrap()
+        .map(|detail| {
+            detail
+                .metrics
+                .iter()
+                .filter(|m| m.kind == MetricKind::EfferentCoupling)
+                .map(|m| m.value.get())
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Coupling depends on references across files, so every snapshot keeps its own values: a new
+/// value does not change an older snapshot, and a snapshot that computed none has none (ADR 0037).
+#[test]
+fn coupling_metrics_belong_to_their_snapshot() {
+    let store = registered();
+    let mut first = first_scan(10);
+    first
+        .metrics
+        .push(metric(21, MetricKind::EfferentCoupling, 1.0));
+    store.persist(first).unwrap();
+    let mut second = data(header(40, ScanMode::Incremental));
+    second
+        .metrics
+        .push(metric(21, MetricKind::EfferentCoupling, 5.0));
+    store.persist(second).unwrap();
+    store
+        .persist(data(header(50, ScanMode::Incremental)))
+        .unwrap();
+    assert_eq!(ce_of_a(&store, 10), vec![1.0]);
+    assert_eq!(ce_of_a(&store, 40), vec![5.0]);
+    assert_eq!(ce_of_a(&store, 50), Vec::<f64>::new());
+}
+
+#[test]
+fn pruning_a_snapshot_removes_its_coupling_rows() {
+    let store = common::store(1);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    let mut first = first_scan(10);
+    first
+        .metrics
+        .push(metric(21, MetricKind::EfferentCoupling, 1.0));
+    store.persist(first).unwrap();
+    store.persist(first_scan(20)).unwrap();
+    assert_eq!(ce_of_a(&store, 10), Vec::<f64>::new());
+}
