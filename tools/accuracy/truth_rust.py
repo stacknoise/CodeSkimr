@@ -10,6 +10,8 @@ that CodeSkimr uses for level 2: the answers come from the language server alone
 """
 import json, os, re, subprocess, sys, time
 from pathlib import Path
+from urllib.parse import unquote, urlparse
+from urllib.request import url2pathname
 
 START_TIMEOUT_SECONDS = 1800
 REQUEST_TIMEOUT_SECONDS = 120
@@ -76,6 +78,15 @@ def name_position(lines, target):
     return None
 
 
+def uri_path(uri):
+    """Local path of a `file:` URI: percent escapes decoded, a Windows drive (`file:///c%3A/x`) handled."""
+    parsed = urlparse(uri)
+    path = unquote(parsed.path)
+    if re.match(r"^/[A-Za-z]:", path):
+        path = url2pathname(parsed.path)
+    return Path(path).resolve()
+
+
 def utf16(text, column):
     return len(text[:column].encode("utf-16-le")) // 2
 
@@ -113,7 +124,7 @@ def main():
                 "position": {"line": line, "character": utf16(lines[line], column)},
                 "context": {"includeDeclaration": False}}) or []
             for ref in result:
-                file = Path(ref["uri"].removeprefix("file://")).resolve()
+                file = uri_path(ref["uri"])
                 if file.is_relative_to(workspace) and (source / file.relative_to(workspace)).exists():
                     uses.add((str(file.relative_to(workspace)).replace("\\", "/"), ref["range"]["start"]["line"] + 1))
         out.append(sorted(uses))

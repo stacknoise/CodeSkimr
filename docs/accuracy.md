@@ -40,7 +40,7 @@ Numbers over all drawn symbols: precision = usages of ours that the tool confirm
 
 ## Results
 
-First measurement for Rust and Java (150 symbols, seed 1, 2026-11-14, level 1, all references; CodeSkimr at the commit of `main` from that day):
+First measurement for Rust and Java (150 symbols, seed 1, 2026-11-14, level 1, all references; CodeSkimr built from `main` at 8c83933). Corpora: Rust = CodeSkimr at `bcc970e90cb99c2d052457f79090a78194dfaa8e`, Java = gson at `a961b0fe088f8558d00cc1b56e506a3656907a91`. Tools: rust-analyzer 1.97.0 (2d8144b 2026-07-07), JDK 21.0.12 (`javac` 21.0.12.1, compiled with `--release 17`):
 
 | Language | symbols | usages ours / tool | exact | precision ("correct") | recall |
 |---|---|---|---|---|---|

@@ -136,7 +136,7 @@ def main():
         targets = [{"file": files[symbols[i][1]].replace("\\", "/"), "line": symbols[i][5] + 1, "column": symbols[i][6], "name": symbols[i][3]} for i in picked]
         sets = truth(opt.language, tmp / "src", src, targets)
     rows, exact, tp, fp, fn = [], 0, 0, 0, 0
-    wrong_kinds, missed_kinds = {}, {}
+    wrong_kinds = {}
     for i, t, real in zip(picked, targets, sets):
         mine = used.get(i, set())
         real = {x for x in real if x != (t["file"], t["line"])}
