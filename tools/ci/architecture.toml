@@ -15,6 +15,8 @@ codeskimr_storage = ["codeskimr_application", "codeskimr_domain", "codeskimr_cod
 codeskimr_source = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes"]
 # Build script embeds the Fluent files with the generator (WP-16).
 codeskimr_i18n = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes", "codeskimr_codegen"]
+# Level 2 import of SCIP indexes (ADR 0033): pure mapping over domain types, no other adapter.
+codeskimr_scip = ["codeskimr_domain", "codeskimr_codes"]
 codeskimr_secrets = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes"]
 codeskimr_server = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes", "codeskimr_i18n"]
 codeskimr_cli = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes", "codeskimr_i18n"]

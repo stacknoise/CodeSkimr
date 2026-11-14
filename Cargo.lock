@@ -509,6 +509,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "codeskimr_scip"
+version = "0.1.0"
+dependencies = [
+ "codeskimr_codes",
+ "codeskimr_domain",
+ "tempfile",
+ "thiserror",
+]
+
+[[package]]
 name = "codeskimr_secrets"
 version = "0.1.0"
 dependencies = [

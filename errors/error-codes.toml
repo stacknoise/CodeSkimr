@@ -259,11 +259,35 @@ description = "Parsing a single file exceeded the configured time limit."
 since = "0.1.0"
 
 [[codes]]
+id = "RES-101"
+name = "scip_index_invalid"
+severity = "error"
+retryable = false
+description = "A SCIP index cannot be read, is corrupt or names a path outside the project; level 1 references stay."
+since = "0.1.0"
+
+[[codes]]
 id = "RES-301"
 name = "ambiguous_reference"
 severity = "warning"
 retryable = false
 description = "A reference matches several symbols; it was stored as probable."
+since = "0.1.0"
+
+[[codes]]
+id = "RES-302"
+name = "scip_mapping_too_low"
+severity = "error"
+retryable = false
+description = "Too few occurrences of a SCIP index map onto project symbols; level 1 references stay."
+since = "0.1.0"
+
+[[codes]]
+id = "RES-501"
+name = "scip_index_too_large"
+severity = "error"
+retryable = false
+description = "A SCIP index is larger than the configured limit and was refused; level 1 references stay."
 since = "0.1.0"
 
 [[codes]]

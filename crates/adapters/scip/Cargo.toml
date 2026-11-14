@@ -1,0 +1,20 @@
+[package]
+name = "codeskimr_scip"
+description = "Level 2 references: decodes SCIP indexes and maps their occurrences onto project symbols."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[dependencies]
+codeskimr_domain = { path = "../../domain" }
+codeskimr_codes = { path = "../../codes" }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

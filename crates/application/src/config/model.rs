@@ -27,6 +27,8 @@ pub struct Config {
     pub conventions: Conventions,
     /// Scan behaviour.
     pub scan: Scan,
+    /// Level 2 references from SCIP indexes.
+    pub level2: Level2,
     /// The local server.
     pub server: Server,
     /// The link that opens a source position in the editor.
@@ -169,6 +171,17 @@ pub struct Scan {
     pub parse_timeout_ms: u32,
     /// Largest total size of the scanned files of one source, in megabytes.
     pub max_source_mb: u32,
+}
+
+/// Limits of the SCIP import (ADR 0033).
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Level2 {
+    /// Largest index file that is read, in bytes.
+    pub max_index_bytes: u64,
+    /// Smallest share `mapped / (mapped + unmapped)` among the uses of project symbols (symbols
+    /// the index defines itself; library symbols are not counted), from 0 to 1.
+    pub min_mapped: f64,
 }
 
 /// The local server (blueprint 10.3).

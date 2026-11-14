@@ -25,7 +25,10 @@ export type ErrorCode =
   | "PRS-201"
   | "PRS-301"
   | "PRS-501"
+  | "RES-101"
   | "RES-301"
+  | "RES-302"
+  | "RES-501"
   | "IDX-301"
   | "STO-301"
   | "STO-302"
@@ -110,7 +113,10 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "PRS-201": { id: "PRS-201", name: "language_pack_missing", group: "PRS", class: "not_found", severity: "error", retryable: false, description: "No language pack is installed for this file type.", since: "0.1.0", deprecated: false, messageKey: "error-PRS-201" },
   "PRS-301": { id: "PRS-301", name: "language_pack_invalid", group: "PRS", class: "conflict", severity: "error", retryable: false, description: "A language pack's TOML or query files are invalid.", since: "0.1.0", deprecated: false, messageKey: "error-PRS-301" },
   "PRS-501": { id: "PRS-501", name: "parse_timeout", group: "PRS", class: "limit", severity: "error", retryable: false, description: "Parsing a single file exceeded the configured time limit.", since: "0.1.0", deprecated: false, messageKey: "error-PRS-501" },
+  "RES-101": { id: "RES-101", name: "scip_index_invalid", group: "RES", class: "invalid_input", severity: "error", retryable: false, description: "A SCIP index cannot be read, is corrupt or names a path outside the project; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-101" },
   "RES-301": { id: "RES-301", name: "ambiguous_reference", group: "RES", class: "conflict", severity: "warning", retryable: false, description: "A reference matches several symbols; it was stored as probable.", since: "0.1.0", deprecated: false, messageKey: "error-RES-301" },
+  "RES-302": { id: "RES-302", name: "scip_mapping_too_low", group: "RES", class: "conflict", severity: "error", retryable: false, description: "Too few occurrences of a SCIP index map onto project symbols; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-302" },
+  "RES-501": { id: "RES-501", name: "scip_index_too_large", group: "RES", class: "limit", severity: "error", retryable: false, description: "A SCIP index is larger than the configured limit and was refused; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-501" },
   "IDX-301": { id: "IDX-301", name: "read_model_stale", group: "IDX", class: "conflict", severity: "info", retryable: false, description: "A read model is older than the current snapshot and is being rebuilt.", since: "0.1.0", deprecated: false, messageKey: "error-IDX-301" },
   "STO-301": { id: "STO-301", name: "schema_migration_failed", group: "STO", class: "conflict", severity: "error", retryable: false, description: "Applying a database migration failed.", since: "0.1.0", deprecated: false, messageKey: "error-STO-301" },
   "STO-302": { id: "STO-302", name: "transaction_conflict", group: "STO", class: "conflict", severity: "error", retryable: true, description: "A concurrent write conflicted; the operation can be retried.", since: "0.1.0", deprecated: false, messageKey: "error-STO-302" },

@@ -68,7 +68,10 @@ Owner: `codeskimr_parsing`
 
 | Code | Name | Severity | Retryable | Since | Description |
 |---|---|---|---|---|---|
+| RES-101 | `scip_index_invalid` | error | no | 0.1.0 | A SCIP index cannot be read, is corrupt or names a path outside the project; level 1 references stay. |
 | RES-301 | `ambiguous_reference` | warning | no | 0.1.0 | A reference matches several symbols; it was stored as probable. |
+| RES-302 | `scip_mapping_too_low` | error | no | 0.1.0 | Too few occurrences of a SCIP index map onto project symbols; level 1 references stay. |
+| RES-501 | `scip_index_too_large` | error | no | 0.1.0 | A SCIP index is larger than the configured limit and was refused; level 1 references stay. |
 
 ## IDX – Search and read models
 

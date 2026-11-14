@@ -9,6 +9,7 @@ members = [
     "crates/adapters/source",
     "crates/adapters/secrets",
     "crates/adapters/i18n",
+    "crates/adapters/scip",
     "crates/server",
     "crates/cli",
     "crates/mcp",
