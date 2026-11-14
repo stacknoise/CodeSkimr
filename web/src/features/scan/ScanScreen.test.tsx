@@ -135,6 +135,36 @@ describe("ScanScreen", () => {
     stop();
   });
 
+  it("shows no more cores than there are files to analyse", async () => {
+    setLanguage("en");
+    const stop = await shown();
+    await screen.findByText("No scan running");
+    FakeSocket.last?.send({ ...RUNNING, done: 1, total: 3 });
+    const label = await screen.findByText("Cores active");
+    expect(label.previousElementSibling?.textContent).toBe("3");
+    stop();
+  });
+
+  it("leaves a running scan alone when Esc is pressed in a field or was already used", async () => {
+    setLanguage("en");
+    serve({
+      "projects.list": () => answer([ROW]),
+      "status.info": () => answer(STATUS),
+      "projects.cancel": () => answer({ cancelled: true }),
+    });
+    const stop = await shown();
+    FakeSocket.last?.send(RUNNING);
+    await screen.findByRole("button", { name: /Cancel/ });
+    const field = document.body.appendChild(document.createElement("input"));
+    fireEvent.keyDown(field, { key: "Escape" });
+    const used = new KeyboardEvent("keydown", { key: "Escape", cancelable: true });
+    used.preventDefault();
+    document.dispatchEvent(used);
+    expect(cancelCalls()).toEqual([]);
+    field.remove();
+    stop();
+  });
+
   it("cancels the running scan with the button and with Esc", async () => {
     setLanguage("en");
     serve({

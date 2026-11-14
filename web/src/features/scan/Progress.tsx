@@ -50,14 +50,21 @@ function Memory() {
   );
 }
 
-/** The threads of the analyze stage while a scan runs; nothing is active otherwise. */
-function Cores(props: { running: boolean }) {
+/** The threads of the analyze stage while a scan runs (never more than there are files to
+ * analyse); nothing is active otherwise. */
+function Cores(props: { run: Run }) {
+  const active = () => {
+    const workers = statusInfo()?.workers;
+    if (props.run.state !== STATE.running || workers == null) {
+      return null;
+    }
+    const total = files(props.run)?.total;
+    return total === undefined ? workers : Math.min(workers, total);
+  };
   return (
     <Metric
       value={
-        props.running && statusInfo()?.workers != null
-          ? count(statusInfo()?.workers ?? 0, currentLanguage())
-          : t(I18N_KEYS.SCAN_UNAVAILABLE)
+        active() === null ? t(I18N_KEYS.SCAN_UNAVAILABLE) : count(active() ?? 0, currentLanguage())
       }
       label={t(I18N_KEYS.SCAN_METRIC_CORES)}
     />
@@ -94,7 +101,7 @@ export function Progress(props: { run: Run; linesPerSecond: number | null }) {
           value={rate(props.linesPerSecond)}
           label={t(I18N_KEYS.SCAN_METRIC_LINES_PER_SECOND)}
         />
-        <Cores running={props.run.state === STATE.running} />
+        <Cores run={props.run} />
         <Memory />
       </div>
     </div>

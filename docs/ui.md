@@ -79,7 +79,7 @@ Screenshots (1440 x 900): [Hell](screenshots/status-hell.png), [Petrol](screensh
 ## Scan and performance (screen 5, issues #153, #168)
 
 - Cancel: while a scan runs, the header shows the button "Cancel" with the key `Esc` (not while typing in a field). It calls `projects.cancel`; the screen changes when the event stream reports `scan_stopped` with `cancelled`, so a cancel that came too late changes nothing. The scan ends without a snapshot; the call that started it answers `PRJ-303` ("The scan was cancelled").
-- Cores: the fourth figure shows the threads of the analyze stage (`status.info` `workers`, one per core the system offers) while a scan runs and a dash otherwise.
+- Cores: the fourth figure shows the threads of the analyze stage while a scan runs and a dash otherwise: the cores the system offers (`status.info` `workers`), but never more than there are files to analyse, because the stage starts no more threads than that.
 - Deviations from the mock: the language table has no columns for tier, symbols and parse time, the pipeline stage is called "Save" and not "Symbols and members", and branch and commit are not shown for folder projects (follow-up issue).
 
 ## Dependency map (screen 3, issue #163)
