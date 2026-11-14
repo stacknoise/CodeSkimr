@@ -50,20 +50,20 @@ name = "packs"
 visibility = "private"
 parent = "TreeSitterAnalyzer"
 
-# A function of a trait implementation is public.
+# A function of a trait implementation is public; the methods of an `impl` belong to its type (ADR 0037).
 [[sample]]
 file = "crates/adapters/parsing/src/analyzer.rs"
 kind = "method"
 name = "analyze"
 visibility = "public"
-parent = "analyzer"
+parent = "TreeSitterAnalyzer"
 
 [[sample]]
 file = "crates/adapters/parsing/src/pack.rs"
 kind = "method"
 name = "kind_in"
 visibility = "internal"
-parent = "pack"
+parent = "LanguagePack"
 
 [[sample]]
 file = "crates/adapters/storage/src/detail.rs"

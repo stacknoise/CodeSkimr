@@ -42,6 +42,9 @@ pub const SIGNATURE_CAPTURE: &str = "signature";
 /// Capture of the node whose end closes the scope of a declaration that does not enclose its
 /// members itself, such as a file-scoped namespace.
 pub const SCOPE_END_CAPTURE: &str = "scope_end";
+/// Capture of a block that is no symbol but belongs to the type its `@name` capture names, such as
+/// a Rust `impl` block (ADR 0037).
+pub const CONTAINER_CAPTURE: &str = "container";
 /// Capture of a receiver that is a name: a variable, a field or a type.
 pub const RECEIVER_CAPTURE: &str = "receiver";
 /// Capture of the type name of a receiver that is a creation expression.
@@ -159,6 +162,11 @@ pub const NAMING_RULES_SEPARATOR: &str = ";";
 pub const NAMING_FILE_IN_NAMES: &str = "file";
 /// Rule of a pack whose qualified names start with its own namespaces (ADR 0036).
 pub const NAMING_NAMESPACED: &str = "namespace";
+
+/// Revision of the naming rules of the engine itself, part of the text of the naming rules: it
+/// changes when names change for reasons other than a pack key (2: members of an `impl` carry
+/// their type, ADR 0037).
+pub const NAMING_REVISION: &str = "revision=2";
 
 /// Ends a signature that was cut at `scan.max_signature_chars`.
 pub const SIGNATURE_CUT: &str = "…";

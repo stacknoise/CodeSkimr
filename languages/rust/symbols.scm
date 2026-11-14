@@ -1,8 +1,10 @@
 ; Rust declarations -> symbol kinds (blueprint 8.1, ADR 0026). `///` and `/** */` comments directly
 ; above a declaration (attributes may sit in between) are its documentation; the tokens of a
 ; visibility modifier (`pub`, `crate`, `super`, `self`, `in`) are the visibility words.
-; `impl` blocks are no symbols, so a function inside one is a method of the enclosing module (a
-; `for` in the head makes the methods of a trait implementation public, see language.toml).
+; `impl` blocks are no symbols but containers (ADR 0037): their members belong to the type the block
+; names, so a function inside one is a method of that type (`mod::Type::method`; the type is its
+; parent if it is declared in the same module). A `for` in the head makes the methods of a trait
+; implementation public, see language.toml.
 
 ; Declarations that look the same wherever they stand. Documentation is not queried: the adapter
 ; takes the comments before the declaration (`doc_before_declaration` in language.toml), because a
@@ -58,3 +60,8 @@
 ; Methods of a trait: with a default body or only a signature
 (trait_item body: (declaration_list [(function_item name: (identifier) @name ) @symbol.method (function_signature_item name: (identifier) @name ) @symbol.method]))
 (trait_item body: (declaration_list [(function_item name: (identifier) @name parameters: [(parameters . (parameter)) (parameters . "(" . ")")] @static) @symbol.method (function_signature_item name: (identifier) @name parameters: [(parameters . (parameter)) (parameters . "(" . ")")] @static) @symbol.method]))
+
+; The type an `impl` block belongs to: `impl Foo`, `impl Trait for Foo` and `impl<T> Foo<T>`. Other
+; heads (`impl Trait for &Foo`, `impl Foo<T> for [T]`, a path such as `a::Foo`) have no container;
+; their members stay with the enclosing module.
+(impl_item type: [(type_identifier) @name (generic_type type: (type_identifier) @name)]) @container
