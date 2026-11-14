@@ -8,7 +8,7 @@ use codeskimr_application::config::{Conventions, McpLimits};
 use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    AnalyzeRequest, Clock, CodeIndex, DependencyEdge, DependencyPage, DependencyQuery,
+    AnalyzeRequest, Clock, CodeIndex, CodeSpan, DependencyEdge, DependencyPage, DependencyQuery,
     DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, ImpactPage, ImpactedSymbol,
     LanguageShare, MemberRef, PreviousIndex, ProjectCatalog, ProjectOverview, ProjectRepository,
     ProjectScanner, ProjectToolCheck, SearchHit, SimilarHit, SimilarQuery, SimilarityIndex,
@@ -127,6 +127,15 @@ impl CodeIndex for FakeIndex {
             SymbolKey::Qualified(name) => name.as_str() == "App.Domain.Order",
         };
         Ok(found.then(detail))
+    }
+
+    fn code_spans(
+        &self,
+        _snapshot: SnapshotId,
+        _path: &RelativePath,
+        _lines: (u32, u32),
+    ) -> Result<Vec<CodeSpan>, CodedError> {
+        Ok(Vec::new())
     }
 
     fn layer_edges(&self, _snapshot: SnapshotId) -> Result<Vec<LayerEdge>, CodedError> {

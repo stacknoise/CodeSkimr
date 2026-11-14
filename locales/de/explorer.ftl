@@ -61,6 +61,7 @@ explorer-metric-fields = Felder u. a.
 explorer-metric-fields-tip = Felder, Konstanten, Ereignisse und Enum-Werte
 explorer-metric-methods = Methoden
 explorer-metric-methods-tip = Methoden, Konstruktoren und Funktionen
+explorer-source-name-hint = Alt+Klick: Verwendungen
 explorer-source-label = Quelltext
 explorer-source-loading = Quelltext wird gelesen …
 explorer-source-failed = Der Quelltext konnte nicht gelesen werden.

@@ -12,6 +12,7 @@ import {
   currentMember,
   currentType,
   loadOutline,
+  stepMember,
   outlineError,
   outlineLoading,
   symbolDetails,
@@ -141,6 +142,12 @@ export function ExplorerScreen() {
       const project = activeProject();
       if (symbol !== null && project !== null) {
         void showInGraph(project, symbol);
+      }
+    },
+    member: (step) => {
+      const project = activeProject();
+      if (project !== null) {
+        void stepMember(project, step);
       }
     },
     editor: () => {

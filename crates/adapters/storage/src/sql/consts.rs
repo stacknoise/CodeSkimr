@@ -229,6 +229,12 @@ pub const DEPENDENCIES_INCOMING: &str = "WITH RECURSIVE scope(id) AS (SELECT ?2 
     WHERE r.snapshot_id = ?1 AND r.to_symbol IN (SELECT id FROM scope) \
     AND r.from_symbol NOT IN (SELECT id FROM scope) AND (?3 OR r.kind <> ?4) \
     GROUP BY t.id ORDER BY COUNT(*) DESC, t.qualified_name, t.id";
+/// The one-line references of a file in a range of lines: snapshot, path, first line, last line.
+pub const SPANS_IN_LINES: &str = "SELECT r.to_symbol, r.start_line, r.start_column, r.end_line, \
+    r.end_column FROM snapshot_references r \
+    JOIN files f ON f.snapshot_id = r.snapshot_id AND f.id = r.file_id \
+    WHERE r.snapshot_id = ?1 AND f.path = ?2 AND r.start_line >= ?3 AND r.start_line <= ?4 \
+    AND r.end_line = r.start_line ORDER BY r.start_line, r.start_column, r.id";
 /// Summary of one type: snapshot, symbol.
 pub const TYPE_SUMMARY: &str = "SELECT member_count, loc, max_complexity, maintainability \
     FROM type_summary WHERE snapshot_id = ?1 AND symbol_id = ?2";

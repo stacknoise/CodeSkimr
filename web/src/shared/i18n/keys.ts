@@ -195,6 +195,7 @@ export const I18N_KEYS = {
   EXPLORER_METRIC_FIELDS_TIP: "explorer-metric-fields-tip",
   EXPLORER_METRIC_METHODS: "explorer-metric-methods",
   EXPLORER_METRIC_METHODS_TIP: "explorer-metric-methods-tip",
+  EXPLORER_SOURCE_NAME_HINT: "explorer-source-name-hint",
   EXPLORER_SOURCE_LABEL: "explorer-source-label",
   EXPLORER_SOURCE_LOADING: "explorer-source-loading",
   EXPLORER_SOURCE_FAILED: "explorer-source-failed",

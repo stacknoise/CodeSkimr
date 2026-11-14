@@ -3,7 +3,7 @@
 
 use codeskimr_domain::{
     LayerEdge, Metric, NamespaceGraph, ProjectId, QualifiedName, RelativePath, Snapshot,
-    SnapshotId, Symbol, SymbolId, SymbolKind, SymbolName,
+    SnapshotId, Span, Symbol, SymbolId, SymbolKind, SymbolName,
 };
 
 use crate::error::CodedError;
@@ -24,6 +24,15 @@ pub struct SearchHit {
     pub path: RelativePath,
     /// The enclosing symbol, `None` for top-level symbols.
     pub parent: Option<SymbolId>,
+}
+
+/// A place in a file where a symbol is named, as the source column of the explorer shows it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CodeSpan {
+    /// The symbol that is named there.
+    pub to: SymbolId,
+    /// Where the name stands.
+    pub span: Span,
 }
 
 /// How a caller names one symbol.
@@ -90,6 +99,18 @@ pub trait CodeIndex: Send + Sync {
         snapshot: SnapshotId,
         key: &SymbolKey,
     ) -> Result<Option<SymbolDetail>, CodedError>;
+
+    /// The places in the lines `first..=last` (zero-based) of a file where a symbol is named,
+    /// in the order of the text. A file or line without references gives none.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn code_spans(
+        &self,
+        snapshot: SnapshotId,
+        path: &RelativePath,
+        lines: (u32, u32),
+    ) -> Result<Vec<CodeSpan>, CodedError>;
 
     /// The dependency map of a snapshot, aggregated per pair of layers.
     ///

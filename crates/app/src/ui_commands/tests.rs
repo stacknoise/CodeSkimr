@@ -910,3 +910,39 @@ fn the_graph_of_an_unknown_project_is_refused() {
         Err("PRJ-201")
     );
 }
+
+#[test]
+fn the_source_names_the_places_where_a_symbol_is_used() {
+    let fixture = Fixture::new();
+    fs::write(fixture.root.path().join("app/Checkout.cs"), CALLER).unwrap();
+    let project = added(&fixture);
+    let checkout = type_named(&fixture, project, "Checkout");
+    let total = fixture
+        .call(
+            "explorer.symbol",
+            json!({ "project": project, "symbol": checkout }),
+        )
+        .unwrap()["members"][0]["id"]
+        .clone();
+    let add = member_id(&fixture, project, "Add");
+    let shown = fixture
+        .call(
+            "explorer.source",
+            json!({ "project": project, "symbol": total }),
+        )
+        .unwrap();
+    let lines = shown["lines"].as_array().unwrap();
+    let call = shown["spans"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|span| span["symbol"] == add)
+        .expect("the call of Add is a place");
+    let line = lines[call["line"].as_u64().unwrap() as usize]
+        .as_str()
+        .unwrap();
+    let chars: Vec<char> = line.chars().collect();
+    let start = call["start"].as_u64().unwrap() as usize;
+    let end = call["end"].as_u64().unwrap() as usize;
+    assert_eq!(chars[start..end].iter().collect::<String>(), "Add");
+}

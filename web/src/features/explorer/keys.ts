@@ -1,6 +1,6 @@
 import { isEditorShortcut } from "../../shared/editor/editor";
 import { isTyping, useKeydown } from "../../shared/keys/keydown";
-import { KEY, NOT_FOUND } from "./consts";
+import { KEY, MEMBER_STEP, NOT_FOUND } from "./consts";
 import type { TreeRow } from "./tree";
 
 /** What the document-wide keys of the explorer do. */
@@ -13,6 +13,8 @@ export interface ExplorerKeys {
   graph: () => void;
   /** Opens the selected symbol in the editor. */
   editor: () => void;
+  /** Selects the previous (`-1`) or next (`1`) member of the shown type. */
+  member: (step: number) => void;
 }
 
 /** The lower-case key of a press without a modifier and outside a field, or `null`. */
@@ -29,6 +31,14 @@ export function useExplorerKeys(keys: ExplorerKeys): void {
       keys.editor();
       event.preventDefault();
       return;
+    }
+    if (event.altKey && !event.ctrlKey && !event.metaKey && !isTyping(event.target)) {
+      const step = MEMBER_STEP[event.key];
+      if (step !== undefined) {
+        keys.member(step);
+        event.preventDefault();
+        return;
+      }
     }
     const plain = plainKey(event);
     if (plain === KEY.usages) {

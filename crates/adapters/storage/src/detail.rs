@@ -2,7 +2,7 @@
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    CodeIndex, MemberRef, SearchHit, SymbolDetail, SymbolKey, TypeFocus,
+    CodeIndex, CodeSpan, MemberRef, SearchHit, SymbolDetail, SymbolKey, TypeFocus,
 };
 use codeskimr_domain::{
     FileId, LayerEdge, Metric, MetricValue, NamespaceGraph, ProjectId, QualifiedName, RelativePath,
@@ -175,7 +175,40 @@ impl SqliteStore {
     }
 }
 
+/// The places in the lines of a file where a symbol is named.
+fn code_spans(
+    conn: &Connection,
+    snapshot: i64,
+    path: &RelativePath,
+    (first, last): (u32, u32),
+) -> StorageResult<Vec<CodeSpan>> {
+    let mut prepared = conn.prepare_cached(sql::SPANS_IN_LINES)?;
+    let rows = prepared.query_map(params![snapshot, path.as_str(), first, last], |row| {
+        let cols = Cols::new(row);
+        Ok((cols.take::<i64>()?, SpanColumns::read(&cols)?))
+    })?;
+    let mut spans = Vec::new();
+    for row in rows {
+        let (to, columns) = row?;
+        spans.push(CodeSpan {
+            to: SymbolId::new(id_from(to)?),
+            span: columns.span()?,
+        });
+    }
+    Ok(spans)
+}
+
 impl CodeIndex for SqliteStore {
+    fn code_spans(
+        &self,
+        snapshot: SnapshotId,
+        path: &RelativePath,
+        lines: (u32, u32),
+    ) -> Result<Vec<CodeSpan>, CodedError> {
+        self.read(|conn| code_spans(conn, column_int(snapshot.get())?, path, lines))
+            .map_err(CodedError::from)
+    }
+
     fn latest_snapshot(&self, project: ProjectId) -> Result<Option<Snapshot>, CodedError> {
         Self::latest_snapshot(self, project)
     }
