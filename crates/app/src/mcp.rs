@@ -15,6 +15,7 @@ use codeskimr_cli::{GlobalOptions, McpArgs};
 use codeskimr_codes::ErrorCode;
 use codeskimr_i18n::Messages;
 use codeskimr_mcp::{HttpService, McpServer, Ports, Tools, serve_stdio};
+use codeskimr_source::FolderKeys;
 use codeskimr_storage::SqliteStore;
 
 use crate::clock::SystemClock;
@@ -189,5 +190,7 @@ fn build_ports(
         catalog,
         tool_check,
         messages,
+        keys: Arc::new(FolderKeys),
+        key_sources: config.keys.clone(),
     })
 }

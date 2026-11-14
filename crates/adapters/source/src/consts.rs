@@ -68,3 +68,36 @@ pub const FIRST_LINE: u32 = 1;
 
 /// Marks a line of a plain-text requirement file as a comment.
 pub const REQUIREMENT_COMMENT: char = '#';
+
+/// Bytes in a kilobyte, for the size limit of key files.
+pub const BYTES_PER_KB: u64 = 1024;
+
+/// Extension of the configuration files whose keys are listed.
+pub const CONFIG_EXTENSION: &str = "toml";
+
+/// Extension of the translation files whose message ids are listed.
+pub const FLUENT_EXTENSION: &str = "ftl";
+
+/// Ends a line in the key files.
+pub const LINE_END_CHAR: char = '\n';
+
+/// Opens a TOML table header.
+pub const TABLE_OPEN: char = '[';
+
+/// Closes a TOML table header.
+pub const TABLE_CLOSE: char = ']';
+
+/// Starts a comment line in a TOML file.
+pub const COMMENT_START: char = '#';
+
+/// Separates a key from its value in TOML and Fluent.
+pub const ASSIGNMENT: char = '=';
+
+/// Quotes a TOML key.
+pub const QUOTE: char = '"';
+
+/// Joins a table name and a key to the dotted key path.
+pub const KEY_SEPARATOR: &str = ".";
+
+/// Characters besides letters and digits that a Fluent message id may contain.
+pub const NAME_EXTRA: &str = "-_";

@@ -89,6 +89,10 @@ pub mod keys {
     pub const LAYERS: &str = "layers";
     /// `conventions.max_function_lines`
     pub const MAX_FUNCTION_LINES: &str = "conventions.max_function_lines";
+    /// `keys.max_files`
+    pub const KEYS_MAX_FILES: &str = "keys.max_files";
+    /// `keys.max_file_kb`
+    pub const KEYS_MAX_FILE_KB: &str = "keys.max_file_kb";
     /// `conventions.duplicate_similarity_percent`
     pub const DUPLICATE_SIMILARITY_PERCENT: &str = "conventions.duplicate_similarity_percent";
     /// `conventions.duplicate_min_lines`

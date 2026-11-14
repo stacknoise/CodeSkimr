@@ -4,16 +4,16 @@
 use std::sync::{Arc, Mutex};
 
 use codeskimr_application::cancel::CancelToken;
-use codeskimr_application::config::{Conventions, McpLimits};
+use codeskimr_application::config::{Conventions, KeySources, McpLimits};
 use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, CodeIndex, CodeSpan, DependencyEdge, DependencyPage, DependencyQuery,
     DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, FileHit, ImpactPage, ImpactedSymbol,
-    LanguageShare, MemberRef, PreviousIndex, ProjectCatalog, ProjectOverview, ProjectRepository,
-    ProjectScanner, ProjectToolCheck, SearchHit, SimilarHit, SimilarQuery, SimilarityIndex,
-    SnippetFingerprinter, SymbolDetail, SymbolKey, SymbolLabel, TypeFocus, UsageEntry, UsageIndex,
-    UsagePage,
+    KeyEntry, KeyKind, KeySearch, LanguageShare, MemberRef, PreviousIndex, ProjectCatalog,
+    ProjectKeys, ProjectOverview, ProjectRepository, ProjectScanner, ProjectToolCheck, SearchHit,
+    SimilarHit, SimilarQuery, SimilarityIndex, SnippetFingerprinter, SymbolDetail, SymbolKey,
+    SymbolLabel, TypeFocus, UsageEntry, UsageIndex, UsagePage,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
@@ -601,6 +601,8 @@ fn assemble(
             catalog: Arc::new(FakeCatalog),
             tool_check,
             messages: Arc::new(Messages::load().unwrap()),
+            keys: Arc::new(FakeKeys),
+            key_sources: key_sources(),
         },
         limits(),
         PROJECT,
@@ -691,5 +693,39 @@ impl ProjectToolCheck for FakeToolCheck {
 
     fn stored(&self, _project: ProjectId) -> Result<Option<ToolReport>, CodedError> {
         self.check(PROJECT).map(Some)
+    }
+}
+
+pub fn key_sources() -> KeySources {
+    KeySources {
+        config_folders: vec!["config".to_owned()],
+        i18n_folders: vec!["locales".to_owned()],
+        max_files: 10,
+        max_file_kb: 1,
+    }
+}
+
+/// The keys of the project: two configuration keys and one translation key.
+pub struct FakeKeys;
+
+impl ProjectKeys for FakeKeys {
+    fn keys(&self, _: &FolderPath, _: &KeySearch) -> Result<Vec<KeyEntry>, CodedError> {
+        let key = |name: &str, kind, path: &str, line| KeyEntry {
+            name: name.to_owned(),
+            kind,
+            path: RelativePath::new(path).unwrap(),
+            line,
+        };
+        Ok(vec![
+            key(
+                "mcp.default_limit",
+                KeyKind::Config,
+                "config/default.toml",
+                4,
+            ),
+            key("mcp.max_limit", KeyKind::Config, "config/default.toml", 5),
+            key("error-LIMIT-1", KeyKind::I18n, "locales/en/errors.ftl", 0),
+            key("other.setting", KeyKind::Config, "config/default.toml", 9),
+        ])
     }
 }

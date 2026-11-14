@@ -7,7 +7,14 @@ use super::consts::{
     URL_SCHEME_SEPARATOR, keys,
 };
 use super::error::{ConfigError, Violation};
-use super::model::{Budgets, Config, Editor, Level2, McpLimits, MetricThresholds, Scan, Ui};
+use super::model::{
+    Budgets, Config, Editor, KeySources, Level2, McpLimits, MetricThresholds, Scan, Ui,
+};
+
+fn check_keys(sources: &KeySources) -> Result<(), ConfigError> {
+    positive(keys::KEYS_MAX_FILES, sources.max_files)?;
+    positive(keys::KEYS_MAX_FILE_KB, sources.max_file_kb)
+}
 
 /// Checks every value of `config`.
 ///
@@ -46,6 +53,7 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
         keys::DUPLICATE_SIMILARITY_PERCENT,
         config.conventions.duplicate_similarity_percent,
     )?;
+    check_keys(&config.keys)?;
     check_layers(config)?;
     check_scan(&config.scan)?;
     check_level2(&config.level2)?;

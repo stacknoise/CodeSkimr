@@ -1,14 +1,14 @@
 //! `find_constants`.
 
 use codeskimr_application::access;
-use codeskimr_application::ports::{SearchHit, SymbolKey};
-use codeskimr_domain::{Principal, SymbolKind};
+use codeskimr_application::ports::{KeyKind, KeySearch, SearchHit, SymbolKey};
+use codeskimr_domain::{Permission, Principal, Project, ProjectSource, SymbolKind};
 use serde::Serialize;
 use serde_json::Value;
 
-use super::{SnapshotInfo, Tools, to_json, truncation_notice};
+use super::{AppliedLimit, SnapshotInfo, Tools, to_json, truncation_notice};
 use crate::args::ConstantsArgs;
-use crate::consts::{ARG_QUERY, READ_TOOL_PERMISSION};
+use crate::consts::{ARG_QUERY, KIND_CONFIG, KIND_I18N, LINE_OFFSET, READ_TOOL_PERMISSION};
 use crate::error::{CodeReport, McpError};
 
 #[derive(Serialize)]
@@ -22,9 +22,24 @@ struct Constant {
 }
 
 #[derive(Serialize)]
+struct Key {
+    name: String,
+    /// `config` for a key of a TOML file, `i18n` for the id of a translation message.
+    kind: &'static str,
+    path: String,
+    /// One-based.
+    line: u32,
+}
+
+#[derive(Serialize)]
 struct Answer {
     snapshot: SnapshotInfo,
     constants: Vec<Constant>,
+    /// Configuration and translation keys whose name contains the query.
+    keys: Vec<Key>,
+    /// Whether the key files were looked at: the caller needs `read_source` and the project must
+    /// be a folder on this machine.
+    keys_searched: bool,
     notice: Option<CodeReport>,
 }
 
@@ -51,11 +66,58 @@ impl Tools {
             .iter()
             .map(|hit| self.constant(&scope, hit))
             .collect::<Result<Vec<_>, _>>()?;
+        let may_read_source = access::require(principal, Permission::ReadSource).is_ok();
+        let (keys, keys_cut) =
+            self.matching_keys(may_read_source, &scope.project, &args.query, &limit)?;
         to_json(&Answer {
             snapshot: scope.info,
             constants,
-            notice: cut.then(|| truncation_notice(limit.value, None)),
+            keys_searched: keys.is_some(),
+            keys: keys.unwrap_or_default(),
+            notice: (cut || keys_cut).then(|| truncation_notice(limit.value, None)),
         })
+    }
+
+    /// The keys of the project folder that contain `query` (any case), cut to the limit; `None`
+    /// if they cannot be looked at: no `read_source`, or a project that is not a local folder.
+    fn matching_keys(
+        &self,
+        may_read_source: bool,
+        project: &Project,
+        query: &str,
+        limit: &AppliedLimit,
+    ) -> Result<(Option<Vec<Key>>, bool), McpError> {
+        let ProjectSource::Folder(root) = &project.source else {
+            return Ok((None, false));
+        };
+        if !may_read_source {
+            return Ok((None, false));
+        }
+        let wanted = query.to_lowercase();
+        let sources = self.key_sources();
+        let search = KeySearch {
+            config_folders: sources.config_folders.clone(),
+            i18n_folders: sources.i18n_folders.clone(),
+            max_files: sources.max_files,
+            max_file_kb: sources.max_file_kb,
+        };
+        let all = self.project_keys().keys(root, &search)?;
+        let mut hits: Vec<Key> = all
+            .into_iter()
+            .filter(|entry| entry.name.to_lowercase().contains(&wanted))
+            .map(|entry| Key {
+                name: entry.name,
+                kind: match entry.kind {
+                    KeyKind::Config => KIND_CONFIG,
+                    KeyKind::I18n => KIND_I18N,
+                },
+                path: entry.path.as_str().to_owned(),
+                line: entry.line + LINE_OFFSET,
+            })
+            .collect();
+        let cut = hits.len() > usize::try_from(limit.value).unwrap_or(usize::MAX);
+        hits.truncate(usize::try_from(limit.value).unwrap_or(usize::MAX));
+        Ok((Some(hits), cut))
     }
 
     fn constant(&self, scope: &super::Scope, hit: &SearchHit) -> Result<Constant, McpError> {
