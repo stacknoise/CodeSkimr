@@ -230,7 +230,11 @@ impl<'a> Context<'a> {
     /// reach more targets than the written one make every hit probable (blueprint 9.2).
     fn hits(&self, occurrence: &PendingReference, found: Found<'a>) -> Vec<Hit> {
         let mut targets = found.symbols;
-        let others = if occurrence.kind == ReferenceKind::Override {
+        // An override names its base member and `base.M()` is bound to that member: neither
+        // reaches the members of subtypes.
+        let others = if occurrence.kind == ReferenceKind::Override
+            || occurrence.receiver == Some(Receiver::Base)
+        {
             Vec::new()
         } else {
             self.dispatch_targets(&targets)
