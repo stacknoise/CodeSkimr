@@ -13,6 +13,7 @@ mod error;
 mod fitting;
 mod impl_symbol;
 mod importer;
+mod interval;
 mod locals;
 mod mapping;
 mod model;
