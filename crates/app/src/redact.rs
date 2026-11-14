@@ -140,7 +140,7 @@ fn wrapped_content(value: &str) -> Option<&str> {
 
 /// Length of the value at the start of `value`.
 fn value_length(value: &str, opening: Option<Opening>, to_line_end: bool) -> usize {
-    let mut backslashes = 0_usize;
+    let mut backslashes = usize::default();
     let mut end = |c: char| {
         // In a plain quoted value a quote behind an odd number of backslashes belongs to the
         // value (`\"`); behind an even number (`\\"`) the backslashes escape each other. An
