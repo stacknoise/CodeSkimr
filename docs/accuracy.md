@@ -5,7 +5,11 @@
 ```
 python3 tools/accuracy/measure.py python --samples 150 --seed 1 --codeskimr target/debug/codeskimr
 python3 tools/accuracy/measure.py typescript --samples 150 --seed 1
+python3 tools/accuracy/measure.py rust --samples 150 --seed 1
+python3 tools/accuracy/measure.py java --samples 150 --seed 1
 ```
+
+`--json` adds the numbers per symbol kind, the wrong usages grouped by our reference kind, and up to five wrong and five missed lines per symbol. `--verified-only` counts only references with `verified = 1` (level 2); this is the measure of ADR 0033, decision 14, once the level 2 pass is wired into the scan. Without it, level 1 and level 2 references are counted together.
 
 Steps: the script copies the corpus sources (without the skipped folders), scans them with `codeskimr scan`, draws symbols with a fixed seed from the list sorted by qualified name (so two versions see the same symbols; symbol kinds that can be used, names starting with an underscore are left out, which also leaves out all Python constructors), asks the reference tool where each symbol is used, and compares by file and line.
 
@@ -13,6 +17,10 @@ Steps: the script copies the corpus sources (without the skipped folders), scans
 |---|---|---|
 | Python | Jedi `get_references` | `pip install jedi` |
 | TypeScript | TypeScript language service `findReferences` | `typescript` (set `TYPESCRIPT_MODULE` and `NODE_PATH` if it is not installed locally) |
+| Rust | rust-analyzer over LSP `textDocument/references` (`truth_rust.py`) | `rust-analyzer`, `cargo` and network access for the crates of the corpus project (rust-analyzer loads the full checkout; build scripts and proc macros are off) |
+| Java | `javac` itself (`TruthJava.java`, run with `java TruthJava.java`): parse and attribute all sources with `JavacTask`, every identifier, member select, member reference and `new` that the compiler resolves to a declaration is a use | JDK 17 or newer; the pinned compile-time dependencies and the template substitution of `tools/accuracy/reference_tools.toml` (one jar, SHA-256 checked, cached in `target/accuracy-cache`) |
+
+Neither new reference reads a SCIP index: they do not depend on what CodeSkimr uses for level 2 (ADR 0033, decision 14).
 
 Numbers over all drawn symbols: precision = usages of ours that the tool confirms / usages of ours; recall = usages of the tool that we found / usages of the tool; exact = share of symbols whose set of lines is identical. To compare two versions, pass the binary and the language packs that belong to it (`--codeskimr`, `--languages`).
 
@@ -25,9 +33,28 @@ Numbers over all drawn symbols: precision = usages of ours that the tool confirm
 - The TypeScript run uses a non-strict configuration with bundler module resolution, not the `tsconfig` of the project.
 - Comparison is by line, not by position. Two usages in one line count once.
 - The reference tools are not complete either: Jedi does not follow attributes of instances in many cases, so some usages of ours that are right count as wrong. Read precision for Python as a lower bound.
-- Only languages with a reference tool that runs without a build of the project are covered. Rust (rust-analyzer; see #134), Java (javac) and C#/Kotlin (compilers not available in CI containers) follow.
+- Covered: Python, TypeScript, Rust and Java. C# and Kotlin (compilers not available in CI containers) follow.
+- Rust: rust-analyzer runs without build scripts and proc macros, so code that a macro generates has no references; `pub use` re-exports count as uses for rust-analyzer but not for us (we leave imports out). Uses in the skipped folders (tests, benches) are dropped from the reference, because we did not scan them.
+- Java: `module-info.java` is not compiled, the language level is 17, and generated sources (here `GsonBuildConfig`) are compiled but never reported. The compiler tells overloads apart; we do not. A method that overrides another has no uses of its own for the compiler, while we also attach calls through the base type to every override (dispatch, `probable`).
+- Both new references and the measured numbers below are for level 1 (the level 2 pass is not wired into the scan yet), so they do not meet the 99 % of ADR 0033 and are not meant to; they are the baseline that level 2 is measured against.
 
 ## Results
+
+First measurement for Rust and Java (150 symbols, seed 1, 2026-11-14, level 1, all references; CodeSkimr at the commit of `main` from that day):
+
+| Language | symbols | usages ours / tool | exact | precision ("correct") | recall |
+|---|---|---|---|---|---|
+| Rust (CodeSkimr at the pinned corpus commit) | 150 | 735 / 733 | 27.3 % | 59.2 % | 59.3 % |
+| Java (gson at the pinned corpus commit) | 150 | 1001 / 590 | 54.0 % | 46.7 % | 79.2 % |
+
+Typical error classes:
+
+- Rust, missing: fields (recall 32 %, uses through `self.x` and struct literals with shorthand), struct and enum uses in paths and patterns (62 % and 44 %), enum variants (60 %).
+- Rust, wrong: calls and reads of a field or method name that several types share (`call` 141 and `read` 139 wrong usages of 735), mostly methods (26 % of the usages of method symbols are right) and fields (23 %).
+- Java, missing: constructors (recall 0 of 113 uses: `new X(...)` is not linked to the constructor), enum constants (50 %).
+- Java, wrong: calls of a method name by name only (`call`: 516 of the 534 wrong usages; methods have 21 % precision, mostly `read`, `write`, `value`, `toString` that many classes define) and `override` links (18).
+- Java, fields, classes and interfaces are close to the aim (recall 97 to 100 %, precision 100 %).
+
 
 After the reversal of the ambiguity rule (ADR 0033, 150 symbols, seed 1, 2026-11-13): level 1 keeps every match and marks it unchecked.
 
