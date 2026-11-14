@@ -48,6 +48,8 @@ struct World {
     found: Option<Vec<(&'static str, bool)>>,
     missing_project: bool,
     panic_in_analyze: bool,
+    /// The naming rules of the packs, and those the previous snapshot was scanned with.
+    rules: (&'static str, Option<&'static str>),
     persisted: Mutex<Vec<SnapshotData>>,
     measured: Mutex<Vec<(usize, usize)>>,
     counted: Mutex<Vec<usize>>,
@@ -159,6 +161,10 @@ fn counted(symbol: SymbolId) -> SymbolCounts {
 }
 
 impl FileAnalyzer for World {
+    fn naming_rules(&self) -> String {
+        self.rules.0.to_owned()
+    }
+
     fn analyze(&self, request: &AnalyzeRequest<'_>) -> Result<FileFacts, CodedError> {
         self.gate(StageKind::Analyze)?;
         assert!(!self.panic_in_analyze, "the analyzer panics");
@@ -285,6 +291,10 @@ impl ProjectRepository for World {
 
     fn latest_index(&self, _: ProjectId) -> Result<PreviousIndex, CodedError> {
         Ok(self.previous.index.clone())
+    }
+
+    fn latest_naming_rules(&self, _: ProjectId) -> Result<Option<String>, CodedError> {
+        Ok(self.rules.1.map(str::to_owned))
     }
 }
 
@@ -967,5 +977,54 @@ fn only_a_job_that_wants_level_two_starts_an_indexer() -> Result<(), CodedError>
         1,
         "the scan of the command line runs level 2"
     );
+    Ok(())
+}
+
+/// The world of `a_unchanged_b_changed` with these naming rules (now, kept by the last snapshot).
+fn world_with_rules(
+    now: &'static str,
+    kept: Option<&'static str>,
+) -> Result<Arc<World>, CodedError> {
+    Ok(Arc::new(World {
+        found: Some(vec![("a.rs", false), ("b.rs", true)]),
+        previous: previous_snapshot()?,
+        rules: (now, kept),
+        ..World::default()
+    }))
+}
+
+#[test]
+fn an_incremental_scan_after_other_naming_rules_is_a_full_scan() -> Result<(), CodedError> {
+    for kept in [None, Some("csharp=file")] {
+        let world = world_with_rules("csharp=namespace", kept)?;
+        let (result, _) = run(&world, ScanMode::Incremental);
+        let JobResult::Finished(job) = result else {
+            panic!("scan did not finish");
+        };
+        let persisted = world.last_persisted()?;
+        let paths: Vec<_> = persisted.files.iter().map(|f| f.path.as_str()).collect();
+        assert_eq!(paths, ["a.rs", "b.rs"], "every file is analysed again");
+        assert_eq!(job.snapshot().mode, ScanMode::Full);
+        assert_eq!(persisted.naming_rules, "csharp=namespace");
+        assert!(persisted.removed.is_empty());
+    }
+    Ok(())
+}
+
+#[test]
+fn an_incremental_scan_with_the_same_naming_rules_stays_incremental() -> Result<(), CodedError> {
+    let world = world_with_rules("csharp=namespace", Some("csharp=namespace"))?;
+    let (result, _) = run(&world, ScanMode::Incremental);
+    let JobResult::Finished(job) = result else {
+        panic!("scan did not finish");
+    };
+    let paths: Vec<_> = world
+        .last_persisted()?
+        .files
+        .iter()
+        .map(|f| f.path.as_str().to_owned())
+        .collect();
+    assert_eq!(paths, ["b.rs"]);
+    assert_eq!(job.snapshot().mode, ScanMode::Incremental);
     Ok(())
 }

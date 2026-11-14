@@ -21,7 +21,7 @@ All of them are read-only (`readOnlyHint`) except `rescan`, which is announced w
 | Tool | Arguments | Answer |
 |---|---|---|
 | `search_symbols` | `query`, `kind?`, `project?`, `limit?` | `hits`: id, name, qualified name, kind, path, best match first |
-| `get_symbol` | `symbol` (id or qualified name), `project?` | signature, doc, visibility, lines (one-based), layer, metrics, members |
+| `get_symbol` | `symbol` (id or qualified name), `project?` | signature, doc, visibility, lines (one-based), layer, metrics, members, `ambiguous` (number of other symbols with the same qualified name; a name gives the one with the lowest id, an id is always exact) |
 | `find_usages` | `symbol`, `direction?`, `depth?`, `include_tests?`, `project?`, `limit?` | `usages` (nearest step first): `depth`, `kind`, `confidence`, `verified`, `path`, `line` and `column` (one-based), `from` and `to` symbol; `total`, `verified` and `unchecked` (counts of the listed usages), `preliminary`, `direction`, `depth` as applied |
 | `impact_of_change` | `symbol`, `project?`, `limit?` | `symbols` a change can reach: `depth`, `layer`, `visibility`, `public_interface`, `verified`; `layers` with counts; `public_interfaces`; `verified` and `unchecked` (counts of the listed symbols), `preliminary`; `total` |
 | `get_dependencies` | `symbol` or `layer`, `direction?`, `include_tests?`, `project?`, `limit?` | `target`, `direction`, `dependencies` (most references first): id, qualified name, kind, `path`, `layer`, `count`, `violates_layering`; `layers` with count, `violates_layering`, `in_cycle`; `violations`, `total` |

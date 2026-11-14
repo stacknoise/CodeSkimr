@@ -5,21 +5,21 @@
       "loc": 59,
       "operands": null,
       "operators": null,
-      "symbol": "Metrics"
+      "symbol": "Metrics.kt"
     },
     {
       "decisions": null,
       "loc": 59,
       "operands": null,
       "operators": null,
-      "symbol": "Metrics.metrics"
+      "symbol": "metrics"
     },
     {
       "decisions": null,
       "loc": 55,
       "operands": null,
       "operators": null,
-      "symbol": "Metrics.metrics.M"
+      "symbol": "metrics.M"
     },
     {
       "decisions": 0,
@@ -32,7 +32,7 @@
         0,
         0
       ],
-      "symbol": "Metrics.metrics.M.plain"
+      "symbol": "metrics.M.plain"
     },
     {
       "decisions": 6,
@@ -45,7 +45,7 @@
         7,
         14
       ],
-      "symbol": "Metrics.metrics.M.branches"
+      "symbol": "metrics.M.branches"
     },
     {
       "decisions": 3,
@@ -58,7 +58,7 @@
         7,
         7
       ],
-      "symbol": "Metrics.metrics.M.loops"
+      "symbol": "metrics.M.loops"
     },
     {
       "decisions": 2,
@@ -71,7 +71,7 @@
         5,
         7
       ],
-      "symbol": "Metrics.metrics.M.cases"
+      "symbol": "metrics.M.cases"
     },
     {
       "decisions": 1,
@@ -84,7 +84,7 @@
         3,
         4
       ],
-      "symbol": "Metrics.metrics.M.guards"
+      "symbol": "metrics.M.guards"
     },
     {
       "decisions": 2,
@@ -97,7 +97,7 @@
         3,
         5
       ],
-      "symbol": "Metrics.metrics.M.catches"
+      "symbol": "metrics.M.catches"
     },
     {
       "decisions": 1,
@@ -110,7 +110,7 @@
         5,
         5
       ],
-      "symbol": "Metrics.metrics.M.outer"
+      "symbol": "metrics.M.outer"
     },
     {
       "decisions": 0,
@@ -123,7 +123,7 @@
         2,
         2
       ],
-      "symbol": "Metrics.metrics.M.inner"
+      "symbol": "metrics.M.inner"
     },
     {
       "decisions": 1,
@@ -136,7 +136,7 @@
         2,
         2
       ],
-      "symbol": "Metrics.metrics.M.inner.local"
+      "symbol": "metrics.M.inner.local"
     },
     {
       "decisions": 0,
@@ -149,182 +149,182 @@
         1,
         2
       ],
-      "symbol": "Metrics.metrics.M.M"
+      "symbol": "metrics.M.M"
     },
     {
       "decisions": null,
       "loc": 1,
       "operands": null,
       "operators": null,
-      "symbol": "Metrics.metrics.M.noBody"
+      "symbol": "metrics.M.noBody"
     },
     {
       "decisions": null,
       "loc": 3,
       "operands": null,
       "operators": null,
-      "symbol": "Metrics.metrics.Shape"
+      "symbol": "metrics.Shape"
     },
     {
       "decisions": null,
       "loc": 1,
       "operands": null,
       "operators": null,
-      "symbol": "Metrics.metrics.Shape.area"
+      "symbol": "metrics.Shape.area"
     }
   ],
   "loc": 59,
   "references": [
     {
       "at": "2:27",
-      "from": "Metrics.metrics.M.items",
+      "from": "metrics.M.items",
       "kind": "type_use",
       "receiver": null,
       "target": "List"
     },
     {
       "at": "2:32",
-      "from": "Metrics.metrics.M.items",
+      "from": "metrics.M.items",
       "kind": "type_use",
       "receiver": null,
       "target": "Int"
     },
     {
       "at": "3:17",
-      "from": "Metrics.metrics.M.plain",
+      "from": "metrics.M.plain",
       "kind": "type_use",
       "receiver": null,
       "target": "Int"
     },
     {
       "at": "5:20",
-      "from": "Metrics.metrics.M.branches",
+      "from": "metrics.M.branches",
       "kind": "type_use",
       "receiver": null,
       "target": "Int"
     },
     {
       "at": "5:28",
-      "from": "Metrics.metrics.M.branches",
+      "from": "metrics.M.branches",
       "kind": "type_use",
       "receiver": null,
       "target": "Int"
     },
     {
       "at": "5:34",
-      "from": "Metrics.metrics.M.branches",
+      "from": "metrics.M.branches",
       "kind": "type_use",
       "receiver": null,
       "target": "Int"
     },
     {
       "at": "15:18",
-      "from": "Metrics.metrics.M.loops",
+      "from": "metrics.M.loops",
       "kind": "type_use",
       "receiver": null,
       "target": "IntArray"
     },
     {
       "at": "27:17",
-      "from": "Metrics.metrics.M.cases",
+      "from": "metrics.M.cases",
       "kind": "type_use",
       "receiver": null,
       "target": "Int"
     },
     {
       "at": "27:23",
-      "from": "Metrics.metrics.M.cases",
+      "from": "metrics.M.cases",
       "kind": "type_use",
       "receiver": null,
       "target": "String"
     },
     {
       "at": "35:18",
-      "from": "Metrics.metrics.M.guards",
+      "from": "metrics.M.guards",
       "kind": "type_use",
       "receiver": null,
       "target": "Int"
     },
     {
       "at": "35:24",
-      "from": "Metrics.metrics.M.guards",
+      "from": "metrics.M.guards",
       "kind": "type_use",
       "receiver": null,
       "target": "String"
     },
     {
       "at": "42:12",
-      "from": "Metrics.metrics.M.catches",
+      "from": "metrics.M.catches",
       "kind": "call",
       "receiver": null,
       "target": "plain"
     },
     {
       "at": "46:12",
-      "from": "Metrics.metrics.M.catches",
+      "from": "metrics.M.catches",
       "kind": "call",
       "receiver": null,
       "target": "plain"
     },
     {
       "at": "50:17",
-      "from": "Metrics.metrics.M.outer",
+      "from": "metrics.M.outer",
       "kind": "type_use",
       "receiver": null,
       "target": "Int"
     },
     {
       "at": "51:21",
-      "from": "Metrics.metrics.M.outer",
+      "from": "metrics.M.outer",
       "kind": "type_use",
       "receiver": null,
       "target": "Int"
     },
     {
       "at": "55:17",
-      "from": "Metrics.metrics.M.inner",
+      "from": "metrics.M.inner",
       "kind": "type_use",
       "receiver": null,
       "target": "Int"
     },
     {
       "at": "56:21",
-      "from": "Metrics.metrics.M.inner.local",
+      "from": "metrics.M.inner.local",
       "kind": "type_use",
       "receiver": null,
       "target": "Int"
     },
     {
       "at": "57:15",
-      "from": "Metrics.metrics.M.inner",
+      "from": "metrics.M.inner",
       "kind": "call",
       "receiver": null,
       "target": "local"
     },
     {
       "at": "60:19",
-      "from": "Metrics.metrics.M.M",
+      "from": "metrics.M.M",
       "kind": "type_use",
       "receiver": null,
       "target": "Int"
     },
     {
       "at": "60:31",
-      "from": "Metrics.metrics.M.M",
+      "from": "metrics.M.M",
       "kind": "call",
       "receiver": null,
       "target": "listOf"
     },
     {
       "at": "61:8",
-      "from": "Metrics.metrics.M.M",
+      "from": "metrics.M.M",
       "kind": "call",
       "receiver": null,
       "target": "println"
     },
     {
       "at": "68:16",
-      "from": "Metrics.metrics.Shape.area",
+      "from": "metrics.Shape.area",
       "kind": "type_use",
       "receiver": null,
       "target": "Double"
@@ -334,7 +334,7 @@
     {
       "doc": null,
       "kind": "module",
-      "name": "Metrics",
+      "name": "Metrics.kt",
       "parent": null,
       "signature": null,
       "span": "0:0-70:0",
@@ -344,8 +344,8 @@
     {
       "doc": null,
       "kind": "namespace",
-      "name": "Metrics.metrics",
-      "parent": "Metrics",
+      "name": "metrics",
+      "parent": "Metrics.kt",
       "signature": null,
       "span": "0:0-70:0",
       "static": false,
@@ -354,8 +354,8 @@
     {
       "doc": null,
       "kind": "class",
-      "name": "Metrics.metrics.M",
-      "parent": "Metrics.metrics",
+      "name": "metrics.M",
+      "parent": "metrics",
       "signature": null,
       "span": "2:0-65:1",
       "static": false,
@@ -364,8 +364,8 @@
     {
       "doc": null,
       "kind": "property",
-      "name": "Metrics.metrics.M.items",
-      "parent": "Metrics.metrics.M",
+      "name": "metrics.M.items",
+      "parent": "metrics.M",
       "signature": null,
       "span": "2:8-2:36",
       "static": false,
@@ -374,8 +374,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.metrics.M.plain",
-      "parent": "Metrics.metrics.M",
+      "name": "metrics.M.plain",
+      "parent": "metrics.M",
       "signature": null,
       "span": "3:4-3:24",
       "static": false,
@@ -384,8 +384,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.metrics.M.branches",
-      "parent": "Metrics.metrics.M",
+      "name": "metrics.M.branches",
+      "parent": "metrics.M",
       "signature": null,
       "span": "5:4-13:5",
       "static": false,
@@ -394,8 +394,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.metrics.M.loops",
-      "parent": "Metrics.metrics.M",
+      "name": "metrics.M.loops",
+      "parent": "metrics.M",
       "signature": null,
       "span": "15:4-25:5",
       "static": false,
@@ -404,8 +404,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.metrics.M.cases",
-      "parent": "Metrics.metrics.M",
+      "name": "metrics.M.cases",
+      "parent": "metrics.M",
       "signature": null,
       "span": "27:4-33:5",
       "static": false,
@@ -414,8 +414,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.metrics.M.guards",
-      "parent": "Metrics.metrics.M",
+      "name": "metrics.M.guards",
+      "parent": "metrics.M",
       "signature": null,
       "span": "35:4-38:5",
       "static": false,
@@ -424,8 +424,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.metrics.M.catches",
-      "parent": "Metrics.metrics.M",
+      "name": "metrics.M.catches",
+      "parent": "metrics.M",
       "signature": null,
       "span": "40:4-48:5",
       "static": false,
@@ -434,8 +434,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.metrics.M.outer",
-      "parent": "Metrics.metrics.M",
+      "name": "metrics.M.outer",
+      "parent": "metrics.M",
       "signature": null,
       "span": "50:4-53:5",
       "static": false,
@@ -444,8 +444,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.metrics.M.inner",
-      "parent": "Metrics.metrics.M",
+      "name": "metrics.M.inner",
+      "parent": "metrics.M",
       "signature": null,
       "span": "55:4-58:5",
       "static": false,
@@ -454,8 +454,8 @@
     {
       "doc": null,
       "kind": "function",
-      "name": "Metrics.metrics.M.inner.local",
-      "parent": "Metrics.metrics.M.inner",
+      "name": "metrics.M.inner.local",
+      "parent": "metrics.M.inner",
       "signature": null,
       "span": "56:8-56:47",
       "static": false,
@@ -464,8 +464,8 @@
     {
       "doc": null,
       "kind": "constructor",
-      "name": "Metrics.metrics.M.M",
-      "parent": "Metrics.metrics.M",
+      "name": "metrics.M.M",
+      "parent": "metrics.M",
       "signature": null,
       "span": "60:4-62:5",
       "static": false,
@@ -474,8 +474,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.metrics.M.noBody",
-      "parent": "Metrics.metrics.M",
+      "name": "metrics.M.noBody",
+      "parent": "metrics.M",
       "signature": null,
       "span": "64:4-64:25",
       "static": false,
@@ -484,8 +484,8 @@
     {
       "doc": null,
       "kind": "interface",
-      "name": "Metrics.metrics.Shape",
-      "parent": "Metrics.metrics",
+      "name": "metrics.Shape",
+      "parent": "metrics",
       "signature": null,
       "span": "67:0-69:1",
       "static": false,
@@ -494,8 +494,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.metrics.Shape.area",
-      "parent": "Metrics.metrics.Shape",
+      "name": "metrics.Shape.area",
+      "parent": "metrics.Shape",
       "signature": null,
       "span": "68:4-68:22",
       "static": false,

@@ -20,6 +20,7 @@ grammar = "kotlin"
 tier = "full"
 extensions = ["kt", "kts"]
 separator = "."
+file_in_names = false
 comment_nodes = ["line_comment", "multiline_comment"]
 manifest_files = [
     "build.gradle.kts",

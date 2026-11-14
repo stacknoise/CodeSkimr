@@ -243,6 +243,9 @@ pub const SYMBOL_SELECT: &str = "SELECT s.id, s.file_id, s.kind, s.name, s.quali
 /// Condition of `SYMBOL_SELECT`: symbol id.
 pub const SYMBOL_BY_ID: &str = "s.id = ?2";
 /// Condition of `SYMBOL_SELECT`: qualified name; the lowest id wins.
+pub const SYMBOL_SAME_NAME_COUNT: &str = "SELECT COUNT(*) FROM symbols \
+    WHERE snapshot_id = ?1 AND qualified_name = ?2 AND id <> ?3";
+/// Condition of `SYMBOL_SELECT`: qualified name; the lowest id wins.
 pub const SYMBOL_BY_NAME: &str = "s.qualified_name = ?2 ORDER BY s.id LIMIT 1";
 /// Condition of `SYMBOL_SELECT`: every symbol of the snapshot, in id order.
 pub const SYMBOL_ALL: &str = "1 = 1 ORDER BY s.id";
@@ -317,3 +320,10 @@ pub const TOOL_REPORT_TIME: &str = "SELECT checked_at FROM tool_reports WHERE pr
 /// The findings of a project in order: project id.
 pub const TOOL_FINDINGS: &str = "SELECT language, tool, role, state, found, required, purpose_key, \
     install_key FROM tool_findings WHERE project_id = ?1 ORDER BY position";
+
+/// Records the naming rules of the packs a snapshot was scanned with.
+pub const SNAPSHOT_NAMING_SET: &str = "UPDATE snapshots SET naming_rules = ?1 WHERE id = ?2";
+/// The naming rules of the newest snapshot of a project; no row without a snapshot, `NULL` for one
+/// from before the record existed.
+pub const SNAPSHOT_NAMING_LATEST: &str =
+    "SELECT naming_rules FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT 1";

@@ -269,16 +269,23 @@ pub fn extract(ctx: &SymbolContext<'_>, root: Node<'_>) -> Result<SymbolTable, P
 impl Builder<'_, '_> {
     fn add_module(&mut self, root: Node<'_>) -> Result<(), ParsingError> {
         let path = Path::new(self.ctx.path.as_str());
-        let qualified = path
-            .with_extension(NO_EXTENSION)
-            .to_string_lossy()
-            .replace(PATH_SEPARATOR, &self.ctx.pack.separator);
+        let (qualified, prefix) = if self.ctx.pack.file_in_names {
+            let module = path
+                .with_extension(NO_EXTENSION)
+                .to_string_lossy()
+                .replace(PATH_SEPARATOR, &self.ctx.pack.separator);
+            (module.clone(), module)
+        } else {
+            // The name of the file is no part of the names inside it (ADR 0036): the module keeps
+            // the path with its extension, which no type can be called.
+            (path.to_string_lossy().into_owned(), String::new())
+        };
         let name = path
             .file_stem()
             .map(|stem| stem.to_string_lossy().into_owned())
             .unwrap_or_default();
         self.push(
-            qualified,
+            (qualified, prefix),
             NewSymbol {
                 kind: SymbolKind::Module,
                 name,
@@ -305,13 +312,22 @@ impl Builder<'_, '_> {
             .stack
             .last()
             .map_or_else(<&str>::default, |frame| frame.qualified.as_str());
-        let qualified = [prefix, ctx.pack.separator.as_str(), name.as_str()].concat();
+        let qualified = if prefix.is_empty() {
+            name.clone()
+        } else {
+            [prefix, ctx.pack.separator.as_str(), name.as_str()].concat()
+        };
         let parent = self.stack.last().map(|frame| frame.kind);
         let new = new_symbol(ctx, declaration, name, parent)?;
-        self.push(qualified, new)
+        self.push((qualified.clone(), qualified), new)
     }
 
-    fn push(&mut self, qualified: String, new: NewSymbol) -> Result<(), ParsingError> {
+    /// Adds a symbol with its qualified name and the prefix the names of its children start with.
+    fn push(
+        &mut self,
+        (qualified, prefix): (String, String),
+        new: NewSymbol,
+    ) -> Result<(), ParsingError> {
         let id = self.ctx.ids.symbol();
         let index = self.symbols.len();
         self.parents
@@ -321,7 +337,7 @@ impl Builder<'_, '_> {
             file: self.ctx.file,
             kind: new.kind,
             name: SymbolName::new(new.name)?,
-            qualified_name: QualifiedName::new(qualified.clone())?,
+            qualified_name: QualifiedName::new(qualified)?,
             parent: self.stack.last().map(|frame| frame.id),
             visibility: new.visibility,
             is_static: new.is_static,
@@ -337,7 +353,7 @@ impl Builder<'_, '_> {
             end: new.range.end,
             index,
             id,
-            qualified,
+            qualified: prefix,
         });
         self.ranges.push(new.range);
         Ok(())
