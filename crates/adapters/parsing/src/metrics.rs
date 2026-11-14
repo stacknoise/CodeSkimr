@@ -158,8 +158,9 @@ fn runs(seen: &[(Node<'_>, usize, String)]) -> u32 {
         .map(|mut operators| {
             operators.sort_unstable();
             let changes = operators
-                .windows(2)
-                .filter(|pair| pair[0].1 != pair[1].1)
+                .iter()
+                .zip(operators.iter().skip(1))
+                .filter(|(before, after)| before.1 != after.1)
                 .count();
             size(changes + 1)
         })
