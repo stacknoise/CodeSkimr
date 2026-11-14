@@ -21,3 +21,5 @@ Option 2. It meets S-06 with one change in the order of `routes::run` and the MC
 - Blueprint 10.1 and S-06 name option 2; `docs/server.md` and `docs/error-codes.md` follow.
 - `routes::run`: the permission check moves in front of the existence answer; a test with a restricted principal asserts identical status and body for an unknown and a denied command.
 - A user whose rights are too low is no longer told so by the API; the UI must explain missing rights from the command list.
+- The order of checks today is existence, then token, then permission, so a caller without the token still sees `404` for an unknown and `401` for a known command. The change includes this case: the token check comes first for every command route, so a caller without the token gets `AUTH-401` whatever the id is.
+- The MCP tool lookup follows the same rule. The test also compares the answers in length and shape (no early return with a different body or code path), so that the timing does not tell the cases apart either.

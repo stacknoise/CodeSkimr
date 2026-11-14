@@ -21,3 +21,4 @@ Option 1. Options 2 and 3 weaken the one rule that the canary suite (S-02) relie
 - No code change except the message text of `SEC-601` (de/en) and a section in `docs/secrets.md` and the manual.
 - Blueprint 12.2 stays as it is; the exclusion of a file fallback is written down there with a pointer to this ADR.
 - Headless installations in 1.0 must provide a Secret Service; the installation token cannot be replaced by a file.
+- The message of `SEC-601` names the cause and the remedy only. It contains no path, no service name from the system and no detail of the keystore error.
