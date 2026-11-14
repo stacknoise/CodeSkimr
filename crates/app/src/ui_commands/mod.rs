@@ -11,6 +11,7 @@ mod export;
 #[cfg(test)]
 mod export_tests;
 mod graph;
+mod graph_types;
 mod projects;
 mod rating;
 mod running;
@@ -21,6 +22,7 @@ mod symbol;
 #[cfg(test)]
 mod tests;
 mod usages;
+mod usages_code;
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
@@ -51,6 +53,7 @@ use source::ExplorerSource;
 use status::{BudgetTargets, StatusInfo};
 use symbol::ExplorerSymbol;
 use usages::{UsagesPorts, UsagesQuery};
+use usages_code::UsagesCode;
 
 /// What every command of the UI needs to scan: the command line, the folders and the event bus.
 pub struct Context {
@@ -167,6 +170,7 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<ExplorerSource>()?;
     api.expose::<SearchQuery>()?;
     api.expose::<UsagesQuery>()?;
+    api.expose::<UsagesCode>()?;
     api.expose::<GraphLayers>()?;
     api.expose::<StatusInfo>()?;
     api.expose::<HtmlExport>()?;
@@ -241,10 +245,14 @@ fn register_usages(
     store: &Arc<SqliteStore>,
     max_depth: u32,
 ) -> Result<(), CodedError> {
+    let ports = usages_ports(store, max_depth);
     registry
         .register(UsagesQuery {
-            ports: usages_ports(store, max_depth),
+            ports: Arc::clone(&ports),
         })
+        .map_err(CodedError::caused_by)?;
+    registry
+        .register(UsagesCode { ports })
         .map_err(CodedError::caused_by)
 }
 
@@ -286,6 +294,7 @@ fn usages_ports(store: &Arc<SqliteStore>, max_depth: u32) -> Arc<UsagesPorts> {
         projects: store.clone(),
         index: store.clone(),
         usages: store.clone(),
+        text: Arc::new(FolderText),
         max_depth,
     })
 }

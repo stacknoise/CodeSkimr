@@ -1,6 +1,8 @@
 //! Paths of an index are untrusted: they are cleaned lexically and refused if they could leave
-//! the project root (blueprint S-05). The import never opens a file by such a path; it only
-//! compares it with the paths of the snapshot.
+//! the project root (blueprint S-05). The mapping only compares them with the paths of the
+//! snapshot. The conversion of columns reads a file by such a path only if it is a file of the
+//! snapshot and only through `SourceText`, which never leaves the project folder or follows a
+//! link out of it (see `ScipImporter`).
 
 use codeskimr_domain::RelativePath;
 

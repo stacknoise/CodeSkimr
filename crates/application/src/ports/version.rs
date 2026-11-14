@@ -2,7 +2,9 @@
 
 use std::fmt;
 
-use crate::consts::{VERSION_DECORATION, VERSION_SEPARATOR, VERSION_WORD};
+use crate::consts::{
+    DATE_MIN_DIGITS, DATE_SEPARATORS, VERSION_DECORATION, VERSION_SEPARATOR, VERSION_WORD,
+};
 
 /// A version of up to three numbers. Missing numbers are zero.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
@@ -29,7 +31,8 @@ impl ToolVersion {
         output.split_whitespace().find_map(Self::parse).or_else(|| {
             let mut words = output.split_whitespace();
             words.find(|word| word.eq_ignore_ascii_case(VERSION_WORD))?;
-            Self::read(words.next()?, false)
+            let word = words.next()?;
+            (!looks_like_date(word)).then(|| Self::read(word, false))?
         })
     }
 
@@ -60,6 +63,18 @@ impl ToolVersion {
             patch,
         })
     }
+}
+
+/// Whether a single word is a date or an id: digits, then a date separator and another digit, or
+/// a very long number. The release of a JDK line (`17-ea`) is not.
+fn looks_like_date(word: &str) -> bool {
+    let trimmed = word.trim_matches(VERSION_DECORATION);
+    let digits = trimmed.chars().take_while(char::is_ascii_digit).count();
+    let rest = trimmed.get(digits..).unwrap_or_default();
+    let after_separator = rest
+        .strip_prefix(DATE_SEPARATORS)
+        .and_then(|tail| tail.chars().next());
+    digits >= DATE_MIN_DIGITS || after_separator.is_some_and(|next| next.is_ascii_digit())
 }
 
 fn leading_number(part: &str) -> Option<u32> {

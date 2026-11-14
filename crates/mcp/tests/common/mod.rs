@@ -12,7 +12,8 @@ use codeskimr_application::ports::{
     DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, ImpactPage, ImpactedSymbol,
     LanguageShare, MemberRef, PreviousIndex, ProjectCatalog, ProjectOverview, ProjectRepository,
     ProjectScanner, ProjectToolCheck, SearchHit, SimilarHit, SimilarQuery, SimilarityIndex,
-    SnippetFingerprinter, SymbolDetail, SymbolKey, SymbolLabel, UsageEntry, UsageIndex, UsagePage,
+    SnippetFingerprinter, SymbolDetail, SymbolKey, SymbolLabel, TypeFocus, UsageEntry, UsageIndex,
+    UsagePage,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
@@ -144,6 +145,14 @@ impl CodeIndex for FakeIndex {
 
     fn namespace_graph(&self, _snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError> {
         Ok(NamespaceGraph::default())
+    }
+
+    fn type_focus(
+        &self,
+        _snapshot: SnapshotId,
+        _symbol: SymbolId,
+    ) -> Result<Option<TypeFocus>, CodedError> {
+        Ok(None)
     }
 }
 

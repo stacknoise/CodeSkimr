@@ -7,30 +7,20 @@
 //! tokens, watch mode and CI have no way to confirm, and a missing confirmation stops them like
 //! everybody else.
 
+mod pass;
+mod report;
+
 use std::path::Path;
-use std::sync::{Arc, Mutex, PoisonError};
+use std::sync::Arc;
 
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Permission, Principal, ProjectId};
+use codeskimr_domain::{FolderPath, Permission, Principal, Project, ProjectId, ProjectSource};
 
 use crate::config::Level2;
 use crate::error::CodedError;
-pub use crate::ports::{ConsentRecord, ConsentStore, RunPermit};
-
-/// A consent store that lives in memory only: for tests and for callers without a database.
-#[derive(Debug, Default)]
-pub struct InMemoryConsent(Mutex<ConsentRecord>);
-
-impl ConsentStore for InMemoryConsent {
-    fn consent(&self, _project: ProjectId) -> Result<ConsentRecord, CodedError> {
-        Ok(*self.0.lock().unwrap_or_else(PoisonError::into_inner))
-    }
-
-    fn store_consent(&self, _project: ProjectId, record: ConsentRecord) -> Result<(), CodedError> {
-        *self.0.lock().unwrap_or_else(PoisonError::into_inner) = record;
-        Ok(())
-    }
-}
+pub use crate::ports::{ConsentGrant, ConsentRecord, ConsentStore, RunPermit};
+pub use pass::Level2Pass;
+pub use report::{LanguageReport, Level2Outcome, Level2Result, Skipped};
 
 /// Enables level 2 for `project` and records the confirmation. The caller (an interactive screen
 /// or command of the local owner) must have asked the user; nothing else calls this.
@@ -43,14 +33,7 @@ pub fn confirm(
     store: &dyn ConsentStore,
     project: ProjectId,
 ) -> Result<(), CodedError> {
-    require(*principal, Permission::ConfirmIndexer)?;
-    store.store_consent(
-        project,
-        ConsentRecord {
-            enabled: true,
-            confirmed: true,
-        },
-    )
+    write(*principal, store, project, true)
 }
 
 /// Withdraws enabling and confirmation of `project`.
@@ -63,13 +46,39 @@ pub fn revoke(
     store: &dyn ConsentStore,
     project: ProjectId,
 ) -> Result<(), CodedError> {
-    require(*principal, Permission::ConfirmIndexer)?;
-    store.store_consent(project, ConsentRecord::default())
+    write(*principal, store, project, false)
 }
 
-/// Lets a run of indexers for `project`, whose files are in `project_root`, pass and returns the proof the runner needs: the principal
+/// The one place that makes a [`ConsentGrant`], after the check of the right.
+fn write(
+    principal: Principal,
+    store: &dyn ConsentStore,
+    project: ProjectId,
+    allowed: bool,
+) -> Result<(), CodedError> {
+    require(principal, Permission::ConfirmIndexer)?;
+    let record = ConsentRecord {
+        enabled: allowed,
+        confirmed: allowed,
+    };
+    store.store_consent(&ConsentGrant::new(project, record))
+}
+
+/// The folder an indexer may run in: for a project that was registered from a folder, the folder
+/// of the project record; for a Git source, the clone folder the source adapter returned. Nothing
+/// else is accepted, so a caller cannot point an indexer at another place.
+fn run_folder<'a>(project: &'a Project, clone: &'a FolderPath) -> &'a Path {
+    match &project.source {
+        ProjectSource::Folder(folder) => Path::new(folder.as_str()),
+        ProjectSource::Git { .. } => Path::new(clone.as_str()),
+    }
+}
+
+/// Lets a run of indexers for `project` pass and returns the proof the runner needs: the principal
 /// may start them, level 2 is enabled in the user configuration or the project record, and the
-/// project record holds a confirmation for the source the project has now.
+/// project record holds a confirmation for the source the project has now. The indexer runs in
+/// the folder of the project record (a folder source) or in `clone`, the folder the source adapter
+/// made of a Git source.
 ///
 /// `settings` must come from a configuration whose project layer was resolved by
 /// `Config::resolve`, which drops the `level2` table of the project file.
@@ -81,14 +90,14 @@ pub fn authorize_run(
     principal: &Principal,
     settings: &Level2,
     store: &Arc<dyn ConsentStore>,
-    project: ProjectId,
-    project_root: &Path,
+    project: &Project,
+    clone: &FolderPath,
 ) -> Result<RunPermit, CodedError> {
     require(*principal, Permission::RunIndexer)?;
     let permit = RunPermit::new(
         Arc::clone(store),
-        project,
-        project_root.to_path_buf(),
+        project.id,
+        run_folder(project, clone).to_path_buf(),
         settings.enabled,
     );
     permit.recheck()?;

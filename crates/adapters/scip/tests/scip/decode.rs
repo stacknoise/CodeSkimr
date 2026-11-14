@@ -253,3 +253,16 @@ fn an_overlong_varint_is_corrupt() {
         Corruption::VarintTooLong
     );
 }
+
+#[cfg(unix)]
+#[test]
+fn a_link_in_place_of_the_index_is_refused() {
+    let dir = tempfile::tempdir().unwrap();
+    let target = dir.path().join("real.scip");
+    std::fs::write(&target, b"").unwrap();
+    let link = dir.path().join("index.scip");
+    std::os::unix::fs::symlink(&target, &link).unwrap();
+    let error = codeskimr_scip::read_index(&link, 1 << 20).unwrap_err();
+    assert!(matches!(error, codeskimr_scip::ScipError::Unreadable(_)));
+    assert!(codeskimr_scip::read_index(&target, 1 << 20).is_ok());
+}

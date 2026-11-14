@@ -4,7 +4,9 @@
 mod common;
 
 use codeskimr_application::ports::{ProjectRepository, SnapshotStore};
-use codeskimr_domain::{BranchName, CredentialId, GitUrl, ProjectId, ProjectSource, ScanMode};
+use codeskimr_domain::{
+    BranchName, CredentialId, GitUrl, Principal, ProjectId, ProjectSource, ScanMode,
+};
 use common::{PROJECT, code_of, data, file, header, project, store};
 
 #[test]
@@ -110,7 +112,7 @@ fn next_project_id_follows_the_highest_registered_id() {
 
 #[test]
 fn consent_for_level_2_starts_empty_and_round_trips() {
-    use codeskimr_application::ports::{ConsentRecord, ConsentStore};
+    use codeskimr_application::level2::{ConsentRecord, ConsentStore, confirm, revoke};
 
     let store = store(3);
     store.save_project(&project(1, "/work/app", &[])).unwrap();
@@ -119,36 +121,31 @@ fn consent_for_level_2_starts_empty_and_round_trips() {
         enabled: true,
         confirmed: true,
     };
-    store.store_consent(PROJECT, confirmed).unwrap();
+    confirm(&Principal::local_owner(), &store, PROJECT).unwrap();
     assert_eq!(store.consent(PROJECT).unwrap(), confirmed);
     // A second project does not share it.
     assert_eq!(
         store.consent(ProjectId::new(2)).unwrap(),
         ConsentRecord::default()
     );
-    store
-        .store_consent(PROJECT, ConsentRecord::default())
-        .unwrap();
+    revoke(&Principal::local_owner(), &store, PROJECT).unwrap();
     assert_eq!(store.consent(PROJECT).unwrap(), ConsentRecord::default());
 }
 
 #[test]
 fn a_confirmation_does_not_survive_a_change_of_the_projects_source() {
-    use codeskimr_application::ports::{ConsentRecord, ConsentStore};
+    use codeskimr_application::level2::{ConsentStore, confirm};
 
     let store = store(3);
     store.save_project(&project(1, "/work/app", &[])).unwrap();
-    let confirmed = ConsentRecord {
-        enabled: true,
-        confirmed: true,
-    };
-    store.store_consent(PROJECT, confirmed).unwrap();
+    let owner = Principal::local_owner();
+    confirm(&owner, &store, PROJECT).unwrap();
     // The same id, pointed at another folder: not confirmed any more.
     store.save_project(&project(1, "/work/other", &[])).unwrap();
     assert!(!store.consent(PROJECT).unwrap().confirmed);
     // Pointed back, the old confirmation fits again only if nobody confirmed anew in between; a
     // new confirmation binds to the new place.
-    store.store_consent(PROJECT, confirmed).unwrap();
+    confirm(&owner, &store, PROJECT).unwrap();
     assert!(store.consent(PROJECT).unwrap().confirmed);
     store.save_project(&project(1, "/work/app", &[])).unwrap();
     assert!(!store.consent(PROJECT).unwrap().confirmed);
@@ -160,7 +157,7 @@ fn a_confirmation_does_not_survive_a_change_of_the_projects_source() {
         credential: None,
     };
     store.save_project(&git).unwrap();
-    store.store_consent(PROJECT, confirmed).unwrap();
+    confirm(&owner, &store, PROJECT).unwrap();
     assert!(store.consent(PROJECT).unwrap().confirmed);
     git.source = ProjectSource::Git {
         url: GitUrl::new("https://example.org/app.git").unwrap(),
@@ -173,18 +170,10 @@ fn a_confirmation_does_not_survive_a_change_of_the_projects_source() {
 
 #[test]
 fn consent_for_a_project_that_does_not_exist_is_refused() {
-    use codeskimr_application::ports::{ConsentRecord, ConsentStore};
+    use codeskimr_application::level2::{ConsentRecord, ConsentStore, confirm};
 
     let store = store(3);
-    let error = store
-        .store_consent(
-            ProjectId::new(7),
-            ConsentRecord {
-                enabled: true,
-                confirmed: true,
-            },
-        )
-        .unwrap_err();
+    let error = confirm(&Principal::local_owner(), &store, ProjectId::new(7)).unwrap_err();
     assert_eq!(code_of(&error), "PRJ-201");
     assert_eq!(
         store.consent(ProjectId::new(7)).unwrap(),

@@ -11,6 +11,9 @@ import styles from "./Toolbar.module.css";
 export function Toolbar(props: {
   level: Level;
   onLevel: (level: Level) => void;
+  /** Whether a type is known to put in the middle: the one chosen in the explorer. */
+  focusable: boolean;
+  onTypeFocus: () => void;
   depth: number;
   onDepth: (depth: number) => void;
   weak: boolean;
@@ -37,6 +40,16 @@ export function Toolbar(props: {
           onClick={() => props.onLevel(LEVEL.namespaces)}
         >
           {t(I18N_KEYS.GRAPH_MODE_NAMESPACES)}
+        </button>
+        <button
+          type="button"
+          class={cx(styles.level, props.level === LEVEL.types && styles.on)}
+          aria-pressed={props.level === LEVEL.types}
+          disabled={!props.focusable}
+          title={props.focusable ? undefined : t(I18N_KEYS.GRAPH_TYPES_PICK)}
+          onClick={props.onTypeFocus}
+        >
+          {t(I18N_KEYS.GRAPH_MODE_TYPE_FOCUS)}
         </button>
       </div>
       <Show when={props.level === LEVEL.namespaces}>
@@ -67,7 +80,7 @@ export function Toolbar(props: {
         <input
           type="checkbox"
           checked={props.violationsOnly}
-          disabled={props.level === LEVEL.namespaces}
+          disabled={props.level !== LEVEL.layers}
           onChange={(event) => props.onViolationsOnly(event.currentTarget.checked)}
         />
         {t(I18N_KEYS.GRAPH_TOGGLE_VIOLATIONS_ONLY)}

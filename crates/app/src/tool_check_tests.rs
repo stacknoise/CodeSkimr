@@ -286,7 +286,7 @@ fn a_scan_whose_tools_are_all_there_prints_no_tool_line() {
     .scan(ScanMode::Full)
     .unwrap();
     let text = scan_finished(&Messages::load().unwrap(), "en", &summary).unwrap();
-    assert_eq!(text.lines().count(), 2, "{text}");
+    assert_eq!(text.lines().count(), 2 + summary.level2.len(), "{text}");
     assert!(summary.tools.languages[0].level2_ready);
 }
 

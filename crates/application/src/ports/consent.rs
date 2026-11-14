@@ -28,12 +28,41 @@ pub trait ConsentStore: Send + Sync {
     /// A coded failure of the `STO` group.
     fn consent(&self, project: ProjectId) -> Result<ConsentRecord, CodedError>;
 
-    /// Replaces the record of `project` and binds the confirmation to the source the project has
-    /// now.
+    /// Writes what `grant` says and binds a confirmation to the source the project has now. Only
+    /// `level2::confirm` and `level2::revoke` can make a [`ConsentGrant`], so nothing else can
+    /// write a consent, whoever holds the store.
     ///
     /// # Errors
     /// A coded failure of the `STO` group.
-    fn store_consent(&self, project: ProjectId, record: ConsentRecord) -> Result<(), CodedError>;
+    fn store_consent(&self, grant: &ConsentGrant) -> Result<(), CodedError>;
+}
+
+/// The order to write a consent. It cannot be made outside this crate, and inside it only by
+/// `level2::confirm` and `level2::revoke`, after they checked `Permission::ConfirmIndexer`
+/// (ADR 0033, decision 10). A store that is handed to MCP, the server or the scanner can read the
+/// consent but has nobody who could give it a grant.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ConsentGrant {
+    project: ProjectId,
+    record: ConsentRecord,
+}
+
+impl ConsentGrant {
+    pub(crate) const fn new(project: ProjectId, record: ConsentRecord) -> Self {
+        Self { project, record }
+    }
+
+    /// The project the record is for.
+    #[must_use]
+    pub const fn project(&self) -> ProjectId {
+        self.project
+    }
+
+    /// The record to write.
+    #[must_use]
+    pub const fn record(&self) -> ConsentRecord {
+        self.record
+    }
 }
 
 /// Proof that `level2::authorize_run` let a run pass. Only that function can make one, so a run

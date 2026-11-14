@@ -58,8 +58,23 @@ pub const USAGES_TITLE: &str = i18n::COMMAND_USAGES_QUERY_TITLE;
 pub const USAGES_DESCRIPTION: &str = i18n::COMMAND_USAGES_QUERY_DESCRIPTION;
 /// Most references and symbols of one walk that `usages.query` returns.
 pub const USAGES_LIMIT: u32 = 500;
-/// State of level 2 while no indexer is wired (ADR 0033).
+/// Id of the command that returns the code lines of the hits of a usages query.
+pub const USAGES_CODE: &str = "usages.code";
+/// Title key of `usages.code`.
+pub const USAGES_CODE_TITLE: &str = i18n::COMMAND_USAGES_CODE_TITLE;
+/// Description key of `usages.code`.
+pub const USAGES_CODE_DESCRIPTION: &str = i18n::COMMAND_USAGES_CODE_DESCRIPTION;
+/// Most hits `usages.code` reads a line for; the hit list shows the first ones.
+pub const USAGES_CODE_MAX_HITS: usize = 200;
+/// Most lines `usages.code` reads from one file to reach all its hits; hits further down get no code.
+pub const USAGES_CODE_MAX_SPAN: u32 = 5_000;
+/// Most characters of one code line `usages.code` returns.
+pub const USAGES_CODE_MAX_CHARS: usize = 240;
+/// State of level 2 when no hit of the answer was verified by an indexer (ADR 0033): level 2 is off,
+/// was not run, or did not reach the symbol.
 pub const LEVEL2_UNAVAILABLE: &str = "unavailable";
+/// State of level 2 when at least one hit of the answer was verified by an indexer.
+pub const LEVEL2_ACTIVE: &str = "active";
 
 /// Id of the command of the status bar.
 pub const STATUS_INFO: &str = "status.info";
@@ -163,3 +178,14 @@ pub const CREDENTIALS_SET_DESCRIPTION: &str = i18n::COMMAND_CREDENTIALS_SET_DESC
 pub const CREDENTIALS_DELETE_TITLE: &str = i18n::COMMAND_CREDENTIALS_DELETE_TITLE;
 /// Description key of `credentials.delete`.
 pub const CREDENTIALS_DELETE_DESCRIPTION: &str = i18n::COMMAND_CREDENTIALS_DELETE_DESCRIPTION;
+
+/// Most types drawn on each side of the type in the middle of the map; the rest is counted.
+pub const TYPE_SIDE_MAX: usize = 12;
+/// Between the qualified name and the id in the name of a box, if two drawn types share a name.
+pub const BOX_ID_SEPARATOR: &str = " #";
+/// Row of the types that use the type in the middle.
+pub const TYPE_ROW_USERS: u32 = 0;
+/// Row of the type in the middle.
+pub const TYPE_ROW_FOCUS: u32 = 1;
+/// Row of the types the type in the middle uses.
+pub const TYPE_ROW_USED: u32 = 2;

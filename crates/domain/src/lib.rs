@@ -25,6 +25,7 @@ mod snapshot;
 mod span;
 mod symbol;
 mod tool;
+mod type_neighbours;
 mod vocabulary;
 
 pub use access::{Permission, PermissionSet, Principal};
@@ -57,3 +58,4 @@ pub use symbol::{Symbol, SymbolId, SymbolKind, SymbolName, Visibility};
 pub use tool::{
     RequirementFormat, RequirementSpec, ToolEntry, ToolFinding, ToolReport, ToolRole, ToolState,
 };
+pub use type_neighbours::{TypeLink, TypeNeighbours, type_neighbours};

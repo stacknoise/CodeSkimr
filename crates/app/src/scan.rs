@@ -9,10 +9,11 @@ use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
-use codeskimr_application::pipeline::{Job, JobResult, Scanner};
+use codeskimr_application::level2::{LanguageReport, Level2Outcome, Skipped};
+use codeskimr_application::pipeline::{Job, JobResult, Queued, Scanner};
 use codeskimr_application::ports::{ProjectRepository, ProjectToolCheck};
 use codeskimr_application::tools::ToolsView;
-use codeskimr_cli::{GlobalOptions, ScanArgs, ScanSummary};
+use codeskimr_cli::{GlobalOptions, Level2Line, Level2Reason, ScanArgs, ScanSummary};
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Permission, Principal, Project, ProjectId, ProjectSource, ScanMode};
 use codeskimr_storage::SqliteStore;
@@ -96,11 +97,21 @@ impl Session {
     /// The code of the failed stage, or `PRJ-303` if the scan was cancelled (nothing cancels it
     /// here).
     pub fn scan(&self, mode: ScanMode) -> Result<ScanSummary, CodedError> {
-        self.scan_with(mode, drop)
+        self.run_job(Job::new(self.project.id, mode).with_level2())
     }
 
-    /// Like [`Session::scan`], but hands the token that cancels this scan to `on_token` before
-    /// the scan starts.
+    /// Like [`Session::scan`], but level 1 only: no indexer starts. Watch mode scans again with
+    /// this after its first scan.
+    ///
+    /// # Errors
+    /// The same as [`Session::scan`].
+    pub fn scan_quick(&self, mode: ScanMode) -> Result<ScanSummary, CodedError> {
+        self.run_job(Job::new(self.project.id, mode).without_level2())
+    }
+
+    /// Like [`Session::scan`], but level 1 only, and it hands the token that cancels this scan to
+    /// `on_token` before the scan starts. The UI uses it; only the scan of the command line runs
+    /// level 2.
     ///
     /// # Errors
     /// The same as [`Session::scan`].
@@ -109,9 +120,14 @@ impl Session {
         mode: ScanMode,
         on_token: impl FnOnce(CancelToken),
     ) -> Result<ScanSummary, CodedError> {
-        let started = Instant::now();
         let job = Job::new(self.project.id, mode);
         on_token(job.cancel_token());
+        self.run_job(job)
+    }
+
+    fn run_job(&self, job: Job<Queued>) -> Result<ScanSummary, CodedError> {
+        let started = Instant::now();
+        let mode = job.mode();
         match self.scanner.run(&self.principal, job) {
             JobResult::Finished(job) => {
                 let snapshot = job.snapshot();
@@ -123,12 +139,38 @@ impl Session {
                     symbols: snapshot.stats.symbols,
                     references: snapshot.stats.references,
                     seconds,
+                    level2: job.level2().iter().map(level2_line).collect(),
                     tools: self.check_tools(mode),
                 })
             }
             JobResult::Failed(job) => Err(CodedError::new(job.code())),
             JobResult::Cancelled(_) => Err(CodedError::new(ErrorCode::ScanCancelled)),
         }
+    }
+}
+
+/// The line of the summary for one language of the second pass.
+fn level2_line(report: &LanguageReport) -> Level2Line {
+    let (files, stale, reason) = match &report.outcome {
+        Level2Outcome::Checked { files, stale, .. } => (*files, *stale, None),
+        Level2Outcome::Skipped(why) => (u64::default(), u64::default(), Some(reason_of(why))),
+    };
+    Level2Line {
+        language: report.language.to_string(),
+        files,
+        stale,
+        reason,
+    }
+}
+
+fn reason_of(skipped: &Skipped) -> Level2Reason {
+    match skipped {
+        Skipped::NotPermitted => Level2Reason::NotPermitted,
+        Skipped::NotConfirmed => Level2Reason::NotConfirmed,
+        Skipped::Unavailable(_) => Level2Reason::Unavailable,
+        Skipped::Stale => Level2Reason::Stale,
+        Skipped::Cancelled => Level2Reason::Cancelled,
+        Skipped::Failed(code) => Level2Reason::Failed(code.id().to_owned()),
     }
 }
 

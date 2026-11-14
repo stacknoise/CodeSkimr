@@ -1,6 +1,6 @@
 //! The command of the usages screen: who uses a symbol, what it uses and what a change reaches
-//! (blueprint 9, mock 6). Every reference says whether it is verified; until level 2 exists
-//! (ADR 0033, proposed) none is, and the screen shows that.
+//! (blueprint 9, mock 6). Every reference says whether level 2 (ADR 0033) verified it; the
+//! screen shows the unchecked ones as such.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -8,7 +8,7 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    CodeIndex, ProjectRepository, SymbolKey, SymbolLabel, UsageEntry, UsageIndex,
+    CodeIndex, ProjectRepository, SourceText, SymbolKey, SymbolLabel, UsageEntry, UsageIndex,
 };
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
@@ -19,7 +19,8 @@ use codeskimr_domain::{
 use serde::{Deserialize, Serialize};
 
 use super::consts::{
-    LEVEL2_UNAVAILABLE, LINE_OFFSET, USAGES_DESCRIPTION, USAGES_LIMIT, USAGES_QUERY, USAGES_TITLE,
+    LEVEL2_ACTIVE, LEVEL2_UNAVAILABLE, LINE_OFFSET, USAGES_DESCRIPTION, USAGES_LIMIT, USAGES_QUERY,
+    USAGES_TITLE,
 };
 
 /// Which way the screen walks the references.
@@ -154,7 +155,7 @@ pub struct UsagesOut {
     pub summary: Summary,
     /// What a change reaches.
     pub impact: Impact,
-    /// State of level 2 for the project: `unavailable` until it exists.
+    /// `active` if an indexer verified at least one hit of this answer, else `unavailable`.
     pub level2: &'static str,
 }
 
@@ -163,6 +164,7 @@ pub struct UsagesPorts {
     pub(super) projects: Arc<dyn ProjectRepository>,
     pub(super) index: Arc<dyn CodeIndex>,
     pub(super) usages: Arc<dyn UsageIndex>,
+    pub(super) text: Arc<dyn SourceText>,
     pub(super) max_depth: u32,
 }
 
@@ -270,7 +272,7 @@ pub struct UsagesQuery {
 
 impl UsagesPorts {
     /// Both walks the direction asks for, and the direct usages for the counts.
-    fn walks(
+    pub(super) fn walks(
         &self,
         project: &Project,
         snapshot: SnapshotId,
@@ -335,6 +337,7 @@ impl Command for UsagesQuery {
             qualified_name: detail.symbol.qualified_name.clone(),
             kind: detail.symbol.kind,
         };
+        let summary = UsagesPorts::summary(&direct);
         Ok(UsagesOut {
             snapshot: snapshot.get(),
             symbol: place(&project, &label),
@@ -343,9 +346,41 @@ impl Command for UsagesQuery {
             depth,
             incoming,
             outgoing,
-            summary: UsagesPorts::summary(&direct),
+            level2: level2_state(&summary),
+            summary,
             impact: ports.impact(&project, snapshot, detail.symbol.id)?,
-            level2: LEVEL2_UNAVAILABLE,
         })
+    }
+}
+
+/// `active` once an indexer verified a direct usage of the answer.
+fn level2_state(summary: &Summary) -> &'static str {
+    if summary.verified > 0 {
+        LEVEL2_ACTIVE
+    } else {
+        LEVEL2_UNAVAILABLE
+    }
+}
+
+#[cfg(test)]
+mod level2_tests {
+    use super::*;
+
+    #[test]
+    fn the_state_follows_the_verified_hits() {
+        let none = Summary {
+            places: 3,
+            files: 1,
+            layers: 1,
+            verified: 0,
+            unchecked: 3,
+            probable: 0,
+        };
+        assert_eq!(level2_state(&none), LEVEL2_UNAVAILABLE);
+        let some = Summary {
+            verified: 1,
+            ..none
+        };
+        assert_eq!(level2_state(&some), LEVEL2_ACTIVE);
     }
 }

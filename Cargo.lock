@@ -385,6 +385,7 @@ dependencies = [
  "codeskimr_indexer",
  "codeskimr_mcp",
  "codeskimr_parsing",
+ "codeskimr_scip",
  "codeskimr_secrets",
  "codeskimr_server",
  "codeskimr_source",
@@ -535,6 +536,7 @@ dependencies = [
 name = "codeskimr_scip"
 version = "0.1.0"
 dependencies = [
+ "codeskimr_application",
  "codeskimr_codes",
  "codeskimr_domain",
  "tempfile",

@@ -64,7 +64,7 @@ pub fn run(
     };
     let ports = build_ports(store, &config, wiring, (EventBus::new(), &os_secrets()))?;
     let tools = Tools::new(ports, config.mcp, project.id);
-    let server = McpServer::new(tools, &messages, principal::resolve())?;
+    let server = McpServer::new(tools, &messages, principal::remote_client())?;
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -107,7 +107,7 @@ pub fn http_service_probing(
     };
     let ports = build_ports(store, config, wiring, (events, secrets))?;
     let tools = Tools::unscoped(ports, config.mcp.clone());
-    let server = McpServer::new(tools, &messages, principal::resolve())?;
+    let server = McpServer::new(tools, &messages, principal::remote_client())?;
     Ok(codeskimr_mcp::http_service(&server))
 }
 
@@ -136,6 +136,7 @@ fn build_ports(
         discovery,
         analyzer,
         snippets,
+        ..
     } = build_analysis(config, locations)?;
     let checker = ConventionChecker::new(discovery, analyzer, config.conventions.clone());
     let scanner: Arc<dyn ProjectScanner> =

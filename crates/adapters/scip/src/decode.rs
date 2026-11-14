@@ -29,8 +29,15 @@ use crate::wire::{Fields, Value, packed_varints};
 ///
 /// # Errors
 /// [`ScipError::TooLarge`] above `max_index_bytes`, [`ScipError::Unreadable`] if the file cannot
-/// be read, and everything [`decode_index`] reports.
+/// be read or is not a regular file (a link is never followed), and everything [`decode_index`] reports.
 pub fn read_index(path: &Path, max_index_bytes: u64) -> Result<ScipIndex, ScipError> {
+    // A link in place of the index could lead anywhere; only a regular file counts.
+    let regular = std::fs::symlink_metadata(path).is_ok_and(|meta| meta.is_file());
+    if !regular {
+        return Err(ScipError::Unreadable(
+            std::io::ErrorKind::InvalidInput.into(),
+        ));
+    }
     let file = File::open(path).map_err(ScipError::Unreadable)?;
     let size = file.metadata().map_err(ScipError::Unreadable)?.len();
     refuse_above(size, max_index_bytes)?;

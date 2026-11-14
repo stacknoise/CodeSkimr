@@ -1,7 +1,7 @@
 //! The user's decision about level 2 for a project: the `ConsentStore` port (ADR 0033).
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{ConsentRecord, ConsentStore};
+use codeskimr_application::ports::{ConsentGrant, ConsentRecord, ConsentStore};
 use codeskimr_domain::ProjectId;
 use rusqlite::{OptionalExtension, params};
 
@@ -29,7 +29,8 @@ impl ConsentStore for SqliteStore {
         .map_err(CodedError::from)
     }
 
-    fn store_consent(&self, project: ProjectId, record: ConsentRecord) -> Result<(), CodedError> {
+    fn store_consent(&self, grant: &ConsentGrant) -> Result<(), CodedError> {
+        let (project, record) = (grant.project(), grant.record());
         self.write(|tx| {
             let written = tx.execute(
                 sql::CONSENT_UPSERT,

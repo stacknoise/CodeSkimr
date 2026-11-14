@@ -9,7 +9,8 @@ use std::sync::{Arc, PoisonError};
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    DependencyEdge, DependencyPage, DependencyQuery, ImpactPage, SymbolLabel, UsageIndex, UsagePage,
+    DependencyEdge, DependencyPage, DependencyQuery, ImpactPage, SymbolLabel, TypeFocus,
+    UsageIndex, UsagePage,
 };
 use codeskimr_domain::{
     Direction, NamespaceGraph, QualifiedName, ReferenceKind, RelativePath, SnapshotId, SymbolId,
@@ -155,6 +156,22 @@ impl SqliteStore {
     pub fn namespace_graph(&self, snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError> {
         self.lookup(snapshot)
             .map(|found| found.namespaces.clone())
+            .map_err(CodedError::from)
+    }
+}
+
+impl SqliteStore {
+    /// The types around one type of a snapshot; `None` if the symbol is not a type of it.
+    ///
+    /// # Errors
+    /// A coded `STO` failure.
+    pub fn type_focus(
+        &self,
+        snapshot: SnapshotId,
+        symbol: SymbolId,
+    ) -> Result<Option<TypeFocus>, CodedError> {
+        self.lookup(snapshot)
+            .and_then(|found| found.type_focus(symbol))
             .map_err(CodedError::from)
     }
 }

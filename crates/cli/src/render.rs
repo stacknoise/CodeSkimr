@@ -13,6 +13,7 @@ use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
 use serde::Serialize;
 
 use crate::consts::{LINE_BREAK, LIST_SEPARATOR, NO_VERSION, SECONDS_BASE, SECONDS_DECIMALS, arg};
+use crate::level2::Level2Line;
 
 /// The outcome of a scan as shown to the user and written by `--json`.
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -29,6 +30,8 @@ pub struct ScanSummary {
     pub references: u32,
     /// Duration of the scan in seconds.
     pub seconds: f64,
+    /// What level 2 did for each language that has an indexer; empty if it is not wired.
+    pub level2: Vec<Level2Line>,
     /// What the check of the tools found (ADR 0033); a tool that is not ready is shown below the
     /// summary.
     pub tools: ToolsView,
@@ -204,7 +207,8 @@ pub fn scan_tools(
         .collect()
 }
 
-/// The lines that close a scan: two of numbers, then one for each tool that is missing.
+/// The lines that close a scan: the totals, one line per language that level 2 looked at, then one
+/// for each tool that is missing.
 ///
 /// # Errors
 /// `I18N-201` if a message is missing.
@@ -223,6 +227,9 @@ pub fn scan_finished(
     let first = messages.format(language, CLI_SCAN_FINISHED, Some(&finished))?;
     let second = messages.format(language, CLI_SCAN_DETAILS, Some(&details))?;
     let mut lines = vec![first, second];
+    for line in &summary.level2 {
+        lines.push(line.render(messages, language)?);
+    }
     lines.extend(scan_tools(messages, language, &summary.tools)?);
     Ok(lines.join(LINE_BREAK))
 }

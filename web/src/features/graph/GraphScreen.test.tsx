@@ -5,6 +5,7 @@ import { setLanguage } from "../../shared/i18n/i18n";
 import { activeProject, openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import type { ProjectRow } from "../projects/types";
+import { selectType } from "../explorer/explorer";
 import { DEPTH_ALL, LEVEL } from "./consts";
 import { resetGraph, setGraphDepth, setGraphLevel, wantedLayer, wantLayer } from "./graph";
 import { GraphScreen } from "./GraphScreen";
@@ -23,9 +24,10 @@ const ROW: ProjectRow = {
   running: false,
 };
 
-const BOX = { width: 160, height: 44, order: 0, layer: null, types: null };
+const BOX = { width: 160, height: 44, order: 0, layer: null, types: null, symbol: null };
 const GRAPH = {
   snapshot: 5,
+  focus: null,
   width: 400,
   height: 300,
   boxes: [
@@ -47,6 +49,7 @@ useServerSession();
 
 beforeEach(() => {
   resetGraph();
+  setGraphLevel(LEVEL.layers);
   openProject(1);
   setLanguage("en");
 });
@@ -87,6 +90,29 @@ describe("GraphScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: "Namespaces" }));
     await waitFor(() => expect(filter.disabled).toBe(true));
     expect(filter.checked).toBe(false);
+  });
+
+  it("keeps the type focus off until the explorer has a type", async () => {
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    await screen.findByRole("button", { name: "Domain" });
+    expect((screen.getByRole("button", { name: "Type focus" }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+  });
+
+  it("asks for the type level with the type of the explorer as focus", async () => {
+    served(GRAPH);
+    await selectType(1, 77);
+    render(() => <GraphScreen />);
+    await screen.findByRole("button", { name: "Domain" });
+    fireEvent.click(screen.getByRole("button", { name: "Type focus" }));
+    await waitFor(() => {
+      const bodies = fetchMock.mock.calls.map((call) => String(call[1]?.body ?? ""));
+      expect(bodies.some((b) => b.includes('"level":"types"') && b.includes('"focus":77'))).toBe(
+        true,
+      );
+    });
   });
 
   it("asks for the namespace level when it is chosen", async () => {

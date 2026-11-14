@@ -284,3 +284,16 @@ pub const LOG_TOOL_CHECK_FAILED: &str = "tool_check_failed";
 /// Largest file that is read for the version a project requires (`global.json`, `.nvmrc` and so
 /// on), in bytes.
 pub const REQUIREMENT_MAX_BYTES: u64 = 65_536;
+
+/// Characters besides the control characters that can hide or reorder text on a terminal: the
+/// direction marks and overrides, the zero-width characters, the line and paragraph separators
+/// and the byte order mark. A name that holds one is not shown in a prompt.
+pub const INVISIBLE_RANGES: [(char, char); 7] = [
+    ('\u{061C}', '\u{061C}'),
+    ('\u{200B}', '\u{200F}'),
+    ('\u{2028}', '\u{202E}'),
+    ('\u{2060}', '\u{2064}'),
+    ('\u{2066}', '\u{2069}'),
+    ('\u{FEFF}', '\u{FEFF}'),
+    ('\u{00AD}', '\u{00AD}'),
+];

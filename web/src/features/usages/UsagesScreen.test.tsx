@@ -70,6 +70,32 @@ describe("UsagesScreen", () => {
     expect(screen.getByRole("region", { name: "Hits" })).toBeTruthy();
   });
 
+  it("shows the code line of a hit with the used symbol marked, and keeps the list without it", async () => {
+    openProject(1);
+    serve({
+      "usages.query": () => answer(ANSWER),
+      "explorer.symbol": () => answer(ORDER_SYMBOL),
+      "usages.code": () =>
+        answer({
+          available: true,
+          lines: [{ path: "src/Ui.cs", line: 40, text: "var sum = cart.Total();" }],
+        }),
+    });
+    showUsages(10);
+    render(() => <UsagesScreen />);
+    const mark = await screen.findByText("Total");
+    expect(mark.tagName).toBe("MARK");
+    expect(mark.parentElement?.textContent).toBe("var sum = cart.Total();");
+    expect(screen.getByText("src/Ui.cs:40")).toBeTruthy();
+  });
+
+  it("keeps the hit list when the code cannot be read", async () => {
+    shown();
+    await screen.findByText("Hits 4");
+    expect(screen.getByText("src/Ui.cs:40")).toBeTruthy();
+    expect(document.querySelector("mark")).toBeNull();
+  });
+
   it("marks every hit unchecked or presumed and says that the result is preliminary", async () => {
     shown();
     await screen.findByText("Hits 4");

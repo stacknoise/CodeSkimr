@@ -9,8 +9,8 @@ use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, column_int, id_from, small_from};
 use crate::error::StorageResult;
+use crate::headers::latest_snapshot;
 use crate::projects::load_project;
-use crate::snapshots::latest_snapshot;
 use crate::sql;
 use crate::store::SqliteStore;
 

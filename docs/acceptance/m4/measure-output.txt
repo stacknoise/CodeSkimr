@@ -1,0 +1,19 @@
+projects.add true 2685 ms {"files":594,"project":1,"references":94949,"seconds":1.684050324,"snapshot":1,"symbols":9189}
+graph.layers boxes: 6 links: 28
+graph.layers (request round trip): median 1.74 ms, p95 2.72 ms, max 4.06 ms (n=50)
+first call per symbol by number of incoming usages:
+  0-9 incoming: 143 symbols, median 1.84 ms, p95 4.91 ms, max 7.71 ms (n=143)
+  10-99 incoming: 89 symbols, median 2.77 ms, p95 6.97 ms, max 193.12 ms (n=89)
+  100-999 incoming: 120 symbols, median 6.56 ms, p95 8.03 ms, max 9.44 ms (n=120)
+  1000-+ incoming: 48 symbols, median 6.78 ms, p95 9.11 ms, max 9.53 ms (n=48)
+symbols probed: 400 largest incoming: [ 7963, 1954, 1344 ]
+usages.query depth 2, symbol 5721030692: median 7.68 ms, p95 9.99 ms, max 11.12 ms (n=50)
+usages.query depth 2, symbol 9361686532: median 7.49 ms, p95 8.46 ms, max 8.77 ms (n=50)
+usages.query depth 2, symbol 301989893: median 6.85 ms, p95 8.09 ms, max 9.34 ms (n=50)
+usages.query depth 2, symbol 4932501509: median 7.15 ms, p95 8.46 ms, max 9.34 ms (n=50)
+usages.query depth 2, symbol 4546625544: median 6.78 ms, p95 7.42 ms, max 7.71 ms (n=50)
+usages.query all five symbols: median 7.21 ms, p95 8.64 ms, max 11.12 ms (n=250)
+largest symbol, way both, depth 1: median 7.28 ms, p95 8.39 ms, max 14.18 ms (n=50)
+largest symbol, way incoming, depth 1: median 7.99 ms, p95 8.86 ms, max 14.14 ms (n=50)
+largest symbol, way incoming, depth 2: median 8.89 ms, p95 9.93 ms, max 11.70 ms (n=50)
+largest symbol, way outgoing, depth 2: median 3.47 ms, p95 3.81 ms, max 4.06 ms (n=50)

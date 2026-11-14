@@ -875,3 +875,45 @@ fn the_export_holds_no_secret_from_a_method_body_and_no_path() {
         ],
     );
 }
+
+#[test]
+fn level2_cannot_be_confirmed_without_a_terminal_and_a_scan_then_skips_it() {
+    let workspace = Workspace::new();
+    json_of(&workspace.scan(&[]));
+    let confirm = workspace
+        .command()
+        .args(["level2", "confirm"])
+        .arg(workspace.project())
+        .output()
+        .unwrap();
+    assert!(!confirm.status.success());
+    assert!(stderr(&confirm).contains("SEC-403"), "{}", stderr(&confirm));
+    let summary = json_of(&workspace.scan(&[]));
+    let lines = summary["level2"].as_array().unwrap();
+    assert_ne!(lines.len(), 0);
+    assert!(
+        lines
+            .iter()
+            .all(|line| line["reason"] == "not_confirmed" && line["files"] == 0)
+    );
+}
+
+#[test]
+fn level2_can_be_revoked_without_a_terminal_and_an_unknown_project_is_refused() {
+    let workspace = Workspace::new();
+    json_of(&workspace.scan(&[]));
+    let revoke = workspace
+        .command()
+        .args(["level2", "revoke"])
+        .arg(workspace.project())
+        .output()
+        .unwrap();
+    assert!(revoke.status.success(), "{}", stderr(&revoke));
+    assert!(String::from_utf8_lossy(&revoke.stdout).contains("forbidden again"));
+    let unknown = workspace
+        .command()
+        .args(["level2", "revoke", "999"])
+        .output()
+        .unwrap();
+    assert!(stderr(&unknown).contains("PRJ-201"), "{}", stderr(&unknown));
+}
