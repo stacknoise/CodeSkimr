@@ -13,7 +13,7 @@ use codeskimr_application::ports::{
 use codeskimr_domain::{
     Fingerprint, Fingerprints, LanguageId, MetricKind, ScanMode, SymbolId, SymbolKind,
 };
-use codeskimr_storage::SqliteStore;
+use codeskimr_storage::{SqliteStore, StoreOptions};
 use common::{PROJECT, code_of, data, file, header, metric, project, reference, symbol};
 use rusqlite::Connection;
 
@@ -555,4 +555,41 @@ fn connections_opening_a_new_database_at_once_all_succeed() {
     for worker in workers {
         worker.join().unwrap().unwrap();
     }
+}
+
+#[test]
+fn a_write_blocked_by_another_connection_fails_with_a_lock_conflict() {
+    let db = TempDb::new();
+    let options = StoreOptions {
+        busy_timeout: std::time::Duration::from_millis(50),
+        growth_limit_pages: None,
+    };
+    let store = SqliteStore::open_with(&db.0, keep(3), options).unwrap();
+    let blocker = Connection::open(&db.0).unwrap();
+    blocker.execute_batch("BEGIN IMMEDIATE").unwrap();
+    let error = store
+        .save_project(&project(1, "/work/app", &[]))
+        .unwrap_err();
+    assert_eq!(code_of(&error), "STO-302");
+    blocker.execute_batch("ROLLBACK").unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+}
+
+#[test]
+fn a_database_that_cannot_grow_any_more_fails_like_a_full_disk() {
+    let db = TempDb::new();
+    let options = StoreOptions {
+        busy_timeout: std::time::Duration::from_secs(1),
+        growth_limit_pages: NonZeroU32::new(4),
+    };
+    let store = SqliteStore::open_with(&db.0, keep(3), options).unwrap();
+    let long_folder = "x".repeat(2000);
+    let error = (1..1000)
+        .find_map(|id| {
+            store
+                .save_project(&project(id, &format!("/work/{id}/{long_folder}"), &[]))
+                .err()
+        })
+        .expect("the page limit is reached long before 1000 projects");
+    assert_eq!(code_of(&error), "STO-501");
 }
