@@ -1,16 +1,14 @@
 import { createEffect, For, Show } from "solid-js";
-import type { MessageKey } from "../../shared/i18n/i18n";
-import { t } from "../../shared/i18n/i18n";
+import { currentLanguage, t, type MessageKey } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
-import { currentLanguage } from "../../shared/i18n/i18n";
 import { activeProject } from "../../shared/project/active";
+import { cx } from "../../shared/ui/cx";
 import { treeOutline } from "../explorer/explorer";
 import { KindBadge } from "../explorer/KindBadge";
 import { tilesOf } from "../explorer/metrics";
 import { ratingClass } from "../explorer/ratingClass";
-import { cx } from "../../shared/ui/cx";
-import { loadPreview, previewInfo } from "./preview";
 import { PREVIEW_TILES } from "./consts";
+import { loadPreview, previewInfo } from "./preview";
 import type { Hit } from "./types";
 import styles from "./QuickSearch.module.css";
 
