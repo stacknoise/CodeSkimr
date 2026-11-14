@@ -14,7 +14,7 @@ use tree_sitter::{Node, QueryCursor, QueryMatch, StreamingIterator};
 use crate::captures::{Capture, ReceiverRole, Vocabulary};
 use crate::error::ParsingError;
 use crate::location::{span_of, text_of};
-use crate::scopes::{RawDeclaration, Scopes};
+use crate::scopes::{Declared, RawDeclaration, Scopes};
 use crate::symbols::{SymbolContext, SymbolTable};
 
 /// What the syntax says about the receiver of a member name, before locals are looked at.
@@ -24,6 +24,8 @@ enum Seen {
     Name(String, usize),
     /// The type of a creation expression.
     Type(String),
+    /// A field or property named behind `this.`, at this byte offset.
+    Member(String, usize),
     /// The enclosing object itself.
     Own,
     /// The base of the enclosing object.
@@ -136,6 +138,7 @@ impl<'t> Facts<'t> {
         let seen = match role {
             ReceiverRole::Name => Seen::Name(text, node.start_byte()),
             ReceiverRole::Type => Seen::Type(text),
+            ReceiverRole::Member => Seen::Member(text, node.start_byte()),
             ReceiverRole::Own => Seen::Own,
             ReceiverRole::Base => Seen::Base,
             ReceiverRole::Other => Seen::Other,
@@ -205,6 +208,19 @@ fn pending_reference(
     }))
 }
 
+/// A receiver name that is declared counts through its declared type, an undeclared one by its name.
+fn declared_receiver(name: &str, declared: Option<Declared<'_>>) -> Option<Receiver> {
+    match declared {
+        Some(declared) => Some(
+            declared
+                .declared_type
+                .and_then(|text| QualifiedName::new(text).ok())
+                .map_or(Receiver::Unknown, Receiver::Typed),
+        ),
+        None => QualifiedName::new(name).ok().map(Receiver::Named),
+    }
+}
+
 /// The receiver as the resolver gets it: a variable counts through its declared type.
 fn receiver_of(seen: &Seen, scopes: &Scopes) -> Option<Receiver> {
     match seen {
@@ -212,14 +228,7 @@ fn receiver_of(seen: &Seen, scopes: &Scopes) -> Option<Receiver> {
         Seen::Base => Some(Receiver::Base),
         Seen::Other => Some(Receiver::Unknown),
         Seen::Type(name) => QualifiedName::new(name).ok().map(Receiver::Typed),
-        Seen::Name(name, at) => match scopes.find(name, *at) {
-            Some(declared) => Some(
-                declared
-                    .declared_type
-                    .and_then(|text| QualifiedName::new(text).ok())
-                    .map_or(Receiver::Unknown, Receiver::Typed),
-            ),
-            None => QualifiedName::new(name).ok().map(Receiver::Named),
-        },
+        Seen::Member(name, at) => declared_receiver(name, scopes.find_member(name, *at)),
+        Seen::Name(name, at) => declared_receiver(name, scopes.find(name, *at)),
     }
 }
