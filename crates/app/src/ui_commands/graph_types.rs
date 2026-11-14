@@ -174,7 +174,10 @@ pub(super) fn types_out(
         height: reach(|one| one.y + one.height),
         focus: Some(FocusOut {
             symbol: found.focus.id.get(),
-            name: found.focus.qualified_name.to_string(),
+            name: types
+                .first()
+                .map(|one| one.name.clone())
+                .unwrap_or_default(),
             users_more: hidden(&found.users).unwrap_or(u32::MAX),
             used_more: hidden(&found.used).unwrap_or(u32::MAX),
         }),

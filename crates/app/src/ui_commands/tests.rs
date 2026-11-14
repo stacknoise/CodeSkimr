@@ -897,6 +897,26 @@ fn the_type_level_tells_two_types_of_the_same_name_apart() {
 }
 
 #[test]
+fn the_focus_is_named_like_its_box_when_another_type_has_its_name() {
+    let fixture = Fixture::new();
+    fs::write(
+        fixture.root.path().join("app/Other.cs"),
+        "namespace Demo;\n\npublic class Calculator\n{\n}\n",
+    )
+    .unwrap();
+    let project = added(&fixture);
+    let calculator = type_named(&fixture, project, "Calculator");
+    let map = type_map(&fixture, project, &calculator);
+    let middle = map["boxes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|b| b["symbol"] == calculator)
+        .unwrap();
+    assert_eq!(map["focus"]["name"], middle["name"]);
+}
+
+#[test]
 fn the_type_level_refuses_a_missing_focus_and_something_that_is_no_type() {
     let fixture = Fixture::new();
     let project = added(&fixture);
