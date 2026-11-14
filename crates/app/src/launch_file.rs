@@ -114,14 +114,14 @@ fn check_owner(dir: &Path, path: &Path, own_file: &File) -> std::io::Result<()> 
 
     use crate::consts::{OTHERS_WRITE_MASK, ROOT_UID, STICKY_MASK};
 
-    let user = own_file.metadata()?.uid();
+    let own = own_file.metadata()?;
+    let user = own.uid();
     let refused = || std::io::Error::from(std::io::ErrorKind::PermissionDenied);
     let resolved = dir.canonicalize()?;
     // The file must live in the folder that was resolved and checked, not in one that a link
     // pointed to a moment ago: both names must lead to the file that was opened.
     let name = path.file_name().ok_or_else(refused)?;
     let found = fs::metadata(resolved.join(name))?;
-    let own = own_file.metadata()?;
     if found.dev() != own.dev() || found.ino() != own.ino() {
         return Err(refused());
     }
@@ -282,6 +282,20 @@ mod tests {
         std::os::unix::fs::symlink(&target, &link).unwrap();
         assert!(create_private(&link).is_err());
         assert_eq!(fs::read_to_string(&target).unwrap(), "keep");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_file_in_another_folder_than_the_checked_one_is_refused() {
+        let dir = tempfile::tempdir().unwrap();
+        let other = tempfile::tempdir().unwrap();
+        let file = create_private(&other.path().join("x.html")).unwrap();
+        let claimed = dir.path().join("x.html");
+        let error = check_owner(dir.path(), &claimed, &file).unwrap_err();
+        assert_eq!(error.kind(), std::io::ErrorKind::NotFound);
+        std::fs::write(&claimed, "other").unwrap();
+        let error = check_owner(dir.path(), &claimed, &file).unwrap_err();
+        assert_eq!(error.kind(), std::io::ErrorKind::PermissionDenied);
     }
 
     #[test]
