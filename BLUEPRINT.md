@@ -1162,7 +1162,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | MCP-201 | `project_not_registered` | The requested path is not inside a registered project. |
 | MCP-202 | `symbol_not_found` | No symbol with this id or qualified name exists in the newest snapshot. |
 | MCP-203 | `project_not_scanned` | The project has no snapshot yet; scan it first. |
-| MCP-501 | `response_limit_exceeded` | The result was truncated to the configured limit. (info) |
+| MCP-501 | `response_limit_exceeded` | The result was truncated to the configured limit: its size, or for usages the requested depth (parameter depth). (info) |
 | CLI-101 | `cli_arguments_invalid` | Command-line arguments are invalid. |
 | CLI-102 | `watch_needs_folder` | Watch mode needs a local folder; a Git URL cannot be watched. |
 | CLI-103 | `secret_input_invalid` | No secret could be read from the terminal or standard input, or it was empty. |
