@@ -19,11 +19,12 @@ use zeroize::Zeroizing;
 
 use crate::consts::{
     ACCEPT_HEADER, ACCEPT_JSON, CONTENT_TYPE_FORM, DEFAULT_INTERVAL_SECS, ERROR_PENDING,
-    ERROR_SLOW_DOWN, ESCAPE_MARK, FIELD_CLIENT_ID, FIELD_DEVICE_CODE, FIELD_GRANT_TYPE,
-    FIELD_SCOPE, FORM_ASSIGN, FORM_JOIN, FORM_SAFE, GRANT_DEVICE_CODE, HEX_RADIX, HTTPS_PREFIX,
-    LOOPBACK_HOST, LOOPBACK_SCHEME, MAX_INTERVAL_SECS, MAX_LIFETIME_SECS, MAX_RESPONSE_BYTES,
-    MIN_INTERVAL_SECS, NIBBLE_BITS, NIBBLE_MASK, PATH_SEPARATOR, PORT_SEPARATOR,
-    REQUEST_TIMEOUT_SECS, SLOW_DOWN_STEP_SECS, USERINFO_MARKER,
+    ERROR_SLOW_DOWN, ESCAPE_MARK, ESCAPED_WIDTH, FIELD_CLIENT_ID, FIELD_DEVICE_CODE,
+    FIELD_GRANT_TYPE, FIELD_REFRESH_TOKEN, FIELD_SCOPE, FORM_ASSIGN, FORM_JOIN, FORM_OVERHEAD,
+    FORM_SAFE, GRANT_DEVICE_CODE, GRANT_REFRESH_TOKEN, HEX_RADIX, HTTPS_PREFIX, LOOPBACK_HOST,
+    LOOPBACK_SCHEME, MAX_INTERVAL_SECS, MAX_LIFETIME_SECS, MAX_RESPONSE_BYTES, MIN_INTERVAL_SECS,
+    NIBBLE_BITS, NIBBLE_MASK, PATH_SEPARATOR, PORT_SEPARATOR, REQUEST_TIMEOUT_SECS,
+    SLOW_DOWN_STEP_SECS, USERINFO_MARKER,
 };
 
 /// Why the sign-in did not finish. The reason is not told: the answers of the platform may
@@ -57,6 +58,15 @@ pub struct Prompt {
     pub user_code: String,
 }
 
+/// What a sign-in or a refresh brings back: the credential to log in with and, if the platform
+/// issues one, the token that renews it. GitLab tokens live for two hours.
+pub struct SignedIn {
+    /// The access token with the user name of the platform.
+    pub credential: Credential,
+    /// The refresh token; platforms that rotate it send a new one with every refresh.
+    pub refresh: Option<SecretString>,
+}
+
 /// One platform and one application, ready to sign in.
 #[derive(Debug, Clone)]
 pub struct DeviceFlow {
@@ -78,7 +88,8 @@ struct DeviceReply {
 
 #[derive(Deserialize)]
 struct TokenReply {
-    access_token: Option<String>,
+    access_token: Option<SecretString>,
+    refresh_token: Option<SecretString>,
     error: Option<String>,
 }
 
@@ -133,6 +144,19 @@ impl DeviceFlow {
         announce: impl FnOnce(&Prompt),
         wait: impl Fn(Duration),
     ) -> Result<Credential, DeviceFlowError> {
+        self.sign_in_with_refresh(announce, wait)
+            .map(|signed| signed.credential)
+    }
+
+    /// Like [`Self::sign_in`], and keeps the refresh token the platform sends along.
+    ///
+    /// # Errors
+    /// `NET-601` for every way the sign-in can fail.
+    pub fn sign_in_with_refresh(
+        &self,
+        announce: impl FnOnce(&Prompt),
+        wait: impl Fn(Duration),
+    ) -> Result<SignedIn, DeviceFlowError> {
         let client = client()?;
         let reply = self.request_code(&client)?;
         announce(&reply.prompt()?);
@@ -151,7 +175,9 @@ impl DeviceFlow {
             waited = waited.saturating_add(interval);
             let answer = self.poll(&client, &device_code)?;
             match (answer.access_token, answer.error.as_deref()) {
-                (Some(token), _) if !token.is_empty() => return Ok(self.credential(token)),
+                (Some(token), _) if !token.expose_secret().is_empty() => {
+                    return Ok(self.signed(token, answer.refresh_token));
+                }
                 (None, Some(ERROR_PENDING)) => {}
                 (None, Some(ERROR_SLOW_DOWN)) => {
                     interval = interval
@@ -164,11 +190,32 @@ impl DeviceFlow {
         Err(DeviceFlowError::Failed)
     }
 
-    fn credential(&self, token: String) -> Credential {
-        Credential::new(
-            SecretString::from(self.user.clone()),
-            SecretString::from(token),
-        )
+    /// Trades a refresh token for a new access token (RFC 6749, section 6). The application
+    /// is a public client, so no client secret is sent.
+    ///
+    /// # Errors
+    /// `NET-601` if the platform is not reachable or refuses the token (it was revoked or has
+    /// been used already).
+    pub fn refresh(&self, refresh_token: &SecretString) -> Result<SignedIn, DeviceFlowError> {
+        let body = form(&[
+            (FIELD_CLIENT_ID, self.client_id.as_str()),
+            (FIELD_REFRESH_TOKEN, refresh_token.expose_secret()),
+            (FIELD_GRANT_TYPE, GRANT_REFRESH_TOKEN),
+        ]);
+        let answer: TokenReply = post(&client()?, &self.token_url, &body)?;
+        match answer.access_token {
+            Some(token) if !token.expose_secret().is_empty() => {
+                Ok(self.signed(token, answer.refresh_token))
+            }
+            _ => Err(DeviceFlowError::Failed),
+        }
+    }
+
+    fn signed(&self, token: SecretString, refresh: Option<SecretString>) -> SignedIn {
+        SignedIn {
+            credential: Credential::new(SecretString::from(self.user.clone()), token),
+            refresh: refresh.filter(|text| !text.expose_secret().is_empty()),
+        }
     }
 
     fn request_code(&self, client: &Client) -> Result<DeviceReply, DeviceFlowError> {
@@ -248,7 +295,13 @@ fn post<T: for<'de> Deserialize<'de>>(
 /// `application/x-www-form-urlencoded` body of `fields`. The buffer is wiped when dropped,
 /// because one of the values is the device code.
 fn form(fields: &[(&str, &str)]) -> Zeroizing<String> {
-    let mut out = Zeroizing::new(String::new());
+    // The room for the worst case (every byte escaped) is reserved at once: a buffer that grows
+    // leaves unwiped copies of the values behind.
+    let room = fields
+        .iter()
+        .map(|(name, value)| (name.len() + value.len()) * ESCAPED_WIDTH + FORM_OVERHEAD)
+        .sum();
+    let mut out = Zeroizing::new(String::with_capacity(room));
     for (index, (name, value)) in fields.iter().enumerate() {
         if index > 0 {
             out.push(FORM_JOIN);

@@ -34,9 +34,10 @@ use codeskimr_source::{
 use codeskimr_storage::SqliteStore;
 
 use crate::clock::SystemClock;
-use crate::consts::{BYTES_PER_MB, REQUIREMENT_MAX_BYTES, is_token_credential};
+use crate::consts::{BYTES_PER_MB, REQUIREMENT_MAX_BYTES, is_reserved_credential};
 use crate::locations::Locations;
 use crate::redact::redact;
+use crate::refresh::{Refresher, RefreshingSource};
 pub use crate::shared_keystore::{Secrets, SharedKeystore};
 
 /// What the fetcher of Git sources sees of the secrets: everything except the installation
@@ -50,7 +51,7 @@ impl CredentialStore for ForRemotes {
         id: &CredentialId,
         action: impl FnOnce(&Credential) -> Result<T, AuthError>,
     ) -> Result<T, AuthError> {
-        if is_token_credential(id.as_str()) {
+        if is_reserved_credential(id.as_str()) {
             return Err(AuthError::NotFound);
         }
         self.0.with_credential(id, action)
@@ -124,9 +125,12 @@ pub fn scanner_over(
         indexers,
     };
     let ports = ScannerPorts {
-        source: Arc::new(SourceFetcher::new(
-            GitCache::new(locations.git_cache()),
-            Arc::new(ForRemotes(Arc::clone(secrets))),
+        source: Arc::new(RefreshingSource::new(
+            SourceFetcher::new(
+                GitCache::new(locations.git_cache()),
+                Arc::new(ForRemotes(Arc::clone(secrets))),
+            ),
+            Refresher::new(Arc::clone(secrets)),
         )),
         discovery,
         analyzer,
@@ -267,5 +271,18 @@ mod tests {
             Err(AuthError::NotFound)
         ));
         assert!(remotes.with_credential(&work, |_| Ok(())).is_ok());
+    }
+
+    #[test]
+    fn the_fetcher_never_gets_a_refresh_entry() {
+        let secrets = secrets();
+        let remotes = ForRemotes(Arc::clone(&secrets));
+        for name in ["work.refresh", "Work.Refresh ", " work.REFRESH"] {
+            let id = CredentialId::new(name).unwrap();
+            secrets.store(&id, &credential()).unwrap();
+            assert!(secrets.with_credential(&id, |_| Ok(())).is_ok(), "{name:?}");
+            let lent = remotes.with_credential(&id, |_| Ok(()));
+            assert!(matches!(lent, Err(AuthError::NotFound)), "{name:?}");
+        }
     }
 }

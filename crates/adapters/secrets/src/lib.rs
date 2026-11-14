@@ -21,7 +21,7 @@ mod memory;
 mod provider;
 mod store;
 
-pub use device_flow::{DeviceFlow, DeviceFlowError, Prompt};
+pub use device_flow::{DeviceFlow, DeviceFlowError, Prompt, SignedIn};
 pub use keystore::{Keystore, OsKeystore};
 pub use memory::{CoreDumps, LockedBytes, disable_core_dumps};
 pub use provider::Provider;
