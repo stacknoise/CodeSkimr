@@ -715,3 +715,11 @@ severity = "error"
 retryable = false
 description = "A function exceeds the configured cognitive complexity."
 since = "0.1.0"
+
+[[codes]]
+id = "CHK-106"
+name = "too_many_parameters"
+severity = "error"
+retryable = false
+description = "A function has more parameters than the configured maximum."
+since = "0.9.0"

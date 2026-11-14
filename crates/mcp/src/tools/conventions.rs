@@ -42,6 +42,10 @@ struct Violation {
     lines: Option<u32>,
     /// `CHK-104`: the most that is allowed.
     max_lines: Option<u32>,
+    /// `CHK-105` and `CHK-106`: the cognitive complexity or the number of parameters.
+    value: Option<u32>,
+    /// `CHK-105` and `CHK-106`: the most that is allowed.
+    max_value: Option<u32>,
     /// `CHK-102`: the earlier function this one copies.
     duplicate_of: Option<Place>,
     /// `CHK-102`: how similar the two are, in whole percent.
@@ -55,6 +59,8 @@ fn violation(finding: &Finding) -> Violation {
         at: place(&finding.location),
         lines: None,
         max_lines: None,
+        value: None,
+        max_value: None,
         duplicate_of: None,
         similarity_percent: None,
     };
@@ -62,6 +68,10 @@ fn violation(finding: &Finding) -> Violation {
         Detail::TooLong { lines, limit } => {
             out.lines = Some(*lines);
             out.max_lines = Some(*limit);
+        }
+        Detail::Over { value, limit } => {
+            out.value = Some(*value);
+            out.max_value = Some(*limit);
         }
         Detail::Duplicate {
             of,

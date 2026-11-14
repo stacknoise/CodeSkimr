@@ -72,3 +72,26 @@
 (while_expression condition: (identifier) @operand)
 (let_condition [pattern: (identifier) @operand value: (identifier) @operand])
 (closure_expression body: (identifier) @operand)
+
+; Cognitive complexity (ADR 0048). A structure adds one and one more for every nesting level it
+; stands in; `else` and a run of the same boolean operator add one at any depth. `else if` is the
+; `if_expression` in an `else_clause`: only its `else` counts, and its body is no deeper than the
+; first `if`. Closures nest what is in them but add nothing. Not counted: `?`, `unsafe`, recursion,
+; `match` arms, labelled `break` and `continue`.
+(if_expression) @cognitive
+(if_expression) @nesting
+(else_clause (if_expression) @continuation)
+(else_clause "else" @cognitive_flat)
+(for_expression) @cognitive
+(for_expression) @nesting
+(while_expression) @cognitive
+(while_expression) @nesting
+(loop_expression) @cognitive
+(loop_expression) @nesting
+(match_expression) @cognitive
+(match_expression) @nesting
+(closure_expression) @nesting
+(binary_expression operator: ["&&" "||"] @cognitive_sequence)
+
+; Parameters of a function, without `self`
+(function_item parameters: (parameters (parameter) @parameter))

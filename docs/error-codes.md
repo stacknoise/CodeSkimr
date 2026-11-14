@@ -209,3 +209,4 @@ Owner: `codeskimr_application`
 | CHK-103 | `layer_violation` | error | no | 0.1.0 | A dependency points against the allowed direction. |
 | CHK-104 | `function_too_long` | error | no | 0.1.0 | A function exceeds the configured length. |
 | CHK-105 | `complexity_too_high` | error | no | 0.1.0 | A function exceeds the configured cognitive complexity. |
+| CHK-106 | `too_many_parameters` | error | no | 0.9.0 | A function has more parameters than the configured maximum. |

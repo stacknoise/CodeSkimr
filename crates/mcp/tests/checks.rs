@@ -245,7 +245,7 @@ fn the_check_reports_a_long_function_with_its_numbers() {
     assert_eq!(finding["max_lines"], 40);
     assert_eq!(
         answer["not_checked"],
-        serde_json::json!(["CHK-101", "CHK-103", "CHK-105"])
+        serde_json::json!(["CHK-101", "CHK-103", "CHK-105", "CHK-106"])
     );
 }
 

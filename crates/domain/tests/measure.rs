@@ -37,6 +37,8 @@ fn counts(id: u64, loc: u32, decisions: Option<u32>) -> SymbolCounts {
                 total_operators: 4,
                 total_operands: 4,
             },
+            cognitive: None,
+            parameters: None,
         }),
     }
 }

@@ -89,6 +89,10 @@ pub mod keys {
     pub const LAYERS: &str = "layers";
     /// `conventions.max_function_lines`
     pub const MAX_FUNCTION_LINES: &str = "conventions.max_function_lines";
+    /// `conventions.max_cognitive_complexity`
+    pub const MAX_COGNITIVE_COMPLEXITY: &str = "conventions.max_cognitive_complexity";
+    /// `conventions.max_parameters`
+    pub const MAX_PARAMETERS: &str = "conventions.max_parameters";
     /// `keys.max_files`
     pub const KEYS_MAX_FILES: &str = "keys.max_files";
     /// `keys.max_depth`

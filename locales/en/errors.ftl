@@ -80,3 +80,4 @@ error-CHK-102 = A code block duplicates existing code.
 error-CHK-103 = A dependency points against the allowed direction.
 error-CHK-104 = A function is longer than allowed.
 error-CHK-105 = A function is more complex than allowed.
+error-CHK-106 = A function has more parameters than allowed.

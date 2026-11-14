@@ -1,0 +1,188 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 44,
+      "operands": null,
+      "operators": null,
+      "symbol": "cognitive"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "cognitive::straight"
+    },
+    {
+      "decisions": 3,
+      "loc": 10,
+      "operands": [
+        4,
+        7
+      ],
+      "operators": [
+        5,
+        7
+      ],
+      "symbol": "cognitive::nested"
+    },
+    {
+      "decisions": 2,
+      "loc": 9,
+      "operands": [
+        4,
+        7
+      ],
+      "operators": [
+        2,
+        4
+      ],
+      "symbol": "cognitive::chain"
+    },
+    {
+      "decisions": 3,
+      "loc": 3,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        2,
+        3
+      ],
+      "symbol": "cognitive::runs"
+    },
+    {
+      "decisions": 1,
+      "loc": 10,
+      "operands": [
+        3,
+        4
+      ],
+      "operators": [
+        5,
+        6
+      ],
+      "symbol": "cognitive::closure_nests"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "cognitive::Shop"
+    },
+    {
+      "decisions": 1,
+      "loc": 6,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        2,
+        3
+      ],
+      "symbol": "cognitive::Shop::method"
+    }
+  ],
+  "loc": 44,
+  "references": [
+    {
+      "at": "45:5",
+      "from": "cognitive::Shop",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Shop"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "cognitive",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-53:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive::straight",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "3:0-5:1",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive::nested",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "7:0-16:1",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive::chain",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "18:0-26:1",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive::runs",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "28:0-30:1",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive::closure_nests",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "32:0-41:1",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "struct",
+      "name": "cognitive::Shop",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "43:0-43:12",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "cognitive::Shop::method",
+      "parent": "cognitive::Shop",
+      "signature": null,
+      "span": "46:4-51:5",
+      "static": false,
+      "visibility": "private"
+    }
+  ]
+}
