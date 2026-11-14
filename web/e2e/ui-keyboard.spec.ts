@@ -115,9 +115,14 @@ test.describe("the explorer tree (15.4)", () => {
     const root = tree(page);
     const layer = item(page, /\(no layer\)/);
     await expect(layer).toBeVisible();
-    await root.focus();
-    await page.keyboard.press("ArrowDown");
-    await expect(root).toHaveAttribute("aria-activedescendant", /.+/);
+    // Reading the tree again resets the cursor and the rows (loadOutline), and a key that falls
+    // into that window is lost (issue #225). The collapsed tree has one row, so pressing the
+    // key again is harmless; the later steps start only once the cursor is set.
+    await expect(async () => {
+      await root.focus();
+      await page.keyboard.press("ArrowDown");
+      await expect(root).toHaveAttribute("aria-activedescendant", /.+/, { timeout: 1_000 });
+    }).toPass();
     await page.keyboard.press("ArrowRight");
     await expect(layer).toHaveAttribute("aria-expanded", "true");
     await page.keyboard.press("ArrowLeft");

@@ -23,8 +23,7 @@ use crate::locations::Locations;
 use crate::principal;
 use crate::source_arg::folder_spec;
 use crate::wiring::{
-    Analysis, Secrets, build_analysis, build_scanner, index_runner, open_store, os_secrets,
-    tool_checker,
+    Secrets, build_analysis, index_runner, open_store, os_secrets, scanner_over, tool_checker,
 };
 
 /// Serves MCP until the client disconnects.
@@ -132,15 +131,18 @@ fn build_ports(
         messages,
         runner,
     } = wiring;
-    let Analysis {
-        discovery,
-        analyzer,
-        snippets,
-        ..
-    } = build_analysis(config, locations)?;
-    let checker = ConventionChecker::new(discovery, analyzer, config.conventions.clone());
-    let scanner: Arc<dyn ProjectScanner> =
-        Arc::new(build_scanner(&store, config, locations, events, secrets)?);
+    let analysis = build_analysis(config, locations)?;
+    let checker = ConventionChecker::new(
+        Arc::clone(&analysis.discovery),
+        Arc::clone(&analysis.analyzer),
+        config.conventions.clone(),
+    );
+    let scanner: Arc<dyn ProjectScanner> = Arc::new(scanner_over(
+        &analysis,
+        (&store, config, locations),
+        (events, secrets),
+    )?);
+    let snippets = analysis.snippets;
     let projects: Arc<dyn ProjectRepository> = store.clone();
     let usages: Arc<dyn UsageIndex> = store.clone();
     let similarity: Arc<dyn SimilarityIndex> = store.clone();
