@@ -65,7 +65,7 @@ impl Value {
             }
             escaped = quote == QUOTE && found == BACKSLASH && !escaped;
         }
-        ""
+        rest.get(rest.len()..).unwrap_or_default()
     }
 }
 
