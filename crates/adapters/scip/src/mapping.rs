@@ -112,38 +112,58 @@ fn shape_of(symbol: &str, parsed: Option<&ImplSymbol>) -> Shape {
 /// The level 1 references of the covered files, by file and line of their start.
 struct LevelOne<'a> {
     by_line: HashMap<(FileId, u32), Vec<&'a Reference>>,
+    by_start: HashMap<(FileId, u32, u32), Vec<&'a Reference>>,
 }
 
 impl<'a> LevelOne<'a> {
     fn new(references: &'a [Reference], covered: &HashSet<FileId>) -> Self {
         let mut by_line: HashMap<(FileId, u32), Vec<&Reference>> = HashMap::new();
+        let mut by_start: HashMap<(FileId, u32, u32), Vec<&Reference>> = HashMap::new();
         for reference in references.iter().filter(|r| covered.contains(&r.file)) {
+            let start = reference.span.start();
             by_line
-                .entry((reference.file, reference.span.start().line))
+                .entry((reference.file, start.line))
+                .or_default()
+                .push(reference);
+            by_start
+                .entry((reference.file, start.line, start.column))
                 .or_default()
                 .push(reference);
         }
-        Self { by_line }
+        Self { by_line, by_start }
+    }
+
+    /// The references that start exactly where `span` starts.
+    fn starting_at(&self, file: FileId, span: Span) -> &[&'a Reference] {
+        let start = span.start();
+        self.by_start
+            .get(&(file, start.line, start.column))
+            .map_or(&[], Vec::as_slice)
     }
 
     /// Whether level 1 has a reference at the same start that points at `target`.
     fn reads_at(&self, file: FileId, span: Span, target: SymbolId) -> Option<ReferenceKind> {
-        let line = self.by_line.get(&(file, span.start().line))?;
-        line.iter()
-            .find(|r| r.span.start() == span.start() && r.to == target)
+        self.starting_at(file, span)
+            .iter()
+            .find(|r| r.to == target)
             .map(|r| r.kind)
     }
 
     /// The kind level 1 gave to the same place: a reference at the same start that points at the
     /// same target, else one at the same start, else one whose span holds the occurrence.
     fn kind_at(&self, file: FileId, span: Span, targets: &[SymbolId]) -> Option<ReferenceKind> {
-        let line = self.by_line.get(&(file, span.start().line))?;
-        let same_start = |r: &&&Reference| r.span.start() == span.start();
+        let same_start = self.starting_at(file, span);
         let holds = |r: &&&Reference| r.span.start() <= span.start() && span.end() <= r.span.end();
-        line.iter()
-            .find(|r| same_start(r) && targets.contains(&r.to))
-            .or_else(|| line.iter().find(same_start))
-            .or_else(|| line.iter().find(holds))
+        same_start
+            .iter()
+            .find(|r| targets.contains(&r.to))
+            .or_else(|| same_start.first())
+            .or_else(|| {
+                self.by_line
+                    .get(&(file, span.start().line))?
+                    .iter()
+                    .find(holds)
+            })
             .map(|r| r.kind)
     }
 }
@@ -623,6 +643,7 @@ impl<'a> Importer<'a> {
     ) -> Vec<(SymbolId, ReferenceKind)> {
         targets
             .iter()
+            .take(MAX_OVERLOAD_TARGETS)
             .filter_map(|to| self.owners.get(to).copied())
             .filter_map(|owner| Some((owner, level_one.reads_at(file, span, owner)?)))
             .collect()

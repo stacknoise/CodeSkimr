@@ -187,6 +187,7 @@ def truth(lang, source, workspace, targets):
     """Reference tool: `targets` is a list of {file, line, column, name}; returns a list of sets of (file, line).
     `source` is the filtered copy that was scanned, `workspace` the full checkout (Rust needs its Cargo files)."""
     here = Path(__file__).parent
+    cwd = None
     stdin = json.dumps(targets)
     if lang == "python":
         cmd = [sys.executable, str(here / "truth_python.py"), str(source)]
@@ -200,11 +201,16 @@ def truth(lang, source, workspace, targets):
         stdin = "".join(f"{t['file']}\t{t['line']}\t{t['name']}\t{JAVA_CATEGORIES[t['kind']]}\n" for t in targets)
     elif lang == "csharp":
         project = str(here / "truth_csharp")
-        cmd = ["dotnet", "run", "--project", project, "-c", "Release", "--no-launch-profile", "--", str(workspace), str(source)]
+        # Run in the throw-away folder of the measurement, never in the foreign checkout: the dotnet host reads a
+        # `global.json` of the working folder (as crates/adapters/indexer/src/tools.rs avoids), and packages are restored
+        # in locked mode (packages.lock.json).
+        cmd = ["dotnet", "run", "--project", project, "-c", "Release", "--no-launch-profile", "-p:RestoreLockedMode=true",
+               "--", str(Path(workspace).resolve()), str(source)]
+        cwd = source.parent
         stdin = json.dumps([{**t, "category": JAVA_CATEGORIES_CSHARP[t["kind"]]} for t in targets])
     else:
         sys.exit(f"no reference tool for {lang} yet")
-    done = subprocess.run(cmd, input=stdin, stdout=subprocess.PIPE, text=True, check=True)
+    done = subprocess.run(cmd, input=stdin, stdout=subprocess.PIPE, text=True, check=True, cwd=cwd)
     return [{(f, l) for f, l in result} for result in json.loads(done.stdout)]
 
 

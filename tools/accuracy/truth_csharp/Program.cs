@@ -16,10 +16,16 @@ using Microsoft.CodeAnalysis.MSBuild;
 
 const int Window = 8;
 MSBuildLocator.RegisterDefaults();
-var workspaceRoot = Path.GetFullPath(args[0]);
+var workspaceRoot = Path.GetFullPath(args[0]).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
 var sourceRoot = Path.GetFullPath(args[1]);
 var targets = JsonSerializer.Deserialize<List<Dictionary<string, JsonElement>>>(Console.In.ReadToEnd())!;
-var solution = Directory.GetFiles(workspaceRoot, "*.sln").Single();
+var solutions = Directory.GetFiles(workspaceRoot, "*.sln");
+if (solutions.Length != 1)
+{
+    Console.Error.WriteLine($"expected exactly one .sln in {workspaceRoot}, found {solutions.Length}");
+    return 1;
+}
+var solution = solutions[0];
 
 using var workspace = MSBuildWorkspace.Create();
 workspace.WorkspaceFailed += (_, e) => { if (e.Diagnostic.Kind == WorkspaceDiagnosticKind.Failure) Console.Error.WriteLine("workspace: " + e.Diagnostic.Message); };
@@ -126,3 +132,4 @@ foreach (var target in targets)
     result.Add(found.Select(u => new object[] { u.Item1, u.Item2 }).ToList());
 }
 Console.WriteLine(JsonSerializer.Serialize(result));
+return 0;

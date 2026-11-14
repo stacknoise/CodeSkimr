@@ -416,3 +416,43 @@ fn a_method_with_a_symbol_of_its_own_is_no_overload_head() {
     let outcome = run(&bytes, &one_file(), &symbols, &[]);
     assert_eq!(target(&outcome), [(3, 2, ReferenceKind::Call)]);
 }
+
+#[test]
+fn many_constructor_calls_on_one_line_are_looked_up_without_scanning_the_line() {
+    // 15000 `new Svc()` on one line, each with a level 1 reference to the type: every lookup goes
+    // by start, so the line is not scanned once per call.
+    const CALLS: u32 = 15_000;
+    let (class, init) = (scip("Svc#"), scip("Svc#`<init>`()."));
+    let mut occurrences = vec![
+        definition(&[0, 6, 9], &class),
+        definition(&[1, 2, 5], &init),
+    ];
+    let mut old = Vec::new();
+    for i in 0..CALLS {
+        occurrences.push(usage(&[5, 2 * i, 2 * i + 1], &init));
+        old.push(level_one(
+            u64::from(i) + 10,
+            (3, 1),
+            1,
+            (5, 2 * i),
+            ReferenceKind::TypeUse,
+        ));
+    }
+    let bytes = index("", &[document("src/a.ts", &occurrences)]);
+    let started = std::time::Instant::now();
+    let outcome = run(&bytes, &one_file(), &constructor_world(), &old);
+    assert!(started.elapsed().as_secs() < 20);
+    let found = target(&outcome);
+    let calls = found.iter().filter(|(_, to, _)| *to == 2).count();
+    let types = found.iter().filter(|(_, to, _)| *to == 1).count();
+    assert_eq!((calls, types), (CALLS as usize, CALLS as usize));
+}
+
+#[test]
+fn a_constructor_without_a_type_gives_no_type_use() {
+    let mut symbols = constructor_world();
+    symbols[1].parent = None;
+    let old = [level_one(9, (3, 1), 1, (5, 11), ReferenceKind::TypeUse)];
+    let outcome = run(&constructor_index([5, 11, 14]), &one_file(), &symbols, &old);
+    assert_eq!(target(&outcome), [(3, 2, ReferenceKind::TypeUse)]);
+}
