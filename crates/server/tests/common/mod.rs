@@ -379,3 +379,17 @@ fn parse(raw: &[u8]) -> Reply {
         body: body.to_owned(),
     }
 }
+
+/// Serves `bound` until the returned sender is used; the handle ends with the server.
+pub fn serve_until_told(
+    bound: codeskimr_server::BoundServer,
+) -> (
+    tokio::sync::oneshot::Sender<()>,
+    tokio::task::JoinHandle<Result<(), CodedError>>,
+) {
+    let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
+    let task = tokio::spawn(bound.serve(async move {
+        stopped.await.ok();
+    }));
+    (stop, task)
+}

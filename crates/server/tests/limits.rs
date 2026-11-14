@@ -23,6 +23,17 @@ async fn status_of(stream: &mut TcpStream, request: &str) -> Option<String> {
     text.lines().next().map(str::to_owned)
 }
 
+/// What the server sends until it closes the connection, or none if it does not within `limit`.
+#[cfg(test)]
+async fn until_closed(stream: &mut TcpStream, limit: Duration) -> Option<Vec<u8>> {
+    let mut rest = Vec::new();
+    timeout(limit, stream.read_to_end(&mut rest))
+        .await
+        .ok()?
+        .ok()?;
+    Some(rest)
+}
+
 #[cfg(test)]
 async fn open_stream(server: &Running) -> (TcpStream, Option<String>) {
     let mut stream = TcpStream::connect(server.address).await.unwrap();
@@ -80,19 +91,22 @@ async fn a_stream_whose_client_never_answers_the_pings_is_closed() {
     let server = start(owner()).await;
     let (mut stream, status) = open_stream(&server).await;
     assert!(status.unwrap().contains("101"));
-    let mut rest = Vec::new();
-    let closed = timeout(Duration::from_secs(300), stream.read_to_end(&mut rest)).await;
-    assert!(closed.is_ok(), "the server gave up on a silent client");
-    assert!(!rest.is_empty(), "it pinged before it gave up");
+    let rest = until_closed(&mut stream, Duration::from_secs(300)).await;
+    assert!(
+        rest.unwrap().first().is_some(),
+        "it pinged before it gave up"
+    );
 }
 
 #[tokio::test(start_paused = true)]
 async fn a_connection_without_a_single_byte_is_closed() {
     let server = start(owner()).await;
     let mut stream = TcpStream::connect(server.address).await.unwrap();
-    let mut rest = Vec::new();
-    let closed = timeout(Duration::from_secs(60), stream.read_to_end(&mut rest)).await;
-    assert!(closed.is_ok(), "the server gave up on a silent connection");
+    let closed = until_closed(&mut stream, Duration::from_secs(60)).await;
+    assert!(
+        closed.is_some(),
+        "the server gave up on a silent connection"
+    );
 }
 
 #[tokio::test(start_paused = true)]
@@ -103,9 +117,8 @@ async fn a_head_that_never_ends_closes_the_connection() {
         .write_all(b"GET /api/v1/commands HTTP/1.1\r\nHost: ")
         .await
         .unwrap();
-    let mut rest = Vec::new();
-    let closed = timeout(Duration::from_secs(60), stream.read_to_end(&mut rest)).await;
-    assert!(closed.is_ok(), "the server gave up on the head");
+    let closed = until_closed(&mut stream, Duration::from_secs(60)).await;
+    assert!(closed.is_some(), "the server gave up on the head");
 }
 
 #[tokio::test(start_paused = true)]
@@ -155,10 +168,7 @@ async fn an_open_event_stream_does_not_hold_up_the_shutdown() {
     );
     let bound = server.bind(([127, 0, 0, 1], 0).into()).await.unwrap();
     let address = bound.address().unwrap();
-    let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
-    let task = tokio::spawn(bound.serve(async move {
-        stopped.await.ok();
-    }));
+    let (stop, task) = common::serve_until_told(bound);
     let mut client = TcpStream::connect(address).await.unwrap();
     let request = format!("{UPGRADE}Host: {address}\r\n\r\n");
     let status = status_of(&mut client, &request).await;
