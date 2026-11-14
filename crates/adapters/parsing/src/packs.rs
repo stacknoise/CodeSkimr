@@ -9,7 +9,10 @@ use std::thread;
 use codeskimr_application::ports::IndexerSpec;
 use codeskimr_domain::LanguageId;
 
-use crate::consts::{ID_MISMATCH, LOAD_PANICKED, MANIFEST_FILE};
+use crate::consts::{
+    ID_MISMATCH, LOAD_PANICKED, MANIFEST_FILE, NAMING_FILE_IN_NAMES, NAMING_NAMESPACED,
+    NAMING_RULE_SEPARATOR, NAMING_RULES_SEPARATOR,
+};
 use crate::error::ParsingError;
 use crate::indexer::IndexerManifest;
 use crate::manifest::{PackManifest, Tier};
@@ -22,6 +25,7 @@ pub struct PackSummary {
     id: LanguageId,
     tier: Tier,
     extensions: Vec<String>,
+    file_in_names: bool,
     indexer: Option<IndexerSpec>,
 }
 
@@ -42,6 +46,12 @@ impl PackSummary {
     #[must_use]
     pub const fn indexer(&self) -> Option<&IndexerSpec> {
         self.indexer.as_ref()
+    }
+
+    /// Whether the path of the file starts every qualified name of the pack (ADR 0036).
+    #[must_use]
+    pub const fn file_in_names(&self) -> bool {
+        self.file_in_names
     }
 
     /// File extensions the pack claims, without the dot.
@@ -77,6 +87,7 @@ impl Slot {
                 .map_err(|e| ParsingError::invalid(folder(&dir), e.to_string()))?,
             tier: manifest.tier,
             extensions: manifest.extensions,
+            file_in_names: manifest.file_in_names,
             indexer,
         };
         let slot = Self {
@@ -177,6 +188,29 @@ impl LanguagePacks {
     /// All installed packs, in no particular order. Does not load any grammar.
     pub fn iter(&self) -> impl Iterator<Item = &PackSummary> {
         self.slots.values().map(|slot| &slot.summary)
+    }
+
+    /// The naming rules of all packs as one text, sorted by language: it changes whenever a rule
+    /// that changes the qualified names does (ADR 0036).
+    #[must_use]
+    pub fn naming_rules(&self) -> String {
+        let mut rules: Vec<String> = self
+            .iter()
+            .map(|pack| {
+                [
+                    pack.id().as_str(),
+                    NAMING_RULE_SEPARATOR,
+                    if pack.file_in_names() {
+                        NAMING_FILE_IN_NAMES
+                    } else {
+                        NAMING_NAMESPACED
+                    },
+                ]
+                .concat()
+            })
+            .collect();
+        rules.sort();
+        rules.join(NAMING_RULES_SEPARATOR)
     }
 
     /// The pack for `language`; a basic-tier pack is loaded by the first call.

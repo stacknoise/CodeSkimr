@@ -360,11 +360,12 @@ fn mcp_answers_from_the_scanned_project() {
     );
     let result = &answer["result"];
     assert_ne!(result["isError"], true, "{result}");
-    assert_eq!(result["structuredContent"]["hits"][0]["name"], "Calculator");
-    let hit = result["structuredContent"]["hits"][0]["qualified_name"]
-        .as_str()
-        .unwrap();
-    assert!(hit.ends_with("Calculator"));
+    let hits = result["structuredContent"]["hits"].as_array().unwrap();
+    // The file `Calculator.cs` and the class in it are both found; the names of C# do not start
+    // with the file (ADR 0036).
+    let class = hits.iter().find(|hit| hit["kind"] == "class").unwrap();
+    assert_eq!(class["name"], "Calculator");
+    assert_eq!(class["qualified_name"], "Demo.Core.Calculator");
 }
 
 #[test]

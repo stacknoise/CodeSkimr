@@ -5,14 +5,14 @@
       "loc": 49,
       "operands": null,
       "operators": null,
-      "symbol": "metrics"
+      "symbol": "metrics.cs"
     },
     {
       "decisions": null,
       "loc": 44,
       "operands": null,
       "operators": null,
-      "symbol": "metrics.M"
+      "symbol": "M"
     },
     {
       "decisions": 0,
@@ -25,7 +25,7 @@
         1,
         1
       ],
-      "symbol": "metrics.M.PlainMethod"
+      "symbol": "M.PlainMethod"
     },
     {
       "decisions": 7,
@@ -38,7 +38,7 @@
         10,
         16
       ],
-      "symbol": "metrics.M.Branches"
+      "symbol": "M.Branches"
     },
     {
       "decisions": 4,
@@ -51,7 +51,7 @@
         10,
         10
       ],
-      "symbol": "metrics.M.Loops"
+      "symbol": "M.Loops"
     },
     {
       "decisions": 1,
@@ -64,7 +64,7 @@
         3,
         5
       ],
-      "symbol": "metrics.M.Cases"
+      "symbol": "M.Cases"
     },
     {
       "decisions": 2,
@@ -77,7 +77,7 @@
         1,
         1
       ],
-      "symbol": "metrics.M.Arms"
+      "symbol": "M.Arms"
     },
     {
       "decisions": 2,
@@ -90,7 +90,7 @@
         4,
         5
       ],
-      "symbol": "metrics.M.Catches"
+      "symbol": "M.Catches"
     },
     {
       "decisions": 1,
@@ -103,7 +103,7 @@
         6,
         6
       ],
-      "symbol": "metrics.M.Outer"
+      "symbol": "M.Outer"
     },
     {
       "decisions": 1,
@@ -116,63 +116,63 @@
         3,
         4
       ],
-      "symbol": "metrics.M.Outer.Local"
+      "symbol": "M.Outer.Local"
     },
     {
       "decisions": null,
       "loc": 5,
       "operands": null,
       "operators": null,
-      "symbol": "metrics.Shape"
+      "symbol": "Shape"
     },
     {
       "decisions": null,
       "loc": 1,
       "operands": null,
       "operators": null,
-      "symbol": "metrics.Shape.NoBody"
+      "symbol": "Shape.NoBody"
     }
   ],
   "loc": 49,
   "references": [
     {
       "at": "17:18",
-      "from": "metrics.M.Loops",
+      "from": "M.Loops",
       "kind": "read",
       "receiver": "typed int[]",
       "target": "Length"
     },
     {
       "at": "37:14",
-      "from": "metrics.M.Catches",
+      "from": "M.Catches",
       "kind": "call",
       "receiver": null,
       "target": "Work"
     },
     {
       "at": "38:25",
-      "from": "metrics.M.Catches",
+      "from": "M.Catches",
       "kind": "type_use",
       "receiver": null,
       "target": "IOException"
     },
     {
       "at": "39:22",
-      "from": "metrics.M.Catches",
+      "from": "M.Catches",
       "kind": "type_use",
       "receiver": null,
       "target": "Exception"
     },
     {
       "at": "45:8",
-      "from": "metrics.M.Outer",
+      "from": "M.Outer",
       "kind": "type_use",
       "receiver": null,
       "target": "Func"
     },
     {
       "at": "47:15",
-      "from": "metrics.M.Outer",
+      "from": "M.Outer",
       "kind": "call",
       "receiver": null,
       "target": "Local"
@@ -182,7 +182,7 @@
     {
       "doc": null,
       "kind": "module",
-      "name": "metrics",
+      "name": "metrics.cs",
       "parent": null,
       "signature": null,
       "span": "0:0-56:0",
@@ -192,8 +192,8 @@
     {
       "doc": null,
       "kind": "class",
-      "name": "metrics.M",
-      "parent": "metrics",
+      "name": "M",
+      "parent": "metrics.cs",
       "signature": null,
       "span": "0:0-49:1",
       "static": false,
@@ -202,8 +202,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "metrics.M.PlainMethod",
-      "parent": "metrics.M",
+      "name": "M.PlainMethod",
+      "parent": "M",
       "signature": null,
       "span": "2:4-2:35",
       "static": false,
@@ -212,8 +212,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "metrics.M.Branches",
-      "parent": "metrics.M",
+      "name": "M.Branches",
+      "parent": "M",
       "signature": null,
       "span": "4:4-11:5",
       "static": false,
@@ -222,8 +222,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "metrics.M.Loops",
-      "parent": "metrics.M",
+      "name": "M.Loops",
+      "parent": "M",
       "signature": null,
       "span": "13:4-19:5",
       "static": false,
@@ -232,8 +232,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "metrics.M.Cases",
-      "parent": "metrics.M",
+      "name": "M.Cases",
+      "parent": "M",
       "signature": null,
       "span": "21:4-31:5",
       "static": false,
@@ -242,8 +242,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "metrics.M.Arms",
-      "parent": "metrics.M",
+      "name": "M.Arms",
+      "parent": "M",
       "signature": null,
       "span": "33:4-33:76",
       "static": false,
@@ -252,8 +252,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "metrics.M.Catches",
-      "parent": "metrics.M",
+      "name": "M.Catches",
+      "parent": "M",
       "signature": null,
       "span": "35:4-41:5",
       "static": false,
@@ -262,8 +262,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "metrics.M.Outer",
-      "parent": "metrics.M",
+      "name": "M.Outer",
+      "parent": "M",
       "signature": null,
       "span": "43:4-48:5",
       "static": false,
@@ -272,8 +272,8 @@
     {
       "doc": null,
       "kind": "function",
-      "name": "metrics.M.Outer.Local",
-      "parent": "metrics.M.Outer",
+      "name": "M.Outer.Local",
+      "parent": "M.Outer",
       "signature": null,
       "span": "46:8-46:63",
       "static": false,
@@ -282,8 +282,8 @@
     {
       "doc": null,
       "kind": "class",
-      "name": "metrics.Shape",
-      "parent": "metrics",
+      "name": "Shape",
+      "parent": "metrics.cs",
       "signature": null,
       "span": "51:0-55:1",
       "static": false,
@@ -292,8 +292,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "metrics.Shape.NoBody",
-      "parent": "metrics.Shape",
+      "name": "Shape.NoBody",
+      "parent": "Shape",
       "signature": null,
       "span": "53:4-53:33",
       "static": false,
@@ -302,8 +302,8 @@
     {
       "doc": null,
       "kind": "field",
-      "name": "metrics.Shape.Field",
-      "parent": "metrics.Shape",
+      "name": "Shape.Field",
+      "parent": "Shape",
       "signature": null,
       "span": "54:8-54:21",
       "static": false,

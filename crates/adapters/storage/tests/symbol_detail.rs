@@ -56,3 +56,26 @@ fn an_unknown_symbol_is_none() {
             .is_none()
     );
 }
+
+#[test]
+fn a_name_two_symbols_share_gives_the_lowest_id_and_counts_the_others() {
+    let symbols = vec![
+        symbol(21, 11, SymbolKind::Class, "App.Order", None),
+        symbol(24, 11, SymbolKind::Class, "App.Order", None),
+        symbol(25, 11, SymbolKind::Class, "App.Price", None),
+    ];
+    let store = scanned(&[], symbols, vec![], vec![]);
+    let key = SymbolKey::Qualified(QualifiedName::new("App.Order").unwrap());
+    let found = store.symbol(SNAPSHOT, &key).unwrap().unwrap();
+    assert_eq!((found.symbol.id, found.same_name), (SymbolId::new(21), 1));
+    let other = store
+        .symbol(SNAPSHOT, &SymbolKey::Id(SymbolId::new(24)))
+        .unwrap()
+        .unwrap();
+    assert_eq!(other.same_name, 1);
+    let alone = store
+        .symbol(SNAPSHOT, &SymbolKey::Id(SymbolId::new(25)))
+        .unwrap()
+        .unwrap();
+    assert_eq!(alone.same_name, 0);
+}

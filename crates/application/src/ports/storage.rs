@@ -33,6 +33,9 @@ pub struct SnapshotData {
     pub fingerprints: Vec<SymbolFingerprints>,
     /// Paths of files that were in the previous snapshot and no longer exist; empty in a full scan.
     pub removed: Vec<RelativePath>,
+    /// The naming rules of the language packs of this scan (ADR 0036); an incremental scan keeps
+    /// the files of the previous snapshot only if its rules are these.
+    pub naming_rules: String,
 }
 
 /// Symbols and references of the newest snapshot of a project, the starting point of an
@@ -75,6 +78,16 @@ pub trait ProjectRepository: Send + Sync {
     /// # Errors
     /// A coded failure of the `STO` group.
     fn latest_index(&self, id: ProjectId) -> Result<PreviousIndex, CodedError>;
+
+    /// The naming rules the newest snapshot of the project was scanned with, `None` if it has no
+    /// snapshot or none from after the record existed (ADR 0036). The default knows no record.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn latest_naming_rules(&self, id: ProjectId) -> Result<Option<String>, CodedError> {
+        let _ = id;
+        Ok(None)
+    }
 }
 
 /// Writes snapshots. One snapshot is written atomically or not at all.

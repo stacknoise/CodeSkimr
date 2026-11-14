@@ -48,14 +48,8 @@ mod tests {
             .filter(|r| r.kind == ReferenceKind::Write)
             .map(|r| (name_of(r.to), r.confidence))
             .collect();
-        assert!(writes.contains(&(
-            "scopes.Shop.Orders.Order.Total".to_owned(),
-            Confidence::Certain
-        )));
-        assert!(writes.contains(&(
-            "scopes.Shop.Orders.Order.printer".to_owned(),
-            Confidence::Certain
-        )));
+        assert!(writes.contains(&("Shop.Orders.Order.Total".to_owned(), Confidence::Certain)));
+        assert!(writes.contains(&("Shop.Orders.Order.printer".to_owned(), Confidence::Certain)));
         let reads_of_parameters = found
             .iter()
             .filter(|r| name_of(r.to).contains("Order.total"))
@@ -82,7 +76,7 @@ mod tests {
 
     fn lines_of(found: &BTreeMap<String, Vec<(u32, Confidence)>>, name: &str) -> Vec<u32> {
         found
-            .get(&format!("usages.Demo.{name}"))
+            .get(&format!("Demo.{name}"))
             .map(|all| all.iter().map(|(line, _)| *line).collect())
             .unwrap_or_default()
     }

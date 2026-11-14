@@ -110,6 +110,7 @@ fn snapshot() -> SnapshotData {
         metrics: Vec::new(),
         fingerprints: Vec::new(),
         removed: Vec::new(),
+        naming_rules: String::new(),
     }
 }
 

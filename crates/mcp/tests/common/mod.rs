@@ -165,6 +165,7 @@ fn detail() -> SymbolDetail {
         })
         .collect();
     SymbolDetail {
+        same_name: 0,
         symbol: symbol_named(1, SymbolKind::Class, "App.Domain.Order"),
         path: RelativePath::new("src/order.cs").unwrap(),
         members,

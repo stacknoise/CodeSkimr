@@ -57,6 +57,9 @@ pub struct SymbolDetail {
     pub members: Vec<MemberRef>,
     /// Measured values of the symbol itself.
     pub metrics: Vec<Metric>,
+    /// How many other symbols of the snapshot have the same qualified name. Names are not keys
+    /// (ADR 0036): a lookup by name gives the one with the lowest id.
+    pub same_name: u32,
 }
 
 /// Queries on the newest snapshots.
