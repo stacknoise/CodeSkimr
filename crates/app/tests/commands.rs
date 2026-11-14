@@ -579,8 +579,15 @@ fn export_by_project_id_and_the_failures_with_their_codes() {
     assert!(stderr(&unknown).contains("PRJ-201"), "{}", stderr(&unknown));
     let nowhere = workspace.root.path().join("no/such/folder/out.html");
     assert!(stderr(&run("1", &nowhere, &ui)).contains("EXP-601"));
-    let no_page = run("1", &file, "ui.dir='/does/not/exist'");
-    assert!(stderr(&no_page).contains("EXP-201"));
+    // Without a folder the page comes from the program, which has one only if `web/` was built
+    // before the program.
+    let no_folder = run("1", &file, "ui.dir='/does/not/exist'");
+    let built_in = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../web/dist/export/export.html");
+    if built_in.is_file() {
+        assert!(no_folder.status.success(), "{}", stderr(&no_folder));
+    } else {
+        assert!(stderr(&no_folder).contains("EXP-201"));
+    }
 }
 
 #[test]

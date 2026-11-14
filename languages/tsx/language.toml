@@ -83,6 +83,7 @@ name = "scip-typescript"
 install_hint = "npm install --global @sourcegraph/scip-typescript (needs Node.js and the installed node_modules of the project)"
 args = ["index", "--output", "{output}", "--infer-tsconfig"]
 env_allow = ["NODE_PATH", "NVM_DIR", "VOLTA_HOME", "FNM_DIR", "NPM_CONFIG_CACHE"]
+home_dirs = { NPM_CONFIG_CACHE = ".npm" }
 
 [indexer.tool]
 program = "scip-typescript"
