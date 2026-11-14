@@ -278,6 +278,11 @@
     font: 11px var(--font-mono);
 }
 
+.entries {
+    margin-left: auto;
+    font: 12px var(--font-mono);
+}
+
 .footer {
     flex: none;
     padding: var(--space-8) var(--space-16);
