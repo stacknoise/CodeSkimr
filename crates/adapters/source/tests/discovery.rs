@@ -193,3 +193,102 @@ fn an_unreadable_file_fails_the_run() -> TestResult {
     assert_eq!(error.code(), ErrorCode::SourcePathNotFound);
     Ok(())
 }
+
+/// The paths `unchanged_files` keeps for `listed`, with no total size limit.
+fn unchanged_names(root: &std::path::Path, listed: &[SourceFile]) -> TestResult<Vec<String>> {
+    let unchanged =
+        discovery(u64::MAX)?.unchanged_files(&folder(root)?, listed, &CancelToken::new())?;
+    Ok(names_of(&unchanged))
+}
+
+/// The paths as text.
+fn names_of(paths: &[codeskimr_domain::RelativePath]) -> Vec<String> {
+    paths.iter().map(|path| path.as_str().to_owned()).collect()
+}
+
+#[test]
+fn only_the_listed_files_are_checked_and_a_changed_or_missing_one_is_left_out() -> TestResult {
+    let dir = tempfile::tempdir()?;
+    write(dir.path(), "same.rs", "fn a() {}")?;
+    write(dir.path(), "edited.rs", "fn b() {}")?;
+    write(dir.path(), "gone.rs", "fn c() {}")?;
+    write(dir.path(), "other.rs", "fn d() {}")?;
+    let first = discovery(u64::MAX)?.discover(&folder(dir.path())?, &[], &CancelToken::new())?;
+    // `other.rs` is not in the list: it is neither read nor reported.
+    let listed: Vec<SourceFile> = first
+        .iter()
+        .filter(|file| file.path.as_str() != "other.rs")
+        .map(stored)
+        .collect();
+    write(dir.path(), "edited.rs", "fn b() { 1; }")?;
+    std::fs::remove_file(dir.path().join("gone.rs"))?;
+    let names = unchanged_names(dir.path(), &listed)?;
+    assert_eq!(names, ["same.rs"]);
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
+fn a_link_in_place_of_a_listed_file_counts_as_changed() -> TestResult {
+    let dir = tempfile::tempdir()?;
+    write(dir.path(), "real.rs", "fn a() {}")?;
+    write(dir.path(), "linked.rs", "fn a() {}")?;
+    let first = discovery(u64::MAX)?.discover(&folder(dir.path())?, &[], &CancelToken::new())?;
+    let listed: Vec<SourceFile> = first.iter().map(stored).collect();
+    std::fs::remove_file(dir.path().join("linked.rs"))?;
+    std::os::unix::fs::symlink(dir.path().join("real.rs"), dir.path().join("linked.rs"))?;
+    let names = unchanged_names(dir.path(), &listed)?;
+    assert_eq!(names, ["real.rs"]);
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
+fn a_named_pipe_in_place_of_a_listed_file_counts_as_changed_and_does_not_block() -> TestResult {
+    let dir = tempfile::tempdir()?;
+    write(dir.path(), "piped.rs", "fn a() {}")?;
+    write(dir.path(), "kept.rs", "fn b() {}")?;
+    let first = discovery(u64::MAX)?.discover(&folder(dir.path())?, &[], &CancelToken::new())?;
+    let listed: Vec<SourceFile> = first.iter().map(stored).collect();
+    let pipe = dir.path().join("piped.rs");
+    std::fs::remove_file(&pipe)?;
+    if !std::process::Command::new("mkfifo")
+        .arg(&pipe)
+        .status()
+        .is_ok_and(|status| status.success())
+    {
+        // No `mkfifo` here: nothing to test.
+        return Ok(());
+    }
+    let root = folder(dir.path())?;
+    let checker = discovery(u64::MAX)?;
+    let (done, result) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        done.send(checker.unchanged_files(&root, &listed, &CancelToken::new()))
+            .ok();
+    });
+    let unchanged = result
+        .recv_timeout(std::time::Duration::from_secs(10))
+        .expect("a named pipe must not block the check")?;
+    assert_eq!(names_of(&unchanged), ["kept.rs"]);
+    Ok(())
+}
+
+#[test]
+fn a_file_that_grew_or_that_is_over_the_total_limit_counts_as_changed() -> TestResult {
+    let dir = tempfile::tempdir()?;
+    write(dir.path(), "a.rs", "fn a() {}")?;
+    write(dir.path(), "b.rs", "fn b() {}")?;
+    let first = discovery(u64::MAX)?.discover(&folder(dir.path())?, &[], &CancelToken::new())?;
+    let listed: Vec<SourceFile> = first.iter().map(stored).collect();
+    // Room for one of the two files only: the second is not read and counts as changed.
+    let room = "fn a() {}".len() as u64;
+    let unchanged =
+        discovery(room)?.unchanged_files(&folder(dir.path())?, &listed, &CancelToken::new())?;
+    assert_eq!(unchanged.len(), 1);
+    // A file that grew no longer matches, whatever the limit is.
+    write(dir.path(), "a.rs", &"fn a() {}".repeat(1000))?;
+    let names = unchanged_names(dir.path(), &listed)?;
+    assert_eq!(names, ["b.rs"]);
+    Ok(())
+}

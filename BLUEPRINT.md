@@ -447,7 +447,7 @@ The registry generates:
 
 - `Principal` and `Permission` are pure types in `codeskimr_domain`. In 1.0 the only principal is `LocalOwner`, who holds every permission; it is created only in the single-user composition root (a test enforces this). A principal with fewer permissions is built only by an authenticator or in tests.
 - Every command and every use case receives the `Principal` inside its request or context struct (so the parameter limit R-02 holds). Commands run only through `Registry::execute`, which checks the declared permission once, before the command starts; the registry hands out no handler that could skip the check. Registering a command fails if its read-only flag contradicts its permission (a read-only command needs `read` or `read_source`, any other command needs something else). Use cases that are not commands yet (the scanner, the MCP tools) call `access::require` first, before they read anything or validate arguments.
-- Denial gives the registered error `AUTH-401` and names neither the permission nor a project; "not found" and "not allowed" must not become an oracle. A denied scan starts nothing and publishes no event.
+- Denial gives the registered error `AUTH-401` and names neither the permission nor a project; "not found" and "not allowed" must not become an oracle. On the REST and MCP routes a command or tool the caller may not run answers exactly like an unknown one (`API-201`, ADR 0044); `AUTH-401` remains for the other routes and the use cases. A denied scan starts nothing and publishes no event.
 - Any source text a command, route, tool or export returns needs `read_source`.
 
 ### 10.2 CLI
@@ -650,7 +650,7 @@ Handle credentials as carefully as is technically possible. CodeSkimr cannot con
 1. **Store nothing.** For Git, use the system's Git credential helper.
 2. **Tokens instead of passwords.** For GitHub and GitLab, use the OAuth device flow with minimal scopes and short-lived tokens.
 3. **OS keystore** for anything that must be stored: Windows Credential Manager (DPAPI), macOS Keychain, Linux Secret Service, via `keyring-core` and the native stores (ADR 0018).
-4. **Never** in SQLite, config files, environment dumps, logs or exports. The database only stores a `CredentialId`.
+4. **Never** in SQLite, config files, environment dumps, logs or exports. The database only stores a `CredentialId`. This also holds without a keystore (a Linux without a Secret Service): there is no file fallback, the program stops with `SEC-601` and says how to fix it (ADR 0045).
 
 ### 12.3 Lifetime in memory (MUST)
 

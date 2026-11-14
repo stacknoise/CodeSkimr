@@ -23,6 +23,8 @@ GROUPS = [
     ("chore", "Maintenance"),
 ]
 SEPARATOR = "\x1f"
+# CLAUDE.md: commit messages are English. German umlauts are the cheap sign of a German title.
+GERMAN_LETTERS = re.compile("[äöüÄÖÜß]")
 
 
 def parse_subject(subject):
@@ -31,6 +33,8 @@ def parse_subject(subject):
     if not match:
         raise ValueError(f"not a Conventional Commit subject: {subject}")
     text = match.group("text")
+    if GERMAN_LETTERS.search(text):
+        raise ValueError(f"title is not English (CLAUDE.md): {subject}")
     pr = PR_SUFFIX.search(text)
     if pr:
         text = text[: pr.start()]
