@@ -119,6 +119,9 @@ def main():
     args.add_argument("--codeskimr", default=str(ROOT / "target/debug/codeskimr"))
     args.add_argument("--languages", default=str(ROOT / "languages"), help="language packs that belong to the binary")
     args.add_argument("--json", action="store_true")
+    args.add_argument("--scip", help="SCIP index made by hand (`rust-analyzer scip`); mapped onto the scan with tools/accuracy/import_scip, without the consent flow of level 2")
+    args.add_argument("--import-scip", default=str(ROOT / "target/debug/codeskimr_import_scip"), help="the measuring tool of --scip")
+    args.add_argument("--min-mapped", default="0.5", help="threshold level2.min_mapped for --scip")
     args.add_argument("--verified-only", action="store_true", help="count only references that level 2 produced (verified)")
     opt = args.parse_args()
     project = tomllib.loads((ROOT / "corpus" / opt.language / "corpus.toml").read_text())["project"]
@@ -128,6 +131,15 @@ def main():
         (tmp / "src").mkdir()
         filtered_copy(src, project, tmp / "src")
         db = scan(opt.codeskimr, opt.languages, tmp / "src", tmp / "data")
+        if opt.scip:
+            dbfile = db.execute("pragma database_list").fetchone()[2]
+            project = db.execute("select id from projects").fetchone()[0]
+            db.close()
+            done = subprocess.run([opt.import_scip, dbfile, str(project), opt.scip, opt.min_mapped], capture_output=True, text=True)
+            if done.returncode:
+                sys.exit("import failed: " + done.stderr)
+            print("import:", done.stdout.strip(), file=sys.stderr)
+            db = sqlite3.connect(dbfile)
         files, symbols, used, kinds = ours(db, opt.verified_only)
         # Drawn by qualified name so that two versions of the scanner see the same symbols.
         pool = sorted((s[4], i) for i, s in symbols.items() if s[2] in KINDS and not s[3].startswith("_"))

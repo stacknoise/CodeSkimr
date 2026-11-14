@@ -20,6 +20,8 @@ Steps: the script copies the corpus sources (without the skipped folders), scans
 | Rust | rust-analyzer over LSP `textDocument/references` (`truth_rust.py`) | `rust-analyzer`, `cargo` and network access for the crates of the corpus project (rust-analyzer loads the full checkout; build scripts and proc macros are off) |
 | Java | `javac` itself (`TruthJava.java`, run with `java TruthJava.java`): parse and attribute all sources with `JavacTask`, every identifier, member select, member reference and `new` that the compiler resolves to a declaration is a use | JDK 17 or newer; the pinned compile-time dependencies and the template substitution of `tools/accuracy/reference_tools.toml` (one jar, SHA-256 checked, cached in `target/accuracy-cache`) |
 
+`--scip INDEX` measures level 2 before the scan wires it in (and without the consent of the owner, which is not touched): the index is made by hand with `rust-analyzer scip <checkout> --output index.scip`, `tools/accuracy/import_scip` (a standalone Cargo project, build it with `cargo build --manifest-path tools/accuracy/import_scip/Cargo.toml --target-dir target`) maps it with the public `codeskimr_scip` library onto the scanned database, and the comparison runs on that database; use it with `--verified-only`. The tool writes only into the throw-away database of the measurement. `--import-scip` and `--min-mapped` name the tool and the threshold.
+
 Neither new reference reads a SCIP index: they do not depend on what CodeSkimr uses for level 2 (ADR 0033, decision 14).
 
 Numbers over all drawn symbols: precision = usages of ours that the tool confirms / usages of ours; recall = usages of the tool that we found / usages of the tool; exact = share of symbols whose set of lines is identical. To compare two versions, pass the binary and the language packs that belong to it (`--codeskimr`, `--languages`).
@@ -46,6 +48,8 @@ First measurement for Rust and Java (150 symbols, seed 1, 2026-11-14, level 1, a
 |---|---|---|---|---|---|
 | Rust (CodeSkimr at the pinned corpus commit) | 150 | 735 / 733 | 27.3 % | 59.2 % | 59.3 % |
 | Java (gson at the pinned corpus commit) | 150 | 1001 / 590 | 54.0 % | 46.7 % | 79.2 % |
+
+Rust with level 2 (150 symbols, seed 1, 2026-11-14, `--verified-only --scip`; CodeSkimr from `main` at b43a378, index from rust-analyzer 1.97.0 for the same corpus commit, `level2.min_mapped` 0.5): exact 90.0 %, precision 100 % (673 of 673), recall 91.8 % (673 / 733), against 27.3 %, 59.2 % and 59.3 % at level 1. Share mapped of project uses 82.4 % (7008 mapped, 1498 unmapped, 6881 library, 6673 ignored; 147 files replaced, 84 documents of skipped folders without a file). Missing: 56 uses of `Self` (rust-analyzer names them `impl#[Type]`, which the import does not map to the type, issue #240) and 4 definitions of trait methods in `impl Trait for Type` (the `override` link of level 1 is lost, issue #241). rust-analyzer scip: 34 to 41 s, 2.1 GiB peak memory, 5 MB index, 538 MB `target/` in the project folder; it runs build scripts and proc macros of the project (the reference tool does not).
 
 Typical error classes:
 
