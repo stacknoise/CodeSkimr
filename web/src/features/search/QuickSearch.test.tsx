@@ -4,6 +4,7 @@ import { currentPath, navigate } from "../../app/router";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
+import { ORDER } from "../../tests/explorer";
 import { pendingFocus, requestFocus } from "../explorer/explorer";
 import { useSearchShortcut } from "./keys";
 import { QuickSearch } from "./QuickSearch";
@@ -95,6 +96,23 @@ describe("the quick search", () => {
     const preview = screen.getByRole("complementary");
     expect(within(preview).getByText("Shop.Cart")).toBeTruthy();
     expect(within(preview).getByText("src/Cart.cs")).toBeTruthy();
+  });
+
+  it("shows the documentation and three numbers of the chosen hit", async () => {
+    openProject(1);
+    serve({
+      "search.query": () => answer({ snapshot: 1, hits: [{ ...CART, id: ORDER.id }] }),
+      "explorer.symbol": () => answer(ORDER),
+    });
+    render(() => <QuickSearch />);
+    openSearch();
+    type("order");
+    await screen.findAllByRole("option");
+    const preview = screen.getByRole("complementary");
+    expect(await within(preview).findByText("An order of a customer.")).toBeTruthy();
+    expect(within(preview).getByText("188")).toBeTruthy();
+    expect(within(preview).getByText("25")).toBeTruthy();
+    expect(within(preview).getAllByText("2")).toHaveLength(1);
   });
 
   it("opens a type in the explorer with Enter", async () => {
