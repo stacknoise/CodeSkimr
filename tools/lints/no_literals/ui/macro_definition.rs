@@ -39,4 +39,56 @@ fn uses() {
     logs!();
     logs!();
 }
+
+// Only the transcriber (right of `=>`) is checked, and only value literals in it.
+macro_rules! matcher_side {
+    (2) => {
+        0
+    };
+    ("on") => {
+        1
+    };
+}
+
+macro_rules! syntax_only {
+    () => {
+        #[cfg(feature = "x")]
+        extern "C" fn callback() {}
+        const _: &str = env!("CARGO_PKG_NAME");
+        compile_error!("not supported");
+    };
+}
+
+macro_rules! joined {
+    () => {
+        concat!("code", "skimr")
+    };
+}
+
+macro_rules! outer {
+    () => {
+        macro_rules! inner {
+            () => {
+                9
+            };
+        }
+    };
+}
+
+macro_rules! makes_tests {
+    () => {
+        #[test]
+        fn generated() {
+            assert_eq!(2 + 2, 4);
+        }
+    };
+}
+
+fn more_uses() {
+    let _ = joined!();
+    let _ = joined!();
+    outer!();
+    makes_tests!();
+}
+
 fn main() {}

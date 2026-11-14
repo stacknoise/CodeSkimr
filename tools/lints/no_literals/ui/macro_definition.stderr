@@ -23,5 +23,29 @@ LL |         println!("scanned")
    |
    = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
 
-error: aborting due to 3 previous errors
+error: literal in production code (CHK-101)
+  --> $DIR/macro_definition.rs:64:17
+   |
+LL |         concat!("code", "skimr")
+   |                 ^^^^^^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+
+error: literal in production code (CHK-101)
+  --> $DIR/macro_definition.rs:64:25
+   |
+LL |         concat!("code", "skimr")
+   |                         ^^^^^^^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+
+error: literal in production code (CHK-101)
+  --> $DIR/macro_definition.rs:72:17
+   |
+LL |                 9
+   |                 ^
+   |
+   = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
+
+error: aborting due to 6 previous errors
 

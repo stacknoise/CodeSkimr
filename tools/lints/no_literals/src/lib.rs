@@ -10,9 +10,8 @@ extern crate rustc_errors;
 extern crate rustc_span;
 
 mod allowed;
+mod macro_body;
 
-use rustc_ast::token::TokenKind;
-use rustc_ast::tokenstream::{TokenStream, TokenTree};
 use rustc_ast::{Attribute, Expr, ExprKind, FormatArgsPiece, Item, ItemKind};
 use rustc_lint::{EarlyContext, EarlyLintPass, LintContext};
 use rustc_span::Span;
@@ -81,25 +80,6 @@ impl NoLiterals {
     }
 }
 
-impl NoLiterals {
-    /// A `macro_rules!` body is checked where the macro is defined: the crate that defines it
-    /// never expands it, and the crates that use it see it as foreign code.
-    fn check_macro_body(cx: &EarlyContext<'_>, tokens: &TokenStream) {
-        for tree in tokens.iter() {
-            match tree {
-                TokenTree::Token(token, _) => {
-                    if let TokenKind::Literal(lit) = &token.kind {
-                        if !allowed::is_free_literal(lit) {
-                            Self::report(cx, token.span);
-                        }
-                    }
-                }
-                TokenTree::Delimited(_, _, _, inner) => Self::check_macro_body(cx, inner),
-            }
-        }
-    }
-}
-
 impl EarlyLintPass for NoLiterals {
     fn check_attribute(&mut self, _cx: &EarlyContext<'_>, attr: &Attribute) {
         self.attribute = Some(attr.span);
@@ -114,8 +94,9 @@ impl EarlyLintPass for NoLiterals {
             self.const_depth += 1;
         }
         if let ItemKind::MacroDef(_, def) = &item.kind {
-            if !self.exempt() {
-                Self::check_macro_body(cx, &def.body.tokens);
+            // Macros that a macro expands to are covered by the outer definition.
+            if !self.exempt() && !item.span.from_expansion() {
+                macro_body::check(&def.body.tokens, &mut |span| Self::report(cx, span));
             }
         }
     }
