@@ -15,7 +15,7 @@ use std::time::{Duration, Instant};
 
 use codeskimr_application::ports::{ProbeOutcome, ToolProbe};
 
-use crate::consts::PROBE_POLL_MS;
+use crate::consts::{OUTPUT_JOINER, PROBE_POLL_MS};
 
 /// What a probe is allowed to do.
 #[derive(Debug, Clone)]
@@ -122,7 +122,7 @@ impl ToolProbe for ProcessProbe {
             return ProbeOutcome::TimedOut;
         }
         // Standard error counts: `java -version` prints there.
-        let output = [text_of(&out, deadline), text_of(&err, deadline)].join("\n");
+        let output = [text_of(&out, deadline), text_of(&err, deadline)].join(OUTPUT_JOINER);
         ProbeOutcome::Ran(output)
     }
 }

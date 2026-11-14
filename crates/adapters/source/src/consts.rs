@@ -70,3 +70,5 @@ pub const FIRST_LINE: u32 = 1;
 pub const PROBE_POLL_MS: u64 = 10;
 /// Marks a line of a plain-text requirement file as a comment.
 pub const REQUIREMENT_COMMENT: char = '#';
+/// Joins the standard output and the standard error of a probe.
+pub const OUTPUT_JOINER: &str = "\n";
