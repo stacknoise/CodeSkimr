@@ -20,6 +20,6 @@ For languages that declare their own namespaces it is wrong. The file `Calculato
 ## Consequences
 
 - Layers, the namespace level and its depth, the explorer outline and `get_symbol` show the names a C# developer expects. SCIP symbols match names directly.
-- References and the resolver already work on ids and on names found by lookup; tests show that nothing relied on the file prefix.
+- References and the resolver already work on ids and on names found by lookup; the implementation checks with tests that nothing relies on the file prefix (golden files, resolver tests, SCIP name matching).
 - Changing the setting of a pack changes all names of its language, so it is part of the pack and tested with golden files.
 - The blueprint text (section 6, `Symbol`, qualified name) is not changed; it never required the file as first segment.
