@@ -13,7 +13,8 @@ use tree_sitter::{Node, QueryCapture, QueryCursor, StreamingIterator};
 
 use crate::captures::Capture;
 use crate::consts::{
-    BODY_FIELD, CALLABLE_KINDS, LINE_SEPARATOR, NO_EXTENSION, PATH_SEPARATOR, WORD_SEPARATOR,
+    BODY_FIELD, CALLABLE_KINDS, LINE_SEPARATOR, NO_EXTENSION, PATH_SEPARATOR, SIGNATURE_CUT,
+    WORD_SEPARATOR,
 };
 use crate::error::ParsingError;
 use crate::location::{span_between, span_of, text_of};
@@ -32,6 +33,8 @@ pub struct SymbolContext<'a> {
     pub path: &'a RelativePath,
     /// Source of ids.
     pub ids: &'a IdSequence,
+    /// Most characters a signature keeps; a longer one is cut and ends with a mark.
+    pub signature_limit: usize,
 }
 
 /// The symbols of a file and where they sit, so occurrences can be assigned to a symbol.
@@ -390,7 +393,7 @@ fn new_symbol(
             || words
                 .iter()
                 .any(|word| pack.static_keywords.contains(*word)),
-        signature: signature_of(kind, declaration, ctx.source),
+        signature: signature_of(kind, declaration, ctx),
         doc: doc(ctx, &declaration.docs),
         has_body: has_body(pack, declaration.node),
     })
@@ -398,13 +401,25 @@ fn new_symbol(
 
 /// The signature text: the `@signature` capture of the pack. A constant without one gets its whole
 /// declaration, so that its value is visible (`find_constants`).
-fn signature_of(kind: SymbolKind, declaration: &Declaration<'_>, source: &str) -> Option<String> {
+fn signature_of(
+    kind: SymbolKind,
+    declaration: &Declaration<'_>,
+    ctx: &SymbolContext<'_>,
+) -> Option<String> {
     let node = match (declaration.signature, kind) {
         (Some(node), _) => node,
         (None, SymbolKind::Constant) => declaration.node,
         (None, _) => return None,
     };
-    Some(text_of(node, source).trim().to_owned())
+    let text = text_of(node, ctx.source).trim();
+    if text.chars().count() <= ctx.signature_limit {
+        return Some(text.to_owned());
+    }
+    let room = ctx
+        .signature_limit
+        .saturating_sub(SIGNATURE_CUT.chars().count());
+    let kept: String = text.chars().take(room).collect();
+    Some([kept.trim_end(), SIGNATURE_CUT].concat())
 }
 
 /// The kind of the declaration: a modifier can change it, and the parent can give it another one.

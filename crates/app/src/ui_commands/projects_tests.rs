@@ -15,9 +15,9 @@ use codeskimr_domain::{FolderPath, Project, ProjectId, ProjectName, ProjectSourc
 
 use super::Context;
 use super::projects::ListProjects;
-use super::running::RunningScans;
 use crate::locations::Locations;
 use crate::principal;
+use crate::running::RunningScans;
 
 /// A catalog with two projects.
 struct TwoProjects;

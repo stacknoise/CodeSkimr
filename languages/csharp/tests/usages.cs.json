@@ -552,7 +552,7 @@
       "kind": "constant",
       "name": "Demo.Names.Arg",
       "parent": "Demo.Names",
-      "signature": "Arg = \"a\"",
+      "signature": "public const string Arg = \"a\";",
       "span": "4:24-4:33",
       "static": false,
       "visibility": "public"
@@ -562,7 +562,7 @@
       "kind": "constant",
       "name": "Demo.Names.Ret",
       "parent": "Demo.Names",
-      "signature": "Ret = \"r\"",
+      "signature": "public const string Ret = \"r\";",
       "span": "5:24-5:33",
       "static": false,
       "visibility": "public"
@@ -572,7 +572,7 @@
       "kind": "constant",
       "name": "Demo.Names.Case",
       "parent": "Demo.Names",
-      "signature": "Case = \"c\"",
+      "signature": "public const string Case = \"c\";",
       "span": "6:24-6:34",
       "static": false,
       "visibility": "public"
@@ -582,7 +582,7 @@
       "kind": "constant",
       "name": "Demo.Names.Attr",
       "parent": "Demo.Names",
-      "signature": "Attr = \"t\"",
+      "signature": "public const string Attr = \"t\";",
       "span": "7:24-7:34",
       "static": false,
       "visibility": "public"
@@ -592,7 +592,7 @@
       "kind": "constant",
       "name": "Demo.Names.Lambda",
       "parent": "Demo.Names",
-      "signature": "Lambda = \"l\"",
+      "signature": "public const string Lambda = \"l\";",
       "span": "8:24-8:36",
       "static": false,
       "visibility": "public"
@@ -602,7 +602,7 @@
       "kind": "constant",
       "name": "Demo.Names.Init",
       "parent": "Demo.Names",
-      "signature": "Init = \"i\"",
+      "signature": "public const string Init = \"i\";",
       "span": "9:24-9:34",
       "static": false,
       "visibility": "public"
@@ -612,7 +612,7 @@
       "kind": "constant",
       "name": "Demo.Names.Cond",
       "parent": "Demo.Names",
-      "signature": "Cond = \"q\"",
+      "signature": "public const string Cond = \"q\";",
       "span": "10:24-10:34",
       "static": false,
       "visibility": "public"
@@ -852,7 +852,7 @@
       "kind": "constant",
       "name": "Demo.Keys.First",
       "parent": "Demo.Keys",
-      "signature": "First = \"f\"",
+      "signature": "public const string First = \"f\";",
       "span": "60:24-60:35",
       "static": false,
       "visibility": "public"
@@ -862,7 +862,7 @@
       "kind": "constant",
       "name": "Demo.Keys.Second",
       "parent": "Demo.Keys",
-      "signature": "Second = \"s\"",
+      "signature": "public const string Second = \"s\";",
       "span": "61:24-61:36",
       "static": false,
       "visibility": "public"

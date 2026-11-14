@@ -5,8 +5,9 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::error::CodedError;
+use codeskimr_application::ports::ProjectScanner;
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::ProjectId;
+use codeskimr_domain::{Principal, ProjectId, Snapshot};
 
 use crate::consts::MAX_PARALLEL_SCANS;
 
@@ -71,6 +72,30 @@ impl RunningScans {
     }
 }
 
+/// A scanner that lets one scan per project run at a time, sharing the lock with the UI: a
+/// second `rescan` of a project that is being scanned is `PRJ-302`.
+pub struct ExclusiveScans {
+    inner: Box<dyn ProjectScanner>,
+    running: RunningScans,
+}
+
+impl ExclusiveScans {
+    /// Wraps `inner`; `running` is the lock the UI commands use too.
+    pub fn new(inner: impl ProjectScanner + 'static, running: RunningScans) -> Self {
+        Self {
+            inner: Box::new(inner),
+            running,
+        }
+    }
+}
+
+impl ProjectScanner for ExclusiveScans {
+    fn rescan(&self, principal: &Principal, project: ProjectId) -> Result<Snapshot, CodedError> {
+        let _scanning = self.running.start(project)?;
+        self.inner.rescan(principal, project)
+    }
+}
+
 impl Drop for ScanGuard {
     fn drop(&mut self) {
         self.scans.lock().remove(&self.project.get());
@@ -96,6 +121,34 @@ mod tests {
         drop(guard);
         assert!(!scans.is_running(id));
         assert!(scans.start(id).is_ok());
+    }
+
+    struct Scanner;
+
+    impl ProjectScanner for Scanner {
+        fn rescan(&self, _: &Principal, _: ProjectId) -> Result<Snapshot, CodedError> {
+            Err(CodedError::new(ErrorCode::ScanCancelled))
+        }
+    }
+
+    #[test]
+    fn a_rescan_is_refused_while_the_project_is_scanned_elsewhere() {
+        let running = RunningScans::default();
+        let exclusive = ExclusiveScans::new(Scanner, running.clone());
+        let id = ProjectId::new(7);
+        let principal = crate::principal::remote_client();
+        let scanning = running.start(id).unwrap();
+        assert_eq!(
+            exclusive.rescan(&principal, id).unwrap_err().code(),
+            ErrorCode::SnapshotInProgress
+        );
+        drop(scanning);
+        // The scan itself runs (here: ends cancelled) and releases the project afterwards.
+        assert_eq!(
+            exclusive.rescan(&principal, id).unwrap_err().code(),
+            ErrorCode::ScanCancelled
+        );
+        assert!(!running.is_running(id));
     }
 
     #[test]

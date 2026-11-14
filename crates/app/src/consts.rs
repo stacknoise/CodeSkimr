@@ -80,10 +80,12 @@ pub const OPTION_MARKER: char = '-';
 /// Characters that no branch name may hold (`git check-ref-format`), besides whitespace and
 /// control characters.
 pub const BRANCH_FORBIDDEN: [char; 6] = ['~', '^', ':', '?', '*', '['];
-/// Two dots never appear in a branch name.
-pub const BRANCH_DOUBLE_DOT: &str = "..";
-/// A branch name does not contain a backslash.
-pub const BRANCH_BACKSLASH: char = '\\';
+/// Text that no branch name holds: two dots, a backslash, `@{` and two slashes in a row.
+pub const BRANCH_FORBIDDEN_PARTS: [&str; 4] = ["..", "\\", "@{", "//"];
+/// Endings that no branch name has: `.lock`, a dot and a slash.
+pub const BRANCH_FORBIDDEN_ENDS: [&str; 3] = [".lock", ".", "/"];
+/// Separates the parts of a branch name; a name does not start with it.
+pub const BRANCH_SEPARATOR: char = '/';
 /// Marks a transport helper in a Git address (`ext::command`), which would run a program.
 pub const TRANSPORT_HELPER_MARKER: &str = "::";
 

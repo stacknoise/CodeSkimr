@@ -160,7 +160,7 @@ Owner: `codeskimr_mcp`
 | MCP-201 | `project_not_registered` | error | no | 0.1.0 | The requested path is not inside a registered project. |
 | MCP-202 | `symbol_not_found` | error | no | 0.1.0 | No symbol with this id or qualified name exists in the newest snapshot. |
 | MCP-203 | `project_not_scanned` | error | yes | 0.1.0 | The project has no snapshot yet; scan it first. |
-| MCP-501 | `response_limit_exceeded` | info | no | 0.1.0 | The result was truncated to the configured limit. |
+| MCP-501 | `response_limit_exceeded` | info | no | 0.1.0 | The result was truncated to the configured limit: its size, or for usages the requested depth (parameter depth). |
 
 ## CLI – Command line
 

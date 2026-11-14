@@ -2,8 +2,10 @@
 //!
 //! This is the only place that knows concrete adapter types (blueprint 4.1).
 
+use std::collections::BTreeMap;
 use std::num::NonZeroU32;
-use std::sync::Arc;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 use std::time::Duration;
 
 use codeskimr_application::config::Config;
@@ -108,7 +110,7 @@ pub fn scanner_over(
     let discovery = Arc::clone(&analysis.discovery);
     let analyzer = Arc::clone(&analysis.analyzer);
     let indexers = analysis.indexers.clone();
-    let ids = Arc::new(IdSequence::starting_at(store.next_free_id()?));
+    let ids = shared_ids(locations.database(), store.next_free_id()?);
     let pass = Level2Pass {
         runner: index_runner(locations),
         importer: Arc::new(ScipImporter::new(Arc::new(FolderText))),
@@ -167,8 +169,27 @@ pub fn tool_checker(
     })))
 }
 
+/// The id sequence of the database file in this process. Scans of different projects run at the
+/// same time (the UI, MCP `rescan`), and each one reads the highest stored id when it starts,
+/// which is too early for ids another scan has reserved but not stored yet. One sequence per
+/// database, moved up to the store at every start, keeps them apart. (A scan in another process
+/// stays uncoordinated.)
+fn shared_ids(database: PathBuf, first_free: u64) -> Arc<IdSequence> {
+    static IDS: OnceLock<Mutex<BTreeMap<PathBuf, Arc<IdSequence>>>> = OnceLock::new();
+    let mut all = IDS
+        .get_or_init(Mutex::default)
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
+    let ids = all
+        .entry(database)
+        .or_insert_with(|| Arc::new(IdSequence::starting_at(first_free)));
+    ids.advance_to(first_free);
+    Arc::clone(ids)
+}
+
 /// The two ports that read code: walking the files and analysing one of them. The scan and the
 /// convention check use the same pair, so both see the same files.
+#[derive(Clone)]
 pub struct Analysis {
     /// Walks the folder.
     pub discovery: Arc<dyn FileDiscovery>,
@@ -201,7 +222,8 @@ pub fn build_analysis(config: &Config, locations: &Locations) -> Result<Analysis
     let timeout = Duration::from_millis(u64::from(config.scan.parse_timeout_ms));
     let analyzer = TreeSitterAnalyzer::new(packs, timeout)
         .with_fingerprints(&config.similarity)
-        .map_err(CodedError::caused_by)?;
+        .map_err(CodedError::caused_by)?
+        .with_signature_limit(config.scan.max_signature_chars);
     let discovery = WalkDiscovery::new(
         DiscoveryConfig {
             excluded_folders: config.scan.excluded_folders.clone(),

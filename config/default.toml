@@ -89,6 +89,9 @@ excluded_folders = ["bin", "obj", ".git", "node_modules", "target", "dist"]
 parse_timeout_ms = 5000
 # Largest total size of the scanned files of one source, in megabytes; a larger source fails with SRC-501.
 max_source_mb = 2048
+# Longest signature of a symbol, in characters. A constant's signature is its whole declaration with
+# the value, so a large object or array literal is cut here and ends with "…".
+max_signature_chars = 400
 
 # Level 2 references from SCIP indexes (ADR 0033). The whole table is read from the default file, the
 # user config file and command line flags only; a `level2` table in the `.codeskimr.toml` of a project

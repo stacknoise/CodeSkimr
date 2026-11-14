@@ -195,11 +195,49 @@ fn more_traffic(url: &str, token: &str) -> Vec<String> {
         command(url, Some(token), "status.info", &json!({})),
     ];
     answers.push(mcp(url, Some(token), 1, "tools/list", &json!({})));
+    answers.extend(mcp_tool_traffic(url, token));
     let call = json!({ "name": "get_architecture", "arguments": { "project": 99 } });
     answers.push(mcp(url, Some(token), 2, "tools/call", &call));
     answers.push(mcp(url, Some("csk_wrong"), 3, "tools/list", &json!({})));
     answers.push(mcp(url, None, 4, "tools/list", &json!({})));
     answers
+}
+
+/// Every tool of the real MCP service on the registered project, the same way an agent calls it,
+/// among them `rescan`, which reads the project folder again, and `check_conventions`, which
+/// reads files by path. The paths aim at the file outside the project and at the link to it.
+fn mcp_tool_traffic(url: &str, token: &str) -> Vec<String> {
+    let calls = [
+        ("search_symbols", json!({ "project": 1, "query": "Canary" })),
+        (
+            "get_symbol",
+            json!({ "project": 1, "symbol": "A.CanaryInside6b1d" }),
+        ),
+        (
+            "find_usages",
+            json!({ "project": 1, "symbol": "A.CanaryInside6b1d" }),
+        ),
+        (
+            "get_dependencies",
+            json!({ "project": 1, "symbol": "A.CanaryInside6b1d" }),
+        ),
+        ("find_constants", json!({ "project": 1, "query": "Canary" })),
+        ("get_architecture", json!({ "project": 1 })),
+        ("rescan", json!({ "project": 1 })),
+        (
+            "check_conventions",
+            json!({ "project": 1, "paths": ["src/a.cs", "src/link.cs", "../outside.cs"] }),
+        ),
+        ("search_symbols", json!({ "project": 1, "query": "Canary" })),
+    ];
+    calls
+        .iter()
+        .zip(10_u64..)
+        .map(|((name, arguments), id)| {
+            let call = json!({ "name": name, "arguments": arguments });
+            mcp(url, Some(token), id, "tools/call", &call)
+        })
+        .collect()
 }
 
 #[test]
@@ -212,6 +250,8 @@ fn no_canary_leaves_the_running_app() {
     // served, so that the missing outside class means something.
     let found = |text: &str| outcome.answers.iter().any(|answer| answer.contains(text));
     assert!(found("200 OK") && found(INSIDE) && found("public class"));
+    // ... and `rescan` over MCP really scanned the project (it answers with its duration).
+    assert!(found("duration_ms"));
     // Calls without the token or with a wrong one are refused (S-04).
     assert!(found("401 Unauthorized"));
     // The messages name the position, never the secret: a failing run must not log it.

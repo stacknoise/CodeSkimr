@@ -34,6 +34,7 @@ mod open;
 mod principal;
 mod redact;
 mod run;
+mod running;
 mod scan;
 #[cfg(test)]
 mod security_http_tests;

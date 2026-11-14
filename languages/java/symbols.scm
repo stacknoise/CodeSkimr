@@ -70,16 +70,16 @@
  .
  (field_declaration
    (modifiers "static" @modifier "final" @modifier)
-   declarator: (variable_declarator name: (identifier) @name) @symbol.field))
+   declarator: (variable_declarator name: (identifier) @name) @symbol.field) @signature)
 ((block_comment)* @doc
  .
  (field_declaration
    (modifiers "final" @modifier "static" @modifier)
-   declarator: (variable_declarator name: (identifier) @name) @symbol.field))
+   declarator: (variable_declarator name: (identifier) @name) @symbol.field) @signature)
 ((block_comment)* @doc
  .
  (constant_declaration
-   declarator: (variable_declarator name: (identifier) @name) @symbol.constant))
+   declarator: (variable_declarator name: (identifier) @name) @symbol.constant) @signature)
 ((block_comment)* @doc
  .
  (enum_constant name: (identifier) @name) @symbol.enum_member)
