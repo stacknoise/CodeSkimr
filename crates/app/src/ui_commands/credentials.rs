@@ -21,13 +21,13 @@ use super::consts::{
     CREDENTIALS_LIST_DESCRIPTION, CREDENTIALS_LIST_TITLE, CREDENTIALS_SET,
     CREDENTIALS_SET_DESCRIPTION, CREDENTIALS_SET_TITLE,
 };
-use crate::consts::is_token_credential;
+use crate::consts::{is_refresh_credential, is_token_credential};
 use crate::wiring::Secrets;
 
 /// The name of a credential that a user may manage. The installation token is not one of them:
 /// replacing it would lock the browser out, deleting it would break the next start.
 fn usable(name: &str) -> Result<CredentialId, CodedError> {
-    if is_token_credential(name) {
+    if is_token_credential(name) || is_refresh_credential(name) {
         return Err(CodedError::new(ErrorCode::RequestInvalid));
     }
     CredentialId::new(name).map_err(|_| CodedError::new(ErrorCode::RequestInvalid))
@@ -137,6 +137,7 @@ impl Command for SetCredential {
         }
         let credential = Credential::new(SecretString::from(input.user), input.secret);
         self.secrets.store(&id, &credential)?;
+        crate::refresh::forget(&*self.secrets, &id)?;
         Ok(CredentialDone { id: id.to_string() })
     }
 }
@@ -171,7 +172,7 @@ impl Command for DeleteCredential {
     /// `SEC-601` from the keystore.
     fn execute(&self, request: Request<'_, DeleteInput>) -> Result<CredentialDone, CodedError> {
         let id = usable(&request.input.id)?;
-        self.secrets.delete(&id)?;
+        crate::refresh::remove(&*self.secrets, &id)?;
         Ok(CredentialDone { id: id.to_string() })
     }
 }

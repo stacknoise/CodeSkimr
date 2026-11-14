@@ -18,8 +18,10 @@ use secrecy::SecretString;
 use zeroize::Zeroizing;
 
 use crate::consts::{
-    CARRIAGE_RETURN, LINE_BREAK, LINE_FEED, MAX_SECRET_BYTES, is_token_credential,
+    CARRIAGE_RETURN, LINE_BREAK, LINE_FEED, MAX_SECRET_BYTES, is_refresh_credential,
+    is_token_credential,
 };
+use crate::refresh::{self, Link};
 
 /// What a credential command did, for the line that reports it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -66,7 +68,7 @@ pub fn execute(
         CredentialAction::Set { id, user } => set(store, id, user, io),
         CredentialAction::Delete { id } => {
             let id = usable_id(id)?;
-            store.delete(&id)?;
+            refresh::remove(store, &id)?;
             Ok(Done::Deleted(id.to_string()))
         }
         CredentialAction::Login {
@@ -90,6 +92,7 @@ fn set(
     }
     let secret = (io.read_secret)()?;
     store.store(&id, &Credential::new(SecretString::from(user), secret))?;
+    refresh::forget(store, &id)?;
     Ok(Done::Stored(id.to_string()))
 }
 
@@ -102,8 +105,14 @@ fn login(
 ) -> Result<Done, CodedError> {
     let id = usable_id(id)?;
     let flow = provider_of(provider).flow(client_id, host)?;
-    let credential = flow.sign_in(|prompt| (io.announce)(prompt), |pause| (io.wait)(pause))?;
-    store.store(&id, &credential)?;
+    let signed =
+        flow.sign_in_with_refresh(|prompt| (io.announce)(prompt), |pause| (io.wait)(pause))?;
+    let link = Link {
+        provider: provider_of(provider),
+        client_id,
+        host,
+    };
+    refresh::save(store, &id, signed, &link)?;
     Ok(Done::Stored(id.to_string()))
 }
 
@@ -117,7 +126,7 @@ const fn provider_of(choice: ProviderChoice) -> Provider {
 /// The name of a credential that a user may manage. The installation token is not one of them:
 /// replacing it would lock the browser out, deleting it would break the next `serve`.
 fn usable_id(name: &str) -> Result<CredentialId, CodedError> {
-    if is_token_credential(name) {
+    if is_token_credential(name) || is_refresh_credential(name) {
         return Err(invalid());
     }
     CredentialId::new(name).map_err(|_| invalid())

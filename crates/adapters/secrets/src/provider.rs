@@ -1,8 +1,9 @@
 //! The platforms whose OAuth device flow the program can use (blueprint 12.2, point 2).
 
 use crate::consts::{
-    GITHUB_DEVICE_PATH, GITHUB_HOST, GITHUB_SCOPE, GITHUB_TOKEN_PATH, GITHUB_USER,
-    GITLAB_DEVICE_PATH, GITLAB_HOST, GITLAB_SCOPE, GITLAB_TOKEN_PATH, GITLAB_USER, PATH_SEPARATOR,
+    GITHUB_DEVICE_PATH, GITHUB_HOST, GITHUB_NAME, GITHUB_SCOPE, GITHUB_TOKEN_PATH, GITHUB_USER,
+    GITLAB_DEVICE_PATH, GITLAB_HOST, GITLAB_NAME, GITLAB_SCOPE, GITLAB_TOKEN_PATH, GITLAB_USER,
+    PATH_SEPARATOR,
 };
 use crate::device_flow::DeviceFlow;
 use crate::device_flow::DeviceFlowError;
@@ -17,6 +18,23 @@ pub enum Provider {
 }
 
 impl Provider {
+    /// The short name that is stored next to a refresh token to find the platform again.
+    #[must_use]
+    pub const fn name(self) -> &'static str {
+        match self {
+            Self::GitHub => GITHUB_NAME,
+            Self::GitLab => GITLAB_NAME,
+        }
+    }
+
+    /// The platform with this [`Self::name`].
+    #[must_use]
+    pub fn from_name(name: &str) -> Option<Self> {
+        [Self::GitHub, Self::GitLab]
+            .into_iter()
+            .find(|provider| provider.name() == name)
+    }
+
     /// The flow of this platform for the application `client_id`. `host` replaces the public
     /// host for a self-managed installation (`https://git.example.com`).
     ///

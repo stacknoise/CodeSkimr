@@ -175,6 +175,16 @@ pub const TOKEN_CREDENTIAL_ID: &str = "installation-token";
 pub fn is_token_credential(name: &str) -> bool {
     name.trim().eq_ignore_ascii_case(TOKEN_CREDENTIAL_ID)
 }
+/// Ending of the name under which the refresh token of a credential is kept.
+pub const REFRESH_SUFFIX: &str = ".refresh";
+/// Separates provider, application id and host in the user field of a refresh entry.
+pub const REFRESH_LINK_SEPARATOR: char = '\t';
+/// Whether `name` is the refresh entry of another credential: it belongs to the program, a user
+/// manages the credential and never the entry next to it.
+#[must_use]
+pub fn is_refresh_credential(name: &str) -> bool {
+    name.trim().to_ascii_lowercase().ends_with(REFRESH_SUFFIX)
+}
 /// User name stored next to the installation token; the credential format needs one.
 pub const TOKEN_CREDENTIAL_USER: &str = "local-owner";
 /// Number of random bytes of an installation token: 256 bits (ADR 0019).

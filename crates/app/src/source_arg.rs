@@ -10,7 +10,7 @@ use codeskimr_domain::{BranchName, CredentialId, FolderPath, GitUrl, ProjectName
 use crate::consts::{
     AUTHORITY_END, DEFAULT_BRANCH, GIT_URL_PREFIXES, GIT_URL_SUFFIX, HTTP_SCHEME, NO_SCHEME,
     PASSWORD_SEPARATOR, QUERY_MARKERS, SCHEME_SEPARATOR, SCP_PATH_SEPARATOR, URL_PATH_SEPARATOR,
-    USERINFO_MARKER, VERBATIM_PREFIX, VERBATIM_UNC, is_token_credential,
+    USERINFO_MARKER, VERBATIM_PREFIX, VERBATIM_UNC, is_refresh_credential, is_token_credential,
 };
 
 /// Why an argument is not a source.
@@ -56,7 +56,7 @@ impl SourceSpec {
     /// # Errors
     /// [`SourceError::CredentialNotUsable`] for a folder source or an empty name.
     pub fn with_credential(mut self, name: &str) -> Result<Self, SourceError> {
-        if is_token_credential(name) {
+        if is_token_credential(name) || is_refresh_credential(name) {
             // The token that guards the local UI must never be sent to a Git server.
             return Err(SourceError::CredentialNotUsable);
         }

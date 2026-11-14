@@ -23,8 +23,9 @@ use codeskimr_source::{DiscoveryConfig, GitCache, LanguageMap, SourceFetcher, Wa
 use codeskimr_storage::SqliteStore;
 
 use crate::clock::SystemClock;
-use crate::consts::{BYTES_PER_MB, is_token_credential};
+use crate::consts::{BYTES_PER_MB, is_refresh_credential, is_token_credential};
 use crate::locations::Locations;
+use crate::refresh::{Refresher, RefreshingSource};
 pub use crate::shared_keystore::{Secrets, SharedKeystore};
 
 /// What the fetcher of Git sources sees of the secrets: everything except the installation
@@ -38,7 +39,7 @@ impl CredentialStore for ForRemotes {
         id: &CredentialId,
         action: impl FnOnce(&Credential) -> Result<T, AuthError>,
     ) -> Result<T, AuthError> {
-        if is_token_credential(id.as_str()) {
+        if is_token_credential(id.as_str()) || is_refresh_credential(id.as_str()) {
             return Err(AuthError::NotFound);
         }
         self.0.with_credential(id, action)
@@ -87,9 +88,12 @@ pub fn build_scanner(
         ..
     } = build_analysis(config, locations)?;
     let ports = ScannerPorts {
-        source: Arc::new(SourceFetcher::new(
-            GitCache::new(locations.git_cache()),
-            Arc::new(ForRemotes(Arc::clone(secrets))),
+        source: Arc::new(RefreshingSource::new(
+            SourceFetcher::new(
+                GitCache::new(locations.git_cache()),
+                Arc::new(ForRemotes(Arc::clone(secrets))),
+            ),
+            Refresher::new(Arc::clone(secrets)),
         )),
         discovery,
         analyzer,

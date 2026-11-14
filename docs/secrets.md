@@ -23,6 +23,15 @@ The token that protects state-changing requests to the local server (`csk_` plus
 
 The use of the system's Git credential helper (point 1 of the preference order) is the default of a source without a credential; the only thing that changed is that a terminal prompt is switched off.
 
+## Token refresh (WP-76, #161)
+
+A GitLab token from the device flow lives for two hours. `credential login` therefore keeps the refresh token the platform sends in a second keystore entry, named like the credential plus `.refresh`. The user field of that entry says where to renew (platform, application id, host); it holds no secret, the refresh token is the secret. Rules:
+
+- Renewal happens in the composition root (`refresh.rs`): `RefreshingSource` wraps the Git fetcher. Only a clone that fails with `SEC-401` (credential rejected) triggers it, once per fetch: the refresh token is traded at the token endpoint (`grant_type=refresh_token`, public client, no client secret), both entries are stored (a rotated refresh token replaces the old one, a platform that sends none keeps it) and the fetch is repeated. If the platform refuses the refresh token, the first rejection stays the answer and nothing is changed.
+- A credential without refresh entry (a pasted token) is never renewed.
+- Entries ending in `.refresh` are not credentials a user manages or a project may name: `credentials.set`, `credentials.delete`, `projects.add` and the fetcher's store refuse them. Deleting or replacing a credential (CLI or server) removes its refresh entry, so an old refresh token cannot overwrite a new secret.
+- Nothing of the exchange is logged; a failed refresh is `NET-601` without reason. The device flow from the UI is not part of this package.
+
 ## Credentials in the server (WP-76)
 
 The browser UI and other REST callers manage logins with three commands (blueprint 12.4; `docs/server.md`):

@@ -51,6 +51,11 @@ pub const FIELD_GRANT_TYPE: &str = "grant_type";
 /// Value of the grant type of the device flow (RFC 8628, section 3.4).
 pub const GRANT_DEVICE_CODE: &str = "urn:ietf:params:oauth:grant-type:device_code";
 
+/// Form field of the refresh token.
+pub const FIELD_REFRESH_TOKEN: &str = "refresh_token";
+/// Value of the grant type that trades a refresh token for a new access token (RFC 6749, 6).
+pub const GRANT_REFRESH_TOKEN: &str = "refresh_token";
+
 /// Error of the token endpoint while the user has not approved yet.
 pub const ERROR_PENDING: &str = "authorization_pending";
 /// Error of the token endpoint that asks for a longer interval.
@@ -69,6 +74,11 @@ pub const GITHUB_TOKEN_PATH: &str = "/login/oauth/access_token";
 pub const GITHUB_SCOPE: &str = "repo";
 /// User name that goes with a GitHub token in a Git login.
 pub const GITHUB_USER: &str = "x-access-token";
+
+/// Short name of GitHub in a stored refresh link.
+pub const GITHUB_NAME: &str = "github";
+/// Short name of GitLab in a stored refresh link.
+pub const GITLAB_NAME: &str = "gitlab";
 
 /// Host of GitLab.
 pub const GITLAB_HOST: &str = "https://gitlab.com";

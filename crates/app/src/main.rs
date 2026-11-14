@@ -29,6 +29,7 @@ mod memory_keystore;
 mod open;
 mod principal;
 mod redact;
+mod refresh;
 mod run;
 mod scan;
 #[cfg(test)]
