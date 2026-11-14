@@ -165,15 +165,28 @@ pub fn extract(
     };
     let facts = Facts::collect(ctx, vocabulary, root);
     let scopes = Scopes::new(&facts.scopes, facts.declarations.clone());
+    let called = called_names(&facts.occurrences);
     let mut seen = HashSet::new();
     let mut pending = Vec::new();
     for occurrence in &facts.occurrences {
-        if !seen.insert((occurrence.kind, occurrence.name.byte_range().clone())) {
+        let range = occurrence.name.byte_range();
+        // A name that is called is no read: `a?.B()` is a call of `B`, not a read of it as well.
+        let is_call_read = occurrence.kind == ReferenceKind::Read && called.contains(&range);
+        if is_call_read || !seen.insert((occurrence.kind, range)) {
             continue;
         }
         pending.extend(pending_reference(ctx, table, &facts, &scopes, occurrence)?);
     }
     Ok(pending)
+}
+
+/// The byte ranges of the names that some pattern of the query reports as a call.
+fn called_names(occurrences: &[Occurrence<'_>]) -> HashSet<Range<usize>> {
+    occurrences
+        .iter()
+        .filter(|o| o.kind == ReferenceKind::Call)
+        .map(|o| o.name.byte_range())
+        .collect()
 }
 
 fn pending_reference(

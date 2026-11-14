@@ -6,6 +6,11 @@ use codeskimr_domain::{FolderPath, Project, ProjectId, ProjectName, ProjectSourc
 use codeskimr_storage::SqliteStore;
 use serde_json::{Value, json};
 
+use std::fs;
+
+use codeskimr_codes::{Coded, ErrorCode};
+
+use super::export::{Embedded, page_from};
 use super::tests::Fixture;
 use crate::principal;
 
@@ -104,4 +109,29 @@ fn a_project_that_was_not_scanned_or_not_registered_is_refused() {
         fixture.call("export.html", json!({ "project": 99 })),
         Err("PRJ-201")
     );
+}
+
+const PAGE_NAME: &str = "export/export.html";
+const PAGE_TEXT: &str = "<html>__CODESKIMR_EXPORT_DATA__</html>";
+const EMBEDDED: Embedded = &[("index.html", b"x"), (PAGE_NAME, PAGE_TEXT.as_bytes())];
+
+#[test]
+fn without_a_ui_folder_the_page_comes_from_the_program() {
+    assert_eq!(page_from(None, EMBEDDED).unwrap(), PAGE_TEXT);
+    let error = page_from(None, &[("index.html", b"x")]).unwrap_err();
+    assert_eq!(error.code(), ErrorCode::ExportBundleMissing);
+}
+
+#[test]
+fn an_existing_ui_folder_wins_over_the_program() {
+    let dir = tempfile::tempdir().unwrap();
+    let folder = dir.path().join("export");
+    fs::create_dir_all(&folder).unwrap();
+    fs::write(folder.join("export.html"), "from the folder").unwrap();
+    assert_eq!(
+        page_from(Some(dir.path()), EMBEDDED).unwrap(),
+        "from the folder"
+    );
+    let empty = tempfile::tempdir().unwrap();
+    assert!(page_from(Some(empty.path()), EMBEDDED).is_err());
 }
