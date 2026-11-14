@@ -177,6 +177,8 @@ export const I18N_KEYS = {
   EXPLORER_METRIC_LOC_TIP: "explorer-metric-loc-tip",
   EXPLORER_METRIC_CC: "explorer-metric-cc",
   EXPLORER_METRIC_CC_TIP: "explorer-metric-cc-tip",
+  EXPLORER_METRIC_CC_MAX: "explorer-metric-cc-max",
+  EXPLORER_METRIC_CC_MAX_TIP: "explorer-metric-cc-max-tip",
   EXPLORER_METRIC_MI: "explorer-metric-mi",
   EXPLORER_METRIC_MI_TIP: "explorer-metric-mi-tip",
   EXPLORER_METRIC_MEMBERS: "explorer-metric-members",

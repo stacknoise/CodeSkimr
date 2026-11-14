@@ -9,6 +9,7 @@ use rusqlite::{Connection, params};
 
 use crate::codec::column_int;
 use crate::error::{StorageError, StorageResult};
+use crate::similarity::json_list;
 use crate::sql;
 
 /// The ids the new data brings itself; everything else is looked up in the carried rows.
@@ -45,6 +46,25 @@ impl Known {
         )
     }
 
+    /// Whether every symbol of `ids` is new or in the carried rows; the carried ones are looked up
+    /// together, because coupling brings a metric for every namespace of the snapshot.
+    fn have_symbols(&self, conn: &Connection, ids: &[u64]) -> StorageResult<bool> {
+        let carried: HashSet<u64> = ids
+            .iter()
+            .copied()
+            .filter(|id| !self.symbols.contains(id))
+            .collect();
+        let mut ids = Vec::with_capacity(carried.len());
+        for id in &carried {
+            ids.push(column_int(*id)?);
+        }
+        let list = json_list(ids.into_iter());
+        let found: i64 = conn
+            .prepare_cached(sql::SYMBOLS_IN_SNAPSHOT_COUNT)?
+            .query_row(params![self.snapshot, list], |row| row.get(0))?;
+        Ok(usize::try_from(found).is_ok_and(|found| found == carried.len()))
+    }
+
     fn has(&self, conn: &Connection, query: &str, new: bool, id: u64) -> StorageResult<bool> {
         if new {
             return Ok(true);
@@ -72,9 +92,8 @@ pub(crate) fn check(conn: &Connection, data: &SnapshotData) -> StorageResult<()>
             && known.has_symbol(conn, reference.from.get())?
             && known.has_symbol(conn, reference.to.get())?;
     }
-    for metric in &data.metrics {
-        ok &= known.has_symbol(conn, metric.symbol.get())?;
-    }
+    let measured: Vec<u64> = data.metrics.iter().map(|m| m.symbol.get()).collect();
+    ok &= known.have_symbols(conn, &measured)?;
     for found in &data.fingerprints {
         ok &= known.has_symbol(conn, found.symbol.get())?;
     }

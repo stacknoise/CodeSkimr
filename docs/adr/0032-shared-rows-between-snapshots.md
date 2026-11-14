@@ -26,7 +26,7 @@ Option 2, chosen by the product owner on 2026-11-13.
 
 ## Condition: metrics depend on one file
 
-A metric row is shared and a new value replaces the stored one, so older snapshots see it too. This holds as long as a metric depends on the content of its own file, which is true for all metrics `StandardMetrics` computes (loc, complexity, maintainability). The cross-file metrics of `MetricKind` (efferent and afferent coupling, instability) depend on references; whoever computes them has to store them per snapshot or change this decision first (issue #150).
+A metric row is shared and a new value replaces the stored one, so older snapshots see it too. This holds as long as a metric depends on the content of its own file, which is true for all metrics `StandardMetrics` computes (loc, complexity, maintainability). The cross-file metrics of `MetricKind` (efferent and afferent coupling, instability) depend on references; ADR 0037 stores them per snapshot in `coupling_rows` (issue #150).
 
 ## Consequences
 

@@ -31,7 +31,7 @@ Option 2, with Halstead counts delivered by the language packs.
 - `loc` of a callable or type excludes the lines of its named local functions and local types, which have their own `loc`; the `loc` of a lambda stays inside its callable. Rollups sum `cc` over all callables below a symbol, so nothing is counted twice there.
 - `File.loc` equals the `loc` of the file's module symbol.
 - The thresholds for CC in `config/default.toml` apply to callables and to `cc_max`, never to the sum, because a sum grows with size and not with difficulty. The sum is shown as information only.
-- A new metric kind `cc_max` is added to the `Metric` entity. Coupling metrics (Ce, Ca, instability) are unchanged; they belong to namespaces and layers and need no counts from the language pack.
+- A new metric kind `cc_max` is added to the `Metric` entity. Coupling metrics (Ce, Ca, instability) are unchanged; they belong to namespaces and modules and need no counts from the language pack. ADR 0037 defines them and stores them per snapshot.
 
 ### Nesting
 

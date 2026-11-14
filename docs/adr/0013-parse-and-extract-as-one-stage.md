@@ -13,7 +13,7 @@ Blueprint 7 lists Parse and Extract symbols as two stages. The application layer
 
 ## Decision
 
-Option 2. The pipeline has six stages: Fetch, Discover, Analyze, Resolve, Measure, Persist. The scan view may later show Parse and Extract as sub-steps of Analyze through the progress event, without a new stage.
+Option 2. The pipeline has six stages: Fetch, Discover, Analyze, Resolve, Compute metrics, Persist. The scan view may later show Parse and Extract as sub-steps of Analyze through the progress event, without a new stage.
 
 ## Consequences
 

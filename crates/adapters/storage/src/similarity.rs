@@ -50,7 +50,7 @@ pub fn insert_all(conn: &Connection, fingerprints: &[SymbolFingerprints]) -> Sto
 
 /// A list of numbers as the JSON text that `json_each` reads, so one statement takes any number
 /// of values.
-fn json_list(values: impl Iterator<Item = i64>) -> String {
+pub(crate) fn json_list(values: impl Iterator<Item = i64>) -> String {
     let items: Vec<String> = values.map(|value| value.to_string()).collect();
     format!(
         "{JSON_LIST_OPEN}{}{JSON_LIST_CLOSE}",

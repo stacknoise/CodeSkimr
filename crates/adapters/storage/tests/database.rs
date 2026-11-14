@@ -69,7 +69,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 9));
+    assert_eq!((mode.as_str(), version), ("wal", 10));
 }
 
 #[test]
@@ -139,6 +139,7 @@ fn scan_with_every_table(snapshot: u64, base: u64) -> SnapshotData {
     scan.metrics = vec![
         metric(base + 1, MetricKind::Loc, 10.0),
         metric(base + 2, MetricKind::CyclomaticComplexity, 2.0),
+        metric(base + 1, MetricKind::EfferentCoupling, 1.0),
     ];
     scan.parse_micros = vec![(LanguageId::new("csharp").unwrap(), base)];
     scan.fingerprints = vec![SymbolFingerprints {
@@ -167,9 +168,10 @@ fn pruned_snapshots_leave_no_rows_behind() {
         ("files", 1),
         ("symbols", 2),
         ("symbol_references", 1),
-        ("metrics", 2),
+        ("metrics", 3),
         ("symbol_rows", 2),
         ("metric_rows", 2),
+        ("coupling_rows", 1),
         ("search_index", 2),
         ("usage_counts", 1),
         ("type_summary", 1),
