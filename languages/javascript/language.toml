@@ -69,6 +69,11 @@ export = "public"
 [visibility.parent_defaults]
 module = "private"
 
+# A `#name` member is private in the language without a keyword (issue #81).
+[[visibility.name_rules]]
+prefix = "#"
+visibility = "private"
+
 # Level 2 (ADR 0033): scip-typescript indexes TypeScript and JavaScript; --infer-tsconfig lets it index a project without a tsconfig.json.
 # Only runs when the user enabled and confirmed level 2 for the project. CodeSkimr never downloads or
 # installs anything: the user installs the indexer and its toolchain.
