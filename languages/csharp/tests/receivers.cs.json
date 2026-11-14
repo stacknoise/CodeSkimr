@@ -1,0 +1,1082 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 35,
+      "operands": null,
+      "operators": null,
+      "symbol": "receivers.cs"
+    },
+    {
+      "decisions": null,
+      "loc": 35,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IReader"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IReader.Open"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IWriter"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.IWriter.Open"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.FileReader"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "Demo.FileReader.Open"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.FileWriter"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "Demo.FileWriter.Open"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Editor"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "Demo.Editor.Apply"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.RowEvent"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Row"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Base"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Derived"
+    },
+    {
+      "decisions": null,
+      "loc": 22,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Shapes"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        4,
+        4
+      ],
+      "symbol": "Demo.Shapes.NullForgiving"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Demo.Shapes.Cast"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        4,
+        4
+      ],
+      "symbol": "Demo.Shapes.As"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        3
+      ],
+      "symbol": "Demo.Shapes.ThisField"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        3,
+        3
+      ],
+      "symbol": "Demo.Shapes.Awaited"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        3,
+        3
+      ],
+      "symbol": "Demo.Shapes.Pattern"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        5,
+        5
+      ],
+      "symbol": "Demo.Shapes.SwitchCase"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        3
+      ],
+      "symbol": "Demo.Shapes.OutVar"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        5,
+        5
+      ],
+      "operators": [
+        2,
+        4
+      ],
+      "symbol": "Demo.Shapes.Primary"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        3
+      ],
+      "symbol": "Demo.Shapes.Unknown"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        3,
+        3
+      ],
+      "symbol": "Demo.Shapes.Deconstruct"
+    },
+    {
+      "decisions": 1,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        4,
+        4
+      ],
+      "symbol": "Demo.Shapes.DeconstructLoop"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Demo.Shapes.Query"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Demo.Shapes.Join"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        3,
+        5
+      ],
+      "operators": [
+        4,
+        4
+      ],
+      "symbol": "Demo.Shapes.Initializers"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Demo.Shapes.Fill"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "Demo.Shapes.Make"
+    }
+  ],
+  "loc": 35,
+  "references": [
+    {
+      "at": "4:26",
+      "from": "Demo.FileReader",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "IReader"
+    },
+    {
+      "at": "5:26",
+      "from": "Demo.FileWriter",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "IWriter"
+    },
+    {
+      "at": "12:23",
+      "from": "Demo.Derived",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Base"
+    },
+    {
+      "at": "14:24",
+      "from": "Demo.Derived.Key",
+      "kind": "override",
+      "receiver": null,
+      "target": "Key"
+    },
+    {
+      "at": "14:42",
+      "from": "Demo.Derived.Key",
+      "kind": "read",
+      "receiver": "base",
+      "target": "Key"
+    },
+    {
+      "at": "14:58",
+      "from": "Demo.Derived.Key",
+      "kind": "write",
+      "receiver": "base",
+      "target": "Key"
+    },
+    {
+      "at": "14:64",
+      "from": "Demo.Derived.Key",
+      "kind": "read",
+      "receiver": null,
+      "target": "value"
+    },
+    {
+      "at": "17:20",
+      "from": "Demo.Shapes",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IReader"
+    },
+    {
+      "at": "17:37",
+      "from": "Demo.Shapes",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Editor"
+    },
+    {
+      "at": "19:21",
+      "from": "Demo.Shapes",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IReader"
+    },
+    {
+      "at": "20:21",
+      "from": "Demo.Shapes",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "List"
+    },
+    {
+      "at": "20:26",
+      "from": "Demo.Shapes",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Editor"
+    },
+    {
+      "at": "22:30",
+      "from": "Demo.Shapes.NullForgiving",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IReader"
+    },
+    {
+      "at": "22:47",
+      "from": "Demo.Shapes.NullForgiving",
+      "kind": "call",
+      "receiver": "typed IReader",
+      "target": "Open"
+    },
+    {
+      "at": "23:35",
+      "from": "Demo.Shapes.Cast",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IReader"
+    },
+    {
+      "at": "23:46",
+      "from": "Demo.Shapes.Cast",
+      "kind": "call",
+      "receiver": "typed IReader",
+      "target": "Open"
+    },
+    {
+      "at": "24:47",
+      "from": "Demo.Shapes.As",
+      "kind": "call",
+      "receiver": "typed IReader",
+      "target": "Open"
+    },
+    {
+      "at": "25:43",
+      "from": "Demo.Shapes.ThisField",
+      "kind": "call",
+      "receiver": "typed IReader",
+      "target": "Open"
+    },
+    {
+      "at": "26:30",
+      "from": "Demo.Shapes.Awaited",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IReader"
+    },
+    {
+      "at": "26:52",
+      "from": "Demo.Shapes.Awaited",
+      "kind": "call",
+      "receiver": "typed IReader",
+      "target": "Open"
+    },
+    {
+      "at": "27:45",
+      "from": "Demo.Shapes.Pattern",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IReader"
+    },
+    {
+      "at": "27:58",
+      "from": "Demo.Shapes.Pattern",
+      "kind": "call",
+      "receiver": "typed IReader",
+      "target": "Open"
+    },
+    {
+      "at": "28:57",
+      "from": "Demo.Shapes.SwitchCase",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IReader"
+    },
+    {
+      "at": "28:70",
+      "from": "Demo.Shapes.SwitchCase",
+      "kind": "call",
+      "receiver": "typed IReader",
+      "target": "Open"
+    },
+    {
+      "at": "29:27",
+      "from": "Demo.Shapes.OutVar",
+      "kind": "call",
+      "receiver": null,
+      "target": "Fill"
+    },
+    {
+      "at": "29:36",
+      "from": "Demo.Shapes.OutVar",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IReader"
+    },
+    {
+      "at": "29:54",
+      "from": "Demo.Shapes.OutVar",
+      "kind": "call",
+      "receiver": "typed IReader",
+      "target": "Open"
+    },
+    {
+      "at": "30:36",
+      "from": "Demo.Shapes.Primary",
+      "kind": "call",
+      "receiver": "typed IReader",
+      "target": "Open"
+    },
+    {
+      "at": "30:49",
+      "from": "Demo.Shapes.Primary",
+      "kind": "call",
+      "receiver": "typed Editor",
+      "target": "Apply"
+    },
+    {
+      "at": "31:36",
+      "from": "Demo.Shapes.Unknown",
+      "kind": "call",
+      "receiver": null,
+      "target": "Make"
+    },
+    {
+      "at": "31:43",
+      "from": "Demo.Shapes.Unknown",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "Open"
+    },
+    {
+      "at": "33:50",
+      "from": "Demo.Shapes.Deconstruct",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Editor"
+    },
+    {
+      "at": "33:66",
+      "from": "Demo.Shapes.Deconstruct",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "Apply"
+    },
+    {
+      "at": "34:63",
+      "from": "Demo.Shapes.DeconstructLoop",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Dictionary"
+    },
+    {
+      "at": "34:79",
+      "from": "Demo.Shapes.DeconstructLoop",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Editor"
+    },
+    {
+      "at": "34:92",
+      "from": "Demo.Shapes.DeconstructLoop",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "Apply"
+    },
+    {
+      "at": "35:72",
+      "from": "Demo.Shapes.Query",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "Apply"
+    },
+    {
+      "at": "36:101",
+      "from": "Demo.Shapes.Join",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "Apply"
+    },
+    {
+      "at": "38:44",
+      "from": "Demo.Shapes.Initializers",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "RowEvent"
+    },
+    {
+      "at": "38:55",
+      "from": "Demo.Shapes.Initializers",
+      "kind": "write",
+      "receiver": "typed RowEvent",
+      "target": "Index"
+    },
+    {
+      "at": "38:77",
+      "from": "Demo.Shapes.Initializers",
+      "kind": "read",
+      "receiver": "typed RowEvent",
+      "target": "Index"
+    },
+    {
+      "at": "40:26",
+      "from": "Demo.Shapes.Fill",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IReader"
+    },
+    {
+      "at": "40:47",
+      "from": "Demo.Shapes.Fill",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "FileReader"
+    },
+    {
+      "at": "41:12",
+      "from": "Demo.Shapes.Make",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "IReader"
+    },
+    {
+      "at": "41:34",
+      "from": "Demo.Shapes.Make",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "FileReader"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "receivers.cs",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-43:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "Demo",
+      "parent": "receivers.cs",
+      "signature": null,
+      "span": "0:0-43:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "Demo.IReader",
+      "parent": "Demo",
+      "signature": null,
+      "span": "2:0-2:41",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.IReader.Open",
+      "parent": "Demo.IReader",
+      "signature": null,
+      "span": "2:27-2:39",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "interface",
+      "name": "Demo.IWriter",
+      "parent": "Demo",
+      "signature": null,
+      "span": "3:0-3:41",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.IWriter.Open",
+      "parent": "Demo.IWriter",
+      "signature": null,
+      "span": "3:27-3:39",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.FileReader",
+      "parent": "Demo",
+      "signature": null,
+      "span": "4:0-4:60",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.FileReader.Open",
+      "parent": "Demo.FileReader",
+      "signature": null,
+      "span": "4:36-4:58",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.FileWriter",
+      "parent": "Demo",
+      "signature": null,
+      "span": "5:0-5:60",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.FileWriter.Open",
+      "parent": "Demo.FileWriter",
+      "signature": null,
+      "span": "5:36-5:58",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Editor",
+      "parent": "Demo",
+      "signature": null,
+      "span": "7:0-7:52",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Editor.Apply",
+      "parent": "Demo.Editor",
+      "signature": null,
+      "span": "7:22-7:50",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.RowEvent",
+      "parent": "Demo",
+      "signature": null,
+      "span": "8:0-8:56",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.RowEvent.Index",
+      "parent": "Demo.RowEvent",
+      "signature": null,
+      "span": "8:24-8:54",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Row",
+      "parent": "Demo",
+      "signature": null,
+      "span": "9:0-9:51",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Row.Index",
+      "parent": "Demo.Row",
+      "signature": null,
+      "span": "9:19-9:49",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Base",
+      "parent": "Demo",
+      "signature": null,
+      "span": "11:0-11:58",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Base.Key",
+      "parent": "Demo.Base",
+      "signature": null,
+      "span": "11:20-11:56",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Derived",
+      "parent": "Demo",
+      "signature": null,
+      "span": "12:0-15:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Derived.Key",
+      "parent": "Demo.Derived",
+      "signature": null,
+      "span": "14:4-14:74",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Shapes",
+      "parent": "Demo",
+      "signature": null,
+      "span": "17:0-42:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Demo.Shapes._reader",
+      "parent": "Demo.Shapes",
+      "signature": null,
+      "span": "19:29-19:36",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "Demo.Shapes._editors",
+      "parent": "Demo.Shapes",
+      "signature": null,
+      "span": "20:34-20:50",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shapes.NullForgiving",
+      "parent": "Demo.Shapes",
+      "signature": null,
+      "span": "22:4-22:56",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shapes.Cast",
+      "parent": "Demo.Shapes",
+      "signature": null,
+      "span": "23:4-23:55",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shapes.As",
+      "parent": "Demo.Shapes",
+      "signature": null,
+      "span": "24:4-24:56",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shapes.ThisField",
+      "parent": "Demo.Shapes",
+      "signature": null,
+      "span": "25:4-25:52",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shapes.Awaited",
+      "parent": "Demo.Shapes",
+      "signature": null,
+      "span": "26:4-26:61",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shapes.Pattern",
+      "parent": "Demo.Shapes",
+      "signature": null,
+      "span": "27:4-27:67",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shapes.SwitchCase",
+      "parent": "Demo.Shapes",
+      "signature": null,
+      "span": "28:4-28:88",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shapes.OutVar",
+      "parent": "Demo.Shapes",
+      "signature": null,
+      "span": "29:4-29:63",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shapes.Primary",
+      "parent": "Demo.Shapes",
+      "signature": null,
+      "span": "30:4-30:60",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shapes.Unknown",
+      "parent": "Demo.Shapes",
+      "signature": null,
+      "span": "31:4-31:52",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shapes.Deconstruct",
+      "parent": "Demo.Shapes",
+      "signature": null,
+      "span": "33:4-33:77",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shapes.DeconstructLoop",
+      "parent": "Demo.Shapes",
+      "signature": null,
+      "span": "34:4-34:103",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shapes.Query",
+      "parent": "Demo.Shapes",
+      "signature": null,
+      "span": "35:4-35:83",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shapes.Join",
+      "parent": "Demo.Shapes",
+      "signature": null,
+      "span": "36:4-36:112",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shapes.Initializers",
+      "parent": "Demo.Shapes",
+      "signature": null,
+      "span": "38:4-38:85",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shapes.Fill",
+      "parent": "Demo.Shapes",
+      "signature": null,
+      "span": "40:4-40:62",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Shapes.Make",
+      "parent": "Demo.Shapes",
+      "signature": null,
+      "span": "41:4-41:47",
+      "static": false,
+      "visibility": "private"
+    }
+  ]
+}

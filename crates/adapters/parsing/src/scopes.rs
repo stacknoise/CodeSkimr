@@ -81,6 +81,21 @@ impl Scopes {
     }
 }
 
+impl Scopes {
+    /// Like [`Scopes::find`], but only a field or property: `this.name` never means a local.
+    #[must_use]
+    pub fn find_member(&self, name: &str, at: usize) -> Option<Declared<'_>> {
+        self.declarations
+            .iter()
+            .filter(|found| found.raw.name == name && !found.raw.local && found.scope.contains(&at))
+            .min_by_key(|found| (found.scope.len(), usize::MAX - found.raw.at))
+            .map(|found| Declared {
+                declared_type: found.raw.declared_type.as_deref(),
+                local: false,
+            })
+    }
+}
+
 fn innermost(scopes: &[Range<usize>], at: usize) -> Option<Range<usize>> {
     scopes
         .iter()

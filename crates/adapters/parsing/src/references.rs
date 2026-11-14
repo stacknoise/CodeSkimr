@@ -24,6 +24,8 @@ enum Seen {
     Name(String, usize),
     /// The type of a creation expression.
     Type(String),
+    /// A field or property named behind `this.`, at this byte offset.
+    Member(String, usize),
     /// The enclosing object itself.
     Own,
     /// The base of the enclosing object.
@@ -136,6 +138,7 @@ impl<'t> Facts<'t> {
         let seen = match role {
             ReceiverRole::Name => Seen::Name(text, node.start_byte()),
             ReceiverRole::Type => Seen::Type(text),
+            ReceiverRole::Member => Seen::Member(text, node.start_byte()),
             ReceiverRole::Own => Seen::Own,
             ReceiverRole::Base => Seen::Base,
             ReceiverRole::Other => Seen::Other,
@@ -212,6 +215,15 @@ fn receiver_of(seen: &Seen, scopes: &Scopes) -> Option<Receiver> {
         Seen::Base => Some(Receiver::Base),
         Seen::Other => Some(Receiver::Unknown),
         Seen::Type(name) => QualifiedName::new(name).ok().map(Receiver::Typed),
+        Seen::Member(name, at) => match scopes.find_member(name, *at) {
+            Some(declared) => Some(
+                declared
+                    .declared_type
+                    .and_then(|text| QualifiedName::new(text).ok())
+                    .map_or(Receiver::Unknown, Receiver::Typed),
+            ),
+            None => QualifiedName::new(name).ok().map(Receiver::Named),
+        },
         Seen::Name(name, at) => match scopes.find(name, *at) {
             Some(declared) => Some(
                 declared

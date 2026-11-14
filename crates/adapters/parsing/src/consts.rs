@@ -48,6 +48,8 @@ pub const RECEIVER_CAPTURE: &str = "receiver";
 pub const RECEIVER_TYPE_CAPTURE: &str = "receiver.type";
 /// Capture of a receiver that is the enclosing object itself.
 pub const RECEIVER_OWN_CAPTURE: &str = "receiver.own";
+/// Capture of a receiver that is a member named behind `this.`: a field or property, never a local.
+pub const RECEIVER_MEMBER_CAPTURE: &str = "receiver.member";
 /// Capture of a receiver that is the base of the enclosing object.
 pub const RECEIVER_BASE_CAPTURE: &str = "receiver.base";
 /// Capture of any other receiver; the syntax says nothing more about it.
