@@ -544,7 +544,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 | `PRJ` | projects and snapshots | `application`, `storage` |
 | `SRC` | sources: file system, Git, watcher | `source` |
 | `PRS` | parsing and language packs | `parsing` |
-| `RES` | reference resolution | `parsing`, `application` |
+| `RES` | reference resolution | `parsing`, `application`; level 2 (ADR 0033): `scip`, `indexer` |
 | `IDX` | search and read models | `storage` |
 | `STO` | persistence | `storage` |
 | `SEC` | credentials and security | `secrets` |
