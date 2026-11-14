@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { describe, expect, it } from "vitest";
 import { currentLanguage, setLanguage } from "../../shared/i18n/i18n";
 import { SESSION_PATH } from "../../shared/api/consts";
+import { recordTime, resetTimings } from "../../shared/api/timings";
 import { startSession } from "../../shared/session/session";
 import { answer, serve, useServerSession } from "../../tests/commands";
 import type { ProjectRow } from "../projects/types";
@@ -41,6 +42,16 @@ describe("StatusBar", () => {
     expect(screen.getByText("RAM 41 MB")).toBeInTheDocument();
     expect(await screen.findByText("2 projects · 1,220 types")).toBeInTheDocument();
     expect(screen.getByText(/Connected/)).toBeInTheDocument();
+  });
+
+  it("shows the round trip of the last query once there was one", async () => {
+    setLanguage("en");
+    resetTimings();
+    await served({ startup_ms: 180, memory_mb: 41 });
+    expect(screen.queryByText(/^Query /)).toBeNull();
+    recordTime("search_keystroke", 3.6);
+    expect(await screen.findByText("Query 4 ms")).toBeInTheDocument();
+    resetTimings();
   });
 
   it("leaves out what the system does not tell", async () => {

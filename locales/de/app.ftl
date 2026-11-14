@@ -10,6 +10,7 @@ app-watching = Beobachtung aktiv
 app-sample-data = Beispieldaten
 app-language = Sprache
 app-startup-time = Start { $ms } ms
+app-query-time = Abfrage { $ms } ms
 app-memory-usage = RAM { $mb } MB
 app-status-projects = { $count ->
     [one] { $count } Projekt

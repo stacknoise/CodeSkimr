@@ -10,6 +10,7 @@ app-watching = Watching for changes
 app-sample-data = Sample data
 app-language = Language
 app-startup-time = Start { $ms } ms
+app-query-time = Query { $ms } ms
 app-memory-usage = RAM { $mb } MB
 app-status-projects = { $count ->
     [one] { $count } project
