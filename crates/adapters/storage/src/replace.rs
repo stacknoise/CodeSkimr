@@ -8,11 +8,10 @@ use rusqlite::{Connection, params};
 
 use crate::codec::{column_int, id_from};
 use crate::error::{StorageError, StorageResult};
-use crate::headers::{insert_reference, latest_snapshot, set_totals, totals};
+use crate::headers::{insert_metric, insert_reference, latest_snapshot, set_totals, totals};
 use crate::previous::load_latest_index;
 use crate::projects::load_layers;
 use crate::read_models;
-use crate::snapshots::insert_metric;
 use crate::sql;
 
 /// Whether `query` finds a row for the snapshot and the id.

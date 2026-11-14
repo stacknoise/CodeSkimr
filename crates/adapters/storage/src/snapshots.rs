@@ -3,15 +3,15 @@
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{ReferenceReplacement, SnapshotData, SnapshotStore};
 use codeskimr_domain::{
-    CommitHash, Metric, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile,
-    Symbol, Visibility,
+    CommitHash, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile, Symbol,
+    Visibility,
 };
 use rusqlite::{Connection, params};
 
 use crate::codec::{SpanColumns, column_int};
 use crate::consts::{PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON};
 use crate::error::{StorageError, StorageResult};
-use crate::headers::{insert_reference, set_totals, totals};
+use crate::headers::{insert_metric, insert_reference, set_totals, totals};
 use crate::integrity;
 use crate::projects::load_layers;
 use crate::read_models;
@@ -163,31 +163,6 @@ fn insert_symbol(conn: &Connection, symbol: &Symbol) -> StorageResult<()> {
         symbol.signature,
         symbol.doc,
     ])?;
-    Ok(())
-}
-
-/// A metric of its own file is shared by all snapshots; coupling belongs to this snapshot alone
-/// (ADR 0037).
-pub(crate) fn insert_metric(
-    conn: &Connection,
-    snapshot: i64,
-    metric: &Metric,
-) -> StorageResult<()> {
-    let symbol = column_int(metric.symbol.get())?;
-    if metric.kind.is_per_snapshot() {
-        conn.prepare_cached(sql::COUPLING_INSERT)?.execute(params![
-            snapshot,
-            symbol,
-            metric.kind.label(),
-            metric.value.get(),
-        ])?;
-    } else {
-        conn.prepare_cached(sql::METRIC_INSERT)?.execute(params![
-            symbol,
-            metric.kind.label(),
-            metric.value.get(),
-        ])?;
-    }
     Ok(())
 }
 
