@@ -169,3 +169,12 @@ pub const CREDENTIALS_SET_DESCRIPTION: &str = i18n::COMMAND_CREDENTIALS_SET_DESC
 pub const CREDENTIALS_DELETE_TITLE: &str = i18n::COMMAND_CREDENTIALS_DELETE_TITLE;
 /// Description key of `credentials.delete`.
 pub const CREDENTIALS_DELETE_DESCRIPTION: &str = i18n::COMMAND_CREDENTIALS_DELETE_DESCRIPTION;
+
+/// Most types drawn on each side of the type in the middle of the map; the rest is counted.
+pub const TYPE_SIDE_MAX: usize = 12;
+/// Row of the types that use the type in the middle.
+pub const TYPE_ROW_USERS: u32 = 0;
+/// Row of the type in the middle.
+pub const TYPE_ROW_FOCUS: u32 = 1;
+/// Row of the types the type in the middle uses.
+pub const TYPE_ROW_USED: u32 = 2;

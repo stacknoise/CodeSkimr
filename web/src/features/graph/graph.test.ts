@@ -14,6 +14,7 @@ const box = (name: string, x: number, y: number): LayerBox => ({
   order: 0,
   layer: null,
   types: null,
+  symbol: null,
 });
 const link = (from: string, to: string, count = 1, violates = false): LayerLink => ({
   from,

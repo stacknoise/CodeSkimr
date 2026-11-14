@@ -4,7 +4,7 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 export const GRAPH_COMMAND = "graph.layers";
 
 /** The levels of the map, as the command names them. */
-export const LEVEL = { layers: "layers", namespaces: "namespaces" } as const;
+export const LEVEL = { layers: "layers", namespaces: "namespaces", types: "types" } as const;
 
 /** The depths of the namespace level: how many segments of a name stay (0 keeps them all), with
  * the text of the button. */

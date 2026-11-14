@@ -2,10 +2,12 @@
 
 use std::collections::HashMap;
 
-use codeskimr_application::ports::{ImpactedSymbol, SymbolLabel, UsageEntry};
+use codeskimr_application::ports::{
+    ImpactedSymbol, SymbolLabel, TypeFocus, TypeNeighbour, UsageEntry,
+};
 use codeskimr_domain::{
-    NamespaceGraph, QualifiedName, RelativePath, ReverseIndex, SymbolId, Visibility,
-    namespace_graph,
+    NamespaceGraph, QualifiedName, RelativePath, ReverseIndex, SymbolId, TypeLink, Visibility,
+    namespace_graph, type_neighbours,
 };
 use rusqlite::{Connection, params};
 
@@ -133,6 +135,36 @@ impl SnapshotLookup {
             from: self.placed(reference.from)?.label.clone(),
             to: self.placed(reference.to)?.label.clone(),
         })
+    }
+
+    /// The types around `symbol`, or `None` if it is no type of the snapshot.
+    pub(crate) fn type_focus(&self, symbol: SymbolId) -> StorageResult<Option<TypeFocus>> {
+        let symbols = self.places.values().map(|found| {
+            (
+                found.label.id,
+                found.label.kind,
+                &found.label.qualified_name,
+            )
+        });
+        let Some(found) = type_neighbours(symbol, symbols, self.index.ends()) else {
+            return Ok(None);
+        };
+        let neighbours = |links: &[TypeLink]| -> StorageResult<Vec<TypeNeighbour>> {
+            links
+                .iter()
+                .map(|link| {
+                    Ok(TypeNeighbour {
+                        label: self.placed(link.symbol)?.label.clone(),
+                        count: link.count,
+                    })
+                })
+                .collect()
+        };
+        Ok(Some(TypeFocus {
+            focus: self.placed(symbol)?.label.clone(),
+            users: neighbours(&found.users)?,
+            used: neighbours(&found.used)?,
+        }))
     }
 
     pub(crate) fn impacted(

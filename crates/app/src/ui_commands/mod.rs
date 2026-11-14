@@ -11,6 +11,7 @@ mod export;
 #[cfg(test)]
 mod export_tests;
 mod graph;
+mod graph_types;
 mod projects;
 mod rating;
 mod running;
