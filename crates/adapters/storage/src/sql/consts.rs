@@ -77,6 +77,7 @@ pub const SNAPSHOT_CONTENT_DELETE: &[&str] = &[
     "DELETE FROM search_index WHERE snapshot_id = ?1",
     "DELETE FROM usage_counts WHERE snapshot_id = ?1",
     "DELETE FROM layer_graph WHERE snapshot_id = ?1",
+    "DELETE FROM parse_times WHERE snapshot_id = ?1",
     "DELETE FROM coupling_rows WHERE snapshot_id = ?1",
     "DELETE FROM files WHERE snapshot_id = ?1",
 ];
@@ -349,3 +350,12 @@ pub const SNAPSHOT_NAMING_SET: &str = "UPDATE snapshots SET naming_rules = ?1 WH
 /// from before the record existed.
 pub const SNAPSHOT_NAMING_LATEST: &str =
     "SELECT naming_rules FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT 1";
+
+/// Records the parse time of one language of a snapshot: snapshot, language, microseconds.
+pub const PARSE_TIME_INSERT: &str =
+    "INSERT INTO parse_times (snapshot_id, language, micros) VALUES (?1, ?2, ?3)";
+/// Copies the parse times of the previous snapshot to the new one: previous, new.
+pub const PARSE_TIME_CARRY: &str = "INSERT INTO parse_times (snapshot_id, language, micros) \
+    SELECT ?2, language, micros FROM parse_times WHERE snapshot_id = ?1";
+/// The parse times of a snapshot: snapshot.
+pub const PARSE_TIMES: &str = "SELECT language, micros FROM parse_times WHERE snapshot_id = ?1";

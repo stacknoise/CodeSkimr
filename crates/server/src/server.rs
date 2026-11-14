@@ -8,7 +8,7 @@ use std::sync::Arc;
 use axum::Router;
 use axum::body::Body;
 use axum::extract::Request;
-use axum::middleware::from_fn_with_state;
+use axum::middleware::{from_fn, from_fn_with_state};
 use axum::routing::{MethodRouter, any_service, get, post};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
@@ -78,7 +78,10 @@ fn build_router(state: AppState, guard: Arc<Guard>, mcp: Option<MethodRouter<App
         .fallback(routes::not_found)
         .method_not_allowed_fallback(routes::wrong_method);
     if let Some(mcp) = mcp {
-        let checked = mcp.layer(from_fn_with_state(Arc::clone(&guard), require_token));
+        // The last layer runs first: the token is checked before a byte of the body is read.
+        let checked = mcp
+            .layer(from_fn(routes::bound_body))
+            .layer(from_fn_with_state(Arc::clone(&guard), require_token));
         router = router.route(MCP_PATH, checked);
     }
     router

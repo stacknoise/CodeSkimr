@@ -59,7 +59,7 @@ impl Assets {
             return Failure::code(ErrorCode::CommandNotFound).into_response();
         };
         let body = match &self.source {
-            Source::Dir(dir) => read(&dir.join(&relative)).await,
+            Source::Dir(dir) => read(dir, &relative).await,
             Source::Embedded(files) => embedded(files, &relative),
         };
         match body {
@@ -108,13 +108,23 @@ fn is_plain_segment(segment: &str) -> bool {
             .all(|c| c.is_ascii_alphanumeric() || SEGMENT_EXTRA.contains(&c))
 }
 
-/// The content of a regular file; a folder, a missing file or a read error is `None`.
-async fn read(path: &Path) -> Option<Vec<u8>> {
-    let meta = tokio::fs::metadata(path).await.ok()?;
+/// The content of a regular file below `dir`; a folder, a link (the file itself or any folder on
+/// the way), a missing file or a read error is `None`. A link inside the UI folder could lead out
+/// of it.
+async fn read(dir: &Path, relative: &Path) -> Option<Vec<u8>> {
+    let mut path = dir.to_path_buf();
+    for part in relative.components() {
+        path.push(part);
+        let kind = tokio::fs::symlink_metadata(&path).await.ok()?.file_type();
+        if kind.is_symlink() {
+            return None;
+        }
+    }
+    let meta = tokio::fs::metadata(&path).await.ok()?;
     if !meta.is_file() {
         return None;
     }
-    tokio::fs::read(path).await.ok()
+    tokio::fs::read(&path).await.ok()
 }
 
 fn answer(file: &Path, body: Vec<u8>) -> Response {

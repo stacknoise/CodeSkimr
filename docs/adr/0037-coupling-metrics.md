@@ -25,7 +25,7 @@ Option 2.
 
 ### Storage
 
-- Migration 0009 adds `coupling_rows (snapshot_id, symbol_id, kind, value)`. `MetricKind::is_per_snapshot` names the kinds that go there (`ce`, `ca`, `instability`); the store routes by kind.
+- Migration 0010 adds `coupling_rows (snapshot_id, symbol_id, kind, value)`. `MetricKind::is_per_snapshot` names the kinds that go there (`ce`, `ca`, `instability`); the store routes by kind.
 - The view `metrics` is the union of the shared metrics of a snapshot's symbols and its coupling rows, so readers do not change.
 - `StandardMetrics` computes coupling from all symbols and references of the new snapshot, also those of unchanged files, and every scan writes it completely. Nothing is carried over: a snapshot without coupling rows has none. The prune removes the rows of the pruned snapshot.
 

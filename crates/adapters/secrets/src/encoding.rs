@@ -2,24 +2,25 @@
 
 use codeskimr_application::ports::{AuthError, Credential};
 use secrecy::{ExposeSecret, SecretString};
-use zeroize::{Zeroize, Zeroizing};
+use zeroize::Zeroize;
 
 use crate::consts::FIELD_SEPARATOR;
+use crate::memory::LockedBytes;
 
-/// Packs a credential for the keystore; the buffer is wiped when dropped.
+/// Packs a credential for the keystore; the buffer is locked in memory and wiped when dropped.
 ///
 /// A user name with the separator byte would make the entry ambiguous, so it is refused.
-pub fn encode(credential: &Credential) -> Result<Zeroizing<Vec<u8>>, AuthError> {
+pub fn encode(credential: &Credential) -> Result<LockedBytes, AuthError> {
     let user = credential.user().expose_secret().as_bytes();
     if user.contains(&FIELD_SEPARATOR) {
         return Err(AuthError::Rejected);
     }
     let secret = credential.secret().expose_secret().as_bytes();
-    let mut bytes = Zeroizing::new(Vec::with_capacity(user.len() + 1 + secret.len()));
+    let mut bytes = Vec::with_capacity(user.len() + 1 + secret.len());
     bytes.extend_from_slice(user);
     bytes.push(FIELD_SEPARATOR);
     bytes.extend_from_slice(secret);
-    Ok(bytes)
+    LockedBytes::from_vec(bytes)
 }
 
 /// Unpacks a stored entry. A damaged entry is `SEC-202`, not a missing one: the entry exists and has to be replaced.
@@ -55,11 +56,11 @@ mod tests {
 
     #[test]
     fn a_credential_survives_a_round_trip() {
-        let packed = encode(&credential("anton", "pa ss\nword")).unwrap_or_default();
-        let back = decode(&packed);
-        assert!(back.is_ok_and(|c| {
+        let packed = encode(&credential("anton", "pa ss\nword"));
+        let back = packed.map(|bytes| decode(&bytes));
+        assert!(back.is_ok_and(|c| c.is_ok_and(|c| {
             c.user().expose_secret() == "anton" && c.secret().expose_secret() == "pa ss\nword"
-        }));
+        })));
     }
 
     #[test]

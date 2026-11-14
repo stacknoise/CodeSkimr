@@ -93,7 +93,7 @@ All rules in this section are **MUST** and are enforced in CI (section 17.3).
 | User-visible text (UI, CLI, error messages) | `locales/<lang>/*.ftl` → generated key constants (section 13) |
 | Error codes and descriptions | `errors/error-codes.toml` → generated enum (section 11) |
 | Language knowledge (queries, keywords, comment syntax) | `languages/<lang>/` (section 8) |
-| Design tokens (colours, sizes, fonts) | `web/src/theme/tokens.ts`, generated from `design/tokens.toml` (section 15.3) |
+| Design tokens (colours, sizes, fonts) | `web/src/shared/theme/tokens.ts`, generated from `design/tokens.toml` (section 15.3) |
 
 - **Enforcement:**
   - Rust: a custom Dylint lint `no_literals`, in `tools/lints/`.
@@ -467,7 +467,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 - **WebSocket** at `/api/v1/events` streams domain events: scan progress, snapshot created, files changed.
 - Every error response carries the error code (section 11).
 - **Token for the UI:** the browser UI obtains the installation token through a one-time launch code in the URL fragment, exchanged once at `/api/v1/session/exchange` and kept in `sessionStorage` (ADR 0028). The token is never embedded in served pages.
-- Every route resolves a `Principal` before it calls the application layer. In single-user mode that is the local owner; in server mode it comes from the session cookie or a personal access token (ADR 0019).
+- Every route resolves a `Principal` before it calls the application layer. In single-user mode that is the local owner; in server mode it comes from the session cookie or a personal access token (ADR 0019). **Exception (ADR 0041):** the routes `session/launch-code` and `session/exchange`, the public settings route `ui-config` and the files of the UI are not commands of the registry and take no `Principal`. The installation token (launch-code route) or the one-time code (exchange) takes that role; there are no other such routes.
 
 ### 10.4 MCP server
 
@@ -702,7 +702,7 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
 - **S-01** Logs are filtered through a redaction layer: token patterns (including the `csk_` access-token prefix), `Authorization` and `Cookie`/`Set-Cookie` headers, OIDC `code`, `state` and `id_token`, and URL user-info are masked.
 - **S-02** A test suite runs logins, failures and panics with canary secrets and asserts that the canary never appears in logs, error messages, REST/MCP responses, crash output or the database file.
 - **S-03** Dependency audit (`cargo-audit`, `cargo-deny`) in every CI run; a known vulnerability blocks the merge.
-- **S-04** In single-user mode, server and MCP bind to `127.0.0.1` and HTTP endpoints that change state require the per-installation token. Non-loopback binding is allowed only in the team server's server mode and only with TLS configured or behind a configured trusted reverse proxy; otherwise start fails with a registered error code. `X-Forwarded-*` is accepted only from trusted peers. CORS is closed; Host and Origin are validated (DNS rebinding). The one exception to the token rule is the exchange of the one-time launch code for the token (`/api/v1/session/exchange`, ADR 0028): it needs a valid, unused code that lives 60 seconds, and `Host` and `Origin` are still checked. Pages are served with a strict Content-Security-Policy (no inline scripts).
+- **S-04** In single-user mode, server and MCP bind to `127.0.0.1` and HTTP endpoints that change state require the per-installation token. Non-loopback binding is allowed only in the team server's server mode and only with TLS configured or behind a configured trusted reverse proxy; otherwise start fails with a registered error code. `X-Forwarded-*` is accepted only from trusted peers. CORS is closed; Host and Origin are validated (DNS rebinding). The one exception to the token rule is the exchange of the one-time launch code for the token (`/api/v1/session/exchange`, ADR 0028): it needs a valid, unused code that lives 60 seconds, and `Host` and `Origin` are still checked. Pages are served with a strict Content-Security-Policy (no inline scripts, no inline styles, no framing) and a restrictive `Permissions-Policy`. The launch code travels to the browser in a launch file that is created exclusively (never overwriting or following a link) in a folder only the user can enter (mode 0700 on Unix, access rules for the user alone on Windows) and whose parents nobody else can replace; the code is never on a command line, and copies of the token and the code in memory are wiped. The UI comes from the files embedded in the program or from the folder `ui.dir`; a folder wins, no link below it is followed, and a folder outside the data folder is logged. A project file (`.codeskimr.toml` of a scanned repository) cannot set `editor.*`, `ui.*` or `level2.*`, and `editor.allowed_schemes` never holds `javascript`, `data`, `file` or `vbscript` (ADR 0041).
 - **S-05** Paths from API/MCP input are canonicalised and checked against registered project roots (no path traversal). In the team edition the check also covers the caller's grant, and registrable roots and clone URLs follow a server-side allow-list (path traversal, SSRF).
 - **S-06** Authorisation lives once, in the registry check (10.1). Adapters never decide. Tests cover every command with a restricted principal; for the team edition each route, WebSocket message, CLI command and MCP tool is tested with each role and with "no grant", and denial and "not found" are compared for identical responses. The canary suite (S-02) also scans the identity database.
 
@@ -731,7 +731,7 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
   - watcher debounce
   - level 2 (`level2.*`: switch, time, memory and output limits, index size, share of mappable uses). Only the user config and CLI flags may set them; the project file cannot
   - excluded folders (`bin`, `obj`, `.git`, `node_modules`, `target`, `dist` …)
-- **Overrides,** applied in this order: user config file → project config (`.codeskimr.toml` in the repository) → CLI flags.
+- **Overrides,** applied in this order: user config file → project config (`.codeskimr.toml` in the repository) → CLI flags. The project config may only lower `scan.max_source_mb` and `scan.parse_timeout_ms`, not raise them above the value of the defaults and the user file, so that a scanned repository cannot lift the protection of the scanning machine (ADR 0040).
 - **Typed config:** the config is deserialised into typed structs and validated at start-up. Invalid values produce `CFG-1xx` errors. There is no `config.get("string")` anywhere in the code.
 - **`consts.rs` / `consts.ts`:** technical constants that are not tunable. One file per crate or feature, never a global constants file.
 
@@ -849,7 +849,7 @@ In Hell, `good-bg` is `#EAF7EF`; the value `#E7F6EC` of the first mock version r
 | `Ctrl K` | quick search (types, members, files, commands; prefixes `t:` `m:` `f:` `>` `@`) |
 | `G` | show selection in the dependency graph |
 | `U` | show usages of the selection |
-| `E` | open in editor at the line (URL scheme from the setting `editor.url_template`, default `vscode://file/{path}:{line}`, scheme on the allow-list `editor.allowed_schemes`; the server starts no process, ADR 0028) |
+| `E` | open in editor at the line (URL scheme from the setting `editor.url_template`, default `vscode://file/{path}:{line}`, scheme on the allow-list `editor.allowed_schemes`, which can never name `javascript`, `data`, `file` or `vbscript`; the server starts no process, ADR 0028, ADR 0041) |
 | `R` | re-scan project |
 | `N` | new project |
 | `F` | fit graph to view |

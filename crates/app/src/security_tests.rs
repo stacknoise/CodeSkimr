@@ -87,6 +87,7 @@ pub(crate) fn run(
         .unwrap(),
         mcp: Some(http_service(&config, &locations, (events.clone(), &secrets)).unwrap()),
         events,
+        token_lock: None,
     };
     let (stop, stopped) = oneshot::channel::<()>();
     let (found, url) = channel::<String>();
@@ -146,6 +147,17 @@ fn traffic(folder: &Path) -> impl FnOnce(&str, &str) -> Vec<String> + Send + 'st
         let add = json!({ "source": source });
         answers.push(command(url, Some(token), "projects.add", &add));
         answers.push(command(url, Some(token), "projects.list", &json!({})));
+        // A change without the token or with a wrong one is refused before anything is read.
+        answers.push(command(url, None, "projects.add", &add));
+        answers.push(command(url, Some("csk_wrong"), "projects.add", &add));
+        // Addresses and branches that git or ssh could read as options or commands.
+        for input in [
+            json!({ "source": "--upload-pack=touch x.git" }),
+            json!({ "source": "ext::sh -c touch% x.git" }),
+            json!({ "source": "https://example.com/r.git", "branch": "-x" }),
+        ] {
+            answers.push(command(url, Some(token), "projects.add", &input));
+        }
         // Secrets in a Git address, a path that leaves the project, unknown ids, bad input.
         let secret_url = format!("https://user:{CREDENTIAL_CANARY}@example.com/r.git");
         for input in [

@@ -11,7 +11,7 @@ use codeskimr_domain::LanguageId;
 
 use crate::consts::{
     ID_MISMATCH, LOAD_PANICKED, MANIFEST_FILE, NAMING_FILE_IN_NAMES, NAMING_NAMESPACED,
-    NAMING_RULE_SEPARATOR, NAMING_RULES_SEPARATOR,
+    NAMING_REVISION, NAMING_RULE_SEPARATOR, NAMING_RULES_SEPARATOR,
 };
 use crate::error::ParsingError;
 use crate::indexer::IndexerManifest;
@@ -222,6 +222,7 @@ impl LanguagePacks {
                 .concat()
             })
             .collect();
+        rules.push(NAMING_REVISION.to_owned());
         rules.sort();
         rules.join(NAMING_RULES_SEPARATOR)
     }

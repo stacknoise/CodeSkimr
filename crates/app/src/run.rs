@@ -18,6 +18,7 @@ use codeskimr_cli::{
 use codeskimr_codes::i18n::{CLI_CREDENTIAL_UNUSABLE_HINT, CLI_CREDENTIALS_HINT};
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_i18n::Messages;
+use codeskimr_secrets::CoreDumps;
 use codeskimr_secrets::Prompt;
 
 use crate::consts::{
@@ -29,7 +30,9 @@ use crate::logging;
 use crate::source_arg::SourceError;
 use crate::watch::{self, Report};
 use crate::wiring::os_secrets;
-use crate::{check, credential, export, level2_consent, mcp, open, scan, serve, ui_commands};
+use crate::{
+    check, credential, export, level2_consent, mcp, open, scan, serve, start, ui_commands,
+};
 
 /// Why a command did not finish: a registered code, plus the parser's text for usage errors.
 struct Failure {
@@ -73,6 +76,12 @@ where
 {
     ui_commands::mark_started();
     logging::init(env);
+    // Blueprint 12.4: no core dump may hold a secret. A platform that cannot do it is only logged.
+    match codeskimr_secrets::disable_core_dumps() {
+        CoreDumps::Off => {}
+        CoreDumps::Partly => tracing::debug!(core_dumps_partly = true),
+        CoreDumps::Unavailable => tracing::warn!(code = ErrorCode::MemoryLockFailed.id()),
+    }
     let tags: Vec<String> = ENV_LANGUAGE_TAGS
         .iter()
         .filter_map(|name| env(name))
@@ -254,33 +263,23 @@ fn run_start(
     env: Lookup<'_>,
     (messages, language): (&Messages, &str),
 ) -> Result<Outcome, Failure> {
-    let (listening, listened) = std::sync::mpsc::channel::<String>();
-    std::thread::scope(|scope| {
-        let server = scope.spawn(|| {
-            serve::run(&invocation.global, locations, move |url| {
-                let _ = listening.send(url.to_owned());
-            })
-        });
-        if let Ok(url) = listened.recv() {
-            if let Ok(line) = serve_started(messages, language, &url) {
-                write_out(&line);
-            }
-            let opened = run_open(
-                OpenArgs { no_browser: false },
-                invocation,
-                locations,
-                env,
-                (messages, language),
-            );
-            if let Err(failure) = opened {
-                let _ = report(messages, language, &failure);
-            }
+    let serve = |address: std::sync::mpsc::Sender<String>| {
+        serve::run(&invocation.global, locations, move |url| {
+            let _ = address.send(url.to_owned());
+        })
+    };
+    let listening = |url: &str| {
+        if let Ok(line) = serve_started(messages, language, url) {
+            write_out(&line);
         }
-        server
-            .join()
-            .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))??;
-        Ok(Outcome::Done)
-    })
+        let args = OpenArgs { no_browser: false };
+        run_open(args, invocation, locations, env, (messages, language)).map(|_| ())
+    };
+    let failed = |failure: Failure| {
+        let _ = report(messages, language, &failure);
+    };
+    start::together(serve, listening, failed)?;
+    Ok(Outcome::Done)
 }
 
 /// `codeskimr export`: writes the page and says where it is.

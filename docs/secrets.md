@@ -23,6 +23,15 @@ The token that protects state-changing requests to the local server (`csk_` plus
 
 The use of the system's Git credential helper (point 1 of the preference order) is the default of a source without a credential; the only thing that changed is that a terminal prompt is switched off.
 
+## Token refresh (WP-76, #161)
+
+A GitLab token from the device flow lives for two hours. `credential login` therefore keeps the refresh token the platform sends in a second keystore entry, named like the credential plus `.refresh`. The user field of that entry says where to renew (platform, application id, host); it holds no secret, the refresh token is the secret. Rules:
+
+- Renewal happens in the composition root (`refresh.rs`): `RefreshingSource` wraps the Git fetcher. Only a clone that fails with `SEC-401` (credential rejected) triggers it, once per fetch: the refresh token is traded at the token endpoint (`grant_type=refresh_token`, public client, no client secret), both entries are stored (a rotated refresh token replaces the old one, a platform that sends none keeps it) and the fetch is repeated. If the platform refuses the refresh token, the first rejection stays the answer and nothing is changed.
+- A credential without refresh entry (a pasted token) is never renewed.
+- Entries ending in `.refresh` are not credentials a user manages or a project may name: `credentials.set`, `credentials.delete`, `credential set/delete`, `projects.add` refuse them and the store the fetcher sees lends nothing under such a name. Replacing a credential by hand (CLI or server) first removes its refresh entry and deleting removes both, so an old refresh token does not overwrite a new secret later. A refresh that is already running when the secret is replaced can still write its result once (residual risk).
+- One refresh runs at a time per process (a rotated token dies on first use). If a rotated refresh token cannot be stored (keystore failure), the old one is spent: sign in again with `credential login`. The retried fetch sends the renewed access token to the address of the project, as every fetch with a credential does; a project cannot choose where the refresh token is sent, the platform comes from the stored entry. A cancelled fetch is not renewed.\n- Nothing of the exchange is logged; a failed refresh is `NET-601` without reason. The device flow from the UI is not part of this package.
+
 ## Credentials in the server (WP-76)
 
 The browser UI and other REST callers manage logins with three commands (blueprint 12.4; `docs/server.md`):
@@ -40,8 +49,12 @@ The scanner and the commands share one credential store (`wiring::Secrets`). The
 
 ## Limits of this package
 
-- Memory hardening (12.4: locking secret memory, no core dumps, `memsec`) and the CI listing of `expose_secret()` call sites are not part of it, see the linked issues in the pull request.
+- Memory hardening (12.4): the packed bytes of a credential lie in `LockedBytes`, a block of its own pages (`memsec::malloc_sized`, locked with `mlock` / `VirtualLock`, wiped and unlocked on drop), so freeing one buffer never unlocks another. A refused lock is `SEC-901`. A test measures `VmLck` of `/proc/self/status` (Linux). **Not covered:** the decoded `SecretString`s (user, secret) and the copy that the OS keystore library returns live on the normal heap; they are wiped on drop but may be swapped out while in use. `gix` needs plain `String`s for a login, so this stays a residual risk (blueprint 15). It is tracked in issue #298.
+- Core dumps: at program start `disable_core_dumps` sets the core limit to 0 and `PR_SET_DUMPABLE` to 0 (Linux, macOS: limit only) and returns `Off`. On Windows `SetErrorMode` only switches off the error dialog and report; a machine-wide `LocalDumps` policy can still write a dump, so the result is `Partly` and logged at debug level. All `unsafe` lives in `crates/adapters/secrets/src/memory.rs`.
+- CI lists every `expose_secret()` call in product code (`tools/ci/check_expose_secret.py`, job `architecture`); a new call needs an entry in `tools/ci/expose-secret-approved.toml`, which the reviewer approves.
 - Libraries copy secrets: `gix` receives the user and the password as plain `String`s for one request (residual risk of blueprint 15, "OS and library copies").
 - The server and the UI still have no endpoint or form to create a credential (issue #53, second half). The CLI commands are described in `docs/cli.md`.
 - A secret from standard input is limited to 64 KiB. The read buffer of the standard input and the terminal library are copies the program cannot wipe (blueprint 15, library copies).
 - The token of the device flow is stored as it is. GitHub tokens of an OAuth app do not expire; GitLab tokens do after two hours, and refreshing them is not built, so a GitLab token has to be created again by `credential login`.
+
+- First start: the installation token is created while the program holds an exclusive lock on `token.lock` in the data folder (`fs4`), so two programs that start together end with one token (issue #269). The wait for the lock ends after 10 seconds with an error instead of blocking the start for ever. A keystore without compare-and-set needs this lock.

@@ -192,6 +192,9 @@ jobs:
         run: python3 -m unittest discover -s tools/ci
       - name: Crate dependency direction and module cycles
         run: python3 tools/ci/check_architecture.py
+      # Blueprint 12.4: every expose_secret() call in product code is on the approved list.
+      - name: Approved expose_secret() call sites
+        run: python3 tools/ci/check_expose_secret.py
 
   duplicates:
     name: duplicates

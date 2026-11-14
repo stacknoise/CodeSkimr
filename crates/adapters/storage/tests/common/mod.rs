@@ -124,6 +124,7 @@ pub fn data(snapshot: Snapshot) -> SnapshotData {
         fingerprints: Vec::new(),
         removed: Vec::new(),
         naming_rules: String::new(),
+        parse_micros: Vec::new(),
     }
 }
 

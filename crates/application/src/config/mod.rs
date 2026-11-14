@@ -42,7 +42,7 @@ impl Config {
         let defaults = parse_defaults()?;
         let mut merged = defaults.clone();
         for layer in layers {
-            let table = trusted_table(layer);
+            let table = trusted_table(layer, &merged);
             if let Some(key) = layer::find_unknown_key(&table, &defaults, NO_PREFIX) {
                 return Err(ConfigError::UnknownKey {
                     source_layer: layer.source(),
@@ -68,15 +68,40 @@ impl Config {
     }
 }
 
-/// What of a layer counts. The project file may not touch `level2` (ADR 0033, decision 9): a
-/// scanned repository must not switch on running its own build scripts or raise the limits, so the
-/// table is dropped before anything is checked or merged.
-fn trusted_table(layer: &ConfigLayer) -> Table {
+/// What of a layer counts. The project file may not touch the tables of
+/// `consts::UNTRUSTED_PROJECT_TABLES` (`level2`, `editor`, `ui`): a scanned repository must not
+/// switch on running its own build scripts, allow other URL schemes or point the server at a
+/// folder, so these tables are dropped before anything is checked or merged. The scan limits of
+/// the project file only count as far as they lower what `merged` (defaults and user file)
+/// already holds (#54).
+fn trusted_table(layer: &ConfigLayer, merged: &Table) -> Table {
     let mut table = layer.table().clone();
     if layer.source() == LayerSource::Project {
-        table.remove(consts::UNTRUSTED_PROJECT_TABLE);
+        for name in consts::UNTRUSTED_PROJECT_TABLES {
+            table.remove(name);
+        }
+        lower_only(&mut table, merged);
     }
     table
+}
+
+/// Takes every scan limit out of `table` that is not lower than the one in `merged`.
+fn lower_only(table: &mut Table, merged: &Table) {
+    let Some(Value::Table(scan)) = table.get_mut(consts::SCAN_TABLE) else {
+        return;
+    };
+    let Some(Value::Table(current)) = merged.get(consts::SCAN_TABLE) else {
+        return;
+    };
+    for key in consts::LOWER_ONLY_SCAN_KEYS {
+        let raised = matches!(
+            (scan.get(key), current.get(key)),
+            (Some(Value::Integer(wanted)), Some(Value::Integer(now))) if wanted > now
+        );
+        if raised {
+            scan.remove(key);
+        }
+    }
 }
 
 fn parse_defaults() -> Result<Table, ConfigError> {

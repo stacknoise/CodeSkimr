@@ -10,6 +10,7 @@ use std::time::Duration;
 use codeskimr_application::error::CodedError;
 use codeskimr_codes::ErrorCode;
 use serde_json::Value;
+use zeroize::Zeroizing;
 
 use crate::consts::{
     CONNECT_TIMEOUT_MS, HTTP_BEARER_HEADER, HTTP_FIXED_HEADERS, HTTP_HEAD_END, HTTP_HOST_HEADER,
@@ -48,7 +49,8 @@ pub fn call(request: &Call<'_>) -> Result<Value, CodedError> {
     stream
         .write_all(message(request).as_bytes())
         .map_err(|_| unreachable())?;
-    let mut raw = String::new();
+    // The answer may hold a launch code, the request holds the token: both are wiped when dropped.
+    let mut raw = Zeroizing::new(String::new());
     stream
         .take(MAX_REPLY_BYTES)
         .read_to_string(&mut raw)
@@ -61,20 +63,27 @@ pub fn call(request: &Call<'_>) -> Result<Value, CodedError> {
     }
 }
 
-fn message(request: &Call<'_>) -> String {
-    let mut lines = vec![
+/// The request text. It holds the token, so it is built in one buffer that is wiped when dropped,
+/// without a copy of the header line on the way.
+fn message(request: &Call<'_>) -> Zeroizing<String> {
+    let mut text = Zeroizing::new(String::new());
+    let port = request.port.to_string();
+    let before_token = [
         [request.method, request.path, HTTP_VERSION].join(HTTP_REQUEST_SEPARATOR),
-        [
-            HTTP_HOST_HEADER,
-            LOOPBACK_HOST,
-            PORT_SEPARATOR,
-            &request.port.to_string(),
-        ]
-        .concat(),
-        [HTTP_BEARER_HEADER, request.token].concat(),
+        [HTTP_HOST_HEADER, LOOPBACK_HOST, PORT_SEPARATOR, &port].concat(),
     ];
-    lines.extend(HTTP_FIXED_HEADERS.iter().map(|line| (*line).to_owned()));
-    format!("{}{HTTP_HEAD_END}", lines.join(HTTP_LINE_BREAK))
+    for line in &before_token {
+        text.push_str(line);
+        text.push_str(HTTP_LINE_BREAK);
+    }
+    text.push_str(HTTP_BEARER_HEADER);
+    text.push_str(request.token);
+    for line in HTTP_FIXED_HEADERS {
+        text.push_str(HTTP_LINE_BREAK);
+        text.push_str(line);
+    }
+    text.push_str(HTTP_HEAD_END);
+    text
 }
 
 /// The status and the body of a raw answer.

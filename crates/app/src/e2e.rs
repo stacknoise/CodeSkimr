@@ -89,6 +89,7 @@ fn e2e_server() {
         .unwrap(),
         mcp: None,
         events,
+        token_lock: None,
     };
     let store = Arc::new(KeystoreCredentials::new(Memory::default()));
     let (stop, stopped) = oneshot::channel::<()>();
