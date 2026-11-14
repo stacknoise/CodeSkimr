@@ -2,12 +2,15 @@
 
 use std::sync::{Arc, Mutex, PoisonError};
 
+#[cfg(test)]
+mod common;
+
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::{Event, EventBus, StopReason};
 use codeskimr_application::ids::IdSequence;
-use codeskimr_application::level2::{InMemoryConsent, Level2Pass, confirm};
+use codeskimr_application::level2::{Level2Pass, confirm};
 use codeskimr_application::pipeline::{Job, JobResult, Scanner, ScannerPorts};
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, ConsentStore, DiscoveredFile, FetchedSource, FileAnalyzer,
@@ -25,6 +28,7 @@ use codeskimr_domain::{
     ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile, Span,
     Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName, Timestamp,
 };
+use common::InMemoryConsent;
 
 /// The newest snapshot as the repository reports it.
 #[derive(Default, Clone)]

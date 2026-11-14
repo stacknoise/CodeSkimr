@@ -9,8 +9,6 @@
 
 mod pass;
 mod report;
-#[cfg(feature = "test-support")]
-mod testing;
 
 use std::path::Path;
 use std::sync::Arc;
@@ -23,8 +21,6 @@ use crate::error::CodedError;
 pub use crate::ports::{ConsentRecord, ConsentStore, RunPermit};
 pub use pass::Level2Pass;
 pub use report::{LanguageReport, Level2Outcome, Level2Result, Skipped};
-#[cfg(feature = "test-support")]
-pub use testing::InMemoryConsent;
 
 /// Enables level 2 for `project` and records the confirmation. The caller (an interactive screen
 /// or command of the local owner) must have asked the user; nothing else calls this.

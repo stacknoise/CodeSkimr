@@ -1,7 +1,11 @@
 //! The second pass of a scan: who runs, what is replaced, and what stays level 1 (ADR 0033).
 
 #[cfg(test)]
+mod common;
+
+#[cfg(test)]
 mod cases {
+    use super::common::InMemoryConsent;
     use std::sync::{Arc, Mutex, PoisonError};
 
     use codeskimr_application::cancel::CancelToken;
@@ -9,7 +13,7 @@ mod cases {
     use codeskimr_application::error::CodedError;
     use codeskimr_application::ids::IdSequence;
     use codeskimr_application::level2::{
-        InMemoryConsent, LanguageReport, Level2Outcome, Level2Pass, Level2Result, Skipped, confirm,
+        LanguageReport, Level2Outcome, Level2Pass, Level2Result, Skipped, confirm,
     };
     use codeskimr_application::ports::{
         ConsentStore, DiscoveredFile, FileDiscovery, ImportRequest, Imported, IndexArtifact,

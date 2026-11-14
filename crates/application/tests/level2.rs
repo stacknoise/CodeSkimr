@@ -1,14 +1,18 @@
 //! Consent and permission for running indexers (ADR 0033, decisions 9 and 10).
 
 #[cfg(test)]
+mod common;
+
+#[cfg(test)]
 mod cases {
+    use super::common::InMemoryConsent;
     use std::path::Path;
     use std::sync::Arc;
 
     use codeskimr_application::config::{Config, ConfigLayer, LayerSource, Level2};
     use codeskimr_application::error::CodedError;
     use codeskimr_application::level2::{
-        ConsentRecord, ConsentStore, InMemoryConsent, authorize_run, confirm, revoke,
+        ConsentRecord, ConsentStore, authorize_run, confirm, revoke,
     };
     use codeskimr_application::ports::ToolVersion;
     use codeskimr_codes::{Coded, ErrorCode};

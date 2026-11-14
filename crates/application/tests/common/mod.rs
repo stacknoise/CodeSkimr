@@ -1,13 +1,12 @@
-//! A consent store for tests, compiled only with the feature `test-support`.
+//! Fakes shared by the tests of the application crate.
 
 use std::sync::{Mutex, PoisonError};
 
+use codeskimr_application::error::CodedError;
+use codeskimr_application::ports::{ConsentRecord, ConsentStore};
 use codeskimr_domain::ProjectId;
 
-use super::{ConsentRecord, ConsentStore};
-use crate::error::CodedError;
-
-/// A consent store that lives in memory only. One record for every project.
+/// A consent store in memory with one record for every project.
 #[derive(Debug, Default)]
 pub struct InMemoryConsent(Mutex<ConsentRecord>);
 
