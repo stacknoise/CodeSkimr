@@ -17,6 +17,8 @@
 .plane {
     position: relative;
     min-width: 100%;
+    /* Room below the last card, so the legend never covers it when scrolled to the end. */
+    margin-bottom: calc(var(--space-32) + var(--space-12));
 }
 
 .heading {

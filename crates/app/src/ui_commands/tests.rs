@@ -139,6 +139,7 @@ fn the_commands_are_offered() {
             "projects.rescan",
             "search.query",
             "status.info",
+            "usages.code",
             "usages.query"
         ]
     );
@@ -348,13 +349,35 @@ fn the_outline_names_the_limits_behind_the_colours() {
     assert_eq!(outline["thresholds"]["maintainability_medium_min"], 35);
 }
 
+/// Runs a command as `who`, as the API does after it has resolved the caller; the registered
+/// error id of a refusal comes back as the error.
+fn run_as(
+    fixture: &Fixture,
+    who: codeskimr_domain::Principal,
+    id: &str,
+    input: Value,
+) -> Result<Value, &'static str> {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .build()
+        .unwrap();
+    runtime
+        .block_on(fixture.api.run(who, id, input))
+        .map_err(|error| error.code().entry().id)
+}
+
+/// Writes `source` as `Checkout.cs`, scans the project and returns the input of a usages query
+/// for `Calculator.Add`.
+fn add_usages_input(fixture: &Fixture, source: &str, way: &str, depth: u32) -> Value {
+    fs::write(fixture.root.path().join("app/Checkout.cs"), source).unwrap();
+    let project = added(fixture);
+    let add = member_id(fixture, project, "Add");
+    json!({ "project": project, "symbol": add, "way": way, "depth": depth, "include_tests": true })
+}
+
 #[test]
 fn a_token_without_the_read_right_is_refused() {
     let fixture = Fixture::new();
     let project = added(&fixture);
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .build()
-        .unwrap();
     let nobody = principal::nobody();
     for id in [
         "explorer.outline",
@@ -363,17 +386,52 @@ fn a_token_without_the_read_right_is_refused() {
         "graph.layers",
         "search.query",
         "status.info",
+        "usages.code",
         "usages.query",
     ] {
-        let refused = runtime
-            .block_on(
-                fixture
-                    .api
-                    .run(nobody, id, json!({ "project": project, "symbol": 1 })),
-            )
-            .map_err(|error| error.code().entry().id);
+        let refused = run_as(
+            &fixture,
+            nobody,
+            id,
+            json!({ "project": project, "symbol": 1 }),
+        );
         assert_eq!(refused.unwrap_err(), "AUTH-401", "{id}");
     }
+}
+
+#[test]
+fn a_caller_who_may_read_but_not_read_source_gets_no_code() {
+    let fixture = Fixture::new();
+    let input = add_usages_input(&fixture, CALLER, "both", 2);
+    let run = |id: &str| run_as(&fixture, principal::reader(), id, input.clone());
+    // The index is open to the reader, the lines of code are not.
+    assert!(run("usages.query").is_ok());
+    assert_eq!(run("usages.code").unwrap_err(), "AUTH-401");
+    assert_eq!(run("explorer.source").unwrap_err(), "AUTH-401");
+}
+
+#[test]
+fn several_hits_in_one_file_get_their_lines_from_one_read() {
+    let fixture = Fixture::new();
+    let twice = CALLER.replace(
+        "        return calculator.Add(1, 2);\n",
+        "        var one = calculator.Add(1, 2);\n        return calculator.Add(one, 3);\n",
+    );
+    let input = add_usages_input(&fixture, &twice, "incoming", 1);
+    let code = fixture.call("usages.code", input).unwrap();
+    let texts: Vec<&str> = code["lines"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|line| line["text"].as_str().unwrap())
+        .collect();
+    assert_eq!(
+        texts,
+        [
+            "var one = calculator.Add(1, 2);",
+            "return calculator.Add(one, 3);"
+        ]
+    );
 }
 
 #[test]
@@ -605,6 +663,29 @@ fn the_usages_of_a_method_name_the_caller_and_mark_every_hit_unchecked() {
     assert_eq!(answer["summary"]["probable"], 0);
     assert_eq!(answer["summary"]["files"], 1);
     assert_eq!(answer["outgoing"]["total"], 0);
+}
+
+#[test]
+fn the_code_of_a_hit_is_the_trimmed_line_from_the_project_folder() {
+    let fixture = Fixture::new();
+    let input = add_usages_input(&fixture, CALLER, "both", 2);
+    let code = fixture.call("usages.code", input.clone()).unwrap();
+    assert_eq!(code["available"], true);
+    assert_eq!(
+        code["lines"],
+        json!([{ "path": "Checkout.cs", "line": 7, "text": "return calculator.Add(1, 2);" }])
+    );
+    fs::remove_file(fixture.root.path().join("app/Checkout.cs")).unwrap();
+    let gone = fixture.call("usages.code", input).unwrap();
+    assert_eq!(gone["lines"], json!([]));
+}
+
+#[test]
+fn the_code_of_hits_is_refused_for_a_missing_scan() {
+    let fixture = Fixture::new();
+    let project = fixture.register_unscanned();
+    let input = json!({ "project": project, "symbol": 1, "way": "both", "depth": 2, "include_tests": true });
+    assert_eq!(fixture.call("usages.code", input), Err("MCP-203"));
 }
 
 #[test]

@@ -115,6 +115,8 @@ fn token_per_call(url: &str, token: &str, source: &str) {
         let input = json!({ "project": 1, "symbol": 1 });
         let answer = command_request(url, "explorer.source", &headers, &input);
         assert_eq!(status(&answer), 401, "source, token {wrong:?}");
+        let answer = command_request(url, "usages.code", &headers, &input);
+        assert_eq!(status(&answer), 401, "code of hits, token {wrong:?}");
     }
     let rpc = json!({"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}).to_string();
     for wrong in [None, Some("csk_wrong")] {
