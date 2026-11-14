@@ -415,7 +415,10 @@ fn signature_of(
     if text.chars().count() <= ctx.signature_limit {
         return Some(text.to_owned());
     }
-    let kept: String = text.chars().take(ctx.signature_limit).collect();
+    let room = ctx
+        .signature_limit
+        .saturating_sub(SIGNATURE_CUT.chars().count());
+    let kept: String = text.chars().take(room).collect();
     Some([kept.trim_end(), SIGNATURE_CUT].concat())
 }
 
