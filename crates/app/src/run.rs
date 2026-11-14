@@ -18,6 +18,7 @@ use codeskimr_cli::{
 use codeskimr_codes::i18n::{CLI_CREDENTIAL_UNUSABLE_HINT, CLI_CREDENTIALS_HINT};
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_i18n::Messages;
+use codeskimr_secrets::CoreDumps;
 use codeskimr_secrets::Prompt;
 
 use crate::consts::{
@@ -73,6 +74,12 @@ where
 {
     ui_commands::mark_started();
     logging::init(env);
+    // Blueprint 12.4: no core dump may hold a secret. A platform that cannot do it is only logged.
+    match codeskimr_secrets::disable_core_dumps() {
+        CoreDumps::Off => {}
+        CoreDumps::Partly => tracing::debug!(core_dumps_partly = true),
+        CoreDumps::Unavailable => tracing::warn!(code = ErrorCode::MemoryLockFailed.id()),
+    }
     let tags: Vec<String> = ENV_LANGUAGE_TAGS
         .iter()
         .filter_map(|name| env(name))

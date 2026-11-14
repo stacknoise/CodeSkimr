@@ -2,6 +2,7 @@
 
 use std::future::Future;
 use std::net::{Ipv4Addr, SocketAddr};
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -56,6 +57,7 @@ pub fn run(
             running,
         )?),
         events,
+        token_lock: Some(locations.token_lock()),
     };
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -94,6 +96,8 @@ pub(crate) struct Parts {
     pub api: CommandApi,
     pub mcp: Option<HttpService>,
     pub events: EventBus,
+    /// File that serialises the first start of several programs (`None`: no lock, for tests).
+    pub token_lock: Option<PathBuf>,
 }
 
 /// Wires the server and runs it until `shutdown` completes.
@@ -104,7 +108,10 @@ pub(crate) async fn serve(
     listening: impl FnOnce(&str),
     shutdown: impl Future<Output = ()> + Send + 'static,
 ) -> Result<(), CodedError> {
-    let token = installation_token::load_or_create(store)?;
+    let token = match &parts.token_lock {
+        Some(lock) => installation_token::load_or_create_locked(store, lock)?,
+        None => installation_token::load_or_create(store)?,
+    };
     let server = Server::new(
         parts.api,
         parts.events,
@@ -136,6 +143,7 @@ pub(crate) fn bare_parts(ui: UiOptions) -> Parts {
             codeskimr_application::registry::Registry::new(),
         )),
         events: EventBus::new(),
+        token_lock: None,
     }
 }
 

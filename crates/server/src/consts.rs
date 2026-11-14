@@ -119,6 +119,8 @@ pub const EVENT_BUFFER: usize = 256;
 pub const SHUTDOWN_GRACE: Duration = Duration::from_secs(5);
 /// How long a client may take to send the head of a request before the connection is closed.
 pub const HEADER_READ_TIMEOUT: Duration = Duration::from_secs(10);
+/// Seconds a client is told to wait before it asks again after `API-502` (`Retry-After`).
+pub const RETRY_AFTER_SECONDS: &str = "5";
 /// How long a client may take to send the body of a request.
 pub const BODY_READ_TIMEOUT: Duration = Duration::from_secs(30);
 /// How long one message to a WebSocket client may take before the client is dropped.

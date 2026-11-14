@@ -49,8 +49,12 @@ The scanner and the commands share one credential store (`wiring::Secrets`). The
 
 ## Limits of this package
 
-- Memory hardening (12.4: locking secret memory, no core dumps, `memsec`) and the CI listing of `expose_secret()` call sites are not part of it, see the linked issues in the pull request.
+- Memory hardening (12.4): the packed bytes of a credential lie in `LockedBytes`, a block of its own pages (`memsec::malloc_sized`, locked with `mlock` / `VirtualLock`, wiped and unlocked on drop), so freeing one buffer never unlocks another. A refused lock is `SEC-901`. A test measures `VmLck` of `/proc/self/status` (Linux). **Not covered:** the decoded `SecretString`s (user, secret) and the copy that the OS keystore library returns live on the normal heap; they are wiped on drop but may be swapped out while in use. `gix` needs plain `String`s for a login, so this stays a residual risk (blueprint 15). It is tracked in issue #298.
+- Core dumps: at program start `disable_core_dumps` sets the core limit to 0 and `PR_SET_DUMPABLE` to 0 (Linux, macOS: limit only) and returns `Off`. On Windows `SetErrorMode` only switches off the error dialog and report; a machine-wide `LocalDumps` policy can still write a dump, so the result is `Partly` and logged at debug level. All `unsafe` lives in `crates/adapters/secrets/src/memory.rs`.
+- CI lists every `expose_secret()` call in product code (`tools/ci/check_expose_secret.py`, job `architecture`); a new call needs an entry in `tools/ci/expose-secret-approved.toml`, which the reviewer approves.
 - Libraries copy secrets: `gix` receives the user and the password as plain `String`s for one request (residual risk of blueprint 15, "OS and library copies").
 - The server and the UI still have no endpoint or form to create a credential (issue #53, second half). The CLI commands are described in `docs/cli.md`.
 - A secret from standard input is limited to 64 KiB. The read buffer of the standard input and the terminal library are copies the program cannot wipe (blueprint 15, library copies).
 - The token of the device flow is stored as it is. GitHub tokens of an OAuth app do not expire; GitLab tokens do after two hours, and refreshing them is not built, so a GitLab token has to be created again by `credential login`.
+
+- First start: the installation token is created while the program holds an exclusive lock on `token.lock` in the data folder (`fs4`), so two programs that start together end with one token (issue #269). The wait for the lock ends after 10 seconds with an error instead of blocking the start for ever. A keystore without compare-and-set needs this lock.
