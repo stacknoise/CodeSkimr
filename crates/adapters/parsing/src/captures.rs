@@ -8,9 +8,10 @@ use tree_sitter::Query;
 use crate::consts::{
     COMMENT_CAPTURE, DECISION_CAPTURE, DECLARED_TYPE_CAPTURE, DOC_CAPTURE, FIELD_CAPTURE,
     LOCAL_CAPTURE, MODIFIER_CAPTURE, NAME_CAPTURE, OPERAND_CAPTURE, OPERATOR_CAPTURE,
-    RECEIVER_BASE_CAPTURE, RECEIVER_CAPTURE, RECEIVER_OTHER_CAPTURE, RECEIVER_OWN_CAPTURE,
-    RECEIVER_TYPE_CAPTURE, REFERENCE_CAPTURE_PREFIX, SCOPE_CAPTURE, SCOPE_END_CAPTURE,
-    SIGNATURE_CAPTURE, STATIC_CAPTURE, SYMBOL_CAPTURE_PREFIX, VISIBILITY_CAPTURE,
+    RECEIVER_BASE_CAPTURE, RECEIVER_CAPTURE, RECEIVER_MEMBER_CAPTURE, RECEIVER_OTHER_CAPTURE,
+    RECEIVER_OWN_CAPTURE, RECEIVER_TYPE_CAPTURE, REFERENCE_CAPTURE_PREFIX, SCOPE_CAPTURE,
+    SCOPE_END_CAPTURE, SIGNATURE_CAPTURE, STATIC_CAPTURE, SYMBOL_CAPTURE_PREFIX,
+    VISIBILITY_CAPTURE,
 };
 
 /// What the syntax says about the receiver in front of a member name.
@@ -20,6 +21,8 @@ pub enum ReceiverRole {
     Name,
     /// The type of a creation expression.
     Type,
+    /// A field or property named behind `this.`.
+    Member,
     /// The enclosing object itself.
     Own,
     /// The base of the enclosing object.
@@ -81,6 +84,7 @@ impl Capture {
             SCOPE_END_CAPTURE => Some(Self::ScopeEnd),
             RECEIVER_CAPTURE => Some(Self::Receiver(ReceiverRole::Name)),
             RECEIVER_TYPE_CAPTURE => Some(Self::Receiver(ReceiverRole::Type)),
+            RECEIVER_MEMBER_CAPTURE => Some(Self::Receiver(ReceiverRole::Member)),
             RECEIVER_OWN_CAPTURE => Some(Self::Receiver(ReceiverRole::Own)),
             RECEIVER_BASE_CAPTURE => Some(Self::Receiver(ReceiverRole::Base)),
             RECEIVER_OTHER_CAPTURE => Some(Self::Receiver(ReceiverRole::Other)),
