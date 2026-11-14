@@ -186,3 +186,29 @@ pub(super) fn types_out(
         ..GraphOut::default()
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn drawn_as(symbol: u64, qualified: &str) -> Drawn {
+        Drawn {
+            symbol,
+            qualified: qualified.to_owned(),
+            name: String::new(),
+            row: TYPE_ROW_USERS,
+        }
+    }
+
+    #[test]
+    fn two_types_of_the_same_name_get_their_ids_and_the_others_keep_their_name() {
+        let mut all = [
+            drawn_as(1, "Demo.Cart"),
+            drawn_as(2, "Demo.Price"),
+            drawn_as(3, "Demo.Cart"),
+        ];
+        name_boxes(&mut all);
+        let names: Vec<&str> = all.iter().map(|one| one.name.as_str()).collect();
+        assert_eq!(names, ["Demo.Cart #1", "Demo.Price", "Demo.Cart #3"]);
+    }
+}

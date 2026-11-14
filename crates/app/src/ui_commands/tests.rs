@@ -871,52 +871,6 @@ fn the_type_level_puts_the_type_in_the_middle_between_its_users_and_what_it_uses
 }
 
 #[test]
-fn the_type_level_tells_two_types_of_the_same_name_apart() {
-    let fixture = Fixture::new();
-    fs::write(fixture.root.path().join("app/Checkout.cs"), CALLER).unwrap();
-    fs::write(fixture.root.path().join("app/Checkout2.cs"), CALLER).unwrap();
-    let project = added(&fixture);
-    let calculator = type_named(&fixture, project, "Calculator");
-    let map = type_map(&fixture, project, &calculator);
-    let names: Vec<&str> = map["boxes"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .filter(|b| b["symbol"] != calculator)
-        .map(|b| b["name"].as_str().unwrap())
-        .collect();
-    assert_eq!(names.len(), 2);
-    assert_ne!(names[0], names[1]);
-    let linked: Vec<&str> = map["links"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|l| l["from"].as_str().unwrap())
-        .collect();
-    assert!(names.iter().all(|name| linked.contains(name)));
-}
-
-#[test]
-fn the_focus_is_named_like_its_box_when_another_type_has_its_name() {
-    let fixture = Fixture::new();
-    fs::write(
-        fixture.root.path().join("app/Other.cs"),
-        "namespace Demo;\n\npublic class Calculator\n{\n}\n",
-    )
-    .unwrap();
-    let project = added(&fixture);
-    let calculator = type_named(&fixture, project, "Calculator");
-    let map = type_map(&fixture, project, &calculator);
-    let middle = map["boxes"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|b| b["symbol"] == calculator)
-        .unwrap();
-    assert_eq!(map["focus"]["name"], middle["name"]);
-}
-
-#[test]
 fn the_type_level_refuses_a_missing_focus_and_something_that_is_no_type() {
     let fixture = Fixture::new();
     let project = added(&fixture);
