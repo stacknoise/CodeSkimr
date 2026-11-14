@@ -38,6 +38,15 @@ pub struct ArchitectureArgs {
     pub project: Option<u64>,
 }
 
+/// Arguments of `get_project`.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+#[schemars(crate = "rmcp::schemars")]
+pub struct ProjectArgs {
+    /// Id of the project; the project of this server if left out.
+    pub project: Option<u64>,
+}
+
 /// Arguments of `find_usages`.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

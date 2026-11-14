@@ -29,7 +29,8 @@ All of them are read-only (`readOnlyHint`) except `rescan`, which is announced w
 | `find_constants` | `query`, `project?`, `limit?` | `constants`: id, name, qualified name, `path`, `signature` (the declaration as written, `null` if the pack has none) |
 | `check_conventions` | `paths?`, `project?`, `limit?` | `findings` with `CHK` codes, `total`, `files_checked`, `unchecked`, `unmatched`, `not_checked` (see `docs/conventions.md`) |
 | `get_architecture` | `project?` | `layers` with their namespaces, `dependencies` between layers with count, `violates_layering`, `in_cycle` |
-| `rescan` | `project?` | `snapshot` (the new one), `mode` (`incremental`), `files`, `symbols`, `references`, `duration_ms` |
+| `rescan` | `project?` | `snapshot` (the new one), `mode` (`incremental`), `files`, `symbols`, `references`, `duration_ms`, `tools` (the tool check of the new snapshot) |
+| `get_project` | `project?` | `project`, `name`, `snapshot`, `languages` (`language`, `files`, `loc`, `level2_ready`), `tools_checked_at`, `tools` (`tool`, `role`, `state`, `languages`, `found`, `required`, `purpose`, `install`); see `docs/tools-check.md` |
 
 ## Usages and impact
 
@@ -84,3 +85,5 @@ Tool descriptions and the server instructions are written for code agents and li
 - `get_architecture` returns the layers and the measured dependencies. Layers come from the `[[layers]]` list of the configuration (`docs/cli.md`, ADR 0031); without it the list is empty. The allowed directions and the conventions are not part of the project model yet (see `docs/storage.md`, `violates_layering`); they join the answer with the layer rule of `check_conventions` (issue #45). The use case behind `check_conventions` and the tool exist (`docs/conventions.md`, `codeskimr check`); the layer rule joins it with issue #45.
 - Paths from arguments (blueprint S-05): `check_conventions` takes paths, but only to select among the files of the project's own file list; a path is never opened, so `..` or an absolute path selects nothing. `rescan` takes no paths, so there is nothing to canonicalise.
 - A qualified name shared by several symbols (overloads) answers with the lowest symbol id; use the id from `search_symbols` to be exact.
+
+- `get_project` needs `read`. It runs the tool check on every call (a few short processes, `docs/tools-check.md`), stores the result and answers from it. `purpose` and `install` are in English, like all MCP texts.

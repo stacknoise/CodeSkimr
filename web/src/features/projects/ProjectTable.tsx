@@ -8,7 +8,8 @@ import { Pill, type PillTone } from "../../shared/ui/Pill";
 import { RESCAN_ICON, SCAN_MODE, SOURCE_KIND } from "./consts";
 import { ago, count, seconds } from "./format";
 import { LanguageBar } from "./LanguageBar";
-import { projectsScanning, scanSeconds } from "./projects";
+import { projectsScanning, scanSeconds, toolsOf } from "./projects";
+import { problemsOf } from "./tools";
 import type { ProjectRow } from "./types";
 import styles from "./ProjectTable.module.css";
 
@@ -117,6 +118,13 @@ function Row(props: { row: ProjectRow; table: ProjectTableProps }) {
       <td>
         <div class={styles.state}>
           <Pill tone={state().tone}>{state().text}</Pill>
+          <Show when={problemsOf(toolsOf(props.row)).length > 0}>
+            <Pill tone={TONE.warn}>
+              {t(I18N_KEYS.PROJECTS_TOOLS_MISSING_COUNT, {
+                count: problemsOf(toolsOf(props.row)).length,
+              })}
+            </Pill>
+          </Show>
           <Show when={!props.row.running}>
             <button
               type="button"

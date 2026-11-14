@@ -179,12 +179,30 @@ pub mod arg {
     pub const CODES: &str = "codes";
     /// `{ $kilobytes }`: size of an export file.
     pub const KILOBYTES: &str = "kilobytes";
+    /// `{ $tool }`: name of a tool the project needs.
+    pub const TOOL: &str = "tool";
+    /// `{ $languages }`: the languages that need the tool, separated by `LIST_SEPARATOR`.
+    pub const LANGUAGES: &str = "languages";
+    /// `{ $found }`: the version of the tool that is installed.
+    pub const FOUND: &str = "found";
+    /// `{ $required }`: the version the project requires.
+    pub const REQUIRED: &str = "required";
+    /// `{ $purpose }`: what the tool is needed for.
+    pub const PURPOSE: &str = "purpose";
+    /// `{ $install }`: how to install the tool.
+    pub const INSTALL: &str = "install";
     /// `{ $seconds }` in the launch message is the same name as the scan duration.
     pub const LAUNCH_SECONDS: &str = SECONDS;
 }
 
 /// Separates the lines of a multi-line message.
 pub const LINE_BREAK: &str = "\n";
+
+/// Separates the languages in the line of a tool.
+pub const LIST_SEPARATOR: &str = ", ";
+
+/// Stands in for a version that is not known.
+pub const NO_VERSION: &str = "?";
 
 /// Separates the codes in a list of codes.
 pub const CODE_LIST_SEPARATOR: &str = ", ";

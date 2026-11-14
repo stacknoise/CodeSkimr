@@ -15,22 +15,24 @@ use codeskimr_application::metrics::StandardMetrics;
 use codeskimr_application::pipeline::{Scanner, ScannerPorts};
 use codeskimr_application::ports::{AuthError, Credential, CredentialStore};
 use codeskimr_application::ports::{
-    FileAnalyzer, FileDiscovery, IndexerSpec, SnippetFingerprinter,
+    FileAnalyzer, FileDiscovery, IndexRunner, IndexerSpec, SnippetFingerprinter,
 };
 use codeskimr_application::resolve::ScopedResolver;
+use codeskimr_application::tools::{ToolCheckPorts, ToolChecker};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{CredentialId, LanguageId};
 use codeskimr_indexer::ProcessIndexRunner;
-use codeskimr_parsing::{LanguagePacks, TreeSitterAnalyzer};
+use codeskimr_parsing::{LanguagePacks, PackTools, TreeSitterAnalyzer};
 use codeskimr_scip::ScipImporter;
 use codeskimr_secrets::{KeystoreCredentials, OsKeystore};
 use codeskimr_source::{
-    DiscoveryConfig, FolderText, GitCache, LanguageMap, SourceFetcher, WalkDiscovery,
+    DiscoveryConfig, FolderText, GitCache, LanguageMap, ProjectRequirements, SourceFetcher,
+    WalkDiscovery,
 };
 use codeskimr_storage::SqliteStore;
 
 use crate::clock::SystemClock;
-use crate::consts::{BYTES_PER_MB, is_token_credential};
+use crate::consts::{BYTES_PER_MB, REQUIREMENT_MAX_BYTES, is_token_credential};
 use crate::locations::Locations;
 use crate::redact::redact;
 pub use crate::shared_keystore::{Secrets, SharedKeystore};
@@ -97,7 +99,7 @@ pub fn build_scanner(
     } = build_analysis(config, locations)?;
     let ids = Arc::new(IdSequence::starting_at(store.next_free_id()?));
     let pass = Level2Pass {
-        runner: Arc::new(ProcessIndexRunner::new(locations.data_dir.clone(), redact)),
+        runner: index_runner(locations),
         importer: Arc::new(ScipImporter::new(Arc::new(FolderText))),
         consent: store.clone(),
         discovery: Arc::clone(&discovery),
@@ -122,6 +124,36 @@ pub fn build_scanner(
         clock: Arc::new(SystemClock),
     };
     Ok(Scanner::new(ports, &ids, events).with_level2(pass))
+}
+
+/// The runner that finds out which tools exist, for the check of ADR 0033: version queries only,
+/// in the data folder (never in a project), with the allow-listed environment of the indexer.
+#[must_use]
+pub fn index_runner(locations: &Locations) -> Arc<dyn IndexRunner> {
+    Arc::new(ProcessIndexRunner::new(locations.data_dir.clone(), redact))
+}
+
+/// Builds the check of the tools that level 2 needs, asking `runner` which tools exist.
+///
+/// # Errors
+/// `PRS` failures if the language packs cannot be read.
+pub fn tool_checker(
+    store: &Arc<SqliteStore>,
+    (locations, runner): (&Locations, Arc<dyn IndexRunner>),
+) -> Result<Arc<ToolChecker>, CodedError> {
+    let catalog = PackTools::load(&locations.languages_dir).map_err(CodedError::caused_by)?;
+    Ok(Arc::new(ToolChecker::new(ToolCheckPorts {
+        catalog: Arc::new(catalog),
+        runner,
+        requirements: Arc::new(ProjectRequirements::new(
+            GitCache::new(locations.git_cache()),
+            REQUIREMENT_MAX_BYTES,
+        )),
+        store: store.clone(),
+        projects: store.clone(),
+        overview: store.clone(),
+        clock: Arc::new(SystemClock),
+    })))
 }
 
 /// The two ports that read code: walking the files and analysing one of them. The scan and the

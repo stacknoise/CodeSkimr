@@ -9,8 +9,8 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
     MCP_SERVER_INSTRUCTIONS, MCP_TOOL_CHECK_CONVENTIONS, MCP_TOOL_FIND_CONSTANTS,
     MCP_TOOL_FIND_SIMILAR_CODE, MCP_TOOL_FIND_USAGES, MCP_TOOL_GET_ARCHITECTURE,
-    MCP_TOOL_GET_DEPENDENCIES, MCP_TOOL_GET_SYMBOL, MCP_TOOL_IMPACT_OF_CHANGE, MCP_TOOL_RESCAN,
-    MCP_TOOL_SEARCH_SYMBOLS,
+    MCP_TOOL_GET_DEPENDENCIES, MCP_TOOL_GET_PROJECT, MCP_TOOL_GET_SYMBOL,
+    MCP_TOOL_IMPACT_OF_CHANGE, MCP_TOOL_RESCAN, MCP_TOOL_SEARCH_SYMBOLS,
 };
 use codeskimr_domain::{Permission, Principal};
 use codeskimr_i18n::Messages;
@@ -27,14 +27,14 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 use crate::args::{
-    ArchitectureArgs, ConstantsArgs, ConventionsArgs, DependenciesArgs, ImpactArgs, RescanArgs,
-    SearchArgs, SimilarArgs, SymbolArgs, UsagesArgs,
+    ArchitectureArgs, ConstantsArgs, ConventionsArgs, DependenciesArgs, ImpactArgs, ProjectArgs,
+    RescanArgs, SearchArgs, SimilarArgs, SymbolArgs, UsagesArgs,
 };
 use crate::consts::{
     READ_TOOL_PERMISSION, SCAN_TOOL_PERMISSION, SERVER_NAME, SERVER_VERSION, TEXT_LANGUAGE,
     TOOL_CHECK_CONVENTIONS, TOOL_FIND_CONSTANTS, TOOL_FIND_SIMILAR_CODE, TOOL_FIND_USAGES,
-    TOOL_GET_ARCHITECTURE, TOOL_GET_DEPENDENCIES, TOOL_GET_SYMBOL, TOOL_IMPACT_OF_CHANGE,
-    TOOL_RESCAN, TOOL_SEARCH_SYMBOLS,
+    TOOL_GET_ARCHITECTURE, TOOL_GET_DEPENDENCIES, TOOL_GET_PROJECT, TOOL_GET_SYMBOL,
+    TOOL_IMPACT_OF_CHANGE, TOOL_RESCAN, TOOL_SEARCH_SYMBOLS,
 };
 use crate::error::McpError;
 use crate::tools::Tools;
@@ -100,6 +100,7 @@ fn definitions(messages: &Messages) -> Result<Vec<Tool>, CodedError> {
     Ok(vec![
         definition::<SearchArgs>(messages, TOOL_SEARCH_SYMBOLS, MCP_TOOL_SEARCH_SYMBOLS)?,
         definition::<SymbolArgs>(messages, TOOL_GET_SYMBOL, MCP_TOOL_GET_SYMBOL)?,
+        definition::<ProjectArgs>(messages, TOOL_GET_PROJECT, MCP_TOOL_GET_PROJECT)?,
         definition::<ArchitectureArgs>(messages, TOOL_GET_ARCHITECTURE, MCP_TOOL_GET_ARCHITECTURE)?,
         definition::<UsagesArgs>(messages, TOOL_FIND_USAGES, MCP_TOOL_FIND_USAGES)?,
         definition::<ImpactArgs>(messages, TOOL_IMPACT_OF_CHANGE, MCP_TOOL_IMPACT_OF_CHANGE)?,
@@ -162,6 +163,7 @@ impl McpServer {
         let outcome = match name {
             TOOL_SEARCH_SYMBOLS => call(arguments, |args| tools.search_symbols(&principal, &args)),
             TOOL_GET_SYMBOL => call(arguments, |args| tools.get_symbol(&principal, &args)),
+            TOOL_GET_PROJECT => call(arguments, |args| tools.get_project(&principal, &args)),
             TOOL_GET_ARCHITECTURE => {
                 call(arguments, |args| tools.get_architecture(&principal, &args))
             }

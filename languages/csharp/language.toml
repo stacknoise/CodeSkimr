@@ -101,3 +101,5 @@ min_version = "0.2.0"
 program = "dotnet"
 version_args = ["--version"]
 min_version = "8.0.0"
+# The version the project asks for (checked besides min_version; the newer one counts).
+requirement = { file = "global.json", format = "json", path = ["sdk", "version"] }

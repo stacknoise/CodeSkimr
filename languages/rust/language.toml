@@ -93,3 +93,5 @@ min_version = "1.78.0"
 program = "cargo"
 version_args = ["--version"]
 min_version = "1.78.0"
+# The version the project asks for (checked besides min_version; the newer one counts).
+requirement = { file = "rust-toolchain.toml", format = "toml", path = ["toolchain", "channel"] }

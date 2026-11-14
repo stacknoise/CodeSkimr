@@ -13,6 +13,8 @@ pub const SCAN_TOOL_PERMISSION: Permission = Permission::Scan;
 pub const TOOL_SEARCH_SYMBOLS: &str = "search_symbols";
 /// Name of the tool that shows one symbol.
 pub const TOOL_GET_SYMBOL: &str = "get_symbol";
+/// Name of the tool that shows a project, its languages and the tools it needs for level 2.
+pub const TOOL_GET_PROJECT: &str = "get_project";
 /// Name of the tool that shows the architecture of a project.
 pub const TOOL_GET_ARCHITECTURE: &str = "get_architecture";
 /// Name of the tool that lists the usages of a symbol.

@@ -11,3 +11,8 @@ dependencies = [
 # Sources that Maven generates from templates; the corpus skips the template folder, the compiler needs the result.
 template_dir = "gson/src/main/java-templates"
 template_values = { "${project.version}" = "0" }
+
+[rust_scip]
+# `rust-analyzer --version` of the SCIP index that `measure.py rust --scip` maps (level 2, by hand:
+# `rust-analyzer scip <checkout of corpus/rust/corpus.toml> --output index.scip`). Another version only warns.
+rust_analyzer = "rust-analyzer 1.97.0 (2d8144b 2026-07-07)"

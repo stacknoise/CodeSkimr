@@ -18,6 +18,7 @@ mod rescan;
 mod similarity;
 mod source;
 mod storage;
+mod tools;
 mod usages;
 mod version;
 
@@ -45,6 +46,9 @@ pub use source::{
 };
 pub use storage::{
     PreviousIndex, ProjectRepository, ReferenceReplacement, SnapshotData, SnapshotStore,
+};
+pub use tools::{
+    ProjectToolCheck, RequirementReader, ToolCatalog, ToolPlan, ToolReportStore, ToolRequirement,
 };
 pub use usages::{
     DependencyEdge, DependencyPage, DependencyQuery, ImpactPage, ImpactedSymbol, SymbolLabel,

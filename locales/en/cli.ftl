@@ -3,6 +3,9 @@
 cli-error-line = error[{ $code }]: { $message }
 cli-scan-started = Scanning { $path } …
 cli-scan-finished = Scanned { $files } files in { $seconds } s.
+cli-scan-tool-missing = Tool missing for { $languages }: { $tool } – { $purpose } { $install }
+cli-scan-tool-too-old = Tool too old for { $languages }: { $tool } { $found } is installed, { $required } is required – { $purpose } { $install }
+cli-scan-tool-unknown = Tool version not readable for { $languages }: { $tool } (required: { $required }) – { $purpose } { $install }
 cli-unknown-command = Unknown command: { $command }
 cli-help-hint = Run with --help to see all commands.
 cli-codes-not-found = No error code with the id { $id } exists.

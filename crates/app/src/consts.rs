@@ -278,6 +278,12 @@ pub const CARRIAGE_RETURN: char = '\r';
 
 /// Longest secret that is read from standard input, in bytes.
 pub const MAX_SECRET_BYTES: u64 = 65_536;
+/// Log event: the check of the tools of a project failed; the scan goes on.
+pub const LOG_TOOL_CHECK_FAILED: &str = "tool_check_failed";
+
+/// Largest file that is read for the version a project requires (`global.json`, `.nvmrc` and so
+/// on), in bytes.
+pub const REQUIREMENT_MAX_BYTES: u64 = 65_536;
 
 /// Characters besides the control characters that can hide or reorder text on a terminal: the
 /// direction marks and overrides, the zero-width characters, the line and paragraph separators

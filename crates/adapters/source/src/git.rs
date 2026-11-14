@@ -64,6 +64,13 @@ impl GitCache {
         Self { cache_root }
     }
 
+    /// Where the clone of `branch` of `url` lies, whether or not it was fetched yet. Nothing is
+    /// created or fetched.
+    #[must_use]
+    pub fn checkout_dir(&self, url: &GitUrl, branch: &BranchName) -> PathBuf {
+        self.cache_root.join(folder_name(url, branch))
+    }
+
     /// Makes the newest commit of `branch` available and returns where it lies.
     ///
     /// Without `login` the system's Git credential helper decides how to log in.
