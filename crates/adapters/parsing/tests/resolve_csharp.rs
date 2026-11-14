@@ -165,18 +165,18 @@ mod tests {
                 .iter()
                 .any(|(line, c)| *line == 38 && *c == Confidence::Certain)
         );
-        assert!(lines(&receiver_usages("Row.Index")).is_empty());
+        assert_eq!(lines(&receiver_usages("Row.Index")), Vec::<u32>::new());
     }
 
     #[test]
     fn a_base_call_reaches_the_base_member_only() {
         let base = receiver_usages("Base.Key");
-        assert!(!base.is_empty());
+        assert_ne!(base, Vec::new());
         assert!(
             base.iter()
                 .all(|(_, confidence)| *confidence == Confidence::Certain)
         );
         // `base.Key` in the accessors of `Derived.Key` is no usage of `Derived.Key` itself.
-        assert!(lines(&receiver_usages("Derived.Key")).is_empty());
+        assert_eq!(lines(&receiver_usages("Derived.Key")), Vec::<u32>::new());
     }
 }
