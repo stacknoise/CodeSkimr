@@ -95,9 +95,7 @@ impl NamespaceGraph {
                 .collect(),
         }
     }
-}
 
-impl NamespaceGraph {
     /// The counts of the edges between the merged namespaces; `target` tells the new position of
     /// an old one, and an edge inside one merged namespace is dropped.
     fn merged_edges(

@@ -109,7 +109,10 @@ describe("GraphScreen", () => {
     expect(screen.queryByRole("group", { name: "Depth" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Namespaces" }));
     const depth = await screen.findByRole("group", { name: "Depth" });
+    fireEvent.click(screen.getByRole("button", { name: "Domain" }));
+    expect(screen.getByRole("heading", { name: "Domain" })).toBeInTheDocument();
     fireEvent.click(within(depth).getByRole("button", { name: "2 levels" }));
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Domain" })).toBeNull());
     await waitFor(() => {
       const bodies = fetchMock.mock.calls.map((call) => String(call[1]?.body ?? ""));
       expect(bodies.some((body) => body.includes('"depth":2'))).toBe(true);
