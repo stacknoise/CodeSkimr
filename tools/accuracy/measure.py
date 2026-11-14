@@ -70,6 +70,56 @@ SCIP_INDEXERS = {"rust": ("rust_scip", "rust-analyzer", "rust_analyzer"),
                  "python": ("python_scip", "scip-python", "scip_python")}
 
 
+def _varint(data, i):
+    value = shift = 0
+    while True:
+        byte = data[i]; i += 1
+        value |= (byte & 127) << shift; shift += 7
+        if byte < 128:
+            return value, i
+
+
+def _fields(data):
+    i = 0
+    while i < len(data):
+        key, i = _varint(data, i)
+        if key & 7 == 0:
+            _, i = _varint(data, i)
+        elif key & 7 == 2:
+            size, i = _varint(data, i)
+            yield key >> 3, data[i:i + size]; i += size
+        elif key & 7 in (1, 5):
+            i += 8 if key & 7 == 1 else 4
+        else:
+            raise ValueError("not a SCIP index")
+
+
+def uncovered_paths(source, index):
+    """Scanned files that no document of the SCIP index names (Index.documents = field 2, Document.relative_path = field 1)."""
+    documents = set()
+    for field, body in _fields(Path(index).read_bytes()):
+        if field == 2:
+            documents.update(p.decode() for f, p in _fields(body) if f == 1)
+    return {str(f.relative_to(source)).replace("\\", "/") for f in source.rglob("*") if f.is_file()} - documents
+
+
+def check_reference_pins(lang):
+    """Warns if the reference tool is not the one of the numbers in docs/accuracy.md (reference_tools.toml)."""
+    pins = tomllib.loads((Path(__file__).parent / "reference_tools.toml").read_text()).get(SCIP_INDEXERS[lang][0], {})
+    if lang == "python":
+        found = subprocess.run([sys.executable, "-c", "import jedi;print(jedi.__version__)"], capture_output=True, text=True).stdout.strip()
+        checks = [("jedi", found)]
+    elif lang == "typescript":
+        code = "console.log(require(process.env.TYPESCRIPT_MODULE||'typescript').version+' node '+process.version)"
+        found = subprocess.run(["node", "-e", code], capture_output=True, text=True).stdout.split()
+        checks = [("typescript", found[0] if found else ""), ("node", found[2].lstrip("v").split(".")[0] if len(found) > 2 else "")]
+    else:
+        return
+    for key, value in checks:
+        if key in pins and value != pins[key]:
+            print(f"warning: {key} is '{value}', the numbers in docs/accuracy.md are for '{pins[key]}'", file=sys.stderr)
+
+
 def import_level2(opt, db, source):
     """Maps the hand-made SCIP index onto the scanned database (tools/accuracy/import_scip) and reopens it."""
     section, program, key = SCIP_INDEXERS[opt.language]
@@ -90,10 +140,12 @@ def import_level2(opt, db, source):
     stats = json.loads(done.stdout)
     print("import:", done.stdout.strip(), file=sys.stderr)
     uncovered = scanned - stats["files_replaced"]
-    if uncovered > opt.allow_uncovered:
-        sys.exit(f"the index covers {stats['files_replaced']} of {scanned} scanned files: it does not belong to this corpus commit")
+    if uncovered < 0 or uncovered > opt.allow_uncovered:
+        sys.exit(f"the index covers {stats['files_replaced']} of {scanned} scanned files (allowed to miss: {opt.allow_uncovered}): it does not belong to this corpus commit")
     if uncovered:
-        print(f"warning: {uncovered} scanned files are not in the index (allowed by --allow-uncovered); their references are not counted", file=sys.stderr)
+        names = sorted(uncovered_paths(source, opt.scip))
+        print(f"warning: {uncovered} scanned files are not in the index (allowed by --allow-uncovered), their references are not counted: {', '.join(names)}", file=sys.stderr)
+    check_reference_pins(opt.language)
     return sqlite3.connect(dbfile)
 
 
@@ -153,7 +205,7 @@ def main():
     args.add_argument("--languages", default=str(ROOT / "languages"), help="language packs that belong to the binary")
     args.add_argument("--json", action="store_true")
     args.add_argument("--scip", help="SCIP index made by hand (`rust-analyzer scip`); mapped onto the scan with tools/accuracy/import_scip, without the consent flow of level 2")
-    args.add_argument("--allow-uncovered", type=int, default=0, help="scanned files that the index may leave out (the indexer reads only what the tsconfig includes)")
+    args.add_argument("--allow-uncovered", type=lambda v: int(v) if int(v) >= 0 else sys.exit("--allow-uncovered must not be negative"), default=0, help="scanned files that the index may leave out (the indexer reads only what the tsconfig includes)")
     args.add_argument("--indexer", help="program that made the --scip index, for the version check (default: the usual name)")
     args.add_argument("--import-scip", default=str(ROOT / "target/debug/codeskimr_import_scip"), help="the measuring tool of --scip")
     args.add_argument("--verified-only", action="store_true", help="count only references that level 2 produced (verified)")

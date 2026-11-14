@@ -20,9 +20,14 @@ rust_analyzer = "rust-analyzer 1.97.0 (2d8144b 2026-07-07)"
 [typescript_scip]
 # `scip-typescript --version` of the SCIP index that `measure.py typescript --scip` maps (level 2, by hand: in a copy of the
 # checkout of corpus/typescript/corpus.toml with `npm ci`, `scip-typescript index --output index.scip --infer-tsconfig`).
+# `--version` prints the bare number. `typescript` and `node` (major) are the reference service and runtime of the numbers.
 scip_typescript = "0.6.2"
+typescript = "5.6.3"
+node = "22"
 
 [python_scip]
 # `scip-python --version` of the SCIP index that `measure.py python --scip` maps (level 2, by hand: in the checkout of
-# corpus/python/corpus.toml, `scip-python index . --project-name click --output index.scip`).
+# corpus/python/corpus.toml, in a clean virtual environment: `scip-python index --project-version 0 --output index.scip`,
+# the call of languages/python/language.toml after PR #251; `--version` prints the bare number). `jedi` is the reference.
 scip_python = "0.6.8"
+jedi = "0.20.1"
