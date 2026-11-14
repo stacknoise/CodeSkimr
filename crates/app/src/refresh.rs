@@ -5,7 +5,7 @@
 //! says where to renew (platform, application, host); it holds no secret. When a clone is
 //! refused with a rejected credential, the source is fetched again once with a fresh token.
 
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, PoisonError};
 
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::error::CodedError;
@@ -62,6 +62,8 @@ pub fn save(
         }
         None => store.delete(&entry)?,
     }
+    // The access token comes last: if storing it fails, the old pair stays in place instead of a
+    // new access token with a stale refresh token.
     store.store(id, &signed.credential)?;
     Ok(())
 }
@@ -115,7 +117,7 @@ fn read_entry(
         .next()
         .filter(|host| !host.is_empty())
         .map(str::to_owned);
-    let Some(provider) = provider else {
+    let Some(provider) = provider.filter(|_| !client_id.is_empty()) else {
         return Err(AuthError::Damaged.into());
     };
     Ok(Some(Entry {
@@ -129,13 +131,19 @@ fn read_entry(
 /// Renews the access token of a credential with its refresh token.
 pub struct Refresher<S> {
     store: Arc<S>,
+    /// One refresh at a time: a platform that rotates the token kills the old one on first use,
+    /// so two scans must not trade the same refresh token.
+    turn: Mutex<()>,
 }
 
 impl<S: CredentialStore> Refresher<S> {
     /// A refresher that reads and writes `store`.
     #[must_use]
     pub fn new(store: Arc<S>) -> Self {
-        Self { store }
+        Self {
+            store,
+            turn: Mutex::new(()),
+        }
     }
 
     /// Trades the refresh token of `id` for a new access token and stores both. Returns whether
@@ -148,6 +156,7 @@ impl<S: CredentialStore> Refresher<S> {
         if is_token_credential(id.as_str()) {
             return Ok(false);
         }
+        let _turn = self.turn.lock().unwrap_or_else(PoisonError::into_inner);
         let Some(entry) = read_entry(&*self.store, id)? else {
             return Ok(false);
         };
@@ -199,6 +208,7 @@ impl<P: SourceProvider, S: CredentialStore> SourceProvider for RefreshingSource<
             return first;
         };
         if error.code() == ErrorCode::CredentialRejected
+            && !cancel.is_cancelled()
             && matches!(self.refresher.refresh(id), Ok(true))
         {
             return self.inner.fetch(source, cancel);
@@ -209,42 +219,19 @@ impl<P: SourceProvider, S: CredentialStore> SourceProvider for RefreshingSource<
 
 #[cfg(test)]
 mod tests {
-    use std::io::{Read, Write};
-    use std::net::TcpListener;
     use std::sync::Mutex;
 
     use codeskimr_domain::{BranchName, FolderPath, GitUrl};
 
     use super::*;
     use crate::memory_keystore::secrets;
+    use crate::oauth_stub;
     use crate::shared_keystore::Secrets;
 
     const OLD_ACCESS: &str = "CANARY-access-old-31ac";
     const OLD_REFRESH: &str = "CANARY-refresh-old-9e07";
     const NEW_ACCESS: &str = "CANARY-access-new-6b12";
     const NEW_REFRESH: &str = "CANARY-refresh-new-c4d8";
-
-    /// Answers every request with `answer` and keeps the request bodies.
-    fn oauth_server(answer: &'static str) -> (String, Arc<Mutex<Vec<String>>>) {
-        let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-        let host = format!("http://{}", listener.local_addr().unwrap());
-        let seen = Arc::new(Mutex::new(Vec::new()));
-        let keep = Arc::clone(&seen);
-        std::thread::spawn(move || {
-            for mut stream in listener.incoming().flatten() {
-                let mut buffer = [0_u8; 8192];
-                let count = stream.read(&mut buffer).unwrap_or(0);
-                let text = String::from_utf8_lossy(&buffer[..count]).into_owned();
-                keep.lock().unwrap().push(text);
-                let reply = format!(
-                    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{answer}",
-                    answer.len()
-                );
-                let _ = stream.write_all(reply.as_bytes());
-            }
-        });
-        (host, seen)
-    }
 
     /// A fetcher that is rejected as often as the script says, then succeeds.
     struct Scripted {
@@ -325,7 +312,7 @@ mod tests {
     #[test]
     fn a_rejected_token_is_renewed_once_and_the_fetch_goes_on() {
         let answer = r#"{"access_token":"CANARY-access-new-6b12","refresh_token":"CANARY-refresh-new-c4d8"}"#;
-        let (host, requests) = oauth_server(answer);
+        let (host, requests) = oauth_stub::serve(&[answer]);
         let (store, id, fetcher) = setup(&host, vec![ErrorCode::CredentialRejected]);
         let cancel = CancelToken::default();
         assert!(fetcher.fetch(&source(&id), &cancel).is_ok());
@@ -346,7 +333,7 @@ mod tests {
 
     #[test]
     fn a_platform_that_does_not_rotate_keeps_the_old_refresh_token() {
-        let (host, _) = oauth_server(r#"{"access_token":"CANARY-access-new-6b12"}"#);
+        let (host, _) = oauth_stub::serve(&[r#"{"access_token":"CANARY-access-new-6b12"}"#]);
         let (store, id, fetcher) = setup(&host, vec![ErrorCode::CredentialRejected]);
         assert!(fetcher.fetch(&source(&id), &CancelToken::default()).is_ok());
         assert!(
@@ -361,7 +348,7 @@ mod tests {
 
     #[test]
     fn a_refused_refresh_leaves_the_tokens_and_reports_the_rejection() {
-        let (host, _) = oauth_server(r#"{"error":"invalid_grant"}"#);
+        let (host, _) = oauth_stub::serve(&[r#"{"error":"invalid_grant"}"#]);
         let (store, id, fetcher) = setup(&host, vec![ErrorCode::CredentialRejected]);
         let error = fetcher
             .fetch(&source(&id), &CancelToken::default())
@@ -381,7 +368,7 @@ mod tests {
     #[test]
     fn a_second_rejection_is_not_renewed_again() {
         let answer = r#"{"access_token":"CANARY-access-new-6b12"}"#;
-        let (host, requests) = oauth_server(answer);
+        let (host, requests) = oauth_stub::serve(&[answer]);
         let rejections = vec![ErrorCode::CredentialRejected; 2];
         let (_, id, fetcher) = setup(&host, rejections);
         let result = fetcher.fetch(&source(&id), &CancelToken::default());
@@ -391,7 +378,7 @@ mod tests {
 
     #[test]
     fn other_failures_and_credentials_without_refresh_entry_are_not_renewed() {
-        let (host, requests) = oauth_server(r#"{"access_token":"x"}"#);
+        let (host, requests) = oauth_stub::serve(&[r#"{"access_token":"x"}"#]);
         let (store, id, fetcher) = setup(&host, vec![ErrorCode::GitAuthRequired]);
         assert!(
             fetcher

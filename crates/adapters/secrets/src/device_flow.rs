@@ -19,12 +19,12 @@ use zeroize::Zeroizing;
 
 use crate::consts::{
     ACCEPT_HEADER, ACCEPT_JSON, CONTENT_TYPE_FORM, DEFAULT_INTERVAL_SECS, ERROR_PENDING,
-    ERROR_SLOW_DOWN, ESCAPE_MARK, FIELD_CLIENT_ID, FIELD_DEVICE_CODE, FIELD_GRANT_TYPE,
-    FIELD_REFRESH_TOKEN, FIELD_SCOPE, FORM_ASSIGN, FORM_JOIN, FORM_SAFE, GRANT_DEVICE_CODE,
-    GRANT_REFRESH_TOKEN, HEX_RADIX, HTTPS_PREFIX, LOOPBACK_HOST, LOOPBACK_SCHEME,
-    MAX_INTERVAL_SECS, MAX_LIFETIME_SECS, MAX_RESPONSE_BYTES, MIN_INTERVAL_SECS, NIBBLE_BITS,
-    NIBBLE_MASK, PATH_SEPARATOR, PORT_SEPARATOR, REQUEST_TIMEOUT_SECS, SLOW_DOWN_STEP_SECS,
-    USERINFO_MARKER,
+    ERROR_SLOW_DOWN, ESCAPE_MARK, ESCAPED_WIDTH, FIELD_CLIENT_ID, FIELD_DEVICE_CODE,
+    FIELD_GRANT_TYPE, FIELD_REFRESH_TOKEN, FIELD_SCOPE, FORM_ASSIGN, FORM_JOIN, FORM_OVERHEAD,
+    FORM_SAFE, GRANT_DEVICE_CODE, GRANT_REFRESH_TOKEN, HEX_RADIX, HTTPS_PREFIX, LOOPBACK_HOST,
+    LOOPBACK_SCHEME, MAX_INTERVAL_SECS, MAX_LIFETIME_SECS, MAX_RESPONSE_BYTES, MIN_INTERVAL_SECS,
+    NIBBLE_BITS, NIBBLE_MASK, PATH_SEPARATOR, PORT_SEPARATOR, REQUEST_TIMEOUT_SECS,
+    SLOW_DOWN_STEP_SECS, USERINFO_MARKER,
 };
 
 /// Why the sign-in did not finish. The reason is not told: the answers of the platform may
@@ -88,8 +88,8 @@ struct DeviceReply {
 
 #[derive(Deserialize)]
 struct TokenReply {
-    access_token: Option<String>,
-    refresh_token: Option<String>,
+    access_token: Option<SecretString>,
+    refresh_token: Option<SecretString>,
     error: Option<String>,
 }
 
@@ -175,7 +175,7 @@ impl DeviceFlow {
             waited = waited.saturating_add(interval);
             let answer = self.poll(&client, &device_code)?;
             match (answer.access_token, answer.error.as_deref()) {
-                (Some(token), _) if !token.is_empty() => {
+                (Some(token), _) if !token.expose_secret().is_empty() => {
                     return Ok(self.signed(token, answer.refresh_token));
                 }
                 (None, Some(ERROR_PENDING)) => {}
@@ -204,20 +204,17 @@ impl DeviceFlow {
         ]);
         let answer: TokenReply = post(&client()?, &self.token_url, &body)?;
         match answer.access_token {
-            Some(token) if !token.is_empty() => Ok(self.signed(token, answer.refresh_token)),
+            Some(token) if !token.expose_secret().is_empty() => {
+                Ok(self.signed(token, answer.refresh_token))
+            }
             _ => Err(DeviceFlowError::Failed),
         }
     }
 
-    fn signed(&self, token: String, refresh: Option<String>) -> SignedIn {
+    fn signed(&self, token: SecretString, refresh: Option<SecretString>) -> SignedIn {
         SignedIn {
-            credential: Credential::new(
-                SecretString::from(self.user.clone()),
-                SecretString::from(token),
-            ),
-            refresh: refresh
-                .filter(|text| !text.is_empty())
-                .map(SecretString::from),
+            credential: Credential::new(SecretString::from(self.user.clone()), token),
+            refresh: refresh.filter(|text| !text.expose_secret().is_empty()),
         }
     }
 
@@ -298,7 +295,13 @@ fn post<T: for<'de> Deserialize<'de>>(
 /// `application/x-www-form-urlencoded` body of `fields`. The buffer is wiped when dropped,
 /// because one of the values is the device code.
 fn form(fields: &[(&str, &str)]) -> Zeroizing<String> {
-    let mut out = Zeroizing::new(String::new());
+    // The room for the worst case (every byte escaped) is reserved at once: a buffer that grows
+    // leaves unwiped copies of the values behind.
+    let room = fields
+        .iter()
+        .map(|(name, value)| (name.len() + value.len()) * ESCAPED_WIDTH + FORM_OVERHEAD)
+        .sum();
+    let mut out = Zeroizing::new(String::with_capacity(room));
     for (index, (name, value)) in fields.iter().enumerate() {
         if index > 0 {
             out.push(FORM_JOIN);

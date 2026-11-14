@@ -185,6 +185,12 @@ pub const REFRESH_LINK_SEPARATOR: char = '\t';
 pub fn is_refresh_credential(name: &str) -> bool {
     name.trim().to_ascii_lowercase().ends_with(REFRESH_SUFFIX)
 }
+/// Whether `name` belongs to the program and is neither managed by a user nor lent to a remote:
+/// the installation token and the refresh entry of a credential.
+#[must_use]
+pub fn is_reserved_credential(name: &str) -> bool {
+    is_token_credential(name) || is_refresh_credential(name)
+}
 /// User name stored next to the installation token; the credential format needs one.
 pub const TOKEN_CREDENTIAL_USER: &str = "local-owner";
 /// Number of random bytes of an installation token: 256 bits (ADR 0019).

@@ -21,13 +21,13 @@ use super::consts::{
     CREDENTIALS_LIST_DESCRIPTION, CREDENTIALS_LIST_TITLE, CREDENTIALS_SET,
     CREDENTIALS_SET_DESCRIPTION, CREDENTIALS_SET_TITLE,
 };
-use crate::consts::{is_refresh_credential, is_token_credential};
+use crate::consts::is_reserved_credential;
 use crate::wiring::Secrets;
 
 /// The name of a credential that a user may manage. The installation token is not one of them:
 /// replacing it would lock the browser out, deleting it would break the next start.
 fn usable(name: &str) -> Result<CredentialId, CodedError> {
-    if is_token_credential(name) || is_refresh_credential(name) {
+    if is_reserved_credential(name) {
         return Err(CodedError::new(ErrorCode::RequestInvalid));
     }
     CredentialId::new(name).map_err(|_| CodedError::new(ErrorCode::RequestInvalid))
@@ -136,8 +136,9 @@ impl Command for SetCredential {
             return Err(CodedError::new(ErrorCode::RequestInvalid));
         }
         let credential = Credential::new(SecretString::from(input.user), input.secret);
-        self.secrets.store(&id, &credential)?;
+        // Forget first: a failure in between must not leave the old refresh token behind a new secret.
         crate::refresh::forget(&*self.secrets, &id)?;
+        self.secrets.store(&id, &credential)?;
         Ok(CredentialDone { id: id.to_string() })
     }
 }

@@ -30,6 +30,8 @@ mod mcp;
 mod mcp_http_tests;
 #[cfg(test)]
 mod memory_keystore;
+#[cfg(test)]
+mod oauth_stub;
 mod open;
 mod principal;
 mod redact;

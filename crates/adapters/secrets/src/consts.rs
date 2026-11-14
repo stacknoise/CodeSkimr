@@ -51,6 +51,10 @@ pub const FIELD_GRANT_TYPE: &str = "grant_type";
 /// Value of the grant type of the device flow (RFC 8628, section 3.4).
 pub const GRANT_DEVICE_CODE: &str = "urn:ietf:params:oauth:grant-type:device_code";
 
+/// Bytes of one escaped byte in a form body (`%` and two hex digits).
+pub const ESCAPED_WIDTH: usize = 3;
+/// Bytes a form body needs besides its escaped texts: the `=` of a field and the `&` after it.
+pub const FORM_OVERHEAD: usize = 2;
 /// Form field of the refresh token.
 pub const FIELD_REFRESH_TOKEN: &str = "refresh_token";
 /// Value of the grant type that trades a refresh token for a new access token (RFC 6749, 6).

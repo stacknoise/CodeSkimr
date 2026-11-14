@@ -68,6 +68,8 @@ fn the_installation_token_and_bad_input_are_refused_without_echoing_the_secret()
         ("installation-token", SECRET),
         ("Installation-Token", SECRET),
         (" installation-token", SECRET),
+        ("work.refresh", SECRET),
+        ("Work.Refresh ", SECRET),
         ("", SECRET),
         ("work", ""),
     ] {
@@ -130,4 +132,47 @@ fn a_principal_without_the_rights_cannot_touch_credentials() {
     let id = CredentialId::new("work").unwrap();
     assert!(fixture.secrets.with_credential(&id, |_| Ok(())).is_err());
     assert!(set(&fixture, "work", SECRET).is_ok());
+}
+
+/// A credential that was signed in with a refresh token, as `credential login` leaves it.
+fn signed_in(fixture: &Fixture) {
+    use codeskimr_application::ports::Credential;
+    use codeskimr_secrets::{Provider, SignedIn};
+    use secrecy::SecretString;
+
+    use crate::refresh::{Link, save};
+
+    let signed = SignedIn {
+        credential: Credential::new(SecretString::from("oauth2"), SecretString::from("old")),
+        refresh: Some(SecretString::from("old-refresh")),
+    };
+    let link = Link {
+        provider: Provider::GitLab,
+        client_id: "app",
+        host: None,
+    };
+    let id = CredentialId::new("work").unwrap();
+    save(&*fixture.secrets, &id, signed, &link).unwrap();
+}
+
+fn holds(fixture: &Fixture, name: &str) -> bool {
+    let id = CredentialId::new(name).unwrap();
+    fixture.secrets.with_credential(&id, |_| Ok(())).is_ok()
+}
+
+#[test]
+fn the_refresh_entry_cannot_be_named_and_goes_with_its_credential() {
+    let fixture = Fixture::installed(None);
+    signed_in(&fixture);
+    let delete_refresh = fixture.call("credentials.delete", json!({ "id": "Work.Refresh " }));
+    assert_eq!(delete_refresh, Err("API-101"));
+    assert!(holds(&fixture, "work.refresh"));
+    // A new secret by hand must not be overwritten later by a token of the old sign-in.
+    set(&fixture, "work", SECRET).unwrap();
+    assert!(!holds(&fixture, "work.refresh"));
+    signed_in(&fixture);
+    fixture
+        .call("credentials.delete", json!({ "id": "work" }))
+        .unwrap();
+    assert!(!holds(&fixture, "work") && !holds(&fixture, "work.refresh"));
 }
