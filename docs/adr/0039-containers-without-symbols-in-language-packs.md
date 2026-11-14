@@ -1,4 +1,4 @@
-# 0037 – Containers without a symbol: `impl` blocks belong to their type
+# 0039 – Containers without a symbol: `impl` blocks belong to their type
 
 Status: proposed
 

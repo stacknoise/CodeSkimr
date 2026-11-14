@@ -7,7 +7,7 @@
 #   associated type (in a trait)       -> type_alias   const, static        -> constant
 #   fn in a module or in a function    -> function     fn in impl or trait  -> method
 #   named field of a struct or variant -> field
-# `impl` blocks are no symbols but containers (ADR 0037): their functions are methods of the type
+# `impl` blocks are no symbols but containers (ADR 0039): their functions are methods of the type
 # the block names (`mod::Type::method`; the type is the parent if it is declared in the same
 # module before the block, else only the name carries it; a head such as `&Type` or `a::Type` has no
 # container). Not symbols: parameters, local variables, closures (they count for their function),

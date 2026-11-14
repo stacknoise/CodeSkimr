@@ -2,7 +2,7 @@
 
 Status: proposed
 
-*Update: the limit on `impl` blocks (decision 3 and the first item under Limits) is lifted by ADR 0037.*
+*Update: the limit on `impl` blocks (decision 3 and the first item under Limits) is lifted by ADR 0039.*
 
 ## Context
 

@@ -1,4 +1,4 @@
-//! Sample for `impl` blocks: their members belong to the type the block names (ADR 0037).
+//! Sample for `impl` blocks: their members belong to the type the block names (ADR 0039).
 
 use std::fmt;
 

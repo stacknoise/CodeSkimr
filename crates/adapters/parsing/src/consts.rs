@@ -43,7 +43,7 @@ pub const SIGNATURE_CAPTURE: &str = "signature";
 /// members itself, such as a file-scoped namespace.
 pub const SCOPE_END_CAPTURE: &str = "scope_end";
 /// Capture of a block that is no symbol but belongs to the type its `@name` capture names, such as
-/// a Rust `impl` block (ADR 0037).
+/// a Rust `impl` block (ADR 0039).
 pub const CONTAINER_CAPTURE: &str = "container";
 /// Capture of a receiver that is a name: a variable, a field or a type.
 pub const RECEIVER_CAPTURE: &str = "receiver";
@@ -165,7 +165,7 @@ pub const NAMING_NAMESPACED: &str = "namespace";
 
 /// Revision of the naming rules of the engine itself, part of the text of the naming rules: it
 /// changes when names change for reasons other than a pack key (2: members of an `impl` carry
-/// their type, ADR 0037).
+/// their type, ADR 0039).
 pub const NAMING_REVISION: &str = "revision=2";
 
 /// Ends a signature that was cut at `scan.max_signature_chars`.

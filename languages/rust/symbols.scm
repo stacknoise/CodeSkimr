@@ -1,7 +1,7 @@
 ; Rust declarations -> symbol kinds (blueprint 8.1, ADR 0026). `///` and `/** */` comments directly
 ; above a declaration (attributes may sit in between) are its documentation; the tokens of a
 ; visibility modifier (`pub`, `crate`, `super`, `self`, `in`) are the visibility words.
-; `impl` blocks are no symbols but containers (ADR 0037): their members belong to the type the block
+; `impl` blocks are no symbols but containers (ADR 0039): their members belong to the type the block
 ; names, so a function inside one is a method of that type (`mod::Type::method`; the type is its
 ; parent if it is declared in the same module). A `for` in the head makes the methods of a trait
 ; implementation public, see language.toml.

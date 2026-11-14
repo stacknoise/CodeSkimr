@@ -1,5 +1,5 @@
 ; Rust occurrences -> reference kinds (blueprint 9.2, level 1: names only, the resolver decides).
-; Declarations are not occurrences. `impl` blocks are containers (ADR 0037), so the occurrences in
+; Declarations are not occurrences. `impl` blocks are containers (ADR 0039), so the occurrences in
 ; the head of an `impl` (the trait that is implemented, the type) belong to the type if it is
 ; declared in the same module (else to the enclosing module), and those in a function to the function. A supertrait is reported as `inherit` from the trait, a
 ; trait that is implemented as `implement`; a function of a trait implementation is an `override`
