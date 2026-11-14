@@ -207,6 +207,7 @@ impl HtmlExport {
                 project,
                 level: Level::Layers,
                 depth: 0,
+                focus: None,
             },
         })?;
         Ok(Data {

@@ -823,6 +823,69 @@ fn a_depth_merges_the_namespaces_and_leaves_no_dependency_to_itself() {
     );
 }
 
+/// The id of the type `name` in the explorer outline of the project.
+fn type_named(fixture: &Fixture, project: u64, name: &str) -> Value {
+    let outline = fixture
+        .call("explorer.outline", json!({ "project": project }))
+        .unwrap();
+    outline["layers"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .flat_map(|layer| layer["namespaces"].as_array().unwrap())
+        .flat_map(|space| space["types"].as_array().unwrap())
+        .find(|found| found["name"] == name)
+        .unwrap()["id"]
+        .clone()
+}
+
+/// The map of the type level around `focus`.
+fn type_map(fixture: &Fixture, project: u64, focus: &Value) -> Value {
+    fixture
+        .call(
+            "graph.layers",
+            json!({ "project": project, "level": "types", "focus": focus }),
+        )
+        .unwrap()
+}
+
+#[test]
+fn the_type_level_puts_the_type_in_the_middle_between_its_users_and_what_it_uses() {
+    let fixture = Fixture::new();
+    fs::write(fixture.root.path().join("app/Checkout.cs"), CALLER).unwrap();
+    let project = added(&fixture);
+    let calculator = type_named(&fixture, project, "Calculator");
+    let map = type_map(&fixture, project, &calculator);
+    assert_eq!(map["focus"]["symbol"], calculator);
+    assert_eq!(map["focus"]["users_more"], 0);
+    let boxes = map["boxes"].as_array().unwrap();
+    assert_eq!(boxes.len(), 2);
+    let middle = boxes.iter().find(|b| b["symbol"] == calculator).unwrap();
+    let user = boxes.iter().find(|b| b["symbol"] != calculator).unwrap();
+    assert!(user["name"].as_str().unwrap().ends_with("Checkout"));
+    assert!(user["y"].as_u64() < middle["y"].as_u64());
+    assert_eq!(map["links"][0]["from"], user["name"]);
+    assert_eq!(map["links"][0]["to"], middle["name"]);
+    assert_eq!(map["links"][0]["count"], 2);
+    assert_eq!(map["bands"], json!([]));
+}
+
+#[test]
+fn the_type_level_refuses_a_missing_focus_and_something_that_is_no_type() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    let member = member_id(&fixture, project, "Add");
+    for focus in [json!(null), json!(99999), member] {
+        assert_eq!(
+            fixture.call(
+                "graph.layers",
+                json!({ "project": project, "level": "types", "focus": focus })
+            ),
+            Err("MCP-202")
+        );
+    }
+}
+
 #[test]
 fn the_graph_of_a_project_without_layers_or_without_a_scan_is_empty() {
     let fixture = Fixture::new();

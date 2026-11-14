@@ -44,3 +44,7 @@ graph-depth-label = Tiefe
 graph-depth-all = alle
 graph-depth-1 = 1 Stufe
 graph-depth-2 = 2 Stufen
+graph-selected-type = Typ
+graph-focus-here = Fokus auf diesen Typ
+graph-types-more = { $count } weitere Typen sind nicht gezeigt.
+graph-types-pick = Wähle im Explorer zuerst einen Typ.

@@ -8,10 +8,11 @@ every symbol is used, and compares line by line with the references CodeSkimr st
     python3 tools/accuracy/measure.py python --samples 40 --seed 1 --codeskimr target/debug/codeskimr
 
 Reference tools (`truth_<language>.*`): python = Jedi, typescript = the TypeScript language
-service. The numbers per symbol: precision = our usages the tool confirms / our usages, recall =
+service, rust = rust-analyzer over LSP `textDocument/references`, java = javac (`TruthJava.java`, the
+compiler's own attribution through `com.sun.source`). None of them reads a SCIP index. The numbers per symbol: precision = our usages the tool confirms / our usages, recall =
 tool usages we found / tool usages. A symbol counts as correct if both are 1 (exact).
 """
-import argparse, json, random, shutil, sqlite3, subprocess, sys, tempfile, tomllib
+import argparse, hashlib, json, os, random, shutil, sqlite3, subprocess, sys, tempfile, tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -47,30 +48,66 @@ def scan(codeskimr, languages, source, data):
     return sqlite3.connect(max(dbs, key=lambda p: p.stat().st_size))
 
 
-def ours(db):
+def ours(db, verified_only=False):
     snapshot = db.execute("select max(id) from snapshots").fetchone()[0]
     files = dict(db.execute("select id, path from files where snapshot_id=?", (snapshot,)))
     symbols = {r[0]: r for r in db.execute(
         "select id, file_id, kind, name, qualified_name, start_line, start_column from symbols where snapshot_id=?", (snapshot,))}
-    used = {}
-    for to, file, line, kind, conf in db.execute(
-            "select to_symbol, file_id, start_line, kind, confidence from snapshot_references where snapshot_id=?", (snapshot,)):
-        if kind in ("import",):
+    used, kinds = {}, {}
+    for to, file, line, kind, verified in db.execute(
+            "select to_symbol, file_id, start_line, kind, verified from snapshot_references where snapshot_id=?", (snapshot,)):
+        if kind in ("import",) or (verified_only and not verified):
             continue
-        used.setdefault(to, set()).add((files[file].replace("\\", "/"), line + 1))
-    return files, symbols, used
+        key = (files[file].replace("\\", "/"), line + 1)
+        used.setdefault(to, set()).add(key)
+        kinds.setdefault((to, key), set()).add(kind)
+    return files, symbols, used, kinds
 
 
-def truth(lang, source, targets):
-    """Reference tool: `targets` is a list of {file, line, column, name}; returns a list of sets of (file, line)."""
+def java_inputs(src, tmp):
+    """Classpath (pinned, checked downloads) and generated sources for the Java reference compiler."""
+    config = tomllib.loads((Path(__file__).parent / "reference_tools.toml").read_text())["java"]
+    cache = ROOT / "target/accuracy-cache"
+    cache.mkdir(parents=True, exist_ok=True)
+    jars = []
+    for dep in config["dependencies"]:
+        jar = cache / dep["sha256"][:16] / Path(dep["url"]).name
+        if not jar.exists():
+            jar.parent.mkdir(parents=True, exist_ok=True)
+            subprocess.run(["curl", "-fsSL", "-o", str(jar), dep["url"]], check=True)
+        if hashlib.sha256(jar.read_bytes()).hexdigest() != dep["sha256"]:
+            jar.unlink()
+            sys.exit(f"checksum mismatch for {dep['url']}")
+        jars.append(str(jar))
+    generated = tmp / "generated"
+    for file in (src / config["template_dir"]).rglob("*.java"):
+        text = file.read_text(encoding="utf-8")
+        for key, value in config["template_values"].items():
+            text = text.replace(key, value)
+        target = generated / file.relative_to(src / config["template_dir"])
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text, encoding="utf-8")
+    return os.pathsep.join(jars), generated
+
+
+def truth(lang, source, workspace, targets):
+    """Reference tool: `targets` is a list of {file, line, column, name}; returns a list of sets of (file, line).
+    `source` is the filtered copy that was scanned, `workspace` the full checkout (Rust needs its Cargo files)."""
     here = Path(__file__).parent
+    stdin = json.dumps(targets)
     if lang == "python":
         cmd = [sys.executable, str(here / "truth_python.py"), str(source)]
     elif lang in ("typescript", "javascript"):
         cmd = ["node", str(here / "truth_typescript.js"), str(source)]
+    elif lang == "rust":
+        cmd = [sys.executable, str(here / "truth_rust.py"), str(workspace), str(source)]
+    elif lang == "java":
+        classpath, generated = java_inputs(workspace, source.parent)
+        cmd = ["java", str(here / "TruthJava.java"), str(source), classpath, str(generated)]
+        stdin = "".join(f"{t['file']}\t{t['line']}\t{t['name']}\n" for t in targets)
     else:
         sys.exit(f"no reference tool for {lang} yet")
-    done = subprocess.run(cmd, input=json.dumps(targets), stdout=subprocess.PIPE, text=True, check=True)
+    done = subprocess.run(cmd, input=stdin, stdout=subprocess.PIPE, text=True, check=True)
     return [{(f, l) for f, l in result} for result in json.loads(done.stdout)]
 
 
@@ -82,6 +119,7 @@ def main():
     args.add_argument("--codeskimr", default=str(ROOT / "target/debug/codeskimr"))
     args.add_argument("--languages", default=str(ROOT / "languages"), help="language packs that belong to the binary")
     args.add_argument("--json", action="store_true")
+    args.add_argument("--verified-only", action="store_true", help="count only references that level 2 produced (verified)")
     opt = args.parse_args()
     project = tomllib.loads((ROOT / "corpus" / opt.language / "corpus.toml").read_text())["project"]
     src = checkout(opt.language, project)
@@ -90,14 +128,15 @@ def main():
         (tmp / "src").mkdir()
         filtered_copy(src, project, tmp / "src")
         db = scan(opt.codeskimr, opt.languages, tmp / "src", tmp / "data")
-        files, symbols, used = ours(db)
+        files, symbols, used, kinds = ours(db, opt.verified_only)
         # Drawn by qualified name so that two versions of the scanner see the same symbols.
         pool = sorted((s[4], i) for i, s in symbols.items() if s[2] in KINDS and not s[3].startswith("_"))
         rng = random.Random(opt.seed)
         picked = [i for _, i in rng.sample(pool, min(opt.samples, len(pool)))]
         targets = [{"file": files[symbols[i][1]].replace("\\", "/"), "line": symbols[i][5] + 1, "column": symbols[i][6], "name": symbols[i][3]} for i in picked]
-        sets = truth(opt.language, tmp / "src", targets)
+        sets = truth(opt.language, tmp / "src", src, targets)
     rows, exact, tp, fp, fn = [], 0, 0, 0, 0
+    wrong_kinds = {}
     for i, t, real in zip(picked, targets, sets):
         mine = used.get(i, set())
         real = {x for x in real if x != (t["file"], t["line"])}
@@ -105,10 +144,20 @@ def main():
         ok = mine == real
         exact += ok
         tp += len(hit); fp += len(mine - real); fn += len(real - mine)
-        rows.append({"symbol": symbols[i][4], "ours": len(mine), "tool": len(real), "both": len(hit), "exact": ok})
+        for key in mine - real:
+            for kind in kinds.get((i, key), ()):
+                wrong_kinds[kind] = wrong_kinds.get(kind, 0) + 1
+        rows.append({"symbol": symbols[i][4], "kind": symbols[i][2], "ours": len(mine), "tool": len(real), "both": len(hit), "exact": ok,
+                     "wrong": sorted(mine - real)[:5], "missed": sorted(real - mine)[:5]})
+    by_kind = {}
+    for r in rows:
+        k = by_kind.setdefault(r["kind"], {"symbols": 0, "exact": 0, "tool": 0, "found": 0, "ours": 0})
+        k["symbols"] += 1; k["exact"] += r["exact"]; k["tool"] += r["tool"]; k["found"] += r["both"]; k["ours"] += r["ours"]
     n = len(rows)
     summary = {"language": opt.language, "samples": n, "exact": exact, "exact_rate": round(exact / n, 3) if n else None,
-               "precision": round(tp / (tp + fp), 3) if tp + fp else None, "recall": round(tp / (tp + fn), 3) if tp + fn else None}
+               "precision": round(tp / (tp + fp), 3) if tp + fp else None, "recall": round(tp / (tp + fn), 3) if tp + fn else None,
+               "usages_ours": tp + fp, "usages_tool": tp + fn, "wrong_by_our_kind": dict(sorted(wrong_kinds.items(), key=lambda x: -x[1])),
+               "verified_only": opt.verified_only, "by_kind": by_kind}
     if opt.json:
         print(json.dumps({"summary": summary, "rows": rows}, indent=1))
     else:

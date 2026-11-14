@@ -83,6 +83,13 @@ impl ReverseIndex {
         }
     }
 
+    /// The ends of every reference, as (from, to).
+    pub fn ends(&self) -> impl Iterator<Item = (SymbolId, SymbolId)> + '_ {
+        self.references
+            .iter()
+            .map(|reference| (reference.from, reference.to))
+    }
+
     /// Number of references in the index.
     #[must_use]
     pub fn len(&self) -> usize {

@@ -115,7 +115,7 @@ impl NamespaceGraph {
 }
 
 /// The longest name that is a proper prefix of `name` up to a separator and is in `known`.
-fn enclosing<'a>(known: &Known<'a>, name: &str) -> Option<&'a str> {
+pub(crate) fn enclosing<'a, V>(known: &HashMap<&'a str, V>, name: &str) -> Option<&'a str> {
     let mut cuts: Vec<usize> = name
         .match_indices(NAME_SEPARATOR)
         .chain(name.match_indices(MODULE_NAME_SEPARATOR))
