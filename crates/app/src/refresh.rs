@@ -16,7 +16,9 @@ use codeskimr_domain::{CredentialId, ProjectSource};
 use codeskimr_secrets::{Provider, SignedIn};
 use secrecy::{ExposeSecret, SecretString};
 
-use crate::consts::{REFRESH_LINK_SEPARATOR, REFRESH_SUFFIX, is_token_credential};
+use crate::consts::{
+    REFRESH_LINK_FIELDS, REFRESH_LINK_SEPARATOR, REFRESH_SUFFIX, is_token_credential,
+};
 
 /// Where a credential is renewed: the platform, the application and, for a self-managed
 /// installation, the host.
@@ -110,7 +112,7 @@ fn read_entry(
         Err(AuthError::NotFound) => return Ok(None),
         Err(error) => return Err(error.into()),
     };
-    let mut parts = user.splitn(3, REFRESH_LINK_SEPARATOR);
+    let mut parts = user.splitn(REFRESH_LINK_FIELDS, REFRESH_LINK_SEPARATOR);
     let provider = parts.next().and_then(Provider::from_name);
     let client_id = parts.next().unwrap_or_default().to_owned();
     let host = parts

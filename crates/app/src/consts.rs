@@ -177,6 +177,8 @@ pub fn is_token_credential(name: &str) -> bool {
 }
 /// Ending of the name under which the refresh token of a credential is kept.
 pub const REFRESH_SUFFIX: &str = ".refresh";
+/// Number of fields in the user field of a refresh entry: provider, application id and host.
+pub const REFRESH_LINK_FIELDS: usize = 3;
 /// Separates provider, application id and host in the user field of a refresh entry.
 pub const REFRESH_LINK_SEPARATOR: char = '\t';
 /// Whether `name` is the refresh entry of another credential: it belongs to the program, a user
