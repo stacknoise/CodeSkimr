@@ -104,4 +104,23 @@ mod tests {
             fs::remove_dir_all(root).ok();
         }
     }
+
+    #[test]
+    fn a_home_folder_of_a_pack_must_lie_below_the_home() {
+        for folder in ["../.ssh", "/etc", "", ".cargo/../../x"] {
+            let text = format!(
+                "[indexer]\nname = \"x\"\ninstall_hint = \"y\"\nargs = [\"{{output}}\"]\nhome_dirs = {{ X_HOME = \"{folder}\" }}\n{TOOL}"
+            );
+            let root = pack_with(&text);
+            let error = LanguagePacks::load(&root).err().expect("invalid");
+            assert_eq!(error.code(), ErrorCode::LanguagePackInvalid, "{folder:?}");
+            fs::remove_dir_all(root).ok();
+        }
+        let text = format!(
+            "[indexer]\nname = \"x\"\ninstall_hint = \"y\"\nargs = [\"{{output}}\"]\nhome_dirs = {{ X_HOME = \".nuget/packages\" }}\n{TOOL}"
+        );
+        let root = pack_with(&text);
+        assert!(LanguagePacks::load(&root).is_ok());
+        fs::remove_dir_all(root).ok();
+    }
 }

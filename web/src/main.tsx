@@ -9,6 +9,7 @@ import { App } from "./app/App";
 import { ROOT_ID } from "./app/consts";
 import { currentLanguage, setLanguage } from "./shared/i18n/i18n";
 import { startSession } from "./shared/session/session";
+import { syncPreferences } from "./shared/settings/preferences";
 import { loadUiConfig } from "./shared/settings/ui-config";
 import { applyTheme } from "./shared/theme/theme";
 
@@ -18,5 +19,6 @@ if (root) {
   setLanguage(currentLanguage());
   render(() => <App />, root);
   void loadUiConfig();
+  syncPreferences();
   void startSession();
 }

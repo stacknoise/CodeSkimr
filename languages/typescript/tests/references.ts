@@ -38,3 +38,9 @@ function helper(a: Named, b: Cart[]): Promise<Cart> {
 }
 
 const mapper = (value: number) => value * LIMIT;
+
+const names = { LIMIT };
+for (const key in names) {
+  names[key];
+}
+const picked = LIMIT > 1 ? names.LIMIT : names.size;

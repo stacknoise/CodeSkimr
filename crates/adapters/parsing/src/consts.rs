@@ -145,6 +145,8 @@ pub const INDEXER_BAD_PROGRAM: &str = "indexer program must be a bare name: ";
 pub const INDEXER_BAD_VERSION: &str = "indexer version cannot be read: ";
 /// Reason: an argument of an `[indexer]` holds a placeholder that does not exist.
 pub const INDEXER_UNKNOWN_PLACEHOLDER: &str = "indexer argument has an unknown placeholder: ";
+/// Reason: a `home_dirs` entry of an `[indexer]` is empty, absolute or leaves the home.
+pub const INDEXER_BAD_HOME_DIR: &str = "indexer home_dirs must name a folder below the home: ";
 /// Reason: no argument of an `[indexer]` names the index file.
 pub const INDEXER_NO_OUTPUT: &str = "indexer args must contain {output}";
 /// Opens a placeholder in an indexer argument.

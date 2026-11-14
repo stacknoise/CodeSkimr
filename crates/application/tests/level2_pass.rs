@@ -73,6 +73,7 @@ mod cases {
             toolchain: Vec::new(),
             args: Vec::new(),
             env_allow: Vec::new(),
+            home_dirs: Vec::new(),
             env: Vec::new(),
             install_hint: String::new(),
         }

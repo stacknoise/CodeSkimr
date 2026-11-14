@@ -2,14 +2,14 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 52,
+      "loc": 61,
       "operands": null,
       "operators": null,
       "symbol": "receivers.cs"
     },
     {
       "decisions": null,
-      "loc": 52,
+      "loc": 61,
       "operands": null,
       "operators": null,
       "symbol": "Demo"
@@ -193,8 +193,8 @@
       "decisions": 0,
       "loc": 1,
       "operands": [
-        0,
-        0
+        1,
+        1
       ],
       "operators": [
         3,
@@ -271,8 +271,8 @@
       "decisions": 0,
       "loc": 1,
       "operands": [
-        3,
-        3
+        4,
+        4
       ],
       "operators": [
         3,
@@ -284,8 +284,8 @@
       "decisions": 1,
       "loc": 1,
       "operands": [
-        2,
-        2
+        3,
+        3
       ],
       "operators": [
         4,
@@ -476,9 +476,56 @@
         5
       ],
       "symbol": "Demo.NullConditional.Forms"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Clause"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "Demo.Clause.Null"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Guard"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "Demo.Checks"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        2,
+        3
+      ],
+      "symbol": "Demo.Checks.Run"
     }
   ],
-  "loc": 52,
+  "loc": 61,
   "references": [
     {
       "at": "4:26",
@@ -598,6 +645,13 @@
       "kind": "call",
       "receiver": "typed IReader",
       "target": "Open"
+    },
+    {
+      "at": "25:35",
+      "from": "Demo.Shapes.ThisField",
+      "kind": "read",
+      "receiver": "own",
+      "target": "_reader"
     },
     {
       "at": "25:43",
@@ -892,6 +946,41 @@
       "kind": "read",
       "receiver": "typed Leaf",
       "target": "Weight"
+    },
+    {
+      "at": "67:18",
+      "from": "Demo.Guard.Against",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Clause"
+    },
+    {
+      "at": "67:48",
+      "from": "Demo.Guard.Against",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Clause"
+    },
+    {
+      "at": "71:33",
+      "from": "Demo.Checks.Run",
+      "kind": "read",
+      "receiver": null,
+      "target": "Guard"
+    },
+    {
+      "at": "71:39",
+      "from": "Demo.Checks.Run",
+      "kind": "read",
+      "receiver": "named Guard",
+      "target": "Against"
+    },
+    {
+      "at": "71:47",
+      "from": "Demo.Checks.Run",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "Null"
     }
   ],
   "symbols": [
@@ -901,7 +990,7 @@
       "name": "receivers.cs",
       "parent": null,
       "signature": null,
-      "span": "0:0-63:0",
+      "span": "0:0-73:0",
       "static": false,
       "visibility": null
     },
@@ -911,7 +1000,7 @@
       "name": "Demo",
       "parent": "receivers.cs",
       "signature": null,
-      "span": "0:0-63:0",
+      "span": "0:0-73:0",
       "static": false,
       "visibility": null
     },
@@ -1452,6 +1541,66 @@
       "parent": "Demo.NullConditional",
       "signature": null,
       "span": "61:4-61:79",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Clause",
+      "parent": "Demo",
+      "signature": null,
+      "span": "64:0-64:55",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Clause.Null",
+      "parent": "Demo.Clause",
+      "signature": null,
+      "span": "64:22-64:53",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Guard",
+      "parent": "Demo",
+      "signature": null,
+      "span": "65:0-68:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "property",
+      "name": "Demo.Guard.Against",
+      "parent": "Demo.Guard",
+      "signature": null,
+      "span": "67:4-67:57",
+      "static": true,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Demo.Checks",
+      "parent": "Demo",
+      "signature": null,
+      "span": "69:0-72:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Demo.Checks.Run",
+      "parent": "Demo.Checks",
+      "signature": null,
+      "span": "71:4-71:61",
       "static": false,
       "visibility": "public"
     }

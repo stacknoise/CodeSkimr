@@ -12,6 +12,7 @@ mod export;
 mod export_tests;
 mod graph;
 mod graph_types;
+mod preferences;
 mod projects;
 #[cfg(test)]
 mod projects_tests;
@@ -44,10 +45,13 @@ use crate::locations::Locations;
 use crate::running::RunningScans;
 use crate::wiring::{Secrets, index_runner, open_store, tool_checker};
 use codeskimr_storage::SqliteStore;
+#[cfg(test)]
+pub(crate) use consts::PREFERENCES_FILE;
 use credentials::{DeleteCredential, ListCredentials, SetCredential};
 use explorer::{ExplorerOutline, ExplorerPorts};
 pub(crate) use export::{ExportInput, HtmlExport};
 use graph::{GraphLayers, GraphPorts};
+use preferences::{GetPreferences, PreferencesFile, SetPreferences};
 use projects::{AddProject, CancelScan, CheckTools, ListProjects, RescanProject};
 use search::{SearchPorts, SearchQuery};
 use source::ExplorerSource;
@@ -154,12 +158,24 @@ pub fn command_api_probing(
         })
         .map_err(CodedError::caused_by)?;
     register_explorer(&mut registry, &catalog, config.metrics.clone())?;
+    register_preferences(&mut registry, locations)?;
     registry
         .register(export_command(&catalog, &config, locations))
         .map_err(CodedError::caused_by)?;
     let mut api = CommandApi::new(Arc::new(registry));
     expose_all(&mut api)?;
     Ok(api)
+}
+
+/// The two commands that keep theme and language in the data folder.
+fn register_preferences(registry: &mut Registry, locations: &Locations) -> Result<(), CodedError> {
+    let file = PreferencesFile::in_dir(&locations.data_dir);
+    registry
+        .register(GetPreferences { file: file.clone() })
+        .map_err(CodedError::caused_by)?;
+    registry
+        .register(SetPreferences { file })
+        .map_err(CodedError::caused_by)
 }
 
 /// Makes every registered command of the UI reachable over REST.
@@ -180,6 +196,8 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<UsagesCode>()?;
     api.expose::<GraphLayers>()?;
     api.expose::<StatusInfo>()?;
+    api.expose::<GetPreferences>()?;
+    api.expose::<SetPreferences>()?;
     api.expose::<HtmlExport>()?;
     Ok(())
 }

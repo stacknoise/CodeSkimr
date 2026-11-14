@@ -29,6 +29,7 @@ mod cases {
             toolchain: Vec::new(),
             args: vec!["--out".to_owned()],
             env_allow: Vec::new(),
+            home_dirs: Vec::new(),
         }
     }
 

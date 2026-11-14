@@ -30,6 +30,9 @@ pub(crate) const CREDENTIAL_CANARY: &str = "ghp_CANARY0c4e7a91d2b84f6e9a30cc11";
 const FILE_CANARY: &str = "CanaryOutside6b1d";
 /// The same, inside the project: the control that the search finds what is really there.
 const INSIDE: &str = "CanaryInside6b1d";
+/// The value of a key in a configuration file of the project: `find_constants` lists the key
+/// names, never their values.
+const KEY_VALUE_CANARY: &str = "CanaryKeyValue6b1d";
 const COMMANDS: &str = "/api/v1/commands";
 
 /// Everything one run of the server leaves behind for the checks.
@@ -51,6 +54,11 @@ pub(crate) fn folders() -> Folders {
     let class = |name: &str| format!("namespace A; public class {name} {{ }}");
     fs::write(project.join("src/a.cs"), class(INSIDE)).unwrap();
     fs::write(data.path().join("outside.cs"), class(FILE_CANARY)).unwrap();
+    let config = format!(
+        "[auth]\ntoken = \"{KEY_VALUE_CANARY}\"\nnote = \"\"\"\npassword = {KEY_VALUE_CANARY}\n\"\"\"\n"
+    );
+    fs::create_dir_all(project.join("config")).unwrap();
+    fs::write(project.join("config/app.toml"), config).unwrap();
     // A link inside the project that points out of it (blueprint S-05).
     #[cfg(unix)]
     std::os::unix::fs::symlink(data.path().join("outside.cs"), project.join("src/link.cs"))
@@ -223,6 +231,7 @@ fn mcp_tool_traffic(url: &str, token: &str) -> Vec<String> {
             json!({ "project": 1, "symbol": "A.CanaryInside6b1d" }),
         ),
         ("find_constants", json!({ "project": 1, "query": "Canary" })),
+        ("find_constants", json!({ "project": 1, "query": "auth" })),
         ("get_architecture", json!({ "project": 1 })),
         ("rescan", json!({ "project": 1 })),
         (
@@ -253,13 +262,21 @@ fn no_canary_leaves_the_running_app() {
     assert!(found("200 OK") && found(INSIDE) && found("public class"));
     // ... and `rescan` over MCP really scanned the project (it answers with its duration).
     assert!(found("duration_ms"));
+    // ... and `find_constants` listed the key `auth.token` of the configuration file, but not
+    // its value.
+    assert!(found("auth.token"));
     // Calls without the token or with a wrong one are refused (S-04).
     assert!(found("401 Unauthorized"));
     // The messages name the position, never the secret: a failing run must not log it.
     for (n, answer) in outcome.answers.iter().enumerate() {
-        for (kind, secret) in [CREDENTIAL_CANARY, FILE_CANARY, outcome.token.as_str()]
-            .into_iter()
-            .enumerate()
+        for (kind, secret) in [
+            CREDENTIAL_CANARY,
+            FILE_CANARY,
+            KEY_VALUE_CANARY,
+            outcome.token.as_str(),
+        ]
+        .into_iter()
+        .enumerate()
         {
             assert!(!answer.contains(secret), "secret {kind} in answer {n}");
         }
