@@ -16,6 +16,9 @@ export interface LanguageInfo {
   language: string;
   files: number;
   loc: number;
+  symbols: number;
+  /** Tier of the language pack; `null` if no pack of that id is installed. */
+  tier: "full" | "basic" | null;
 }
 
 /** One row of `projects.list`. */

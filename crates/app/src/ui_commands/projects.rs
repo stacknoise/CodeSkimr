@@ -46,6 +46,10 @@ pub struct LanguageRow {
     pub files: u32,
     /// Lines of code.
     pub loc: u32,
+    /// Number of symbols declared in its files.
+    pub symbols: u32,
+    /// `full` or `basic`, the tier of its language pack; `None` if no pack of that id is installed.
+    pub tier: Option<&'static str>,
 }
 
 /// One row of the project list.
@@ -86,15 +90,17 @@ fn scan_row(snapshot: &Snapshot) -> ScanRow {
     }
 }
 
-fn language_row(share: &LanguageShare) -> LanguageRow {
+fn language_row(share: &LanguageShare, context: &Context) -> LanguageRow {
     LanguageRow {
         language: share.language.to_string(),
         files: share.files,
         loc: share.loc,
+        symbols: share.symbols,
+        tier: context.tier_of(share.language.as_str()),
     }
 }
 
-fn project_row(overview: &ProjectOverview, running: bool) -> ProjectRow {
+fn project_row(overview: &ProjectOverview, running: bool, context: &Context) -> ProjectRow {
     let (kind, location, branch) = match &overview.project.source {
         ProjectSource::Folder(folder) => (KIND_FOLDER, folder.to_string(), None),
         ProjectSource::Git { url, branch, .. } => {
@@ -115,7 +121,11 @@ fn project_row(overview: &ProjectOverview, running: bool) -> ProjectRow {
         scan: overview.latest.as_ref().map(scan_row),
         types: overview.types,
         loc: overview.languages.iter().map(|share| share.loc).sum(),
-        languages: overview.languages.iter().map(language_row).collect(),
+        languages: overview
+            .languages
+            .iter()
+            .map(|share| language_row(share, context))
+            .collect(),
         running,
     }
 }
@@ -148,6 +158,7 @@ impl Command for ListProjects {
                 project_row(
                     overview,
                     self.context.running.is_running(overview.project.id),
+                    &self.context,
                 )
             })
             .collect())

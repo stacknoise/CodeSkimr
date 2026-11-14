@@ -2,6 +2,8 @@
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{LanguageShare, ProjectCatalog, ProjectOverview};
+use std::collections::HashMap;
+
 use codeskimr_domain::{LanguageId, ProjectId, SnapshotId};
 use rusqlite::{Connection, params};
 
@@ -22,10 +24,29 @@ fn project_ids(conn: &Connection) -> StorageResult<Vec<ProjectId>> {
     Ok(ids)
 }
 
+/// Runs a statement of one snapshot and reads every row with `read`.
+fn rows_of_snapshot<T>(
+    conn: &Connection,
+    statement: &str,
+    snapshot: SnapshotId,
+    read: impl Fn(&Cols<'_>) -> rusqlite::Result<T>,
+) -> StorageResult<Vec<T>> {
+    let mut prepared = conn.prepare_cached(statement)?;
+    let rows = prepared.query_map(params![column_int(snapshot.get())?], |row| {
+        read(&Cols::new(row))
+    })?;
+    Ok(rows.collect::<Result<Vec<_>, _>>()?)
+}
+
 fn languages(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<LanguageShare>> {
-    let mut statement = conn.prepare_cached(sql::LANGUAGE_SHARES)?;
-    let rows = statement.query_map(params![column_int(snapshot.get())?], |row| {
-        let cols = Cols::new(row);
+    // The symbols are counted in one pass over the symbols of the snapshot, not once per language.
+    let symbols: HashMap<String, i64> =
+        rows_of_snapshot(conn, sql::LANGUAGE_SYMBOLS, snapshot, |cols| {
+            Ok((cols.take::<String>()?, cols.take::<i64>()?))
+        })?
+        .into_iter()
+        .collect();
+    let rows = rows_of_snapshot(conn, sql::LANGUAGE_SHARES, snapshot, |cols| {
         Ok((
             cols.take::<String>()?,
             cols.take::<i64>()?,
@@ -33,9 +54,9 @@ fn languages(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<Langu
         ))
     })?;
     let mut shares = Vec::new();
-    for row in rows {
-        let (language, files, loc) = row?;
+    for (language, files, loc) in rows {
         shares.push(LanguageShare {
+            symbols: small_from(symbols.get(&language).copied().unwrap_or_default())?,
             language: LanguageId::new(language)?,
             files: small_from(files)?,
             loc: small_from(loc)?,

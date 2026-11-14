@@ -64,3 +64,5 @@ scan-recent-result = { $files ->
 scan-memory-value = { $mb } MB
 scan-stage-counts = { $text } · { $done } / { $total }
 scan-stage-time = { $seconds } s
+scan-tier-full = voll
+scan-tier-basic = Basis

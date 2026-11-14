@@ -113,3 +113,8 @@ export const NOT_FOUND = -1;
 /** The budget that is defined for a project of a given size, and that size in lines of code. */
 export const FULL_SCAN_BUDGET = "full_scan_100k_loc";
 export const FULL_SCAN_LOC = 100_000;
+
+/** Joins branch and commit in the header of the screen, and how many characters of the commit
+ * are shown. */
+export const BRANCH_COMMIT_JOIN = " @ ";
+export const SHORT_COMMIT_LENGTH = 7;

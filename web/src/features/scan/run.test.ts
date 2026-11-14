@@ -17,12 +17,14 @@ const progress = (
   done: number,
   total: number,
   project = 1,
+  elapsed_ms?: number,
 ): WireEvent => ({
   type: "scan_progressed",
   project,
   stage,
   done,
   total,
+  ...(elapsed_ms === undefined ? {} : { elapsed_ms }),
 });
 const created: WireEvent = { type: "snapshot_created", project: 1, snapshot: 5 };
 
@@ -42,6 +44,15 @@ describe("applyEvent", () => {
     expect(stageState(run!, "analyze")).toBe("running");
     expect(stageState(run!, "resolve")).toBe("waiting");
     expect(stageSeconds(run!, "fetch", 9999)).toBeCloseTo(0.38);
+  });
+
+  it("takes the time of a finished stage from the server, not from the arrival of the events", () => {
+    const [run] = fold([
+      [progress("fetch", 1, 1, 1, 0), 1000],
+      [progress("fetch", 1, 1, 1, 900), 1010],
+      [progress("discover", 0, 0), 1020],
+    ]);
+    expect(stageSeconds(run!, "fetch", 9999)).toBeCloseTo(0.9);
   });
 
   it("computes percent, rate and remaining time from the file stage", () => {
