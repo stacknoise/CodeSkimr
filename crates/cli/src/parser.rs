@@ -63,6 +63,7 @@ fn definition(messages: &Messages, language: &str) -> Result<Command, CliError> 
         .subcommand(check_command(messages, language)?)
         .subcommand(export_command(messages, language)?)
         .subcommand(credential::command(&say)?)
+        .subcommand(consent::command(&say)?)
         .subcommand(
             Command::new(COMMAND_MCP)
                 .about(say(CLI_CMD_MCP)?)
@@ -176,6 +177,7 @@ fn invocation(matches: &ArgMatches) -> Result<Invocation, CliError> {
         Some((COMMAND_CREDENTIAL, credential)) => {
             Action::Credential(credential::action(credential)?)
         }
+        Some((COMMAND_LEVEL2, level2)) => Action::Level2(consent::action(level2)?),
         Some((COMMAND_MCP, mcp)) => Action::Mcp(McpArgs {
             project: mcp.get_one::<PathBuf>(ARG_PROJECT).cloned(),
         }),
