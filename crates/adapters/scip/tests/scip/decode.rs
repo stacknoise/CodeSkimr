@@ -266,3 +266,26 @@ fn a_link_in_place_of_the_index_is_refused() {
     assert!(matches!(error, codeskimr_scip::ScipError::Unreadable(_)));
     assert!(codeskimr_scip::read_index(&target, 1 << 20).is_ok());
 }
+
+#[cfg(unix)]
+#[test]
+fn a_named_pipe_in_place_of_the_index_is_refused_and_does_not_block() {
+    let dir = tempfile::tempdir().unwrap();
+    let pipe = dir.path().join("index.scip");
+    let made = std::process::Command::new("mkfifo").arg(&pipe).status();
+    if !made.is_ok_and(|status| status.success()) {
+        // No `mkfifo` on this system: nothing to test.
+        return;
+    }
+    let (done, result) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        done.send(codeskimr_scip::read_index(&pipe, 1 << 20)).ok();
+    });
+    let outcome = result
+        .recv_timeout(std::time::Duration::from_secs(10))
+        .expect("opening a named pipe must not wait for a writer");
+    assert!(matches!(
+        outcome,
+        Err(codeskimr_scip::ScipError::Unreadable(_))
+    ));
+}

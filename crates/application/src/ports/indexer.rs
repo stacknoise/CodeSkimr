@@ -42,6 +42,11 @@ pub struct IndexerSpec {
     pub args: Vec<String>,
     /// Names of environment variables the indexer needs besides the base list of the adapter.
     pub env_allow: Vec<String>,
+    /// Folders the indexer needs from the real home of the user, as (variable, path below the
+    /// home): the indexer runs with an empty home, so the variable names the folder explicitly
+    /// (`CARGO_HOME` for `.cargo`). It is set only if the application did not pass the variable
+    /// itself and the folder exists.
+    pub home_dirs: Vec<(String, String)>,
     /// Variables set to a fixed value, such as the switch that stops `rustup` from installing a
     /// toolchain by itself.
     pub env: Vec<(String, String)>,

@@ -16,6 +16,7 @@ mod importer;
 mod locals;
 mod mapping;
 mod model;
+mod open;
 mod path;
 mod symbol;
 mod table;
