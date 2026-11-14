@@ -14,6 +14,7 @@ use codeskimr_cli::{GlobalOptions, Level2Action};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{Project, ProjectId, ProjectSource};
 
+use crate::consts::INVISIBLE_RANGES;
 use crate::locations::Locations;
 use crate::wiring::open_store;
 use crate::{config_files, export, principal};
@@ -57,13 +58,31 @@ impl Target {
     }
 }
 
+impl Target {
+    /// Whether name, location or branch holds a control or invisible character (a line break, an
+    /// escape sequence, a direction override): such text could make the prompt show something
+    /// else than what is confirmed.
+    fn is_disguised(&self) -> bool {
+        let hides = |c: char| {
+            c.is_control()
+                || INVISIBLE_RANGES
+                    .iter()
+                    .any(|(low, high)| (*low..=*high).contains(&c))
+        };
+        [Some(&self.name), Some(&self.place), self.branch.as_ref()]
+            .into_iter()
+            .flatten()
+            .any(|text| text.chars().any(hides))
+    }
+}
+
 /// Runs `action`. `ask` shows the warning and the [`Target`] and returns what the user typed, or
 /// fails if there is nobody to ask. It is called only for `Confirm`, after the project is found.
 /// The user confirms only by typing the name of the project.
 ///
 /// # Errors
 /// `PRJ-201` if the project is not registered, `SEC-403` if `ask` finds no interactive terminal
-/// or the project changed while the user was asked, otherwise any coded failure of the
+/// the name, location or branch holds control or direction characters (nobody is asked then), or the project changed while the user was asked, otherwise any coded failure of the
 /// configuration or the storage.
 pub fn run(
     action: &Level2Action,
@@ -79,6 +98,9 @@ pub fn run(
             let id = ProjectId::new(export::resolve(project, &store)?);
             let shown = store.project(id)?;
             let target = Target::of(&shown);
+            if target.is_disguised() {
+                return Err(CodedError::new(ErrorCode::IndexerNotPermitted));
+            }
             if ask(&target)?.trim() != target.name {
                 return Ok(Done::Declined(target.name));
             }

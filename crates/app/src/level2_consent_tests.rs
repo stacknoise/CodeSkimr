@@ -161,4 +161,28 @@ mod cases {
         assert_eq!(other.consent(), ConsentRecord::default());
         assert!(other.root.path().exists());
     }
+
+    #[test]
+    fn a_name_with_control_or_direction_characters_is_not_shown_and_nobody_is_asked() {
+        for name in [
+            "a\nb",
+            "a\u{1b}[2Jb",
+            "ab\u{202E}cd",
+            "a\u{2066}b",
+            "a\u{200B}b",
+        ] {
+            let fixture = Fixture::with(folder(FOLDER));
+            let mut renamed = project(folder(FOLDER));
+            renamed.name = ProjectName::new(name).unwrap();
+            fixture.store().save_project(&renamed).unwrap();
+            let asked = RefCell::new(false);
+            let refused = fixture.confirm(&ID.to_string(), &|_| {
+                asked.replace(true);
+                Ok(name.to_owned())
+            });
+            assert_eq!(refused.unwrap_err().code(), ErrorCode::IndexerNotPermitted);
+            assert!(!asked.take(), "asked for {name:?}");
+            assert_eq!(fixture.consent(), ConsentRecord::default());
+        }
+    }
 }

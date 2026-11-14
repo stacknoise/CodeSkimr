@@ -79,6 +79,7 @@ fn the_check_sees_every_spelling_of_the_way_in() {
         "use codeskimr_application::level2::{\n    authorize_run,\n    confirm as c,\n};",
         "use codeskimr_application::level2 as l;",
         "use codeskimr_application::level2::*;",
+        "use codeskimr_application::level2::{self as l, RunPermit};",
         "pub use crate::level2::{ConsentGrant, RunPermit};",
         "level2 :: \n  confirm(",
         "store.store_consent(&grant)",
