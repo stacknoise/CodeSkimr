@@ -140,3 +140,17 @@ pub const REQUIREMENT_SKIPPED_FOLDERS: &[&str] = &[
     ".venv",
     "venv",
 ];
+/// The characters of JSON that the tolerant reader of `global.json` looks at.
+pub const JSON_QUOTE: char = '"';
+/// Starts a comment (twice) or ends a block comment (after a star).
+pub const JSON_SLASH: char = '/';
+/// Opens or closes a block comment (next to a slash).
+pub const JSON_STAR: char = '*';
+/// Ends a line comment.
+pub const JSON_NEWLINE: char = '\n';
+/// Escapes the next character inside a string.
+pub const JSON_ESCAPE: char = '\\';
+/// Separates the members of an object or array.
+pub const JSON_COMMA: char = ',';
+/// What may follow a trailing comma.
+pub const JSON_CLOSERS: [char; 2] = ['}', ']'];

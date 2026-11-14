@@ -10,6 +10,7 @@ use codeskimr_application::ports::RequirementReader;
 use codeskimr_domain::{ProjectSource, RelativePath, RequirementFormat, RequirementSpec};
 
 use crate::consts::{
+    JSON_CLOSERS, JSON_COMMA, JSON_ESCAPE, JSON_NEWLINE, JSON_QUOTE, JSON_SLASH, JSON_STAR,
     REQUIREMENT_COMMENT, REQUIREMENT_MAX_DEPTH, REQUIREMENT_MAX_FILES, REQUIREMENT_SKIPPED_FOLDERS,
 };
 use crate::git::GitCache;
@@ -70,14 +71,15 @@ fn lenient_json(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut chars = text.chars().peekable();
     while let Some(c) = chars.next() {
-        match c {
-            '"' => copy_string(&mut out, &mut chars),
-            '/' if chars.peek() == Some(&'/') => {
-                chars.by_ref().find(|next| *next == '\n');
-                out.push('\n');
-            }
-            '/' if chars.peek() == Some(&'*') => skip_block_comment(&mut chars),
-            _ => out.push(c),
+        if c == JSON_QUOTE {
+            copy_string(&mut out, &mut chars);
+        } else if c == JSON_SLASH && chars.peek() == Some(&JSON_SLASH) {
+            chars.by_ref().find(|next| *next == JSON_NEWLINE);
+            out.push(JSON_NEWLINE);
+        } else if c == JSON_SLASH && chars.peek() == Some(&JSON_STAR) {
+            skip_block_comment(&mut chars);
+        } else {
+            out.push(c);
         }
     }
     drop_trailing_commas(&out)
@@ -85,21 +87,22 @@ fn lenient_json(text: &str) -> String {
 
 /// Copies a string (the opening quote is out already) up to and including its closing quote.
 fn copy_string(out: &mut String, chars: &mut Peekable<Chars<'_>>) {
-    out.push('"');
+    out.push(JSON_QUOTE);
     while let Some(c) = chars.next() {
         out.push(c);
-        match c {
-            '\\' => out.extend(chars.next()),
-            '"' => break,
-            _ => {}
+        if c == JSON_ESCAPE {
+            out.extend(chars.next());
+        } else if c == JSON_QUOTE {
+            break;
         }
     }
 }
 
+/// Skips up to and including the `*/` that ends a block comment; the `/*` is read up to its `*`.
 fn skip_block_comment(chars: &mut Peekable<Chars<'_>>) {
-    let mut last = ' ';
+    let mut last = JSON_NEWLINE;
     for c in chars.by_ref() {
-        if last == '*' && c == '/' {
+        if last == JSON_STAR && c == JSON_SLASH {
             return;
         }
         last = c;
@@ -111,19 +114,15 @@ fn drop_trailing_commas(text: &str) -> String {
     let mut out = String::with_capacity(text.len());
     let mut chars = text.chars().peekable();
     while let Some(c) = chars.next() {
-        match c {
-            '"' => copy_string(&mut out, &mut chars),
-            ',' => {
-                let rest: String = chars
-                    .clone()
-                    .skip_while(|next| next.is_whitespace())
-                    .take(1)
-                    .collect();
-                if !(rest == "}" || rest == "]") {
-                    out.push(c);
-                }
+        if c == JSON_QUOTE {
+            copy_string(&mut out, &mut chars);
+        } else if c == JSON_COMMA {
+            let next = chars.clone().find(|next| !next.is_whitespace());
+            if !next.is_some_and(|next| JSON_CLOSERS.contains(&next)) {
+                out.push(c);
             }
-            _ => out.push(c),
+        } else {
+            out.push(c);
         }
     }
     out
