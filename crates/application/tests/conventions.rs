@@ -280,6 +280,22 @@ mod tests {
     }
 
     #[test]
+    fn a_fingerprint_shared_by_more_functions_than_the_limit_finds_no_copies() {
+        let limits = Conventions {
+            duplicate_max_owners: 1,
+            ..limits()
+        };
+        let report = run(
+            &checker_with(sample(), limits),
+            Principal::local_owner(),
+            &[],
+        )
+        .expect("checked");
+        let codes: Vec<ErrorCode> = report.findings.iter().map(|f| f.code).collect();
+        assert_eq!(codes, [ErrorCode::FunctionTooLong]);
+    }
+
+    #[test]
     fn files_in_test_folders_are_not_checked() {
         let limits = Conventions {
             test_folders: vec!["src".to_owned()],

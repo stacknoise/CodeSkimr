@@ -29,6 +29,16 @@ fn the_median_of_the_samples_is_written_and_read_back() -> TestResult {
 }
 
 #[test]
+fn a_run_without_a_measurement_leaves_no_figure() -> TestResult {
+    let dir = dir("cpu-missing");
+    write(&dir, ("scan", "full"), &millis(&[300]))?;
+    write(&dir, ("scan", "full"), &millis(&[0, 0]))?;
+    let ids = ["scan/full".to_owned()];
+    assert!(collect(&dir, ids.iter()).is_empty());
+    Ok(())
+}
+
+#[test]
 fn the_report_lists_the_cpu_time_and_stays_silent_without() -> TestResult {
     let dir = dir("cpu-report");
     write(&dir, ("scan", "full"), &millis(&[2000]))?;

@@ -24,7 +24,8 @@ fn file(criterion_dir: &Path, (group, name): (&str, &str)) -> PathBuf {
     criterion_dir.join(group).join(name).join(CPU_FILE)
 }
 
-/// Writes the median of `samples` as the CPU time of benchmark `group/name`.
+/// Writes the median of `samples` as the CPU time of benchmark `group/name`. A median of zero means
+/// the system could not measure; then no figure is written and an old one is removed.
 ///
 /// # Errors
 /// If the file cannot be written.
@@ -36,6 +37,13 @@ pub fn write(criterion_dir: &Path, id: (&str, &str), samples: &[Duration]) -> io
         .copied()
         .unwrap_or_default();
     let path = file(criterion_dir, id);
+    if median.is_zero() {
+        // The system gave no CPU time: leave no figure, so the report does not show a false 0.
+        return match fs::remove_file(&path) {
+            Err(error) if error.kind() != io::ErrorKind::NotFound => Err(error),
+            _ => Ok(()),
+        };
+    }
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }

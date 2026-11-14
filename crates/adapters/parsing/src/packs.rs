@@ -24,9 +24,7 @@ use crate::pack::LanguagePack;
 /// grow with the number of installed packs. The result keeps the order of `dirs`.
 fn read_all(dirs: &[PathBuf]) -> Vec<Result<Slot, ParsingError>> {
     let next = AtomicUsize::new(0);
-    let workers = thread::available_parallelism()
-        .map_or(MIN_LOAD_THREADS, NonZeroUsize::get)
-        .min(dirs.len().max(MIN_LOAD_THREADS));
+    let workers = load_workers(dirs.len());
     let mut done: Vec<(usize, Result<Slot, ParsingError>)> = thread::scope(|scope| {
         let handles: Vec<_> = (0..workers)
             .map(|_| scope.spawn(|| read_next(dirs, &next)))
@@ -46,6 +44,13 @@ fn read_all(dirs: &[PathBuf]) -> Vec<Result<Slot, ParsingError>> {
         )));
     }
     read
+}
+
+/// Threads that load `packs` packs: one per core at most, and no more than there are packs.
+fn load_workers(packs: usize) -> usize {
+    thread::available_parallelism()
+        .map_or(MIN_LOAD_THREADS, NonZeroUsize::get)
+        .min(packs.max(MIN_LOAD_THREADS))
 }
 
 /// One loading thread: takes the next pack folder until none is left.
@@ -263,5 +268,18 @@ impl LanguagePacks {
             .get(language)
             .ok_or_else(|| ParsingError::PackMissing(language.to_string()))?
             .pack()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::load_workers;
+
+    #[test]
+    fn loading_never_uses_more_threads_than_packs_or_cores() {
+        let cores = std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
+        assert_eq!(load_workers(1), 1);
+        assert_eq!(load_workers(0), 1);
+        assert_eq!(load_workers(10_000), cores);
     }
 }

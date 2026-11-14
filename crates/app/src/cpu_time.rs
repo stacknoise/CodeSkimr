@@ -26,3 +26,20 @@ pub fn seconds_since(before: Option<Duration>) -> f64 {
         _ => f64::default(),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{process_cpu_time, seconds_since};
+    use std::time::Duration;
+
+    #[test]
+    fn without_a_first_measurement_the_time_is_zero() {
+        assert!(seconds_since(None).abs() < f64::EPSILON);
+    }
+
+    #[test]
+    fn the_time_since_a_later_start_is_never_negative() {
+        let later = process_cpu_time().map(|now| now + Duration::from_secs(60));
+        assert!(seconds_since(later).abs() < f64::EPSILON);
+    }
+}
