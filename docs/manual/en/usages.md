@@ -37,7 +37,7 @@ CodeSkimr finds usages in two ways. **Level 1** resolves names without type info
 
 Verified hits come first. The side panel counts the three apart ("N places verified, M unchecked, K of them presumed").
 
-**Without an indexer for the project, every hit is unchecked**, and the screen says so: the usages and the impact are preliminary and may be incomplete or contain wrong hits. Take this seriously for decisions: a missing usage can mean you break code you did not know about. An empty list without an indexer does not rule out usages.
+**While no hit of the answer is verified** (no indexer ran for the project, [Language indexers](indexers.md)), every hit is unchecked, and the screen says so: the usages and the impact are preliminary and may be incomplete or contain wrong hits. Take this seriously for decisions: a missing usage can mean you break code you did not know about. An empty list without level 2 does not rule out usages. Once level 2 has run for a file, its hits are verified and sorted first; files it did not cover (or that changed afterwards) stay unchecked, so a project can show both.
 
 ## Same knowledge elsewhere
 
