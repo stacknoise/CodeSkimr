@@ -8,7 +8,7 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    CodeIndex, ProjectRepository, SymbolKey, SymbolLabel, UsageEntry, UsageIndex,
+    CodeIndex, ProjectRepository, SourceText, SymbolKey, SymbolLabel, UsageEntry, UsageIndex,
 };
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
@@ -163,6 +163,7 @@ pub struct UsagesPorts {
     pub(super) projects: Arc<dyn ProjectRepository>,
     pub(super) index: Arc<dyn CodeIndex>,
     pub(super) usages: Arc<dyn UsageIndex>,
+    pub(super) text: Arc<dyn SourceText>,
     pub(super) max_depth: u32,
 }
 
@@ -270,7 +271,7 @@ pub struct UsagesQuery {
 
 impl UsagesPorts {
     /// Both walks the direction asks for, and the direct usages for the counts.
-    fn walks(
+    pub(super) fn walks(
         &self,
         project: &Project,
         snapshot: SnapshotId,

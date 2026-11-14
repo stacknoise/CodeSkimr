@@ -161,7 +161,7 @@ fn traffic(folder: &Path) -> impl FnOnce(&str, &str) -> Vec<String> + Send + 'st
         answers.push(command(url, Some(token), "search.query", &search));
         for symbol in 1..=12 {
             let input = json!({ "project": 1, "symbol": symbol });
-            for id in ["explorer.source", "explorer.symbol"] {
+            for id in ["explorer.source", "explorer.symbol", "usages.code"] {
                 answers.push(command(url, Some(token), id, &input));
                 answers.push(command(url, None, id, &input));
                 answers.push(command(url, Some("csk_wrong"), id, &input));

@@ -58,3 +58,16 @@ export interface UsagesAnswer {
   /** `unavailable` while no indexer exists for the project. */
   level2: string;
 }
+
+/** The code line of one hit, from `usages.code`. */
+export interface CodeLine {
+  path: string;
+  line: number;
+  text: string;
+}
+
+/** The answer of `usages.code`. */
+export interface CodeAnswer {
+  available: boolean;
+  lines: CodeLine[];
+}

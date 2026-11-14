@@ -52,6 +52,16 @@ pub const USAGES_TITLE: &str = i18n::COMMAND_USAGES_QUERY_TITLE;
 pub const USAGES_DESCRIPTION: &str = i18n::COMMAND_USAGES_QUERY_DESCRIPTION;
 /// Most references and symbols of one walk that `usages.query` returns.
 pub const USAGES_LIMIT: u32 = 500;
+/// Id of the command that returns the code lines of the hits of a usages query.
+pub const USAGES_CODE: &str = "usages.code";
+/// Title key of `usages.code`.
+pub const USAGES_CODE_TITLE: &str = i18n::COMMAND_USAGES_CODE_TITLE;
+/// Description key of `usages.code`.
+pub const USAGES_CODE_DESCRIPTION: &str = i18n::COMMAND_USAGES_CODE_DESCRIPTION;
+/// Most hits `usages.code` reads a line for; the hit list shows the first ones.
+pub const USAGES_CODE_MAX_HITS: usize = 200;
+/// Most characters of one code line `usages.code` returns.
+pub const USAGES_CODE_MAX_CHARS: usize = 240;
 /// State of level 2 while no indexer is wired (ADR 0033).
 pub const LEVEL2_UNAVAILABLE: &str = "unavailable";
 

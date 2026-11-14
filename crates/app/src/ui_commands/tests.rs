@@ -139,6 +139,7 @@ fn the_commands_are_offered() {
             "projects.rescan",
             "search.query",
             "status.info",
+            "usages.code",
             "usages.query"
         ]
     );
@@ -363,6 +364,7 @@ fn a_token_without_the_read_right_is_refused() {
         "graph.layers",
         "search.query",
         "status.info",
+        "usages.code",
         "usages.query",
     ] {
         let refused = runtime
@@ -605,6 +607,32 @@ fn the_usages_of_a_method_name_the_caller_and_mark_every_hit_unchecked() {
     assert_eq!(answer["summary"]["probable"], 0);
     assert_eq!(answer["summary"]["files"], 1);
     assert_eq!(answer["outgoing"]["total"], 0);
+}
+
+#[test]
+fn the_code_of_a_hit_is_the_trimmed_line_from_the_project_folder() {
+    let fixture = Fixture::new();
+    fs::write(fixture.root.path().join("app/Checkout.cs"), CALLER).unwrap();
+    let project = added(&fixture);
+    let add = member_id(&fixture, project, "Add");
+    let input = json!({ "project": project, "symbol": add, "way": "both", "depth": 2, "include_tests": true });
+    let code = fixture.call("usages.code", input.clone()).unwrap();
+    assert_eq!(code["available"], true);
+    assert_eq!(
+        code["lines"],
+        json!([{ "path": "Checkout.cs", "line": 7, "text": "return calculator.Add(1, 2);" }])
+    );
+    fs::remove_file(fixture.root.path().join("app/Checkout.cs")).unwrap();
+    let gone = fixture.call("usages.code", input).unwrap();
+    assert_eq!(gone["lines"], json!([]));
+}
+
+#[test]
+fn the_code_of_hits_is_refused_for_a_missing_scan() {
+    let fixture = Fixture::new();
+    let project = fixture.register_unscanned();
+    let input = json!({ "project": project, "symbol": 1, "way": "both", "depth": 2, "include_tests": true });
+    assert_eq!(fixture.call("usages.code", input), Err("MCP-203"));
 }
 
 #[test]
