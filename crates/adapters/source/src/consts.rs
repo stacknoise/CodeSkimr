@@ -160,3 +160,5 @@ pub const JSON_ESCAPE: char = '\\';
 pub const JSON_COMMA: char = ',';
 /// What may follow a trailing comma.
 pub const JSON_CLOSERS: [char; 2] = ['}', ']'];
+/// Bytes read beyond the announced length of a file: one is enough to see that it grew.
+pub const GROWTH_PROBE_BYTES: u64 = 1;
