@@ -10,6 +10,7 @@ extern crate rustc_errors;
 extern crate rustc_span;
 
 mod allowed;
+mod macro_body;
 
 use rustc_ast::{Attribute, Expr, ExprKind, FormatArgsPiece, Item, ItemKind};
 use rustc_lint::{EarlyContext, EarlyLintPass, LintContext};
@@ -92,6 +93,12 @@ impl EarlyLintPass for NoLiterals {
         if is_value && allowed::in_consts_module(cx, item.span) {
             self.const_depth += 1;
         }
+        if let ItemKind::MacroDef(_, def) = &item.kind {
+            // Macros that a macro expands to are covered by the outer definition.
+            if !self.exempt() && !item.span.from_expansion() {
+                macro_body::check(&def.body.tokens, &mut |span| Self::report(cx, span));
+            }
+        }
     }
 
     fn check_item_post(&mut self, cx: &EarlyContext<'_>, item: &Item) {
@@ -110,7 +117,11 @@ impl EarlyLintPass for NoLiterals {
         }
         match &expr.kind {
             ExprKind::Lit(lit) if !allowed::is_free_literal(lit) => {
-                if allowed::own_source(expr.span) && allowed::is_written_literal(cx, expr.span) {
+                if allowed::from_local_macro(expr.span) {
+                    // Reported once where the macro is defined (`check_macro_body`).
+                } else if allowed::own_source(expr.span)
+                    && allowed::is_written_literal(cx, expr.span)
+                {
                     Self::report(cx, expr.span);
                 } else if let Some(call) = allowed::concat_call_in_own_source(expr.span) {
                     Self::report(cx, call);
@@ -123,7 +134,10 @@ impl EarlyLintPass for NoLiterals {
                     .any(|piece| matches!(piece, FormatArgsPiece::Literal(_)));
                 if has_text {
                     if let Some(span) = allowed::macro_call_in_own_source(args.span) {
-                        Self::report(cx, span);
+                        // A call inside a local macro is reported at its definition.
+                        if !span.from_expansion() {
+                            Self::report(cx, span);
+                        }
                     }
                 }
             }

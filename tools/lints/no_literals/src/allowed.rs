@@ -126,7 +126,8 @@ pub fn concat_call_in_own_source(span: Span) -> Option<Span> {
     let data = span.ctxt().outer_expn_data();
     match data.kind {
         ExpnKind::Macro(MacroKind::Bang, name) if name == sym::concat => {
-            macro_call_in_own_source(data.call_site)
+            // Inside a local macro the call is reported at the definition (`macro_body`).
+            macro_call_in_own_source(data.call_site).filter(|call| !call.from_expansion())
         }
         _ => None,
     }
@@ -145,6 +146,12 @@ pub fn own_source(span: Span) -> bool {
         .outer_expn_data()
         .macro_def_id
         .is_some_and(|def| def.is_local())
+}
+
+/// The span comes out of a `macro_rules!` of the checked crate. Such a macro is checked once at
+/// its definition, not again at every use.
+pub fn from_local_macro(span: Span) -> bool {
+    span.from_expansion() && own_source(span)
 }
 
 /// For a format string: the span of the call (`format!`, `println!`, ...) in the checked code.
