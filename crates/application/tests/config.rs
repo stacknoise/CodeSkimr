@@ -32,6 +32,13 @@ fn defaults_match_the_blueprint() {
 }
 
 #[test]
+fn defaults_use_all_cores_and_limit_shared_fingerprints() {
+    let config = Config::defaults().expect("shipped defaults are valid");
+    assert_eq!(config.scan.max_workers, 0);
+    assert_eq!(config.conventions.duplicate_max_owners, 50);
+}
+
+#[test]
 fn level2_defaults_are_256_mib_and_half() {
     let config = Config::defaults().expect("shipped defaults are valid");
     assert_eq!(config.level2.max_index_bytes, 256 * 1024 * 1024);
@@ -265,6 +272,15 @@ fn limits_and_folders_are_checked() {
             Violation::MustBePositive,
         ),
     ]);
+}
+
+#[test]
+fn the_limit_of_shared_fingerprints_is_checked() {
+    assert_rejected(&[(
+        "[conventions]\nduplicate_max_owners = 0\n",
+        "conventions.duplicate_max_owners",
+        Violation::MustBePositive,
+    )]);
 }
 
 #[test]

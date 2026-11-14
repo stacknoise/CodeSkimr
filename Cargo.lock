@@ -398,6 +398,7 @@ dependencies = [
  "secrecy",
  "serde",
  "serde_json",
+ "sysinfo",
  "tempfile",
  "tokio",
  "tracing",
@@ -540,8 +541,10 @@ dependencies = [
  "codeskimr_application",
  "codeskimr_codes",
  "codeskimr_domain",
+ "libc",
  "tempfile",
  "thiserror",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

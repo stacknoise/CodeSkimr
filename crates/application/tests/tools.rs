@@ -44,6 +44,7 @@ fn plan(indexer: &str, toolchain: &str, requirement: Option<&str>) -> ToolPlan {
             toolchain: vec![tool(toolchain, "8.0.0")],
             args: vec!["{output}".to_owned()],
             env_allow: Vec::new(),
+            home_dirs: Vec::new(),
             env: Vec::new(),
             install_hint: "install it".to_owned(),
         },
