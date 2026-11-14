@@ -511,3 +511,31 @@ fn a_version_seven_database_has_no_naming_rules_for_its_old_snapshots() {
         10
     );
 }
+
+#[test]
+fn connections_registering_at_once_never_share_a_project_id() {
+    let db = TempDb::new();
+    // The first open creates and migrates the file; the race of two first opens is not under test.
+    drop(SqliteStore::open(&db.0, keep(3)).unwrap());
+    let workers: Vec<_> = (0..4)
+        .map(|worker| {
+            let path = db.0.clone();
+            std::thread::spawn(move || {
+                let store = SqliteStore::open(&path, keep(3)).unwrap();
+                (0..5)
+                    .map(|round| {
+                        let spec = project(0, &format!("/work/{worker}/{round}"), &[]);
+                        store.register_project(spec.name, spec.source).unwrap().id
+                    })
+                    .collect::<Vec<_>>()
+            })
+        })
+        .collect();
+    let mut ids: Vec<_> = workers
+        .into_iter()
+        .flat_map(|worker| worker.join().unwrap())
+        .collect();
+    ids.sort();
+    ids.dedup();
+    assert_eq!(ids.len(), 20, "every source got its own id");
+}

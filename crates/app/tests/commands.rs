@@ -407,6 +407,10 @@ fn mcp_for_a_folder_that_was_never_scanned_fails_with_prj_201() {
     assert_eq!(output.status.code(), Some(1));
     assert!(stderr(&output).contains("PRJ-201"));
     assert_eq!(output.stdout, Vec::<u8>::new());
+    assert!(
+        !workspace.root.path().join("data").exists(),
+        "looking for a project must not create the data folder"
+    );
 }
 
 #[test]
