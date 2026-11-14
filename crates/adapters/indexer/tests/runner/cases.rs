@@ -49,6 +49,10 @@ fn spec(mode: &str) -> IndexerSpec {
             "{project}/child.pid".to_owned(),
         ],
         env_allow: vec!["EXTRA_ALLOWED".to_owned(), "EXTRA_TOKEN".to_owned()],
+        home_dirs: vec![
+            ("FAKE_TOOL_HOME".to_owned(), HOME_TOOL_DIR.to_owned()),
+            ("FAKE_MISSING_HOME".to_owned(), "does-not-exist".to_owned()),
+        ],
         env: vec![("FIXED_BY_PACK".to_owned(), "yes".to_owned())],
         install_hint: "install it".to_owned(),
     }
@@ -62,10 +66,25 @@ fn limits() -> IndexLimits {
     }
 }
 
+/// The folder below the real home that the pack of the tests asks for.
+const HOME_TOOL_DIR: &str = ".faketool";
+
+/// A home of the user with something in it that the indexer must not see by itself.
+fn real_home() -> PathBuf {
+    let home = std::env::temp_dir().join("codeskimr-indexer-test-home");
+    std::fs::create_dir_all(home.join(HOME_TOOL_DIR)).unwrap();
+    home
+}
+
 fn source_env(dir: &Path, inherit_path: bool) -> Vec<(OsString, OsString)> {
     let mut source: Vec<(OsString, OsString)> = std::env::vars_os()
-        .filter(|(name, _)| !name.to_string_lossy().eq_ignore_ascii_case("PATH"))
+        .filter(|(name, _)| {
+            let name = name.to_string_lossy().to_uppercase();
+            !["PATH", "HOME", "USERPROFILE"].contains(&name.as_str())
+        })
         .collect();
+    source.push(("HOME".into(), real_home().into_os_string()));
+    source.push(("USERPROFILE".into(), real_home().into_os_string()));
     let real_path = std::env::var_os("PATH").unwrap_or_default();
     let mut paths = vec![dir.to_path_buf()];
     if inherit_path {
@@ -242,6 +261,96 @@ fn the_environment_holds_no_secret_and_nothing_unlisted() {
         })
         .expect("a temporary folder");
     assert!(temp.contains(&fixture.data.path().to_string_lossy().into_owned()));
+}
+
+#[test]
+fn the_indexer_gets_an_empty_home_and_only_the_folders_the_pack_names() {
+    let fixture = Fixture::new();
+    let artifact = fixture.run("dump-env").unwrap();
+    let text = std::fs::read_to_string(artifact.path()).unwrap();
+    let real = real_home();
+    let line = |name: &str| {
+        text.lines()
+            .find_map(|line| line.strip_prefix(&format!("{name}=")))
+            .map(PathBuf::from)
+    };
+    for name in ["HOME", "USERPROFILE"] {
+        let home = line(name).expect("a home");
+        assert!(home.starts_with(fixture.data.path()), "{name}: {home:?}");
+        assert_eq!(std::fs::read_dir(&home).unwrap().count(), 0);
+    }
+    assert_eq!(line("FAKE_TOOL_HOME"), Some(real.join(HOME_TOOL_DIR)));
+    assert_eq!(line("FAKE_MISSING_HOME"), None);
+    assert_eq!(line("HOMEPATH"), None);
+}
+
+/// How a note of the runner names a process: its id and the second it started.
+fn note_text(pid: u32) -> String {
+    let mut system = System::new().unwrap();
+    system.refresh_processes(ProcessesToUpdate::All, true);
+    let started = system.process(Pid::from_u32(pid)).unwrap().start_time();
+    format!("{pid} {started}")
+}
+
+/// A run folder in the data folder of `fixture` as an application that died would leave it, with
+/// an indexer (the stand-in, hanging) that is still running.
+struct LeftBehind {
+    folder: PathBuf,
+    indexer: std::process::Child,
+}
+
+impl LeftBehind {
+    fn new(fixture: &Fixture, owner: &str) -> Self {
+        let folder = fixture.data.path().join("level2-left-behind");
+        std::fs::create_dir_all(folder.join("scratch")).unwrap();
+        let indexer = std::process::Command::new(env!("CARGO_BIN_EXE_fake_indexer"))
+            .args(["child", "", ""])
+            .spawn()
+            .unwrap();
+        std::fs::write(folder.join("owner"), owner).unwrap();
+        std::fs::write(folder.join("indexer"), note_text(indexer.id())).unwrap();
+        Self { folder, indexer }
+    }
+}
+
+impl Drop for LeftBehind {
+    fn drop(&mut self) {
+        drop(self.indexer.kill());
+        drop(self.indexer.wait());
+    }
+}
+
+#[test]
+fn what_a_killed_application_left_behind_is_ended_and_removed_at_the_next_run() {
+    let fixture = Fixture::new();
+    // The owner is a process that does not exist.
+    let left = LeftBehind::new(&fixture, "4294967295 1");
+    let pid = left.indexer.id();
+    fixture.run("ok").unwrap();
+    assert!(!left.folder.exists());
+    assert!(
+        wait_until_gone(pid),
+        "the indexer of the dead application is still running"
+    );
+}
+
+#[test]
+fn the_folder_of_a_running_application_is_left_alone() {
+    let fixture = Fixture::new();
+    let owner = note_text(std::process::id());
+    let mut left = LeftBehind::new(&fixture, &owner);
+    fixture.run("ok").unwrap();
+    assert!(left.folder.exists());
+    assert!(left.indexer.try_wait().unwrap().is_none());
+}
+
+#[test]
+fn a_young_folder_without_a_note_is_left_alone() {
+    let fixture = Fixture::new();
+    let folder = fixture.data.path().join("level2-just-created");
+    std::fs::create_dir(&folder).unwrap();
+    fixture.run("ok").unwrap();
+    assert!(folder.exists());
 }
 
 fn is_gone(pid: u32) -> bool {

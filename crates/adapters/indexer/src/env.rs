@@ -11,38 +11,88 @@ use std::path::{Path, PathBuf};
 use codeskimr_application::ports::IndexerSpec;
 
 use crate::consts::{
-    APPLICATION_ENV_PREFIX, BASE_ENV_ALLOW, FIXED_ENV, PATH_ENV, SECRET_NAME_PARTS, TEMP_ENV,
+    APPLICATION_ENV_PREFIX, BASE_ENV_ALLOW, FIXED_ENV, HOME_ENV, HOME_SETTINGS_ENV, PATH_ENV,
+    SECRET_NAME_PARTS, TEMP_ENV,
 };
 
 /// Name/value pairs for `Command::env` after `env_clear`.
 pub type Environment = Vec<(OsString, OsString)>;
 
+/// The folders of one run: `scratch` becomes the temporary folder, `home` the empty home, and
+/// `project_root` is kept out of `PATH`.
+#[derive(Debug, Clone, Copy)]
+pub struct Folders<'a> {
+    /// The temporary folder of the run.
+    pub scratch: &'a Path,
+    /// The empty home folder of the run.
+    pub home: &'a Path,
+    /// The project folder.
+    pub project_root: &'a Path,
+}
+
 /// Builds the environment of one run from `source`, the variables of the application.
 ///
-/// `scratch` becomes the temporary folder of the run; `project_root` is kept out of `PATH`.
+/// The home of the user never reaches the indexer: `HOME` and `USERPROFILE` name an empty folder.
+/// A folder that a tool needs from the real home is named by the variable of the pack
+/// (`home_dirs`), unless the application passed the variable itself.
 #[must_use]
 pub fn build(
     source: impl IntoIterator<Item = (OsString, OsString)>,
     spec: &IndexerSpec,
-    scratch: &Path,
-    project_root: &Path,
+    folders: &Folders<'_>,
 ) -> Environment {
+    let source: Environment = source.into_iter().collect();
     let mut result: Environment = source
-        .into_iter()
+        .iter()
         .filter(|(name, _)| is_allowed(name, spec))
-        .map(|(name, value)| keep_safe_path(name, value, project_root))
+        .map(|(name, value)| keep_safe_path(name.clone(), value.clone(), folders.project_root))
         .collect();
     for name in TEMP_ENV {
-        result.push((OsString::from(name), scratch.as_os_str().to_owned()));
+        result.push((OsString::from(name), folders.scratch.as_os_str().to_owned()));
+    }
+    for name in HOME_ENV {
+        result.push((OsString::from(name), folders.home.as_os_str().to_owned()));
+    }
+    for (name, below) in HOME_SETTINGS_ENV {
+        let folder = below
+            .iter()
+            .fold(folders.home.to_path_buf(), |path, part| path.join(part));
+        result.push((OsString::from(name), folder.into_os_string()));
     }
     for (name, value) in FIXED_ENV {
         result.push((OsString::from(name), OsString::from(value)));
     }
+    add_home_dirs(&mut result, &source, spec);
     for (name, value) in &spec.env {
         result.retain(|(existing, _)| !same_name(existing, name));
         result.push((OsString::from(name), OsString::from(value)));
     }
     result
+}
+
+/// The real home of the user, as the application sees it.
+fn real_home(source: &Environment) -> Option<PathBuf> {
+    HOME_ENV.iter().find_map(|home| {
+        source
+            .iter()
+            .find(|(name, _)| same_name(name, home))
+            .map(|(_, value)| PathBuf::from(value))
+            .filter(|path| path.is_absolute())
+    })
+}
+
+/// Names the folders of the real home that the pack asks for, if they exist and the variable is
+/// not set yet.
+fn add_home_dirs(result: &mut Environment, source: &Environment, spec: &IndexerSpec) {
+    let Some(home) = real_home(source) else {
+        return;
+    };
+    for (variable, below) in &spec.home_dirs {
+        let folder = home.join(below);
+        if result.iter().all(|(name, _)| !same_name(name, variable)) && folder.is_dir() {
+            result.push((OsString::from(variable), folder.into_os_string()));
+        }
+    }
 }
 
 /// Whether the variable is on the base list or the list of the pack, and does not look like a

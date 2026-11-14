@@ -19,6 +19,7 @@ use crate::consts::{
     CAPTURE_BYTES, DRAIN_GRACE, MAX_SCAN_DEPTH, MEASURE_INTERVAL, POLL_INTERVAL, READ_CHUNK,
 };
 use crate::memory::TreeMemory;
+use crate::orphans;
 
 /// The limits of one run.
 #[derive(Debug, Clone, Copy)]
@@ -46,6 +47,9 @@ pub struct Launch {
     pub limits: Limits,
     /// A folder whose size counts toward the output limit.
     pub watch_dir: Option<PathBuf>,
+    /// A folder in which the started process is noted, so that the next start of the application
+    /// can end it if this one dies without cleaning up (issue #223).
+    pub note_dir: Option<PathBuf>,
 }
 
 /// Why a run was stopped from outside.
@@ -262,6 +266,10 @@ fn folder_bytes(dir: &Path, depth: usize) -> u64 {
 pub fn run_guarded(launch: &Launch, cancel: &CancelToken) -> Result<Finished, RunError> {
     let memory = TreeMemory::new().map_err(RunError::Io)?;
     let mut group = spawn(launch).map_err(RunError::Io)?;
+    if let Some(folder) = &launch.note_dir {
+        // Best effort: without the note the process is simply not found after a hard stop.
+        drop(orphans::note_indexer(folder, group.0.id()));
+    }
     let written = Arc::new(AtomicU64::new(0));
     let stdout = group
         .0

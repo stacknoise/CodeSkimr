@@ -2,6 +2,7 @@
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::error::CodedError;
@@ -13,11 +14,12 @@ use codeskimr_codes::Coded;
 use tempfile::TempDir;
 
 use crate::consts::{
-    EXCERPT_BYTES, INDEX_FILE_NAME, LOG_CODE, LOG_EXCERPT, LOG_INDEXER, OUTPUT_DIR_PREFIX,
-    PATH_ENV, SCRATCH_DIR_NAME,
+    EXCERPT_BYTES, HOME_DIR_NAME, INDEX_FILE_NAME, LOG_CODE, LOG_EXCERPT, LOG_INDEXER,
+    OUTPUT_DIR_PREFIX, PATH_ENV, SCRATCH_DIR_NAME,
 };
-use crate::env::{self, Environment};
+use crate::env::{self, Environment, Folders};
 use crate::error::{FailureReason, IndexerError};
+use crate::orphans;
 use crate::process::{Finished, Launch, Limits, RunError, Stop, run_guarded};
 use crate::redact::{Redact, excerpt};
 use crate::tools::{Probe, check_tool, resolve};
@@ -29,6 +31,8 @@ pub struct ProcessIndexRunner {
     redact: Redact,
     /// The environment of the application, read once; the allow list picks from it.
     source_env: Vec<(OsString, OsString)>,
+    /// Set once the folders that an earlier, killed application left behind were cleaned up.
+    swept: OnceLock<()>,
 }
 
 impl ProcessIndexRunner {
@@ -40,6 +44,7 @@ impl ProcessIndexRunner {
             data_dir,
             redact,
             source_env: std::env::vars_os().collect(),
+            swept: OnceLock::new(),
         }
     }
 
@@ -51,8 +56,8 @@ impl ProcessIndexRunner {
         self
     }
 
-    fn environment(&self, spec: &IndexerSpec, scratch: &Path, project_root: &Path) -> Environment {
-        env::build(self.source_env.iter().cloned(), spec, scratch, project_root)
+    fn environment(&self, spec: &IndexerSpec, folders: &Folders<'_>) -> Environment {
+        env::build(self.source_env.iter().cloned(), spec, folders)
     }
 
     fn problems(spec: &IndexerSpec, probe: &Probe<'_>) -> Vec<ToolProblem> {
@@ -72,8 +77,17 @@ impl ProcessIndexRunner {
         job: &IndexJob<'_>,
         cancel: &CancelToken,
     ) -> Result<IndexArtifact, IndexerError> {
+        // Once per start: what an application that was killed left running and in the data folder.
+        self.swept.get_or_init(|| orphans::sweep(&self.data_dir));
         let output = OutputDir::create(&self.data_dir)?;
-        let environment = self.environment(job.spec, &output.scratch, job.permit.project_root());
+        let environment = self.environment(
+            job.spec,
+            &Folders {
+                scratch: &output.scratch,
+                home: &output.home,
+                project_root: job.permit.project_root(),
+            },
+        );
         let probe = Probe {
             env: &environment,
             redact: self.redact,
@@ -147,10 +161,11 @@ const fn stopped(stop: Stop) -> IndexerError {
 }
 
 /// The temporary output folder of one run: the index goes into it, the indexer's own temporary
-/// files go into `scratch` below it.
+/// files go into `scratch` below it, and `home` is the empty home of the indexer.
 struct OutputDir {
     dir: TempDir,
     scratch: PathBuf,
+    home: PathBuf,
 }
 
 impl OutputDir {
@@ -165,7 +180,11 @@ impl OutputDir {
             .map_err(io)?;
         let scratch = dir.path().join(SCRATCH_DIR_NAME);
         std::fs::create_dir(&scratch).map_err(io)?;
-        Ok(Self { dir, scratch })
+        let home = dir.path().join(HOME_DIR_NAME);
+        std::fs::create_dir(&home).map_err(io)?;
+        // Without the note a hard stop leaves the folder to the grace period only.
+        drop(orphans::note_owner(dir.path()));
+        Ok(Self { dir, scratch, home })
     }
 
     fn index(&self) -> PathBuf {
@@ -214,6 +233,7 @@ fn launch_of(
             max_output_bytes: job.limits.max_output_bytes,
         },
         watch_dir: Some(output.dir.path().to_path_buf()),
+        note_dir: Some(output.dir.path().to_path_buf()),
     })
 }
 
@@ -247,7 +267,14 @@ impl IndexRunner for ProcessIndexRunner {
             std::env::temp_dir()
         };
         let root = neutral.clone();
-        let environment = self.environment(spec, &neutral, &root);
+        let environment = self.environment(
+            spec,
+            &Folders {
+                scratch: &neutral,
+                home: &neutral,
+                project_root: &root,
+            },
+        );
         let probe = Probe {
             env: &environment,
             redact: self.redact,
