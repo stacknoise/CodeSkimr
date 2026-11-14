@@ -23,6 +23,6 @@ pub fn process_cpu_time() -> Option<Duration> {
 pub fn seconds_since(before: Option<Duration>) -> f64 {
     match (before, process_cpu_time()) {
         (Some(start), Some(now)) => now.saturating_sub(start).as_secs_f64(),
-        _ => 0.0,
+        _ => f64::default(),
     }
 }
