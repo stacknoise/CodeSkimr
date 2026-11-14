@@ -26,6 +26,9 @@ export const TOOL_LANGUAGE_SEPARATOR = ", ";
 /** How often the list is read while a scan runs, in milliseconds. */
 export const POLL_MS = 1500;
 
+/** Key that sends a field. */
+export const ENTER_KEY = "Enter";
+
 /** Branch that the form starts with. */
 export const DEFAULT_BRANCH = "main";
 
