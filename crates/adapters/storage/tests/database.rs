@@ -13,7 +13,7 @@ use codeskimr_application::ports::{
 use codeskimr_domain::{
     Fingerprint, Fingerprints, LanguageId, MetricKind, ScanMode, SymbolId, SymbolKind,
 };
-use codeskimr_storage::SqliteStore;
+use codeskimr_storage::{SqliteStore, StoreOptions};
 use common::{PROJECT, code_of, data, file, header, metric, project, reference, symbol};
 use rusqlite::Connection;
 
@@ -69,7 +69,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 9));
+    assert_eq!((mode.as_str(), version), ("wal", 10));
 }
 
 #[test]
@@ -139,6 +139,7 @@ fn scan_with_every_table(snapshot: u64, base: u64) -> SnapshotData {
     scan.metrics = vec![
         metric(base + 1, MetricKind::Loc, 10.0),
         metric(base + 2, MetricKind::CyclomaticComplexity, 2.0),
+        metric(base + 1, MetricKind::EfferentCoupling, 1.0),
     ];
     scan.parse_micros = vec![(LanguageId::new("csharp").unwrap(), base)];
     scan.fingerprints = vec![SymbolFingerprints {
@@ -167,9 +168,10 @@ fn pruned_snapshots_leave_no_rows_behind() {
         ("files", 1),
         ("symbols", 2),
         ("symbol_references", 1),
-        ("metrics", 2),
+        ("metrics", 3),
         ("symbol_rows", 2),
         ("metric_rows", 2),
+        ("coupling_rows", 1),
         ("search_index", 2),
         ("usage_counts", 1),
         ("type_summary", 1),
@@ -555,4 +557,41 @@ fn connections_opening_a_new_database_at_once_all_succeed() {
     for worker in workers {
         worker.join().unwrap().unwrap();
     }
+}
+
+#[test]
+fn a_write_blocked_by_another_connection_fails_with_a_lock_conflict() {
+    let db = TempDb::new();
+    let options = StoreOptions {
+        busy_timeout: std::time::Duration::from_millis(50),
+        growth_limit_pages: None,
+    };
+    let store = SqliteStore::open_with(&db.0, keep(3), options).unwrap();
+    let blocker = Connection::open(&db.0).unwrap();
+    blocker.execute_batch("BEGIN IMMEDIATE").unwrap();
+    let error = store
+        .save_project(&project(1, "/work/app", &[]))
+        .unwrap_err();
+    assert_eq!(code_of(&error), "STO-302");
+    blocker.execute_batch("ROLLBACK").unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+}
+
+#[test]
+fn a_database_that_cannot_grow_any_more_fails_like_a_full_disk() {
+    let db = TempDb::new();
+    let options = StoreOptions {
+        busy_timeout: std::time::Duration::from_secs(1),
+        growth_limit_pages: NonZeroU32::new(4),
+    };
+    let store = SqliteStore::open_with(&db.0, keep(3), options).unwrap();
+    let long_folder = "x".repeat(2000);
+    let error = (1..1000)
+        .find_map(|id| {
+            store
+                .save_project(&project(id, &format!("/work/{id}/{long_folder}"), &[]))
+                .err()
+        })
+        .expect("the page limit is reached long before 1000 projects");
+    assert_eq!(code_of(&error), "STO-501");
 }

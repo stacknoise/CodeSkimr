@@ -18,7 +18,7 @@ again. This page describes how the pipeline in `crates/application` does it (`pi
    resolver gets the new pending names and the `rebuilt` ones. A name whose target is gone finds nothing
    and is dropped.
 4. **Measure.** The calculator sees all symbols and all references of the new snapshot, so coupling
-   (Ce, Ca, instability) is computed on complete data. The metric counts (`FileFacts::counts`) exist only
+   (Ce, Ca, instability) is computed on complete data and stored for the new snapshot alone (ADR 0037). The metric counts (`FileFacts::counts`) exist only
    for the analysed files, so loc, cc, cc_max and mi are measured for those; the carried values of the
    other files stay. Metrics the calculator delivers replace the carried ones.
 5. **Persist.** `SnapshotData` holds what is new plus `removed`; the store carries the rest.
