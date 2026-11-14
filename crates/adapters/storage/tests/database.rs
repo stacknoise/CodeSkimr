@@ -561,22 +561,13 @@ fn connections_opening_a_new_database_at_once_all_succeed() {
 fn a_version_nine_database_keeps_its_layers_without_a_limit() {
     use codeskimr_application::ports::ProjectRepository;
     let db = TempDb::new();
-    let conn = database_at_version(
-        &db,
-        &[
-            include_str!("../migrations/0001_initial.sql"),
-            include_str!("../migrations/0002_credential_reference.sql"),
-            include_str!("../migrations/0003_fingerprints.sql"),
-            include_str!("../migrations/0004_shared_rows.sql"),
-            include_str!("../migrations/0005_reference_verified.sql"),
-            include_str!("../migrations/0006_level2_consent.sql"),
-            include_str!("../migrations/0007_tool_reports.sql"),
-            include_str!("../migrations/0008_naming_rules.sql"),
-            include_str!("../migrations/0009_parse_times.sql"),
-        ],
-    );
+    drop(SqliteStore::open(&db.0, keep(3)).unwrap());
+    let conn = Connection::open(&db.0).unwrap();
     conn.execute_batch(
-        "INSERT INTO projects (id, name, source_kind, location, branch)
+        "DROP TABLE layer_uses;
+         ALTER TABLE layers DROP COLUMN restricted;
+         PRAGMA user_version = 9;
+         INSERT INTO projects (id, name, source_kind, location, branch)
            VALUES (1, 'old', 'folder', '/work/app', '');
          INSERT INTO layers (project_id, position, name) VALUES (1, 0, 'Core');
          INSERT INTO layer_namespaces (project_id, layer_position, position, namespace)

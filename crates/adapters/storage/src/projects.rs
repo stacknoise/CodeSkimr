@@ -202,22 +202,15 @@ fn save_layer(conn: &Connection, project: i64, position: i64, layer: &Layer) -> 
 pub fn load_layers(conn: &Connection, project: ProjectId) -> StorageResult<Vec<Layer>> {
     let id = column_int(project.get())?;
     let mut statement = conn.prepare_cached(sql::LAYERS_OF_PROJECT)?;
-    let rows = statement.query_map(params![id], |row| {
-        let cols = Cols::new(row);
-        Ok((
-            cols.take::<i64>()?,
-            cols.take::<String>()?,
-            cols.take::<bool>()?,
-        ))
-    })?;
+    let rows = statement.query_map(params![id], LayerRow::from_row)?;
     let mut layers = Vec::new();
     for row in rows {
-        let (position, name, restricted) = row?;
+        let row = row?;
         layers.push(Layer {
-            name: LayerName::new(name)?,
-            namespaces: load_namespaces(conn, id, position)?,
-            may_use: if restricted {
-                Some(load_used(conn, id, position)?)
+            name: LayerName::new(row.name)?,
+            namespaces: load_namespaces(conn, id, row.position)?,
+            may_use: if row.restricted {
+                Some(load_used(conn, id, row.position)?)
             } else {
                 None
             },
@@ -248,6 +241,24 @@ fn load_namespaces(
         names.push(QualifiedName::new(row?)?);
     }
     Ok(names)
+}
+
+/// A row of `layers` as stored.
+struct LayerRow {
+    position: i64,
+    name: String,
+    restricted: bool,
+}
+
+impl LayerRow {
+    fn from_row(row: &Row<'_>) -> rusqlite::Result<Self> {
+        let cols = Cols::new(row);
+        Ok(Self {
+            position: cols.take()?,
+            name: cols.take()?,
+            restricted: cols.take()?,
+        })
+    }
 }
 
 /// A row of `projects` as stored.
