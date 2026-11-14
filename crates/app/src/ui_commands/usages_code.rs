@@ -77,7 +77,8 @@ impl UsagesPorts {
     }
 
     /// The text of the lines `first..=last` of `path`, read in one go; empty if the file cannot be
-    /// read. The run is cut at `USAGES_CODE_MAX_SPAN` lines.
+    /// read. The run is cut at `USAGES_CODE_MAX_SPAN` lines and every line is trimmed at once, so
+    /// what is kept for a file stays small.
     fn read_run(&self, root: &FolderPath, path: &str, (first, last): (u32, u32)) -> Vec<String> {
         let Ok(relative) = RelativePath::new(path) else {
             return Vec::new();
@@ -85,7 +86,7 @@ impl UsagesPorts {
         let limits = (USAGES_CODE_MAX_SPAN, SOURCE_MAX_BYTES);
         self.text
             .excerpt(root, &relative, (first, last), limits)
-            .map(|found| found.lines)
+            .map(|found| found.lines.iter().map(|line| trimmed(line)).collect())
             .unwrap_or_default()
     }
 
@@ -116,7 +117,7 @@ impl UsagesPorts {
                 Some(CodeLine {
                     path: path.clone(),
                     line: *line,
-                    text: trimmed(text),
+                    text: text.clone(),
                 })
             })
             .collect();
