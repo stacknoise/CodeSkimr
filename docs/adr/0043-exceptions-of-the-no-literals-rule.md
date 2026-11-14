@@ -4,8 +4,9 @@ Status: accepted
 
 ## Context
 
-Rule R-06 (blueprint 3.2) lists four exceptions: the integers `0` and `1`, test code, the value side of a constant in `consts.rs`/`consts.ts`, and build scripts. The Dylint lint `no_literals` (`tools/lints/no_literals`) behaves in four more cases that the blueprint does not name (issue #24, found in the review of the lint):
+Rule R-06 (blueprint 3.2) lists four exceptions: the integers `0` and `1`, test code, the value side of a constant in `consts.rs`/`consts.ts`, and build scripts. The Dylint lint `no_literals` (`tools/lints/no_literals`) behaves in more cases that the blueprint does not name (issue #24, found in the review of the lint):
 
+- the booleans `true` and `false` are not reported;
 - developer tooling below `tools/` (code generator, bench and CI tools) is not checked;
 - generated code in `OUT_DIR` is not checked;
 - literals in attributes and doc comments are allowed (`#[must_use = "..."]`, `#[doc = "..."]`);
@@ -22,13 +23,14 @@ Without a decision these are silent gaps. A reader of the blueprint would think 
 
 Option 2. Blueprint 3.2 gets these exceptions in addition to the four it has:
 
+- the booleans `true` and `false`, as the lint already lets them pass;
 - developer tooling in `tools/` and code generated into `OUT_DIR`, because neither ships in the product;
 - literals inside attributes and doc comments;
 - code behind `cfg(feature)` or another platform is checked only where CI compiles it. The `literals` job runs on Linux with the default features; the platform builds (Windows, macOS) do not run the lint.
 
-Silencing the lint is not an exception. `allow`, `expect`, `warn` or `cfg_attr` of `no_literals` in product code, in a `[lints]` table or in a compiler flag fails the `literals` job (issue #25).
+Silencing the lint is not an exception. The name `no_literals` in a Rust file, a `Cargo.toml` or `.cargo/` outside its own folder fails the `literals` job (issue #25). The check does not read workflow files or scripts: a flag such as `-A no_literals` in a workflow is caught in review of the workflow, which is a change to the CI file anyway.
 
-The same pull request lets `deps` check the lint workspace (about 120 packages) with the rules of the product, because it was not covered before (issue #25). That check found one advisory: `paste` is unmaintained (RUSTSEC-2024-0436, no vulnerability). It is a build-time dependency of `dylint_linting`, the newest version of which still uses it, and it never reaches the product. `deny.toml` and the audit step of the lint workspace ignore exactly this advisory, with the reason next to it; the entry goes away when Dylint drops `paste`. Nothing else is loosened.
+The same pull request lets `deps` check the lint workspace (about 120 packages) with the rules of the product, because it was not covered before (issue #25). That check found one advisory: `paste` is unmaintained (RUSTSEC-2024-0436, no vulnerability). It is a build-time dependency of `dylint_linting`, the newest version of which still uses it, and it never reaches the product. `deny.toml` and the audit step of the lint workspace ignore exactly this advisory, with the reason next to it. `cargo deny` has no ignore per workspace, so the entry also applies to the product workspace; `paste` is not in it today, and `cargo audit` of the product has no ignore and stays strict. If `paste` ever turned up in the product, the audit would still report it; the entry goes away when Dylint drops `paste`. Nothing else is loosened.
 
 ## Consequences
 

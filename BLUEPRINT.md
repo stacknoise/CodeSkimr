@@ -80,13 +80,13 @@ All rules in this section are **MUST** and are enforced in CI (section 17.3).
 
 - **R-06** Production code MUST NOT contain literals. This applies to numbers, strings, characters, byte strings, durations and paths.
 - **Allowed exceptions:**
-  - The integers `0` and `1`.
+  - The integers `0` and `1`, and the booleans `true` and `false`.
   - Literals in test code (`#[cfg(test)]`, `tests/`, `*.test.ts`, `*.spec.ts`, benchmark data).
   - The value side of a `const` or `static` definition in a `consts.rs` module (Rust) or `consts.ts` (TypeScript).
   - Build scripts that generate code.
   - Developer tooling in `tools/` and code generated into `OUT_DIR` (neither ships in the product), and literals inside attributes and doc comments (ADR 0043).
   - Code behind `cfg(feature)` or on another platform is checked only where CI compiles it (the `literals` job runs on Linux with the default features).
-  - Silencing the lint is not an exception: `allow`, `expect`, `warn` or `cfg_attr` of `no_literals` fails CI.
+  - Silencing the lint is not an exception: naming `no_literals` in Rust files, `Cargo.toml` or `.cargo/` outside its own folder fails CI.
 - **Where values live instead:**
 
 | Kind of value | Location |

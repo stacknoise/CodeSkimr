@@ -236,10 +236,14 @@ jobs:
       # its own folder. This also catches `cfg_attr`, multi-line attributes, `[lints]` tables and flags.
       - name: no_literals is not silenced
         run: |
-          if git grep -n 'no_literals' -- '*.rs' '*Cargo.toml' '.cargo' ':!tools/lints/no_literals'; then
+          # git grep: 0 = found, 1 = nothing found, anything else = the search itself failed.
+          status=0
+          git grep -n 'no_literals' -- '*.rs' '*Cargo.toml' '.cargo' ':!tools/lints/no_literals' || status=$?
+          if [ "$status" -eq 0 ]; then
             echo "::error::no_literals is named outside tools/lints/no_literals; silencing the lint is not allowed"
             exit 1
           fi
+          test "$status" -eq 1
       - name: Install cargo-dylint
         working-directory: tools/lints/no_literals
         run: cargo install --locked cargo-dylint@6.4.0 dylint-link@6.4.0
