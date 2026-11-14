@@ -1,7 +1,7 @@
 //! The decoder: bytes of a SCIP index (`scip.proto` of Sourcegraph) to a [`ScipIndex`].
 //!
 //! Only the fields the import needs are read; every other field is skipped. The input is
-//! untrusted: its size is limited before it is read, strings are length-checked before they are
+//! untrusted: its size is checked against the limit before it is read, strings are length-checked before they are
 //! copied, skipped groups have a depth limit, and nothing here can panic.
 
 use std::collections::HashMap;

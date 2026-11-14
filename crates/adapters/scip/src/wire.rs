@@ -13,12 +13,12 @@ use crate::error::Corruption;
 pub(crate) enum Value<'a> {
     /// A varint.
     Varint(u64),
-    /// Length-delimited bytes: a text, a nested message or packed numbers.
+    /// Bytes with a length in front: a text, a nested message or packed numbers.
     Bytes(&'a [u8]),
 }
 
 /// Reads fields one after the other. Fixed-width fields and groups are skipped silently, so
-/// only varints and length-delimited values reach the caller.
+/// only varints and values with a length in front reach the caller.
 pub(crate) struct Fields<'a> {
     rest: &'a [u8],
 }

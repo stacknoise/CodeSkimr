@@ -33,7 +33,7 @@ pub(crate) const ROLE_DEFINITION: u32 = 1;
 pub(crate) const WIRE_VARINT: u8 = 0;
 /// Wire type: eight fixed bytes.
 pub(crate) const WIRE_FIXED64: u8 = 1;
-/// Wire type: length-delimited bytes.
+/// Wire type: bytes with a length in front.
 pub(crate) const WIRE_LEN: u8 = 2;
 /// Wire type: start of a group (deprecated, only skipped).
 pub(crate) const WIRE_START_GROUP: u8 = 3;
