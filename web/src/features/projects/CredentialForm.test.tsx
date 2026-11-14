@@ -8,6 +8,25 @@ const SECRET = "ghp_CANARY-ui-8e1f";
 
 useServerSession();
 
+const SCANNED = () =>
+  answer({
+    project: 1,
+    snapshot: 5,
+    files: 3,
+    symbols: 9,
+    references: 4,
+    seconds: 1,
+    tools: UNCHECKED,
+  });
+
+/** Shows the screen and pastes `path` as the source of a new project. */
+async function pasteSource(path: string): Promise<HTMLElement> {
+  render(() => <ProjectsScreen />);
+  const field = await screen.findByPlaceholderText(/Paste a folder path/);
+  fireEvent.input(field, { target: { value: path } });
+  return field;
+}
+
 function bodyOf(command: string): Record<string, unknown> {
   const call = fetchMock.mock.calls.find(([path]) => String(path).endsWith(command));
   return JSON.parse(call?.[1].body);
@@ -59,20 +78,9 @@ describe("the login of a Git project", () => {
     serve({
       "projects.list": () => answer([]),
       "credentials.list": () => answer([{ id: "work", stored: true }]),
-      "projects.add": () =>
-        answer({
-          project: 1,
-          snapshot: 5,
-          files: 3,
-          symbols: 9,
-          references: 4,
-          seconds: 1,
-          tools: UNCHECKED,
-        }),
+      "projects.add": () => SCANNED(),
     });
-    render(() => <ProjectsScreen />);
-    const field = await screen.findByPlaceholderText(/Paste a folder path/);
-    fireEvent.input(field, { target: { value: "https://git.example.com/team/repo.git" } });
+    await pasteSource("https://git.example.com/team/repo.git");
     const choice = (await screen.findByLabelText("Login")) as HTMLSelectElement;
     await screen.findByRole("option", { name: "work" });
     fireEvent.change(choice, { target: { value: "work" } });
@@ -87,9 +95,7 @@ describe("the login of a Git project", () => {
       "credentials.set": () => answer({ id: "work" }),
       "projects.add": () => answer({ code: "PRJ-101" }, 400),
     });
-    render(() => <ProjectsScreen />);
-    const field = await screen.findByPlaceholderText(/Paste a folder path/);
-    fireEvent.input(field, { target: { value: "/work/shop" } });
+    await pasteSource("/work/shop");
     const secret = await type();
     fireEvent.keyDown(secret, { key: "Enter" });
     expect(await screen.findByText("Stored work")).toBeInTheDocument();
@@ -111,20 +117,9 @@ describe("the login of a Git project", () => {
     serve({
       "projects.list": () => answer([]),
       "credentials.list": () => answer([]),
-      "projects.add": () =>
-        answer({
-          project: 1,
-          snapshot: 5,
-          files: 3,
-          symbols: 9,
-          references: 4,
-          seconds: 1,
-          tools: UNCHECKED,
-        }),
+      "projects.add": () => SCANNED(),
     });
-    render(() => <ProjectsScreen />);
-    const field = await screen.findByPlaceholderText(/Paste a folder path/);
-    fireEvent.input(field, { target: { value: "/work/shop" } });
+    await pasteSource("/work/shop");
     fireEvent.click(screen.getByRole("button", { name: "Add and scan" }));
     await waitFor(() =>
       expect(bodyOf("projects.add")).toEqual({ source: "/work/shop", branch: "main" }),
