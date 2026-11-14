@@ -106,7 +106,7 @@ fn a_principal_without_the_declared_permission_is_denied_before_the_command_runs
 }
 
 #[test]
-fn run_checks_the_permission_before_execute_is_reached() {
+fn run_denies_a_caller_without_the_declared_permission() {
     assert_eq!(
         Shout.run(&Principal::local_owner(), "a".into()).unwrap(),
         "A"

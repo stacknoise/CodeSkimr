@@ -22,7 +22,6 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{Permission, Principal};
 
 use crate::access;
-
 use crate::error::CodedError;
 
 struct Entry {

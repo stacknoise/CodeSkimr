@@ -49,7 +49,7 @@ pub struct CommandDescriptor {
 ///
 /// A crate outside the application layer cannot build one:
 ///
-/// ```compile_fail
+/// ```compile_fail,E0639
 /// use codeskimr_application::registry::Request;
 /// use codeskimr_domain::Principal;
 ///
