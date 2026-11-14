@@ -64,6 +64,29 @@ def ours(db, verified_only=False):
     return files, symbols, used, kinds
 
 
+def import_level2(opt, db, source):
+    """Maps the hand-made SCIP index onto the scanned database (tools/accuracy/import_scip) and reopens it."""
+    pin = tomllib.loads((Path(__file__).parent / "reference_tools.toml").read_text())["rust_scip"]["rust_analyzer"]
+    found = subprocess.run(["rust-analyzer", "--version"], capture_output=True, text=True).stdout.strip()
+    if found != pin:
+        print(f"warning: rust-analyzer is '{found}', the numbers in docs/accuracy.md are for '{pin}'", file=sys.stderr)
+    config = tomllib.loads((ROOT / "config/default.toml").read_text())
+    level2, max_file = config["level2"], config["scan"]["max_source_mb"] * 1024 * 1024
+    dbfile = db.execute("pragma database_list").fetchone()[2]
+    project_id = db.execute("select id from projects").fetchone()[0]
+    scanned = db.execute("select count(*) from files where snapshot_id=(select max(id) from snapshots)").fetchone()[0]
+    db.close()
+    done = subprocess.run([opt.import_scip, dbfile, str(project_id), opt.scip, str(level2["min_mapped"]), str(source),
+                           str(level2["max_index_bytes"]), str(max_file)], capture_output=True, text=True)
+    if done.returncode:
+        sys.exit("import failed: " + done.stderr)
+    stats = json.loads(done.stdout)
+    print("import:", done.stdout.strip(), file=sys.stderr)
+    if stats["files_replaced"] != scanned:
+        sys.exit(f"the index covers {stats['files_replaced']} of {scanned} scanned files: it does not belong to this corpus commit")
+    return sqlite3.connect(dbfile)
+
+
 def java_inputs(src, tmp):
     """Classpath (pinned, checked downloads) and generated sources for the Java reference compiler."""
     config = tomllib.loads((Path(__file__).parent / "reference_tools.toml").read_text())["java"]
@@ -119,8 +142,14 @@ def main():
     args.add_argument("--codeskimr", default=str(ROOT / "target/debug/codeskimr"))
     args.add_argument("--languages", default=str(ROOT / "languages"), help="language packs that belong to the binary")
     args.add_argument("--json", action="store_true")
+    args.add_argument("--scip", help="SCIP index made by hand (`rust-analyzer scip`); mapped onto the scan with tools/accuracy/import_scip, without the consent flow of level 2")
+    args.add_argument("--import-scip", default=str(ROOT / "target/debug/codeskimr_import_scip"), help="the measuring tool of --scip")
     args.add_argument("--verified-only", action="store_true", help="count only references that level 2 produced (verified)")
     opt = args.parse_args()
+    if opt.scip and not opt.verified_only:
+        sys.exit("--scip needs --verified-only: without it level 1 and level 2 references are counted together")
+    if opt.scip and opt.language != "rust":
+        sys.exit("--scip is only prepared for rust (rust-analyzer scip)")
     project = tomllib.loads((ROOT / "corpus" / opt.language / "corpus.toml").read_text())["project"]
     src = checkout(opt.language, project)
     with tempfile.TemporaryDirectory() as tmp:
@@ -128,6 +157,8 @@ def main():
         (tmp / "src").mkdir()
         filtered_copy(src, project, tmp / "src")
         db = scan(opt.codeskimr, opt.languages, tmp / "src", tmp / "data")
+        if opt.scip:
+            db = import_level2(opt, db, tmp / "src")
         files, symbols, used, kinds = ours(db, opt.verified_only)
         # Drawn by qualified name so that two versions of the scanner see the same symbols.
         pool = sorted((s[4], i) for i, s in symbols.items() if s[2] in KINDS and not s[3].startswith("_"))
