@@ -37,7 +37,7 @@ Das Programm ist noch nicht signiert; der Befehl `xattr` nimmt die Sperre von ma
 
 ## Erste Schritte
 
-Projekt anlegen und scannen: Handbuch unter `docs/manual/de/projekte-und-scan.md`. Die Daten liegen unter `%LOCALAPPDATA%\codeskimr` (Windows) , `~/Library/Application Support/codeskimr` (macOS) bzw. `~/.local/share/codeskimr` (Linux); Löschen des Ordners setzt alles zurück.
+Projekt anlegen und scannen: Handbuch unter `docs/manual/de/projekte-und-scan.md`. Die Daten liegen unter `%LOCALAPPDATA%\codeskimr` (Windows), `~/Library/Application Support/codeskimr` (macOS) bzw. `~/.local/share/codeskimr` (Linux); Löschen des Ordners setzt alles zurück.
 
 ## Bekannte Grenzen
 

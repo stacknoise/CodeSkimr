@@ -132,7 +132,7 @@ jobs:
       # Issue #243: the two tool workspaces have their own Cargo.lock, so the checks above do not see them.
       # import_scip gets the same strict checks. The lint tree (no_literals, developer tool, never shipped)
       # pulls in the unmaintained `paste` through dylint_linting (RUSTSEC-2024-0436, no fix exists), so for
-      # it audit and deny fail on vulnerabilities, licenses, bans and sources but not on that notice.
+      # it audit ignores exactly that one ID (every other warning fails) and deny checks bans, licenses and sources.
       - name: cargo audit, deny and machete for tools/accuracy/import_scip
         run: |
           cargo audit --deny warnings -f tools/accuracy/import_scip/Cargo.lock
@@ -140,7 +140,7 @@ jobs:
           cargo machete tools/accuracy/import_scip
       - name: cargo audit, deny and machete for tools/lints/no_literals
         run: |
-          cargo audit -f tools/lints/no_literals/Cargo.lock
+          cargo audit --deny warnings --ignore RUSTSEC-2024-0436 -f tools/lints/no_literals/Cargo.lock
           cargo deny --manifest-path tools/lints/no_literals/Cargo.toml --config deny.toml --locked check bans licenses sources
           cargo machete tools/lints/no_literals
       - name: no plain-HTTP credentials in the product

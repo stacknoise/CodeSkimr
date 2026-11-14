@@ -13,7 +13,7 @@ These names must be entered as required status checks in the ruleset `main` (nam
 | `fmt` | `cargo fmt --check`, `prettier --check` once `web/` exists | 17.3 (1) |
 | `clippy` | clippy with workspace lints, warnings are errors | 17.3 (2) |
 | `test` | `cargo test --workspace` | 17.3 (8) |
-| `deps` | `cargo audit`, `cargo deny` (`deny.toml`), `cargo machete`, and a check that `http-client-insecure-credentials` (plain-HTTP logins, only for the login tests) is not in the product's feature tree; audit, deny and machete also run for the lock files of `tools/accuracy/import_scip` (strict) and `tools/lints/no_literals` (not on the unmaintained notice for `paste`, which comes from dylint and has no fix; issue #243) | 17.3 (10), S-03 |
+| `deps` | `cargo audit`, `cargo deny` (`deny.toml`), `cargo machete`, and a check that `http-client-insecure-credentials` (plain-HTTP logins, only for the login tests) is not in the product's feature tree; audit, deny and machete also run for the lock files of `tools/accuracy/import_scip` (strict) and `tools/lints/no_literals` (with exactly one ignored advisory, RUSTSEC-2024-0436: `paste` is unmaintained, comes from dylint and has no fix; remove the ignore once dylint drops it; issue #243) | 17.3 (10), S-03 |
 | `build (ubuntu-latest)` | release build | 17.3 (11) |
 | `build (windows-latest)` | release build | 17.3 (11) |
 | `build (macos-latest)` | release build | 17.3 (11) |
