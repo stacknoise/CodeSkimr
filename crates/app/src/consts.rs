@@ -31,6 +31,8 @@ pub const HOME_MACOS_PARTS: [&str; 2] = ["Library", "Application Support"];
 
 /// The `SQLite` database inside the data folder.
 pub const DATABASE_FILE: &str = "codeskimr.db";
+/// Empty file whose lock serialises the creation of the installation token.
+pub const TOKEN_LOCK_FILE: &str = "token.lock";
 /// The folder of the Git clones inside the data folder.
 pub const GIT_CACHE_DIR: &str = "git";
 /// The user configuration file inside the configuration folder.

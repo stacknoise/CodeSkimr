@@ -5,6 +5,9 @@
 //! the user's keystore, not from a web page in a browser. It is never written to a file, a log or
 //! the database.
 
+use std::fs::{self, File};
+use std::path::Path;
+
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{AuthError, Credential, CredentialStore};
 use codeskimr_codes::ErrorCode;
@@ -34,6 +37,31 @@ pub fn load_or_create(store: &impl CredentialStore) -> Result<InstallationToken,
         }
         other => Ok(other?),
     }
+}
+
+/// Like [`load_or_create`], but two programs that start together cannot both create a token: the
+/// check and the creation happen while this process holds an exclusive lock on `lock_file`
+/// (`SEC-S-06`, issue #269). The keystore has no compare-and-set, so the lock is the guard. The
+/// file stays empty and holds no secret; the lock is released when the call returns.
+///
+/// # Errors
+/// As [`load_or_create`]; `APP-901` if the lock file cannot be created or locked.
+pub fn load_or_create_locked(
+    store: &impl CredentialStore,
+    lock_file: &Path,
+) -> Result<InstallationToken, CodedError> {
+    let internal = |_| CodedError::new(ErrorCode::UnexpectedInternalError);
+    if let Some(folder) = lock_file.parent() {
+        fs::create_dir_all(folder).map_err(internal)?;
+    }
+    let file = File::options()
+        .create(true)
+        .append(true)
+        .open(lock_file)
+        .map_err(internal)?;
+    fs4::FileExt::lock(&file).map_err(internal)?;
+    // The lock goes with the file handle, also when the call fails.
+    load_or_create(store)
 }
 
 /// The only place that reads the token text: it never leaves the loan of the store.
@@ -127,6 +155,24 @@ mod tests {
         let again = load_or_create(&store).unwrap();
         assert_eq!(stored_token(&store), first);
         assert!(again.accepts(&first));
+    }
+
+    #[test]
+    fn programs_that_start_together_end_with_one_token() {
+        let folder = tempfile::tempdir().unwrap();
+        let lock = folder.path().join("token.lock");
+        let store = std::sync::Arc::new(KeystoreCredentials::new(Memory::default()));
+        let digests: Vec<_> = (0..8)
+            .map(|_| {
+                let (store, lock) = (std::sync::Arc::clone(&store), lock.clone());
+                std::thread::spawn(move || load_or_create_locked(&*store, &lock).unwrap())
+            })
+            .collect::<Vec<_>>()
+            .into_iter()
+            .map(|handle| handle.join().unwrap())
+            .collect();
+        let token = stored_token(&*store);
+        assert!(digests.iter().all(|digest| digest.accepts(&token)));
     }
 
     #[test]

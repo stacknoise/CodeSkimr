@@ -46,3 +46,5 @@ The scanner and the commands share one credential store (`wiring::Secrets`). The
 - The server and the UI still have no endpoint or form to create a credential (issue #53, second half). The CLI commands are described in `docs/cli.md`.
 - A secret from standard input is limited to 64 KiB. The read buffer of the standard input and the terminal library are copies the program cannot wipe (blueprint 15, library copies).
 - The token of the device flow is stored as it is. GitHub tokens of an OAuth app do not expire; GitLab tokens do after two hours, and refreshing them is not built, so a GitLab token has to be created again by `credential login`.
+
+- First start: the installation token is created while the program holds an exclusive lock on `token.lock` in the data folder (`fs4`), so two programs that start together end with one token (issue #269). A keystore without compare-and-set needs this lock.
