@@ -7,8 +7,10 @@
 #   associated type (in a trait)       -> type_alias   const, static        -> constant
 #   fn in a module or in a function    -> function     fn in impl or trait  -> method
 #   named field of a struct or variant -> field
-# Not symbols: `impl` blocks (their functions belong to the enclosing module, the type is only
-# named in references), parameters, local variables, closures (they count for their function),
+# `impl` blocks are no symbols but containers (ADR 0039): their functions are methods of the type
+# the block names (`mod::Type::method`; the type is the parent if it is declared in the same
+# module before the block, else only the name carries it; a head such as `&Type` or `a::Type` has no
+# container). Not symbols: parameters, local variables, closures (they count for their function),
 # tuple struct fields, `use` declarations, macros (`macro_rules!` and their calls), `extern`
 # blocks and associated consts of impls that are not constants of a trait. Documentation is
 # `///` and `/** */` directly above the declaration (attributes may stand between); `//!` and

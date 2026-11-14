@@ -7,7 +7,7 @@ import { KindBadge } from "../explorer/KindBadge";
 import { tilesOf } from "../explorer/metrics";
 import { TileGrid } from "../explorer/TileGrid";
 import { FILE_LETTER, PATH_SEPARATOR, PREVIEW_TILES } from "./consts";
-import { loadPreview, previewInfo } from "./preview";
+import { loadPreview, previewInfo } from "./previewState";
 import type { FileHit, Hit } from "./types";
 import styles from "./QuickSearch.module.css";
 

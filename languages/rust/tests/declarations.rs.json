@@ -87,7 +87,7 @@
         1,
         1
       ],
-      "symbol": "declarations::shapes::new"
+      "symbol": "declarations::shapes::Point::new"
     },
     {
       "decisions": 0,
@@ -100,7 +100,7 @@
         3,
         4
       ],
-      "symbol": "declarations::shapes::shifted"
+      "symbol": "declarations::shapes::Point::shifted"
     },
     {
       "decisions": 0,
@@ -113,7 +113,7 @@
         0,
         0
       ],
-      "symbol": "declarations::shapes::parent_only"
+      "symbol": "declarations::shapes::Point::parent_only"
     },
     {
       "decisions": 0,
@@ -126,7 +126,7 @@
         0,
         0
       ],
-      "symbol": "declarations::shapes::in_path"
+      "symbol": "declarations::shapes::Point::in_path"
     },
     {
       "decisions": 0,
@@ -139,7 +139,7 @@
         0,
         0
       ],
-      "symbol": "declarations::shapes::private_helper"
+      "symbol": "declarations::shapes::Point::private_helper"
     },
     {
       "decisions": 0,
@@ -152,7 +152,7 @@
         1,
         1
       ],
-      "symbol": "declarations::shapes::origin"
+      "symbol": "declarations::shapes::Point::origin"
     },
     {
       "decisions": 0,
@@ -165,7 +165,7 @@
         0,
         0
       ],
-      "symbol": "declarations::shapes::area"
+      "symbol": "declarations::shapes::Point::area"
     },
     {
       "decisions": 0,
@@ -178,7 +178,7 @@
         0,
         0
       ],
-      "symbol": "declarations::shapes::unit"
+      "symbol": "declarations::shapes::Point::unit"
     },
     {
       "decisions": 0,
@@ -331,119 +331,119 @@
     },
     {
       "at": "49:9",
-      "from": "declarations::shapes",
+      "from": "declarations::shapes::Point",
       "kind": "type_use",
       "receiver": null,
       "target": "Point"
     },
     {
       "at": "52:38",
-      "from": "declarations::shapes::new",
+      "from": "declarations::shapes::Point::new",
       "kind": "type_use",
       "receiver": null,
       "target": "Self"
     },
     {
       "at": "53:12",
-      "from": "declarations::shapes::new",
+      "from": "declarations::shapes::Point::new",
       "kind": "type_use",
       "receiver": null,
       "target": "Self"
     },
     {
       "at": "53:32",
-      "from": "declarations::shapes::new",
+      "from": "declarations::shapes::Point::new",
       "kind": "read",
       "receiver": null,
       "target": "String"
     },
     {
       "at": "53:40",
-      "from": "declarations::shapes::new",
+      "from": "declarations::shapes::Point::new",
       "kind": "call",
       "receiver": "named String",
       "target": "new"
     },
     {
       "at": "56:49",
-      "from": "declarations::shapes::shifted",
+      "from": "declarations::shapes::Point::shifted",
       "kind": "type_use",
       "receiver": null,
       "target": "Self"
     },
     {
       "at": "57:18",
-      "from": "declarations::shapes::shifted",
+      "from": "declarations::shapes::Point::shifted",
       "kind": "call",
       "receiver": "own",
       "target": "new"
     },
     {
       "at": "57:27",
-      "from": "declarations::shapes::shifted",
+      "from": "declarations::shapes::Point::shifted",
       "kind": "read",
       "receiver": "own",
       "target": "x"
     },
     {
       "at": "57:40",
-      "from": "declarations::shapes::shifted",
+      "from": "declarations::shapes::Point::shifted",
       "kind": "read",
       "receiver": "own",
       "target": "y"
     },
     {
       "at": "66:33",
-      "from": "declarations::shapes::origin",
+      "from": "declarations::shapes::Point::origin",
       "kind": "type_use",
       "receiver": null,
       "target": "Self"
     },
     {
       "at": "67:12",
-      "from": "declarations::shapes::origin",
+      "from": "declarations::shapes::Point::origin",
       "kind": "type_use",
       "receiver": null,
       "target": "Self"
     },
     {
       "at": "67:42",
-      "from": "declarations::shapes::origin",
+      "from": "declarations::shapes::Point::origin",
       "kind": "read",
       "receiver": null,
       "target": "String"
     },
     {
       "at": "67:50",
-      "from": "declarations::shapes::origin",
+      "from": "declarations::shapes::Point::origin",
       "kind": "call",
       "receiver": "named String",
       "target": "new"
     },
     {
       "at": "71:9",
-      "from": "declarations::shapes",
+      "from": "declarations::shapes::Point",
       "kind": "implement",
       "receiver": null,
       "target": "Shape"
     },
     {
       "at": "71:19",
-      "from": "declarations::shapes",
+      "from": "declarations::shapes::Point",
       "kind": "type_use",
       "receiver": null,
       "target": "Point"
     },
     {
       "at": "74:11",
-      "from": "declarations::shapes::area",
+      "from": "declarations::shapes::Point::area",
       "kind": "override",
       "receiver": null,
       "target": "area"
     },
     {
       "at": "78:11",
-      "from": "declarations::shapes::unit",
+      "from": "declarations::shapes::Point::unit",
       "kind": "override",
       "receiver": null,
       "target": "unit"
@@ -708,8 +708,8 @@
     {
       "doc": "Creates a point.",
       "kind": "method",
-      "name": "declarations::shapes::new",
-      "parent": "declarations::shapes",
+      "name": "declarations::shapes::Point::new",
+      "parent": "declarations::shapes::Point",
       "signature": null,
       "span": "52:8-54:9",
       "static": true,
@@ -718,8 +718,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "declarations::shapes::shifted",
-      "parent": "declarations::shapes",
+      "name": "declarations::shapes::Point::shifted",
+      "parent": "declarations::shapes::Point",
       "signature": null,
       "span": "56:8-58:9",
       "static": false,
@@ -728,8 +728,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "declarations::shapes::parent_only",
-      "parent": "declarations::shapes",
+      "name": "declarations::shapes::Point::parent_only",
+      "parent": "declarations::shapes::Point",
       "signature": null,
       "span": "60:8-60:43",
       "static": false,
@@ -738,8 +738,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "declarations::shapes::in_path",
-      "parent": "declarations::shapes",
+      "name": "declarations::shapes::Point::in_path",
+      "parent": "declarations::shapes::Point",
       "signature": null,
       "span": "62:8-62:50",
       "static": false,
@@ -748,8 +748,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "declarations::shapes::private_helper",
-      "parent": "declarations::shapes",
+      "name": "declarations::shapes::Point::private_helper",
+      "parent": "declarations::shapes::Point",
       "signature": null,
       "span": "64:8-64:39",
       "static": false,
@@ -758,8 +758,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "declarations::shapes::origin",
-      "parent": "declarations::shapes",
+      "name": "declarations::shapes::Point::origin",
+      "parent": "declarations::shapes::Point",
       "signature": null,
       "span": "66:8-68:9",
       "static": true,
@@ -768,8 +768,8 @@
     {
       "doc": null,
       "kind": "type_alias",
-      "name": "declarations::shapes::Unit",
-      "parent": "declarations::shapes",
+      "name": "declarations::shapes::Point::Unit",
+      "parent": "declarations::shapes::Point",
       "signature": null,
       "span": "72:8-72:23",
       "static": false,
@@ -778,8 +778,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "declarations::shapes::area",
-      "parent": "declarations::shapes",
+      "name": "declarations::shapes::Point::area",
+      "parent": "declarations::shapes::Point",
       "signature": null,
       "span": "74:8-76:9",
       "static": false,
@@ -788,8 +788,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "declarations::shapes::unit",
-      "parent": "declarations::shapes",
+      "name": "declarations::shapes::Point::unit",
+      "parent": "declarations::shapes::Point",
       "signature": null,
       "span": "78:8-80:9",
       "static": true,

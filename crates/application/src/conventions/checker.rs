@@ -1,5 +1,6 @@
 //! The use case: discover, analyse, check.
 
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use codeskimr_codes::{Coded, ErrorCode};
@@ -7,8 +8,9 @@ use codeskimr_domain::{Permission, RelativePath, SnapshotId};
 
 use super::duplicates::{Fingerprinted, duplicates};
 use super::length::{Callable, callables, too_long};
-use super::model::{CheckReport, CheckRequest, Finding, Unchecked};
+use super::model::{CheckReport, CheckRequest, Finding, StoredProject, Unchecked};
 use super::selection::Selection;
+use super::stored::{Rules, against_stored};
 use crate::access;
 use crate::cancel::CancelToken;
 use crate::config::Conventions;
@@ -28,6 +30,7 @@ const NOT_CHECKED: &[ErrorCode] = &[
 
 /// A file after analysis, with the callables it declares.
 struct Analysed {
+    path: RelativePath,
     callables: Vec<Callable>,
     facts: FileFacts,
 }
@@ -85,7 +88,7 @@ impl ConventionChecker {
             }
         }
         let unmatched = selection.unmatched(&files);
-        Ok(self.report(&analysed, unchecked, unmatched))
+        self.report(&analysed, request.stored.as_ref(), (unchecked, unmatched))
     }
 
     fn analyse(
@@ -101,6 +104,7 @@ impl ConventionChecker {
             ids,
         })?;
         Ok(Analysed {
+            path: file.path.clone(),
             callables: callables(&file.path, &facts),
             facts,
         })
@@ -109,19 +113,23 @@ impl ConventionChecker {
     fn report(
         &self,
         analysed: &[Analysed],
-        unchecked: Vec<Unchecked>,
-        unmatched: Vec<String>,
-    ) -> CheckReport {
+        stored: Option<&StoredProject<'_>>,
+        (unchecked, unmatched): (Vec<Unchecked>, Vec<String>),
+    ) -> Result<CheckReport, CodedError> {
         let mut findings: Vec<Finding> = analysed
             .iter()
             .flat_map(|done| too_long(&done.callables, self.limits.max_function_lines))
             .collect();
         let items = fingerprinted(analysed);
-        findings.extend(duplicates(
+        let inside = duplicates(
             &items,
             self.limits.duplicate_similarity_percent,
             self.limits.duplicate_min_lines,
-        ));
+        );
+        if let Some(stored) = stored {
+            findings.extend(self.outside((analysed, &items), stored, &inside)?);
+        }
+        findings.extend(inside);
         findings.sort_by_key(|finding| {
             (
                 finding.location.path.clone(),
@@ -129,13 +137,33 @@ impl ConventionChecker {
                 finding.code.id(),
             )
         });
-        CheckReport {
+        Ok(CheckReport {
             files_checked: u32::try_from(analysed.len()).unwrap_or(u32::MAX),
             findings,
             unchecked,
             not_checked: NOT_CHECKED.to_vec(),
             unmatched,
-        }
+        })
+    }
+
+    /// Copies of stored code outside the checked files, for the functions `inside` did not report.
+    fn outside(
+        &self,
+        (analysed, items): (&[Analysed], &[Fingerprinted<'_>]),
+        stored: &StoredProject<'_>,
+        inside: &[Finding],
+    ) -> Result<Vec<Finding>, CodedError> {
+        let checked: HashSet<RelativePath> =
+            analysed.iter().map(|done| done.path.clone()).collect();
+        let folders = &self.limits.test_folders;
+        let is_test = |path: &RelativePath| in_test_folder(path, folders);
+        let rules = Rules {
+            minimum_percent: self.limits.duplicate_similarity_percent,
+            minimum_lines: self.limits.duplicate_min_lines,
+            checked: &checked,
+            is_test: &is_test,
+        };
+        against_stored(items, stored, &rules, inside)
     }
 }
 
