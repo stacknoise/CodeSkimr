@@ -14,7 +14,9 @@ use codeskimr_application::ports::{
     ToolIssue, ToolSpec, ToolVersion,
 };
 use codeskimr_codes::{Coded, ErrorCode};
-use codeskimr_domain::{LanguageId, Principal, ProjectId};
+use codeskimr_domain::{
+    FolderPath, LanguageId, Principal, Project, ProjectId, ProjectName, ProjectSource,
+};
 use codeskimr_indexer::{FailureReason, IndexerError, ProcessIndexRunner};
 use sysinfo::{Pid, ProcessesToUpdate, System};
 use tempfile::TempDir;
@@ -85,6 +87,15 @@ fn source_env(dir: &Path, inherit_path: bool) -> Vec<(OsString, OsString)> {
     source
 }
 
+fn project_record(folder: &Path) -> Project {
+    Project {
+        id: ProjectId::new(1),
+        name: ProjectName::new("app").unwrap(),
+        source: ProjectSource::Folder(FolderPath::new(folder.to_str().unwrap()).unwrap()),
+        layers: Vec::new(),
+    }
+}
+
 fn confirmed_store() -> Arc<dyn ConsentStore> {
     let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
     level2::confirm(&Principal::local_owner(), store.as_ref(), ProjectId::new(1)).unwrap();
@@ -119,8 +130,8 @@ impl Fixture {
             &Principal::local_owner(),
             &config.level2,
             &store,
-            ProjectId::new(1),
-            project.path(),
+            &project_record(project.path()),
+            &FolderPath::new("unused").unwrap(),
         )
         .unwrap();
         Self {

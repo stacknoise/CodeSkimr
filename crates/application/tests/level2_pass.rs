@@ -20,8 +20,9 @@ mod cases {
     use codeskimr_codes::ErrorCode;
     use codeskimr_domain::{
         ContentHash, FileId, FolderPath, LanguageId, Loc, Permission, PermissionSet, Principal,
-        Project, ProjectId, Reference, ReferenceId, ReferenceKind, RelativePath, ScanMode,
-        Snapshot, SnapshotId, SnapshotStats, SourceFile, SymbolId, Timestamp,
+        Project, ProjectId, ProjectName, ProjectSource, Reference, ReferenceId, ReferenceKind,
+        RelativePath, ScanMode, Snapshot, SnapshotId, SnapshotStats, SourceFile, SymbolId,
+        Timestamp,
     };
 
     const PROJECT: ProjectId = ProjectId::new(7);
@@ -82,7 +83,12 @@ mod cases {
 
     impl ProjectRepository for World {
         fn project(&self, _: ProjectId) -> Result<Project, CodedError> {
-            Err(CodedError::new(ErrorCode::UnexpectedInternalError))
+            Ok(Project {
+                id: PROJECT,
+                name: ProjectName::new("demo").unwrap(),
+                source: ProjectSource::Folder(FolderPath::new("/work").unwrap()),
+                layers: Vec::new(),
+            })
         }
 
         fn latest_files(&self, _: ProjectId) -> Result<Vec<SourceFile>, CodedError> {

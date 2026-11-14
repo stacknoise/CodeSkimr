@@ -21,6 +21,7 @@ process-wrap = { workspace = true }
 sysinfo = { workspace = true }
 
 [dev-dependencies]
+codeskimr_application = { path = "../../application", features = ["test-support"] }
 codeskimr_domain = { path = "../../domain" }
 
 # A stand-in for a real indexer: the tests start it instead of scip-dotnet and the like.

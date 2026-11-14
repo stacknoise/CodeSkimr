@@ -11,6 +11,10 @@ publish = false
 [lints]
 workspace = true
 
+[features]
+# In-memory fakes for the tests of this and other crates; never part of the product.
+test-support = []
+
 [dependencies]
 codeskimr_domain = { path = "../domain" }
 codeskimr_codes = { path = "../codes" }
@@ -19,3 +23,6 @@ toml.workspace = true
 thiserror.workspace = true
 secrecy.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+codeskimr_application = { path = ".", features = ["test-support"] }

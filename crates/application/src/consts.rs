@@ -52,3 +52,7 @@ pub const PLACEHOLDER_PROJECT: &str = "{project}";
 pub const PLACEHOLDER_OUTPUT: &str = "{output}";
 /// The word before the version in the output of `java -version`.
 pub const VERSION_WORD: &str = "version";
+/// Separators of a date such as `2024-05-01` or `2024/05/01`.
+pub const DATE_SEPARATORS: &[char] = &['-', '/'];
+/// A number of this many digits or more is a date or an id (`20240501`), not a version.
+pub const DATE_MIN_DIGITS: usize = 8;

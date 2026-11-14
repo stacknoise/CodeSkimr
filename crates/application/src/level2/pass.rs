@@ -5,12 +5,11 @@
 //! written and the report says why a language was skipped.
 
 use std::collections::{BTreeMap, HashSet};
-use std::path::Path;
 use std::sync::Arc;
 
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    FolderPath, LanguageId, Principal, ReferenceId, RelativePath, Snapshot, SourceFile,
+    FolderPath, LanguageId, Principal, Project, ReferenceId, RelativePath, Snapshot, SourceFile,
 };
 
 use super::authorize_run;
@@ -58,6 +57,7 @@ struct Group<'a> {
 struct Scan<'a> {
     principal: &'a Principal,
     snapshot: &'a Snapshot,
+    project: Project,
     root: &'a FolderPath,
     cancel: &'a CancelToken,
     files: Vec<SourceFile>,
@@ -114,6 +114,7 @@ impl Level2Pass {
         Ok(Scan {
             principal,
             snapshot,
+            project: self.projects.project(snapshot.project)?,
             root,
             cancel,
             files: self.projects.latest_files(snapshot.project)?,
@@ -168,8 +169,8 @@ impl Level2Pass {
             scan.principal,
             &self.settings,
             &self.consent,
-            scan.snapshot.project,
-            Path::new(scan.root.as_str()),
+            &scan.project,
+            scan.root,
         )
         .map_err(Skipped::from)?;
         if let IndexerStatus::Unavailable(problems) = self.runner.check(group.spec) {
