@@ -102,6 +102,22 @@ mod tests {
         })
     }
 
+    /// A body without code lines is an empty file: no function at all.
+    fn symbols_of(
+        body: &Body,
+        request: &AnalyzeRequest<'_>,
+        file: &SourceFile,
+    ) -> Result<Vec<Symbol>, CodedError> {
+        let mut symbols = Vec::new();
+        if body.loc > 0 {
+            symbols.push(function(request, file, (4, 40))?);
+        }
+        if body.inner {
+            symbols.push(function(request, file, (10, 12))?);
+        }
+        Ok(symbols)
+    }
+
     impl FileAnalyzer for Disk {
         fn analyze(&self, request: &AnalyzeRequest<'_>) -> Result<FileFacts, CodedError> {
             let path = request.file.path.as_str();
@@ -121,14 +137,7 @@ mod tests {
                 snapshot: request.snapshot,
                 language: request.file.language.clone(),
             };
-            // A body without code lines is an empty file: no function at all.
-            let mut symbols = Vec::new();
-            if body.loc > 0 {
-                symbols.push(function(request, &file, (4, 40))?);
-            }
-            if body.inner {
-                symbols.push(function(request, &file, (10, 12))?);
-            }
+            let symbols = symbols_of(body, request, &file)?;
             Ok(FileFacts {
                 fingerprints: symbols
                     .iter()
