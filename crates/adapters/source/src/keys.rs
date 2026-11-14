@@ -14,7 +14,8 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{FolderPath, RelativePath};
 
 use crate::consts::{
-    BYTES_PER_KB, CONFIG_EXTENSION, FLUENT_EXTENSION, LINE_END_CHAR, TABLE_CLOSE, TABLE_OPEN,
+    ASSIGNMENT, BYTES_PER_KB, COMMENT_START, CONFIG_EXTENSION, FLUENT_EXTENSION, KEY_SEPARATOR,
+    LINE_END_CHAR, NAME_EXTRA, QUOTE, TABLE_CLOSE, TABLE_OPEN,
 };
 use crate::paths::relative_path;
 
@@ -115,7 +116,7 @@ fn toml_keys(text: &str) -> Vec<(String, usize)> {
     let mut found = Vec::new();
     for (line, raw) in text.split(LINE_END_CHAR).enumerate() {
         let trimmed = raw.trim();
-        if trimmed.starts_with('#') || trimmed.is_empty() {
+        if trimmed.starts_with(COMMENT_START) || trimmed.is_empty() {
             continue;
         }
         if let Some(header) = trimmed.strip_prefix(TABLE_OPEN) {
@@ -125,13 +126,13 @@ fn toml_keys(text: &str) -> Vec<(String, usize)> {
                 .next()
                 .unwrap_or_default();
             name.trim().clone_into(&mut prefix);
-        } else if let Some((key, _)) = trimmed.split_once('=') {
-            let key = key.trim().trim_matches('"');
+        } else if let Some((key, _)) = trimmed.split_once(ASSIGNMENT) {
+            let key = key.trim().trim_matches(QUOTE);
             if !key.is_empty() && !key.contains(char::is_whitespace) {
                 let full = if prefix.is_empty() {
                     key.to_owned()
                 } else {
-                    format!("{prefix}.{key}")
+                    [prefix.as_str(), key].join(KEY_SEPARATOR)
                 };
                 found.push((full, line));
             }
@@ -146,13 +147,13 @@ fn fluent_ids(text: &str) -> Vec<(String, usize)> {
     text.split(LINE_END_CHAR)
         .enumerate()
         .filter_map(|(line, raw)| {
-            let (id, _) = raw.split_once('=')?;
+            let (id, _) = raw.split_once(ASSIGNMENT)?;
             let id = id.trim_end();
             let mut chars = id.chars();
             let valid = chars
                 .next()
                 .is_some_and(|first| first.is_ascii_alphabetic())
-                && chars.all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_');
+                && chars.all(|c| c.is_ascii_alphanumeric() || NAME_EXTRA.contains(c));
             valid.then(|| (id.to_owned(), line))
         })
         .collect()

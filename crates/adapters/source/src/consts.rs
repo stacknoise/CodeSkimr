@@ -86,3 +86,18 @@ pub const TABLE_OPEN: char = '[';
 
 /// Closes a TOML table header.
 pub const TABLE_CLOSE: char = ']';
+
+/// Starts a comment line in a TOML file.
+pub const COMMENT_START: char = '#';
+
+/// Separates a key from its value in TOML and Fluent.
+pub const ASSIGNMENT: char = '=';
+
+/// Quotes a TOML key.
+pub const QUOTE: char = '"';
+
+/// Joins a table name and a key to the dotted key path.
+pub const KEY_SEPARATOR: &str = ".";
+
+/// Characters besides letters and digits that a Fluent message id may contain.
+pub const NAME_EXTRA: &str = "-_";
