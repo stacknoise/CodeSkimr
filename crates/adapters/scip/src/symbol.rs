@@ -48,6 +48,37 @@ pub(crate) fn last_descriptor(symbol: &str) -> Option<Descriptor> {
     last_two(symbol).map(|(_, last)| last)
 }
 
+/// The length in bytes of the four header fields of a symbol, with their separators.
+pub(crate) fn header_len(symbol: &str) -> usize {
+    let mut chars = symbol.chars().peekable();
+    for _ in 0..SYMBOL_HEADER_FIELDS {
+        skip_header_field(&mut chars);
+    }
+    symbol.len() - chars.map(char::len_utf8).sum::<usize>()
+}
+
+/// The names of the namespace descriptors of a global symbol, outermost first; empty for a local
+/// or malformed symbol.
+pub(crate) fn namespaces(symbol: &str) -> Vec<String> {
+    if is_local(symbol) {
+        return Vec::new();
+    }
+    let mut chars = symbol.chars().peekable();
+    for _ in 0..SYMBOL_HEADER_FIELDS {
+        skip_header_field(&mut chars);
+    }
+    let mut found = Vec::new();
+    while chars.peek().is_some() {
+        let Some(next) = descriptor(&mut chars) else {
+            return Vec::new();
+        };
+        if next.kind == DescriptorKind::Namespace {
+            found.push(next.name);
+        }
+    }
+    found
+}
+
 /// The last descriptor of a global symbol and the one before it, if there is one.
 pub(crate) fn last_two(symbol: &str) -> Option<(Option<Descriptor>, Descriptor)> {
     if is_local(symbol) {

@@ -119,6 +119,10 @@ pub(crate) const IMPL_MARKER: &str = "impl#[";
 pub(crate) const OPEN_GENERIC: char = '<';
 /// Separates the segments of a Rust path.
 pub(crate) const PATH_SEPARATOR: &str = "::";
+/// The first segment of a path that starts at the crate root.
+pub(crate) const ROOT_SEGMENT: &str = "crate";
+/// Segments of a path that are relative to the module of the block; they are not resolved.
+pub(crate) const RELATIVE_SEGMENTS: [&str; 2] = ["self", "super"];
 /// Separates the segments of a qualified name written as one escaped descriptor.
 pub(crate) const NAME_SEGMENT_SEPARATOR: char = '.';
 /// Names the indexers give constructors; a project constructor is named like its type.
