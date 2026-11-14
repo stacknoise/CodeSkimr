@@ -1,12 +1,14 @@
 //! The six concrete stages, each built from the ports it needs, and the values passed between them.
 
+use std::collections::BTreeMap;
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::thread;
+use std::time::Instant;
 
 use codeskimr_domain::{
-    CommitHash, FolderPath, Metric, Project, Reference, ScanMode, Snapshot, SnapshotId,
+    CommitHash, FolderPath, LanguageId, Metric, Project, Reference, ScanMode, Snapshot, SnapshotId,
     SnapshotStats, SourceFile, Symbol, SymbolCounts,
 };
 
@@ -48,6 +50,9 @@ pub struct ScanRun {
     pub commit: Option<CommitHash>,
     /// The naming rules of the packs, set by the discover stage (ADR 0036).
     pub naming_rules: String,
+    /// Time spent analysing (parse, symbols, metrics, fingerprints), summed over the files of each
+    /// language in microseconds; set by the analyze stage, empty in an incremental scan.
+    pub parse_micros: Vec<(LanguageId, u64)>,
 }
 
 /// Output of the discover stage.
@@ -150,6 +155,7 @@ impl Stage for FetchStage {
             root: fetched.root,
             commit: fetched.commit,
             naming_rules: String::new(),
+            parse_micros: Vec::new(),
         })
         .inspect(|_| ctx.progress(1, 1))
     }
@@ -247,12 +253,17 @@ impl Stage for AnalyzeStage {
             fingerprints: Vec::new(),
             carried,
         };
-        for facts in self.analyze_all(&run, &due, ctx)? {
+        let mut times: BTreeMap<LanguageId, u64> = BTreeMap::new();
+        for (facts, micros) in self.analyze_all(&run, &due, ctx)? {
+            *times.entry(facts.file.language.clone()).or_default() += micros;
             out.files.push(facts.file);
             out.symbols.extend(facts.symbols);
             out.pending.extend(facts.pending);
             out.counts.extend(facts.counts);
             out.fingerprints.extend(facts.fingerprints);
+        }
+        if run.mode == ScanMode::Full {
+            out.run.parse_micros = times.into_iter().collect();
         }
         Ok(out)
     }
@@ -275,7 +286,10 @@ struct Shared {
 }
 
 /// The result of one file, with the index of the file in the list of due files.
-type Slot = (usize, Result<FileFacts, Interruption>);
+type Slot = (usize, Result<Timed, Interruption>);
+
+/// The facts of one file with the microseconds its analysis took.
+type Timed = (FileFacts, u64);
 
 impl Shared {
     /// First id of the block of the file at `index`.
@@ -297,7 +311,7 @@ impl AnalyzeStage {
         run: &ScanRun,
         due: &[&DiscoveredFile],
         ctx: &StageContext<'_>,
-    ) -> Result<Vec<FileFacts>, Interruption> {
+    ) -> Result<Vec<Timed>, Interruption> {
         let shared = Shared {
             next: AtomicUsize::new(FIRST_INDEX),
             done: Mutex::new(NONE_DONE),
@@ -354,7 +368,7 @@ impl AnalyzeStage {
         file: &DiscoveredFile,
         first_id: u64,
         ctx: &StageContext<'_>,
-    ) -> Result<FileFacts, Interruption> {
+    ) -> Result<Timed, Interruption> {
         if ctx.is_cancelled() {
             return Err(Interruption::Cancelled);
         }
@@ -365,11 +379,13 @@ impl AnalyzeStage {
             file,
             ids: &ids,
         };
+        let started = Instant::now();
         let facts = self.analyzer.analyze(&request)?;
+        let micros = u64::try_from(started.elapsed().as_micros()).unwrap_or(u64::MAX);
         if ids.peek() - first_id > FILE_ID_BLOCK {
             return Err(internal_failure());
         }
-        Ok(facts)
+        Ok((facts, micros))
     }
 }
 
@@ -516,6 +532,7 @@ impl Stage for PersistStage {
             fingerprints: input.fingerprints,
             removed: input.carried.removed,
             naming_rules: input.run.naming_rules,
+            parse_micros: input.run.parse_micros,
         };
         let stored = self.store.persist(data)?;
         ctx.progress(1, 1);

@@ -23,6 +23,10 @@ pub const CURRENT_DIR: &str = ".";
 pub const CURRENT_DIR_PREFIX: &str = "./";
 /// First id handed out for the throw-away ids of a check; nothing is stored.
 pub const CHECK_FIRST_ID: u64 = 1;
+/// How many stored functions a check asks for per function it compares against the project; a
+/// few more than one, so that hits in the checked files themselves (their stored, older versions)
+/// and in tests do not hide a real original.
+pub const STORED_DUPLICATE_HITS: u32 = 20;
 /// Snapshot id used for the throw-away analysis of a check; nothing is stored.
 pub const CHECK_SNAPSHOT_ID: u64 = 0;
 

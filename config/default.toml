@@ -84,6 +84,9 @@ test_folders = ["tests", "benches"]
 [scan]
 # Folder names that are never scanned, at any depth.
 excluded_folders = ["bin", "obj", ".git", "node_modules", "target", "dist"]
+# The next two limits protect the machine that scans: the `.codeskimr.toml` of a scanned project may
+# lower them but not raise them above what the defaults and the user config file say. Only the user
+# config file and command line flags can raise them.
 # Time limit for parsing one file, in milliseconds; a file that takes longer fails with PRS-501.
 parse_timeout_ms = 5000
 # Most threads that analyse files at the same time; 0 means one per core. A lower number leaves cores to

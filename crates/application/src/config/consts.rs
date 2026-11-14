@@ -143,3 +143,10 @@ pub const SCHEME_EXTRA_CHARS: [char; 3] = ['+', '-', '.'];
 
 /// Name of the table of the project file that is never read (ADR 0033, decision 9).
 pub const UNTRUSTED_PROJECT_TABLE: &str = "level2";
+
+/// Table that holds the scan limits.
+pub const SCAN_TABLE: &str = "scan";
+/// Settings of [`SCAN_TABLE`] that the project file may only lower: a scanned repository must not
+/// lift the protection of the machine that scans it (#54). The user file and the flags may still
+/// raise them.
+pub const LOWER_ONLY_SCAN_KEYS: [&str; 2] = ["max_source_mb", "parse_timeout_ms"];

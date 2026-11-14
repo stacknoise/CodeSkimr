@@ -77,6 +77,7 @@ pub fn store(symbols: Vec<Symbol>, references: Vec<Reference>) -> Option<SqliteS
         metrics: Vec::new(),
         fingerprints: Vec::new(),
         removed: Vec::new(),
+        parse_micros: Vec::new(),
         naming_rules: String::new(),
     };
     let store = SqliteStore::open_in_memory(NonZeroU32::MIN).ok()?;

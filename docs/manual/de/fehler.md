@@ -29,10 +29,11 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 
 | Code | Bedeutung | Was tun |
 |---|---|---|
-| `PRJ-101` | die Quelle ist weder ein vorhandener Ordner noch eine gültige Git-Adresse, oder die Adresse enthält Geheimnisse, oder der Ordner ist relativ | absoluten Pfad angeben; Geheimnisse aus der Adresse nehmen ([Quellen und Zugangsdaten](quellen-und-zugangsdaten.md)) |
+| `PRJ-101` | die Quelle ist weder ein vorhandener Ordner noch eine gültige Git-Adresse, oder die Adresse enthält Geheimnisse oder Leerzeichen oder beginnt mit einem Bindestrich, oder der Branchname ist ungültig, oder der Ordner ist relativ | absoluten Pfad angeben; Geheimnisse aus der Adresse nehmen ([Quellen und Zugangsdaten](quellen-und-zugangsdaten.md)) |
 | `PRJ-201` | kein solches Projekt | zuerst eintragen und scannen |
 | `PRJ-302` | ein Scan dieses Projekts läuft schon | abwarten |
 | `PRJ-303` | der Scan wurde abgebrochen, es gibt keinen neuen Snapshot | bei Bedarf neu starten |
+| `PRJ-501` | so viele Scans wie erlaubt (4) laufen gleichzeitig | warten, bis einer beendet ist |
 | `SRC-201` | der Quellordner oder eine Datei existiert nicht oder ist nicht lesbar | Pfad und Rechte prüfen |
 | `SRC-401`, `SEC-*` | Anmeldung an einer Git-Gegenstelle oder der Schlüsselspeicher ist fehlgeschlagen | siehe [Quellen und Zugangsdaten](quellen-und-zugangsdaten.md#probleme) |
 | `NET-601` | die Browser-Anmeldung von `credential login` wurde nicht abgeschlossen | erneut ausführen |
