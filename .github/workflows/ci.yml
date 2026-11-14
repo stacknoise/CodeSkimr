@@ -1,7 +1,6 @@
 # CI pipeline (blueprint 17.3). Every job name below is a required check in the ruleset:
 # pr-title, fmt, clippy, test, deps, build (ubuntu-latest), build (windows-latest),
 # build (macos-latest), architecture, duplicates, literals, codegen, bench, e2e.
-# Temporary: build (macos-latest) is non-blocking, see docs/ci.md and issue #131.
 # Never rename a job without telling the product owner; the ruleset matches by name.
 name: CI
 
@@ -134,6 +133,13 @@ jobs:
       # Section 16: lean dependencies, no unused ones.
       - name: cargo machete
         run: cargo machete
+      # Issue #243: the measuring tool tools/accuracy/import_scip is a workspace of its own with its own
+      # Cargo.lock, so the checks above do not see it. Same strict rules. (The lint workspace is covered above.)
+      - name: cargo audit, deny and machete (import_scip workspace)
+        run: |
+          cargo audit --deny warnings -f tools/accuracy/import_scip/Cargo.lock
+          cargo deny --manifest-path tools/accuracy/import_scip/Cargo.toml --config deny.toml --locked check
+          cargo machete tools/accuracy/import_scip
       # Section 12: Git must never send credentials over plain HTTP. The feature that allows it is a
       # dev-dependency of the login tests and must not be part of the product (issue #58).
       - name: no plain-HTTP credentials in the product
@@ -149,10 +155,7 @@ jobs:
   build:
     name: build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    # TEMPORARY (see docs/ci.md, issue #131): macOS runners are not available reliably, so a failing or
-    # hanging macOS build must not block merges. The check still reports.
-    continue-on-error: ${{ matrix.os == 'macos-latest' }}
-    timeout-minutes: ${{ matrix.os == 'macos-latest' && 20 || 60 }}
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:

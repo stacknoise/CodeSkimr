@@ -2,7 +2,7 @@
 
 ## State of the delivery
 
-Installers and single executables for Windows, Linux and macOS are part of the 1.0 release (milestone M7) and are not published yet. Preview packages for Windows and Linux are available on the repository's release page (`README-PREVIEW.md` in the package). Otherwise you build CodeSkimr from source. This chapter describes that path; it will be replaced by the installer instructions with 1.0.
+Installers and single executables for Windows, Linux and macOS are part of the 1.0 release (milestone M7) and are not published yet. Preview packages for Windows, Linux and macOS (Apple Silicon) are available on the repository's release page (`README-PREVIEW.md` in the package). Otherwise you build CodeSkimr from source. This chapter describes that path; it will be replaced by the installer instructions with 1.0.
 
 ## What you need
 

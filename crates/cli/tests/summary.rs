@@ -14,6 +14,7 @@ mod cases {
             symbols: 20,
             references: 30,
             seconds: 1.5,
+            cpu_seconds: 4.25,
             level2,
             tools: ToolsView::unchecked(),
         }
@@ -76,5 +77,11 @@ mod cases {
         )]))
         .unwrap();
         assert!(json.contains("\"not_confirmed\""), "{json}");
+    }
+
+    #[test]
+    fn json_reports_the_cpu_time_next_to_the_wall_time() {
+        let json = scan_json(&summary(Vec::new())).unwrap();
+        assert!(json.contains("\"cpu_seconds\":4.25"), "{json}");
     }
 }

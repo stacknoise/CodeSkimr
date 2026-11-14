@@ -61,3 +61,13 @@ public class NullConditional(Branch? branch, Leaf? leaf, Demo.Leaf? qualified)
     public void Index() { var i = _field?[0]; }
     public void Forms() { var w = leaf!?.Weight; var x = this._field?.Weight; }
 }
+
+public class Clause { public void Null(int value) { } }
+public class Guard
+{
+    public static Clause Against { get; } = new Clause();
+}
+public class Checks
+{
+    public void Run(int count) { Guard.Against.Null(count); }
+}

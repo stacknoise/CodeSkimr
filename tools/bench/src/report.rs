@@ -2,6 +2,7 @@
 
 use crate::compare::{Row, Verdict};
 use crate::consts::{MISSING, NS_PER_US, text};
+use crate::cpu::CpuTimes;
 
 /// Renders one line per benchmark.
 #[must_use]
@@ -34,6 +35,21 @@ fn line(row: &Row) -> String {
         micros(row.base_ns),
         marker(&row.verdict)
     )
+}
+
+/// Renders the CPU time of the benchmarks that have one, or nothing when none has.
+#[must_use]
+pub fn render_cpu(times: &CpuTimes) -> String {
+    if times.is_empty() {
+        return String::new();
+    }
+    let lines = times
+        .iter()
+        .map(|(id, ms)| format!("{id:<40} cpu {ms:.0} ms"));
+    std::iter::once(text::CPU_HEADING.to_owned())
+        .chain(lines)
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 /// True when any row fails the check.

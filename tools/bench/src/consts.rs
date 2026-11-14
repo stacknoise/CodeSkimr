@@ -9,6 +9,15 @@ pub const NS_PER_MS: f64 = 1_000_000.0;
 /// Nanoseconds in one microsecond.
 pub const NS_PER_US: f64 = 1_000.0;
 
+/// File next to the criterion results of a benchmark that holds its CPU time.
+pub const CPU_FILE: &str = "cpu.json";
+
+/// Milliseconds in one second.
+pub const MS_PER_SECOND: f64 = 1_000.0;
+
+/// The median is the element at this fraction of the sorted samples (one half).
+pub const MEDIAN_DIVISOR: usize = 2;
+
 /// Percent factor.
 pub const PERCENT: f64 = 100.0;
 
@@ -84,6 +93,8 @@ pub mod text {
     pub const NOTHING_FOUND: &str = "no benchmark results found";
     /// Printed when no base measurement exists at all.
     pub const NO_BASE: &str = "NOTE: no base measurement, only absolute budgets are checked";
+    /// Heading of the CPU time lines (energy proxy, blueprint 16.2).
+    pub const CPU_HEADING: &str = "CPU time per benchmark (energy proxy, report only):";
     /// Printed on success.
     pub const PASSED: &str = "benchmark check passed";
     /// Printed on failure.

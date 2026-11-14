@@ -27,3 +27,7 @@ criterion.workspace = true
 [[bench]]
 name = "usages_page"
 harness = false
+
+[[bench]]
+name = "search"
+harness = false

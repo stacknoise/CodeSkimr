@@ -12,7 +12,7 @@ use crate::redact::redact_credentials;
 /// Texts of causes are stored with credentials removed from any URL (E-05).
 #[derive(Debug, thiserror::Error)]
 pub enum SourceError {
-    /// The source folder does not exist or is not a readable folder.
+    /// A source folder, a source file or a language pack folder does not exist or cannot be read.
     #[error("{}", ErrorCode::SourcePathNotFound.description())]
     PathNotFound {
         /// The folder that was configured.
