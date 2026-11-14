@@ -133,6 +133,9 @@ pub const COUPLING_INSERT: &str = "INSERT OR REPLACE INTO coupling_rows \
 /// Whether a symbol is in a snapshot: snapshot, symbol.
 pub const SYMBOL_IN_SNAPSHOT: &str =
     "SELECT EXISTS (SELECT 1 FROM symbols WHERE snapshot_id = ?1 AND id = ?2)";
+/// How many of the symbols in a JSON array of ids are in a snapshot: snapshot, ids.
+pub const SYMBOLS_IN_SNAPSHOT_COUNT: &str = "SELECT COUNT(*) FROM symbols \
+    WHERE snapshot_id = ?1 AND id IN (SELECT value FROM json_each(?2))";
 /// Whether a file is in a snapshot: snapshot, file.
 pub const FILE_IN_SNAPSHOT: &str =
     "SELECT EXISTS (SELECT 1 FROM files WHERE snapshot_id = ?1 AND id = ?2)";
