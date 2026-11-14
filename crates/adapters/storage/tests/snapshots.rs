@@ -331,16 +331,3 @@ fn coupling_metrics_belong_to_their_snapshot() {
     assert_eq!(ce_of_a(&store, 40), vec![5.0]);
     assert_eq!(ce_of_a(&store, 50), Vec::<f64>::new());
 }
-
-#[test]
-fn pruning_a_snapshot_removes_its_coupling_rows() {
-    let store = common::store(1);
-    store.save_project(&project(1, "/work/app", &[])).unwrap();
-    let mut first = first_scan(10);
-    first
-        .metrics
-        .push(metric(21, MetricKind::EfferentCoupling, 1.0));
-    store.persist(first).unwrap();
-    store.persist(first_scan(20)).unwrap();
-    assert_eq!(ce_of_a(&store, 10), Vec::<f64>::new());
-}

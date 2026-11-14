@@ -136,6 +136,7 @@ fn scan_with_every_table(snapshot: u64, base: u64) -> SnapshotData {
     scan.metrics = vec![
         metric(base + 1, MetricKind::Loc, 10.0),
         metric(base + 2, MetricKind::CyclomaticComplexity, 2.0),
+        metric(base + 1, MetricKind::EfferentCoupling, 1.0),
     ];
     scan.fingerprints = vec![SymbolFingerprints {
         symbol: SymbolId::new(base + 1),
@@ -163,9 +164,10 @@ fn pruned_snapshots_leave_no_rows_behind() {
         ("files", 1),
         ("symbols", 2),
         ("symbol_references", 1),
-        ("metrics", 2),
+        ("metrics", 3),
         ("symbol_rows", 2),
         ("metric_rows", 2),
+        ("coupling_rows", 1),
         ("search_index", 2),
         ("usage_counts", 1),
         ("type_summary", 1),
