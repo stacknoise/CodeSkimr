@@ -39,7 +39,7 @@ Exit-Codes: `0` Erfolg, `1` ein Befehl ist fehlgeschlagen (`error[CODE]: Text` a
 
 ## Was ein Scan überspringt
 
-Dateien, die `.gitignore` ausschließt (auch außerhalb von Git-Repositories), die Ordner in `scan.excluded_folders`, den Ordner `.git` und Dateien unbekannter Sprachen (sie zählen nicht gegen die Größengrenze). Grenzen: Ein Projekt über `scan.max_source_mb` (Vorgabe 2048 MB) scheitert mit `SRC-501`; eine einzelne Datei, deren Parsen länger als `scan.parse_timeout_ms` (Vorgabe 5000 ms) dauert, scheitert mit `PRS-501`. Eine Datei, die kein gültiger Text ist (`PRS-101`), wird übersprungen.
+Dateien, die `.gitignore` ausschließt (auch außerhalb von Git-Repositories), die Ordner in `scan.excluded_folders`, den Ordner `.git` und Dateien unbekannter Sprachen (sie zählen nicht gegen die Größengrenze). Grenzen: Ein Projekt über `scan.max_source_mb` (Vorgabe 2048 MB) scheitert mit `SRC-501`; eine einzelne Datei, deren Parsen länger als `scan.parse_timeout_ms` (Vorgabe 5000 ms) dauert, scheitert mit `PRS-501`. Signaturen (bei Konstanten die ganze Deklaration mit Wert) sind auf `scan.max_signature_chars` Zeichen begrenzt (Vorgabe 400); Längeres wird abgeschnitten und endet mit `…`. Eine Datei, die kein gültiger Text ist (`PRS-101`), wird übersprungen.
 
 ## Schichten
 

@@ -27,6 +27,7 @@ fn defaults_match_the_blueprint() {
     }
     assert_eq!(config.scan.parse_timeout_ms, 5000);
     assert_eq!(config.scan.max_source_mb, 2048);
+    assert_eq!(config.scan.max_signature_chars, 400);
     assert_eq!(config.server.port, 7421);
 }
 
@@ -372,4 +373,13 @@ fn a_layer_needs_a_unique_name_and_a_namespace() {
             Violation::MustBeLayerRule,
         ),
     ]);
+}
+
+#[test]
+fn the_signature_limit_must_be_positive() {
+    assert_rejected(&[(
+        "[scan]\nmax_signature_chars = 0\n",
+        "scan.max_signature_chars",
+        Violation::MustBePositive,
+    )]);
 }
