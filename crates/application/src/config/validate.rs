@@ -8,7 +8,7 @@ use super::consts::{
 };
 use super::error::{ConfigError, Violation};
 use super::model::{
-    Budgets, Config, Editor, KeySources, Level2, McpLimits, MetricThresholds, Scan, Ui,
+    Budgets, Config, Conventions, Editor, KeySources, Level2, McpLimits, MetricThresholds, Scan, Ui,
 };
 
 fn check_keys(sources: &KeySources) -> Result<(), ConfigError> {
@@ -38,22 +38,7 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     positive(keys::WINDOW_SIZE, config.similarity.window_size)?;
     positive(keys::MIN_TOKENS, config.similarity.min_tokens)?;
     positive(keys::SERVER_PORT, u32::from(config.server.port))?;
-    positive(
-        keys::MAX_FUNCTION_LINES,
-        config.conventions.max_function_lines,
-    )?;
-    positive(
-        keys::DUPLICATE_SIMILARITY_PERCENT,
-        config.conventions.duplicate_similarity_percent,
-    )?;
-    positive(
-        keys::DUPLICATE_MIN_LINES,
-        config.conventions.duplicate_min_lines,
-    )?;
-    percent(
-        keys::DUPLICATE_SIMILARITY_PERCENT,
-        config.conventions.duplicate_similarity_percent,
-    )?;
+    check_conventions(&config.conventions)?;
     check_keys(&config.keys)?;
     check_layers(config)?;
     check_scan(&config.scan)?;
@@ -62,6 +47,21 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     check_ui(&config.ui)?;
     positive(keys::GRAPH_NODE_WIDTH, config.graph.node_width)?;
     positive(keys::GRAPH_NODE_HEIGHT, config.graph.node_height)
+}
+
+fn check_conventions(conventions: &Conventions) -> Result<(), ConfigError> {
+    positive(keys::MAX_FUNCTION_LINES, conventions.max_function_lines)?;
+    positive(
+        keys::DUPLICATE_SIMILARITY_PERCENT,
+        conventions.duplicate_similarity_percent,
+    )?;
+    positive(keys::DUPLICATE_MIN_LINES, conventions.duplicate_min_lines)?;
+    positive(keys::DUPLICATE_MAX_OWNERS, conventions.duplicate_max_owners)?;
+    percent(
+        keys::DUPLICATE_SIMILARITY_PERCENT,
+        conventions.duplicate_similarity_percent,
+    )?;
+    Ok(())
 }
 
 fn check_layers(config: &Config) -> Result<(), ConfigError> {
