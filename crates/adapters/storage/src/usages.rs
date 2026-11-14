@@ -3,8 +3,8 @@
 //! The references of a snapshot are loaded once into a `ReverseIndex` and kept for the snapshot
 //! that was asked about last. A scan writes a new snapshot with a new id, but the level 2 import
 //! (ADR 0033) replaces the references of the newest one, so the kept index is built again after
-//! every write that touches it (`refresh_lookup`). The symbols and files that name the entries of an answer are loaded with it, so an answer is
-//! assembled in memory.
+//! every write that touches it (`refresh_lookup`). The symbols and files that name the entries of
+//! an answer are loaded with it, so an answer is assembled in memory.
 
 use std::sync::{Arc, PoisonError};
 
