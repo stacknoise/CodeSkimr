@@ -6,6 +6,12 @@ all-features = true
 [advisories]
 version = 2
 yanked = "deny"
+# `paste` is unmaintained (no known vulnerability). It is only a build-time dependency of
+# `dylint_linting` in the lint workspace (tools/lints/no_literals), never of the product, and the
+# newest `dylint_linting` (6.4.0) still uses it. Remove this entry when Dylint drops it (ADR 0043).
+ignore = [
+    { id = "RUSTSEC-2024-0436", reason = "paste only reaches the lint workspace through dylint_linting" },
+]
 
 [licenses]
 version = 2

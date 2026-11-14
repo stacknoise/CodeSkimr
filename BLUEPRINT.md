@@ -84,6 +84,9 @@ All rules in this section are **MUST** and are enforced in CI (section 17.3).
   - Literals in test code (`#[cfg(test)]`, `tests/`, `*.test.ts`, `*.spec.ts`, benchmark data).
   - The value side of a `const` or `static` definition in a `consts.rs` module (Rust) or `consts.ts` (TypeScript).
   - Build scripts that generate code.
+  - Developer tooling in `tools/` and code generated into `OUT_DIR` (neither ships in the product), and literals inside attributes and doc comments (ADR 0043).
+  - Code behind `cfg(feature)` or on another platform is checked only where CI compiles it (the `literals` job runs on Linux with the default features).
+  - Silencing the lint is not an exception: `allow`, `expect`, `warn` or `cfg_attr` of `no_literals` fails CI.
 - **Where values live instead:**
 
 | Kind of value | Location |
