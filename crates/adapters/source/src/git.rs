@@ -3,7 +3,8 @@
 //! An update clones the branch again into a private work folder and then swaps it in: the old copy
 //! is parked, the new one is moved into place, and only then the old one is deleted. If anything
 //! fails or the scan is cancelled, the old copy is back in place and the work folder is removed.
-//! A crash skips that cleanup; the next fetch removes work folders in which nothing changed for a day.
+//! A crash skips that cleanup; the next fetch removes work folders in which nothing changed for a day
+//! and parked copies of swaps that began a day ago.
 //!
 //! Secrets never reach the clone: `GitUrl` carries no credentials (Git would write the URL into
 //! `.git/config`), and a credential from the secret store is lent to the login
