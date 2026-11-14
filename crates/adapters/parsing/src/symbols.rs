@@ -75,7 +75,10 @@ impl SymbolTable {
             .filter(|(range, _)| range.contains(&offset) && range.start > found_start)
             .min_by_key(|(range, _)| range.len())
             .map(|(_, owner)| *owner);
-        self.symbols.get(owner.or(found)?).or(self.symbols.first())
+        owner
+            .or(found)
+            .and_then(|index| self.symbols.get(index))
+            .or(self.symbols.first())
     }
 
     /// Index of the innermost symbol whose own range contains the offset.

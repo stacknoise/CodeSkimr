@@ -50,7 +50,7 @@ impl Early {
 }
 
 mod inner {
-    // The type lives in the parent module: the names still carry it, the parent is the module.
+    // A path in the head (`super::Early`) gives no container: the method stays with this module.
     impl super::Early {
         pub fn elsewhere(&self) -> u8 {
             2

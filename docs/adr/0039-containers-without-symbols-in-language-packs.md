@@ -30,8 +30,8 @@ Recall matters more than speed (usage analysis is the basis for planning changes
 
 ## Consequences
 
-- The methods of a type are its children when the `impl` stands next to the type, which is the usual case in Rust. Metrics roll up to the type (cc and mi of a struct now include its methods).
+- The methods of a type are its children when the `impl` stands next to the type, which is the usual case in Rust. The roll-up of metrics follows the parent (ADR 0015), so the totals of such a type now include its methods; no test of this package pins the numbers.
 - The resolver needs no change for the same-module case: references from the type and children of the type are what it already uses for C#, Java and Kotlin.
-- **Limits (follow-up).** An `impl` in another module or file, or before its type, still has no link from the type to its methods in the symbol tree; the name carries it. A later step can link them by qualified name across files. Macro-generated impls are not seen.
+- **Limits (follow-up).** Two types of the same name in one scope (for example behind different `cfg` attributes) cannot be told apart: the block belongs to the first one. An `impl` in another module or file, or before its type, still has no link from the type to its methods in the symbol tree; the name carries it. A later step can link them by qualified name across files. Macro-generated impls are not seen.
 - Level 2 (ADR 0033) maps definitions by place and name, not by the parent, so it is unaffected.
 - Go and C++ methods written outside their type have the same problem (issue #65); that package may use the same idea with another capture and has its own ADR.
