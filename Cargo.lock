@@ -602,12 +602,14 @@ dependencies = [
  "gix",
  "gix-transport",
  "ignore",
+ "libc",
  "notify",
  "secrecy",
  "serde_json",
  "tempfile",
  "thiserror",
  "toml",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

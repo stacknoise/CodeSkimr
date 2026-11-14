@@ -1,6 +1,7 @@
 //! Walking a folder: ignore rules, language detection, hashing (blueprint section 7, "Discover").
 
 use std::collections::HashMap;
+use std::io::Read;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc;
@@ -14,7 +15,7 @@ use ignore::{DirEntry, WalkBuilder, WalkState};
 use crate::consts::GIT_DIR_NAME;
 use crate::error::SourceError;
 use crate::folder::open_folder;
-use crate::hash::hash_file;
+use crate::hash::{hash_file, hash_reader, open_regular};
 use crate::languages::LanguageMap;
 use crate::paths::relative_path;
 
@@ -102,6 +103,8 @@ impl FileDiscovery for WalkDiscovery {
         Ok(files)
     }
 
+    /// Reads at most `max_total_bytes` in all, like [`FileDiscovery::discover`]; a file after
+    /// that counts as changed, as does one that grew beyond what is left.
     fn unchanged_files(
         &self,
         root: &FolderPath,
@@ -110,20 +113,33 @@ impl FileDiscovery for WalkDiscovery {
     ) -> Result<Vec<RelativePath>, CodedError> {
         open_folder(root)?;
         let folder = Path::new(root.as_str());
+        let mut left = self.config.max_total_bytes;
         Ok(files
             .iter()
             .take_while(|_| !cancel.is_cancelled())
-            .filter(|file| is_unchanged(folder, file))
+            .filter(|file| is_unchanged(folder, file, &mut left))
             .map(|file| file.path.clone())
             .collect())
     }
 }
 
-/// Whether the file is still a regular file (not a link) with the content of the list.
-fn is_unchanged(root: &Path, file: &SourceFile) -> bool {
-    let path = root.join(file.path.as_str());
-    path.symlink_metadata().is_ok_and(|meta| meta.is_file())
-        && hash_file(&path).is_ok_and(|(_, hash)| hash == file.content_hash)
+/// Whether the file is still a regular file (not a link) with the content of the list. `left` is
+/// the number of bytes that may still be read: the length is taken from the opened handle before
+/// anything is read, and the read itself stops at it.
+fn is_unchanged(root: &Path, file: &SourceFile, left: &mut u64) -> bool {
+    let Ok(handle) = open_regular(&root.join(file.path.as_str())) else {
+        return false;
+    };
+    let Some(length) = handle.metadata().ok().map(|meta| meta.len()) else {
+        return false;
+    };
+    if length > *left {
+        return false;
+    }
+    *left -= length;
+    // One byte more than announced: a file that grew meanwhile does not match.
+    hash_reader(handle.take(length.saturating_add(1)))
+        .is_ok_and(|(size, hash)| size == length && hash == file.content_hash)
 }
 
 /// Runs the parallel walk and collects what the workers found.
