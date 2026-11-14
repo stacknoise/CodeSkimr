@@ -2,6 +2,7 @@ import { createMemo, onMount, Show } from "solid-js";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import type { MessageKey } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { measuredTimes } from "../../shared/api/timings";
 import { activeProject } from "../../shared/project/active";
 import { SCAN_MODE } from "../projects/consts";
 import { seconds } from "../projects/format";
@@ -9,14 +10,14 @@ import { projects, refreshProjects } from "../projects/projects";
 import type { ProjectRow } from "../projects/types";
 import { refreshStatus, statusInfo } from "../status/status";
 import { Budgets, type Measured } from "./Budgets";
-import { STATE, MS_PER_SECOND } from "./consts";
+import { FULL_SCAN_BUDGET, FULL_SCAN_LOC, STATE, MS_PER_SECOND } from "./consts";
 import { scanRuns } from "./events";
 import { Languages } from "./Languages";
 import { Pipeline } from "./Pipeline";
 import { Progress } from "./Progress";
 import { Recent } from "./Recent";
 import { focusProject, latestRun } from "./run";
-import type { Run } from "./types";
+import type { BudgetTargets, Run } from "./types";
 import styles from "./ScanScreen.module.css";
 
 const TITLE: Record<Run["state"] | "idle", MessageKey> = {
@@ -54,7 +55,7 @@ function linesPerSecond(row: ProjectRow | undefined, run: Run | undefined): numb
 
 /** What this session measured of the budgets. */
 function measured(row: ProjectRow | undefined, run: Run | undefined): Measured {
-  const result: Measured = {};
+  const result: Measured = { ...measuredTimes() };
   const start = statusInfo()?.startup_ms;
   if (start != null) {
     result.cold_start = start;
@@ -63,7 +64,16 @@ function measured(row: ProjectRow | undefined, run: Run | undefined): Measured {
   if (run?.state === STATE.done && row?.scan?.mode === SCAN_MODE.incremental && took !== null) {
     result.incremental_rescan = took * MS_PER_SECOND;
   }
+  if (run?.state === STATE.done && row?.scan?.mode === SCAN_MODE.full && took !== null) {
+    result.full_scan_100k_loc = took * MS_PER_SECOND;
+  }
   return result;
+}
+
+/** The budgets whose measured value says less than the target: the full scan budget is for
+ * 100k lines, so the scan of a smaller project is shown but not rated. */
+function unrated(row: ProjectRow | undefined): Array<keyof BudgetTargets> {
+  return row !== undefined && row.loc < FULL_SCAN_LOC ? [FULL_SCAN_BUDGET] : [];
 }
 
 function Idle(props: { hasProjects: boolean }) {
@@ -119,7 +129,11 @@ export function ScanScreen() {
         </Show>
       </div>
       <aside class={styles.aside}>
-        <Budgets targets={statusInfo()?.budgets ?? null} measured={measured(row(), run())} />
+        <Budgets
+          targets={statusInfo()?.budgets ?? null}
+          measured={measured(row(), run())}
+          unrated={unrated(row())}
+        />
         <Recent rows={projects()} />
       </aside>
     </section>
