@@ -87,7 +87,7 @@
       "loc": 1,
       "operands": null,
       "operators": null,
-      "symbol": "Demo.Editor"
+      "symbol": "Demo.Sensor"
     },
     {
       "decisions": 0,
@@ -100,21 +100,21 @@
         0,
         0
       ],
-      "symbol": "Demo.Editor.Apply"
+      "symbol": "Demo.Sensor.Apply"
     },
     {
       "decisions": null,
       "loc": 1,
       "operands": null,
       "operators": null,
-      "symbol": "Demo.RowEvent"
+      "symbol": "Demo.PinEvent"
     },
     {
       "decisions": null,
       "loc": 1,
       "operands": null,
       "operators": null,
-      "symbol": "Demo.Row"
+      "symbol": "Demo.Pin"
     },
     {
       "decisions": null,
@@ -422,7 +422,7 @@
       "from": "Demo.Shapes",
       "kind": "type_use",
       "receiver": null,
-      "target": "Editor"
+      "target": "Sensor"
     },
     {
       "at": "19:21",
@@ -443,7 +443,7 @@
       "from": "Demo.Shapes",
       "kind": "type_use",
       "receiver": null,
-      "target": "Editor"
+      "target": "Sensor"
     },
     {
       "at": "22:30",
@@ -561,7 +561,7 @@
       "at": "30:49",
       "from": "Demo.Shapes.Primary",
       "kind": "call",
-      "receiver": "typed Editor",
+      "receiver": "typed Sensor",
       "target": "Apply"
     },
     {
@@ -583,7 +583,7 @@
       "from": "Demo.Shapes.Deconstruct",
       "kind": "type_use",
       "receiver": null,
-      "target": "Editor"
+      "target": "Sensor"
     },
     {
       "at": "33:66",
@@ -604,7 +604,7 @@
       "from": "Demo.Shapes.DeconstructLoop",
       "kind": "type_use",
       "receiver": null,
-      "target": "Editor"
+      "target": "Sensor"
     },
     {
       "at": "34:92",
@@ -632,20 +632,20 @@
       "from": "Demo.Shapes.Initializers",
       "kind": "type_use",
       "receiver": null,
-      "target": "RowEvent"
+      "target": "PinEvent"
     },
     {
       "at": "38:55",
       "from": "Demo.Shapes.Initializers",
       "kind": "write",
-      "receiver": "typed RowEvent",
+      "receiver": "typed PinEvent",
       "target": "Index"
     },
     {
       "at": "38:77",
       "from": "Demo.Shapes.Initializers",
       "kind": "read",
-      "receiver": "typed RowEvent",
+      "receiver": "typed PinEvent",
       "target": "Index"
     },
     {
@@ -781,7 +781,7 @@
     {
       "doc": null,
       "kind": "class",
-      "name": "Demo.Editor",
+      "name": "Demo.Sensor",
       "parent": "Demo",
       "signature": null,
       "span": "7:0-7:52",
@@ -791,8 +791,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Demo.Editor.Apply",
-      "parent": "Demo.Editor",
+      "name": "Demo.Sensor.Apply",
+      "parent": "Demo.Sensor",
       "signature": null,
       "span": "7:22-7:50",
       "static": false,
@@ -801,7 +801,7 @@
     {
       "doc": null,
       "kind": "class",
-      "name": "Demo.RowEvent",
+      "name": "Demo.PinEvent",
       "parent": "Demo",
       "signature": null,
       "span": "8:0-8:56",
@@ -811,8 +811,8 @@
     {
       "doc": null,
       "kind": "property",
-      "name": "Demo.RowEvent.Index",
-      "parent": "Demo.RowEvent",
+      "name": "Demo.PinEvent.Index",
+      "parent": "Demo.PinEvent",
       "signature": null,
       "span": "8:24-8:54",
       "static": false,
@@ -821,7 +821,7 @@
     {
       "doc": null,
       "kind": "class",
-      "name": "Demo.Row",
+      "name": "Demo.Pin",
       "parent": "Demo",
       "signature": null,
       "span": "9:0-9:51",
@@ -831,8 +831,8 @@
     {
       "doc": null,
       "kind": "property",
-      "name": "Demo.Row.Index",
-      "parent": "Demo.Row",
+      "name": "Demo.Pin.Index",
+      "parent": "Demo.Pin",
       "signature": null,
       "span": "9:19-9:49",
       "static": false,

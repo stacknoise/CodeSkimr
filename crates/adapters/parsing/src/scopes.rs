@@ -69,29 +69,30 @@ impl Scopes {
     /// local variable counts only after its declaration.
     #[must_use]
     pub fn find(&self, name: &str, at: usize) -> Option<Declared<'_>> {
+        self.innermost_match(name, at, |found| !found.raw.local || found.raw.at <= at)
+    }
+
+    /// Like [`Scopes::find`], but only a field or property: `this.name` never means a local.
+    #[must_use]
+    pub fn find_member(&self, name: &str, at: usize) -> Option<Declared<'_>> {
+        self.innermost_match(name, at, |found| !found.raw.local)
+    }
+
+    /// The declaration called `name` whose scope contains `at` and that passes `accept`; the
+    /// innermost scope wins, and within it the latest declaration.
+    fn innermost_match(
+        &self,
+        name: &str,
+        at: usize,
+        accept: impl Fn(&Declaration) -> bool,
+    ) -> Option<Declared<'_>> {
         self.declarations
             .iter()
-            .filter(|found| found.raw.name == name && found.scope.contains(&at))
-            .filter(|found| !found.raw.local || found.raw.at <= at)
+            .filter(|found| found.raw.name == name && found.scope.contains(&at) && accept(found))
             .min_by_key(|found| (found.scope.len(), usize::MAX - found.raw.at))
             .map(|found| Declared {
                 declared_type: found.raw.declared_type.as_deref(),
                 local: found.raw.local,
-            })
-    }
-}
-
-impl Scopes {
-    /// Like [`Scopes::find`], but only a field or property: `this.name` never means a local.
-    #[must_use]
-    pub fn find_member(&self, name: &str, at: usize) -> Option<Declared<'_>> {
-        self.declarations
-            .iter()
-            .filter(|found| found.raw.name == name && !found.raw.local && found.scope.contains(&at))
-            .min_by_key(|found| (found.scope.len(), usize::MAX - found.raw.at))
-            .map(|found| Declared {
-                declared_type: found.raw.declared_type.as_deref(),
-                local: false,
             })
     }
 }

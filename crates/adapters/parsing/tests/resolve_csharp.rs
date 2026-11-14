@@ -150,7 +150,7 @@ mod tests {
 
     #[test]
     fn names_that_queries_and_deconstruction_declare_hide_members_and_type_receivers() {
-        let applied = receiver_usages("Editor.Apply");
+        let applied = receiver_usages("Sensor.Apply");
         // Lines (0-based) 30 (primary constructor parameter `tool`), 33 and 34 (deconstruction), 35
         // (`let` variable) and 36 (the variable of `join ... into`) were lost before: the receiver name
         // was no symbol and no declaration, so it counted as a type outside the project.
@@ -159,13 +159,13 @@ mod tests {
 
     #[test]
     fn an_object_initializer_names_members_of_its_type() {
-        let event = receiver_usages("RowEvent.Index");
+        let event = receiver_usages("PinEvent.Index");
         assert!(
             event
                 .iter()
                 .any(|(line, c)| *line == 38 && *c == Confidence::Certain)
         );
-        assert_eq!(lines(&receiver_usages("Row.Index")), Vec::<u32>::new());
+        assert_eq!(lines(&receiver_usages("Pin.Index")), Vec::<u32>::new());
     }
 
     #[test]
