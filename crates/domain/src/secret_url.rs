@@ -146,8 +146,8 @@ mod tests {
             "https://@h/r",
         ] {
             let clean = without_secrets(url);
-            assert!(!clean.contains("ss") || clean.ends_with("h/r"), "{clean}");
-            assert!(!clean.contains("pa") && !clean.contains("u:"), "{clean}");
+            assert!(!clean.contains("ss") || clean.ends_with("h/r"));
+            assert!(!clean.contains("pa") && !clean.contains("u:"));
         }
     }
 
