@@ -86,7 +86,7 @@ pub fn safe_dirs(path: &OsStr, project_root: &Path) -> Vec<PathBuf> {
         .collect()
 }
 
-/// `PATH` as text, limited to [`safe_dirs`].
+/// `PATH` as text, restricted to [`safe_dirs`].
 #[must_use]
 pub fn safe_path(path: &OsStr, project_root: &Path) -> OsString {
     env::join_paths(safe_dirs(path, project_root)).unwrap_or_default()
@@ -124,8 +124,14 @@ mod search_tests {
     #[test]
     fn an_empty_or_only_relative_path_leaves_no_directory() {
         let root = std::env::temp_dir();
-        assert!(safe_dirs(std::ffi::OsStr::new(""), &root).is_empty());
+        assert_eq!(
+            safe_dirs(std::ffi::OsStr::new(""), &root),
+            Vec::<std::path::PathBuf>::new()
+        );
         let relative = std::env::join_paths([Path::new("."), Path::new("bin")]).unwrap();
-        assert!(safe_dirs(&relative, &root).is_empty());
+        assert_eq!(
+            safe_dirs(&relative, &root),
+            Vec::<std::path::PathBuf>::new()
+        );
     }
 }
