@@ -78,11 +78,11 @@ A capture outside this vocabulary, an invalid query or an unknown grammar fails 
 
 `FileFacts::counts` holds one `SymbolCounts` per callable, type, namespace and module of the file: the code lines of its span and, for a callable with a body, the decision points and the Halstead counts. The adapter assigns every capture of `metrics.scm` to the innermost callable symbol that contains it, so a lambda counts for its enclosing callable and a named local function for itself; captures outside any callable (field initialisers) count for nobody. A node captured by two patterns counts once. A callable has a body if its declaration node has the grammar field `body`; abstract, interface and extern members have none and get no `cc` and no `mi`. The `loc` of a callable leaves out the lines of its local functions and local types. The `loc` of a type, namespace or module is the full span of the symbol, including its callables: it counts the code lines of the whole declaration, and subtracting local functions only applies to the callable that declares them. `@comment` is accepted in `metrics.scm`, but the line kinds come from `comment_nodes` in `language.toml`. A pack without `metrics.scm` delivers lines only and therefore only `loc`.
 
-The `StandardMetrics` calculator (`codeskimr_application::metrics`) turns the counts into `loc`, `cc`, `cc_max` and `mi` with the pure functions of `codeskimr_domain::metrics` and rolls them up to types, namespaces and modules (`codeskimr_domain::measure`, ADR 0015): `cc` is summed, `cc_max` is the highest callable value, `mi` is the mean weighted by the callables' lines of code. Coupling (Ce, Ca, instability) is not computed yet.
+The `StandardMetrics` calculator (`codeskimr_application::metrics`) turns the counts into `loc`, `cc`, `cc_max` and `mi` with the pure functions of `codeskimr_domain::metrics` and rolls them up to types, namespaces and modules (`codeskimr_domain::measure`, ADR 0015): `cc` is summed, `cc_max` is the highest callable value, `mi` is the mean weighted by the callables' lines of code. Coupling (Ce, Ca, instability) of namespaces and modules is computed by the same calculator from the references of the whole snapshot (`codeskimr_domain::coupling`, ADR 0037); it needs nothing from the language pack.
 
 ## Not part of this package
 
-The reference resolver does not exist yet. The parse time limit comes from `scan.parse_timeout_ms` (default 5000), wired by the composition root (WP-25, closes #32).
+The parse time limit comes from `scan.parse_timeout_ms` (default 5000), wired by the composition root (WP-25, closes #32).
 
 ## Project version files (`requirement` of `[[indexer.toolchain]]`, ADR 0033 decision 8)
 
