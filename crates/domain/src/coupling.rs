@@ -9,16 +9,17 @@
 
 use std::collections::{HashMap, HashSet};
 
+use crate::consts::{MODULE_NAME_SEPARATOR, NAME_SEPARATOR};
 use crate::error::ModelError;
+use crate::id_hasher::IdHash;
 use crate::metric::{Metric, MetricKind, MetricValue};
-use crate::namespace_graph::enclosing;
 use crate::reference::{Reference, ReferenceKind};
 use crate::symbol::{Symbol, SymbolId, SymbolKind};
 
 /// The symbols that declare each unit, by name; a namespace that several files declare has several.
 type Declared<'a> = HashMap<&'a str, Vec<SymbolId>>;
 /// The position of the unit of every symbol that sits in one.
-type Owners = HashMap<SymbolId, usize>;
+type Owners = HashMap<SymbolId, usize, IdHash>;
 
 fn is_unit(kind: SymbolKind) -> bool {
     matches!(kind, SymbolKind::Namespace | SymbolKind::Module)
@@ -35,17 +36,43 @@ fn declared_units(symbols: &[Symbol]) -> Declared<'_> {
     units
 }
 
+/// The name without its last segment, `None` for a name of one segment.
+fn parent_name(name: &str) -> Option<&str> {
+    let dotted = name.rfind(NAME_SEPARATOR);
+    let pathed = name.rfind(MODULE_NAME_SEPARATOR);
+    dotted.max(pathed).and_then(|cut| name.get(..cut))
+}
+
+/// The unit that is `name` or the nearest one among its parents. The answer for every name on the
+/// way is remembered, so the members of one type share the lookup.
+fn unit_at<'a>(
+    name: &'a str,
+    position: &HashMap<&str, usize>,
+    known: &mut HashMap<&'a str, Option<usize>>,
+) -> Option<usize> {
+    if let Some(found) = known.get(name) {
+        return *found;
+    }
+    let found = position
+        .get(name)
+        .copied()
+        .or_else(|| parent_name(name).and_then(|parent| unit_at(parent, position, known)));
+    known.insert(name, found);
+    found
+}
+
 /// The unit of every symbol: a unit is its own, any other symbol sits in the nearest enclosing one.
-fn owners(symbols: &[Symbol], units: &Declared<'_>, position: &HashMap<&str, usize>) -> Owners {
-    let mut owner = Owners::new();
+fn owners(symbols: &[Symbol], position: &HashMap<&str, usize>) -> Owners {
+    let mut owner = Owners::default();
+    let mut known = HashMap::new();
     for symbol in symbols {
         let name = symbol.qualified_name.as_str();
-        let unit = if is_unit(symbol.kind) {
+        let start = if is_unit(symbol.kind) {
             Some(name)
         } else {
-            enclosing(units, name)
+            parent_name(name)
         };
-        if let Some(&found) = unit.and_then(|unit| position.get(unit)) {
+        if let Some(found) = start.and_then(|start| unit_at(start, position, &mut known)) {
             owner.insert(symbol.id, found);
         }
     }
@@ -60,15 +87,18 @@ fn dependencies(
     references: &[Reference],
     units: usize,
 ) -> (Vec<usize>, Vec<usize>) {
-    let mut pairs = HashSet::new();
+    let mut pairs: HashSet<(usize, usize), IdHash> = HashSet::default();
+    let mut last = None;
     for reference in references {
         if reference.kind == ReferenceKind::Test {
             continue;
         }
         if let (Some(&from), Some(&to)) = (owner.get(&reference.from), owner.get(&reference.to))
             && from != to
+            && last != Some((from, to))
         {
             pairs.insert((from, to));
+            last = Some((from, to));
         }
     }
     let mut efferent = vec![0; units];
@@ -111,7 +141,7 @@ pub fn coupling(symbols: &[Symbol], references: &[Reference]) -> Result<Vec<Metr
         .enumerate()
         .map(|(index, name)| (*name, index))
         .collect();
-    let owner = owners(symbols, &units, &position);
+    let owner = owners(symbols, &position);
     let (efferent, afferent) = dependencies(&owner, references, units.len());
     let mut metrics = Vec::new();
     for (unit, declared) in &units {

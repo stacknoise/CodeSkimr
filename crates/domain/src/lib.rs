@@ -10,6 +10,7 @@ mod error;
 mod file;
 mod fingerprint;
 mod graph_layout;
+mod id_hasher;
 mod layer;
 mod layer_map;
 mod measure;
