@@ -76,8 +76,8 @@
 ; Cognitive complexity (ADR 0048). A structure adds one and one more for every nesting level it
 ; stands in; `else` and a run of the same boolean operator add one at any depth. `else if` is the
 ; `if_expression` in an `else_clause`: only its `else` counts, and its body is no deeper than the
-; first `if`. Closures nest what is in them but add nothing. Not counted: `?`, `unsafe`, recursion,
-; `match` arms, labelled `break` and `continue`.
+; first `if`. Closures nest what is in them but add nothing. A labelled `break` or `continue` adds
+; one at any depth. Not counted: `?`, `unsafe`, recursion, `match` arms.
 (if_expression) @cognitive
 (if_expression) @nesting
 (else_clause (if_expression) @continuation)
@@ -91,6 +91,8 @@
 (match_expression) @cognitive
 (match_expression) @nesting
 (closure_expression) @nesting
+(break_expression (label)) @cognitive_flat
+(continue_expression (label)) @cognitive_flat
 (binary_expression operator: ["&&" "||"] @cognitive_sequence)
 
 ; Parameters of a function, without `self`

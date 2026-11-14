@@ -51,3 +51,32 @@ impl Shop {
         }
     }
 }
+
+fn mixed(a: bool, b: bool, c: bool, d: bool) -> bool {
+    a || b && c || d
+}
+
+fn labelled(n: i32) -> i32 {
+    'outer: for i in 0..n {
+        loop {
+            if i > 1 {
+                break 'outer;
+            }
+        }
+    }
+    0
+}
+
+fn loops(n: i32) -> i32 {
+    let mut i = 0;
+    while i < n {
+        i += 1;
+    }
+    loop {
+        if i > n {
+            return 1;
+        } else if i > 2 {
+            return 2;
+        }
+    }
+}

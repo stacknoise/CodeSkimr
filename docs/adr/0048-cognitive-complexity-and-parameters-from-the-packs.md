@@ -11,7 +11,7 @@ Status: accepted
 1. **`metrics.scm` gets six more captures**, which a pack may use. A pack that has none of them keeps its counts and the rule is reported as not checked for its files.
    - `@cognitive` marks a structure that adds one to the cognitive complexity, plus one more for every level it is nested at (`if`, loops, `match` or `switch`, `catch`, conditional expression).
    - `@cognitive_flat` marks a part that adds one at any depth (`else`, `goto`, a jump to a label).
-   - `@cognitive_sequence` marks the operator token of a boolean operation. The first operator of a run of the same operator counts one; a change of operator starts a new run. The engine decides this from the syntax tree: an operation whose parent operation has the same operator does not count.
+   - `@cognitive_sequence` marks the operator token of a boolean operation. The operators of one expression count one, and one more at every change of the operator in source order (`a || b && c || d` counts three). The engine groups them by the expression they belong to; a parenthesis or a call starts a new expression, so `a && (b && c)` counts two.
    - `@nesting` marks a node that nests what is inside it (the same structures, and lambdas, which add nothing themselves).
    - `@continuation` marks a structure that continues the chain around it (`else if`): it neither counts nor nests, so that the `else if` adds one through its `else` and stands as deep as the first `if`.
    - `@parameter` marks one parameter of a callable declaration, without a receiver (`self`, `this`).

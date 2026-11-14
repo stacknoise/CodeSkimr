@@ -43,6 +43,12 @@ mod tests {
         assert_eq!(cognitive("closure_nests"), Some(3));
         // match (+1); the arms add nothing
         assert_eq!(cognitive("method"), Some(1));
+        // `||` (+1), `&&` (+1), `||` (+1): every change of operator starts a run
+        assert_eq!(cognitive("mixed"), Some(3));
+        // for (+1), loop (+2), if (+3), labelled break (+1)
+        assert_eq!(cognitive("labelled"), Some(7));
+        // while (+1); loop (+1), its if (+2), else if (+1, the body is no deeper)
+        assert_eq!(cognitive("loops"), Some(5));
     }
 
     #[test]

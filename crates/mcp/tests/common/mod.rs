@@ -509,7 +509,11 @@ impl FileAnalyzer for FakeDisk {
         let counts = SymbolCounts {
             symbol: function.id,
             loc: Loc(50),
-            body: Some(BodyCounts::default()),
+            body: Some(BodyCounts {
+                cognitive: Some(20),
+                parameters: Some(7),
+                ..BodyCounts::default()
+            }),
             counted: true,
         };
         Ok(FileFacts {

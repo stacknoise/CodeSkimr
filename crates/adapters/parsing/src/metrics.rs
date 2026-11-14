@@ -23,6 +23,8 @@ struct Tally<'t> {
     structures: Vec<Node<'t>>,
     /// Parts that count one each, whatever the nesting.
     flat: u32,
+    /// The boolean operators: the operation, the position and the text of each.
+    operators_seen: Vec<(Node<'t>, usize, String)>,
     parameters: u32,
 }
 
@@ -118,29 +120,50 @@ fn record<'t>(found: &mut Found<'t>, owner: SymbolId, role: Role, node: Node<'t>
         }
         Role::Cognitive => entry.structures.push(node),
         Role::CognitiveFlat => entry.flat += 1,
-        Role::CognitiveSequence => entry.flat += u32::from(starts_a_run(node, source)),
+        Role::CognitiveSequence => {
+            if let Some(operation) = node.parent() {
+                let text = text_of(node, source).to_owned();
+                entry
+                    .operators_seen
+                    .push((operation, node.start_byte(), text));
+            }
+        }
         Role::Parameter => entry.parameters += 1,
         Role::Comment | Role::Nesting | Role::Continuation => {}
     }
 }
 
-/// Whether the boolean operator `operator` is the first of a run of the same operator: its
-/// operation is not itself an operand of an operation with the same operator.
-fn starts_a_run(operator: Node<'_>, source: &str) -> bool {
-    let Some(operation) = operator.parent() else {
-        return true;
-    };
-    let Some(outer) = operation
-        .parent()
-        .filter(|outer| outer.kind() == operation.kind())
-    else {
-        return true;
-    };
-    let mut walk = outer.walk();
-    let same = outer
-        .children(&mut walk)
-        .any(|child| !child.is_named() && text_of(child, source) == text_of(operator, source));
-    !same
+/// The boolean operations of one callable counted as runs: the operators that follow each other in
+/// one expression count one, and one more at every change of the operator. An operation that is
+/// the operand of another (`a && b || c`) belongs to its expression; a parenthesis or a call
+/// starts a new one.
+fn runs(seen: &[(Node<'_>, usize, String)]) -> u32 {
+    let operations: HashSet<usize> = seen.iter().map(|(operation, ..)| operation.id()).collect();
+    let mut by_expression: HashMap<usize, Vec<(usize, &str)>> = HashMap::new();
+    for (operation, position, text) in seen {
+        let mut root = *operation;
+        while let Some(parent) = root
+            .parent()
+            .filter(|parent| operations.contains(&parent.id()))
+        {
+            root = parent;
+        }
+        by_expression
+            .entry(root.id())
+            .or_default()
+            .push((*position, text.as_str()));
+    }
+    by_expression
+        .into_values()
+        .map(|mut operators| {
+            operators.sort_unstable();
+            let changes = operators
+                .windows(2)
+                .filter(|pair| pair[0].1 != pair[1].1)
+                .count();
+            size(changes + 1)
+        })
+        .sum()
 }
 
 /// How many nesting nodes lie around `node` inside the byte range of its callable.
@@ -250,13 +273,14 @@ impl<'t> Measured<'t> {
     /// nested at, plus the parts that count one each.
     fn cognitive(&self, id: SymbolId, tally: &Tally<'_>) -> u32 {
         let Some(range) = self.ranges.get(&id) else {
-            return tally.flat;
+            return tally.flat + runs(&tally.operators_seen);
         };
+        let flat = tally.flat + runs(&tally.operators_seen);
         let counted = tally
             .structures
             .iter()
             .filter(|node| !self.found.continuations.contains(&node.id()));
-        counted.fold(tally.flat, |total, node| {
+        counted.fold(flat, |total, node| {
             total + NODE_COST + self.depth(*node, range)
         })
     }
