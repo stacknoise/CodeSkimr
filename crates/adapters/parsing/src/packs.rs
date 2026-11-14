@@ -67,6 +67,9 @@ struct Slot {
     summary: PackSummary,
     dir: PathBuf,
     pack: OnceLock<LanguagePack>,
+    /// Why the pack could not be loaded (folder, reason), kept so that the other files of the
+    /// language fail at once instead of building the pack again (issue #66).
+    failed: OnceLock<(String, String)>,
 }
 
 impl Slot {
@@ -94,6 +97,7 @@ impl Slot {
             summary,
             dir,
             pack: OnceLock::new(),
+            failed: OnceLock::new(),
         };
         if slot.summary.tier == Tier::Full {
             slot.pack().map(drop)?;
@@ -105,8 +109,17 @@ impl Slot {
         if let Some(pack) = self.pack.get() {
             return Ok(pack);
         }
-        let loaded = LanguagePack::load(&self.dir)?;
-        Ok(self.pack.get_or_init(|| loaded))
+        if let Some((pack, reason)) = self.failed.get() {
+            return Err(ParsingError::invalid(pack.clone(), reason.clone()));
+        }
+        match LanguagePack::load(&self.dir) {
+            Ok(loaded) => Ok(self.pack.get_or_init(|| loaded)),
+            Err(ParsingError::PackInvalid { pack, reason }) => {
+                let (pack, reason) = self.failed.get_or_init(|| (pack, reason));
+                Err(ParsingError::invalid(pack.clone(), reason.clone()))
+            }
+            Err(other) => Err(other),
+        }
     }
 }
 
