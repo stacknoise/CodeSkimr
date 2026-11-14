@@ -6,6 +6,12 @@ export const COMMAND = {
   tools: "projects.tools",
 } as const;
 
+/** Ids of the credential commands (crates/app/src/ui_commands/consts.rs). */
+export const CREDENTIAL_COMMAND = {
+  list: "credentials.list",
+  set: "credentials.set",
+} as const;
+
 /** What the check found out about one tool, as the server names it. */
 export const TOOL_STATE = {
   ready: "ready",
@@ -19,6 +25,9 @@ export const TOOL_LANGUAGE_SEPARATOR = ", ";
 
 /** How often the list is read while a scan runs, in milliseconds. */
 export const POLL_MS = 1500;
+
+/** Key that sends a field. */
+export const ENTER_KEY = "Enter";
 
 /** Branch that the form starts with. */
 export const DEFAULT_BRANCH = "main";
