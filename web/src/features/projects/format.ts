@@ -6,6 +6,8 @@ import {
   PERCENT,
   RELATIVE_OPTIONS,
   SECOND_UNIT,
+  MICROS_PER_SECOND,
+  PARSE_TIME_DECIMALS,
   SECONDS_DECIMALS,
   TIME_UNITS,
 } from "./consts";
@@ -68,4 +70,13 @@ export function seconds(value: number, language: string): string {
     minimumFractionDigits: SECONDS_DECIMALS,
     maximumFractionDigits: SECONDS_DECIMALS,
   }).format(value);
+}
+
+/** The parse time in seconds with two decimals and the unit, in the notation of the language. */
+export function parseTime(micros: number, language: string): string {
+  const value = new Intl.NumberFormat(language, {
+    minimumFractionDigits: PARSE_TIME_DECIMALS,
+    maximumFractionDigits: PARSE_TIME_DECIMALS,
+  }).format(micros / MICROS_PER_SECOND);
+  return `${value} s`;
 }

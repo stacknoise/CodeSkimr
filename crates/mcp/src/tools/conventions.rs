@@ -2,7 +2,7 @@
 
 use codeskimr_application::access;
 use codeskimr_application::conventions::{
-    CheckReport, CheckRequest, Detail, Finding, Location, Unchecked,
+    CheckReport, CheckRequest, Detail, Finding, Location, StoredProject, Unchecked,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{FolderPath, Principal, Project, ProjectSource};
@@ -142,10 +142,16 @@ impl Tools {
         let project = self.project(args.project)?;
         let limit = self.apply_limit(args.limit);
         let paths = args.paths.clone().unwrap_or_default();
+        // Without a snapshot the check compares the selected files with each other only.
+        let snapshot = self.index().latest_snapshot(project.id)?;
         let report = self.checker().check(&CheckRequest {
             principal,
             root: root_of(&project)?,
             paths: &paths,
+            stored: snapshot.map(|snapshot| StoredProject {
+                index: self.similarity(),
+                snapshot: snapshot.id,
+            }),
         })?;
         to_json(&answer(report, limit.value, limit.clamped))
     }

@@ -15,6 +15,9 @@ pub struct LanguageShare {
     pub loc: u32,
     /// Number of symbols declared in its files.
     pub symbols: u32,
+    /// Microseconds the last full scan spent parsing its files; `None` for a snapshot from before
+    /// the figure was recorded.
+    pub parse_micros: Option<u64>,
 }
 
 /// A project with what its newest snapshot says about it.
