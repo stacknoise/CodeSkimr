@@ -119,11 +119,23 @@ fn project_is_found_by_its_source() {
 }
 
 #[test]
-fn next_project_id_follows_the_highest_registered_id() {
+fn register_project_takes_the_next_id_and_knows_a_source_again() {
     let store = store(3);
-    assert_eq!(store.next_project_id().unwrap(), ProjectId::new(1));
+    let first = project(1, "/work/one", &[]);
+    let registered = store
+        .register_project(first.name.clone(), first.source.clone())
+        .unwrap();
+    assert_eq!(registered, first);
     store.save_project(&project(4, "/work/app", &[])).unwrap();
-    assert_eq!(store.next_project_id().unwrap(), ProjectId::new(5));
+    let next = project(0, "/work/two", &[]);
+    let two = store
+        .register_project(next.name.clone(), next.source.clone())
+        .unwrap();
+    assert_eq!(two.id, ProjectId::new(5));
+    let again = store
+        .register_project(next.name.clone(), next.source)
+        .unwrap();
+    assert_eq!(again.id, ProjectId::new(5), "the same source keeps its id");
 }
 
 #[test]

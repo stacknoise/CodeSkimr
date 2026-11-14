@@ -48,6 +48,10 @@ pub fn run(
         .unwrap_or_else(|| current_dir.to_path_buf());
     let spec = folder_spec(&folder)?;
     let config = config_files::load(locations, global, Some(&folder))?;
+    // Nothing was ever scanned if there is no database; opening the store would create it.
+    if !locations.database().exists() {
+        return Err(CodedError::new(ErrorCode::ProjectNotFound));
+    }
     let store = open_store(locations, &config)?;
     let project = store
         .project_by_source(&spec.source)?
