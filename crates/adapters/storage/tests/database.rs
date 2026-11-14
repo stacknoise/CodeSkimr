@@ -476,3 +476,34 @@ fn a_version_five_database_gets_the_tool_report_tables() {
     store.save_project(&project(1, "/work/app", &[])).unwrap();
     assert_eq!(store.load(PROJECT).unwrap(), None);
 }
+
+#[test]
+fn a_version_seven_database_has_no_naming_rules_for_its_old_snapshots() {
+    let db = TempDb::new();
+    let conn = database_at_version(
+        &db,
+        &[
+            include_str!("../migrations/0001_initial.sql"),
+            include_str!("../migrations/0002_credential_reference.sql"),
+            include_str!("../migrations/0003_fingerprints.sql"),
+            include_str!("../migrations/0004_shared_rows.sql"),
+            include_str!("../migrations/0005_reference_verified.sql"),
+            include_str!("../migrations/0006_level2_consent.sql"),
+            include_str!("../migrations/0007_tool_reports.sql"),
+        ],
+    );
+    conn.execute_batch(
+        "INSERT INTO projects (id, name, source_kind, location, branch)
+           VALUES (1, 'old', 'folder', '/work/app', '');
+         INSERT INTO snapshots (id, project_id, created, mode, files, symbols, refs)
+           VALUES (10, 1, 0, 'full', 0, 0, 0);",
+    )
+    .unwrap();
+    drop(conn);
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    assert_eq!(store.latest_naming_rules(PROJECT).unwrap(), None);
+    assert_eq!(
+        store.latest_snapshot(PROJECT).unwrap().unwrap().id.get(),
+        10
+    );
+}

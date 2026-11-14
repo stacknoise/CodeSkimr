@@ -1006,7 +1006,7 @@ fn an_incremental_scan_after_other_naming_rules_is_a_full_scan() -> Result<(), C
         assert_eq!(paths, ["a.rs", "b.rs"], "every file is analysed again");
         assert_eq!(job.snapshot().mode, ScanMode::Full);
         assert_eq!(persisted.naming_rules, "csharp=namespace");
-        assert!(persisted.removed.is_empty());
+        assert_eq!(persisted.removed, Vec::<RelativePath>::new());
     }
     Ok(())
 }

@@ -242,7 +242,7 @@ pub const SYMBOL_SELECT: &str = "SELECT s.id, s.file_id, s.kind, s.name, s.quali
     WHERE s.snapshot_id = ?1 AND ";
 /// Condition of `SYMBOL_SELECT`: symbol id.
 pub const SYMBOL_BY_ID: &str = "s.id = ?2";
-/// Condition of `SYMBOL_SELECT`: qualified name; the lowest id wins.
+/// The other symbols of a snapshot with the same qualified name: snapshot id, name, own id.
 pub const SYMBOL_SAME_NAME_COUNT: &str = "SELECT COUNT(*) FROM symbols \
     WHERE snapshot_id = ?1 AND qualified_name = ?2 AND id <> ?3";
 /// Condition of `SYMBOL_SELECT`: qualified name; the lowest id wins.
