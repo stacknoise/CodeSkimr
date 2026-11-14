@@ -302,3 +302,18 @@ pub const CONSENT_UPSERT: &str = "INSERT INTO level2_consent \
     ON CONFLICT (project_id) DO UPDATE SET enabled = excluded.enabled, \
     confirmed = excluded.confirmed, source_kind = excluded.source_kind, \
     location = excluded.location, branch = excluded.branch";
+/// Removes the report of a project (its findings go with it): project id.
+pub const TOOL_REPORT_DELETE: &str = "DELETE FROM tool_reports WHERE project_id = ?1";
+/// Adds the report header: project id, time of the check.
+pub const TOOL_REPORT_INSERT: &str =
+    "INSERT INTO tool_reports (project_id, checked_at) VALUES (?1, ?2)";
+/// Adds one finding: project id, position, language, tool, role, state, found, required, purpose
+/// key, install key.
+pub const TOOL_FINDING_INSERT: &str = "INSERT INTO tool_findings \
+    (project_id, position, language, tool, role, state, found, required, purpose_key, install_key) \
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)";
+/// The time of the report of a project: project id.
+pub const TOOL_REPORT_TIME: &str = "SELECT checked_at FROM tool_reports WHERE project_id = ?1";
+/// The findings of a project in order: project id.
+pub const TOOL_FINDINGS: &str = "SELECT language, tool, role, state, found, required, purpose_key, \
+    install_key FROM tool_findings WHERE project_id = ?1 ORDER BY position";

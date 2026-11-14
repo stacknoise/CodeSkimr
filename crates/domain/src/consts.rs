@@ -196,3 +196,22 @@ pub const PERMISSION_RUN_INDEXER: &str = "run_indexer";
 
 /// Whole percent of a share of 1.0, for integer percent arithmetic.
 pub const PERCENT_BASE: usize = 100;
+
+/// Label of `ToolRole::Indexer`.
+pub const TOOL_ROLE_INDEXER: &str = "indexer";
+/// Label of `ToolRole::Toolchain`.
+pub const TOOL_ROLE_TOOLCHAIN: &str = "toolchain";
+/// Label of `ToolState::Ready`.
+pub const TOOL_STATE_READY: &str = "ready";
+/// Label of `ToolState::Missing`.
+pub const TOOL_STATE_MISSING: &str = "missing";
+/// Label of `ToolState::TooOld`.
+pub const TOOL_STATE_TOO_OLD: &str = "too_old";
+/// Label of `ToolState::VersionUnknown`.
+pub const TOOL_STATE_VERSION_UNKNOWN: &str = "version_unknown";
+/// Label of `RequirementFormat::Json`.
+pub const REQUIREMENT_FORMAT_JSON: &str = "json";
+/// Label of `RequirementFormat::Toml`.
+pub const REQUIREMENT_FORMAT_TOML: &str = "toml";
+/// Label of `RequirementFormat::Text`.
+pub const REQUIREMENT_FORMAT_TEXT: &str = "text";

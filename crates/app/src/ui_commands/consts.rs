@@ -9,6 +9,12 @@ pub const PROJECTS_ADD: &str = "projects.add";
 /// Id of the command that scans a registered project again.
 pub const PROJECTS_RESCAN: &str = "projects.rescan";
 
+/// Id of the command that checks the tools of a project.
+pub const PROJECTS_TOOLS: &str = "projects.tools";
+/// Title key of `projects.tools`.
+pub const TOOLS_TITLE: &str = i18n::COMMAND_PROJECTS_TOOLS_TITLE;
+/// Description key of `projects.tools`.
+pub const TOOLS_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_TOOLS_DESCRIPTION;
 /// Id of the command that cancels a running scan.
 pub const PROJECTS_CANCEL: &str = "projects.cancel";
 

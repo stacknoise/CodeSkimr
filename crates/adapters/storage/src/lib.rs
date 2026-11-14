@@ -1,7 +1,7 @@
 //! `SQLite` storage, read models and the search index (blueprint 6.2).
 //!
 //! [`SqliteStore`] implements the ports `ProjectRepository`, `ProjectCatalog`, `SnapshotStore`, `CodeIndex`,
-//! `UsageIndex` and `SimilarityIndex` of `codeskimr_application`. One snapshot is written in one transaction
+//! `UsageIndex`, `SimilarityIndex` and `ToolReportStore` of `codeskimr_application`. One snapshot is written in one transaction
 //! together with its read models, or not at all. The queries on the read models are inherent
 //! methods of the store.
 
@@ -27,6 +27,7 @@ mod similarity;
 mod snapshots;
 mod sql;
 mod store;
+mod tools;
 mod usages;
 
 pub use codeskimr_application::ports::SearchHit;

@@ -486,6 +486,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 | `find_similar_code` | code snippet or symbol | existing functions with similar structure ("does this already exist?") |
 | `find_constants` | query | existing constants, config keys and i18n keys |
 | `get_architecture` | project | layers, allowed dependencies, namespace map, conventions |
+| `get_project` | project? | languages, and per tool of level 2 its state (ready, missing, too old, version unknown) with purpose and install hint (ADR 0033, decision 8) |
 | `check_conventions` | paths or diff | violations of section 3 (duplicates, literals, layering, length, complexity) with error codes |
 | `rescan` | paths? | incremental update, returns the new snapshot id |
 

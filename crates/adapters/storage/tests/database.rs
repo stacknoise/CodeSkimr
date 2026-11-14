@@ -67,7 +67,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 6));
+    assert_eq!((mode.as_str(), version), ("wal", 7));
 }
 
 #[test]
@@ -244,20 +244,31 @@ fn pruning_keeps_the_shared_rows_another_snapshot_still_contains() {
     assert_eq!(rows_of(&conn, "fingerprints"), 1);
 }
 
+/// A database that has run only `migrations`, at the schema version they make.
+#[cfg(test)]
+fn database_at_version(db: &TempDb, migrations: &[&str]) -> Connection {
+    std::fs::create_dir_all(db.0.parent().unwrap()).unwrap();
+    let conn = Connection::open(&db.0).unwrap();
+    for migration in migrations {
+        conn.execute_batch(migration).unwrap();
+    }
+    let version = i64::try_from(migrations.len()).unwrap();
+    conn.pragma_update(None, "user_version", version).unwrap();
+    conn
+}
+
 /// A version three database in which both snapshots hold the same file, symbols, reference and
 /// fingerprint, as a carry copied them.
 #[cfg(test)]
 fn version_three_database(db: &TempDb) {
-    std::fs::create_dir_all(db.0.parent().unwrap()).unwrap();
-    let conn = Connection::open(&db.0).unwrap();
-    for migration in [
-        include_str!("../migrations/0001_initial.sql"),
-        include_str!("../migrations/0002_credential_reference.sql"),
-        include_str!("../migrations/0003_fingerprints.sql"),
-    ] {
-        conn.execute_batch(migration).unwrap();
-    }
-    conn.pragma_update(None, "user_version", 3).unwrap();
+    let conn = database_at_version(
+        db,
+        &[
+            include_str!("../migrations/0001_initial.sql"),
+            include_str!("../migrations/0002_credential_reference.sql"),
+            include_str!("../migrations/0003_fingerprints.sql"),
+        ],
+    );
     conn.execute_batch(
         "INSERT INTO projects (id, name, source_kind, location, branch)
            VALUES (1, 'old', 'folder', '/work/app', '');
@@ -443,4 +454,25 @@ fn the_verified_mark_of_a_reference_survives_storing_and_loading() {
         )
         .unwrap();
     assert_eq!(verified, 1);
+}
+
+#[test]
+fn a_version_five_database_gets_the_tool_report_tables() {
+    use codeskimr_application::ports::ToolReportStore;
+    let db = TempDb::new();
+    let conn = database_at_version(
+        &db,
+        &[
+            include_str!("../migrations/0001_initial.sql"),
+            include_str!("../migrations/0002_credential_reference.sql"),
+            include_str!("../migrations/0003_fingerprints.sql"),
+            include_str!("../migrations/0004_shared_rows.sql"),
+            include_str!("../migrations/0005_reference_verified.sql"),
+        ],
+    );
+    drop(conn);
+
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    assert_eq!(store.load(PROJECT).unwrap(), None);
 }
