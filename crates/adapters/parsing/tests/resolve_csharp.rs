@@ -179,4 +179,22 @@ mod tests {
         // `base.Key` in the accessors of `Derived.Key` is no usage of `Derived.Key` itself.
         assert_eq!(lines(&receiver_usages("Derived.Key")), Vec::<u32>::new());
     }
+
+    #[test]
+    fn a_null_conditional_access_is_a_usage_through_the_type_without_the_question_mark() {
+        // `a?.B`, `a?.B?.C`, `a?.B()`, `a?[0]`, `a!?.B` and `this.f?.B` (0-based lines 57 to 61).
+        let leaf = receiver_usages("Leaf.Weight");
+        assert_eq!(lines(&leaf), [57, 58, 61]);
+        assert_eq!(lines(&receiver_usages("Branch.Tip")), [57, 58]);
+        // The receiver of `?.Measure()` is a `Leaf?`: the call is never also one of `Twig`.
+        assert_eq!(lines(&receiver_usages("Leaf.Measure")), [59]);
+        assert_eq!(lines(&receiver_usages("Twig.Measure")), Vec::<u32>::new());
+        // The receiver `branch?.Tip` of the chain has no known type: `Twig.Weight` stays, unchecked.
+        let twig = receiver_usages("Twig.Weight");
+        assert_eq!(lines(&twig), [58]);
+        assert!(twig.iter().all(|(_, c)| *c != Confidence::Certain));
+        // `_field?[0]` reads the field.
+        let field = receiver_usages("NullConditional._field");
+        assert!(field.contains(&(60, Confidence::Certain)));
+    }
 }
