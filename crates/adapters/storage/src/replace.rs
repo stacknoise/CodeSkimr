@@ -3,14 +3,16 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use codeskimr_application::ports::ReferenceReplacement;
-use codeskimr_domain::{FileId, ProjectId, Snapshot, SnapshotId};
+use codeskimr_domain::{FileId, ProjectId, Snapshot, SnapshotId, coupling};
 use rusqlite::{Connection, params};
 
 use crate::codec::{column_int, id_from};
 use crate::error::{StorageError, StorageResult};
 use crate::headers::{insert_reference, latest_snapshot, set_totals, totals};
+use crate::previous::load_latest_index;
 use crate::projects::load_layers;
 use crate::read_models;
+use crate::snapshots::insert_metric;
 use crate::sql;
 
 /// Whether `query` finds a row for the snapshot and the id.
@@ -86,6 +88,7 @@ pub(crate) fn replace_references(
     for affected in &holders.all {
         refresh(conn, *affected, project)?;
     }
+    refresh_coupling(conn, change.snapshot, project)?;
     let stats = totals(conn, change.snapshot)?;
     Ok(Snapshot { stats, ..latest })
 }
@@ -125,4 +128,21 @@ fn refresh(conn: &Connection, snapshot: SnapshotId, project: ProjectId) -> Stora
         conn.execute(delete, params![id])?;
     }
     read_models::rebuild(conn, snapshot, &load_layers(conn, project)?)
+}
+
+/// Calculates the coupling of the newest snapshot again from its stored references, because the
+/// replaced ones change which units depend on which (ADR 0037). Older snapshots keep theirs.
+fn refresh_coupling(
+    conn: &Connection,
+    snapshot: SnapshotId,
+    project: ProjectId,
+) -> StorageResult<()> {
+    let id = column_int(snapshot.get())?;
+    let index = load_latest_index(conn, project)?;
+    let metrics = coupling(&index.symbols, &index.references)?;
+    conn.execute(sql::COUPLING_DELETE, params![id])?;
+    for metric in &metrics {
+        insert_metric(conn, id, metric)?;
+    }
+    Ok(())
 }

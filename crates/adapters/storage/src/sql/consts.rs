@@ -131,6 +131,9 @@ pub const METRIC_INSERT: &str =
 pub const COUPLING_INSERT: &str = "INSERT OR REPLACE INTO coupling_rows \
     (snapshot_id, symbol_id, kind, value) VALUES (?1, ?2, ?3, ?4)";
 
+/// Removes the coupling of one snapshot: snapshot.
+pub const COUPLING_DELETE: &str = "DELETE FROM coupling_rows WHERE snapshot_id = ?1";
+
 /// Whether a symbol is in a snapshot: snapshot, symbol.
 pub const SYMBOL_IN_SNAPSHOT: &str =
     "SELECT EXISTS (SELECT 1 FROM symbols WHERE snapshot_id = ?1 AND id = ?2)";

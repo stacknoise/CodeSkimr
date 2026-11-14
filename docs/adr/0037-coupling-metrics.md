@@ -32,5 +32,5 @@ Option 2.
 ## Consequences
 
 - ADR 0032's condition holds again: everything in `metric_rows` depends on one file.
-- The level 2 import (ADR 0033) replaces references after the scan and does not recompute coupling; until the next scan the figures come from the level 1 references. Follow-up issue.
+- The level 2 import (ADR 0033) replaces references after the scan. The storage calculates coupling of the newest snapshot again from the stored references in the same transaction, so the figures follow the imported references. Older snapshots that share the replaced files keep their level 1 coupling.
 - Blueprint 6.1 lists the kinds already; its granularity text can point to this ADR when the blueprint is next edited.

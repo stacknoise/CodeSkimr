@@ -168,7 +168,11 @@ fn insert_symbol(conn: &Connection, symbol: &Symbol) -> StorageResult<()> {
 
 /// A metric of its own file is shared by all snapshots; coupling belongs to this snapshot alone
 /// (ADR 0037).
-fn insert_metric(conn: &Connection, snapshot: i64, metric: &Metric) -> StorageResult<()> {
+pub(crate) fn insert_metric(
+    conn: &Connection,
+    snapshot: i64,
+    metric: &Metric,
+) -> StorageResult<()> {
     let symbol = column_int(metric.symbol.get())?;
     if metric.kind.is_per_snapshot() {
         conn.prepare_cached(sql::COUPLING_INSERT)?.execute(params![
