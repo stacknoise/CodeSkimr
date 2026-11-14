@@ -45,7 +45,7 @@ jobs:
           # A run that failed half way leaves a draft behind: start over with a fresh one.
           # A published release is never touched (the run stops there).
           state=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName,isDraft \
-            --jq "map(select(.tagName == \"v${VERSION}\")) | (.[0].isDraft // \"none\")")
+            --jq "map(select(.tagName == \"v${VERSION}\")) | if length == 0 then \"none\" else (.[0].isDraft | tostring) end")
           if [ "$state" = "false" ]; then
             echo "v${VERSION} is already published" >&2
             exit 1
