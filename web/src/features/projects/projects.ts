@@ -68,7 +68,10 @@ async function whileReading<T>(work: () => Promise<T>): Promise<T> {
 
 function remember(scanned: Scanned): void {
   setLastSeconds((previous) => new Map(previous).set(scanned.project, scanned.seconds));
-  setCheckedTools((previous) => new Map(previous).set(scanned.project, scanned.tools));
+  if (scanned.tools.checked_at !== null) {
+    // An incremental scan does not check the tools: its empty view must not hide a warning.
+    setCheckedTools((previous) => new Map(previous).set(scanned.project, scanned.tools));
+  }
 }
 
 /** Checks which tools level 2 needs on this machine for the project, so that the screen shows what

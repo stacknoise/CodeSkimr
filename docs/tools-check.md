@@ -1,6 +1,6 @@
 # Tool check on project load (ADR 0033, decision 8)
 
-On every load of a project (registration, scan including rescan and watch, reopening) CodeSkimr checks, for each language of the newest snapshot, whether the tools of level 2 exist and fit. Nothing is downloaded or installed.
+On every load of a project (registration, every full scan, reopening, `projects.tools`, `get_project`) CodeSkimr checks, for each language of the newest snapshot, whether the tools of level 2 exist and fit. Nothing is downloaded or installed.
 
 ## What is checked
 
@@ -26,6 +26,8 @@ A pack may name a file in the project root: `global.json` (`sdk.version`), `rust
 ## Storage and outputs
 
 The report is stored with the project (`tool_reports`, `tool_findings`, `docs/storage.md`) and replaced by each new check. It appears in the `codeskimr scan` summary (`docs/cli.md`), in the Projects screen (`docs/ui.md`, command `projects.tools`) and in the MCP tool `get_project` (`docs/mcp.md`). Purpose and install hint come from `locales/{de,en}/tools.ftl`.
+
+An incremental scan (a rescan in watch mode or in the UI after a file changed) does not check: the tools do not change when a file is saved, and watch mode times the rescan against the 300 ms budget of blueprint 16.1. The stored report stays, and the UI keeps showing it (the empty view of an unchecked scan never replaces a checked one).
 
 A failing check never fails a scan: the error is logged and the project is shown as not checked.
 

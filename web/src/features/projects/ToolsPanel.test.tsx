@@ -136,4 +136,32 @@ describe("the tools of a project", () => {
     await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
     expect(screen.getByText("Level 2 can run for: Rust")).toBeInTheDocument();
   });
+
+  it("keeps the warning after a rescan, which does not check the tools again", async () => {
+    serve({
+      "projects.list": () => answer([{ ...ROW, tools: MISSING }]),
+      "projects.tools": () => answer(MISSING),
+      "projects.rescan": () =>
+        answer({
+          project: 1,
+          snapshot: 6,
+          files: 3,
+          symbols: 9,
+          references: 4,
+          seconds: 0.2,
+          tools: { checked_at: null, languages: [], tools: [] } satisfies ToolsInfo,
+        }),
+    });
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByText("/work/shop"));
+    await screen.findByRole("status");
+    fireEvent.keyDown(document, { key: "r" });
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith("projects.rescan"))).toBe(
+        true,
+      ),
+    );
+    await waitFor(() => expect(screen.getByText("2 tools missing")).toBeInTheDocument());
+    expect(screen.getByRole("status")).toHaveTextContent("scip-dotnet");
+  });
 });
