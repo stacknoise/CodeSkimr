@@ -15,7 +15,7 @@ use codeskimr_application::events::EventBus;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::Principal;
 use tokio::net::TcpListener;
-use tokio::sync::Semaphore;
+use tokio::sync::{Semaphore, watch};
 
 use crate::assets::Assets;
 use crate::commands::CommandApi;
@@ -46,6 +46,7 @@ pub struct Server {
 pub struct BoundServer {
     listener: TcpListener,
     router: Router,
+    stop: watch::Sender<()>,
 }
 
 /// Lets `address` pass if it is a loopback address (blueprint S-04).
@@ -137,7 +138,9 @@ impl Server {
         let listener = TcpListener::bind(address).await.map_err(bind_failed)?;
         let bound = listener.local_addr().map_err(bind_failed)?;
         let guard = Arc::new(Guard::new(bound, self.token));
+        let (stop, stopped) = watch::channel(());
         let state = AppState {
+            stop: stopped,
             api: Arc::new(self.api),
             guard: Arc::clone(&guard),
             principal: self.principal,
@@ -148,7 +151,11 @@ impl Server {
             assets: assets_of(self.ui.dir, self.ui.embedded),
         };
         let router = build_router(state, guard, self.mcp);
-        Ok(BoundServer { listener, router })
+        Ok(BoundServer {
+            listener,
+            router,
+            stop,
+        })
     }
 }
 
@@ -171,7 +178,7 @@ impl BoundServer {
         self,
         shutdown: impl Future<Output = ()> + Send + 'static,
     ) -> Result<(), CodedError> {
-        listen::run(self.listener, self.router, shutdown).await;
+        listen::run(self.listener, self.router, self.stop, shutdown).await;
         Ok(())
     }
 }

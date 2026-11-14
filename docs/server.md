@@ -62,7 +62,7 @@ Messages have a `type` and ids and counts only: `scan_progressed` (`project`, `s
 
 ## Limits against clients that hold resources
 
-The server holds at most 256 connections; a further client waits in the backlog of the system until a slot is free. A connection that does not finish the head of its request within 10 seconds is closed (hyper's `header_read_timeout`), and the body of a request has 30 seconds, then `API-503` (408). Running commands have no time limit of their own: a scan may take as long as it needs. This stops a client that opens connections and sends nothing, or sends a byte at a time, but is no replacement for a reverse proxy in the server mode of the team server (ADR 0019).
+The server holds at most 256 connections; a further client waits in the backlog of the system until a slot is free. The server speaks HTTP/1 only. A connection that does not finish the head of its request within 10 seconds, also one that sends nothing at all, is closed (hyper's `header_read_timeout`), and the body of a JSON request to a command or to the session routes has 30 seconds, then `API-503` (408); the MCP route is not covered yet (#273). Running commands have no time limit of their own: a scan may take as long as it needs. On shutdown the event streams get a close frame (1001) and open connections have 5 seconds to finish. This stops a client that opens connections and sends nothing, or sends a byte at a time, but is no replacement for a reverse proxy in the server mode of the team server (ADR 0019).
 
 ## Configuration
 
@@ -76,7 +76,7 @@ The server holds at most 256 connections; a further client waits in the backlog 
 - The bare `codeskimr` starts the server and opens the browser with the launch code (blueprint 10.2); the server keeps running until Ctrl+C, also if no browser could be started. `codeskimr serve` and `codeskimr open` remain for the two steps on their own.
 - Launch file and browser start were run on Linux only.
 - No TLS and no non-loopback binding: that is the team server's server mode (ADR 0019).
-- Open in #88: a command id is no secret (unknown id gives `API-201`, a known one without the right `AUTH-401`), which has to be compared with S-06 for the team stage; two first starts at the same moment can each create a token (the later one wins, the earlier process then holds a token that does not match; restart it).
+- Open in #88 and #269: a command id is no secret (unknown id gives `API-201`, a known one without the right `AUTH-401`), which has to be compared with S-06 for the team stage; two first starts at the same moment can each create a token (the later one wins, the earlier process then holds a token that does not match; restart it).
 - `serve` needs a usable keystore. On a headless Linux without a Secret Service it stops with `SEC-601`.
 - Events are not filtered per principal; in single-user mode there is only the local owner.
 

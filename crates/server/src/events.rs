@@ -3,7 +3,7 @@
 use std::sync::Arc;
 use std::sync::mpsc::RecvTimeoutError;
 use std::thread;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use axum::body::Bytes;
 use axum::extract::State;
@@ -17,9 +17,9 @@ use codeskimr_application::events::{
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::Permission;
 use serde::Serialize;
-use tokio::sync::OwnedSemaphorePermit;
 use tokio::sync::mpsc::{Receiver, Sender, channel};
-use tokio::time::timeout;
+use tokio::sync::{OwnedSemaphorePermit, watch};
+use tokio::time::{Instant, timeout};
 
 use crate::consts::{
     EVENT_BUFFER, EVENT_POLL, EVENT_THREAD_NAME, MAX_SOCKET_MESSAGE_BYTES, REASON_CANCELLED,
@@ -160,12 +160,13 @@ pub async fn stream(State(app): State<AppState>, upgrade: WebSocketUpgrade) -> R
     let Ok(slot) = Arc::clone(&app.streams).try_acquire_owned() else {
         return Failure::code(ErrorCode::ServerBusy).into_response();
     };
+    let stop = app.stop.clone();
     let Some(events) = bridge(&app.events) else {
         return Failure::code(ErrorCode::UnexpectedInternalError).into_response();
     };
     upgrade
         .max_message_size(MAX_SOCKET_MESSAGE_BYTES)
-        .on_upgrade(move |socket| pump(socket, events, slot))
+        .on_upgrade(move |socket| pump(socket, events, slot, stop))
 }
 
 /// When the client was last heard and last pinged.
@@ -179,12 +180,21 @@ struct Liveness {
 ///
 /// While no event comes, the socket is looked at every `EVENT_POLL`, so a client that left is
 /// noticed without waiting for the next event. The slot is given back when the stream ends.
-async fn pump(mut socket: WebSocket, mut events: Receiver<Event>, slot: OwnedSemaphorePermit) {
+async fn pump(
+    mut socket: WebSocket,
+    mut events: Receiver<Event>,
+    slot: OwnedSemaphorePermit,
+    stop: watch::Receiver<()>,
+) {
     let mut live = Liveness {
         heard: Instant::now(),
         pinged: Instant::now(),
     };
     loop {
+        if stop.has_changed().unwrap_or(true) {
+            close(&mut socket, close_code::AWAY).await;
+            break;
+        }
         match timeout(EVENT_POLL, events.recv()).await {
             Ok(Some(event)) => {
                 let Ok(text) = serde_json::to_string(&WireEvent::from(&event)) else {
@@ -195,11 +205,7 @@ async fn pump(mut socket: WebSocket, mut events: Receiver<Event>, slot: OwnedSem
                 }
             }
             Ok(None) => {
-                let frame = CloseFrame {
-                    code: close_code::AGAIN,
-                    reason: SOCKET_CLOSE_REASON.into(),
-                };
-                send(&mut socket, Message::Close(Some(frame))).await;
+                close(&mut socket, close_code::AGAIN).await;
                 break;
             }
             Err(_) if !keep_alive(&mut socket, &mut live).await => break,
@@ -207,6 +213,15 @@ async fn pump(mut socket: WebSocket, mut events: Receiver<Event>, slot: OwnedSem
         }
     }
     drop(slot);
+}
+
+/// Ends the stream with a close frame of `code`.
+async fn close(socket: &mut WebSocket, code: u16) {
+    let frame = CloseFrame {
+        code,
+        reason: SOCKET_CLOSE_REASON.into(),
+    };
+    send(socket, Message::Close(Some(frame))).await;
 }
 
 /// Sends `message`; false if the client failed or took longer than `SOCKET_SEND_TIMEOUT`.

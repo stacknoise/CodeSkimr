@@ -3,7 +3,8 @@
 //! `axum::serve` has neither. A client that opens connections and sends nothing, or one byte at a
 //! time, would hold the server's tasks and file handles for good (slowloris). Here a connection
 //! needs a free slot before it is accepted, and hyper closes a connection whose request head does
-//! not arrive in time.
+//! not arrive in time, also one that sends nothing at all. Only HTTP/1 is spoken: the protocol
+//! detection of the automatic builder would wait for the first bytes without any timer.
 
 use std::future::{Future, poll_fn};
 use std::pin::{Pin, pin};
@@ -13,15 +14,15 @@ use std::task::Poll;
 use axum::Router;
 use axum::extract::Request;
 use hyper::body::Incoming;
+use hyper::server::conn::http1::Builder;
 use hyper::service::service_fn;
-use hyper_util::rt::{TokioExecutor, TokioIo, TokioTimer};
-use hyper_util::server::conn::auto::Builder;
+use hyper_util::rt::{TokioIo, TokioTimer};
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{OwnedSemaphorePermit, Semaphore, watch};
-use tokio::time::sleep;
+use tokio::time::{sleep, timeout};
 use tower_service::Service;
 
-use crate::consts::{ACCEPT_RETRY, HEADER_READ_TIMEOUT, MAX_CONNECTIONS};
+use crate::consts::{ACCEPT_RETRY, HEADER_READ_TIMEOUT, MAX_CONNECTIONS, SHUTDOWN_GRACE};
 
 /// Which of two futures finished first.
 enum First<A, B> {
@@ -47,10 +48,12 @@ where
     .await
 }
 
-/// Answers requests on `listener` until `shutdown` completes, then lets open connections finish.
+/// Answers requests on `listener` until `shutdown` completes, then tells the event streams to
+/// end and lets open connections finish, for at most `SHUTDOWN_GRACE`.
 pub async fn run(
     listener: TcpListener,
     router: Router,
+    streams_stop: watch::Sender<()>,
     shutdown: impl Future<Output = ()> + Send + 'static,
 ) {
     let slots = Arc::new(Semaphore::new(MAX_CONNECTIONS));
@@ -65,9 +68,10 @@ pub async fn run(
         ));
     }
     drop(stop);
+    drop(streams_stop);
     // Every connection gives its slot back when it ends, so all slots free means all are done.
     let all = u32::try_from(MAX_CONNECTIONS).unwrap_or(u32::MAX);
-    drop(slots.acquire_many(all).await);
+    drop(timeout(SHUTDOWN_GRACE, slots.acquire_many(all)).await);
 }
 
 /// The next connection with the slot it holds, or `None` once `shutdown` has completed.
@@ -103,13 +107,15 @@ async fn serve_connection(
         let mut router = router.clone();
         async move { router.call(request).await }
     });
-    let mut builder = Builder::new(TokioExecutor::new());
+    let mut builder = Builder::new();
     builder
-        .http1()
         .timer(TokioTimer::new())
         .header_read_timeout(HEADER_READ_TIMEOUT);
-    let mut connection =
-        pin!(builder.serve_connection_with_upgrades(TokioIo::new(stream), service));
+    let mut connection = pin!(
+        builder
+            .serve_connection(TokioIo::new(stream), service)
+            .with_upgrades()
+    );
     let mut changed = pin!(stop.changed());
     if let First::Right(_) = first(&mut connection, &mut changed).await {
         connection.as_mut().graceful_shutdown();

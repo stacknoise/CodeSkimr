@@ -107,13 +107,16 @@ pub const NO_SNIFF_VALUE: &str = "nosniff";
 pub const NO_SNIFF_HEADER: &str = "x-content-type-options";
 
 /// Most connections the server holds at once. Further clients wait in the backlog of the
-/// system until a slot is free; an idle connection does not hold its slot for long.
+/// system until a slot is free; a connection that sends no request head gives its slot back
+/// after `HEADER_READ_TIMEOUT`.
 pub const MAX_CONNECTIONS: usize = 256;
 /// Most event streams (web sockets) at once; one more is refused with `API-502`.
 pub const MAX_EVENT_STREAMS: usize = 16;
 /// Events that wait for a slow client. A client that falls further behind is disconnected
 /// (close code "try again later") and connects again, so memory per stream stays bounded.
 pub const EVENT_BUFFER: usize = 256;
+/// How long the server waits for open connections after it was told to stop.
+pub const SHUTDOWN_GRACE: Duration = Duration::from_secs(5);
 /// How long a client may take to send the head of a request before the connection is closed.
 pub const HEADER_READ_TIMEOUT: Duration = Duration::from_secs(10);
 /// How long a client may take to send the body of a request.

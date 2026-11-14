@@ -76,6 +76,26 @@ async fn a_client_that_is_silent_is_not_answered_beyond_the_connection_cap() {
 }
 
 #[tokio::test(start_paused = true)]
+async fn a_stream_whose_client_never_answers_the_pings_is_closed() {
+    let server = start(owner()).await;
+    let (mut stream, status) = open_stream(&server).await;
+    assert!(status.unwrap().contains("101"));
+    let mut rest = Vec::new();
+    let closed = timeout(Duration::from_secs(300), stream.read_to_end(&mut rest)).await;
+    assert!(closed.is_ok(), "the server gave up on a silent client");
+    assert!(!rest.is_empty(), "it pinged before it gave up");
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_connection_without_a_single_byte_is_closed() {
+    let server = start(owner()).await;
+    let mut stream = TcpStream::connect(server.address).await.unwrap();
+    let mut rest = Vec::new();
+    let closed = timeout(Duration::from_secs(60), stream.read_to_end(&mut rest)).await;
+    assert!(closed.is_ok(), "the server gave up on a silent connection");
+}
+
+#[tokio::test(start_paused = true)]
 async fn a_head_that_never_ends_closes_the_connection() {
     let server = start(owner()).await;
     let mut stream = TcpStream::connect(server.address).await.unwrap();
@@ -116,4 +136,34 @@ async fn a_body_that_never_ends_is_answered_with_a_timeout_code() {
     assert!(text.starts_with("HTTP/1.1 408"), "{text}");
     assert!(text.contains("API-503"), "{text}");
     assert_eq!(server.wipes.load(std::sync::atomic::Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn an_open_event_stream_does_not_hold_up_the_shutdown() {
+    use std::sync::Arc;
+
+    use codeskimr_application::events::EventBus;
+    use codeskimr_application::registry::Registry;
+    use codeskimr_server::{CommandApi, InstallationToken, Server};
+
+    let server = Server::new(
+        CommandApi::new(Arc::new(Registry::new())),
+        EventBus::new(),
+        common::owner(),
+        InstallationToken::from_token(TOKEN),
+        common::ui_options(),
+    );
+    let bound = server.bind(([127, 0, 0, 1], 0).into()).await.unwrap();
+    let address = bound.address().unwrap();
+    let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
+    let task = tokio::spawn(bound.serve(async move {
+        stopped.await.ok();
+    }));
+    let mut client = TcpStream::connect(address).await.unwrap();
+    let request = format!("{UPGRADE}Host: {address}\r\n\r\n");
+    let status = status_of(&mut client, &request).await;
+    assert!(status.unwrap().contains("101"));
+    stop.send(()).unwrap();
+    let ended = timeout(Duration::from_secs(3), task).await;
+    assert!(ended.is_ok(), "the stream ended with the server");
 }
