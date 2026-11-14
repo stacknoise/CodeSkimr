@@ -91,12 +91,23 @@ pub fn build_scanner(
     events: EventBus,
     secrets: &Arc<Secrets>,
 ) -> Result<Scanner, CodedError> {
-    let Analysis {
-        discovery,
-        analyzer,
-        indexers,
-        ..
-    } = build_analysis(config, locations)?;
+    let analysis = build_analysis(config, locations)?;
+    scanner_over(&analysis, (store, config, locations), (events, secrets))
+}
+
+/// Like [`build_scanner`], but over an [`Analysis`] that was built already, so a caller that
+/// needs the analysis for something else too (the MCP server) loads the language packs once.
+///
+/// # Errors
+/// `STO` failures of the id lookup.
+pub fn scanner_over(
+    analysis: &Analysis,
+    (store, config, locations): (&Arc<SqliteStore>, &Config, &Locations),
+    (events, secrets): (EventBus, &Arc<Secrets>),
+) -> Result<Scanner, CodedError> {
+    let discovery = Arc::clone(&analysis.discovery);
+    let analyzer = Arc::clone(&analysis.analyzer);
+    let indexers = analysis.indexers.clone();
     let ids = Arc::new(IdSequence::starting_at(store.next_free_id()?));
     let pass = Level2Pass {
         runner: index_runner(locations),
