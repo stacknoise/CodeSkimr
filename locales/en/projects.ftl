@@ -62,3 +62,14 @@ projects-tools-no-level2 = No language of this project has level 2 yet.
 projects-tools-unchecked = The tools have not been checked yet.
 projects-tools-check-again = Check again
 projects-tools-checking = Checking …
+
+projects-credential-label = Login
+projects-credential-none = None (the system's Git login)
+projects-credential-new = Store a new login
+projects-credential-name = Name
+projects-credential-user = User name
+projects-credential-secret = Token or password
+projects-credential-save = Store login
+projects-credential-saving = Storing …
+projects-credential-saved = Stored { $name }
+projects-credential-hint = The secret goes to the keystore of this computer and is never shown again.

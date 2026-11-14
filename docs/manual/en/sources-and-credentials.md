@@ -58,6 +58,10 @@ codeskimr scan https://github.com/org/private-repo --credential work-github
 
 `--credential` only applies to Git sources; naming one for a folder is `PRJ-101`. Without `--credential` the credential helper of your system decides, as it does for `git` itself. **There is never a prompt on the terminal**, so a server or an MCP session cannot hang on a login question; if no login is available the scan fails with `SRC-401`.
 
+### In the browser
+
+On the project screen, the form "New project" has a field **Login**. "Store a new login" opens three fields (name, user name, token or password); the secret is a password field, goes to the keystore of the computer that runs the server and is emptied from the page at once. The new name is selected for the project you add next. Only names that a project already uses, or that you stored in this tab, are offered; the browser never reads a stored secret back. Logins from `credential login` (OAuth) are done on the command line.
+
 ### What CodeSkimr does with the secret
 
 - It is read from the keystore at the moment a request needs it, handed to the Git login and wiped from memory afterwards. Nothing is cached, logged or written to the database or the cache folder.

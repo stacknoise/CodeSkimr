@@ -62,3 +62,14 @@ projects-tools-no-level2 = Keine Sprache dieses Projekts hat schon Stufe 2.
 projects-tools-unchecked = Die Werkzeuge wurden noch nicht geprüft.
 projects-tools-check-again = Erneut prüfen
 projects-tools-checking = Prüfe …
+
+projects-credential-label = Zugangsdaten
+projects-credential-none = Keine (Git-Anmeldung des Systems)
+projects-credential-new = Neue Zugangsdaten speichern
+projects-credential-name = Name
+projects-credential-user = Benutzername
+projects-credential-secret = Token oder Passwort
+projects-credential-save = Zugangsdaten speichern
+projects-credential-saving = Speichere …
+projects-credential-saved = { $name } gespeichert
+projects-credential-hint = Das Geheimnis landet im Schlüsselspeicher dieses Rechners und wird nie wieder angezeigt.

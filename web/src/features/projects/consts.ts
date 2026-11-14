@@ -6,6 +6,12 @@ export const COMMAND = {
   tools: "projects.tools",
 } as const;
 
+/** Ids of the credential commands (crates/app/src/ui_commands/consts.rs). */
+export const CREDENTIAL_COMMAND = {
+  list: "credentials.list",
+  set: "credentials.set",
+} as const;
+
 /** What the check found out about one tool, as the server names it. */
 export const TOOL_STATE = {
   ready: "ready",
