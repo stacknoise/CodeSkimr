@@ -7,3 +7,13 @@
 (function_definition declarator: (function_declarator declarator: (identifier) @name)) @symbol.function
 (function_definition
   declarator: (pointer_declarator declarator: (function_declarator declarator: (identifier) @name))) @symbol.function
+; A function that returns a function pointer: `int (*getcb(void))(int)` (issue #66).
+(function_definition
+  declarator: (function_declarator
+    declarator: (parenthesized_declarator
+      (pointer_declarator declarator: (function_declarator declarator: (identifier) @name))))) @symbol.function
+(function_definition
+  declarator: (pointer_declarator
+    declarator: (function_declarator
+      declarator: (parenthesized_declarator
+        (pointer_declarator declarator: (function_declarator declarator: (identifier) @name)))))) @symbol.function

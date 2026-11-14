@@ -1,6 +1,8 @@
 # Abhängigkeitsgraph.
 
 graph-title = Abhängigkeiten
+graph-level-label = Ebene
+graph-mode-layers = Schichten
 graph-mode-namespaces = Namespaces
 graph-mode-type-focus = Typ-Fokus
 graph-depth-one = 1 Stufe
@@ -38,3 +40,11 @@ graph-no-edges = Zwischen den Schichten wurden noch keine Abhängigkeiten gefund
 graph-failed = Die Karte konnte nicht geladen werden.
 graph-fit-key = F
 graph-open-key = Enter
+graph-depth-label = Tiefe
+graph-depth-all = alle
+graph-depth-1 = 1 Stufe
+graph-depth-2 = 2 Stufen
+graph-selected-type = Typ
+graph-focus-here = Fokus auf diesen Typ
+graph-types-more = { $count } weitere Typen sind nicht gezeigt.
+graph-types-pick = Wähle im Explorer zuerst einen Typ.

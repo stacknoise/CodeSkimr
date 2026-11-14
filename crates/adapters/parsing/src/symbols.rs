@@ -13,7 +13,8 @@ use tree_sitter::{Node, QueryCapture, QueryCursor, StreamingIterator};
 
 use crate::captures::Capture;
 use crate::consts::{
-    BODY_FIELD, CALLABLE_KINDS, LINE_SEPARATOR, NO_EXTENSION, PATH_SEPARATOR, WORD_SEPARATOR,
+    BODY_FIELD, CALLABLE_KINDS, LINE_SEPARATOR, NO_EXTENSION, PATH_SEPARATOR, SIGNATURE_CUT,
+    WORD_SEPARATOR,
 };
 use crate::error::ParsingError;
 use crate::location::{span_between, span_of, text_of};
@@ -32,6 +33,8 @@ pub struct SymbolContext<'a> {
     pub path: &'a RelativePath,
     /// Source of ids.
     pub ids: &'a IdSequence,
+    /// Most characters a signature keeps; a longer one is cut and ends with a mark.
+    pub signature_limit: usize,
 }
 
 /// The symbols of a file and where they sit, so occurrences can be assigned to a symbol.
@@ -269,16 +272,23 @@ pub fn extract(ctx: &SymbolContext<'_>, root: Node<'_>) -> Result<SymbolTable, P
 impl Builder<'_, '_> {
     fn add_module(&mut self, root: Node<'_>) -> Result<(), ParsingError> {
         let path = Path::new(self.ctx.path.as_str());
-        let qualified = path
-            .with_extension(NO_EXTENSION)
-            .to_string_lossy()
-            .replace(PATH_SEPARATOR, &self.ctx.pack.separator);
+        let (qualified, prefix) = if self.ctx.pack.file_in_names {
+            let module = path
+                .with_extension(NO_EXTENSION)
+                .to_string_lossy()
+                .replace(PATH_SEPARATOR, &self.ctx.pack.separator);
+            (module.clone(), module)
+        } else {
+            // The name of the file is no part of the names inside it (ADR 0036): the module keeps
+            // the path with its extension, which no type can be called.
+            (path.to_string_lossy().into_owned(), String::new())
+        };
         let name = path
             .file_stem()
             .map(|stem| stem.to_string_lossy().into_owned())
             .unwrap_or_default();
         self.push(
-            qualified,
+            (qualified, prefix),
             NewSymbol {
                 kind: SymbolKind::Module,
                 name,
@@ -305,13 +315,22 @@ impl Builder<'_, '_> {
             .stack
             .last()
             .map_or_else(<&str>::default, |frame| frame.qualified.as_str());
-        let qualified = [prefix, ctx.pack.separator.as_str(), name.as_str()].concat();
+        let qualified = if prefix.is_empty() {
+            name.clone()
+        } else {
+            [prefix, ctx.pack.separator.as_str(), name.as_str()].concat()
+        };
         let parent = self.stack.last().map(|frame| frame.kind);
         let new = new_symbol(ctx, declaration, name, parent)?;
-        self.push(qualified, new)
+        self.push((qualified.clone(), qualified), new)
     }
 
-    fn push(&mut self, qualified: String, new: NewSymbol) -> Result<(), ParsingError> {
+    /// Adds a symbol with its qualified name and the prefix the names of its children start with.
+    fn push(
+        &mut self,
+        (qualified, prefix): (String, String),
+        new: NewSymbol,
+    ) -> Result<(), ParsingError> {
         let id = self.ctx.ids.symbol();
         let index = self.symbols.len();
         self.parents
@@ -321,7 +340,7 @@ impl Builder<'_, '_> {
             file: self.ctx.file,
             kind: new.kind,
             name: SymbolName::new(new.name)?,
-            qualified_name: QualifiedName::new(qualified.clone())?,
+            qualified_name: QualifiedName::new(qualified)?,
             parent: self.stack.last().map(|frame| frame.id),
             visibility: new.visibility,
             is_static: new.is_static,
@@ -337,7 +356,7 @@ impl Builder<'_, '_> {
             end: new.range.end,
             index,
             id,
-            qualified,
+            qualified: prefix,
         });
         self.ranges.push(new.range);
         Ok(())
@@ -374,7 +393,7 @@ fn new_symbol(
             || words
                 .iter()
                 .any(|word| pack.static_keywords.contains(*word)),
-        signature: signature_of(kind, declaration, ctx.source),
+        signature: signature_of(kind, declaration, ctx),
         doc: doc(ctx, &declaration.docs),
         has_body: has_body(pack, declaration.node),
     })
@@ -382,13 +401,25 @@ fn new_symbol(
 
 /// The signature text: the `@signature` capture of the pack. A constant without one gets its whole
 /// declaration, so that its value is visible (`find_constants`).
-fn signature_of(kind: SymbolKind, declaration: &Declaration<'_>, source: &str) -> Option<String> {
+fn signature_of(
+    kind: SymbolKind,
+    declaration: &Declaration<'_>,
+    ctx: &SymbolContext<'_>,
+) -> Option<String> {
     let node = match (declaration.signature, kind) {
         (Some(node), _) => node,
         (None, SymbolKind::Constant) => declaration.node,
         (None, _) => return None,
     };
-    Some(text_of(node, source).trim().to_owned())
+    let text = text_of(node, ctx.source).trim();
+    if text.chars().count() <= ctx.signature_limit {
+        return Some(text.to_owned());
+    }
+    let room = ctx
+        .signature_limit
+        .saturating_sub(SIGNATURE_CUT.chars().count());
+    let kept: String = text.chars().take(room).collect();
+    Some([kept.trim_end(), SIGNATURE_CUT].concat())
 }
 
 /// The kind of the declaration: a modifier can change it, and the parent can give it another one.

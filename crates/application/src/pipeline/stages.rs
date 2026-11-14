@@ -46,6 +46,8 @@ pub struct ScanRun {
     pub root: FolderPath,
     /// Checked out commit, if any.
     pub commit: Option<CommitHash>,
+    /// The naming rules of the packs, set by the discover stage (ADR 0036).
+    pub naming_rules: String,
 }
 
 /// Output of the discover stage.
@@ -147,6 +149,7 @@ impl Stage for FetchStage {
             snapshot: self.ids.snapshot(),
             root: fetched.root,
             commit: fetched.commit,
+            naming_rules: String::new(),
         })
         .inspect(|_| ctx.progress(1, 1))
     }
@@ -158,6 +161,23 @@ pub struct DiscoverStage {
     pub discovery: Arc<dyn FileDiscovery>,
     /// Source of the previous snapshot's files.
     pub projects: Arc<dyn ProjectRepository>,
+    /// Tells the naming rules of the packs.
+    pub analyzer: Arc<dyn FileAnalyzer>,
+}
+
+impl DiscoverStage {
+    /// The run with the naming rules of the packs. An incremental scan after other rules, or after
+    /// a snapshot without a record, is a full scan: the kept files would carry the old names.
+    fn with_naming(&self, mut run: ScanRun) -> Result<ScanRun, CodedError> {
+        run.naming_rules = self.analyzer.naming_rules();
+        if run.mode == ScanMode::Incremental {
+            let kept = self.projects.latest_naming_rules(run.project.id)?;
+            if kept.unwrap_or_default() != run.naming_rules {
+                run.mode = ScanMode::Full;
+            }
+        }
+        Ok(run)
+    }
 }
 
 impl Stage for DiscoverStage {
@@ -169,6 +189,7 @@ impl Stage for DiscoverStage {
     }
 
     fn run(&self, run: ScanRun, ctx: &StageContext<'_>) -> Result<Discovered, Interruption> {
+        let run = self.with_naming(run)?;
         let previous = self.projects.latest_files(run.project.id)?;
         let mut files = self
             .discovery
@@ -281,7 +302,7 @@ impl AnalyzeStage {
             first_id: self.ids.reserve(count_u64(due) * FILE_ID_BLOCK),
             stopped: AtomicBool::new(false),
         };
-        let workers = thread::available_parallelism().map_or(MIN_WORKERS, NonZeroUsize::get);
+        let workers = analyze_workers();
         let mut slots: Vec<Slot> = thread::scope(|scope| {
             let handles: Vec<_> = (0..workers.min(due.len().max(MIN_WORKERS)))
                 .map(|_| scope.spawn(|| self.work(run, due, &shared, ctx)))
@@ -452,16 +473,26 @@ pub struct PersistStage {
     pub clock: Arc<dyn Clock>,
 }
 
+/// Output of the persist stage.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Persisted {
+    /// The snapshot as stored.
+    pub snapshot: Snapshot,
+    /// Local folder with the files, which level 2 runs its indexers in.
+    pub root: FolderPath,
+}
+
 impl Stage for PersistStage {
     type Input = Measured;
-    type Output = Snapshot;
+    type Output = Persisted;
 
     fn kind(&self) -> StageKind {
         StageKind::Persist
     }
 
-    fn run(&self, input: Measured, ctx: &StageContext<'_>) -> Result<Snapshot, Interruption> {
+    fn run(&self, input: Measured, ctx: &StageContext<'_>) -> Result<Persisted, Interruption> {
         ctx.progress(0, 1);
+        let root = input.run.root.clone();
         let snapshot = Snapshot {
             id: input.run.snapshot,
             project: input.run.project.id,
@@ -482,9 +513,19 @@ impl Stage for PersistStage {
             metrics: input.metrics,
             fingerprints: input.fingerprints,
             removed: input.carried.removed,
+            naming_rules: input.run.naming_rules,
         };
         let stored = self.store.persist(data)?;
         ctx.progress(1, 1);
-        Ok(stored)
+        Ok(Persisted {
+            snapshot: stored,
+            root,
+        })
     }
+}
+
+/// How many threads the analyze stage uses: one per core the system offers, at least one.
+#[must_use]
+pub fn analyze_workers() -> usize {
+    thread::available_parallelism().map_or(MIN_WORKERS, NonZeroUsize::get)
 }

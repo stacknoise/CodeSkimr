@@ -1,11 +1,13 @@
 //! The event stream (blueprint 10.3): domain events as JSON text messages over a WebSocket.
 
+use std::sync::Arc;
 use std::sync::mpsc::RecvTimeoutError;
 use std::thread;
 use std::time::Duration;
 
+use axum::body::Bytes;
 use axum::extract::State;
-use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
+use axum::extract::ws::{CloseFrame, Message, WebSocket, WebSocketUpgrade, close_code};
 use axum::response::{IntoResponse, Response};
 use codeskimr_application::access;
 use codeskimr_application::events::{
@@ -15,11 +17,14 @@ use codeskimr_application::events::{
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::Permission;
 use serde::Serialize;
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
-use tokio::time::timeout;
+use tokio::sync::mpsc::{Receiver, Sender, channel};
+use tokio::sync::{OwnedSemaphorePermit, watch};
+use tokio::time::{Instant, timeout};
 
 use crate::consts::{
-    EVENT_POLL, EVENT_THREAD_NAME, MAX_SOCKET_MESSAGE_BYTES, REASON_CANCELLED, REASON_FAILED,
+    EVENT_BUFFER, EVENT_POLL, EVENT_THREAD_NAME, MAX_SOCKET_MESSAGE_BYTES, REASON_CANCELLED,
+    REASON_FAILED, SOCKET_CLOSE_REASON, SOCKET_IDLE_LIMIT, SOCKET_PING_INTERVAL,
+    SOCKET_SEND_TIMEOUT,
 };
 use crate::error::Failure;
 use crate::state::AppState;
@@ -39,6 +44,8 @@ pub enum WireEvent {
         done: u32,
         /// Units in total, zero if unknown.
         total: u32,
+        /// Milliseconds since the stage started.
+        elapsed_ms: u64,
     },
     /// A snapshot was written.
     SnapshotCreated {
@@ -75,11 +82,13 @@ impl From<&Event> for WireEvent {
                 stage,
                 done,
                 total,
+                elapsed_ms,
             }) => Self::ScanProgressed {
                 project: project.get(),
                 stage: stage.label(),
                 done: *done,
                 total: *total,
+                elapsed_ms: *elapsed_ms,
             },
             Event::SnapshotCreated(SnapshotCreated { snapshot }) => Self::SnapshotCreated {
                 project: snapshot.project.get(),
@@ -113,10 +122,11 @@ impl WireEvent {
     }
 }
 
-/// Starts carrying every event of `bus` into a channel of the async runtime. The thread ends when
-/// the receiving end is dropped.
-fn bridge(bus: &EventBus) -> Option<UnboundedReceiver<Event>> {
-    let (sender, receiver) = unbounded_channel();
+/// Starts carrying every event of `bus` into a bounded channel of the async runtime. The thread
+/// ends when the receiving end is dropped, or when the channel is full: a client that does not
+/// keep up loses its stream instead of making the server hold more and more events.
+fn bridge(bus: &EventBus) -> Option<Receiver<Event>> {
+    let (sender, receiver) = channel(EVENT_BUFFER);
     let subscription = bus.subscribe();
     thread::Builder::new()
         .name(EVENT_THREAD_NAME.to_owned())
@@ -125,10 +135,10 @@ fn bridge(bus: &EventBus) -> Option<UnboundedReceiver<Event>> {
         .map(|_| receiver)
 }
 
-fn forward(subscription: &Subscription, sender: &UnboundedSender<Event>) {
+fn forward(subscription: &Subscription, sender: &Sender<Event>) {
     loop {
         let gone = match subscription.recv_timeout(EVENT_POLL) {
-            Ok(event) => sender.send(event).is_err(),
+            Ok(event) => sender.try_send(event).is_err(),
             Err(RecvTimeoutError::Timeout) => sender.is_closed(),
             Err(RecvTimeoutError::Disconnected) => true,
         };
@@ -141,45 +151,142 @@ fn forward(subscription: &Subscription, sender: &UnboundedSender<Event>) {
 /// `GET /api/v1/events`: upgrades to a WebSocket that streams the events from now on.
 ///
 /// The `Origin` check of the guard has passed already. No token is read from the URL; the stream
-/// is read-only and needs the `read` permission only.
+/// is read-only and needs the `read` permission only. At most `MAX_EVENT_STREAMS` streams run at
+/// once; one more gets `API-502`.
 pub async fn stream(State(app): State<AppState>, upgrade: WebSocketUpgrade) -> Response {
     if let Err(error) = access::require(&app.principal, Permission::Read) {
         return Failure(error).into_response();
     }
+    let Ok(slot) = Arc::clone(&app.streams).try_acquire_owned() else {
+        return Failure::code(ErrorCode::ServerBusy).into_response();
+    };
+    let stop = app.stop.clone();
     let Some(events) = bridge(&app.events) else {
         return Failure::code(ErrorCode::UnexpectedInternalError).into_response();
     };
     upgrade
         .max_message_size(MAX_SOCKET_MESSAGE_BYTES)
-        .on_upgrade(move |socket| pump(socket, events))
+        .on_upgrade(move |socket| pump(socket, events, slot, stop))
 }
 
-/// Sends events until the client goes away or the bus ends. What the client sends is ignored.
+/// When the client was last heard and last pinged.
+struct Liveness {
+    heard: Instant,
+    pinged: Instant,
+}
+
+/// Sends events until the client goes away, falls too far behind or the bus ends. What the client
+/// sends is ignored, but an idle client is pinged and must answer.
 ///
 /// While no event comes, the socket is looked at every `EVENT_POLL`, so a client that left is
-/// noticed without waiting for the next event.
-async fn pump(mut socket: WebSocket, mut events: UnboundedReceiver<Event>) {
+/// noticed without waiting for the next event. The slot is given back when the stream ends.
+async fn pump(
+    mut socket: WebSocket,
+    mut events: Receiver<Event>,
+    slot: OwnedSemaphorePermit,
+    stop: watch::Receiver<()>,
+) {
+    let mut live = Liveness {
+        heard: Instant::now(),
+        pinged: Instant::now(),
+    };
     loop {
+        if stop.has_changed().unwrap_or(true) {
+            close(&mut socket, close_code::AWAY).await;
+            break;
+        }
         match timeout(EVENT_POLL, events.recv()).await {
             Ok(Some(event)) => {
                 let Ok(text) = serde_json::to_string(&WireEvent::from(&event)) else {
                     continue;
                 };
-                if socket.send(Message::Text(text.into())).await.is_err() {
-                    return;
+                if !send(&mut socket, Message::Text(text.into())).await {
+                    break;
                 }
             }
-            Ok(None) => return,
-            Err(_) if client_left(&mut socket).await => return,
+            Ok(None) => {
+                close(&mut socket, close_code::AGAIN).await;
+                break;
+            }
+            Err(_) if !keep_alive(&mut socket, &mut live).await => break,
             Err(_) => {}
         }
     }
+    drop(slot);
 }
 
-/// Whether the client closed the socket or it failed. Looks once and does not wait.
-async fn client_left(socket: &mut WebSocket) -> bool {
+/// Ends the stream with a close frame of `code`.
+async fn close(socket: &mut WebSocket, code: u16) {
+    let frame = CloseFrame {
+        code,
+        reason: SOCKET_CLOSE_REASON.into(),
+    };
+    send(socket, Message::Close(Some(frame))).await;
+}
+
+/// Sends `message`; false if the client failed or took longer than `SOCKET_SEND_TIMEOUT`.
+async fn send(socket: &mut WebSocket, message: Message) -> bool {
+    matches!(
+        timeout(SOCKET_SEND_TIMEOUT, socket.send(message)).await,
+        Ok(Ok(()))
+    )
+}
+
+/// Looks at the socket once without waiting and pings it when it has been quiet. False if the
+/// client left, failed or has not been heard for `SOCKET_IDLE_LIMIT`.
+async fn keep_alive(socket: &mut WebSocket, live: &mut Liveness) -> bool {
     match timeout(Duration::ZERO, socket.recv()).await {
-        Ok(None | Some(Err(_) | Ok(Message::Close(_)))) => true,
-        Ok(Some(Ok(_))) | Err(_) => false,
+        Ok(None | Some(Err(_) | Ok(Message::Close(_)))) => return false,
+        Ok(Some(Ok(_))) => live.heard = Instant::now(),
+        Err(_) => {}
+    }
+    if live.heard.elapsed() > SOCKET_IDLE_LIMIT {
+        return false;
+    }
+    if live.pinged.elapsed() < SOCKET_PING_INTERVAL {
+        return true;
+    }
+    live.pinged = Instant::now();
+    send(socket, Message::Ping(Bytes::new())).await
+}
+
+#[cfg(test)]
+mod tests {
+    use codeskimr_domain::ProjectId;
+
+    use super::*;
+
+    fn changed(id: u64) -> Event {
+        Event::FilesChanged(FilesChanged {
+            project: ProjectId::new(id),
+            files: 1,
+            rescan: false,
+        })
+    }
+
+    #[tokio::test]
+    async fn a_client_that_does_not_read_loses_its_stream_after_the_buffer_is_full() {
+        let bus = EventBus::new();
+        let mut events = bridge(&bus).unwrap();
+        for id in 0..2 * EVENT_BUFFER as u64 {
+            bus.publish(&changed(id));
+        }
+        while events.len() < EVENT_BUFFER {
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        // The forwarding thread meets the full buffer with the next event and ends.
+        tokio::time::sleep(EVENT_POLL).await;
+        let mut received = 0_usize;
+        while timeout(Duration::from_secs(5), events.recv())
+            .await
+            .unwrap()
+            .is_some()
+        {
+            received += 1;
+        }
+        assert_eq!(
+            received, EVENT_BUFFER,
+            "the buffer holds no more than its size"
+        );
     }
 }

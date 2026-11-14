@@ -360,11 +360,12 @@ fn mcp_answers_from_the_scanned_project() {
     );
     let result = &answer["result"];
     assert_ne!(result["isError"], true, "{result}");
-    assert_eq!(result["structuredContent"]["hits"][0]["name"], "Calculator");
-    let hit = result["structuredContent"]["hits"][0]["qualified_name"]
-        .as_str()
-        .unwrap();
-    assert!(hit.ends_with("Calculator"));
+    let hits = result["structuredContent"]["hits"].as_array().unwrap();
+    // The file `Calculator.cs` and the class in it are both found; the names of C# do not start
+    // with the file (ADR 0036).
+    let class = hits.iter().find(|hit| hit["kind"] == "class").unwrap();
+    assert_eq!(class["name"], "Calculator");
+    assert_eq!(class["qualified_name"], "Demo.Core.Calculator");
 }
 
 #[test]
@@ -406,6 +407,10 @@ fn mcp_for_a_folder_that_was_never_scanned_fails_with_prj_201() {
     assert_eq!(output.status.code(), Some(1));
     assert!(stderr(&output).contains("PRJ-201"));
     assert_eq!(output.stdout, Vec::<u8>::new());
+    assert!(
+        !workspace.root.path().join("data").exists(),
+        "looking for a project must not create the data folder"
+    );
 }
 
 #[test]
@@ -442,7 +447,10 @@ struct WatchSession {
 #[cfg(test)]
 impl WatchSession {
     fn start(workspace: &Workspace) -> Self {
-        let mut command = workspace.command();
+        Self::start_with(workspace, workspace.command())
+    }
+
+    fn start_with(workspace: &Workspace, mut command: Command) -> Self {
         command
             .args(["scan", "--watch", "--json"])
             .arg(workspace.project());
@@ -479,6 +487,26 @@ fn watch_scans_again_when_a_file_is_added() {
     let second = session.next_summary();
     assert_eq!(second["files"], 2);
     assert!(second["snapshot"].as_u64() > first["snapshot"].as_u64());
+}
+
+#[test]
+fn watch_ignores_a_data_folder_inside_the_watched_folder() {
+    let workspace = Workspace::new();
+    let mut command = workspace.command();
+    command.env(
+        "CODESKIMR_DATA_DIR",
+        workspace.project().join(".codeskimr-data"),
+    );
+    let session = WatchSession::start_with(&workspace, command);
+    assert_eq!(session.next_summary()["files"], 1);
+    // Every scan writes the database; if that counted as a change, the next scan would follow.
+    assert!(
+        session
+            .summaries
+            .recv_timeout(Duration::from_secs(4))
+            .is_err(),
+        "the database of the scan started another scan"
+    );
 }
 
 #[test]
@@ -874,4 +902,46 @@ fn the_export_holds_no_secret_from_a_method_body_and_no_path() {
             ("stderr", stderr(&output)),
         ],
     );
+}
+
+#[test]
+fn level2_cannot_be_confirmed_without_a_terminal_and_a_scan_then_skips_it() {
+    let workspace = Workspace::new();
+    json_of(&workspace.scan(&[]));
+    let confirm = workspace
+        .command()
+        .args(["level2", "confirm"])
+        .arg(workspace.project())
+        .output()
+        .unwrap();
+    assert!(!confirm.status.success());
+    assert!(stderr(&confirm).contains("SEC-403"), "{}", stderr(&confirm));
+    let summary = json_of(&workspace.scan(&[]));
+    let lines = summary["level2"].as_array().unwrap();
+    assert_ne!(lines.len(), 0);
+    assert!(
+        lines
+            .iter()
+            .all(|line| line["reason"] == "not_confirmed" && line["files"] == 0)
+    );
+}
+
+#[test]
+fn level2_can_be_revoked_without_a_terminal_and_an_unknown_project_is_refused() {
+    let workspace = Workspace::new();
+    json_of(&workspace.scan(&[]));
+    let revoke = workspace
+        .command()
+        .args(["level2", "revoke"])
+        .arg(workspace.project())
+        .output()
+        .unwrap();
+    assert!(revoke.status.success(), "{}", stderr(&revoke));
+    assert!(String::from_utf8_lossy(&revoke.stdout).contains("forbidden again"));
+    let unknown = workspace
+        .command()
+        .args(["level2", "revoke", "999"])
+        .output()
+        .unwrap();
+    assert!(stderr(&unknown).contains("PRJ-201"), "{}", stderr(&unknown));
 }

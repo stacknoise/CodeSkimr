@@ -27,6 +27,7 @@ pub struct TreeSitterAnalyzer {
     packs: LanguagePacks,
     parse_timeout: Duration,
     fingerprinting: Option<FingerprintSettings>,
+    signature_limit: usize,
 }
 
 impl TreeSitterAnalyzer {
@@ -38,7 +39,16 @@ impl TreeSitterAnalyzer {
             packs,
             parse_timeout,
             fingerprinting: None,
+            signature_limit: usize::MAX,
         }
+    }
+
+    /// Limits the signature of a symbol to `chars` characters (`scan.max_signature_chars`); a
+    /// longer one is cut and ends with a mark. Without it signatures keep their full length.
+    #[must_use]
+    pub fn with_signature_limit(mut self, chars: u32) -> Self {
+        self.signature_limit = usize::try_from(chars).unwrap_or(usize::MAX);
+        self
     }
 
     /// Turns on syntax fingerprints for callables, as configured in the `[similarity]` section.
@@ -67,6 +77,7 @@ impl TreeSitterAnalyzer {
             file,
             path: &request.file.path,
             ids: request.ids,
+            signature_limit: self.signature_limit,
         };
         let table = symbols::extract(&ctx, root)?;
         let pending = references::extract(&ctx, root, &table)?;
@@ -95,6 +106,10 @@ impl TreeSitterAnalyzer {
 impl FileAnalyzer for TreeSitterAnalyzer {
     fn analyze(&self, request: &AnalyzeRequest<'_>) -> Result<FileFacts, CodedError> {
         self.run(request).map_err(CodedError::caused_by)
+    }
+
+    fn naming_rules(&self) -> String {
+        self.packs.naming_rules()
     }
 }
 

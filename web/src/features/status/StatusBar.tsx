@@ -1,7 +1,9 @@
 import { createEffect, createMemo, For, Match, onCleanup, Show, Switch } from "solid-js";
 import { currentLanguage, isLanguage, setLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { lastQueryMs } from "../../shared/api/timings";
 import { KIND } from "../../shared/session/consts";
+import { activeProject } from "../../shared/project/active";
 import { sessionState } from "../../shared/session/session";
 import { cx } from "../../shared/ui/cx";
 import { LANGUAGES } from "../../shared/i18n/consts";
@@ -42,11 +44,32 @@ function Counts() {
   );
 }
 
+/** The size of the reference index of the open project: the references of its newest scan. */
+function ReferenceIndex() {
+  const references = createMemo(
+    () => projects().find((project) => project.id === activeProject())?.scan?.references ?? null,
+  );
+  return (
+    <Show when={references()}>
+      {(count) => (
+        <span>
+          {t(I18N_KEYS.APP_STATUS_REFERENCES, {
+            count: new Intl.NumberFormat(currentLanguage()).format(count()),
+          })}
+        </span>
+      )}
+    </Show>
+  );
+}
+
 function Measurements() {
   return (
     <>
       <Show when={statusInfo()?.startup_ms ?? null}>
         {(ms) => <span>{t(I18N_KEYS.APP_STARTUP_TIME, { ms: ms() })}</span>}
+      </Show>
+      <Show when={lastQueryMs() !== null}>
+        <span>{t(I18N_KEYS.APP_QUERY_TIME, { ms: Math.round(lastQueryMs() ?? 0) })}</span>
       </Show>
       <Show when={statusInfo()?.memory_mb ?? null}>
         {(mb) => <span>{t(I18N_KEYS.APP_MEMORY_USAGE, { mb: mb() })}</span>}
@@ -94,6 +117,7 @@ export function StatusBar() {
     <footer class={styles.status}>
       <Connection />
       <Counts />
+      <ReferenceIndex />
       <Measurements />
       <LanguageSwitch />
     </footer>

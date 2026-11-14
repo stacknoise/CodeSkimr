@@ -274,6 +274,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600"
 
 [[package]]
+name = "cfg_aliases"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f079e83a288787bcd14a6aea84cee5c87a67c5a3e660c30f557a3d24761b3527"
+
+[[package]]
 name = "chacha20"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -369,15 +375,17 @@ dependencies = [
 
 [[package]]
 name = "codeskimr"
-version = "0.1.0"
+version = "0.9.0-preview.1"
 dependencies = [
  "codeskimr_application",
  "codeskimr_cli",
  "codeskimr_codes",
  "codeskimr_domain",
  "codeskimr_i18n",
+ "codeskimr_indexer",
  "codeskimr_mcp",
  "codeskimr_parsing",
+ "codeskimr_scip",
  "codeskimr_secrets",
  "codeskimr_server",
  "codeskimr_source",
@@ -398,7 +406,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_application"
-version = "0.1.0"
+version = "0.9.0-preview.1"
 dependencies = [
  "codeskimr_codes",
  "codeskimr_domain",
@@ -411,7 +419,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_bench"
-version = "0.1.0"
+version = "0.9.0-preview.1"
 dependencies = [
  "codeskimr_domain",
  "criterion",
@@ -423,11 +431,12 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_cli"
-version = "0.1.0"
+version = "0.9.0-preview.1"
 dependencies = [
  "clap",
  "codeskimr_application",
  "codeskimr_codes",
+ "codeskimr_domain",
  "codeskimr_i18n",
  "serde",
  "serde_json",
@@ -436,7 +445,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_codegen"
-version = "0.1.0"
+version = "0.9.0-preview.1"
 dependencies = [
  "serde",
  "toml",
@@ -444,21 +453,21 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_codes"
-version = "0.1.0"
+version = "0.9.0-preview.1"
 dependencies = [
  "codeskimr_codegen",
 ]
 
 [[package]]
 name = "codeskimr_domain"
-version = "0.1.0"
+version = "0.9.0-preview.1"
 dependencies = [
  "codeskimr_codes",
 ]
 
 [[package]]
 name = "codeskimr_i18n"
-version = "0.1.0"
+version = "0.9.0-preview.1"
 dependencies = [
  "codeskimr_codegen",
  "codeskimr_codes",
@@ -469,8 +478,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "codeskimr_indexer"
+version = "0.9.0-preview.1"
+dependencies = [
+ "codeskimr_application",
+ "codeskimr_codes",
+ "codeskimr_domain",
+ "process-wrap",
+ "sysinfo",
+ "tempfile",
+ "thiserror",
+ "tracing",
+]
+
+[[package]]
 name = "codeskimr_mcp"
-version = "0.1.0"
+version = "0.9.0-preview.1"
 dependencies = [
  "codeskimr_application",
  "codeskimr_codes",
@@ -484,13 +507,14 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_parsing"
-version = "0.1.0"
+version = "0.9.0-preview.1"
 dependencies = [
  "codeskimr_application",
  "codeskimr_codes",
  "codeskimr_domain",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror",
  "toml",
  "tree-sitter",
@@ -509,8 +533,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "codeskimr_scip"
+version = "0.9.0-preview.1"
+dependencies = [
+ "codeskimr_application",
+ "codeskimr_codes",
+ "codeskimr_domain",
+ "tempfile",
+ "thiserror",
+]
+
+[[package]]
 name = "codeskimr_secrets"
-version = "0.1.0"
+version = "0.9.0-preview.1"
 dependencies = [
  "apple-native-keyring-store",
  "codeskimr_application",
@@ -529,7 +564,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_server"
-version = "0.1.0"
+version = "0.9.0-preview.1"
 dependencies = [
  "axum",
  "blake3",
@@ -537,6 +572,8 @@ dependencies = [
  "codeskimr_codes",
  "codeskimr_domain",
  "getrandom 0.4.3",
+ "hyper",
+ "hyper-util",
  "secrecy",
  "serde",
  "serde_json",
@@ -549,7 +586,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_source"
-version = "0.1.0"
+version = "0.9.0-preview.1"
 dependencies = [
  "blake3",
  "codeskimr_application",
@@ -560,13 +597,15 @@ dependencies = [
  "ignore",
  "notify",
  "secrecy",
+ "serde_json",
  "tempfile",
  "thiserror",
+ "toml",
 ]
 
 [[package]]
 name = "codeskimr_storage"
-version = "0.1.0"
+version = "0.9.0-preview.1"
 dependencies = [
  "codeskimr_application",
  "codeskimr_codes",
@@ -2808,6 +2847,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "nix"
+version = "0.31.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf20d2fde8ff38632c426f1165ed7436270b44f199fc55284c38276f9db47c3d"
+dependencies = [
+ "bitflags 2.13.2",
+ "cfg-if",
+ "cfg_aliases",
+ "libc",
+]
+
+[[package]]
 name = "nonempty"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2839,6 +2890,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0a437a9308232ce794b1e7fdf540d38ea37efc3c73492640c13b4c8568b8f108"
 dependencies = [
  "bitflags 2.13.2",
+]
+
+[[package]]
+name = "ntapi"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c3b335231dfd352ffb0f8017f3b6027a4917f7df785ea2143d8af2adc66980ae"
+dependencies = [
+ "winapi",
 ]
 
 [[package]]
@@ -2927,6 +2987,16 @@ name = "objc2-core-services"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "583300ad934cba24ff5292aee751ecc070f7ca6b39a574cc21b7b5e588e06a0b"
+dependencies = [
+ "libc",
+ "objc2-core-foundation",
+]
+
+[[package]]
+name = "objc2-io-kit"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "33fafba39597d6dc1fb709123dfa8289d39406734be322956a69f0931c73bb15"
 dependencies = [
  "libc",
  "objc2-core-foundation",
@@ -3084,6 +3154,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "985e7ec9bb745e6ce6535b544d84d6cd6f7ad8bd711c398938ae983b91a766d9"
 dependencies = [
  "unicode-ident",
+]
+
+[[package]]
+name = "process-wrap"
+version = "10.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1f21b97672d2dc848e7b25701ab4535618b92f4861c13cc3f7f7bed52ad3c8da"
+dependencies = [
+ "indexmap",
+ "nix",
+ "windows",
 ]
 
 [[package]]
@@ -3747,6 +3828,20 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.10",
+]
+
+[[package]]
+name = "sysinfo"
+version = "0.40.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a86bac2f7d06e6384984118ad727f5694110f0ec44d924d05c8fdec3d030bee6"
+dependencies = [
+ "libc",
+ "memchr",
+ "ntapi",
+ "objc2-core-foundation",
+ "objc2-io-kit",
+ "windows",
 ]
 
 [[package]]
@@ -4430,6 +4525,27 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "712e227841d057c1ee1cd2fb22fa7e5a5461ae8e48fa2ca79ec42cfc1931183f"
 
 [[package]]
+name = "windows"
+version = "0.62.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "527fadee13e0c05939a6a05d5bd6eec6cd2e3dbd648b9f8e447c6518133d8580"
+dependencies = [
+ "windows-collections",
+ "windows-core",
+ "windows-future",
+ "windows-numerics",
+]
+
+[[package]]
+name = "windows-collections"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23b2d95af1a8a14a3c7367e1ed4fc9c20e0a26e79551b1454d72583c97cc6610"
+dependencies = [
+ "windows-core",
+]
+
+[[package]]
 name = "windows-core"
 version = "0.62.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4440,6 +4556,17 @@ dependencies = [
  "windows-link",
  "windows-result",
  "windows-strings",
+]
+
+[[package]]
+name = "windows-future"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e1d6f90251fe18a279739e78025bd6ddc52a7e22f921070ccdc67dde84c605cb"
+dependencies = [
+ "windows-core",
+ "windows-link",
+ "windows-threading",
 ]
 
 [[package]]
@@ -4481,6 +4608,16 @@ dependencies = [
  "regex",
  "windows-sys 0.61.2",
  "zeroize",
+]
+
+[[package]]
+name = "windows-numerics"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6e2e40844ac143cdb44aead537bbf727de9b044e107a0f1220392177d15b0f26"
+dependencies = [
+ "windows-core",
+ "windows-link",
 ]
 
 [[package]]
@@ -4533,6 +4670,15 @@ dependencies = [
  "windows_x86_64_gnu",
  "windows_x86_64_gnullvm",
  "windows_x86_64_msvc",
+]
+
+[[package]]
+name = "windows-threading"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3949bd5b99cafdf1c7ca86b43ca564028dfe27d66958f2470940f73d86d75b37"
+dependencies = [
+ "windows-link",
 ]
 
 [[package]]

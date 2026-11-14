@@ -1,0 +1,46 @@
+# Inputs of the reference tools that are not part of the scanned sources (tools/accuracy/measure.py).
+# They only let the reference compiler resolve every name of the corpus project; none of them is
+# read by CodeSkimr. Every download is pinned by a SHA-256 and checked before use.
+
+[java]
+# Compile-time dependencies of the corpus project (its pom.xml lists them), fetched once into
+# target/accuracy-cache.
+dependencies = [
+    { url = "https://repo1.maven.org/maven2/com/google/errorprone/error_prone_annotations/2.51.0/error_prone_annotations-2.51.0.jar", sha256 = "51a6d8348c7e307e47183859c07597dc8a2899c5d1b6f18a471bccaa3203d5cf" },
+]
+# Sources that Maven generates from templates; the corpus skips the template folder, the compiler needs the result.
+template_dir = "gson/src/main/java-templates"
+template_values = { "${project.version}" = "0" }
+
+[rust_scip]
+# `rust-analyzer --version` of the SCIP index that `measure.py rust --scip` maps (level 2, by hand:
+# `rust-analyzer scip <checkout of corpus/rust/corpus.toml> --output index.scip`). Another version only warns.
+rust_analyzer = "rust-analyzer 1.97.0 (2d8144b 2026-07-07)"
+
+[typescript_scip]
+# `scip-typescript --version` of the SCIP index that `measure.py typescript --scip` maps (level 2, by hand: in a copy of the
+# checkout of corpus/typescript/corpus.toml with `npm ci`, `scip-typescript index --output index.scip --infer-tsconfig`).
+# `--version` prints the bare number. `typescript` and `node` (major) are the reference service and runtime of the numbers.
+scip_typescript = "0.6.2"
+typescript = "5.6.3"
+node = "22"
+
+[python_scip]
+# `scip-python --version` of the SCIP index that `measure.py python --scip` maps (level 2, by hand: in the checkout of
+# corpus/python/corpus.toml, in a clean virtual environment: `scip-python index --project-version 0 --output index.scip`,
+# the call of languages/python/language.toml after PR #251; `--version` prints the bare number). `jedi` is the reference.
+scip_python = "0.6.8"
+jedi = "0.20.1"
+
+[java_scip]
+# `scip-java --version` of the SCIP index that `measure.py java --scip` maps (level 2, by hand: in a copy of the
+# checkout of corpus/java/corpus.toml, with `failOnWarning` of the root pom.xml set to false (the JDK warns about
+# `release 8`), `scip-java index --output index.scip -- -pl gson clean compile`). The reference is javac (TruthJava).
+scip_java = "0.12.3"
+
+[csharp_scip]
+# `scip-dotnet --version` of the SCIP index that `measure.py csharp --scip` maps (level 2, by hand: in a copy of the
+# checkout of corpus/csharp/corpus.toml with `TargetFrameworks` of both projects set to `net8.0` (the container has
+# the .NET 8 SDK, the projects ask for net10.0 and net11.0), `scip-dotnet index --working-directory . --output index.scip`).
+# `--version` prints the number and the commit; the pin is the whole line. The reference is Roslyn (TruthCSharp).
+scip_dotnet = "0.2.16+fadd98aebb1ede2c55801636360c002679b54112"

@@ -79,17 +79,32 @@ impl SqliteStore {
         self.write(|tx| save(tx, project)).map_err(CodedError::from)
     }
 
-    /// The id for the next project to register: one above the highest registered id.
+    /// The project registered for `source`, or a new one with the next free id, in one
+    /// transaction: two processes that register at the same time never get the same id.
     ///
     /// # Errors
     /// A coded `STO` failure.
-    pub fn next_project_id(&self) -> Result<ProjectId, CodedError> {
-        self.read(|conn| {
-            let highest: Option<i64> = conn.query_row(sql::MAX_PROJECT_ID, [], |row| row.get(0))?;
+    pub fn register_project(
+        &self,
+        name: ProjectName,
+        source: ProjectSource,
+    ) -> Result<Project, CodedError> {
+        self.write(|tx| {
+            if let Some(known) = project_of_source(tx, &source)? {
+                return load_project(tx, ProjectId::new(id_from(known)?));
+            }
+            let highest: Option<i64> = tx.query_row(sql::MAX_PROJECT_ID, [], |row| row.get(0))?;
             let next = highest.map_or(Ok(FIRST_PROJECT_ID), |id| {
                 id_from(id).map(|id| id.saturating_add(ID_STEP))
             })?;
-            Ok(ProjectId::new(next))
+            let project = Project {
+                id: ProjectId::new(next),
+                name,
+                source,
+                layers: Vec::new(),
+            };
+            save(tx, &project)?;
+            Ok(project)
         })
         .map_err(CodedError::from)
     }
@@ -113,6 +128,18 @@ impl SqliteStore {
         })
         .map_err(CodedError::from)
     }
+}
+
+/// The raw id of the project registered for `source`.
+fn project_of_source(conn: &Connection, source: &ProjectSource) -> StorageResult<Option<i64>> {
+    let columns = SourceColumns::of(source);
+    Ok(conn
+        .query_row(
+            sql::PROJECT_BY_SOURCE,
+            params![columns.kind, columns.location, columns.branch],
+            |row| row.get(0),
+        )
+        .optional()?)
 }
 
 fn save(conn: &Connection, project: &Project) -> StorageResult<()> {
@@ -280,5 +307,19 @@ impl ProjectRepository for SqliteStore {
     fn latest_index(&self, id: ProjectId) -> Result<PreviousIndex, CodedError> {
         self.read(|conn| load_latest_index(conn, id))
             .map_err(CodedError::from)
+    }
+
+    fn latest_naming_rules(&self, id: ProjectId) -> Result<Option<String>, CodedError> {
+        self.read(|conn| {
+            conn.query_row(
+                sql::SNAPSHOT_NAMING_LATEST,
+                params![column_int(id.get())?],
+                |row| row.get::<_, Option<String>>(0),
+            )
+            .optional()
+            .map(Option::flatten)
+            .map_err(StorageError::from)
+        })
+        .map_err(CodedError::from)
     }
 }

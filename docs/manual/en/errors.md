@@ -32,6 +32,7 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | `PRJ-101` | the source is no existing folder and no valid Git address, or the address contains secrets or the folder is relative | give an absolute path; take secrets out of the address ([Sources and credentials](sources-and-credentials.md)) |
 | `PRJ-201` | no such project | add and scan it first |
 | `PRJ-302` | a scan of this project is already running | wait for it |
+| `PRJ-303` | the scan was cancelled, no new snapshot exists | start it again if needed |
 | `SRC-201` | the source folder or a file does not exist or cannot be read | check the path and rights |
 | `SRC-401`, `SEC-*` | login to a Git remote or the keystore failed | see [Sources and credentials](sources-and-credentials.md#problems) |
 | `NET-601` | the browser sign-in of `credential login` did not finish | run it again |
@@ -40,6 +41,9 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | `PRS-201` | no language pack for a file type | the files of that type are not analysed; install the pack |
 | `PRS-501` | a file took too long to parse | raise `scan.parse_timeout_ms` if the file is legitimate |
 | `CFG-101`, `CFG-102`, `CFG-103` | invalid value, unreadable file, unknown key in the configuration | correct the setting named in the message |
+| `RES-*` | level 2 (indexers): tool missing or too old (`RES-201`), index too large, timeout, output or memory limit (`RES-501` to `RES-504`), indexer failed (`RES-601`), index corrupt (`RES-101`), too few occurrences map (`RES-302`); level 1 stays in every case | see [Language indexers](indexers.md#errors) |
+| `SEC-301`, `SEC-403` | level 2 is not enabled and confirmed, or the caller may not confirm it | enable it and run `codeskimr level2 confirm <project>` in a terminal |
+| `PRJ-303` | not an error: you cancelled the scan | start it again |
 | `API-301` | the port is taken | `--set server.port=…` |
 | `API-401` | the installation token is missing or wrong | use `codeskimr open` for the browser |
 | `API-402` | `Host` or `Origin` is not this server | open the UI at `http://127.0.0.1:<port>` or `localhost` |
@@ -49,6 +53,7 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | `MCP-202` | symbol not found | take the id from `search_symbols` |
 | `MCP-203` | the project has no snapshot | scan it |
 | `MCP-501` | not an error: the result was cut to the limit | ask for less, or raise `limit` |
+| `EXP-201`, `EXP-601` | the export page is missing, or the export file cannot be written | see [HTML export](export.md#errors) |
 | `STO-501` | disk full | free space |
 | `CLI-101` | invalid command-line arguments | see `codeskimr --help` |
 | `*-901` | an unexpected internal error | report it with the code |

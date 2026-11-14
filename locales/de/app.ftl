@@ -10,6 +10,7 @@ app-watching = Beobachtung aktiv
 app-sample-data = Beispieldaten
 app-language = Sprache
 app-startup-time = Start { $ms } ms
+app-query-time = Abfrage { $ms } ms
 app-memory-usage = RAM { $mb } MB
 app-status-projects = { $count ->
     [one] { $count } Projekt
@@ -19,6 +20,7 @@ app-status-types = { $count ->
     [one] { $count } Typ
    *[other] { $count } Typen
 }
+app-status-references = Referenz-Index { $count }
 app-action-cancel = Abbrechen
 app-action-open-in-editor = Im Editor öffnen
 app-action-open-in-explorer = Im Explorer öffnen

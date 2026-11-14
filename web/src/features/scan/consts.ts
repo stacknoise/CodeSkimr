@@ -53,6 +53,10 @@ export const BUDGET_ROWS = [
   { key: "incremental_rescan", name: I18N_KEYS.SCAN_BUDGET_INCREMENTAL },
 ] as const;
 
+/** The command that cancels a running scan, and the key that triggers it. */
+export const CANCEL_COMMAND = "projects.cancel";
+export const CANCEL_KEY = "Escape";
+
 /** The route of the event stream. */
 export const EVENTS_PATH = "/api/v1/events";
 /** Schemes of the stream for a page loaded over `http:` and over `https:`. */
@@ -105,3 +109,12 @@ export const STATE_ATTRIBUTE = "data-state";
 
 /** Index of a run that is not in the list. */
 export const NOT_FOUND = -1;
+
+/** The budget that is defined for a project of a given size, and that size in lines of code. */
+export const FULL_SCAN_BUDGET = "full_scan_100k_loc";
+export const FULL_SCAN_LOC = 100_000;
+
+/** Joins branch and commit in the header of the screen, and how many characters of the commit
+ * are shown. */
+export const BRANCH_COMMIT_JOIN = " @ ";
+export const SHORT_COMMIT_LENGTH = 7;

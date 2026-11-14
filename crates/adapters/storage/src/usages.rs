@@ -9,10 +9,12 @@ use std::sync::{Arc, PoisonError};
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    DependencyEdge, DependencyPage, DependencyQuery, ImpactPage, SymbolLabel, UsageIndex, UsagePage,
+    DependencyEdge, DependencyPage, DependencyQuery, ImpactPage, SymbolLabel, TypeFocus,
+    UsageIndex, UsagePage,
 };
 use codeskimr_domain::{
-    Direction, QualifiedName, ReferenceKind, RelativePath, SnapshotId, SymbolId, UsageQuery,
+    Direction, NamespaceGraph, QualifiedName, ReferenceKind, RelativePath, SnapshotId, SymbolId,
+    UsageQuery,
 };
 use rusqlite::{Connection, params};
 
@@ -26,7 +28,7 @@ impl SqliteStore {
     /// The reverse index of a snapshot, built on first use. A snapshot that is not stored (never
     /// existed, or pruned by the retention) has an empty index that is not kept; like the other
     /// queries, usages of such a snapshot are empty.
-    fn lookup(&self, snapshot: SnapshotId) -> StorageResult<Arc<SnapshotLookup>> {
+    pub(crate) fn lookup(&self, snapshot: SnapshotId) -> StorageResult<Arc<SnapshotLookup>> {
         let raw = column_int(snapshot.get())?;
         let stored: i64 = self.read(|conn| {
             Ok(conn.query_row(sql::SNAPSHOT_EXISTS, params![raw], |row| row.get(0))?)
@@ -143,6 +145,35 @@ fn dependency_edges(
         });
     }
     Ok(edges)
+}
+
+impl SqliteStore {
+    /// The namespaces of a snapshot and the references between them. A snapshot that is not
+    /// stored has none.
+    ///
+    /// # Errors
+    /// A coded `STO` failure.
+    pub fn namespace_graph(&self, snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError> {
+        self.lookup(snapshot)
+            .map(|found| found.namespaces.clone())
+            .map_err(CodedError::from)
+    }
+}
+
+impl SqliteStore {
+    /// The types around one type of a snapshot; `None` if the symbol is not a type of it.
+    ///
+    /// # Errors
+    /// A coded `STO` failure.
+    pub fn type_focus(
+        &self,
+        snapshot: SnapshotId,
+        symbol: SymbolId,
+    ) -> Result<Option<TypeFocus>, CodedError> {
+        self.lookup(snapshot)
+            .and_then(|found| found.type_focus(symbol))
+            .map_err(CodedError::from)
+    }
 }
 
 impl UsageIndex for SqliteStore {

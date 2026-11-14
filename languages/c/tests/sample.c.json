@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 19,
+      "loc": 25,
       "operands": null,
       "operators": null,
       "symbol": "sample"
@@ -53,9 +53,35 @@
         0
       ],
       "symbol": "sample.main"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample.getcb"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample.getname"
     }
   ],
-  "loc": 19,
+  "loc": 25,
   "references": [
     {
       "at": "24:11",
@@ -72,7 +98,7 @@
       "name": "sample",
       "parent": null,
       "signature": null,
-      "span": "0:0-26:0",
+      "span": "0:0-34:0",
       "static": false,
       "visibility": null
     },
@@ -133,6 +159,26 @@
       "parent": "sample",
       "signature": null,
       "span": "23:0-25:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "sample.getcb",
+      "parent": "sample",
+      "signature": null,
+      "span": "27:0-29:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "sample.getname",
+      "parent": "sample",
+      "signature": null,
+      "span": "31:0-33:1",
       "static": false,
       "visibility": null
     }

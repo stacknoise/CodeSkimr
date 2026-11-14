@@ -2,7 +2,7 @@
 
 ## Stand der Auslieferung
 
-Installationsprogramme und einzelne ausführbare Dateien für Windows, Linux und macOS gehören zum Release 1.0 (Meilenstein M7) und sind noch nicht veröffentlicht. Bis dahin bauen Sie CodeSkimr aus dem Quelltext. Dieses Kapitel beschreibt diesen Weg; mit 1.0 wird es durch die Anleitung für den Installer ersetzt.
+Installationsprogramme und einzelne ausführbare Dateien für Windows, Linux und macOS gehören zum Release 1.0 (Meilenstein M7) und sind noch nicht veröffentlicht. Als Vorabversion gibt es fertige Pakete für Windows und Linux (siehe Release-Seite im Repository, `LIES-MICH.md` im Paket). Sonst bauen Sie CodeSkimr aus dem Quelltext. Dieses Kapitel beschreibt diesen Weg; mit 1.0 wird es durch die Anleitung für den Installer ersetzt.
 
 ## Was Sie brauchen
 
@@ -16,11 +16,11 @@ Installationsprogramme und einzelne ausführbare Dateien für Windows, Linux und
 ```
 git clone https://github.com/stacknoise/CodeSkimr
 cd CodeSkimr
-cargo build --release --locked
 cd web && npm ci && npm run build && cd ..
+cargo build --release --locked
 ```
 
-Das Programm liegt in `target/release/codeskimr` (`codeskimr.exe` unter Windows). Die gebaute Oberfläche liegt in `web/dist`. Die Sprachpakete werden aus dem Ordner `languages/` gelesen, zuerst neben dem Programm, dann im aktuellen Ordner (die Option `--languages` oder `CODESKIMR_LANGUAGES_DIR` nennt einen anderen Ordner). Sie ins Programm einzubetten, kommt mit dem Release-Paket.
+Das Programm liegt in `target/release/codeskimr` (`codeskimr.exe` unter Windows). Die gebaute Oberfläche liegt in `web/dist` und wird beim Bauen ins Programm eingebettet, darum kommt `web/` zuerst. Node.js 22 (`.node-version`). Die Sprachpakete werden aus dem Ordner `languages/` gelesen, zuerst neben dem Programm, dann im aktuellen Ordner (die Option `--languages` oder `CODESKIMR_LANGUAGES_DIR` nennt einen anderen Ordner). Sie ins Programm einzubetten, kommt mit dem Release-Paket.
 
 ## Erster Start
 

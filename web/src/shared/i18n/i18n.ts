@@ -93,3 +93,9 @@ export function t(key: MessageKey, args?: Record<string, FluentVariable>): strin
 export function errorText(code: ErrorCode): string {
   return lookup(ERROR_CODES[code].messageKey) ?? code;
 }
+
+/** The text of a message whose key is not known at build time, such as the key a language pack
+ * names for a tool; the key itself if there is no text. */
+export function textOf(key: string): string {
+  return lookup(key) ?? key;
+}

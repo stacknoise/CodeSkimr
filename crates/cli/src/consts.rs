@@ -25,6 +25,15 @@ pub const VALUE_EXPORT_PROJECT: &str = "PROJECT";
 /// Argument id and long flag of the HTML file of `export`.
 pub const ARG_HTML: &str = "html";
 
+/// Sub-command that allows or forbids level 2 for a project.
+pub const COMMAND_LEVEL2: &str = "level2";
+/// Sub-command of `level2` that allows the indexers.
+pub const COMMAND_LEVEL2_CONFIRM: &str = "confirm";
+/// Sub-command of `level2` that forbids them.
+pub const COMMAND_LEVEL2_REVOKE: &str = "revoke";
+/// Argument id of the project of `level2`.
+pub const ARG_LEVEL2_PROJECT: &str = "level2-project";
+
 /// Sub-command that manages credentials for Git sources.
 pub const COMMAND_CREDENTIAL: &str = "credential";
 /// Sub-command of `credential` that stores a credential.
@@ -112,6 +121,18 @@ pub const SECONDS_BASE: f64 = 10.0;
 
 /// Names of the Fluent arguments of the messages.
 pub mod arg {
+    /// `{ $place }`: the folder or Git address of a project.
+    pub const PLACE: &str = "place";
+    /// `{ $branch }`: the Git branch of a project.
+    pub const BRANCH: &str = "branch";
+    /// `{ $project }`: the project a message is about.
+    pub const PROJECT: &str = "project";
+    /// `{ $language }`: name of a language.
+    pub const LANGUAGE: &str = "language";
+    /// `{ $stale }`: files that changed since the scan.
+    pub const STALE: &str = "stale";
+    /// `{ $reason }`: why level 2 was skipped.
+    pub const REASON: &str = "reason";
     /// `{ $code }`: the error code id.
     pub const CODE: &str = "code";
     /// `{ $message }`: the user-facing text of an error.
@@ -158,12 +179,30 @@ pub mod arg {
     pub const CODES: &str = "codes";
     /// `{ $kilobytes }`: size of an export file.
     pub const KILOBYTES: &str = "kilobytes";
+    /// `{ $tool }`: name of a tool the project needs.
+    pub const TOOL: &str = "tool";
+    /// `{ $languages }`: the languages that need the tool, separated by `LIST_SEPARATOR`.
+    pub const LANGUAGES: &str = "languages";
+    /// `{ $found }`: the version of the tool that is installed.
+    pub const FOUND: &str = "found";
+    /// `{ $required }`: the version the project requires.
+    pub const REQUIRED: &str = "required";
+    /// `{ $purpose }`: what the tool is needed for.
+    pub const PURPOSE: &str = "purpose";
+    /// `{ $install }`: how to install the tool.
+    pub const INSTALL: &str = "install";
     /// `{ $seconds }` in the launch message is the same name as the scan duration.
     pub const LAUNCH_SECONDS: &str = SECONDS;
 }
 
 /// Separates the lines of a multi-line message.
 pub const LINE_BREAK: &str = "\n";
+
+/// Separates the languages in the line of a tool.
+pub const LIST_SEPARATOR: &str = ", ";
+
+/// Stands in for a version that is not known.
+pub const NO_VERSION: &str = "?";
 
 /// Separates the codes in a list of codes.
 pub const CODE_LIST_SEPARATOR: &str = ", ";

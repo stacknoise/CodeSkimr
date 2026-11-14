@@ -52,7 +52,7 @@ pub fn run(
 }
 
 /// A number names a project by its id; anything else is the source it was scanned from.
-fn resolve(argument: &str, store: &SqliteStore) -> Result<u64, CodedError> {
+pub(crate) fn resolve(argument: &str, store: &SqliteStore) -> Result<u64, CodedError> {
     if let Ok(id) = argument.parse::<u64>() {
         return Ok(id);
     }

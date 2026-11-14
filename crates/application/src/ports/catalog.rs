@@ -1,6 +1,6 @@
 //! The overview of all registered projects (adapter: `codeskimr_storage`), for the project list.
 
-use codeskimr_domain::{LanguageId, Project, Snapshot};
+use codeskimr_domain::{LanguageId, Project, ProjectId, Snapshot};
 
 use crate::error::CodedError;
 
@@ -13,6 +13,8 @@ pub struct LanguageShare {
     pub files: u32,
     /// Lines of code of its files.
     pub loc: u32,
+    /// Number of symbols declared in its files.
+    pub symbols: u32,
 }
 
 /// A project with what its newest snapshot says about it.
@@ -35,4 +37,11 @@ pub trait ProjectCatalog: Send + Sync {
     /// # Errors
     /// A coded failure of the `STO` group.
     fn overviews(&self) -> Result<Vec<ProjectOverview>, CodedError>;
+
+    /// The languages of the newest snapshot of one project, the one with the most lines first;
+    /// empty before the first scan.
+    ///
+    /// # Errors
+    /// `PRJ-201` if the project does not exist, otherwise a coded failure of the `STO` group.
+    fn languages(&self, project: ProjectId) -> Result<Vec<LanguageShare>, CodedError>;
 }

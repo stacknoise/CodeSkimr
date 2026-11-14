@@ -2,9 +2,12 @@ import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { describe, expect, it } from "vitest";
 import { currentLanguage, setLanguage } from "../../shared/i18n/i18n";
 import { SESSION_PATH } from "../../shared/api/consts";
+import { recordTime, resetTimings } from "../../shared/api/timings";
+import { openProject } from "../../shared/project/active";
 import { startSession } from "../../shared/session/session";
 import { answer, serve, useServerSession } from "../../tests/commands";
 import type { ProjectRow } from "../projects/types";
+import { refreshProjects } from "../projects/projects";
 import { StatusBar } from "./StatusBar";
 
 const PROJECT: ProjectRow = {
@@ -43,6 +46,16 @@ describe("StatusBar", () => {
     expect(screen.getByText(/Connected/)).toBeInTheDocument();
   });
 
+  it("shows the round trip of the last query once there was one", async () => {
+    setLanguage("en");
+    resetTimings();
+    await served({ startup_ms: 180, memory_mb: 41 });
+    expect(screen.queryByText(/^Query /)).toBeNull();
+    recordTime("search_keystroke", 3.6);
+    expect(await screen.findByText("Query 4 ms")).toBeInTheDocument();
+    resetTimings();
+  });
+
   it("leaves out what the system does not tell", async () => {
     setLanguage("en");
     await served({ startup_ms: null, memory_mb: null });
@@ -61,5 +74,20 @@ describe("StatusBar", () => {
     expect(await screen.findByText("2 Projekte · 1.220 Typen")).toBeInTheDocument();
     expect(screen.getByRole("group", { name: "Sprache" })).toBeInTheDocument();
     setLanguage("en");
+  });
+
+  it("shows the size of the reference index of the open project", async () => {
+    setLanguage("en");
+    const scan = { snapshot: 1, created: 0, mode: "full", files: 3, symbols: 9, references: 48210 };
+    serve({
+      [SESSION_PATH]: () => answer({}),
+      "status.info": () => answer({ startup_ms: 180, memory_mb: 41 }),
+      "projects.list": () => answer([{ ...PROJECT, scan }]),
+    });
+    await startSession();
+    openProject(1);
+    await refreshProjects();
+    render(() => <StatusBar />);
+    expect(await screen.findByText("Reference index 48,210")).toBeInTheDocument();
   });
 });

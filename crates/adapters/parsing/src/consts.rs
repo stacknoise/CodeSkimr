@@ -48,6 +48,8 @@ pub const RECEIVER_CAPTURE: &str = "receiver";
 pub const RECEIVER_TYPE_CAPTURE: &str = "receiver.type";
 /// Capture of a receiver that is the enclosing object itself.
 pub const RECEIVER_OWN_CAPTURE: &str = "receiver.own";
+/// Capture of a receiver that is a member named behind `this.`: a field or property, never a local.
+pub const RECEIVER_MEMBER_CAPTURE: &str = "receiver.member";
 /// Capture of a receiver that is the base of the enclosing object.
 pub const RECEIVER_BASE_CAPTURE: &str = "receiver.base";
 /// Capture of any other receiver; the syntax says nothing more about it.
@@ -113,6 +115,8 @@ pub const GRAMMAR_PHP: &str = "php";
 
 /// Start of the reason when the `id` of a pack differs from its folder name.
 pub const ID_MISMATCH: &str = "id differs from the folder name: ";
+/// Reason of an invalid pack whose `[[tools]]` entry is wrong; the entry follows.
+pub const TOOL_INVALID: &str = "invalid tool: ";
 
 /// Replacement extension that removes the extension of a path.
 pub const NO_EXTENSION: &str = "";
@@ -126,3 +130,37 @@ pub const CALLABLE_KINDS: [SymbolKind; 3] = [
 
 /// Reason of the error when the thread that loads a pack panics.
 pub const LOAD_PANICKED: &str = "loading the pack panicked";
+
+/// Label of the full tier, as the language table shows it.
+pub const TIER_FULL: &str = "full";
+/// Label of the basic tier.
+pub const TIER_BASIC: &str = "basic";
+
+/// Reason: the program of an `[indexer]` is empty or a path.
+pub const INDEXER_BAD_PROGRAM: &str = "indexer program must be a bare name: ";
+/// Reason: a version of an `[indexer]` cannot be read.
+pub const INDEXER_BAD_VERSION: &str = "indexer version cannot be read: ";
+/// Reason: an argument of an `[indexer]` holds a placeholder that does not exist.
+pub const INDEXER_UNKNOWN_PLACEHOLDER: &str = "indexer argument has an unknown placeholder: ";
+/// Reason: no argument of an `[indexer]` names the index file.
+pub const INDEXER_NO_OUTPUT: &str = "indexer args must contain {output}";
+/// Opens a placeholder in an indexer argument.
+pub const PLACEHOLDER_OPEN: char = '{';
+/// Closes a placeholder in an indexer argument.
+pub const PLACEHOLDER_CLOSE: char = '}';
+/// Characters that make a program name a path.
+pub const PATH_SEPARATORS: [char; 2] = ['/', '\\'];
+/// Nothing: what a placeholder is replaced with when the rest of an argument is checked.
+pub const NOTHING: &str = "";
+
+/// Between a language and its rule in the text of the naming rules.
+pub const NAMING_RULE_SEPARATOR: &str = "=";
+/// Between the rules of two languages in the text of the naming rules.
+pub const NAMING_RULES_SEPARATOR: &str = ";";
+/// Rule of a pack whose qualified names start with the file.
+pub const NAMING_FILE_IN_NAMES: &str = "file";
+/// Rule of a pack whose qualified names start with its own namespaces (ADR 0036).
+pub const NAMING_NAMESPACED: &str = "namespace";
+
+/// Ends a signature that was cut at `scan.max_signature_chars`.
+pub const SIGNATURE_CUT: &str = "…";

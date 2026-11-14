@@ -1,0 +1,26 @@
+[package]
+name = "codeskimr_import_scip"
+description = "Measuring tool: maps a SCIP index onto a scanned database with the public codeskimr_scip library, without the consent flow."
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+license = "MIT"
+publish = false
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
+
+[dependencies]
+codeskimr_application = { path = "../../../crates/application" }
+codeskimr_domain = { path = "../../../crates/domain" }
+codeskimr_scip = { path = "../../../crates/adapters/scip" }
+codeskimr_storage = { path = "../../../crates/adapters/storage" }
+codeskimr_source = { path = "../../../crates/adapters/source" }
+
+# A workspace of its own: a measuring tool outside the product workspace (it combines two adapters, which
+# the layer rules of the product crates do not allow). Build it with
+# `cargo build --release --manifest-path tools/accuracy/import_scip/Cargo.toml`.
+[workspace]

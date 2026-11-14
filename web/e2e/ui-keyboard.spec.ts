@@ -41,9 +41,9 @@ async function openExplorer(page: Page, harness: Harness, name: string): Promise
 }
 
 /** Opens the layer and the namespace, so the two types are rows. */
-async function openNamespace(page: Page, name: string): Promise<void> {
+async function openNamespace(page: Page): Promise<void> {
   await item(page, /\(no layer\)/).click();
-  await item(page, new RegExp(`${name}\\.Kbd`)).click();
+  await item(page, /Kbd/).click();
 }
 
 test.describe("the explorer tree (15.4)", () => {
@@ -65,7 +65,7 @@ test.describe("the explorer tree (15.4)", () => {
     harness,
   }) => {
     await openExplorer(page, harness, "kbdclick");
-    await openNamespace(page, "kbdclick");
+    await openNamespace(page);
     const ledger = item(page, /Ledger/);
     const report = item(page, /Report/);
 
@@ -115,9 +115,14 @@ test.describe("the explorer tree (15.4)", () => {
     const root = tree(page);
     const layer = item(page, /\(no layer\)/);
     await expect(layer).toBeVisible();
-    await root.focus();
-    await page.keyboard.press("ArrowDown");
-    await expect(root).toHaveAttribute("aria-activedescendant", /.+/);
+    // Reading the tree again resets the cursor and the rows (loadOutline), and a key that falls
+    // into that window is lost (issue #225). The collapsed tree has one row, so pressing the
+    // key again is harmless; the later steps start only once the cursor is set.
+    await expect(async () => {
+      await root.focus();
+      await page.keyboard.press("ArrowDown");
+      await expect(root).toHaveAttribute("aria-activedescendant", /.+/, { timeout: 1_000 });
+    }).toPass();
     await page.keyboard.press("ArrowRight");
     await expect(layer).toHaveAttribute("aria-expanded", "true");
     await page.keyboard.press("ArrowLeft");
@@ -146,7 +151,7 @@ test.describe("the explorer tree (15.4)", () => {
     harness,
   }) => {
     await openExplorer(page, harness, "kbdreveal");
-    await openNamespace(page, "kbdreveal");
+    await openNamespace(page);
     await item(page, /Ledger/).click();
     await expect(page.getByRole("heading", { name: "Ledger" })).toBeVisible();
 
@@ -160,9 +165,30 @@ test.describe("the explorer tree (15.4)", () => {
     await expect(item(page, /Ledger/)).toHaveAttribute("aria-selected", "true");
   });
 
+  test("Alt+Down and Alt+Up step through the members, Alt+click on a name opens its usages", async ({
+    page,
+    harness,
+  }) => {
+    await openExplorer(page, harness, "kbdmembers");
+    await openNamespace(page);
+    await item(page, /Report/).click();
+    const source = page.getByRole("region", { name: "Source" });
+    await expect(source).toContainText("public class Report");
+
+    await page.keyboard.press("Alt+ArrowDown");
+    await expect(source).toContainText("public int Show(Ledger ledger)");
+    await page.keyboard.press("Alt+ArrowDown");
+    await expect(source).toContainText("public int Show(Ledger ledger)");
+    await page.keyboard.press("Alt+ArrowUp");
+    await expect(source).toContainText("public int Show(Ledger ledger)");
+
+    await source.locator("[data-symbol]", { hasText: "Add" }).click({ modifiers: ["Alt"] });
+    await expect(page.getByRole("region", { name: "Usage graph" })).toBeVisible();
+  });
+
   test("hotkeys do not fire while text is typed in a field", async ({ page, harness }) => {
     await openExplorer(page, harness, "kbdtyping");
-    await openNamespace(page, "kbdtyping");
+    await openNamespace(page);
     await item(page, /Ledger/).click();
     const filter = page.getByRole("textbox", { name: "Filter tree" });
     await filter.focus();

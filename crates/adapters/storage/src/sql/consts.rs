@@ -46,6 +46,13 @@ pub const LATEST_SNAPSHOT_ID: &str = "SELECT MAX(id) FROM snapshots WHERE projec
 pub const LATEST_SNAPSHOT: &str = "SELECT id, commit_hash, created, mode, files, \
     symbols, refs FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT 1";
 
+/// The project a snapshot belongs to: snapshot id.
+pub const SNAPSHOT_PROJECT: &str = "SELECT project_id FROM snapshots WHERE id = ?1";
+/// The snapshots that hold a file: file id.
+pub const SNAPSHOTS_WITH_FILE: &str = "SELECT DISTINCT snapshot_id FROM files WHERE id = ?1";
+/// Removes the references that stand in a file: file id.
+pub const REFERENCES_OF_FILE_DELETE: &str = "DELETE FROM symbol_references WHERE file_id = ?1";
+
 /// Adds a snapshot header: id, project, commit, created, mode, files, symbols, references.
 pub const SNAPSHOT_INSERT: &str = "INSERT INTO snapshots \
     (id, project_id, commit_hash, created, mode, files, symbols, refs) \
@@ -71,6 +78,13 @@ pub const SNAPSHOT_CONTENT_DELETE: &[&str] = &[
     "DELETE FROM usage_counts WHERE snapshot_id = ?1",
     "DELETE FROM layer_graph WHERE snapshot_id = ?1",
     "DELETE FROM files WHERE snapshot_id = ?1",
+];
+/// The read models of a snapshot, emptied before they are built again: snapshot.
+pub const READ_MODELS_DELETE: &[&str] = &[
+    "DELETE FROM type_summary WHERE snapshot_id = ?1",
+    "DELETE FROM search_index WHERE snapshot_id = ?1",
+    "DELETE FROM usage_counts WHERE snapshot_id = ?1",
+    "DELETE FROM layer_graph WHERE snapshot_id = ?1",
 ];
 /// The shared rows only the snapshot ?1 contains, children before parents. They belong to the
 /// files that no other snapshot has: the references standing in such a file or pointing into one,
@@ -192,6 +206,14 @@ pub const SEARCH: &str = "SELECT i.symbol_id, i.name, i.qualified_name, i.kind, 
     ORDER BY CASE WHEN i.name_lower = ?3 THEN 0 WHEN i.name_lower LIKE ?4 ESCAPE '\\' THEN 1 \
     WHEN instr(i.name_lower, ?5) > 0 THEN 2 ELSE 3 END, length(i.name_lower), i.name_lower \
     LIMIT ?6";
+/// Fuzzy search over file paths: snapshot, subsequence pattern, substring text, limit. Only files
+/// that declare a type count; the first type is the one with the lowest id.
+pub const SEARCH_FILES: &str = "SELECT f.path, f.loc, MIN(t.symbol_id) FROM files f \
+    JOIN symbol_rows s ON s.file_id = f.id \
+    JOIN type_summary t ON t.snapshot_id = f.snapshot_id AND t.symbol_id = s.id \
+    WHERE f.snapshot_id = ?1 AND lower(f.path) LIKE ?2 ESCAPE '\\' GROUP BY f.id \
+    ORDER BY CASE WHEN instr(lower(f.path), ?3) > 0 THEN 0 ELSE 1 END, length(f.path), f.path \
+    LIMIT ?4";
 /// Layer graph of a snapshot: snapshot.
 pub const EDGES: &str = "SELECT from_layer, to_layer, edge_count, violates_layering, in_cycle \
     FROM layer_graph WHERE snapshot_id = ?1 ORDER BY from_layer, to_layer";
@@ -215,6 +237,12 @@ pub const DEPENDENCIES_INCOMING: &str = "WITH RECURSIVE scope(id) AS (SELECT ?2 
     WHERE r.snapshot_id = ?1 AND r.to_symbol IN (SELECT id FROM scope) \
     AND r.from_symbol NOT IN (SELECT id FROM scope) AND (?3 OR r.kind <> ?4) \
     GROUP BY t.id ORDER BY COUNT(*) DESC, t.qualified_name, t.id";
+/// The one-line references of a file in a range of lines: snapshot, path, first line, last line.
+pub const SPANS_IN_LINES: &str = "SELECT r.to_symbol, r.start_line, r.start_column, r.end_line, \
+    r.end_column FROM snapshot_references r \
+    JOIN files f ON f.snapshot_id = r.snapshot_id AND f.id = r.file_id \
+    WHERE r.snapshot_id = ?1 AND f.path = ?2 AND r.start_line >= ?3 AND r.start_line <= ?4 \
+    AND r.end_line = r.start_line ORDER BY r.start_line, r.start_column, r.id";
 /// Summary of one type: snapshot, symbol.
 pub const TYPE_SUMMARY: &str = "SELECT member_count, loc, max_complexity, maintainability \
     FROM type_summary WHERE snapshot_id = ?1 AND symbol_id = ?2";
@@ -228,6 +256,9 @@ pub const SYMBOL_SELECT: &str = "SELECT s.id, s.file_id, s.kind, s.name, s.quali
     WHERE s.snapshot_id = ?1 AND ";
 /// Condition of `SYMBOL_SELECT`: symbol id.
 pub const SYMBOL_BY_ID: &str = "s.id = ?2";
+/// The other symbols of a snapshot with the same qualified name: snapshot id, name, own id.
+pub const SYMBOL_SAME_NAME_COUNT: &str = "SELECT COUNT(*) FROM symbols \
+    WHERE snapshot_id = ?1 AND qualified_name = ?2 AND id <> ?3";
 /// Condition of `SYMBOL_SELECT`: qualified name; the lowest id wins.
 pub const SYMBOL_BY_NAME: &str = "s.qualified_name = ?2 ORDER BY s.id LIMIT 1";
 /// Condition of `SYMBOL_SELECT`: every symbol of the snapshot, in id order.
@@ -256,6 +287,9 @@ pub const PROJECT_IDS: &str = "SELECT id FROM projects ORDER BY id";
 /// Languages of a snapshot with files and lines of code, most lines first: snapshot.
 pub const LANGUAGE_SHARES: &str = "SELECT language, COUNT(*), COALESCE(SUM(loc), 0) FROM files \
     WHERE snapshot_id = ?1 GROUP BY language ORDER BY SUM(loc) DESC, language";
+/// Symbols of a snapshot by the language of their file, in one pass over the symbols: snapshot.
+pub const LANGUAGE_SYMBOLS: &str = "SELECT f.language, COUNT(*) FROM symbol_rows s \
+    JOIN files f ON s.file_id = f.id WHERE f.snapshot_id = ?1 GROUP BY f.language";
 /// Number of types of a snapshot: snapshot.
 pub const TYPE_COUNT: &str = "SELECT COUNT(*) FROM type_summary WHERE snapshot_id = ?1";
 
@@ -271,3 +305,39 @@ pub const MEMBER_ROWS: &str = "SELECT s.id, s.name, s.kind, s.visibility, s.sign
     COALESCE((SELECT u.usages FROM usage_counts u WHERE u.snapshot_id = s.snapshot_id \
         AND u.symbol_id = s.id), 0) \
     FROM symbols s WHERE s.snapshot_id = ?1 AND s.parent_id = ?2 ORDER BY s.start_line, s.start_column, s.id";
+
+/// The consent of a project: project id; yields enabled and confirmed, where confirmed holds only
+/// while the project still has the source it had at the confirmation.
+pub const CONSENT_BY_PROJECT: &str = "SELECT c.enabled, \
+    c.confirmed AND c.source_kind = p.source_kind AND c.location = p.location AND c.branch = p.branch \
+    FROM level2_consent c JOIN projects p ON p.id = c.project_id WHERE c.project_id = ?1";
+/// Replaces the consent of a project and binds it to the current source: project id, enabled,
+/// confirmed. Inserts nothing for a project that does not exist.
+pub const CONSENT_UPSERT: &str = "INSERT INTO level2_consent \
+    (project_id, enabled, confirmed, source_kind, location, branch) \
+    SELECT id, ?2, ?3, source_kind, location, branch FROM projects WHERE id = ?1 \
+    ON CONFLICT (project_id) DO UPDATE SET enabled = excluded.enabled, \
+    confirmed = excluded.confirmed, source_kind = excluded.source_kind, \
+    location = excluded.location, branch = excluded.branch";
+/// Removes the report of a project (its findings go with it): project id.
+pub const TOOL_REPORT_DELETE: &str = "DELETE FROM tool_reports WHERE project_id = ?1";
+/// Adds the report header: project id, time of the check.
+pub const TOOL_REPORT_INSERT: &str =
+    "INSERT INTO tool_reports (project_id, checked_at) VALUES (?1, ?2)";
+/// Adds one finding: project id, position, language, tool, role, state, found, required, purpose
+/// key, install key.
+pub const TOOL_FINDING_INSERT: &str = "INSERT INTO tool_findings \
+    (project_id, position, language, tool, role, state, found, required, purpose_key, install_key) \
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)";
+/// The time of the report of a project: project id.
+pub const TOOL_REPORT_TIME: &str = "SELECT checked_at FROM tool_reports WHERE project_id = ?1";
+/// The findings of a project in order: project id.
+pub const TOOL_FINDINGS: &str = "SELECT language, tool, role, state, found, required, purpose_key, \
+    install_key FROM tool_findings WHERE project_id = ?1 ORDER BY position";
+
+/// Records the naming rules of the packs a snapshot was scanned with.
+pub const SNAPSHOT_NAMING_SET: &str = "UPDATE snapshots SET naming_rules = ?1 WHERE id = ?2";
+/// The naming rules of the newest snapshot of a project; no row without a snapshot, `NULL` for one
+/// from before the record existed.
+pub const SNAPSHOT_NAMING_LATEST: &str =
+    "SELECT naming_rules FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT 1";

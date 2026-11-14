@@ -88,10 +88,16 @@ export const KEY = {
   space: " ",
   reveal: ".",
   usages: "u",
+  graph: "g",
 } as const;
 /** One row down and up. */
 export const STEP_DOWN = 1;
 export const STEP_UP = -1;
+/** `Alt+Down` and `Alt+Up` step to the next and previous member of the source. */
+export const MEMBER_STEP: Readonly<Record<string, number>> = {
+  [KEY.down]: STEP_DOWN,
+  [KEY.up]: STEP_UP,
+};
 export const NOT_FOUND = -1;
 
 /** What a row of the tree is. */

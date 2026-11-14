@@ -2,6 +2,10 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 
 /** Id of the command of the screen (crates/app/src/ui_commands/consts.rs). */
 export const USAGES_COMMAND = "usages.query";
+/** Command that reads the code line of each hit; it needs the right to read source. */
+export const USAGES_CODE_COMMAND = "usages.code";
+/** Separates the parts of a qualified name: `.` and `::`. */
+export const NAME_SEPARATOR = /[.:]+/;
 
 /** The directions of the toolbar, named as the command names them. */
 export const WAY = { both: "both", incoming: "incoming", outgoing: "outgoing" } as const;
@@ -40,6 +44,9 @@ export const REF_LABEL: Record<string, (typeof I18N_KEYS)[keyof typeof I18N_KEYS
   import: I18N_KEYS.USAGES_REF_IMPORT,
   test: I18N_KEYS.USAGES_REF_TEST,
 };
+
+/** The first step away from the focus. */
+export const FIRST_LEVEL = 1;
 
 /** How the graph is drawn, in pixels (mock 6: four columns of 236 wide cards). */
 export const GRAPH = {
@@ -81,6 +88,8 @@ export const KEY = { next: "F8", open: "Enter" } as const;
 /** Directions of the hit list. */
 export const STEP_NEXT = 1;
 export const STEP_PREVIOUS = -1;
+/** `indexOf` found nothing. */
+export const NOT_FOUND = -1;
 /** No hit is selected. */
 export const NO_HIT = -1;
 

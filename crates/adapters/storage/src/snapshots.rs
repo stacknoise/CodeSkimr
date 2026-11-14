@@ -1,16 +1,17 @@
 //! The `SnapshotStore` port: one snapshot written atomically, with its read models.
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{SnapshotData, SnapshotStore};
+use codeskimr_application::ports::{ReferenceReplacement, SnapshotData, SnapshotStore};
 use codeskimr_domain::{
-    CommitHash, Metric, ProjectId, Reference, RelativePath, ScanMode, Snapshot, SnapshotId,
-    SnapshotStats, SourceFile, Symbol, Timestamp, Visibility,
+    CommitHash, Metric, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile,
+    Symbol, Visibility,
 };
-use rusqlite::{Connection, OptionalExtension, Statement, params};
+use rusqlite::{Connection, Statement, params};
 
-use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from, small_from};
+use crate::codec::{SpanColumns, column_int};
 use crate::consts::{PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON};
 use crate::error::{StorageError, StorageResult};
+use crate::headers::{insert_reference, set_totals, totals};
 use crate::integrity;
 use crate::projects::load_layers;
 use crate::read_models;
@@ -21,6 +22,14 @@ use crate::store::SqliteStore;
 impl SnapshotStore for SqliteStore {
     fn persist(&self, data: SnapshotData) -> Result<Snapshot, CodedError> {
         self.write(|tx| write_snapshot(tx, &data, self.retention().get()))
+            .map_err(CodedError::from)
+    }
+
+    fn replace_references(
+        &self,
+        replacement: ReferenceReplacement,
+    ) -> Result<Snapshot, CodedError> {
+        self.write(|tx| crate::replace::replace_references(tx, &replacement))
             .map_err(CodedError::from)
     }
 }
@@ -34,6 +43,10 @@ fn write_snapshot(conn: &Connection, data: &SnapshotData, keep: u32) -> StorageR
     }
     conn.pragma_update(None, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON)?;
     insert_header(conn, header)?;
+    conn.execute(
+        sql::SNAPSHOT_NAMING_SET,
+        params![data.naming_rules, column_int(header.id.get())?],
+    )?;
     insert_facts(conn, data)?;
     if header.mode == ScanMode::Incremental {
         carry_over(conn, header.project, header.id, &data.removed)?;
@@ -142,29 +155,6 @@ fn insert_symbol(conn: &Connection, symbol: &Symbol) -> StorageResult<()> {
     Ok(())
 }
 
-fn insert_reference(
-    statement: &mut Statement<'_>,
-    snapshot: i64,
-    reference: &Reference,
-) -> StorageResult<()> {
-    let span = SpanColumns::of(&reference.span);
-    statement.execute(params![
-        column_int(reference.id.get())?,
-        snapshot,
-        column_int(reference.from.get())?,
-        column_int(reference.to.get())?,
-        column_int(reference.file.get())?,
-        span.start_line,
-        span.start_column,
-        span.end_line,
-        span.end_column,
-        reference.kind.label(),
-        reference.confidence.label(),
-        reference.verified,
-    ])?;
-    Ok(())
-}
-
 fn insert_metric(statement: &mut Statement<'_>, metric: &Metric) -> StorageResult<()> {
     statement.execute(params![
         column_int(metric.symbol.get())?,
@@ -197,71 +187,4 @@ fn carry_over(
     }
     // Symbols, metrics, references and fingerprints are shared and need no copy (ADR 0032).
     Ok(())
-}
-
-fn totals(conn: &Connection, snapshot: SnapshotId) -> StorageResult<SnapshotStats> {
-    let (files, symbols, references): (i64, i64, i64) =
-        conn.query_row(sql::TOTALS, params![column_int(snapshot.get())?], |row| {
-            let cols = Cols::new(row);
-            Ok((cols.take()?, cols.take()?, cols.take()?))
-        })?;
-    Ok(SnapshotStats {
-        files: small_from(files)?,
-        symbols: small_from(symbols)?,
-        references: small_from(references)?,
-    })
-}
-
-fn set_totals(conn: &Connection, snapshot: SnapshotId, stats: SnapshotStats) -> StorageResult<()> {
-    conn.execute(
-        sql::SNAPSHOT_TOTALS,
-        params![
-            column_int(snapshot.get())?,
-            i64::from(stats.files),
-            i64::from(stats.symbols),
-            i64::from(stats.references),
-        ],
-    )?;
-    Ok(())
-}
-
-/// The newest snapshot of a project, if it has one.
-pub fn latest_snapshot(conn: &Connection, project: ProjectId) -> StorageResult<Option<Snapshot>> {
-    let row = conn
-        .query_row(
-            sql::LATEST_SNAPSHOT,
-            params![column_int(project.get())?],
-            |row| {
-                let cols = Cols::new(row);
-                Ok((
-                    cols.take::<i64>()?,
-                    cols.take::<Option<String>>()?,
-                    cols.take::<i64>()?,
-                    cols.take::<String>()?,
-                    (
-                        cols.take::<i64>()?,
-                        cols.take::<i64>()?,
-                        cols.take::<i64>()?,
-                    ),
-                ))
-            },
-        )
-        .optional()?;
-    row.map(
-        |(id, commit, created, mode, (files, symbols, references))| {
-            Ok(Snapshot {
-                id: SnapshotId::new(id_from(id)?),
-                project,
-                commit: commit.map(CommitHash::new).transpose()?,
-                created: Timestamp(created),
-                mode: label_from(&mode)?,
-                stats: SnapshotStats {
-                    files: small_from(files)?,
-                    symbols: small_from(symbols)?,
-                    references: small_from(references)?,
-                },
-            })
-        },
-    )
-    .transpose()
 }

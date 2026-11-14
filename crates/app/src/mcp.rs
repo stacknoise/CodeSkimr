@@ -8,7 +8,8 @@ use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::ports::{
-    CodeIndex, ProjectRepository, ProjectScanner, SimilarityIndex, UsageIndex,
+    CodeIndex, IndexRunner, ProjectCatalog, ProjectRepository, ProjectScanner, SimilarityIndex,
+    UsageIndex,
 };
 use codeskimr_cli::{GlobalOptions, McpArgs};
 use codeskimr_codes::ErrorCode;
@@ -20,8 +21,11 @@ use crate::clock::SystemClock;
 use crate::config_files;
 use crate::locations::Locations;
 use crate::principal;
+use crate::running::{ExclusiveScans, RunningScans};
 use crate::source_arg::folder_spec;
-use crate::wiring::{Analysis, Secrets, build_analysis, build_scanner, open_store, os_secrets};
+use crate::wiring::{
+    Secrets, build_analysis, index_runner, open_store, os_secrets, scanner_over, tool_checker,
+};
 
 /// Serves MCP until the client disconnects.
 ///
@@ -44,6 +48,10 @@ pub fn run(
         .unwrap_or_else(|| current_dir.to_path_buf());
     let spec = folder_spec(&folder)?;
     let config = config_files::load(locations, global, Some(&folder))?;
+    // Nothing was ever scanned if there is no database; opening the store would create it.
+    if !locations.database().exists() {
+        return Err(CodedError::new(ErrorCode::ProjectNotFound));
+    }
     let store = open_store(locations, &config)?;
     let project = store
         .project_by_source(&spec.source)?
@@ -51,10 +59,17 @@ pub fn run(
     if store.latest_snapshot(project.id)?.is_none() {
         return Err(CodedError::new(ErrorCode::ProjectNotScanned));
     }
-    let ports = build_ports(store, &config, locations, (EventBus::new(), &os_secrets()))?;
+    let messages = Arc::new(Messages::load().map_err(CodedError::caused_by)?);
+    let runner = index_runner(locations);
+    let wiring = Wiring {
+        locations,
+        messages: Arc::clone(&messages),
+        runner,
+        running: RunningScans::default(),
+    };
+    let ports = build_ports(store, &config, wiring, (EventBus::new(), &os_secrets()))?;
     let tools = Tools::new(ports, config.mcp, project.id);
-    let messages = Messages::load().map_err(CodedError::caused_by)?;
-    let server = McpServer::new(tools, &messages, principal::resolve())?;
+    let server = McpServer::new(tools, &messages, principal::remote_client())?;
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -69,17 +84,65 @@ pub fn run(
 ///
 /// # Errors
 /// Any coded failure of opening the store, loading the language packs or the message texts.
+#[cfg(test)]
 pub fn http_service(
     config: &Config,
     locations: &Locations,
     (events, secrets): (EventBus, &Arc<Secrets>),
 ) -> Result<HttpService, CodedError> {
+    http_service_probing(
+        config,
+        locations,
+        (events, secrets),
+        (None, RunningScans::default()),
+    )
+}
+
+/// Like [`http_service`], but a `rescan` and the scans of the UI share `running`, so a second
+/// scan of the same project is refused with `PRJ-302` whichever side started the first.
+///
+/// # Errors
+/// The same as [`http_service`].
+pub fn http_service_sharing(
+    config: &Config,
+    locations: &Locations,
+    (events, secrets): (EventBus, &Arc<Secrets>),
+    running: RunningScans,
+) -> Result<HttpService, CodedError> {
+    http_service_probing(config, locations, (events, secrets), (None, running))
+}
+
+/// Like [`http_service`], but the tools are started through `runner` instead of as real processes
+/// (tests use this to say which tools exist).
+///
+/// # Errors
+/// The same as [`http_service`].
+pub fn http_service_probing(
+    config: &Config,
+    locations: &Locations,
+    (events, secrets): (EventBus, &Arc<Secrets>),
+    (runner, running): (Option<Arc<dyn IndexRunner>>, RunningScans),
+) -> Result<HttpService, CodedError> {
     let store = open_store(locations, config)?;
-    let ports = build_ports(store, config, locations, (events, secrets))?;
+    let messages = Arc::new(Messages::load().map_err(CodedError::caused_by)?);
+    let wiring = Wiring {
+        locations,
+        messages: Arc::clone(&messages),
+        runner: runner.unwrap_or_else(|| index_runner(locations)),
+        running,
+    };
+    let ports = build_ports(store, config, wiring, (events, secrets))?;
     let tools = Tools::unscoped(ports, config.mcp.clone());
-    let messages = Messages::load().map_err(CodedError::caused_by)?;
-    let server = McpServer::new(tools, &messages, principal::resolve())?;
+    let server = McpServer::new(tools, &messages, principal::remote_client())?;
     Ok(codeskimr_mcp::http_service(&server))
+}
+
+/// What the ports of the tools are built with besides the store and the configuration.
+struct Wiring<'a> {
+    locations: &'a Locations,
+    messages: Arc<Messages>,
+    runner: Arc<dyn IndexRunner>,
+    running: RunningScans,
 }
 
 /// The ports of the tools: the store for everything it implements, the analysis ports the
@@ -88,20 +151,31 @@ pub fn http_service(
 fn build_ports(
     store: Arc<SqliteStore>,
     config: &Config,
-    locations: &Locations,
+    wiring: Wiring<'_>,
     (events, secrets): (EventBus, &Arc<Secrets>),
 ) -> Result<Ports, CodedError> {
-    let Analysis {
-        discovery,
-        analyzer,
-        snippets,
-    } = build_analysis(config, locations)?;
-    let checker = ConventionChecker::new(discovery, analyzer, config.conventions.clone());
-    let scanner: Arc<dyn ProjectScanner> =
-        Arc::new(build_scanner(&store, config, locations, events, secrets)?);
+    let Wiring {
+        locations,
+        messages,
+        runner,
+        running,
+    } = wiring;
+    let analysis = build_analysis(config, locations)?;
+    let checker = ConventionChecker::new(
+        Arc::clone(&analysis.discovery),
+        Arc::clone(&analysis.analyzer),
+        config.conventions.clone(),
+    );
+    let scanner: Arc<dyn ProjectScanner> = Arc::new(ExclusiveScans::new(
+        scanner_over(&analysis, (&store, config, locations), (events, secrets))?,
+        running,
+    ));
+    let snippets = analysis.snippets;
     let projects: Arc<dyn ProjectRepository> = store.clone();
     let usages: Arc<dyn UsageIndex> = store.clone();
     let similarity: Arc<dyn SimilarityIndex> = store.clone();
+    let catalog: Arc<dyn ProjectCatalog> = store.clone();
+    let tool_check = tool_checker(&store, (locations, runner))?;
     let index: Arc<dyn CodeIndex> = store;
     Ok(Ports {
         projects,
@@ -112,5 +186,8 @@ fn build_ports(
         checker: Arc::new(checker),
         clock: Arc::new(SystemClock),
         scanner,
+        catalog,
+        tool_check,
+        messages,
     })
 }

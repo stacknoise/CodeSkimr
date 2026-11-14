@@ -103,6 +103,18 @@ pub mod keys {
     pub const PARSE_TIMEOUT_MS: &str = "scan.parse_timeout_ms";
     /// `scan.max_source_mb`
     pub const MAX_SOURCE_MB: &str = "scan.max_source_mb";
+    /// `scan.max_signature_chars`
+    pub const MAX_SIGNATURE_CHARS: &str = "scan.max_signature_chars";
+    /// `level2.max_index_bytes`
+    pub const LEVEL2_MAX_INDEX_BYTES: &str = "level2.max_index_bytes";
+    /// `level2.timeout_seconds`
+    pub const LEVEL2_TIMEOUT_SECONDS: &str = "level2.timeout_seconds";
+    /// `level2.max_memory_mb`
+    pub const LEVEL2_MAX_MEMORY_MB: &str = "level2.max_memory_mb";
+    /// `level2.max_output_bytes`
+    pub const LEVEL2_MAX_OUTPUT_BYTES: &str = "level2.max_output_bytes";
+    /// `level2.min_mapped`
+    pub const LEVEL2_MIN_MAPPED: &str = "level2.min_mapped";
     /// `server.port`
     pub const SERVER_PORT: &str = "server.port";
     /// `editor.url_template`
@@ -126,3 +138,6 @@ pub const URL_SCHEME_SEPARATOR: char = ':';
 pub const PLACEHOLDER_PATH: &str = "{path}";
 /// Characters besides lower-case letters and digits that a URL scheme may contain.
 pub const SCHEME_EXTRA_CHARS: [char; 3] = ['+', '-', '.'];
+
+/// Name of the table of the project file that is never read (ADR 0033, decision 9).
+pub const UNTRUSTED_PROJECT_TABLE: &str = "level2";

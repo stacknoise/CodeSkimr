@@ -24,3 +24,11 @@ static int *find(int *items, int n) {
 int main(void) {
     return find(0, 0) ? 1 : 0;
 }
+
+int (*getcb(void))(int) {
+    return 0;
+}
+
+char *(*getname(int n))(void) {
+    return 0;
+}

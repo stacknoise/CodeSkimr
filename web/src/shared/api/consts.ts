@@ -20,3 +20,12 @@ export const STATUS_UNAUTHORIZED = 401;
 
 /** Route prefix of the commands; the id of the command follows. */
 export const COMMANDS_PATH = "/api/v1/commands/";
+
+/** The commands whose round trip is a measurement of a time budget (blueprint 16.1), by the key
+ * of the budget in the output of `status.info`. */
+export const TIMED_COMMANDS: Record<string, string> = {
+  "search.query": "search_keystroke",
+  "explorer.symbol": "explorer_switch",
+  "usages.query": "usages_query",
+  "graph.layers": "graph_layout",
+};

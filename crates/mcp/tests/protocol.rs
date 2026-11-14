@@ -75,7 +75,7 @@ async fn connected_as(principal: Principal) -> Client {
 }
 
 #[tokio::test]
-async fn lists_exactly_the_ten_tools_with_schemas_and_only_rescan_writes() {
+async fn lists_exactly_the_eleven_tools_with_schemas_and_only_rescan_writes() {
     let mut client = connected().await;
     let listed = client.call(2, "tools/list", json!({})).await;
     let tools = listed["result"]["tools"].as_array().unwrap();
@@ -85,6 +85,7 @@ async fn lists_exactly_the_ten_tools_with_schemas_and_only_rescan_writes() {
         [
             "search_symbols",
             "get_symbol",
+            "get_project",
             "get_architecture",
             "find_usages",
             "impact_of_change",

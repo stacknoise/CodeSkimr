@@ -3,7 +3,8 @@ import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
-import { showUsages } from "../usages/usages";
+import { pendingFocus, showUsages } from "../../shared/navigation/navigation";
+import { showInGraph } from "../graph/show";
 import { DetailPane } from "./DetailPane";
 import {
   applyFocus,
@@ -11,9 +12,9 @@ import {
   currentMember,
   currentType,
   loadOutline,
+  stepMember,
   outlineError,
   outlineLoading,
-  pendingFocus,
   symbolDetails,
   symbolError,
   treeOutline,
@@ -134,6 +135,19 @@ export function ExplorerScreen() {
       const symbol = shownSymbol();
       if (symbol !== null) {
         showUsages(symbol);
+      }
+    },
+    graph: () => {
+      const symbol = shownSymbol();
+      const project = activeProject();
+      if (symbol !== null && project !== null) {
+        void showInGraph(project, symbol);
+      }
+    },
+    member: (step) => {
+      const project = activeProject();
+      if (project !== null) {
+        void stepMember(project, step);
       }
     },
     editor: () => {

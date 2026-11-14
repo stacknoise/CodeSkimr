@@ -1,5 +1,5 @@
 import { createMemo, For, Match, onCleanup, onMount, Show, Switch } from "solid-js";
-import { t } from "../../shared/i18n/i18n";
+import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
 import { cx } from "../../shared/ui/cx";
@@ -7,6 +7,7 @@ import { ICON_SEARCH } from "../../shared/ui/consts";
 import { Icon } from "../../shared/ui/Icon";
 import { ROW_HEIGHT_PX } from "../explorer/consts";
 import { openInEditor } from "../explorer/editor";
+import { showInGraph } from "../graph/show";
 import { KindBadge } from "../explorer/KindBadge";
 import { useWindow } from "../explorer/useWindow";
 import { UI_COMMANDS } from "./commands";
@@ -14,6 +15,7 @@ import {
   CHIPS,
   COMMAND_LETTER,
   DIALOG,
+  FILE_LETTER,
   FILTER,
   GROUP_TITLE,
   INPUT_ID,
@@ -31,6 +33,7 @@ import {
   choose,
   chosen,
   closeSearch,
+  openFile,
   openHit,
   pickChip,
   searchChip,
@@ -38,6 +41,8 @@ import {
   searchHits,
   searchMs,
   searchOpen,
+  searchEntries,
+  searchFiles,
   searchScanned,
   searchText,
   typeSearch,
@@ -47,6 +52,8 @@ import styles from "./QuickSearch.module.css";
 function activate(entry: Entry): void {
   if (entry.hit) {
     openHit(entry.hit);
+  } else if (entry.file) {
+    openFile(entry.file);
   } else {
     closeSearch();
     entry.command?.run();
@@ -71,6 +78,15 @@ function openInEditorFrom(entry: Entry): void {
   }
 }
 
+/** `Ctrl+Enter`: shows the layer of the chosen hit on the dependency map and closes the search. */
+function showInGraphFrom(entry: Entry): void {
+  const project = activeProject();
+  if (entry.hit && project !== null) {
+    closeSearch();
+    void showInGraph(project, entry.hit.id);
+  }
+}
+
 const ACTIONS: SearchKeyActions = {
   close: closeSearch,
   choose,
@@ -78,7 +94,21 @@ const ACTIONS: SearchKeyActions = {
   chip: (step) => pickChip(nextChip(searchChip(), step)),
   copy: copyName,
   editor: openInEditorFrom,
+  graph: showInGraphFrom,
 };
+
+/** The grey text at the right of a line: the qualified name of a symbol, the size of a file, and
+ * the project when it is not the open one (`@`). */
+function contextOf(entry: Entry): string {
+  const owner = entry.hit ?? entry.file;
+  const own = owner === null || owner.project === activeProject();
+  const what = entry.hit
+    ? entry.hit.qualified_name
+    : entry.file
+      ? t(I18N_KEYS.PALETTE_FILE_LINES, { count: entry.file.loc })
+      : "";
+  return own || owner === null ? what : `${owner.project_name} · ${what}`;
+}
 
 function Row(props: { row: ListRow; text: string }) {
   return (
@@ -102,7 +132,12 @@ function Option(props: { entry: Entry; index: number; text: string }) {
       onClick={() => activate(props.entry)}
       onMouseMove={() => choose(props.index)}
     >
-      <Show when={props.entry.hit} fallback={<span class={styles.letter}>{COMMAND_LETTER}</span>}>
+      <Show
+        when={props.entry.hit}
+        fallback={
+          <span class={styles.letter}>{props.entry.file ? FILE_LETTER : COMMAND_LETTER}</span>
+        }
+      >
         {(hit) => <KindBadge kind={hit().kind} />}
       </Show>
       <span class={styles.label}>
@@ -110,7 +145,7 @@ function Option(props: { entry: Entry; index: number; text: string }) {
         <mark>{parts().hit}</mark>
         {parts().post}
       </span>
-      <span class={styles.context}>{props.entry.hit?.qualified_name ?? ""}</span>
+      <span class={styles.context}>{contextOf(props.entry)}</span>
     </div>
   );
 }
@@ -236,6 +271,13 @@ function Footer() {
         {t(I18N_KEYS.PALETTE_HINT_FILTER)}
       </span>
       <span>{t(I18N_KEYS.PALETTE_HINT_FUZZY)}</span>
+      <Show when={searchEntries() !== null}>
+        <span class={styles.entries}>
+          {t(I18N_KEYS.PALETTE_INDEX_SIZE, {
+            count: new Intl.NumberFormat(currentLanguage()).format(searchEntries() ?? 0),
+          })}
+        </span>
+      </Show>
     </div>
   );
 }
@@ -245,7 +287,7 @@ function Overlay() {
   onCleanup(() => previous instanceof HTMLElement && previous.focus());
   const parsed = createMemo(() => parseQuery(searchText(), searchChip()));
   const entries = createMemo(() =>
-    buildEntries(searchHits(), UI_COMMANDS, parsed().filter, parsed().text),
+    buildEntries(searchHits(), searchFiles(), UI_COMMANDS, parsed().filter, parsed().text),
   );
   const rows = createMemo(() => listRows(entries()));
   const current = () => entries()[chosen()] ?? null;
@@ -270,7 +312,7 @@ function Overlay() {
             text={parsed().text}
             empty={parsed().text === "" && parsed().filter !== FILTER.commands}
           />
-          <Preview hit={current()?.hit ?? null} />
+          <Preview hit={current()?.hit ?? null} file={current()?.file ?? null} />
         </div>
         <Footer />
       </div>

@@ -105,7 +105,10 @@
 (conditional_expression
   [condition: (identifier) @name
    consequence: (identifier) @name
-   alternative: (identifier) @name]) @reference.read
+   alternative: (identifier) @name
+   condition: (member_access_expression name: (identifier) @name)
+   consequence: (member_access_expression name: (identifier) @name)
+   alternative: (member_access_expression name: (identifier) @name)]) @reference.read
 ; The receiver of a member access: a variable or a type
 (member_access_expression expression: (identifier) @name) @reference.read
 
@@ -126,13 +129,37 @@
               (_) @receiver.other]
   (member_binding_expression name: [(identifier) @name (generic_name . (identifier) @name)]))
 
+; More receivers: `n!`, `(T)x`, `x as T`, `this.field`, `(x)` and `await x?.M()` (the grammar reads the
+; await as the condition of the conditional access). An object initializer names members of its type.
+(member_access_expression
+  expression: (postfix_unary_expression . (identifier) @receiver .)
+  name: [(identifier) @name (generic_name . (identifier) @name)])
+(member_access_expression
+  expression: (parenthesized_expression . (identifier) @receiver .)
+  name: [(identifier) @name (generic_name . (identifier) @name)])
+(member_access_expression
+  expression: [(parenthesized_expression (cast_expression type: [(identifier) @receiver.type (generic_name . (identifier) @receiver.type)]))
+               (parenthesized_expression (as_expression right: [(identifier) @receiver.type (generic_name . (identifier) @receiver.type)]))
+               (postfix_unary_expression (parenthesized_expression (cast_expression type: [(identifier) @receiver.type (generic_name . (identifier) @receiver.type)])))
+               (postfix_unary_expression (parenthesized_expression (as_expression right: [(identifier) @receiver.type (generic_name . (identifier) @receiver.type)])))]
+  name: [(identifier) @name (generic_name . (identifier) @name)])
+(member_access_expression
+  expression: (member_access_expression expression: "this" name: (identifier) @receiver.member)
+  name: [(identifier) @name (generic_name . (identifier) @name)])
+(conditional_access_expression
+  condition: (await_expression . (identifier) @receiver .)
+  (member_binding_expression name: [(identifier) @name (generic_name . (identifier) @name)]))
+(object_creation_expression
+  type: [(identifier) @receiver.type (generic_name . (identifier) @receiver.type)]
+  initializer: (initializer_expression (assignment_expression left: (identifier) @name)))
+
 ; ---------------------------------------------------------------------------------------------
 ; Scopes: nodes in which a declared name is visible.
 ([(block) (for_statement) (foreach_statement) (using_statement) (lambda_expression)
   (anonymous_method_expression) (method_declaration) (constructor_declaration)
   (operator_declaration) (local_function_statement) (accessor_declaration) (catch_clause)
   (switch_section) (class_declaration) (struct_declaration) (record_declaration)
-  (interface_declaration)] @scope)
+  (interface_declaration) (query_expression)] @scope)
 
 ; ---------------------------------------------------------------------------------------------
 ; Locals and parameters hide members of the same name (step 1). A declared type, or the type of
@@ -217,6 +244,72 @@
   name: (identifier) @local)
 (declaration_pattern name: (identifier) @local)
 (declaration_expression name: (identifier) @local)
+
+; Query variables, tuple deconstruction, patterns, `out` declarations and primary constructor
+; parameters declare names too; a type, where the syntax names one, tells the type of a receiver.
+(from_clause name: (identifier) @local)
+(from_clause
+  type: [(identifier) @declared_type
+           (generic_name . (identifier) @declared_type)
+           (qualified_name name: (identifier) @declared_type)
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (predefined_type) @declared_type
+           (array_type) @declared_type]
+  name: (identifier) @local)
+(let_clause . (identifier) @local)
+(join_clause . (identifier) @local)
+(join_into_clause (identifier) @local)
+(query_expression (identifier) @local)
+(tuple_pattern name: (identifier) @local)
+(recursive_pattern name: (identifier) @local)
+(recursive_pattern
+  type: [(identifier) @declared_type
+           (generic_name . (identifier) @declared_type)
+           (qualified_name name: (identifier) @declared_type)
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (predefined_type) @declared_type
+           (array_type) @declared_type]
+  name: (identifier) @local)
+(declaration_pattern
+  type: [(identifier) @declared_type
+           (generic_name . (identifier) @declared_type)
+           (qualified_name name: (identifier) @declared_type)
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (predefined_type) @declared_type
+           (array_type) @declared_type]
+  name: (identifier) @local)
+(declaration_expression
+  type: [(identifier) @declared_type
+           (generic_name . (identifier) @declared_type)
+           (qualified_name name: (identifier) @declared_type)
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (predefined_type) @declared_type
+           (array_type) @declared_type]
+  name: (identifier) @local)
+(class_declaration (parameter_list (parameter
+  type: [(identifier) @declared_type
+           (generic_name . (identifier) @declared_type)
+           (qualified_name name: (identifier) @declared_type)
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (predefined_type) @declared_type
+           (array_type) @declared_type]
+  name: (identifier) @local)))
+(struct_declaration (parameter_list (parameter
+  type: [(identifier) @declared_type
+           (generic_name . (identifier) @declared_type)
+           (qualified_name name: (identifier) @declared_type)
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (predefined_type) @declared_type
+           (array_type) @declared_type]
+  name: (identifier) @local)))
+(record_declaration (parameter_list (parameter
+  type: [(identifier) @declared_type
+           (generic_name . (identifier) @declared_type)
+           (qualified_name name: (identifier) @declared_type)
+           (nullable_type [(identifier) @declared_type (generic_name . (identifier) @declared_type)])
+           (predefined_type) @declared_type
+           (array_type) @declared_type]
+  name: (identifier) @field)))
 
 ; Fields and properties tell the type of a receiver, but an occurrence of them is a reference.
 (field_declaration

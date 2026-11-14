@@ -2,8 +2,13 @@
 
 use std::collections::HashMap;
 
-use codeskimr_application::ports::{ImpactedSymbol, SymbolLabel, UsageEntry};
-use codeskimr_domain::{QualifiedName, RelativePath, ReverseIndex, SymbolId, Visibility};
+use codeskimr_application::ports::{
+    ImpactedSymbol, SymbolLabel, TypeFocus, TypeNeighbour, UsageEntry,
+};
+use codeskimr_domain::{
+    NamespaceGraph, QualifiedName, RelativePath, ReverseIndex, SymbolId, TypeLink, Visibility,
+    namespace_graph, type_neighbours,
+};
 use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, id_from, label_from};
@@ -27,6 +32,7 @@ pub(crate) struct SnapshotLookup {
     pub(crate) index: ReverseIndex,
     places: HashMap<u64, Placed>,
     files: HashMap<u64, RelativePath>,
+    pub(crate) namespaces: NamespaceGraph,
 }
 
 /// The columns of `SYMBOL_LABELS`, still raw.
@@ -80,20 +86,33 @@ fn decode_file(row: (i64, String)) -> StorageResult<(u64, RelativePath)> {
 
 impl SnapshotLookup {
     pub(crate) fn load(conn: &Connection, snapshot: i64) -> StorageResult<Self> {
+        let references = load_references(conn, snapshot)?;
+        let places = load_map(
+            conn,
+            (sql::SYMBOL_LABELS, snapshot),
+            read_label,
+            decode_place,
+        )?;
+        let namespaces = namespace_graph(
+            places.values().map(|found| {
+                (
+                    found.label.id,
+                    found.label.kind,
+                    &found.label.qualified_name,
+                )
+            }),
+            references.iter().map(|found| (found.from, found.to)),
+        );
         Ok(Self {
-            index: ReverseIndex::new(load_references(conn, snapshot)?),
-            places: load_map(
-                conn,
-                (sql::SYMBOL_LABELS, snapshot),
-                read_label,
-                decode_place,
-            )?,
+            index: ReverseIndex::new(references),
+            places,
             files: load_map(
                 conn,
                 (sql::FILE_PATHS, snapshot),
                 |cols| Ok((cols.take()?, cols.take()?)),
                 decode_file,
             )?,
+            namespaces,
         })
     }
 
@@ -116,6 +135,36 @@ impl SnapshotLookup {
             from: self.placed(reference.from)?.label.clone(),
             to: self.placed(reference.to)?.label.clone(),
         })
+    }
+
+    /// The types around `symbol`, or `None` if it is no type of the snapshot.
+    pub(crate) fn type_focus(&self, symbol: SymbolId) -> StorageResult<Option<TypeFocus>> {
+        let symbols = self.places.values().map(|found| {
+            (
+                found.label.id,
+                found.label.kind,
+                &found.label.qualified_name,
+            )
+        });
+        let Some(found) = type_neighbours(symbol, symbols, self.index.ends()) else {
+            return Ok(None);
+        };
+        let neighbours = |links: &[TypeLink]| -> StorageResult<Vec<TypeNeighbour>> {
+            links
+                .iter()
+                .map(|link| {
+                    Ok(TypeNeighbour {
+                        label: self.placed(link.symbol)?.label.clone(),
+                        count: link.count,
+                    })
+                })
+                .collect()
+        };
+        Ok(Some(TypeFocus {
+            focus: self.placed(symbol)?.label.clone(),
+            users: neighbours(&found.users)?,
+            used: neighbours(&found.used)?,
+        }))
     }
 
     pub(crate) fn impacted(

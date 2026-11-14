@@ -1,0 +1,38 @@
+// The messages and fields of sourcegraph/scip `scip.proto` (proto3) that the decoder in
+// `src/decode.rs` reads, with their field numbers. Field numbers are never reused in the
+// upstream schema, so a newer `scip.proto` stays compatible; every other field is skipped.
+// Pinned: checked against the descriptors of the generated Python bindings of scip.proto and
+// against indexes written by scip-dotnet and rust-analyzer (November 2026). The numbers in
+// `src/consts.rs` must equal the ones below.
+syntax = "proto3";
+
+message Index {
+  Metadata metadata = 1;
+  repeated Document documents = 2;
+}
+
+message Metadata {
+  string project_root = 3;
+}
+
+enum PositionEncoding {
+  UnspecifiedPositionEncoding = 0;
+  UTF8CodeUnitOffsetFromLineStart = 1;
+  UTF16CodeUnitOffsetFromLineStart = 2;
+  UTF32CodeUnitOffsetFromLineStart = 3;
+}
+
+message Document {
+  string relative_path = 1;
+  repeated Occurrence occurrences = 2;
+  PositionEncoding position_encoding = 6;
+}
+
+message Occurrence {
+  // Three numbers (line, start column, end column) or four (start line, start column,
+  // end line, end column); packed, but unpacked input is read too.
+  repeated int32 range = 1;
+  string symbol = 2;
+  // Bit set of SymbolRole; bit 1 is Definition.
+  int32 symbol_roles = 3;
+}

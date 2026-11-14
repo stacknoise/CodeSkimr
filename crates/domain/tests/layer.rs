@@ -32,4 +32,14 @@ mod tests {
         assert!(layer.owns("crates::domain::src::lib::Order"));
         assert!(!layer.owns("crates::domain_extra::src::lib"));
     }
+
+    #[test]
+    fn a_layer_named_by_namespace_owns_the_declarations_of_a_namespaced_language() {
+        let layer = Layer {
+            name: LayerName::new("Demo").unwrap(),
+            namespaces: vec![QualifiedName::new("Demo").unwrap()],
+        };
+        assert!(layer.owns("Demo.Calculator.Add"));
+        assert!(!layer.owns("app/Calculator.cs"));
+    }
 }

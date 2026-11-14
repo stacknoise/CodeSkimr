@@ -63,6 +63,12 @@
  (field_declaration
    (modifier)* @modifier
    (variable_declaration (variable_declarator name: (identifier) @name) @symbol.field)))
+; A `const` field shows its whole declaration (modifiers, type and value) as signature (issue #123).
+((comment)* @doc
+ .
+ (field_declaration
+   (modifier "const")
+   (variable_declaration (variable_declarator name: (identifier) @name) @symbol.field)) @signature)
 ((comment)* @doc
  .
  (enum_member_declaration name: (identifier) @name) @symbol.enum_member)

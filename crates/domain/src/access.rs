@@ -6,8 +6,8 @@
 //! authenticator without changing the signatures that carry them.
 
 use crate::consts::{
-    PERMISSION_ADMIN, PERMISSION_MANAGE, PERMISSION_READ, PERMISSION_READ_SOURCE,
-    PERMISSION_REGISTER_PROJECT, PERMISSION_SCAN,
+    PERMISSION_ADMIN, PERMISSION_CONFIRM_INDEXER, PERMISSION_MANAGE, PERMISSION_READ,
+    PERMISSION_READ_SOURCE, PERMISSION_REGISTER_PROJECT, PERMISSION_RUN_INDEXER, PERMISSION_SCAN,
 };
 use crate::vocabulary::labeled_enum;
 
@@ -26,6 +26,12 @@ labeled_enum!(
         RegisterProject => PERMISSION_REGISTER_PROJECT,
         /// Administer the installation.
         Admin => PERMISSION_ADMIN,
+        /// Confirm once, for one project, that indexers of level 2 may run its build tools
+        /// (ADR 0033, decision 10). Only the local owner holds it; tokens, MCP, watch mode and CI
+        /// never stand in for the confirmation.
+        ConfirmIndexer => PERMISSION_CONFIRM_INDEXER,
+        /// Start an indexer of level 2 for a confirmed project (ADR 0033, decision 10).
+        RunIndexer => PERMISSION_RUN_INDEXER,
     }
 );
 
@@ -59,6 +65,8 @@ impl PermissionSet {
             .with(Permission::Manage)
             .with(Permission::RegisterProject)
             .with(Permission::Admin)
+            .with(Permission::ConfirmIndexer)
+            .with(Permission::RunIndexer)
     }
 
     /// This set plus `permission`.

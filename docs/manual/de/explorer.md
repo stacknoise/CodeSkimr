@@ -40,4 +40,4 @@ Die Fußzeile jedes Bildschirms zeigt die Verbindung, die Zahl der Projekte und 
 
 ## Im Editor öffnen
 
-Der Explorer kann ein Member über einen Link in Ihrem Editor öffnen. Die Vorlage ist `editor.url_template` (und die erlaubten Link-Schemata `editor.allowed_schemes`) in den Einstellungen oder der Konfiguration; der Einstellungsbildschirm hat ein Feld dafür. Diese Knöpfe sind aus, bis die Position eines Treffers verfügbar ist.
+Der Explorer kann ein Member über einen Link in Ihrem Editor öffnen. Die Vorlage ist `editor.url_template` (und die erlaubten Link-Schemata `editor.allowed_schemes`) in den Einstellungen oder der Konfiguration; der Einstellungsbildschirm hat ein Feld dafür. `E` oder `Alt+Enter` öffnet das gewählte Member im Editor (nur bei einem Projekt, das ein Ordner auf Ihrem Rechner ist). `G` öffnet die [Abhängigkeitskarte](abhaengigkeitskarte.md) mit der Schicht der Auswahl.

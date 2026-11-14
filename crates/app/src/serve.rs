@@ -16,6 +16,7 @@ use codeskimr_server::{CommandApi, EditorSettings, Server, UiOptions, UiSettings
 
 use crate::consts::URL_SCHEME;
 use crate::locations::Locations;
+use crate::running::RunningScans;
 use crate::wiring::os_secrets;
 use crate::{config_files, installation_token, mcp, principal, ui_commands};
 
@@ -38,13 +39,21 @@ pub fn run(
     let store = OsCredentialStore::new(OsKeystore);
     let secrets = os_secrets();
     let events = EventBus::new();
+    // The UI and the MCP service refuse a second scan of a project together.
+    let running = RunningScans::default();
     let parts = Parts {
         ui: ui_options(&config, locations),
-        api: ui_commands::command_api(global, locations, events.clone(), Arc::clone(&secrets))?,
-        mcp: Some(mcp::http_service(
+        api: ui_commands::command_api_probing(
+            global,
+            locations,
+            (events.clone(), Arc::clone(&secrets)),
+            (None, running.clone()),
+        )?,
+        mcp: Some(mcp::http_service_sharing(
             &config,
             locations,
             (events.clone(), &secrets),
+            running,
         )?),
         events,
     };
@@ -99,7 +108,7 @@ pub(crate) async fn serve(
     let server = Server::new(
         parts.api,
         parts.events,
-        principal::resolve(),
+        principal::remote_client(),
         token,
         parts.ui,
     );

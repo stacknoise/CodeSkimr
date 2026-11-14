@@ -7,7 +7,7 @@ use super::consts::{
     URL_SCHEME_SEPARATOR, keys,
 };
 use super::error::{ConfigError, Violation};
-use super::model::{Budgets, Config, Editor, McpLimits, MetricThresholds, Scan, Ui};
+use super::model::{Budgets, Config, Editor, Level2, McpLimits, MetricThresholds, Scan, Ui};
 
 /// Checks every value of `config`.
 ///
@@ -20,6 +20,12 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     positive(keys::RETENTION_COUNT, config.snapshots.retention_count)?;
     positive(keys::DEBOUNCE_MS, config.watcher.debounce_ms)?;
     positive(keys::MAX_WAIT_MS, config.watcher.max_wait_ms)?;
+    if config.watcher.max_wait_ms < config.watcher.debounce_ms {
+        return fail(
+            keys::MAX_WAIT_MS,
+            Violation::MustNotBeBelow(keys::DEBOUNCE_MS),
+        );
+    }
     positive(keys::NGRAM_SIZE, config.similarity.ngram_size)?;
     positive(keys::WINDOW_SIZE, config.similarity.window_size)?;
     positive(keys::MIN_TOKENS, config.similarity.min_tokens)?;
@@ -42,6 +48,7 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     )?;
     check_layers(config)?;
     check_scan(&config.scan)?;
+    check_level2(&config.level2)?;
     check_editor(&config.editor)?;
     check_ui(&config.ui)?;
     positive(keys::GRAPH_NODE_WIDTH, config.graph.node_width)?;
@@ -169,9 +176,25 @@ fn check_mcp(mcp: &McpLimits) -> Result<(), ConfigError> {
     positive(keys::MCP_MAX_SNIPPET_BYTES, mcp.max_snippet_bytes)
 }
 
+fn check_level2(level2: &Level2) -> Result<(), ConfigError> {
+    if level2.max_index_bytes == 0 {
+        return fail(keys::LEVEL2_MAX_INDEX_BYTES, Violation::MustBePositive);
+    }
+    positive(keys::LEVEL2_TIMEOUT_SECONDS, level2.timeout_seconds)?;
+    positive(keys::LEVEL2_MAX_MEMORY_MB, level2.max_memory_mb)?;
+    if level2.max_output_bytes < level2.max_index_bytes {
+        return fail(
+            keys::LEVEL2_MAX_OUTPUT_BYTES,
+            Violation::MustNotBeBelow(keys::LEVEL2_MAX_INDEX_BYTES),
+        );
+    }
+    share(keys::LEVEL2_MIN_MAPPED, level2.min_mapped)
+}
+
 fn check_scan(scan: &Scan) -> Result<(), ConfigError> {
     positive(keys::PARSE_TIMEOUT_MS, scan.parse_timeout_ms)?;
     positive(keys::MAX_SOURCE_MB, scan.max_source_mb)?;
+    positive(keys::MAX_SIGNATURE_CHARS, scan.max_signature_chars)?;
     if scan.excluded_folders.is_empty() {
         return fail(keys::EXCLUDED_FOLDERS, Violation::MustNotBeEmpty);
     }

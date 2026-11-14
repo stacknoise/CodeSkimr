@@ -27,7 +27,15 @@ fn defaults_match_the_blueprint() {
     }
     assert_eq!(config.scan.parse_timeout_ms, 5000);
     assert_eq!(config.scan.max_source_mb, 2048);
+    assert_eq!(config.scan.max_signature_chars, 400);
     assert_eq!(config.server.port, 7421);
+}
+
+#[test]
+fn level2_defaults_are_256_mib_and_half() {
+    let config = Config::defaults().expect("shipped defaults are valid");
+    assert_eq!(config.level2.max_index_bytes, 256 * 1024 * 1024);
+    assert!((config.level2.min_mapped - 0.5).abs() < f64::EPSILON);
 }
 
 #[test]
@@ -110,6 +118,15 @@ fn assert_rejected(cases: &[(&str, &'static str, Violation)]) {
     for (text, key, violation) in cases {
         assert_eq!(out_of_range(text), Some((*key, *violation)), "{text}");
     }
+}
+
+#[test]
+fn the_longest_wait_of_the_watcher_is_not_shorter_than_its_quiet_window() {
+    assert_rejected(&[(
+        "[watcher]\ndebounce_ms = 500\nmax_wait_ms = 100\n",
+        "watcher.max_wait_ms",
+        Violation::MustNotBeBelow("watcher.debounce_ms"),
+    )]);
 }
 
 #[test]
@@ -251,6 +268,22 @@ fn limits_and_folders_are_checked() {
 }
 
 #[test]
+fn level2_limits_are_checked() {
+    assert_rejected(&[
+        (
+            "[level2]\nmax_index_bytes = 0\n",
+            "level2.max_index_bytes",
+            Violation::MustBePositive,
+        ),
+        (
+            "[level2]\nmin_mapped = 1.5\n",
+            "level2.min_mapped",
+            Violation::MustBeShare,
+        ),
+    ]);
+}
+
+#[test]
 fn the_editor_link_and_the_ui_are_checked() {
     assert_rejected(&[
         (
@@ -349,4 +382,13 @@ fn a_layer_needs_a_unique_name_and_a_namespace() {
             Violation::MustBeLayerRule,
         ),
     ]);
+}
+
+#[test]
+fn the_signature_limit_must_be_positive() {
+    assert_rejected(&[(
+        "[scan]\nmax_signature_chars = 0\n",
+        "scan.max_signature_chars",
+        Violation::MustBePositive,
+    )]);
 }

@@ -7,6 +7,9 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0003_fingerprints.sql"),
     include_str!("../migrations/0004_shared_rows.sql"),
     include_str!("../migrations/0005_reference_verified.sql"),
+    include_str!("../migrations/0006_level2_consent.sql"),
+    include_str!("../migrations/0007_tool_reports.sql"),
+    include_str!("../migrations/0008_naming_rules.sql"),
 ];
 
 /// Name of the pragma that holds the schema version.

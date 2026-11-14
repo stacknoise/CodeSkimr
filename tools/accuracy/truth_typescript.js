@@ -27,6 +27,33 @@ const service = ts.createLanguageService({
   directoryExists: ts.sys.directoryExists, getDirectories: ts.sys.getDirectories,
 });
 
+// The column of the identifier that names the symbol of `t`. Normally the symbol starts at its
+// name. A declaration with modifiers (`export class`) or a function written
+// `const name: Type = (...) => ...` starts in front of or behind its name; then the declaration
+// that starts there (its initializer, if it has one) gives the name (the syntax tree,
+// not text, so a function type in the annotation does no harm). Anything else fails loudly: a
+// truth taken for the wrong identifier would count right answers as wrong.
+function nameColumn(text, lines, t) {
+  const line = lines[t.line - 1];
+  if (line.startsWith(t.name, t.column)) return t.column;
+  const source = ts.createSourceFile("x.ts", text, ts.ScriptTarget.Latest, true);
+  const start = source.getPositionOfLineAndCharacter(t.line - 1, t.column);
+  let found = null;
+  const visit = (node) => {
+    const named = node.name && node.name.getText(source) === t.name;
+    const sameLine = named && source.getLineAndCharacterOfPosition(node.name.getStart(source)).line === t.line - 1;
+    const afterStart = sameLine && node.name.getStart(source) >= start && node.getStart(source) <= start;
+    const initial = named && node.initializer && node.initializer.getStart(source) === start;
+    if (afterStart || initial) found = node.name.getStart(source);
+    if (found === null) ts.forEachChild(node, visit);
+  };
+  visit(source);
+  if (found === null) {
+    throw new Error(`truth: no name \`${t.name}\` for the symbol at ${t.file}:${t.line}:${t.column}`);
+  }
+  return found - source.getPositionOfLineAndCharacter(t.line - 1, 0);
+}
+
 const targets = JSON.parse(fs.readFileSync(0, "utf8"));
 const out = targets.map((t) => {
   const file = path.join(root, t.file);
@@ -34,8 +61,7 @@ const out = targets.map((t) => {
   const lines = text.split("\n");
   let offset = 0;
   for (let i = 0; i < t.line - 1; i++) offset += lines[i].length + 1;
-  const at = lines[t.line - 1].indexOf(t.name, t.column);
-  const position = offset + (at >= 0 ? at : lines[t.line - 1].indexOf(t.name));
+  const position = offset + nameColumn(text, lines, t);
   const uses = new Set();
   for (const group of service.findReferences(file, position) || []) {
     for (const ref of group.references) {

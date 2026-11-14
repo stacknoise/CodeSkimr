@@ -36,6 +36,7 @@ Owner: `codeskimr_application`
 | PRJ-201 | `project_not_found` | error | no | 0.1.0 | No project with this id exists. |
 | PRJ-301 | `project_already_registered` | error | no | 0.1.0 | A project with the same source is already registered. |
 | PRJ-302 | `snapshot_in_progress` | error | no | 0.1.0 | A scan for this project is already running. |
+| PRJ-303 | `scan_cancelled` | info | yes | 0.1.0 | The scan was cancelled by the user; no snapshot was written. |
 
 ## SRC – Sources: file system, Git, watcher
 
@@ -63,11 +64,19 @@ Owner: `codeskimr_parsing`
 
 ## RES – Reference resolution
 
-Owner: `codeskimr_parsing`
+Owner: `codeskimr_parsing, codeskimr_application, codeskimr_scip, codeskimr_indexer`
 
 | Code | Name | Severity | Retryable | Since | Description |
 |---|---|---|---|---|---|
+| RES-101 | `scip_index_invalid` | error | no | 0.1.0 | A SCIP index cannot be read, is corrupt or names a path outside the project; level 1 references stay. |
+| RES-201 | `indexer_unavailable` | error | no | 0.1.0 | The indexer of a language or its toolchain is not installed or is older than the version the language pack requires; level 1 references stay. |
 | RES-301 | `ambiguous_reference` | warning | no | 0.1.0 | A reference matches several symbols; it was stored as probable. |
+| RES-302 | `scip_mapping_too_low` | error | no | 0.1.0 | Too few occurrences of a SCIP index map onto project symbols; level 1 references stay. |
+| RES-501 | `scip_index_too_large` | error | no | 0.1.0 | A SCIP index is larger than the configured limit and was refused; level 1 references stay. |
+| RES-502 | `indexer_timeout` | error | no | 0.1.0 | An indexer ran longer than level2.timeout_seconds and was stopped with all its child processes; level 1 references stay. |
+| RES-503 | `indexer_output_too_large` | error | no | 0.1.0 | An indexer wrote more than level2.max_output_bytes and was stopped; level 1 references stay. |
+| RES-504 | `indexer_memory_limit` | error | no | 0.1.0 | An indexer used more memory than level2.max_memory_mb and was stopped; level 1 references stay. |
+| RES-601 | `indexer_failed` | error | no | 0.1.0 | An indexer could not be started or ended with an error; level 1 references stay. |
 
 ## IDX – Search and read models
 
@@ -91,14 +100,16 @@ Owner: `codeskimr_storage`
 
 ## SEC – Credentials and security
 
-Owner: `codeskimr_secrets`
+Owner: `codeskimr_secrets, codeskimr_application`
 
 | Code | Name | Severity | Retryable | Since | Description |
 |---|---|---|---|---|---|
 | SEC-201 | `credential_not_found` | error | no | 0.1.0 | The referenced credential does not exist in the keystore. |
 | SEC-202 | `credential_damaged` | error | no | 0.1.0 | The keystore entry of the credential cannot be read; delete it and create the credential again. |
+| SEC-301 | `indexer_not_confirmed` | error | no | 0.1.0 | Level 2 is not enabled and confirmed for this project in the user configuration or the user's own project record, so no indexer is started. |
 | SEC-401 | `credential_rejected` | error | no | 0.1.0 | The platform rejected the credential. |
 | SEC-402 | `keystore_access_denied` | error | no | 0.1.0 | The OS keystore denied access. |
+| SEC-403 | `indexer_not_permitted` | error | no | 0.1.0 | The caller may not confirm or start indexers; only the local owner may (ADR 0033, decision 10). |
 | SEC-601 | `keystore_unavailable` | error | no | 0.1.0 | The OS keystore service is not available. |
 | SEC-901 | `memory_lock_failed` | error | no | 0.1.0 | Locking secret memory against swapping failed. |
 
@@ -134,6 +145,8 @@ Owner: `codeskimr_server`
 | API-402 | `host_or_origin_rejected` | error | no | 0.1.0 | The Host or Origin header of the request is not one of this server. |
 | API-403 | `launch_code_invalid` | error | no | 0.1.0 | The one-time launch code is wrong, already used or expired. |
 | API-501 | `request_too_large` | error | no | 0.1.0 | The request body is larger than the server accepts. |
+| API-502 | `server_busy` | error | yes | 0.1.0 | The server already serves as many event streams as it allows. |
+| API-503 | `request_timed_out` | error | yes | 0.1.0 | The request took longer than the server waits for it. |
 | API-601 | `server_not_reachable` | error | yes | 0.1.0 | The command needs a running local server and could not reach it. |
 
 ## MCP – MCP server
@@ -146,7 +159,7 @@ Owner: `codeskimr_mcp`
 | MCP-201 | `project_not_registered` | error | no | 0.1.0 | The requested path is not inside a registered project. |
 | MCP-202 | `symbol_not_found` | error | no | 0.1.0 | No symbol with this id or qualified name exists in the newest snapshot. |
 | MCP-203 | `project_not_scanned` | error | yes | 0.1.0 | The project has no snapshot yet; scan it first. |
-| MCP-501 | `response_limit_exceeded` | info | no | 0.1.0 | The result was truncated to the configured limit. |
+| MCP-501 | `response_limit_exceeded` | info | no | 0.1.0 | The result was truncated to the configured limit: its size, or for usages the requested depth (parameter depth). |
 
 ## CLI – Command line
 

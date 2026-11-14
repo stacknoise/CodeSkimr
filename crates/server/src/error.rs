@@ -41,6 +41,7 @@ pub fn status_of(code: ErrorCode) -> StatusCode {
     match code {
         ErrorCode::PermissionDenied | ErrorCode::HostOrOriginRejected => StatusCode::FORBIDDEN,
         ErrorCode::RequestTooLarge => StatusCode::PAYLOAD_TOO_LARGE,
+        ErrorCode::RequestTimedOut => StatusCode::REQUEST_TIMEOUT,
         _ => match code.class() {
             Class::InvalidInput => StatusCode::BAD_REQUEST,
             Class::NotFound => StatusCode::NOT_FOUND,

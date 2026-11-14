@@ -6,8 +6,9 @@ use std::path::Path;
 
 use serde::Deserialize;
 
-use crate::consts::MANIFEST_FILE;
+use crate::consts::{MANIFEST_FILE, TIER_BASIC, TIER_FULL};
 use crate::error::ParsingError;
+use crate::indexer::IndexerManifest;
 
 /// How much a language pack delivers (blueprint 8.2).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -17,6 +18,17 @@ pub enum Tier {
     Full,
     /// Types and functions only.
     Basic,
+}
+
+impl Tier {
+    /// The word for the tier in the language table and on the wire.
+    #[must_use]
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Full => TIER_FULL,
+            Self::Basic => TIER_BASIC,
+        }
+    }
 }
 
 /// A visibility that follows from the spelling of a name, such as the leading underscore of Python.
@@ -95,6 +107,11 @@ pub struct PackManifest {
     pub extensions: Vec<String>,
     /// Separator inside qualified names.
     pub separator: String,
+    /// Whether the path of the file is the first part of every qualified name inside it. True
+    /// for languages whose module path is the file path (Rust, Python, `TypeScript`); false for
+    /// languages with their own namespaces (ADR 0036).
+    #[serde(default = "file_in_names_default")]
+    pub file_in_names: bool,
     /// Syntax node kinds that are comments.
     pub comment_nodes: Vec<String>,
     /// Project manifest files such as `Cargo.toml`; used by later stages, not by parsing.
@@ -142,6 +159,10 @@ pub struct PackManifest {
     /// Visibility rules.
     #[serde(default)]
     pub visibility: VisibilityRules,
+    /// The indexer that gives level 2 references (ADR 0033); without it the language stays on
+    /// level 1.
+    #[serde(default)]
+    pub indexer: Option<IndexerManifest>,
 }
 
 impl PackManifest {
@@ -159,4 +180,9 @@ impl PackManifest {
             fs::read_to_string(dir.join(MANIFEST_FILE)).map_err(|e| invalid(e.to_string()))?;
         toml::from_str(&text).map_err(|e| invalid(e.to_string()))
     }
+}
+
+/// The default of `file_in_names`: the file is part of the names.
+const fn file_in_names_default() -> bool {
+    true
 }

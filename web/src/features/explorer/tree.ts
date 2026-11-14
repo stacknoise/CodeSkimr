@@ -221,3 +221,33 @@ export function revealKeys(outline: Outline, type: number): string[] {
   }
   return [];
 }
+
+/** Where a row stands among its siblings: the count of rows with the same parent and its place
+ * among them, counted from 1. */
+export interface Place {
+  size: number;
+  position: number;
+}
+
+/** The place of every row among its siblings. An open parent shows all its children, so the
+ * numbers are those of the whole tree, not of the rows in the window of the list. */
+export function siblingPlaces(rows: readonly TreeRow[]): Place[] {
+  const places: Place[] = [];
+  const groups: Place[][] = [];
+  const all = new Set<Place[]>();
+  rows.forEach((row) => {
+    groups.length = row.depth + 1;
+    const group = groups[row.depth] ?? [];
+    groups[row.depth] = group;
+    all.add(group);
+    const place: Place = { size: 0, position: group.length + 1 };
+    group.push(place);
+    places.push(place);
+  });
+  all.forEach((group) =>
+    group.forEach((place) => {
+      place.size = group.length;
+    }),
+  );
+  return places;
+}

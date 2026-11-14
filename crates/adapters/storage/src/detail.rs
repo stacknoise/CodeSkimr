@@ -1,14 +1,16 @@
 //! The lookup of one symbol and the `CodeIndex` port.
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{CodeIndex, MemberRef, SearchHit, SymbolDetail, SymbolKey};
+use codeskimr_application::ports::{
+    CodeIndex, CodeSpan, FileHit, MemberRef, SearchHit, SymbolDetail, SymbolKey, TypeFocus,
+};
 use codeskimr_domain::{
-    FileId, LayerEdge, Metric, MetricValue, ProjectId, QualifiedName, RelativePath, Snapshot,
-    SnapshotId, Symbol, SymbolId, SymbolName,
+    FileId, LayerEdge, Metric, MetricValue, NamespaceGraph, ProjectId, QualifiedName, RelativePath,
+    Snapshot, SnapshotId, Symbol, SymbolId, SymbolName,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 
-use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from};
+use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from, small_from};
 use crate::error::StorageResult;
 use crate::sql;
 use crate::store::SqliteStore;
@@ -139,9 +141,20 @@ fn detail(
     let Some((symbol, path)) = find_symbol(conn, snapshot, key)? else {
         return Ok(None);
     };
+    let same_name: i64 = conn
+        .prepare_cached(sql::SYMBOL_SAME_NAME_COUNT)?
+        .query_row(
+            params![
+                snapshot,
+                symbol.qualified_name.as_str(),
+                column_int(symbol.id.get())?
+            ],
+            |row| row.get(0),
+        )?;
     Ok(Some(SymbolDetail {
         members: members(conn, snapshot, symbol.id)?,
         metrics: metrics(conn, snapshot, symbol.id)?,
+        same_name: small_from(same_name)?,
         symbol,
         path,
     }))
@@ -162,7 +175,49 @@ impl SqliteStore {
     }
 }
 
+/// The places in the lines of a file where a symbol is named.
+fn code_spans(
+    conn: &Connection,
+    snapshot: i64,
+    path: &RelativePath,
+    (first, last): (u32, u32),
+) -> StorageResult<Vec<CodeSpan>> {
+    let mut prepared = conn.prepare_cached(sql::SPANS_IN_LINES)?;
+    let rows = prepared.query_map(params![snapshot, path.as_str(), first, last], |row| {
+        let cols = Cols::new(row);
+        Ok((cols.take::<i64>()?, SpanColumns::read(&cols)?))
+    })?;
+    let mut spans = Vec::new();
+    for row in rows {
+        let (to, columns) = row?;
+        spans.push(CodeSpan {
+            to: SymbolId::new(id_from(to)?),
+            span: columns.span()?,
+        });
+    }
+    Ok(spans)
+}
+
 impl CodeIndex for SqliteStore {
+    fn search_files(
+        &self,
+        snapshot: SnapshotId,
+        query: &str,
+        limit: u32,
+    ) -> Result<Vec<FileHit>, CodedError> {
+        Self::search_files(self, snapshot, query, limit)
+    }
+
+    fn code_spans(
+        &self,
+        snapshot: SnapshotId,
+        path: &RelativePath,
+        lines: (u32, u32),
+    ) -> Result<Vec<CodeSpan>, CodedError> {
+        self.read(|conn| code_spans(conn, column_int(snapshot.get())?, path, lines))
+            .map_err(CodedError::from)
+    }
+
     fn latest_snapshot(&self, project: ProjectId) -> Result<Option<Snapshot>, CodedError> {
         Self::latest_snapshot(self, project)
     }
@@ -186,5 +241,17 @@ impl CodeIndex for SqliteStore {
 
     fn layer_edges(&self, snapshot: SnapshotId) -> Result<Vec<LayerEdge>, CodedError> {
         Self::layer_edges(self, snapshot)
+    }
+
+    fn namespace_graph(&self, snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError> {
+        Self::namespace_graph(self, snapshot)
+    }
+
+    fn type_focus(
+        &self,
+        snapshot: SnapshotId,
+        symbol: SymbolId,
+    ) -> Result<Option<TypeFocus>, CodedError> {
+        Self::type_focus(self, snapshot, symbol)
     }
 }
