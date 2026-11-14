@@ -190,7 +190,7 @@ async fn pump(
         heard: Instant::now(),
         pinged: Instant::now(),
     };
-    let mut slow = SlowSends::default();
+    let mut waits = SlowSends::default();
     loop {
         if stop.has_changed().unwrap_or(true) {
             close(&mut socket, close_code::AWAY).await;
@@ -201,7 +201,7 @@ async fn pump(
                 let Ok(text) = serde_json::to_string(&WireEvent::from(&event)) else {
                     continue;
                 };
-                if !send_within(&mut socket, Message::Text(text.into()), &mut slow).await {
+                if !send_within(&mut socket, Message::Text(text.into()), &mut waits).await {
                     break;
                 }
             }
