@@ -582,7 +582,9 @@ fn a_version_ten_database_keeps_its_layers_without_a_limit() {
     let layers = store.project(PROJECT).unwrap().layers;
     assert_eq!(layers.len(), 1);
     assert_eq!(layers[0].may_use, None);
+}
 
+#[test]
 fn a_write_blocked_by_another_connection_fails_with_a_lock_conflict() {
     let db = TempDb::new();
     let options = StoreOptions {
