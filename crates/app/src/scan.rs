@@ -323,17 +323,8 @@ fn with_layers(
     Ok(project)
 }
 
-/// The project of this source: the registered one, or a new one.
+/// The project of this source: the registered one, or a new one (one transaction in the store,
+/// so concurrent scans of different sources never share an id).
 fn register(store: &SqliteStore, spec: SourceSpec) -> Result<Project, CodedError> {
-    if let Some(known) = store.project_by_source(&spec.source)? {
-        return Ok(known);
-    }
-    let project = Project {
-        id: store.next_project_id()?,
-        name: spec.name,
-        source: spec.source,
-        layers: Vec::new(),
-    };
-    store.save_project(&project)?;
-    Ok(project)
+    store.register_project(spec.name, spec.source)
 }
