@@ -1,6 +1,7 @@
 import { createSignal } from "solid-js";
 import { runCommand } from "../../shared/api/commands";
-import { COMMAND, GROUP } from "./consts";
+import { pendingFocus, requestFocus } from "../../shared/navigation/navigation";
+import { COMMAND, GROUP, NOT_FOUND, TYPE_KINDS } from "./consts";
 import { failed, type Failure } from "./failure";
 import { groupKey, groupOfKind, memberKey, revealKeys, typeKey } from "./tree";
 import type { Outline, SymbolInfo } from "./types";
@@ -17,15 +18,6 @@ const [selectedType, setSelectedType] = createSignal<number | null>(null);
 const [selectedMember, setSelectedMember] = createSignal<number | null>(null);
 const [filter, setFilter] = createSignal("");
 const [cursor, setCursor] = createSignal<string | null>(null);
-const [pending, setPending] = createSignal<Focus | null>(null);
-
-/** Where another screen (the quick search) wants the tree to go: a type, or a member of it. */
-export interface Focus {
-  type: number;
-  member: number | null;
-  /** Kind of the member, to open the group that holds it. */
-  kind: string | null;
-}
 
 /** Counts the projects read so far; an answer for an earlier one is dropped. */
 let generation = 0;
@@ -50,8 +42,6 @@ export const currentMember = selectedMember;
 export const treeCursor = cursor;
 export const setTreeCursor = setCursor;
 /** The navigation that waits for the tree to be read. */
-export const pendingFocus = pending;
-export const requestFocus = setPending;
 /** What the filter field holds. */
 export const treeFilter = filter;
 export const setTreeFilter = setFilter;
@@ -147,6 +137,22 @@ export async function selectType(
   await loadSymbol(project, id);
 }
 
+/** Moves the selection to the previous (`-1`) or next (`1`) member of the shown type, in the order
+ * of the member table; with no member selected it starts at the first or the last one. A nested
+ * type is not a member of the source and is skipped. Stops at the ends. */
+export async function stepMember(project: number, step: number): Promise<void> {
+  const type = selectedType();
+  const members = (type === null ? undefined : details().get(type))?.members ?? [];
+  const own = members.filter((member) => !TYPE_KINDS.includes(member.kind));
+  if (type === null || own.length === 0) {
+    return;
+  }
+  const at = own.findIndex((member) => member.id === selectedMember());
+  const start = step > 0 ? NOT_FOUND : own.length;
+  const next = Math.min(own.length - 1, Math.max(0, (at === NOT_FOUND ? start : at) + step));
+  await selectType(project, type, own[next]?.id ?? null);
+}
+
 /** Opens or closes a type row; an opened type is read, so its groups can show. */
 export async function toggleType(project: number, id: number): Promise<void> {
   if (toggleRow(typeKey(id))) {
@@ -165,11 +171,11 @@ export async function revealNested(project: number, parent: number, id: number):
  * member), shows the type and puts the cursor on the row. External navigation opens nodes
  * (blueprint 15.4). */
 export async function applyFocus(project: number, tree: Outline): Promise<void> {
-  const target = pending();
+  const target = pendingFocus();
   if (target === null) {
     return;
   }
-  setPending(null);
+  requestFocus(null);
   const group = target.kind === null ? null : groupOfKind(target.kind);
   openRows([
     ...revealKeys(tree, target.type),

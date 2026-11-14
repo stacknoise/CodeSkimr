@@ -1,9 +1,9 @@
 import { createSignal } from "solid-js";
 import { navigate } from "../../app/router";
-import { EXPLORER_ROUTE, USAGES_ROUTE } from "../../app/consts";
+import { EXPLORER_ROUTE } from "../../app/consts";
 import { runCommand } from "../../shared/api/commands";
+import { focusSymbol, requestFocus, setFocusSymbol } from "../../shared/navigation/navigation";
 import { COMMAND, TYPE_KINDS } from "../explorer/consts";
-import { requestFocus } from "../explorer/explorer";
 import { failed, type Failure } from "../explorer/failure";
 import type { SymbolInfo } from "../explorer/types";
 import {
@@ -18,7 +18,6 @@ import {
 import { codeByPlace } from "./hits";
 import type { CodeAnswer, Place, UsagesAnswer } from "./types";
 
-const [focus, setFocus] = createSignal<number | null>(null);
 const [way, setWay] = createSignal<Way>(WAY.both);
 const [depth, setDepth] = createSignal(DEFAULT_DEPTH);
 const [showTests, setShowTests] = createSignal(DEFAULT_SHOW_TESTS);
@@ -32,7 +31,7 @@ const [code, setCode] = createSignal<Map<string, string>>(new Map());
 let generation = 0;
 
 /** The symbol the screen shows, `null` until one is chosen. */
-export const focusSymbol = focus;
+export { focusSymbol };
 /** The directions, the depth and the tests flag of the toolbar. */
 export const direction = way;
 export const setDirection = setWay;
@@ -101,17 +100,11 @@ async function loadCode(input: Record<string, unknown>, mine: number): Promise<v
  * usages. */
 export function clearUsages(): void {
   generation += 1;
-  setFocus(null);
+  setFocusSymbol(null);
   setAnswer(null);
   setCode(new Map());
   setFailure(null);
   setLoading(false);
-}
-
-/** Shows the usages of a symbol: from the explorer, or from a card of the graph. */
-export function showUsages(symbol: number): void {
-  setFocus(symbol);
-  navigate(USAGES_ROUTE.path);
 }
 
 /** Shows the symbol in the explorer: a type itself, a member within the type that holds it. The
