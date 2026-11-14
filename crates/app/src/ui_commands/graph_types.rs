@@ -2,7 +2,7 @@
 //! row above, the types it uses in the row below. Placed by the same layout as the other levels,
 //! with the rows fixed (blueprint 15.5, screen 3, "type focus").
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use codeskimr_application::config::Graph;
 use codeskimr_application::error::CodedError;
@@ -12,12 +12,17 @@ use codeskimr_domain::{
     LayoutEdge, LayoutGraph, LayoutNode, NodeIndex, Project, SnapshotId, SymbolId,
 };
 
-use super::consts::{TYPE_ROW_FOCUS, TYPE_ROW_USED, TYPE_ROW_USERS, TYPE_SIDE_MAX};
+use super::consts::{
+    BOX_ID_SEPARATOR, TYPE_ROW_FOCUS, TYPE_ROW_USED, TYPE_ROW_USERS, TYPE_SIDE_MAX,
+};
 use super::graph::{BoxOut, FocusOut, GraphOut, GraphPorts, LinkOut};
 
-/// One type that is drawn: its id, name and row.
+/// One type that is drawn: its id, qualified name, the name of its box and its row. The box name
+/// is the qualified name, with the id added if another drawn type has the same one, so that the
+/// links and the selection of the picture can tell the two apart.
 struct Drawn {
     symbol: u64,
+    qualified: String,
     name: String,
     row: u32,
 }
@@ -28,7 +33,8 @@ fn drawn(found: &TypeFocus) -> Vec<Drawn> {
     let mut seen = BTreeSet::new();
     let mut all = vec![Drawn {
         symbol: found.focus.id.get(),
-        name: found.focus.qualified_name.to_string(),
+        qualified: found.focus.qualified_name.to_string(),
+        name: String::new(),
         row: TYPE_ROW_FOCUS,
     }];
     seen.insert(found.focus.id.get());
@@ -37,16 +43,39 @@ fn drawn(found: &TypeFocus) -> Vec<Drawn> {
             if seen.insert(neighbour.label.id.get()) {
                 all.push(Drawn {
                     symbol: neighbour.label.id.get(),
-                    name: neighbour.label.qualified_name.to_string(),
+                    qualified: neighbour.label.qualified_name.to_string(),
+                    name: String::new(),
                     row,
                 });
             }
         }
     }
+    name_boxes(&mut all);
     all
 }
 
-fn links(found: &TypeFocus) -> Vec<LinkOut> {
+/// Gives every drawn type the name of its box.
+fn name_boxes(all: &mut [Drawn]) {
+    let mut count: BTreeMap<String, usize> = BTreeMap::new();
+    for one in all.iter() {
+        *count.entry(one.qualified.clone()).or_default() += 1;
+    }
+    for one in all.iter_mut() {
+        one.name = if count.get(&one.qualified).copied().unwrap_or(0) > 1 {
+            format!("{}{BOX_ID_SEPARATOR}{}", one.qualified, one.symbol)
+        } else {
+            one.qualified.clone()
+        };
+    }
+}
+
+fn links(found: &TypeFocus, types: &[Drawn]) -> Vec<LinkOut> {
+    let boxed = |id: SymbolId| {
+        types
+            .iter()
+            .find(|one| one.symbol == id.get())
+            .map(|one| one.name.as_str())
+    };
     let name = |label: &str, other: &str, count, towards_focus: bool| {
         let (from, to) = if towards_focus {
             (label, other)
@@ -61,17 +90,13 @@ fn links(found: &TypeFocus) -> Vec<LinkOut> {
             in_cycle: false,
         }
     };
-    let middle = found.focus.qualified_name.as_str();
+    let middle = boxed(found.focus.id).unwrap_or_default();
     let side = |list: &[TypeNeighbour], towards_focus: bool| -> Vec<LinkOut> {
         list.iter()
             .take(TYPE_SIDE_MAX)
-            .map(|one| {
-                name(
-                    one.label.qualified_name.as_str(),
-                    middle,
-                    one.count,
-                    towards_focus,
-                )
+            .filter_map(|one| {
+                let label = boxed(one.label.id)?;
+                Some(name(label, middle, one.count, towards_focus))
             })
             .collect()
     };
@@ -137,10 +162,10 @@ pub(super) fn types_out(
         .transpose()?
         .ok_or_else(|| CodedError::new(ErrorCode::SymbolNotFound))?;
     let types = drawn(&found);
-    let links = links(&found);
+    let links = links(&found, &types);
     let mut boxes = place(&ports.look, &types, &links)?;
-    for one in &mut boxes {
-        one.layer = project.layer_name_of(&one.name);
+    for (one, drawn) in boxes.iter_mut().zip(&types) {
+        one.layer = project.layer_name_of(&drawn.qualified);
     }
     let reach = |pick: fn(&BoxOut) -> u32| boxes.iter().map(pick).max().unwrap_or(0);
     let hidden = |list: &[TypeNeighbour]| u32::try_from(list.len().saturating_sub(TYPE_SIDE_MAX));
@@ -149,7 +174,10 @@ pub(super) fn types_out(
         height: reach(|one| one.y + one.height),
         focus: Some(FocusOut {
             symbol: found.focus.id.get(),
-            name: found.focus.qualified_name.to_string(),
+            name: types
+                .first()
+                .map(|one| one.name.clone())
+                .unwrap_or_default(),
             users_more: hidden(&found.users).unwrap_or(u32::MAX),
             used_more: hidden(&found.used).unwrap_or(u32::MAX),
         }),
@@ -157,4 +185,30 @@ pub(super) fn types_out(
         links,
         ..GraphOut::default()
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn drawn_as(symbol: u64, qualified: &str) -> Drawn {
+        Drawn {
+            symbol,
+            qualified: qualified.to_owned(),
+            name: String::new(),
+            row: TYPE_ROW_USERS,
+        }
+    }
+
+    #[test]
+    fn two_types_of_the_same_name_get_their_ids_and_the_others_keep_their_name() {
+        let mut all = [
+            drawn_as(1, "Demo.Cart"),
+            drawn_as(2, "Demo.Price"),
+            drawn_as(3, "Demo.Cart"),
+        ];
+        name_boxes(&mut all);
+        let names: Vec<&str> = all.iter().map(|one| one.name.as_str()).collect();
+        assert_eq!(names, ["Demo.Cart #1", "Demo.Price", "Demo.Cart #3"]);
+    }
 }

@@ -839,18 +839,23 @@ fn type_named(fixture: &Fixture, project: u64, name: &str) -> Value {
         .clone()
 }
 
+/// The map of the type level around `focus`.
+fn type_map(fixture: &Fixture, project: u64, focus: &Value) -> Value {
+    fixture
+        .call(
+            "graph.layers",
+            json!({ "project": project, "level": "types", "focus": focus }),
+        )
+        .unwrap()
+}
+
 #[test]
 fn the_type_level_puts_the_type_in_the_middle_between_its_users_and_what_it_uses() {
     let fixture = Fixture::new();
     fs::write(fixture.root.path().join("app/Checkout.cs"), CALLER).unwrap();
     let project = added(&fixture);
     let calculator = type_named(&fixture, project, "Calculator");
-    let map = fixture
-        .call(
-            "graph.layers",
-            json!({ "project": project, "level": "types", "focus": calculator }),
-        )
-        .unwrap();
+    let map = type_map(&fixture, project, &calculator);
     assert_eq!(map["focus"]["symbol"], calculator);
     assert_eq!(map["focus"]["users_more"], 0);
     let boxes = map["boxes"].as_array().unwrap();
