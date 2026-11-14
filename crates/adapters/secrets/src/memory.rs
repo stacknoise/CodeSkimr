@@ -102,8 +102,8 @@ mod platform {
             rlim_max: 0,
         };
         // SAFETY: `none` is a valid, initialised `rlimit` that lives for the whole call.
-        let limited = unsafe { libc::setrlimit(libc::RLIMIT_CORE, &raw const none) } == 0;
-        limited && not_dumpable()
+        let capped = unsafe { libc::setrlimit(libc::RLIMIT_CORE, &raw const none) } == 0;
+        capped && not_dumpable()
     }
 
     /// Also keeps other processes from reading the memory through `ptrace` or `/proc` (Linux).
