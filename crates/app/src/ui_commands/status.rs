@@ -39,7 +39,7 @@ pub struct StatusOut {
     pub memory_mb: Option<u64>,
     /// The time budgets of blueprint 16.1 in the configuration, for the performance screen.
     pub budgets: BudgetTargets,
-    /// How many threads the analyze stage of a scan uses (one per core the system offers).
+    /// How many threads the analyze stage of a scan uses (one per core the system offers, at most `scan.max_workers`).
     pub workers: u32,
 }
 
@@ -92,6 +92,8 @@ fn memory_mb() -> Option<u64> {
 /// Reports how long the start took and how much memory the program holds.
 pub struct StatusInfo {
     pub(super) budgets: BudgetTargets,
+    /// `scan.max_workers` of the configuration.
+    pub(super) max_workers: u32,
 }
 
 impl Command for StatusInfo {
@@ -113,7 +115,7 @@ impl Command for StatusInfo {
             startup_ms: startup_ms(),
             memory_mb: memory_mb(),
             budgets: self.budgets,
-            workers: u32::try_from(analyze_workers()).unwrap_or(u32::MAX),
+            workers: u32::try_from(analyze_workers(self.max_workers)).unwrap_or(u32::MAX),
         })
     }
 }

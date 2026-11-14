@@ -93,6 +93,8 @@ pub mod keys {
     pub const DUPLICATE_SIMILARITY_PERCENT: &str = "conventions.duplicate_similarity_percent";
     /// `conventions.duplicate_min_lines`
     pub const DUPLICATE_MIN_LINES: &str = "conventions.duplicate_min_lines";
+    /// `conventions.duplicate_max_owners`
+    pub const DUPLICATE_MAX_OWNERS: &str = "conventions.duplicate_max_owners";
     /// `watcher.debounce_ms`
     pub const DEBOUNCE_MS: &str = "watcher.debounce_ms";
     /// `watcher.max_wait_ms`

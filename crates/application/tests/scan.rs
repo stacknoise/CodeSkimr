@@ -330,6 +330,7 @@ fn scanner(world: &Arc<World>, bus: &EventBus) -> Scanner {
         projects: world.clone(),
         store: world.clone(),
         clock: world.clone(),
+        max_workers: 0,
     };
     Scanner::new(ports, &Arc::new(IdSequence::starting_at(1)), bus.clone())
 }
@@ -1034,4 +1035,13 @@ fn an_incremental_scan_with_the_same_naming_rules_stays_incremental() -> Result<
     assert_eq!(job.snapshot().mode, ScanMode::Incremental);
     assert_eq!(world.last_persisted()?.parse_micros, Vec::new());
     Ok(())
+}
+
+#[test]
+fn the_worker_limit_caps_the_threads_and_zero_means_all_cores() {
+    use codeskimr_application::pipeline::analyze_workers;
+    let cores = analyze_workers(0);
+    assert!(cores >= 1);
+    assert_eq!(analyze_workers(1), 1);
+    assert_eq!(analyze_workers(u32::MAX), cores);
 }

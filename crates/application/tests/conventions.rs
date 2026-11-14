@@ -164,6 +164,7 @@ mod tests {
             max_function_lines: 40,
             duplicate_similarity_percent: 85,
             duplicate_min_lines: 5,
+            duplicate_max_owners: 50,
             test_folders: vec!["spec".to_owned()],
         }
     }
@@ -265,6 +266,7 @@ mod tests {
     fn small_functions_are_not_compared_for_duplicates() {
         let limits = Conventions {
             duplicate_min_lines: 100,
+            duplicate_max_owners: 50,
             ..limits()
         };
         let report = run(

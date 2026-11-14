@@ -20,6 +20,7 @@ use codeskimr_storage::SqliteStore;
 
 use crate::config_files;
 use crate::consts::LOG_TOOL_CHECK_FAILED;
+use crate::cpu_time::{process_cpu_time, seconds_since};
 use crate::locations::Locations;
 use crate::principal;
 use crate::source_arg::{SourceError, SourceSpec, classify};
@@ -127,6 +128,7 @@ impl Session {
 
     fn run_job(&self, job: Job<Queued>) -> Result<ScanSummary, CodedError> {
         let started = Instant::now();
+        let cpu_start = process_cpu_time();
         let mode = job.mode();
         match self.scanner.run(&self.principal, job) {
             JobResult::Finished(job) => {
@@ -139,6 +141,7 @@ impl Session {
                     symbols: snapshot.stats.symbols,
                     references: snapshot.stats.references,
                     seconds,
+                    cpu_seconds: seconds_since(cpu_start),
                     level2: job.level2().iter().map(level2_line).collect(),
                     tools: self.check_tools(mode),
                 })

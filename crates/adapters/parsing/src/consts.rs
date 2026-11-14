@@ -128,6 +128,9 @@ pub const CALLABLE_KINDS: [SymbolKind; 3] = [
     SymbolKind::Constructor,
 ];
 
+/// Fewest threads that load language packs.
+pub const MIN_LOAD_THREADS: usize = 1;
+
 /// Reason of the error when the thread that loads a pack panics.
 pub const LOAD_PANICKED: &str = "loading the pack panicked";
 

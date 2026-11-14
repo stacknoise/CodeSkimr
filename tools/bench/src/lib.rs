@@ -8,6 +8,7 @@ pub mod args;
 pub mod compare;
 pub mod config;
 pub mod consts;
+pub mod cpu;
 pub mod error;
 pub mod estimates;
 pub mod random;

@@ -40,6 +40,8 @@ pub struct ScannerPorts {
     pub store: Arc<dyn SnapshotStore>,
     /// Current time.
     pub clock: Arc<dyn Clock>,
+    /// Most threads that analyse files at the same time; 0 means one per core (`scan.max_workers`).
+    pub max_workers: u32,
 }
 
 /// The six stages in order, with every type spelled out by the compiler.
@@ -86,6 +88,7 @@ impl Scanner {
         .then(AnalyzeStage {
             analyzer: ports.analyzer,
             ids: Arc::clone(ids),
+            max_workers: ports.max_workers,
         })
         .then(ResolveStage {
             resolver: ports.resolver,
