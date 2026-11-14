@@ -54,3 +54,9 @@ export const gen = function* () {};
 module.exports = {
   helper() {},
 };
+
+const limits = { LIMIT };
+for (const key in limits) {
+  limits[key];
+}
+const picked = LIMIT > 1 ? limits.LIMIT : limits.size;

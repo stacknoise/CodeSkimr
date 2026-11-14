@@ -111,6 +111,8 @@
    alternative: (member_access_expression name: (identifier) @name)]) @reference.read
 ; The receiver of a member access: a variable or a type
 (member_access_expression expression: (identifier) @name) @reference.read
+; A member that is itself the receiver of a chain: `Against` in `Guard.Against.Null(x)` (issue #183)
+(member_access_expression expression: (member_access_expression name: (identifier) @name)) @reference.read
 ; Null-conditional access: `a?.B`, `a?.B?.C` and `a?[0]` read the receiver `a` and the member `B`
 ; (`a?.B()` is a call: the extraction keeps the call only).
 (conditional_access_expression condition: (identifier) @name) @reference.read

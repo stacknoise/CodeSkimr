@@ -197,4 +197,12 @@ mod tests {
         let field = receiver_usages("NullConditional._field");
         assert!(field.contains(&(60, Confidence::Certain)));
     }
+
+    #[test]
+    fn a_property_that_only_starts_a_chain_is_a_usage() {
+        // `Guard.Against.Null(count)` uses the property `Against` (0-based line 71), issue #183.
+        let against = receiver_usages("Guard.Against");
+        assert_eq!(lines(&against), [71]);
+        assert_eq!(lines(&receiver_usages("Clause.Null")), [71]);
+    }
 }

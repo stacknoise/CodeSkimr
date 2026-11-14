@@ -61,6 +61,16 @@
   [condition: (identifier) @name
    consequence: (identifier) @name
    alternative: (identifier) @name]) @reference.read
+; The collection of `for (x of xs)` and `for (k in obj)`, the shorthand `{ a }` and the member
+; branches of a conditional (issue #81).
+(for_in_statement
+  right: [(identifier) @name
+          (member_expression property: (property_identifier) @name)]) @reference.read
+(object (shorthand_property_identifier) @name) @reference.read
+(ternary_expression
+  [condition: (member_expression property: (property_identifier) @name)
+   consequence: (member_expression property: (property_identifier) @name)
+   alternative: (member_expression property: (property_identifier) @name)]) @reference.read
 ; The receiver of a member access: a variable or a type
 (member_expression object: (identifier) @name) @reference.read
 
