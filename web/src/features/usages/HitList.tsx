@@ -12,6 +12,7 @@ import {
   SCROLL_NEAREST,
   REF,
   REF_LABEL,
+  ROLE,
   STATE,
   TRUE,
   type State,
@@ -74,7 +75,7 @@ export function HitList(props: { answer: UsagesAnswer; hits: Hit[]; onOpen: (hit
   const kinds = () => countKinds(props.hits);
   const walk = () => props.answer.incoming ?? props.answer.outgoing;
   return (
-    <div class={styles.list}>
+    <div class={styles.list} role={ROLE.region} aria-label={t(I18N_KEYS.USAGES_HITS_LABEL)}>
       <div class={styles.head}>
         <b>{t(I18N_KEYS.USAGES_HITS, { count: props.hits.length })}</b>
         <Show when={kinds().tests > 0}>

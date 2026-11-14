@@ -41,4 +41,22 @@ test.describe("the usages screen", () => {
     await expect(page.getByRole("tree")).toBeVisible();
     expect(await violations()).toEqual([]);
   });
+
+  test("keeps the hit list in view however many callers there are", async ({ page, harness }) => {
+    const callers = Array.from(
+      { length: 40 },
+      (_, index) => `public class Caller${index} { int Run(Calculator c) { return c.Add(1, 2); } }`,
+    );
+    const source = [SOURCE, ...callers, ""].join("\n");
+    const row = await addScannedProject(page, harness, "usagesmany", source);
+    await selectAdd(page, row, "usagesmany.Demo");
+    await page.keyboard.press("u");
+    await expect(page.getByText("Hits 41")).toBeVisible();
+    await expect(page.getByText("Number = places")).toBeVisible();
+    const list = page.getByRole("region", { name: "Hits" });
+    const box = await list.boundingBox();
+    const viewport = page.viewportSize();
+    expect(box).not.toBeNull();
+    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(viewport?.height ?? 0);
+  });
 });

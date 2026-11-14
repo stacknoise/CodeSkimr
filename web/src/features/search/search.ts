@@ -7,6 +7,7 @@ import { TYPE_KINDS } from "../explorer/consts";
 import { requestFocus } from "../explorer/explorer";
 import { FILTER, MS_DIGITS, SEARCH_COMMAND, type Filter } from "./consts";
 import { parseQuery } from "./parse";
+import { resetPreview } from "./preview";
 import type { Hit, SearchResult } from "./types";
 
 const [open, setOpen] = createSignal(false);
@@ -16,6 +17,7 @@ const [hits, setHits] = createSignal<Hit[]>([]);
 const [scanned, setScanned] = createSignal(true);
 const [failed, setFailed] = createSignal(false);
 const [took, setTook] = createSignal<number | null>(null);
+const [entries, setEntries] = createSignal<number | null>(null);
 const [selected, setSelected] = createSignal(0);
 
 /** Counts the searches started; the answer of an earlier one is dropped. */
@@ -27,6 +29,8 @@ export const searchOpen = open;
 export const searchText = raw;
 /** The chip that is on. A prefix in the input wins over it. */
 export const searchChip = chip;
+/** How many symbols the index holds, known after the first search of the project. */
+export const searchEntries = entries;
 /** The symbols found. */
 export const searchHits = hits;
 /** Whether the project has a scan to search. */
@@ -49,6 +53,7 @@ export function openSearch(): void {
   setChip(FILTER.all);
   setHits([]);
   setTook(null);
+  setEntries(null);
   setFailed(false);
   setSelected(0);
   setOpen(true);
@@ -57,6 +62,7 @@ export function openSearch(): void {
 /** Hides the overlay. */
 export function closeSearch(): void {
   sequence += 1;
+  resetPreview();
   setOpen(false);
 }
 
@@ -78,6 +84,7 @@ export async function runSearch(): Promise<void> {
     if (mine === sequence) {
       setHits(found.hits);
       setScanned(found.snapshot !== null);
+      setEntries(found.entries ?? null);
       setFailed(false);
       setTook(Number((performance.now() - started).toFixed(MS_DIGITS)));
     }

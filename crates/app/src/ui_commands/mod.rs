@@ -43,7 +43,7 @@ use credentials::{DeleteCredential, ListCredentials, SetCredential};
 use explorer::{ExplorerOutline, ExplorerPorts};
 pub(crate) use export::{ExportInput, HtmlExport};
 use graph::{GraphLayers, GraphPorts};
-use projects::{AddProject, CheckTools, ListProjects, RescanProject};
+use projects::{AddProject, CancelScan, CheckTools, ListProjects, RescanProject};
 use running::RunningScans;
 use search::{SearchPorts, SearchQuery};
 use source::ExplorerSource;
@@ -139,6 +139,7 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<AddProject>()?;
     api.expose::<RescanProject>()?;
     api.expose::<CheckTools>()?;
+    api.expose::<CancelScan>()?;
     api.expose::<ListCredentials>()?;
     api.expose::<SetCredential>()?;
     api.expose::<DeleteCredential>()?;
@@ -173,6 +174,11 @@ fn register_projects(
     registry
         .register(RescanProject {
             catalog: catalog.clone(),
+            context: Arc::clone(context),
+        })
+        .map_err(CodedError::caused_by)?;
+    registry
+        .register(CancelScan {
             context: Arc::clone(context),
         })
         .map_err(CodedError::caused_by)

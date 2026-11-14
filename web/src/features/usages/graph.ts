@@ -2,6 +2,7 @@ import {
   COLUMN,
   CONFIDENCE,
   END,
+  FIRST_LEVEL,
   GRAPH,
   JOIN_NONE,
   PAIR_SEPARATOR,
@@ -13,7 +14,7 @@ import {
   type Tone,
 } from "./consts";
 import { shortName } from "./names";
-import type { Hit, Place, UsagesAnswer } from "./types";
+import type { Hit, Place, UsagesAnswer, Walk } from "./types";
 
 /** A column of the graph with its heading. */
 export interface Column {
@@ -127,11 +128,14 @@ interface Side {
   kind: ColumnKind;
   nodes: Map<number, Node>;
   hits: Hit[];
+  /** The walk of this side was asked for. */
+  requested: boolean;
 }
 
-function sideOf(kind: ColumnKind, hits: Hit[], focus: number): Side {
+function sideOf(kind: ColumnKind, walk: Walk | null, focus: number): Side {
   const end = kind === COLUMN.callers ? END.from : END.to;
-  return { kind, nodes: nodesOf(hits, end, focus), hits };
+  const hits = walk?.hits ?? [];
+  return { kind, nodes: nodesOf(hits, end, focus), hits, requested: walk !== null };
 }
 
 function stack(side: Side, reach: number, cards: Map<string, Card>, columns: Column[]): void {
@@ -191,11 +195,21 @@ function edgesOf(side: Side, cards: Map<string, Card>, focus: Card): Edge[] {
   return edges;
 }
 
+/** Keeps the column "calls / reads" even when nothing is called, as the mock does. */
+function keepCalleesColumn(columns: Column[], callees: Side, reach: number): void {
+  if (callees.hits.length > 0 || !callees.requested) {
+    return;
+  }
+  const index = columnOf(reach, COLUMN.callees, FIRST_LEVEL);
+  const x = GRAPH.left + index * (GRAPH.columnWidth + GRAPH.columnGap);
+  columns.push({ kind: COLUMN.callees, level: FIRST_LEVEL, x, hidden: 0 });
+}
+
 /** Lays the walks of an answer out as columns of cards and the lines between them (mock 6). */
 export function buildGraph(answer: UsagesAnswer): Graph {
   const focusId = answer.symbol.id;
-  const callers = sideOf(COLUMN.callers, answer.incoming?.hits ?? [], focusId);
-  const callees = sideOf(COLUMN.callees, answer.outgoing?.hits ?? [], focusId);
+  const callers = sideOf(COLUMN.callers, answer.incoming, focusId);
+  const callees = sideOf(COLUMN.callees, answer.outgoing, focusId);
   const reach = Math.max(0, ...[...callers.nodes.values()].map((node) => node.level));
   const cards = new Map<string, Card>();
   const columns: Column[] = [];
@@ -218,7 +232,11 @@ export function buildGraph(answer: UsagesAnswer): Graph {
     test: false,
   };
   columns.push({ kind: COLUMN.focus, level: 0, x: focusX, hidden: 0 });
-  const last = Math.max(0, ...[...callees.nodes.values()].map((node) => node.level));
+  const last = Math.max(
+    answer.outgoing === null ? 0 : FIRST_LEVEL,
+    ...[...callees.nodes.values()].map((node) => node.level),
+  );
+  keepCalleesColumn(columns, callees, reach);
   return {
     columns,
     cards: [focus, ...cards.values()],

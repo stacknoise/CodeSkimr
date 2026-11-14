@@ -5,6 +5,7 @@ use std::sync::Arc;
 use std::time::Instant;
 
 use codeskimr_application::access;
+use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
@@ -92,13 +93,26 @@ impl Session {
     /// Runs one scan in `mode` and reports what it found, with what the check of the tools found.
     ///
     /// # Errors
-    /// The code of the failed stage, or `APP-901` if the scan was cancelled (nothing cancels it here).
+    /// The code of the failed stage, or `PRJ-303` if the scan was cancelled (nothing cancels it
+    /// here).
     pub fn scan(&self, mode: ScanMode) -> Result<ScanSummary, CodedError> {
+        self.scan_with(mode, drop)
+    }
+
+    /// Like [`Session::scan`], but hands the token that cancels this scan to `on_token` before
+    /// the scan starts.
+    ///
+    /// # Errors
+    /// The same as [`Session::scan`].
+    pub fn scan_with(
+        &self,
+        mode: ScanMode,
+        on_token: impl FnOnce(CancelToken),
+    ) -> Result<ScanSummary, CodedError> {
         let started = Instant::now();
-        match self
-            .scanner
-            .run(&self.principal, Job::new(self.project.id, mode))
-        {
+        let job = Job::new(self.project.id, mode);
+        on_token(job.cancel_token());
+        match self.scanner.run(&self.principal, job) {
             JobResult::Finished(job) => {
                 let snapshot = job.snapshot();
                 let seconds = started.elapsed().as_secs_f64();
@@ -113,7 +127,7 @@ impl Session {
                 })
             }
             JobResult::Failed(job) => Err(CodedError::new(job.code())),
-            JobResult::Cancelled(_) => Err(CodedError::new(ErrorCode::UnexpectedInternalError)),
+            JobResult::Cancelled(_) => Err(CodedError::new(ErrorCode::ScanCancelled)),
         }
     }
 }

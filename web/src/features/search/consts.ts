@@ -71,3 +71,6 @@ export const TRUE = "true";
 export const DIALOG = "dialog";
 /** Digits after the point of the time of a search. */
 export const MS_DIGITS = 0;
+
+/** The tiles of the metric strip that the preview of a hit shows, in this order (mock 4). */
+export const PREVIEW_TILES: readonly string[] = ["loc", "members", "mi"];
