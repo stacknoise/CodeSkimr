@@ -233,10 +233,23 @@ async fn send(socket: &mut WebSocket, message: Message) -> bool {
     )
 }
 
-/// Like [`send`], but also false once the slow sends of the stream have used up their budget.
-async fn send_within(socket: &mut WebSocket, message: Message, slow: &mut SlowSends) -> bool {
+/// Where messages of a stream go; the socket in the server, a stand-in in the tests.
+trait Outgoing {
+    /// Sends `message`; false if the client failed or was too slow for one send.
+    async fn push(&mut self, message: Message) -> bool;
+}
+
+impl Outgoing for WebSocket {
+    async fn push(&mut self, message: Message) -> bool {
+        send(self, message).await
+    }
+}
+
+/// Sends `message`, but returns false once the slow sends of the stream have used up their
+/// budget (or this one failed).
+async fn send_within(out: &mut impl Outgoing, message: Message, slow: &mut SlowSends) -> bool {
     let started = Instant::now();
-    let sent = send(socket, message).await;
+    let sent = out.push(message).await;
     slow.add(started.elapsed());
     sent && !slow.exhausted()
 }
@@ -283,6 +296,48 @@ mod tests {
     use codeskimr_domain::ProjectId;
 
     use super::*;
+
+    /// A client that takes `delay` for every message, a little less than the send timeout.
+    struct Slow {
+        delay: Duration,
+        sent: usize,
+    }
+
+    impl Outgoing for Slow {
+        async fn push(&mut self, _: Message) -> bool {
+            tokio::time::sleep(self.delay).await;
+            self.sent += 1;
+            true
+        }
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_client_that_always_beats_the_send_timeout_is_dropped_by_the_budget() {
+        let mut client = Slow {
+            delay: Duration::from_secs(9),
+            sent: usize::default(),
+        };
+        let mut slow = SlowSends::default();
+        while send_within(&mut client, Message::Text("x".into()), &mut slow).await {}
+        let spent = client.delay * u32::try_from(client.sent).unwrap();
+        assert!(spent > SOCKET_SLOW_BUDGET, "dropped too early: {spent:?}");
+        assert!(
+            spent <= SOCKET_SLOW_BUDGET + client.delay,
+            "dropped too late: {spent:?}"
+        );
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_prompt_client_is_never_dropped_by_the_budget() {
+        let mut client = Slow {
+            delay: Duration::from_millis(1),
+            sent: usize::default(),
+        };
+        let mut slow = SlowSends::default();
+        for _ in 0..1000 {
+            assert!(send_within(&mut client, Message::Text("x".into()), &mut slow).await);
+        }
+    }
 
     #[test]
     fn only_slow_sends_use_up_the_budget_and_enough_of_them_end_the_stream() {
