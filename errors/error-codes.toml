@@ -541,6 +541,22 @@ description = "The request body is larger than the server accepts."
 since = "0.1.0"
 
 [[codes]]
+id = "API-502"
+name = "server_busy"
+severity = "error"
+retryable = true
+description = "The server already serves as many event streams as it allows."
+since = "0.1.0"
+
+[[codes]]
+id = "API-503"
+name = "request_timed_out"
+severity = "error"
+retryable = true
+description = "The request took longer than the server waits for it."
+since = "0.1.0"
+
+[[codes]]
 id = "API-601"
 name = "server_not_reachable"
 severity = "error"

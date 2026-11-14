@@ -106,6 +106,29 @@ pub const NO_SNIFF_VALUE: &str = "nosniff";
 /// Name of the header that stops content sniffing.
 pub const NO_SNIFF_HEADER: &str = "x-content-type-options";
 
+/// Most connections the server holds at once. Further clients wait in the backlog of the
+/// system until a slot is free; an idle connection does not hold its slot for long.
+pub const MAX_CONNECTIONS: usize = 256;
+/// Most event streams (web sockets) at once; one more is refused with `API-502`.
+pub const MAX_EVENT_STREAMS: usize = 16;
+/// Events that wait for a slow client. A client that falls further behind is disconnected
+/// (close code "try again later") and connects again, so memory per stream stays bounded.
+pub const EVENT_BUFFER: usize = 256;
+/// How long a client may take to send the head of a request before the connection is closed.
+pub const HEADER_READ_TIMEOUT: Duration = Duration::from_secs(10);
+/// How long a client may take to send the body of a request.
+pub const BODY_READ_TIMEOUT: Duration = Duration::from_secs(30);
+/// How long one message to a WebSocket client may take before the client is dropped.
+pub const SOCKET_SEND_TIMEOUT: Duration = Duration::from_secs(10);
+/// How often an idle event stream sends a ping, so that a client that left is noticed.
+pub const SOCKET_PING_INTERVAL: Duration = Duration::from_secs(20);
+/// How long an event stream may hear nothing from the client, not even an answer to a ping.
+pub const SOCKET_IDLE_LIMIT: Duration = Duration::from_secs(90);
+/// Reason text of the close frame of a stream that was cut off.
+pub const SOCKET_CLOSE_REASON: &str = "stream ended";
+/// Pause after a failed `accept` so that a full file table does not spin the loop.
+pub const ACCEPT_RETRY: Duration = Duration::from_millis(100);
+
 /// How often the thread that carries events to a socket checks whether the socket is gone.
 pub const EVENT_POLL: Duration = Duration::from_millis(200);
 /// Name of the thread that carries events to a socket.

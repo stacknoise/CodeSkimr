@@ -572,6 +572,8 @@ dependencies = [
  "codeskimr_codes",
  "codeskimr_domain",
  "getrandom 0.4.3",
+ "hyper",
+ "hyper-util",
  "secrecy",
  "serde",
  "serde_json",

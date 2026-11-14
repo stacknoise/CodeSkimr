@@ -145,6 +145,8 @@ Owner: `codeskimr_server`
 | API-402 | `host_or_origin_rejected` | error | no | 0.1.0 | The Host or Origin header of the request is not one of this server. |
 | API-403 | `launch_code_invalid` | error | no | 0.1.0 | The one-time launch code is wrong, already used or expired. |
 | API-501 | `request_too_large` | error | no | 0.1.0 | The request body is larger than the server accepts. |
+| API-502 | `server_busy` | error | yes | 0.1.0 | The server already serves as many event streams as it allows. |
+| API-503 | `request_timed_out` | error | yes | 0.1.0 | The request took longer than the server waits for it. |
 | API-601 | `server_not_reachable` | error | yes | 0.1.0 | The command needs a running local server and could not reach it. |
 
 ## MCP – MCP server

@@ -17,6 +17,8 @@ codeskimr_domain = { path = "../domain" }
 codeskimr_codes = { path = "../codes" }
 axum.workspace = true
 tower-service.workspace = true
+hyper.workspace = true
+hyper-util.workspace = true
 blake3.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -28,4 +30,4 @@ tokio = { workspace = true, features = ["net", "rt", "sync", "time", "fs"] }
 
 [dev-dependencies]
 tempfile.workspace = true
-tokio = { workspace = true, features = ["net", "rt", "sync", "macros", "time", "io-util"] }
+tokio = { workspace = true, features = ["net", "rt", "sync", "macros", "time", "io-util", "test-util"] }

@@ -4,6 +4,7 @@ use std::sync::Arc;
 
 use codeskimr_application::events::EventBus;
 use codeskimr_domain::Principal;
+use tokio::sync::Semaphore;
 
 use crate::assets::Assets;
 use crate::commands::CommandApi;
@@ -22,6 +23,8 @@ pub struct AppState {
     pub principal: Principal,
     /// Where the events of the application come from.
     pub events: EventBus,
+    /// Free places for event streams; a stream holds one until it ends.
+    pub streams: Arc<Semaphore>,
     /// The one-time launch code of the browser (ADR 0028).
     pub launch: Arc<LaunchCodes>,
     /// The settings the UI reads before it starts.
