@@ -216,14 +216,18 @@ async fn an_mcp_body_without_the_token_is_not_read_at_all() {
     assert!(status.contains("401"), "{status}");
 }
 
-/// What the server answers to an MCP request that announces `length` bytes and sends `sent`, and
+/// What `server` answers to a POST to `path` that announces `length` bytes and sends `sent`, and
 /// then leaves if `leave` is set.
 #[cfg(test)]
-async fn mcp_answer(length: usize, sent: &str, leave: bool) -> String {
-    let server = common::start_mcp(owner()).await;
+async fn post_answer(
+    server: &Running,
+    path: &str,
+    (length, sent): (usize, &str),
+    leave: bool,
+) -> String {
     let mut stream = TcpStream::connect(server.address).await.unwrap();
     let head = format!(
-        "POST /mcp HTTP/1.1\r\nHost: {}\r\nAuthorization: Bearer {TOKEN}\r\nContent-Type: application/json\r\nContent-Length: {length}\r\n\r\n{sent}",
+        "POST {path} HTTP/1.1\r\nHost: {}\r\nAuthorization: Bearer {TOKEN}\r\nContent-Type: application/json\r\nContent-Length: {length}\r\n\r\n{sent}",
         server.address
     );
     stream.write_all(head.as_bytes()).await.unwrap();
@@ -231,19 +235,28 @@ async fn mcp_answer(length: usize, sent: &str, leave: bool) -> String {
         stream.shutdown().await.unwrap();
     }
     let mut answer = Vec::new();
-    let _ = timeout(Duration::from_secs(5), stream.read_to_end(&mut answer)).await;
+    let _ = timeout(Duration::from_secs(1), stream.read_to_end(&mut answer)).await;
     String::from_utf8_lossy(&answer).into_owned()
 }
 
+const MCP_PATH: &str = "/mcp";
+const REST_PATH: &str = "/api/v1/commands/test.wipe";
+
 #[tokio::test]
-async fn an_mcp_body_over_the_limit_is_too_large() {
+async fn a_body_over_the_limit_is_too_large_on_both_kinds_of_route() {
     let body = "x".repeat(1024 * 1024 + 1);
-    let text = mcp_answer(body.len(), &body, false).await;
-    assert!(text.starts_with("HTTP/1.1 413"), "{text}");
+    let server = common::start_mcp(owner()).await;
+    for path in [MCP_PATH, REST_PATH] {
+        let text = post_answer(&server, path, (body.len(), &body), false).await;
+        assert!(text.starts_with("HTTP/1.1 413"), "{path}: {text}");
+    }
 }
 
 #[tokio::test]
-async fn an_mcp_client_that_leaves_in_the_middle_is_an_invalid_request_not_too_large() {
-    let text = mcp_answer(100, "{\"", true).await;
-    assert!(!text.contains("413"), "{text}");
+async fn a_client_that_leaves_in_the_middle_is_an_invalid_request_not_too_large() {
+    let server = common::start_mcp(owner()).await;
+    for path in [MCP_PATH, REST_PATH] {
+        let text = post_answer(&server, path, (100, "{\""), true).await;
+        assert!(!text.contains("413"), "{path}: {text}");
+    }
 }

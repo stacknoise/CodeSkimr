@@ -125,6 +125,11 @@ pub const RETRY_AFTER_SECONDS: &str = "5";
 pub const BODY_READ_TIMEOUT: Duration = Duration::from_secs(30);
 /// How long one message to a WebSocket client may take before the client is dropped.
 pub const SOCKET_SEND_TIMEOUT: Duration = Duration::from_secs(10);
+/// A send that takes longer than this counts as slow against the budget of the stream.
+pub const SOCKET_SLOW_SEND: Duration = Duration::from_secs(1);
+/// The most time one event stream may spend in slow sends in total before it is dropped. A client
+/// that reads just fast enough to beat `SOCKET_SEND_TIMEOUT` cannot hold a place for long.
+pub const SOCKET_SLOW_BUDGET: Duration = Duration::from_secs(30);
 /// How often an idle event stream sends a ping, so that a client that left is noticed.
 pub const SOCKET_PING_INTERVAL: Duration = Duration::from_secs(20);
 /// How long an event stream may hear nothing from the client, not even an answer to a ping.

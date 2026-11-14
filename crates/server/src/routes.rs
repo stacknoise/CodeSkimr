@@ -88,7 +88,7 @@ async fn read_body(headers: &HeaderMap, body: Body, limit: usize) -> Result<Byte
     let bytes = timeout(BODY_READ_TIMEOUT, to_bytes(body, limit))
         .await
         .map_err(|_| Failure::code(ErrorCode::RequestTimedOut))?
-        .map_err(|_| Failure::code(ErrorCode::RequestTooLarge))?;
+        .map_err(|error| Failure::code(read_failure(&error)))?;
     if bytes.is_empty() {
         return Ok(bytes);
     }
@@ -150,4 +150,22 @@ pub async fn wrong_method() -> Response {
     let mut response = Failure::code(ErrorCode::RequestInvalid).into_response();
     *response.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
     response
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::body::{Body, to_bytes};
+    use codeskimr_codes::ErrorCode;
+
+    use super::read_failure;
+
+    #[tokio::test]
+    async fn only_a_body_over_the_limit_is_too_large() {
+        let error = to_bytes(Body::from(vec![u8::default(); 10]), 5)
+            .await
+            .unwrap_err();
+        assert_eq!(read_failure(&error), ErrorCode::RequestTooLarge);
+        let other = axum::Error::new(std::io::Error::other("client left"));
+        assert_eq!(read_failure(&other), ErrorCode::RequestInvalid);
+    }
 }
