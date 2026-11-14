@@ -16,7 +16,8 @@ use codeskimr_application::cancel::CancelToken;
 use process_wrap::std::{ChildWrapper, CommandWrap};
 
 use crate::consts::{
-    CAPTURE_BYTES, DRAIN_GRACE, MAX_SCAN_DEPTH, MEASURE_INTERVAL, POLL_INTERVAL, READ_CHUNK,
+    CAPTURE_BYTES, DRAIN_GRACE, KILL_POLL, KILL_WAIT, MAX_SCAN_DEPTH, MEASURE_INTERVAL,
+    POLL_INTERVAL, READ_CHUNK,
 };
 use crate::memory::TreeMemory;
 use crate::orphans;
@@ -154,10 +155,23 @@ impl Capture {
 struct Group(Box<dyn ChildWrapper>);
 
 impl Group {
+    /// Kills the whole group and waits for the leader, but never without a bound.
+    ///
+    /// `ChildWrapper::wait` of a Windows job object ends with a blocking read of the completion
+    /// port of the job, and `try_wait` (called in the watch loop) takes one message of that port
+    /// per call. If the loop has taken the last message before it saw the exit of the leader,
+    /// `wait` would wait for a message that never comes, so the end of the run polls instead.
     fn kill(&mut self) {
         // The group may be gone already; that is the goal, not an error.
         drop(self.0.start_kill());
-        drop(self.0.wait());
+        let until = Instant::now() + KILL_WAIT;
+        while Instant::now() < until {
+            // `Some` when the leader is gone, an error when it cannot be asked any more.
+            if !matches!(self.0.try_wait(), Ok(None)) {
+                return;
+            }
+            thread::sleep(KILL_POLL);
+        }
     }
 }
 

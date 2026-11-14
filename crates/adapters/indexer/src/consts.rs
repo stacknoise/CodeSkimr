@@ -116,3 +116,7 @@ pub const NO_SUCH_PROCESS: &str = "no such process";
 pub const START_TOLERANCE_SECONDS: u64 = 2;
 /// Characters that cannot be part of the name of an environment variable.
 pub const FORBIDDEN_ENV_NAME_CHARS: [char; 2] = ['=', '\0'];
+/// How long the end of a run waits for the leader to be gone after the group was killed.
+pub const KILL_WAIT: Duration = Duration::from_secs(10);
+/// How often the end of a run asks whether the leader is gone.
+pub const KILL_POLL: Duration = Duration::from_millis(10);
