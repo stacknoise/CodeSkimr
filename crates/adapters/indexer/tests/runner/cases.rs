@@ -52,6 +52,7 @@ fn spec(mode: &str) -> IndexerSpec {
         home_dirs: vec![
             ("FAKE_TOOL_HOME".to_owned(), HOME_TOOL_DIR.to_owned()),
             ("FAKE_MISSING_HOME".to_owned(), "does-not-exist".to_owned()),
+            ("FAKE_TOKEN_HOME".to_owned(), HOME_TOOL_DIR.to_owned()),
         ],
         env: vec![("FIXED_BY_PACK".to_owned(), "yes".to_owned())],
         install_hint: "install it".to_owned(),
@@ -282,6 +283,8 @@ fn the_indexer_gets_an_empty_home_and_only_the_folders_the_pack_names() {
     assert_eq!(line("FAKE_TOOL_HOME"), Some(real.join(HOME_TOOL_DIR)));
     assert_eq!(line("FAKE_MISSING_HOME"), None);
     assert_eq!(line("HOMEPATH"), None);
+    // A name that says "secret" is not passed even if the pack lists it.
+    assert_eq!(line("FAKE_TOKEN_HOME"), None);
 }
 
 /// How a note of the runner names a process: its id and the second it started.
@@ -297,19 +300,37 @@ fn note_text(pid: u32) -> String {
 struct LeftBehind {
     folder: PathBuf,
     indexer: std::process::Child,
+    /// A process the indexer started.
+    child: u32,
 }
 
 impl LeftBehind {
     fn new(fixture: &Fixture, owner: &str) -> Self {
         let folder = fixture.data.path().join("level2-left-behind");
         std::fs::create_dir_all(folder.join("scratch")).unwrap();
+        let pid_file = folder.join("child.pid");
         let indexer = std::process::Command::new(env!("CARGO_BIN_EXE_fake_indexer"))
-            .args(["child", "", ""])
+            .args(["hang-with-child", "", &pid_file.to_string_lossy()])
             .spawn()
+            .unwrap();
+        let until = Instant::now() + Duration::from_secs(15);
+        while !pid_file.is_file() && Instant::now() < until {
+            thread::sleep(Duration::from_millis(50));
+        }
+        // The file is written whole a moment after it appears.
+        thread::sleep(Duration::from_millis(200));
+        let child = std::fs::read_to_string(&pid_file)
+            .unwrap()
+            .trim()
+            .parse()
             .unwrap();
         std::fs::write(folder.join("owner"), owner).unwrap();
         std::fs::write(folder.join("indexer"), note_text(indexer.id())).unwrap();
-        Self { folder, indexer }
+        Self {
+            folder,
+            indexer,
+            child,
+        }
     }
 }
 
@@ -317,6 +338,12 @@ impl Drop for LeftBehind {
     fn drop(&mut self) {
         drop(self.indexer.kill());
         drop(self.indexer.wait());
+        // The child of a left-behind indexer that a test did not end.
+        let mut system = System::new().unwrap();
+        system.refresh_processes(ProcessesToUpdate::All, true);
+        if let Some(process) = system.process(Pid::from_u32(self.child)) {
+            process.kill();
+        }
     }
 }
 
@@ -331,6 +358,10 @@ fn what_a_killed_application_left_behind_is_ended_and_removed_at_the_next_run() 
     assert!(
         wait_until_gone(pid),
         "the indexer of the dead application is still running"
+    );
+    assert!(
+        wait_until_gone(left.child),
+        "the child of that indexer is still running"
     );
 }
 

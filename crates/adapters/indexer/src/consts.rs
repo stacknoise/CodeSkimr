@@ -107,3 +107,10 @@ pub const INDEXER_NOTE_NAME: &str = "indexer";
 pub const NOTE_SEPARATOR: char = ' ';
 /// How long a run folder without a note is left alone: it may just have been created.
 pub const ORPHAN_GRACE: Duration = Duration::from_secs(60);
+/// Reason of an error: the list of running processes cannot be read.
+pub const NO_PROCESS_LIST: &str = "no process list";
+/// Reason of an error: a process to note does not exist.
+pub const NO_SUCH_PROCESS: &str = "no such process";
+/// How many seconds the start time of a process may differ from the one in a note: the start
+/// time is computed from the boot time of the system, which can shift a little.
+pub const START_TOLERANCE_SECONDS: u64 = 2;

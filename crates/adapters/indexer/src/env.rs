@@ -6,7 +6,7 @@
 
 use std::env;
 use std::ffi::{OsStr, OsString};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 
 use codeskimr_application::ports::IndexerSpec;
 
@@ -88,7 +88,15 @@ fn add_home_dirs(result: &mut Environment, source: &Environment, spec: &IndexerS
         return;
     };
     for (variable, below) in &spec.home_dirs {
+        // The pack was checked when it was loaded; the spec is public, so check where it is used.
+        if !is_safe_variable(variable) || !is_folder_below_home(below) {
+            continue;
+        }
         let folder = home.join(below);
+        // The same rule as for `env_allow`: a name that says "secret" never passes.
+        if looks_reserved(&variable.to_uppercase()) {
+            continue;
+        }
         if result.iter().all(|(name, _)| !same_name(name, variable)) && folder.is_dir() {
             result.push((OsString::from(variable), folder.into_os_string()));
         }
@@ -99,10 +107,7 @@ fn add_home_dirs(result: &mut Environment, source: &Environment, spec: &IndexerS
 /// secret or belong to the application.
 fn is_allowed(name: &OsStr, spec: &IndexerSpec) -> bool {
     let upper = name.to_string_lossy().to_uppercase();
-    if upper.starts_with(APPLICATION_ENV_PREFIX)
-        || SECRET_NAME_PARTS.iter().any(|part| upper.contains(part))
-        || TEMP_ENV.iter().any(|temp| *temp == upper)
-    {
+    if looks_reserved(&upper) || TEMP_ENV.iter().any(|temp| *temp == upper) {
         return false;
     }
     BASE_ENV_ALLOW.iter().any(|allowed| *allowed == upper)
@@ -110,6 +115,25 @@ fn is_allowed(name: &OsStr, spec: &IndexerSpec) -> bool {
             .env_allow
             .iter()
             .any(|allowed| allowed.to_uppercase() == upper)
+}
+
+/// A name that can be an environment variable: not empty, without `=` and NUL.
+fn is_safe_variable(name: &str) -> bool {
+    !name.is_empty() && !name.contains(['=', '\0'])
+}
+
+/// A relative path made of plain names only: no root, no drive, no `.` or `..`.
+fn is_folder_below_home(path: &str) -> bool {
+    !path.is_empty()
+        && Path::new(path)
+            .components()
+            .all(|part| matches!(part, Component::Normal(_)))
+}
+
+/// Whether a name (upper case) belongs to the application or says that it holds a secret.
+fn looks_reserved(upper: &str) -> bool {
+    upper.starts_with(APPLICATION_ENV_PREFIX)
+        || SECRET_NAME_PARTS.iter().any(|part| upper.contains(part))
 }
 
 fn same_name(left: &OsStr, right: &str) -> bool {
@@ -183,5 +207,64 @@ mod search_tests {
             safe_dirs(&relative, &root),
             Vec::<std::path::PathBuf>::new()
         );
+    }
+}
+
+#[cfg(test)]
+mod home_dir_tests {
+    use std::ffi::OsString;
+
+    use codeskimr_application::ports::IndexerSpec;
+
+    use super::{Folders, build};
+
+    fn spec(home_dirs: &[(&str, &str)]) -> IndexerSpec {
+        let tool = codeskimr_application::ports::ToolSpec {
+            program: "x".to_owned(),
+            version_args: Vec::new(),
+            min_version: codeskimr_application::ports::ToolVersion::parse("1.0.0").unwrap(),
+        };
+        IndexerSpec {
+            name: "x".to_owned(),
+            indexer: tool,
+            toolchain: Vec::new(),
+            args: Vec::new(),
+            env_allow: Vec::new(),
+            home_dirs: home_dirs
+                .iter()
+                .map(|(name, folder)| ((*name).to_owned(), (*folder).to_owned()))
+                .collect(),
+            env: Vec::new(),
+            install_hint: String::new(),
+        }
+    }
+
+    #[test]
+    fn a_home_folder_that_leaves_the_home_or_has_a_bad_name_is_not_set() {
+        let real = std::env::temp_dir().join("codeskimr-env-home-dirs");
+        std::fs::create_dir_all(real.join("good")).unwrap();
+        let outside = std::env::temp_dir();
+        let spec = spec(&[
+            ("GOOD_HOME", "good"),
+            ("ABSOLUTE_HOME", outside.to_str().unwrap()),
+            ("PARENT_HOME", "../"),
+            ("EMPTY_HOME", ""),
+            ("BAD=NAME", "good"),
+            ("", "good"),
+        ]);
+        let source = [(OsString::from("HOME"), real.clone().into_os_string())];
+        let folders = Folders {
+            scratch: &real,
+            home: &real,
+            project_root: &real,
+        };
+        let names: Vec<String> = build(source, &spec, &folders)
+            .into_iter()
+            .map(|(name, _)| name.to_string_lossy().into_owned())
+            .collect();
+        assert!(names.contains(&"GOOD_HOME".to_owned()));
+        for bad in ["ABSOLUTE_HOME", "PARENT_HOME", "EMPTY_HOME", "BAD=NAME", ""] {
+            assert!(!names.iter().any(|name| name == bad), "{bad}");
+        }
     }
 }

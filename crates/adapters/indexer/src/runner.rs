@@ -182,8 +182,9 @@ impl OutputDir {
         std::fs::create_dir(&scratch).map_err(io)?;
         let home = dir.path().join(HOME_DIR_NAME);
         std::fs::create_dir(&home).map_err(io)?;
-        // Without the note a hard stop leaves the folder to the grace period only.
-        drop(orphans::note_owner(dir.path()));
+        // Without the note another instance would take the folder for abandoned after the grace
+        // period and end the run; so a run that cannot be noted does not start.
+        orphans::note_owner(dir.path()).map_err(io)?;
         Ok(Self { dir, scratch, home })
     }
 

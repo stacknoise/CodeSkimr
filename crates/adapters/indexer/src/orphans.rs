@@ -19,7 +19,8 @@ use std::time::{Duration, SystemTime};
 use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
 
 use crate::consts::{
-    INDEXER_NOTE_NAME, NOTE_SEPARATOR, ORPHAN_GRACE, OUTPUT_DIR_PREFIX, OWNER_NOTE_NAME,
+    INDEXER_NOTE_NAME, NO_PROCESS_LIST, NO_SUCH_PROCESS, NOTE_SEPARATOR, ORPHAN_GRACE,
+    OUTPUT_DIR_PREFIX, OWNER_NOTE_NAME, START_TOLERANCE_SECONDS,
 };
 
 /// A process as it is written in a note: its id and the second it started.
@@ -55,9 +56,13 @@ impl Identity {
         .concat()
     }
 
-    /// Whether the process of this identity is running.
+    /// Whether the process of this identity is running. The start time is derived from the boot
+    /// time of the system, which can move by a second or two (clock adjustment, suspend), so it
+    /// counts as equal within [`START_TOLERANCE_SECONDS`]; a process that got the id later started
+    /// far apart from it.
     fn is_running(self, system: &System) -> bool {
-        Self::of(system, self.pid) == Some(self)
+        Self::of(system, self.pid)
+            .is_some_and(|found| found.started.abs_diff(self.started) <= START_TOLERANCE_SECONDS)
     }
 }
 
@@ -84,8 +89,8 @@ pub fn note_indexer(folder: &Path, pid: u32) -> io::Result<()> {
 }
 
 fn note(file: std::path::PathBuf, pid: u32) -> io::Result<()> {
-    let system = processes().ok_or_else(|| io::Error::other("no process list"))?;
-    let identity = Identity::of(&system, pid).ok_or_else(|| io::Error::other("no such process"))?;
+    let system = processes().ok_or_else(|| io::Error::other(NO_PROCESS_LIST))?;
+    let identity = Identity::of(&system, pid).ok_or_else(|| io::Error::other(NO_SUCH_PROCESS))?;
     fs::write(file, identity.text())
 }
 
@@ -143,19 +148,66 @@ fn end_indexer(folder: &Path, system: &System) {
     let mut next: usize = 0;
     while let Some(pid) = members.get(next).copied() {
         next = next.saturating_add(1);
+        // A child cannot have started before its parent; on Windows the parent id of a child
+        // stays after the parent ended and may belong to another process by now.
+        let parent_started = system.process(pid).map_or(0, sysinfo::Process::start_time);
         let children = system
             .processes()
             .values()
-            .filter(|child| child.parent() == Some(pid))
+            .filter(|child| child.parent() == Some(pid) && child.start_time() >= parent_started)
             .map(sysinfo::Process::pid)
             .filter(|child| !members.contains(child))
             .collect::<Vec<_>>();
         members.extend(children);
     }
-    // The leader first, so that it cannot start more.
+    // The leader first, so that it cannot start more. Never this process or its parent: the notes
+    // can be written by the indexer, which must not be able to point the cleanup at them.
+    let own = Pid::from_u32(std::process::id());
+    let parent = system.process(own).and_then(sysinfo::Process::parent);
     for pid in members {
-        if let Some(process) = system.process(pid) {
-            process.kill();
+        if pid != own && Some(pid) != parent {
+            kill_if_unchanged(system, pid);
         }
+    }
+}
+
+/// Kills `pid` if it is still the process of the snapshot: the start time is read again right
+/// before, because the snapshot is older than the loop and the removal of a folder.
+fn kill_if_unchanged(snapshot: &System, pid: Pid) {
+    let Some(started) = snapshot.process(pid).map(sysinfo::Process::start_time) else {
+        return;
+    };
+    let mut fresh = System::new().ok();
+    let Some(now) = fresh.as_mut() else {
+        return;
+    };
+    now.refresh_processes_specifics(
+        ProcessesToUpdate::Some(&[pid]),
+        true,
+        ProcessRefreshKind::nothing(),
+    );
+    if let Some(process) = now
+        .process(pid)
+        .filter(|process| process.start_time() == started)
+    {
+        process.kill();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{note_indexer, note_owner};
+
+    #[test]
+    fn a_note_that_cannot_be_written_is_an_error() {
+        let missing = std::env::temp_dir().join("codeskimr-orphans-test-missing/inside");
+        assert!(note_owner(&missing).is_err());
+        assert!(note_indexer(&missing, std::process::id()).is_err());
+    }
+
+    #[test]
+    fn a_process_that_does_not_exist_cannot_be_noted() {
+        let folder = std::env::temp_dir();
+        assert!(note_indexer(&folder, u32::MAX).is_err());
     }
 }
