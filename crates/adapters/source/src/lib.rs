@@ -21,6 +21,7 @@ mod languages;
 mod paths;
 mod redact;
 mod requirement;
+mod stale;
 mod text;
 mod watcher;
 

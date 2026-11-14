@@ -47,6 +47,10 @@ pub const WORK_PREFIX: &str = ".work-";
 /// Separator between the parts of a work folder name.
 pub const WORK_SEPARATOR: char = '-';
 
+/// How long a work folder may stay untouched before it counts as left behind by a crash. A clone
+/// that is still running keeps writing into its folder; a day without any change is no clone.
+pub const WORK_FOLDER_MAX_AGE_SECS: u64 = 86_400;
+
 /// Separator between the messages of an error chain.
 pub const CHAIN_SEPARATOR: &str = ": ";
 

@@ -3,6 +3,7 @@
 //! An update clones the branch again into a private work folder and then swaps it in: the old copy
 //! is parked, the new one is moved into place, and only then the old one is deleted. If anything
 //! fails or the scan is cancelled, the old copy is back in place and the work folder is removed.
+//! A crash skips that cleanup; the next fetch removes work folders that nobody touched for a day.
 //!
 //! Secrets never reach the clone: `GitUrl` carries no credentials (Git would write the URL into
 //! `.git/config`), and a credential from the secret store is lent to the login
@@ -26,7 +27,7 @@ use secrecy::ExposeSecret;
 use crate::consts::{
     AUTH_FAILURE_HINTS, BRANCH_REF_PREFIX, CANCEL_POLL_MS, CANCELLED_DETAIL,
     CLONE_CONFIG_OVERRIDES, HTTP_NOT_FOUND_HINT, MISSING_BRANCH_HINT, NO_LOGIN_MESSAGE,
-    SHALLOW_CLONE_DEPTH, URL_SCHEME_MARKER, WORK_PREFIX, WORK_SEPARATOR,
+    SHALLOW_CLONE_DEPTH, URL_SCHEME_MARKER, WORK_FOLDER_MAX_AGE_SECS, WORK_PREFIX, WORK_SEPARATOR,
 };
 use crate::error::{SourceError, error_chain_text};
 
@@ -90,6 +91,10 @@ impl GitCache {
             return Err(cancelled());
         }
         fs::create_dir_all(&self.cache_root).map_err(|error| SourceError::git_failed(&error))?;
+        crate::stale::remove_left_behind(
+            &self.cache_root,
+            Duration::from_secs(WORK_FOLDER_MAX_AGE_SECS),
+        );
         let target = self.cache_root.join(folder_name(url, branch));
         let work = WorkFolder::new(&self.cache_root);
         let attempt = Attempt {
