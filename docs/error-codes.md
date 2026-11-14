@@ -45,7 +45,7 @@ Owner: `codeskimr_source`
 
 | Code | Name | Severity | Retryable | Since | Description |
 |---|---|---|---|---|---|
-| SRC-201 | `source_path_not_found` | error | no | 0.1.0 | The configured source folder does not exist or is not readable. |
+| SRC-201 | `source_path_not_found` | error | no | 0.1.0 | A source folder, a source file or a language pack folder does not exist or cannot be read. |
 | SRC-202 | `git_branch_not_found` | error | no | 0.1.0 | The requested branch does not exist on the remote. |
 | SRC-401 | `git_auth_required` | error | no | 0.1.0 | The remote requires authentication and no usable credential is available. |
 | SRC-501 | `source_too_large` | error | no | 0.1.0 | The source exceeds the configured size limit. |

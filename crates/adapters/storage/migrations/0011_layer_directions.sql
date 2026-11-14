@@ -1,4 +1,4 @@
--- Schema version 10: the layers a layer may depend on (ADR 0047).
+-- Schema version 11: the layers a layer may depend on (ADR 0047).
 -- `restricted` is 0 for a layer without a limit (no `may_use`), 1 when `layer_uses` lists all
 -- allowed layers (an empty list then allows none). Rows from before this version stay unlimited.
 
