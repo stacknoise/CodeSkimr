@@ -40,7 +40,7 @@ codeskimr credential login work-gitlab --provider gitlab --client-id <id> --host
 
 Das ist der OAuth Device Flow: Der Befehl gibt eine Webseite und einen kurzen Code aus, Sie öffnen die Seite im Browser, geben den Code ein und bestätigen, und der Befehl speichert das Token. Sie brauchen die `--client-id` einer beim Anbieter registrierten OAuth-Anwendung; sie ist kein Geheimnis. `--host` wählt eine selbst betriebene Installation und muss eine HTTPS-Adresse sein. Das Token bekommt den kleinsten Bereich, den das Lesen braucht (GitHub `repo`, GitLab `read_repository`). Schließen Sie die Anmeldung im Browser nicht ab, scheitert der Befehl mit `NET-601`.
 
-GitHub-Tokens einer OAuth-Anwendung laufen nicht ab. GitLab-Tokens laufen nach zwei Stunden ab, und CodeSkimr kann sie noch nicht erneuern: Führen Sie `credential login` erneut aus, wenn `SEC-401` erscheint.
+GitHub-Tokens einer OAuth-Anwendung laufen nicht ab. GitLab-Tokens laufen nach zwei Stunden ab. `credential login` bewahrt auch das Refresh-Token auf, das die Plattform mitschickt, im Schlüsselspeicher neben dem Token; wird eine Git-Quelle mit `SEC-401` abgelehnt, tauscht CodeSkimr es einmal gegen ein neues Token und wiederholt den Abruf. Lehnt die Plattform das Refresh-Token ab (widerrufen oder Anwendung entfernt), führen Sie `credential login` erneut aus. Ein Token, das Sie mit `credential set` gespeichert haben, hat kein Refresh-Token und wird nie erneuert.
 
 ### Zugangsangabe entfernen
 
@@ -57,6 +57,10 @@ codeskimr scan https://github.com/org/private-repo --credential work-github
 ```
 
 `--credential` gilt nur für Git-Quellen; für einen Ordner ergibt es `PRJ-101`. Ohne `--credential` entscheidet der Credential-Helper Ihres Systems, wie bei `git` selbst. **Es gibt nie eine Eingabeaufforderung im Terminal**, ein Server oder eine MCP-Sitzung kann also nicht an einer Anmeldefrage hängen bleiben; ist keine Anmeldung verfügbar, scheitert der Scan mit `SRC-401`.
+
+### Im Browser
+
+Auf der Projektseite hat das Formular „Neues Projekt“ ein Feld **Zugangsdaten**. „Neue Zugangsdaten speichern“ öffnet drei Felder (Name, Benutzername, Token oder Passwort); das Geheimnis ist ein Passwortfeld, geht in den Schlüsselspeicher des Rechners, auf dem der Server läuft, und wird sofort aus der Seite entfernt. Der neue Name ist für das nächste Projekt vorgewählt. Angeboten werden nur Namen, die ein Projekt schon benutzt oder die Sie in diesem Tab gespeichert haben; der Browser liest nie ein gespeichertes Geheimnis zurück. Anmeldungen mit `credential login` (OAuth) machen Sie auf der Kommandozeile.
 
 ### Was CodeSkimr mit dem Geheimnis tut
 
@@ -79,7 +83,7 @@ Ein zweites Geheimnis gibt es: das **Installations-Token** (`csk_` und 64 Hexzif
 | `SEC-202` | der Schlüsselspeicher-Eintrag ist beschädigt | mit `credential delete` löschen und neu anlegen |
 | `NET-601` | die Anmeldung im Browser wurde nicht abgeschlossen | `credential login` wiederholen und rechtzeitig bestätigen |
 | `CLI-103` | es konnte kein Geheimnis gelesen werden, oder es war leer | das Geheimnis per Pipe übergeben oder am Prompt eingeben |
-| `SEC-401` | die Gegenstelle hat die Zugangsangabe abgelehnt (GitHub antwortet so auch bei ungültigem Token für ein verborgenes Repository) | Benutzername, Geheimnis und Rechte des Tokens prüfen; Tokens laufen ab (GitLab-OAuth-Tokens nach zwei Stunden) |
+| `SEC-401` | die Gegenstelle hat die Zugangsangabe abgelehnt (GitHub antwortet so auch bei ungültigem Token für ein verborgenes Repository) | Benutzername, Geheimnis und Rechte des Tokens prüfen; Tokens laufen ab (GitLab-OAuth-Tokens nach zwei Stunden; ein Token aus `credential login` wird automatisch erneuert, sonst erneut anmelden) |
 | `SEC-402` | der Schlüsselspeicher hat den Zugriff verweigert | Zugriff in der Systemabfrage erlauben |
 | `SEC-601` | kein Schlüsselspeicher verfügbar | unter Linux einen Secret Service starten (zum Beispiel GNOME Keyring); `serve` braucht ihn |
 | `SRC-202` | der Branch existiert auf der Gegenstelle nicht | den Namen bei `--branch` prüfen |

@@ -12,7 +12,7 @@ codeskimr export <Projekt> --html <Datei>
 - Das Projekt muss gescannt sein; exportiert wird der **neueste Snapshot**. Exportieren Sie, solange kein Scan läuft, sonst kann die Datei zwei Snapshots mischen.
 - Der Befehl gibt aus, wohin die Datei ging und wie viele Symbole sie enthält. Eine vorhandene Datei wird ersetzt.
 
-Der Befehl braucht die gebaute Export-Seite der Oberfläche: `npm run build` in `web/` erzeugt sie (`dist/export/export.html`), und der Befehl findet sie unterhalb des UI-Ordners (`ui.dir`, siehe [Installation](installation.md)). Fehlt sie, bricht der Befehl mit `EXP-201` ab.
+Der Befehl braucht die gebaute Export-Seite der Oberfläche: `npm run build` in `web/` erzeugt sie (`dist/export/export.html`). Die Seite steckt in der Programmdatei; gibt es einen UI-Ordner (`ui.dir`, siehe [Installation](installation.md)), wird stattdessen die Seite aus diesem Ordner genommen. Fehlt sie an beiden Stellen, bricht der Befehl mit `EXP-201` ab.
 
 ## Was in der Datei steht
 
@@ -48,5 +48,5 @@ Jede Verwendung behält ihre Markierung (geprüft, ungeprüft, vermutet), und di
 |---|---|---|
 | `PRJ-201` | das Projekt ist nicht eingetragen | zuerst eintragen und scannen |
 | `MCP-203` | das Projekt wurde nicht gescannt | scannen |
-| `EXP-201` | die gebaute Export-Seite fehlt oder ist unbrauchbar | `npm run build` in `web/` ausführen, `ui.dir` prüfen |
+| `EXP-201` | die gebaute Export-Seite fehlt oder ist unbrauchbar | Programm mit gebauter Oberfläche verwenden (`npm run build` in `web/`, dann das Programm bauen), `ui.dir` prüfen |
 | `EXP-601` | die Datei kann nicht geschrieben werden | Pfad, Rechte und freien Platz prüfen |

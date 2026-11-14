@@ -18,8 +18,9 @@ use secrecy::SecretString;
 use zeroize::Zeroizing;
 
 use crate::consts::{
-    CARRIAGE_RETURN, LINE_BREAK, LINE_FEED, MAX_SECRET_BYTES, is_token_credential,
+    CARRIAGE_RETURN, LINE_BREAK, LINE_FEED, MAX_SECRET_BYTES, is_reserved_credential,
 };
+use crate::refresh::{self, Link};
 
 /// What a credential command did, for the line that reports it.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -66,7 +67,7 @@ pub fn execute(
         CredentialAction::Set { id, user } => set(store, id, user, io),
         CredentialAction::Delete { id } => {
             let id = usable_id(id)?;
-            store.delete(&id)?;
+            refresh::remove(store, &id)?;
             Ok(Done::Deleted(id.to_string()))
         }
         CredentialAction::Login {
@@ -89,6 +90,7 @@ fn set(
         return Err(invalid());
     }
     let secret = (io.read_secret)()?;
+    refresh::forget(store, &id)?;
     store.store(&id, &Credential::new(SecretString::from(user), secret))?;
     Ok(Done::Stored(id.to_string()))
 }
@@ -102,8 +104,14 @@ fn login(
 ) -> Result<Done, CodedError> {
     let id = usable_id(id)?;
     let flow = provider_of(provider).flow(client_id, host)?;
-    let credential = flow.sign_in(|prompt| (io.announce)(prompt), |pause| (io.wait)(pause))?;
-    store.store(&id, &credential)?;
+    let signed =
+        flow.sign_in_with_refresh(|prompt| (io.announce)(prompt), |pause| (io.wait)(pause))?;
+    let link = Link {
+        provider: provider_of(provider),
+        client_id,
+        host,
+    };
+    refresh::save(store, &id, signed, &link)?;
     Ok(Done::Stored(id.to_string()))
 }
 
@@ -117,7 +125,7 @@ const fn provider_of(choice: ProviderChoice) -> Provider {
 /// The name of a credential that a user may manage. The installation token is not one of them:
 /// replacing it would lock the browser out, deleting it would break the next `serve`.
 fn usable_id(name: &str) -> Result<CredentialId, CodedError> {
-    if is_token_credential(name) {
+    if is_reserved_credential(name) {
         return Err(invalid());
     }
     CredentialId::new(name).map_err(|_| invalid())
@@ -253,5 +261,68 @@ mod tests {
             code(run_on(&store, &action, None)),
             ErrorCode::OauthFlowFailed
         );
+    }
+
+    const DEVICE_ANSWER: &str = r#"{"device_code":"d","user_code":"u","verification_uri":"https://example.com/d","expires_in":900,"interval":1}"#;
+    const TOKEN_ANSWER: &str =
+        r#"{"access_token":"CANARY-access-1","refresh_token":"CANARY-refresh-1"}"#;
+
+    fn login_action(host: String) -> CredentialAction {
+        CredentialAction::Login {
+            id: "work".to_owned(),
+            provider: ProviderChoice::GitLab,
+            client_id: "app".to_owned(),
+            host: Some(host),
+        }
+    }
+
+    /// The user and the secret of an entry.
+    fn entry(store: &Store, name: &str) -> Option<(String, String)> {
+        let id = CredentialId::new(name).unwrap();
+        store
+            .with_credential(&id, |c| {
+                let user = c.user().expose_secret().to_owned();
+                Ok((user, c.secret().expose_secret().to_owned()))
+            })
+            .ok()
+    }
+
+    #[test]
+    fn a_login_keeps_the_refresh_token_with_the_place_to_renew_it() {
+        let store = Store::new(Memory::default());
+        let (host, _) = crate::oauth_stub::serve(&[DEVICE_ANSWER, TOKEN_ANSWER]);
+        let done = run_on(&store, &login_action(host.clone()), None);
+        assert_eq!(done.unwrap(), Done::Stored("work".to_owned()));
+        let access = entry(&store, "work").unwrap();
+        assert!(access.1 == "CANARY-access-1", "wrong access token");
+        let (link, token) = entry(&store, "work.refresh").unwrap();
+        assert_eq!(link, format!("gitlab\tapp\t{host}"));
+        assert!(token == "CANARY-refresh-1", "wrong refresh token");
+    }
+
+    #[test]
+    fn a_new_secret_and_a_delete_remove_the_refresh_entry() {
+        let store = Store::new(Memory::default());
+        let (host, _) =
+            crate::oauth_stub::serve(&[DEVICE_ANSWER, TOKEN_ANSWER, DEVICE_ANSWER, TOKEN_ANSWER]);
+        run_on(&store, &login_action(host.clone()), None).unwrap();
+        run_on(&store, &set("work"), Some(CANARY)).unwrap();
+        assert!(entry(&store, "work.refresh").is_none());
+        assert!(holds_canary(&store, "work"));
+        run_on(&store, &login_action(host), None).unwrap();
+        run_on(&store, &delete("work"), None).unwrap();
+        assert!(entry(&store, "work").is_none());
+        assert!(entry(&store, "work.refresh").is_none());
+    }
+
+    #[test]
+    fn the_refresh_entry_of_a_credential_cannot_be_managed_by_name() {
+        let store = Store::new(Memory::default());
+        for name in ["work.refresh", "Work.Refresh ", " work.REFRESH"] {
+            for action in [set(name), delete(name)] {
+                let result = run_on(&store, &action, Some(CANARY));
+                assert_eq!(code(result), ErrorCode::CliArgumentsInvalid, "{name:?}");
+            }
+        }
     }
 }

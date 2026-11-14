@@ -169,6 +169,8 @@ pub const URL_AUTHORITY_END: [char; 4] = ['/', '?', '#', '\\'];
 pub const URL_IPV6_START: char = '[';
 /// Schemes whose user name can be a secret (a token), so the whole credentials part goes.
 pub const SECRET_USER_SCHEMES: [&str; 2] = ["http", "https"];
+/// Characters besides letters and digits in the host of an scp-style address.
+pub const SCP_HOST_EXTRA: &str = ".-_";
 /// Characters besides letters and digits that a URL scheme may contain.
 pub const URL_SCHEME_EXTRA: &str = "+-.";
 

@@ -44,6 +44,7 @@ impl LaunchFile {
         let path = dir.join(random_name()?);
         let mut file = create_private(&path).map_err(unavailable)?;
         let launch = Self { path };
+        check_owner(dir, &file).map_err(unavailable)?;
         let page = Zeroizing::new(format!("{LAUNCH_PAGE_HEAD}{url}{LAUNCH_PAGE_TAIL}"));
         file.write_all(page.as_bytes()).map_err(unavailable)?;
         Ok(launch)
@@ -91,14 +92,50 @@ fn check_private(dir: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
-/// On Windows the folder lies below the profile of the user and has its access rules.
+/// On Windows the folder gets access rules for the user alone: what it inherits from its parent
+/// may let others in (a data folder below a drive root).
 #[cfg(not(unix))]
 fn check_private(dir: &Path) -> std::io::Result<()> {
-    if fs::symlink_metadata(dir)?.is_dir() {
-        Ok(())
-    } else {
-        Err(std::io::ErrorKind::InvalidInput.into())
+    if !fs::symlink_metadata(dir)?.is_dir() {
+        return Err(std::io::ErrorKind::InvalidInput.into());
     }
+    #[cfg(windows)]
+    crate::private_acl::restrict_to_user(dir)?;
+    Ok(())
+}
+
+/// The folder and everything above it must belong to the user (the file just created tells who
+/// that is) or to the administrator, and nobody else may be able to replace a part of the path:
+/// a folder that others can write to is only fine if it is sticky. The path is checked with all
+/// links resolved, so a link that someone else put in the way is seen for what it points to.
+#[cfg(unix)]
+fn check_owner(dir: &Path, own_file: &File) -> std::io::Result<()> {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+
+    use crate::consts::{OTHERS_WRITE_MASK, ROOT_UID, STICKY_MASK};
+
+    let user = own_file.metadata()?.uid();
+    let refused = || std::io::Error::from(std::io::ErrorKind::PermissionDenied);
+    let resolved = dir.canonicalize()?;
+    if fs::metadata(&resolved)?.uid() != user {
+        return Err(refused());
+    }
+    for part in resolved.ancestors().skip(1) {
+        let meta = fs::metadata(part)?;
+        let known_owner = meta.uid() == user || meta.uid() == ROOT_UID;
+        let mode = meta.permissions().mode();
+        let open_to_others = mode & OTHERS_WRITE_MASK != 0 && mode & STICKY_MASK == 0;
+        if !known_owner || open_to_others {
+            return Err(refused());
+        }
+    }
+    Ok(())
+}
+
+/// On Windows the access rules of the folder are set for the user alone (see `check_private`).
+#[cfg(not(unix))]
+fn check_owner(_dir: &Path, _own_file: &File) -> std::io::Result<()> {
+    Ok(())
 }
 
 fn create_private(path: &Path) -> std::io::Result<File> {
@@ -207,6 +244,24 @@ mod tests {
             ErrorCode::LaunchFileUnavailable
         );
         assert_eq!(fs::read_dir(&target).unwrap().count(), 0);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_folder_that_others_can_replace_is_refused() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tempfile::tempdir().unwrap();
+        let open = dir.path().join("open");
+        fs::create_dir(&open).unwrap();
+        fs::set_permissions(&open, fs::Permissions::from_mode(0o777)).unwrap();
+        let error = LaunchFile::create(&open.join("launch"), URL, LIFETIME).unwrap_err();
+        assert_eq!(
+            codeskimr_codes::Coded::code(&error),
+            ErrorCode::LaunchFileUnavailable
+        );
+        fs::set_permissions(&open, fs::Permissions::from_mode(0o700)).unwrap();
+        assert!(LaunchFile::create(&open.join("launch"), URL, LIFETIME).is_ok());
     }
 
     #[cfg(unix)]
