@@ -100,12 +100,18 @@ mod tests {
     fn the_newest_change_deep_in_the_tree_counts() {
         let root = cache_with_folders("deep");
         let top = root.join(".work-1-x");
-        let old = SystemTime::now() - Duration::from_secs(10_000);
-        fs::File::open(&top).unwrap().set_modified(old).unwrap();
-        let recent = newest_change(&top).unwrap();
-        assert!(
-            recent > old,
-            "the file below the folder is newer than the folder"
+        let file = top.join(".git").join("objects").join("pack");
+        let newer = SystemTime::now() + Duration::from_secs(10_000);
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&file)
+            .unwrap()
+            .set_modified(newer)
+            .unwrap();
+        assert_eq!(
+            newest_change(&top),
+            Some(newer),
+            "the file deep below the folder is the newest change"
         );
         fs::remove_dir_all(&root).unwrap();
     }
