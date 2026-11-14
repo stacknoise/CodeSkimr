@@ -41,6 +41,9 @@ export const REF_LABEL: Record<string, (typeof I18N_KEYS)[keyof typeof I18N_KEYS
   test: I18N_KEYS.USAGES_REF_TEST,
 };
 
+/** The first step away from the focus. */
+export const FIRST_LEVEL = 1;
+
 /** How the graph is drawn, in pixels (mock 6: four columns of 236 wide cards). */
 export const GRAPH = {
   left: 24,

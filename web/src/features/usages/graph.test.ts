@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GRAPH, TONE } from "./consts";
+import { COLUMN, GRAPH, TONE } from "./consts";
 import { buildGraph } from "./graph";
 import { ANSWER, FOCUS, hit, place, PRICE, VIEW } from "../../tests/usages";
 import { nextHit } from "./keys";
@@ -32,6 +32,15 @@ describe("buildGraph", () => {
     expect(tones).toEqual(
       [TONE.incoming, TONE.incoming, TONE.outgoing, TONE.probable, TONE.test].sort(),
     );
+  });
+
+  it("keeps the column of what is called when nothing is called", () => {
+    const empty = buildGraph({ ...ANSWER, outgoing: { ...ANSWER.outgoing!, hits: [], total: 0 } });
+    const callees = empty.columns.filter((column) => column.kind === COLUMN.callees);
+    expect(callees).toHaveLength(1);
+    expect(callees[0]!.x).toBeGreaterThan(empty.columns.find((c) => c.kind === COLUMN.focus)!.x);
+    const none = buildGraph({ ...ANSWER, outgoing: null });
+    expect(none.columns.some((column) => column.kind === COLUMN.callees)).toBe(false);
   });
 
   it("names a symbol by its last two parts", () => {

@@ -60,6 +60,16 @@ describe("UsagesScreen", () => {
     expect(within(graph).getByText("Price.Value")).toBeTruthy();
   });
 
+  it("explains the lines and the number on the cards with a legend", async () => {
+    shown();
+    await screen.findByText("Hits 4");
+    expect(screen.getByText("calls")).toBeTruthy();
+    expect(screen.getByText("uses")).toBeTruthy();
+    expect(screen.getByText("presumed (via interface)")).toBeTruthy();
+    expect(screen.getByText("Number = places")).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Hits" })).toBeTruthy();
+  });
+
   it("marks every hit unchecked or presumed and says that the result is preliminary", async () => {
     shown();
     await screen.findByText("Hits 4");
