@@ -103,3 +103,5 @@ Two Playwright files check the screens against blueprint 15.4 and 17.1; both run
 - Settings (13): the theme card fills the width of the content and the language card is 560 px wide, as in the mock (landmarks tested); the editor card has no mock and is 560 px wide too.
 
 ESLint (`web/eslint.literals.config.js`, issue #26): `consts.ts` is free of the literal rules only as the value of a `const`; `let`, `var`, other statements and function bodies are refused there. A number above 1 is refused everywhere else even when it is assigned to a `const` (`no-magic-numbers` alone lets that pass). `web/src/tests/eslint-literals.test.ts` runs the config on snippets.
+
+Usages, code line (#157): after the hit list is shown, the screen asks `usages.code` with the same input and puts the line of code of each hit into the list, with the used symbol marked; file and line move to the right of it. The code is an addition: a Git project, a missing right or a file that is gone leave the row as before, with file and line only. The graph area leaves room below the last card, so the legend never covers it.

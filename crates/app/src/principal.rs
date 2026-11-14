@@ -18,3 +18,12 @@ pub const fn resolve() -> Principal {
 pub fn nobody() -> Principal {
     Principal::limited(codeskimr_domain::PermissionSet::none())
 }
+
+/// A caller who may read the index but not the source text, for the tests of that boundary.
+#[cfg(test)]
+#[must_use]
+pub fn reader() -> Principal {
+    Principal::limited(
+        codeskimr_domain::PermissionSet::none().with(codeskimr_domain::Permission::Read),
+    )
+}

@@ -34,6 +34,10 @@ test.describe("the usages screen", () => {
     await expect(page.getByText("Hits 1")).toBeVisible();
     await expect(page.getByText("unchecked", { exact: true })).toBeVisible();
     await expect(page.getByText(/No indexer is set up/)).toBeVisible();
+    // The code line of the hit comes with the token of the page, the symbol is marked.
+    const code = page.getByRole("region", { name: "Hits" }).locator("code");
+    await expect(code).toHaveText("return calculator.Add(1, 2);");
+    await expect(code.locator("mark")).toHaveText("Add");
 
     // Enter shows the caller in the explorer.
     await page.keyboard.press("F8");
