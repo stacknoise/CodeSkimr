@@ -1030,3 +1030,26 @@ fn the_preferences_are_kept_on_the_server_and_checked() {
         cleared
     );
 }
+
+#[test]
+fn only_a_manager_may_change_the_preferences() {
+    let fixture = Fixture::new();
+    let chosen = json!({"theme": "dunkel", "language": "en"});
+    let as_reader = |id: &str, input: Value| run_as(&fixture, principal::reader(), id, input);
+    assert!(as_reader("preferences.get", json!(null)).is_ok());
+    assert_eq!(
+        as_reader("preferences.set", chosen.clone()).unwrap_err(),
+        "AUTH-401"
+    );
+    let nobody = run_as(
+        &fixture,
+        principal::nobody(),
+        "preferences.get",
+        json!(null),
+    );
+    assert_eq!(nobody.unwrap_err(), "AUTH-401");
+    assert_eq!(
+        fixture.call("preferences.get", json!(null)).unwrap(),
+        json!({"theme": null, "language": null})
+    );
+}

@@ -1,9 +1,9 @@
 import { createEffect, createRoot, on } from "solid-js";
 import { runCommand } from "../api/commands";
-import { isLanguage, currentLanguage, setLanguage, systemLanguage } from "../i18n/i18n";
+import { currentLanguage, isLanguage, setLanguage, systemLanguage } from "../i18n/i18n";
 import { KIND } from "../session/consts";
 import { sessionState } from "../session/session";
-import { chosenTheme, followSystem, isTheme, selectTheme } from "../theme/theme";
+import { chosenTheme, isTheme, selectTheme } from "../theme/theme";
 import { PREFERENCES_GET, PREFERENCES_SET } from "./consts";
 
 /** The choices of the user, as the server keeps them. `null` is no choice. */
@@ -12,67 +12,91 @@ export interface Preferences {
   language: string | null;
 }
 
-/** What the browser shows now. A language that is the system language counts as no choice, since
- * the UI writes it to `localStorage` at start whether or not the user ever chose it. */
-function local(): Preferences {
-  const language = currentLanguage();
-  return { theme: chosenTheme(), language: language === systemLanguage() ? null : language };
-}
-
-let known: Preferences = { theme: null, language: null };
+/** What the server holds, once it was read or answered. */
+let known: Preferences | null = null;
+/** The changes of this browser that the server does not hold yet. */
+let pending: Partial<Preferences> = {};
+let sending = false;
+let started = false;
 
 function same(a: Preferences, b: Preferences): boolean {
   return a.theme === b.theme && a.language === b.language;
 }
 
-/** Takes over what the server holds: a theme or language that this UI offers is applied, anything
- * else is ignored. */
-function adopt(server: Preferences): void {
+/** Reads the choices from the server. `false` if it does not answer. */
+async function load(): Promise<boolean> {
+  try {
+    known = await runCommand<Preferences>(PREFERENCES_GET);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Sends `wanted` until the server holds it. Changes that come in while a call is under way are
+ * picked up by the loop, so the server ends with the last choice and the answers cannot cross.
+ * A server that does not answer keeps the old choices; the browser works with its own copy and
+ * the next change tries again, reading the server first if that was not possible before. */
+async function flush(): Promise<void> {
+  if (sending) {
+    return;
+  }
+  sending = true;
+  try {
+    if (known === null && !(await load())) {
+      return;
+    }
+    while (known !== null && !same({ ...known, ...pending }, known)) {
+      known = await runCommand<Preferences>(PREFERENCES_SET, { ...known, ...pending });
+    }
+    pending = {};
+  } catch {
+    // The copy in the browser still holds the choice.
+  } finally {
+    sending = false;
+  }
+}
+
+/** Records a change of this browser and sends it. Only the changed value is replaced, so a choice
+ * that another browser stored (a language, say) is not lost. */
+function change(patch: Partial<Preferences>): void {
+  pending = { ...pending, ...patch };
+  void flush();
+}
+
+/** Takes over what the server holds, value by value: a theme or language that this UI offers is
+ * applied, anything else is ignored. Returns what this browser holds that the server does not,
+ * so that it can be sent. */
+function adopt(server: Preferences): Partial<Preferences> {
+  const extra: Partial<Preferences> = {};
   if (isTheme(server.theme)) {
     selectTheme(server.theme);
-  } else if (server.theme === null) {
-    followSystem();
+  } else if (server.theme === null && chosenTheme() !== null) {
+    extra.theme = chosenTheme();
   }
   if (server.language !== null && isLanguage(server.language)) {
     setLanguage(server.language);
+  } else if (server.language === null && currentLanguage() !== systemLanguage()) {
+    // The UI writes the system language to `localStorage` at start whether or not the user
+    // ever chose it, so only a language that differs from it counts as a choice.
+    extra.language = currentLanguage();
   }
+  return extra;
 }
 
-/** Sends the choices to the server. A server that does not answer keeps the old ones; the browser
- * keeps working with its own copy. */
-async function push(next: Preferences): Promise<void> {
-  if (same(next, known)) {
-    return;
-  }
-  try {
-    known = await runCommand<Preferences>(PREFERENCES_SET, next);
-  } catch {
-    // The copy in the browser still holds the choice; the next change tries again.
-  }
-}
-
-/** Reads the choices from the server: if it holds any they win over the copy of this browser, so
- * that every browser of the user looks the same. If it holds none, the choices of this browser
- * (made before the server kept them) go there. */
+/** Reads the choices from the server: what it holds wins over the copy of this browser, so that
+ * every browser of the user looks the same; what it lacks and this browser has goes there. */
 async function pull(): Promise<void> {
-  let server: Preferences;
-  try {
-    server = await runCommand<Preferences>(PREFERENCES_GET);
-  } catch {
-    return;
-  }
-  known = server;
-  if (server.theme !== null || server.language !== null) {
-    adopt(server);
-  } else {
-    await push(local());
-  }
+  const answered = await load();
+  const extra = known === null ? {} : adopt(known);
   createRoot(() => {
-    createEffect(on([chosenTheme, currentLanguage], () => void push(local()), { defer: true }));
+    createEffect(on(chosenTheme, (theme) => change({ theme }), { defer: true }));
+    createEffect(on(currentLanguage, (language) => change({ language }), { defer: true }));
   });
+  if (answered && Object.keys(extra).length > 0) {
+    change(extra);
+  }
 }
-
-let started = false;
 
 /** Keeps theme and language on the server: once the session is connected the stored choices are
  * read, and every later choice is sent. Called once at start. */
@@ -90,10 +114,4 @@ export function syncPreferences(): void {
       }
     });
   });
-}
-
-/** Test hook: forgets what the module knows. */
-export function resetPreferencesForTest(): void {
-  started = false;
-  known = { theme: null, language: null };
 }

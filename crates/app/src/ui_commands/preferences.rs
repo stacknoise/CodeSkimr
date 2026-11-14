@@ -6,7 +6,9 @@
 //! the same as no preferences.
 
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
@@ -18,7 +20,8 @@ use serde::{Deserialize, Serialize};
 use super::consts::{
     PREFERENCE_EXTRA_CHAR, PREFERENCE_MAX_CHARS, PREFERENCES_FILE, PREFERENCES_GET,
     PREFERENCES_GET_DESCRIPTION, PREFERENCES_GET_TITLE, PREFERENCES_MAX_BYTES, PREFERENCES_SET,
-    PREFERENCES_SET_DESCRIPTION, PREFERENCES_SET_TITLE, PREFERENCES_TEMP_SUFFIX,
+    PREFERENCES_SET_DESCRIPTION, PREFERENCES_SET_TITLE, PREFERENCES_TEMP_SEPARATOR,
+    PREFERENCES_TEMP_SUFFIX,
 };
 
 /// What the user has chosen. `None` means: no choice, the UI decides (system setting, default).
@@ -83,23 +86,49 @@ impl PreferencesFile {
         stored.unwrap_or_default()
     }
 
-    /// Replaces the file: the new content is written beside it and renamed over it, so that a
-    /// reader never sees half a file.
+    /// Replaces the file: the new content is written to a new file beside it (a name that is used
+    /// once, created exclusively, so that a link someone put there is never followed) and renamed
+    /// over it, so that a reader never sees half a file.
     ///
     /// # Errors
     /// `APP-201` if the data folder cannot be written.
     pub fn write(&self, preferences: &Preferences) -> Result<(), CodedError> {
         let text = serde_json::to_string(preferences).map_err(|_| unavailable())?;
-        let mut temp = self.path.clone().into_os_string();
-        temp.push(PREFERENCES_TEMP_SUFFIX);
-        let temp = PathBuf::from(temp);
         if let Some(parent) = self.path.parent() {
             fs::create_dir_all(parent).map_err(|_| unavailable())?;
         }
-        fs::write(&temp, text)
-            .and_then(|()| fs::rename(&temp, &self.path))
-            .map_err(|_| unavailable())
+        let temp = self.temp_path();
+        let written = create_private(&temp).and_then(|mut file| file.write_all(text.as_bytes()));
+        let moved = written.and_then(|()| fs::rename(&temp, &self.path));
+        if moved.is_err() {
+            let _ = fs::remove_file(&temp);
+        }
+        moved.map_err(|_| unavailable())
     }
+
+    /// A name for the new file that no other call and no earlier run has used.
+    fn temp_path(&self) -> PathBuf {
+        static COUNTER: AtomicU64 = AtomicU64::new(u64::MIN);
+        let unique = [
+            std::process::id().to_string(),
+            COUNTER.fetch_add(1, Ordering::Relaxed).to_string(),
+        ]
+        .join(PREFERENCES_TEMP_SEPARATOR);
+        let mut name = self.path.clone().into_os_string();
+        name.push(PREFERENCES_TEMP_SEPARATOR);
+        name.push(unique);
+        name.push(PREFERENCES_TEMP_SUFFIX);
+        PathBuf::from(name)
+    }
+}
+
+/// Creates `path` for writing; an existing file or link of that name makes it fail.
+fn create_private(path: &Path) -> std::io::Result<fs::File> {
+    let mut options = fs::OpenOptions::new();
+    options.write(true).create_new(true);
+    #[cfg(unix)]
+    std::os::unix::fs::OpenOptionsExt::mode(&mut options, super::consts::PREFERENCES_FILE_MODE);
+    options.open(path)
 }
 
 /// Returns the preferences of the user.
@@ -206,6 +235,31 @@ mod tests {
         }
         fs::write(&path, "x".repeat(10_000)).unwrap();
         assert_eq!(file.read(), Preferences::default());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_link_at_the_temporary_name_is_never_followed_and_the_file_is_private() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tempfile::tempdir().unwrap();
+        let victim = dir.path().join("victim");
+        fs::write(&victim, "keep").unwrap();
+        let link = dir.path().join("planted.tmp");
+        std::os::unix::fs::symlink(&victim, &link).unwrap();
+        assert!(create_private(&link).is_err());
+        assert_eq!(fs::read_to_string(&victim).unwrap(), "keep");
+        let file = PreferencesFile::in_dir(dir.path());
+        file.write(&chosen("petrol", "de")).unwrap();
+        file.write(&chosen("hell", "en")).unwrap();
+        assert_eq!(file.read(), chosen("hell", "en"));
+        let leftovers = fs::read_dir(dir.path()).unwrap().count();
+        assert_eq!(leftovers, 3);
+        let mode = fs::metadata(dir.path().join(PREFERENCES_FILE))
+            .unwrap()
+            .permissions()
+            .mode();
+        assert_eq!(mode & 0o777, 0o600);
     }
 
     #[test]

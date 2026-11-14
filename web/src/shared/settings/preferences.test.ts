@@ -28,6 +28,20 @@ async function fresh() {
 }
 
 const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+const sets = () => runCommand.mock.calls.filter(([id]) => id === "preferences.set");
+
+/** Answers `preferences.get` with `server`, and every `preferences.set` with what it was given. */
+function serverHolds(server: { theme: string | null; language: string | null }) {
+  runCommand.mockImplementation((id: string, input: unknown) =>
+    Promise.resolve(id === "preferences.get" ? server : input),
+  );
+}
+
+async function connect(preferences: { syncPreferences: () => void }) {
+  preferences.syncPreferences();
+  setState({ kind: "connected" });
+  await settle();
+}
 
 beforeEach(() => {
   runCommand.mockReset();
@@ -44,55 +58,86 @@ describe("preferences on the server", () => {
   it("applies what the server holds, also over the copy of this browser", async () => {
     const { preferences, theme, i18n } = await fresh();
     theme.selectTheme("hell");
-    runCommand.mockResolvedValueOnce({ theme: "dunkel", language: "de" });
-    preferences.syncPreferences();
-    setState({ kind: "connected" });
-    await settle();
+    serverHolds({ theme: "dunkel", language: "de" });
+    await connect(preferences);
     expect(theme.chosenTheme()).toBe("dunkel");
     expect(i18n.currentLanguage()).toBe("de");
     expect(localStorage.getItem("codeskimr.theme")).toBe("dunkel");
-    expect(runCommand).toHaveBeenCalledTimes(1);
+    expect(sets()).toHaveLength(0);
   });
 
   it("sends the choice of this browser if the server holds none", async () => {
     const { preferences, theme } = await fresh();
     theme.selectTheme("petrol");
-    runCommand.mockResolvedValueOnce({ theme: null, language: null });
-    runCommand.mockResolvedValueOnce({ theme: "petrol", language: null });
-    preferences.syncPreferences();
-    setState({ kind: "connected" });
-    await settle();
-    expect(runCommand).toHaveBeenLastCalledWith("preferences.set", {
-      theme: "petrol",
-      language: null,
-    });
+    serverHolds({ theme: null, language: null });
+    await connect(preferences);
+    expect(sets()).toEqual([["preferences.set", { theme: "petrol", language: null }]]);
   });
 
-  it("sends a later choice and ignores names the UI does not offer", async () => {
+  it("takes over a part and sends the other part that only this browser has", async () => {
+    const { preferences, theme, i18n } = await fresh();
+    theme.selectTheme("petrol");
+    serverHolds({ theme: null, language: "de" });
+    await connect(preferences);
+    expect(i18n.currentLanguage()).toBe("de");
+    expect(theme.chosenTheme()).toBe("petrol");
+    expect(sets()).toEqual([["preferences.set", { theme: "petrol", language: "de" }]]);
+  });
+
+  it("changing only the theme does not erase a language another browser stored", async () => {
     const { preferences, theme } = await fresh();
-    runCommand.mockResolvedValueOnce({ theme: "nonexistent", language: "xx" });
-    preferences.syncPreferences();
-    setState({ kind: "connected" });
-    await settle();
-    expect(theme.chosenTheme()).toBeNull();
-    runCommand.mockResolvedValueOnce({ theme: "hell", language: null });
+    serverHolds({ theme: null, language: "de" });
+    await connect(preferences);
     theme.selectTheme("hell");
     await settle();
-    expect(runCommand).toHaveBeenLastCalledWith("preferences.set", {
-      theme: "hell",
-      language: null,
-    });
+    expect(sets()).toEqual([["preferences.set", { theme: "hell", language: "de" }]]);
   });
 
-  it("keeps working with its own copy when the server does not answer", async () => {
+  it("ignores names the UI does not offer", async () => {
+    const { preferences, theme } = await fresh();
+    serverHolds({ theme: "nonexistent", language: "xx" });
+    await connect(preferences);
+    expect(theme.chosenTheme()).toBeNull();
+    expect(sets()).toHaveLength(0);
+  });
+
+  it("ends with the last choice when changes come in while a call is under way", async () => {
+    const { preferences, theme } = await fresh();
+    serverHolds({ theme: null, language: null });
+    await connect(preferences);
+    const release: (() => void)[] = [];
+    runCommand.mockImplementation((id: string, input: unknown) =>
+      id === "preferences.set"
+        ? new Promise((resolve) => release.push(() => resolve(input)))
+        : Promise.resolve(input),
+    );
+    theme.selectTheme("hell");
+    await settle();
+    theme.selectTheme("dunkel");
+    theme.selectTheme("petrol");
+    await settle();
+    expect(release).toHaveLength(1);
+    release[0]?.();
+    await settle();
+    release[1]?.();
+    await settle();
+    expect(sets().map(([, input]) => (input as { theme: string }).theme)).toEqual([
+      "hell",
+      "petrol",
+    ]);
+  });
+
+  it("reads the server again at the next change if it did not answer at start", async () => {
     const { preferences, theme } = await fresh();
     runCommand.mockRejectedValue(new Error("down"));
-    preferences.syncPreferences();
-    setState({ kind: "connected" });
-    await settle();
+    await connect(preferences);
     theme.selectTheme("petrol");
     await settle();
     expect(theme.chosenTheme()).toBe("petrol");
     expect(localStorage.getItem("codeskimr.theme")).toBe("petrol");
+    serverHolds({ theme: null, language: "de" });
+    theme.selectTheme("hell");
+    await settle();
+    expect(sets()).toEqual([["preferences.set", { theme: "hell", language: "de" }]]);
   });
 });

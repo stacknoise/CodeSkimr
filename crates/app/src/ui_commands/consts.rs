@@ -220,3 +220,8 @@ pub const PREFERENCE_MAX_CHARS: usize = 32;
 pub const PREFERENCE_EXTRA_CHAR: char = '-';
 /// Largest preferences file that is read; anything bigger is ignored.
 pub const PREFERENCES_MAX_BYTES: u64 = 4096;
+/// Mode of the preferences file: the owner may read and write, nobody else.
+#[cfg(unix)]
+pub const PREFERENCES_FILE_MODE: u32 = 0o600;
+/// Separator in the name of the file the preferences are written to first.
+pub const PREFERENCES_TEMP_SEPARATOR: &str = ".";
