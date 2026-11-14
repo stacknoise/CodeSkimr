@@ -75,10 +75,14 @@ visibility = "internal"
 # Level 2 (ADR 0033): scip-python (Pyright) indexes the Python files of the project folder.
 # Only runs when the user enabled and confirmed level 2 for the project. CodeSkimr never downloads or
 # installs anything: the user installs the indexer and its toolchain.
+# scip-python (0.6.0 to 0.6.8) has no positional project argument: it indexes its working folder, which the
+# runner sets to the project root. Without `--project-version` it takes the git revision and fails with exit
+# code 1 (empty index) outside a git repository or in one without a commit; the version only appears in the
+# SCIP symbol names, which the import does not read.
 [indexer]
 name = "scip-python"
 install_hint = "npm install --global @sourcegraph/scip-python (needs Node.js and the Python environment of the project)"
-args = ["index", "{project}", "--output", "{output}"]
+args = ["index", "--project-version", "0", "--output", "{output}"]
 env_allow = ["NODE_PATH", "NVM_DIR", "VOLTA_HOME", "FNM_DIR", "VIRTUAL_ENV", "PYTHONHOME", "CONDA_PREFIX"]
 
 [indexer.tool]
