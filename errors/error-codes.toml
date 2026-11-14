@@ -26,7 +26,7 @@ crate = "codeskimr_parsing"
 # and in the indexer runner (issue #218: the group has several owners, listed here and in blueprint 11.3).
 [groups.RES]
 title = "Reference resolution"
-crate = "codeskimr_parsing, codeskimr_scip, codeskimr_indexer"
+crate = "codeskimr_parsing, codeskimr_application, codeskimr_scip, codeskimr_indexer"
 
 [groups.IDX]
 title = "Search and read models"
