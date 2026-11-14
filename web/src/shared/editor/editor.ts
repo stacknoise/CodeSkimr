@@ -2,9 +2,11 @@ import {
   ALT_SHORTCUT_KEY,
   DRIVE_PATTERN,
   FIRST_LINE,
+  HEX_RADIX,
   PATH_SEPARATOR,
   PLACEHOLDER_LINE,
   PLACEHOLDER_PATH,
+  RESERVED_MARKS,
   SCHEME_PATTERN,
   SCHEME_SEPARATOR,
   SHORTCUT_KEY,
@@ -25,12 +27,21 @@ function schemeOf(url: string): string | null {
   return SCHEME_PATTERN.test(scheme) ? scheme : null;
 }
 
+/** `encodeURIComponent` leaves `! ' ( ) *` as they are; an editor link must not carry them, since
+ * some of them end a quoted argument or a link in other programs. */
+function encodeSegment(part: string): string {
+  return encodeURIComponent(part).replace(
+    RESERVED_MARKS,
+    (mark) => `%${mark.charCodeAt(0).toString(HEX_RADIX).toUpperCase()}`,
+  );
+}
+
 /** Percent-encodes a file path for the link: every part on its own, so that the slashes stay,
  * and a drive letter keeps its colon (`vscode://file/C:/src/a.cs`). */
 export function encodePath(path: string): string {
   const parts = path.replace(WINDOWS_SEPARATOR, PATH_SEPARATOR).split(PATH_SEPARATOR);
   return parts
-    .map((part) => (DRIVE_PATTERN.test(part) ? part : encodeURIComponent(part)))
+    .map((part) => (DRIVE_PATTERN.test(part) ? part : encodeSegment(part)))
     .join(PATH_SEPARATOR);
 }
 

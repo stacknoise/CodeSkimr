@@ -134,6 +134,24 @@ test.describe("themes and language", () => {
     expect(await violations()).toEqual([]);
   });
 
+  test("theme and language are kept on the server for every browser", async ({
+    page,
+    browser,
+    harness,
+  }) => {
+    await page.goto(`file://${keepLaunchFile(await harness.launchFile()).copy}`);
+    await page.getByRole("link", { name: "Settings" }).click();
+    await page.getByRole("button", { name: "Select" }).last().click();
+    await page.getByRole("combobox").selectOption("de");
+    await expect(page.getByRole("heading", { name: "Einstellungen" })).toBeVisible();
+    // A second browser has its own empty localStorage and learns both choices from the server.
+    const other = await (await browser.newContext()).newPage();
+    await other.goto(`file://${keepLaunchFile(await harness.launchFile()).copy}`);
+    await expect(other.locator("html")).toHaveAttribute("data-theme", "dunkel");
+    await expect(other.locator("html")).toHaveAttribute("lang", "de");
+    await other.context().close();
+  });
+
   test("every theme draws its preview with its own colours", async ({ page, harness }) => {
     const { copy } = keepLaunchFile(await harness.launchFile());
     await page.goto(`file://${copy}`);

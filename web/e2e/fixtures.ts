@@ -11,6 +11,8 @@ export interface Harness {
   url: string;
   /** Asks the server for a new launch code and returns the file that carries it. */
   launchFile(): Promise<string>;
+  /** Forgets the theme and language the server stored, so that a test starts as a new installation. */
+  resetPreferences(): Promise<void>;
 }
 
 const REPO = path.resolve(import.meta.dirname, "../..");
@@ -26,6 +28,7 @@ function start(): Promise<{ child: ChildProcessWithoutNullStreams; harness: Harn
     },
   );
   const waiting: ((file: string) => void)[] = [];
+  const resets: (() => void)[] = [];
   return new Promise((resolve, reject) => {
     child.on("error", reject);
     child.on("exit", (code) => reject(new Error(`the test server stopped (${code})`)));
@@ -33,7 +36,9 @@ function start(): Promise<{ child: ChildProcessWithoutNullStreams; harness: Harn
     createInterface({ input: child.stdout }).on("line", (line) => {
       const url = /E2E_URL=(\S+)/.exec(line)?.[1];
       const file = /E2E_LAUNCH_FILE=(.+)$/.exec(line)?.[1];
-      if (url !== undefined) {
+      if (line.includes("E2E_RESET=done")) {
+        resets.shift()?.();
+      } else if (url !== undefined) {
         resolve({
           child,
           harness: {
@@ -42,6 +47,11 @@ function start(): Promise<{ child: ChildProcessWithoutNullStreams; harness: Harn
               new Promise((done) => {
                 waiting.push(done);
                 child.stdin.write("launch\n");
+              }),
+            resetPreferences: () =>
+              new Promise((done) => {
+                resets.push(done);
+                child.stdin.write("reset\n");
               }),
           },
         });
@@ -52,7 +62,15 @@ function start(): Promise<{ child: ChildProcessWithoutNullStreams; harness: Harn
   });
 }
 
-export const test = base.extend<object, { harness: Harness }>({
+export const test = base.extend<{ freshInstallation: void }, { harness: Harness }>({
+  // Every test starts without stored preferences, as the first start of a new installation.
+  freshInstallation: [
+    async ({ harness }, use) => {
+      await harness.resetPreferences();
+      await use();
+    },
+    { auto: true },
+  ],
   harness: [
     // eslint-disable-next-line no-empty-pattern
     async ({}, use) => {
