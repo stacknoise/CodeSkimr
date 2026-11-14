@@ -24,29 +24,29 @@ fn project_ids(conn: &Connection) -> StorageResult<Vec<ProjectId>> {
     Ok(ids)
 }
 
-/// The symbols of a snapshot by language, in one pass over its symbols.
-fn symbols_by_language(
+/// Runs a statement of one snapshot and reads every row with `read`.
+fn rows_of_snapshot<T>(
     conn: &Connection,
+    statement: &str,
     snapshot: SnapshotId,
-) -> StorageResult<HashMap<String, u32>> {
-    let mut statement = conn.prepare_cached(sql::LANGUAGE_SYMBOLS)?;
-    let rows = statement.query_map(params![column_int(snapshot.get())?], |row| {
-        let cols = Cols::new(row);
-        Ok((cols.take::<String>()?, cols.take::<i64>()?))
+    read: impl Fn(&Cols<'_>) -> rusqlite::Result<T>,
+) -> StorageResult<Vec<T>> {
+    let mut prepared = conn.prepare_cached(statement)?;
+    let rows = prepared.query_map(params![column_int(snapshot.get())?], |row| {
+        read(&Cols::new(row))
     })?;
-    let mut counts = HashMap::new();
-    for row in rows {
-        let (language, symbols) = row?;
-        counts.insert(language, small_from(symbols)?);
-    }
-    Ok(counts)
+    Ok(rows.collect::<Result<Vec<_>, _>>()?)
 }
 
 fn languages(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<LanguageShare>> {
-    let symbols = symbols_by_language(conn, snapshot)?;
-    let mut statement = conn.prepare_cached(sql::LANGUAGE_SHARES)?;
-    let rows = statement.query_map(params![column_int(snapshot.get())?], |row| {
-        let cols = Cols::new(row);
+    // The symbols are counted in one pass over the symbols of the snapshot, not once per language.
+    let symbols: HashMap<String, i64> =
+        rows_of_snapshot(conn, sql::LANGUAGE_SYMBOLS, snapshot, |cols| {
+            Ok((cols.take::<String>()?, cols.take::<i64>()?))
+        })?
+        .into_iter()
+        .collect();
+    let rows = rows_of_snapshot(conn, sql::LANGUAGE_SHARES, snapshot, |cols| {
         Ok((
             cols.take::<String>()?,
             cols.take::<i64>()?,
@@ -54,10 +54,9 @@ fn languages(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<Langu
         ))
     })?;
     let mut shares = Vec::new();
-    for row in rows {
-        let (language, files, loc) = row?;
+    for (language, files, loc) in rows {
         shares.push(LanguageShare {
-            symbols: symbols.get(&language).copied().unwrap_or_default(),
+            symbols: small_from(symbols.get(&language).copied().unwrap_or_default())?,
             language: LanguageId::new(language)?,
             files: small_from(files)?,
             loc: small_from(loc)?,
