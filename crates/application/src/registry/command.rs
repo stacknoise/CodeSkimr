@@ -44,7 +44,8 @@ pub struct CommandDescriptor {
 /// Only this crate can build a request (the struct is `#[non_exhaustive]`), and the only ways to
 /// get one are [`CommandExt::run`] and `Registry::execute`, which check the permission the command
 /// declares first. A holder of a command value therefore cannot reach `execute` around the check
-/// (issue #70).
+/// (issue #70). A command implementation could still hand its own request on to another command
+/// with the same input type; that gap is tracked in issue #344.
 ///
 /// A crate outside the application layer cannot build one:
 ///
