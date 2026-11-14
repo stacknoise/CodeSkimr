@@ -83,6 +83,22 @@ pub fn open_store(locations: &Locations, config: &Config) -> Result<Arc<SqliteSt
     SqliteStore::open(&locations.database(), retention).map(Arc::new)
 }
 
+/// Like [`open_store`], for a process that answers queries (the UI and the MCP service): the
+/// usages index of the newest snapshot is built in the background, so that the first query does
+/// not wait for it (#333). A failure is left to the first query, which reports it.
+///
+/// # Errors
+/// The same as [`open_store`].
+pub fn open_serving_store(
+    locations: &Locations,
+    config: &Config,
+) -> Result<Arc<SqliteStore>, CodedError> {
+    let store = open_store(locations, config)?;
+    let warming = Arc::clone(&store);
+    std::thread::spawn(move || warming.warm_newest().ok());
+    Ok(store)
+}
+
 /// Builds the scanner with every port wired to its adapter; Git logins read from `secrets`.
 ///
 /// # Errors

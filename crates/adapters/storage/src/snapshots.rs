@@ -21,16 +21,22 @@ use crate::store::SqliteStore;
 
 impl SnapshotStore for SqliteStore {
     fn persist(&self, data: SnapshotData) -> Result<Snapshot, CodedError> {
-        self.write(|tx| write_snapshot(tx, &data, self.retention().get()))
-            .map_err(CodedError::from)
+        let stored = self
+            .write(|tx| write_snapshot(tx, &data, self.retention().get()))
+            .map_err(CodedError::from)?;
+        self.refresh_lookup(stored.id);
+        Ok(stored)
     }
 
     fn replace_references(
         &self,
         replacement: ReferenceReplacement,
     ) -> Result<Snapshot, CodedError> {
-        self.write(|tx| crate::replace::replace_references(tx, &replacement))
-            .map_err(CodedError::from)
+        let stored = self
+            .write(|tx| crate::replace::replace_references(tx, &replacement))
+            .map_err(CodedError::from)?;
+        self.refresh_lookup(stored.id);
+        Ok(stored)
     }
 }
 

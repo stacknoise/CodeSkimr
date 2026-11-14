@@ -42,6 +42,8 @@ pub const LATEST_FILES: &str = "SELECT snapshot_id, id, path, language, content_
     ORDER BY path";
 /// Id of the newest snapshot of a project, null without one: project id.
 pub const LATEST_SNAPSHOT_ID: &str = "SELECT MAX(id) FROM snapshots WHERE project_id = ?1";
+/// Id of the newest snapshot of all projects, null without one.
+pub const SNAPSHOT_NEWEST: &str = "SELECT MAX(id) FROM snapshots";
 /// The newest snapshot of a project: project id.
 pub const LATEST_SNAPSHOT: &str = "SELECT id, commit_hash, created, mode, files, \
     symbols, refs FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT 1";

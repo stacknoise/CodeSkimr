@@ -18,7 +18,7 @@ use codeskimr_domain::{
 };
 use rusqlite::{Connection, params};
 
-use crate::codec::{Cols, column_int, label_from, small_from};
+use crate::codec::{Cols, column_int, id_from, label_from, small_from};
 use crate::error::{StorageError, StorageResult};
 use crate::lookup::SnapshotLookup;
 use crate::sql;
@@ -45,6 +45,45 @@ impl SqliteStore {
         let loaded = Arc::new(self.read(|conn| SnapshotLookup::load(conn, raw))?);
         *cached = Some((snapshot, Arc::clone(&loaded)));
         Ok(loaded)
+    }
+
+    /// Builds the index of `snapshot` ahead of the first query, which would otherwise wait for it
+    /// (#333).
+    ///
+    /// # Errors
+    /// A coded `STO` failure.
+    pub fn warm(&self, snapshot: SnapshotId) -> Result<(), CodedError> {
+        self.lookup(snapshot).map(|_| ()).map_err(CodedError::from)
+    }
+
+    /// Builds the index of the newest snapshot of any project, if there is one.
+    ///
+    /// # Errors
+    /// A coded `STO` failure.
+    pub fn warm_newest(&self) -> Result<(), CodedError> {
+        let newest: Option<i64> = self
+            .read(|conn| Ok(conn.query_row(sql::SNAPSHOT_NEWEST, [], |row| row.get(0))?))
+            .map_err(CodedError::from)?;
+        match newest {
+            Some(id) => self.warm(SnapshotId::new(id_from(id).map_err(CodedError::from)?)),
+            None => Ok(()),
+        }
+    }
+
+    /// Replaces the kept index after a write: the references of the snapshot may have changed
+    /// (level 2 replaces them), or a newer snapshot has taken the place of the one that was asked
+    /// about. Only a store that has answered a query builds it again, so that a scan nobody
+    /// queries pays nothing; a failure leaves the index to be built by the next query.
+    pub(crate) fn refresh_lookup(&self, snapshot: SnapshotId) {
+        let mut cached = self.reverse.lock().unwrap_or_else(PoisonError::into_inner);
+        if cached.take().is_none() {
+            return;
+        }
+        let loaded = column_int(snapshot.get())
+            .and_then(|raw| self.read(|conn| SnapshotLookup::load(conn, raw)));
+        if let Ok(loaded) = loaded {
+            *cached = Some((snapshot, Arc::new(loaded)));
+        }
     }
 
     fn usage_page(

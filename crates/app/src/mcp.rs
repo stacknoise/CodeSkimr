@@ -25,7 +25,8 @@ use crate::principal;
 use crate::running::{ExclusiveScans, RunningScans};
 use crate::source_arg::folder_spec;
 use crate::wiring::{
-    Secrets, build_analysis, index_runner, open_store, os_secrets, scanner_over, tool_checker,
+    Secrets, build_analysis, index_runner, open_serving_store, open_store, os_secrets,
+    scanner_over, tool_checker,
 };
 
 /// Serves MCP until the client disconnects.
@@ -124,7 +125,7 @@ pub fn http_service_probing(
     (events, secrets): (EventBus, &Arc<Secrets>),
     (runner, running): (Option<Arc<dyn IndexRunner>>, RunningScans),
 ) -> Result<HttpService, CodedError> {
-    let store = open_store(locations, config)?;
+    let store = open_serving_store(locations, config)?;
     let messages = Arc::new(Messages::load().map_err(CodedError::caused_by)?);
     let wiring = Wiring {
         locations,

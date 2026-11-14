@@ -4,9 +4,12 @@
 mod common;
 
 use codeskimr_application::ports::{
-    ProjectRepository, ReferenceReplacement, SnapshotData, SnapshotStore, SymbolKey,
+    ProjectRepository, ReferenceReplacement, SnapshotData, SnapshotStore, SymbolKey, UsageIndex,
 };
-use codeskimr_domain::{FileId, MetricKind, Reference, ScanMode, SnapshotId, SymbolId, SymbolKind};
+use codeskimr_domain::{
+    Direction, FileId, MetricKind, Reference, ScanMode, SnapshotId, SymbolId, SymbolKind,
+    UsageQuery,
+};
 use common::{PROJECT, code_of, data, file, header, metric, project, reference, store, symbol};
 
 const SNAPSHOT: u64 = 10;
@@ -221,4 +224,28 @@ fn a_verified_reference_adds_the_dependency() {
     let value = |symbol, kind| coupling_of(&store, symbol, kind);
     assert_eq!(value(83, MetricKind::EfferentCoupling), Some(1.0));
     assert_eq!(value(81, MetricKind::Instability), Some(0.5));
+}
+
+/// The ids of the symbols that use `symbol` directly in the newest snapshot.
+#[cfg(test)]
+fn users_of(store: &codeskimr_storage::SqliteStore, symbol: u64) -> Vec<u64> {
+    let query = UsageQuery {
+        symbol: SymbolId::new(symbol),
+        direction: Direction::Incoming,
+        depth: 1,
+        include_tests: true,
+    };
+    let page = store.usages(SnapshotId::new(SNAPSHOT), &query, 10).unwrap();
+    page.entries.iter().map(|e| e.from.id.get()).collect()
+}
+
+#[test]
+fn a_kept_usage_index_follows_the_replacement() {
+    let store = namespaces();
+    assert_eq!(users_of(&store, 84), [82]);
+    store
+        .replace_references(replacement(&[71], vec![verified(900, 71, 82, 83)]))
+        .unwrap();
+    assert_eq!(users_of(&store, 84), Vec::<u64>::new());
+    assert_eq!(users_of(&store, 83), [82]);
 }
