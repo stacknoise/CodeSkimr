@@ -19,9 +19,11 @@ mod tests {
     }
 
     /// A folder with one pack `rust` of the given tier whose `symbols.scm` is not a valid query.
-    fn broken_pack(tier: &str) -> PathBuf {
-        let root =
-            std::env::temp_dir().join(format!("codeskimr-basic-{tier}-{}", std::process::id()));
+    fn broken_pack(tier: &str, case: &str) -> PathBuf {
+        let root = std::env::temp_dir().join(format!(
+            "codeskimr-basic-{tier}-{case}-{}",
+            std::process::id()
+        ));
         let dir = root.join("rust");
         fs::create_dir_all(&dir).expect("temp dir");
         let manifest = fs::read_to_string(fixture_pack().join("language.toml")).expect("read");
@@ -88,7 +90,7 @@ mod tests {
 
     #[test]
     fn a_basic_pack_is_checked_when_its_language_is_first_needed() {
-        let root = broken_pack("basic");
+        let root = broken_pack("basic", "first");
         let packs = LanguagePacks::load(&root).expect("listing does not load the pack");
         assert_eq!(packs.iter().count(), 1);
         let error = packs.get(&id("rust")).err().expect("invalid on first use");
@@ -98,7 +100,7 @@ mod tests {
 
     #[test]
     fn a_pack_that_failed_to_load_is_not_built_again() {
-        let root = broken_pack("basic");
+        let root = broken_pack("basic", "again");
         let packs = LanguagePacks::load(&root).expect("listing does not load the pack");
         assert!(packs.get(&id("rust")).is_err());
         // Repairing the files does not matter: the first failure is remembered for the run.
@@ -111,7 +113,7 @@ mod tests {
 
     #[test]
     fn a_full_pack_is_checked_when_the_packs_are_loaded() {
-        let root = broken_pack("full");
+        let root = broken_pack("full", "load");
         let error = LanguagePacks::load(&root).err().expect("invalid at once");
         assert_eq!(error.code(), ErrorCode::LanguagePackInvalid);
         fs::remove_dir_all(root).ok();
