@@ -1,17 +1,20 @@
 use std::error::Error;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant};
 
 use codeskimr_application::cancel::CancelToken;
+use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
+use codeskimr_application::level2;
 use codeskimr_application::ports::{
-    IndexJob, IndexLimits, IndexRunner, IndexerSpec, IndexerStatus, ToolIssue, ToolSpec,
-    ToolVersion,
+    ConsentRecord, ConsentStore, IndexJob, IndexLimits, IndexRunner, IndexerSpec, IndexerStatus,
+    RunPermit, ToolIssue, ToolSpec, ToolVersion,
 };
 use codeskimr_codes::{Coded, ErrorCode};
-use codeskimr_domain::LanguageId;
+use codeskimr_domain::{LanguageId, Principal, ProjectId};
 use codeskimr_indexer::{FailureReason, IndexerError, ProcessIndexRunner};
 use sysinfo::{Pid, ProcessesToUpdate, System};
 use tempfile::TempDir;
@@ -57,7 +60,54 @@ fn limits() -> IndexLimits {
     }
 }
 
+fn source_env(dir: &Path, inherit_path: bool) -> Vec<(OsString, OsString)> {
+    let mut source: Vec<(OsString, OsString)> = std::env::vars_os()
+        .filter(|(name, _)| !name.to_string_lossy().eq_ignore_ascii_case("PATH"))
+        .collect();
+    let real_path = std::env::var_os("PATH").unwrap_or_default();
+    let mut paths = vec![dir.to_path_buf()];
+    if inherit_path {
+        paths.extend(std::env::split_paths(&real_path));
+    }
+    source.push(("PATH".into(), std::env::join_paths(paths).unwrap()));
+    for (name, value) in [
+        ("GITHUB_TOKEN", SECRET),
+        ("CODESKIMR_MASTER", SECRET),
+        ("MY_PASSWORD", SECRET),
+        ("AWS_SECRET_ACCESS_KEY", SECRET),
+        ("ANTHROPIC_API_KEY", SECRET),
+        ("UNLISTED_VALUE", SECRET),
+        ("EXTRA_TOKEN", SECRET),
+        ("EXTRA_ALLOWED", "fine"),
+    ] {
+        source.push((name.into(), value.into()));
+    }
+    source
+}
+
+#[derive(Default)]
+struct Memory(Mutex<ConsentRecord>);
+
+impl ConsentStore for Memory {
+    fn consent(&self, _project: ProjectId) -> Result<ConsentRecord, CodedError> {
+        Ok(*self.0.lock().unwrap())
+    }
+
+    fn store_consent(&self, _project: ProjectId, record: ConsentRecord) -> Result<(), CodedError> {
+        *self.0.lock().unwrap() = record;
+        Ok(())
+    }
+}
+
+fn confirmed_store() -> Arc<dyn ConsentStore> {
+    let store: Arc<dyn ConsentStore> = Arc::new(Memory::default());
+    level2::confirm(&Principal::local_owner(), store.as_ref(), ProjectId::new(1)).unwrap();
+    store
+}
+
 struct Fixture {
+    store: Arc<dyn ConsentStore>,
+    permit: RunPermit,
     project: TempDir,
     data: TempDir,
     runner: ProcessIndexRunner,
@@ -66,33 +116,29 @@ struct Fixture {
 
 impl Fixture {
     fn new() -> Self {
-        Self::build(TempDir::new().unwrap(), &fake_dir())
+        Self::build(TempDir::new().unwrap(), &fake_dir(), true)
     }
 
-    fn build(project: TempDir, dir: &Path) -> Self {
+    /// `inherit_path` adds the `PATH` of the test process after `dir`. A test that needs `dir` to be
+    /// the only place with the indexer must not: on Windows cargo puts `target/debug` into the
+    /// `PATH` of every test process, and the real fake indexer lives there.
+    fn build(project: TempDir, dir: &Path, inherit_path: bool) -> Self {
         let data = TempDir::new().unwrap();
-        let mut source: Vec<(OsString, OsString)> = std::env::vars_os()
-            .filter(|(name, _)| !name.to_string_lossy().eq_ignore_ascii_case("PATH"))
-            .collect();
-        let real_path = std::env::var_os("PATH").unwrap_or_default();
-        let mut paths = vec![dir.to_path_buf()];
-        paths.extend(std::env::split_paths(&real_path));
-        source.push(("PATH".into(), std::env::join_paths(paths).unwrap()));
-        for (name, value) in [
-            ("GITHUB_TOKEN", SECRET),
-            ("CODESKIMR_MASTER", SECRET),
-            ("MY_PASSWORD", SECRET),
-            ("AWS_SECRET_ACCESS_KEY", SECRET),
-            ("ANTHROPIC_API_KEY", SECRET),
-            ("UNLISTED_VALUE", SECRET),
-            ("EXTRA_TOKEN", SECRET),
-            ("EXTRA_ALLOWED", "fine"),
-        ] {
-            source.push((name.into(), value.into()));
-        }
+        let source = source_env(dir, inherit_path);
         let runner =
             ProcessIndexRunner::new(data.path().to_path_buf(), mask).with_environment(source);
+        let store = confirmed_store();
+        let config = Config::defaults().unwrap();
+        let permit = level2::authorize_run(
+            &Principal::local_owner(),
+            &config.level2,
+            &store,
+            ProjectId::new(1),
+        )
+        .unwrap();
         Self {
+            store,
+            permit,
             project,
             data,
             runner,
@@ -111,6 +157,7 @@ impl Fixture {
             spec,
             project_root: self.project.path(),
             limits,
+            permit: &self.permit,
         };
         self.runner.run(&job, cancel)
     }
@@ -338,6 +385,79 @@ fn a_program_inside_the_project_is_never_used() {
     std::fs::copy(&exe, bin.join(exe.file_name().unwrap())).unwrap();
     // The only fake indexer on the path lives inside the project, as a hostile repository would
     // have it.
-    let fixture = Fixture::build(project, &bin);
+    let fixture = Fixture::build(project, &bin, false);
     assert_eq!(code_of(fixture.run("ok")), ErrorCode::IndexerUnavailable);
+}
+
+#[test]
+fn too_deeply_nested_output_counts_as_too_large() {
+    let fixture = Fixture::new();
+    let small = IndexLimits {
+        max_output_bytes: 512 * 1024 * 1024,
+        ..limits()
+    };
+    let result = fixture.run_with(&spec("deep-dir"), small, &CancelToken::new());
+    assert_eq!(code_of(result), ErrorCode::IndexerOutputTooLarge);
+}
+
+#[test]
+fn a_secret_across_the_cut_of_the_excerpt_is_masked_before_it_is_cut() {
+    let fixture = Fixture::new();
+    let error = fixture.run("fail-long").unwrap_err();
+    let cause = error
+        .source()
+        .and_then(|s| s.downcast_ref::<IndexerError>());
+    let Some(IndexerError::Failed { excerpt, .. }) = cause else {
+        panic!("not a failure: {cause:?}");
+    };
+    assert!(excerpt.len() <= 2048, "{}", excerpt.len());
+    assert!(
+        !excerpt.contains("CANARY") && !excerpt.contains("SECRET"),
+        "{excerpt}"
+    );
+}
+
+#[test]
+fn the_version_output_in_a_problem_is_short_and_redacted() {
+    let fixture = Fixture::new();
+    let mut old = spec("ok");
+    old.indexer.min_version = ToolVersion::parse("9.0.0").unwrap();
+    let IndexerStatus::Unavailable(problems) = fixture.runner.check(&old) else {
+        panic!("ready");
+    };
+    let Some(ToolIssue::TooOld { found, .. }) = problems.first().map(|p| &p.issue) else {
+        panic!("not too old");
+    };
+    assert!(found.len() <= 200);
+}
+
+#[test]
+fn consent_withdrawn_after_the_permit_stops_the_run_before_it_starts() {
+    let fixture = Fixture::new();
+    level2::revoke(
+        &Principal::local_owner(),
+        fixture.store.as_ref(),
+        ProjectId::new(1),
+    )
+    .unwrap();
+    let result = fixture.run("ok");
+    assert_eq!(code_of(result), ErrorCode::IndexerNotConfirmed);
+    assert_eq!(data_dir_entries(&fixture), 0, "the output folder stayed");
+}
+
+#[cfg(unix)]
+#[test]
+fn a_link_in_place_of_the_index_is_not_an_index() {
+    let fixture = Fixture::new();
+    let error = fixture.run("link-index").unwrap_err();
+    let cause = error
+        .source()
+        .and_then(|s| s.downcast_ref::<IndexerError>());
+    assert!(matches!(
+        cause,
+        Some(IndexerError::Failed {
+            reason: FailureReason::NoIndex,
+            ..
+        })
+    ));
 }

@@ -13,7 +13,7 @@ use codeskimr_domain::LanguageId;
 use crate::cancel::CancelToken;
 use crate::error::CodedError;
 
-use super::ToolVersion;
+use super::{RunPermit, ToolVersion};
 
 pub use crate::consts::{PLACEHOLDER_OUTPUT, PLACEHOLDER_PROJECT};
 
@@ -71,6 +71,9 @@ pub struct IndexJob<'a> {
     pub project_root: &'a Path,
     /// The limits of the run.
     pub limits: IndexLimits,
+    /// Proof that consent and permission were checked; the runner reads the consent once more
+    /// before it starts the process.
+    pub permit: &'a RunPermit,
 }
 
 /// Why a tool is not usable.
@@ -80,7 +83,7 @@ pub enum ToolIssue {
     Missing,
     /// It is found but older than required, or its version cannot be read.
     TooOld {
-        /// What it reports; empty if the output has no version.
+        /// What it reports, shortened and redacted; empty if the output has no version.
         found: String,
         /// What the language pack requires.
         required: ToolVersion,
@@ -137,8 +140,8 @@ impl std::fmt::Debug for IndexArtifact {
     }
 }
 
-/// Runs the indexer of a language. The caller has checked consent and permission already
-/// ([`crate::level2::authorize_run`]); the runner never decides that itself.
+/// Runs the indexer of a language. The job carries the [`RunPermit`] that only
+/// [`crate::level2::authorize_run`] hands out.
 pub trait IndexRunner: Send + Sync {
     /// Checks, without running any project code, whether the indexer and its toolchain exist and
     /// have a usable version.
@@ -147,7 +150,7 @@ pub trait IndexRunner: Send + Sync {
     /// Runs the indexer once and returns its index file.
     ///
     /// # Errors
-    /// `RES-201` if a tool is missing or too old, `RES-502` on timeout, `RES-503` when the output
+    /// `SEC-301` if the consent was withdrawn since the permit was issued, `RES-201` if a tool is missing or too old, `RES-502` on timeout, `RES-503` when the output
     /// limit is exceeded, `RES-504` when the memory limit is exceeded, `RES-601` if it cannot be
     /// started or ends with an error, `PRJ-303` if `cancel` was raised. The process group is gone
     /// in every case.

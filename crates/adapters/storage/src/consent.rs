@@ -1,7 +1,7 @@
 //! The user's decision about level 2 for a project: the `ConsentStore` port (ADR 0033).
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::level2::{ConsentRecord, ConsentStore};
+use codeskimr_application::ports::{ConsentRecord, ConsentStore};
 use codeskimr_domain::ProjectId;
 use rusqlite::{OptionalExtension, params};
 

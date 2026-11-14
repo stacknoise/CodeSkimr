@@ -7,35 +7,14 @@
 //! tokens, watch mode and CI have no way to confirm, and a missing confirmation stops them like
 //! everybody else.
 
+use std::sync::Arc;
+
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{Permission, Principal, ProjectId};
 
 use crate::config::Level2;
 use crate::error::CodedError;
-
-/// What the user's own project record says about level 2.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct ConsentRecord {
-    /// Level 2 is enabled for this project.
-    pub enabled: bool,
-    /// The user confirmed once that indexers may run the build tools of this project.
-    pub confirmed: bool,
-}
-
-/// The consent of the user, kept with the project record (adapter: `codeskimr_storage`).
-pub trait ConsentStore: Send + Sync {
-    /// The record of `project`; without one nothing is enabled or confirmed.
-    ///
-    /// # Errors
-    /// A coded failure of the `STO` group.
-    fn consent(&self, project: ProjectId) -> Result<ConsentRecord, CodedError>;
-
-    /// Replaces the record of `project`.
-    ///
-    /// # Errors
-    /// A coded failure of the `STO` group.
-    fn store_consent(&self, project: ProjectId, record: ConsentRecord) -> Result<(), CodedError>;
-}
+pub use crate::ports::{ConsentRecord, ConsentStore, RunPermit};
 
 /// Enables level 2 for `project` and records the confirmation. The caller (an interactive screen
 /// or command of the local owner) must have asked the user; nothing else calls this.
@@ -72,8 +51,9 @@ pub fn revoke(
     store.store_consent(project, ConsentRecord::default())
 }
 
-/// Lets a run of indexers for `project` pass: the principal may start them, level 2 is enabled in
-/// the user configuration or the project record, and the project record holds the confirmation.
+/// Lets a run of indexers for `project` pass and returns the proof the runner needs: the principal
+/// may start them, level 2 is enabled in the user configuration or the project record, and the
+/// project record holds a confirmation for the source the project has now.
 ///
 /// `settings` must come from a configuration whose project layer was resolved by
 /// `Config::resolve`, which drops the `level2` table of the project file.
@@ -84,16 +64,13 @@ pub fn revoke(
 pub fn authorize_run(
     principal: &Principal,
     settings: &Level2,
-    store: &dyn ConsentStore,
+    store: &Arc<dyn ConsentStore>,
     project: ProjectId,
-) -> Result<(), CodedError> {
+) -> Result<RunPermit, CodedError> {
     require(*principal, Permission::RunIndexer)?;
-    let record = store.consent(project)?;
-    if (settings.enabled || record.enabled) && record.confirmed {
-        Ok(())
-    } else {
-        Err(CodedError::new(ErrorCode::IndexerNotConfirmed))
-    }
+    let permit = RunPermit::new(Arc::clone(store), project, settings.enabled);
+    permit.recheck()?;
+    Ok(permit)
 }
 
 /// A restricted principal gets `SEC-403`, which says what was refused (unlike `AUTH-401`).

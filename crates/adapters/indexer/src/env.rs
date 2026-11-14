@@ -11,7 +11,7 @@ use std::path::{Path, PathBuf};
 use codeskimr_application::ports::IndexerSpec;
 
 use crate::consts::{
-    APPLICATION_ENV_PREFIX, BASE_ENV_ALLOW, PATH_ENV, SECRET_NAME_PARTS, TEMP_ENV,
+    APPLICATION_ENV_PREFIX, BASE_ENV_ALLOW, FIXED_ENV, PATH_ENV, SECRET_NAME_PARTS, TEMP_ENV,
 };
 
 /// Name/value pairs for `Command::env` after `env_clear`.
@@ -34,6 +34,9 @@ pub fn build(
         .collect();
     for name in TEMP_ENV {
         result.push((OsString::from(name), scratch.as_os_str().to_owned()));
+    }
+    for (name, value) in FIXED_ENV {
+        result.push((OsString::from(name), OsString::from(value)));
     }
     for (name, value) in &spec.env {
         result.retain(|(existing, _)| !same_name(existing, name));
@@ -85,4 +88,23 @@ pub fn safe_path(path: &OsStr, project_root: &Path) -> OsString {
 
 fn canonical(path: &Path) -> PathBuf {
     path.canonicalize().unwrap_or_else(|_| path.to_path_buf())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::safe_path;
+
+    #[test]
+    fn relative_entries_and_entries_inside_the_project_leave_the_path() {
+        let root = std::env::temp_dir().join("codeskimr-env-test-project");
+        let inside = root.join("bin");
+        let outside = std::env::temp_dir().join("codeskimr-env-test-other");
+        let relative = Path::new("tools").to_path_buf();
+        let joined = std::env::join_paths([relative, inside, outside.clone()]).unwrap();
+        let safe = safe_path(&joined, &root);
+        let kept: Vec<_> = std::env::split_paths(&safe).collect();
+        assert_eq!(kept, [outside]);
+    }
 }

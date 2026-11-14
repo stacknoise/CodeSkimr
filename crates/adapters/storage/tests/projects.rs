@@ -110,7 +110,7 @@ fn next_project_id_follows_the_highest_registered_id() {
 
 #[test]
 fn consent_for_level_2_starts_empty_round_trips_and_goes_with_the_project() {
-    use codeskimr_application::level2::{ConsentRecord, ConsentStore};
+    use codeskimr_application::ports::{ConsentRecord, ConsentStore};
 
     let store = store(3);
     store.save_project(&project(1, "/work/app", &[])).unwrap();
@@ -130,4 +130,63 @@ fn consent_for_level_2_starts_empty_round_trips_and_goes_with_the_project() {
         .store_consent(PROJECT, ConsentRecord::default())
         .unwrap();
     assert_eq!(store.consent(PROJECT).unwrap(), ConsentRecord::default());
+}
+
+#[test]
+fn a_confirmation_does_not_survive_a_change_of_the_projects_source() {
+    use codeskimr_application::ports::{ConsentRecord, ConsentStore};
+
+    let store = store(3);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    let confirmed = ConsentRecord {
+        enabled: true,
+        confirmed: true,
+    };
+    store.store_consent(PROJECT, confirmed).unwrap();
+    // The same id, pointed at another folder: not confirmed any more.
+    store.save_project(&project(1, "/work/other", &[])).unwrap();
+    assert!(!store.consent(PROJECT).unwrap().confirmed);
+    // Pointed back, the old confirmation fits again only if nobody confirmed anew in between; a
+    // new confirmation binds to the new place.
+    store.store_consent(PROJECT, confirmed).unwrap();
+    assert!(store.consent(PROJECT).unwrap().confirmed);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    assert!(!store.consent(PROJECT).unwrap().confirmed);
+    // A Git branch counts too.
+    let mut git = project(1, "/work/app", &[]);
+    git.source = ProjectSource::Git {
+        url: GitUrl::new("https://example.org/app.git").unwrap(),
+        branch: BranchName::new("main").unwrap(),
+        credential: None,
+    };
+    store.save_project(&git).unwrap();
+    store.store_consent(PROJECT, confirmed).unwrap();
+    assert!(store.consent(PROJECT).unwrap().confirmed);
+    git.source = ProjectSource::Git {
+        url: GitUrl::new("https://example.org/app.git").unwrap(),
+        branch: BranchName::new("evil").unwrap(),
+        credential: None,
+    };
+    store.save_project(&git).unwrap();
+    assert!(!store.consent(PROJECT).unwrap().confirmed);
+}
+
+#[test]
+fn consent_for_a_project_that_does_not_exist_is_not_stored() {
+    use codeskimr_application::ports::{ConsentRecord, ConsentStore};
+
+    let store = store(3);
+    store
+        .store_consent(
+            ProjectId::new(7),
+            ConsentRecord {
+                enabled: true,
+                confirmed: true,
+            },
+        )
+        .unwrap();
+    assert_eq!(
+        store.consent(ProjectId::new(7)).unwrap(),
+        ConsentRecord::default()
+    );
 }

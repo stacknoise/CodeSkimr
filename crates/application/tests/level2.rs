@@ -2,7 +2,7 @@
 
 #[cfg(test)]
 mod cases {
-    use std::sync::Mutex;
+    use std::sync::{Arc, Mutex};
 
     use codeskimr_application::config::{Config, ConfigLayer, LayerSource};
     use codeskimr_application::error::CodedError;
@@ -41,7 +41,7 @@ mod cases {
         Config::resolve(&layers).unwrap()
     }
 
-    fn code(result: Result<(), CodedError>) -> ErrorCode {
+    fn code<T: std::fmt::Debug>(result: Result<T, CodedError>) -> ErrorCode {
         result.unwrap_err().code()
     }
 
@@ -49,7 +49,7 @@ mod cases {
     fn by_default_nothing_runs() {
         let settings = config(&[]).level2;
         assert!(!settings.enabled);
-        let store = Memory::default();
+        let store: Arc<dyn ConsentStore> = Arc::new(Memory::default());
         assert_eq!(
             code(authorize_run(
                 &Principal::local_owner(),
@@ -64,7 +64,7 @@ mod cases {
     #[test]
     fn enabling_in_the_user_config_alone_is_not_enough() {
         let settings = config(&[(LayerSource::User, "[level2]\nenabled = true\n")]).level2;
-        let store = Memory::default();
+        let store: Arc<dyn ConsentStore> = Arc::new(Memory::default());
         assert_eq!(
             code(authorize_run(
                 &Principal::local_owner(),
@@ -79,10 +79,10 @@ mod cases {
     #[test]
     fn a_confirmation_alone_is_enough_because_it_enables_the_project() {
         let owner = Principal::local_owner();
-        let store = Memory::default();
-        confirm(&owner, &store, PROJECT).unwrap();
+        let store: Arc<dyn ConsentStore> = Arc::new(Memory::default());
+        confirm(&owner, store.as_ref(), PROJECT).unwrap();
         authorize_run(&owner, &config(&[]).level2, &store, PROJECT).unwrap();
-        revoke(&owner, &store, PROJECT).unwrap();
+        revoke(&owner, store.as_ref(), PROJECT).unwrap();
         assert_eq!(
             code(authorize_run(&owner, &config(&[]).level2, &store, PROJECT)),
             ErrorCode::IndexerNotConfirmed
@@ -93,7 +93,7 @@ mod cases {
     fn the_user_config_enables_for_every_project_but_each_needs_its_confirmation() {
         let owner = Principal::local_owner();
         let settings = config(&[(LayerSource::User, "[level2]\nenabled = true\n")]).level2;
-        let store = Memory::default();
+        let store: Arc<dyn ConsentStore> = Arc::new(Memory::default());
         store
             .store_consent(
                 PROJECT,
@@ -120,7 +120,7 @@ mod cases {
         )]);
         assert_eq!(mixed.scan.parse_timeout_ms, 7);
         assert!(!mixed.level2.enabled);
-        let store = Memory::default();
+        let store: Arc<dyn ConsentStore> = Arc::new(Memory::default());
         assert_eq!(
             code(authorize_run(
                 &Principal::local_owner(),
@@ -146,7 +146,7 @@ mod cases {
 
     #[test]
     fn a_restricted_principal_may_neither_confirm_nor_start() {
-        let store = Memory::default();
+        let store: Arc<dyn ConsentStore> = Arc::new(Memory::default());
         let nobody = Principal::limited(PermissionSet::none());
         let reader = Principal::limited(PermissionSet::from_iter([
             Permission::Read,
@@ -156,11 +156,11 @@ mod cases {
         ]));
         for principal in [nobody, reader] {
             assert_eq!(
-                code(confirm(&principal, &store, PROJECT)),
+                code(confirm(&principal, store.as_ref(), PROJECT)),
                 ErrorCode::IndexerNotPermitted
             );
             assert_eq!(
-                code(revoke(&principal, &store, PROJECT)),
+                code(revoke(&principal, store.as_ref(), PROJECT)),
                 ErrorCode::IndexerNotPermitted
             );
             assert_eq!(
@@ -179,10 +179,10 @@ mod cases {
 
     #[test]
     fn starting_and_confirming_are_separate_rights() {
-        let store = Memory::default();
+        let store: Arc<dyn ConsentStore> = Arc::new(Memory::default());
         let starter = Principal::limited(PermissionSet::from_iter([Permission::RunIndexer]));
         let confirmer = Principal::limited(PermissionSet::from_iter([Permission::ConfirmIndexer]));
-        confirm(&confirmer, &store, PROJECT).unwrap();
+        confirm(&confirmer, store.as_ref(), PROJECT).unwrap();
         assert_eq!(
             code(authorize_run(
                 &confirmer,
@@ -194,7 +194,7 @@ mod cases {
         );
         authorize_run(&starter, &config(&[]).level2, &store, PROJECT).unwrap();
         assert_eq!(
-            code(confirm(&starter, &store, PROJECT)),
+            code(confirm(&starter, store.as_ref(), PROJECT)),
             ErrorCode::IndexerNotPermitted
         );
     }

@@ -12,10 +12,11 @@ use codeskimr_application::ports::{ToolIssue, ToolProblem, ToolSpec, ToolVersion
 
 use crate::consts::{
     EXECUTABLE_SUFFIXES, PATH_ENV, PROBE_MAX_MEMORY, PROBE_MAX_OUTPUT, PROBE_TIMEOUT,
-    WORD_SEPARATOR,
+    VERSION_EXCERPT_CHARS, WORD_SEPARATOR,
 };
 use crate::env::{Environment, safe_path};
 use crate::process::{Launch, Limits, run_guarded};
+use crate::redact::{Redact, excerpt};
 
 /// Finds `program` in `path`, skipping entries that are relative or inside `project_root`.
 #[must_use]
@@ -34,6 +35,8 @@ pub fn resolve(program: &str, path: &OsStr, project_root: &Path) -> Option<PathB
 pub struct Probe<'a> {
     /// The environment the tool will run with.
     pub env: &'a Environment,
+    /// Masks secrets in what a tool printed before it is kept.
+    pub redact: Redact,
     /// A folder that belongs to no project, used as working folder.
     pub neutral_dir: &'a Path,
     /// The project folder, which `PATH` must not lead into.
@@ -59,7 +62,7 @@ pub fn check_tool(tool: &ToolSpec, probe: &Probe<'_>) -> Option<ToolProblem> {
     match ToolVersion::find_in(&output) {
         Some(version) if version >= tool.min_version => None,
         _ => problem(ToolIssue::TooOld {
-            found: output.trim().to_owned(),
+            found: excerpt(output.trim(), VERSION_EXCERPT_CHARS, probe.redact),
             required: tool.min_version,
         }),
     }

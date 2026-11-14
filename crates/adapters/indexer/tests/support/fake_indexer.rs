@@ -40,6 +40,9 @@ fn run(mode: &str, output: &Path, pid_file: &Path) -> io::Result<ExitCode> {
         "memory" => use_memory(),
         "dump-env" => dump_env(output)?,
         "fail" => return fail(),
+        "fail-long" => return fail_long(),
+        "deep-dir" => deep_dir(output)?,
+        "link-index" => link_index(output, pid_file)?,
         _ => return Ok(ExitCode::from(64)),
     }
     Ok(ExitCode::SUCCESS)
@@ -94,4 +97,35 @@ fn fail() -> io::Result<ExitCode> {
         "restore failed: Authorization: Bearer CANARY-SECRET-VALUE for feed"
     )?;
     Ok(ExitCode::from(3))
+}
+
+/// A secret that sits across the end of the console output, so that a cut before redaction would
+/// split it.
+fn fail_long() -> io::Result<ExitCode> {
+    let filler = "x".repeat(2040);
+    writeln!(io::stderr(), "CANARY-SECRET-VALUE{filler}")?;
+    Ok(ExitCode::from(3))
+}
+
+/// Nests folders deeper than the runner measures and puts data at the bottom.
+fn deep_dir(output: &Path) -> io::Result<()> {
+    let mut dir = output.parent().map(Path::to_path_buf).unwrap_or_default();
+    for _ in 0..64 {
+        dir.push("d");
+    }
+    fs::create_dir_all(&dir)?;
+    fs::write(dir.join("data"), vec![7_u8; 1024 * 1024])?;
+    thread::sleep(HANG);
+    Ok(())
+}
+
+#[cfg(unix)]
+fn link_index(output: &Path, target: &Path) -> io::Result<()> {
+    fs::write(target, b"not the index")?;
+    std::os::unix::fs::symlink(target, output)
+}
+
+#[cfg(not(unix))]
+fn link_index(output: &Path, _target: &Path) -> io::Result<()> {
+    fs::write(output, b"index")
 }

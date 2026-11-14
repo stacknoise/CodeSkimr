@@ -13,9 +13,11 @@ mod env;
 mod error;
 mod memory;
 mod process;
+mod redact;
 mod runner;
 mod tools;
 
 pub use env::{Environment, build as build_environment};
 pub use error::{FailureReason, IndexerError};
-pub use runner::{ProcessIndexRunner, Redact};
+pub use redact::Redact;
+pub use runner::ProcessIndexRunner;

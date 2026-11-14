@@ -26,6 +26,9 @@ pub enum IndexerError {
         /// The end of the console output, after redaction.
         excerpt: String,
     },
+    /// The consent was withdrawn, or the project changed, after the permit was issued.
+    #[error("{}", ErrorCode::IndexerNotConfirmed.description())]
+    NotConfirmed(#[source] codeskimr_application::error::CodedError),
     /// The caller cancelled the run.
     #[error("{}", ErrorCode::ScanCancelled.description())]
     Cancelled,
@@ -52,6 +55,7 @@ impl Coded for IndexerError {
             Self::OutputTooLarge => ErrorCode::IndexerOutputTooLarge,
             Self::MemoryLimit => ErrorCode::IndexerMemoryLimit,
             Self::Failed { .. } => ErrorCode::IndexerFailed,
+            Self::NotConfirmed(cause) => cause.code(),
             Self::Cancelled => ErrorCode::ScanCancelled,
         }
     }

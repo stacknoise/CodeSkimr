@@ -42,6 +42,11 @@ pub const SECRET_NAME_PARTS: &[&str] = &[
 pub const APPLICATION_ENV_PREFIX: &str = "CODESKIMR";
 /// Variables that name the temporary folder; they point into the output folder of the run.
 pub const TEMP_ENV: &[&str] = &["TMPDIR", "TEMP", "TMP"];
+/// Variables every indexer gets with a fixed value. On Windows the first one stops tools that the
+/// indexer starts from taking a program of the working folder (the project) before the `PATH`.
+pub const FIXED_ENV: &[(&str, &str)] = &[("NoDefaultCurrentDirectoryInExePath", "1")];
+/// Most characters of the version output that an error or the tool check keeps.
+pub const VERSION_EXCERPT_CHARS: usize = 200;
 /// Name of the `PATH` variable.
 pub const PATH_ENV: &str = "PATH";
 

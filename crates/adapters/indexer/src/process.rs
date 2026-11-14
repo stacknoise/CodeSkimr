@@ -230,8 +230,10 @@ impl Watch<'_> {
 
 /// Bytes of the regular files below `dir`; links are not followed, and a deep tree is cut off.
 fn folder_bytes(dir: &Path, depth: usize) -> u64 {
+    // A folder nested deeper than the measure goes counts as over the limit: an indexer must not
+    // hide data below the cut.
     if depth > MAX_SCAN_DEPTH {
-        return 0;
+        return u64::MAX;
     }
     let Ok(entries) = std::fs::read_dir(dir) else {
         return 0;

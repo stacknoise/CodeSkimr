@@ -19,10 +19,8 @@ use crate::consts::{
 use crate::env::{self, Environment};
 use crate::error::{FailureReason, IndexerError};
 use crate::process::{Finished, Launch, Limits, RunError, Stop, run_guarded};
+use crate::redact::{Redact, excerpt};
 use crate::tools::{Probe, check_tool, resolve};
-
-/// Masks secrets in text that is about to be logged or shown.
-pub type Redact = fn(&str) -> String;
 
 /// Runs indexers as child processes. The temporary output of every run lives in a folder inside
 /// `data_dir` that is removed when the returned [`IndexArtifact`] is dropped.
@@ -66,14 +64,7 @@ impl ProcessIndexRunner {
 
     fn excerpt(&self, finished: &Finished) -> String {
         let console = [finished.stdout_text(), finished.stderr_text()].concat();
-        let start = console.len().saturating_sub(EXCERPT_BYTES);
-        let tail = console
-            .char_indices()
-            .map(|(index, _)| index)
-            .find(|index| *index >= start)
-            .and_then(|index| console.get(index..))
-            .unwrap_or_default();
-        (self.redact)(tail)
+        excerpt(&console, EXCERPT_BYTES, self.redact)
     }
 
     fn execute(
@@ -85,6 +76,7 @@ impl ProcessIndexRunner {
         let environment = self.environment(job.spec, &output.scratch, job.project_root);
         let probe = Probe {
             env: &environment,
+            redact: self.redact,
             neutral_dir: &output.scratch,
             project_root: job.project_root,
         };
@@ -93,6 +85,9 @@ impl ProcessIndexRunner {
             return Err(IndexerError::Unavailable(problems));
         }
         let launch = launch_of(job, &environment, &output)?;
+        // Consent is read again right before the process starts: it may have been withdrawn, or
+        // the project pointed elsewhere, since the permit was issued.
+        job.permit.recheck().map_err(IndexerError::NotConfirmed)?;
         match run_guarded(&launch, cancel) {
             Ok(finished) => self.finish(&finished, output),
             Err(RunError::Io(cause)) => {
@@ -114,7 +109,8 @@ impl ProcessIndexRunner {
                 self.excerpt(finished),
             ));
         }
-        if !index.is_file() {
+        // A link that the indexer put in place of the index is not an index.
+        if !index.symlink_metadata().is_ok_and(|meta| meta.is_file()) {
             return Err(failed(FailureReason::NoIndex, self.excerpt(finished)));
         }
         Ok(IndexArtifact::new(index, Box::new(output.dir)))
@@ -187,16 +183,16 @@ fn launch_of(
     })?;
     let root = job.project_root.to_string_lossy();
     let index = output.index();
+    let index_text = index.to_string_lossy();
+    let replacements = [
+        (PLACEHOLDER_PROJECT, root.as_ref()),
+        (PLACEHOLDER_OUTPUT, index_text.as_ref()),
+    ];
     let args = job
         .spec
         .args
         .iter()
-        .map(|arg| {
-            let text = arg
-                .replace(PLACEHOLDER_PROJECT, &root)
-                .replace(PLACEHOLDER_OUTPUT, &index.to_string_lossy());
-            OsString::from(text)
-        })
+        .map(|arg| OsString::from(substitute(arg, &replacements)))
         .collect();
     Ok(Launch {
         program,
@@ -212,6 +208,28 @@ fn launch_of(
     })
 }
 
+/// Replaces the placeholders in one pass, so that a value that holds the text of a placeholder
+/// (a project folder named `{output}`) is not replaced again.
+fn substitute(arg: &str, replacements: &[(&str, &str)]) -> String {
+    let mut result = String::new();
+    let mut rest = arg;
+    while let Some((at, placeholder, value)) = replacements
+        .iter()
+        .filter_map(|(placeholder, value)| {
+            rest.find(placeholder).map(|at| (at, *placeholder, *value))
+        })
+        .min_by_key(|(at, _, _)| *at)
+    {
+        result.push_str(rest.get(..at).unwrap_or_default());
+        result.push_str(value);
+        rest = rest
+            .get(at.saturating_add(placeholder.len())..)
+            .unwrap_or_default();
+    }
+    result.push_str(rest);
+    result
+}
+
 impl IndexRunner for ProcessIndexRunner {
     fn check(&self, spec: &IndexerSpec) -> IndexerStatus {
         let neutral = if self.data_dir.is_dir() {
@@ -223,6 +241,7 @@ impl IndexRunner for ProcessIndexRunner {
         let environment = self.environment(spec, &neutral, &root);
         let probe = Probe {
             env: &environment,
+            redact: self.redact,
             neutral_dir: &neutral,
             project_root: &root,
         };
@@ -239,5 +258,20 @@ impl IndexRunner for ProcessIndexRunner {
             Self::log(job.spec, &error);
             CodedError::caused_by(error)
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::substitute;
+
+    #[test]
+    fn placeholders_are_replaced_in_one_pass() {
+        let replacements = [("{project}", "/work/{output}"), ("{output}", "/out/index")];
+        assert_eq!(
+            substitute("--in={project}:{output}", &replacements),
+            "--in=/work/{output}:/out/index"
+        );
+        assert_eq!(substitute("plain", &replacements), "plain");
     }
 }
