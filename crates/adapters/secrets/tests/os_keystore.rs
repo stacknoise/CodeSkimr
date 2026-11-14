@@ -34,22 +34,25 @@ fn credential(secret: &str) -> Credential {
     Credential::new(SecretString::from("anton"), SecretString::from(secret))
 }
 
+/// A store and an id of its own with `secret` already stored under it.
+fn stored(tag: &str, secret: &str) -> TestResult<(OsCredentialStore, CredentialId)> {
+    let store = OsCredentialStore::new(OsKeystore);
+    let id = own_id(tag)?;
+    store.store(&id, &credential(secret))?;
+    Ok((store, id))
+}
+
 #[test]
 fn a_credential_survives_the_round_trip_through_the_real_keystore() -> TestResult {
     if !enabled() {
         return Ok(());
     }
-    let store = OsCredentialStore::new(OsKeystore);
-    let id = own_id("round")?;
-    store.store(&id, &credential(CANARY))?;
-    let seen = store.with_credential(&id, |c| {
-        Ok((
-            c.user().expose_secret().to_owned(),
-            c.secret().expose_secret().to_owned(),
-        ))
-    });
+    let (store, id) = stored("round", CANARY)?;
+    let secret = store.with_credential(&id, |c| Ok(c.secret().expose_secret().to_owned()));
+    let user = store.with_credential(&id, |c| Ok(c.user().expose_secret().to_owned()));
     store.delete(&id)?;
-    assert_eq!(seen?, ("anton".to_owned(), CANARY.to_owned()));
+    assert_eq!(secret?, CANARY);
+    assert_eq!(user?, "anton");
     Ok(())
 }
 
@@ -58,9 +61,7 @@ fn a_stored_credential_can_be_replaced_and_a_deleted_one_is_gone() -> TestResult
     if !enabled() {
         return Ok(());
     }
-    let store = OsCredentialStore::new(OsKeystore);
-    let id = own_id("replace")?;
-    store.store(&id, &credential("first"))?;
+    let (store, id) = stored("replace", "first")?;
     store.store(&id, &credential(CANARY))?;
     let second = store.with_credential(&id, |c| Ok(c.secret().expose_secret().to_owned()))?;
     store.delete(&id)?;
@@ -76,9 +77,7 @@ fn no_error_of_the_real_keystore_carries_the_secret() -> TestResult {
     if !enabled() {
         return Ok(());
     }
-    let store = OsCredentialStore::new(OsKeystore);
-    let id = own_id("errors")?;
-    store.store(&id, &credential(CANARY))?;
+    let (store, id) = stored("errors", CANARY)?;
     let rejected = store
         .with_credential(&id, |_| {
             Err::<(), _>(codeskimr_application::ports::AuthError::Rejected)

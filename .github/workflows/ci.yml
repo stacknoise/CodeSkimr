@@ -95,7 +95,7 @@ jobs:
       - name: cargo test
         run: cargo test --workspace --all-features --locked
       # Issue #197: the credential store against a real Secret Service. gnome-keyring runs inside a
-      # private D-Bus session with an empty login password; CODESKIMR_REAL_KEYSTORE turns the tests
+      # private D-Bus session with a throwaway login password, which also creates the default collection; CODESKIMR_REAL_KEYSTORE turns the tests
       # on, so a missing service fails here instead of being skipped.
       - name: Credential store against a real Secret Service
         run: |
@@ -103,7 +103,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends gnome-keyring dbus-x11
           dbus-run-session -- bash -c '
             set -euo pipefail
-            echo -n "" | gnome-keyring-daemon --unlock --components=secrets > /dev/null
+            eval "$(printf 'ci-keyring\n' | gnome-keyring-daemon --daemonize --unlock --components=secrets)"
             CODESKIMR_REAL_KEYSTORE=1 cargo test -p codeskimr_secrets --test os_keystore --locked
           '
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
