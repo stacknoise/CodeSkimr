@@ -38,12 +38,14 @@ pub fn prefer_embedded(
     locations: Locations,
     global: &GlobalOptions,
     env: Lookup<'_>,
+    files: Files<'_>,
+    fingerprint: &str,
 ) -> Result<Locations, CodedError> {
     let named = global.languages_dir.is_some() || env(ENV_LANGUAGES_DIR).is_some();
-    if named || locations.languages_dir.is_dir() || FILES.is_empty() {
+    if named || locations.languages_dir.is_dir() || files.is_empty() {
         return Ok(locations);
     }
-    let languages_dir = materialize(FILES, FINGERPRINT, &locations.data_dir)?;
+    let languages_dir = materialize(files, fingerprint, &locations.data_dir)?;
     Ok(Locations {
         languages_dir,
         ..locations
@@ -72,7 +74,12 @@ pub fn materialize(
     staging_name.push(std::process::id().to_string());
     let staging = cache.join(staging_name);
     write_all(files, &staging).map_err(unavailable)?;
-    // A folder without the marker is the rest of an interrupted start: it is replaced.
+    if is_complete(&target) {
+        // Another start finished meanwhile and may be reading its folder: leave it alone.
+        let _ = fs::remove_dir_all(&staging);
+        return Ok(target);
+    }
+    // A folder without the marker is the rest of an older, interrupted start: it is replaced.
     if target.exists() {
         let _ = fs::remove_dir_all(&target);
     }
@@ -173,15 +180,83 @@ mod tests {
         }
     }
 
+    fn prefer(global: &GlobalOptions, env: Lookup<'_>, existing: &Path, data: &Path) -> Locations {
+        let original = locations(existing.to_path_buf(), data.to_path_buf());
+        prefer_embedded(original, global, env, FILES_OF_TWO_PACKS, "fp").unwrap()
+    }
+
     #[test]
     fn without_embedded_packs_the_locations_stay_as_they_are() {
-        // In unit tests the table is empty (see above): nothing to prefer.
         let data = tempfile::tempdir().unwrap();
         let original = locations(
             PathBuf::from("/nowhere/languages"),
             data.path().to_path_buf(),
         );
-        let kept = prefer_embedded(original.clone(), &GlobalOptions::default(), &|_| None).unwrap();
+        let kept = prefer_embedded(
+            original.clone(),
+            &GlobalOptions::default(),
+            &|_| None,
+            &[],
+            "fp",
+        )
+        .unwrap();
         assert_eq!(kept, original);
+    }
+
+    #[test]
+    fn a_folder_the_user_named_or_that_exists_is_kept() {
+        let data = tempfile::tempdir().unwrap();
+        let existing = tempfile::tempdir().unwrap();
+        let missing = Path::new("/nowhere/languages");
+        let flag = GlobalOptions {
+            languages_dir: Some(PathBuf::from("/flag")),
+            ..GlobalOptions::default()
+        };
+        let by_env = |name: &str| (name == ENV_LANGUAGES_DIR).then(|| "/env".to_owned());
+        assert_eq!(
+            prefer(&flag, &|_| None, missing, data.path()).languages_dir,
+            missing
+        );
+        assert_eq!(
+            prefer(&GlobalOptions::default(), &by_env, missing, data.path()).languages_dir,
+            missing
+        );
+        let found = prefer(
+            &GlobalOptions::default(),
+            &|_| None,
+            existing.path(),
+            data.path(),
+        );
+        assert_eq!(found.languages_dir, existing.path());
+        assert!(!data.path().join(PACKS_CACHE_DIR).exists());
+    }
+
+    #[test]
+    fn without_any_folder_the_embedded_packs_are_written_and_used() {
+        let data = tempfile::tempdir().unwrap();
+        let found = prefer(
+            &GlobalOptions::default(),
+            &|_| None,
+            Path::new("/nowhere/languages"),
+            data.path(),
+        );
+        assert_eq!(
+            found.languages_dir,
+            data.path().join(PACKS_CACHE_DIR).join("fp")
+        );
+        assert!(is_complete(&found.languages_dir));
+    }
+
+    #[test]
+    fn a_folder_that_became_complete_meanwhile_is_not_deleted() {
+        let data = tempfile::tempdir().unwrap();
+        let first = materialize(FILES_OF_TWO_PACKS, "abc", data.path()).unwrap();
+        fs::write(first.join("go/language.toml"), b"in use").unwrap();
+        // A second start that found nothing before now sees the finished folder of the first.
+        let second = materialize(FILES_OF_TWO_PACKS, "abc", data.path()).unwrap();
+        assert_eq!(
+            fs::read(second.join("go/language.toml")).unwrap(),
+            b"in use"
+        );
     }
 }

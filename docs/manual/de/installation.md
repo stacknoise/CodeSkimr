@@ -50,6 +50,7 @@ Ist Port 7421 belegt, bricht der Server mit `API-301` ab; einen anderen Port ste
 |---|---|
 | Datenbank `codeskimr.db` und Cache der Git-Quellen `git/` | Windows `%LOCALAPPDATA%\codeskimr`, macOS `~/Library/Application Support/codeskimr`, Linux `$XDG_DATA_HOME/codeskimr` oder `~/.local/share/codeskimr`; ändern mit `--data-dir` oder `CODESKIMR_DATA_DIR` |
 | Benutzerkonfiguration `config.toml` (optional) | Windows `%APPDATA%\codeskimr`, macOS `~/Library/Application Support/codeskimr`, Linux `$XDG_CONFIG_HOME/codeskimr`; ändern mit `--config` oder `CODESKIMR_CONFIG` |
+| Sprachpakete des Programms `languages/<Kennung>/` (beim ersten Start geschrieben, kann gelöscht werden) | im Datenordner |
 | Installations-Token, Git-Zugangsdaten | Schlüsselspeicher des Betriebssystems, Dienstname `codeskimr` |
 
 ## Konfiguration

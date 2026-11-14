@@ -2,7 +2,7 @@
 
 use std::ffi::OsString;
 use std::io::{self, BufRead, IsTerminal, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use codeskimr_application::conventions::CheckReport;
@@ -115,6 +115,24 @@ where
     }
 }
 
+/// The folders of this run: the resolved ones, with the packs of the program if no folder has any.
+fn resolve_locations(
+    global: &codeskimr_cli::GlobalOptions,
+    env: Lookup<'_>,
+    current_dir: &Path,
+) -> Result<Locations, CodedError> {
+    let executable_dir = std::env::current_exe()
+        .ok()
+        .and_then(|path| path.parent().map(PathBuf::from));
+    crate::embedded_packs::prefer_embedded(
+        Locations::resolve(global, env, executable_dir.as_deref(), current_dir)?,
+        global,
+        env,
+        crate::embedded_packs::FILES,
+        crate::embedded_packs::FINGERPRINT,
+    )
+}
+
 fn run_invocation(
     invocation: &Invocation,
     env: Lookup<'_>,
@@ -123,19 +141,7 @@ fn run_invocation(
 ) -> Result<Outcome, Failure> {
     let current_dir =
         std::env::current_dir().map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?;
-    let executable_dir = std::env::current_exe()
-        .ok()
-        .and_then(|path| path.parent().map(PathBuf::from));
-    let locations = crate::embedded_packs::prefer_embedded(
-        Locations::resolve(
-            &invocation.global,
-            env,
-            executable_dir.as_deref(),
-            &current_dir,
-        )?,
-        &invocation.global,
-        env,
-    )?;
+    let locations = resolve_locations(&invocation.global, env, &current_dir)?;
     match &invocation.action {
         Action::Credential(action) => run_credential(action, messages, language),
         Action::Level2(action) => run_level2(action, invocation, &locations, messages, language),
