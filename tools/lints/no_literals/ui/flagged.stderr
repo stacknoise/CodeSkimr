@@ -108,12 +108,8 @@ error: literal in production code (CHK-101)
    |
 LL |         7
    |         ^
-...
-LL |     local!()
-   |     -------- in this macro invocation
    |
    = help: move the value to `consts.rs`, `config/default.toml`, `locales/`, `errors/error-codes.toml` or `languages/` (blueprint 3.2)
-   = note: this error originates in the macro `local` (in Nightly b$DIRlds, run with -Z macro-backtrace for more info)
 
 error: literal in production code (CHK-101)
   --> $DIR/flagged.rs:50:5

@@ -467,6 +467,33 @@ mod tests {
     }
 
     #[test]
+    fn a_member_call_on_a_named_receiver_is_not_certain_for_a_local_of_the_same_name() {
+        let mut table = Table::default();
+        let module = table.add(SymbolKind::Module, "Demo.model", None, 1);
+        table.add(SymbolKind::Constant, "Demo.model.keys", Some(module), 1);
+        let walk = table.add(SymbolKind::Function, "Demo.model.walk", Some(module), 3);
+        table.add(SymbolKind::Function, "Demo.model.walk.room", Some(walk), 4);
+        // `keys.room()` is a member of `keys`, not the local function `room` of the same name.
+        let call = named(occurrence(walk, 5, ReferenceKind::Call, "room"), "keys");
+        let found = resolve(&table, &[call]);
+        assert_eq!(found.len(), 1);
+        assert!(found[0].confidence == Confidence::Probable && !found[0].verified);
+    }
+
+    #[test]
+    fn a_call_through_a_module_qualifier_resolves_by_scope_as_before() {
+        let mut table = Table::default();
+        let module = table.add(SymbolKind::Module, "Demo.util", None, 1);
+        let helper = table.add(SymbolKind::Function, "Demo.util.helper", Some(module), 1);
+        let caller = table.add(SymbolKind::Function, "Demo.util.run", Some(module), 3);
+        // `util.helper()` inside the module: `util` is a module, not a variable.
+        let call = named(occurrence(caller, 4, ReferenceKind::Call, "helper"), "util");
+        let found = resolve(&table, &[call]);
+        assert_eq!(targets(&found), [helper]);
+        assert_eq!(found[0].confidence, Confidence::Certain);
+    }
+
+    #[test]
     fn a_call_of_an_interface_member_is_probable_even_without_implementer() {
         let shop = shop();
         let call = typed(

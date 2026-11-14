@@ -84,6 +84,8 @@ mod cases {
         files: Vec<SourceFile>,
         changed: Vec<&'static str>,
         replaced: Mutex<Vec<ReferenceReplacement>>,
+        /// The paths the pass asked to read again, one list per question.
+        asked: Mutex<Vec<Vec<String>>>,
         files_fail: bool,
     }
 
@@ -124,6 +126,23 @@ mod cases {
                     content_hash: file.content_hash.clone(),
                     changed: self.changed.contains(&file.path.as_str()),
                 })
+                .collect())
+        }
+
+        fn unchanged_files(
+            &self,
+            _: &FolderPath,
+            files: &[SourceFile],
+            _: &CancelToken,
+        ) -> Result<Vec<RelativePath>, CodedError> {
+            self.asked
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .push(files.iter().map(|file| file.path.to_string()).collect());
+            Ok(files
+                .iter()
+                .filter(|file| !self.changed.contains(&file.path.as_str()))
+                .map(|file| file.path.clone())
                 .collect())
         }
     }
@@ -258,6 +277,7 @@ mod cases {
         runs: u32,
         imports: Vec<Vec<String>>,
         replaced: Vec<ReferenceReplacement>,
+        asked: Vec<Vec<String>>,
     }
 
     /// The ports of a case, kept to read what the pass did to them.
@@ -281,6 +301,7 @@ mod cases {
                 files: std::mem::take(&mut setup.files),
                 changed: std::mem::take(&mut setup.changed),
                 replaced: Mutex::default(),
+                asked: Mutex::default(),
                 files_fail: setup.files_fail,
             }),
             runner: Arc::new(Runner {
@@ -327,11 +348,13 @@ mod cases {
         let runs = *fakes.runner.runs.lock().unwrap();
         let imports = fakes.importer.seen.lock().unwrap().clone();
         let replaced = fakes.world.replaced.lock().unwrap().clone();
+        let asked = fakes.world.asked.lock().unwrap().clone();
         Outcome {
             result,
             runs,
             imports,
             replaced,
+            asked,
         }
     }
 
@@ -432,6 +455,22 @@ mod cases {
         assert_eq!(
             outcome.imports,
             vec![vec!["a.ts".to_owned(), "b.js".to_owned()]]
+        );
+    }
+
+    #[test]
+    fn after_a_run_only_the_files_of_its_group_are_read_again() {
+        let outcome = run(Setup {
+            files: vec![file(1, "a.ts", "typescript"), file(2, "b.py", "python")],
+            indexers: vec![("typescript", "scip-typescript"), ("python", "scip-python")],
+            ..Setup::default()
+        });
+        assert_eq!(outcome.runs, 2);
+        let mut asked = outcome.asked.clone();
+        asked.sort();
+        assert_eq!(
+            asked,
+            vec![vec!["a.ts".to_owned()], vec!["b.py".to_owned()]]
         );
     }
 

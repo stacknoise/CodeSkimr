@@ -30,7 +30,7 @@ use crate::wire::{Fields, Value, packed_varints};
 /// [`ScipError::TooLarge`] above `max_index_bytes`, [`ScipError::Unreadable`] if the file cannot
 /// be read or is not a regular file (a link is never followed, not even between the check and the open), and everything [`decode_index`] reports.
 pub fn read_index(path: &Path, max_index_bytes: u64) -> Result<ScipIndex, ScipError> {
-    let file = crate::open::open_regular(path).map_err(ScipError::Unreadable)?;
+    let file = codeskimr_fsguard::open_regular(path).map_err(ScipError::Unreadable)?;
     let size = file.metadata().map_err(ScipError::Unreadable)?.len();
     refuse_above(size, max_index_bytes)?;
     let mut bytes = Vec::with_capacity(usize::try_from(size).unwrap_or(0));
