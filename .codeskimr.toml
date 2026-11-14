@@ -1,5 +1,6 @@
 # CodeSkimr's own layers (blueprint 4.2, ADR 0031), outermost first. The first layer that owns a
-# qualified name wins; names are module paths of this repository. `may_use` lists the layers a layer may depend on (ADR 0047, blueprint 4.2).
+# qualified name wins; names are module paths of this repository. `may_use` lists the layers a
+# layer may depend on (ADR 0047, blueprint 4.2).
 
 [[layers]]
 name = "app"
@@ -8,7 +9,12 @@ namespaces = ["crates::app"]
 [[layers]]
 name = "driving adapters"
 namespaces = ["crates::server", "crates::cli", "crates::mcp"]
-may_use = ["application", "domain", "codes"]
+may_use = ["application", "domain", "codes", "i18n"]
+
+[[layers]]
+name = "i18n"
+namespaces = ["crates::adapters::i18n"]
+may_use = ["codes"]
 
 [[layers]]
 name = "driven adapters"
