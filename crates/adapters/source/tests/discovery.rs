@@ -193,3 +193,49 @@ fn an_unreadable_file_fails_the_run() -> TestResult {
     assert_eq!(error.code(), ErrorCode::SourcePathNotFound);
     Ok(())
 }
+
+#[test]
+fn only_the_listed_files_are_checked_and_a_changed_or_missing_one_is_left_out() -> TestResult {
+    let dir = tempfile::tempdir()?;
+    write(dir.path(), "same.rs", "fn a() {}")?;
+    write(dir.path(), "edited.rs", "fn b() {}")?;
+    write(dir.path(), "gone.rs", "fn c() {}")?;
+    write(dir.path(), "other.rs", "fn d() {}")?;
+    let first = discovery(u64::MAX)?.discover(&folder(dir.path())?, &[], &CancelToken::new())?;
+    // `other.rs` is not in the list: it is neither read nor reported.
+    let listed: Vec<SourceFile> = first
+        .iter()
+        .filter(|file| file.path.as_str() != "other.rs")
+        .map(stored)
+        .collect();
+    write(dir.path(), "edited.rs", "fn b() { 1; }")?;
+    std::fs::remove_file(dir.path().join("gone.rs"))?;
+    let unchanged =
+        discovery(u64::MAX)?.unchanged_files(&folder(dir.path())?, &listed, &CancelToken::new())?;
+    let names: Vec<&str> = unchanged
+        .iter()
+        .map(codeskimr_domain::RelativePath::as_str)
+        .collect();
+    assert_eq!(names, ["same.rs"]);
+    Ok(())
+}
+
+#[cfg(unix)]
+#[test]
+fn a_link_in_place_of_a_listed_file_counts_as_changed() -> TestResult {
+    let dir = tempfile::tempdir()?;
+    write(dir.path(), "real.rs", "fn a() {}")?;
+    write(dir.path(), "linked.rs", "fn a() {}")?;
+    let first = discovery(u64::MAX)?.discover(&folder(dir.path())?, &[], &CancelToken::new())?;
+    let listed: Vec<SourceFile> = first.iter().map(stored).collect();
+    std::fs::remove_file(dir.path().join("linked.rs"))?;
+    std::os::unix::fs::symlink(dir.path().join("real.rs"), dir.path().join("linked.rs"))?;
+    let unchanged =
+        discovery(u64::MAX)?.unchanged_files(&folder(dir.path())?, &listed, &CancelToken::new())?;
+    let names: Vec<&str> = unchanged
+        .iter()
+        .map(codeskimr_domain::RelativePath::as_str)
+        .collect();
+    assert_eq!(names, ["real.rs"]);
+    Ok(())
+}

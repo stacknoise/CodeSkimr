@@ -8,7 +8,7 @@ use std::sync::mpsc;
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{DiscoveredFile, FileDiscovery};
-use codeskimr_domain::{ContentHash, FolderPath, LanguageId, SourceFile};
+use codeskimr_domain::{ContentHash, FolderPath, LanguageId, RelativePath, SourceFile};
 use ignore::{DirEntry, WalkBuilder, WalkState};
 
 use crate::consts::GIT_DIR_NAME;
@@ -101,6 +101,29 @@ impl FileDiscovery for WalkDiscovery {
         files.sort_by(|a, b| a.path.cmp(&b.path));
         Ok(files)
     }
+
+    fn unchanged_files(
+        &self,
+        root: &FolderPath,
+        files: &[SourceFile],
+        cancel: &CancelToken,
+    ) -> Result<Vec<RelativePath>, CodedError> {
+        open_folder(root)?;
+        let folder = Path::new(root.as_str());
+        Ok(files
+            .iter()
+            .take_while(|_| !cancel.is_cancelled())
+            .filter(|file| is_unchanged(folder, file))
+            .map(|file| file.path.clone())
+            .collect())
+    }
+}
+
+/// Whether the file is still a regular file (not a link) with the content of the list.
+fn is_unchanged(root: &Path, file: &SourceFile) -> bool {
+    let path = root.join(file.path.as_str());
+    path.symlink_metadata().is_ok_and(|meta| meta.is_file())
+        && hash_file(&path).is_ok_and(|(_, hash)| hash == file.content_hash)
 }
 
 /// Runs the parallel walk and collects what the workers found.

@@ -56,6 +56,27 @@ pub trait FileDiscovery: Send + Sync {
         previous: &[SourceFile],
         cancel: &CancelToken,
     ) -> Result<Vec<DiscoveredFile>, CodedError>;
+
+    /// The paths of those `files` whose content below `root` is still the one in the list. A file
+    /// that is gone, unreadable or not a regular file is not among them. Only these files are
+    /// read, not the whole project; the second pass of level 2 uses it per indexer group (issue
+    /// #231). The default asks [`FileDiscovery::discover`], which reads everything.
+    ///
+    /// # Errors
+    /// A coded failure such as `SRC-201`.
+    fn unchanged_files(
+        &self,
+        root: &FolderPath,
+        files: &[SourceFile],
+        cancel: &CancelToken,
+    ) -> Result<Vec<RelativePath>, CodedError> {
+        Ok(self
+            .discover(root, files, cancel)?
+            .into_iter()
+            .filter(|file| !file.changed)
+            .map(|file| file.path)
+            .collect())
+    }
 }
 
 /// A run of lines of a file, as text.
