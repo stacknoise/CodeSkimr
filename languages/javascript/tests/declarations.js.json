@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 42,
+      "loc": 47,
       "operands": null,
       "operators": null,
       "symbol": "declarations"
@@ -44,8 +44,8 @@
       "decisions": 0,
       "loc": 4,
       "operands": [
-        1,
-        1
+        2,
+        3
       ],
       "operators": [
         2,
@@ -97,7 +97,7 @@
       "loc": 8,
       "operands": [
         3,
-        3
+        4
       ],
       "operators": [
         6,
@@ -132,7 +132,7 @@
       "symbol": "declarations.gen"
     }
   ],
-  "loc": 42,
+  "loc": 47,
   "references": [
     {
       "at": "0:9",
@@ -203,6 +203,62 @@
       "kind": "write",
       "receiver": "named module",
       "target": "exports"
+    },
+    {
+      "at": "57:17",
+      "from": "declarations.limits",
+      "kind": "read",
+      "receiver": null,
+      "target": "LIMIT"
+    },
+    {
+      "at": "58:18",
+      "from": "declarations",
+      "kind": "read",
+      "receiver": null,
+      "target": "limits"
+    },
+    {
+      "at": "59:2",
+      "from": "declarations",
+      "kind": "read",
+      "receiver": null,
+      "target": "limits"
+    },
+    {
+      "at": "61:15",
+      "from": "declarations.picked",
+      "kind": "read",
+      "receiver": null,
+      "target": "LIMIT"
+    },
+    {
+      "at": "61:27",
+      "from": "declarations.picked",
+      "kind": "read",
+      "receiver": null,
+      "target": "limits"
+    },
+    {
+      "at": "61:34",
+      "from": "declarations.picked",
+      "kind": "read",
+      "receiver": "named limits",
+      "target": "LIMIT"
+    },
+    {
+      "at": "61:42",
+      "from": "declarations.picked",
+      "kind": "read",
+      "receiver": null,
+      "target": "limits"
+    },
+    {
+      "at": "61:49",
+      "from": "declarations.picked",
+      "kind": "read",
+      "receiver": "named limits",
+      "target": "size"
     }
   ],
   "symbols": [
@@ -212,7 +268,7 @@
       "name": "declarations",
       "parent": null,
       "signature": null,
-      "span": "0:0-56:0",
+      "span": "0:0-62:0",
       "static": false,
       "visibility": null
     },
@@ -385,6 +441,26 @@
       "span": "52:19-52:34",
       "static": false,
       "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "declarations.limits",
+      "parent": "declarations",
+      "signature": "limits = { LIMIT }",
+      "span": "57:6-57:24",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "declarations.picked",
+      "parent": "declarations",
+      "signature": "picked = LIMIT > 1 ? limits.LIMIT : limits.size",
+      "span": "61:6-61:53",
+      "static": false,
+      "visibility": "private"
     }
   ]
 }

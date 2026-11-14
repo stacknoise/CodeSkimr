@@ -37,5 +37,10 @@ case "${platform}" in
 esac
 
 rm -rf "${stage}"
-(cd dist && sha256sum "${archive}" > "${archive}.sha256")
+# macOS has no sha256sum.
+if command -v sha256sum >/dev/null 2>&1; then
+  (cd dist && sha256sum "${archive}" > "${archive}.sha256")
+else
+  (cd dist && shasum -a 256 "${archive}" > "${archive}.sha256")
+fi
 echo "dist/${archive}"

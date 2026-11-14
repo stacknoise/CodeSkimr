@@ -5,55 +5,31 @@
 //! entries from the stored snapshot, as the command does.
 
 use std::hint::black_box;
-use std::num::NonZeroU32;
 use std::process::ExitCode;
 
-use codeskimr_application::ports::{SnapshotData, SnapshotStore, UsageIndex};
+use codeskimr_application::ports::UsageIndex;
 use codeskimr_domain::{
-    Confidence, ContentHash, Direction, FileId, FolderPath, LanguageId, Loc, Position, Project,
-    ProjectId, ProjectName, ProjectSource, QualifiedName, Reference, ReferenceId, ReferenceKind,
-    RelativePath, ScanMode, Snapshot, SnapshotId, SnapshotStats, SourceFile, Span, Symbol,
-    SymbolId, SymbolKind, SymbolName, Timestamp, UsageQuery, Visibility,
+    Confidence, Direction, FileId, Reference, ReferenceId, ReferenceKind, SnapshotId, SymbolId,
+    UsageQuery,
 };
 use codeskimr_storage::SqliteStore;
 use criterion::Criterion;
 
-const SYMBOLS: u64 = 20_000;
+mod common;
+
+use common::{FILES, SNAPSHOT, SYMBOLS, span};
+
 const REFERENCES: u64 = 100_000;
-const FILES: u64 = 400;
 /// One reference in this many points at the hub, the symbol that nearly everything uses.
 const HUB_SHARE: u64 = 20;
 const HUB: u64 = 1;
 /// Number of entries the screen asks for.
 const LIMIT: u32 = 500;
-const SNAPSHOT: u64 = 1;
-const PROJECT: u64 = 1;
 /// Multipliers of the deterministic spread of the references.
 const SPREAD_FROM: u64 = 7_919;
 const SPREAD_TO: u64 = 104_729;
 const LINES: u32 = 500;
 const MAX_DEPTH: u32 = 2;
-
-fn span(line: u32) -> Option<Span> {
-    let at = Position { line, column: 0 };
-    Span::new(at, at).ok()
-}
-
-fn symbol(id: u64) -> Option<Symbol> {
-    Some(Symbol {
-        id: SymbolId::new(id),
-        file: FileId::new(id % FILES + 1),
-        kind: SymbolKind::Function,
-        name: SymbolName::new(format!("item{id}")).ok()?,
-        qualified_name: QualifiedName::new(format!("app.module{}.item{id}", id % FILES)).ok()?,
-        parent: None,
-        visibility: Some(Visibility::Public),
-        is_static: false,
-        span: span(1)?,
-        signature: None,
-        doc: None,
-    })
-}
 
 fn reference(id: u64) -> Option<Reference> {
     let to = if id.is_multiple_of(HUB_SHARE) {
@@ -74,52 +50,13 @@ fn reference(id: u64) -> Option<Reference> {
     })
 }
 
-fn file(id: u64) -> Option<SourceFile> {
-    Some(SourceFile {
-        id: FileId::new(id),
-        snapshot: SnapshotId::new(SNAPSHOT),
-        path: RelativePath::new(format!("src/module{id}.rs")).ok()?,
-        language: LanguageId::new("rust").ok()?,
-        content_hash: ContentHash::new(format!("hash{id}")).ok()?,
-        loc: Loc(250),
-    })
-}
-
-fn project() -> Option<Project> {
-    Some(Project {
-        id: ProjectId::new(PROJECT),
-        name: ProjectName::new("bench").ok()?,
-        source: ProjectSource::Folder(FolderPath::new("/bench").ok()?),
-        layers: Vec::new(),
-    })
-}
-
-fn snapshot() -> SnapshotData {
-    SnapshotData {
-        snapshot: Snapshot {
-            id: SnapshotId::new(SNAPSHOT),
-            project: ProjectId::new(PROJECT),
-            commit: None,
-            created: Timestamp(1),
-            mode: ScanMode::Full,
-            stats: SnapshotStats::default(),
-        },
-        files: (1..=FILES).filter_map(file).collect(),
-        symbols: (1..=SYMBOLS).filter_map(symbol).collect(),
-        references: (1..=REFERENCES).filter_map(reference).collect(),
-        metrics: Vec::new(),
-        fingerprints: Vec::new(),
-        removed: Vec::new(),
-        parse_micros: Vec::new(),
-        naming_rules: String::new(),
-    }
-}
-
 fn store() -> Option<SqliteStore> {
-    let store = SqliteStore::open_in_memory(NonZeroU32::MIN).ok()?;
-    store.save_project(&project()?).ok()?;
-    store.persist(snapshot()).ok()?;
-    Some(store)
+    common::store(
+        (1..=SYMBOLS)
+            .filter_map(|id| common::symbol(id, &format!("item{id}")))
+            .collect(),
+        (1..=REFERENCES).filter_map(reference).collect(),
+    )
 }
 
 fn query(direction: Direction, depth: u32) -> UsageQuery {

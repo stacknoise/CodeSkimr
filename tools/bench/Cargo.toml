@@ -39,6 +39,10 @@ harness = false
 name = "rescan"
 harness = false
 
+[[bench]]
+name = "similar"
+harness = false
+
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true

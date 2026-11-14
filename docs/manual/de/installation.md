@@ -2,7 +2,7 @@
 
 ## Stand der Auslieferung
 
-Installationsprogramme und einzelne ausführbare Dateien für Windows, Linux und macOS gehören zum Release 1.0 (Meilenstein M7) und sind noch nicht veröffentlicht. Als Vorabversion gibt es fertige Pakete für Windows und Linux (siehe Release-Seite im Repository, `LIES-MICH.md` im Paket). Sonst bauen Sie CodeSkimr aus dem Quelltext. Dieses Kapitel beschreibt diesen Weg; mit 1.0 wird es durch die Anleitung für den Installer ersetzt.
+Installationsprogramme und einzelne ausführbare Dateien für Windows, Linux und macOS gehören zum Release 1.0 (Meilenstein M7) und sind noch nicht veröffentlicht. Als Vorabversion gibt es fertige Pakete für Windows, Linux und macOS (Apple Silicon) (siehe Release-Seite im Repository, `LIES-MICH.md` im Paket). Sonst bauen Sie CodeSkimr aus dem Quelltext. Dieses Kapitel beschreibt diesen Weg; mit 1.0 wird es durch die Anleitung für den Installer ersetzt.
 
 ## Was Sie brauchen
 

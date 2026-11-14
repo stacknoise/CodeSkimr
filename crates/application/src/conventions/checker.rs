@@ -129,8 +129,11 @@ impl ConventionChecker {
         let items = fingerprinted(analysed);
         let inside = duplicates(
             &items,
-            self.limits.duplicate_similarity_percent,
-            self.limits.duplicate_min_lines,
+            (
+                self.limits.duplicate_similarity_percent,
+                self.limits.duplicate_min_lines,
+            ),
+            self.limits.duplicate_max_owners,
         );
         if let Some(stored) = stored {
             findings.extend(self.outside((analysed, &items), stored, &inside)?);

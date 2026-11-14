@@ -10,10 +10,10 @@ BASE_REF="${1:-}"
 BASE_BASELINE="ci-base"
 HEAD_BASELINE="ci-head"
 BENCH_ARGS=(-p codeskimr_bench --benches --locked)
-# The store benchmark is named, because the unit tests of its crate cannot take the options of
+# The store benchmarks are run as their own package, because the unit tests of its crate cannot take the options of
 # criterion. A base without this benchmark is measured without it and reports it as new.
 STORE_BENCH="crates/adapters/storage/benches/usages_page.rs"
-STORE_ARGS=(-p codeskimr_storage --bench usages_page --locked)
+STORE_ARGS=(-p codeskimr_storage --benches --locked)
 export CRITERION_HOME="$ROOT/target/criterion"
 
 measure() {
