@@ -77,6 +77,8 @@ export interface SymbolInfo {
   last_line: number;
   signature: string | null;
   doc: string | null;
+  /** The layer of the project that owns the symbol; `null` if none does. */
+  layer: string | null;
   breadcrumb: Crumb[];
   metrics: MetricRow[];
   members: MemberRow[];

@@ -21,7 +21,6 @@ palette-action-explorer = Im Explorer öffnen
 palette-action-graph = Im Graph zeigen
 palette-action-editor = Im Editor öffnen
 palette-action-copy = Namen kopieren
-palette-action-soon = Folgt mit seinem Bildschirm
 palette-key-explorer = Enter
 palette-key-graph = Strg Enter
 palette-key-editor = Alt Enter

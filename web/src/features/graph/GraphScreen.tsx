@@ -1,4 +1,4 @@
-import { createEffect, createMemo, createSignal, on, onMount, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show } from "solid-js";
 import { EXPLORER_ROUTE } from "../../app/consts";
 import { navigate } from "../../app/router";
 import { t } from "../../shared/i18n/i18n";
@@ -7,7 +7,16 @@ import { activeProject, openProject } from "../../shared/project/active";
 import { isTyping, useKeydown } from "../../shared/keys/keydown";
 import { projects, refreshProjects } from "../projects/projects";
 import { KEY, LEVEL } from "./consts";
-import { graphData, graphFailed, graphLevel, loadGraph, resetGraph, setGraphLevel } from "./graph";
+import {
+  graphData,
+  graphFailed,
+  graphLevel,
+  loadGraph,
+  resetGraph,
+  setGraphLevel,
+  wantedLayer,
+  wantLayer,
+} from "./graph";
 import { GraphCanvas } from "./GraphCanvas";
 import { Legend } from "./Legend";
 import { neighboursOf, violations } from "./neighbours";
@@ -48,6 +57,7 @@ export function GraphScreen() {
     }
   };
   onMount(() => void refreshProjects());
+  onCleanup(() => wantLayer(null));
   createEffect(
     on(project, (id) => {
       resetGraph();
@@ -58,6 +68,14 @@ export function GraphScreen() {
     }),
   );
   createEffect(on([() => graphData()?.snapshot, size], fitView));
+  createEffect(() => {
+    const layer = wantedLayer();
+    const known = graphData()?.boxes.some((box) => box.name === layer);
+    if (layer !== null && known) {
+      setSelected(layer);
+      wantLayer(null);
+    }
+  });
   createEffect(
     on(
       graphLevel,

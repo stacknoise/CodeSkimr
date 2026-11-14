@@ -230,10 +230,6 @@
     font: 11px var(--font-mono);
 }
 
-.off {
-    color: var(--faint);
-}
-
 .footer {
     flex: none;
     padding: var(--space-8) var(--space-16);

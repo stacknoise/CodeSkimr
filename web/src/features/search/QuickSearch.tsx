@@ -7,6 +7,7 @@ import { ICON_SEARCH } from "../../shared/ui/consts";
 import { Icon } from "../../shared/ui/Icon";
 import { ROW_HEIGHT_PX } from "../explorer/consts";
 import { openInEditor } from "../explorer/editor";
+import { showInGraph } from "../graph/show";
 import { KindBadge } from "../explorer/KindBadge";
 import { useWindow } from "../explorer/useWindow";
 import { UI_COMMANDS } from "./commands";
@@ -71,6 +72,15 @@ function openInEditorFrom(entry: Entry): void {
   }
 }
 
+/** `Ctrl+Enter`: shows the layer of the chosen hit on the dependency map and closes the search. */
+function showInGraphFrom(entry: Entry): void {
+  const project = activeProject();
+  if (entry.hit && project !== null) {
+    closeSearch();
+    void showInGraph(project, entry.hit.id);
+  }
+}
+
 const ACTIONS: SearchKeyActions = {
   close: closeSearch,
   choose,
@@ -78,6 +88,7 @@ const ACTIONS: SearchKeyActions = {
   chip: (step) => pickChip(nextChip(searchChip(), step)),
   copy: copyName,
   editor: openInEditorFrom,
+  graph: showInGraphFrom,
 };
 
 function Row(props: { row: ListRow; text: string }) {

@@ -8,7 +8,7 @@ use codeskimr_domain::{Direction, Principal, Project, Symbol, UsageQuery, Visibi
 use serde::Serialize;
 use serde_json::Value;
 
-use super::{SnapshotInfo, Tools, layer_of, parse_key, to_json, truncation_notice};
+use super::{SnapshotInfo, Tools, parse_key, to_json, truncation_notice};
 use crate::args::{ImpactArgs, UsagesArgs};
 use crate::consts::{
     ARG_DIRECTION, COLUMN_OFFSET, DIRECTION_INCOMING, DIRECTION_OUTGOING, LINE_OFFSET, PARAM_DEPTH,
@@ -151,7 +151,7 @@ fn affected(project: &Project, symbol: &ImpactedSymbol) -> Affected {
         visibility: symbol.visibility.map(Visibility::label),
         public_interface: symbol.visibility == Some(Visibility::Public),
         verified: symbol.verified,
-        layer: layer_of(project, &symbol.label.qualified_name),
+        layer: project.layer_name_of(symbol.label.qualified_name.as_str()),
     }
 }
 

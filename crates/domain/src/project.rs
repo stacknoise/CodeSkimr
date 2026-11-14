@@ -133,3 +133,14 @@ pub struct Project {
     /// Architecture layers, empty when none are defined.
     pub layers: Vec<Layer>,
 }
+
+impl Project {
+    /// The name of the first layer that owns the qualified name, `None` if no layer does.
+    #[must_use]
+    pub fn layer_name_of(&self, qualified_name: &str) -> Option<String> {
+        self.layers
+            .iter()
+            .find(|layer| layer.owns(qualified_name))
+            .map(|layer| layer.name.as_str().to_owned())
+    }
+}

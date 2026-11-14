@@ -61,6 +61,7 @@ const ORDER: SymbolInfo = {
   last_line: 20,
   signature: null,
   doc: null,
+  layer: null,
   breadcrumb: [],
   metrics: [],
   members: [

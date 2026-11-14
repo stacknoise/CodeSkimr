@@ -8,7 +8,7 @@ use codeskimr_domain::{Principal, Project, Visibility};
 use serde::Serialize;
 use serde_json::Value;
 
-use super::{SnapshotInfo, Tools, layer_of, parse_key, to_json, truncation_notice};
+use super::{SnapshotInfo, Tools, parse_key, to_json, truncation_notice};
 use crate::args::SymbolArgs;
 use crate::consts::{LINE_OFFSET, READ_TOOL_PERMISSION};
 use crate::error::{CodeReport, McpError};
@@ -70,7 +70,7 @@ fn answer(
         is_static: symbol.is_static,
         signature: symbol.signature.clone(),
         doc: symbol.doc.clone(),
-        layer: layer_of(project, &symbol.qualified_name),
+        layer: project.layer_name_of(symbol.qualified_name.as_str()),
         metrics: detail
             .metrics
             .iter()

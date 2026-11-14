@@ -88,6 +88,7 @@ export const KEY = {
   space: " ",
   reveal: ".",
   usages: "u",
+  graph: "g",
 } as const;
 /** One row down and up. */
 export const STEP_DOWN = 1;
