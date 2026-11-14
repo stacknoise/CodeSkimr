@@ -74,7 +74,12 @@ impl Session {
 
     /// Checks the tools of the languages the new snapshot holds (ADR 0033, decision 8). A failure
     /// of the check never fails the scan: it is logged and the summary says nothing was checked.
-    fn check_tools(&self) -> ToolsView {
+    /// An incremental scan does not check (the tools do not change when a file is saved, and
+    /// watch mode times the rescan, blueprint 16.1), the stored report of the last full scan stays.
+    fn check_tools(&self, mode: ScanMode) -> ToolsView {
+        if mode == ScanMode::Incremental {
+            return ToolsView::unchecked();
+        }
         match self.tools.check(self.project.id) {
             Ok(report) => ToolsView::of(&report),
             Err(error) => {
@@ -104,7 +109,7 @@ impl Session {
                     symbols: snapshot.stats.symbols,
                     references: snapshot.stats.references,
                     seconds,
-                    tools: self.check_tools(),
+                    tools: self.check_tools(mode),
                 })
             }
             JobResult::Failed(job) => Err(CodedError::new(job.code())),
