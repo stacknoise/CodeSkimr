@@ -24,3 +24,29 @@ end
 def helper(x)
   x.each { |y| puts y } while false
 end
+
+if defined?(Gem)
+  def with_gem
+    1
+  end
+else
+  def without_gem
+    2
+  end
+end
+
+begin
+  def guarded
+    3
+  end
+rescue StandardError
+  nil
+end
+
+class Late
+  unless false
+    def conditional
+      4
+    end
+  end
+end

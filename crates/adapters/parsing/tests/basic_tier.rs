@@ -97,6 +97,19 @@ mod tests {
     }
 
     #[test]
+    fn a_pack_that_failed_to_load_is_not_built_again() {
+        let root = broken_pack("basic");
+        let packs = LanguagePacks::load(&root).expect("listing does not load the pack");
+        assert!(packs.get(&id("rust")).is_err());
+        // Repairing the files does not matter: the first failure is remembered for the run.
+        let fixed = fixture_pack().join("symbols.scm");
+        fs::copy(fixed, root.join("rust/symbols.scm")).expect("repair");
+        let error = packs.get(&id("rust")).err().expect("still failed");
+        assert_eq!(error.code(), ErrorCode::LanguagePackInvalid);
+        fs::remove_dir_all(root).ok();
+    }
+
+    #[test]
     fn a_full_pack_is_checked_when_the_packs_are_loaded() {
         let root = broken_pack("full");
         let error = LanguagePacks::load(&root).err().expect("invalid at once");
