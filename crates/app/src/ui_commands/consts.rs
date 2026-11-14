@@ -152,6 +152,8 @@ pub const EXPORT_FORMAT: u32 = 1;
 pub const EXPORT_BUNDLE_DIR: &str = "export";
 /// The page the export is made from: the built UI in one file, with a place for the data.
 pub const EXPORT_BUNDLE_FILE: &str = "export.html";
+/// Separator of the paths in the list of embedded UI files.
+pub const EXPORT_PATH_SEPARATOR: &str = "/";
 /// The place in that file where the data block goes, exactly once.
 pub const EXPORT_DATA_PLACEHOLDER: &str = "__CODESKIMR_EXPORT_DATA__";
 /// A character that must not stand in the data block as it is: it could end the script element.

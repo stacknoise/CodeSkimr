@@ -7,7 +7,7 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use codeskimr_application::access;
@@ -21,7 +21,7 @@ use serde::{Deserialize, Serialize};
 use super::consts::{
     EXPORT_BUNDLE_DIR, EXPORT_BUNDLE_FILE, EXPORT_DATA_PLACEHOLDER, EXPORT_DEPTH,
     EXPORT_DESCRIPTION, EXPORT_DIRECT_DEPTH, EXPORT_ESCAPE, EXPORT_ESCAPED_CHAR, EXPORT_FORMAT,
-    EXPORT_HTML, EXPORT_TITLE,
+    EXPORT_HTML, EXPORT_PATH_SEPARATOR, EXPORT_TITLE,
 };
 use super::explorer::{ExplorerOutline, Outline, OutlineInput};
 use super::graph::{GraphInput, GraphLayers, GraphOut, Level};
@@ -58,7 +58,11 @@ pub struct ExportParts {
 pub struct HtmlExport {
     parts: ExportParts,
     bundle_dir: Option<PathBuf>,
+    embedded: Embedded,
 }
+
+/// The files of the UI that are part of the program: path below the UI folder and content.
+pub(super) type Embedded = &'static [(&'static str, &'static [u8])];
 
 /// The usages of one symbol: the full walk, and the direct usages without tests for the switch of
 /// the screen that hides them.
@@ -93,21 +97,36 @@ struct Data {
     graph: GraphOut,
 }
 
+/// The export page: from the UI folder if there is one, else from the files in the program.
+pub(super) fn page_from(dir: Option<&Path>, embedded: Embedded) -> Result<String, CodedError> {
+    let missing = || CodedError::new(ErrorCode::ExportBundleMissing);
+    let Some(dir) = dir else {
+        let name = [EXPORT_BUNDLE_DIR, EXPORT_BUNDLE_FILE].join(EXPORT_PATH_SEPARATOR);
+        let (_, bytes) = embedded
+            .iter()
+            .find(|(path, _)| *path == name)
+            .ok_or_else(missing)?;
+        return String::from_utf8(bytes.to_vec()).map_err(|_| missing());
+    };
+    let file = dir.join(EXPORT_BUNDLE_DIR).join(EXPORT_BUNDLE_FILE);
+    fs::read_to_string(file).map_err(|_| missing())
+}
+
 impl HtmlExport {
-    /// An export that reads through `parts` and takes the page from the UI folder `bundle_dir`;
-    /// without a folder every export fails with `EXP-201`.
+    /// An export that reads through `parts` and takes the page from the UI folder `bundle_dir`,
+    /// like the server an existing folder wins. Without a folder the page comes from the files
+    /// `embedded` in the program; without both every export fails with `EXP-201`.
     #[must_use]
-    pub const fn new(parts: ExportParts, bundle_dir: Option<PathBuf>) -> Self {
-        Self { parts, bundle_dir }
+    pub const fn new(parts: ExportParts, bundle_dir: Option<PathBuf>, embedded: Embedded) -> Self {
+        Self {
+            parts,
+            bundle_dir,
+            embedded,
+        }
     }
 
     fn page(&self) -> Result<String, CodedError> {
-        let file = self
-            .bundle_dir
-            .as_ref()
-            .map(|dir| dir.join(EXPORT_BUNDLE_DIR).join(EXPORT_BUNDLE_FILE))
-            .ok_or_else(|| CodedError::new(ErrorCode::ExportBundleMissing))?;
-        fs::read_to_string(file).map_err(|_| CodedError::new(ErrorCode::ExportBundleMissing))
+        page_from(self.bundle_dir.as_deref(), self.embedded)
     }
 
     fn symbols(

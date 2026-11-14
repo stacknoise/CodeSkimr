@@ -2,6 +2,7 @@
 
 use std::future::Future;
 use std::net::{Ipv4Addr, SocketAddr};
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -56,6 +57,7 @@ pub fn run(
             running,
         )?),
         events,
+        token_lock: Some(locations.token_lock()),
     };
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
@@ -73,8 +75,17 @@ pub fn run(
 /// What the browser UI gets from the configuration. Without a built UI folder the server answers
 /// the API only.
 fn ui_options(config: &codeskimr_application::config::Config, locations: &Locations) -> UiOptions {
+    let dir = locations.existing_dir(&config.ui.dir);
+    if let Some(folder) = dir
+        .as_deref()
+        .filter(|folder| !is_inside(folder, &locations.data_dir))
+    {
+        // The folder is served to the browser of the user; one that lies outside the data folder
+        // (a build folder, a shared drive) is worth a line in the log.
+        tracing::warn!(ui_dir = %folder.display(), data_dir = %locations.data_dir.display());
+    }
     UiOptions {
-        dir: locations.existing_dir(&config.ui.dir),
+        dir,
         embedded: crate::embedded_ui::FILES,
         launch_lifetime: Duration::from_secs(u64::from(config.ui.launch_code_seconds)),
         settings: UiSettings {
@@ -87,6 +98,15 @@ fn ui_options(config: &codeskimr_application::config::Config, locations: &Locati
     }
 }
 
+/// Whether `folder` lies in or below `base`, links resolved. A folder that cannot be resolved
+/// counts as outside.
+fn is_inside(folder: &std::path::Path, base: &std::path::Path) -> bool {
+    match (folder.canonicalize(), base.canonicalize()) {
+        (Ok(folder), Ok(base)) => folder.starts_with(base),
+        _ => false,
+    }
+}
+
 /// What the server offers: the UI, the commands over REST and the events over the WebSocket. The
 /// commands publish on the same bus the WebSocket streams.
 pub(crate) struct Parts {
@@ -94,6 +114,8 @@ pub(crate) struct Parts {
     pub api: CommandApi,
     pub mcp: Option<HttpService>,
     pub events: EventBus,
+    /// File that serialises the first start of several programs (`None`: no lock, for tests).
+    pub token_lock: Option<PathBuf>,
 }
 
 /// Wires the server and runs it until `shutdown` completes.
@@ -104,7 +126,10 @@ pub(crate) async fn serve(
     listening: impl FnOnce(&str),
     shutdown: impl Future<Output = ()> + Send + 'static,
 ) -> Result<(), CodedError> {
-    let token = installation_token::load_or_create(store)?;
+    let token = match &parts.token_lock {
+        Some(lock) => installation_token::load_or_create_locked(store, lock)?,
+        None => installation_token::load_or_create(store)?,
+    };
     let server = Server::new(
         parts.api,
         parts.events,
@@ -136,6 +161,7 @@ pub(crate) fn bare_parts(ui: UiOptions) -> Parts {
             codeskimr_application::registry::Registry::new(),
         )),
         events: EventBus::new(),
+        token_lock: None,
     }
 }
 
@@ -237,5 +263,24 @@ mod tests {
 
     fn runtime_free_wait(url: tokio::sync::oneshot::Receiver<String>) -> String {
         url.blocking_recv().unwrap()
+    }
+}
+
+#[cfg(test)]
+mod ui_folder_tests {
+    use super::is_inside;
+
+    #[test]
+    fn a_ui_folder_is_inside_the_data_folder_only_below_it() {
+        let root = tempfile::tempdir().unwrap();
+        let data = root.path().join("data");
+        let below = data.join("ui");
+        let beside = root.path().join("ui");
+        for folder in [&below, &beside] {
+            std::fs::create_dir_all(folder).unwrap();
+        }
+        assert!(is_inside(&below, &data));
+        assert!(!is_inside(&beside, &data));
+        assert!(!is_inside(&root.path().join("missing"), &data));
     }
 }

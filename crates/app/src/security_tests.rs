@@ -87,6 +87,7 @@ pub(crate) fn run(
         .unwrap(),
         mcp: Some(http_service(&config, &locations, (events.clone(), &secrets)).unwrap()),
         events,
+        token_lock: None,
     };
     let (stop, stopped) = oneshot::channel::<()>();
     let (found, url) = channel::<String>();

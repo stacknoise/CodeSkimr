@@ -8,12 +8,12 @@ use std::time::Duration;
 
 use codeskimr_application::error::CodedError;
 use codeskimr_domain::SnapshotId;
-use rusqlite::{Connection, Transaction, TransactionBehavior};
+use rusqlite::{Connection, ErrorCode, Transaction, TransactionBehavior};
 
 use crate::consts::{
     BUSY_TIMEOUT_MS, CACHE_SIZE_KIB, FIRST_ID, ID_STEP, JOURNAL_MODE_WAL, PRAGMA_CACHE_SIZE,
     PRAGMA_FOREIGN_KEYS, PRAGMA_JOURNAL_MODE, PRAGMA_ON, PRAGMA_SYNCHRONOUS, PRAGMA_TEMP_STORE,
-    SYNCHRONOUS_NORMAL, TEMP_STORE_MEMORY,
+    SYNCHRONOUS_NORMAL, TEMP_STORE_MEMORY, WAL_SWITCH_ATTEMPTS, WAL_SWITCH_PAUSE_MS,
 };
 use crate::error::StorageResult;
 use crate::sql;
@@ -61,7 +61,7 @@ impl SqliteStore {
     fn prepared(mut conn: Connection, retention: NonZeroU32) -> StorageResult<Self> {
         conn.busy_timeout(Duration::from_millis(BUSY_TIMEOUT_MS))?;
         conn.pragma_update(None, PRAGMA_FOREIGN_KEYS, PRAGMA_ON)?;
-        conn.pragma_update(None, PRAGMA_JOURNAL_MODE, JOURNAL_MODE_WAL)?;
+        enable_wal(&conn)?;
         conn.pragma_update(None, PRAGMA_SYNCHRONOUS, SYNCHRONOUS_NORMAL)?;
         conn.pragma_update(None, PRAGMA_CACHE_SIZE, CACHE_SIZE_KIB)?;
         conn.pragma_update(None, PRAGMA_TEMP_STORE, TEMP_STORE_MEMORY)?;
@@ -114,5 +114,25 @@ impl SqliteStore {
             })
         })
         .map_err(CodedError::from)
+    }
+}
+
+/// Switches the file to the write-ahead log. While another connection is switching or migrating
+/// the same new file, `SQLite` answers "busy" at once, so the switch is tried again for a while.
+fn enable_wal(conn: &Connection) -> rusqlite::Result<()> {
+    let mut attempt = 1;
+    loop {
+        match conn.pragma_update(None, PRAGMA_JOURNAL_MODE, JOURNAL_MODE_WAL) {
+            Err(rusqlite::Error::SqliteFailure(failure, _))
+                if matches!(
+                    failure.code,
+                    ErrorCode::DatabaseBusy | ErrorCode::DatabaseLocked
+                ) && attempt < WAL_SWITCH_ATTEMPTS =>
+            {
+                attempt += 1;
+                std::thread::sleep(Duration::from_millis(WAL_SWITCH_PAUSE_MS));
+            }
+            other => return other,
+        }
     }
 }

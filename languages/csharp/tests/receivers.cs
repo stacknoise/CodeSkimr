@@ -41,3 +41,23 @@ public class Shapes(IReader primary, Sensor tool)
     private void Fill(out IReader r) { r = new FileReader(); }
     private IReader Make() => new FileReader();
 }
+
+public class Leaf
+{
+    public int Weight { get; set; }
+    public int Measure() { return 1; }
+    public int this[int i] { get { return i; } }
+}
+public class Twig { public int Weight { get; set; } public int Measure() { return 2; } }
+public class Branch { public Leaf? Tip { get; set; } }
+
+public class NullConditional(Branch? branch, Leaf? leaf, Demo.Leaf? qualified)
+{
+    private Leaf? _field;
+
+    public void Member() { var w = branch?.Tip; var m = leaf?.Weight; }
+    public void Chain() { var w = branch?.Tip?.Weight; }
+    public void Call() { leaf?.Measure(); qualified?.Measure(); }
+    public void Index() { var i = _field?[0]; }
+    public void Forms() { var w = leaf!?.Weight; var x = this._field?.Weight; }
+}

@@ -350,5 +350,6 @@ pub(crate) fn export_command(
             },
         },
         locations.existing_dir(&config.ui.dir),
+        crate::embedded_ui::FILES,
     )
 }

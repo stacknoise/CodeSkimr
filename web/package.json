@@ -37,5 +37,10 @@
     "vite": "^7.3.8",
     "vite-plugin-solid": "^2.11.16",
     "vitest": "^5.1.0"
+  },
+  "overrides": {
+    "@typescript-eslint/typescript-estree": {
+      "minimatch": "^11.0.1"
+    }
   }
 }

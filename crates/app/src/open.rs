@@ -77,15 +77,17 @@ pub(crate) fn launch(
 ) -> Result<(), CodedError> {
     let token = read_token(store)?;
     let code = request_code(plan.port, &token)?;
-    let url = [
-        URL_SCHEME,
-        LOOPBACK_HOST,
-        PORT_SEPARATOR,
-        &plan.port.to_string(),
-        LAUNCH_FRAGMENT,
-        code.as_str(),
-    ]
-    .concat();
+    let url = Zeroizing::new(
+        [
+            URL_SCHEME,
+            LOOPBACK_HOST,
+            PORT_SEPARATOR,
+            &plan.port.to_string(),
+            LAUNCH_FRAGMENT,
+            code.as_str(),
+        ]
+        .concat(),
+    );
     let file = LaunchFile::create(&plan.dir, &url, plan.lifetime)?;
     drop(code);
     ready(&Ready {
@@ -122,12 +124,21 @@ fn request_code(port: u16, token: &str) -> Result<Zeroizing<String>, CodedError>
         path: LAUNCH_CODE_PATH,
         token,
     })?;
-    answer
-        .get(FIELD_CODE)
-        .and_then(Value::as_str)
-        .filter(|code| is_launch_code(code))
-        .map(|code| Zeroizing::new(code.to_owned()))
-        .ok_or_else(|| CodedError::new(ErrorCode::ServerNotReachable))
+    // The text moves out of the answer into the wiped holder, so no other copy is left behind.
+    let Value::Object(mut fields) = answer else {
+        return Err(CodedError::new(ErrorCode::ServerNotReachable));
+    };
+    match fields.remove(FIELD_CODE) {
+        Some(Value::String(code)) => {
+            let code = Zeroizing::new(code);
+            if is_launch_code(&code) {
+                Ok(code)
+            } else {
+                Err(CodedError::new(ErrorCode::ServerNotReachable))
+            }
+        }
+        _ => Err(CodedError::new(ErrorCode::ServerNotReachable)),
+    }
 }
 
 /// Whether `code` has the shape of a launch code. The text goes into a page that the browser
