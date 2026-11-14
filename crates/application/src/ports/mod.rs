@@ -27,7 +27,7 @@ pub use analysis::{
 };
 pub use catalog::{LanguageShare, ProjectCatalog, ProjectOverview};
 pub use clock::Clock;
-pub use consent::{ConsentRecord, ConsentStore, RunPermit};
+pub use consent::{ConsentGrant, ConsentRecord, ConsentStore, RunPermit};
 pub use credentials::{AuthError, Credential, CredentialStore};
 pub use indexer::{
     IndexArtifact, IndexJob, IndexLimits, IndexRunner, IndexerSpec, IndexerStatus,

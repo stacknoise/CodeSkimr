@@ -68,7 +68,7 @@ mod cases {
             min_mapped: 0.0,
         });
         let found = outcome.ok();
-        assert!(found.is_none_or(|imported| imported.references.is_empty()));
+        assert_eq!(found.map_or(0, |imported| imported.references.len()), 0);
         assert!(text_behind_link_is_refused(&root, &files[0].path));
     }
 

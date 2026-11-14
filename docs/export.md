@@ -34,7 +34,7 @@ The tree of layers, namespaces and types; for every type and member the breadcru
 
 ## Unchecked usages
 
-Every usage keeps its `verified` and `confidence` fields. The usages screen of the page shows the same pills as the app (`unchecked`, `presumed`) and the same notice that no indexer verified anything (ADR 0033). The strip under the top bar of every screen counts the verified and unchecked direct usages of the whole export, so a page that is read months later still says how far it can be trusted.
+Every usage keeps its `verified` and `confidence` fields. The usages screen of the page shows the same pills as the app (`unchecked`, `presumed`) and the same notice while no hit of the answer is verified (ADR 0033). The export carries the real `verified` flag and `level2` state of the stored references, so a project whose files an indexer checked shows verified pills. The strip under the top bar of every screen counts the verified and unchecked direct usages of the whole export, so a page that is read months later still says how far it can be trusted.
 
 ## Limits
 

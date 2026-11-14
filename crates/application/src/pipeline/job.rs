@@ -70,8 +70,8 @@ impl<S: JobState> Job<S> {
         self.mode
     }
 
-    /// Whether level 2 runs after level 1 is stored; true unless the job was built
-    /// `without_level2`.
+    /// Whether level 2 runs after level 1 is stored; false unless the job was built
+    /// `with_level2`.
     #[must_use]
     pub const fn level2_wanted(&self) -> bool {
         self.level2
@@ -96,9 +96,19 @@ impl Job<Queued> {
             project,
             mode,
             cancel: CancelToken::new(),
-            level2: true,
+            level2: false,
             state: Queued,
         }
+    }
+
+    /// The same job with the second pass: after level 1 it may start the indexers the project
+    /// has consent for. A job does not want this by default, so that MCP, the UI and the server
+    /// never start an indexer by accident; only the scan of the command line asks for it
+    /// (ADR 0033, decisions 5 and 13).
+    #[must_use]
+    pub const fn with_level2(mut self) -> Self {
+        self.level2 = true;
+        self
     }
 
     /// The same job without the second pass: level 1 only. Watch mode uses it for the scans after

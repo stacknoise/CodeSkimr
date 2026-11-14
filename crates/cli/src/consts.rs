@@ -25,6 +25,15 @@ pub const VALUE_EXPORT_PROJECT: &str = "PROJECT";
 /// Argument id and long flag of the HTML file of `export`.
 pub const ARG_HTML: &str = "html";
 
+/// Sub-command that allows or forbids level 2 for a project.
+pub const COMMAND_LEVEL2: &str = "level2";
+/// Sub-command of `level2` that allows the indexers.
+pub const COMMAND_LEVEL2_CONFIRM: &str = "confirm";
+/// Sub-command of `level2` that forbids them.
+pub const COMMAND_LEVEL2_REVOKE: &str = "revoke";
+/// Argument id of the project of `level2`.
+pub const ARG_LEVEL2_PROJECT: &str = "level2-project";
+
 /// Sub-command that manages credentials for Git sources.
 pub const COMMAND_CREDENTIAL: &str = "credential";
 /// Sub-command of `credential` that stores a credential.
@@ -112,6 +121,12 @@ pub const SECONDS_BASE: f64 = 10.0;
 
 /// Names of the Fluent arguments of the messages.
 pub mod arg {
+    /// `{ $place }`: the folder or Git address of a project.
+    pub const PLACE: &str = "place";
+    /// `{ $branch }`: the Git branch of a project.
+    pub const BRANCH: &str = "branch";
+    /// `{ $project }`: the project a message is about.
+    pub const PROJECT: &str = "project";
     /// `{ $language }`: name of a language.
     pub const LANGUAGE: &str = "language";
     /// `{ $stale }`: files that changed since the scan.

@@ -70,7 +70,7 @@ impl Session {
     /// The code of the failed stage, or `PRJ-303` if the scan was cancelled (nothing cancels it
     /// here).
     pub fn scan(&self, mode: ScanMode) -> Result<ScanSummary, CodedError> {
-        self.scan_with(mode, drop)
+        self.run_job(Job::new(self.project.id, mode).with_level2())
     }
 
     /// Like [`Session::scan`], but level 1 only: no indexer starts. Watch mode scans again with
@@ -82,8 +82,9 @@ impl Session {
         self.run_job(Job::new(self.project.id, mode).without_level2())
     }
 
-    /// Like [`Session::scan`], but hands the token that cancels this scan to `on_token` before
-    /// the scan starts.
+    /// Like [`Session::scan`], but level 1 only, and it hands the token that cancels this scan to
+    /// `on_token` before the scan starts. The UI uses it; only the scan of the command line runs
+    /// level 2.
     ///
     /// # Errors
     /// The same as [`Session::scan`].
