@@ -7,6 +7,8 @@ mod decode;
 #[cfg(test)]
 mod fuzz;
 #[cfg(test)]
+mod gaps;
+#[cfg(test)]
 mod impls;
 #[cfg(test)]
 mod importer;

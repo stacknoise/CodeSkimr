@@ -1,7 +1,9 @@
 //! Mapping of occurrences onto project symbols.
 
 use codeskimr_domain::{Confidence, Reference, ReferenceKind, SourceFile, Symbol, SymbolKind};
-use codeskimr_scip::{ImportOutcome, ScipError, SnapshotView, decode_index, import_references};
+use codeskimr_scip::{
+    ImportOutcome, ScipError, SnapshotView, convert_columns, decode_index, import_references,
+};
 
 use crate::common::{
     LIMIT, definition, document, file, index, level_one, run_index, scip, span, symbol, usage,
@@ -21,6 +23,25 @@ pub fn run_with(
         references,
     };
     import_references(&decoded, &view, min_mapped)
+}
+
+/// Like [`run_with`], with the columns converted and the local names read from `lines`, the
+/// text of every file.
+pub fn run_text(
+    bytes: &[u8],
+    snapshot: (&[SourceFile], &[Symbol], &[Reference]),
+    lines: &[&str],
+) -> Result<ImportOutcome, ScipError> {
+    let mut decoded = decode_index(bytes, LIMIT).expect("decodes");
+    let text: Vec<String> = lines.iter().map(|line| (*line).to_owned()).collect();
+    convert_columns(&mut decoded, &mut |_| Some(text.clone()));
+    let (files, symbols, references) = snapshot;
+    let view = SnapshotView {
+        files,
+        symbols,
+        references,
+    };
+    import_references(&decoded, &view, 0.5)
 }
 
 /// Like [`run_with`] with the default share of one half, which must be reached.

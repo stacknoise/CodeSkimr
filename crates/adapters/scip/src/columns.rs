@@ -5,9 +5,14 @@
 //! differ elsewhere, so the stored span of a reference and the lookup of the level 1 kind at the
 //! same place would be off. The conversion needs the text of the lines.
 
+use std::collections::{HashMap, HashSet};
+use std::sync::Arc;
+
 use codeskimr_domain::{Position, RelativePath, Span};
 
-use crate::model::{Occurrence, PositionEncoding, ScipDocument, ScipIndex};
+use crate::consts::{IDENTIFIER_EXTRA_CHARS, MAX_LOCAL_NAME_BYTES, MAX_LOCAL_NAME_TOTAL_BYTES};
+use crate::model::{Occurrence, PositionEncoding, ScipDocument, ScipIndex, SymbolRef};
+use crate::symbol::is_local;
 
 /// Counts how many units of `encoding` a character takes.
 fn units_of(encoding: PositionEncoding, character: char) -> usize {
@@ -75,21 +80,139 @@ fn convert_document(document: &mut ScipDocument, lines: &[String]) {
     document.encoding = PositionEncoding::Utf8;
 }
 
-/// Turns the columns of every document that does not count UTF-8 bytes into UTF-8 bytes.
-/// `lines_of` gives the lines of a file without their line ends, or `None` if the text is not
-/// available, in which case the document keeps its encoding. It must read files the way the
-/// import is allowed to: inside the project and never through a link.
+/// The text a one-line range covers in the converted (byte) columns of `lines`.
+fn text_at(lines: &[String], range: Span) -> Option<&str> {
+    let (start, end) = (range.start(), range.end());
+    if start.line != end.line || end.column.checked_sub(start.column)? > MAX_LOCAL_NAME_BYTES {
+        return None;
+    }
+    let line = lines.get(usize::try_from(start.line).ok()?)?;
+    line.get(usize::try_from(start.column).ok()?..usize::try_from(end.column).ok()?)
+}
+
+/// Whether `text` can be the name of a symbol: letters, digits and a few marks, nothing else.
+fn is_identifier(text: &str) -> bool {
+    !text.is_empty()
+        && text
+            .chars()
+            .all(|c| c.is_alphanumeric() || IDENTIFIER_EXTRA_CHARS.contains(&c))
+}
+
+/// Keeps each name text of the local symbols once over the whole index, and only texts that
+/// can be names, up to a total size: a hostile index cannot make it grow without bound.
+#[derive(Default)]
+struct NameInterner {
+    names: HashSet<Arc<str>>,
+    bytes: usize,
+}
+
+impl NameInterner {
+    /// The shared text, or `None` if it is no identifier or the total size is used up.
+    fn share(&mut self, text: &str) -> Option<Arc<str>> {
+        if !is_identifier(text) {
+            return None;
+        }
+        if let Some(known) = self.names.get(text) {
+            return Some(Arc::clone(known));
+        }
+        let total = self.bytes.checked_add(text.len())?;
+        if total > MAX_LOCAL_NAME_TOTAL_BYTES {
+            return None;
+        }
+        let shared: Arc<str> = Arc::from(text);
+        self.bytes = total;
+        self.names.insert(Arc::clone(&shared));
+        Some(shared)
+    }
+}
+
+/// The names of the local symbols a document defines: the text of their definitions. A symbol
+/// whose definitions do not read the same gets none. Needs columns in bytes.
+fn local_names(
+    document: &ScipDocument,
+    lines: &[String],
+    symbols: &[String],
+    interner: &mut NameInterner,
+) -> HashMap<SymbolRef, Arc<str>> {
+    let mut names: HashMap<SymbolRef, Option<&str>> = HashMap::new();
+    let definitions = document.occurrences.iter().filter(|o| o.is_definition());
+    for occurrence in definitions {
+        let is_local_symbol = usize::try_from(occurrence.symbol.0)
+            .ok()
+            .and_then(|at| symbols.get(at))
+            .is_some_and(|text| is_local(text));
+        if !is_local_symbol {
+            continue;
+        }
+        let text = text_at(lines, occurrence.range);
+        let known = names.entry(occurrence.symbol).or_insert(text);
+        if *known != text {
+            *known = None;
+        }
+    }
+    // The same few names (`i`, `e`, `cb`) recur over a project: each text is kept once.
+    names
+        .into_iter()
+        .filter_map(|(symbol, text)| Some((symbol, interner.share(text?)?)))
+        .collect()
+}
+
+/// Whether the document defines a local symbol, whose name the import reads from the text.
+fn defines_locals(document: &ScipDocument, symbols: &[String]) -> bool {
+    document.occurrences.iter().any(|occurrence| {
+        occurrence.is_definition()
+            && usize::try_from(occurrence.symbol.0)
+                .ok()
+                .and_then(|at| symbols.get(at))
+                .is_some_and(|text| is_local(text))
+    })
+}
+
+/// Turns the columns of every document that does not count UTF-8 bytes into UTF-8 bytes, and
+/// reads the names of the local symbols a document defines (the import has no other way to
+/// tell what a local symbol is called). `lines_of` gives the lines of a file without their line
+/// ends, or `None` if the text is not available, in which case the document keeps its encoding
+/// and its local symbols stay without a name. It must read files the way the import is allowed
+/// to: inside the project and never through a link.
 pub fn convert_columns(
     index: &mut ScipIndex,
     lines_of: &mut dyn FnMut(&RelativePath) -> Option<Vec<String>>,
 ) {
-    for document in &mut index.documents {
-        if document.encoding == PositionEncoding::Utf8 {
+    let ScipIndex {
+        documents, symbols, ..
+    } = index;
+    // Documents of one path are handled together, so a file is read once however often the
+    // index names it (an index may hold a million documents of one path).
+    let mut order: Vec<usize> = (0..documents.len())
+        .filter(|at| {
+            documents.get(*at).is_some_and(|document| {
+                document.encoding != PositionEncoding::Utf8 || defines_locals(document, symbols)
+            })
+        })
+        .collect();
+    order.sort_by(|a, b| {
+        let path = |at: &usize| documents.get(*at).map(|document| document.path.as_str());
+        path(a).cmp(&path(b))
+    });
+    let mut interner = NameInterner::default();
+    let mut current: Option<(String, Option<Vec<String>>)> = None;
+    for at in order {
+        let Some(document) = documents.get_mut(at) else {
             continue;
+        };
+        let same = current
+            .as_ref()
+            .is_some_and(|(path, _)| path == document.path.as_str());
+        if !same {
+            current = Some((document.path.as_str().to_owned(), lines_of(&document.path)));
         }
-        if let Some(lines) = lines_of(&document.path) {
-            convert_document(document, &lines);
+        let Some((_, Some(lines))) = &current else {
+            continue;
+        };
+        if document.encoding != PositionEncoding::Utf8 {
+            convert_document(document, lines);
         }
+        document.local_names = local_names(document, lines, symbols, &mut interner);
     }
 }
 
@@ -111,6 +234,7 @@ mod tests {
             documents: vec![ScipDocument {
                 path: RelativePath::new("a.cs").unwrap(),
                 encoding,
+                local_names: HashMap::new(),
                 occurrences: vec![Occurrence {
                     range,
                     symbol: SymbolRef(0),
@@ -126,6 +250,30 @@ mod tests {
         let lines = vec![line.to_owned()];
         convert_columns(&mut index, &mut |_| Some(lines.clone()));
         index.documents[0].occurrences[0].range
+    }
+
+    #[test]
+    fn interner_keeps_only_identifiers_once_up_to_the_total() {
+        let mut interner = NameInterner::default();
+        let first = interner.share("cb").unwrap();
+        assert!(Arc::ptr_eq(&first, &interner.share("cb").unwrap()));
+        assert!(interner.share("a b").is_none());
+        assert!(interner.share("f(x)").is_none());
+        assert!(interner.share("").is_none());
+        assert!(interner.share("$el_1").is_some());
+        // Overlapping texts of one long name are all different texts, each kept once.
+        let long = "a".repeat(usize::try_from(MAX_LOCAL_NAME_BYTES).unwrap());
+        for end in 1..=long.len() {
+            assert!(interner.share(&long[..end]).is_some());
+        }
+        // Endless different names: the total stops it, never above the limit.
+        let mut number = u32::default();
+        while interner.share(&format!("n{number}")).is_some() {
+            number += 1;
+        }
+        assert!(interner.bytes <= MAX_LOCAL_NAME_TOTAL_BYTES);
+        assert!(interner.bytes + "n".len() + 1 > MAX_LOCAL_NAME_TOTAL_BYTES - 8);
+        assert!(interner.share("cb").is_some());
     }
 
     #[test]
@@ -169,5 +317,21 @@ mod tests {
         convert_columns(&mut index, &mut |_| None);
         assert_eq!(index.documents[0].encoding, PositionEncoding::Utf16);
         assert_eq!(index.documents[0].occurrences.len(), 1);
+    }
+
+    #[test]
+    fn many_documents_of_one_path_read_the_file_once() {
+        let mut index = index(PositionEncoding::Utf16, span(0, 4, 7));
+        let template = index.documents[0].clone();
+        index.documents = vec![template; 5000];
+        let lines = vec!["int Foo;".to_owned()];
+        let mut reads = u32::default();
+        convert_columns(&mut index, &mut |_| {
+            reads += 1;
+            Some(lines.clone())
+        });
+        assert_eq!(reads, 1);
+        let encodings: Vec<_> = index.documents.iter().map(|d| d.encoding).collect();
+        assert_eq!(encodings, vec![PositionEncoding::Utf8; 5000]);
     }
 }

@@ -202,6 +202,7 @@ fn decode_document(message: &[u8], symbols: &mut Interner) -> Result<ScipDocumen
         path: path.ok_or(Corruption::UnsafePath)?,
         encoding,
         occurrences,
+        local_names: HashMap::new(),
     })
 }
 
