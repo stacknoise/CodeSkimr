@@ -64,12 +64,19 @@ def ours(db, verified_only=False):
     return files, symbols, used, kinds
 
 
+# Language -> (section of reference_tools.toml, program of the indexer, key of the pinned version).
+SCIP_INDEXERS = {"rust": ("rust_scip", "rust-analyzer", "rust_analyzer"),
+                 "typescript": ("typescript_scip", "scip-typescript", "scip_typescript"),
+                 "python": ("python_scip", "scip-python", "scip_python")}
+
+
 def import_level2(opt, db, source):
     """Maps the hand-made SCIP index onto the scanned database (tools/accuracy/import_scip) and reopens it."""
-    pin = tomllib.loads((Path(__file__).parent / "reference_tools.toml").read_text())["rust_scip"]["rust_analyzer"]
-    found = subprocess.run(["rust-analyzer", "--version"], capture_output=True, text=True).stdout.strip()
+    section, program, key = SCIP_INDEXERS[opt.language]
+    pin = tomllib.loads((Path(__file__).parent / "reference_tools.toml").read_text())[section][key]
+    found = subprocess.run([opt.indexer or program, "--version"], capture_output=True, text=True).stdout.strip()
     if found != pin:
-        print(f"warning: rust-analyzer is '{found}', the numbers in docs/accuracy.md are for '{pin}'", file=sys.stderr)
+        print(f"warning: {program} is '{found}', the numbers in docs/accuracy.md are for '{pin}'", file=sys.stderr)
     config = tomllib.loads((ROOT / "config/default.toml").read_text())
     level2, max_file = config["level2"], config["scan"]["max_source_mb"] * 1024 * 1024
     dbfile = db.execute("pragma database_list").fetchone()[2]
@@ -82,8 +89,11 @@ def import_level2(opt, db, source):
         sys.exit("import failed: " + done.stderr)
     stats = json.loads(done.stdout)
     print("import:", done.stdout.strip(), file=sys.stderr)
-    if stats["files_replaced"] != scanned:
+    uncovered = scanned - stats["files_replaced"]
+    if uncovered > opt.allow_uncovered:
         sys.exit(f"the index covers {stats['files_replaced']} of {scanned} scanned files: it does not belong to this corpus commit")
+    if uncovered:
+        print(f"warning: {uncovered} scanned files are not in the index (allowed by --allow-uncovered); their references are not counted", file=sys.stderr)
     return sqlite3.connect(dbfile)
 
 
@@ -143,13 +153,15 @@ def main():
     args.add_argument("--languages", default=str(ROOT / "languages"), help="language packs that belong to the binary")
     args.add_argument("--json", action="store_true")
     args.add_argument("--scip", help="SCIP index made by hand (`rust-analyzer scip`); mapped onto the scan with tools/accuracy/import_scip, without the consent flow of level 2")
+    args.add_argument("--allow-uncovered", type=int, default=0, help="scanned files that the index may leave out (the indexer reads only what the tsconfig includes)")
+    args.add_argument("--indexer", help="program that made the --scip index, for the version check (default: the usual name)")
     args.add_argument("--import-scip", default=str(ROOT / "target/debug/codeskimr_import_scip"), help="the measuring tool of --scip")
     args.add_argument("--verified-only", action="store_true", help="count only references that level 2 produced (verified)")
     opt = args.parse_args()
     if opt.scip and not opt.verified_only:
         sys.exit("--scip needs --verified-only: without it level 1 and level 2 references are counted together")
-    if opt.scip and opt.language != "rust":
-        sys.exit("--scip is only prepared for rust (rust-analyzer scip)")
+    if opt.scip and opt.language not in SCIP_INDEXERS:
+        sys.exit("--scip is only prepared for rust, typescript and python")
     project = tomllib.loads((ROOT / "corpus" / opt.language / "corpus.toml").read_text())["project"]
     src = checkout(opt.language, project)
     with tempfile.TemporaryDirectory() as tmp:
