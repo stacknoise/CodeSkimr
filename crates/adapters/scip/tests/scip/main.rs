@@ -7,6 +7,8 @@ mod decode;
 #[cfg(test)]
 mod fuzz;
 #[cfg(test)]
+mod importer;
+#[cfg(test)]
 mod mapping;
 #[cfg(test)]
 mod replace;

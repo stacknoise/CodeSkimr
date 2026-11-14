@@ -7,6 +7,9 @@
 //! tokens, watch mode and CI have no way to confirm, and a missing confirmation stops them like
 //! everybody else.
 
+mod pass;
+mod report;
+
 use std::path::Path;
 use std::sync::{Arc, Mutex, PoisonError};
 
@@ -16,6 +19,8 @@ use codeskimr_domain::{Permission, Principal, ProjectId};
 use crate::config::Level2;
 use crate::error::CodedError;
 pub use crate::ports::{ConsentRecord, ConsentStore, RunPermit};
+pub use pass::Level2Pass;
+pub use report::{LanguageReport, Level2Outcome, Level2Result, Skipped};
 
 /// A consent store that lives in memory only: for tests and for callers without a database.
 #[derive(Debug, Default)]

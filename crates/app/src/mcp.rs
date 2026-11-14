@@ -95,6 +95,7 @@ fn build_ports(
         discovery,
         analyzer,
         snippets,
+        ..
     } = build_analysis(config, locations)?;
     let checker = ConventionChecker::new(discovery, analyzer, config.conventions.clone());
     let scanner: Arc<dyn ProjectScanner> =

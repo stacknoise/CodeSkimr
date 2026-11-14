@@ -1,6 +1,6 @@
 # Level 2 import: SCIP indexes (ADR 0033, package 5)
 
-`crates/adapters/scip` (`codeskimr_scip`) turns a SCIP index into level 2 references. It is the import only. Running an indexer, the consent and permissions, the `IndexRunner` port and the wiring into the scan come with later packages, so nothing calls this crate yet. It depends on `domain` and `codes` only.
+`crates/adapters/scip` (`codeskimr_scip`) turns a SCIP index into level 2 references. The mapping is a pure function over domain types; `ScipImporter` implements the `ReferenceImporter` port of the application layer, which the second pass of the scan (below) calls. The crate depends on `application`, `domain` and `codes`.
 
 ## Decoder
 
@@ -15,7 +15,7 @@ The index is untrusted input (ADR 0033 decision 4):
 - Document paths are cleaned lexically (`/` as separator, no `.` and empty components) and refused if they are empty, start with a separator, name a drive or hold a `..` component (blueprint S-05). The import never opens a file by such a path; it only compares it with the paths of the snapshot.
 - Truncated, malformed or out-of-range input is `RES-101`. The decoder does not panic; a test feeds it random and damaged bytes.
 
-Columns of an occurrence are in the unit the document states (`PositionEncoding`, kept on the decoded document); scip-dotnet and scip-typescript count UTF-16 code units, the parsing adapter counts UTF-8 bytes. **Columns are not converted.** On lines with characters beyond ASCII before the place, the stored span of a reference differs from the byte columns of CodeSkimr, and the kind of the level 1 reference at the same place is not found (matching is by the same start), so the kind falls back to the one by the target. The enclosing symbol is found by line and column and can be wrong only at the very edge of a symbol. A conversion needs the text of the lines and is tracked in issue #217; a test pins the current behaviour.
+Columns of an occurrence are in the unit the document states (`PositionEncoding`, kept on the decoded document); scip-dotnet and scip-typescript count UTF-16 code units, the parsing adapter counts UTF-8 bytes. `convert_columns` turns the columns of a document that is not UTF-8 into byte columns before the mapping, using the lines of the file (`SourceText`, which never follows a link out of the project). A column inside a surrogate pair stands for the next character. If the text of a file cannot be read, or a column lies behind the end of its line, the occurrence keeps its columns. `read_index` refuses a link in place of the index file (issue #217).
 
 ## Mapping and replacing
 
@@ -51,3 +51,15 @@ The 15 % that did not map in Rust are 77 types and macros that a `macro_rules!` 
 - The enclosing-symbol search is linear in the symbols of a file for every occurrence, so very large or single-line files are quadratic (issue #220).
 - The index decides which files are covered; a file that the indexer did not see keeps its level 1 references.
 - Columns are not converted between encodings (see above, issue #217).
+
+## The second pass of the scan
+
+After level 1 is stored, `Level2Pass` (application layer, `level2/pass.rs`) runs once per distinct indexer name. Languages that name the same indexer (TypeScript, JavaScript and TSX; Java and Kotlin) share one run and get one report each.
+
+For each indexer, in this order: `authorize_run` (permission, enabled in the user configuration or the project record, confirmed); `IndexRunner::check` (tools installed in a usable version); `IndexRunner::run`; then a hash check of every file of the languages against the disk, which happens **after** the run because the run may take minutes. Files whose content changed keep level 1 and are counted as `stale`; if all changed, nothing is imported. The importer maps the index onto the files that passed, and `SnapshotStore::replace_references` replaces the references of exactly those files in one transaction; the new references get ids the pass reserved from the shared id sequence, so they cannot collide with rows of other snapshots; the transaction also updates the totals and rebuilds the read models.
+
+Whatever goes wrong, the scan has finished and level 1 stays: the pass never fails the scan, a cancel kills the process group and leaves the references as they were, and the report names the reason per language (not permitted, not confirmed, tools missing, stale, cancelled, or the error code). `codeskimr scan` prints one line per language ("Level 2: ... checked" or "skipped (reason)"), `--json` carries the same data.
+
+Rows are shared between snapshots that carry a file unchanged (ADR 0032). `replace_references` therefore treats every snapshot that holds a replaced file alike: the new references are visible from the oldest snapshot that holds the file, and the totals and read models (usage counts, layer graph, search) of all of them are built again, in the same transaction. Only the newest snapshot of a project can be asked for a replacement. A test with two snapshots that share a file pins this.
+
+A file that is not valid UTF-8 is read lossily by `FolderText` (invalid bytes become a three-byte character), so byte columns behind such a byte can be off; the hash check does not help there. An occurrence that cannot be placed in the text of its line is dropped, not kept with a wrong column. `SnapshotCreated` is published as soon as level 1 is stored and once more after level 2 if the totals changed, so UI, MCP and watch mode do not wait for the indexers. Every indexer group hashes the whole project once more after its run; hashing only the files of the group is tracked in an issue. Watch mode runs level 2 with its first scan only; later scans of the session are level 1 (`Job::without_level2`).

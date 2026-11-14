@@ -126,3 +126,6 @@ pub(crate) const MAX_DOCUMENTS: usize = 1_000_000;
 pub(crate) const MAX_OCCURRENCES: usize = 16_000_000;
 /// Most distinct symbols an index may hold.
 pub(crate) const MAX_SYMBOLS: usize = 4_000_000;
+
+/// The first line of a file when a range of lines is asked for.
+pub(crate) const FIRST_LINE: u32 = 1;

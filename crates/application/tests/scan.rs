@@ -3,14 +3,18 @@
 use std::sync::{Arc, Mutex, PoisonError};
 
 use codeskimr_application::cancel::CancelToken;
+use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::{Event, EventBus, StopReason};
 use codeskimr_application::ids::IdSequence;
+use codeskimr_application::level2::{InMemoryConsent, Level2Pass, confirm};
 use codeskimr_application::pipeline::{Job, JobResult, Scanner, ScannerPorts};
 use codeskimr_application::ports::{
-    AnalyzeRequest, Clock, DiscoveredFile, FetchedSource, FileAnalyzer, FileDiscovery, FileFacts,
-    MetricsCalculator, PendingReference, PreviousIndex, ProjectRepository, ProjectScanner,
-    ReferenceResolver, SnapshotData, SnapshotStore, SourceProvider, SymbolFingerprints,
+    AnalyzeRequest, Clock, ConsentStore, DiscoveredFile, FetchedSource, FileAnalyzer,
+    FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob, IndexRunner,
+    IndexerSpec, IndexerStatus, MetricsCalculator, PendingReference, PreviousIndex,
+    ProjectRepository, ProjectScanner, ReferenceImporter, ReferenceReplacement, ReferenceResolver,
+    SnapshotData, SnapshotStore, SourceProvider, SymbolFingerprints, ToolSpec, ToolVersion,
 };
 use codeskimr_application::stage::StageKind;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -289,6 +293,10 @@ impl SnapshotStore for World {
             .unwrap_or_else(PoisonError::into_inner)
             .push(data);
         Ok(snapshot)
+    }
+
+    fn replace_references(&self, _: ReferenceReplacement) -> Result<Snapshot, CodedError> {
+        Err(CodedError::new(ErrorCode::UnexpectedInternalError))
     }
 }
 
@@ -859,4 +867,99 @@ fn a_panicking_analysis_worker_fails_the_scan_with_an_internal_error() {
         matches!(result, JobResult::Failed(job) if job.code() == ErrorCode::UnexpectedInternalError)
     );
     assert_eq!(world.persisted_count(), 0);
+}
+
+/// Counts the runs it is asked for and fails each, so that nothing is imported.
+struct CountingRunner(Mutex<u32>);
+
+impl IndexRunner for CountingRunner {
+    fn check(&self, _: &IndexerSpec) -> IndexerStatus {
+        IndexerStatus::Ready
+    }
+
+    fn run(&self, _: &IndexJob<'_>, _: &CancelToken) -> Result<IndexArtifact, CodedError> {
+        *self.0.lock().unwrap_or_else(PoisonError::into_inner) += 1;
+        Err(CodedError::new(ErrorCode::UnexpectedInternalError))
+    }
+}
+
+struct NoImport;
+
+impl ReferenceImporter for NoImport {
+    fn import(&self, _: &ImportRequest<'_>) -> Result<Imported, CodedError> {
+        Err(CodedError::new(ErrorCode::UnexpectedInternalError))
+    }
+}
+
+fn rust_indexer() -> IndexerSpec {
+    let tool = ToolSpec {
+        program: "rust-analyzer".to_owned(),
+        version_args: Vec::new(),
+        min_version: ToolVersion::default(),
+    };
+    IndexerSpec {
+        name: "rust-analyzer".to_owned(),
+        indexer: tool,
+        toolchain: Vec::new(),
+        args: Vec::new(),
+        env_allow: Vec::new(),
+        env: Vec::new(),
+        install_hint: String::new(),
+    }
+}
+
+/// A scanner with a confirmed second pass whose runner counts, and that counter.
+fn level2_scanner(world: &Arc<World>) -> Result<(Scanner, Arc<CountingRunner>), CodedError> {
+    let consent: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
+    confirm(
+        &Principal::local_owner(),
+        consent.as_ref(),
+        ProjectId::new(7),
+    )?;
+    let runner = Arc::new(CountingRunner(Mutex::default()));
+    let ids = Arc::new(IdSequence::starting_at(5000));
+    let pass = Level2Pass {
+        runner: runner.clone(),
+        importer: Arc::new(NoImport),
+        consent,
+        discovery: world.clone(),
+        projects: world.clone(),
+        store: world.clone(),
+        ids,
+        max_file_bytes: u64::from(u32::MAX),
+        settings: Config::resolve(&[]).map_err(CodedError::caused_by)?.level2,
+        indexers: vec![(model(LanguageId::new("rust"))?, rust_indexer())],
+    };
+    let bus = EventBus::new();
+    Ok((scanner(world, &bus).with_level2(pass), runner))
+}
+
+fn runs(runner: &CountingRunner) -> u32 {
+    *runner.0.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+#[test]
+fn only_a_job_that_wants_level_two_starts_an_indexer() -> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let (scanner, runner) = level2_scanner(&world)?;
+    let owner = Principal::local_owner();
+    let job = || Job::new(ProjectId::new(7), ScanMode::Incremental);
+    let _ = scanner.run(&owner, job().without_level2());
+    assert_eq!(runs(&runner), 0, "watch mode scans after the first");
+    scanner.rescan(&owner, ProjectId::new(7))?;
+    assert_eq!(
+        runs(&runner),
+        0,
+        "a rescan of MCP or the UI is level 1 only"
+    );
+    let _ = scanner.run(&owner, job());
+    assert_eq!(
+        runs(&runner),
+        1,
+        "the scan of the command line runs level 2"
+    );
+    Ok(())
 }

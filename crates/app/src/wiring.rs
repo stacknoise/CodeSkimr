@@ -10,21 +10,29 @@ use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::ids::IdSequence;
+use codeskimr_application::level2::Level2Pass;
 use codeskimr_application::metrics::StandardMetrics;
 use codeskimr_application::pipeline::{Scanner, ScannerPorts};
 use codeskimr_application::ports::{AuthError, Credential, CredentialStore};
-use codeskimr_application::ports::{FileAnalyzer, FileDiscovery, SnippetFingerprinter};
+use codeskimr_application::ports::{
+    FileAnalyzer, FileDiscovery, IndexerSpec, SnippetFingerprinter,
+};
 use codeskimr_application::resolve::ScopedResolver;
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::CredentialId;
+use codeskimr_domain::{CredentialId, LanguageId};
+use codeskimr_indexer::ProcessIndexRunner;
 use codeskimr_parsing::{LanguagePacks, TreeSitterAnalyzer};
+use codeskimr_scip::ScipImporter;
 use codeskimr_secrets::{KeystoreCredentials, OsKeystore};
-use codeskimr_source::{DiscoveryConfig, GitCache, LanguageMap, SourceFetcher, WalkDiscovery};
+use codeskimr_source::{
+    DiscoveryConfig, FolderText, GitCache, LanguageMap, SourceFetcher, WalkDiscovery,
+};
 use codeskimr_storage::SqliteStore;
 
 use crate::clock::SystemClock;
 use crate::consts::{BYTES_PER_MB, is_token_credential};
 use crate::locations::Locations;
+use crate::redact::redact;
 pub use crate::shared_keystore::{Secrets, SharedKeystore};
 
 /// What the fetcher of Git sources sees of the secrets: everything except the installation
@@ -84,8 +92,22 @@ pub fn build_scanner(
     let Analysis {
         discovery,
         analyzer,
+        indexers,
         ..
     } = build_analysis(config, locations)?;
+    let ids = Arc::new(IdSequence::starting_at(store.next_free_id()?));
+    let pass = Level2Pass {
+        runner: Arc::new(ProcessIndexRunner::new(locations.data_dir.clone(), redact)),
+        importer: Arc::new(ScipImporter::new(Arc::new(FolderText))),
+        consent: store.clone(),
+        discovery: Arc::clone(&discovery),
+        projects: store.clone(),
+        store: store.clone(),
+        ids: Arc::clone(&ids),
+        max_file_bytes: u64::from(config.scan.max_source_mb).saturating_mul(BYTES_PER_MB),
+        settings: config.level2.clone(),
+        indexers,
+    };
     let ports = ScannerPorts {
         source: Arc::new(SourceFetcher::new(
             GitCache::new(locations.git_cache()),
@@ -99,8 +121,7 @@ pub fn build_scanner(
         store: store.clone(),
         clock: Arc::new(SystemClock),
     };
-    let ids = Arc::new(IdSequence::starting_at(store.next_free_id()?));
-    Ok(Scanner::new(ports, &ids, events))
+    Ok(Scanner::new(ports, &ids, events).with_level2(pass))
 }
 
 /// The two ports that read code: walking the files and analysing one of them. The scan and the
@@ -112,6 +133,8 @@ pub struct Analysis {
     pub analyzer: Arc<dyn FileAnalyzer>,
     /// Fingerprints a snippet with the same parameters as the analyzer.
     pub snippets: Arc<dyn SnippetFingerprinter>,
+    /// How level 2 runs the indexer of each language whose pack names one.
+    pub indexers: Vec<(LanguageId, IndexerSpec)>,
 }
 
 /// Builds the discovery and the analyzer from the installed language packs.
@@ -127,6 +150,10 @@ pub fn build_analysis(config: &Config, locations: &Locations) -> Result<Analysis
                 .iter()
                 .map(|extension| (extension.as_str(), pack.id().clone()))
         })
+        .collect();
+    let indexers = packs
+        .iter()
+        .filter_map(|summary| Some((summary.id().clone(), summary.indexer()?.clone())))
         .collect();
     let timeout = Duration::from_millis(u64::from(config.scan.parse_timeout_ms));
     let analyzer = TreeSitterAnalyzer::new(packs, timeout)
@@ -144,6 +171,7 @@ pub fn build_analysis(config: &Config, locations: &Locations) -> Result<Analysis
         discovery: Arc::new(discovery),
         snippets: analyzer.clone(),
         analyzer,
+        indexers,
     })
 }
 

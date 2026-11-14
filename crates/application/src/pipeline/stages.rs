@@ -452,16 +452,26 @@ pub struct PersistStage {
     pub clock: Arc<dyn Clock>,
 }
 
+/// Output of the persist stage.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Persisted {
+    /// The snapshot as stored.
+    pub snapshot: Snapshot,
+    /// Local folder with the files, which level 2 runs its indexers in.
+    pub root: FolderPath,
+}
+
 impl Stage for PersistStage {
     type Input = Measured;
-    type Output = Snapshot;
+    type Output = Persisted;
 
     fn kind(&self) -> StageKind {
         StageKind::Persist
     }
 
-    fn run(&self, input: Measured, ctx: &StageContext<'_>) -> Result<Snapshot, Interruption> {
+    fn run(&self, input: Measured, ctx: &StageContext<'_>) -> Result<Persisted, Interruption> {
         ctx.progress(0, 1);
+        let root = input.run.root.clone();
         let snapshot = Snapshot {
             id: input.run.snapshot,
             project: input.run.project.id,
@@ -485,7 +495,10 @@ impl Stage for PersistStage {
         };
         let stored = self.store.persist(data)?;
         ctx.progress(1, 1);
-        Ok(stored)
+        Ok(Persisted {
+            snapshot: stored,
+            root,
+        })
     }
 }
 

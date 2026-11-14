@@ -6,6 +6,7 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{ProjectId, ScanMode, Snapshot};
 
 use crate::cancel::CancelToken;
+use crate::level2::LanguageReport;
 
 mod sealed {
     /// Keeps the set of job states closed.
@@ -25,6 +26,7 @@ pub struct Running;
 #[derive(Debug)]
 pub struct Finished {
     snapshot: Snapshot,
+    level2: Vec<LanguageReport>,
 }
 /// Ended because the user cancelled; no snapshot exists.
 #[derive(Debug)]
@@ -51,6 +53,7 @@ pub struct Job<S: JobState> {
     project: ProjectId,
     mode: ScanMode,
     cancel: CancelToken,
+    level2: bool,
     state: S,
 }
 
@@ -67,11 +70,19 @@ impl<S: JobState> Job<S> {
         self.mode
     }
 
+    /// Whether level 2 runs after level 1 is stored; true unless the job was built
+    /// `without_level2`.
+    #[must_use]
+    pub const fn level2_wanted(&self) -> bool {
+        self.level2
+    }
+
     fn into_state<T: JobState>(self, state: T) -> Job<T> {
         Job {
             project: self.project,
             mode: self.mode,
             cancel: self.cancel,
+            level2: self.level2,
             state,
         }
     }
@@ -85,8 +96,17 @@ impl Job<Queued> {
             project,
             mode,
             cancel: CancelToken::new(),
+            level2: true,
             state: Queued,
         }
+    }
+
+    /// The same job without the second pass: level 1 only. Watch mode uses it for the scans after
+    /// the first, so that no indexer starts on every change of a file (ADR 0033, decision 13).
+    #[must_use]
+    pub const fn without_level2(mut self) -> Self {
+        self.level2 = false;
+        self
     }
 
     /// A handle that cancels the job; take it before calling `start`.
@@ -115,10 +135,10 @@ impl Job<Running> {
         &self.cancel
     }
 
-    /// Ends the job with its snapshot.
+    /// Ends the job with its snapshot and what the second pass reports per language.
     #[must_use]
-    pub fn finish(self, snapshot: Snapshot) -> Job<Finished> {
-        self.into_state(Finished { snapshot })
+    pub fn finish(self, snapshot: Snapshot, level2: Vec<LanguageReport>) -> Job<Finished> {
+        self.into_state(Finished { snapshot, level2 })
     }
 
     /// Ends the job because the user cancelled.
@@ -139,6 +159,12 @@ impl Job<Finished> {
     #[must_use]
     pub const fn snapshot(&self) -> &Snapshot {
         &self.state.snapshot
+    }
+
+    /// What level 2 did for each language; empty if it is not wired.
+    #[must_use]
+    pub fn level2(&self) -> &[LanguageReport] {
+        &self.state.level2
     }
 }
 
