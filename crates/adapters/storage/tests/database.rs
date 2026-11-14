@@ -492,11 +492,15 @@ fn a_version_seven_database_has_no_naming_rules_for_its_old_snapshots() {
             include_str!("../migrations/0007_tool_reports.sql"),
         ],
     );
-    conn.execute_batch(
-        "INSERT INTO projects (id, name, source_kind, location, branch)
-           VALUES (1, 'old', 'folder', '/work/app', '');
-         INSERT INTO snapshots (id, project_id, created, mode, files, symbols, refs)
-           VALUES (10, 1, 0, 'full', 0, 0, 0);",
+    conn.execute(
+        "INSERT INTO projects (id, name, source_kind, location, branch) VALUES (?1, ?2, ?3, ?4, ?5)",
+        (1, "older", "folder", "/work/legacy", ""),
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO snapshots (id, project_id, created, mode, files, symbols, refs) \
+         VALUES (?1, ?2, ?3, ?4, ?5, ?5, ?5)",
+        (10, 1, 0, "full", 0),
     )
     .unwrap();
     drop(conn);
