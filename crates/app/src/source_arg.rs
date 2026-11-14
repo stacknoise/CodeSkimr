@@ -8,9 +8,11 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{BranchName, CredentialId, FolderPath, GitUrl, ProjectName, ProjectSource};
 
 use crate::consts::{
-    AUTHORITY_END, DEFAULT_BRANCH, GIT_URL_PREFIXES, GIT_URL_SUFFIX, HTTP_SCHEME, NO_SCHEME,
-    PASSWORD_SEPARATOR, QUERY_MARKERS, SCHEME_SEPARATOR, SCP_PATH_SEPARATOR, URL_PATH_SEPARATOR,
-    USERINFO_MARKER, VERBATIM_PREFIX, VERBATIM_UNC, is_reserved_credential,
+    AUTHORITY_END, BRANCH_FORBIDDEN, BRANCH_FORBIDDEN_ENDS, BRANCH_FORBIDDEN_PARTS,
+    BRANCH_SEPARATOR, DEFAULT_BRANCH, GIT_URL_PREFIXES, GIT_URL_SUFFIX, HTTP_SCHEME,
+    MAX_BRANCH_CHARS, MAX_GIT_URL_CHARS, NO_SCHEME, OPTION_MARKER, PASSWORD_SEPARATOR,
+    QUERY_MARKERS, SCHEME_SEPARATOR, SCP_PATH_SEPARATOR, TRANSPORT_HELPER_MARKER,
+    URL_PATH_SEPARATOR, USERINFO_MARKER, VERBATIM_PREFIX, VERBATIM_UNC, is_reserved_credential,
 };
 
 /// Why an argument is not a source.
@@ -113,9 +115,57 @@ fn display_path(path: &str) -> String {
         .to_owned()
 }
 
+/// Whether `text` could be read as an option, holds control characters or blanks, or is too long.
+/// What goes to `git` and `ssh` as an argument must be none of these.
+fn is_unsafe_argument(text: &str, longest: usize) -> bool {
+    text.starts_with(OPTION_MARKER)
+        || text.chars().count() > longest
+        || text.chars().any(|c| c.is_control() || c.is_whitespace())
+}
+
+/// Whether the host of `url` could be read as an option: `ssh://-oProxyCommand=…`,
+/// `user@-oProxyCommand=…:path`. The part after the last `@` of the authority is the host.
+fn has_option_host(url: &str) -> bool {
+    let rest = url
+        .split_once(SCHEME_SEPARATOR)
+        .map_or(url, |(_, rest)| rest);
+    let authority = rest.split(URL_PATH_SEPARATOR).next().unwrap_or(rest);
+    let host = authority
+        .rsplit(USERINFO_MARKER)
+        .next()
+        .unwrap_or(authority);
+    host.starts_with(OPTION_MARKER)
+}
+
+/// The rules of `git check-ref-format` that matter for an argument, plus [`is_unsafe_argument`].
+fn is_bad_branch(branch: &str) -> bool {
+    is_unsafe_argument(branch, MAX_BRANCH_CHARS)
+        || BRANCH_FORBIDDEN_PARTS
+            .iter()
+            .any(|part| branch.contains(part))
+        || branch.contains(BRANCH_FORBIDDEN)
+        || BRANCH_FORBIDDEN_ENDS
+            .iter()
+            .any(|end| branch.ends_with(end))
+        || branch.starts_with(BRANCH_SEPARATOR)
+}
+
+/// A transport helper (`ext::sh -c …`) in the first part of the address.
+fn has_transport_helper(url: &str) -> bool {
+    let head = url.split(URL_PATH_SEPARATOR).next().unwrap_or(url);
+    head.contains(TRANSPORT_HELPER_MARKER)
+}
+
 fn git_spec(url: &str, branch: &str) -> Result<SourceSpec, SourceError> {
     if has_credentials(url) {
         return Err(SourceError::HasCredentials);
+    }
+    if is_unsafe_argument(url, MAX_GIT_URL_CHARS)
+        || has_transport_helper(url)
+        || has_option_host(url)
+        || is_bad_branch(branch)
+    {
+        return Err(SourceError::NotASource);
     }
     let rejected = |_| SourceError::NotASource;
     let name = url
@@ -207,6 +257,33 @@ mod tests {
                 "{variant:?}"
             );
         }
+    }
+
+    #[test]
+    fn addresses_and_branches_that_could_act_as_options_or_commands_are_refused() {
+        for url in [
+            "--upload-pack=touch /tmp/x.git",
+            "-oProxyCommand=evil.git",
+            "ext::sh -c touch% /tmp/x.git",
+            "ssh://-oProxyCommand=evil/r.git",
+            "git@-oProxyCommand=evil:org/r.git",
+            "https://example.com/a b.git",
+            "https://example.com/a\nb.git",
+        ] {
+            assert!(classify(url, None).is_err(), "{url:?}");
+        }
+        let long = format!("https://example.com/{}.git", "a".repeat(3000));
+        assert!(classify(&long, None).is_err());
+        for branch in [
+            "-x", "a..b", "a b", "a~1", "a:b", "a\\b", "a\u{7}b", "a*", "a@{1}", "a.lock", "a/",
+            "a.", "/a", "a//b",
+        ] {
+            assert!(
+                classify("https://example.com/o/r.git", Some(branch)).is_err(),
+                "{branch:?}"
+            );
+        }
+        assert!(classify("https://example.com/o/r.git", Some("feature/x-1")).is_ok());
     }
 
     #[test]

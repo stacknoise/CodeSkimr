@@ -1,10 +1,12 @@
 //! What a convention check is asked and what it answers.
 
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{FolderPath, Principal, QualifiedName, RelativePath, Span};
+use codeskimr_domain::{FolderPath, Principal, QualifiedName, RelativePath, SnapshotId, Span};
+
+use crate::ports::SimilarityIndex;
 
 /// One call of the check.
-#[derive(Debug, Clone, Copy)]
+#[derive(Clone, Copy)]
 pub struct CheckRequest<'a> {
     /// The caller; reading source needs `read_source`.
     pub principal: &'a Principal,
@@ -13,6 +15,18 @@ pub struct CheckRequest<'a> {
     /// Files or folders below the root, with forward slashes. Empty means the whole project.
     /// A path that matches no file is ignored: paths only select, they are never opened.
     pub paths: &'a [String],
+    /// The stored state of the project, to look for copies of code outside the selected files
+    /// too; `None` compares the selected files with each other only.
+    pub stored: Option<StoredProject<'a>>,
+}
+
+/// The newest snapshot of a project and the index of its fingerprints.
+#[derive(Clone, Copy)]
+pub struct StoredProject<'a> {
+    /// Where the stored fingerprints are looked up.
+    pub index: &'a dyn SimilarityIndex,
+    /// The snapshot to compare with.
+    pub snapshot: SnapshotId,
 }
 
 /// Where a finding is.

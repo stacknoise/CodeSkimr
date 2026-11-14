@@ -42,6 +42,18 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
         run: |
+          # A run that failed half way leaves a draft behind: start over with a fresh one.
+          # A published release is never touched (the run stops there).
+          releases=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 100 --json tagName,isDraft)
+          published=$(jq -r 'map(select(.tagName == "v" + env.VERSION and .isDraft == false)) | length' <<< "$releases")
+          drafts=$(jq -r 'map(select(.tagName == "v" + env.VERSION and .isDraft == true)) | length' <<< "$releases")
+          if [ "$published" != "0" ]; then
+            echo "v${VERSION} is already published" >&2
+            exit 1
+          fi
+          if [ "$drafts" != "0" ]; then
+            gh release delete "v${VERSION}" --repo "$GITHUB_REPOSITORY" --yes
+          fi
           gh release create "v${VERSION}" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
             --title "CodeSkimr ${VERSION}" --notes-file docs/release/preview-de.md --draft --prerelease
 

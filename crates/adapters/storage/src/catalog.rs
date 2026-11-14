@@ -53,9 +53,17 @@ fn languages(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<Langu
             cols.take::<i64>()?,
         ))
     })?;
+    let times: HashMap<String, i64> = rows_of_snapshot(conn, sql::PARSE_TIMES, snapshot, |cols| {
+        Ok((cols.take::<String>()?, cols.take::<i64>()?))
+    })?
+    .into_iter()
+    .collect();
     let mut shares = Vec::new();
     for (language, files, loc) in rows {
         shares.push(LanguageShare {
+            parse_micros: times
+                .get(&language)
+                .map(|micros| u64::try_from(*micros).unwrap_or_default()),
             symbols: small_from(symbols.get(&language).copied().unwrap_or_default())?,
             language: LanguageId::new(language)?,
             files: small_from(files)?,

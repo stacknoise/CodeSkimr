@@ -67,6 +67,28 @@ pub const URL_PATH_SEPARATOR: char = '/';
 /// Separates host and path in an scp-style Git address.
 pub const SCP_PATH_SEPARATOR: char = ':';
 
+/// Most scans that run at the same time, over all projects. Each scan fills the cores and holds
+/// the parsed files in memory, so more only slow down all of them (and let a caller exhaust the
+/// machine); one more is refused with `PRJ-501`.
+pub const MAX_PARALLEL_SCANS: usize = 4;
+/// Longest Git address that is accepted, in characters.
+pub const MAX_GIT_URL_CHARS: usize = 2048;
+/// Longest branch name that is accepted, in characters.
+pub const MAX_BRANCH_CHARS: usize = 255;
+/// A Git address or branch name that starts with this could be read as an option by `git` or `ssh`.
+pub const OPTION_MARKER: char = '-';
+/// Characters that no branch name may hold (`git check-ref-format`), besides whitespace and
+/// control characters.
+pub const BRANCH_FORBIDDEN: [char; 6] = ['~', '^', ':', '?', '*', '['];
+/// Text that no branch name holds: two dots, a backslash, `@{` and two slashes in a row.
+pub const BRANCH_FORBIDDEN_PARTS: [&str; 4] = ["..", "\\", "@{", "//"];
+/// Endings that no branch name has: `.lock`, a dot and a slash.
+pub const BRANCH_FORBIDDEN_ENDS: [&str; 3] = [".lock", ".", "/"];
+/// Separates the parts of a branch name; a name does not start with it.
+pub const BRANCH_SEPARATOR: char = '/';
+/// Marks a transport helper in a Git address (`ext::command`), which would run a program.
+pub const TRANSPORT_HELPER_MARKER: &str = "::";
+
 /// Bytes in a megabyte, for the size limit of a source.
 pub const BYTES_PER_MB: u64 = 1_048_576;
 /// Bytes in a kilobyte, for the size of an export file.
