@@ -501,7 +501,7 @@ fn a_search_over_all_projects_names_the_project_of_every_hit_and_skips_unscanned
     let hit = &found["hits"][0];
     assert_eq!(hit["name"], "Add");
     assert_eq!(hit["project"], project);
-    assert!(hit["project_name"].as_str().unwrap().len() > 0);
+    assert!(!hit["project_name"].as_str().unwrap().is_empty());
     let own = fixture
         .call(
             "search.query",
@@ -959,6 +959,11 @@ fn the_graph_of_an_unknown_project_is_refused() {
     );
 }
 
+/// A number of an answer as an index.
+fn index(value: &Value) -> usize {
+    usize::try_from(value.as_u64().unwrap()).unwrap()
+}
+
 #[test]
 fn the_source_names_the_places_where_a_symbol_is_used() {
     let fixture = Fixture::new();
@@ -986,11 +991,9 @@ fn the_source_names_the_places_where_a_symbol_is_used() {
         .iter()
         .find(|span| span["symbol"] == add)
         .expect("the call of Add is a place");
-    let line = lines[call["line"].as_u64().unwrap() as usize]
-        .as_str()
-        .unwrap();
+    let line = lines[index(&call["line"])].as_str().unwrap();
     let chars: Vec<char> = line.chars().collect();
-    let start = call["start"].as_u64().unwrap() as usize;
-    let end = call["end"].as_u64().unwrap() as usize;
+    let start = index(&call["start"]);
+    let end = index(&call["end"]);
     assert_eq!(chars[start..end].iter().collect::<String>(), "Add");
 }

@@ -21,4 +21,26 @@ test.describe("the quick search", () => {
     await expect(page.getByRole("tree").getByText("Total")).toBeHidden();
     expect(await violations()).toEqual([]);
   });
+
+  test("f: lists the files and Enter opens the first type, @ searches every project", async ({
+    page,
+    harness,
+  }) => {
+    await addScannedProject(page, harness, "shopfiles", SOURCE);
+    await page.getByRole("button", { name: "Open shopfiles" }).click();
+    await expect(page.getByRole("tree")).toBeVisible();
+
+    await page.keyboard.press("Control+k");
+    const input = page.getByRole("combobox");
+    await input.fill("f:shopf");
+    await expect(page.getByRole("option")).toHaveCount(1);
+    await expect(page.getByRole("option")).toContainText("lines");
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("heading", { name: "Basket" })).toBeVisible();
+
+    await page.keyboard.press("Control+k");
+    await page.getByRole("combobox").fill("@bask");
+    await expect(page.getByRole("option", { name: /Shop.Basket/ }).first()).toBeVisible();
+    await page.keyboard.press("Escape");
+  });
 });

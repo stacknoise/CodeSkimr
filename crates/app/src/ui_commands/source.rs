@@ -8,7 +8,7 @@ use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::CodeSpan;
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
-use codeskimr_domain::{Permission, ProjectId, ProjectSource, SymbolId};
+use codeskimr_domain::{Permission, ProjectId, ProjectSource, RelativePath, SnapshotId, SymbolId};
 use serde::{Deserialize, Serialize};
 
 use super::consts::{
@@ -82,6 +82,27 @@ fn span_outs(spans: &[CodeSpan], first_line: u32, lines: &[String]) -> Vec<SpanO
         .collect()
 }
 
+impl ExplorerPorts {
+    /// The places in the lines read (the first of them is line `first` of the file, counted from
+    /// 1) where a symbol is named.
+    fn spans_of(
+        &self,
+        snapshot: SnapshotId,
+        path: &RelativePath,
+        first: u32,
+        lines: &[String],
+    ) -> Result<Vec<SpanOut>, CodedError> {
+        let from = first - LINE_OFFSET;
+        let shown = u32::try_from(lines.len()).unwrap_or(u32::MAX);
+        let found = self.index.code_spans(
+            snapshot,
+            path,
+            (from, from.saturating_add(shown.saturating_sub(1))),
+        )?;
+        Ok(span_outs(&found, from, lines))
+    }
+}
+
 /// The lines of the declaration of one symbol.
 pub struct ExplorerSource {
     pub(super) ports: Arc<ExplorerPorts>,
@@ -129,16 +150,7 @@ impl Command for ExplorerSource {
             (SOURCE_MAX_LINES, SOURCE_MAX_BYTES),
         )?;
         out.available = true;
-        let shown = u32::try_from(excerpt.lines.len()).unwrap_or(u32::MAX);
-        let spans = ports.index.code_spans(
-            snapshot,
-            &detail.path,
-            (
-                first - LINE_OFFSET,
-                (first - LINE_OFFSET).saturating_add(shown.saturating_sub(1)),
-            ),
-        )?;
-        out.spans = span_outs(&spans, first - LINE_OFFSET, &excerpt.lines);
+        out.spans = ports.spans_of(snapshot, &detail.path, first, &excerpt.lines)?;
         out.lines = excerpt.lines;
         out.truncated = excerpt.truncated;
         Ok(out)
