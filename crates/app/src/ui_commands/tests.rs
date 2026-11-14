@@ -381,6 +381,7 @@ fn the_search_finds_a_member_by_a_part_of_its_name_and_names_its_type() {
         )
         .unwrap();
     assert!(found["snapshot"].is_u64());
+    assert!(found["entries"].as_u64().unwrap() >= 2);
     let hit = &found["hits"][0];
     assert_eq!(hit["name"], "Add");
     assert_eq!(hit["kind"], "method");
@@ -407,7 +408,10 @@ fn the_search_of_a_project_without_a_scan_or_without_text_is_empty() {
     let found = fixture
         .call("search.query", json!({ "project": project, "query": "a" }))
         .unwrap();
-    assert_eq!(found, json!({ "snapshot": null, "hits": [] }));
+    assert_eq!(
+        found,
+        json!({ "snapshot": null, "entries": null, "hits": [] })
+    );
     let scanned = added(&fixture);
     let blank = fixture
         .call("search.query", json!({ "project": scanned, "query": "" }))

@@ -33,6 +33,9 @@ pub struct HitOut {
 pub struct SearchOut {
     /// Id of the snapshot searched, `None` before the first scan.
     pub snapshot: Option<u64>,
+    /// Number of symbols the snapshot holds, which is what the search runs over; `None` before the
+    /// first scan.
+    pub entries: Option<u32>,
     /// The best hits first.
     pub hits: Vec<HitOut>,
 }
@@ -89,6 +92,7 @@ impl Command for SearchQuery {
         let Some(snapshot) = ports.index.latest_snapshot(id)? else {
             return Ok(SearchOut {
                 snapshot: None,
+                entries: None,
                 hits: Vec::new(),
             });
         };
@@ -97,6 +101,7 @@ impl Command for SearchQuery {
             .search(snapshot.id, &request.input.query, SEARCH_LIMIT)?;
         Ok(SearchOut {
             snapshot: Some(snapshot.id.get()),
+            entries: Some(snapshot.stats.symbols),
             hits: found.iter().map(hit_out).collect(),
         })
     }

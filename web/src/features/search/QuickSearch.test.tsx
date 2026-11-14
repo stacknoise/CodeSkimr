@@ -161,6 +161,16 @@ describe("the quick search", () => {
     expect(screen.getByText("Current documentation.")).toBeTruthy();
   });
 
+  it("tells how many symbols the index holds once a search has run", async () => {
+    openProject(1);
+    serve({ "search.query": () => answer({ snapshot: 1, entries: 3007, hits: [CART] }) });
+    render(() => <QuickSearch />);
+    openSearch();
+    expect(screen.queryByText(/entries/)).toBeNull();
+    type("cart");
+    expect(await screen.findByText("Index · 3,007 entries")).toBeTruthy();
+  });
+
   it("opens a type in the explorer with Enter", async () => {
     shown();
     type("cart");

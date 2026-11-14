@@ -1,5 +1,5 @@
 import { createMemo, For, Match, onCleanup, onMount, Show, Switch } from "solid-js";
-import { t } from "../../shared/i18n/i18n";
+import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
 import { cx } from "../../shared/ui/cx";
@@ -39,6 +39,7 @@ import {
   searchHits,
   searchMs,
   searchOpen,
+  searchEntries,
   searchScanned,
   searchText,
   typeSearch,
@@ -247,6 +248,15 @@ function Footer() {
         {t(I18N_KEYS.PALETTE_HINT_FILTER)}
       </span>
       <span>{t(I18N_KEYS.PALETTE_HINT_FUZZY)}</span>
+      <Show when={searchEntries()}>
+        {(count) => (
+          <span class={styles.entries}>
+            {t(I18N_KEYS.PALETTE_HINT_INDEX, {
+              count: new Intl.NumberFormat(currentLanguage()).format(count()),
+            })}
+          </span>
+        )}
+      </Show>
     </div>
   );
 }

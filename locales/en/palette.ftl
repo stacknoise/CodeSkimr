@@ -13,6 +13,7 @@ palette-preview = Preview
 palette-hint-select = select
 palette-hint-filter = Filter
 palette-hint-fuzzy = Fuzzy search: "bbar" finds BoardBar
+palette-hint-index = Index · { $count } entries
 palette-index-size = Index in memory · { $count } entries
 palette-group-types = Types
 palette-group-members = Members

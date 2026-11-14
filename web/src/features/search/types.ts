@@ -11,5 +11,7 @@ export interface Hit {
 /** The answer of `search.query`. */
 export interface SearchResult {
   snapshot: number | null;
+  /** Symbols of the snapshot, which the search runs over. */
+  entries: number | null;
   hits: Hit[];
 }

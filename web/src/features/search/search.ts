@@ -17,6 +17,7 @@ const [hits, setHits] = createSignal<Hit[]>([]);
 const [scanned, setScanned] = createSignal(true);
 const [failed, setFailed] = createSignal(false);
 const [took, setTook] = createSignal<number | null>(null);
+const [entries, setEntries] = createSignal<number | null>(null);
 const [selected, setSelected] = createSignal(0);
 
 /** Counts the searches started; the answer of an earlier one is dropped. */
@@ -28,6 +29,8 @@ export const searchOpen = open;
 export const searchText = raw;
 /** The chip that is on. A prefix in the input wins over it. */
 export const searchChip = chip;
+/** How many symbols the index holds, known after the first search of the project. */
+export const searchEntries = entries;
 /** The symbols found. */
 export const searchHits = hits;
 /** Whether the project has a scan to search. */
@@ -50,6 +53,7 @@ export function openSearch(): void {
   setChip(FILTER.all);
   setHits([]);
   setTook(null);
+  setEntries(null);
   setFailed(false);
   setSelected(0);
   setOpen(true);
@@ -80,6 +84,7 @@ export async function runSearch(): Promise<void> {
     if (mine === sequence) {
       setHits(found.hits);
       setScanned(found.snapshot !== null);
+      setEntries(found.entries ?? null);
       setFailed(false);
       setTook(Number((performance.now() - started).toFixed(MS_DIGITS)));
     }
