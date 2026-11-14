@@ -115,17 +115,23 @@ where
     }
 }
 
-/// The folders of this run: the resolved ones, with the packs of the program if no folder has any.
+/// The folders of this run: the resolved ones, with the packs of the program if no folder has any
+/// and the command reads packs at all (the credential commands do not).
 fn resolve_locations(
     global: &codeskimr_cli::GlobalOptions,
     env: Lookup<'_>,
     current_dir: &Path,
+    needs_packs: bool,
 ) -> Result<Locations, CodedError> {
     let executable_dir = std::env::current_exe()
         .ok()
         .and_then(|path| path.parent().map(PathBuf::from));
+    let resolved = Locations::resolve(global, env, executable_dir.as_deref(), current_dir)?;
+    if !needs_packs {
+        return Ok(resolved);
+    }
     crate::embedded_packs::prefer_embedded(
-        Locations::resolve(global, env, executable_dir.as_deref(), current_dir)?,
+        resolved,
         global,
         env,
         crate::embedded_packs::FILES,
@@ -141,7 +147,12 @@ fn run_invocation(
 ) -> Result<Outcome, Failure> {
     let current_dir =
         std::env::current_dir().map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?;
-    let locations = resolve_locations(&invocation.global, env, &current_dir)?;
+    let locations = resolve_locations(
+        &invocation.global,
+        env,
+        &current_dir,
+        !matches!(invocation.action, Action::Credential(_)),
+    )?;
     match &invocation.action {
         Action::Credential(action) => run_credential(action, messages, language),
         Action::Level2(action) => run_level2(action, invocation, &locations, messages, language),
