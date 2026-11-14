@@ -3,19 +3,19 @@
 //! text and therefore needs `read_source` and the installation token (ADR 0035). The paths come
 //! from the index, never from the caller, so the command cannot be asked for an arbitrary file.
 
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Permission, ProjectId, ProjectSource, RelativePath};
+use codeskimr_domain::{FolderPath, Permission, ProjectId, ProjectSource, RelativePath};
 use serde::Serialize;
 
 use super::consts::{
     SOURCE_MAX_BYTES, USAGES_CODE, USAGES_CODE_DESCRIPTION, USAGES_CODE_MAX_CHARS,
-    USAGES_CODE_MAX_HITS, USAGES_CODE_TITLE,
+    USAGES_CODE_MAX_HITS, USAGES_CODE_MAX_SPAN, USAGES_CODE_TITLE,
 };
 use super::usages::{Hit, UsagesInput, UsagesPorts};
 
@@ -76,6 +76,19 @@ impl UsagesPorts {
             .collect())
     }
 
+    /// The text of the lines `first..=last` of `path`, read in one go; empty if the file cannot be
+    /// read. The run is cut at `USAGES_CODE_MAX_SPAN` lines.
+    fn read_run(&self, root: &FolderPath, path: &str, (first, last): (u32, u32)) -> Vec<String> {
+        let Ok(relative) = RelativePath::new(path) else {
+            return Vec::new();
+        };
+        let limits = (USAGES_CODE_MAX_SPAN, SOURCE_MAX_BYTES);
+        self.text
+            .excerpt(root, &relative, (first, last), limits)
+            .map(|found| found.lines)
+            .unwrap_or_default()
+    }
+
     fn code_of(&self, input: &UsagesInput) -> Result<CodeOut, CodedError> {
         let project = self.projects.project(ProjectId::new(input.project))?;
         let ProjectSource::Folder(root) = &project.source else {
@@ -84,22 +97,29 @@ impl UsagesPorts {
                 lines: Vec::new(),
             });
         };
-        let mut lines = Vec::new();
-        for (path, line) in self.places(input)? {
-            let Ok(relative) = RelativePath::new(&path) else {
-                continue;
-            };
-            let read = self
-                .text
-                .excerpt(root, &relative, (line, line), (1, SOURCE_MAX_BYTES));
-            if let Some(text) = read.ok().and_then(|found| found.lines.into_iter().next()) {
-                lines.push(CodeLine {
-                    path,
-                    line,
-                    text: trimmed(&text),
-                });
-            }
+        let places = self.places(input)?;
+        // One read per file: from its first to its last hit.
+        let mut spans: BTreeMap<&str, (u32, u32)> = BTreeMap::new();
+        for (path, line) in &places {
+            let span = spans.entry(path.as_str()).or_insert((*line, *line));
+            *span = (span.0.min(*line), span.1.max(*line));
         }
+        let runs: BTreeMap<&str, (u32, Vec<String>)> = spans
+            .into_iter()
+            .map(|(path, span)| (path, (span.0, self.read_run(root, path, span))))
+            .collect();
+        let lines = places
+            .iter()
+            .filter_map(|(path, line)| {
+                let (first, run) = runs.get(path.as_str())?;
+                let text = run.get(usize::try_from(line - first).ok()?)?;
+                Some(CodeLine {
+                    path: path.clone(),
+                    line: *line,
+                    text: trimmed(text),
+                })
+            })
+            .collect();
         Ok(CodeOut {
             available: true,
             lines,

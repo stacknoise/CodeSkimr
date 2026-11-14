@@ -379,6 +379,54 @@ fn a_token_without_the_read_right_is_refused() {
 }
 
 #[test]
+fn a_caller_who_may_read_but_not_read_source_gets_no_code() {
+    let fixture = Fixture::new();
+    fs::write(fixture.root.path().join("app/Checkout.cs"), CALLER).unwrap();
+    let project = added(&fixture);
+    let add = member_id(&fixture, project, "Add");
+    let input = json!({ "project": project, "symbol": add, "way": "both", "depth": 2, "include_tests": true });
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .build()
+        .unwrap();
+    let run = |id: &str| {
+        runtime
+            .block_on(fixture.api.run(principal::reader(), id, input.clone()))
+            .map_err(|error| error.code().entry().id)
+    };
+    // The index is open to the reader, the lines of code are not.
+    assert!(run("usages.query").is_ok());
+    assert_eq!(run("usages.code").unwrap_err(), "AUTH-401");
+    assert_eq!(run("explorer.source").unwrap_err(), "AUTH-401");
+}
+
+#[test]
+fn several_hits_in_one_file_get_their_lines_from_one_read() {
+    let fixture = Fixture::new();
+    let twice = CALLER.replace(
+        "        return calculator.Add(1, 2);\n",
+        "        var one = calculator.Add(1, 2);\n        return calculator.Add(one, 3);\n",
+    );
+    fs::write(fixture.root.path().join("app/Checkout.cs"), twice).unwrap();
+    let project = added(&fixture);
+    let add = member_id(&fixture, project, "Add");
+    let input = json!({ "project": project, "symbol": add, "way": "incoming", "depth": 1, "include_tests": true });
+    let code = fixture.call("usages.code", input).unwrap();
+    let texts: Vec<&str> = code["lines"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|line| line["text"].as_str().unwrap())
+        .collect();
+    assert_eq!(
+        texts,
+        [
+            "var one = calculator.Add(1, 2);",
+            "return calculator.Add(one, 3);"
+        ]
+    );
+}
+
+#[test]
 fn the_search_finds_a_member_by_a_part_of_its_name_and_names_its_type() {
     let fixture = Fixture::new();
     let project = added(&fixture);

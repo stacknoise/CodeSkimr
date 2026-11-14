@@ -60,6 +60,8 @@ pub const USAGES_CODE_TITLE: &str = i18n::COMMAND_USAGES_CODE_TITLE;
 pub const USAGES_CODE_DESCRIPTION: &str = i18n::COMMAND_USAGES_CODE_DESCRIPTION;
 /// Most hits `usages.code` reads a line for; the hit list shows the first ones.
 pub const USAGES_CODE_MAX_HITS: usize = 200;
+/// Most lines `usages.code` reads from one file to reach all its hits; hits further down get no code.
+pub const USAGES_CODE_MAX_SPAN: u32 = 5_000;
 /// Most characters of one code line `usages.code` returns.
 pub const USAGES_CODE_MAX_CHARS: usize = 240;
 /// State of level 2 while no indexer is wired (ADR 0033).
