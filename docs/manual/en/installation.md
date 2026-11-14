@@ -2,7 +2,7 @@
 
 ## State of the delivery
 
-Installers and single executables for Windows, Linux and macOS are part of the 1.0 release (milestone M7) and are not published yet. Until then you build CodeSkimr from source. This chapter describes that path; it will be replaced by the installer instructions with 1.0.
+Installers and single executables for Windows, Linux and macOS are part of the 1.0 release (milestone M7) and are not published yet. Preview packages for Windows and Linux are available on the repository's release page (`README-PREVIEW.md` in the package). Otherwise you build CodeSkimr from source. This chapter describes that path; it will be replaced by the installer instructions with 1.0.
 
 ## What you need
 
@@ -16,11 +16,11 @@ Installers and single executables for Windows, Linux and macOS are part of the 1
 ```
 git clone https://github.com/stacknoise/CodeSkimr
 cd CodeSkimr
-cargo build --release --locked
 cd web && npm ci && npm run build && cd ..
+cargo build --release --locked
 ```
 
-The program is `target/release/codeskimr` (`codeskimr.exe` on Windows). The built UI is in `web/dist`. The language packs are read from the `languages/` folder, first next to the program, then in the current folder (option `--languages` or `CODESKIMR_LANGUAGES_DIR` names another folder). Embedding them in the program comes with the release package.
+The program is `target/release/codeskimr` (`codeskimr.exe` on Windows). The built UI is in `web/dist` and is embedded when building, which is why `web/` comes first. Node.js 22 (`.node-version`). The language packs are read from the `languages/` folder, first next to the program, then in the current folder (option `--languages` or `CODESKIMR_LANGUAGES_DIR` names another folder). Embedding them in the program comes with the release package.
 
 ## First start
 

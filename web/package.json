@@ -4,6 +4,9 @@
   "version": "0.1.0",
   "description": "The browser UI of CodeSkimr (blueprint 15, ADR 0028).",
   "license": "MIT",
+  "engines": {
+    "node": ">=22 <23"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite build --watch",
