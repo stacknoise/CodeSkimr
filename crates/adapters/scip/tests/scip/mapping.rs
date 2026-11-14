@@ -78,7 +78,7 @@ fn the_definition_occurrence_is_not_a_reference() {
     let (files, symbols) = service_world();
     let bytes = run_index(&[]);
     let outcome = run(&bytes, &files, &symbols, &[]);
-    assert!(outcome.references.is_empty());
+    assert_eq!(outcome.references, []);
     assert_eq!(outcome.stats.mapped, 0);
 }
 
@@ -244,7 +244,7 @@ fn local_and_library_symbols_are_not_references() {
         )],
     );
     let outcome = run_with(&bytes, (&files, &symbols, &[]), 0.0).expect("imports");
-    assert!(outcome.references.is_empty());
+    assert_eq!(outcome.references, []);
     assert_eq!(outcome.stats.ignored, 2);
     assert_eq!(outcome.stats.library, 2);
     assert_eq!(outcome.stats.unmapped, 0);
