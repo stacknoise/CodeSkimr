@@ -11,6 +11,7 @@ use axum::http::StatusCode;
 use axum::http::header::CONTENT_TYPE;
 use axum::response::{IntoResponse, Response};
 use codeskimr_codes::ErrorCode;
+use tokio::io::AsyncReadExt;
 
 use crate::consts::{
     EXTENSION_SEPARATOR, INDEX_FILE, MEDIA_TYPES, MEDIA_UNKNOWN, SEGMENT_EXTRA, SEGMENT_SEPARATOR,
@@ -111,20 +112,62 @@ fn is_plain_segment(segment: &str) -> bool {
 /// The content of a regular file below `dir`; a folder, a link (the file itself or any folder on
 /// the way), a missing file or a read error is `None`. A link inside the UI folder could lead out
 /// of it.
+///
+/// The path is checked part by part, the file is opened, and then the opened file must be the one
+/// that the fully resolved path names, and that path must lie inside the resolved folder. A link
+/// put in place after the walk (the file or a folder on the way) is seen there. What remains is a
+/// swap in the instant between that last check and the read, which needs write access to the UI
+/// folder, the trust boundary itself (issue #310).
 async fn read(dir: &Path, relative: &Path) -> Option<Vec<u8>> {
     let mut path = dir.to_path_buf();
+    let mut kind = None;
     for part in relative.components() {
         path.push(part);
-        let kind = tokio::fs::symlink_metadata(&path).await.ok()?.file_type();
-        if kind.is_symlink() {
+        let found = tokio::fs::symlink_metadata(&path).await.ok()?.file_type();
+        if found.is_symlink() {
             return None;
         }
+        kind = Some(found);
     }
-    let meta = tokio::fs::metadata(&path).await.ok()?;
-    if !meta.is_file() {
+    // A pipe or a device would block the opening, so only a regular file is opened.
+    if !kind?.is_file() {
         return None;
     }
-    tokio::fs::read(&path).await.ok()
+    let mut file = tokio::fs::File::open(&path).await.ok()?;
+    let opened = file.metadata().await.ok()?;
+    if !opened.is_file() || !is_inside_and_same(dir, &path, &opened).await {
+        return None;
+    }
+    let mut body = Vec::new();
+    file.read_to_end(&mut body).await.ok()?;
+    Some(body)
+}
+
+/// Whether the resolved `path` lies in the resolved `dir` and names the file that was opened.
+async fn is_inside_and_same(dir: &Path, path: &Path, opened: &std::fs::Metadata) -> bool {
+    let (Ok(root), Ok(resolved)) = (
+        tokio::fs::canonicalize(dir).await,
+        tokio::fs::canonicalize(path).await,
+    ) else {
+        return false;
+    };
+    let Ok(named) = tokio::fs::metadata(&resolved).await else {
+        return false;
+    };
+    resolved.starts_with(root) && is_same_file(opened, &named)
+}
+
+/// Whether both describe the same file.
+#[cfg(unix)]
+fn is_same_file(opened: &std::fs::Metadata, named: &std::fs::Metadata) -> bool {
+    use std::os::unix::fs::MetadataExt;
+    opened.dev() == named.dev() && opened.ino() == named.ino()
+}
+
+/// Without file identities the resolved path inside the folder has to do.
+#[cfg(not(unix))]
+fn is_same_file(_opened: &std::fs::Metadata, _named: &std::fs::Metadata) -> bool {
+    true
 }
 
 fn answer(file: &Path, body: Vec<u8>) -> Response {
@@ -170,6 +213,50 @@ mod tests {
             "//..//x.js",
         ] {
             assert_eq!(relative_file(path), None, "{path}");
+        }
+    }
+
+    #[cfg(unix)]
+    mod unix {
+        use super::*;
+
+        #[tokio::test]
+        async fn a_regular_file_is_read_and_links_never() {
+            let dir = tempfile::tempdir().unwrap();
+            let outside = tempfile::tempdir().unwrap();
+            std::fs::write(outside.path().join("secret.js"), "x").unwrap();
+            std::fs::write(dir.path().join("app.js"), "ok").unwrap();
+            std::os::unix::fs::symlink(outside.path().join("secret.js"), dir.path().join("l.js"))
+                .unwrap();
+            std::os::unix::fs::symlink(outside.path(), dir.path().join("sub")).unwrap();
+            assert_eq!(
+                read(dir.path(), Path::new("app.js")).await,
+                Some(b"ok".to_vec())
+            );
+            assert_eq!(read(dir.path(), Path::new("l.js")).await, None);
+            assert_eq!(read(dir.path(), Path::new("sub/secret.js")).await, None);
+        }
+
+        #[tokio::test]
+        async fn a_file_that_is_not_the_opened_one_is_refused() {
+            let dir = tempfile::tempdir().unwrap();
+            std::fs::write(dir.path().join("a.js"), "a").unwrap();
+            std::fs::write(dir.path().join("b.js"), "b").unwrap();
+            let opened = std::fs::metadata(dir.path().join("a.js")).unwrap();
+            let path = dir.path().join("b.js");
+            assert!(!is_inside_and_same(dir.path(), &path, &opened).await);
+            let own = dir.path().join("a.js");
+            assert!(is_inside_and_same(dir.path(), &own, &opened).await);
+        }
+
+        #[tokio::test]
+        async fn a_pipe_is_never_opened() {
+            let dir = tempfile::tempdir().unwrap();
+            let pipe = dir.path().join("p.js");
+            let made = std::process::Command::new("mkfifo").arg(&pipe).status();
+            if made.is_ok_and(|status| status.success()) {
+                assert_eq!(read(dir.path(), Path::new("p.js")).await, None);
+            }
         }
     }
 }
