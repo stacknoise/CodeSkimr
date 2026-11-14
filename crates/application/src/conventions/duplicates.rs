@@ -16,11 +16,13 @@ pub(super) struct Fingerprinted<'a> {
 
 /// Reports the later one of every similar pair, in path and line order, with the earlier one it
 /// copies. A function reports at most one finding: the copy with the highest similarity, the
-/// earliest on a tie. Functions with fewer than `minimum_lines` code lines are not compared.
+/// earliest on a tie. Functions with fewer than `minimum_lines` code lines are not compared; a
+/// hash that more than `max_sharing` functions share does not nominate pairs (see
+/// `similar_pairs`).
 pub(super) fn duplicates(
     items: &[Fingerprinted<'_>],
-    minimum_percent: u32,
-    minimum_lines: u32,
+    (minimum_percent, minimum_lines): (u32, u32),
+    max_sharing: usize,
 ) -> Vec<Finding> {
     let mut ordered: Vec<&Fingerprinted<'_>> = items
         .iter()
@@ -32,7 +34,7 @@ pub(super) fn duplicates(
             item.callable.location.span.start(),
         )
     });
-    let mut found: Vec<(usize, Finding)> = best_originals(&ordered, minimum_percent)
+    let mut found: Vec<(usize, Finding)> = best_originals(&ordered, minimum_percent, max_sharing)
         .into_iter()
         .filter_map(|(later, (earlier, percent))| {
             let copy = ordered.get(later)?;
@@ -49,10 +51,11 @@ pub(super) fn duplicates(
 fn best_originals(
     ordered: &[&Fingerprinted<'_>],
     minimum_percent: u32,
+    max_sharing: usize,
 ) -> HashMap<usize, (usize, u32)> {
     let bodies: Vec<&Fingerprints> = ordered.iter().map(|item| item.fingerprints).collect();
     let mut best: HashMap<usize, (usize, u32)> = HashMap::new();
-    for pair in similar_pairs(&bodies, minimum_percent) {
+    for pair in similar_pairs(&bodies, minimum_percent, max_sharing) {
         if nested(ordered.get(pair.first), ordered.get(pair.second)) {
             continue;
         }

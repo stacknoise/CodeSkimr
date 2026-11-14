@@ -75,6 +75,8 @@ max_function_lines = 40
 duplicate_similarity_percent = 85
 # Functions with fewer code lines than this are not compared for duplicates (CHK-102); measured on this repository: 5 gives 21 findings, 8 gives 9, mostly real.
 duplicate_min_lines = 8
+# A syntax hash that more than this many functions share (getters, constructors, boilerplate) does not nominate duplicate pairs (CHK-102): it says little and would cost the square of that number.
+duplicate_max_hash_sharing = 100
 # Files below a folder with one of these names are tests; the convention checks skip them.
 test_folders = ["tests", "benches"]
 

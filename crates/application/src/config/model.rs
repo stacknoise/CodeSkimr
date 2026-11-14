@@ -161,6 +161,9 @@ pub struct Conventions {
     /// Fewest code lines a function needs to be compared for duplicates; shorter ones are too
     /// small for a copy to mean anything (measured on this repository: 5 lines give 21 findings, 8 give 9).
     pub duplicate_min_lines: u32,
+    /// A syntax hash that more than this many functions share (getters, boilerplate) does not
+    /// nominate duplicate pairs: it says little and would cost the square of that number.
+    pub duplicate_max_hash_sharing: u32,
     /// Folder names whose files are tests; no convention check looks at them.
     pub test_folders: Vec<String>,
 }

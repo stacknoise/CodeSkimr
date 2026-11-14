@@ -531,6 +531,7 @@ pub fn checker() -> Arc<ConventionChecker> {
             max_function_lines: 40,
             duplicate_similarity_percent: 85,
             duplicate_min_lines: 5,
+            duplicate_max_hash_sharing: 100,
             test_folders: vec!["tests".to_owned()],
         },
     ))

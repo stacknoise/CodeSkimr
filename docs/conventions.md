@@ -16,7 +16,7 @@ The report always lists the rules it did not check (`not_checked`), so a clean r
 
 ## Where it lives
 
-- `codeskimr_domain::similar_pairs` finds all similar pairs in a set of fingerprinted bodies. It works on an inverted index of the hashes, so bodies that share no hash are never compared; a hash that very many functions share still costs the square of that number (to be measured on a large project before it is capped). Its value is the same Jaccard similarity as `Fingerprints::similarity` (a test compares them), and it is the function `find_similar_code` will use as well (blueprint 10.4: one implementation).
+- `codeskimr_domain::similar_pairs` finds all similar pairs in a set of fingerprinted bodies. It works on an inverted index of the hashes, so bodies that share no hash are never compared; a hash that more than `conventions.duplicate_max_hash_sharing` functions share (default 100: getters, constructors, boilerplate) does not nominate pairs, because it would cost the square of that number. A nominated pair is still measured over all its hashes. Measured with the benchmark `domain/similar_pairs_boilerplate` (3000 functions that all share 40 tokens of boilerplate): about 8 ms with the limit; without it the same run did not finish within ten minutes. Its value is the same Jaccard similarity as `Fingerprints::similarity` (a test compares them), and it is the function `find_similar_code` will use as well (blueprint 10.4: one implementation).
 - `codeskimr_application::conventions::ConventionChecker` is the use case. It takes the ports `FileDiscovery` and `FileAnalyzer` that a scan uses, so both see the same files (`scan.excluded_folders`, the installed language packs). It needs `read_source` (`AUTH-401` otherwise) and stores nothing.
 - `codeskimr_cli` renders the report (`check.rs`), `crates/app/src/check.rs` runs it.
 
@@ -35,6 +35,7 @@ The report always lists the rules it did not check (`not_checked`), so a clean r
 max_function_lines = 40
 duplicate_similarity_percent = 85
 duplicate_min_lines = 8
+duplicate_max_hash_sharing = 100
 test_folders = ["tests", "benches"]
 ```
 

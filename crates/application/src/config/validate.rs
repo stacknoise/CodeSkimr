@@ -7,7 +7,26 @@ use super::consts::{
     URL_SCHEME_SEPARATOR, keys,
 };
 use super::error::{ConfigError, Violation};
-use super::model::{Budgets, Config, Editor, Level2, McpLimits, MetricThresholds, Scan, Ui};
+use super::model::{
+    Budgets, Config, Conventions, Editor, Level2, McpLimits, MetricThresholds, Scan, Ui,
+};
+
+fn check_conventions(conventions: &Conventions) -> Result<(), ConfigError> {
+    positive(keys::MAX_FUNCTION_LINES, conventions.max_function_lines)?;
+    positive(keys::DUPLICATE_MIN_LINES, conventions.duplicate_min_lines)?;
+    positive(
+        keys::DUPLICATE_MAX_HASH_SHARING,
+        conventions.duplicate_max_hash_sharing,
+    )?;
+    positive(
+        keys::DUPLICATE_SIMILARITY_PERCENT,
+        conventions.duplicate_similarity_percent,
+    )?;
+    percent(
+        keys::DUPLICATE_SIMILARITY_PERCENT,
+        conventions.duplicate_similarity_percent,
+    )
+}
 
 /// Checks every value of `config`.
 ///
@@ -30,22 +49,7 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     positive(keys::WINDOW_SIZE, config.similarity.window_size)?;
     positive(keys::MIN_TOKENS, config.similarity.min_tokens)?;
     positive(keys::SERVER_PORT, u32::from(config.server.port))?;
-    positive(
-        keys::MAX_FUNCTION_LINES,
-        config.conventions.max_function_lines,
-    )?;
-    positive(
-        keys::DUPLICATE_SIMILARITY_PERCENT,
-        config.conventions.duplicate_similarity_percent,
-    )?;
-    positive(
-        keys::DUPLICATE_MIN_LINES,
-        config.conventions.duplicate_min_lines,
-    )?;
-    percent(
-        keys::DUPLICATE_SIMILARITY_PERCENT,
-        config.conventions.duplicate_similarity_percent,
-    )?;
+    check_conventions(&config.conventions)?;
     check_layers(config)?;
     check_scan(&config.scan)?;
     check_level2(&config.level2)?;
