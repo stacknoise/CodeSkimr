@@ -238,20 +238,25 @@ fn the_outline_sorts_the_types_into_a_namespace() {
     assert_eq!(namespace["types"][0]["kind"], "class");
 }
 
-#[test]
-fn a_symbol_comes_with_breadcrumb_and_members() {
-    let fixture = Fixture::new();
-    let project = added(&fixture);
+/// The answer of `explorer.symbol` for the first type of the outline.
+fn shown_type(fixture: &Fixture, project: u64) -> serde_json::Value {
     let outline = fixture
         .call("explorer.outline", json!({ "project": project }))
         .unwrap();
     let id = outline["layers"][0]["namespaces"][0]["types"][0]["id"].clone();
-    let shown = fixture
+    fixture
         .call(
             "explorer.symbol",
             json!({ "project": project, "symbol": id }),
         )
-        .unwrap();
+        .unwrap()
+}
+
+#[test]
+fn a_symbol_comes_with_breadcrumb_and_members() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    let shown = shown_type(&fixture, project);
     assert_eq!(shown["name"], "Calculator");
     assert_eq!(shown["first_line"], 3);
     assert_eq!(shown["members"][0]["name"], "Add");
@@ -319,6 +324,15 @@ fn layers_come_first_and_types_of_no_layer_last() {
         outline["layers"][1]["namespaces"][0]["types"][0]["name"],
         "Calculator"
     );
+}
+
+#[test]
+fn a_symbol_names_the_layer_that_owns_it() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    assert!(shown_type(&fixture, project)["layer"].is_null());
+    fixture.set_layers(project, &[("Core", "Calculator.Demo")]);
+    assert_eq!(shown_type(&fixture, project)["layer"], "Core");
 }
 
 #[test]

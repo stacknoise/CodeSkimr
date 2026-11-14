@@ -211,6 +211,54 @@
     overflow-wrap: anywhere;
 }
 
+.previewDoc {
+    display: -webkit-box;
+    margin: var(--space-8) 0 0;
+    overflow: hidden;
+    color: var(--ink-2);
+    font: 12px / 1.5 var(--font-sans);
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 4;
+}
+
+.previewTiles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-6);
+    margin-top: var(--space-8);
+}
+
+.previewTile {
+    padding: var(--space-6) var(--space-8);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-badge);
+    background: var(--surface);
+}
+
+.previewValue {
+    font: 600 14px var(--font-mono);
+}
+
+.previewLabel {
+    overflow: hidden;
+    color: var(--muted);
+    font: 11px var(--font-sans);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.good {
+    color: var(--good);
+}
+
+.medium {
+    color: var(--warn);
+}
+
+.poor {
+    color: var(--bad);
+}
+
 .actions {
     list-style: none;
     margin: var(--space-16) 0 0;
@@ -228,10 +276,6 @@
 .action kbd {
     color: var(--muted);
     font: 11px var(--font-mono);
-}
-
-.off {
-    color: var(--faint);
 }
 
 .footer {
