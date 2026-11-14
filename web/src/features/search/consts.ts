@@ -98,3 +98,6 @@ export const MS_DIGITS = 0;
 
 /** The tiles of the metric strip that the preview of a hit shows, in this order (mock 4). */
 export const PREVIEW_TILES: readonly string[] = ["loc", "members", "mi"];
+
+/** Separates the folders of a path; the name of a file is what follows the last one. */
+export const PATH_SEPARATOR = "/";
