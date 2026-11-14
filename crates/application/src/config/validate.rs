@@ -3,8 +3,8 @@
 use std::collections::HashSet;
 
 use super::consts::{
-    PATH_SEPARATORS, PERCENT_MAX, PLACEHOLDER_PATH, SCHEME_EXTRA_CHARS, UNIT_MAX, UNIT_MIN,
-    URL_SCHEME_SEPARATOR, keys,
+    FORBIDDEN_EDITOR_SCHEMES, PATH_SEPARATORS, PERCENT_MAX, PLACEHOLDER_PATH, SCHEME_EXTRA_CHARS,
+    UNIT_MAX, UNIT_MIN, URL_SCHEME_SEPARATOR, keys,
 };
 use super::error::{ConfigError, Violation};
 use super::model::{Budgets, Config, Editor, Level2, McpLimits, MetricThresholds, Scan, Ui};
@@ -221,6 +221,13 @@ fn check_editor(editor: &Editor) -> Result<(), ConfigError> {
     }
     if !editor.allowed_schemes.iter().all(|name| is_scheme(name)) {
         return fail(keys::EDITOR_ALLOWED_SCHEMES, Violation::MustBeUrlScheme);
+    }
+    if editor
+        .allowed_schemes
+        .iter()
+        .any(|name| FORBIDDEN_EDITOR_SCHEMES.contains(&name.as_str()))
+    {
+        return fail(keys::EDITOR_ALLOWED_SCHEMES, Violation::MustNotRunCode);
     }
     let scheme = editor
         .url_template
