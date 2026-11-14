@@ -9,4 +9,10 @@ fn outside() -> usize {
     BUFFER_SIZE + 8
 }
 
+macro_rules! limit {
+    () => {
+        4096
+    };
+}
+
 fn main() {}
