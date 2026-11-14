@@ -64,9 +64,10 @@ fn reaches_consent(text: &str) -> bool {
     FORBIDDEN.iter().any(|name| code.contains(name))
         || braces(&code).iter().any(|list| {
             list.split(',').any(|item| {
-                IMPORTS
-                    .iter()
-                    .any(|word| item.split("as").next() == Some(word))
+                item.starts_with("self")
+                    || IMPORTS
+                        .iter()
+                        .any(|word| item.split("as").next() == Some(word))
             })
         })
 }

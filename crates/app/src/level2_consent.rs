@@ -56,9 +56,7 @@ impl Target {
             branch,
         }
     }
-}
 
-impl Target {
     /// Whether name, location or branch holds a control or invisible character (a line break, an
     /// escape sequence, a direction override): such text could make the prompt show something
     /// else than what is confirmed.
@@ -81,8 +79,9 @@ impl Target {
 /// The user confirms only by typing the name of the project.
 ///
 /// # Errors
-/// `PRJ-201` if the project is not registered, `SEC-403` if `ask` finds no interactive terminal
-/// the name, location or branch holds control or direction characters (nobody is asked then), or the project changed while the user was asked, otherwise any coded failure of the
+/// `PRJ-201` if the project is not registered. `SEC-403` if `ask` finds no interactive terminal,
+/// if the name, location or branch holds control or direction characters (nobody is asked then),
+/// or if the project changed while the user was asked. Otherwise any coded failure of the
 /// configuration or the storage.
 pub fn run(
     action: &Level2Action,
@@ -113,9 +112,15 @@ pub fn run(
         }
         Level2Action::Revoke { project } => {
             let id = ProjectId::new(export::resolve(project, &store)?);
-            let name = store.project(id)?.name.to_string();
+            let target = Target::of(&store.project(id)?);
             level2::revoke(&owner, store.as_ref(), id)?;
-            Ok(Done::Revoked(name))
+            // Forbidding must always work, but a disguised name is never printed: the id stands in.
+            let shown = if target.is_disguised() {
+                id.get().to_string()
+            } else {
+                target.name
+            };
+            Ok(Done::Revoked(shown))
         }
     }
 }

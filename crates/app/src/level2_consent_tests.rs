@@ -185,4 +185,24 @@ mod cases {
             assert_eq!(fixture.consent(), ConsentRecord::default());
         }
     }
+
+    #[test]
+    fn revoking_a_project_with_a_disguised_name_works_but_prints_its_id() {
+        let fixture = Fixture::with(folder(FOLDER));
+        level2::confirm(&principal::resolve(), &fixture.store(), ProjectId::new(ID)).unwrap();
+        let mut renamed = project(folder(FOLDER));
+        renamed.name = ProjectName::new("a\u{202E}b").unwrap();
+        fixture.store().save_project(&renamed).unwrap();
+        let action = Level2Action::Revoke {
+            project: ID.to_string(),
+        };
+        let done = run(
+            &action,
+            &GlobalOptions::default(),
+            &fixture.locations,
+            &|_| Ok(String::new()),
+        );
+        assert_eq!(done.unwrap(), Done::Revoked(ID.to_string()));
+        assert_eq!(fixture.consent(), ConsentRecord::default());
+    }
 }
