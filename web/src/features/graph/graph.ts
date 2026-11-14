@@ -1,12 +1,13 @@
 import { createSignal } from "solid-js";
 import { ApiError } from "../../shared/api/client";
 import { runCommand } from "../../shared/api/commands";
-import { GRAPH_COMMAND, LEVEL } from "./consts";
+import { DEPTH_ALL, GRAPH_COMMAND, LEVEL } from "./consts";
 import type { GraphData, Level } from "./types";
 
 const [data, setData] = createSignal<GraphData | null>(null);
 const [failed, setFailed] = createSignal(false);
 const [level, setLevel] = createSignal<Level>(LEVEL.layers);
+const [depth, setDepth] = createSignal(DEPTH_ALL);
 /** Counts the loads, so that a slow answer for a project that is no longer shown is dropped. */
 let latest = 0;
 
@@ -26,6 +27,10 @@ export const graphData = data;
 export const graphLevel = level;
 /** Chooses what the boxes stand for; the next load asks for it. */
 export const setGraphLevel = setLevel;
+/** How many segments of a namespace name stay on the namespace level; 0 keeps them all. */
+export const graphDepth = depth;
+/** Chooses the depth; the next load asks for it. */
+export const setGraphDepth = setDepth;
 /** Whether the last load failed. */
 export const graphFailed = failed;
 
@@ -33,7 +38,11 @@ export const graphFailed = failed;
 export async function loadGraph(project: number): Promise<void> {
   const mine = ++latest;
   try {
-    const answer = await runCommand<GraphData>(GRAPH_COMMAND, { project, level: level() });
+    const answer = await runCommand<GraphData>(GRAPH_COMMAND, {
+      project,
+      level: level(),
+      depth: depth(),
+    });
     if (mine === latest) {
       setData(answer);
       setFailed(false);

@@ -707,6 +707,15 @@ fn the_namespace_level_has_one_box_per_namespace_with_its_types_and_dependencies
 }
 
 #[test]
+fn a_depth_merges_the_namespaces_into_one_box_without_a_dependency_to_itself() {
+    let graph = layered_graph(&json!({ "level": "namespaces", "depth": 1 }));
+    let boxes = graph["boxes"].as_array().unwrap();
+    assert_eq!(boxes.len(), 1, "Demo.Core and Demo.Ui merge into Demo");
+    assert_eq!(boxes[0]["types"], 2);
+    assert!(graph["links"].as_array().unwrap().is_empty());
+}
+
+#[test]
 fn the_graph_of_a_project_without_layers_or_without_a_scan_is_empty() {
     let fixture = Fixture::new();
     let project = added(&fixture);

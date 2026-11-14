@@ -40,3 +40,7 @@ graph-no-edges = No dependencies between the layers were found yet.
 graph-failed = The map could not be loaded.
 graph-fit-key = F
 graph-open-key = Enter
+graph-depth-label = Depth
+graph-depth-all = all
+graph-depth-1 = 1 level
+graph-depth-2 = 2 levels
