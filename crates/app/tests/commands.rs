@@ -443,7 +443,10 @@ struct WatchSession {
 #[cfg(test)]
 impl WatchSession {
     fn start(workspace: &Workspace) -> Self {
-        let mut command = workspace.command();
+        Self::start_with(workspace, workspace.command())
+    }
+
+    fn start_with(workspace: &Workspace, mut command: Command) -> Self {
         command
             .args(["scan", "--watch", "--json"])
             .arg(workspace.project());
@@ -480,6 +483,26 @@ fn watch_scans_again_when_a_file_is_added() {
     let second = session.next_summary();
     assert_eq!(second["files"], 2);
     assert!(second["snapshot"].as_u64() > first["snapshot"].as_u64());
+}
+
+#[test]
+fn watch_ignores_a_data_folder_inside_the_watched_folder() {
+    let workspace = Workspace::new();
+    let mut command = workspace.command();
+    command.env(
+        "CODESKIMR_DATA_DIR",
+        workspace.project().join(".codeskimr-data"),
+    );
+    let session = WatchSession::start_with(&workspace, command);
+    assert_eq!(session.next_summary()["files"], 1);
+    // Every scan writes the database; if that counted as a change, the next scan would follow.
+    assert!(
+        session
+            .summaries
+            .recv_timeout(Duration::from_secs(4))
+            .is_err(),
+        "the database of the scan started another scan"
+    );
 }
 
 #[test]

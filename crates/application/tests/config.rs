@@ -120,6 +120,15 @@ fn assert_rejected(cases: &[(&str, &'static str, Violation)]) {
 }
 
 #[test]
+fn the_longest_wait_of_the_watcher_is_not_shorter_than_its_quiet_window() {
+    assert_rejected(&[(
+        "[watcher]\ndebounce_ms = 500\nmax_wait_ms = 100\n",
+        "watcher.max_wait_ms",
+        Violation::MustNotBeBelow("watcher.debounce_ms"),
+    )]);
+}
+
+#[test]
 fn counts_and_percentages_are_checked() {
     assert_rejected(&[
         (

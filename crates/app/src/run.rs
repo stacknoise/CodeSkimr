@@ -323,7 +323,7 @@ fn run_scan(
     if args.watch {
         let session = scan::open(spec, &invocation.global, locations, &os_secrets())?;
         let mut show = |report| show_report(report, args.json, messages, language);
-        watch::run(&session, &mut show)?;
+        watch::run(&session, &locations.data_dir, &mut show)?;
         return Ok(Outcome::Done);
     }
     let summary = scan::run(spec, &invocation.global, locations, &os_secrets())?;
