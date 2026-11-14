@@ -1,6 +1,6 @@
 # 0044 – A denied command and an unknown command answer alike
 
-Status: proposed
+Status: accepted (Anton, 2026-11-14, decision card)
 
 ## Context
 

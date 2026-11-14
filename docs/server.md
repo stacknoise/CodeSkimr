@@ -27,10 +27,9 @@ Every error answer is `{ "code": "API-401", "description": "…" }` with the HTT
 ## Checks, in this order
 
 1. `Host` is the bound address or `localhost` with the same port; `Origin`, if present, is `http://` plus one of these. Otherwise `API-402` (403). This is the protection against DNS rebinding and cross-site requests.
-2. The command exists (`API-201`).
-3. A command with `read_only = false`, and a command with the permission `read_source` (it returns source text, ADR 0035), needs `Authorization: Bearer <installation token>` (`API-401`).
-4. The principal holds the permission of the command (`AUTH-401`, 403). This comes before the body is read: a denied caller always gets the same answer.
-5. The body is at most 1 MiB (`API-501`, 413) and, if there is one, `application/json` (`API-101`).
+2. A command with `read_only = false`, a command with the permission `read_source` (it returns source text, ADR 0035) and an id that does not exist need `Authorization: Bearer <installation token>` (`API-401`).
+3. The principal holds the permission of the command and the command exists. Both failures give the same answer, `API-201` (404), so the answer tells nothing about which commands exist (ADR 0044). This comes before the body is read.
+4. The body is at most 1 MiB (`API-501`, 413) and, if there is one, `application/json` (`API-101`).
 
 CORS is closed: no `Access-Control-*` header is ever sent and there is no `OPTIONS` route. Every answer has `Cache-Control: no-store`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`, `Cross-Origin-Opener-Policy: same-origin` and a strict `Content-Security-Policy` (no inline script or style, no framing, connections only to the own host).
 
@@ -80,8 +79,8 @@ The server holds at most 256 connections; a further client waits in the backlog 
 - The bare `codeskimr` starts the server and opens the browser with the launch code (blueprint 10.2); the server keeps running until Ctrl+C, also if no browser could be started. `codeskimr serve` and `codeskimr open` remain for the two steps on their own.
 - The launch file and the browser start were written for Windows (`explorer`, access rules through `icacls`) and macOS (`open`) and are built there by CI; the access rules and the opener were not run on a Windows or macOS machine by an agent (issue #104 stays open for that check on the real systems).
 - No TLS and no non-loopback binding: that is the team server's server mode (ADR 0019).
-- Open in #88 and #269: a command id is no secret (unknown id gives `API-201`, a known one without the right `AUTH-401`), which has to be compared with S-06 for the team stage; two first starts at the same moment can each create a token (the later one wins, the earlier process then holds a token that does not match; restart it).
-- `serve` needs a usable keystore. On a headless Linux without a Secret Service it stops with `SEC-601`.
+- A denied command answers like an unknown one (ADR 0044). Two first starts at the same moment are safe: the token file is created under a lock (`token.lock`).
+- `serve` needs a usable keystore. On a headless Linux without a Secret Service it stops with `SEC-601`; there is no file fallback (ADR 0045), start a Secret Service such as `gnome-keyring` or `KeePassXC` first.
 - Events are not filtered per principal; in single-user mode there is only the local owner.
 
 - `projects.tools` (scan right, not read only) takes a project id, runs the tool check (`docs/tools-check.md`), stores it and returns the `ToolsView`. `projects.list` rows carry `tools` (the stored report, `null` if never checked) and `projects.add` and `projects.rescan` answer with `tools` of the scan they ran.

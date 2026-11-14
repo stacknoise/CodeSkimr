@@ -1,6 +1,6 @@
 # 0045 – No file fallback for credentials without an operating system keystore
 
-Status: proposed
+Status: accepted (Anton, 2026-11-14, decision card)
 
 ## Context
 

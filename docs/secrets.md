@@ -58,3 +58,4 @@ The scanner and the commands share one credential store (`wiring::Secrets`). The
 - The token of the device flow is stored as it is. GitHub tokens of an OAuth app do not expire; GitLab tokens do after two hours, and refreshing them is not built, so a GitLab token has to be created again by `credential login`.
 
 - First start: the installation token is created while the program holds an exclusive lock on `token.lock` in the data folder (`fs4`), so two programs that start together end with one token (issue #269). The wait for the lock ends after 10 seconds with an error instead of blocking the start for ever. A keystore without compare-and-set needs this lock.
+- Without a keystore (headless Linux without a Secret Service) there is no file fallback (ADR 0045, blueprint 12.2): `SEC-601` names the cause and the remedy and nothing else. Start `gnome-keyring` or `KeePassXC` as a Secret Service; headless use without one waits for the team server vault (12.5).

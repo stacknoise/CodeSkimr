@@ -150,7 +150,7 @@ async fn an_unknown_tool_is_a_tool_error_too() {
         )
         .await;
     assert_eq!(answer["result"]["isError"], true);
-    assert_eq!(answer["result"]["structuredContent"]["code"], "MCP-101");
+    assert_eq!(answer["result"]["structuredContent"]["code"], "API-201");
 }
 
 #[tokio::test]
@@ -171,7 +171,7 @@ async fn a_denied_caller_gets_the_same_answer_for_bad_arguments_and_unknown_tool
         let answer = client.call(id, "tools/call", call).await;
         assert_eq!(answer["result"]["isError"], true);
         let report = &answer["result"]["structuredContent"];
-        assert_eq!(report["code"], "AUTH-401");
+        assert_eq!(report["code"], "API-201");
         assert_eq!(report["params"], json!({}));
     }
 }
@@ -183,7 +183,16 @@ async fn a_caller_who_may_only_read_cannot_rescan_but_can_ask_for_dependencies()
     let denied = client
         .call(7, "tools/call", json!({"name": "rescan", "arguments": {}}))
         .await;
-    assert_eq!(denied["result"]["structuredContent"]["code"], "AUTH-401");
+    let unknown = client
+        .call(
+            9,
+            "tools/call",
+            json!({"name": "no_such_tool", "arguments": {}}),
+        )
+        .await;
+    // A denied tool answers exactly like one that does not exist (ADR 0044).
+    assert_eq!(denied["result"], unknown["result"]);
+    assert_eq!(denied["result"]["structuredContent"]["code"], "API-201");
     let allowed = client
         .call(
             8,
