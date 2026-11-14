@@ -45,6 +45,11 @@ pub(crate) fn is_local(symbol: &str) -> bool {
 
 /// The last descriptor of a global symbol, or `None` for a local or malformed symbol.
 pub(crate) fn last_descriptor(symbol: &str) -> Option<Descriptor> {
+    last_two(symbol).map(|(_, last)| last)
+}
+
+/// The last descriptor of a global symbol and the one before it, if there is one.
+pub(crate) fn last_two(symbol: &str) -> Option<(Option<Descriptor>, Descriptor)> {
     if is_local(symbol) {
         return None;
     }
@@ -52,14 +57,14 @@ pub(crate) fn last_descriptor(symbol: &str) -> Option<Descriptor> {
     for _ in 0..SYMBOL_HEADER_FIELDS {
         skip_header_field(&mut chars);
     }
-    let mut last = None;
+    let (mut before, mut last) = (None, None);
     while chars.peek().is_some() {
-        last = Some(descriptor(&mut chars)?);
+        before = last.replace(descriptor(&mut chars)?);
     }
-    last
+    last.map(|last| (before, last))
 }
 
-type Chars<'a> = std::iter::Peekable<std::str::Chars<'a>>;
+pub(crate) type Chars<'a> = std::iter::Peekable<std::str::Chars<'a>>;
 
 /// Skips one header field and its separator; a doubled separator belongs to the field.
 fn skip_header_field(chars: &mut Chars<'_>) {
@@ -74,12 +79,12 @@ fn skip_header_field(chars: &mut Chars<'_>) {
     }
 }
 
-fn is_simple(c: char) -> bool {
+pub(crate) fn is_simple(c: char) -> bool {
     c.is_alphanumeric() || c == NAME_DOLLAR || NAME_EXTRA_CHARS.contains(&c)
 }
 
 /// A name: quoted (a doubled quote stands for one) or a run of simple characters.
-fn name(chars: &mut Chars<'_>) -> Option<String> {
+pub(crate) fn name(chars: &mut Chars<'_>) -> Option<String> {
     let mut text = String::new();
     if chars.peek() == Some(&NAME_QUOTE) {
         chars.next();
@@ -126,7 +131,7 @@ fn descriptor(chars: &mut Chars<'_>) -> Option<Descriptor> {
     }
 }
 
-fn named(chars: &mut Chars<'_>) -> Option<Descriptor> {
+pub(crate) fn named(chars: &mut Chars<'_>) -> Option<Descriptor> {
     let name = name(chars)?;
     let kind = match chars.next()? {
         SUFFIX_NAMESPACE => DescriptorKind::Namespace,

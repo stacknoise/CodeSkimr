@@ -9,9 +9,11 @@ use codeskimr_domain::{
     SymbolKind,
 };
 
+use crate::consts::SUFFIX_TYPE;
 use crate::error::ScipError;
+use crate::impl_symbol::{ImplSymbol, parse as parse_impl};
 use crate::model::{Occurrence, ScipDocument, ScipIndex, SymbolRef};
-use crate::symbol::{Descriptor, DescriptorKind, is_local, last_descriptor};
+use crate::symbol::{Descriptor, DescriptorKind, is_local, last_descriptor, last_two};
 use crate::table::SymbolTable;
 
 /// The parts of a snapshot the import reads.
@@ -80,6 +82,8 @@ enum Shape {
     Local,
     Malformed,
     Named(Descriptor),
+    /// `impl#[Type]`: what `Self` names; it points at the type, if the index defines it.
+    SelfType,
 }
 
 /// Parameters, type parameters, meta and macros have no project symbol to point at.
@@ -93,7 +97,10 @@ const fn is_ignorable(kind: DescriptorKind) -> bool {
     )
 }
 
-fn shape_of(symbol: &str) -> Shape {
+fn shape_of(symbol: &str, parsed: Option<&ImplSymbol>) -> Shape {
+    if let Some(ImplSymbol::SelfType { .. }) = parsed {
+        return Shape::SelfType;
+    }
     if is_local(symbol) {
         return Shape::Local;
     }
@@ -142,6 +149,15 @@ const fn kind_by_target(kind: SymbolKind) -> ReferenceKind {
     }
 }
 
+/// The impl symbols of the index with their handles.
+fn impl_symbols(index: &ScipIndex) -> Vec<(SymbolRef, ImplSymbol)> {
+    (0..)
+        .map(SymbolRef)
+        .zip(&index.symbols)
+        .filter_map(|(at, text)| parse_impl(text).map(|parsed| (at, parsed)))
+        .collect()
+}
+
 struct Importer<'a> {
     index: &'a ScipIndex,
     snapshot: SnapshotView<'a>,
@@ -150,6 +166,8 @@ struct Importer<'a> {
     kinds_of: HashMap<SymbolId, SymbolKind>,
     targets: HashMap<SymbolRef, Vec<SymbolId>>,
     defined: HashSet<SymbolRef>,
+    impls: Vec<(SymbolRef, ImplSymbol)>,
+    overrides: HashMap<SymbolRef, Vec<SymbolId>>,
     stats: ImportStats,
     next_id: u64,
 }
@@ -157,11 +175,21 @@ struct Importer<'a> {
 impl<'a> Importer<'a> {
     fn new(index: &'a ScipIndex, snapshot: SnapshotView<'a>) -> Self {
         let highest = snapshot.references.iter().map(|r| r.id.get()).max();
+        let impls = impl_symbols(index);
+        let by_ref: HashMap<SymbolRef, &ImplSymbol> =
+            impls.iter().map(|(at, parsed)| (*at, parsed)).collect();
+        let shapes = (0..)
+            .map(SymbolRef)
+            .zip(&index.symbols)
+            .map(|(at, text)| shape_of(text, by_ref.get(&at).copied()))
+            .collect();
         Self {
             index,
             snapshot,
             table: SymbolTable::new(snapshot.symbols),
-            shapes: index.symbols.iter().map(|text| shape_of(text)).collect(),
+            shapes,
+            impls,
+            overrides: HashMap::new(),
             kinds_of: snapshot.symbols.iter().map(|s| (s.id, s.kind)).collect(),
             targets: HashMap::new(),
             defined: HashSet::new(),
@@ -223,8 +251,89 @@ impl<'a> Importer<'a> {
         }
     }
 
+    /// Step (b): `impl#[Type]` points at the type, and a method of `impl#[Type][Trait]`
+    /// overrides the method of the trait. Both are found by the symbol of the type (the same
+    /// module as the impl block) or else by a type or trait name that only one defined symbol has.
+    fn link_impls(&mut self) {
+        if self.impls.is_empty() {
+            return;
+        }
+        let impls = std::mem::take(&mut self.impls);
+        self.link_self_types(&impls);
+        self.link_trait_members(&impls);
+        self.impls = impls;
+    }
+
+    fn link_self_types(&mut self, impls: &[(SymbolRef, ImplSymbol)]) {
+        let by_text: HashMap<&str, SymbolRef> = self
+            .index
+            .symbols
+            .iter()
+            .map(String::as_str)
+            .zip((0..).map(SymbolRef))
+            .collect();
+        let types = self.defined_by_name(DescriptorKind::Type, None);
+        for (at, parsed) in impls {
+            let ImplSymbol::SelfType { prefix, name } = parsed else {
+                continue;
+            };
+            let same_module = by_text.get(format!("{prefix}{name}{SUFFIX_TYPE}").as_str());
+            let found = same_module
+                .or_else(|| unique(types.get(&(None, name.clone()))))
+                .and_then(|ty| self.targets.get(ty).cloned());
+            if let Some(found) = found {
+                self.targets.insert(*at, found);
+            }
+        }
+    }
+
+    fn link_trait_members(&mut self, impls: &[(SymbolRef, ImplSymbol)]) {
+        let methods = self.defined_by_name(DescriptorKind::Method, Some(DescriptorKind::Type));
+        for (at, parsed) in impls {
+            let ImplSymbol::TraitMember { trait_name, member } = parsed else {
+                continue;
+            };
+            let key = (Some(trait_name.clone()), member.clone());
+            let found = unique(methods.get(&key)).and_then(|m| self.targets.get(m).cloned());
+            if let Some(found) = found {
+                self.overrides.insert(*at, found);
+            }
+        }
+    }
+
+    /// The symbols of the index that map onto the project, by the name of the last descriptor of
+    /// `kind` and, if `owner` is given, the name of the descriptor before it, which then has that
+    /// kind.
+    fn defined_by_name(
+        &self,
+        kind: DescriptorKind,
+        owner: Option<DescriptorKind>,
+    ) -> HashMap<(Option<String>, String), Vec<SymbolRef>> {
+        let mut found: HashMap<(Option<String>, String), Vec<SymbolRef>> = HashMap::new();
+        for at in self.targets.keys() {
+            let Some((before, last)) = self.index.symbol(*at).and_then(last_two) else {
+                continue;
+            };
+            let parent = match (owner, before) {
+                (None, _) => None,
+                (Some(want), Some(before)) if before.kind == want => Some(before.name),
+                _ => continue,
+            };
+            if last.kind == kind {
+                found.entry((parent, last.name)).or_default().push(*at);
+            }
+        }
+        found
+    }
+
     fn fate(&self, symbol: SymbolRef) -> Fate {
         let descriptor = match self.shape(symbol) {
+            Shape::SelfType => {
+                return match self.targets.get(&symbol) {
+                    Some(targets) if !targets.is_empty() => Fate::Map(targets.clone()),
+                    _ => Fate::Ignore,
+                };
+            }
             Shape::Named(descriptor) => descriptor,
             Shape::Local => return Fate::Ignore,
             Shape::Malformed => return Fate::Unmapped,
@@ -286,6 +395,31 @@ impl<'a> Importer<'a> {
         placed
     }
 
+    /// The `override` reference that the definition of a method of a trait implementation stands
+    /// for: from the method to the method of the trait, `certain` and `verified`.
+    fn place_override(&mut self, file: FileId, occurrence: &Occurrence) -> Vec<Reference> {
+        let Some(targets) = self.overrides.get(&occurrence.symbol).cloned() else {
+            return Vec::new();
+        };
+        let Some(from) = self.table.innermost(file, occurrence.range.start()) else {
+            return Vec::new();
+        };
+        let from = from.id;
+        targets
+            .into_iter()
+            .map(|to| Reference {
+                id: self.fresh_id(),
+                from,
+                to,
+                file,
+                span: occurrence.range,
+                kind: ReferenceKind::Override,
+                confidence: Confidence::Certain,
+                verified: true,
+            })
+            .collect()
+    }
+
     fn count(&mut self, what: Count) -> Vec<Reference> {
         match what {
             Count::Ignored => self.stats.ignored += 1,
@@ -304,8 +438,13 @@ impl<'a> Importer<'a> {
         let mut seen: HashSet<(FileId, SymbolId, SymbolId, Span)> = HashSet::new();
         let mut placed = Vec::new();
         for (document, file) in covered {
-            for occurrence in document.occurrences.iter().filter(|o| !o.is_definition()) {
-                for reference in self.place(*file, occurrence, level_one) {
+            for occurrence in &document.occurrences {
+                let references = if occurrence.is_definition() {
+                    self.place_override(*file, occurrence)
+                } else {
+                    self.place(*file, occurrence, level_one)
+                };
+                for reference in references {
                     let key = (reference.file, reference.from, reference.to, reference.span);
                     if seen.insert(key) {
                         placed.push(reference);
@@ -322,6 +461,14 @@ enum Count {
     Ignored,
     Library,
     Unmapped,
+}
+
+/// The only element of `symbols`, `None` if there are none or several.
+fn unique(symbols: Option<&Vec<SymbolRef>>) -> Option<&SymbolRef> {
+    match symbols?.as_slice() {
+        [only] => Some(only),
+        _ => None,
+    }
 }
 
 fn to_f64(count: u64) -> f64 {
@@ -383,6 +530,7 @@ pub fn import_references(
     let covered_files: HashSet<FileId> = covered.iter().map(|(_, file)| *file).collect();
     importer.stats.files_replaced = u64::try_from(covered_files.len()).unwrap_or(u64::MAX);
     importer.collect_definitions(&covered);
+    importer.link_impls();
     let level_one = LevelOne::new(snapshot.references, &covered_files);
     let fresh = importer.place_all(&covered, &level_one);
     check_threshold(&importer.stats, min_mapped)?;

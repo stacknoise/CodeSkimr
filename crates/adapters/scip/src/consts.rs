@@ -112,6 +112,13 @@ pub(crate) const CLOSE_PAREN: char = ')';
 pub(crate) const OPEN_BRACKET: char = '[';
 /// Closes the name of a type parameter.
 pub(crate) const CLOSE_BRACKET: char = ']';
+/// How rust-analyzer starts the symbol of an impl block: `impl#[Type]` for the block itself (what
+/// `Self` names), `impl#[Type][Trait]` for a trait implementation.
+pub(crate) const IMPL_MARKER: &str = "impl#[";
+/// Opens the generic arguments of a type or trait name that an indexer writes in one piece.
+pub(crate) const OPEN_GENERIC: char = '<';
+/// Separates the segments of a Rust path.
+pub(crate) const PATH_SEPARATOR: &str = "::";
 /// Separates the segments of a qualified name written as one escaped descriptor.
 pub(crate) const NAME_SEGMENT_SEPARATOR: char = '.';
 /// Names the indexers give constructors; a project constructor is named like its type.

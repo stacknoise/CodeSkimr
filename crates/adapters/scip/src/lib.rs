@@ -10,6 +10,7 @@ mod columns;
 mod consts;
 mod decode;
 mod error;
+mod impl_symbol;
 mod importer;
 mod mapping;
 mod model;
