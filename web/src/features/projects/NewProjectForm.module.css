@@ -20,7 +20,8 @@
 }
 
 .source,
-.branch {
+.branch,
+.credential {
     height: 36px;
     border: 1px solid var(--line);
     border-radius: var(--radius-card);
@@ -72,4 +73,11 @@
 
 .error {
     color: var(--bad);
+}
+
+.credential {
+    width: auto;
+    min-width: 150px;
+    padding: 0 var(--space-10);
+    font: 12px var(--font-mono);
 }

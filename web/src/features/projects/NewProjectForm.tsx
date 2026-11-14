@@ -1,8 +1,11 @@
-import { Show } from "solid-js";
-import { errorText, t } from "../../shared/i18n/i18n";
+import { createSignal, For, onMount, Show } from "solid-js";
+import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
 import { DEFAULT_BRANCH } from "./consts";
+import { failureText } from "./failure";
+import { CredentialForm } from "./CredentialForm";
+import { credentialNames, refreshCredentials } from "./credentials";
 import { addProject, projectAdding, projectsFailure, type Failure } from "./projects";
 import styles from "./NewProjectForm.module.css";
 
@@ -16,20 +19,17 @@ export interface NewProjectFormProps {
   notice: string | null;
 }
 
-/** The text of a failure: the registered message, or the general one without a code. */
-export function failureText(failure: Failure): string {
-  return failure.code === null ? t(I18N_KEYS.PROJECTS_LOAD_FAILED) : errorText(failure.code);
-}
-
 /** The inline form "New project" (mock 1): source, branch and the button. */
 export function NewProjectForm(props: NewProjectFormProps) {
   let branch = DEFAULT_BRANCH;
+  const [credential, setCredential] = createSignal("");
+  onMount(() => void refreshCredentials());
   const submit = async (event: SubmitEvent) => {
     event.preventDefault();
     if (props.source.trim() === "" || projectAdding()) {
       return;
     }
-    if (await addProject(props.source.trim(), branch.trim())) {
+    if (await addProject(props.source.trim(), branch.trim(), credential())) {
       props.onSource("");
     }
   };
@@ -59,9 +59,27 @@ export function NewProjectForm(props: NewProjectFormProps) {
         spellcheck={false}
         autocomplete="off"
       />
+      <label for="credential" class={styles.branchLabel}>
+        {t(I18N_KEYS.PROJECTS_CREDENTIAL_LABEL)}
+      </label>
+      <select
+        id="credential"
+        class={styles.credential}
+        value={credential()}
+        onChange={(event) => setCredential(event.currentTarget.value)}
+      >
+        <option value="">{t(I18N_KEYS.PROJECTS_CREDENTIAL_NONE)}</option>
+        <For each={credentialNames()}>{(id) => <option value={id}>{id}</option>}</For>
+      </select>
       <button type="submit" class={styles.button} disabled={projectAdding()}>
         {projectAdding() ? t(I18N_KEYS.PROJECTS_ADDING) : t(I18N_KEYS.PROJECTS_ADD_AND_SCAN)}
       </button>
+      <CredentialForm
+        onStored={(id) => {
+          void refreshCredentials();
+          setCredential(id);
+        }}
+      />
       <Show when={props.notice}>{(text) => <p class={styles.message}>{text()}</p>}</Show>
       <Show when={projectsFailure()}>
         {(failure) => (
