@@ -7,7 +7,7 @@ import { TYPE_KINDS } from "../explorer/consts";
 import { requestFocus } from "../../shared/navigation/navigation";
 import { FILTER, MS_DIGITS, SEARCH_COMMAND, type Filter } from "./consts";
 import { parseQuery } from "./parse";
-import { resetPreview } from "./preview";
+import { resetPreview } from "./previewState";
 import type { FileHit, Hit, SearchResult } from "./types";
 
 const [open, setOpen] = createSignal(false);
