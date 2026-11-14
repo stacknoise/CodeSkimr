@@ -92,10 +92,7 @@ async fn a_stream_whose_client_never_answers_the_pings_is_closed() {
     let (mut stream, status) = open_stream(&server).await;
     assert!(status.unwrap().contains("101"));
     let rest = until_closed(&mut stream, Duration::from_secs(300)).await;
-    assert!(
-        rest.unwrap().first().is_some(),
-        "it pinged before it gave up"
-    );
+    assert_ne!(rest.unwrap().len(), 0, "it pinged before it gave up");
 }
 
 #[tokio::test(start_paused = true)]
