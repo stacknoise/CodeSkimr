@@ -25,7 +25,7 @@ fn millis(values: &[u64]) -> Vec<Duration> {
 fn the_median_of_the_samples_is_written_and_read_back() -> TestResult {
     let dir = fresh_dir("cpu-roundtrip")?;
     write(&dir, ("scan", "full"), &millis(&[900, 100, 500]))?;
-    let ids = vec!["scan/full".to_owned(), "scan/other".to_owned()];
+    let ids = ["scan/full".to_owned(), "scan/other".to_owned()];
     let times = collect(&dir, ids.iter());
     assert_eq!(times.len(), 1);
     assert!((times["scan/full"] - 500.0).abs() < 1e-6);
@@ -36,7 +36,7 @@ fn the_median_of_the_samples_is_written_and_read_back() -> TestResult {
 fn the_report_lists_the_cpu_time_and_stays_silent_without() -> TestResult {
     let dir = fresh_dir("cpu-report")?;
     write(&dir, ("scan", "full"), &millis(&[2000]))?;
-    let ids = vec!["scan/full".to_owned()];
+    let ids = ["scan/full".to_owned()];
     let text = render_cpu(&collect(&dir, ids.iter()));
     assert!(text.contains("scan/full"), "{text}");
     assert!(text.contains("2000 ms"), "{text}");
