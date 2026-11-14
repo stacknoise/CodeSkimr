@@ -343,6 +343,9 @@ test.describe("the screens against the mocks (1440 x 900, light)", () => {
 function themeTokens(theme: string): Record<string, string> {
   const text = readFileSync(TOKENS, "utf8");
   const start = text.indexOf(`[themes.${theme}]`);
+  if (start === -1) {
+    throw new Error(`design/tokens.toml has no theme ${theme}`);
+  }
   const rest = text.slice(start + 1);
   const end = rest.indexOf("\n[");
   const body = rest.slice(0, end === -1 ? undefined : end);
