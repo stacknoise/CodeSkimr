@@ -194,6 +194,18 @@ fn an_unreadable_file_fails_the_run() -> TestResult {
     Ok(())
 }
 
+/// The paths `unchanged_files` keeps for `listed`, with no total size limit.
+fn unchanged_names(root: &std::path::Path, listed: &[SourceFile]) -> TestResult<Vec<String>> {
+    let unchanged =
+        discovery(u64::MAX)?.unchanged_files(&folder(root)?, listed, &CancelToken::new())?;
+    Ok(names_of(&unchanged))
+}
+
+/// The paths as text.
+fn names_of(paths: &[codeskimr_domain::RelativePath]) -> Vec<String> {
+    paths.iter().map(|path| path.as_str().to_owned()).collect()
+}
+
 #[test]
 fn only_the_listed_files_are_checked_and_a_changed_or_missing_one_is_left_out() -> TestResult {
     let dir = tempfile::tempdir()?;
@@ -210,12 +222,7 @@ fn only_the_listed_files_are_checked_and_a_changed_or_missing_one_is_left_out() 
         .collect();
     write(dir.path(), "edited.rs", "fn b() { 1; }")?;
     std::fs::remove_file(dir.path().join("gone.rs"))?;
-    let unchanged =
-        discovery(u64::MAX)?.unchanged_files(&folder(dir.path())?, &listed, &CancelToken::new())?;
-    let names: Vec<&str> = unchanged
-        .iter()
-        .map(codeskimr_domain::RelativePath::as_str)
-        .collect();
+    let names = unchanged_names(dir.path(), &listed)?;
     assert_eq!(names, ["same.rs"]);
     Ok(())
 }
@@ -230,12 +237,7 @@ fn a_link_in_place_of_a_listed_file_counts_as_changed() -> TestResult {
     let listed: Vec<SourceFile> = first.iter().map(stored).collect();
     std::fs::remove_file(dir.path().join("linked.rs"))?;
     std::os::unix::fs::symlink(dir.path().join("real.rs"), dir.path().join("linked.rs"))?;
-    let unchanged =
-        discovery(u64::MAX)?.unchanged_files(&folder(dir.path())?, &listed, &CancelToken::new())?;
-    let names: Vec<&str> = unchanged
-        .iter()
-        .map(codeskimr_domain::RelativePath::as_str)
-        .collect();
+    let names = unchanged_names(dir.path(), &listed)?;
     assert_eq!(names, ["real.rs"]);
     Ok(())
 }
@@ -268,11 +270,7 @@ fn a_named_pipe_in_place_of_a_listed_file_counts_as_changed_and_does_not_block()
     let unchanged = result
         .recv_timeout(std::time::Duration::from_secs(10))
         .expect("a named pipe must not block the check")?;
-    let names: Vec<&str> = unchanged
-        .iter()
-        .map(codeskimr_domain::RelativePath::as_str)
-        .collect();
-    assert_eq!(names, ["kept.rs"]);
+    assert_eq!(names_of(&unchanged), ["kept.rs"]);
     Ok(())
 }
 
@@ -290,12 +288,7 @@ fn a_file_that_grew_or_that_is_over_the_total_limit_counts_as_changed() -> TestR
     assert_eq!(unchanged.len(), 1);
     // A file that grew no longer matches, whatever the limit is.
     write(dir.path(), "a.rs", &"fn a() {}".repeat(1000))?;
-    let unchanged =
-        discovery(u64::MAX)?.unchanged_files(&folder(dir.path())?, &listed, &CancelToken::new())?;
-    let names: Vec<&str> = unchanged
-        .iter()
-        .map(codeskimr_domain::RelativePath::as_str)
-        .collect();
+    let names = unchanged_names(dir.path(), &listed)?;
     assert_eq!(names, ["b.rs"]);
     Ok(())
 }
