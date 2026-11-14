@@ -9,6 +9,7 @@ use rusqlite::{Connection, params};
 
 use crate::codec::column_int;
 use crate::error::{StorageError, StorageResult};
+use crate::similarity::json_list;
 use crate::sql;
 
 /// The ids the new data brings itself; everything else is looked up in the carried rows.
@@ -53,16 +54,14 @@ impl Known {
             .copied()
             .filter(|id| !self.symbols.contains(id))
             .collect();
-        let list = carried
-            .iter()
-            .map(u64::to_string)
-            .collect::<Vec<_>>()
-            .join(",");
+        let mut ids = Vec::with_capacity(carried.len());
+        for id in &carried {
+            ids.push(column_int(*id)?);
+        }
+        let list = json_list(ids.into_iter());
         let found: i64 = conn
             .prepare_cached(sql::SYMBOLS_IN_SNAPSHOT_COUNT)?
-            .query_row(params![self.snapshot, format!("[{list}]")], |row| {
-                row.get(0)
-            })?;
+            .query_row(params![self.snapshot, list], |row| row.get(0))?;
         Ok(usize::try_from(found).is_ok_and(|found| found == carried.len()))
     }
 
