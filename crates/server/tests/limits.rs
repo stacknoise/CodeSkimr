@@ -42,6 +42,20 @@ async fn open_stream(server: &Running) -> (TcpStream, Option<String>) {
     (stream, status)
 }
 
+/// The `Retry-After` header the server sends when no stream place is free.
+#[cfg(test)]
+async fn retry_after(server: &Running) -> Option<String> {
+    let mut stream = TcpStream::connect(server.address).await.ok()?;
+    let request = format!("{UPGRADE}Host: {}\r\n\r\n", server.address);
+    stream.write_all(request.as_bytes()).await.ok()?;
+    let mut buffer = vec![0_u8; 1024];
+    let read = stream.read(&mut buffer).await.ok()?;
+    let text = String::from_utf8_lossy(buffer.get(..read)?).to_ascii_lowercase();
+    let line = text.lines().find(|line| line.starts_with("retry-after:"))?;
+    line.split_once(':')
+        .map(|(_, value)| value.trim().to_owned())
+}
+
 #[tokio::test]
 async fn the_stream_after_the_last_free_place_is_refused_and_a_closed_one_frees_its_place() {
     let server = start(owner()).await;
@@ -54,6 +68,7 @@ async fn the_stream_after_the_last_free_place_is_refused_and_a_closed_one_frees_
     let (_, status) = open_stream(&server).await;
     let status = status.unwrap();
     assert!(status.contains("503"), "{status}");
+    assert!(retry_after(&server).await.is_some_and(|value| value == "5"));
     drop(open.pop());
     let mut freed = None;
     for _ in 0..50 {
@@ -173,4 +188,45 @@ async fn an_open_event_stream_does_not_hold_up_the_shutdown() {
     stop.send(()).unwrap();
     let ended = timeout(Duration::from_secs(3), task).await;
     assert!(ended.is_ok(), "the stream ended with the server");
+}
+
+#[tokio::test(start_paused = true)]
+async fn an_mcp_body_that_never_ends_is_answered_with_a_timeout_code() {
+    let server = common::start_mcp(owner()).await;
+    let mut stream = TcpStream::connect(server.address).await.unwrap();
+    let head = format!(
+        "POST /mcp HTTP/1.1\r\nHost: {}\r\nAuthorization: Bearer {TOKEN}\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{{\"",
+        server.address
+    );
+    stream.write_all(head.as_bytes()).await.unwrap();
+    let mut answer = Vec::new();
+    let finished = timeout(Duration::from_secs(120), async {
+        let mut buffer = [0_u8; 1024];
+        loop {
+            let read = stream.read(&mut buffer).await.unwrap_or_default();
+            answer.extend_from_slice(buffer.get(..read).unwrap_or_default());
+            if read == 0
+                || answer.windows(4).any(|part| part == b"\r\n\r\n") && answer.ends_with(b"}")
+            {
+                break;
+            }
+        }
+    })
+    .await;
+    assert!(finished.is_ok());
+    let text = String::from_utf8_lossy(&answer);
+    assert!(text.starts_with("HTTP/1.1 408"), "{text}");
+    assert!(text.contains("API-503"), "{text}");
+}
+
+#[tokio::test(start_paused = true)]
+async fn an_mcp_body_without_the_token_is_not_read_at_all() {
+    let server = common::start_mcp(owner()).await;
+    let mut stream = TcpStream::connect(server.address).await.unwrap();
+    let head = format!(
+        "POST /mcp HTTP/1.1\r\nHost: {}\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{{\"",
+        server.address
+    );
+    let status = status_of(&mut stream, &head).await.unwrap();
+    assert!(status.contains("401"), "{status}");
 }
