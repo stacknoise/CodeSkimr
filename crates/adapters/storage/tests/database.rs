@@ -10,7 +10,9 @@ use std::sync::atomic::{AtomicU32, Ordering};
 use codeskimr_application::ports::{
     ProjectRepository, SnapshotData, SnapshotStore, SymbolFingerprints,
 };
-use codeskimr_domain::{Fingerprint, Fingerprints, MetricKind, ScanMode, SymbolId, SymbolKind};
+use codeskimr_domain::{
+    Fingerprint, Fingerprints, LanguageId, MetricKind, ScanMode, SymbolId, SymbolKind,
+};
 use codeskimr_storage::SqliteStore;
 use common::{PROJECT, code_of, data, file, header, metric, project, reference, symbol};
 use rusqlite::Connection;
@@ -119,6 +121,7 @@ fn a_folder_instead_of_a_file_is_a_database_failure() {
 }
 
 /// A scan with one file, a class with a method, a reference, metrics and a fingerprint.
+#[cfg(test)]
 fn scan_with_every_table(snapshot: u64, base: u64) -> SnapshotData {
     let mut scan = data(header(snapshot, ScanMode::Full));
     scan.files = vec![file(snapshot, base, "a.cs", "h")];
@@ -137,6 +140,7 @@ fn scan_with_every_table(snapshot: u64, base: u64) -> SnapshotData {
         metric(base + 1, MetricKind::Loc, 10.0),
         metric(base + 2, MetricKind::CyclomaticComplexity, 2.0),
     ];
+    scan.parse_micros = vec![(LanguageId::new("csharp").unwrap(), base)];
     scan.fingerprints = vec![SymbolFingerprints {
         symbol: SymbolId::new(base + 1),
         fingerprints: Fingerprints::from_entries(vec![Fingerprint {
@@ -170,6 +174,7 @@ fn pruned_snapshots_leave_no_rows_behind() {
         ("usage_counts", 1),
         ("type_summary", 1),
         ("fingerprints", 1),
+        ("parse_times", 1),
     ] {
         let rows: i64 = conn
             .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {

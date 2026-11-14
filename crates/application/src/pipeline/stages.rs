@@ -50,8 +50,8 @@ pub struct ScanRun {
     pub commit: Option<CommitHash>,
     /// The naming rules of the packs, set by the discover stage (ADR 0036).
     pub naming_rules: String,
-    /// Time spent parsing, summed over the files of each language in microseconds; set by the
-    /// analyze stage, empty in an incremental scan.
+    /// Time spent analysing (parse, symbols, metrics, fingerprints), summed over the files of each
+    /// language in microseconds; set by the analyze stage, empty in an incremental scan.
     pub parse_micros: Vec<(LanguageId, u64)>,
 }
 
