@@ -31,7 +31,7 @@ codeskimr scan <Pfad|Git-Adresse> [--branch <Name>] [--json] [--watch] [--creden
 - **`--watch`** lässt den Befehl nach dem ersten Scan weiterlaufen. Ändern sich Dateien im Ordner, werden sie einen kurzen Moment gesammelt und inkrementell neu gescannt; jeder Neuscan gibt eine Zeile aus. Nur Ordner lassen sich beobachten (`CLI-102` bei einer Git-Adresse). Beenden mit Strg+C. Ein fehlgeschlagener Neuscan gibt seinen Fehler aus, das Beobachten geht weiter.
 - **Geheimnisse in einer Git-Adresse** (Benutzername und Passwort, ein Token, eine Query oder ein Fragment) werden mit `PRJ-101` abgelehnt. Den richtigen Weg zeigt [Quellen und Zugangsdaten](quellen-und-zugangsdaten.md) (`--credential`).
 
-Weitere Befehle: `codeskimr serve` startet den lokalen Server, `codeskimr open` öffnet den Browser, `codeskimr mcp` startet den MCP-Server über Standardeingabe und -ausgabe ([MCP einrichten](mcp.md)), und `codeskimr check` führt die Konventionsprüfungen über einen Ordner aus, ohne Scan.
+Weitere Befehle: `codeskimr serve` startet den lokalen Server, `codeskimr open` öffnet den Browser, `codeskimr mcp` startet den MCP-Server über Standardeingabe und -ausgabe ([MCP einrichten](mcp.md)), `codeskimr export` schreibt ein Projekt als eine HTML-Datei ([HTML-Export](export.md)), und `codeskimr check` führt die Konventionsprüfungen über einen Ordner aus, ohne Scan.
 
 Globale Optionen für alle Befehle: `--data-dir`, `--languages`, `--config` und `--set key=value` (siehe [Installation](installation.md)).
 

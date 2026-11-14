@@ -24,7 +24,7 @@ use crate::principal;
 use crate::running::{ExclusiveScans, RunningScans};
 use crate::source_arg::folder_spec;
 use crate::wiring::{
-    Secrets, build_analysis, build_scanner, index_runner, open_store, os_secrets, tool_checker,
+    Secrets, build_analysis, index_runner, open_store, os_secrets, scanner_over, tool_checker,
 };
 
 /// Serves MCP until the client disconnects.
@@ -48,6 +48,10 @@ pub fn run(
         .unwrap_or_else(|| current_dir.to_path_buf());
     let spec = folder_spec(&folder)?;
     let config = config_files::load(locations, global, Some(&folder))?;
+    // Nothing was ever scanned if there is no database; opening the store would create it.
+    if !locations.database().exists() {
+        return Err(CodedError::new(ErrorCode::ProjectNotFound));
+    }
     let store = open_store(locations, &config)?;
     let project = store
         .project_by_source(&spec.source)?
@@ -156,18 +160,17 @@ fn build_ports(
         runner,
         running,
     } = wiring;
-    // One analysis for the checks and the scanner: the language packs are loaded once.
     let analysis = build_analysis(config, locations)?;
-    let snippets = Arc::clone(&analysis.snippets);
     let checker = ConventionChecker::new(
         Arc::clone(&analysis.discovery),
         Arc::clone(&analysis.analyzer),
         config.conventions.clone(),
     );
     let scanner: Arc<dyn ProjectScanner> = Arc::new(ExclusiveScans::new(
-        build_scanner(&store, config, (locations, analysis), (events, secrets))?,
+        scanner_over(&analysis, (&store, config, locations), (events, secrets))?,
         running,
     ));
+    let snippets = analysis.snippets;
     let projects: Arc<dyn ProjectRepository> = store.clone();
     let usages: Arc<dyn UsageIndex> = store.clone();
     let similarity: Arc<dyn SimilarityIndex> = store.clone();

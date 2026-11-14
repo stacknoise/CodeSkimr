@@ -13,6 +13,8 @@ mod export_tests;
 mod graph;
 mod graph_types;
 mod projects;
+#[cfg(test)]
+mod projects_tests;
 mod rating;
 mod search;
 mod source;

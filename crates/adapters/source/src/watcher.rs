@@ -44,6 +44,9 @@ pub struct WatchConfig {
     pub max_wait: Duration,
     /// Folder names whose changes are ignored (`scan.excluded_folders`).
     pub excluded_folders: Vec<String>,
+    /// Absolute folders whose changes are ignored wherever they lie, such as the data folder of
+    /// the program: its database is written by every scan and must not start the next one.
+    pub excluded_paths: Vec<PathBuf>,
 }
 
 /// What the watcher reports.
@@ -187,6 +190,12 @@ fn add_event(root: &Path, config: &WatchConfig, event: Event, collected: &mut Co
         .paths
         .iter()
         .filter(|path| !is_below_excluded(path, root, &config.excluded_folders))
+        .filter(|path| {
+            !config
+                .excluded_paths
+                .iter()
+                .any(|folder| path.starts_with(folder))
+        })
         .filter_map(|path| relative_path(root, path))
         .collect();
     let any = rescan || !relevant.is_empty();
@@ -218,6 +227,7 @@ mod tests {
             debounce: Duration::from_millis(10),
             max_wait: Duration::from_millis(100),
             excluded_folders: vec!["target".to_owned()],
+            excluded_paths: vec![PathBuf::from("/r/data")],
         }
     }
 
@@ -251,6 +261,23 @@ mod tests {
         let kept = Ok(event(EventKind::Create(CreateKind::File), "/r/src/x.rs"));
         assert!(add_event(Path::new("/r"), &config(), kept, &mut collected));
         assert_eq!(collected.paths.len(), 1);
+    }
+
+    #[test]
+    fn excluded_paths_are_not_relevant_wherever_they_lie() {
+        let mut collected = Collected::default();
+        let data = Ok(event(EventKind::Create(CreateKind::File), "/r/data/db"));
+        assert!(!add_event(Path::new("/r"), &config(), data, &mut collected));
+        let sibling = Ok(event(
+            EventKind::Create(CreateKind::File),
+            "/r/database/x.rs",
+        ));
+        assert!(add_event(
+            Path::new("/r"),
+            &config(),
+            sibling,
+            &mut collected
+        ));
     }
 
     #[test]

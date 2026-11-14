@@ -105,7 +105,10 @@
 (conditional_expression
   [condition: (identifier) @name
    consequence: (identifier) @name
-   alternative: (identifier) @name]) @reference.read
+   alternative: (identifier) @name
+   condition: (member_access_expression name: (identifier) @name)
+   consequence: (member_access_expression name: (identifier) @name)
+   alternative: (member_access_expression name: (identifier) @name)]) @reference.read
 ; The receiver of a member access: a variable or a type
 (member_access_expression expression: (identifier) @name) @reference.read
 

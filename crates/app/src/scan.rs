@@ -23,9 +23,7 @@ use crate::consts::LOG_TOOL_CHECK_FAILED;
 use crate::locations::Locations;
 use crate::principal;
 use crate::source_arg::{SourceError, SourceSpec, classify};
-use crate::wiring::{
-    Secrets, build_analysis, build_scanner, index_runner, open_store, tool_checker,
-};
+use crate::wiring::{Secrets, build_scanner, index_runner, open_store, tool_checker};
 
 /// Checks the source argument before anything is scanned or printed.
 ///
@@ -282,12 +280,7 @@ fn session(
         events,
         secrets,
     } = wiring;
-    let scanner = build_scanner(
-        store,
-        &config,
-        (locations, build_analysis(&config, locations)?),
-        (events.clone(), secrets),
-    )?;
+    let scanner = build_scanner(store, &config, locations, events.clone(), secrets)?;
     let tools = tool_checker(store, (locations, index_runner(locations)))?;
     Ok(Session {
         scanner,
@@ -330,17 +323,8 @@ fn with_layers(
     Ok(project)
 }
 
-/// The project of this source: the registered one, or a new one.
+/// The project of this source: the registered one, or a new one (one transaction in the store,
+/// so concurrent scans of different sources never share an id).
 fn register(store: &SqliteStore, spec: SourceSpec) -> Result<Project, CodedError> {
-    if let Some(known) = store.project_by_source(&spec.source)? {
-        return Ok(known);
-    }
-    let project = Project {
-        id: store.next_project_id()?,
-        name: spec.name,
-        source: spec.source,
-        layers: Vec::new(),
-    };
-    store.save_project(&project)?;
-    Ok(project)
+    store.register_project(spec.name, spec.source)
 }

@@ -64,7 +64,7 @@ Owner: `codeskimr_parsing`
 
 ## RES – Reference resolution
 
-Owner: `codeskimr_parsing, codeskimr_scip, codeskimr_indexer`
+Owner: `codeskimr_parsing, codeskimr_application, codeskimr_scip, codeskimr_indexer`
 
 | Code | Name | Severity | Retryable | Since | Description |
 |---|---|---|---|---|---|

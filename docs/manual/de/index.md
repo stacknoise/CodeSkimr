@@ -15,6 +15,7 @@ Alles läuft auf Ihrem Rechner. Der Server hört nur auf `127.0.0.1`; Ihr Code w
 | Sprach-Indexer | Verwendungen exakt machen, indem das Werkzeug der Sprache sie prüft | [Sprach-Indexer](indexer.md) |
 | MCP-Server | Code-Agenten dasselbe Wissen geben | [MCP einrichten](mcp.md) |
 | Quellen und Zugangsdaten | private Git-Repositories scannen, ohne Geheimnisse irgendwo abzulegen | [Quellen und Zugangsdaten](quellen-und-zugangsdaten.md) |
+| HTML-Export | eine eigenständige Datei eines Projekts für Menschen ohne CodeSkimr | [HTML-Export](export.md) |
 | Fehlercodes | was ein Code wie `SRC-401` bedeutet und was zu tun ist | [Fehlercodes](fehler.md) |
 
 ## Unterstützte Sprachen

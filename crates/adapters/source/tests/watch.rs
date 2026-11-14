@@ -23,6 +23,7 @@ fn config(debounce_ms: u64, max_wait_ms: u64) -> WatchConfig {
         debounce: Duration::from_millis(debounce_ms),
         max_wait: Duration::from_millis(max_wait_ms),
         excluded_folders: vec!["target".to_owned()],
+        excluded_paths: Vec::new(),
     }
 }
 
