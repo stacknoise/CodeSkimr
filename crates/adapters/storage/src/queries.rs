@@ -207,7 +207,7 @@ impl SqliteStore {
     /// # Errors
     /// A coded `STO` failure.
     pub fn latest_snapshot(&self, project: ProjectId) -> Result<Option<Snapshot>, CodedError> {
-        self.read(|conn| crate::snapshots::latest_snapshot(conn, project))
+        self.read(|conn| crate::headers::latest_snapshot(conn, project))
             .map_err(CodedError::from)
     }
 }

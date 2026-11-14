@@ -61,6 +61,8 @@ pub struct ImportOutcome {
     /// The new list of references: the references of files without an index as they were, and
     /// the level 2 references of the covered files. New ids follow the highest id of the input.
     pub references: Vec<Reference>,
+    /// The files whose level 1 references were replaced, in id order.
+    pub covered: Vec<FileId>,
     /// The counters.
     pub stats: ImportStats,
 }
@@ -391,8 +393,11 @@ pub fn import_references(
         .copied()
         .collect();
     references.extend(fresh);
+    let mut covered: Vec<FileId> = covered_files.into_iter().collect();
+    covered.sort_unstable();
     Ok(ImportOutcome {
         references,
+        covered,
         stats: importer.stats,
     })
 }

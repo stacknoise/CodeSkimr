@@ -10,7 +10,8 @@ use codeskimr_application::pipeline::{Job, JobResult, Scanner, ScannerPorts};
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, DiscoveredFile, FetchedSource, FileAnalyzer, FileDiscovery, FileFacts,
     MetricsCalculator, PendingReference, PreviousIndex, ProjectRepository, ProjectScanner,
-    ReferenceResolver, SnapshotData, SnapshotStore, SourceProvider, SymbolFingerprints,
+    ReferenceReplacement, ReferenceResolver, SnapshotData, SnapshotStore, SourceProvider,
+    SymbolFingerprints,
 };
 use codeskimr_application::stage::StageKind;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -289,6 +290,10 @@ impl SnapshotStore for World {
             .unwrap_or_else(PoisonError::into_inner)
             .push(data);
         Ok(snapshot)
+    }
+
+    fn replace_references(&self, _: ReferenceReplacement) -> Result<Snapshot, CodedError> {
+        Err(CodedError::new(ErrorCode::UnexpectedInternalError))
     }
 }
 

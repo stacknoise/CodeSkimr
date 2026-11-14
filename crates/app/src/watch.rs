@@ -90,7 +90,7 @@ pub fn run(session: &Session, report: &mut impl FnMut(Report)) -> Result<(), Cod
     follow(
         &changes,
         session.project().id,
-        |mode| session.scan(mode),
+        |mode| session.scan_quick(mode),
         report,
     );
     Ok(())
@@ -188,6 +188,7 @@ mod tests {
             symbols: 0,
             references: 0,
             seconds: 0.0,
+            level2: Vec::new(),
         }
     }
 

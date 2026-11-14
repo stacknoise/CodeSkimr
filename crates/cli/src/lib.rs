@@ -9,6 +9,7 @@ mod check;
 mod consts;
 mod credential;
 mod error;
+mod level2;
 mod locale;
 mod parser;
 mod render;
@@ -19,6 +20,7 @@ pub use args::{
 };
 pub use check::{check_json, check_text};
 pub use error::CliError;
+pub use level2::{Level2Line, Level2Reason};
 pub use locale::language_from;
 pub use parser::parse;
 pub use render::{

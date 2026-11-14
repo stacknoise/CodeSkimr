@@ -46,6 +46,11 @@ pub const LATEST_SNAPSHOT_ID: &str = "SELECT MAX(id) FROM snapshots WHERE projec
 pub const LATEST_SNAPSHOT: &str = "SELECT id, commit_hash, created, mode, files, \
     symbols, refs FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT 1";
 
+/// The project a snapshot belongs to: snapshot id.
+pub const SNAPSHOT_PROJECT: &str = "SELECT project_id FROM snapshots WHERE id = ?1";
+/// Removes the references that stand in a file: file id.
+pub const REFERENCES_OF_FILE_DELETE: &str = "DELETE FROM symbol_references WHERE file_id = ?1";
+
 /// Adds a snapshot header: id, project, commit, created, mode, files, symbols, references.
 pub const SNAPSHOT_INSERT: &str = "INSERT INTO snapshots \
     (id, project_id, commit_hash, created, mode, files, symbols, refs) \
@@ -71,6 +76,13 @@ pub const SNAPSHOT_CONTENT_DELETE: &[&str] = &[
     "DELETE FROM usage_counts WHERE snapshot_id = ?1",
     "DELETE FROM layer_graph WHERE snapshot_id = ?1",
     "DELETE FROM files WHERE snapshot_id = ?1",
+];
+/// The read models of a snapshot, emptied before they are built again: snapshot.
+pub const READ_MODELS_DELETE: &[&str] = &[
+    "DELETE FROM type_summary WHERE snapshot_id = ?1",
+    "DELETE FROM search_index WHERE snapshot_id = ?1",
+    "DELETE FROM usage_counts WHERE snapshot_id = ?1",
+    "DELETE FROM layer_graph WHERE snapshot_id = ?1",
 ];
 /// The shared rows only the snapshot ?1 contains, children before parents. They belong to the
 /// files that no other snapshot has: the references standing in such a file or pointing into one,

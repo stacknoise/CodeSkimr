@@ -8,12 +8,15 @@ use codeskimr_domain::{Permission, Principal, ProjectId, ScanMode, Snapshot};
 use super::flow::{Chain, Halt, Pipeline, Single, StageContext};
 use super::job::{Cancelled, Failed, Finished, Job, Queued};
 use super::stages::{
-    AnalyzeStage, DiscoverStage, FetchStage, MeasureStage, PersistStage, ResolveStage, ScanRequest,
+    AnalyzeStage, DiscoverStage, FetchStage, MeasureStage, PersistStage, Persisted, ResolveStage,
+    ScanRequest,
 };
 use crate::access;
+use crate::cancel::CancelToken;
 use crate::error::CodedError;
 use crate::events::{Event, EventBus, ScanStopped, SnapshotCreated, StopReason};
 use crate::ids::IdSequence;
+use crate::level2::{LanguageReport, Level2Pass};
 use crate::ports::{
     Clock, FileAnalyzer, FileDiscovery, MetricsCalculator, ProjectRepository, ProjectScanner,
     ReferenceResolver, SnapshotStore, SourceProvider,
@@ -64,6 +67,7 @@ pub struct Scanner {
     pipeline: Pipeline<ScanFlow>,
     projects: Arc<dyn ProjectRepository>,
     events: EventBus,
+    level2: Option<Level2Pass>,
 }
 
 impl Scanner {
@@ -97,7 +101,16 @@ impl Scanner {
             pipeline,
             projects: ports.projects,
             events,
+            level2: None,
         }
+    }
+
+    /// Adds the second pass: after each scan the indexers of the languages run, if the user
+    /// allowed it (ADR 0033).
+    #[must_use]
+    pub fn with_level2(mut self, pass: Level2Pass) -> Self {
+        self.level2 = Some(pass);
+        self
     }
 
     /// Runs `job` for `principal` to its end and publishes `SnapshotCreated` or `ScanStopped`.
@@ -119,18 +132,37 @@ impl Scanner {
         };
         let ctx = StageContext::new(project_id, job.token(), &self.events);
         match self.pipeline.run(ScanRequest { project, mode }, &ctx) {
-            Ok(snapshot) => {
+            Ok(persisted) => {
+                let (snapshot, reports) =
+                    self.second_pass(*principal, persisted, (job.token(), job.level2_wanted()));
                 self.events
                     .publish(&Event::SnapshotCreated(SnapshotCreated {
                         snapshot: snapshot.clone(),
                     }));
-                JobResult::Finished(job.finish(snapshot))
+                JobResult::Finished(job.finish(snapshot, reports))
             }
             Err(Halt::Cancelled(_)) => {
                 self.stopped(project_id, StopReason::Cancelled);
                 JobResult::Cancelled(job.cancel())
             }
             Err(Halt::Failed(error)) => self.fail(job.fail(error.code()), project_id),
+        }
+    }
+
+    /// Level 2 runs after level 1 is stored, so a cancel or a failure of it leaves level 1 as it
+    /// is. Without the pass the snapshot is final.
+    fn second_pass(
+        &self,
+        principal: Principal,
+        persisted: Persisted,
+        (cancel, wanted): (&CancelToken, bool),
+    ) -> (Snapshot, Vec<LanguageReport>) {
+        match &self.level2 {
+            Some(pass) if wanted => {
+                let done = pass.run(&principal, &persisted.snapshot, &persisted.root, cancel);
+                (done.snapshot, done.reports)
+            }
+            _ => (persisted.snapshot, Vec::new()),
         }
     }
 

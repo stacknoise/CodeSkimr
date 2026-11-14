@@ -112,6 +112,12 @@ pub const SECONDS_BASE: f64 = 10.0;
 
 /// Names of the Fluent arguments of the messages.
 pub mod arg {
+    /// `{ $language }`: name of a language.
+    pub const LANGUAGE: &str = "language";
+    /// `{ $stale }`: files that changed since the scan.
+    pub const STALE: &str = "stale";
+    /// `{ $reason }`: why level 2 was skipped.
+    pub const REASON: &str = "reason";
     /// `{ $code }`: the error code id.
     pub const CODE: &str = "code";
     /// `{ $message }`: the user-facing text of an error.
