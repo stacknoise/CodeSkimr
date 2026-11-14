@@ -11,14 +11,21 @@ use common::{PROJECT, code_of, data, file, header, metric, project, reference, s
 
 const SNAPSHOT: u64 = 10;
 
-/// `a.cs` holds `A` and `Run`; `b.cs` holds `B` and `Go`. `Run` calls `B` (level 1).
+/// A full scan with the files `alpha.cs` (71) and `beta.cs` (72).
 #[cfg(test)]
-fn scan() -> SnapshotData {
+fn two_files() -> SnapshotData {
     let mut scan = data(header(SNAPSHOT, ScanMode::Full));
     scan.files = vec![
         file(SNAPSHOT, 71, "alpha.cs", "h-alpha"),
         file(SNAPSHOT, 72, "beta.cs", "h-beta"),
     ];
+    scan
+}
+
+/// `a.cs` holds `A` and `Run`; `b.cs` holds `B` and `Go`. `Run` calls `B` (level 1).
+#[cfg(test)]
+fn scan() -> SnapshotData {
+    let mut scan = two_files();
     scan.symbols = vec![
         symbol(81, 71, SymbolKind::Class, "Lib.Alpha", None),
         symbol(82, 71, SymbolKind::Method, "Lib.Alpha.Run", Some(81)),
@@ -172,11 +179,7 @@ fn coupling_of(
 fn namespaces() -> codeskimr_storage::SqliteStore {
     let store = store(3);
     store.save_project(&project(1, "/work/app", &[])).unwrap();
-    let mut scan = data(header(SNAPSHOT, ScanMode::Full));
-    scan.files = vec![
-        file(SNAPSHOT, 71, "alpha.cs", "h-alpha"),
-        file(SNAPSHOT, 72, "beta.cs", "h-beta"),
-    ];
+    let mut scan = two_files();
     scan.symbols = vec![
         symbol(81, 71, SymbolKind::Namespace, "Alpha", None),
         symbol(82, 71, SymbolKind::Method, "Alpha.Run", None),
