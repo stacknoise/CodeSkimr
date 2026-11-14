@@ -308,7 +308,7 @@ fn languages_without_tools_give_an_empty_report_that_is_still_stored() {
     };
     let (world, report) = run(world);
     let report = report.unwrap();
-    assert!(report.findings.is_empty());
+    assert_eq!(report.findings.len(), 0);
     assert_eq!(report.checked_at, Timestamp(77));
     assert_eq!(world.load(PROJECT).unwrap(), Some(report));
 }
@@ -316,7 +316,7 @@ fn languages_without_tools_give_an_empty_report_that_is_still_stored() {
 #[test]
 fn a_project_that_was_not_scanned_has_no_languages_and_an_empty_report() {
     let (_, report) = run(World::default());
-    assert!(report.unwrap().findings.is_empty());
+    assert_eq!(report.unwrap().findings.len(), 0);
 }
 
 #[test]
@@ -345,7 +345,7 @@ fn a_new_check_replaces_the_stored_report() {
         None,
     );
     let (world, _) = run(second);
-    assert!(world.load(PROJECT).unwrap().unwrap().problems().is_empty());
+    assert_eq!(world.load(PROJECT).unwrap().unwrap().problems().len(), 0);
 }
 
 #[test]

@@ -125,5 +125,5 @@ fn a_rescan_does_not_fail_when_the_check_does() {
     let answer = tools_checking(Arc::new(check))
         .rescan(&owner(), &RescanArgs { project: None })
         .unwrap();
-    assert!(answer["tools"].as_array().unwrap().is_empty());
+    assert_eq!(answer["tools"].as_array().unwrap().len(), 0);
 }
