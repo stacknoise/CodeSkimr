@@ -11,7 +11,8 @@ use codeskimr_domain::{ProjectSource, RelativePath, RequirementFormat, Requireme
 
 use crate::consts::{
     JSON_CLOSERS, JSON_COMMA, JSON_ESCAPE, JSON_NEWLINE, JSON_QUOTE, JSON_SLASH, JSON_STAR,
-    REQUIREMENT_COMMENT, REQUIREMENT_MAX_DEPTH, REQUIREMENT_MAX_FILES, REQUIREMENT_SKIPPED_FOLDERS,
+    REQUIREMENT_COMMENT, REQUIREMENT_MAX_DEPTH, REQUIREMENT_MAX_FILES, REQUIREMENT_MAX_FOLDERS,
+    REQUIREMENT_SKIPPED_FOLDERS,
 };
 use crate::git::GitCache;
 use crate::paths::{inside, relative_path};
@@ -98,8 +99,10 @@ fn copy_string(out: &mut String, chars: &mut Peekable<Chars<'_>>) {
     }
 }
 
-/// Skips up to and including the `*/` that ends a block comment; the `/*` is read up to its `*`.
+/// Skips up to and including the `*/` that ends a block comment; the `/` of the opening is read.
 fn skip_block_comment(chars: &mut Peekable<Chars<'_>>) {
+    // The star of the opening `/*` is not the star of a closing `*/`: `/*/` is still open.
+    chars.next();
     let mut last = JSON_NEWLINE;
     for c in chars.by_ref() {
         if last == JSON_STAR && c == JSON_SLASH {
@@ -158,9 +161,15 @@ impl ProjectRequirements {
     fn manifests(root: &Path, name: &str) -> Vec<PathBuf> {
         let mut found = Vec::new();
         let mut open = vec![(root.to_path_buf(), 0_usize)];
+        let mut visited = 0_usize;
         while let Some((folder, depth)) = open.pop() {
+            // Enough files, or enough folders looked at: a huge tree must not keep the check busy.
+            visited = visited.saturating_add(1);
+            if found.len() >= REQUIREMENT_MAX_FILES || visited > REQUIREMENT_MAX_FOLDERS {
+                break;
+            }
             let candidate = folder.join(name);
-            if candidate.is_file() && found.len() < REQUIREMENT_MAX_FILES {
+            if candidate.is_file() {
                 found.push(candidate);
             }
             if depth >= REQUIREMENT_MAX_DEPTH {

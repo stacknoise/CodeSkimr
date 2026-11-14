@@ -127,6 +127,8 @@ pub const TOML_KEY_EXTRA: &str = "-_.";
 pub const REQUIREMENT_MAX_DEPTH: usize = 6;
 /// Most requirement files of one name that are read.
 pub const REQUIREMENT_MAX_FILES: usize = 32;
+/// Most folders that are looked into when requirement files are searched.
+pub const REQUIREMENT_MAX_FOLDERS: usize = 2000;
 /// Folders that are not entered when requirement files are looked for: dependencies, build output
 /// and virtual environments hold files of other projects.
 pub const REQUIREMENT_SKIPPED_FOLDERS: &[&str] = &[

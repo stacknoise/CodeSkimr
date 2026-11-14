@@ -198,3 +198,50 @@ fn a_git_project_has_no_requirement_before_its_first_scan_and_has_one_after_it()
     .unwrap();
     assert_eq!(reader.read_all(&source, &sdk("global.json")), ["9.0.100"]);
 }
+
+#[test]
+fn a_block_comment_that_starts_with_slash_star_slash_is_still_open() {
+    // `/*/` does not close itself; the real end follows.
+    let json = r#"{ /*/ "sdk": { "version": "1.0.0" } */ "sdk": { "version": "9.0.100" } }"#;
+    assert_eq!(
+        read(&[("global.json", json)], &sdk("global.json")).as_deref(),
+        Some("9.0.100")
+    );
+}
+
+#[test]
+fn the_search_goes_six_levels_down_and_reads_at_most_32_files() {
+    let deep = "a/b/c/d/e/f"; // six levels below the root
+    let too_deep = "a/b/c/d/e/f/g";
+    let (_dir, source) = project(&[
+        (
+            &format!("{deep}/global.json"),
+            r#"{"sdk":{"version":"6.0.0"}}"#,
+        ),
+        (
+            &format!("{too_deep}/global.json"),
+            r#"{"sdk":{"version":"7.0.0"}}"#,
+        ),
+    ]);
+    assert_eq!(
+        reader(65_536).read_all(&source, &sdk("global.json")),
+        ["6.0.0"]
+    );
+    let many: Vec<(String, &str)> = (0..40)
+        .map(|n| {
+            (
+                format!("p{n}/global.json"),
+                r#"{"sdk":{"version":"8.0.100"}}"#,
+            )
+        })
+        .collect();
+    let files: Vec<(&str, &str)> = many
+        .iter()
+        .map(|(name, text)| (name.as_str(), *text))
+        .collect();
+    let (_dir, source) = project(&files);
+    assert_eq!(
+        reader(65_536).read_all(&source, &sdk("global.json")).len(),
+        32
+    );
+}
