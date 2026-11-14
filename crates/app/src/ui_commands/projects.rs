@@ -11,6 +11,7 @@ use codeskimr_application::ports::{
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_application::tools::ToolsView;
 use codeskimr_cli::ScanSummary;
+use codeskimr_codes::Coded;
 use codeskimr_domain::{Permission, ProjectId, ProjectSource, ScanMode, Snapshot};
 use serde::{Deserialize, Serialize};
 
@@ -163,20 +164,34 @@ impl Command for ListProjects {
     };
 
     fn execute(&self, _request: Request<'_, ()>) -> Result<Vec<ProjectRow>, CodedError> {
-        self.catalog
+        Ok(self
+            .catalog
             .overviews()?
             .iter()
             .map(|overview| {
                 let id = overview.project.id;
-                let tools = self.tools.stored(id)?.as_ref().map(ToolsView::of);
-                Ok(project_row(
+                project_row(
                     overview,
                     self.context.running.is_running(id),
-                    tools,
+                    self.stored_tools(id),
                     &self.context,
-                ))
+                )
             })
-            .collect()
+            .collect())
+    }
+}
+
+impl ListProjects {
+    /// The stored tool report of a project; an unreadable one is logged and shown as "not
+    /// checked", so one broken project never takes the whole list down.
+    fn stored_tools(&self, id: ProjectId) -> Option<ToolsView> {
+        match self.tools.stored(id) {
+            Ok(report) => report.as_ref().map(ToolsView::of),
+            Err(error) => {
+                tracing::warn!(project = id.get(), code = error.code().id());
+                None
+            }
+        }
     }
 }
 
