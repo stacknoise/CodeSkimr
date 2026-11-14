@@ -2,9 +2,9 @@
 //! never indexes a slice, and skips every field it does not know.
 
 use crate::consts::{
-    FIXED32_BYTES, FIXED64_BYTES, MAX_GROUP_DEPTH, TAG_WIRE_BITS, TAG_WIRE_MASK, VARINT_CONTINUE,
-    VARINT_MAX_BYTES, VARINT_PAYLOAD_BITS, VARINT_PAYLOAD_MASK, WIRE_END_GROUP, WIRE_FIXED32,
-    WIRE_FIXED64, WIRE_LEN, WIRE_START_GROUP, WIRE_VARINT,
+    FIXED32_BYTES, FIXED64_BYTES, GROUP_OPENED_DEPTH, MAX_GROUP_DEPTH, TAG_WIRE_BITS,
+    TAG_WIRE_MASK, VARINT_CONTINUE, VARINT_MAX_BYTES, VARINT_PAYLOAD_BITS, VARINT_PAYLOAD_MASK,
+    WIRE_END_GROUP, WIRE_FIXED32, WIRE_FIXED64, WIRE_LEN, WIRE_START_GROUP, WIRE_VARINT,
 };
 use crate::error::Corruption;
 
@@ -39,7 +39,7 @@ impl<'a> Fields<'a> {
     }
 
     fn varint(&mut self) -> Result<u64, Corruption> {
-        let mut value = 0_u64;
+        let mut value = u64::MIN;
         for index in 0..VARINT_MAX_BYTES {
             let byte = *self.take(1)?.first().ok_or(Corruption::Truncated)?;
             let payload = u64::from(byte & VARINT_PAYLOAD_MASK);
@@ -60,7 +60,7 @@ impl<'a> Fields<'a> {
 
     /// Skips a group that was just opened, up to its matching end.
     fn skip_group(&mut self) -> Result<(), Corruption> {
-        let mut depth = 1_u32;
+        let mut depth = GROUP_OPENED_DEPTH;
         while depth > 0 {
             let tag = self.varint()?;
             match wire_type(tag) {

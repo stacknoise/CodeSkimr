@@ -116,3 +116,6 @@ pub(crate) const CLOSE_BRACKET: char = ']';
 pub(crate) const NAME_SEGMENT_SEPARATOR: char = '.';
 /// Names the indexers give constructors; a project constructor is named like its type.
 pub(crate) const CONSTRUCTOR_NAMES: [&str; 3] = [".ctor", "<init>", "<constructor>"];
+
+/// Nesting depth of a group right after its start tag was read.
+pub(crate) const GROUP_OPENED_DEPTH: u32 = 1;
