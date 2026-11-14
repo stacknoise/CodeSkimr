@@ -5,7 +5,7 @@ use std::collections::HashMap;
 
 use codeskimr_domain::{FileId, Position, Span, Symbol, SymbolId, SymbolKind};
 
-use crate::consts::{CONSTRUCTOR_NAMES, NAME_SEGMENT_SEPARATOR};
+use crate::consts::{ACCESSOR_PREFIXES, CONSTRUCTOR_NAMES, NAME_SEGMENT_SEPARATOR};
 use crate::symbol::{Descriptor, DescriptorKind};
 
 /// The symbols of a snapshot, grouped by file.
@@ -23,6 +23,10 @@ fn contains(span: Span, at: Position) -> bool {
 /// their type.
 fn name_matches(symbol: &Symbol, scip_name: &str) -> bool {
     let name = symbol.name.as_str();
+    let scip_name = ACCESSOR_PREFIXES
+        .iter()
+        .find_map(|prefix| scip_name.strip_prefix(prefix))
+        .unwrap_or(scip_name);
     name == scip_name
         || scip_name.rsplit(NAME_SEGMENT_SEPARATOR).next() == Some(name)
         || (symbol.kind == SymbolKind::Constructor && CONSTRUCTOR_NAMES.contains(&scip_name))
@@ -64,21 +68,29 @@ impl<'a> SymbolTable<'a> {
             .filter(move |symbol| contains(symbol.span, at))
     }
 
+    /// The symbols of one file.
+    pub(crate) fn symbols_of(&self, file: FileId) -> &[&'a Symbol] {
+        self.by_file.get(&file).map_or(&[], Vec::as_slice)
+    }
+
     /// The smallest symbol of the file whose span contains `at`.
     pub(crate) fn innermost(&self, file: FileId, at: Position) -> Option<&'a Symbol> {
         self.enclosing(file, at)
             .max_by_key(|symbol| tightness(symbol))
     }
 
-    /// The project symbol that a SCIP definition at `at` stands for: the smallest symbol of the
+    /// The project symbol that a SCIP definition at `range` stands for: the smallest symbol of the
     /// file that contains the position and bears the name of the descriptor; among equal spans
-    /// the one whose kind fits the descriptor, then the lowest id.
+    /// the one whose kind fits the descriptor, then the lowest id. If none contains it, a symbol
+    /// whose span starts behind the name on the same line (`const f = () => ...`, whose span
+    /// starts at the function and not at the name; the indexer calls it a variable) counts.
     pub(crate) fn definition(
         &self,
         file: FileId,
-        at: Position,
+        range: Span,
         descriptor: &Descriptor,
     ) -> Option<SymbolId> {
+        let at = range.start();
         self.enclosing(file, at)
             .filter(|symbol| name_matches(symbol, &descriptor.name))
             .max_by_key(|symbol| {
@@ -89,5 +101,42 @@ impl<'a> SymbolTable<'a> {
                 )
             })
             .map(|symbol| symbol.id)
+            .or_else(|| self.after_name(file, range, descriptor))
+    }
+
+    /// The symbol of that name that starts on the line of `range`, behind it. Several of them
+    /// are not told apart: nothing is returned.
+    fn after_name(&self, file: FileId, range: Span, descriptor: &Descriptor) -> Option<SymbolId> {
+        let mut found = self
+            .by_file
+            .get(&file)?
+            .iter()
+            .filter(|symbol| {
+                symbol.span.start().line == range.start().line
+                    && symbol.span.start() >= range.end()
+                    && name_matches(symbol, &descriptor.name)
+            })
+            .map(|symbol| symbol.id);
+        let first = found.next()?;
+        found.next().is_none().then_some(first)
+    }
+
+    /// The symbol of the file that is declared at `at`: its span starts on that line at or before
+    /// the position, it is callable and bears the name. Only if exactly one does.
+    pub(crate) fn declared_at(
+        &self,
+        file: FileId,
+        at: Position,
+        descriptor: &Descriptor,
+    ) -> Option<&'a Symbol> {
+        let mut found = self.by_file.get(&file)?.iter().copied().filter(|symbol| {
+            symbol.span.start().line == at.line
+                && symbol.span.start() <= at
+                && at < symbol.span.end()
+                && symbol.kind.is_callable()
+                && name_matches(symbol, &descriptor.name)
+        });
+        let first = found.next()?;
+        found.next().is_none().then_some(first)
     }
 }

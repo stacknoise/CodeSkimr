@@ -5,14 +5,15 @@
 use std::collections::{HashMap, HashSet};
 
 use codeskimr_domain::{
-    Confidence, FileId, Reference, ReferenceId, ReferenceKind, SourceFile, Span, Symbol, SymbolId,
-    SymbolKind,
+    Confidence, FileId, Position, Reference, ReferenceId, ReferenceKind, SourceFile, Span, Symbol,
+    SymbolId, SymbolKind,
 };
 
 use crate::consts::{MAX_SYMBOLS_PER_KEY, NO_OWNER, SUFFIX_TYPE};
 use crate::error::ScipError;
 use crate::fitting::Fitting;
 use crate::impl_symbol::{ImplSymbol, TypeName, parse as parse_impl};
+use crate::locals::match_functions;
 use crate::model::{Occurrence, ScipDocument, ScipIndex, SymbolRef};
 use crate::symbol::{Descriptor, DescriptorKind, is_local, last_descriptor, last_two, namespaces};
 use crate::table::SymbolTable;
@@ -168,6 +169,8 @@ struct Importer<'a> {
     kinds_of: HashMap<SymbolId, SymbolKind>,
     targets: HashMap<SymbolRef, Vec<SymbolId>>,
     defined: HashSet<SymbolRef>,
+    heads: HashSet<(FileId, Position)>,
+    locals: HashMap<SymbolRef, Vec<SymbolId>>,
     impls: Vec<(SymbolRef, ImplSymbol)>,
     overrides: HashMap<SymbolRef, Vec<SymbolId>>,
     trait_members: HashSet<SymbolId>,
@@ -197,6 +200,8 @@ impl<'a> Importer<'a> {
             kinds_of: snapshot.symbols.iter().map(|s| (s.id, s.kind)).collect(),
             targets: HashMap::new(),
             defined: HashSet::new(),
+            heads: HashSet::new(),
+            locals: HashMap::new(),
             stats: ImportStats::default(),
             next_id: highest.map_or(0, |id| id.saturating_add(1)),
         }
@@ -242,9 +247,7 @@ impl<'a> Importer<'a> {
                 if is_ignorable(descriptor.kind) {
                     continue;
                 }
-                let found = self
-                    .table
-                    .definition(*file, occurrence.range.start(), descriptor);
+                let found = self.table.definition(*file, occurrence.range, descriptor);
                 if let Some(target) = found {
                     let targets = self.targets.entry(occurrence.symbol).or_default();
                     if !targets.contains(&target) {
@@ -252,6 +255,82 @@ impl<'a> Importer<'a> {
                     }
                 }
             }
+        }
+    }
+
+    /// The local functions of one document (see `locals.rs`), by their local symbol.
+    fn locals_of(
+        &self,
+        document: &ScipDocument,
+        file: FileId,
+    ) -> HashMap<SymbolRef, Vec<SymbolId>> {
+        let defs: Vec<&Occurrence> = document
+            .occurrences
+            .iter()
+            .filter(|o| o.is_definition() && matches!(self.shape(o.symbol), Shape::Local))
+            .collect();
+        match_functions(self.table.symbols_of(file), &defs)
+    }
+
+    /// Step (a2): an indexer that has one symbol for all overloads (scip-python) defines it at the
+    /// first one and lists the heads of the others, and of the implementation, as plain
+    /// occurrences. An occurrence that stands on the declaration of a function of the same name,
+    /// in the same file and in the same parent as a definition of its symbol, is that function's
+    /// own head: the function becomes a target of the symbol, and the occurrence is no use.
+    fn collect_overload_heads(&mut self, covered: &[(&ScipDocument, FileId)]) {
+        let by_id: HashMap<SymbolId, &Symbol> =
+            self.snapshot.symbols.iter().map(|s| (s.id, s)).collect();
+        for (document, file) in covered {
+            let mut ordered: Vec<&Occurrence> = document
+                .occurrences
+                .iter()
+                .filter(|o| !o.is_definition())
+                .collect();
+            ordered.sort_by_key(|o| o.range.start());
+            let mut looked_at = HashSet::new();
+            for occurrence in ordered {
+                let at = occurrence.range.start();
+                if looked_at.insert((at.line, occurrence.symbol))
+                    && self.adopt_head(&by_id, *file, occurrence)
+                {
+                    self.heads.insert((*file, at));
+                }
+            }
+        }
+    }
+
+    /// Makes the function that is declared at `occurrence` a target of its symbol, if it is a
+    /// sibling of a target; reports whether it did.
+    fn adopt_head(
+        &mut self,
+        by_id: &HashMap<SymbolId, &Symbol>,
+        file: FileId,
+        occurrence: &Occurrence,
+    ) -> bool {
+        let Shape::Named(descriptor) = self.shape(occurrence.symbol) else {
+            return false;
+        };
+        if descriptor.kind != DescriptorKind::Method {
+            return false;
+        }
+        let Some(head) = self
+            .table
+            .declared_at(file, occurrence.range.start(), descriptor)
+        else {
+            return false;
+        };
+        let head_id = head.id;
+        let sibling = |id: &SymbolId| {
+            by_id
+                .get(id)
+                .is_some_and(|s| s.file == head.file && s.parent == head.parent)
+        };
+        match self.targets.get_mut(&occurrence.symbol) {
+            Some(targets) if !targets.contains(&head_id) && targets.iter().any(sibling) => {
+                targets.push(head_id);
+                true
+            }
+            _ => false,
         }
     }
 
@@ -424,7 +503,12 @@ impl<'a> Importer<'a> {
                 };
             }
             Shape::Named(descriptor) => descriptor,
-            Shape::Local => return Fate::Ignore,
+            Shape::Local => {
+                return self
+                    .locals
+                    .get(&symbol)
+                    .map_or(Fate::Ignore, |targets| Fate::Map(targets.clone()));
+            }
             Shape::Malformed => return Fate::Unmapped,
         };
         if is_ignorable(descriptor.kind) {
@@ -527,7 +611,12 @@ impl<'a> Importer<'a> {
         let mut seen: HashSet<(FileId, SymbolId, SymbolId, Span)> = HashSet::new();
         let mut placed = Vec::new();
         for (document, file) in covered {
+            self.locals = self.locals_of(document, *file);
             for occurrence in &document.occurrences {
+                if self.heads.contains(&(*file, occurrence.range.start())) {
+                    self.count(Count::Ignored);
+                    continue;
+                }
                 let references = if occurrence.is_definition() {
                     self.place_override(*file, occurrence)
                 } else {
@@ -630,6 +719,7 @@ pub fn import_references(
     let covered_files: HashSet<FileId> = covered.iter().map(|(_, file)| *file).collect();
     importer.stats.files_replaced = u64::try_from(covered_files.len()).unwrap_or(u64::MAX);
     importer.collect_definitions(&covered);
+    importer.collect_overload_heads(&covered);
     importer.link_impls();
     let level_one = LevelOne::new(snapshot.references, &covered_files);
     let fresh = importer.place_all(&covered, &level_one);

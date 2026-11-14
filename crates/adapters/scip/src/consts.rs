@@ -125,6 +125,8 @@ pub(crate) const MAX_SYMBOLS_PER_KEY: usize = 2;
 pub(crate) const MAX_PATH_DEPTH: usize = 8;
 /// The owner of a symbol that has none (a type is looked up without one).
 pub(crate) const NO_OWNER: &str = "";
+/// How scip-typescript prefixes the name of a getter and a setter; the project has one property.
+pub(crate) const ACCESSOR_PREFIXES: [&str; 2] = ["<get>", "<set>"];
 /// The first segment of a path that starts at the crate root.
 pub(crate) const ROOT_SEGMENT: &str = "crate";
 /// Segments of a path that are relative to the module of the block; they are not resolved.

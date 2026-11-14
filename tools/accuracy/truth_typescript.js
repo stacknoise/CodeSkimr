@@ -34,7 +34,12 @@ const out = targets.map((t) => {
   const lines = text.split("\n");
   let offset = 0;
   for (let i = 0; i < t.line - 1; i++) offset += lines[i].length + 1;
-  const at = lines[t.line - 1].indexOf(t.name, t.column);
+  // A function written `const name = (...) => ...` starts behind its name: the name is the
+  // identifier in front of the `=` that ends right before the symbol's start.
+  const before = lines[t.line - 1].slice(0, t.column);
+  const escaped = t.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const named = new RegExp(`(?:^|[^\\w$])(${escaped})\\s*(?::[^=]*)?=\\s*$`).exec(before);
+  const at = named ? named.index + named[0].indexOf(t.name) : lines[t.line - 1].indexOf(t.name, t.column);
   const position = offset + (at >= 0 ? at : lines[t.line - 1].indexOf(t.name));
   const uses = new Set();
   for (const group of service.findReferences(file, position) || []) {
