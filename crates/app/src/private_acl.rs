@@ -3,13 +3,15 @@
 //! Unix gives the folder mode 0700. Windows has no such mode: a folder gets the rules of its
 //! parent, and below a drive root (a data folder on `D:\`) these usually let every signed-in user
 //! read it. So the rules inherited from the parent are dropped and only the account of the user is
-//! granted access. Files created in the folder inherit that rule.
+//! granted access. Files created in the folder inherit that rule. A folder that someone else has
+//! created beforehand keeps its owner and the explicit entries of that owner; the rules cannot
+//! take those away (known limit, see ADR 0041).
 
 use std::ffi::OsString;
 use std::path::Path;
 
 #[cfg(windows)]
-use crate::consts::ACL_TOOL;
+use crate::consts::{ACL_TOOL, ENV_SYSTEM_ROOT, SYSTEM_TOOLS_DIR};
 use crate::consts::{
     ACCOUNT_SEPARATOR, ACL_FULL_RULE, ACL_GRANT, ACL_NO_INHERIT, ACL_QUIET, ENV_USERDOMAIN,
     ENV_USERNAME,
@@ -48,7 +50,14 @@ pub(crate) fn restrict_to_user(dir: &Path) -> std::io::Result<()> {
 
     let account = account(|name| std::env::var(name).ok())
         .ok_or_else(|| std::io::Error::from(std::io::ErrorKind::NotFound))?;
-    let status = Command::new(ACL_TOOL)
+    // The tool is taken from the system folder, not from a search along the path, so that no
+    // program of that name in the current folder or the path can stand in for it.
+    let root = std::env::var_os(ENV_SYSTEM_ROOT)
+        .ok_or_else(|| std::io::Error::from(std::io::ErrorKind::NotFound))?;
+    let tool = std::path::Path::new(&root)
+        .join(SYSTEM_TOOLS_DIR)
+        .join(ACL_TOOL);
+    let status = Command::new(tool)
         .args(arguments(dir, &account))
         .stdin(Stdio::null())
         .stdout(Stdio::null())

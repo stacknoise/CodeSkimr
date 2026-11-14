@@ -211,7 +211,13 @@ pub const LAUNCH_DIR_MODE: u32 = 0o700;
 pub const OTHERS_MODE_MASK: u32 = 0o077;
 /// The Windows tool that sets access rules.
 #[cfg(windows)]
-pub const ACL_TOOL: &str = "icacls";
+pub const ACL_TOOL: &str = "icacls.exe";
+/// Environment variable with the Windows folder, below which the tool is looked for.
+#[cfg(windows)]
+pub const ENV_SYSTEM_ROOT: &str = "SYSTEMROOT";
+/// Folder of the system programs below the Windows folder.
+#[cfg(windows)]
+pub const SYSTEM_TOOLS_DIR: &str = "System32";
 /// `icacls` option: drop the rules the folder inherits (from a drive root they may give others access).
 #[cfg(any(windows, test))]
 pub const ACL_NO_INHERIT: &str = "/inheritance:r";
