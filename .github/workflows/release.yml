@@ -1,5 +1,6 @@
 # Release workflow (preview releases, docs/release.md). Started by hand: Actions -> Release -> Run workflow.
-# It creates a DRAFT pre-release, then builds the UI and the program on Linux and Windows and adds the packages.
+# It creates a DRAFT pre-release, then builds the UI and the program on Linux, Windows and macOS, adds the packages and
+# then installs each package on a clean runner of its own system (clean-install probe).
 # Nothing is public until the product owner publishes the draft.
 name: Release
 
@@ -60,6 +61,8 @@ jobs:
             platform: linux-x86_64
           - os: windows-latest
             platform: windows-x86_64
+          - os: macos-latest
+            platform: macos-aarch64
     defaults:
       run:
         shell: bash
@@ -95,3 +98,51 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
         run: gh release upload "v${VERSION}" dist/codeskimr-* --repo "$GITHUB_REPOSITORY"
+
+  # Clean-install probe: a fresh runner per system downloads the package from the draft like a user would,
+  # checks the checksum, unpacks it into an empty folder and runs it from there (tools/release/verify.sh).
+  verify:
+    name: clean install (${{ matrix.platform }})
+    needs: package
+    permissions:
+      contents: write # a draft release is only visible to a token with write access
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+            extension: tar.gz
+          - os: windows-latest
+            platform: windows-x86_64
+            extension: zip
+          - os: macos-latest
+            platform: macos-aarch64
+            extension: tar.gz
+    defaults:
+      run:
+        shell: bash
+    steps:
+      # Only the script is taken from the repository; no Rust toolchain, no source of the program is used.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: tools/release
+      - name: Download the package from the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          PLATFORM: ${{ matrix.platform }}
+          EXTENSION: ${{ matrix.extension }}
+        run: |
+          mkdir download
+          gh release download "v${VERSION}" --repo "$GITHUB_REPOSITORY" --dir download \
+            --pattern "codeskimr-${VERSION}-${PLATFORM}.${EXTENSION}*"
+      - name: Verify and run from an empty folder
+        env:
+          VERSION: ${{ inputs.version }}
+          PLATFORM: ${{ matrix.platform }}
+          EXTENSION: ${{ matrix.extension }}
+        run: tools/release/verify.sh "download/codeskimr-${VERSION}-${PLATFORM}.${EXTENSION}" "$VERSION"

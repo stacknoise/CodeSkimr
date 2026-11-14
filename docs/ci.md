@@ -13,7 +13,7 @@ These names must be entered as required status checks in the ruleset `main` (nam
 | `fmt` | `cargo fmt --check`, `prettier --check` once `web/` exists | 17.3 (1) |
 | `clippy` | clippy with workspace lints, warnings are errors | 17.3 (2) |
 | `test` | `cargo test --workspace` | 17.3 (8) |
-| `deps` | `cargo audit`, `cargo deny` (`deny.toml`), `cargo machete`, and a check that `http-client-insecure-credentials` (plain-HTTP logins, only for the login tests) is not in the product's feature tree | 17.3 (10), S-03 |
+| `deps` | `cargo audit`, `cargo deny` (`deny.toml`), `cargo machete`, and a check that `http-client-insecure-credentials` (plain-HTTP logins, only for the login tests) is not in the product's feature tree; audit, deny and machete also run for the lock files of `tools/accuracy/import_scip` (strict) and `tools/lints/no_literals` (with exactly one ignored advisory, RUSTSEC-2024-0436: `paste` is unmaintained, comes from dylint and has no fix; remove the ignore once dylint drops it; issue #243) | 17.3 (10), S-03 |
 | `build (ubuntu-latest)` | release build | 17.3 (11) |
 | `build (windows-latest)` | release build | 17.3 (11) |
 | `build (macos-latest)` | release build | 17.3 (11) |
@@ -24,12 +24,6 @@ These names must be entered as required status checks in the ruleset `main` (nam
 | `codegen` | regenerates the error code artifacts and fails on any diff; i18n keys, tokens and OpenAPI client follow | 17.3 (6) |
 | `bench` | criterion benchmarks of `tools/bench` for the base commit and the change on the same runner; fails on a slowdown above the tolerance or a budget breach (`docs/benchmarks.md`) | 16.1 |
 | `e2e` | placeholder until the frontend project (`web/package.json`) exists | 17.3 |
-
-## Temporary exception: macOS build
-
-Since 2026-11-13 the job `build (macos-latest)` has `continue-on-error: true` and the macOS build has `timeout-minutes: 20` (other build jobs 60), because the macOS runners were not available reliably and blocked all pull requests.
-A failed or timed-out macOS build now reports success to the ruleset, so the required check no longer blocks. This is a temporary exception to blueprint 17.3 (11), tracked in issue #131; the exception must be removed again (delete the `continue-on-error` line and this section).
-Limit: a job that never gets a runner stays `queued`, and `timeout-minutes` only starts once a runner picks it up. In that case the check stays pending and only a change of the ruleset (untick `build (macos-latest)` under required checks) helps.
 
 The placeholder `e2e` passes with a clearly printed "NOT ACTIVE YET" notice.
 As soon as `web/package.json` appears, the job fails on purpose until it is wired up, so a placeholder cannot be forgotten.
