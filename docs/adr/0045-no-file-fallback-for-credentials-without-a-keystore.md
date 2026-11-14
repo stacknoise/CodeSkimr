@@ -1,4 +1,4 @@
-# 0042 – No file fallback for credentials without an operating system keystore
+# 0045 – No file fallback for credentials without an operating system keystore
 
 Status: proposed
 

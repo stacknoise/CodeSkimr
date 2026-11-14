@@ -1,4 +1,4 @@
-# 0041 – A denied command and an unknown command answer alike
+# 0044 – A denied command and an unknown command answer alike
 
 Status: proposed
 
