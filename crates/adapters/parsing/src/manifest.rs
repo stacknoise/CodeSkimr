@@ -8,6 +8,7 @@ use serde::Deserialize;
 
 use crate::consts::{MANIFEST_FILE, TIER_BASIC, TIER_FULL};
 use crate::error::ParsingError;
+use crate::indexer::IndexerManifest;
 
 /// How much a language pack delivers (blueprint 8.2).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -153,6 +154,10 @@ pub struct PackManifest {
     /// Visibility rules.
     #[serde(default)]
     pub visibility: VisibilityRules,
+    /// The indexer that gives level 2 references (ADR 0033); without it the language stays on
+    /// level 1.
+    #[serde(default)]
+    pub indexer: Option<IndexerManifest>,
 }
 
 impl PackManifest {

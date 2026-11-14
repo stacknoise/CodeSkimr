@@ -189,6 +189,10 @@ pub const PERMISSION_MANAGE: &str = "manage";
 pub const PERMISSION_REGISTER_PROJECT: &str = "register_project";
 /// Label of `Permission::Admin`.
 pub const PERMISSION_ADMIN: &str = "admin";
+/// Label of `Permission::ConfirmIndexer`.
+pub const PERMISSION_CONFIRM_INDEXER: &str = "confirm_indexer";
+/// Label of `Permission::RunIndexer`.
+pub const PERMISSION_RUN_INDEXER: &str = "run_indexer";
 
 /// Whole percent of a share of 1.0, for integer percent arithmetic.
 pub const PERCENT_BASE: usize = 100;

@@ -39,3 +39,14 @@ pub const DONE_STEP: u32 = 1;
 /// Ids reserved for the file and symbols of one analysed file. A file that needs more fails the
 /// scan instead of taking ids of its neighbour.
 pub const FILE_ID_BLOCK: u64 = 1 << 24;
+
+/// Bytes in one mebibyte, for the memory limit of an indexer.
+pub const BYTES_PER_MIB: u64 = 1024 * 1024;
+/// Separates the numbers of a tool version.
+pub const VERSION_SEPARATOR: char = '.';
+/// Characters that surround a version in the output of a tool, such as `v20.11.0` or `"17.0.9"`.
+pub const VERSION_DECORATION: &[char] = &['"', '\'', 'v', 'V', '(', ')', ',', ';'];
+/// Placeholder of an indexer argument for the project root.
+pub const PLACEHOLDER_PROJECT: &str = "{project}";
+/// Placeholder of an indexer argument for the index file the indexer writes.
+pub const PLACEHOLDER_OUTPUT: &str = "{output}";

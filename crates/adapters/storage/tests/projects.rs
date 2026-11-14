@@ -107,3 +107,27 @@ fn next_project_id_follows_the_highest_registered_id() {
     store.save_project(&project(4, "/work/app", &[])).unwrap();
     assert_eq!(store.next_project_id().unwrap(), ProjectId::new(5));
 }
+
+#[test]
+fn consent_for_level_2_starts_empty_round_trips_and_goes_with_the_project() {
+    use codeskimr_application::level2::{ConsentRecord, ConsentStore};
+
+    let store = store(3);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    assert_eq!(store.consent(PROJECT).unwrap(), ConsentRecord::default());
+    let confirmed = ConsentRecord {
+        enabled: true,
+        confirmed: true,
+    };
+    store.store_consent(PROJECT, confirmed).unwrap();
+    assert_eq!(store.consent(PROJECT).unwrap(), confirmed);
+    // A second project does not share it.
+    assert_eq!(
+        store.consent(ProjectId::new(2)).unwrap(),
+        ConsentRecord::default()
+    );
+    store
+        .store_consent(PROJECT, ConsentRecord::default())
+        .unwrap();
+    assert_eq!(store.consent(PROJECT).unwrap(), ConsentRecord::default());
+}

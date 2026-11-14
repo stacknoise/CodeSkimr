@@ -274,3 +274,11 @@ pub const MEMBER_ROWS: &str = "SELECT s.id, s.name, s.kind, s.visibility, s.sign
     COALESCE((SELECT u.usages FROM usage_counts u WHERE u.snapshot_id = s.snapshot_id \
         AND u.symbol_id = s.id), 0) \
     FROM symbols s WHERE s.snapshot_id = ?1 AND s.parent_id = ?2 ORDER BY s.start_line, s.start_column, s.id";
+
+/// The consent of a project: project id; yields enabled and confirmed.
+pub const CONSENT_BY_PROJECT: &str =
+    "SELECT enabled, confirmed FROM level2_consent WHERE project_id = ?1";
+/// Replaces the consent of a project: project id, enabled, confirmed.
+pub const CONSENT_UPSERT: &str = "INSERT INTO level2_consent (project_id, enabled, confirmed) \
+    VALUES (?1, ?2, ?3) \
+    ON CONFLICT (project_id) DO UPDATE SET enabled = excluded.enabled, confirmed = excluded.confirmed";

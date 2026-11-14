@@ -42,13 +42,14 @@ impl Config {
         let defaults = parse_defaults()?;
         let mut merged = defaults.clone();
         for layer in layers {
-            if let Some(key) = layer::find_unknown_key(layer.table(), &defaults, NO_PREFIX) {
+            let table = trusted_table(layer);
+            if let Some(key) = layer::find_unknown_key(&table, &defaults, NO_PREFIX) {
                 return Err(ConfigError::UnknownKey {
                     source_layer: layer.source(),
                     key,
                 });
             }
-            layer::deep_merge(&mut merged, layer.table());
+            layer::deep_merge(&mut merged, &table);
         }
         let config: Self = Value::Table(merged)
             .try_into()
@@ -65,6 +66,17 @@ impl Config {
     pub fn project_layers(&self) -> Vec<codeskimr_domain::Layer> {
         self.layers.iter().filter_map(LayerRule::to_layer).collect()
     }
+}
+
+/// What of a layer counts. The project file may not touch `level2` (ADR 0033, decision 9): a
+/// scanned repository must not switch on running its own build scripts or raise the limits, so the
+/// table is dropped before anything is checked or merged.
+fn trusted_table(layer: &ConfigLayer) -> Table {
+    let mut table = layer.table().clone();
+    if layer.source() == LayerSource::Project {
+        table.remove(consts::UNTRUSTED_PROJECT_TABLE);
+    }
+    table
 }
 
 fn parse_defaults() -> Result<Table, ConfigError> {

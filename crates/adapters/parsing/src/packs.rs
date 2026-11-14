@@ -6,10 +6,12 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use std::thread;
 
+use codeskimr_application::ports::IndexerSpec;
 use codeskimr_domain::LanguageId;
 
 use crate::consts::{ID_MISMATCH, LOAD_PANICKED, MANIFEST_FILE};
 use crate::error::ParsingError;
+use crate::indexer::IndexerManifest;
 use crate::manifest::{PackManifest, Tier};
 use crate::pack::LanguagePack;
 
@@ -20,6 +22,7 @@ pub struct PackSummary {
     id: LanguageId,
     tier: Tier,
     extensions: Vec<String>,
+    indexer: Option<IndexerSpec>,
 }
 
 impl PackSummary {
@@ -33,6 +36,12 @@ impl PackSummary {
     #[must_use]
     pub const fn tier(&self) -> Tier {
         self.tier
+    }
+
+    /// How level 2 runs the indexer of this language, if the pack names one.
+    #[must_use]
+    pub const fn indexer(&self) -> Option<&IndexerSpec> {
+        self.indexer.as_ref()
     }
 
     /// File extensions the pack claims, without the dot.
@@ -57,11 +66,18 @@ impl Slot {
             let reason = [ID_MISMATCH, manifest.id.as_str()].concat();
             return Err(ParsingError::invalid(folder(&dir), reason));
         }
+        let indexer = manifest
+            .indexer
+            .as_ref()
+            .map(IndexerManifest::spec)
+            .transpose()
+            .map_err(|reason| ParsingError::invalid(folder(&dir), reason))?;
         let summary = PackSummary {
             id: LanguageId::new(manifest.id)
                 .map_err(|e| ParsingError::invalid(folder(&dir), e.to_string()))?,
             tier: manifest.tier,
             extensions: manifest.extensions,
+            indexer,
         };
         let slot = Self {
             summary,

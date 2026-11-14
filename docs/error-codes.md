@@ -64,14 +64,19 @@ Owner: `codeskimr_parsing`
 
 ## RES – Reference resolution
 
-Owner: `codeskimr_parsing`
+Owner: `codeskimr_parsing, codeskimr_scip, codeskimr_indexer`
 
 | Code | Name | Severity | Retryable | Since | Description |
 |---|---|---|---|---|---|
 | RES-101 | `scip_index_invalid` | error | no | 0.1.0 | A SCIP index cannot be read, is corrupt or names a path outside the project; level 1 references stay. |
+| RES-201 | `indexer_unavailable` | error | no | 0.1.0 | The indexer of a language or its toolchain is not installed or is older than the version the language pack requires; level 1 references stay. |
 | RES-301 | `ambiguous_reference` | warning | no | 0.1.0 | A reference matches several symbols; it was stored as probable. |
 | RES-302 | `scip_mapping_too_low` | error | no | 0.1.0 | Too few occurrences of a SCIP index map onto project symbols; level 1 references stay. |
 | RES-501 | `scip_index_too_large` | error | no | 0.1.0 | A SCIP index is larger than the configured limit and was refused; level 1 references stay. |
+| RES-502 | `indexer_timeout` | error | no | 0.1.0 | An indexer ran longer than level2.timeout_seconds and was stopped with all its child processes; level 1 references stay. |
+| RES-503 | `indexer_output_too_large` | error | no | 0.1.0 | An indexer wrote more than level2.max_output_bytes and was stopped; level 1 references stay. |
+| RES-504 | `indexer_memory_limit` | error | no | 0.1.0 | An indexer used more memory than level2.max_memory_mb and was stopped; level 1 references stay. |
+| RES-601 | `indexer_failed` | error | no | 0.1.0 | An indexer could not be started or ended with an error; level 1 references stay. |
 
 ## IDX – Search and read models
 
@@ -95,14 +100,16 @@ Owner: `codeskimr_storage`
 
 ## SEC – Credentials and security
 
-Owner: `codeskimr_secrets`
+Owner: `codeskimr_secrets, codeskimr_application`
 
 | Code | Name | Severity | Retryable | Since | Description |
 |---|---|---|---|---|---|
 | SEC-201 | `credential_not_found` | error | no | 0.1.0 | The referenced credential does not exist in the keystore. |
 | SEC-202 | `credential_damaged` | error | no | 0.1.0 | The keystore entry of the credential cannot be read; delete it and create the credential again. |
+| SEC-301 | `indexer_not_confirmed` | error | no | 0.1.0 | Level 2 is not enabled and confirmed for this project in the user configuration or the user's own project record, so no indexer is started. |
 | SEC-401 | `credential_rejected` | error | no | 0.1.0 | The platform rejected the credential. |
 | SEC-402 | `keystore_access_denied` | error | no | 0.1.0 | The OS keystore denied access. |
+| SEC-403 | `indexer_not_permitted` | error | no | 0.1.0 | The caller may not confirm or start indexers; only the local owner may (ADR 0033, decision 10). |
 | SEC-601 | `keystore_unavailable` | error | no | 0.1.0 | The OS keystore service is not available. |
 | SEC-901 | `memory_lock_failed` | error | no | 0.1.0 | Locking secret memory against swapping failed. |
 

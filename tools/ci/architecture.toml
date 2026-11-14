@@ -17,6 +17,8 @@ codeskimr_source = ["codeskimr_application", "codeskimr_domain", "codeskimr_code
 codeskimr_i18n = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes", "codeskimr_codegen"]
 # Level 2 import of SCIP indexes (ADR 0033): pure mapping over domain types, no other adapter.
 codeskimr_scip = ["codeskimr_domain", "codeskimr_codes"]
+# Starts the indexers of level 2 (ADR 0033): runs processes under limits, no other adapter.
+codeskimr_indexer = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes"]
 codeskimr_secrets = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes"]
 codeskimr_server = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes", "codeskimr_i18n"]
 codeskimr_cli = ["codeskimr_application", "codeskimr_domain", "codeskimr_codes", "codeskimr_i18n"]

@@ -71,3 +71,22 @@ visibility = "private"
 [[visibility.name_rules]]
 prefix = "_"
 visibility = "internal"
+
+# Level 2 (ADR 0033): scip-python (Pyright) indexes the Python files of the project folder.
+# Only runs when the user enabled and confirmed level 2 for the project. CodeSkimr never downloads or
+# installs anything: the user installs the indexer and its toolchain.
+[indexer]
+name = "scip-python"
+install_hint = "npm install --global @sourcegraph/scip-python (needs Node.js and the Python environment of the project)"
+args = ["index", "{project}", "--output", "{output}"]
+env_allow = ["NODE_PATH", "NVM_DIR", "VOLTA_HOME", "FNM_DIR", "VIRTUAL_ENV", "PYTHONHOME", "CONDA_PREFIX"]
+
+[indexer.tool]
+program = "scip-python"
+version_args = ["--version"]
+min_version = "0.6.0"
+
+[[indexer.toolchain]]
+program = "node"
+version_args = ["--version"]
+min_version = "18.0.0"
