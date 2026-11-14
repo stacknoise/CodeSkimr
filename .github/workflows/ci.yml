@@ -125,6 +125,12 @@ jobs:
         run: cargo audit --deny warnings
       - name: cargo deny
         run: cargo deny --locked check
+      # The lint lives in its own Cargo workspace (about 120 packages), which the two checks above do
+      # not see. It runs in CI with the same rules (issue #25).
+      - name: cargo audit (lint workspace)
+        run: cargo audit --file tools/lints/no_literals/Cargo.lock --deny warnings --ignore RUSTSEC-2024-0436
+      - name: cargo deny (lint workspace)
+        run: cargo deny --locked --manifest-path tools/lints/no_literals/Cargo.toml --config deny.toml check
       # Section 16: lean dependencies, no unused ones.
       - name: cargo machete
         run: cargo machete
@@ -229,6 +235,18 @@ jobs:
           workspaces: |
             .
             tools/lints/no_literals
+      # The lint must not be silenced (CLAUDE.md rule 5, issue #25): the name may only appear inside
+      # its own folder. This also catches `cfg_attr`, multi-line attributes, `[lints]` tables and flags.
+      - name: no_literals is not silenced
+        run: |
+          # git grep: 0 = found, 1 = nothing found, anything else = the search itself failed.
+          status=0
+          git grep -n 'no_literals' -- '*.rs' '*Cargo.toml' '.cargo' ':!tools/lints/no_literals' || status=$?
+          if [ "$status" -eq 0 ]; then
+            echo "::error::no_literals is named outside tools/lints/no_literals; silencing the lint is not allowed"
+            exit 1
+          fi
+          test "$status" -eq 1
       - name: Install cargo-dylint
         working-directory: tools/lints/no_literals
         run: cargo install --locked cargo-dylint@6.4.0 dylint-link@6.4.0
