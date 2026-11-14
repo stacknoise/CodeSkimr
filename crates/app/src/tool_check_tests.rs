@@ -88,7 +88,7 @@ impl World {
             &GlobalOptions::default(),
             &self.locations,
             (EventBus::new(), secrets()),
-            Some(machine()),
+            (Some(machine()), crate::running::RunningScans::default()),
         )
         .unwrap();
         Arc::new(api)
@@ -312,7 +312,7 @@ fn the_mcp_tool_get_project_names_the_missing_tool_and_how_to_install_it() {
             &config,
             &world.locations,
             (parts.events.clone(), &secrets()),
-            Some(machine()),
+            (Some(machine()), crate::running::RunningScans::default()),
         )
         .unwrap(),
     );

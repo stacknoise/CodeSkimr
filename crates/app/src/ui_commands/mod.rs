@@ -14,7 +14,6 @@ mod graph;
 mod graph_types;
 mod projects;
 mod rating;
-mod running;
 mod search;
 mod source;
 mod status;
@@ -40,6 +39,7 @@ pub(crate) use status::{mark_ready, mark_started};
 
 use crate::config_files;
 use crate::locations::Locations;
+use crate::running::RunningScans;
 use crate::wiring::{Secrets, index_runner, open_store, tool_checker};
 use codeskimr_storage::SqliteStore;
 use credentials::{DeleteCredential, ListCredentials, SetCredential};
@@ -47,7 +47,6 @@ use explorer::{ExplorerOutline, ExplorerPorts};
 pub(crate) use export::{ExportInput, HtmlExport};
 use graph::{GraphLayers, GraphPorts};
 use projects::{AddProject, CancelScan, CheckTools, ListProjects, RescanProject};
-use running::RunningScans;
 use search::{SearchPorts, SearchQuery};
 use source::ExplorerSource;
 use status::{BudgetTargets, StatusInfo};
@@ -98,13 +97,19 @@ impl Context {
 /// # Errors
 /// A coded failure of the configuration or of opening the database; `APP-901` if the wiring is
 /// wrong (a command registered twice).
+#[cfg(test)]
 pub fn command_api(
     global: &GlobalOptions,
     locations: &Locations,
     events: EventBus,
     secrets: Arc<Secrets>,
 ) -> Result<CommandApi, CodedError> {
-    command_api_probing(global, locations, (events, secrets), None)
+    command_api_probing(
+        global,
+        locations,
+        (events, secrets),
+        (None, RunningScans::default()),
+    )
 }
 
 /// Like [`command_api`], but the tools are started through `runner` instead of as real processes
@@ -116,7 +121,7 @@ pub fn command_api_probing(
     global: &GlobalOptions,
     locations: &Locations,
     (events, secrets): (EventBus, Arc<Secrets>),
-    runner: Option<Arc<dyn IndexRunner>>,
+    (runner, running): (Option<Arc<dyn IndexRunner>>, RunningScans),
 ) -> Result<CommandApi, CodedError> {
     let config = config_files::load(locations, global, None)?;
     let catalog = open_store(locations, &config)?;
@@ -128,7 +133,7 @@ pub fn command_api_probing(
         events,
         secrets,
         tools: tools.clone(),
-        running: RunningScans::default(),
+        running,
         registration: Mutex::new(()),
         tiers: OnceLock::new(),
     });

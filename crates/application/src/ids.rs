@@ -31,6 +31,12 @@ impl IdSequence {
         self.next.fetch_add(count, Ordering::Relaxed)
     }
 
+    /// Makes sure no id below `first` is handed out any more; a sequence that is already above
+    /// it stays as it is. Shared sequences use this to catch up with what the store holds.
+    pub fn advance_to(&self, first: u64) {
+        self.next.fetch_max(first, Ordering::Relaxed);
+    }
+
     /// The next id this sequence would hand out; the difference to the first id is the number of
     /// ids handed out so far.
     #[must_use]
@@ -60,5 +66,19 @@ impl IdSequence {
     #[must_use]
     pub fn reference(&self) -> ReferenceId {
         ReferenceId::new(self.take())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn advance_to_only_moves_forward() {
+        let ids = IdSequence::starting_at(10);
+        ids.advance_to(5);
+        assert_eq!(ids.file().get(), 10);
+        ids.advance_to(50);
+        assert_eq!(ids.file().get(), 50);
     }
 }

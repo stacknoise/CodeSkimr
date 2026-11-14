@@ -2,8 +2,10 @@
 //!
 //! This is the only place that knows concrete adapter types (blueprint 4.1).
 
+use std::collections::BTreeMap;
 use std::num::NonZeroU32;
-use std::sync::Arc;
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 use std::time::Duration;
 
 use codeskimr_application::config::Config;
@@ -87,17 +89,16 @@ pub fn open_store(locations: &Locations, config: &Config) -> Result<Arc<SqliteSt
 pub fn build_scanner(
     store: &Arc<SqliteStore>,
     config: &Config,
-    locations: &Locations,
-    events: EventBus,
-    secrets: &Arc<Secrets>,
+    (locations, analysis): (&Locations, Analysis),
+    (events, secrets): (EventBus, &Arc<Secrets>),
 ) -> Result<Scanner, CodedError> {
     let Analysis {
         discovery,
         analyzer,
         indexers,
         ..
-    } = build_analysis(config, locations)?;
-    let ids = Arc::new(IdSequence::starting_at(store.next_free_id()?));
+    } = analysis;
+    let ids = shared_ids(locations.database(), store.next_free_id()?);
     let pass = Level2Pass {
         runner: index_runner(locations),
         importer: Arc::new(ScipImporter::new(Arc::new(FolderText))),
@@ -156,8 +157,27 @@ pub fn tool_checker(
     })))
 }
 
+/// The id sequence of the database file in this process. Scans of different projects run at the
+/// same time (the UI, MCP `rescan`), and each one reads the highest stored id when it starts,
+/// which is too early for ids another scan has reserved but not stored yet. One sequence per
+/// database, moved up to the store at every start, keeps them apart. (A scan in another process
+/// stays uncoordinated.)
+fn shared_ids(database: PathBuf, first_free: u64) -> Arc<IdSequence> {
+    static IDS: OnceLock<Mutex<BTreeMap<PathBuf, Arc<IdSequence>>>> = OnceLock::new();
+    let mut all = IDS
+        .get_or_init(Mutex::default)
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner);
+    let ids = all
+        .entry(database)
+        .or_insert_with(|| Arc::new(IdSequence::starting_at(first_free)));
+    ids.advance_to(first_free);
+    Arc::clone(ids)
+}
+
 /// The two ports that read code: walking the files and analysing one of them. The scan and the
 /// convention check use the same pair, so both see the same files.
+#[derive(Clone)]
 pub struct Analysis {
     /// Walks the folder.
     pub discovery: Arc<dyn FileDiscovery>,

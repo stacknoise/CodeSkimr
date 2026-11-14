@@ -585,7 +585,7 @@ id = "MCP-501"
 name = "response_limit_exceeded"
 severity = "info"
 retryable = false
-description = "The result was truncated to the configured limit."
+description = "The result was truncated to the configured limit: its size, or for usages the requested depth (parameter depth)."
 since = "0.1.0"
 
 [[codes]]
