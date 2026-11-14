@@ -234,6 +234,7 @@ fn register_search(registry: &mut Registry, store: &Arc<SqliteStore>) -> Result<
     let ports = Arc::new(SearchPorts {
         projects: store.clone(),
         index: store.clone(),
+        catalog: store.clone(),
     });
     registry
         .register(SearchQuery { ports })

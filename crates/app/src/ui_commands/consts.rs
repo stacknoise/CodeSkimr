@@ -47,6 +47,10 @@ pub const GRAPH_DESCRIPTION: &str = i18n::COMMAND_GRAPH_LAYERS_DESCRIPTION;
 pub const SEARCH_QUERY: &str = "search.query";
 /// Most hits the quick search returns.
 pub const SEARCH_LIMIT: u32 = 50;
+/// The fewest hits a project gets in a search over all projects.
+pub const SEARCH_MIN_SHARE: u32 = 5;
+/// The most files a search returns.
+pub const SEARCH_FILE_LIMIT: u32 = 10;
 /// Title key of `search.query`.
 pub const SEARCH_TITLE: &str = i18n::COMMAND_SEARCH_QUERY_TITLE;
 /// Description key of `search.query`.

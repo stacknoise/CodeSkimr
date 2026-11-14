@@ -464,6 +464,54 @@ fn the_search_finds_a_member_by_a_part_of_its_name_and_names_its_type() {
 }
 
 #[test]
+fn the_search_finds_the_files_whose_path_matches_and_names_their_first_type() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    let found = fixture
+        .call(
+            "search.query",
+            json!({ "project": project, "query": "calcu" }),
+        )
+        .unwrap();
+    let file = &found["files"][0];
+    assert_eq!(file["path"], "Calculator.cs");
+    assert_eq!(file["first_type"], type_id(&fixture, project));
+    assert!(file["loc"].as_u64().unwrap() > 0);
+    assert_eq!(file["project"], project);
+    let none = fixture
+        .call(
+            "search.query",
+            json!({ "project": project, "query": "zzz" }),
+        )
+        .unwrap();
+    assert_eq!(none["files"], json!([]));
+}
+
+#[test]
+fn a_search_over_all_projects_names_the_project_of_every_hit_and_skips_unscanned_ones() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    fixture.register_unscanned();
+    let found = fixture
+        .call(
+            "search.query",
+            json!({ "project": 0, "query": "add", "all_projects": true }),
+        )
+        .unwrap();
+    let hit = &found["hits"][0];
+    assert_eq!(hit["name"], "Add");
+    assert_eq!(hit["project"], project);
+    assert!(hit["project_name"].as_str().unwrap().len() > 0);
+    let own = fixture
+        .call(
+            "search.query",
+            json!({ "project": project, "query": "add" }),
+        )
+        .unwrap();
+    assert_eq!(own["hits"], found["hits"]);
+}
+
+#[test]
 fn the_search_of_a_project_without_a_scan_or_without_text_is_empty() {
     let fixture = Fixture::new();
     let project = fixture.register_unscanned();
@@ -472,7 +520,7 @@ fn the_search_of_a_project_without_a_scan_or_without_text_is_empty() {
         .unwrap();
     assert_eq!(
         found,
-        json!({ "snapshot": null, "entries": null, "hits": [] })
+        json!({ "snapshot": null, "entries": null, "hits": [], "files": [] })
     );
     let scanned = added(&fixture);
     let blank = fixture

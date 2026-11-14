@@ -9,7 +9,7 @@ use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, CodeIndex, CodeSpan, DependencyEdge, DependencyPage, DependencyQuery,
-    DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, ImpactPage, ImpactedSymbol,
+    DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, FileHit, ImpactPage, ImpactedSymbol,
     LanguageShare, MemberRef, PreviousIndex, ProjectCatalog, ProjectOverview, ProjectRepository,
     ProjectScanner, ProjectToolCheck, SearchHit, SimilarHit, SimilarQuery, SimilarityIndex,
     SnippetFingerprinter, SymbolDetail, SymbolKey, SymbolLabel, TypeFocus, UsageEntry, UsageIndex,
@@ -127,6 +127,15 @@ impl CodeIndex for FakeIndex {
             SymbolKey::Qualified(name) => name.as_str() == "App.Domain.Order",
         };
         Ok(found.then(detail))
+    }
+
+    fn search_files(
+        &self,
+        _snapshot: SnapshotId,
+        _query: &str,
+        _limit: u32,
+    ) -> Result<Vec<FileHit>, CodedError> {
+        Ok(Vec::new())
     }
 
     fn code_spans(

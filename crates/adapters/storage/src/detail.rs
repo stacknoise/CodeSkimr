@@ -2,7 +2,7 @@
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    CodeIndex, CodeSpan, MemberRef, SearchHit, SymbolDetail, SymbolKey, TypeFocus,
+    CodeIndex, CodeSpan, FileHit, MemberRef, SearchHit, SymbolDetail, SymbolKey, TypeFocus,
 };
 use codeskimr_domain::{
     FileId, LayerEdge, Metric, MetricValue, NamespaceGraph, ProjectId, QualifiedName, RelativePath,
@@ -199,6 +199,15 @@ fn code_spans(
 }
 
 impl CodeIndex for SqliteStore {
+    fn search_files(
+        &self,
+        snapshot: SnapshotId,
+        query: &str,
+        limit: u32,
+    ) -> Result<Vec<FileHit>, CodedError> {
+        Self::search_files(self, snapshot, query, limit)
+    }
+
     fn code_spans(
         &self,
         snapshot: SnapshotId,
