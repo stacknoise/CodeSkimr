@@ -23,6 +23,6 @@ mod store;
 
 pub use device_flow::{DeviceFlow, DeviceFlowError, Prompt};
 pub use keystore::{Keystore, OsKeystore};
-pub use memory::{LockedBytes, disable_core_dumps};
+pub use memory::{CoreDumps, LockedBytes, disable_core_dumps};
 pub use provider::Provider;
 pub use store::{KeystoreCredentials, OsCredentialStore};

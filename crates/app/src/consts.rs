@@ -1,5 +1,7 @@
 //! Fixed values of the composition root: environment variables, folder and file names.
 
+use std::time::Duration;
+
 /// Environment variable that sets the data folder.
 pub const ENV_DATA_DIR: &str = "CODESKIMR_DATA_DIR";
 /// Environment variable that sets the language pack folder.
@@ -32,6 +34,10 @@ pub const HOME_MACOS_PARTS: [&str; 2] = ["Library", "Application Support"];
 /// The `SQLite` database inside the data folder.
 pub const DATABASE_FILE: &str = "codeskimr.db";
 /// Empty file whose lock serialises the creation of the installation token.
+/// How long the first start waits for the token lock of another program.
+pub const TOKEN_LOCK_WAIT: Duration = Duration::from_secs(10);
+/// How often it looks at the lock while it waits.
+pub const TOKEN_LOCK_POLL: Duration = Duration::from_millis(50);
 pub const TOKEN_LOCK_FILE: &str = "token.lock";
 /// The folder of the Git clones inside the data folder.
 pub const GIT_CACHE_DIR: &str = "git";
@@ -173,6 +179,8 @@ pub const TOKEN_EXTRA_CHARS: [char; 3] = ['_', '-', '.'];
 pub const LINE_END: char = '\n';
 /// Escapes a quote inside a `Debug`-formatted text.
 pub const ESCAPE: char = '\\';
+/// Backslashes that escape each other: an even run does not escape the character behind it.
+pub const ESCAPE_PAIR: usize = 2;
 
 /// Name under which the installation token lives in the credential store (blueprint 12.2).
 pub const TOKEN_CREDENTIAL_ID: &str = "installation-token";

@@ -6,9 +6,9 @@
 use codeskimr_source::redact_credentials;
 
 use crate::consts::{
-    ARROW, BEARER_KEY, BLANKS, CALL_OPEN, ESCAPE, KEY_SEPARATORS, LINE_END, LINE_KEYS, PEM_BEGIN,
-    PEM_END, PEM_PRIVATE, QUOTES, REDACTED, TOKEN_EXTRA_CHARS, TOKEN_MIN_TAIL, TOKEN_PREFIXES,
-    VALUE_END, VALUE_KEYS,
+    ARROW, BEARER_KEY, BLANKS, CALL_OPEN, ESCAPE, ESCAPE_PAIR, KEY_SEPARATORS, LINE_END, LINE_KEYS,
+    PEM_BEGIN, PEM_END, PEM_PRIVATE, QUOTES, REDACTED, TOKEN_EXTRA_CHARS, TOKEN_MIN_TAIL,
+    TOKEN_PREFIXES, VALUE_END, VALUE_KEYS,
 };
 
 /// Where the value of a key ends and how the key is followed by it.
@@ -140,18 +140,18 @@ fn wrapped_content(value: &str) -> Option<&str> {
 
 /// Length of the value at the start of `value`.
 fn value_length(value: &str, opening: Option<Opening>, to_line_end: bool) -> usize {
-    let mut previous = None;
+    let mut backslashes = 0_usize;
     let mut end = |c: char| {
-        // In a plain quoted value `\"` belongs to the value; an escaped opening quote came from
-        // `Debug` output, whose closing quote is escaped the same way.
+        // In a plain quoted value a quote behind an odd number of backslashes belongs to the
+        // value (`\"`); behind an even number (`\\"`) the backslashes escape each other. An
+        // escaped opening quote came from `Debug` output, whose closing quote is escaped too.
+        let escaped = backslashes % ESCAPE_PAIR == 1;
         let ended = match opening {
-            Some(open) => {
-                (c == open.quote && (open.escaped || previous != Some(ESCAPE))) || c == LINE_END
-            }
+            Some(open) => (c == open.quote && (open.escaped || !escaped)) || c == LINE_END,
             None if to_line_end => c == LINE_END,
             None => c.is_whitespace() || VALUE_END.contains(&c),
         };
-        previous = Some(c);
+        backslashes = if c == ESCAPE { backslashes + 1 } else { 0 };
         ended
     };
     value.find(&mut end).unwrap_or(value.len())
@@ -333,6 +333,21 @@ mod tests {
         let output = redact(&format!(r#"{{"password": "ab\"{CANARY}", "x": 1}}"#));
         assert!(!output.contains(CANARY), "leaked: {output}");
         assert_eq!(output, r#"{"password": "[redacted]", "x": 1}"#);
+    }
+
+    #[test]
+    fn a_value_that_ends_in_a_backslash_ends_at_its_closing_quote() {
+        let output = redact(&format!(r#"{{"password": "{CANARY}\\", "x": 1}}"#));
+        assert_eq!(output, r#"{"password": "[redacted]", "x": 1}"#);
+    }
+
+    #[test]
+    fn scp_style_edge_cases_are_pinned() {
+        // Over-masking of a lookalike is accepted; `user:pw@host` has no path and stays.
+        assert_eq!(redact("at 12:30@host:path ok"), "at host:path ok");
+        assert_eq!(redact("see u:p@host ok"), "see u:p@host ok");
+        // The opening quote of a quoted address goes with the credentials.
+        assert_eq!(redact(r#""u:p@h:p""#.trim_matches('\\')), r#"h:p""#);
     }
 
     #[test]

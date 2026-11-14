@@ -133,12 +133,12 @@ async fn a_head_that_never_ends_closes_the_connection() {
     assert!(closed.is_some(), "the server gave up on the head");
 }
 
-#[tokio::test(start_paused = true)]
-async fn a_body_that_never_ends_is_answered_with_a_timeout_code() {
-    let server = start(owner()).await;
+/// The answer to a POST to `path` whose body stops after two bytes and never ends.
+#[cfg(test)]
+async fn answer_to_stalled_body(server: &Running, path: &str) -> String {
     let mut stream = TcpStream::connect(server.address).await.unwrap();
     let head = format!(
-        "POST /api/v1/commands/test.wipe HTTP/1.1\r\nHost: {}\r\nAuthorization: Bearer {TOKEN}\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{{\"",
+        "POST {path} HTTP/1.1\r\nHost: {}\r\nAuthorization: Bearer {TOKEN}\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{{\"",
         server.address
     );
     stream.write_all(head.as_bytes()).await.unwrap();
@@ -157,7 +157,13 @@ async fn a_body_that_never_ends_is_answered_with_a_timeout_code() {
     })
     .await;
     assert!(finished.is_ok());
-    let text = String::from_utf8_lossy(&answer);
+    String::from_utf8_lossy(&answer).into_owned()
+}
+
+#[tokio::test(start_paused = true)]
+async fn a_body_that_never_ends_is_answered_with_a_timeout_code() {
+    let server = start(owner()).await;
+    let text = answer_to_stalled_body(&server, "/api/v1/commands/test.wipe").await;
     assert!(text.starts_with("HTTP/1.1 408"), "{text}");
     assert!(text.contains("API-503"), "{text}");
     assert_eq!(server.wipes.load(std::sync::atomic::Ordering::SeqCst), 0);
@@ -193,28 +199,7 @@ async fn an_open_event_stream_does_not_hold_up_the_shutdown() {
 #[tokio::test(start_paused = true)]
 async fn an_mcp_body_that_never_ends_is_answered_with_a_timeout_code() {
     let server = common::start_mcp(owner()).await;
-    let mut stream = TcpStream::connect(server.address).await.unwrap();
-    let head = format!(
-        "POST /mcp HTTP/1.1\r\nHost: {}\r\nAuthorization: Bearer {TOKEN}\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{{\"",
-        server.address
-    );
-    stream.write_all(head.as_bytes()).await.unwrap();
-    let mut answer = Vec::new();
-    let finished = timeout(Duration::from_secs(120), async {
-        let mut buffer = [0_u8; 1024];
-        loop {
-            let read = stream.read(&mut buffer).await.unwrap_or_default();
-            answer.extend_from_slice(buffer.get(..read).unwrap_or_default());
-            if read == 0
-                || answer.windows(4).any(|part| part == b"\r\n\r\n") && answer.ends_with(b"}")
-            {
-                break;
-            }
-        }
-    })
-    .await;
-    assert!(finished.is_ok());
-    let text = String::from_utf8_lossy(&answer);
+    let text = answer_to_stalled_body(&server, "/mcp").await;
     assert!(text.starts_with("HTTP/1.1 408"), "{text}");
     assert!(text.contains("API-503"), "{text}");
 }
@@ -229,4 +214,36 @@ async fn an_mcp_body_without_the_token_is_not_read_at_all() {
     );
     let status = status_of(&mut stream, &head).await.unwrap();
     assert!(status.contains("401"), "{status}");
+}
+
+/// What the server answers to an MCP request that announces `length` bytes and sends `sent`, and
+/// then leaves if `leave` is set.
+#[cfg(test)]
+async fn mcp_answer(length: usize, sent: &str, leave: bool) -> String {
+    let server = common::start_mcp(owner()).await;
+    let mut stream = TcpStream::connect(server.address).await.unwrap();
+    let head = format!(
+        "POST /mcp HTTP/1.1\r\nHost: {}\r\nAuthorization: Bearer {TOKEN}\r\nContent-Type: application/json\r\nContent-Length: {length}\r\n\r\n{sent}",
+        server.address
+    );
+    stream.write_all(head.as_bytes()).await.unwrap();
+    if leave {
+        stream.shutdown().await.unwrap();
+    }
+    let mut answer = Vec::new();
+    let _ = timeout(Duration::from_secs(5), stream.read_to_end(&mut answer)).await;
+    String::from_utf8_lossy(&answer).into_owned()
+}
+
+#[tokio::test]
+async fn an_mcp_body_over_the_limit_is_too_large() {
+    let body = "x".repeat(1024 * 1024 + 1);
+    let text = mcp_answer(body.len(), &body, false).await;
+    assert!(text.starts_with("HTTP/1.1 413"), "{text}");
+}
+
+#[tokio::test]
+async fn an_mcp_client_that_leaves_in_the_middle_is_an_invalid_request_not_too_large() {
+    let text = mcp_answer(100, "{\"", true).await;
+    assert!(!text.contains("413"), "{text}");
 }
