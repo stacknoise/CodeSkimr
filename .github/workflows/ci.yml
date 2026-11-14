@@ -103,7 +103,7 @@ jobs:
           sudo apt-get install -y --no-install-recommends gnome-keyring dbus-x11
           dbus-run-session -- bash -c '
             set -euo pipefail
-            eval "$(printf 'ci-keyring\n' | gnome-keyring-daemon --daemonize --unlock --components=secrets)"
+            eval "$(echo ci-keyring | gnome-keyring-daemon --daemonize --unlock --components=secrets)"
             CODESKIMR_REAL_KEYSTORE=1 cargo test -p codeskimr_secrets --test os_keystore --locked
           '
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
