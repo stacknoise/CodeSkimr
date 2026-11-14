@@ -17,8 +17,8 @@ const ROW: ProjectRow = {
   types: 433,
   loc: 41_208,
   languages: [
-    { language: "csharp", files: 3, loc: 38_000, symbols: 10, tier: "full" },
-    { language: "xaml", files: 1, loc: 3_208, symbols: 10, tier: "full" },
+    { language: "csharp", files: 3, loc: 38_000, symbols: 10, parse_micros: null, tier: "full" },
+    { language: "xaml", files: 1, loc: 3_208, symbols: 10, parse_micros: null, tier: "full" },
   ],
   running: false,
 };

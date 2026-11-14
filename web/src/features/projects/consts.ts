@@ -6,6 +6,12 @@ export const COMMAND = {
   tools: "projects.tools",
 } as const;
 
+/** Ids of the credential commands (crates/app/src/ui_commands/consts.rs). */
+export const CREDENTIAL_COMMAND = {
+  list: "credentials.list",
+  set: "credentials.set",
+} as const;
+
 /** What the check found out about one tool, as the server names it. */
 export const TOOL_STATE = {
   ready: "ready",
@@ -19,6 +25,9 @@ export const TOOL_LANGUAGE_SEPARATOR = ", ";
 
 /** How often the list is read while a scan runs, in milliseconds. */
 export const POLL_MS = 1500;
+
+/** Key that sends a field. */
+export const ENTER_KEY = "Enter";
 
 /** Branch that the form starts with. */
 export const DEFAULT_BRANCH = "main";
@@ -70,6 +79,10 @@ export const TIME_UNITS: readonly [Intl.RelativeTimeFormatUnit, number][] = [
 export const MS_PER_SECOND = 1000;
 /** Decimals of a scan duration. */
 export const SECONDS_DECIMALS = 1;
+/** Microseconds in a second, for the parse time. */
+export const MICROS_PER_SECOND = 1_000_000;
+/** Decimals of the parse time in seconds. */
+export const PARSE_TIME_DECIMALS = 2;
 
 /** Prefix of the address of a dropped file or folder. */
 export const FILE_SCHEME = "file://";

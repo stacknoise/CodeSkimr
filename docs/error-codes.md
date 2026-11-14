@@ -37,6 +37,7 @@ Owner: `codeskimr_application`
 | PRJ-301 | `project_already_registered` | error | no | 0.1.0 | A project with the same source is already registered. |
 | PRJ-302 | `snapshot_in_progress` | error | no | 0.1.0 | A scan for this project is already running. |
 | PRJ-303 | `scan_cancelled` | info | yes | 0.1.0 | The scan was cancelled by the user; no snapshot was written. |
+| PRJ-501 | `too_many_scans` | error | yes | 0.1.0 | As many scans run at the same time as the server allows; try again when one has ended. |
 
 ## SRC – Sources: file system, Git, watcher
 

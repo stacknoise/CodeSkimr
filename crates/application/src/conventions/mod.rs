@@ -10,6 +10,7 @@ mod duplicates;
 mod length;
 mod model;
 mod selection;
+mod stored;
 
 pub use checker::ConventionChecker;
-pub use model::{CheckReport, CheckRequest, Detail, Finding, Location, Unchecked};
+pub use model::{CheckReport, CheckRequest, Detail, Finding, Location, StoredProject, Unchecked};

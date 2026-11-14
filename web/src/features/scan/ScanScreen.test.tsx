@@ -27,8 +27,8 @@ const ROW: ProjectRow = {
   types: 433,
   loc: 41_208,
   languages: [
-    { language: "csharp", files: 3000, loc: 38_000, symbols: 10, tier: "full" },
-    { language: "xaml", files: 12, loc: 3208, symbols: 10, tier: "full" },
+    { language: "csharp", files: 3000, loc: 38_000, symbols: 10, parse_micros: null, tier: "full" },
+    { language: "xaml", files: 12, loc: 3208, symbols: 10, parse_micros: null, tier: "full" },
   ],
   running: false,
 };
@@ -134,9 +134,23 @@ describe("ScanScreen", () => {
             branch: "main",
             commit: "e07c4a1b9d",
             languages: [
-              { language: "csharp", files: 3000, loc: 38_000, symbols: 9120, tier: "full" },
-              { language: "go", files: 12, loc: 3208, symbols: 212, tier: "basic" },
-              { language: "xaml", files: 4, loc: 80, symbols: 0, tier: null },
+              {
+                language: "csharp",
+                files: 3000,
+                loc: 38_000,
+                symbols: 9120,
+                parse_micros: 620_000,
+                tier: "full",
+              },
+              {
+                language: "go",
+                files: 12,
+                loc: 3208,
+                symbols: 212,
+                parse_micros: null,
+                tier: "basic",
+              },
+              { language: "xaml", files: 4, loc: 80, symbols: 0, parse_micros: null, tier: null },
             ],
           },
         ]),
@@ -152,6 +166,8 @@ describe("ScanScreen", () => {
     expect(within(table).getByText("full")).toBeInTheDocument();
     expect(within(table).getByText("basic")).toBeInTheDocument();
     expect(within(table).getByText("9,120")).toBeInTheDocument();
+    expect(within(table).getByText("Parse time")).toBeInTheDocument();
+    expect(within(table).getByText("0.62 s")).toBeInTheDocument();
     stop();
   });
 

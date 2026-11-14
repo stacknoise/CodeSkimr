@@ -6,16 +6,19 @@ mod tests {
 
     use codeskimr_application::cancel::CancelToken;
     use codeskimr_application::config::Conventions;
-    use codeskimr_application::conventions::{CheckRequest, ConventionChecker, Detail};
+    use codeskimr_application::conventions::{
+        CheckRequest, ConventionChecker, Detail, StoredProject,
+    };
     use codeskimr_application::error::CodedError;
     use codeskimr_application::ports::{
-        AnalyzeRequest, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, SymbolFingerprints,
+        AnalyzeRequest, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, SimilarHit,
+        SimilarQuery, SimilarityIndex, SymbolFingerprints,
     };
     use codeskimr_codes::{Coded, ErrorCode};
     use codeskimr_domain::{
         BodyCounts, ContentHash, FingerprintParams, FolderPath, LanguageId, Loc, Permission,
-        PermissionSet, Position, Principal, QualifiedName, RelativePath, SourceFile, Span, Symbol,
-        SymbolCounts, SymbolKind, SymbolName, TokenId, winnow,
+        PermissionSet, Position, Principal, QualifiedName, RelativePath, SnapshotId, SourceFile,
+        Span, Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName, TokenId, winnow,
     };
 
     /// What the fake analyser finds in a file: code lines and the seed of its token stream.
@@ -99,6 +102,22 @@ mod tests {
         })
     }
 
+    /// A body without code lines is an empty file: no function at all.
+    fn symbols_of(
+        body: &Body,
+        request: &AnalyzeRequest<'_>,
+        file: &SourceFile,
+    ) -> Result<Vec<Symbol>, CodedError> {
+        let mut symbols = Vec::new();
+        if body.loc > 0 {
+            symbols.push(function(request, file, (4, 40))?);
+        }
+        if body.inner {
+            symbols.push(function(request, file, (10, 12))?);
+        }
+        Ok(symbols)
+    }
+
     impl FileAnalyzer for Disk {
         fn analyze(&self, request: &AnalyzeRequest<'_>) -> Result<FileFacts, CodedError> {
             let path = request.file.path.as_str();
@@ -118,10 +137,7 @@ mod tests {
                 snapshot: request.snapshot,
                 language: request.file.language.clone(),
             };
-            let mut symbols = vec![function(request, &file, (4, 40))?];
-            if body.inner {
-                symbols.push(function(request, &file, (10, 12))?);
-            }
+            let symbols = symbols_of(body, request, &file)?;
             Ok(FileFacts {
                 fingerprints: symbols
                     .iter()
@@ -175,6 +191,7 @@ mod tests {
             principal: &principal,
             root: &root(),
             paths: &paths,
+            stored: None,
         })
     }
 
@@ -353,6 +370,135 @@ mod tests {
             })
             .collect();
         assert_eq!(found, [("b.rs", "a.rs"), ("c.rs", "a.rs")]);
+    }
+
+    /// A stored project that answers every query with the same hits.
+    struct Stored(Vec<SimilarHit>);
+
+    impl SimilarityIndex for Stored {
+        fn fingerprints_of(
+            &self,
+            _: SnapshotId,
+            _: SymbolId,
+        ) -> Result<Option<codeskimr_domain::Fingerprints>, CodedError> {
+            Ok(None)
+        }
+
+        fn similar(
+            &self,
+            _: SnapshotId,
+            _: &SimilarQuery<'_>,
+        ) -> Result<Vec<SimilarHit>, CodedError> {
+            Ok(self.0.clone())
+        }
+    }
+
+    fn hit(path: &str, percent: u32) -> SimilarHit {
+        SimilarHit {
+            symbol: SymbolId::new(9),
+            qualified_name: QualifiedName::new(format!("{path}::run")).expect("name"),
+            kind: SymbolKind::Function,
+            path: RelativePath::new(path).expect("path"),
+            span: Span::new(
+                Position { line: 0, column: 0 },
+                Position { line: 1, column: 0 },
+            )
+            .expect("span"),
+            percent,
+        }
+    }
+
+    fn duplicates_against(
+        stored: &Stored,
+        files: Vec<(&'static str, Body)>,
+    ) -> Vec<(String, String)> {
+        let checker = only(files);
+        let request = CheckRequest {
+            principal: &Principal::local_owner(),
+            root: &root(),
+            paths: &[],
+            stored: Some(StoredProject {
+                index: stored,
+                snapshot: SnapshotId::new(1),
+            }),
+        };
+        let report = checker.check(&request).expect("checked");
+        report
+            .findings
+            .iter()
+            .filter_map(|finding| match &finding.detail {
+                Detail::Duplicate { of, .. } => Some((
+                    finding.location.path.as_str().to_owned(),
+                    of.path.as_str().to_owned(),
+                )),
+                Detail::TooLong { .. } => None,
+            })
+            .collect()
+    }
+
+    fn short(seed: u32) -> Body {
+        Body {
+            loc: 5,
+            seed,
+            inner: false,
+        }
+    }
+
+    #[test]
+    fn a_copy_of_stored_code_outside_the_checked_files_is_found() {
+        let stored = Stored(vec![hit("old/x.rs", 91)]);
+        let found = duplicates_against(&stored, vec![("a.rs", short(0))]);
+        assert_eq!(found, [("a.rs".to_owned(), "old/x.rs".to_owned())]);
+    }
+
+    #[test]
+    fn stored_versions_of_checked_files_and_tests_are_no_originals() {
+        // The first hit is the older version of the file itself, the second one lies in a test
+        // folder; the third one counts.
+        let stored = Stored(vec![
+            hit("a.rs", 100),
+            hit("spec/t.rs", 99),
+            hit("lib/y.rs", 90),
+        ]);
+        let found = duplicates_against(&stored, vec![("a.rs", short(0))]);
+        assert_eq!(found, [("a.rs".to_owned(), "lib/y.rs".to_owned())]);
+        let none = duplicates_against(&Stored(vec![hit("a.rs", 100)]), vec![("a.rs", short(0))]);
+        assert_eq!(none, []);
+    }
+
+    #[test]
+    fn the_stored_version_of_a_checked_file_without_functions_is_no_original() {
+        // A function moved from empty-now.rs to a.rs: the stored copy lies in a checked file.
+        let stored = Stored(vec![hit("gone.rs", 100)]);
+        let found = duplicates_against(
+            &stored,
+            vec![
+                ("a.rs", short(0)),
+                (
+                    "gone.rs",
+                    Body {
+                        loc: 0,
+                        seed: 0,
+                        inner: false,
+                    },
+                ),
+            ],
+        );
+        assert_eq!(found, []);
+    }
+
+    #[test]
+    fn a_copy_inside_the_checked_files_is_not_reported_twice() {
+        let stored = Stored(vec![hit("old/x.rs", 91)]);
+        let found = duplicates_against(&stored, vec![("a.rs", short(0)), ("b.rs", short(0))]);
+        // b.rs copies a.rs (checked files first); a.rs copies the stored function.
+        assert_eq!(
+            found,
+            [
+                ("a.rs".to_owned(), "old/x.rs".to_owned()),
+                ("b.rs".to_owned(), "a.rs".to_owned())
+            ]
+        );
     }
 
     #[test]

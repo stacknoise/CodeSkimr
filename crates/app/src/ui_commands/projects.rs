@@ -53,6 +53,9 @@ pub struct LanguageRow {
     pub loc: u32,
     /// Number of symbols declared in its files.
     pub symbols: u32,
+    /// Microseconds the last full scan spent parsing the files of the language; `None` if not
+    /// recorded.
+    pub parse_micros: Option<u64>,
     /// `full` or `basic`, the tier of its language pack; `None` if no pack of that id is installed.
     pub tier: Option<&'static str>,
 }
@@ -103,6 +106,7 @@ fn language_row(share: &LanguageShare, context: &Context) -> LanguageRow {
         files: share.files,
         loc: share.loc,
         symbols: share.symbols,
+        parse_micros: share.parse_micros,
         tier: context.tier_of(share.language.as_str()),
     }
 }

@@ -1006,6 +1006,12 @@ fn an_incremental_scan_after_other_naming_rules_is_a_full_scan() -> Result<(), C
         assert_eq!(paths, ["a.rs", "b.rs"], "every file is analysed again");
         assert_eq!(job.snapshot().mode, ScanMode::Full);
         assert_eq!(persisted.naming_rules, "csharp=namespace");
+        let timed: Vec<_> = persisted
+            .parse_micros
+            .iter()
+            .map(|(language, _)| language.as_str())
+            .collect();
+        assert_eq!(timed, ["rust"], "a full scan times each language");
         assert_eq!(persisted.removed, Vec::<RelativePath>::new());
     }
     Ok(())
@@ -1026,5 +1032,6 @@ fn an_incremental_scan_with_the_same_naming_rules_stays_incremental() -> Result<
         .collect();
     assert_eq!(paths, ["b.rs"]);
     assert_eq!(job.snapshot().mode, ScanMode::Incremental);
+    assert_eq!(world.last_persisted()?.parse_micros, Vec::new());
     Ok(())
 }

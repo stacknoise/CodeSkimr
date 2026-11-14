@@ -3,11 +3,19 @@
 use std::collections::HashSet;
 
 use super::consts::{
-    PATH_SEPARATORS, PERCENT_MAX, PLACEHOLDER_PATH, SCHEME_EXTRA_CHARS, UNIT_MAX, UNIT_MIN,
-    URL_SCHEME_SEPARATOR, keys,
+    FORBIDDEN_EDITOR_SCHEMES, PATH_SEPARATORS, PERCENT_MAX, PLACEHOLDER_PATH, SCHEME_EXTRA_CHARS,
+    UNIT_MAX, UNIT_MIN, URL_SCHEME_SEPARATOR, keys,
 };
 use super::error::{ConfigError, Violation};
-use super::model::{Budgets, Config, Editor, Level2, McpLimits, MetricThresholds, Scan, Ui};
+use super::model::{
+    Budgets, Config, Editor, KeySources, Level2, McpLimits, MetricThresholds, Scan, Ui,
+};
+
+fn check_keys(sources: &KeySources) -> Result<(), ConfigError> {
+    positive(keys::KEYS_MAX_FILES, sources.max_files)?;
+    positive(keys::KEYS_MAX_FILE_KB, sources.max_file_kb)?;
+    positive(keys::KEYS_MAX_DEPTH, sources.max_depth)
+}
 
 /// Checks every value of `config`.
 ///
@@ -46,6 +54,7 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
         keys::DUPLICATE_SIMILARITY_PERCENT,
         config.conventions.duplicate_similarity_percent,
     )?;
+    check_keys(&config.keys)?;
     check_layers(config)?;
     check_scan(&config.scan)?;
     check_level2(&config.level2)?;
@@ -221,6 +230,13 @@ fn check_editor(editor: &Editor) -> Result<(), ConfigError> {
     }
     if !editor.allowed_schemes.iter().all(|name| is_scheme(name)) {
         return fail(keys::EDITOR_ALLOWED_SCHEMES, Violation::MustBeUrlScheme);
+    }
+    if editor
+        .allowed_schemes
+        .iter()
+        .any(|name| FORBIDDEN_EDITOR_SCHEMES.contains(&name.as_str()))
+    {
+        return fail(keys::EDITOR_ALLOWED_SCHEMES, Violation::MustNotRunCode);
     }
     let scheme = editor
         .url_template

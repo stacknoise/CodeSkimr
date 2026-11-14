@@ -48,6 +48,7 @@ fn write_snapshot(conn: &Connection, data: &SnapshotData, keep: u32) -> StorageR
         params![data.naming_rules, column_int(header.id.get())?],
     )?;
     insert_facts(conn, data)?;
+    insert_parse_times(conn, data)?;
     if header.mode == ScanMode::Incremental {
         carry_over(conn, header.project, header.id, &data.removed)?;
     }
@@ -118,6 +119,17 @@ fn insert_facts(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
     Ok(())
 }
 
+/// The parse times of a full scan; an incremental scan has none of its own and copies the
+/// previous ones in `carry_over`.
+fn insert_parse_times(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
+    let snapshot = column_int(data.snapshot.id.get())?;
+    let mut insert = conn.prepare_cached(sql::PARSE_TIME_INSERT)?;
+    for (language, micros) in &data.parse_micros {
+        insert.execute(params![snapshot, language.as_str(), column_int(*micros)?])?;
+    }
+    Ok(())
+}
+
 fn insert_file(conn: &Connection, snapshot: i64, file: &SourceFile) -> StorageResult<()> {
     conn.prepare_cached(sql::FILE_INSERT)?.execute(params![
         snapshot,
@@ -185,6 +197,7 @@ fn carry_over(
     for path in removed {
         conn.execute(sql::FILE_REMOVE, params![new, path.as_str()])?;
     }
+    conn.execute(sql::PARSE_TIME_CARRY, params![previous, new])?;
     // Symbols, metrics, references and fingerprints are shared and need no copy (ADR 0032).
     Ok(())
 }

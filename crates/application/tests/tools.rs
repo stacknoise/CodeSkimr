@@ -174,6 +174,7 @@ impl ProjectCatalog for World {
                 files: 1,
                 loc: 1,
                 symbols: 1,
+                parse_micros: None,
             })
             .collect())
     }

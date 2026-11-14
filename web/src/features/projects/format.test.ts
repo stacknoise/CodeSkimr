@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { ago, count, languageName, languageShares, seconds } from "./format";
+import { ago, count, languageName, languageShares, parseTime, seconds } from "./format";
 
 const NOW = 1_800_000_000_000;
 
 describe("languageShares", () => {
   it("adds up to 100 and gives the rounding error to the largest language", () => {
     const shares = languageShares([
-      { language: "csharp", files: 3, loc: 1, symbols: 10, tier: "full" },
-      { language: "typescript", files: 3, loc: 1, symbols: 10, tier: "full" },
-      { language: "python", files: 3, loc: 1, symbols: 10, tier: "full" },
+      { language: "csharp", files: 3, loc: 1, symbols: 10, parse_micros: null, tier: "full" },
+      { language: "typescript", files: 3, loc: 1, symbols: 10, parse_micros: null, tier: "full" },
+      { language: "python", files: 3, loc: 1, symbols: 10, parse_micros: null, tier: "full" },
     ]);
     expect(shares.map((item) => item.percent)).toEqual([34, 33, 33]);
     expect(shares.map((item) => item.name)).toEqual(["C#", "TypeScript", "Python"]);
@@ -16,8 +16,8 @@ describe("languageShares", () => {
 
   it("leaves out a language with less than half a percent and has no shares without code", () => {
     const shares = languageShares([
-      { language: "csharp", files: 9, loc: 9_999, symbols: 10, tier: "full" },
-      { language: "xaml", files: 1, loc: 1, symbols: 10, tier: "full" },
+      { language: "csharp", files: 9, loc: 9_999, symbols: 10, parse_micros: null, tier: "full" },
+      { language: "xaml", files: 1, loc: 1, symbols: 10, parse_micros: null, tier: "full" },
     ]);
     expect(shares).toHaveLength(1);
     expect(languageShares([])).toEqual([]);
@@ -25,7 +25,9 @@ describe("languageShares", () => {
 
   it("gives a language without a colour the last one", () => {
     expect(
-      languageShares([{ language: "xaml", files: 1, loc: 5, symbols: 10, tier: "full" }])[0]?.tone,
+      languageShares([
+        { language: "xaml", files: 1, loc: 5, symbols: 10, parse_micros: null, tier: "full" },
+      ])[0]?.tone,
     ).toBe("tone6");
     expect(languageName("xaml")).toBe("xaml");
   });
@@ -47,5 +49,7 @@ describe("numbers", () => {
     expect(count(41_208, "de")).toBe("41.208");
     expect(count(41_208, "en")).toBe("41,208");
     expect(seconds(1.43, "de")).toBe("1,4");
+    expect(parseTime(620_000, "de")).toBe("0,62 s");
+    expect(parseTime(1_234_000, "en")).toBe("1.23 s");
   });
 });

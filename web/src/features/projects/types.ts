@@ -17,6 +17,8 @@ export interface LanguageInfo {
   files: number;
   loc: number;
   symbols: number;
+  /** Microseconds the last full scan spent parsing the language; `null` if not recorded. */
+  parse_micros: number | null;
   /** Tier of the language pack; `null` if no pack of that id is installed. */
   tier: "full" | "basic" | null;
 }

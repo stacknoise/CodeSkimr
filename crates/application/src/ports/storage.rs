@@ -1,8 +1,8 @@
 //! Persistence (adapter: `codeskimr_storage`).
 
 use codeskimr_domain::{
-    FileId, Metric, Project, ProjectId, Reference, RelativePath, Snapshot, SnapshotId, SourceFile,
-    Symbol,
+    FileId, LanguageId, Metric, Project, ProjectId, Reference, RelativePath, Snapshot, SnapshotId,
+    SourceFile, Symbol,
 };
 
 use super::SymbolFingerprints;
@@ -36,6 +36,9 @@ pub struct SnapshotData {
     /// The naming rules of the language packs of this scan (ADR 0036); an incremental scan keeps
     /// the files of the previous snapshot only if its rules are these.
     pub naming_rules: String,
+    /// Microseconds spent parsing the files of each language in a full scan; empty in an
+    /// incremental scan, which keeps the figures of the previous snapshot.
+    pub parse_micros: Vec<(LanguageId, u64)>,
 }
 
 /// Symbols and references of the newest snapshot of a project, the starting point of an

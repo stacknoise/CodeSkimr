@@ -152,6 +152,8 @@ pub const EXPORT_FORMAT: u32 = 1;
 pub const EXPORT_BUNDLE_DIR: &str = "export";
 /// The page the export is made from: the built UI in one file, with a place for the data.
 pub const EXPORT_BUNDLE_FILE: &str = "export.html";
+/// Separator of the paths in the list of embedded UI files.
+pub const EXPORT_PATH_SEPARATOR: &str = "/";
 /// The place in that file where the data block goes, exactly once.
 pub const EXPORT_DATA_PLACEHOLDER: &str = "__CODESKIMR_EXPORT_DATA__";
 /// A character that must not stand in the data block as it is: it could end the script element.
@@ -195,3 +197,31 @@ pub const TYPE_ROW_USERS: u32 = 0;
 pub const TYPE_ROW_FOCUS: u32 = 1;
 /// Row of the types the type in the middle uses.
 pub const TYPE_ROW_USED: u32 = 2;
+
+/// Id of the command that returns the preferences of the user (theme and language).
+pub const PREFERENCES_GET: &str = "preferences.get";
+/// Title key of `preferences.get`.
+pub const PREFERENCES_GET_TITLE: &str = i18n::COMMAND_PREFERENCES_GET_TITLE;
+/// Description key of `preferences.get`.
+pub const PREFERENCES_GET_DESCRIPTION: &str = i18n::COMMAND_PREFERENCES_GET_DESCRIPTION;
+/// Id of the command that stores the preferences of the user.
+pub const PREFERENCES_SET: &str = "preferences.set";
+/// Title key of `preferences.set`.
+pub const PREFERENCES_SET_TITLE: &str = i18n::COMMAND_PREFERENCES_SET_TITLE;
+/// Description key of `preferences.set`.
+pub const PREFERENCES_SET_DESCRIPTION: &str = i18n::COMMAND_PREFERENCES_SET_DESCRIPTION;
+/// File in the data folder that holds the preferences.
+pub const PREFERENCES_FILE: &str = "preferences.json";
+/// Ending of the file the preferences are written to before they replace the real one.
+pub const PREFERENCES_TEMP_SUFFIX: &str = ".tmp";
+/// Longest name of a theme or a language that is stored.
+pub const PREFERENCE_MAX_CHARS: usize = 32;
+/// Characters besides lower-case letters and digits that a stored name may contain.
+pub const PREFERENCE_EXTRA_CHAR: char = '-';
+/// Largest preferences file that is read; anything bigger is ignored.
+pub const PREFERENCES_MAX_BYTES: u64 = 4096;
+/// Mode of the preferences file: the owner may read and write, nobody else.
+#[cfg(unix)]
+pub const PREFERENCES_FILE_MODE: u32 = 0o600;
+/// Separator in the name of the file the preferences are written to first.
+pub const PREFERENCES_TEMP_SEPARATOR: &str = ".";

@@ -11,7 +11,7 @@ use codeskimr_codes::ErrorCode;
 use crate::consts::{
     APP_DIR, DATABASE_FILE, ENV_APPDATA, ENV_CONFIG, ENV_DATA_DIR, ENV_HOME, ENV_LANGUAGES_DIR,
     ENV_LOCAL_APPDATA, ENV_XDG_CONFIG_HOME, ENV_XDG_DATA_HOME, GIT_CACHE_DIR, HOME_CONFIG_PARTS,
-    HOME_DATA_PARTS, HOME_MACOS_PARTS, LANGUAGES_DIR, OS_MACOS, USER_CONFIG_FILE,
+    HOME_DATA_PARTS, HOME_MACOS_PARTS, LANGUAGES_DIR, OS_MACOS, TOKEN_LOCK_FILE, USER_CONFIG_FILE,
 };
 
 /// Reads one environment variable; the real one in `main`, a table in tests.
@@ -105,6 +105,12 @@ impl Locations {
             .iter()
             .map(|base| base.join(path))
             .find(|folder| folder.is_dir())
+    }
+
+    /// The file whose lock serialises the creation of the installation token.
+    #[must_use]
+    pub fn token_lock(&self) -> PathBuf {
+        self.data_dir.join(TOKEN_LOCK_FILE)
     }
 
     /// The folder of the Git clones.

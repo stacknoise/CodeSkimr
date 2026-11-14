@@ -61,6 +61,12 @@ pub const OPENER_HEADER: &str = "cross-origin-opener-policy";
 /// Value of the `Cross-Origin-Opener-Policy` header.
 pub const OPENER_VALUE: &str = "same-origin";
 
+/// Name of the `Permissions-Policy` header.
+pub const PERMISSIONS_HEADER: &str = "permissions-policy";
+/// Value of the `Permissions-Policy` header: the UI uses none of the browser features that ask
+/// for a permission.
+pub const PERMISSIONS_VALUE: &str = "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
+
 /// Media types of the files the UI consists of, by extension.
 pub const MEDIA_TYPES: [(&str, &str); 11] = [
     ("html", "text/html; charset=utf-8"),
@@ -119,6 +125,8 @@ pub const EVENT_BUFFER: usize = 256;
 pub const SHUTDOWN_GRACE: Duration = Duration::from_secs(5);
 /// How long a client may take to send the head of a request before the connection is closed.
 pub const HEADER_READ_TIMEOUT: Duration = Duration::from_secs(10);
+/// Seconds a client is told to wait before it asks again after `API-502` (`Retry-After`).
+pub const RETRY_AFTER_SECONDS: &str = "5";
 /// How long a client may take to send the body of a request.
 pub const BODY_READ_TIMEOUT: Duration = Duration::from_secs(30);
 /// How long one message to a WebSocket client may take before the client is dropped.

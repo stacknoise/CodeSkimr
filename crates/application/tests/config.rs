@@ -385,10 +385,81 @@ fn a_layer_needs_a_unique_name_and_a_namespace() {
 }
 
 #[test]
+fn the_project_file_may_lower_the_scan_limits_but_not_raise_them() {
+    let defaults = Config::defaults().expect("defaults").scan;
+    let lowered = project("[scan]\nmax_source_mb = 10\nparse_timeout_ms = 100\n");
+    let scan = Config::resolve(&[lowered]).expect("valid").scan;
+    assert_eq!((scan.max_source_mb, scan.parse_timeout_ms), (10, 100));
+    let raised = project("[scan]\nmax_source_mb = 999999\nparse_timeout_ms = 999999\n");
+    let scan = Config::resolve(&[raised]).expect("valid").scan;
+    assert_eq!(scan.max_source_mb, defaults.max_source_mb);
+    assert_eq!(scan.parse_timeout_ms, defaults.parse_timeout_ms);
+}
+
+#[test]
+fn the_user_file_and_flags_can_raise_the_scan_limits_and_the_project_stays_below_them() {
+    let user_file = user("[scan]\nmax_source_mb = 4096\n");
+    let raised_by_project = project("[scan]\nmax_source_mb = 8192\n");
+    let scan = Config::resolve(&[user_file.clone(), raised_by_project])
+        .expect("valid")
+        .scan;
+    assert_eq!(
+        scan.max_source_mb, 4096,
+        "the project may not pass the user's value"
+    );
+    let flag = ConfigLayer::from_overrides([("scan.max_source_mb", "8192")]).expect("flag");
+    let scan = Config::resolve(&[user_file, flag]).expect("valid").scan;
+    assert_eq!(scan.max_source_mb, 8192, "a flag may raise it");
+}
+
+#[test]
 fn the_signature_limit_must_be_positive() {
     assert_rejected(&[(
         "[scan]\nmax_signature_chars = 0\n",
         "scan.max_signature_chars",
         Violation::MustBePositive,
     )]);
+}
+
+#[test]
+fn a_project_file_cannot_change_the_editor_or_the_ui() {
+    let text = "[editor]\nurl_template = \"evil://{path}\"\nallowed_schemes = [\"evil\"]\n[ui]\ndir = \"/tmp/elsewhere\"\nlaunch_code_seconds = 3600\n";
+    let from_project = Config::resolve(&[project(text)]).expect("the tables are dropped");
+    let defaults = Config::defaults().expect("defaults");
+    assert_eq!(
+        from_project.editor.url_template,
+        defaults.editor.url_template
+    );
+    assert_eq!(
+        from_project.editor.allowed_schemes,
+        defaults.editor.allowed_schemes
+    );
+    assert_eq!(from_project.ui.dir, defaults.ui.dir);
+    assert_eq!(
+        from_project.ui.launch_code_seconds,
+        defaults.ui.launch_code_seconds
+    );
+    let from_user = Config::resolve(&[user("[ui]\ndir = \"/tmp/elsewhere\"\n")]).expect("valid");
+    assert_eq!(from_user.ui.dir, "/tmp/elsewhere");
+}
+
+#[test]
+fn schemes_that_run_code_or_read_files_are_never_editor_schemes() {
+    assert_rejected(&[
+        (
+            "[editor]\nallowed_schemes = [\"vscode\", \"javascript\"]\n",
+            "editor.allowed_schemes",
+            Violation::MustNotRunCode,
+        ),
+        (
+            "[editor]\nallowed_schemes = [\"file\"]\nurl_template = \"file://{path}\"\n",
+            "editor.allowed_schemes",
+            Violation::MustNotRunCode,
+        ),
+        (
+            "[editor]\nallowed_schemes = [\"vbscript\", \"data\"]\n",
+            "editor.allowed_schemes",
+            Violation::MustNotRunCode,
+        ),
+    ]);
 }

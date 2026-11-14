@@ -13,6 +13,7 @@ error-PRJ-201 = The project is not registered. Scan its folder first with `codes
 error-PRJ-301 = A project with the same source is already registered.
 error-PRJ-302 = A scan for this project is already running.
 error-PRJ-303 = The scan was cancelled. No snapshot was written.
+error-PRJ-501 = Too many scans are running at the moment. Try again when one has ended.
 error-SRC-201 = The source folder does not exist or is not readable.
 error-SRC-202 = The requested branch does not exist in the remote repository.
 error-SRC-401 = The remote repository requires authentication and no usable credential is available.

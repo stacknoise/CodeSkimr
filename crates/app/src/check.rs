@@ -48,6 +48,7 @@ pub fn run(
         principal: &principal::resolve(),
         root: &root,
         paths: &paths,
+        stored: None,
     })
 }
 

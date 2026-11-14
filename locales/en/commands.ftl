@@ -34,3 +34,7 @@ command-credentials-set-title = Save credential
 command-credentials-set-description = Stores or replaces the login of a Git source in the keystore of the system. The secret is only sent here and never returned.
 command-credentials-delete-title = Remove credential
 command-credentials-delete-description = Removes a stored login from the keystore of the system.
+command-preferences-get-title = Show preferences
+command-preferences-get-description = Shows the theme and the language the user has chosen for the UI.
+command-preferences-set-title = Save preferences
+command-preferences-set-description = Saves the theme and the language of the UI, so that every browser of the user shows them.
