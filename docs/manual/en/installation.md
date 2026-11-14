@@ -20,7 +20,7 @@ cd web && npm ci && npm run build && cd ..
 cargo build --release --locked
 ```
 
-The program is `target/release/codeskimr` (`codeskimr.exe` on Windows). The built UI is in `web/dist` and is embedded when building, which is why `web/` comes first. Node.js 22 (`.node-version`). The language packs are read from the `languages/` folder, first next to the program, then in the current folder (option `--languages` or `CODESKIMR_LANGUAGES_DIR` names another folder). Embedding them in the program comes with the release package.
+The program is `target/release/codeskimr` (`codeskimr.exe` on Windows). The built UI is in `web/dist` and is embedded when building, which is why `web/` comes first. Node.js 22 (`.node-version`). The language packs from `languages/` are embedded in the program as well; on the first start it writes them to the data folder (`languages/<id>/`). A `languages/` folder next to the program or in the current folder takes precedence, and so do the option `--languages` and `CODESKIMR_LANGUAGES_DIR`; this lets you change packs without rebuilding.
 
 ## First start
 
@@ -49,6 +49,7 @@ If port 7421 is taken, the server stops with `API-301`; set another one with `--
 | What | Where |
 |---|---|
 | database `codeskimr.db` and the cache of Git sources `git/` | Windows `%LOCALAPPDATA%\codeskimr`, macOS `~/Library/Application Support/codeskimr`, Linux `$XDG_DATA_HOME/codeskimr` or `~/.local/share/codeskimr`; change with `--data-dir` or `CODESKIMR_DATA_DIR` |
+| language packs of the program `languages/<id>/` (written on the first start, may be deleted) | in the data folder |
 | user configuration `config.toml` (optional) | Windows `%APPDATA%\codeskimr`, macOS `~/Library/Application Support/codeskimr`, Linux `$XDG_CONFIG_HOME/codeskimr`; change with `--config` or `CODESKIMR_CONFIG` |
 | installation token, Git credentials | the keystore of the operating system, service name `codeskimr` |
 

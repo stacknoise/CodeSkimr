@@ -2,6 +2,7 @@
 
 error-APP-201 = The data directory cannot be created or opened.
 error-APP-202 = The private file for starting the browser could not be created.
+error-APP-203 = The language packs built into the program could not be written to the data directory.
 error-APP-301 = Another CodeSkimr instance is using this workspace and connecting to it failed.
 error-APP-901 = An unexpected internal error occurred.
 error-APP-601 = The browser could not be started.

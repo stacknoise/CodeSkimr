@@ -12,7 +12,7 @@ Erste Version zum Ausprobieren. **Das ist noch nicht 1.0.** Sie ist für Windows
 .\codeskimr.exe
 ```
 
-Das startet den lokalen Server und öffnet den Browser. Die Oberfläche steckt im Programm; der Ordner `languages\` muss neben `codeskimr.exe` bleiben. Windows SmartScreen kann warnen, weil das Programm noch nicht signiert ist: „Weitere Informationen“, dann „Trotzdem ausführen“.
+Das startet den lokalen Server und öffnet den Browser. Die Oberfläche und die Sprachpakete stecken im Programm. Windows SmartScreen kann warnen, weil das Programm noch nicht signiert ist: „Weitere Informationen“, dann „Trotzdem ausführen“.
 
 ## Installieren (Linux)
 
@@ -33,7 +33,7 @@ xattr -dr com.apple.quarantine .
 ./codeskimr
 ```
 
-Das Programm ist noch nicht signiert; der Befehl `xattr` nimmt die Sperre von macOS Gatekeeper weg. Der Ordner `languages/` muss neben `codeskimr` bleiben.
+Das Programm ist noch nicht signiert; der Befehl `xattr` nimmt die Sperre von macOS Gatekeeper weg.
 
 ## Erste Schritte
 
