@@ -44,6 +44,8 @@ pub struct SymbolTable {
     ranges: Vec<Range<usize>>,
     parents: Vec<Option<usize>>,
     with_body: HashSet<SymbolId>,
+    /// Blocks without a symbol whose members belong to a type: byte range and index of the owner.
+    containers: Vec<(Range<usize>, usize)>,
 }
 
 impl SymbolTable {
@@ -58,8 +60,29 @@ impl SymbolTable {
     ///
     /// Symbols are sorted by start, so the last one that starts at or before the offset is the
     /// candidate; its enclosing chain is as deep as the nesting, not as long as the file.
+    ///
+    /// A block without a symbol (a Rust `impl`) stands for the type it belongs to: an offset in
+    /// its head, outside any member, is assigned to that type.
     #[must_use]
     pub fn innermost(&self, offset: usize) -> Option<&Symbol> {
+        let found = self.enclosing(offset);
+        let found_start = found
+            .and_then(|index| self.ranges.get(index))
+            .map_or(0, |range| range.start);
+        let owner = self
+            .containers
+            .iter()
+            .filter(|(range, _)| range.contains(&offset) && range.start > found_start)
+            .min_by_key(|(range, _)| range.len())
+            .map(|(_, owner)| *owner);
+        owner
+            .or(found)
+            .and_then(|index| self.symbols.get(index))
+            .or(self.symbols.first())
+    }
+
+    /// Index of the innermost symbol whose own range contains the offset.
+    fn enclosing(&self, offset: usize) -> Option<usize> {
         let started = self.ranges.partition_point(|range| range.start <= offset);
         let mut index = started.checked_sub(1);
         while let Some(current) = index {
@@ -68,11 +91,11 @@ impl SymbolTable {
                 .get(current)
                 .is_some_and(|range| range.contains(&offset))
             {
-                return self.symbols.get(current);
+                return Some(current);
             }
             index = self.parents.get(current).copied().flatten();
         }
-        self.symbols.first()
+        None
     }
 
     /// The callable symbols (functions, methods, constructors) with the byte range of their
@@ -94,6 +117,8 @@ struct Declaration<'t> {
     docs: Vec<Node<'t>>,
     signature: Option<Node<'t>>,
     scope_end: Option<Node<'t>>,
+    /// A block without a symbol whose members belong to the type `name` (`@container`).
+    container: bool,
 }
 
 #[derive(Default)]
@@ -105,6 +130,7 @@ struct Parts<'t> {
     docs: Vec<Node<'t>>,
     signature: Option<Node<'t>>,
     scope_end: Option<Node<'t>>,
+    container: Option<Node<'t>>,
 }
 
 impl<'t> Parts<'t> {
@@ -117,6 +143,7 @@ impl<'t> Parts<'t> {
             Capture::Doc => self.docs.push(node),
             Capture::Signature => self.signature = Some(node),
             Capture::ScopeEnd => self.scope_end = Some(node),
+            Capture::Container => self.container = Some(node),
             Capture::Reference(_)
             | Capture::Receiver(_)
             | Capture::Local
@@ -127,8 +154,12 @@ impl<'t> Parts<'t> {
     }
 
     fn finish(self) -> Option<Declaration<'t>> {
-        let (node, kind) = self.declaration?;
+        let container = self.declaration.is_none() && self.container.is_some();
+        let (node, kind) = self
+            .declaration
+            .or_else(|| self.container.map(|node| (node, SymbolKind::Namespace)))?;
         Some(Declaration {
+            container,
             node,
             kind,
             name: self.name?,
@@ -159,7 +190,8 @@ fn collect<'t>(ctx: &SymbolContext<'_>, root: Node<'t>) -> Vec<Declaration<'t>> 
     // Several matches may describe the same declaration, for example one per subset of a
     // repeated capture; they are merged into the first one.
     found.dedup_by(|later, first| {
-        let same = (later.node.id(), later.kind) == (first.node.id(), first.kind);
+        let same = (later.node.id(), later.kind, later.container)
+            == (first.node.id(), first.kind, first.container);
         if same {
             first.absorb(later);
         }
@@ -241,6 +273,7 @@ struct Builder<'a, 'c> {
     ranges: Vec<Range<usize>>,
     parents: Vec<Option<usize>>,
     with_body: HashSet<SymbolId>,
+    containers: Vec<(Range<usize>, usize)>,
     stack: Vec<Frame>,
 }
 
@@ -255,6 +288,7 @@ pub fn extract(ctx: &SymbolContext<'_>, root: Node<'_>) -> Result<SymbolTable, P
         ranges: Vec::new(),
         parents: Vec::new(),
         with_body: HashSet::new(),
+        containers: Vec::new(),
         stack: Vec::new(),
     };
     builder.add_module(root)?;
@@ -266,6 +300,7 @@ pub fn extract(ctx: &SymbolContext<'_>, root: Node<'_>) -> Result<SymbolTable, P
         ranges: builder.ranges,
         parents: builder.parents,
         with_body: builder.with_body,
+        containers: builder.containers,
     })
 }
 
@@ -310,6 +345,10 @@ impl Builder<'_, '_> {
         while self.stack.len() > 1 && self.stack.last().is_some_and(|top| top.end <= start) {
             self.stack.pop();
         }
+        if declaration.container {
+            self.add_container(declaration);
+            return Ok(());
+        }
         let name = text_of(declaration.name, ctx.source).to_owned();
         let prefix = self
             .stack
@@ -323,6 +362,40 @@ impl Builder<'_, '_> {
         let parent = self.stack.last().map(|frame| frame.kind);
         let new = new_symbol(ctx, declaration, name, parent)?;
         self.push((qualified.clone(), qualified), new)
+    }
+
+    /// A block without a symbol (`@container`): its members belong to the type it names. A type
+    /// of that name declared in the same scope becomes their parent; otherwise the enclosing symbol
+    /// stays the parent and only the qualified names carry the type, so the names are the same
+    /// wherever the block stands.
+    fn add_container(&mut self, declaration: &Declaration<'_>) {
+        let name = text_of(declaration.name, self.ctx.source);
+        let Some(top) = self.stack.last() else {
+            return;
+        };
+        let owner = self.symbols.iter().position(|symbol| {
+            symbol.kind.is_type() && symbol.name.as_str() == name && symbol.parent == Some(top.id)
+        });
+        let qualified = [
+            top.qualified.as_str(),
+            self.ctx.pack.separator.as_str(),
+            name,
+        ]
+        .concat();
+        let (index, id) = owner
+            .and_then(|index| Some((index, self.symbols.get(index)?.id)))
+            .unwrap_or((top.index, top.id));
+        let range = declaration.node.byte_range();
+        if owner.is_some() {
+            self.containers.push((range.clone(), index));
+        }
+        self.stack.push(Frame {
+            kind: SymbolKind::Namespace,
+            end: range.end,
+            index,
+            id,
+            qualified,
+        });
     }
 
     /// Adds a symbol with its qualified name and the prefix the names of its children start with.

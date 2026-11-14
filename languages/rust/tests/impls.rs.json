@@ -1,0 +1,502 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 55,
+      "operands": null,
+      "operators": null,
+      "symbol": "impls"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "impls::Early::first"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "impls::Early"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "impls::Mode"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "impls::Mode::hidden"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        3,
+        3
+      ],
+      "symbol": "impls::Mode::shown"
+    },
+    {
+      "decisions": null,
+      "loc": 3,
+      "operands": null,
+      "operators": null,
+      "symbol": "impls::Holder"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "impls::Holder::get"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "impls::Holder::fmt"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "impls::Early::second"
+    },
+    {
+      "decisions": null,
+      "loc": 13,
+      "operands": null,
+      "operators": null,
+      "symbol": "impls::inner"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "impls::inner::elsewhere"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "impls::inner::Local::near"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "impls::inner::Local"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "impls::fmt"
+    }
+  ],
+  "loc": 55,
+  "references": [
+    {
+      "at": "2:9",
+      "from": "impls",
+      "kind": "import",
+      "receiver": "named std",
+      "target": "fmt"
+    },
+    {
+      "at": "5:5",
+      "from": "impls",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Early"
+    },
+    {
+      "at": "18:5",
+      "from": "impls::Mode",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Mode"
+    },
+    {
+      "at": "24:14",
+      "from": "impls::Mode::shown",
+      "kind": "call",
+      "receiver": "own",
+      "target": "hidden"
+    },
+    {
+      "at": "29:10",
+      "from": "impls::Holder::item",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "T"
+    },
+    {
+      "at": "32:8",
+      "from": "impls::Holder",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Holder"
+    },
+    {
+      "at": "32:15",
+      "from": "impls::Holder",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "T"
+    },
+    {
+      "at": "33:26",
+      "from": "impls::Holder::get",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "T"
+    },
+    {
+      "at": "34:14",
+      "from": "impls::Holder::get",
+      "kind": "read",
+      "receiver": "own",
+      "target": "item"
+    },
+    {
+      "at": "38:13",
+      "from": "impls::Holder",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Debug"
+    },
+    {
+      "at": "38:25",
+      "from": "impls::Holder",
+      "kind": "implement",
+      "receiver": null,
+      "target": "Debug"
+    },
+    {
+      "at": "38:35",
+      "from": "impls::Holder",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Holder"
+    },
+    {
+      "at": "38:42",
+      "from": "impls::Holder",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "T"
+    },
+    {
+      "at": "39:7",
+      "from": "impls::Holder::fmt",
+      "kind": "override",
+      "receiver": null,
+      "target": "fmt"
+    },
+    {
+      "at": "39:54",
+      "from": "impls::Holder::fmt",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Result"
+    },
+    {
+      "at": "45:5",
+      "from": "impls::Early",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Early"
+    },
+    {
+      "at": "53:16",
+      "from": "impls::inner",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Early"
+    },
+    {
+      "at": "59:9",
+      "from": "impls::inner",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Local"
+    },
+    {
+      "at": "69:10",
+      "from": "impls",
+      "kind": "implement",
+      "receiver": null,
+      "target": "Display"
+    },
+    {
+      "at": "69:23",
+      "from": "impls",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Early"
+    },
+    {
+      "at": "70:7",
+      "from": "impls::fmt",
+      "kind": "override",
+      "receiver": null,
+      "target": "fmt"
+    },
+    {
+      "at": "70:54",
+      "from": "impls::fmt",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Result"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "impls",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-74:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "impls::Early::first",
+      "parent": "impls",
+      "signature": null,
+      "span": "6:4-8:5",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "struct",
+      "name": "impls::Early",
+      "parent": "impls",
+      "signature": null,
+      "span": "11:0-11:17",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "enum",
+      "name": "impls::Mode",
+      "parent": "impls",
+      "signature": null,
+      "span": "13:0-16:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "enum_member",
+      "name": "impls::Mode::Fast",
+      "parent": "impls::Mode",
+      "signature": null,
+      "span": "14:4-14:8",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "enum_member",
+      "name": "impls::Mode::Slow",
+      "parent": "impls::Mode",
+      "signature": null,
+      "span": "15:4-15:8",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "impls::Mode::hidden",
+      "parent": "impls::Mode",
+      "signature": null,
+      "span": "19:4-21:5",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "impls::Mode::shown",
+      "parent": "impls::Mode",
+      "signature": null,
+      "span": "23:4-25:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "struct",
+      "name": "impls::Holder",
+      "parent": "impls",
+      "signature": null,
+      "span": "28:0-30:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "impls::Holder::item",
+      "parent": "impls::Holder",
+      "signature": null,
+      "span": "29:4-29:11",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "impls::Holder::get",
+      "parent": "impls::Holder",
+      "signature": null,
+      "span": "33:4-35:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "impls::Holder::fmt",
+      "parent": "impls::Holder",
+      "signature": null,
+      "span": "39:4-41:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "impls::Early::second",
+      "parent": "impls::Early",
+      "signature": null,
+      "span": "46:4-48:5",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "impls::inner",
+      "parent": "impls",
+      "signature": null,
+      "span": "51:0-66:1",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "impls::inner::elsewhere",
+      "parent": "impls::inner",
+      "signature": null,
+      "span": "54:8-56:9",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "impls::inner::Local::near",
+      "parent": "impls::inner",
+      "signature": null,
+      "span": "60:8-62:9",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "struct",
+      "name": "impls::inner::Local",
+      "parent": "impls::inner",
+      "signature": null,
+      "span": "65:4-65:21",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "impls::fmt",
+      "parent": "impls",
+      "signature": null,
+      "span": "70:4-72:5",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

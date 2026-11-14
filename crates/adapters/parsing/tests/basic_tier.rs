@@ -112,6 +112,14 @@ mod tests {
     }
 
     #[test]
+    fn the_naming_rules_carry_the_revision_of_the_engine() {
+        let packs = LanguagePacks::load(&languages()).expect("packs load");
+        let rules = packs.naming_rules();
+        assert!(rules.contains("revision=2"), "{rules}");
+        assert!(rules.contains("rust=file"), "{rules}");
+    }
+
+    #[test]
     fn a_full_pack_is_checked_when_the_packs_are_loaded() {
         let root = broken_pack("full", "load");
         let error = LanguagePacks::load(&root).err().expect("invalid at once");
