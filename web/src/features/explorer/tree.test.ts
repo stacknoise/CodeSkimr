@@ -5,8 +5,10 @@ import {
   layerKey,
   namespaceKey,
   revealKeys,
+  siblingPlaces,
   typeKey,
   type TreeLabels,
+  type TreeRow,
 } from "./tree";
 import type { Outline, SymbolInfo } from "./types";
 
@@ -177,5 +179,33 @@ describe("revealKeys", () => {
 
   it("is empty for an unknown type", () => {
     expect(revealKeys(OUTLINE, 99)).toEqual([]);
+  });
+});
+
+describe("siblingPlaces", () => {
+  const base: TreeRow = {
+    key: "k",
+    kind: "type",
+    depth: 0,
+    label: "",
+    meta: "",
+    symbolKind: null,
+    layerIndex: null,
+    expandable: false,
+    open: false,
+    type: null,
+    member: null,
+  };
+  it("counts the siblings of each parent, not the rows of the list", () => {
+    const at = (depth: number): TreeRow => ({ ...base, depth });
+    const places = siblingPlaces([at(0), at(1), at(1), at(2), at(1), at(0)]);
+    expect(places.map((place) => [place.position, place.size])).toEqual([
+      [1, 2],
+      [1, 3],
+      [2, 3],
+      [1, 1],
+      [3, 3],
+      [2, 2],
+    ]);
   });
 });

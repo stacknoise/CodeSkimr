@@ -863,7 +863,7 @@ In Hell, `good-bg` is `#EAF7EF`; the value `#E7F6EC` of the first mock version r
 
 - **Tree click rules** (from the original code documentation guideline, proven in practice):
   - The caret only expands/collapses; the selection stays.
-  - A click on an unselected type selects and expands it.
+  - A click on an unselected type selects it; it does not open it (ADR 0037).
   - A click on the selected type toggles it.
   - Group nodes ("Properties & fields", "Methods") toggle independently.
   - A selection from inside the tree never overrides the open/closed state. Only external navigation (link, chip, graph, search) opens nodes automatically.

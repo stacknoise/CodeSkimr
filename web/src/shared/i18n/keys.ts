@@ -16,6 +16,7 @@ export const I18N_KEYS = {
   APP_MEMORY_USAGE: "app-memory-usage",
   APP_STATUS_PROJECTS: "app-status-projects",
   APP_STATUS_TYPES: "app-status-types",
+  APP_STATUS_REFERENCES: "app-status-references",
   APP_ACTION_CANCEL: "app-action-cancel",
   APP_ACTION_OPEN_IN_EDITOR: "app-action-open-in-editor",
   APP_ACTION_OPEN_IN_EXPLORER: "app-action-open-in-explorer",

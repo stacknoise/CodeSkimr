@@ -3,6 +3,7 @@ import { currentLanguage, isLanguage, setLanguage, t } from "../../shared/i18n/i
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { lastQueryMs } from "../../shared/api/timings";
 import { KIND } from "../../shared/session/consts";
+import { activeProject } from "../../shared/project/active";
 import { sessionState } from "../../shared/session/session";
 import { cx } from "../../shared/ui/cx";
 import { LANGUAGES } from "../../shared/i18n/consts";
@@ -39,6 +40,24 @@ function Counts() {
         {COUNT_SEPARATOR}
         {t(I18N_KEYS.APP_STATUS_TYPES, { count: types() })}
       </span>
+    </Show>
+  );
+}
+
+/** The size of the reference index of the open project: the references of its newest scan. */
+function ReferenceIndex() {
+  const references = createMemo(
+    () => projects().find((project) => project.id === activeProject())?.scan?.references ?? null,
+  );
+  return (
+    <Show when={references()}>
+      {(count) => (
+        <span>
+          {t(I18N_KEYS.APP_STATUS_REFERENCES, {
+            count: new Intl.NumberFormat(currentLanguage()).format(count()),
+          })}
+        </span>
+      )}
     </Show>
   );
 }
@@ -98,6 +117,7 @@ export function StatusBar() {
     <footer class={styles.status}>
       <Connection />
       <Counts />
+      <ReferenceIndex />
       <Measurements />
       <LanguageSwitch />
     </footer>
