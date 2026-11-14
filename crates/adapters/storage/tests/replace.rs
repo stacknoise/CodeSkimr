@@ -4,21 +4,28 @@
 mod common;
 
 use codeskimr_application::ports::{
-    ProjectRepository, ReferenceReplacement, SnapshotData, SnapshotStore,
+    ProjectRepository, ReferenceReplacement, SnapshotData, SnapshotStore, SymbolKey,
 };
-use codeskimr_domain::{FileId, Reference, ScanMode, SnapshotId, SymbolId, SymbolKind};
-use common::{PROJECT, code_of, data, file, header, project, reference, store, symbol};
+use codeskimr_domain::{FileId, MetricKind, Reference, ScanMode, SnapshotId, SymbolId, SymbolKind};
+use common::{PROJECT, code_of, data, file, header, metric, project, reference, store, symbol};
 
 const SNAPSHOT: u64 = 10;
 
-/// `a.cs` holds `A` and `Run`; `b.cs` holds `B` and `Go`. `Run` calls `B` (level 1).
+/// A full scan with the files `alpha.cs` (71) and `beta.cs` (72).
 #[cfg(test)]
-fn scan() -> SnapshotData {
+fn two_files() -> SnapshotData {
     let mut scan = data(header(SNAPSHOT, ScanMode::Full));
     scan.files = vec![
         file(SNAPSHOT, 71, "alpha.cs", "h-alpha"),
         file(SNAPSHOT, 72, "beta.cs", "h-beta"),
     ];
+    scan
+}
+
+/// `a.cs` holds `A` and `Run`; `b.cs` holds `B` and `Go`. `Run` calls `B` (level 1).
+#[cfg(test)]
+fn scan() -> SnapshotData {
+    let mut scan = two_files();
     scan.symbols = vec![
         symbol(81, 71, SymbolKind::Class, "Lib.Alpha", None),
         symbol(82, 71, SymbolKind::Method, "Lib.Alpha.Run", Some(81)),
@@ -147,4 +154,71 @@ fn only_the_newest_snapshot_may_be_changed() {
         .replace_references(replacement(&[71], Vec::new()))
         .unwrap_err();
     assert_eq!(code_of(&error), "STO-901");
+}
+
+/// The value of a coupling metric of a symbol in the newest snapshot, `None` if there is none.
+#[cfg(test)]
+fn coupling_of(
+    store: &codeskimr_storage::SqliteStore,
+    symbol: u64,
+    kind: MetricKind,
+) -> Option<f64> {
+    let key = SymbolKey::Id(SymbolId::new(symbol));
+    let detail = store
+        .symbol_detail(SnapshotId::new(SNAPSHOT), &key)
+        .unwrap()?;
+    detail
+        .metrics
+        .iter()
+        .find(|m| m.kind == kind)
+        .map(|m| m.value.get())
+}
+
+/// Two namespaces, `Alpha` (symbols 81, 82) and `Beta` (83, 84); `Run` calls `Go`.
+#[cfg(test)]
+fn namespaces() -> codeskimr_storage::SqliteStore {
+    let store = store(3);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    let mut scan = two_files();
+    scan.symbols = vec![
+        symbol(81, 71, SymbolKind::Namespace, "Alpha", None),
+        symbol(82, 71, SymbolKind::Method, "Alpha.Run", None),
+        symbol(83, 72, SymbolKind::Namespace, "Beta", None),
+        symbol(84, 72, SymbolKind::Method, "Beta.Go", None),
+    ];
+    scan.references = vec![reference(91, 71, 82, 84)];
+    scan.metrics = vec![
+        metric(81, MetricKind::EfferentCoupling, 1.0),
+        metric(83, MetricKind::AfferentCoupling, 1.0),
+    ];
+    store.persist(scan).unwrap();
+    store
+}
+
+#[test]
+fn the_coupling_follows_the_new_references() {
+    let store = namespaces();
+    let ce = |symbol| coupling_of(&store, symbol, MetricKind::EfferentCoupling);
+    let ca = |symbol| coupling_of(&store, symbol, MetricKind::AfferentCoupling);
+    assert_eq!((ce(81), ca(83)), (Some(1.0), Some(1.0)));
+    store
+        .replace_references(replacement(&[71], Vec::new()))
+        .unwrap();
+    assert_eq!((ce(81), ca(83)), (Some(0.0), Some(0.0)));
+    assert_eq!(
+        coupling_of(&store, 81, MetricKind::Instability),
+        None,
+        "a unit without a dependency has no instability"
+    );
+}
+
+#[test]
+fn a_verified_reference_adds_the_dependency() {
+    let store = namespaces();
+    store
+        .replace_references(replacement(&[72], vec![verified(900, 72, 84, 82)]))
+        .unwrap();
+    let value = |symbol, kind| coupling_of(&store, symbol, kind);
+    assert_eq!(value(83, MetricKind::EfferentCoupling), Some(1.0));
+    assert_eq!(value(81, MetricKind::Instability), Some(0.5));
 }
