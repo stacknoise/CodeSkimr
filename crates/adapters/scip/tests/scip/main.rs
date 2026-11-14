@@ -16,3 +16,5 @@ mod importer;
 mod mapping;
 #[cfg(test)]
 mod replace;
+#[cfg(test)]
+mod scale;
