@@ -147,3 +147,10 @@ pub const UNTRUSTED_PROJECT_TABLES: [&str; 3] = ["level2", "editor", "ui"];
 /// URL schemes that run script or open local files in a browser. They are refused in
 /// `editor.allowed_schemes` in every layer (ADR 0030).
 pub const FORBIDDEN_EDITOR_SCHEMES: [&str; 4] = ["javascript", "data", "file", "vbscript"];
+
+/// Table that holds the scan limits.
+pub const SCAN_TABLE: &str = "scan";
+/// Settings of [`SCAN_TABLE`] that the project file may only lower: a scanned repository must not
+/// lift the protection of the machine that scans it (#54). The user file and the flags may still
+/// raise them.
+pub const LOWER_ONLY_SCAN_KEYS: [&str; 2] = ["max_source_mb", "parse_timeout_ms"];
