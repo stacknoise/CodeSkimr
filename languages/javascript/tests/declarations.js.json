@@ -300,7 +300,7 @@
       "signature": null,
       "span": "8:2-8:13",
       "static": false,
-      "visibility": "public"
+      "visibility": "private"
     },
     {
       "doc": null,

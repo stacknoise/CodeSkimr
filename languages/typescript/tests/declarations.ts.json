@@ -329,7 +329,7 @@
       "signature": null,
       "span": "9:2-9:13",
       "static": false,
-      "visibility": "public"
+      "visibility": "private"
     },
     {
       "doc": null,
