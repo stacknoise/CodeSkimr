@@ -171,6 +171,14 @@ description = "A scan for this project is already running."
 since = "0.1.0"
 
 [[codes]]
+id = "PRJ-303"
+name = "scan_cancelled"
+severity = "info"
+retryable = true
+description = "The scan was cancelled by the user; no snapshot was written."
+since = "0.1.0"
+
+[[codes]]
 id = "SRC-201"
 name = "source_path_not_found"
 severity = "error"

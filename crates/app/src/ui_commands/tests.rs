@@ -22,7 +22,10 @@ use codeskimr_storage::SqliteStore;
 use super::command_api;
 use crate::locations::Locations;
 use crate::principal;
+use crate::scan::open_on;
+use crate::source_arg::classify;
 use crate::wiring::Secrets;
+use codeskimr_domain::ScanMode;
 
 const SOURCE: &str = "namespace Demo;\n\npublic class Calculator\n{\n    public int Add(int a, int b) { return a + b; }\n}\n";
 
@@ -131,6 +134,7 @@ fn the_commands_are_offered() {
             "export.html",
             "graph.layers",
             "projects.add",
+            "projects.cancel",
             "projects.list",
             "projects.rescan",
             "search.query",
@@ -411,8 +415,37 @@ fn the_status_reports_the_memory_of_the_program() {
     let status = fixture.call("status.info", Value::Null).unwrap();
     assert!(status["memory_mb"].as_u64().unwrap() > 0);
     assert!(status.get("startup_ms").is_some());
+    assert!(status["workers"].as_u64().unwrap() >= 1);
     assert_eq!(status["budgets"]["cold_start"], 300);
     assert_eq!(status["budgets"]["incremental_rescan"], 300);
+}
+
+#[test]
+fn cancelling_without_a_running_scan_says_so() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    assert_eq!(
+        fixture.call("projects.cancel", json!({ "project": project })),
+        Ok(json!({ "cancelled": false }))
+    );
+}
+
+#[test]
+fn a_cancelled_scan_ends_with_its_own_code_and_writes_no_snapshot() {
+    let fixture = Fixture::new();
+    let spec = classify(&fixture.folder(), None).unwrap();
+    let session = open_on(
+        principal::resolve(),
+        spec,
+        &GlobalOptions::default(),
+        &fixture.locations,
+        (EventBus::new(), &fixture.secrets),
+    )
+    .unwrap();
+    let result = session.scan_with(ScanMode::Full, |token| token.cancel());
+    assert_eq!(result.unwrap_err().code().entry().id, "PRJ-303");
+    let rows = fixture.call("projects.list", Value::Null).unwrap();
+    assert_eq!(rows[0]["scan"], Value::Null);
 }
 
 fn type_id(fixture: &Fixture, project: u64) -> Value {

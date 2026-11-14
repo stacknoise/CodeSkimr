@@ -14,6 +14,7 @@ export type ErrorCode =
   | "PRJ-201"
   | "PRJ-301"
   | "PRJ-302"
+  | "PRJ-303"
   | "SRC-201"
   | "SRC-202"
   | "SRC-401"
@@ -98,6 +99,7 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "PRJ-201": { id: "PRJ-201", name: "project_not_found", group: "PRJ", class: "not_found", severity: "error", retryable: false, description: "No project with this id exists.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-201" },
   "PRJ-301": { id: "PRJ-301", name: "project_already_registered", group: "PRJ", class: "conflict", severity: "error", retryable: false, description: "A project with the same source is already registered.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-301" },
   "PRJ-302": { id: "PRJ-302", name: "snapshot_in_progress", group: "PRJ", class: "conflict", severity: "error", retryable: false, description: "A scan for this project is already running.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-302" },
+  "PRJ-303": { id: "PRJ-303", name: "scan_cancelled", group: "PRJ", class: "conflict", severity: "info", retryable: true, description: "The scan was cancelled by the user; no snapshot was written.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-303" },
   "SRC-201": { id: "SRC-201", name: "source_path_not_found", group: "SRC", class: "not_found", severity: "error", retryable: false, description: "The configured source folder does not exist or is not readable.", since: "0.1.0", deprecated: false, messageKey: "error-SRC-201" },
   "SRC-202": { id: "SRC-202", name: "git_branch_not_found", group: "SRC", class: "not_found", severity: "error", retryable: false, description: "The requested branch does not exist on the remote.", since: "0.1.0", deprecated: false, messageKey: "error-SRC-202" },
   "SRC-401": { id: "SRC-401", name: "git_auth_required", group: "SRC", class: "permission", severity: "error", retryable: false, description: "The remote requires authentication and no usable credential is available.", since: "0.1.0", deprecated: false, messageKey: "error-SRC-401" },

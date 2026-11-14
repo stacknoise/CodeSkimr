@@ -9,8 +9,10 @@ import { seconds } from "../projects/format";
 import { projects, refreshProjects } from "../projects/projects";
 import type { ProjectRow } from "../projects/types";
 import { refreshStatus, statusInfo } from "../status/status";
+import { isTyping, useKeydown } from "../../shared/keys/keydown";
 import { Budgets, type Measured } from "./Budgets";
-import { FULL_SCAN_BUDGET, FULL_SCAN_LOC, STATE, MS_PER_SECOND } from "./consts";
+import { cancelScan } from "./cancel";
+import { CANCEL_KEY, FULL_SCAN_BUDGET, FULL_SCAN_LOC, STATE, MS_PER_SECOND } from "./consts";
 import { scanRuns } from "./events";
 import { Languages } from "./Languages";
 import { Pipeline } from "./Pipeline";
@@ -94,6 +96,18 @@ export function ScanScreen() {
   });
   const row = createMemo(() => projects().find((item) => item.id === subjectId()));
   const run = createMemo(() => latestRun(scanRuns(), subjectId()));
+  const running = () => run()?.state === STATE.running;
+  const cancel = () => {
+    const id = subjectId();
+    if (running() && id !== null) {
+      void cancelScan(id);
+    }
+  };
+  useKeydown((event) => {
+    if (event.key === CANCEL_KEY && !event.defaultPrevented && !isTyping(event.target)) {
+      cancel();
+    }
+  });
   return (
     <section class={styles.screen}>
       <div class={styles.main}>
@@ -116,6 +130,12 @@ export function ScanScreen() {
                 </Show>
               </span>
             )}
+          </Show>
+          <Show when={running()}>
+            <button type="button" class={styles.cancel} onClick={cancel}>
+              {t(I18N_KEYS.SCAN_ACTION_CANCEL)}{" "}
+              <kbd class={styles.kbd}>{t(I18N_KEYS.SCAN_CANCEL_KEY)}</kbd>
+            </button>
           </Show>
         </div>
         <Show when={run()} fallback={<Idle hasProjects={projects().length > 0} />}>

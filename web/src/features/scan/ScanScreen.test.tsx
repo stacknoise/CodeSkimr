@@ -1,8 +1,8 @@
-import { render, screen, within } from "@solidjs/testing-library";
+import { fireEvent, render, screen, within } from "@solidjs/testing-library";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { recordTime, resetTimings } from "../../shared/api/timings";
-import { answer, serve, useServerSession } from "../../tests/commands";
+import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import type { ProjectRow } from "../projects/types";
 import { refreshProjects } from "../projects/projects";
 import { refreshStatus } from "../status/status";
@@ -33,9 +33,24 @@ const ROW: ProjectRow = {
   running: false,
 };
 
+const RUNNING = {
+  type: "scan_progressed",
+  project: 1,
+  stage: "analyze",
+  done: 10,
+  total: 100,
+};
+
+function cancelCalls(): string[] {
+  return fetchMock.mock.calls
+    .filter(([path]) => String(path).endsWith("projects.cancel"))
+    .map(([, init]) => String((init as RequestInit).body));
+}
+
 const STATUS = {
   startup_ms: 180,
   memory_mb: 88,
+  workers: 8,
   budgets: {
     cold_start: 300,
     search_keystroke: 10,
@@ -107,6 +122,36 @@ describe("ScanScreen", () => {
     expect(screen.getByText("4 ms")).toBeInTheDocument();
     expect(screen.getByText("61 ms")).toBeInTheDocument();
     expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(2);
+    stop();
+  });
+
+  it("shows the cores in use while a scan runs and a dash otherwise", async () => {
+    setLanguage("en");
+    const stop = await shown();
+    await screen.findByText("No scan running");
+    FakeSocket.last?.send(RUNNING);
+    const label = await screen.findByText("Cores active");
+    expect(label.previousElementSibling?.textContent).toBe("8");
+    stop();
+  });
+
+  it("cancels the running scan with the button and with Esc", async () => {
+    setLanguage("en");
+    serve({
+      "projects.list": () => answer([ROW]),
+      "status.info": () => answer(STATUS),
+      "projects.cancel": () => answer({ cancelled: true }),
+    });
+    const stop = await shown();
+    expect(screen.queryByRole("button", { name: /Cancel/ })).toBeNull();
+    FakeSocket.last?.send(RUNNING);
+    fireEvent.click(await screen.findByRole("button", { name: /Cancel/ }));
+    fireEvent.keyDown(document, { key: "Escape" });
+    await vi.waitFor(() => expect(cancelCalls()).toHaveLength(2));
+    expect(cancelCalls()[0]).toBe('{"project":1}');
+    FakeSocket.last?.send({ type: "scan_stopped", project: 1, reason: "cancelled", code: null });
+    expect(await screen.findByText("Scan cancelled")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Cancel/ })).toBeNull();
     stop();
   });
 
