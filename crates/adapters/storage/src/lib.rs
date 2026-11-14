@@ -32,4 +32,4 @@ mod usages;
 
 pub use codeskimr_application::ports::SearchHit;
 pub use queries::TypeSummary;
-pub use store::SqliteStore;
+pub use store::{SqliteStore, StoreOptions};
