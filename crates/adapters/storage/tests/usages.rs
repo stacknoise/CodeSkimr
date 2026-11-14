@@ -5,9 +5,7 @@ mod common;
 
 #[cfg(test)]
 mod tests {
-    use codeskimr_application::ports::{
-        DependencyQuery, ProjectRepository, SnapshotStore, UsageIndex,
-    };
+    use codeskimr_application::ports::{DependencyQuery, SnapshotStore, UsageIndex};
     use codeskimr_domain::{
         Direction, ProjectId, ReferenceKind, ScanMode, SnapshotId, SymbolId, SymbolKind,
         UsageQuery, Visibility,
