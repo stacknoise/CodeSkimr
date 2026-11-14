@@ -177,6 +177,25 @@ async fn a_denied_caller_gets_the_same_answer_for_bad_arguments_and_unknown_tool
 }
 
 #[tokio::test]
+async fn the_tool_list_shows_only_what_the_caller_may_run() {
+    let read_only = Principal::limited(PermissionSet::none().with(Permission::Read));
+    let mut client = connected_as(read_only).await;
+    let listed = client.call(20, "tools/list", json!({})).await;
+    let names: Vec<_> = listed["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|t| t["name"].as_str().unwrap().to_owned())
+        .collect();
+    assert_eq!(names.len(), 10);
+    assert!(!names.iter().any(|name| name == "rescan"));
+    let nobody = connected_as(Principal::limited(PermissionSet::none())).await;
+    let mut nobody = nobody;
+    let none = nobody.call(21, "tools/list", json!({})).await;
+    assert_eq!(none["result"]["tools"].as_array().unwrap().len(), 0);
+}
+
+#[tokio::test]
 async fn a_caller_who_may_only_read_cannot_rescan_but_can_ask_for_dependencies() {
     let read_only = Principal::limited(PermissionSet::none().with(Permission::Read));
     let mut client = connected_as(read_only).await;

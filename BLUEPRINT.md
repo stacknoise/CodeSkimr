@@ -650,7 +650,7 @@ Handle credentials as carefully as is technically possible. CodeSkimr cannot con
 1. **Store nothing.** For Git, use the system's Git credential helper.
 2. **Tokens instead of passwords.** For GitHub and GitLab, use the OAuth device flow with minimal scopes and short-lived tokens.
 3. **OS keystore** for anything that must be stored: Windows Credential Manager (DPAPI), macOS Keychain, Linux Secret Service, via `keyring-core` and the native stores (ADR 0018).
-4. **Never** in SQLite, config files, environment dumps, logs or exports. The database only stores a `CredentialId`.
+4. **Never** in SQLite, config files, environment dumps, logs or exports. The database only stores a `CredentialId`. This also holds without a keystore (a Linux without a Secret Service): there is no file fallback, the program stops with `SEC-601` and says how to fix it (ADR 0045).
 
 ### 12.3 Lifetime in memory (MUST)
 

@@ -206,8 +206,17 @@ impl ServerHandler for McpServer {
         _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
     ) -> impl Future<Output = Result<ListToolsResult, ErrorData>> + Send + '_ {
+        // Only the tools the caller may run, so the list is no oracle either (ADR 0044).
+        let tools = self
+            .definitions
+            .iter()
+            .filter(|tool| {
+                access::require(&self.principal, required_permission(&tool.name)).is_ok()
+            })
+            .cloned()
+            .collect();
         std::future::ready(Ok(ListToolsResult {
-            tools: self.definitions.clone(),
+            tools,
             ..ListToolsResult::default()
         }))
     }
@@ -216,6 +225,9 @@ impl ServerHandler for McpServer {
         self.definitions
             .iter()
             .find(|tool| tool.name == name)
+            .filter(|tool| {
+                access::require(&self.principal, required_permission(&tool.name)).is_ok()
+            })
             .cloned()
     }
 
