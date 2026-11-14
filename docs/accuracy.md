@@ -150,6 +150,22 @@ So 94 % of the level 1 references are `probable` (unchecked), as ADR 0033 wants:
 
 The earlier TypeScript recall of 60.5 % (table above, 2026-11-13) and the 62.7 % of the level 1 row of the level 2 table are separate runs of other versions; this run is the baseline for `--certain-only`. A named receiver that is a namespace or a module is not affected by the change: it still goes through the scope and the imports (test `a_call_through_a_module_qualifier_resolves_by_scope_as_before`).
 
+`certain` precision of Java, Python and C# at level 1 (150 symbols, seed 1, 2026-11-14, `--certain-only`, after the resolver work of ADR 0053; references javac, Jedi 0.20.1 and Roslyn on the pinned corpora):
+
+| Language | `certain` precision | `certain` recall | Uses of ours / of the tool |
+|---|---|---|---|
+| Java, `--no-overrides` | 100 % (395 of 395) | 71.0 % | 395 / 556 |
+| Java, with `override` links | 97.3 % (395 of 406) | 71.0 % | 406 / 556 |
+| Python | 75.2 % (161 of 214) | 46.0 % | 214 / 350 |
+| Python, symbols for which Jedi answers | 98.8 % (161 of 163) | | 163 |
+| C# | 100 % (36 of 36) | 69.2 % | 36 / 52 |
+
+- Java: the 11 wrong lines are all `override` links, which javac does not count as a use (see the limits above). `--no-overrides` leaves them out of the comparison; the default counts them as before.
+- Python before the work: 52.3 % (161 of 308). Wrong were names in functions that took a parameter or a local for the field of the same name, parameters with a union type (`x: str | None`), locals assigned in nested blocks, and the declaration `name: str` of a field, which counted as a write to it. ADR 0053 fixes these: a name without receiver in a function is no member in Python, a write at the declaration is no use, and typed parameters hide fields. The 2 remaining wrong lines of the 163 are annotations `ctx: Context` that Jedi does not report, which are true uses.
+- Python, Jedi is silent for 27 symbols (all fields) on which we have 51 `certain` uses and Jedi none. `--json` names them (`tool_silent`). All 51 lines are `self.x` or `ctx.x` inside that class or a subclass, or annotations of a type; checked with a script and by eye, they are true uses. They stay in the raw figure of 75.2 %, so read it as a lower bound; 98.8 % is the figure over the symbols that Jedi can judge.
+- C#: only 52 uses of the 150 symbols; the corpus is small in uses, so the figure rests on little. The `certain` recall is low because most references are `probable` as for TypeScript (ADR 0033).
+
+
 After the reversal of the ambiguity rule (ADR 0033, 150 symbols, seed 1, 2026-11-13): level 1 keeps every match and marks it unchecked.
 
 | Language | exact | precision | recall |

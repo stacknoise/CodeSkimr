@@ -16,6 +16,8 @@ grammar = "python"
 tier = "full"
 extensions = ["py", "pyi"]
 separator = "."
+# A member always needs its receiver (`self.x`): a bare name in a function is a local or an outer name (ADR 0053).
+bare_names_reach_members = false
 comment_nodes = ["comment"]
 manifest_files = [
     "pyproject.toml",

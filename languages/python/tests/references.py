@@ -31,3 +31,12 @@ def make() -> Child:
     child = Child()
     child.run(None)
     return child
+
+
+class Holder:
+    label: str | None
+
+    def rename(self, label: str | None = None):
+        # A parameter with a union type hides the field of the same name; `self.label` does not.
+        self.label = label
+        return label
