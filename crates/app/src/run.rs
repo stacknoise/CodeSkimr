@@ -73,6 +73,10 @@ where
 {
     ui_commands::mark_started();
     logging::init(env);
+    // Blueprint 12.4: no core dump may hold a secret. A platform that cannot do it is only logged.
+    if !codeskimr_secrets::disable_core_dumps() {
+        tracing::warn!(code = ErrorCode::MemoryLockFailed.id());
+    }
     let tags: Vec<String> = ENV_LANGUAGE_TAGS
         .iter()
         .filter_map(|name| env(name))

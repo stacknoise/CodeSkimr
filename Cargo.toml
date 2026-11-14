@@ -38,6 +38,10 @@ memory-stats = "1"
 tempfile = "3"
 secrecy = { version = "0.10", features = ["serde"] }
 zeroize = "1"
+# Locks secret buffers against swapping (blueprint 12.4); used only in `codeskimr_secrets::memory`.
+memsec = { version = "0.7", default-features = false, features = ["use_os"] }
+libc = "0.2"
+windows-sys = { version = "0.61", default-features = false }
 keyring-core = "1"
 # Reads a secret from the terminal without echo.
 rpassword = "7"

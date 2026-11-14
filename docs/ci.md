@@ -18,7 +18,7 @@ These names must be entered as required status checks in the ruleset `main` (nam
 | `build (windows-latest)` | release build | 17.3 (11) |
 | `build (macos-latest)` | release build | 17.3 (11) |
 | `test (windows-latest, indexer)` | `cargo test -p codeskimr_indexer` on Windows: process group (job object), timeout, cancel and limits of the level 2 runner (ADR 0033). Not in the ruleset yet. | 17.1, ADR 0033 |
-| `architecture` | crate dependency direction (`tools/ci/architecture.toml`, rule file must match the workspace) and module cycles between the top-level modules of each crate (`tools/ci/check_architecture.py`, own unit tests) | 4.2, R-04, 17.3 (5) |
+| `architecture` | crate dependency direction (`tools/ci/architecture.toml`, rule file must match the workspace) and module cycles between the top-level modules of each crate (`tools/ci/check_architecture.py`, own unit tests); also lists every `expose_secret()` call in product code and fails on a call that is not in `tools/ci/expose-secret-approved.toml` (`tools/ci/check_expose_secret.py`, blueprint 12.4) | 4.2, R-04, 17.3 (5) |
 | `duplicates` | `jscpd`, threshold 0, 5 lines / 50 tokens (`.jscpd.json`) | R-01 |
 | `literals` | Dylint lint `no_literals` on the product crates (`tools/lints/no_literals`, own test cases), ESLint rules from `web/eslint.literals.config.js` once `web/package.json` exists | R-06, 3.2 |
 | `codegen` | regenerates the error code artifacts and fails on any diff; i18n keys, tokens and OpenAPI client follow | 17.3 (6) |

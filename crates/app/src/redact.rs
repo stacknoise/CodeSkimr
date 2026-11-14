@@ -71,9 +71,9 @@ fn mask_values(text: &str, key: &str, shape: Shape<'_>) -> String {
         let key_end = position + offset + key.len();
         result.push_str(between(text, position, key_end));
         position = key_end;
-        if let Some((start, quote)) = value_start(tail(text, key_end), shape.separators) {
+        if let Some((start, opening)) = value_start(tail(text, key_end), shape.separators) {
             let value = tail(text, key_end + start);
-            let length = value_length(value, quote, shape.to_line_end);
+            let length = value_length(value, opening, shape.to_line_end);
             result.push_str(between(text, key_end, key_end + start));
             result.push_str(REDACTED);
             position = key_end + start + length;
@@ -83,8 +83,15 @@ fn mask_values(text: &str, key: &str, shape: Shape<'_>) -> String {
     result
 }
 
+/// The quote that opened a value, and whether `Debug` output escaped it with a backslash.
+#[derive(Clone, Copy)]
+struct Opening {
+    quote: char,
+    escaped: bool,
+}
+
 /// Where the value begins inside `rest` (the text behind a key), and the quote that opened it.
-fn value_start(rest: &str, separators: &[char]) -> Option<(usize, Option<char>)> {
+fn value_start(rest: &str, separators: &[char]) -> Option<(usize, Option<Opening>)> {
     let value = if separators.is_empty() {
         rest.strip_prefix(BLANKS)?.trim_start_matches(BLANKS)
     } else {
@@ -97,7 +104,9 @@ fn value_start(rest: &str, separators: &[char]) -> Option<(usize, Option<char>)>
     let body = quote.map_or(unwrapped, |q| {
         unescaped.strip_prefix(q).unwrap_or(unwrapped)
     });
-    (!body.is_empty()).then_some((rest.len() - body.len(), quote))
+    let escaped = unescaped.len() != unwrapped.len();
+    let opening = quote.map(|quote| Opening { quote, escaped });
+    (!body.is_empty()).then_some((rest.len() - body.len(), opening))
 }
 
 /// What follows the separator behind a key. The key may continue (`secret_key`, `PASSWORD_HASH`)
@@ -130,13 +139,22 @@ fn wrapped_content(value: &str) -> Option<&str> {
 }
 
 /// Length of the value at the start of `value`.
-fn value_length(value: &str, quote: Option<char>, to_line_end: bool) -> usize {
-    let end = |c: char| match quote {
-        Some(q) => c == q || c == LINE_END,
-        None if to_line_end => c == LINE_END,
-        None => c.is_whitespace() || VALUE_END.contains(&c),
+fn value_length(value: &str, opening: Option<Opening>, to_line_end: bool) -> usize {
+    let mut previous = None;
+    let mut end = |c: char| {
+        // In a plain quoted value `\"` belongs to the value; an escaped opening quote came from
+        // `Debug` output, whose closing quote is escaped the same way.
+        let ended = match opening {
+            Some(open) => {
+                (c == open.quote && (open.escaped || previous != Some(ESCAPE))) || c == LINE_END
+            }
+            None if to_line_end => c == LINE_END,
+            None => c.is_whitespace() || VALUE_END.contains(&c),
+        };
+        previous = Some(c);
+        ended
     };
-    value.find(end).unwrap_or(value.len())
+    value.find(&mut end).unwrap_or(value.len())
 }
 
 /// Replaces every well-known token that starts with `prefix`.
@@ -291,6 +309,30 @@ mod tests {
         ] {
             assert_hidden(&format!("v {token} w"));
         }
+    }
+
+    #[test]
+    fn masks_presigned_url_parameters() {
+        assert_hidden(&format!("GET /f?X-Amz-Signature={CANARY}&X-Amz-Date=1"));
+        assert_hidden(&format!("GET /f?X-Amz-Credential={CANARY}&x=1"));
+        assert_hidden(&format!("GET /blob?sv=1&sig={CANARY}&se=2"));
+        assert_hidden(&format!("GET /blob?sig={CANARY}"));
+        assert_eq!(redact("GET /f?page=1&design=2"), "GET /f?page=1&design=2");
+    }
+
+    #[test]
+    fn masks_scp_style_addresses_with_a_password() {
+        let output = redact(&format!(
+            "fetch user:{CANARY}@host.example:org/r.git failed"
+        ));
+        assert_eq!(output, "fetch host.example:org/r.git failed");
+    }
+
+    #[test]
+    fn a_quoted_value_with_an_escaped_quote_is_masked_to_its_end() {
+        let output = redact(&format!(r#"{{"password": "ab\"{CANARY}", "x": 1}}"#));
+        assert!(!output.contains(CANARY), "leaked: {output}");
+        assert_eq!(output, r#"{"password": "[redacted]", "x": 1}"#);
     }
 
     #[test]

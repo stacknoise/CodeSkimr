@@ -40,7 +40,8 @@ The scanner and the commands share one credential store (`wiring::Secrets`). The
 
 ## Limits of this package
 
-- Memory hardening (12.4: locking secret memory, no core dumps, `memsec`) and the CI listing of `expose_secret()` call sites are not part of it, see the linked issues in the pull request.
+- Memory hardening (12.4): the packed bytes of a credential lie in `LockedBytes` (`mlock` / `VirtualLock` via `memsec`, wiped and unlocked on drop); a refused lock is `SEC-901`. At program start `disable_core_dumps` sets the core limit to 0 and `PR_SET_DUMPABLE` to 0 (Linux), or switches off the error report with memory dump (Windows, `SetErrorMode`). All `unsafe` lives in `crates/adapters/secrets/src/memory.rs`. Residual risk: the copy the OS keystore library returns, and the `String`s that `gix` needs for a login, are not locked.
+- CI lists every `expose_secret()` call in product code (`tools/ci/check_expose_secret.py`, job `architecture`); a new call needs an entry in `tools/ci/expose-secret-approved.toml`, which the reviewer approves.
 - Libraries copy secrets: `gix` receives the user and the password as plain `String`s for one request (residual risk of blueprint 15, "OS and library copies").
 - The server and the UI still have no endpoint or form to create a credential (issue #53, second half). The CLI commands are described in `docs/cli.md`.
 - A secret from standard input is limited to 64 KiB. The read buffer of the standard input and the terminal library are copies the program cannot wipe (blueprint 15, library copies).

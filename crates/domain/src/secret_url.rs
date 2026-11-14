@@ -1,8 +1,8 @@
 //! Removing credentials from URLs, so that no secret is stored, shown or handed to Git.
 
 use crate::consts::{
-    SECRET_USER_SCHEMES, URL_AUTHORITY_END, URL_IPV6_START, URL_PASSWORD_START, URL_SCHEME_EXTRA,
-    URL_SCHEME_MARKER, URL_USERINFO_END,
+    SCP_HOST_EXTRA, SECRET_USER_SCHEMES, URL_AUTHORITY_END, URL_IPV6_START, URL_PASSWORD_START,
+    URL_SCHEME_EXTRA, URL_SCHEME_MARKER, URL_USERINFO_END,
 };
 
 /// What to cut out of the credentials part (`user:password@`) of a URL.
@@ -26,7 +26,45 @@ pub fn without_secrets(url: &str) -> String {
 /// the credentials end it removes more rather than less.
 #[must_use]
 pub fn without_userinfo(text: &str) -> String {
-    rewrite(text, Cut::All)
+    without_scp_credentials(&rewrite(text, Cut::All))
+}
+
+/// Removes `user:password@` from scp-style addresses (`user:password@host:path`), which have no
+/// `://` and so are not found by [`rewrite`]. A word counts only if the credentials contain a
+/// colon and the part after the last `@` is `host:path`; `name@host:22` and addresses without a
+/// password stay as they are.
+fn without_scp_credentials(text: &str) -> String {
+    let mut result = String::with_capacity(text.len());
+    for chunk in text.split_inclusive(char::is_whitespace) {
+        let word = chunk.trim_end_matches(char::is_whitespace);
+        result.push_str(scp_without_credentials(word));
+        result.push_str(chunk.get(word.len()..).unwrap_or_default());
+    }
+    result
+}
+
+/// `word` without its credentials if it is an scp-style address with a password.
+fn scp_without_credentials(word: &str) -> &str {
+    let Some((userinfo, address)) = word.rsplit_once(URL_USERINFO_END) else {
+        return word;
+    };
+    let has_password =
+        userinfo.contains(URL_PASSWORD_START) && !userinfo.contains(URL_SCHEME_MARKER);
+    let is_address = address
+        .split_once(URL_PASSWORD_START)
+        .is_some_and(|(host, path)| {
+            !host.is_empty()
+                && !path.is_empty()
+                && !path.chars().all(|c| c.is_ascii_digit())
+                && host
+                    .chars()
+                    .all(|c| c.is_ascii_alphanumeric() || SCP_HOST_EXTRA.contains(c))
+        });
+    if has_password && is_address {
+        address
+    } else {
+        word
+    }
 }
 
 fn rewrite(text: &str, cut: Cut) -> String {
@@ -163,5 +201,26 @@ mod tests {
         );
         assert_eq!(without_userinfo("nothing here"), "nothing here");
         assert_eq!(without_userinfo("https://u:pa/ss@h/r"), "https://h/r");
+    }
+
+    #[test]
+    fn scp_style_addresses_lose_the_password() {
+        assert_eq!(
+            without_userinfo("clone user:pa/ss@host.example:org/r.git failed\nnext"),
+            "clone host.example:org/r.git failed\nnext"
+        );
+        assert_eq!(without_userinfo("u:p@ss@h:r"), "h:r");
+    }
+
+    #[test]
+    fn scp_style_text_without_a_password_stays() {
+        for text in [
+            "git@host.example:org/r.git",
+            "see user@host:22 now",
+            "a: b@c",
+            "x:y@host",
+        ] {
+            assert_eq!(without_userinfo(text), text);
+        }
     }
 }

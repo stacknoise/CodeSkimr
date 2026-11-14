@@ -97,7 +97,7 @@ pub const REDACTED: &str = "[redacted]";
 /// Header and field names whose value runs to the end of the line, case-insensitive.
 pub const LINE_KEYS: [&str; 2] = ["authorization", "cookie"];
 /// Field and parameter names whose value is one word, case-insensitive.
-pub const VALUE_KEYS: [&str; 11] = [
+pub const VALUE_KEYS: [&str; 15] = [
     "passphrase",
     "password",
     "passwd",
@@ -109,6 +109,11 @@ pub const VALUE_KEYS: [&str; 11] = [
     "private_key",
     "credential",
     "session_id",
+    // Pre-signed URLs: `X-Amz-Signature`, `X-Amz-Credential`, Azure `?sig=`.
+    "signature",
+    "x-amz-credential",
+    "?sig",
+    "&sig",
 ];
 /// Scheme word of a bearer token; its value follows after a blank, case-insensitive.
 pub const BEARER_KEY: &str = "bearer";
