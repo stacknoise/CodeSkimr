@@ -50,7 +50,7 @@ fn targets_of(outcome: &ImportOutcome) -> Vec<u64> {
     outcome.references.iter().map(|r| r.to.get()).collect()
 }
 
-fn target(outcome: &ImportOutcome) -> Vec<(u64, u64, ReferenceKind)> {
+pub fn target(outcome: &ImportOutcome) -> Vec<(u64, u64, ReferenceKind)> {
     outcome
         .references
         .iter()

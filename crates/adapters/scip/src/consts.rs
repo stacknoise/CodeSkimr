@@ -112,6 +112,23 @@ pub(crate) const CLOSE_PAREN: char = ')';
 pub(crate) const OPEN_BRACKET: char = '[';
 /// Closes the name of a type parameter.
 pub(crate) const CLOSE_BRACKET: char = ']';
+/// How rust-analyzer starts the symbol of an impl block: `impl#[Type]` for the block itself (what
+/// `Self` names), `impl#[Type][Trait]` for a trait implementation.
+pub(crate) const IMPL_MARKER: &str = "impl#[";
+/// Opens the generic arguments of a type or trait name that an indexer writes in one piece.
+pub(crate) const OPEN_GENERIC: char = '<';
+/// Separates the segments of a Rust path.
+pub(crate) const PATH_SEPARATOR: &str = "::";
+/// Most symbols kept per name: a second one already makes the answer ambiguous.
+pub(crate) const MAX_SYMBOLS_PER_KEY: usize = 2;
+/// Most modules of a path that are looked up; a longer path maps nothing.
+pub(crate) const MAX_PATH_DEPTH: usize = 8;
+/// The owner of a symbol that has none (a type is looked up without one).
+pub(crate) const NO_OWNER: &str = "";
+/// The first segment of a path that starts at the crate root.
+pub(crate) const ROOT_SEGMENT: &str = "crate";
+/// Segments of a path that are relative to the module of the block; they are not resolved.
+pub(crate) const RELATIVE_SEGMENTS: [&str; 2] = ["self", "super"];
 /// Separates the segments of a qualified name written as one escaped descriptor.
 pub(crate) const NAME_SEGMENT_SEPARATOR: char = '.';
 /// Names the indexers give constructors; a project constructor is named like its type.
