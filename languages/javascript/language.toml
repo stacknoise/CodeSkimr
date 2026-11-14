@@ -68,3 +68,22 @@ export = "public"
 
 [visibility.parent_defaults]
 module = "private"
+
+# Level 2 (ADR 0033): scip-typescript indexes TypeScript and JavaScript; --infer-tsconfig lets it index a project without a tsconfig.json.
+# Only runs when the user enabled and confirmed level 2 for the project. CodeSkimr never downloads or
+# installs anything: the user installs the indexer and its toolchain.
+[indexer]
+name = "scip-typescript"
+install_hint = "npm install --global @sourcegraph/scip-typescript (needs Node.js and the installed node_modules of the project)"
+args = ["index", "--output", "{output}", "--infer-tsconfig"]
+env_allow = ["NODE_PATH", "NVM_DIR", "VOLTA_HOME", "FNM_DIR", "NPM_CONFIG_CACHE"]
+
+[indexer.tool]
+program = "scip-typescript"
+version_args = ["--version"]
+min_version = "0.3.0"
+
+[[indexer.toolchain]]
+program = "node"
+version_args = ["--version"]
+min_version = "18.0.0"

@@ -12,6 +12,7 @@ pub mod conventions;
 pub mod error;
 pub mod events;
 pub mod ids;
+pub mod level2;
 pub mod metrics;
 pub mod pipeline;
 pub mod ports;

@@ -174,6 +174,14 @@ fn check_level2(level2: &Level2) -> Result<(), ConfigError> {
     if level2.max_index_bytes == 0 {
         return fail(keys::LEVEL2_MAX_INDEX_BYTES, Violation::MustBePositive);
     }
+    positive(keys::LEVEL2_TIMEOUT_SECONDS, level2.timeout_seconds)?;
+    positive(keys::LEVEL2_MAX_MEMORY_MB, level2.max_memory_mb)?;
+    if level2.max_output_bytes < level2.max_index_bytes {
+        return fail(
+            keys::LEVEL2_MAX_OUTPUT_BYTES,
+            Violation::MustNotBeBelow(keys::LEVEL2_MAX_INDEX_BYTES),
+        );
+    }
     share(keys::LEVEL2_MIN_MAPPED, level2.min_mapped)
 }
 

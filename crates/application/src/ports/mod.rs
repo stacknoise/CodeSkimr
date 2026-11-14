@@ -8,7 +8,9 @@
 mod analysis;
 mod catalog;
 mod clock;
+mod consent;
 mod credentials;
+mod indexer;
 mod outline;
 mod query;
 mod rescan;
@@ -16,6 +18,7 @@ mod similarity;
 mod source;
 mod storage;
 mod usages;
+mod version;
 
 pub use analysis::{
     AnalyzeRequest, FileAnalyzer, FileFacts, MetricsCalculator, PendingReference, Receiver,
@@ -23,7 +26,12 @@ pub use analysis::{
 };
 pub use catalog::{LanguageShare, ProjectCatalog, ProjectOverview};
 pub use clock::Clock;
+pub use consent::{ConsentRecord, ConsentStore, RunPermit};
 pub use credentials::{AuthError, Credential, CredentialStore};
+pub use indexer::{
+    IndexArtifact, IndexJob, IndexLimits, IndexRunner, IndexerSpec, IndexerStatus,
+    PLACEHOLDER_OUTPUT, PLACEHOLDER_PROJECT, ToolIssue, ToolProblem, ToolSpec,
+};
 pub use outline::{CodeOutline, MemberRow, OutlineNode};
 pub use query::{CodeIndex, MemberRef, SearchHit, SymbolDetail, SymbolKey};
 pub use rescan::ProjectScanner;
@@ -36,3 +44,4 @@ pub use usages::{
     DependencyEdge, DependencyPage, DependencyQuery, ImpactPage, ImpactedSymbol, SymbolLabel,
     UsageEntry, UsageIndex, UsagePage,
 };
+pub use version::ToolVersion;

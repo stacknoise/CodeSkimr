@@ -22,9 +22,11 @@ crate = "codeskimr_source"
 title = "Parsing and language packs"
 crate = "codeskimr_parsing"
 
+# Level 1 resolves in the parsing and application crates; level 2 (ADR 0033) fails in the SCIP import
+# and in the indexer runner (issue #218: the group has several owners, listed here and in blueprint 11.3).
 [groups.RES]
 title = "Reference resolution"
-crate = "codeskimr_parsing"
+crate = "codeskimr_parsing, codeskimr_scip, codeskimr_indexer"
 
 [groups.IDX]
 title = "Search and read models"
@@ -36,7 +38,7 @@ crate = "codeskimr_storage"
 
 [groups.SEC]
 title = "Credentials and security"
-crate = "codeskimr_secrets"
+crate = "codeskimr_secrets, codeskimr_application"
 
 [groups.NET]
 title = "Network and platforms (GitHub, GitLab ...)"
@@ -267,6 +269,14 @@ description = "A SCIP index cannot be read, is corrupt or names a path outside t
 since = "0.1.0"
 
 [[codes]]
+id = "RES-201"
+name = "indexer_unavailable"
+severity = "error"
+retryable = false
+description = "The indexer of a language or its toolchain is not installed or is older than the version the language pack requires; level 1 references stay."
+since = "0.1.0"
+
+[[codes]]
 id = "RES-301"
 name = "ambiguous_reference"
 severity = "warning"
@@ -288,6 +298,38 @@ name = "scip_index_too_large"
 severity = "error"
 retryable = false
 description = "A SCIP index is larger than the configured limit and was refused; level 1 references stay."
+since = "0.1.0"
+
+[[codes]]
+id = "RES-502"
+name = "indexer_timeout"
+severity = "error"
+retryable = false
+description = "An indexer ran longer than level2.timeout_seconds and was stopped with all its child processes; level 1 references stay."
+since = "0.1.0"
+
+[[codes]]
+id = "RES-503"
+name = "indexer_output_too_large"
+severity = "error"
+retryable = false
+description = "An indexer wrote more than level2.max_output_bytes and was stopped; level 1 references stay."
+since = "0.1.0"
+
+[[codes]]
+id = "RES-504"
+name = "indexer_memory_limit"
+severity = "error"
+retryable = false
+description = "An indexer used more memory than level2.max_memory_mb and was stopped; level 1 references stay."
+since = "0.1.0"
+
+[[codes]]
+id = "RES-601"
+name = "indexer_failed"
+severity = "error"
+retryable = false
+description = "An indexer could not be started or ended with an error; level 1 references stay."
 since = "0.1.0"
 
 [[codes]]
@@ -355,6 +397,14 @@ description = "The keystore entry of the credential cannot be read; delete it an
 since = "0.1.0"
 
 [[codes]]
+id = "SEC-301"
+name = "indexer_not_confirmed"
+severity = "error"
+retryable = false
+description = "Level 2 is not enabled and confirmed for this project in the user configuration or the user's own project record, so no indexer is started."
+since = "0.1.0"
+
+[[codes]]
 id = "SEC-401"
 name = "credential_rejected"
 severity = "error"
@@ -368,6 +418,14 @@ name = "keystore_access_denied"
 severity = "error"
 retryable = false
 description = "The OS keystore denied access."
+since = "0.1.0"
+
+[[codes]]
+id = "SEC-403"
+name = "indexer_not_permitted"
+severity = "error"
+retryable = false
+description = "The caller may not confirm or start indexers; only the local owner may (ADR 0033, decision 10)."
 since = "0.1.0"
 
 [[codes]]

@@ -4,6 +4,10 @@ use codeskimr_domain::{
     FingerprintParams, Layer, LayerName, LayoutParams, ModelError, NodeSize, QualifiedName,
 };
 use serde::Deserialize;
+use std::time::Duration;
+
+use crate::consts::BYTES_PER_MIB;
+use crate::ports::IndexLimits;
 
 /// The complete, validated configuration. Built by [`crate::config::Config::resolve`].
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -173,10 +177,19 @@ pub struct Scan {
     pub max_source_mb: u32,
 }
 
-/// Limits of the SCIP import (ADR 0033).
+/// Settings and limits of level 2: running indexers and importing their indexes (ADR 0033).
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Level2 {
+    /// Master switch for running indexers. Only the user config and command line flags can set
+    /// it; the project file cannot (ADR 0033, decision 9).
+    pub enabled: bool,
+    /// Longest time one indexer may run, in seconds.
+    pub timeout_seconds: u32,
+    /// Most memory one indexer with its child processes may hold, in megabytes.
+    pub max_memory_mb: u32,
+    /// Most bytes one indexer may write in total (console and output directory).
+    pub max_output_bytes: u64,
     /// Largest index file that is read, in bytes.
     pub max_index_bytes: u64,
     /// Smallest share `mapped / (mapped + unmapped)` among the uses of project symbols (symbols
@@ -276,6 +289,18 @@ impl Graph {
             node_gap: self.node_gap,
             sweeps: self.sweeps,
             placement_passes: self.placement_passes,
+        }
+    }
+}
+
+impl Level2 {
+    /// The limits of one indexer run.
+    #[must_use]
+    pub fn limits(&self) -> IndexLimits {
+        IndexLimits {
+            timeout: Duration::from_secs(u64::from(self.timeout_seconds)),
+            max_memory_bytes: u64::from(self.max_memory_mb).saturating_mul(BYTES_PER_MIB),
+            max_output_bytes: self.max_output_bytes,
         }
     }
 }

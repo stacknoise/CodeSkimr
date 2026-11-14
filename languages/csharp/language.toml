@@ -81,3 +81,23 @@ module = "internal"
 namespace = "internal"
 interface = "public"
 enum = "public"
+
+# Level 2 (ADR 0033): scip-dotnet (Roslyn) indexes the solution or project in the project folder; it restores NuGet packages.
+# Only runs when the user enabled and confirmed level 2 for the project. CodeSkimr never downloads or
+# installs anything: the user installs the indexer and its toolchain.
+[indexer]
+name = "scip-dotnet"
+install_hint = "dotnet tool install --global scip-dotnet (needs the .NET SDK that the project targets)"
+args = ["index", "--working-directory", "{project}", "--output", "{output}"]
+env_allow = ["DOTNET_ROOT", "DOTNET_CLI_HOME", "NUGET_PACKAGES"]
+env = { DOTNET_NOLOGO = "1", DOTNET_CLI_TELEMETRY_OPTOUT = "1" }
+
+[indexer.tool]
+program = "scip-dotnet"
+version_args = ["--version"]
+min_version = "0.2.0"
+
+[[indexer.toolchain]]
+program = "dotnet"
+version_args = ["--version"]
+min_version = "8.0.0"
