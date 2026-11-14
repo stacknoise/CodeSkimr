@@ -175,23 +175,21 @@ impl<'a> SymbolTable<'a> {
         at: Position,
         descriptor: &Descriptor,
     ) -> Option<&'a Symbol> {
-        let mut found = None;
-        let mut weighed = 0_usize;
-        for list in self.named_on_line(file, at.line, descriptor) {
-            let count = list.partition_point(|s| s.span.start() <= at);
-            for symbol in list.iter().take(count).rev() {
-                weighed += 1;
-                if weighed > MAX_LINE_CANDIDATES {
-                    return None;
-                }
-                if contains(symbol.span, at) && symbol.kind.is_callable() {
-                    if found.is_some() {
-                        return None;
-                    }
-                    found = Some(*symbol);
-                }
-            }
+        let before = self
+            .named_on_line(file, at.line, descriptor)
+            .flat_map(|list| {
+                let count = list.partition_point(|s| s.span.start() <= at);
+                list.iter().take(count).rev().copied()
+            });
+        // One more than allowed is taken, to tell "exactly the limit" from "too many".
+        let weighed: Vec<&'a Symbol> = before.take(MAX_LINE_CANDIDATES.saturating_add(1)).collect();
+        if weighed.len() > MAX_LINE_CANDIDATES {
+            return None;
         }
-        found
+        let mut declared = weighed
+            .into_iter()
+            .filter(|symbol| contains(symbol.span, at) && symbol.kind.is_callable());
+        let first = declared.next()?;
+        declared.next().is_none().then_some(first)
     }
 }

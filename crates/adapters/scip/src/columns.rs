@@ -6,6 +6,7 @@
 //! same place would be off. The conversion needs the text of the lines.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use codeskimr_domain::{Position, RelativePath, Span};
 
@@ -95,7 +96,8 @@ fn local_names(
     document: &ScipDocument,
     lines: &[String],
     symbols: &[String],
-) -> HashMap<SymbolRef, String> {
+    interner: &mut HashMap<String, Arc<str>>,
+) -> HashMap<SymbolRef, Arc<str>> {
     let mut names: HashMap<SymbolRef, Option<&str>> = HashMap::new();
     let definitions = document.occurrences.iter().filter(|o| o.is_definition());
     for occurrence in definitions {
@@ -112,9 +114,16 @@ fn local_names(
             *known = None;
         }
     }
+    // The same few names (`i`, `e`, `cb`) recur over a project: each text is kept once.
     names
         .into_iter()
-        .filter_map(|(symbol, text)| Some((symbol, text?.to_owned())))
+        .filter_map(|(symbol, text)| {
+            let text = text?;
+            let shared = interner
+                .entry(text.to_owned())
+                .or_insert_with(|| Arc::from(text));
+            Some((symbol, Arc::clone(shared)))
+        })
         .collect()
 }
 
@@ -142,18 +151,38 @@ pub fn convert_columns(
     let ScipIndex {
         documents, symbols, ..
     } = index;
-    for document in documents {
-        let converted = document.encoding == PositionEncoding::Utf8;
-        if converted && !defines_locals(document, symbols) {
-            continue;
-        }
-        let Some(lines) = lines_of(&document.path) else {
+    // Documents of one path are handled together, so a file is read once however often the
+    // index names it (an index may hold a million documents of one path).
+    let mut order: Vec<usize> = (0..documents.len())
+        .filter(|at| {
+            documents.get(*at).is_some_and(|document| {
+                document.encoding != PositionEncoding::Utf8 || defines_locals(document, symbols)
+            })
+        })
+        .collect();
+    order.sort_by(|a, b| {
+        let path = |at: &usize| documents.get(*at).map(|document| document.path.as_str());
+        path(a).cmp(&path(b))
+    });
+    let mut interner: HashMap<String, Arc<str>> = HashMap::new();
+    let mut current: Option<(String, Option<Vec<String>>)> = None;
+    for at in order {
+        let Some(document) = documents.get_mut(at) else {
             continue;
         };
-        if !converted {
-            convert_document(document, &lines);
+        let same = current
+            .as_ref()
+            .is_some_and(|(path, _)| path == document.path.as_str());
+        if !same {
+            current = Some((document.path.as_str().to_owned(), lines_of(&document.path)));
         }
-        document.local_names = local_names(document, &lines, symbols);
+        let Some((_, Some(lines))) = &current else {
+            continue;
+        };
+        if document.encoding != PositionEncoding::Utf8 {
+            convert_document(document, lines);
+        }
+        document.local_names = local_names(document, lines, symbols, &mut interner);
     }
 }
 
@@ -234,5 +263,21 @@ mod tests {
         convert_columns(&mut index, &mut |_| None);
         assert_eq!(index.documents[0].encoding, PositionEncoding::Utf16);
         assert_eq!(index.documents[0].occurrences.len(), 1);
+    }
+
+    #[test]
+    fn many_documents_of_one_path_read_the_file_once() {
+        let mut index = index(PositionEncoding::Utf16, span(0, 4, 7));
+        let template = index.documents[0].clone();
+        index.documents = vec![template; 5000];
+        let lines = vec!["int Foo;".to_owned()];
+        let mut reads = u32::default();
+        convert_columns(&mut index, &mut |_| {
+            reads += 1;
+            Some(lines.clone())
+        });
+        assert_eq!(reads, 1);
+        let encodings: Vec<_> = index.documents.iter().map(|d| d.encoding).collect();
+        assert_eq!(encodings, vec![PositionEncoding::Utf8; 5000]);
     }
 }

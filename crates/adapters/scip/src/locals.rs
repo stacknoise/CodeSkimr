@@ -7,6 +7,7 @@
 //! is mapped.
 
 use std::collections::HashMap;
+use std::sync::Arc;
 
 use codeskimr_domain::{Symbol, SymbolId};
 
@@ -32,7 +33,7 @@ fn by_line<'a>(defs: &[&'a Occurrence]) -> HashMap<u32, Vec<&'a Occurrence>> {
 pub(crate) fn match_functions(
     symbols: &[&Symbol],
     defs: &[&Occurrence],
-    names: &HashMap<SymbolRef, String>,
+    names: &HashMap<SymbolRef, Arc<str>>,
 ) -> HashMap<SymbolRef, Vec<SymbolId>> {
     let lines = by_line(defs);
     let mut found: HashMap<SymbolRef, Vec<SymbolId>> = HashMap::new();
@@ -44,7 +45,7 @@ pub(crate) fn match_functions(
         let before = list.partition_point(|def| def.range.end() <= start);
         let nearest = before.checked_sub(1).and_then(|at| list.get(at));
         if let Some(def) = nearest
-            .filter(|def| names.get(&def.symbol).map(String::as_str) == Some(symbol.name.as_str()))
+            .filter(|def| names.get(&def.symbol).map(AsRef::as_ref) == Some(symbol.name.as_str()))
         {
             found.entry(def.symbol).or_default().push(symbol.id);
         }
