@@ -1,4 +1,4 @@
-# 0048 – Rust module paths do not contain `src` or the file name of a module root
+# 0052 – Rust module paths do not contain `src` or the file name of a module root
 
 Status: proposed
 
