@@ -902,6 +902,18 @@ Reference: the budgets are meant for a mid-range developer laptop (class recorde
 | Memory for 1M LOC indexed | < 500 MB |
 | Binary size (full-tier languages built in) | < 60 MB |
 
+**Level 2 (ADR 0033) is not part of this table.** The budgets above are for level 1: the scan is complete and usable before level 2 starts, and the second pass (section 9.3) runs external indexers, whose time and memory depend on the project and its build tools and cannot be measured by the benchmark of CI. Level 2 is bounded by limits instead, which are configuration keys with defaults in `config/default.toml` (section 14): `level2.timeout_seconds` 900, `level2.max_memory_mb` 4096, `level2.max_output_bytes` 512 MiB, `level2.max_index_bytes` 256 MiB. Exceeding one stops the indexer and keeps level 1 (`RES-502`, `RES-504`, `RES-503`, `RES-501`). What the indexers cost on the pinned corpora (one cold run each on the measuring machine, measured by hand, `docs/accuracy.md`) is the reference for choosing those limits:
+
+| Indexer | Corpus | Time | Peak memory | Index |
+|---|---|---|---|---|
+| `rust-analyzer scip` | CodeSkimr (Rust) | 34 to 41 s | 2.1 GiB | 5 MB |
+| scip-typescript 0.6.2 | TypeScript corpus | 3.7 to 5.7 s | 404 MiB | 5.4 MB |
+| scip-python 0.6.8 | click | 13 s (22 s with the full site-packages) | 528 to 589 MiB | 4.6 MB |
+| scip-java 0.12.3 | gson | 7.3 s | 270 MiB | 2.6 MB |
+| scip-dotnet 0.2.16 | GuardClauses | 12.3 s (23 s with the first restore) | 298 MiB | 1.4 MB |
+
+The time and memory of the import itself (decoding, mapping, replacing) are not measured separately yet; no budget is set for them.
+
 ### 16.2 Green Code rules
 
 - **Do not recompute:** content hashes, incremental pipeline, read models.
@@ -937,8 +949,19 @@ Coverage target: ≥ 80 % lines for `domain` and `application`; adapters are cov
 - Corpus projects follow the product owner's own repositories (ADR 0011): TypeScript/JavaScript, Python, Kotlin and Java use public repositories of the product owner; Rust uses CodeSkimr itself at a pinned commit, with part of the expected values checked by hand. Only public projects are used in CI.
 - Accuracy targets per full-tier language:
   - symbols ≥ 99 %
-  - references marked `certain` ≥ 98 % correct
-  - share of `probable` references reported per language
+  - **level 1** (ADR 0033, decisions 6, 7 and 14): level 1 keeps every match and marks it unchecked, so the old target "references marked `certain` ≥ 98 % correct" no longer applies to it. What counts is that recall is not lower than before PR #133 (measured for every language with a reference tool) and that the share of unchecked results is reported per language
+  - **level 2**, per language with an indexer, on at least 150 sampled symbols: recall ≥ 99 % and ≥ 99 % correct among the verified references. The reference is independent of level 2 (the language tooling of `tools/accuracy`, not the SCIP index), and the private C# sample of 20 symbols is complete and without wrong usages. The acceptance runs `tools/accuracy`, not CI.
+- **State of the measurement** (150 symbols, seed 1, 2026-11-14, `--verified-only --scip`, index made by hand; details, corpora and tool versions in `docs/accuracy.md`). **These numbers are not an acceptance under ADR 0033, decision 14:** the index is made by hand, so the `IndexRunner` (call, limits, environment), the consent and the wiring into the scan are not measured; ADR 0033 is still proposed; and the reference and the indexer are the same engine for Rust, TypeScript, Java and C# (a mistake of the engine itself would not show):
+
+| Language | Indexer | Reference (engine of the index) | Precision | Recall | Reading |
+|---|---|---|---|---|---|
+| Rust | rust-analyzer 1.97.0 | rust-analyzer over LSP (same) | 100 % (733 of 733) | 100 % (733 of 733) | Reaches the threshold on this sample; other draws 99.6 to 99.7 % and 99.9 to 100 %; the corpus is CodeSkimr itself |
+| TypeScript | scip-typescript 0.6.2 | TypeScript language service (same compiler) | 99.4 % (668 of 672) | 100 % (668 of 668) | The 4 wrong uses are `RoomNode.id` through a union type, where the index is right; reaches the threshold on this sample |
+| Python | scip-python 0.6.8 | Jedi (independent: Pyright against Jedi) | 63.3 % (347 of 548) | 99.1 % (347 of 350) | Precision is a lower bound: Jedi finds no use of instance attributes and annotations, and import lines count as uses (#250) |
+| Java | scip-java 0.12.3 | javac (same compiler) | 90.9 % (489 of 538) | 87.9 % (489 of 556) | All 49 wrong uses are import lines (#250); the missing ones are implicit `super()` calls and anonymous subclasses, which the index does not carry (#259) |
+| C# | scip-dotnet 0.2.16 | Roslyn (same compiler) | 60.2 % (68 of 113) | 34.2 % (68 of 199) | Indexer fault: calls of overloaded extension methods carry the first overload (#258); `new X(...)` has no constructor use (#259); on the other symbols 141 of 142 are exact |
+
+  Kotlin is not measured yet, and the private C# sample of 20 symbols has not been run yet (the product owner measures it locally). The exact rates of the sample are carried partly by symbols without usages and are not an acceptance figure. Level 1 on the same samples, for comparison: TypeScript 27.7 % precision and 62.7 % recall, Python 32.3 % and 81.1 %, Rust 59.2 % and 59.3 %, Java 46.7 % and 84.0 %, C# 28.8 % and 98.0 %. With the current indexers the 99 % target is reached on the samples of Rust and TypeScript only; whether it can be reached for the others depends on the fixes named in the issues above, and the decision on how to treat a language that does not reach it (shown separately, as in milestone M5) is for the product owner.
 
 ### 17.3 CI pipeline (every PR, all MUST pass)
 
@@ -1066,19 +1089,23 @@ Each milestone ends with a demo and acceptance by the product owner. All criteri
 
 ## Appendix A – Initial error code catalogue
 
-This is the starting content of `errors/error-codes.toml`. Descriptions are the developer texts; user messages live in Fluent.
+This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error-codes.md`, generated from the file, is always the current one). A severity other than error is shown in brackets. Descriptions are the developer texts; user messages live in Fluent.
 
 | Code | Name | Description |
 |---|---|---|
 | APP-201 | `data_dir_unavailable` | The user data directory cannot be created or opened. |
+| APP-202 | `launch_file_unavailable` | The private file for starting the browser could not be created. |
 | APP-301 | `instance_already_running` | Another CodeSkimr instance holds the workspace; connecting to it failed. |
 | APP-901 | `unexpected_internal_error` | An unexpected internal error occurred (bug). |
+| APP-601 | `browser_start_failed` | The system did not start a browser for the launch file. |
 | CFG-101 | `config_invalid_value` | A configuration value is outside its allowed range or has the wrong type. |
 | CFG-102 | `config_parse_failed` | A configuration file is not valid TOML. |
+| CFG-103 | `config_unknown_key` | A configuration file or flag sets a key that does not exist. |
 | PRJ-101 | `project_source_invalid` | The given source is neither an existing folder nor a valid Git URL. |
 | PRJ-201 | `project_not_found` | No project with this id exists. |
 | PRJ-301 | `project_already_registered` | A project with the same source is already registered. |
 | PRJ-302 | `snapshot_in_progress` | A scan for this project is already running. |
+| PRJ-303 | `scan_cancelled` | The scan was cancelled by the user; no snapshot was written. (info) |
 | SRC-201 | `source_path_not_found` | The configured source folder does not exist or is not readable. |
 | SRC-202 | `git_branch_not_found` | The requested branch does not exist on the remote. |
 | SRC-401 | `git_auth_required` | The remote requires authentication and no usable credential is available. |
@@ -1089,14 +1116,27 @@ This is the starting content of `errors/error-codes.toml`. Descriptions are the 
 | PRS-201 | `language_pack_missing` | No language pack is installed for this file type. |
 | PRS-301 | `language_pack_invalid` | A language pack's TOML or query files are invalid. |
 | PRS-501 | `parse_timeout` | Parsing a single file exceeded the configured time limit. |
+| RES-101 | `scip_index_invalid` | A SCIP index cannot be read, is corrupt or names a path outside the project; level 1 references stay. |
+| RES-201 | `indexer_unavailable` | The indexer of a language or its toolchain is not installed or is older than the version the language pack requires; level 1 references stay. |
 | RES-301 | `ambiguous_reference` | A reference matches several symbols; it was stored as probable. (warning) |
+| RES-302 | `scip_mapping_too_low` | Too few occurrences of a SCIP index map onto project symbols; level 1 references stay. |
+| RES-501 | `scip_index_too_large` | A SCIP index is larger than the configured limit and was refused; level 1 references stay. |
+| RES-502 | `indexer_timeout` | An indexer ran longer than level2.timeout_seconds and was stopped with all its child processes; level 1 references stay. |
+| RES-503 | `indexer_output_too_large` | An indexer wrote more than level2.max_output_bytes and was stopped; level 1 references stay. |
+| RES-504 | `indexer_memory_limit` | An indexer used more memory than level2.max_memory_mb and was stopped; level 1 references stay. |
+| RES-601 | `indexer_failed` | An indexer could not be started or ended with an error; level 1 references stay. |
 | IDX-301 | `read_model_stale` | A read model is older than the current snapshot and is being rebuilt. (info) |
 | STO-301 | `schema_migration_failed` | Applying a database migration failed. |
 | STO-302 | `transaction_conflict` | A concurrent write conflicted; the operation can be retried. |
 | STO-501 | `disk_full` | Not enough disk space to persist the snapshot. |
+| STO-601 | `database_failed` | The database reported an error that is not covered by a more specific code. |
+| STO-901 | `stored_data_invalid` | Data read from the database violates the domain model; this is a bug or a damaged database. |
 | SEC-201 | `credential_not_found` | The referenced credential does not exist in the keystore. |
+| SEC-202 | `credential_damaged` | The keystore entry of the credential cannot be read; delete it and create the credential again. |
+| SEC-301 | `indexer_not_confirmed` | Level 2 is not enabled and confirmed for this project in the user configuration or the user's own project record, so no indexer is started. |
 | SEC-401 | `credential_rejected` | The platform rejected the credential. |
 | SEC-402 | `keystore_access_denied` | The OS keystore denied access. |
+| SEC-403 | `indexer_not_permitted` | The caller may not confirm or start indexers; only the local owner may (ADR 0033, decision 10). |
 | SEC-601 | `keystore_unavailable` | The OS keystore service is not available. |
 | SEC-901 | `memory_lock_failed` | Locking secret memory against swapping failed. |
 | NET-501 | `request_timeout` | A request to an external platform timed out. |
@@ -1104,12 +1144,24 @@ This is the starting content of `errors/error-codes.toml`. Descriptions are the 
 | NET-601 | `oauth_flow_failed` | The OAuth device flow did not complete. |
 | AUTH-401 | `permission_denied` | The caller lacks the permission this action needs. |
 | API-101 | `request_invalid` | The REST request failed validation. |
+| API-102 | `bind_address_not_local` | The server was asked to listen on an address that is not a loopback address. |
+| API-201 | `command_not_found` | The REST request names a command or route that does not exist. |
+| API-301 | `server_bind_failed` | The server could not listen on its address, for example because the port is taken. |
 | API-401 | `token_missing_or_invalid` | A state-changing request lacks a valid installation token. |
+| API-402 | `host_or_origin_rejected` | The Host or Origin header of the request is not one of this server. |
+| API-403 | `launch_code_invalid` | The one-time launch code is wrong, already used or expired. |
+| API-501 | `request_too_large` | The request body is larger than the server accepts. |
+| API-601 | `server_not_reachable` | The command needs a running local server and could not reach it. |
 | MCP-101 | `tool_arguments_invalid` | MCP tool arguments failed validation. |
 | MCP-201 | `project_not_registered` | The requested path is not inside a registered project. |
+| MCP-202 | `symbol_not_found` | No symbol with this id or qualified name exists in the newest snapshot. |
+| MCP-203 | `project_not_scanned` | The project has no snapshot yet; scan it first. |
 | MCP-501 | `response_limit_exceeded` | The result was truncated to the configured limit. (info) |
 | CLI-101 | `cli_arguments_invalid` | Command-line arguments are invalid. |
+| CLI-102 | `watch_needs_folder` | Watch mode needs a local folder; a Git URL cannot be watched. |
+| CLI-103 | `secret_input_invalid` | No secret could be read from the terminal or standard input, or it was empty. |
 | I18N-201 | `message_key_missing` | A message key is missing for the active language (falls back to English). |
+| EXP-201 | `export_bundle_missing` | The built export page of the UI is missing or unusable. |
 | EXP-601 | `export_write_failed` | The export file could not be written. |
 | UI-201 | `api_unreachable` | The UI cannot reach the local server. |
 | UI-901 | `unexpected_ui_error` | An uncaught exception was converted at a feature boundary (bug). |
