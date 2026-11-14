@@ -24,7 +24,7 @@ use tokio::time::{Instant, timeout};
 use crate::consts::{
     EVENT_BUFFER, EVENT_POLL, EVENT_THREAD_NAME, MAX_SOCKET_MESSAGE_BYTES, REASON_CANCELLED,
     REASON_FAILED, SOCKET_CLOSE_REASON, SOCKET_IDLE_LIMIT, SOCKET_PING_INTERVAL,
-    SOCKET_SEND_TIMEOUT,
+    SOCKET_SEND_TIMEOUT, SOCKET_SLOW_BUDGET, SOCKET_SLOW_SEND,
 };
 use crate::error::Failure;
 use crate::state::AppState;
@@ -190,6 +190,7 @@ async fn pump(
         heard: Instant::now(),
         pinged: Instant::now(),
     };
+    let mut slow = SlowSends::default();
     loop {
         if stop.has_changed().unwrap_or(true) {
             close(&mut socket, close_code::AWAY).await;
@@ -200,7 +201,7 @@ async fn pump(
                 let Ok(text) = serde_json::to_string(&WireEvent::from(&event)) else {
                     continue;
                 };
-                if !send(&mut socket, Message::Text(text.into())).await {
+                if !send_within(&mut socket, Message::Text(text.into()), &mut slow).await {
                     break;
                 }
             }
@@ -232,6 +233,33 @@ async fn send(socket: &mut WebSocket, message: Message) -> bool {
     )
 }
 
+/// Like [`send`], but also false once the slow sends of the stream have used up their budget.
+async fn send_within(socket: &mut WebSocket, message: Message, slow: &mut SlowSends) -> bool {
+    let started = Instant::now();
+    let sent = send(socket, message).await;
+    slow.add(started.elapsed());
+    sent && !slow.exhausted()
+}
+
+/// The time one stream has spent in sends that took longer than `SOCKET_SLOW_SEND`.
+#[derive(Default)]
+struct SlowSends {
+    spent: Duration,
+}
+
+impl SlowSends {
+    /// Counts one send of `took` against the budget if it was slow.
+    fn add(&mut self, took: Duration) {
+        if took > SOCKET_SLOW_SEND {
+            self.spent += took;
+        }
+    }
+
+    fn exhausted(&self) -> bool {
+        self.spent > SOCKET_SLOW_BUDGET
+    }
+}
+
 /// Looks at the socket once without waiting and pings it when it has been quiet. False if the
 /// client left, failed or has not been heard for `SOCKET_IDLE_LIMIT`.
 async fn keep_alive(socket: &mut WebSocket, live: &mut Liveness) -> bool {
@@ -255,6 +283,21 @@ mod tests {
     use codeskimr_domain::ProjectId;
 
     use super::*;
+
+    #[test]
+    fn only_slow_sends_use_up_the_budget_and_enough_of_them_end_the_stream() {
+        let mut slow = SlowSends::default();
+        for _ in 0..10_000 {
+            slow.add(SOCKET_SLOW_SEND);
+        }
+        assert!(!slow.exhausted(), "fast sends cost nothing");
+        slow.add(SOCKET_SEND_TIMEOUT);
+        slow.add(SOCKET_SEND_TIMEOUT);
+        assert!(!slow.exhausted());
+        slow.add(SOCKET_SEND_TIMEOUT);
+        slow.add(SOCKET_SLOW_SEND + Duration::from_millis(1));
+        assert!(slow.exhausted());
+    }
 
     fn changed(id: u64) -> Event {
         Event::FilesChanged(FilesChanged {
