@@ -1,11 +1,12 @@
-import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
+import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { beforeEach, describe, expect, it } from "vitest";
 import { currentPath } from "../../app/router";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { activeProject, openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import type { ProjectRow } from "../projects/types";
-import { resetGraph, wantedLayer, wantLayer } from "./graph";
+import { DEPTH_ALL, LEVEL } from "./consts";
+import { resetGraph, setGraphDepth, setGraphLevel, wantedLayer, wantLayer } from "./graph";
 import { GraphScreen } from "./GraphScreen";
 
 const ROW: ProjectRow = {
@@ -97,6 +98,27 @@ describe("GraphScreen", () => {
       const bodies = fetchMock.mock.calls.map((call) => String(call[1]?.body ?? ""));
       expect(bodies.some((body) => body.includes('"level":"namespaces"'))).toBe(true);
     });
+  });
+
+  it("offers the depth only on the namespace level and asks for it", async () => {
+    setGraphLevel(LEVEL.layers);
+    setGraphDepth(DEPTH_ALL);
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    await screen.findByRole("button", { name: "Domain" });
+    expect(screen.queryByRole("group", { name: "Depth" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Namespaces" }));
+    const depth = await screen.findByRole("group", { name: "Depth" });
+    fireEvent.click(screen.getByRole("button", { name: "Domain" }));
+    expect(screen.getByRole("heading", { name: "Domain" })).toBeInTheDocument();
+    fireEvent.click(within(depth).getByRole("button", { name: "2 levels" }));
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Domain" })).toBeNull());
+    await waitFor(() => {
+      const bodies = fetchMock.mock.calls.map((call) => String(call[1]?.body ?? ""));
+      expect(bodies.some((body) => body.includes('"depth":2'))).toBe(true);
+    });
+    setGraphLevel(LEVEL.layers);
+    setGraphDepth(DEPTH_ALL);
   });
 
   it("shows what a selected layer uses and what uses it", async () => {

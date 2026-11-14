@@ -707,6 +707,42 @@ fn the_namespace_level_has_one_box_per_namespace_with_its_types_and_dependencies
 }
 
 #[test]
+fn a_depth_merges_the_namespaces_and_leaves_no_dependency_to_itself() {
+    let all = layered_graph(&json!({ "level": "namespaces" }));
+    let top = layered_graph(&json!({ "level": "namespaces", "depth": 1 }));
+    let names = |graph: &serde_json::Value| -> Vec<String> {
+        graph["boxes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|b| b["name"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    // The C# names carry a prefix (#137), so the first segment is not yet the namespace root; the
+    // merge itself is tested on the domain graph.
+    assert!(names(&top).iter().all(|name| !name.contains('.')));
+    assert!(names(&top).len() <= names(&all).len());
+    for link in top["links"].as_array().unwrap() {
+        assert_ne!(link["from"], link["to"]);
+    }
+    let types: u64 = top["boxes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|b| b["types"].as_u64().unwrap())
+        .sum();
+    assert_eq!(
+        types,
+        all["boxes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|b| b["types"].as_u64().unwrap())
+            .sum::<u64>()
+    );
+}
+
+#[test]
 fn the_graph_of_a_project_without_layers_or_without_a_scan_is_empty() {
     let fixture = Fixture::new();
     let project = added(&fixture);
