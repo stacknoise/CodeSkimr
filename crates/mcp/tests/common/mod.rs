@@ -630,6 +630,7 @@ impl ProjectCatalog for FakeCatalog {
                 files: 3,
                 loc: 120,
                 symbols: 30,
+                parse_micros: None,
             })
             .collect())
     }
