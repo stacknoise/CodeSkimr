@@ -81,7 +81,7 @@ env_allow = ["NODE_PATH", "NVM_DIR", "VOLTA_HOME", "FNM_DIR", "NPM_CONFIG_CACHE"
 [indexer.tool]
 program = "scip-typescript"
 version_args = ["--version"]
-min_version = "0.3.0"
+min_version = "0.3.11"
 
 [[indexer.toolchain]]
 program = "node"
