@@ -2,6 +2,7 @@
 //! new row points at rows that its snapshot holds. A violation rolls the snapshot back, so no
 //! orphan row stays behind that the prune could not find.
 
+use std::cell::RefCell;
 use std::collections::HashSet;
 
 use codeskimr_application::ports::SnapshotData;
@@ -16,6 +17,10 @@ struct Known {
     snapshot: i64,
     files: HashSet<u64>,
     symbols: HashSet<u64>,
+    /// Carried files and symbols found in the database already: a reference list names the same few
+    /// thousand ids again and again, so each is looked up once.
+    found_files: RefCell<HashSet<u64>>,
+    found_symbols: RefCell<HashSet<u64>>,
 }
 
 impl Known {
@@ -24,6 +29,8 @@ impl Known {
             snapshot: column_int(data.snapshot.id.get())?,
             files: data.files.iter().map(|file| file.id.get()).collect(),
             symbols: data.symbols.iter().map(|symbol| symbol.id.get()).collect(),
+            found_files: RefCell::default(),
+            found_symbols: RefCell::default(),
         })
     }
 
@@ -31,7 +38,7 @@ impl Known {
         self.has(
             conn,
             sql::FILE_IN_SNAPSHOT,
-            self.files.contains(&file),
+            (self.files.contains(&file), &self.found_files),
             file,
         )
     }
@@ -40,18 +47,27 @@ impl Known {
         self.has(
             conn,
             sql::SYMBOL_IN_SNAPSHOT,
-            self.symbols.contains(&symbol),
+            (self.symbols.contains(&symbol), &self.found_symbols),
             symbol,
         )
     }
 
-    fn has(&self, conn: &Connection, query: &str, new: bool, id: u64) -> StorageResult<bool> {
-        if new {
+    fn has(
+        &self,
+        conn: &Connection,
+        query: &str,
+        (new, seen): (bool, &RefCell<HashSet<u64>>),
+        id: u64,
+    ) -> StorageResult<bool> {
+        if new || seen.borrow().contains(&id) {
             return Ok(true);
         }
         let found: bool = conn
             .prepare_cached(query)?
             .query_row(params![self.snapshot, column_int(id)?], |row| row.get(0))?;
+        if found {
+            seen.borrow_mut().insert(id);
+        }
         Ok(found)
     }
 }
