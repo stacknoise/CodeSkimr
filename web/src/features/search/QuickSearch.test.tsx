@@ -5,7 +5,7 @@ import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { ORDER } from "../../tests/explorer";
-import { pendingFocus, requestFocus } from "../explorer/explorer";
+import { pendingFocus, requestFocus } from "../../shared/navigation/navigation";
 import { useSearchShortcut } from "./keys";
 import { QuickSearch } from "./QuickSearch";
 import { SearchField } from "./SearchField";

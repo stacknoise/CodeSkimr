@@ -3,8 +3,8 @@ import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
+import { pendingFocus, showUsages } from "../../shared/navigation/navigation";
 import { showInGraph } from "../graph/show";
-import { showUsages } from "../usages/usages";
 import { DetailPane } from "./DetailPane";
 import {
   applyFocus,
@@ -14,7 +14,6 @@ import {
   loadOutline,
   outlineError,
   outlineLoading,
-  pendingFocus,
   symbolDetails,
   symbolError,
   treeOutline,

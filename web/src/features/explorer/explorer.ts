@@ -1,5 +1,6 @@
 import { createSignal } from "solid-js";
 import { runCommand } from "../../shared/api/commands";
+import { pendingFocus, requestFocus } from "../../shared/navigation/navigation";
 import { COMMAND, GROUP } from "./consts";
 import { failed, type Failure } from "./failure";
 import { groupKey, groupOfKind, memberKey, revealKeys, typeKey } from "./tree";
@@ -17,15 +18,6 @@ const [selectedType, setSelectedType] = createSignal<number | null>(null);
 const [selectedMember, setSelectedMember] = createSignal<number | null>(null);
 const [filter, setFilter] = createSignal("");
 const [cursor, setCursor] = createSignal<string | null>(null);
-const [pending, setPending] = createSignal<Focus | null>(null);
-
-/** Where another screen (the quick search) wants the tree to go: a type, or a member of it. */
-export interface Focus {
-  type: number;
-  member: number | null;
-  /** Kind of the member, to open the group that holds it. */
-  kind: string | null;
-}
 
 /** Counts the projects read so far; an answer for an earlier one is dropped. */
 let generation = 0;
@@ -50,8 +42,6 @@ export const currentMember = selectedMember;
 export const treeCursor = cursor;
 export const setTreeCursor = setCursor;
 /** The navigation that waits for the tree to be read. */
-export const pendingFocus = pending;
-export const requestFocus = setPending;
 /** What the filter field holds. */
 export const treeFilter = filter;
 export const setTreeFilter = setFilter;
@@ -165,11 +155,11 @@ export async function revealNested(project: number, parent: number, id: number):
  * member), shows the type and puts the cursor on the row. External navigation opens nodes
  * (blueprint 15.4). */
 export async function applyFocus(project: number, tree: Outline): Promise<void> {
-  const target = pending();
+  const target = pendingFocus();
   if (target === null) {
     return;
   }
-  setPending(null);
+  requestFocus(null);
   const group = target.kind === null ? null : groupOfKind(target.kind);
   openRows([
     ...revealKeys(tree, target.type),

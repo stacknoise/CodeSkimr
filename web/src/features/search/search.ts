@@ -4,7 +4,7 @@ import { EXPLORER_ROUTE } from "../../app/consts";
 import { runCommand } from "../../shared/api/commands";
 import { activeProject } from "../../shared/project/active";
 import { TYPE_KINDS } from "../explorer/consts";
-import { requestFocus } from "../explorer/explorer";
+import { requestFocus } from "../../shared/navigation/navigation";
 import { FILTER, MS_DIGITS, SEARCH_COMMAND, type Filter } from "./consts";
 import { parseQuery } from "./parse";
 import { resetPreview } from "./preview";

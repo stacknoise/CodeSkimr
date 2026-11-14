@@ -5,7 +5,8 @@ import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject, openProject } from "../../shared/project/active";
 import { isTyping, useKeydown } from "../../shared/keys/keydown";
-import { currentType, requestFocus } from "../explorer/explorer";
+import { currentType } from "../explorer/explorer";
+import { requestFocus } from "../../shared/navigation/navigation";
 import { projects, refreshProjects } from "../projects/projects";
 import { KEY, LEVEL } from "./consts";
 import {

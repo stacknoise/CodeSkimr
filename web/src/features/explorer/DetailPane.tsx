@@ -6,7 +6,7 @@ import { TONE } from "../../shared/ui/consts";
 import { Pill } from "../../shared/ui/Pill";
 import { CRUMB_SEPARATOR, HOTKEY, PILL_SEPARATOR } from "./consts";
 import { showInGraph } from "../graph/show";
-import { showUsages } from "../usages/usages";
+import { showUsages } from "../../shared/navigation/navigation";
 import { openInEditor } from "./editor";
 import { currentMember } from "./explorer";
 import { MemberTable } from "./MemberTable";
