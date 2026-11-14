@@ -26,8 +26,8 @@ pub fn remove_left_behind(cache_root: &Path, max_age: Duration) {
         if !name.starts_with(WORK_PREFIX) {
             continue;
         }
-        let leftover = if is_parked(&name) {
-            started_before(&name, now, max_age)
+        let leftover = if let Some(id) = parked_id(&name) {
+            started_before(id, now, max_age)
         } else {
             is_idle(&entry.path(), now, max_age)
         };
@@ -37,28 +37,23 @@ pub fn remove_left_behind(cache_root: &Path, max_age: Duration) {
     }
 }
 
-/// The name of a parked copy: the work folder name plus separator and prefix.
-fn is_parked(name: &str) -> bool {
-    let suffix = format!("{WORK_SEPARATOR}{WORK_PREFIX}");
-    name.ends_with(&suffix)
+/// The work folder id inside the name of a parked copy (`<id>-.work-`), or `None` for any other name.
+fn parked_id(name: &str) -> Option<&str> {
+    name.strip_suffix(&format!("{WORK_SEPARATOR}{WORK_PREFIX}"))
 }
 
 /// The fetch that parked this copy started `max_age` ago or earlier. The start time (nanoseconds
-/// since the epoch) is the last part of the work folder name; a name without it is not judged.
-fn started_before(parked_name: &str, now: SystemTime, max_age: Duration) -> bool {
-    let id = parked_name
-        .strip_suffix(&format!("{WORK_SEPARATOR}{WORK_PREFIX}"))
-        .unwrap_or(parked_name);
-    let Some(nanos) = id
+/// since the epoch) is the last part of the work folder name; a name without a usable one is not
+/// judged.
+fn started_before(id: &str, now: SystemTime, max_age: Duration) -> bool {
+    let started = id
         .rsplit(WORK_SEPARATOR)
         .next()
         .and_then(|text| text.parse::<u64>().ok())
-    else {
-        return false;
-    };
-    let started = UNIX_EPOCH + Duration::from_nanos(nanos);
-    now.duration_since(started)
-        .is_ok_and(|elapsed| elapsed >= max_age)
+        .and_then(|nanos| UNIX_EPOCH.checked_add(Duration::from_nanos(nanos)));
+    started
+        .and_then(|started| now.duration_since(started).ok())
+        .is_some_and(|elapsed| elapsed >= max_age)
 }
 
 /// Nothing at or below `path` changed for `max_age`. A tree that cannot be read counts as busy.
@@ -167,6 +162,20 @@ mod tests {
         assert!(
             root.join(".work-1-x-.work-").exists(),
             "a name without a start time is not judged"
+        );
+        fs::create_dir_all(root.join(".work-7-ThreadId(3)-99999999999999999999999-.work-"))
+            .unwrap();
+        fs::create_dir_all(root.join(format!(".work-7-ThreadId(4)-{}-.work-", now * 2))).unwrap();
+        remove_left_behind(&root, Duration::ZERO);
+        assert!(
+            root.join(".work-7-ThreadId(3)-99999999999999999999999-.work-")
+                .exists(),
+            "a number that does not fit is not judged"
+        );
+        assert!(
+            root.join(format!(".work-7-ThreadId(4)-{}-.work-", now * 2))
+                .exists(),
+            "a start in the future is not judged"
         );
         fs::remove_dir_all(&root).unwrap();
     }
