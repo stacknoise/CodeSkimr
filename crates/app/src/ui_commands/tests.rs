@@ -365,6 +365,15 @@ fn run_as(
         .map_err(|error| error.code().entry().id)
 }
 
+/// Writes `source` as `Checkout.cs`, scans the project and returns the input of a usages query
+/// for `Calculator.Add`.
+fn add_usages_input(fixture: &Fixture, source: &str, way: &str, depth: u32) -> Value {
+    fs::write(fixture.root.path().join("app/Checkout.cs"), source).unwrap();
+    let project = added(fixture);
+    let add = member_id(fixture, project, "Add");
+    json!({ "project": project, "symbol": add, "way": way, "depth": depth, "include_tests": true })
+}
+
 #[test]
 fn a_token_without_the_read_right_is_refused() {
     let fixture = Fixture::new();
@@ -393,10 +402,7 @@ fn a_token_without_the_read_right_is_refused() {
 #[test]
 fn a_caller_who_may_read_but_not_read_source_gets_no_code() {
     let fixture = Fixture::new();
-    fs::write(fixture.root.path().join("app/Checkout.cs"), CALLER).unwrap();
-    let project = added(&fixture);
-    let add = member_id(&fixture, project, "Add");
-    let input = json!({ "project": project, "symbol": add, "way": "both", "depth": 2, "include_tests": true });
+    let input = add_usages_input(&fixture, CALLER, "both", 2);
     let run = |id: &str| run_as(&fixture, principal::reader(), id, input.clone());
     // The index is open to the reader, the lines of code are not.
     assert!(run("usages.query").is_ok());
@@ -411,10 +417,7 @@ fn several_hits_in_one_file_get_their_lines_from_one_read() {
         "        return calculator.Add(1, 2);\n",
         "        var one = calculator.Add(1, 2);\n        return calculator.Add(one, 3);\n",
     );
-    fs::write(fixture.root.path().join("app/Checkout.cs"), twice).unwrap();
-    let project = added(&fixture);
-    let add = member_id(&fixture, project, "Add");
-    let input = json!({ "project": project, "symbol": add, "way": "incoming", "depth": 1, "include_tests": true });
+    let input = add_usages_input(&fixture, &twice, "incoming", 1);
     let code = fixture.call("usages.code", input).unwrap();
     let texts: Vec<&str> = code["lines"]
         .as_array()
@@ -665,10 +668,7 @@ fn the_usages_of_a_method_name_the_caller_and_mark_every_hit_unchecked() {
 #[test]
 fn the_code_of_a_hit_is_the_trimmed_line_from_the_project_folder() {
     let fixture = Fixture::new();
-    fs::write(fixture.root.path().join("app/Checkout.cs"), CALLER).unwrap();
-    let project = added(&fixture);
-    let add = member_id(&fixture, project, "Add");
-    let input = json!({ "project": project, "symbol": add, "way": "both", "depth": 2, "include_tests": true });
+    let input = add_usages_input(&fixture, CALLER, "both", 2);
     let code = fixture.call("usages.code", input.clone()).unwrap();
     assert_eq!(code["available"], true);
     assert_eq!(
