@@ -15,6 +15,7 @@ Everything runs on your machine. The server only listens on `127.0.0.1`; your co
 | Language indexers | make usages exact by letting the language's own tool check them | [Language indexers](indexers.md) |
 | MCP server | give code agents the same knowledge | [MCP setup](mcp.md) |
 | Sources and credentials | scan private Git repositories without putting secrets anywhere | [Sources and credentials](sources-and-credentials.md) |
+| HTML export | one self-contained file of a project for people without CodeSkimr | [HTML export](export.md) |
 | Error codes | what a code such as `SRC-401` means and what to do | [Error codes](errors.md) |
 
 ## Supported languages

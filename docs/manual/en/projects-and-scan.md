@@ -31,7 +31,7 @@ codeskimr scan <path|git-url> [--branch <name>] [--json] [--watch] [--credential
 - **`--watch`** keeps the command running after the first scan. When files in the folder change, they are collected for a short moment and scanned again incrementally; each re-scan prints one line. Only folders can be watched (`CLI-102` for a Git address). Stop with Ctrl+C. A failed re-scan prints its error and watching goes on.
 - **Secrets in a Git address** (user name and password, a token, a query or a fragment) are refused with `PRJ-101`. See [Sources and credentials](sources-and-credentials.md) for the right way (`--credential`).
 
-Other commands: `codeskimr serve` starts the local server, `codeskimr open` opens the browser, `codeskimr mcp` starts the MCP server on standard input and output ([MCP setup](mcp.md)), and `codeskimr check` runs the convention checks over a folder without a scan.
+Other commands: `codeskimr serve` starts the local server, `codeskimr open` opens the browser, `codeskimr mcp` starts the MCP server on standard input and output ([MCP setup](mcp.md)), `codeskimr export` writes a project as one HTML file ([HTML export](export.md)), and `codeskimr check` runs the convention checks over a folder without a scan.
 
 Global options for all commands: `--data-dir`, `--languages`, `--config` and `--set key=value` (see [Installation](installation.md)).
 
