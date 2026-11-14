@@ -5,12 +5,36 @@ use std::collections::HashMap;
 
 use codeskimr_domain::{FileId, Position, Span, Symbol, SymbolId, SymbolKind};
 
-use crate::consts::{ACCESSOR_PREFIXES, CONSTRUCTOR_NAMES, NAME_SEGMENT_SEPARATOR};
+use crate::consts::{
+    ACCESSOR_PREFIXES, CONSTRUCTOR_NAMES, MAX_LINE_CANDIDATES, NAME_SEGMENT_SEPARATOR,
+};
 use crate::symbol::{Descriptor, DescriptorKind};
 
 /// The symbols of a snapshot, grouped by file.
 pub(crate) struct SymbolTable<'a> {
     by_file: HashMap<FileId, Vec<&'a Symbol>>,
+    /// By file, line of the start and name; each list in the order of the starts.
+    by_line_name: HashMap<(FileId, u32, &'a str), Vec<&'a Symbol>>,
+}
+
+/// The names under which a project symbol can bear the SCIP name (see `name_matches`), without
+/// the constructor case, which has no declaration behind a name.
+fn name_keys(scip_name: &str) -> Vec<&str> {
+    let stripped = ACCESSOR_PREFIXES
+        .iter()
+        .find_map(|prefix| scip_name.strip_prefix(prefix))
+        .unwrap_or(scip_name);
+    let last = stripped
+        .rsplit(NAME_SEGMENT_SEPARATOR)
+        .next()
+        .unwrap_or(stripped);
+    let mut keys = vec![scip_name];
+    for key in [stripped, last] {
+        if !keys.contains(&key) {
+            keys.push(key);
+        }
+    }
+    keys
 }
 
 fn contains(span: Span, at: Position) -> bool {
@@ -56,7 +80,31 @@ impl<'a> SymbolTable<'a> {
         for symbol in symbols {
             by_file.entry(symbol.file).or_default().push(symbol);
         }
-        Self { by_file }
+        let mut by_line_name: HashMap<(FileId, u32, &str), Vec<&Symbol>> = HashMap::new();
+        for symbol in symbols {
+            let key = (symbol.file, symbol.span.start().line, symbol.name.as_str());
+            by_line_name.entry(key).or_default().push(symbol);
+        }
+        for list in by_line_name.values_mut() {
+            list.sort_by_key(|symbol| tightness(symbol));
+        }
+        Self {
+            by_file,
+            by_line_name,
+        }
+    }
+
+    /// The symbols of the file that bear one of the names and start on `line`.
+    fn named_on_line<'t>(
+        &'t self,
+        file: FileId,
+        line: u32,
+        descriptor: &'t Descriptor,
+    ) -> impl Iterator<Item = &'t [&'a Symbol]> {
+        name_keys(&descriptor.name)
+            .into_iter()
+            .filter_map(move |name| self.by_line_name.get(&(file, line, name)))
+            .map(Vec::as_slice)
     }
 
     fn enclosing(&self, file: FileId, at: Position) -> impl Iterator<Item = &'a Symbol> {
@@ -107,36 +155,43 @@ impl<'a> SymbolTable<'a> {
     /// The symbol of that name that starts on the line of `range`, behind it. Several of them
     /// are not told apart: nothing is returned.
     fn after_name(&self, file: FileId, range: Span, descriptor: &Descriptor) -> Option<SymbolId> {
-        let mut found = self
-            .by_file
-            .get(&file)?
-            .iter()
-            .filter(|symbol| {
-                symbol.span.start().line == range.start().line
-                    && symbol.span.start() >= range.end()
-                    && name_matches(symbol, &descriptor.name)
-            })
-            .map(|symbol| symbol.id);
-        let first = found.next()?;
-        found.next().is_none().then_some(first)
+        let end = range.end();
+        let mut behind = self
+            .named_on_line(file, range.start().line, descriptor)
+            .flat_map(|list| {
+                list.iter()
+                    .skip(list.partition_point(|s| s.span.start() < end))
+            });
+        let first = behind.next()?;
+        behind.next().is_none().then_some(first.id)
     }
 
     /// The symbol of the file that is declared at `at`: its span starts on that line at or before
-    /// the position, it is callable and bears the name. Only if exactly one does.
+    /// the position, it is callable and bears the name. Only if exactly one does, and if no
+    /// more than `MAX_LINE_CANDIDATES` symbols of that name start in front of the place.
     pub(crate) fn declared_at(
         &self,
         file: FileId,
         at: Position,
         descriptor: &Descriptor,
     ) -> Option<&'a Symbol> {
-        let mut found = self.by_file.get(&file)?.iter().copied().filter(|symbol| {
-            symbol.span.start().line == at.line
-                && symbol.span.start() <= at
-                && at < symbol.span.end()
-                && symbol.kind.is_callable()
-                && name_matches(symbol, &descriptor.name)
-        });
-        let first = found.next()?;
-        found.next().is_none().then_some(first)
+        let mut found = None;
+        let mut weighed = 0_usize;
+        for list in self.named_on_line(file, at.line, descriptor) {
+            let count = list.partition_point(|s| s.span.start() <= at);
+            for symbol in list.iter().take(count).rev() {
+                weighed += 1;
+                if weighed > MAX_LINE_CANDIDATES {
+                    return None;
+                }
+                if contains(symbol.span, at) && symbol.kind.is_callable() {
+                    if found.is_some() {
+                        return None;
+                    }
+                    found = Some(*symbol);
+                }
+            }
+        }
+        found
     }
 }

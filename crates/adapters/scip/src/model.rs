@@ -1,5 +1,7 @@
 //! What the decoder keeps of an index: the project root, the documents and their occurrences.
 
+use std::collections::HashMap;
+
 use codeskimr_domain::{RelativePath, Span};
 
 use crate::consts::ROLE_DEFINITION;
@@ -53,6 +55,9 @@ pub struct ScipDocument {
     pub encoding: PositionEncoding,
     /// Occurrences in the order of the index.
     pub occurrences: Vec<Occurrence>,
+    /// What the local symbols that the document defines are called, read from the text of their
+    /// definitions by `convert_columns`. Empty while the text is not known.
+    pub local_names: HashMap<SymbolRef, String>,
 }
 
 /// A decoded SCIP index, reduced to what the import needs.

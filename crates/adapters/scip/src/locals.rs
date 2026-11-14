@@ -1,41 +1,51 @@
 //! Local functions: `const has = (id) => ...` inside another function. An indexer gives such a
 //! name a local symbol (`local 12`), which has no name to look up, so the definition is matched
-//! to the project symbol by its place. Only one shape is certain enough: the function starts
-//! behind its name on the same line, and the name is the last definition on that line in front
-//! of it and as long as the name of the symbol.
+//! to the project symbol by its place and its name. Only one shape is certain enough: the
+//! function starts behind its name on the same line, the name is the last definition on that line
+//! in front of it, and the text of the definition reads exactly as the name of the function. The
+//! text is known only where the columns are bytes (see `convert_columns`); without it nothing
+//! is mapped.
 
 use std::collections::HashMap;
 
-use codeskimr_domain::{Position, Symbol, SymbolId};
+use codeskimr_domain::{Symbol, SymbolId};
 
 use crate::model::{Occurrence, SymbolRef};
 
-/// The definition of a one-line name that ends in front of `start`, if it is the last such
-/// definition on that line and has the length of `name`.
-fn name_before<'a>(defs: &[&'a Occurrence], start: Position, name: &str) -> Option<&'a Occurrence> {
-    let last = defs
-        .iter()
-        .filter(|def| def.range.end().line == start.line && def.range.end() <= start)
-        .max_by_key(|def| def.range.end())?;
-    let one_line = last.range.start().line == last.range.end().line;
-    let width = last
-        .range
-        .end()
-        .column
-        .checked_sub(last.range.start().column)?;
-    let length = u32::try_from(name.chars().count()).ok()?;
-    (one_line && width == length).then_some(*last)
+/// The one-line definitions of a document by the line they are on, in the order of their ends.
+fn by_line<'a>(defs: &[&'a Occurrence]) -> HashMap<u32, Vec<&'a Occurrence>> {
+    let mut lines: HashMap<u32, Vec<&Occurrence>> = HashMap::new();
+    for def in defs {
+        if def.range.start().line == def.range.end().line {
+            lines.entry(def.range.end().line).or_default().push(def);
+        }
+    }
+    for list in lines.values_mut() {
+        list.sort_by_key(|def| def.range.end());
+    }
+    lines
 }
 
 /// The local symbols of a document that are the local functions among `symbols` (those of the
-/// file), with their targets. A definition that two functions claim is left out.
+/// file), with their targets. `names` reads what each local symbol is called. A definition that
+/// two functions claim is left out.
 pub(crate) fn match_functions(
     symbols: &[&Symbol],
     defs: &[&Occurrence],
+    names: &HashMap<SymbolRef, String>,
 ) -> HashMap<SymbolRef, Vec<SymbolId>> {
+    let lines = by_line(defs);
     let mut found: HashMap<SymbolRef, Vec<SymbolId>> = HashMap::new();
     for symbol in symbols.iter().filter(|symbol| symbol.kind.is_callable()) {
-        if let Some(def) = name_before(defs, symbol.span.start(), symbol.name.as_str()) {
+        let start = symbol.span.start();
+        let Some(list) = lines.get(&start.line) else {
+            continue;
+        };
+        let before = list.partition_point(|def| def.range.end() <= start);
+        let nearest = before.checked_sub(1).and_then(|at| list.get(at));
+        if let Some(def) = nearest
+            .filter(|def| names.get(&def.symbol).map(String::as_str) == Some(symbol.name.as_str()))
+        {
             found.entry(def.symbol).or_default().push(symbol.id);
         }
     }

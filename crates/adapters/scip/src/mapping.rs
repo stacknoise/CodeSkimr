@@ -9,7 +9,7 @@ use codeskimr_domain::{
     SymbolId, SymbolKind,
 };
 
-use crate::consts::{MAX_SYMBOLS_PER_KEY, NO_OWNER, SUFFIX_TYPE};
+use crate::consts::{MAX_OVERLOAD_TARGETS, MAX_SYMBOLS_PER_KEY, NO_OWNER, SUFFIX_TYPE};
 use crate::error::ScipError;
 use crate::fitting::Fitting;
 use crate::impl_symbol::{ImplSymbol, TypeName, parse as parse_impl};
@@ -169,7 +169,7 @@ struct Importer<'a> {
     kinds_of: HashMap<SymbolId, SymbolKind>,
     targets: HashMap<SymbolRef, Vec<SymbolId>>,
     defined: HashSet<SymbolRef>,
-    heads: HashSet<(FileId, Position)>,
+    heads: HashSet<(FileId, Position, SymbolRef)>,
     locals: HashMap<SymbolRef, Vec<SymbolId>>,
     impls: Vec<(SymbolRef, ImplSymbol)>,
     overrides: HashMap<SymbolRef, Vec<SymbolId>>,
@@ -269,7 +269,7 @@ impl<'a> Importer<'a> {
             .iter()
             .filter(|o| o.is_definition() && matches!(self.shape(o.symbol), Shape::Local))
             .collect();
-        match_functions(self.table.symbols_of(file), &defs)
+        match_functions(self.table.symbols_of(file), &defs, &document.local_names)
     }
 
     /// Step (a2): an indexer that has one symbol for all overloads (scip-python) defines it at the
@@ -293,7 +293,7 @@ impl<'a> Importer<'a> {
                 if looked_at.insert((at.line, occurrence.symbol))
                     && self.adopt_head(&by_id, *file, occurrence)
                 {
-                    self.heads.insert((*file, at));
+                    self.heads.insert((*file, at, occurrence.symbol));
                 }
             }
         }
@@ -313,21 +313,29 @@ impl<'a> Importer<'a> {
         if descriptor.kind != DescriptorKind::Method {
             return false;
         }
+        // Nothing is looked up for a symbol that has no target yet or has all it may have: most
+        // occurrences are plain calls.
+        let open = self
+            .targets
+            .get(&occurrence.symbol)
+            .is_some_and(|targets| !targets.is_empty() && targets.len() < MAX_OVERLOAD_TARGETS);
+        if !open {
+            return false;
+        }
         let Some(head) = self
             .table
             .declared_at(file, occurrence.range.start(), descriptor)
         else {
             return false;
         };
-        let head_id = head.id;
         let sibling = |id: &SymbolId| {
             by_id
                 .get(id)
                 .is_some_and(|s| s.file == head.file && s.parent == head.parent)
         };
         match self.targets.get_mut(&occurrence.symbol) {
-            Some(targets) if !targets.contains(&head_id) && targets.iter().any(sibling) => {
-                targets.push(head_id);
+            Some(targets) if !targets.contains(&head.id) && targets.iter().any(sibling) => {
+                targets.push(head.id);
                 true
             }
             _ => false,
@@ -613,7 +621,10 @@ impl<'a> Importer<'a> {
         for (document, file) in covered {
             self.locals = self.locals_of(document, *file);
             for occurrence in &document.occurrences {
-                if self.heads.contains(&(*file, occurrence.range.start())) {
+                if self
+                    .heads
+                    .contains(&(*file, occurrence.range.start(), occurrence.symbol))
+                {
                     self.count(Count::Ignored);
                     continue;
                 }

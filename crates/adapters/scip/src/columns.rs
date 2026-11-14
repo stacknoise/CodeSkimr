@@ -5,9 +5,13 @@
 //! differ elsewhere, so the stored span of a reference and the lookup of the level 1 kind at the
 //! same place would be off. The conversion needs the text of the lines.
 
+use std::collections::HashMap;
+
 use codeskimr_domain::{Position, RelativePath, Span};
 
-use crate::model::{Occurrence, PositionEncoding, ScipDocument, ScipIndex};
+use crate::consts::MAX_LOCAL_NAME_BYTES;
+use crate::model::{Occurrence, PositionEncoding, ScipDocument, ScipIndex, SymbolRef};
+use crate::symbol::is_local;
 
 /// Counts how many units of `encoding` a character takes.
 fn units_of(encoding: PositionEncoding, character: char) -> usize {
@@ -75,21 +79,81 @@ fn convert_document(document: &mut ScipDocument, lines: &[String]) {
     document.encoding = PositionEncoding::Utf8;
 }
 
-/// Turns the columns of every document that does not count UTF-8 bytes into UTF-8 bytes.
-/// `lines_of` gives the lines of a file without their line ends, or `None` if the text is not
-/// available, in which case the document keeps its encoding. It must read files the way the
-/// import is allowed to: inside the project and never through a link.
+/// The text a one-line range covers in the converted (byte) columns of `lines`.
+fn text_at(lines: &[String], range: Span) -> Option<&str> {
+    let (start, end) = (range.start(), range.end());
+    if start.line != end.line || end.column.checked_sub(start.column)? > MAX_LOCAL_NAME_BYTES {
+        return None;
+    }
+    let line = lines.get(usize::try_from(start.line).ok()?)?;
+    line.get(usize::try_from(start.column).ok()?..usize::try_from(end.column).ok()?)
+}
+
+/// The names of the local symbols a document defines: the text of their definitions. A symbol
+/// whose definitions do not read the same gets none. Needs columns in bytes.
+fn local_names(
+    document: &ScipDocument,
+    lines: &[String],
+    symbols: &[String],
+) -> HashMap<SymbolRef, String> {
+    let mut names: HashMap<SymbolRef, Option<&str>> = HashMap::new();
+    let definitions = document.occurrences.iter().filter(|o| o.is_definition());
+    for occurrence in definitions {
+        let is_local_symbol = usize::try_from(occurrence.symbol.0)
+            .ok()
+            .and_then(|at| symbols.get(at))
+            .is_some_and(|text| is_local(text));
+        if !is_local_symbol {
+            continue;
+        }
+        let text = text_at(lines, occurrence.range);
+        let known = names.entry(occurrence.symbol).or_insert(text);
+        if *known != text {
+            *known = None;
+        }
+    }
+    names
+        .into_iter()
+        .filter_map(|(symbol, text)| Some((symbol, text?.to_owned())))
+        .collect()
+}
+
+/// Whether the document defines a local symbol, whose name the import reads from the text.
+fn defines_locals(document: &ScipDocument, symbols: &[String]) -> bool {
+    document.occurrences.iter().any(|occurrence| {
+        occurrence.is_definition()
+            && usize::try_from(occurrence.symbol.0)
+                .ok()
+                .and_then(|at| symbols.get(at))
+                .is_some_and(|text| is_local(text))
+    })
+}
+
+/// Turns the columns of every document that does not count UTF-8 bytes into UTF-8 bytes, and
+/// reads the names of the local symbols a document defines (the import has no other way to
+/// tell what a local symbol is called). `lines_of` gives the lines of a file without their line
+/// ends, or `None` if the text is not available, in which case the document keeps its encoding
+/// and its local symbols stay without a name. It must read files the way the import is allowed
+/// to: inside the project and never through a link.
 pub fn convert_columns(
     index: &mut ScipIndex,
     lines_of: &mut dyn FnMut(&RelativePath) -> Option<Vec<String>>,
 ) {
-    for document in &mut index.documents {
-        if document.encoding == PositionEncoding::Utf8 {
+    let ScipIndex {
+        documents, symbols, ..
+    } = index;
+    for document in documents {
+        let converted = document.encoding == PositionEncoding::Utf8;
+        if converted && !defines_locals(document, symbols) {
             continue;
         }
-        if let Some(lines) = lines_of(&document.path) {
+        let Some(lines) = lines_of(&document.path) else {
+            continue;
+        };
+        if !converted {
             convert_document(document, &lines);
         }
+        document.local_names = local_names(document, &lines, symbols);
     }
 }
 
@@ -111,6 +175,7 @@ mod tests {
             documents: vec![ScipDocument {
                 path: RelativePath::new("a.cs").unwrap(),
                 encoding,
+                local_names: HashMap::new(),
                 occurrences: vec![Occurrence {
                     range,
                     symbol: SymbolRef(0),

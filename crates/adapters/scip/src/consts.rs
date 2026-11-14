@@ -127,6 +127,12 @@ pub(crate) const MAX_PATH_DEPTH: usize = 8;
 pub(crate) const NO_OWNER: &str = "";
 /// How scip-typescript prefixes the name of a getter and a setter; the project has one property.
 pub(crate) const ACCESSOR_PREFIXES: [&str; 2] = ["<get>", "<set>"];
+/// Longest definition, in bytes, whose text is read as the name of a local symbol.
+pub(crate) const MAX_LOCAL_NAME_BYTES: u32 = 256;
+/// Most targets one symbol gets by adopting overload heads; more is not an overload set.
+pub(crate) const MAX_OVERLOAD_TARGETS: usize = 64;
+/// Most same-named symbols of one line that are weighed up to find the one declared at a place.
+pub(crate) const MAX_LINE_CANDIDATES: usize = 16;
 /// The first segment of a path that starts at the crate root.
 pub(crate) const ROOT_SEGMENT: &str = "crate";
 /// Segments of a path that are relative to the module of the block; they are not resolved.
