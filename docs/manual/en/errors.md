@@ -41,6 +41,9 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | `PRS-201` | no language pack for a file type | the files of that type are not analysed; install the pack |
 | `PRS-501` | a file took too long to parse | raise `scan.parse_timeout_ms` if the file is legitimate |
 | `CFG-101`, `CFG-102`, `CFG-103` | invalid value, unreadable file, unknown key in the configuration | correct the setting named in the message |
+| `RES-*` | level 2 (indexers): tool missing or too old (`RES-201`), index too large, timeout, output or memory limit (`RES-501` to `RES-504`), indexer failed (`RES-601`), index corrupt (`RES-101`), too few occurrences map (`RES-302`); level 1 stays in every case | see [Language indexers](indexers.md#errors) |
+| `SEC-301`, `SEC-403` | level 2 is not enabled and confirmed, or the caller may not confirm it | enable it and run `codeskimr level2 confirm <project>` in a terminal |
+| `PRJ-303` | not an error: you cancelled the scan | start it again |
 | `API-301` | the port is taken | `--set server.port=…` |
 | `API-401` | the installation token is missing or wrong | use `codeskimr open` for the browser |
 | `API-402` | `Host` or `Origin` is not this server | open the UI at `http://127.0.0.1:<port>` or `localhost` |
