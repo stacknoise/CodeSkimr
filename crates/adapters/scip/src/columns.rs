@@ -159,7 +159,7 @@ mod tests {
         let mut index = index(PositionEncoding::Utf16, span(0, 4, 9));
         let lines = vec!["ä".to_owned()];
         convert_columns(&mut index, &mut |_| Some(lines.clone()));
-        assert!(index.documents[0].occurrences.is_empty());
+        assert_eq!(index.documents[0].occurrences, Vec::new());
         assert_eq!(index.documents[0].encoding, PositionEncoding::Utf8);
     }
 
