@@ -43,6 +43,10 @@ fn write_snapshot(conn: &Connection, data: &SnapshotData, keep: u32) -> StorageR
     }
     conn.pragma_update(None, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON)?;
     insert_header(conn, header)?;
+    conn.execute(
+        sql::SNAPSHOT_NAMING_SET,
+        params![data.naming_rules, column_int(header.id.get())?],
+    )?;
     insert_facts(conn, data)?;
     if header.mode == ScanMode::Incremental {
         carry_over(conn, header.project, header.id, &data.removed)?;

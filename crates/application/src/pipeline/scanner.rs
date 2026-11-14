@@ -81,6 +81,7 @@ impl Scanner {
         .then(DiscoverStage {
             discovery: ports.discovery,
             projects: Arc::clone(&ports.projects),
+            analyzer: Arc::clone(&ports.analyzer),
         })
         .then(AnalyzeStage {
             analyzer: ports.analyzer,

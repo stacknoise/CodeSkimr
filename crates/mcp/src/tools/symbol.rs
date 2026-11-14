@@ -38,6 +38,8 @@ struct Answer {
     metrics: BTreeMap<&'static str, f64>,
     member_count: usize,
     members: Vec<Member>,
+    /// How many other symbols have the same qualified name; the id tells them apart (ADR 0036).
+    ambiguous: u32,
     notice: Option<CodeReport>,
 }
 
@@ -78,6 +80,7 @@ fn answer(
             .collect(),
         member_count: detail.members.len(),
         members,
+        ambiguous: detail.same_name,
         notice,
     }
 }

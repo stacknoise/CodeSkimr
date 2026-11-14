@@ -5,21 +5,21 @@
       "loc": 41,
       "operands": null,
       "operators": null,
-      "symbol": "declarations"
+      "symbol": "declarations.cs"
     },
     {
       "decisions": null,
       "loc": 40,
       "operands": null,
       "operators": null,
-      "symbol": "declarations.Shop.Orders"
+      "symbol": "Shop.Orders"
     },
     {
       "decisions": null,
       "loc": 22,
       "operands": null,
       "operators": null,
-      "symbol": "declarations.Shop.Orders.Order"
+      "symbol": "Shop.Orders.Order"
     },
     {
       "decisions": 0,
@@ -32,7 +32,7 @@
         0,
         0
       ],
-      "symbol": "declarations.Shop.Orders.Order.Order"
+      "symbol": "Shop.Orders.Order.Order"
     },
     {
       "decisions": 0,
@@ -45,7 +45,7 @@
         1,
         1
       ],
-      "symbol": "declarations.Shop.Orders.Order.CountAsync"
+      "symbol": "Shop.Orders.Order.CountAsync"
     },
     {
       "decisions": 0,
@@ -58,7 +58,7 @@
         0,
         0
       ],
-      "symbol": "declarations.Shop.Orders.Order.+"
+      "symbol": "Shop.Orders.Order.+"
     },
     {
       "decisions": 0,
@@ -71,7 +71,7 @@
         0,
         0
       ],
-      "symbol": "declarations.Shop.Orders.Order.ToString"
+      "symbol": "Shop.Orders.Order.ToString"
     },
     {
       "decisions": 0,
@@ -84,7 +84,7 @@
         0,
         0
       ],
-      "symbol": "declarations.Shop.Orders.Order.Helper"
+      "symbol": "Shop.Orders.Order.Helper"
     },
     {
       "decisions": 0,
@@ -97,126 +97,126 @@
         0,
         0
       ],
-      "symbol": "declarations.Shop.Orders.Order.Helper.Local"
+      "symbol": "Shop.Orders.Order.Helper.Local"
     },
     {
       "decisions": null,
       "loc": 1,
       "operands": null,
       "operators": null,
-      "symbol": "declarations.Shop.Orders.Order.Line"
+      "symbol": "Shop.Orders.Order.Line"
     },
     {
       "decisions": null,
       "loc": 5,
       "operands": null,
       "operators": null,
-      "symbol": "declarations.Shop.Orders.IOrder"
+      "symbol": "Shop.Orders.IOrder"
     },
     {
       "decisions": null,
       "loc": 1,
       "operands": null,
       "operators": null,
-      "symbol": "declarations.Shop.Orders.IOrder.Submit"
+      "symbol": "Shop.Orders.IOrder.Submit"
     },
     {
       "decisions": null,
       "loc": 1,
       "operands": null,
       "operators": null,
-      "symbol": "declarations.Shop.Orders.Money"
+      "symbol": "Shop.Orders.Money"
     },
     {
       "decisions": null,
       "loc": 1,
       "operands": null,
       "operators": null,
-      "symbol": "declarations.Shop.Orders.Point"
+      "symbol": "Shop.Orders.Point"
     },
     {
       "decisions": null,
       "loc": 1,
       "operands": null,
       "operators": null,
-      "symbol": "declarations.Shop.Orders.Customer"
+      "symbol": "Shop.Orders.Customer"
     },
     {
       "decisions": null,
       "loc": 5,
       "operands": null,
       "operators": null,
-      "symbol": "declarations.Shop.Orders.Status"
+      "symbol": "Shop.Orders.Status"
     },
     {
       "decisions": null,
       "loc": 1,
       "operands": null,
       "operators": null,
-      "symbol": "declarations.Shop.Orders.Hidden"
+      "symbol": "Shop.Orders.Hidden"
     }
   ],
   "loc": 41,
   "references": [
     {
       "at": "0:6",
-      "from": "declarations",
+      "from": "declarations.cs",
       "kind": "import",
       "receiver": null,
       "target": "System"
     },
     {
       "at": "5:40",
-      "from": "declarations.Shop.Orders.Order",
+      "from": "Shop.Orders.Order",
       "kind": "inherit",
       "receiver": null,
       "target": "Entity"
     },
     {
       "at": "5:48",
-      "from": "declarations.Shop.Orders.Order",
+      "from": "Shop.Orders.Order",
       "kind": "inherit",
       "receiver": null,
       "target": "IOrder"
     },
     {
       "at": "17:21",
-      "from": "declarations.Shop.Orders.Order",
+      "from": "Shop.Orders.Order",
       "kind": "type_use",
       "receiver": null,
       "target": "EventHandler"
     },
     {
       "at": "19:28",
-      "from": "declarations.Shop.Orders.Order.CountAsync",
+      "from": "Shop.Orders.Order.CountAsync",
       "kind": "type_use",
       "receiver": null,
       "target": "Task"
     },
     {
       "at": "26:22",
-      "from": "declarations.Shop.Orders.Order.+",
+      "from": "Shop.Orders.Order.+",
       "kind": "type_use",
       "receiver": null,
       "target": "Order"
     },
     {
       "at": "26:39",
-      "from": "declarations.Shop.Orders.Order.+",
+      "from": "Shop.Orders.Order.+",
       "kind": "type_use",
       "receiver": null,
       "target": "Order"
     },
     {
       "at": "26:51",
-      "from": "declarations.Shop.Orders.Order.+",
+      "from": "Shop.Orders.Order.+",
       "kind": "type_use",
       "receiver": null,
       "target": "Order"
     },
     {
       "at": "28:31",
-      "from": "declarations.Shop.Orders.Order.ToString",
+      "from": "Shop.Orders.Order.ToString",
       "kind": "override",
       "receiver": null,
       "target": "ToString"
@@ -226,7 +226,7 @@
     {
       "doc": null,
       "kind": "module",
-      "name": "declarations",
+      "name": "declarations.cs",
       "parent": null,
       "signature": null,
       "span": "0:0-61:0",
@@ -236,8 +236,8 @@
     {
       "doc": null,
       "kind": "namespace",
-      "name": "declarations.Shop.Orders",
-      "parent": "declarations",
+      "name": "Shop.Orders",
+      "parent": "declarations.cs",
       "signature": null,
       "span": "2:0-60:1",
       "static": false,
@@ -246,8 +246,8 @@
     {
       "doc": "An order of a customer.",
       "kind": "class",
-      "name": "declarations.Shop.Orders.Order",
-      "parent": "declarations.Shop.Orders",
+      "name": "Shop.Orders.Order",
+      "parent": "Shop.Orders",
       "signature": null,
       "span": "5:4-36:5",
       "static": false,
@@ -256,8 +256,8 @@
     {
       "doc": null,
       "kind": "constant",
-      "name": "declarations.Shop.Orders.Order.MaxLines",
-      "parent": "declarations.Shop.Orders.Order",
+      "name": "Shop.Orders.Order.MaxLines",
+      "parent": "Shop.Orders.Order",
       "signature": "MaxLines = 100",
       "span": "7:25-7:39",
       "static": false,
@@ -266,8 +266,8 @@
     {
       "doc": null,
       "kind": "field",
-      "name": "declarations.Shop.Orders.Order.First",
-      "parent": "declarations.Shop.Orders.Order",
+      "name": "Shop.Orders.Order.First",
+      "parent": "Shop.Orders.Order",
       "signature": null,
       "span": "8:36-8:45",
       "static": true,
@@ -276,8 +276,8 @@
     {
       "doc": null,
       "kind": "field",
-      "name": "declarations.Shop.Orders.Order.Second",
-      "parent": "declarations.Shop.Orders.Order",
+      "name": "Shop.Orders.Order.Second",
+      "parent": "Shop.Orders.Order",
       "signature": null,
       "span": "8:47-8:57",
       "static": true,
@@ -286,8 +286,8 @@
     {
       "doc": null,
       "kind": "field",
-      "name": "declarations.Shop.Orders.Order.note",
-      "parent": "declarations.Shop.Orders.Order",
+      "name": "Shop.Orders.Order.note",
+      "parent": "Shop.Orders.Order",
       "signature": null,
       "span": "9:24-9:28",
       "static": false,
@@ -296,8 +296,8 @@
     {
       "doc": null,
       "kind": "constructor",
-      "name": "declarations.Shop.Orders.Order.Order",
-      "parent": "declarations.Shop.Orders.Order",
+      "name": "Shop.Orders.Order.Order",
+      "parent": "Shop.Orders.Order",
       "signature": null,
       "span": "11:8-11:43",
       "static": false,
@@ -306,8 +306,8 @@
     {
       "doc": null,
       "kind": "property",
-      "name": "declarations.Shop.Orders.Order.Id",
-      "parent": "declarations.Shop.Orders.Order",
+      "name": "Shop.Orders.Order.Id",
+      "parent": "Shop.Orders.Order",
       "signature": null,
       "span": "13:8-13:35",
       "static": false,
@@ -316,8 +316,8 @@
     {
       "doc": null,
       "kind": "property",
-      "name": "declarations.Shop.Orders.Order.Title",
-      "parent": "declarations.Shop.Orders.Order",
+      "name": "Shop.Orders.Order.Title",
+      "parent": "Shop.Orders.Order",
       "signature": null,
       "span": "15:8-15:54",
       "static": false,
@@ -326,8 +326,8 @@
     {
       "doc": null,
       "kind": "event",
-      "name": "declarations.Shop.Orders.Order.Changed",
-      "parent": "declarations.Shop.Orders.Order",
+      "name": "Shop.Orders.Order.Changed",
+      "parent": "Shop.Orders.Order",
       "signature": null,
       "span": "17:34-17:41",
       "static": false,
@@ -336,8 +336,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "declarations.Shop.Orders.Order.CountAsync",
-      "parent": "declarations.Shop.Orders.Order",
+      "name": "Shop.Orders.Order.CountAsync",
+      "parent": "Shop.Orders.Order",
       "signature": null,
       "span": "19:8-22:9",
       "static": true,
@@ -346,8 +346,8 @@
     {
       "doc": null,
       "kind": "property",
-      "name": "declarations.Shop.Orders.Order.this",
-      "parent": "declarations.Shop.Orders.Order",
+      "name": "Shop.Orders.Order.this",
+      "parent": "Shop.Orders.Order",
       "signature": null,
       "span": "24:8-24:44",
       "static": false,
@@ -356,8 +356,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "declarations.Shop.Orders.Order.+",
-      "parent": "declarations.Shop.Orders.Order",
+      "name": "Shop.Orders.Order.+",
+      "parent": "Shop.Orders.Order",
       "signature": null,
       "span": "26:8-26:72",
       "static": true,
@@ -366,8 +366,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "declarations.Shop.Orders.Order.ToString",
-      "parent": "declarations.Shop.Orders.Order",
+      "name": "Shop.Orders.Order.ToString",
+      "parent": "Shop.Orders.Order",
       "signature": null,
       "span": "28:8-28:53",
       "static": false,
@@ -376,8 +376,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "declarations.Shop.Orders.Order.Helper",
-      "parent": "declarations.Shop.Orders.Order",
+      "name": "Shop.Orders.Order.Helper",
+      "parent": "Shop.Orders.Order",
       "signature": null,
       "span": "30:8-33:9",
       "static": false,
@@ -386,8 +386,8 @@
     {
       "doc": null,
       "kind": "function",
-      "name": "declarations.Shop.Orders.Order.Helper.Local",
-      "parent": "declarations.Shop.Orders.Order.Helper",
+      "name": "Shop.Orders.Order.Helper.Local",
+      "parent": "Shop.Orders.Order.Helper",
       "signature": null,
       "span": "32:12-32:42",
       "static": false,
@@ -396,8 +396,8 @@
     {
       "doc": null,
       "kind": "class",
-      "name": "declarations.Shop.Orders.Order.Line",
-      "parent": "declarations.Shop.Orders.Order",
+      "name": "Shop.Orders.Order.Line",
+      "parent": "Shop.Orders.Order",
       "signature": null,
       "span": "35:8-35:30",
       "static": false,
@@ -406,8 +406,8 @@
     {
       "doc": null,
       "kind": "interface",
-      "name": "declarations.Shop.Orders.IOrder",
-      "parent": "declarations.Shop.Orders",
+      "name": "Shop.Orders.IOrder",
+      "parent": "Shop.Orders",
       "signature": null,
       "span": "38:4-43:5",
       "static": false,
@@ -416,8 +416,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "declarations.Shop.Orders.IOrder.Submit",
-      "parent": "declarations.Shop.Orders.IOrder",
+      "name": "Shop.Orders.IOrder.Submit",
+      "parent": "Shop.Orders.IOrder",
       "signature": null,
       "span": "40:8-40:22",
       "static": false,
@@ -426,8 +426,8 @@
     {
       "doc": null,
       "kind": "property",
-      "name": "declarations.Shop.Orders.IOrder.Total",
-      "parent": "declarations.Shop.Orders.IOrder",
+      "name": "Shop.Orders.IOrder.Total",
+      "parent": "Shop.Orders.IOrder",
       "signature": null,
       "span": "42:8-42:26",
       "static": false,
@@ -436,8 +436,8 @@
     {
       "doc": null,
       "kind": "struct",
-      "name": "declarations.Shop.Orders.Money",
-      "parent": "declarations.Shop.Orders",
+      "name": "Shop.Orders.Money",
+      "parent": "Shop.Orders",
       "signature": null,
       "span": "45:4-45:27",
       "static": false,
@@ -446,8 +446,8 @@
     {
       "doc": null,
       "kind": "record",
-      "name": "declarations.Shop.Orders.Point",
-      "parent": "declarations.Shop.Orders",
+      "name": "Shop.Orders.Point",
+      "parent": "Shop.Orders",
       "signature": null,
       "span": "47:4-47:54",
       "static": false,
@@ -456,8 +456,8 @@
     {
       "doc": null,
       "kind": "property",
-      "name": "declarations.Shop.Orders.Point.X",
-      "parent": "declarations.Shop.Orders.Point",
+      "name": "Shop.Orders.Point.X",
+      "parent": "Shop.Orders.Point",
       "signature": null,
       "span": "47:40-47:45",
       "static": false,
@@ -466,8 +466,8 @@
     {
       "doc": null,
       "kind": "property",
-      "name": "declarations.Shop.Orders.Point.Y",
-      "parent": "declarations.Shop.Orders.Point",
+      "name": "Shop.Orders.Point.Y",
+      "parent": "Shop.Orders.Point",
       "signature": null,
       "span": "47:47-47:52",
       "static": false,
@@ -476,8 +476,8 @@
     {
       "doc": null,
       "kind": "record",
-      "name": "declarations.Shop.Orders.Customer",
-      "parent": "declarations.Shop.Orders",
+      "name": "Shop.Orders.Customer",
+      "parent": "Shop.Orders",
       "signature": null,
       "span": "49:4-49:40",
       "static": false,
@@ -486,8 +486,8 @@
     {
       "doc": null,
       "kind": "property",
-      "name": "declarations.Shop.Orders.Customer.Name",
-      "parent": "declarations.Shop.Orders.Customer",
+      "name": "Shop.Orders.Customer.Name",
+      "parent": "Shop.Orders.Customer",
       "signature": null,
       "span": "49:27-49:38",
       "static": false,
@@ -496,8 +496,8 @@
     {
       "doc": null,
       "kind": "enum",
-      "name": "declarations.Shop.Orders.Status",
-      "parent": "declarations.Shop.Orders",
+      "name": "Shop.Orders.Status",
+      "parent": "Shop.Orders",
       "signature": null,
       "span": "51:4-55:5",
       "static": false,
@@ -506,8 +506,8 @@
     {
       "doc": null,
       "kind": "enum_member",
-      "name": "declarations.Shop.Orders.Status.Open",
-      "parent": "declarations.Shop.Orders.Status",
+      "name": "Shop.Orders.Status.Open",
+      "parent": "Shop.Orders.Status",
       "signature": null,
       "span": "53:8-53:12",
       "static": false,
@@ -516,8 +516,8 @@
     {
       "doc": null,
       "kind": "enum_member",
-      "name": "declarations.Shop.Orders.Status.Closed",
-      "parent": "declarations.Shop.Orders.Status",
+      "name": "Shop.Orders.Status.Closed",
+      "parent": "Shop.Orders.Status",
       "signature": null,
       "span": "54:8-54:18",
       "static": false,
@@ -526,8 +526,8 @@
     {
       "doc": null,
       "kind": "type_alias",
-      "name": "declarations.Shop.Orders.Handler",
-      "parent": "declarations.Shop.Orders",
+      "name": "Shop.Orders.Handler",
+      "parent": "Shop.Orders",
       "signature": null,
       "span": "57:4-57:44",
       "static": false,
@@ -536,8 +536,8 @@
     {
       "doc": null,
       "kind": "class",
-      "name": "declarations.Shop.Orders.Hidden",
-      "parent": "declarations.Shop.Orders",
+      "name": "Shop.Orders.Hidden",
+      "parent": "Shop.Orders",
       "signature": null,
       "span": "59:4-59:20",
       "static": false,

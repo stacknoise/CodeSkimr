@@ -18,6 +18,7 @@ grammar = "java"
 tier = "full"
 extensions = ["java"]
 separator = "."
+file_in_names = false
 comment_nodes = ["line_comment", "block_comment"]
 manifest_files = [
     "pom.xml",

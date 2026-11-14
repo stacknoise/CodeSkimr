@@ -85,6 +85,22 @@ fn latest_files_come_from_the_newest_snapshot() {
 }
 
 #[test]
+fn the_naming_rules_of_the_newest_snapshot_are_read_back() {
+    let store = store(3);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    assert_eq!(store.latest_naming_rules(PROJECT).unwrap(), None);
+    for (snapshot, rules) in [(10, "csharp=file"), (20, "csharp=namespace")] {
+        let mut scan = data(header(snapshot, ScanMode::Full));
+        scan.naming_rules = rules.to_owned();
+        store.persist(scan).unwrap();
+    }
+    assert_eq!(
+        store.latest_naming_rules(PROJECT).unwrap().as_deref(),
+        Some("csharp=namespace")
+    );
+}
+
+#[test]
 fn persisting_for_an_unknown_project_fails_and_writes_nothing() {
     let store = store(3);
     let error = store.persist(data(header(10, ScanMode::Full))).unwrap_err();

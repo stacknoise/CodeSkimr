@@ -24,6 +24,8 @@ pub struct LanguagePack {
     test_patterns: Vec<String>,
     pub(crate) language: Language,
     pub(crate) separator: String,
+    /// Whether the name of the file starts every qualified name (ADR 0036).
+    pub(crate) file_in_names: bool,
     pub(crate) comment_nodes: HashSet<String>,
     pub(crate) doc_prefixes: Vec<String>,
     pub(crate) doc_before_declaration: Option<HashSet<String>>,
@@ -87,6 +89,7 @@ impl LanguagePack {
             test_patterns: manifest.test_patterns,
             language,
             separator: manifest.separator,
+            file_in_names: manifest.file_in_names,
             comment_nodes: manifest.comment_nodes.into_iter().collect(),
             doc_prefixes: manifest.doc_prefixes,
             doc_before_declaration: manifest

@@ -150,3 +150,12 @@ pub const PLACEHOLDER_CLOSE: char = '}';
 pub const PATH_SEPARATORS: [char; 2] = ['/', '\\'];
 /// Nothing: what a placeholder is replaced with when the rest of an argument is checked.
 pub const NOTHING: &str = "";
+
+/// Between a language and its rule in the text of the naming rules.
+pub const NAMING_RULE_SEPARATOR: &str = "=";
+/// Between the rules of two languages in the text of the naming rules.
+pub const NAMING_RULES_SEPARATOR: &str = ";";
+/// Rule of a pack whose qualified names start with the file.
+pub const NAMING_FILE_IN_NAMES: &str = "file";
+/// Rule of a pack whose qualified names start with its own namespaces (ADR 0036).
+pub const NAMING_NAMESPACED: &str = "namespace";

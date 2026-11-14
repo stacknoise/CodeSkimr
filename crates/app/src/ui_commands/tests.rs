@@ -237,7 +237,7 @@ fn the_outline_sorts_the_types_into_a_namespace() {
         .call("explorer.outline", json!({ "project": project }))
         .unwrap();
     let namespace = &outline["layers"][0]["namespaces"][0];
-    assert_eq!(namespace["name"], "Calculator.Demo");
+    assert_eq!(namespace["name"], "Demo");
     assert_eq!(namespace["types"][0]["name"], "Calculator");
     assert_eq!(namespace["types"][0]["kind"], "class");
 }
@@ -308,10 +308,7 @@ fn a_project_without_a_scan_has_an_empty_outline_and_no_symbols() {
 fn layers_come_first_and_types_of_no_layer_last() {
     let fixture = Fixture::new();
     let project = added(&fixture);
-    fixture.set_layers(
-        project,
-        &[("Core", "Calculator.Demo"), ("Other", "Nowhere")],
-    );
+    fixture.set_layers(project, &[("Core", "Demo"), ("Other", "Nowhere")]);
     let outline = fixture
         .call("explorer.outline", json!({ "project": project }))
         .unwrap();
@@ -335,7 +332,7 @@ fn a_symbol_names_the_layer_that_owns_it() {
     let fixture = Fixture::new();
     let project = added(&fixture);
     assert!(shown_type(&fixture, project)["layer"].is_null());
-    fixture.set_layers(project, &[("Core", "Calculator.Demo")]);
+    fixture.set_layers(project, &[("Core", "Demo")]);
     assert_eq!(shown_type(&fixture, project)["layer"], "Core");
 }
 

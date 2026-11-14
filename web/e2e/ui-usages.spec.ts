@@ -26,7 +26,7 @@ test.describe("the usages screen", () => {
   }) => {
     const violations = await watchPolicy(page);
     const row = await addScannedProject(page, harness, "usagesdemo", SOURCE);
-    await selectAdd(page, row, "usagesdemo.Demo");
+    await selectAdd(page, row, "Demo");
 
     await page.keyboard.press("u");
     const graph = page.getByRole("region", { name: "Usage graph" });
@@ -53,7 +53,7 @@ test.describe("the usages screen", () => {
     );
     const source = [SOURCE, ...callers, ""].join("\n");
     const row = await addScannedProject(page, harness, "usagesmany", source);
-    await selectAdd(page, row, "usagesmany.Demo");
+    await selectAdd(page, row, "Demo");
     await page.keyboard.press("u");
     await expect(page.getByText("Hits 41")).toBeVisible();
     await expect(page.getByText("Number = places")).toBeVisible();

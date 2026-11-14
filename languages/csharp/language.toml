@@ -16,6 +16,7 @@ grammar = "csharp"
 tier = "full"
 extensions = ["cs"]
 separator = "."
+file_in_names = false
 comment_nodes = ["comment"]
 manifest_files = [
     "*.csproj",

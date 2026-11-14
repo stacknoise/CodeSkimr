@@ -107,6 +107,11 @@ pub struct PackManifest {
     pub extensions: Vec<String>,
     /// Separator inside qualified names.
     pub separator: String,
+    /// Whether the path of the file is the first part of every qualified name inside it. True
+    /// for languages whose module path is the file path (Rust, Python, `TypeScript`); false for
+    /// languages with their own namespaces (ADR 0036).
+    #[serde(default = "file_in_names_default")]
+    pub file_in_names: bool,
     /// Syntax node kinds that are comments.
     pub comment_nodes: Vec<String>,
     /// Project manifest files such as `Cargo.toml`; used by later stages, not by parsing.
@@ -175,4 +180,9 @@ impl PackManifest {
             fs::read_to_string(dir.join(MANIFEST_FILE)).map_err(|e| invalid(e.to_string()))?;
         toml::from_str(&text).map_err(|e| invalid(e.to_string()))
     }
+}
+
+/// The default of `file_in_names`: the file is part of the names.
+const fn file_in_names_default() -> bool {
+    true
 }
