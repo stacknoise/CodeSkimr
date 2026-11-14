@@ -27,6 +27,18 @@ labeled_enum!(
     }
 );
 
+impl MetricKind {
+    /// Whether the value depends on references across files and therefore belongs to one
+    /// snapshot, not to the symbol for all snapshots (ADR 0037): coupling and instability.
+    #[must_use]
+    pub const fn is_per_snapshot(self) -> bool {
+        matches!(
+            self,
+            Self::EfferentCoupling | Self::AfferentCoupling | Self::Instability
+        )
+    }
+}
+
 /// A finite measured number.
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub struct MetricValue(f64);
