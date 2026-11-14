@@ -273,15 +273,6 @@ pub(crate) fn parse_key(text: &str) -> Result<SymbolKey, McpError> {
         .map_err(|_| invalid())
 }
 
-/// The first layer that owns the symbol, by its namespace.
-pub(crate) fn layer_of(project: &Project, qualified: &QualifiedName) -> Option<String> {
-    project
-        .layers
-        .iter()
-        .find(|layer| layer.owns(qualified.as_str()))
-        .map(|layer| layer.name.as_str().to_owned())
-}
-
 /// Turns an answer into JSON. Serialising these plain types does not fail; if it ever does, the
 /// caller gets the internal error code.
 pub(crate) fn to_json<T: Serialize>(answer: &T) -> Result<Value, McpError> {

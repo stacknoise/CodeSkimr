@@ -90,7 +90,7 @@ describe("the keys", () => {
     expect(nextChip(FILTER.all, -1)).toBe(FILTER.commands);
   });
 
-  it("opens in the editor with Alt+Enter and only opens with a plain Enter", () => {
+  it("opens in the editor with Alt+Enter, in the map with Ctrl+Enter and only opens with a plain Enter", () => {
     const entries = buildEntries(HITS, UI_COMMANDS, FILTER.all, "a");
     const press = (init: KeyboardEventInit) => {
       const actions = {
@@ -100,6 +100,7 @@ describe("the keys", () => {
         chip: vi.fn(),
         copy: vi.fn(),
         editor: vi.fn(),
+        graph: vi.fn(),
       };
       const event = new KeyboardEvent("keydown", { key: "Enter", cancelable: true, ...init });
       onSearchKey(event, entries, 0, actions, false);
@@ -112,8 +113,12 @@ describe("the keys", () => {
     const plain = press({});
     expect(plain.actions.activate).toHaveBeenCalledWith(entries[0]);
     expect(plain.actions.editor).not.toHaveBeenCalled();
+    const ctrl = press({ ctrlKey: true });
+    expect(ctrl.actions.graph).toHaveBeenCalledWith(entries[0]);
+    expect(ctrl.actions.activate).not.toHaveBeenCalled();
     const both = press({ altKey: true, ctrlKey: true });
     expect(both.actions.editor).not.toHaveBeenCalled();
+    expect(both.actions.graph).not.toHaveBeenCalled();
     expect(both.actions.activate).not.toHaveBeenCalled();
   });
 });

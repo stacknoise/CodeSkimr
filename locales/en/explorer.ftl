@@ -19,7 +19,6 @@ explorer-column-lines = Lines
 explorer-status-totals = { $types } types · { $methods } methods · { $properties } properties
 explorer-status-virtualised = Tree virtualised: { $rendered } of { $total } rows rendered
 explorer-action-editor = Open in editor
-explorer-action-soon = Available with the screen that is still missing
 explorer-collapse-all = Collapse all
 explorer-reveal-selection = Show selection in tree
 explorer-structure-label = Structure
