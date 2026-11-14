@@ -36,6 +36,7 @@ Owner: `codeskimr_application`
 | PRJ-201 | `project_not_found` | error | no | 0.1.0 | No project with this id exists. |
 | PRJ-301 | `project_already_registered` | error | no | 0.1.0 | A project with the same source is already registered. |
 | PRJ-302 | `snapshot_in_progress` | error | no | 0.1.0 | A scan for this project is already running. |
+| PRJ-303 | `scan_cancelled` | info | yes | 0.1.0 | The scan was cancelled by the user; no snapshot was written. |
 
 ## SRC – Sources: file system, Git, watcher
 

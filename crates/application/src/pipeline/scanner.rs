@@ -150,7 +150,7 @@ impl ProjectScanner for Scanner {
         match self.run(principal, Job::new(project, ScanMode::Incremental)) {
             JobResult::Finished(job) => Ok(job.snapshot().clone()),
             JobResult::Failed(job) => Err(CodedError::new(job.code())),
-            JobResult::Cancelled(_) => Err(CodedError::new(ErrorCode::UnexpectedInternalError)),
+            JobResult::Cancelled(_) => Err(CodedError::new(ErrorCode::ScanCancelled)),
         }
     }
 }

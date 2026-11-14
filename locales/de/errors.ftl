@@ -12,6 +12,7 @@ error-PRJ-101 = Die Quelle ist weder ein vorhandener Ordner noch eine gültige G
 error-PRJ-201 = Das Projekt ist nicht registriert. Scanne den Ordner zuerst mit `codeskimr scan`.
 error-PRJ-301 = Ein Projekt mit derselben Quelle ist bereits angelegt.
 error-PRJ-302 = Für dieses Projekt läuft bereits ein Scan.
+error-PRJ-303 = Der Scan wurde abgebrochen. Es wurde kein Snapshot geschrieben.
 error-SRC-201 = Der Quellordner existiert nicht oder ist nicht lesbar.
 error-SRC-202 = Der angegebene Branch existiert im Remote-Repository nicht.
 error-SRC-401 = Das Remote-Repository verlangt eine Anmeldung und es ist keine passende Zugangsberechtigung vorhanden.
