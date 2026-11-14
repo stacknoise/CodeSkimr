@@ -16,7 +16,7 @@
 .panel h2 {
     margin: 2px 0 0;
     font: 700 17px var(--font-mono);
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
 }
 .signature {
     margin-top: var(--space-6);
