@@ -67,7 +67,9 @@ def ours(db, verified_only=False):
 # Language -> (section of reference_tools.toml, program of the indexer, key of the pinned version).
 SCIP_INDEXERS = {"rust": ("rust_scip", "rust-analyzer", "rust_analyzer"),
                  "typescript": ("typescript_scip", "scip-typescript", "scip_typescript"),
-                 "python": ("python_scip", "scip-python", "scip_python")}
+                 "python": ("python_scip", "scip-python", "scip_python"),
+                 "java": ("java_scip", "scip-java", "scip_java"),
+                 "csharp": ("csharp_scip", "scip-dotnet", "scip_dotnet")}
 
 
 def _varint(data, i):
@@ -149,6 +151,12 @@ def import_level2(opt, db, source):
     return sqlite3.connect(dbfile)
 
 
+# Kind of a symbol -> category of a declaration for TruthJava and TruthCSharp.
+JAVA_CATEGORIES = {"class": "type", "interface": "type", "enum": "type", "struct": "type", "method": "method", "function": "method",
+                   "constructor": "constructor", "field": "field", "enum_member": "field", "property": "field"}
+JAVA_CATEGORIES_CSHARP = {**JAVA_CATEGORIES, "field": "member", "enum_member": "member", "property": "member"}
+
+
 def java_inputs(src, tmp):
     """Classpath (pinned, checked downloads) and generated sources for the Java reference compiler."""
     config = tomllib.loads((Path(__file__).parent / "reference_tools.toml").read_text())["java"]
@@ -179,6 +187,7 @@ def truth(lang, source, workspace, targets):
     """Reference tool: `targets` is a list of {file, line, column, name}; returns a list of sets of (file, line).
     `source` is the filtered copy that was scanned, `workspace` the full checkout (Rust needs its Cargo files)."""
     here = Path(__file__).parent
+    cwd = None
     stdin = json.dumps(targets)
     if lang == "python":
         cmd = [sys.executable, str(here / "truth_python.py"), str(source)]
@@ -189,10 +198,19 @@ def truth(lang, source, workspace, targets):
     elif lang == "java":
         classpath, generated = java_inputs(workspace, source.parent)
         cmd = ["java", str(here / "TruthJava.java"), str(source), classpath, str(generated)]
-        stdin = "".join(f"{t['file']}\t{t['line']}\t{t['name']}\n" for t in targets)
+        stdin = "".join(f"{t['file']}\t{t['line']}\t{t['name']}\t{JAVA_CATEGORIES[t['kind']]}\n" for t in targets)
+    elif lang == "csharp":
+        project = str(here / "truth_csharp")
+        # Run in the throw-away folder of the measurement, never in the foreign checkout: the dotnet host reads a
+        # `global.json` of the working folder (as crates/adapters/indexer/src/tools.rs avoids), and packages are restored
+        # in locked mode (packages.lock.json).
+        cmd = ["dotnet", "run", "--project", project, "-c", "Release", "--no-launch-profile", "-p:RestoreLockedMode=true",
+               "--", str(Path(workspace).resolve()), str(source)]
+        cwd = source.parent
+        stdin = json.dumps([{**t, "category": JAVA_CATEGORIES_CSHARP[t["kind"]]} for t in targets])
     else:
         sys.exit(f"no reference tool for {lang} yet")
-    done = subprocess.run(cmd, input=stdin, stdout=subprocess.PIPE, text=True, check=True)
+    done = subprocess.run(cmd, input=stdin, stdout=subprocess.PIPE, text=True, check=True, cwd=cwd)
     return [{(f, l) for f, l in result} for result in json.loads(done.stdout)]
 
 
@@ -206,6 +224,7 @@ def main():
     args.add_argument("--json", action="store_true")
     args.add_argument("--scip", help="SCIP index made by hand (`rust-analyzer scip`); mapped onto the scan with tools/accuracy/import_scip, without the consent flow of level 2")
     args.add_argument("--allow-uncovered", type=lambda v: int(v) if int(v) >= 0 else sys.exit("--allow-uncovered must not be negative"), default=0, help="scanned files that the index may leave out (the indexer reads only what the tsconfig includes)")
+    args.add_argument("--workspace", help="checkout prepared by hand for the reference tool instead of the corpus checkout (C#: restored, in the target framework of the container)")
     args.add_argument("--indexer", help="program that made the --scip index, for the version check (default: the usual name)")
     args.add_argument("--import-scip", default=str(ROOT / "target/debug/codeskimr_import_scip"), help="the measuring tool of --scip")
     args.add_argument("--verified-only", action="store_true", help="count only references that level 2 produced (verified)")
@@ -213,7 +232,7 @@ def main():
     if opt.scip and not opt.verified_only:
         sys.exit("--scip needs --verified-only: without it level 1 and level 2 references are counted together")
     if opt.scip and opt.language not in SCIP_INDEXERS:
-        sys.exit("--scip is only prepared for rust, typescript and python")
+        sys.exit("--scip is only prepared for rust, typescript, python, java and csharp")
     project = tomllib.loads((ROOT / "corpus" / opt.language / "corpus.toml").read_text())["project"]
     src = checkout(opt.language, project)
     with tempfile.TemporaryDirectory() as tmp:
@@ -228,8 +247,8 @@ def main():
         pool = sorted((s[4], i) for i, s in symbols.items() if s[2] in KINDS and not s[3].startswith("_"))
         rng = random.Random(opt.seed)
         picked = [i for _, i in rng.sample(pool, min(opt.samples, len(pool)))]
-        targets = [{"file": files[symbols[i][1]].replace("\\", "/"), "line": symbols[i][5] + 1, "column": symbols[i][6], "name": symbols[i][3]} for i in picked]
-        sets = truth(opt.language, tmp / "src", src, targets)
+        targets = [{"file": files[symbols[i][1]].replace("\\", "/"), "line": symbols[i][5] + 1, "column": symbols[i][6], "name": symbols[i][3], "kind": symbols[i][2]} for i in picked]
+        sets = truth(opt.language, tmp / "src", Path(opt.workspace) if opt.workspace else src, targets)
     rows, exact, tp, fp, fn = [], 0, 0, 0, 0
     wrong_kinds = {}
     for i, t, real in zip(picked, targets, sets):

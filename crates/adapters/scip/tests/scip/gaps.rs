@@ -3,7 +3,9 @@
 
 use codeskimr_domain::{ReferenceKind, SourceFile, Symbol, SymbolId, SymbolKind};
 
-use crate::common::{definition, document, file, index, scip, symbol, usage, varint_field};
+use crate::common::{
+    definition, document, file, index, level_one, scip, symbol, usage, varint_field,
+};
 use crate::mapping::{run, run_text, target};
 
 fn one_file() -> Vec<SourceFile> {
@@ -328,4 +330,129 @@ fn many_local_functions_on_one_line_are_matched_in_time_and_exactly() {
     let mut targets: Vec<u64> = outcome.references.iter().map(|r| r.to.get()).collect();
     targets.sort_unstable();
     assert_eq!(targets, (1..=u64::from(USED)).collect::<Vec<_>>());
+}
+
+/// `new Svc()` on line 5 (column 11 to 14) of a class `Svc` with one constructor, in a method `go`.
+fn constructor_world() -> Vec<Symbol> {
+    vec![
+        inside(symbol(1, 1, SymbolKind::Class, "Svc", ((0, 0), (3, 1))), 0),
+        inside(
+            symbol(2, 1, SymbolKind::Constructor, "Svc", ((1, 2), (1, 20))),
+            1,
+        ),
+        symbol(3, 1, SymbolKind::Method, "go", ((4, 0), (7, 1))),
+    ]
+}
+
+fn constructor_index(range: [u32; 3]) -> Vec<u8> {
+    let (class, init) = (scip("Svc#"), scip("Svc#`<init>`()."));
+    index(
+        "",
+        &[document(
+            "src/a.ts",
+            &[
+                definition(&[0, 6, 9], &class),
+                definition(&[1, 2, 5], &init),
+                usage(&range, &init),
+            ],
+        )],
+    )
+}
+
+#[test]
+fn a_constructor_call_is_a_use_of_its_type_where_level_one_reads_the_type() {
+    let old = [level_one(9, (3, 1), 1, (5, 11), ReferenceKind::TypeUse)];
+    let bytes = constructor_index([5, 11, 14]);
+    let outcome = run(&bytes, &one_file(), &constructor_world(), &old);
+    let mut found = target(&outcome);
+    found.sort_unstable_by_key(|(_, to, _)| *to);
+    assert_eq!(
+        found,
+        [
+            (3, 1, ReferenceKind::TypeUse),
+            (3, 2, ReferenceKind::TypeUse)
+        ]
+    );
+}
+
+#[test]
+fn a_constructor_call_on_a_keyword_is_no_use_of_the_type() {
+    // `this(...)`: level 1 has no reference to the type at that place.
+    let bytes = constructor_index([5, 4, 8]);
+    let outcome = run(&bytes, &one_file(), &constructor_world(), &[]);
+    assert_eq!(target(&outcome), [(3, 2, ReferenceKind::Call)]);
+}
+
+#[test]
+fn a_method_with_a_symbol_of_its_own_is_no_overload_head() {
+    // C#: `IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();` on one line: the explicit
+    // implementation has its own symbol and calls the method of the same name.
+    let (public, explicit) = (
+        scip("Data#GetEnumerator()."),
+        scip("Data#`I.GetEnumerator`()."),
+    );
+    let symbols = vec![
+        symbol(1, 1, SymbolKind::Class, "Data", ((0, 0), (6, 1))),
+        inside(
+            symbol(2, 1, SymbolKind::Method, "GetEnumerator", ((1, 4), (3, 5))),
+            1,
+        ),
+        inside(
+            symbol(3, 1, SymbolKind::Method, "GetEnumerator", ((4, 4), (4, 70))),
+            1,
+        ),
+    ];
+    let bytes = index(
+        "",
+        &[document(
+            "src/a.ts",
+            &[
+                definition(&[1, 20, 33], &public),
+                definition(&[4, 30, 43], &explicit),
+                usage(&[4, 50, 63], &public),
+            ],
+        )],
+    );
+    let outcome = run(&bytes, &one_file(), &symbols, &[]);
+    assert_eq!(target(&outcome), [(3, 2, ReferenceKind::Call)]);
+}
+
+#[test]
+fn many_constructor_calls_on_one_line_are_looked_up_without_scanning_the_line() {
+    // 15000 `new Svc()` on one line, each with a level 1 reference to the type: every lookup goes
+    // by start, so the line is not scanned once per call.
+    const CALLS: u32 = 15_000;
+    let (class, init) = (scip("Svc#"), scip("Svc#`<init>`()."));
+    let mut occurrences = vec![
+        definition(&[0, 6, 9], &class),
+        definition(&[1, 2, 5], &init),
+    ];
+    let mut old = Vec::new();
+    for i in 0..CALLS {
+        occurrences.push(usage(&[5, 2 * i, 2 * i + 1], &init));
+        old.push(level_one(
+            u64::from(i) + 10,
+            (3, 1),
+            1,
+            (5, 2 * i),
+            ReferenceKind::TypeUse,
+        ));
+    }
+    let bytes = index("", &[document("src/a.ts", &occurrences)]);
+    let started = std::time::Instant::now();
+    let outcome = run(&bytes, &one_file(), &constructor_world(), &old);
+    assert!(started.elapsed().as_secs() < 20);
+    let found = target(&outcome);
+    let calls = found.iter().filter(|(_, to, _)| *to == 2).count();
+    let types = found.iter().filter(|(_, to, _)| *to == 1).count();
+    assert_eq!((calls, types), (CALLS as usize, CALLS as usize));
+}
+
+#[test]
+fn a_constructor_without_a_type_gives_no_type_use() {
+    let mut symbols = constructor_world();
+    symbols[1].parent = None;
+    let old = [level_one(9, (3, 1), 1, (5, 11), ReferenceKind::TypeUse)];
+    let outcome = run(&constructor_index([5, 11, 14]), &one_file(), &symbols, &old);
+    assert_eq!(target(&outcome), [(3, 2, ReferenceKind::TypeUse)]);
 }
