@@ -1,0 +1,97 @@
+# Release workflow (preview releases, docs/release.md). Started by hand: Actions -> Release -> Run workflow.
+# It creates a DRAFT pre-release, then builds the UI and the program on Linux and Windows and adds the packages.
+# Nothing is public until the product owner publishes the draft.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version without the leading v, for example 0.9.0-preview.1 (must match Cargo.toml)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  draft:
+    name: draft release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Version has the right form and matches Cargo.toml
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if ! printf '%s' "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$'; then
+            echo "Not a version: $VERSION" >&2
+            exit 1
+          fi
+          found=$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)
+          if [ "$found" != "$VERSION" ]; then
+            echo "Cargo.toml has version $found, the input is $VERSION" >&2
+            exit 1
+          fi
+      - name: Create the draft pre-release (empty, the packages are added by the next jobs)
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          gh release create "v${VERSION}" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "CodeSkimr ${VERSION}" --notes-file docs/release/preview-de.md --draft --prerelease
+
+  package:
+    name: package (${{ matrix.platform }})
+    needs: draft
+    permissions:
+      contents: write
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux-x86_64
+          - os: windows-latest
+            platform: windows-x86_64
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      # The UI is embedded into the program by crates/app/build.rs, so it is built first.
+      - name: Build the UI
+        run: |
+          cd web
+          npm ci
+          npm run build
+      - name: Build the program
+        run: cargo build --release --locked -p codeskimr
+      - name: Smoke test
+        run: target/release/codeskimr --version
+      - name: Pack
+        env:
+          VERSION: ${{ inputs.version }}
+          PLATFORM: ${{ matrix.platform }}
+        run: tools/release/package.sh "$PLATFORM" "$VERSION"
+      - name: Add the package to the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+        run: gh release upload "v${VERSION}" dist/codeskimr-* --repo "$GITHUB_REPOSITORY"
