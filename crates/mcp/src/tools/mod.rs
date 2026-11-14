@@ -14,12 +14,12 @@ mod usages;
 
 use std::sync::Arc;
 
-use codeskimr_application::config::McpLimits;
+use codeskimr_application::config::{KeySources, McpLimits};
 use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    Clock, CodeIndex, ProjectCatalog, ProjectRepository, ProjectScanner, ProjectToolCheck,
-    SimilarityIndex, SnippetFingerprinter, SymbolDetail, SymbolKey, UsageIndex,
+    Clock, CodeIndex, ProjectCatalog, ProjectKeys, ProjectRepository, ProjectScanner,
+    ProjectToolCheck, SimilarityIndex, SnippetFingerprinter, SymbolDetail, SymbolKey, UsageIndex,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Project, ProjectId, QualifiedName, Snapshot, SymbolId};
@@ -85,6 +85,10 @@ pub struct Ports {
     pub tool_check: Arc<dyn ProjectToolCheck>,
     /// The texts of the tools (what they are for, how to install them).
     pub messages: Arc<Messages>,
+    /// The configuration and translation keys of a project folder, for `find_constants`.
+    pub keys: Arc<dyn ProjectKeys>,
+    /// Which folders hold those keys.
+    pub key_sources: KeySources,
 }
 
 /// The tools of the server; all of them only read except `rescan`.
@@ -100,6 +104,8 @@ pub struct Tools {
     catalog: Arc<dyn ProjectCatalog>,
     tool_check: Arc<dyn ProjectToolCheck>,
     messages: Arc<Messages>,
+    keys: Arc<dyn ProjectKeys>,
+    key_sources: KeySources,
     limits: McpLimits,
     default_project: Option<ProjectId>,
 }
@@ -132,6 +138,8 @@ impl Tools {
             catalog: ports.catalog,
             tool_check: ports.tool_check,
             messages: ports.messages,
+            keys: ports.keys,
+            key_sources: ports.key_sources,
             limits,
             default_project,
         }
@@ -234,6 +242,14 @@ impl Tools {
 
     pub(crate) fn similarity(&self) -> &dyn SimilarityIndex {
         self.similarity.as_ref()
+    }
+
+    pub(crate) fn project_keys(&self) -> &dyn ProjectKeys {
+        self.keys.as_ref()
+    }
+
+    pub(crate) const fn key_sources(&self) -> &KeySources {
+        &self.key_sources
     }
 
     pub(crate) fn snippets(&self) -> &dyn SnippetFingerprinter {

@@ -102,3 +102,9 @@ pub const ID_SEPARATOR: &str = ": ";
 
 /// Largest request body of the HTTP transport in bytes: a tool call is a few arguments.
 pub const HTTP_MAX_BODY_BYTES: usize = 1024 * 1024;
+
+/// `kind` of a key of a TOML configuration file in the answer of `find_constants`.
+pub const KIND_CONFIG: &str = "config";
+
+/// `kind` of the id of a translation message in the answer of `find_constants`.
+pub const KIND_I18N: &str = "i18n";

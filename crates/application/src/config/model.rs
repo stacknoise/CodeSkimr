@@ -41,6 +41,24 @@ pub struct Config {
     pub ui: Ui,
     /// The picture of the dependency map.
     pub graph: Graph,
+    /// Where `find_constants` looks for configuration and translation keys.
+    pub keys: KeySources,
+}
+
+/// The folders of a project whose files hold keys that `find_constants` lists (blueprint 10.4):
+/// the keys of TOML files below `config_folders` and the message ids of Fluent files below
+/// `i18n_folders`. Folders are relative to the project root; one that is not there is skipped.
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct KeySources {
+    /// Folders with `.toml` files.
+    pub config_folders: Vec<String>,
+    /// Folders with `.ftl` files.
+    pub i18n_folders: Vec<String>,
+    /// Most files read per call; the rest is not looked at.
+    pub max_files: u32,
+    /// Largest file that is read, in kilobytes; larger ones are skipped.
+    pub max_file_kb: u32,
 }
 
 /// One architecture layer as written in `.codeskimr.toml`.

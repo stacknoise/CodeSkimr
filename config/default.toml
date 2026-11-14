@@ -67,6 +67,16 @@ window_size = 4
 # Functions with fewer syntax tokens than this get no fingerprints; trivial bodies are not worth matching.
 min_tokens = 30
 
+# Where `find_constants` looks for configuration keys (TOML) and translation keys (Fluent), blueprint 10.4.
+# Folders are relative to the project root; a folder that is not there is skipped. A project can
+# set its own in `.codeskimr.toml`. Only the key names are read, never the values.
+[keys]
+config_folders = ["config"]
+i18n_folders = ["locales"]
+# At most this many files are read per call, none larger than this many kilobytes.
+max_files = 200
+max_file_kb = 256
+
 # Convention checks (blueprint 3 and 10.4, `check_conventions`).
 [conventions]
 # Longest function in code lines (R-02); a longer one is reported as CHK-104.

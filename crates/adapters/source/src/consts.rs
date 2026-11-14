@@ -68,3 +68,21 @@ pub const FIRST_LINE: u32 = 1;
 
 /// Marks a line of a plain-text requirement file as a comment.
 pub const REQUIREMENT_COMMENT: char = '#';
+
+/// Bytes in a kilobyte, for the size limit of key files.
+pub const BYTES_PER_KB: u64 = 1024;
+
+/// Extension of the configuration files whose keys are listed.
+pub const CONFIG_EXTENSION: &str = "toml";
+
+/// Extension of the translation files whose message ids are listed.
+pub const FLUENT_EXTENSION: &str = "ftl";
+
+/// Ends a line in the key files.
+pub const LINE_END_CHAR: char = '\n';
+
+/// Opens a TOML table header.
+pub const TABLE_OPEN: char = '[';
+
+/// Closes a TOML table header.
+pub const TABLE_CLOSE: char = ']';
