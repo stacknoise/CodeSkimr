@@ -34,7 +34,9 @@ use codeskimr_source::{
 use codeskimr_storage::SqliteStore;
 
 use crate::clock::SystemClock;
-use crate::consts::{BYTES_PER_MB, REQUIREMENT_MAX_BYTES, is_reserved_credential};
+use crate::consts::{
+    BYTES_PER_MB, REQUIREMENT_MAX_BYTES, WARM_THREAD_NAME, is_reserved_credential,
+};
 use crate::locations::Locations;
 use crate::redact::redact;
 use crate::refresh::{Refresher, RefreshingSource};
@@ -95,7 +97,11 @@ pub fn open_serving_store(
 ) -> Result<Arc<SqliteStore>, CodedError> {
     let store = open_store(locations, config)?;
     let warming = Arc::clone(&store);
-    std::thread::spawn(move || warming.warm_newest().ok());
+    // A thread that cannot start leaves the index to the first query.
+    std::thread::Builder::new()
+        .name(WARM_THREAD_NAME.to_owned())
+        .spawn(move || warming.warm_newest().ok())
+        .ok();
     Ok(store)
 }
 

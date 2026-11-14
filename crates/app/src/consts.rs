@@ -394,3 +394,6 @@ pub const INVISIBLE_RANGES: [(char, char); 7] = [
     ('\u{FEFF}', '\u{FEFF}'),
     ('\u{00AD}', '\u{00AD}'),
 ];
+
+/// Name of the thread that builds the usages index in the background.
+pub const WARM_THREAD_NAME: &str = "usages-warm-up";
