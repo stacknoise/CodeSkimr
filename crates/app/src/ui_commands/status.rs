@@ -7,6 +7,7 @@ use std::time::{Duration, Instant};
 use codeskimr_application::access;
 use codeskimr_application::config::Budgets;
 use codeskimr_application::error::CodedError;
+use codeskimr_application::pipeline::analyze_workers;
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_domain::Permission;
 use serde::Serialize;
@@ -38,6 +39,8 @@ pub struct StatusOut {
     pub memory_mb: Option<u64>,
     /// The time budgets of blueprint 16.1 in the configuration, for the performance screen.
     pub budgets: BudgetTargets,
+    /// How many threads the analyze stage of a scan uses (one per core the system offers).
+    pub workers: u32,
 }
 
 /// The targets of the time budgets, all in milliseconds.
@@ -110,6 +113,7 @@ impl Command for StatusInfo {
             startup_ms: startup_ms(),
             memory_mb: memory_mb(),
             budgets: self.budgets,
+            workers: u32::try_from(analyze_workers()).unwrap_or(u32::MAX),
         })
     }
 }

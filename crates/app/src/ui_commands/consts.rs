@@ -9,6 +9,9 @@ pub const PROJECTS_ADD: &str = "projects.add";
 /// Id of the command that scans a registered project again.
 pub const PROJECTS_RESCAN: &str = "projects.rescan";
 
+/// Id of the command that cancels a running scan.
+pub const PROJECTS_CANCEL: &str = "projects.cancel";
+
 /// Id of the command that returns the explorer tree.
 pub const EXPLORER_OUTLINE: &str = "explorer.outline";
 /// Id of the command that returns one symbol of the explorer.
@@ -78,6 +81,11 @@ pub const ADD_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_ADD_DESCRIPTION;
 pub const RESCAN_TITLE: &str = i18n::COMMAND_PROJECTS_RESCAN_TITLE;
 /// Description key of `projects.rescan`.
 pub const RESCAN_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_RESCAN_DESCRIPTION;
+
+/// Title key of `projects.cancel`.
+pub const CANCEL_TITLE: &str = i18n::COMMAND_PROJECTS_CANCEL_TITLE;
+/// Description key of `projects.cancel`.
+pub const CANCEL_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_CANCEL_DESCRIPTION;
 
 /// How a project's source is named on the wire.
 pub const KIND_FOLDER: &str = "folder";

@@ -34,6 +34,31 @@
     font-weight: 700;
 }
 
+.cancel {
+    margin-left: auto;
+    height: 28px;
+    padding: 0 var(--space-10);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-button);
+    background: var(--surface);
+    color: var(--ink-2);
+    font: 12.5px var(--font-sans);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-6);
+}
+
+.kbd {
+    font: 500 11px var(--font-mono);
+    color: var(--muted);
+    border: 1px solid var(--line);
+    border-bottom-width: 2px;
+    border-radius: var(--radius-badge);
+    padding: 0 5px;
+    background: var(--surface);
+}
+
 .meta {
     font: 12px var(--font-mono);
     color: var(--muted);

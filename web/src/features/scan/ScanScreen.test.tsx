@@ -1,8 +1,8 @@
-import { render, screen, within } from "@solidjs/testing-library";
+import { fireEvent, render, screen, within } from "@solidjs/testing-library";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { recordTime, resetTimings } from "../../shared/api/timings";
-import { answer, serve, useServerSession } from "../../tests/commands";
+import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import type { ProjectRow } from "../projects/types";
 import { refreshProjects } from "../projects/projects";
 import { refreshStatus } from "../status/status";
@@ -33,9 +33,24 @@ const ROW: ProjectRow = {
   running: false,
 };
 
+const RUNNING = {
+  type: "scan_progressed",
+  project: 1,
+  stage: "analyze",
+  done: 10,
+  total: 100,
+};
+
+function cancelCalls(): string[] {
+  return fetchMock.mock.calls
+    .filter(([path]) => String(path).endsWith("projects.cancel"))
+    .map(([, init]) => String((init as RequestInit).body));
+}
+
 const STATUS = {
   startup_ms: 180,
   memory_mb: 88,
+  workers: 8,
   budgets: {
     cold_start: 300,
     search_keystroke: 10,
@@ -84,6 +99,17 @@ async function shown() {
   return stop;
 }
 
+/** The screen with a server that also answers `projects.cancel`. */
+async function shownWithCancel() {
+  setLanguage("en");
+  serve({
+    "projects.list": () => answer([ROW]),
+    "status.info": () => answer(STATUS),
+    "projects.cancel": () => answer({ cancelled: true }),
+  });
+  return shown();
+}
+
 describe("ScanScreen", () => {
   it("shows the budgets with the measured start time, the languages and recent scans when idle", async () => {
     setLanguage("en");
@@ -107,6 +133,54 @@ describe("ScanScreen", () => {
     expect(screen.getByText("4 ms")).toBeInTheDocument();
     expect(screen.getByText("61 ms")).toBeInTheDocument();
     expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(2);
+    stop();
+  });
+
+  it("shows the cores in use while a scan runs and a dash otherwise", async () => {
+    setLanguage("en");
+    const stop = await shown();
+    await screen.findByText("No scan running");
+    FakeSocket.last?.send(RUNNING);
+    const label = await screen.findByText("Cores active");
+    expect(label.previousElementSibling?.textContent).toBe("8");
+    stop();
+  });
+
+  it("shows no more cores than there are files to analyse", async () => {
+    setLanguage("en");
+    const stop = await shown();
+    await screen.findByText("No scan running");
+    FakeSocket.last?.send({ ...RUNNING, done: 1, total: 3 });
+    const label = await screen.findByText("Cores active");
+    expect(label.previousElementSibling?.textContent).toBe("3");
+    stop();
+  });
+
+  it("leaves a running scan alone when Esc is pressed in a field or was already used", async () => {
+    const stop = await shownWithCancel();
+    FakeSocket.last?.send(RUNNING);
+    await screen.findByRole("button", { name: /Cancel/ });
+    const field = document.body.appendChild(document.createElement("input"));
+    fireEvent.keyDown(field, { key: "Escape" });
+    const used = new KeyboardEvent("keydown", { key: "Escape", cancelable: true });
+    used.preventDefault();
+    document.dispatchEvent(used);
+    expect(cancelCalls()).toEqual([]);
+    field.remove();
+    stop();
+  });
+
+  it("cancels the running scan with the button and with Esc", async () => {
+    const stop = await shownWithCancel();
+    expect(screen.queryByRole("button", { name: /Cancel/ })).toBeNull();
+    FakeSocket.last?.send(RUNNING);
+    fireEvent.click(await screen.findByRole("button", { name: /Cancel/ }));
+    fireEvent.keyDown(document, { key: "Escape" });
+    await vi.waitFor(() => expect(cancelCalls()).toHaveLength(2));
+    expect(cancelCalls()[0]).toBe('{"project":1}');
+    FakeSocket.last?.send({ type: "scan_stopped", project: 1, reason: "cancelled", code: null });
+    expect(await screen.findByText("Scan cancelled")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Cancel/ })).toBeNull();
     stop();
   });
 

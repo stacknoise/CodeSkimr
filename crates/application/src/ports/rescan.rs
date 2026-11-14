@@ -10,6 +10,6 @@ pub trait ProjectScanner: Send + Sync {
     ///
     /// # Errors
     /// `AUTH-401` if the principal may not scan, otherwise the code of the failed stage;
-    /// a cancelled scan is `APP-901`.
+    /// a cancelled scan is `PRJ-303`.
     fn rescan(&self, principal: &Principal, project: ProjectId) -> Result<Snapshot, CodedError>;
 }

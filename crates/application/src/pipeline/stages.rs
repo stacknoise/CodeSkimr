@@ -281,7 +281,7 @@ impl AnalyzeStage {
             first_id: self.ids.reserve(count_u64(due) * FILE_ID_BLOCK),
             stopped: AtomicBool::new(false),
         };
-        let workers = thread::available_parallelism().map_or(MIN_WORKERS, NonZeroUsize::get);
+        let workers = analyze_workers();
         let mut slots: Vec<Slot> = thread::scope(|scope| {
             let handles: Vec<_> = (0..workers.min(due.len().max(MIN_WORKERS)))
                 .map(|_| scope.spawn(|| self.work(run, due, &shared, ctx)))
@@ -487,4 +487,10 @@ impl Stage for PersistStage {
         ctx.progress(1, 1);
         Ok(stored)
     }
+}
+
+/// How many threads the analyze stage uses: one per core the system offers, at least one.
+#[must_use]
+pub fn analyze_workers() -> usize {
+    thread::available_parallelism().map_or(MIN_WORKERS, NonZeroUsize::get)
 }

@@ -13,9 +13,9 @@ use serde::{Deserialize, Serialize};
 
 use super::Context;
 use super::consts::{
-    ADD_DESCRIPTION, ADD_TITLE, KIND_FOLDER, KIND_GIT, LIST_DESCRIPTION, LIST_TITLE, PROJECTS_ADD,
-    PROJECTS_LIST, PROJECTS_RESCAN, RESCAN_DESCRIPTION, RESCAN_TITLE, SHORTCUT_NEW,
-    SHORTCUT_RESCAN,
+    ADD_DESCRIPTION, ADD_TITLE, CANCEL_DESCRIPTION, CANCEL_TITLE, KIND_FOLDER, KIND_GIT,
+    LIST_DESCRIPTION, LIST_TITLE, PROJECTS_ADD, PROJECTS_CANCEL, PROJECTS_LIST, PROJECTS_RESCAN,
+    RESCAN_DESCRIPTION, RESCAN_TITLE, SHORTCUT_NEW, SHORTCUT_RESCAN,
 };
 use crate::scan::{open_on, reopen};
 use crate::source_arg::{SourceError, classify};
@@ -237,7 +237,8 @@ impl Command for AddProject {
         drop(registering);
         let id = session.project().id;
         let _scanning = context.running.start(id)?;
-        let summary = session.scan(ScanMode::Full)?;
+        let summary =
+            session.scan_with(ScanMode::Full, |token| context.running.attach(id, token))?;
         Ok(Scanned::of(id, &summary))
     }
 }
@@ -289,7 +290,48 @@ impl Command for RescanProject {
         } else {
             ScanMode::Full
         };
-        let summary = session.scan(mode)?;
+        let summary = session.scan_with(mode, |token| context.running.attach(id, token))?;
         Ok(Scanned::of(id, &summary))
+    }
+}
+
+/// The input of `projects.cancel`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+pub struct CancelInput {
+    /// Id of the project.
+    pub project: u64,
+}
+
+/// The output of `projects.cancel`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct Cancelled {
+    /// Whether a running scan was asked to stop; `false` if none was running.
+    pub cancelled: bool,
+}
+
+/// Asks the running scan of a project to stop at the next stage boundary.
+pub struct CancelScan {
+    pub(super) context: Arc<Context>,
+}
+
+impl Command for CancelScan {
+    type Input = CancelInput;
+    type Output = Cancelled;
+
+    const DESCRIPTOR: CommandDescriptor = CommandDescriptor {
+        id: CommandId::new(PROJECTS_CANCEL),
+        title_key: CANCEL_TITLE,
+        description_key: CANCEL_DESCRIPTION,
+        shortcut: None,
+        read_only: false,
+        permission: Permission::Scan,
+    };
+
+    fn execute(&self, request: Request<'_, CancelInput>) -> Result<Cancelled, CodedError> {
+        access::require(request.principal, Permission::Scan)?;
+        let id = ProjectId::new(request.input.project);
+        Ok(Cancelled {
+            cancelled: self.context.running.cancel(id),
+        })
     }
 }
