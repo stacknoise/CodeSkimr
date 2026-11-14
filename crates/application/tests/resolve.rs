@@ -493,15 +493,21 @@ mod tests {
         assert_eq!(found[0].confidence, Confidence::Certain);
     }
 
-    #[test]
-    fn a_free_name_in_a_function_never_means_a_member_of_the_enclosing_type() {
+    /// A class `Demo.Box` with a field `count` and a method `run`, and a free read of `count`.
+    fn box_with_count() -> (Table, SymbolId, PendingReference) {
         let mut table = Table::default();
         let class = table.add(SymbolKind::Class, "Demo.Box", None, 1);
         table.add(SymbolKind::Field, "Demo.Box.count", Some(class), 1);
         let method = table.add(SymbolKind::Method, "Demo.Box.run", Some(class), 1);
-        let module_level = table.add(SymbolKind::Constant, "Demo.count", None, 1);
         let mut read = occurrence(method, 1, ReferenceKind::Read, "count");
         read.receiver = Some(Receiver::Free);
+        (table, method, read)
+    }
+
+    #[test]
+    fn a_free_name_in_a_function_never_means_a_member_of_the_enclosing_type() {
+        let (mut table, _, read) = box_with_count();
+        let module_level = table.add(SymbolKind::Constant, "Demo.count", None, 1);
         let found = resolve(&table, &[read]);
         // The field is no candidate; the constant outside the class is, by the last resort only.
         assert_eq!(targets(&found), [module_level]);
@@ -510,12 +516,7 @@ mod tests {
 
     #[test]
     fn a_free_name_with_only_members_of_that_name_gives_no_hit() {
-        let mut table = Table::default();
-        let class = table.add(SymbolKind::Class, "Demo.Box", None, 1);
-        table.add(SymbolKind::Field, "Demo.Box.count", Some(class), 1);
-        let method = table.add(SymbolKind::Method, "Demo.Box.run", Some(class), 1);
-        let mut read = occurrence(method, 1, ReferenceKind::Read, "count");
-        read.receiver = Some(Receiver::Free);
+        let (table, method, read) = box_with_count();
         assert_eq!(targets(&resolve(&table, &[read])), []);
         // The same name without that knowledge still finds the field of the own type.
         let plain = occurrence(method, 1, ReferenceKind::Read, "count");
