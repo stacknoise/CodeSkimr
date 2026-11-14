@@ -18,6 +18,7 @@ codeskimr_application = { path = "../../../crates/application" }
 codeskimr_domain = { path = "../../../crates/domain" }
 codeskimr_scip = { path = "../../../crates/adapters/scip" }
 codeskimr_storage = { path = "../../../crates/adapters/storage" }
+codeskimr_source = { path = "../../../crates/adapters/source" }
 
 # A workspace of its own: a measuring tool outside the product workspace (it combines two adapters, which
 # the layer rules of the product crates do not allow). Build it with

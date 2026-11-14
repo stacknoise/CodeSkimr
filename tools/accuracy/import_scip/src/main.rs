@@ -5,39 +5,66 @@
 //! the public `codeskimr_scip` library on an index that a person made by hand, and writes only into
 //! the throw-away database of the measurement.
 //!
-//! `import_scip <database> <project id> <index.scip> <min_mapped>`
+//! `import_scip <database> <project id> <index.scip> <min_mapped> <source folder> <max_index_bytes> <max_file_bytes>`
+//!
+//! Like the product (`ScipImporter`), it converts the columns of documents that are not UTF-8 with
+//! the lines of the files in the source folder before the mapping. The limits come from the caller
+//! (`measure.py` reads them from `config/default.toml`).
 
+use std::collections::HashSet;
 use std::num::NonZeroU32;
 use std::path::Path;
 use std::process::ExitCode;
 
-use codeskimr_application::ports::{ProjectRepository, ReferenceReplacement, SnapshotStore};
-use codeskimr_domain::{ProjectId, Reference, ReferenceId, SnapshotId};
-use codeskimr_scip::{ImportOutcome, SnapshotView, import_references, read_index};
+use codeskimr_application::ports::{
+    ProjectRepository, ReferenceReplacement, SnapshotStore, SourceText,
+};
+use codeskimr_domain::{FolderPath, ProjectId, Reference, ReferenceId, RelativePath, SnapshotId};
+use codeskimr_scip::{ImportOutcome, SnapshotView, convert_columns, import_references, read_index};
+use codeskimr_source::FolderText;
 use codeskimr_storage::SqliteStore;
 
-/// Same value as `level2.max_index_bytes` in `config/default.toml`.
-const MAX_INDEX_BYTES: u64 = 268_435_456;
-/// The arguments, in order: database, project id, index, `min_mapped`.
-const ARGUMENTS: usize = 4;
+/// The arguments, in order: database, project id, index, `min_mapped`, source folder,
+/// `max_index_bytes`, `max_file_bytes`.
+const ARGUMENTS: usize = 7;
+/// Lines of a file from the first one to the last.
+const ALL_LINES: (u32, u32) = (1, u32::MAX);
+
+/// What the caller asks for.
+struct Job<'a> {
+    project: ProjectId,
+    index: &'a Path,
+    min_mapped: f64,
+    root: &'a str,
+    max_index_bytes: u64,
+    max_file_bytes: u64,
+}
+
+/// The lines of a file below the source folder, as the product reads them for the conversion.
+fn lines(job: &Job<'_>, path: &RelativePath) -> Option<Vec<String>> {
+    let root = FolderPath::new(job.root).ok()?;
+    FolderText
+        .excerpt(&root, path, ALL_LINES, (u32::MAX, job.max_file_bytes))
+        .ok()
+        .map(|excerpt| excerpt.lines)
+}
 
 /// Reads the snapshot, maps the index onto it and returns the outcome and the snapshot id.
-fn import(
-    store: &SqliteStore,
-    project: ProjectId,
-    index: &Path,
-    min_mapped: f64,
-) -> Result<(SnapshotId, ImportOutcome), String> {
-    let files = store.latest_files(project).map_err(|e| e.to_string())?;
-    let previous = store.latest_index(project).map_err(|e| e.to_string())?;
+fn import(store: &SqliteStore, job: &Job<'_>) -> Result<(SnapshotId, ImportOutcome), String> {
+    let files = store.latest_files(job.project).map_err(|e| e.to_string())?;
+    let previous = store.latest_index(job.project).map_err(|e| e.to_string())?;
     let snapshot = files.first().map(|file| file.snapshot).ok_or("no files")?;
-    let index = read_index(index, MAX_INDEX_BYTES).map_err(|e| e.to_string())?;
+    let mut index = read_index(job.index, job.max_index_bytes).map_err(|e| e.to_string())?;
+    let known: HashSet<&RelativePath> = files.iter().map(|file| &file.path).collect();
+    convert_columns(&mut index, &mut |path| {
+        known.contains(path).then(|| lines(job, path)).flatten()
+    });
     let view = SnapshotView {
         files: &files,
         symbols: &previous.symbols,
         references: &previous.references,
     };
-    let outcome = import_references(&index, &view, min_mapped).map_err(|e| e.to_string())?;
+    let outcome = import_references(&index, &view, job.min_mapped).map_err(|e| e.to_string())?;
     Ok((snapshot, outcome))
 }
 
@@ -69,15 +96,34 @@ fn replace(
     Ok(())
 }
 
+fn number<T: std::str::FromStr>(text: &str) -> Result<T, String> {
+    text.parse().map_err(|_| format!("not a number: {text}"))
+}
+
 fn run(args: &[String]) -> Result<String, String> {
-    let [database, project, index, min_mapped] = args else {
+    let [
+        database,
+        project,
+        index,
+        min_mapped,
+        root,
+        max_index,
+        max_file,
+    ] = args
+    else {
         return Err(format!("expected {ARGUMENTS} arguments"));
     };
-    let project = ProjectId::new(project.parse::<u64>().map_err(|e| e.to_string())?);
-    let min_mapped: f64 = min_mapped.parse().map_err(|e| format!("{e}"))?;
+    let job = Job {
+        project: ProjectId::new(number(project)?),
+        index: Path::new(index),
+        min_mapped: number(min_mapped)?,
+        root,
+        max_index_bytes: number(max_index)?,
+        max_file_bytes: number(max_file)?,
+    };
     let store =
         SqliteStore::open(Path::new(database), NonZeroU32::MIN).map_err(|e| e.to_string())?;
-    let (snapshot, outcome) = import(&store, project, Path::new(index), min_mapped)?;
+    let (snapshot, outcome) = import(&store, &job)?;
     let stats = outcome.stats;
     replace(&store, snapshot, outcome)?;
     Ok(format!(
