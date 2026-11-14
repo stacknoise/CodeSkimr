@@ -55,3 +55,14 @@ public class Client
         z.Close();
     }
 }
+
+public static class Keys
+{
+    public const string First = "f";
+    public const string Second = "s";
+}
+
+public class Chooser
+{
+    public string Pick(bool flag) => flag ? Keys.First : Keys.Second;
+}

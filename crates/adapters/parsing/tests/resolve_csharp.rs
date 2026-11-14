@@ -95,6 +95,14 @@ mod tests {
     }
 
     #[test]
+    fn member_accesses_in_the_branches_of_a_conditional_are_usages() {
+        let found = usages();
+        let lines = |name: &str| lines_of(&found, name);
+        assert_eq!(lines("Keys.First"), [66]);
+        assert_eq!(lines("Keys.Second"), [66]);
+    }
+
+    #[test]
     fn a_receiver_of_unknown_type_keeps_every_unrelated_type() {
         let found = usages();
         let lines = |name: &str| lines_of(&found, name);
