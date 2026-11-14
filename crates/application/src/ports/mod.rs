@@ -35,7 +35,7 @@ pub use indexer::{
     IndexArtifact, IndexJob, IndexLimits, IndexRunner, IndexerSpec, IndexerStatus,
     PLACEHOLDER_OUTPUT, PLACEHOLDER_PROJECT, ToolIssue, ToolProblem, ToolSpec,
 };
-pub use keys::{KeyEntry, KeyKind, ProjectKeys};
+pub use keys::{KeyEntry, KeyKind, KeySearch, ProjectKeys};
 pub use level2::{ImportRequest, Imported, ReferenceImporter};
 pub use outline::{CodeOutline, MemberRow, OutlineNode};
 pub use query::{

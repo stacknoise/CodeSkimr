@@ -2,7 +2,6 @@
 
 use codeskimr_domain::{FolderPath, RelativePath};
 
-use crate::config::KeySources;
 use crate::error::CodedError;
 
 /// What a key belongs to.
@@ -27,7 +26,21 @@ pub struct KeyEntry {
     pub line: u32,
 }
 
-/// Lists the keys of the files below the folders of `sources`. Paths come from the folder walk,
+/// Where the key files are and how much of them is read; the values come from `[keys]` of the
+/// configuration.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct KeySearch {
+    /// Folders with `.toml` files, relative to the project root.
+    pub config_folders: Vec<String>,
+    /// Folders with `.ftl` files, relative to the project root.
+    pub i18n_folders: Vec<String>,
+    /// Most files read.
+    pub max_files: u32,
+    /// Largest file read, in kilobytes.
+    pub max_file_kb: u32,
+}
+
+/// Lists the keys of the files below the folders of `search`. Paths come from the folder walk,
 /// never from the caller, and nothing outside the project root is read (blueprint S-05).
 pub trait ProjectKeys: Send + Sync {
     /// Every key found, files in path order, keys in file order.
@@ -36,5 +49,5 @@ pub trait ProjectKeys: Send + Sync {
     ///
     /// # Errors
     /// A coded failure of the `SRC` group if the root cannot be used at all.
-    fn keys(&self, root: &FolderPath, sources: &KeySources) -> Result<Vec<KeyEntry>, CodedError>;
+    fn keys(&self, root: &FolderPath, search: &KeySearch) -> Result<Vec<KeyEntry>, CodedError>;
 }

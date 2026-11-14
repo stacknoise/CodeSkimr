@@ -8,9 +8,8 @@ use std::fs::{self, File};
 use std::io::Read;
 use std::path::{Path, PathBuf};
 
-use codeskimr_application::config::KeySources;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{KeyEntry, KeyKind, ProjectKeys};
+use codeskimr_application::ports::{KeyEntry, KeyKind, KeySearch, ProjectKeys};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{FolderPath, RelativePath};
 
@@ -24,7 +23,7 @@ use crate::paths::relative_path;
 pub struct FolderKeys;
 
 impl ProjectKeys for FolderKeys {
-    fn keys(&self, root: &FolderPath, sources: &KeySources) -> Result<Vec<KeyEntry>, CodedError> {
+    fn keys(&self, root: &FolderPath, sources: &KeySearch) -> Result<Vec<KeyEntry>, CodedError> {
         let base = fs::canonicalize(root.as_str())
             .map_err(|_| CodedError::new(ErrorCode::SourcePathNotFound))?;
         let limit = usize::try_from(sources.max_files).unwrap_or(usize::MAX);
@@ -200,7 +199,7 @@ mod tests {
         fs::write(outside.path().join("out.toml"), "escaped = 1\n").unwrap();
         #[cfg(unix)]
         std::os::unix::fs::symlink(outside.path(), dir.path().join("config/link")).unwrap();
-        let sources = KeySources {
+        let sources = KeySearch {
             config_folders: vec!["config".to_owned(), "../".to_owned()],
             i18n_folders: vec!["locales".to_owned(), "missing".to_owned()],
             max_files: 10,

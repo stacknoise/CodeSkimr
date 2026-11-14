@@ -1,7 +1,7 @@
 //! `find_constants`.
 
 use codeskimr_application::access;
-use codeskimr_application::ports::{KeyKind, SearchHit, SymbolKey};
+use codeskimr_application::ports::{KeyKind, KeySearch, SearchHit, SymbolKey};
 use codeskimr_domain::{Permission, Principal, Project, ProjectSource, SymbolKind};
 use serde::Serialize;
 use serde_json::Value;
@@ -94,7 +94,14 @@ impl Tools {
             return Ok((None, false));
         }
         let wanted = query.to_lowercase();
-        let all = self.project_keys().keys(root, self.key_sources())?;
+        let sources = self.key_sources();
+        let search = KeySearch {
+            config_folders: sources.config_folders.clone(),
+            i18n_folders: sources.i18n_folders.clone(),
+            max_files: sources.max_files,
+            max_file_kb: sources.max_file_kb,
+        };
+        let all = self.project_keys().keys(root, &search)?;
         let mut hits: Vec<Key> = all
             .into_iter()
             .filter(|entry| entry.name.to_lowercase().contains(&wanted))

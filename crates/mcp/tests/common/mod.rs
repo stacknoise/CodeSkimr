@@ -10,10 +10,10 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, CodeIndex, CodeSpan, DependencyEdge, DependencyPage, DependencyQuery,
     DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, FileHit, ImpactPage, ImpactedSymbol,
-    KeyEntry, KeyKind, LanguageShare, MemberRef, PreviousIndex, ProjectCatalog, ProjectKeys,
-    ProjectOverview, ProjectRepository, ProjectScanner, ProjectToolCheck, SearchHit, SimilarHit,
-    SimilarQuery, SimilarityIndex, SnippetFingerprinter, SymbolDetail, SymbolKey, SymbolLabel,
-    TypeFocus, UsageEntry, UsageIndex, UsagePage,
+    KeyEntry, KeyKind, KeySearch, LanguageShare, MemberRef, PreviousIndex, ProjectCatalog,
+    ProjectKeys, ProjectOverview, ProjectRepository, ProjectScanner, ProjectToolCheck, SearchHit,
+    SimilarHit, SimilarQuery, SimilarityIndex, SnippetFingerprinter, SymbolDetail, SymbolKey,
+    SymbolLabel, TypeFocus, UsageEntry, UsageIndex, UsagePage,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
@@ -709,7 +709,7 @@ pub fn key_sources() -> KeySources {
 pub struct FakeKeys;
 
 impl ProjectKeys for FakeKeys {
-    fn keys(&self, _: &FolderPath, _: &KeySources) -> Result<Vec<KeyEntry>, CodedError> {
+    fn keys(&self, _: &FolderPath, _: &KeySearch) -> Result<Vec<KeyEntry>, CodedError> {
         let key = |name: &str, kind, path: &str, line| KeyEntry {
             name: name.to_owned(),
             kind,
