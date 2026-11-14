@@ -5,6 +5,7 @@ use codeskimr_domain::CredentialId;
 
 use crate::encoding::{decode, encode};
 use crate::keystore::{Keystore, OsKeystore};
+use crate::memory::LockedBytes;
 
 /// Lends credentials that a [`Keystore`] holds.
 #[derive(Debug, Clone)]
@@ -36,8 +37,9 @@ impl<K: Keystore> CredentialStore for KeystoreCredentials<K> {
         action: impl FnOnce(&Credential) -> Result<T, AuthError>,
     ) -> Result<T, AuthError> {
         // Both the packed bytes and the credential are wiped when they leave this function, on
-        // every path including a panic inside `action`.
-        let packed = self.keystore.read(id.as_str())?;
+        // every path including a panic inside `action`. The packed bytes lie in locked memory;
+        // the copy the keystore returned is wiped as soon as it has been moved there.
+        let packed = LockedBytes::copy_of(&self.keystore.read(id.as_str())?)?;
         let credential = decode(&packed)?;
         action(&credential)
     }
