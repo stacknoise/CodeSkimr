@@ -1,5 +1,6 @@
 //! What the scan benchmarks share: the generated corpus, the paths and the release binary.
 
+use std::ffi::OsStr;
 use std::fmt::Write as _;
 use std::fs;
 use std::io;
@@ -57,12 +58,17 @@ fn file_source(index: usize, random: &mut Lcg) -> String {
     text
 }
 
-pub fn build_corpus(scratch: &Path) -> io::Result<PathBuf> {
-    let corpus = scratch.join("corpus");
-    fs::remove_dir_all(&corpus).or_else(|error| match error.kind() {
+/// Removes a folder with everything below it; a folder that does not exist is no error.
+pub fn wipe(path: &Path) -> io::Result<()> {
+    fs::remove_dir_all(path).or_else(|error| match error.kind() {
         io::ErrorKind::NotFound => Ok(()),
         _ => Err(error),
-    })?;
+    })
+}
+
+pub fn build_corpus(scratch: &Path) -> io::Result<PathBuf> {
+    let corpus = scratch.join("corpus");
+    wipe(&corpus)?;
     let mut random = Lcg::new(SEED);
     for index in 0..FILES {
         let folder = corpus.join(format!("part{}", index / FILES_PER_FOLDER));
@@ -121,7 +127,7 @@ const CPU_SECONDS_FIELD: &str = "cpu_seconds";
 #[allow(dead_code, reason = "not every benchmark runs the scan binary")]
 pub fn scan_summary(
     binary: &Path,
-    source: &Path,
+    source: impl AsRef<OsStr>,
     data: &Path,
     branch: Option<&str>,
 ) -> io::Result<(Duration, Duration)> {

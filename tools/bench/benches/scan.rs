@@ -4,7 +4,6 @@
 //! references.
 
 use std::cell::RefCell;
-use std::fs;
 use std::io;
 use std::path::Path;
 use std::time::Duration;
@@ -14,20 +13,18 @@ use criterion::Criterion;
 
 mod common;
 
-use common::{SCRATCH, build_binary, build_corpus, measure, root, scan_summary};
+use common::{SCRATCH, build_binary, build_corpus, measure, root, scan_summary, wipe};
 
 /// Where criterion writes its results, relative to the repository root.
 const CRITERION_DIR: &str = "target/criterion";
 const SAMPLES: usize = 10;
 const MEASUREMENT_SECONDS: u64 = 30;
+
 /// Runs one scan with a fresh database and returns the time the scan itself reports and its CPU
 /// time. Starting the process and loading the language packs have a budget of their own (cold
 /// start).
 fn scan_once(binary: &Path, corpus: &Path, data: &Path) -> io::Result<(Duration, Duration)> {
-    fs::remove_dir_all(data).or_else(|error| match error.kind() {
-        io::ErrorKind::NotFound => Ok(()),
-        _ => Err(error),
-    })?;
+    wipe(data)?;
     scan_summary(binary, corpus, data, None)
 }
 

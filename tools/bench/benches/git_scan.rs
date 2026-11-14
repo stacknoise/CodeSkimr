@@ -7,7 +7,7 @@
 //! - `git_scan/update_100k_loc`: scan after one new commit that changes one file, with the cache
 //!   and the database of the earlier scan: update of the clone and scan.
 
-use std::fs::{self, OpenOptions};
+use std::fs::OpenOptions;
 use std::io::{self, Write};
 use std::net::{Ipv4Addr, TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
@@ -18,7 +18,7 @@ use criterion::Criterion;
 
 mod common;
 
-use common::{SCRATCH, build_binary, build_corpus, measure, root, scan_summary};
+use common::{SCRATCH, build_binary, build_corpus, measure, root, scan_summary, wipe};
 
 const SAMPLES: usize = 10;
 const MEASUREMENT_SECONDS: u64 = 30;
@@ -28,6 +28,8 @@ const APPENDED_LINE: &[u8] = b"// changed\n";
 const BRANCH: &str = "main";
 /// Folder of the origin's Git data below the scratch folder. The corpus is its work tree.
 const ORIGIN_DIR: &str = "git-origin";
+/// Folder of the product's data (database and Git cache) below the scratch folder.
+const DATA_DIR: &str = "git-data";
 /// Identity for the commits of the origin; nothing of the user's Git configuration is used.
 const GIT_IDENTITY: [&str; 4] = [
     "-c",
@@ -49,10 +51,7 @@ struct Origin {
 impl Origin {
     fn create(scratch: &Path, corpus: &Path) -> io::Result<Self> {
         let git_dir = scratch.join(ORIGIN_DIR);
-        fs::remove_dir_all(&git_dir).or_else(|error| match error.kind() {
-            io::ErrorKind::NotFound => Ok(()),
-            _ => Err(error),
-        })?;
+        wipe(&git_dir)?;
         let origin = Self {
             git_dir,
             work_tree: corpus.to_path_buf(),
@@ -96,7 +95,7 @@ impl Origin {
 /// `git daemon` serving the origin on the loopback interface; stopped when dropped.
 struct Daemon {
     child: Child,
-    url: PathBuf,
+    url: String,
 }
 
 impl Daemon {
@@ -116,13 +115,13 @@ impl Daemon {
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()?;
-        let daemon = Self {
+        let mut daemon = Self {
             child,
-            url: PathBuf::from(format!("git://{}:{port}/{ORIGIN_DIR}", Ipv4Addr::LOCALHOST)),
+            url: format!("git://{}:{port}/{ORIGIN_DIR}", Ipv4Addr::LOCALHOST),
         };
         let deadline = Instant::now() + Duration::from_secs(DAEMON_START_SECONDS);
         while TcpStream::connect((Ipv4Addr::LOCALHOST, port)).is_err() {
-            if Instant::now() > deadline {
+            if daemon.child.try_wait()?.is_some() || Instant::now() > deadline {
                 return Err(io::Error::other("git daemon did not start"));
             }
             std::thread::sleep(Duration::from_millis(DAEMON_POLL_MS));
@@ -144,32 +143,26 @@ fn git_scans(c: &mut Criterion) -> io::Result<()> {
     let origin = Origin::create(&scratch, &corpus)?;
     let binary = build_binary()?;
     let daemon = Daemon::start(&scratch)?;
-    let url = daemon.url.clone();
-    let data = scratch.join("git-data");
-    let wipe = |path: &Path| {
-        fs::remove_dir_all(path).or_else(|error| match error.kind() {
-            io::ErrorKind::NotFound => Ok(()),
-            _ => Err(error),
-        })
-    };
+    let url = &daemon.url;
+    let data = scratch.join(DATA_DIR);
     measure(
         c,
         ("git_scan", "first_100k_loc"),
         (SAMPLES, MEASUREMENT_SECONDS),
         || {
             wipe(&data)?;
-            scan_summary(&binary, &url, &data, Some(BRANCH)).map(|(wall, _)| wall)
+            scan_summary(&binary, url, &data, Some(BRANCH)).map(|(wall, _)| wall)
         },
     );
     wipe(&data)?;
-    scan_summary(&binary, &url, &data, Some(BRANCH))?;
+    scan_summary(&binary, url, &data, Some(BRANCH))?;
     measure(
         c,
         ("git_scan", "update_100k_loc"),
         (SAMPLES, MEASUREMENT_SECONDS),
         || {
             origin.commit_change()?;
-            scan_summary(&binary, &url, &data, Some(BRANCH)).map(|(wall, _)| wall)
+            scan_summary(&binary, url, &data, Some(BRANCH)).map(|(wall, _)| wall)
         },
     );
     Ok(())
