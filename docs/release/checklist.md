@@ -1,0 +1,35 @@
+# Checklist for the 1.0 release (milestone M7)
+
+Blueprint 19, M7: installers or single executables for Windows, Linux and macOS, user docs, published error-code catalogue; acceptance: clean install on all three systems, all budgets green.
+Only the product owner creates the tag and publishes the release (`docs/release.md`). Tick the boxes in the release pull request or the release issue.
+
+## Before the release workflow
+
+- [ ] Milestones M1 to M6 are accepted (reports in `docs/acceptance/`); open acceptance findings are issues with a decision.
+- [ ] All budgets of blueprint 16 are green: `bench` is green on `main`, and the numbers in `docs/benchmarks.md` and the scan screen match the measurement.
+- [ ] Accuracy per language is measured and stated in the release notes (`docs/accuracy.md`); languages below 99 % are named as approximations.
+- [ ] No open issue with the label `security-sensitive` or `status:blocked`; `cargo audit` and `cargo deny` are green (`deps`).
+- [ ] The required checks in the ruleset match `docs/ci.md` (including `build (macos-latest)` and `test (windows-latest, indexer)`).
+- [ ] `version` in the root `Cargo.toml` and `Cargo.lock` is the release version (no `-preview` suffix).
+- [ ] `CHANGELOG.md` has the new section (`tools/release/changelog.py`), and breaking changes are under their own heading.
+- [ ] Error-code catalogue is current: `docs/error-codes.md` is generated (`codegen` check is green); the manual chapter "Error codes" (`docs/manual/*/errors.md`) lists the codes users meet most.
+- [ ] Manual (de and en) is checked against the program: every command and option in the text exists in `codeskimr --help`, every link works, screenshots match the screens.
+- [ ] README and the release notes (`docs/release/`) say what is in this release and what is not (known limits, signing, installers).
+- [ ] Product page (repository `homepage`) uses the same texts and version.
+
+## Release workflow and clean-install probe
+
+- [ ] Actions, Release, Run workflow with the version. The job `draft release` creates a draft; `package` builds Linux, Windows and macOS packages; `clean install` unpacks each package into an empty folder on a fresh runner and scans a small project.
+- [ ] All jobs are green. If one is red, do not publish; fix, merge and run the workflow again (a leftover draft is replaced).
+- [ ] By hand on real machines (the probe has no browser and no keystore): Windows, Linux with a Secret Service, macOS. Unpack, start `codeskimr`, the browser opens, scan a project, open Explorer, Usages and the dependency map, export HTML, `codeskimr --version` shows the release version.
+- [ ] Checksums of the packages match the `.sha256` files.
+
+## Publishing (product owner)
+
+- [ ] Read the draft text (release notes, known limits). Publish the draft; this creates the tag `v<version>`.
+- [ ] Announce on the product page; link the release and the changelog.
+
+## After the release
+
+- [ ] Open the next `-dev` or preview version in `Cargo.toml` if work continues on `main`.
+- [ ] Issues that came in during the release are triaged.

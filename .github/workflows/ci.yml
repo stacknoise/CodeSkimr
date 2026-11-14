@@ -199,6 +199,8 @@ jobs:
       # R-04: crate dependency direction (4.2) and module cycles inside each crate.
       - name: Unit tests of the check
         run: python3 -m unittest discover -s tools/ci
+      - name: Unit tests of the changelog generator
+        run: python3 -m unittest discover -s tools/release
       - name: Crate dependency direction and module cycles
         run: python3 tools/ci/check_architecture.py
       # Blueprint 12.4: every expose_secret() call in product code is on the approved list.
