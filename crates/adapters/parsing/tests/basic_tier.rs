@@ -113,4 +113,22 @@ mod tests {
         assert_eq!(Tier::Full.label(), "full");
         assert_eq!(Tier::Basic.label(), "basic");
     }
+
+    #[test]
+    fn a_missing_folder_is_an_error_and_a_broken_manifest_only_loses_its_own_pack() {
+        let gone = std::env::temp_dir().join(format!("codeskimr-gone-{}", std::process::id()));
+        assert!(codeskimr_parsing::tiers(&gone).is_err());
+        let root = std::env::temp_dir().join(format!("codeskimr-tiers-{}", std::process::id()));
+        fs::create_dir_all(root.join("rust")).expect("good dir");
+        fs::create_dir_all(root.join("bad")).expect("bad dir");
+        fs::copy(
+            fixture_pack().join("language.toml"),
+            root.join("rust/language.toml"),
+        )
+        .expect("copy");
+        fs::write(root.join("bad/language.toml"), "this is not a manifest").expect("write");
+        let tiers = codeskimr_parsing::tiers(&root).expect("tiers");
+        fs::remove_dir_all(&root).ok();
+        assert_eq!(tiers, vec![("rust".to_string(), Tier::Full)]);
+    }
 }

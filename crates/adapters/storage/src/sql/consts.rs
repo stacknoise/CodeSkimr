@@ -253,12 +253,12 @@ pub const SNAPSHOT_EXISTS: &str = "SELECT COUNT(*) FROM snapshots WHERE id = ?1"
 
 /// Ids of all registered projects in registration order.
 pub const PROJECT_IDS: &str = "SELECT id FROM projects ORDER BY id";
-/// Languages of a snapshot with files, lines of code and symbols, most lines first: snapshot.
-pub const LANGUAGE_SHARES: &str = "SELECT language, COUNT(*), COALESCE(SUM(loc), 0), \
-    (SELECT COUNT(*) FROM symbols s JOIN files g ON g.snapshot_id = s.snapshot_id \
-        AND g.id = s.file_id WHERE s.snapshot_id = files.snapshot_id \
-        AND g.language = files.language) \
-    FROM files WHERE snapshot_id = ?1 GROUP BY language ORDER BY SUM(loc) DESC, language";
+/// Languages of a snapshot with files and lines of code, most lines first: snapshot.
+pub const LANGUAGE_SHARES: &str = "SELECT language, COUNT(*), COALESCE(SUM(loc), 0) FROM files \
+    WHERE snapshot_id = ?1 GROUP BY language ORDER BY SUM(loc) DESC, language";
+/// Symbols of a snapshot by the language of their file, in one pass over the symbols: snapshot.
+pub const LANGUAGE_SYMBOLS: &str = "SELECT f.language, COUNT(*) FROM symbol_rows s \
+    JOIN files f ON s.file_id = f.id WHERE f.snapshot_id = ?1 GROUP BY f.language";
 /// Number of types of a snapshot: snapshot.
 pub const TYPE_COUNT: &str = "SELECT COUNT(*) FROM type_summary WHERE snapshot_id = ?1";
 

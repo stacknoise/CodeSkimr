@@ -89,21 +89,32 @@ fn folder(dir: &Path) -> String {
         .unwrap_or_default()
 }
 
-/// The tier of every pack below `root`, read from the manifests alone: no grammar and no query is
-/// compiled, so this is cheap enough for a screen that asks often.
-///
-/// # Errors
-/// [`ParsingError::Unreadable`] if `root` cannot be listed, or the error of an invalid manifest.
-pub fn tiers(root: &Path) -> Result<Vec<(String, Tier)>, ParsingError> {
-    let mut found = Vec::new();
+/// The folders below `root` that hold a `language.toml`, in order. `LanguagePacks::load` and
+/// `tiers` use this one search, so the tier shown is that of the pack the scan loads.
+fn pack_dirs(root: &Path) -> Result<Vec<PathBuf>, ParsingError> {
+    let mut dirs = Vec::new();
     for entry in fs::read_dir(root).map_err(ParsingError::Unreadable)? {
         let dir = entry.map_err(ParsingError::Unreadable)?.path();
         if dir.join(MANIFEST_FILE).is_file() {
-            let manifest = PackManifest::read(&dir)?;
-            found.push((manifest.id, manifest.tier));
+            dirs.push(dir);
         }
     }
-    Ok(found)
+    dirs.sort();
+    Ok(dirs)
+}
+
+/// The tier of every pack below `root`, read from the manifests alone: no grammar and no query is
+/// compiled, so this is cheap enough for a screen that asks often. A pack whose manifest cannot
+/// be read is left out; the scan reports it when it loads the packs.
+///
+/// # Errors
+/// [`ParsingError::Unreadable`] if `root` cannot be listed.
+pub fn tiers(root: &Path) -> Result<Vec<(String, Tier)>, ParsingError> {
+    Ok(pack_dirs(root)?
+        .iter()
+        .filter_map(|dir| PackManifest::read(dir).ok())
+        .map(|manifest| (manifest.id, manifest.tier))
+        .collect())
 }
 
 /// All language packs found below one folder, by language id.
@@ -119,16 +130,9 @@ impl LanguagePacks {
     /// [`ParsingError::Unreadable`] if `root` cannot be listed, or the error of the first pack that
     /// is invalid.
     pub fn load(root: &Path) -> Result<Self, ParsingError> {
-        let mut dirs = Vec::new();
-        for entry in fs::read_dir(root).map_err(ParsingError::Unreadable)? {
-            let dir = entry.map_err(ParsingError::Unreadable)?.path();
-            if dir.join(MANIFEST_FILE).is_file() {
-                dirs.push(dir);
-            }
-        }
+        let dirs = pack_dirs(root)?;
         // Compiling the queries of a full-tier pack takes long, so the packs are read in parallel;
         // the error reported is the one of the first pack in the order of the folders.
-        dirs.sort();
         let read: Vec<Result<Slot, ParsingError>> = thread::scope(|scope| {
             let handles: Vec<_> = dirs
                 .into_iter()

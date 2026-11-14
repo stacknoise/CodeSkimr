@@ -66,19 +66,17 @@ impl Context {
     /// The tier of a language pack, `full` or `basic`; `None` if no installed pack has that id (or
     /// the packs cannot be read, which the scan reports on its own).
     fn tier_of(&self, language: &str) -> Option<&'static str> {
-        self.tiers
-            .get_or_init(|| {
-                codeskimr_parsing::tiers(&self.locations.languages_dir)
-                    .map(|found| {
-                        found
-                            .into_iter()
-                            .map(|(id, tier)| (id, tier.label()))
-                            .collect()
-                    })
-                    .unwrap_or_default()
-            })
-            .get(language)
-            .copied()
+        if self.tiers.get().is_none() {
+            // Only a table that was read is kept: a folder that is not there yet is tried again
+            // at the next call, not for the lifetime of the server.
+            let found = codeskimr_parsing::tiers(&self.locations.languages_dir).ok()?;
+            let table = found
+                .into_iter()
+                .map(|(id, tier)| (id, tier.label()))
+                .collect();
+            return self.tiers.get_or_init(|| table).get(language).copied();
+        }
+        self.tiers.get()?.get(language).copied()
     }
 
     /// Held while a source is registered, so two adds of the same new source cannot both pick

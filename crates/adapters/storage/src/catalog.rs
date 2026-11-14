@@ -2,6 +2,8 @@
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{LanguageShare, ProjectCatalog, ProjectOverview};
+use std::collections::HashMap;
+
 use codeskimr_domain::{LanguageId, ProjectId, SnapshotId};
 use rusqlite::{Connection, params};
 
@@ -22,7 +24,26 @@ fn project_ids(conn: &Connection) -> StorageResult<Vec<ProjectId>> {
     Ok(ids)
 }
 
+/// The symbols of a snapshot by language, in one pass over its symbols.
+fn symbols_by_language(
+    conn: &Connection,
+    snapshot: SnapshotId,
+) -> StorageResult<HashMap<String, u32>> {
+    let mut statement = conn.prepare_cached(sql::LANGUAGE_SYMBOLS)?;
+    let rows = statement.query_map(params![column_int(snapshot.get())?], |row| {
+        let cols = Cols::new(row);
+        Ok((cols.take::<String>()?, cols.take::<i64>()?))
+    })?;
+    let mut counts = HashMap::new();
+    for row in rows {
+        let (language, symbols) = row?;
+        counts.insert(language, small_from(symbols)?);
+    }
+    Ok(counts)
+}
+
 fn languages(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<LanguageShare>> {
+    let symbols = symbols_by_language(conn, snapshot)?;
     let mut statement = conn.prepare_cached(sql::LANGUAGE_SHARES)?;
     let rows = statement.query_map(params![column_int(snapshot.get())?], |row| {
         let cols = Cols::new(row);
@@ -30,17 +51,16 @@ fn languages(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<Langu
             cols.take::<String>()?,
             cols.take::<i64>()?,
             cols.take::<i64>()?,
-            cols.take::<i64>()?,
         ))
     })?;
     let mut shares = Vec::new();
     for row in rows {
-        let (language, files, loc, symbols) = row?;
+        let (language, files, loc) = row?;
         shares.push(LanguageShare {
+            symbols: symbols.get(&language).copied().unwrap_or_default(),
             language: LanguageId::new(language)?,
             files: small_from(files)?,
             loc: small_from(loc)?,
-            symbols: small_from(symbols)?,
         });
     }
     Ok(shares)
