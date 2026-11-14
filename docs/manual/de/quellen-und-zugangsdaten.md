@@ -58,6 +58,10 @@ codeskimr scan https://github.com/org/private-repo --credential work-github
 
 `--credential` gilt nur für Git-Quellen; für einen Ordner ergibt es `PRJ-101`. Ohne `--credential` entscheidet der Credential-Helper Ihres Systems, wie bei `git` selbst. **Es gibt nie eine Eingabeaufforderung im Terminal**, ein Server oder eine MCP-Sitzung kann also nicht an einer Anmeldefrage hängen bleiben; ist keine Anmeldung verfügbar, scheitert der Scan mit `SRC-401`.
 
+### Im Browser
+
+Auf der Projektseite hat das Formular „Neues Projekt“ ein Feld **Zugangsdaten**. „Neue Zugangsdaten speichern“ öffnet drei Felder (Name, Benutzername, Token oder Passwort); das Geheimnis ist ein Passwortfeld, geht in den Schlüsselspeicher des Rechners, auf dem der Server läuft, und wird sofort aus der Seite entfernt. Der neue Name ist für das nächste Projekt vorgewählt. Angeboten werden nur Namen, die ein Projekt schon benutzt oder die Sie in diesem Tab gespeichert haben; der Browser liest nie ein gespeichertes Geheimnis zurück. Anmeldungen mit `credential login` (OAuth) machen Sie auf der Kommandozeile.
+
 ### Was CodeSkimr mit dem Geheimnis tut
 
 - Es wird in dem Moment aus dem Schlüsselspeicher gelesen, in dem eine Anfrage es braucht, an die Git-Anmeldung gereicht und danach aus dem Speicher gelöscht. Nichts wird zwischengespeichert, protokolliert oder in Datenbank oder Cache-Ordner geschrieben.
