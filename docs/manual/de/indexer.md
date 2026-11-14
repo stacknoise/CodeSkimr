@@ -1,8 +1,10 @@
 # Sprach-Indexer (Ebene 2)
 
+> **Begriff:** Dieses Handbuch sagt „Ebene 2“, die Oberfläche und die Konsole sagen „Stufe 2“. Gemeint ist dasselbe. Verwechseln Sie es nicht mit der Sprachstufe „voll“ oder „Basis“ in der Scan-Tabelle.
+
 Ebene 2 macht Verwendungen **exakt**: Statt zu raten, welches `Save()` ein Aufruf meint, übernimmt CodeSkimr die Antwort des Werkzeugs der Sprache, das die Typen kennt, und markiert diese Verwendungen als **geprüft**. Dieses Kapitel erklärt, was Sie installieren, wie Sie es einschalten und was beim Scan passiert.
 
-> **Stand:** Ebene 2 ist für C#, TypeScript, JavaScript, Python, Rust, Java und Kotlin gebaut und standardmäßig **aus**. Sie wurde an Beispielprojekten gemessen (`docs/accuracy.md`), ist aber noch nicht formal abgenommen, C# insbesondere. Sehen Sie geprüfte Verwendungen als deutlich besser als ungeprüfte, nicht als Garantie. Der Entscheidungstext, ADR 0033, hat noch den Status „proposed“, Einzelheiten können sich ändern.
+> **Stand:** Ebene 2 ist für C#, TypeScript, JavaScript, Python, Rust, Java und Kotlin gebaut und standardmäßig **aus**. **Keine Sprache ist bisher formal abgenommen.** Messungen an Beispielprojekten stehen im Quellcode-Repository (`docs/accuracy.md`); Kotlin wurde noch gar nicht gemessen, und bei C# übersieht Ebene 2 derzeit Verwendungen, die Ebene 1 findet (ein bekanntes Problem des C#-Indexers mit überladenen Erweiterungsmethoden). „Geprüft“ heißt: Diese Verwendung ist exakt. Es heißt **nicht**, dass die Liste vollständig ist, eine geprüfte Liste kann also trotzdem Verwendungen vermissen. Der Entscheidungstext, ADR 0033, hat noch den Status „proposed“, Einzelheiten können sich ändern.
 
 ## Wozu
 
@@ -51,7 +53,7 @@ Einen Indexer auszuführen heißt, Build-Werkzeuge Ihres Projekts auszuführen, 
    codeskimr level2 confirm <Projekt>
    ```
 
-   `<Projekt>` ist die Projekt-ID oder der Ordner oder die Git-Adresse, aus der es gescannt wurde. Der Befehl braucht ein Terminal. Er gibt aus, was Ebene 2 ausführt und mit welchen Rechten (es kann lesen, was Sie lesen können, und das Netzwerk nutzen, es gibt keine Sandbox), zeigt Name, Ort und Branch des Projekts und startet nur, wenn Sie den **Namen des Projekts** eintippen. Ohne Terminal scheitert er mit `SEC-403`.
+   `<Projekt>` ist die Projekt-ID oder der Ordner oder die Git-Adresse, aus der es gescannt wurde. Der Befehl braucht ein Terminal. Er gibt aus, was Ebene 2 ausführt und mit welchen Rechten (es kann lesen, was Sie lesen können, und das Netzwerk nutzen, es gibt keine Sandbox), zeigt Name, Ort und Branch des Projekts und startet nur, wenn Sie den **Namen des Projekts** eintippen. Eine Git-Adresse löst nur den Standard-Branch dieses Repositories auf; ein Projekt auf einem anderen Branch sprechen Sie über seine ID an. Ohne Terminal scheitert er mit `SEC-403`.
 
    `codeskimr level2 revoke <Projekt>` verbietet es sofort wieder.
 
@@ -59,7 +61,7 @@ Die Bestätigung ist an Name, Ort und Branch des Projekts gebunden, **nicht an e
 
 ## Wann es läuft
 
-- **`codeskimr scan`** führt Ebene 2 aus, nachdem Ebene 1 gespeichert ist: Je Sprache mit Indexer prüft es Erlaubnis und Werkzeuge, führt den Indexer aus, importiert den Index und ersetzt die Verweise je Datei. Es gibt eine Zeile je Sprache aus: „Level 2: … geprüft“ oder „übersprungen (Grund)“, zum Beispiel nicht bestätigt, Werkzeuge fehlen, Dateien geändert, abgebrochen oder ein Fehlercode.
+- **`codeskimr scan`** führt Ebene 2 aus, nachdem Ebene 1 gespeichert ist: Je Sprache mit Indexer prüft es Erlaubnis und Werkzeuge, führt den Indexer aus, importiert den Index und ersetzt die Verweise je Datei. Es gibt eine Zeile je Sprache aus, zum Beispiel „Stufe 2: C# geprüft (120 Dateien)“ oder „Stufe 2: C# übersprungen (für dieses Projekt nicht aktiviert und bestätigt)“. Weitere Gründe: Indexer oder Werkzeugkette fehlt oder ist zu alt, alle Dateien seit dem Scan geändert, Scan abgebrochen, fehlgeschlagen mit Fehlercode. Wurden einzelne Dateien seit dem Scan geändert, steht das in derselben Zeile, und sie bleiben bei Stufe 1.
 - Der Watch-Modus (`--watch`) führt Ebene 2 nur mit seinem **ersten** Scan aus; spätere Neuscans sind Ebene 1.
 - **Scans aus dem Browser oder über MCP führen Ebene 2 nie aus**, auch nicht nach Ihrer Bestätigung. MCP, REST-Token und der Browser können die Build-Werkzeuge eines Projekts nicht starten.
 - Ebene 1 ist vollständig und nutzbar, bevor Ebene 2 startet; Browser und MCP warten nicht auf die Indexer.
@@ -68,7 +70,7 @@ Was auch schiefgeht: Der Scan ist fertig, und Ebene 1 bleibt. Ein fehlschlagende
 
 ## Grenzen
 
-Jeder Lauf ist begrenzt; ein Indexer, der eine Grenze überschreitet, wird samt allen Kindprozessen beendet, und Ebene 1 bleibt. Die Werte stehen in `config/default.toml`, Abschnitt `[level2]`:
+Jeder Lauf ist begrenzt; ein Indexer, der eine Grenze überschreitet, wird samt allen Kindprozessen beendet, und Ebene 1 bleibt. Die Werte stehen in der Datei `config/default.toml` im Quellcode-Repository, Abschnitt `[level2]` (Sie können sie in Ihrer Benutzerkonfiguration setzen):
 
 | Einstellung | Vorgabe | Fehler |
 |---|---|---|

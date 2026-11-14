@@ -2,7 +2,7 @@
 
 Level 2 makes usages **exact**: instead of guessing which `Save()` a call means, CodeSkimr takes the answer of the language's own tool, which knows the types, and marks those usages **verified**. This chapter explains what you install, how you switch it on and what happens when you scan.
 
-> **State:** level 2 is built for C#, TypeScript, JavaScript, Python, Rust, Java and Kotlin and is **off by default**. It has been measured on sample projects (`docs/accuracy.md`), but it is not formally accepted yet, C# in particular. Treat verified usages as much better than unchecked ones, not as a guarantee. The decision record, ADR 0033, still has the status "proposed", so details can change.
+> **State:** level 2 is built for C#, TypeScript, JavaScript, Python, Rust, Java and Kotlin and is **off by default**. **No language is formally accepted yet.** Measurements on sample projects are kept in the source repository (`docs/accuracy.md`); Kotlin has not been measured at all, and for C# level 2 currently misses usages that level 1 finds (a known problem with overloaded extension methods in the C# indexer). "Verified" means: this usage is exact. It does **not** mean the list is complete, so a verified list can still lack usages. The decision record, ADR 0033, still has the status "proposed", so details can change.
 
 ## Why
 
@@ -51,7 +51,7 @@ Running an indexer runs the build tools of your project, which is project code. 
    codeskimr level2 confirm <project>
    ```
 
-   `<project>` is the project id or the folder or Git address it was scanned from. The command needs a terminal. It prints what level 2 runs and with which rights (it can read what you can read and use the network, there is no sandbox), shows the name, location and branch of the project, and starts only if you type the **name of the project**. Without a terminal it fails with `SEC-403`.
+   `<project>` is the project id or the folder or Git address it was scanned from. The command needs a terminal. It prints what level 2 runs and with which rights (it can read what you can read and use the network, there is no sandbox), shows the name, location and branch of the project, and starts only if you type the **name of the project**. A Git address resolves only the default branch of that repository; for a project at another branch use its id. Without a terminal it fails with `SEC-403`.
 
    `codeskimr level2 revoke <project>` forbids it again at once.
 
@@ -59,7 +59,7 @@ The confirmation is bound to the project's name, location and branch, **not to a
 
 ## When it runs
 
-- **`codeskimr scan`** runs level 2 after level 1 is stored: for each language with an indexer it checks permission and tools, runs the indexer, imports the index and replaces the references per file. It prints one line per language: "Level 2: … checked" or "skipped (reason)", for example not confirmed, tools missing, files changed, cancelled, or an error code.
+- **`codeskimr scan`** runs level 2 after level 1 is stored: for each language with an indexer it checks permission and tools, runs the indexer, imports the index and replaces the references per file. It prints one line per language, for example "Level 2: C# checked (120 files)" or "Level 2: C# skipped (not enabled and confirmed for this project)". Other reasons: indexer or toolchain missing or too old, every file changed since the scan, scan cancelled, failed with an error code. If only some files changed since the scan, the same line says so and they stay at level 1.
 - Watch mode (`--watch`) runs level 2 with its **first** scan only; later re-scans are level 1.
 - **Scans started from the browser or over MCP never run level 2**, even after you confirmed it. MCP, REST tokens and the browser cannot start the build tools of a project.
 - Level 1 is complete and usable before level 2 starts; the browser and MCP do not wait for the indexers.
@@ -68,7 +68,7 @@ Whatever goes wrong, the scan has finished and level 1 stays. A failing indexer,
 
 ## Limits
 
-Every run is limited; an indexer that exceeds a limit is stopped together with all its child processes and level 1 stays. The values are in `config/default.toml`, section `[level2]`:
+Every run is limited; an indexer that exceeds a limit is stopped together with all its child processes and level 1 stays. The values are in the file `config/default.toml` of the source repository, section `[level2]` (you can set them in your user configuration):
 
 | Setting | Default | Error |
 |---|---|---|
