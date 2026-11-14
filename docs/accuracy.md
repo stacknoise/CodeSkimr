@@ -139,6 +139,17 @@ Share mapped of project uses: Java 99.3 % (5806 mapped, 41 unmapped, 5230 librar
 - **Not an acceptance under ADR 0033, decision 14 (threshold 99 % for precision and recall)**, as for Rust: the index is made by hand, so the `IndexRunner` (call, arguments, limits, environment), the consent and the wiring into the scan are not measured, and neither language reaches the threshold (Java 90.9 % and 87.9 %, C# 60.2 % and 34.2 %); they measure the import and the mapping and the indexers only.
 - The C# reference tool uses Roslyn 4.8.0, which understands C# up to version 12; the corpus targets net10.0 and net11.0, so a construct of a newer language version could be missing from the reference (and from nothing else). Whether the corpus holds one was not checked.
 
+TypeScript level 1, 150 symbols, seed 1 (2026-11-14, after the pack work of #81): `--certain-only` counts only references with confidence `certain` (blueprint 17.2, criterion `certain` ≥ 98 %).
+
+| Count | Precision | Recall | Uses of ours / of the tool |
+|---|---|---|---|
+| `certain` only | 100 % (98 of 98) | 14.7 % | 98 / 668 |
+| all (`certain`, `probable`, unchecked) | 27.8 % | 65.4 % | 1572 / 668 |
+
+So 94 % of the level 1 references are `probable` (unchecked), as ADR 0033 wants: level 1 keeps every match and marks it. The first measurement of this run found 1 wrong `certain` of 99: a call `nodeKey.room(...)` that the resolver tied to a local function `room` of the same name, because a receiver that is a named variable without a type fell back to the scope lookup. A named receiver that is a variable or a member (no namespace, no module) of unknown type is now treated like an unknown receiver (`probable`), see `lookup.rs`.
+
+The earlier TypeScript recall of 60.5 % (table above, 2026-11-13) and the 62.7 % of the level 1 row of the level 2 table are separate runs of other versions; this run is the baseline for `--certain-only`. A named receiver that is a namespace or a module is not affected by the change: it still goes through the scope and the imports (test `a_call_through_a_module_qualifier_resolves_by_scope_as_before`).
+
 After the reversal of the ambiguity rule (ADR 0033, 150 symbols, seed 1, 2026-11-13): level 1 keeps every match and marks it unchecked.
 
 | Language | exact | precision | recall |
@@ -148,15 +159,6 @@ After the reversal of the ambiguity rule (ADR 0033, 150 symbols, seed 1, 2026-11
 
 Recall is back at the level before PR #133 (Python 80.6 %, TypeScript 60.5 %); precision is back there too, which is why results are counted apart as unchecked.
 
-
-TypeScript level 1, 150 symbols, seed 1 (2026-11-14, after the pack work of #81): `--certain-only` counts only references with confidence `certain` (blueprint 17.2, criterion `certain` ≥ 98 %).
-
-| Count | Precision | Recall | Uses of ours / of the tool |
-|---|---|---|---|
-| `certain` only | 100 % (98 of 98) | 14.7 % | 98 / 668 |
-| all (`certain`, `probable`, unchecked) | 27.8 % | 65.4 % | 1572 / 668 |
-
-So 94 % of the level 1 references are `probable` (unchecked), as ADR 0033 wants: level 1 keeps every match and marks it. The first measurement of this run found 1 wrong `certain` of 99: a call `nodeKey.room(...)` that the resolver tied to a local function `room` of the same name, because a receiver that is a named variable without a type fell back to the scope lookup. A named receiver of unknown type is now treated like an unknown receiver (`probable`), see `lookup.rs`.
 
 150 symbols, seed 1, before and after PR #133 (2026-11-13). The reading and the follow-up work are in #145.
 

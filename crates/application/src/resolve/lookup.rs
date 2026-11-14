@@ -49,13 +49,7 @@ impl<'a> Context<'a> {
             let named = self.named_of(occurrence.target.as_str(), kinds);
             let found = match &receiver {
                 Some(types) => self.in_types(types, &named),
-                None if matches!(
-                    occurrence.receiver,
-                    Some(Receiver::Unknown | Receiver::Named(_))
-                ) =>
-                {
-                    Self::unknown(&named)
-                }
+                None if self.has_unknown_receiver(occurrence) => Self::unknown(&named),
                 None => self.in_scope(occurrence.from, occurrence.file, &named),
             };
             if !found.symbols.is_empty() {
@@ -88,6 +82,21 @@ impl<'a> Context<'a> {
             .copied()
             .filter(|symbol| kinds.contains(&symbol.kind))
             .collect()
+    }
+
+    /// Whether the receiver says nothing about the type of the target. A named receiver counts when
+    /// it is a variable or a member: its members are not the names of the scope. A namespace or a
+    /// module is no receiver of a member but a qualifier, which the scope and the imports resolve.
+    fn has_unknown_receiver(&self, occurrence: &PendingReference) -> bool {
+        match &occurrence.receiver {
+            Some(Receiver::Unknown) => true,
+            Some(Receiver::Named(name)) => !self
+                .table
+                .named(name.as_str())
+                .iter()
+                .any(|symbol| matches!(symbol.kind, SymbolKind::Namespace | SymbolKind::Module)),
+            _ => false,
+        }
     }
 
     /// The types in which a member must be found (step 3), or `None` if the syntax says nothing

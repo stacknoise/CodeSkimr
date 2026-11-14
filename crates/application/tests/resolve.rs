@@ -476,7 +476,21 @@ mod tests {
         // `keys.room()` is a member of `keys`, not the local function `room` of the same name.
         let call = named(occurrence(walk, 5, ReferenceKind::Call, "room"), "keys");
         let found = resolve(&table, &[call]);
-        assert!(found.iter().all(|r| r.confidence != Confidence::Certain));
+        assert_eq!(found.len(), 1);
+        assert!(found[0].confidence == Confidence::Probable && !found[0].verified);
+    }
+
+    #[test]
+    fn a_call_through_a_module_qualifier_resolves_by_scope_as_before() {
+        let mut table = Table::default();
+        let module = table.add(SymbolKind::Module, "Demo.util", None, 1);
+        let helper = table.add(SymbolKind::Function, "Demo.util.helper", Some(module), 1);
+        let caller = table.add(SymbolKind::Function, "Demo.util.run", Some(module), 3);
+        // `util.helper()` inside the module: `util` is a module, not a variable.
+        let call = named(occurrence(caller, 4, ReferenceKind::Call, "helper"), "util");
+        let found = resolve(&table, &[call]);
+        assert_eq!(targets(&found), [helper]);
+        assert_eq!(found[0].confidence, Confidence::Certain);
     }
 
     #[test]
