@@ -1,6 +1,6 @@
-# 0037 – The project file may only lower the scan limits
+# 0040 – The project file may only lower the scan limits
 
-Status: proposed
+Status: accepted
 
 ## Context
 
