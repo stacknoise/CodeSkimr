@@ -27,6 +27,8 @@ pub struct Config {
     pub conventions: Conventions,
     /// Scan behaviour.
     pub scan: Scan,
+    /// The check of the tools that level 2 needs.
+    pub tools: Tools,
     /// The local server.
     pub server: Server,
     /// The link that opens a source position in the editor.
@@ -169,6 +171,20 @@ pub struct Scan {
     pub parse_timeout_ms: u32,
     /// Largest total size of the scanned files of one source, in megabytes.
     pub max_source_mb: u32,
+}
+
+/// The check of the tools a project needs for level 2 (ADR 0033, decision 8).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Tools {
+    /// Time a tool has to print its version, in milliseconds; then the process is killed.
+    pub probe_timeout_ms: u32,
+    /// Most bytes of output that are read from a tool; the rest is dropped.
+    pub probe_max_output_bytes: u32,
+    /// Largest file that is read for the version a project requires, in bytes.
+    pub requirement_max_bytes: u32,
+    /// Names of the environment variables a tool process gets; it sees no other.
+    pub env_allowlist: Vec<String>,
 }
 
 /// The local server (blueprint 10.3).

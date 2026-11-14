@@ -9,9 +9,10 @@ use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::pipeline::{Job, JobResult, Scanner};
-use codeskimr_application::ports::ProjectRepository;
+use codeskimr_application::ports::{ProjectRepository, ProjectToolCheck};
+use codeskimr_application::tools::ToolsView;
 use codeskimr_cli::{GlobalOptions, ScanArgs, ScanSummary};
-use codeskimr_codes::ErrorCode;
+use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Permission, Principal, Project, ProjectId, ProjectSource, ScanMode};
 use codeskimr_storage::SqliteStore;
 
@@ -19,7 +20,7 @@ use crate::config_files;
 use crate::locations::Locations;
 use crate::principal;
 use crate::source_arg::{SourceError, SourceSpec, classify};
-use crate::wiring::{Secrets, build_scanner, open_store};
+use crate::wiring::{Secrets, build_scanner, open_store, process_probe, tool_checker};
 
 /// Checks the source argument before anything is scanned or printed.
 ///
@@ -37,6 +38,7 @@ pub fn prepare(args: &ScanArgs) -> Result<SourceSpec, SourceError> {
 /// A registered project with everything needed to scan it again and again.
 pub struct Session {
     scanner: Scanner,
+    tools: Arc<dyn ProjectToolCheck>,
     principal: Principal,
     project: Project,
     config: Config,
@@ -62,7 +64,26 @@ impl Session {
         &self.events
     }
 
-    /// Runs one scan in `mode` and reports what it found.
+    /// Checks the tools with `tools` instead of the ones this session was wired with.
+    #[must_use]
+    pub fn with_tools(mut self, tools: Arc<dyn ProjectToolCheck>) -> Self {
+        self.tools = tools;
+        self
+    }
+
+    /// Checks the tools of the languages the new snapshot holds (ADR 0033, decision 8). A failure
+    /// of the check never fails the scan: it is logged and the summary says nothing was checked.
+    fn check_tools(&self) -> ToolsView {
+        match self.tools.check(self.project.id) {
+            Ok(report) => ToolsView::of(&report),
+            Err(error) => {
+                tracing::warn!(code = error.code().id(), "the tool check failed");
+                ToolsView::unchecked()
+            }
+        }
+    }
+
+    /// Runs one scan in `mode` and reports what it found, with what the check of the tools found.
     ///
     /// # Errors
     /// The code of the failed stage, or `APP-901` if the scan was cancelled (nothing cancels it here).
@@ -74,13 +95,15 @@ impl Session {
         {
             JobResult::Finished(job) => {
                 let snapshot = job.snapshot();
+                let seconds = started.elapsed().as_secs_f64();
                 Ok(ScanSummary {
                     project: self.project.name.to_string(),
                     snapshot: snapshot.id.get(),
                     files: snapshot.stats.files,
                     symbols: snapshot.stats.symbols,
                     references: snapshot.stats.references,
-                    seconds: started.elapsed().as_secs_f64(),
+                    seconds,
+                    tools: self.check_tools(),
                 })
             }
             JobResult::Failed(job) => Err(CodedError::new(job.code())),
@@ -196,8 +219,14 @@ fn session(
         secrets,
     } = wiring;
     let scanner = build_scanner(store, &config, locations, events.clone(), secrets)?;
+    let tools = tool_checker(
+        store,
+        &config,
+        (locations, process_probe(&config, locations)),
+    )?;
     Ok(Session {
         scanner,
+        tools,
         principal,
         project,
         config,

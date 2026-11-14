@@ -133,6 +133,7 @@ fn the_commands_are_offered() {
             "projects.add",
             "projects.list",
             "projects.rescan",
+            "projects.tools",
             "search.query",
             "status.info",
             "usages.query"

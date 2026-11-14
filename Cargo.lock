@@ -428,6 +428,7 @@ dependencies = [
  "clap",
  "codeskimr_application",
  "codeskimr_codes",
+ "codeskimr_domain",
  "codeskimr_i18n",
  "serde",
  "serde_json",
@@ -491,6 +492,7 @@ dependencies = [
  "codeskimr_domain",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror",
  "toml",
  "tree-sitter",
@@ -560,8 +562,10 @@ dependencies = [
  "ignore",
  "notify",
  "secrecy",
+ "serde_json",
  "tempfile",
  "thiserror",
+ "toml",
 ]
 
 [[package]]

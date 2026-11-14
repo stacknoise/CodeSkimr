@@ -18,3 +18,4 @@ pub mod ports;
 pub mod registry;
 pub mod resolve;
 pub mod stage;
+pub mod tools;

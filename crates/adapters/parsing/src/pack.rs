@@ -73,10 +73,7 @@ impl LanguagePack {
         folder: &str,
     ) -> Result<Self, ParsingError> {
         let invalid = |reason: String| ParsingError::invalid(folder, reason);
-        if manifest.id != folder {
-            return Err(invalid([ID_MISMATCH, manifest.id.as_str()].concat()));
-        }
-        let id = LanguageId::new(manifest.id).map_err(|e| invalid(e.to_string()))?;
+        let id = pack_id(&manifest.id, folder)?;
         let visibility = Visibilities::resolve(manifest.visibility).map_err(invalid)?;
         let modifier_kinds =
             modifier_kinds(manifest.modifier_kinds).map_err(|e| invalid(e.to_string()))?;
@@ -196,4 +193,12 @@ fn compile(language: &Language, path: &Path, folder: &str) -> Result<Vocabulary,
     let source = fs::read_to_string(path).map_err(|e| invalid(e.to_string()))?;
     let query = Query::new(language, &source).map_err(|e| invalid(e.to_string()))?;
     Vocabulary::new(query).map_err(invalid)
+}
+
+/// The language id of a manifest, which must equal the name of its folder.
+pub(crate) fn pack_id(id: &str, folder: &str) -> Result<LanguageId, ParsingError> {
+    if id != folder {
+        return Err(ParsingError::invalid(folder, [ID_MISMATCH, id].concat()));
+    }
+    LanguageId::new(id).map_err(|e| ParsingError::invalid(folder, e.to_string()))
 }

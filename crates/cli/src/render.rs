@@ -1,15 +1,18 @@
 //! The texts the commands print: scan summary and error line.
 
+use codeskimr_application::tools::{ToolView, ToolsView};
 use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
     CLI_CREDENTIAL_DELETED, CLI_CREDENTIAL_DEVICE_PROMPT, CLI_CREDENTIAL_STORED, CLI_ERROR_LINE,
     CLI_EXPORT_WRITTEN, CLI_OPEN_READY, CLI_SCAN_DETAILS, CLI_SCAN_FINISHED, CLI_SCAN_STARTED,
-    CLI_SECRET_PROMPT, CLI_SERVE_LISTENING, CLI_WATCH_STARTED, CLI_WATCH_UPDATED,
+    CLI_SCAN_TOOL_MISSING, CLI_SCAN_TOOL_TOO_OLD, CLI_SCAN_TOOL_UNKNOWN, CLI_SECRET_PROMPT,
+    CLI_SERVE_LISTENING, CLI_WATCH_STARTED, CLI_WATCH_UPDATED,
 };
+use codeskimr_domain::ToolState;
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
 use serde::Serialize;
 
-use crate::consts::{LINE_BREAK, SECONDS_BASE, SECONDS_DECIMALS, arg};
+use crate::consts::{LINE_BREAK, LIST_SEPARATOR, NO_VERSION, SECONDS_BASE, SECONDS_DECIMALS, arg};
 
 /// The outcome of a scan as shown to the user and written by `--json`.
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -26,6 +29,9 @@ pub struct ScanSummary {
     pub references: u32,
     /// Duration of the scan in seconds.
     pub seconds: f64,
+    /// What the check of the tools found (ADR 0033); a tool that is not ready is shown below the
+    /// summary.
+    pub tools: ToolsView,
 }
 
 /// Formats `key` with text arguments.
@@ -147,7 +153,58 @@ pub fn device_prompt(
     )
 }
 
-/// The two lines that close a scan.
+/// The message of a tool text, or its key if the pack names one that has no text.
+fn tool_text(messages: &Messages, language: &str, key: &str) -> String {
+    messages
+        .format(language, key, None)
+        .unwrap_or_else(|_| key.to_owned())
+}
+
+/// The line that says what is wrong with one tool: its name, what it is for and how to get it.
+fn tool_line(messages: &Messages, language: &str, tool: &ToolView) -> Result<String, I18nError> {
+    let key = if tool.state == ToolState::Missing.label() {
+        CLI_SCAN_TOOL_MISSING
+    } else if tool.state == ToolState::TooOld.label() {
+        CLI_SCAN_TOOL_TOO_OLD
+    } else {
+        CLI_SCAN_TOOL_UNKNOWN
+    };
+    let no_version = || NO_VERSION.to_owned();
+    let mut args = FluentArgs::new();
+    args.set(arg::TOOL, tool.tool.clone());
+    args.set(arg::LANGUAGES, tool.languages.join(LIST_SEPARATOR));
+    args.set(arg::FOUND, tool.found.clone().unwrap_or_else(no_version));
+    args.set(
+        arg::REQUIRED,
+        tool.required.clone().unwrap_or_else(no_version),
+    );
+    args.set(
+        arg::PURPOSE,
+        tool_text(messages, language, &tool.purpose_key),
+    );
+    args.set(
+        arg::INSTALL,
+        tool_text(messages, language, &tool.install_key),
+    );
+    messages.format(language, key, Some(&args))
+}
+
+/// One line for each tool that is not ready; nothing if all are.
+///
+/// # Errors
+/// `I18N-201` if a message is missing.
+pub fn scan_tools(
+    messages: &Messages,
+    language: &str,
+    tools: &ToolsView,
+) -> Result<Vec<String>, I18nError> {
+    tools
+        .problems()
+        .map(|tool| tool_line(messages, language, tool))
+        .collect()
+}
+
+/// The lines that close a scan: two of numbers, then one for each tool that is missing.
 ///
 /// # Errors
 /// `I18N-201` if a message is missing.
@@ -165,7 +222,9 @@ pub fn scan_finished(
     details.set(arg::SNAPSHOT, FluentValue::from(summary.snapshot));
     let first = messages.format(language, CLI_SCAN_FINISHED, Some(&finished))?;
     let second = messages.format(language, CLI_SCAN_DETAILS, Some(&details))?;
-    Ok(format!("{first}{LINE_BREAK}{second}"))
+    let mut lines = vec![first, second];
+    lines.extend(scan_tools(messages, language, &summary.tools)?);
+    Ok(lines.join(LINE_BREAK))
 }
 
 /// The line that tells watch mode is on.

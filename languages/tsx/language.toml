@@ -74,3 +74,28 @@ private = "private"
 [visibility.parent_defaults]
 module = "private"
 namespace = "private"
+
+# Tools that level 2 needs (ADR 0033, decisions 1 and 8). On every load of a project CodeSkimr
+# checks that each exists and, where a version is stated, is new enough. The indexer and its
+# version are settled by the spike of ADR 0033, so `min_version` stays out until then; a version
+# the project itself names (see `requirement`) is always checked.
+
+[[tools]]
+id = "scip-typescript"
+role = "indexer"
+command = "scip-typescript"
+version_args = ["--version"]
+purpose_key = "tool-scip-typescript-purpose"
+install_key = "tool-scip-typescript-install"
+
+[[tools]]
+id = "node"
+role = "toolchain"
+command = "node"
+version_args = ["--version"]
+purpose_key = "tool-node-purpose"
+install_key = "tool-node-install"
+
+[tools.requirement]
+file = ".nvmrc"
+format = "text"

@@ -23,6 +23,7 @@ mod similar;
 mod snapshot;
 mod span;
 mod symbol;
+mod tool;
 mod vocabulary;
 
 pub use access::{Permission, PermissionSet, Principal};
@@ -51,3 +52,7 @@ pub use similar::{SimilarPair, similar_pairs};
 pub use snapshot::{CommitHash, ScanMode, Snapshot, SnapshotId, SnapshotStats, Timestamp};
 pub use span::{Position, Span};
 pub use symbol::{Symbol, SymbolId, SymbolKind, SymbolName, Visibility};
+pub use tool::{
+    RequirementFormat, RequirementSpec, ToolEntry, ToolFinding, ToolReport, ToolRole, ToolSpec,
+    ToolState, ToolVersion,
+};

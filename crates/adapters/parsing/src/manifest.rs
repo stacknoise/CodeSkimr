@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
+use codeskimr_domain::{LanguageId, RequirementFormat, RequirementSpec, ToolRole, ToolSpec};
 use serde::Deserialize;
 
 use crate::consts::MANIFEST_FILE;
@@ -81,6 +82,98 @@ pub struct DocBlock {
     pub stop_at: Option<String>,
 }
 
+/// The file in which a project names the version of a tool it needs, such as `global.json`.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RequirementManifest {
+    /// The file, relative to the project root.
+    pub file: String,
+    /// `json`, `toml` or `text`.
+    pub format: String,
+    /// The keys down to the version in a `json` or `toml` file.
+    #[serde(default)]
+    pub path: Vec<String>,
+}
+
+/// One tool that level 2 of the language needs (ADR 0033, decision 8).
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ToolManifest {
+    /// Name of the tool, such as `scip-dotnet`.
+    pub id: String,
+    /// `indexer` or `toolchain`.
+    pub role: String,
+    /// The program to start.
+    pub command: String,
+    /// The fixed arguments that make it print its version.
+    pub version_args: Vec<String>,
+    /// The oldest version that is accepted; left out where the version is not settled yet.
+    #[serde(default)]
+    pub min_version: Option<String>,
+    /// Message key of what the tool is needed for (`locales/*/tools.ftl`).
+    pub purpose_key: String,
+    /// Message key of how to install it (`locales/*/tools.ftl`).
+    pub install_key: String,
+    /// Where the project names the version it needs.
+    #[serde(default)]
+    pub requirement: Option<RequirementManifest>,
+}
+
+impl ToolManifest {
+    /// The tool as the application knows it.
+    ///
+    /// # Errors
+    /// What is wrong, for the log: an empty name, command or key, or an unknown role or format.
+    pub fn to_spec(&self, language: &LanguageId) -> Result<ToolSpec, String> {
+        let named = [
+            &self.id,
+            &self.command,
+            &self.purpose_key,
+            &self.install_key,
+        ];
+        if named.iter().any(|text| text.trim().is_empty()) {
+            return Err(self.id.clone());
+        }
+        let role = self
+            .role
+            .parse::<ToolRole>()
+            .map_err(|_| self.role.clone())?;
+        let requirement = self
+            .requirement
+            .as_ref()
+            .map(RequirementManifest::to_spec)
+            .transpose()?;
+        Ok(ToolSpec {
+            language: language.clone(),
+            id: self.id.clone(),
+            role,
+            command: self.command.clone(),
+            version_args: self.version_args.clone(),
+            min_version: self.min_version.clone(),
+            purpose_key: self.purpose_key.clone(),
+            install_key: self.install_key.clone(),
+            requirement,
+        })
+    }
+}
+
+impl RequirementManifest {
+    fn to_spec(&self) -> Result<RequirementSpec, String> {
+        let format = self
+            .format
+            .parse::<RequirementFormat>()
+            .map_err(|_| self.format.clone())?;
+        if self.file.trim().is_empty() {
+            return Err(self.file.clone());
+        }
+        Ok(RequirementSpec {
+            file: self.file.clone(),
+            format,
+            path: self.path.clone(),
+        })
+    }
+}
+
 /// Parsed `language.toml`. Unknown keys are rejected so typos do not pass silently.
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -142,6 +235,9 @@ pub struct PackManifest {
     /// Visibility rules.
     #[serde(default)]
     pub visibility: VisibilityRules,
+    /// The tools level 2 needs; none for a language without level 2.
+    #[serde(default)]
+    pub tools: Vec<ToolManifest>,
 }
 
 impl PackManifest {

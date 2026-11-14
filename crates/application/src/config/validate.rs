@@ -7,7 +7,7 @@ use super::consts::{
     URL_SCHEME_SEPARATOR, keys,
 };
 use super::error::{ConfigError, Violation};
-use super::model::{Budgets, Config, Editor, McpLimits, MetricThresholds, Scan, Ui};
+use super::model::{Budgets, Config, Editor, McpLimits, MetricThresholds, Scan, Tools, Ui};
 
 /// Checks every value of `config`.
 ///
@@ -42,6 +42,7 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     )?;
     check_layers(config)?;
     check_scan(&config.scan)?;
+    check_tools(&config.tools)?;
     check_editor(&config.editor)?;
     check_ui(&config.ui)?;
     positive(keys::GRAPH_NODE_WIDTH, config.graph.node_width)?;
@@ -178,6 +179,22 @@ fn check_scan(scan: &Scan) -> Result<(), ConfigError> {
     let is_bad = |name: &String| name.is_empty() || name.contains(PATH_SEPARATORS);
     if scan.excluded_folders.iter().any(is_bad) {
         return fail(keys::EXCLUDED_FOLDERS, Violation::MustBeFolderName);
+    }
+    Ok(())
+}
+
+fn check_tools(tools: &Tools) -> Result<(), ConfigError> {
+    positive(keys::TOOLS_PROBE_TIMEOUT_MS, tools.probe_timeout_ms)?;
+    positive(
+        keys::TOOLS_PROBE_MAX_OUTPUT_BYTES,
+        tools.probe_max_output_bytes,
+    )?;
+    positive(
+        keys::TOOLS_REQUIREMENT_MAX_BYTES,
+        tools.requirement_max_bytes,
+    )?;
+    if tools.env_allowlist.iter().any(String::is_empty) {
+        return fail(keys::TOOLS_ENV_ALLOWLIST, Violation::MustNotBeEmpty);
     }
     Ok(())
 }

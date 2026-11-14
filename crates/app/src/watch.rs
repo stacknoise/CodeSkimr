@@ -188,6 +188,7 @@ mod tests {
             symbols: 0,
             references: 0,
             seconds: 0.0,
+            tools: codeskimr_application::tools::ToolsView::unchecked(),
         }
     }
 

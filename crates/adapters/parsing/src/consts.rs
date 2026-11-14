@@ -113,6 +113,8 @@ pub const GRAMMAR_PHP: &str = "php";
 
 /// Start of the reason when the `id` of a pack differs from its folder name.
 pub const ID_MISMATCH: &str = "id differs from the folder name: ";
+/// Reason of an invalid pack whose `[[tools]]` entry is wrong; the entry follows.
+pub const TOOL_INVALID: &str = "invalid tool: ";
 
 /// Replacement extension that removes the extension of a path.
 pub const NO_EXTENSION: &str = "";

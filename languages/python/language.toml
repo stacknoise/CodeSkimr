@@ -71,3 +71,28 @@ visibility = "private"
 [[visibility.name_rules]]
 prefix = "_"
 visibility = "internal"
+
+# Tools that level 2 needs (ADR 0033, decisions 1 and 8). On every load of a project CodeSkimr
+# checks that each exists and, where a version is stated, is new enough. The indexer and its
+# version are settled by the spike of ADR 0033, so `min_version` stays out until then; a version
+# the project itself names (see `requirement`) is always checked.
+
+[[tools]]
+id = "scip-python"
+role = "indexer"
+command = "scip-python"
+version_args = ["--version"]
+purpose_key = "tool-scip-python-purpose"
+install_key = "tool-scip-python-install"
+
+[[tools]]
+id = "python3"
+role = "toolchain"
+command = "python3"
+version_args = ["--version"]
+purpose_key = "tool-python3-purpose"
+install_key = "tool-python3-install"
+
+[tools.requirement]
+file = ".python-version"
+format = "text"

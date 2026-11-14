@@ -73,3 +73,7 @@ The `StandardMetrics` calculator (`codeskimr_application::metrics`) turns the co
 ## Not part of this package
 
 The reference resolver does not exist yet. The parse time limit comes from `scan.parse_timeout_ms` (default 5000), wired by the composition root (WP-25, closes #32).
+
+## Tools (`[[tools]]`, ADR 0033 decision 8)
+
+A pack names the tools level 2 needs, one `[[tools]]` table each: `name`, `role` (`indexer` or `toolchain`), `command`, `version_args`, optional `min_version`, and an optional `[tools.requirement]` with `file`, `format` (`json`, `toml` or `text`) and, for json and toml, `path` (the key path, such as `sdk.version`). The purpose and install hint are Fluent keys `tool-<name>-purpose` and `tool-<name>-install` in `locales/`. The adapter reads only the manifests (`PackTools`); see `docs/tools-check.md`.

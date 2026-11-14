@@ -42,3 +42,23 @@ projects-list-label = Projekte
 projects-language-mix = { $name } { $percent } %
 projects-never = nie
 projects-header = { $summary } · { $hints }
+
+projects-tools-title = Werkzeuge für genaue Verwendungen (Stufe 2): { $name }
+projects-tools-missing-count =
+    { $count ->
+        [one] 1 Werkzeug fehlt
+       *[other] { $count } Werkzeuge fehlen
+    }
+projects-tools-warning = Ohne diese Werkzeuge bleiben die Verwendungen der genannten Sprachen ungeprüft.
+projects-tools-state-missing = fehlt
+projects-tools-state-too-old = zu alt: { $found } installiert, { $required } gefordert
+projects-tools-state-unknown = Version nicht lesbar (gefordert: { $required })
+projects-tools-for = für { $languages }
+projects-tools-purpose = Wofür: { $text }
+projects-tools-install = So bekommst du es: { $text }
+projects-tools-ready-languages = Stufe 2 kann laufen für: { $languages }
+projects-tools-all-ready = Alle Werkzeuge sind vorhanden.
+projects-tools-no-level2 = Keine Sprache dieses Projekts hat schon Stufe 2.
+projects-tools-unchecked = Die Werkzeuge wurden noch nicht geprüft.
+projects-tools-check-again = Erneut prüfen
+projects-tools-checking = Prüfe …

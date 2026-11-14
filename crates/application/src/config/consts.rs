@@ -103,6 +103,14 @@ pub mod keys {
     pub const PARSE_TIMEOUT_MS: &str = "scan.parse_timeout_ms";
     /// `scan.max_source_mb`
     pub const MAX_SOURCE_MB: &str = "scan.max_source_mb";
+    /// `tools.probe_timeout_ms`
+    pub const TOOLS_PROBE_TIMEOUT_MS: &str = "tools.probe_timeout_ms";
+    /// `tools.probe_max_output_bytes`
+    pub const TOOLS_PROBE_MAX_OUTPUT_BYTES: &str = "tools.probe_max_output_bytes";
+    /// `tools.requirement_max_bytes`
+    pub const TOOLS_REQUIREMENT_MAX_BYTES: &str = "tools.requirement_max_bytes";
+    /// `tools.env_allowlist`
+    pub const TOOLS_ENV_ALLOWLIST: &str = "tools.env_allowlist";
     /// `server.port`
     pub const SERVER_PORT: &str = "server.port";
     /// `editor.url_template`

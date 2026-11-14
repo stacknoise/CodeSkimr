@@ -81,3 +81,29 @@ module = "internal"
 namespace = "internal"
 interface = "public"
 enum = "public"
+
+# Tools that level 2 needs (ADR 0033, decisions 1 and 8). On every load of a project CodeSkimr
+# checks that each exists and, where a version is stated, is new enough. The indexer and its
+# version are settled by the spike of ADR 0033, so `min_version` stays out until then; a version
+# the project itself names (see `requirement`) is always checked.
+
+[[tools]]
+id = "scip-dotnet"
+role = "indexer"
+command = "scip-dotnet"
+version_args = ["--version"]
+purpose_key = "tool-scip-dotnet-purpose"
+install_key = "tool-scip-dotnet-install"
+
+[[tools]]
+id = "dotnet"
+role = "toolchain"
+command = "dotnet"
+version_args = ["--version"]
+purpose_key = "tool-dotnet-purpose"
+install_key = "tool-dotnet-install"
+
+[tools.requirement]
+file = "global.json"
+format = "json"
+path = ["sdk", "version"]

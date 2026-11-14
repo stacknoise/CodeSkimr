@@ -89,3 +89,24 @@ public = "public"
 internal = "internal"
 protected = "protected"
 private = "private"
+
+# Tools that level 2 needs (ADR 0033, decisions 1 and 8). On every load of a project CodeSkimr
+# checks that each exists and, where a version is stated, is new enough. The indexer and its
+# version are settled by the spike of ADR 0033, so `min_version` stays out until then; a version
+# the project itself names (see `requirement`) is always checked.
+
+[[tools]]
+id = "scip-java"
+role = "indexer"
+command = "scip-java"
+version_args = ["--version"]
+purpose_key = "tool-scip-java-purpose"
+install_key = "tool-scip-java-install"
+
+[[tools]]
+id = "java"
+role = "toolchain"
+command = "java"
+version_args = ["-version"]
+purpose_key = "tool-java-purpose"
+install_key = "tool-java-install"

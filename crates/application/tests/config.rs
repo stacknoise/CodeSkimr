@@ -350,3 +350,39 @@ fn a_layer_needs_a_unique_name_and_a_namespace() {
         ),
     ]);
 }
+
+#[test]
+fn the_tool_check_has_defaults_and_its_limits_are_checked() {
+    let config = Config::defaults().expect("shipped defaults are valid");
+    assert_eq!(config.tools.probe_timeout_ms, 5000);
+    assert!(config.tools.env_allowlist.iter().any(|name| name == "PATH"));
+    assert!(
+        !config
+            .tools
+            .env_allowlist
+            .iter()
+            .any(|name| name.contains("TOKEN"))
+    );
+    assert_rejected(&[
+        (
+            "[tools]\nprobe_timeout_ms = 0\n",
+            "tools.probe_timeout_ms",
+            Violation::MustBePositive,
+        ),
+        (
+            "[tools]\nprobe_max_output_bytes = 0\n",
+            "tools.probe_max_output_bytes",
+            Violation::MustBePositive,
+        ),
+        (
+            "[tools]\nrequirement_max_bytes = 0\n",
+            "tools.requirement_max_bytes",
+            Violation::MustBePositive,
+        ),
+        (
+            "[tools]\nenv_allowlist = [\"\"]\n",
+            "tools.env_allowlist",
+            Violation::MustNotBeEmpty,
+        ),
+    ]);
+}

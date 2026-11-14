@@ -1,32 +1,20 @@
 //! Reading lines of a file of a folder source.
 
-use std::fs::{self, File};
+use std::fs::File;
 use std::io::{BufRead, BufReader, Read};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{Excerpt, SourceText};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{FolderPath, RelativePath};
 
-use crate::consts::{CARRIAGE_RETURN, FIRST_LINE, LINE_END, RELATIVE_PATH_SEPARATOR};
+use crate::consts::{CARRIAGE_RETURN, FIRST_LINE, LINE_END};
+use crate::paths::inside;
 
 /// Reads lines of the files below a folder.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct FolderText;
-
-/// The real path of `path` below `root`, `None` if there is no such file or it leaves the root.
-///
-/// Both sides are resolved, so a link inside the project that points outside does not lead out.
-fn inside(root: &Path, path: &RelativePath) -> Option<PathBuf> {
-    let base = fs::canonicalize(root).ok()?;
-    let joined: PathBuf = path
-        .as_str()
-        .split(RELATIVE_PATH_SEPARATOR)
-        .collect::<PathBuf>();
-    let real = fs::canonicalize(base.join(joined)).ok()?;
-    (real.starts_with(&base) && real.is_file()).then_some(real)
-}
 
 fn not_found() -> CodedError {
     CodedError::new(ErrorCode::SourcePathNotFound)
@@ -80,6 +68,7 @@ impl SourceText for FolderText {
 mod tests {
     use super::*;
     use codeskimr_codes::Coded;
+    use std::fs;
 
     fn folder(files: &[(&str, &str)]) -> (tempfile::TempDir, FolderPath) {
         let dir = tempfile::tempdir().unwrap();

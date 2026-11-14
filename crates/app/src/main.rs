@@ -40,6 +40,8 @@ mod security_tests;
 mod serve;
 mod shared_keystore;
 mod source_arg;
+#[cfg(test)]
+mod tool_check_tests;
 mod ui_commands;
 mod watch;
 mod wiring;

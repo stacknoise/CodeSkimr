@@ -13,13 +13,17 @@ use codeskimr_application::ids::IdSequence;
 use codeskimr_application::metrics::StandardMetrics;
 use codeskimr_application::pipeline::{Scanner, ScannerPorts};
 use codeskimr_application::ports::{AuthError, Credential, CredentialStore};
-use codeskimr_application::ports::{FileAnalyzer, FileDiscovery, SnippetFingerprinter};
+use codeskimr_application::ports::{FileAnalyzer, FileDiscovery, SnippetFingerprinter, ToolProbe};
 use codeskimr_application::resolve::ScopedResolver;
+use codeskimr_application::tools::{ToolCheckPorts, ToolChecker};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::CredentialId;
-use codeskimr_parsing::{LanguagePacks, TreeSitterAnalyzer};
+use codeskimr_parsing::{LanguagePacks, PackTools, TreeSitterAnalyzer};
 use codeskimr_secrets::{KeystoreCredentials, OsKeystore};
-use codeskimr_source::{DiscoveryConfig, GitCache, LanguageMap, SourceFetcher, WalkDiscovery};
+use codeskimr_source::{
+    DiscoveryConfig, GitCache, LanguageMap, ProbeSettings, ProcessProbe, ProjectRequirements,
+    SourceFetcher, WalkDiscovery,
+};
 use codeskimr_storage::SqliteStore;
 
 use crate::clock::SystemClock;
@@ -101,6 +105,42 @@ pub fn build_scanner(
     };
     let ids = Arc::new(IdSequence::starting_at(store.next_free_id()?));
     Ok(Scanner::new(ports, &ids, events))
+}
+
+/// The probe that starts the real tools for the check of ADR 0033: version queries only, in the
+/// data folder (never in a project), with the allow-listed environment of the configuration.
+#[must_use]
+pub fn process_probe(config: &Config, locations: &Locations) -> Arc<dyn ToolProbe> {
+    Arc::new(ProcessProbe::new(ProbeSettings {
+        timeout: Duration::from_millis(u64::from(config.tools.probe_timeout_ms)),
+        max_output: u64::from(config.tools.probe_max_output_bytes),
+        env_allowlist: config.tools.env_allowlist.clone(),
+        work_dir: locations.data_dir.clone(),
+    }))
+}
+
+/// Builds the check of the tools that level 2 needs, starting tools through `probe`.
+///
+/// # Errors
+/// `PRS` failures if the language packs cannot be read.
+pub fn tool_checker(
+    store: &Arc<SqliteStore>,
+    config: &Config,
+    (locations, probe): (&Locations, Arc<dyn ToolProbe>),
+) -> Result<Arc<ToolChecker>, CodedError> {
+    let catalog = PackTools::load(&locations.languages_dir).map_err(CodedError::caused_by)?;
+    Ok(Arc::new(ToolChecker::new(ToolCheckPorts {
+        catalog: Arc::new(catalog),
+        probe,
+        requirements: Arc::new(ProjectRequirements::new(
+            GitCache::new(locations.git_cache()),
+            u64::from(config.tools.requirement_max_bytes),
+        )),
+        store: store.clone(),
+        projects: store.clone(),
+        overview: store.clone(),
+        clock: Arc::new(SystemClock),
+    })))
 }
 
 /// The two ports that read code: walking the files and analysing one of them. The scan and the

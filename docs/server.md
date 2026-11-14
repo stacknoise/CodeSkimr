@@ -74,3 +74,5 @@ Messages have a `type` and ids and counts only: `scan_progressed` (`project`, `s
 - No TLS and no non-loopback binding: that is the team server's server mode (ADR 0019).
 - `serve` needs a usable keystore. On a headless Linux without a Secret Service it stops with `SEC-601`.
 - Events are not filtered per principal; in single-user mode there is only the local owner.
+
+- `projects.tools` (scan right, not read only) takes a project id, runs the tool check (`docs/tools-check.md`), stores it and returns the `ToolsView`. `projects.list` rows carry `tools` (the stored report, `null` if never checked) and `projects.add` and `projects.rescan` answer with `tools` of the scan they ran.

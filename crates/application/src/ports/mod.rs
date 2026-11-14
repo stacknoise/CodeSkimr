@@ -15,6 +15,7 @@ mod rescan;
 mod similarity;
 mod source;
 mod storage;
+mod tools;
 mod usages;
 
 pub use analysis::{
@@ -32,6 +33,9 @@ pub use source::{
     DiscoveredFile, Excerpt, FetchedSource, FileDiscovery, SourceProvider, SourceText,
 };
 pub use storage::{PreviousIndex, ProjectRepository, SnapshotData, SnapshotStore};
+pub use tools::{
+    ProbeOutcome, ProjectToolCheck, RequirementReader, ToolCatalog, ToolProbe, ToolReportStore,
+};
 pub use usages::{
     DependencyEdge, DependencyPage, DependencyQuery, ImpactPage, ImpactedSymbol, SymbolLabel,
     UsageEntry, UsageIndex, UsagePage,

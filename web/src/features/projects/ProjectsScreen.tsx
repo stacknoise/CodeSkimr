@@ -1,4 +1,4 @@
-import { createSignal, onMount, Show } from "solid-js";
+import { createEffect, createSignal, on, onMount, Show } from "solid-js";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { EXPLORER_ROUTE } from "../../app/consts";
@@ -7,8 +7,9 @@ import { activeProject, openProject } from "../../shared/project/active";
 import { count } from "./format";
 import { useProjectKeys } from "./keys";
 import { NewProjectForm } from "./NewProjectForm";
-import { projects, projectsLoaded, refreshProjects, rescanProject } from "./projects";
+import { checkTools, projects, projectsLoaded, refreshProjects, rescanProject } from "./projects";
 import { ProjectTable } from "./ProjectTable";
+import { ToolsPanel } from "./ToolsPanel";
 import { useDropSource } from "./useDropSource";
 import { useSelection } from "./useSelection";
 import styles from "./ProjectsScreen.module.css";
@@ -57,6 +58,15 @@ export function ProjectsScreen() {
   const drop = useDropSource(setSource, () => input?.focus());
   const selection = useSelection(projects, activeProject());
   onMount(() => void refreshProjects());
+  // Whoever looks at a project sees what the machine has now, not what it had at the last scan.
+  createEffect(
+    on(selection.selected, (id) => {
+      if (id !== null) {
+        void checkTools(id);
+      }
+    }),
+  );
+  const selectedRow = () => projects().find((row) => row.id === selection.selected());
   useProjectKeys({
     newProject: () => input?.focus(),
     rescan: selection.act((id) => void rescanProject(id)),
@@ -88,6 +98,7 @@ export function ProjectsScreen() {
           onRescan={(id) => void rescanProject(id)}
         />
       </Show>
+      <Show when={selectedRow()}>{(row) => <ToolsPanel row={row()} />}</Show>
     </section>
   );
 }

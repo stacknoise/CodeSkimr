@@ -36,6 +36,7 @@ mod packs;
 mod references;
 mod scopes;
 mod symbols;
+mod tools;
 mod visibility;
 
 pub use analyzer::TreeSitterAnalyzer;
@@ -43,3 +44,4 @@ pub use error::ParsingError;
 pub use manifest::Tier;
 pub use pack::LanguagePack;
 pub use packs::{LanguagePacks, PackSummary};
+pub use tools::PackTools;

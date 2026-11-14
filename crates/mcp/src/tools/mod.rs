@@ -5,6 +5,7 @@ mod architecture;
 mod constants;
 mod conventions;
 mod dependencies;
+mod project;
 mod rescan;
 mod search;
 mod similar;
@@ -17,11 +18,12 @@ use codeskimr_application::config::McpLimits;
 use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    Clock, CodeIndex, ProjectRepository, ProjectScanner, SimilarityIndex, SnippetFingerprinter,
-    SymbolDetail, SymbolKey, UsageIndex,
+    Clock, CodeIndex, ProjectCatalog, ProjectRepository, ProjectScanner, ProjectToolCheck,
+    SimilarityIndex, SnippetFingerprinter, SymbolDetail, SymbolKey, UsageIndex,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Project, ProjectId, QualifiedName, Snapshot, SymbolId};
+use codeskimr_i18n::Messages;
 use serde::Serialize;
 use serde_json::Value;
 
@@ -77,6 +79,12 @@ pub struct Ports {
     pub clock: Arc<dyn Clock>,
     /// Scans a project again, for `rescan`.
     pub scanner: Arc<dyn ProjectScanner>,
+    /// The languages of a project, for `get_project`.
+    pub catalog: Arc<dyn ProjectCatalog>,
+    /// Checks the tools that level 2 needs, for `get_project` and `rescan`.
+    pub tool_check: Arc<dyn ProjectToolCheck>,
+    /// The texts of the tools (what they are for, how to install them).
+    pub messages: Arc<Messages>,
 }
 
 /// The tools of the server; all of them only read except `rescan`.
@@ -89,6 +97,9 @@ pub struct Tools {
     checker: Arc<ConventionChecker>,
     clock: Arc<dyn Clock>,
     scanner: Arc<dyn ProjectScanner>,
+    catalog: Arc<dyn ProjectCatalog>,
+    tool_check: Arc<dyn ProjectToolCheck>,
+    messages: Arc<Messages>,
     limits: McpLimits,
     default_project: Option<ProjectId>,
 }
@@ -118,6 +129,9 @@ impl Tools {
             checker: ports.checker,
             clock: ports.clock,
             scanner: ports.scanner,
+            catalog: ports.catalog,
+            tool_check: ports.tool_check,
+            messages: ports.messages,
             limits,
             default_project,
         }
@@ -197,6 +211,21 @@ impl Tools {
 
     pub(crate) fn scanner(&self) -> &dyn ProjectScanner {
         self.scanner.as_ref()
+    }
+
+    pub(crate) fn catalog(&self) -> &dyn ProjectCatalog {
+        self.catalog.as_ref()
+    }
+
+    pub(crate) fn tool_check(&self) -> &dyn ProjectToolCheck {
+        self.tool_check.as_ref()
+    }
+
+    /// The text of a message key of the language packs, or the key if there is none.
+    pub(crate) fn text(&self, key: &str) -> String {
+        self.messages
+            .format(crate::consts::TEXT_LANGUAGE, key, None)
+            .unwrap_or_else(|_| key.to_owned())
     }
 
     pub(crate) fn index(&self) -> &dyn CodeIndex {

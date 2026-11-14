@@ -27,6 +27,7 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use codeskimr_application::config::{Config, Graph, MetricThresholds};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
+use codeskimr_application::ports::{ProjectToolCheck, ToolProbe};
 use codeskimr_application::registry::Registry;
 use codeskimr_cli::GlobalOptions;
 use codeskimr_server::CommandApi;
@@ -36,13 +37,13 @@ pub(crate) use status::{mark_ready, mark_started};
 
 use crate::config_files;
 use crate::locations::Locations;
-use crate::wiring::{Secrets, open_store};
+use crate::wiring::{Secrets, open_store, process_probe, tool_checker};
 use codeskimr_storage::SqliteStore;
 use credentials::{DeleteCredential, ListCredentials, SetCredential};
 use explorer::{ExplorerOutline, ExplorerPorts};
 pub(crate) use export::{ExportInput, HtmlExport};
 use graph::{GraphLayers, GraphPorts};
-use projects::{AddProject, ListProjects, RescanProject};
+use projects::{AddProject, CheckTools, ListProjects, RescanProject};
 use running::RunningScans;
 use search::{SearchPorts, SearchQuery};
 use source::ExplorerSource;
@@ -56,6 +57,7 @@ pub struct Context {
     locations: Locations,
     events: EventBus,
     secrets: Arc<Secrets>,
+    tools: Arc<dyn ProjectToolCheck>,
     running: RunningScans,
     registration: Mutex<()>,
 }
@@ -81,18 +83,38 @@ pub fn command_api(
     events: EventBus,
     secrets: Arc<Secrets>,
 ) -> Result<CommandApi, CodedError> {
+    command_api_probing(global, locations, (events, secrets), None)
+}
+
+/// Like [`command_api`], but the tools are started through `probe` instead of as real processes
+/// (tests use this to say which tools exist).
+///
+/// # Errors
+/// The same as [`command_api`].
+pub fn command_api_probing(
+    global: &GlobalOptions,
+    locations: &Locations,
+    (events, secrets): (EventBus, Arc<Secrets>),
+    probe: Option<Arc<dyn ToolProbe>>,
+) -> Result<CommandApi, CodedError> {
     let config = config_files::load(locations, global, None)?;
     let catalog = open_store(locations, &config)?;
+    let probe = probe.unwrap_or_else(|| process_probe(&config, locations));
+    let tools = tool_checker(&catalog, &config, (locations, probe))?;
     let context = Arc::new(Context {
         global: global.clone(),
         locations: locations.clone(),
         events,
         secrets,
+        tools: tools.clone(),
         running: RunningScans::default(),
         registration: Mutex::new(()),
     });
     let mut registry = Registry::new();
     register_projects(&mut registry, &catalog, &context)?;
+    registry
+        .register(CheckTools { tools })
+        .map_err(CodedError::caused_by)?;
     register_credentials(&mut registry, &catalog, &context)?;
     register_search(&mut registry, &catalog)?;
     register_usages(&mut registry, &catalog, config.mcp.max_depth)?;
@@ -116,6 +138,7 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<ListProjects>()?;
     api.expose::<AddProject>()?;
     api.expose::<RescanProject>()?;
+    api.expose::<CheckTools>()?;
     api.expose::<ListCredentials>()?;
     api.expose::<SetCredential>()?;
     api.expose::<DeleteCredential>()?;
@@ -138,6 +161,7 @@ fn register_projects(
     registry
         .register(ListProjects {
             catalog: catalog.clone(),
+            tools: Arc::clone(&context.tools),
             context: Arc::clone(context),
         })
         .map_err(CodedError::caused_by)?;
