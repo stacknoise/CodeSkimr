@@ -44,7 +44,7 @@ impl LaunchFile {
         let path = dir.join(random_name()?);
         let mut file = create_private(&path).map_err(unavailable)?;
         let launch = Self { path };
-        check_owner(dir, &file).map_err(unavailable)?;
+        check_owner(dir, launch.path(), &file).map_err(unavailable)?;
         let page = Zeroizing::new(format!("{LAUNCH_PAGE_HEAD}{url}{LAUNCH_PAGE_TAIL}"));
         file.write_all(page.as_bytes()).map_err(unavailable)?;
         Ok(launch)
@@ -109,14 +109,22 @@ fn check_private(dir: &Path) -> std::io::Result<()> {
 /// a folder that others can write to is only fine if it is sticky. The path is checked with all
 /// links resolved, so a link that someone else put in the way is seen for what it points to.
 #[cfg(unix)]
-fn check_owner(dir: &Path, own_file: &File) -> std::io::Result<()> {
+fn check_owner(dir: &Path, path: &Path, own_file: &File) -> std::io::Result<()> {
     use std::os::unix::fs::{MetadataExt, PermissionsExt};
 
     use crate::consts::{OTHERS_WRITE_MASK, ROOT_UID, STICKY_MASK};
 
-    let user = own_file.metadata()?.uid();
+    let own = own_file.metadata()?;
+    let user = own.uid();
     let refused = || std::io::Error::from(std::io::ErrorKind::PermissionDenied);
     let resolved = dir.canonicalize()?;
+    // The file must live in the folder that was resolved and checked, not in one that a link
+    // pointed to a moment ago: both names must lead to the file that was opened.
+    let name = path.file_name().ok_or_else(refused)?;
+    let found = fs::metadata(resolved.join(name))?;
+    if found.dev() != own.dev() || found.ino() != own.ino() {
+        return Err(refused());
+    }
     if fs::metadata(&resolved)?.uid() != user {
         return Err(refused());
     }
@@ -134,7 +142,7 @@ fn check_owner(dir: &Path, own_file: &File) -> std::io::Result<()> {
 
 /// On Windows the access rules of the folder are set for the user alone (see `check_private`).
 #[cfg(not(unix))]
-fn check_owner(_dir: &Path, _own_file: &File) -> std::io::Result<()> {
+fn check_owner(_dir: &Path, _path: &Path, _own_file: &File) -> std::io::Result<()> {
     Ok(())
 }
 
@@ -274,6 +282,20 @@ mod tests {
         std::os::unix::fs::symlink(&target, &link).unwrap();
         assert!(create_private(&link).is_err());
         assert_eq!(fs::read_to_string(&target).unwrap(), "keep");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_file_in_another_folder_than_the_checked_one_is_refused() {
+        let dir = tempfile::tempdir().unwrap();
+        let other = tempfile::tempdir().unwrap();
+        let file = create_private(&other.path().join("x.html")).unwrap();
+        let claimed = dir.path().join("x.html");
+        let error = check_owner(dir.path(), &claimed, &file).unwrap_err();
+        assert_eq!(error.kind(), std::io::ErrorKind::NotFound);
+        std::fs::write(&claimed, "other").unwrap();
+        let error = check_owner(dir.path(), &claimed, &file).unwrap_err();
+        assert_eq!(error.kind(), std::io::ErrorKind::PermissionDenied);
     }
 
     #[test]
