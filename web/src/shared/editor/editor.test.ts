@@ -27,6 +27,10 @@ describe("buildEditorUrl", () => {
     expect(encodePath("a/../b?x=1&y")).toBe("a/..%2Fb%3Fx%3D1%26y".replace("..%2F", "../"));
   });
 
+  it("also encodes the marks that encodeURIComponent leaves alone", () => {
+    expect(encodePath("a/it's (1)!*.cs")).toBe("a/it%27s%20%281%29%21%2A.cs");
+  });
+
   it("writes a Windows path with forward slashes and keeps the drive colon", () => {
     expect(encodePath("C:\\Users\\Anna Lee\\a.cs")).toBe("C:/Users/Anna%20Lee/a.cs");
   });

@@ -5,7 +5,8 @@
 //! keystore, because a build machine has no keystore of the operating system. Nothing of it is in
 //! the program: it exists only in the test build. The protocol is lines on standard output
 //! (`E2E_URL=…`, `E2E_LAUNCH_FILE=…`) and on standard input (`launch` creates a new launch file,
-//! the end of the input stops the server).
+//! `reset` removes the stored preferences of the user so that the next test starts as a new
+//! installation, the end of the input stops the server).
 
 use std::io::{BufRead, Write, stdin, stdout};
 use std::path::PathBuf;
@@ -27,6 +28,8 @@ use crate::ui_commands::command_api;
 
 const UI_DIR_VARIABLE: &str = "CODESKIMR_E2E_UI_DIR";
 const LAUNCH_COMMAND: &str = "launch";
+const RESET_COMMAND: &str = "reset";
+const RESET_DONE_LINE: &str = "E2E_RESET=done";
 const LANGUAGES_PATH: &str = "../../languages";
 const CODE_LIFETIME: Duration = Duration::from_secs(60);
 
@@ -47,9 +50,19 @@ fn say(line: &str) {
 }
 
 /// Creates launch files on request and stops the server when the input ends.
-fn serve_requests(store: &Arc<KeystoreCredentials<Memory>>, port: u16, stop: oneshot::Sender<()>) {
+fn serve_requests(
+    store: &Arc<KeystoreCredentials<Memory>>,
+    (port, data): (u16, &std::path::Path),
+    stop: oneshot::Sender<()>,
+) {
     let folder = tempfile::tempdir().unwrap();
     for line in stdin().lock().lines().map_while(Result::ok) {
+        if line.trim() == RESET_COMMAND {
+            // No file is the same as no choice.
+            let _ = std::fs::remove_file(data.join(crate::ui_commands::PREFERENCES_FILE));
+            say(RESET_DONE_LINE);
+            continue;
+        }
         if line.trim() != LAUNCH_COMMAND {
             continue;
         }
@@ -95,11 +108,12 @@ fn e2e_server() {
     let (stop, stopped) = oneshot::channel::<()>();
     let (found, url) = channel::<String>();
     let for_requests = Arc::clone(&store);
+    let data_path = data.path().to_path_buf();
     let requests = thread::spawn(move || {
         let url = url.recv().unwrap();
         say(&format!("E2E_URL={url}"));
         let port = url.rsplit(':').next().unwrap().parse().unwrap();
-        serve_requests(&for_requests, port, stop);
+        serve_requests(&for_requests, (port, &data_path), stop);
     });
     serve_for_test(&*store, parts, &found, stopped).unwrap();
     requests.join().unwrap();

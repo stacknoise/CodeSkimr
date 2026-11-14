@@ -174,6 +174,51 @@ fn constants_come_with_their_declaration() {
 }
 
 #[test]
+fn config_and_translation_keys_are_found_by_name_with_one_based_lines() {
+    let args = ConstantsArgs {
+        query: "LIMIT".to_owned(),
+        project: None,
+        limit: Some(3),
+    };
+    let answer = tools().find_constants(&owner(), &args).unwrap();
+    assert_eq!(answer["keys_searched"], true);
+    let keys = answer["keys"].as_array().unwrap();
+    assert_eq!(keys.len(), 3);
+    assert_eq!(keys[0]["name"], "mcp.default_limit");
+    assert_eq!(keys[0]["kind"], "config");
+    assert_eq!(keys[0]["line"], 5);
+    assert_eq!(keys[2]["kind"], "i18n");
+    assert_eq!(keys[2]["path"], "locales/en/errors.ftl");
+    assert_eq!(answer["notice"], serde_json::Value::Null);
+}
+
+#[test]
+fn keys_are_cut_to_the_limit_with_a_notice() {
+    let args = ConstantsArgs {
+        query: "limit".to_owned(),
+        project: None,
+        limit: Some(2),
+    };
+    let answer = tools().find_constants(&owner(), &args).unwrap();
+    assert_eq!(answer["keys"].as_array().unwrap().len(), 2);
+    assert_eq!(answer["notice"]["code"], "MCP-501");
+}
+
+#[test]
+fn without_the_right_to_read_source_the_key_files_are_not_looked_at() {
+    let reader = Principal::limited(PermissionSet::none().with(Permission::Read));
+    let args = ConstantsArgs {
+        query: "limit".to_owned(),
+        project: None,
+        limit: Some(3),
+    };
+    let answer = tools().find_constants(&reader, &args).unwrap();
+    assert_eq!(answer["keys_searched"], false);
+    assert_eq!(answer["keys"].as_array().unwrap().len(), 0);
+    assert_eq!(answer["constants"].as_array().unwrap().len(), 1);
+}
+
+#[test]
 fn an_empty_constant_query_is_rejected() {
     let args = ConstantsArgs {
         query: "  ".to_owned(),
