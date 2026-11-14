@@ -8,7 +8,7 @@
 //
 // `UPDATE_SCREENSHOTS=1` writes the screens to docs/screenshots/visual/ for the review by eye.
 // Runs after ui-usages.spec.ts: the worker shares one server and every scan adds a project.
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import type { Page, TestInfo } from "@playwright/test";
 import {
@@ -24,6 +24,7 @@ import {
 
 const MOCKS = path.resolve(import.meta.dirname, "../../docs/mocks");
 const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/visual");
+const TOKENS = path.resolve(import.meta.dirname, "../../design/tokens.toml");
 const VIEWPORT = { width: 1440, height: 900 };
 /** Pixels by which a landmark may differ from the mock (rounding of fractions). */
 const TOLERANCE = 1;
@@ -116,13 +117,13 @@ async function frameStyle(page: Page): Promise<Record<string, string>> {
 }
 
 /** The size and theme of the mocks: 1440 x 900, and light, which is how mocks 1 to 6 are drawn. */
-async function prepare(page: Page): Promise<void> {
+async function prepare(page: Page, theme = "hell"): Promise<void> {
   await page.setViewportSize(VIEWPORT);
-  await page.addInitScript(() => localStorage.setItem("codeskimr.theme", "hell"));
+  await page.addInitScript((name) => localStorage.setItem("codeskimr.theme", name), theme);
 }
 
-async function openUi(page: Page, harness: Harness): Promise<void> {
-  await prepare(page);
+async function openUi(page: Page, harness: Harness, theme = "hell"): Promise<void> {
+  await prepare(page, theme);
   const { copy } = keepLaunchFile(await harness.launchFile());
   await page.goto(`file://${copy}`);
 }
@@ -337,3 +338,48 @@ test.describe("the screens against the mocks (1440 x 900, light)", () => {
     await shot(page, "graph-hell", info);
   });
 });
+
+/** The colour tokens of one theme from design/tokens.toml (blueprint 15.3), as `{ token: "#RRGGBB" }`. */
+function themeTokens(theme: string): Record<string, string> {
+  const text = readFileSync(TOKENS, "utf8");
+  const start = text.indexOf(`[themes.${theme}]`);
+  const rest = text.slice(start + 1);
+  const end = rest.indexOf("\n[");
+  const body = rest.slice(0, end === -1 ? undefined : end);
+  return Object.fromEntries(
+    [...body.matchAll(/^([\w-]+) = "(#[0-9A-Fa-f]{6})"/gm)].map((found) => [found[1], found[2]]),
+  );
+}
+
+/** `#RRGGBB` as the browser prints a computed colour. */
+function rgb(hex: string): string {
+  const [r, g, b] = [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+// Every theme is drawn with its own tokens (the mocks of 1 to 6 are Hell only, so Petrol and Dunkel
+// are checked against the token file of 15.3), and the landmarks do not move with the theme.
+for (const theme of ["hell", "petrol", "dunkel"]) {
+  test.describe(`the frame in the theme ${theme} (1440 x 900)`, () => {
+    test.use({ viewport: VIEWPORT });
+
+    test("has the colours of the theme and the sizes of the mocks", async ({
+      page,
+      harness,
+    }, info) => {
+      await openUi(page, harness, theme);
+      await expect(page.getByText("● Connected")).toBeVisible();
+      const tokens = themeTokens(theme);
+      const actual = await frameStyle(page);
+      expect(actual["body.background-color"]).toBe(rgb(tokens["bg"] ?? ""));
+      expect(actual["header.background-color"]).toBe(rgb(tokens["surface"] ?? ""));
+      expect(actual["header.border-bottom-color"]).toBe(rgb(tokens["line"] ?? ""));
+      expect(actual["nav.background-color"]).toBe(rgb(tokens["surface"] ?? ""));
+      expect(actual["nav.border-right-color"]).toBe(rgb(tokens["line"] ?? ""));
+      expect(actual["footer.background-color"]).toBe(rgb(tokens["surface"] ?? ""));
+      expect(actual["footer.border-top-color"]).toBe(rgb(tokens["line"] ?? ""));
+      await compare(page, await openMock(page, "Main"), SHELL);
+      await shot(page, `frame-${theme}`, info);
+    });
+  });
+}

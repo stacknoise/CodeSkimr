@@ -9,6 +9,7 @@ import {
   KIND_SEPARATOR,
   MISSING,
 } from "./consts";
+import { Breakable } from "../../shared/ui/Breakable";
 import { shortName } from "./names";
 import type { UsagesAnswer } from "./types";
 import styles from "./SidePanel.module.css";
@@ -89,7 +90,9 @@ export function SidePanel(props: { answer: UsagesAnswer; onOpen: () => void }) {
         <div class={styles.kind}>
           {[symbol().kind, symbol().layer ?? MISSING].join(KIND_SEPARATOR)}
         </div>
-        <h2>{shortName(symbol().qualified_name)}</h2>
+        <h2 aria-label={shortName(symbol().qualified_name)}>
+          <Breakable text={shortName(symbol().qualified_name)} />
+        </h2>
         <Show when={props.answer.signature}>
           {(signature) => <div class={styles.signature}>{signature()}</div>}
         </Show>
