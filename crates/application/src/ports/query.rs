@@ -2,8 +2,8 @@
 //! (adapter: `codeskimr_storage`).
 
 use codeskimr_domain::{
-    LayerEdge, Metric, ProjectId, QualifiedName, RelativePath, Snapshot, SnapshotId, Symbol,
-    SymbolId, SymbolKind, SymbolName,
+    LayerEdge, Metric, NamespaceGraph, ProjectId, QualifiedName, RelativePath, Snapshot,
+    SnapshotId, Symbol, SymbolId, SymbolKind, SymbolName,
 };
 
 use crate::error::CodedError;
@@ -92,4 +92,10 @@ pub trait CodeIndex: Send + Sync {
     /// # Errors
     /// A coded failure of the `STO` group.
     fn layer_edges(&self, snapshot: SnapshotId) -> Result<Vec<LayerEdge>, CodedError>;
+
+    /// The namespaces of a snapshot with their type counts, and the references between them.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn namespace_graph(&self, snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError>;
 }

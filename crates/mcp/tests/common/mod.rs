@@ -17,8 +17,8 @@ use codeskimr_application::ports::{
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
     BodyCounts, Confidence, ContentHash, Direction, FileId, Fingerprint, Fingerprints, FolderPath,
-    LanguageId, Layer, LayerEdge, LayerName, Loc, Metric, MetricKind, MetricValue, Position,
-    Principal, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference,
+    LanguageId, Layer, LayerEdge, LayerName, Loc, Metric, MetricKind, MetricValue, NamespaceGraph,
+    Position, Principal, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference,
     ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId, SnapshotStats,
     SourceFile, Span, Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName, Timestamp,
     ToolFinding, ToolReport, ToolRole, ToolState, UsageQuery, Visibility,
@@ -140,6 +140,10 @@ impl CodeIndex for FakeIndex {
             edge("Application", "Domain", 7, false),
             edge("Domain", "Application", 2, true),
         ])
+    }
+
+    fn namespace_graph(&self, _snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError> {
+        Ok(NamespaceGraph::default())
     }
 }
 

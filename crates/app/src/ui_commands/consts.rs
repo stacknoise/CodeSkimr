@@ -135,6 +135,9 @@ pub const EXPORT_DEPTH: u32 = 0;
 /// Steps of the walk that counts the direct usages.
 pub const EXPORT_DIRECT_DEPTH: u32 = 1;
 
+/// The gap between two rows is divided by this to get the space a layer band adds above and
+/// below its boxes.
+pub const BAND_PAD_DIVISOR: u32 = 2;
 /// Id of the command that lists the credentials of the Git projects.
 pub const CREDENTIALS_LIST: &str = "credentials.list";
 /// Id of the command that stores a credential.

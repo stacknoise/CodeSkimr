@@ -1,6 +1,8 @@
 # Dependency graph screen.
 
 graph-title = Dependencies
+graph-level-label = Level
+graph-mode-layers = Layers
 graph-mode-namespaces = Namespaces
 graph-mode-type-focus = Type focus
 graph-depth-one = 1 level

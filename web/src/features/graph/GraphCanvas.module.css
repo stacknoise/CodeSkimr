@@ -17,6 +17,25 @@
     transform-origin: 0 0;
 }
 
+.band {
+    position: absolute;
+    left: 0;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    border-left: 4px solid;
+    background: color-mix(in srgb, var(--surface) 70%, transparent);
+}
+
+.bandName {
+    position: absolute;
+    left: var(--space-8);
+    top: var(--space-4);
+    font: 600 10.5px var(--font-sans);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
 .edges {
     position: absolute;
     inset: 0;
@@ -45,6 +64,12 @@
 .selected {
     border-color: var(--ink);
     box-shadow: 0 0 0 4px var(--mark);
+}
+
+.types {
+    margin-left: var(--space-8);
+    font: 11px var(--font-mono);
+    color: var(--muted);
 }
 
 .name {

@@ -3,7 +3,10 @@
 use std::collections::HashMap;
 
 use codeskimr_application::ports::{ImpactedSymbol, SymbolLabel, UsageEntry};
-use codeskimr_domain::{QualifiedName, RelativePath, ReverseIndex, SymbolId, Visibility};
+use codeskimr_domain::{
+    NamespaceGraph, QualifiedName, RelativePath, ReverseIndex, SymbolId, Visibility,
+    namespace_graph,
+};
 use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, id_from, label_from};
@@ -27,6 +30,7 @@ pub(crate) struct SnapshotLookup {
     pub(crate) index: ReverseIndex,
     places: HashMap<u64, Placed>,
     files: HashMap<u64, RelativePath>,
+    pub(crate) namespaces: NamespaceGraph,
 }
 
 /// The columns of `SYMBOL_LABELS`, still raw.
@@ -80,20 +84,33 @@ fn decode_file(row: (i64, String)) -> StorageResult<(u64, RelativePath)> {
 
 impl SnapshotLookup {
     pub(crate) fn load(conn: &Connection, snapshot: i64) -> StorageResult<Self> {
+        let references = load_references(conn, snapshot)?;
+        let places = load_map(
+            conn,
+            (sql::SYMBOL_LABELS, snapshot),
+            read_label,
+            decode_place,
+        )?;
+        let namespaces = namespace_graph(
+            places.values().map(|found| {
+                (
+                    found.label.id,
+                    found.label.kind,
+                    &found.label.qualified_name,
+                )
+            }),
+            references.iter().map(|found| (found.from, found.to)),
+        );
         Ok(Self {
-            index: ReverseIndex::new(load_references(conn, snapshot)?),
-            places: load_map(
-                conn,
-                (sql::SYMBOL_LABELS, snapshot),
-                read_label,
-                decode_place,
-            )?,
+            index: ReverseIndex::new(references),
+            places,
             files: load_map(
                 conn,
                 (sql::FILE_PATHS, snapshot),
                 |cols| Ok((cols.take()?, cols.take()?)),
                 decode_file,
             )?,
+            namespaces,
         })
     }
 

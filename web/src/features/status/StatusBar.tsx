@@ -1,6 +1,7 @@
 import { createEffect, createMemo, For, Match, onCleanup, Show, Switch } from "solid-js";
 import { currentLanguage, isLanguage, setLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { lastQueryMs } from "../../shared/api/timings";
 import { KIND } from "../../shared/session/consts";
 import { sessionState } from "../../shared/session/session";
 import { cx } from "../../shared/ui/cx";
@@ -47,6 +48,9 @@ function Measurements() {
     <>
       <Show when={statusInfo()?.startup_ms ?? null}>
         {(ms) => <span>{t(I18N_KEYS.APP_STARTUP_TIME, { ms: ms() })}</span>}
+      </Show>
+      <Show when={lastQueryMs() !== null}>
+        <span>{t(I18N_KEYS.APP_QUERY_TIME, { ms: Math.round(lastQueryMs() ?? 0) })}</span>
       </Show>
       <Show when={statusInfo()?.memory_mb ?? null}>
         {(mb) => <span>{t(I18N_KEYS.APP_MEMORY_USAGE, { mb: mb() })}</span>}

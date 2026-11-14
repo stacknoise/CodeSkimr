@@ -1,16 +1,21 @@
 import { createSignal } from "solid-js";
 import { ApiError } from "../../shared/api/client";
 import { runCommand } from "../../shared/api/commands";
-import { GRAPH_COMMAND } from "./consts";
-import type { GraphData } from "./types";
+import { GRAPH_COMMAND, LEVEL } from "./consts";
+import type { GraphData, Level } from "./types";
 
 const [data, setData] = createSignal<GraphData | null>(null);
 const [failed, setFailed] = createSignal(false);
+const [level, setLevel] = createSignal<Level>(LEVEL.layers);
 /** Counts the loads, so that a slow answer for a project that is no longer shown is dropped. */
 let latest = 0;
 
 /** The layers of the project that was loaded last, `null` until the first answer. */
 export const graphData = data;
+/** What the boxes of the map stand for. */
+export const graphLevel = level;
+/** Chooses what the boxes stand for; the next load asks for it. */
+export const setGraphLevel = setLevel;
 /** Whether the last load failed. */
 export const graphFailed = failed;
 
@@ -18,7 +23,7 @@ export const graphFailed = failed;
 export async function loadGraph(project: number): Promise<void> {
   const mine = ++latest;
   try {
-    const answer = await runCommand<GraphData>(GRAPH_COMMAND, { project });
+    const answer = await runCommand<GraphData>(GRAPH_COMMAND, { project, level: level() });
     if (mine === latest) {
       setData(answer);
       setFailed(false);
