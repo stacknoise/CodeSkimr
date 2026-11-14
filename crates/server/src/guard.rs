@@ -15,7 +15,8 @@ use codeskimr_codes::ErrorCode;
 use crate::consts::{
     BEARER_SCHEME, CACHE_CONTROL_VALUE, CSP_CONNECT, CSP_FIXED, CSP_HEADER, CSP_SEPARATOR,
     HOST_PORT_SEPARATOR, LOCALHOST_NAME, NO_SNIFF_HEADER, NO_SNIFF_VALUE, OPENER_HEADER,
-    OPENER_VALUE, ORIGIN_SCHEME, REFERRER_HEADER, REFERRER_VALUE, WEBSOCKET_SCHEME,
+    OPENER_VALUE, ORIGIN_SCHEME, PERMISSIONS_HEADER, PERMISSIONS_VALUE, REFERRER_HEADER,
+    REFERRER_VALUE, WEBSOCKET_SCHEME,
 };
 use crate::error::Failure;
 use crate::token::InstallationToken;
@@ -147,6 +148,7 @@ fn harden(headers: &mut HeaderMap, policy: &HeaderValue) {
         (NO_SNIFF_HEADER, NO_SNIFF_VALUE),
         (REFERRER_HEADER, REFERRER_VALUE),
         (OPENER_HEADER, OPENER_VALUE),
+        (PERMISSIONS_HEADER, PERMISSIONS_VALUE),
     ];
     for (name, value) in fixed {
         headers.insert(

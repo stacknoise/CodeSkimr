@@ -68,13 +68,16 @@ impl Config {
     }
 }
 
-/// What of a layer counts. The project file may not touch `level2` (ADR 0033, decision 9): a
-/// scanned repository must not switch on running its own build scripts or raise the limits, so the
-/// table is dropped before anything is checked or merged.
+/// What of a layer counts. The project file may not touch the tables of
+/// `consts::UNTRUSTED_PROJECT_TABLES` (`level2`, `editor`, `ui`): a scanned repository must not
+/// switch on running its own build scripts, allow other URL schemes or point the server at a
+/// folder, so these tables are dropped before anything is checked or merged.
 fn trusted_table(layer: &ConfigLayer) -> Table {
     let mut table = layer.table().clone();
     if layer.source() == LayerSource::Project {
-        table.remove(consts::UNTRUSTED_PROJECT_TABLE);
+        for name in consts::UNTRUSTED_PROJECT_TABLES {
+            table.remove(name);
+        }
     }
     table
 }

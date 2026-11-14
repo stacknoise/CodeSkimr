@@ -12,7 +12,7 @@ codeskimr export <project> --html <file>
 - The project must have been scanned; the **newest snapshot** is exported. Export while no scan is running, otherwise the file can mix two snapshots.
 - The command prints where the file went and how many symbols it holds. A file that already exists is replaced.
 
-The command needs the built export page of the UI: `npm run build` in `web/` makes it (`dist/export/export.html`), and the command finds it below the UI folder (`ui.dir`, see [Installation](installation.md)). If it is missing, the command stops with `EXP-201`.
+The command needs the built export page of the UI: `npm run build` in `web/` makes it (`dist/export/export.html`), The page is part of the program; if there is a UI folder (`ui.dir`, see [Installation](installation.md)), the page from that folder is used instead. If it is missing in both places, the command stops with `EXP-201`.
 
 ## What is in the file
 
@@ -48,5 +48,5 @@ Every usage keeps its mark (verified, unchecked, presumed) and the page shows th
 |---|---|---|
 | `PRJ-201` | the project is not registered | add and scan it first |
 | `MCP-203` | the project has not been scanned | scan it |
-| `EXP-201` | the built export page is missing or unusable | run `npm run build` in `web/`, check `ui.dir` |
+| `EXP-201` | the built export page is missing or unusable | use a program built with the UI (`npm run build` in `web/`, then build the program), check `ui.dir` |
 | `EXP-601` | the file cannot be written | check the path, the rights and the free space |

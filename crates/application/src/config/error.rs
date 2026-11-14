@@ -38,6 +38,8 @@ pub enum Violation {
     MustBeFolderName,
     /// The text must be a URL scheme: a letter, then letters, digits, `+`, `-` or `.`.
     MustBeUrlScheme,
+    /// The scheme runs code or reads local files in a browser and is never an editor scheme.
+    MustNotRunCode,
     /// The template must start with one of the allowed schemes.
     MustUseAllowedScheme(&'static str),
     /// The template must contain the placeholder for the file path.

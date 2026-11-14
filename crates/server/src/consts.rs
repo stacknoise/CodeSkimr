@@ -61,6 +61,12 @@ pub const OPENER_HEADER: &str = "cross-origin-opener-policy";
 /// Value of the `Cross-Origin-Opener-Policy` header.
 pub const OPENER_VALUE: &str = "same-origin";
 
+/// Name of the `Permissions-Policy` header.
+pub const PERMISSIONS_HEADER: &str = "permissions-policy";
+/// Value of the `Permissions-Policy` header: the UI uses none of the browser features that ask
+/// for a permission.
+pub const PERMISSIONS_VALUE: &str = "camera=(), microphone=(), geolocation=(), payment=(), usb=()";
+
 /// Media types of the files the UI consists of, by extension.
 pub const MEDIA_TYPES: [(&str, &str); 11] = [
     ("html", "text/html; charset=utf-8"),

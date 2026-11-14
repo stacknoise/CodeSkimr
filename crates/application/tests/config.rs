@@ -392,3 +392,46 @@ fn the_signature_limit_must_be_positive() {
         Violation::MustBePositive,
     )]);
 }
+
+#[test]
+fn a_project_file_cannot_change_the_editor_or_the_ui() {
+    let text = "[editor]\nurl_template = \"evil://{path}\"\nallowed_schemes = [\"evil\"]\n[ui]\ndir = \"/tmp/elsewhere\"\nlaunch_code_seconds = 3600\n";
+    let from_project = Config::resolve(&[project(text)]).expect("the tables are dropped");
+    let defaults = Config::defaults().expect("defaults");
+    assert_eq!(
+        from_project.editor.url_template,
+        defaults.editor.url_template
+    );
+    assert_eq!(
+        from_project.editor.allowed_schemes,
+        defaults.editor.allowed_schemes
+    );
+    assert_eq!(from_project.ui.dir, defaults.ui.dir);
+    assert_eq!(
+        from_project.ui.launch_code_seconds,
+        defaults.ui.launch_code_seconds
+    );
+    let from_user = Config::resolve(&[user("[ui]\ndir = \"/tmp/elsewhere\"\n")]).expect("valid");
+    assert_eq!(from_user.ui.dir, "/tmp/elsewhere");
+}
+
+#[test]
+fn schemes_that_run_code_or_read_files_are_never_editor_schemes() {
+    assert_rejected(&[
+        (
+            "[editor]\nallowed_schemes = [\"vscode\", \"javascript\"]\n",
+            "editor.allowed_schemes",
+            Violation::MustNotRunCode,
+        ),
+        (
+            "[editor]\nallowed_schemes = [\"file\"]\nurl_template = \"file://{path}\"\n",
+            "editor.allowed_schemes",
+            Violation::MustNotRunCode,
+        ),
+        (
+            "[editor]\nallowed_schemes = [\"vbscript\", \"data\"]\n",
+            "editor.allowed_schemes",
+            Violation::MustNotRunCode,
+        ),
+    ]);
+}
