@@ -4,6 +4,7 @@ import { currentPath, navigate } from "../../app/router";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
+import { ORDER } from "../../tests/explorer";
 import { pendingFocus, requestFocus } from "../explorer/explorer";
 import { useSearchShortcut } from "./keys";
 import { QuickSearch } from "./QuickSearch";
@@ -44,6 +45,18 @@ function shown(hits: Hit[] = [CART, ADD], snapshot: number | null = 1) {
   });
   openSearch();
   return view;
+}
+
+/** Renders the search for a project whose hits are `Cart` (with the id of `ORDER`) and `AddItem`;
+ * `more` serves the other commands. */
+function previewed(more: Parameters<typeof serve>[0]) {
+  openProject(1);
+  serve({
+    "search.query": () => answer({ snapshot: 1, hits: [{ ...CART, id: ORDER.id }, ADD] }),
+    ...more,
+  });
+  render(() => <QuickSearch />);
+  openSearch();
 }
 
 /** Replaces the clipboard of the page and renders the search with two hits, typed and listed. */
@@ -95,6 +108,57 @@ describe("the quick search", () => {
     const preview = screen.getByRole("complementary");
     expect(within(preview).getByText("Shop.Cart")).toBeTruthy();
     expect(within(preview).getByText("src/Cart.cs")).toBeTruthy();
+  });
+
+  it("shows the documentation and three numbers of the chosen hit", async () => {
+    previewed({ "explorer.symbol": () => answer(ORDER) });
+    type("order");
+    await screen.findAllByRole("option");
+    const preview = screen.getByRole("complementary");
+    expect(await within(preview).findByText("An order of a customer.")).toBeTruthy();
+    const tile = (label: string) => within(preview).getByText(label).previousElementSibling;
+    expect(tile("Lines of code")?.textContent).toBe("188");
+    expect(tile("Members")?.textContent).toBe("2");
+    expect(tile("Maintainability")?.textContent).toBe("25");
+  });
+
+  it("shows no details, and no error, for a hit that cannot be read", async () => {
+    previewed({});
+    type("order");
+    await screen.findAllByRole("option");
+    const preview = screen.getByRole("complementary");
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([path]) => String(path).includes("explorer.symbol"))).toBe(
+        true,
+      ),
+    );
+    expect(within(preview).queryByText("Lines of code")).toBeNull();
+    expect(within(preview).getByText("Shop.Cart")).toBeTruthy();
+  });
+
+  it("drops the details of a hit that is no longer chosen", async () => {
+    let release: (value: Response) => void = () => undefined;
+    const late = new Promise<Response>((resolve) => (release = resolve));
+    openProject(1);
+    let symbols = 0;
+    fetchMock.mockImplementation((path: string) => {
+      if (path.endsWith("search.query")) {
+        return Promise.resolve(answer({ snapshot: 1, hits: [{ ...CART, id: ORDER.id }, ADD] }));
+      }
+      symbols += 1;
+      return symbols === 1
+        ? late
+        : Promise.resolve(answer({ ...ORDER, id: ADD.id, doc: "Current documentation." }));
+    });
+    render(() => <QuickSearch />);
+    openSearch();
+    type("order");
+    await screen.findAllByRole("option");
+    fireEvent.keyDown(input(), { key: "ArrowDown" });
+    expect(await screen.findByText("Current documentation.")).toBeTruthy();
+    release(answer({ ...ORDER, doc: "Late documentation." }));
+    await waitFor(() => expect(screen.queryByText("Late documentation.")).toBeNull());
+    expect(screen.getByText("Current documentation.")).toBeTruthy();
   });
 
   it("opens a type in the explorer with Enter", async () => {

@@ -7,6 +7,7 @@ import { TYPE_KINDS } from "../explorer/consts";
 import { requestFocus } from "../explorer/explorer";
 import { FILTER, MS_DIGITS, SEARCH_COMMAND, type Filter } from "./consts";
 import { parseQuery } from "./parse";
+import { resetPreview } from "./preview";
 import type { Hit, SearchResult } from "./types";
 
 const [open, setOpen] = createSignal(false);
@@ -57,6 +58,7 @@ export function openSearch(): void {
 /** Hides the overlay. */
 export function closeSearch(): void {
   sequence += 1;
+  resetPreview();
   setOpen(false);
 }
 
