@@ -516,7 +516,7 @@ mod tests {
         let method = table.add(SymbolKind::Method, "Demo.Box.run", Some(class), 1);
         let mut read = occurrence(method, 1, ReferenceKind::Read, "count");
         read.receiver = Some(Receiver::Free);
-        assert!(resolve(&table, &[read]).is_empty());
+        assert_eq!(targets(&resolve(&table, &[read])), []);
         // The same name without that knowledge still finds the field of the own type.
         let plain = occurrence(method, 1, ReferenceKind::Read, "count");
         assert_eq!(resolve(&table, &[plain]).len(), 1);
@@ -533,7 +533,7 @@ mod tests {
         let at = Position { line: 0, column: 0 };
         write.span = Span::new(at, at).expect("span");
         let found = resolve(&table, &[write]);
-        assert!(found.is_empty(), "{found:?} {field:?} {other:?}");
+        assert_eq!(targets(&found), [], "{field:?} {other:?}");
     }
 
     #[test]
