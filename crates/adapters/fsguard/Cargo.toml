@@ -1,0 +1,21 @@
+[package]
+name = "codeskimr_fsguard"
+description = "Opens files that a build tool may have tampered with: no link is followed, no pipe is waited for."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[lints]
+workspace = true
+
+[target.'cfg(unix)'.dependencies]
+libc = { workspace = true }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { workspace = true, features = ["Win32_Storage_FileSystem"] }
+
+[dev-dependencies]
+tempfile = { workspace = true }

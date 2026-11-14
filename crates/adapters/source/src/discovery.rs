@@ -12,12 +12,13 @@ use codeskimr_application::ports::{DiscoveredFile, FileDiscovery};
 use codeskimr_domain::{ContentHash, FolderPath, LanguageId, RelativePath, SourceFile};
 use ignore::{DirEntry, WalkBuilder, WalkState};
 
-use crate::consts::GIT_DIR_NAME;
+use crate::consts::{GIT_DIR_NAME, GROWTH_PROBE_BYTES};
 use crate::error::SourceError;
 use crate::folder::open_folder;
-use crate::hash::{hash_file, hash_reader, open_regular};
+use crate::hash::{hash_file, hash_reader};
 use crate::languages::LanguageMap;
 use crate::paths::relative_path;
+use codeskimr_fsguard::open_regular;
 
 /// Settings of a discovery run that come from the configuration.
 #[derive(Debug, Clone)]
@@ -138,7 +139,7 @@ fn is_unchanged(root: &Path, file: &SourceFile, left: &mut u64) -> bool {
     }
     *left -= length;
     // One byte more than announced: a file that grew meanwhile does not match.
-    hash_reader(handle.take(length.saturating_add(1)))
+    hash_reader(handle.take(length.saturating_add(GROWTH_PROBE_BYTES)))
         .is_ok_and(|(size, hash)| size == length && hash == file.content_hash)
 }
 
