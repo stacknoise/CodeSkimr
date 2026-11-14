@@ -349,13 +349,26 @@ fn the_outline_names_the_limits_behind_the_colours() {
     assert_eq!(outline["thresholds"]["maintainability_medium_min"], 35);
 }
 
+/// Runs a command as `who`, as the API does after it has resolved the caller; the registered
+/// error id of a refusal comes back as the error.
+fn run_as(
+    fixture: &Fixture,
+    who: codeskimr_domain::Principal,
+    id: &str,
+    input: Value,
+) -> Result<Value, &'static str> {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .build()
+        .unwrap();
+    runtime
+        .block_on(fixture.api.run(who, id, input))
+        .map_err(|error| error.code().entry().id)
+}
+
 #[test]
 fn a_token_without_the_read_right_is_refused() {
     let fixture = Fixture::new();
     let project = added(&fixture);
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .build()
-        .unwrap();
     let nobody = principal::nobody();
     for id in [
         "explorer.outline",
@@ -367,13 +380,12 @@ fn a_token_without_the_read_right_is_refused() {
         "usages.code",
         "usages.query",
     ] {
-        let refused = runtime
-            .block_on(
-                fixture
-                    .api
-                    .run(nobody, id, json!({ "project": project, "symbol": 1 })),
-            )
-            .map_err(|error| error.code().entry().id);
+        let refused = run_as(
+            &fixture,
+            nobody,
+            id,
+            json!({ "project": project, "symbol": 1 }),
+        );
         assert_eq!(refused.unwrap_err(), "AUTH-401", "{id}");
     }
 }
@@ -385,14 +397,7 @@ fn a_caller_who_may_read_but_not_read_source_gets_no_code() {
     let project = added(&fixture);
     let add = member_id(&fixture, project, "Add");
     let input = json!({ "project": project, "symbol": add, "way": "both", "depth": 2, "include_tests": true });
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .build()
-        .unwrap();
-    let run = |id: &str| {
-        runtime
-            .block_on(fixture.api.run(principal::reader(), id, input.clone()))
-            .map_err(|error| error.code().entry().id)
-    };
+    let run = |id: &str| run_as(&fixture, principal::reader(), id, input.clone());
     // The index is open to the reader, the lines of code are not.
     assert!(run("usages.query").is_ok());
     assert_eq!(run("usages.code").unwrap_err(), "AUTH-401");
