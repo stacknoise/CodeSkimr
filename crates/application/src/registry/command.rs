@@ -41,9 +41,21 @@ pub struct CommandDescriptor {
 
 /// One call of a command: who calls and with what input.
 ///
-/// Only this crate can build a request (the seal field is private), and the only way to get one
-/// is [`CommandExt::run`], which checks the permission the command declares first. A holder of a
-/// command value therefore cannot reach `execute` around the check (issue #70).
+/// Only this crate can build a request (the struct is `#[non_exhaustive]`), and the only ways to
+/// get one are [`CommandExt::run`] and `Registry::execute`, which check the permission the command
+/// declares first. A holder of a command value therefore cannot reach `execute` around the check
+/// (issue #70).
+///
+/// A crate outside the application layer cannot build one:
+///
+/// ```compile_fail
+/// use codeskimr_application::registry::Request;
+/// use codeskimr_domain::Principal;
+///
+/// fn forge(principal: &Principal) {
+///     let _ = Request { principal, input: () };
+/// }
+/// ```
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 pub struct Request<'a, I> {

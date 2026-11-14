@@ -29,52 +29,102 @@ fn only_the_composition_root_creates_principals() {
 }
 
 const FEATURE: &str = "issue-principals";
-const FEATURE_OWNER: &str = "/app/Cargo.toml";
-const DEV_SECTION: &str = "[dev-dependencies]";
+const FEATURE_OWNER: &str = "crates/app/Cargo.toml";
+const FEATURE_DEFINITION: &str = "issue-principals = []";
 
-/// The manifests below `crates/`.
+/// Every `Cargo.toml` of the repository outside `target`, with its path relative to the root.
 #[cfg(test)]
-fn manifests() -> Vec<std::path::PathBuf> {
-    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("..");
+fn manifests() -> Vec<(String, String)> {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
     let mut found = Vec::new();
-    let mut open = vec![root];
+    let mut open = vec![root.clone()];
     while let Some(dir) = open.pop() {
         for entry in fs::read_dir(dir).unwrap().flatten() {
             let path = entry.path();
-            if path.is_dir() {
+            let name = path.file_name().unwrap().to_string_lossy().into_owned();
+            if path.is_dir() && name != "target" && name != "node_modules" && !name.starts_with('.')
+            {
                 open.push(path);
-            } else if path.file_name().is_some_and(|name| name == "Cargo.toml") {
-                found.push(path);
+            } else if name == "Cargo.toml" {
+                let relative = path.strip_prefix(&root).unwrap().to_string_lossy();
+                found.push((
+                    relative.replace('\\', "/"),
+                    fs::read_to_string(&path).unwrap(),
+                ));
             }
         }
     }
     found
 }
 
-/// The feature that makes principal constructors public is switched on in the normal dependencies
-/// of the composition root only; everywhere else a dev-dependency may enable it for tests, so a
-/// product build of any other crate cannot create a principal (issue #70).
-#[test]
-fn only_the_composition_root_enables_the_principal_feature_for_products() {
-    let mut offenders = Vec::new();
-    for manifest in manifests() {
-        let text = fs::read_to_string(&manifest).unwrap();
-        let mut section = "";
-        for line in text.lines() {
-            let line = line.trim();
-            if line.starts_with('[') {
-                section = line;
-            }
-            let enables = line.contains(FEATURE) && line.contains("codeskimr_domain");
-            let allowed = section == DEV_SECTION
-                || manifest
-                    .to_string_lossy()
-                    .replace('\\', "/")
-                    .ends_with(FEATURE_OWNER);
-            if enables && !allowed {
-                offenders.push(manifest.clone());
-            }
+/// Whether the manifest at `path` mentions the feature anywhere it must not. The feature may be
+/// defined in the domain crate, switched on in `[dev-dependencies]` or `[target.*.dev-dependencies]`
+/// of any crate, and switched on in the normal dependencies of the composition root only.
+fn mentions_feature_wrongly(path: &str, text: &str) -> bool {
+    let mut section = String::new();
+    for line in text.lines().map(str::trim) {
+        if line.starts_with('[') {
+            line.clone_into(&mut section);
+        }
+        if !line.contains(FEATURE) || line.starts_with('#') {
+            continue;
+        }
+        let allowed = line == FEATURE_DEFINITION
+            || section.contains("dev-dependencies")
+            || path == FEATURE_OWNER;
+        if !allowed {
+            return true;
         }
     }
+    false
+}
+
+/// The feature that makes principal constructors public is switched on in the normal dependencies
+/// of the composition root only; everywhere else a dev-dependency may enable it for tests. Cargo
+/// unifies features inside one build, so this test (and not the compiler) is what keeps a driving
+/// adapter from calling the constructors in production code (issue #70).
+#[test]
+fn only_the_composition_root_enables_the_principal_feature_for_products() {
+    let manifests = manifests();
+    assert!(manifests.len() > 10, "found {} manifests", manifests.len());
+    let offenders: Vec<_> = manifests
+        .iter()
+        .filter(|(path, text)| mentions_feature_wrongly(path, text))
+        .map(|(path, _)| path)
+        .collect();
     assert!(offenders.is_empty(), "{offenders:?}");
+}
+
+#[test]
+fn the_manifest_check_sees_every_form_of_switching_the_feature_on() {
+    let inline =
+        "[dependencies]\ncodeskimr_domain = { path = \"x\", features = [\"issue-principals\"] }\n";
+    let table =
+        "[dependencies.codeskimr_domain]\npath = \"x\"\nfeatures = [\"issue-principals\"]\n";
+    let target = "[target.'cfg(unix)'.dependencies]\ncodeskimr_domain = { path = \"x\", features = [\"issue-principals\"] }\n";
+    let default = "[features]\ndefault = [\"issue-principals\"]\n";
+    let workspace = "[workspace.dependencies]\ncodeskimr_domain = { path = \"x\", features = [\"issue-principals\"] }\n";
+    for text in [inline, table, target, default, workspace] {
+        assert!(
+            mentions_feature_wrongly("crates/server/Cargo.toml", text),
+            "{text}"
+        );
+        assert!(
+            mentions_feature_wrongly("crates/adapters/app/Cargo.toml", text),
+            "{text}"
+        );
+        assert!(mentions_feature_wrongly("Cargo.toml", text), "{text}");
+    }
+    assert!(!mentions_feature_wrongly(FEATURE_OWNER, inline));
+    let dev = "[dev-dependencies]\ncodeskimr_domain = { path = \"x\", features = [\"issue-principals\"] }\n";
+    let target_dev = "[target.'cfg(unix)'.dev-dependencies]\ncodeskimr_domain = { path = \"x\", features = [\"issue-principals\"] }\n";
+    assert!(!mentions_feature_wrongly("crates/server/Cargo.toml", dev));
+    assert!(!mentions_feature_wrongly(
+        "crates/server/Cargo.toml",
+        target_dev
+    ));
+    assert!(!mentions_feature_wrongly(
+        "crates/domain/Cargo.toml",
+        "[features]\nissue-principals = []\n"
+    ));
 }

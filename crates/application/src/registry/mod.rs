@@ -21,6 +21,8 @@ use std::sync::Arc;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{Permission, Principal};
 
+use crate::access;
+
 use crate::error::CodedError;
 
 struct Entry {
@@ -90,11 +92,14 @@ impl Registry {
         principal: &Principal,
         input: C::Input,
     ) -> Result<C::Output, CodedError> {
+        // The permission comes first, so that a caller without it cannot tell a registered command
+        // from an unregistered one.
+        access::require(principal, C::DESCRIPTOR.permission)?;
         let command = self
             .entries
             .get(&C::DESCRIPTOR.id)
             .and_then(|entry| entry.handler.downcast_ref::<C>())
             .ok_or_else(|| CodedError::new(ErrorCode::UnexpectedInternalError))?;
-        command.run(principal, input)
+        command.execute(Request { principal, input })
     }
 }
