@@ -17,6 +17,7 @@ These names must be entered as required status checks in the ruleset `main` (nam
 | `build (ubuntu-latest)` | release build | 17.3 (11) |
 | `build (windows-latest)` | release build | 17.3 (11) |
 | `build (macos-latest)` | release build | 17.3 (11) |
+| `test (windows-latest, indexer)` | `cargo test -p codeskimr_indexer` on Windows: process group (job object), timeout, cancel and limits of the level 2 runner (ADR 0033). Not in the ruleset yet. | 17.1, ADR 0033 |
 | `architecture` | crate dependency direction (`tools/ci/architecture.toml`, rule file must match the workspace) and module cycles between the top-level modules of each crate (`tools/ci/check_architecture.py`, own unit tests) | 4.2, R-04, 17.3 (5) |
 | `duplicates` | `jscpd`, threshold 0, 5 lines / 50 tokens (`.jscpd.json`) | R-01 |
 | `literals` | Dylint lint `no_literals` on the product crates (`tools/lints/no_literals`, own test cases), ESLint rules from `web/eslint.literals.config.js` once `web/package.json` exists | R-06, 3.2 |

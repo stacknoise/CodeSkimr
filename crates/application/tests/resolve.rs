@@ -347,7 +347,7 @@ mod tests {
     }
 
     #[test]
-    fn a_receiver_of_unknown_type_is_probable_for_one_type_and_dropped_for_unrelated_types() {
+    fn a_receiver_of_unknown_type_is_probable_for_one_type_and_keeps_every_unrelated_type() {
         let mut table = Table::default();
         let one = table.add(SymbolKind::Interface, "Demo.IOne", None, 1);
         let one_close = table.add(SymbolKind::Method, "Demo.IOne.Close", Some(one), 1);
@@ -357,8 +357,13 @@ mod tests {
         assert_eq!(targets(&found), [one_close]);
         assert_eq!(found[0].confidence, Confidence::Probable);
         let two = table.add(SymbolKind::Interface, "Demo.ITwo", None, 2);
-        table.add(SymbolKind::Method, "Demo.ITwo.Close", Some(two), 2);
-        assert_eq!(targets(&resolve(&table, &[call])), Vec::<SymbolId>::new());
+        let two_close = table.add(SymbolKind::Method, "Demo.ITwo.Close", Some(two), 2);
+        let both = resolve(&table, &[call]);
+        assert_eq!(targets(&both), [one_close, two_close]);
+        assert!(
+            both.iter()
+                .all(|r| r.confidence == Confidence::Probable && !r.verified)
+        );
     }
 
     #[test]
@@ -443,7 +448,7 @@ mod tests {
     }
 
     #[test]
-    fn a_receiver_name_of_unknown_type_does_not_pick_between_unrelated_types() {
+    fn a_receiver_name_of_unknown_type_keeps_every_unrelated_type_as_probable() {
         let mut shop = shop();
         shop.table
             .add(SymbolKind::Field, "Shop.Order.sink", Some(shop.order), 2);
@@ -451,10 +456,13 @@ mod tests {
             occurrence(shop.save, 2, ReferenceKind::Call, "Print"),
             "sink",
         );
-        // `Print` exists in two unrelated types, so no one of them is reported.
-        assert_eq!(
-            targets(&resolve(&shop.table, &[call])),
-            Vec::<SymbolId>::new()
+        // `Print` exists in two unrelated types: both are kept, probable and unchecked.
+        let found = resolve(&shop.table, &[call]);
+        assert_eq!(found.len(), 2);
+        assert!(
+            found
+                .iter()
+                .all(|r| r.confidence == Confidence::Probable && !r.verified)
         );
     }
 

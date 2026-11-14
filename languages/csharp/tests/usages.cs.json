@@ -5,56 +5,56 @@
       "loc": 51,
       "operands": null,
       "operators": null,
-      "symbol": "usages"
+      "symbol": "usages.cs"
     },
     {
       "decisions": null,
       "loc": 51,
       "operands": null,
       "operators": null,
-      "symbol": "usages.Demo"
+      "symbol": "Demo"
     },
     {
       "decisions": null,
       "loc": 10,
       "operands": null,
       "operators": null,
-      "symbol": "usages.Demo.Names"
+      "symbol": "Demo.Names"
     },
     {
       "decisions": null,
       "loc": 1,
       "operands": null,
       "operators": null,
-      "symbol": "usages.Demo.IOne"
+      "symbol": "Demo.IOne"
     },
     {
       "decisions": null,
       "loc": 1,
       "operands": null,
       "operators": null,
-      "symbol": "usages.Demo.IOne.Close"
+      "symbol": "Demo.IOne.Close"
     },
     {
       "decisions": null,
       "loc": 1,
       "operands": null,
       "operators": null,
-      "symbol": "usages.Demo.ITwo"
+      "symbol": "Demo.ITwo"
     },
     {
       "decisions": null,
       "loc": 1,
       "operands": null,
       "operators": null,
-      "symbol": "usages.Demo.ITwo.Close"
+      "symbol": "Demo.ITwo.Close"
     },
     {
       "decisions": null,
       "loc": 5,
       "operands": null,
       "operators": null,
-      "symbol": "usages.Demo.Svc"
+      "symbol": "Demo.Svc"
     },
     {
       "decisions": 0,
@@ -67,7 +67,7 @@
         0,
         0
       ],
-      "symbol": "usages.Demo.Svc.Make"
+      "symbol": "Demo.Svc.Make"
     },
     {
       "decisions": 0,
@@ -80,21 +80,21 @@
         0,
         0
       ],
-      "symbol": "usages.Demo.Svc.Load"
+      "symbol": "Demo.Svc.Load"
     },
     {
       "decisions": null,
       "loc": 1,
       "operands": null,
       "operators": null,
-      "symbol": "usages.Demo.Item"
+      "symbol": "Demo.Item"
     },
     {
       "decisions": null,
       "loc": 20,
       "operands": null,
       "operators": null,
-      "symbol": "usages.Demo.Caller"
+      "symbol": "Demo.Caller"
     },
     {
       "decisions": 0,
@@ -107,7 +107,7 @@
         0,
         0
       ],
-      "symbol": "usages.Demo.Caller.Take"
+      "symbol": "Demo.Caller.Take"
     },
     {
       "decisions": 0,
@@ -120,7 +120,7 @@
         2,
         2
       ],
-      "symbol": "usages.Demo.Caller.A"
+      "symbol": "Demo.Caller.A"
     },
     {
       "decisions": 0,
@@ -133,7 +133,7 @@
         2,
         2
       ],
-      "symbol": "usages.Demo.Caller.B"
+      "symbol": "Demo.Caller.B"
     },
     {
       "decisions": 1,
@@ -146,7 +146,7 @@
         4,
         5
       ],
-      "symbol": "usages.Demo.Caller.C"
+      "symbol": "Demo.Caller.C"
     },
     {
       "decisions": 0,
@@ -159,7 +159,7 @@
         1,
         1
       ],
-      "symbol": "usages.Demo.Caller.D"
+      "symbol": "Demo.Caller.D"
     },
     {
       "decisions": 0,
@@ -172,7 +172,7 @@
         2,
         2
       ],
-      "symbol": "usages.Demo.Caller.E"
+      "symbol": "Demo.Caller.E"
     },
     {
       "decisions": 0,
@@ -185,7 +185,7 @@
         2,
         2
       ],
-      "symbol": "usages.Demo.Caller.F"
+      "symbol": "Demo.Caller.F"
     },
     {
       "decisions": 0,
@@ -198,7 +198,7 @@
         2,
         2
       ],
-      "symbol": "usages.Demo.Caller.G"
+      "symbol": "Demo.Caller.G"
     },
     {
       "decisions": 0,
@@ -211,14 +211,14 @@
         1,
         2
       ],
-      "symbol": "usages.Demo.Caller.H"
+      "symbol": "Demo.Caller.H"
     },
     {
       "decisions": null,
       "loc": 12,
       "operands": null,
       "operators": null,
-      "symbol": "usages.Demo.Client"
+      "symbol": "Demo.Client"
     },
     {
       "decisions": 0,
@@ -231,231 +231,231 @@
         2,
         12
       ],
-      "symbol": "usages.Demo.Client.Go"
+      "symbol": "Demo.Client.Go"
     }
   ],
   "loc": 51,
   "references": [
     {
       "at": "18:11",
-      "from": "usages.Demo.Svc.Make",
+      "from": "Demo.Svc.Make",
       "kind": "type_use",
       "receiver": null,
       "target": "IOne"
     },
     {
       "at": "19:18",
-      "from": "usages.Demo.Svc.Load",
+      "from": "Demo.Svc.Load",
       "kind": "type_use",
       "receiver": null,
       "target": "T"
     },
     {
       "at": "27:22",
-      "from": "usages.Demo.Caller.A",
+      "from": "Demo.Caller.A",
       "kind": "call",
       "receiver": null,
       "target": "Take"
     },
     {
       "at": "27:27",
-      "from": "usages.Demo.Caller.A",
+      "from": "Demo.Caller.A",
       "kind": "read",
       "receiver": null,
       "target": "Names"
     },
     {
       "at": "27:33",
-      "from": "usages.Demo.Caller.A",
+      "from": "Demo.Caller.A",
       "kind": "read",
       "receiver": "named Names",
       "target": "Arg"
     },
     {
       "at": "28:31",
-      "from": "usages.Demo.Caller.B",
+      "from": "Demo.Caller.B",
       "kind": "read",
       "receiver": null,
       "target": "Names"
     },
     {
       "at": "28:37",
-      "from": "usages.Demo.Caller.B",
+      "from": "Demo.Caller.B",
       "kind": "read",
       "receiver": "named Names",
       "target": "Ret"
     },
     {
       "at": "33:17",
-      "from": "usages.Demo.Caller.C",
+      "from": "Demo.Caller.C",
       "kind": "read",
       "receiver": null,
       "target": "Names"
     },
     {
       "at": "33:23",
-      "from": "usages.Demo.Caller.C",
+      "from": "Demo.Caller.C",
       "kind": "read",
       "receiver": "named Names",
       "target": "Case"
     },
     {
       "at": "37:21",
-      "from": "usages.Demo.Caller.D",
+      "from": "Demo.Caller.D",
       "kind": "read",
       "receiver": null,
       "target": "Names"
     },
     {
       "at": "37:27",
-      "from": "usages.Demo.Caller.D",
+      "from": "Demo.Caller.D",
       "kind": "read",
       "receiver": "named Names",
       "target": "Attr"
     },
     {
       "at": "39:17",
-      "from": "usages.Demo.Caller.E",
+      "from": "Demo.Caller.E",
       "kind": "type_use",
       "receiver": null,
       "target": "Item"
     },
     {
       "at": "39:42",
-      "from": "usages.Demo.Caller.E",
+      "from": "Demo.Caller.E",
       "kind": "read",
       "receiver": "typed Item",
       "target": "Count"
     },
     {
       "at": "40:17",
-      "from": "usages.Demo.Caller.F",
+      "from": "Demo.Caller.F",
       "kind": "type_use",
       "receiver": null,
       "target": "IOne"
     },
     {
       "at": "40:40",
-      "from": "usages.Demo.Caller.F",
+      "from": "Demo.Caller.F",
       "kind": "read",
       "receiver": "typed IOne",
       "target": "Size"
     },
     {
       "at": "41:44",
-      "from": "usages.Demo.Caller.G",
+      "from": "Demo.Caller.G",
       "kind": "read",
       "receiver": null,
       "target": "Names"
     },
     {
       "at": "41:50",
-      "from": "usages.Demo.Caller.G",
+      "from": "Demo.Caller.G",
       "kind": "read",
       "receiver": "named Names",
       "target": "Lambda"
     },
     {
       "at": "42:36",
-      "from": "usages.Demo.Caller.H",
+      "from": "Demo.Caller.H",
       "kind": "read",
       "receiver": null,
       "target": "Value"
     },
     {
       "at": "42:44",
-      "from": "usages.Demo.Caller.H",
+      "from": "Demo.Caller.H",
       "kind": "read",
       "receiver": null,
       "target": "Names"
     },
     {
       "at": "42:50",
-      "from": "usages.Demo.Caller.H",
+      "from": "Demo.Caller.H",
       "kind": "read",
       "receiver": "named Names",
       "target": "Init"
     },
     {
       "at": "42:74",
-      "from": "usages.Demo.Caller.H",
+      "from": "Demo.Caller.H",
       "kind": "read",
       "receiver": null,
       "target": "Names"
     },
     {
       "at": "42:80",
-      "from": "usages.Demo.Caller.H",
+      "from": "Demo.Caller.H",
       "kind": "read",
       "receiver": "named Names",
       "target": "Cond"
     },
     {
       "at": "47:12",
-      "from": "usages.Demo.Client.Go",
+      "from": "Demo.Client.Go",
       "kind": "type_use",
       "receiver": null,
       "target": "Svc"
     },
     {
       "at": "49:20",
-      "from": "usages.Demo.Client.Go",
+      "from": "Demo.Client.Go",
       "kind": "call",
       "receiver": "typed Svc",
       "target": "Make"
     },
     {
       "at": "50:10",
-      "from": "usages.Demo.Client.Go",
+      "from": "Demo.Client.Go",
       "kind": "call",
       "receiver": "unknown",
       "target": "Close"
     },
     {
       "at": "51:16",
-      "from": "usages.Demo.Client.Go",
+      "from": "Demo.Client.Go",
       "kind": "read",
       "receiver": null,
       "target": "Svc"
     },
     {
       "at": "51:20",
-      "from": "usages.Demo.Client.Go",
+      "from": "Demo.Client.Go",
       "kind": "call",
       "receiver": "named Svc",
       "target": "Load"
     },
     {
       "at": "51:25",
-      "from": "usages.Demo.Client.Go",
+      "from": "Demo.Client.Go",
       "kind": "type_use",
       "receiver": null,
       "target": "ITwo"
     },
     {
       "at": "52:10",
-      "from": "usages.Demo.Client.Go",
+      "from": "Demo.Client.Go",
       "kind": "call",
       "receiver": "unknown",
       "target": "Close"
     },
     {
       "at": "53:17",
-      "from": "usages.Demo.Client.Go",
+      "from": "Demo.Client.Go",
       "kind": "type_use",
       "receiver": null,
       "target": "IOne"
     },
     {
       "at": "53:26",
-      "from": "usages.Demo.Client.Go",
+      "from": "Demo.Client.Go",
       "kind": "call",
       "receiver": "typed Svc",
       "target": "Make"
     },
     {
       "at": "54:10",
-      "from": "usages.Demo.Client.Go",
+      "from": "Demo.Client.Go",
       "kind": "call",
       "receiver": "typed IOne",
       "target": "Close"
@@ -465,7 +465,7 @@
     {
       "doc": null,
       "kind": "module",
-      "name": "usages",
+      "name": "usages.cs",
       "parent": null,
       "signature": null,
       "span": "0:0-57:0",
@@ -475,8 +475,8 @@
     {
       "doc": null,
       "kind": "namespace",
-      "name": "usages.Demo",
-      "parent": "usages",
+      "name": "Demo",
+      "parent": "usages.cs",
       "signature": null,
       "span": "0:0-57:0",
       "static": false,
@@ -485,8 +485,8 @@
     {
       "doc": null,
       "kind": "class",
-      "name": "usages.Demo.Names",
-      "parent": "usages.Demo",
+      "name": "Demo.Names",
+      "parent": "Demo",
       "signature": null,
       "span": "2:0-11:1",
       "static": true,
@@ -495,8 +495,8 @@
     {
       "doc": null,
       "kind": "constant",
-      "name": "usages.Demo.Names.Arg",
-      "parent": "usages.Demo.Names",
+      "name": "Demo.Names.Arg",
+      "parent": "Demo.Names",
       "signature": "Arg = \"a\"",
       "span": "4:24-4:33",
       "static": false,
@@ -505,8 +505,8 @@
     {
       "doc": null,
       "kind": "constant",
-      "name": "usages.Demo.Names.Ret",
-      "parent": "usages.Demo.Names",
+      "name": "Demo.Names.Ret",
+      "parent": "Demo.Names",
       "signature": "Ret = \"r\"",
       "span": "5:24-5:33",
       "static": false,
@@ -515,8 +515,8 @@
     {
       "doc": null,
       "kind": "constant",
-      "name": "usages.Demo.Names.Case",
-      "parent": "usages.Demo.Names",
+      "name": "Demo.Names.Case",
+      "parent": "Demo.Names",
       "signature": "Case = \"c\"",
       "span": "6:24-6:34",
       "static": false,
@@ -525,8 +525,8 @@
     {
       "doc": null,
       "kind": "constant",
-      "name": "usages.Demo.Names.Attr",
-      "parent": "usages.Demo.Names",
+      "name": "Demo.Names.Attr",
+      "parent": "Demo.Names",
       "signature": "Attr = \"t\"",
       "span": "7:24-7:34",
       "static": false,
@@ -535,8 +535,8 @@
     {
       "doc": null,
       "kind": "constant",
-      "name": "usages.Demo.Names.Lambda",
-      "parent": "usages.Demo.Names",
+      "name": "Demo.Names.Lambda",
+      "parent": "Demo.Names",
       "signature": "Lambda = \"l\"",
       "span": "8:24-8:36",
       "static": false,
@@ -545,8 +545,8 @@
     {
       "doc": null,
       "kind": "constant",
-      "name": "usages.Demo.Names.Init",
-      "parent": "usages.Demo.Names",
+      "name": "Demo.Names.Init",
+      "parent": "Demo.Names",
       "signature": "Init = \"i\"",
       "span": "9:24-9:34",
       "static": false,
@@ -555,8 +555,8 @@
     {
       "doc": null,
       "kind": "constant",
-      "name": "usages.Demo.Names.Cond",
-      "parent": "usages.Demo.Names",
+      "name": "Demo.Names.Cond",
+      "parent": "Demo.Names",
       "signature": "Cond = \"q\"",
       "span": "10:24-10:34",
       "static": false,
@@ -565,8 +565,8 @@
     {
       "doc": null,
       "kind": "interface",
-      "name": "usages.Demo.IOne",
-      "parent": "usages.Demo",
+      "name": "Demo.IOne",
+      "parent": "Demo",
       "signature": null,
       "span": "13:0-13:57",
       "static": false,
@@ -575,8 +575,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "usages.Demo.IOne.Close",
-      "parent": "usages.Demo.IOne",
+      "name": "Demo.IOne.Close",
+      "parent": "Demo.IOne",
       "signature": null,
       "span": "13:24-13:37",
       "static": false,
@@ -585,8 +585,8 @@
     {
       "doc": null,
       "kind": "property",
-      "name": "usages.Demo.IOne.Size",
-      "parent": "usages.Demo.IOne",
+      "name": "Demo.IOne.Size",
+      "parent": "Demo.IOne",
       "signature": null,
       "span": "13:38-13:55",
       "static": false,
@@ -595,8 +595,8 @@
     {
       "doc": null,
       "kind": "interface",
-      "name": "usages.Demo.ITwo",
-      "parent": "usages.Demo",
+      "name": "Demo.ITwo",
+      "parent": "Demo",
       "signature": null,
       "span": "14:0-14:39",
       "static": false,
@@ -605,8 +605,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "usages.Demo.ITwo.Close",
-      "parent": "usages.Demo.ITwo",
+      "name": "Demo.ITwo.Close",
+      "parent": "Demo.ITwo",
       "signature": null,
       "span": "14:24-14:37",
       "static": false,
@@ -615,8 +615,8 @@
     {
       "doc": null,
       "kind": "class",
-      "name": "usages.Demo.Svc",
-      "parent": "usages.Demo",
+      "name": "Demo.Svc",
+      "parent": "Demo",
       "signature": null,
       "span": "16:0-20:1",
       "static": false,
@@ -625,8 +625,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "usages.Demo.Svc.Make",
-      "parent": "usages.Demo.Svc",
+      "name": "Demo.Svc.Make",
+      "parent": "Demo.Svc",
       "signature": null,
       "span": "18:4-18:31",
       "static": false,
@@ -635,8 +635,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "usages.Demo.Svc.Load",
-      "parent": "usages.Demo.Svc",
+      "name": "Demo.Svc.Load",
+      "parent": "Demo.Svc",
       "signature": null,
       "span": "19:4-19:41",
       "static": true,
@@ -645,8 +645,8 @@
     {
       "doc": null,
       "kind": "class",
-      "name": "usages.Demo.Item",
-      "parent": "usages.Demo",
+      "name": "Demo.Item",
+      "parent": "Demo",
       "signature": null,
       "span": "22:0-22:52",
       "static": false,
@@ -655,8 +655,8 @@
     {
       "doc": null,
       "kind": "property",
-      "name": "usages.Demo.Item.Count",
-      "parent": "usages.Demo.Item",
+      "name": "Demo.Item.Count",
+      "parent": "Demo.Item",
       "signature": null,
       "span": "22:20-22:50",
       "static": false,
@@ -665,8 +665,8 @@
     {
       "doc": null,
       "kind": "class",
-      "name": "usages.Demo.Caller",
-      "parent": "usages.Demo",
+      "name": "Demo.Caller",
+      "parent": "Demo",
       "signature": null,
       "span": "24:0-43:1",
       "static": false,
@@ -675,8 +675,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "usages.Demo.Caller.Take",
-      "parent": "usages.Demo.Caller",
+      "name": "Demo.Caller.Take",
+      "parent": "Demo.Caller",
       "signature": null,
       "span": "26:4-26:34",
       "static": false,
@@ -685,8 +685,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "usages.Demo.Caller.A",
-      "parent": "usages.Demo.Caller",
+      "name": "Demo.Caller.A",
+      "parent": "Demo.Caller",
       "signature": null,
       "span": "27:4-27:40",
       "static": false,
@@ -695,8 +695,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "usages.Demo.Caller.B",
-      "parent": "usages.Demo.Caller",
+      "name": "Demo.Caller.B",
+      "parent": "Demo.Caller",
       "signature": null,
       "span": "28:4-28:43",
       "static": false,
@@ -705,8 +705,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "usages.Demo.Caller.C",
-      "parent": "usages.Demo.Caller",
+      "name": "Demo.Caller.C",
+      "parent": "Demo.Caller",
       "signature": null,
       "span": "29:4-36:5",
       "static": false,
@@ -715,8 +715,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "usages.Demo.Caller.D",
-      "parent": "usages.Demo.Caller",
+      "name": "Demo.Caller.D",
+      "parent": "Demo.Caller",
       "signature": null,
       "span": "37:4-38:23",
       "static": false,
@@ -725,8 +725,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "usages.Demo.Caller.E",
-      "parent": "usages.Demo.Caller",
+      "name": "Demo.Caller.E",
+      "parent": "Demo.Caller",
       "signature": null,
       "span": "39:4-39:50",
       "static": false,
@@ -735,8 +735,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "usages.Demo.Caller.F",
-      "parent": "usages.Demo.Caller",
+      "name": "Demo.Caller.F",
+      "parent": "Demo.Caller",
       "signature": null,
       "span": "40:4-40:47",
       "static": false,
@@ -745,8 +745,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "usages.Demo.Caller.G",
-      "parent": "usages.Demo.Caller",
+      "name": "Demo.Caller.G",
+      "parent": "Demo.Caller",
       "signature": null,
       "span": "41:4-41:57",
       "static": false,
@@ -755,8 +755,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "usages.Demo.Caller.H",
-      "parent": "usages.Demo.Caller",
+      "name": "Demo.Caller.H",
+      "parent": "Demo.Caller",
       "signature": null,
       "span": "42:4-42:89",
       "static": false,
@@ -765,8 +765,8 @@
     {
       "doc": null,
       "kind": "class",
-      "name": "usages.Demo.Client",
-      "parent": "usages.Demo",
+      "name": "Demo.Client",
+      "parent": "Demo",
       "signature": null,
       "span": "45:0-56:1",
       "static": false,
@@ -775,8 +775,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "usages.Demo.Client.Go",
-      "parent": "usages.Demo.Client",
+      "name": "Demo.Client.Go",
+      "parent": "Demo.Client",
       "signature": null,
       "span": "47:4-55:5",
       "static": false,

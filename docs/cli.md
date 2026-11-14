@@ -1,6 +1,6 @@
 # CLI and composition root (WP-25)
 
-Implements the first part of blueprint section 10.2: `codeskimr scan` and `codeskimr mcp`. `codeskimr serve` came with WP-41 (see `docs/server.md`) and `codeskimr check` with WP-35 (see `docs/conventions.md`). `codeskimr export` came with WP-75 (see `docs/export.md`). The other commands (`codes`, and the bare `codeskimr` that starts the app) follow with their packages.
+Implements the first part of blueprint section 10.2: `codeskimr scan` and `codeskimr mcp`. `codeskimr serve` came with WP-41 (see `docs/server.md`) and `codeskimr check` with WP-35 (see `docs/conventions.md`). `codeskimr export` came with WP-75 (see `docs/export.md`). The other command, `codes`, follows with its package. The bare `codeskimr` starts the server and opens the browser (see `docs/server.md`).
 
 ## Structure
 
@@ -15,9 +15,9 @@ codeskimr scan <path|git-url> [--branch <name>] [--json] [--watch] [--credential
 
 1. The argument is an existing folder (made absolute) or a Git URL (`https://`, `http://`, `ssh://`, `git://`, `git@…`, or ending in `.git`). A Git URL with secrets in it (user info for HTTP(S), a password anywhere, a query or a fragment, in any letter case) is refused with `PRJ-101` and a second line that names the reason: they would be stored in the database and printed (blueprint 12). A bare SSH user name (`git@host:org/repo`) is fine. `--branch` only applies to Git sources and is ignored for folders. On Windows the `\\?\` prefix of the absolute path is removed (UNC paths keep it). The branch defaults to `main`.
 2. The source is registered as a project (the same source is registered once; scanning again reuses the project).
-3. One full scan runs: fetch, discover, analyze, resolve, measure, persist. A new snapshot is written; `--json` prints `{project, snapshot, files, symbols, references, seconds}` on one line, otherwise a two-line summary in the language of the user.
+3. One full scan runs: fetch, discover, analyze, resolve, measure, persist. A new snapshot is written; `--json` prints `{project, snapshot, files, symbols, references, seconds, tools}` on one line (`tools` is the result of the tool check, `docs/tools-check.md`), otherwise a two-line summary in the language of the user, followed by one line for each tool of level 2 that is missing, too old or whose version could not be read, with its purpose and install hint. A failed tool check never fails the scan.
 4. Without `--watch` the scan is full and the command ends.
-5. With `--watch` (ADR 0029) the command keeps running after the first full scan. The watcher (`watcher.debounce_ms`, `watcher.max_wait_ms`, `scan.excluded_folders`) publishes `FilesChanged`; `watch.rs` turns the changes that piled up into one incremental scan, or into a full scan if the operating system lost events. Scans never overlap. Each re-scan prints one line (`N changed files scanned again in M ms.`; with `--json` the usual summary line). A failed re-scan prints its error and watching goes on. Only folders can be watched: a Git URL fails with `CLI-102`. Stop with Ctrl+C.
+5. With `--watch` (ADR 0029) the command keeps running after the first full scan. The watcher (`watcher.debounce_ms`, `watcher.max_wait_ms`, `scan.excluded_folders`) publishes `FilesChanged`; `watch.rs` turns the changes that piled up into one incremental scan, or into a full scan if the operating system lost events. Scans never overlap. Re-scans do not check the tools again (`docs/tools-check.md`). Each re-scan prints one line (`N changed files scanned again in M ms.`; with `--json` the usual summary line). A failed re-scan prints its error and watching goes on. Only folders can be watched: a Git URL fails with `CLI-102`. Stop with Ctrl+C.
 
 `--credential <id>` names a stored credential (see below) that logs in to a Git source; for a folder it fails with `PRJ-101`. Without it the system's Git credential helper decides, and there is never a prompt on the terminal (the clone runs with `gitoxide.credentials.terminalPrompt=false`), so a server or an MCP session cannot hang on a login.
 
@@ -41,6 +41,10 @@ codeskimr credential login <id> --provider github|gitlab --client-id <id> [--hos
 Manages the credentials in the keystore of the operating system (blueprint 12.2, `docs/secrets.md`). `set` stores or replaces one: the secret is read without echo from the terminal, or from standard input if there is none (`printf %s "$TOKEN" | codeskimr credential set work --user anton`). There is no flag for the secret, so it never lands in a shell history, a process list or an environment dump. An empty secret fails with `CLI-103`. `delete` removes the entry; a missing one is not an error. `login` runs the OAuth device flow: it prints a page and a short code, waits until the user has approved in the browser and stores the token (`NET-601` if the sign-in does not finish). The name `installation-token` belongs to the local server and is refused (`CLI-101`). Only the name of the credential is ever printed.
 
 `--client-id` is the id of an OAuth application that is registered at the platform (not a secret). `--host` selects a self-managed installation and must be an HTTPS address.
+
+## `codeskimr level2 confirm|revoke <project>`
+
+Allows or forbids level 2 (the indexers of ADR 0033, which run the build tools of the project) for one project. `<project>` is the project id or the folder or Git URL it was scanned from, as for `export`. `confirm` needs a terminal on standard input and output: it prints what level 2 runs and with which rights (file and network access, no sandbox, the binding to source, location and branch and not to a commit) then shows the name, the location (folder or Git address) and the branch of the project the argument resolved to (a numeric id is resolved too). A Git URL resolves only the default branch of that repository; a project at another branch is addressed by its id. It starts only if the user types the name of that project (no fixed word such as `yes`). The project is read again after the answer and nothing is stored if its name, location or branch changed in the meantime. Without a terminal it fails with `SEC-403`; nothing can pass the word as an argument or through a pipe. `revoke` forbids it again at once. Nothing else confirms level 2: not MCP, not the server, not watch mode (`tests/consent_origin.rs` checks the source). Only `codeskimr scan` starts the indexers; `scan` prints one line per language with an indexer: "Level 2: ... checked" or "skipped (reason)".
 
 ## `codeskimr open`
 
@@ -102,7 +106,7 @@ The package added two keys: `scan.parse_timeout_ms` (default 5000, `PRS-501` on 
 
 - References come from the level-1 resolver (`docs/references.md`).
 - The language packs are read from a folder (see `--languages`); embedding them in the binary comes with the release package.
-- `Ctrl+C` ends the process; cancelling a scan cleanly (`CancelToken`) is wired with the server.
+- `Ctrl+C` ends the process; the server cancels a scan cleanly through `CancelToken` (`projects.cancel`, `docs/server.md`); the CLI does not, so the process just ends.
 - A user config error that is not TOML syntax (unreadable file) is reported as `CFG-102`.
 
 ## Caller identity

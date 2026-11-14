@@ -9,7 +9,16 @@ const config = {
 describe("buildEditorUrl", () => {
   it("fills in path and line", () => {
     expect(buildEditorUrl(config, "/home/anton/src/a.rs", 42)).toBe(
-      "vscode://file//home/anton/src/a.rs:42",
+      "vscode://file/home/anton/src/a.rs:42",
+    );
+  });
+
+  it("keeps the leading slash when the template has none before the path", () => {
+    expect(
+      buildEditorUrl({ ...config, url_template: "vscode://file{path}" }, "/home/a.rs", 1),
+    ).toBe("vscode://file/home/a.rs");
+    expect(buildEditorUrl(config, "C:\\Users\\Anna\\a.cs", 3)).toBe(
+      "vscode://file/C:/Users/Anna/a.cs:3",
     );
   });
 

@@ -2,15 +2,22 @@
 
 use std::sync::{Arc, Mutex, PoisonError};
 
+#[cfg(test)]
+mod common;
+
 use codeskimr_application::cancel::CancelToken;
+use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::{Event, EventBus, StopReason};
 use codeskimr_application::ids::IdSequence;
+use codeskimr_application::level2::{Level2Pass, confirm};
 use codeskimr_application::pipeline::{Job, JobResult, Scanner, ScannerPorts};
 use codeskimr_application::ports::{
-    AnalyzeRequest, Clock, DiscoveredFile, FetchedSource, FileAnalyzer, FileDiscovery, FileFacts,
-    MetricsCalculator, PendingReference, PreviousIndex, ProjectRepository, ProjectScanner,
-    ReferenceResolver, SnapshotData, SnapshotStore, SourceProvider, SymbolFingerprints,
+    AnalyzeRequest, Clock, ConsentStore, DiscoveredFile, FetchedSource, FileAnalyzer,
+    FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob, IndexRunner,
+    IndexerSpec, IndexerStatus, MetricsCalculator, PendingReference, PreviousIndex,
+    ProjectRepository, ProjectScanner, ReferenceImporter, ReferenceReplacement, ReferenceResolver,
+    SnapshotData, SnapshotStore, SourceProvider, SymbolFingerprints, ToolSpec, ToolVersion,
 };
 use codeskimr_application::stage::StageKind;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -21,6 +28,7 @@ use codeskimr_domain::{
     ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile, Span,
     Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName, Timestamp,
 };
+use common::InMemoryConsent;
 
 /// The newest snapshot as the repository reports it.
 #[derive(Default, Clone)]
@@ -40,6 +48,8 @@ struct World {
     found: Option<Vec<(&'static str, bool)>>,
     missing_project: bool,
     panic_in_analyze: bool,
+    /// The naming rules of the packs, and those the previous snapshot was scanned with.
+    rules: (&'static str, Option<&'static str>),
     persisted: Mutex<Vec<SnapshotData>>,
     measured: Mutex<Vec<(usize, usize)>>,
     counted: Mutex<Vec<usize>>,
@@ -151,6 +161,10 @@ fn counted(symbol: SymbolId) -> SymbolCounts {
 }
 
 impl FileAnalyzer for World {
+    fn naming_rules(&self) -> String {
+        self.rules.0.to_owned()
+    }
+
     fn analyze(&self, request: &AnalyzeRequest<'_>) -> Result<FileFacts, CodedError> {
         self.gate(StageKind::Analyze)?;
         assert!(!self.panic_in_analyze, "the analyzer panics");
@@ -227,6 +241,7 @@ impl ReferenceResolver for World {
                     span: item.span,
                     kind: item.kind,
                     confidence: codeskimr_domain::Confidence::Certain,
+                    verified: false,
                 })
             })
             .collect())
@@ -277,6 +292,10 @@ impl ProjectRepository for World {
     fn latest_index(&self, _: ProjectId) -> Result<PreviousIndex, CodedError> {
         Ok(self.previous.index.clone())
     }
+
+    fn latest_naming_rules(&self, _: ProjectId) -> Result<Option<String>, CodedError> {
+        Ok(self.rules.1.map(str::to_owned))
+    }
 }
 
 impl SnapshotStore for World {
@@ -288,6 +307,10 @@ impl SnapshotStore for World {
             .unwrap_or_else(PoisonError::into_inner)
             .push(data);
         Ok(snapshot)
+    }
+
+    fn replace_references(&self, _: ReferenceReplacement) -> Result<Snapshot, CodedError> {
+        Err(CodedError::new(ErrorCode::UnexpectedInternalError))
     }
 }
 
@@ -411,6 +434,7 @@ fn old_call(id: u64, to: u64) -> Result<Reference, CodedError> {
         span: span()?,
         kind: ReferenceKind::Call,
         confidence: Confidence::Certain,
+        verified: false,
     })
 }
 
@@ -525,6 +549,29 @@ fn every_stage_reports_how_much_work_it_has_and_finishes_it() {
         assert!(
             total > 0 && done == total,
             "{stage:?} ended at {done}/{total}"
+        );
+    }
+}
+
+#[test]
+fn a_stage_reports_its_time_and_repeats_its_last_counts_when_it_is_over() {
+    let world = Arc::new(World::default());
+    let (_, events) = run(&world, ScanMode::Full);
+    for stage in StageKind::ALL {
+        let reports: Vec<_> = events
+            .iter()
+            .filter_map(|event| match event {
+                Event::ScanProgressed(p) if p.stage == *stage => Some(p),
+                _ => None,
+            })
+            .collect();
+        let [.., before, closing] = reports.as_slice() else {
+            panic!("{stage:?} reported less than twice");
+        };
+        assert_eq!((closing.done, closing.total), (before.done, before.total));
+        assert!(
+            closing.elapsed_ms >= before.elapsed_ms,
+            "{stage:?} ran backwards in time"
         );
     }
 }
@@ -834,4 +881,150 @@ fn a_panicking_analysis_worker_fails_the_scan_with_an_internal_error() {
         matches!(result, JobResult::Failed(job) if job.code() == ErrorCode::UnexpectedInternalError)
     );
     assert_eq!(world.persisted_count(), 0);
+}
+
+/// Counts the runs it is asked for and fails each, so that nothing is imported.
+struct CountingRunner(Mutex<u32>);
+
+impl IndexRunner for CountingRunner {
+    fn check(&self, _: &IndexerSpec) -> IndexerStatus {
+        IndexerStatus::Ready
+    }
+
+    fn run(&self, _: &IndexJob<'_>, _: &CancelToken) -> Result<IndexArtifact, CodedError> {
+        *self.0.lock().unwrap_or_else(PoisonError::into_inner) += 1;
+        Err(CodedError::new(ErrorCode::UnexpectedInternalError))
+    }
+}
+
+struct NoImport;
+
+impl ReferenceImporter for NoImport {
+    fn import(&self, _: &ImportRequest<'_>) -> Result<Imported, CodedError> {
+        Err(CodedError::new(ErrorCode::UnexpectedInternalError))
+    }
+}
+
+fn rust_indexer() -> IndexerSpec {
+    let tool = ToolSpec {
+        program: "rust-analyzer".to_owned(),
+        version_args: Vec::new(),
+        min_version: ToolVersion::default(),
+    };
+    IndexerSpec {
+        name: "rust-analyzer".to_owned(),
+        indexer: tool,
+        toolchain: Vec::new(),
+        args: Vec::new(),
+        env_allow: Vec::new(),
+        env: Vec::new(),
+        install_hint: String::new(),
+    }
+}
+
+/// A scanner with a confirmed second pass whose runner counts, and that counter.
+fn level2_scanner(world: &Arc<World>) -> Result<(Scanner, Arc<CountingRunner>), CodedError> {
+    let consent: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
+    confirm(
+        &Principal::local_owner(),
+        consent.as_ref(),
+        ProjectId::new(7),
+    )?;
+    let runner = Arc::new(CountingRunner(Mutex::default()));
+    let ids = Arc::new(IdSequence::starting_at(5000));
+    let pass = Level2Pass {
+        runner: runner.clone(),
+        importer: Arc::new(NoImport),
+        consent,
+        discovery: world.clone(),
+        projects: world.clone(),
+        store: world.clone(),
+        ids,
+        max_file_bytes: u64::from(u32::MAX),
+        settings: Config::resolve(&[]).map_err(CodedError::caused_by)?.level2,
+        indexers: vec![(model(LanguageId::new("rust"))?, rust_indexer())],
+    };
+    let bus = EventBus::new();
+    Ok((scanner(world, &bus).with_level2(pass), runner))
+}
+
+fn runs(runner: &CountingRunner) -> u32 {
+    *runner.0.lock().unwrap_or_else(PoisonError::into_inner)
+}
+
+#[test]
+fn only_a_job_that_wants_level_two_starts_an_indexer() -> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let (scanner, runner) = level2_scanner(&world)?;
+    let owner = Principal::local_owner();
+    let job = || Job::new(ProjectId::new(7), ScanMode::Incremental);
+    let _ = scanner.run(&owner, job().without_level2());
+    assert_eq!(runs(&runner), 0, "watch mode scans after the first");
+    scanner.rescan(&owner, ProjectId::new(7))?;
+    assert_eq!(
+        runs(&runner),
+        0,
+        "a rescan of MCP or the UI is level 1 only"
+    );
+    let _ = scanner.run(&owner, job());
+    assert_eq!(runs(&runner), 0, "a job asks for level 2 explicitly");
+    let _ = scanner.run(&owner, job().with_level2());
+    assert_eq!(
+        runs(&runner),
+        1,
+        "the scan of the command line runs level 2"
+    );
+    Ok(())
+}
+
+/// The world of `a_unchanged_b_changed` with these naming rules (now, kept by the last snapshot).
+fn world_with_rules(
+    now: &'static str,
+    kept: Option<&'static str>,
+) -> Result<Arc<World>, CodedError> {
+    Ok(Arc::new(World {
+        found: Some(vec![("a.rs", false), ("b.rs", true)]),
+        previous: previous_snapshot()?,
+        rules: (now, kept),
+        ..World::default()
+    }))
+}
+
+#[test]
+fn an_incremental_scan_after_other_naming_rules_is_a_full_scan() -> Result<(), CodedError> {
+    for kept in [None, Some("csharp=file")] {
+        let world = world_with_rules("csharp=namespace", kept)?;
+        let (result, _) = run(&world, ScanMode::Incremental);
+        let JobResult::Finished(job) = result else {
+            panic!("scan did not finish");
+        };
+        let persisted = world.last_persisted()?;
+        let paths: Vec<_> = persisted.files.iter().map(|f| f.path.as_str()).collect();
+        assert_eq!(paths, ["a.rs", "b.rs"], "every file is analysed again");
+        assert_eq!(job.snapshot().mode, ScanMode::Full);
+        assert_eq!(persisted.naming_rules, "csharp=namespace");
+        assert_eq!(persisted.removed, Vec::<RelativePath>::new());
+    }
+    Ok(())
+}
+
+#[test]
+fn an_incremental_scan_with_the_same_naming_rules_stays_incremental() -> Result<(), CodedError> {
+    let world = world_with_rules("csharp=namespace", Some("csharp=namespace"))?;
+    let (result, _) = run(&world, ScanMode::Incremental);
+    let JobResult::Finished(job) = result else {
+        panic!("scan did not finish");
+    };
+    let paths: Vec<_> = world
+        .last_persisted()?
+        .files
+        .iter()
+        .map(|f| f.path.as_str().to_owned())
+        .collect();
+    assert_eq!(paths, ["b.rs"]);
+    assert_eq!(job.snapshot().mode, ScanMode::Incremental);
+    Ok(())
 }

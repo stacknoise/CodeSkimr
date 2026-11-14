@@ -135,7 +135,21 @@ pub async fn start_with(
 ) -> Running {
     let wipes = Arc::new(AtomicUsize::new(0));
     let events = EventBus::new();
-    let server = test_server(&wipes, &events, principal, dir, lifetime);
+    let server = test_server(&wipes, &events, principal, (dir, &[]), lifetime);
+    run(server, wipes, events).await
+}
+
+/// Starts a server that serves the UI files compiled into the program.
+pub async fn start_embedded(files: &'static [codeskimr_server::EmbeddedFile]) -> Running {
+    let wipes = Arc::new(AtomicUsize::new(0));
+    let events = EventBus::new();
+    let server = test_server(
+        &wipes,
+        &events,
+        owner(),
+        (None, files),
+        Duration::from_secs(60),
+    );
     run(server, wipes, events).await
 }
 
@@ -143,7 +157,13 @@ pub async fn start_with(
 pub async fn start_mcp(principal: Principal) -> Running {
     let wipes = Arc::new(AtomicUsize::new(0));
     let events = EventBus::new();
-    let server = test_server(&wipes, &events, principal, None, Duration::from_secs(60));
+    let server = test_server(
+        &wipes,
+        &events,
+        principal,
+        (None, &[]),
+        Duration::from_secs(60),
+    );
     run(server.with_mcp(Ping), wipes, events).await
 }
 
@@ -174,7 +194,10 @@ fn test_server(
     wipes: &Arc<AtomicUsize>,
     events: &EventBus,
     principal: Principal,
-    dir: Option<std::path::PathBuf>,
+    ui: (
+        Option<std::path::PathBuf>,
+        &'static [codeskimr_server::EmbeddedFile],
+    ),
     lifetime: Duration,
 ) -> Server {
     Server::new(
@@ -183,7 +206,8 @@ fn test_server(
         principal,
         InstallationToken::from_token(TOKEN),
         UiOptions {
-            dir,
+            dir: ui.0,
+            embedded: ui.1,
             launch_lifetime: lifetime,
             settings: UiSettings {
                 editor: EditorSettings {

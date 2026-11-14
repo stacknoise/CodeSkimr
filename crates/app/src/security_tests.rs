@@ -8,24 +8,24 @@
 
 use std::fs;
 use std::path::Path;
+use std::sync::Arc;
 use std::sync::mpsc::channel;
 
 use codeskimr_application::ports::{Credential, CredentialStore};
 use codeskimr_cli::GlobalOptions;
 use codeskimr_domain::CredentialId;
-use codeskimr_secrets::KeystoreCredentials;
 use secrecy::SecretString;
 use serde_json::{Value, json};
 use tokio::sync::oneshot;
 
 use crate::mcp::http_service;
 use crate::mcp_http_tests::{locations, rpc, send};
-use crate::memory_keystore::Memory;
+use crate::memory_keystore::secrets as memory_secrets;
 use crate::serve::{Parts, serve_for_test, test_ui};
 use crate::ui_commands::command_api;
 use crate::{config_files, installation_token};
 
-const CREDENTIAL_CANARY: &str = "ghp_CANARY0c4e7a91d2b84f6e9a30cc11";
+pub(crate) const CREDENTIAL_CANARY: &str = "ghp_CANARY0c4e7a91d2b84f6e9a30cc11";
 /// A class name, so that a scan that followed the link would index it as a symbol.
 const FILE_CANARY: &str = "CanaryOutside6b1d";
 /// The same, inside the project: the control that the search finds what is really there.
@@ -33,18 +33,18 @@ const INSIDE: &str = "CanaryInside6b1d";
 const COMMANDS: &str = "/api/v1/commands";
 
 /// Everything one run of the server leaves behind for the checks.
-struct Run {
-    token: String,
-    answers: Vec<String>,
+pub(crate) struct Run {
+    pub(crate) token: String,
+    pub(crate) answers: Vec<String>,
 }
 
 /// A project folder, an outside file that must stay unreachable, and a data folder.
-struct Folders {
-    data: tempfile::TempDir,
-    project: std::path::PathBuf,
+pub(crate) struct Folders {
+    pub(crate) data: tempfile::TempDir,
+    pub(crate) project: std::path::PathBuf,
 }
 
-fn folders() -> Folders {
+pub(crate) fn folders() -> Folders {
     let data = tempfile::tempdir().unwrap();
     let project = data.path().join("project");
     fs::create_dir_all(project.join("src")).unwrap();
@@ -60,23 +60,32 @@ fn folders() -> Folders {
 
 /// Starts the real server (REST and MCP, both with the token) over an in-memory keystore that
 /// holds the canary credential, runs `traffic` against it and returns what was answered.
-fn run(folders: &Folders, traffic: impl FnOnce(&str, &str) -> Vec<String> + Send + 'static) -> Run {
+pub(crate) fn run(
+    folders: &Folders,
+    traffic: impl FnOnce(&str, &str) -> Vec<String> + Send + 'static,
+) -> Run {
     let locations = locations(&folders.data.path().join("state"));
     let config = config_files::load(&locations, &GlobalOptions::default(), None).unwrap();
-    let store = KeystoreCredentials::new(Memory::default());
+    let secrets = memory_secrets();
     let id = CredentialId::new("work").unwrap();
     let canary = Credential::new(
         SecretString::from("anton"),
         SecretString::from(CREDENTIAL_CANARY),
     );
-    store.store(&id, &canary).unwrap();
-    installation_token::load_or_create(&store).unwrap();
-    let token = installation_token::stored_token(&store);
+    secrets.store(&id, &canary).unwrap();
+    installation_token::load_or_create(&*secrets).unwrap();
+    let token = installation_token::stored_token(&*secrets);
     let events = codeskimr_application::events::EventBus::new();
     let parts = Parts {
         ui: test_ui(),
-        api: command_api(&GlobalOptions::default(), &locations, events.clone()).unwrap(),
-        mcp: Some(http_service(&config, &locations, events.clone()).unwrap()),
+        api: command_api(
+            &GlobalOptions::default(),
+            &locations,
+            events.clone(),
+            Arc::clone(&secrets),
+        )
+        .unwrap(),
+        mcp: Some(http_service(&config, &locations, (events.clone(), &secrets)).unwrap()),
         events,
     };
     let (stop, stopped) = oneshot::channel::<()>();
@@ -87,14 +96,14 @@ fn run(folders: &Folders, traffic: impl FnOnce(&str, &str) -> Vec<String> + Send
         stop.send(()).unwrap();
         answers
     });
-    serve_for_test(&store, parts, &found, stopped).unwrap();
+    serve_for_test(&*secrets, parts, &found, stopped).unwrap();
     Run {
         token,
         answers: client.join().unwrap(),
     }
 }
 
-fn command(url: &str, token: Option<&str>, id: &str, input: &Value) -> String {
+pub(crate) fn command(url: &str, token: Option<&str>, id: &str, input: &Value) -> String {
     send(
         url,
         ("POST", &format!("{COMMANDS}/{id}")),
@@ -109,7 +118,7 @@ fn mcp(url: &str, token: Option<&str>, id: u64, method: &str, params: &Value) ->
 }
 
 /// Every file below `dir`, read as bytes, with its path.
-fn files(dir: &Path) -> Vec<(std::path::PathBuf, Vec<u8>)> {
+pub(crate) fn files(dir: &Path) -> Vec<(std::path::PathBuf, Vec<u8>)> {
     let mut found = Vec::new();
     for entry in fs::read_dir(dir).unwrap() {
         let path = entry.unwrap().path();
@@ -122,7 +131,7 @@ fn files(dir: &Path) -> Vec<(std::path::PathBuf, Vec<u8>)> {
     found
 }
 
-fn contains(haystack: &[u8], needle: &str) -> bool {
+pub(crate) fn contains(haystack: &[u8], needle: &str) -> bool {
     haystack
         .windows(needle.len())
         .any(|window| window == needle.as_bytes())
@@ -152,7 +161,7 @@ fn traffic(folder: &Path) -> impl FnOnce(&str, &str) -> Vec<String> + Send + 'st
         answers.push(command(url, Some(token), "search.query", &search));
         for symbol in 1..=12 {
             let input = json!({ "project": 1, "symbol": symbol });
-            for id in ["explorer.source", "explorer.symbol"] {
+            for id in ["explorer.source", "explorer.symbol", "usages.code"] {
                 answers.push(command(url, Some(token), id, &input));
                 answers.push(command(url, None, id, &input));
                 answers.push(command(url, Some("csk_wrong"), id, &input));
@@ -214,6 +223,16 @@ fn no_canary_leaves_the_running_app() {
                 "secret {kind} in {}",
                 path.display()
             );
+        }
+    }
+}
+
+/// No answer holds any of `secrets`. The messages name the position, never the secret: a failing
+/// run must not log it.
+pub(crate) fn assert_answers_clean(answers: &[String], secrets: &[&str]) {
+    for (kind, secret) in secrets.iter().enumerate() {
+        for (n, answer) in answers.iter().enumerate() {
+            assert!(!answer.contains(secret), "secret {kind} in answer {n}");
         }
     }
 }

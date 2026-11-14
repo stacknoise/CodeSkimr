@@ -13,6 +13,8 @@ import {
 } from "./consts";
 import type { Run, Stage, StageRun, WireEvent } from "./types";
 
+type ProgressEvent = Extract<WireEvent, { type: typeof EVENT.progressed }>;
+
 /** Closes every stage that is open: it ended at `now`. */
 function closeStages(stages: Run["stages"], now: number): Run["stages"] {
   const closed: Run["stages"] = {};
@@ -26,7 +28,8 @@ function closeStages(stages: Run["stages"], now: number): Run["stages"] {
 }
 
 /** The stage of `stage` after a report: earlier stages end when a later one starts. */
-function advance(run: Run, stage: Stage, done: number, total: number, now: number): Run {
+function advance(run: Run, event: ProgressEvent, now: number): Run {
+  const { stage, done, total } = event;
   const index = STAGES.indexOf(stage);
   const stages: Run["stages"] = {};
   for (const name of STAGES) {
@@ -34,7 +37,13 @@ function advance(run: Run, stage: Stage, done: number, total: number, now: numbe
     if (STAGES.indexOf(name) < index && known) {
       stages[name] = known.endedAt === null ? { ...known, endedAt: now } : known;
     } else if (name === stage) {
-      stages[name] = { done, total, startedAt: known?.startedAt ?? now, endedAt: null };
+      stages[name] = {
+        done,
+        total,
+        startedAt: known?.startedAt ?? now,
+        endedAt: null,
+        tookMs: Math.max(known?.tookMs ?? 0, event.elapsed_ms ?? 0) || null,
+      };
     } else if (known) {
       stages[name] = known;
     }
@@ -73,7 +82,7 @@ export function applyEvent(runs: readonly Run[], event: WireEvent, now: number):
   const current = isOpen(runs[index]) ? runs[index] : undefined;
   if (event.type === EVENT.progressed) {
     const base = current ?? fresh(event.project, now);
-    const next = advance(base, event.stage, event.done, event.total, now);
+    const next = advance(base, event, now);
     const list = current ? replace(runs, index, next) : [...runs, next];
     return list.slice(-MAX_RUNS);
   }
@@ -152,12 +161,19 @@ export function secondsLeft(run: Run, now: number): number | null {
   return Math.max(0, (stage.total - stage.done) / rate);
 }
 
-/** Seconds a stage took so far, or `null` if it has not started. */
+/** Seconds a stage took, or `null` if it has not started. A stage that is over has the time the
+ * server measured; one that still runs has the time since its first report, and a server that
+ * sends no time leaves the time between the events as the browser saw them. */
 export function stageSeconds(run: Run, stage: Stage, now: number): number | null {
   const report = run.stages[stage];
-  return report
-    ? ((report.endedAt ?? run.endedAt ?? now) - report.startedAt) / MS_PER_SECOND
-    : null;
+  if (report === undefined) {
+    return null;
+  }
+  const over = report.endedAt !== null || run.endedAt !== null;
+  if (over && report.tookMs !== null) {
+    return report.tookMs / MS_PER_SECOND;
+  }
+  return ((report.endedAt ?? run.endedAt ?? now) - report.startedAt) / MS_PER_SECOND;
 }
 
 /** How a stage stands in a run. */

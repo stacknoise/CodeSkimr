@@ -2,6 +2,7 @@
 
 use std::future::Future;
 use std::net::{Ipv4Addr, SocketAddr};
+use std::sync::Arc;
 use std::time::Duration;
 
 use codeskimr_application::error::CodedError;
@@ -15,6 +16,7 @@ use codeskimr_server::{CommandApi, EditorSettings, Server, UiOptions, UiSettings
 
 use crate::consts::URL_SCHEME;
 use crate::locations::Locations;
+use crate::wiring::os_secrets;
 use crate::{config_files, installation_token, mcp, principal, ui_commands};
 
 /// Serves until the user interrupts the program. `listening` is called once with the address as
@@ -34,11 +36,16 @@ pub fn run(
 ) -> Result<(), CodedError> {
     let config = config_files::load(locations, global, None)?;
     let store = OsCredentialStore::new(OsKeystore);
+    let secrets = os_secrets();
     let events = EventBus::new();
     let parts = Parts {
         ui: ui_options(&config, locations),
-        api: ui_commands::command_api(global, locations, events.clone())?,
-        mcp: Some(mcp::http_service(&config, locations, events.clone())?),
+        api: ui_commands::command_api(global, locations, events.clone(), Arc::clone(&secrets))?,
+        mcp: Some(mcp::http_service(
+            &config,
+            locations,
+            (events.clone(), &secrets),
+        )?),
         events,
     };
     tokio::runtime::Builder::new_current_thread()
@@ -59,6 +66,7 @@ pub fn run(
 fn ui_options(config: &codeskimr_application::config::Config, locations: &Locations) -> UiOptions {
     UiOptions {
         dir: locations.existing_dir(&config.ui.dir),
+        embedded: crate::embedded_ui::FILES,
         launch_lifetime: Duration::from_secs(u64::from(config.ui.launch_code_seconds)),
         settings: UiSettings {
             editor: EditorSettings {
@@ -91,7 +99,7 @@ pub(crate) async fn serve(
     let server = Server::new(
         parts.api,
         parts.events,
-        principal::resolve(),
+        principal::remote_client(),
         token,
         parts.ui,
     );

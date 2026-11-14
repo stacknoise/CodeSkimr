@@ -1,11 +1,13 @@
-import { fireEvent, render, screen } from "@solidjs/testing-library";
+import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { beforeEach, describe, expect, it } from "vitest";
 import { currentPath } from "../../app/router";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { activeProject, openProject } from "../../shared/project/active";
-import { answer, serve, useServerSession } from "../../tests/commands";
+import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import type { ProjectRow } from "../projects/types";
-import { resetGraph } from "./graph";
+import { selectType } from "../explorer/explorer";
+import { DEPTH_ALL, LEVEL } from "./consts";
+import { resetGraph, setGraphDepth, setGraphLevel, wantedLayer, wantLayer } from "./graph";
 import { GraphScreen } from "./GraphScreen";
 
 const ROW: ProjectRow = {
@@ -22,15 +24,20 @@ const ROW: ProjectRow = {
   running: false,
 };
 
-const BOX = { width: 160, height: 44, order: 0 };
+const BOX = { width: 160, height: 44, order: 0, layer: null, types: null, symbol: null };
 const GRAPH = {
   snapshot: 5,
+  focus: null,
   width: 400,
   height: 300,
   boxes: [
     { name: "Domain", x: 120, y: 200, rank: 1, ...BOX },
     { name: "Ui", x: 120, y: 0, rank: 0, ...BOX },
     { name: "Infra", x: 300, y: 100, rank: 0, ...BOX },
+  ],
+  bands: [
+    { name: "Ui", rank: 0, y: 0, height: 60 },
+    { name: "Domain", rank: 1, y: 180, height: 60 },
   ],
   links: [
     { from: "Ui", to: "Domain", count: 12, violates_layering: false, in_cycle: false },
@@ -42,6 +49,7 @@ useServerSession();
 
 beforeEach(() => {
   resetGraph();
+  setGraphLevel(LEVEL.layers);
   openProject(1);
   setLanguage("en");
 });
@@ -60,6 +68,85 @@ describe("GraphScreen", () => {
     expect(screen.getByText("against layering (1)")).toBeInTheDocument();
   });
 
+  it("draws a band with the name of every layer behind the boxes", async () => {
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    await screen.findByRole("button", { name: "Domain" });
+    const stripe = (name: string) =>
+      screen.getAllByText(name).find((found) => found.parentElement?.tagName === "DIV")
+        ?.parentElement;
+    expect(stripe("Domain")?.style.top).toBe("180px");
+    expect(stripe("Domain")?.style.height).toBe("60px");
+    expect(stripe("Ui")?.style.top).toBe("0px");
+  });
+
+  it("does not hide the links of the namespace level behind the violations filter", async () => {
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    await screen.findByRole("button", { name: "Domain" });
+    const filter = screen.getByLabelText("violations only") as HTMLInputElement;
+    fireEvent.click(filter);
+    expect(filter.checked).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Namespaces" }));
+    await waitFor(() => expect(filter.disabled).toBe(true));
+    expect(filter.checked).toBe(false);
+  });
+
+  it("keeps the type focus off until the explorer has a type", async () => {
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    await screen.findByRole("button", { name: "Domain" });
+    expect((screen.getByRole("button", { name: "Type focus" }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+  });
+
+  it("asks for the type level with the type of the explorer as focus", async () => {
+    served(GRAPH);
+    await selectType(1, 77);
+    render(() => <GraphScreen />);
+    await screen.findByRole("button", { name: "Domain" });
+    fireEvent.click(screen.getByRole("button", { name: "Type focus" }));
+    await waitFor(() => {
+      const bodies = fetchMock.mock.calls.map((call) => String(call[1]?.body ?? ""));
+      expect(bodies.some((b) => b.includes('"level":"types"') && b.includes('"focus":77'))).toBe(
+        true,
+      );
+    });
+  });
+
+  it("asks for the namespace level when it is chosen", async () => {
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    await screen.findByRole("button", { name: "Domain" });
+    fireEvent.click(screen.getByRole("button", { name: "Namespaces" }));
+    await waitFor(() => {
+      const bodies = fetchMock.mock.calls.map((call) => String(call[1]?.body ?? ""));
+      expect(bodies.some((body) => body.includes('"level":"namespaces"'))).toBe(true);
+    });
+  });
+
+  it("offers the depth only on the namespace level and asks for it", async () => {
+    setGraphLevel(LEVEL.layers);
+    setGraphDepth(DEPTH_ALL);
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    await screen.findByRole("button", { name: "Domain" });
+    expect(screen.queryByRole("group", { name: "Depth" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Namespaces" }));
+    const depth = await screen.findByRole("group", { name: "Depth" });
+    fireEvent.click(screen.getByRole("button", { name: "Domain" }));
+    expect(screen.getByRole("heading", { name: "Domain" })).toBeInTheDocument();
+    fireEvent.click(within(depth).getByRole("button", { name: "2 levels" }));
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Domain" })).toBeNull());
+    await waitFor(() => {
+      const bodies = fetchMock.mock.calls.map((call) => String(call[1]?.body ?? ""));
+      expect(bodies.some((body) => body.includes('"depth":2'))).toBe(true);
+    });
+    setGraphLevel(LEVEL.layers);
+    setGraphDepth(DEPTH_ALL);
+  });
+
   it("shows what a selected layer uses and what uses it", async () => {
     served(GRAPH);
     render(() => <GraphScreen />);
@@ -70,6 +157,15 @@ describe("GraphScreen", () => {
     expect(screen.getByText("12 references")).toBeInTheDocument();
     expect(screen.getByText("1 violation in the project:")).toBeInTheDocument();
     expect(screen.getByText(/Domain → Infra \(2\)/)).toBeInTheDocument();
+  });
+
+  it("selects the layer another screen asked for, once the map is there", async () => {
+    served(GRAPH);
+    wantLayer("Domain");
+    render(() => <GraphScreen />);
+    expect(await screen.findByText("Used by · 1")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Domain" })).toBeInTheDocument();
+    expect(wantedLayer()).toBeNull();
   });
 
   it("opens the explorer with the project", async () => {

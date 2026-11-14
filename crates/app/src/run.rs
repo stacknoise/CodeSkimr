@@ -1,17 +1,19 @@
 //! The program: reads the command line, runs the command and reports the outcome.
 
 use std::ffi::OsString;
-use std::io::{self, Write};
+use std::io::{self, BufRead, IsTerminal, Write};
 use std::path::PathBuf;
 use std::process::ExitCode;
 
 use codeskimr_application::conventions::CheckReport;
 use codeskimr_application::error::CodedError;
 use codeskimr_cli::{
-    Action, CliError, CredentialAction, ExportArgs, Invocation, OpenArgs, Parsed, ScanArgs,
-    ScanSummary, check_json, check_text, credential_deleted, credential_stored, device_prompt,
-    error_line, export_written, language_from, open_ready, parse, scan_finished, scan_json,
-    scan_started, secret_prompt, serve_started, watch_started, watch_updated,
+    Action, CliError, CredentialAction, ExportArgs, Invocation, Level2Action, OpenArgs, Parsed,
+    ScanArgs, ScanSummary, check_json, check_text, confirm_prompt, confirm_target, confirm_warning,
+    credential_deleted, credential_stored, device_prompt, error_line, export_written,
+    language_from, level2_confirmed, level2_declined, level2_revoked, open_ready, parse,
+    scan_finished, scan_json, scan_started, secret_prompt, serve_started, watch_started,
+    watch_updated,
 };
 use codeskimr_codes::i18n::{CLI_CREDENTIAL_UNUSABLE_HINT, CLI_CREDENTIALS_HINT};
 use codeskimr_codes::{Coded, ErrorCode};
@@ -26,7 +28,8 @@ use crate::log_writer::RedactingWriter;
 use crate::logging;
 use crate::source_arg::SourceError;
 use crate::watch::{self, Report};
-use crate::{check, credential, export, mcp, open, scan, serve, ui_commands};
+use crate::wiring::os_secrets;
+use crate::{check, credential, export, level2_consent, mcp, open, scan, serve, ui_commands};
 
 /// Why a command did not finish: a registered code, plus the parser's text for usage errors.
 struct Failure {
@@ -122,11 +125,13 @@ fn run_invocation(
     )?;
     match &invocation.action {
         Action::Credential(action) => run_credential(action, messages, language),
+        Action::Level2(action) => run_level2(action, invocation, &locations, messages, language),
         Action::Scan(args) => run_scan(args, invocation, &locations, messages, language),
         Action::Mcp(args) => {
             mcp::run(args, &invocation.global, &locations, &current_dir)?;
             Ok(Outcome::Done)
         }
+        Action::Start => run_start(invocation, &locations, env, (messages, language)),
         Action::Open(args) => run_open(*args, invocation, &locations, env, (messages, language)),
         Action::Serve(_) => {
             serve::run(&invocation.global, &locations, |url| {
@@ -179,6 +184,49 @@ fn run_credential(
     Ok(Outcome::Done)
 }
 
+/// `codeskimr level2`: asks the user on the terminal; without one nothing is confirmed.
+fn run_level2(
+    action: &Level2Action,
+    invocation: &Invocation,
+    locations: &Locations,
+    messages: &Messages,
+    language: &str,
+) -> Result<Outcome, Failure> {
+    let ask = |target: &level2_consent::Target| -> Result<String, CodedError> {
+        if !(io::stdin().is_terminal() && io::stdout().is_terminal()) {
+            return Err(CodedError::new(ErrorCode::IndexerNotPermitted));
+        }
+        let say = |text: Result<String, _>| text.map_err(CodedError::caused_by);
+        let (target_text, prompt) = (
+            confirm_target(
+                messages,
+                language,
+                &target.name,
+                &target.place,
+                target.branch.as_deref(),
+            ),
+            confirm_prompt(messages, language, &target.name),
+        );
+        write_out(&say(confirm_warning(messages, language))?);
+        write_out(&say(target_text)?);
+        write_out(&say(prompt)?);
+        let mut answer = String::new();
+        io::stdin()
+            .lock()
+            .read_line(&mut answer)
+            .map_err(|_| CodedError::new(ErrorCode::IndexerNotPermitted))?;
+        Ok(answer)
+    };
+    let done = level2_consent::run(action, &invocation.global, locations, &ask)?;
+    let line = match &done {
+        level2_consent::Done::Confirmed(name) => level2_confirmed(messages, language, name),
+        level2_consent::Done::Declined(name) => level2_declined(messages, language, name),
+        level2_consent::Done::Revoked(name) => level2_revoked(messages, language, name),
+    };
+    write_out(&line.map_err(CliError::from)?);
+    Ok(Outcome::Done)
+}
+
 /// `codeskimr open`: tells where the launch file is, then waits until the browser has used it.
 fn run_open(
     args: OpenArgs,
@@ -195,6 +243,44 @@ fn run_open(
     };
     open::run(args, &invocation.global, locations, env, announce)?;
     Ok(Outcome::Done)
+}
+
+/// `codeskimr` without a command: the server runs on its own thread, and as soon as it listens the
+/// browser gets the launch code. The server keeps running until it is interrupted, also when the
+/// browser could not be started.
+fn run_start(
+    invocation: &Invocation,
+    locations: &Locations,
+    env: Lookup<'_>,
+    (messages, language): (&Messages, &str),
+) -> Result<Outcome, Failure> {
+    let (listening, listened) = std::sync::mpsc::channel::<String>();
+    std::thread::scope(|scope| {
+        let server = scope.spawn(|| {
+            serve::run(&invocation.global, locations, move |url| {
+                let _ = listening.send(url.to_owned());
+            })
+        });
+        if let Ok(url) = listened.recv() {
+            if let Ok(line) = serve_started(messages, language, &url) {
+                write_out(&line);
+            }
+            let opened = run_open(
+                OpenArgs { no_browser: false },
+                invocation,
+                locations,
+                env,
+                (messages, language),
+            );
+            if let Err(failure) = opened {
+                let _ = report(messages, language, &failure);
+            }
+        }
+        server
+            .join()
+            .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))??;
+        Ok(Outcome::Done)
+    })
 }
 
 /// `codeskimr export`: writes the page and says where it is.
@@ -235,12 +321,12 @@ fn run_scan(
         write_err(&scan_started(messages, language, spec.location()).map_err(CliError::from)?);
     }
     if args.watch {
-        let session = scan::open(spec, &invocation.global, locations)?;
+        let session = scan::open(spec, &invocation.global, locations, &os_secrets())?;
         let mut show = |report| show_report(report, args.json, messages, language);
         watch::run(&session, &mut show)?;
         return Ok(Outcome::Done);
     }
-    let summary = scan::run(spec, &invocation.global, locations)?;
+    let summary = scan::run(spec, &invocation.global, locations, &os_secrets())?;
     write_out(&summary_text(&summary, args.json, messages, language)?);
     Ok(Outcome::Done)
 }

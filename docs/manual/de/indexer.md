@@ -1,6 +1,6 @@
 # Sprach-Indexer
 
-> **Stand:** Die hier beschriebenen Indexer sind in ADR 0032 vorgeschlagen (Status: proposed) und entstehen in eigenen Arbeitspaketen. Bis dahin ist jede Verwendung „ungeprüft“ ([Verwendungen](verwendungen.md#verlässlichkeit-geprüft-ungeprüft-vermutet)), und der Verwendungs-Bildschirm sagt, dass kein Indexer eingerichtet ist. Dieses Kapitel beschreibt, wie es funktioniert, sobald sie da sind, damit Sie wissen, was Sie installieren müssen.
+> **Stand:** Die Prüfung der Werkzeuge läuft schon bei jedem Laden eines Projekts und zeigt, welches Werkzeug fehlt. Die hier beschriebenen Indexer sind in ADR 0033 vorgeschlagen (Status: proposed) und entstehen in eigenen Arbeitspaketen. Bis dahin ist jede Verwendung „ungeprüft“ ([Verwendungen](verwendungen.md#verlässlichkeit-geprüft-ungeprüft-vermutet)), und der Verwendungs-Bildschirm sagt, dass kein Indexer eingerichtet ist. Dieses Kapitel beschreibt, wie es funktioniert, sobald sie da sind, damit Sie wissen, was Sie installieren müssen.
 
 ## Wozu
 
@@ -20,7 +20,7 @@ CodeSkimr **lädt nie einen Indexer herunter oder installiert ihn** und führt n
 
 Go, C, C++, PHP und Ruby (Basis-Stufe) haben keine Ebene 2; ihre Verwendungen bleiben ungeprüft.
 
-Die endgültige Liste und die Versionen legt der Spike zu ADR 0032 fest; diese Tabelle kann sich ändern.
+Die endgültige Liste und die Versionen legt der Spike zu ADR 0033 fest; diese Tabelle kann sich ändern.
 
 ## Was CodeSkimr Ihnen zeigt
 

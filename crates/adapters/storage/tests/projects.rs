@@ -4,7 +4,9 @@
 mod common;
 
 use codeskimr_application::ports::{ProjectRepository, SnapshotStore};
-use codeskimr_domain::{BranchName, CredentialId, GitUrl, ProjectId, ProjectSource, ScanMode};
+use codeskimr_domain::{
+    BranchName, CredentialId, GitUrl, Principal, ProjectId, ProjectSource, ScanMode,
+};
 use common::{PROJECT, code_of, data, file, header, project, store};
 
 #[test]
@@ -83,6 +85,22 @@ fn latest_files_come_from_the_newest_snapshot() {
 }
 
 #[test]
+fn the_naming_rules_of_the_newest_snapshot_are_read_back() {
+    let store = store(3);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    assert_eq!(store.latest_naming_rules(PROJECT).unwrap(), None);
+    for (snapshot, rules) in [(10, "csharp=file"), (20, "csharp=namespace")] {
+        let mut scan = data(header(snapshot, ScanMode::Full));
+        scan.naming_rules = rules.to_owned();
+        store.persist(scan).unwrap();
+    }
+    assert_eq!(
+        store.latest_naming_rules(PROJECT).unwrap().as_deref(),
+        Some("csharp=namespace")
+    );
+}
+
+#[test]
 fn persisting_for_an_unknown_project_fails_and_writes_nothing() {
     let store = store(3);
     let error = store.persist(data(header(10, ScanMode::Full))).unwrap_err();
@@ -106,4 +124,75 @@ fn next_project_id_follows_the_highest_registered_id() {
     assert_eq!(store.next_project_id().unwrap(), ProjectId::new(1));
     store.save_project(&project(4, "/work/app", &[])).unwrap();
     assert_eq!(store.next_project_id().unwrap(), ProjectId::new(5));
+}
+
+#[test]
+fn consent_for_level_2_starts_empty_and_round_trips() {
+    use codeskimr_application::level2::{ConsentRecord, ConsentStore, confirm, revoke};
+
+    let store = store(3);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    assert_eq!(store.consent(PROJECT).unwrap(), ConsentRecord::default());
+    let confirmed = ConsentRecord {
+        enabled: true,
+        confirmed: true,
+    };
+    confirm(&Principal::local_owner(), &store, PROJECT).unwrap();
+    assert_eq!(store.consent(PROJECT).unwrap(), confirmed);
+    // A second project does not share it.
+    assert_eq!(
+        store.consent(ProjectId::new(2)).unwrap(),
+        ConsentRecord::default()
+    );
+    revoke(&Principal::local_owner(), &store, PROJECT).unwrap();
+    assert_eq!(store.consent(PROJECT).unwrap(), ConsentRecord::default());
+}
+
+#[test]
+fn a_confirmation_does_not_survive_a_change_of_the_projects_source() {
+    use codeskimr_application::level2::{ConsentStore, confirm};
+
+    let store = store(3);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    let owner = Principal::local_owner();
+    confirm(&owner, &store, PROJECT).unwrap();
+    // The same id, pointed at another folder: not confirmed any more.
+    store.save_project(&project(1, "/work/other", &[])).unwrap();
+    assert!(!store.consent(PROJECT).unwrap().confirmed);
+    // Pointed back, the old confirmation fits again only if nobody confirmed anew in between; a
+    // new confirmation binds to the new place.
+    confirm(&owner, &store, PROJECT).unwrap();
+    assert!(store.consent(PROJECT).unwrap().confirmed);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    assert!(!store.consent(PROJECT).unwrap().confirmed);
+    // A Git branch counts too.
+    let mut git = project(1, "/work/app", &[]);
+    git.source = ProjectSource::Git {
+        url: GitUrl::new("https://example.org/app.git").unwrap(),
+        branch: BranchName::new("main").unwrap(),
+        credential: None,
+    };
+    store.save_project(&git).unwrap();
+    confirm(&owner, &store, PROJECT).unwrap();
+    assert!(store.consent(PROJECT).unwrap().confirmed);
+    git.source = ProjectSource::Git {
+        url: GitUrl::new("https://example.org/app.git").unwrap(),
+        branch: BranchName::new("evil").unwrap(),
+        credential: None,
+    };
+    store.save_project(&git).unwrap();
+    assert!(!store.consent(PROJECT).unwrap().confirmed);
+}
+
+#[test]
+fn consent_for_a_project_that_does_not_exist_is_refused() {
+    use codeskimr_application::level2::{ConsentRecord, ConsentStore, confirm};
+
+    let store = store(3);
+    let error = confirm(&Principal::local_owner(), &store, ProjectId::new(7)).unwrap_err();
+    assert_eq!(code_of(&error), "PRJ-201");
+    assert_eq!(
+        store.consent(ProjectId::new(7)).unwrap(),
+        ConsentRecord::default()
+    );
 }

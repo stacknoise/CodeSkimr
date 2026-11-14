@@ -1,14 +1,16 @@
 //! The lookup of one symbol and the `CodeIndex` port.
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{CodeIndex, MemberRef, SearchHit, SymbolDetail, SymbolKey};
+use codeskimr_application::ports::{
+    CodeIndex, MemberRef, SearchHit, SymbolDetail, SymbolKey, TypeFocus,
+};
 use codeskimr_domain::{
-    FileId, LayerEdge, Metric, MetricValue, ProjectId, QualifiedName, RelativePath, Snapshot,
-    SnapshotId, Symbol, SymbolId, SymbolName,
+    FileId, LayerEdge, Metric, MetricValue, NamespaceGraph, ProjectId, QualifiedName, RelativePath,
+    Snapshot, SnapshotId, Symbol, SymbolId, SymbolName,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 
-use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from};
+use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from, small_from};
 use crate::error::StorageResult;
 use crate::sql;
 use crate::store::SqliteStore;
@@ -139,9 +141,20 @@ fn detail(
     let Some((symbol, path)) = find_symbol(conn, snapshot, key)? else {
         return Ok(None);
     };
+    let same_name: i64 = conn
+        .prepare_cached(sql::SYMBOL_SAME_NAME_COUNT)?
+        .query_row(
+            params![
+                snapshot,
+                symbol.qualified_name.as_str(),
+                column_int(symbol.id.get())?
+            ],
+            |row| row.get(0),
+        )?;
     Ok(Some(SymbolDetail {
         members: members(conn, snapshot, symbol.id)?,
         metrics: metrics(conn, snapshot, symbol.id)?,
+        same_name: small_from(same_name)?,
         symbol,
         path,
     }))
@@ -186,5 +199,17 @@ impl CodeIndex for SqliteStore {
 
     fn layer_edges(&self, snapshot: SnapshotId) -> Result<Vec<LayerEdge>, CodedError> {
         Self::layer_edges(self, snapshot)
+    }
+
+    fn namespace_graph(&self, snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError> {
+        Self::namespace_graph(self, snapshot)
+    }
+
+    fn type_focus(
+        &self,
+        snapshot: SnapshotId,
+        symbol: SymbolId,
+    ) -> Result<Option<TypeFocus>, CodedError> {
+        Self::type_focus(self, snapshot, symbol)
     }
 }

@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { LEVEL } from "./consts";
+import { graphLevel, resetGraph, setGraphFocus, setGraphLevel } from "./graph";
 import { edgeKind, edgePath, shown } from "./geometry";
 import { neighboursOf, violations } from "./neighbours";
 import type { LayerBox, LayerLink } from "./types";
@@ -12,6 +14,9 @@ const box = (name: string, x: number, y: number): LayerBox => ({
   height: 40,
   rank: 0,
   order: 0,
+  layer: null,
+  types: null,
+  symbol: null,
 });
 const link = (from: string, to: string, count = 1, violates = false): LayerLink => ({
   from,
@@ -93,5 +98,17 @@ describe("viewport", () => {
 
   it("pans by the distance of the pointer", () => {
     expect(pan({ scale: 2, x: 1, y: 2 }, 10, -5)).toEqual({ scale: 2, x: 11, y: -3 });
+  });
+});
+
+describe("resetGraph", () => {
+  it("leaves the type level, because the focus it needs is forgotten", () => {
+    setGraphLevel(LEVEL.types);
+    setGraphFocus(7);
+    resetGraph();
+    expect(graphLevel()).toBe(LEVEL.layers);
+    setGraphLevel(LEVEL.namespaces);
+    resetGraph();
+    expect(graphLevel()).toBe(LEVEL.namespaces);
   });
 });

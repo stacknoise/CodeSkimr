@@ -3,7 +3,7 @@ import { ApiError } from "../../shared/api/client";
 import { runCommand } from "../../shared/api/commands";
 import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { COMMAND, POLL_MS } from "./consts";
-import type { ProjectRow, Scanned } from "./types";
+import type { ProjectRow, Scanned, ToolsInfo } from "./types";
 
 /** Why the last action failed: a registered code, or `null` for a failure without one (the
  * server could not be reached). */
@@ -15,6 +15,8 @@ const [listFailure, setListFailure] = createSignal<Failure | null>(null);
 const [actionFailure, setActionFailure] = createSignal<Failure | null>(null);
 const [scanning, setScanning] = createSignal<ReadonlySet<number>>(new Set());
 const [adding, setAdding] = createSignal(false);
+const [checkedTools, setCheckedTools] = createSignal<ReadonlyMap<number, ToolsInfo>>(new Map());
+const [checking, setChecking] = createSignal<ReadonlySet<number>>(new Set());
 const [lastSeconds, setLastSeconds] = createSignal<ReadonlyMap<number, number>>(new Map());
 
 /** The registered projects. */
@@ -27,6 +29,13 @@ export const projectsFailure = () => actionFailure() ?? listFailure();
 export const projectAdding = adding;
 /** Ids of the projects that this tab is scanning again. */
 export const projectsScanning = scanning;
+/** Ids of the projects whose tools are being checked right now. */
+export const toolsChecking = checking;
+/** The tools of a project: what this tab checked last, else what the list says; `null` if the
+ * project was never checked. */
+export function toolsOf(row: ProjectRow): ToolsInfo | null {
+  return checkedTools().get(row.id) ?? row.tools ?? null;
+}
 /** Duration in seconds of the last scan that this tab started, by project id. */
 export const scanSeconds = lastSeconds;
 
@@ -59,6 +68,31 @@ async function whileReading<T>(work: () => Promise<T>): Promise<T> {
 
 function remember(scanned: Scanned): void {
   setLastSeconds((previous) => new Map(previous).set(scanned.project, scanned.seconds));
+  if (scanned.tools.checked_at !== null) {
+    // An incremental scan does not check the tools: its empty view must not hide a warning.
+    setCheckedTools((previous) => new Map(previous).set(scanned.project, scanned.tools));
+  }
+}
+
+/** Checks which tools level 2 needs on this machine for the project, so that the screen shows what
+ * is there now. A failure keeps what the list says: a missing answer is not a missing tool. */
+export async function checkTools(project: number): Promise<void> {
+  if (checking().has(project)) {
+    return;
+  }
+  setChecking((previous) => new Set(previous).add(project));
+  try {
+    const found = await runCommand<ToolsInfo>(COMMAND.tools, { project });
+    setCheckedTools((previous) => new Map(previous).set(project, found));
+  } catch {
+    // The stored result stays on the screen.
+  } finally {
+    setChecking((previous) => {
+      const next = new Set(previous);
+      next.delete(project);
+      return next;
+    });
+  }
 }
 
 /** Registers a folder or a Git address and scans it. Returns whether it worked. */

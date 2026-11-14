@@ -32,6 +32,7 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | `PRJ-101` | the source is no existing folder and no valid Git address, or the address contains secrets or the folder is relative | give an absolute path; take secrets out of the address ([Sources and credentials](sources-and-credentials.md)) |
 | `PRJ-201` | no such project | add and scan it first |
 | `PRJ-302` | a scan of this project is already running | wait for it |
+| `PRJ-303` | the scan was cancelled, no new snapshot exists | start it again if needed |
 | `SRC-201` | the source folder or a file does not exist or cannot be read | check the path and rights |
 | `SRC-401`, `SEC-*` | login to a Git remote or the keystore failed | see [Sources and credentials](sources-and-credentials.md#problems) |
 | `NET-601` | the browser sign-in of `credential login` did not finish | run it again |

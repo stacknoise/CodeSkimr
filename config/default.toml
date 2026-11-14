@@ -87,6 +87,27 @@ parse_timeout_ms = 5000
 # Largest total size of the scanned files of one source, in megabytes; a larger source fails with SRC-501.
 max_source_mb = 2048
 
+# Level 2 references from SCIP indexes (ADR 0033). The whole table is read from the default file, the
+# user config file and command line flags only; a `level2` table in the `.codeskimr.toml` of a project
+# is ignored, so that a scanned repository cannot switch on running its own build scripts.
+[level2]
+# Master switch for running indexers (their build tools run project code). Off by default; even when
+# it is on, every project needs one confirmation by the local owner before an indexer starts.
+enabled = false
+# Longest time one indexer may run, in seconds; then it is stopped together with all its child
+# processes and fails with RES-502 (level 1 stays).
+timeout_seconds = 900
+# Most memory, in megabytes, that an indexer and its child processes together may hold; more fails
+# with RES-504 (level 1 stays).
+max_memory_mb = 4096
+# Most bytes an indexer may write in total, console output and files in its temporary output
+# directory (512 MiB, above max_index_bytes); more fails with RES-503 (level 1 stays).
+max_output_bytes = 536870912
+# Largest SCIP index file that is read, in bytes (256 MiB); a larger one is refused with RES-501 and level 1 stays.
+max_index_bytes = 268435456
+# Share mapped / (mapped + unmapped) among the uses of project symbols (symbols the index itself defines; library symbols are not counted) that an index must reach; a lower share, or an index where no use maps, fails with RES-302 and level 1 stays.
+min_mapped = 0.5
+
 # Local server (blueprint 10.3, S-04). It listens on the loopback address 127.0.0.1 only.
 [server]
 # TCP port of the local server. A port that is already taken fails with API-301.

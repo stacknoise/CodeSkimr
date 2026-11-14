@@ -18,6 +18,7 @@ grammar = "java"
 tier = "full"
 extensions = ["java"]
 separator = "."
+file_in_names = false
 comment_nodes = ["line_comment", "block_comment"]
 manifest_files = [
     "pom.xml",
@@ -80,3 +81,22 @@ property = "public"
 
 [visibility.parent_defaults]
 interface = "public"
+
+# Level 2 (ADR 0033): scip-java hooks into the Gradle or Maven build of the project and runs it.
+# Only runs when the user enabled and confirmed level 2 for the project. CodeSkimr never downloads or
+# installs anything: the user installs the indexer and its toolchain.
+[indexer]
+name = "scip-java"
+install_hint = "install scip-java with Coursier: cs install scip-java (needs a JDK and the Gradle or Maven build of the project)"
+args = ["index", "--output", "{output}"]
+env_allow = ["JAVA_HOME", "GRADLE_USER_HOME", "GRADLE_HOME", "MAVEN_HOME", "M2_HOME", "COURSIER_CACHE"]
+
+[indexer.tool]
+program = "scip-java"
+version_args = ["--version"]
+min_version = "0.10.0"
+
+[[indexer.toolchain]]
+program = "java"
+version_args = ["-version"]
+min_version = "1.8.0"

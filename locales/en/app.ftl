@@ -5,10 +5,12 @@ app-workspace = Workspace
 app-workspace-local = Local
 app-search-placeholder = Type, member or command …
 app-search-shortcut = Ctrl K
+app-chip-folder = Working folder
 app-watching = Watching for changes
 app-sample-data = Sample data
 app-language = Language
 app-startup-time = Start { $ms } ms
+app-query-time = Query { $ms } ms
 app-memory-usage = RAM { $mb } MB
 app-status-projects = { $count ->
     [one] { $count } project

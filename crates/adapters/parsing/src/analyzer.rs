@@ -96,6 +96,10 @@ impl FileAnalyzer for TreeSitterAnalyzer {
     fn analyze(&self, request: &AnalyzeRequest<'_>) -> Result<FileFacts, CodedError> {
         self.run(request).map_err(CodedError::caused_by)
     }
+
+    fn naming_rules(&self) -> String {
+        self.packs.naming_rules()
+    }
 }
 
 impl SnippetFingerprinter for TreeSitterAnalyzer {

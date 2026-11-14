@@ -3,7 +3,19 @@ export const COMMAND = {
   list: "projects.list",
   add: "projects.add",
   rescan: "projects.rescan",
+  tools: "projects.tools",
 } as const;
+
+/** What the check found out about one tool, as the server names it. */
+export const TOOL_STATE = {
+  ready: "ready",
+  missing: "missing",
+  tooOld: "too_old",
+  versionUnknown: "version_unknown",
+} as const;
+
+/** Separates the languages in a line about a tool. */
+export const TOOL_LANGUAGE_SEPARATOR = ", ";
 
 /** How often the list is read while a scan runs, in milliseconds. */
 export const POLL_MS = 1500;

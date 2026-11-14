@@ -152,6 +152,17 @@ const SOURCE = [
   "",
 ].join("\n");
 
+/** One type with 40 members, so a search for "Item" fills the list of the quick search. */
+const MANY_MEMBERS = [
+  "namespace Many;",
+  "",
+  "public class Items",
+  "{",
+  ...Array.from({ length: 40 }, (_, n) => `    public int Item${n}() { return ${n}; }`),
+  "}",
+  "",
+].join("\n");
+
 test.describe("the screens against the mocks (1440 x 900, light)", () => {
   test.use({ viewport: VIEWPORT });
 
@@ -185,7 +196,7 @@ test.describe("the screens against the mocks (1440 x 900, light)", () => {
     await row.click({ position: { x: 4, y: 4 } });
     await page.keyboard.press("Enter");
     await page.getByText("(no layer)").click();
-    await page.getByText("visexplorer.Vis", { exact: true }).click();
+    await page.getByText("Vis", { exact: true }).click();
     await page.getByText("Calculator", { exact: true }).click();
     await expect(page.getByRole("heading", { name: "Calculator" })).toBeVisible();
     const mock = await openMock(page, "Explorer");
@@ -206,27 +217,56 @@ test.describe("the screens against the mocks (1440 x 900, light)", () => {
   });
 
   test("Quick search (4)", async ({ page, harness }, info) => {
-    await openUi(page, harness);
-    await expect(page.getByText("● Connected")).toBeVisible();
+    await prepare(page);
+    const row = await addScannedProject(page, harness, "vissearch", MANY_MEMBERS);
+    await row.click({ position: { x: 4, y: 4 } });
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("tree")).toBeVisible();
     await page.keyboard.press("Control+k");
-    await expect(page.getByRole("dialog")).toBeVisible();
+    // With many hits the dialog is cut to 70 vh: the rows above the list keep their size.
+    await page.getByRole("combobox").fill("Item");
+    await expect(page.getByRole("option").first()).toBeVisible();
     const mock = await openMock(page, "Palette");
     await compare(page, mock, [
       { name: "dialog", mock: "[role=dialog]", real: "[role=dialog]", only: ["x", "y", "width"] },
-      {
-        name: "preview",
-        mock: "[role=dialog] > div:nth-child(3) > div:last-child",
-        real: "[role=dialog] aside",
-        only: ["x", "width"],
-      },
       {
         name: "input row",
         mock: "[role=dialog] > div:nth-child(1)",
         real: "[role=dialog] > div:nth-child(1)",
         only: ["height"],
       },
+      {
+        name: "preview",
+        mock: "[role=dialog] > div:nth-child(3) > div:last-child",
+        real: "[role=dialog] aside",
+        only: ["x", "width"],
+      },
     ]);
     await shot(page, "search-hell", info);
+  });
+
+  test("Settings (13)", async ({ page, harness }, info) => {
+    await openUi(page, harness);
+    await expect(page.getByText("● Connected")).toBeVisible();
+    await page.getByRole("link", { name: "Settings" }).click();
+    await expect(page.getByRole("heading", { name: "Language" })).toBeVisible();
+    const mock = await openMock(page, "Themes");
+    await compare(page, mock, [
+      ...SHELL,
+      {
+        name: "theme card",
+        mock: "main .panel",
+        real: "main section:nth-of-type(1)",
+        only: ["x", "width"],
+      },
+      {
+        name: "language card",
+        mock: "main .panel[style*='max-width:560px']",
+        real: "main section:has(select)",
+        only: ["x", "width"],
+      },
+    ]);
+    await shot(page, "settings-hell", info);
   });
 
   test("Scan and performance (5)", async ({ page, harness }, info) => {
@@ -256,7 +296,7 @@ test.describe("the screens against the mocks (1440 x 900, light)", () => {
   test("Usages (6)", async ({ page, harness }, info) => {
     await prepare(page);
     const row = await addScannedProject(page, harness, "visusages", SOURCE);
-    await selectAdd(page, row, "visusages.Vis");
+    await selectAdd(page, row, "Vis");
     await page.keyboard.press("u");
     await expect(page.getByRole("region", { name: "Usage graph" })).toBeVisible();
     await expect(page.getByText("Hits 1")).toBeVisible();

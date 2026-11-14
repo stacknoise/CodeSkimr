@@ -39,3 +39,27 @@ pub const DONE_STEP: u32 = 1;
 /// Ids reserved for the file and symbols of one analysed file. A file that needs more fails the
 /// scan instead of taking ids of its neighbour.
 pub const FILE_ID_BLOCK: u64 = 1 << 24;
+
+/// Bytes in one mebibyte, for the memory limit of an indexer.
+pub const BYTES_PER_MIB: u64 = 1024 * 1024;
+/// Separates the numbers of a tool version.
+pub const VERSION_SEPARATOR: char = '.';
+/// Characters that surround a version in the output of a tool, such as `v20.11.0` or `"17.0.9"`.
+pub const VERSION_DECORATION: &[char] = &['"', '\'', 'v', 'V', '(', ')', ',', ';'];
+/// Placeholder of an indexer argument for the project root.
+pub const PLACEHOLDER_PROJECT: &str = "{project}";
+/// Placeholder of an indexer argument for the index file the indexer writes.
+pub const PLACEHOLDER_OUTPUT: &str = "{output}";
+/// The word before the version in the output of `java -version`.
+pub const VERSION_WORD: &str = "version";
+
+/// In front of the name of a tool in the message keys of its purpose and install hint.
+pub const TOOL_KEY_PREFIX: &str = "tool-";
+/// After the name of a tool: the message key of what the tool is needed for.
+pub const TOOL_PURPOSE_SUFFIX: &str = "-purpose";
+/// After the name of a tool: the message key of how to install it.
+pub const TOOL_INSTALL_SUFFIX: &str = "-install";
+/// Separators of a date such as `2024-05-01` or `2024/05/01`.
+pub const DATE_SEPARATORS: &[char] = &['-', '/'];
+/// A number of this many digits or more is a date or an id (`20240501`), not a version.
+pub const DATE_MIN_DIGITS: usize = 8;

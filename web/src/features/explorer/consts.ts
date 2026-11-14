@@ -88,6 +88,7 @@ export const KEY = {
   space: " ",
   reveal: ".",
   usages: "u",
+  graph: "g",
 } as const;
 /** One row down and up. */
 export const STEP_DOWN = 1;
@@ -239,6 +240,9 @@ export const FALLBACK_VIEWPORT_ROWS = 40;
 export const ROW_ID_PREFIX = "explorer-row-";
 /** Number of colour dots for the layers (`layer-1` to `layer-6` of the tokens). */
 export const LAYER_TONES = 6;
+
+/** Joins the folder of a project and the path of a file in it. */
+export const PATH_JOINER = "/";
 
 /** Keyboard hints on the three buttons of the header. */
 export const HOTKEY = { usages: "U", graph: "G", editor: "E" } as const;

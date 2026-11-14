@@ -5,17 +5,21 @@ use std::sync::Arc;
 
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{LanguageShare, ProjectCatalog, ProjectOverview};
+use codeskimr_application::ports::{
+    LanguageShare, ProjectCatalog, ProjectOverview, ProjectToolCheck,
+};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
+use codeskimr_application::tools::ToolsView;
 use codeskimr_cli::ScanSummary;
 use codeskimr_domain::{Permission, ProjectId, ProjectSource, ScanMode, Snapshot};
 use serde::{Deserialize, Serialize};
 
 use super::Context;
 use super::consts::{
-    ADD_DESCRIPTION, ADD_TITLE, KIND_FOLDER, KIND_GIT, LIST_DESCRIPTION, LIST_TITLE, PROJECTS_ADD,
-    PROJECTS_LIST, PROJECTS_RESCAN, RESCAN_DESCRIPTION, RESCAN_TITLE, SHORTCUT_NEW,
-    SHORTCUT_RESCAN,
+    ADD_DESCRIPTION, ADD_TITLE, CANCEL_DESCRIPTION, CANCEL_TITLE, KIND_FOLDER, KIND_GIT,
+    LIST_DESCRIPTION, LIST_TITLE, PROJECTS_ADD, PROJECTS_CANCEL, PROJECTS_LIST, PROJECTS_RESCAN,
+    PROJECTS_TOOLS, RESCAN_DESCRIPTION, RESCAN_TITLE, SHORTCUT_NEW, SHORTCUT_RESCAN,
+    TOOLS_DESCRIPTION, TOOLS_TITLE,
 };
 use crate::scan::{open_on, reopen};
 use crate::source_arg::{SourceError, classify};
@@ -46,6 +50,10 @@ pub struct LanguageRow {
     pub files: u32,
     /// Lines of code.
     pub loc: u32,
+    /// Number of symbols declared in its files.
+    pub symbols: u32,
+    /// `full` or `basic`, the tier of its language pack; `None` if no pack of that id is installed.
+    pub tier: Option<&'static str>,
 }
 
 /// One row of the project list.
@@ -73,6 +81,8 @@ pub struct ProjectRow {
     pub languages: Vec<LanguageRow>,
     /// Whether a scan of the project is running right now.
     pub running: bool,
+    /// What the last check of the tools found; `None` if the project was never checked.
+    pub tools: Option<ToolsView>,
 }
 
 fn scan_row(snapshot: &Snapshot) -> ScanRow {
@@ -86,15 +96,22 @@ fn scan_row(snapshot: &Snapshot) -> ScanRow {
     }
 }
 
-fn language_row(share: &LanguageShare) -> LanguageRow {
+fn language_row(share: &LanguageShare, context: &Context) -> LanguageRow {
     LanguageRow {
         language: share.language.to_string(),
         files: share.files,
         loc: share.loc,
+        symbols: share.symbols,
+        tier: context.tier_of(share.language.as_str()),
     }
 }
 
-fn project_row(overview: &ProjectOverview, running: bool) -> ProjectRow {
+fn project_row(
+    overview: &ProjectOverview,
+    running: bool,
+    tools: Option<ToolsView>,
+    context: &Context,
+) -> ProjectRow {
     let (kind, location, branch) = match &overview.project.source {
         ProjectSource::Folder(folder) => (KIND_FOLDER, folder.to_string(), None),
         ProjectSource::Git { url, branch, .. } => {
@@ -115,14 +132,20 @@ fn project_row(overview: &ProjectOverview, running: bool) -> ProjectRow {
         scan: overview.latest.as_ref().map(scan_row),
         types: overview.types,
         loc: overview.languages.iter().map(|share| share.loc).sum(),
-        languages: overview.languages.iter().map(language_row).collect(),
+        languages: overview
+            .languages
+            .iter()
+            .map(|share| language_row(share, context))
+            .collect(),
         running,
+        tools,
     }
 }
 
 /// Lists the registered projects with their newest scan.
 pub struct ListProjects {
     pub(super) catalog: Arc<dyn ProjectCatalog>,
+    pub(super) tools: Arc<dyn ProjectToolCheck>,
     pub(super) context: Arc<Context>,
 }
 
@@ -140,17 +163,20 @@ impl Command for ListProjects {
     };
 
     fn execute(&self, _request: Request<'_, ()>) -> Result<Vec<ProjectRow>, CodedError> {
-        Ok(self
-            .catalog
+        self.catalog
             .overviews()?
             .iter()
             .map(|overview| {
-                project_row(
+                let id = overview.project.id;
+                let tools = self.tools.stored(id)?.as_ref().map(ToolsView::of);
+                Ok(project_row(
                     overview,
-                    self.context.running.is_running(overview.project.id),
-                )
+                    self.context.running.is_running(id),
+                    tools,
+                    &self.context,
+                ))
             })
-            .collect())
+            .collect()
     }
 }
 
@@ -169,6 +195,8 @@ pub struct Scanned {
     pub references: u32,
     /// Duration in seconds.
     pub seconds: f64,
+    /// What the check of the tools found after the scan.
+    pub tools: ToolsView,
 }
 
 impl Scanned {
@@ -180,6 +208,7 @@ impl Scanned {
             symbols: summary.symbols,
             references: summary.references,
             seconds: summary.seconds,
+            tools: summary.tools.clone(),
         }
     }
 }
@@ -191,6 +220,9 @@ pub struct AddInput {
     pub source: String,
     /// Branch of a Git source.
     pub branch: Option<String>,
+    /// Name of the stored credential a Git source logs in with (`credentials.set`).
+    #[serde(default)]
+    pub credential: Option<String>,
 }
 
 /// Registers a folder or a Git repository as a project and scans it.
@@ -215,6 +247,10 @@ impl Command for AddProject {
         access::require(request.principal, Permission::Scan)?;
         let text = request.input.source.trim();
         let spec = classify(text, request.input.branch.as_deref())?;
+        let spec = match request.input.credential.as_deref() {
+            Some(name) => spec.with_credential(name)?,
+            None => spec,
+        };
         if matches!(spec.source, ProjectSource::Folder(_)) && !Path::new(text).is_absolute() {
             return Err(SourceError::NotASource.into());
         }
@@ -225,12 +261,14 @@ impl Command for AddProject {
             spec,
             &context.global,
             &context.locations,
-            context.events.clone(),
-        )?;
+            (context.events.clone(), &context.secrets),
+        )?
+        .with_tools(Arc::clone(&context.tools));
         drop(registering);
         let id = session.project().id;
         let _scanning = context.running.start(id)?;
-        let summary = session.scan(ScanMode::Full)?;
+        let summary =
+            session.scan_with(ScanMode::Full, |token| context.running.attach(id, token))?;
         Ok(Scanned::of(id, &summary))
     }
 }
@@ -274,15 +312,82 @@ impl Command for RescanProject {
             id,
             &context.global,
             &context.locations,
-            context.events.clone(),
-        )?;
+            (context.events.clone(), &context.secrets),
+        )?
+        .with_tools(Arc::clone(&context.tools));
         let _scanning = context.running.start(id)?;
         let mode = if scanned_before {
             ScanMode::Incremental
         } else {
             ScanMode::Full
         };
-        let summary = session.scan(mode)?;
+        let summary = session.scan_with(mode, |token| context.running.attach(id, token))?;
         Ok(Scanned::of(id, &summary))
+    }
+}
+
+/// The input of `projects.tools` and `projects.cancel`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+pub struct ProjectInput {
+    /// Id of the project.
+    pub project: u64,
+}
+
+/// Checks the tools of a project again: the UI calls it when a project is opened, so what it shows
+/// is what the machine has now. It starts version queries only, never project code (ADR 0033).
+pub struct CheckTools {
+    pub(super) tools: Arc<dyn ProjectToolCheck>,
+}
+
+impl Command for CheckTools {
+    type Input = ProjectInput;
+    type Output = ToolsView;
+
+    const DESCRIPTOR: CommandDescriptor = CommandDescriptor {
+        id: CommandId::new(PROJECTS_TOOLS),
+        title_key: TOOLS_TITLE,
+        description_key: TOOLS_DESCRIPTION,
+        shortcut: None,
+        read_only: false,
+        permission: Permission::Scan,
+    };
+
+    fn execute(&self, request: Request<'_, ProjectInput>) -> Result<ToolsView, CodedError> {
+        let report = self.tools.check(ProjectId::new(request.input.project))?;
+        Ok(ToolsView::of(&report))
+    }
+}
+
+/// The output of `projects.cancel`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct Cancelled {
+    /// Whether a running scan was asked to stop; `false` if none was running.
+    pub cancelled: bool,
+}
+
+/// Asks the running scan of a project to stop at the next stage boundary.
+pub struct CancelScan {
+    pub(super) context: Arc<Context>,
+}
+
+impl Command for CancelScan {
+    type Input = ProjectInput;
+    type Output = Cancelled;
+
+    const DESCRIPTOR: CommandDescriptor = CommandDescriptor {
+        id: CommandId::new(PROJECTS_CANCEL),
+        title_key: CANCEL_TITLE,
+        description_key: CANCEL_DESCRIPTION,
+        shortcut: None,
+        read_only: false,
+        permission: Permission::Scan,
+    };
+
+    fn execute(&self, request: Request<'_, ProjectInput>) -> Result<Cancelled, CodedError> {
+        access::require(request.principal, Permission::Scan)?;
+        let id = ProjectId::new(request.input.project);
+        Ok(Cancelled {
+            cancelled: self.context.running.cancel(id),
+        })
     }
 }

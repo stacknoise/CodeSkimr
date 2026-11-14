@@ -12,12 +12,13 @@ import {
   SCROLL_NEAREST,
   REF,
   REF_LABEL,
+  ROLE,
   STATE,
   TRUE,
   type State,
 } from "./consts";
-import { countKinds, listedPlace, stateOf } from "./hits";
-import { selectedHit, setSelectedHit } from "./usages";
+import { countKinds, listedPlace, placeKey, shortName, splitAt, stateOf } from "./hits";
+import { hitCode, selectedHit, setSelectedHit } from "./usages";
 import type { Hit, Place, UsagesAnswer } from "./types";
 import styles from "./HitList.module.css";
 
@@ -34,6 +35,21 @@ function kindText(hit: Hit): string {
 
 function location(hit: Hit): string {
   return `${hit.path}${LOCATION_JOIN}${hit.line}`;
+}
+
+/** The code line of a hit with the used symbol marked; empty while the code is not there. */
+function CodeText(props: { hit: Hit }) {
+  const text = () => hitCode().get(placeKey(props.hit.path, props.hit.line)) ?? "";
+  const parts = () => splitAt(text(), shortName(props.hit.to));
+  return (
+    <code class={styles.code} title={text()}>
+      {parts().before}
+      <Show when={parts().word !== ""}>
+        <mark class={styles.mark}>{parts().word}</mark>
+      </Show>
+      {parts().after}
+    </code>
+  );
 }
 
 function Row(props: { hit: Hit; place: Place; index: number; onOpen: (hit: Hit) => void }) {
@@ -58,6 +74,7 @@ function Row(props: { hit: Hit; place: Place; index: number; onOpen: (hit: Hit) 
       <span class={styles.where} title={props.place.qualified_name}>
         {props.place.qualified_name}
       </span>
+      <CodeText hit={props.hit} />
       <span class={styles.place}>{location(props.hit)}</span>
       <span
         class={cx(styles.state, styles[state()])}
@@ -74,7 +91,7 @@ export function HitList(props: { answer: UsagesAnswer; hits: Hit[]; onOpen: (hit
   const kinds = () => countKinds(props.hits);
   const walk = () => props.answer.incoming ?? props.answer.outgoing;
   return (
-    <div class={styles.list}>
+    <div class={styles.list} role={ROLE.region} aria-label={t(I18N_KEYS.USAGES_HITS_LABEL)}>
       <div class={styles.head}>
         <b>{t(I18N_KEYS.USAGES_HITS, { count: props.hits.length })}</b>
         <Show when={kinds().tests > 0}>

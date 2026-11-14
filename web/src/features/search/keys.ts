@@ -37,9 +37,11 @@ export interface SearchKeyActions {
   activate: (entry: Entry) => void;
   chip: (step: number) => void;
   copy: (entry: Entry) => boolean;
+  editor: (entry: Entry) => void;
+  graph: (entry: Entry) => void;
 }
 
-/** The keys of the overlay: arrows choose, `Enter` opens, `Tab` changes the filter, `Ctrl+C`
+/** The keys of the overlay: arrows choose, `Enter` opens, `Ctrl+Enter` shows the layer in the map, `Tab` changes the filter, `Ctrl+C`
  * copies the name when no text of the input is selected, `Esc` closes. */
 export function onSearchKey(
   event: KeyboardEvent,
@@ -54,6 +56,10 @@ export function onSearchKey(
     actions.close();
   } else if (moved !== NONE) {
     actions.choose(moved);
+  } else if (event.key === KEY.enter && entry && event.altKey && !event.ctrlKey) {
+    actions.editor(entry);
+  } else if (event.key === KEY.enter && entry && event.ctrlKey && !event.altKey) {
+    actions.graph(entry);
   } else if (event.key === KEY.enter && entry && !event.ctrlKey && !event.altKey) {
     actions.activate(entry);
   } else if (event.key === KEY.tab) {

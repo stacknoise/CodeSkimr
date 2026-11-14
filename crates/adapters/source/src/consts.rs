@@ -65,3 +65,6 @@ pub const CARRIAGE_RETURN: char = '\r';
 
 /// Number of the first line of a file.
 pub const FIRST_LINE: u32 = 1;
+
+/// Marks a line of a plain-text requirement file as a comment.
+pub const REQUIREMENT_COMMENT: char = '#';

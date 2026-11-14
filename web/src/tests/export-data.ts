@@ -26,7 +26,7 @@ const FOCUS: UsagesAnswer = {
   incoming: { total: 3, hits: [hit(1, "call"), hit(1, "test"), hit(2, "call")] },
   outgoing: { total: 1, hits: [hit(1, "read")] },
   summary: SUMMARY,
-  impact: { total: 2, public_interfaces: 0, layers: [] },
+  impact: { total: 2, public_interfaces: 0, verified: 0, unchecked: 2, layers: [] },
   level2: "unavailable",
 };
 

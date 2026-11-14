@@ -6,10 +6,15 @@ use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
 use std::thread;
 
+use codeskimr_application::ports::IndexerSpec;
 use codeskimr_domain::LanguageId;
 
-use crate::consts::{ID_MISMATCH, LOAD_PANICKED, MANIFEST_FILE};
+use crate::consts::{
+    ID_MISMATCH, LOAD_PANICKED, MANIFEST_FILE, NAMING_FILE_IN_NAMES, NAMING_NAMESPACED,
+    NAMING_RULE_SEPARATOR, NAMING_RULES_SEPARATOR,
+};
 use crate::error::ParsingError;
+use crate::indexer::IndexerManifest;
 use crate::manifest::{PackManifest, Tier};
 use crate::pack::LanguagePack;
 
@@ -20,6 +25,8 @@ pub struct PackSummary {
     id: LanguageId,
     tier: Tier,
     extensions: Vec<String>,
+    file_in_names: bool,
+    indexer: Option<IndexerSpec>,
 }
 
 impl PackSummary {
@@ -33,6 +40,18 @@ impl PackSummary {
     #[must_use]
     pub const fn tier(&self) -> Tier {
         self.tier
+    }
+
+    /// How level 2 runs the indexer of this language, if the pack names one.
+    #[must_use]
+    pub const fn indexer(&self) -> Option<&IndexerSpec> {
+        self.indexer.as_ref()
+    }
+
+    /// Whether the path of the file starts every qualified name of the pack (ADR 0036).
+    #[must_use]
+    pub const fn file_in_names(&self) -> bool {
+        self.file_in_names
     }
 
     /// File extensions the pack claims, without the dot.
@@ -57,11 +76,19 @@ impl Slot {
             let reason = [ID_MISMATCH, manifest.id.as_str()].concat();
             return Err(ParsingError::invalid(folder(&dir), reason));
         }
+        let indexer = manifest
+            .indexer
+            .as_ref()
+            .map(IndexerManifest::spec)
+            .transpose()
+            .map_err(|reason| ParsingError::invalid(folder(&dir), reason))?;
         let summary = PackSummary {
             id: LanguageId::new(manifest.id)
                 .map_err(|e| ParsingError::invalid(folder(&dir), e.to_string()))?,
             tier: manifest.tier,
             extensions: manifest.extensions,
+            file_in_names: manifest.file_in_names,
+            indexer,
         };
         let slot = Self {
             summary,
@@ -89,6 +116,34 @@ fn folder(dir: &Path) -> String {
         .unwrap_or_default()
 }
 
+/// The folders below `root` that hold a `language.toml`, in order. `LanguagePacks::load` and
+/// `tiers` use this one search, so the tier shown is that of the pack the scan loads.
+fn pack_dirs(root: &Path) -> Result<Vec<PathBuf>, ParsingError> {
+    let mut dirs = Vec::new();
+    for entry in fs::read_dir(root).map_err(ParsingError::Unreadable)? {
+        let dir = entry.map_err(ParsingError::Unreadable)?.path();
+        if dir.join(MANIFEST_FILE).is_file() {
+            dirs.push(dir);
+        }
+    }
+    dirs.sort();
+    Ok(dirs)
+}
+
+/// The tier of every pack below `root`, read from the manifests alone: no grammar and no query is
+/// compiled, so this is cheap enough for a screen that asks often. A pack whose manifest cannot
+/// be read is left out; the scan reports it when it loads the packs.
+///
+/// # Errors
+/// [`ParsingError::Unreadable`] if `root` cannot be listed.
+pub fn tiers(root: &Path) -> Result<Vec<(String, Tier)>, ParsingError> {
+    Ok(pack_dirs(root)?
+        .iter()
+        .filter_map(|dir| PackManifest::read(dir).ok())
+        .map(|manifest| (manifest.id, manifest.tier))
+        .collect())
+}
+
 /// All language packs found below one folder, by language id.
 pub struct LanguagePacks {
     slots: HashMap<LanguageId, Slot>,
@@ -102,16 +157,9 @@ impl LanguagePacks {
     /// [`ParsingError::Unreadable`] if `root` cannot be listed, or the error of the first pack that
     /// is invalid.
     pub fn load(root: &Path) -> Result<Self, ParsingError> {
-        let mut dirs = Vec::new();
-        for entry in fs::read_dir(root).map_err(ParsingError::Unreadable)? {
-            let dir = entry.map_err(ParsingError::Unreadable)?.path();
-            if dir.join(MANIFEST_FILE).is_file() {
-                dirs.push(dir);
-            }
-        }
+        let dirs = pack_dirs(root)?;
         // Compiling the queries of a full-tier pack takes long, so the packs are read in parallel;
         // the error reported is the one of the first pack in the order of the folders.
-        dirs.sort();
         let read: Vec<Result<Slot, ParsingError>> = thread::scope(|scope| {
             let handles: Vec<_> = dirs
                 .into_iter()
@@ -140,6 +188,29 @@ impl LanguagePacks {
     /// All installed packs, in no particular order. Does not load any grammar.
     pub fn iter(&self) -> impl Iterator<Item = &PackSummary> {
         self.slots.values().map(|slot| &slot.summary)
+    }
+
+    /// The naming rules of all packs as one text, sorted by language: it changes whenever a rule
+    /// that changes the qualified names does (ADR 0036).
+    #[must_use]
+    pub fn naming_rules(&self) -> String {
+        let mut rules: Vec<String> = self
+            .iter()
+            .map(|pack| {
+                [
+                    pack.id().as_str(),
+                    NAMING_RULE_SEPARATOR,
+                    if pack.file_in_names() {
+                        NAMING_FILE_IN_NAMES
+                    } else {
+                        NAMING_NAMESPACED
+                    },
+                ]
+                .concat()
+            })
+            .collect();
+        rules.sort();
+        rules.join(NAMING_RULES_SEPARATOR)
     }
 
     /// The pack for `language`; a basic-tier pack is loaded by the first call.

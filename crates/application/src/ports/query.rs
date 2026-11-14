@@ -2,11 +2,12 @@
 //! (adapter: `codeskimr_storage`).
 
 use codeskimr_domain::{
-    LayerEdge, Metric, ProjectId, QualifiedName, RelativePath, Snapshot, SnapshotId, Symbol,
-    SymbolId, SymbolKind, SymbolName,
+    LayerEdge, Metric, NamespaceGraph, ProjectId, QualifiedName, RelativePath, Snapshot,
+    SnapshotId, Symbol, SymbolId, SymbolKind, SymbolName,
 };
 
 use crate::error::CodedError;
+use crate::ports::SymbolLabel;
 
 /// One result of a name search.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -56,6 +57,9 @@ pub struct SymbolDetail {
     pub members: Vec<MemberRef>,
     /// Measured values of the symbol itself.
     pub metrics: Vec<Metric>,
+    /// How many other symbols of the snapshot have the same qualified name. Names are not keys
+    /// (ADR 0036): a lookup by name gives the one with the lowest id.
+    pub same_name: u32,
 }
 
 /// Queries on the newest snapshots.
@@ -92,4 +96,41 @@ pub trait CodeIndex: Send + Sync {
     /// # Errors
     /// A coded failure of the `STO` group.
     fn layer_edges(&self, snapshot: SnapshotId) -> Result<Vec<LayerEdge>, CodedError>;
+
+    /// The namespaces of a snapshot with their type counts, and the references between them.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn namespace_graph(&self, snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError>;
+
+    /// The types that use one type and the types it uses, with the number of references; `None`
+    /// if the symbol is not a type of the snapshot.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn type_focus(
+        &self,
+        snapshot: SnapshotId,
+        symbol: SymbolId,
+    ) -> Result<Option<TypeFocus>, CodedError>;
+}
+
+/// A type next to the focus, and the references between them.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypeNeighbour {
+    /// The neighbouring type.
+    pub label: SymbolLabel,
+    /// Number of references behind the link.
+    pub count: u32,
+}
+
+/// One type with the types that use it and the types it uses, the most referenced first.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TypeFocus {
+    /// The type itself.
+    pub focus: SymbolLabel,
+    /// Types that use it.
+    pub users: Vec<TypeNeighbour>,
+    /// Types it uses.
+    pub used: Vec<TypeNeighbour>,
 }

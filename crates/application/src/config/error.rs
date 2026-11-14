@@ -24,6 +24,8 @@ pub enum Violation {
     MustBeBelow(&'static str),
     /// The value must be above the named other key.
     MustBeAbove(&'static str),
+    /// The value must not be below the named other key.
+    MustNotBeBelow(&'static str),
     /// The value must not exceed the named other key.
     MustNotExceed(&'static str),
     /// The value must lie between 0 and 1.

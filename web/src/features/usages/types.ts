@@ -37,6 +37,10 @@ export interface Summary {
 export interface Impact {
   total: number;
   public_interfaces: number;
+  /** Symbols reached through verified references only. */
+  verified: number;
+  /** Symbols reached through at least one unchecked reference. */
+  unchecked: number;
   layers: { layer: string; count: number }[];
 }
 
@@ -53,4 +57,17 @@ export interface UsagesAnswer {
   impact: Impact;
   /** `unavailable` while no indexer exists for the project. */
   level2: string;
+}
+
+/** The code line of one hit, from `usages.code`. */
+export interface CodeLine {
+  path: string;
+  line: number;
+  text: string;
+}
+
+/** The answer of `usages.code`. */
+export interface CodeAnswer {
+  available: boolean;
+  lines: CodeLine[];
 }

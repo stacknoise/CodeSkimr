@@ -8,7 +8,7 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{MemberRow, SymbolDetail, SymbolKey};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Permission, SnapshotId, SymbolId, Visibility};
+use codeskimr_domain::{Permission, ProjectId, SnapshotId, SymbolId, Visibility};
 use serde::{Deserialize, Serialize};
 
 use super::consts::{
@@ -91,6 +91,8 @@ pub struct SymbolOut {
     pub signature: Option<String>,
     /// Documentation comment.
     pub doc: Option<String>,
+    /// Name of the layer of the project that owns the symbol; `None` if no layer does.
+    pub layer: Option<String>,
     /// Enclosing symbols, outermost first.
     pub breadcrumb: Vec<Crumb>,
     /// Measured values.
@@ -164,10 +166,16 @@ impl ExplorerPorts {
     }
 }
 
+/// Where a symbol sits: its layer and the symbols around it.
+struct Place {
+    layer: Option<String>,
+    breadcrumb: Vec<Crumb>,
+}
+
 fn answer(
     snapshot: SnapshotId,
     detail: &SymbolDetail,
-    breadcrumb: Vec<Crumb>,
+    place: Place,
     rows: &[MemberRow],
     thresholds: &MetricThresholds,
 ) -> SymbolOut {
@@ -185,7 +193,8 @@ fn answer(
         last_line: symbol.span.end().line + LINE_OFFSET,
         signature: symbol.signature.clone(),
         doc: symbol.doc.clone(),
-        breadcrumb,
+        layer: place.layer,
+        breadcrumb: place.breadcrumb,
         metrics: detail
             .metrics
             .iter()
@@ -224,13 +233,12 @@ impl Command for ExplorerSymbol {
         let id = SymbolId::new(request.input.symbol);
         let detail = ports.lookup(snapshot, id)?;
         let breadcrumb = ports.breadcrumb(snapshot, &detail)?;
+        let project = ports
+            .projects
+            .project(ProjectId::new(request.input.project))?;
+        let layer = project.layer_name_of(detail.symbol.qualified_name.as_str());
+        let place = Place { layer, breadcrumb };
         let rows = ports.outline.member_rows(snapshot, id)?;
-        Ok(answer(
-            snapshot,
-            &detail,
-            breadcrumb,
-            &rows,
-            &ports.thresholds,
-        ))
+        Ok(answer(snapshot, &detail, place, &rows, &ports.thresholds))
     }
 }

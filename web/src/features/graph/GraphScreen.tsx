@@ -1,19 +1,33 @@
-import { createEffect, createMemo, createSignal, on, onMount, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, on, onCleanup, onMount, Show } from "solid-js";
 import { EXPLORER_ROUTE } from "../../app/consts";
 import { navigate } from "../../app/router";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject, openProject } from "../../shared/project/active";
 import { isTyping, useKeydown } from "../../shared/keys/keydown";
+import { currentType, requestFocus } from "../explorer/explorer";
 import { projects, refreshProjects } from "../projects/projects";
-import { KEY } from "./consts";
-import { graphData, graphFailed, loadGraph, resetGraph } from "./graph";
+import { KEY, LEVEL } from "./consts";
+import {
+  graphData,
+  graphFailed,
+  graphDepth,
+  graphFocus,
+  graphLevel,
+  loadGraph,
+  resetGraph,
+  setGraphDepth,
+  setGraphFocus,
+  setGraphLevel,
+  wantedLayer,
+  wantLayer,
+} from "./graph";
 import { GraphCanvas } from "./GraphCanvas";
 import { Legend } from "./Legend";
 import { neighboursOf, violations } from "./neighbours";
 import { SidePanel } from "./SidePanel";
 import { Toolbar } from "./Toolbar";
-import type { Size, View } from "./types";
+import type { GraphData, Size, View } from "./types";
 import { fit } from "./viewport";
 import styles from "./GraphScreen.module.css";
 
@@ -35,6 +49,8 @@ export function GraphScreen() {
   const [selected, setSelected] = createSignal<string | null>(null);
   const [weak, setWeak] = createSignal(true);
   const [violationsOnly, setViolationsOnly] = createSignal(false);
+  // No violation is derived on the namespace level, so the filter only acts on the layer level.
+  const filtering = () => violationsOnly() && graphLevel() === LEVEL.layers;
   const [view, setView] = createSignal<View>({ scale: 1, x: 0, y: 0 });
   const [size, setSize] = createSignal<Size>({ width: 0, height: 0 });
   const project = createMemo(() => activeProject() ?? projects()[0]?.id ?? null);
@@ -46,6 +62,7 @@ export function GraphScreen() {
     }
   };
   onMount(() => void refreshProjects());
+  onCleanup(() => wantLayer(null));
   createEffect(
     on(project, (id) => {
       resetGraph();
@@ -56,6 +73,29 @@ export function GraphScreen() {
     }),
   );
   createEffect(on([() => graphData()?.snapshot, size], fitView));
+  // On the type level the type in the middle is selected, so the panel shows what surrounds it.
+  createEffect(on(graphData, (loaded) => loaded?.focus && setSelected(loaded.focus.name)));
+  createEffect(() => {
+    const layer = wantedLayer();
+    const known = graphData()?.boxes.some((box) => box.name === layer);
+    if (layer !== null && known) {
+      setSelected(layer);
+      wantLayer(null);
+    }
+  });
+  createEffect(
+    on(
+      [graphLevel, graphDepth, graphFocus],
+      () => {
+        const id = project();
+        if (id !== null) {
+          setSelected(null);
+          void loadGraph(id);
+        }
+      },
+      { defer: true },
+    ),
+  );
   useKeydown((event) => {
     if (event.ctrlKey || event.altKey || event.metaKey || isTyping(event.target)) {
       return;
@@ -66,12 +106,39 @@ export function GraphScreen() {
       openExplorer();
     }
   });
+  const selectedType = () => {
+    const name = selected();
+    return graphLevel() === LEVEL.types
+      ? graphData()?.boxes.find((box) => box.name === name)?.symbol
+      : null;
+  };
   const openExplorer = () => {
     const id = project();
     if (id !== null) {
+      const type = selectedType();
+      if (type !== null && type !== undefined) {
+        requestFocus({ type, member: null, kind: null });
+      }
       openProject(id);
       navigate(EXPLORER_ROUTE.path);
     }
+  };
+  const focusType = () => {
+    const chosen = currentType();
+    if (chosen !== null) {
+      setGraphFocus(chosen);
+      setGraphLevel(LEVEL.types);
+    }
+  };
+  const focusHere = () => {
+    const type = selectedType();
+    if (type !== null && type !== undefined && type !== graphFocus()) {
+      setGraphFocus(type);
+    }
+  };
+  const focusableHere = () => {
+    const type = selectedType();
+    return type !== null && type !== undefined && type !== graphFocus();
   };
   const brokenLinks = () => violations(graphData()?.links ?? []);
   return (
@@ -93,9 +160,15 @@ export function GraphScreen() {
               <>
                 <div class={styles.map}>
                   <Toolbar
+                    level={graphLevel()}
+                    onLevel={setGraphLevel}
+                    focusable={currentType() !== null || graphFocus() !== null}
+                    onTypeFocus={focusType}
+                    depth={graphDepth()}
+                    onDepth={setGraphDepth}
                     weak={weak()}
                     onWeak={setWeak}
-                    violationsOnly={violationsOnly()}
+                    violationsOnly={filtering()}
                     onViolationsOnly={setViolationsOnly}
                     onFit={fitView}
                   />
@@ -106,9 +179,14 @@ export function GraphScreen() {
                     view={view()}
                     onView={setView}
                     onSize={setSize}
-                    violationsOnly={violationsOnly()}
+                    violationsOnly={filtering()}
                     weak={weak()}
                   />
+                  <Show when={moreTypes(current())}>
+                    {(count) => (
+                      <p class={styles.note}>{t(I18N_KEYS.GRAPH_TYPES_MORE, { count: count() })}</p>
+                    )}
+                  </Show>
                   <Show when={current().links.length === 0}>
                     <p class={styles.note}>{t(I18N_KEYS.GRAPH_NO_EDGES)}</p>
                   </Show>
@@ -126,6 +204,12 @@ export function GraphScreen() {
                       violations={brokenLinks()}
                       onSelect={setSelected}
                       onOpen={openExplorer}
+                      kind={
+                        graphLevel() === LEVEL.types
+                          ? t(I18N_KEYS.GRAPH_SELECTED_TYPE)
+                          : t(I18N_KEYS.GRAPH_SELECTED_KIND)
+                      }
+                      onFocus={focusableHere() ? focusHere : undefined}
                     />
                   )}
                 </Show>
@@ -136,6 +220,12 @@ export function GraphScreen() {
       </Show>
     </section>
   );
+}
+
+/** How many types the map on the type level leaves out, `null` if none. */
+function moreTypes(data: GraphData): number | null {
+  const more = (data.focus?.users_more ?? 0) + (data.focus?.used_more ?? 0);
+  return more > 0 ? more : null;
 }
 
 function isButton(target: EventTarget | null): boolean {

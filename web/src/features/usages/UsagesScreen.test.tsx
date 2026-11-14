@@ -60,6 +60,42 @@ describe("UsagesScreen", () => {
     expect(within(graph).getByText("Price.Value")).toBeTruthy();
   });
 
+  it("explains the lines and the number on the cards with a legend", async () => {
+    shown();
+    await screen.findByText("Hits 4");
+    expect(screen.getByText("calls")).toBeTruthy();
+    expect(screen.getByText("uses")).toBeTruthy();
+    expect(screen.getByText("presumed (via interface)")).toBeTruthy();
+    expect(screen.getByText("Number = places")).toBeTruthy();
+    expect(screen.getByRole("region", { name: "Hits" })).toBeTruthy();
+  });
+
+  it("shows the code line of a hit with the used symbol marked, and keeps the list without it", async () => {
+    openProject(1);
+    serve({
+      "usages.query": () => answer(ANSWER),
+      "explorer.symbol": () => answer(ORDER_SYMBOL),
+      "usages.code": () =>
+        answer({
+          available: true,
+          lines: [{ path: "src/Ui.cs", line: 40, text: "var sum = cart.Total();" }],
+        }),
+    });
+    showUsages(10);
+    render(() => <UsagesScreen />);
+    const mark = await screen.findByText("Total");
+    expect(mark.tagName).toBe("MARK");
+    expect(mark.parentElement?.textContent).toBe("var sum = cart.Total();");
+    expect(screen.getByText("src/Ui.cs:40")).toBeTruthy();
+  });
+
+  it("keeps the hit list when the code cannot be read", async () => {
+    shown();
+    await screen.findByText("Hits 4");
+    expect(screen.getByText("src/Ui.cs:40")).toBeTruthy();
+    expect(document.querySelector("mark")).toBeNull();
+  });
+
   it("marks every hit unchecked or presumed and says that the result is preliminary", async () => {
     shown();
     await screen.findByText("Hits 4");
@@ -67,6 +103,11 @@ describe("UsagesScreen", () => {
     expect(screen.getAllByText("presumed").length).toBeGreaterThan(0);
     expect(screen.getByText(/No indexer is set up for this project/)).toBeTruthy();
     expect(screen.getByText("0 places verified, 3 unchecked, 1 of them presumed.")).toBeTruthy();
+    expect(
+      screen.getByText(
+        "Of the listed symbols, reached through verified references: 0, only through unchecked references: 5.",
+      ),
+    ).toBeTruthy();
   });
 
   it("shows a verified hit as verified", async () => {
@@ -127,7 +168,7 @@ describe("UsagesScreen", () => {
       ...ANSWER,
       incoming: { total: 0, hits: [] },
       outgoing: null,
-      impact: { total: 0, public_interfaces: 0, layers: [] },
+      impact: { total: 0, public_interfaces: 0, verified: 0, unchecked: 0, layers: [] },
     });
     expect(await screen.findByText(/No usages found/)).toBeTruthy();
     expect(screen.getByText("A change reaches no other symbol.")).toBeTruthy();

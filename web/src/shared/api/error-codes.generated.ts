@@ -14,6 +14,7 @@ export type ErrorCode =
   | "PRJ-201"
   | "PRJ-301"
   | "PRJ-302"
+  | "PRJ-303"
   | "SRC-201"
   | "SRC-202"
   | "SRC-401"
@@ -24,7 +25,15 @@ export type ErrorCode =
   | "PRS-201"
   | "PRS-301"
   | "PRS-501"
+  | "RES-101"
+  | "RES-201"
   | "RES-301"
+  | "RES-302"
+  | "RES-501"
+  | "RES-502"
+  | "RES-503"
+  | "RES-504"
+  | "RES-601"
   | "IDX-301"
   | "STO-301"
   | "STO-302"
@@ -33,8 +42,10 @@ export type ErrorCode =
   | "STO-901"
   | "SEC-201"
   | "SEC-202"
+  | "SEC-301"
   | "SEC-401"
   | "SEC-402"
+  | "SEC-403"
   | "SEC-601"
   | "SEC-901"
   | "NET-501"
@@ -98,6 +109,7 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "PRJ-201": { id: "PRJ-201", name: "project_not_found", group: "PRJ", class: "not_found", severity: "error", retryable: false, description: "No project with this id exists.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-201" },
   "PRJ-301": { id: "PRJ-301", name: "project_already_registered", group: "PRJ", class: "conflict", severity: "error", retryable: false, description: "A project with the same source is already registered.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-301" },
   "PRJ-302": { id: "PRJ-302", name: "snapshot_in_progress", group: "PRJ", class: "conflict", severity: "error", retryable: false, description: "A scan for this project is already running.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-302" },
+  "PRJ-303": { id: "PRJ-303", name: "scan_cancelled", group: "PRJ", class: "conflict", severity: "info", retryable: true, description: "The scan was cancelled by the user; no snapshot was written.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-303" },
   "SRC-201": { id: "SRC-201", name: "source_path_not_found", group: "SRC", class: "not_found", severity: "error", retryable: false, description: "The configured source folder does not exist or is not readable.", since: "0.1.0", deprecated: false, messageKey: "error-SRC-201" },
   "SRC-202": { id: "SRC-202", name: "git_branch_not_found", group: "SRC", class: "not_found", severity: "error", retryable: false, description: "The requested branch does not exist on the remote.", since: "0.1.0", deprecated: false, messageKey: "error-SRC-202" },
   "SRC-401": { id: "SRC-401", name: "git_auth_required", group: "SRC", class: "permission", severity: "error", retryable: false, description: "The remote requires authentication and no usable credential is available.", since: "0.1.0", deprecated: false, messageKey: "error-SRC-401" },
@@ -108,7 +120,15 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "PRS-201": { id: "PRS-201", name: "language_pack_missing", group: "PRS", class: "not_found", severity: "error", retryable: false, description: "No language pack is installed for this file type.", since: "0.1.0", deprecated: false, messageKey: "error-PRS-201" },
   "PRS-301": { id: "PRS-301", name: "language_pack_invalid", group: "PRS", class: "conflict", severity: "error", retryable: false, description: "A language pack's TOML or query files are invalid.", since: "0.1.0", deprecated: false, messageKey: "error-PRS-301" },
   "PRS-501": { id: "PRS-501", name: "parse_timeout", group: "PRS", class: "limit", severity: "error", retryable: false, description: "Parsing a single file exceeded the configured time limit.", since: "0.1.0", deprecated: false, messageKey: "error-PRS-501" },
+  "RES-101": { id: "RES-101", name: "scip_index_invalid", group: "RES", class: "invalid_input", severity: "error", retryable: false, description: "A SCIP index cannot be read, is corrupt or names a path outside the project; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-101" },
+  "RES-201": { id: "RES-201", name: "indexer_unavailable", group: "RES", class: "not_found", severity: "error", retryable: false, description: "The indexer of a language or its toolchain is not installed or is older than the version the language pack requires; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-201" },
   "RES-301": { id: "RES-301", name: "ambiguous_reference", group: "RES", class: "conflict", severity: "warning", retryable: false, description: "A reference matches several symbols; it was stored as probable.", since: "0.1.0", deprecated: false, messageKey: "error-RES-301" },
+  "RES-302": { id: "RES-302", name: "scip_mapping_too_low", group: "RES", class: "conflict", severity: "error", retryable: false, description: "Too few occurrences of a SCIP index map onto project symbols; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-302" },
+  "RES-501": { id: "RES-501", name: "scip_index_too_large", group: "RES", class: "limit", severity: "error", retryable: false, description: "A SCIP index is larger than the configured limit and was refused; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-501" },
+  "RES-502": { id: "RES-502", name: "indexer_timeout", group: "RES", class: "limit", severity: "error", retryable: false, description: "An indexer ran longer than level2.timeout_seconds and was stopped with all its child processes; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-502" },
+  "RES-503": { id: "RES-503", name: "indexer_output_too_large", group: "RES", class: "limit", severity: "error", retryable: false, description: "An indexer wrote more than level2.max_output_bytes and was stopped; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-503" },
+  "RES-504": { id: "RES-504", name: "indexer_memory_limit", group: "RES", class: "limit", severity: "error", retryable: false, description: "An indexer used more memory than level2.max_memory_mb and was stopped; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-504" },
+  "RES-601": { id: "RES-601", name: "indexer_failed", group: "RES", class: "external", severity: "error", retryable: false, description: "An indexer could not be started or ended with an error; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-601" },
   "IDX-301": { id: "IDX-301", name: "read_model_stale", group: "IDX", class: "conflict", severity: "info", retryable: false, description: "A read model is older than the current snapshot and is being rebuilt.", since: "0.1.0", deprecated: false, messageKey: "error-IDX-301" },
   "STO-301": { id: "STO-301", name: "schema_migration_failed", group: "STO", class: "conflict", severity: "error", retryable: false, description: "Applying a database migration failed.", since: "0.1.0", deprecated: false, messageKey: "error-STO-301" },
   "STO-302": { id: "STO-302", name: "transaction_conflict", group: "STO", class: "conflict", severity: "error", retryable: true, description: "A concurrent write conflicted; the operation can be retried.", since: "0.1.0", deprecated: false, messageKey: "error-STO-302" },
@@ -117,8 +137,10 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "STO-901": { id: "STO-901", name: "stored_data_invalid", group: "STO", class: "internal", severity: "error", retryable: false, description: "Data read from the database violates the domain model; this is a bug or a damaged database.", since: "0.1.0", deprecated: false, messageKey: "error-STO-901" },
   "SEC-201": { id: "SEC-201", name: "credential_not_found", group: "SEC", class: "not_found", severity: "error", retryable: false, description: "The referenced credential does not exist in the keystore.", since: "0.1.0", deprecated: false, messageKey: "error-SEC-201" },
   "SEC-202": { id: "SEC-202", name: "credential_damaged", group: "SEC", class: "not_found", severity: "error", retryable: false, description: "The keystore entry of the credential cannot be read; delete it and create the credential again.", since: "0.1.0", deprecated: false, messageKey: "error-SEC-202" },
+  "SEC-301": { id: "SEC-301", name: "indexer_not_confirmed", group: "SEC", class: "conflict", severity: "error", retryable: false, description: "Level 2 is not enabled and confirmed for this project in the user configuration or the user's own project record, so no indexer is started.", since: "0.1.0", deprecated: false, messageKey: "error-SEC-301" },
   "SEC-401": { id: "SEC-401", name: "credential_rejected", group: "SEC", class: "permission", severity: "error", retryable: false, description: "The platform rejected the credential.", since: "0.1.0", deprecated: false, messageKey: "error-SEC-401" },
   "SEC-402": { id: "SEC-402", name: "keystore_access_denied", group: "SEC", class: "permission", severity: "error", retryable: false, description: "The OS keystore denied access.", since: "0.1.0", deprecated: false, messageKey: "error-SEC-402" },
+  "SEC-403": { id: "SEC-403", name: "indexer_not_permitted", group: "SEC", class: "permission", severity: "error", retryable: false, description: "The caller may not confirm or start indexers; only the local owner may (ADR 0033, decision 10).", since: "0.1.0", deprecated: false, messageKey: "error-SEC-403" },
   "SEC-601": { id: "SEC-601", name: "keystore_unavailable", group: "SEC", class: "external", severity: "error", retryable: false, description: "The OS keystore service is not available.", since: "0.1.0", deprecated: false, messageKey: "error-SEC-601" },
   "SEC-901": { id: "SEC-901", name: "memory_lock_failed", group: "SEC", class: "internal", severity: "error", retryable: false, description: "Locking secret memory against swapping failed.", since: "0.1.0", deprecated: false, messageKey: "error-SEC-901" },
   "NET-501": { id: "NET-501", name: "request_timeout", group: "NET", class: "limit", severity: "error", retryable: true, description: "A request to an external platform timed out.", since: "0.1.0", deprecated: false, messageKey: "error-NET-501" },

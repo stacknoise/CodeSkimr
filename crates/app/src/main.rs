@@ -13,9 +13,14 @@ mod consts;
 mod credential;
 #[cfg(test)]
 mod e2e;
+mod embedded_ui;
 mod export;
 mod installation_token;
 mod launch_file;
+mod level2_consent;
+mod level2_consent_tests;
+mod level2_link_tests;
+mod level2_redact_tests;
 mod local_http;
 mod locations;
 mod log_writer;
@@ -31,9 +36,16 @@ mod redact;
 mod run;
 mod scan;
 #[cfg(test)]
+mod security_http_tests;
+#[cfg(test)]
+mod security_login_tests;
+#[cfg(test)]
 mod security_tests;
 mod serve;
+mod shared_keystore;
 mod source_arg;
+#[cfg(test)]
+mod tool_check_tests;
 mod ui_commands;
 mod watch;
 mod wiring;

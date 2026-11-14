@@ -54,7 +54,7 @@ pub(crate) fn send(
 }
 
 /// One POST to `/mcp` with an optional token; the status and the JSON body of the answer.
-fn post(url: &str, token: Option<&str>, body: &Value) -> (u16, Value) {
+pub(crate) fn post(url: &str, token: Option<&str>, body: &Value) -> (u16, Value) {
     let (status, answer) = send(url, ("POST", "/mcp"), token, Some(body));
     let payload = answer.split_once("\r\n\r\n").unwrap().1;
     let json = payload
@@ -108,16 +108,29 @@ fn client(url: &str, token: &str) {
     }
 }
 
+/// A keystore with a fresh installation token, and that token.
+pub(crate) fn token_store() -> (KeystoreCredentials<Memory>, String) {
+    let store = KeystoreCredentials::new(Memory::default());
+    installation_token::load_or_create(&store).unwrap();
+    let token = installation_token::stored_token(&store);
+    (store, token)
+}
+
 #[test]
 fn the_running_app_answers_mcp_at_slash_mcp_with_the_token_only() {
     let data = tempfile::tempdir().unwrap();
     let locations = locations(data.path());
     let config = config_files::load(&locations, &GlobalOptions::default(), None).unwrap();
-    let store = KeystoreCredentials::new(Memory::default());
-    installation_token::load_or_create(&store).unwrap();
-    let token = installation_token::stored_token(&store);
+    let (store, token) = token_store();
     let mut parts = bare_parts(test_ui());
-    parts.mcp = Some(http_service(&config, &locations, parts.events.clone()).unwrap());
+    parts.mcp = Some(
+        http_service(
+            &config,
+            &locations,
+            (parts.events.clone(), &crate::memory_keystore::secrets()),
+        )
+        .unwrap(),
+    );
     let (stop, stopped) = oneshot::channel::<()>();
     let (found, url) = channel::<String>();
     let requests = std::thread::spawn(move || {

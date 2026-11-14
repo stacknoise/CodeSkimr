@@ -1,6 +1,8 @@
 # Dependency graph screen.
 
 graph-title = Dependencies
+graph-level-label = Level
+graph-mode-layers = Layers
 graph-mode-namespaces = Namespaces
 graph-mode-type-focus = Type focus
 graph-depth-one = 1 level
@@ -38,3 +40,11 @@ graph-no-edges = No dependencies between the layers were found yet.
 graph-failed = The map could not be loaded.
 graph-fit-key = F
 graph-open-key = Enter
+graph-depth-label = Depth
+graph-depth-all = all
+graph-depth-1 = 1 level
+graph-depth-2 = 2 levels
+graph-selected-type = Type
+graph-focus-here = Focus on this type
+graph-types-more = { $count } more types are not shown.
+graph-types-pick = Choose a type in the explorer first.

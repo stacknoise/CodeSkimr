@@ -1,3 +1,4 @@
+import { isEditorShortcut } from "../../shared/editor/editor";
 import { isTyping, useKeydown } from "../../shared/keys/keydown";
 import { KEY, NOT_FOUND } from "./consts";
 import type { TreeRow } from "./tree";
@@ -8,20 +9,35 @@ export interface ExplorerKeys {
   reveal: () => void;
   /** Shows the usages of the selected symbol. */
   usages: () => void;
+  /** Shows the layer of the selected symbol in the dependency map. */
+  graph: () => void;
+  /** Opens the selected symbol in the editor. */
+  editor: () => void;
+}
+
+/** The lower-case key of a press without a modifier and outside a field, or `null`. */
+function plainKey(event: KeyboardEvent): string | null {
+  const modified = event.ctrlKey || event.altKey || event.metaKey || isTyping(event.target);
+  return modified ? null : event.key.toLowerCase();
 }
 
 /** Registers `Ctrl+Left` (close the whole tree), `Ctrl+.` (show the selection) and `U` (usages of
- * the selection) while the screen is shown. The plain arrows belong to the tree itself, so the page can still scroll. */
+ * the selection), `G` (its layer in the dependency map) while the screen is shown. The plain arrows belong to the tree itself, so the page can still scroll. */
 export function useExplorerKeys(keys: ExplorerKeys): void {
   useKeydown((event) => {
-    if (
-      event.key.toLowerCase() === KEY.usages &&
-      !event.ctrlKey &&
-      !event.altKey &&
-      !event.metaKey &&
-      !isTyping(event.target)
-    ) {
+    if (isEditorShortcut(event)) {
+      keys.editor();
+      event.preventDefault();
+      return;
+    }
+    const plain = plainKey(event);
+    if (plain === KEY.usages) {
       keys.usages();
+      event.preventDefault();
+      return;
+    }
+    if (plain === KEY.graph) {
+      keys.graph();
       event.preventDefault();
       return;
     }

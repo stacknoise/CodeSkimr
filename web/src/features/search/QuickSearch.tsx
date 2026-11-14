@@ -1,9 +1,13 @@
 import { createMemo, For, Match, onCleanup, onMount, Show, Switch } from "solid-js";
-import { t } from "../../shared/i18n/i18n";
+import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
 import { cx } from "../../shared/ui/cx";
+import { ICON_SEARCH } from "../../shared/ui/consts";
+import { Icon } from "../../shared/ui/Icon";
 import { ROW_HEIGHT_PX } from "../explorer/consts";
+import { openInEditor } from "../explorer/editor";
+import { showInGraph } from "../graph/show";
 import { KindBadge } from "../explorer/KindBadge";
 import { useWindow } from "../explorer/useWindow";
 import { UI_COMMANDS } from "./commands";
@@ -35,6 +39,7 @@ import {
   searchHits,
   searchMs,
   searchOpen,
+  searchEntries,
   searchScanned,
   searchText,
   typeSearch,
@@ -59,12 +64,32 @@ function copyName(entry: Entry): boolean {
   return true;
 }
 
+/** `Alt+Enter`: opens the declaration of the chosen hit in the editor and closes the search. */
+function openInEditorFrom(entry: Entry): void {
+  const project = activeProject();
+  if (entry.hit && project !== null) {
+    closeSearch();
+    void openInEditor(project, entry.hit.id);
+  }
+}
+
+/** `Ctrl+Enter`: shows the layer of the chosen hit on the dependency map and closes the search. */
+function showInGraphFrom(entry: Entry): void {
+  const project = activeProject();
+  if (entry.hit && project !== null) {
+    closeSearch();
+    void showInGraph(project, entry.hit.id);
+  }
+}
+
 const ACTIONS: SearchKeyActions = {
   close: closeSearch,
   choose,
   activate,
   chip: (step) => pickChip(nextChip(searchChip(), step)),
   copy: copyName,
+  editor: openInEditorFrom,
+  graph: showInGraphFrom,
 };
 
 function Row(props: { row: ListRow; text: string }) {
@@ -114,6 +139,9 @@ function Chips() {
             aria-pressed={searchChip() === chip.filter}
             onClick={() => pickChip(chip.filter)}
           >
+            <Show when={chip.prefix}>
+              {(prefix) => <span class={styles.prefix}>{prefix()}</span>}
+            </Show>
             {t(chip.label)}
           </button>
         )}
@@ -176,6 +204,9 @@ function SearchInput(props: { entries: Entry[]; current: Entry | null }) {
   const selecting = () => input?.selectionStart !== input?.selectionEnd;
   return (
     <div class={styles.top}>
+      <span class={styles.lens}>
+        <Icon name={ICON_SEARCH} />
+      </span>
       <input
         id={INPUT_ID}
         ref={input}
@@ -197,6 +228,31 @@ function SearchInput(props: { entries: Entry[]; current: Entry | null }) {
       <Show when={searchMs() !== null}>
         <span class={styles.count}>
           {t(I18N_KEYS.PALETTE_RESULT_COUNT, { count: props.entries.length, ms: searchMs() ?? 0 })}
+        </span>
+      </Show>
+      <kbd class={styles.key}>{t(I18N_KEYS.PALETTE_KEY_CLOSE)}</kbd>
+    </div>
+  );
+}
+
+function Footer() {
+  return (
+    <div class={styles.footer}>
+      <span>
+        <kbd class={styles.key}>{t(I18N_KEYS.PALETTE_KEY_UP)}</kbd>{" "}
+        <kbd class={styles.key}>{t(I18N_KEYS.PALETTE_KEY_DOWN)}</kbd>{" "}
+        {t(I18N_KEYS.PALETTE_HINT_SELECT)}
+      </span>
+      <span>
+        <kbd class={styles.key}>{t(I18N_KEYS.PALETTE_KEY_TAB)}</kbd>{" "}
+        {t(I18N_KEYS.PALETTE_HINT_FILTER)}
+      </span>
+      <span>{t(I18N_KEYS.PALETTE_HINT_FUZZY)}</span>
+      <Show when={searchEntries() !== null}>
+        <span class={styles.entries}>
+          {t(I18N_KEYS.PALETTE_INDEX_SIZE, {
+            count: new Intl.NumberFormat(currentLanguage()).format(searchEntries() ?? 0),
+          })}
         </span>
       </Show>
     </div>
@@ -235,7 +291,7 @@ function Overlay() {
           />
           <Preview hit={current()?.hit ?? null} />
         </div>
-        <div class={styles.footer}>{t(I18N_KEYS.PALETTE_HINT_FUZZY)}</div>
+        <Footer />
       </div>
     </div>
   );

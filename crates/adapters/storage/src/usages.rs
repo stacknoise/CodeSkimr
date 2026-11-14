@@ -1,121 +1,40 @@
 //! The reverse index of a snapshot and the `UsageIndex` port.
 //!
 //! The references of a snapshot are loaded once into a `ReverseIndex` and kept for the snapshot
-//! that was asked about last; a snapshot never changes, a new scan gets a new id. Only the
-//! entries of the answer are looked up in the database.
+//! that was asked about last; a snapshot never changes, a new scan gets a new id. The
+//! symbols and files that name the entries of an answer are loaded with it, so an answer is
+//! assembled in memory.
 
 use std::sync::{Arc, PoisonError};
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    DependencyEdge, DependencyPage, DependencyQuery, ImpactPage, ImpactedSymbol, SymbolLabel,
-    UsageEntry, UsageIndex, UsagePage,
+    DependencyEdge, DependencyPage, DependencyQuery, ImpactPage, SymbolLabel, TypeFocus,
+    UsageIndex, UsagePage,
 };
 use codeskimr_domain::{
-    Direction, QualifiedName, ReferenceKind, RelativePath, ReverseIndex, SnapshotId, SymbolId,
-    UsageQuery, Visibility,
+    Direction, NamespaceGraph, QualifiedName, ReferenceKind, RelativePath, SnapshotId, SymbolId,
+    UsageQuery,
 };
-use rusqlite::{Connection, OptionalExtension, params};
+use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, column_int, label_from, small_from};
 use crate::error::{StorageError, StorageResult};
-use crate::previous::load_references;
+use crate::lookup::SnapshotLookup;
 use crate::sql;
 use crate::store::SqliteStore;
-
-/// A symbol as it is stored: its label, visibility and file.
-struct Placed {
-    label: SymbolLabel,
-    visibility: Option<Visibility>,
-    path: RelativePath,
-}
-
-/// The columns of `SYMBOL_LABEL`, still raw.
-struct LabelRow {
-    qualified: String,
-    kind: String,
-    visibility: Option<String>,
-    path: String,
-}
-
-fn read_label(cols: &Cols<'_>) -> rusqlite::Result<LabelRow> {
-    Ok(LabelRow {
-        qualified: cols.take()?,
-        kind: cols.take()?,
-        visibility: cols.take()?,
-        path: cols.take()?,
-    })
-}
-
-fn placed(conn: &Connection, snapshot: i64, symbol: SymbolId) -> StorageResult<Placed> {
-    let row = conn
-        .prepare_cached(sql::SYMBOL_LABEL)?
-        .query_row(params![snapshot, column_int(symbol.get())?], |row| {
-            read_label(&Cols::new(row))
-        })
-        .optional()?
-        .ok_or(StorageError::DanglingReference)?;
-    Ok(Placed {
-        label: SymbolLabel {
-            id: symbol,
-            qualified_name: QualifiedName::new(row.qualified)?,
-            kind: label_from(&row.kind)?,
-        },
-        visibility: row.visibility.as_deref().map(label_from).transpose()?,
-        path: RelativePath::new(row.path)?,
-    })
-}
-
-fn file_path(conn: &Connection, snapshot: i64, file: u64) -> StorageResult<RelativePath> {
-    let path: Option<String> = conn
-        .prepare_cached(sql::FILE_PATH)?
-        .query_row(params![snapshot, column_int(file)?], |row| row.get(0))
-        .optional()?;
-    Ok(RelativePath::new(
-        path.ok_or(StorageError::DanglingReference)?,
-    )?)
-}
-
-fn entry(
-    conn: &Connection,
-    snapshot: i64,
-    usage: &codeskimr_domain::Usage,
-) -> StorageResult<UsageEntry> {
-    let reference = usage.reference;
-    Ok(UsageEntry {
-        depth: usage.depth,
-        reference,
-        path: file_path(conn, snapshot, reference.file.get())?,
-        from: placed(conn, snapshot, reference.from)?.label,
-        to: placed(conn, snapshot, reference.to)?.label,
-    })
-}
-
-fn impacted(
-    conn: &Connection,
-    snapshot: i64,
-    reached: &codeskimr_domain::Reached,
-) -> StorageResult<ImpactedSymbol> {
-    let found = placed(conn, snapshot, reached.symbol)?;
-    Ok(ImpactedSymbol {
-        label: found.label,
-        depth: reached.depth,
-        visibility: found.visibility,
-        path: found.path,
-    })
-}
 
 impl SqliteStore {
     /// The reverse index of a snapshot, built on first use. A snapshot that is not stored (never
     /// existed, or pruned by the retention) has an empty index that is not kept; like the other
     /// queries, usages of such a snapshot are empty.
-    fn reverse_index(&self, snapshot: SnapshotId) -> StorageResult<Arc<ReverseIndex>> {
+    pub(crate) fn lookup(&self, snapshot: SnapshotId) -> StorageResult<Arc<SnapshotLookup>> {
         let raw = column_int(snapshot.get())?;
         let stored: i64 = self.read(|conn| {
             Ok(conn.query_row(sql::SNAPSHOT_EXISTS, params![raw], |row| row.get(0))?)
         })?;
         if stored == 0 {
-            return Ok(Arc::new(ReverseIndex::default()));
+            return Ok(Arc::new(SnapshotLookup::default()));
         }
         let mut cached = self.reverse.lock().unwrap_or_else(PoisonError::into_inner);
         if let Some((id, index)) = cached.as_ref()
@@ -123,10 +42,9 @@ impl SqliteStore {
         {
             return Ok(Arc::clone(index));
         }
-        let references = self.read(|conn| load_references(conn, raw))?;
-        let index = Arc::new(ReverseIndex::new(references));
-        *cached = Some((snapshot, Arc::clone(&index)));
-        Ok(index)
+        let loaded = Arc::new(self.read(|conn| SnapshotLookup::load(conn, raw))?);
+        *cached = Some((snapshot, Arc::clone(&loaded)));
+        Ok(loaded)
     }
 
     fn usage_page(
@@ -135,15 +53,13 @@ impl SqliteStore {
         query: &UsageQuery,
         limit: u32,
     ) -> StorageResult<UsagePage> {
-        let found = self.reverse_index(snapshot)?.usages(query);
-        let raw = column_int(snapshot.get())?;
-        let entries = self.read(|conn| {
-            found
-                .iter()
-                .take(limit as usize)
-                .map(|usage| entry(conn, raw, usage))
-                .collect::<StorageResult<Vec<_>>>()
-        })?;
+        let lookup = self.lookup(snapshot)?;
+        let found = lookup.index.usages(query);
+        let entries = found
+            .iter()
+            .take(limit as usize)
+            .map(|usage| lookup.entry(usage))
+            .collect::<StorageResult<Vec<_>>>()?;
         Ok(UsagePage {
             total: found.len(),
             entries,
@@ -163,15 +79,13 @@ impl SqliteStore {
             depth,
             include_tests: true,
         };
-        let reached = self.reverse_index(snapshot)?.reached(&query);
-        let raw = column_int(snapshot.get())?;
-        let symbols = self.read(|conn| {
-            reached
-                .iter()
-                .take(limit as usize)
-                .map(|found| impacted(conn, raw, found))
-                .collect::<StorageResult<Vec<_>>>()
-        })?;
+        let lookup = self.lookup(snapshot)?;
+        let reached = lookup.index.reached(&query);
+        let symbols = reached
+            .iter()
+            .take(limit as usize)
+            .map(|found| lookup.impacted(found))
+            .collect::<StorageResult<Vec<_>>>()?;
         Ok(ImpactPage {
             total: reached.len(),
             symbols,
@@ -231,6 +145,35 @@ fn dependency_edges(
         });
     }
     Ok(edges)
+}
+
+impl SqliteStore {
+    /// The namespaces of a snapshot and the references between them. A snapshot that is not
+    /// stored has none.
+    ///
+    /// # Errors
+    /// A coded `STO` failure.
+    pub fn namespace_graph(&self, snapshot: SnapshotId) -> Result<NamespaceGraph, CodedError> {
+        self.lookup(snapshot)
+            .map(|found| found.namespaces.clone())
+            .map_err(CodedError::from)
+    }
+}
+
+impl SqliteStore {
+    /// The types around one type of a snapshot; `None` if the symbol is not a type of it.
+    ///
+    /// # Errors
+    /// A coded `STO` failure.
+    pub fn type_focus(
+        &self,
+        snapshot: SnapshotId,
+        symbol: SymbolId,
+    ) -> Result<Option<TypeFocus>, CodedError> {
+        self.lookup(snapshot)
+            .and_then(|found| found.type_focus(symbol))
+            .map_err(CodedError::from)
+    }
 }
 
 impl UsageIndex for SqliteStore {

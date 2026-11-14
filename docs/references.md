@@ -13,7 +13,7 @@ Blueprint 9.2. The resolver turns the names that the analysis found (`PendingRef
 
 Three passes, because later ones need what earlier ones found: imports, then inheritance (base lists), then everything else.
 
-1. A receiver gives the types in which the member is searched, with their base types (nearest type first). A receiver of a type outside the project finds nothing: its members are never mistaken for project symbols of the same name. This holds for a declared type, and for a receiver name that no project symbol bears (`Console.WriteLine`). A receiver of unknown type (`Unknown`, or a name that is a variable or member of unknown type) tells nothing, and the member falls back to the last resort: the name alone, never more than `probable`, and the enclosing type is not searched for it. If that name belongs to members of types that have nothing to do with each other (neither derives from the other and they share no base type), none of them is reported. This holds for every language: a wrong usage is worse than a missing one. A receiver type that itself was found only by the last resort still gives a `certain` member if the member is found in it.
+1. A receiver gives the types in which the member is searched, with their base types (nearest type first). A receiver of a type outside the project finds nothing: its members are never mistaken for project symbols of the same name. This holds for a declared type, and for a receiver name that no project symbol bears (`Console.WriteLine`). A receiver of unknown type (`Unknown`, or a name that is a variable or member of unknown type) tells nothing, and the member falls back to the last resort: the name alone, never more than `probable`, and the enclosing type is not searched for it. If that name belongs to members of types that have nothing to do with each other, all of them are reported as `probable`: level 1 never drops a candidate (ADR 0033, which reversed the ambiguity rule of PR #133), because a missing usage spoils an impact analysis. The reference is stored with `verified = false`; the callers (usages, impact, UI, MCP) show it as unchecked and count it apart. A receiver type that itself was found only by the last resort still gives a `certain` member if the member is found in it.
 2. Without usable receiver: the enclosing symbols from the inside out (members of the enclosing type and its bases, enclosing namespaces including their parent namespaces), then the namespaces the file imports.
 3. Last resort: the name alone.
 
@@ -25,8 +25,12 @@ Which kinds a name can point to depends on the kind of occurrence (`resolve/kind
 
 ## Known limits (follow-up work)
 
-- The type of a method result (`var x = svc.Make()`) is not known: the pack does not report return types. A call on `x` is `probable` if the name exists in one type only, and not reported if several unrelated types have it.
+- The type of a method result (`var x = svc.Make()`) is not known: the pack does not report return types. A call on `x` is `probable`, for every type that has the name.
 - Overloads are not told apart (no argument counts), so a call of an overloaded method is `probable`.
 - Extension methods, `using static`, generic type parameters and members reached through a chain (`a.b.c()`) fall back to the last resort or to nothing.
 - The kind `test` is not produced yet.
 - Resolution is sequential; ids are handed out in a fixed order.
+
+## Level 2 (ADR 0033)
+
+Level 2 references come from SCIP indexes of the language tooling and replace the level 1 references of every file the index covers; they are `certain` and `verified`. The import (decoder, mapping, replacing per file) is `crates/adapters/scip`, see `docs/level2-import.md`. It is not wired into the scan yet.

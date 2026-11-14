@@ -38,6 +38,14 @@ function Impact(props: { answer: UsagesAnswer }) {
               public: impact().public_interfaces,
             })}
       </p>
+      <Show when={impact().total > 0}>
+        <p>
+          {t(I18N_KEYS.USAGES_IMPACT_ACCURACY, {
+            verified: impact().verified,
+            unchecked: impact().unchecked,
+          })}
+        </p>
+      </Show>
       <div class={styles.chips}>
         <For each={impact().layers}>
           {(share, index) => (
@@ -52,7 +60,7 @@ function Impact(props: { answer: UsagesAnswer }) {
 }
 
 /** How sure the usages are, and the reason when no indexer checked them. This is what keeps the
- * screen honest: unchecked results are counted apart from verified ones (ADR 0032). */
+ * screen honest: unchecked results are counted apart from verified ones (ADR 0033). */
 function Accuracy(props: { answer: UsagesAnswer }) {
   const summary = () => props.answer.summary;
   return (

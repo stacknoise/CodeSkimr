@@ -103,11 +103,31 @@ pub enum CredentialAction {
     },
 }
 
+/// What `codeskimr level2` is asked to do. Both ways are local and interactive: nothing else, not
+/// MCP, not the REST API, not a flag, can confirm level 2 (ADR 0033, decision 10).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Level2Action {
+    /// Allows the indexers for the project after the user typed the confirmation word.
+    Confirm {
+        /// Id of the project, or the folder or Git URL it was scanned from.
+        project: String,
+    },
+    /// Forbids them again.
+    Revoke {
+        /// Id of the project, or the folder or Git URL it was scanned from.
+        project: String,
+    },
+}
+
 /// The command to run.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
     /// `codeskimr credential`.
     Credential(CredentialAction),
+    /// `codeskimr level2`.
+    Level2(Level2Action),
+    /// `codeskimr` without a command: start the server and open the browser.
+    Start,
     /// `codeskimr scan <source>`.
     Scan(ScanArgs),
     /// `codeskimr mcp`.

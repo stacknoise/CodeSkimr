@@ -161,6 +161,23 @@ jobs:
       - name: cargo build
         run: cargo build --workspace --release --locked
 
+  # ADR 0033: the level 2 runner kills a process group on Unix and a job object on Windows. The test job
+  # runs on Linux only, so the tests of the runner (timeout, cancel, child processes, limits) run on
+  # Windows here. Not in the ruleset yet; it reports, and the product owner decides about requiring it.
+  indexer-windows:
+    name: test (windows-latest, indexer)
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install Rust toolchain
+        run: rustup show active-toolchain || rustup toolchain install
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - name: cargo test (indexer runner)
+        run: cargo test -p codeskimr_indexer --all-features --locked
+
   architecture:
     name: architecture
     runs-on: ubuntu-latest

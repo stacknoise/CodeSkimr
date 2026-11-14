@@ -360,11 +360,12 @@ fn mcp_answers_from_the_scanned_project() {
     );
     let result = &answer["result"];
     assert_ne!(result["isError"], true, "{result}");
-    assert_eq!(result["structuredContent"]["hits"][0]["name"], "Calculator");
-    let hit = result["structuredContent"]["hits"][0]["qualified_name"]
-        .as_str()
-        .unwrap();
-    assert!(hit.ends_with("Calculator"));
+    let hits = result["structuredContent"]["hits"].as_array().unwrap();
+    // The file `Calculator.cs` and the class in it are both found; the names of C# do not start
+    // with the file (ADR 0036).
+    let class = hits.iter().find(|hit| hit["kind"] == "class").unwrap();
+    assert_eq!(class["name"], "Calculator");
+    assert_eq!(class["qualified_name"], "Demo.Core.Calculator");
 }
 
 #[test]
@@ -505,19 +506,26 @@ fn export_ui(workspace: &Workspace) -> String {
     format!("ui.dir='{}'", ui.display())
 }
 
+/// Runs `codeskimr export --html <file>` for the project, with extra environment variables.
+#[cfg(test)]
+fn export_to(workspace: &Workspace, file: &Path, env: &[(&str, &str)]) -> Output {
+    let mut command = workspace.command();
+    command.envs(env.iter().copied());
+    command
+        .args(["--set", &export_ui(workspace), "export"])
+        .arg(workspace.project())
+        .arg("--html")
+        .arg(file)
+        .output()
+        .unwrap()
+}
+
 #[test]
 fn export_writes_one_page_with_the_scan_and_no_source_text() {
     let workspace = Workspace::new();
     json_of(&workspace.scan(&[]));
     let file = workspace.root.path().join("out.html");
-    let output = workspace
-        .command()
-        .args(["--set", &export_ui(&workspace), "export"])
-        .arg(workspace.project())
-        .arg("--html")
-        .arg(&file)
-        .output()
-        .unwrap();
+    let output = export_to(&workspace, &file, &[]);
     assert!(output.status.success(), "{}", stderr(&output));
     assert!(String::from_utf8_lossy(&output.stdout).contains("Export written to"));
     let page = fs::read_to_string(&file).unwrap();
@@ -690,4 +698,223 @@ fn the_cli_check_never_reads_a_file_outside_the_current_folder() {
         assert!(!text.contains("CHK-104"), "{path}: {text}");
         assert!(!text.contains(OUTSIDE_CLASS), "{path}: {text}");
     }
+}
+
+// --- Canaries in logs and process output (WP-74, blueprint S-02) ---------------------------
+
+/// A credential-shaped secret that appears only as input, never as something the app stores.
+const SECRET_CANARY: &str = "ghp_CANARY91e4b7c2d0a845f3b6c1d9e2";
+
+/// Every file below `dir` that holds `needle`.
+#[cfg(test)]
+fn files_with(dir: &Path, needle: &str) -> Vec<PathBuf> {
+    let mut found = Vec::new();
+    for entry in fs::read_dir(dir).into_iter().flatten().flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            found.extend(files_with(&path, needle));
+        } else if fs::read(&path).is_ok_and(|bytes| {
+            bytes
+                .windows(needle.len())
+                .any(|window| window == needle.as_bytes())
+        }) {
+            found.push(path);
+        }
+    }
+    found
+}
+
+/// No canary in the text and none in a file of the data folder. The messages name the stream,
+/// never the secret.
+#[cfg(test)]
+fn assert_clean(workspace: &Workspace, streams: &[(&str, String)]) {
+    for (name, text) in streams {
+        assert!(!text.contains(SECRET_CANARY), "canary in {name}");
+    }
+    let data = workspace.root.path().join("data");
+    assert!(data.is_dir(), "no data folder to look into");
+    assert!(
+        files_with(&data, SECRET_CANARY).is_empty(),
+        "canary in the data folder"
+    );
+}
+
+#[test]
+fn a_secret_in_a_git_address_stays_out_of_the_output_and_the_data_folder() {
+    let workspace = Workspace::new();
+    // The control that there is a data folder to look into.
+    json_of(&workspace.scan(&[]));
+    let address = format!("https://user:{SECRET_CANARY}@127.0.0.1:9/repo.git");
+    let output = workspace
+        .command()
+        .env("CODESKIMR_LOG", "trace")
+        .args(["scan", "--json", &address])
+        .output()
+        .unwrap();
+    assert!(
+        !output.status.success(),
+        "the unreachable address must fail"
+    );
+    // The control: the failure is reported on standard error.
+    assert!(
+        stderr(&output).lines().next().is_some(),
+        "no error was reported"
+    );
+    let streams = [
+        (
+            "stdout",
+            String::from_utf8_lossy(&output.stdout).into_owned(),
+        ),
+        ("stderr", stderr(&output)),
+    ];
+    assert_clean(&workspace, &streams);
+}
+
+/// The requests of a stdio session that carry the secret in every place a client can put one.
+#[cfg(test)]
+fn stdio_requests() -> [Value; 6] {
+    let rpc = |id: u64, method: &str, params: Value| json!({"jsonrpc": "2.0", "id": id, "method": method, "params": params});
+    let call = |id: u64, name: &str, arguments: Value| {
+        rpc(
+            id,
+            "tools/call",
+            json!({"name": name, "arguments": arguments}),
+        )
+    };
+    [
+        rpc(
+            1,
+            "initialize",
+            json!({"protocolVersion": "2025-06-18", "capabilities": {},
+                   "clientInfo": {"name": SECRET_CANARY, "version": "0"}}),
+        ),
+        json!({"jsonrpc": "2.0", "method": "notifications/initialized"}),
+        call(2, "search_symbols", json!({"query": SECRET_CANARY})),
+        call(3, "check_conventions", json!({"paths": [SECRET_CANARY]})),
+        call(4, "get_architecture", json!({"project": 99})),
+        call(5, "no_such_tool", json!({"token": SECRET_CANARY})),
+    ]
+}
+
+#[test]
+fn a_secret_sent_to_the_stdio_server_stays_out_of_its_log_and_the_data_folder() {
+    let workspace = Workspace::new();
+    json_of(&workspace.scan(&[]));
+    let mut child = workspace
+        .command()
+        .env("CODESKIMR_LOG", "trace")
+        .arg("mcp")
+        .arg("--project")
+        .arg(workspace.project())
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    let requests = stdio_requests();
+    let mut stdin = child.stdin.take().unwrap();
+    for request in &requests {
+        writeln!(stdin, "{request}").unwrap();
+    }
+    drop(stdin);
+    let output = child.wait_with_output().unwrap();
+    // The controls: every call was answered, the secret went into the log in redacted form
+    // (the client name is logged), and the only echo on standard output is the caller's own path
+    // in `unmatched`.
+    let answers = String::from_utf8_lossy(&output.stdout).into_owned();
+    assert_eq!(answers.lines().count(), 5, "not every call was answered");
+    let log = stderr(&output);
+    assert!(
+        log.contains("[redacted]"),
+        "the secret was not logged redacted"
+    );
+    // The path is echoed twice: in the text of the answer and in its structured content.
+    assert_eq!(answers.matches(SECRET_CANARY).count(), 2, "unexpected echo");
+    let echo = format!("\"unmatched\\\":[\\\"{SECRET_CANARY}");
+    assert!(
+        answers.contains(&echo),
+        "the echo is not the unmatched path"
+    );
+    assert_clean(
+        &workspace,
+        &[
+            ("stdout", answers.replace(SECRET_CANARY, "")),
+            ("stderr", log),
+        ],
+    );
+}
+
+#[test]
+fn the_export_holds_no_secret_from_a_method_body_and_no_path() {
+    let workspace = Workspace::new();
+    let source = format!(
+        "namespace Demo.Core;\npublic class Vault\n{{\n    public string Open()\n    {{\n        return \"{SECRET_CANARY}\";\n    }}\n}}\n"
+    );
+    fs::write(workspace.project().join("src/Vault.cs"), source).unwrap();
+    json_of(&workspace.scan(&[]));
+    let file = workspace.root.path().join("out.html");
+    let output = export_to(&workspace, &file, &[("CODESKIMR_LOG", "trace")]);
+    assert!(output.status.success(), "the export failed");
+    let page = fs::read_to_string(&file).unwrap();
+    // The control: the class and its method are in the page, the body is not.
+    assert!(page.contains("Vault") && page.contains("Open"));
+    assert!(!page.contains(SECRET_CANARY), "canary in the export");
+    for folder in [workspace.project(), workspace.root.path().join("data")] {
+        assert!(
+            !page.contains(&folder.display().to_string()),
+            "a folder path in the export"
+        );
+    }
+    assert_clean(
+        &workspace,
+        &[
+            (
+                "stdout",
+                String::from_utf8_lossy(&output.stdout).into_owned(),
+            ),
+            ("stderr", stderr(&output)),
+        ],
+    );
+}
+
+#[test]
+fn level2_cannot_be_confirmed_without_a_terminal_and_a_scan_then_skips_it() {
+    let workspace = Workspace::new();
+    json_of(&workspace.scan(&[]));
+    let confirm = workspace
+        .command()
+        .args(["level2", "confirm"])
+        .arg(workspace.project())
+        .output()
+        .unwrap();
+    assert!(!confirm.status.success());
+    assert!(stderr(&confirm).contains("SEC-403"), "{}", stderr(&confirm));
+    let summary = json_of(&workspace.scan(&[]));
+    let lines = summary["level2"].as_array().unwrap();
+    assert_ne!(lines.len(), 0);
+    assert!(
+        lines
+            .iter()
+            .all(|line| line["reason"] == "not_confirmed" && line["files"] == 0)
+    );
+}
+
+#[test]
+fn level2_can_be_revoked_without_a_terminal_and_an_unknown_project_is_refused() {
+    let workspace = Workspace::new();
+    json_of(&workspace.scan(&[]));
+    let revoke = workspace
+        .command()
+        .args(["level2", "revoke"])
+        .arg(workspace.project())
+        .output()
+        .unwrap();
+    assert!(revoke.status.success(), "{}", stderr(&revoke));
+    assert!(String::from_utf8_lossy(&revoke.stdout).contains("forbidden again"));
+    let unknown = workspace
+        .command()
+        .args(["level2", "revoke", "999"])
+        .output()
+        .unwrap();
+    assert!(stderr(&unknown).contains("PRJ-201"), "{}", stderr(&unknown));
 }

@@ -281,4 +281,18 @@ impl ProjectRepository for SqliteStore {
         self.read(|conn| load_latest_index(conn, id))
             .map_err(CodedError::from)
     }
+
+    fn latest_naming_rules(&self, id: ProjectId) -> Result<Option<String>, CodedError> {
+        self.read(|conn| {
+            conn.query_row(
+                sql::SNAPSHOT_NAMING_LATEST,
+                params![column_int(id.get())?],
+                |row| row.get::<_, Option<String>>(0),
+            )
+            .optional()
+            .map(Option::flatten)
+            .map_err(StorageError::from)
+        })
+        .map_err(CodedError::from)
+    }
 }

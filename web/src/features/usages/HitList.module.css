@@ -50,7 +50,7 @@
 
 .hit {
     display: grid;
-    grid-template-columns: 84px minmax(0, 260px) minmax(0, 1fr) 84px;
+    grid-template-columns: 84px minmax(0, 220px) minmax(0, 1fr) minmax(0, 200px) 84px;
     align-items: center;
     gap: var(--space-12);
     padding: var(--space-6) var(--space-16);
@@ -104,4 +104,17 @@
 }
 .place {
     color: var(--muted);
+}
+
+.code {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: pre;
+    font: 12px var(--font-mono);
+    color: var(--ink-2);
+}
+.mark {
+    background: var(--warn-bg);
+    color: inherit;
+    border-radius: var(--radius-badge);
 }

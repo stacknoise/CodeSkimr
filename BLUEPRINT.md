@@ -43,9 +43,12 @@ CodeSkimr scans code repositories, either a local folder or a Git repository, an
 
 - Team server with multiple users, login (OIDC and local accounts), roles and project permissions, delivered in stages T1 to T3 (ADR 0019). Only the caller-identity seam is part of 1.0.
 - Encrypted team vault for credentials (section 12.5).
-- Compiler-precise reference resolution through SCIP or Roslyn (section 9.3).
+- Compiler-precise reference resolution through Roslyn for C# (section 9.3).
+- Top-league analysis depth in every supported language, C# first (section 9.5, ADR 0034).
 - WASM analysis plugins.
 - Snapshot comparison ("what changed between two releases").
+
+Level 2 from SCIP indexes of existing indexers (section 9.3, ADR 0033) is **not** out of scope: it is part of 1.0 and ships with milestone M5.
 
 ---
 
@@ -167,6 +170,8 @@ codeskimr/
 │  │  ├─ storage/              codeskimr_storage       SQLite, read models, search index
 │  │  ├─ source/               codeskimr_source        file system, Git, file watcher
 │  │  ├─ secrets/              codeskimr_secrets       credential store, vault (later)
+│  │  ├─ indexer/              codeskimr_indexer       starts the indexers of level 2 under limits (ADR 0033)
+│  │  ├─ scip/                 codeskimr_scip          decodes SCIP indexes, maps them to references (ADR 0033)
 │  │  ├─ auth/                 codeskimr_auth          users, login, tokens (after 1.0, ADR 0019)
 │  │  └─ i18n/                 codeskimr_i18n          Fluent bundles
 │  ├─ server/                  codeskimr_server        axum: REST, WebSocket, embedded UI
@@ -193,7 +198,8 @@ codeskimr/
 | `domain` | `codes`, std, `thiserror` |
 | `application` | `domain`, `codes` |
 | `parsing`, `storage`, `source`, `i18n` | `application`, `domain`, `codes` |
-| `secrets` | `application`, `domain`, `codes` – and **no** other adapter |
+| `secrets`, `indexer` | `application`, `domain`, `codes` – and **no** other adapter |
+| `scip` | `application`, `domain`, `codes` – and **no** other adapter; it reads source lines through the `SourceText` port |
 | `auth` (after 1.0) | `application`, `domain`, `codes` – and **no** other adapter; password hashing and OIDC libraries stay inside it |
 | `server`, `cli` | `application`, `domain`, `codes`, `i18n` |
 | `mcp` | `application`, `domain`, `codes`, `i18n` – **never** `secrets` |
@@ -313,6 +319,7 @@ flowchart LR
 | Resolve references | map names to symbols (section 9) | yes (per file, after a global symbol table pass) |
 | Compute metrics | LOC, CC, MI, Ce, Ca, instability | yes |
 | Persist | one transaction per snapshot, then update read models | single writer |
+| Level 2 (second pass, optional) | after Persist, per indexer and only with the owner's confirmation: run the indexer, check the file hashes again, import the index, replace the references of the checked files in one transaction (section 9.3). Level 1 stays whatever happens | one indexer after the other |
 
 **Rules:**
 
@@ -388,15 +395,26 @@ Name resolution is based on Tree-sitter, in this order:
 
 - A reference resolved through steps 1–4 is `certain`.
 - A reference resolved through step 5, through an interface or base-class dispatch, or with several candidates is `probable`. It points to all candidates.
+- **Level 1 never drops a candidate** (ADR 0033). A name that matches members of unrelated types is reported for all of them, as `probable`. A missing usage makes an impact analysis worthless, so recall ranks above precision here; level 1 makes up for it by marking what it found as unchecked (section 9.4).
 
-### 9.3 Level 2 – compiler-precise (after 1.0, optional)
+### 9.3 Level 2 – compiler-precise (before 1.0, optional, off by default)
 
-Import SCIP indexes produced by existing indexers (e.g. for TypeScript, Java/Kotlin, Python) and Roslyn for C#. Imported references replace level-1 references for the same span and are always `certain`. This is a `ReferenceResolver` strategy (section 5); no other component changes.
+Level 2 imports SCIP indexes that existing indexers produce (scip-dotnet, scip-typescript, scip-java, scip-python and others; how to start each one is in the `[indexer]` table of its language pack). Roslyn for C# is a later step. Imported references replace the level-1 references of the files the index covers and are always `certain` and `verified` (ADR 0033).
+
+- **A second pass, not part of Resolve.** Level 1 is stored and usable first. Then, for each indexer, the pass checks permission and consent, checks that the tools exist, runs the indexer, checks the hash of every file against the disk again, maps the index and replaces the references of exactly the checked files in one transaction. A changed file, a cancel, a failure or a missing tool leaves level 1 as it was and is reported per language.
+- **Consent.** An indexer runs the build tools of the project, so it runs only if the local owner enabled level 2 and confirmed it for the project, interactively on this computer (`codeskimr level2 confirm`). The confirmation names the file and network access of the tools and is bound to source, location and branch, not to a commit. The `level2` table of `.codeskimr.toml` is ignored. MCP, REST tokens, CI and watch mode cannot confirm, and only the scan of the command line starts indexers: `rescan` through MCP or the UI and the later scans of watch mode are level 1 only.
+- **Limits.** Time, memory and output of a run are bounded (`level2.*`); the index is untrusted input with its own size limit, its paths are cleaned and only files of the snapshot are read.
+- **Columns.** Indexes may count UTF-16 or UTF-32 units; the import converts them to UTF-8 bytes using the lines of the file.
 
 ### 9.4 Rules
 
 - Every reference stores its confidence. UI and MCP MUST show `probable` references visibly (dashed edge, label).
+- Every reference stores `verified`: `true` only if level 2 produced it, `false` for every level-1 reference. `find_usages`, `impact_of_change`, REST and UI count verified and unchecked results separately, list verified ones first, and call an analysis **preliminary** while any result of it is unchecked. An impact symbol is verified only if a path of verified references leads to it.
 - Usage counts and the reverse index are updated incrementally together with the snapshot.
+
+### 9.5 Depth goal after 1.0
+
+In later versions CodeSkimr is to play in the top league in every language it supports, that is to reach the analysis depth of the best specialised tools of that language (for C# the yardstick is NDepend): semantic facts such as overloads and generics, member-level dependencies, wider metrics, rules over the code model, and comparison of snapshots. It climbs a depth ladder (D1 to D6) one language at a time, C# first, without changing 1.0. The ladder, the rough work packages and the guard rails are in ADR 0034.
 
 ---
 
@@ -468,6 +486,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 | `find_similar_code` | code snippet or symbol | existing functions with similar structure ("does this already exist?") |
 | `find_constants` | query | existing constants, config keys and i18n keys |
 | `get_architecture` | project | layers, allowed dependencies, namespace map, conventions |
+| `get_project` | project? | languages, and per tool of level 2 its state (ready, missing, too old, version unknown) with purpose and install hint (ADR 0033, decision 8) |
 | `check_conventions` | paths or diff | violations of section 3 (duplicates, literals, layering, length, complexity) with error codes |
 | `rescan` | paths? | incremental update, returns the new snapshot id |
 
@@ -710,6 +729,7 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
   - MCP limits
   - snapshot retention
   - watcher debounce
+  - level 2 (`level2.*`: switch, time, memory and output limits, index size, share of mappable uses). Only the user config and CLI flags may set them; the project file cannot
   - excluded folders (`bin`, `obj`, `.git`, `node_modules`, `target`, `dist` …)
 - **Overrides,** applied in this order: user config file → project config (`.codeskimr.toml` in the repository) → CLI flags.
 - **Typed config:** the config is deserialised into typed structs and validated at start-up. Invalid values produce `CFG-1xx` errors. There is no `config.get("string")` anywhere in the code.
@@ -882,6 +902,18 @@ Reference: the budgets are meant for a mid-range developer laptop (class recorde
 | Memory for 1M LOC indexed | < 500 MB |
 | Binary size (full-tier languages built in) | < 60 MB |
 
+**Level 2 (ADR 0033) is not part of this table.** The budgets above are for level 1: the scan is complete and usable before level 2 starts, and the second pass (section 9.3) runs external indexers, whose time and memory depend on the project and its build tools and cannot be measured by the benchmark of CI. Level 2 is bounded by limits instead, which are configuration keys with defaults in `config/default.toml` (section 14): `level2.timeout_seconds` 900, `level2.max_memory_mb` 4096, `level2.max_output_bytes` 512 MiB, `level2.max_index_bytes` 256 MiB. Exceeding one stops the indexer and keeps level 1 (`RES-502`, `RES-504`, `RES-503`, `RES-501`). What the indexers cost on the pinned corpora (one cold run each on the measuring machine, measured by hand, `docs/accuracy.md`) is the reference for choosing those limits:
+
+| Indexer | Corpus | Time | Peak memory | Index |
+|---|---|---|---|---|
+| `rust-analyzer scip` | CodeSkimr (Rust) | 34 to 41 s | 2.1 GiB | 5 MB |
+| scip-typescript 0.6.2 | TypeScript corpus | 3.7 to 5.7 s | 404 MiB | 5.4 MB |
+| scip-python 0.6.8 | click | 13 s (22 s with the full site-packages) | 528 to 589 MiB | 4.6 MB |
+| scip-java 0.12.3 | gson | 7.3 s | 270 MiB | 2.6 MB |
+| scip-dotnet 0.2.16 | GuardClauses | 12.3 s (23 s with the first restore) | 298 MiB | 1.4 MB |
+
+The time and memory of the import itself (decoding, mapping, replacing) are not measured separately yet; no budget is set for them.
+
 ### 16.2 Green Code rules
 
 - **Do not recompute:** content hashes, incremental pipeline, read models.
@@ -917,8 +949,19 @@ Coverage target: ≥ 80 % lines for `domain` and `application`; adapters are cov
 - Corpus projects follow the product owner's own repositories (ADR 0011): TypeScript/JavaScript, Python, Kotlin and Java use public repositories of the product owner; Rust uses CodeSkimr itself at a pinned commit, with part of the expected values checked by hand. Only public projects are used in CI.
 - Accuracy targets per full-tier language:
   - symbols ≥ 99 %
-  - references marked `certain` ≥ 98 % correct
-  - share of `probable` references reported per language
+  - **level 1** (ADR 0033, decisions 6, 7 and 14): level 1 keeps every match and marks it unchecked, so the old target "references marked `certain` ≥ 98 % correct" no longer applies to it. What counts is that recall is not lower than before PR #133 (measured for every language with a reference tool) and that the share of unchecked results is reported per language
+  - **level 2**, per language with an indexer, on at least 150 sampled symbols: recall ≥ 99 % and ≥ 99 % correct among the verified references. The reference is independent of level 2 (the language tooling of `tools/accuracy`, not the SCIP index), and the private C# sample of 20 symbols is complete and without wrong usages. The acceptance runs `tools/accuracy`, not CI.
+- **State of the measurement** (150 symbols, seed 1, 2026-11-14, `--verified-only --scip`, index made by hand; details, corpora and tool versions in `docs/accuracy.md`). **These numbers are not an acceptance under ADR 0033, decision 14:** the index is made by hand, so the `IndexRunner` (call, limits, environment), the consent and the wiring into the scan are not measured; ADR 0033 is still proposed; and the reference and the indexer are the same engine for Rust, TypeScript, Java and C# (a mistake of the engine itself would not show):
+
+| Language | Indexer | Reference (engine of the index) | Precision | Recall | Reading |
+|---|---|---|---|---|---|
+| Rust | rust-analyzer 1.97.0 | rust-analyzer over LSP (same) | 100 % (733 of 733) | 100 % (733 of 733) | Reaches the threshold on this sample; other draws 99.6 to 99.7 % and 99.9 to 100 %; the corpus is CodeSkimr itself |
+| TypeScript | scip-typescript 0.6.2 | TypeScript language service (same compiler) | 99.4 % (668 of 672) | 100 % (668 of 668) | The 4 wrong uses are `RoomNode.id` through a union type, where the index is right; reaches the threshold on this sample |
+| Python | scip-python 0.6.8 | Jedi (independent: Pyright against Jedi) | 63.3 % (347 of 548) | 99.1 % (347 of 350) | Precision is a lower bound: Jedi finds no use of instance attributes and annotations, and import lines count as uses (#250) |
+| Java | scip-java 0.12.3 | javac (same compiler) | 90.9 % (489 of 538) | 87.9 % (489 of 556) | All 49 wrong uses are import lines (#250); the missing ones are implicit `super()` calls and anonymous subclasses, which the index does not carry (#259) |
+| C# | scip-dotnet 0.2.16 | Roslyn (same compiler) | 60.2 % (68 of 113) | 34.2 % (68 of 199) | Indexer fault: calls of overloaded extension methods carry the first overload (#258); `new X(...)` has no constructor use (#259); on the other symbols 141 of 142 are exact |
+
+  Kotlin is not measured yet, and the private C# sample of 20 symbols has not been run yet (the product owner measures it locally). The exact rates of the sample are carried partly by symbols without usages and are not an acceptance figure. Level 1 on the same samples, for comparison: TypeScript 27.7 % precision and 62.7 % recall, Python 32.3 % and 81.1 %, Rust 59.2 % and 59.3 %, Java 46.7 % and 84.0 %, C# 28.8 % and 98.0 %. With the current indexers the 99 % target is reached on the samples of Rust and TypeScript only; whether it can be reached for the others depends on the fixes named in the issues above, and the decision on how to treat a language that does not reach it (shown separately, as in milestone M5) is for the product owner.
 
 ### 17.3 CI pipeline (every PR, all MUST pass)
 
@@ -1012,10 +1055,10 @@ Each milestone ends with a demo and acceptance by the product owner. All criteri
 | **M2** | References + full MCP | reference index level 1; `find_usages`, `impact_of_change`, `get_dependencies`, `find_similar_code`, `find_constants`, `check_conventions`, `rescan`; watch mode, incremental scans | usages of a method/constant in the private C# reference correct in a sample of 20; incremental re-scan < 300 ms; the agent developing CodeSkimr uses the MCP tools (17.4) |
 | **M3** | Server + UI core | caller-identity seam in place (WP-59); axum server, embedded UI, screens 1 (projects), 2 (explorer), 4 (quick search), 13 (settings with themes); status bar with live measurements; de/en switch | screens match the mocks (visual review); keyboard paths of 15.4 work; budgets for search and type switch are met; screen 13 (settings) offers the themes Hell, Petrol and Dunkel with live preview, the choice is stored and applied, and every screen passes the visual test in all three themes and the contrast check of 15.3 |
 | **M4** | Visualisation | screens 3 (dependencies), 5 (scan & performance), 6 (usages); jump explorer → usages | screens match the mocks; graph layout < 50 ms; usages depth 2 < 20 ms |
-| **M5** | Languages | full tier: TypeScript/JavaScript, Python, Java, Kotlin, Rust; basic tier for all Tree-sitter grammars (including Go) | corpus accuracy targets met per language |
+| **M5** | Languages | full tier: TypeScript/JavaScript, Python, Java, Kotlin, Rust; basic tier for all Tree-sitter grammars (including Go); level 2 from SCIP indexes (ADR 0033: importer, runner, consent, `level2` command) | corpus accuracy targets met per language; with level 2 confirmed, the accuracy of the languages that have an indexer is measured and shown separately |
 | **M6** | Sources + credentials + export | Git sources (clone, branch, update); credential handling per section 12 (keystore, Git helper, OAuth device flow); canary suite; HTML export | security suite green; private repository scanned without the secret ever appearing outside the loan scope |
 | **M7** | Release 1.0 | installers / single executables for Windows, Linux, macOS; user docs; error-code catalogue published | clean install on all three systems; all budgets green |
-| later | Team edition and depth | team server in stages T1 to T3 (personal access tokens, then users, login and roles, then PostgreSQL and the vault; ADR 0019), `SecretVault` adapter, SCIP/Roslyn level 2, WASM plugins, snapshot comparison, PR impact analysis | own ADRs and milestones |
+| later | Team edition and depth | team server in stages T1 to T3 (personal access tokens, then users, login and roles, then PostgreSQL and the vault; ADR 0019), `SecretVault` adapter, Roslyn level 2 for C# (ADR 0033), top-league depth in every supported language, C# first (section 9.5, ADR 0034), WASM plugins, snapshot comparison, PR impact analysis | own ADRs and milestones |
 
 ---
 
@@ -1036,7 +1079,7 @@ Each milestone ends with a demo and acceptance by the product owner. All criteri
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Reference accuracy in dynamic languages (Python, JS) | usages incomplete | confidence marking; level 2 (SCIP) later |
+| Reference accuracy in dynamic languages (Python, JS) | usages incomplete | confidence marking; level 2 from SCIP indexes (ADR 0033, milestone M5) raises the accuracy where the owner confirms it |
 | A strict no-literals lint produces noise | slower development | precise exceptions (3.2); lint maintained with test cases |
 | Very large repositories (> 5M LOC) | memory, start time | streaming, read models on disk, limits in config, benchmark corpus with a large repo |
 | Tree-sitter grammar quality varies | gaps in the basic tier | tiers communicated honestly in the UI (mock 5) |
@@ -1046,19 +1089,23 @@ Each milestone ends with a demo and acceptance by the product owner. All criteri
 
 ## Appendix A – Initial error code catalogue
 
-This is the starting content of `errors/error-codes.toml`. Descriptions are the developer texts; user messages live in Fluent.
+This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error-codes.md`, generated from the file, is always the current one). A severity other than error is shown in brackets. Descriptions are the developer texts; user messages live in Fluent.
 
 | Code | Name | Description |
 |---|---|---|
 | APP-201 | `data_dir_unavailable` | The user data directory cannot be created or opened. |
+| APP-202 | `launch_file_unavailable` | The private file for starting the browser could not be created. |
 | APP-301 | `instance_already_running` | Another CodeSkimr instance holds the workspace; connecting to it failed. |
 | APP-901 | `unexpected_internal_error` | An unexpected internal error occurred (bug). |
+| APP-601 | `browser_start_failed` | The system did not start a browser for the launch file. |
 | CFG-101 | `config_invalid_value` | A configuration value is outside its allowed range or has the wrong type. |
 | CFG-102 | `config_parse_failed` | A configuration file is not valid TOML. |
+| CFG-103 | `config_unknown_key` | A configuration file or flag sets a key that does not exist. |
 | PRJ-101 | `project_source_invalid` | The given source is neither an existing folder nor a valid Git URL. |
 | PRJ-201 | `project_not_found` | No project with this id exists. |
 | PRJ-301 | `project_already_registered` | A project with the same source is already registered. |
 | PRJ-302 | `snapshot_in_progress` | A scan for this project is already running. |
+| PRJ-303 | `scan_cancelled` | The scan was cancelled by the user; no snapshot was written. (info) |
 | SRC-201 | `source_path_not_found` | The configured source folder does not exist or is not readable. |
 | SRC-202 | `git_branch_not_found` | The requested branch does not exist on the remote. |
 | SRC-401 | `git_auth_required` | The remote requires authentication and no usable credential is available. |
@@ -1069,14 +1116,27 @@ This is the starting content of `errors/error-codes.toml`. Descriptions are the 
 | PRS-201 | `language_pack_missing` | No language pack is installed for this file type. |
 | PRS-301 | `language_pack_invalid` | A language pack's TOML or query files are invalid. |
 | PRS-501 | `parse_timeout` | Parsing a single file exceeded the configured time limit. |
+| RES-101 | `scip_index_invalid` | A SCIP index cannot be read, is corrupt or names a path outside the project; level 1 references stay. |
+| RES-201 | `indexer_unavailable` | The indexer of a language or its toolchain is not installed or is older than the version the language pack requires; level 1 references stay. |
 | RES-301 | `ambiguous_reference` | A reference matches several symbols; it was stored as probable. (warning) |
+| RES-302 | `scip_mapping_too_low` | Too few occurrences of a SCIP index map onto project symbols; level 1 references stay. |
+| RES-501 | `scip_index_too_large` | A SCIP index is larger than the configured limit and was refused; level 1 references stay. |
+| RES-502 | `indexer_timeout` | An indexer ran longer than level2.timeout_seconds and was stopped with all its child processes; level 1 references stay. |
+| RES-503 | `indexer_output_too_large` | An indexer wrote more than level2.max_output_bytes and was stopped; level 1 references stay. |
+| RES-504 | `indexer_memory_limit` | An indexer used more memory than level2.max_memory_mb and was stopped; level 1 references stay. |
+| RES-601 | `indexer_failed` | An indexer could not be started or ended with an error; level 1 references stay. |
 | IDX-301 | `read_model_stale` | A read model is older than the current snapshot and is being rebuilt. (info) |
 | STO-301 | `schema_migration_failed` | Applying a database migration failed. |
 | STO-302 | `transaction_conflict` | A concurrent write conflicted; the operation can be retried. |
 | STO-501 | `disk_full` | Not enough disk space to persist the snapshot. |
+| STO-601 | `database_failed` | The database reported an error that is not covered by a more specific code. |
+| STO-901 | `stored_data_invalid` | Data read from the database violates the domain model; this is a bug or a damaged database. |
 | SEC-201 | `credential_not_found` | The referenced credential does not exist in the keystore. |
+| SEC-202 | `credential_damaged` | The keystore entry of the credential cannot be read; delete it and create the credential again. |
+| SEC-301 | `indexer_not_confirmed` | Level 2 is not enabled and confirmed for this project in the user configuration or the user's own project record, so no indexer is started. |
 | SEC-401 | `credential_rejected` | The platform rejected the credential. |
 | SEC-402 | `keystore_access_denied` | The OS keystore denied access. |
+| SEC-403 | `indexer_not_permitted` | The caller may not confirm or start indexers; only the local owner may (ADR 0033, decision 10). |
 | SEC-601 | `keystore_unavailable` | The OS keystore service is not available. |
 | SEC-901 | `memory_lock_failed` | Locking secret memory against swapping failed. |
 | NET-501 | `request_timeout` | A request to an external platform timed out. |
@@ -1084,12 +1144,24 @@ This is the starting content of `errors/error-codes.toml`. Descriptions are the 
 | NET-601 | `oauth_flow_failed` | The OAuth device flow did not complete. |
 | AUTH-401 | `permission_denied` | The caller lacks the permission this action needs. |
 | API-101 | `request_invalid` | The REST request failed validation. |
+| API-102 | `bind_address_not_local` | The server was asked to listen on an address that is not a loopback address. |
+| API-201 | `command_not_found` | The REST request names a command or route that does not exist. |
+| API-301 | `server_bind_failed` | The server could not listen on its address, for example because the port is taken. |
 | API-401 | `token_missing_or_invalid` | A state-changing request lacks a valid installation token. |
+| API-402 | `host_or_origin_rejected` | The Host or Origin header of the request is not one of this server. |
+| API-403 | `launch_code_invalid` | The one-time launch code is wrong, already used or expired. |
+| API-501 | `request_too_large` | The request body is larger than the server accepts. |
+| API-601 | `server_not_reachable` | The command needs a running local server and could not reach it. |
 | MCP-101 | `tool_arguments_invalid` | MCP tool arguments failed validation. |
 | MCP-201 | `project_not_registered` | The requested path is not inside a registered project. |
+| MCP-202 | `symbol_not_found` | No symbol with this id or qualified name exists in the newest snapshot. |
+| MCP-203 | `project_not_scanned` | The project has no snapshot yet; scan it first. |
 | MCP-501 | `response_limit_exceeded` | The result was truncated to the configured limit. (info) |
 | CLI-101 | `cli_arguments_invalid` | Command-line arguments are invalid. |
+| CLI-102 | `watch_needs_folder` | Watch mode needs a local folder; a Git URL cannot be watched. |
+| CLI-103 | `secret_input_invalid` | No secret could be read from the terminal or standard input, or it was empty. |
 | I18N-201 | `message_key_missing` | A message key is missing for the active language (falls back to English). |
+| EXP-201 | `export_bundle_missing` | The built export page of the UI is missing or unusable. |
 | EXP-601 | `export_write_failed` | The export file could not be written. |
 | UI-201 | `api_unreachable` | The UI cannot reach the local server. |
 | UI-901 | `unexpected_ui_error` | An uncaught exception was converted at a feature boundary (bug). |

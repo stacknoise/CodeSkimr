@@ -44,8 +44,8 @@ fn known_codes_carry_their_data() {
 #[test]
 fn appendix_a_is_complete() {
     // 47 codes from blueprint Appendix A plus CFG-103 (WP-17), STO-601 and STO-901 (WP-21),
-    // MCP-202 and MCP-203 (WP-26), AUTH-401 (WP-59), CLI-102 (WP-33), API-403, API-601, APP-202 and APP-601 (WP-42), SEC-202 and CLI-103 (WP-73), EXP-201 (WP-75).
-    assert_eq!(ErrorCode::ALL.len(), 66);
+    // MCP-202 and MCP-203 (WP-26), AUTH-401 (WP-59), CLI-102 (WP-33), API-403, API-601, APP-202 and APP-601 (WP-42), SEC-202 and CLI-103 (WP-73), EXP-201 (WP-75), PRJ-303 (cancelling a scan, #168), RES-101, RES-302 and RES-501 (SCIP import, ADR 0033), RES-201, RES-502, RES-503, RES-504, RES-601, SEC-301 and SEC-403 (indexer runner, ADR 0033).
+    assert_eq!(ErrorCode::ALL.len(), 77);
     assert_eq!(Group::ALL.len(), 18);
 }
 

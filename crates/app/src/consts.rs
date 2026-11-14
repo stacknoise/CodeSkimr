@@ -169,6 +169,12 @@ pub const ESCAPE: char = '\\';
 
 /// Name under which the installation token lives in the credential store (blueprint 12.2).
 pub const TOKEN_CREDENTIAL_ID: &str = "installation-token";
+/// Whether `name` is the installation token under any spelling a keystore could fold together
+/// (case, surrounding blanks): such a name must never be managed or lent to a remote.
+#[must_use]
+pub fn is_token_credential(name: &str) -> bool {
+    name.trim().eq_ignore_ascii_case(TOKEN_CREDENTIAL_ID)
+}
 /// User name stored next to the installation token; the credential format needs one.
 pub const TOKEN_CREDENTIAL_USER: &str = "local-owner";
 /// Number of random bytes of an installation token: 256 bits (ADR 0019).
@@ -272,3 +278,22 @@ pub const CARRIAGE_RETURN: char = '\r';
 
 /// Longest secret that is read from standard input, in bytes.
 pub const MAX_SECRET_BYTES: u64 = 65_536;
+/// Log event: the check of the tools of a project failed; the scan goes on.
+pub const LOG_TOOL_CHECK_FAILED: &str = "tool_check_failed";
+
+/// Largest file that is read for the version a project requires (`global.json`, `.nvmrc` and so
+/// on), in bytes.
+pub const REQUIREMENT_MAX_BYTES: u64 = 65_536;
+
+/// Characters besides the control characters that can hide or reorder text on a terminal: the
+/// direction marks and overrides, the zero-width characters, the line and paragraph separators
+/// and the byte order mark. A name that holds one is not shown in a prompt.
+pub const INVISIBLE_RANGES: [(char, char); 7] = [
+    ('\u{061C}', '\u{061C}'),
+    ('\u{200B}', '\u{200F}'),
+    ('\u{2028}', '\u{202E}'),
+    ('\u{2060}', '\u{2064}'),
+    ('\u{2066}', '\u{2069}'),
+    ('\u{FEFF}', '\u{FEFF}'),
+    ('\u{00AD}', '\u{00AD}'),
+];

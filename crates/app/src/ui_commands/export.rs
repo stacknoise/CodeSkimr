@@ -24,7 +24,7 @@ use super::consts::{
     EXPORT_HTML, EXPORT_TITLE,
 };
 use super::explorer::{ExplorerOutline, Outline, OutlineInput};
-use super::graph::{GraphInput, GraphLayers, GraphOut};
+use super::graph::{GraphInput, GraphLayers, GraphOut, Level};
 use super::symbol::{ExplorerSymbol, SymbolInput, SymbolOut};
 use super::usages::{Summary, UsagesInput, UsagesOut, UsagesQuery, Way};
 
@@ -203,7 +203,12 @@ impl HtmlExport {
             .collect::<Result<BTreeMap<_, _>, CodedError>>()?;
         let graph = self.parts.graph.execute(Request {
             principal: &principal,
-            input: GraphInput { project },
+            input: GraphInput {
+                project,
+                level: Level::Layers,
+                depth: 0,
+                focus: None,
+            },
         })?;
         Ok(Data {
             format: EXPORT_FORMAT,

@@ -92,6 +92,13 @@ pub trait FileAnalyzer: Send + Sync {
     /// # Errors
     /// A coded failure such as `PRS-101`, `PRS-201` or `PRS-501`.
     fn analyze(&self, request: &AnalyzeRequest<'_>) -> Result<FileFacts, CodedError>;
+
+    /// How the packs name symbols, as text that changes whenever a rule that changes the names
+    /// does (ADR 0036). An incremental scan only keeps files of a snapshot with the same text.
+    /// The default knows no rule.
+    fn naming_rules(&self) -> String {
+        String::new()
+    }
 }
 
 /// Fingerprints a piece of code that is not part of a scanned file, for `find_similar_code`

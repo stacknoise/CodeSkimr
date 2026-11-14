@@ -5,21 +5,21 @@
       "loc": 27,
       "operands": null,
       "operators": null,
-      "symbol": "scopes"
+      "symbol": "scopes.cs"
     },
     {
       "decisions": null,
       "loc": 27,
       "operands": null,
       "operators": null,
-      "symbol": "scopes.Shop.Orders"
+      "symbol": "Shop.Orders"
     },
     {
       "decisions": null,
       "loc": 26,
       "operands": null,
       "operators": null,
-      "symbol": "scopes.Shop.Orders.Order"
+      "symbol": "Shop.Orders.Order"
     },
     {
       "decisions": 0,
@@ -32,7 +32,7 @@
         2,
         5
       ],
-      "symbol": "scopes.Shop.Orders.Order.Order"
+      "symbol": "Shop.Orders.Order.Order"
     },
     {
       "decisions": 1,
@@ -45,189 +45,189 @@
         5,
         17
       ],
-      "symbol": "scopes.Shop.Orders.Order.Save"
+      "symbol": "Shop.Orders.Order.Save"
     }
   ],
   "loc": 27,
   "references": [
     {
       "at": "2:21",
-      "from": "scopes.Shop.Orders.Order",
+      "from": "Shop.Orders.Order",
       "kind": "inherit",
       "receiver": null,
       "target": "Entity"
     },
     {
       "at": "4:21",
-      "from": "scopes.Shop.Orders.Order",
+      "from": "Shop.Orders.Order",
       "kind": "type_use",
       "receiver": null,
       "target": "List"
     },
     {
       "at": "4:26",
-      "from": "scopes.Shop.Orders.Order",
+      "from": "Shop.Orders.Order",
       "kind": "type_use",
       "receiver": null,
       "target": "Line"
     },
     {
       "at": "4:44",
-      "from": "scopes.Shop.Orders.Order.lines",
+      "from": "Shop.Orders.Order.lines",
       "kind": "type_use",
       "receiver": null,
       "target": "List"
     },
     {
       "at": "4:49",
-      "from": "scopes.Shop.Orders.Order.lines",
+      "from": "Shop.Orders.Order.lines",
       "kind": "type_use",
       "receiver": null,
       "target": "Line"
     },
     {
       "at": "5:12",
-      "from": "scopes.Shop.Orders.Order",
+      "from": "Shop.Orders.Order",
       "kind": "type_use",
       "receiver": null,
       "target": "Printer"
     },
     {
       "at": "8:17",
-      "from": "scopes.Shop.Orders.Order.Order",
+      "from": "Shop.Orders.Order.Order",
       "kind": "type_use",
       "receiver": null,
       "target": "Printer"
     },
     {
       "at": "10:13",
-      "from": "scopes.Shop.Orders.Order.Order",
+      "from": "Shop.Orders.Order.Order",
       "kind": "write",
       "receiver": "own",
       "target": "printer"
     },
     {
       "at": "11:13",
-      "from": "scopes.Shop.Orders.Order.Order",
+      "from": "Shop.Orders.Order.Order",
       "kind": "write",
       "receiver": "own",
       "target": "Total"
     },
     {
       "at": "12:8",
-      "from": "scopes.Shop.Orders.Order.Order",
+      "from": "Shop.Orders.Order.Order",
       "kind": "write",
       "receiver": null,
       "target": "Total"
     },
     {
       "at": "15:25",
-      "from": "scopes.Shop.Orders.Order.Save",
+      "from": "Shop.Orders.Order.Save",
       "kind": "override",
       "receiver": null,
       "target": "Save"
     },
     {
       "at": "17:13",
-      "from": "scopes.Shop.Orders.Order.Save",
+      "from": "Shop.Orders.Order.Save",
       "kind": "call",
       "receiver": "base",
       "target": "Save"
     },
     {
       "at": "18:23",
-      "from": "scopes.Shop.Orders.Order.Save",
+      "from": "Shop.Orders.Order.Save",
       "kind": "type_use",
       "receiver": null,
       "target": "Line"
     },
     {
       "at": "19:13",
-      "from": "scopes.Shop.Orders.Order.Save",
+      "from": "Shop.Orders.Order.Save",
       "kind": "call",
       "receiver": "typed Line",
       "target": "Add"
     },
     {
       "at": "19:17",
-      "from": "scopes.Shop.Orders.Order.Save",
+      "from": "Shop.Orders.Order.Save",
       "kind": "read",
       "receiver": null,
       "target": "Total"
     },
     {
       "at": "20:8",
-      "from": "scopes.Shop.Orders.Order.Save",
+      "from": "Shop.Orders.Order.Save",
       "kind": "read",
       "receiver": null,
       "target": "lines"
     },
     {
       "at": "20:14",
-      "from": "scopes.Shop.Orders.Order.Save",
+      "from": "Shop.Orders.Order.Save",
       "kind": "call",
       "receiver": "typed List",
       "target": "Add"
     },
     {
       "at": "21:8",
-      "from": "scopes.Shop.Orders.Order.Save",
+      "from": "Shop.Orders.Order.Save",
       "kind": "read",
       "receiver": null,
       "target": "printer"
     },
     {
       "at": "21:16",
-      "from": "scopes.Shop.Orders.Order.Save",
+      "from": "Shop.Orders.Order.Save",
       "kind": "call",
       "receiver": "typed Printer",
       "target": "Print"
     },
     {
       "at": "22:8",
-      "from": "scopes.Shop.Orders.Order.Save",
+      "from": "Shop.Orders.Order.Save",
       "kind": "read",
       "receiver": null,
       "target": "Helper"
     },
     {
       "at": "22:15",
-      "from": "scopes.Shop.Orders.Order.Save",
+      "from": "Shop.Orders.Order.Save",
       "kind": "call",
       "receiver": "named Helper",
       "target": "Log"
     },
     {
       "at": "23:17",
-      "from": "scopes.Shop.Orders.Order.Save",
+      "from": "Shop.Orders.Order.Save",
       "kind": "type_use",
       "receiver": null,
       "target": "Line"
     },
     {
       "at": "25:17",
-      "from": "scopes.Shop.Orders.Order.Save",
+      "from": "Shop.Orders.Order.Save",
       "kind": "call",
       "receiver": "typed Line",
       "target": "Add"
     },
     {
       "at": "25:21",
-      "from": "scopes.Shop.Orders.Order.Save",
+      "from": "Shop.Orders.Order.Save",
       "kind": "read",
       "receiver": null,
       "target": "Total"
     },
     {
       "at": "27:8",
-      "from": "scopes.Shop.Orders.Order.Save",
+      "from": "Shop.Orders.Order.Save",
       "kind": "type_use",
       "receiver": null,
       "target": "Action"
     },
     {
       "at": "27:34",
-      "from": "scopes.Shop.Orders.Order.Save",
+      "from": "Shop.Orders.Order.Save",
       "kind": "call",
       "receiver": "unknown",
       "target": "ToString"
@@ -237,7 +237,7 @@
     {
       "doc": null,
       "kind": "module",
-      "name": "scopes",
+      "name": "scopes.cs",
       "parent": null,
       "signature": null,
       "span": "0:0-30:0",
@@ -247,8 +247,8 @@
     {
       "doc": null,
       "kind": "namespace",
-      "name": "scopes.Shop.Orders",
-      "parent": "scopes",
+      "name": "Shop.Orders",
+      "parent": "scopes.cs",
       "signature": null,
       "span": "0:0-30:0",
       "static": false,
@@ -257,8 +257,8 @@
     {
       "doc": null,
       "kind": "class",
-      "name": "scopes.Shop.Orders.Order",
-      "parent": "scopes.Shop.Orders",
+      "name": "Shop.Orders.Order",
+      "parent": "Shop.Orders",
       "signature": null,
       "span": "2:0-29:1",
       "static": false,
@@ -267,8 +267,8 @@
     {
       "doc": null,
       "kind": "field",
-      "name": "scopes.Shop.Orders.Order.lines",
-      "parent": "scopes.Shop.Orders.Order",
+      "name": "Shop.Orders.Order.lines",
+      "parent": "Shop.Orders.Order",
       "signature": null,
       "span": "4:32-4:56",
       "static": false,
@@ -277,8 +277,8 @@
     {
       "doc": null,
       "kind": "field",
-      "name": "scopes.Shop.Orders.Order.printer",
-      "parent": "scopes.Shop.Orders.Order",
+      "name": "Shop.Orders.Order.printer",
+      "parent": "Shop.Orders.Order",
       "signature": null,
       "span": "5:20-5:27",
       "static": false,
@@ -287,8 +287,8 @@
     {
       "doc": null,
       "kind": "property",
-      "name": "scopes.Shop.Orders.Order.Total",
-      "parent": "scopes.Shop.Orders.Order",
+      "name": "Shop.Orders.Order.Total",
+      "parent": "Shop.Orders.Order",
       "signature": null,
       "span": "6:4-6:34",
       "static": false,
@@ -297,8 +297,8 @@
     {
       "doc": null,
       "kind": "constructor",
-      "name": "scopes.Shop.Orders.Order.Order",
-      "parent": "scopes.Shop.Orders.Order",
+      "name": "Shop.Orders.Order.Order",
+      "parent": "Shop.Orders.Order",
       "signature": null,
       "span": "8:4-13:5",
       "static": false,
@@ -307,8 +307,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "scopes.Shop.Orders.Order.Save",
-      "parent": "scopes.Shop.Orders.Order",
+      "name": "Shop.Orders.Order.Save",
+      "parent": "Shop.Orders.Order",
       "signature": null,
       "span": "15:4-28:5",
       "static": false,

@@ -23,6 +23,17 @@ The token that protects state-changing requests to the local server (`csk_` plus
 
 The use of the system's Git credential helper (point 1 of the preference order) is the default of a source without a credential; the only thing that changed is that a terminal prompt is switched off.
 
+## Credentials in the server (WP-76)
+
+The browser UI and other REST callers manage logins with three commands (blueprint 12.4; `docs/server.md`):
+
+- `credentials.set` takes `id`, `user` and `secret` and stores them in the keystore of the system. The secret travels in this one request (it needs the installation token), is wrapped in a `SecretString` at once and is wiped after storing (the request body and the JSON value it came from are not wiped: residual risk, blueprint 15). The answer holds the name only. An empty name, user or secret and the name `installation-token` are refused with `API-101`; a body that does not parse is `API-101` as well and never echoes the value (checked over HTTP in the security suite).
+- `credentials.delete` takes `id`; a missing credential is not an error.
+- `credentials.list` names the credentials that Git projects log in with and whether the keystore holds each (`stored`). It never shows a secret and needs only the read right.
+- `projects.add` takes `credential` for a Git source. The project row holds the name only.
+
+The scanner and the commands share one credential store (`wiring::Secrets`). The fetcher of Git sources sees it through `wiring::ForRemotes`, which hides the installation token: a project row that names `installation-token` cannot make a clone send it to a remote (`SEC-201`).
+
 ## Errors
 
 `SEC-201` not found, `SEC-202` entry damaged, `SEC-401` rejected, `SEC-402` access denied, `SEC-601` keystore unavailable. Keystore errors are mapped by variant and dropped unread, because some of them carry the bytes of the entry.

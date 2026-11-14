@@ -7,7 +7,7 @@ use super::consts::{
     URL_SCHEME_SEPARATOR, keys,
 };
 use super::error::{ConfigError, Violation};
-use super::model::{Budgets, Config, Editor, McpLimits, MetricThresholds, Scan, Ui};
+use super::model::{Budgets, Config, Editor, Level2, McpLimits, MetricThresholds, Scan, Ui};
 
 /// Checks every value of `config`.
 ///
@@ -42,6 +42,7 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     )?;
     check_layers(config)?;
     check_scan(&config.scan)?;
+    check_level2(&config.level2)?;
     check_editor(&config.editor)?;
     check_ui(&config.ui)?;
     positive(keys::GRAPH_NODE_WIDTH, config.graph.node_width)?;
@@ -167,6 +168,21 @@ fn check_mcp(mcp: &McpLimits) -> Result<(), ConfigError> {
         mcp.default_similarity_percent,
     )?;
     positive(keys::MCP_MAX_SNIPPET_BYTES, mcp.max_snippet_bytes)
+}
+
+fn check_level2(level2: &Level2) -> Result<(), ConfigError> {
+    if level2.max_index_bytes == 0 {
+        return fail(keys::LEVEL2_MAX_INDEX_BYTES, Violation::MustBePositive);
+    }
+    positive(keys::LEVEL2_TIMEOUT_SECONDS, level2.timeout_seconds)?;
+    positive(keys::LEVEL2_MAX_MEMORY_MB, level2.max_memory_mb)?;
+    if level2.max_output_bytes < level2.max_index_bytes {
+        return fail(
+            keys::LEVEL2_MAX_OUTPUT_BYTES,
+            Violation::MustNotBeBelow(keys::LEVEL2_MAX_INDEX_BYTES),
+        );
+    }
+    share(keys::LEVEL2_MIN_MAPPED, level2.min_mapped)
 }
 
 fn check_scan(scan: &Scan) -> Result<(), ConfigError> {

@@ -22,6 +22,10 @@ use codeskimr_storage::SqliteStore;
 use super::command_api;
 use crate::locations::Locations;
 use crate::principal;
+use crate::scan::open_on;
+use crate::source_arg::classify;
+use crate::wiring::Secrets;
+use codeskimr_domain::ScanMode;
 
 const SOURCE: &str = "namespace Demo;\n\npublic class Calculator\n{\n    public int Add(int a, int b) { return a + b; }\n}\n";
 
@@ -29,6 +33,7 @@ pub(super) struct Fixture {
     pub(super) root: TempDir,
     pub(super) locations: Locations,
     pub(super) api: Arc<CommandApi>,
+    pub(super) secrets: Arc<Secrets>,
 }
 
 impl Fixture {
@@ -56,11 +61,13 @@ impl Fixture {
             overrides: vec![("ui.dir".to_owned(), format!("'{}'", ui.display()))],
             ..GlobalOptions::default()
         };
-        let api = command_api(&global, &locations, EventBus::new()).unwrap();
+        let secrets = crate::memory_keystore::secrets();
+        let api = command_api(&global, &locations, EventBus::new(), Arc::clone(&secrets)).unwrap();
         Self {
             root,
             locations,
             api: Arc::new(api),
+            secrets,
         }
     }
 
@@ -118,16 +125,22 @@ fn the_commands_are_offered() {
     assert_eq!(
         ids,
         [
+            "credentials.delete",
+            "credentials.list",
+            "credentials.set",
             "explorer.outline",
             "explorer.source",
             "explorer.symbol",
             "export.html",
             "graph.layers",
             "projects.add",
+            "projects.cancel",
             "projects.list",
             "projects.rescan",
+            "projects.tools",
             "search.query",
             "status.info",
+            "usages.code",
             "usages.query"
         ]
     );
@@ -153,6 +166,8 @@ fn an_added_folder_is_scanned_and_listed_with_its_language() {
     assert_eq!(row["types"], 1);
     assert_eq!(row["scan"]["mode"], "full");
     assert_eq!(row["languages"][0]["language"], "csharp");
+    assert_eq!(row["languages"][0]["tier"], "full");
+    assert_eq!(row["languages"][0]["symbols"], scanned["symbols"]);
     assert_eq!(row["running"], false);
 }
 
@@ -222,25 +237,30 @@ fn the_outline_sorts_the_types_into_a_namespace() {
         .call("explorer.outline", json!({ "project": project }))
         .unwrap();
     let namespace = &outline["layers"][0]["namespaces"][0];
-    assert_eq!(namespace["name"], "Calculator.Demo");
+    assert_eq!(namespace["name"], "Demo");
     assert_eq!(namespace["types"][0]["name"], "Calculator");
     assert_eq!(namespace["types"][0]["kind"], "class");
+}
+
+/// The answer of `explorer.symbol` for the first type of the outline.
+fn shown_type(fixture: &Fixture, project: u64) -> serde_json::Value {
+    let outline = fixture
+        .call("explorer.outline", json!({ "project": project }))
+        .unwrap();
+    let id = outline["layers"][0]["namespaces"][0]["types"][0]["id"].clone();
+    fixture
+        .call(
+            "explorer.symbol",
+            json!({ "project": project, "symbol": id }),
+        )
+        .unwrap()
 }
 
 #[test]
 fn a_symbol_comes_with_breadcrumb_and_members() {
     let fixture = Fixture::new();
     let project = added(&fixture);
-    let outline = fixture
-        .call("explorer.outline", json!({ "project": project }))
-        .unwrap();
-    let id = outline["layers"][0]["namespaces"][0]["types"][0]["id"].clone();
-    let shown = fixture
-        .call(
-            "explorer.symbol",
-            json!({ "project": project, "symbol": id }),
-        )
-        .unwrap();
+    let shown = shown_type(&fixture, project);
     assert_eq!(shown["name"], "Calculator");
     assert_eq!(shown["first_line"], 3);
     assert_eq!(shown["members"][0]["name"], "Add");
@@ -288,10 +308,7 @@ fn a_project_without_a_scan_has_an_empty_outline_and_no_symbols() {
 fn layers_come_first_and_types_of_no_layer_last() {
     let fixture = Fixture::new();
     let project = added(&fixture);
-    fixture.set_layers(
-        project,
-        &[("Core", "Calculator.Demo"), ("Other", "Nowhere")],
-    );
+    fixture.set_layers(project, &[("Core", "Demo"), ("Other", "Nowhere")]);
     let outline = fixture
         .call("explorer.outline", json!({ "project": project }))
         .unwrap();
@@ -311,6 +328,15 @@ fn layers_come_first_and_types_of_no_layer_last() {
 }
 
 #[test]
+fn a_symbol_names_the_layer_that_owns_it() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    assert!(shown_type(&fixture, project)["layer"].is_null());
+    fixture.set_layers(project, &[("Core", "Demo")]);
+    assert_eq!(shown_type(&fixture, project)["layer"], "Core");
+}
+
+#[test]
 fn the_outline_names_the_limits_behind_the_colours() {
     let fixture = Fixture::new();
     let project = added(&fixture);
@@ -321,13 +347,35 @@ fn the_outline_names_the_limits_behind_the_colours() {
     assert_eq!(outline["thresholds"]["maintainability_medium_min"], 35);
 }
 
+/// Runs a command as `who`, as the API does after it has resolved the caller; the registered
+/// error id of a refusal comes back as the error.
+fn run_as(
+    fixture: &Fixture,
+    who: codeskimr_domain::Principal,
+    id: &str,
+    input: Value,
+) -> Result<Value, &'static str> {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .build()
+        .unwrap();
+    runtime
+        .block_on(fixture.api.run(who, id, input))
+        .map_err(|error| error.code().entry().id)
+}
+
+/// Writes `source` as `Checkout.cs`, scans the project and returns the input of a usages query
+/// for `Calculator.Add`.
+fn add_usages_input(fixture: &Fixture, source: &str, way: &str, depth: u32) -> Value {
+    fs::write(fixture.root.path().join("app/Checkout.cs"), source).unwrap();
+    let project = added(fixture);
+    let add = member_id(fixture, project, "Add");
+    json!({ "project": project, "symbol": add, "way": way, "depth": depth, "include_tests": true })
+}
+
 #[test]
 fn a_token_without_the_read_right_is_refused() {
     let fixture = Fixture::new();
     let project = added(&fixture);
-    let runtime = tokio::runtime::Builder::new_current_thread()
-        .build()
-        .unwrap();
     let nobody = principal::nobody();
     for id in [
         "explorer.outline",
@@ -336,17 +384,52 @@ fn a_token_without_the_read_right_is_refused() {
         "graph.layers",
         "search.query",
         "status.info",
+        "usages.code",
         "usages.query",
     ] {
-        let refused = runtime
-            .block_on(
-                fixture
-                    .api
-                    .run(nobody, id, json!({ "project": project, "symbol": 1 })),
-            )
-            .map_err(|error| error.code().entry().id);
+        let refused = run_as(
+            &fixture,
+            nobody,
+            id,
+            json!({ "project": project, "symbol": 1 }),
+        );
         assert_eq!(refused.unwrap_err(), "AUTH-401", "{id}");
     }
+}
+
+#[test]
+fn a_caller_who_may_read_but_not_read_source_gets_no_code() {
+    let fixture = Fixture::new();
+    let input = add_usages_input(&fixture, CALLER, "both", 2);
+    let run = |id: &str| run_as(&fixture, principal::reader(), id, input.clone());
+    // The index is open to the reader, the lines of code are not.
+    assert!(run("usages.query").is_ok());
+    assert_eq!(run("usages.code").unwrap_err(), "AUTH-401");
+    assert_eq!(run("explorer.source").unwrap_err(), "AUTH-401");
+}
+
+#[test]
+fn several_hits_in_one_file_get_their_lines_from_one_read() {
+    let fixture = Fixture::new();
+    let twice = CALLER.replace(
+        "        return calculator.Add(1, 2);\n",
+        "        var one = calculator.Add(1, 2);\n        return calculator.Add(one, 3);\n",
+    );
+    let input = add_usages_input(&fixture, &twice, "incoming", 1);
+    let code = fixture.call("usages.code", input).unwrap();
+    let texts: Vec<&str> = code["lines"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|line| line["text"].as_str().unwrap())
+        .collect();
+    assert_eq!(
+        texts,
+        [
+            "var one = calculator.Add(1, 2);",
+            "return calculator.Add(one, 3);"
+        ]
+    );
 }
 
 #[test]
@@ -360,6 +443,7 @@ fn the_search_finds_a_member_by_a_part_of_its_name_and_names_its_type() {
         )
         .unwrap();
     assert!(found["snapshot"].is_u64());
+    assert!(found["entries"].as_u64().unwrap() >= 2);
     let hit = &found["hits"][0];
     assert_eq!(hit["name"], "Add");
     assert_eq!(hit["kind"], "method");
@@ -386,7 +470,10 @@ fn the_search_of_a_project_without_a_scan_or_without_text_is_empty() {
     let found = fixture
         .call("search.query", json!({ "project": project, "query": "a" }))
         .unwrap();
-    assert_eq!(found, json!({ "snapshot": null, "hits": [] }));
+    assert_eq!(
+        found,
+        json!({ "snapshot": null, "entries": null, "hits": [] })
+    );
     let scanned = added(&fixture);
     let blank = fixture
         .call("search.query", json!({ "project": scanned, "query": "" }))
@@ -404,8 +491,37 @@ fn the_status_reports_the_memory_of_the_program() {
     let status = fixture.call("status.info", Value::Null).unwrap();
     assert!(status["memory_mb"].as_u64().unwrap() > 0);
     assert!(status.get("startup_ms").is_some());
+    assert!(status["workers"].as_u64().unwrap() >= 1);
     assert_eq!(status["budgets"]["cold_start"], 300);
     assert_eq!(status["budgets"]["incremental_rescan"], 300);
+}
+
+#[test]
+fn cancelling_without_a_running_scan_says_so() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    assert_eq!(
+        fixture.call("projects.cancel", json!({ "project": project })),
+        Ok(json!({ "cancelled": false }))
+    );
+}
+
+#[test]
+fn a_cancelled_scan_ends_with_its_own_code_and_writes_no_snapshot() {
+    let fixture = Fixture::new();
+    let spec = classify(&fixture.folder(), None).unwrap();
+    let session = open_on(
+        principal::resolve(),
+        spec,
+        &GlobalOptions::default(),
+        &fixture.locations,
+        (EventBus::new(), &fixture.secrets),
+    )
+    .unwrap();
+    let result = session.scan_with(ScanMode::Full, |token| token.cancel());
+    assert_eq!(result.unwrap_err().code().entry().id, "PRJ-303");
+    let rows = fixture.call("projects.list", Value::Null).unwrap();
+    assert_eq!(rows[0]["scan"], Value::Null);
 }
 
 fn type_id(fixture: &Fixture, project: u64) -> Value {
@@ -514,12 +630,17 @@ fn usages_of_add(fixture: &Fixture, project: u64, way: &str) -> Value {
         .unwrap()
 }
 
-#[test]
-fn the_usages_of_a_method_name_the_caller_and_mark_every_hit_unchecked() {
+/// The usages answer for `Add` in a project where `Checkout.Total` calls it.
+fn answer_with_caller() -> Value {
     let fixture = Fixture::new();
     fs::write(fixture.root.path().join("app/Checkout.cs"), CALLER).unwrap();
     let project = added(&fixture);
-    let answer = usages_of_add(&fixture, project, "both");
+    usages_of_add(&fixture, project, "both")
+}
+
+#[test]
+fn the_usages_of_a_method_name_the_caller_and_mark_every_hit_unchecked() {
+    let answer = answer_with_caller();
     let hits = answer["incoming"]["hits"].as_array().unwrap();
     assert_eq!(hits.len(), 1);
     assert!(
@@ -540,6 +661,36 @@ fn the_usages_of_a_method_name_the_caller_and_mark_every_hit_unchecked() {
     assert_eq!(answer["summary"]["probable"], 0);
     assert_eq!(answer["summary"]["files"], 1);
     assert_eq!(answer["outgoing"]["total"], 0);
+}
+
+#[test]
+fn the_code_of_a_hit_is_the_trimmed_line_from_the_project_folder() {
+    let fixture = Fixture::new();
+    let input = add_usages_input(&fixture, CALLER, "both", 2);
+    let code = fixture.call("usages.code", input.clone()).unwrap();
+    assert_eq!(code["available"], true);
+    assert_eq!(
+        code["lines"],
+        json!([{ "path": "Checkout.cs", "line": 7, "text": "return calculator.Add(1, 2);" }])
+    );
+    fs::remove_file(fixture.root.path().join("app/Checkout.cs")).unwrap();
+    let gone = fixture.call("usages.code", input).unwrap();
+    assert_eq!(gone["lines"], json!([]));
+}
+
+#[test]
+fn the_code_of_hits_is_refused_for_a_missing_scan() {
+    let fixture = Fixture::new();
+    let project = fixture.register_unscanned();
+    let input = json!({ "project": project, "symbol": 1, "way": "both", "depth": 2, "include_tests": true });
+    assert_eq!(fixture.call("usages.code", input), Err("MCP-203"));
+}
+
+#[test]
+fn the_impact_counts_unchecked_symbols_apart() {
+    let answer = answer_with_caller();
+    assert_eq!(answer["impact"]["verified"], 0);
+    assert_eq!(answer["impact"]["unchecked"], 1);
 }
 
 #[test]
@@ -573,17 +724,24 @@ const LAYERED_CORE: &str =
     "namespace Demo.Core;\n\npublic class Engine\n{\n    public int Run() { return 1; }\n}\n";
 const LAYER_RULES: &str = "[[layers]]\nname = \"ui\"\nnamespaces = [\"Demo.Ui\"]\n\n[[layers]]\nname = \"core\"\nnamespaces = [\"Demo.Core\"]\n";
 
-#[test]
-fn the_graph_places_the_declared_layers_top_down_with_their_dependencies() {
+/// A layered two-project fixture and the answer of `graph.layers` with the given extra input.
+fn layered_graph(extra: &serde_json::Value) -> serde_json::Value {
     let fixture = Fixture::new();
     let app = fixture.root.path().join("app");
     fs::write(app.join("Screen.cs"), LAYERED_UI).unwrap();
     fs::write(app.join("Engine.cs"), LAYERED_CORE).unwrap();
     fs::write(app.join(".codeskimr.toml"), LAYER_RULES).unwrap();
-    let project = added(&fixture);
-    let graph = fixture
-        .call("graph.layers", json!({ "project": project }))
-        .unwrap();
+    let mut input = json!({ "project": added(&fixture) });
+    input
+        .as_object_mut()
+        .unwrap()
+        .extend(extra.as_object().unwrap().clone());
+    fixture.call("graph.layers", input).unwrap()
+}
+
+#[test]
+fn the_graph_places_the_declared_layers_top_down_with_their_dependencies() {
+    let graph = layered_graph(&json!({}));
     assert!(graph["snapshot"].is_u64());
     let boxes = graph["boxes"].as_array().unwrap();
     let names: Vec<_> = boxes.iter().map(|b| b["name"].as_str().unwrap()).collect();
@@ -592,6 +750,138 @@ fn the_graph_places_the_declared_layers_top_down_with_their_dependencies() {
     assert_eq!(boxes[0]["width"], 160);
     assert!(graph["width"].as_u64() >= boxes[0]["width"].as_u64());
     assert!(graph["height"].as_u64() > boxes[1]["y"].as_u64());
+}
+
+#[test]
+fn the_layer_map_has_a_band_behind_every_layer_row() {
+    let graph = layered_graph(&json!({}));
+    let bands = graph["bands"].as_array().unwrap();
+    let names: Vec<_> = bands.iter().map(|b| b["name"].as_str().unwrap()).collect();
+    assert_eq!(names, ["ui", "core"]);
+    let boxes = graph["boxes"].as_array().unwrap();
+    assert!(bands[0]["y"].as_u64() <= boxes[0]["y"].as_u64());
+    assert!(bands[0]["height"].as_u64() > boxes[0]["height"].as_u64());
+    let end =
+        |band: &serde_json::Value| band["y"].as_u64().unwrap() + band["height"].as_u64().unwrap();
+    assert!(end(&bands[0]) <= bands[1]["y"].as_u64().unwrap());
+    assert!(end(&bands[1]) <= graph["height"].as_u64().unwrap());
+}
+
+#[test]
+fn the_namespace_level_has_one_box_per_namespace_with_its_types_and_dependencies() {
+    let graph = layered_graph(&json!({ "level": "namespaces" }));
+    let boxes = graph["boxes"].as_array().unwrap();
+    let found: Vec<_> = boxes
+        .iter()
+        .map(|b| (b["name"].as_str().unwrap(), b["types"].as_u64().unwrap()))
+        .collect();
+    let typed = |suffix: &str| found.iter().find(|(name, _)| name.ends_with(suffix));
+    assert_eq!(typed("Demo.Core").map(|found| found.1), Some(1));
+    assert_eq!(typed("Demo.Ui").map(|found| found.1), Some(1));
+    assert!(found.iter().all(|(_, types)| *types > 0));
+    let links = graph["links"].as_array().unwrap();
+    assert_eq!(links.len(), 1);
+    assert!(links[0]["from"].as_str().unwrap().ends_with("Demo.Ui"));
+    assert!(links[0]["to"].as_str().unwrap().ends_with("Demo.Core"));
+}
+
+#[test]
+fn a_depth_merges_the_namespaces_and_leaves_no_dependency_to_itself() {
+    let all = layered_graph(&json!({ "level": "namespaces" }));
+    let top = layered_graph(&json!({ "level": "namespaces", "depth": 1 }));
+    let names = |graph: &serde_json::Value| -> Vec<String> {
+        graph["boxes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|b| b["name"].as_str().unwrap().to_owned())
+            .collect()
+    };
+    // The C# names carry a prefix (#137), so the first segment is not yet the namespace root; the
+    // merge itself is tested on the domain graph.
+    assert!(names(&top).iter().all(|name| !name.contains('.')));
+    assert!(names(&top).len() <= names(&all).len());
+    for link in top["links"].as_array().unwrap() {
+        assert_ne!(link["from"], link["to"]);
+    }
+    let types: u64 = top["boxes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|b| b["types"].as_u64().unwrap())
+        .sum();
+    assert_eq!(
+        types,
+        all["boxes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|b| b["types"].as_u64().unwrap())
+            .sum::<u64>()
+    );
+}
+
+/// The id of the type `name` in the explorer outline of the project.
+fn type_named(fixture: &Fixture, project: u64, name: &str) -> Value {
+    let outline = fixture
+        .call("explorer.outline", json!({ "project": project }))
+        .unwrap();
+    outline["layers"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .flat_map(|layer| layer["namespaces"].as_array().unwrap())
+        .flat_map(|space| space["types"].as_array().unwrap())
+        .find(|found| found["name"] == name)
+        .unwrap()["id"]
+        .clone()
+}
+
+/// The map of the type level around `focus`.
+fn type_map(fixture: &Fixture, project: u64, focus: &Value) -> Value {
+    fixture
+        .call(
+            "graph.layers",
+            json!({ "project": project, "level": "types", "focus": focus }),
+        )
+        .unwrap()
+}
+
+#[test]
+fn the_type_level_puts_the_type_in_the_middle_between_its_users_and_what_it_uses() {
+    let fixture = Fixture::new();
+    fs::write(fixture.root.path().join("app/Checkout.cs"), CALLER).unwrap();
+    let project = added(&fixture);
+    let calculator = type_named(&fixture, project, "Calculator");
+    let map = type_map(&fixture, project, &calculator);
+    assert_eq!(map["focus"]["symbol"], calculator);
+    assert_eq!(map["focus"]["users_more"], 0);
+    let boxes = map["boxes"].as_array().unwrap();
+    assert_eq!(boxes.len(), 2);
+    let middle = boxes.iter().find(|b| b["symbol"] == calculator).unwrap();
+    let user = boxes.iter().find(|b| b["symbol"] != calculator).unwrap();
+    assert!(user["name"].as_str().unwrap().ends_with("Checkout"));
+    assert!(user["y"].as_u64() < middle["y"].as_u64());
+    assert_eq!(map["links"][0]["from"], user["name"]);
+    assert_eq!(map["links"][0]["to"], middle["name"]);
+    assert_eq!(map["links"][0]["count"], 2);
+    assert_eq!(map["bands"], json!([]));
+}
+
+#[test]
+fn the_type_level_refuses_a_missing_focus_and_something_that_is_no_type() {
+    let fixture = Fixture::new();
+    let project = added(&fixture);
+    let member = member_id(&fixture, project, "Add");
+    for focus in [json!(null), json!(99999), member] {
+        assert_eq!(
+            fixture.call(
+                "graph.layers",
+                json!({ "project": project, "level": "types", "focus": focus })
+            ),
+            Err("MCP-202")
+        );
+    }
 }
 
 #[test]

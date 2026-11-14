@@ -8,4 +8,6 @@ export interface StatusInfo {
   memory_mb: number | null;
   /** The time budgets of blueprint 16.1, in milliseconds. */
   budgets: BudgetTargets;
+  /** Threads the analyze stage of a scan uses: one per core the system offers. */
+  workers: number;
 }

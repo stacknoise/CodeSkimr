@@ -1,24 +1,29 @@
 //! `codeskimr scan`: registers the source as a project and runs one full scan. The [`Session`] is
 //! what watch mode scans again and again.
 
+use std::sync::Arc;
 use std::time::Instant;
 
 use codeskimr_application::access;
+use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
-use codeskimr_application::pipeline::{Job, JobResult, Scanner};
-use codeskimr_application::ports::ProjectRepository;
-use codeskimr_cli::{GlobalOptions, ScanArgs, ScanSummary};
-use codeskimr_codes::ErrorCode;
+use codeskimr_application::level2::{LanguageReport, Level2Outcome, Skipped};
+use codeskimr_application::pipeline::{Job, JobResult, Queued, Scanner};
+use codeskimr_application::ports::{ProjectRepository, ProjectToolCheck};
+use codeskimr_application::tools::ToolsView;
+use codeskimr_cli::{GlobalOptions, Level2Line, Level2Reason, ScanArgs, ScanSummary};
+use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Permission, Principal, Project, ProjectId, ProjectSource, ScanMode};
 use codeskimr_storage::SqliteStore;
 
 use crate::config_files;
+use crate::consts::LOG_TOOL_CHECK_FAILED;
 use crate::locations::Locations;
 use crate::principal;
 use crate::source_arg::{SourceError, SourceSpec, classify};
-use crate::wiring::{build_scanner, open_store};
+use crate::wiring::{Secrets, build_scanner, index_runner, open_store, tool_checker};
 
 /// Checks the source argument before anything is scanned or printed.
 ///
@@ -36,6 +41,7 @@ pub fn prepare(args: &ScanArgs) -> Result<SourceSpec, SourceError> {
 /// A registered project with everything needed to scan it again and again.
 pub struct Session {
     scanner: Scanner,
+    tools: Arc<dyn ProjectToolCheck>,
     principal: Principal,
     project: Project,
     config: Config,
@@ -61,30 +67,110 @@ impl Session {
         &self.events
     }
 
-    /// Runs one scan in `mode` and reports what it found.
+    /// Checks the tools with `tools` instead of the ones this session was wired with.
+    #[must_use]
+    pub fn with_tools(mut self, tools: Arc<dyn ProjectToolCheck>) -> Self {
+        self.tools = tools;
+        self
+    }
+
+    /// Checks the tools of the languages the new snapshot holds (ADR 0033, decision 8). A failure
+    /// of the check never fails the scan: it is logged and the summary says nothing was checked.
+    /// An incremental scan does not check (the tools do not change when a file is saved, and
+    /// watch mode times the rescan, blueprint 16.1), the stored report of the last full scan stays.
+    fn check_tools(&self, mode: ScanMode) -> ToolsView {
+        if mode == ScanMode::Incremental {
+            return ToolsView::unchecked();
+        }
+        match self.tools.check(self.project.id) {
+            Ok(report) => ToolsView::of(&report),
+            Err(error) => {
+                tracing::warn!(event = LOG_TOOL_CHECK_FAILED, code = error.code().id());
+                ToolsView::unchecked()
+            }
+        }
+    }
+
+    /// Runs one scan in `mode` and reports what it found, with what the check of the tools found.
     ///
     /// # Errors
-    /// The code of the failed stage, or `APP-901` if the scan was cancelled (nothing cancels it here).
+    /// The code of the failed stage, or `PRJ-303` if the scan was cancelled (nothing cancels it
+    /// here).
     pub fn scan(&self, mode: ScanMode) -> Result<ScanSummary, CodedError> {
+        self.run_job(Job::new(self.project.id, mode).with_level2())
+    }
+
+    /// Like [`Session::scan`], but level 1 only: no indexer starts. Watch mode scans again with
+    /// this after its first scan.
+    ///
+    /// # Errors
+    /// The same as [`Session::scan`].
+    pub fn scan_quick(&self, mode: ScanMode) -> Result<ScanSummary, CodedError> {
+        self.run_job(Job::new(self.project.id, mode).without_level2())
+    }
+
+    /// Like [`Session::scan`], but level 1 only, and it hands the token that cancels this scan to
+    /// `on_token` before the scan starts. The UI uses it; only the scan of the command line runs
+    /// level 2.
+    ///
+    /// # Errors
+    /// The same as [`Session::scan`].
+    pub fn scan_with(
+        &self,
+        mode: ScanMode,
+        on_token: impl FnOnce(CancelToken),
+    ) -> Result<ScanSummary, CodedError> {
+        let job = Job::new(self.project.id, mode);
+        on_token(job.cancel_token());
+        self.run_job(job)
+    }
+
+    fn run_job(&self, job: Job<Queued>) -> Result<ScanSummary, CodedError> {
         let started = Instant::now();
-        match self
-            .scanner
-            .run(&self.principal, Job::new(self.project.id, mode))
-        {
+        let mode = job.mode();
+        match self.scanner.run(&self.principal, job) {
             JobResult::Finished(job) => {
                 let snapshot = job.snapshot();
+                let seconds = started.elapsed().as_secs_f64();
                 Ok(ScanSummary {
                     project: self.project.name.to_string(),
                     snapshot: snapshot.id.get(),
                     files: snapshot.stats.files,
                     symbols: snapshot.stats.symbols,
                     references: snapshot.stats.references,
-                    seconds: started.elapsed().as_secs_f64(),
+                    seconds,
+                    level2: job.level2().iter().map(level2_line).collect(),
+                    tools: self.check_tools(mode),
                 })
             }
             JobResult::Failed(job) => Err(CodedError::new(job.code())),
-            JobResult::Cancelled(_) => Err(CodedError::new(ErrorCode::UnexpectedInternalError)),
+            JobResult::Cancelled(_) => Err(CodedError::new(ErrorCode::ScanCancelled)),
         }
+    }
+}
+
+/// The line of the summary for one language of the second pass.
+fn level2_line(report: &LanguageReport) -> Level2Line {
+    let (files, stale, reason) = match &report.outcome {
+        Level2Outcome::Checked { files, stale, .. } => (*files, *stale, None),
+        Level2Outcome::Skipped(why) => (u64::default(), u64::default(), Some(reason_of(why))),
+    };
+    Level2Line {
+        language: report.language.to_string(),
+        files,
+        stale,
+        reason,
+    }
+}
+
+fn reason_of(skipped: &Skipped) -> Level2Reason {
+    match skipped {
+        Skipped::NotPermitted => Level2Reason::NotPermitted,
+        Skipped::NotConfirmed => Level2Reason::NotConfirmed,
+        Skipped::Unavailable(_) => Level2Reason::Unavailable,
+        Skipped::Stale => Level2Reason::Stale,
+        Skipped::Cancelled => Level2Reason::Cancelled,
+        Skipped::Failed(code) => Level2Reason::Failed(code.id().to_owned()),
     }
 }
 
@@ -96,13 +182,14 @@ pub fn open(
     spec: SourceSpec,
     global: &GlobalOptions,
     locations: &Locations,
+    secrets: &Arc<Secrets>,
 ) -> Result<Session, CodedError> {
     open_on(
         principal::resolve(),
         spec,
         global,
         locations,
-        EventBus::new(),
+        (EventBus::new(), secrets),
     )
 }
 
@@ -116,7 +203,7 @@ pub fn open_on(
     spec: SourceSpec,
     global: &GlobalOptions,
     locations: &Locations,
-    events: EventBus,
+    (events, secrets): (EventBus, &Arc<Secrets>),
 ) -> Result<Session, CodedError> {
     access::require(&principal, Permission::RegisterProject)?;
     access::require(&principal, Permission::Scan)?;
@@ -131,6 +218,7 @@ pub fn open_on(
             store: &store,
             locations,
             events,
+            secrets,
         },
     )
 }
@@ -144,7 +232,7 @@ pub fn reopen(
     project: ProjectId,
     global: &GlobalOptions,
     locations: &Locations,
-    events: EventBus,
+    (events, secrets): (EventBus, &Arc<Secrets>),
 ) -> Result<Session, CodedError> {
     let defaults = config_files::load(locations, global, None)?;
     let store = open_store(locations, &defaults)?;
@@ -159,6 +247,7 @@ pub fn reopen(
             store: &store,
             locations,
             events,
+            secrets,
         },
     )
 }
@@ -175,6 +264,7 @@ struct Wiring<'a> {
     store: &'a std::sync::Arc<SqliteStore>,
     locations: &'a Locations,
     events: EventBus,
+    secrets: &'a Arc<Secrets>,
 }
 
 fn session(
@@ -188,10 +278,13 @@ fn session(
         store,
         locations,
         events,
+        secrets,
     } = wiring;
-    let scanner = build_scanner(store, &config, locations, events.clone())?;
+    let scanner = build_scanner(store, &config, locations, events.clone(), secrets)?;
+    let tools = tool_checker(store, (locations, index_runner(locations)))?;
     Ok(Session {
         scanner,
+        tools,
         principal,
         project,
         config,
@@ -210,8 +303,9 @@ pub fn run(
     spec: SourceSpec,
     global: &GlobalOptions,
     locations: &Locations,
+    secrets: &Arc<Secrets>,
 ) -> Result<ScanSummary, CodedError> {
-    open(spec, global, locations)?.scan(ScanMode::Full)
+    open(spec, global, locations, secrets)?.scan(ScanMode::Full)
 }
 
 /// The project with the layers of the configuration (ADR 0031); saved when they changed, so that

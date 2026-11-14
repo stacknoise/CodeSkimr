@@ -1,4 +1,4 @@
-# 0032 – Level 2 references come from SCIP indexes; level 1 keeps every match and marks it unchecked
+# 0033 – Level 2 references come from SCIP indexes; level 1 keeps every match and marks it unchecked
 
 Status: proposed
 
@@ -54,6 +54,14 @@ Blueprint 9.3 plans level 2 "after 1.0, optional". This ADR moves it forward and
 
 15. (1) Level 1 keeps all matches and `verified` (decision 6 and 7). (2) Tool check on load (decision 8). (3) Spike: indexers on the public corpora, C# and Rust first. (4) `IndexRunner`, consent, permissions, limits. (5) Import and mapping. (6) Per language: C#, Rust, TypeScript, Python, Java and Kotlin.
 
+## Implementation (package 5, PR #216)
+
+The import package deviates from the text above in three points:
+
+- **Decoder (decision 5).** Instead of generating code from a pinned `scip.proto` with a decoding library (a new dependency), the crate has a small hand-written reader that knows only the fields it needs and skips everything else (`crates/adapters/scip/src/wire.rs`, `decode.rs`). It has bounded buffers, a depth limit for skipped groups, strict varints and limits on documents, occurrences and distinct symbols. The pinned copy is `crates/adapters/scip/scip-used.proto`: the messages and field numbers that are read, which must equal `src/consts.rs`. No new dependency, no `protoc`, a smaller attack surface.
+- **Measure of `level2.min_mapped` (decision 2).** It is `mapped / (mapped + unmapped)` among the uses of project symbols, where a project symbol is one that the index itself defines. Library symbols are counted apart and do not enter the share, because about half of all occurrences of real projects point into libraries (measured on C# and Rust: 50 to 51 %), so counting them would fail every real index at 0.5. An index in which uses exist but none maps, for example because the indexer never marks definitions, fails as well, and so does an index that covers no file of the snapshot.
+- **Columns.** Occurrence columns are stored in the unit of the index and are not converted to UTF-8 bytes yet (issue #217).
+
 ## Consequences
 
 - Blueprint changes (by the pull request that implements packages 1 and 5, with the label `blueprint-change`): sections 1 and 7 (scope and levels), 9.2 to 9.4, 14 (the `level2` exception and keys), 16.1 (time of a level 2 scan), 17.2 (acceptance numbers) and 20.2 (roadmap: level 2 before 1.0); `docs/usages.md`, `docs/mcp.md`, `docs/references.md`.
@@ -61,3 +69,13 @@ Blueprint 9.3 plans level 2 "after 1.0, optional". This ADR moves it forward and
 - Running build tools is a new security-relevant function with consent, limits and review.
 - New error codes with texts in de and en (index corrupt, tool missing, permission, limit exceeded), registered in `errors/error-codes.toml`.
 - The reversal of #133 costs precision without level 2; the marking and the separate count carry that.
+
+## Addendum: decisions made while wiring level 2
+
+- **Who starts indexers.** Decision 10 forbids that MCP, REST, watch mode and CI stand in for the confirmation. Beyond that, after the owner confirmed, only the scan of the command line (`codeskimr scan`, the first scan of `--watch`) runs the second pass. `ProjectScanner::rescan` (MCP, UI) and later watch scans are level 1 only, so an AI agent or a browser client cannot start the build tools of a project. A `Job` wants level 2 only if it was built `with_level2()` (the default is off); only `Session::scan` of the command line does that, and a test pins that direction. `mcp` and `serve` also run under their own principal (`principal::remote_client()`) that holds neither `ConfirmIndexer` nor `RunIndexer`, so the check does not rest on the job flag alone (a test confirms that it gets `SEC-403`).
+- **Where confirming lives.** Only `codeskimr level2 confirm|revoke` calls `level2::confirm`/`revoke`, on a terminal, after a text that names file and network access, the missing sandbox and the binding to source, location and branch. The port enforces it technically: `ConsentStore::store_consent` takes a `ConsentGrant`, which only `level2::confirm`/`revoke` can make, and only after they checked `Permission::ConfirmIndexer`; holding the store gives no way to write a consent. A test in `crates/app/tests/consent_origin.rs` is the second layer and fails if another product file names the functions, the grant or `store_consent` in any spelling (path, `use`, braces, alias, glob, re-export, several lines).
+- **What the user confirms.** The prompt shows the name, the location (folder or Git address) and the branch of the project that the argument resolved to (also for a numeric id), and the user types the name of the project instead of a fixed word, so a pasted or habitual `yes` never confirms. After the answer the project is read again; if its name or source changed in the meantime, nothing is stored (`SEC-403`). The storage binds the confirmation to the source it has at the moment of writing. A name, location or branch that holds a control character (line break, escape sequence) or an invisible or direction character (U+202A-202E, U+2066-2069, zero-width and similar) is never shown: the command fails with `SEC-403` without asking. A Git URL as argument resolves only the default branch; another branch is addressed by its id.
+- **Residual risk: pseudo-terminal.** The terminal check (`is_terminal` on standard input and output) cannot tell a person from a program that drives a pseudo-terminal (for example an agent that runs a shell on the owner's account). Such a program already has the rights of the owner's user account and could also edit the database or the configuration directly, so the check protects against accidents and against MCP, REST and CI, not against code that runs as the owner. Typing the project name makes an unintended confirmation harder but not impossible for such a program. The confirmation is not bound to a commit; a later pull of new build scripts runs under it (issue #230).
+- **Run folder.** `authorize_run` takes the folder from the project record (folder source) or the clone folder of the source adapter (Git), never from the caller.
+- **Replacing across snapshots.** Rows are shared between snapshots (ADR 0032), so a replacement also updates the totals and read models of every snapshot that holds the file.
+- **Usages answer.** `level2` is `active` if at least one direct usage of the answer is verified, otherwise `unavailable`.

@@ -14,11 +14,11 @@ export type IconName = keyof typeof ICON_PATHS;
 
 /** An icon of the rail. It is decoration: the text next to it, or the label of its button,
  * carries the meaning. */
-export function Icon(props: { name: IconName }) {
+export function Icon(props: { name: IconName; size?: number }) {
   return (
     <svg
-      width={ICON_SIZE}
-      height={ICON_SIZE}
+      width={props.size ?? ICON_SIZE}
+      height={props.size ?? ICON_SIZE}
       viewBox={ICON_VIEW_BOX}
       fill={ICON_NONE}
       stroke={ICON_STROKE}

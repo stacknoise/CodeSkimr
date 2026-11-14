@@ -2,7 +2,7 @@ import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { count, seconds } from "../projects/format";
 import { statusInfo } from "../status/status";
-import { PERCENT_SIGN, PROGRESS_MAX, PROGRESS_MIN } from "./consts";
+import { PERCENT_SIGN, PROGRESS_MAX, PROGRESS_MIN, STATE } from "./consts";
 import { lastEventAt } from "./events";
 import { files, filesPerSecond, percent, secondsLeft } from "./run";
 import type { Run } from "./types";
@@ -50,6 +50,27 @@ function Memory() {
   );
 }
 
+/** The threads of the analyze stage while a scan runs (never more than there are files to
+ * analyse); nothing is active otherwise. */
+function Cores(props: { run: Run }) {
+  const active = () => {
+    const workers = statusInfo()?.workers;
+    if (props.run.state !== STATE.running || workers == null) {
+      return null;
+    }
+    const total = files(props.run)?.total;
+    return total === undefined ? workers : Math.min(workers, total);
+  };
+  return (
+    <Metric
+      value={
+        active() === null ? t(I18N_KEYS.SCAN_UNAVAILABLE) : count(active() ?? 0, currentLanguage())
+      }
+      label={t(I18N_KEYS.SCAN_METRIC_CORES)}
+    />
+  );
+}
+
 /** Percentage, progress bar and the measured rates of the scan (mock 5, top card). The lines per
  * second are known only once a full scan is over. */
 export function Progress(props: { run: Run; linesPerSecond: number | null }) {
@@ -80,6 +101,7 @@ export function Progress(props: { run: Run; linesPerSecond: number | null }) {
           value={rate(props.linesPerSecond)}
           label={t(I18N_KEYS.SCAN_METRIC_LINES_PER_SECOND)}
         />
+        <Cores run={props.run} />
         <Memory />
       </div>
     </div>

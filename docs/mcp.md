@@ -21,15 +21,16 @@ All of them are read-only (`readOnlyHint`) except `rescan`, which is announced w
 | Tool | Arguments | Answer |
 |---|---|---|
 | `search_symbols` | `query`, `kind?`, `project?`, `limit?` | `hits`: id, name, qualified name, kind, path, best match first |
-| `get_symbol` | `symbol` (id or qualified name), `project?` | signature, doc, visibility, lines (one-based), layer, metrics, members |
-| `find_usages` | `symbol`, `direction?`, `depth?`, `include_tests?`, `project?`, `limit?` | `usages` (nearest step first): `depth`, `kind`, `confidence`, `path`, `line` and `column` (one-based), `from` and `to` symbol; `total`, `direction`, `depth` as applied |
-| `impact_of_change` | `symbol`, `project?`, `limit?` | `symbols` a change can reach: `depth`, `layer`, `visibility`, `public_interface`; `layers` with counts; `public_interfaces`; `total` |
+| `get_symbol` | `symbol` (id or qualified name), `project?` | signature, doc, visibility, lines (one-based), layer, metrics, members, `ambiguous` (number of other symbols with the same qualified name; a name gives the one with the lowest id, an id is always exact) |
+| `find_usages` | `symbol`, `direction?`, `depth?`, `include_tests?`, `project?`, `limit?` | `usages` (nearest step first): `depth`, `kind`, `confidence`, `verified`, `path`, `line` and `column` (one-based), `from` and `to` symbol; `total`, `verified` and `unchecked` (counts of the listed usages), `preliminary`, `direction`, `depth` as applied |
+| `impact_of_change` | `symbol`, `project?`, `limit?` | `symbols` a change can reach: `depth`, `layer`, `visibility`, `public_interface`, `verified`; `layers` with counts; `public_interfaces`; `verified` and `unchecked` (counts of the listed symbols), `preliminary`; `total` |
 | `get_dependencies` | `symbol` or `layer`, `direction?`, `include_tests?`, `project?`, `limit?` | `target`, `direction`, `dependencies` (most references first): id, qualified name, kind, `path`, `layer`, `count`, `violates_layering`; `layers` with count, `violates_layering`, `in_cycle`; `violations`, `total` |
 | `find_similar_code` | `symbol` or `snippet` + `language`, `min_similarity_percent?`, `project?`, `limit?` | `matches` (most similar first): id, qualified name, kind, `path`, `line`, `end_line` (one-based), `similarity_percent`; `min_similarity_percent` as applied |
 | `find_constants` | `query`, `project?`, `limit?` | `constants`: id, name, qualified name, `path`, `signature` (the declaration as written, `null` if the pack has none) |
 | `check_conventions` | `paths?`, `project?`, `limit?` | `findings` with `CHK` codes, `total`, `files_checked`, `unchecked`, `unmatched`, `not_checked` (see `docs/conventions.md`) |
 | `get_architecture` | `project?` | `layers` with their namespaces, `dependencies` between layers with count, `violates_layering`, `in_cycle` |
-| `rescan` | `project?` | `snapshot` (the new one), `mode` (`incremental`), `files`, `symbols`, `references`, `duration_ms` |
+| `rescan` | `project?` | `snapshot` (the new one), `mode` (`incremental`), `files`, `symbols`, `references`, `duration_ms`, `tools` (the tool check of the new snapshot) |
+| `get_project` | `project?` | `project`, `name`, `snapshot`, `languages` (`language`, `files`, `loc`, `level2_ready`), `tools_checked_at`, `tools` (`tool`, `role`, `state`, `languages`, `found`, `required`, `purpose`, `install`); see `docs/tools-check.md` |
 
 ## Usages and impact
 
@@ -38,6 +39,7 @@ Both tools sit on the `UsageIndex` port (`docs/usages.md`) and share the rules o
 - `symbol` is an id or a qualified name. An unknown symbol is `MCP-202`, never an empty list: "no usages" and "no such symbol" are different answers.
 - `find_usages`: `direction` is `incoming` (default: who uses the symbol) or `outgoing` (what it uses); anything else is `MCP-101` with `params.detail = direction`. `depth` is at least 1 (zero is `MCP-101`), defaults to `mcp.default_depth` and is held to `mcp.max_depth` (1 and 5). `include_tests` is off by default.
 - `confidence` is `certain` or `probable` on every usage. A probable usage is the resolver's best guess (blueprint 9.4); an agent should verify it before relying on it.
+- `verified` is `true` only if level 2 produced the usage (ADR 0033); until level 2 exists every usage is `false`. Verified usages come first, then nearest step first, within the listed page (the cut by `limit` comes before this order); `verified` and `unchecked` count the listed ones apart, and `preliminary` is `true` while any listed one is unchecked. An agent must not treat a preliminary answer as complete or exact. `impact_of_change` marks a symbol `verified` only if a path of verified references leads to it.
 - Usages end at the symbol that contains the occurrence: the usages of a type do not include those of its members.
 - `impact_of_change` always walks `mcp.max_depth` steps and always counts references from tests. It lists the symbols reached, nearest first, with their layer (by namespace, as in `get_symbol`) and `public_interface` (visibility `public`). `layers` and `public_interfaces` count the symbols that are listed, so with a cut result they cover the first `limit` symbols; `total` is the full number.
 
@@ -83,3 +85,5 @@ Tool descriptions and the server instructions are written for code agents and li
 - `get_architecture` returns the layers and the measured dependencies. Layers come from the `[[layers]]` list of the configuration (`docs/cli.md`, ADR 0031); without it the list is empty. The allowed directions and the conventions are not part of the project model yet (see `docs/storage.md`, `violates_layering`); they join the answer with the layer rule of `check_conventions` (issue #45). The use case behind `check_conventions` and the tool exist (`docs/conventions.md`, `codeskimr check`); the layer rule joins it with issue #45.
 - Paths from arguments (blueprint S-05): `check_conventions` takes paths, but only to select among the files of the project's own file list; a path is never opened, so `..` or an absolute path selects nothing. `rescan` takes no paths, so there is nothing to canonicalise.
 - A qualified name shared by several symbols (overloads) answers with the lowest symbol id; use the id from `search_symbols` to be exact.
+
+- `get_project` needs `read`. It runs the tool check on every call (a few short processes, `docs/tools-check.md`), stores the result and answers from it. `purpose` and `install` are in English, like all MCP texts.

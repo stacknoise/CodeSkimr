@@ -12,7 +12,11 @@
     flex-direction: column;
     gap: var(--space-12);
     min-width: 0;
-    max-width: 1100px;
+}
+
+/* The cards after the theme card are narrow in the mock (13): about 560 px. */
+.narrow {
+    max-width: 560px;
 }
 
 .panel h2 {

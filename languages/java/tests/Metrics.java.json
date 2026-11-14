@@ -5,14 +5,14 @@
       "loc": 51,
       "operands": null,
       "operators": null,
-      "symbol": "Metrics"
+      "symbol": "Metrics.java"
     },
     {
       "decisions": null,
       "loc": 48,
       "operands": null,
       "operators": null,
-      "symbol": "Metrics.M"
+      "symbol": "M"
     },
     {
       "decisions": 0,
@@ -25,7 +25,7 @@
         1,
         1
       ],
-      "symbol": "Metrics.M.plain"
+      "symbol": "M.plain"
     },
     {
       "decisions": 5,
@@ -38,7 +38,7 @@
         8,
         14
       ],
-      "symbol": "Metrics.M.branches"
+      "symbol": "M.branches"
     },
     {
       "decisions": 4,
@@ -51,7 +51,7 @@
         8,
         9
       ],
-      "symbol": "Metrics.M.loops"
+      "symbol": "M.loops"
     },
     {
       "decisions": 1,
@@ -64,7 +64,7 @@
         3,
         5
       ],
-      "symbol": "Metrics.M.cases"
+      "symbol": "M.cases"
     },
     {
       "decisions": 2,
@@ -77,7 +77,7 @@
         3,
         4
       ],
-      "symbol": "Metrics.M.rules"
+      "symbol": "M.rules"
     },
     {
       "decisions": 2,
@@ -90,7 +90,7 @@
         3,
         4
       ],
-      "symbol": "Metrics.M.catches"
+      "symbol": "M.catches"
     },
     {
       "decisions": 1,
@@ -103,7 +103,7 @@
         3,
         4
       ],
-      "symbol": "Metrics.M.resources"
+      "symbol": "M.resources"
     },
     {
       "decisions": 1,
@@ -116,7 +116,7 @@
         8,
         8
       ],
-      "symbol": "Metrics.M.outer"
+      "symbol": "M.outer"
     },
     {
       "decisions": 1,
@@ -129,126 +129,126 @@
         3,
         4
       ],
-      "symbol": "Metrics.M.outer.inner"
+      "symbol": "M.outer.inner"
     },
     {
       "decisions": null,
       "loc": 1,
       "operands": null,
       "operators": null,
-      "symbol": "Metrics.M.noBody"
+      "symbol": "M.noBody"
     },
     {
       "decisions": null,
       "loc": 3,
       "operands": null,
       "operators": null,
-      "symbol": "Metrics.Shape"
+      "symbol": "Shape"
     },
     {
       "decisions": null,
       "loc": 1,
       "operands": null,
       "operators": null,
-      "symbol": "Metrics.Shape.area"
+      "symbol": "Shape.area"
     }
   ],
   "loc": 51,
   "references": [
     {
       "at": "12:18",
-      "from": "Metrics.M.loops",
+      "from": "M.loops",
       "kind": "read",
       "receiver": "typed int[]",
       "target": "length"
     },
     {
       "at": "16:4",
-      "from": "Metrics.M.cases",
+      "from": "M.cases",
       "kind": "type_use",
       "receiver": null,
       "target": "String"
     },
     {
       "at": "26:4",
-      "from": "Metrics.M.rules",
+      "from": "M.rules",
       "kind": "type_use",
       "receiver": null,
       "target": "String"
     },
     {
       "at": "35:14",
-      "from": "Metrics.M.catches",
+      "from": "M.catches",
       "kind": "call",
       "receiver": null,
       "target": "work"
     },
     {
       "at": "36:23",
-      "from": "Metrics.M.catches",
+      "from": "M.catches",
       "kind": "type_use",
       "receiver": null,
       "target": "IOException"
     },
     {
       "at": "37:15",
-      "from": "Metrics.M.catches",
+      "from": "M.catches",
       "kind": "type_use",
       "receiver": null,
       "target": "RuntimeException"
     },
     {
       "at": "37:34",
-      "from": "Metrics.M.catches",
+      "from": "M.catches",
       "kind": "type_use",
       "receiver": null,
       "target": "Error"
     },
     {
       "at": "42:21",
-      "from": "Metrics.M.resources",
+      "from": "M.resources",
       "kind": "call",
       "receiver": null,
       "target": "open"
     },
     {
       "at": "42:31",
-      "from": "Metrics.M.resources",
+      "from": "M.resources",
       "kind": "call",
       "receiver": null,
       "target": "work"
     },
     {
       "at": "43:15",
-      "from": "Metrics.M.resources",
+      "from": "M.resources",
       "kind": "type_use",
       "receiver": null,
       "target": "Exception"
     },
     {
       "at": "47:27",
-      "from": "Metrics.M.outer",
+      "from": "M.outer",
       "kind": "type_use",
       "receiver": null,
       "target": "IntUnaryOperator"
     },
     {
       "at": "48:8",
-      "from": "Metrics.M.outer",
+      "from": "M.outer",
       "kind": "type_use",
       "receiver": null,
       "target": "Object"
     },
     {
       "at": "48:23",
-      "from": "Metrics.M.outer",
+      "from": "M.outer",
       "kind": "type_use",
       "receiver": null,
       "target": "Object"
     },
     {
       "at": "51:17",
-      "from": "Metrics.M.outer",
+      "from": "M.outer",
       "kind": "call",
       "receiver": "typed IntUnaryOperator",
       "target": "applyAsInt"
@@ -258,7 +258,7 @@
     {
       "doc": null,
       "kind": "module",
-      "name": "Metrics",
+      "name": "Metrics.java",
       "parent": null,
       "signature": null,
       "span": "0:0-60:0",
@@ -268,8 +268,8 @@
     {
       "doc": null,
       "kind": "class",
-      "name": "Metrics.M",
-      "parent": "Metrics",
+      "name": "M",
+      "parent": "Metrics.java",
       "signature": null,
       "span": "0:0-55:1",
       "static": false,
@@ -278,8 +278,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.M.plain",
-      "parent": "Metrics.M",
+      "name": "M.plain",
+      "parent": "M",
       "signature": null,
       "span": "1:4-1:29",
       "static": false,
@@ -288,8 +288,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.M.branches",
-      "parent": "Metrics.M",
+      "name": "M.branches",
+      "parent": "M",
       "signature": null,
       "span": "3:4-7:5",
       "static": false,
@@ -298,8 +298,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.M.loops",
-      "parent": "Metrics.M",
+      "name": "M.loops",
+      "parent": "M",
       "signature": null,
       "span": "9:4-14:5",
       "static": false,
@@ -308,8 +308,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.M.cases",
-      "parent": "Metrics.M",
+      "name": "M.cases",
+      "parent": "M",
       "signature": null,
       "span": "16:4-24:5",
       "static": false,
@@ -318,8 +318,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.M.rules",
-      "parent": "Metrics.M",
+      "name": "M.rules",
+      "parent": "M",
       "signature": null,
       "span": "26:4-32:5",
       "static": false,
@@ -328,8 +328,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.M.catches",
-      "parent": "Metrics.M",
+      "name": "M.catches",
+      "parent": "M",
       "signature": null,
       "span": "34:4-39:5",
       "static": false,
@@ -338,8 +338,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.M.resources",
-      "parent": "Metrics.M",
+      "name": "M.resources",
+      "parent": "M",
       "signature": null,
       "span": "41:4-44:5",
       "static": false,
@@ -348,8 +348,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.M.outer",
-      "parent": "Metrics.M",
+      "name": "M.outer",
+      "parent": "M",
       "signature": null,
       "span": "46:4-52:5",
       "static": false,
@@ -358,8 +358,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.M.outer.inner",
-      "parent": "Metrics.M.outer",
+      "name": "M.outer.inner",
+      "parent": "M.outer",
       "signature": null,
       "span": "49:12-49:67",
       "static": false,
@@ -368,8 +368,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.M.noBody",
-      "parent": "Metrics.M",
+      "name": "M.noBody",
+      "parent": "M",
       "signature": null,
       "span": "54:4-54:26",
       "static": false,
@@ -378,8 +378,8 @@
     {
       "doc": null,
       "kind": "interface",
-      "name": "Metrics.Shape",
-      "parent": "Metrics",
+      "name": "Shape",
+      "parent": "Metrics.java",
       "signature": null,
       "span": "57:0-59:1",
       "static": false,
@@ -388,8 +388,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "Metrics.Shape.area",
-      "parent": "Metrics.Shape",
+      "name": "Shape.area",
+      "parent": "Shape",
       "signature": null,
       "span": "58:4-58:15",
       "static": false,

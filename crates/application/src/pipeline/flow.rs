@@ -3,6 +3,7 @@
 
 use std::error::Error;
 use std::fmt;
+use std::sync::atomic::{AtomicU32, Ordering};
 use std::time::Instant;
 
 use codeskimr_codes::{Coded, ErrorCode};
@@ -71,22 +72,48 @@ pub struct StageContext<'a> {
     stage: StageKind,
     cancel: &'a CancelToken,
     events: &'a EventBus,
+    started: Instant,
+    last: Option<&'a LastReport>,
 }
 
 impl<'a> StageContext<'a> {
     /// A context for `project`, starting at the first stage.
     #[must_use]
-    pub const fn new(project: ProjectId, cancel: &'a CancelToken, events: &'a EventBus) -> Self {
+    pub fn new(project: ProjectId, cancel: &'a CancelToken, events: &'a EventBus) -> Self {
         Self {
             project,
             stage: StageKind::Fetch,
             cancel,
             events,
+            started: Instant::now(),
+            last: None,
         }
     }
 
-    const fn entering(self, stage: StageKind) -> Self {
-        Self { stage, ..self }
+    /// The context of `stage`, which remembers its last report in `last`.
+    fn entering<'b>(self, stage: StageKind, last: &'b LastReport) -> StageContext<'b>
+    where
+        'a: 'b,
+    {
+        StageContext {
+            project: self.project,
+            stage,
+            cancel: self.cancel,
+            events: self.events,
+            started: Instant::now(),
+            last: Some(last),
+        }
+    }
+
+    /// Publishes the last report of the stage again, now with the time the whole stage took.
+    fn finished(&self) {
+        let (done, total) = self.last.map_or((0, 0), |last| {
+            (
+                last.done.load(Ordering::Relaxed),
+                last.total.load(Ordering::Relaxed),
+            )
+        });
+        self.progress(done, total);
     }
 
     /// The token that tells long-running stages to stop.
@@ -103,11 +130,16 @@ impl<'a> StageContext<'a> {
 
     /// Publishes `ScanProgressed`; pass `total` zero while the amount of work is unknown.
     pub fn progress(&self, done: u32, total: u32) {
+        if let Some(last) = self.last {
+            last.done.store(done, Ordering::Relaxed);
+            last.total.store(total, Ordering::Relaxed);
+        }
         self.events.publish(&Event::ScanProgressed(ScanProgressed {
             project: self.project,
             stage: self.stage,
             done,
             total,
+            elapsed_ms: elapsed_ms(self.started),
         }));
     }
 }
@@ -144,7 +176,14 @@ pub trait Flow {
     fn run(&self, input: Self::Input, ctx: &StageContext<'_>) -> Result<Self::Output, Halt>;
 }
 
-/// Milliseconds since `started`, saturating, for the log of a stage.
+/// The last report of a stage: the units finished and the units in total.
+#[derive(Debug, Default)]
+struct LastReport {
+    done: AtomicU32,
+    total: AtomicU32,
+}
+
+/// Milliseconds since `started`, saturating, for the log and the events of a stage.
 fn elapsed_ms(started: Instant) -> u64 {
     u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX)
 }
@@ -162,11 +201,15 @@ impl<S: Stage> Flow for Single<S> {
         if ctx.is_cancelled() {
             return Err(Halt::Cancelled(kind));
         }
-        let ctx = ctx.entering(kind);
+        let last = LastReport::default();
+        let ctx = ctx.entering(kind, &last);
         ctx.progress(0, 0);
         let started = Instant::now();
         let result = self.0.run(input, &ctx);
         tracing::info!(stage = kind.label(), elapsed_ms = elapsed_ms(started));
+        if result.is_ok() {
+            ctx.finished();
+        }
         result.map_err(|stop| match stop {
             // An adapter that stops because of the token can only report an error; that is
             // still a cancellation, not a failure.

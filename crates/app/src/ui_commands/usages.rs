@@ -1,6 +1,6 @@
 //! The command of the usages screen: who uses a symbol, what it uses and what a change reaches
-//! (blueprint 9, mock 6). Every reference says whether it is verified; until level 2 exists
-//! (ADR 0032, proposed) none is, and the screen shows that.
+//! (blueprint 9, mock 6). Every reference says whether level 2 (ADR 0033) verified it; the
+//! screen shows the unchecked ones as such.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -8,18 +8,19 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    CodeIndex, ProjectRepository, SymbolKey, SymbolLabel, UsageEntry, UsageIndex,
+    CodeIndex, ProjectRepository, SourceText, SymbolKey, SymbolLabel, UsageEntry, UsageIndex,
 };
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
-    Confidence, Direction, Permission, Project, ProjectId, Reference, SnapshotId, SymbolId,
-    UsageQuery, Visibility,
+    Confidence, Direction, Permission, Project, ProjectId, SnapshotId, SymbolId, UsageQuery,
+    Visibility,
 };
 use serde::{Deserialize, Serialize};
 
 use super::consts::{
-    LEVEL2_UNAVAILABLE, LINE_OFFSET, USAGES_DESCRIPTION, USAGES_LIMIT, USAGES_QUERY, USAGES_TITLE,
+    LEVEL2_ACTIVE, LEVEL2_UNAVAILABLE, LINE_OFFSET, USAGES_DESCRIPTION, USAGES_LIMIT, USAGES_QUERY,
+    USAGES_TITLE,
 };
 
 /// Which way the screen walks the references.
@@ -125,6 +126,10 @@ pub struct Impact {
     pub total: usize,
     /// Public symbols among the listed ones: they are part of an interface.
     pub public_interfaces: usize,
+    /// Symbols that only verified references lead to.
+    pub verified: usize,
+    /// Symbols that at least one unchecked reference leads to; the impact is preliminary for them.
+    pub unchecked: usize,
     /// The listed symbols per layer.
     pub layers: Vec<LayerShare>,
 }
@@ -150,7 +155,7 @@ pub struct UsagesOut {
     pub summary: Summary,
     /// What a change reaches.
     pub impact: Impact,
-    /// State of level 2 for the project: `unavailable` until it exists.
+    /// `active` if an indexer verified at least one hit of this answer, else `unavailable`.
     pub level2: &'static str,
 }
 
@@ -159,20 +164,8 @@ pub struct UsagesPorts {
     pub(super) projects: Arc<dyn ProjectRepository>,
     pub(super) index: Arc<dyn CodeIndex>,
     pub(super) usages: Arc<dyn UsageIndex>,
+    pub(super) text: Arc<dyn SourceText>,
     pub(super) max_depth: u32,
-}
-
-/// Whether level 2 produced the reference. It cannot yet: no indexer is wired (ADR 0032).
-const fn is_verified(_reference: &Reference) -> bool {
-    false
-}
-
-fn layer_of(project: &Project, label: &SymbolLabel) -> Option<String> {
-    project
-        .layers
-        .iter()
-        .find(|layer| layer.owns(label.qualified_name.as_str()))
-        .map(|layer| layer.name.as_str().to_owned())
 }
 
 fn place(project: &Project, label: &SymbolLabel) -> Place {
@@ -180,7 +173,7 @@ fn place(project: &Project, label: &SymbolLabel) -> Place {
         id: label.id.get(),
         qualified_name: label.qualified_name.to_string(),
         kind: label.kind.label(),
-        layer: layer_of(project, label),
+        layer: project.layer_name_of(label.qualified_name.as_str()),
     }
 }
 
@@ -190,7 +183,7 @@ fn hit(project: &Project, entry: &UsageEntry) -> Hit {
         depth: entry.depth,
         kind: reference.kind.label(),
         confidence: reference.confidence.label(),
-        verified: is_verified(reference),
+        verified: reference.verified,
         path: entry.path.to_string(),
         line: reference.span.start().line + LINE_OFFSET,
         from: place(project, &entry.from),
@@ -207,7 +200,7 @@ impl UsagesPorts {
     ) -> Result<Walk, CodedError> {
         let page = self.usages.usages(snapshot, query, USAGES_LIMIT)?;
         let mut hits: Vec<Hit> = page.entries.iter().map(|e| hit(project, e)).collect();
-        hits.sort_by_key(|found| !found.verified);
+        hits.sort_by_key(|found| (!found.verified, found.depth));
         Ok(Walk {
             total: page.total,
             hits,
@@ -246,12 +239,19 @@ impl UsagesPorts {
             .impact(snapshot, symbol, self.max_depth, USAGES_LIMIT)?;
         let mut layers: BTreeMap<String, usize> = BTreeMap::new();
         for reached in &page.symbols {
-            if let Some(layer) = layer_of(project, &reached.label) {
+            if let Some(layer) = project.layer_name_of(reached.label.qualified_name.as_str()) {
                 *layers.entry(layer).or_default() += 1;
             }
         }
+        let verified = page
+            .symbols
+            .iter()
+            .filter(|reached| reached.verified)
+            .count();
         Ok(Impact {
             total: page.total,
+            verified,
+            unchecked: page.symbols.len() - verified,
             public_interfaces: page
                 .symbols
                 .iter()
@@ -272,7 +272,7 @@ pub struct UsagesQuery {
 
 impl UsagesPorts {
     /// Both walks the direction asks for, and the direct usages for the counts.
-    fn walks(
+    pub(super) fn walks(
         &self,
         project: &Project,
         snapshot: SnapshotId,
@@ -337,6 +337,7 @@ impl Command for UsagesQuery {
             qualified_name: detail.symbol.qualified_name.clone(),
             kind: detail.symbol.kind,
         };
+        let summary = UsagesPorts::summary(&direct);
         Ok(UsagesOut {
             snapshot: snapshot.get(),
             symbol: place(&project, &label),
@@ -345,9 +346,41 @@ impl Command for UsagesQuery {
             depth,
             incoming,
             outgoing,
-            summary: UsagesPorts::summary(&direct),
+            level2: level2_state(&summary),
+            summary,
             impact: ports.impact(&project, snapshot, detail.symbol.id)?,
-            level2: LEVEL2_UNAVAILABLE,
         })
+    }
+}
+
+/// `active` once an indexer verified a direct usage of the answer.
+fn level2_state(summary: &Summary) -> &'static str {
+    if summary.verified > 0 {
+        LEVEL2_ACTIVE
+    } else {
+        LEVEL2_UNAVAILABLE
+    }
+}
+
+#[cfg(test)]
+mod level2_tests {
+    use super::*;
+
+    #[test]
+    fn the_state_follows_the_verified_hits() {
+        let none = Summary {
+            places: 3,
+            files: 1,
+            layers: 1,
+            verified: 0,
+            unchecked: 3,
+            probable: 0,
+        };
+        assert_eq!(level2_state(&none), LEVEL2_UNAVAILABLE);
+        let some = Summary {
+            verified: 1,
+            ..none
+        };
+        assert_eq!(level2_state(&some), LEVEL2_ACTIVE);
     }
 }
