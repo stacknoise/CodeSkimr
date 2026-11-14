@@ -287,6 +287,7 @@ mod cases {
             projects: world.clone(),
             store: world.clone(),
             ids: Arc::new(IdSequence::starting_at(1000)),
+            max_file_bytes: 1 << 20,
             settings: Config::resolve(&[]).unwrap().level2,
             indexers,
         };

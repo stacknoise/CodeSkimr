@@ -104,6 +104,7 @@ pub fn build_scanner(
         projects: store.clone(),
         store: store.clone(),
         ids: Arc::clone(&ids),
+        max_file_bytes: u64::from(config.scan.max_source_mb).saturating_mul(BYTES_PER_MB),
         settings: config.level2.clone(),
         indexers,
     };

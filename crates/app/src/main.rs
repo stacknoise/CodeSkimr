@@ -17,6 +17,7 @@ mod embedded_ui;
 mod export;
 mod installation_token;
 mod launch_file;
+mod level2_link_tests;
 mod local_http;
 mod locations;
 mod log_writer;

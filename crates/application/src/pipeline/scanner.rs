@@ -179,7 +179,12 @@ impl Scanner {
 
 impl ProjectScanner for Scanner {
     fn rescan(&self, principal: &Principal, project: ProjectId) -> Result<Snapshot, CodedError> {
-        match self.run(principal, Job::new(project, ScanMode::Incremental)) {
+        // A rescan asked for through MCP or the UI is level 1 only: it must not start the build tools
+        // of the project. Level 2 runs with the scan of the command line (ADR 0033).
+        match self.run(
+            principal,
+            Job::new(project, ScanMode::Incremental).without_level2(),
+        ) {
             JobResult::Finished(job) => Ok(job.snapshot().clone()),
             JobResult::Failed(job) => Err(CodedError::new(job.code())),
             JobResult::Cancelled(_) => Err(CodedError::new(ErrorCode::ScanCancelled)),

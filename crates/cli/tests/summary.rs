@@ -40,7 +40,7 @@ mod cases {
 
     #[test]
     fn without_level_two_the_summary_stays_two_lines() {
-        assert!(text("en", Vec::new()).is_empty());
+        assert_eq!(text("en", Vec::new()), Vec::<String>::new());
     }
 
     #[test]
