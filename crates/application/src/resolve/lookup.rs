@@ -49,7 +49,13 @@ impl<'a> Context<'a> {
             let named = self.named_of(occurrence.target.as_str(), kinds);
             let found = match &receiver {
                 Some(types) => self.in_types(types, &named),
-                None if occurrence.receiver == Some(Receiver::Unknown) => Self::unknown(&named),
+                None if matches!(
+                    occurrence.receiver,
+                    Some(Receiver::Unknown | Receiver::Named(_))
+                ) =>
+                {
+                    Self::unknown(&named)
+                }
                 None => self.in_scope(occurrence.from, occurrence.file, &named),
             };
             if !found.symbols.is_empty() {

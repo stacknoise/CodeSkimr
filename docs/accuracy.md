@@ -149,6 +149,15 @@ After the reversal of the ambiguity rule (ADR 0033, 150 symbols, seed 1, 2026-11
 Recall is back at the level before PR #133 (Python 80.6 %, TypeScript 60.5 %); precision is back there too, which is why results are counted apart as unchecked.
 
 
+TypeScript level 1, 150 symbols, seed 1 (2026-11-14, after the pack work of #81): `--certain-only` counts only references with confidence `certain` (blueprint 17.2, criterion `certain` ≥ 98 %).
+
+| Count | Precision | Recall | Uses of ours / of the tool |
+|---|---|---|---|
+| `certain` only | 100 % (98 of 98) | 14.7 % | 98 / 668 |
+| all (`certain`, `probable`, unchecked) | 27.8 % | 65.4 % | 1572 / 668 |
+
+So 94 % of the level 1 references are `probable` (unchecked), as ADR 0033 wants: level 1 keeps every match and marks it. The first measurement of this run found 1 wrong `certain` of 99: a call `nodeKey.room(...)` that the resolver tied to a local function `room` of the same name, because a receiver that is a named variable without a type fell back to the scope lookup. A named receiver of unknown type is now treated like an unknown receiver (`probable`), see `lookup.rs`.
+
 150 symbols, seed 1, before and after PR #133 (2026-11-13). The reading and the follow-up work are in #145.
 
 | Language | exact | precision | recall |
