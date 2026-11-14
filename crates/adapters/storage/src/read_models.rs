@@ -9,7 +9,7 @@ use codeskimr_domain::{Layer, MetricKind, SnapshotId, SymbolKind};
 use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, column_int, id_from};
-use crate::consts::{EDGE_STEP, NOT_VIOLATING, TYPE_KINDS};
+use crate::consts::{EDGE_STEP, TYPE_KINDS};
 use crate::cycles::edges_in_cycles;
 use crate::error::StorageResult;
 use crate::sql;
@@ -88,8 +88,8 @@ fn count_edges(
     Ok(counts)
 }
 
-/// Aggregates the references between layers. `violates_layering` stays false: the allowed
-/// directions are not part of the project model yet.
+/// Aggregates the references between layers. An edge violates the layering when the layer it
+/// starts in limits its dependencies (`may_use`) and does not list the layer it ends in.
 fn rebuild_layer_graph(conn: &Connection, snapshot: i64, layers: &[Layer]) -> StorageResult<()> {
     if layers.is_empty() {
         return Ok(());
@@ -108,7 +108,7 @@ fn rebuild_layer_graph(conn: &Connection, snapshot: i64, layers: &[Layer]) -> St
                     from_layer.name.as_str(),
                     to_layer.name.as_str(),
                     i64::from(count),
-                    NOT_VIOLATING,
+                    !from_layer.allows(&to_layer.name),
                     cyclic.contains(&(from, to)),
                 ],
             )?;

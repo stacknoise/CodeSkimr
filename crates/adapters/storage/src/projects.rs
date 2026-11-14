@@ -176,8 +176,19 @@ fn save(conn: &Connection, project: &Project) -> StorageResult<()> {
 fn save_layer(conn: &Connection, project: i64, position: i64, layer: &Layer) -> StorageResult<()> {
     conn.execute(
         sql::LAYER_INSERT,
-        params![project, position, layer.name.as_str()],
+        params![
+            project,
+            position,
+            layer.name.as_str(),
+            layer.may_use.is_some()
+        ],
     )?;
+    for (index, used) in ordinals().zip(layer.may_use.iter().flatten()) {
+        conn.execute(
+            sql::USED_INSERT,
+            params![project, position, index, used.as_str()],
+        )?;
+    }
     for (index, namespace) in ordinals().zip(&layer.namespaces) {
         conn.execute(
             sql::NAMESPACE_INSERT,
@@ -193,17 +204,36 @@ pub fn load_layers(conn: &Connection, project: ProjectId) -> StorageResult<Vec<L
     let mut statement = conn.prepare_cached(sql::LAYERS_OF_PROJECT)?;
     let rows = statement.query_map(params![id], |row| {
         let cols = Cols::new(row);
-        Ok((cols.take::<i64>()?, cols.take::<String>()?))
+        Ok((
+            cols.take::<i64>()?,
+            cols.take::<String>()?,
+            cols.take::<bool>()?,
+        ))
     })?;
     let mut layers = Vec::new();
     for row in rows {
-        let (position, name) = row?;
+        let (position, name, restricted) = row?;
         layers.push(Layer {
             name: LayerName::new(name)?,
             namespaces: load_namespaces(conn, id, position)?,
+            may_use: if restricted {
+                Some(load_used(conn, id, position)?)
+            } else {
+                None
+            },
         });
     }
     Ok(layers)
+}
+
+fn load_used(conn: &Connection, project: i64, layer: i64) -> StorageResult<Vec<LayerName>> {
+    let mut statement = conn.prepare_cached(sql::USED_OF_LAYER)?;
+    let rows = statement.query_map(params![project, layer], |row| row.get::<_, String>(0))?;
+    let mut names = Vec::new();
+    for row in rows {
+        names.push(LayerName::new(row?)?);
+    }
+    Ok(names)
 }
 
 fn load_namespaces(

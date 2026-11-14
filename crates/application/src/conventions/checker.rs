@@ -58,6 +58,12 @@ impl ConventionChecker {
         }
     }
 
+    /// The limits this checker applies.
+    #[must_use]
+    pub fn limits(&self) -> &Conventions {
+        &self.limits
+    }
+
     /// Analyses the selected files and reports every violation.
     ///
     /// Files that cannot be analysed (a language without a pack, a parse timeout) do not stop the
