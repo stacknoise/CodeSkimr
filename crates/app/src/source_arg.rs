@@ -8,9 +8,11 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{BranchName, CredentialId, FolderPath, GitUrl, ProjectName, ProjectSource};
 
 use crate::consts::{
-    AUTHORITY_END, DEFAULT_BRANCH, GIT_URL_PREFIXES, GIT_URL_SUFFIX, HTTP_SCHEME, NO_SCHEME,
-    PASSWORD_SEPARATOR, QUERY_MARKERS, SCHEME_SEPARATOR, SCP_PATH_SEPARATOR, URL_PATH_SEPARATOR,
-    USERINFO_MARKER, VERBATIM_PREFIX, VERBATIM_UNC, is_token_credential,
+    AUTHORITY_END, BRANCH_BACKSLASH, BRANCH_DOUBLE_DOT, BRANCH_FORBIDDEN, DEFAULT_BRANCH,
+    GIT_URL_PREFIXES, GIT_URL_SUFFIX, HTTP_SCHEME, MAX_BRANCH_CHARS, MAX_GIT_URL_CHARS, NO_SCHEME,
+    OPTION_MARKER, PASSWORD_SEPARATOR, QUERY_MARKERS, SCHEME_SEPARATOR, SCP_PATH_SEPARATOR,
+    TRANSPORT_HELPER_MARKER, URL_PATH_SEPARATOR, USERINFO_MARKER, VERBATIM_PREFIX, VERBATIM_UNC,
+    is_token_credential,
 };
 
 /// Why an argument is not a source.
@@ -113,9 +115,37 @@ fn display_path(path: &str) -> String {
         .to_owned()
 }
 
+/// Whether `text` could be read as an option, holds control characters or blanks, or is too long.
+/// What goes to `git` and `ssh` as an argument must be none of these.
+fn is_unsafe_argument(text: &str, longest: usize) -> bool {
+    text.starts_with(OPTION_MARKER)
+        || text.chars().count() > longest
+        || text.chars().any(|c| c.is_control() || c.is_whitespace())
+}
+
+/// The rules of `git check-ref-format` that matter for an argument, plus [`is_unsafe_argument`].
+fn is_bad_branch(branch: &str) -> bool {
+    is_unsafe_argument(branch, MAX_BRANCH_CHARS)
+        || branch.contains(BRANCH_DOUBLE_DOT)
+        || branch.contains(BRANCH_BACKSLASH)
+        || branch.contains(BRANCH_FORBIDDEN)
+}
+
+/// A transport helper (`ext::sh -c …`) in the first part of the address.
+fn has_transport_helper(url: &str) -> bool {
+    let head = url.split(URL_PATH_SEPARATOR).next().unwrap_or(url);
+    head.contains(TRANSPORT_HELPER_MARKER)
+}
+
 fn git_spec(url: &str, branch: &str) -> Result<SourceSpec, SourceError> {
     if has_credentials(url) {
         return Err(SourceError::HasCredentials);
+    }
+    if is_unsafe_argument(url, MAX_GIT_URL_CHARS)
+        || has_transport_helper(url)
+        || is_bad_branch(branch)
+    {
+        return Err(SourceError::NotASource);
     }
     let rejected = |_| SourceError::NotASource;
     let name = url
@@ -201,6 +231,28 @@ mod tests {
                 "{variant:?}"
             );
         }
+    }
+
+    #[test]
+    fn addresses_and_branches_that_could_act_as_options_or_commands_are_refused() {
+        for url in [
+            "--upload-pack=touch /tmp/x.git",
+            "-oProxyCommand=evil.git",
+            "ext::sh -c touch% /tmp/x.git",
+            "https://example.com/a b.git",
+            "https://example.com/a\nb.git",
+        ] {
+            assert!(classify(url, None).is_err(), "{url:?}");
+        }
+        let long = format!("https://example.com/{}.git", "a".repeat(3000));
+        assert!(classify(&long, None).is_err());
+        for branch in ["-x", "a..b", "a b", "a~1", "a:b", "a\\b", "a\u{7}b", "a*"] {
+            assert!(
+                classify("https://example.com/o/r.git", Some(branch)).is_err(),
+                "{branch:?}"
+            );
+        }
+        assert!(classify("https://example.com/o/r.git", Some("feature/x-1")).is_ok());
     }
 
     #[test]

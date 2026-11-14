@@ -67,6 +67,26 @@ pub const URL_PATH_SEPARATOR: char = '/';
 /// Separates host and path in an scp-style Git address.
 pub const SCP_PATH_SEPARATOR: char = ':';
 
+/// Most scans that run at the same time, over all projects. Each scan fills the cores and holds
+/// the parsed files in memory, so more only slow down all of them (and let a caller exhaust the
+/// machine); one more is refused with `PRJ-501`.
+pub const MAX_PARALLEL_SCANS: usize = 4;
+/// Longest Git address that is accepted, in characters.
+pub const MAX_GIT_URL_CHARS: usize = 2048;
+/// Longest branch name that is accepted, in characters.
+pub const MAX_BRANCH_CHARS: usize = 255;
+/// A Git address or branch name that starts with this could be read as an option by `git` or `ssh`.
+pub const OPTION_MARKER: char = '-';
+/// Characters that no branch name may hold (`git check-ref-format`), besides whitespace and
+/// control characters.
+pub const BRANCH_FORBIDDEN: [char; 6] = ['~', '^', ':', '?', '*', '['];
+/// Two dots never appear in a branch name.
+pub const BRANCH_DOUBLE_DOT: &str = "..";
+/// A branch name does not contain a backslash.
+pub const BRANCH_BACKSLASH: char = '\\';
+/// Marks a transport helper in a Git address (`ext::command`), which would run a program.
+pub const TRANSPORT_HELPER_MARKER: &str = "::";
+
 /// Bytes in a megabyte, for the size limit of a source.
 pub const BYTES_PER_MB: u64 = 1_048_576;
 /// Bytes in a kilobyte, for the size of an export file.

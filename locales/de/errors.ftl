@@ -13,6 +13,7 @@ error-PRJ-201 = Das Projekt ist nicht registriert. Scanne den Ordner zuerst mit 
 error-PRJ-301 = Ein Projekt mit derselben Quelle ist bereits angelegt.
 error-PRJ-302 = Für dieses Projekt läuft bereits ein Scan.
 error-PRJ-303 = Der Scan wurde abgebrochen. Es wurde kein Snapshot geschrieben.
+error-PRJ-501 = Es laufen gerade zu viele Scans. Versuche es erneut, wenn einer beendet ist.
 error-SRC-201 = Der Quellordner existiert nicht oder ist nicht lesbar.
 error-SRC-202 = Der angegebene Branch existiert im Remote-Repository nicht.
 error-SRC-401 = Das Remote-Repository verlangt eine Anmeldung und es ist keine passende Zugangsberechtigung vorhanden.

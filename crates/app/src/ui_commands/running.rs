@@ -8,6 +8,8 @@ use codeskimr_application::error::CodedError;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::ProjectId;
 
+use crate::consts::MAX_PARALLEL_SCANS;
+
 /// The projects with a running scan; a second scan of the same project is refused (`PRJ-302`).
 #[derive(Debug, Clone, Default)]
 pub struct RunningScans(Arc<Mutex<BTreeMap<u64, Option<CancelToken>>>>);
@@ -27,11 +29,15 @@ impl RunningScans {
     /// Marks `project` as scanning.
     ///
     /// # Errors
-    /// `PRJ-302` if a scan of the project is already running.
+    /// `PRJ-302` if a scan of the project is already running, `PRJ-501` if `MAX_PARALLEL_SCANS`
+    /// scans of other projects run already.
     pub fn start(&self, project: ProjectId) -> Result<ScanGuard, CodedError> {
         let mut running = self.lock();
         if running.contains_key(&project.get()) {
             return Err(CodedError::new(ErrorCode::SnapshotInProgress));
+        }
+        if running.len() >= MAX_PARALLEL_SCANS {
+            return Err(CodedError::new(ErrorCode::TooManyScans));
         }
         running.insert(project.get(), None);
         Ok(ScanGuard {
@@ -90,6 +96,21 @@ mod tests {
         drop(guard);
         assert!(!scans.is_running(id));
         assert!(scans.start(id).is_ok());
+    }
+
+    #[test]
+    fn only_so_many_scans_run_at_the_same_time() {
+        let scans = RunningScans::default();
+        let guards: Vec<_> = (0..MAX_PARALLEL_SCANS as u64)
+            .map(|id| scans.start(ProjectId::new(id)).unwrap())
+            .collect();
+        let extra = ProjectId::new(MAX_PARALLEL_SCANS as u64);
+        assert_eq!(
+            scans.start(extra).unwrap_err().code(),
+            ErrorCode::TooManyScans
+        );
+        drop(guards);
+        assert!(scans.start(extra).is_ok());
     }
 
     #[test]
