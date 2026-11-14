@@ -2,7 +2,6 @@ import { createEffect, For, Show } from "solid-js";
 import { currentLanguage, t, type MessageKey } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
-import { cx } from "../../shared/ui/cx";
 import { treeOutline } from "../explorer/explorer";
 import { KindBadge } from "../explorer/KindBadge";
 import { tilesOf } from "../explorer/metrics";
