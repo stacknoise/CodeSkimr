@@ -17,3 +17,8 @@ export const SHORTCUT_KEY = "e";
 export const ALT_SHORTCUT_KEY = "Enter";
 /** Elements in which typing an `e` is not a shortcut. */
 export const TEXT_ENTRY_TAGS = ["INPUT", "TEXTAREA", "SELECT"];
+
+/** Characters that `encodeURIComponent` leaves alone and that are still encoded in the link. */
+export const RESERVED_MARKS = /[!'()*]/g;
+/** Base of the hexadecimal digits of a percent escape. */
+export const HEX_RADIX = 16;
