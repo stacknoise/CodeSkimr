@@ -161,6 +161,10 @@ pub struct Conventions {
     /// Fewest code lines a function needs to be compared for duplicates; shorter ones are too
     /// small for a copy to mean anything (measured on this repository: 5 lines give 21 findings, 8 give 9).
     pub duplicate_min_lines: u32,
+    /// Most functions that may share a fingerprint for it to make them candidates for the duplicate
+    /// check; a fingerprint that more functions share is boilerplate and costs the square of that
+    /// number.
+    pub duplicate_max_owners: u32,
     /// Folder names whose files are tests; no convention check looks at them.
     pub test_folders: Vec<String>,
 }
@@ -173,6 +177,8 @@ pub struct Scan {
     pub excluded_folders: Vec<String>,
     /// Time limit for parsing one file, in milliseconds.
     pub parse_timeout_ms: u32,
+    /// Most threads that analyse files at the same time; 0 means one per core.
+    pub max_workers: u32,
     /// Largest total size of the scanned files of one source, in megabytes.
     pub max_source_mb: u32,
     /// Most characters of a signature (for a constant: its declaration with the value); a longer

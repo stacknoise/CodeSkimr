@@ -3,26 +3,34 @@
 //! download, is the same on every machine and has no duplicate names that would multiply the
 //! references.
 
+use std::cell::RefCell;
 use std::fs;
 use std::io;
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
+use codeskimr_bench::cpu::write;
 use criterion::Criterion;
 
 mod common;
 
 use common::{SCRATCH, build_binary, build_corpus, measure, root};
 
+/// Where criterion writes its results, relative to the repository root.
+const CRITERION_DIR: &str = "target/criterion";
 const SAMPLES: usize = 10;
 const MEASUREMENT_SECONDS: u64 = 30;
 /// Field of the JSON summary that holds the duration of the scan in seconds.
 const SECONDS_FIELD: &str = "seconds";
 
-/// Runs one scan with a fresh database and returns the time the scan itself reports. Starting the
-/// process and loading the language packs have a budget of their own (cold start).
-fn scan_once(binary: &Path, corpus: &Path, data: &Path) -> io::Result<Duration> {
+/// Field of the JSON summary that holds the CPU time of the scan in seconds, summed over all threads.
+const CPU_SECONDS_FIELD: &str = "cpu_seconds";
+
+/// Runs one scan with a fresh database and returns the time the scan itself reports and its CPU
+/// time. Starting the process and loading the language packs have a budget of their own (cold
+/// start).
+fn scan_once(binary: &Path, corpus: &Path, data: &Path) -> io::Result<(Duration, Duration)> {
     fs::remove_dir_all(data).or_else(|error| match error.kind() {
         io::ErrorKind::NotFound => Ok(()),
         _ => Err(error),
@@ -40,11 +48,14 @@ fn scan_once(binary: &Path, corpus: &Path, data: &Path) -> io::Result<Duration> 
         return Err(io::Error::other("the scan failed"));
     }
     let summary: serde_json::Value = serde_json::from_slice(&output.stdout)?;
-    summary
-        .get(SECONDS_FIELD)
-        .and_then(serde_json::Value::as_f64)
-        .map(Duration::from_secs_f64)
-        .ok_or_else(|| io::Error::other("the summary has no duration"))
+    let seconds = |field: &str| {
+        summary
+            .get(field)
+            .and_then(serde_json::Value::as_f64)
+            .map(Duration::from_secs_f64)
+            .ok_or_else(|| io::Error::other("the summary has no duration"))
+    };
+    Ok((seconds(SECONDS_FIELD)?, seconds(CPU_SECONDS_FIELD)?))
 }
 
 fn scans(c: &mut Criterion) -> io::Result<()> {
@@ -52,13 +63,22 @@ fn scans(c: &mut Criterion) -> io::Result<()> {
     let corpus = build_corpus(&scratch)?;
     let binary = build_binary()?;
     let data = scratch.join("data");
+    let cpu = RefCell::new(Vec::new());
     measure(
         c,
         ("scan", "full_100k_loc"),
         (SAMPLES, MEASUREMENT_SECONDS),
-        || scan_once(&binary, &corpus, &data),
+        || {
+            let (wall, cpu_time) = scan_once(&binary, &corpus, &data)?;
+            cpu.borrow_mut().push(cpu_time);
+            Ok(wall)
+        },
     );
-    Ok(())
+    write(
+        &root().join(CRITERION_DIR),
+        ("scan", "full_100k_loc"),
+        &cpu.borrow(),
+    )
 }
 
 fn main() -> io::Result<()> {

@@ -151,6 +151,7 @@ pub fn command_api_probing(
     registry
         .register(StatusInfo {
             budgets: BudgetTargets::from(&config.budgets),
+            max_workers: config.scan.max_workers,
         })
         .map_err(CodedError::caused_by)?;
     register_explorer(&mut registry, &catalog, config.metrics.clone())?;

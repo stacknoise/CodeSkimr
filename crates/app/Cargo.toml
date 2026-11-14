@@ -28,6 +28,7 @@ codeskimr_mcp = { path = "../mcp" }
 tokio = { workspace = true, features = ["rt", "signal", "sync"] }
 getrandom.workspace = true
 memory-stats.workspace = true
+sysinfo.workspace = true
 secrecy.workspace = true
 rpassword.workspace = true
 zeroize.workspace = true

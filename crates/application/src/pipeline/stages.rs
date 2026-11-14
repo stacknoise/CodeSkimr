@@ -216,6 +216,8 @@ pub struct AnalyzeStage {
     pub analyzer: Arc<dyn FileAnalyzer>,
     /// Id allocation for files and symbols.
     pub ids: Arc<IdSequence>,
+    /// Most threads that analyse at the same time; 0 means one per core.
+    pub max_workers: u32,
 }
 
 impl Stage for AnalyzeStage {
@@ -302,7 +304,7 @@ impl AnalyzeStage {
             first_id: self.ids.reserve(count_u64(due) * FILE_ID_BLOCK),
             stopped: AtomicBool::new(false),
         };
-        let workers = analyze_workers();
+        let workers = analyze_workers(self.max_workers);
         let mut slots: Vec<Slot> = thread::scope(|scope| {
             let handles: Vec<_> = (0..workers.min(due.len().max(MIN_WORKERS)))
                 .map(|_| scope.spawn(|| self.work(run, due, &shared, ctx)))
@@ -524,8 +526,13 @@ impl Stage for PersistStage {
     }
 }
 
-/// How many threads the analyze stage uses: one per core the system offers, at least one.
+/// How many threads the analyze stage uses: one per core the system offers, at least one, and
+/// no more than `max_workers` (`scan.max_workers`) when that is not 0.
 #[must_use]
-pub fn analyze_workers() -> usize {
-    thread::available_parallelism().map_or(MIN_WORKERS, NonZeroUsize::get)
+pub fn analyze_workers(max_workers: u32) -> usize {
+    let cores = thread::available_parallelism().map_or(MIN_WORKERS, NonZeroUsize::get);
+    match usize::try_from(max_workers) {
+        Ok(limit) if limit > 0 => cores.min(limit),
+        _ => cores,
+    }
 }

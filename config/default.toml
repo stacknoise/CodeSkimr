@@ -75,6 +75,8 @@ max_function_lines = 40
 duplicate_similarity_percent = 85
 # Functions with fewer code lines than this are not compared for duplicates (CHK-102); measured on this repository: 5 gives 21 findings, 8 gives 9, mostly real.
 duplicate_min_lines = 8
+# A fingerprint that more functions share than this (getters, constructors, boilerplate) does not make two functions candidates for CHK-102; this keeps the duplicate check of a large project from comparing every pair of such functions.
+duplicate_max_owners = 50
 # Files below a folder with one of these names are tests; the convention checks skip them.
 test_folders = ["tests", "benches"]
 
@@ -84,6 +86,9 @@ test_folders = ["tests", "benches"]
 excluded_folders = ["bin", "obj", ".git", "node_modules", "target", "dist"]
 # Time limit for parsing one file, in milliseconds; a file that takes longer fails with PRS-501.
 parse_timeout_ms = 5000
+# Most threads that analyse files at the same time; 0 means one per core. A lower number leaves cores to
+# the rest of the machine (a laptop on battery, a build that runs next to the scan).
+max_workers = 0
 # Largest total size of the scanned files of one source, in megabytes; a larger source fails with SRC-501.
 max_source_mb = 2048
 # Longest signature of a symbol, in characters. A constant's signature is its whole declaration with

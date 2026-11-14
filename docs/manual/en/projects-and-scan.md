@@ -40,7 +40,7 @@ Exit codes: `0` success, `1` a command failed (`error[CODE]: text` on standard e
 
 ## What a scan skips
 
-Files that `.gitignore` excludes (also outside Git repositories), the folders in `scan.excluded_folders`, the `.git` folder, and files of unknown languages (they do not count against the size limit). Limits: a project over `scan.max_source_mb` (default 2048 MB) fails with `SRC-501`; a single file that takes longer than `scan.parse_timeout_ms` (default 5000 ms) to parse fails with `PRS-501`. Signatures (for constants the whole declaration with the value) are limited to `scan.max_signature_chars` characters (default 400); longer ones are cut and end with `…`. A file that is not valid text (`PRS-101`) is skipped.
+Files that `.gitignore` excludes (also outside Git repositories), the folders in `scan.excluded_folders`, the `.git` folder, and files of unknown languages (they do not count against the size limit). Limits: a project over `scan.max_source_mb` (default 2048 MB) fails with `SRC-501`; a single file that takes longer than `scan.parse_timeout_ms` (default 5000 ms) to parse fails with `PRS-501`. Signatures (for constants the whole declaration with the value) are limited to `scan.max_signature_chars` characters (default 400); longer ones are cut and end with `…`. A file that is not valid text (`PRS-101`) is skipped. A scan analyses files on one thread per core; `scan.max_workers` (default 0, meaning all cores) sets a lower limit, for example to leave cores to a build that runs next to the scan. `scan --json` reports `cpu_seconds` (CPU time of all threads) next to `seconds`.
 
 ## Layers
 
