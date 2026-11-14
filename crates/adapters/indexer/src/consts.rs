@@ -120,3 +120,5 @@ pub const FORBIDDEN_ENV_NAME_CHARS: [char; 2] = ['=', '\0'];
 pub const KILL_WAIT: Duration = Duration::from_secs(10);
 /// How often the end of a run asks whether the leader is gone.
 pub const KILL_POLL: Duration = Duration::from_millis(10);
+/// Value of the log field `code` when a stopped indexer was still running after the kill.
+pub const SURVIVED_CODE: &str = "indexer-survived-kill";

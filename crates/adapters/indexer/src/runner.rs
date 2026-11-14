@@ -15,7 +15,7 @@ use tempfile::TempDir;
 
 use crate::consts::{
     EXCERPT_BYTES, HOME_DIR_NAME, INDEX_FILE_NAME, LOG_CODE, LOG_EXCERPT, LOG_INDEXER,
-    OUTPUT_DIR_PREFIX, PATH_ENV, SCRATCH_DIR_NAME,
+    OUTPUT_DIR_PREFIX, PATH_ENV, SCRATCH_DIR_NAME, SURVIVED_CODE,
 };
 use crate::env::{self, Environment, Folders};
 use crate::error::{FailureReason, IndexerError};
@@ -107,8 +107,20 @@ impl ProcessIndexRunner {
             Err(RunError::Io(cause)) => {
                 Err(failed(FailureReason::Io(cause.to_string()), String::new()))
             }
-            Err(RunError::Stopped(stop)) => Err(stopped(stop)),
+            Err(RunError::Stopped { stop, survived }) => {
+                if survived {
+                    Self::keep_for_sweep(&job.spec.name, output);
+                }
+                Err(stopped(stop))
+            }
         }
+    }
+
+    /// The leader outlived the kill: the folder with the notes stays, so that the next start finds
+    /// the process and ends it. Nothing of the indexer's output or of paths goes into the log.
+    fn keep_for_sweep(name: &str, output: OutputDir) {
+        drop(output.dir.keep());
+        tracing::warn!({ LOG_INDEXER } = %name, { LOG_CODE } = SURVIVED_CODE);
     }
 
     fn finish(

@@ -71,8 +71,14 @@ pub enum Stop {
 pub enum RunError {
     /// The process could not be started or watched.
     Io(io::Error),
-    /// The run was stopped and its process group killed.
-    Stopped(Stop),
+    /// The run was stopped and its process group killed. `survived` is set if the leader was
+    /// still running after the bound for the wait: nothing may delete what it could still use.
+    Stopped {
+        /// Why it was stopped.
+        stop: Stop,
+        /// Whether the leader outlived the kill.
+        survived: bool,
+    },
 }
 
 /// A run that ended by itself.
@@ -161,18 +167,27 @@ impl Group {
     /// port of the job, and `try_wait` (called in the watch loop) takes one message of that port
     /// per call. If the loop has taken the last message before it saw the exit of the leader,
     /// `wait` would wait for a message that never comes, so the end of the run polls instead.
-    fn kill(&mut self) {
+    ///
+    /// Returns whether the leader is gone. `false` means it was still running when the bound
+    /// passed: the caller must then keep the run folder, whose notes let the next start find it.
+    fn kill(&mut self) -> bool {
         // The group may be gone already; that is the goal, not an error.
         drop(self.0.start_kill());
-        let until = Instant::now() + KILL_WAIT;
-        while Instant::now() < until {
-            // `Some` when the leader is gone, an error when it cannot be asked any more.
-            if !matches!(self.0.try_wait(), Ok(None)) {
-                return;
-            }
-            thread::sleep(KILL_POLL);
-        }
+        // `Some` when the leader is gone, an error when it cannot be asked any more.
+        wait_until(KILL_WAIT, || !matches!(self.0.try_wait(), Ok(None)))
     }
+}
+
+/// Asks `done` every [`KILL_POLL`] until it says yes or `bound` has passed; whether it said yes.
+fn wait_until(bound: Duration, mut done: impl FnMut() -> bool) -> bool {
+    let until = Instant::now() + bound;
+    while Instant::now() < until {
+        if done() {
+            return true;
+        }
+        thread::sleep(KILL_POLL);
+    }
+    done()
 }
 
 impl Drop for Group {
@@ -322,9 +337,31 @@ fn wait_for(group: &mut Group, watch: &mut Watch<'_>) -> Result<ExitStatus, RunE
             return Ok(status);
         }
         if let Some(stop) = watch.verdict(group.0.id()) {
-            group.kill();
-            return Err(RunError::Stopped(stop));
+            let survived = !group.kill();
+            return Err(RunError::Stopped { stop, survived });
         }
         thread::sleep(POLL_INTERVAL);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use super::wait_until;
+
+    #[test]
+    fn a_leader_that_is_gone_in_time_is_reported_gone() {
+        let mut asked = 0;
+        let gone = wait_until(Duration::from_secs(5), || {
+            asked += 1;
+            asked >= 3
+        });
+        assert!(gone);
+    }
+
+    #[test]
+    fn a_leader_that_outlives_the_bound_is_reported_alive() {
+        assert!(!wait_until(Duration::from_millis(50), || false));
     }
 }
