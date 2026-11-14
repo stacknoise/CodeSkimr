@@ -44,8 +44,8 @@
       "decisions": 0,
       "loc": 4,
       "operands": [
-        1,
-        1
+        2,
+        3
       ],
       "operators": [
         2,
@@ -97,7 +97,7 @@
       "loc": 8,
       "operands": [
         3,
-        3
+        4
       ],
       "operators": [
         6,

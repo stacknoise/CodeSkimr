@@ -99,6 +99,13 @@
       "target": "Props"
     },
     {
+      "at": "11:22",
+      "from": "component.Panel.render",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "visible"
+    },
+    {
       "at": "11:33",
       "from": "component.Panel.render",
       "kind": "type_use",
