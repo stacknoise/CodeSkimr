@@ -11,7 +11,7 @@
 mod command;
 mod error;
 
-pub use command::{Command, CommandDescriptor, CommandId, Request};
+pub use command::{Command, CommandDescriptor, CommandExt, CommandId, Request};
 pub use error::RegistryError;
 
 use std::any::Any;
@@ -21,7 +21,6 @@ use std::sync::Arc;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{Permission, Principal};
 
-use crate::access;
 use crate::error::CodedError;
 
 struct Entry {
@@ -91,12 +90,11 @@ impl Registry {
         principal: &Principal,
         input: C::Input,
     ) -> Result<C::Output, CodedError> {
-        access::require(principal, C::DESCRIPTOR.permission)?;
         let command = self
             .entries
             .get(&C::DESCRIPTOR.id)
             .and_then(|entry| entry.handler.downcast_ref::<C>())
             .ok_or_else(|| CodedError::new(ErrorCode::UnexpectedInternalError))?;
-        command.execute(Request { principal, input })
+        command.run(principal, input)
     }
 }

@@ -19,3 +19,6 @@ toml.workspace = true
 thiserror.workspace = true
 secrecy.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+codeskimr_domain = { path = "../domain", features = ["issue-principals"] }

@@ -13,7 +13,7 @@ workspace = true
 
 [dependencies]
 codeskimr_application = { path = "../application" }
-codeskimr_domain = { path = "../domain" }
+codeskimr_domain = { path = "../domain", features = ["issue-principals"] }
 codeskimr_codes = { path = "../codes" }
 codeskimr_parsing = { path = "../adapters/parsing" }
 codeskimr_storage = { path = "../adapters/storage" }

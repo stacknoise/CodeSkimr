@@ -30,5 +30,6 @@ zeroize.workspace = true
 tokio = { workspace = true, features = ["net", "rt", "sync", "time", "fs"] }
 
 [dev-dependencies]
+codeskimr_domain = { path = "../domain", features = ["issue-principals"] }
 tempfile.workspace = true
 tokio = { workspace = true, features = ["net", "rt", "sync", "macros", "time", "io-util", "test-util"] }

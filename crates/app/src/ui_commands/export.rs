@@ -13,7 +13,7 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{CodeIndex, ProjectRepository};
-use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
+use codeskimr_application::registry::{Command, CommandDescriptor, CommandExt, CommandId, Request};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{Permission, Principal, ProjectId, Snapshot};
 use serde::{Deserialize, Serialize};
@@ -152,10 +152,7 @@ impl HtmlExport {
                 project,
                 symbol: id,
             };
-            let symbol = self.parts.symbol.execute(Request {
-                principal: &principal,
-                input,
-            })?;
+            let symbol = self.parts.symbol.run(&principal, input)?;
             open.extend(symbol.members.iter().map(|member| member.id));
             symbols.insert(id, symbol);
         }
@@ -176,10 +173,7 @@ impl HtmlExport {
                 depth,
                 include_tests,
             };
-            self.parts.usages.execute(Request {
-                principal: &principal,
-                input,
-            })
+            self.parts.usages.run(&principal, input)
         };
         let answer = ask(Way::Both, EXPORT_DEPTH, true)?;
         let summary_without_tests = ask(Way::Incoming, EXPORT_DIRECT_DEPTH, false)?.summary;
@@ -211,24 +205,24 @@ impl HtmlExport {
 
     fn collect(&self, principal: Principal, project: u64) -> Result<Data, CodedError> {
         let (info, snapshot) = self.project(ProjectId::new(project))?;
-        let outline = self.parts.outline.execute(Request {
-            principal: &principal,
-            input: OutlineInput { project },
-        })?;
+        let outline = self
+            .parts
+            .outline
+            .run(&principal, OutlineInput { project })?;
         let symbols = self.symbols(principal, project, &outline)?;
         let usages = symbols
             .keys()
             .map(|id| Ok((*id, self.usages_of(principal, project, *id)?)))
             .collect::<Result<BTreeMap<_, _>, CodedError>>()?;
-        let graph = self.parts.graph.execute(Request {
-            principal: &principal,
-            input: GraphInput {
+        let graph = self.parts.graph.run(
+            &principal,
+            GraphInput {
                 project,
                 level: Level::Layers,
                 depth: 0,
                 focus: None,
             },
-        })?;
+        )?;
         Ok(Data {
             format: EXPORT_FORMAT,
             snapshot: snapshot.id.get(),

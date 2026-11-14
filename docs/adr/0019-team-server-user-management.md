@@ -64,6 +64,7 @@ Work package "caller identity" ([issue #59](https://github.com/stacknoise/CodeSk
 - `Principal` is resolved in one place (composition root or one request extractor), never hard-coded in adapters. `LocalOwner` can only be constructed in the single-user composition root, and team-mode principals only by the `Authenticator`.
 - No login, no user storage, no new dependencies, no UI. One new error code "permission denied" (class `4`); its group and id are fixed by the work package through the registry (`API-401` is the installation token and `APP` is start-up, so neither fits as is). Denial and "not found" must not become an oracle (see Storage/permissions rule).
 - Tests: the check is covered by unit tests with a restricted test principal.
+- **Sealed by types (issue #70, added after the first implementation):** `Principal::local_owner`, `Principal::limited` and `PermissionSet::all` are compiled only with the feature `issue-principals` of `codeskimr_domain`. The composition root (`codeskimr`) switches it on in its normal dependencies, the future `codeskimr_auth` will do the same; other crates enable it in `[dev-dependencies]` for their tests, and a test over all manifests fails if it appears anywhere else. A `Request` is `#[non_exhaustive]` and only the application crate builds one, through `CommandExt::run` (which checks the permission) or `Registry::execute`, so `Command::execute` cannot be called around the check.
 
 ### Storage
 
