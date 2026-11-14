@@ -301,7 +301,7 @@ mod tests {
             ids: &ids,
         };
         let facts = analyzer(Duration::from_secs(5))
-            .with_signature_limit(20)
+            .with_signature_limit(21)
             .analyze(&request)
             .expect("analyzes");
         let signature = |name: &str| {
@@ -311,8 +311,8 @@ mod tests {
                 .find(|symbol| symbol.qualified_name.to_string().ends_with(name))
                 .and_then(|symbol| symbol.signature.clone())
         };
-        assert_eq!(signature("LIST").as_deref(), Some("pub const LIST: &[u…"));
-        assert!(signature("LIST").is_some_and(|text| text.chars().count() <= 20));
+        assert_eq!(signature("LIST").as_deref(), Some("pub const LIST: &[u3…"));
+        assert!(signature("LIST").is_some_and(|text| text.chars().count() <= 21));
         assert_eq!(signature("N").as_deref(), Some("pub const N: u32 = 3;"));
         std::fs::remove_dir_all(root).ok();
     }
