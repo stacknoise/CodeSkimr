@@ -9,7 +9,7 @@ use codeskimr_domain::{
     SymbolKind,
 };
 
-use crate::consts::{NO_OWNER, SUFFIX_TYPE};
+use crate::consts::{MAX_SYMBOLS_PER_KEY, NO_OWNER, SUFFIX_TYPE};
 use crate::error::ScipError;
 use crate::fitting::Fitting;
 use crate::impl_symbol::{ImplSymbol, TypeName, parse as parse_impl};
@@ -349,7 +349,7 @@ impl<'a> Importer<'a> {
                 }
                 let symbols = named.entry(descriptor.name.clone()).or_default();
                 // Two different symbols of a name are as ambiguous as two hundred.
-                if symbols.len() < 2 && !symbols.contains(&occurrence.symbol) {
+                if symbols.len() < MAX_SYMBOLS_PER_KEY && !symbols.contains(&occurrence.symbol) {
                     symbols.push(occurrence.symbol);
                 }
             }

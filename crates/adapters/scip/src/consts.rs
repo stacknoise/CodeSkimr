@@ -119,6 +119,8 @@ pub(crate) const IMPL_MARKER: &str = "impl#[";
 pub(crate) const OPEN_GENERIC: char = '<';
 /// Separates the segments of a Rust path.
 pub(crate) const PATH_SEPARATOR: &str = "::";
+/// Most symbols kept per name: a second one already makes the answer ambiguous.
+pub(crate) const MAX_SYMBOLS_PER_KEY: usize = 2;
 /// Most modules of a path that are looked up; a longer path maps nothing.
 pub(crate) const MAX_PATH_DEPTH: usize = 8;
 /// The owner of a symbol that has none (a type is looked up without one).

@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 
-use crate::consts::MAX_PATH_DEPTH;
+use crate::consts::{MAX_PATH_DEPTH, MAX_SYMBOLS_PER_KEY};
 use crate::impl_symbol::TypeName;
 use crate::model::SymbolRef;
 
@@ -14,7 +14,7 @@ type Key = (String, String, Vec<String>);
 /// At most two symbols per key: a second one already makes the answer ambiguous.
 fn remember(found: &mut HashMap<Key, Vec<SymbolRef>>, key: Key, at: SymbolRef) {
     let symbols = found.entry(key).or_default();
-    if symbols.len() < 2 {
+    if symbols.len() < MAX_SYMBOLS_PER_KEY {
         symbols.push(at);
     }
 }
