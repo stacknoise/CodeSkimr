@@ -15,6 +15,7 @@ public class Cart<T extends Item> extends Base implements Priced, Comparable<Car
     public static final int MAX_ITEMS = 100;
     static final String NAME = "cart";
     final static long SEED = 7L;
+    public static final int[] PRIMES = {2, 3, 5};
     private final List<T> items;
     protected int a, b;
     int packageLevel;

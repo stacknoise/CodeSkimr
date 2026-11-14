@@ -159,3 +159,6 @@ pub const NAMING_RULES_SEPARATOR: &str = ";";
 pub const NAMING_FILE_IN_NAMES: &str = "file";
 /// Rule of a pack whose qualified names start with its own namespaces (ADR 0036).
 pub const NAMING_NAMESPACED: &str = "namespace";
+
+/// Ends a signature that was cut at `scan.max_signature_chars`.
+pub const SIGNATURE_CUT: &str = "…";

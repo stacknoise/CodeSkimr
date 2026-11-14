@@ -201,7 +201,8 @@ pub fn build_analysis(config: &Config, locations: &Locations) -> Result<Analysis
     let timeout = Duration::from_millis(u64::from(config.scan.parse_timeout_ms));
     let analyzer = TreeSitterAnalyzer::new(packs, timeout)
         .with_fingerprints(&config.similarity)
-        .map_err(CodedError::caused_by)?;
+        .map_err(CodedError::caused_by)?
+        .with_signature_limit(config.scan.max_signature_chars);
     let discovery = WalkDiscovery::new(
         DiscoveryConfig {
             excluded_folders: config.scan.excluded_folders.clone(),
