@@ -69,21 +69,34 @@ fn toml_string(text: &str, path: &[String]) -> Option<String> {
 /// `text` without comments (`//` and `/* */`) and trailing commas, which the .NET SDK accepts in
 /// `global.json` and `serde_json` does not. What lies inside a string stays as it is.
 fn lenient_json(text: &str) -> String {
+    let stripped = rewrite(text, |c, chars, out| {
+        if c == JSON_SLASH && chars.peek() == Some(&JSON_SLASH) {
+            chars.by_ref().find(|next| *next == JSON_NEWLINE);
+            out.push(JSON_NEWLINE);
+        } else if c == JSON_SLASH && chars.peek() == Some(&JSON_STAR) {
+            skip_block_comment(chars);
+        } else {
+            out.push(c);
+        }
+    });
+    drop_trailing_commas(&stripped)
+}
+
+/// Walks `text`, copies every string untouched and hands each other character to `step`.
+fn rewrite(
+    text: &str,
+    mut step: impl FnMut(char, &mut Peekable<Chars<'_>>, &mut String),
+) -> String {
     let mut out = String::with_capacity(text.len());
     let mut chars = text.chars().peekable();
     while let Some(c) = chars.next() {
         if c == JSON_QUOTE {
             copy_string(&mut out, &mut chars);
-        } else if c == JSON_SLASH && chars.peek() == Some(&JSON_SLASH) {
-            chars.by_ref().find(|next| *next == JSON_NEWLINE);
-            out.push(JSON_NEWLINE);
-        } else if c == JSON_SLASH && chars.peek() == Some(&JSON_STAR) {
-            skip_block_comment(&mut chars);
         } else {
-            out.push(c);
+            step(c, &mut chars, &mut out);
         }
     }
-    drop_trailing_commas(&out)
+    out
 }
 
 /// Copies a string (the opening quote is out already) up to and including its closing quote.
@@ -114,21 +127,15 @@ fn skip_block_comment(chars: &mut Peekable<Chars<'_>>) {
 
 /// Removes a comma that is followed, ignoring white space, by `}` or `]`.
 fn drop_trailing_commas(text: &str) -> String {
-    let mut out = String::with_capacity(text.len());
-    let mut chars = text.chars().peekable();
-    while let Some(c) = chars.next() {
-        if c == JSON_QUOTE {
-            copy_string(&mut out, &mut chars);
-        } else if c == JSON_COMMA {
+    rewrite(text, |c, chars, out| {
+        let closes = || {
             let next = chars.clone().find(|next| !next.is_whitespace());
-            if !next.is_some_and(|next| JSON_CLOSERS.contains(&next)) {
-                out.push(c);
-            }
-        } else {
+            next.is_some_and(|next| JSON_CLOSERS.contains(&next))
+        };
+        if c != JSON_COMMA || !closes() {
             out.push(c);
         }
-    }
-    out
+    })
 }
 
 /// The text at `path` of a parsed document (TOML is read into the same value type as JSON).
