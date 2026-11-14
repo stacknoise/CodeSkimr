@@ -193,7 +193,7 @@ id = "SRC-201"
 name = "source_path_not_found"
 severity = "error"
 retryable = false
-description = "The configured source folder does not exist or is not readable."
+description = "A source folder, a source file or a language pack folder does not exist or cannot be read."
 since = "0.1.0"
 
 [[codes]]

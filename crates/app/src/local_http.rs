@@ -15,7 +15,7 @@ use zeroize::Zeroizing;
 use crate::consts::{
     CONNECT_TIMEOUT_MS, HTTP_BEARER_HEADER, HTTP_FIXED_HEADERS, HTTP_HEAD_END, HTTP_HOST_HEADER,
     HTTP_LINE_BREAK, HTTP_OK, HTTP_REQUEST_SEPARATOR, HTTP_STATUS_FIELD, HTTP_UNAUTHORIZED,
-    HTTP_VERSION, LOOPBACK_HOST, MAX_REPLY_BYTES, PORT_SEPARATOR, REPLY_TIMEOUT_MS,
+    HTTP_VERSION, LOOPBACK_HOST, MAX_REPLY_BYTES, MAX_REPLY_LEN, PORT_SEPARATOR, REPLY_TIMEOUT_MS,
 };
 
 /// A call to the local server.
@@ -50,7 +50,7 @@ pub fn call(request: &Call<'_>) -> Result<Value, CodedError> {
         .write_all(message(request).as_bytes())
         .map_err(|_| unreachable())?;
     // The answer may hold a launch code, the request holds the token: both are wiped when dropped.
-    let mut raw = Zeroizing::new(String::new());
+    let mut raw = reply_buffer();
     stream
         .take(MAX_REPLY_BYTES)
         .read_to_string(&mut raw)
@@ -61,6 +61,12 @@ pub fn call(request: &Call<'_>) -> Result<Value, CodedError> {
         HTTP_UNAUTHORIZED => Err(CodedError::new(ErrorCode::TokenMissingOrInvalid)),
         _ => Err(unreachable()),
     }
+}
+
+/// The buffer for the answer. It has its full size from the start, so that reading never moves the
+/// answer to a new allocation and leaves an unwiped copy behind.
+fn reply_buffer() -> Zeroizing<String> {
+    Zeroizing::new(String::with_capacity(MAX_REPLY_LEN))
 }
 
 /// The request text. It holds the token, so it is built in one buffer that is wiped when dropped,
@@ -97,4 +103,24 @@ fn split(raw: &str) -> Option<(u16, &str)> {
         .parse()
         .ok()?;
     Some((status, body))
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Read;
+
+    use super::*;
+
+    #[test]
+    fn the_answer_never_outgrows_its_buffer() {
+        let mut raw = reply_buffer();
+        let start = raw.as_ptr();
+        let text = vec![b'a'; MAX_REPLY_LEN * 2];
+        (&text[..])
+            .take(MAX_REPLY_BYTES)
+            .read_to_string(&mut raw)
+            .unwrap();
+        assert_eq!(raw.len(), MAX_REPLY_LEN);
+        assert_eq!(raw.as_ptr(), start);
+    }
 }

@@ -333,8 +333,10 @@ pub const CONNECT_TIMEOUT_MS: u64 = 2_000;
 pub const REPLY_TIMEOUT_MS: u64 = 5_000;
 /// Pause between two looks at whether the launch code has been taken, in milliseconds.
 pub const CODE_POLL_MS: u64 = 500;
-/// Largest answer of the local server that is read, in bytes.
-pub const MAX_REPLY_BYTES: u64 = 65_536;
+/// Largest answer of the local server that is read, in bytes, as a buffer size.
+pub const MAX_REPLY_LEN: usize = 65_536;
+/// Largest answer of the local server that is read, in bytes, as the reader counts them.
+pub const MAX_REPLY_BYTES: u64 = MAX_REPLY_LEN as u64;
 /// Separates the head of an HTTP message from its body.
 pub const HTTP_HEAD_END: &str = "\r\n\r\n";
 /// Line break of an HTTP message.
