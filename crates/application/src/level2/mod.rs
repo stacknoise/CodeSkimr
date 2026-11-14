@@ -18,7 +18,7 @@ use codeskimr_domain::{FolderPath, Permission, Principal, Project, ProjectId, Pr
 
 use crate::config::Level2;
 use crate::error::CodedError;
-pub use crate::ports::{ConsentRecord, ConsentStore, RunPermit};
+pub use crate::ports::{ConsentGrant, ConsentRecord, ConsentStore, RunPermit};
 pub use pass::Level2Pass;
 pub use report::{LanguageReport, Level2Outcome, Level2Result, Skipped};
 
@@ -33,14 +33,7 @@ pub fn confirm(
     store: &dyn ConsentStore,
     project: ProjectId,
 ) -> Result<(), CodedError> {
-    require(*principal, Permission::ConfirmIndexer)?;
-    store.store_consent(
-        project,
-        ConsentRecord {
-            enabled: true,
-            confirmed: true,
-        },
-    )
+    write(*principal, store, project, true)
 }
 
 /// Withdraws enabling and confirmation of `project`.
@@ -53,8 +46,22 @@ pub fn revoke(
     store: &dyn ConsentStore,
     project: ProjectId,
 ) -> Result<(), CodedError> {
-    require(*principal, Permission::ConfirmIndexer)?;
-    store.store_consent(project, ConsentRecord::default())
+    write(*principal, store, project, false)
+}
+
+/// The one place that makes a [`ConsentGrant`], after the check of the right.
+fn write(
+    principal: Principal,
+    store: &dyn ConsentStore,
+    project: ProjectId,
+    allowed: bool,
+) -> Result<(), CodedError> {
+    require(principal, Permission::ConfirmIndexer)?;
+    let record = ConsentRecord {
+        enabled: allowed,
+        confirmed: allowed,
+    };
+    store.store_consent(&ConsentGrant::new(project, record))
 }
 
 /// The folder an indexer may run in: for a project that was registered from a folder, the folder

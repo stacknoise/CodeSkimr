@@ -54,7 +54,7 @@ pub fn run(
     let ports = build_ports(store, &config, locations, (EventBus::new(), &os_secrets()))?;
     let tools = Tools::new(ports, config.mcp, project.id);
     let messages = Messages::load().map_err(CodedError::caused_by)?;
-    let server = McpServer::new(tools, &messages, principal::resolve())?;
+    let server = McpServer::new(tools, &messages, principal::remote_client())?;
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -78,7 +78,7 @@ pub fn http_service(
     let ports = build_ports(store, config, locations, (events, secrets))?;
     let tools = Tools::unscoped(ports, config.mcp.clone());
     let messages = Messages::load().map_err(CodedError::caused_by)?;
-    let server = McpServer::new(tools, &messages, principal::resolve())?;
+    let server = McpServer::new(tools, &messages, principal::remote_client())?;
     Ok(codeskimr_mcp::http_service(&server))
 }
 

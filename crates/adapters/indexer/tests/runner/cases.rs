@@ -10,8 +10,8 @@ use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::level2;
 use codeskimr_application::ports::{
-    ConsentRecord, ConsentStore, IndexJob, IndexLimits, IndexRunner, IndexerSpec, IndexerStatus,
-    RunPermit, ToolIssue, ToolSpec, ToolVersion,
+    ConsentGrant, ConsentRecord, ConsentStore, IndexJob, IndexLimits, IndexRunner, IndexerSpec,
+    IndexerStatus, RunPermit, ToolIssue, ToolSpec, ToolVersion,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
@@ -106,7 +106,8 @@ impl ConsentStore for Flags {
         Ok(ConsentRecord { enabled, confirmed })
     }
 
-    fn store_consent(&self, _: ProjectId, record: ConsentRecord) -> Result<(), CodedError> {
+    fn store_consent(&self, grant: &ConsentGrant) -> Result<(), CodedError> {
+        let record = grant.record();
         *self.0.lock().unwrap() = (record.enabled, record.confirmed);
         Ok(())
     }

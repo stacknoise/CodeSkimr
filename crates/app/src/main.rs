@@ -18,6 +18,7 @@ mod export;
 mod installation_token;
 mod launch_file;
 mod level2_consent;
+mod level2_consent_tests;
 mod level2_link_tests;
 mod level2_redact_tests;
 mod local_http;

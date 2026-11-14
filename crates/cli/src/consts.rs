@@ -121,8 +121,10 @@ pub const SECONDS_BASE: f64 = 10.0;
 
 /// Names of the Fluent arguments of the messages.
 pub mod arg {
-    /// `{ $word }`: the word the user types to confirm.
-    pub const WORD: &str = "word";
+    /// `{ $place }`: the folder or Git address of a project.
+    pub const PLACE: &str = "place";
+    /// `{ $branch }`: the Git branch of a project.
+    pub const BRANCH: &str = "branch";
     /// `{ $project }`: the project a message is about.
     pub const PROJECT: &str = "project";
     /// `{ $language }`: name of a language.

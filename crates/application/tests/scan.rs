@@ -960,6 +960,8 @@ fn only_a_job_that_wants_level_two_starts_an_indexer() -> Result<(), CodedError>
         "a rescan of MCP or the UI is level 1 only"
     );
     let _ = scanner.run(&owner, job());
+    assert_eq!(runs(&runner), 0, "a job asks for level 2 explicitly");
+    let _ = scanner.run(&owner, job().with_level2());
     assert_eq!(
         runs(&runner),
         1,

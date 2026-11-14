@@ -9,7 +9,7 @@ use codeskimr_application::conventions::CheckReport;
 use codeskimr_application::error::CodedError;
 use codeskimr_cli::{
     Action, CliError, CredentialAction, ExportArgs, Invocation, Level2Action, OpenArgs, Parsed,
-    ScanArgs, ScanSummary, check_json, check_text, confirm_prompt, confirm_warning, confirm_word,
+    ScanArgs, ScanSummary, check_json, check_text, confirm_prompt, confirm_target, confirm_warning,
     credential_deleted, credential_stored, device_prompt, error_line, export_written,
     language_from, level2_confirmed, level2_declined, level2_revoked, open_ready, parse,
     scan_finished, scan_json, scan_started, secret_prompt, serve_started, watch_started,
@@ -192,24 +192,30 @@ fn run_level2(
     messages: &Messages,
     language: &str,
 ) -> Result<Outcome, Failure> {
-    let project = match action {
-        Level2Action::Confirm { project } | Level2Action::Revoke { project } => project,
-    };
-    let ask = || -> Result<bool, CodedError> {
+    let ask = |target: &level2_consent::Target| -> Result<String, CodedError> {
         if !(io::stdin().is_terminal() && io::stdout().is_terminal()) {
             return Err(CodedError::new(ErrorCode::IndexerNotPermitted));
         }
-        let warning = confirm_warning(messages, language).map_err(CodedError::caused_by)?;
-        let prompt = confirm_prompt(messages, language, project).map_err(CodedError::caused_by)?;
-        let word = confirm_word(messages, language).map_err(CodedError::caused_by)?;
-        write_out(&warning);
-        write_out(&prompt);
+        let say = |text: Result<String, _>| text.map_err(CodedError::caused_by);
+        let (target_text, prompt) = (
+            confirm_target(
+                messages,
+                language,
+                &target.name,
+                &target.place,
+                target.branch.as_deref(),
+            ),
+            confirm_prompt(messages, language, &target.name),
+        );
+        write_out(&say(confirm_warning(messages, language))?);
+        write_out(&say(target_text)?);
+        write_out(&say(prompt)?);
         let mut answer = String::new();
         io::stdin()
             .lock()
             .read_line(&mut answer)
             .map_err(|_| CodedError::new(ErrorCode::IndexerNotPermitted))?;
-        Ok(answer.trim().to_lowercase() == word.to_lowercase())
+        Ok(answer)
     };
     let done = level2_consent::run(action, &invocation.global, locations, &ask)?;
     let line = match &done {

@@ -75,8 +75,10 @@ cli-cmd-level2-confirm = Indexer für ein Projekt erlauben (fragt vorher nach)
 cli-cmd-level2-revoke = Indexer für ein Projekt verbieten
 cli-arg-level2-project = Id des Projekts oder Ordner oder Git-Adresse, aus der es gescannt wurde
 cli-level2-warning = Stufe 2 startet die Build-Werkzeuge dieses Projekts (Compiler, Paketverwaltung und den Indexer der Sprache) auf diesem Rechner. Sie führen den Code und die Skripte des Projekts mit deinen Rechten aus: Sie können Dateien deines Benutzerkontos lesen und ändern und das Netzwerk nutzen. Die Indexer laufen nicht in einer Sandbox. Die Bestätigung gilt für Quelle, Ort und Branch des Projekts, nicht für einen Commit: Was der Branch später enthält, wird unter ihr ausgeführt. Bestätige nur für Code, dem du vertraust.
-cli-level2-prompt = Gib „{ $word }“ ein, um Stufe 2 für Projekt { $project } zu erlauben, alles andere bricht ab:
-cli-level2-answer-yes = ja
+cli-level2-target = Projekt: { $project }
+    Ort: { $place }
+cli-level2-target-branch = Branch: { $branch }
+cli-level2-prompt = Gib den Namen des Projekts („{ $project }“) ein, um Stufe 2 dafür zu erlauben, alles andere bricht ab:
 cli-level2-confirmed = Stufe 2 ist für Projekt { $project } erlaubt. Sie läuft beim nächsten Scan auf der Kommandozeile.
 cli-level2-declined = Nichts geändert: Stufe 2 bleibt für Projekt { $project } aus.
 cli-level2-revoked = Stufe 2 ist für Projekt { $project } wieder verboten.

@@ -127,16 +127,12 @@ mod cases {
     fn the_user_config_enables_for_every_project_but_each_needs_its_confirmation() {
         let owner = Principal::local_owner();
         let settings = config(&[(LayerSource::User, "[level2]\nenabled = true\n")]).level2;
-        let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
-        store
-            .store_consent(
-                PROJECT,
-                ConsentRecord {
-                    enabled: false,
-                    confirmed: true,
-                },
-            )
-            .unwrap();
+        let consent = Arc::new(InMemoryConsent::default());
+        consent.set(ConsentRecord {
+            enabled: false,
+            confirmed: true,
+        });
+        let store: Arc<dyn ConsentStore> = consent;
         authorize_run(&owner, &settings, &store, &folder_project(), &clone()).unwrap();
     }
 

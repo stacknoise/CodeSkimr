@@ -4,14 +4,14 @@
 use clap::{Arg, ArgMatches, Command};
 use codeskimr_codes::i18n::{
     CLI_ARG_LEVEL2_PROJECT, CLI_CMD_LEVEL2, CLI_CMD_LEVEL2_CONFIRM, CLI_CMD_LEVEL2_REVOKE,
-    CLI_LEVEL2_ANSWER_YES, CLI_LEVEL2_CONFIRMED, CLI_LEVEL2_DECLINED, CLI_LEVEL2_PROMPT,
-    CLI_LEVEL2_REVOKED, CLI_LEVEL2_WARNING,
+    CLI_LEVEL2_CONFIRMED, CLI_LEVEL2_DECLINED, CLI_LEVEL2_PROMPT, CLI_LEVEL2_REVOKED,
+    CLI_LEVEL2_TARGET, CLI_LEVEL2_TARGET_BRANCH, CLI_LEVEL2_WARNING,
 };
 use codeskimr_i18n::{I18nError, Messages};
 
 use crate::args::Level2Action;
 use crate::consts::{
-    ARG_LEVEL2_PROJECT, COMMAND_LEVEL2, COMMAND_LEVEL2_CONFIRM, COMMAND_LEVEL2_REVOKE,
+    ARG_LEVEL2_PROJECT, COMMAND_LEVEL2, COMMAND_LEVEL2_CONFIRM, COMMAND_LEVEL2_REVOKE, LINE_BREAK,
     VALUE_EXPORT_PROJECT, arg,
 };
 use crate::error::CliError;
@@ -66,12 +66,28 @@ pub fn confirm_warning(messages: &Messages, language: &str) -> Result<String, I1
     messages.format(language, CLI_LEVEL2_WARNING, None)
 }
 
-/// The word the user has to type, in the language of the output.
+/// Which project the user is about to confirm: its name, where its code comes from and, for a
+/// Git repository, the branch (ADR 0033, decision 10).
 ///
 /// # Errors
-/// `I18N-201` if the message is missing.
-pub fn confirm_word(messages: &Messages, language: &str) -> Result<String, I18nError> {
-    messages.format(language, CLI_LEVEL2_ANSWER_YES, None)
+/// `I18N-201` if a message is missing.
+pub fn confirm_target(
+    messages: &Messages,
+    language: &str,
+    project: &str,
+    place: &str,
+    branch: Option<&str>,
+) -> Result<String, I18nError> {
+    let mut args = codeskimr_i18n::FluentArgs::new();
+    args.set(arg::PROJECT, project.to_owned());
+    args.set(arg::PLACE, place.to_owned());
+    let mut text = messages.format(language, CLI_LEVEL2_TARGET, Some(&args))?;
+    if let Some(branch) = branch {
+        args.set(arg::BRANCH, branch.to_owned());
+        text.push_str(LINE_BREAK);
+        text.push_str(&messages.format(language, CLI_LEVEL2_TARGET_BRANCH, Some(&args))?);
+    }
+    Ok(text)
 }
 
 fn about_project(
@@ -85,19 +101,16 @@ fn about_project(
     messages.format(language, key, Some(&args))
 }
 
-/// The question that asks for the confirmation word.
+/// The question that asks the user to type the name of the project.
 ///
 /// # Errors
-/// `I18N-201` if a message is missing.
+/// `I18N-201` if the message is missing.
 pub fn confirm_prompt(
     messages: &Messages,
     language: &str,
     project: &str,
 ) -> Result<String, I18nError> {
-    let mut args = codeskimr_i18n::FluentArgs::new();
-    args.set(arg::PROJECT, project.to_owned());
-    args.set(arg::WORD, confirm_word(messages, language)?);
-    messages.format(language, CLI_LEVEL2_PROMPT, Some(&args))
+    about_project(messages, language, CLI_LEVEL2_PROMPT, project)
 }
 
 /// The line that says level 2 is allowed now.

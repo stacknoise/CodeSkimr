@@ -43,10 +43,12 @@ CodeSkimr scans code repositories, either a local folder or a Git repository, an
 
 - Team server with multiple users, login (OIDC and local accounts), roles and project permissions, delivered in stages T1 to T3 (ADR 0019). Only the caller-identity seam is part of 1.0.
 - Encrypted team vault for credentials (section 12.5).
-- Compiler-precise reference resolution through Roslyn for C# (section 9.3). SCIP level 2 is part of 1.0 (ADR 0033).
+- Compiler-precise reference resolution through Roslyn for C# (section 9.3).
 - Top-league analysis depth in every supported language, C# first (section 9.5, ADR 0034).
 - WASM analysis plugins.
 - Snapshot comparison ("what changed between two releases").
+
+Level 2 from SCIP indexes of existing indexers (section 9.3, ADR 0033) is **not** out of scope: it is part of 1.0 and ships with milestone M5.
 
 ---
 
@@ -1029,7 +1031,7 @@ Each milestone ends with a demo and acceptance by the product owner. All criteri
 | **M2** | References + full MCP | reference index level 1; `find_usages`, `impact_of_change`, `get_dependencies`, `find_similar_code`, `find_constants`, `check_conventions`, `rescan`; watch mode, incremental scans | usages of a method/constant in the private C# reference correct in a sample of 20; incremental re-scan < 300 ms; the agent developing CodeSkimr uses the MCP tools (17.4) |
 | **M3** | Server + UI core | caller-identity seam in place (WP-59); axum server, embedded UI, screens 1 (projects), 2 (explorer), 4 (quick search), 13 (settings with themes); status bar with live measurements; de/en switch | screens match the mocks (visual review); keyboard paths of 15.4 work; budgets for search and type switch are met; screen 13 (settings) offers the themes Hell, Petrol and Dunkel with live preview, the choice is stored and applied, and every screen passes the visual test in all three themes and the contrast check of 15.3 |
 | **M4** | Visualisation | screens 3 (dependencies), 5 (scan & performance), 6 (usages); jump explorer → usages | screens match the mocks; graph layout < 50 ms; usages depth 2 < 20 ms |
-| **M5** | Languages | full tier: TypeScript/JavaScript, Python, Java, Kotlin, Rust; basic tier for all Tree-sitter grammars (including Go) | corpus accuracy targets met per language |
+| **M5** | Languages | full tier: TypeScript/JavaScript, Python, Java, Kotlin, Rust; basic tier for all Tree-sitter grammars (including Go); level 2 from SCIP indexes (ADR 0033: importer, runner, consent, `level2` command) | corpus accuracy targets met per language; with level 2 confirmed, the accuracy of the languages that have an indexer is measured and shown separately |
 | **M6** | Sources + credentials + export | Git sources (clone, branch, update); credential handling per section 12 (keystore, Git helper, OAuth device flow); canary suite; HTML export | security suite green; private repository scanned without the secret ever appearing outside the loan scope |
 | **M7** | Release 1.0 | installers / single executables for Windows, Linux, macOS; user docs; error-code catalogue published | clean install on all three systems; all budgets green |
 | later | Team edition and depth | team server in stages T1 to T3 (personal access tokens, then users, login and roles, then PostgreSQL and the vault; ADR 0019), `SecretVault` adapter, Roslyn level 2 for C# (ADR 0033), top-league depth in every supported language, C# first (section 9.5, ADR 0034), WASM plugins, snapshot comparison, PR impact analysis | own ADRs and milestones |
@@ -1053,7 +1055,7 @@ Each milestone ends with a demo and acceptance by the product owner. All criteri
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| Reference accuracy in dynamic languages (Python, JS) | usages incomplete | confidence marking; level 2 (SCIP) later |
+| Reference accuracy in dynamic languages (Python, JS) | usages incomplete | confidence marking; level 2 from SCIP indexes (ADR 0033, milestone M5) raises the accuracy where the owner confirms it |
 | A strict no-literals lint produces noise | slower development | precise exceptions (3.2); lint maintained with test cases |
 | Very large repositories (> 5M LOC) | memory, start time | streaming, read models on disk, limits in config, benchmark corpus with a large repo |
 | Tree-sitter grammar quality varies | gaps in the basic tier | tiers communicated honestly in the UI (mock 5) |
