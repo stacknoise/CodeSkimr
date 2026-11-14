@@ -91,7 +91,7 @@ max_source_mb = 2048
 [level2]
 # Largest SCIP index file that is read, in bytes (256 MiB); a larger one is refused with RES-501 and level 1 stays.
 max_index_bytes = 268435456
-# Share of the reference occurrences of an index that must map onto project symbols; a lower share fails the index with RES-302 and level 1 stays.
+# Share mapped / (mapped + unmapped) among the uses of project symbols (symbols the index itself defines; library symbols are not counted) that an index must reach; a lower share, or an index where no use maps, fails with RES-302 and level 1 stays.
 min_mapped = 0.5
 
 # Local server (blueprint 10.3, S-04). It listens on the loopback address 127.0.0.1 only.

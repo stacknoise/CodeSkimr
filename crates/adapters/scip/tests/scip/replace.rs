@@ -118,3 +118,27 @@ fn an_index_that_covers_no_file_fails() {
     let result = run_with(&bytes, (&files, &symbols, &[]), 0.0);
     assert!(matches!(result, Err(ScipError::MappingTooLow { .. })));
 }
+
+#[test]
+fn an_index_where_no_use_maps_fails_and_leaves_level_one() {
+    let (files, symbols) = service_world();
+    let library = "scip-dotnet nuget Lib 1 Lib/Thing#";
+    let run_symbol = scip("ns/Svc#Run().");
+    let only_library = index("", &[document("src/b.cs", &[usage(&[3, 12, 15], library)])]);
+    // The indexer never sets the definition bit, so every symbol looks like a library symbol.
+    let no_definition_bit = index(
+        "",
+        &[
+            document("src/a.cs", &[usage(&[2, 16, 19], &run_symbol)]),
+            document("src/b.cs", &[usage(&[3, 12, 15], &run_symbol)]),
+        ],
+    );
+    let old = [level_one(1, (5, 3), 2, (6, 0), ReferenceKind::Call)];
+    for bytes in [only_library, no_definition_bit] {
+        let result = run_with(&bytes, (&files, &symbols, &old), 0.0);
+        assert!(matches!(
+            result,
+            Err(ScipError::MappingTooLow { mapped: 0, .. })
+        ));
+    }
+}

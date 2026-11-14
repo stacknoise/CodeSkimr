@@ -119,3 +119,10 @@ pub(crate) const CONSTRUCTOR_NAMES: [&str; 3] = [".ctor", "<init>", "<constructo
 
 /// Nesting depth of a group right after its start tag was read.
 pub(crate) const GROUP_OPENED_DEPTH: u32 = 1;
+
+/// Most documents an index may hold.
+pub(crate) const MAX_DOCUMENTS: usize = 1_000_000;
+/// Most occurrences, over all documents, an index may hold (24 bytes each in memory).
+pub(crate) const MAX_OCCURRENCES: usize = 16_000_000;
+/// Most distinct symbols an index may hold.
+pub(crate) const MAX_SYMBOLS: usize = 4_000_000;

@@ -12,15 +12,16 @@ pub struct SymbolRef(pub(crate) u32);
 /// Unit of the columns of a document (`PositionEncoding` of `scip.proto`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum PositionEncoding {
-    /// Not stated; indexers that leave it out count UTF-16 code units, which equals UTF-8 bytes
-    /// for text without characters beyond ASCII.
+    /// Not stated. Some indexers that leave it out count UTF-16 code units. Columns are never
+    /// converted, so the same caveat as for `Utf16` applies.
     #[default]
     Unspecified,
     /// UTF-8 bytes from the start of the line, as the parsing adapter counts them.
     Utf8,
-    /// UTF-16 code units from the start of the line.
+    /// UTF-16 code units from the start of the line. They equal UTF-8 bytes only on lines
+    /// without characters beyond ASCII before the column; the import does not convert them.
     Utf16,
-    /// UTF-32 code units (characters) from the start of the line.
+    /// UTF-32 code units (characters) from the start of the line; not converted either.
     Utf32,
 }
 

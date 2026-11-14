@@ -328,12 +328,18 @@ fn to_f64(count: u64) -> f64 {
 
 /// Step (e): of the occurrences of project symbols (those the index defines), the share that
 /// mapped must reach `min_mapped`, and the index must cover at least one file. Library
-/// occurrences do not count: most occurrences of a real project point into libraries.
+/// occurrences do not count: most occurrences of a real project point into libraries. An index
+/// whose covered documents hold uses but not one of them mapped is unusable too (an indexer
+/// that never marks definitions leaves nothing to map onto), whatever the share says.
 fn check_threshold(stats: &ImportStats, min_mapped: f64) -> Result<(), ScipError> {
     let total = stats.mapped.saturating_add(stats.unmapped);
+    let uses = total
+        .saturating_add(stats.library)
+        .saturating_add(stats.ignored);
     let uncovered = stats.files_replaced == 0;
+    let nothing_mapped = stats.mapped == 0 && uses > 0;
     let too_low = total > 0 && to_f64(stats.mapped) < to_f64(total) * min_mapped;
-    if uncovered || too_low {
+    if uncovered || nothing_mapped || too_low {
         Err(ScipError::MappingTooLow {
             mapped: stats.mapped,
             total,
@@ -356,11 +362,14 @@ fn check_threshold(stats: &ImportStats, min_mapped: f64) -> Result<(), ScipError
 /// * Occurrences of local symbols, parameters, type parameters and macros are ignored. Those of
 ///   symbols that the index does not define (libraries) and those of defined symbols that match
 ///   no project symbol are dropped and counted apart.
+/// * An occurrence that lies in no symbol of its file (code at file level that the language
+///   pack reports no module for) cannot get an origin and counts as `unmapped`.
 /// * The references of files the index does not cover stay as they are.
 ///
 /// # Errors
-/// [`ScipError::MappingTooLow`] if no document matches a file of the snapshot or the share of
-/// mapped occurrences among those of project symbols is below `min_mapped` (config key `level2.min_mapped`); the caller keeps
+/// [`ScipError::MappingTooLow`] if no document matches a file of the snapshot, the covered
+/// documents hold uses but none of them mapped, or the share of mapped occurrences among those
+/// of project symbols is below `min_mapped` (config key `level2.min_mapped`); the caller keeps
 /// level 1 then.
 pub fn import_references(
     index: &ScipIndex,

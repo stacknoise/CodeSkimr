@@ -54,6 +54,14 @@ Blueprint 9.3 plans level 2 "after 1.0, optional". This ADR moves it forward and
 
 15. (1) Level 1 keeps all matches and `verified` (decision 6 and 7). (2) Tool check on load (decision 8). (3) Spike: indexers on the public corpora, C# and Rust first. (4) `IndexRunner`, consent, permissions, limits. (5) Import and mapping. (6) Per language: C#, Rust, TypeScript, Python, Java and Kotlin.
 
+## Implementation (package 5, PR #216)
+
+The import package deviates from the text above in three points:
+
+- **Decoder (decision 5).** Instead of generating code from a pinned `scip.proto` with a decoding library (a new dependency), the crate has a small hand-written reader that knows only the fields it needs and skips everything else (`crates/adapters/scip/src/wire.rs`, `decode.rs`). It has bounded buffers, a depth limit for skipped groups, strict varints and limits on documents, occurrences and distinct symbols. The pinned copy is `crates/adapters/scip/scip-used.proto`: the messages and field numbers that are read, which must equal `src/consts.rs`. No new dependency, no `protoc`, a smaller attack surface.
+- **Measure of `level2.min_mapped` (decision 2).** It is `mapped / (mapped + unmapped)` among the uses of project symbols, where a project symbol is one that the index itself defines. Library symbols are counted apart and do not enter the share, because about half of all occurrences of real projects point into libraries (measured on C# and Rust: 50 to 51 %), so counting them would fail every real index at 0.5. An index in which uses exist but none maps, for example because the indexer never marks definitions, fails as well, and so does an index that covers no file of the snapshot.
+- **Columns.** Occurrence columns are stored in the unit of the index and are not converted to UTF-8 bytes yet (issue #217).
+
 ## Consequences
 
 - Blueprint changes (by the pull request that implements packages 1 and 5, with the label `blueprint-change`): sections 1 and 7 (scope and levels), 9.2 to 9.4, 14 (the `level2` exception and keys), 16.1 (time of a level 2 scan), 17.2 (acceptance numbers) and 20.2 (roadmap: level 2 before 1.0); `docs/usages.md`, `docs/mcp.md`, `docs/references.md`.

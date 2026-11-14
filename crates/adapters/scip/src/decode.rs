@@ -13,9 +13,9 @@ use codeskimr_domain::{Position, Span};
 
 use crate::consts::{
     DOCUMENT_OCCURRENCES, DOCUMENT_POSITION_ENCODING, DOCUMENT_RELATIVE_PATH, ENCODING_UTF8,
-    ENCODING_UTF16, ENCODING_UTF32, INDEX_DOCUMENTS, INDEX_METADATA, MAX_PATH_BYTES,
-    MAX_SYMBOL_BYTES, METADATA_PROJECT_ROOT, OCCURRENCE_RANGE, OCCURRENCE_ROLES, OCCURRENCE_SYMBOL,
-    RANGE_MULTI_LINE,
+    ENCODING_UTF16, ENCODING_UTF32, INDEX_DOCUMENTS, INDEX_METADATA, MAX_DOCUMENTS,
+    MAX_OCCURRENCES, MAX_PATH_BYTES, MAX_SYMBOL_BYTES, MAX_SYMBOLS, METADATA_PROJECT_ROOT,
+    OCCURRENCE_RANGE, OCCURRENCE_ROLES, OCCURRENCE_SYMBOL, RANGE_MULTI_LINE,
 };
 use crate::error::{Corruption, ScipError};
 use crate::model::{Occurrence, PositionEncoding, ScipDocument, ScipIndex, SymbolRef};
@@ -34,7 +34,7 @@ pub fn read_index(path: &Path, max_index_bytes: u64) -> Result<ScipIndex, ScipEr
     let file = File::open(path).map_err(ScipError::Unreadable)?;
     let size = file.metadata().map_err(ScipError::Unreadable)?.len();
     refuse_above(size, max_index_bytes)?;
-    let mut bytes = Vec::new();
+    let mut bytes = Vec::with_capacity(usize::try_from(size).unwrap_or(0));
     file.take(max_index_bytes.saturating_add(1))
         .read_to_end(&mut bytes)
         .map_err(ScipError::Unreadable)?;
@@ -56,19 +56,48 @@ fn refuse_above(size: u64, limit: u64) -> Result<(), ScipError> {
 /// [`ScipError::Corrupt`] for truncated or malformed input, text that is not UTF-8 or too long,
 /// ranges that are not three or four numbers, and paths that are empty, absolute or hold `..`.
 pub fn decode_index(bytes: &[u8], max_index_bytes: u64) -> Result<ScipIndex, ScipError> {
+    decode_bounded(bytes, max_index_bytes, &Limits::default())
+}
+
+/// Bounds on the number of things an index may hold, so that a small file cannot grow into a
+/// large structure in memory.
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct Limits {
+    pub(crate) documents: usize,
+    pub(crate) occurrences: usize,
+    pub(crate) symbols: usize,
+}
+
+impl Default for Limits {
+    fn default() -> Self {
+        Self {
+            documents: MAX_DOCUMENTS,
+            occurrences: MAX_OCCURRENCES,
+            symbols: MAX_SYMBOLS,
+        }
+    }
+}
+
+pub(crate) fn decode_bounded(
+    bytes: &[u8],
+    max_index_bytes: u64,
+    limits: &Limits,
+) -> Result<ScipIndex, ScipError> {
     let size = u64::try_from(bytes.len()).unwrap_or(u64::MAX);
     refuse_above(size, max_index_bytes)?;
-    let mut symbols = Interner::default();
+    let mut symbols = Interner::new(limits.symbols);
     let mut index = ScipIndex::default();
+    let mut occurrences = 0_usize;
     for field in Fields::new(bytes) {
         match field? {
             (INDEX_METADATA, Value::Bytes(message)) => {
                 index.project_root = decode_project_root(message)?;
             }
             (INDEX_DOCUMENTS, Value::Bytes(message)) => {
-                index
-                    .documents
-                    .push(decode_document(message, &mut symbols)?);
+                let document = decode_document(message, &mut symbols)?;
+                occurrences = occurrences.saturating_add(document.occurrences.len());
+                admit(index.documents.len(), occurrences, limits)?;
+                index.documents.push(document);
             }
             (INDEX_METADATA | INDEX_DOCUMENTS, Value::Varint(_)) => {
                 return Err(Corruption::WireType.into());
@@ -80,17 +109,39 @@ pub fn decode_index(bytes: &[u8], max_index_bytes: u64) -> Result<ScipIndex, Sci
     Ok(index)
 }
 
+/// Refuses a document that would take the index over the limits.
+fn admit(documents: usize, occurrences: usize, limits: &Limits) -> Result<(), Corruption> {
+    if documents >= limits.documents {
+        Err(Corruption::TooManyDocuments)
+    } else if occurrences > limits.occurrences {
+        Err(Corruption::TooManyOccurrences)
+    } else {
+        Ok(())
+    }
+}
+
 /// Hands out one handle per distinct symbol text.
-#[derive(Default)]
 struct Interner {
     texts: Vec<String>,
     handles: HashMap<String, u32>,
+    limit: usize,
 }
 
 impl Interner {
+    fn new(limit: usize) -> Self {
+        Self {
+            texts: Vec::new(),
+            handles: HashMap::new(),
+            limit,
+        }
+    }
+
     fn intern(&mut self, text: &str) -> Result<SymbolRef, Corruption> {
         if let Some(handle) = self.handles.get(text) {
             return Ok(SymbolRef(*handle));
+        }
+        if self.texts.len() >= self.limit {
+            return Err(Corruption::TooManySymbols);
         }
         let handle = u32::try_from(self.texts.len()).map_err(|_| Corruption::TooManySymbols)?;
         self.texts.push(text.to_owned());
@@ -217,4 +268,78 @@ fn decode_occurrence(
         symbol,
         roles,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A document `a.rs` with one definition each of `count` distinct symbols.
+    fn index_of(documents: usize, per_document: usize) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        for number in 0..documents {
+            let mut document = field(DOCUMENT_RELATIVE_PATH, format!("d{number}.rs").as_bytes());
+            for item in 0..per_document {
+                let mut occurrence = field(OCCURRENCE_RANGE, &[0, 1, 2]);
+                occurrence.extend(field(
+                    OCCURRENCE_SYMBOL,
+                    format!("local {number}-{item}").as_bytes(),
+                ));
+                document.extend(field(DOCUMENT_OCCURRENCES, &occurrence));
+            }
+            bytes.extend(field(INDEX_DOCUMENTS, &document));
+        }
+        bytes
+    }
+
+    fn field(number: u32, payload: &[u8]) -> Vec<u8> {
+        let mut bytes = vec![u8::try_from((number << 3) | 2).expect("small tag")];
+        let mut length = payload.len();
+        while length >= 0x80 {
+            bytes.push(u8::try_from(length & 0x7f).expect("seven bits") | 0x80);
+            length >>= 7;
+        }
+        bytes.push(u8::try_from(length).expect("last seven bits"));
+        bytes.extend(payload);
+        bytes
+    }
+
+    fn failure(bytes: &[u8], limits: &Limits) -> Option<Corruption> {
+        match decode_bounded(bytes, u64::MAX, limits) {
+            Err(ScipError::Corrupt(detail)) => Some(detail),
+            _ => None,
+        }
+    }
+
+    fn limits(documents: usize, occurrences: usize, symbols: usize) -> Limits {
+        Limits {
+            documents,
+            occurrences,
+            symbols,
+        }
+    }
+
+    #[test]
+    fn counts_above_the_limits_are_refused() {
+        let roomy = 1000;
+        assert_eq!(
+            failure(&index_of(3, 1), &limits(2, roomy, roomy)),
+            Some(Corruption::TooManyDocuments)
+        );
+        assert_eq!(
+            failure(&index_of(2, 3), &limits(roomy, 4, roomy)),
+            Some(Corruption::TooManyOccurrences)
+        );
+        assert_eq!(
+            failure(&index_of(2, 2), &limits(roomy, roomy, 3)),
+            Some(Corruption::TooManySymbols)
+        );
+        assert_eq!(failure(&index_of(2, 2), &limits(2, 4, 4)), None);
+    }
+
+    #[test]
+    fn many_distinct_symbols_are_stored_once_each() {
+        let index = decode_index(&index_of(50, 100), u64::MAX).expect("decodes");
+        assert_eq!(index.symbols.len(), 5000);
+    }
 }

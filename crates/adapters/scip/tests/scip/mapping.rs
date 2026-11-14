@@ -233,22 +233,52 @@ fn local_and_library_symbols_are_not_references() {
     let library = "scip-dotnet nuget System.Runtime 8.0.0 System/Console#WriteLine().";
     let bytes = index(
         "",
-        &[document(
-            "src/b.cs",
-            &[
-                usage(&[3, 12, 15], "local 4"),
-                usage(&[4, 12, 15], library),
-                usage(&[5, 12, 15], &scip("ns/Svc#Run().(count)")),
-                usage(&[6, 12, 15], &scip("ns/Svc#Run().")),
-            ],
-        )],
+        &[
+            document(
+                "src/a.cs",
+                &[definition(&[2, 16, 19], &scip("ns/Svc#Run()."))],
+            ),
+            document(
+                "src/b.cs",
+                &[
+                    usage(&[3, 12, 15], "local 4"),
+                    usage(&[4, 12, 15], library),
+                    usage(&[5, 12, 15], &scip("ns/Svc#Run().(count)")),
+                    usage(&[6, 12, 15], &scip("ns/Svc#Run().")),
+                ],
+            ),
+        ],
     );
     let outcome = run_with(&bytes, (&files, &symbols, &[]), 0.0).expect("imports");
-    assert_eq!(outcome.references, []);
+    assert_eq!(targets_of(&outcome), [2]);
     assert_eq!(outcome.stats.ignored, 2);
-    assert_eq!(outcome.stats.library, 2);
+    assert_eq!(outcome.stats.library, 1);
     assert_eq!(outcome.stats.unmapped, 0);
-    assert_eq!(outcome.stats.mapped, 0);
+    assert_eq!(outcome.stats.mapped, 1);
+}
+
+#[test]
+fn columns_are_stored_as_the_index_gives_them() {
+    let (files, symbols) = service_world();
+    // The index counts UTF-16 units; the line has two characters of two bytes before the
+    // call, so level 1 (bytes) starts two columns later. Nothing is converted: the span is the
+    // one of the index and the kind of level 1 is not found.
+    let bytes = run_index(&[[3, 12, 15]]);
+    let old = [level_one(7, (5, 3), 2, (3, 14), ReferenceKind::Override)];
+    let outcome = run(&bytes, &files, &symbols, &old);
+    assert_eq!(target(&outcome), [(5, 2, ReferenceKind::Call)]);
+    let reference = outcome.references.first().expect("one reference");
+    assert_eq!(reference.span, span((3, 12), (3, 15)));
+}
+
+#[test]
+fn an_occurrence_outside_every_symbol_is_unmapped() {
+    let (files, symbols) = service_world();
+    let bytes = run_index(&[[3, 12, 15], [90, 0, 3]]);
+    let outcome = run(&bytes, &files, &symbols, &[]);
+    assert_eq!(targets_of(&outcome), [2]);
+    assert_eq!(outcome.stats.mapped, 1);
+    assert_eq!(outcome.stats.unmapped, 1);
 }
 
 #[test]

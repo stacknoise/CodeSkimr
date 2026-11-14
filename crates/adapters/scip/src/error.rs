@@ -23,8 +23,12 @@ pub enum Corruption {
     BadRange,
     /// A path is empty, absolute or leaves the project folder.
     UnsafePath,
-    /// The index holds more distinct symbols than can be numbered.
+    /// The index holds more distinct symbols than allowed.
     TooManySymbols,
+    /// The index holds more documents than allowed.
+    TooManyDocuments,
+    /// The index holds more occurrences than allowed.
+    TooManyOccurrences,
 }
 
 /// Why an index could not be imported.

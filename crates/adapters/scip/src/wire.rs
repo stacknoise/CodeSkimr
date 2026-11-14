@@ -43,9 +43,12 @@ impl<'a> Fields<'a> {
         for index in 0..VARINT_MAX_BYTES {
             let byte = *self.take(1)?.first().ok_or(Corruption::Truncated)?;
             let payload = u64::from(byte & VARINT_PAYLOAD_MASK);
-            value |= payload
-                .checked_shl(index * VARINT_PAYLOAD_BITS)
-                .unwrap_or(0);
+            let shift = index * VARINT_PAYLOAD_BITS;
+            let shifted = payload.checked_shl(shift).unwrap_or(0);
+            if shifted.checked_shr(shift) != Some(payload) {
+                return Err(Corruption::VarintTooLong);
+            }
+            value |= shifted;
             if byte & VARINT_CONTINUE == 0 {
                 return Ok(value);
             }

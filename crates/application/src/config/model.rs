@@ -179,7 +179,8 @@ pub struct Scan {
 pub struct Level2 {
     /// Largest index file that is read, in bytes.
     pub max_index_bytes: u64,
-    /// Smallest share of reference occurrences that must map onto project symbols, from 0 to 1.
+    /// Smallest share `mapped / (mapped + unmapped)` among the uses of project symbols (symbols
+    /// the index defines itself; library symbols are not counted), from 0 to 1.
     pub min_mapped: f64,
 }
 

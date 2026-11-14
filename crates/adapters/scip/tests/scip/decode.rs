@@ -230,6 +230,22 @@ fn a_document_without_a_path_is_corrupt() {
 }
 
 #[test]
+fn bits_beyond_sixty_four_in_the_tenth_varint_byte_are_refused() {
+    let mut bytes = vec![0xff_u8; 9];
+    bytes.push(0x02);
+    assert_eq!(
+        corruption(decode_index(&bytes, LIMIT)),
+        Corruption::VarintTooLong
+    );
+    let mut longest = vec![0xff_u8; 9];
+    longest.push(0x01);
+    assert!(!matches!(
+        decode_index(&longest, LIMIT),
+        Err(ScipError::Corrupt(Corruption::VarintTooLong))
+    ));
+}
+
+#[test]
 fn an_overlong_varint_is_corrupt() {
     let bytes = vec![0x80_u8; 12];
     assert_eq!(
