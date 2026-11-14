@@ -348,7 +348,7 @@ mod cases {
 
     fn assert_level_one_stays(outcome: &Outcome, reason: &Skipped) {
         assert_eq!(skipped(outcome), vec![reason]);
-        assert!(outcome.replaced.is_empty());
+        assert_eq!(outcome.replaced, Vec::new());
         assert_eq!(outcome.result.snapshot, snapshot());
     }
 
@@ -468,7 +468,7 @@ mod cases {
             ..Setup::default()
         });
         assert_eq!(outcome.runs, 1);
-        assert!(outcome.imports.is_empty());
+        assert_eq!(outcome.imports, Vec::<Vec<String>>::new());
         assert_level_one_stays(&outcome, &Skipped::Stale);
     }
 
