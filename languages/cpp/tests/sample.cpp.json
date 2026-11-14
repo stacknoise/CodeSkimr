@@ -2,14 +2,14 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 25,
+      "loc": 29,
       "operands": null,
       "operators": null,
       "symbol": "sample"
     },
     {
       "decisions": null,
-      "loc": 25,
+      "loc": 29,
       "operands": null,
       "operators": null,
       "symbol": "sample::shop"
@@ -124,7 +124,7 @@
         0,
         0
       ],
-      "symbol": "sample::shop::add"
+      "symbol": "sample::shop::Order::add"
     },
     {
       "decisions": 0,
@@ -137,7 +137,47 @@
         0,
         0
       ],
-      "symbol": "sample::shop::make"
+      "symbol": "sample::shop::Order::make"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample::shop::Box"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample::shop::Box::get"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample::shop::Other"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample::shop::Other::add"
     },
     {
       "decisions": 1,
@@ -166,10 +206,17 @@
       "symbol": "sample::shop::twice"
     }
   ],
-  "loc": 25,
+  "loc": 29,
   "references": [
     {
-      "at": "27:19",
+      "at": "28:47",
+      "from": "sample::shop::Box::get",
+      "kind": "call",
+      "receiver": null,
+      "target": "T"
+    },
+    {
+      "at": "35:19",
       "from": "sample::shop::price",
       "kind": "call",
       "receiver": null,
@@ -183,7 +230,7 @@
       "name": "sample",
       "parent": null,
       "signature": null,
-      "span": "0:0-34:0",
+      "span": "0:0-42:0",
       "static": false,
       "visibility": null
     },
@@ -193,7 +240,7 @@
       "name": "sample::shop",
       "parent": "sample",
       "signature": null,
-      "span": "0:0-33:1",
+      "span": "0:0-41:1",
       "static": false,
       "visibility": null
     },
@@ -290,8 +337,8 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "sample::shop::add",
-      "parent": "sample::shop",
+      "name": "sample::shop::Order::add",
+      "parent": "sample::shop::Order",
       "signature": null,
       "span": "20:0-22:1",
       "static": false,
@@ -300,10 +347,50 @@
     {
       "doc": null,
       "kind": "method",
-      "name": "sample::shop::make",
-      "parent": "sample::shop",
+      "name": "sample::shop::Order::make",
+      "parent": "sample::shop::Order",
       "signature": null,
       "span": "24:0-24:40",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "struct",
+      "name": "sample::shop::Box",
+      "parent": "sample::shop",
+      "signature": null,
+      "span": "26:22-26:45",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample::shop::Box::get",
+      "parent": "sample::shop::Box",
+      "signature": null,
+      "span": "28:22-28:53",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "struct",
+      "name": "sample::shop::Other",
+      "parent": "sample::shop",
+      "signature": null,
+      "span": "30:0-30:33",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample::shop::Other::add",
+      "parent": "sample::shop::Other",
+      "signature": null,
+      "span": "32:0-32:25",
       "static": false,
       "visibility": null
     },
@@ -313,7 +400,7 @@
       "name": "sample::shop::price",
       "parent": "sample::shop",
       "signature": null,
-      "span": "26:0-28:1",
+      "span": "34:0-36:1",
       "static": false,
       "visibility": null
     },
@@ -323,7 +410,7 @@
       "name": "sample::shop::twice",
       "parent": "sample::shop",
       "signature": null,
-      "span": "31:0-31:30",
+      "span": "39:0-39:30",
       "static": false,
       "visibility": null
     }

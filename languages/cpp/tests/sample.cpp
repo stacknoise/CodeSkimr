@@ -24,6 +24,14 @@ void Order::add(int x) {
 
 Order* Order::make() { return nullptr; }
 
+template <typename T> struct Box { T get(); };
+
+template <typename T> T Box<T>::get() { return T(); }
+
+struct Other { void add(int x); };
+
+void Other::add(int x) {}
+
 int price(const Order& o) {
     try { return o.total(); } catch (...) { return 0; }
 }

@@ -8,7 +8,7 @@
 ; Functions. A definition outside a class body is a free function (also as a template), `Class::name`
 ; a method; the ones inside a class body (also templates) are methods, constructors, destructors and
 ; operators included. Pointer and reference return types are handled; the class of an out-of-line
-; method is not part of its name in the basic tier (see docs/language-packs.md).
+; method belongs to its class and carries it in its name (`@owner`, ADR 0042).
 (translation_unit (function_definition declarator: [
       (function_declarator declarator: (identifier) @name)
       (pointer_declarator (function_declarator declarator: (identifier) @name))
@@ -38,3 +38,9 @@
       (function_declarator declarator: [(identifier) (field_identifier) (destructor_name) (operator_name)] @name)
       (pointer_declarator (function_declarator declarator: [(identifier) (field_identifier) (destructor_name) (operator_name)] @name))
       (reference_declarator (function_declarator declarator: [(identifier) (field_identifier) (destructor_name) (operator_name)] @name))]) @symbol.method))
+
+; An out-of-line method belongs to the class named before `::`, also a class template (`Box<T>::get`).
+(function_definition declarator: [
+      (function_declarator declarator: (qualified_identifier scope: [(namespace_identifier) @owner (template_type name: (type_identifier) @owner)] name: [(identifier) (destructor_name) (operator_name)] @name))
+      (pointer_declarator (function_declarator declarator: (qualified_identifier scope: [(namespace_identifier) @owner (template_type name: (type_identifier) @owner)] name: [(identifier) (destructor_name) (operator_name)] @name)))
+      (reference_declarator (function_declarator declarator: (qualified_identifier scope: [(namespace_identifier) @owner (template_type name: (type_identifier) @owner)] name: [(identifier) (destructor_name) (operator_name)] @name)))]) @symbol.method
