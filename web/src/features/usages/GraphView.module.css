@@ -1,5 +1,13 @@
+.frame {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    display: flex;
+}
+
 .canvas {
     flex: 1;
+    min-width: 0;
     min-height: 0;
     position: relative;
     overflow: auto;

@@ -5,6 +5,7 @@ import { cx } from "../../shared/ui/cx";
 import { KindBadge } from "../explorer/KindBadge";
 import { COLUMN, GRAPH, MISSING, ROLE } from "./consts";
 import { buildGraph, type Card, type Column } from "./graph";
+import { Legend } from "./Legend";
 import type { UsagesAnswer } from "./types";
 import styles from "./GraphView.module.css";
 
@@ -53,30 +54,35 @@ function CardButton(props: { card: Card; onPick: (card: Card) => void }) {
 export function GraphView(props: { answer: UsagesAnswer; onPick: (card: Card) => void }) {
   const graph = createMemo(() => buildGraph(props.answer));
   return (
-    <div class={styles.canvas} role={ROLE.region} aria-label={t(I18N_KEYS.USAGES_GRAPH_LABEL)}>
-      <div
-        class={styles.plane}
-        style={{ width: `${graph().width}px`, height: `${graph().height}px` }}
-      >
-        <For each={graph().columns}>
-          {(column) => (
-            <span class={styles.heading} style={{ left: `${column.x}px` }}>
-              {heading(column)}
-              <Show when={column.hidden > 0}>
-                <b class={styles.more}>
-                  {t(I18N_KEYS.USAGES_CARDS_MORE, { count: column.hidden })}
-                </b>
-              </Show>
-            </span>
-          )}
-        </For>
-        <svg class={styles.edges} aria-hidden={true}>
-          <For each={graph().edges}>
-            {(edge) => <path d={edge.d} class={cx(styles.edge, styles[edge.tone])} />}
+    <div class={styles.frame}>
+      <div class={styles.canvas} role={ROLE.region} aria-label={t(I18N_KEYS.USAGES_GRAPH_LABEL)}>
+        <div
+          class={styles.plane}
+          style={{ width: `${graph().width}px`, height: `${graph().height}px` }}
+        >
+          <For each={graph().columns}>
+            {(column) => (
+              <span class={styles.heading} style={{ left: `${column.x}px` }}>
+                {heading(column)}
+                <Show when={column.hidden > 0}>
+                  <b class={styles.more}>
+                    {t(I18N_KEYS.USAGES_CARDS_MORE, { count: column.hidden })}
+                  </b>
+                </Show>
+              </span>
+            )}
           </For>
-        </svg>
-        <For each={graph().cards}>{(card) => <CardButton card={card} onPick={props.onPick} />}</For>
+          <svg class={styles.edges} aria-hidden={true}>
+            <For each={graph().edges}>
+              {(edge) => <path d={edge.d} class={cx(styles.edge, styles[edge.tone])} />}
+            </For>
+          </svg>
+          <For each={graph().cards}>
+            {(card) => <CardButton card={card} onPick={props.onPick} />}
+          </For>
+        </div>
       </div>
+      <Legend />
     </div>
   );
 }
