@@ -262,21 +262,24 @@ mod tests {
         assert_eq!(*similarity_percent, 100);
     }
 
-    #[test]
-    fn small_functions_are_not_compared_for_duplicates() {
-        let limits = Conventions {
-            duplicate_min_lines: 100,
-            duplicate_max_owners: 50,
-            ..limits()
-        };
+    /// The codes of the findings for the sample files under `limits`.
+    fn codes_with(limits: Conventions) -> Vec<ErrorCode> {
         let report = run(
             &checker_with(sample(), limits),
             Principal::local_owner(),
             &[],
         )
         .expect("checked");
-        let codes: Vec<ErrorCode> = report.findings.iter().map(|f| f.code).collect();
-        assert_eq!(codes, [ErrorCode::FunctionTooLong]);
+        report.findings.iter().map(|f| f.code).collect()
+    }
+
+    #[test]
+    fn small_functions_are_not_compared_for_duplicates() {
+        let limits = Conventions {
+            duplicate_min_lines: 100,
+            ..limits()
+        };
+        assert_eq!(codes_with(limits), [ErrorCode::FunctionTooLong]);
     }
 
     #[test]
@@ -285,14 +288,7 @@ mod tests {
             duplicate_max_owners: 1,
             ..limits()
         };
-        let report = run(
-            &checker_with(sample(), limits),
-            Principal::local_owner(),
-            &[],
-        )
-        .expect("checked");
-        let codes: Vec<ErrorCode> = report.findings.iter().map(|f| f.code).collect();
-        assert_eq!(codes, [ErrorCode::FunctionTooLong]);
+        assert_eq!(codes_with(limits), [ErrorCode::FunctionTooLong]);
     }
 
     #[test]
