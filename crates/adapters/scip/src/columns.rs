@@ -172,6 +172,27 @@ fn defines_locals(document: &ScipDocument, symbols: &[String]) -> bool {
     })
 }
 
+/// The documents that need their text, ordered by path: those whose columns are not UTF-8 bytes,
+/// those that define local symbols and those whose text facts are read. Documents of one path are
+/// handled together, so a file is read once however often the index names it (an index may hold
+/// a million documents of one path).
+fn documents_to_read(documents: &[ScipDocument], symbols: &[String]) -> Vec<usize> {
+    let mut order: Vec<usize> = (0..documents.len())
+        .filter(|at| {
+            documents.get(*at).is_some_and(|document| {
+                document.encoding != PositionEncoding::Utf8
+                    || defines_locals(document, symbols)
+                    || wants_facts(document)
+            })
+        })
+        .collect();
+    order.sort_by(|a, b| {
+        let path = |at: &usize| documents.get(*at).map(|document| document.path.as_str());
+        path(a).cmp(&path(b))
+    });
+    order
+}
+
 /// Turns the columns of every document that does not count UTF-8 bytes into UTF-8 bytes, and
 /// reads the names of the local symbols a document defines (the import has no other way to
 /// tell what a local symbol is called) and, for Java files, what only their text tells (see
@@ -186,21 +207,7 @@ pub fn convert_columns(
     let ScipIndex {
         documents, symbols, ..
     } = index;
-    // Documents of one path are handled together, so a file is read once however often the
-    // index names it (an index may hold a million documents of one path).
-    let mut order: Vec<usize> = (0..documents.len())
-        .filter(|at| {
-            documents.get(*at).is_some_and(|document| {
-                document.encoding != PositionEncoding::Utf8
-                    || defines_locals(document, symbols)
-                    || wants_facts(document)
-            })
-        })
-        .collect();
-    order.sort_by(|a, b| {
-        let path = |at: &usize| documents.get(*at).map(|document| document.path.as_str());
-        path(a).cmp(&path(b))
-    });
+    let order = documents_to_read(documents, symbols);
     let mut interner = NameInterner::default();
     let mut current: Option<(String, Option<Vec<String>>)> = None;
     for at in order {

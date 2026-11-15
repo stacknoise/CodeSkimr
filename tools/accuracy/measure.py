@@ -243,7 +243,8 @@ def truth(lang, source, workspace, targets):
     return [{(f, l) for f, l in result} for result in json.loads(done.stdout)]
 
 
-def main():
+def options():
+    """The command line, checked for options that exclude each other."""
     args = argparse.ArgumentParser()
     args.add_argument("language")
     args.add_argument("--samples", type=int, default=150)
@@ -272,6 +273,12 @@ def main():
         sys.exit("--scip needs --verified-only: without it level 1 and level 2 references are counted together")
     if opt.scip and opt.language not in SCIP_INDEXERS:
         sys.exit("--scip is only prepared for rust, typescript, python, java and csharp")
+    return opt
+
+
+def measure(opt):
+    """Scans the corpus, draws the symbols and asks the reference tool.
+    Returns (picked, targets, sets, symbols, used, kinds, import_stats, run_report)."""
     project = tomllib.loads((ROOT / "corpus" / opt.language / "corpus.toml").read_text())["project"]
     src = checkout(opt.language, project)
     with tempfile.TemporaryDirectory() as tmp:
@@ -297,6 +304,11 @@ def main():
         picked = [i for _, i in rng.sample(pool, min(opt.samples, len(pool)))]
         targets = [{"file": files[symbols[i][1]].replace("\\", "/"), "line": symbols[i][5] + 1, "column": symbols[i][6], "end_line": symbols[i][7] + 1, "origin": symbols[i][8], "name": symbols[i][3], "kind": symbols[i][2]} for i in picked]
         sets = truth(opt.language, tmp / "src", Path(opt.workspace) if opt.workspace else src, targets)
+    return picked, targets, sets, symbols, used, kinds, import_stats, run_report
+
+
+def compare(picked, targets, sets, symbols, used, kinds):
+    """Our uses against the uses of the reference tool, per symbol: (rows, exact, tp, fp, fn, wrong_kinds)."""
     rows, exact, tp, fp, fn = [], 0, 0, 0, 0
     wrong_kinds = {}
     for i, t, real in zip(picked, targets, sets):
@@ -311,6 +323,12 @@ def main():
                 wrong_kinds[kind] = wrong_kinds.get(kind, 0) + 1
         rows.append({"symbol": symbols[i][4], "kind": symbols[i][2], "origin": symbols[i][8], "ours": len(mine), "tool": len(real), "both": len(hit), "exact": ok,
                      "wrong": sorted(mine - real)[:5], "missed": sorted(real - mine)[:5]})
+    return rows, exact, tp, fp, fn, wrong_kinds
+
+
+def summarize(opt, rows, counts, import_stats, run_report):
+    """The summary of a measurement: rates, tool silence and the numbers per kind."""
+    exact, tp, fp, fn, wrong_kinds = counts
     by_kind = {}
     for r in rows:
         k = by_kind.setdefault(r["kind"], {"symbols": 0, "exact": 0, "tool": 0, "found": 0, "ours": 0})
@@ -329,6 +347,14 @@ def main():
                "without_level1_symbol": without_symbol(import_stats),
                "by_origin": by_origin(rows),
                "level2_run": run_report, "verified_only": opt.verified_only, "certain_only": opt.certain_only, "no_overrides": opt.no_overrides, "by_kind": by_kind}
+    return summary
+
+
+def main():
+    opt = options()
+    picked, targets, sets, symbols, used, kinds, import_stats, run_report = measure(opt)
+    rows, *counts = compare(picked, targets, sets, symbols, used, kinds)
+    summary = summarize(opt, rows, counts, import_stats, run_report)
     if opt.json:
         print(json.dumps({"summary": summary, "rows": rows}, indent=1))
     else:

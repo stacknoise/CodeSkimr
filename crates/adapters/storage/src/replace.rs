@@ -15,22 +15,19 @@ use crate::headers::{
 use crate::previous::load_latest_index;
 use crate::projects::load_layers;
 use crate::read_models;
+use crate::references::id_set;
 use crate::sql;
 
-/// Whether `query` finds a row for the snapshot and the id.
-fn holds(conn: &Connection, query: &str, snapshot: i64, id: u64) -> StorageResult<bool> {
-    Ok(conn
-        .prepare_cached(query)?
-        .query_row(params![snapshot, column_int(id)?], |row| row.get(0))?)
+/// Whether `id` is in `ids`; an id beyond the column range is in none.
+fn contains(ids: &HashSet<i64>, id: u64) -> bool {
+    column_int(id).is_ok_and(|value| ids.contains(&value))
 }
 
-/// Fails with `DanglingReference` unless every file is in the snapshot.
+/// Fails with `DanglingReference` unless every file is in the snapshot. The files of the snapshot
+/// are read once, so the check costs one query however many files there are.
 fn check_files(conn: &Connection, snapshot: i64, change: &Level2Replacement) -> StorageResult<()> {
-    let mut ok = true;
-    for file in &change.files {
-        ok &= holds(conn, sql::FILE_IN_SNAPSHOT, snapshot, file.get())?;
-    }
-    if ok {
+    let held = id_set(conn, sql::FILE_IDS, snapshot)?;
+    if change.files.iter().all(|file| contains(&held, file.get())) {
         Ok(())
     } else {
         Err(StorageError::DanglingReference)
@@ -39,22 +36,20 @@ fn check_files(conn: &Connection, snapshot: i64, change: &Level2Replacement) -> 
 
 /// Fails with `DanglingReference` unless every new symbol is of origin `index` and stands in one
 /// of the files, and every parent is a stored symbol of the snapshot or a new one of the same
-/// file. Run after the symbols are inserted.
-fn check_symbols(
-    conn: &Connection,
-    snapshot: i64,
-    change: &Level2Replacement,
-) -> StorageResult<()> {
+/// file. `held` are the symbols of the snapshot, read after the new ones are inserted.
+fn check_symbols(held: &HashSet<i64>, change: &Level2Replacement) -> StorageResult<()> {
     let files: HashSet<FileId> = change.files.iter().copied().collect();
     let files_of: BTreeMap<_, _> = change.symbols.iter().map(|s| (s.id, s.file)).collect();
-    let mut ok = true;
-    for symbol in &change.symbols {
-        ok &= symbol.origin == SymbolOrigin::Index && files.contains(&symbol.file);
-        if let Some(parent) = symbol.parent {
-            ok &= files_of.get(&parent) == Some(&symbol.file)
-                || holds(conn, sql::SYMBOL_IN_SNAPSHOT, snapshot, parent.get())?;
-        }
-    }
+    let ok = change.symbols.iter().all(|symbol| {
+        symbol.origin == SymbolOrigin::Index
+            && files.contains(&symbol.file)
+            && symbol
+                .parent
+                .is_none_or(|parent| match files_of.get(&parent) {
+                    Some(file) => *file == symbol.file,
+                    None => contains(held, parent.get()),
+                })
+    });
     if ok {
         Ok(())
     } else {
@@ -63,24 +58,14 @@ fn check_symbols(
 }
 
 /// Fails with `DanglingReference` unless every reference stands in one of the files and joins two
-/// symbols of the snapshot. Run after the symbols are inserted.
-fn check_references(
-    conn: &Connection,
-    snapshot: i64,
-    change: &Level2Replacement,
-) -> StorageResult<()> {
+/// symbols of the snapshot (`held`, read after the new symbols are inserted).
+fn check_references(held: &HashSet<i64>, change: &Level2Replacement) -> StorageResult<()> {
     let files: HashSet<u64> = change.files.iter().map(|file| file.get()).collect();
-    let mut ok = true;
-    for reference in &change.references {
-        ok &= files.contains(&reference.file.get())
-            && holds(
-                conn,
-                sql::SYMBOL_IN_SNAPSHOT,
-                snapshot,
-                reference.from.get(),
-            )?
-            && holds(conn, sql::SYMBOL_IN_SNAPSHOT, snapshot, reference.to.get())?;
-    }
+    let ok = change.references.iter().all(|reference| {
+        files.contains(&reference.file.get())
+            && contains(held, reference.from.get())
+            && contains(held, reference.to.get())
+    });
     if ok {
         Ok(())
     } else {
@@ -130,8 +115,9 @@ pub(crate) fn replace_level2(
     check_files(conn, snapshot, change)?;
     clear(conn, &change.files)?;
     insert_symbols(conn, &change.symbols)?;
-    check_symbols(conn, snapshot, change)?;
-    check_references(conn, snapshot, change)?;
+    let held = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
+    check_symbols(&held, change)?;
+    check_references(&held, change)?;
     let holders = holders(conn, change)?;
     let mut insert = conn.prepare_cached(sql::REFERENCE_INSERT)?;
     for reference in &change.references {

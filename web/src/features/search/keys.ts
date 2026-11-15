@@ -41,6 +41,38 @@ export interface SearchKeyActions {
   graph: (entry: Entry) => void;
 }
 
+/** Runs `Enter` (open), `Alt+Enter` (editor) or `Ctrl+Enter` (map); whether it ran. */
+function runEnter(
+  event: KeyboardEvent,
+  entry: Entry | undefined,
+  actions: SearchKeyActions,
+): boolean {
+  if (event.key !== KEY.enter || !entry) {
+    return false;
+  }
+  if (event.altKey && !event.ctrlKey) {
+    actions.editor(entry);
+  } else if (event.ctrlKey && !event.altKey) {
+    actions.graph(entry);
+  } else if (!event.ctrlKey && !event.altKey) {
+    actions.activate(entry);
+  } else {
+    return false;
+  }
+  return true;
+}
+
+/** Copies the name on `Ctrl+C` when no text of the input is selected; whether it was copied. */
+function runCopy(
+  event: KeyboardEvent,
+  entry: Entry | undefined,
+  actions: SearchKeyActions,
+  hasSelection: boolean,
+): boolean {
+  const asked = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === KEY.copy;
+  return asked && !!entry && !hasSelection && actions.copy(entry);
+}
+
 /** The keys of the overlay: arrows choose, `Enter` opens, `Ctrl+Enter` shows the layer in the map, `Tab` changes the filter, `Ctrl+C`
  * copies the name when no text of the input is selected, `Esc` closes. */
 export function onSearchKey(
@@ -56,24 +88,9 @@ export function onSearchKey(
     actions.close();
   } else if (moved !== NONE) {
     actions.choose(moved);
-  } else if (event.key === KEY.enter && entry && event.altKey && !event.ctrlKey) {
-    actions.editor(entry);
-  } else if (event.key === KEY.enter && entry && event.ctrlKey && !event.altKey) {
-    actions.graph(entry);
-  } else if (event.key === KEY.enter && entry && !event.ctrlKey && !event.altKey) {
-    actions.activate(entry);
   } else if (event.key === KEY.tab) {
     actions.chip(event.shiftKey ? STEP_UP : STEP_DOWN);
-  } else if (
-    (event.ctrlKey || event.metaKey) &&
-    event.key.toLowerCase() === KEY.copy &&
-    entry &&
-    !hasSelection
-  ) {
-    if (!actions.copy(entry)) {
-      return;
-    }
-  } else {
+  } else if (!runEnter(event, entry, actions) && !runCopy(event, entry, actions, hasSelection)) {
     return;
   }
   event.preventDefault();

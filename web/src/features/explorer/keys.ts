@@ -23,45 +23,53 @@ function plainKey(event: KeyboardEvent): string | null {
   return modified ? null : event.key.toLowerCase();
 }
 
+/** Runs the action of a member step (`Alt` and an arrow) or of a plain letter; whether it ran. */
+function runPlain(event: KeyboardEvent, keys: ExplorerKeys): boolean {
+  if (event.altKey && !event.ctrlKey && !event.metaKey && !isTyping(event.target)) {
+    const step = MEMBER_STEP[event.key];
+    if (step !== undefined) {
+      keys.member(step);
+      return true;
+    }
+  }
+  const plain = plainKey(event);
+  if (plain === KEY.usages) {
+    keys.usages();
+    return true;
+  }
+  if (plain === KEY.graph) {
+    keys.graph();
+    return true;
+  }
+  return false;
+}
+
+/** Runs the action of a `Ctrl` key (close the tree, show the selection); whether it ran. */
+function runControl(event: KeyboardEvent, keys: ExplorerKeys): boolean {
+  if (!event.ctrlKey || event.altKey || event.metaKey || isTyping(event.target)) {
+    return false;
+  }
+  if (event.key === KEY.left) {
+    keys.collapseAll();
+  } else if (event.key === KEY.reveal) {
+    keys.reveal();
+  } else {
+    return false;
+  }
+  return true;
+}
+
 /** Registers `Ctrl+Left` (close the whole tree), `Ctrl+.` (show the selection) and `U` (usages of
  * the selection), `G` (its layer in the dependency map) while the screen is shown. The plain arrows belong to the tree itself, so the page can still scroll. */
 export function useExplorerKeys(keys: ExplorerKeys): void {
   useKeydown((event) => {
-    if (isEditorShortcut(event)) {
+    const editor = isEditorShortcut(event);
+    if (editor) {
       keys.editor();
+    }
+    if (editor || runPlain(event, keys) || runControl(event, keys)) {
       event.preventDefault();
-      return;
     }
-    if (event.altKey && !event.ctrlKey && !event.metaKey && !isTyping(event.target)) {
-      const step = MEMBER_STEP[event.key];
-      if (step !== undefined) {
-        keys.member(step);
-        event.preventDefault();
-        return;
-      }
-    }
-    const plain = plainKey(event);
-    if (plain === KEY.usages) {
-      keys.usages();
-      event.preventDefault();
-      return;
-    }
-    if (plain === KEY.graph) {
-      keys.graph();
-      event.preventDefault();
-      return;
-    }
-    if (!event.ctrlKey || event.altKey || event.metaKey || isTyping(event.target)) {
-      return;
-    }
-    if (event.key === KEY.left) {
-      keys.collapseAll();
-    } else if (event.key === KEY.reveal) {
-      keys.reveal();
-    } else {
-      return;
-    }
-    event.preventDefault();
   });
 }
 

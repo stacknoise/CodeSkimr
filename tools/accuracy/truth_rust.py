@@ -69,17 +69,9 @@ class Lsp:
 
 
 def name_position(lines, target):
-    """Line and column of the declared name: the declaration may start above it (attributes, `pub`). A symbol that a macro
-    call generates (ADR 0055) spans the whole call, and its name may stand further down: the search runs to the end of the
-    symbol, and a line that is a comment is skipped."""
+    """Line and column of the declared name: the declaration may start above it (attributes, `pub`)."""
     pattern = re.compile(r"(?<![A-Za-z0-9_])" + re.escape(target["name"]) + r"(?![A-Za-z0-9_])")
-    created = target.get("origin") == "index"
-    last = target["line"] - 1 + LOOKAHEAD_LINES
-    if created:
-        last = max(target["end_line"], last)
-    for index in range(target["line"] - 1, min(len(lines), last)):
-        if created and lines[index].lstrip().startswith("//"):
-            continue
+    for index in range(target["line"] - 1, min(len(lines), target["line"] - 1 + LOOKAHEAD_LINES)):
         found = pattern.search(lines[index], target["column"] if index == target["line"] - 1 else 0)
         if found:
             return index, found.start()
@@ -99,9 +91,8 @@ def utf16(text, column):
     return len(text[:column].encode("utf-16-le")) // 2
 
 
-def main():
-    workspace, source = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve()
-    targets = json.load(sys.stdin)
+def start(workspace):
+    """Starts rust-analyzer on the workspace and waits until it is quiet."""
     lsp = Lsp(workspace)
     lsp.send({"id": 0, "method": "initialize", "params": {
         "processId": os.getpid(), "rootUri": workspace.as_uri(),
@@ -113,34 +104,46 @@ def main():
         pass
     lsp.send({"method": "initialized", "params": {}})
     lsp.wait_quiescent()
-    out, opened = [], set()
-    for target in targets:
-        path = workspace / target["file"]
-        text = path.read_text(encoding="utf-8")
-        lines = text.splitlines()
-        uses, position = set(), name_position(lines, target)
-        if position is None:
-            print(f"ra: {target['name']}: name not found", file=sys.stderr)
-        else:
-            if path not in opened:
-                lsp.send({"method": "textDocument/didOpen", "params": {"textDocument": {
-                    "uri": path.as_uri(), "languageId": "rust", "version": 1, "text": text}}})
-                opened.add(path)
-            line, column = position
-            result = lsp.request("textDocument/references", {
-                "textDocument": {"uri": path.as_uri()},
-                "position": {"line": line, "character": utf16(lines[line], column)},
-                "context": {"includeDeclaration": False}}) or []
-            at_name = {"line": line, "character": utf16(lines[line], column)}
-            for ref in result:
-                # A macro call that generates the symbol reports its own name token as a use (the generated code
-                # refers to the token that spells the name): that is the declaration, not a use (ADR 0055).
-                if target.get("origin") == "index" and ref["range"]["start"] == at_name and uri_path(ref["uri"]) == path.resolve():
-                    continue
-                file = uri_path(ref["uri"])
-                if file.is_relative_to(workspace) and (source / file.relative_to(workspace)).exists():
-                    uses.add((str(file.relative_to(workspace)).replace("\\", "/"), ref["range"]["start"]["line"] + 1))
-        out.append(sorted(uses))
+    return lsp
+
+
+def uses_of(lsp, workspace, source, target, opened):
+    """The (file, line) pairs that refer to the target, as rust-analyzer finds them."""
+    path = workspace / target["file"]
+    text = path.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    position = name_position(lines, target)
+    if position is None:
+        print(f"ra: {target['name']}: name not found", file=sys.stderr)
+        return set()
+    if path not in opened:
+        lsp.send({"method": "textDocument/didOpen", "params": {"textDocument": {
+            "uri": path.as_uri(), "languageId": "rust", "version": 1, "text": text}}})
+        opened.add(path)
+    line, column = position
+    result = lsp.request("textDocument/references", {
+        "textDocument": {"uri": path.as_uri()},
+        "position": {"line": line, "character": utf16(lines[line], column)},
+        "context": {"includeDeclaration": False}}) or []
+    uses = set()
+    at_name = {"line": line, "character": utf16(lines[line], column)}
+    for ref in result:
+        # A macro call that generates the symbol reports its own name token as a use (the generated
+        # code refers to the token that spells the name): that is the declaration, not a use (ADR 0055).
+        if target.get("origin") == "index" and ref["range"]["start"] == at_name and uri_path(ref["uri"]) == path.resolve():
+            continue
+        file = uri_path(ref["uri"])
+        if file.is_relative_to(workspace) and (source / file.relative_to(workspace)).exists():
+            uses.add((str(file.relative_to(workspace)).replace("\\", "/"), ref["range"]["start"]["line"] + 1))
+    return uses
+
+
+def main():
+    workspace, source = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve()
+    targets = json.load(sys.stdin)
+    lsp = start(workspace)
+    opened = set()
+    out = [sorted(uses_of(lsp, workspace, source, target, opened)) for target in targets]
     print(json.dumps(out))
     lsp.proc.kill()
 

@@ -606,6 +606,29 @@ impl<'a> Importer<'a> {
             .map_or(ReferenceKind::Read, |kind| kind_by_target(*kind))
     }
 
+    /// The targets of one occurrence with the kind each is used as: the kind level 1 gave at that
+    /// place, else the kind the target stands for, and the types of constructors.
+    fn aims(
+        &self,
+        file: FileId,
+        occurrence: &Occurrence,
+        targets: &[SymbolId],
+        level_one: &LevelOne<'_>,
+    ) -> Vec<(SymbolId, ReferenceKind)> {
+        let level_one_kind = level_one.kind_at(file, occurrence.range, targets);
+        let types = self.types_of_constructors(file, occurrence.range, targets, level_one);
+        let mut aims: Vec<(SymbolId, ReferenceKind)> = targets
+            .iter()
+            .copied()
+            .map(|to| {
+                let kind = level_one_kind.unwrap_or_else(|| self.kind_of_target(to));
+                (to, kind)
+            })
+            .collect();
+        aims.extend(types);
+        aims
+    }
+
     /// Step (c): the references of one occurrence, one per target; empty if it is dropped.
     fn place(
         &mut self,
@@ -623,17 +646,7 @@ impl<'a> Importer<'a> {
             return self.count(Count::Unmapped);
         };
         self.stats.mapped += 1;
-        let level_one_kind = level_one.kind_at(file, occurrence.range, &targets);
-        let types = self.types_of_constructors(file, occurrence.range, &targets, level_one);
-        let mut aims: Vec<(SymbolId, ReferenceKind)> = targets
-            .iter()
-            .copied()
-            .map(|to| {
-                let kind = level_one_kind.unwrap_or_else(|| self.kind_of_target(to));
-                (to, kind)
-            })
-            .collect();
-        aims.extend(types);
+        let aims = self.aims(file, occurrence, &targets, level_one);
         let mut placed = Vec::with_capacity(aims.len());
         for (to, kind) in aims {
             placed.push(Reference {
@@ -703,6 +716,37 @@ impl<'a> Importer<'a> {
         Vec::new()
     }
 
+    /// The references of one document: those of its occurrences and its implicit calls.
+    fn place_document(
+        &mut self,
+        document: &ScipDocument,
+        file: FileId,
+        level_one: &LevelOne<'_>,
+    ) -> Vec<Reference> {
+        self.locals = self
+            .locals_of(document, file)
+            .into_iter()
+            .map(|(at, targets)| (at, Rc::from(targets)))
+            .collect();
+        let mut found = Vec::new();
+        for occurrence in &document.occurrences {
+            if self
+                .heads
+                .contains(&(file, occurrence.range.start(), occurrence.symbol))
+            {
+                self.count(Count::Ignored);
+                continue;
+            }
+            found.extend(if occurrence.is_definition() {
+                self.place_override(file, occurrence)
+            } else {
+                self.place(file, occurrence, level_one)
+            });
+        }
+        found.extend(self.implicit_calls(file, document));
+        found
+    }
+
     /// The level 2 references of all covered documents, each place once.
     fn place_all(
         &mut self,
@@ -719,27 +763,7 @@ impl<'a> Importer<'a> {
             .collect();
         self.collect_superclasses(covered, level_one);
         for (document, file) in covered {
-            self.locals = self
-                .locals_of(document, *file)
-                .into_iter()
-                .map(|(at, targets)| (at, Rc::from(targets)))
-                .collect();
-            let mut found = Vec::new();
-            for occurrence in &document.occurrences {
-                if self
-                    .heads
-                    .contains(&(*file, occurrence.range.start(), occurrence.symbol))
-                {
-                    self.count(Count::Ignored);
-                    continue;
-                }
-                found.extend(if occurrence.is_definition() {
-                    self.place_override(*file, occurrence)
-                } else {
-                    self.place(*file, occurrence, level_one)
-                });
-            }
-            found.extend(self.implicit_calls(*file, document));
+            let found = self.place_document(document, *file, level_one);
             for reference in found {
                 let key = (reference.file, reference.from, reference.to, reference.span);
                 if seen.insert(key) {
