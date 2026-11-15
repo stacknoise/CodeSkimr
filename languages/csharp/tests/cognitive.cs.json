@@ -1,0 +1,435 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 84,
+      "operands": null,
+      "operators": null,
+      "symbol": "cognitive.cs"
+    },
+    {
+      "decisions": null,
+      "loc": 82,
+      "operands": null,
+      "operators": null,
+      "symbol": "Cognitive"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Cognitive.Straight"
+    },
+    {
+      "decisions": 3,
+      "loc": 11,
+      "operands": [
+        5,
+        11
+      ],
+      "operators": [
+        7,
+        10
+      ],
+      "symbol": "Cognitive.Nested"
+    },
+    {
+      "decisions": 2,
+      "loc": 6,
+      "operands": [
+        4,
+        7
+      ],
+      "operators": [
+        3,
+        7
+      ],
+      "symbol": "Cognitive.Chain"
+    },
+    {
+      "decisions": 3,
+      "loc": 4,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        3,
+        4
+      ],
+      "symbol": "Cognitive.Runs"
+    },
+    {
+      "decisions": 2,
+      "loc": 9,
+      "operands": [
+        5,
+        7
+      ],
+      "operators": [
+        7,
+        10
+      ],
+      "symbol": "Cognitive.Handler"
+    },
+    {
+      "decisions": 2,
+      "loc": 9,
+      "operands": [
+        3,
+        5
+      ],
+      "operators": [
+        3,
+        6
+      ],
+      "symbol": "Cognitive.Cases"
+    },
+    {
+      "decisions": 2,
+      "loc": 4,
+      "operands": [
+        5,
+        5
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Cognitive.Arms"
+    },
+    {
+      "decisions": 1,
+      "loc": 4,
+      "operands": [
+        6,
+        7
+      ],
+      "operators": [
+        7,
+        9
+      ],
+      "symbol": "Cognitive.Lambdas"
+    },
+    {
+      "decisions": 0,
+      "loc": 4,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "Cognitive.Local"
+    },
+    {
+      "decisions": 1,
+      "loc": 5,
+      "operands": [
+        3,
+        4
+      ],
+      "operators": [
+        3,
+        4
+      ],
+      "symbol": "Cognitive.Local.Inner"
+    },
+    {
+      "decisions": 4,
+      "loc": 13,
+      "operands": [
+        7,
+        9
+      ],
+      "operators": [
+        8,
+        9
+      ],
+      "symbol": "Cognitive.Loops"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "Cognitive.Cognitive"
+    },
+    {
+      "decisions": 0,
+      "loc": 4,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "Cognitive.Defaults"
+    },
+    {
+      "decisions": 0,
+      "loc": 4,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        3,
+        3
+      ],
+      "symbol": "Cognitive.Variadic"
+    }
+  ],
+  "loc": 84,
+  "references": [
+    {
+      "at": "2:6",
+      "from": "cognitive.cs",
+      "kind": "import",
+      "receiver": null,
+      "target": "System"
+    },
+    {
+      "at": "3:6",
+      "from": "cognitive.cs",
+      "kind": "import",
+      "receiver": null,
+      "target": "System.Linq"
+    },
+    {
+      "at": "35:25",
+      "from": "Cognitive.Handler",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "Parse"
+    },
+    {
+      "at": "36:15",
+      "from": "Cognitive.Handler",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "FormatException"
+    },
+    {
+      "at": "38:18",
+      "from": "Cognitive.Handler",
+      "kind": "read",
+      "receiver": "typed string",
+      "target": "Length"
+    },
+    {
+      "at": "60:21",
+      "from": "Cognitive.Lambdas",
+      "kind": "call",
+      "receiver": "typed int[]",
+      "target": "Select"
+    },
+    {
+      "at": "60:48",
+      "from": "Cognitive.Lambdas",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "Sum"
+    },
+    {
+      "at": "70:15",
+      "from": "Cognitive.Local",
+      "kind": "call",
+      "receiver": null,
+      "target": "Inner"
+    },
+    {
+      "at": "96:19",
+      "from": "Cognitive.Variadic",
+      "kind": "read",
+      "receiver": null,
+      "target": "rest"
+    },
+    {
+      "at": "96:24",
+      "from": "Cognitive.Variadic",
+      "kind": "read",
+      "receiver": "named rest",
+      "target": "Length"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "cognitive.cs",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-99:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "Cognitive",
+      "parent": "cognitive.cs",
+      "signature": null,
+      "span": "5:0-98:1",
+      "static": false,
+      "visibility": "internal"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Cognitive.Straight",
+      "parent": "Cognitive",
+      "signature": null,
+      "span": "7:4-7:41",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Cognitive.Nested",
+      "parent": "Cognitive",
+      "signature": null,
+      "span": "9:4-19:5",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Cognitive.Chain",
+      "parent": "Cognitive",
+      "signature": null,
+      "span": "21:4-26:5",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Cognitive.Runs",
+      "parent": "Cognitive",
+      "signature": null,
+      "span": "28:4-31:5",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Cognitive.Handler",
+      "parent": "Cognitive",
+      "signature": null,
+      "span": "33:4-41:5",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Cognitive.Cases",
+      "parent": "Cognitive",
+      "signature": null,
+      "span": "43:4-51:5",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Cognitive.Arms",
+      "parent": "Cognitive",
+      "signature": null,
+      "span": "53:4-56:5",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Cognitive.Lambdas",
+      "parent": "Cognitive",
+      "signature": null,
+      "span": "58:4-61:5",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Cognitive.Local",
+      "parent": "Cognitive",
+      "signature": null,
+      "span": "63:4-71:5",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "Cognitive.Local.Inner",
+      "parent": "Cognitive.Local",
+      "signature": null,
+      "span": "65:8-69:9",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Cognitive.Loops",
+      "parent": "Cognitive",
+      "signature": null,
+      "span": "73:4-85:5",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "constructor",
+      "name": "Cognitive.Cognitive",
+      "parent": "Cognitive",
+      "signature": null,
+      "span": "87:4-87:34",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Cognitive.Defaults",
+      "parent": "Cognitive",
+      "signature": null,
+      "span": "89:4-92:5",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "Cognitive.Variadic",
+      "parent": "Cognitive",
+      "signature": null,
+      "span": "94:4-97:5",
+      "static": false,
+      "visibility": "private"
+    }
+  ]
+}

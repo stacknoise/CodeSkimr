@@ -27,6 +27,41 @@ mod tests {
     }
 
     #[test]
+    fn cognitive_complexity_counts_structures_with_their_nesting() {
+        let found = by_name(&facts("csharp", "cognitive.cs"));
+        let cognitive = |name: &str| body(&found, name).cognitive;
+        assert_eq!(cognitive("Straight"), Some(0));
+        // if (+1), for (+2), inner if (+3)
+        assert_eq!(cognitive("Nested"), Some(6));
+        // if (+1), else if (+1 for its `else`), else (+1)
+        assert_eq!(cognitive("Chain"), Some(3));
+        // the `&&` run (+1) and `||` (+1)
+        assert_eq!(cognitive("Runs"), Some(2));
+        // catch (+1), the if inside it (+2); `try` adds nothing
+        assert_eq!(cognitive("Handler"), Some(3));
+        // switch (+1); the cases add nothing, nor do the arms of a switch expression
+        assert_eq!(cognitive("Cases"), Some(1));
+        assert_eq!(cognitive("Arms"), Some(1));
+        // the conditional in the lambda: +2 (nested once by the lambda)
+        assert_eq!(cognitive("Lambdas"), Some(2));
+        // a local function counts for itself: if (+1); the outer method has nothing
+        assert_eq!(cognitive("Inner"), Some(1));
+        assert_eq!(cognitive("Local"), Some(0));
+        // while (+1), foreach (+1), inner foreach (+2), if (+3), goto (+1)
+        assert_eq!(cognitive("Loops"), Some(8));
+    }
+
+    #[test]
+    fn parameters_are_counted_with_the_params_array() {
+        let found = by_name(&facts("csharp", "cognitive.cs"));
+        let parameters = |name: &str| body(&found, name).parameters;
+        assert_eq!(parameters("Straight"), Some(1));
+        assert_eq!(parameters("Runs"), Some(4));
+        assert_eq!(parameters("Defaults"), Some(2));
+        assert_eq!(parameters("Variadic"), Some(2));
+    }
+
+    #[test]
     fn halstead_counts_of_a_small_body() {
         let found = by_name(&facts("csharp", "metrics.cs"));
         // `return 1;` is one operator and one operand.
