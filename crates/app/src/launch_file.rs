@@ -10,6 +10,7 @@
 
 use std::fs::{self, DirBuilder, File, OpenOptions};
 use std::io::Write;
+use std::mem;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
@@ -44,8 +45,10 @@ impl LaunchFile {
         );
         let path = dir.join(random_name()?);
         let mut file = create_private(&path).map_err(unavailable)?;
-        let launch = Self { path };
+        // From here on the file is removed again when this value is dropped, also on an error.
+        let mut launch = Self { path };
         check_owner(dir, launch.path(), &file).map_err(unavailable)?;
+        launch.path = opener_path(mem::take(&mut launch.path));
         let page = Zeroizing::new(format!("{LAUNCH_PAGE_HEAD}{url}{LAUNCH_PAGE_TAIL}"));
         file.write_all(page.as_bytes()).map_err(unavailable)?;
         Ok(launch)
@@ -63,6 +66,17 @@ impl Drop for LaunchFile {
         // The file is gone or cannot be removed; either way there is nobody to tell.
         let _ = fs::remove_file(&self.path);
     }
+}
+
+/// The path as the system opener and the user know it: Windows resolves a folder to a `\\?\C:\...`
+/// path, which `explorer` does not reliably open. The file is removed through this path too.
+fn opener_path(path: PathBuf) -> PathBuf {
+    #[cfg(windows)]
+    {
+        PathBuf::from(crate::source_arg::display_path(&path.to_string_lossy()))
+    }
+    #[cfg(not(windows))]
+    path
 }
 
 /// Makes sure `dir` exists and nobody but the owner can enter it. Returns the folder to use from
@@ -432,5 +446,19 @@ mod tests {
         fs::remove_dir(&folder).unwrap();
         junction(&folder, &elsewhere);
         assert!(still_there(&resolved).is_err());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_junction_above_the_folder_is_followed_once_and_the_path_is_plain() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("target");
+        fs::create_dir(&target).unwrap();
+        let parent = dir.path().join("parent");
+        junction(&parent, &target);
+        let file = LaunchFile::create(&parent.join("launch"), URL, LIFETIME).unwrap();
+        assert!(file.path().is_file());
+        assert!(!file.path().to_string_lossy().starts_with("\\\\?\\"));
+        assert!(target.join("launch").is_dir());
     }
 }
