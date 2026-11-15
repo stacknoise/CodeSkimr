@@ -1,6 +1,6 @@
 # 0052 – Rust module paths do not contain `src` or the file name of a module root
 
-Status: proposed
+Status: accepted (Anton, 15 November 2026, decision card, option "Annehmen"; implementation is a separate work package, issue #336)
 
 Amends ADR 0036 for Rust: the file stays the first segment of a name, but `src` and the root file names are not part of it.
 
