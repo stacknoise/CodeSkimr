@@ -48,7 +48,7 @@ def scan(codeskimr, languages, source, data):
     return sqlite3.connect(max(dbs, key=lambda p: p.stat().st_size))
 
 
-def ours(db, verified_only=False, certain_only=False):
+def ours(db, verified_only=False, certain_only=False, skipped=("import",)):
     snapshot = db.execute("select max(id) from snapshots").fetchone()[0]
     files = dict(db.execute("select id, path from files where snapshot_id=?", (snapshot,)))
     symbols = {r[0]: r for r in db.execute(
@@ -56,7 +56,7 @@ def ours(db, verified_only=False, certain_only=False):
     used, kinds = {}, {}
     for to, file, line, kind, verified, confidence in db.execute(
             "select to_symbol, file_id, start_line, kind, verified, confidence from snapshot_references where snapshot_id=?", (snapshot,)):
-        if kind in ("import",) or (verified_only and not verified) or (certain_only and confidence != "certain"):
+        if kind in skipped or (verified_only and not verified) or (certain_only and confidence != "certain"):
             continue
         key = (files[file].replace("\\", "/"), line + 1)
         used.setdefault(to, set()).add(key)
@@ -227,6 +227,7 @@ def main():
     args.add_argument("--workspace", help="checkout prepared by hand for the reference tool instead of the corpus checkout (C#: restored, in the target framework of the container)")
     args.add_argument("--indexer", help="program that made the --scip index, for the version check (default: the usual name)")
     args.add_argument("--import-scip", default=str(ROOT / "target/debug/codeskimr_import_scip"), help="the measuring tool of --scip")
+    args.add_argument("--no-overrides", action="store_true", help="leave out the links of a method to the method it overrides (no compiler counts them as uses)")
     args.add_argument("--certain-only", action="store_true", help="count only references with confidence certain (blueprint 17.2: precision of certain)")
     args.add_argument("--verified-only", action="store_true", help="count only references that level 2 produced (verified)")
     opt = args.parse_args()
@@ -243,7 +244,7 @@ def main():
         db = scan(opt.codeskimr, opt.languages, tmp / "src", tmp / "data")
         if opt.scip:
             db = import_level2(opt, db, tmp / "src")
-        files, symbols, used, kinds = ours(db, opt.verified_only, opt.certain_only)
+        files, symbols, used, kinds = ours(db, opt.verified_only, opt.certain_only, ("import", "override") if opt.no_overrides else ("import",))
         # Drawn by qualified name so that two versions of the scanner see the same symbols.
         pool = sorted((s[4], i) for i, s in symbols.items() if s[2] in KINDS and not s[3].startswith("_"))
         rng = random.Random(opt.seed)
@@ -269,10 +270,17 @@ def main():
         k = by_kind.setdefault(r["kind"], {"symbols": 0, "exact": 0, "tool": 0, "found": 0, "ours": 0})
         k["symbols"] += 1; k["exact"] += r["exact"]; k["tool"] += r["tool"]; k["found"] += r["both"]; k["ours"] += r["ours"]
     n = len(rows)
+    # Symbols for which the reference tool finds no use at all but we do: the tool may be blind to them (Jedi does not
+    # follow `self.x` to a field declared in the class body), so their lines say nothing about our precision.
+    blind = [r for r in rows if r["tool"] == 0 and r["ours"] > 0]
+    judged = [r for r in rows if r not in blind]
+    judged_ours = sum(r["ours"] for r in judged)
     summary = {"language": opt.language, "samples": n, "exact": exact, "exact_rate": round(exact / n, 3) if n else None,
                "precision": round(tp / (tp + fp), 3) if tp + fp else None, "recall": round(tp / (tp + fn), 3) if tp + fn else None,
                "usages_ours": tp + fp, "usages_tool": tp + fn, "wrong_by_our_kind": dict(sorted(wrong_kinds.items(), key=lambda x: -x[1])),
-               "verified_only": opt.verified_only, "certain_only": opt.certain_only, "by_kind": by_kind}
+               "precision_where_tool_answers": round(sum(r["both"] for r in judged) / judged_ours, 3) if judged_ours else None,
+               "tool_silent": {"symbols": len(blind), "usages_ours": sum(r["ours"] for r in blind)},
+               "verified_only": opt.verified_only, "certain_only": opt.certain_only, "no_overrides": opt.no_overrides, "by_kind": by_kind}
     if opt.json:
         print(json.dumps({"summary": summary, "rows": rows}, indent=1))
     else:
