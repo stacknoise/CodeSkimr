@@ -122,6 +122,8 @@ fn check_private(dir: &Path) -> std::io::Result<PathBuf> {
         return Err(std::io::ErrorKind::PermissionDenied.into());
     }
     let resolved = fs::canonicalize(dir)?;
+    // Before the rules are set: a folder of someone else is refused as it is.
+    crate::windows_owner::check_folder(&resolved)?;
     crate::private_acl::restrict_to_user(&resolved)?;
     Ok(resolved)
 }

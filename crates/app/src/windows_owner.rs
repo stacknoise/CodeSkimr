@@ -14,7 +14,7 @@ use windows_permissions::utilities::current_process_sid;
 use windows_permissions::wrappers::GetSecurityInfo;
 use windows_permissions::{LocalBox, Sid};
 
-use crate::consts::{FILE_FLAG_BACKUP_SEMANTICS, TRUSTED_OWNER_SIDS};
+use crate::consts::{FILE_FLAG_BACKUP_SEMANTICS, FILE_FLAG_OPEN_REPARSE_POINT, TRUSTED_OWNER_SIDS};
 
 fn refused() -> io::Error {
     io::Error::from(io::ErrorKind::PermissionDenied)
@@ -50,11 +50,12 @@ pub(crate) fn check_handle(handle: &File) -> io::Result<()> {
     }
 }
 
-/// Fails unless the folder belongs to a trusted owner.
+/// Fails unless the folder belongs to a trusted owner. A link is not followed: it would count with
+/// the owner of the link itself and not of its target (links are refused elsewhere).
 pub(crate) fn check_folder(dir: &Path) -> io::Result<()> {
     let handle = OpenOptions::new()
         .read(true)
-        .custom_flags(FILE_FLAG_BACKUP_SEMANTICS)
+        .custom_flags(FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_REPARSE_POINT)
         .open(dir)?;
     check_handle(&handle)
 }
