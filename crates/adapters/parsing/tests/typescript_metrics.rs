@@ -28,26 +28,21 @@ mod tests {
     #[test]
     fn cognitive_complexity_counts_structures_with_their_nesting() {
         let found = by_name(&facts("typescript", "cognitive.ts"));
-        let cognitive = |name: &str| body(&found, name).cognitive;
-        assert_eq!(cognitive("straight"), Some(0));
-        // if (+1), for (+2), inner if (+3)
-        assert_eq!(cognitive("nested"), Some(6));
-        // if (+1), else if (+1 for its `else`), else (+1)
-        assert_eq!(cognitive("chain"), Some(3));
-        // the `&&` run (+1) and `||` (+1)
-        assert_eq!(cognitive("runs"), Some(2));
-        // catch (+1), the if inside it (+2); `try` adds nothing
-        assert_eq!(cognitive("handler"), Some(3));
-        // the conditional in the callback: +2 (nested once by the callback)
-        assert_eq!(cognitive("callbacks"), Some(2));
-        // a `const` arrow function starts at depth zero: if (+1)
-        assert_eq!(cognitive("arrow"), Some(1));
-        // switch (+1); the cases add nothing
-        assert_eq!(cognitive("branches"), Some(1));
-        // while (+1), do (+1), for of (+1), inner for of (+2), if (+3), `continue outer` (+1)
-        assert_eq!(cognitive("loops"), Some(9));
-        // the conditional (+1)
-        assert_eq!(cognitive("method"), Some(1));
+        let expected = [
+            ("straight", 0),
+            ("nested", 6),    // if (+1), for (+2), inner if (+3)
+            ("chain", 3),     // if (+1), else if (+1 for its `else`), else (+1)
+            ("runs", 2),      // the `&&` run (+1) and `||` (+1)
+            ("handler", 3),   // catch (+1), the if inside it (+2); `try` adds nothing
+            ("callbacks", 2), // the conditional in the callback: +2 (nested once by the callback)
+            ("arrow", 1),     // a `const` arrow function starts at depth zero: if (+1)
+            ("branches", 1),  // switch (+1); the cases add nothing
+            ("loops", 9), // while (+1), do (+1), for of (+1), inner for of (+2), if (+3), `continue outer` (+1)
+            ("method", 1), // the conditional (+1)
+        ];
+        for (name, value) in expected {
+            assert_eq!(body(&found, name).cognitive, Some(value), "{name}");
+        }
     }
 
     #[test]
