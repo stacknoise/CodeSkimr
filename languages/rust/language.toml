@@ -24,6 +24,8 @@ grammar = "rust"
 tier = "full"
 extensions = ["rs"]
 separator = "::"
+# A member always needs its receiver: a bare name in a function is a local or an outer name (ADR 0053).
+bare_names_reach_members = false
 comment_nodes = ["line_comment", "block_comment"]
 manifest_files = ["Cargo.toml", "rust-toolchain.toml", "rust-toolchain"]
 test_patterns = [
