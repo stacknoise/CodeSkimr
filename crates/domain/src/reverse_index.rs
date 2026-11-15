@@ -124,9 +124,9 @@ impl ReverseIndex {
     }
 
     /// The symbols a walk reaches, verified ones first and then nearest first, each once, without
-    /// the start symbol. With
-    /// `Direction::Incoming` this is everything a change of the start symbol can affect. A symbol
-    /// counts as verified if one path of verified references reaches it in the nearest step.
+    /// the start symbol. With `Direction::Incoming` this is everything a change of the start
+    /// symbol can affect. A symbol counts as verified if one path of verified references reaches
+    /// it in the nearest step.
     #[must_use]
     pub fn reached(&self, query: &UsageQuery) -> Vec<Reached> {
         let mut found = Vec::new();
