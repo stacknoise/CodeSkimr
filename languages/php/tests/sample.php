@@ -29,9 +29,8 @@ function helper(int $x): int {
     return $x ?: 0;
 }
 
-namespace Shop\Second;
+namespace Other;
 
-/** Known gap of the basic tier: a second namespace without braces is nested in the first. */
-function second(): int {
-    return 1;
+class Second {
+    public function run() {}
 }
