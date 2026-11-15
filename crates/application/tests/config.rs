@@ -12,6 +12,12 @@ fn project(text: &str) -> ConfigLayer {
 }
 
 #[test]
+fn the_budget_of_loading_the_language_packs_is_in_the_defaults() {
+    let config = Config::defaults().expect("shipped defaults are valid");
+    assert_eq!(config.budgets.pack_load_ms, 1500);
+}
+
+#[test]
 fn defaults_match_the_blueprint() {
     let config = Config::defaults().expect("shipped defaults are valid");
     assert_eq!(config.metrics.cyclomatic_good_max, 5);
