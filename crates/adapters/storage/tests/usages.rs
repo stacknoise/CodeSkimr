@@ -307,4 +307,26 @@ mod tests {
         store.persist(later_scan(2, 20)).unwrap();
         assert_eq!(store.kept_snapshot(), Some(SNAPSHOT));
     }
+
+    #[test]
+    fn a_verified_usage_beyond_the_limit_is_not_cut_away() {
+        let symbols = vec![
+            symbol(21, 11, SymbolKind::Method, "App.Used", None),
+            symbol(22, 11, SymbolKind::Method, "App.First", None),
+            symbol(23, 11, SymbolKind::Method, "App.Second", None),
+        ];
+        let mut checked = reference(32, 11, 23, 21);
+        checked.verified = true;
+        let store = scanned(
+            &[],
+            symbols,
+            vec![reference(31, 11, 22, 21), checked],
+            vec![],
+        );
+        let page = store
+            .usages(SNAPSHOT, &query(21, Direction::Incoming, 1), 1)
+            .unwrap();
+        assert_eq!(page.total, 2);
+        assert!(page.entries[0].reference.verified);
+    }
 }

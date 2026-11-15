@@ -199,8 +199,7 @@ impl UsagesPorts {
         query: &UsageQuery,
     ) -> Result<Walk, CodedError> {
         let page = self.usages.usages(snapshot, query, USAGES_LIMIT)?;
-        let mut hits: Vec<Hit> = page.entries.iter().map(|e| hit(project, e)).collect();
-        hits.sort_by_key(|found| (!found.verified, found.depth));
+        let hits: Vec<Hit> = page.entries.iter().map(|e| hit(project, e)).collect();
         Ok(Walk {
             total: page.total,
             hits,
