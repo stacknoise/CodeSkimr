@@ -821,6 +821,7 @@ fn random_changes_of_a_csharp_project_give_the_references_of_a_full_scan() {
     for seed in 1..=3 {
         random_project_stays_equal(seed, 8);
     }
+}
 
 /// A file of tests next to the code it tests: its uses are `test` references (issue #406).
 const TEST_FILE: Change = (
