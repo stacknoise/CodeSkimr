@@ -24,7 +24,7 @@ Seed 1, 150 symbols (the draw of the earlier hand-made measurements) and seed 2,
 | C# | 2 / 300 | 287 | 93.3 % | 84.3 % | 927 / 1026 | 15 s | not met (indexer, #258) |
 | Kotlin | | | | | | | **not measured** |
 
-The seed 1 figures equal, usage for usage, the hand-made measurements of `docs/accuracy.md` (Rust after #240 and #241, TypeScript 668 of 672, Python 347 of 548, Java 556 of 556, C# 68 of 113), so the runner, the consent and the wiring add nothing and lose nothing compared with the import alone.
+The seed 1 figures equal, usage for usage, the hand-made measurements of `docs/accuracy.md` for TypeScript (668 of 672), Python (548 ours, 350 of the tool, 347 right), Java (556 of 556) and C# (68 of 113 there), so for these the runner, the consent and the wiring add nothing and lose nothing compared with the import alone. **Rust differs:** `docs/accuracy.md` has 733 of 733 usages (hand-made, 2026-11-14, `main` at b43a378 plus the fixes #240 and #241), this run has 747 ours and 748 of the tool. The two are not the same sample: the symbols are drawn from the symbols of level 1, and the Rust pack changed in between (for example #377), so the same seed draws other symbols and the usage counts differ. This is the likely cause, **not verified** (the hand-made run was not repeated with the old binary). Both runs are at or above 99 %; the hand-made Rust figure is not wrong for its binary, it is not comparable one to one.
 
 ## Deviations, classified
 
