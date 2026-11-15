@@ -10,6 +10,7 @@
 
 use std::fs::{self, DirBuilder, File, OpenOptions};
 use std::io::Write;
+use std::mem;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
@@ -36,15 +37,18 @@ impl LaunchFile {
     /// `APP-202` if the folder cannot be made private or the file cannot be created.
     pub fn create(dir: &Path, url: &str, lifetime: Duration) -> Result<Self, CodedError> {
         let unavailable = |_| CodedError::new(ErrorCode::LaunchFileUnavailable);
-        private_dir(dir).map_err(unavailable)?;
+        let dir = private_dir(dir).map_err(unavailable)?;
+        let dir = dir.as_path();
         remove_stale(
             dir,
             lifetime + Duration::from_secs(LAUNCH_FILE_GRACE_SECONDS),
         );
         let path = dir.join(random_name()?);
         let mut file = create_private(&path).map_err(unavailable)?;
-        let launch = Self { path };
+        // From here on the file is removed again when this value is dropped, also on an error.
+        let mut launch = Self { path };
         check_owner(dir, launch.path(), &file).map_err(unavailable)?;
+        launch.path = opener_path(mem::take(&mut launch.path));
         let page = Zeroizing::new(format!("{LAUNCH_PAGE_HEAD}{url}{LAUNCH_PAGE_TAIL}"));
         file.write_all(page.as_bytes()).map_err(unavailable)?;
         Ok(launch)
@@ -64,8 +68,25 @@ impl Drop for LaunchFile {
     }
 }
 
-/// Makes sure `dir` exists and nobody but the owner can enter it.
-fn private_dir(dir: &Path) -> std::io::Result<()> {
+/// The path as the system opener and the user know it: Windows resolves a folder to a `\\?\C:\...`
+/// path, which `explorer` does not reliably open. The file is removed through this path too.
+fn opener_path(path: PathBuf) -> PathBuf {
+    #[cfg(windows)]
+    {
+        // A path that is not valid text stays as it is, so that it still names the file.
+        path.to_str().map_or_else(
+            || path.clone(),
+            |text| PathBuf::from(crate::source_arg::display_path(text)),
+        )
+    }
+    #[cfg(not(windows))]
+    path
+}
+
+/// Makes sure `dir` exists and nobody but the owner can enter it. Returns the folder to use from
+/// here on: on Windows the folder resolved once, so that the access rules and the file go to the
+/// place that was checked and not to whatever the name leads to a moment later.
+fn private_dir(dir: &Path) -> std::io::Result<PathBuf> {
     let mut builder = DirBuilder::new();
     builder.recursive(true);
     #[cfg(unix)]
@@ -77,7 +98,7 @@ fn private_dir(dir: &Path) -> std::io::Result<()> {
 /// A folder that is a link, or that others may enter, is refused: a launch file there could be
 /// read by someone else.
 #[cfg(unix)]
-fn check_private(dir: &Path) -> std::io::Result<()> {
+fn check_private(dir: &Path) -> std::io::Result<PathBuf> {
     use std::os::unix::fs::{MetadataExt, PermissionsExt};
 
     use crate::consts::{LAUNCH_DIR_MODE, OTHERS_MODE_MASK};
@@ -89,24 +110,29 @@ fn check_private(dir: &Path) -> std::io::Result<()> {
     if meta.mode() & OTHERS_MODE_MASK != 0 {
         fs::set_permissions(dir, fs::Permissions::from_mode(LAUNCH_DIR_MODE))?;
     }
-    Ok(())
+    Ok(dir.to_path_buf())
 }
 
 /// On Windows the folder gets access rules for the user alone: what it inherits from its parent
-/// may let others in (a data folder below a drive root).
-#[cfg(not(unix))]
-fn check_private(dir: &Path) -> std::io::Result<()> {
+/// may let others in (a data folder below a drive root). The folder is resolved once, the rules
+/// are set on the resolved path and that path is returned (see `still_there`).
+#[cfg(windows)]
+fn check_private(dir: &Path) -> std::io::Result<PathBuf> {
+    if !fs::symlink_metadata(dir)?.is_dir() || is_reparse_point(dir)? {
+        return Err(std::io::ErrorKind::PermissionDenied.into());
+    }
+    let resolved = fs::canonicalize(dir)?;
+    crate::private_acl::restrict_to_user(&resolved)?;
+    Ok(resolved)
+}
+
+/// Other systems without a Unix mode only need a folder.
+#[cfg(not(any(unix, windows)))]
+fn check_private(dir: &Path) -> std::io::Result<PathBuf> {
     if !fs::symlink_metadata(dir)?.is_dir() {
         return Err(std::io::ErrorKind::InvalidInput.into());
     }
-    #[cfg(windows)]
-    {
-        if is_reparse_point(dir)? {
-            return Err(std::io::ErrorKind::PermissionDenied.into());
-        }
-        crate::private_acl::restrict_to_user(dir)?;
-    }
-    Ok(())
+    Ok(dir.to_path_buf())
 }
 
 /// The folder and everything above it must belong to the user (the file just created tells who
@@ -145,18 +171,32 @@ fn check_owner(dir: &Path, path: &Path, own_file: &File) -> std::io::Result<()> 
     Ok(())
 }
 
-/// On Windows only the folder and the file themselves are checked, not the folders above them and
-/// not who owns the folder, and the folder is not compared with what it resolved to before the
-/// access rules were set (open points of issue #372; this is not the Unix check). The access
-/// rules of the folder are set for the user alone (see `check_private`). A folder or file that is
-/// a reparse point (a junction or a link) is refused: it could lead to a place that others can
-/// read, and the access rules would be set on that place instead.
+/// On Windows the folder and the file themselves are checked, and the folder must still resolve
+/// to the path that was resolved before the access rules were set (see `still_there`). Not
+/// checked: the folders above it and who owns the folder (open points of issue #372; this is not
+/// the Unix check). The access rules of the folder are set for the user alone (see
+/// `check_private`). A folder or file that is a reparse point (a junction or a link) is refused:
+/// it could lead to a place that others can read, and the access rules would be set on that
+/// place instead.
 #[cfg(windows)]
 fn check_owner(dir: &Path, path: &Path, _own_file: &File) -> std::io::Result<()> {
     if is_reparse_point(dir)? || is_reparse_point(path)? {
         return Err(std::io::ErrorKind::PermissionDenied.into());
     }
-    Ok(())
+    still_there(dir)
+}
+
+/// The folder that was resolved before its access rules were set must resolve to itself still:
+/// if a part of its path was turned into a link since, it leads somewhere else now and the file
+/// was created there. A swap that is undone before this check is not seen; closing that needs the
+/// open file (issue #372).
+#[cfg(windows)]
+fn still_there(resolved: &Path) -> std::io::Result<()> {
+    if fs::canonicalize(resolved)? == resolved {
+        Ok(())
+    } else {
+        Err(std::io::ErrorKind::PermissionDenied.into())
+    }
 }
 
 /// Whether `path` itself (not what it points to) is a reparse point.
@@ -395,5 +435,48 @@ mod tests {
         assert!(path.is_file());
         drop(file);
         assert!(!path.exists());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_folder_that_leads_elsewhere_now_is_not_the_one_that_was_checked() {
+        let dir = tempfile::tempdir().unwrap();
+        let folder = dir.path().join("launch");
+        fs::create_dir(&folder).unwrap();
+        let resolved = fs::canonicalize(&folder).unwrap();
+        assert!(still_there(&resolved).is_ok());
+        let elsewhere = dir.path().join("elsewhere");
+        fs::create_dir(&elsewhere).unwrap();
+        fs::remove_dir(&folder).unwrap();
+        junction(&folder, &elsewhere);
+        assert!(still_there(&resolved).is_err());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_junction_above_the_folder_is_followed_once_and_the_path_is_plain() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("target");
+        fs::create_dir(&target).unwrap();
+        let parent = dir.path().join("parent");
+        junction(&parent, &target);
+        let file = LaunchFile::create(&parent.join("launch"), URL, LIFETIME).unwrap();
+        assert!(file.path().is_file());
+        assert!(!file.path().to_string_lossy().starts_with("\\\\?\\"));
+        assert!(target.join("launch").is_dir());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_parent_that_was_turned_into_a_junction_is_seen() {
+        let dir = tempfile::tempdir().unwrap();
+        let parent = dir.path().join("parent");
+        fs::create_dir_all(parent.join("launch")).unwrap();
+        let resolved = fs::canonicalize(parent.join("launch")).unwrap();
+        let elsewhere = dir.path().join("elsewhere");
+        fs::create_dir_all(elsewhere.join("launch")).unwrap();
+        fs::remove_dir_all(&parent).unwrap();
+        junction(&parent, &elsewhere);
+        assert!(still_there(&resolved).is_err());
     }
 }

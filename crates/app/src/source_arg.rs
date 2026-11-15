@@ -108,7 +108,7 @@ pub fn folder_spec(folder: &Path) -> Result<SourceSpec, CodedError> {
 
 /// Windows answers `canonicalize` with a `\\?\C:\…` path; the plain form is what users know.
 /// A UNC path (`\\?\UNC\…`) keeps its prefix.
-fn display_path(path: &str) -> String {
+pub(crate) fn display_path(path: &str) -> String {
     path.strip_prefix(VERBATIM_PREFIX)
         .filter(|rest| !rest.starts_with(VERBATIM_UNC))
         .unwrap_or(path)
