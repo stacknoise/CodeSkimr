@@ -207,14 +207,14 @@
       "at": "66:15",
       "from": "metrics::not_counted",
       "kind": "read",
-      "receiver": null,
+      "receiver": "free",
       "target": "None"
     },
     {
       "at": "68:13",
       "from": "metrics::not_counted",
       "kind": "call",
-      "receiver": null,
+      "receiver": "free",
       "target": "Some"
     },
     {
@@ -242,7 +242,7 @@
       "at": "76:46",
       "from": "metrics::outer",
       "kind": "call",
-      "receiver": null,
+      "receiver": "free",
       "target": "local"
     },
     {
