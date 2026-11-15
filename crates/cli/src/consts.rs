@@ -129,6 +129,8 @@ pub mod arg {
     pub const PROJECT: &str = "project";
     /// `{ $language }`: name of a language.
     pub const LANGUAGE: &str = "language";
+    /// `{ $count }`: how many times something happened.
+    pub const COUNT: &str = "count";
     /// `{ $stale }`: files that changed since the scan.
     pub const STALE: &str = "stale";
     /// `{ $reason }`: why level 2 was skipped.

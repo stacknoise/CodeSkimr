@@ -148,7 +148,7 @@ impl Scanner {
                 if snapshot != persisted.snapshot {
                     self.created(&snapshot);
                 }
-                JobResult::Finished(job.finish(snapshot, reports))
+                JobResult::Finished(job.finish(snapshot, reports, persisted.warnings))
             }
             Err(Halt::Cancelled(_)) => {
                 self.stopped(project_id, StopReason::Cancelled);
