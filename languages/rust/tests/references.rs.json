@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 76,
+      "loc": 80,
       "operands": null,
       "operators": null,
       "symbol": "references"
@@ -86,9 +86,22 @@
         26
       ],
       "symbol": "references::bindings"
+    },
+    {
+      "decisions": 0,
+      "loc": 4,
+      "operands": [
+        6,
+        7
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "references::variants"
     }
   ],
-  "loc": 76,
+  "loc": 80,
   "references": [
     {
       "at": "2:23",
@@ -593,6 +606,69 @@
       "kind": "call",
       "receiver": "free",
       "target": "first_value"
+    },
+    {
+      "at": "88:24",
+      "from": "references::variants",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Outer"
+    },
+    {
+      "at": "89:23",
+      "from": "references::variants",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Circle"
+    },
+    {
+      "at": "89:32",
+      "from": "references::variants",
+      "kind": "write",
+      "receiver": "unknown",
+      "target": "radius"
+    },
+    {
+      "at": "90:4",
+      "from": "references::variants",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Outer"
+    },
+    {
+      "at": "90:12",
+      "from": "references::variants",
+      "kind": "write",
+      "receiver": "typed Outer",
+      "target": "inner"
+    },
+    {
+      "at": "90:19",
+      "from": "references::variants",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Pair"
+    },
+    {
+      "at": "90:26",
+      "from": "references::variants",
+      "kind": "write",
+      "receiver": "typed Pair",
+      "target": "left"
+    },
+    {
+      "at": "90:36",
+      "from": "references::variants",
+      "kind": "write",
+      "receiver": "typed Pair",
+      "target": "right"
+    },
+    {
+      "at": "90:48",
+      "from": "references::variants",
+      "kind": "read",
+      "receiver": "typed Outer",
+      "target": "shape"
     }
   ],
   "symbols": [
@@ -602,7 +678,7 @@
       "name": "references",
       "parent": null,
       "signature": null,
-      "span": "0:0-87:0",
+      "span": "0:0-92:0",
       "static": false,
       "visibility": null
     },
@@ -743,6 +819,16 @@
       "parent": "references",
       "signature": null,
       "span": "70:0-86:1",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "references::variants",
+      "parent": "references",
+      "signature": null,
+      "span": "88:0-91:1",
       "static": false,
       "visibility": "private"
     }
