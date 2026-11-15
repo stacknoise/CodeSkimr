@@ -6,7 +6,7 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    LanguageShare, ProjectCatalog, ProjectOverview, ProjectToolCheck,
+    LanguageShare, ProjectCatalog, ProjectOverview, ProjectToolCheck, ScanWarning,
 };
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_application::tools::ToolsView;
@@ -122,6 +122,14 @@ fn language_row(share: &LanguageShare, context: &Context) -> LanguageRow {
     }
 }
 
+/// The row of one scan warning.
+fn warning_row(warning: &ScanWarning) -> WarningRow {
+    WarningRow {
+        code: warning.code.id(),
+        count: warning.count,
+    }
+}
+
 fn project_row(
     overview: &ProjectOverview,
     running: bool,
@@ -153,14 +161,7 @@ fn project_row(
             .iter()
             .map(|share| language_row(share, context))
             .collect(),
-        warnings: overview
-            .warnings
-            .iter()
-            .map(|warning| WarningRow {
-                code: warning.code.id(),
-                count: warning.count,
-            })
-            .collect(),
+        warnings: overview.warnings.iter().map(warning_row).collect(),
         running,
         tools,
     }
