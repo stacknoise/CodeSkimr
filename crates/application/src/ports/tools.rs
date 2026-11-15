@@ -35,12 +35,39 @@ pub trait ToolCatalog: Send + Sync {
     fn plan_of(&self, language: &LanguageId) -> Option<ToolPlan>;
 }
 
+/// What one project file says about a tool: the version it names and the policy that limits how
+/// far above it a tool may go.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RequirementValue {
+    /// The version text.
+    pub version: String,
+    /// The text of the limiting policy (`rollForward`), if the file holds one.
+    pub policy: Option<String>,
+}
+
 /// Reads the version a project requires from one of its files (adapter: `codeskimr_source`).
 pub trait RequirementReader: Send + Sync {
     /// The version text that `requirement` finds in the project `source`, or `None` if the file
     /// is missing, too large, unreadable, not as described, or not inside the project (a path
     /// that leaves the project root, also through a link, is never read).
     fn read(&self, source: &ProjectSource, requirement: &RequirementSpec) -> Option<String>;
+
+    /// What every file of that name in the project says, in the root and in the folders below it
+    /// (nested solutions and workspaces have their own). The default reads only the root and
+    /// knows no policy.
+    fn read_all(
+        &self,
+        source: &ProjectSource,
+        requirement: &RequirementSpec,
+    ) -> Vec<RequirementValue> {
+        self.read(source, requirement)
+            .map(|version| RequirementValue {
+                version,
+                policy: None,
+            })
+            .into_iter()
+            .collect()
+    }
 }
 
 /// Keeps the newest check of each project (adapter: `codeskimr_storage`).

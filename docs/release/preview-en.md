@@ -4,7 +4,7 @@ First version to try out. **This is not 1.0.** Built for Windows (x86_64), Linux
 
 ## Install
 
-Windows: unpack the `.zip`, run `.\codeskimr.exe` in the folder (keep `languages\` next to it; SmartScreen may warn because the program is not signed yet). Linux: `tar xzf` the `.tar.gz`, run `./codeskimr` (needs a Secret Service such as GNOME Keyring or KWallet, otherwise `SEC-601`). The program starts the local server and opens the browser. Compare the SHA-256 with the `.sha256` file if you like.
+Windows: unpack the `.zip`, run `.\codeskimr.exe` in the folder (SmartScreen may warn because the program is not signed yet). Linux: `tar xzf` the `.tar.gz`, run `./codeskimr` (needs a Secret Service such as GNOME Keyring or KWallet, otherwise `SEC-601`). The program starts the local server and opens the browser. Compare the SHA-256 with the `.sha256` file if you like.
 
 macOS: `tar xzf` the `.tar.gz`, run `xattr -dr com.apple.quarantine .` in the folder (the program is not signed yet), then `./codeskimr`.
 

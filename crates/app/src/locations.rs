@@ -38,6 +38,9 @@ pub struct Locations {
     /// Where a relative folder such as the built UI is looked up: next to the program, then in
     /// the current folder.
     pub bases: Vec<PathBuf>,
+    /// The folder of the program itself, if known. A `languages/` folder here is a deliberate
+    /// installation; one in the current folder is not.
+    pub program_dir: Option<PathBuf>,
 }
 
 /// The platform folders that differ between data and configuration.
@@ -84,6 +87,7 @@ impl Locations {
                 executable_dir.unwrap_or(current_dir).to_path_buf(),
                 current_dir.to_path_buf(),
             ],
+            program_dir: executable_dir.map(Path::to_path_buf),
         })
     }
 

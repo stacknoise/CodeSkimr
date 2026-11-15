@@ -2,16 +2,20 @@
 
 use std::fs;
 use std::path::Path;
-use std::time::{Duration, SystemTime};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::consts::{WORK_PREFIX, WORK_SEPARATOR};
 
 /// Removes the clone folders of fetches in which nothing changed for `max_age`. A running clone
 /// keeps writing files below its folder (the folder itself changes only when entries are added
-/// to it), so the newest change anywhere in the tree tells a crash from a slow fetch. The parked
-/// copy of a swap (`<id>-.work-`) is left alone: it keeps the age of the old clone and is only
-/// there for the moment of the swap. Failures are ignored: a folder that cannot be removed now is
-/// tried again by the next fetch.
+/// to it), so the newest change anywhere in the tree tells a crash from a slow fetch.
+///
+/// The parked copy of a swap (`<id>-.work-`) is the old clone and keeps its old modification
+/// times, so they say nothing about when the swap happened. Its name carries the start of the
+/// fetch instead: a parked copy whose fetch started `max_age` ago or earlier is a leftover of a
+/// crash between parking and putting the new clone in place. If it was still in use, the cost is
+/// one more clone. Failures are ignored: a folder that cannot be removed now is tried again by the
+/// next fetch.
 pub fn remove_left_behind(cache_root: &Path, max_age: Duration) {
     let Ok(entries) = fs::read_dir(cache_root) else {
         return;
@@ -19,17 +23,37 @@ pub fn remove_left_behind(cache_root: &Path, max_age: Duration) {
     let now = SystemTime::now();
     for entry in entries.flatten() {
         let name = entry.file_name().to_string_lossy().into_owned();
-        let is_fresh_folder = name.starts_with(WORK_PREFIX) && !is_parked(&name);
-        if is_fresh_folder && is_idle(&entry.path(), now, max_age) {
+        if !name.starts_with(WORK_PREFIX) {
+            continue;
+        }
+        let leftover = if let Some(id) = parked_id(&name) {
+            started_before(id, now, max_age)
+        } else {
+            is_idle(&entry.path(), now, max_age)
+        };
+        if leftover {
             let _ = fs::remove_dir_all(entry.path());
         }
     }
 }
 
-/// The name of a parked copy: the work folder name plus separator and prefix.
-fn is_parked(name: &str) -> bool {
-    let suffix = format!("{WORK_SEPARATOR}{WORK_PREFIX}");
-    name.ends_with(&suffix)
+/// The work folder id inside the name of a parked copy (`<id>-.work-`), or `None` for any other name.
+fn parked_id(name: &str) -> Option<&str> {
+    name.strip_suffix(&format!("{WORK_SEPARATOR}{WORK_PREFIX}"))
+}
+
+/// The fetch that parked this copy started `max_age` ago or earlier. The start time (nanoseconds
+/// since the epoch) is the last part of the work folder name; a name without a usable one is not
+/// judged.
+fn started_before(id: &str, now: SystemTime, max_age: Duration) -> bool {
+    let started = id
+        .rsplit(WORK_SEPARATOR)
+        .next()
+        .and_then(|text| text.parse::<u64>().ok())
+        .and_then(|nanos| UNIX_EPOCH.checked_add(Duration::from_nanos(nanos)));
+    started
+        .and_then(|started| now.duration_since(started).ok())
+        .is_some_and(|elapsed| elapsed >= max_age)
 }
 
 /// Nothing at or below `path` changed for `max_age`. A tree that cannot be read counts as busy.
@@ -112,6 +136,46 @@ mod tests {
             newest_change(&top),
             Some(newer),
             "the file deep below the folder is the newest change"
+        );
+        fs::remove_dir_all(&root).unwrap();
+    }
+
+    #[test]
+    fn a_parked_copy_goes_by_the_start_of_its_fetch() {
+        let root = cache_with_folders("parked");
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        fs::create_dir_all(root.join(".work-7-ThreadId(1)-1000-.work-")).unwrap();
+        fs::create_dir_all(root.join(format!(".work-7-ThreadId(2)-{now}-.work-"))).unwrap();
+        remove_left_behind(&root, Duration::from_secs(3600));
+        assert!(
+            !root.join(".work-7-ThreadId(1)-1000-.work-").exists(),
+            "a swap that began long ago was left by a crash"
+        );
+        assert!(
+            root.join(format!(".work-7-ThreadId(2)-{now}-.work-"))
+                .exists(),
+            "a swap that began just now may still be running"
+        );
+        assert!(
+            root.join(".work-1-x-.work-").exists(),
+            "a name without a start time is not judged"
+        );
+        fs::create_dir_all(root.join(".work-7-ThreadId(3)-99999999999999999999999-.work-"))
+            .unwrap();
+        fs::create_dir_all(root.join(format!(".work-7-ThreadId(4)-{}-.work-", now * 2))).unwrap();
+        remove_left_behind(&root, Duration::ZERO);
+        assert!(
+            root.join(".work-7-ThreadId(3)-99999999999999999999999-.work-")
+                .exists(),
+            "a number that does not fit is not judged"
+        );
+        assert!(
+            root.join(format!(".work-7-ThreadId(4)-{}-.work-", now * 2))
+                .exists(),
+            "a start in the future is not judged"
         );
         fs::remove_dir_all(&root).unwrap();
     }

@@ -5,6 +5,7 @@ cli-scan-started = Scanning { $path } …
 cli-scan-finished = Scanned { $files } files in { $seconds } s.
 cli-scan-tool-missing = Tool missing for { $languages }: { $tool } – { $purpose } { $install }
 cli-scan-tool-too-old = Tool too old for { $languages }: { $tool } { $found } is installed, { $required } is required – { $purpose } { $install }
+cli-scan-tool-too-new = Tool too new for { $languages }: { $tool } { $found } is installed, which is more than the project allows (it names { $required }) – { $purpose } { $install }
 cli-scan-tool-unknown = Tool version not readable for { $languages }: { $tool } (required: { $required }) – { $purpose } { $install }
 cli-unknown-command = Unknown command: { $command }
 cli-help-hint = Run with --help to see all commands.

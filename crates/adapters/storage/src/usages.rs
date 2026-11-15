@@ -1,9 +1,10 @@
 //! The reverse index of a snapshot and the `UsageIndex` port.
 //!
 //! The references of a snapshot are loaded once into a `ReverseIndex` and kept for the snapshot
-//! that was asked about last; a snapshot never changes, a new scan gets a new id. The
-//! symbols and files that name the entries of an answer are loaded with it, so an answer is
-//! assembled in memory.
+//! that was asked about last. A scan writes a new snapshot with a new id, but the level 2 import
+//! (ADR 0033) replaces the references of the newest one, so the kept index is built again after
+//! every write that touches it (`refresh_lookup`). The symbols and files that name the entries of
+//! an answer are loaded with it, so an answer is assembled in memory.
 
 use std::sync::{Arc, PoisonError};
 
@@ -16,9 +17,9 @@ use codeskimr_domain::{
     Direction, NamespaceGraph, QualifiedName, ReferenceKind, RelativePath, SnapshotId, SymbolId,
     UsageQuery,
 };
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OptionalExtension, params};
 
-use crate::codec::{Cols, column_int, label_from, small_from};
+use crate::codec::{Cols, column_int, id_from, label_from, small_from};
 use crate::error::{StorageError, StorageResult};
 use crate::lookup::SnapshotLookup;
 use crate::sql;
@@ -45,6 +46,66 @@ impl SqliteStore {
         let loaded = Arc::new(self.read(|conn| SnapshotLookup::load(conn, raw))?);
         *cached = Some((snapshot, Arc::clone(&loaded)));
         Ok(loaded)
+    }
+
+    /// Builds the index of `snapshot` ahead of the first query, which would otherwise wait for it
+    /// (#333).
+    ///
+    /// # Errors
+    /// A coded `STO` failure.
+    pub fn warm(&self, snapshot: SnapshotId) -> Result<(), CodedError> {
+        self.lookup(snapshot).map(|_| ()).map_err(CodedError::from)
+    }
+
+    /// Builds the index of the newest snapshot of any project, if there is one. A snapshot that
+    /// is written between reading its id and the load is not the one that is kept; the first
+    /// query then builds the index of the newer one.
+    ///
+    /// # Errors
+    /// A coded `STO` failure.
+    pub fn warm_newest(&self) -> Result<(), CodedError> {
+        let newest: Option<i64> = self
+            .read(|conn| Ok(conn.query_row(sql::SNAPSHOT_NEWEST, [], |row| row.get(0))?))
+            .map_err(CodedError::from)?;
+        match newest {
+            Some(id) => self.warm(SnapshotId::new(id_from(id).map_err(CodedError::from)?)),
+            None => Ok(()),
+        }
+    }
+
+    /// The snapshot whose index is kept in memory, if any.
+    #[must_use]
+    pub fn kept_snapshot(&self) -> Option<SnapshotId> {
+        let cached = self.reverse.lock().unwrap_or_else(PoisonError::into_inner);
+        cached.as_ref().map(|(id, _)| *id)
+    }
+
+    /// Replaces the kept index after a write: the references of the snapshot may have changed
+    /// (level 2 replaces them), or a newer snapshot of the same project has taken the place of
+    /// the one that was asked about. Only a store that has answered a query builds it again, so
+    /// that a scan nobody queries pays nothing, and the index of another project stays. Queries
+    /// of this store wait for the build, as they would for the load of the first query. A failure
+    /// drops the index, to be built by the next query.
+    pub(crate) fn refresh_lookup(&self, snapshot: SnapshotId) {
+        let mut cached = self.reverse.lock().unwrap_or_else(PoisonError::into_inner);
+        let Some((kept, _)) = cached.as_ref() else {
+            return;
+        };
+        let (kept, raw) = (*kept, column_int(snapshot.get()));
+        let loaded = raw.and_then(|raw| {
+            self.read(|conn| {
+                let other = project_of(conn, column_int(kept.get())?)?;
+                if other.is_some() && other != project_of(conn, raw)? {
+                    return Ok(None);
+                }
+                SnapshotLookup::load(conn, raw).map(Some)
+            })
+        });
+        match loaded {
+            Ok(Some(loaded)) => *cached = Some((snapshot, Arc::new(loaded))),
+            Ok(None) => {}
+            Err(_) => *cached = None,
+        }
     }
 
     fn usage_page(
@@ -91,6 +152,13 @@ impl SqliteStore {
             symbols,
         })
     }
+}
+
+/// The project of a snapshot, `None` if the snapshot is not stored.
+fn project_of(conn: &Connection, snapshot: i64) -> StorageResult<Option<i64>> {
+    Ok(conn
+        .query_row(sql::SNAPSHOT_PROJECT, params![snapshot], |row| row.get(0))
+        .optional()?)
 }
 
 /// The columns of `DEPENDENCIES_*`, still raw.

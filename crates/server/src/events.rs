@@ -24,7 +24,7 @@ use tokio::time::{Instant, timeout};
 use crate::consts::{
     EVENT_BUFFER, EVENT_POLL, EVENT_THREAD_NAME, MAX_SOCKET_MESSAGE_BYTES, REASON_CANCELLED,
     REASON_FAILED, SOCKET_CLOSE_REASON, SOCKET_IDLE_LIMIT, SOCKET_PING_INTERVAL,
-    SOCKET_SEND_TIMEOUT,
+    SOCKET_SEND_TIMEOUT, SOCKET_SLOW_BUDGET, SOCKET_SLOW_SEND,
 };
 use crate::error::Failure;
 use crate::state::AppState;
@@ -190,6 +190,7 @@ async fn pump(
         heard: Instant::now(),
         pinged: Instant::now(),
     };
+    let mut waits = SlowSends::default();
     loop {
         if stop.has_changed().unwrap_or(true) {
             close(&mut socket, close_code::AWAY).await;
@@ -200,7 +201,7 @@ async fn pump(
                 let Ok(text) = serde_json::to_string(&WireEvent::from(&event)) else {
                     continue;
                 };
-                if !send(&mut socket, Message::Text(text.into())).await {
+                if !send_within(&mut socket, Message::Text(text.into()), &mut waits).await {
                     break;
                 }
             }
@@ -232,6 +233,46 @@ async fn send(socket: &mut WebSocket, message: Message) -> bool {
     )
 }
 
+/// Where messages of a stream go; the socket in the server, a stand-in in the tests.
+trait Outgoing {
+    /// Sends `message`; false if the client failed or was too slow for one send.
+    async fn push(&mut self, message: Message) -> bool;
+}
+
+impl Outgoing for WebSocket {
+    async fn push(&mut self, message: Message) -> bool {
+        send(self, message).await
+    }
+}
+
+/// Sends `message`, but returns false once the slow sends of the stream have used up their
+/// budget (or this one failed).
+async fn send_within(out: &mut impl Outgoing, message: Message, slow: &mut SlowSends) -> bool {
+    let started = Instant::now();
+    let sent = out.push(message).await;
+    slow.add(started.elapsed());
+    sent && !slow.exhausted()
+}
+
+/// The time one stream has spent in sends that took longer than `SOCKET_SLOW_SEND`.
+#[derive(Default)]
+struct SlowSends {
+    spent: Duration,
+}
+
+impl SlowSends {
+    /// Counts one send of `took` against the budget if it was slow.
+    fn add(&mut self, took: Duration) {
+        if took > SOCKET_SLOW_SEND {
+            self.spent += took;
+        }
+    }
+
+    fn exhausted(&self) -> bool {
+        self.spent > SOCKET_SLOW_BUDGET
+    }
+}
+
 /// Looks at the socket once without waiting and pings it when it has been quiet. False if the
 /// client left, failed or has not been heard for `SOCKET_IDLE_LIMIT`.
 async fn keep_alive(socket: &mut WebSocket, live: &mut Liveness) -> bool {
@@ -255,6 +296,63 @@ mod tests {
     use codeskimr_domain::ProjectId;
 
     use super::*;
+
+    /// A client that takes `delay` for every message, a little less than the send timeout.
+    struct Slow {
+        delay: Duration,
+        sent: usize,
+    }
+
+    impl Outgoing for Slow {
+        async fn push(&mut self, _: Message) -> bool {
+            tokio::time::sleep(self.delay).await;
+            self.sent += 1;
+            true
+        }
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_client_that_always_beats_the_send_timeout_is_dropped_by_the_budget() {
+        let mut client = Slow {
+            delay: Duration::from_secs(9),
+            sent: usize::default(),
+        };
+        let mut slow = SlowSends::default();
+        while send_within(&mut client, Message::Text("x".into()), &mut slow).await {}
+        let spent = client.delay * u32::try_from(client.sent).unwrap();
+        assert!(spent > SOCKET_SLOW_BUDGET, "dropped too early: {spent:?}");
+        assert!(
+            spent <= SOCKET_SLOW_BUDGET + client.delay,
+            "dropped too late: {spent:?}"
+        );
+    }
+
+    #[tokio::test(start_paused = true)]
+    async fn a_prompt_client_is_never_dropped_by_the_budget() {
+        let mut client = Slow {
+            delay: Duration::from_millis(1),
+            sent: usize::default(),
+        };
+        let mut slow = SlowSends::default();
+        for _ in 0..1000 {
+            assert!(send_within(&mut client, Message::Text("x".into()), &mut slow).await);
+        }
+    }
+
+    #[test]
+    fn only_slow_sends_use_up_the_budget_and_enough_of_them_end_the_stream() {
+        let mut slow = SlowSends::default();
+        for _ in 0..10_000 {
+            slow.add(SOCKET_SLOW_SEND);
+        }
+        assert!(!slow.exhausted(), "fast sends cost nothing");
+        slow.add(SOCKET_SEND_TIMEOUT);
+        slow.add(SOCKET_SEND_TIMEOUT);
+        assert!(!slow.exhausted());
+        slow.add(SOCKET_SEND_TIMEOUT);
+        slow.add(SOCKET_SLOW_SEND + Duration::from_millis(1));
+        assert!(slow.exhausted());
+    }
 
     fn changed(id: u64) -> Event {
         Event::FilesChanged(FilesChanged {

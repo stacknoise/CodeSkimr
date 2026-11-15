@@ -1,19 +1,19 @@
-projects.add true 2685 ms {"files":594,"project":1,"references":94949,"seconds":1.684050324,"snapshot":1,"symbols":9189}
-graph.layers boxes: 6 links: 28
-graph.layers (request round trip): median 1.74 ms, p95 2.72 ms, max 4.06 ms (n=50)
+projects.add true 2434 ms {"files":703,"project":1,"references":145479,"seconds":1.359348926,"snapshot":1,"symbols":11800,"tools":{"checked_at":1794691713,"languages":[{"language":"csharp","level2_ready":false},{"language":"java","level2_ready":false},{"language":"javascript","level2_ready":false},{"language":"kotlin","level
+graph.layers boxes: 6 links: 30
+graph.layers (request round trip): median 1.14 ms, p95 2.19 ms, max 2.69 ms (n=50)
 first call per symbol by number of incoming usages:
-  0-9 incoming: 143 symbols, median 1.84 ms, p95 4.91 ms, max 7.71 ms (n=143)
-  10-99 incoming: 89 symbols, median 2.77 ms, p95 6.97 ms, max 193.12 ms (n=89)
-  100-999 incoming: 120 symbols, median 6.56 ms, p95 8.03 ms, max 9.44 ms (n=120)
-  1000-+ incoming: 48 symbols, median 6.78 ms, p95 9.11 ms, max 9.53 ms (n=48)
-symbols probed: 400 largest incoming: [ 7963, 1954, 1344 ]
-usages.query depth 2, symbol 5721030692: median 7.68 ms, p95 9.99 ms, max 11.12 ms (n=50)
-usages.query depth 2, symbol 9361686532: median 7.49 ms, p95 8.46 ms, max 8.77 ms (n=50)
-usages.query depth 2, symbol 301989893: median 6.85 ms, p95 8.09 ms, max 9.34 ms (n=50)
-usages.query depth 2, symbol 4932501509: median 7.15 ms, p95 8.46 ms, max 9.34 ms (n=50)
-usages.query depth 2, symbol 4546625544: median 6.78 ms, p95 7.42 ms, max 7.71 ms (n=50)
-usages.query all five symbols: median 7.21 ms, p95 8.64 ms, max 11.12 ms (n=250)
-largest symbol, way both, depth 1: median 7.28 ms, p95 8.39 ms, max 14.18 ms (n=50)
-largest symbol, way incoming, depth 1: median 7.99 ms, p95 8.86 ms, max 14.14 ms (n=50)
-largest symbol, way incoming, depth 2: median 8.89 ms, p95 9.93 ms, max 11.70 ms (n=50)
-largest symbol, way outgoing, depth 2: median 3.47 ms, p95 3.81 ms, max 4.06 ms (n=50)
+  0-9 incoming: 137 symbols, median 3.20 ms, p95 6.67 ms, max 7.96 ms (n=137)
+  10-99 incoming: 43 symbols, median 4.24 ms, p95 6.19 ms, max 6.51 ms (n=43)
+  100-999 incoming: 168 symbols, median 7.29 ms, p95 9.40 ms, max 194.78 ms (n=168)
+  1000-+ incoming: 52 symbols, median 8.01 ms, p95 10.34 ms, max 10.61 ms (n=52)
+symbols probed: 400 largest incoming: [ 13808, 3279, 2004 ]
+usages.query depth 2, symbol 7163871268: median 9.74 ms, p95 12.20 ms, max 13.29 ms (n=50)
+usages.query depth 2, symbol 11123294212: median 9.26 ms, p95 13.44 ms, max 14.05 ms (n=50)
+usages.query depth 2, symbol 6308233221: median 10.18 ms, p95 11.58 ms, max 12.13 ms (n=50)
+usages.query depth 2, symbol 536870917: median 10.18 ms, p95 11.03 ms, max 11.41 ms (n=50)
+usages.query depth 2, symbol 553648136: median 8.31 ms, p95 8.93 ms, max 9.00 ms (n=50)
+usages.query all five symbols: median 9.57 ms, p95 11.75 ms, max 14.05 ms (n=250)
+largest symbol, way both, depth 1: median 9.30 ms, p95 12.65 ms, max 19.52 ms (n=50)
+largest symbol, way incoming, depth 1: median 9.56 ms, p95 11.50 ms, max 11.92 ms (n=50)
+largest symbol, way incoming, depth 2: median 10.42 ms, p95 13.07 ms, max 13.42 ms (n=50)
+largest symbol, way outgoing, depth 2: median 5.20 ms, p95 6.96 ms, max 7.22 ms (n=50)

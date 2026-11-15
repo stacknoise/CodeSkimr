@@ -104,4 +104,7 @@ program = "dotnet"
 version_args = ["--version"]
 min_version = "8.0.0"
 # The version the project asks for (checked besides min_version; the newer one counts).
-requirement = { file = "global.json", format = "json", path = ["sdk", "version"] }
+requirement = { file = "global.json", format = "json", path = ["sdk", "version"], roll_forward = { path = ["sdk", "rollForward"], default = "same_band", values = { disable = "exact", patch = "same_band", latestPatch = "same_band", feature = "same_minor", latestFeature = "same_minor", minor = "same_major", latestMinor = "same_major", major = "any", latestMajor = "any" } } }
+# `rollForward` of global.json can only limit from above: the newest version that the project lets
+# through is counted from the version it names (a tool beyond it is `too_new`). No `rollForward`
+# means `latestPatch`. A value that is not listed limits nothing.

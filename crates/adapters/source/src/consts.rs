@@ -49,6 +49,7 @@ pub const WORK_SEPARATOR: char = '-';
 
 /// How long nothing below a work folder may change before it counts as left behind by a crash. A
 /// running clone keeps writing files below its folder; a day without a single change is no clone.
+/// A parked copy counts as left behind when its fetch started this long ago.
 pub const WORK_FOLDER_MAX_AGE_SECS: u64 = 86_400;
 
 /// Separator between the messages of an error chain.
@@ -127,3 +128,59 @@ pub const BACKSLASH: char = '\\';
 /// Characters besides letters and digits that a bare TOML key may contain, and the dot of a
 /// dotted key.
 pub const TOML_KEY_EXTRA: &str = "-_.";
+/// Deepest folder level below the project root in which requirement files are looked for.
+pub const REQUIREMENT_MAX_DEPTH: usize = 6;
+/// Most requirement files of one name that are read.
+pub const REQUIREMENT_MAX_FILES: usize = 32;
+/// Most folders that are looked into when requirement files are searched.
+pub const REQUIREMENT_MAX_FOLDERS: usize = 2000;
+/// Folders that are not entered when requirement files are looked for: dependencies, build output
+/// and virtual environments hold files of other projects.
+pub const REQUIREMENT_SKIPPED_FOLDERS: &[&str] = &[
+    ".git",
+    "node_modules",
+    "target",
+    "bin",
+    "obj",
+    "vendor",
+    "dist",
+    ".venv",
+    "venv",
+];
+/// The characters of JSON that the tolerant reader of `global.json` looks at.
+pub const JSON_QUOTE: char = '"';
+/// Starts a comment (twice) or ends a block comment (after a star).
+pub const JSON_SLASH: char = '/';
+/// Opens or closes a block comment (next to a slash).
+pub const JSON_STAR: char = '*';
+/// Ends a line comment.
+pub const JSON_NEWLINE: char = '\n';
+/// Escapes the next character inside a string.
+pub const JSON_ESCAPE: char = '\\';
+/// Separates the members of an object or array.
+pub const JSON_COMMA: char = ',';
+/// What may follow a trailing comma.
+pub const JSON_CLOSERS: [char; 2] = ['}', ']'];
+/// Bytes read beyond the announced length of a file: one is enough to see that it grew.
+pub const GROWTH_PROBE_BYTES: u64 = 1;
+
+/// Name of the folder of the Git data that holds the objects.
+pub const OBJECTS_DIR_NAME: &str = "objects";
+
+/// Prefix of the references in which a clone keeps what it fetched from its remote.
+pub const REMOTE_REF_PREFIX: &str = "refs/remotes/origin/";
+
+/// Reflog message when an earlier clone is brought up to date.
+pub const UPDATE_REFLOG_MESSAGE: &str = "codeskimr: update";
+
+/// Detail of the failure when an earlier clone has no working tree.
+pub const NO_WORKTREE_DETAIL: &str = "the clone has no working tree";
+
+/// Detail of the failure when HEAD of an updated clone does not lead to the fetched commit.
+pub const HEAD_MISMATCH_DETAIL: &str = "HEAD does not lead to the fetched commit";
+
+/// Start of a refspec that may replace a reference that does not move forward (force-push).
+pub const REFSPEC_FORCE: &str = "+";
+
+/// Separator of source and destination in a refspec.
+pub const REFSPEC_SEPARATOR: &str = ":";

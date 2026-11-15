@@ -72,6 +72,47 @@ function Violations(props: { links: readonly LayerLink[]; onSelect: (name: strin
   );
 }
 
+/** The three counts at the top of the panel. */
+function Stats(props: { neighbours: Neighbours }) {
+  return (
+    <div class={styles.stats}>
+      <Stat value={props.neighbours.references} label={t(I18N_KEYS.GRAPH_STAT_REFERENCES)} />
+      <Stat
+        value={props.neighbours.uses.length}
+        label={t(I18N_KEYS.GRAPH_STAT_USES)}
+        tone={styles.out}
+      />
+      <Stat
+        value={props.neighbours.usedBy.length}
+        label={t(I18N_KEYS.GRAPH_STAT_USED_BY)}
+        tone={styles.in}
+      />
+    </div>
+  );
+}
+
+/** The lists of what the selection uses and what uses it. */
+function Lists(props: { neighbours: Neighbours; onSelect: (name: string) => void }) {
+  return (
+    <>
+      <LinkList
+        title={t(I18N_KEYS.GRAPH_USES_TITLE, { count: props.neighbours.uses.length })}
+        links={props.neighbours.uses}
+        pick={(link) => link.to}
+        onSelect={props.onSelect}
+        tone={styles.out}
+      />
+      <LinkList
+        title={t(I18N_KEYS.GRAPH_USED_BY_TITLE, { count: props.neighbours.usedBy.length })}
+        links={props.neighbours.usedBy}
+        pick={(link) => link.from}
+        onSelect={props.onSelect}
+        tone={styles.in}
+      />
+    </>
+  );
+}
+
 /** The panel at the right (mock 3): the selected layer with its counts, what it uses and what
  * uses it, the breaks of the layering of the project, and the way to the explorer. */
 export function SidePanel(props: {
@@ -91,33 +132,8 @@ export function SidePanel(props: {
         <div class={styles.kind}>{props.kind}</div>
         <h2 class={styles.title}>{props.layer}</h2>
       </div>
-      <div class={styles.stats}>
-        <Stat value={props.neighbours.references} label={t(I18N_KEYS.GRAPH_STAT_REFERENCES)} />
-        <Stat
-          value={props.neighbours.uses.length}
-          label={t(I18N_KEYS.GRAPH_STAT_USES)}
-          tone={styles.out}
-        />
-        <Stat
-          value={props.neighbours.usedBy.length}
-          label={t(I18N_KEYS.GRAPH_STAT_USED_BY)}
-          tone={styles.in}
-        />
-      </div>
-      <LinkList
-        title={t(I18N_KEYS.GRAPH_USES_TITLE, { count: props.neighbours.uses.length })}
-        links={props.neighbours.uses}
-        pick={(link) => link.to}
-        onSelect={props.onSelect}
-        tone={styles.out}
-      />
-      <LinkList
-        title={t(I18N_KEYS.GRAPH_USED_BY_TITLE, { count: props.neighbours.usedBy.length })}
-        links={props.neighbours.usedBy}
-        pick={(link) => link.from}
-        onSelect={props.onSelect}
-        tone={styles.in}
-      />
+      <Stats neighbours={props.neighbours} />
+      <Lists neighbours={props.neighbours} onSelect={props.onSelect} />
       <Violations links={props.violations} onSelect={props.onSelect} />
       <Show when={props.onFocus}>
         {(focus) => (

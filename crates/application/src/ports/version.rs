@@ -2,8 +2,11 @@
 
 use std::fmt;
 
+use codeskimr_domain::Ceiling;
+
 use crate::consts::{
-    DATE_MIN_DIGITS, DATE_SEPARATORS, VERSION_DECORATION, VERSION_SEPARATOR, VERSION_WORD,
+    DATE_MIN_DIGITS, DATE_SEPARATORS, FEATURE_BAND_SIZE, VERSION_DECORATION, VERSION_SEPARATOR,
+    VERSION_WORD,
 };
 
 /// A version of up to three numbers. Missing numbers are zero.
@@ -34,6 +37,21 @@ impl ToolVersion {
             let word = words.next()?;
             (!looks_like_date(word)).then(|| Self::read(word, false))?
         })
+    }
+
+    /// Whether `found` lies within what a project that names `self` lets through under `ceiling`.
+    /// A version below `self` is not judged here (that is the minimum's business).
+    #[must_use]
+    pub fn allows(self, ceiling: Ceiling, found: Self) -> bool {
+        let same_minor = found.major == self.major && found.minor == self.minor;
+        let band = |version: Self| version.patch.checked_div(FEATURE_BAND_SIZE);
+        match ceiling {
+            Ceiling::Any => true,
+            Ceiling::SameMajor => found.major == self.major,
+            Ceiling::SameMinor => same_minor,
+            Ceiling::SameBand => same_minor && band(found) == band(self),
+            Ceiling::Exact => found <= self,
+        }
     }
 
     /// The version a project requires, from the text of a file such as `.nvmrc` or `global.json`.

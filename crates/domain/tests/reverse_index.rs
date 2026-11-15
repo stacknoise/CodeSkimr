@@ -166,7 +166,7 @@ mod tests {
             .iter()
             .map(|r| (r.symbol.get(), r.verified))
             .collect();
-        assert_eq!(verified, [(2, true), (3, false), (4, true), (5, false)]);
+        assert_eq!(verified, [(2, true), (4, true), (3, false), (5, false)]);
     }
 
     #[test]
@@ -175,5 +175,29 @@ mod tests {
         let reached = index.reached(&query(1, Direction::Incoming, 1));
         assert_eq!(reached.len(), 1);
         assert!(reached[0].verified);
+    }
+
+    #[test]
+    fn verified_usages_come_first_then_the_steps_and_positions() {
+        // Step 1: 10 (unchecked) and 11 (verified); step 2: 12 (verified) and 13 (unchecked).
+        let index = ReverseIndex::new([
+            call(10, 2, 1),
+            verified_call(11, 3, 1),
+            verified_call(12, 4, 2),
+            call(13, 5, 3),
+        ]);
+        assert_eq!(
+            ids(&index, &query(1, Direction::Incoming, 2)),
+            [(1, 11), (2, 12), (1, 10), (2, 13)]
+        );
+    }
+
+    #[test]
+    fn without_a_verified_reference_the_order_is_the_steps_and_positions() {
+        let index = ReverseIndex::new([call(10, 2, 1), call(11, 3, 2), call(12, 4, 1)]);
+        assert_eq!(
+            ids(&index, &query(1, Direction::Incoming, 2)),
+            [(1, 10), (1, 12), (2, 11)]
+        );
     }
 }

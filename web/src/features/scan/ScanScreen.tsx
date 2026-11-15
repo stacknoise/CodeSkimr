@@ -101,16 +101,8 @@ function Idle(props: { hasProjects: boolean }) {
   );
 }
 
-/** Screen 5, scan and performance (blueprint B.5, mock `Scan.dc.html`): the progress of a scan as
- * the event stream reports it, the pipeline stages, the languages of the project, the time
- * budgets and the recent scans. */
-export function ScanScreen() {
-  onMount(() => {
-    void refreshProjects();
-    void refreshStatus();
-  });
-  const row = createMemo(() => projects().find((item) => item.id === subjectId()));
-  const run = createMemo(() => latestRun(scanRuns(), subjectId()));
+/** Whether the scan runs, and the way to cancel it (button and key). */
+function useCancel(run: () => Run | undefined) {
   const running = () => run()?.state === STATE.running;
   const cancel = () => {
     const id = subjectId();
@@ -123,38 +115,67 @@ export function ScanScreen() {
       cancel();
     }
   });
+  return { running, cancel };
+}
+
+/** What the scan is about: project, position, mode and how long it took. */
+function Meta(props: { project: ProjectRow; run: Run | undefined }) {
+  return (
+    <span class={styles.meta}>
+      {props.project.name} ·{" "}
+      <Show when={positionText(props.project)}>{(place) => <>{place()} · </>}</Show>
+      {modeText(props.project, props.run)}
+      <Show when={duration(props.run)}>
+        {(took) => (
+          <>
+            {" "}
+            ·{" "}
+            {t(I18N_KEYS.SCAN_STAGE_TIME, {
+              seconds: seconds(took(), currentLanguage()),
+            })}
+          </>
+        )}
+      </Show>
+    </span>
+  );
+}
+
+/** The head of the screen: title, meta line and the cancel button while a scan runs. */
+function Head(props: {
+  row: ProjectRow | undefined;
+  run: Run | undefined;
+  running: boolean;
+  onCancel: () => void;
+}) {
+  return (
+    <div class={styles.head}>
+      <h1>{t(TITLE[props.run?.state ?? "idle"])}</h1>
+      <Show when={props.row}>{(project) => <Meta project={project()} run={props.run} />}</Show>
+      <Show when={props.running}>
+        <button type="button" class={styles.cancel} onClick={props.onCancel}>
+          {t(I18N_KEYS.SCAN_ACTION_CANCEL)}{" "}
+          <kbd class={styles.kbd}>{t(I18N_KEYS.SCAN_CANCEL_KEY)}</kbd>
+        </button>
+      </Show>
+    </div>
+  );
+}
+
+/** Screen 5, scan and performance (blueprint B.5, mock `Scan.dc.html`): the progress of a scan as
+ * the event stream reports it, the pipeline stages, the languages of the project, the time
+ * budgets and the recent scans. */
+export function ScanScreen() {
+  onMount(() => {
+    void refreshProjects();
+    void refreshStatus();
+  });
+  const row = createMemo(() => projects().find((item) => item.id === subjectId()));
+  const run = createMemo(() => latestRun(scanRuns(), subjectId()));
+  const { running, cancel } = useCancel(run);
   return (
     <section class={styles.screen}>
       <div class={styles.main}>
-        <div class={styles.head}>
-          <h1>{t(TITLE[run()?.state ?? "idle"])}</h1>
-          <Show when={row()}>
-            {(project) => (
-              <span class={styles.meta}>
-                {project().name} ·{" "}
-                <Show when={positionText(project())}>{(place) => <>{place()} · </>}</Show>
-                {modeText(project(), run())}
-                <Show when={duration(run())}>
-                  {(took) => (
-                    <>
-                      {" "}
-                      ·{" "}
-                      {t(I18N_KEYS.SCAN_STAGE_TIME, {
-                        seconds: seconds(took(), currentLanguage()),
-                      })}
-                    </>
-                  )}
-                </Show>
-              </span>
-            )}
-          </Show>
-          <Show when={running()}>
-            <button type="button" class={styles.cancel} onClick={cancel}>
-              {t(I18N_KEYS.SCAN_ACTION_CANCEL)}{" "}
-              <kbd class={styles.kbd}>{t(I18N_KEYS.SCAN_CANCEL_KEY)}</kbd>
-            </button>
-          </Show>
-        </div>
+        <Head row={row()} run={run()} running={running()} onCancel={cancel} />
         <Show when={run()} fallback={<Idle hasProjects={projects().length > 0} />}>
           {(current) => (
             <Progress run={current()} linesPerSecond={linesPerSecond(row(), current())} />

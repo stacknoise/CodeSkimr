@@ -23,16 +23,17 @@ dir="$(find "${work}/unpacked" -mindepth 1 -maxdepth 1 -type d | head -n 1)"
 bin="${dir}/codeskimr"
 [ -x "${bin}" ] || bin="${dir}/codeskimr.exe"
 
-for file in languages default.toml LICENSE README.md LIES-MICH.md README-PREVIEW.md docs/manual; do
+for file in default.toml LICENSE README.md LIES-MICH.md README-PREVIEW.md docs/manual; do
   [ -e "${dir}/${file}" ] || { echo "Missing in package: ${file}" >&2; exit 1; }
 done
 
 "${bin}" --version | grep -F "${version}"
 
-# A real scan from the unpacked folder only: own data folder, languages from the package, a tiny project.
+# A real scan from the unpacked folder only: own data folder, a tiny project. The language packs are
+# inside the program, so the package must not contain a languages folder.
+[ ! -e "${dir}/languages" ] || { echo "The package must not ship languages/" >&2; exit 1; }
 project="${work}/project"
 mkdir "${project}"
 printf 'fn main() {}\n' > "${project}/main.rs"
-# The language packs are found next to the program; no option points to them.
 (cd "${work}" && "${bin}" --data-dir "${work}/data" scan "${project}" --json) | grep -F '"files":1'
 echo "Clean install probe passed: ${archive}"

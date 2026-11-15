@@ -121,7 +121,7 @@ impl Command for ExplorerSource {
         permission: Permission::ReadSource,
     };
 
-    fn execute(&self, request: Request<'_, SourceInput>) -> Result<SourceOut, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<SourceOut, CodedError> {
         access::require(request.principal, Permission::ReadSource)?;
         let ports = &self.ports;
         let project = ports

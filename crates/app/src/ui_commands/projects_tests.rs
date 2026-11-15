@@ -8,7 +8,7 @@ use codeskimr_application::events::EventBus;
 use codeskimr_application::ports::{
     LanguageShare, ProjectCatalog, ProjectOverview, ProjectToolCheck,
 };
-use codeskimr_application::registry::{Command, Request};
+use codeskimr_application::registry::CommandExt;
 use codeskimr_cli::GlobalOptions;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{FolderPath, Project, ProjectId, ProjectName, ProjectSource, ToolReport};
@@ -73,6 +73,7 @@ fn an_unreadable_tool_report_does_not_take_the_list_down() {
             languages_dir: Path::new("languages").to_path_buf(),
             user_config: None,
             bases: Vec::new(),
+            program_dir: None,
         },
         events: EventBus::new(),
         secrets: crate::memory_keystore::secrets(),
@@ -87,12 +88,7 @@ fn an_unreadable_tool_report_does_not_take_the_list_down() {
         context,
     };
     let principal = principal::resolve();
-    let rows = list
-        .execute(Request {
-            principal: &principal,
-            input: (),
-        })
-        .unwrap();
+    let rows = list.run(&principal, ()).unwrap();
     let names: Vec<_> = rows.iter().map(|row| row.name.as_str()).collect();
     assert_eq!(names, ["first", "second"]);
     assert!(rows.iter().all(|row| row.tools.is_none()));

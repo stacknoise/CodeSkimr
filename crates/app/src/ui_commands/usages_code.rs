@@ -141,7 +141,7 @@ impl Command for UsagesCode {
         permission: Permission::ReadSource,
     };
 
-    fn execute(&self, request: Request<'_, UsagesInput>) -> Result<CodeOut, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<CodeOut, CodedError> {
         access::require(request.principal, Permission::ReadSource)?;
         self.ports.code_of(&request.input)
     }

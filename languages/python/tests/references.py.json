@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 25,
+      "loc": 30,
       "operands": null,
       "operators": null,
       "symbol": "references"
@@ -59,9 +59,29 @@
         5
       ],
       "symbol": "references.make"
+    },
+    {
+      "decisions": null,
+      "loc": 5,
+      "operands": null,
+      "operators": null,
+      "symbol": "references.Holder"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        4,
+        7
+      ],
+      "operators": [
+        4,
+        4
+      ],
+      "symbol": "references.Holder.rename"
     }
   ],
-  "loc": 25,
+  "loc": 30,
   "references": [
     {
       "at": "0:7",
@@ -151,7 +171,7 @@
       "at": "13:17",
       "from": "references.Child.run",
       "kind": "call",
-      "receiver": null,
+      "receiver": "free",
       "target": "Thing"
     },
     {
@@ -172,7 +192,7 @@
       "at": "16:8",
       "from": "references.Child.run",
       "kind": "call",
-      "receiver": null,
+      "receiver": "free",
       "target": "super"
     },
     {
@@ -193,7 +213,7 @@
       "at": "18:8",
       "from": "references.Child.run",
       "kind": "read",
-      "receiver": null,
+      "receiver": "free",
       "target": "os"
     },
     {
@@ -207,7 +227,7 @@
       "at": "20:12",
       "from": "references.Child.run",
       "kind": "call",
-      "receiver": null,
+      "receiver": "free",
       "target": "print"
     },
     {
@@ -221,7 +241,7 @@
       "at": "30:12",
       "from": "references.make",
       "kind": "call",
-      "receiver": null,
+      "receiver": "free",
       "target": "Child"
     },
     {
@@ -230,6 +250,48 @@
       "kind": "call",
       "receiver": "typed Child",
       "target": "run"
+    },
+    {
+      "at": "36:4",
+      "from": "references.Holder.label",
+      "kind": "write",
+      "receiver": null,
+      "target": "label"
+    },
+    {
+      "at": "36:11",
+      "from": "references.Holder.label",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "str"
+    },
+    {
+      "at": "36:11",
+      "from": "references.Holder.label",
+      "kind": "read",
+      "receiver": null,
+      "target": "str"
+    },
+    {
+      "at": "38:28",
+      "from": "references.Holder.rename",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "str"
+    },
+    {
+      "at": "38:28",
+      "from": "references.Holder.rename",
+      "kind": "read",
+      "receiver": "free",
+      "target": "str"
+    },
+    {
+      "at": "40:13",
+      "from": "references.Holder.rename",
+      "kind": "write",
+      "receiver": "own",
+      "target": "label"
     }
   ],
   "symbols": [
@@ -239,7 +301,7 @@
       "name": "references",
       "parent": null,
       "signature": null,
-      "span": "0:0-33:0",
+      "span": "0:0-42:0",
       "static": false,
       "visibility": null
     },
@@ -300,6 +362,36 @@
       "parent": "references",
       "signature": null,
       "span": "29:0-32:16",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "references.Holder",
+      "parent": "references",
+      "signature": null,
+      "span": "35:0-41:20",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "references.Holder.label",
+      "parent": "references.Holder",
+      "signature": null,
+      "span": "36:4-36:21",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "references.Holder.rename",
+      "parent": "references.Holder",
+      "signature": null,
+      "span": "38:4-41:20",
       "static": false,
       "visibility": "public"
     }

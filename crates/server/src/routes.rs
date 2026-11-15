@@ -39,9 +39,10 @@ fn needs_token(descriptor: &CommandDescriptor) -> bool {
 /// `POST /api/v1/commands/{id}`: runs a command with the JSON body as its input and answers with
 /// its output.
 ///
-/// The order is fixed and tested: the command must exist; a command that changes something or
-/// reads source text needs the token; the caller needs the permission; only then the body is read. A denied caller sees
-/// the same `AUTH-401` whatever it sends.
+/// The order is fixed and tested: a command that changes something, reads source text or does not
+/// exist needs the token; the caller needs the permission; the command must exist; only then the
+/// body is read. A caller who may not run a command gets the answer for an unknown one (`API-201`),
+/// so the answer is no oracle for which commands exist (ADR 0044).
 pub async fn run(
     State(app): State<AppState>,
     Path(id): Path<String>,
@@ -51,11 +52,11 @@ pub async fn run(
     let descriptor = app
         .api
         .descriptor(&id)
-        .ok_or_else(|| Failure::code(ErrorCode::CommandNotFound))?;
-    if needs_token(descriptor) {
+        .filter(|descriptor| access::require(&app.principal, descriptor.permission).is_ok());
+    if descriptor.is_none_or(needs_token) {
         app.guard.check_token(&headers)?;
     }
-    access::require(&app.principal, descriptor.permission)?;
+    descriptor.ok_or_else(|| Failure::code(ErrorCode::CommandNotFound))?;
     let input = read_input(&headers, body, MAX_BODY_BYTES).await?;
     let output = app.api.run(app.principal, &id, input).await?;
     Ok(Json(output))
@@ -88,7 +89,7 @@ async fn read_body(headers: &HeaderMap, body: Body, limit: usize) -> Result<Byte
     let bytes = timeout(BODY_READ_TIMEOUT, to_bytes(body, limit))
         .await
         .map_err(|_| Failure::code(ErrorCode::RequestTimedOut))?
-        .map_err(|_| Failure::code(ErrorCode::RequestTooLarge))?;
+        .map_err(|error| Failure::code(read_failure(&error)))?;
     if bytes.is_empty() {
         return Ok(bytes);
     }
@@ -150,4 +151,22 @@ pub async fn wrong_method() -> Response {
     let mut response = Failure::code(ErrorCode::RequestInvalid).into_response();
     *response.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
     response
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::body::{Body, to_bytes};
+    use codeskimr_codes::ErrorCode;
+
+    use super::read_failure;
+
+    #[tokio::test]
+    async fn only_a_body_over_the_limit_is_too_large() {
+        let error = to_bytes(Body::from(vec![u8::default(); 10]), 5)
+            .await
+            .unwrap_err();
+        assert_eq!(read_failure(&error), ErrorCode::RequestTooLarge);
+        let other = axum::Error::new(std::io::Error::other("client left"));
+        assert_eq!(read_failure(&other), ErrorCode::RequestInvalid);
+    }
 }

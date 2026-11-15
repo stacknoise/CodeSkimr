@@ -84,9 +84,66 @@ export function ProjectTable(props: ProjectTableProps) {
   );
 }
 
-function Row(props: { row: ProjectRow; table: ProjectTableProps }) {
-  const state = () => status(props.row, projectsScanning().has(props.row.id));
+/** Project name button and its location. */
+function NameCell(props: { row: ProjectRow; onOpen: (id: number) => void }) {
+  return (
+    <td>
+      <button
+        type="button"
+        class={styles.name}
+        aria-label={t(I18N_KEYS.PROJECTS_OPEN, { name: props.row.name })}
+        onClick={() => props.onOpen(props.row.id)}
+      >
+        {props.row.name}
+      </button>
+      <div class={styles.path}>{props.row.location}</div>
+    </td>
+  );
+}
+
+/** When and how the project was last scanned. */
+function ScanCell(props: { row: ProjectRow }) {
   const scan = () => lastScan(props.row);
+  return (
+    <td class={styles.muted}>
+      {scan().when}
+      <div class={styles.mono}>{scan().detail}</div>
+    </td>
+  );
+}
+
+/** Status pills and the rescan button. */
+function StatusCell(props: { row: ProjectRow; onRescan: (id: number) => void }) {
+  const state = () => status(props.row, projectsScanning().has(props.row.id));
+  const problems = () => problemsOf(toolsOf(props.row)).length;
+  return (
+    <td>
+      <div class={styles.state}>
+        <Pill tone={state().tone}>{state().text}</Pill>
+        <Show when={problems() > 0}>
+          <Pill tone={TONE.warn}>
+            {t(I18N_KEYS.PROJECTS_TOOLS_MISSING_COUNT, { count: problems() })}
+          </Pill>
+        </Show>
+        <Show when={!props.row.running}>
+          <button
+            type="button"
+            class={styles.rescan}
+            aria-label={t(I18N_KEYS.PROJECTS_RESCAN, { name: props.row.name })}
+            onClick={(event) => {
+              event.stopPropagation();
+              props.onRescan(props.row.id);
+            }}
+          >
+            <Icon name={RESCAN_ICON} />
+          </button>
+        </Show>
+      </div>
+    </td>
+  );
+}
+
+function Row(props: { row: ProjectRow; table: ProjectTableProps }) {
   return (
     <tr
       class={cx(styles.row, props.table.selected === props.row.id && styles.selected)}
@@ -94,52 +151,15 @@ function Row(props: { row: ProjectRow; table: ProjectTableProps }) {
       onClick={() => props.table.onSelect(props.row.id)}
       onDblClick={() => props.table.onOpen(props.row.id)}
     >
-      <td>
-        <button
-          type="button"
-          class={styles.name}
-          aria-label={t(I18N_KEYS.PROJECTS_OPEN, { name: props.row.name })}
-          onClick={() => props.table.onOpen(props.row.id)}
-        >
-          {props.row.name}
-        </button>
-        <div class={styles.path}>{props.row.location}</div>
-      </td>
+      <NameCell row={props.row} onOpen={props.table.onOpen} />
       <td class={styles.muted}>{sourceText(props.row)}</td>
       <td>
         <LanguageBar languages={props.row.languages} />
       </td>
       <td class={styles.number}>{count(props.row.types, currentLanguage())}</td>
       <td class={styles.number}>{count(props.row.loc, currentLanguage())}</td>
-      <td class={styles.muted}>
-        {scan().when}
-        <div class={styles.mono}>{scan().detail}</div>
-      </td>
-      <td>
-        <div class={styles.state}>
-          <Pill tone={state().tone}>{state().text}</Pill>
-          <Show when={problemsOf(toolsOf(props.row)).length > 0}>
-            <Pill tone={TONE.warn}>
-              {t(I18N_KEYS.PROJECTS_TOOLS_MISSING_COUNT, {
-                count: problemsOf(toolsOf(props.row)).length,
-              })}
-            </Pill>
-          </Show>
-          <Show when={!props.row.running}>
-            <button
-              type="button"
-              class={styles.rescan}
-              aria-label={t(I18N_KEYS.PROJECTS_RESCAN, { name: props.row.name })}
-              onClick={(event) => {
-                event.stopPropagation();
-                props.table.onRescan(props.row.id);
-              }}
-            >
-              <Icon name={RESCAN_ICON} />
-            </button>
-          </Show>
-        </div>
-      </td>
+      <ScanCell row={props.row} />
+      <StatusCell row={props.row} onRescan={props.table.onRescan} />
     </tr>
   );
 }

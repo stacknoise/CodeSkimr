@@ -81,6 +81,8 @@
 (parameters (dictionary_splat_pattern (identifier) @local))
 (lambda_parameters (identifier) @local)
 (lambda_parameters (default_parameter name: (identifier) @local))
+(parameters (typed_parameter (identifier) @local))
+(parameters (typed_default_parameter name: (identifier) @local))
 (parameters
   (typed_parameter
     (identifier) @local

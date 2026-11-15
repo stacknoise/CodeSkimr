@@ -12,13 +12,13 @@ These names must be entered as required status checks in the ruleset `main` (nam
 | `pr-title` | PR title follows Conventional Commits | CLAUDE.md rule 3 |
 | `fmt` | `cargo fmt --check`, `prettier --check` once `web/` exists | 17.3 (1) |
 | `clippy` | clippy with workspace lints, warnings are errors | 17.3 (2) |
-| `test` | `cargo test --workspace` | 17.3 (8) |
+| `test` | `cargo test --workspace`, then the credential store tests against a real Secret Service (`gnome-keyring` inside `dbus-run-session`, switch `CODESKIMR_REAL_KEYSTORE`, issue #197) | 17.3 (8), 12.2 |
 | `deps` | `cargo audit`, `cargo deny` (`deny.toml`) for the workspace and again for the lint workspace in `tools/lints/no_literals`, `cargo machete`, the same strict audit, deny and machete for `tools/accuracy/import_scip` (issue #243; its `Cargo.lock` follows the product crates it depends on, so a PR that changes their dependencies also runs `cargo update --workspace --manifest-path tools/accuracy/import_scip/Cargo.toml`), and a check that `http-client-insecure-credentials` (plain-HTTP logins, only for the login tests) is not in the product's feature tree | 17.3 (10), S-03 |
 | `build (ubuntu-latest)` | release build | 17.3 (11) |
-| `build (windows-latest)` | release build | 17.3 (11) |
-| `build (macos-latest)` | release build | 17.3 (11) |
+| `build (windows-latest)` | release build; the credential store tests against the real Credential Manager (issue #197) | 17.3 (11) |
+| `build (macos-latest)` | release build; the credential store tests against the real Keychain, and the connection and stream limit tests with `ulimit -n 4096` (the test holds about 512 sockets, macOS allows 256 by default; issue #320) | 17.3 (11) |
 | `test (windows-latest, indexer)` | `cargo test -p codeskimr_indexer` on Windows: process group (job object), timeout, cancel and limits of the level 2 runner (ADR 0033). Not in the ruleset yet. | 17.1, ADR 0033 |
-| `architecture` | crate dependency direction (`tools/ci/architecture.toml`, rule file must match the workspace) and module cycles between the top-level modules of each crate (`tools/ci/check_architecture.py`, own unit tests); also runs the unit tests of the changelog generator (`tools/release`); also lists every `expose_secret()` call in product code and fails on a call that is not in `tools/ci/expose-secret-approved.toml` (`tools/ci/check_expose_secret.py`, blueprint 12.4) | 4.2, R-04, 17.3 (5) |
+| `architecture` | crate dependency direction (`tools/ci/architecture.toml`, rule file must match the workspace) and module cycles between the top-level modules of each crate (`tools/ci/check_architecture.py`, own unit tests); also runs the unit tests of the changelog generator (`tools/release`); also lists every `expose_secret()` call in product code and fails on a call that is not in `tools/ci/expose-secret-approved.toml` (`tools/ci/check_expose_secret.py`, blueprint 12.4); fails if two tracked paths differ only in case, which Windows and macOS cannot check out | 4.2, R-04, 17.3 (5) |
 | `duplicates` | `jscpd`, threshold 0, 5 lines / 50 tokens (`.jscpd.json`) | R-01 |
 | `literals` | Dylint lint `no_literals` on the product crates (`tools/lints/no_literals`, own test cases), ESLint rules from `web/eslint.literals.config.js` once `web/package.json` exists | R-06, 3.2 |
 | `codegen` | regenerates the error code artifacts and fails on any diff; i18n keys, tokens and OpenAPI client follow | 17.3 (6) |

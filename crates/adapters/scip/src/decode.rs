@@ -17,7 +17,7 @@ use crate::consts::{
     OCCURRENCE_RANGE, OCCURRENCE_ROLES, OCCURRENCE_SYMBOL, RANGE_MULTI_LINE,
 };
 use crate::error::{Corruption, ScipError};
-use crate::model::{Occurrence, PositionEncoding, ScipDocument, ScipIndex, SymbolRef};
+use crate::model::{Occurrence, PositionEncoding, ScipDocument, ScipIndex, SymbolRef, TextFacts};
 use crate::path::normalize_path;
 use crate::wire::{Fields, Value, packed_varints};
 
@@ -30,7 +30,7 @@ use crate::wire::{Fields, Value, packed_varints};
 /// [`ScipError::TooLarge`] above `max_index_bytes`, [`ScipError::Unreadable`] if the file cannot
 /// be read or is not a regular file (a link is never followed, not even between the check and the open), and everything [`decode_index`] reports.
 pub fn read_index(path: &Path, max_index_bytes: u64) -> Result<ScipIndex, ScipError> {
-    let file = crate::open::open_regular(path).map_err(ScipError::Unreadable)?;
+    let file = codeskimr_fsguard::open_regular(path).map_err(ScipError::Unreadable)?;
     let size = file.metadata().map_err(ScipError::Unreadable)?.len();
     refuse_above(size, max_index_bytes)?;
     let mut bytes = Vec::with_capacity(usize::try_from(size).unwrap_or(0));
@@ -195,6 +195,7 @@ fn decode_document(message: &[u8], symbols: &mut Interner) -> Result<ScipDocumen
         encoding,
         occurrences,
         local_names: HashMap::new(),
+        facts: TextFacts::default(),
     })
 }
 

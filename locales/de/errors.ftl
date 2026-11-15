@@ -2,6 +2,7 @@
 
 error-APP-201 = Das Datenverzeichnis kann nicht angelegt oder geöffnet werden.
 error-APP-202 = Die private Datei zum Starten des Browsers konnte nicht angelegt werden.
+error-APP-203 = Die im Programm enthaltenen Sprachpakete konnten nicht in den Datenordner geschrieben werden.
 error-APP-301 = Eine andere CodeSkimr-Instanz nutzt diesen Arbeitsbereich und die Verbindung zu ihr ist fehlgeschlagen.
 error-APP-901 = Es ist ein unerwarteter interner Fehler aufgetreten.
 error-APP-601 = Der Browser konnte nicht gestartet werden.
@@ -45,7 +46,7 @@ error-SEC-301 = Die Stufe 2 ist für dieses Projekt nicht aktiviert und bestäti
 error-SEC-401 = Die Plattform hat die Zugangsberechtigung abgelehnt.
 error-SEC-402 = Der Schlüsselspeicher des Betriebssystems hat den Zugriff verweigert.
 error-SEC-403 = Nur der lokale Besitzer darf Indexer bestätigen oder starten.
-error-SEC-601 = Der Schlüsselspeicher des Betriebssystems ist nicht verfügbar.
+error-SEC-601 = Der Schlüsselspeicher des Betriebssystems ist nicht verfügbar. Starte einen Schlüsselspeicher-Dienst (unter Linux einen Secret Service wie gnome-keyring) und versuche es erneut; einen Datei-Ersatz gibt es nicht.
 error-SEC-901 = Geheimer Speicher konnte nicht gegen Auslagerung gesperrt werden.
 error-NET-501 = Die Anfrage an die externe Plattform hat zu lange gedauert.
 error-NET-502 = Die externe Plattform hat die Anfrage wegen zu vieler Zugriffe abgelehnt.
