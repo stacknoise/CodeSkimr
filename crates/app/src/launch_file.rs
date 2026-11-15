@@ -372,13 +372,17 @@ mod tests {
         fs::create_dir(&target).unwrap();
         let link = dir.path().join("link");
         junction(&link, &target);
-        assert!(LaunchFile::create(&link, URL, LIFETIME).is_err());
+        let error = LaunchFile::create(&link, URL, LIFETIME).unwrap_err();
+        assert_eq!(
+            codeskimr_codes::Coded::code(&error),
+            ErrorCode::LaunchFileUnavailable
+        );
         assert_eq!(fs::read_dir(&target).unwrap().count(), 0);
     }
 
     #[cfg(windows)]
     #[test]
-    fn the_folder_is_private_and_the_file_goes_on_windows() {
+    fn the_file_is_made_in_a_plain_folder_and_goes_on_windows() {
         let dir = tempfile::tempdir().unwrap();
         let folder = dir.path().join("launch");
         let file = LaunchFile::create(&folder, URL, LIFETIME).unwrap();
