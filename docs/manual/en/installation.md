@@ -51,6 +51,7 @@ If port 7421 is taken, the server stops with `API-301`; set another one with `--
 | database `codeskimr.db` and the cache of Git sources `git/` | Windows `%LOCALAPPDATA%\codeskimr`, macOS `~/Library/Application Support/codeskimr`, Linux `$XDG_DATA_HOME/codeskimr` or `~/.local/share/codeskimr`; change with `--data-dir` or `CODESKIMR_DATA_DIR` |
 | language packs of the program `languages/<id>/` (written on the first start, may be deleted) | in the data folder |
 | user configuration `config.toml` (optional) | Windows `%APPDATA%\codeskimr`, macOS `~/Library/Application Support/codeskimr`, Linux `$XDG_CONFIG_HOME/codeskimr`; change with `--config` or `CODESKIMR_CONFIG` |
+| theme and language of the UI `preferences.json` | in the data folder |
 | installation token, Git credentials | the keystore of the operating system, service name `codeskimr` |
 
 ## Configuration

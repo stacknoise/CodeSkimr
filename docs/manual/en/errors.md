@@ -29,6 +29,11 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 
 | Code | Meaning | What to do |
 |---|---|---|
+| `APP-201` | the data folder cannot be created or opened | check the path and rights (`--data-dir`) |
+| `APP-202` | the private file for starting the browser could not be created; also refused when its folder is a link or a junction (Windows) | check the rights of the data folder; `codeskimr serve` and open the address by hand |
+| `APP-203` (open) | the language packs built into the program could not be written to the data folder. **Open:** the packaging of the embedded packs is still being finished (issue #351), so cause and text can still change before 1.0 | free space and check the rights of the data folder; a `languages/` folder next to the program is used instead ([Installation](installation.md#build)) |
+| `APP-301` | another CodeSkimr instance holds the workspace and connecting to it failed | close the other instance or use `--data-dir` |
+| `APP-601` | the system did not start a browser | open the address printed by `codeskimr serve` by hand |
 | `PRJ-101` | the source is no existing folder and no valid Git address, or the address contains secrets, blanks or starts with a dash, or the branch name is not valid, or the folder is relative | give an absolute path; take secrets out of the address ([Sources and credentials](sources-and-credentials.md)) |
 | `PRJ-201` | no such project | add and scan it first |
 | `PRJ-302` | a scan of this project is already running | wait for it |

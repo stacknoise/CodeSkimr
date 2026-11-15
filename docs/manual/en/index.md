@@ -34,3 +34,5 @@ The UI and the messages come in German and English. The browser UI has a switch 
 ## Look of the UI
 
 Three themes exist: Hell, Petrol (default) and Dunkel. Choose one in the settings; the card shows a live preview. On first start a dark operating system gets Dunkel.
+
+Theme and language are kept **by the server** (file `preferences.json` in the data folder, see [Installation](installation.md#where-data-lives)), so every browser that opens the same installation shows the same choice. The browser keeps a copy so that the first screen needs no request; if the server holds a choice it wins over that copy. The file holds no secret.
