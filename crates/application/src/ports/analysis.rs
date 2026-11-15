@@ -1,6 +1,7 @@
 //! Understanding code (adapters: `codeskimr_parsing` and the metrics of `codeskimr_domain`).
 
 use std::collections::HashSet;
+use std::time::Duration;
 
 use codeskimr_domain::{
     FileId, Fingerprints, FolderPath, LanguageId, Metric, QualifiedName, Reference, ReferenceKind,
@@ -101,6 +102,14 @@ pub trait FileAnalyzer: Send + Sync {
     /// The default knows no rule.
     fn naming_rules(&self) -> String {
         String::new()
+    }
+
+    /// How long loading the grammar and queries of languages has taken so far (ADR 0059). The scan
+    /// leaves it out of the time it reports. The result is a clock of the whole analyzer: with
+    /// workers that analyze other languages meanwhile, or scans that run at the same time, a scan
+    /// subtracts the loads of the others too, so its time can be a little too short.
+    fn pack_load_time(&self) -> Duration {
+        Duration::ZERO
     }
 
     /// Whether `path` is a test file of `language` (`test_patterns` of its pack). The resolver

@@ -105,23 +105,10 @@ pub fn open_serving_store(
     Ok(store)
 }
 
-/// Builds the scanner with every port wired to its adapter; Git logins read from `secrets`.
-///
-/// # Errors
-/// `PRS` failures if the language packs cannot be loaded, `STO` failures of the id lookup.
-pub fn build_scanner(
-    store: &Arc<SqliteStore>,
-    config: &Config,
-    locations: &Locations,
-    events: EventBus,
-    secrets: &Arc<Secrets>,
-) -> Result<Scanner, CodedError> {
-    let analysis = build_analysis(config, locations)?;
-    scanner_over(&analysis, (store, config, locations), (events, secrets))
-}
-
-/// Like [`build_scanner`], but over an [`Analysis`] that was built already, so a caller that
-/// needs the analysis for something else too (the MCP server) loads the language packs once.
+/// Builds the scanner with every port wired to its adapter, over an [`Analysis`] that was built
+/// already, so a caller that needs the analysis for something else too (the session reads the
+/// pack load time, the MCP server searches) loads the language packs once. Git logins read from
+/// `secrets`.
 ///
 /// # Errors
 /// `STO` failures of the id lookup.

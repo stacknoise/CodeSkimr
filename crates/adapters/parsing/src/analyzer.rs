@@ -112,6 +112,10 @@ impl FileAnalyzer for TreeSitterAnalyzer {
         self.packs.naming_rules()
     }
 
+    fn pack_load_time(&self) -> Duration {
+        self.packs.load_time()
+    }
+
     fn is_test_file(&self, language: &LanguageId, path: &RelativePath) -> bool {
         self.packs
             .get(language)
