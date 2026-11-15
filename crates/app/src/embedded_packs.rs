@@ -80,6 +80,8 @@ pub fn materialize(
     let cache = data_dir.join(PACKS_CACHE_DIR);
     let target = cache.join(fingerprint);
     if is_complete(&target) {
+        // Touches the marker: the folder is in use, so it is not old (see `remove_stale`).
+        let _ = fs::write(target.join(PACKS_COMPLETE_MARKER), []);
         return Ok(target);
     }
     let mut staging_name = OsString::from(fingerprint);
@@ -125,8 +127,9 @@ fn remove_stale(cache: &Path, keep: &Path) {
         } else {
             PACKS_REPLACED_MAX_AGE
         };
-        let old = entry
-            .metadata()
+        // The marker is rewritten at every start that uses the folder; unfinished folders have none.
+        let old = fs::metadata(entry.path().join(PACKS_COMPLETE_MARKER))
+            .or_else(|_| entry.metadata())
             .and_then(|meta| meta.modified())
             .ok()
             .and_then(|time| time.elapsed().ok())
@@ -331,7 +334,7 @@ mod tests {
         let current = materialize(FILES_OF_TWO_PACKS, "cur", data.path()).unwrap();
         let long_ago = std::time::SystemTime::now() - PACKS_REPLACED_MAX_AGE * 2;
         for folder in [&old, &current] {
-            fs::File::open(folder)
+            fs::File::open(folder.join(PACKS_COMPLETE_MARKER))
                 .unwrap()
                 .set_modified(long_ago)
                 .unwrap();
