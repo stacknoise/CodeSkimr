@@ -107,7 +107,9 @@ pub trait FileAnalyzer: Send + Sync {
     }
 
     /// How long loading the grammar and queries of languages has taken so far (ADR 0059). The scan
-    /// leaves it out of the time it reports; the cold start budget counts it.
+    /// leaves it out of the time it reports. The result is a clock of the whole analyzer: with
+    /// workers that analyze other languages meanwhile, or scans that run at the same time, a scan
+    /// subtracts the loads of the others too, so its time can be a little too short.
     fn pack_load_time(&self) -> Duration {
         Duration::ZERO
     }

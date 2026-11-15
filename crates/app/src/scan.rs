@@ -2,7 +2,7 @@
 //! what watch mode scans again and again.
 
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use codeskimr_application::access;
 use codeskimr_application::cancel::CancelToken;
@@ -137,13 +137,11 @@ impl Session {
         match self.scanner.run(&self.principal, job) {
             JobResult::Finished(job) => {
                 let snapshot = job.snapshot();
-                // Loading a language pack is not part of the scan (ADR 0059): it counts for the cold
-                // start, so the scan time stays comparable between runs that load different packs.
                 let loading = self
                     .analyzer
                     .pack_load_time()
                     .saturating_sub(loading_before);
-                let seconds = started.elapsed().saturating_sub(loading).as_secs_f64();
+                let seconds = without_loading(started.elapsed(), loading);
                 Ok(ScanSummary {
                     project: self.project.name.to_string(),
                     snapshot: snapshot.id.get(),
@@ -160,6 +158,12 @@ impl Session {
             JobResult::Cancelled(_) => Err(CodedError::new(ErrorCode::ScanCancelled)),
         }
     }
+}
+
+/// The time of a scan without loading language packs (ADR 0059), so that it stays comparable
+/// between runs that load different packs. Not below zero.
+fn without_loading(elapsed: Duration, loading: Duration) -> f64 {
+    elapsed.saturating_sub(loading).as_secs_f64()
 }
 
 /// The line of the summary for one language of the second pass.
@@ -346,4 +350,16 @@ fn with_layers(
 /// so concurrent scans of different sources never share an id).
 fn register(store: &SqliteStore, spec: SourceSpec) -> Result<Project, CodedError> {
     store.register_project(spec.name, spec.source)
+}
+
+#[cfg(test)]
+mod load_time_tests {
+    use super::*;
+
+    #[test]
+    fn the_load_time_is_taken_out_of_the_scan_time_and_never_goes_below_zero() {
+        let second = Duration::from_secs(1);
+        assert!((without_loading(second * 3, second) - 2.0).abs() < f64::EPSILON);
+        assert!(without_loading(second, second * 2).abs() < f64::EPSILON);
+    }
 }

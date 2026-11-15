@@ -5,7 +5,7 @@ use std::fs;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Mutex, OnceLock, PoisonError};
+use std::sync::{Mutex, MutexGuard, OnceLock, PoisonError};
 use std::thread;
 use std::time::{Duration, Instant};
 
@@ -21,14 +21,29 @@ use crate::indexer::IndexerManifest;
 use crate::manifest::{PackManifest, Tier};
 use crate::pack::LanguagePack;
 
-/// Reads the packs of `dirs` on at most one thread per core, so that the number of threads does not
-/// grow with the number of installed packs. The result keeps the order of `dirs`.
-fn read_all(dirs: &[PathBuf]) -> Vec<Result<Slot, ParsingError>> {
+/// Runs `work` for every index below `count` on at most one thread per core, so that the number of
+/// threads does not grow with the number of installed packs. The result keeps the order of the
+/// items; if a worker panicked and took its results with it, the last entry is `lost`.
+fn run_parallel<I: Sync, T: Send>(
+    items: &[I],
+    work: impl Fn(&I) -> T + Sync,
+    lost: impl FnOnce() -> T,
+) -> Vec<T> {
+    let count = items.len();
     let next = AtomicUsize::new(0);
-    let workers = load_workers(dirs.len());
-    let mut done: Vec<(usize, Result<Slot, ParsingError>)> = thread::scope(|scope| {
-        let handles: Vec<_> = (0..workers)
-            .map(|_| scope.spawn(|| read_next(dirs, &next)))
+    let take = || {
+        let mut done = Vec::new();
+        loop {
+            let index = next.fetch_add(1, Ordering::Relaxed);
+            let Some(item) = items.get(index) else {
+                return done;
+            };
+            done.push((index, work(item)));
+        }
+    };
+    let mut done: Vec<(usize, T)> = thread::scope(|scope| {
+        let handles: Vec<_> = (0..load_workers(count))
+            .map(|_| scope.spawn(take))
             .collect();
         handles
             .into_iter()
@@ -36,15 +51,16 @@ fn read_all(dirs: &[PathBuf]) -> Vec<Result<Slot, ParsingError>> {
             .collect()
     });
     done.sort_by_key(|(index, _)| *index);
-    let mut read: Vec<_> = done.into_iter().map(|(_, slot)| slot).collect();
-    if read.len() < dirs.len() {
-        // A worker panicked and took its results with it.
-        read.push(Err(ParsingError::invalid(
-            String::new(),
-            LOAD_PANICKED.to_owned(),
-        )));
+    let mut results: Vec<T> = done.into_iter().map(|(_, result)| result).collect();
+    if results.len() < count {
+        results.push(lost());
     }
-    read
+    results
+}
+
+/// The error for a worker that panicked while loading packs.
+fn panicked() -> ParsingError {
+    ParsingError::invalid(String::new(), LOAD_PANICKED.to_owned())
 }
 
 /// Threads that load `packs` packs: one per core at most, and no more than there are packs.
@@ -52,34 +68,6 @@ fn load_workers(packs: usize) -> usize {
     thread::available_parallelism()
         .map_or(MIN_LOAD_THREADS, NonZeroUsize::get)
         .min(packs.max(MIN_LOAD_THREADS))
-}
-
-/// One loading thread: takes the next pack folder until none is left.
-fn read_next(dirs: &[PathBuf], next: &AtomicUsize) -> Vec<(usize, Result<Slot, ParsingError>)> {
-    let mut done = Vec::new();
-    loop {
-        let index = next.fetch_add(1, Ordering::Relaxed);
-        let Some(dir) = dirs.get(index) else {
-            return done;
-        };
-        done.push((index, Slot::read(dir.clone())));
-    }
-}
-
-/// One verifying thread: loads the next pack until none is left.
-fn verify_next(
-    slots: &[&Slot],
-    next: &AtomicUsize,
-    clock: &LoadClock,
-) -> Vec<(usize, Result<(), ParsingError>)> {
-    let mut done = Vec::new();
-    loop {
-        let index = next.fetch_add(1, Ordering::Relaxed);
-        let Some(slot) = slots.get(index) else {
-            return done;
-        };
-        done.push((index, slot.pack(clock).map(drop)));
-    }
 }
 
 /// The time during which at least one pack was being loaded (ADR 0059): packs that load at the same
@@ -100,7 +88,7 @@ struct LoadState {
 struct LoadTimer<'a>(&'a LoadClock);
 
 impl LoadClock {
-    fn state(&self) -> std::sync::MutexGuard<'_, LoadState> {
+    fn state(&self) -> MutexGuard<'_, LoadState> {
         self.state.lock().unwrap_or_else(PoisonError::into_inner)
     }
 
@@ -219,6 +207,8 @@ impl Slot {
     fn pack(&self, clock: &LoadClock) -> Result<&LanguagePack, ParsingError> {
         let loaded = self.loaded.get_or_init(|| {
             let _timer = clock.running();
+            // `LanguagePack::load` reports only `PackInvalid`; any other error is kept as text so
+            // that it is not lost and does not make the pack load again.
             match LanguagePack::load(&self.dir) {
                 Ok(pack) => Ok(pack),
                 Err(ParsingError::PackInvalid { pack, reason }) => Err((pack, reason)),
@@ -282,7 +272,7 @@ impl LanguagePacks {
     pub fn load(root: &Path) -> Result<Self, ParsingError> {
         let dirs = pack_dirs(root)?;
         // The error reported is the one of the first pack in the order of the folders.
-        let read = read_all(&dirs);
+        let read = run_parallel(&dirs, |dir| Slot::read(dir.clone()), || Err(panicked()));
         let mut slots = HashMap::new();
         for slot in read {
             let slot = slot?;
@@ -332,19 +322,13 @@ impl LanguagePacks {
     pub fn verify(&self) -> Result<(), ParsingError> {
         let mut slots: Vec<&Slot> = self.slots.values().collect();
         slots.sort_by(|a, b| a.summary.id.as_str().cmp(b.summary.id.as_str()));
-        let next = AtomicUsize::new(0);
-        let results: Vec<(usize, Result<(), ParsingError>)> = thread::scope(|scope| {
-            let handles: Vec<_> = (0..load_workers(slots.len()))
-                .map(|_| scope.spawn(|| verify_next(&slots, &next, &self.clock)))
-                .collect();
-            handles
-                .into_iter()
-                .flat_map(|handle| handle.join().unwrap_or_default())
-                .collect()
-        });
-        let mut results = results;
-        results.sort_by_key(|(index, _)| *index);
-        results.into_iter().try_for_each(|(_, result)| result)
+        run_parallel(
+            &slots,
+            |slot| slot.pack(&self.clock).map(drop),
+            || Err(panicked()),
+        )
+        .into_iter()
+        .try_for_each(|result| result)
     }
 
     /// The pack for `language`; it is loaded by the first call.
@@ -369,7 +353,7 @@ impl LanguagePacks {
 
 #[cfg(test)]
 mod tests {
-    use super::load_workers;
+    use super::*;
 
     #[test]
     fn loading_never_uses_more_threads_than_packs_or_cores() {
@@ -377,5 +361,17 @@ mod tests {
         assert_eq!(load_workers(1), 1);
         assert_eq!(load_workers(0), 1);
         assert_eq!(load_workers(10_000), cores);
+    }
+
+    #[test]
+    fn loads_that_overlap_count_once() {
+        let clock = LoadClock::default();
+        let start = Instant::now();
+        let (first, second) = (clock.running(), clock.running());
+        thread::sleep(Duration::from_millis(20));
+        drop((first, second));
+        let wall = start.elapsed();
+        assert!(clock.total() >= Duration::from_millis(20));
+        assert!(clock.total() <= wall);
     }
 }
