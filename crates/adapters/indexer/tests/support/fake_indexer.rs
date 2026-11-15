@@ -38,6 +38,7 @@ fn run(mode: &str, output: &Path, pid_file: &Path) -> io::Result<ExitCode> {
         "flood" => flood()?,
         "big-file" => big_file(output)?,
         "memory" => use_memory(),
+        "threads" => many_threads(output)?,
         "dump-env" => dump_env(output)?,
         "fail" => return fail(),
         "fail-long" => return fail_long(),
@@ -81,6 +82,24 @@ fn use_memory() {
     }
     thread::sleep(HANG);
     drop(block);
+}
+
+/// Holds 80 MiB in many threads for longer than one poll of the memory meter, then writes the
+/// index. Every thread of a process reports the memory of the whole process.
+fn many_threads(output: &Path) -> io::Result<()> {
+    let mut block = vec![0_u8; 80 * 1024 * 1024];
+    for page in block.chunks_mut(4096) {
+        page.fill(1);
+    }
+    let sleepers: Vec<_> = (0..16)
+        .map(|_| thread::spawn(|| thread::sleep(Duration::from_millis(1500))))
+        .collect();
+    for sleeper in sleepers {
+        let _ = sleeper.join();
+    }
+    fs::write(output, b"index")?;
+    drop(block);
+    Ok(())
 }
 
 fn dump_env(output: &Path) -> io::Result<()> {
