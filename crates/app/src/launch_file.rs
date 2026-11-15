@@ -145,9 +145,12 @@ fn check_owner(dir: &Path, path: &Path, own_file: &File) -> std::io::Result<()> 
     Ok(())
 }
 
-/// On Windows the access rules of the folder are set for the user alone (see `check_private`).
-/// A folder or file that is a reparse point (a junction or a link) is refused: it could lead to a
-/// place that others can read, and the access rules would be set on that place instead.
+/// On Windows only the folder and the file themselves are checked, not the folders above them and
+/// not who owns the folder, and the folder is not compared with what it resolved to before the
+/// access rules were set (open points of issue #372; this is not the Unix check). The access
+/// rules of the folder are set for the user alone (see `check_private`). A folder or file that is
+/// a reparse point (a junction or a link) is refused: it could lead to a place that others can
+/// read, and the access rules would be set on that place instead.
 #[cfg(windows)]
 fn check_owner(dir: &Path, path: &Path, _own_file: &File) -> std::io::Result<()> {
     if is_reparse_point(dir)? || is_reparse_point(path)? {
