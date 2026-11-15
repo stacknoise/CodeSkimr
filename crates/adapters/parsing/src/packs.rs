@@ -364,6 +364,20 @@ mod tests {
     }
 
     #[test]
+    fn a_worker_that_panics_leaves_an_error_and_not_a_success() {
+        let items = [1_u8, 2, 3];
+        let results = run_parallel(
+            &items,
+            |item| {
+                assert_ne!(*item, 2, "this worker fails");
+                Ok(())
+            },
+            || Err(panicked()),
+        );
+        assert!(results.into_iter().any(|result| result.is_err()));
+    }
+
+    #[test]
     fn loads_that_overlap_count_once() {
         let clock = LoadClock::default();
         let start = Instant::now();
