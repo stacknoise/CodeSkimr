@@ -122,6 +122,16 @@ impl RequirementReader for World {
     fn read(&self, _: &ProjectSource, requirement: &RequirementSpec) -> Option<String> {
         self.files.get(&requirement.file).cloned()
     }
+
+    /// The file in the root and every one of that name in a folder below (`api/global.json`).
+    fn read_all(&self, _: &ProjectSource, requirement: &RequirementSpec) -> Vec<String> {
+        let below = format!("/{}", requirement.file);
+        self.files
+            .iter()
+            .filter(|(path, _)| **path == requirement.file || path.ends_with(&below))
+            .map(|(_, text)| text.clone())
+            .collect()
+    }
 }
 
 impl ToolReportStore for World {
@@ -274,6 +284,22 @@ fn an_sdk_older_than_the_one_in_global_json_is_too_old() {
     assert_eq!(dotnet.state, ToolState::TooOld);
     assert_eq!(dotnet.found.as_deref(), Some("8.0.404"));
     assert_eq!(dotnet.required.as_deref(), Some("9.0.100"));
+}
+
+#[test]
+fn the_newest_version_of_all_manifest_folders_counts() {
+    let mut world = csharp_world(
+        &[("scip-dotnet", "0.2.1"), ("dotnet", "8.0.404")],
+        Some("8.0.100"),
+    );
+    // A nested solution asks for more than the root does.
+    world
+        .files
+        .insert("services/api/global.json".to_owned(), "9.0.200".to_owned());
+    let (_, report) = run(world);
+    let dotnet = &report.unwrap().findings[1];
+    assert_eq!(dotnet.state, ToolState::TooOld);
+    assert_eq!(dotnet.required.as_deref(), Some("9.0.200"));
 }
 
 #[test]

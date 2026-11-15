@@ -128,5 +128,38 @@ pub const BACKSLASH: char = '\\';
 /// Characters besides letters and digits that a bare TOML key may contain, and the dot of a
 /// dotted key.
 pub const TOML_KEY_EXTRA: &str = "-_.";
+/// Deepest folder level below the project root in which requirement files are looked for.
+pub const REQUIREMENT_MAX_DEPTH: usize = 6;
+/// Most requirement files of one name that are read.
+pub const REQUIREMENT_MAX_FILES: usize = 32;
+/// Most folders that are looked into when requirement files are searched.
+pub const REQUIREMENT_MAX_FOLDERS: usize = 2000;
+/// Folders that are not entered when requirement files are looked for: dependencies, build output
+/// and virtual environments hold files of other projects.
+pub const REQUIREMENT_SKIPPED_FOLDERS: &[&str] = &[
+    ".git",
+    "node_modules",
+    "target",
+    "bin",
+    "obj",
+    "vendor",
+    "dist",
+    ".venv",
+    "venv",
+];
+/// The characters of JSON that the tolerant reader of `global.json` looks at.
+pub const JSON_QUOTE: char = '"';
+/// Starts a comment (twice) or ends a block comment (after a star).
+pub const JSON_SLASH: char = '/';
+/// Opens or closes a block comment (next to a slash).
+pub const JSON_STAR: char = '*';
+/// Ends a line comment.
+pub const JSON_NEWLINE: char = '\n';
+/// Escapes the next character inside a string.
+pub const JSON_ESCAPE: char = '\\';
+/// Separates the members of an object or array.
+pub const JSON_COMMA: char = ',';
+/// What may follow a trailing comma.
+pub const JSON_CLOSERS: [char; 2] = ['}', ']'];
 /// Bytes read beyond the announced length of a file: one is enough to see that it grew.
 pub const GROWTH_PROBE_BYTES: u64 = 1;
