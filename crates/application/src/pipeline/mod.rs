@@ -7,6 +7,7 @@ mod carry;
 mod flow;
 mod job;
 mod scanner;
+mod shape;
 mod stages;
 
 pub use carry::Carried;

@@ -17,6 +17,8 @@ mod e2e;
 mod embedded_packs;
 mod embedded_ui;
 mod export;
+#[cfg(test)]
+mod incremental_tests;
 mod installation_token;
 mod launch_file;
 mod level2_consent;

@@ -79,6 +79,7 @@ impl Fixture {
         stored.layers = layers
             .iter()
             .map(|(name, namespace)| Layer {
+                may_use: None,
                 name: LayerName::new(*name).unwrap(),
                 namespaces: vec![QualifiedName::new(*namespace).unwrap()],
             })

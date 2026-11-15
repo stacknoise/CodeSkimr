@@ -2,7 +2,7 @@
 
 mod common;
 
-use common::{Call, TOKEN, owner, start, start_mcp};
+use common::{Call, REFUSE_BODY, TOKEN, owner, start, start_mcp};
 
 const MCP: &str = "/mcp";
 const BODY: &str = r#"{"jsonrpc":"2.0","id":1,"method":"ping"}"#;
@@ -94,4 +94,20 @@ async fn other_paths_and_methods_never_reach_the_service_without_the_token() {
         assert_eq!(reply.status, 404, "{path}");
         assert!(!reply.body.contains("pong"), "{path}");
     }
+}
+
+#[tokio::test]
+async fn refusals_of_the_service_come_in_the_error_format() {
+    let server = start_mcp(owner()).await;
+    let method = Call::new("GET", MCP).token(TOKEN).send(&server).await;
+    assert_eq!(method.status, 405);
+    assert_eq!(method.code(), "API-101");
+    let body = Call::post(MCP)
+        .token(TOKEN)
+        .header(REFUSE_BODY, "1")
+        .json("{not json")
+        .send(&server)
+        .await;
+    assert_eq!(body.status, 400);
+    assert_eq!(body.code(), "API-101");
 }

@@ -4,7 +4,7 @@
 # Every key listed here is the complete set: unknown keys in an override are rejected (CFG-103).
 
 # Architecture layers of the scanned project (ADR 0031). Empty by default; a project sets them in its
-# .codeskimr.toml as `[[layers]]` tables with `name` and `namespaces` (qualified-name prefixes).
+# .codeskimr.toml as `[[layers]]` tables with `name`, `namespaces` (qualified-name prefixes) and optionally `may_use` (the layers it may depend on).
 layers = []
 
 # Metric thresholds (blueprint 14). "good" and "medium" bounds; everything beyond is "poor".
