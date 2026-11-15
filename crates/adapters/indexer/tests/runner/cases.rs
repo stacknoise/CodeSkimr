@@ -482,6 +482,19 @@ fn too_much_memory_stops_the_indexer() {
 }
 
 #[test]
+fn the_threads_of_an_indexer_do_not_multiply_its_memory() {
+    // 80 MiB held by one process with 16 threads: a meter that counts every thread as a process
+    // reads over 1 GiB and stops it (found by the acceptance measurement of level 2).
+    let fixture = Fixture::new();
+    let limit = IndexLimits {
+        max_memory_bytes: 400 * 1024 * 1024,
+        ..limits()
+    };
+    let result = fixture.run_with(&spec("threads"), limit, &CancelToken::new());
+    assert!(result.is_ok(), "{:?}", result.err().map(|e| e.code()));
+}
+
+#[test]
 fn a_failing_indexer_is_reported_with_its_redacted_output() {
     let fixture = Fixture::new();
     let error = fixture.run("fail").unwrap_err();
