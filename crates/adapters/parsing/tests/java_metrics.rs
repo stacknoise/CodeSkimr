@@ -74,6 +74,12 @@ mod tests {
         assert_eq!(cognitive("loops"), Some(9));
         // the conditional (+1)
         assert_eq!(cognitive("method"), Some(1));
+    }
+
+    #[test]
+    fn cognitive_complexity_of_the_less_common_constructs() {
+        let found = by_name(&facts("java", "Cognitive.java"));
+        let cognitive = |name: &str| body(&found, name).cognitive;
         // a switch expression with arrows counts once, like the statement
         assert_eq!(cognitive("arrows"), Some(1));
         // outer conditional (+1), the one in its branch (+2)
