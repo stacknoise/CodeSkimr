@@ -5,9 +5,9 @@
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{ProjectId, ScanMode, Snapshot};
 
-use super::stages::ScanWarning;
 use crate::cancel::CancelToken;
 use crate::level2::LanguageReport;
+use crate::ports::ScanWarning;
 
 mod sealed {
     /// Keeps the set of job states closed.

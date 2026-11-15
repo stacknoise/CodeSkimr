@@ -27,7 +27,7 @@ The first scan of a project is full. Later scans are **incremental**: files are 
 codeskimr scan <path|git-url> [--branch <name>] [--json] [--watch] [--credential <name>]
 ```
 
-- The argument is an existing folder or a Git address (`https://`, `http://`, `ssh://`, `git://`, `git@host:org/repo`, or ending in `.git`). A folder is made absolute. `--branch` only applies to Git sources and defaults to `main`.
+- The argument is an existing folder or a Git address (`https://`, `http://`, `ssh://`, `git://`, `file://` (a local repository), `git@host:org/repo`, or ending in `.git`). A folder is made absolute. `--branch` only applies to Git sources and defaults to `main`.
 - The command registers the source as a project (once) and runs one full scan. The result is a two-line summary, followed by one line for each missing or too old indexer tool and, if you enabled it, one line per language for level 2 ("checked" or "skipped (reason)"). With `--json` it is one JSON line: `{project, snapshot, files, symbols, references, seconds, tools}`.
 - **`--watch`** keeps the command running after the first scan. When files in the folder change, they are collected for a short moment and scanned again incrementally; each re-scan prints one line. Only folders can be watched (`CLI-102` for a Git address). Stop with Ctrl+C. A failed re-scan prints its error and watching goes on.
 - **Secrets in a Git address** (user name and password, a token, a query or a fragment) are refused with `PRJ-101`. See [Sources and credentials](sources-and-credentials.md) for the right way (`--credential`).

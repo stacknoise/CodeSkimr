@@ -12,33 +12,27 @@ use crate::headers::{insert_metric, insert_reference, latest_snapshot, set_total
 use crate::previous::load_latest_index;
 use crate::projects::load_layers;
 use crate::read_models;
+use crate::references::id_set;
 use crate::sql;
 
-/// Whether `query` finds a row for the snapshot and the id.
-fn holds(conn: &Connection, query: &str, snapshot: i64, id: u64) -> StorageResult<bool> {
-    Ok(conn
-        .prepare_cached(query)?
-        .query_row(params![snapshot, column_int(id)?], |row| row.get(0))?)
+/// Whether `id` is in `ids`; an id beyond the column range is in none.
+fn contains(ids: &HashSet<i64>, id: u64) -> bool {
+    column_int(id).is_ok_and(|value| ids.contains(&value))
 }
 
 /// Fails with `DanglingReference` unless every file is in the snapshot and every reference stands
-/// in one of those files and joins two symbols of the snapshot.
+/// in one of those files and joins two symbols of the snapshot. The files and symbols of the
+/// snapshot are read once, so the check costs two queries however many references there are.
 fn check(conn: &Connection, snapshot: i64, change: &ReferenceReplacement) -> StorageResult<()> {
+    let held_files = id_set(conn, sql::FILE_IDS, snapshot)?;
+    let held_symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
     let files: HashSet<u64> = change.files.iter().map(|file| file.get()).collect();
-    let mut ok = true;
-    for file in &files {
-        ok &= holds(conn, sql::FILE_IN_SNAPSHOT, snapshot, *file)?;
-    }
-    for reference in &change.references {
-        ok &= files.contains(&reference.file.get())
-            && holds(
-                conn,
-                sql::SYMBOL_IN_SNAPSHOT,
-                snapshot,
-                reference.from.get(),
-            )?
-            && holds(conn, sql::SYMBOL_IN_SNAPSHOT, snapshot, reference.to.get())?;
-    }
+    let ok = files.iter().all(|file| contains(&held_files, *file))
+        && change.references.iter().all(|reference| {
+            files.contains(&reference.file.get())
+                && contains(&held_symbols, reference.from.get())
+                && contains(&held_symbols, reference.to.get())
+        });
     if ok {
         Ok(())
     } else {
