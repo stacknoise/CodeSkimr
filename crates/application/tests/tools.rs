@@ -64,6 +64,7 @@ fn plan(indexer: &str, toolchain: &str, requirement: Option<&str>) -> ToolPlan {
             install_hint: "install it".to_owned(),
             symbol_kinds: Vec::new(),
             separator: String::new(),
+            library_root: String::new(),
         },
         requirements: requirement
             .map(|file| ToolRequirement {

@@ -800,6 +800,43 @@ fn a_level_two_reference_from_an_unchanged_file_to_a_symbol_of_a_changed_file_is
     Ok(())
 }
 
+/// The module symbol of a file, named after the file as level 1 does (`lib`, `mod`).
+fn module_symbol(id: u64, file: u64, name: &str) -> Result<Symbol, CodedError> {
+    Ok(Symbol {
+        kind: SymbolKind::Module,
+        ..old_symbol(id, file, name)?
+    })
+}
+
+#[test]
+fn a_level_two_use_of_the_module_of_a_changed_file_is_dropped_until_level_two_runs_again()
+-> Result<(), CodedError> {
+    // ADR 0061: `a.rs` (unchanged) names the module of `b.rs` (changed), as `use crate::b` does
+    // in a `lib.rs` or `mod.rs`. Level 1 does not make that reference again; the next level 2 pass
+    // does, from the new module symbol.
+    let mut previous = previous_snapshot()?;
+    previous.index.symbols.push(module_symbol(212, 101, "mod")?);
+    previous.index.references.push(Reference {
+        kind: ReferenceKind::Read,
+        ..verified(old_call(312, 212)?)
+    });
+    let world = world_over(previous);
+    let (result, _) = run(&world, ScanMode::Incremental);
+    let JobResult::Finished(_) = result else {
+        panic!("scan did not finish");
+    };
+    let persisted = world.last_persisted()?;
+    assert!(
+        persisted.references.iter().all(|r| r.to.get() != 212),
+        "the module of the changed file left with its file"
+    );
+    assert!(
+        persisted.symbols.iter().all(|s| s.id.get() != 212),
+        "and its symbol is not carried"
+    );
+    Ok(())
+}
+
 #[test]
 fn a_change_that_keeps_the_declarations_resolves_only_the_names_that_pointed_into_it()
 -> Result<(), CodedError> {
@@ -1238,6 +1275,7 @@ fn rust_indexer() -> IndexerSpec {
         install_hint: String::new(),
         symbol_kinds: Vec::new(),
         separator: String::new(),
+        library_root: String::new(),
     }
 }
 

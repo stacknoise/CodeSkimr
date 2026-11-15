@@ -21,6 +21,7 @@ mod locals;
 mod mapping;
 mod model;
 mod path;
+mod roots;
 mod symbol;
 mod table;
 mod wire;

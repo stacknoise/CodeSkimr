@@ -120,6 +120,7 @@ fn creation(kinds: &[(String, SymbolKind)]) -> Creation<'_> {
         kinds,
         separator: "::",
         max_symbols: 100,
+        library_root: "",
     }
 }
 

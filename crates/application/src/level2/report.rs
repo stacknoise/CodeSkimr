@@ -36,6 +36,8 @@ pub enum Level2Outcome {
         mapped: u64,
         /// Uses that were dropped.
         dropped: u64,
+        /// Of the dropped uses, those of code in folders the scan skipped (ADR 0061).
+        outside_scan: u64,
     },
     /// Level 2 did not run or was not used.
     Skipped(Skipped),

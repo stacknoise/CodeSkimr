@@ -29,6 +29,7 @@ mod cases {
             language: language.to_owned(),
             files: 4,
             stale,
+            outside_scan: 0,
             reason,
         }
     }
@@ -81,6 +82,23 @@ mod cases {
         )]))
         .unwrap();
         assert!(json.contains("\"not_confirmed\""), "{json}");
+    }
+
+    #[test]
+    fn uses_in_skipped_folders_get_their_own_line_in_both_languages() {
+        let outside = Level2Line {
+            outside_scan: 80,
+            ..line("rust", 0, None)
+        };
+        let en = text("en", vec![outside.clone()]);
+        assert!(contains(&en, &["Level 2", "rust", "checked"]));
+        assert!(contains(&en, &["skips", "not counted", "80"]));
+        let de = text("de", vec![outside.clone()]);
+        assert!(contains(&de, &["Stufe 2", "rust", "überspringt", "80"]));
+        // Nothing outside the scan: no extra line.
+        assert_eq!(text("en", vec![line("rust", 0, None)]).len(), 1);
+        let json = scan_json(&summary(vec![outside])).unwrap();
+        assert!(json.contains("\"outside_scan\":80"), "{json}");
     }
 
     #[test]

@@ -59,6 +59,10 @@ pub struct IndexerSpec {
     /// The separator of qualified names of the language (`::` for Rust), which joins the name of
     /// a created symbol to the qualified name of its parent.
     pub separator: String,
+    /// The file name of the root that wins when the index gives one module symbol to several
+    /// files of a package and the folders do not decide (`lib.rs` for Rust, ADR 0061); empty if
+    /// the pack names none.
+    pub library_root: String,
 }
 
 /// Limits of one run, from `level2.*` of the configuration.

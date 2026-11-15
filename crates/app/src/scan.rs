@@ -194,14 +194,25 @@ fn warning_line(warning: &ScanWarning) -> WarningLine {
 
 /// The line of the summary for one language of the second pass.
 fn level2_line(report: &LanguageReport) -> Level2Line {
-    let (files, stale, reason) = match &report.outcome {
-        Level2Outcome::Checked { files, stale, .. } => (*files, *stale, None),
-        Level2Outcome::Skipped(why) => (u64::default(), u64::default(), Some(reason_of(why))),
+    let (files, stale, outside_scan, reason) = match &report.outcome {
+        Level2Outcome::Checked {
+            files,
+            stale,
+            outside_scan,
+            ..
+        } => (*files, *stale, *outside_scan, None),
+        Level2Outcome::Skipped(why) => (
+            u64::default(),
+            u64::default(),
+            u64::default(),
+            Some(reason_of(why)),
+        ),
     };
     Level2Line {
         language: report.language.to_string(),
         files,
         stale,
+        outside_scan,
         reason,
     }
 }

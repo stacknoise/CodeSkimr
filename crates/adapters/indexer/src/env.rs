@@ -237,6 +237,7 @@ mod home_dir_tests {
             env: Vec::new(),
             install_hint: String::new(),
             symbol_kinds: Vec::new(),
+            library_root: String::new(),
             separator: String::new(),
         }
     }

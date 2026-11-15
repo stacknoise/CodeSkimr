@@ -77,6 +77,7 @@ mod cases {
             install_hint: String::new(),
             symbol_kinds: Vec::new(),
             separator: String::new(),
+            library_root: String::new(),
         }
     }
 
@@ -258,7 +259,8 @@ mod cases {
                     }]
                 }),
                 mapped: 4,
-                dropped: 1,
+                dropped: 3,
+                outside_scan: 2,
             })
         }
     }
@@ -432,7 +434,8 @@ mod cases {
                     files: 1,
                     stale: 0,
                     mapped: 4,
-                    dropped: 1
+                    dropped: 3,
+                    outside_scan: 2,
                 },
             }]
         );
