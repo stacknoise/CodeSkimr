@@ -96,6 +96,59 @@ fn clones_a_branch_and_follows_new_commits() -> TestResult {
     Ok(())
 }
 
+/// Commits a change to the origin: `lib.rs` changes, `old.rs` goes, `new.rs` comes.
+fn change_origin(remote: &Path) -> TestResult {
+    write(remote, "lib.rs", "fn two() {}")?;
+    write(remote, "new.rs", "fn new() {}")?;
+    git(remote, &["rm", "-q", "--cached", "-r", "."])?;
+    git(remote, &["add", "-A"])?;
+    git(remote, &["commit", "-q", "-m", "two"])
+}
+
+#[test]
+fn an_update_reuses_the_earlier_clone_and_mirrors_the_new_commit() -> TestResult {
+    let Fixture {
+        remote,
+        cache,
+        source,
+    } = fixture()?;
+    write(remote.path(), "old.rs", "fn old() {}")?;
+    git(remote.path(), &["add", "."])?;
+    git(remote.path(), &["commit", "-q", "-m", "old"])?;
+    let first = fetcher(cache.path()).fetch(&source, &CancelToken::new())?;
+    let root = std::path::PathBuf::from(first.root.as_str());
+    // A file in the Git data that only an update takes over; a new clone would not have it.
+    std::fs::write(root.join(".git").join("kept-by-update"), "x")?;
+    std::fs::remove_file(remote.path().join("old.rs"))?;
+    change_origin(remote.path())?;
+    let second = fetcher(cache.path()).fetch(&source, &CancelToken::new())?;
+    assert_ne!(second.commit, first.commit);
+    assert!(root.join(".git").join("kept-by-update").exists());
+    assert_eq!(std::fs::read_to_string(root.join("lib.rs"))?, "fn two() {}");
+    assert_eq!(std::fs::read_to_string(root.join("new.rs"))?, "fn new() {}");
+    assert!(!root.join("old.rs").exists());
+    assert_eq!(entries(cache.path())?, 1);
+    Ok(())
+}
+
+#[test]
+fn a_broken_earlier_clone_is_replaced_by_a_new_clone() -> TestResult {
+    let Fixture {
+        remote,
+        cache,
+        source,
+    } = fixture()?;
+    let first = fetcher(cache.path()).fetch(&source, &CancelToken::new())?;
+    let root = std::path::PathBuf::from(first.root.as_str());
+    std::fs::write(root.join(".git").join("HEAD"), "not a reference")?;
+    change_origin(remote.path())?;
+    let second = fetcher(cache.path()).fetch(&source, &CancelToken::new())?;
+    assert_ne!(second.commit, first.commit);
+    assert_eq!(std::fs::read_to_string(root.join("lib.rs"))?, "fn two() {}");
+    assert_eq!(entries(cache.path())?, 1);
+    Ok(())
+}
+
 #[test]
 fn a_missing_branch_is_reported() -> TestResult {
     let remote = tempfile::tempdir()?;

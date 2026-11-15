@@ -1,8 +1,11 @@
 //! Git sources: shallow clone of one branch into a cache folder (blueprint section 7, "Fetch").
 //!
-//! An update clones the branch again into a private work folder and then swaps it in: the old copy
-//! is parked, the new one is moved into place, and only then the old one is deleted. If anything
-//! fails or the scan is cancelled, the old copy is back in place and the work folder is removed.
+//! An update works in a private work folder and then swaps the result in: the Git data of the old
+//! copy is duplicated there, only the new commits are fetched into it and the files are written
+//! from them (`update.rs`). If there is no old copy or the update fails for any reason, the branch
+//! is cloned again. Either way the old copy is parked, the new one is moved into place, and only
+//! then the old one is deleted. If anything fails or the scan is cancelled, the old copy is back in
+//! place and the work folder is removed.
 //! A crash skips that cleanup; the next fetch removes work folders in which nothing changed for a day
 //! and parked copies of swaps that began a day ago.
 //!
@@ -31,6 +34,8 @@ use crate::consts::{
     SHALLOW_CLONE_DEPTH, URL_SCHEME_MARKER, WORK_FOLDER_MAX_AGE_SECS, WORK_PREFIX, WORK_SEPARATOR,
 };
 use crate::error::{SourceError, error_chain_text};
+
+mod update;
 
 /// Lends the credential of a login to a closure, once per call. It reads from the secret store
 /// every time and nothing is kept between calls.
@@ -104,7 +109,7 @@ impl GitCache {
             login,
             cancel,
         };
-        clone_polling(&attempt, &work.fresh)?;
+        prepare_polling(&attempt, &target, &work.fresh)?;
         let commit = head_commit(&work.fresh)?;
         work.swap_into(&target)?;
         let root = FolderPath::new(target.to_string_lossy().into_owned())
@@ -189,8 +194,10 @@ struct Attempt<'a> {
     cancel: &'a CancelToken,
 }
 
-/// Runs the clone while a helper thread turns the cancel token into Git's interrupt flag.
-fn clone_polling(attempt: &Attempt<'_>, path: &Path) -> Result<(), SourceError> {
+/// Prepares the new copy in `fresh`: an update of the copy in `target` if there is one, otherwise
+/// (or if the update fails for any reason other than a cancel) a clone. Meanwhile a helper thread
+/// turns the cancel token into Git's interrupt flag.
+fn prepare_polling(attempt: &Attempt<'_>, target: &Path, fresh: &Path) -> Result<(), SourceError> {
     let interrupt = AtomicBool::new(false);
     let finished = AtomicBool::new(false);
     std::thread::scope(|scope| {
@@ -202,10 +209,29 @@ fn clone_polling(attempt: &Attempt<'_>, path: &Path) -> Result<(), SourceError> 
                 std::thread::sleep(Duration::from_millis(CANCEL_POLL_MS));
             }
         });
-        let result = clone_branch(attempt, path, &interrupt);
+        let result = update_or_clone(attempt, target, fresh, &interrupt);
         finished.store(true, Ordering::Release);
         result
     })
+}
+
+fn update_or_clone(
+    attempt: &Attempt<'_>,
+    target: &Path,
+    fresh: &Path,
+    interrupt: &AtomicBool,
+) -> Result<(), SourceError> {
+    if update::can_update(target)
+        && update::update_branch(attempt, target, fresh, interrupt).is_ok()
+    {
+        return Ok(());
+    }
+    if attempt.cancel.is_cancelled() {
+        return Err(cancelled());
+    }
+    // Whatever the update left behind must not get in the way of the clone.
+    let _ = fs::remove_dir_all(fresh);
+    clone_branch(attempt, fresh, interrupt)
 }
 
 /// Shallow clone of one branch with its working tree.
