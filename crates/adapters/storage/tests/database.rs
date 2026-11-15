@@ -8,10 +8,11 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use codeskimr_application::ports::{
-    ProjectRepository, SnapshotData, SnapshotStore, SymbolFingerprints,
+    PendingReference, ProjectRepository, Receiver, SnapshotData, SnapshotStore, SymbolFingerprints,
 };
 use codeskimr_domain::{
-    Fingerprint, Fingerprints, LanguageId, MetricKind, ScanMode, SymbolId, SymbolKind,
+    FileId, Fingerprint, Fingerprints, LanguageId, MetricKind, QualifiedName, ReferenceKind,
+    ScanMode, SymbolId, SymbolKind,
 };
 use codeskimr_storage::{SqliteStore, StoreOptions};
 use common::{PROJECT, code_of, data, file, header, metric, project, reference, symbol};
@@ -69,7 +70,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 11));
+    assert_eq!((mode.as_str(), version), ("wal", 12));
 }
 
 #[test]
@@ -142,6 +143,14 @@ fn scan_with_every_table(snapshot: u64, base: u64) -> SnapshotData {
         metric(base + 1, MetricKind::EfferentCoupling, 1.0),
     ];
     scan.parse_micros = vec![(LanguageId::new("csharp").unwrap(), base)];
+    scan.pending = vec![PendingReference {
+        from: SymbolId::new(base + 2),
+        file: FileId::new(base),
+        span: common::span(2),
+        kind: ReferenceKind::Call,
+        target: QualifiedName::new("App.A").unwrap(),
+        receiver: Some(Receiver::Own),
+    }];
     scan.fingerprints = vec![SymbolFingerprints {
         symbol: SymbolId::new(base + 1),
         fingerprints: Fingerprints::from_entries(vec![Fingerprint {
@@ -177,6 +186,7 @@ fn pruned_snapshots_leave_no_rows_behind() {
         ("type_summary", 1),
         ("fingerprints", 1),
         ("parse_times", 1),
+        ("pending_references", 1),
     ] {
         let rows: i64 = conn
             .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
@@ -221,6 +231,11 @@ fn an_incremental_scan_shares_references_and_fingerprints_instead_of_copying_the
     // The symbols and metrics of `a.cs` exist once: two of the first scan, one of the second.
     assert_eq!(rows_of(&conn, "symbol_rows"), 3);
     assert_eq!(rows_of(&conn, "metric_rows"), 2);
+    assert_eq!(
+        rows_of(&conn, "pending_references"),
+        1,
+        "the names of the carried file are stored once"
+    );
     let seen = |snapshot: i64| -> i64 {
         conn.query_row(
             "SELECT COUNT(*) FROM snapshot_references WHERE snapshot_id = ?1",
@@ -245,9 +260,11 @@ fn pruning_keeps_the_shared_rows_another_snapshot_still_contains() {
     assert_eq!(rows_of(&conn, "snapshots"), 1);
     assert_eq!(rows_of(&conn, "symbol_references"), 2);
     assert_eq!(rows_of(&conn, "fingerprints"), 1);
+    assert_eq!(rows_of(&conn, "pending_references"), 1);
     store.persist(scan_with_every_table(30, 300)).unwrap();
     // A full scan shares nothing with the snapshot it replaces.
     assert_eq!(rows_of(&conn, "symbol_references"), 1);
+    assert_eq!(rows_of(&conn, "pending_references"), 1);
     assert_eq!(rows_of(&conn, "fingerprints"), 1);
 }
 
@@ -513,6 +530,10 @@ fn a_version_seven_database_has_no_naming_rules_for_its_old_snapshots() {
     drop(conn);
     let store = SqliteStore::open(&db.0, keep(3)).unwrap();
     assert_eq!(store.latest_naming_rules(PROJECT).unwrap(), None);
+    assert!(
+        !store.latest_state(PROJECT).unwrap().names_stored,
+        "a snapshot from before the names were stored cannot be continued incrementally"
+    );
     assert_eq!(
         store.latest_snapshot(PROJECT).unwrap().unwrap().id.get(),
         10
@@ -560,7 +581,7 @@ fn connections_opening_a_new_database_at_once_all_succeed() {
 }
 
 #[test]
-fn a_version_ten_database_keeps_its_layers_without_a_limit() {
+fn a_version_eleven_database_keeps_its_layers_without_a_limit() {
     use codeskimr_application::ports::ProjectRepository;
     let db = TempDb::new();
     drop(SqliteStore::open(&db.0, keep(3)).unwrap());
@@ -568,7 +589,7 @@ fn a_version_ten_database_keeps_its_layers_without_a_limit() {
     conn.execute_batch(
         "DROP TABLE layer_uses;
          ALTER TABLE layers DROP COLUMN restricted;
-         PRAGMA user_version = 10;
+         PRAGMA user_version = 11;
          INSERT INTO projects (id, name, source_kind, location, branch)
            VALUES (1, 'old', 'folder', '/work/app', '');
          INSERT INTO layers (project_id, position, name) VALUES (1, 0, 'Core');
@@ -619,4 +640,64 @@ fn a_database_that_cannot_grow_any_more_fails_like_a_full_disk() {
         })
         .expect("the page limit is reached long before 1000 projects");
     assert_eq!(code_of(&error), "STO-501");
+}
+
+/// A full scan with `count` references from `A` to `B`; the ids of the file and the symbols start
+/// at `base`, so that two scans do not clash.
+#[cfg(test)]
+fn scan_with_references(snapshot: u64, base: u64, count: u64) -> SnapshotData {
+    let mut scan = data(header(snapshot, ScanMode::Full));
+    scan.files = vec![file(snapshot, base, "a.cs", "ha")];
+    scan.symbols = vec![
+        symbol(base + 1, base, SymbolKind::Class, "App.A", None),
+        symbol(base + 2, base, SymbolKind::Class, "App.B", None),
+    ];
+    scan.references = (0..count)
+        .map(|offset| reference(base * 1_000_000 + offset, base, base + 1, base + 2))
+        .collect();
+    scan
+}
+
+#[cfg(test)]
+fn reference_indexes(conn: &Connection) -> Vec<String> {
+    let mut statement = conn
+        .prepare(
+            "SELECT name FROM sqlite_master WHERE type = 'index' \
+             AND tbl_name = 'symbol_references' ORDER BY name",
+        )
+        .unwrap();
+    statement
+        .query_map([], |row| row.get(0))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect()
+}
+
+#[test]
+fn a_bulk_load_of_references_keeps_the_indexes_totals_and_usage_counts() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    let count = 25_000;
+    // The second scan finds the table filled and loads as many rows again.
+    for (snapshot, base) in [(10, 100), (20, 200)] {
+        let stored = store
+            .persist(scan_with_references(snapshot, base, count))
+            .unwrap();
+        assert_eq!(u64::from(stored.stats.references), count);
+        let id = codeskimr_domain::SnapshotId::new(snapshot);
+        assert_eq!(
+            u64::from(store.usage_count(id, SymbolId::new(base + 2)).unwrap()),
+            count
+        );
+    }
+    let conn = Connection::open(&db.0).unwrap();
+    assert_eq!(
+        reference_indexes(&conn),
+        [
+            "references_by_file",
+            "references_by_source",
+            "references_by_target"
+        ]
+    );
 }

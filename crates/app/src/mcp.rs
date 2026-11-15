@@ -25,7 +25,8 @@ use crate::principal;
 use crate::running::{ExclusiveScans, RunningScans};
 use crate::source_arg::folder_spec;
 use crate::wiring::{
-    Secrets, build_analysis, index_runner, open_store, os_secrets, scanner_over, tool_checker,
+    Analysis, Secrets, build_analysis, index_runner, open_store, os_secrets, scanner_over,
+    tool_checker,
 };
 
 /// Serves MCP until the client disconnects.
@@ -160,27 +161,31 @@ struct Wiring<'a> {
     running: RunningScans,
 }
 
+/// The convention check over the files and language packs of `analysis`.
+fn convention_checker(analysis: &Analysis, config: &Config) -> Arc<ConventionChecker> {
+    Arc::new(ConventionChecker::new(
+        Arc::clone(&analysis.discovery),
+        Arc::clone(&analysis.analyzer),
+        config.conventions.clone(),
+    ))
+}
+
 /// The ports of the tools: the store for everything it implements, the analysis ports the
 /// convention check and the snippet fingerprints read files and language packs through, and the
 /// scanner for `rescan`.
 fn build_ports(
     store: Arc<SqliteStore>,
     config: &Config,
-    wiring: Wiring<'_>,
-    (events, secrets): (EventBus, &Arc<Secrets>),
-) -> Result<Ports, CodedError> {
-    let Wiring {
+    Wiring {
         locations,
         messages,
         runner,
         running,
-    } = wiring;
+    }: Wiring<'_>,
+    (events, secrets): (EventBus, &Arc<Secrets>),
+) -> Result<Ports, CodedError> {
     let analysis = build_analysis(config, locations)?;
-    let checker = ConventionChecker::new(
-        Arc::clone(&analysis.discovery),
-        Arc::clone(&analysis.analyzer),
-        config.conventions.clone(),
-    );
+    let checker = convention_checker(&analysis, config);
     let scanner: Arc<dyn ProjectScanner> = Arc::new(ExclusiveScans::new(
         scanner_over(&analysis, (&store, config, locations), (events, secrets))?,
         running,
@@ -198,7 +203,7 @@ fn build_ports(
         usages,
         similarity,
         snippets,
-        checker: Arc::new(checker),
+        checker,
         clock: Arc::new(SystemClock),
         scanner,
         catalog,

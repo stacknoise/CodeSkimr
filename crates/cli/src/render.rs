@@ -54,6 +54,20 @@ fn format_with(
     messages.format(language, key, Some(&args))
 }
 
+/// Formats `key` with arguments of any value type.
+fn format_values<const N: usize>(
+    messages: &Messages,
+    language: &str,
+    key: &str,
+    values: [(&str, FluentValue<'static>); N],
+) -> Result<String, I18nError> {
+    let mut args = FluentArgs::new();
+    for (name, value) in values {
+        args.set(name, value);
+    }
+    messages.format(language, key, Some(&args))
+}
+
 /// The line that announces a scan.
 ///
 /// # Errors
@@ -84,10 +98,15 @@ pub fn open_ready(
     path: &str,
     seconds: u64,
 ) -> Result<String, I18nError> {
-    let mut args = FluentArgs::new();
-    args.set(arg::PATH, path.to_owned());
-    args.set(arg::LAUNCH_SECONDS, seconds);
-    messages.format(language, CLI_OPEN_READY, Some(&args))
+    format_values(
+        messages,
+        language,
+        CLI_OPEN_READY,
+        [
+            (arg::PATH, path.to_owned().into()),
+            (arg::LAUNCH_SECONDS, seconds.into()),
+        ],
+    )
 }
 
 /// The line that says where the export went.
@@ -101,11 +120,16 @@ pub fn export_written(
     symbols: usize,
     kilobytes: usize,
 ) -> Result<String, I18nError> {
-    let mut args = FluentArgs::new();
-    args.set(arg::PATH, path.to_owned());
-    args.set(arg::SYMBOLS, symbols);
-    args.set(arg::KILOBYTES, kilobytes);
-    messages.format(language, CLI_EXPORT_WRITTEN, Some(&args))
+    format_values(
+        messages,
+        language,
+        CLI_EXPORT_WRITTEN,
+        [
+            (arg::PATH, path.to_owned().into()),
+            (arg::SYMBOLS, symbols.into()),
+            (arg::KILOBYTES, kilobytes.into()),
+        ],
+    )
 }
 
 /// The line that tells that a credential was stored or replaced. It names the credential, never

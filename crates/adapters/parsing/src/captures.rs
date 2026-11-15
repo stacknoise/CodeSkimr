@@ -6,12 +6,13 @@ use codeskimr_domain::{ReferenceKind, SymbolKind};
 use tree_sitter::Query;
 
 use crate::consts::{
-    COMMENT_CAPTURE, CONTAINER_CAPTURE, DECISION_CAPTURE, DECLARED_TYPE_CAPTURE, DOC_CAPTURE,
-    FIELD_CAPTURE, LOCAL_CAPTURE, MODIFIER_CAPTURE, NAME_CAPTURE, OPERAND_CAPTURE,
-    OPERATOR_CAPTURE, RECEIVER_BASE_CAPTURE, RECEIVER_CAPTURE, RECEIVER_MEMBER_CAPTURE,
-    RECEIVER_OTHER_CAPTURE, RECEIVER_OWN_CAPTURE, RECEIVER_TYPE_CAPTURE, REFERENCE_CAPTURE_PREFIX,
-    SCOPE_CAPTURE, SCOPE_END_CAPTURE, SIGNATURE_CAPTURE, STATIC_CAPTURE, SYMBOL_CAPTURE_PREFIX,
-    VISIBILITY_CAPTURE,
+    COGNITIVE_CAPTURE, COGNITIVE_FLAT_CAPTURE, COGNITIVE_SEQUENCE_CAPTURE, COMMENT_CAPTURE,
+    CONTAINER_CAPTURE, CONTINUATION_CAPTURE, DECISION_CAPTURE, DECLARED_TYPE_CAPTURE, DOC_CAPTURE,
+    FIELD_CAPTURE, LOCAL_CAPTURE, MODIFIER_CAPTURE, NAME_CAPTURE, NESTING_CAPTURE, OPERAND_CAPTURE,
+    OPERATOR_CAPTURE, OWNER_CAPTURE, PARAMETER_CAPTURE, RECEIVER_BASE_CAPTURE, RECEIVER_CAPTURE,
+    RECEIVER_MEMBER_CAPTURE, RECEIVER_OTHER_CAPTURE, RECEIVER_OWN_CAPTURE, RECEIVER_TYPE_CAPTURE,
+    REFERENCE_CAPTURE_PREFIX, SCOPE_CAPTURE, SCOPE_END_CAPTURE, SIGNATURE_CAPTURE, STATIC_CAPTURE,
+    SYMBOL_CAPTURE_PREFIX, VISIBILITY_CAPTURE,
 };
 
 /// What the syntax says about the receiver in front of a member name.
@@ -64,6 +65,8 @@ pub enum Capture {
     Scope,
     /// A block without a symbol of its own whose members belong to the type named by `@name`.
     Container,
+    /// The type a declaration written outside the type belongs to (ADR 0042).
+    Owner,
 }
 
 impl Capture {
@@ -95,6 +98,7 @@ impl Capture {
             DECLARED_TYPE_CAPTURE => Some(Self::DeclaredType),
             SCOPE_CAPTURE => Some(Self::Scope),
             CONTAINER_CAPTURE => Some(Self::Container),
+            OWNER_CAPTURE => Some(Self::Owner),
             _ => None,
         }
     }
@@ -139,6 +143,18 @@ pub enum MetricRole {
     Operator,
     /// An operand.
     Operand,
+    /// A structure that adds to the cognitive complexity, more the deeper it is nested.
+    Cognitive,
+    /// A structure that adds one to the cognitive complexity at any depth.
+    CognitiveFlat,
+    /// The operator of a boolean operation; a run of the same one counts once.
+    CognitiveSequence,
+    /// A node that nests what is inside it.
+    Nesting,
+    /// A structure that continues the chain of the one around it, such as `else if`.
+    Continuation,
+    /// A parameter of a callable declaration.
+    Parameter,
 }
 
 /// The compiled `metrics.scm` of a pack.
@@ -148,10 +164,24 @@ pub struct MetricsQuery {
 }
 
 impl MetricsQuery {
+    /// Whether the pack counts the cognitive complexity (it captures `@cognitive`).
+    #[must_use]
+    pub fn counts_cognitive(&self) -> bool {
+        self.roles.contains(&MetricRole::Cognitive)
+    }
+
+    /// Whether the pack counts parameters (it captures `@parameter`).
+    #[must_use]
+    pub fn counts_parameters(&self) -> bool {
+        self.roles.contains(&MetricRole::Parameter)
+    }
+}
+
+impl MetricsQuery {
     /// Resolves every capture name of `query`.
     ///
     /// # Errors
-    /// The offending capture name if it is not one of the four of ADR 0015.
+    /// The offending capture name if it is not one of ADR 0015 and ADR 0048.
     pub fn new(query: Query) -> Result<Self, String> {
         let roles = query
             .capture_names()
@@ -168,6 +198,12 @@ fn role_of(name: &str) -> Option<MetricRole> {
         DECISION_CAPTURE => Some(MetricRole::Decision),
         OPERATOR_CAPTURE => Some(MetricRole::Operator),
         OPERAND_CAPTURE => Some(MetricRole::Operand),
+        COGNITIVE_CAPTURE => Some(MetricRole::Cognitive),
+        COGNITIVE_FLAT_CAPTURE => Some(MetricRole::CognitiveFlat),
+        COGNITIVE_SEQUENCE_CAPTURE => Some(MetricRole::CognitiveSequence),
+        NESTING_CAPTURE => Some(MetricRole::Nesting),
+        CONTINUATION_CAPTURE => Some(MetricRole::Continuation),
+        PARAMETER_CAPTURE => Some(MetricRole::Parameter),
         _ => None,
     }
 }

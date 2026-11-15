@@ -85,3 +85,8 @@ fn bindings(input: Option<(u32, Item)>, queue: &mut Vec<u32>) {
     let _ = OFFSET;
     if let &OFFSET = &first_value(queue) {}
 }
+
+fn variants(id: u32) -> Outer {
+    let shape = Shape::Circle { radius: id };
+    Outer { inner: Pair { left: id, right: 1 }, shape }
+}

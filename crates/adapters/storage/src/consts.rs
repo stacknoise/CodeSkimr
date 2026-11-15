@@ -12,7 +12,8 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0008_naming_rules.sql"),
     include_str!("../migrations/0009_parse_times.sql"),
     include_str!("../migrations/0010_coupling_rows.sql"),
-    include_str!("../migrations/0011_layer_directions.sql"),
+    include_str!("../migrations/0011_pending_references.sql"),
+    include_str!("../migrations/0012_layer_directions.sql"),
 ];
 
 /// Name of the pragma that holds the schema version.
@@ -111,3 +112,22 @@ pub const CONTAINER_KINDS: &[codeskimr_domain::SymbolKind] = &[
     codeskimr_domain::SymbolKind::Namespace,
     codeskimr_domain::SymbolKind::Module,
 ];
+
+/// Stored label of `Receiver::Typed`.
+pub const RECEIVER_TYPED: &str = "typed";
+/// Stored label of `Receiver::Named`.
+pub const RECEIVER_NAMED: &str = "named";
+/// Stored label of `Receiver::Own`.
+pub const RECEIVER_OWN: &str = "own";
+/// Stored label of `Receiver::Base`.
+pub const RECEIVER_BASE: &str = "base";
+/// Stored label of `Receiver::Unknown`.
+pub const RECEIVER_UNKNOWN: &str = "unknown";
+/// Stored label of `Receiver::Free`.
+pub const RECEIVER_FREE: &str = "free";
+
+/// Below this many new references the indexes stay in place while rows are added.
+pub const BULK_REFERENCES_MIN: usize = 20_000;
+/// The indexes are built again after the load when the new references are at least this share of
+/// the stored ones, expressed as "one in N" (a load of half the table or more).
+pub const BULK_REFERENCES_SHARE_DIVISOR: usize = 2;

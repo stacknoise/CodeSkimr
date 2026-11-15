@@ -220,7 +220,6 @@ fn pending_reference(
             Some(seen) => receiver_of(seen, scopes),
             None => free_receiver(ctx, from.kind, occurrence.kind),
         },
-        previous: None,
     }))
 }
 

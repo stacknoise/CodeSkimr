@@ -17,6 +17,7 @@ mod integrity;
 mod lookup;
 mod migrate;
 mod outline;
+mod pending;
 mod previous;
 mod projects;
 mod queries;

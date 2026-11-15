@@ -7,7 +7,7 @@ use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Permission, RelativePath, SnapshotId};
 
 use super::duplicates::{Fingerprinted, duplicates};
-use super::length::{Callable, callables, too_long};
+use super::length::{Callable, callables, too_complex, too_long, too_many_parameters};
 use super::model::{CheckReport, CheckRequest, Finding, StoredProject, Unchecked};
 use super::selection::Selection;
 use super::stored::{Rules, against_stored};
@@ -19,14 +19,11 @@ use crate::error::CodedError;
 use crate::ids::IdSequence;
 use crate::ports::{AnalyzeRequest, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts};
 
-/// The rules with a `CHK` code that this version cannot check yet. Literals and cognitive
-/// complexity need counts the language packs do not deliver; layering needs the allowed
-/// directions, which the project model does not carry (issue #45).
-const NOT_CHECKED: &[ErrorCode] = &[
-    ErrorCode::LiteralFound,
-    ErrorCode::LayerViolation,
-    ErrorCode::ComplexityTooHigh,
-];
+/// The rules with a `CHK` code that this version cannot check yet. Literals need positions the
+/// language packs do not deliver; layering needs the layer of every reference (issue #45). The
+/// cognitive complexity and the parameters are added for the languages whose pack counts them
+/// (ADR 0048).
+const NOT_CHECKED: &[ErrorCode] = &[ErrorCode::LiteralFound, ErrorCode::LayerViolation];
 
 /// A file after analysis, with the callables it declares.
 struct Analysed {
@@ -124,7 +121,7 @@ impl ConventionChecker {
     ) -> Result<CheckReport, CodedError> {
         let mut findings: Vec<Finding> = analysed
             .iter()
-            .flat_map(|done| too_long(&done.callables, self.limits.max_function_lines))
+            .flat_map(|done| self.measured(&done.callables))
             .collect();
         let items = fingerprinted(analysed);
         let inside = duplicates(
@@ -150,9 +147,17 @@ impl ConventionChecker {
             files_checked: u32::try_from(analysed.len()).unwrap_or(u32::MAX),
             findings,
             unchecked,
-            not_checked: NOT_CHECKED.to_vec(),
+            not_checked: not_checked(analysed),
             unmatched,
         })
+    }
+
+    /// The findings about length, cognitive complexity and parameters.
+    fn measured(&self, callables: &[Callable]) -> Vec<Finding> {
+        let mut findings = too_long(callables, self.limits.max_function_lines);
+        findings.extend(too_complex(callables, self.limits.max_cognitive_complexity));
+        findings.extend(too_many_parameters(callables, self.limits.max_parameters));
+        findings
     }
 
     /// Copies of stored code outside the checked files, for the functions `inside` did not report.
@@ -174,6 +179,20 @@ impl ConventionChecker {
         };
         against_stored(items, stored, &rules, inside)
     }
+}
+
+/// The rules this check did not (fully) check: the fixed ones, and the cognitive complexity and the
+/// parameters when a function of a language whose pack does not count them was among the files.
+fn not_checked(analysed: &[Analysed]) -> Vec<ErrorCode> {
+    let mut rules = NOT_CHECKED.to_vec();
+    let all = || analysed.iter().flat_map(|done| &done.callables);
+    if all().any(|callable| callable.cognitive.is_none()) {
+        rules.push(ErrorCode::ComplexityTooHigh);
+    }
+    if all().any(|callable| callable.parameters.is_none()) {
+        rules.push(ErrorCode::TooManyParameters);
+    }
+    rules
 }
 
 /// Whether a folder on the way to `path` is one of the test folders.

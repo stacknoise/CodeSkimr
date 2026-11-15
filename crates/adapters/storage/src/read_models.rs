@@ -12,6 +12,7 @@ use crate::codec::{Cols, column_int, id_from};
 use crate::consts::{EDGE_STEP, TYPE_KINDS};
 use crate::cycles::edges_in_cycles;
 use crate::error::StorageResult;
+use crate::references::id_set;
 use crate::sql;
 
 /// Fills `search_index`, `usage_counts`, `type_summary` and `layer_graph` of a snapshot.
@@ -21,7 +22,7 @@ pub fn rebuild(conn: &Connection, snapshot: SnapshotId, layers: &[Layer]) -> Sto
         sql::SEARCH_REBUILD,
         params![id, SymbolKind::Parameter.label()],
     )?;
-    conn.execute(sql::USAGES_REBUILD, params![id])?;
+    rebuild_usages(conn, id)?;
     for kind in TYPE_KINDS.iter().copied() {
         conn.execute(
             sql::TYPE_SUMMARY_REBUILD,
@@ -35,6 +36,27 @@ pub fn rebuild(conn: &Connection, snapshot: SnapshotId, layers: &[Layer]) -> Sto
         )?;
     }
     rebuild_layer_graph(conn, id, layers)
+}
+
+/// Fills `usage_counts`: how many references of the snapshot point at each symbol. A reference
+/// counts when its file and its target are in the snapshot, as in the view `snapshot_references`.
+fn rebuild_usages(conn: &Connection, snapshot: i64) -> StorageResult<()> {
+    let files = id_set(conn, sql::FILE_IDS, snapshot)?;
+    let symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
+    let mut counts: BTreeMap<i64, i64> = BTreeMap::new();
+    let mut statement = conn.prepare_cached(sql::REFERENCE_TARGETS)?;
+    let mut rows = statement.query(params![snapshot])?;
+    while let Some(row) = rows.next()? {
+        let (file, target): (i64, i64) = (row.get(0)?, row.get(1)?);
+        if files.contains(&file) && symbols.contains(&target) {
+            *counts.entry(target).or_default() += 1;
+        }
+    }
+    let mut insert = conn.prepare_cached(sql::USAGE_INSERT)?;
+    for (symbol, usages) in counts {
+        insert.execute(params![snapshot, symbol, usages])?;
+    }
+    Ok(())
 }
 
 /// Index of the layer a qualified name belongs to: the first layer with a namespace that equals

@@ -77,7 +77,6 @@ mod tests {
             kind,
             target: QualifiedName::new(target).expect("target"),
             receiver: None,
-            previous: None,
         }
     }
 
@@ -320,16 +319,6 @@ mod tests {
     }
 
     #[test]
-    fn a_reference_that_is_resolved_again_keeps_its_confidence() {
-        let shop = shop();
-        let mut again = occurrence(shop.save, 2, ReferenceKind::TypeUse, "Shop.Printer");
-        again.previous = Some(Confidence::Probable);
-        let found = resolve(&shop.table, &[again]);
-        assert_eq!(targets(&found), [shop.printer]);
-        assert_eq!(found[0].confidence, Confidence::Probable);
-    }
-
-    #[test]
     fn unknown_names_and_the_same_occurrence_twice_give_one_or_no_reference() {
         let shop = shop();
         let twice = occurrence(shop.save, 2, ReferenceKind::TypeUse, "Printer");
@@ -562,10 +551,9 @@ mod tests {
     }
 
     #[test]
-    fn base_lists_resolved_again_still_tell_the_hierarchy() {
+    fn base_lists_of_stored_names_still_tell_the_hierarchy() {
         let shop = shop();
-        let mut seed = occurrence(shop.printer, 1, ReferenceKind::Implement, "Shop.IPrinter");
-        seed.previous = Some(Confidence::Certain);
+        let seed = occurrence(shop.printer, 1, ReferenceKind::Implement, "IPrinter");
         let call = typed(
             occurrence(shop.save, 2, ReferenceKind::Call, "Print"),
             "IPrinter",

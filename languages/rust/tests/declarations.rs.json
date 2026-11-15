@@ -365,6 +365,13 @@
       "target": "y"
     },
     {
+      "at": "53:25",
+      "from": "declarations::shapes::Point::new",
+      "kind": "write",
+      "receiver": "own",
+      "target": "label"
+    },
+    {
       "at": "53:32",
       "from": "declarations::shapes::Point::new",
       "kind": "read",
@@ -419,6 +426,27 @@
       "kind": "type_use",
       "receiver": null,
       "target": "Self"
+    },
+    {
+      "at": "67:19",
+      "from": "declarations::shapes::Point::origin",
+      "kind": "write",
+      "receiver": "own",
+      "target": "x"
+    },
+    {
+      "at": "67:27",
+      "from": "declarations::shapes::Point::origin",
+      "kind": "write",
+      "receiver": "own",
+      "target": "y"
+    },
+    {
+      "at": "67:35",
+      "from": "declarations::shapes::Point::origin",
+      "kind": "write",
+      "receiver": "own",
+      "target": "label"
     },
     {
       "at": "67:42",

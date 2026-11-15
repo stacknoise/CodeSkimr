@@ -81,3 +81,4 @@ error-CHK-102 = Ein Codeblock dupliziert vorhandenen Code.
 error-CHK-103 = Eine Abhängigkeit zeigt entgegen der erlaubten Richtung.
 error-CHK-104 = Eine Funktion ist länger als erlaubt.
 error-CHK-105 = Eine Funktion ist komplexer als erlaubt.
+error-CHK-106 = Eine Funktion hat mehr Parameter als erlaubt.

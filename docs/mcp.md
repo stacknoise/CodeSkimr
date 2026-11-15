@@ -36,7 +36,7 @@ All of them are read-only (`readOnlyHint`) except `rescan`, which is announced w
 
 Both tools sit on the `UsageIndex` port (`docs/usages.md`) and share the rules of that walk.
 
-- `symbol` is an id or a qualified name. An unknown symbol is `MCP-202`, never an empty list: "no usages" and "no such symbol" are different answers.
+- `symbol` is an id or a qualified name. An id may be sent as a JSON number (as `search_symbols` returns it) or as a string of digits; every tool that takes `symbol` treats both alike. An unknown symbol is `MCP-202`, never an empty list: "no usages" and "no such symbol" are different answers.
 - `find_usages`: `direction` is `incoming` (default: who uses the symbol) or `outgoing` (what it uses); anything else is `MCP-101` with `params.detail = direction`. `depth` is at least 1 (zero is `MCP-101`), defaults to `mcp.default_depth` and is held to `mcp.max_depth` (1 and 5). `include_tests` is off by default.
 - `confidence` is `certain` or `probable` on every usage. A probable usage is the resolver's best guess (blueprint 9.4); an agent should verify it before relying on it.
 - `verified` is `true` only if level 2 produced the usage (ADR 0033); until level 2 exists every usage is `false`. Verified usages come first, then nearest step first, then file and position; the reverse index puts them in this order before the cut by `limit` (#202), so a verified usage is never hidden behind unchecked ones; `verified` and `unchecked` count the listed ones apart, and `preliminary` is `true` while any listed one is unchecked. An agent must not treat a preliminary answer as complete or exact. `impact_of_change` marks a symbol `verified` only if a path of verified references leads to it.

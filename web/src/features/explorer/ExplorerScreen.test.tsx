@@ -107,6 +107,11 @@ describe("ExplorerScreen", () => {
     expect(screen.queryByRole("heading", { name: "Order" })).toBeNull();
     expect(screen.queryByText("Shop.Domain")).toBeNull();
   });
+
+  it("counts in the singular when there is one of a kind", async () => {
+    renderOrder();
+    expect(await screen.findByText(/^1 layer · 1 namespace · \d+ types?$/)).toBeTruthy();
+  });
 });
 
 describe("the click rules of the tree", () => {
