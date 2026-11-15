@@ -3,17 +3,16 @@
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{Level2Replacement, SnapshotData, SnapshotStore};
 use codeskimr_domain::{
-    CommitHash, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile, Symbol,
-    Visibility,
+    CommitHash, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile,
 };
 use rusqlite::{Connection, params};
 
-use crate::codec::{SpanColumns, column_int};
+use crate::codec::column_int;
 use crate::consts::{
     BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON,
 };
 use crate::error::{StorageError, StorageResult};
-use crate::headers::{insert_metric, insert_reference, set_totals, totals};
+use crate::headers::{insert_metric, insert_reference, insert_symbol, set_totals, totals};
 use crate::integrity;
 use crate::pending;
 use crate::projects::load_layers;
@@ -173,32 +172,6 @@ fn insert_file(conn: &Connection, snapshot: i64, file: &SourceFile) -> StorageRe
         file.language.as_str(),
         file.content_hash.as_str(),
         i64::from(file.loc.0),
-    ])?;
-    Ok(())
-}
-
-pub(crate) fn insert_symbol(conn: &Connection, symbol: &Symbol) -> StorageResult<()> {
-    let parent = symbol
-        .parent
-        .map(|parent| column_int(parent.get()))
-        .transpose()?;
-    let span = SpanColumns::of(&symbol.span);
-    conn.prepare_cached(sql::SYMBOL_INSERT)?.execute(params![
-        column_int(symbol.id.get())?,
-        column_int(symbol.file.get())?,
-        symbol.kind.label(),
-        symbol.name.as_str(),
-        symbol.qualified_name.as_str(),
-        parent,
-        symbol.visibility.map(Visibility::label),
-        symbol.is_static,
-        span.start_line,
-        span.start_column,
-        span.end_line,
-        span.end_column,
-        symbol.signature,
-        symbol.doc,
-        symbol.origin.label(),
     ])?;
     Ok(())
 }

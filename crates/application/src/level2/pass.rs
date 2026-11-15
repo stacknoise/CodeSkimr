@@ -10,11 +10,12 @@ use std::sync::Arc;
 
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    FolderPath, LanguageId, Principal, Project, Reference, ReferenceId, RelativePath, Snapshot,
-    SourceFile, Symbol, SymbolId,
+    FolderPath, LanguageId, Principal, Project, Reference, RelativePath, Snapshot, SourceFile,
+    Symbol,
 };
 
 use super::authorize_run;
+use super::renumber::renumbered;
 use super::report::{LanguageReport, Level2Outcome, Level2Result, Skipped};
 use crate::cancel::CancelToken;
 use crate::config::Level2;
@@ -282,34 +283,14 @@ impl Level2Pass {
 /// snapshot; every id from there on, as a symbol, parent or target, moves by the same distance.
 fn renumber(imported: &Imported, ids: &IdSequence) -> (Vec<Symbol>, Vec<Reference>) {
     let count = |len: usize| u64::try_from(len).unwrap_or(u64::MAX);
-    let first = ids.reserve(count(imported.references.len()));
-    let old_first = imported.symbols.iter().map(|s| s.id.get()).min();
-    let new_first = ids.reserve(count(imported.symbols.len()));
-    let moved = |id: SymbolId| match old_first {
-        Some(old) if id.get() >= old => SymbolId::new(new_first.saturating_add(id.get() - old)),
-        _ => id,
-    };
-    let symbols = imported
-        .symbols
-        .iter()
-        .map(|symbol| Symbol {
-            id: moved(symbol.id),
-            parent: symbol.parent.map(moved),
-            ..symbol.clone()
-        })
-        .collect();
-    let references = imported
-        .references
-        .iter()
-        .zip(first..)
-        .map(|(reference, id)| Reference {
-            id: ReferenceId::new(id),
-            from: moved(reference.from),
-            to: moved(reference.to),
-            ..*reference
-        })
-        .collect();
-    (symbols, references)
+    let first_reference = ids.reserve(count(imported.references.len()));
+    let first_symbol = ids.reserve(count(imported.symbols.len()));
+    renumbered(
+        &imported.symbols,
+        imported.references.iter(),
+        first_symbol,
+        first_reference,
+    )
 }
 
 impl From<CodedError> for Skipped {

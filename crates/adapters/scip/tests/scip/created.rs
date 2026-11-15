@@ -227,14 +227,22 @@ fn a_kind_the_pack_does_not_name_creates_nothing() {
     assert_eq!(names, ["JobId"]);
 }
 
+/// `src/a.rs` with the definition of `symbol` and this `information` about it.
+fn defining(symbol: &str, information: Vec<u8>) -> Vec<u8> {
+    document_with(
+        "src/a.rs",
+        &[definition_in(&[3, 9, 14], &[3, 0, 3, 16], symbol)],
+        &[information],
+    )
+}
+
 #[test]
 fn a_display_name_that_differs_from_the_descriptor_creates_nothing() {
     let (_, symbols) = world();
     let job = rust("a/JobId#");
-    let a = document_with(
-        "src/a.rs",
-        &[definition_in(&[3, 9, 14], &[3, 0, 3, 16], &job)],
-        &[info(&job, STRUCT, "Other", "pub struct JobId(u64)", "")],
+    let a = defining(
+        &job,
+        info(&job, STRUCT, "Other", "pub struct JobId(u64)", ""),
     );
     let b = document_with("src/b.rs", &[usage(&[3, 10, 15], &job)], &[]);
     let bytes = index("file:///p", &[a, b]);
@@ -253,11 +261,7 @@ fn a_display_name_that_differs_from_the_descriptor_creates_nothing() {
 fn a_kind_without_information_creates_nothing() {
     let (_, symbols) = world();
     let job = rust("a/JobId#");
-    let a = document_with(
-        "src/a.rs",
-        &[definition_in(&[3, 9, 14], &[3, 0, 3, 16], &job)],
-        &[info(&job, FUNCTION, "JobId", "", "")],
-    );
+    let a = defining(&job, info(&job, FUNCTION, "JobId", "", ""));
     let bytes = index("file:///p", &[a]);
     let kinds = kinds();
     let outcome = run_created(&bytes, &symbols, &[], &creation(&kinds)).expect("ok");

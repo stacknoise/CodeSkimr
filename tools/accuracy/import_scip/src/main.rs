@@ -17,12 +17,12 @@ use std::num::NonZeroU32;
 use std::path::Path;
 use std::process::ExitCode;
 
+use codeskimr_application::level2::renumbered;
 use codeskimr_application::ports::{
     Level2Replacement, ProjectRepository, SnapshotStore, SourceText,
 };
 use codeskimr_domain::{
-    FolderPath, ProjectId, Reference, ReferenceId, RelativePath, SnapshotId, Symbol, SymbolId,
-    SymbolKind,
+    FolderPath, ProjectId, RelativePath, SnapshotId, SymbolKind,
 };
 use codeskimr_scip::{
     Creation, ImportOutcome, SnapshotView, convert_columns, import_with_creation, read_index,
@@ -93,32 +93,16 @@ fn replace(
     let symbol_count = u64::try_from(outcome.symbols.len()).map_err(|e| e.to_string())?;
     let symbol_first = first;
     let first = first.saturating_add(symbol_count);
-    let old = outcome.symbols.first().map(|symbol| symbol.id.get());
-    let moved = |id: SymbolId| match old {
-        Some(old) if id.get() >= old => SymbolId::new(symbol_first + (id.get() - old)),
-        _ => id,
-    };
-    let symbols: Vec<Symbol> = outcome
-        .symbols
-        .iter()
-        .map(|symbol| Symbol {
-            id: moved(symbol.id),
-            parent: symbol.parent.map(moved),
-            ..symbol.clone()
-        })
-        .collect();
-    let references: Vec<Reference> = outcome
-        .references
-        .iter()
-        .filter(|reference| outcome.covered.binary_search(&reference.file).is_ok())
-        .zip(first..)
-        .map(|(reference, id)| Reference {
-            id: ReferenceId::new(id),
-            from: moved(reference.from),
-            to: moved(reference.to),
-            ..*reference
-        })
-        .collect();
+    let covered = &outcome.covered;
+    let (symbols, references) = renumbered(
+        &outcome.symbols,
+        outcome
+            .references
+            .iter()
+            .filter(|reference| covered.binary_search(&reference.file).is_ok()),
+        symbol_first,
+        first,
+    );
     let replacement = Level2Replacement {
         snapshot,
         files: outcome.covered,

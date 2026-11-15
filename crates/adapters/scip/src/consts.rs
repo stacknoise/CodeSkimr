@@ -257,3 +257,5 @@ pub(crate) const PATH_DOT: char = '.';
 /// less than `MAX_SCAN_CHARS`): a normal file needs a small part of it, a file built to make the
 /// scans overlap is not read on.
 pub(crate) const SCAN_BUDGET_FACTOR: usize = 16;
+/// The separator of a pack that creates nothing.
+pub(crate) const NO_SEPARATOR: &str = "";

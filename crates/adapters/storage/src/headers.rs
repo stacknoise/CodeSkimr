@@ -2,7 +2,8 @@
 //! references and metrics, shared by the writes of `snapshots` and `replace`.
 
 use codeskimr_domain::{
-    CommitHash, Metric, ProjectId, Reference, Snapshot, SnapshotId, SnapshotStats, Timestamp,
+    CommitHash, Metric, ProjectId, Reference, Snapshot, SnapshotId, SnapshotStats, Symbol,
+    Timestamp, Visibility,
 };
 use rusqlite::{Connection, OptionalExtension, Statement, params};
 
@@ -126,5 +127,31 @@ pub(crate) fn insert_metric(
             metric.value.get(),
         ])?;
     }
+    Ok(())
+}
+
+pub(crate) fn insert_symbol(conn: &Connection, symbol: &Symbol) -> StorageResult<()> {
+    let parent = symbol
+        .parent
+        .map(|parent| column_int(parent.get()))
+        .transpose()?;
+    let span = SpanColumns::of(&symbol.span);
+    conn.prepare_cached(sql::SYMBOL_INSERT)?.execute(params![
+        column_int(symbol.id.get())?,
+        column_int(symbol.file.get())?,
+        symbol.kind.label(),
+        symbol.name.as_str(),
+        symbol.qualified_name.as_str(),
+        parent,
+        symbol.visibility.map(Visibility::label),
+        symbol.is_static,
+        span.start_line,
+        span.start_column,
+        span.end_line,
+        span.end_column,
+        symbol.signature,
+        symbol.doc,
+        symbol.origin.label(),
+    ])?;
     Ok(())
 }

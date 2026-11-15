@@ -59,7 +59,7 @@ pub(crate) fn parent_text(symbol: &str) -> Option<&str> {
         skip_header_field(&mut chars);
     }
     let rest = |chars: &Chars<'_>| chars.clone().map(char::len_utf8).sum::<usize>();
-    let (mut count, mut last_start) = (0_usize, 0_usize);
+    let (mut count, mut last_start) = (usize::default(), usize::default());
     while chars.peek().is_some() {
         last_start = rest(&chars);
         descriptor(&mut chars)?;

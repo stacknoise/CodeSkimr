@@ -11,7 +11,7 @@ use codeskimr_domain::{
     FileId, Position, QualifiedName, Span, Symbol, SymbolId, SymbolKind, SymbolName, SymbolOrigin,
 };
 
-use crate::consts::SCIP_KIND_NAMES;
+use crate::consts::{NO_SEPARATOR, SCIP_KIND_NAMES};
 use crate::error::ScipError;
 use crate::model::{Occurrence, ScipDocument, ScipIndex, SymbolInfo, SymbolRef};
 use crate::symbol::{last_descriptor, parent_text};
@@ -34,7 +34,7 @@ impl Creation<'static> {
     pub const fn off() -> Self {
         Self {
             kinds: &[],
-            separator: "",
+            separator: NO_SEPARATOR,
             max_symbols: 0,
         }
     }

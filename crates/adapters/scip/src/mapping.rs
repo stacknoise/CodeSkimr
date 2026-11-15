@@ -845,7 +845,7 @@ fn covered_documents<'a>(
         .map(|file| (file.path.as_str(), file.id))
         .collect();
     let mut covered = Vec::new();
-    let mut unmatched = 0_u64;
+    let mut unmatched = u64::default();
     for document in &index.documents {
         match by_path.get(document.path.as_str()) {
             Some(file) => covered.push((document, *file)),

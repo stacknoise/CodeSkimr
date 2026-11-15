@@ -8,6 +8,7 @@
 //! everybody else.
 
 mod pass;
+mod renumber;
 mod report;
 
 use std::path::Path;
@@ -20,6 +21,7 @@ use crate::config::Level2;
 use crate::error::CodedError;
 pub use crate::ports::{ConsentGrant, ConsentRecord, ConsentStore, RunPermit};
 pub use pass::Level2Pass;
+pub use renumber::renumbered;
 pub use report::{LanguageReport, Level2Outcome, Level2Result, Skipped};
 
 /// Enables level 2 for `project` and records the confirmation. The caller (an interactive screen
