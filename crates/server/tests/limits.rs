@@ -82,6 +82,8 @@ async fn the_stream_after_the_last_free_place_is_refused_and_a_closed_one_frees_
     assert!(freed.is_some(), "a closed stream gives its place back");
 }
 
+/// Holds about 512 sockets at once (the clients and the accepted ends), so a machine whose default
+/// limit of open files is 256 (macOS) needs `ulimit -n 4096` first; CI does that (issue #320).
 #[tokio::test]
 async fn a_client_that_is_silent_is_not_answered_beyond_the_connection_cap() {
     let server = start(owner()).await;
