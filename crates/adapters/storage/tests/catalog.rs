@@ -3,7 +3,8 @@
 #[cfg(test)]
 mod common;
 
-use codeskimr_application::ports::{ProjectCatalog, SnapshotStore};
+use codeskimr_application::ports::{ProjectCatalog, ScanWarning, SnapshotStore};
+use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{ScanMode, SymbolKind};
 use common::{data, file, header, project, scanned, store, symbol};
 
@@ -97,4 +98,37 @@ fn the_parse_time_of_a_full_scan_is_read_back_and_an_incremental_scan_keeps_it()
         .persist(timed_scan(40, ScanMode::Full, Some(900)))
         .unwrap();
     assert_eq!(parse_micros_of_the_newest(&store), Some(900));
+}
+
+#[test]
+fn the_warnings_of_the_newest_scan_are_read_back_and_not_carried_over() {
+    let store = store(3);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    let warned = |snapshot: u64, mode: ScanMode, count: u64| {
+        let mut scan = timed_scan(snapshot, mode, None);
+        scan.warnings = vec![ScanWarning {
+            code: ErrorCode::AmbiguousReference,
+            count,
+        }];
+        scan
+    };
+    let newest =
+        |store: &codeskimr_storage::SqliteStore| store.overviews().unwrap().remove(0).warnings;
+    store.persist(timed_scan(10, ScanMode::Full, None)).unwrap();
+    assert_eq!(newest(&store), Vec::new());
+    store.persist(warned(20, ScanMode::Full, 7)).unwrap();
+    let expected = |count| {
+        vec![ScanWarning {
+            code: ErrorCode::AmbiguousReference,
+            count,
+        }]
+    };
+    assert_eq!(newest(&store), expected(7));
+    // The count covers the whole snapshot, so an incremental scan has its own.
+    store.persist(warned(30, ScanMode::Incremental, 9)).unwrap();
+    assert_eq!(newest(&store), expected(9));
+    store
+        .persist(timed_scan(40, ScanMode::Incremental, None))
+        .unwrap();
+    assert_eq!(newest(&store), Vec::new());
 }
