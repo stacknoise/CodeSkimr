@@ -654,6 +654,8 @@ mod random {
     const NAMESPACES: u64 = 3;
     const CLASSES: u64 = 4;
     const METHODS: u64 = 3;
+    /// Free functions a file may declare, in the languages that have them.
+    const FREES: u64 = 3;
 
     /// A fixed sequence of numbers for a seed (a linear congruential generator).
     pub struct Dice(u64);
@@ -676,6 +678,15 @@ mod random {
         }
     }
 
+    /// Adds `value` to `list`, or takes the first one out if it holds it already.
+    fn toggle(list: &mut Vec<u64>, value: u64) {
+        if let Some(at) = list.iter().position(|held| *held == value) {
+            list.remove(at);
+        } else {
+            list.push(value);
+        }
+    }
+
     /// One file: a class in a namespace with methods, maybe a base class, imports and calls.
     #[derive(Clone)]
     pub struct Spec {
@@ -685,6 +696,12 @@ mod random {
         methods: Vec<u64>,
         usings: Vec<u64>,
         calls: Vec<(u64, u64)>,
+        /// Whether the class declares `M0` first: two classes that both do, one the base of the
+        /// other, make an override.
+        core: bool,
+        /// Free functions the file declares, and those it calls.
+        frees: Vec<u64>,
+        free_calls: Vec<u64>,
     }
 
     impl Spec {
@@ -700,13 +717,16 @@ mod random {
                 calls: (0..dice.below(4))
                     .map(|_| (dice.below(CLASSES), dice.below(METHODS)))
                     .collect(),
+                core: dice.chance(70),
+                frees: (0..dice.below(3)).map(|_| dice.below(FREES)).collect(),
+                free_calls: (0..dice.below(3)).map(|_| dice.below(FREES)).collect(),
             }
         }
 
         /// A small change of one part, or a new draw.
         pub fn tweak(&self, dice: &mut Dice) -> Self {
             let mut next = self.clone();
-            match dice.below(7) {
+            match dice.below(11) {
                 0 => next.namespace = dice.below(NAMESPACES),
                 1 => next.class = dice.below(CLASSES),
                 2 => next.base = dice.chance(60).then(|| dice.below(CLASSES)),
@@ -715,9 +735,45 @@ mod random {
                     next.methods.pop();
                 }
                 5 => next.usings.push(dice.below(NAMESPACES)),
+                6 => next.rename_method(dice),
+                7 => toggle(&mut next.frees, dice.below(FREES)),
+                8 => toggle(&mut next.free_calls, dice.below(FREES)),
+                9 => next.core = !next.core,
                 _ => return Self::draw(dice),
             }
             next
+        }
+
+        /// Gives one method of the class another name: the declaration moves, its callers stay.
+        fn rename_method(&mut self, dice: &mut Dice) {
+            if self.methods.is_empty() {
+                self.core = !self.core;
+                return;
+            }
+            let at = usize::try_from(dice.below(self.methods.len() as u64)).unwrap();
+            self.methods[at] = (self.methods[at] + 1 + dice.below(METHODS - 1)) % METHODS;
+        }
+
+        /// The methods the class declares: `M0` first if it has a core, then its own.
+        fn declared(&self) -> Vec<u64> {
+            let core = self.core.then_some(0);
+            core.into_iter()
+                .chain(self.methods.iter().copied())
+                .collect()
+        }
+
+        /// The lines that call the free functions the file calls.
+        fn free_call_lines(&self, indent: &str, call: impl Fn(u64) -> String) -> String {
+            let mut text = String::new();
+            for free in &self.free_calls {
+                writeln!(text, "{indent}{}", call(*free)).unwrap();
+            }
+            text
+        }
+
+        /// The declarations of the free functions, one text per function.
+        fn free_declarations(&self, declare: impl Fn(u64) -> String) -> String {
+            self.frees.iter().map(|free| declare(*free)).collect()
         }
 
         /// The text of the file in the syntax of `lang`.
@@ -765,7 +821,7 @@ mod random {
             writeln!(text, "\nnamespace Demo.N{};\n", self.namespace).unwrap();
             let base = self.base.map(|b| format!(" : K{b}")).unwrap_or_default();
             writeln!(text, "public class K{}{base}\n{{", self.class).unwrap();
-            for method in &self.methods {
+            for method in self.declared() {
                 writeln!(text, "    public void M{method}() {{ }}").unwrap();
             }
             writeln!(text, "    public void Run()\n    {{").unwrap();
@@ -788,7 +844,7 @@ mod random {
                 .map(|b| format!(" extends K{b}"))
                 .unwrap_or_default();
             writeln!(text, "\nclass K{}{base} {{", self.class).unwrap();
-            for method in &self.methods {
+            for method in self.declared() {
                 writeln!(text, "    public void m{method}() {{ }}").unwrap();
             }
             writeln!(text, "    public void run() {{").unwrap();
@@ -808,7 +864,7 @@ mod random {
             }
             let base = self.base.map(|b| format!(" : K{b}()")).unwrap_or_default();
             writeln!(text, "\nopen class K{}{base} {{", self.class).unwrap();
-            for method in &self.methods {
+            for method in self.declared() {
                 writeln!(text, "    fun m{method}() {{ }}").unwrap();
             }
             writeln!(text, "    fun run() {{").unwrap();
@@ -817,7 +873,9 @@ mod random {
                 |c, m| format!("K{c}().m{m}()"),
                 |i, c, m| format!("val v{i} = K{c}()\nv{i}.m{m}()"),
             );
+            text += &self.free_call_lines("        ", |f| format!("f{f}()"));
             writeln!(text, "        this.m{}()\n    }}\n}}", self.own()).unwrap();
+            text += &self.free_declarations(|f| format!("\nfun f{f}() {{ }}\n"));
             text
         }
 
@@ -831,7 +889,7 @@ mod random {
                 .map(|b| format!(" extends K{b}"))
                 .unwrap_or_default();
             writeln!(text, "\nexport class K{}{base} {{", self.class).unwrap();
-            for method in &self.methods {
+            for method in self.declared() {
                 writeln!(text, "  m{method}(): void {{}}").unwrap();
             }
             writeln!(text, "  run(): void {{").unwrap();
@@ -840,7 +898,9 @@ mod random {
                 |c, m| format!("new K{c}().m{m}();"),
                 |i, c, m| format!("const v{i} = new K{c}();\nv{i}.m{m}();"),
             );
+            text += &self.free_call_lines("    ", |f| format!("f{f}();"));
             writeln!(text, "    this.m{}();\n  }}\n}}", self.own()).unwrap();
+            text += &self.free_declarations(|f| format!("\nexport function f{f}(): void {{}}\n"));
             text
         }
 
@@ -854,7 +914,7 @@ mod random {
                 writeln!(text, "\nimpl K{base} for K{} {{}}", self.class).unwrap();
             }
             writeln!(text, "\nimpl K{} {{", self.class).unwrap();
-            for method in &self.methods {
+            for method in self.declared() {
                 writeln!(text, "    pub fn m{method}(&self) {{}}").unwrap();
             }
             writeln!(text, "    pub fn run(&self) {{").unwrap();
@@ -863,7 +923,9 @@ mod random {
                 |c, m| format!("K{c}::m{m}();"),
                 |i, c, m| format!("let v{i} = K{c};\nv{i}.m{m}();"),
             );
+            text += &self.free_call_lines("        ", |f| format!("f{f}();"));
             writeln!(text, "        self.m{}();\n    }}\n}}", self.own()).unwrap();
+            text += &self.free_declarations(|f| format!("\npub fn f{f}() {{}}\n"));
             text
         }
 
@@ -874,7 +936,7 @@ mod random {
             }
             let base = self.base.map(|b| format!("(K{b})")).unwrap_or_default();
             writeln!(text, "\n\nclass K{}{base}:", self.class).unwrap();
-            for method in &self.methods {
+            for method in self.declared() {
                 writeln!(text, "    def m{method}(self):\n        pass\n").unwrap();
             }
             writeln!(text, "    def run(self):").unwrap();
@@ -883,7 +945,9 @@ mod random {
                 |c, m| format!("K{c}().m{m}()"),
                 |i, c, m| format!("v{i} = K{c}()\nv{i}.m{m}()"),
             );
+            text += &self.free_call_lines("        ", |f| format!("f{f}()"));
             writeln!(text, "        self.m{}()", self.own()).unwrap();
+            text += &self.free_declarations(|f| format!("\n\ndef f{f}():\n    pass\n"));
             text
         }
     }
@@ -984,7 +1048,7 @@ fn random_project_stays_equal(lang: random::Lang, seed: u64, steps: usize) {
     let data = locations(&root.path().join("live-data"));
     let live = session(&folder, &data);
     live.scan_quick(ScanMode::Full).unwrap();
-    let mut total = 0;
+    let mut with_references = 0;
     for step in 0..steps {
         change_some_files(lang, &folder, &mut files, &mut dice);
         live.scan_quick(ScanMode::Incremental).unwrap();
@@ -994,10 +1058,13 @@ fn random_project_stays_equal(lang: random::Lang, seed: u64, steps: usize) {
             full,
             "{lang:?}, seed {seed}, step {step}"
         );
-        total += full.len();
+        with_references += usize::from(!full.is_empty());
     }
-    // An oracle that compares two empty lists proves nothing.
-    assert!(total > 0, "{lang:?}, seed {seed}: no references at all");
+    // An oracle that compares two empty lists proves nothing: most steps must have references.
+    assert!(
+        with_references * 2 >= steps,
+        "{lang:?}, seed {seed}: only {with_references} of {steps} steps have references"
+    );
 }
 
 #[test]
