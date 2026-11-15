@@ -94,6 +94,31 @@ mod tests {
     }
 
     #[test]
+    fn both_texts_are_compiled_and_the_own_one_follows_the_base() {
+        let queries = from_rust("symbols.scm");
+        // A broken own file breaks the pack: it is part of the query.
+        let dir = derived("own-broken", &queries, true);
+        fs::write(dir.join("symbols.scm"), "(no_such_node) @symbol.function").expect("write");
+        assert_invalid(&dir, "own file");
+        // A broken file of the base breaks the pack that takes it over, even with a good own file.
+        let dir = derived("base-broken", &queries, true);
+        let base = dir.with_file_name("rust").join("symbols.scm");
+        fs::write(base, "(no_such_node) @symbol.function").expect("write");
+        assert_invalid(&dir, "base file");
+    }
+
+    #[test]
+    fn references_and_metrics_are_taken_over_like_symbols() {
+        let queries = "[queries]\nfrom = \"rust\"\nfiles = [\"symbols.scm\", \"references.scm\"]\n";
+        let dir = derived("references", queries, false);
+        let base = dir.with_file_name("rust").join("references.scm");
+        let loaded = LanguagePack::load(&dir).err().map(|e| e.to_string());
+        assert_eq!(loaded, None);
+        fs::write(base, "(no_such_node) @reference.call").expect("write");
+        assert_invalid(&dir, "references of the base");
+    }
+
+    #[test]
     fn a_pack_without_its_own_symbols_file_and_without_queries_is_invalid() {
         let dir = derived("no-symbols", "", false);
         assert_invalid(&dir, "no symbols");

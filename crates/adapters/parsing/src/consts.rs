@@ -174,6 +174,8 @@ pub const PLACEHOLDER_OPEN: char = '{';
 pub const PLACEHOLDER_CLOSE: char = '}';
 /// Characters that make a program name a path.
 pub const PATH_SEPARATORS: [char; 2] = ['/', '\\'];
+/// Character that a folder name taken from a manifest must not contain (no `..`).
+pub const PATH_DOT: char = '.';
 /// Nothing: what a placeholder is replaced with when the rest of an argument is checked.
 pub const NOTHING: &str = "";
 

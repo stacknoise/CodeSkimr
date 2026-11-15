@@ -10,9 +10,9 @@ use tree_sitter::{Language, Query};
 
 use crate::captures::{MetricsQuery, Vocabulary};
 use crate::consts::{
-    ID_MISMATCH, METRICS_QUERY_FILE, QUERIES_FILE_UNKNOWN, QUERIES_FROM_CHAINED,
-    QUERIES_FROM_INVALID, QUERIES_FROM_SELF, QUERY_JOIN, REFERENCES_QUERY_FILE,
-    SHAREABLE_QUERY_FILES, SYMBOLS_QUERY_FILE,
+    ID_MISMATCH, METRICS_QUERY_FILE, PATH_DOT, PATH_SEPARATORS, QUERIES_FILE_UNKNOWN,
+    QUERIES_FROM_CHAINED, QUERIES_FROM_INVALID, QUERIES_FROM_SELF, QUERY_JOIN,
+    REFERENCES_QUERY_FILE, SHAREABLE_QUERY_FILES, SYMBOLS_QUERY_FILE,
 };
 use crate::error::ParsingError;
 use crate::grammar;
@@ -249,7 +249,9 @@ fn shared_queries<'m>(
 fn shared_dir(dir: &Path, queries: &QueriesFrom, folder: &str) -> Result<PathBuf, ParsingError> {
     let invalid =
         |reason: &str| ParsingError::invalid(folder, [reason, queries.from.as_str()].concat());
-    let plain = !queries.from.is_empty() && !queries.from.contains(['/', '\\', '.']);
+    let plain = !queries.from.is_empty()
+        && !queries.from.contains(PATH_SEPARATORS)
+        && !queries.from.contains(PATH_DOT);
     if !plain {
         return Err(invalid(QUERIES_FROM_INVALID));
     }
