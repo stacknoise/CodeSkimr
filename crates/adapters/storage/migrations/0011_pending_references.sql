@@ -1,5 +1,4 @@
--- Schema version 11 in this branch (file number 0012: 0011 is taken by the layer directions of
--- PR 339): the names as written (issue 49).
+-- Schema version 11: the names as written (issue 49).
 --
 -- An incremental scan resolves every name of the unchanged files again against the changed symbol
 -- table, so the result equals a full scan: references to a symbol that was renamed or moved are

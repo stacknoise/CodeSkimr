@@ -55,6 +55,8 @@ struct World {
     rules: (&'static str, Option<&'static str>),
     persisted: Mutex<Vec<SnapshotData>>,
     measured: Mutex<Vec<(usize, usize)>>,
+    /// How many names each resolution got.
+    resolved: Mutex<Vec<usize>>,
     counted: Mutex<Vec<usize>>,
 }
 
@@ -120,7 +122,11 @@ fn discovered(path: &str, changed: bool) -> Result<DiscoveredFile, CodedError> {
 }
 
 fn span() -> Result<Span, CodedError> {
-    let at = Position { line: 1, column: 1 };
+    span_at(1)
+}
+
+fn span_at(line: u32) -> Result<Span, CodedError> {
+    let at = Position { line, column: 1 };
     model(Span::new(at, at))
 }
 
@@ -229,6 +235,10 @@ impl ReferenceResolver for World {
         ids: &IdSequence,
     ) -> Result<Vec<Reference>, CodedError> {
         self.gate(StageKind::Resolve)?;
+        self.resolved
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .push(pending.len());
         Ok(pending
             .iter()
             .filter_map(|item| {
@@ -443,19 +453,20 @@ fn old_call(id: u64, to: u64) -> Result<Reference, CodedError> {
         from: SymbolId::new(200),
         to: SymbolId::new(to),
         file: FileId::new(100),
-        span: span()?,
+        span: span_at(u32::try_from(id).unwrap_or_default())?,
         kind: ReferenceKind::Call,
         confidence: Confidence::Certain,
         verified: false,
     })
 }
 
-/// The name `a` (symbol 200 in file 100) wrote for a call of `target`.
-fn old_name(target: &str) -> Result<PendingReference, CodedError> {
+/// The name `a` (symbol 200 in file 100) wrote for a call of `target`, in the place of the call
+/// `id`.
+fn old_name(target: &str, id: u32) -> Result<PendingReference, CodedError> {
     Ok(PendingReference {
         from: SymbolId::new(200),
         file: FileId::new(100),
-        span: span()?,
+        span: span_at(id)?,
         kind: ReferenceKind::Call,
         target: model(QualifiedName::new(target))?,
         receiver: None,
@@ -467,7 +478,11 @@ fn old_name(target: &str) -> Result<PendingReference, CodedError> {
 fn previous_snapshot() -> Result<Previous, CodedError> {
     Ok(Previous {
         names_stored: true,
-        names: vec![old_name("m::b")?, old_name("m::c")?, old_name("m::a")?],
+        names: vec![
+            old_name("m::b", 300)?,
+            old_name("m::c", 301)?,
+            old_name("m::a", 302)?,
+        ],
         files: vec![
             old_file(100, "a.rs")?,
             old_file(101, "b.rs")?,
@@ -621,7 +636,7 @@ fn level_two_references_stay_and_one_whose_target_is_gone_falls_back_to_level_on
     let mut previous = previous_snapshot()?;
     previous.index.references = vec![verified(old_call(300, 201)?), verified(old_call(302, 200)?)];
     // Level 2 reported nothing for the call of `c`; level 1 must not add what it replaced.
-    previous.names.push(old_name("m::a")?);
+    previous.names.push(old_name("m::a", 302)?);
     let world = world_over(previous);
     let (result, _) = run(&world, ScanMode::Incremental);
     let JobResult::Finished(job) = result else {
@@ -647,6 +662,44 @@ fn level_two_references_stay_and_one_whose_target_is_gone_falls_back_to_level_on
     );
     assert_eq!(persisted.references.len(), 2, "that and the call inside b");
     assert_eq!(job.snapshot().stats.references, 3);
+    Ok(())
+}
+
+/// How many names the last scan handed to the resolver.
+fn resolved_names(world: &World) -> Vec<usize> {
+    world
+        .resolved
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .clone()
+}
+
+#[test]
+fn a_change_that_keeps_the_declarations_resolves_only_the_names_that_pointed_into_it()
+-> Result<(), CodedError> {
+    // `c.rs` is not gone in this snapshot, so the changed `b.rs` declares what it declared before.
+    let mut previous = previous_snapshot()?;
+    previous.files.retain(|f| f.path.as_str() != "c.rs");
+    previous.index.symbols.retain(|s| s.file.get() != 102);
+    previous.index.references.retain(|r| r.to.get() != 202);
+    previous.names.retain(|n| n.target.as_str() != "m::c");
+    let world = world_over(previous);
+    let _ = run(&world, ScanMode::Incremental);
+    // The new call in `b.rs` and the call of `a` that pointed at the old `b`; the call of `a` to
+    // itself is not resolved again.
+    assert_eq!(resolved_names(&world), [2]);
+    let persisted = world.last_persisted()?;
+    assert_eq!(persisted.dropped_references, Vec::new());
+    assert_eq!(persisted.references.len(), 2);
+    Ok(())
+}
+
+#[test]
+fn a_change_of_the_declarations_resolves_all_names_again() -> Result<(), CodedError> {
+    let world = a_unchanged_b_changed()?;
+    let _ = run(&world, ScanMode::Incremental);
+    // `c.rs` is gone: the new call of `b.rs` and the three names of `a`.
+    assert_eq!(resolved_names(&world), [4]);
     Ok(())
 }
 
@@ -844,24 +897,18 @@ fn ids_are_unique_and_stage_labels_round_trip() {
 #[test]
 fn a_reference_that_is_kept_is_not_resolved_a_second_time() -> Result<(), CodedError> {
     let mut previous = previous_snapshot()?;
-    // `m::b` is declared in the unchanged a.rs as well; a call to it stays valid, and the call to
-    // the `b` in the changed file is resolved again to the same unchanged candidate.
+    // `m::b` is declared in the unchanged a.rs as well; the call at 303 to it stays valid, and the
+    // name is resolved again to the same unchanged candidate and the new `b`.
     previous.index.symbols.push(old_symbol(203, 100, "b")?);
-    previous
-        .index
-        .references
-        .extend([old_call(303, 203)?, old_call(304, 201)?]);
-    let world = Arc::new(World {
-        previous,
-        found: Some(vec![("a.rs", false), ("b.rs", true)]),
-        ..World::default()
-    });
+    previous.index.references.push(old_call(303, 203)?);
+    previous.names.push(old_name("m::b", 303)?);
+    let world = world_over(previous);
     let _ = run(&world, ScanMode::Incremental);
     let calls_to_203 = world
         .last_persisted()?
         .references
         .iter()
-        .filter(|r| r.to.get() == 203 && r.from.get() == 200)
+        .filter(|r| r.to.get() == 203 && r.span.start().line == 303)
         .count();
     assert_eq!(
         calls_to_203, 0,

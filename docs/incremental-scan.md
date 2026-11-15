@@ -40,6 +40,48 @@ project (rename, delete, new target, second candidate, new overload) and compare
 
 A full scan does none of this: `Carried` is empty and `removed` is empty. It stores the names of all files.
 
+## Which names are resolved again
+
+The resolver reads of a symbol its name, kind, qualified name and parent, and of a type its base
+list (`pipeline/shape.rs`). `Carried::due_names` compares that shape of the changed and removed
+files, before and after:
+
+- **Same shape** (a typical save: bodies and comments changed, declarations did not): nothing an
+  unchanged name resolves against has changed but the ids of the symbols in the changed files. The
+  names that pointed into those files are resolved again, and the imports and base lists of the
+  unchanged files, because the resolver learns from them what a file sees and which type inherits
+  from which.
+- **Other shape** (a symbol or base added, removed, renamed or moved, a file added or removed):
+  all names of the unchanged files.
+
+`Carried::reconcile` drops a kept reference only if its name was resolved again.
+
+## Measured
+
+CodeSkimr itself as the corpus (`crates/` and `tools/`: 493 Rust files, 76 000 lines, 10 154 symbols,
+84 880 references), release build, one file edited between scans, the same machine and files for
+base (`origin/main`) and this change, in milliseconds:
+
+| | base | all names every time | same shape (now) |
+|---|---|---|---|
+| incremental scan, total | 360 to 435 | 460 to 510 | 355 to 400 |
+| of it resolve | 14 to 29 | 120 to 150 | 22 to 27 |
+| of it discover (reads the previous snapshot) | 133 to 181 | 180 to 210 | 180 to 196 |
+| full scan, total | 1360 | 1840 | 1435 |
+
+The budget of blueprint 16.1 is 300 ms for one saved file on the reference laptop. This machine is
+not that laptop and the base already needs 360 ms on it (discover and persist are 80 percent of
+that, they are not part of this change), so the absolute number is no verdict on the budget; what
+counts is the change against the base, which is within the noise of the runs (CI measures it with
+`tools/bench`, ratio against the base commit, ADR 0014). Resolving all names every time would have cost 25 to 35 percent more, which is why a change of
+the declarations is the only case that does it.
+
+The names take space: 64 333 rows in `pending_references` for the 84 880 references, 3.3 MB of a
+database of 37.1 MB with five snapshots (32.8 MB without; the rows are shared between snapshots that
+carry a file, ADR 0032). One row is about 50 bytes. A change of the declarations still resolves
+all names; a project that renames or adds symbols in every save pays the full resolve stage of
+a full scan (80 ms here) on top of the base.
+
 ## Level 2
 
 References that level 2 verified (ADR 0033) are not touched by level 1:
@@ -58,9 +100,13 @@ References that level 2 verified (ADR 0033) are not touched by level 1:
 - The names are stored once per file and shared by the snapshots that carry the file (migration 11,
   ADR 0032). A reference that is dropped is a shared row, so older snapshots that carry the same file
   lose it too, like level 2 does when it replaces the references of a file (ADR 0033).
-- Every incremental scan resolves the names of all files again. That costs the resolve stage of a full
-  scan (in memory, without parsing); recall comes before speed here. If the 300 ms budget of watch mode
-  (blueprint 16) shows it, the set can be narrowed by name, but not before it is measured.
+- A change of the declarations (see above) resolves the names of all files again. That costs the
+  resolve stage of a full scan (in memory, without parsing); recall comes before speed here. A
+  narrower rule for that case, by the names of the symbols that differ, is possible but must be
+  proved to give the full scan's result in every case, so it is not part of this change.
+- The oracle tests (`crates/app/src/incremental_tests.rs`) cover C# and Python. The names of other
+  languages are stored and resolved by the same code (the receiver kinds are covered by the storage
+  tests), but no oracle test of TypeScript, Java, Kotlin or Rust runs yet.
 - `LayerEdge.violates_layering` still depends on the allowed directions of a layer (issue #45).
 
 ## Progress and events

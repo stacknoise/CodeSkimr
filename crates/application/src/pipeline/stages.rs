@@ -426,7 +426,8 @@ impl Stage for ResolveStage {
             fingerprints,
             mut carried,
         } = input;
-        let names: Vec<PendingReference> = pending.iter().chain(&carried.names).cloned().collect();
+        let due = carried.due_names(&symbols, &pending);
+        let names: Vec<PendingReference> = pending.iter().chain(&due).cloned().collect();
         let total = count(&names);
         ctx.progress(0, total);
         let table: Vec<Symbol> = carried.symbols.iter().chain(&symbols).cloned().collect();

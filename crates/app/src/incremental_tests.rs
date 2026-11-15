@@ -32,18 +32,47 @@ const BASE: &[(&str, &str)] = &[
         "Helper.cs",
         "namespace Demo;\n\npublic class Helper\n{\n    public static void Go() { }\n}\n",
     ),
+    ("Other.cs", "namespace Demo;\n\npublic class Other\n{\n}\n"),
+    (
+        "Base.cs",
+        "namespace Demo;\n\npublic class Base\n{\n    public void Hello() { }\n}\n",
+    ),
+    (
+        "Derived.cs",
+        "namespace Demo;\n\npublic class Derived : Other\n{\n}\n",
+    ),
+    (
+        "UsesDerived.cs",
+        "namespace Demo;\n\npublic class UsesDerived\n{\n    public void Go()\n    {\n        Derived d = new Derived();\n        d.Hello();\n    }\n}\n",
+    ),
     (
         "Util.cs",
         "namespace Demo;\n\npublic class Util\n{\n    public void Work()\n    {\n        Helper.Go();\n        Target.Do();\n    }\n}\n",
     ),
 ];
 
+/// A project of Python files: a caller of a class, a helper function called in its own file.
+const PYTHON_BASE: &[(&str, &str)] = &[
+    (
+        "caller.py",
+        "from target import Target\n\n\ndef run():\n    item = Target()\n    item.do()\n",
+    ),
+    (
+        "target.py",
+        "class Target:\n    def do(self):\n        pass\n",
+    ),
+    (
+        "util.py",
+        "def helper():\n    return 1\n\n\ndef work():\n    return helper()\n",
+    ),
+];
+
 /// A change to the project: a file written, or `None` for a file removed.
 type Change = (&'static str, Option<&'static str>);
 
-fn write_project(folder: &Path, changes: &[Change]) {
+fn write_project(folder: &Path, base: &[(&str, &str)], changes: &[Change]) {
     fs::create_dir_all(folder).unwrap();
-    for (path, text) in BASE {
+    for (path, text) in base {
         fs::write(folder.join(path), text).unwrap();
     }
     apply(folder, changes);
@@ -117,36 +146,60 @@ fn references_of(locations: &Locations) -> Vec<String> {
     lines
 }
 
-/// The references after a full scan of the project with `changes`, and after a full scan of the
-/// base followed by an incremental scan of the same changes.
-fn both_ways(changes: &[Change]) -> (Vec<String>, Vec<String>) {
+/// The references after a full scan of `base` with all `steps` applied, and after a full scan of
+/// `base` followed by one incremental scan per step.
+fn both_ways(base: &[(&str, &str)], steps: &[&[Change]]) -> (Vec<String>, Vec<String>) {
     let root = tempfile::tempdir().unwrap();
     let full_folder = root.path().join("full");
-    write_project(&full_folder, changes);
+    let all: Vec<Change> = steps.iter().flat_map(|step| step.iter().copied()).collect();
+    write_project(&full_folder, base, &all);
     let full_data = locations(&root.path().join("full-data"));
     session(&full_folder, &full_data)
         .scan_quick(ScanMode::Full)
         .unwrap();
 
     let step_folder = root.path().join("step");
-    write_project(&step_folder, &[]);
+    write_project(&step_folder, base, &[]);
     let step_data = locations(&root.path().join("step-data"));
     let step = session(&step_folder, &step_data);
     step.scan_quick(ScanMode::Full).unwrap();
-    apply(&step_folder, changes);
-    let summary = step.scan_quick(ScanMode::Incremental).unwrap();
-    assert!(summary.references > 0);
+    for changes in steps {
+        apply(&step_folder, changes);
+        step.scan_quick(ScanMode::Incremental).unwrap();
+    }
+    assert_eq!(
+        latest_mode(&step_data),
+        ScanMode::Incremental,
+        "the steps must not fall back to a full scan"
+    );
     (references_of(&full_data), references_of(&step_data))
 }
 
+/// The mode of the newest snapshot.
+fn latest_mode(locations: &Locations) -> ScanMode {
+    let config = config_files::load(locations, &GlobalOptions::default(), None).unwrap();
+    let store = open_store(locations, &config).unwrap();
+    store.latest_snapshot(PROJECT).unwrap().unwrap().mode
+}
+
 fn assert_same(changes: &[Change]) {
-    let (full, incremental) = both_ways(changes);
+    let (full, incremental) = both_ways(BASE, &[changes]);
+    assert_eq!(incremental, full);
+}
+
+fn assert_same_in_steps(steps: &[&[Change]]) {
+    let (full, incremental) = both_ways(BASE, steps);
+    assert_eq!(incremental, full);
+}
+
+fn assert_python_same(steps: &[&[Change]]) {
+    let (full, incremental) = both_ways(PYTHON_BASE, steps);
     assert_eq!(incremental, full);
 }
 
 #[test]
 fn the_base_project_resolves_the_calls_of_both_files() {
-    let (full, incremental) = both_ways(&[]);
+    let (full, incremental) = both_ways(BASE, &[&[]]);
     assert_eq!(incremental, full);
     assert!(full.iter().any(|line| line.ends_with("-> Demo.Target.Do")));
 }
@@ -204,5 +257,95 @@ fn several_changes_at_once_give_the_same_result() {
             "Target.cs",
             Some("namespace Demo;\n\npublic class Goal\n{\n    public static void Do() { }\n}\n"),
         ),
+    ]);
+}
+
+const MISSING: &str =
+    "namespace Demo;\n\npublic class Missing\n{\n    public static void Thing() { }\n}\n";
+const GOAL: &str = "namespace Demo;\n\npublic class Goal\n{\n    public static void Do() { }\n}\n";
+
+#[test]
+fn a_new_base_class_gives_the_unchanged_caller_the_inherited_member() {
+    // `UsesDerived` calls `Hello` on a `Derived`; only `Derived.cs` changes, to derive from `Base`.
+    assert_same(&[(
+        "Derived.cs",
+        Some("namespace Demo;\n\npublic class Derived : Base\n{\n}\n"),
+    )]);
+}
+
+#[test]
+fn a_changed_base_class_changes_what_the_unchanged_derived_class_inherits() {
+    assert_same(&[(
+        "Base.cs",
+        Some("namespace Demo;\n\npublic class Base\n{\n    public void Hi() { }\n}\n"),
+    )]);
+}
+
+#[test]
+fn the_names_read_in_one_incremental_scan_serve_the_next() {
+    // Step one writes `Missing.cs` and `Goal`; step two changes both again and deletes a file.
+    assert_same_in_steps(&[
+        &[("Missing.cs", Some(MISSING)), ("Target.cs", Some(GOAL))],
+        &[
+            (
+                "Missing.cs",
+                Some("namespace Demo;\n\npublic class Missing\n{\n}\n"),
+            ),
+            ("Helper.cs", None),
+        ],
+    ]);
+}
+
+#[test]
+fn a_change_that_is_undone_in_the_next_scan_leaves_no_trace() {
+    let original = BASE[1].1;
+    assert_same_in_steps(&[
+        &[("Target.cs", Some(GOAL))],
+        &[("Target.cs", Some(original))],
+    ]);
+}
+
+#[test]
+fn a_python_project_gives_the_same_references_after_a_renamed_class() {
+    assert_python_same(&[&[(
+        "target.py",
+        Some("class Goal:\n    def do(self):\n        pass\n"),
+    )]]);
+}
+
+#[test]
+fn a_python_project_gives_the_same_references_after_a_second_helper_and_a_deleted_file() {
+    assert_python_same(&[
+        &[("other.py", Some("def helper():\n    return 2\n"))],
+        &[("util.py", None)],
+    ]);
+}
+
+#[test]
+fn an_edit_inside_a_body_gives_the_same_result() {
+    // The declarations stay, so the unchanged files resolve only what pointed into the file.
+    assert_same(&[(
+        "Target.cs",
+        Some(
+            "namespace Demo;\n\npublic class Target\n{\n    public static void Do() { Helper.Go(); }\n}\n",
+        ),
+    )]);
+}
+
+#[test]
+fn an_edit_that_only_adds_a_comment_gives_the_same_result() {
+    assert_same_in_steps(&[
+        &[(
+            "Helper.cs",
+            Some(
+                "namespace Demo;\n\n// first\npublic class Helper\n{\n    public static void Go() { }\n}\n",
+            ),
+        )],
+        &[(
+            "Helper.cs",
+            Some(
+                "namespace Demo;\n\n// first\n// second\npublic class Helper\n{\n    public static void Go() { }\n}\n",
+            ),
+        )],
     ]);
 }

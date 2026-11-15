@@ -5,6 +5,10 @@
 //! the one a full scan would give (issue #49): the references that come out equal are kept, new
 //! ones are written, kept ones that are no longer produced are dropped. References that level 2
 //! verified are the exception, see [`Carried::reconcile`].
+//!
+//! Which names are resolved again depends on what changed ([`Carried::due_names`]): if the changed
+//! files show the same [`Shape`] as before, only the names that pointed into them (and the imports
+//! and base lists, which tell the resolver what a file sees), otherwise all names.
 
 use std::collections::HashSet;
 
@@ -13,6 +17,7 @@ use codeskimr_domain::{
     Symbol, SymbolId,
 };
 
+use super::shape::{Shape, is_base};
 use crate::ports::{DiscoveredFile, PendingReference, PreviousIndex, PreviousState};
 
 /// The kept part of the previous snapshot. Empty in a full scan.
@@ -36,8 +41,21 @@ pub struct Carried {
     pub discarded_verified: u32,
     /// Unchanged files that hold references verified by level 2.
     verified_files: HashSet<FileId>,
-    /// Occurrences whose verified reference was discarded.
-    lost: HashSet<Occurrence>,
+    /// Places whose verified reference was discarded.
+    lost: HashSet<Site>,
+    /// Places of references whose target is gone.
+    dead: HashSet<Site>,
+    /// What the resolver saw of the files that changed or disappeared, before.
+    previous_shape: Shape,
+    /// The places whose names are resolved again, `None` if all are.
+    scope: Option<HashSet<Site>>,
+}
+
+/// The place of an occurrence of a name; one place can hold several names of different kinds.
+type Site = (SymbolId, FileId, Span);
+
+fn site(reference: &Reference) -> Site {
+    (reference.from, reference.file, reference.span)
 }
 
 /// The identity of one occurrence of a name.
@@ -62,17 +80,17 @@ fn edge(reference: &Reference) -> Edge {
 /// What level 2 left in the unchanged files.
 struct Level2 {
     files: HashSet<FileId>,
-    lost: HashSet<Occurrence>,
+    lost: HashSet<Site>,
     discarded: u32,
 }
 
 impl Level2 {
     /// Reads it from the references that stay and those whose target is gone.
     fn of(stay: &[Reference], gone: &[Reference]) -> Self {
-        let lost: HashSet<Occurrence> = gone
+        let lost: HashSet<Site> = gone
             .iter()
             .filter(|reference| reference.verified)
-            .map(occurrence)
+            .map(site)
             .collect();
         Self {
             files: stay
@@ -127,17 +145,20 @@ impl Carried {
         }
     }
 
-    /// Keeps the symbols, references and names of `files`; the other fields stay empty.
+    /// Keeps the symbols, references and names of `files`; the other fields stay empty, except
+    /// what the resolver saw of the files that are not kept.
     fn keep(files: Vec<SourceFile>, index: PreviousIndex, pending: Vec<PendingReference>) -> Self {
         let kept: HashSet<FileId> = files.iter().map(|file| file.id).collect();
         let PreviousIndex {
             symbols,
             references,
         } = index;
-        let symbols: Vec<Symbol> = symbols
+        let (symbols, vanished): (Vec<Symbol>, Vec<Symbol>) = symbols
             .into_iter()
-            .filter(|symbol| kept.contains(&symbol.file))
-            .collect();
+            .partition(|symbol| kept.contains(&symbol.file));
+        let (names, vanished_names): (Vec<PendingReference>, Vec<PendingReference>) = pending
+            .into_iter()
+            .partition(|name| kept.contains(&name.file));
         let alive: HashSet<SymbolId> = symbols.iter().map(|symbol| symbol.id).collect();
         let (stay, gone): (Vec<Reference>, Vec<Reference>) = references
             .into_iter()
@@ -148,15 +169,46 @@ impl Carried {
             files,
             symbols,
             references: stay,
-            names: pending
-                .into_iter()
-                .filter(|name| kept.contains(&name.file))
-                .collect(),
+            names,
             discarded_verified: level_two.discarded,
             verified_files: level_two.files,
             lost: level_two.lost,
+            dead: gone.iter().map(site).collect(),
+            previous_shape: Shape::of(&vanished, &vanished_names),
             ..Self::default()
         }
+    }
+
+    /// The names to resolve again besides the new ones `fresh`, written in the files `symbols`
+    /// belong to. If the changed files show the same shape as before, nothing an unchanged name
+    /// resolves against has changed but the ids of the symbols: the names that pointed at such a
+    /// symbol are resolved again, and the imports and base lists, which the resolver needs to know
+    /// what a file sees and which type inherits from which. Otherwise all names are.
+    pub fn due_names(
+        &mut self,
+        symbols: &[Symbol],
+        fresh: &[PendingReference],
+    ) -> Vec<PendingReference> {
+        if Shape::of(symbols, fresh) != self.previous_shape {
+            self.scope = None;
+            return self.names.clone();
+        }
+        let due: Vec<PendingReference> = self
+            .names
+            .iter()
+            .filter(|name| {
+                is_base(name.kind)
+                    || name.kind == ReferenceKind::Import
+                    || self.dead.contains(&(name.from, name.file, name.span))
+            })
+            .cloned()
+            .collect();
+        self.scope = Some(
+            due.iter()
+                .map(|name| (name.from, name.file, name.span))
+                .collect(),
+        );
+        due
     }
 
     /// Takes the references `resolved` for all names of this scan (the new ones and `names`) and
@@ -179,6 +231,7 @@ impl Carried {
             .into_iter()
             .partition(|reference| {
                 !self.verified_files.contains(&reference.file)
+                    && self.in_scope(reference)
                     && !produced.contains(&edge(reference))
             });
         self.dropped
@@ -195,6 +248,13 @@ impl Carried {
 
     /// Whether level 1 may write the reference of an unchanged file.
     fn is_wanted(&self, reference: &Reference) -> bool {
-        !self.verified_files.contains(&reference.file) || self.lost.contains(&occurrence(reference))
+        !self.verified_files.contains(&reference.file) || self.lost.contains(&site(reference))
+    }
+
+    /// Whether the name behind the reference was resolved again in this scan.
+    fn in_scope(&self, reference: &Reference) -> bool {
+        self.scope
+            .as_ref()
+            .is_none_or(|scope| scope.contains(&site(reference)))
     }
 }
