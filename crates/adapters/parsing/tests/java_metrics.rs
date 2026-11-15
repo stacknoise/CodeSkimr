@@ -74,6 +74,17 @@ mod tests {
         assert_eq!(cognitive("loops"), Some(9));
         // the conditional (+1)
         assert_eq!(cognitive("method"), Some(1));
+        // a switch expression with arrows counts once, like the statement
+        assert_eq!(cognitive("arrows"), Some(1));
+        // outer conditional (+1), the one in its branch (+2)
+        assert_eq!(cognitive("ternaries"), Some(3));
+        // if (+1), else if (+1), the if in its body at depth one (+2), else (+1)
+        assert_eq!(cognitive("deep"), Some(5));
+        // the conditional (+1); the if in the anonymous class counts for its method `run`
+        assert_eq!(cognitive("anonymous"), Some(1));
+        assert_eq!(cognitive("run"), Some(1));
+        // the constructor (named like its class, so it is the entry of that name): if (+1), && (+1)
+        assert_eq!(cognitive("Cognitive"), Some(2));
     }
 
     #[test]
@@ -86,6 +97,8 @@ mod tests {
         assert_eq!(parameters("method"), Some(4));
         // the lambda parameter `x` is not a parameter of `callbacks`
         assert_eq!(parameters("callbacks"), Some(1));
+        // a constructor counts its parameters too
+        assert_eq!(parameters("Cognitive"), Some(2));
     }
 
     #[test]

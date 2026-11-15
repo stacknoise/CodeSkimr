@@ -5,6 +5,12 @@ package demo;
 import java.util.List;
 
 public class Cognitive {
+    public Cognitive(int a, String b) {
+        if (a > 0 && !b.isEmpty()) {
+            a++;
+        }
+    }
+
     public int straight(int a) {
         return a + 1;
     }
@@ -84,5 +90,41 @@ public class Cognitive {
 
     public int method(int a, String b, int c, int... rest) {
         return a + c + rest.length + (b.isEmpty() ? 0 : 1);
+    }
+
+    public int arrows(int a) {
+        return switch (a) {
+            case 1 -> 1;
+            case 2 -> 2;
+            default -> 0;
+        };
+    }
+
+    public int ternaries(int a, int b) {
+        return a > 0 ? (b > 0 ? 1 : 2) : 3;
+    }
+
+    public int deep(int a, int b) {
+        if (a == 1) {
+            return 1;
+        } else if (a == 2) {
+            if (b > 0) {
+                return 2;
+            }
+        } else {
+            return 3;
+        }
+        return 0;
+    }
+
+    public int anonymous(int a) {
+        Runnable task = new Runnable() {
+            public void run() {
+                if (a > 0) {
+                    System.out.println(a);
+                }
+            }
+        };
+        return a > 1 ? 1 : 0;
     }
 }
