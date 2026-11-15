@@ -213,7 +213,7 @@ impl Command for ExplorerOutline {
         permission: Permission::Read,
     };
 
-    fn execute(&self, request: Request<'_, OutlineInput>) -> Result<Outline, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<Outline, CodedError> {
         access::require(request.principal, Permission::Read)?;
         let ports = &self.ports;
         let project = ports

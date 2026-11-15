@@ -70,6 +70,130 @@ function Edge(props: {
   );
 }
 
+/** The bands behind the boxes, one per rank. */
+function Bands(props: { data: GraphData }) {
+  return (
+    <For each={props.data.bands}>
+      {(band) => (
+        <div
+          class={styles.band}
+          style={{
+            top: band.y + PX,
+            height: band.height + PX,
+            width: props.data.width + PX,
+            [BOX_COLOR_PROPERTY]: rankColor(band.rank),
+          }}
+        >
+          <span class={styles.bandName}>{band.name}</span>
+        </div>
+      )}
+    </For>
+  );
+}
+
+/** The edges between the boxes, drawn as curves. */
+function Edges(props: {
+  data: GraphData;
+  selected: string | null;
+  violationsOnly: boolean;
+  weak: boolean;
+}) {
+  return (
+    <svg class={styles.edges} width={props.data.width} height={props.data.height} aria-hidden>
+      <ArrowHeads />
+      <For each={props.data.links}>
+        {(link) => (
+          <Edge
+            link={link}
+            data={props.data}
+            selected={props.selected}
+            violationsOnly={props.violationsOnly}
+            weak={props.weak}
+          />
+        )}
+      </For>
+    </svg>
+  );
+}
+
+/** The boxes, one button for each layer, namespace or type. */
+function Boxes(props: {
+  data: GraphData;
+  selected: string | null;
+  onSelect: (name: string) => void;
+}) {
+  return (
+    <For each={props.data.boxes}>
+      {(box) => (
+        <button
+          type="button"
+          class={cx(styles.box, props.selected === box.name && styles.selected)}
+          style={{
+            left: box.x + PX,
+            top: box.y + PX,
+            width: box.width + PX,
+            height: box.height + PX,
+            [BOX_COLOR_PROPERTY]: rankColor(box.rank),
+          }}
+          aria-pressed={props.selected === box.name}
+          onClick={() => props.onSelect(box.name)}
+        >
+          <span class={styles.name} title={box.name}>
+            {box.name}
+          </span>
+          <Show when={box.types}>{(types) => <span class={styles.types}>{types()}</span>}</Show>
+        </button>
+      )}
+    </For>
+  );
+}
+
+/** Reports the size of the area now and whenever it changes. */
+function useSizeReport(area: () => HTMLElement | undefined, onSize: (size: Size) => void): void {
+  onMount(() => {
+    const element = area();
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(() => onSize(sizeOf(element!)));
+    if (element) {
+      observer?.observe(element);
+      onSize(sizeOf(element));
+    }
+    onCleanup(() => observer?.disconnect());
+  });
+}
+
+/** The stage that is moved and scaled: bands, edges and boxes. */
+function Stage(props: {
+  data: GraphData;
+  selected: string | null;
+  onSelect: (name: string) => void;
+  view: View;
+  violationsOnly: boolean;
+  weak: boolean;
+}) {
+  return (
+    <div
+      class={styles.stage}
+      style={{
+        width: props.data.width + PX,
+        height: props.data.height + PX,
+        transform: transformOf(props.view),
+      }}
+    >
+      <Bands data={props.data} />
+      <Edges
+        data={props.data}
+        selected={props.selected}
+        violationsOnly={props.violationsOnly}
+        weak={props.weak}
+      />
+      <Boxes data={props.data} selected={props.selected} onSelect={props.onSelect} />
+    </div>
+  );
+}
+
 /** The drawing of the map: boxes as buttons, edges as curves, moved and scaled by `view`. The
  * wheel zooms around the pointer, and a drag with the space key or the middle button pans. */
 export function GraphCanvas(props: {
@@ -88,17 +212,7 @@ export function GraphCanvas(props: {
     () => props.view,
     props.onView,
   );
-  onMount(() => {
-    const observer =
-      typeof ResizeObserver === "undefined"
-        ? null
-        : new ResizeObserver(() => area && props.onSize(sizeOf(area)));
-    if (area) {
-      observer?.observe(area);
-      props.onSize(sizeOf(area));
-    }
-    onCleanup(() => observer?.disconnect());
-  });
+  useSizeReport(() => area, props.onSize);
   return (
     <div
       ref={area}
@@ -108,66 +222,7 @@ export function GraphCanvas(props: {
       onPointerUp={navigation.stop}
       onPointerCancel={navigation.stop}
     >
-      <div
-        class={styles.stage}
-        style={{
-          width: props.data.width + PX,
-          height: props.data.height + PX,
-          transform: transformOf(props.view),
-        }}
-      >
-        <For each={props.data.bands}>
-          {(band) => (
-            <div
-              class={styles.band}
-              style={{
-                top: band.y + PX,
-                height: band.height + PX,
-                width: props.data.width + PX,
-                [BOX_COLOR_PROPERTY]: rankColor(band.rank),
-              }}
-            >
-              <span class={styles.bandName}>{band.name}</span>
-            </div>
-          )}
-        </For>
-        <svg class={styles.edges} width={props.data.width} height={props.data.height} aria-hidden>
-          <ArrowHeads />
-          <For each={props.data.links}>
-            {(link) => (
-              <Edge
-                link={link}
-                data={props.data}
-                selected={props.selected}
-                violationsOnly={props.violationsOnly}
-                weak={props.weak}
-              />
-            )}
-          </For>
-        </svg>
-        <For each={props.data.boxes}>
-          {(box) => (
-            <button
-              type="button"
-              class={cx(styles.box, props.selected === box.name && styles.selected)}
-              style={{
-                left: box.x + PX,
-                top: box.y + PX,
-                width: box.width + PX,
-                height: box.height + PX,
-                [BOX_COLOR_PROPERTY]: rankColor(box.rank),
-              }}
-              aria-pressed={props.selected === box.name}
-              onClick={() => props.onSelect(box.name)}
-            >
-              <span class={styles.name} title={box.name}>
-                {box.name}
-              </span>
-              <Show when={box.types}>{(types) => <span class={styles.types}>{types()}</span>}</Show>
-            </button>
-          )}
-        </For>
-      </div>
+      <Stage {...props} />
     </div>
   );
 }

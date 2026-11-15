@@ -6,9 +6,7 @@ import { DEPTHS, LEVEL } from "./consts";
 import type { Level } from "./types";
 import styles from "./Toolbar.module.css";
 
-/** The switches above the map (mock 3): the level, "all connections weak", "violations only" and
- * the hint on the mouse; `F` fits the picture to the view. */
-export function Toolbar(props: {
+type ToolbarProps = {
   level: Level;
   onLevel: (level: Level) => void;
   /** Whether a type is known to put in the middle: the one chosen in the explorer. */
@@ -21,70 +19,108 @@ export function Toolbar(props: {
   violationsOnly: boolean;
   onViolationsOnly: (on: boolean) => void;
   onFit: () => void;
+};
+
+/** One button of a group of exclusive choices. */
+function Choice(props: {
+  on: boolean;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  title?: string | undefined;
 }) {
   return (
+    <button
+      type="button"
+      class={cx(styles.level, props.on && styles.on)}
+      aria-pressed={props.on}
+      disabled={props.disabled}
+      title={props.title}
+      onClick={props.onClick}
+    >
+      {props.label}
+    </button>
+  );
+}
+
+/** The three levels of the map. */
+function Levels(props: ToolbarProps) {
+  return (
+    <div class={styles.levels} role="group" aria-label={t(I18N_KEYS.GRAPH_LEVEL_LABEL)}>
+      <Choice
+        on={props.level === LEVEL.layers}
+        label={t(I18N_KEYS.GRAPH_MODE_LAYERS)}
+        onClick={() => props.onLevel(LEVEL.layers)}
+      />
+      <Choice
+        on={props.level === LEVEL.namespaces}
+        label={t(I18N_KEYS.GRAPH_MODE_NAMESPACES)}
+        onClick={() => props.onLevel(LEVEL.namespaces)}
+      />
+      <Choice
+        on={props.level === LEVEL.types}
+        label={t(I18N_KEYS.GRAPH_MODE_TYPE_FOCUS)}
+        disabled={!props.focusable}
+        title={props.focusable ? undefined : t(I18N_KEYS.GRAPH_TYPES_PICK)}
+        onClick={props.onTypeFocus}
+      />
+    </div>
+  );
+}
+
+/** The depth of the namespace level. */
+function Depths(props: ToolbarProps) {
+  return (
+    <div class={styles.levels} role="group" aria-label={t(I18N_KEYS.GRAPH_DEPTH_LABEL)}>
+      <For each={DEPTHS}>
+        {(item) => (
+          <Choice
+            on={props.depth === item.value}
+            label={t(item.label)}
+            onClick={() => props.onDepth(item.value)}
+          />
+        )}
+      </For>
+    </div>
+  );
+}
+
+/** A checkbox with its label. */
+function Toggle(props: {
+  checked: boolean;
+  label: string;
+  onChange: (on: boolean) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <label class={styles.toggle}>
+      <input
+        type="checkbox"
+        checked={props.checked}
+        disabled={props.disabled}
+        onChange={(event) => props.onChange(event.currentTarget.checked)}
+      />
+      {props.label}
+    </label>
+  );
+}
+
+/** The switches above the map (mock 3): the level, "all connections weak", "violations only" and
+ * the hint on the mouse; `F` fits the picture to the view. */
+export function Toolbar(props: ToolbarProps) {
+  return (
     <div class={styles.bar}>
-      <div class={styles.levels} role="group" aria-label={t(I18N_KEYS.GRAPH_LEVEL_LABEL)}>
-        <button
-          type="button"
-          class={cx(styles.level, props.level === LEVEL.layers && styles.on)}
-          aria-pressed={props.level === LEVEL.layers}
-          onClick={() => props.onLevel(LEVEL.layers)}
-        >
-          {t(I18N_KEYS.GRAPH_MODE_LAYERS)}
-        </button>
-        <button
-          type="button"
-          class={cx(styles.level, props.level === LEVEL.namespaces && styles.on)}
-          aria-pressed={props.level === LEVEL.namespaces}
-          onClick={() => props.onLevel(LEVEL.namespaces)}
-        >
-          {t(I18N_KEYS.GRAPH_MODE_NAMESPACES)}
-        </button>
-        <button
-          type="button"
-          class={cx(styles.level, props.level === LEVEL.types && styles.on)}
-          aria-pressed={props.level === LEVEL.types}
-          disabled={!props.focusable}
-          title={props.focusable ? undefined : t(I18N_KEYS.GRAPH_TYPES_PICK)}
-          onClick={props.onTypeFocus}
-        >
-          {t(I18N_KEYS.GRAPH_MODE_TYPE_FOCUS)}
-        </button>
-      </div>
+      <Levels {...props} />
       <Show when={props.level === LEVEL.namespaces}>
-        <div class={styles.levels} role="group" aria-label={t(I18N_KEYS.GRAPH_DEPTH_LABEL)}>
-          <For each={DEPTHS}>
-            {(item) => (
-              <button
-                type="button"
-                class={cx(styles.level, props.depth === item.value && styles.on)}
-                aria-pressed={props.depth === item.value}
-                onClick={() => props.onDepth(item.value)}
-              >
-                {t(item.label)}
-              </button>
-            )}
-          </For>
-        </div>
+        <Depths {...props} />
       </Show>
-      <label class={styles.toggle}>
-        <input
-          type="checkbox"
-          checked={props.weak}
-          onChange={(event) => props.onWeak(event.currentTarget.checked)}
-        />
-        {t(I18N_KEYS.GRAPH_TOGGLE_WEAK)}
-      </label>
-      <label class={styles.toggle}>
-        <input
-          type="checkbox"
-          checked={props.violationsOnly}
-          disabled={props.level !== LEVEL.layers}
-          onChange={(event) => props.onViolationsOnly(event.currentTarget.checked)}
-        />
-        {t(I18N_KEYS.GRAPH_TOGGLE_VIOLATIONS_ONLY)}
-      </label>
+      <Toggle checked={props.weak} label={t(I18N_KEYS.GRAPH_TOGGLE_WEAK)} onChange={props.onWeak} />
+      <Toggle
+        checked={props.violationsOnly}
+        disabled={props.level !== LEVEL.layers}
+        label={t(I18N_KEYS.GRAPH_TOGGLE_VIOLATIONS_ONLY)}
+        onChange={props.onViolationsOnly}
+      />
       <button type="button" class={styles.fit} onClick={props.onFit}>
         {t(I18N_KEYS.GRAPH_ACTION_FIT)} <kbd class={styles.kbd}>{t(I18N_KEYS.GRAPH_FIT_KEY)}</kbd>
       </button>
