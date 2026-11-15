@@ -141,7 +141,7 @@ impl Updated {
 
     /// The second fetch worked and led to another commit.
     fn moved(&self) -> TestResult<bool> {
-        let second = self.second.as_ref().map_err(|error| error.to_string())?;
+        let second = self.second.as_ref().map_err(ToString::to_string)?;
         Ok(second.commit != self.first.commit)
     }
 }
