@@ -491,6 +491,7 @@ mod needs_packs_tests {
     fn only_the_credential_commands_go_without_packs() {
         let delete = Action::Credential(CredentialAction::Delete { id: "x".to_owned() });
         assert!(!needs_packs(&delete));
+        assert!(!needs_packs(&Action::Open(OpenArgs::default())));
         assert!(needs_packs(&Action::Start));
     }
 }
