@@ -7,25 +7,28 @@ use std::path::{Path, PathBuf};
 const BUILDER: &str = "Request::new(";
 const ALLOWED: [&str; 2] = ["registry/command.rs", "registry/mod.rs"];
 
+/// All `.rs` files below `root`, found with a work list instead of recursion.
 #[cfg(test)]
-fn sources(dir: &Path, found: &mut Vec<PathBuf>) {
-    for entry in fs::read_dir(dir).unwrap() {
-        let path = entry.unwrap().path();
-        if path.is_dir() {
-            sources(&path, found);
-        } else if path.extension().is_some_and(|ext| ext == "rs") {
-            found.push(path);
+fn rust_files(root: PathBuf) -> Vec<PathBuf> {
+    let mut pending = vec![root];
+    let mut files = Vec::new();
+    while let Some(dir) = pending.pop() {
+        let entries = fs::read_dir(&dir).map(|read| read.flatten().collect::<Vec<_>>());
+        for entry in entries.unwrap_or_default() {
+            let path = entry.path();
+            match path.extension().and_then(|ext| ext.to_str()) {
+                _ if path.is_dir() => pending.push(path),
+                Some("rs") => files.push(path),
+                _ => {}
+            }
         }
     }
+    files
 }
 
 #[test]
 fn only_the_registry_builds_requests() {
-    let mut files = Vec::new();
-    sources(
-        &Path::new(env!("CARGO_MANIFEST_DIR")).join("src"),
-        &mut files,
-    );
+    let files = rust_files(Path::new(env!("CARGO_MANIFEST_DIR")).join("src"));
     assert!(files.len() > 20, "the scan found {} files", files.len());
     let offenders: Vec<_> = files
         .iter()
