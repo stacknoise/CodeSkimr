@@ -203,11 +203,11 @@ pub const FILE_IDS: &str = "SELECT id FROM files WHERE snapshot_id = ?1";
 /// The ids of the symbols of a snapshot: snapshot.
 pub const SYMBOL_IDS: &str = "SELECT s.id FROM symbol_rows s \
     JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?1";
-/// File and target of every reference that is not newer than a snapshot and stands in one of its
-/// files: snapshot. The view `snapshot_references` keeps those whose file and target the snapshot
-/// holds; counting them here in one pass is much cheaper than its four lookups per reference.
-pub const REFERENCE_TARGETS: &str = "SELECT file_id, to_symbol FROM symbol_references \
-    WHERE first_snapshot <= ?1 AND file_id IN (SELECT id FROM files WHERE snapshot_id = ?1)";
+/// File and target of every reference that is not newer than a snapshot: snapshot. The view
+/// `snapshot_references` keeps those whose file and target the snapshot holds; counting them
+/// here in one pass over the table is much cheaper than its four lookups per reference.
+pub const REFERENCE_TARGETS: &str =
+    "SELECT file_id, to_symbol FROM symbol_references WHERE first_snapshot <= ?1";
 /// Adds the usage count of a symbol: snapshot, symbol, usages.
 pub const USAGE_INSERT: &str =
     "INSERT INTO usage_counts (snapshot_id, symbol_id, usages) VALUES (?1, ?2, ?3)";
@@ -300,15 +300,12 @@ pub const SYMBOL_SAME_NAME_COUNT: &str = "SELECT COUNT(*) FROM symbols \
 pub const SYMBOL_BY_NAME: &str = "s.qualified_name = ?2 ORDER BY s.id LIMIT 1";
 /// Condition of `SYMBOL_SELECT`: every symbol of the snapshot, in id order.
 pub const SYMBOL_ALL: &str = "1 = 1 ORDER BY s.id";
-/// The stored references that are not newer than a snapshot and stand in one of its files, in id
-/// order: snapshot. The file condition leaves out the rows of other projects and of files that
-/// only older snapshots hold, so the read does not grow with the history. The caller keeps those
-/// whose target the snapshot holds, which is what the view `snapshot_references` does with four
-/// lookups per reference.
+/// The stored references that are not newer than a snapshot, in id order: snapshot. The caller
+/// keeps those whose file and target the snapshot holds, which is what the view
+/// `snapshot_references` does with four lookups per reference.
 pub const REFERENCES_OF_SNAPSHOT: &str = "SELECT id, from_symbol, to_symbol, file_id, start_line, \
     start_column, end_line, end_column, kind, confidence, verified FROM symbol_references \
-    WHERE first_snapshot <= ?1 AND file_id IN (SELECT id FROM files WHERE snapshot_id = ?1) \
-    ORDER BY id";
+    WHERE first_snapshot <= ?1 ORDER BY id";
 /// Direct members of a symbol: snapshot, symbol.
 pub const MEMBERS_OF: &str =
     "SELECT id, name, kind FROM symbols WHERE snapshot_id = ?1 AND parent_id = ?2 ORDER BY id";
