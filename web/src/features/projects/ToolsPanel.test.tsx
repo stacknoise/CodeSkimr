@@ -86,12 +86,14 @@ describe("the tools of a project", () => {
       ...MISSING,
       tools: [{ ...(MISSING.tools[0] as ToolsInfo["tools"][number]), state: "too_new" }],
     };
+    // Own project id: the screen keeps the tools it checked per project across tests.
+    const row = { ...ROW, id: 8, location: "/work/newer", tools: tooNew };
     serve({
-      "projects.list": () => answer([{ ...ROW, tools: tooNew }]),
+      "projects.list": () => answer([row]),
       "projects.tools": () => answer(tooNew),
     });
     render(() => <ProjectsScreen />);
-    fireEvent.click(await screen.findByText("/work/shop"));
+    fireEvent.click(await screen.findByText("/work/newer"));
     const warning = await screen.findByRole("status");
     expect(warning).toHaveTextContent(
       "too new: 8.0.404 installed, more than the project allows (it names 9.0.100)",
