@@ -1,5 +1,7 @@
 //! Understanding code (adapters: `codeskimr_parsing` and the metrics of `codeskimr_domain`).
 
+use std::time::Duration;
+
 use codeskimr_domain::{
     Confidence, FileId, Fingerprints, FolderPath, LanguageId, Metric, QualifiedName, Reference,
     ReferenceKind, SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId,
@@ -102,6 +104,12 @@ pub trait FileAnalyzer: Send + Sync {
     /// The default knows no rule.
     fn naming_rules(&self) -> String {
         String::new()
+    }
+
+    /// How long loading the grammar and queries of languages has taken so far (ADR 0059). The scan
+    /// leaves it out of the time it reports; the cold start budget counts it.
+    fn pack_load_time(&self) -> Duration {
+        Duration::ZERO
     }
 }
 

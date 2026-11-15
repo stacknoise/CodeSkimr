@@ -1,6 +1,6 @@
 # 0059 – Load language packs when their language is first needed
 
-Status: proposed (draft for Anton; the prototype is on its own branch and changes blueprint 8.2 only after the decision)
+Status: accepted (Anton, 15 Nov, with option (a) for the benchmarks, see Consequences)
 
 ## Context
 
@@ -24,7 +24,8 @@ Measured for issue #410 (release build, 4 cores, Newtonsoft.Json `Src`, 951 file
 2. **The first thread that needs a pack builds it; the others wait** for the result (`OnceLock::get_or_init`). Today, workers that reach the first file of a language at the same time each compile the pack and all but one result is discarded.
 3. **A pack that cannot be built is remembered as failed** for the run, as the basic tier already does (issue #66). Every file of its language fails with `PRS-301` (language pack invalid); the other languages are scanned.
 4. **`LanguagePacks::verify()` loads every pack** (one thread per core) and returns the first error. The tests of the packs and CI use it (`every_installed_pack_loads`), so a broken pack in the repository is found by CI and not by a user. A scan does not call it.
-5. **Blueprint 8.2** gets one sentence in place of "their packs are loaded on first use": "Packs of every tier are loaded on first use; the tests load all of them". Section 16 (budgets) is not changed.
+5. **Blueprint 8.2** gets one sentence in place of "their packs are loaded on first use": "Packs of every tier are loaded on first use; the tests load all of them", and says that the load time is left out of the reported scan time and counts for the cold start budget (option (a) below). The numbers of section 16 are not changed.
+6. **The analyzer port reports the load time** (`FileAnalyzer::pack_load_time`, the time during which at least one pack was being loaded, so packs that load at the same time count once); `Session::run_job` subtracts what was loaded during the scan from the reported time.
 
 ## Options not chosen
 
@@ -37,5 +38,5 @@ Measured for issue #410 (release build, 4 cores, Newtonsoft.Json `Src`, 951 file
 
 - Start-up of `serve`, `mcp` and every CLI command that does not scan drops by about 1 s; the first scan of a language pays that language's pack once.
 - A broken pack is no longer an error at start-up but at the first file of its language (and in CI). The error text and code do not change.
-- **The scan benchmarks get slower by the pack load, and the ratio check against the base fails.** The benchmarks of `tools/bench` run the real binary and read the "Scanned in" time, which starts after the program has started and now contains the load of the first pack. The CI run of the prototype (PR #422) shows `scan/full_100k_loc` 0.60 s → 0.72 s (+20 %) and `scan/full_100k_loc_csharp` 2.62 s → 3.18 s (+21 %). Nothing got slower for the user: the same time was paid at start-up before. The decision for the implementation: **(a)** keep the meaning "time of the scan without loading packs" and leave the load out of the reported time (the pack load is measured on its own and counted in the cold start budget, which today does not see it either); this needs the load time of the packs to be reported by the analyzer port and subtracted in `Session::run_job`; or **(b)** accept that "Scanned in" includes the first load, and merge once the base of the ratio check includes it (the check passes for every later PR; the PR that brings the change needs an exception from Anton for the `bench` check). Recommendation: (a), because the budget in blueprint 16.1 then keeps its meaning and the cold start budget gets a real measurement of the loading.
+- **The scan benchmarks get slower by the pack load, and the ratio check against the base fails.** The benchmarks of `tools/bench` run the real binary and read the "Scanned in" time, which starts after the program has started and now contains the load of the first pack. The CI run of the prototype (PR #422) shows `scan/full_100k_loc` 0.60 s → 0.72 s (+20 %) and `scan/full_100k_loc_csharp` 2.62 s → 3.18 s (+21 %). Nothing got slower for the user: the same time was paid at start-up before. The decision for the implementation: **(a)** keep the meaning "time of the scan without loading packs" and leave the load out of the reported time (the pack load is measured on its own and counted in the cold start budget, which today does not see it either); this needs the load time of the packs to be reported by the analyzer port and subtracted in `Session::run_job`; or **(b)** accept that "Scanned in" includes the first load, and merge once the base of the ratio check includes it (the check passes for every later PR; the PR that brings the change needs an exception from Anton for the `bench` check). Chosen: (a), because the budget in blueprint 16.1 then keeps its meaning and the cold start budget gets a real measurement of the loading.
 - The stage timing of the scan (`parse_micros`) is not affected.

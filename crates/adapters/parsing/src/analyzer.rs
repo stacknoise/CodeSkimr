@@ -111,6 +111,10 @@ impl FileAnalyzer for TreeSitterAnalyzer {
     fn naming_rules(&self) -> String {
         self.packs.naming_rules()
     }
+
+    fn pack_load_time(&self) -> Duration {
+        self.packs.load_time()
+    }
 }
 
 impl SnippetFingerprinter for TreeSitterAnalyzer {

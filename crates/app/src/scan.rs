@@ -11,7 +11,7 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::level2::{LanguageReport, Level2Outcome, Skipped};
 use codeskimr_application::pipeline::{Job, JobResult, Queued, Scanner};
-use codeskimr_application::ports::{ProjectRepository, ProjectToolCheck};
+use codeskimr_application::ports::{FileAnalyzer, ProjectRepository, ProjectToolCheck};
 use codeskimr_application::tools::ToolsView;
 use codeskimr_cli::{GlobalOptions, Level2Line, Level2Reason, ScanArgs, ScanSummary};
 use codeskimr_codes::{Coded, ErrorCode};
@@ -24,7 +24,9 @@ use crate::cpu_time::{process_cpu_time, seconds_since};
 use crate::locations::Locations;
 use crate::principal;
 use crate::source_arg::{SourceError, SourceSpec, classify};
-use crate::wiring::{Secrets, build_scanner, index_runner, open_store, tool_checker};
+use crate::wiring::{
+    Secrets, build_analysis, index_runner, open_store, scanner_over, tool_checker,
+};
 
 /// Checks the source argument before anything is scanned or printed.
 ///
@@ -42,6 +44,7 @@ pub fn prepare(args: &ScanArgs) -> Result<SourceSpec, SourceError> {
 /// A registered project with everything needed to scan it again and again.
 pub struct Session {
     scanner: Scanner,
+    analyzer: Arc<dyn FileAnalyzer>,
     tools: Arc<dyn ProjectToolCheck>,
     principal: Principal,
     project: Project,
@@ -128,12 +131,19 @@ impl Session {
 
     fn run_job(&self, job: Job<Queued>) -> Result<ScanSummary, CodedError> {
         let started = Instant::now();
+        let loading_before = self.analyzer.pack_load_time();
         let cpu_start = process_cpu_time();
         let mode = job.mode();
         match self.scanner.run(&self.principal, job) {
             JobResult::Finished(job) => {
                 let snapshot = job.snapshot();
-                let seconds = started.elapsed().as_secs_f64();
+                // Loading a language pack is not part of the scan (ADR 0059): it counts for the cold
+                // start, so the scan time stays comparable between runs that load different packs.
+                let loading = self
+                    .analyzer
+                    .pack_load_time()
+                    .saturating_sub(loading_before);
+                let seconds = started.elapsed().saturating_sub(loading).as_secs_f64();
                 Ok(ScanSummary {
                     project: self.project.name.to_string(),
                     snapshot: snapshot.id.get(),
@@ -283,10 +293,16 @@ fn session(
         events,
         secrets,
     } = wiring;
-    let scanner = build_scanner(store, &config, locations, events.clone(), secrets)?;
+    let analysis = build_analysis(&config, locations)?;
+    let scanner = scanner_over(
+        &analysis,
+        (store, &config, locations),
+        (events.clone(), secrets),
+    )?;
     let tools = tool_checker(store, (locations, index_runner(locations)))?;
     Ok(Session {
         scanner,
+        analyzer: analysis.analyzer,
         tools,
         principal,
         project,

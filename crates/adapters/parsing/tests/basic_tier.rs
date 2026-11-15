@@ -131,6 +131,17 @@ mod tests {
     }
 
     #[test]
+    fn loading_a_pack_takes_time_that_is_counted_once() {
+        let packs = LanguagePacks::load(&languages()).expect("packs list");
+        assert_eq!(packs.load_time(), std::time::Duration::ZERO);
+        packs.get(&id("rust")).expect("rust loads");
+        let first = packs.load_time();
+        assert!(first > std::time::Duration::ZERO);
+        packs.get(&id("rust")).expect("rust is loaded already");
+        assert_eq!(packs.load_time(), first);
+    }
+
+    #[test]
     fn every_installed_pack_loads() {
         let packs = LanguagePacks::load(&languages()).expect("packs list");
         packs.verify().expect("every pack compiles");

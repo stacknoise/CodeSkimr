@@ -4,9 +4,10 @@ use std::collections::HashMap;
 use std::fs;
 use std::num::NonZeroUsize;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
 use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::{Mutex, OnceLock, PoisonError};
 use std::thread;
+use std::time::{Duration, Instant};
 
 use codeskimr_application::ports::IndexerSpec;
 use codeskimr_domain::LanguageId;
@@ -66,14 +67,69 @@ fn read_next(dirs: &[PathBuf], next: &AtomicUsize) -> Vec<(usize, Result<Slot, P
 }
 
 /// One verifying thread: loads the next pack until none is left.
-fn verify_next(slots: &[&Slot], next: &AtomicUsize) -> Vec<(usize, Result<(), ParsingError>)> {
+fn verify_next(
+    slots: &[&Slot],
+    next: &AtomicUsize,
+    clock: &LoadClock,
+) -> Vec<(usize, Result<(), ParsingError>)> {
     let mut done = Vec::new();
     loop {
         let index = next.fetch_add(1, Ordering::Relaxed);
         let Some(slot) = slots.get(index) else {
             return done;
         };
-        done.push((index, slot.pack().map(drop)));
+        done.push((index, slot.pack(clock).map(drop)));
+    }
+}
+
+/// The time during which at least one pack was being loaded (ADR 0059): packs that load at the same
+/// time count once, so the total never exceeds the time that passed.
+#[derive(Default)]
+struct LoadClock {
+    state: Mutex<LoadState>,
+}
+
+#[derive(Default)]
+struct LoadState {
+    running: usize,
+    since: Option<Instant>,
+    total: Duration,
+}
+
+/// Counts one running load; the time is added when it is dropped.
+struct LoadTimer<'a>(&'a LoadClock);
+
+impl LoadClock {
+    fn state(&self) -> std::sync::MutexGuard<'_, LoadState> {
+        self.state.lock().unwrap_or_else(PoisonError::into_inner)
+    }
+
+    fn running(&self) -> LoadTimer<'_> {
+        let mut state = self.state();
+        if state.running == 0 {
+            state.since = Some(Instant::now());
+        }
+        state.running += 1;
+        drop(state);
+        LoadTimer(self)
+    }
+
+    /// The loading time so far, including a load that is still running.
+    fn total(&self) -> Duration {
+        let state = self.state();
+        state.total + state.since.map_or(Duration::ZERO, |since| since.elapsed())
+    }
+}
+
+impl Drop for LoadTimer<'_> {
+    fn drop(&mut self) {
+        let mut state = self.0.state();
+        state.running -= 1;
+        if state.running == 0
+            && let Some(since) = state.since.take()
+        {
+            state.total += since.elapsed();
+        }
     }
 }
 
@@ -160,14 +216,15 @@ impl Slot {
         })
     }
 
-    fn pack(&self) -> Result<&LanguagePack, ParsingError> {
-        let loaded = self
-            .loaded
-            .get_or_init(|| match LanguagePack::load(&self.dir) {
+    fn pack(&self, clock: &LoadClock) -> Result<&LanguagePack, ParsingError> {
+        let loaded = self.loaded.get_or_init(|| {
+            let _timer = clock.running();
+            match LanguagePack::load(&self.dir) {
                 Ok(pack) => Ok(pack),
                 Err(ParsingError::PackInvalid { pack, reason }) => Err((pack, reason)),
                 Err(other) => Err((folder(&self.dir), other.to_string())),
-            });
+            }
+        });
         loaded
             .as_ref()
             .map_err(|(pack, reason)| ParsingError::invalid(pack.clone(), reason.clone()))
@@ -211,6 +268,7 @@ pub fn tiers(root: &Path) -> Result<Vec<(String, Tier)>, ParsingError> {
 /// All language packs found below one folder, by language id.
 pub struct LanguagePacks {
     slots: HashMap<LanguageId, Slot>,
+    clock: LoadClock,
 }
 
 impl LanguagePacks {
@@ -230,7 +288,10 @@ impl LanguagePacks {
             let slot = slot?;
             slots.insert(slot.summary.id.clone(), slot);
         }
-        Ok(Self { slots })
+        Ok(Self {
+            slots,
+            clock: LoadClock::default(),
+        })
     }
 
     /// All installed packs, in no particular order. Does not load any grammar.
@@ -274,7 +335,7 @@ impl LanguagePacks {
         let next = AtomicUsize::new(0);
         let results: Vec<(usize, Result<(), ParsingError>)> = thread::scope(|scope| {
             let handles: Vec<_> = (0..load_workers(slots.len()))
-                .map(|_| scope.spawn(|| verify_next(&slots, &next)))
+                .map(|_| scope.spawn(|| verify_next(&slots, &next, &self.clock)))
                 .collect();
             handles
                 .into_iter()
@@ -295,7 +356,14 @@ impl LanguagePacks {
         self.slots
             .get(language)
             .ok_or_else(|| ParsingError::PackMissing(language.to_string()))?
-            .pack()
+            .pack(&self.clock)
+    }
+
+    /// How long loading packs has taken so far: the time during which at least one pack was being
+    /// loaded. A scan leaves this out of its reported time (ADR 0059).
+    #[must_use]
+    pub fn load_time(&self) -> Duration {
+        self.clock.total()
     }
 }
 
