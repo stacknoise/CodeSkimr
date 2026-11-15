@@ -203,3 +203,13 @@ pub(crate) const NEWLINE: char = '\n';
 pub(crate) const GROUP_OPENERS: [char; 4] = ['(', '[', '{', '<'];
 /// What closes a group inside a list of parameters.
 pub(crate) const GROUP_CLOSERS: [char; 4] = [')', ']', '}', '>'];
+/// Starts and ends a Java text block.
+pub(crate) const TEXT_BLOCK_MARK: &str = "\"\"\"";
+/// Ends the qualified call of the constructor of an inner superclass (`outer.super(...)`).
+pub(crate) const QUALIFIED_SUPER: &str = ".super";
+/// Separates the parts of a qualified name.
+pub(crate) const PATH_DOT: char = '.';
+/// How many characters all scans of a file may read together, as a multiple of its size (never
+/// less than `MAX_SCAN_CHARS`): a normal file needs a small part of it, a file built to make the
+/// scans overlap is not read on.
+pub(crate) const SCAN_BUDGET_FACTOR: usize = 16;

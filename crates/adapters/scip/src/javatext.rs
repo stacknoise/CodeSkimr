@@ -5,6 +5,7 @@
 //! small scanner; where the text is not what the scanner expects it gives up and the index stays
 //! as it is.
 
+use std::cell::Cell;
 use std::collections::HashSet;
 
 use codeskimr_domain::{Position, Span};
@@ -13,8 +14,9 @@ use crate::consts::{
     BLOCK_COMMENT_CLOSE, BLOCK_COMMENT_OPEN, CLOSE_ANGLE, CLOSE_PAREN, COMMA,
     CONSTRUCTOR_CALL_KEYWORDS, CONSTRUCTOR_NAMES, GROUP_CLOSERS, GROUP_OPENERS, IMPORT_KEYWORD,
     JAVA_EXTENSION, JAVA_IDENTIFIER_EXTRA, LINE_COMMENT, LITERAL_ESCAPE, LITERAL_QUOTES,
-    MAX_SCAN_CHARS, NEW_KEYWORD, NEWLINE, OPEN_BRACE, OPEN_GENERIC, OPEN_PAREN, SEMICOLON, SLASH,
-    THROWS_KEYWORD, VARARGS_MARK,
+    MAX_SCAN_CHARS, NEW_KEYWORD, NEWLINE, OPEN_BRACE, OPEN_GENERIC, OPEN_PAREN, PATH_DOT,
+    QUALIFIED_SUPER, SCAN_BUDGET_FACTOR, SEMICOLON, SLASH, TEXT_BLOCK_MARK, THROWS_KEYWORD,
+    VARARGS_MARK,
 };
 use crate::model::{AnonymousCreation, Arity, ConstructorSite, ScipDocument, SymbolRef, TextFacts};
 use crate::symbol::{DescriptorKind, is_local, last_descriptor};
@@ -23,21 +25,43 @@ fn is_identifier_char(c: char) -> bool {
     c.is_alphanumeric() || JAVA_IDENTIFIER_EXTRA.contains(&c)
 }
 
+/// The lines of a file and what all scans of the file may still read together: a file that
+/// needs more than `SCAN_BUDGET_FACTOR` times its size is not read on, and nothing is marked in it.
+struct Text<'a> {
+    lines: &'a [String],
+    budget: Cell<usize>,
+}
+
+impl<'a> Text<'a> {
+    fn new(lines: &'a [String]) -> Self {
+        let size: usize = lines.iter().map(String::len).sum();
+        let budget = size.saturating_mul(SCAN_BUDGET_FACTOR).max(MAX_SCAN_CHARS);
+        Self {
+            lines,
+            budget: Cell::new(budget),
+        }
+    }
+
+    fn exhausted(&self) -> bool {
+        self.budget.get() == 0
+    }
+}
+
 /// A reading position in the lines of a file, with a budget of characters.
 struct Cursor<'a> {
-    lines: &'a [String],
+    text: &'a Text<'a>,
     line: usize,
     col: usize,
     left: usize,
 }
 
 impl<'a> Cursor<'a> {
-    fn at(lines: &'a [String], at: Position) -> Option<Self> {
+    fn at(text: &'a Text<'a>, at: Position) -> Option<Self> {
         let line = usize::try_from(at.line).ok()?;
         let col = usize::try_from(at.column).ok()?;
-        lines.get(line)?.get(col..)?;
+        text.lines.get(line)?.get(col..)?;
         Some(Self {
-            lines,
+            text,
             line,
             col,
             left: MAX_SCAN_CHARS,
@@ -45,7 +69,8 @@ impl<'a> Cursor<'a> {
     }
 
     fn rest(&self) -> &str {
-        self.lines
+        self.text
+            .lines
             .get(self.line)
             .and_then(|line| line.get(self.col..))
             .unwrap_or_default()
@@ -53,12 +78,12 @@ impl<'a> Cursor<'a> {
 
     /// The next character; the end of a line reads as a line feed, the end of the file as nothing.
     fn peek(&self) -> Option<char> {
-        if self.left == 0 {
+        if self.left == 0 || self.text.exhausted() {
             return None;
         }
         match self.rest().chars().next() {
             Some(c) => Some(c),
-            None => (self.line.saturating_add(1) < self.lines.len()).then_some(NEWLINE),
+            None => (self.line.saturating_add(1) < self.text.lines.len()).then_some(NEWLINE),
         }
     }
 
@@ -69,7 +94,14 @@ impl<'a> Cursor<'a> {
             self.line = self.line.saturating_add(1);
             self.col = 0;
         }
+        self.spend();
+    }
+
+    /// Takes one character off the budget of this scan and of the file.
+    fn spend(&mut self) {
         self.left = self.left.saturating_sub(1);
+        let file = &self.text.budget;
+        file.set(file.get().saturating_sub(1));
     }
 
     fn position(&self) -> Option<Position> {
@@ -99,6 +131,7 @@ impl<'a> Cursor<'a> {
             } else if c == SLASH && self.rest().starts_with(LINE_COMMENT) {
                 self.line = self.line.saturating_add(1);
                 self.col = 0;
+                self.spend();
             } else if c == SLASH && self.rest().starts_with(BLOCK_COMMENT_OPEN) {
                 self.skip_block_comment();
             } else {
@@ -119,6 +152,10 @@ impl<'a> Cursor<'a> {
     /// Skips a string or character literal; one that does not end on its line is left at the line
     /// end.
     fn skip_literal(&mut self, quote: char) {
+        if quote == LITERAL_QUOTES[0] && self.rest().starts_with(TEXT_BLOCK_MARK) {
+            self.skip_text_block();
+            return;
+        }
         self.bump();
         while let Some(c) = self.peek() {
             if c == NEWLINE {
@@ -129,6 +166,23 @@ impl<'a> Cursor<'a> {
                 self.bump();
             } else if c == quote {
                 return;
+            }
+        }
+    }
+
+    /// Skips a text block (`"""` up to the next `"""` that is not escaped), over lines.
+    fn skip_text_block(&mut self) {
+        for _ in TEXT_BLOCK_MARK.chars() {
+            self.bump();
+        }
+        while let Some(c) = self.peek() {
+            if self.rest().starts_with(TEXT_BLOCK_MARK) {
+                TEXT_BLOCK_MARK.chars().for_each(|_| self.bump());
+                return;
+            }
+            self.bump();
+            if c == LITERAL_ESCAPE {
+                self.bump();
             }
         }
     }
@@ -248,26 +302,30 @@ impl Cursor<'_> {
         (self.peek()? == OPEN_BRACE).then(|| self.position())?
     }
 
-    /// Whether the body that opens at the cursor starts with a call of `this` or `super`.
+    /// Whether the body that opens at the cursor starts with a call of `this` or `super`, also
+    /// the qualified `outer.super(...)`.
     fn starts_with_constructor_call(&mut self) -> bool {
         self.bump();
         self.skip_blank();
-        let Some(word) = CONSTRUCTOR_CALL_KEYWORDS
-            .iter()
-            .find(|word| self.at_word(word))
-        else {
-            return false;
-        };
-        word.chars().for_each(|_| self.bump());
+        let mut path = String::new();
+        while let Some(c) = self.peek() {
+            if !is_identifier_char(c) && c != PATH_DOT {
+                break;
+            }
+            path.push(c);
+            self.bump();
+        }
+        let is_call =
+            CONSTRUCTOR_CALL_KEYWORDS.contains(&path.as_str()) || path.ends_with(QUALIFIED_SUPER);
         self.skip_blank();
-        self.peek() == Some(OPEN_PAREN)
+        is_call && self.peek() == Some(OPEN_PAREN)
     }
 }
 
 /// A constructor of the document with what its text tells; `None` where the text is not as
 /// expected.
-fn site_of(lines: &[String], symbol: SymbolRef, name: Span) -> Option<ConstructorSite> {
-    let mut cursor = Cursor::at(lines, name.end())?;
+fn site_of(text: &Text<'_>, symbol: SymbolRef, name: Span) -> Option<ConstructorSite> {
+    let mut cursor = Cursor::at(text, name.end())?;
     cursor.skip_blank();
     if cursor.peek() != Some(OPEN_PAREN) {
         return Some(ConstructorSite {
@@ -280,7 +338,7 @@ fn site_of(lines: &[String], symbol: SymbolRef, name: Span) -> Option<Constructo
     }
     let arity = cursor.parameters()?;
     let open = cursor.body_start()?;
-    let explicit_call = Cursor::at(lines, open)?.starts_with_constructor_call();
+    let explicit_call = Cursor::at(text, open)?.starts_with_constructor_call();
     Some(ConstructorSite {
         symbol,
         declared: true,
@@ -292,8 +350,8 @@ fn site_of(lines: &[String], symbol: SymbolRef, name: Span) -> Option<Constructo
 
 /// The opening brace of the anonymous class that starts after the name of a type that ends at
 /// `end`: `new Name<..>(..) {`.
-fn anonymous_body(lines: &[String], end: Position) -> Option<Span> {
-    let mut cursor = Cursor::at(lines, end)?;
+fn anonymous_body(text: &Text<'_>, end: Position) -> Option<Span> {
+    let mut cursor = Cursor::at(text, end)?;
     if !cursor.skip_optional_group(OPEN_GENERIC, CLOSE_ANGLE) {
         return None;
     }
@@ -308,8 +366,8 @@ fn anonymous_body(lines: &[String], end: Position) -> Option<Span> {
 
 /// Whether the name of an enum constant that ends at `end` is followed by a body: `NAME(..) {` or
 /// `NAME {`.
-fn enum_body_follows(lines: &[String], end: Position) -> bool {
-    let Some(mut cursor) = Cursor::at(lines, end) else {
+fn enum_body_follows(text: &Text<'_>, end: Position) -> bool {
+    let Some(mut cursor) = Cursor::at(text, end) else {
         return false;
     };
     if !cursor.skip_optional_group(OPEN_PAREN, CLOSE_PAREN) {
@@ -358,10 +416,10 @@ fn one_char(at: Position) -> Option<Span> {
 }
 
 /// Whether the word `new` stands right before `start`.
-fn follows_new(lines: &[String], start: Position) -> bool {
+fn follows_new(text: &Text<'_>, start: Position) -> bool {
     let line = usize::try_from(start.line)
         .ok()
-        .and_then(|at| lines.get(at));
+        .and_then(|at| text.lines.get(at));
     let before = line
         .zip(usize::try_from(start.column).ok())
         .and_then(|(line, column)| line.get(..column));
@@ -405,22 +463,23 @@ pub(crate) fn read_document(document: &mut ScipDocument, lines: &[String], symbo
     document.occurrences.retain(|occurrence| {
         usize::try_from(occurrence.range.start().line).map_or(true, |line| !imports.contains(&line))
     });
+    let text = Text::new(lines);
     let constructors = document
         .occurrences
         .iter()
         .filter(|o| o.is_definition() && is_constructor(symbols, o.symbol))
-        .filter_map(|o| site_of(lines, o.symbol, o.range))
+        .filter_map(|o| site_of(&text, o.symbol, o.range))
         .collect();
     let anonymous = document
         .occurrences
         .iter()
-        .filter(|o| !o.is_definition() && follows_new(lines, o.range.start()))
+        .filter(|o| !o.is_definition() && follows_new(&text, o.range.start()))
         .filter(|o| is_type(symbols, o.symbol))
         .filter_map(|o| {
             Some(AnonymousCreation {
                 symbol: o.symbol,
                 range: o.range,
-                body: anonymous_body(lines, o.range.end())?,
+                body: anonymous_body(&text, o.range.end())?,
             })
         })
         .collect();
@@ -428,12 +487,17 @@ pub(crate) fn read_document(document: &mut ScipDocument, lines: &[String], symbo
         .occurrences
         .iter()
         .filter(|o| o.is_definition() && is_term(symbols, o.symbol))
-        .filter(|o| enum_body_follows(lines, o.range.end()))
+        .filter(|o| enum_body_follows(&text, o.range.end()))
         .map(|o| o.range)
         .collect();
-    document.facts = TextFacts {
-        constructors,
-        anonymous,
-        enum_bodies,
+    // A file that used up its budget was read only in part: nothing is marked in it.
+    document.facts = if text.exhausted() {
+        TextFacts::default()
+    } else {
+        TextFacts {
+            constructors,
+            anonymous,
+            enum_bodies,
+        }
     };
 }

@@ -60,9 +60,19 @@ fn import(
     level1: &[Reference],
     documents: &[Vec<u8>],
 ) -> Imported {
-    let bytes = index("file:///p", &[document("src/A.java", documents)]);
+    import_as("src/A.java", lines, symbols, level1, documents)
+}
+
+fn import_as(
+    name: &str,
+    lines: &[&str],
+    symbols: &[Symbol],
+    level1: &[Reference],
+    documents: &[Vec<u8>],
+) -> Imported {
+    let bytes = index("file:///p", &[document(name, documents)]);
     let (_dir, path) = written(&bytes);
-    let files = [file(1, "src/A.java")];
+    let files = [file(1, name)];
     let root = FolderPath::new("/work").expect("root");
     let text = Lines(lines.iter().map(|line| (*line).to_owned()).collect());
     ScipImporter::new(Arc::new(text))
@@ -89,6 +99,7 @@ fn an_import_line_is_no_use_and_other_lines_are_kept() {
         "class U { Base b; }",
     ];
     let symbols = [
+        class(9, "Top", ((0, 0), (4, 19))),
         class(1, "Base", ((2, 0), (3, 1))),
         class(2, "U", ((4, 0), (4, 19))),
     ];
@@ -118,7 +129,17 @@ struct World {
 
 impl World {
     fn imported(&self) -> Imported {
-        import(&self.lines, &self.symbols, &self.level1, &self.documents)
+        self.imported_as("src/A.java")
+    }
+
+    fn imported_as(&self, name: &str) -> Imported {
+        import_as(
+            name,
+            &self.lines,
+            &self.symbols,
+            &self.level1,
+            &self.documents,
+        )
     }
 }
 
@@ -184,6 +205,7 @@ fn an_import_over_two_lines_is_no_use() {
         "class Base { }",
     ];
     let symbols = [
+        class(9, "Top", ((0, 0), (3, 14))),
         class(2, "U", ((2, 0), (2, 19))),
         class(1, "Base", ((3, 0), (3, 14))),
     ];
@@ -366,4 +388,120 @@ fn an_enum_constant_with_a_body_is_a_use_of_its_enum() {
         .map(|r| (r.from.get(), r.to.get(), r.span))
         .collect();
     assert_eq!(uses, [(2, 1, span((1, 2), (1, 5)))]);
+}
+
+#[test]
+fn files_of_other_languages_keep_their_import_lines_and_get_no_implied_call() {
+    // The same index and text, as a TypeScript file: nothing of the Java rules applies.
+    let imported = derived_world().imported_as("src/A.ts");
+    assert_eq!(calls(&imported), []);
+    let lines = ["import p.Base;", "class U { Base b; }", "class Base { }"];
+    let symbols = [
+        class(9, "Top", ((0, 0), (2, 14))),
+        class(2, "U", ((1, 0), (1, 19))),
+        class(1, "Base", ((2, 0), (2, 14))),
+    ];
+    let base = java("p/Base#");
+    let documents = [
+        usage(&[0, 9, 13], &base),
+        usage(&[1, 10, 14], &base),
+        definition(&[2, 6, 10], &base),
+    ];
+    let imported = import_as("src/A.ts", &lines, &symbols, &[], &documents);
+    let at: Vec<u32> = imported
+        .references
+        .iter()
+        .map(|r| r.span.start().line)
+        .collect();
+    assert_eq!(at, [0, 1]);
+}
+
+/// `Base(int a)` and a `Maker` whose `make` holds `creation`, a line with one `new Base(...) { }`.
+fn maker_world(creation: &str, usages: &[u32]) -> World {
+    let lines = vec![
+        "class Base {",
+        "  Base(int a) { }",
+        "}",
+        "class Maker {",
+        "",
+        "}",
+    ];
+    let mut lines = lines;
+    let creation = creation.to_owned();
+    let leaked: &'static str = Box::leak(creation.into_boxed_str());
+    lines[4] = leaked;
+    let width = u32::try_from(leaked.len()).expect("width");
+    let mut documents = vec![
+        definition(&[0, 6, 10], &java("p/Base#")),
+        definition(&[1, 2, 6], &ctor("Base", "")),
+    ];
+    documents.extend(
+        usages
+            .iter()
+            .map(|at| usage(&[4, *at, at + 4], &java("p/Base#"))),
+    );
+    World {
+        lines,
+        symbols: vec![
+            class(1, "Base", ((0, 0), (2, 1))),
+            constructor(2, 1, "Base", ((1, 2), (1, 17))),
+            class(3, "Maker", ((3, 0), (5, 1))),
+            Symbol {
+                parent: Some(SymbolId::new(3)),
+                ..symbol(4, 1, SymbolKind::Method, "make", ((4, 2), (4, width)))
+            },
+        ],
+        level1: Vec::new(),
+        documents,
+    }
+}
+
+#[test]
+fn a_text_block_with_brackets_inside_does_not_end_the_arguments() {
+    let line = "  Object make() { return new Base(\"\"\"x\"y) {\"\"\") { }; }";
+    let at = u32::try_from(line.find("Base(").expect("type")).expect("column");
+    let brace = u32::try_from(line.rfind("{ }").expect("body")).expect("column");
+    let imported = maker_world(line, &[at]).imported();
+    assert_eq!(calls(&imported), [(4, 2, span((4, brace), (4, brace + 1)))]);
+}
+
+#[test]
+fn a_qualified_super_call_is_an_explicit_call() {
+    let mut world = derived_world();
+    world.lines = vec![
+        "class Base {",
+        "  Base() { }",
+        "}",
+        "class Derived extends Base {",
+        "  Derived(Outer o) { o.super(); }",
+        "}",
+    ];
+    world.symbols[2] = class(3, "Derived", ((3, 0), (5, 1)));
+    world
+        .symbols
+        .push(constructor(4, 3, "Derived", ((4, 2), (4, 33))));
+    world.documents[3] = definition(&[4, 2, 9], &ctor("Derived", ""));
+    assert_eq!(calls(&world.imported()), []);
+    // The same constructor with an ordinary first statement does call `super()`.
+    world.lines[4] = "  Derived(Outer o) { run(); }";
+    assert_eq!(calls(&world.imported()).len(), 1);
+}
+
+#[test]
+fn a_file_that_needs_too_much_reading_gets_nothing_marked() {
+    let depth = 400_usize;
+    let creation = format!(
+        "  Object make() {{ return {}{} {{ }}; }}",
+        "new Base(".repeat(depth),
+        ")".repeat(depth)
+    );
+    let columns: Vec<u32> = creation
+        .match_indices("Base(")
+        .map(|(at, _)| u32::try_from(at).expect("column"))
+        .collect();
+    assert_eq!(calls(&maker_world(&creation, &columns).imported()), []);
+    // One creation in the same place is marked: it is the size, not the shape, that stops it.
+    let one = "  Object make() { return new Base(1) { }; }";
+    let at = u32::try_from(one.find("Base(").expect("type")).expect("column");
+    assert_eq!(calls(&maker_world(one, &[at]).imported()).len(), 1);
 }

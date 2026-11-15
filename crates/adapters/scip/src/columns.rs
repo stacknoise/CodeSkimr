@@ -172,9 +172,9 @@ fn defines_locals(document: &ScipDocument, symbols: &[String]) -> bool {
 /// Turns the columns of every document that does not count UTF-8 bytes into UTF-8 bytes, and
 /// reads the names of the local symbols a document defines (the import has no other way to
 /// tell what a local symbol is called) and, for Java files, what only their text tells (see
-/// `javatext.rs`: the import lines are dropped, constructors and anonymous classes are found). `lines_of` gives the lines of a file without their line
-/// ends, or `None` if the text is not available, in which case the document keeps its encoding
-/// and its local symbols stay without a name. It must read files the way the import is allowed
+/// `javatext.rs`). `lines_of` gives the lines of a file without their line ends, or `None` if
+/// the text is not available, in which case the document keeps its encoding and its local
+/// symbols stay without a name. It must read files the way the import is allowed
 /// to: inside the project and never through a link.
 pub fn convert_columns(
     index: &mut ScipIndex,
