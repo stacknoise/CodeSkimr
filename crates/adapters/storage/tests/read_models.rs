@@ -183,7 +183,7 @@ fn layer_graph_aggregates_references_between_layers() {
             ("Core", "Data", 1, true),
             ("Data", "Core", 1, true)
         ],
-        "same-layer references, names outside every layer, test references and probable references are not edges"
+        "same-layer, outside-layer, test and probable references are no edges"
     );
 }
 

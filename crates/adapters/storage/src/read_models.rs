@@ -95,12 +95,12 @@ fn count_edges(
     owners: &BTreeMap<u64, usize>,
 ) -> StorageResult<BTreeMap<(usize, usize), u32>> {
     let mut statement = conn.prepare_cached(sql::REFERENCE_ENDS)?;
-    let kinds = params![
+    let bind = params![
         snapshot,
         ReferenceKind::Test.label(),
         Confidence::Certain.label()
     ];
-    let rows = statement.query_map(kinds, |row| {
+    let rows = statement.query_map(bind, |row| {
         let cols = Cols::new(row);
         Ok((cols.take::<i64>()?, cols.take::<i64>()?))
     })?;
