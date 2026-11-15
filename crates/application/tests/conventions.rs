@@ -620,6 +620,46 @@ mod tests {
         assert_eq!(found, [("a.rs".to_owned(), "old/x.rs".to_owned())]);
     }
 
+    /// How many copies of stored code are reported for one mapping function under `notes`.
+    fn stored_copies_with(notes: &Notes) -> usize {
+        let disk = Disk {
+            files: vec![(
+                "a.rs",
+                Body {
+                    loc: 9,
+                    seed: 0,
+                    inner: false,
+                    counted: Some((0, 1)),
+                },
+            )],
+            broken: None,
+        };
+        let stored = Stored(vec![hit("old/x.rs", 91)]);
+        let request = CheckRequest {
+            principal: &Principal::local_owner(),
+            root: &root(),
+            paths: &[],
+            stored: Some(StoredProject {
+                index: &stored,
+                snapshot: SnapshotId::new(1),
+            }),
+        };
+        let report = checker_noted(disk, limits(), notes)
+            .check(&request)
+            .expect("checked");
+        report.findings.len()
+    }
+
+    #[test]
+    fn a_marked_mapping_function_is_no_copy_of_stored_code_either() {
+        let marked = Notes {
+            note: Some(REASON),
+            blank_between: false,
+        };
+        assert_eq!(stored_copies_with(&Notes::default()), 1);
+        assert_eq!(stored_copies_with(&marked), 0);
+    }
+
     #[test]
     fn stored_versions_of_checked_files_and_tests_are_no_originals() {
         // The first hit is the older version of the file itself, the second one lies in a test

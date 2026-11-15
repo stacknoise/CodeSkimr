@@ -1,4 +1,4 @@
-import { createEffect, Match, on, Show, Switch } from "solid-js";
+import { createEffect, Match, on, Switch } from "solid-js";
 import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
@@ -6,7 +6,6 @@ import { activeProject } from "../../shared/project/active";
 import type { Failure } from "../explorer/failure";
 import { GraphView } from "./GraphView";
 import { HitList } from "./HitList";
-import { ROLE } from "./consts";
 import { listedHits, listedPlace } from "./hits";
 import { nextHit, useUsagesKeys } from "./keys";
 import { showUsages } from "../../shared/navigation/navigation";
