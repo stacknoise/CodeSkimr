@@ -72,7 +72,7 @@ pub struct LayerRule {
     pub name: String,
     /// Qualified-name prefixes that belong to the layer; the first layer that owns a name wins.
     pub namespaces: Vec<String>,
-    /// Names of the layers this layer may depend on (ADR 0047). Missing means no limit; an empty
+    /// Names of the layers this layer may depend on (ADR 0054). Missing means no limit; an empty
     /// list means none.
     #[serde(default)]
     pub may_use: Option<Vec<String>>,

@@ -29,6 +29,6 @@ SQLite database per workspace, WAL mode, schema migrations in `crates/adapters/s
 
 - Search is case-insensitive for ASCII only (SQLite `lower`); the query is lowered the same way.
 - The project's layers come from the configuration and are saved with the project at every scan (ADR 0031).
-- `layer_graph.violates_layering` is true for an edge from a layer with a `may_use` list to a layer that the list does not name (ADR 0047). Schema version 11 stores the lists in `layer_uses` (`layers.restricted` tells a limit from none); older layers stay unlimited, and the next scan rebuilds the graph.
+- `layer_graph.violates_layering` is true for an edge from a layer with a `may_use` list to a layer that the list does not name (ADR 0054). Schema version 11 stores the lists in `layer_uses` (`layers.restricted` tells a limit from none); older layers stay unlimited, and the next scan rebuilds the graph.
 - Deleted files are reported by the pipeline (`SnapshotData::removed`); the store trusts that list.
 - Schema version 7 adds `tool_reports` (one row per project: `project_id`, `checked_at`) and `tool_findings` (language, tool, role, state, found and required version). `ToolReportStore` replaces the whole report of a project in one transaction and reads it back; a project that was never checked has none. `ProjectCatalog::languages` lists the languages of the newest snapshot with files and lines of code. Databases of version 6 get empty tables.

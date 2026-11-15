@@ -104,7 +104,7 @@ pub struct Layer {
     pub name: LayerName,
     /// Namespaces that belong to the layer.
     pub namespaces: Vec<QualifiedName>,
-    /// The other layers this layer may depend on (ADR 0047). `None` sets no limit; `Some` lists
+    /// The other layers this layer may depend on (ADR 0054). `None` sets no limit; `Some` lists
     /// all allowed targets, so an empty list allows none.
     pub may_use: Option<Vec<LayerName>>,
 }

@@ -1,4 +1,4 @@
-# 0047 – Allowed directions between layers: `may_use`
+# 0054 – Allowed directions between layers: `may_use`
 
 Status: accepted
 

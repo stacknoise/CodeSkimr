@@ -82,7 +82,7 @@ Tool descriptions and the server instructions are written for code agents and li
 
 ## Known limits
 
-- `get_architecture` returns the layers and the measured dependencies. Layers come from the `[[layers]]` list of the configuration (`docs/cli.md`, ADR 0031); without it the list is empty. A layer may list `may_use`, the layers it may depend on (ADR 0047); a recorded dependency from it to any other layer then has `violates_layering`. `conventions` repeats the limits `check_conventions` applies (`max_function_lines`, `duplicate_similarity_percent`, `duplicate_min_lines`, `test_folders`). The layer rule of `check_conventions` (`CHK-103`) is not part of this yet.
+- `get_architecture` returns the layers and the measured dependencies. Layers come from the `[[layers]]` list of the configuration (`docs/cli.md`, ADR 0031); without it the list is empty. A layer may list `may_use`, the layers it may depend on (ADR 0054); a recorded dependency from it to any other layer then has `violates_layering`. `conventions` repeats the limits `check_conventions` applies (`max_function_lines`, `duplicate_similarity_percent`, `duplicate_min_lines`, `test_folders`). The layer rule of `check_conventions` (`CHK-103`) is not part of this yet.
 - Paths from arguments (blueprint S-05): `check_conventions` takes paths, but only to select among the files of the project's own file list; a path is never opened, so `..` or an absolute path selects nothing. `rescan` takes no paths, so there is nothing to canonicalise.
 - A qualified name shared by several symbols (overloads) answers with the lowest symbol id; use the id from `search_symbols` to be exact.
 

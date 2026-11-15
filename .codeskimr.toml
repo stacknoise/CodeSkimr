@@ -1,6 +1,6 @@
 # CodeSkimr's own layers (blueprint 4.2, ADR 0031), outermost first. The first layer that owns a
 # qualified name wins; names are module paths of this repository. `may_use` lists the layers a
-# layer may depend on (ADR 0047, blueprint 4.2).
+# layer may depend on (ADR 0054, blueprint 4.2).
 
 [[layers]]
 name = "app"
