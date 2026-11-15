@@ -8,7 +8,7 @@ Legend: ✅ ok · ◐ ok with remarks · ❌ finding (issue linked)
 
 ## Verdict
 
-**No new blocker for 1.0.** Two new findings: #464 (layer map counts ambiguous references, so the map of a project with layers shows a full mesh and false violations) and #465 (loading the language packs of a project with many languages takes longer than its scan and is in no budget). Neither stops the product from working; whether #464 is a blocker for 1.0 is the product owner's call, because the dependency map is a main screen. Older findings: #399 and #401 are closed (#399 checked again below, #401 not: no project with exactly one layer in this run); #400 and #402 are open and still reproduce.
+**No blocker found by the walk, but one finding is wrong data on a main screen and needs the product owner's decision.** Two new findings: #464 (layer map counts ambiguous references, so the map of a project with layers shows a full mesh and false violations) and #465 (loading the language packs of a project with many languages takes longer than its scan and is in no budget). Neither stops the product from working; whether #464 is a blocker for 1.0 is the product owner's call, because the dependency map is a main screen. Older findings: #399 and #401 are closed (#399 checked again below, #401 not: no project with exactly one layer in this run); #400 and #402 are open and still reproduce.
 
 ## 1. Screen walk (`tools/acceptance/qa-walk.mjs`)
 
@@ -23,13 +23,13 @@ The script cannot see what it does not click. New since the first run and **not 
 | Project | Files | Symbols | References | Scan (printed) | Pack load | Wall | Result |
 |---|---|---|---|---|---|---|---|
 | pallets/click (Python) | 91 | 2,546 | 11,730 | 0.26 to 0.30 s | 0.09 s | 0.4 s | ✅ same counts as before |
-| Newtonsoft.Json (C#, 197k lines) | 951 | 15,831 | 439,356 | 2.7 to 2.8 s | 0.77 s | 3.6 s | ◐ was 4.1 s; about 1.4 s per 100k lines, still over 1 s in this container (#410) |
+| Newtonsoft.Json (C#, 197k lines) | 951 | 15,831 | 439,356 | 2.7 to 2.8 s | 0.77 s | 3.6 s | ◐ was 4.1 s; about 1.4 s per 100k lines without the pack load (0.77 s extra, #465), still over 1 s in this container (#410) |
 | google/gson (Java) | 266 | 6,048 | 74,751 | 0.61 to 0.68 s | 0.16 s | 0.8 to 0.9 s | ✅ was 1.05 s |
 | CodeSkimr itself (Rust, TS, TSX, JS, Python, Java, Kotlin, C#) | 749 | 13,476 | 166,439 | 1.5 to 1.9 s | **2.12 s** | 3.8 to 4.2 s | ◐ pack load longer than the scan (#465) |
 
 Symbol and reference counts of click, Newtonsoft.Json and gson are identical to the first run, so the scan work since then changed time and no result. All exit codes 0. The CodeSkimr row has 749 files and 166,439 references (first run 724 and 135,874), because the repository grew.
 
-Of the 166,439 references of CodeSkimr 148,936 (89 %) are `probable` (name matches several symbols, `RES-301`). That is level 1 by design, but it is the cause of #464.
+Of the 166,439 references of CodeSkimr 148,936 (89 %) are `probable` (name matches several symbols, `RES-301`). That is level 1 by design (the share of `probable`, not the "unchecked" share of ADR 0033), but it is the cause of #464.
 
 ## 3. MCP over stdio (`codeskimr mcp`, project click)
 
@@ -44,7 +44,7 @@ Of the 166,439 references of CodeSkimr 148,936 (89 %) are `probable` (name match
 
 | Class | Issue |
 |---|---|
-| New, wrong data | #464 layer map counts `probable` references: 25 false violations in CodeSkimr's own map |
+| New, wrong data | #464 layer map counts `probable` references: 25 violations that are very probably false (the layering is enforced in CI; the 25 were not checked one by one) in CodeSkimr's own map |
 | New, measurement | #465 pack load of the first scan (2.1 s for eight packs) is in no budget |
 | Open, still reproduce | #400, #402 |
 | Closed since the first run | #399, #401 |
