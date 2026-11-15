@@ -1,5 +1,5 @@
-//! Golden test of `languages/typescript/metrics.scm` (the file is the same for the TSX and
-//! JavaScript packs): one case per counting rule of ADR 0015, and the highlights of the three packs.
+//! Golden test of `languages/typescript/metrics.scm` (the TSX and JavaScript packs take the file over,
+//! ADR 0056): one case per counting rule of ADR 0015, and the highlights of the three packs.
 
 #[cfg(test)]
 mod common;
@@ -9,7 +9,7 @@ mod support;
 
 #[cfg(test)]
 mod tests {
-    use super::support::{body, by_name, facts, highlights_compile, languages};
+    use super::support::{body, by_name, facts, highlights_compile};
 
     #[test]
     fn decision_points_follow_the_counting_rules() {
@@ -49,25 +49,5 @@ mod tests {
         );
         highlights_compile("tsx", &tree_sitter_typescript::LANGUAGE_TSX.into());
         highlights_compile("javascript", &tree_sitter_javascript::LANGUAGE.into());
-    }
-
-    #[test]
-    fn the_tsx_pack_shares_the_typescript_queries() {
-        let read = |pack: &str, file: &str| {
-            std::fs::read_to_string(languages().join(pack).join(file)).expect("file")
-        };
-        // The TSX pack adds the JSX values to the values of a constant.
-        let jsx =
-            read("tsx", "symbols.scm").replace(" (jsx_element) (jsx_self_closing_element)", "");
-        assert_eq!(jsx, read("typescript", "symbols.scm"));
-        assert_eq!(
-            read("tsx", "metrics.scm"),
-            read("typescript", "metrics.scm")
-        );
-        assert_eq!(
-            read("javascript", "metrics.scm"),
-            read("typescript", "metrics.scm")
-        );
-        assert!(read("tsx", "references.scm").starts_with(&read("typescript", "references.scm")));
     }
 }

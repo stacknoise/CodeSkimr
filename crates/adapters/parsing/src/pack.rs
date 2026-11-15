@@ -2,17 +2,21 @@
 
 use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use codeskimr_domain::{LanguageId, ModelError, SymbolKind};
 use tree_sitter::{Language, Query};
 
 use crate::captures::{MetricsQuery, Vocabulary};
-use crate::consts::{ID_MISMATCH, METRICS_QUERY_FILE, REFERENCES_QUERY_FILE, SYMBOLS_QUERY_FILE};
+use crate::consts::{
+    ID_MISMATCH, METRICS_QUERY_FILE, QUERIES_FILE_UNKNOWN, QUERIES_FROM_CHAINED,
+    QUERIES_FROM_INVALID, QUERIES_FROM_SELF, QUERY_JOIN, REFERENCES_QUERY_FILE,
+    SHAREABLE_QUERY_FILES, SYMBOLS_QUERY_FILE,
+};
 use crate::error::ParsingError;
 use crate::grammar;
-use crate::manifest::{DocBlock, DocSummary, PackManifest, Tier};
+use crate::manifest::{DocBlock, DocSummary, PackManifest, QueriesFrom, Tier};
 use crate::visibility::Visibilities;
 
 /// Everything the analyzer needs to understand one language.
@@ -59,14 +63,17 @@ impl LanguagePack {
         let manifest = PackManifest::read(dir)?;
         let language =
             grammar::builtin(&manifest.grammar).ok_or_else(|| invalid(manifest.grammar.clone()))?;
-        let symbols = compile(&language, &dir.join(SYMBOLS_QUERY_FILE), &folder)?;
-        let references_path = dir.join(REFERENCES_QUERY_FILE);
-        let references = if references_path.is_file() {
-            Some(compile(&language, &references_path, &folder)?)
-        } else {
-            None
-        };
-        let metrics = load_metrics(&language, &dir.join(METRICS_QUERY_FILE), &folder)?;
+        let shared = shared_queries(dir, &manifest, &folder)?;
+        let text = |file: &str| query_text(dir, shared.as_ref(), file, &folder);
+        let symbols = text(SYMBOLS_QUERY_FILE)?
+            .ok_or_else(|| invalid(SYMBOLS_QUERY_FILE.to_owned()))
+            .and_then(|source| compile(&language, &source, &folder))?;
+        let references = text(REFERENCES_QUERY_FILE)?
+            .map(|source| compile(&language, &source, &folder))
+            .transpose()?;
+        let metrics = text(METRICS_QUERY_FILE)?
+            .map(|source| load_metrics(&language, &source, &folder))
+            .transpose()?;
         Self::assemble(manifest, language, (symbols, references, metrics), &folder)
     }
 
@@ -182,23 +189,88 @@ fn folder_name(dir: &Path) -> String {
 
 fn load_metrics(
     language: &Language,
-    path: &Path,
+    source: &str,
     folder: &str,
-) -> Result<Option<MetricsQuery>, ParsingError> {
-    if !path.is_file() {
-        return Ok(None);
-    }
+) -> Result<MetricsQuery, ParsingError> {
     let invalid = |reason: String| ParsingError::invalid(folder, reason);
-    let source = fs::read_to_string(path).map_err(|e| invalid(e.to_string()))?;
-    let query = Query::new(language, &source).map_err(|e| invalid(e.to_string()))?;
-    MetricsQuery::new(query).map(Some).map_err(invalid)
+    let query = Query::new(language, source).map_err(|e| invalid(e.to_string()))?;
+    MetricsQuery::new(query).map_err(invalid)
 }
 
-fn compile(language: &Language, path: &Path, folder: &str) -> Result<Vocabulary, ParsingError> {
+fn compile(language: &Language, source: &str, folder: &str) -> Result<Vocabulary, ParsingError> {
     let invalid = |reason: String| ParsingError::invalid(folder, reason);
-    let source = fs::read_to_string(path).map_err(|e| invalid(e.to_string()))?;
-    let query = Query::new(language, &source).map_err(|e| invalid(e.to_string()))?;
+    let query = Query::new(language, source).map_err(|e| invalid(e.to_string()))?;
     Vocabulary::new(query).map_err(invalid)
+}
+
+/// The text of the query file `file` of the pack in `dir`: the text of the pack that
+/// `queries.files` takes it from (ADR 0056), then the file of the pack itself. `None` if neither
+/// exists.
+fn query_text(
+    dir: &Path,
+    shared: Option<&(&QueriesFrom, PathBuf)>,
+    file: &str,
+    folder: &str,
+) -> Result<Option<String>, ParsingError> {
+    let read = |path: PathBuf| {
+        if path.is_file() {
+            fs::read_to_string(&path)
+                .map(Some)
+                .map_err(|e| ParsingError::invalid(folder, e.to_string()))
+        } else {
+            Ok(None)
+        }
+    };
+    let own = read(dir.join(file))?;
+    let Some((_, base_dir)) = shared.filter(|(queries, _)| queries.files.iter().any(|f| f == file))
+    else {
+        return Ok(own);
+    };
+    Ok(match (read(base_dir.join(file))?, own) {
+        (Some(base), Some(own)) => Some([base, own].join(QUERY_JOIN)),
+        (base, own) => base.or(own),
+    })
+}
+
+/// `queries` of the manifest with the folder it takes files from, after the checks of ADR 0056.
+fn shared_queries<'m>(
+    dir: &Path,
+    manifest: &'m PackManifest,
+    folder: &str,
+) -> Result<Option<(&'m QueriesFrom, PathBuf)>, ParsingError> {
+    manifest
+        .queries
+        .as_ref()
+        .map(|queries| shared_dir(dir, queries, folder).map(|base| (queries, base)))
+        .transpose()
+}
+
+/// The folder of the pack that `queries` takes files from, after the checks of ADR 0056.
+fn shared_dir(dir: &Path, queries: &QueriesFrom, folder: &str) -> Result<PathBuf, ParsingError> {
+    let invalid =
+        |reason: &str| ParsingError::invalid(folder, [reason, queries.from.as_str()].concat());
+    let plain = !queries.from.is_empty() && !queries.from.contains(['/', '\\', '.']);
+    if !plain {
+        return Err(invalid(QUERIES_FROM_INVALID));
+    }
+    if queries.from == folder {
+        return Err(invalid(QUERIES_FROM_SELF));
+    }
+    if let Some(unknown) = queries
+        .files
+        .iter()
+        .find(|f| !SHAREABLE_QUERY_FILES.contains(&f.as_str()))
+    {
+        return Err(ParsingError::invalid(
+            folder,
+            [QUERIES_FILE_UNKNOWN, unknown].concat(),
+        ));
+    }
+    let base = dir.parent().unwrap_or(dir).join(&queries.from);
+    if PackManifest::read(&base)?.queries.is_some() {
+        return Err(invalid(QUERIES_FROM_CHAINED));
+    }
+    Ok(base)
 }
 
 /// The language id of a manifest, which must equal the name of its folder.
