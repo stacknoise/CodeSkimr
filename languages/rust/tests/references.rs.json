@@ -343,6 +343,13 @@
       "target": "Item"
     },
     {
+      "at": "34:29",
+      "from": "references::Order::find",
+      "kind": "write",
+      "receiver": "typed Item",
+      "target": "id"
+    },
+    {
       "at": "35:20",
       "from": "references::Order::find",
       "kind": "call",
@@ -495,6 +502,13 @@
       "kind": "read",
       "receiver": "own",
       "target": "left"
+    },
+    {
+      "at": "64:32",
+      "from": "references::Pair::build",
+      "kind": "write",
+      "receiver": "own",
+      "target": "right"
     },
     {
       "at": "65:20",
