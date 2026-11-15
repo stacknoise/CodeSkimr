@@ -122,6 +122,8 @@ fn check_private(dir: &Path) -> std::io::Result<PathBuf> {
         return Err(std::io::ErrorKind::PermissionDenied.into());
     }
     let resolved = fs::canonicalize(dir)?;
+    // Before the rules are set: a folder of someone else is refused as it is.
+    crate::windows_owner::check_folder(&resolved)?;
     crate::private_acl::restrict_to_user(&resolved)?;
     Ok(resolved)
 }
@@ -175,9 +177,12 @@ fn check_owner(dir: &Path, path: &Path, own_file: &File) -> std::io::Result<()> 
 /// to the path that was resolved before the access rules were set (see `still_there`). The path
 /// of the file must lead to the file that was opened, by the identity the system gives the file
 /// (see `is_open_file`): a folder that was swapped while the file was made and swapped back is seen
-/// by that, because the file is then not where the path says. This narrows the window a lot but does not close it: an attacker who controls a folder above and toggles the redirect in step with the checks can still pass; closing that needs the place of the open handle (issue #372). Not checked: the folders above it
-/// and who owns the folder (open points of issue #372; this is not the Unix check, and the crate
-/// used here does not read owners). The access rules of the folder are set for the user alone
+/// by that, because the file is then not where the path says. This narrows the window a lot but
+/// does not close it: an attacker who controls a folder above and toggles the redirect in step with
+/// the checks can still pass; closing that needs the place of the open handle (issue #372). The
+/// owner of the folder and of the file must be the user, the administrators or the system (see
+/// `windows_owner`). Not checked: the folders above it (open point of issue #372; this is not the
+/// Unix check). The access rules of the folder are set for the user alone
 /// (see `check_private`). A folder or file that is a reparse point (a junction or a link) is
 /// refused: it could lead to a place that others can read, and the access rules would be set on
 /// that place instead.
@@ -187,6 +192,8 @@ fn check_owner(dir: &Path, path: &Path, own_file: &File) -> std::io::Result<()> 
         return Err(std::io::ErrorKind::PermissionDenied.into());
     }
     still_there(dir)?;
+    crate::windows_owner::check_folder(dir)?;
+    crate::windows_owner::check_handle(own_file)?;
     is_open_file(own_file, path)
 }
 
