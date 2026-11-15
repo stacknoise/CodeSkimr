@@ -112,3 +112,9 @@ pub const CONTAINER_KINDS: &[codeskimr_domain::SymbolKind] = &[
     codeskimr_domain::SymbolKind::Namespace,
     codeskimr_domain::SymbolKind::Module,
 ];
+
+/// Below this many new references the indexes stay in place while rows are added.
+pub const BULK_REFERENCES_MIN: usize = 20_000;
+/// The indexes are built again after the load when the new references are at least this share of
+/// the stored ones, expressed as "one in N" (a load of half the table or more).
+pub const BULK_REFERENCES_SHARE_DIVISOR: usize = 2;

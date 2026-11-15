@@ -119,14 +119,15 @@ fn holders(conn: &Connection, change: &ReferenceReplacement) -> StorageResult<Ho
     Ok(found)
 }
 
-/// Writes the totals of `snapshot` and builds its read models again.
+/// Builds the read models of `snapshot` again and writes its totals.
 fn refresh(conn: &Connection, snapshot: SnapshotId, project: ProjectId) -> StorageResult<()> {
     let id = column_int(snapshot.get())?;
-    set_totals(conn, snapshot, totals(conn, snapshot)?)?;
     for delete in sql::READ_MODELS_DELETE {
         conn.execute(delete, params![id])?;
     }
-    read_models::rebuild(conn, snapshot, &load_layers(conn, project)?)
+    read_models::rebuild(conn, snapshot, &load_layers(conn, project)?)?;
+    // The totals count the references from the usage counts, so the read models come first.
+    set_totals(conn, snapshot, totals(conn, snapshot)?)
 }
 
 /// Calculates the coupling of the newest snapshot again from its stored references, because the
