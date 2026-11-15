@@ -24,8 +24,8 @@ use crate::error::CodedError;
 use crate::ids::IdSequence;
 use crate::ports::{
     AnalyzeRequest, Clock, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts,
-    MetricsCalculator, PendingReference, ProjectRepository, ReferenceResolver, SnapshotData,
-    SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints,
+    MetricsCalculator, PendingReference, ProjectRepository, ReferenceResolver, ScanWarning,
+    SnapshotData, SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints,
 };
 use crate::resolve::ambiguous_occurrences;
 use crate::stage::StageKind;
@@ -540,15 +540,6 @@ pub struct Persisted {
     pub warnings: Vec<ScanWarning>,
 }
 
-/// A warning of a scan: how often something happened, not one message per occurrence.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct ScanWarning {
-    /// The registered code, a warning.
-    pub code: ErrorCode,
-    /// How many times it happened in the scan.
-    pub count: u64,
-}
-
 /// Writes one log line per warning of the scan.
 fn log_warnings(warnings: &[ScanWarning]) {
     for warning in warnings {
@@ -594,6 +585,7 @@ impl Stage for PersistStage {
                 references: count(&input.references) + count(&input.carried.references),
             },
         };
+        let warnings = warnings_of(&input.references, &input.carried.references);
         let data = SnapshotData {
             snapshot,
             files: input.files,
@@ -606,8 +598,8 @@ impl Stage for PersistStage {
             dropped_references: input.carried.dropped,
             naming_rules: input.run.naming_rules,
             parse_micros: input.run.parse_micros,
+            warnings: warnings.clone(),
         };
-        let warnings = warnings_of(&data.references, &input.carried.references);
         let stored = self.store.persist(data)?;
         log_warnings(&warnings);
         ctx.progress(1, 1);

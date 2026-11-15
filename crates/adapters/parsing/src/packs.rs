@@ -13,7 +13,8 @@ use codeskimr_domain::LanguageId;
 
 use crate::consts::{
     ID_MISMATCH, LOAD_PANICKED, MANIFEST_FILE, MIN_LOAD_THREADS, NAMING_FILE_IN_NAMES,
-    NAMING_NAMESPACED, NAMING_REVISION, NAMING_RULE_SEPARATOR, NAMING_RULES_SEPARATOR,
+    NAMING_NAMESPACED, NAMING_PATTERN_SEPARATOR, NAMING_REVISION, NAMING_RULE_SEPARATOR,
+    NAMING_RULES_SEPARATOR, NAMING_TESTS,
 };
 use crate::error::ParsingError;
 use crate::manifest::{PackManifest, Tier};
@@ -72,6 +73,7 @@ pub struct PackSummary {
     tier: Tier,
     extensions: Vec<String>,
     file_in_names: bool,
+    test_patterns: Vec<String>,
     indexer: Option<IndexerSpec>,
 }
 
@@ -92,6 +94,12 @@ impl PackSummary {
     #[must_use]
     pub const fn indexer(&self) -> Option<&IndexerSpec> {
         self.indexer.as_ref()
+    }
+
+    /// The `test_patterns` of the pack: which files are test files.
+    #[must_use]
+    pub fn test_patterns(&self) -> &[String] {
+        &self.test_patterns
     }
 
     /// Whether the path of the file starts every qualified name of the pack (ADR 0036).
@@ -137,6 +145,7 @@ impl Slot {
             tier: manifest.tier,
             extensions: manifest.extensions,
             file_in_names: manifest.file_in_names,
+            test_patterns: manifest.test_patterns,
             indexer,
         };
         let slot = Self {
@@ -233,8 +242,10 @@ impl LanguagePacks {
         self.slots.values().map(|slot| &slot.summary)
     }
 
-    /// The naming rules of all packs as one text, sorted by language: it changes whenever a rule
-    /// that changes the qualified names does (ADR 0036).
+    /// The scan rules of all packs as one text, sorted by language: it changes whenever a rule
+    /// that changes the qualified names does (ADR 0036) or the test patterns of a pack do, because
+    /// the kind of a reference depends on them (issue #429). An incremental scan after other rules
+    /// is a full scan.
     #[must_use]
     pub fn naming_rules(&self) -> String {
         let mut rules: Vec<String> = self
@@ -248,6 +259,8 @@ impl LanguagePacks {
                     } else {
                         NAMING_NAMESPACED
                     },
+                    NAMING_TESTS,
+                    pack.test_patterns().join(NAMING_PATTERN_SEPARATOR).as_str(),
                 ]
                 .concat()
             })

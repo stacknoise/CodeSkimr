@@ -210,6 +210,11 @@ pub const NAMING_FILE_IN_NAMES: &str = "file";
 /// Rule of a pack whose qualified names start with its own namespaces (ADR 0036).
 pub const NAMING_NAMESPACED: &str = "namespace";
 
+/// Between the naming rule of a pack and its test patterns.
+pub const NAMING_TESTS: &str = "+tests:";
+/// Between two test patterns in the text of the naming rules.
+pub const NAMING_PATTERN_SEPARATOR: &str = ",";
+
 /// Revision of the naming rules of the engine itself, part of the text of the naming rules: it
 /// changes when names change for reasons other than a pack key (2: members of an `impl` carry
 /// their type, ADR 0039; 3: methods of Go and C++ carry their owner, ADR 0042).

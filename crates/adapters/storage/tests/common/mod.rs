@@ -136,6 +136,7 @@ pub fn data(snapshot: Snapshot) -> SnapshotData {
         dropped_references: Vec::new(),
         naming_rules: String::new(),
         parse_micros: Vec::new(),
+        warnings: Vec::new(),
     }
 }
 

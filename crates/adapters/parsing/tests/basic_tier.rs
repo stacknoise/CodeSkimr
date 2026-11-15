@@ -117,6 +117,37 @@ mod tests {
         let rules = packs.naming_rules();
         assert!(rules.contains("revision=3"), "{rules}");
         assert!(rules.contains("rust=file"), "{rules}");
+        // The test patterns are part of the rules: other patterns, other kinds of references.
+        assert!(
+            rules.contains("rust=file+tests:**/tests/**/*.rs"),
+            "{rules}"
+        );
+    }
+
+    #[test]
+    fn other_test_patterns_give_other_naming_rules() {
+        let rules = |case: &str, patterns: &str| {
+            let root = broken_pack("basic", case);
+            let manifest_path = root.join("rust/language.toml");
+            let manifest = fs::read_to_string(&manifest_path).expect("read");
+            fs::write(
+                &manifest_path,
+                format!("test_patterns = [{patterns}]\n{manifest}"),
+            )
+            .expect("write");
+            let text = LanguagePacks::load(&root)
+                .expect("packs load")
+                .naming_rules();
+            fs::remove_dir_all(root).ok();
+            text
+        };
+        let one = rules("patterns-one", "\"**/tests/**/*.rs\"");
+        let two = rules("patterns-two", "\"**/tests/**/*.rs\", \"**/*_test.rs\"");
+        assert_ne!(one, two);
+        assert!(
+            two.contains("+tests:**/tests/**/*.rs,**/*_test.rs"),
+            "{two}"
+        );
     }
 
     #[test]

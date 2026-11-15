@@ -60,6 +60,15 @@ pub struct LanguageRow {
     pub tier: Option<&'static str>,
 }
 
+/// A warning of the newest scan of a project: how often the code was found.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct WarningRow {
+    /// The error code, for example `RES-301`.
+    pub code: &'static str,
+    /// How many times it happened in the scan.
+    pub count: u64,
+}
+
 /// One row of the project list.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ProjectRow {
@@ -83,6 +92,8 @@ pub struct ProjectRow {
     pub loc: u32,
     /// Languages, the one with the most lines first.
     pub languages: Vec<LanguageRow>,
+    /// The warnings of the newest scan; empty if it had none.
+    pub warnings: Vec<WarningRow>,
     /// Whether a scan of the project is running right now.
     pub running: bool,
     /// What the last check of the tools found; `None` if the project was never checked.
@@ -141,6 +152,14 @@ fn project_row(
             .languages
             .iter()
             .map(|share| language_row(share, context))
+            .collect(),
+        warnings: overview
+            .warnings
+            .iter()
+            .map(|warning| WarningRow {
+                code: warning.code.id(),
+                count: warning.count,
+            })
             .collect(),
         running,
         tools,

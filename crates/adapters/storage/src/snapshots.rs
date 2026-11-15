@@ -54,6 +54,7 @@ fn write_snapshot(conn: &Connection, data: &SnapshotData, keep: u32) -> StorageR
     )?;
     insert_facts(conn, data)?;
     insert_parse_times(conn, data)?;
+    insert_warnings(conn, data)?;
     if header.mode == ScanMode::Incremental {
         carry_over(conn, header.project, header.id, &data.removed)?;
     }
@@ -160,6 +161,20 @@ fn insert_parse_times(conn: &Connection, data: &SnapshotData) -> StorageResult<(
     let mut insert = conn.prepare_cached(sql::PARSE_TIME_INSERT)?;
     for (language, micros) in &data.parse_micros {
         insert.execute(params![snapshot, language.as_str(), column_int(*micros)?])?;
+    }
+    Ok(())
+}
+
+/// The warnings of the scan, counted over the whole snapshot.
+fn insert_warnings(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
+    let snapshot = column_int(data.snapshot.id.get())?;
+    let mut insert = conn.prepare_cached(sql::WARNING_INSERT)?;
+    for warning in &data.warnings {
+        insert.execute(params![
+            snapshot,
+            warning.code.id(),
+            column_int(warning.count)?
+        ])?;
     }
     Ok(())
 }

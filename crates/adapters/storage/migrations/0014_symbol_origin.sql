@@ -1,4 +1,4 @@
--- Schema version 13: a symbol has an origin (ADR 0055). `syntax` is a symbol that level 1 read from
+-- Schema version 14: a symbol has an origin (ADR 0055). `syntax` is a symbol that level 1 read from
 -- the syntax tree, `index` one that level 2 created from what an index defines and level 1 does not
 -- know. The rows follow their file like every shared row (ADR 0032).
 ALTER TABLE symbol_rows ADD COLUMN origin TEXT NOT NULL DEFAULT 'syntax';

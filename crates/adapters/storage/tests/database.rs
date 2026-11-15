@@ -70,7 +70,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 13));
+    assert_eq!((mode.as_str(), version), ("wal", 14));
 }
 
 #[test]
@@ -143,6 +143,10 @@ fn scan_with_every_table(snapshot: u64, base: u64) -> SnapshotData {
         metric(base + 1, MetricKind::EfferentCoupling, 1.0),
     ];
     scan.parse_micros = vec![(LanguageId::new("csharp").unwrap(), base)];
+    scan.warnings = vec![codeskimr_application::ports::ScanWarning {
+        code: codeskimr_codes::ErrorCode::AmbiguousReference,
+        count: base,
+    }];
     scan.pending = vec![PendingReference {
         from: SymbolId::new(base + 2),
         file: FileId::new(base),
@@ -186,6 +190,7 @@ fn pruned_snapshots_leave_no_rows_behind() {
         ("type_summary", 1),
         ("fingerprints", 1),
         ("parse_times", 1),
+        ("snapshot_warnings", 1),
         ("pending_references", 1),
     ] {
         let rows: i64 = conn
@@ -587,7 +592,8 @@ fn a_version_eleven_database_keeps_its_layers_without_a_limit() {
     drop(SqliteStore::open(&db.0, keep(3)).unwrap());
     let conn = Connection::open(&db.0).unwrap();
     conn.execute_batch(
-        "DROP TABLE layer_uses;
+        "DROP TABLE snapshot_warnings;
+         DROP TABLE layer_uses;
          ALTER TABLE layers DROP COLUMN restricted;
          DROP VIEW symbols;
          ALTER TABLE symbol_rows DROP COLUMN origin;
