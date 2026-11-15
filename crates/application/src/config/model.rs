@@ -146,6 +146,8 @@ pub struct Budgets {
     pub full_scan_100k_loc_ms: u32,
     /// Incremental re-scan after saving one file, in milliseconds.
     pub incremental_rescan_ms: u32,
+    /// Loading the language packs of the first scan (Rust and C#), in milliseconds.
+    pub pack_load_ms: u32,
     /// Idle CPU load in percent.
     pub idle_cpu_percent: u32,
     /// Memory for 1M lines of code, in megabytes.

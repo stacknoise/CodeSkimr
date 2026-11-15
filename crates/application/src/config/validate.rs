@@ -151,6 +151,7 @@ fn check_budgets(budgets: &Budgets) -> Result<(), ConfigError> {
         (keys::GRAPH_LAYOUT_MS, budgets.graph_layout_ms),
         (keys::FULL_SCAN_MS, budgets.full_scan_100k_loc_ms),
         (keys::INCREMENTAL_RESCAN_MS, budgets.incremental_rescan_ms),
+        (keys::PACK_LOAD_MS, budgets.pack_load_ms),
         (keys::MEMORY_MB, budgets.memory_1m_loc_mb),
         (keys::BINARY_SIZE_MB, budgets.binary_size_mb),
     ];

@@ -28,6 +28,8 @@ usages_query_ms = 20
 graph_layout_ms = 50
 full_scan_100k_loc_ms = 1000
 incremental_rescan_ms = 300
+# Loading the language packs of a first scan (Rust and C#, the longest), ADR 0063.
+pack_load_ms = 1500
 idle_cpu_percent = 0
 memory_1m_loc_mb = 500
 binary_size_mb = 60

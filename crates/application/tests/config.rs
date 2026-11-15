@@ -22,6 +22,7 @@ fn defaults_match_the_blueprint() {
     assert!((config.metrics.instability_medium_max - 0.8).abs() < f64::EPSILON);
     assert_eq!(config.budgets.cold_start_ms, 300);
     assert_eq!(config.budgets.full_scan_100k_loc_ms, 1000);
+    assert_eq!(config.budgets.pack_load_ms, 1500);
     for folder in ["bin", "obj", ".git", "node_modules", "target", "dist"] {
         assert!(config.scan.excluded_folders.iter().any(|f| f == folder));
     }

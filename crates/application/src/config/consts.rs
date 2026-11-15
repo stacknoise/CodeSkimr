@@ -53,6 +53,8 @@ pub mod keys {
     pub const FULL_SCAN_MS: &str = "budgets.full_scan_100k_loc_ms";
     /// `budgets.incremental_rescan_ms`
     pub const INCREMENTAL_RESCAN_MS: &str = "budgets.incremental_rescan_ms";
+    /// `budgets.pack_load_ms`
+    pub const PACK_LOAD_MS: &str = "budgets.pack_load_ms";
     /// `budgets.idle_cpu_percent`
     pub const IDLE_CPU_PERCENT: &str = "budgets.idle_cpu_percent";
     /// `budgets.memory_1m_loc_mb`
