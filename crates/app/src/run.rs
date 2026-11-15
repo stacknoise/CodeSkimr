@@ -203,6 +203,37 @@ fn run_credential(
     Ok(Outcome::Done)
 }
 
+/// Shows what the user is asked to confirm and reads the answer from the terminal. Without a
+/// terminal nothing is confirmed.
+fn ask_on_terminal(
+    (messages, language): (&Messages, &str),
+    target: &level2_consent::Target,
+) -> Result<String, CodedError> {
+    if !(io::stdin().is_terminal() && io::stdout().is_terminal()) {
+        return Err(CodedError::new(ErrorCode::IndexerNotPermitted));
+    }
+    let say = |text: Result<String, _>| text.map_err(CodedError::caused_by);
+    let (target_text, prompt) = (
+        confirm_target(
+            messages,
+            language,
+            &target.name,
+            &target.place,
+            target.branch.as_deref(),
+        ),
+        confirm_prompt(messages, language, &target.name),
+    );
+    write_out(&say(confirm_warning(messages, language))?);
+    write_out(&say(target_text)?);
+    write_out(&say(prompt)?);
+    let mut answer = String::new();
+    io::stdin()
+        .lock()
+        .read_line(&mut answer)
+        .map_err(|_| CodedError::new(ErrorCode::IndexerNotPermitted))?;
+    Ok(answer)
+}
+
 /// `codeskimr level2`: asks the user on the terminal; without one nothing is confirmed.
 fn run_level2(
     action: &Level2Action,
@@ -211,31 +242,7 @@ fn run_level2(
     messages: &Messages,
     language: &str,
 ) -> Result<Outcome, Failure> {
-    let ask = |target: &level2_consent::Target| -> Result<String, CodedError> {
-        if !(io::stdin().is_terminal() && io::stdout().is_terminal()) {
-            return Err(CodedError::new(ErrorCode::IndexerNotPermitted));
-        }
-        let say = |text: Result<String, _>| text.map_err(CodedError::caused_by);
-        let (target_text, prompt) = (
-            confirm_target(
-                messages,
-                language,
-                &target.name,
-                &target.place,
-                target.branch.as_deref(),
-            ),
-            confirm_prompt(messages, language, &target.name),
-        );
-        write_out(&say(confirm_warning(messages, language))?);
-        write_out(&say(target_text)?);
-        write_out(&say(prompt)?);
-        let mut answer = String::new();
-        io::stdin()
-            .lock()
-            .read_line(&mut answer)
-            .map_err(|_| CodedError::new(ErrorCode::IndexerNotPermitted))?;
-        Ok(answer)
-    };
+    let ask = |target: &level2_consent::Target| ask_on_terminal((messages, language), target);
     let done = level2_consent::run(action, &invocation.global, locations, &ask)?;
     let line = match &done {
         level2_consent::Done::Confirmed(name) => level2_confirmed(messages, language, name),

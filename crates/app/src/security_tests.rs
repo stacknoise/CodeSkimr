@@ -11,6 +11,7 @@ use std::path::Path;
 use std::sync::Arc;
 use std::sync::mpsc::channel;
 
+use codeskimr_application::config::Config;
 use codeskimr_application::ports::{Credential, CredentialStore};
 use codeskimr_cli::GlobalOptions;
 use codeskimr_domain::CredentialId;
@@ -18,11 +19,13 @@ use secrecy::SecretString;
 use serde_json::{Value, json};
 use tokio::sync::oneshot;
 
+use crate::locations::Locations;
 use crate::mcp::http_service;
 use crate::mcp_http_tests::{locations, rpc, send};
 use crate::memory_keystore::secrets as memory_secrets;
 use crate::serve::{Parts, serve_for_test, test_ui};
 use crate::ui_commands::command_api;
+use crate::wiring::Secrets;
 use crate::{config_files, installation_token};
 
 pub(crate) const CREDENTIAL_CANARY: &str = "ghp_CANARY0c4e7a91d2b84f6e9a30cc11";
@@ -66,6 +69,24 @@ pub(crate) fn folders() -> Folders {
     Folders { data, project }
 }
 
+/// The parts of the real server: UI, REST and MCP over `secrets`, with one event bus.
+fn server_parts(locations: &Locations, config: &Config, secrets: &Arc<Secrets>) -> Parts {
+    let events = codeskimr_application::events::EventBus::new();
+    Parts {
+        ui: test_ui(),
+        api: command_api(
+            &GlobalOptions::default(),
+            locations,
+            events.clone(),
+            Arc::clone(secrets),
+        )
+        .unwrap(),
+        mcp: Some(http_service(config, locations, (events.clone(), secrets)).unwrap()),
+        events,
+        token_lock: None,
+    }
+}
+
 /// Starts the real server (REST and MCP, both with the token) over an in-memory keystore that
 /// holds the canary credential, runs `traffic` against it and returns what was answered.
 pub(crate) fn run(
@@ -83,20 +104,7 @@ pub(crate) fn run(
     secrets.store(&id, &canary).unwrap();
     installation_token::load_or_create(&*secrets).unwrap();
     let token = installation_token::stored_token(&*secrets);
-    let events = codeskimr_application::events::EventBus::new();
-    let parts = Parts {
-        ui: test_ui(),
-        api: command_api(
-            &GlobalOptions::default(),
-            &locations,
-            events.clone(),
-            Arc::clone(&secrets),
-        )
-        .unwrap(),
-        mcp: Some(http_service(&config, &locations, (events.clone(), &secrets)).unwrap()),
-        events,
-        token_lock: None,
-    };
+    let parts = server_parts(&locations, &config, &secrets);
     let (stop, stopped) = oneshot::channel::<()>();
     let (found, url) = channel::<String>();
     let for_traffic = token.clone();

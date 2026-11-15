@@ -33,7 +33,7 @@ use codeskimr_application::config::{Config, Graph, MetricThresholds};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::ports::{IndexRunner, ProjectToolCheck};
-use codeskimr_application::registry::Registry;
+use codeskimr_application::registry::{Command, Registry};
 use codeskimr_cli::GlobalOptions;
 use codeskimr_server::CommandApi;
 use codeskimr_source::FolderText;
@@ -145,38 +145,38 @@ pub fn command_api_probing(
     });
     let mut registry = Registry::new();
     register_projects(&mut registry, &catalog, &context)?;
-    registry
-        .register(CheckTools { tools })
-        .map_err(CodedError::caused_by)?;
+    add(&mut registry, CheckTools { tools })?;
     register_credentials(&mut registry, &catalog, &context)?;
     register_search(&mut registry, &catalog)?;
     register_usages(&mut registry, &catalog, config.mcp.max_depth)?;
     register_graph(&mut registry, &catalog, config.graph.clone())?;
-    registry
-        .register(StatusInfo {
-            budgets: BudgetTargets::from(&config.budgets),
-            max_workers: config.scan.max_workers,
-        })
-        .map_err(CodedError::caused_by)?;
+    add(&mut registry, status_info(&config))?;
     register_explorer(&mut registry, &catalog, config.metrics.clone())?;
     register_preferences(&mut registry, locations)?;
-    registry
-        .register(export_command(&catalog, &config, locations))
-        .map_err(CodedError::caused_by)?;
+    add(&mut registry, export_command(&catalog, &config, locations))?;
     let mut api = CommandApi::new(Arc::new(registry));
     expose_all(&mut api)?;
     Ok(api)
 }
 
+/// The command behind the status bar, with the budgets and the worker limit of `config`.
+fn status_info(config: &Config) -> StatusInfo {
+    StatusInfo {
+        budgets: BudgetTargets::from(&config.budgets),
+        max_workers: config.scan.max_workers,
+    }
+}
+
 /// The two commands that keep theme and language in the data folder.
 fn register_preferences(registry: &mut Registry, locations: &Locations) -> Result<(), CodedError> {
     let file = PreferencesFile::in_dir(&locations.data_dir);
-    registry
-        .register(GetPreferences { file: file.clone() })
-        .map_err(CodedError::caused_by)?;
-    registry
-        .register(SetPreferences { file })
-        .map_err(CodedError::caused_by)
+    add(registry, GetPreferences { file: file.clone() })?;
+    add(registry, SetPreferences { file })
+}
+
+/// Registers one command, with the registry's refusal as a coded failure.
+fn add<C: Command>(registry: &mut Registry, command: C) -> Result<(), CodedError> {
+    registry.register(command).map_err(CodedError::caused_by)
 }
 
 /// Makes every registered command of the UI reachable over REST.
@@ -208,29 +208,33 @@ fn register_projects(
     catalog: &Arc<SqliteStore>,
     context: &Arc<Context>,
 ) -> Result<(), CodedError> {
-    registry
-        .register(ListProjects {
+    add(
+        registry,
+        ListProjects {
             catalog: catalog.clone(),
             tools: Arc::clone(&context.tools),
             context: Arc::clone(context),
-        })
-        .map_err(CodedError::caused_by)?;
-    registry
-        .register(AddProject {
+        },
+    )?;
+    add(
+        registry,
+        AddProject {
             context: Arc::clone(context),
-        })
-        .map_err(CodedError::caused_by)?;
-    registry
-        .register(RescanProject {
+        },
+    )?;
+    add(
+        registry,
+        RescanProject {
             catalog: catalog.clone(),
             context: Arc::clone(context),
-        })
-        .map_err(CodedError::caused_by)?;
-    registry
-        .register(CancelScan {
+        },
+    )?;
+    add(
+        registry,
+        CancelScan {
             context: Arc::clone(context),
-        })
-        .map_err(CodedError::caused_by)
+        },
+    )
 }
 
 fn register_credentials(
@@ -238,22 +242,25 @@ fn register_credentials(
     catalog: &Arc<SqliteStore>,
     context: &Arc<Context>,
 ) -> Result<(), CodedError> {
-    registry
-        .register(ListCredentials {
+    add(
+        registry,
+        ListCredentials {
             catalog: catalog.clone(),
             secrets: Arc::clone(&context.secrets),
-        })
-        .map_err(CodedError::caused_by)?;
-    registry
-        .register(SetCredential {
+        },
+    )?;
+    add(
+        registry,
+        SetCredential {
             secrets: Arc::clone(&context.secrets),
-        })
-        .map_err(CodedError::caused_by)?;
-    registry
-        .register(DeleteCredential {
+        },
+    )?;
+    add(
+        registry,
+        DeleteCredential {
             secrets: Arc::clone(&context.secrets),
-        })
-        .map_err(CodedError::caused_by)
+        },
+    )
 }
 
 fn register_search(registry: &mut Registry, store: &Arc<SqliteStore>) -> Result<(), CodedError> {
@@ -262,9 +269,7 @@ fn register_search(registry: &mut Registry, store: &Arc<SqliteStore>) -> Result<
         index: store.clone(),
         catalog: store.clone(),
     });
-    registry
-        .register(SearchQuery { ports })
-        .map_err(CodedError::caused_by)
+    add(registry, SearchQuery { ports })
 }
 
 fn register_usages(
@@ -273,14 +278,13 @@ fn register_usages(
     max_depth: u32,
 ) -> Result<(), CodedError> {
     let ports = usages_ports(store, max_depth);
-    registry
-        .register(UsagesQuery {
+    add(
+        registry,
+        UsagesQuery {
             ports: Arc::clone(&ports),
-        })
-        .map_err(CodedError::caused_by)?;
-    registry
-        .register(UsagesCode { ports })
-        .map_err(CodedError::caused_by)
+        },
+    )?;
+    add(registry, UsagesCode { ports })
 }
 
 fn register_graph(
@@ -288,11 +292,12 @@ fn register_graph(
     store: &Arc<SqliteStore>,
     look: Graph,
 ) -> Result<(), CodedError> {
-    registry
-        .register(GraphLayers {
+    add(
+        registry,
+        GraphLayers {
             ports: graph_ports(store, look),
-        })
-        .map_err(CodedError::caused_by)
+        },
+    )
 }
 
 fn register_explorer(
@@ -301,19 +306,19 @@ fn register_explorer(
     thresholds: MetricThresholds,
 ) -> Result<(), CodedError> {
     let ports = explorer_ports(store, thresholds);
-    registry
-        .register(ExplorerOutline {
+    add(
+        registry,
+        ExplorerOutline {
             ports: Arc::clone(&ports),
-        })
-        .map_err(CodedError::caused_by)?;
-    registry
-        .register(ExplorerSource {
+        },
+    )?;
+    add(
+        registry,
+        ExplorerSource {
             ports: Arc::clone(&ports),
-        })
-        .map_err(CodedError::caused_by)?;
-    registry
-        .register(ExplorerSymbol { ports })
-        .map_err(CodedError::caused_by)
+        },
+    )?;
+    add(registry, ExplorerSymbol { ports })
 }
 
 fn usages_ports(store: &Arc<SqliteStore>, max_depth: u32) -> Arc<UsagesPorts> {

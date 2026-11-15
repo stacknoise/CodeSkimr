@@ -271,6 +271,15 @@ pub struct UsagesQuery {
 }
 
 impl UsagesPorts {
+    /// The depth a request walks: the maximum if none is asked for, never more than the maximum.
+    fn clamp_depth(&self, requested: u32) -> u32 {
+        if requested == 0 {
+            self.max_depth
+        } else {
+            requested.min(self.max_depth)
+        }
+    }
+
     /// Both walks the direction asks for, and the direct usages for the counts.
     pub(super) fn walks(
         &self,
@@ -326,11 +335,7 @@ impl Command for UsagesQuery {
             .index
             .symbol(snapshot, &key)?
             .ok_or_else(|| CodedError::new(ErrorCode::SymbolNotFound))?;
-        let depth = if input.depth == 0 {
-            ports.max_depth
-        } else {
-            input.depth.min(ports.max_depth)
-        };
+        let depth = ports.clamp_depth(input.depth);
         let (incoming, outgoing, direct) = ports.walks(&project, snapshot, &input, depth)?;
         let label = SymbolLabel {
             id: detail.symbol.id,

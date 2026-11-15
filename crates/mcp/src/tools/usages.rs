@@ -195,6 +195,14 @@ struct ImpactAnswer {
     notice: Option<CodeReport>,
 }
 
+/// The usages with the verified ones first, nearest step first, and how many are verified.
+fn ranked(entries: &[UsageEntry]) -> (Vec<Usage>, usize) {
+    let mut usages: Vec<Usage> = entries.iter().map(usage).collect();
+    usages.sort_by_key(|found| (!found.verified, found.depth));
+    let verified = usages.iter().filter(|found| found.verified).count();
+    (usages, verified)
+}
+
 impl Tools {
     /// The references that use a symbol or that it uses, nearest step first.
     ///
@@ -226,9 +234,7 @@ impl Tools {
             page.total,
             depth.clamped.then_some(depth.value),
         );
-        let mut usages: Vec<Usage> = page.entries.iter().map(usage).collect();
-        usages.sort_by_key(|found| (!found.verified, found.depth));
-        let verified = usages.iter().filter(|found| found.verified).count();
+        let (usages, verified) = ranked(&page.entries);
         to_json(&UsagesAnswer {
             snapshot: scope.info,
             symbol: place_of(&found.symbol),
