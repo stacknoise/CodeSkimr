@@ -2,14 +2,14 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 25,
+      "loc": 30,
       "operands": null,
       "operators": null,
       "symbol": "sample"
     },
     {
       "decisions": null,
-      "loc": 25,
+      "loc": 26,
       "operands": null,
       "operators": null,
       "symbol": "sample::shop"
@@ -164,9 +164,43 @@
         0
       ],
       "symbol": "sample::shop::twice"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample::shop::Twin"
+    },
+    {
+      "decisions": null,
+      "loc": 3,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample::other"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample::other::Twin"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample::go"
     }
   ],
-  "loc": 25,
+  "loc": 30,
   "references": [
     {
       "at": "27:19",
@@ -183,7 +217,7 @@
       "name": "sample",
       "parent": null,
       "signature": null,
-      "span": "0:0-34:0",
+      "span": "0:0-46:0",
       "static": false,
       "visibility": null
     },
@@ -193,7 +227,7 @@
       "name": "sample::shop",
       "parent": "sample",
       "signature": null,
-      "span": "0:0-33:1",
+      "span": "0:0-37:1",
       "static": false,
       "visibility": null
     },
@@ -324,6 +358,46 @@
       "parent": "sample::shop",
       "signature": null,
       "span": "31:0-31:30",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "struct",
+      "name": "sample::shop::Twin",
+      "parent": "sample::shop",
+      "signature": null,
+      "span": "35:0-35:26",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "sample::other",
+      "parent": "sample",
+      "signature": null,
+      "span": "39:0-43:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "struct",
+      "name": "sample::other::Twin",
+      "parent": "sample::other",
+      "signature": null,
+      "span": "41:0-41:26",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample::go",
+      "parent": "sample",
+      "signature": null,
+      "span": "45:0-45:18",
       "static": false,
       "visibility": null
     }

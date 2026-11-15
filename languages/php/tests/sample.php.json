@@ -2,14 +2,14 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 23,
+      "loc": 27,
       "operands": null,
       "operators": null,
       "symbol": "sample"
     },
     {
       "decisions": null,
-      "loc": 22,
+      "loc": 26,
       "operands": null,
       "operators": null,
       "symbol": "sample\\Shop"
@@ -100,9 +100,29 @@
         0
       ],
       "symbol": "sample\\Shop\\helper"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample\\Shop\\Shop\\Second"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample\\Shop\\Shop\\Second\\second"
     }
   ],
-  "loc": 23,
+  "loc": 27,
   "references": [
     {
       "at": "27:4",
@@ -126,7 +146,7 @@
       "name": "sample",
       "parent": null,
       "signature": null,
-      "span": "0:0-30:0",
+      "span": "0:0-37:0",
       "static": false,
       "visibility": null
     },
@@ -136,7 +156,7 @@
       "name": "sample\\Shop",
       "parent": "sample",
       "signature": null,
-      "span": "1:0-30:0",
+      "span": "1:0-37:0",
       "static": false,
       "visibility": null
     },
@@ -227,6 +247,26 @@
       "parent": "sample\\Shop",
       "signature": null,
       "span": "25:0-29:1",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "sample\\Shop\\Shop\\Second",
+      "parent": "sample\\Shop",
+      "signature": null,
+      "span": "31:0-37:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "sample\\Shop\\Shop\\Second\\second",
+      "parent": "sample\\Shop\\Shop\\Second",
+      "signature": null,
+      "span": "34:0-36:1",
       "static": false,
       "visibility": null
     }
