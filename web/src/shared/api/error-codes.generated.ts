@@ -4,10 +4,10 @@
 export type ErrorCode =
   | "APP-201"
   | "APP-202"
-  | "APP-203"
   | "APP-301"
   | "APP-901"
   | "APP-601"
+  | "APP-602"
   | "CFG-101"
   | "CFG-102"
   | "CFG-103"
@@ -105,10 +105,10 @@ export interface ErrorCodeInfo {
 export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "APP-201": { id: "APP-201", name: "data_dir_unavailable", group: "APP", class: "not_found", severity: "error", retryable: false, description: "The user data directory cannot be created or opened.", since: "0.1.0", deprecated: false, messageKey: "error-APP-201" },
   "APP-202": { id: "APP-202", name: "launch_file_unavailable", group: "APP", class: "not_found", severity: "error", retryable: true, description: "The private file for starting the browser could not be created.", since: "0.1.0", deprecated: false, messageKey: "error-APP-202" },
-  "APP-203": { id: "APP-203", name: "language_packs_unavailable", group: "APP", class: "not_found", severity: "error", retryable: true, description: "The language packs built into the program could not be written to the data directory.", since: "0.1.0", deprecated: false, messageKey: "error-APP-203" },
   "APP-301": { id: "APP-301", name: "instance_already_running", group: "APP", class: "conflict", severity: "error", retryable: false, description: "Another CodeSkimr instance holds the workspace; connecting to it failed.", since: "0.1.0", deprecated: false, messageKey: "error-APP-301" },
   "APP-901": { id: "APP-901", name: "unexpected_internal_error", group: "APP", class: "internal", severity: "error", retryable: false, description: "An unexpected internal error occurred (bug).", since: "0.1.0", deprecated: false, messageKey: "error-APP-901" },
   "APP-601": { id: "APP-601", name: "browser_start_failed", group: "APP", class: "external", severity: "error", retryable: true, description: "The system did not start a browser for the launch file.", since: "0.1.0", deprecated: false, messageKey: "error-APP-601" },
+  "APP-602": { id: "APP-602", name: "language_packs_unavailable", group: "APP", class: "external", severity: "error", retryable: true, description: "The language packs built into the program could not be written to the data directory.", since: "0.1.0", deprecated: false, messageKey: "error-APP-602" },
   "CFG-101": { id: "CFG-101", name: "config_invalid_value", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration value is outside its allowed range or has the wrong type.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-101" },
   "CFG-102": { id: "CFG-102", name: "config_parse_failed", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration file is not valid TOML.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-102" },
   "CFG-103": { id: "CFG-103", name: "config_unknown_key", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration file or flag sets a key that does not exist.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-103" },

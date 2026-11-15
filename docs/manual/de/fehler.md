@@ -31,9 +31,9 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 |---|---|---|
 | `APP-201` | der Datenordner kann nicht angelegt oder geöffnet werden | Pfad und Rechte prüfen (`--data-dir`) |
 | `APP-202` | die private Datei zum Starten des Browsers konnte nicht angelegt werden; wird auch abgelehnt, wenn ihr Ordner ein Link oder eine Junction ist (Windows) | Rechte des Datenordners prüfen; `codeskimr serve` starten und die Adresse von Hand öffnen |
-| `APP-203` (offen) | die im Programm enthaltenen Sprachpakete konnten nicht in den Datenordner geschrieben werden. **Offen:** Die Verpackung der eingebetteten Pakete wird noch fertiggestellt (Issue #351), Ursache und Text können sich vor 1.0 noch ändern | Platz schaffen und Rechte des Datenordners prüfen; ein Ordner `languages/` neben dem Programm wird stattdessen genutzt ([Installation](installation.md#bauen)) |
 | `APP-301` | eine andere CodeSkimr-Instanz hält den Arbeitsbereich, die Verbindung zu ihr ist fehlgeschlagen | die andere Instanz schließen oder `--data-dir` nutzen |
 | `APP-601` | das System hat keinen Browser gestartet | die von `codeskimr serve` ausgegebene Adresse von Hand öffnen |
+| `APP-602` | die im Programm enthaltenen Sprachpakete konnten nicht in den Datenordner geschrieben werden | Platz schaffen und Rechte des Datenordners prüfen; ein Ordner `languages/` neben dem Programm (mit mindestens einem `<Sprache>/language.toml`) wird stattdessen genutzt ([Installation](installation.md#bauen)) |
 | `PRJ-101` | die Quelle ist weder ein vorhandener Ordner noch eine gültige Git-Adresse, oder die Adresse enthält Geheimnisse oder Leerzeichen oder beginnt mit einem Bindestrich, oder der Branchname ist ungültig, oder der Ordner ist relativ | absoluten Pfad angeben; Geheimnisse aus der Adresse nehmen ([Quellen und Zugangsdaten](quellen-und-zugangsdaten.md)) |
 | `PRJ-201` | kein solches Projekt | zuerst eintragen und scannen |
 | `PRJ-302` | ein Scan dieses Projekts läuft schon | abwarten |

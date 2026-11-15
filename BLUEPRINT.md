@@ -516,7 +516,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 - Every error that can leave a crate boundary has an **error code**. This covers Rust errors, frontend exceptions, CLI exit messages, REST responses and MCP errors.
 - All codes live in **one central file**: `errors/error-codes.toml`. It is the single source of truth.
 - Codes are grouped by **prefix**. Inside a group, the hundreds digit classifies the error.
-- Codes are **never reused or renumbered**. A retired code is marked `deprecated = true` and stays in the file.
+- Codes are **never reused or renumbered**. A retired code is marked `deprecated = true` and stays in the file. The one exception (ADR 0060): a code that is in no published release may be renumbered once and is then removed, because nobody can have seen it.
 
 ### 11.2 Code format
 
@@ -1100,10 +1100,10 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 |---|---|---|
 | APP-201 | `data_dir_unavailable` | The user data directory cannot be created or opened. |
 | APP-202 | `launch_file_unavailable` | The private file for starting the browser could not be created. |
-| APP-203 | `language_packs_unavailable` | The language packs built into the program could not be written to the data directory. |
 | APP-301 | `instance_already_running` | Another CodeSkimr instance holds the workspace; connecting to it failed. |
 | APP-901 | `unexpected_internal_error` | An unexpected internal error occurred (bug). |
 | APP-601 | `browser_start_failed` | The system did not start a browser for the launch file. |
+| APP-602 | `language_packs_unavailable` | The language packs built into the program could not be written to the data directory. |
 | CFG-101 | `config_invalid_value` | A configuration value is outside its allowed range or has the wrong type. |
 | CFG-102 | `config_parse_failed` | A configuration file is not valid TOML. |
 | CFG-103 | `config_unknown_key` | A configuration file or flag sets a key that does not exist. |
