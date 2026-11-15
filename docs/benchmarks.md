@@ -27,7 +27,7 @@ tools/bench/ci.sh HEAD
 cargo bench -p codeskimr_bench
 ```
 
-A failed comparison is measured once more before the job fails, because one run on a shared runner can be an outlier. The second run is a full run of both sides; `bench-check` then takes the best (lowest) median of each benchmark and side over both runs (`--criterion-dir` may be given more than once). Noise only ever makes a run slower, so the best median is the closest to the true value; the tolerance and the budgets stay as they are, and a real regression is slower in both runs and still fails. Results of earlier runs (for example from the build cache) are deleted first, and an error while reading results always fails the check; only `--no-base` (the base commit has no harness yet) skips the comparison.
+A failed comparison is measured once more before the job fails, because one run on a shared runner can be an outlier. The second run is a full run of both sides with the order reversed (change first, then base), so an effect of the order does not stay in both runs; `bench-check` then takes the best (lowest) median of each benchmark and side over both runs (`--criterion-dir` may be given more than once). Noise only ever makes a run slower, so the best median is the closest to the true value; the tolerance and the budgets stay as they are, and a real regression is slower in both runs and still fails. Results of earlier runs (for example from the build cache) are deleted first, and an error while reading results always fails the check; only `--no-base` (the base commit has no harness yet) skips the comparison.
 
 `ci.sh` needs Linux or macOS with bash. On Windows use Git Bash or WSL, or run `cargo bench -p codeskimr_bench` directly.
 

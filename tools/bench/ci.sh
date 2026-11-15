@@ -8,8 +8,10 @@
 # - base and change are measured one benchmark target after the other (base, change, base, change,
 #   ...), not the whole base and then the whole change, so a slow phase of the machine hits both
 #   sides of a comparison and not only one;
-# - a failed comparison is measured once more, and the check then takes the best median of each
-#   benchmark and side over both runs. A real slowdown shows in every run; an outlier does not.
+# - a failed comparison is measured once more with the order of the two sides reversed (base, change
+#   in the first run; change, base in the second), so a systematic effect of the order cancels out,
+#   and the check then takes the best median of each benchmark and side over both runs. A real
+#   slowdown shows in every run; an outlier does not.
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
@@ -40,39 +42,61 @@ bench_target() {
   fi
 }
 
-# Measures every benchmark target: the base first (if there is one), then the change.
-# Argument: the base tree, or an empty string. Returns non-zero if any run fails.
+# Measures every benchmark target: the base first (if there is one), then the change, or the other
+# way round. Arguments: the base tree (or an empty string) and the first side ("base" or "head").
+# Returns non-zero if any run fails.
 measure_targets() {
-  local base_tree="$1" entry package manifest target
+  local base_tree="$1" first="$2" entry package manifest target base_targets
   for entry in "${PACKAGES[@]}"; do
     package="${entry%%:*}"
     manifest="${entry#*:}"
     for target in $(bench_targets < "$ROOT/$manifest"); do
       # A base without this target (a new benchmark) is not measured and reports it as new.
-      if [ -n "$base_tree" ] && [ -f "$base_tree/$manifest" ] &&
-        bench_targets < "$base_tree/$manifest" | grep -qx "$target"; then
+      base_targets=""
+      if [ -n "$base_tree" ] && [ -f "$base_tree/$manifest" ]; then
+        base_targets="$(bench_targets < "$base_tree/$manifest")"
+      fi
+      if [ "$first" = "head" ]; then
+        bench_target "$ROOT" "$package" "$target" "$HEAD_BASELINE" || return 1
+      fi
+      if printf '%s\n' "$base_targets" | grep -qx "$target"; then
         bench_target "$base_tree" "$package" "$target" "$BASE_BASELINE" || return 1
       fi
-      bench_target "$ROOT" "$package" "$target" "$HEAD_BASELINE" || return 1
+      if [ "$first" != "head" ]; then
+        bench_target "$ROOT" "$package" "$target" "$HEAD_BASELINE" || return 1
+      fi
     done
   done
 }
 
+# The temporary worktree of the base commit, removed on every way out (also Ctrl-C and kill).
+BASE_TREE=""
+remove_base_tree() {
+  if [ -n "$BASE_TREE" ]; then
+    git worktree remove --force "$BASE_TREE" 2>/dev/null || true
+    rm -rf "$BASE_TREE"
+    BASE_TREE=""
+  fi
+}
+trap remove_base_tree EXIT
+
 # One complete measurement into the criterion directory $CRITERION_HOME.
+# Argument: the side that is measured first ("base" or "head").
 measure() {
   # Old results (for example from the build cache) must never be compared.
   rm -rf "$CRITERION_HOME"
   local base_tree=""
   if [ -n "$BASE_REF" ] && git cat-file -e "$BASE_REF:tools/bench/Cargo.toml" 2>/dev/null; then
-    base_tree="$(mktemp -d)"
+    BASE_TREE="$(mktemp -d)"
+    base_tree="$BASE_TREE"
     git worktree add --detach "$base_tree" "$BASE_REF" || return 1
   else
     echo "NOTE: no base measurement available for '${BASE_REF}'."
   fi
   # set -e does not work inside a function that runs in an `if` condition, so every step checks itself.
   local status=0
-  measure_targets "$base_tree" || status=1
-  [ -z "$base_tree" ] || git worktree remove --force "$base_tree"
+  measure_targets "$base_tree" "$1" || status=1
+  remove_base_tree
   [ "$status" -eq 0 ]
 }
 
@@ -82,15 +106,16 @@ check() {
   for dir in "$@"; do flags+=(--criterion-dir "$dir"); done
   local no_base=()
   [ -n "$BASE_REF" ] && git cat-file -e "$BASE_REF:tools/bench/Cargo.toml" 2>/dev/null || no_base=(--no-base)
+  # `${no_base[@]+...}` keeps an empty array working under `set -u` in bash 3.2 (macOS).
   cargo run --locked -p codeskimr_bench --bin bench-check -- \
-    "${flags[@]}" --base "$BASE_BASELINE" --new "$HEAD_BASELINE" --root "$ROOT" "${no_base[@]}"
+    "${flags[@]}" --base "$BASE_BASELINE" --new "$HEAD_BASELINE" --root "$ROOT" ${no_base[@]+"${no_base[@]}"}
 }
 
 export CRITERION_HOME="$RUN_HOME"
-measure || exit 1
+measure base || exit 1
 if ! check "$RUN_HOME"; then
-  echo "Comparison failed, measuring once more and taking the best of both runs."
+  echo "Comparison failed, measuring once more with the order reversed and taking the best of both runs."
   rm -rf "$RETRY_HOME"
-  CRITERION_HOME="$RETRY_HOME" measure || exit 1
+  CRITERION_HOME="$RETRY_HOME" measure head || exit 1
   check "$RUN_HOME" "$RETRY_HOME"
 fi
