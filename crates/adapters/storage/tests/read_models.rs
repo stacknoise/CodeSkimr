@@ -230,3 +230,30 @@ fn a_layer_without_a_limit_never_violates() {
     let edges = layered().layer_edges(SNAPSHOT).unwrap();
     assert!(edges.iter().all(|edge| !edge.violates_layering));
 }
+
+#[test]
+fn namespace_edges_leave_out_probable_and_test_references() {
+    let symbols = vec![
+        symbol(41, 11, SymbolKind::Namespace, "App.Api", None),
+        symbol(42, 11, SymbolKind::Namespace, "App.Core", None),
+        symbol(43, 11, SymbolKind::Namespace, "App.Data", None),
+        symbol(44, 11, SymbolKind::Class, "App.Api.Controller", None),
+        symbol(45, 11, SymbolKind::Class, "App.Core.Service", None),
+        symbol(46, 11, SymbolKind::Class, "App.Data.Repo", None),
+    ];
+    let references = vec![
+        reference(51, 11, 44, 45),
+        probable(reference(52, 11, 44, 46)),
+        from_a_test(reference(53, 11, 45, 44)),
+    ];
+    let graph = scanned(&[], symbols, references, vec![])
+        .namespace_graph(SNAPSHOT)
+        .unwrap();
+    let named = |index: usize| graph.namespaces[index].name.as_str().to_owned();
+    let edges: Vec<_> = graph
+        .edges
+        .iter()
+        .map(|edge| (named(edge.from), named(edge.to), edge.count))
+        .collect();
+    assert_eq!(edges, [("App.Api".to_owned(), "App.Core".to_owned(), 1)]);
+}
