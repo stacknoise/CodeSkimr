@@ -42,6 +42,7 @@ secrecy = { version = "0.10", features = ["serde"] }
 zeroize = "1"
 # Locks secret buffers against swapping (blueprint 12.4); used only in `codeskimr_secrets::memory`.
 # Exclusive file lock that serialises the first start of several programs (issue #269).
+same-file = "1"
 fs4 = { version = "1", default-features = false, features = ["sync"] }
 memsec = { version = "0.7", default-features = false, features = ["alloc"] }
 # Names the length-limit error of a request body, to tell "too large" from "client left".
