@@ -1363,3 +1363,70 @@ fn the_worker_limit_caps_the_threads_and_zero_means_all_cores() {
     assert_eq!(analyze_workers(1), 1);
     assert_eq!(analyze_workers(u32::MAX), cores);
 }
+
+/// An incremental scan restricted to `paths` over a world where `found` is what discovery sees.
+fn restricted_scan(
+    found: Vec<(&'static str, bool)>,
+    paths: &[&str],
+) -> Result<SnapshotData, CodedError> {
+    let world = Arc::new(World {
+        found: Some(found),
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let paths: Vec<String> = paths.iter().map(|path| (*path).to_owned()).collect();
+    let job = Job::new(ProjectId::new(7), ScanMode::Incremental).with_paths(&paths);
+    let result = scanner(&world, &EventBus::new()).run(&Principal::local_owner(), job);
+    assert!(
+        matches!(result, JobResult::Finished(_)),
+        "scan did not finish"
+    );
+    world.last_persisted()
+}
+
+fn analysed(data: &SnapshotData) -> Vec<&str> {
+    data.files.iter().map(|file| file.path.as_str()).collect()
+}
+
+#[test]
+fn a_scan_restricted_to_paths_does_not_look_at_a_change_elsewhere() -> Result<(), CodedError> {
+    let found = || vec![("a.rs", false), ("b.rs", true), ("c.rs", false)];
+    assert_eq!(
+        analysed(&restricted_scan(found(), &["a.rs"])?),
+        Vec::<&str>::new()
+    );
+    assert_eq!(analysed(&restricted_scan(found(), &["b.rs"])?), ["b.rs"]);
+    assert_eq!(analysed(&restricted_scan(found(), &[])?), ["b.rs"]);
+    Ok(())
+}
+
+#[test]
+fn a_scan_restricted_to_paths_keeps_a_file_that_is_gone_elsewhere() -> Result<(), CodedError> {
+    let found = || vec![("a.rs", false), ("c.rs", false)];
+    let kept = restricted_scan(found(), &["a.rs"])?;
+    assert_eq!(kept.removed, Vec::<RelativePath>::new());
+    let all = restricted_scan(found(), &[])?;
+    assert_eq!(all.removed, [model(RelativePath::new("b.rs"))?]);
+    let named = restricted_scan(found(), &["b.rs"])?;
+    assert_eq!(named.removed, [model(RelativePath::new("b.rs"))?]);
+    Ok(())
+}
+
+#[test]
+fn a_scan_restricted_to_paths_that_name_no_file_changes_nothing() -> Result<(), CodedError> {
+    let found = vec![("a.rs", false), ("b.rs", true), ("c.rs", false)];
+    let in_folder = restricted_scan(found, &["./src/"])?;
+    assert_eq!(
+        analysed(&in_folder),
+        Vec::<&str>::new(),
+        "no file lies below src"
+    );
+    let found = vec![("a.rs", false), ("b.rs", true), ("c.rs", false)];
+    let escaping = restricted_scan(found, &["../b.rs", "/b.rs"])?;
+    assert_eq!(
+        analysed(&escaping),
+        Vec::<&str>::new(),
+        "a path that leaves the project names nothing"
+    );
+    Ok(())
+}

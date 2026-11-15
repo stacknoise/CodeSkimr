@@ -361,12 +361,20 @@ impl UsageIndex for FakeUsages {
 #[derive(Default)]
 pub struct FakeScanner {
     pub asked: Mutex<Vec<(Principal, ProjectId)>>,
+    /// The paths of each question, in the same order.
+    pub asked_paths: Mutex<Vec<Vec<String>>>,
     pub fail: bool,
 }
 
 impl ProjectScanner for FakeScanner {
-    fn rescan(&self, principal: &Principal, project: ProjectId) -> Result<Snapshot, CodedError> {
+    fn rescan_paths(
+        &self,
+        principal: &Principal,
+        project: ProjectId,
+        paths: &[String],
+    ) -> Result<Snapshot, CodedError> {
         self.asked.lock().unwrap().push((*principal, project));
+        self.asked_paths.lock().unwrap().push(paths.to_vec());
         if self.fail {
             return Err(CodedError::new(ErrorCode::UnexpectedInternalError));
         }

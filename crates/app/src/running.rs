@@ -90,9 +90,14 @@ impl ExclusiveScans {
 }
 
 impl ProjectScanner for ExclusiveScans {
-    fn rescan(&self, principal: &Principal, project: ProjectId) -> Result<Snapshot, CodedError> {
+    fn rescan_paths(
+        &self,
+        principal: &Principal,
+        project: ProjectId,
+        paths: &[String],
+    ) -> Result<Snapshot, CodedError> {
         let _scanning = self.running.start(project)?;
-        self.inner.rescan(principal, project)
+        self.inner.rescan_paths(principal, project, paths)
     }
 }
 
@@ -126,7 +131,12 @@ mod tests {
     struct Scanner;
 
     impl ProjectScanner for Scanner {
-        fn rescan(&self, _: &Principal, _: ProjectId) -> Result<Snapshot, CodedError> {
+        fn rescan_paths(
+            &self,
+            _: &Principal,
+            _: ProjectId,
+            _: &[String],
+        ) -> Result<Snapshot, CodedError> {
             Err(CodedError::new(ErrorCode::ScanCancelled))
         }
     }
