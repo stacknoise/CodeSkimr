@@ -51,6 +51,34 @@ function openInExplorer(id: number): void {
   navigate(EXPLORER_ROUTE.path);
 }
 
+/** The project table wired to the selection of the screen. */
+function Table(props: { selection: ReturnType<typeof useSelection> }) {
+  const { selection } = props;
+  return (
+    <ProjectTable
+      rows={projects()}
+      selected={selection.selected()}
+      onSelect={selection.setSelected}
+      onOpen={(id) => {
+        selection.setSelected(id);
+        openInExplorer(id);
+      }}
+      onRescan={(id) => void rescanProject(id)}
+    />
+  );
+}
+
+/** Whoever looks at a project sees what the machine has now, not what it had at the last scan. */
+function useToolsCheck(selected: () => number | null): void {
+  createEffect(
+    on(selected, (id) => {
+      if (id !== null) {
+        void checkTools(id);
+      }
+    }),
+  );
+}
+
 /** Screen 1, the project list (blueprint B.1, mock `Main.dc.html`). */
 export function ProjectsScreen() {
   const [source, setSource] = createSignal("");
@@ -58,14 +86,7 @@ export function ProjectsScreen() {
   const drop = useDropSource(setSource, () => input?.focus());
   const selection = useSelection(projects, activeProject());
   onMount(() => void refreshProjects());
-  // Whoever looks at a project sees what the machine has now, not what it had at the last scan.
-  createEffect(
-    on(selection.selected, (id) => {
-      if (id !== null) {
-        void checkTools(id);
-      }
-    }),
-  );
+  useToolsCheck(selection.selected);
   const selectedRow = () => projects().find((row) => row.id === selection.selected());
   useProjectKeys({
     newProject: () => input?.focus(),
@@ -73,30 +94,22 @@ export function ProjectsScreen() {
     open: selection.act(openInExplorer),
     move: selection.move,
   });
+  const onSource = (value: string) => {
+    drop.clearNotice();
+    setSource(value);
+  };
   return (
     <section class={styles.screen}>
       <Header />
       <NewProjectForm
         source={source()}
-        onSource={(value) => {
-          drop.clearNotice();
-          setSource(value);
-        }}
+        onSource={onSource}
         setInput={(element) => (input = element)}
         dragging={drop.dragging()}
         notice={drop.notice()}
       />
       <Show when={projects().length > 0} fallback={<Empty />}>
-        <ProjectTable
-          rows={projects()}
-          selected={selection.selected()}
-          onSelect={selection.setSelected}
-          onOpen={(id) => {
-            selection.setSelected(id);
-            openInExplorer(id);
-          }}
-          onRescan={(id) => void rescanProject(id)}
-        />
+        <Table selection={selection} />
       </Show>
       <Show when={selectedRow()}>{(row) => <ToolsPanel row={row()} />}</Show>
     </section>
