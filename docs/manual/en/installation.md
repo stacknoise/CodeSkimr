@@ -2,7 +2,19 @@
 
 ## State of the delivery
 
-Installers and single executables for Windows, Linux and macOS are part of the 1.0 release (milestone M7) and are not published yet. Preview packages for Windows, Linux and macOS (Apple Silicon) are available on the repository's release page (`README-PREVIEW.md` in the package). Otherwise you build CodeSkimr from source. This chapter describes that path; it will be replaced by the installer instructions with 1.0.
+CodeSkimr is delivered as **one single file per system** (Windows x86_64, Linux x86_64, macOS Apple Silicon): `codeskimr-<version>-<system>` (with `.exe` on Windows). The UI and the language packs are inside the file; there is no installer. You find the files on the release page of the repository `stacknoise/CodeSkimr`, each with a `.sha256` file. Alternatively you build CodeSkimr from source (see below).
+
+### Download, check, start
+
+1. Download the file and its `.sha256` and compare the checksum: Windows `Get-FileHash .\codeskimr-<version>-windows-x86_64.exe -Algorithm SHA256`, Linux `sha256sum -c codeskimr-<version>-linux-x86_64.sha256`, macOS `shasum -a 256 -c codeskimr-<version>-macos-aarch64.sha256`.
+2. Optionally check the origin: `gh attestation verify <file> --repo stacknoise/CodeSkimr` shows that GitHub built the file from this repository.
+3. Start it. Linux and macOS: run `chmod +x <file>` first. Then `./codeskimr-<version>-<system> serve`; on Windows `.\codeskimr-<version>-windows-x86_64.exe serve`. You may rename the file to `codeskimr` and put it in a folder on your search path.
+
+The files are **not signed yet** (signing is the first task after 1.0), so the operating system warns on the first start:
+
+- **Windows (SmartScreen):** "Windows protected your PC" → "More info" → "Run anyway".
+- **macOS (Gatekeeper):** a message that the file cannot be verified. Run `xattr -d com.apple.quarantine <file>` once in the terminal, then start it (or choose "Open Anyway" in System Settings under "Privacy & Security").
+- **Linux:** no warning; a Secret Service is required (see below).
 
 ## What you need
 
