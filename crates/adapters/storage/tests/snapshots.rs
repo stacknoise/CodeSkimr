@@ -255,6 +255,43 @@ fn resolved_again_references_of_unchanged_files_replace_the_dropped_ones() {
     );
 }
 
+/// A full scan as snapshot `snapshot` whose files, symbols and references carry the ids from
+/// `base` on, as the pipeline issues new ids for a full scan.
+#[cfg(test)]
+fn full_scan_from(snapshot: u64, base: u64) -> SnapshotData {
+    let mut scan = data(header(snapshot, ScanMode::Full));
+    scan.files = vec![
+        file(snapshot, base, "a.cs", "ha"),
+        file(snapshot, base + 1, "b.cs", "hb"),
+    ];
+    scan.symbols = vec![
+        symbol(base + 2, base, SymbolKind::Class, "App.A", None),
+        symbol(base + 3, base + 1, SymbolKind::Class, "App.B", None),
+    ];
+    scan.references = vec![
+        reference(base + 4, base, base + 2, base + 3),
+        reference(base + 5, base + 1, base + 3, base + 2),
+    ];
+    scan
+}
+
+#[test]
+fn the_references_of_the_newest_snapshot_do_not_include_those_of_older_full_scans() {
+    let store = registered();
+    store.persist(full_scan_from(10, 100)).unwrap();
+    let newest = store.persist(full_scan_from(20, 200)).unwrap();
+    assert_eq!(newest.stats.references, 2);
+    let mut ids: Vec<u64> = store
+        .latest_index(PROJECT)
+        .unwrap()
+        .references
+        .iter()
+        .map(|reference| reference.id.get())
+        .collect();
+    ids.sort_unstable();
+    assert_eq!(ids, [204, 205]);
+}
+
 #[test]
 fn new_metrics_replace_carried_ones_of_the_same_symbol_and_kind() {
     let store = registered();
