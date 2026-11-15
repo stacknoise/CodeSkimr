@@ -22,4 +22,5 @@ serde.workspace = true
 serde_json.workspace = true
 
 [dev-dependencies]
+codeskimr_domain = { path = "../domain", features = ["issue-principals"] }
 tokio = { workspace = true, features = ["rt", "macros", "io-util", "time"] }

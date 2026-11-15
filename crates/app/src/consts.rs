@@ -45,6 +45,17 @@ pub const GIT_CACHE_DIR: &str = "git";
 pub const USER_CONFIG_FILE: &str = "config.toml";
 /// The folder of the language packs next to the executable or the current folder.
 pub const LANGUAGES_DIR: &str = "languages";
+/// The folder inside the data folder that holds the language packs written from the program.
+pub const PACKS_CACHE_DIR: &str = "languages";
+/// The file that says a folder of embedded packs was written completely.
+pub const PACKS_COMPLETE_MARKER: &str = ".complete";
+/// Age from which an unfinished pack folder counts as left behind by a crashed start.
+pub const PACKS_STAGING_MAX_AGE: std::time::Duration = std::time::Duration::from_secs(24 * 60 * 60);
+/// Age from which the pack folder of a program that was replaced is removed.
+pub const PACKS_REPLACED_MAX_AGE: std::time::Duration =
+    std::time::Duration::from_secs(30 * 24 * 60 * 60);
+/// Between the fingerprint and the process number in the name of a folder that is being written.
+pub const PACKS_STAGING_SEPARATOR: &str = ".writing-";
 
 /// Branch of a Git source when none is given.
 pub const DEFAULT_BRANCH: &str = "main";
@@ -394,3 +405,6 @@ pub const INVISIBLE_RANGES: [(char, char); 7] = [
     ('\u{FEFF}', '\u{FEFF}'),
     ('\u{00AD}', '\u{00AD}'),
 ];
+
+/// Name of the thread that builds the usages index in the background.
+pub const WARM_THREAD_NAME: &str = "usages-warm-up";

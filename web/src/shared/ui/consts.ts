@@ -53,3 +53,5 @@ export const TONE = {
   warn: "warn",
   bad: "bad",
 } as const;
+/** Where a name may break: right after `.`, `_` or `:`. */
+export const BREAK_AFTER = /(?<=[._:])/;

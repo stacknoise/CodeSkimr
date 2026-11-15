@@ -45,3 +45,9 @@ func (c Code) String() string { return "code" }
 func (b *Box[T]) Get() T { var zero T; return zero }
 
 func (o Order) Run() {}
+
+// Known gap of the basic tier: a method written before its type is declared stays a child of the
+// module, but its name carries the receiver type (`Later.Run`).
+func (a Later) Run() {}
+
+type Later struct{}

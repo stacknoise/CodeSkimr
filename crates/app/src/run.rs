@@ -2,7 +2,7 @@
 
 use std::ffi::OsString;
 use std::io::{self, BufRead, IsTerminal, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
 use codeskimr_application::conventions::CheckReport;
@@ -115,6 +115,35 @@ where
     }
 }
 
+/// The folders of this run: the resolved ones, with the packs of the program if no folder has any
+/// and the command reads packs at all (the credential commands do not).
+fn resolve_locations(
+    global: &codeskimr_cli::GlobalOptions,
+    env: Lookup<'_>,
+    current_dir: &Path,
+    needs_packs: bool,
+) -> Result<Locations, CodedError> {
+    let executable_dir = std::env::current_exe()
+        .ok()
+        .and_then(|path| path.parent().map(PathBuf::from));
+    let resolved = Locations::resolve(global, env, executable_dir.as_deref(), current_dir)?;
+    if !needs_packs {
+        return Ok(resolved);
+    }
+    crate::embedded_packs::prefer_embedded(
+        resolved,
+        global,
+        env,
+        crate::embedded_packs::FILES,
+        crate::embedded_packs::FINGERPRINT,
+    )
+}
+
+/// Whether the command reads language packs; the credential commands do not.
+fn needs_packs(action: &Action) -> bool {
+    !matches!(action, Action::Credential(_))
+}
+
 fn run_invocation(
     invocation: &Invocation,
     env: Lookup<'_>,
@@ -123,14 +152,11 @@ fn run_invocation(
 ) -> Result<Outcome, Failure> {
     let current_dir =
         std::env::current_dir().map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?;
-    let executable_dir = std::env::current_exe()
-        .ok()
-        .and_then(|path| path.parent().map(PathBuf::from));
-    let locations = Locations::resolve(
+    let locations = resolve_locations(
         &invocation.global,
         env,
-        executable_dir.as_deref(),
         &current_dir,
+        needs_packs(&invocation.action),
     )?;
     match &invocation.action {
         Action::Credential(action) => run_credential(action, messages, language),
@@ -454,5 +480,17 @@ fn source_failure(error: SourceError, messages: &Messages, language: &str) -> Fa
     Failure {
         code: ErrorCode::ProjectSourceInvalid,
         detail,
+    }
+}
+
+#[cfg(test)]
+mod needs_packs_tests {
+    use super::*;
+
+    #[test]
+    fn only_the_credential_commands_go_without_packs() {
+        let delete = Action::Credential(CredentialAction::Delete { id: "x".to_owned() });
+        assert!(!needs_packs(&delete));
+        assert!(needs_packs(&Action::Start));
     }
 }

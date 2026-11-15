@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 31,
+      "loc": 33,
       "operands": null,
       "operators": null,
       "symbol": "sample"
@@ -111,9 +111,29 @@
         0
       ],
       "symbol": "sample.Order.Run"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        0,
+        0
+      ],
+      "operators": [
+        0,
+        0
+      ],
+      "symbol": "sample.Later.Run"
+    },
+    {
+      "decisions": null,
+      "loc": 1,
+      "operands": null,
+      "operators": null,
+      "symbol": "sample.Later"
     }
   ],
-  "loc": 31,
+  "loc": 33,
   "references": [
     {
       "at": "29:1",
@@ -137,7 +157,7 @@
       "name": "sample",
       "parent": null,
       "signature": null,
-      "span": "0:0-47:0",
+      "span": "0:0-53:0",
       "static": false,
       "visibility": null
     },
@@ -248,6 +268,26 @@
       "parent": "sample.Order",
       "signature": null,
       "span": "46:0-46:23",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "sample.Later.Run",
+      "parent": "sample",
+      "signature": null,
+      "span": "50:0-50:23",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "struct",
+      "name": "sample.Later",
+      "parent": "sample",
+      "signature": null,
+      "span": "52:5-52:19",
       "static": false,
       "visibility": null
     }

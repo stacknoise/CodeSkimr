@@ -123,11 +123,8 @@ function useReadingOfTheSource(): void {
   });
 }
 
-/** Screen 2, the explorer: tree, details and source (blueprint B.2, mock `Explorer.dc.html`). */
-export function ExplorerScreen() {
-  const explorer = useExplorer();
-  useReadingOfTheProject();
-  useReadingOfTheSource();
+/** Binds the keys of the explorer to what they do with the shown symbol. */
+function useShortcuts(explorer: ReturnType<typeof useExplorer>): void {
   useExplorerKeys({
     collapseAll,
     reveal: explorer.reveal,
@@ -158,6 +155,14 @@ export function ExplorerScreen() {
       }
     },
   });
+}
+
+/** Screen 2, the explorer: tree, details and source (blueprint B.2, mock `Explorer.dc.html`). */
+export function ExplorerScreen() {
+  const explorer = useExplorer();
+  useReadingOfTheProject();
+  useReadingOfTheSource();
+  useShortcuts(explorer);
   return (
     <Switch>
       <Match when={activeProject() === null}>

@@ -149,7 +149,7 @@ impl Command for GetPreferences {
         permission: Permission::Read,
     };
 
-    fn execute(&self, request: Request<'_, ()>) -> Result<Preferences, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<Preferences, CodedError> {
         access::require(request.principal, Permission::Read)?;
         Ok(self.file.read())
     }
@@ -176,7 +176,7 @@ impl Command for SetPreferences {
     /// # Errors
     /// - `API-101` if a name is not a plain lower-case name.
     /// - `APP-201` if the data folder cannot be written.
-    fn execute(&self, request: Request<'_, Preferences>) -> Result<Preferences, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<Preferences, CodedError> {
         access::require(request.principal, Permission::Manage)?;
         if !request.input.is_valid() {
             return Err(CodedError::new(ErrorCode::RequestInvalid));

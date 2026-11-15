@@ -8,6 +8,7 @@ members = [
     "crates/adapters/parsing",
     "crates/adapters/storage",
     "crates/adapters/source",
+    "crates/adapters/fsguard",
     "crates/adapters/secrets",
     "crates/adapters/i18n",
     "crates/adapters/scip",

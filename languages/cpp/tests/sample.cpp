@@ -39,4 +39,16 @@ int price(const Order& o) {
 template <typename T>
 T twice(T v) { return v + v; }
 
+// Known gap of the basic tier: two types of the same name in different scopes leave a
+// `Name::method` definition at file level without a unique type, so it has no parent.
+struct Twin { void go(); };
+
 }
+
+namespace other {
+
+struct Twin { void go(); };
+
+}
+
+void Twin::go() {}

@@ -21,7 +21,7 @@ The check starts nothing itself. `IndexRunner::check` (`codeskimr_indexer`) look
 
 ## What the project requires
 
-A `[[indexer.toolchain]]` of the pack may carry a `requirement`: `global.json` (`sdk.version`) for `dotnet`, `rust-toolchain.toml` (`toolchain.channel`) for `cargo`, `.nvmrc` for `node`. The check raises the `min_version` of that tool to the version the project names when that is newer, then asks the runner. The file is read only if it lies inside the project folder (no `..`, no symlink out of it) and is at most 64 KiB (`REQUIREMENT_MAX_BYTES`). Python has none: `.python-version` is not read since the pack's toolchain is `node`. The leading number of the value counts (`v20.11` gives 20.11); a value that is not a number, such as `stable`, asks for nothing. The comparison is numeric per segment, a missing segment counts as zero.
+A `[[indexer.toolchain]]` of the pack may carry a `requirement`: `global.json` (`sdk.version`) for `dotnet`, `rust-toolchain.toml` (`toolchain.channel`) for `cargo`, `.nvmrc` for `node`. The check raises the `min_version` of that tool to the version the project names when that is newer, then asks the runner. The file is looked for in the project root and in every folder below it (nested solutions and workspaces have their own `global.json` or `.nvmrc`): down to 6 levels, at most 32 files of one name and 2000 folders looked into (the search stops there), and not in `.git`, `node_modules`, `target`, `bin`, `obj`, `vendor`, `dist`, `.venv` and `venv`, which hold files of other projects. When several files ask for a version, the newest counts. A file is read only if it lies inside the project folder (no `..`, no symlink out of it) and is at most 64 KiB (`REQUIREMENT_MAX_BYTES`). `global.json` may hold comments (`//`, `/* */`) and trailing commas, as the .NET SDK accepts them. Python has none: `.python-version` is not read since the pack's toolchain is `node`. The leading number of the value counts (`v20.11` gives 20.11); a value that is not a number, such as `stable`, asks for nothing. The comparison is numeric per segment, a missing segment counts as zero.
 
 ## Storage and outputs
 
@@ -33,8 +33,7 @@ A failing check never fails a scan: the error is logged and the project is shown
 
 ## Known limits
 
-- `global.json` is read as strict JSON; comments or trailing commas give no requirement.
-- Requirement files are read only from the project root, not from nested solutions.
-- `rollForward` of `global.json` is not modelled: installed must be at least the required version.
+- `rollForward` of `global.json` is not modelled. It can only limit from above (for example `disable` or `patch` refuse a newer major SDK), and the check does not know the version of an installed tool that it finds ready (the runner reports only ready, missing or too old). So a tool that is newer than the project allows shows as `ready`, and the build fails later. A state `too_new` (port, storage, UI and texts) is tracked in issue #328.
+- Requirement files are searched with a depth and a count limit (see above); a manifest deeper than 6 levels is not seen.
 - The version flags and `min_version` of the indexers are confirmed by the spike of ADR 0033.
-- A Git project reads its requirement files from the clone of the last scan.
+- **A Git project has no clone before its first scan.** The requirement files are read from the clone of the last scan (`GitCache`). At registration and in every check before the first full scan there is no clone, so no requirement is known and only the `min_version` of the pack counts. The check that every full scan runs after the scan finds the clone and reads the files, so the report is complete from the first scan on. The check does not fetch anything itself.

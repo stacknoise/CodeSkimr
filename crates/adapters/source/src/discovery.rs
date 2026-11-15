@@ -1,6 +1,7 @@
 //! Walking a folder: ignore rules, language detection, hashing (blueprint section 7, "Discover").
 
 use std::collections::HashMap;
+use std::io::Read;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc;
@@ -8,15 +9,16 @@ use std::sync::mpsc;
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{DiscoveredFile, FileDiscovery};
-use codeskimr_domain::{ContentHash, FolderPath, LanguageId, SourceFile};
+use codeskimr_domain::{ContentHash, FolderPath, LanguageId, RelativePath, SourceFile};
 use ignore::{DirEntry, WalkBuilder, WalkState};
 
-use crate::consts::GIT_DIR_NAME;
+use crate::consts::{GIT_DIR_NAME, GROWTH_PROBE_BYTES};
 use crate::error::SourceError;
 use crate::folder::open_folder;
-use crate::hash::hash_file;
+use crate::hash::{hash_file, hash_reader};
 use crate::languages::LanguageMap;
 use crate::paths::relative_path;
+use codeskimr_fsguard::open_regular;
 
 /// Settings of a discovery run that come from the configuration.
 #[derive(Debug, Clone)]
@@ -101,6 +103,44 @@ impl FileDiscovery for WalkDiscovery {
         files.sort_by(|a, b| a.path.cmp(&b.path));
         Ok(files)
     }
+
+    /// Reads at most `max_total_bytes` in all, like [`FileDiscovery::discover`]; a file after
+    /// that counts as changed, as does one that grew beyond what is left.
+    fn unchanged_files(
+        &self,
+        root: &FolderPath,
+        files: &[SourceFile],
+        cancel: &CancelToken,
+    ) -> Result<Vec<RelativePath>, CodedError> {
+        open_folder(root)?;
+        let folder = Path::new(root.as_str());
+        let mut left = self.config.max_total_bytes;
+        Ok(files
+            .iter()
+            .take_while(|_| !cancel.is_cancelled())
+            .filter(|file| is_unchanged(folder, file, &mut left))
+            .map(|file| file.path.clone())
+            .collect())
+    }
+}
+
+/// Whether the file is still a regular file (not a link) with the content of the list. `left` is
+/// the number of bytes that may still be read: the length is taken from the opened handle before
+/// anything is read, and the read itself stops at it.
+fn is_unchanged(root: &Path, file: &SourceFile, left: &mut u64) -> bool {
+    let Ok(handle) = open_regular(&root.join(file.path.as_str())) else {
+        return false;
+    };
+    let Some(length) = handle.metadata().ok().map(|meta| meta.len()) else {
+        return false;
+    };
+    if length > *left {
+        return false;
+    }
+    *left -= length;
+    // One byte more than announced: a file that grew meanwhile does not match.
+    hash_reader(handle.take(length.saturating_add(GROWTH_PROBE_BYTES)))
+        .is_ok_and(|(size, hash)| size == length && hash == file.content_hash)
 }
 
 /// Runs the parallel walk and collects what the workers found.

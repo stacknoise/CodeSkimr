@@ -98,6 +98,12 @@
  (_ right: [(identifier) @name (field_expression field: (field_identifier) @name)])
  (_ condition: [(identifier) @name (field_expression field: (field_identifier) @name)])] @reference.read
 (shorthand_field_initializer (identifier) @name) @reference.read
+; `Foo { a }` names the field `a` of `Foo`, not a bare name (also if a local `a` exists).
+(struct_expression
+  name: [((type_identifier) @receiver.own (#eq? @receiver.own "Self"))
+         (type_identifier) @receiver.type
+         (_) @receiver.other]
+  body: (field_initializer_list (shorthand_field_initializer (identifier) @name)))
 ; A path in a value position (`Style::Plain`, `limits::MAX`) reads its last name and the type or
 ; module in front of it
 [(arguments (scoped_identifier [path: (identifier) @name name: (identifier) @name]))

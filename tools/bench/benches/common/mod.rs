@@ -1,10 +1,11 @@
 //! What the scan benchmarks share: the generated corpus, the paths and the release binary.
 
+use std::ffi::OsStr;
 use std::fmt::Write as _;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 use std::time::Duration;
 
 use criterion::Criterion;
@@ -57,12 +58,17 @@ fn file_source(index: usize, random: &mut Lcg) -> String {
     text
 }
 
-pub fn build_corpus(scratch: &Path) -> io::Result<PathBuf> {
-    let corpus = scratch.join("corpus");
-    fs::remove_dir_all(&corpus).or_else(|error| match error.kind() {
+/// Removes a folder with everything below it; a folder that does not exist is no error.
+pub fn wipe(path: &Path) -> io::Result<()> {
+    fs::remove_dir_all(path).or_else(|error| match error.kind() {
         io::ErrorKind::NotFound => Ok(()),
         _ => Err(error),
-    })?;
+    })
+}
+
+pub fn build_corpus(scratch: &Path) -> io::Result<PathBuf> {
+    let corpus = scratch.join("corpus");
+    wipe(&corpus)?;
     let mut random = Lcg::new(SEED);
     for index in 0..FILES {
         let folder = corpus.join(format!("part{}", index / FILES_PER_FOLDER));
@@ -107,4 +113,47 @@ pub fn measure(
         });
     });
     group.finish();
+}
+
+/// Field of the JSON summary that holds the duration of the scan in seconds.
+#[allow(dead_code, reason = "not every benchmark runs the scan binary")]
+const SECONDS_FIELD: &str = "seconds";
+/// Field of the JSON summary that holds the CPU time of the scan in seconds, summed over all threads.
+#[allow(dead_code, reason = "not every benchmark runs the scan binary")]
+const CPU_SECONDS_FIELD: &str = "cpu_seconds";
+
+/// Runs `codeskimr scan` on a folder or a Git URL (with `branch`) against the database in `data`
+/// and returns the time the scan itself reports and its CPU time.
+#[allow(dead_code, reason = "not every benchmark runs the scan binary")]
+pub fn scan_summary(
+    binary: &Path,
+    source: impl AsRef<OsStr>,
+    data: &Path,
+    branch: Option<&str>,
+) -> io::Result<(Duration, Duration)> {
+    let mut command = Command::new(binary);
+    command
+        .current_dir(root())
+        .arg("scan")
+        .arg(source)
+        .arg("--json")
+        .arg("--data-dir")
+        .arg(data)
+        .stdout(Stdio::piped());
+    if let Some(branch) = branch {
+        command.arg("--branch").arg(branch);
+    }
+    let output = command.output()?;
+    if !output.status.success() {
+        return Err(io::Error::other("the scan failed"));
+    }
+    let summary: serde_json::Value = serde_json::from_slice(&output.stdout)?;
+    let seconds = |field: &str| {
+        summary
+            .get(field)
+            .and_then(serde_json::Value::as_f64)
+            .map(Duration::from_secs_f64)
+            .ok_or_else(|| io::Error::other("the summary has no duration"))
+    };
+    Ok((seconds(SECONDS_FIELD)?, seconds(CPU_SECONDS_FIELD)?))
 }

@@ -53,3 +53,17 @@ impl Order {
         }
     }
 }
+
+pub struct Pair {
+    pub left: u32,
+    pub right: u32,
+}
+
+impl Pair {
+    pub fn build(left: u32, right: u32) -> Self {
+        // `Self { left }` names the field, a bare `right` here is the parameter.
+        let pair = Self { left, right: right + 1 };
+        let other = Pair { right };
+        pair
+    }
+}

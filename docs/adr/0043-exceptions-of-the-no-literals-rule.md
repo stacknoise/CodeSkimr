@@ -36,4 +36,4 @@ The same pull request lets `deps` check the lint workspace (about 120 packages) 
 
 - Blueprint 3.2 and `docs/ci.md` say the same as the lint does.
 - A literal in platform-specific code can slip through until the lint runs on that platform. Platform code stays small and goes through review; running the lint on the other platforms is a possible later check.
-- The remaining gaps of the lint itself (macros from other workspace crates, the TypeScript part) are tracked in issue #26 and are bugs, not exceptions.
+- The remaining gaps of the lint itself (for example the TypeScript part) are tracked as issues and are bugs, not exceptions.

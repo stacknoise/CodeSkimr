@@ -41,6 +41,13 @@ pub trait RequirementReader: Send + Sync {
     /// is missing, too large, unreadable, not as described, or not inside the project (a path
     /// that leaves the project root, also through a link, is never read).
     fn read(&self, source: &ProjectSource, requirement: &RequirementSpec) -> Option<String>;
+
+    /// The version texts of every file of that name in the project, in the root and in the
+    /// folders below it (nested solutions and workspaces have their own). The default reads only
+    /// the root.
+    fn read_all(&self, source: &ProjectSource, requirement: &RequirementSpec) -> Vec<String> {
+        self.read(source, requirement).into_iter().collect()
+    }
 }
 
 /// Keeps the newest check of each project (adapter: `codeskimr_storage`).

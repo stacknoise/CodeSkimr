@@ -13,10 +13,11 @@ mod error;
 mod fitting;
 mod impl_symbol;
 mod importer;
+mod interval;
+mod javatext;
 mod locals;
 mod mapping;
 mod model;
-mod open;
 mod path;
 mod symbol;
 mod table;
@@ -27,5 +28,8 @@ pub use decode::{decode_index, read_index};
 pub use error::{Corruption, ScipError};
 pub use importer::ScipImporter;
 pub use mapping::{ImportOutcome, ImportStats, SnapshotView, import_references};
-pub use model::{Occurrence, PositionEncoding, ScipDocument, ScipIndex, SymbolRef};
+pub use model::{
+    AnonymousCreation, Arity, ConstructorSite, Occurrence, PositionEncoding, ScipDocument,
+    ScipIndex, SymbolRef, TextFacts,
+};
 pub use path::normalize_path;
