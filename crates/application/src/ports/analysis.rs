@@ -39,6 +39,10 @@ pub enum Receiver {
     /// type (`var x = make()`), a call result or a chain. The member name alone may then belong
     /// to any type, so the resolver must not pick a scope member of the enclosing type for it.
     Unknown,
+    /// A name without receiver inside a function of a language in which a member always needs its
+    /// receiver (`self.x` in Python): the name is a local or belongs to a scope outside every type,
+    /// never to a member of the enclosing type (ADR 0053).
+    Free,
 }
 
 /// An occurrence of a name that is not yet mapped to a symbol.

@@ -35,6 +35,7 @@ mod tests {
             Receiver::Own => "own".to_owned(),
             Receiver::Base => "base".to_owned(),
             Receiver::Unknown => "unknown".to_owned(),
+            Receiver::Free => "free".to_owned(),
         }
     }
 

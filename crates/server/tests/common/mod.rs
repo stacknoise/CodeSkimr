@@ -41,7 +41,7 @@ impl Command for Echo {
     type Output = String;
     const DESCRIPTOR: CommandDescriptor = descriptor("test.echo", Permission::Read);
 
-    fn execute(&self, request: Request<'_, String>) -> Result<String, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<String, CodedError> {
         Ok(request.input.to_uppercase())
     }
 }
@@ -54,7 +54,7 @@ impl Command for Peek {
     type Output = String;
     const DESCRIPTOR: CommandDescriptor = descriptor("test.peek", Permission::ReadSource);
 
-    fn execute(&self, _: Request<'_, ()>) -> Result<String, CodedError> {
+    fn execute(&self, _: Request<'_, Self>) -> Result<String, CodedError> {
         Ok("fn main() {}".to_owned())
     }
 }
@@ -67,7 +67,7 @@ impl Command for Wipe {
     type Output = usize;
     const DESCRIPTOR: CommandDescriptor = descriptor("test.wipe", Permission::Scan);
 
-    fn execute(&self, _: Request<'_, ()>) -> Result<usize, CodedError> {
+    fn execute(&self, _: Request<'_, Self>) -> Result<usize, CodedError> {
         Ok(self.0.fetch_add(1, Ordering::SeqCst) + 1)
     }
 }
@@ -80,7 +80,7 @@ impl Command for Missing {
     type Output = ();
     const DESCRIPTOR: CommandDescriptor = descriptor("test.missing", Permission::Read);
 
-    fn execute(&self, _: Request<'_, ()>) -> Result<(), CodedError> {
+    fn execute(&self, _: Request<'_, Self>) -> Result<(), CodedError> {
         Err(CodedError::new(ErrorCode::ProjectNotFound))
     }
 }
@@ -93,7 +93,7 @@ impl Command for Explode {
     type Output = ();
     const DESCRIPTOR: CommandDescriptor = descriptor("test.explode", Permission::Read);
 
-    fn execute(&self, _: Request<'_, ()>) -> Result<(), CodedError> {
+    fn execute(&self, _: Request<'_, Self>) -> Result<(), CodedError> {
         panic!("canary-panic-text")
     }
 }

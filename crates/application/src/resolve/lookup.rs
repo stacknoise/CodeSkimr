@@ -46,17 +46,45 @@ impl<'a> Context<'a> {
         }
         let receiver = self.receiver_types(occurrence);
         for kinds in candidates(occurrence.kind) {
-            let named = self.named_of(occurrence.target.as_str(), kinds);
-            let found = match &receiver {
+            let mut named = self.named_of(occurrence.target.as_str(), kinds);
+            if occurrence.receiver == Some(Receiver::Free) {
+                // A member needs its receiver here: a bare name is never one.
+                named.retain(|symbol| !self.is_member(symbol));
+            }
+            let mut found = match &receiver {
                 Some(types) => self.in_types(types, &named),
                 None if self.has_unknown_receiver(occurrence) => Self::unknown(&named),
                 None => self.in_scope(occurrence.from, occurrence.file, &named),
             };
+            let before = found.symbols.len();
+            found
+                .symbols
+                .retain(|symbol| !Self::is_declared_at(occurrence, symbol));
+            if before > 0 && found.symbols.is_empty() {
+                // The occurrence is the declaration itself: no use, and no other symbol of the name.
+                return Vec::new();
+            }
             if !found.symbols.is_empty() {
                 return self.hits(occurrence, found);
             }
         }
         Vec::new()
+    }
+
+    /// Whether the occurrence is the name in the declaration of `symbol`: `name: str` in a class
+    /// body writes nothing, it declares the field.
+    fn is_declared_at(occurrence: &PendingReference, symbol: &Symbol) -> bool {
+        occurrence.kind == ReferenceKind::Write
+            && symbol.file == occurrence.file
+            && symbol.span.start() == occurrence.span.start()
+    }
+
+    /// Whether the symbol is declared directly in a type.
+    fn is_member(&self, symbol: &Symbol) -> bool {
+        symbol
+            .parent
+            .and_then(|parent| self.table.get(parent))
+            .is_some_and(|parent| is_type(parent.kind))
     }
 
     /// An import, or a name that already is a qualified name because it is resolved again.
@@ -112,7 +140,7 @@ impl<'a> Context<'a> {
             (Some(Receiver::Named(name)), _) => {
                 self.named_receiver_types(occurrence, name.as_str())
             }
-            (Some(Receiver::Unknown) | None, _) => None,
+            (Some(Receiver::Unknown | Receiver::Free) | None, _) => None,
         }
     }
 

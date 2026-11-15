@@ -131,14 +131,14 @@
       "at": "56:22",
       "from": "metrics.outer",
       "kind": "call",
-      "receiver": null,
+      "receiver": "free",
       "target": "local"
     },
     {
       "at": "61:13",
       "from": "metrics.calls",
       "kind": "call",
-      "receiver": null,
+      "receiver": "free",
       "target": "len"
     },
     {

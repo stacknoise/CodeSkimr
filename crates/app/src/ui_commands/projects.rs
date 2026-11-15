@@ -167,7 +167,7 @@ impl Command for ListProjects {
         permission: Permission::Read,
     };
 
-    fn execute(&self, _request: Request<'_, ()>) -> Result<Vec<ProjectRow>, CodedError> {
+    fn execute(&self, _request: Request<'_, Self>) -> Result<Vec<ProjectRow>, CodedError> {
         Ok(self
             .catalog
             .overviews()?
@@ -262,7 +262,7 @@ impl Command for AddProject {
         permission: Permission::RegisterProject,
     };
 
-    fn execute(&self, request: Request<'_, AddInput>) -> Result<Scanned, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<Scanned, CodedError> {
         access::require(request.principal, Permission::Scan)?;
         let text = request.input.source.trim();
         let spec = classify(text, request.input.branch.as_deref())?;
@@ -318,7 +318,7 @@ impl Command for RescanProject {
         permission: Permission::Scan,
     };
 
-    fn execute(&self, request: Request<'_, RescanInput>) -> Result<Scanned, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<Scanned, CodedError> {
         let id = ProjectId::new(request.input.project);
         let context = &self.context;
         let scanned_before = self
@@ -371,7 +371,7 @@ impl Command for CheckTools {
         permission: Permission::Scan,
     };
 
-    fn execute(&self, request: Request<'_, ProjectInput>) -> Result<ToolsView, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<ToolsView, CodedError> {
         let report = self.tools.check(ProjectId::new(request.input.project))?;
         Ok(ToolsView::of(&report))
     }
@@ -402,7 +402,7 @@ impl Command for CancelScan {
         permission: Permission::Scan,
     };
 
-    fn execute(&self, request: Request<'_, ProjectInput>) -> Result<Cancelled, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<Cancelled, CodedError> {
         access::require(request.principal, Permission::Scan)?;
         let id = ProjectId::new(request.input.project);
         Ok(Cancelled {

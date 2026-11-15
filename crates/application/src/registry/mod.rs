@@ -99,6 +99,6 @@ impl Registry {
             .get(&C::DESCRIPTOR.id)
             .and_then(|entry| entry.handler.downcast_ref::<C>())
             .ok_or_else(|| CodedError::new(ErrorCode::UnexpectedInternalError))?;
-        command.execute(Request { principal, input })
+        command.execute(Request::new(principal, input))
     }
 }
