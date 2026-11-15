@@ -7,6 +7,7 @@ mod carry;
 mod flow;
 mod job;
 mod scanner;
+mod shape;
 mod stages;
 
 pub use carry::Carried;
@@ -16,5 +17,6 @@ pub use flow::{
 pub use job::{Cancelled, Failed, Finished, Job, JobState, Queued, Running};
 pub use scanner::{JobResult, Scanner, ScannerPorts};
 pub use stages::{
-    Analyzed, Discovered, Measured, Persisted, Resolved, ScanRequest, ScanRun, analyze_workers,
+    Analyzed, Discovered, Measured, Persisted, Resolved, ScanRequest, ScanRun, ScanWarning,
+    analyze_workers,
 };

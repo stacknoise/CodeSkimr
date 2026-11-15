@@ -194,6 +194,8 @@ pub const PLACEHOLDER_CLOSE: char = '}';
 pub const PATH_SEPARATORS: [char; 2] = ['/', '\\'];
 /// Character that a folder name taken from a manifest must not contain (no `..`).
 pub const PATH_DOT: char = '.';
+/// Between a broken test pattern and the reason in the message about it.
+pub const TEST_PATTERN_SEPARATOR: &str = ": ";
 /// Nothing: what a placeholder is replaced with when the rest of an argument is checked.
 pub const NOTHING: &str = "";
 
@@ -205,6 +207,11 @@ pub const NAMING_RULES_SEPARATOR: &str = ";";
 pub const NAMING_FILE_IN_NAMES: &str = "file";
 /// Rule of a pack whose qualified names start with its own namespaces (ADR 0036).
 pub const NAMING_NAMESPACED: &str = "namespace";
+
+/// Between the naming rule of a pack and its test patterns.
+pub const NAMING_TESTS: &str = "+tests:";
+/// Between two test patterns in the text of the naming rules.
+pub const NAMING_PATTERN_SEPARATOR: &str = ",";
 
 /// Revision of the naming rules of the engine itself, part of the text of the naming rules: it
 /// changes when names change for reasons other than a pack key (2: members of an `impl` carry

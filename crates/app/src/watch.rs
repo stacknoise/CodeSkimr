@@ -199,6 +199,7 @@ mod tests {
             seconds: 0.0,
             cpu_seconds: 0.0,
             level2: Vec::new(),
+            warnings: Vec::new(),
             tools: codeskimr_application::tools::ToolsView::unchecked(),
         }
     }

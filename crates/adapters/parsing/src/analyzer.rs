@@ -9,7 +9,7 @@ use codeskimr_application::config::Similarity;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{AnalyzeRequest, FileAnalyzer, FileFacts, SnippetFingerprinter};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Fingerprints, LanguageId, SourceFile, lines_of_code};
+use codeskimr_domain::{Fingerprints, LanguageId, RelativePath, SourceFile, lines_of_code};
 use tree_sitter::{ParseOptions, ParseState, Parser, Point, Tree};
 
 use crate::encoding::decode;
@@ -114,6 +114,12 @@ impl FileAnalyzer for TreeSitterAnalyzer {
 
     fn pack_load_time(&self) -> Duration {
         self.packs.load_time()
+    }
+
+    fn is_test_file(&self, language: &LanguageId, path: &RelativePath) -> bool {
+        self.packs
+            .get(language)
+            .is_ok_and(|pack| pack.is_test_file(path.as_str()))
     }
 }
 

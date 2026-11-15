@@ -103,6 +103,8 @@ export const I18N_KEYS = {
   CLI_LEVEL2_CONFIRMED: "cli-level2-confirmed",
   CLI_LEVEL2_DECLINED: "cli-level2-declined",
   CLI_LEVEL2_REVOKED: "cli-level2-revoked",
+  CLI_SCAN_WARNING_AMBIGUOUS_REFERENCE: "cli-scan-warning-ambiguous-reference",
+  CLI_SCAN_WARNING_OTHER: "cli-scan-warning-other",
   COMMAND_PROJECTS_LIST_TITLE: "command-projects-list-title",
   COMMAND_PROJECTS_LIST_DESCRIPTION: "command-projects-list-description",
   COMMAND_PROJECTS_ADD_TITLE: "command-projects-add-title",

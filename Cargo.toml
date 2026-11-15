@@ -34,6 +34,7 @@ toml = "1"
 blake3 = "1"
 gix = { version = "0.90", default-features = false, features = ["sha1", "blocking-network-client", "blocking-http-transport-reqwest-native-tls", "worktree-mutation"] }
 ignore = "0.4"
+globset = "0.4"
 notify = "8"
 memory-stats = "1"
 tempfile = "3"

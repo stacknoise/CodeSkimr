@@ -6,13 +6,14 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use codeskimr_domain::{LanguageId, ModelError, SymbolKind};
+use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 use tree_sitter::{Language, Query};
 
 use crate::captures::{MetricsQuery, Vocabulary};
 use crate::consts::{
     ID_MISMATCH, METRICS_QUERY_FILE, PATH_DOT, PATH_SEPARATORS, QUERIES_FILE_UNKNOWN,
     QUERIES_FROM_CHAINED, QUERIES_FROM_INVALID, QUERIES_FROM_SELF, QUERY_JOIN,
-    REFERENCES_QUERY_FILE, SHAREABLE_QUERY_FILES, SYMBOLS_QUERY_FILE,
+    REFERENCES_QUERY_FILE, SHAREABLE_QUERY_FILES, SYMBOLS_QUERY_FILE, TEST_PATTERN_SEPARATOR,
 };
 use crate::error::ParsingError;
 use crate::grammar;
@@ -26,6 +27,7 @@ pub struct LanguagePack {
     pub(crate) extensions: Vec<String>,
     project_files: Vec<String>,
     test_patterns: Vec<String>,
+    test_files: GlobSet,
     pub(crate) language: Language,
     pub(crate) separator: String,
     /// Whether the name of the file starts every qualified name (ADR 0036).
@@ -95,6 +97,7 @@ impl LanguagePack {
             tier: manifest.tier,
             extensions: manifest.extensions,
             project_files: manifest.manifest_files,
+            test_files: test_files(&manifest.test_patterns).map_err(invalid)?,
             test_patterns: manifest.test_patterns,
             language,
             separator: manifest.separator,
@@ -151,6 +154,13 @@ impl LanguagePack {
         &self.test_patterns
     }
 
+    /// Whether `path` (relative to the project, with `/`) is a test file of the language: one of
+    /// the `test_patterns` matches.
+    #[must_use]
+    pub fn is_test_file(&self, path: &str) -> bool {
+        self.test_files.is_match(path)
+    }
+
     /// File extensions the pack claims, without the dot.
     #[must_use]
     pub fn extensions(&self) -> &[String] {
@@ -179,6 +189,21 @@ fn parent_kinds(
         }
     }
     Ok(kinds)
+}
+
+/// The patterns of the manifest as one matcher; a broken pattern is a reason for the pack.
+fn test_files(patterns: &[String]) -> Result<GlobSet, String> {
+    let mut builder = GlobSetBuilder::new();
+    for pattern in patterns {
+        let glob = GlobBuilder::new(pattern)
+            .literal_separator(true)
+            .build()
+            .map_err(|e| {
+                [pattern.as_str(), e.kind().to_string().as_str()].join(TEST_PATTERN_SEPARATOR)
+            })?;
+        builder.add(glob);
+    }
+    builder.build().map_err(|e| e.to_string())
 }
 
 fn folder_name(dir: &Path) -> String {

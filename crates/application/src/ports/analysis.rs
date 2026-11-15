@@ -1,10 +1,11 @@
 //! Understanding code (adapters: `codeskimr_parsing` and the metrics of `codeskimr_domain`).
 
+use std::collections::HashSet;
 use std::time::Duration;
 
 use codeskimr_domain::{
-    Confidence, FileId, Fingerprints, FolderPath, LanguageId, Metric, QualifiedName, Reference,
-    ReferenceKind, SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId,
+    FileId, Fingerprints, FolderPath, LanguageId, Metric, QualifiedName, Reference, ReferenceKind,
+    RelativePath, SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId,
 };
 
 use super::DiscoveredFile;
@@ -58,13 +59,10 @@ pub struct PendingReference {
     pub span: Span,
     /// Kind of use.
     pub kind: ReferenceKind,
-    /// The name as written, to be resolved. A name that equals the qualified name of a symbol
-    /// stands for exactly that symbol (this is how references are resolved again).
+    /// The name as written, to be resolved. An import names exactly one qualified name.
     pub target: QualifiedName,
     /// What the syntax says about the receiver in front of the name, if there is one.
     pub receiver: Option<Receiver>,
-    /// The confidence of an earlier resolution of this occurrence; the resolver never raises it.
-    pub previous: Option<Confidence>,
 }
 
 /// The syntax fingerprints of one function-like symbol (blueprint 10.4).
@@ -113,6 +111,12 @@ pub trait FileAnalyzer: Send + Sync {
     fn pack_load_time(&self) -> Duration {
         Duration::ZERO
     }
+
+    /// Whether `path` is a test file of `language` (`test_patterns` of its pack). The resolver
+    /// reports a use from a test file with the kind `test`. The default knows no test file.
+    fn is_test_file(&self, _language: &LanguageId, _path: &RelativePath) -> bool {
+        false
+    }
 }
 
 /// Fingerprints a piece of code that is not part of a scanned file, for `find_similar_code`
@@ -131,7 +135,8 @@ pub trait SnippetFingerprinter: Send + Sync {
 /// Maps pending references to symbols (blueprint section 9).
 pub trait ReferenceResolver: Send + Sync {
     /// Resolves `pending` against the global symbol table `symbols`. Names that match nothing are
-    /// dropped; ambiguous ones become `Confidence::Probable`.
+    /// dropped; ambiguous ones become `Confidence::Probable`. A call, read, write or type use in
+    /// one of the `test_files` is reported with the kind `test`.
     ///
     /// # Errors
     /// A coded failure of the `RES` group.
@@ -139,6 +144,7 @@ pub trait ReferenceResolver: Send + Sync {
         &self,
         symbols: &[Symbol],
         pending: &[PendingReference],
+        test_files: &HashSet<FileId>,
         ids: &IdSequence,
     ) -> Result<Vec<Reference>, CodedError>;
 }
