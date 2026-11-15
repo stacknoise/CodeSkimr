@@ -116,37 +116,41 @@ pub fn wipe(path: &Path) -> io::Result<()> {
     })
 }
 
-pub fn build_corpus(scratch: &Path) -> io::Result<PathBuf> {
-    let corpus = scratch.join("corpus");
+/// Writes `FILES` files below `scratch/name`, in folders of `FILES_PER_FOLDER`. The file name and
+/// the source of file `index` come from `name_of` and `source_of`.
+fn write_corpus(
+    (scratch, name): (&Path, &str),
+    name_of: impl Fn(usize) -> String,
+    source_of: impl Fn(usize, &mut Lcg) -> String,
+) -> io::Result<PathBuf> {
+    let corpus = scratch.join(name);
     wipe(&corpus)?;
     let mut random = Lcg::new(SEED);
     for index in 0..FILES {
         let folder = corpus.join(format!("part{}", index / FILES_PER_FOLDER));
         fs::create_dir_all(&folder)?;
-        fs::write(
-            folder.join(format!("thing{index}.rs")),
-            file_source(index, &mut random),
-        )?;
+        fs::write(folder.join(name_of(index)), source_of(index, &mut random))?;
     }
     Ok(corpus)
+}
+
+pub fn build_corpus(scratch: &Path) -> io::Result<PathBuf> {
+    write_corpus(
+        (scratch, "corpus"),
+        |index| format!("thing{index}.rs"),
+        file_source,
+    )
 }
 
 /// A corpus of C# files with about 100k lines and dense references; its scan is what the Rust
 /// corpus does not show: many references between many symbols of the same names.
 #[allow(dead_code, reason = "not every benchmark scans the C# corpus")]
 pub fn build_csharp_corpus(scratch: &Path) -> io::Result<PathBuf> {
-    let corpus = scratch.join("corpus-csharp");
-    wipe(&corpus)?;
-    let mut random = Lcg::new(SEED);
-    for index in 0..FILES {
-        let folder = corpus.join(format!("part{}", index / FILES_PER_FOLDER));
-        fs::create_dir_all(&folder)?;
-        fs::write(
-            folder.join(format!("Thing{index}.cs")),
-            csharp_source(index, &mut random),
-        )?;
-    }
-    Ok(corpus)
+    write_corpus(
+        (scratch, "corpus-csharp"),
+        |index| format!("Thing{index}.cs"),
+        csharp_source,
+    )
 }
 
 /// Builds the release binary the benchmark runs; it is the product as users get it.
