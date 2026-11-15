@@ -11,6 +11,22 @@ pub const REFERENCES_QUERY_FILE: &str = "references.scm";
 
 /// Tree-sitter query with the counts of the metrics (ADR 0015); optional.
 pub const METRICS_QUERY_FILE: &str = "metrics.scm";
+/// The query files a pack may take over from another pack (ADR 0056).
+pub const SHAREABLE_QUERY_FILES: [&str; 3] = [
+    SYMBOLS_QUERY_FILE,
+    REFERENCES_QUERY_FILE,
+    METRICS_QUERY_FILE,
+];
+/// Separator between the text of two query files that are joined (ADR 0056).
+pub const QUERY_JOIN: &str = "\n";
+/// Reason: `queries.from` is no folder name of a pack.
+pub const QUERIES_FROM_INVALID: &str = "queries.from is not the folder name of a pack: ";
+/// Reason: `queries.from` names the pack itself.
+pub const QUERIES_FROM_SELF: &str = "queries.from names the pack itself: ";
+/// Reason: `queries.files` names a file that cannot be taken over.
+pub const QUERIES_FILE_UNKNOWN: &str = "queries.files names no query file that can be shared: ";
+/// Reason: the pack named in `queries.from` takes files from a pack itself.
+pub const QUERIES_FROM_CHAINED: &str = "queries.from names a pack that takes files itself: ";
 /// Capture of a comment node in `metrics.scm`; line kinds come from `comment_nodes` of the pack.
 pub const COMMENT_CAPTURE: &str = "comment";
 /// Capture of a decision point in `metrics.scm`.
@@ -173,6 +189,8 @@ pub const PLACEHOLDER_OPEN: char = '{';
 pub const PLACEHOLDER_CLOSE: char = '}';
 /// Characters that make a program name a path.
 pub const PATH_SEPARATORS: [char; 2] = ['/', '\\'];
+/// Character that a folder name taken from a manifest must not contain (no `..`).
+pub const PATH_DOT: char = '.';
 /// Nothing: what a placeholder is replaced with when the rest of an argument is checked.
 pub const NOTHING: &str = "";
 
