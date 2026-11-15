@@ -1,0 +1,27 @@
+# M6 measurement, 2026-11-15, linux, /home/user/CodeSkimr/target/release/codeskimr
+
+## Git source
+
+| Step | Result | Wall time |
+|---|---|---|
+| clone and scan (first) | 1 files, 3 symbols, 0 references, scan 0.06 s | 1056 ms |
+| scan again, nothing new | 1 files, 3 symbols, 0 references, scan 0.06 s | 1136 ms |
+| update after a new commit on main | 2 files, 6 symbols, 2 references, scan 0.06 s | 988 ms |
+| branch dev | 3 files, 8 symbols, 2 references, scan 0.05 s | 1202 ms |
+| missing branch | exit 1, SRC-202 | 1062 ms |
+
+## Export and secrets
+
+- `export --html`: exit 0, Export written to /tmp/codeskimr-m6-ARiBQC/export.html (4 symbols, 272 KiB). The source code is not included. (17 ms)
+- page size: 272 KiB
+- occurrences of the planted secret in the page: 0
+- occurrences of the data folder in the page: 0
+- occurrences of the working folder in the page: 0
+- files of the Git cache holding the planted text (the clone holds the source, expected): 2
+- other files of the data folder (database, logs, tokens) holding it: 0 of 1
+- outputs of all commands holding it: 0 of 20
+
+## Keystore
+
+- `credential set` here: exit 1, SEC-601
+- the secret in its output: no
