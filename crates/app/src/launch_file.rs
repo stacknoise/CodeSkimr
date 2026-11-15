@@ -461,4 +461,18 @@ mod tests {
         assert!(!file.path().to_string_lossy().starts_with("\\\\?\\"));
         assert!(target.join("launch").is_dir());
     }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_parent_that_was_turned_into_a_junction_is_seen() {
+        let dir = tempfile::tempdir().unwrap();
+        let parent = dir.path().join("parent");
+        fs::create_dir_all(parent.join("launch")).unwrap();
+        let resolved = fs::canonicalize(parent.join("launch")).unwrap();
+        let elsewhere = dir.path().join("elsewhere");
+        fs::create_dir_all(elsewhere.join("launch")).unwrap();
+        fs::remove_dir_all(&parent).unwrap();
+        junction(&parent, &elsewhere);
+        assert!(still_there(&resolved).is_err());
+    }
 }
