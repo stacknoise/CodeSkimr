@@ -35,7 +35,7 @@ pub type Files<'a> = &'a [(&'a str, &'a [u8])];
 /// folder and none exists next to the program or in the current folder.
 ///
 /// # Errors
-/// `APP-203` if the packs cannot be written to the data folder.
+/// `APP-602` if the packs cannot be written to the data folder.
 pub fn prefer_embedded(
     locations: Locations,
     global: &GlobalOptions,
@@ -75,7 +75,7 @@ fn beside_program(locations: &Locations) -> bool {
 /// that a program started at the same time, or an interrupted start, never sees half of them.
 ///
 /// # Errors
-/// `APP-203` if a file or folder cannot be written.
+/// `APP-602` if a file or folder cannot be written.
 pub fn materialize(
     files: Files<'_>,
     fingerprint: &str,
