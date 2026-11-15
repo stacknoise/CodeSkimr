@@ -18,7 +18,7 @@ The binding specification is `BLUEPRINT.md`. Every rule in it applies to every p
 4. From milestone M1 on, use CodeSkimr's own MCP server: `find_similar_code` and `find_constants` before writing new code, `check_conventions` before every commit.
 5. Never change repository settings or rulesets, never loosen a lint, threshold or budget, never disable or skip a test to get CI green.
 6. The ruleset requires 0 approvals because PRs are opened under the product owner's account. The reviewer agent writes its verdict as a review comment, never for its own work.
-7. Merging: an agent may enable auto-merge (squash) on a PR only when all required checks are green and the reviewer agent has given an OK in a review comment. The author agent never merges its own PR without that review. Exceptions that only Anton (the product owner) merges: PRs labelled `security-sensitive` or `new-dependency`, and any change to `BLUEPRINT.md`, `docs/adr/`, `CLAUDE.md`, `.claude/agents/` or the repository rules.
+7. Merging: an agent may merge (squash) or enable auto-merge on a PR only when all required checks are green and the reviewer agent has given an OK in a review comment. The author agent never merges its own PR without that review. By the approval of Anton (the product owner) of 2026-11-15 this also holds for PRs labelled `security-sensitive` or `new-dependency` and for any change to `BLUEPRINT.md`, `docs/adr/`, `CLAUDE.md`, `.claude/agents/` or the repository rules, until he revokes it. If a permission check refuses such a merge, nobody works around it: Anton merges then.
 8. Review feedback: the author agent processes every reviewer comment itself before the merge, including minor remarks. It fixes what belongs to the work package in the same PR. What lies outside the package becomes a GitHub issue that is linked in the PR. Only then does the reviewer give the OK again and auto-merge may be enabled. Findings are never left open "for later" without an issue.
 9. A change to the blueprint, a new dependency layer, symbol kind, pattern or technology needs an ADR in `docs/adr/` and the label `blueprint-change`.
 10. A new dependency needs one sentence of justification in the PR and the label `new-dependency`.
@@ -35,4 +35,4 @@ Blueprint 18.4: rules met and CI green, tests on the right level, texts in de an
 
 ## Roles
 
-Role descriptions are in `.claude/agents/`. Workflow: coordinator releases a package, developer implements and opens the PR, CI runs, reviewer checks and comments (security reviews `security-sensitive` PRs), then the PR is merged by auto-merge once checks are green and the reviewer gave an OK; Anton merges the exceptions from rule 7.
+Role descriptions are in `.claude/agents/`. Workflow: coordinator releases a package, developer implements and opens the PR, CI runs, reviewer checks and comments (security reviews `security-sensitive` PRs), then the PR is merged once checks are green and the reviewer gave an OK (rule 7).
