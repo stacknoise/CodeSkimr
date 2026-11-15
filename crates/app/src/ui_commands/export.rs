@@ -261,7 +261,7 @@ impl Command for HtmlExport {
         permission: Permission::Read,
     };
 
-    fn execute(&self, request: Request<'_, ExportInput>) -> Result<ExportOut, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<ExportOut, CodedError> {
         access::require(request.principal, Permission::Read)?;
         let page = self.page()?;
         let data = self.collect(*request.principal, request.input.project)?;

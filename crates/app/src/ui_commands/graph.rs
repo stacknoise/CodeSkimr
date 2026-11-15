@@ -215,7 +215,7 @@ impl Command for GraphLayers {
         permission: Permission::Read,
     };
 
-    fn execute(&self, request: Request<'_, GraphInput>) -> Result<GraphOut, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<GraphOut, CodedError> {
         access::require(request.principal, Permission::Read)?;
         let ports = &self.ports;
         let id = ProjectId::new(request.input.project);

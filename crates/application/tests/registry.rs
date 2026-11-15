@@ -30,7 +30,7 @@ impl Command for Double {
     type Output = u32;
     const DESCRIPTOR: CommandDescriptor = descriptor("b.double", true, Permission::Read);
 
-    fn execute(&self, request: Request<'_, u32>) -> Result<u32, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<u32, CodedError> {
         Ok(request.input * 2)
     }
 }
@@ -40,7 +40,7 @@ impl Command for Shout {
     type Output = String;
     const DESCRIPTOR: CommandDescriptor = descriptor("a.shout", false, Permission::Scan);
 
-    fn execute(&self, request: Request<'_, String>) -> Result<String, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<String, CodedError> {
         Ok(request.input.to_uppercase())
     }
 }
@@ -146,7 +146,7 @@ impl Command for Mislabelled {
     type Output = ();
     const DESCRIPTOR: CommandDescriptor = descriptor("c.mislabelled", false, Permission::Read);
 
-    fn execute(&self, _request: Request<'_, ()>) -> Result<(), CodedError> {
+    fn execute(&self, _request: Request<'_, Self>) -> Result<(), CodedError> {
         Ok(())
     }
 }
