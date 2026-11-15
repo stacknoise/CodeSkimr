@@ -38,7 +38,7 @@ A failing check never fails a scan: the error is logged and the project is shown
 
 ## Known limits
 
-- The check sees the version that `dotnet --version` prints in a neutral folder, which is the newest SDK installed. If several SDKs are installed, an older one that fits the project may exist; then `too_new` is shown although the build would work. The check does not list installed SDKs.
+- The check sees the version that `dotnet --version` prints in a neutral folder, which is the newest SDK installed. If several SDKs are installed, an older one that fits the project may exist; then `too_new` is shown although the build would work. The check does not list installed SDKs. Several `global.json` files with different pins can never all be green at once, even with two SDKs installed, because the check compares one found version with every file.
 - `allowPrerelease` of `global.json` is not modelled: the version type holds no prerelease part, so a prerelease SDK is judged by its numbers only.
 - A ceiling is judged on the version of a tool that the runner read; the level 2 run itself does not refuse a too new tool (it does not read the project files), the build fails as before.
 - Requirement files are searched with a depth and a count limit (see above); a manifest deeper than 6 levels is not seen.
