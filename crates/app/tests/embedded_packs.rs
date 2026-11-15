@@ -5,10 +5,12 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 /// A scanned Rust project, an empty working folder and an empty data folder.
+#[cfg(test)]
 struct Setup {
     root: tempfile::TempDir,
 }
 
+#[cfg(test)]
 impl Setup {
     fn new() -> Self {
         let root = tempfile::tempdir().unwrap();
@@ -61,6 +63,7 @@ impl Setup {
     }
 }
 
+#[cfg(test)]
 fn is_file(folder: &Path, name: &str) -> bool {
     folder.join(name).is_file()
 }
