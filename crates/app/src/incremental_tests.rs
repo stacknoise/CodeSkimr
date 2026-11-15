@@ -810,6 +810,15 @@ mod random {
             text
         }
 
+        /// A class that holds the free functions of the file as static methods, for the languages
+        /// that have no free functions; nothing if the file declares none.
+        fn free_class(&self, head: &str, declare: impl Fn(u64) -> String) -> String {
+            if self.frees.is_empty() {
+                return String::new();
+            }
+            format!("\n{head}\n{}}}\n", self.free_declarations(declare))
+        }
+
         /// The declarations of the free functions, one text per function.
         fn free_declarations(&self, declare: impl Fn(u64) -> String) -> String {
             self.frees.iter().map(|free| declare(*free)).collect()
@@ -860,8 +869,13 @@ mod random {
             writeln!(text, "\nnamespace Demo.N{};\n", self.namespace).unwrap();
             let base = self.base.map(|b| format!(" : K{b}")).unwrap_or_default();
             writeln!(text, "public class K{}{base}\n{{", self.class).unwrap();
+            let keyword = if self.base.is_some() {
+                "override"
+            } else {
+                "virtual"
+            };
             for method in self.declared() {
-                writeln!(text, "    public void M{method}() {{ }}").unwrap();
+                writeln!(text, "    public {keyword} void M{method}() {{ }}").unwrap();
             }
             writeln!(text, "    public void Run()\n    {{").unwrap();
             text += &self.call_lines(
@@ -869,7 +883,11 @@ mod random {
                 |c, m| format!("K{c}.M{m}();"),
                 |i, c, m| format!("K{c} v{i} = new K{c}();\nv{i}.M{m}();"),
             );
+            text += &self.free_call_lines("        ", |f| format!("Free.F{f}();"));
             writeln!(text, "        this.M{}();\n    }}\n}}", self.own()).unwrap();
+            text += &self.free_class("public static class Free\n{", |f| {
+                format!("    public static void F{f}() {{ }}\n")
+            });
             text
         }
 
@@ -884,6 +902,9 @@ mod random {
                 .unwrap_or_default();
             writeln!(text, "\nclass K{}{base} {{", self.class).unwrap();
             for method in self.declared() {
+                if self.base.is_some() {
+                    writeln!(text, "    @Override").unwrap();
+                }
                 writeln!(text, "    public void m{method}() {{ }}").unwrap();
             }
             writeln!(text, "    public void run() {{").unwrap();
@@ -892,7 +913,11 @@ mod random {
                 |c, m| format!("K{c}.m{m}();"),
                 |i, c, m| format!("K{c} v{i} = new K{c}();\nv{i}.m{m}();"),
             );
+            text += &self.free_call_lines("        ", |f| format!("Free.f{f}();"));
             writeln!(text, "        this.m{}();\n    }}\n}}", self.own()).unwrap();
+            text += &self.free_class("class Free {", |f| {
+                format!("    public static void f{f}() {{ }}\n")
+            });
             text
         }
 
@@ -903,8 +928,13 @@ mod random {
             }
             let base = self.base.map(|b| format!(" : K{b}()")).unwrap_or_default();
             writeln!(text, "\nopen class K{}{base} {{", self.class).unwrap();
+            let keyword = if self.base.is_some() {
+                "override"
+            } else {
+                "open"
+            };
             for method in self.declared() {
-                writeln!(text, "    fun m{method}() {{ }}").unwrap();
+                writeln!(text, "    {keyword} fun m{method}() {{ }}").unwrap();
             }
             writeln!(text, "    fun run() {{").unwrap();
             text += &self.call_lines(
@@ -928,8 +958,9 @@ mod random {
                 .map(|b| format!(" extends K{b}"))
                 .unwrap_or_default();
             writeln!(text, "\nexport class K{}{base} {{", self.class).unwrap();
+            let keyword = if self.base.is_some() { "override " } else { "" };
             for method in self.declared() {
-                writeln!(text, "  m{method}(): void {{}}").unwrap();
+                writeln!(text, "  {keyword}m{method}(): void {{}}").unwrap();
             }
             writeln!(text, "  run(): void {{").unwrap();
             text += &self.call_lines(
