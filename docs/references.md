@@ -23,12 +23,16 @@ Which kinds a name can point to depends on the kind of occurrence (`resolve/kind
 
 `certain`: one candidate found in steps 1 to 4. `probable`: several candidates (all are stored), the last resort, a member of an interface or trait (the implementation is unknown), or a dispatch: if the target is a method, property or event that subtypes replace or implement, the members of those subtypes are added as candidates (a call through an interface or base class can end up in any of them). `RES-301` is not reported yet. A reference that is resolved again in an incremental scan keeps its earlier confidence, and the kept base lists are resolved again so that the hierarchy is complete (`docs/incremental-scan.md`).
 
+## Uses in test files
+
+A call, read, write or type use in a test file is reported with the kind `test` (issue #406). The test files of a language are the `test_patterns` of its pack (globs on the path relative to the project, `**` crosses folders). Imports, base types and overrides keep their kind, because they decide what a file sees and what a type inherits. `find_usages` leaves `test` references out unless `include_tests` is set, and coupling does not count them. The resolve stage asks the analysis port (`FileAnalyzer::is_test_file`) for every file of the scan, changed or kept, so a full scan and an incremental scan give the same kinds.
+
 ## Known limits (follow-up work)
 
 - The type of a method result (`var x = svc.Make()`) is not known: the pack does not report return types. A call on `x` is `probable`, for every type that has the name.
 - Overloads are not told apart (no argument counts), so a call of an overloaded method is `probable`.
 - Extension methods, `using static`, generic type parameters and members reached through a chain (`a.b.c()`) fall back to the last resort or to nothing.
-- The kind `test` is not produced yet.
+- A change of `test_patterns` (or an upgrade that brings other patterns) does not re-resolve unchanged files in an incremental scan with narrow scope: they keep their old kinds until the next full scan (issue #429). Level 2 does not know the test files yet: a use that level 2 has verified in a test file keeps the kind of the index (`call`, `read`, `type_use`), not `test`.
 - Resolution is sequential; ids are handed out in a fixed order.
 
 ## Level 2 (ADR 0033)

@@ -416,3 +416,65 @@ fn a_python_file_with_only_an_import_follows_an_edit_of_the_imported_file() {
     );
     assert_eq!(incremental, full);
 }
+
+/// A file of tests next to the code it tests: its uses are `test` references (issue #406).
+const TEST_FILE: Change = (
+    "test_target.py",
+    Some("from target import Target\n\n\ndef test_do():\n    Target().do()\n"),
+);
+
+#[test]
+fn uses_in_a_test_file_are_test_references_in_both_ways_of_scanning() {
+    let (full, incremental) = both_ways(PYTHON_BASE, &[&[TEST_FILE]]);
+    assert_eq!(incremental, full);
+    let in_test: Vec<&String> = full
+        .iter()
+        .filter(|line| line.starts_with("test_target.py"))
+        .collect();
+    assert!(
+        in_test.iter().any(|line| line.contains("} test ")),
+        "{full:?}"
+    );
+    assert!(
+        !in_test.iter().any(|line| line.contains("} call ")),
+        "{full:?}"
+    );
+    // The code under test keeps its calls.
+    assert!(
+        full.iter()
+            .any(|line| line.starts_with("caller.py") && line.contains(" call "))
+    );
+}
+
+/// The python project with its test file already in the first snapshot, so that later scans keep it.
+fn python_with_tests() -> Vec<(&'static str, &'static str)> {
+    let mut base = PYTHON_BASE.to_vec();
+    base.push((TEST_FILE.0, TEST_FILE.1.unwrap_or_default()));
+    base
+}
+
+#[test]
+fn a_kept_test_file_keeps_its_test_references_when_other_files_change() {
+    let util: Change = ("util.py", Some("def helper():\n    return 2\n"));
+    let (full, incremental) = both_ways(&python_with_tests(), &[&[util]]);
+    assert_eq!(incremental, full);
+    assert!(
+        full.iter()
+            .any(|line| line.starts_with("test_target.py") && line.contains("} test "))
+    );
+}
+
+#[test]
+fn a_kept_test_file_loses_its_test_reference_when_the_target_goes() {
+    let renamed: Change = (
+        "target.py",
+        Some("class Target:\n    def renamed(self):\n        pass\n"),
+    );
+    let (full, incremental) = both_ways(&python_with_tests(), &[&[renamed]]);
+    assert_eq!(incremental, full);
+    assert!(
+        !full
+            .iter()
+            .any(|line| line.starts_with("test_target.py") && line.contains("-> target.Target.do"))
+    );
+}

@@ -1,6 +1,6 @@
 //! The six concrete stages, each built from the ports it needs, and the values passed between them.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
@@ -8,8 +8,8 @@ use std::thread;
 use std::time::Instant;
 
 use codeskimr_domain::{
-    CommitHash, FolderPath, LanguageId, Metric, Project, Reference, ScanMode, Snapshot, SnapshotId,
-    SnapshotStats, SourceFile, Symbol, SymbolCounts,
+    CommitHash, FileId, FolderPath, LanguageId, Metric, Project, Reference, ScanMode, Snapshot,
+    SnapshotId, SnapshotStats, SourceFile, Symbol, SymbolCounts,
 };
 
 use codeskimr_codes::ErrorCode;
@@ -407,6 +407,8 @@ pub struct ResolveStage {
     pub projects: Arc<dyn ProjectRepository>,
     /// The resolver strategy.
     pub resolver: Arc<dyn ReferenceResolver>,
+    /// Tells which files are test files.
+    pub analyzer: Arc<dyn FileAnalyzer>,
     /// Id allocation for references.
     pub ids: Arc<IdSequence>,
 }
@@ -434,7 +436,10 @@ impl Stage for ResolveStage {
         let total = count(&names);
         ctx.progress(0, total);
         let table: Vec<Symbol> = carried.symbols.iter().chain(&symbols).cloned().collect();
-        let resolved = self.resolver.resolve(&table, &names, &self.ids)?;
+        let test_files = self.test_files(files.iter().chain(&carried.files));
+        let resolved = self
+            .resolver
+            .resolve(&table, &names, &test_files, &self.ids)?;
         let references = carried.reconcile(resolved);
         if carried.discarded_verified > 0 {
             tracing::info!(
@@ -453,6 +458,16 @@ impl Stage for ResolveStage {
             fingerprints,
             carried,
         })
+    }
+}
+
+impl ResolveStage {
+    /// Ids of the files among `files` that are test files of their language.
+    fn test_files<'a>(&self, files: impl Iterator<Item = &'a SourceFile>) -> HashSet<FileId> {
+        files
+            .filter(|file| self.analyzer.is_test_file(&file.language, &file.path))
+            .map(|file| file.id)
+            .collect()
     }
 }
 

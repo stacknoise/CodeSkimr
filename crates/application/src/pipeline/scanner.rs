@@ -86,13 +86,14 @@ impl Scanner {
             analyzer: Arc::clone(&ports.analyzer),
         })
         .then(AnalyzeStage {
-            analyzer: ports.analyzer,
+            analyzer: Arc::clone(&ports.analyzer),
             ids: Arc::clone(ids),
             max_workers: ports.max_workers,
         })
         .then(ResolveStage {
             projects: Arc::clone(&ports.projects),
             resolver: ports.resolver,
+            analyzer: Arc::clone(&ports.analyzer),
             ids: Arc::clone(ids),
         })
         .then(MeasureStage {

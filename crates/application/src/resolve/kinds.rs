@@ -72,6 +72,18 @@ pub fn is_overridable(kind: SymbolKind) -> bool {
     OVERRIDABLE.contains(&kind)
 }
 
+/// The kind of a use in a test file: a call, read, write or type use is a `test` reference. Imports
+/// and base types keep their kind, because they decide what a file sees and what a type inherits.
+pub const fn in_test(kind: ReferenceKind) -> ReferenceKind {
+    match kind {
+        ReferenceKind::Call
+        | ReferenceKind::Read
+        | ReferenceKind::Write
+        | ReferenceKind::TypeUse => ReferenceKind::Test,
+        other => other,
+    }
+}
+
 /// The kind a reference is reported as once its target is known: a name in a value position that
 /// turns out to be a type is a type use, and a base type that is an interface is implemented.
 pub fn reported(kind: ReferenceKind, target: SymbolKind) -> ReferenceKind {
