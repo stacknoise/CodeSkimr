@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 64,
+      "loc": 65,
       "operands": null,
       "operators": null,
       "symbol": "references"
@@ -55,20 +55,20 @@
       "symbol": "references::Order::find"
     },
     {
-      "decisions": 4,
-      "loc": 16,
+      "decisions": 5,
+      "loc": 17,
       "operands": [
-        10,
-        14
+        11,
+        15
       ],
       "operators": [
-        9,
-        22
+        10,
+        26
       ],
       "symbol": "references::bindings"
     }
   ],
-  "loc": 64,
+  "loc": 65,
   "references": [
     {
       "at": "2:23",
@@ -510,6 +510,13 @@
       "kind": "read",
       "receiver": null,
       "target": "OFFSET"
+    },
+    {
+      "at": "71:22",
+      "from": "references::bindings",
+      "kind": "call",
+      "receiver": null,
+      "target": "first_value"
     }
   ],
   "symbols": [
@@ -519,7 +526,7 @@
       "name": "references",
       "parent": null,
       "signature": null,
-      "span": "0:0-72:0",
+      "span": "0:0-73:0",
       "static": false,
       "visibility": null
     },
@@ -619,7 +626,7 @@
       "name": "references::bindings",
       "parent": "references",
       "signature": null,
-      "span": "56:0-71:1",
+      "span": "56:0-72:1",
       "static": false,
       "visibility": "private"
     }

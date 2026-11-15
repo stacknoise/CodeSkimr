@@ -176,7 +176,8 @@
 (or_pattern (identifier) @local (#match? @local "^[a-z_]"))
 (mut_pattern (identifier) @local)
 (ref_pattern (identifier) @local)
-(reference_pattern (identifier) @local)
+(reference_pattern (identifier) @local (#match? @local "^[a-z_]"))
+; `name @ pattern`: the first name is always the binding
 (captured_pattern . (identifier) @local)
 (field_pattern name: (shorthand_field_identifier) @local)
 (field_pattern pattern: (identifier) @local (#match? @local "^[a-z_]"))

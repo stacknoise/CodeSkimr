@@ -69,4 +69,5 @@ fn bindings(input: Option<(u32, Item)>, queue: &mut Vec<u32>) {
     let Item { id: ref helper, .. } = pair.1;
     let _ = helper;
     let _ = OFFSET;
+    if let &OFFSET = &first_value(queue) {}
 }
