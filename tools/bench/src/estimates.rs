@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 use std::fs;
 use std::io::ErrorKind;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use serde::Deserialize;
 
@@ -28,6 +28,24 @@ fn io_error(path: &Path, source: std::io::Error) -> BenchError {
         path: path.to_path_buf(),
         source,
     }
+}
+
+/// Collects the best medians of one named baseline over several runs: for every benchmark the
+/// smallest median of the directories that have it. A run that was slowed down by the machine
+/// only matters if every run of the benchmark was slow.
+///
+/// # Errors
+/// Returns an error when a directory or an estimates file cannot be read or parsed.
+pub fn collect_best(criterion_dirs: &[PathBuf], baseline: &str) -> Result<Medians, BenchError> {
+    let mut best = Medians::new();
+    for dir in criterion_dirs {
+        for (id, median) in collect(dir, baseline)? {
+            best.entry(id)
+                .and_modify(|known| *known = known.min(median))
+                .or_insert(median);
+        }
+    }
+    Ok(best)
 }
 
 /// Collects the medians of one named baseline below `criterion_dir`.
