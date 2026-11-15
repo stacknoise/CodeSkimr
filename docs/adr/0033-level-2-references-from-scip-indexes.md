@@ -1,6 +1,6 @@
 # 0033 – Level 2 references come from SCIP indexes; level 1 keeps every match and marks it unchecked
 
-Status: proposed
+Status: accepted
 
 ## Context
 
