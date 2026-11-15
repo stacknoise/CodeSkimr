@@ -1,6 +1,6 @@
 # 0057 – Sandbox for level 2 indexers
 
-Status: proposed (draft for Anton, issue #290; nothing is built yet)
+Status: accepted (Anton, 2026-11-15, decision card; implementation after 1.0, one work package per system, issue #290)
 
 ## Context
 
