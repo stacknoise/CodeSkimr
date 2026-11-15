@@ -42,7 +42,7 @@ pub use query::{
     CodeIndex, CodeSpan, FileHit, MemberRef, SearchHit, SymbolDetail, SymbolKey, TypeFocus,
     TypeNeighbour,
 };
-pub use rescan::ProjectScanner;
+pub use rescan::{PathsReport, ProjectScanner, Rescanned};
 pub use similarity::{SimilarHit, SimilarQuery, SimilarityIndex};
 pub use source::{
     DiscoveredFile, Excerpt, FetchedSource, FileDiscovery, SourceProvider, SourceText,

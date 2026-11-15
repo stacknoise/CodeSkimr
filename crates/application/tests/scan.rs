@@ -16,9 +16,9 @@ use codeskimr_application::pipeline::{Job, JobResult, Scanner, ScannerPorts};
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, ConsentStore, DiscoveredFile, FetchedSource, FileAnalyzer,
     FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob, IndexRunner,
-    IndexerSpec, IndexerStatus, Level2Replacement, MetricsCalculator, PendingReference,
-    PreviousIndex, PreviousState, ProjectRepository, ProjectScanner, Receiver, ReferenceImporter,
-    ReferenceResolver, SnapshotData, SnapshotStore, SourceProvider, StoredNames,
+    IndexerSpec, IndexerStatus, Level2Replacement, MetricsCalculator, PathsReport,
+    PendingReference, PreviousIndex, PreviousState, ProjectRepository, ProjectScanner, Receiver,
+    ReferenceImporter, ReferenceResolver, SnapshotData, SnapshotStore, SourceProvider, StoredNames,
     SymbolFingerprints, ToolSpec, ToolVersion,
 };
 use codeskimr_application::stage::StageKind;
@@ -1427,6 +1427,63 @@ fn a_scan_restricted_to_paths_that_name_no_file_changes_nothing() -> Result<(), 
         analysed(&escaping),
         Vec::<&str>::new(),
         "a path that leaves the project names nothing"
+    );
+    Ok(())
+}
+
+/// What a scan over the world of `a.rs`, `b.rs` and `c.rs` made of the `paths` it was asked for.
+fn paths_report(mode: ScanMode, paths: &[&str]) -> Result<PathsReport, CodedError> {
+    let world = Arc::new(World {
+        found: Some(vec![("a.rs", false), ("c.rs", false)]),
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let paths: Vec<String> = paths.iter().map(|path| (*path).to_owned()).collect();
+    let job = Job::new(ProjectId::new(7), mode).with_paths(&paths);
+    let JobResult::Finished(job) =
+        scanner(&world, &EventBus::new()).run(&Principal::local_owner(), job)
+    else {
+        return Err(CodedError::new(ErrorCode::UnexpectedInternalError));
+    };
+    Ok(job.paths_report().clone())
+}
+
+#[test]
+fn a_path_that_names_no_file_is_reported_and_a_deleted_file_is_not_unmatched()
+-> Result<(), CodedError> {
+    // `b.rs` is gone from the folder but known to the previous snapshot: a legitimate path.
+    let report = paths_report(
+        ScanMode::Incremental,
+        &["a.rs", "b.rs", "typo.rs", "../a.rs", "/a.rs"],
+    )?;
+    assert_eq!(report.unmatched, ["typo.rs", "../a.rs", "/a.rs"]);
+    assert!(!report.ignored);
+    Ok(())
+}
+
+#[test]
+fn a_scan_without_paths_has_nothing_to_report() -> Result<(), CodedError> {
+    assert_eq!(
+        paths_report(ScanMode::Incremental, &[])?,
+        PathsReport::default()
+    );
+    Ok(())
+}
+
+#[test]
+fn paths_of_a_scan_that_had_to_be_a_full_one_are_reported_as_ignored() -> Result<(), CodedError> {
+    assert!(paths_report(ScanMode::Full, &["a.rs"])?.ignored);
+    let world = world_with_rules("csharp=namespace", Some("csharp=file"))?;
+    let job = Job::new(ProjectId::new(7), ScanMode::Incremental).with_paths(&["a.rs".to_owned()]);
+    let JobResult::Finished(job) =
+        scanner(&world, &EventBus::new()).run(&Principal::local_owner(), job)
+    else {
+        panic!("scan did not finish");
+    };
+    assert_eq!(job.snapshot().mode, ScanMode::Full);
+    assert!(
+        job.paths_report().ignored,
+        "other naming rules make a full scan"
     );
     Ok(())
 }

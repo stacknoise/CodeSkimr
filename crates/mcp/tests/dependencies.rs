@@ -5,6 +5,7 @@ mod common;
 
 use std::sync::Arc;
 
+use codeskimr_application::ports::PathsReport;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Direction, Permission, PermissionSet, Principal};
 use codeskimr_mcp::{DependenciesArgs, RescanArgs};
@@ -207,6 +208,28 @@ fn rescan_hands_its_paths_to_the_scanner_and_names_them() {
         .unwrap();
     assert_eq!(answer["paths"], serde_json::json!(paths));
     assert_eq!(*scanner.asked_paths.lock().unwrap(), vec![paths]);
+}
+
+#[test]
+fn rescan_names_the_paths_that_matched_no_file_and_whether_it_ignored_them() {
+    let scanner = Arc::new(FakeScanner {
+        paths: PathsReport {
+            unmatched: vec!["srcc/a.cs".to_owned()],
+            ignored: true,
+        },
+        ..FakeScanner::default()
+    });
+    let answer = tools_scanning(scanner)
+        .rescan(
+            &owner(),
+            &RescanArgs {
+                project: None,
+                paths: Some(vec!["srcc/a.cs".to_owned()]),
+            },
+        )
+        .unwrap();
+    assert_eq!(answer["unmatched_paths"], serde_json::json!(["srcc/a.cs"]));
+    assert_eq!(answer["paths_ignored"], true);
 }
 
 #[test]
