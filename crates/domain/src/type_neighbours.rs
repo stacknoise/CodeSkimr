@@ -85,8 +85,8 @@ fn ranked(counts: BTreeMap<SymbolId, u32>) -> Vec<TypeLink> {
     links
 }
 
-/// The neighbours of `focus`, from the symbols (id, kind, qualified name, parent) and the references
-/// (from, to) of a snapshot. `None` if `focus` is not a type of the snapshot.
+/// The neighbours of `focus`, from the symbols (id, kind, qualified name, parent) and the
+/// references (from, to) of a snapshot. `None` if `focus` is not a type of the snapshot.
 #[must_use]
 pub fn type_neighbours<'a>(
     focus: SymbolId,
@@ -210,14 +210,14 @@ mod tests {
     #[test]
     fn the_parts_of_a_partial_class_keep_their_own_members() {
         let part = name("App.Cart");
-        let other = name("App.Cart");
+        let second_part = name("App.Cart");
         let total = name("App.Cart.Total");
         let clear = name("App.Cart.Clear");
         let view = name("App.View");
         let draw = name("App.View.Draw");
         let symbols = [
             (id(1), SymbolKind::Class, &part, None),
-            (id(2), SymbolKind::Class, &other, None),
+            (id(2), SymbolKind::Class, &second_part, None),
             (id(3), SymbolKind::Method, &total, Some(id(1))),
             (id(4), SymbolKind::Method, &clear, Some(id(2))),
             (id(5), SymbolKind::Class, &view, None),
