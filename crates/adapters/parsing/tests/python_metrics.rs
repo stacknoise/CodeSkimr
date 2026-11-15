@@ -29,6 +29,37 @@ mod tests {
     }
 
     #[test]
+    fn cognitive_complexity_counts_structures_with_their_nesting() {
+        let found = by_name(&facts("python", "cognitive.py"));
+        let cognitive = |name: &str| body(&found, name).cognitive;
+        assert_eq!(cognitive("straight"), Some(0));
+        // if (+1), for (+2), inner if (+3)
+        assert_eq!(cognitive("nested"), Some(6));
+        // if (+1), elif (+1), else (+1)
+        assert_eq!(cognitive("chain"), Some(3));
+        // `and` run (+1) and `or` (+1)
+        assert_eq!(cognitive("runs"), Some(2));
+        // except (+1), the if inside it (+2)
+        assert_eq!(cognitive("handler"), Some(3));
+        // the conditional expression in the lambda: +2 (nested once)
+        assert_eq!(cognitive("lambdas"), Some(2));
+        // match (+1); the cases add nothing
+        assert_eq!(cognitive("method"), Some(1));
+        assert_eq!(cognitive("looped"), Some(1));
+    }
+
+    #[test]
+    fn parameters_are_counted_without_the_receiver() {
+        let found = by_name(&facts("python", "cognitive.py"));
+        let parameters = |name: &str| body(&found, name).parameters;
+        assert_eq!(parameters("straight"), Some(1));
+        assert_eq!(parameters("runs"), Some(4));
+        // a, b: int, c=3, *rest, **named; `self` does not count
+        assert_eq!(parameters("method"), Some(5));
+        assert_eq!(parameters("make"), Some(1));
+    }
+
+    #[test]
     fn halstead_counts_of_a_small_body() {
         let found = by_name(&facts("python", "metrics.py"));
         // `return 1` is one operator and one operand.

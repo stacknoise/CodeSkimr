@@ -18,7 +18,7 @@ Status: accepted
 2. **Counting.** The adapter assigns the captures to the innermost callable, as for decision points (ADR 0015). The nesting of a structure is the number of `@nesting` nodes between it and the declaration of its callable. A named local function counts for itself; a lambda counts for its callable and nests. Recursion, `?`-like operators and `match` arms add nothing; this follows the published definition of cognitive complexity except for recursion, which needs name resolution and is left out.
 3. **`BodyCounts` carries `cognitive` and `parameters` as `Option`**: `None` means the pack does not count, so a missing count is never read as 0. They are not stored; only the convention check uses them.
 4. **Two limits** in `[conventions]`: `max_cognitive_complexity` (15) and `max_parameters` (5), both positive. A function above them is reported as `CHK-105`, and as the new code `CHK-106` `too_many_parameters`. The report lists a rule under `not_checked` when a function of a language that does not count it was among the checked files.
-5. **Rollout.** This decision comes with the Rust pack. Python, TypeScript, C# and Java follow in packages of their own, the other packs later. `CHK-101` (literals with positions) needs another capture and its own decision.
+5. **Rollout.** This decision comes with the Rust pack; the Python pack follows in the next package. TypeScript, C# and Java follow in packages of their own, the other packs later. `CHK-101` (literals with positions) needs another capture and its own decision.
 
 ## Consequences
 
