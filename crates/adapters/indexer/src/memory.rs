@@ -36,10 +36,13 @@ impl TreeMemory {
             if let Some(process) = self.system.process(pid) {
                 total = total.saturating_add(process.memory());
             }
+            // A thread is listed like a process and reports the memory of the whole process, so
+            // counting threads would multiply the memory by their number.
             let children: Vec<Pid> = self
                 .system
                 .processes()
                 .values()
+                .filter(|child| child.thread_kind().is_none())
                 .filter(|child| child.parent() == Some(pid))
                 .map(sysinfo::Process::pid)
                 .filter(|child| !members.contains(child))

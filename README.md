@@ -12,9 +12,10 @@ Everything runs on your machine. The server listens on `127.0.0.1` only; your co
 - **Dependency map** of the layers of your program.
 - **Usages:** who uses a member and what breaks if you change it, with a mark for how sure each hit is (verified, unchecked, presumed). Optional language indexers (level 2) make usages exact; they are off until you allow them per project.
 - **Metrics and conventions:** size, complexity and coupling per symbol; `codeskimr check` reports files that break the code rules (length, duplicates).
-- **MCP server** (`codeskimr mcp`) for code agents, **HTML export** of a project as one self-contained file.
+- **MCP server** for code agents, over standard input and output (`codeskimr mcp`) or HTTP at `/mcp` of the running app; **HTML export** of a project as one self-contained file (`codeskimr export`).
+- **Private Git repositories:** logins live in the keystore of your system and are created in the UI or with `codeskimr credential`; no secret is stored anywhere else.
 - Languages: C#, Java, Kotlin, Python, Rust, TypeScript, TSX and JavaScript (full tier); C, C++, Go, PHP and Ruby (basic tier).
-- The UI and the messages come in German and English.
+- The UI and the messages come in German and English; the UI has three themes (Hell, Petrol, Dunkel). Theme and language are kept by the server.
 
 ## Install
 
@@ -40,7 +41,8 @@ codeskimr --help
 ## Documentation
 
 - User manual: [English](docs/manual/en/index.md), [Deutsch](docs/manual/de/index.md)
-- [Error code catalogue](docs/error-codes.md) (generated from `errors/error-codes.toml`)
+- [Error code catalogue](docs/error-codes.md) (generated from `errors/error-codes.toml`), explained in the manual chapter [Error codes](docs/manual/en/errors.md)
+- [Accuracy of usages per language](docs/accuracy.md)
 - Development: [BLUEPRINT.md](BLUEPRINT.md) is the binding specification, [CLAUDE.md](CLAUDE.md) holds the rules for contributors and agents, decisions are in [docs/adr/](docs/adr/), CI is described in [docs/ci.md](docs/ci.md), releases in [docs/release.md](docs/release.md).
 - Security: [SECURITY.md](SECURITY.md)
 
