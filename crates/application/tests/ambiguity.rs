@@ -46,4 +46,12 @@ mod tests {
         ];
         assert_eq!(ambiguous_occurrences(found.iter()), 0);
     }
+
+    #[test]
+    fn targets_of_different_kinds_in_one_place_are_one_place() {
+        let mut type_use = call(2, 5, 11, Confidence::Probable, false);
+        type_use.kind = ReferenceKind::TypeUse;
+        let found = [call(1, 5, 10, Confidence::Probable, false), type_use];
+        assert_eq!(ambiguous_occurrences(found.iter()), 1);
+    }
 }
