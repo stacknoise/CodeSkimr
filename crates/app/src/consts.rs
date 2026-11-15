@@ -51,6 +51,9 @@ pub const PACKS_CACHE_DIR: &str = "languages";
 pub const PACKS_COMPLETE_MARKER: &str = ".complete";
 /// Age from which an unfinished pack folder counts as left behind by a crashed start.
 pub const PACKS_STAGING_MAX_AGE: std::time::Duration = std::time::Duration::from_secs(24 * 60 * 60);
+/// Age from which the pack folder of a program that was replaced is removed.
+pub const PACKS_REPLACED_MAX_AGE: std::time::Duration =
+    std::time::Duration::from_secs(30 * 24 * 60 * 60);
 /// Between the fingerprint and the process number in the name of a folder that is being written.
 pub const PACKS_STAGING_SEPARATOR: &str = ".writing-";
 
