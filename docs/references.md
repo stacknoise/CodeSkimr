@@ -32,7 +32,7 @@ A call, read, write or type use in a test file is reported with the kind `test` 
 - The type of a method result (`var x = svc.Make()`) is not known: the pack does not report return types. A call on `x` is `probable`, for every type that has the name.
 - Overloads are not told apart (no argument counts), so a call of an overloaded method is `probable`.
 - Extension methods, `using static`, generic type parameters and members reached through a chain (`a.b.c()`) fall back to the last resort or to nothing.
-- A change of `test_patterns` (or an upgrade that brings other patterns) does not re-resolve unchanged files in an incremental scan with narrow scope: they keep their old kinds until the next full scan (issue #429). Level 2 does not know the test files yet: a use that level 2 has verified in a test file keeps the kind of the index (`call`, `read`, `type_use`), not `test`.
+- A change of `test_patterns` (or an upgrade that brings other patterns) changes the recorded rules of the packs, so the next scan is a full scan and re-resolves every reference (issue #429). Level 2 does not know the test files yet: a use that level 2 has verified in a test file keeps the kind of the index (`call`, `read`, `type_use`), not `test`.
 - Resolution is sequential; ids are handed out in a fixed order.
 
 ## Level 2 (ADR 0033)
