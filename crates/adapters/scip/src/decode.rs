@@ -17,7 +17,7 @@ use crate::consts::{
     OCCURRENCE_RANGE, OCCURRENCE_ROLES, OCCURRENCE_SYMBOL, RANGE_MULTI_LINE,
 };
 use crate::error::{Corruption, ScipError};
-use crate::model::{Occurrence, PositionEncoding, ScipDocument, ScipIndex, SymbolRef};
+use crate::model::{Occurrence, PositionEncoding, ScipDocument, ScipIndex, SymbolRef, TextFacts};
 use crate::path::normalize_path;
 use crate::wire::{Fields, Value, packed_varints};
 
@@ -195,6 +195,7 @@ fn decode_document(message: &[u8], symbols: &mut Interner) -> Result<ScipDocumen
         encoding,
         occurrences,
         local_names: HashMap::new(),
+        facts: TextFacts::default(),
     })
 }
 

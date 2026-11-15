@@ -11,6 +11,7 @@ use std::sync::Arc;
 use codeskimr_domain::{Position, RelativePath, Span};
 
 use crate::consts::{IDENTIFIER_EXTRA_CHARS, MAX_LOCAL_NAME_BYTES, MAX_LOCAL_NAME_TOTAL_BYTES};
+use crate::javatext::{read_document, wants_facts};
 use crate::model::{Occurrence, PositionEncoding, ScipDocument, ScipIndex, SymbolRef};
 use crate::symbol::is_local;
 
@@ -170,9 +171,10 @@ fn defines_locals(document: &ScipDocument, symbols: &[String]) -> bool {
 
 /// Turns the columns of every document that does not count UTF-8 bytes into UTF-8 bytes, and
 /// reads the names of the local symbols a document defines (the import has no other way to
-/// tell what a local symbol is called). `lines_of` gives the lines of a file without their line
-/// ends, or `None` if the text is not available, in which case the document keeps its encoding
-/// and its local symbols stay without a name. It must read files the way the import is allowed
+/// tell what a local symbol is called) and, for Java files, what only their text tells (see
+/// `javatext.rs`). `lines_of` gives the lines of a file without their line ends, or `None` if
+/// the text is not available, in which case the document keeps its encoding and its local
+/// symbols stay without a name. It must read files the way the import is allowed
 /// to: inside the project and never through a link.
 pub fn convert_columns(
     index: &mut ScipIndex,
@@ -186,7 +188,9 @@ pub fn convert_columns(
     let mut order: Vec<usize> = (0..documents.len())
         .filter(|at| {
             documents.get(*at).is_some_and(|document| {
-                document.encoding != PositionEncoding::Utf8 || defines_locals(document, symbols)
+                document.encoding != PositionEncoding::Utf8
+                    || defines_locals(document, symbols)
+                    || wants_facts(document)
             })
         })
         .collect();
@@ -213,6 +217,9 @@ pub fn convert_columns(
             convert_document(document, lines);
         }
         document.local_names = local_names(document, lines, symbols, &mut interner);
+        if document.encoding == PositionEncoding::Utf8 && wants_facts(document) {
+            read_document(document, lines, symbols);
+        }
     }
 }
 
@@ -235,6 +242,7 @@ mod tests {
                 path: RelativePath::new("a.cs").unwrap(),
                 encoding,
                 local_names: HashMap::new(),
+                facts: crate::model::TextFacts::default(),
                 occurrences: vec![Occurrence {
                     range,
                     symbol: SymbolRef(0),
