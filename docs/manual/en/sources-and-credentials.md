@@ -68,8 +68,6 @@ On the project screen, the form "New project" has a field **Login**. "Store a ne
 - It is only sent to the server the source points at. After a redirect to another host nothing is sent.
 - Git refuses to send credentials over plain `http://`; use `https://` or SSH.
 
-> **State:** the browser UI has no form for credentials yet; create them on the command line.
-
 ## Installation token
 
 A second secret exists: the **installation token** (`csk_` and 64 hex digits). It protects everything that changes state or returns source text, and the MCP endpoint, so that other programs on your machine cannot use the local server. It is created at the first `codeskimr serve`, kept in the same keystore (entry `installation-token`), never shown by a command and never logged. `codeskimr open` gives the browser a one-time launch code (valid 60 seconds, usable once) in place of the token; the browser UI keeps the token in its tab only.
