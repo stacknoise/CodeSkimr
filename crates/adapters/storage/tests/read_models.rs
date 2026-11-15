@@ -5,7 +5,7 @@ mod common;
 
 use codeskimr_application::ports::ProjectRepository;
 use codeskimr_domain::{
-    MetricKind, ProjectId, Reference, ReferenceKind, SnapshotId, SymbolId, SymbolKind,
+    Confidence, MetricKind, ProjectId, Reference, ReferenceKind, SnapshotId, SymbolId, SymbolKind,
 };
 use common::{metric, project, reference, scanned, scanned_project, symbol};
 
@@ -71,6 +71,13 @@ fn search_respects_the_limit_and_returns_where_the_symbol_lives() {
 fn from_a_test(reference: Reference) -> Reference {
     Reference {
         kind: ReferenceKind::Test,
+        ..reference
+    }
+}
+
+fn probable(reference: Reference) -> Reference {
+    Reference {
+        confidence: Confidence::Probable,
         ..reference
     }
 }
@@ -149,6 +156,8 @@ fn layered() -> codeskimr_storage::SqliteStore {
         reference(36, 11, 25, 22),
         // A reference of kind `test` is no edge of the graph (issue #430).
         from_a_test(reference(37, 11, 22, 21)),
+        // A reference that only probably points there is no edge either (issue #464).
+        probable(reference(38, 11, 21, 23)),
     ];
     scanned(&layers, symbols, references, vec![])
 }
@@ -174,7 +183,7 @@ fn layer_graph_aggregates_references_between_layers() {
             ("Core", "Data", 1, true),
             ("Data", "Core", 1, true)
         ],
-        "same-layer references and names outside every layer are not edges"
+        "same-layer references, names outside every layer, test references and probable references are not edges"
     );
 }
 
