@@ -1,7 +1,39 @@
 //! The arguments of the tools. Their schemas are generated from these types.
 
 use rmcp::schemars::JsonSchema;
-use serde::Deserialize;
+use serde::{Deserialize, Deserializer};
+
+/// A symbol reference as an agent sends it: the id from a search answer is a JSON number there, so
+/// a number is as good as the same digits in a string (#399).
+#[derive(Deserialize, JsonSchema)]
+#[serde(untagged)]
+#[schemars(crate = "rmcp::schemars", inline)]
+enum SymbolRef {
+    /// A qualified name, or an id written as a string.
+    Text(String),
+    /// An id as a JSON number.
+    Id(u64),
+}
+
+impl SymbolRef {
+    /// The reference as the text the tools take.
+    fn into_text(self) -> String {
+        match self {
+            Self::Text(text) => text,
+            Self::Id(id) => id.to_string(),
+        }
+    }
+}
+
+/// Reads a required `symbol` that is a string or a number.
+fn symbol_text<'de, D: Deserializer<'de>>(deserializer: D) -> Result<String, D::Error> {
+    SymbolRef::deserialize(deserializer).map(SymbolRef::into_text)
+}
+
+/// Reads an optional `symbol` that is a string or a number.
+fn symbol_text_opt<'de, D: Deserializer<'de>>(deserializer: D) -> Result<Option<String>, D::Error> {
+    Ok(Option::<SymbolRef>::deserialize(deserializer)?.map(SymbolRef::into_text))
+}
 
 /// Arguments of `search_symbols`.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
@@ -23,7 +55,9 @@ pub struct SearchArgs {
 #[serde(deny_unknown_fields)]
 #[schemars(crate = "rmcp::schemars")]
 pub struct SymbolArgs {
-    /// A symbol id (digits only) or a qualified name such as `Namespace.Type.member`.
+    /// A symbol id (digits, as a string or a number) or a qualified name such as `Namespace.Type.member`.
+    #[serde(deserialize_with = "symbol_text")]
+    #[schemars(with = "SymbolRef")]
     pub symbol: String,
     /// Id of the project; the project of this server if left out.
     pub project: Option<u64>,
@@ -52,7 +86,9 @@ pub struct ProjectArgs {
 #[serde(deny_unknown_fields)]
 #[schemars(crate = "rmcp::schemars")]
 pub struct UsagesArgs {
-    /// A symbol id (digits only) or a qualified name such as `Namespace.Type.member`.
+    /// A symbol id (digits, as a string or a number) or a qualified name such as `Namespace.Type.member`.
+    #[serde(deserialize_with = "symbol_text")]
+    #[schemars(with = "SymbolRef")]
     pub symbol: String,
     /// `incoming` (who uses the symbol, the default) or `outgoing` (what the symbol uses).
     pub direction: Option<String>,
@@ -71,7 +107,9 @@ pub struct UsagesArgs {
 #[serde(deny_unknown_fields)]
 #[schemars(crate = "rmcp::schemars")]
 pub struct ImpactArgs {
-    /// A symbol id (digits only) or a qualified name such as `Namespace.Type.member`.
+    /// A symbol id (digits, as a string or a number) or a qualified name such as `Namespace.Type.member`.
+    #[serde(deserialize_with = "symbol_text")]
+    #[schemars(with = "SymbolRef")]
     pub symbol: String,
     /// Id of the project; the project of this server if left out.
     pub project: Option<u64>,
@@ -84,7 +122,9 @@ pub struct ImpactArgs {
 #[serde(deny_unknown_fields)]
 #[schemars(crate = "rmcp::schemars")]
 pub struct SimilarArgs {
-    /// A symbol id (digits only) or a qualified name of a function: find functions that resemble it.
+    /// A symbol id (digits, as a string or a number) or a qualified name of a function: find functions that resemble it.
+    #[serde(default, deserialize_with = "symbol_text_opt")]
+    #[schemars(with = "Option<SymbolRef>")]
     pub symbol: Option<String>,
     /// Code to compare with the project, ideally one complete function.
     pub snippet: Option<String>,
@@ -130,8 +170,10 @@ pub struct ConventionsArgs {
 #[serde(deny_unknown_fields)]
 #[schemars(crate = "rmcp::schemars")]
 pub struct DependenciesArgs {
-    /// A symbol id (digits only) or a qualified name of a namespace, type or member; a namespace
+    /// A symbol id (digits, as a string or a number) or a qualified name of a namespace, type or member; a namespace
     /// or type includes everything it contains.
+    #[serde(default, deserialize_with = "symbol_text_opt")]
+    #[schemars(with = "Option<SymbolRef>")]
     pub symbol: Option<String>,
     /// Name of a layer of the project, as `get_architecture` lists them: the dependencies between
     /// this layer and the others.

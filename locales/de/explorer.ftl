@@ -31,7 +31,17 @@ explorer-namespace-root = (Wurzel)
 explorer-group-fields = Properties & Felder
 explorer-group-methods = Methoden
 explorer-overview-title = Übersicht
-explorer-overview-counts = { $layers } Schichten · { $namespaces } Namensräume · { $types } Typen
+explorer-overview-counts =
+    { $layers ->
+        [one] { NUMBER($layers) } Schicht
+       *[other] { NUMBER($layers) } Schichten
+    } · { $namespaces ->
+        [one] { NUMBER($namespaces) } Namensraum
+       *[other] { NUMBER($namespaces) } Namensräume
+    } · { $types ->
+        [one] { NUMBER($types) } Typ
+       *[other] { NUMBER($types) } Typen
+    }
 explorer-overview-hint = Öffne eine Schicht und wähle einen Typ, dann siehst du seine Metriken und Members.
 explorer-no-project-title = Kein Projekt geöffnet
 explorer-no-project-text = Öffne zuerst in der Projektliste ein Projekt, dann erscheint hier seine Struktur.
