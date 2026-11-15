@@ -56,7 +56,7 @@ fn plan_of(
     };
     let language = pack_id(&manifest.id, folder)?;
     let plan = ToolPlan {
-        indexer: indexer.spec().map_err(invalid)?,
+        indexer: indexer.spec(&manifest.separator).map_err(invalid)?,
         requirements: indexer.requirements().map_err(invalid)?,
     };
     Ok(Some((language, plan)))

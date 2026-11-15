@@ -2,7 +2,7 @@
 
 Level 2 makes usages **exact**: instead of guessing which `Save()` a call means, CodeSkimr takes the answer of the language's own tool, which knows the types, and marks those usages **verified**. This chapter explains what you install, how you switch it on and what happens when you scan.
 
-> **State:** level 2 is built for C#, TypeScript, JavaScript, Python, Rust, Java and Kotlin and is **off by default**. **No language is formally accepted yet.** The measurements on public sample projects (150 symbols each, `docs/accuracy.md` in the source repository) show how far "verified" can be trusted today: Rust and Java 100 % precision and recall, TypeScript 99 % precision and 100 % recall; Python finds 99 % of the usages but lists extra hits for fields (precision 63 %); for C# level 2 misses most usages that level 1 finds (recall 34 %, a known problem of the C# indexer `scip-dotnet` with overloaded extension methods). Kotlin has not been measured at all. Languages below 99 % are approximations. "Verified" means: this usage is exact. It does **not** mean the list is complete, so a verified list can still lack usages. The decision record, ADR 0033, still has the status "proposed", so details can change.
+> **State:** level 2 is built for C#, TypeScript, JavaScript, Python, Rust, Java and Kotlin and is **off by default**. **No language is formally accepted yet.** The measurements on public sample projects (150 symbols each, `docs/accuracy.md` in the source repository) show how far "verified" can be trusted today: Rust and Java 100 % precision and recall, TypeScript 99 % precision and 100 % recall; Python finds 99 % of the usages but lists extra hits for fields (precision 63 %); for C# level 2 misses most usages that level 1 finds (recall 34 %, a known problem of the C# indexer `scip-dotnet` with overloaded extension methods). Kotlin has not been measured at all. Languages below 99 % are approximations. "Verified" means: this usage is exact. It does **not** mean the list is complete, so a verified list can still lack usages. The decision record, ADR 0033, is accepted (status "accepted").
 
 ## Why
 
@@ -32,7 +32,7 @@ Whenever a project is loaded (added, fully scanned, reopened), CodeSkimr checks 
 - in the summary of `codeskimr scan` (and in `--json` as `tools`);
 - over MCP with the tool `get_project`.
 
-A tool is `ready`, `missing` (not on the `PATH`), `too_old` (below the minimum version or the version the project asks for in `global.json`, `.nvmrc` or `rust-toolchain.toml`), `too_new` (newer than the `rollForward` rule in `global.json` lets through, for example SDK 9 although the project names 8.0 and allows nothing above it) or `version_unknown` (it ran but no version could be read). A missing tool **never stops a scan**: you get level 1, marked unchecked. A quick re-scan after a file change does not repeat the check.
+A tool is `ready`, `missing` (not on the `PATH`, or its version command fails, as with the `rustup` shim of a component that was never added), `too_old` (below the minimum version or the version the project asks for in `global.json`, `.nvmrc` or `rust-toolchain.toml`), `too_new` (newer than the `rollForward` rule in `global.json` lets through, for example SDK 9 although the project names 8.0 and allows nothing above it) or `version_unknown` (it ran but no version could be read). A missing tool **never stops a scan**: you get level 1, marked unchecked. A quick re-scan after a file change does not repeat the check.
 
 ## Switching it on
 
@@ -77,6 +77,7 @@ Every run is limited; an indexer that exceeds a limit is stopped together with a
 | `max_output_bytes` (console and files) | 512 MiB | `RES-503` |
 | `max_index_bytes` (largest index that is read) | 256 MiB | `RES-501` |
 | `min_mapped` (share of project occurrences that must map) | 0.5 | `RES-302` |
+| `max_created_symbols` (most symbols that level 2 creates itself, e.g. types a macro generates) | 100000 | `RES-303` |
 
 The indexer gets a cleared environment with an allow list (no token or secret of CodeSkimr reaches it), runs in its own process group, and its output is redacted before it is logged. **The network is not blocked**, because restoring packages needs it; this is the main residual risk and the reason for the confirmation.
 
@@ -86,4 +87,4 @@ An index counts for a file only while its content is the one at indexing time. A
 
 ## Errors
 
-`RES-201` indexer or toolchain missing or too old, `RES-501` index too large, `RES-502` timeout, `RES-503` output too large, `RES-504` memory limit, `RES-601` the indexer could not be started or failed, `RES-101` the index is corrupt, `RES-302` too few occurrences map onto your symbols, `SEC-301` level 2 is not enabled and confirmed, `SEC-403` the caller may not confirm or start indexers, `PRJ-303` the scan was cancelled. In all of them level 1 stays. See [Error codes](errors.md).
+`RES-201` indexer or toolchain missing or too old, `RES-501` index too large, `RES-502` timeout, `RES-503` output too large, `RES-504` memory limit, `RES-601` the indexer could not be started or failed, `RES-101` the index is corrupt, `RES-303` level 2 would create too many symbols of its own, `RES-302` too few occurrences map onto your symbols, `SEC-301` level 2 is not enabled and confirmed, `SEC-403` the caller may not confirm or start indexers, `PRJ-303` the scan was cancelled. In all of them level 1 stays. See [Error codes](errors.md).

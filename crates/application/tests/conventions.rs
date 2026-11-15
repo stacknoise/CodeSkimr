@@ -90,6 +90,7 @@ mod tests {
             span: model(Span::new(start, end))?,
             signature: None,
             doc: None,
+            origin: codeskimr_domain::SymbolOrigin::Syntax,
         })
     }
 

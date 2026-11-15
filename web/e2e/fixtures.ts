@@ -18,8 +18,9 @@ export interface Harness {
 const REPO = path.resolve(import.meta.dirname, "../..");
 const STARTUP_MS = 600_000;
 
-function start(): Promise<{ child: ChildProcessWithoutNullStreams; harness: Harness }> {
-  const child = spawn(
+/** Starts the test server of the Rust side: the shell that prints the markers of the harness. */
+function spawnServer(): ChildProcessWithoutNullStreams {
+  return spawn(
     "cargo",
     ["test", "-p", "codeskimr", "e2e_server", "--", "--ignored", "--nocapture", "--test-threads=1"],
     {
@@ -27,6 +28,32 @@ function start(): Promise<{ child: ChildProcessWithoutNullStreams; harness: Harn
       env: { ...process.env, CODESKIMR_E2E_UI_DIR: path.resolve(REPO, "web/dist") },
     },
   );
+}
+
+/** The calls of the harness: each writes a command to the server and waits for its answer. */
+function harnessOf(
+  child: ChildProcessWithoutNullStreams,
+  url: string,
+  waiting: ((file: string) => void)[],
+  resets: (() => void)[],
+): Harness {
+  return {
+    url,
+    launchFile: () =>
+      new Promise((done) => {
+        waiting.push(done);
+        child.stdin.write("launch\n");
+      }),
+    resetPreferences: () =>
+      new Promise((done) => {
+        resets.push(done);
+        child.stdin.write("reset\n");
+      }),
+  };
+}
+
+function start(): Promise<{ child: ChildProcessWithoutNullStreams; harness: Harness }> {
+  const child = spawnServer();
   const waiting: ((file: string) => void)[] = [];
   const resets: (() => void)[] = [];
   return new Promise((resolve, reject) => {
@@ -39,22 +66,7 @@ function start(): Promise<{ child: ChildProcessWithoutNullStreams; harness: Harn
       if (line.includes("E2E_RESET=done")) {
         resets.shift()?.();
       } else if (url !== undefined) {
-        resolve({
-          child,
-          harness: {
-            url,
-            launchFile: () =>
-              new Promise((done) => {
-                waiting.push(done);
-                child.stdin.write("launch\n");
-              }),
-            resetPreferences: () =>
-              new Promise((done) => {
-                resets.push(done);
-                child.stdin.write("reset\n");
-              }),
-          },
-        });
+        resolve({ child, harness: harnessOf(child, url, waiting, resets) });
       } else if (file !== undefined) {
         waiting.shift()?.(file);
       }

@@ -6,7 +6,8 @@ use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from};
 use crate::consts::{
-    RECEIVER_BASE, RECEIVER_FREE, RECEIVER_NAMED, RECEIVER_OWN, RECEIVER_TYPED, RECEIVER_UNKNOWN,
+    NAME_SEPARATOR, RECEIVER_BASE, RECEIVER_FREE, RECEIVER_NAMED, RECEIVER_OWN, RECEIVER_TYPED,
+    RECEIVER_UNKNOWN,
 };
 use crate::error::{StorageError, StorageResult};
 use crate::similarity::json_list;
@@ -86,6 +87,12 @@ pub enum Which<'a> {
     ImportsOf(&'a [FileId]),
     /// Names written inside these symbols of these files.
     Callers(&'a [FileId], &'a [SymbolId]),
+    /// Names other than imports whose target or named receiver is one of these simple names.
+    Targeting(&'a [String]),
+    /// Imports whose target is one of these qualified names.
+    ImportsTargeting(&'a [String]),
+    /// All names of these files.
+    OfFiles(&'a [FileId]),
     /// All names.
     All,
 }
@@ -103,36 +110,72 @@ pub fn load(
     if exists == 0 {
         return Err(StorageError::OutOfRange);
     }
-    let mut prepared;
-    let rows = match which {
-        Which::Bases => {
-            prepared = conn.prepare_cached(sql::PENDING_BASES)?;
-            prepared.query_map(params![snapshot], read_row)?
-        }
+    let import = ReferenceKind::Import.label();
+    match which {
+        Which::Bases => run(conn, sql::PENDING_BASES, params![snapshot]),
         Which::ImportsOf(files) => {
-            prepared = conn.prepare_cached(sql::PENDING_IMPORTS_OF)?;
             let list = id_list(files.iter().map(|file| file.get()))?;
-            prepared.query_map(
-                params![snapshot, list, ReferenceKind::Import.label()],
-                read_row,
-            )?
+            run(
+                conn,
+                sql::PENDING_IMPORTS_OF,
+                params![snapshot, list, import],
+            )
         }
         Which::Callers(files, callers) => {
-            prepared = conn.prepare_cached(sql::PENDING_OF_CALLERS)?;
             let files = id_list(files.iter().map(|file| file.get()))?;
             let callers = id_list(callers.iter().map(|caller| caller.get()))?;
-            prepared.query_map(params![snapshot, files, callers], read_row)?
+            run(
+                conn,
+                sql::PENDING_OF_CALLERS,
+                params![snapshot, files, callers],
+            )
         }
-        Which::All => {
-            prepared = conn.prepare_cached(sql::PENDING_OF_SNAPSHOT)?;
-            prepared.query_map(params![snapshot], read_row)?
+        Which::Targeting(names) => by_names(conn, sql::PENDING_TARGETING, snapshot, names),
+        Which::ImportsTargeting(names) => {
+            by_names(conn, sql::PENDING_IMPORTS_TARGETING, snapshot, names)
         }
-    };
-    let mut names = Vec::new();
-    for row in rows {
-        names.push(decode(row?)?);
+        Which::OfFiles(files) => {
+            let list = id_list(files.iter().map(|file| file.get()))?;
+            run(conn, sql::PENDING_OF_FILES, params![snapshot, list])
+        }
+        Which::All => run(conn, sql::PENDING_OF_SNAPSHOT, params![snapshot]),
     }
-    Ok(names)
+}
+
+/// Runs a statement that looks names up in the text list of `names`.
+fn by_names(
+    conn: &Connection,
+    statement: &str,
+    snapshot: i64,
+    names: &[String],
+) -> StorageResult<Vec<PendingReference>> {
+    let import = ReferenceKind::Import.label();
+    let separator = NAME_SEPARATOR.to_string();
+    let list = text_list(names);
+    run(conn, statement, params![snapshot, list, import, separator])
+}
+
+/// Runs one of the statements above and decodes its rows.
+fn run(
+    conn: &Connection,
+    statement: &str,
+    params: impl rusqlite::Params,
+) -> StorageResult<Vec<PendingReference>> {
+    let mut prepared = conn.prepare_cached(statement)?;
+    let rows = prepared.query_map(params, read_row)?;
+    rows.map(|row| decode(row?)).collect()
+}
+
+/// The names in one text, each between two separators, so that SQL can ask whether a column is
+/// one of them with `instr`. A name that holds the separator can only match too much, which
+/// makes an incremental scan resolve a name again that it could have kept.
+fn text_list(names: &[String]) -> String {
+    let mut list = String::from(NAME_SEPARATOR);
+    for name in names {
+        list.push_str(name);
+        list.push(NAME_SEPARATOR);
+    }
+    list
 }
 
 fn id_list(ids: impl Iterator<Item = u64>) -> StorageResult<String> {

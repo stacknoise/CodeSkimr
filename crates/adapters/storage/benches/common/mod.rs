@@ -37,6 +37,7 @@ pub fn symbol(id: u64, name: &str) -> Option<Symbol> {
         span: span(1)?,
         signature: None,
         doc: None,
+        origin: codeskimr_domain::SymbolOrigin::Syntax,
     })
 }
 
@@ -80,6 +81,7 @@ pub fn store(symbols: Vec<Symbol>, references: Vec<Reference>) -> Option<SqliteS
         pending: Vec::new(),
         dropped_references: Vec::new(),
         parse_micros: Vec::new(),
+        warnings: Vec::new(),
         naming_rules: String::new(),
     };
     let store = SqliteStore::open_in_memory(NonZeroU32::MIN).ok()?;

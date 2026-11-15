@@ -13,6 +13,9 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0009_parse_times.sql"),
     include_str!("../migrations/0010_coupling_rows.sql"),
     include_str!("../migrations/0011_pending_references.sql"),
+    include_str!("../migrations/0012_layer_directions.sql"),
+    include_str!("../migrations/0013_scan_warnings.sql"),
+    include_str!("../migrations/0014_symbol_origin.sql"),
 ];
 
 /// Name of the pragma that holds the schema version.
@@ -79,8 +82,6 @@ pub const FIRST_VERSION: i64 = 1;
 pub const FIRST_COLUMN: usize = 0;
 /// Distance between two neighbouring columns.
 pub const COLUMN_STEP: usize = 1;
-/// Whether an edge of the layer graph violates the layering; not computed yet (see docs).
-pub const NOT_VIOLATING: bool = false;
 /// Kinds that get an entry in `type_summary`.
 pub const TYPE_KINDS: &[codeskimr_domain::SymbolKind] = &[
     codeskimr_domain::SymbolKind::Class,
@@ -132,3 +133,7 @@ pub const BULK_REFERENCES_MIN: usize = 20_000;
 /// The indexes are built again after the load when the new references are at least this share of
 /// the stored ones, expressed as "one in N" (a load of half the table or more).
 pub const BULK_REFERENCES_SHARE_DIVISOR: usize = 2;
+
+/// Separates names in a text that is handed to SQL as a list of names (the unit separator, which
+/// no name holds).
+pub const NAME_SEPARATOR: char = '\u{1f}';

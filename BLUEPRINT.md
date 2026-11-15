@@ -281,7 +281,7 @@ codeskimr/
 | `Project` | registered repository | id, name, source (folder \| git url + branch), layers, settings |
 | `Snapshot` | one scan state | id, project, commit (if Git), created, mode (full \| incremental), stats |
 | `File` | source file | id, snapshot, path, language, content hash, loc |
-| `Symbol` | anything with a name | id, file, kind, name, qualified name, parent symbol, visibility, static, span, signature, doc |
+| `Symbol` | anything with a name | id, file, kind, name, qualified name, parent symbol, visibility, static, span, signature, doc, origin (`syntax` \| `index`, ADR 0055) |
 | `Reference` | one occurrence of a symbol | id, from symbol, to symbol, file, span, kind, confidence |
 | `Metric` | measured value | symbol, kind (loc, cc, cc_max, mi, ce, ca, instability), value |
 | `LayerEdge` | aggregated dependency between namespaces / layers | from, to, count, violates layering, part of cycle |
@@ -296,6 +296,7 @@ codeskimr/
 
 ### 6.2 Storage
 
+- `symbol_rows.origin` (`syntax` | `index`, ADR 0055) tells level 1 symbols from symbols that level 2 creates; created symbols belong to their file, are replaced with its level 2 references in one transaction and have no metrics.
 - One SQLite database per workspace, in the user data directory. The source code itself is **not** copied; the file is read on demand and checked against its hash.
 - **Read models**, rebuilt incrementally after every snapshot:
   - `search_index` – fuzzy search entries for the quick search
@@ -365,7 +366,7 @@ languages/csharp/
 | **basic** | types and functions, spans, LOC, CC, `cc_max` (no MI); references only by unique name | every other language with a Tree-sitter grammar |
 
 - Full-tier grammars are compiled into the binary.
-- Basic-tier grammars are compiled in behind the cargo feature `basic-grammars` (default on) and their packs are loaded on first use, which keeps start-up and a slim build small (section 16, ADR 0020). A loader for shared libraries needs its own ADR because of R-08.
+- Basic-tier grammars are compiled in behind the cargo feature `basic-grammars` (default on), which keeps a slim build small (section 16, ADR 0020). Packs of every tier are loaded on first use; the tests load all of them (ADR 0059). The time of loading is not part of the scan time that the scan reports, so the benchmarks of section 16 keep their meaning. A loader for shared libraries needs its own ADR because of R-08.
 - Adding a language MUST NOT require changes outside `languages/<lang>/`, unless the language needs a new symbol kind (ADR first) or, as long as grammars are compiled in, its grammar: one dependency, one grammar name constant and one line in the grammar registry of `codeskimr_parsing` (ADR 0020).
 
 ### 8.3 Acceptance per language
@@ -406,6 +407,7 @@ Level 2 imports SCIP indexes that existing indexers produce (scip-dotnet, scip-t
 
 - **A second pass, not part of Resolve.** Level 1 is stored and usable first. Then, for each indexer, the pass checks permission and consent, checks that the tools exist, runs the indexer, checks the hash of every file against the disk again, maps the index and replaces the references of exactly the checked files in one transaction. A changed file, a cancel, a failure or a missing tool leaves level 1 as it was and is reported per language.
 - **Consent.** An indexer runs the build tools of the project, so it runs only if the local owner enabled level 2 and confirmed it for the project, interactively on this computer (`codeskimr level2 confirm`). The confirmation names the file and network access of the tools and is bound to source, location and branch, not to a commit. The `level2` table of `.codeskimr.toml` is ignored. MCP, REST tokens, CI and watch mode cannot confirm, and only the scan of the command line starts indexers: `rescan` through MCP or the UI and the later scans of watch mode are level 1 only.
+- **Created symbols (ADR 0055).** For the kinds a language pack lists in `[indexer.symbol_kinds]` (Rust: types, enums, variants, traits, aliases), level 2 creates symbols with `origin = index` for definitions that level 1 does not know (macro output). `max_created_symbols` bounds them; exceeding it fails the import (`RES-303`).
 - **Limits.** Time, memory and output of a run are bounded (`level2.*`); the index is untrusted input with its own size limit, its paths are cleaned and only files of the snapshot are read.
 - **Columns.** Indexes may count UTF-16 or UTF-32 units; the import converts them to UTF-8 bytes using the lines of the file.
 
@@ -482,7 +484,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 | Tool | Input | Output (compact) |
 |---|---|---|
 | `search_symbols` | query, kind?, project?, limit | ranked symbols with location |
-| `get_symbol` | symbol id or qualified name | signature, doc, members, metrics, layer |
+| `get_symbol` | symbol id or qualified name | signature, doc, members, metrics, layer, origin |
 | `find_usages` | symbol, direction, depth, include_tests | references with kind, location, confidence |
 | `impact_of_change` | symbol | affected symbols, layers, public interfaces |
 | `get_dependencies` | symbol or namespace, direction | edges with counts and violations |
@@ -954,7 +956,7 @@ Coverage target: ≥ 80 % lines for `domain` and `application`; adapters are cov
   - symbols ≥ 99 %
   - **level 1** (ADR 0033, decisions 6, 7 and 14): level 1 keeps every match and marks it unchecked, so the old target "references marked `certain` ≥ 98 % correct" no longer applies to it. What counts is that recall is not lower than before PR #133 (measured for every language with a reference tool) and that the share of unchecked results is reported per language
   - **level 2**, per language with an indexer, on at least 150 sampled symbols: recall ≥ 99 % and ≥ 99 % correct among the verified references. The reference is independent of level 2 (the language tooling of `tools/accuracy`, not the SCIP index), and the private C# sample of 20 symbols is complete and without wrong usages. The acceptance runs `tools/accuracy`, not CI.
-- **State of the measurement** (150 symbols, seed 1, 2026-11-14, `--verified-only --scip`, index made by hand; details, corpora and tool versions in `docs/accuracy.md`). **These numbers are not an acceptance under ADR 0033, decision 14:** the index is made by hand, so the `IndexRunner` (call, limits, environment), the consent and the wiring into the scan are not measured; ADR 0033 is still proposed; and the reference and the indexer are the same engine for Rust, TypeScript, Java and C# (a mistake of the engine itself would not show):
+- **State of the measurement** (150 symbols, seed 1, 2026-11-14, `--verified-only --scip`, index made by hand; details, corpora and tool versions in `docs/accuracy.md`). **These numbers are not an acceptance under ADR 0033, decision 14:** the index is made by hand, so the `IndexRunner` (call, limits, environment), the consent and the wiring into the scan are not measured; and the reference and the indexer are the same engine for Rust, TypeScript, Java and C# (a mistake of the engine itself would not show):
 
 | Language | Indexer | Reference (engine of the index) | Precision | Recall | Reading |
 |---|---|---|---|---|---|
@@ -1125,6 +1127,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | RES-201 | `indexer_unavailable` | The indexer of a language or its toolchain is not installed or is older than the version the language pack requires; level 1 references stay. |
 | RES-301 | `ambiguous_reference` | A reference matches several symbols; it was stored as probable. (warning) |
 | RES-302 | `scip_mapping_too_low` | Too few occurrences of a SCIP index map onto project symbols; level 1 references stay. |
+| RES-303 | `scip_too_many_created_symbols` | A SCIP index wants level 2 to create more symbols than level2.max_created_symbols allows; the whole import is refused and level 1 stays. |
 | RES-501 | `scip_index_too_large` | A SCIP index is larger than the configured limit and was refused; level 1 references stay. |
 | RES-502 | `indexer_timeout` | An indexer ran longer than level2.timeout_seconds and was stopped with all its child processes; level 1 references stay. |
 | RES-503 | `indexer_output_too_large` | An indexer wrote more than level2.max_output_bytes and was stopped; level 1 references stay. |

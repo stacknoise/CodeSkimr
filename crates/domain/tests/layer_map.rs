@@ -23,6 +23,7 @@ mod tests {
 
     fn layer(text: &str) -> Layer {
         Layer {
+            may_use: None,
             name: name(text),
             namespaces: vec![QualifiedName::new(text).unwrap()],
         }

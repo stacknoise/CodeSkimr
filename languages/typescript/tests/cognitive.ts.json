@@ -1,0 +1,479 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 86,
+      "operands": null,
+      "operators": null,
+      "symbol": "cognitive"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "cognitive.straight"
+    },
+    {
+      "decisions": 3,
+      "loc": 10,
+      "operands": [
+        5,
+        11
+      ],
+      "operators": [
+        6,
+        9
+      ],
+      "symbol": "cognitive.nested"
+    },
+    {
+      "decisions": 2,
+      "loc": 9,
+      "operands": [
+        4,
+        7
+      ],
+      "operators": [
+        3,
+        7
+      ],
+      "symbol": "cognitive.chain"
+    },
+    {
+      "decisions": 3,
+      "loc": 3,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        3,
+        4
+      ],
+      "symbol": "cognitive.runs"
+    },
+    {
+      "decisions": 2,
+      "loc": 10,
+      "operands": [
+        4,
+        5
+      ],
+      "operators": [
+        5,
+        7
+      ],
+      "symbol": "cognitive.handler"
+    },
+    {
+      "decisions": 1,
+      "loc": 3,
+      "operands": [
+        5,
+        6
+      ],
+      "operators": [
+        7,
+        7
+      ],
+      "symbol": "cognitive.callbacks"
+    },
+    {
+      "decisions": 1,
+      "loc": 6,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        3,
+        4
+      ],
+      "symbol": "cognitive.arrow"
+    },
+    {
+      "decisions": 2,
+      "loc": 10,
+      "operands": [
+        4,
+        6
+      ],
+      "operators": [
+        3,
+        6
+      ],
+      "symbol": "cognitive.branches"
+    },
+    {
+      "decisions": 5,
+      "loc": 16,
+      "operands": [
+        6,
+        11
+      ],
+      "operators": [
+        10,
+        11
+      ],
+      "symbol": "cognitive.loops"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "cognitive.typed"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "cognitive.single"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "cognitive.bare"
+    },
+    {
+      "decisions": null,
+      "loc": 6,
+      "operands": null,
+      "operators": null,
+      "symbol": "cognitive.Shop"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "cognitive.Shop.field"
+    },
+    {
+      "decisions": 1,
+      "loc": 3,
+      "operands": [
+        8,
+        8
+      ],
+      "operators": [
+        5,
+        7
+      ],
+      "symbol": "cognitive.Shop.method"
+    },
+    {
+      "decisions": 3,
+      "loc": 5,
+      "operands": [
+        3,
+        9
+      ],
+      "operators": [
+        3,
+        12
+      ],
+      "symbol": "cognitive.casts"
+    }
+  ],
+  "loc": 86,
+  "references": [
+    {
+      "at": "34:11",
+      "from": "cognitive.handler",
+      "kind": "call",
+      "receiver": null,
+      "target": "Number"
+    },
+    {
+      "at": "44:15",
+      "from": "cognitive.callbacks",
+      "kind": "call",
+      "receiver": "typed number[]",
+      "target": "map"
+    },
+    {
+      "at": "92:15",
+      "from": "cognitive.Shop.method",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Shop"
+    },
+    {
+      "at": "93:19",
+      "from": "cognitive.Shop.method",
+      "kind": "read",
+      "receiver": null,
+      "target": "rest"
+    },
+    {
+      "at": "93:24",
+      "from": "cognitive.Shop.method",
+      "kind": "read",
+      "receiver": "named rest",
+      "target": "length"
+    },
+    {
+      "at": "98:2",
+      "from": "cognitive.casts",
+      "kind": "call",
+      "receiver": null,
+      "target": "run"
+    },
+    {
+      "at": "98:24",
+      "from": "cognitive.casts",
+      "kind": "call",
+      "receiver": null,
+      "target": "go"
+    },
+    {
+      "at": "98:38",
+      "from": "cognitive.casts",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Handler"
+    },
+    {
+      "at": "99:2",
+      "from": "cognitive.casts",
+      "kind": "call",
+      "receiver": null,
+      "target": "run"
+    },
+    {
+      "at": "99:24",
+      "from": "cognitive.casts",
+      "kind": "call",
+      "receiver": null,
+      "target": "go"
+    },
+    {
+      "at": "99:45",
+      "from": "cognitive.casts",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Handler"
+    },
+    {
+      "at": "100:2",
+      "from": "cognitive.casts",
+      "kind": "call",
+      "receiver": null,
+      "target": "run"
+    },
+    {
+      "at": "100:24",
+      "from": "cognitive.casts",
+      "kind": "call",
+      "receiver": null,
+      "target": "go"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "cognitive",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-102:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.straight",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "3:7-5:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.nested",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "7:7-16:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.chain",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "18:7-26:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.runs",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "28:7-30:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.handler",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "32:7-41:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.callbacks",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "43:7-45:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.arrow",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "47:21-52:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.branches",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "54:7-63:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.loops",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "65:7-80:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.typed",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "82:7-84:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.single",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "86:22-86:38",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.bare",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "87:20-87:34",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "cognitive.Shop",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "89:7-95:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "cognitive.Shop.field",
+      "parent": "cognitive.Shop",
+      "signature": null,
+      "span": "90:10-90:49",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "cognitive.Shop.method",
+      "parent": "cognitive.Shop",
+      "signature": null,
+      "span": "92:2-94:3",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.casts",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "97:7-101:1",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

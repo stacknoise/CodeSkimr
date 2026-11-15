@@ -56,6 +56,8 @@ fn spec(mode: &str) -> IndexerSpec {
         ],
         env: vec![("FIXED_BY_PACK".to_owned(), "yes".to_owned())],
         install_hint: "install it".to_owned(),
+        symbol_kinds: Vec::new(),
+        separator: String::new(),
     }
 }
 
@@ -534,6 +536,22 @@ fn a_missing_indexer_is_unavailable_and_nothing_runs() {
     );
     let result = fixture.run_with(&missing, limits(), &CancelToken::new());
     assert_eq!(code_of(result), ErrorCode::IndexerUnavailable);
+}
+
+#[test]
+fn a_program_whose_version_command_fails_counts_as_missing() {
+    let fixture = Fixture::new();
+    let mut broken = spec("ok");
+    // The fake indexer exits with an error for an argument it does not know, as the `rustup` shim
+    // of a component that is not installed does (#402).
+    broken.indexer.version_args = vec!["no-such-flag".to_owned()];
+    let IndexerStatus::Unavailable { problems, .. } = fixture.runner.check(&broken) else {
+        panic!("ready");
+    };
+    assert_eq!(
+        problems.first().map(|p| &p.issue),
+        Some(&ToolIssue::Missing)
+    );
 }
 
 #[test]

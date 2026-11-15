@@ -66,6 +66,9 @@ mod cases {
             max_index_bytes: u64::from(u32::MAX),
             max_file_bytes: u64::from(u32::MAX),
             min_mapped: 0.0,
+            symbol_kinds: &[],
+            separator: "",
+            max_created_symbols: 0,
         });
         let found = outcome.ok();
         assert_eq!(found.map_or(0, |imported| imported.references.len()), 0);

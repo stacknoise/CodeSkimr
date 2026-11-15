@@ -14,6 +14,17 @@ use crate::error::McpError;
 struct LayerInfo {
     name: String,
     namespaces: Vec<String>,
+    /// The layers this one may depend on; `null` when it has no limit.
+    may_use: Option<Vec<String>>,
+}
+
+/// The code rules the project is checked against (`check_conventions`).
+#[derive(Serialize)]
+struct ConventionInfo {
+    max_function_lines: u32,
+    duplicate_similarity_percent: u32,
+    duplicate_min_lines: u32,
+    test_folders: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -31,6 +42,7 @@ struct Answer {
     project: String,
     layers: Vec<LayerInfo>,
     dependencies: Vec<Dependency>,
+    conventions: ConventionInfo,
 }
 
 fn layer(layer: &Layer) -> LayerInfo {
@@ -41,6 +53,10 @@ fn layer(layer: &Layer) -> LayerInfo {
             .iter()
             .map(|namespace| namespace.as_str().to_owned())
             .collect(),
+        may_use: layer
+            .may_use
+            .as_ref()
+            .map(|names| names.iter().map(|name| name.as_str().to_owned()).collect()),
     }
 }
 
@@ -56,6 +72,16 @@ fn dependency(edge: &LayerEdge) -> Dependency {
 }
 
 impl Tools {
+    fn conventions(&self) -> ConventionInfo {
+        let limits = self.checker().limits();
+        ConventionInfo {
+            max_function_lines: limits.max_function_lines,
+            duplicate_similarity_percent: limits.duplicate_similarity_percent,
+            duplicate_min_lines: limits.duplicate_min_lines,
+            test_folders: limits.test_folders.clone(),
+        }
+    }
+
     /// The layers of a project with their namespaces and the dependencies between them.
     ///
     /// # Errors
@@ -74,6 +100,7 @@ impl Tools {
             project: scope.project.name.as_str().to_owned(),
             layers: scope.project.layers.iter().map(layer).collect(),
             dependencies: edges.iter().map(dependency).collect(),
+            conventions: self.conventions(),
         })
     }
 }

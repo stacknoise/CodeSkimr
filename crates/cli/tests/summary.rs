@@ -3,7 +3,9 @@
 #[cfg(test)]
 mod cases {
     use codeskimr_application::tools::ToolsView;
-    use codeskimr_cli::{Level2Line, Level2Reason, ScanSummary, scan_finished, scan_json};
+    use codeskimr_cli::{
+        Level2Line, Level2Reason, ScanSummary, WarningLine, scan_finished, scan_json,
+    };
     use codeskimr_i18n::Messages;
 
     fn summary(level2: Vec<Level2Line>) -> ScanSummary {
@@ -15,7 +17,9 @@ mod cases {
             references: 30,
             seconds: 1.5,
             cpu_seconds: 4.25,
+            pack_load_seconds: 0.5,
             level2,
+            warnings: Vec::new(),
             tools: ToolsView::unchecked(),
         }
     }
@@ -83,5 +87,33 @@ mod cases {
     fn json_reports_the_cpu_time_next_to_the_wall_time() {
         let json = scan_json(&summary(Vec::new())).unwrap();
         assert!(json.contains("\"cpu_seconds\":4.25"), "{json}");
+    }
+
+    #[test]
+    fn json_reports_the_pack_load_time_apart_from_the_scan_time() {
+        let json = scan_json(&summary(Vec::new())).unwrap();
+        assert!(json.contains("\"pack_load_seconds\":0.5"), "{json}");
+    }
+
+    #[test]
+    fn a_warning_is_one_line_with_its_count_in_both_languages() {
+        let messages = Messages::load().unwrap();
+        let mut with = summary(Vec::new());
+        with.warnings = vec![
+            WarningLine {
+                code: "RES-301".to_owned(),
+                count: 12,
+            },
+            WarningLine {
+                code: "PRS-101".to_owned(),
+                count: 3,
+            },
+        ];
+        let en = scan_finished(&messages, "en", &with).unwrap();
+        assert!(en.contains("RES-301: 12 places"), "{en}");
+        assert!(en.contains("PRS-101: 3 times"), "{en}");
+        let de = scan_finished(&messages, "de", &with).unwrap();
+        assert!(de.contains("RES-301: 12 Stellen"), "{de}");
+        assert!(scan_json(&with).unwrap().contains("\"RES-301\""));
     }
 }

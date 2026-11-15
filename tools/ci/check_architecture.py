@@ -69,35 +69,66 @@ def check_directions(rules, graph):
     return problems
 
 
+CHAR_LITERAL = re.compile(r"'(\\.[^']*|[^\\'])'")
+
+
+def skip_line_comment(text, i):
+    """Index of the line end that closes the `//` comment starting at `i`."""
+    while i < len(text) and text[i] != "\n":
+        i += 1
+    return i
+
+
+def skip_block_comment(text, i):
+    """Index after the (nested) `/* */` comment starting at `i`."""
+    depth, i = 1, i + 2
+    while i < len(text) and depth:
+        if text[i:i + 2] == "/*":
+            depth, i = depth + 1, i + 2
+        elif text[i:i + 2] == "*/":
+            depth, i = depth - 1, i + 2
+        else:
+            i += 1
+    return i
+
+
+def starts_raw_string(text, i, out):
+    """Whether `r"` or `r#"` at `i` opens a raw string and not the end of an identifier."""
+    after_name = bool(out) and (out[-1].isalnum() or out[-1] == "_")
+    return text[i] == "r" and bool(re.match(r'r#*"', text[i:i + 8])) and not after_name
+
+
+def skip_raw_string(text, i):
+    """Index after the raw string starting at `i`."""
+    hashes = re.match(r"r(#*)\"", text[i:]).group(1)
+    end = text.find('"' + hashes, i + 2 + len(hashes))
+    return len(text) if end < 0 else end + 1 + len(hashes)
+
+
+def skip_string(text, i):
+    """Index after the string literal starting at `i`."""
+    i += 1
+    while i < len(text) and text[i] != '"':
+        i += 2 if text[i] == "\\" else 1
+    return i + 1
+
+
 def strip_rust(text):
     """Blank out comments, string and char literals so paths in them are ignored."""
-    out, i, n = [], 0, len(text)
-    while i < n:
+    out, i = [], 0
+    while i < len(text):
         two = text[i:i + 2]
+        char = CHAR_LITERAL.match(text[i:i + 12]) if text[i] == "'" else None
         if two == "//":
-            while i < n and text[i] != "\n":
-                i += 1
+            i = skip_line_comment(text, i)
         elif two == "/*":
-            depth = 1
-            i += 2
-            while i < n and depth:
-                if text[i:i + 2] == "/*":
-                    depth, i = depth + 1, i + 2
-                elif text[i:i + 2] == "*/":
-                    depth, i = depth - 1, i + 2
-                else:
-                    i += 1
-        elif text[i] == "r" and re.match(r'r#*"', text[i:i + 8]) and not (out and (out[-1].isalnum() or out[-1] == "_")):
-            hashes = re.match(r"r(#*)\"", text[i:]).group(1)
-            end = text.find('"' + hashes, i + 2 + len(hashes))
-            i = n if end < 0 else end + 1 + len(hashes)
+            i = skip_block_comment(text, i)
+        elif starts_raw_string(text, i, out):
+            i = skip_raw_string(text, i)
         elif text[i] == '"':
-            i += 1
-            while i < n and text[i] != '"':
-                i += 2 if text[i] == "\\" else 1
-            i += 1
-        elif text[i] == "'" and re.match(r"'(\\.[^']*|[^\\'])'", text[i:i + 12]):
-            i += re.match(r"'(\\.[^']*|[^\\'])'", text[i:i + 12]).end()
+            i = skip_string(text, i)
+        elif char:
+            i += char.end()
         else:
             out.append(text[i])
             i += 1

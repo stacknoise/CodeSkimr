@@ -93,6 +93,9 @@ pub mod text {
     pub const NOTHING_FOUND: &str = "no benchmark results found";
     /// Printed when no base measurement exists at all.
     pub const NO_BASE: &str = "NOTE: no base measurement, only absolute budgets are checked";
+    /// Printed when the results of several runs were combined.
+    pub const BEST_OF_RUNS: &str =
+        "NOTE: several runs were measured, the best median of each benchmark and side counts";
     /// Heading of the CPU time lines (energy proxy, blueprint 16.2).
     pub const CPU_HEADING: &str = "CPU time per benchmark (energy proxy, report only):";
     /// Printed on success.

@@ -7,7 +7,8 @@ use std::path::Path;
 
 use codeskimr_application::ids::IdSequence;
 use codeskimr_domain::{
-    FileId, QualifiedName, RelativePath, Span, Symbol, SymbolId, SymbolKind, SymbolName, Visibility,
+    FileId, QualifiedName, RelativePath, Span, Symbol, SymbolId, SymbolKind, SymbolName,
+    SymbolOrigin, Visibility,
 };
 use tree_sitter::{Node, QueryCapture, QueryCursor, StreamingIterator};
 
@@ -473,6 +474,7 @@ impl Builder<'_, '_> {
             span: new.span,
             signature: new.signature,
             doc: new.doc,
+            origin: SymbolOrigin::Syntax,
         });
         if new.has_body {
             self.with_body.insert(id);

@@ -6,15 +6,16 @@ use codeskimr_application::ports::ToolVersion;
 use codeskimr_application::ports::{
     IndexerSpec, PLACEHOLDER_OUTPUT, PLACEHOLDER_PROJECT, ToolRequirement, ToolSpec,
 };
-use codeskimr_domain::{Ceiling, RequirementFormat, RequirementSpec, RollForwardSpec};
+use codeskimr_domain::{Ceiling, RequirementFormat, RequirementSpec, RollForwardSpec, SymbolKind};
 use std::collections::BTreeMap;
 use std::path::{Component, Path};
 
 use serde::Deserialize;
 
 use crate::consts::{
-    INDEXER_BAD_HOME_DIR, INDEXER_BAD_PROGRAM, INDEXER_BAD_VERSION, INDEXER_NO_OUTPUT,
-    INDEXER_UNKNOWN_PLACEHOLDER, NOTHING, PATH_SEPARATORS, PLACEHOLDER_CLOSE, PLACEHOLDER_OPEN,
+    INDEXER_BAD_HOME_DIR, INDEXER_BAD_PROGRAM, INDEXER_BAD_SYMBOL_KIND, INDEXER_BAD_VERSION,
+    INDEXER_NO_OUTPUT, INDEXER_UNKNOWN_PLACEHOLDER, NOTHING, PATH_SEPARATORS, PLACEHOLDER_CLOSE,
+    PLACEHOLDER_OPEN,
 };
 
 /// The file in which a project names the version of a tool it needs, such as `global.json`.
@@ -125,6 +126,10 @@ pub struct IndexerManifest {
     /// Environment variables set to a fixed value.
     #[serde(default)]
     pub env: BTreeMap<String, String>,
+    /// What the index says a definition is, by the name of its SCIP kind, as a symbol kind of
+    /// the model (`[indexer.symbol_kinds]`, ADR 0055). Without it level 2 creates no symbols.
+    #[serde(default)]
+    pub symbol_kinds: BTreeMap<String, String>,
 }
 
 impl ToolManifest {
@@ -162,6 +167,19 @@ impl IndexerManifest {
             .collect()
     }
 
+    /// `symbol_kinds` as pairs.
+    fn symbol_kinds(&self) -> Result<Vec<(String, SymbolKind)>, String> {
+        self.symbol_kinds
+            .iter()
+            .map(|(scip, kind)| {
+                let kind = kind
+                    .parse::<SymbolKind>()
+                    .map_err(|_| [INDEXER_BAD_SYMBOL_KIND, kind.as_str()].concat())?;
+                Ok((scip.clone(), kind))
+            })
+            .collect()
+    }
+
     /// The files in which a project names the versions of the toolchain.
     ///
     /// # Errors
@@ -184,7 +202,9 @@ impl IndexerManifest {
     /// # Errors
     /// The reason, if a program is a path, a version cannot be read, an argument holds a
     /// placeholder that does not exist, or no argument tells the indexer where to write.
-    pub fn spec(&self) -> Result<IndexerSpec, String> {
+    /// `separator` is the separator of qualified names of the language, which level 2 needs to
+    /// name the symbols it creates.
+    pub fn spec(&self, separator: &str) -> Result<IndexerSpec, String> {
         let mut writes_output = false;
         for arg in &self.args {
             writes_output |= arg.contains(PLACEHOLDER_OUTPUT);
@@ -215,6 +235,8 @@ impl IndexerManifest {
                 .map(|(k, v)| (k.clone(), v.clone()))
                 .collect(),
             install_hint: self.install_hint.clone(),
+            symbol_kinds: self.symbol_kinds()?,
+            separator: separator.to_owned(),
         })
     }
 }

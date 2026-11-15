@@ -89,6 +89,17 @@ home_dirs = { CARGO_HOME = ".cargo", RUSTUP_HOME = ".rustup" }
 # The rustup proxy would download the toolchain that a `rust-toolchain.toml` of the project names.
 env = { RUSTUP_AUTO_INSTALL = "0" }
 
+# What the index says a definition is (SCIP kind, `SymbolInformation.kind`), as a symbol kind (ADR 0055).
+# Level 2 creates a symbol for a definition of these kinds that level 1 does not know, such as a type or an
+# enum variant that a `macro_rules!` call generates (`id_type!(SymbolId)`, `labeled_enum! { SymbolKind { .. } }`).
+# `macro_rules!` definitions themselves are no symbols (the pack has no kind for them).
+[indexer.symbol_kinds]
+Struct = "struct"
+Enum = "enum"
+EnumMember = "enum_member"
+Trait = "trait"
+TypeAlias = "type_alias"
+
 [indexer.tool]
 program = "rust-analyzer"
 version_args = ["--version"]

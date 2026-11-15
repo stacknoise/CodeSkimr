@@ -1,5 +1,6 @@
 //! Persistence (adapter: `codeskimr_storage`).
 
+use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
     FileId, LanguageId, Metric, Project, ProjectId, Reference, ReferenceId, RelativePath, Snapshot,
     SnapshotId, SourceFile, Symbol, SymbolId,
@@ -47,6 +48,17 @@ pub struct SnapshotData {
     /// Microseconds spent parsing the files of each language in a full scan; empty in an
     /// incremental scan, which keeps the figures of the previous snapshot.
     pub parse_micros: Vec<(LanguageId, u64)>,
+    /// The warnings of the scan, one per code, counted over the whole snapshot.
+    pub warnings: Vec<ScanWarning>,
+}
+
+/// A warning of a scan: how often something happened, not one message per occurrence.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ScanWarning {
+    /// The registered code, a warning.
+    pub code: ErrorCode,
+    /// How many times it happened in the scan.
+    pub count: u64,
 }
 
 /// Symbols and references of the newest snapshot of a project, the starting point of an
@@ -69,6 +81,13 @@ pub enum StoredNames<'a> {
     ImportsOf(&'a [FileId]),
     /// The names written inside these symbols, which are in these files.
     Callers(&'a [FileId], &'a [SymbolId]),
+    /// The names, imports excepted, whose target or whose named receiver is one of these simple
+    /// names: what the resolver looks up by them.
+    Targeting(&'a [String]),
+    /// The imports whose target is one of these qualified names.
+    ImportsTargeting(&'a [String]),
+    /// Every name written in these files.
+    OfFiles(&'a [FileId]),
     /// Every name.
     All,
 }
@@ -89,14 +108,19 @@ pub struct PreviousState {
     pub names_stored: bool,
 }
 
-/// Level 2 references that replace the level 1 references of some files of a snapshot.
+/// What level 2 stores for some files of a snapshot: the symbols it creates (ADR 0055) and the
+/// references that replace the level 1 references of those files.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ReferenceReplacement {
+pub struct Level2Replacement {
     /// The snapshot the references belong to.
     pub snapshot: SnapshotId,
     /// The files whose references are replaced; a file that is not here keeps its references.
     pub files: Vec<FileId>,
-    /// The new references, all in those files, with ids no stored row has.
+    /// The symbols of origin `index` that replace the ones of those files, all in those files,
+    /// with ids no stored row has. A file without any gets none of its former ones back.
+    pub symbols: Vec<Symbol>,
+    /// The new references, all in those files, with ids no stored row has. They may point at
+    /// `symbols`.
     pub references: Vec<Reference>,
 }
 
@@ -169,7 +193,7 @@ pub trait SnapshotStore: Send + Sync {
     /// A coded failure such as `STO-302` or `STO-501`; nothing is written then.
     fn persist(&self, data: SnapshotData) -> Result<Snapshot, CodedError>;
 
-    /// Replaces the references of the files of `replacement` in one transaction, updates the
+    /// Replaces the symbols of origin `index` and the references of the files of `replacement` in one transaction, updates the
     /// totals and the read models and returns the snapshot. Rows are shared between snapshots
     /// that carry a file unchanged (ADR 0032), so older snapshots show the new references of such
     /// a file too, which is right: the content is the same.
@@ -177,6 +201,5 @@ pub trait SnapshotStore: Send + Sync {
     /// # Errors
     /// `STO-901` if the snapshot is not the newest of its project or the data does not fit it;
     /// nothing is changed then.
-    fn replace_references(&self, replacement: ReferenceReplacement)
-    -> Result<Snapshot, CodedError>;
+    fn replace_level2(&self, replacement: Level2Replacement) -> Result<Snapshot, CodedError>;
 }

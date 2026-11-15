@@ -6,8 +6,8 @@ use codeskimr_application::ports::{
     ImpactedSymbol, SymbolLabel, TypeFocus, TypeNeighbour, UsageEntry,
 };
 use codeskimr_domain::{
-    NamespaceGraph, QualifiedName, RelativePath, ReverseIndex, SymbolId, TypeLink, Visibility,
-    namespace_graph, type_neighbours,
+    NamespaceGraph, QualifiedName, ReferenceKind, RelativePath, ReverseIndex, SymbolId, TypeLink,
+    Visibility, namespace_graph, type_neighbours,
 };
 use rusqlite::{Connection, params};
 
@@ -106,7 +106,14 @@ impl SnapshotLookup {
                     &found.label.qualified_name,
                 )
             }),
-            references.iter().map(|found| (found.from, found.to)),
+            // Only certain references count as a dependency of namespaces (issue #464), and
+            // references of kind `test` do not, as in the layer graph.
+            references
+                .iter()
+                .filter(|found| {
+                    !found.confidence.is_probable() && found.kind != ReferenceKind::Test
+                })
+                .map(|found| (found.from, found.to)),
         );
         Ok(Self {
             index: ReverseIndex::new(references),

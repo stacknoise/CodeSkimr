@@ -43,6 +43,7 @@ fn level2_defaults_are_256_mib_and_half() {
     let config = Config::defaults().expect("shipped defaults are valid");
     assert_eq!(config.level2.max_index_bytes, 256 * 1024 * 1024);
     assert!((config.level2.min_mapped - 0.5).abs() < f64::EPSILON);
+    assert_eq!(config.level2.max_created_symbols, 100_000);
 }
 
 #[test]
@@ -292,6 +293,11 @@ fn level2_limits_are_checked() {
             Violation::MustBePositive,
         ),
         (
+            "[level2]\nmax_created_symbols = 0\n",
+            "level2.max_created_symbols",
+            Violation::MustBePositive,
+        ),
+        (
             "[level2]\nmin_mapped = 1.5\n",
             "level2.min_mapped",
             Violation::MustBeShare,
@@ -397,7 +403,23 @@ fn a_layer_needs_a_unique_name_and_a_namespace() {
             "layers",
             Violation::MustBeLayerRule,
         ),
+        (
+            "[[layers]]\nname = \"a\"\nnamespaces = [\"x\"]\nmay_use = [\"missing\"]\n",
+            "layers",
+            Violation::MustBeLayerRule,
+        ),
     ]);
+}
+
+#[test]
+fn a_layer_may_limit_its_dependencies_to_declared_layers() {
+    let text = "[[layers]]\nname = \"a\"\nnamespaces = [\"x\"]\nmay_use = [\"b\"]\n\n[[layers]]\nname = \"b\"\nnamespaces = [\"y\"]\nmay_use = []\n\n[[layers]]\nname = \"c\"\nnamespaces = [\"z\"]\n";
+    let layers = Config::resolve(&[project(text)])
+        .expect("valid")
+        .project_layers();
+    assert_eq!(layers[0].may_use.as_ref().map(Vec::len), Some(1));
+    assert_eq!(layers[1].may_use, Some(Vec::new()));
+    assert_eq!(layers[2].may_use, None);
 }
 
 #[test]

@@ -36,6 +36,7 @@ pub fn project(id: u64, folder: &str, layers: &[(&str, &[&str])]) -> Project {
         layers: layers
             .iter()
             .map(|(name, namespaces)| Layer {
+                may_use: None,
                 name: LayerName::new(*name).unwrap(),
                 namespaces: namespaces
                     .iter()
@@ -86,6 +87,7 @@ pub fn symbol(
         span: span(1),
         signature: Some(format!("{name}()")),
         doc: None,
+        origin: codeskimr_domain::SymbolOrigin::Syntax,
     }
 }
 
@@ -134,6 +136,7 @@ pub fn data(snapshot: Snapshot) -> SnapshotData {
         dropped_references: Vec::new(),
         naming_rules: String::new(),
         parse_micros: Vec::new(),
+        warnings: Vec::new(),
     }
 }
 
@@ -150,11 +153,23 @@ pub fn scanned(
     references: Vec<Reference>,
     metrics: Vec<Metric>,
 ) -> SqliteStore {
+    scanned_project(
+        &project(1, "/work/app", layers),
+        symbols,
+        references,
+        metrics,
+    )
+}
+
+pub fn scanned_project(
+    project: &Project,
+    symbols: Vec<Symbol>,
+    references: Vec<Reference>,
+    metrics: Vec<Metric>,
+) -> SqliteStore {
     use codeskimr_application::ports::SnapshotStore;
     let store = store(3);
-    store
-        .save_project(&project(1, "/work/app", layers))
-        .unwrap();
+    store.save_project(project).unwrap();
     let mut scan = data(header(10, ScanMode::Full));
     scan.files = vec![file(10, 11, "src/order.cs", "h")];
     scan.symbols = symbols;

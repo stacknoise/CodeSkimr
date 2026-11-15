@@ -4,7 +4,7 @@
 
 Ebene 2 macht Verwendungen **exakt**: Statt zu raten, welches `Save()` ein Aufruf meint, übernimmt CodeSkimr die Antwort des Werkzeugs der Sprache, das die Typen kennt, und markiert diese Verwendungen als **geprüft**. Dieses Kapitel erklärt, was Sie installieren, wie Sie es einschalten und was beim Scan passiert.
 
-> **Stand:** Ebene 2 ist für C#, TypeScript, JavaScript, Python, Rust, Java und Kotlin gebaut und standardmäßig **aus**. **Keine Sprache ist bisher formal abgenommen.** Die Messungen an öffentlichen Beispielprojekten (je 150 Symbole, `docs/accuracy.md` im Quellcode-Repository) zeigen, wie weit „geprüft“ heute trägt: Rust und Java 100 % Genauigkeit und Trefferquote, TypeScript 99 % Genauigkeit und 100 % Trefferquote; Python findet 99 % der Verwendungen, nennt aber zusätzliche Treffer bei Feldern (Genauigkeit 63 %); bei C# übersieht Ebene 2 die meisten Verwendungen, die Ebene 1 findet (Trefferquote 34 %, ein bekanntes Problem des C#-Indexers `scip-dotnet` mit überladenen Erweiterungsmethoden). Kotlin wurde noch gar nicht gemessen. Sprachen unter 99 % sind Näherungen. „Geprüft“ heißt: Diese Verwendung ist exakt. Es heißt **nicht**, dass die Liste vollständig ist, eine geprüfte Liste kann also trotzdem Verwendungen vermissen. Der Entscheidungstext, ADR 0033, hat noch den Status „proposed“, Einzelheiten können sich ändern.
+> **Stand:** Ebene 2 ist für C#, TypeScript, JavaScript, Python, Rust, Java und Kotlin gebaut und standardmäßig **aus**. **Keine Sprache ist bisher formal abgenommen.** Die Messungen an öffentlichen Beispielprojekten (je 150 Symbole, `docs/accuracy.md` im Quellcode-Repository) zeigen, wie weit „geprüft“ heute trägt: Rust und Java 100 % Genauigkeit und Trefferquote, TypeScript 99 % Genauigkeit und 100 % Trefferquote; Python findet 99 % der Verwendungen, nennt aber zusätzliche Treffer bei Feldern (Genauigkeit 63 %); bei C# übersieht Ebene 2 die meisten Verwendungen, die Ebene 1 findet (Trefferquote 34 %, ein bekanntes Problem des C#-Indexers `scip-dotnet` mit überladenen Erweiterungsmethoden). Kotlin wurde noch gar nicht gemessen. Sprachen unter 99 % sind Näherungen. „Geprüft“ heißt: Diese Verwendung ist exakt. Es heißt **nicht**, dass die Liste vollständig ist, eine geprüfte Liste kann also trotzdem Verwendungen vermissen. Der Entscheidungstext, ADR 0033, ist angenommen (Status „accepted“).
 
 ## Wozu
 
@@ -34,7 +34,7 @@ Immer wenn ein Projekt geladen wird (hinzugefügt, vollständig gescannt, wieder
 - in der Zusammenfassung von `codeskimr scan` (und mit `--json` als `tools`);
 - über MCP mit dem Werkzeug `get_project`.
 
-Ein Werkzeug ist `ready` (bereit), `missing` (nicht im `PATH`), `too_old` (unter der Mindestversion oder der Version, die das Projekt in `global.json`, `.nvmrc` oder `rust-toolchain.toml` verlangt), `too_new` (neuer, als die `rollForward`-Regel in `global.json` zulässt, zum Beispiel ein SDK 9, obwohl das Projekt 8.0 nennt und nichts darüber erlaubt) oder `version_unknown` (es lief, aber eine Version war nicht lesbar). Ein fehlendes Werkzeug **stoppt nie einen Scan**: Sie bekommen Ebene 1, ungeprüft markiert. Ein schneller Neuscan nach einer Dateiänderung wiederholt die Prüfung nicht.
+Ein Werkzeug ist `ready` (bereit), `missing` (nicht im `PATH`, oder die Versionsabfrage schlägt fehl, etwa bei der `rustup`-Hülle einer nie hinzugefügten Komponente), `too_old` (unter der Mindestversion oder der Version, die das Projekt in `global.json`, `.nvmrc` oder `rust-toolchain.toml` verlangt), `too_new` (neuer, als die `rollForward`-Regel in `global.json` zulässt, zum Beispiel ein SDK 9, obwohl das Projekt 8.0 nennt und nichts darüber erlaubt) oder `version_unknown` (es lief, aber eine Version war nicht lesbar). Ein fehlendes Werkzeug **stoppt nie einen Scan**: Sie bekommen Ebene 1, ungeprüft markiert. Ein schneller Neuscan nach einer Dateiänderung wiederholt die Prüfung nicht.
 
 ## Einschalten
 
@@ -79,6 +79,7 @@ Jeder Lauf ist begrenzt; ein Indexer, der eine Grenze überschreitet, wird samt 
 | `max_output_bytes` (Konsole und Dateien) | 512 MiB | `RES-503` |
 | `max_index_bytes` (größter gelesener Index) | 256 MiB | `RES-501` |
 | `min_mapped` (Anteil der Projekt-Vorkommen, der zuordenbar sein muss) | 0,5 | `RES-302` |
+| `max_created_symbols` (Höchstzahl der Symbole, die Ebene 2 selbst anlegt, z. B. durch Makros erzeugte Typen) | 100000 | `RES-303` |
 
 Der Indexer bekommt eine geleerte Umgebung mit Positivliste (kein Token und kein Geheimnis von CodeSkimr erreicht ihn), läuft in einer eigenen Prozessgruppe, und seine Ausgabe wird geschwärzt, bevor sie protokolliert wird. **Das Netzwerk ist nicht gesperrt**, weil die Paketwiederherstellung es braucht; das ist das wichtigste Restrisiko und der Grund für die Bestätigung.
 
@@ -88,4 +89,4 @@ Ein Index gilt für eine Datei nur, solange ihr Inhalt der zum Zeitpunkt der Ind
 
 ## Fehler
 
-`RES-201` Indexer oder Werkzeugkette fehlt oder ist zu alt, `RES-501` Index zu groß, `RES-502` Zeitlimit, `RES-503` Ausgabe zu groß, `RES-504` Speichergrenze, `RES-601` der Indexer konnte nicht gestartet werden oder ist fehlgeschlagen, `RES-101` der Index ist beschädigt, `RES-302` zu wenige Vorkommen lassen sich Ihren Symbolen zuordnen, `SEC-301` Ebene 2 ist nicht eingeschaltet und bestätigt, `SEC-403` der Aufrufer darf Indexer nicht bestätigen oder starten, `PRJ-303` der Scan wurde abgebrochen. In allen bleibt Ebene 1 bestehen. Siehe [Fehlercodes](fehler.md).
+`RES-201` Indexer oder Werkzeugkette fehlt oder ist zu alt, `RES-501` Index zu groß, `RES-502` Zeitlimit, `RES-503` Ausgabe zu groß, `RES-504` Speichergrenze, `RES-601` der Indexer konnte nicht gestartet werden oder ist fehlgeschlagen, `RES-101` der Index ist beschädigt, `RES-303` Ebene 2 würde zu viele eigene Symbole anlegen, `RES-302` zu wenige Vorkommen lassen sich Ihren Symbolen zuordnen, `SEC-301` Ebene 2 ist nicht eingeschaltet und bestätigt, `SEC-403` der Aufrufer darf Indexer nicht bestätigen oder starten, `PRJ-303` der Scan wurde abgebrochen. In allen bleibt Ebene 1 bestehen. Siehe [Fehlercodes](fehler.md).

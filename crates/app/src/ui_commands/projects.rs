@@ -6,7 +6,7 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    LanguageShare, ProjectCatalog, ProjectOverview, ProjectToolCheck,
+    LanguageShare, ProjectCatalog, ProjectOverview, ProjectToolCheck, ScanWarning,
 };
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_application::tools::ToolsView;
@@ -60,6 +60,15 @@ pub struct LanguageRow {
     pub tier: Option<&'static str>,
 }
 
+/// A warning of the newest scan of a project: how often the code was found.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct WarningRow {
+    /// The error code, for example `RES-301`.
+    pub code: &'static str,
+    /// How many times it happened in the scan.
+    pub count: u64,
+}
+
 /// One row of the project list.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ProjectRow {
@@ -83,6 +92,8 @@ pub struct ProjectRow {
     pub loc: u32,
     /// Languages, the one with the most lines first.
     pub languages: Vec<LanguageRow>,
+    /// The warnings of the newest scan; empty if it had none.
+    pub warnings: Vec<WarningRow>,
     /// Whether a scan of the project is running right now.
     pub running: bool,
     /// What the last check of the tools found; `None` if the project was never checked.
@@ -108,6 +119,14 @@ fn language_row(share: &LanguageShare, context: &Context) -> LanguageRow {
         symbols: share.symbols,
         parse_micros: share.parse_micros,
         tier: context.tier_of(share.language.as_str()),
+    }
+}
+
+/// The row of one scan warning.
+fn warning_row(warning: &ScanWarning) -> WarningRow {
+    WarningRow {
+        code: warning.code.id(),
+        count: warning.count,
     }
 }
 
@@ -142,6 +161,7 @@ fn project_row(
             .iter()
             .map(|share| language_row(share, context))
             .collect(),
+        warnings: overview.warnings.iter().map(warning_row).collect(),
         running,
         tools,
     }

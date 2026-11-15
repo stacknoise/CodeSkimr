@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex, OnceLock};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::ports::{
-    LanguageShare, ProjectCatalog, ProjectOverview, ProjectToolCheck,
+    LanguageShare, ProjectCatalog, ProjectOverview, ProjectToolCheck, ScanWarning,
 };
 use codeskimr_application::registry::CommandExt;
 use codeskimr_cli::GlobalOptions;
@@ -14,7 +14,7 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{FolderPath, Project, ProjectId, ProjectName, ProjectSource, ToolReport};
 
 use super::Context;
-use super::projects::ListProjects;
+use super::projects::{ListProjects, WarningRow};
 use crate::locations::Locations;
 use crate::principal;
 use crate::running::RunningScans;
@@ -33,6 +33,14 @@ fn overview(id: u64, name: &str) -> ProjectOverview {
         latest: None,
         types: 0,
         languages: Vec::new(),
+        // The first project carries a warning of its newest scan.
+        warnings: (id == 1)
+            .then_some(ScanWarning {
+                code: ErrorCode::AmbiguousReference,
+                count: 4,
+            })
+            .into_iter()
+            .collect(),
     }
 }
 
@@ -92,4 +100,12 @@ fn an_unreadable_tool_report_does_not_take_the_list_down() {
     let names: Vec<_> = rows.iter().map(|row| row.name.as_str()).collect();
     assert_eq!(names, ["first", "second"]);
     assert!(rows.iter().all(|row| row.tools.is_none()));
+    assert_eq!(
+        rows[0].warnings,
+        [WarningRow {
+            code: "RES-301",
+            count: 4
+        }]
+    );
+    assert_eq!(rows[1].warnings, Vec::<WarningRow>::new());
 }

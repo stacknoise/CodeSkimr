@@ -14,6 +14,7 @@ use serde::Serialize;
 
 use crate::consts::{LINE_BREAK, LIST_SEPARATOR, NO_VERSION, SECONDS_BASE, SECONDS_DECIMALS, arg};
 use crate::level2::Level2Line;
+use crate::warning::WarningLine;
 
 /// The outcome of a scan as shown to the user and written by `--json`.
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -33,8 +34,14 @@ pub struct ScanSummary {
     /// CPU time of the scan in seconds, summed over all threads (the energy proxy of blueprint
     /// 16.2); 0 if the system does not tell. Higher than `seconds` when the scan uses several cores.
     pub cpu_seconds: f64,
+    /// Time in seconds that the scan spent loading language packs (ADR 0059); it is not part of
+    /// `seconds`. Packs are loaded when the first file of their language is analyzed, so a scan
+    /// of a language that was already loaded in the same process reports 0.
+    pub pack_load_seconds: f64,
     /// What level 2 did for each language that has an indexer; empty if it is not wired.
     pub level2: Vec<Level2Line>,
+    /// What the scan warns about, one line per code with a count; empty if nothing.
+    pub warnings: Vec<WarningLine>,
     /// What the check of the tools found (ADR 0033); a tool that is not ready is shown below the
     /// summary.
     pub tools: ToolsView,
@@ -260,6 +267,9 @@ pub fn scan_finished(
     for line in &summary.level2 {
         lines.push(line.render(messages, language)?);
     }
+    for line in &summary.warnings {
+        lines.push(line.render(messages, language)?);
+    }
     lines.extend(scan_tools(messages, language, &summary.tools)?);
     Ok(lines.join(LINE_BREAK))
 }
@@ -296,6 +306,7 @@ pub fn scan_json(summary: &ScanSummary) -> Result<String, serde_json::Error> {
     serde_json::to_string(&ScanSummary {
         seconds: rounded(summary.seconds),
         cpu_seconds: rounded(summary.cpu_seconds),
+        pack_load_seconds: rounded(summary.pack_load_seconds),
         ..summary.clone()
     })
 }

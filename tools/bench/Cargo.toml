@@ -47,6 +47,10 @@ harness = false
 name = "git_scan"
 harness = false
 
+[[bench]]
+name = "pack_load"
+harness = false
+
 [dependencies]
 serde.workspace = true
 serde_json.workspace = true

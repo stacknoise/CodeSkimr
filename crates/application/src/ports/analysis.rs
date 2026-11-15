@@ -1,8 +1,11 @@
 //! Understanding code (adapters: `codeskimr_parsing` and the metrics of `codeskimr_domain`).
 
+use std::collections::HashSet;
+use std::time::Duration;
+
 use codeskimr_domain::{
     FileId, Fingerprints, FolderPath, LanguageId, Metric, QualifiedName, Reference, ReferenceKind,
-    SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId,
+    RelativePath, SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId,
 };
 
 use super::DiscoveredFile;
@@ -100,6 +103,20 @@ pub trait FileAnalyzer: Send + Sync {
     fn naming_rules(&self) -> String {
         String::new()
     }
+
+    /// How long loading the grammar and queries of languages has taken so far (ADR 0059). The scan
+    /// leaves it out of the time it reports. The result is a clock of the whole analyzer: with
+    /// workers that analyze other languages meanwhile, or scans that run at the same time, a scan
+    /// subtracts the loads of the others too, so its time can be a little too short.
+    fn pack_load_time(&self) -> Duration {
+        Duration::ZERO
+    }
+
+    /// Whether `path` is a test file of `language` (`test_patterns` of its pack). The resolver
+    /// reports a use from a test file with the kind `test`. The default knows no test file.
+    fn is_test_file(&self, _language: &LanguageId, _path: &RelativePath) -> bool {
+        false
+    }
 }
 
 /// Fingerprints a piece of code that is not part of a scanned file, for `find_similar_code`
@@ -118,7 +135,8 @@ pub trait SnippetFingerprinter: Send + Sync {
 /// Maps pending references to symbols (blueprint section 9).
 pub trait ReferenceResolver: Send + Sync {
     /// Resolves `pending` against the global symbol table `symbols`. Names that match nothing are
-    /// dropped; ambiguous ones become `Confidence::Probable`.
+    /// dropped; ambiguous ones become `Confidence::Probable`. A call, read, write or type use in
+    /// one of the `test_files` is reported with the kind `test`.
     ///
     /// # Errors
     /// A coded failure of the `RES` group.
@@ -126,6 +144,7 @@ pub trait ReferenceResolver: Send + Sync {
         &self,
         symbols: &[Symbol],
         pending: &[PendingReference],
+        test_files: &HashSet<FileId>,
         ids: &IdSequence,
     ) -> Result<Vec<Reference>, CodedError>;
 }

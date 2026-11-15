@@ -28,6 +28,7 @@ pub(crate) struct SymbolRow {
     span: SpanColumns,
     signature: Option<String>,
     doc: Option<String>,
+    origin: String,
     path: String,
 }
 
@@ -44,6 +45,7 @@ pub(crate) fn read_row(cols: &Cols<'_>) -> rusqlite::Result<SymbolRow> {
         span: SpanColumns::read(cols)?,
         signature: cols.take()?,
         doc: cols.take()?,
+        origin: cols.take()?,
         path: cols.take()?,
     })
 }
@@ -64,6 +66,7 @@ pub(crate) fn decode(row: SymbolRow) -> StorageResult<(Symbol, RelativePath)> {
         span: row.span.span()?,
         signature: row.signature,
         doc: row.doc,
+        origin: label_from(&row.origin)?,
     };
     Ok((symbol, RelativePath::new(row.path)?))
 }
