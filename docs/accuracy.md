@@ -168,6 +168,19 @@ The earlier TypeScript recall of 60.5 % (table above, 2026-11-13) and the 62.7 %
 - Python, Jedi is silent for 27 symbols (all fields) on which we have 51 `certain` uses and Jedi none. `--json` counts them (`tool_silent`); the symbols are the `rows` with `tool` 0 and `ours` above 0. The 51 lines were checked once against the syntax tree of the corpus (script not kept) and are true uses: 48 are `self.x` in the class of the field or a subclass (about 20 of them the assignment `self.x = x` in `__init__`), 2 are annotations of a type (`runner: CliRunner`) and 2 are `ctx.command` with `ctx: Context`. They stay in the raw figure of 75.3 %, so read it as a lower bound; 98.8 % is the figure over the symbols that Jedi can judge.
 - C#: only 52 uses of the 150 symbols; the corpus is small in uses, so the figure rests on little. The `certain` recall is low because most references are `probable` as for TypeScript (ADR 0033).
 
+Free names in Rust and TypeScript (ADR 0053, 150 symbols, seed 1, 2026-11-15; `bare_names_reach_members = false`, level 1, all references and `--certain-only`):
+
+| Language | `certain` precision | `certain` recall | all: precision | all: recall | exact |
+|---|---|---|---|---|---|
+| Rust before | 99.3 % (142 of 143) | 19.0 % | 62.0 % | 59.2 % | 28.7 % |
+| Rust after | 99.3 % (152 of 153) | 20.3 % | 65.8 % | 60.6 % | 31.3 % |
+| TypeScript before | 100 % (98 of 98) | 14.7 % | 27.8 % | 65.4 % | 21.3 % |
+| TypeScript with the key (not enabled) | 100 % (99 of 99) | 14.8 % | 29.7 % | 64.8 % | 21.3 % |
+
+- Rust: set. On the corpus of `corpus/rust/corpus.toml` (7,994 references before, 7,372 after: 814 fall away, 192 are new) the references that fall away are almost all wrong ones (a parameter `branch` or a pattern variable `kind` taken for a field of that name, a function call `measure(..)` or `drop(..)` taken for a method, `Ok(())` for an enum member `Ok`); the 7 `certain` ones that fall away were all wrong. Of the 192 new references 154 are `certain` reads of a field, mostly in the struct shorthand `Self { symbols }` or `Foo { right }`, which now names the field of that struct (receiver `own` or `typed`) and is no longer hidden by a local of the same name. A line that was found before only because a local variable of the same name stood in the same line (`mode: label_from(&mode)?`) is no longer found; the field name in front of the colon is not an occurrence of the pack, before or after. No test corpus has a bare enum member brought in by `use Kind::*`: that case is neither shown nor refuted (a bare name never reaches a member, so it would be lost). The one wrong `certain` use of the sample is an `override` link, as before.
+- TypeScript: not set. Precision of all references rises by 1.9 points, but recall falls by 0.6 (433 instead of 437 of 668 uses of the tool): the object shorthand `{ power }` names a property of the type the object is made for, and the pack cannot tell the type of an object literal, so the name would have to count as a bare name. Giving it an unknown receiver brings back 156 of the 1,751 lost references but un-hides every local of that name (1,769 new `probable` references). The key stays at its default for TypeScript, TSX and JavaScript until the pack can tell the two apart.
+- Go: the pack is basic tier and has no `references.scm`, there is nothing to measure.
+
 After the reversal of the ambiguity rule (ADR 0033, 150 symbols, seed 1, 2026-11-13): level 1 keeps every match and marks it unchecked.
 
 | Language | exact | precision | recall |

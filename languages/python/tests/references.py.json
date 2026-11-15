@@ -157,14 +157,14 @@
       "at": "12:24",
       "from": "references.Child.run",
       "kind": "type_use",
-      "receiver": "free",
+      "receiver": null,
       "target": "Thing"
     },
     {
       "at": "12:43",
       "from": "references.Child.run",
       "kind": "type_use",
-      "receiver": "free",
+      "receiver": null,
       "target": "Other"
     },
     {
@@ -234,7 +234,7 @@
       "at": "29:14",
       "from": "references.make",
       "kind": "type_use",
-      "receiver": "free",
+      "receiver": null,
       "target": "Child"
     },
     {
@@ -276,7 +276,7 @@
       "at": "38:28",
       "from": "references.Holder.rename",
       "kind": "type_use",
-      "receiver": "free",
+      "receiver": null,
       "target": "str"
     },
     {
