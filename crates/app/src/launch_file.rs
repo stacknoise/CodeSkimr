@@ -225,6 +225,17 @@ mod tests {
     const URL: &str = "http://127.0.0.1:7421/#code=abc";
     const LIFETIME: Duration = Duration::from_secs(60);
 
+    /// A launch file is refused for a folder that is a link, and nothing is made at its target.
+    #[cfg(any(unix, windows))]
+    fn assert_link_refused(link: &Path, target: &Path) {
+        let error = LaunchFile::create(link, URL, LIFETIME).unwrap_err();
+        assert_eq!(
+            codeskimr_codes::Coded::code(&error),
+            ErrorCode::LaunchFileUnavailable
+        );
+        assert_eq!(fs::read_dir(target).unwrap().count(), 0);
+    }
+
     #[test]
     fn the_page_redirects_and_the_file_goes_with_the_value() {
         let dir = tempfile::tempdir().unwrap();
@@ -272,12 +283,7 @@ mod tests {
         fs::create_dir(&target).unwrap();
         let link = dir.path().join("launch");
         std::os::unix::fs::symlink(&target, &link).unwrap();
-        let error = LaunchFile::create(&link, URL, LIFETIME).unwrap_err();
-        assert_eq!(
-            codeskimr_codes::Coded::code(&error),
-            ErrorCode::LaunchFileUnavailable
-        );
-        assert_eq!(fs::read_dir(&target).unwrap().count(), 0);
+        assert_link_refused(&link, &target);
     }
 
     #[cfg(unix)]
@@ -372,12 +378,7 @@ mod tests {
         fs::create_dir(&target).unwrap();
         let link = dir.path().join("link");
         junction(&link, &target);
-        let error = LaunchFile::create(&link, URL, LIFETIME).unwrap_err();
-        assert_eq!(
-            codeskimr_codes::Coded::code(&error),
-            ErrorCode::LaunchFileUnavailable
-        );
-        assert_eq!(fs::read_dir(&target).unwrap().count(), 0);
+        assert_link_refused(&link, &target);
     }
 
     #[cfg(windows)]
