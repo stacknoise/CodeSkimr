@@ -108,19 +108,25 @@ impl ReverseIndex {
         self.incoming.get(&symbol).map_or(0, Vec::len)
     }
 
-    /// The references a walk finds, step by step: first those of the start symbol, then those of
-    /// the symbols reached by the first step, and so on. A reference shows up once. Symbols that
-    /// were reached before are not walked again, so cycles end.
+    /// The references a walk finds: the verified ones first, then, within each group, step by
+    /// step (first those of the start symbol, then those of the symbols reached by the first
+    /// step, and so on) and in the order of file and position. The order is fixed here so that a
+    /// cut to a limit keeps the verified references (ADR 0033). A reference shows up once.
+    /// Symbols that were reached before are not walked again, so cycles end.
     #[must_use]
     pub fn usages(&self, query: &UsageQuery) -> Vec<Usage> {
         let mut found = Vec::new();
         self.walk(query, |usage, _| found.push(usage));
+        if self.any_verified {
+            found.sort_by_key(|usage| !usage.reference.verified);
+        }
         found
     }
 
-    /// The symbols a walk reaches, nearest first, each once, without the start symbol. With
-    /// `Direction::Incoming` this is everything a change of the start symbol can affect. A symbol
-    /// counts as verified if one path of verified references reaches it in the nearest step.
+    /// The symbols a walk reaches, verified ones first and then nearest first, each once, without
+    /// the start symbol. With `Direction::Incoming` this is everything a change of the start
+    /// symbol can affect. A symbol counts as verified if one path of verified references reaches
+    /// it in the nearest step.
     #[must_use]
     pub fn reached(&self, query: &UsageQuery) -> Vec<Reached> {
         let mut found = Vec::new();
@@ -134,6 +140,7 @@ impl ReverseIndex {
             found.extend(reached);
         });
         mark_verified(query, &usages, &mut found);
+        found.sort_by_key(|reached| !reached.verified);
         found
     }
 

@@ -100,7 +100,12 @@ fn check_private(dir: &Path) -> std::io::Result<()> {
         return Err(std::io::ErrorKind::InvalidInput.into());
     }
     #[cfg(windows)]
-    crate::private_acl::restrict_to_user(dir)?;
+    {
+        if is_reparse_point(dir)? {
+            return Err(std::io::ErrorKind::PermissionDenied.into());
+        }
+        crate::private_acl::restrict_to_user(dir)?;
+    }
     Ok(())
 }
 
@@ -141,7 +146,28 @@ fn check_owner(dir: &Path, path: &Path, own_file: &File) -> std::io::Result<()> 
 }
 
 /// On Windows the access rules of the folder are set for the user alone (see `check_private`).
-#[cfg(not(unix))]
+/// A folder or file that is a reparse point (a junction or a link) is refused: it could lead to a
+/// place that others can read, and the access rules would be set on that place instead.
+#[cfg(windows)]
+fn check_owner(dir: &Path, path: &Path, _own_file: &File) -> std::io::Result<()> {
+    if is_reparse_point(dir)? || is_reparse_point(path)? {
+        return Err(std::io::ErrorKind::PermissionDenied.into());
+    }
+    Ok(())
+}
+
+/// Whether `path` itself (not what it points to) is a reparse point.
+#[cfg(windows)]
+fn is_reparse_point(path: &Path) -> std::io::Result<bool> {
+    use std::os::windows::fs::MetadataExt;
+
+    use crate::consts::FILE_ATTRIBUTE_REPARSE_POINT;
+
+    Ok(fs::symlink_metadata(path)?.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0)
+}
+
+/// Other systems without a Unix mode have nothing more to check.
+#[cfg(not(any(unix, windows)))]
 fn check_owner(_dir: &Path, _path: &Path, _own_file: &File) -> std::io::Result<()> {
     Ok(())
 }
@@ -199,6 +225,17 @@ mod tests {
     const URL: &str = "http://127.0.0.1:7421/#code=abc";
     const LIFETIME: Duration = Duration::from_secs(60);
 
+    /// A launch file is refused for a folder that is a link, and nothing is made at its target.
+    #[cfg(any(unix, windows))]
+    fn assert_link_refused(link: &Path, target: &Path) {
+        let error = LaunchFile::create(link, URL, LIFETIME).unwrap_err();
+        assert_eq!(
+            codeskimr_codes::Coded::code(&error),
+            ErrorCode::LaunchFileUnavailable
+        );
+        assert_eq!(fs::read_dir(target).unwrap().count(), 0);
+    }
+
     #[test]
     fn the_page_redirects_and_the_file_goes_with_the_value() {
         let dir = tempfile::tempdir().unwrap();
@@ -246,12 +283,7 @@ mod tests {
         fs::create_dir(&target).unwrap();
         let link = dir.path().join("launch");
         std::os::unix::fs::symlink(&target, &link).unwrap();
-        let error = LaunchFile::create(&link, URL, LIFETIME).unwrap_err();
-        assert_eq!(
-            codeskimr_codes::Coded::code(&error),
-            ErrorCode::LaunchFileUnavailable
-        );
-        assert_eq!(fs::read_dir(&target).unwrap().count(), 0);
+        assert_link_refused(&link, &target);
     }
 
     #[cfg(unix)]
@@ -323,5 +355,42 @@ mod tests {
         assert!(other.exists());
         let fresh = LaunchFile::create(dir.path(), URL, LIFETIME).unwrap();
         assert!(fresh.path().exists());
+    }
+
+    /// A junction is made with the system shell: the standard library cannot create one.
+    #[cfg(windows)]
+    fn junction(link: &Path, target: &Path) {
+        let made = std::process::Command::new("cmd")
+            .args(["/C", "mklink", "/J"])
+            .arg(link)
+            .arg(target)
+            .stdout(std::process::Stdio::null())
+            .status()
+            .unwrap();
+        assert!(made.success());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_junction_as_the_folder_is_refused() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("target");
+        fs::create_dir(&target).unwrap();
+        let link = dir.path().join("link");
+        junction(&link, &target);
+        assert_link_refused(&link, &target);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn the_file_is_made_in_a_plain_folder_and_goes_on_windows() {
+        let dir = tempfile::tempdir().unwrap();
+        let folder = dir.path().join("launch");
+        let file = LaunchFile::create(&folder, URL, LIFETIME).unwrap();
+        assert!(!is_reparse_point(&folder).unwrap());
+        let path = file.path().to_owned();
+        assert!(path.is_file());
+        drop(file);
+        assert!(!path.exists());
     }
 }

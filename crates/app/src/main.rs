@@ -14,6 +14,7 @@ mod cpu_time;
 mod credential;
 #[cfg(test)]
 mod e2e;
+mod embedded_packs;
 mod embedded_ui;
 mod export;
 mod installation_token;

@@ -445,9 +445,9 @@ The registry generates:
 
 **Caller identity and permissions (MUST, ADR 0019):**
 
-- `Principal` and `Permission` are pure types in `codeskimr_domain`. In 1.0 the only principal is `LocalOwner`, who holds every permission; it is created only in the single-user composition root (a test enforces this). A principal with fewer permissions is built only by an authenticator or in tests.
-- Every command and every use case receives the `Principal` inside its request or context struct (so the parameter limit R-02 holds). Commands run only through `Registry::execute`, which checks the declared permission once, before the command starts; the registry hands out no handler that could skip the check. Registering a command fails if its read-only flag contradicts its permission (a read-only command needs `read` or `read_source`, any other command needs something else). Use cases that are not commands yet (the scanner, the MCP tools) call `access::require` first, before they read anything or validate arguments.
-- Denial gives the registered error `AUTH-401` and names neither the permission nor a project; "not found" and "not allowed" must not become an oracle. A denied scan starts nothing and publishes no event.
+- `Principal` and `Permission` are pure types in `codeskimr_domain`. In 1.0 the only principal is `LocalOwner`, who holds every permission; it is created only in the single-user composition root. Two guards back this up. The constructors `Principal::local_owner`, `Principal::limited` and `PermissionSet::all` exist only with the cargo feature `issue-principals` of `codeskimr_domain`, so a single crate cannot even compile a call without it. Cargo unifies features inside one build, though, so the real guards are two tests: one scans the product sources, one scans every `Cargo.toml` and fails if the feature is switched on anywhere but in the normal dependencies of the composition root (dev-dependencies for tests are fine). A principal with fewer permissions is built only by an authenticator or in tests.
+- Every command and every use case receives the `Principal` inside its request or context struct (so the parameter limit R-02 holds). Commands run only through `Registry::execute` or `CommandExt::run`, which check the declared permission once, before the command starts. A `Request` can be built inside `codeskimr_application` only (it is `#[non_exhaustive]`; a `compile_fail` doctest proves it), so holding a command value does not allow calling `execute` around the check; the request is typed with its command (`Request<'_, C>`), so a command cannot pass the request it got on to another command (a second `compile_fail` doctest proves it); the registry hands out no handler either. Registering a command fails if its read-only flag contradicts its permission (a read-only command needs `read` or `read_source`, any other command needs something else). Use cases that are not commands yet (the scanner, the MCP tools) call `access::require` first, before they read anything or validate arguments.
+- Denial gives the registered error `AUTH-401` and names neither the permission nor a project; "not found" and "not allowed" must not become an oracle. On the REST and MCP routes a command or tool the caller may not run answers exactly like an unknown one (`API-201`, ADR 0044); `AUTH-401` remains for the other routes and the use cases. A denied scan starts nothing and publishes no event.
 - Any source text a command, route, tool or export returns needs `read_source`.
 
 ### 10.2 CLI
@@ -650,7 +650,7 @@ Handle credentials as carefully as is technically possible. CodeSkimr cannot con
 1. **Store nothing.** For Git, use the system's Git credential helper.
 2. **Tokens instead of passwords.** For GitHub and GitLab, use the OAuth device flow with minimal scopes and short-lived tokens.
 3. **OS keystore** for anything that must be stored: Windows Credential Manager (DPAPI), macOS Keychain, Linux Secret Service, via `keyring-core` and the native stores (ADR 0018).
-4. **Never** in SQLite, config files, environment dumps, logs or exports. The database only stores a `CredentialId`.
+4. **Never** in SQLite, config files, environment dumps, logs or exports. The database only stores a `CredentialId`. This also holds without a keystore (a Linux without a Secret Service): there is no file fallback, the program stops with `SEC-601` and says how to fix it (ADR 0045).
 
 ### 12.3 Lifetime in memory (MUST)
 
@@ -1098,6 +1098,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 |---|---|---|
 | APP-201 | `data_dir_unavailable` | The user data directory cannot be created or opened. |
 | APP-202 | `launch_file_unavailable` | The private file for starting the browser could not be created. |
+| APP-203 | `language_packs_unavailable` | The language packs built into the program could not be written to the data directory. |
 | APP-301 | `instance_already_running` | Another CodeSkimr instance holds the workspace; connecting to it failed. |
 | APP-901 | `unexpected_internal_error` | An unexpected internal error occurred (bug). |
 | APP-601 | `browser_start_failed` | The system did not start a browser for the launch file. |

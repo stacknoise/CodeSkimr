@@ -19,6 +19,82 @@ export interface NewProjectFormProps {
   notice: string | null;
 }
 
+/** The source field with its label (mock 1). */
+function SourceField(props: NewProjectFormProps) {
+  return (
+    <>
+      <label for="source" class={styles.title}>
+        {t(I18N_KEYS.PROJECTS_NEW_TITLE)}
+      </label>
+      <input
+        id="source"
+        ref={props.setInput}
+        class={styles.source}
+        value={props.source}
+        placeholder={t(I18N_KEYS.PROJECTS_SOURCE_PLACEHOLDER)}
+        onInput={(event) => props.onSource(event.currentTarget.value)}
+        spellcheck={false}
+        autocomplete="off"
+      />
+    </>
+  );
+}
+
+/** The branch field; the form reads the value when it is sent. */
+function BranchField(props: { onBranch: (value: string) => void }) {
+  return (
+    <>
+      <label for="branch" class={styles.branchLabel}>
+        {t(I18N_KEYS.PROJECTS_FIELD_BRANCH)}
+      </label>
+      <input
+        id="branch"
+        class={styles.branch}
+        value={DEFAULT_BRANCH}
+        onInput={(event) => props.onBranch(event.currentTarget.value)}
+        spellcheck={false}
+        autocomplete="off"
+      />
+    </>
+  );
+}
+
+/** The choice of a stored credential (or none). */
+function CredentialSelect(props: { value: string; onChange: (id: string) => void }) {
+  return (
+    <>
+      <label for="credential" class={styles.branchLabel}>
+        {t(I18N_KEYS.PROJECTS_CREDENTIAL_LABEL)}
+      </label>
+      <select
+        id="credential"
+        class={styles.credential}
+        value={props.value}
+        onChange={(event) => props.onChange(event.currentTarget.value)}
+      >
+        <option value="">{t(I18N_KEYS.PROJECTS_CREDENTIAL_NONE)}</option>
+        <For each={credentialNames()}>{(id) => <option value={id}>{id}</option>}</For>
+      </select>
+    </>
+  );
+}
+
+/** The notice of the screen and the failure of the last call. */
+function Messages(props: { notice: string | null }) {
+  return (
+    <>
+      <Show when={props.notice}>{(text) => <p class={styles.message}>{text()}</p>}</Show>
+      <Show when={projectsFailure()}>
+        {(failure) => (
+          <p class={cx(styles.message, styles.error)} role="alert">
+            {failureText(failure())}
+          </p>
+        )}
+      </Show>
+    </>
+  );
+}
+
 /** The inline form "New project" (mock 1): source, branch and the button. */
 export function NewProjectForm(props: NewProjectFormProps) {
   let branch = DEFAULT_BRANCH;
@@ -33,61 +109,20 @@ export function NewProjectForm(props: NewProjectFormProps) {
       props.onSource("");
     }
   };
+  const stored = (id: string) => {
+    void refreshCredentials();
+    setCredential(id);
+  };
   return (
     <form class={cx(styles.form, props.dragging && styles.dragging)} onSubmit={submit}>
-      <label for="source" class={styles.title}>
-        {t(I18N_KEYS.PROJECTS_NEW_TITLE)}
-      </label>
-      <input
-        id="source"
-        ref={props.setInput}
-        class={styles.source}
-        value={props.source}
-        placeholder={t(I18N_KEYS.PROJECTS_SOURCE_PLACEHOLDER)}
-        onInput={(event) => props.onSource(event.currentTarget.value)}
-        spellcheck={false}
-        autocomplete="off"
-      />
-      <label for="branch" class={styles.branchLabel}>
-        {t(I18N_KEYS.PROJECTS_FIELD_BRANCH)}
-      </label>
-      <input
-        id="branch"
-        class={styles.branch}
-        value={DEFAULT_BRANCH}
-        onInput={(event) => (branch = event.currentTarget.value)}
-        spellcheck={false}
-        autocomplete="off"
-      />
-      <label for="credential" class={styles.branchLabel}>
-        {t(I18N_KEYS.PROJECTS_CREDENTIAL_LABEL)}
-      </label>
-      <select
-        id="credential"
-        class={styles.credential}
-        value={credential()}
-        onChange={(event) => setCredential(event.currentTarget.value)}
-      >
-        <option value="">{t(I18N_KEYS.PROJECTS_CREDENTIAL_NONE)}</option>
-        <For each={credentialNames()}>{(id) => <option value={id}>{id}</option>}</For>
-      </select>
+      <SourceField {...props} />
+      <BranchField onBranch={(value) => (branch = value)} />
+      <CredentialSelect value={credential()} onChange={setCredential} />
       <button type="submit" class={styles.button} disabled={projectAdding()}>
         {projectAdding() ? t(I18N_KEYS.PROJECTS_ADDING) : t(I18N_KEYS.PROJECTS_ADD_AND_SCAN)}
       </button>
-      <CredentialForm
-        onStored={(id) => {
-          void refreshCredentials();
-          setCredential(id);
-        }}
-      />
-      <Show when={props.notice}>{(text) => <p class={styles.message}>{text()}</p>}</Show>
-      <Show when={projectsFailure()}>
-        {(failure) => (
-          <p class={cx(styles.message, styles.error)} role="alert">
-            {failureText(failure())}
-          </p>
-        )}
-      </Show>
+      <CredentialForm onStored={stored} />
+      <Messages notice={props.notice} />
     </form>
   );
 }

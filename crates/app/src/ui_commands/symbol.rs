@@ -226,7 +226,7 @@ impl Command for ExplorerSymbol {
         permission: Permission::Read,
     };
 
-    fn execute(&self, request: Request<'_, SymbolInput>) -> Result<SymbolOut, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<SymbolOut, CodedError> {
         access::require(request.principal, Permission::Read)?;
         let ports = &self.ports;
         let snapshot = ports.newest(request.input.project)?.id;

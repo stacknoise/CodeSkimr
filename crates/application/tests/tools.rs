@@ -1,7 +1,7 @@
 //! Tests of the tool check: what it finds out about the tools of a project, and what it stores.
 #![cfg(test)]
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex, PoisonError};
 
 use codeskimr_application::cancel::CancelToken;
@@ -9,13 +9,14 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
     Clock, IndexArtifact, IndexJob, IndexRunner, IndexerSpec, IndexerStatus, LanguageShare,
     PreviousIndex, ProjectCatalog, ProjectOverview, ProjectRepository, ProjectToolCheck,
-    RequirementReader, ToolCatalog, ToolIssue, ToolPlan, ToolProblem, ToolReportStore,
-    ToolRequirement, ToolSpec, ToolVersion,
+    RequirementReader, RequirementValue, ToolCatalog, ToolIssue, ToolPlan, ToolProblem,
+    ToolReportStore, ToolRequirement, ToolSeen, ToolSpec, ToolVersion,
 };
 use codeskimr_application::tools::{ToolCheckPorts, ToolChecker};
 use codeskimr_domain::{
-    FolderPath, LanguageId, Project, ProjectId, ProjectName, ProjectSource, RequirementFormat,
-    RequirementSpec, SourceFile, Timestamp, ToolReport, ToolState,
+    Ceiling, FolderPath, LanguageId, Project, ProjectId, ProjectName, ProjectSource,
+    RequirementFormat, RequirementSpec, RollForwardSpec, SourceFile, Timestamp, ToolReport,
+    ToolState,
 };
 
 const PROJECT: ProjectId = ProjectId::new(1);
@@ -33,6 +34,20 @@ fn tool(program: &str, min: &str) -> ToolSpec {
         program: program.to_owned(),
         version_args: vec!["--version".to_owned()],
         min_version: version(min),
+    }
+}
+
+/// The rule of the C# pack: no policy means the same feature band, `latestMinor` the same major.
+fn roll_forward() -> RollForwardSpec {
+    RollForwardSpec {
+        path: vec!["policy".to_owned()],
+        default: Ceiling::SameBand,
+        values: BTreeMap::from([
+            ("disable".to_owned(), Ceiling::Exact),
+            ("latestFeature".to_owned(), Ceiling::SameMinor),
+            ("latestMinor".to_owned(), Ceiling::SameMajor),
+            ("latestMajor".to_owned(), Ceiling::Any),
+        ]),
     }
 }
 
@@ -55,6 +70,7 @@ fn plan(indexer: &str, toolchain: &str, requirement: Option<&str>) -> ToolPlan {
                     file: file.to_owned(),
                     format: RequirementFormat::Text,
                     path: Vec::new(),
+                    roll_forward: Some(roll_forward()),
                 },
             })
             .into_iter()
@@ -70,6 +86,8 @@ struct World {
     /// What each installed program prints for its version.
     installed: HashMap<String, String>,
     files: HashMap<String, String>,
+    /// The policy that the file of that path holds besides its version.
+    policies: HashMap<String, String>,
     asked: Mutex<Vec<IndexerSpec>>,
     stored: Mutex<Option<ToolReport>>,
     missing_project: bool,
@@ -87,29 +105,34 @@ impl IndexRunner for World {
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .push(spec.clone());
-        let problems: Vec<ToolProblem> = std::iter::once(&spec.indexer)
-            .chain(&spec.toolchain)
-            .filter_map(|tool| {
-                let issue = match self.installed.get(&tool.program) {
-                    None => ToolIssue::Missing,
-                    Some(output) => match ToolVersion::find_in(output) {
-                        Some(found) if found >= tool.min_version => return None,
-                        _ => ToolIssue::TooOld {
-                            found: output.clone(),
-                            required: tool.min_version,
-                        },
+        let mut problems = Vec::new();
+        let mut found = Vec::new();
+        for tool in std::iter::once(&spec.indexer).chain(&spec.toolchain) {
+            let issue = match self.installed.get(&tool.program) {
+                None => ToolIssue::Missing,
+                Some(output) => match ToolVersion::find_in(output) {
+                    Some(version) if version >= tool.min_version => {
+                        found.push(ToolSeen {
+                            program: tool.program.clone(),
+                            version,
+                        });
+                        continue;
+                    }
+                    _ => ToolIssue::TooOld {
+                        found: output.clone(),
+                        required: tool.min_version,
                     },
-                };
-                Some(ToolProblem {
-                    program: tool.program.clone(),
-                    issue,
-                })
-            })
-            .collect();
+                },
+            };
+            problems.push(ToolProblem {
+                program: tool.program.clone(),
+                issue,
+            });
+        }
         if problems.is_empty() {
-            IndexerStatus::Ready
+            IndexerStatus::Ready { found }
         } else {
-            IndexerStatus::Unavailable(problems)
+            IndexerStatus::Unavailable { problems, found }
         }
     }
 
@@ -121,6 +144,19 @@ impl IndexRunner for World {
 impl RequirementReader for World {
     fn read(&self, _: &ProjectSource, requirement: &RequirementSpec) -> Option<String> {
         self.files.get(&requirement.file).cloned()
+    }
+
+    /// The file in the root and every one of that name in a folder below (`api/global.json`).
+    fn read_all(&self, _: &ProjectSource, requirement: &RequirementSpec) -> Vec<RequirementValue> {
+        let below = format!("/{}", requirement.file);
+        self.files
+            .iter()
+            .filter(|(path, _)| **path == requirement.file || path.ends_with(&below))
+            .map(|(path, text)| RequirementValue {
+                version: text.clone(),
+                policy: self.policies.get(path).cloned(),
+            })
+            .collect()
     }
 }
 
@@ -242,8 +278,9 @@ fn a_tool_that_is_installed_is_ready() {
     );
     assert!(report.level2_ready(&language("csharp")));
     assert_eq!(
-        report.findings[1].found, None,
-        "a ready tool reports no version"
+        report.findings[1].found.as_deref(),
+        Some("8.0.404"),
+        "a ready tool shows the version the runner found"
     );
     assert_eq!(report.findings[1].required.as_deref(), Some("8.0.0"));
 }
@@ -274,6 +311,22 @@ fn an_sdk_older_than_the_one_in_global_json_is_too_old() {
     assert_eq!(dotnet.state, ToolState::TooOld);
     assert_eq!(dotnet.found.as_deref(), Some("8.0.404"));
     assert_eq!(dotnet.required.as_deref(), Some("9.0.100"));
+}
+
+#[test]
+fn the_newest_version_of_all_manifest_folders_counts() {
+    let mut world = csharp_world(
+        &[("scip-dotnet", "0.2.1"), ("dotnet", "8.0.404")],
+        Some("8.0.100"),
+    );
+    // A nested solution asks for more than the root does.
+    world
+        .files
+        .insert("services/api/global.json".to_owned(), "9.0.200".to_owned());
+    let (_, report) = run(world);
+    let dotnet = &report.unwrap().findings[1];
+    assert_eq!(dotnet.state, ToolState::TooOld);
+    assert_eq!(dotnet.required.as_deref(), Some("9.0.200"));
 }
 
 #[test]
@@ -408,4 +461,111 @@ fn an_unknown_project_is_the_only_error() {
     });
     assert!(report.is_err());
     assert_eq!(world.load(PROJECT).unwrap(), None);
+}
+
+/// The machine has SDK `installed`; `global.json` names 8.0.100 and holds `policy` (or none).
+fn too_new_world(installed: &str, policy: Option<&str>) -> World {
+    let mut world = csharp_world(
+        &[("scip-dotnet", "0.2.1"), ("dotnet", installed)],
+        Some("8.0.100"),
+    );
+    if let Some(policy) = policy {
+        world
+            .policies
+            .insert("global.json".to_owned(), policy.to_owned());
+    }
+    world
+}
+
+fn dotnet_of(world: World) -> (ToolState, Option<String>, Option<String>) {
+    let report = run(world).1.unwrap();
+    let dotnet = &report.findings[1];
+    (dotnet.state, dotnet.found.clone(), dotnet.required.clone())
+}
+
+#[test]
+fn an_sdk_beyond_the_feature_band_of_global_json_is_too_new() {
+    // No rollForward means latestPatch: 8.0.1xx only; 8.0.404 is another band.
+    let (state, found, required) = dotnet_of(too_new_world("8.0.404", None));
+    assert_eq!(state, ToolState::TooNew);
+    assert_eq!(found.as_deref(), Some("8.0.404"));
+    assert_eq!(
+        required.as_deref(),
+        Some("8.0.100"),
+        "what the project names"
+    );
+}
+
+#[test]
+fn a_newer_patch_in_the_same_band_is_ready() {
+    assert_eq!(
+        dotnet_of(too_new_world("8.0.150", None)).0,
+        ToolState::Ready
+    );
+}
+
+#[test]
+fn the_policy_of_global_json_moves_the_ceiling() {
+    let cases = [
+        ("8.0.100", "disable", ToolState::Ready),
+        ("8.0.101", "disable", ToolState::TooNew),
+        ("8.0.404", "latestFeature", ToolState::Ready),
+        ("8.1.100", "latestFeature", ToolState::TooNew),
+        ("8.9.100", "latestMinor", ToolState::Ready),
+        ("9.0.100", "latestMinor", ToolState::TooNew),
+        ("9.0.100", "latestMajor", ToolState::Ready),
+    ];
+    for (installed, policy, expected) in cases {
+        let (state, ..) = dotnet_of(too_new_world(installed, Some(policy)));
+        assert_eq!(state, expected, "{installed} with {policy}");
+    }
+}
+
+#[test]
+fn a_policy_that_the_pack_does_not_know_limits_nothing() {
+    let (state, ..) = dotnet_of(too_new_world("9.0.100", Some("someFutureValue")));
+    assert_eq!(state, ToolState::Ready);
+}
+
+#[test]
+fn a_tool_whose_version_is_unknown_is_never_too_new() {
+    let mut world = too_new_world("8.0.404", None);
+    world
+        .installed
+        .insert("dotnet".to_owned(), "no digits here".to_owned());
+    assert_eq!(dotnet_of(world).0, ToolState::VersionUnknown);
+}
+
+#[test]
+fn any_manifest_folder_can_make_the_tool_too_new_and_names_its_version() {
+    let mut world = too_new_world("8.0.150", Some("latestMajor"));
+    // A nested solution is strict: the SDK may only be 8.0.100 itself.
+    world
+        .files
+        .insert("services/api/global.json".to_owned(), "8.0.100".to_owned());
+    world
+        .policies
+        .insert("services/api/global.json".to_owned(), "disable".to_owned());
+    let (state, found, required) = dotnet_of(world);
+    assert_eq!(state, ToolState::TooNew);
+    assert_eq!(found.as_deref(), Some("8.0.150"));
+    assert_eq!(required.as_deref(), Some("8.0.100"));
+}
+
+#[test]
+fn a_too_new_tool_does_not_make_level_2_ready() {
+    let report = run(too_new_world("9.0.100", None)).1.unwrap();
+    assert!(!report.level2_ready(&language("csharp")));
+    assert_eq!(report.problems().len(), 1);
+}
+
+#[test]
+fn a_ceiling_of_the_toolchain_tool_does_not_judge_the_indexer() {
+    // The limit belongs to `dotnet`; scip-dotnet 0.9.0 is not judged by it.
+    let world = csharp_world(
+        &[("scip-dotnet", "0.9.0"), ("dotnet", "8.0.150")],
+        Some("8.0.100"),
+    );
+    let report = run(world).1.unwrap();
+    assert_eq!(report.findings[0].state, ToolState::Ready);
 }

@@ -94,6 +94,18 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: cargo test
         run: cargo test --workspace --all-features --locked
+      # Issue #197: the credential store against a real Secret Service. gnome-keyring runs inside a
+      # private D-Bus session with a throwaway login password, which also creates the default collection; CODESKIMR_REAL_KEYSTORE turns the tests
+      # on, so a missing service fails here instead of being skipped.
+      - name: Credential store against a real Secret Service
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gnome-keyring dbus-x11
+          dbus-run-session -- bash -c '
+            set -euo pipefail
+            eval "$(echo ci-keyring | gnome-keyring-daemon --daemonize --unlock --components=secrets)"
+            CODESKIMR_REAL_KEYSTORE=1 cargo test -p codeskimr_secrets --test os_keystore --locked
+          '
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
@@ -175,6 +187,19 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: cargo build
         run: cargo build --workspace --release --locked
+      # Issue #197: the credential store against the real Keychain and Credential Manager.
+      - name: Credential store against the real keystore
+        if: runner.os != 'Linux'
+        env:
+          CODESKIMR_REAL_KEYSTORE: "1"
+        run: cargo test -p codeskimr_secrets --test os_keystore --locked
+      # Issue #320: the connection cap test holds about 512 sockets at once, and macOS allows only 256
+      # open files by default (EMFILE), so the limit is raised for this step.
+      - name: Connection and stream limits (open file limit raised)
+        if: runner.os == 'macOS'
+        run: |
+          ulimit -n 4096
+          cargo test -p codeskimr_server --test limits --locked
 
   # ADR 0033: the level 2 runner kills a process group on Unix and a job object on Windows. The test job
   # runs on Linux only, so the tests of the runner (timeout, cancel, child processes, limits) run on
@@ -192,6 +217,9 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: cargo test (indexer runner)
         run: cargo test -p codeskimr_indexer --all-features --locked
+      # Issue #104: the launch file folder (access rules, junctions) only runs on Windows.
+      - name: cargo test (launch file on Windows)
+        run: cargo test -p codeskimr --bins launch_file --locked
 
   architecture:
     name: architecture
@@ -209,6 +237,20 @@ jobs:
         run: python3 -m unittest discover -s tools/release
       - name: Crate dependency direction and module cycles
         run: python3 tools/ci/check_architecture.py
+      # Windows and macOS see two paths that differ only in case as one file (the UI build broke on
+      # Preview.tsx and preview.ts), so the repository must not contain such a pair.
+      - name: No paths that differ only in case
+        run: |
+          git -c core.quotePath=false ls-files | python3 -c '
+          import collections, sys
+          seen = collections.defaultdict(list)
+          for line in sys.stdin.read().splitlines():
+              seen[line.casefold()].append(line)
+          clashes = [names for names in seen.values() if len(names) > 1]
+          for names in clashes:
+              print("Paths that differ only in case:", *names, file=sys.stderr)
+          sys.exit(1 if clashes else 0)
+          '
       # Blueprint 12.4: every expose_secret() call in product code is on the approved list.
       - name: Approved expose_secret() call sites
         run: python3 tools/ci/check_expose_secret.py

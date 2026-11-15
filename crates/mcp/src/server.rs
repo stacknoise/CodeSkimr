@@ -126,6 +126,11 @@ fn required_permission(name: &str) -> Permission {
     }
 }
 
+/// The answer for a tool that does not exist or that the caller may not run (ADR 0044).
+fn unknown_tool() -> McpError {
+    McpError::from(CodedError::new(ErrorCode::CommandNotFound))
+}
+
 impl McpServer {
     /// Builds the server around `tools`. Every call runs as `principal`, which the composition
     /// root resolved: stdio is single-user, so it is the local owner. A transport that
@@ -156,9 +161,10 @@ impl McpServer {
         arguments: Option<JsonObject>,
     ) -> CallToolResult {
         // The permission comes first: before the tool name or the arguments are looked at, so a
-        // denied caller cannot tell valid names or argument shapes from invalid ones.
-        if let Err(denied) = access::require(&principal, required_permission(name)) {
-            return failure(&McpError::from(denied));
+        // denied caller cannot tell valid names or argument shapes from invalid ones. A denial
+        // answers exactly like an unknown tool (ADR 0044), so the answer is no oracle.
+        if access::require(&principal, required_permission(name)).is_err() {
+            return failure(&unknown_tool());
         }
         let outcome = match name {
             TOOL_SEARCH_SYMBOLS => call(arguments, |args| tools.search_symbols(&principal, &args)),
@@ -182,7 +188,7 @@ impl McpServer {
             TOOL_CHECK_CONVENTIONS => {
                 call(arguments, |args| tools.check_conventions(&principal, &args))
             }
-            _ => Err(McpError::ArgumentsInvalid(name.to_owned())),
+            _ => Err(unknown_tool()),
         };
         outcome.map_or_else(|error| failure(&error), CallToolResult::structured)
     }
@@ -200,8 +206,17 @@ impl ServerHandler for McpServer {
         _request: Option<PaginatedRequestParams>,
         _context: RequestContext<RoleServer>,
     ) -> impl Future<Output = Result<ListToolsResult, ErrorData>> + Send + '_ {
+        // Only the tools the caller may run, so the list is no oracle either (ADR 0044).
+        let tools = self
+            .definitions
+            .iter()
+            .filter(|tool| {
+                access::require(&self.principal, required_permission(&tool.name)).is_ok()
+            })
+            .cloned()
+            .collect();
         std::future::ready(Ok(ListToolsResult {
-            tools: self.definitions.clone(),
+            tools,
             ..ListToolsResult::default()
         }))
     }
@@ -210,6 +225,9 @@ impl ServerHandler for McpServer {
         self.definitions
             .iter()
             .find(|tool| tool.name == name)
+            .filter(|tool| {
+                access::require(&self.principal, required_permission(&tool.name)).is_ok()
+            })
             .cloned()
     }
 

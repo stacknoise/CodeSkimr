@@ -175,7 +175,7 @@ impl Level2Pass {
             scan.root,
         )
         .map_err(Skipped::from)?;
-        if let IndexerStatus::Unavailable(problems) = self.runner.check(group.spec) {
+        if let IndexerStatus::Unavailable { problems, .. } = self.runner.check(group.spec) {
             return Err(Skipped::Unavailable(problems));
         }
         let language = group.languages.first().copied().ok_or(Skipped::Stale)?;
@@ -213,21 +213,17 @@ impl Level2Pass {
         scan: &Scan<'_>,
         group: &Group<'_>,
     ) -> Result<(Vec<SourceFile>, u64), Skipped> {
-        let discovered = self
-            .discovery
-            .discover(scan.root, &scan.files, scan.cancel)
-            .map_err(Skipped::from)?;
-        let current: HashSet<&RelativePath> = discovered
-            .iter()
-            .filter(|file| !file.changed)
-            .map(|file| &file.path)
-            .collect();
         let wanted = |file: &&SourceFile| group.languages.contains(&&file.language);
-        let all = scan.files.iter().filter(wanted).count();
-        let kept: Vec<SourceFile> = scan
-            .files
+        let group_files: Vec<SourceFile> = scan.files.iter().filter(wanted).cloned().collect();
+        // Only the files of this group are read again, not the whole project (issue #231).
+        let unchanged = self
+            .discovery
+            .unchanged_files(scan.root, &group_files, scan.cancel)
+            .map_err(Skipped::from)?;
+        let current: HashSet<&RelativePath> = unchanged.iter().collect();
+        let all = group_files.len();
+        let kept: Vec<SourceFile> = group_files
             .iter()
-            .filter(wanted)
             .filter(|file| current.contains(&file.path))
             .cloned()
             .collect();

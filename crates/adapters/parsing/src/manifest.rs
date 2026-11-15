@@ -112,6 +112,11 @@ pub struct PackManifest {
     /// languages with their own namespaces (ADR 0036).
     #[serde(default = "file_in_names_default")]
     pub file_in_names: bool,
+    /// Whether a name without receiver inside a function can mean a member of the enclosing type
+    /// (Java, C#: `count` is `this.count`). False for languages where a member always needs its
+    /// receiver (Python: `self.count`), so the name there is a local or an outer name (ADR 0053).
+    #[serde(default = "bare_names_default")]
+    pub bare_names_reach_members: bool,
     /// Syntax node kinds that are comments.
     pub comment_nodes: Vec<String>,
     /// Project manifest files such as `Cargo.toml`; used by later stages, not by parsing.
@@ -180,6 +185,11 @@ impl PackManifest {
             fs::read_to_string(dir.join(MANIFEST_FILE)).map_err(|e| invalid(e.to_string()))?;
         toml::from_str(&text).map_err(|e| invalid(e.to_string()))
     }
+}
+
+/// The default of `bare_names_reach_members`: most languages see the members by their bare name.
+const fn bare_names_default() -> bool {
+    true
 }
 
 /// The default of `file_in_names`: the file is part of the names.

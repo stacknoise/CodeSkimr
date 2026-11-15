@@ -61,7 +61,7 @@ impl Command for ListCredentials {
         permission: Permission::Read,
     };
 
-    fn execute(&self, _request: Request<'_, ()>) -> Result<Vec<CredentialRow>, CodedError> {
+    fn execute(&self, _request: Request<'_, Self>) -> Result<Vec<CredentialRow>, CodedError> {
         let named: BTreeSet<CredentialId> = self
             .catalog
             .overviews()?
@@ -128,7 +128,7 @@ impl Command for SetCredential {
     /// # Errors
     /// `API-101` for the name of the installation token, an invalid name, an empty user or an
     /// empty secret; `SEC-401`, `SEC-402` or `SEC-601` from the keystore.
-    fn execute(&self, request: Request<'_, SetInput>) -> Result<CredentialDone, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<CredentialDone, CodedError> {
         access::require(request.principal, Permission::RegisterProject)?;
         let input = request.input;
         let id = usable(&input.id)?;
@@ -171,7 +171,7 @@ impl Command for DeleteCredential {
     /// # Errors
     /// `API-101` for the name of the installation token or an invalid name; `SEC-402` or
     /// `SEC-601` from the keystore.
-    fn execute(&self, request: Request<'_, DeleteInput>) -> Result<CredentialDone, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<CredentialDone, CodedError> {
         let id = usable(&request.input.id)?;
         crate::refresh::remove(&*self.secrets, &id)?;
         Ok(CredentialDone { id: id.to_string() })

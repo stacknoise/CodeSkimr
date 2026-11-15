@@ -11,5 +11,12 @@ publish = false
 [lints]
 workspace = true
 
+[features]
+# Makes `Principal::local_owner`, `Principal::limited` and `PermissionSet::all` public. Only the
+# composition root (and later the authenticator) enables it in its normal dependencies; every other
+# crate gets it for its tests through a dev-dependency only. Cargo unifies features per build, so a
+# test over all manifests (crates/app/tests/principal_origin.rs) enforces this (ADR 0019, #70).
+issue-principals = []
+
 [dependencies]
 codeskimr_codes = { path = "../codes" }

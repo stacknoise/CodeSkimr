@@ -59,6 +59,51 @@ function Details(props: { id: number }) {
   );
 }
 
+/** The preview of a symbol hit: name, paths, details and the keys. */
+function HitPreview(props: { hit: Hit }) {
+  return (
+    <>
+      <div class={styles.previewName}>
+        <KindBadge kind={props.hit.kind} />
+        <b>{props.hit.name}</b>
+      </div>
+      <p class={styles.previewPath}>{props.hit.qualified_name}</p>
+      <p class={styles.previewPath}>{props.hit.path}</p>
+      <Details id={props.hit.id} />
+      <ul class={styles.actions}>
+        <For each={ACTIONS}>
+          {(action) => (
+            <li class={styles.action}>
+              <span>{t(action.label)}</span>
+              <kbd>{t(action.key)}</kbd>
+            </li>
+          )}
+        </For>
+      </ul>
+    </>
+  );
+}
+
+/** The preview of a file hit: name, path, line count and the key. */
+function FilePreview(props: { file: FileHit }) {
+  return (
+    <>
+      <div class={styles.previewName}>
+        <span class={styles.letter}>{FILE_LETTER}</span>
+        <b>{props.file.path.split(PATH_SEPARATOR).pop()}</b>
+      </div>
+      <p class={styles.previewPath}>{props.file.path}</p>
+      <p class={styles.previewPath}>{t(I18N_KEYS.PALETTE_FILE_LINES, { count: props.file.loc })}</p>
+      <ul class={styles.actions}>
+        <li class={styles.action}>
+          <span>{t(I18N_KEYS.PALETTE_ACTION_EXPLORER)}</span>
+          <kbd>{t(I18N_KEYS.PALETTE_KEY_EXPLORER)}</kbd>
+        </li>
+      </ul>
+    </>
+  );
+}
+
 /** The right column: the chosen hit and what the keys do with it (mock 4). */
 export function Preview(props: { hit: Hit | null; file: FileHit | null }) {
   createEffect(() => {
@@ -70,49 +115,8 @@ export function Preview(props: { hit: Hit | null; file: FileHit | null }) {
   return (
     <aside class={styles.preview} aria-label={t(I18N_KEYS.PALETTE_PREVIEW)}>
       <h3 class={styles.previewTitle}>{t(I18N_KEYS.PALETTE_PREVIEW)}</h3>
-      <Show when={props.hit}>
-        {(hit) => (
-          <>
-            <div class={styles.previewName}>
-              <KindBadge kind={hit().kind} />
-              <b>{hit().name}</b>
-            </div>
-            <p class={styles.previewPath}>{hit().qualified_name}</p>
-            <p class={styles.previewPath}>{hit().path}</p>
-            <Details id={hit().id} />
-            <ul class={styles.actions}>
-              <For each={ACTIONS}>
-                {(action) => (
-                  <li class={styles.action}>
-                    <span>{t(action.label)}</span>
-                    <kbd>{t(action.key)}</kbd>
-                  </li>
-                )}
-              </For>
-            </ul>
-          </>
-        )}
-      </Show>
-      <Show when={props.file}>
-        {(file) => (
-          <>
-            <div class={styles.previewName}>
-              <span class={styles.letter}>{FILE_LETTER}</span>
-              <b>{file().path.split(PATH_SEPARATOR).pop()}</b>
-            </div>
-            <p class={styles.previewPath}>{file().path}</p>
-            <p class={styles.previewPath}>
-              {t(I18N_KEYS.PALETTE_FILE_LINES, { count: file().loc })}
-            </p>
-            <ul class={styles.actions}>
-              <li class={styles.action}>
-                <span>{t(I18N_KEYS.PALETTE_ACTION_EXPLORER)}</span>
-                <kbd>{t(I18N_KEYS.PALETTE_KEY_EXPLORER)}</kbd>
-              </li>
-            </ul>
-          </>
-        )}
-      </Show>
+      <Show when={props.hit}>{(hit) => <HitPreview hit={hit()} />}</Show>
+      <Show when={props.file}>{(file) => <FilePreview file={file()} />}</Show>
     </aside>
   );
 }

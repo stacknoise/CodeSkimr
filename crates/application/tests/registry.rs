@@ -2,7 +2,7 @@
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::registry::{
-    Command, CommandDescriptor, CommandId, Registry, RegistryError, Request,
+    Command, CommandDescriptor, CommandExt, CommandId, Registry, RegistryError, Request,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Permission, PermissionSet, Principal};
@@ -30,7 +30,7 @@ impl Command for Double {
     type Output = u32;
     const DESCRIPTOR: CommandDescriptor = descriptor("b.double", true, Permission::Read);
 
-    fn execute(&self, request: Request<'_, u32>) -> Result<u32, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<u32, CodedError> {
         Ok(request.input * 2)
     }
 }
@@ -40,7 +40,7 @@ impl Command for Shout {
     type Output = String;
     const DESCRIPTOR: CommandDescriptor = descriptor("a.shout", false, Permission::Scan);
 
-    fn execute(&self, request: Request<'_, String>) -> Result<String, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<String, CodedError> {
         Ok(request.input.to_uppercase())
     }
 }
@@ -106,6 +106,25 @@ fn a_principal_without_the_declared_permission_is_denied_before_the_command_runs
 }
 
 #[test]
+fn run_denies_a_caller_without_the_declared_permission() {
+    assert_eq!(
+        Shout.run(&Principal::local_owner(), "a".into()).unwrap(),
+        "A"
+    );
+    let error = Shout.run(&reader(), "quiet".into()).unwrap_err();
+    assert_eq!(error.code(), ErrorCode::PermissionDenied);
+}
+
+#[test]
+fn an_unregistered_command_looks_like_a_denial_to_a_caller_without_the_permission() {
+    let registry = Registry::new();
+    let error = registry
+        .execute::<Shout>(&reader(), String::new())
+        .unwrap_err();
+    assert_eq!(error.code(), ErrorCode::PermissionDenied);
+}
+
+#[test]
 fn a_denial_looks_the_same_for_every_missing_permission() {
     let mut registry = Registry::new();
     registry.register(Shout).unwrap();
@@ -127,7 +146,7 @@ impl Command for Mislabelled {
     type Output = ();
     const DESCRIPTOR: CommandDescriptor = descriptor("c.mislabelled", false, Permission::Read);
 
-    fn execute(&self, _request: Request<'_, ()>) -> Result<(), CodedError> {
+    fn execute(&self, _request: Request<'_, Self>) -> Result<(), CodedError> {
         Ok(())
     }
 }

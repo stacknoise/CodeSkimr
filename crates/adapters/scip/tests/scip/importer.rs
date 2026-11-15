@@ -8,7 +8,9 @@ use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{FolderPath, RelativePath};
 use codeskimr_scip::ScipImporter;
 
-use crate::common::{LIMIT, definition, document, file, index, run_index, scip, symbol, usage};
+use crate::common::{
+    LIMIT, definition, document, file, index, request, run_index, scip, symbol, usage, written,
+};
 use crate::mapping::service_world;
 
 const FILE_LIMIT: u64 = 4096;
@@ -122,21 +124,13 @@ fn only_files_of_the_snapshot_are_read_and_only_up_to_the_limit() {
             document("logs/huge.log", &[usage(&[0, 0, 1], &symbol_text)]),
         ],
     );
-    let dir = tempfile::tempdir().expect("temp dir");
-    let path = dir.path().join("index.scip");
-    std::fs::write(&path, bytes).expect("writes");
+    let (_dir, path) = written(&bytes);
     let (files, symbols) = service_world();
     let recording = Arc::new(Recording(Mutex::default()));
     let root = FolderPath::new("/work").expect("root");
     let _ = ScipImporter::new(recording.clone()).import(&ImportRequest {
-        index: &path,
-        root: &root,
-        files: &files,
-        symbols: &symbols,
-        references: &[],
-        max_index_bytes: LIMIT,
         max_file_bytes: FILE_LIMIT,
-        min_mapped: 0.0,
+        ..request(&path, &root, (&files, &symbols, &[]))
     });
     let asked = recording.0.lock().expect("lock").clone();
     assert_ne!(asked.len(), 0);

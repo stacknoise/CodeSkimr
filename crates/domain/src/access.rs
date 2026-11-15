@@ -56,6 +56,7 @@ impl PermissionSet {
     }
 
     /// The set that holds every permission.
+    #[cfg(any(test, feature = "issue-principals"))]
     #[must_use]
     pub const fn all() -> Self {
         Self::none()
@@ -100,6 +101,7 @@ pub struct Principal {
 
 impl Principal {
     /// The owner of a single-user installation: no login, every permission.
+    #[cfg(any(test, feature = "issue-principals"))]
     #[must_use]
     pub const fn local_owner() -> Self {
         Self {
@@ -108,6 +110,7 @@ impl Principal {
     }
 
     /// A principal that holds exactly `permissions` (team edition, restricted tokens, tests).
+    #[cfg(any(test, feature = "issue-principals"))]
     #[must_use]
     pub const fn limited(permissions: PermissionSet) -> Self {
         Self { permissions }
@@ -117,5 +120,49 @@ impl Principal {
     #[must_use]
     pub const fn holds(&self, permission: Permission) -> bool {
         self.permissions.contains(permission)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use super::*;
+
+    #[test]
+    fn the_local_owner_holds_every_permission() {
+        let owner = Principal::local_owner();
+        assert!(Permission::ALL.iter().all(|p| owner.holds(*p)));
+    }
+
+    #[test]
+    fn a_limited_principal_holds_only_what_it_was_given() {
+        let principal = Principal::limited(PermissionSet::from_iter([
+            Permission::Read,
+            Permission::Scan,
+        ]));
+        assert!(principal.holds(Permission::Read));
+        assert!(principal.holds(Permission::Scan));
+        for denied in [
+            Permission::ReadSource,
+            Permission::Manage,
+            Permission::RegisterProject,
+            Permission::Admin,
+        ] {
+            assert!(!principal.holds(denied));
+        }
+        assert!(
+            Permission::ALL
+                .iter()
+                .all(|p| !Principal::limited(PermissionSet::none()).holds(*p))
+        );
+    }
+
+    #[test]
+    fn permission_labels_round_trip() {
+        for permission in Permission::ALL {
+            assert_eq!(Permission::from_str(permission.label()), Ok(*permission));
+        }
+        assert!(Permission::from_str("root").is_err());
     }
 }

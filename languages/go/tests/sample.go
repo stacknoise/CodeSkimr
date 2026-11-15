@@ -40,3 +40,9 @@ func (o *Order) Add(x float64) {
 func (p Pricer2) Run() {}
 
 func (q *Queue) Run() {}
+
+// Known gap of the basic tier: a method written before its type is declared stays a child of the
+// module and has the same name as the other methods called Run.
+func (a Later) Run() {}
+
+type Later struct{}

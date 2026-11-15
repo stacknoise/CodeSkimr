@@ -8,7 +8,7 @@ use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 
 use codeskimr_application::cancel::CancelToken;
-use codeskimr_application::ports::{ToolIssue, ToolProblem, ToolSpec, ToolVersion};
+use codeskimr_application::ports::{ToolIssue, ToolProblem, ToolSeen, ToolSpec, ToolVersion};
 
 use crate::consts::{
     EXECUTABLE_SUFFIXES, PATH_ENV, PROBE_MAX_MEMORY, PROBE_MAX_OUTPUT, PROBE_TIMEOUT,
@@ -42,11 +42,13 @@ pub struct Probe<'a> {
     pub project_root: &'a Path,
 }
 
-/// Why `tool` is not usable, or `None` if it is installed and recent enough.
-#[must_use]
-pub fn check_tool(tool: &ToolSpec, probe: &Probe<'_>) -> Option<ToolProblem> {
+/// Why `tool` is not usable, or the version it reported if it is installed and recent enough.
+///
+/// # Errors
+/// The problem: the tool is missing, or its version is too old or cannot be read.
+pub fn check_tool(tool: &ToolSpec, probe: &Probe<'_>) -> Result<ToolSeen, ToolProblem> {
     let problem = |issue| {
-        Some(ToolProblem {
+        Err(ToolProblem {
             program: tool.program.clone(),
             issue,
         })
@@ -59,7 +61,10 @@ pub fn check_tool(tool: &ToolSpec, probe: &Probe<'_>) -> Option<ToolProblem> {
     };
     let output = version_output(&found, tool, probe);
     match ToolVersion::find_in(&output) {
-        Some(version) if version >= tool.min_version => None,
+        Some(version) if version >= tool.min_version => Ok(ToolSeen {
+            program: tool.program.clone(),
+            version,
+        }),
         _ => problem(ToolIssue::TooOld {
             found: excerpt(output.trim(), VERSION_EXCERPT_CHARS, probe.redact),
             required: tool.min_version,

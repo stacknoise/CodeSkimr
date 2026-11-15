@@ -1,8 +1,8 @@
 //! The header of a snapshot as stored: the newest one of a project, its totals and the writing of
-//! references, shared by the writes of `snapshots` and `replace`.
+//! references and metrics, shared by the writes of `snapshots` and `replace`.
 
 use codeskimr_domain::{
-    CommitHash, ProjectId, Reference, Snapshot, SnapshotId, SnapshotStats, Timestamp,
+    CommitHash, Metric, ProjectId, Reference, Snapshot, SnapshotId, SnapshotStats, Timestamp,
 };
 use rusqlite::{Connection, OptionalExtension, Statement, params};
 
@@ -102,4 +102,29 @@ pub fn latest_snapshot(conn: &Connection, project: ProjectId) -> StorageResult<O
         },
     )
     .transpose()
+}
+
+/// A metric of its own file is shared by all snapshots; coupling belongs to this snapshot alone
+/// (ADR 0037).
+pub(crate) fn insert_metric(
+    conn: &Connection,
+    snapshot: i64,
+    metric: &Metric,
+) -> StorageResult<()> {
+    let symbol = column_int(metric.symbol.get())?;
+    if metric.kind.is_per_snapshot() {
+        conn.prepare_cached(sql::COUPLING_INSERT)?.execute(params![
+            snapshot,
+            symbol,
+            metric.kind.label(),
+            metric.value.get(),
+        ])?;
+    } else {
+        conn.prepare_cached(sql::METRIC_INSERT)?.execute(params![
+            symbol,
+            metric.kind.label(),
+            metric.value.get(),
+        ])?;
+    }
+    Ok(())
 }
