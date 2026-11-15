@@ -228,6 +228,9 @@ pub struct Level2 {
     /// Smallest share `mapped / (mapped + unmapped)` among the uses of project symbols (symbols
     /// the index defines itself; library symbols are not counted), from 0 to 1.
     pub min_mapped: f64,
+    /// Most symbols one index may make level 2 create (ADR 0055); an index that wants more fails
+    /// as a whole.
+    pub max_created_symbols: u32,
 }
 
 /// The local server (blueprint 10.3).

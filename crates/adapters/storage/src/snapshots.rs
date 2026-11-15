@@ -1,7 +1,7 @@
 //! The `SnapshotStore` port: one snapshot written atomically, with its read models.
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{ReferenceReplacement, SnapshotData, SnapshotStore};
+use codeskimr_application::ports::{Level2Replacement, SnapshotData, SnapshotStore};
 use codeskimr_domain::{
     CommitHash, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile, Symbol,
     Visibility,
@@ -30,12 +30,9 @@ impl SnapshotStore for SqliteStore {
         Ok(stored)
     }
 
-    fn replace_references(
-        &self,
-        replacement: ReferenceReplacement,
-    ) -> Result<Snapshot, CodedError> {
+    fn replace_level2(&self, replacement: Level2Replacement) -> Result<Snapshot, CodedError> {
         let stored = self
-            .write(|tx| crate::replace::replace_references(tx, &replacement))
+            .write(|tx| crate::replace::replace_level2(tx, &replacement))
             .map_err(CodedError::from)?;
         self.refresh_lookup(stored.id);
         Ok(stored)
@@ -173,7 +170,7 @@ fn insert_file(conn: &Connection, snapshot: i64, file: &SourceFile) -> StorageRe
     Ok(())
 }
 
-fn insert_symbol(conn: &Connection, symbol: &Symbol) -> StorageResult<()> {
+pub(crate) fn insert_symbol(conn: &Connection, symbol: &Symbol) -> StorageResult<()> {
     let parent = symbol
         .parent
         .map(|parent| column_int(parent.get()))
@@ -194,6 +191,7 @@ fn insert_symbol(conn: &Connection, symbol: &Symbol) -> StorageResult<()> {
         span.end_column,
         symbol.signature,
         symbol.doc,
+        symbol.origin.label(),
     ])?;
     Ok(())
 }

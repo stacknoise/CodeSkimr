@@ -69,7 +69,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 10));
+    assert_eq!((mode.as_str(), version), ("wal", 11));
 }
 
 #[test]
@@ -654,4 +654,45 @@ fn a_bulk_load_of_references_keeps_the_indexes_totals_and_usage_counts() {
             "references_by_target"
         ]
     );
+}
+
+#[test]
+fn symbols_that_level_two_created_are_pruned_with_their_file() {
+    use codeskimr_application::ports::Level2Replacement;
+    use codeskimr_domain::{FileId, SnapshotId, SymbolOrigin};
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(1)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    store.persist(scan_with_every_table(10, 100)).unwrap();
+    let created = codeskimr_domain::Symbol {
+        origin: SymbolOrigin::Index,
+        ..symbol(150, 100, SymbolKind::Struct, "App.Gen", Some(101))
+    };
+    store
+        .replace_level2(Level2Replacement {
+            snapshot: SnapshotId::new(10),
+            files: vec![FileId::new(100)],
+            symbols: vec![created],
+            references: vec![codeskimr_domain::Reference {
+                verified: true,
+                ..reference(151, 100, 102, 150)
+            }],
+        })
+        .unwrap();
+    let conn = Connection::open(&db.0).unwrap();
+    assert_eq!(rows_of(&conn, "symbol_rows"), 3);
+    assert_eq!(rows_of(&conn, "symbol_references"), 1);
+    store.persist(scan_with_every_table(20, 200)).unwrap();
+    // The first snapshot is pruned: its file, its symbols (also the created one) and the
+    // references to them leave with it.
+    assert_eq!(rows_of(&conn, "symbol_rows"), 2);
+    let origins: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM symbol_rows WHERE origin = 'index'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(origins, 0);
+    assert_eq!(rows_of(&conn, "symbol_references"), 1);
 }

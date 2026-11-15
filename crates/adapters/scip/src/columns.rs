@@ -78,6 +78,9 @@ fn convert_document(document: &mut ScipDocument, lines: &[String]) {
         .iter()
         .filter_map(|occurrence| convert_occurrence(occurrence, lines, encoding))
         .collect();
+    // The extents of definitions stay in the columns of the index; a symbol that level 2 creates
+    // from such a document takes the range of its definition instead.
+    document.extents.clear();
     document.encoding = PositionEncoding::Utf8;
 }
 
@@ -241,6 +244,8 @@ mod tests {
             documents: vec![ScipDocument {
                 path: RelativePath::new("a.cs").unwrap(),
                 encoding,
+                infos: Vec::new(),
+                extents: HashMap::new(),
                 local_names: HashMap::new(),
                 facts: crate::model::TextFacts::default(),
                 occurrences: vec![Occurrence {

@@ -48,6 +48,27 @@ pub(crate) fn last_descriptor(symbol: &str) -> Option<Descriptor> {
     last_two(symbol).map(|(_, last)| last)
 }
 
+/// The symbol that holds `symbol`: its text without the last descriptor. `None` for a local or
+/// malformed symbol and for one that has a single descriptor (its holder is the package).
+pub(crate) fn parent_text(symbol: &str) -> Option<&str> {
+    if is_local(symbol) {
+        return None;
+    }
+    let mut chars = symbol.chars().peekable();
+    for _ in 0..SYMBOL_HEADER_FIELDS {
+        skip_header_field(&mut chars);
+    }
+    let rest = |chars: &Chars<'_>| chars.clone().map(char::len_utf8).sum::<usize>();
+    let (mut count, mut last_start) = (0_usize, 0_usize);
+    while chars.peek().is_some() {
+        last_start = rest(&chars);
+        descriptor(&mut chars)?;
+        count += 1;
+    }
+    let end = symbol.len().checked_sub(last_start)?;
+    (count > 1).then(|| symbol.get(..end)).flatten()
+}
+
 /// The length in bytes of the four header fields of a symbol, with their separators.
 pub(crate) fn header_len(symbol: &str) -> usize {
     let mut chars = symbol.chars().peekable();
@@ -237,6 +258,18 @@ mod tests {
         for (symbol, name, kind) in CASES {
             assert_eq!(last(symbol), Some((name.to_owned(), kind)), "{symbol}");
         }
+    }
+
+    #[test]
+    fn the_parent_is_the_symbol_without_its_last_descriptor() {
+        let variant = "rust-analyzer cargo my 0.1.0 symbol/SymbolKind#Module#";
+        assert_eq!(
+            parent_text(variant),
+            Some("rust-analyzer cargo my 0.1.0 symbol/SymbolKind#")
+        );
+        assert_eq!(parent_text("a b c d ns/"), None);
+        assert_eq!(parent_text("local 3"), None);
+        assert_eq!(parent_text("a b c d ns/Svc#`x"), None);
     }
 
     #[test]

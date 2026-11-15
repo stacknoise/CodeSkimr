@@ -309,6 +309,14 @@ description = "Too few occurrences of a SCIP index map onto project symbols; lev
 since = "0.1.0"
 
 [[codes]]
+id = "RES-303"
+name = "scip_too_many_created_symbols"
+severity = "error"
+retryable = false
+description = "A SCIP index wants level 2 to create more symbols than level2.max_created_symbols allows; the whole import is refused and level 1 stays."
+since = "0.1.0"
+
+[[codes]]
 id = "RES-501"
 name = "scip_index_too_large"
 severity = "error"

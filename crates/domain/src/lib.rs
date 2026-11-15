@@ -57,7 +57,7 @@ pub use secret_url::{without_secrets, without_userinfo};
 pub use similar::{SimilarPair, similar_pairs};
 pub use snapshot::{CommitHash, ScanMode, Snapshot, SnapshotId, SnapshotStats, Timestamp};
 pub use span::{Position, Span};
-pub use symbol::{Symbol, SymbolId, SymbolKind, SymbolName, Visibility};
+pub use symbol::{Symbol, SymbolId, SymbolKind, SymbolName, SymbolOrigin, Visibility};
 pub use tool::{
     Ceiling, RequirementFormat, RequirementSpec, RollForwardSpec, ToolEntry, ToolFinding,
     ToolReport, ToolRole, ToolState,

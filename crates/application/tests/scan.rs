@@ -15,8 +15,8 @@ use codeskimr_application::pipeline::{Job, JobResult, Scanner, ScannerPorts};
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, ConsentStore, DiscoveredFile, FetchedSource, FileAnalyzer,
     FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob, IndexRunner,
-    IndexerSpec, IndexerStatus, MetricsCalculator, PendingReference, PreviousIndex,
-    ProjectRepository, ProjectScanner, ReferenceImporter, ReferenceReplacement, ReferenceResolver,
+    IndexerSpec, IndexerStatus, Level2Replacement, MetricsCalculator, PendingReference,
+    PreviousIndex, ProjectRepository, ProjectScanner, ReferenceImporter, ReferenceResolver,
     SnapshotData, SnapshotStore, SourceProvider, SymbolFingerprints, ToolSpec, ToolVersion,
 };
 use codeskimr_application::stage::StageKind;
@@ -26,7 +26,7 @@ use codeskimr_domain::{
     LanguageId, Loc, Metric, MetricKind, MetricValue, ModelError, Permission, PermissionSet,
     Position, Principal, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference,
     ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile, Span,
-    Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName, Timestamp,
+    Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName, SymbolOrigin, Timestamp,
 };
 use common::InMemoryConsent;
 
@@ -176,20 +176,7 @@ impl FileAnalyzer for World {
             content_hash: request.file.content_hash.clone(),
             loc: Loc(3),
         };
-        let stem = request.file.path.as_str().trim_end_matches(".rs");
-        let symbol = Symbol {
-            id: request.ids.symbol(),
-            file: file.id,
-            kind: SymbolKind::Function,
-            name: model(SymbolName::new(stem))?,
-            qualified_name: model(QualifiedName::new(format!("m::{stem}")))?,
-            parent: None,
-            visibility: None,
-            is_static: false,
-            span: span()?,
-            signature: None,
-            doc: None,
-        };
+        let symbol = stem_symbol(request, &file)?;
         let pending = vec![PendingReference {
             from: symbol.id,
             file: file.id,
@@ -207,6 +194,24 @@ impl FileAnalyzer for World {
             symbols: vec![symbol],
         })
     }
+}
+
+fn stem_symbol(request: &AnalyzeRequest<'_>, file: &SourceFile) -> Result<Symbol, CodedError> {
+    let stem = request.file.path.as_str().trim_end_matches(".rs");
+    Ok(Symbol {
+        id: request.ids.symbol(),
+        file: file.id,
+        kind: SymbolKind::Function,
+        name: model(SymbolName::new(stem))?,
+        qualified_name: model(QualifiedName::new(format!("m::{stem}")))?,
+        parent: None,
+        visibility: None,
+        is_static: false,
+        span: span()?,
+        signature: None,
+        doc: None,
+        origin: SymbolOrigin::Syntax,
+    })
 }
 
 fn fingerprinted(symbol: SymbolId) -> SymbolFingerprints {
@@ -309,7 +314,7 @@ impl SnapshotStore for World {
         Ok(snapshot)
     }
 
-    fn replace_references(&self, _: ReferenceReplacement) -> Result<Snapshot, CodedError> {
+    fn replace_level2(&self, _: Level2Replacement) -> Result<Snapshot, CodedError> {
         Err(CodedError::new(ErrorCode::UnexpectedInternalError))
     }
 }
@@ -422,6 +427,7 @@ fn old_symbol(id: u64, file: u64, name: &str) -> Result<Symbol, CodedError> {
         span: span()?,
         signature: None,
         doc: None,
+        origin: SymbolOrigin::Syntax,
     })
 }
 
@@ -506,6 +512,56 @@ fn incremental_scan_analyses_only_changed_files_and_resolves_dependents_again()
         (2, 2, 3),
         "a.rs and b.rs; a and b; two new references and the call from a to itself carried over"
     );
+    Ok(())
+}
+
+/// A symbol that level 2 created (ADR 0055).
+fn created_symbol(id: u64, file: u64, qualified: &str) -> Result<Symbol, CodedError> {
+    Ok(Symbol {
+        qualified_name: model(QualifiedName::new(qualified))?,
+        origin: SymbolOrigin::Index,
+        ..old_symbol(id, file, "Gen")?
+    })
+}
+
+#[test]
+fn symbols_of_level_two_are_carried_with_their_file_and_never_resolved_by_name()
+-> Result<(), CodedError> {
+    let mut previous = previous_snapshot()?;
+    // 210 lives in the unchanged `a.rs` and has the name of the changed `b`; 211 lives in `b.rs`.
+    previous
+        .index
+        .symbols
+        .push(created_symbol(210, 100, "m::b")?);
+    previous
+        .index
+        .symbols
+        .push(created_symbol(211, 101, "m::Gen")?);
+    previous.index.references.push(old_call(310, 210)?);
+    previous.index.references.push(old_call(311, 211)?);
+    let world = Arc::new(World {
+        previous,
+        found: Some(vec![("a.rs", false), ("b.rs", true)]),
+        ..World::default()
+    });
+    let (result, _) = run(&world, ScanMode::Incremental);
+    let JobResult::Finished(job) = result else {
+        panic!("scan did not finish");
+    };
+    let persisted = world.last_persisted()?;
+    let targets: Vec<u64> = persisted.references.iter().map(|r| r.to.get()).collect();
+    let new_b = persisted.symbols[0].id.get();
+    assert!(
+        targets.contains(&new_b),
+        "the call to the changed `b` is resolved again, to the new `b` and not to 210"
+    );
+    assert!(
+        !targets.contains(&210) && !targets.contains(&211),
+        "level 1 never resolves to a symbol of level 2; 211 left with its file and the call to it is dropped"
+    );
+    // The carried reference 310 to 210 stays in the store with its file (the store shares rows);
+    // the totals count it with the carried symbol 210.
+    assert_eq!(job.snapshot().stats.symbols, 3, "a, 210 and the new b");
     Ok(())
 }
 
@@ -921,6 +977,8 @@ fn rust_indexer() -> IndexerSpec {
         home_dirs: Vec::new(),
         env: Vec::new(),
         install_hint: String::new(),
+        symbol_kinds: Vec::new(),
+        separator: String::new(),
     }
 }
 

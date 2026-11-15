@@ -2,15 +2,17 @@
 //! the index covers (ADR 0033, decisions 2 and 3). A pure function over the decoded index and
 //! the snapshot: no input or output, no state.
 
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
 use codeskimr_domain::{
     Confidence, FileId, Position, Reference, ReferenceId, ReferenceKind, SourceFile, Span, Symbol,
-    SymbolId, SymbolKind,
+    SymbolId, SymbolKind, SymbolOrigin,
 };
 
 use crate::consts::{MAX_OVERLOAD_TARGETS, MAX_SYMBOLS_PER_KEY, NO_OWNER, SUFFIX_TYPE};
+use crate::create::{Creation, created_symbols};
 use crate::error::ScipError;
 use crate::fitting::Fitting;
 use crate::impl_symbol::{ImplSymbol, TypeName, parse as parse_impl};
@@ -66,6 +68,9 @@ impl ImportStats {
 /// The result of an import.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ImportOutcome {
+    /// The symbols of origin `index` that the import creates (ADR 0055), in the covered files,
+    /// numbered consecutively from the first id after the highest id of the snapshot's symbols.
+    pub symbols: Vec<Symbol>,
     /// The new list of references: the references of files without an index as they were, and
     /// the level 2 references of the covered files. New ids follow the highest id of the input.
     pub references: Vec<Reference>,
@@ -278,24 +283,6 @@ impl<'a> Importer<'a> {
             .ok()
             .and_then(|position| self.shapes.get(position))
             .unwrap_or(&Shape::Malformed)
-    }
-
-    /// Documents that match a file of the snapshot, with that file.
-    fn covered(&mut self) -> Vec<(&'a ScipDocument, FileId)> {
-        let by_path: HashMap<&str, FileId> = self
-            .snapshot
-            .files
-            .iter()
-            .map(|file| (file.path.as_str(), file.id))
-            .collect();
-        let mut covered = Vec::new();
-        for document in &self.index.documents {
-            match by_path.get(document.path.as_str()) {
-                Some(file) => covered.push((document, *file)),
-                None => self.stats.files_unmatched += 1,
-            }
-        }
-        covered
     }
 
     /// Step (a): every definition occurrence names the project symbol of its SCIP symbol. A
@@ -844,15 +831,105 @@ pub fn import_references(
     snapshot: &SnapshotView<'_>,
     min_mapped: f64,
 ) -> Result<ImportOutcome, ScipError> {
+    import_with_creation(index, snapshot, min_mapped, &Creation::off())
+}
+
+/// Documents that match a file of the snapshot, with that file, and the number of those that do
+/// not.
+fn covered_documents<'a>(
+    index: &'a ScipIndex,
+    files: &[SourceFile],
+) -> (Vec<(&'a ScipDocument, FileId)>, u64) {
+    let by_path: HashMap<&str, FileId> = files
+        .iter()
+        .map(|file| (file.path.as_str(), file.id))
+        .collect();
+    let mut covered = Vec::new();
+    let mut unmatched = 0_u64;
+    for document in &index.documents {
+        match by_path.get(document.path.as_str()) {
+            Some(file) => covered.push((document, *file)),
+            None => unmatched += 1,
+        }
+    }
+    (covered, unmatched)
+}
+
+/// The symbols of level 1: those that a former level 2 import created (origin `index`) are left
+/// out, so the result does not depend on whether level 2 ran before (ADR 0055, decision 5).
+fn syntax_symbols(symbols: &[Symbol]) -> Cow<'_, [Symbol]> {
+    if symbols.iter().all(|s| s.origin == SymbolOrigin::Syntax) {
+        Cow::Borrowed(symbols)
+    } else {
+        Cow::Owned(
+            symbols
+                .iter()
+                .filter(|s| s.origin == SymbolOrigin::Syntax)
+                .cloned()
+                .collect(),
+        )
+    }
+}
+
+/// [`import_references`], and level 2 creates the symbols that the index defines and level 1 does
+/// not know, as far as `creation` allows (ADR 0055). Level 1 symbols are never changed, and the
+/// symbols of origin `index` that the snapshot holds are not looked at: the import creates them
+/// again, and the caller replaces them.
+///
+/// # Errors
+/// As [`import_references`], and [`ScipError::TooManyCreatedSymbols`] if the index wants more
+/// symbols than `creation` allows; nothing of the import is kept then.
+pub fn import_with_creation(
+    index: &ScipIndex,
+    snapshot: &SnapshotView<'_>,
+    min_mapped: f64,
+    creation: &Creation<'_>,
+) -> Result<ImportOutcome, ScipError> {
+    let (covered, unmatched) = covered_documents(index, snapshot.files);
+    let syntax = syntax_symbols(snapshot.symbols);
+    let first_id = snapshot
+        .symbols
+        .iter()
+        .map(|symbol| symbol.id.get())
+        .max()
+        .map_or(0, |id| id.saturating_add(1));
+    let created = created_symbols(
+        index,
+        &covered,
+        &SymbolTable::new(&syntax),
+        creation,
+        first_id,
+    )?;
+    let all: Cow<'_, [Symbol]> = if created.is_empty() {
+        syntax
+    } else {
+        Cow::Owned(syntax.iter().chain(&created).cloned().collect())
+    };
+    let view = SnapshotView {
+        symbols: &all,
+        ..*snapshot
+    };
+    let mut outcome = place_references(index, &view, &covered, min_mapped)?;
+    outcome.stats.files_unmatched = unmatched;
+    outcome.symbols = created;
+    Ok(outcome)
+}
+
+/// Steps (a) to (e) over the covered documents.
+fn place_references(
+    index: &ScipIndex,
+    snapshot: &SnapshotView<'_>,
+    covered: &[(&ScipDocument, FileId)],
+    min_mapped: f64,
+) -> Result<ImportOutcome, ScipError> {
     let mut importer = Importer::new(index, *snapshot);
-    let covered = importer.covered();
     let covered_files: HashSet<FileId> = covered.iter().map(|(_, file)| *file).collect();
     importer.stats.files_replaced = u64::try_from(covered_files.len()).unwrap_or(u64::MAX);
-    importer.collect_definitions(&covered);
-    importer.collect_overload_heads(&covered);
+    importer.collect_definitions(covered);
+    importer.collect_overload_heads(covered);
     importer.link_impls();
     let level_one = LevelOne::new(snapshot.references, &covered_files);
-    let fresh = importer.place_all(&covered, &level_one);
+    let fresh = importer.place_all(covered, &level_one);
     check_threshold(&importer.stats, min_mapped)?;
     let mut references: Vec<Reference> = snapshot
         .references
@@ -864,6 +941,7 @@ pub fn import_references(
     let mut covered: Vec<FileId> = covered_files.into_iter().collect();
     covered.sort_unstable();
     Ok(ImportOutcome {
+        symbols: Vec::new(),
         references,
         covered,
         stats: importer.stats,

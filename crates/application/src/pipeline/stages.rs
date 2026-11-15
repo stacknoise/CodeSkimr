@@ -9,7 +9,7 @@ use std::time::Instant;
 
 use codeskimr_domain::{
     CommitHash, FolderPath, LanguageId, Metric, Project, Reference, ScanMode, Snapshot, SnapshotId,
-    SnapshotStats, SourceFile, Symbol, SymbolCounts,
+    SnapshotStats, SourceFile, Symbol, SymbolCounts, SymbolOrigin,
 };
 
 use codeskimr_codes::ErrorCode;
@@ -419,7 +419,15 @@ impl Stage for ResolveStage {
         pending.extend(carried.inheritance_seed());
         let total = count(&pending);
         ctx.progress(0, total);
-        let table: Vec<Symbol> = carried.symbols.iter().chain(&symbols).cloned().collect();
+        // Symbols that level 2 created are not names level 1 resolves to (ADR 0055, decision 5):
+        // the result of a scan must not depend on whether level 2 ran before.
+        let table: Vec<Symbol> = carried
+            .symbols
+            .iter()
+            .chain(&symbols)
+            .filter(|symbol| symbol.origin == SymbolOrigin::Syntax)
+            .cloned()
+            .collect();
         let mut references = self.resolver.resolve(&table, &pending, &self.ids)?;
         carried.drop_duplicates_of_kept(&mut references);
         ctx.progress(total, total);

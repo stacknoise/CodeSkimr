@@ -32,6 +32,8 @@ struct Answer {
     last_line: u32,
     visibility: Option<&'static str>,
     is_static: bool,
+    /// `syntax` (level 1) or `index` (created by level 2, ADR 0055).
+    origin: &'static str,
     signature: Option<String>,
     doc: Option<String>,
     layer: Option<String>,
@@ -70,6 +72,7 @@ fn answer(
         last_line: symbol.span.end().line + LINE_OFFSET,
         visibility: symbol.visibility.map(Visibility::label),
         is_static: symbol.is_static,
+        origin: symbol.origin.label(),
         signature: symbol.signature.clone(),
         doc: symbol.doc.clone(),
         layer: project.layer_name_of(symbol.qualified_name.as_str()),

@@ -16,7 +16,6 @@ use crate::consts::{
     NAMING_NAMESPACED, NAMING_REVISION, NAMING_RULE_SEPARATOR, NAMING_RULES_SEPARATOR,
 };
 use crate::error::ParsingError;
-use crate::indexer::IndexerManifest;
 use crate::manifest::{PackManifest, Tier};
 use crate::pack::LanguagePack;
 
@@ -129,7 +128,7 @@ impl Slot {
         let indexer = manifest
             .indexer
             .as_ref()
-            .map(IndexerManifest::spec)
+            .map(|indexer| indexer.spec(&manifest.separator))
             .transpose()
             .map_err(|reason| ParsingError::invalid(folder(&dir), reason))?;
         let summary = PackSummary {

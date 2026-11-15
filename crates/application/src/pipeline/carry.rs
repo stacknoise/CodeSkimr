@@ -8,7 +8,7 @@ use std::collections::{HashMap, HashSet};
 
 use codeskimr_domain::{
     FileId, QualifiedName, Reference, ReferenceKind, RelativePath, SourceFile, Span, Symbol,
-    SymbolId,
+    SymbolId, SymbolOrigin,
 };
 
 use crate::ports::{DiscoveredFile, PendingReference, PreviousIndex};
@@ -49,6 +49,7 @@ impl Carried {
         let names: HashMap<SymbolId, &QualifiedName> = self
             .symbols
             .iter()
+            .filter(|symbol| symbol.origin == SymbolOrigin::Syntax)
             .map(|symbol| (symbol.id, &symbol.qualified_name))
             .collect();
         self.references
@@ -109,8 +110,12 @@ impl Carried {
             symbols,
             references,
         } = index;
+        // A symbol that level 2 created is not looked up by name: level 1 does not know it, so a
+        // reference to one in a file that changed is dropped, and the next level 2 pass makes it
+        // again (ADR 0055, decision 4).
         let names: HashMap<SymbolId, QualifiedName> = symbols
             .iter()
+            .filter(|symbol| symbol.origin == SymbolOrigin::Syntax)
             .map(|symbol| (symbol.id, symbol.qualified_name.clone()))
             .collect();
         let symbols: Vec<Symbol> = symbols

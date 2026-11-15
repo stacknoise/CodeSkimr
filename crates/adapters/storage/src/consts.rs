@@ -12,6 +12,7 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0008_naming_rules.sql"),
     include_str!("../migrations/0009_parse_times.sql"),
     include_str!("../migrations/0010_coupling_rows.sql"),
+    include_str!("../migrations/0013_symbol_origin.sql"),
 ];
 
 /// Name of the pragma that holds the schema version.

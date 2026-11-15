@@ -69,9 +69,17 @@ class Lsp:
 
 
 def name_position(lines, target):
-    """Line and column of the declared name: the declaration may start above it (attributes, `pub`)."""
+    """Line and column of the declared name: the declaration may start above it (attributes, `pub`). A symbol that a macro
+    call generates (ADR 0055) spans the whole call, and its name may stand further down: the search runs to the end of the
+    symbol, and a line that is a comment is skipped."""
     pattern = re.compile(r"(?<![A-Za-z0-9_])" + re.escape(target["name"]) + r"(?![A-Za-z0-9_])")
-    for index in range(target["line"] - 1, min(len(lines), target["line"] - 1 + LOOKAHEAD_LINES)):
+    created = target.get("origin") == "index"
+    last = target["line"] - 1 + LOOKAHEAD_LINES
+    if created:
+        last = max(target["end_line"], last)
+    for index in range(target["line"] - 1, min(len(lines), last)):
+        if created and lines[index].lstrip().startswith("//"):
+            continue
         found = pattern.search(lines[index], target["column"] if index == target["line"] - 1 else 0)
         if found:
             return index, found.start()
@@ -123,7 +131,12 @@ def main():
                 "textDocument": {"uri": path.as_uri()},
                 "position": {"line": line, "character": utf16(lines[line], column)},
                 "context": {"includeDeclaration": False}}) or []
+            at_name = {"line": line, "character": utf16(lines[line], column)}
             for ref in result:
+                # A macro call that generates the symbol reports its own name token as a use (the generated code
+                # refers to the token that spells the name): that is the declaration, not a use (ADR 0055).
+                if target.get("origin") == "index" and ref["range"]["start"] == at_name and uri_path(ref["uri"]) == path.resolve():
+                    continue
                 file = uri_path(ref["uri"])
                 if file.is_relative_to(workspace) and (source / file.relative_to(workspace)).exists():
                     uses.add((str(file.relative_to(workspace)).replace("\\", "/"), ref["range"]["start"]["line"] + 1))

@@ -43,6 +43,7 @@ fn level2_defaults_are_256_mib_and_half() {
     let config = Config::defaults().expect("shipped defaults are valid");
     assert_eq!(config.level2.max_index_bytes, 256 * 1024 * 1024);
     assert!((config.level2.min_mapped - 0.5).abs() < f64::EPSILON);
+    assert_eq!(config.level2.max_created_symbols, 100_000);
 }
 
 #[test]
@@ -289,6 +290,11 @@ fn level2_limits_are_checked() {
         (
             "[level2]\nmax_index_bytes = 0\n",
             "level2.max_index_bytes",
+            Violation::MustBePositive,
+        ),
+        (
+            "[level2]\nmax_created_symbols = 0\n",
+            "level2.max_created_symbols",
             Violation::MustBePositive,
         ),
         (

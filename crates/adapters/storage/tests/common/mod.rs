@@ -79,6 +79,7 @@ pub fn symbol(
         span: span(1),
         signature: Some(format!("{name}()")),
         doc: None,
+        origin: codeskimr_domain::SymbolOrigin::Syntax,
     }
 }
 

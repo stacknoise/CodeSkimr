@@ -184,6 +184,8 @@ pub const INDEXER_BAD_VERSION: &str = "indexer version cannot be read: ";
 pub const INDEXER_UNKNOWN_PLACEHOLDER: &str = "indexer argument has an unknown placeholder: ";
 /// Reason: a `home_dirs` entry of an `[indexer]` is empty, absolute or leaves the home.
 pub const INDEXER_BAD_HOME_DIR: &str = "indexer home_dirs must name a folder below the home: ";
+/// Reason: a kind of `[indexer.symbol_kinds]` is not a symbol kind of the model.
+pub const INDEXER_BAD_SYMBOL_KIND: &str = "indexer symbol_kinds names an unknown symbol kind: ";
 /// Reason: no argument of an `[indexer]` names the index file.
 pub const INDEXER_NO_OUTPUT: &str = "indexer args must contain {output}";
 /// Opens a placeholder in an indexer argument.

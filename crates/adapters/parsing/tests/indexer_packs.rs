@@ -123,4 +123,32 @@ mod tests {
         assert!(LanguagePacks::load(&root).is_ok());
         fs::remove_dir_all(root).ok();
     }
+
+    #[test]
+    fn the_rust_pack_names_the_kinds_level_two_may_create() {
+        let packs = LanguagePacks::load(&languages()).expect("packs load");
+        let pack = packs
+            .iter()
+            .find(|p| p.id().to_string() == "rust")
+            .expect("rust pack");
+        let spec = pack.indexer().expect("indexer");
+        let mut names: Vec<&str> = spec.symbol_kinds.iter().map(|(n, _)| n.as_str()).collect();
+        names.sort_unstable();
+        assert_eq!(
+            names,
+            ["Enum", "EnumMember", "Struct", "Trait", "TypeAlias"]
+        );
+        assert_eq!(spec.separator, "::");
+    }
+
+    #[test]
+    fn an_unknown_kind_to_create_makes_the_pack_invalid() {
+        let text = format!(
+            "[indexer]\nname = \"x\"\ninstall_hint = \"y\"\nargs = [\"{{output}}\"]\n[indexer.symbol_kinds]\nStruct = \"nonsense\"\n{TOOL}"
+        );
+        let root = pack_with(&text);
+        let error = LanguagePacks::load(&root).err().expect("invalid");
+        assert_eq!(error.code(), ErrorCode::LanguagePackInvalid);
+        fs::remove_dir_all(root).ok();
+    }
 }

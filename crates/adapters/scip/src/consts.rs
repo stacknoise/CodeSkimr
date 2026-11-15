@@ -10,6 +10,8 @@ pub(crate) const METADATA_PROJECT_ROOT: u32 = 3;
 pub(crate) const DOCUMENT_RELATIVE_PATH: u32 = 1;
 /// Field number of `Document.occurrences`.
 pub(crate) const DOCUMENT_OCCURRENCES: u32 = 2;
+/// Field number of `Document.symbols` (a `SymbolInformation` each).
+pub(crate) const DOCUMENT_SYMBOLS: u32 = 3;
 /// Field number of `Document.position_encoding`.
 pub(crate) const DOCUMENT_POSITION_ENCODING: u32 = 6;
 /// Field number of `Occurrence.range`.
@@ -18,6 +20,48 @@ pub(crate) const OCCURRENCE_RANGE: u32 = 1;
 pub(crate) const OCCURRENCE_SYMBOL: u32 = 2;
 /// Field number of `Occurrence.symbol_roles`.
 pub(crate) const OCCURRENCE_ROLES: u32 = 3;
+
+/// Field number of `Occurrence.enclosing_range`: the range of the whole definition (a macro call
+/// for generated code), in the same numbers as `range`.
+pub(crate) const OCCURRENCE_ENCLOSING_RANGE: u32 = 7;
+/// Field number of `SymbolInformation.symbol`.
+pub(crate) const INFO_SYMBOL: u32 = 1;
+/// Field number of `SymbolInformation.documentation` (repeated).
+pub(crate) const INFO_DOCUMENTATION: u32 = 3;
+/// Field number of `SymbolInformation.kind`.
+pub(crate) const INFO_KIND: u32 = 5;
+/// Field number of `SymbolInformation.display_name`.
+pub(crate) const INFO_DISPLAY_NAME: u32 = 6;
+/// Field number of `SymbolInformation.signature_documentation` (a `Document`).
+pub(crate) const INFO_SIGNATURE: u32 = 7;
+/// Field number of `Document.text`, which holds the signature in `signature_documentation`.
+pub(crate) const DOCUMENT_TEXT: u32 = 5;
+/// Longest accepted display name, in bytes; a longer one leaves the symbol without information.
+pub(crate) const MAX_INFO_NAME_BYTES: usize = 1024;
+/// Longest accepted signature, in bytes.
+pub(crate) const MAX_INFO_SIGNATURE_BYTES: usize = 4096;
+/// Longest accepted documentation (all parts together), in bytes.
+pub(crate) const MAX_INFO_DOC_BYTES: usize = 16 * 1024;
+/// Most bytes of information texts kept for all symbols of an index; past it no further symbol
+/// information is kept, so such a symbol creates nothing (nothing is guessed).
+pub(crate) const MAX_INFO_TOTAL_BYTES: usize = 32 * 1024 * 1024;
+/// Joins the parts of the documentation of a symbol.
+pub(crate) const DOC_JOIN: &str = "\n\n";
+/// The SCIP kinds (`SymbolInformation.Kind`) that the packs may name in `[indexer.symbol_kinds]`,
+/// by their value in `scip.proto`. Checked against the indexes of rust-analyzer (November 2026);
+/// a kind that is not here has no name and creates nothing.
+pub(crate) const SCIP_KIND_NAMES: [(u32, &str); 10] = [
+    (3, "AssociatedType"),
+    (8, "Constant"),
+    (11, "Enum"),
+    (12, "EnumMember"),
+    (15, "Field"),
+    (17, "Function"),
+    (26, "Method"),
+    (49, "Struct"),
+    (53, "Trait"),
+    (55, "TypeAlias"),
+];
 
 /// Enum value `PositionEncoding.UTF8CodeUnitOffsetFromLineStart`.
 pub(crate) const ENCODING_UTF8: u64 = 1;

@@ -5,11 +5,12 @@
 //! the public `codeskimr_scip` library on an index that a person made by hand, and writes only into
 //! the throw-away database of the measurement.
 //!
-//! `import_scip <database> <project id> <index.scip> <min_mapped> <source folder> <max_index_bytes> <max_file_bytes>`
+//! `import_scip <database> <project id> <index.scip> <min_mapped> <source folder> <max_index_bytes> <max_file_bytes> <max_created_symbols> <separator> [SCIP kind=symbol kind ...]`
 //!
 //! Like the product (`ScipImporter`), it converts the columns of documents that are not UTF-8 with
 //! the lines of the files in the source folder before the mapping. The limits come from the caller
-//! (`measure.py` reads them from `config/default.toml`).
+//! (`measure.py` reads them from `config/default.toml`), and so does the table of the kinds that create
+//! symbols (ADR 0055) from the language pack; without a pair nothing is created.
 
 use std::collections::HashSet;
 use std::num::NonZeroU32;
@@ -17,16 +18,21 @@ use std::path::Path;
 use std::process::ExitCode;
 
 use codeskimr_application::ports::{
-    ProjectRepository, ReferenceReplacement, SnapshotStore, SourceText,
+    Level2Replacement, ProjectRepository, SnapshotStore, SourceText,
 };
-use codeskimr_domain::{FolderPath, ProjectId, Reference, ReferenceId, RelativePath, SnapshotId};
-use codeskimr_scip::{ImportOutcome, SnapshotView, convert_columns, import_references, read_index};
+use codeskimr_domain::{
+    FolderPath, ProjectId, Reference, ReferenceId, RelativePath, SnapshotId, Symbol, SymbolId,
+    SymbolKind,
+};
+use codeskimr_scip::{
+    Creation, ImportOutcome, SnapshotView, convert_columns, import_with_creation, read_index,
+};
 use codeskimr_source::FolderText;
 use codeskimr_storage::SqliteStore;
 
 /// The arguments, in order: database, project id, index, `min_mapped`, source folder,
 /// `max_index_bytes`, `max_file_bytes`.
-const ARGUMENTS: usize = 7;
+const ARGUMENTS: usize = 9;
 /// Lines of a file from the first one to the last.
 const ALL_LINES: (u32, u32) = (1, u32::MAX);
 
@@ -38,6 +44,9 @@ struct Job<'a> {
     root: &'a str,
     max_index_bytes: u64,
     max_file_bytes: u64,
+    max_created: usize,
+    separator: &'a str,
+    kinds: Vec<(String, SymbolKind)>,
 }
 
 /// The lines of a file below the source folder, as the product reads them for the conversion.
@@ -64,7 +73,13 @@ fn import(store: &SqliteStore, job: &Job<'_>) -> Result<(SnapshotId, ImportOutco
         symbols: &previous.symbols,
         references: &previous.references,
     };
-    let outcome = import_references(&index, &view, job.min_mapped).map_err(|e| e.to_string())?;
+    let creation = Creation {
+        kinds: &job.kinds,
+        separator: job.separator,
+        max_symbols: job.max_created,
+    };
+    let outcome = import_with_creation(&index, &view, job.min_mapped, &creation)
+        .map_err(|e| e.to_string())?;
     Ok((snapshot, outcome))
 }
 
@@ -75,6 +90,23 @@ fn replace(
     outcome: ImportOutcome,
 ) -> Result<(), String> {
     let first = store.next_free_id().map_err(|e| e.to_string())?;
+    let symbol_count = u64::try_from(outcome.symbols.len()).map_err(|e| e.to_string())?;
+    let symbol_first = first;
+    let first = first.saturating_add(symbol_count);
+    let old = outcome.symbols.first().map(|symbol| symbol.id.get());
+    let moved = |id: SymbolId| match old {
+        Some(old) if id.get() >= old => SymbolId::new(symbol_first + (id.get() - old)),
+        _ => id,
+    };
+    let symbols: Vec<Symbol> = outcome
+        .symbols
+        .iter()
+        .map(|symbol| Symbol {
+            id: moved(symbol.id),
+            parent: symbol.parent.map(moved),
+            ..symbol.clone()
+        })
+        .collect();
     let references: Vec<Reference> = outcome
         .references
         .iter()
@@ -82,22 +114,39 @@ fn replace(
         .zip(first..)
         .map(|(reference, id)| Reference {
             id: ReferenceId::new(id),
+            from: moved(reference.from),
+            to: moved(reference.to),
             ..*reference
         })
         .collect();
-    let replacement = ReferenceReplacement {
+    let replacement = Level2Replacement {
         snapshot,
         files: outcome.covered,
+        symbols,
         references,
     };
     store
-        .replace_references(replacement)
+        .replace_level2(replacement)
         .map_err(|e| e.to_string())?;
     Ok(())
 }
 
 fn number<T: std::str::FromStr>(text: &str) -> Result<T, String> {
     text.parse().map_err(|_| format!("not a number: {text}"))
+}
+
+/// `SCIP kind=symbol kind` pairs.
+fn kinds(pairs: &[String]) -> Result<Vec<(String, SymbolKind)>, String> {
+    pairs
+        .iter()
+        .map(|pair| {
+            let (scip, kind) = pair.split_once('=').ok_or(format!("not a pair: {pair}"))?;
+            let kind = kind
+                .parse::<SymbolKind>()
+                .map_err(|_| format!("not a kind: {kind}"))?;
+            Ok((scip.to_owned(), kind))
+        })
+        .collect()
 }
 
 fn run(args: &[String]) -> Result<String, String> {
@@ -109,6 +158,9 @@ fn run(args: &[String]) -> Result<String, String> {
         root,
         max_index,
         max_file,
+        max_created,
+        separator,
+        pairs @ ..,
     ] = args
     else {
         return Err(format!("expected {ARGUMENTS} arguments"));
@@ -120,20 +172,25 @@ fn run(args: &[String]) -> Result<String, String> {
         root,
         max_index_bytes: number(max_index)?,
         max_file_bytes: number(max_file)?,
+        max_created: number(max_created)?,
+        separator,
+        kinds: kinds(pairs)?,
     };
     let store =
         SqliteStore::open(Path::new(database), NonZeroU32::MIN).map_err(|e| e.to_string())?;
     let (snapshot, outcome) = import(&store, &job)?;
     let stats = outcome.stats;
+    let created = outcome.symbols.len();
     replace(&store, snapshot, outcome)?;
     Ok(format!(
-        "{{\"mapped\": {}, \"library\": {}, \"unmapped\": {}, \"ignored\": {}, \"files_replaced\": {}, \"files_unmatched\": {}}}",
+        "{{\"mapped\": {}, \"library\": {}, \"unmapped\": {}, \"ignored\": {}, \"files_replaced\": {}, \"files_unmatched\": {}, \"created\": {}}}",
         stats.mapped,
         stats.library,
         stats.unmapped,
         stats.ignored,
         stats.files_replaced,
-        stats.files_unmatched
+        stats.files_unmatched,
+        created
     ))
 }
 

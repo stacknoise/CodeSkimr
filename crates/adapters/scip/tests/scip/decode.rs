@@ -289,3 +289,71 @@ fn a_named_pipe_in_place_of_the_index_is_refused_and_does_not_block() {
         Err(codeskimr_scip::ScipError::Unreadable(_))
     ));
 }
+
+#[test]
+fn symbol_information_and_the_extent_of_a_definition_are_decoded() {
+    use crate::common::{definition_in, document_with, info};
+    let symbol = scip("ns/Svc#");
+    let bytes = index(
+        "",
+        &[document_with(
+            "src/a.cs",
+            &[definition_in(&[2, 6, 9], &[1, 0, 4, 1], &symbol)],
+            &[info(&symbol, 49, "Svc", "class Svc", "Does it.")],
+        )],
+    );
+    let decoded = decode_index(&bytes, LIMIT).expect("decodes");
+    let [document] = decoded.documents.as_slice() else {
+        panic!("one document");
+    };
+    let [one] = document.infos.as_slice() else {
+        panic!("one information");
+    };
+    assert_eq!(decoded.symbol(one.symbol), Some(symbol.as_str()));
+    assert_eq!((one.kind, one.display_name.as_str()), (49, "Svc"));
+    assert_eq!(one.signature.as_deref(), Some("class Svc"));
+    assert_eq!(one.documentation.as_deref(), Some("Does it."));
+    let [def] = document.occurrences.as_slice() else {
+        panic!("one occurrence");
+    };
+    let extent = document.extents.get(&def.range).expect("extent");
+    assert_eq!((extent.start().line, extent.end().line), (1, 4));
+}
+
+#[test]
+fn texts_that_are_too_long_leave_the_symbol_without_them_and_do_not_fail_the_index() {
+    use crate::common::{document_with, info};
+    let symbol = scip("ns/Svc#");
+    let long = "x".repeat(20_000);
+    let bytes = index(
+        "",
+        &[document_with(
+            "src/a.cs",
+            &[],
+            &[info(&symbol, 49, &long, &long, &long)],
+        )],
+    );
+    let decoded = decode_index(&bytes, LIMIT).expect("decodes");
+    let one = decoded
+        .documents
+        .first()
+        .and_then(|document| document.infos.first())
+        .expect("one information");
+    assert_eq!(one.kind, 49);
+    assert_eq!(
+        (&one.display_name[..], &one.signature, &one.documentation),
+        ("", &None, &None)
+    );
+}
+
+#[test]
+fn a_symbol_information_with_the_wrong_wire_type_is_corrupt() {
+    use crate::common::document_with;
+    // `kind` (field 5) must be a varint, here it has a length in front.
+    let bad = len_field(5, b"49");
+    let bytes = index("", &[document_with("src/a.cs", &[], &[bad])]);
+    assert_eq!(
+        corruption(decode_index(&bytes, LIMIT)),
+        Corruption::WireType
+    );
+}
