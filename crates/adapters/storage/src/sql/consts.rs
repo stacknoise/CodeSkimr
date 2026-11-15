@@ -94,6 +94,9 @@ pub const READ_MODELS_DELETE: &[&str] = &[
 /// files that no other snapshot has: the references standing in such a file or pointing into one,
 /// and the fingerprints, metrics and symbols of such a file. Run before the files are deleted.
 pub const SHARED_ROWS_DELETE: &[&str] = &[
+    "DELETE FROM pending_references WHERE file_id IN \
+        (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND NOT EXISTS \
+        (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1))",
     "DELETE FROM symbol_references WHERE file_id IN \
         (SELECT f.id FROM files f WHERE f.snapshot_id = ?1 AND NOT EXISTS \
         (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1))",
@@ -365,3 +368,19 @@ pub const PARSE_TIME_CARRY: &str = "INSERT INTO parse_times (snapshot_id, langua
     SELECT ?2, language, micros FROM parse_times WHERE snapshot_id = ?1";
 /// The parse times of a snapshot: snapshot.
 pub const PARSE_TIMES: &str = "SELECT language, micros FROM parse_times WHERE snapshot_id = ?1";
+
+/// Adds a name as written: file, from, start line and column, end line and column, kind, target,
+/// receiver kind, receiver name.
+pub const PENDING_INSERT: &str = "INSERT INTO pending_references (file_id, from_symbol, \
+    start_line, start_column, end_line, end_column, kind, target, receiver_kind, receiver_name) \
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)";
+/// The names of the files of a snapshot: snapshot.
+pub const PENDING_OF_SNAPSHOT: &str = "SELECT file_id, from_symbol, start_line, start_column, \
+    end_line, end_column, kind, target, receiver_kind, receiver_name FROM pending_references \
+    WHERE file_id IN (SELECT id FROM files WHERE snapshot_id = ?1) ORDER BY rowid";
+/// Marks a snapshot as one that holds the names as written: snapshot.
+pub const SNAPSHOT_NAMES_SET: &str = "UPDATE snapshots SET names_stored = 1 WHERE id = ?1";
+/// Whether the snapshot holds the names as written: snapshot.
+pub const SNAPSHOT_NAMES_STORED: &str = "SELECT names_stored FROM snapshots WHERE id = ?1";
+/// Removes a reference that the new snapshot does not contain: id.
+pub const REFERENCE_DELETE: &str = "DELETE FROM symbol_references WHERE id = ?1";

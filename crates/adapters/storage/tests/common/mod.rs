@@ -123,6 +123,8 @@ pub fn data(snapshot: Snapshot) -> SnapshotData {
         metrics: Vec::new(),
         fingerprints: Vec::new(),
         removed: Vec::new(),
+        pending: Vec::new(),
+        dropped_references: Vec::new(),
         naming_rules: String::new(),
         parse_micros: Vec::new(),
     }

@@ -70,3 +70,6 @@ pub const DATE_MIN_DIGITS: usize = 8;
 
 /// The patch numbers of one feature band of the .NET SDK (8.0.100 to 8.0.199).
 pub const FEATURE_BAND_SIZE: u32 = 100;
+
+/// Log event: references that level 2 had verified were discarded because their target is gone.
+pub const LOG_VERIFIED_DISCARDED: &str = "verified_references_discarded";

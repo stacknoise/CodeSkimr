@@ -1,21 +1,21 @@
 //! Persistence (adapter: `codeskimr_storage`).
 
 use codeskimr_domain::{
-    FileId, LanguageId, Metric, Project, ProjectId, Reference, RelativePath, Snapshot, SnapshotId,
-    SourceFile, Symbol,
+    FileId, LanguageId, Metric, Project, ProjectId, Reference, ReferenceId, RelativePath, Snapshot,
+    SnapshotId, SourceFile, Symbol,
 };
 
-use super::SymbolFingerprints;
+use super::{PendingReference, SymbolFingerprints};
 use crate::error::CodedError;
 
 /// Everything one scan produced, written as one unit.
 ///
 /// In an incremental scan the lists hold only what is new: the files that were analysed again,
-/// their symbols, the references that were resolved again (also those that start in an unchanged
-/// file but pointed into a changed or removed one) and the metrics that were computed again. The
+/// their symbols, the references that are new (also those that start in an unchanged file, because
+/// the names of that file were resolved again) and the metrics that were computed again. The
 /// store carries everything else over from the previous snapshot, drops the `removed` files with
-/// their symbols, and returns the totals of the whole snapshot. A metric of this value replaces a
-/// carried metric of the same symbol and kind.
+/// their symbols and the `dropped_references`, and returns the totals of the whole snapshot. A
+/// metric of this value replaces a carried metric of the same symbol and kind.
 #[derive(Debug, Clone, PartialEq)]
 pub struct SnapshotData {
     /// The snapshot header; `stats` count what is in this value.
@@ -33,6 +33,14 @@ pub struct SnapshotData {
     pub fingerprints: Vec<SymbolFingerprints>,
     /// Paths of files that were in the previous snapshot and no longer exist; empty in a full scan.
     pub removed: Vec<RelativePath>,
+    /// Names as written in the analysed files, resolved or not. The store keeps them so that the
+    /// next incremental scan can resolve them again against a changed symbol table; it carries
+    /// those of the other files over, like their symbols.
+    pub pending: Vec<PendingReference>,
+    /// Carried references that the full resolution no longer produces, for example because a
+    /// changed file now declares a closer candidate; the new snapshot does not contain them.
+    /// Empty in a full scan.
+    pub dropped_references: Vec<ReferenceId>,
     /// The naming rules of the language packs of this scan (ADR 0036); an incremental scan keeps
     /// the files of the previous snapshot only if its rules are these.
     pub naming_rules: String,
@@ -49,6 +57,22 @@ pub struct PreviousIndex {
     pub symbols: Vec<Symbol>,
     /// All references.
     pub references: Vec<Reference>,
+}
+
+/// The newest snapshot of a project as one consistent read: files, symbols and references, and the
+/// names that were not resolved to a symbol or were resolved. Read in one transaction, so a snapshot
+/// written in between cannot make the parts disagree.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct PreviousState {
+    /// The files.
+    pub files: Vec<SourceFile>,
+    /// All symbols and references.
+    pub index: PreviousIndex,
+    /// The names as written in all files of the snapshot.
+    pub pending: Vec<PendingReference>,
+    /// Whether the snapshot stores the names as written. One written before the store did cannot
+    /// be continued by an incremental scan, because it could not resolve the names again.
+    pub names_stored: bool,
 }
 
 /// Level 2 references that replace the level 1 references of some files of a snapshot.
@@ -81,6 +105,22 @@ pub trait ProjectRepository: Send + Sync {
     /// # Errors
     /// A coded failure of the `STO` group.
     fn latest_index(&self, id: ProjectId) -> Result<PreviousIndex, CodedError>;
+
+    /// Files, index and stored names of the newest snapshot in one read. The default calls
+    /// `latest_files` and `latest_index` one after the other and knows no stored names, so a scan
+    /// over it is always a full one; an adapter
+    /// that can read them in one transaction overrides it.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn latest_state(&self, id: ProjectId) -> Result<PreviousState, CodedError> {
+        Ok(PreviousState {
+            files: self.latest_files(id)?,
+            index: self.latest_index(id)?,
+            pending: Vec::new(),
+            names_stored: false,
+        })
+    }
 
     /// The naming rules the newest snapshot of the project was scanned with, `None` if it has no
     /// snapshot or none from after the record existed (ADR 0036). The default knows no record.

@@ -15,7 +15,7 @@ use codeskimr_application::pipeline::{Job, JobResult, Scanner, ScannerPorts};
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, ConsentStore, DiscoveredFile, FetchedSource, FileAnalyzer,
     FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob, IndexRunner,
-    IndexerSpec, IndexerStatus, MetricsCalculator, PendingReference, PreviousIndex,
+    IndexerSpec, IndexerStatus, MetricsCalculator, PendingReference, PreviousIndex, PreviousState,
     ProjectRepository, ProjectScanner, ReferenceImporter, ReferenceReplacement, ReferenceResolver,
     SnapshotData, SnapshotStore, SourceProvider, SymbolFingerprints, ToolSpec, ToolVersion,
 };
@@ -35,6 +35,9 @@ use common::InMemoryConsent;
 struct Previous {
     files: Vec<SourceFile>,
     index: PreviousIndex,
+    /// The names as written in the files, as the store keeps them.
+    names: Vec<PendingReference>,
+    names_stored: bool,
 }
 
 /// One fake that plays every port. `fail_at` makes that stage fail, `cancel_at` raises the token
@@ -197,7 +200,6 @@ impl FileAnalyzer for World {
             kind: ReferenceKind::Call,
             target: symbol.qualified_name.clone(),
             receiver: None,
-            previous: None,
         }];
         Ok(FileFacts {
             file,
@@ -291,6 +293,15 @@ impl ProjectRepository for World {
 
     fn latest_index(&self, _: ProjectId) -> Result<PreviousIndex, CodedError> {
         Ok(self.previous.index.clone())
+    }
+
+    fn latest_state(&self, _: ProjectId) -> Result<PreviousState, CodedError> {
+        Ok(PreviousState {
+            files: self.previous.files.clone(),
+            index: self.previous.index.clone(),
+            pending: self.previous.names.clone(),
+            names_stored: self.previous.names_stored,
+        })
     }
 
     fn latest_naming_rules(&self, _: ProjectId) -> Result<Option<String>, CodedError> {
@@ -439,10 +450,24 @@ fn old_call(id: u64, to: u64) -> Result<Reference, CodedError> {
     })
 }
 
+/// The name `a` (symbol 200 in file 100) wrote for a call of `target`.
+fn old_name(target: &str) -> Result<PendingReference, CodedError> {
+    Ok(PendingReference {
+        from: SymbolId::new(200),
+        file: FileId::new(100),
+        span: span()?,
+        kind: ReferenceKind::Call,
+        target: model(QualifiedName::new(target))?,
+        receiver: None,
+    })
+}
+
 /// The newest snapshot: `a.rs` (file 100) calls `b.rs` (file 101), the removed `c.rs` (file 102)
 /// and itself.
 fn previous_snapshot() -> Result<Previous, CodedError> {
     Ok(Previous {
+        names_stored: true,
+        names: vec![old_name("m::b")?, old_name("m::c")?, old_name("m::a")?],
         files: vec![
             old_file(100, "a.rs")?,
             old_file(101, "b.rs")?,
@@ -506,6 +531,122 @@ fn incremental_scan_analyses_only_changed_files_and_resolves_dependents_again()
         (2, 2, 3),
         "a.rs and b.rs; a and b; two new references and the call from a to itself carried over"
     );
+    Ok(())
+}
+
+/// The world of `a_unchanged_b_changed` over this previous snapshot.
+fn world_over(previous: Previous) -> Arc<World> {
+    Arc::new(World {
+        previous,
+        found: Some(vec![("a.rs", false), ("b.rs", true)]),
+        ..World::default()
+    })
+}
+
+#[test]
+fn a_snapshot_without_stored_names_is_followed_by_a_full_scan() -> Result<(), CodedError> {
+    let mut previous = previous_snapshot()?;
+    previous.names_stored = false;
+    let world = world_over(previous);
+    let (result, _) = run(&world, ScanMode::Incremental);
+    let JobResult::Finished(job) = result else {
+        panic!("scan did not finish");
+    };
+    assert_eq!(job.snapshot().mode, ScanMode::Full);
+    assert_eq!(world.last_persisted()?.files.len(), 2);
+    Ok(())
+}
+
+#[test]
+fn a_name_that_found_nothing_before_finds_a_new_target_in_a_changed_file() -> Result<(), CodedError>
+{
+    let mut previous = previous_snapshot()?;
+    // `a` wrote the name `m::b` before, but there was no `b` then, so no reference was stored.
+    previous.index.references.retain(|r| r.id.get() != 300);
+    let world = world_over(previous);
+    let _ = run(&world, ScanMode::Incremental);
+    let persisted = world.last_persisted()?;
+    let new_b = persisted.symbols[0].id;
+    assert!(
+        persisted
+            .references
+            .iter()
+            .any(|r| r.from.get() == 200 && r.to == new_b),
+        "the unchanged caller reaches the new target"
+    );
+    Ok(())
+}
+
+#[test]
+fn a_kept_reference_that_the_full_resolution_no_longer_produces_is_dropped()
+-> Result<(), CodedError> {
+    let mut previous = previous_snapshot()?;
+    previous.names.retain(|name| name.target.as_str() != "m::a");
+    let world = world_over(previous);
+    let _ = run(&world, ScanMode::Incremental);
+    let persisted = world.last_persisted()?;
+    let dropped: Vec<u64> = persisted
+        .dropped_references
+        .iter()
+        .map(|id| id.get())
+        .collect();
+    assert_eq!(dropped, [302]);
+    Ok(())
+}
+
+#[test]
+fn a_kept_reference_that_is_produced_again_is_neither_written_nor_dropped() -> Result<(), CodedError>
+{
+    let world = a_unchanged_b_changed()?;
+    let _ = run(&world, ScanMode::Incremental);
+    let persisted = world.last_persisted()?;
+    assert_eq!(persisted.dropped_references, Vec::new());
+    assert!(
+        persisted.references.iter().all(|r| r.to.get() != 200),
+        "the call from a to itself stays in the store as it is"
+    );
+    Ok(())
+}
+
+fn verified(reference: Reference) -> Reference {
+    Reference {
+        verified: true,
+        ..reference
+    }
+}
+
+#[test]
+fn level_two_references_stay_and_one_whose_target_is_gone_falls_back_to_level_one()
+-> Result<(), CodedError> {
+    let mut previous = previous_snapshot()?;
+    previous.index.references = vec![verified(old_call(300, 201)?), verified(old_call(302, 200)?)];
+    // Level 2 reported nothing for the call of `c`; level 1 must not add what it replaced.
+    previous.names.push(old_name("m::a")?);
+    let world = world_over(previous);
+    let (result, _) = run(&world, ScanMode::Incremental);
+    let JobResult::Finished(job) = result else {
+        panic!("scan did not finish");
+    };
+    let persisted = world.last_persisted()?;
+    assert_eq!(
+        persisted.dropped_references,
+        Vec::new(),
+        "the verified call of a stays"
+    );
+    let new_b = persisted.symbols[0].id;
+    let again: Vec<bool> = persisted
+        .references
+        .iter()
+        .filter(|r| r.from.get() == 200 && r.to == new_b)
+        .map(|r| r.verified)
+        .collect();
+    assert_eq!(
+        again,
+        [false],
+        "the discarded verified call is an unchecked level 1 one"
+    );
+    assert_eq!(persisted.references.len(), 2, "that and the call inside b");
+    assert_eq!(job.snapshot().stats.references, 3);
     Ok(())
 }
 

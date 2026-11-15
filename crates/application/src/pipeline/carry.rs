@@ -1,17 +1,19 @@
 //! What an incremental scan keeps of the previous snapshot (blueprint section 7).
 //!
 //! Unchanged files are not analysed again, but their symbols are part of the global symbol table
-//! and their references must stay correct: a reference that points into a file that changed or
-//! disappeared is resolved again by name, a reference between unchanged files is kept as it is.
+//! and their names are resolved again against it, together with the new names. The result must be
+//! the one a full scan would give (issue #49): the references that come out equal are kept, new
+//! ones are written, kept ones that are no longer produced are dropped. References that level 2
+//! verified are the exception, see [`Carried::reconcile`].
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use codeskimr_domain::{
-    FileId, QualifiedName, Reference, ReferenceKind, RelativePath, SourceFile, Span, Symbol,
-    SymbolId,
+    Confidence, FileId, Reference, ReferenceId, ReferenceKind, RelativePath, SourceFile, Span,
+    Symbol, SymbolId,
 };
 
-use crate::ports::{DiscoveredFile, PendingReference, PreviousIndex};
+use crate::ports::{DiscoveredFile, PendingReference, PreviousIndex, PreviousState};
 
 /// The kept part of the previous snapshot. Empty in a full scan.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -22,59 +24,82 @@ pub struct Carried {
     pub removed: Vec<RelativePath>,
     /// Symbols of the unchanged files.
     pub symbols: Vec<Symbol>,
-    /// References between unchanged files; they stay valid.
+    /// References from unchanged files to symbols that still exist. [`Carried::reconcile`] removes
+    /// those that a full scan would no longer produce.
     pub references: Vec<Reference>,
-    /// References of unchanged files that pointed into a changed or removed file, as names that
-    /// must be resolved again.
-    pub rebuilt: Vec<PendingReference>,
+    /// The names as written in the unchanged files, to be resolved again with every scan.
+    pub names: Vec<PendingReference>,
+    /// Kept references that the resolution no longer produces; the store drops them.
+    pub dropped: Vec<ReferenceId>,
+    /// How many references that level 2 had verified pointed to a symbol that is gone and were
+    /// discarded (ADR 0033, decision 13): the occurrence falls back to level 1.
+    pub discarded_verified: u32,
+    /// Unchanged files that hold references verified by level 2.
+    verified_files: HashSet<FileId>,
+    /// Occurrences whose verified reference was discarded.
+    lost: HashSet<Occurrence>,
 }
 
-/// The identity of one occurrence of a name, used to resolve it only once.
+/// The identity of one occurrence of a name.
 type Occurrence = (SymbolId, FileId, Span, ReferenceKind);
 
-impl Carried {
-    /// Removes the references of `resolved` that the kept references already contain. A name with
-    /// candidates in an unchanged and in a changed file is resolved again to both; the unchanged
-    /// one is still kept from before.
-    pub fn drop_duplicates_of_kept(&self, resolved: &mut Vec<Reference>) {
-        let kept: HashSet<_> = self.references.iter().map(edge).collect();
-        resolved.retain(|reference| !kept.contains(&edge(reference)));
-    }
+/// What makes two references the same edge with the same strength.
+type Edge = (Occurrence, SymbolId, Confidence);
 
-    /// The kept base-list references as names to resolve again. The resolver learns the type
-    /// hierarchy from base lists only, so without these it would not know which unchanged type
-    /// derives from which. The results duplicate kept references and are dropped again.
-    #[must_use]
-    pub fn inheritance_seed(&self) -> Vec<PendingReference> {
-        let names: HashMap<SymbolId, &QualifiedName> = self
-            .symbols
+fn occurrence(reference: &Reference) -> Occurrence {
+    (
+        reference.from,
+        reference.file,
+        reference.span,
+        reference.kind,
+    )
+}
+
+fn edge(reference: &Reference) -> Edge {
+    (occurrence(reference), reference.to, reference.confidence)
+}
+
+/// What level 2 left in the unchanged files.
+struct Level2 {
+    files: HashSet<FileId>,
+    lost: HashSet<Occurrence>,
+    discarded: u32,
+}
+
+impl Level2 {
+    /// Reads it from the references that stay and those whose target is gone.
+    fn of(stay: &[Reference], gone: &[Reference]) -> Self {
+        let lost: HashSet<Occurrence> = gone
             .iter()
-            .map(|symbol| (symbol.id, &symbol.qualified_name))
+            .filter(|reference| reference.verified)
+            .map(occurrence)
             .collect();
-        self.references
-            .iter()
-            .filter(|reference| {
-                matches!(
-                    reference.kind,
-                    ReferenceKind::Inherit | ReferenceKind::Implement
-                )
-            })
-            .filter_map(|reference| {
-                let target = names.get(&reference.to)?;
-                Some(resolved_again(reference, (*target).clone()))
-            })
-            .collect()
+        Self {
+            files: stay
+                .iter()
+                .chain(gone)
+                .filter(|reference| reference.verified)
+                .map(|reference| reference.file)
+                .collect(),
+            discarded: u32::try_from(gone.iter().filter(|r| r.verified).count())
+                .unwrap_or(u32::MAX),
+            lost,
+        }
     }
+}
 
+impl Carried {
     /// Splits the previous snapshot into what is kept and what is gone, and marks every
     /// discovered file that the previous snapshot does not know as changed.
     #[must_use]
-    pub fn from_previous(
-        discovered: &mut [DiscoveredFile],
-        previous: Vec<SourceFile>,
-        index: PreviousIndex,
-    ) -> Self {
-        let known: HashSet<&RelativePath> = previous.iter().map(|file| &file.path).collect();
+    pub fn from_previous(discovered: &mut [DiscoveredFile], previous: PreviousState) -> Self {
+        let PreviousState {
+            files,
+            index,
+            pending,
+            names_stored: _,
+        } = previous;
+        let known: HashSet<&RelativePath> = files.iter().map(|file| &file.path).collect();
         for file in discovered
             .iter_mut()
             .filter(|file| !known.contains(&file.path))
@@ -87,98 +112,89 @@ impl Carried {
             .map(|file| &file.path)
             .collect();
         let current: HashSet<&RelativePath> = discovered.iter().map(|file| &file.path).collect();
-        let removed = previous
+        let removed = files
             .iter()
             .filter(|file| !current.contains(&file.path))
             .map(|file| file.path.clone())
             .collect();
-        let files: Vec<SourceFile> = previous
+        let kept: Vec<SourceFile> = files
             .into_iter()
             .filter(|file| unchanged.contains(&file.path))
             .collect();
         Self {
             removed,
-            ..Self::keep(files, index)
+            ..Self::keep(kept, index, pending)
         }
     }
 
-    /// Keeps the symbols and references of `files`; the other fields stay empty.
-    fn keep(files: Vec<SourceFile>, index: PreviousIndex) -> Self {
+    /// Keeps the symbols, references and names of `files`; the other fields stay empty.
+    fn keep(files: Vec<SourceFile>, index: PreviousIndex, pending: Vec<PendingReference>) -> Self {
         let kept: HashSet<FileId> = files.iter().map(|file| file.id).collect();
         let PreviousIndex {
             symbols,
             references,
         } = index;
-        let names: HashMap<SymbolId, QualifiedName> = symbols
-            .iter()
-            .map(|symbol| (symbol.id, symbol.qualified_name.clone()))
-            .collect();
         let symbols: Vec<Symbol> = symbols
             .into_iter()
             .filter(|symbol| kept.contains(&symbol.file))
             .collect();
         let alive: HashSet<SymbolId> = symbols.iter().map(|symbol| symbol.id).collect();
-        let (stay, redo): (Vec<Reference>, Vec<Reference>) = references
+        let (stay, gone): (Vec<Reference>, Vec<Reference>) = references
             .into_iter()
             .filter(|reference| kept.contains(&reference.file))
             .partition(|reference| alive.contains(&reference.to));
+        let level_two = Level2::of(&stay, &gone);
         Self {
             files,
             symbols,
             references: stay,
-            rebuilt: names_to_resolve(&redo, &names),
+            names: pending
+                .into_iter()
+                .filter(|name| kept.contains(&name.file))
+                .collect(),
+            discarded_verified: level_two.discarded,
+            verified_files: level_two.files,
+            lost: level_two.lost,
             ..Self::default()
         }
     }
-}
 
-/// What makes two references the same occurrence of the same target.
-fn edge(reference: &Reference) -> (Occurrence, SymbolId) {
-    (
-        (
-            reference.from,
-            reference.file,
-            reference.span,
-            reference.kind,
-        ),
-        reference.to,
-    )
-}
-
-/// The names to resolve again, one per occurrence and target name. An occurrence that had several
-/// candidates is listed once; the resolver finds the candidates again.
-fn names_to_resolve(
-    references: &[Reference],
-    names: &HashMap<SymbolId, QualifiedName>,
-) -> Vec<PendingReference> {
-    let mut seen: HashSet<(Occurrence, &QualifiedName)> = HashSet::new();
-    let mut pending = Vec::new();
-    for reference in references {
-        let Some(target) = names.get(&reference.to) else {
-            continue;
-        };
-        let occurrence = (
-            reference.from,
-            reference.file,
-            reference.span,
-            reference.kind,
-        );
-        if seen.insert((occurrence, target)) {
-            pending.push(resolved_again(reference, target.clone()));
-        }
+    /// Takes the references `resolved` for all names of this scan (the new ones and `names`) and
+    /// returns those that must be written: every reference of a changed file, and those of an
+    /// unchanged file that the kept ones do not already contain with the same target and
+    /// confidence. Kept references that are not produced again are moved to `dropped`.
+    ///
+    /// A file with references verified by level 2 keeps them (level 2 replaced its level 1
+    /// references, ADR 0033), and level 1 adds nothing to it except the occurrences whose verified
+    /// reference was discarded because its target is gone.
+    pub fn reconcile(&mut self, resolved: Vec<Reference>) -> Vec<Reference> {
+        let kept_files: HashSet<FileId> = self.files.iter().map(|file| file.id).collect();
+        let produced: HashSet<Edge> = resolved
+            .iter()
+            .filter(|reference| kept_files.contains(&reference.file))
+            .map(edge)
+            .collect();
+        let held: HashSet<Edge> = self.references.iter().map(edge).collect();
+        let (stale, stay): (Vec<Reference>, Vec<Reference>) = std::mem::take(&mut self.references)
+            .into_iter()
+            .partition(|reference| {
+                !self.verified_files.contains(&reference.file)
+                    && !produced.contains(&edge(reference))
+            });
+        self.dropped
+            .extend(stale.iter().map(|reference| reference.id));
+        self.references = stay;
+        resolved
+            .into_iter()
+            .filter(|reference| {
+                !kept_files.contains(&reference.file)
+                    || self.is_wanted(reference) && !held.contains(&edge(reference))
+            })
+            .collect()
     }
-    pending
-}
 
-/// A reference as a name to resolve again by the qualified name of its target.
-fn resolved_again(reference: &Reference, target: QualifiedName) -> PendingReference {
-    PendingReference {
-        from: reference.from,
-        file: reference.file,
-        span: reference.span,
-        kind: reference.kind,
-        target,
-        receiver: None,
-        previous: Some(reference.confidence),
+    /// Whether level 1 may write the reference of an unchanged file.
+    fn is_wanted(&self, reference: &Reference) -> bool {
+        !self.verified_files.contains(&reference.file) || self.lost.contains(&occurrence(reference))
     }
 }

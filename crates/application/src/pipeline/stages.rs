@@ -16,7 +16,10 @@ use codeskimr_codes::ErrorCode;
 
 use super::carry::Carried;
 use super::flow::{Interruption, Stage, StageContext};
-use crate::consts::{DONE_STEP, FILE_ID_BLOCK, FIRST_INDEX, INDEX_STEP, MIN_WORKERS, NONE_DONE};
+use crate::consts::{
+    DONE_STEP, FILE_ID_BLOCK, FIRST_INDEX, INDEX_STEP, LOG_VERIFIED_DISCARDED, MIN_WORKERS,
+    NONE_DONE,
+};
 use crate::error::CodedError;
 use crate::ids::IdSequence;
 use crate::ports::{
@@ -94,8 +97,10 @@ pub struct Resolved {
     pub files: Vec<SourceFile>,
     /// Their symbols.
     pub symbols: Vec<Symbol>,
-    /// Resolved references, including those of unchanged files that were resolved again.
+    /// The references to write: those of the analysed files and the new ones of unchanged files.
     pub references: Vec<Reference>,
+    /// The names of the analysed files, to be stored.
+    pub pending: Vec<PendingReference>,
     /// The counts behind the metrics of the analysed files.
     pub counts: Vec<SymbolCounts>,
     /// The syntax fingerprints of the callables of the analysed files.
@@ -113,8 +118,10 @@ pub struct Measured {
     pub files: Vec<SourceFile>,
     /// Their symbols.
     pub symbols: Vec<Symbol>,
-    /// Resolved references.
+    /// The references to write.
     pub references: Vec<Reference>,
+    /// The names of the analysed files, to be stored.
+    pub pending: Vec<PendingReference>,
     /// Measured values.
     pub metrics: Vec<Metric>,
     /// The syntax fingerprints of the callables of the analysed files.
@@ -195,14 +202,18 @@ impl Stage for DiscoverStage {
     }
 
     fn run(&self, run: ScanRun, ctx: &StageContext<'_>) -> Result<Discovered, Interruption> {
-        let run = self.with_naming(run)?;
-        let previous = self.projects.latest_files(run.project.id)?;
+        let mut run = self.with_naming(run)?;
+        let state = self.projects.latest_state(run.project.id)?;
+        if !state.names_stored {
+            // The newest snapshot does not hold the names as written, so the references of its
+            // files cannot be resolved again: a full scan writes them.
+            run.mode = ScanMode::Full;
+        }
         let mut files = self
             .discovery
-            .discover(&run.root, &previous, ctx.cancel_token())?;
+            .discover(&run.root, &state.files, ctx.cancel_token())?;
         let carried = if run.mode == ScanMode::Incremental {
-            let index = self.projects.latest_index(run.project.id)?;
-            Carried::from_previous(&mut files, previous, index)
+            Carried::from_previous(&mut files, state)
         } else {
             Carried::default()
         };
@@ -410,24 +421,30 @@ impl Stage for ResolveStage {
             run,
             files,
             symbols,
-            mut pending,
+            pending,
             counts,
             fingerprints,
-            carried,
+            mut carried,
         } = input;
-        pending.extend(carried.rebuilt.iter().cloned());
-        pending.extend(carried.inheritance_seed());
-        let total = count(&pending);
+        let names: Vec<PendingReference> = pending.iter().chain(&carried.names).cloned().collect();
+        let total = count(&names);
         ctx.progress(0, total);
         let table: Vec<Symbol> = carried.symbols.iter().chain(&symbols).cloned().collect();
-        let mut references = self.resolver.resolve(&table, &pending, &self.ids)?;
-        carried.drop_duplicates_of_kept(&mut references);
+        let resolved = self.resolver.resolve(&table, &names, &self.ids)?;
+        let references = carried.reconcile(resolved);
+        if carried.discarded_verified > 0 {
+            tracing::info!(
+                event = LOG_VERIFIED_DISCARDED,
+                count = carried.discarded_verified
+            );
+        }
         ctx.progress(total, total);
         Ok(Resolved {
             run,
             files,
             symbols,
             references,
+            pending,
             counts,
             fingerprints,
             carried,
@@ -475,6 +492,7 @@ impl Stage for MeasureStage {
             files: input.files,
             symbols: input.symbols,
             references: input.references,
+            pending: input.pending,
             metrics,
             fingerprints: input.fingerprints,
             carried: input.carried,
@@ -531,6 +549,8 @@ impl Stage for PersistStage {
             metrics: input.metrics,
             fingerprints: input.fingerprints,
             removed: input.carried.removed,
+            pending: input.pending,
+            dropped_references: input.carried.dropped,
             naming_rules: input.run.naming_rules,
             parse_micros: input.run.parse_micros,
         };
