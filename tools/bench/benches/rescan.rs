@@ -13,7 +13,7 @@ use criterion::Criterion;
 
 mod common;
 
-use common::{SCRATCH, build_binary, build_corpus, measure, root};
+use common::{SCRATCH, build_binary, build_corpus, build_csharp_corpus, measure, root};
 
 const SAMPLES: usize = 30;
 const MEASUREMENT_SECONDS: u64 = 20;
@@ -21,6 +21,8 @@ const MEASUREMENT_SECONDS: u64 = 20;
 const WARM_UP_RESCANS: usize = 7;
 /// The file that gets a line appended; it exists in the generated corpus.
 const CHANGED_FILE: &str = "part0/thing0.rs";
+/// The same for the generated C# corpus.
+const CHANGED_FILE_CSHARP: &str = "part0/Thing0.cs";
 /// Line that appears when the first scan is done and watching begins.
 const WATCHING_MARKER: &str = "Watching";
 /// Text in front of the duration in the report of a rescan (English texts, see `LANGUAGE_VARIABLE`).
@@ -38,11 +40,19 @@ struct Watch {
 }
 
 impl Watch {
-    fn start() -> io::Result<Self> {
+    fn start(csharp: bool) -> io::Result<Self> {
         let scratch = root().join(SCRATCH);
-        let corpus = build_corpus(&scratch)?;
+        let (corpus, changed, data_folder) = if csharp {
+            (
+                build_csharp_corpus(&scratch)?,
+                CHANGED_FILE_CSHARP,
+                "data-rescan-csharp",
+            )
+        } else {
+            (build_corpus(&scratch)?, CHANGED_FILE, "data-rescan")
+        };
         let binary = build_binary()?;
-        let data = scratch.join("data-rescan");
+        let data = scratch.join(data_folder);
         match fs::remove_dir_all(&data) {
             Err(error) if error.kind() != io::ErrorKind::NotFound => return Err(error),
             _ => {}
@@ -64,7 +74,7 @@ impl Watch {
         let mut watch = Self {
             child,
             lines: BufReader::new(stdout).lines(),
-            changed: corpus.join(CHANGED_FILE),
+            changed: corpus.join(changed),
         };
         watch.wait_for(WATCHING_MARKER)?;
         Ok(watch)
@@ -110,16 +120,20 @@ impl Drop for Watch {
 }
 
 fn rescans(c: &mut Criterion) -> io::Result<()> {
-    let mut watch = Watch::start()?;
+    rescan_corpus(c, false, "one_file_100k_loc")?;
+    // Dense references, as in real C# projects. Only its change against the base commit is
+    // checked until it keeps the budget of the Rust corpus.
+    rescan_corpus(c, true, "one_file_100k_loc_csharp")
+}
+
+fn rescan_corpus(c: &mut Criterion, csharp: bool, name: &str) -> io::Result<()> {
+    let mut watch = Watch::start(csharp)?;
     for _ in 0..WARM_UP_RESCANS {
         watch.rescan()?;
     }
-    measure(
-        c,
-        ("rescan", "one_file_100k_loc"),
-        (SAMPLES, MEASUREMENT_SECONDS),
-        || watch.rescan(),
-    );
+    measure(c, ("rescan", name), (SAMPLES, MEASUREMENT_SECONDS), || {
+        watch.rescan()
+    });
     Ok(())
 }
 

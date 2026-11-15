@@ -9,7 +9,9 @@ use codeskimr_domain::{
 use rusqlite::{Connection, params};
 
 use crate::codec::{SpanColumns, column_int};
-use crate::consts::{PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON};
+use crate::consts::{
+    BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON,
+};
 use crate::error::{StorageError, StorageResult};
 use crate::headers::{insert_metric, insert_reference, set_totals, totals};
 use crate::integrity;
@@ -59,10 +61,11 @@ fn write_snapshot(conn: &Connection, data: &SnapshotData, keep: u32) -> StorageR
         carry_over(conn, header.project, header.id, &data.removed)?;
     }
     integrity::check(conn, data)?;
-    let stats = totals(conn, header.id)?;
-    set_totals(conn, header.id, stats)?;
+    // The totals count the references from the usage counts, so the read models come first.
     let layers = load_layers(conn, header.project)?;
     read_models::rebuild(conn, header.id, &layers)?;
+    let stats = totals(conn, header.id)?;
+    set_totals(conn, header.id, stats)?;
     prune(conn, project, keep)?;
     Ok(Snapshot {
         stats,
@@ -113,15 +116,38 @@ fn insert_facts(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
     for symbol in &data.symbols {
         insert_symbol(conn, symbol)?;
     }
+    let bulk = bulk_load_starts(conn, data.references.len())?;
     let mut references = conn.prepare_cached(sql::REFERENCE_INSERT)?;
     for reference in &data.references {
         insert_reference(&mut references, snapshot, reference)?;
+    }
+    if bulk {
+        for create in sql::REFERENCE_INDEXES_CREATE {
+            conn.execute(create, [])?;
+        }
     }
     for metric in &data.metrics {
         insert_metric(conn, snapshot, metric)?;
     }
     similarity::insert_all(conn, &data.fingerprints)?;
     Ok(())
+}
+
+/// Drops the reference indexes when so many rows arrive that building them afterwards is cheaper
+/// than keeping them current; the caller builds them again. Returns whether it did.
+fn bulk_load_starts(conn: &Connection, incoming: usize) -> StorageResult<bool> {
+    if incoming < BULK_REFERENCES_MIN {
+        return Ok(false);
+    }
+    let stored: i64 = conn.query_row(sql::REFERENCE_COUNT, [], |row| row.get(0))?;
+    let stored = usize::try_from(stored).unwrap_or(usize::MAX);
+    if incoming < stored / BULK_REFERENCES_SHARE_DIVISOR {
+        return Ok(false);
+    }
+    for drop in sql::REFERENCE_INDEXES_DROP {
+        conn.execute(drop, [])?;
+    }
+    Ok(true)
 }
 
 /// The parse times of a full scan; an incremental scan has none of its own and copies the

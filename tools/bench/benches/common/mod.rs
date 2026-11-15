@@ -58,6 +58,56 @@ fn file_source(index: usize, random: &mut Lcg) -> String {
     text
 }
 
+/// Method names that every C# type of the corpus shares, so that a call has many candidates, as in
+/// real projects whose types all have `Read`, `Write` or `Get`.
+const SHARED_METHODS: [&str; 10] = [
+    "Read", "Write", "Get", "Set", "Add", "Remove", "Clear", "Reset", "Find", "Count",
+];
+/// The shared method name number `index`, counted around the list.
+fn shared_method(index: usize) -> &'static str {
+    SHARED_METHODS
+        .iter()
+        .cycle()
+        .nth(index)
+        .copied()
+        .unwrap_or_default()
+}
+
+/// Methods per C# type; with the type around them a file has about 250 lines.
+const CSHARP_METHODS: usize = 20;
+
+/// The source of C# file `index`: a type whose methods call the shared method names on themselves
+/// and on a type of another file, and read their fields and properties. The references are as dense
+/// as in a real project (about three per line), which the Rust corpus above does not have.
+fn csharp_source(index: usize, random: &mut Lcg) -> String {
+    let mut text = String::new();
+    let _ = writeln!(
+        text,
+        "namespace Generated.Part{}\n{{",
+        index / FILES_PER_FOLDER
+    );
+    let _ = writeln!(
+        text,
+        "    /// <summary>The type of module {index}.</summary>\n    public class Thing{index}\n    {{\n        private int _value{index};\n        private Thing{index} _next;\n\n        public int Total {{ get; set; }}\n"
+    );
+    for method in 0..CSHARP_METHODS {
+        let name = shared_method(method);
+        let other = random.below(FILES);
+        let (first, second) = (
+            random.below(SHARED_METHODS.len()),
+            random.below(SHARED_METHODS.len()),
+        );
+        let (first, second) = (shared_method(first), shared_method(second));
+        let _ = writeln!(
+            text,
+            "        /// <summary>Method {method}.</summary>\n        public int {name}{method}(int x, Thing{other} other)\n        {{\n            var a = other.{first}(x) + {second}(x) + this.{first}(x) + _next.{second}(x) + _value{index};\n            var b = {second}{}(a) + {first}(a) + other.{second}(a) + Total + other.Total;\n            if (a > {method})\n            {{\n                _next.Total = a + b + other.Total + {first}(b) + {second}(a);\n                return _next.{first}(b) + this.{second}(a) + other.{first}(a + b);\n            }}\n            return b + _value{index} + {first}(b) + other.{second}(b);\n        }}\n",
+            method.saturating_sub(1)
+        );
+    }
+    let _ = writeln!(text, "    }}\n}}");
+    text
+}
+
 /// Removes a folder with everything below it; a folder that does not exist is no error.
 pub fn wipe(path: &Path) -> io::Result<()> {
     fs::remove_dir_all(path).or_else(|error| match error.kind() {
@@ -76,6 +126,24 @@ pub fn build_corpus(scratch: &Path) -> io::Result<PathBuf> {
         fs::write(
             folder.join(format!("thing{index}.rs")),
             file_source(index, &mut random),
+        )?;
+    }
+    Ok(corpus)
+}
+
+/// A corpus of C# files with about 100k lines and dense references; its scan is what the Rust
+/// corpus does not show: many references between many symbols of the same names.
+#[allow(dead_code, reason = "not every benchmark scans the C# corpus")]
+pub fn build_csharp_corpus(scratch: &Path) -> io::Result<PathBuf> {
+    let corpus = scratch.join("corpus-csharp");
+    wipe(&corpus)?;
+    let mut random = Lcg::new(SEED);
+    for index in 0..FILES {
+        let folder = corpus.join(format!("part{}", index / FILES_PER_FOLDER));
+        fs::create_dir_all(&folder)?;
+        fs::write(
+            folder.join(format!("Thing{index}.cs")),
+            csharp_source(index, &mut random),
         )?;
     }
     Ok(corpus)
