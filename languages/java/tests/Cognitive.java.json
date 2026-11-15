@@ -1,0 +1,365 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 76,
+      "operands": null,
+      "operators": null,
+      "symbol": "Cognitive.java"
+    },
+    {
+      "decisions": null,
+      "loc": 76,
+      "operands": null,
+      "operators": null,
+      "symbol": "demo"
+    },
+    {
+      "decisions": null,
+      "loc": 74,
+      "operands": null,
+      "operators": null,
+      "symbol": "demo.Cognitive"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "demo.Cognitive.straight"
+    },
+    {
+      "decisions": 3,
+      "loc": 10,
+      "operands": [
+        5,
+        11
+      ],
+      "operators": [
+        6,
+        9
+      ],
+      "symbol": "demo.Cognitive.nested"
+    },
+    {
+      "decisions": 2,
+      "loc": 9,
+      "operands": [
+        4,
+        7
+      ],
+      "operators": [
+        3,
+        7
+      ],
+      "symbol": "demo.Cognitive.chain"
+    },
+    {
+      "decisions": 3,
+      "loc": 3,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        3,
+        4
+      ],
+      "symbol": "demo.Cognitive.runs"
+    },
+    {
+      "decisions": 2,
+      "loc": 10,
+      "operands": [
+        6,
+        7
+      ],
+      "operators": [
+        7,
+        11
+      ],
+      "symbol": "demo.Cognitive.handler"
+    },
+    {
+      "decisions": 1,
+      "loc": 7,
+      "operands": [
+        7,
+        8
+      ],
+      "operators": [
+        5,
+        8
+      ],
+      "symbol": "demo.Cognitive.callbacks"
+    },
+    {
+      "decisions": 2,
+      "loc": 10,
+      "operands": [
+        4,
+        6
+      ],
+      "operators": [
+        3,
+        6
+      ],
+      "symbol": "demo.Cognitive.branches"
+    },
+    {
+      "decisions": 5,
+      "loc": 17,
+      "operands": [
+        7,
+        14
+      ],
+      "operators": [
+        12,
+        14
+      ],
+      "symbol": "demo.Cognitive.loops"
+    },
+    {
+      "decisions": 1,
+      "loc": 3,
+      "operands": [
+        8,
+        9
+      ],
+      "operators": [
+        6,
+        9
+      ],
+      "symbol": "demo.Cognitive.method"
+    }
+  ],
+  "loc": 76,
+  "references": [
+    {
+      "at": "4:17",
+      "from": "demo",
+      "kind": "import",
+      "receiver": null,
+      "target": "List"
+    },
+    {
+      "at": "36:23",
+      "from": "demo.Cognitive.handler",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "38:19",
+      "from": "demo.Cognitive.handler",
+      "kind": "read",
+      "receiver": null,
+      "target": "Integer"
+    },
+    {
+      "at": "38:27",
+      "from": "demo.Cognitive.handler",
+      "kind": "call",
+      "receiver": "named Integer",
+      "target": "parseInt"
+    },
+    {
+      "at": "39:17",
+      "from": "demo.Cognitive.handler",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "NumberFormatException"
+    },
+    {
+      "at": "40:19",
+      "from": "demo.Cognitive.handler",
+      "kind": "call",
+      "receiver": "typed String",
+      "target": "isEmpty"
+    },
+    {
+      "at": "47:26",
+      "from": "demo.Cognitive.callbacks",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "List"
+    },
+    {
+      "at": "47:31",
+      "from": "demo.Cognitive.callbacks",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Integer"
+    },
+    {
+      "at": "48:14",
+      "from": "demo.Cognitive.callbacks",
+      "kind": "call",
+      "receiver": "typed List",
+      "target": "forEach"
+    },
+    {
+      "at": "50:16",
+      "from": "demo.Cognitive.callbacks",
+      "kind": "read",
+      "receiver": null,
+      "target": "System"
+    },
+    {
+      "at": "50:27",
+      "from": "demo.Cognitive.callbacks",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "println"
+    },
+    {
+      "at": "84:29",
+      "from": "demo.Cognitive.method",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "String"
+    },
+    {
+      "at": "85:28",
+      "from": "demo.Cognitive.method",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "length"
+    },
+    {
+      "at": "85:40",
+      "from": "demo.Cognitive.method",
+      "kind": "call",
+      "receiver": "typed String",
+      "target": "isEmpty"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "Cognitive.java",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-88:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "namespace",
+      "name": "demo",
+      "parent": "Cognitive.java",
+      "signature": null,
+      "span": "2:0-88:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "demo.Cognitive",
+      "parent": "demo",
+      "signature": null,
+      "span": "6:0-87:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "demo.Cognitive.straight",
+      "parent": "demo.Cognitive",
+      "signature": null,
+      "span": "7:4-9:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "demo.Cognitive.nested",
+      "parent": "demo.Cognitive",
+      "signature": null,
+      "span": "11:4-20:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "demo.Cognitive.chain",
+      "parent": "demo.Cognitive",
+      "signature": null,
+      "span": "22:4-30:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "demo.Cognitive.runs",
+      "parent": "demo.Cognitive",
+      "signature": null,
+      "span": "32:4-34:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "demo.Cognitive.handler",
+      "parent": "demo.Cognitive",
+      "signature": null,
+      "span": "36:4-45:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "demo.Cognitive.callbacks",
+      "parent": "demo.Cognitive",
+      "signature": null,
+      "span": "47:4-53:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "demo.Cognitive.branches",
+      "parent": "demo.Cognitive",
+      "signature": null,
+      "span": "55:4-64:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "demo.Cognitive.loops",
+      "parent": "demo.Cognitive",
+      "signature": null,
+      "span": "66:4-82:5",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "demo.Cognitive.method",
+      "parent": "demo.Cognitive",
+      "signature": null,
+      "span": "84:4-86:5",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

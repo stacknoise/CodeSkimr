@@ -54,6 +54,41 @@ mod tests {
     }
 
     #[test]
+    fn cognitive_complexity_counts_structures_with_their_nesting() {
+        let found = by_name(&facts("java", "Cognitive.java"));
+        let cognitive = |name: &str| body(&found, name).cognitive;
+        assert_eq!(cognitive("straight"), Some(0));
+        // if (+1), for (+2), inner if (+3)
+        assert_eq!(cognitive("nested"), Some(6));
+        // if (+1), else if (+1 for its `else`), else (+1)
+        assert_eq!(cognitive("chain"), Some(3));
+        // the `&&` run (+1) and `||` (+1)
+        assert_eq!(cognitive("runs"), Some(2));
+        // catch (+1), the if inside it (+2); `try` adds nothing
+        assert_eq!(cognitive("handler"), Some(3));
+        // the if in the lambda: +2 (nested once by the lambda)
+        assert_eq!(cognitive("callbacks"), Some(2));
+        // switch (+1); the labels add nothing
+        assert_eq!(cognitive("branches"), Some(1));
+        // while (+1), do (+1), for-each (+1), inner for-each (+2), if (+3), `continue outer` (+1)
+        assert_eq!(cognitive("loops"), Some(9));
+        // the conditional (+1)
+        assert_eq!(cognitive("method"), Some(1));
+    }
+
+    #[test]
+    fn parameters_are_counted_with_varargs_and_without_lambda_parameters() {
+        let found = by_name(&facts("java", "Cognitive.java"));
+        let parameters = |name: &str| body(&found, name).parameters;
+        assert_eq!(parameters("straight"), Some(1));
+        assert_eq!(parameters("runs"), Some(4));
+        // a, b, c and the varargs `rest`
+        assert_eq!(parameters("method"), Some(4));
+        // the lambda parameter `x` is not a parameter of `callbacks`
+        assert_eq!(parameters("callbacks"), Some(1));
+    }
+
+    #[test]
     fn highlights_compile_against_the_grammar() {
         highlights_compile("java", &tree_sitter_java::LANGUAGE.into());
     }
