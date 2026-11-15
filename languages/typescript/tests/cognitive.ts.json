@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 81,
+      "loc": 86,
       "operands": null,
       "operators": null,
       "symbol": "cognitive"
@@ -195,9 +195,22 @@
         7
       ],
       "symbol": "cognitive.Shop.method"
+    },
+    {
+      "decisions": 3,
+      "loc": 5,
+      "operands": [
+        3,
+        9
+      ],
+      "operators": [
+        3,
+        12
+      ],
+      "symbol": "cognitive.casts"
     }
   ],
-  "loc": 81,
+  "loc": 86,
   "references": [
     {
       "at": "34:11",
@@ -233,6 +246,62 @@
       "kind": "read",
       "receiver": "named rest",
       "target": "length"
+    },
+    {
+      "at": "98:2",
+      "from": "cognitive.casts",
+      "kind": "call",
+      "receiver": null,
+      "target": "run"
+    },
+    {
+      "at": "98:24",
+      "from": "cognitive.casts",
+      "kind": "call",
+      "receiver": null,
+      "target": "go"
+    },
+    {
+      "at": "98:38",
+      "from": "cognitive.casts",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Handler"
+    },
+    {
+      "at": "99:2",
+      "from": "cognitive.casts",
+      "kind": "call",
+      "receiver": null,
+      "target": "run"
+    },
+    {
+      "at": "99:24",
+      "from": "cognitive.casts",
+      "kind": "call",
+      "receiver": null,
+      "target": "go"
+    },
+    {
+      "at": "99:45",
+      "from": "cognitive.casts",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Handler"
+    },
+    {
+      "at": "100:2",
+      "from": "cognitive.casts",
+      "kind": "call",
+      "receiver": null,
+      "target": "run"
+    },
+    {
+      "at": "100:24",
+      "from": "cognitive.casts",
+      "kind": "call",
+      "receiver": null,
+      "target": "go"
     }
   ],
   "symbols": [
@@ -242,7 +311,7 @@
       "name": "cognitive",
       "parent": null,
       "signature": null,
-      "span": "0:0-96:0",
+      "span": "0:0-102:0",
       "static": false,
       "visibility": null
     },
@@ -393,6 +462,16 @@
       "parent": "cognitive.Shop",
       "signature": null,
       "span": "92:2-94:3",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.casts",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "97:7-101:1",
       "static": false,
       "visibility": "public"
     }

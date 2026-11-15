@@ -88,3 +88,5 @@ cli-level2-prompt = Gib den Namen des Projekts („{ $project }“) ein, um Stuf
 cli-level2-confirmed = Stufe 2 ist für Projekt { $project } erlaubt. Sie läuft beim nächsten Scan auf der Kommandozeile.
 cli-level2-declined = Nichts geändert: Stufe 2 bleibt für Projekt { $project } aus.
 cli-level2-revoked = Stufe 2 ist für Projekt { $project } wieder verboten.
+cli-scan-warning-ambiguous-reference = Warnung RES-301: { $count } Stellen passen auf mehrere Symbole und sind als wahrscheinlich gespeichert.
+cli-scan-warning-other = Warnung { $code }: { $count }-mal.

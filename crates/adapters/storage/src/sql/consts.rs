@@ -86,6 +86,7 @@ pub const SNAPSHOT_CONTENT_DELETE: &[&str] = &[
     "DELETE FROM usage_counts WHERE snapshot_id = ?1",
     "DELETE FROM layer_graph WHERE snapshot_id = ?1",
     "DELETE FROM parse_times WHERE snapshot_id = ?1",
+    "DELETE FROM snapshot_warnings WHERE snapshot_id = ?1",
     "DELETE FROM coupling_rows WHERE snapshot_id = ?1",
     "DELETE FROM files WHERE snapshot_id = ?1",
 ];
@@ -404,6 +405,13 @@ pub const PARSE_TIME_CARRY: &str = "INSERT INTO parse_times (snapshot_id, langua
     SELECT ?2, language, micros FROM parse_times WHERE snapshot_id = ?1";
 /// The parse times of a snapshot: snapshot.
 pub const PARSE_TIMES: &str = "SELECT language, micros FROM parse_times WHERE snapshot_id = ?1";
+
+/// Records one warning of a snapshot: snapshot, code, count.
+pub const WARNING_INSERT: &str =
+    "INSERT INTO snapshot_warnings (snapshot_id, code, count) VALUES (?1, ?2, ?3)";
+/// The warnings of a snapshot: snapshot.
+pub const WARNINGS: &str =
+    "SELECT code, count FROM snapshot_warnings WHERE snapshot_id = ?1 ORDER BY code";
 
 /// Adds a name as written: file, from, start line and column, end line and column, kind, target,
 /// receiver kind, receiver name.

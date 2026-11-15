@@ -1,6 +1,6 @@
 //! The six concrete stages, each built from the ports it needs, and the values passed between them.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
@@ -8,8 +8,8 @@ use std::thread;
 use std::time::Instant;
 
 use codeskimr_domain::{
-    CommitHash, FolderPath, LanguageId, Metric, Project, Reference, ScanMode, Snapshot, SnapshotId,
-    SnapshotStats, SourceFile, Symbol, SymbolCounts,
+    CommitHash, FileId, FolderPath, LanguageId, Metric, Project, Reference, ScanMode, Snapshot,
+    SnapshotId, SnapshotStats, SourceFile, Symbol, SymbolCounts,
 };
 
 use codeskimr_codes::ErrorCode;
@@ -17,16 +17,17 @@ use codeskimr_codes::ErrorCode;
 use super::carry::Carried;
 use super::flow::{Interruption, Stage, StageContext};
 use crate::consts::{
-    DONE_STEP, FILE_ID_BLOCK, FIRST_INDEX, INDEX_STEP, LOG_VERIFIED_DISCARDED, MIN_WORKERS,
-    NONE_DONE,
+    DONE_STEP, FILE_ID_BLOCK, FIRST_INDEX, INDEX_STEP, LOG_SCAN_WARNING, LOG_VERIFIED_DISCARDED,
+    MIN_WORKERS, NONE_DONE,
 };
 use crate::error::CodedError;
 use crate::ids::IdSequence;
 use crate::ports::{
     AnalyzeRequest, Clock, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts,
-    MetricsCalculator, PendingReference, ProjectRepository, ReferenceResolver, SnapshotData,
-    SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints,
+    MetricsCalculator, PendingReference, ProjectRepository, ReferenceResolver, ScanWarning,
+    SnapshotData, SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints,
 };
+use crate::resolve::ambiguous_occurrences;
 use crate::stage::StageKind;
 
 /// What starts a scan.
@@ -407,6 +408,8 @@ pub struct ResolveStage {
     pub projects: Arc<dyn ProjectRepository>,
     /// The resolver strategy.
     pub resolver: Arc<dyn ReferenceResolver>,
+    /// Tells which files are test files.
+    pub analyzer: Arc<dyn FileAnalyzer>,
     /// Id allocation for references.
     pub ids: Arc<IdSequence>,
 }
@@ -434,7 +437,10 @@ impl Stage for ResolveStage {
         let total = count(&names);
         ctx.progress(0, total);
         let table: Vec<Symbol> = carried.symbols.iter().chain(&symbols).cloned().collect();
-        let resolved = self.resolver.resolve(&table, &names, &self.ids)?;
+        let test_files = self.test_files(files.iter().chain(&carried.files));
+        let resolved = self
+            .resolver
+            .resolve(&table, &names, &test_files, &self.ids)?;
         let references = carried.reconcile(resolved);
         if carried.discarded_verified > 0 {
             tracing::info!(
@@ -453,6 +459,16 @@ impl Stage for ResolveStage {
             fingerprints,
             carried,
         })
+    }
+}
+
+impl ResolveStage {
+    /// Ids of the files among `files` that are test files of their language.
+    fn test_files<'a>(&self, files: impl Iterator<Item = &'a SourceFile>) -> HashSet<FileId> {
+        files
+            .filter(|file| self.analyzer.is_test_file(&file.language, &file.path))
+            .map(|file| file.id)
+            .collect()
     }
 }
 
@@ -520,6 +536,30 @@ pub struct Persisted {
     pub snapshot: Snapshot,
     /// Local folder with the files, which level 2 runs its indexers in.
     pub root: FolderPath,
+    /// What the scan wants to tell besides its result: one entry per code, with a count.
+    pub warnings: Vec<ScanWarning>,
+}
+
+/// Writes one log line per warning of the scan.
+fn log_warnings(warnings: &[ScanWarning]) {
+    for warning in warnings {
+        tracing::warn!(
+            event = LOG_SCAN_WARNING,
+            code = warning.code.id(),
+            count = warning.count
+        );
+    }
+}
+
+/// The warnings of a scan over all references of the snapshot, changed and kept ones.
+fn warnings_of(references: &[Reference], carried: &[Reference]) -> Vec<ScanWarning> {
+    let ambiguous = ambiguous_occurrences(references.iter().chain(carried));
+    let found = [(ErrorCode::AmbiguousReference, ambiguous)];
+    found
+        .into_iter()
+        .filter(|(_, count)| *count > 0)
+        .map(|(code, count)| ScanWarning { code, count })
+        .collect()
 }
 
 impl Stage for PersistStage {
@@ -545,6 +585,7 @@ impl Stage for PersistStage {
                 references: count(&input.references) + count(&input.carried.references),
             },
         };
+        let warnings = warnings_of(&input.references, &input.carried.references);
         let data = SnapshotData {
             snapshot,
             files: input.files,
@@ -557,12 +598,15 @@ impl Stage for PersistStage {
             dropped_references: input.carried.dropped,
             naming_rules: input.run.naming_rules,
             parse_micros: input.run.parse_micros,
+            warnings: warnings.clone(),
         };
         let stored = self.store.persist(data)?;
+        log_warnings(&warnings);
         ctx.progress(1, 1);
         Ok(Persisted {
             snapshot: stored,
             root,
+            warnings,
         })
     }
 }

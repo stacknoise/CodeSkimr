@@ -1,5 +1,6 @@
 //! Tests of the scan pipeline, the scanner, the job typestate and the event bus with fake ports.
 
+use std::collections::HashSet;
 use std::sync::{Arc, Mutex, PoisonError};
 
 #[cfg(test)]
@@ -233,6 +234,7 @@ impl ReferenceResolver for World {
         &self,
         symbols: &[Symbol],
         pending: &[PendingReference],
+        _test_files: &HashSet<FileId>,
         ids: &IdSequence,
     ) -> Result<Vec<Reference>, CodedError> {
         self.gate(StageKind::Resolve)?;

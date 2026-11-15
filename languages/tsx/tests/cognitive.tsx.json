@@ -1,0 +1,275 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 16,
+      "operands": null,
+      "operators": null,
+      "symbol": "cognitive"
+    },
+    {
+      "decisions": 1,
+      "loc": 3,
+      "operands": [
+        3,
+        4
+      ],
+      "operators": [
+        5,
+        6
+      ],
+      "symbol": "cognitive.Form"
+    },
+    {
+      "decisions": 1,
+      "loc": 3,
+      "operands": [
+        5,
+        6
+      ],
+      "operators": [
+        4,
+        5
+      ],
+      "symbol": "cognitive.Plain"
+    },
+    {
+      "decisions": 1,
+      "loc": 3,
+      "operands": [
+        3,
+        4
+      ],
+      "operators": [
+        5,
+        6
+      ],
+      "symbol": "cognitive.Child"
+    },
+    {
+      "decisions": 3,
+      "loc": 6,
+      "operands": [
+        5,
+        16
+      ],
+      "operators": [
+        5,
+        18
+      ],
+      "symbol": "cognitive.Cast"
+    }
+  ],
+  "loc": 16,
+  "references": [
+    {
+      "at": "2:28",
+      "from": "cognitive.Form",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Props"
+    },
+    {
+      "at": "3:44",
+      "from": "cognitive.Form",
+      "kind": "read",
+      "receiver": "typed Props",
+      "target": "ok"
+    },
+    {
+      "at": "3:56",
+      "from": "cognitive.Form",
+      "kind": "call",
+      "receiver": "typed Props",
+      "target": "save"
+    },
+    {
+      "at": "6:29",
+      "from": "cognitive.Plain",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Props"
+    },
+    {
+      "at": "7:27",
+      "from": "cognitive.Plain",
+      "kind": "read",
+      "receiver": "typed Props",
+      "target": "save"
+    },
+    {
+      "at": "7:40",
+      "from": "cognitive.Plain",
+      "kind": "read",
+      "receiver": "typed Props",
+      "target": "ok"
+    },
+    {
+      "at": "10:29",
+      "from": "cognitive.Child",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Props"
+    },
+    {
+      "at": "11:31",
+      "from": "cognitive.Child",
+      "kind": "read",
+      "receiver": "typed Props",
+      "target": "ok"
+    },
+    {
+      "at": "11:43",
+      "from": "cognitive.Child",
+      "kind": "call",
+      "receiver": "typed Props",
+      "target": "save"
+    },
+    {
+      "at": "14:28",
+      "from": "cognitive.Cast",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Props"
+    },
+    {
+      "at": "15:2",
+      "from": "cognitive.Cast",
+      "kind": "call",
+      "receiver": null,
+      "target": "run"
+    },
+    {
+      "at": "15:30",
+      "from": "cognitive.Cast",
+      "kind": "read",
+      "receiver": "typed Props",
+      "target": "ok"
+    },
+    {
+      "at": "15:42",
+      "from": "cognitive.Cast",
+      "kind": "call",
+      "receiver": "typed Props",
+      "target": "save"
+    },
+    {
+      "at": "15:57",
+      "from": "cognitive.Cast",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Handler"
+    },
+    {
+      "at": "16:2",
+      "from": "cognitive.Cast",
+      "kind": "call",
+      "receiver": null,
+      "target": "run"
+    },
+    {
+      "at": "16:25",
+      "from": "cognitive.Cast",
+      "kind": "read",
+      "receiver": "typed Props",
+      "target": "ok"
+    },
+    {
+      "at": "16:37",
+      "from": "cognitive.Cast",
+      "kind": "call",
+      "receiver": "typed Props",
+      "target": "save"
+    },
+    {
+      "at": "16:53",
+      "from": "cognitive.Cast",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Handler"
+    },
+    {
+      "at": "17:2",
+      "from": "cognitive.Cast",
+      "kind": "call",
+      "receiver": null,
+      "target": "run"
+    },
+    {
+      "at": "17:25",
+      "from": "cognitive.Cast",
+      "kind": "read",
+      "receiver": "typed Props",
+      "target": "ok"
+    },
+    {
+      "at": "17:37",
+      "from": "cognitive.Cast",
+      "kind": "call",
+      "receiver": "typed Props",
+      "target": "save"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "cognitive",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-20:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "type_alias",
+      "name": "cognitive.Props",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "0:0-0:64",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.Form",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "2:7-4:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.Plain",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "6:7-8:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.Child",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "10:7-12:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.Cast",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "14:7-19:1",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

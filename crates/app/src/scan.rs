@@ -11,9 +11,9 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::level2::{LanguageReport, Level2Outcome, Skipped};
 use codeskimr_application::pipeline::{Job, JobResult, Queued, Scanner};
-use codeskimr_application::ports::{ProjectRepository, ProjectToolCheck};
+use codeskimr_application::ports::{ProjectRepository, ProjectToolCheck, ScanWarning};
 use codeskimr_application::tools::ToolsView;
-use codeskimr_cli::{GlobalOptions, Level2Line, Level2Reason, ScanArgs, ScanSummary};
+use codeskimr_cli::{GlobalOptions, Level2Line, Level2Reason, ScanArgs, ScanSummary, WarningLine};
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Permission, Principal, Project, ProjectId, ProjectSource, ScanMode};
 use codeskimr_storage::SqliteStore;
@@ -143,12 +143,21 @@ impl Session {
                     seconds,
                     cpu_seconds: seconds_since(cpu_start),
                     level2: job.level2().iter().map(level2_line).collect(),
+                    warnings: job.warnings().iter().map(warning_line).collect(),
                     tools: self.check_tools(mode),
                 })
             }
             JobResult::Failed(job) => Err(CodedError::new(job.code())),
             JobResult::Cancelled(_) => Err(CodedError::new(ErrorCode::ScanCancelled)),
         }
+    }
+}
+
+/// The line of the summary for one warning of the scan.
+fn warning_line(warning: &ScanWarning) -> WarningLine {
+    WarningLine {
+        code: warning.code.id().to_owned(),
+        count: warning.count,
     }
 }
 

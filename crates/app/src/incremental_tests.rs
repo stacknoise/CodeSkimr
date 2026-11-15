@@ -239,6 +239,34 @@ fn a_second_candidate_makes_the_usages_of_unchanged_files_probable() {
     )]);
 }
 
+/// The warnings of a scan as `(code, count)`.
+fn warnings_of(summary: &codeskimr_cli::ScanSummary) -> Vec<(String, u64)> {
+    summary
+        .warnings
+        .iter()
+        .map(|line| (line.code.clone(), line.count))
+        .collect()
+}
+
+#[test]
+fn places_with_several_candidates_are_one_warning_in_both_ways_of_scanning() {
+    let root = tempfile::tempdir().unwrap();
+    let folder = root.path().join("project");
+    write_project(&folder, BASE, &[]);
+    let data = locations(&root.path().join("data"));
+    let session = session(&folder, &data);
+    let first = session.scan_quick(ScanMode::Full).unwrap();
+    assert_eq!(warnings_of(&first), Vec::<(String, u64)>::new());
+    // `Target.Do()` in `Caller.cs` and in `Util.cs` now matches two overloads.
+    let overloads = "namespace Demo;\n\npublic class Target\n{\n    public static void Do() { }\n    public static void Do(int n) { }\n}\n";
+    apply(&folder, &[("Target.cs", Some(overloads))]);
+    let incremental = session.scan_quick(ScanMode::Incremental).unwrap();
+    let expected = vec![("RES-301".to_owned(), 2)];
+    assert_eq!(warnings_of(&incremental), expected);
+    let full = session.scan_quick(ScanMode::Full).unwrap();
+    assert_eq!(warnings_of(&full), expected);
+}
+
 #[test]
 fn an_added_overload_is_found_by_the_unchanged_callers() {
     assert_same(&[(
@@ -793,4 +821,65 @@ fn random_changes_of_a_csharp_project_give_the_references_of_a_full_scan() {
     for seed in 1..=3 {
         random_project_stays_equal(seed, 8);
     }
+
+/// A file of tests next to the code it tests: its uses are `test` references (issue #406).
+const TEST_FILE: Change = (
+    "test_target.py",
+    Some("from target import Target\n\n\ndef test_do():\n    Target().do()\n"),
+);
+
+#[test]
+fn uses_in_a_test_file_are_test_references_in_both_ways_of_scanning() {
+    let (full, incremental) = both_ways(PYTHON_BASE, &[&[TEST_FILE]]);
+    assert_eq!(incremental, full);
+    let in_test: Vec<&String> = full
+        .iter()
+        .filter(|line| line.starts_with("test_target.py"))
+        .collect();
+    assert!(
+        in_test.iter().any(|line| line.contains("} test ")),
+        "{full:?}"
+    );
+    assert!(
+        !in_test.iter().any(|line| line.contains("} call ")),
+        "{full:?}"
+    );
+    // The code under test keeps its calls.
+    assert!(
+        full.iter()
+            .any(|line| line.starts_with("caller.py") && line.contains(" call "))
+    );
+}
+
+/// The python project with its test file already in the first snapshot, so that later scans keep it.
+fn python_with_tests() -> Vec<(&'static str, &'static str)> {
+    let mut base = PYTHON_BASE.to_vec();
+    base.push((TEST_FILE.0, TEST_FILE.1.unwrap_or_default()));
+    base
+}
+
+#[test]
+fn a_kept_test_file_keeps_its_test_references_when_other_files_change() {
+    let util: Change = ("util.py", Some("def helper():\n    return 2\n"));
+    let (full, incremental) = both_ways(&python_with_tests(), &[&[util]]);
+    assert_eq!(incremental, full);
+    assert!(
+        full.iter()
+            .any(|line| line.starts_with("test_target.py") && line.contains("} test "))
+    );
+}
+
+#[test]
+fn a_kept_test_file_loses_its_test_reference_when_the_target_goes() {
+    let renamed: Change = (
+        "target.py",
+        Some("class Target:\n    def renamed(self):\n        pass\n"),
+    );
+    let (full, incremental) = both_ways(&python_with_tests(), &[&[renamed]]);
+    assert_eq!(incremental, full);
+    assert!(
+        !full
+            .iter()
+            .any(|line| line.starts_with("test_target.py") && line.contains("-> target.Target.do"))
+    );
 }

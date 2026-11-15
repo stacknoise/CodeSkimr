@@ -1,5 +1,6 @@
 //! Persistence (adapter: `codeskimr_storage`).
 
+use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
     FileId, LanguageId, Metric, Project, ProjectId, Reference, ReferenceId, RelativePath, Snapshot,
     SnapshotId, SourceFile, Symbol, SymbolId,
@@ -47,6 +48,17 @@ pub struct SnapshotData {
     /// Microseconds spent parsing the files of each language in a full scan; empty in an
     /// incremental scan, which keeps the figures of the previous snapshot.
     pub parse_micros: Vec<(LanguageId, u64)>,
+    /// The warnings of the scan, one per code, counted over the whole snapshot.
+    pub warnings: Vec<ScanWarning>,
+}
+
+/// A warning of a scan: how often something happened, not one message per occurrence.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ScanWarning {
+    /// The registered code, a warning.
+    pub code: ErrorCode,
+    /// How many times it happened in the scan.
+    pub count: u64,
 }
 
 /// Symbols and references of the newest snapshot of a project, the starting point of an

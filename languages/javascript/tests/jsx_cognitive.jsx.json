@@ -1,0 +1,100 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 6,
+      "operands": null,
+      "operators": null,
+      "symbol": "jsx_cognitive"
+    },
+    {
+      "decisions": 1,
+      "loc": 3,
+      "operands": [
+        3,
+        4
+      ],
+      "operators": [
+        5,
+        6
+      ],
+      "symbol": "jsx_cognitive.Form"
+    },
+    {
+      "decisions": 1,
+      "loc": 3,
+      "operands": [
+        5,
+        6
+      ],
+      "operators": [
+        4,
+        5
+      ],
+      "symbol": "jsx_cognitive.Plain"
+    }
+  ],
+  "loc": 6,
+  "references": [
+    {
+      "at": "1:44",
+      "from": "jsx_cognitive.Form",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "ok"
+    },
+    {
+      "at": "1:56",
+      "from": "jsx_cognitive.Form",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "save"
+    },
+    {
+      "at": "5:27",
+      "from": "jsx_cognitive.Plain",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "save"
+    },
+    {
+      "at": "5:40",
+      "from": "jsx_cognitive.Plain",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "ok"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "jsx_cognitive",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-7:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "jsx_cognitive.Form",
+      "parent": "jsx_cognitive",
+      "signature": null,
+      "span": "0:7-2:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "jsx_cognitive.Plain",
+      "parent": "jsx_cognitive",
+      "signature": null,
+      "span": "4:7-6:1",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}
