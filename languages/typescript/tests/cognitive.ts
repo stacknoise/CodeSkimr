@@ -94,3 +94,9 @@ export class Shop {
     return a + c + rest.length + (b ? 1 : 0);
   }
 }
+
+export function casts(p: boolean): void {
+  run((() => { if (p) { go(); } }) as Handler);
+  run((() => { if (p) { go(); } }) satisfies Handler);
+  run((() => { if (p) { go(); } })!);
+}

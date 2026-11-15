@@ -64,6 +64,34 @@ mod tests {
     }
 
     #[test]
+    fn a_function_value_in_jsx_is_nested_once_by_its_callback_position() {
+        // `onClick={() => { if ... }}` and `{() => { if ... }}` as a child: the `if` is +2 (nested
+        // once). The conditional of `Plain` stays +1.
+        let tsx = by_name(&facts("tsx", "cognitive.tsx"));
+        let javascript = by_name(&facts("javascript", "jsx_cognitive.jsx"));
+        for (found, name, value) in [
+            (&tsx, "Form", 2),
+            (&tsx, "Plain", 1),
+            (&tsx, "Child", 2),
+            (&javascript, "Form", 2),
+            (&javascript, "Plain", 1),
+        ] {
+            assert_eq!(body(found, name).cognitive, Some(value), "{name}");
+        }
+    }
+
+    #[test]
+    fn a_function_value_behind_a_cast_is_nested_once() {
+        // `(f) as T`, `(f) satisfies T` and `(f)!` as arguments: every `if` is +2 (the
+        // parentheses already make it a callback). A bare `function () {} as T` has no parentheses
+        // and is only known to the TSX pack (see docs/language-packs.md).
+        let typescript = by_name(&facts("typescript", "cognitive.ts"));
+        assert_eq!(body(&typescript, "casts").cognitive, Some(6));
+        let tsx = by_name(&facts("tsx", "cognitive.tsx"));
+        assert_eq!(body(&tsx, "Cast").cognitive, Some(6));
+    }
+
+    #[test]
     fn the_javascript_pack_counts_with_the_same_queries() {
         let found = by_name(&facts("javascript", "cognitive.js"));
         assert_eq!(body(&found, "nested").cognitive, Some(6));
