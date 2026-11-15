@@ -445,3 +445,36 @@ fn uses_in_a_test_file_are_test_references_in_both_ways_of_scanning() {
             .any(|line| line.starts_with("caller.py") && line.contains(" call "))
     );
 }
+
+/// The python project with its test file already in the first snapshot, so that later scans keep it.
+fn python_with_tests() -> Vec<(&'static str, &'static str)> {
+    let mut base = PYTHON_BASE.to_vec();
+    base.push((TEST_FILE.0, TEST_FILE.1.unwrap_or_default()));
+    base
+}
+
+#[test]
+fn a_kept_test_file_keeps_its_test_references_when_other_files_change() {
+    let util: Change = ("util.py", Some("def helper():\n    return 2\n"));
+    let (full, incremental) = both_ways(&python_with_tests(), &[&[util]]);
+    assert_eq!(incremental, full);
+    assert!(
+        full.iter()
+            .any(|line| line.starts_with("test_target.py") && line.contains("} test "))
+    );
+}
+
+#[test]
+fn a_kept_test_file_loses_its_test_reference_when_the_target_goes() {
+    let renamed: Change = (
+        "target.py",
+        Some("class Target:\n    def renamed(self):\n        pass\n"),
+    );
+    let (full, incremental) = both_ways(&python_with_tests(), &[&[renamed]]);
+    assert_eq!(incremental, full);
+    assert!(
+        !full
+            .iter()
+            .any(|line| line.starts_with("test_target.py") && line.contains("-> target.Target.do"))
+    );
+}

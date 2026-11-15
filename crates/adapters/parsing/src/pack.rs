@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
 use codeskimr_domain::{LanguageId, ModelError, SymbolKind};
-use globset::{Glob, GlobSet, GlobSetBuilder};
+use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 use tree_sitter::{Language, Query};
 
 use crate::captures::{MetricsQuery, Vocabulary};
@@ -195,9 +195,12 @@ fn parent_kinds(
 fn test_files(patterns: &[String]) -> Result<GlobSet, String> {
     let mut builder = GlobSetBuilder::new();
     for pattern in patterns {
-        let glob = Glob::new(pattern).map_err(|e| {
-            [pattern.as_str(), e.kind().to_string().as_str()].join(TEST_PATTERN_SEPARATOR)
-        })?;
+        let glob = GlobBuilder::new(pattern)
+            .literal_separator(true)
+            .build()
+            .map_err(|e| {
+                [pattern.as_str(), e.kind().to_string().as_str()].join(TEST_PATTERN_SEPARATOR)
+            })?;
         builder.add(glob);
     }
     builder.build().map_err(|e| e.to_string())

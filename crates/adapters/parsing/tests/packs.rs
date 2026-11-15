@@ -172,6 +172,18 @@ mod tests {
         assert!(pack.is_test_file("crates/a/tests/it.rs"));
         assert!(pack.is_test_file("src/parser_test.rs"));
         assert!(!pack.is_test_file("src/parser.rs"));
+        // `*` stays inside one folder name: a folder `test_helpers` holds no test file by its name.
+        let dir = scratch("test-files-star");
+        let manifest = fs::read_to_string(dir.join("language.toml")).expect("read");
+        fs::write(
+            dir.join("language.toml"),
+            format!("test_patterns = [\"**/test_*.rs\"]\n{manifest}"),
+        )
+        .expect("write");
+        let star = LanguagePack::load(&dir).expect("loads");
+        assert!(star.is_test_file("src/test_parser.rs"));
+        assert!(!star.is_test_file("src/test_helpers/real.rs"));
+        remove(&dir);
         remove(&dir);
     }
 
