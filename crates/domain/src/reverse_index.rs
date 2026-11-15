@@ -102,10 +102,17 @@ impl ReverseIndex {
         self.references.is_empty()
     }
 
-    /// Number of references that point at `symbol`, the "Usages" column.
+    /// Number of references that point at `symbol`, the "Usages" column. References of kind
+    /// `test` are left out, as in the `usage_counts` read model.
     #[must_use]
     pub fn usage_count(&self, symbol: SymbolId) -> usize {
-        self.incoming.get(&symbol).map_or(0, Vec::len)
+        self.incoming.get(&symbol).map_or(0, |positions| {
+            positions
+                .iter()
+                .filter_map(|&position| self.references.get(position))
+                .filter(|reference| reference.kind != ReferenceKind::Test)
+                .count()
+        })
     }
 
     /// The references a walk finds: the verified ones first, then, within each group, step by

@@ -2,8 +2,8 @@
 //! references and metrics, shared by the writes of `snapshots` and `replace`.
 
 use codeskimr_domain::{
-    CommitHash, Metric, ProjectId, Reference, Snapshot, SnapshotId, SnapshotStats, Symbol,
-    Timestamp, Visibility,
+    CommitHash, Metric, ProjectId, Reference, ReferenceKind, Snapshot, SnapshotId, SnapshotStats,
+    Symbol, Timestamp, Visibility,
 };
 use rusqlite::{Connection, OptionalExtension, Statement, params};
 
@@ -35,11 +35,14 @@ pub(crate) fn insert_reference(
 }
 
 pub(crate) fn totals(conn: &Connection, snapshot: SnapshotId) -> StorageResult<SnapshotStats> {
-    let (files, symbols, references): (i64, i64, i64) =
-        conn.query_row(sql::TOTALS, params![column_int(snapshot.get())?], |row| {
+    let (files, symbols, references): (i64, i64, i64) = conn.query_row(
+        sql::TOTALS,
+        params![column_int(snapshot.get())?, ReferenceKind::Test.label()],
+        |row| {
             let cols = Cols::new(row);
             Ok((cols.take()?, cols.take()?, cols.take()?))
-        })?;
+        },
+    )?;
     Ok(SnapshotStats {
         files: small_from(files)?,
         symbols: small_from(symbols)?,

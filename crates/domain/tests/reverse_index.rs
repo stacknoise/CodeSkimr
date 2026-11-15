@@ -106,6 +106,12 @@ mod tests {
     }
 
     #[test]
+    fn the_usage_count_leaves_out_references_of_kind_test() {
+        let index = ReverseIndex::new([call(10, 1, 3), reference(11, 2, 3, ReferenceKind::Test)]);
+        assert_eq!(index.usage_count(SymbolId::new(3)), 1);
+    }
+
+    #[test]
     fn zero_depth_and_unknown_symbols_find_nothing() {
         let index = chain();
         assert_eq!(index.usages(&query(3, Direction::Incoming, 0)).len(), 0);

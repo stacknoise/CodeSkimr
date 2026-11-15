@@ -31,6 +31,11 @@ impl Hierarchy {
         reachable(id, &self.bases)
     }
 
+    /// Whether any type has `id` in its base list.
+    pub fn has_subtypes(&self, id: SymbolId) -> bool {
+        self.derived.contains_key(&id)
+    }
+
     /// All types that derive from `id`, directly or not.
     pub fn descendants_of(&self, id: SymbolId) -> Vec<SymbolId> {
         reachable(id, &self.derived)

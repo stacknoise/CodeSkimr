@@ -28,3 +28,5 @@ Option 2.
 - Every added basic language is a dependency (`new-dependency` label, licence check by `cargo deny`), until a dynamic loader exists.
 - Pack validation for basic packs happens on first use; the golden test and `tests/basic_tier.rs` load every pack folder in `languages/` (the list is read from the folder, not hard-coded) and fail on a broken one, so CI still catches it.
 - Known limits of the basic queries (qualified names of methods without an owner, stacked PHP namespaces) were tracked in issue #65 and are lifted by ADR 0042, smaller gaps in #66.
+
+ADR 0059 supersedes the part of this ADR that lets full-tier packs load when the packs are read: packs of every tier are now loaded when their language is first needed.

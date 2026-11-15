@@ -17,6 +17,7 @@ mod cases {
             references: 30,
             seconds: 1.5,
             cpu_seconds: 4.25,
+            pack_load_seconds: 0.5,
             level2,
             warnings: Vec::new(),
             tools: ToolsView::unchecked(),
@@ -86,6 +87,12 @@ mod cases {
     fn json_reports_the_cpu_time_next_to_the_wall_time() {
         let json = scan_json(&summary(Vec::new())).unwrap();
         assert!(json.contains("\"cpu_seconds\":4.25"), "{json}");
+    }
+
+    #[test]
+    fn json_reports_the_pack_load_time_apart_from_the_scan_time() {
+        let json = scan_json(&summary(Vec::new())).unwrap();
+        assert!(json.contains("\"pack_load_seconds\":0.5"), "{json}");
     }
 
     #[test]

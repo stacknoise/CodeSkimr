@@ -23,8 +23,8 @@ const SAMPLES: usize = 10;
 const MEASUREMENT_SECONDS: u64 = 30;
 
 /// Runs one scan with a fresh database and returns the time the scan itself reports and its CPU
-/// time. Starting the process and loading the language packs have a budget of their own (cold
-/// start).
+/// time. Starting the process has a budget of its own (cold start); loading the language
+/// packs is left out of the reported time (ADR 0059) and not measured here yet.
 fn scan_once(binary: &Path, corpus: &Path, data: &Path) -> io::Result<(Duration, Duration)> {
     wipe(data)?;
     scan_summary(binary, corpus, data, None)
