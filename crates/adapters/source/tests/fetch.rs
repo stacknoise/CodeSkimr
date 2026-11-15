@@ -254,6 +254,12 @@ fn logged<T>(work: impl FnOnce() -> TestResult<T>) -> TestResult<(T, String)> {
     Ok((result, String::from_utf8(text)?))
 }
 
+/// Changes the origin of the fixture and fetches it again, with what the adapter logged.
+fn change_and_fetch_logged(fixture: &Fixture) -> TestResult<(FetchedSource, String)> {
+    change_origin(fixture.remote.path())?;
+    logged(|| Ok(fetcher(fixture.cache.path()).fetch(&fixture.source, &CancelToken::new())?))
+}
+
 #[test]
 fn a_fallback_to_a_new_clone_logs_its_reason() -> TestResult {
     let fixture = fixture()?;
@@ -262,9 +268,7 @@ fn a_fallback_to_a_new_clone_logs_its_reason() -> TestResult {
         PathBuf::from(first.root.as_str()).join(".git").join("HEAD"),
         "not a reference",
     )?;
-    change_origin(fixture.remote.path())?;
-    let (second, log) =
-        logged(|| Ok(fetcher(fixture.cache.path()).fetch(&fixture.source, &CancelToken::new())?))?;
+    let (second, log) = change_and_fetch_logged(&fixture)?;
     assert_ne!(second.commit, first.commit);
     assert!(log.contains("WARN"), "{log}");
     assert!(log.contains("reason="), "{log}");
@@ -273,14 +277,11 @@ fn a_fallback_to_a_new_clone_logs_its_reason() -> TestResult {
 }
 
 #[test]
-fn an_update_logs_nothing_and_a_first_clone_neither() -> TestResult {
+fn a_normal_update_logs_nothing() -> TestResult {
     let fixture = fixture()?;
-    let (_, log) = logged(|| {
-        let first = fetcher(fixture.cache.path()).fetch(&fixture.source, &CancelToken::new())?;
-        change_origin(fixture.remote.path())?;
-        let second = fetcher(fixture.cache.path()).fetch(&fixture.source, &CancelToken::new())?;
-        Ok(second.commit != first.commit)
-    })?;
+    let first = fetcher(fixture.cache.path()).fetch(&fixture.source, &CancelToken::new())?;
+    let (second, log) = change_and_fetch_logged(&fixture)?;
+    assert_ne!(second.commit, first.commit);
     assert_eq!(log, "");
     Ok(())
 }
@@ -295,9 +296,7 @@ fn a_clone_with_many_packs_is_cloned_again_and_holds_one_pack() -> TestResult {
         std::fs::write(packs.join(format!("pack-extra{number}.pack")), "")?;
     }
     std::fs::write(root.join(".git").join(MARK), "x")?;
-    change_origin(fixture.remote.path())?;
-    let (second, log) =
-        logged(|| Ok(fetcher(fixture.cache.path()).fetch(&fixture.source, &CancelToken::new())?))?;
+    let (second, log) = change_and_fetch_logged(&fixture)?;
     assert_ne!(second.commit, first.commit);
     assert!(
         !root.join(".git").join(MARK).exists(),
