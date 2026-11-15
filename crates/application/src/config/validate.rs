@@ -52,6 +52,11 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
 fn check_conventions(conventions: &Conventions) -> Result<(), ConfigError> {
     positive(keys::MAX_FUNCTION_LINES, conventions.max_function_lines)?;
     positive(
+        keys::MAX_COGNITIVE_COMPLEXITY,
+        conventions.max_cognitive_complexity,
+    )?;
+    positive(keys::MAX_PARAMETERS, conventions.max_parameters)?;
+    positive(
         keys::DUPLICATE_SIMILARITY_PERCENT,
         conventions.duplicate_similarity_percent,
     )?;

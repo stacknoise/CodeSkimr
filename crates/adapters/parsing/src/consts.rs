@@ -19,6 +19,21 @@ pub const DECISION_CAPTURE: &str = "decision";
 pub const OPERATOR_CAPTURE: &str = "operator";
 /// Capture of an operand (identifier or literal) in `metrics.scm`.
 pub const OPERAND_CAPTURE: &str = "operand";
+/// Capture of a structure that adds to the cognitive complexity and more the deeper it is nested
+/// (ADR 0048).
+pub const COGNITIVE_CAPTURE: &str = "cognitive";
+/// Capture of a structure that adds one to the cognitive complexity whatever its nesting (`else`).
+pub const COGNITIVE_FLAT_CAPTURE: &str = "cognitive_flat";
+/// Capture of the operator token of a boolean operation; the first of a run of the same operator
+/// adds one to the cognitive complexity.
+pub const COGNITIVE_SEQUENCE_CAPTURE: &str = "cognitive_sequence";
+/// Capture of a structure that continues the chain of the one around it (`else if`): it neither
+/// counts nor nests on its own.
+pub const CONTINUATION_CAPTURE: &str = "continuation";
+/// Capture of a node that nests what is inside it, for the cognitive complexity.
+pub const NESTING_CAPTURE: &str = "nesting";
+/// Capture of one parameter of a callable declaration, without a receiver.
+pub const PARAMETER_CAPTURE: &str = "parameter";
 /// Field name that holds the body of a callable declaration in the grammar; a callable without it
 /// (abstract, interface member, extern) is not measured.
 pub const BODY_FIELD: &str = "body";
