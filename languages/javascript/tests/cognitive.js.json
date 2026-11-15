@@ -1,0 +1,142 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 17,
+      "operands": null,
+      "operators": null,
+      "symbol": "cognitive"
+    },
+    {
+      "decisions": 3,
+      "loc": 10,
+      "operands": [
+        5,
+        11
+      ],
+      "operators": [
+        6,
+        9
+      ],
+      "symbol": "cognitive.nested"
+    },
+    {
+      "decisions": 1,
+      "loc": 3,
+      "operands": [
+        5,
+        6
+      ],
+      "operators": [
+        7,
+        7
+      ],
+      "symbol": "cognitive.callbacks"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "cognitive.single"
+    },
+    {
+      "decisions": null,
+      "loc": 3,
+      "operands": null,
+      "operators": null,
+      "symbol": "cognitive.Shop"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "cognitive.Shop.field"
+    }
+  ],
+  "loc": 17,
+  "references": [
+    {
+      "at": "16:15",
+      "from": "cognitive.callbacks",
+      "kind": "call",
+      "receiver": "unknown",
+      "target": "map"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "cognitive",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-24:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.nested",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "4:7-13:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.callbacks",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "15:7-17:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.single",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "19:22-19:28",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "cognitive.Shop",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "21:7-23:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "cognitive.Shop.field",
+      "parent": "cognitive.Shop",
+      "signature": null,
+      "span": "22:10-22:25",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

@@ -71,10 +71,10 @@ fn check_conventions(conventions: &Conventions) -> Result<(), ConfigError> {
 
 fn check_layers(config: &Config) -> Result<(), ConfigError> {
     let mut seen = HashSet::new();
-    let valid = config.layers.iter().all(|rule| {
+    let each_valid = config.layers.iter().all(|rule| {
         !rule.namespaces.is_empty() && rule.to_layer().is_some() && seen.insert(rule.name.as_str())
     });
-    if valid {
+    if each_valid && config.layers.iter().all(|rule| rule.uses_only(&seen)) {
         Ok(())
     } else {
         fail(keys::LAYERS, Violation::MustBeLayerRule)

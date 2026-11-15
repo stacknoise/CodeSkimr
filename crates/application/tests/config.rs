@@ -403,7 +403,23 @@ fn a_layer_needs_a_unique_name_and_a_namespace() {
             "layers",
             Violation::MustBeLayerRule,
         ),
+        (
+            "[[layers]]\nname = \"a\"\nnamespaces = [\"x\"]\nmay_use = [\"missing\"]\n",
+            "layers",
+            Violation::MustBeLayerRule,
+        ),
     ]);
+}
+
+#[test]
+fn a_layer_may_limit_its_dependencies_to_declared_layers() {
+    let text = "[[layers]]\nname = \"a\"\nnamespaces = [\"x\"]\nmay_use = [\"b\"]\n\n[[layers]]\nname = \"b\"\nnamespaces = [\"y\"]\nmay_use = []\n\n[[layers]]\nname = \"c\"\nnamespaces = [\"z\"]\n";
+    let layers = Config::resolve(&[project(text)])
+        .expect("valid")
+        .project_layers();
+    assert_eq!(layers[0].may_use.as_ref().map(Vec::len), Some(1));
+    assert_eq!(layers[1].may_use, Some(Vec::new()));
+    assert_eq!(layers[2].may_use, None);
 }
 
 #[test]

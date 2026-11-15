@@ -209,10 +209,12 @@ impl ProjectRepository for FakeProjects {
             source: ProjectSource::Folder(FolderPath::new("/work/shop").unwrap()),
             layers: vec![
                 Layer {
+                    may_use: None,
                     name: LayerName::new("Domain").unwrap(),
                     namespaces: vec![QualifiedName::new("App.Domain").unwrap()],
                 },
                 Layer {
+                    may_use: Some(vec![LayerName::new("Domain").unwrap()]),
                     name: LayerName::new("Application").unwrap(),
                     namespaces: vec![QualifiedName::new("App.Application").unwrap()],
                 },

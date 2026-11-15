@@ -339,9 +339,9 @@ fn a_second_replacement_replaces_the_created_symbols_and_the_references_to_them(
         })
         .unwrap();
     assert_eq!(symbols_of_index(&store), [(310, Some(81))]);
-    // Level 1 reference 91 stood in `alpha.cs` and went with the replacement of its file; 900 went
-    // with its target, 92 stays.
-    assert_eq!(stored(&store), [(92, false)]);
+    // Level 1 references 91 and 92 went with the first replacement of their files; 900 went with
+    // its target.
+    assert_eq!(stored(&store), Vec::<(u64, bool)>::new());
 }
 
 #[test]

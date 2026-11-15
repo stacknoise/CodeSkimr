@@ -4,6 +4,7 @@ use codeskimr_domain::{
     FingerprintParams, Layer, LayerName, LayoutParams, ModelError, NodeSize, QualifiedName,
 };
 use serde::Deserialize;
+use std::collections::HashSet;
 use std::time::Duration;
 
 use crate::consts::BYTES_PER_MIB;
@@ -71,18 +72,41 @@ pub struct LayerRule {
     pub name: String,
     /// Qualified-name prefixes that belong to the layer; the first layer that owns a name wins.
     pub namespaces: Vec<String>,
+    /// Names of the layers this layer may depend on (ADR 0054). Missing means no limit; an empty
+    /// list means none.
+    #[serde(default)]
+    pub may_use: Option<Vec<String>>,
 }
 
 impl LayerRule {
-    /// The domain layer, or `None` if the name or a namespace is not valid.
+    /// The domain layer, or `None` if the name, a namespace or an allowed layer is not valid.
     #[must_use]
     pub fn to_layer(&self) -> Option<Layer> {
         let namespaces: Result<Vec<_>, _> =
             self.namespaces.iter().map(QualifiedName::new).collect();
+        let may_use = match &self.may_use {
+            Some(names) => Some(
+                names
+                    .iter()
+                    .map(LayerName::new)
+                    .collect::<Result<Vec<_>, _>>()
+                    .ok()?,
+            ),
+            None => None,
+        };
         Some(Layer {
             name: LayerName::new(&self.name).ok()?,
             namespaces: namespaces.ok()?,
+            may_use,
         })
+    }
+
+    /// Whether every allowed layer is one of the declared `names`.
+    pub(super) fn uses_only(&self, names: &HashSet<&str>) -> bool {
+        self.may_use
+            .iter()
+            .flatten()
+            .all(|used| names.contains(used.as_str()))
     }
 }
 

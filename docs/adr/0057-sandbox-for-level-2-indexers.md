@@ -4,7 +4,7 @@ Status: proposed (draft for Anton, issue #290; nothing is built yet)
 
 ## Context
 
-Level 2 (ADR 0033, itself still `proposed`; this ADR relies on its decision 11, the consent) starts the build tools of a scanned project: `scip-dotnet`, `scip-typescript`, `scip-python`, `scip-java` and others. These tools run code of the project, for example build scripts and package hooks, with the rights of the user. Today the runner (`docs/level2-runner.md`) restricts them only in these ways: an empty home folder, an allow list for the environment, own process group or job object, limits for time, memory and output, a consent of the local owner per source, location and branch, and a confirmation text that says honestly that the indexers are **not sandboxed**.
+Level 2 (ADR 0033; this ADR relies on its decision 11, the consent) starts the build tools of a scanned project: `scip-dotnet`, `scip-typescript`, `scip-python`, `scip-java` and others. These tools run code of the project, for example build scripts and package hooks, with the rights of the user. Today the runner (`docs/level2-runner.md`) restricts them only in these ways: an empty home folder, an allow list for the environment, own process group or job object, limits for time, memory and output, a consent of the local owner per source, location and branch, and a confirmation text that says honestly that the indexers are **not sandboxed**.
 
 What an indexer can still do: read every file the user can read (by absolute path), use the network, write outside its output folder. The network cannot simply be switched off, because a build restores its dependencies.
 

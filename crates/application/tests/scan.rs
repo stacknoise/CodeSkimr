@@ -706,6 +706,82 @@ fn resolved_names(world: &World) -> Vec<usize> {
         .clone()
 }
 
+/// A symbol that level 2 created (ADR 0055).
+fn created_symbol(id: u64, file: u64, qualified: &str) -> Result<Symbol, CodedError> {
+    Ok(Symbol {
+        qualified_name: model(QualifiedName::new(qualified))?,
+        origin: SymbolOrigin::Index,
+        ..old_symbol(id, file, "Gen")?
+    })
+}
+
+/// What a scan stored as references, as `(from, to, span)` and without the ids it made up.
+fn stored_edges(world: &World) -> Result<Vec<(u64, u64, Span)>, CodedError> {
+    let mut edges: Vec<(u64, u64, Span)> = world
+        .last_persisted()?
+        .references
+        .iter()
+        .map(|r| (r.from.get(), r.to.get(), r.span))
+        .collect();
+    edges.sort_by_key(|(from, to, _)| (*from, *to));
+    Ok(edges)
+}
+
+#[test]
+fn a_scan_gives_the_same_level_one_result_whether_level_two_ran_before_or_not()
+-> Result<(), CodedError> {
+    // Oracle: the same incremental scan over the same snapshot, once plain and once with the
+    // symbols and references that level 2 left in it. 210 has the name of the changed `b`.
+    let plain = world_over(previous_snapshot()?);
+    let mut with_level_two = previous_snapshot()?;
+    with_level_two
+        .index
+        .symbols
+        .push(created_symbol(210, 100, "m::b")?);
+    with_level_two
+        .index
+        .symbols
+        .push(created_symbol(211, 101, "m::Gen")?);
+    with_level_two.index.references.push(old_call(310, 210)?);
+    with_level_two.index.references.push(old_call(311, 211)?);
+    let after_level_two = world_over(with_level_two);
+    let _ = run(&plain, ScanMode::Incremental);
+    let _ = run(&after_level_two, ScanMode::Incremental);
+    assert_eq!(stored_edges(&plain)?, stored_edges(&after_level_two)?);
+    assert_eq!(resolved_names(&plain), resolved_names(&after_level_two));
+    Ok(())
+}
+
+#[test]
+fn a_level_two_reference_from_an_unchanged_file_to_a_symbol_of_a_changed_file_is_dropped()
+-> Result<(), CodedError> {
+    let mut previous = previous_snapshot()?;
+    previous
+        .index
+        .symbols
+        .push(created_symbol(211, 101, "m::Gen")?);
+    previous
+        .index
+        .references
+        .push(verified(old_call(311, 211)?));
+    let world = world_over(previous);
+    let (result, _) = run(&world, ScanMode::Incremental);
+    let JobResult::Finished(job) = result else {
+        panic!("scan did not finish");
+    };
+    let persisted = world.last_persisted()?;
+    assert!(
+        persisted.references.iter().all(|r| r.to.get() != 211),
+        "level 1 does not make the reference again"
+    );
+    assert_eq!(
+        job.snapshot().stats.symbols,
+        2,
+        "a and the new b; 211 left with its file"
+    );
+    Ok(())
+}
+
 #[test]
 fn a_change_that_keeps_the_declarations_resolves_only_the_names_that_pointed_into_it()
 -> Result<(), CodedError> {
