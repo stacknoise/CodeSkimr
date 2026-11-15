@@ -48,8 +48,8 @@ pub use source::{
     DiscoveredFile, Excerpt, FetchedSource, FileDiscovery, SourceProvider, SourceText,
 };
 pub use storage::{
-    PreviousIndex, PreviousState, ProjectRepository, ReferenceReplacement, SnapshotData,
-    SnapshotStore, StoredNames,
+    PreviousIndex, PreviousState, ProjectRepository, ReferenceReplacement, ScanWarning,
+    SnapshotData, SnapshotStore, StoredNames,
 };
 pub use tools::{
     ProjectToolCheck, RequirementReader, RequirementValue, ToolCatalog, ToolPlan, ToolReportStore,

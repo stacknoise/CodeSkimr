@@ -1,7 +1,8 @@
 //! The `ProjectCatalog` port: the project list with what the newest snapshot says.
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{LanguageShare, ProjectCatalog, ProjectOverview};
+use codeskimr_application::ports::{LanguageShare, ProjectCatalog, ProjectOverview, ScanWarning};
+use codeskimr_codes::ErrorCode;
 use std::collections::HashMap;
 
 use codeskimr_domain::{LanguageId, ProjectId, SnapshotId};
@@ -73,22 +74,48 @@ fn languages(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<Langu
     Ok(shares)
 }
 
+/// The warnings of the scan that wrote `snapshot`. A code that this version does not know any more
+/// is left out.
+fn warnings(conn: &Connection, snapshot: SnapshotId) -> StorageResult<Vec<ScanWarning>> {
+    let rows = rows_of_snapshot(conn, sql::WARNINGS, snapshot, |cols| {
+        Ok((cols.take::<String>()?, cols.take::<i64>()?))
+    })?;
+    Ok(rows
+        .into_iter()
+        .filter_map(|(id, count)| {
+            let code = ErrorCode::ALL
+                .iter()
+                .copied()
+                .find(|code| code.id() == id)?;
+            Some(ScanWarning {
+                code,
+                count: u64::try_from(count).unwrap_or_default(),
+            })
+        })
+        .collect())
+}
+
 fn overview(conn: &Connection, id: ProjectId) -> StorageResult<ProjectOverview> {
     let project = load_project(conn, id)?;
     let latest = latest_snapshot(conn, id)?;
-    let (types, languages) = match &latest {
+    let (types, languages, warnings) = match &latest {
         Some(snapshot) => {
             let raw = column_int(snapshot.id.get())?;
             let types: i64 = conn.query_row(sql::TYPE_COUNT, params![raw], |row| row.get(0))?;
-            (small_from(types)?, languages(conn, snapshot.id)?)
+            (
+                small_from(types)?,
+                languages(conn, snapshot.id)?,
+                warnings(conn, snapshot.id)?,
+            )
         }
-        None => (u32::default(), Vec::new()),
+        None => (u32::default(), Vec::new(), Vec::new()),
     };
     Ok(ProjectOverview {
         project,
         latest,
         types,
         languages,
+        warnings,
     })
 }
 

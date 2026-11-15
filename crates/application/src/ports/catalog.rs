@@ -2,6 +2,7 @@
 
 use codeskimr_domain::{LanguageId, Project, ProjectId, Snapshot};
 
+use super::ScanWarning;
 use crate::error::CodedError;
 
 /// The share of one language in the newest snapshot of a project.
@@ -31,6 +32,9 @@ pub struct ProjectOverview {
     pub types: u32,
     /// Languages of that snapshot, the one with the most lines first.
     pub languages: Vec<LanguageShare>,
+    /// The warnings of the scan that wrote it; empty if it had none or the snapshot is older than
+    /// the record.
+    pub warnings: Vec<ScanWarning>,
 }
 
 /// Reads the registered projects.
