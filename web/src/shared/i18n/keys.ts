@@ -86,6 +86,7 @@ export const I18N_KEYS = {
   CLI_SCAN_LEVEL2_CHECKED: "cli-scan-level2-checked",
   CLI_SCAN_LEVEL2_PARTIAL: "cli-scan-level2-partial",
   CLI_SCAN_LEVEL2_SKIPPED: "cli-scan-level2-skipped",
+  CLI_SCAN_LEVEL2_OUTSIDE_SCAN: "cli-scan-level2-outside-scan",
   CLI_LEVEL2_REASON_NOT_PERMITTED: "cli-level2-reason-not-permitted",
   CLI_LEVEL2_REASON_NOT_CONFIRMED: "cli-level2-reason-not-confirmed",
   CLI_LEVEL2_REASON_UNAVAILABLE: "cli-level2-reason-unavailable",

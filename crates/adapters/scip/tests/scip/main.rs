@@ -19,6 +19,8 @@ mod java;
 #[cfg(test)]
 mod mapping;
 #[cfg(test)]
+mod modules;
+#[cfg(test)]
 mod replace;
 #[cfg(test)]
 mod scale;

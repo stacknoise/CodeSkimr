@@ -58,6 +58,7 @@ fn spec(mode: &str) -> IndexerSpec {
         install_hint: "install it".to_owned(),
         symbol_kinds: Vec::new(),
         separator: String::new(),
+        library_root: String::new(),
     }
 }
 

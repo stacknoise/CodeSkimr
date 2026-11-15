@@ -27,6 +27,7 @@ mod cases {
             install_hint: "no hint".to_owned(),
             symbol_kinds: Vec::new(),
             separator: String::new(),
+            library_root: String::new(),
             env: vec![("A".to_owned(), "b".to_owned())],
             toolchain: Vec::new(),
             args: vec!["--out".to_owned()],

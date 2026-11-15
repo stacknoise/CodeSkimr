@@ -217,6 +217,7 @@ impl Level2Pass {
                 min_mapped: self.settings.min_mapped,
                 symbol_kinds: &spec.symbol_kinds,
                 separator: &spec.separator,
+                library_root: &spec.library_root,
                 max_created_symbols: usize::try_from(self.settings.max_created_symbols)
                     .unwrap_or(usize::MAX),
             })
@@ -273,6 +274,7 @@ impl Level2Pass {
             stale,
             mapped: imported.mapped,
             dropped: imported.dropped,
+            outside_scan: imported.outside_scan,
         };
         Ok((checked, fresh))
     }

@@ -64,6 +64,7 @@ impl ReferenceImporter for ScipImporter {
             kinds: request.symbol_kinds,
             separator: request.separator,
             max_symbols: request.max_created_symbols,
+            library_root: request.library_root,
         };
         let outcome = import_with_creation(&index, &view, request.min_mapped, &creation)
             .map_err(CodedError::caused_by)?;
@@ -78,6 +79,7 @@ impl ReferenceImporter for ScipImporter {
             references,
             mapped: outcome.stats.mapped,
             dropped: outcome.stats.dropped(),
+            outside_scan: outcome.stats.outside_scan,
         })
     }
 }
