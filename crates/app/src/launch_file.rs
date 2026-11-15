@@ -172,18 +172,33 @@ fn check_owner(dir: &Path, path: &Path, own_file: &File) -> std::io::Result<()> 
 }
 
 /// On Windows the folder and the file themselves are checked, and the folder must still resolve
-/// to the path that was resolved before the access rules were set (see `still_there`). Not
-/// checked: the folders above it and who owns the folder (open points of issue #372; this is not
-/// the Unix check). The access rules of the folder are set for the user alone (see
-/// `check_private`). A folder or file that is a reparse point (a junction or a link) is refused:
-/// it could lead to a place that others can read, and the access rules would be set on that
-/// place instead.
+/// to the path that was resolved before the access rules were set (see `still_there`). The path
+/// of the file must lead to the file that was opened, by the identity the system gives the file
+/// (see `is_open_file`): a folder that was swapped while the file was made and swapped back is seen
+/// by that, because the file is then not where the path says. This narrows the window a lot but does not close it: an attacker who controls a folder above and toggles the redirect in step with the checks can still pass; closing that needs the place of the open handle (issue #372). Not checked: the folders above it
+/// and who owns the folder (open points of issue #372; this is not the Unix check, and the crate
+/// used here does not read owners). The access rules of the folder are set for the user alone
+/// (see `check_private`). A folder or file that is a reparse point (a junction or a link) is
+/// refused: it could lead to a place that others can read, and the access rules would be set on
+/// that place instead.
 #[cfg(windows)]
-fn check_owner(dir: &Path, path: &Path, _own_file: &File) -> std::io::Result<()> {
+fn check_owner(dir: &Path, path: &Path, own_file: &File) -> std::io::Result<()> {
     if is_reparse_point(dir)? || is_reparse_point(path)? {
         return Err(std::io::ErrorKind::PermissionDenied.into());
     }
-    still_there(dir)
+    still_there(dir)?;
+    is_open_file(own_file, path)
+}
+
+/// Whether `path` leads to the very file that `open` holds open.
+#[cfg(windows)]
+fn is_open_file(open: &File, path: &Path) -> std::io::Result<()> {
+    let held = same_file::Handle::from_file(open.try_clone()?)?;
+    if held == same_file::Handle::from_path(path)? {
+        Ok(())
+    } else {
+        Err(std::io::ErrorKind::PermissionDenied.into())
+    }
 }
 
 /// The folder that was resolved before its access rules were set must resolve to itself still:
@@ -478,5 +493,17 @@ mod tests {
         fs::remove_dir_all(&parent).unwrap();
         junction(&parent, &elsewhere);
         assert!(still_there(&resolved).is_err());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_path_that_leads_to_another_file_is_not_the_open_one() {
+        let dir = tempfile::tempdir().unwrap();
+        let open = dir.path().join("open");
+        let other = dir.path().join("other");
+        let held = File::create(&open).unwrap();
+        File::create(&other).unwrap();
+        assert!(is_open_file(&held, &open).is_ok());
+        assert!(is_open_file(&held, &other).is_err());
     }
 }

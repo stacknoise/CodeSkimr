@@ -395,6 +395,7 @@ dependencies = [
  "gix-transport",
  "memory-stats",
  "rpassword",
+ "same-file",
  "secrecy",
  "serde",
  "serde_json",
