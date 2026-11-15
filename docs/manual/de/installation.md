@@ -2,7 +2,19 @@
 
 ## Stand der Auslieferung
 
-Installationsprogramme und einzelne ausführbare Dateien für Windows, Linux und macOS gehören zum Release 1.0 (Meilenstein M7) und sind noch nicht veröffentlicht. Als Vorabversion gibt es fertige Pakete für Windows, Linux und macOS (Apple Silicon) (siehe Release-Seite im Repository, `LIES-MICH.md` im Paket). Sonst bauen Sie CodeSkimr aus dem Quelltext. Dieses Kapitel beschreibt diesen Weg; mit 1.0 wird es durch die Anleitung für den Installer ersetzt.
+CodeSkimr wird als **eine einzelne Datei je System** ausgeliefert (Windows x86_64, Linux x86_64, macOS Apple Silicon): `codeskimr-<Version>-<System>` (unter Windows mit `.exe`). Oberfläche und Sprachpakete stecken in der Datei; es gibt keinen Installer. Sie finden die Dateien auf der Release-Seite des Repositorys `stacknoise/CodeSkimr`, jeweils mit einer `.sha256`-Datei. Alternativ bauen Sie CodeSkimr aus dem Quelltext (siehe unten).
+
+### Herunterladen, prüfen, starten
+
+1. Datei und `.sha256` herunterladen und die Prüfsumme vergleichen: Windows `Get-FileHash .\codeskimr-<Version>-windows-x86_64.exe -Algorithm SHA256`, Linux `sha256sum -c codeskimr-<Version>-linux-x86_64.sha256`, macOS `shasum -a 256 -c codeskimr-<Version>-macos-aarch64.sha256`.
+2. Optional die Herkunft prüfen: `gh attestation verify <Datei> --repo stacknoise/CodeSkimr` zeigt, dass GitHub die Datei aus diesem Repository gebaut hat.
+3. Starten. Linux und macOS: vorher `chmod +x <Datei>`. Dann `./codeskimr-<Version>-<System> serve`; unter Windows `.\codeskimr-<Version>-windows-x86_64.exe serve`. Sie können die Datei in `codeskimr` umbenennen und in einen Ordner Ihres Suchpfads legen.
+
+Die Dateien sind **noch nicht signiert** (die Signierung kommt als Erstes nach 1.0). Deshalb warnt das Betriebssystem beim ersten Start:
+
+- **Windows (SmartScreen):** „Der Computer wurde durch Windows geschützt“ → „Weitere Informationen“ → „Trotzdem ausführen“.
+- **macOS (Gatekeeper):** Meldung, die Datei könne nicht geprüft werden. Einmal `xattr -d com.apple.quarantine <Datei>` im Terminal ausführen, dann starten (oder in den Systemeinstellungen unter „Datenschutz & Sicherheit“ „Trotzdem öffnen“ wählen).
+- **Linux:** keine Warnung; es braucht einen Secret Service (siehe unten).
 
 ## Was Sie brauchen
 
