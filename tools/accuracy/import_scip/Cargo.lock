@@ -216,6 +216,7 @@ dependencies = [
  "serde_json",
  "thiserror",
  "toml",
+ "tracing",
 ]
 
 [[package]]
