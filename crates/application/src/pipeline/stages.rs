@@ -17,8 +17,8 @@ use codeskimr_codes::ErrorCode;
 use super::carry::Carried;
 use super::flow::{Interruption, Stage, StageContext};
 use crate::consts::{
-    DONE_STEP, FILE_ID_BLOCK, FIRST_INDEX, INDEX_STEP, LOG_VERIFIED_DISCARDED, MIN_WORKERS,
-    NONE_DONE,
+    DONE_STEP, FILE_ID_BLOCK, FIRST_INDEX, INDEX_STEP, LOG_SCAN_WARNING, LOG_VERIFIED_DISCARDED,
+    MIN_WORKERS, NONE_DONE,
 };
 use crate::error::CodedError;
 use crate::ids::IdSequence;
@@ -27,6 +27,7 @@ use crate::ports::{
     MetricsCalculator, PendingReference, ProjectRepository, ReferenceResolver, SnapshotData,
     SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints,
 };
+use crate::resolve::ambiguous_occurrences;
 use crate::stage::StageKind;
 
 /// What starts a scan.
@@ -535,6 +536,39 @@ pub struct Persisted {
     pub snapshot: Snapshot,
     /// Local folder with the files, which level 2 runs its indexers in.
     pub root: FolderPath,
+    /// What the scan wants to tell besides its result: one entry per code, with a count.
+    pub warnings: Vec<ScanWarning>,
+}
+
+/// A warning of a scan: how often something happened, not one message per occurrence.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ScanWarning {
+    /// The registered code, a warning.
+    pub code: ErrorCode,
+    /// How many times it happened in the scan.
+    pub count: u64,
+}
+
+/// Writes one log line per warning of the scan.
+fn log_warnings(warnings: &[ScanWarning]) {
+    for warning in warnings {
+        tracing::warn!(
+            event = LOG_SCAN_WARNING,
+            code = warning.code.id(),
+            count = warning.count
+        );
+    }
+}
+
+/// The warnings of a scan over all references of the snapshot, changed and kept ones.
+fn warnings_of(references: &[Reference], carried: &[Reference]) -> Vec<ScanWarning> {
+    let ambiguous = ambiguous_occurrences(references.iter().chain(carried));
+    let found = [(ErrorCode::AmbiguousReference, ambiguous)];
+    found
+        .into_iter()
+        .filter(|(_, count)| *count > 0)
+        .map(|(code, count)| ScanWarning { code, count })
+        .collect()
 }
 
 impl Stage for PersistStage {
@@ -573,11 +607,14 @@ impl Stage for PersistStage {
             naming_rules: input.run.naming_rules,
             parse_micros: input.run.parse_micros,
         };
+        let warnings = warnings_of(&data.references, &input.carried.references);
         let stored = self.store.persist(data)?;
+        log_warnings(&warnings);
         ctx.progress(1, 1);
         Ok(Persisted {
             snapshot: stored,
             root,
+            warnings,
         })
     }
 }

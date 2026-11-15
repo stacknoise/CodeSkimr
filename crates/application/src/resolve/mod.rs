@@ -4,6 +4,7 @@
 //! reported, never a syntax tree (ADR 0013). It works in three passes, because later passes need
 //! what earlier ones found: imports, then inheritance, then every other occurrence.
 
+mod ambiguity;
 mod consts;
 mod context;
 mod hierarchy;
@@ -18,6 +19,7 @@ use codeskimr_domain::{FileId, Reference, ReferenceKind, Span, Symbol, SymbolId}
 use crate::error::CodedError;
 use crate::ids::IdSequence;
 use crate::ports::{PendingReference, ReferenceResolver};
+pub use ambiguity::ambiguous_occurrences;
 use context::Context;
 use lookup::Hit;
 use table::SymbolTable;

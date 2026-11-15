@@ -38,3 +38,7 @@ A call, read, write or type use in a test file is reported with the kind `test` 
 ## Level 2 (ADR 0033)
 
 Level 2 references come from SCIP indexes of the language tooling and replace the level 1 references of every file the index covers; they are `certain` and `verified`. The import (decoder, mapping, replacing per file) is `crates/adapters/scip`, see `docs/level2-import.md`. It is not wired into the scan yet.
+
+## Ambiguous references (`RES-301`)
+
+A place in the code that matches several symbols and that level 2 has not checked is stored with all its targets as `probable`. A scan counts these places and reports **one** warning `RES-301` with the number, not one message per reference: the summary of `codeskimr scan` shows the line, `--json` has it under `warnings`, and the log has the event `scan_warning`. The count covers all references of the snapshot, kept and changed ones, so a full and an incremental scan report the same number. A call through an interface, a trait or a base type that may end in an override counts too, because its place has several targets, not only a tie between equal candidates. The kind of the reference does not matter: one place whose targets differ in kind (a call and a type use) is still one place. It is counted after level 1; the references that level 2 verifies later are not part of it.

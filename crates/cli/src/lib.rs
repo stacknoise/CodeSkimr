@@ -14,6 +14,7 @@ mod level2;
 mod locale;
 mod parser;
 mod render;
+mod warning;
 
 pub use args::{
     Action, CheckArgs, CredentialAction, ExportArgs, GlobalOptions, Invocation, Level2Action,
@@ -33,3 +34,4 @@ pub use render::{
     open_ready, scan_finished, scan_json, scan_started, scan_tools, secret_prompt, serve_started,
     watch_started, watch_updated,
 };
+pub use warning::WarningLine;

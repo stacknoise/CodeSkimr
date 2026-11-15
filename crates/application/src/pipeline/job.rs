@@ -5,6 +5,7 @@
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{ProjectId, ScanMode, Snapshot};
 
+use super::stages::ScanWarning;
 use crate::cancel::CancelToken;
 use crate::level2::LanguageReport;
 
@@ -27,6 +28,7 @@ pub struct Running;
 pub struct Finished {
     snapshot: Snapshot,
     level2: Vec<LanguageReport>,
+    warnings: Vec<ScanWarning>,
 }
 /// Ended because the user cancelled; no snapshot exists.
 #[derive(Debug)]
@@ -145,10 +147,20 @@ impl Job<Running> {
         &self.cancel
     }
 
-    /// Ends the job with its snapshot and what the second pass reports per language.
+    /// Ends the job with its snapshot, what the second pass reports per language and the
+    /// warnings of the scan.
     #[must_use]
-    pub fn finish(self, snapshot: Snapshot, level2: Vec<LanguageReport>) -> Job<Finished> {
-        self.into_state(Finished { snapshot, level2 })
+    pub fn finish(
+        self,
+        snapshot: Snapshot,
+        level2: Vec<LanguageReport>,
+        warnings: Vec<ScanWarning>,
+    ) -> Job<Finished> {
+        self.into_state(Finished {
+            snapshot,
+            level2,
+            warnings,
+        })
     }
 
     /// Ends the job because the user cancelled.
@@ -175,6 +187,12 @@ impl Job<Finished> {
     #[must_use]
     pub fn level2(&self) -> &[LanguageReport] {
         &self.state.level2
+    }
+
+    /// The warnings of the scan, one per code with a count; empty if there is none.
+    #[must_use]
+    pub fn warnings(&self) -> &[ScanWarning] {
+        &self.state.warnings
     }
 }
 

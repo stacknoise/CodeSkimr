@@ -233,6 +233,34 @@ fn a_second_candidate_makes_the_usages_of_unchanged_files_probable() {
     )]);
 }
 
+/// The warnings of a scan as `(code, count)`.
+fn warnings_of(summary: &codeskimr_cli::ScanSummary) -> Vec<(String, u64)> {
+    summary
+        .warnings
+        .iter()
+        .map(|line| (line.code.clone(), line.count))
+        .collect()
+}
+
+#[test]
+fn places_with_several_candidates_are_one_warning_in_both_ways_of_scanning() {
+    let root = tempfile::tempdir().unwrap();
+    let folder = root.path().join("project");
+    write_project(&folder, BASE, &[]);
+    let data = locations(&root.path().join("data"));
+    let session = session(&folder, &data);
+    let first = session.scan_quick(ScanMode::Full).unwrap();
+    assert_eq!(warnings_of(&first), Vec::<(String, u64)>::new());
+    // `Target.Do()` in `Caller.cs` and in `Util.cs` now matches two overloads.
+    let overloads = "namespace Demo;\n\npublic class Target\n{\n    public static void Do() { }\n    public static void Do(int n) { }\n}\n";
+    apply(&folder, &[("Target.cs", Some(overloads))]);
+    let incremental = session.scan_quick(ScanMode::Incremental).unwrap();
+    let expected = vec![("RES-301".to_owned(), 2)];
+    assert_eq!(warnings_of(&incremental), expected);
+    let full = session.scan_quick(ScanMode::Full).unwrap();
+    assert_eq!(warnings_of(&full), expected);
+}
+
 #[test]
 fn an_added_overload_is_found_by_the_unchanged_callers() {
     assert_same(&[(
