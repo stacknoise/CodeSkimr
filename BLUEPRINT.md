@@ -514,7 +514,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 - Every error that can leave a crate boundary has an **error code**. This covers Rust errors, frontend exceptions, CLI exit messages, REST responses and MCP errors.
 - All codes live in **one central file**: `errors/error-codes.toml`. It is the single source of truth.
 - Codes are grouped by **prefix**. Inside a group, the hundreds digit classifies the error.
-- Codes are **never reused or renumbered**. A retired code is marked `deprecated = true` and stays in the file.
+- Codes are **never reused or renumbered**. A retired code is marked `deprecated = true` and stays in the file. The one exception (ADR 0060): a code that is in no published release may be renumbered once and is then removed, because nobody can have seen it.
 
 ### 11.2 Code format
 

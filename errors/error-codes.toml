@@ -1,5 +1,6 @@
 # errors/error-codes.toml - single source of truth for all error codes (blueprint section 11).
 # Codes are never reused or renumbered; retire one with `deprecated = true`.
+# Exception (ADR 0060): a code that is in no published release may be renumbered once.
 # Every code needs an `error-<id>` message in locales/<lang>/errors.ftl for each language.
 
 [groups.APP]
