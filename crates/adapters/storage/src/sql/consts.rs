@@ -289,7 +289,7 @@ pub const MEMBERS_OF: &str =
 pub const METRICS_OF: &str =
     "SELECT kind, value FROM metrics WHERE snapshot_id = ?1 AND symbol_id = ?2 ORDER BY kind";
 /// All symbols of a snapshot as result lines, with their file paths: snapshot.
-pub const SYMBOL_LABELS: &str = "SELECT s.id, s.qualified_name, s.kind, s.visibility, f.path \
+pub const SYMBOL_LABELS: &str = "SELECT s.id, s.qualified_name, s.kind, s.parent_id, s.visibility, f.path \
     FROM symbols s JOIN files f ON f.snapshot_id = s.snapshot_id AND f.id = s.file_id \
     WHERE s.snapshot_id = ?1";
 /// Id and path of every file of a snapshot: snapshot.
