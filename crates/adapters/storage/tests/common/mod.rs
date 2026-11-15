@@ -21,6 +21,13 @@ pub fn store(retention: u32) -> SqliteStore {
     SqliteStore::open_in_memory(keep).expect("in-memory database opens")
 }
 
+/// A store with the retention 3 and the project 1 registered, as most tests start.
+pub fn registered_store() -> SqliteStore {
+    let store = store(3);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    store
+}
+
 pub fn project(id: u64, folder: &str, layers: &[(&str, &[&str])]) -> Project {
     Project {
         id: ProjectId::new(id),
@@ -123,6 +130,8 @@ pub fn data(snapshot: Snapshot) -> SnapshotData {
         metrics: Vec::new(),
         fingerprints: Vec::new(),
         removed: Vec::new(),
+        pending: Vec::new(),
+        dropped_references: Vec::new(),
         naming_rules: String::new(),
         parse_micros: Vec::new(),
     }
