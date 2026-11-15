@@ -56,6 +56,7 @@ impl Fixture {
             languages_dir: Path::new(env!("CARGO_MANIFEST_DIR")).join("../../languages"),
             user_config: None,
             bases: Vec::new(),
+            program_dir: None,
         };
         let global = GlobalOptions {
             overrides: vec![("ui.dir".to_owned(), format!("'{}'", ui.display()))],

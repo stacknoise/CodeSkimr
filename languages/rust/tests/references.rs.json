@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 59,
+      "loc": 76,
       "operands": null,
       "operators": null,
       "symbol": "references"
@@ -73,9 +73,22 @@
         3
       ],
       "symbol": "references::Pair::build"
+    },
+    {
+      "decisions": 5,
+      "loc": 17,
+      "operands": [
+        11,
+        15
+      ],
+      "operators": [
+        10,
+        26
+      ],
+      "symbol": "references::bindings"
     }
   ],
-  "loc": 59,
+  "loc": 76,
   "references": [
     {
       "at": "2:23",
@@ -496,6 +509,76 @@
       "kind": "read",
       "receiver": "typed Pair",
       "target": "right"
+    },
+    {
+      "at": "70:19",
+      "from": "references::bindings",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Option"
+    },
+    {
+      "at": "70:32",
+      "from": "references::bindings",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Item"
+    },
+    {
+      "at": "70:52",
+      "from": "references::bindings",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Vec"
+    },
+    {
+      "at": "72:43",
+      "from": "references::bindings",
+      "kind": "call",
+      "receiver": "free",
+      "target": "use_all"
+    },
+    {
+      "at": "75:36",
+      "from": "references::bindings",
+      "kind": "call",
+      "receiver": "typed Vec",
+      "target": "pop"
+    },
+    {
+      "at": "76:8",
+      "from": "references::bindings",
+      "kind": "call",
+      "receiver": "free",
+      "target": "use_all"
+    },
+    {
+      "at": "78:37",
+      "from": "references::bindings",
+      "kind": "call",
+      "receiver": "typed Vec",
+      "target": "as_slice"
+    },
+    {
+      "at": "79:8",
+      "from": "references::bindings",
+      "kind": "call",
+      "receiver": "free",
+      "target": "use_all"
+    },
+    {
+      "at": "84:12",
+      "from": "references::bindings",
+      "kind": "read",
+      "receiver": "free",
+      "target": "OFFSET"
+    },
+    {
+      "at": "85:22",
+      "from": "references::bindings",
+      "kind": "call",
+      "receiver": "free",
+      "target": "first_value"
     }
   ],
   "symbols": [
@@ -505,7 +588,7 @@
       "name": "references",
       "parent": null,
       "signature": null,
-      "span": "0:0-69:0",
+      "span": "0:0-87:0",
       "static": false,
       "visibility": null
     },
@@ -638,6 +721,16 @@
       "span": "62:4-67:5",
       "static": true,
       "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "references::bindings",
+      "parent": "references",
+      "signature": null,
+      "span": "70:0-86:1",
+      "static": false,
+      "visibility": "private"
     }
   ]
 }

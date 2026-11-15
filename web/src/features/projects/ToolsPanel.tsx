@@ -15,8 +15,12 @@ function stateText(tool: ToolInfo): string {
     return t(I18N_KEYS.PROJECTS_TOOLS_STATE_MISSING);
   }
   const required = tool.required ?? "";
-  return tool.state === TOOL_STATE.tooOld
-    ? t(I18N_KEYS.PROJECTS_TOOLS_STATE_TOO_OLD, { found: tool.found ?? "", required })
+  const found = tool.found ?? "";
+  if (tool.state === TOOL_STATE.tooOld) {
+    return t(I18N_KEYS.PROJECTS_TOOLS_STATE_TOO_OLD, { found, required });
+  }
+  return tool.state === TOOL_STATE.tooNew
+    ? t(I18N_KEYS.PROJECTS_TOOLS_STATE_TOO_NEW, { found, required })
     : t(I18N_KEYS.PROJECTS_TOOLS_STATE_UNKNOWN, { required });
 }
 
@@ -88,7 +92,7 @@ function PanelHeader(props: { row: ProjectRow }) {
 }
 
 /** What the check of the tools found for the project: a warning with each tool that is missing,
- * too old or of unknown version, what it is for and how to install it (ADR 0033, decision 8). */
+ * too old, too new or of unknown version, what it is for and how to install it (ADR 0033, decision 8). */
 export function ToolsPanel(props: { row: ProjectRow }) {
   return (
     <section

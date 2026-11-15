@@ -8,7 +8,7 @@ use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
     IndexArtifact, IndexJob, IndexRunner, IndexerSpec, IndexerStatus, PLACEHOLDER_OUTPUT,
-    PLACEHOLDER_PROJECT, ToolProblem,
+    PLACEHOLDER_PROJECT, ToolProblem, ToolSeen,
 };
 use codeskimr_codes::Coded;
 use tempfile::TempDir;
@@ -60,11 +60,17 @@ impl ProcessIndexRunner {
         env::build(self.source_env.iter().cloned(), spec, folders)
     }
 
-    fn problems(spec: &IndexerSpec, probe: &Probe<'_>) -> Vec<ToolProblem> {
-        std::iter::once(&spec.indexer)
-            .chain(&spec.toolchain)
-            .filter_map(|tool| check_tool(tool, probe))
-            .collect()
+    /// Asks every tool of `spec` once: what is wrong, and the version of every tool that is fine.
+    fn examine(spec: &IndexerSpec, probe: &Probe<'_>) -> (Vec<ToolProblem>, Vec<ToolSeen>) {
+        let mut problems = Vec::new();
+        let mut found = Vec::new();
+        for tool in std::iter::once(&spec.indexer).chain(&spec.toolchain) {
+            match check_tool(tool, probe) {
+                Ok(seen) => found.push(seen),
+                Err(problem) => problems.push(problem),
+            }
+        }
+        (problems, found)
     }
 
     fn excerpt(&self, finished: &Finished) -> String {
@@ -94,7 +100,7 @@ impl ProcessIndexRunner {
             neutral_dir: &output.scratch,
             project_root: job.permit.project_root(),
         };
-        let problems = Self::problems(job.spec, &probe);
+        let (problems, _) = Self::examine(job.spec, &probe);
         if !problems.is_empty() {
             return Err(IndexerError::Unavailable(problems));
         }
@@ -308,11 +314,11 @@ impl IndexRunner for ProcessIndexRunner {
             neutral_dir: &neutral,
             project_root: &root,
         };
-        let problems = Self::problems(spec, &probe);
+        let (problems, found) = Self::examine(spec, &probe);
         if problems.is_empty() {
-            IndexerStatus::Ready
+            IndexerStatus::Ready { found }
         } else {
-            IndexerStatus::Unavailable(problems)
+            IndexerStatus::Unavailable { problems, found }
         }
     }
 

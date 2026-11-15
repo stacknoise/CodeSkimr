@@ -168,11 +168,25 @@
 (let_declaration
   pattern: (identifier) @local
   value: (struct_expression name: (type_identifier) @declared_type))
-(let_declaration pattern: (tuple_pattern (identifier) @local))
 (let_declaration pattern: (mut_pattern (identifier) @local))
 (for_expression pattern: (identifier) @local)
-(for_expression pattern: (tuple_pattern (identifier) @local))
-(let_condition pattern: (tuple_struct_pattern type: (_) . (identifier) @local))
+(for_expression pattern: (mut_pattern (identifier) @local))
+
+; Names bound by a pattern in any position (`let`, `for`, `if let`, `while let`, `match` arms):
+; inside tuple, tuple-struct, struct, slice, reference, `mut`, `ref`, `@` and or patterns. Where a
+; bare identifier can also be a variant or a constant (`None`, `FOO`), only a lower case start counts.
+(match_pattern (identifier) @local (#match? @local "^[a-z_]"))
+(tuple_pattern (identifier) @local (#match? @local "^[a-z_]"))
+(tuple_struct_pattern type: (_) (identifier) @local (#match? @local "^[a-z_]"))
+(slice_pattern (identifier) @local (#match? @local "^[a-z_]"))
+(or_pattern (identifier) @local (#match? @local "^[a-z_]"))
+(mut_pattern (identifier) @local)
+(ref_pattern (identifier) @local)
+(reference_pattern (identifier) @local (#match? @local "^[a-z_]"))
+; `name @ pattern`: the first name is always the binding
+(captured_pattern . (identifier) @local)
+(field_pattern name: (shorthand_field_identifier) @local)
+(field_pattern pattern: (identifier) @local (#match? @local "^[a-z_]"))
 
 ; Fields tell the type of a receiver, but an occurrence of them is a reference.
 (field_declaration

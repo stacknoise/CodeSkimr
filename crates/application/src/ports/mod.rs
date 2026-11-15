@@ -33,7 +33,7 @@ pub use consent::{ConsentGrant, ConsentRecord, ConsentStore, RunPermit};
 pub use credentials::{AuthError, Credential, CredentialStore};
 pub use indexer::{
     IndexArtifact, IndexJob, IndexLimits, IndexRunner, IndexerSpec, IndexerStatus,
-    PLACEHOLDER_OUTPUT, PLACEHOLDER_PROJECT, ToolIssue, ToolProblem, ToolSpec,
+    PLACEHOLDER_OUTPUT, PLACEHOLDER_PROJECT, ToolIssue, ToolProblem, ToolSeen, ToolSpec,
 };
 pub use keys::{KeyEntry, KeyKind, KeySearch, ProjectKeys};
 pub use level2::{ImportRequest, Imported, ReferenceImporter};
@@ -51,7 +51,8 @@ pub use storage::{
     PreviousIndex, ProjectRepository, ReferenceReplacement, SnapshotData, SnapshotStore,
 };
 pub use tools::{
-    ProjectToolCheck, RequirementReader, ToolCatalog, ToolPlan, ToolReportStore, ToolRequirement,
+    ProjectToolCheck, RequirementReader, RequirementValue, ToolCatalog, ToolPlan, ToolReportStore,
+    ToolRequirement,
 };
 pub use usages::{
     DependencyEdge, DependencyPage, DependencyQuery, ImpactPage, ImpactedSymbol, SymbolLabel,
