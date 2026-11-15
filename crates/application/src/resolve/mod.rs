@@ -14,7 +14,7 @@ mod table;
 
 use std::collections::HashSet;
 
-use codeskimr_domain::{FileId, Reference, ReferenceKind, Span, Symbol, SymbolId};
+use codeskimr_domain::{FileId, IdHash, Reference, ReferenceKind, Span, Symbol, SymbolId};
 
 use crate::error::CodedError;
 use crate::ids::IdSequence;
@@ -64,7 +64,7 @@ impl ReferenceResolver for ScopedResolver {
         ids: &IdSequence,
     ) -> Result<Vec<Reference>, CodedError> {
         let mut context = Context::new(SymbolTable::new(symbols));
-        let mut seen: HashSet<Edge> = HashSet::new();
+        let mut seen: HashSet<Edge, IdHash> = HashSet::default();
         let mut references = Vec::new();
         for &pass in PASSES {
             for occurrence in pending.iter().filter(|p| Pass::of(p.kind) == pass) {

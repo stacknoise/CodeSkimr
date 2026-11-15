@@ -1,9 +1,10 @@
 //! What the resolver knows while it runs: the symbol table, the imports of every file and the
 //! type hierarchy found so far.
 
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 
-use codeskimr_domain::{FileId, ReferenceKind};
+use codeskimr_domain::{FileId, ReferenceKind, Symbol, SymbolId};
 
 use super::hierarchy::Hierarchy;
 use super::kinds::is_type;
@@ -17,6 +18,8 @@ pub struct Context<'a> {
     /// Qualified names of the namespaces each file imports.
     pub(super) imports: HashMap<FileId, HashSet<String>>,
     pub(super) hierarchy: Hierarchy,
+    /// The members that replace a member, by that member; valid for the hierarchy as it is now.
+    pub(super) replacements: RefCell<HashMap<SymbolId, Vec<&'a Symbol>>>,
 }
 
 impl<'a> Context<'a> {
@@ -26,6 +29,7 @@ impl<'a> Context<'a> {
             table,
             imports: HashMap::new(),
             hierarchy: Hierarchy::default(),
+            replacements: RefCell::default(),
         }
     }
 
@@ -58,6 +62,7 @@ impl<'a> Context<'a> {
             .get(occurrence.from)
             .is_some_and(|symbol| is_type(symbol.kind));
         if from_is_type {
+            self.replacements.get_mut().clear();
             for hit in hits {
                 self.hierarchy.add(occurrence.from, hit.to);
             }

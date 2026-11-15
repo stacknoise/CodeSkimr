@@ -38,6 +38,7 @@ pub use fingerprint::{Fingerprint, FingerprintParams, Fingerprints, TokenId, win
 pub use graph_layout::{
     Layout, LayoutEdge, LayoutGraph, LayoutNode, LayoutParams, NodeIndex, NodePlacement, NodeSize,
 };
+pub use id_hasher::{IdHash, IdHasher};
 pub use layer::LayerEdge;
 pub use layer_map::{LayerMap, layer_map};
 pub use measure::{BodyCounts, SymbolCounts, measure};
