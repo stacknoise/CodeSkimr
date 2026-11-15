@@ -47,6 +47,21 @@ impl Occurrence {
     }
 }
 
+/// What the index states about a symbol it defines in a document (`SymbolInformation`).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SymbolInfo {
+    /// The symbol.
+    pub symbol: SymbolRef,
+    /// `SymbolInformation.kind` as the number of `scip.proto`; 0 if the index does not say.
+    pub kind: u32,
+    /// The name the indexer shows; empty if it does not say.
+    pub display_name: String,
+    /// The signature of the definition (`signature_documentation.text`), if stated.
+    pub signature: Option<String>,
+    /// The documentation, its parts joined by a blank line, if stated.
+    pub documentation: Option<String>,
+}
+
 /// One file of the index with its occurrences.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScipDocument {
@@ -56,6 +71,11 @@ pub struct ScipDocument {
     pub encoding: PositionEncoding,
     /// Occurrences in the order of the index.
     pub occurrences: Vec<Occurrence>,
+    /// What the index states about the symbols this document defines.
+    pub infos: Vec<SymbolInfo>,
+    /// For a definition (by its range), the range of the whole definition (`enclosing_range`):
+    /// a macro call for code that a macro generates.
+    pub extents: HashMap<Span, Span>,
     /// What the local symbols that the document defines are called, read from the text of their
     /// definitions by `convert_columns`. Empty while the text is not known.
     pub local_names: HashMap<SymbolRef, Arc<str>>,

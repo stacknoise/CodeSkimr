@@ -1,14 +1,17 @@
-//! Level 2: replaces the references of some files of the newest snapshot (ADR 0033).
+//! Level 2: replaces the references and the symbols of origin `index` of some files of the newest
+//! snapshot (ADR 0033, ADR 0055).
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
-use codeskimr_application::ports::ReferenceReplacement;
-use codeskimr_domain::{FileId, ProjectId, Snapshot, SnapshotId, coupling};
+use codeskimr_application::ports::Level2Replacement;
+use codeskimr_domain::{FileId, ProjectId, Snapshot, SnapshotId, Symbol, SymbolOrigin, coupling};
 use rusqlite::{Connection, params};
 
 use crate::codec::{column_int, id_from};
 use crate::error::{StorageError, StorageResult};
-use crate::headers::{insert_metric, insert_reference, latest_snapshot, set_totals, totals};
+use crate::headers::{
+    insert_metric, insert_reference, insert_symbol, latest_snapshot, set_totals, totals,
+};
 use crate::previous::load_latest_index;
 use crate::projects::load_layers;
 use crate::read_models;
@@ -20,24 +23,74 @@ fn contains(ids: &HashSet<i64>, id: u64) -> bool {
     column_int(id).is_ok_and(|value| ids.contains(&value))
 }
 
-/// Fails with `DanglingReference` unless every file is in the snapshot and every reference stands
-/// in one of those files and joins two symbols of the snapshot. The files and symbols of the
-/// snapshot are read once, so the check costs two queries however many references there are.
-fn check(conn: &Connection, snapshot: i64, change: &ReferenceReplacement) -> StorageResult<()> {
-    let held_files = id_set(conn, sql::FILE_IDS, snapshot)?;
-    let held_symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
-    let files: HashSet<u64> = change.files.iter().map(|file| file.get()).collect();
-    let ok = files.iter().all(|file| contains(&held_files, *file))
-        && change.references.iter().all(|reference| {
-            files.contains(&reference.file.get())
-                && contains(&held_symbols, reference.from.get())
-                && contains(&held_symbols, reference.to.get())
-        });
+/// Fails with `DanglingReference` unless every file is in the snapshot. The files of the snapshot
+/// are read once, so the check costs one query however many files there are.
+fn check_files(conn: &Connection, snapshot: i64, change: &Level2Replacement) -> StorageResult<()> {
+    let held = id_set(conn, sql::FILE_IDS, snapshot)?;
+    if change.files.iter().all(|file| contains(&held, file.get())) {
+        Ok(())
+    } else {
+        Err(StorageError::DanglingReference)
+    }
+}
+
+/// Fails with `DanglingReference` unless every new symbol is of origin `index` and stands in one
+/// of the files, and every parent is a stored symbol of the snapshot or a new one of the same
+/// file. `held` are the symbols of the snapshot, read after the new ones are inserted.
+fn check_symbols(held: &HashSet<i64>, change: &Level2Replacement) -> StorageResult<()> {
+    let files: HashSet<FileId> = change.files.iter().copied().collect();
+    let files_of: BTreeMap<_, _> = change.symbols.iter().map(|s| (s.id, s.file)).collect();
+    let ok = change.symbols.iter().all(|symbol| {
+        symbol.origin == SymbolOrigin::Index
+            && files.contains(&symbol.file)
+            && symbol
+                .parent
+                .is_none_or(|parent| match files_of.get(&parent) {
+                    Some(file) => *file == symbol.file,
+                    None => contains(held, parent.get()),
+                })
+    });
     if ok {
         Ok(())
     } else {
         Err(StorageError::DanglingReference)
     }
+}
+
+/// Fails with `DanglingReference` unless every reference stands in one of the files and joins two
+/// symbols of the snapshot (`held`, read after the new symbols are inserted).
+fn check_references(held: &HashSet<i64>, change: &Level2Replacement) -> StorageResult<()> {
+    let files: HashSet<u64> = change.files.iter().map(|file| file.get()).collect();
+    let ok = change.references.iter().all(|reference| {
+        files.contains(&reference.file.get())
+            && contains(held, reference.from.get())
+            && contains(held, reference.to.get())
+    });
+    if ok {
+        Ok(())
+    } else {
+        Err(StorageError::DanglingReference)
+    }
+}
+
+/// Removes the symbols of origin `index` of the files, and with them every reference that points
+/// at one or starts in one (also from another file: its target is gone), and the level 1
+/// references of the files.
+fn clear(conn: &Connection, files: &[FileId]) -> StorageResult<()> {
+    for file in files {
+        let id = column_int(file.get())?;
+        conn.execute(sql::REFERENCES_OF_FILE_DELETE, params![id])?;
+        let origin = SymbolOrigin::Index.label();
+        conn.execute(sql::ORIGIN_REFERENCES_DELETE, params![id, origin])?;
+        conn.execute(sql::ORIGIN_SYMBOLS_DELETE, params![id, origin])?;
+    }
+    Ok(())
+}
+
+fn insert_symbols(conn: &Connection, symbols: &[Symbol]) -> StorageResult<()> {
+    symbols
+        .iter()
+        .try_for_each(|symbol| insert_symbol(conn, symbol))
 }
 
 fn project_of(conn: &Connection, snapshot: i64) -> StorageResult<ProjectId> {
@@ -47,11 +100,11 @@ fn project_of(conn: &Connection, snapshot: i64) -> StorageResult<ProjectId> {
     Ok(ProjectId::new(id_from(id)?))
 }
 
-/// Replaces the references of the files in the newest snapshot of its project; any other snapshot
+/// Replaces the symbols of origin `index` and the references of the files in the newest snapshot of its project; any other snapshot
 /// is refused, because its files may be shared with newer ones.
-pub(crate) fn replace_references(
+pub(crate) fn replace_level2(
     conn: &Connection,
-    change: &ReferenceReplacement,
+    change: &Level2Replacement,
 ) -> StorageResult<Snapshot> {
     let snapshot = column_int(change.snapshot.get())?;
     let project = project_of(conn, snapshot)?;
@@ -59,13 +112,12 @@ pub(crate) fn replace_references(
     if latest.id != change.snapshot {
         return Err(StorageError::DanglingReference);
     }
-    check(conn, snapshot, change)?;
-    for file in &change.files {
-        conn.execute(
-            sql::REFERENCES_OF_FILE_DELETE,
-            params![column_int(file.get())?],
-        )?;
-    }
+    check_files(conn, snapshot, change)?;
+    clear(conn, &change.files)?;
+    insert_symbols(conn, &change.symbols)?;
+    let held = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
+    check_symbols(&held, change)?;
+    check_references(&held, change)?;
     let holders = holders(conn, change)?;
     let mut insert = conn.prepare_cached(sql::REFERENCE_INSERT)?;
     for reference in &change.references {
@@ -94,7 +146,7 @@ struct Holders {
     oldest: BTreeMap<FileId, i64>,
 }
 
-fn holders(conn: &Connection, change: &ReferenceReplacement) -> StorageResult<Holders> {
+fn holders(conn: &Connection, change: &Level2Replacement) -> StorageResult<Holders> {
     let mut found = Holders {
         all: BTreeSet::new(),
         oldest: BTreeMap::new(),

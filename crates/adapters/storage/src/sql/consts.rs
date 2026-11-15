@@ -121,15 +121,23 @@ pub const SHARED_ROWS_DELETE: &[&str] = &[
         (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1))",
 ];
 
+/// Deletes the references that point at, or start in, a symbol of origin `?2` of file `?1`.
+pub const ORIGIN_REFERENCES_DELETE: &str = "DELETE FROM symbol_references WHERE \
+    to_symbol IN (SELECT id FROM symbol_rows WHERE file_id = ?1 AND origin = ?2) \
+    OR from_symbol IN (SELECT id FROM symbol_rows WHERE file_id = ?1 AND origin = ?2)";
+/// Deletes the symbols of origin `?2` of file `?1`.
+pub const ORIGIN_SYMBOLS_DELETE: &str =
+    "DELETE FROM symbol_rows WHERE file_id = ?1 AND origin = ?2";
+
 /// Adds a file: snapshot, id, path, language, hash, loc.
 pub const FILE_INSERT: &str = "INSERT INTO files \
     (snapshot_id, id, path, language, content_hash, loc) VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
 /// Adds a symbol: id, file, kind, name, qualified name, parent, visibility, static,
-/// start line and column, end line and column, signature, doc.
+/// start line and column, end line and column, signature, doc, origin.
 pub const SYMBOL_INSERT: &str = "INSERT INTO symbol_rows (id, file_id, kind, name, \
     qualified_name, parent_id, visibility, is_static, start_line, start_column, end_line, \
-    end_column, signature, doc) \
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)";
+    end_column, signature, doc, origin) \
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)";
 /// Adds a reference: id, snapshot that writes it, from, to, file, start line and column, end line
 /// and column, kind, confidence, verified.
 pub const REFERENCE_INSERT: &str = "INSERT INTO symbol_references (id, first_snapshot, \
@@ -306,7 +314,7 @@ pub const TYPE_SUMMARY: &str = "SELECT member_count, loc, max_complexity, mainta
 /// `SYMBOL_BY_ID` or `SYMBOL_BY_NAME` follows.
 pub const SYMBOL_SELECT: &str = "SELECT s.id, s.file_id, s.kind, s.name, s.qualified_name, \
     s.parent_id, s.visibility, s.is_static, s.start_line, s.start_column, s.end_line, \
-    s.end_column, s.signature, s.doc, f.path FROM symbols s \
+    s.end_column, s.signature, s.doc, s.origin, f.path FROM symbols s \
     JOIN files f ON f.snapshot_id = s.snapshot_id AND f.id = s.file_id \
     WHERE s.snapshot_id = ?1 AND ";
 /// Condition of `SYMBOL_SELECT`: symbol id.

@@ -37,6 +37,7 @@ pub fn symbol(id: u64, name: &str) -> Option<Symbol> {
         span: span(1)?,
         signature: None,
         doc: None,
+        origin: codeskimr_domain::SymbolOrigin::Syntax,
     })
 }
 

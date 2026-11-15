@@ -126,7 +126,12 @@ def uses_of(lsp, workspace, source, target, opened):
         "position": {"line": line, "character": utf16(lines[line], column)},
         "context": {"includeDeclaration": False}}) or []
     uses = set()
+    at_name = {"line": line, "character": utf16(lines[line], column)}
     for ref in result:
+        # A macro call that generates the symbol reports its own name token as a use (the generated
+        # code refers to the token that spells the name): that is the declaration, not a use (ADR 0055).
+        if target.get("origin") == "index" and ref["range"]["start"] == at_name and uri_path(ref["uri"]) == path.resolve():
+            continue
         file = uri_path(ref["uri"])
         if file.is_relative_to(workspace) and (source / file.relative_to(workspace)).exists():
             uses.add((str(file.relative_to(workspace)).replace("\\", "/"), ref["range"]["start"]["line"] + 1))

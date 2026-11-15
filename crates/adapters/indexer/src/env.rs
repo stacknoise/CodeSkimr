@@ -236,6 +236,8 @@ mod home_dir_tests {
                 .collect(),
             env: Vec::new(),
             install_hint: String::new(),
+            symbol_kinds: Vec::new(),
+            separator: String::new(),
         }
     }
 

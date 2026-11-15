@@ -77,6 +77,7 @@ Every run is limited; an indexer that exceeds a limit is stopped together with a
 | `max_output_bytes` (console and files) | 512 MiB | `RES-503` |
 | `max_index_bytes` (largest index that is read) | 256 MiB | `RES-501` |
 | `min_mapped` (share of project occurrences that must map) | 0.5 | `RES-302` |
+| `max_created_symbols` (most symbols that level 2 creates itself, e.g. types a macro generates) | 100000 | `RES-303` |
 
 The indexer gets a cleared environment with an allow list (no token or secret of CodeSkimr reaches it), runs in its own process group, and its output is redacted before it is logged. **The network is not blocked**, because restoring packages needs it; this is the main residual risk and the reason for the confirmation.
 
@@ -86,4 +87,4 @@ An index counts for a file only while its content is the one at indexing time. A
 
 ## Errors
 
-`RES-201` indexer or toolchain missing or too old, `RES-501` index too large, `RES-502` timeout, `RES-503` output too large, `RES-504` memory limit, `RES-601` the indexer could not be started or failed, `RES-101` the index is corrupt, `RES-302` too few occurrences map onto your symbols, `SEC-301` level 2 is not enabled and confirmed, `SEC-403` the caller may not confirm or start indexers, `PRJ-303` the scan was cancelled. In all of them level 1 stays. See [Error codes](errors.md).
+`RES-201` indexer or toolchain missing or too old, `RES-501` index too large, `RES-502` timeout, `RES-503` output too large, `RES-504` memory limit, `RES-601` the indexer could not be started or failed, `RES-101` the index is corrupt, `RES-303` level 2 would create too many symbols of its own, `RES-302` too few occurrences map onto your symbols, `SEC-301` level 2 is not enabled and confirmed, `SEC-403` the caller may not confirm or start indexers, `PRJ-303` the scan was cancelled. In all of them level 1 stays. See [Error codes](errors.md).

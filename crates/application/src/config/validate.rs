@@ -202,6 +202,7 @@ fn check_level2(level2: &Level2) -> Result<(), ConfigError> {
             Violation::MustNotBeBelow(keys::LEVEL2_MAX_INDEX_BYTES),
         );
     }
+    positive(keys::LEVEL2_MAX_CREATED_SYMBOLS, level2.max_created_symbols)?;
     share(keys::LEVEL2_MIN_MAPPED, level2.min_mapped)
 }
 

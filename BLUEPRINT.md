@@ -281,7 +281,7 @@ codeskimr/
 | `Project` | registered repository | id, name, source (folder \| git url + branch), layers, settings |
 | `Snapshot` | one scan state | id, project, commit (if Git), created, mode (full \| incremental), stats |
 | `File` | source file | id, snapshot, path, language, content hash, loc |
-| `Symbol` | anything with a name | id, file, kind, name, qualified name, parent symbol, visibility, static, span, signature, doc |
+| `Symbol` | anything with a name | id, file, kind, name, qualified name, parent symbol, visibility, static, span, signature, doc, origin (`syntax` \| `index`, ADR 0055) |
 | `Reference` | one occurrence of a symbol | id, from symbol, to symbol, file, span, kind, confidence |
 | `Metric` | measured value | symbol, kind (loc, cc, cc_max, mi, ce, ca, instability), value |
 | `LayerEdge` | aggregated dependency between namespaces / layers | from, to, count, violates layering, part of cycle |
@@ -296,6 +296,7 @@ codeskimr/
 
 ### 6.2 Storage
 
+- `symbol_rows.origin` (`syntax` | `index`, ADR 0055) tells level 1 symbols from symbols that level 2 creates; created symbols belong to their file, are replaced with its level 2 references in one transaction and have no metrics.
 - One SQLite database per workspace, in the user data directory. The source code itself is **not** copied; the file is read on demand and checked against its hash.
 - **Read models**, rebuilt incrementally after every snapshot:
   - `search_index` – fuzzy search entries for the quick search
@@ -406,6 +407,7 @@ Level 2 imports SCIP indexes that existing indexers produce (scip-dotnet, scip-t
 
 - **A second pass, not part of Resolve.** Level 1 is stored and usable first. Then, for each indexer, the pass checks permission and consent, checks that the tools exist, runs the indexer, checks the hash of every file against the disk again, maps the index and replaces the references of exactly the checked files in one transaction. A changed file, a cancel, a failure or a missing tool leaves level 1 as it was and is reported per language.
 - **Consent.** An indexer runs the build tools of the project, so it runs only if the local owner enabled level 2 and confirmed it for the project, interactively on this computer (`codeskimr level2 confirm`). The confirmation names the file and network access of the tools and is bound to source, location and branch, not to a commit. The `level2` table of `.codeskimr.toml` is ignored. MCP, REST tokens, CI and watch mode cannot confirm, and only the scan of the command line starts indexers: `rescan` through MCP or the UI and the later scans of watch mode are level 1 only.
+- **Created symbols (ADR 0055).** For the kinds a language pack lists in `[indexer.symbol_kinds]` (Rust: types, enums, variants, traits, aliases), level 2 creates symbols with `origin = index` for definitions that level 1 does not know (macro output). `max_created_symbols` bounds them; exceeding it fails the import (`RES-303`).
 - **Limits.** Time, memory and output of a run are bounded (`level2.*`); the index is untrusted input with its own size limit, its paths are cleaned and only files of the snapshot are read.
 - **Columns.** Indexes may count UTF-16 or UTF-32 units; the import converts them to UTF-8 bytes using the lines of the file.
 
@@ -482,7 +484,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 | Tool | Input | Output (compact) |
 |---|---|---|
 | `search_symbols` | query, kind?, project?, limit | ranked symbols with location |
-| `get_symbol` | symbol id or qualified name | signature, doc, members, metrics, layer |
+| `get_symbol` | symbol id or qualified name | signature, doc, members, metrics, layer, origin |
 | `find_usages` | symbol, direction, depth, include_tests | references with kind, location, confidence |
 | `impact_of_change` | symbol | affected symbols, layers, public interfaces |
 | `get_dependencies` | symbol or namespace, direction | edges with counts and violations |
@@ -1125,6 +1127,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | RES-201 | `indexer_unavailable` | The indexer of a language or its toolchain is not installed or is older than the version the language pack requires; level 1 references stay. |
 | RES-301 | `ambiguous_reference` | A reference matches several symbols; it was stored as probable. (warning) |
 | RES-302 | `scip_mapping_too_low` | Too few occurrences of a SCIP index map onto project symbols; level 1 references stay. |
+| RES-303 | `scip_too_many_created_symbols` | A SCIP index wants level 2 to create more symbols than level2.max_created_symbols allows; the whole import is refused and level 1 stays. |
 | RES-501 | `scip_index_too_large` | A SCIP index is larger than the configured limit and was refused; level 1 references stay. |
 | RES-502 | `indexer_timeout` | An indexer ran longer than level2.timeout_seconds and was stopped with all its child processes; level 1 references stay. |
 | RES-503 | `indexer_output_too_large` | An indexer wrote more than level2.max_output_bytes and was stopped; level 1 references stay. |

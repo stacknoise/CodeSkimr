@@ -101,14 +101,19 @@ pub struct PreviousState {
     pub names_stored: bool,
 }
 
-/// Level 2 references that replace the level 1 references of some files of a snapshot.
+/// What level 2 stores for some files of a snapshot: the symbols it creates (ADR 0055) and the
+/// references that replace the level 1 references of those files.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ReferenceReplacement {
+pub struct Level2Replacement {
     /// The snapshot the references belong to.
     pub snapshot: SnapshotId,
     /// The files whose references are replaced; a file that is not here keeps its references.
     pub files: Vec<FileId>,
-    /// The new references, all in those files, with ids no stored row has.
+    /// The symbols of origin `index` that replace the ones of those files, all in those files,
+    /// with ids no stored row has. A file without any gets none of its former ones back.
+    pub symbols: Vec<Symbol>,
+    /// The new references, all in those files, with ids no stored row has. They may point at
+    /// `symbols`.
     pub references: Vec<Reference>,
 }
 
@@ -181,7 +186,7 @@ pub trait SnapshotStore: Send + Sync {
     /// A coded failure such as `STO-302` or `STO-501`; nothing is written then.
     fn persist(&self, data: SnapshotData) -> Result<Snapshot, CodedError>;
 
-    /// Replaces the references of the files of `replacement` in one transaction, updates the
+    /// Replaces the symbols of origin `index` and the references of the files of `replacement` in one transaction, updates the
     /// totals and the read models and returns the snapshot. Rows are shared between snapshots
     /// that carry a file unchanged (ADR 0032), so older snapshots show the new references of such
     /// a file too, which is right: the content is the same.
@@ -189,6 +194,5 @@ pub trait SnapshotStore: Send + Sync {
     /// # Errors
     /// `STO-901` if the snapshot is not the newest of its project or the data does not fit it;
     /// nothing is changed then.
-    fn replace_references(&self, replacement: ReferenceReplacement)
-    -> Result<Snapshot, CodedError>;
+    fn replace_level2(&self, replacement: Level2Replacement) -> Result<Snapshot, CodedError>;
 }

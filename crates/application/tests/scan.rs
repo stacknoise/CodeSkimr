@@ -16,10 +16,10 @@ use codeskimr_application::pipeline::{Job, JobResult, Scanner, ScannerPorts};
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, ConsentStore, DiscoveredFile, FetchedSource, FileAnalyzer,
     FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob, IndexRunner,
-    IndexerSpec, IndexerStatus, MetricsCalculator, PendingReference, PreviousIndex, PreviousState,
-    ProjectRepository, ProjectScanner, ReferenceImporter, ReferenceReplacement, ReferenceResolver,
-    SnapshotData, SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints, ToolSpec,
-    ToolVersion,
+    IndexerSpec, IndexerStatus, Level2Replacement, MetricsCalculator, PendingReference,
+    PreviousIndex, PreviousState, ProjectRepository, ProjectScanner, ReferenceImporter,
+    ReferenceResolver, SnapshotData, SnapshotStore, SourceProvider, StoredNames,
+    SymbolFingerprints, ToolSpec, ToolVersion,
 };
 use codeskimr_application::stage::StageKind;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -28,7 +28,7 @@ use codeskimr_domain::{
     LanguageId, Loc, Metric, MetricKind, MetricValue, ModelError, Permission, PermissionSet,
     Position, Principal, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference,
     ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile, Span,
-    Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName, Timestamp,
+    Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName, SymbolOrigin, Timestamp,
 };
 use common::InMemoryConsent;
 
@@ -187,20 +187,7 @@ impl FileAnalyzer for World {
             content_hash: request.file.content_hash.clone(),
             loc: Loc(3),
         };
-        let stem = request.file.path.as_str().trim_end_matches(".rs");
-        let symbol = Symbol {
-            id: request.ids.symbol(),
-            file: file.id,
-            kind: SymbolKind::Function,
-            name: model(SymbolName::new(stem))?,
-            qualified_name: model(QualifiedName::new(format!("m::{stem}")))?,
-            parent: None,
-            visibility: None,
-            is_static: false,
-            span: span()?,
-            signature: None,
-            doc: None,
-        };
+        let symbol = stem_symbol(request, &file)?;
         let pending = vec![PendingReference {
             from: symbol.id,
             file: file.id,
@@ -358,7 +345,7 @@ impl SnapshotStore for World {
         Ok(snapshot)
     }
 
-    fn replace_references(&self, _: ReferenceReplacement) -> Result<Snapshot, CodedError> {
+    fn replace_level2(&self, _: Level2Replacement) -> Result<Snapshot, CodedError> {
         Err(CodedError::new(ErrorCode::UnexpectedInternalError))
     }
 }
@@ -458,6 +445,24 @@ fn old_file(id: u64, path: &str) -> Result<SourceFile, CodedError> {
     })
 }
 
+fn stem_symbol(request: &AnalyzeRequest<'_>, file: &SourceFile) -> Result<Symbol, CodedError> {
+    let stem = request.file.path.as_str().trim_end_matches(".rs");
+    Ok(Symbol {
+        id: request.ids.symbol(),
+        file: file.id,
+        kind: SymbolKind::Function,
+        name: model(SymbolName::new(stem))?,
+        qualified_name: model(QualifiedName::new(format!("m::{stem}")))?,
+        parent: None,
+        visibility: None,
+        is_static: false,
+        span: span()?,
+        signature: None,
+        doc: None,
+        origin: SymbolOrigin::Syntax,
+    })
+}
+
 fn old_symbol(id: u64, file: u64, name: &str) -> Result<Symbol, CodedError> {
     Ok(Symbol {
         id: SymbolId::new(id),
@@ -471,6 +476,7 @@ fn old_symbol(id: u64, file: u64, name: &str) -> Result<Symbol, CodedError> {
         span: span()?,
         signature: None,
         doc: None,
+        origin: SymbolOrigin::Syntax,
     })
 }
 
@@ -700,6 +706,82 @@ fn resolved_names(world: &World) -> Vec<usize> {
         .lock()
         .unwrap_or_else(PoisonError::into_inner)
         .clone()
+}
+
+/// A symbol that level 2 created (ADR 0055).
+fn created_symbol(id: u64, file: u64, qualified: &str) -> Result<Symbol, CodedError> {
+    Ok(Symbol {
+        qualified_name: model(QualifiedName::new(qualified))?,
+        origin: SymbolOrigin::Index,
+        ..old_symbol(id, file, "Gen")?
+    })
+}
+
+/// What a scan stored as references, as `(from, to, span)` and without the ids it made up.
+fn stored_edges(world: &World) -> Result<Vec<(u64, u64, Span)>, CodedError> {
+    let mut edges: Vec<(u64, u64, Span)> = world
+        .last_persisted()?
+        .references
+        .iter()
+        .map(|r| (r.from.get(), r.to.get(), r.span))
+        .collect();
+    edges.sort_by_key(|(from, to, _)| (*from, *to));
+    Ok(edges)
+}
+
+#[test]
+fn a_scan_gives_the_same_level_one_result_whether_level_two_ran_before_or_not()
+-> Result<(), CodedError> {
+    // Oracle: the same incremental scan over the same snapshot, once plain and once with the
+    // symbols and references that level 2 left in it. 210 has the name of the changed `b`.
+    let plain = world_over(previous_snapshot()?);
+    let mut with_level_two = previous_snapshot()?;
+    with_level_two
+        .index
+        .symbols
+        .push(created_symbol(210, 100, "m::b")?);
+    with_level_two
+        .index
+        .symbols
+        .push(created_symbol(211, 101, "m::Gen")?);
+    with_level_two.index.references.push(old_call(310, 210)?);
+    with_level_two.index.references.push(old_call(311, 211)?);
+    let after_level_two = world_over(with_level_two);
+    let _ = run(&plain, ScanMode::Incremental);
+    let _ = run(&after_level_two, ScanMode::Incremental);
+    assert_eq!(stored_edges(&plain)?, stored_edges(&after_level_two)?);
+    assert_eq!(resolved_names(&plain), resolved_names(&after_level_two));
+    Ok(())
+}
+
+#[test]
+fn a_level_two_reference_from_an_unchanged_file_to_a_symbol_of_a_changed_file_is_dropped()
+-> Result<(), CodedError> {
+    let mut previous = previous_snapshot()?;
+    previous
+        .index
+        .symbols
+        .push(created_symbol(211, 101, "m::Gen")?);
+    previous
+        .index
+        .references
+        .push(verified(old_call(311, 211)?));
+    let world = world_over(previous);
+    let (result, _) = run(&world, ScanMode::Incremental);
+    let JobResult::Finished(job) = result else {
+        panic!("scan did not finish");
+    };
+    let persisted = world.last_persisted()?;
+    assert!(
+        persisted.references.iter().all(|r| r.to.get() != 211),
+        "level 1 does not make the reference again"
+    );
+    assert_eq!(
+        job.snapshot().stats.symbols,
+        2,
+        "a and the new b; 211 left with its file"
+    );
+    Ok(())
 }
 
 #[test]
@@ -1137,6 +1219,8 @@ fn rust_indexer() -> IndexerSpec {
         home_dirs: Vec::new(),
         env: Vec::new(),
         install_hint: String::new(),
+        symbol_kinds: Vec::new(),
+        separator: String::new(),
     }
 }
 

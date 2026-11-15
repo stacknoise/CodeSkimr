@@ -79,6 +79,7 @@ Jeder Lauf ist begrenzt; ein Indexer, der eine Grenze überschreitet, wird samt 
 | `max_output_bytes` (Konsole und Dateien) | 512 MiB | `RES-503` |
 | `max_index_bytes` (größter gelesener Index) | 256 MiB | `RES-501` |
 | `min_mapped` (Anteil der Projekt-Vorkommen, der zuordenbar sein muss) | 0,5 | `RES-302` |
+| `max_created_symbols` (Höchstzahl der Symbole, die Ebene 2 selbst anlegt, z. B. durch Makros erzeugte Typen) | 100000 | `RES-303` |
 
 Der Indexer bekommt eine geleerte Umgebung mit Positivliste (kein Token und kein Geheimnis von CodeSkimr erreicht ihn), läuft in einer eigenen Prozessgruppe, und seine Ausgabe wird geschwärzt, bevor sie protokolliert wird. **Das Netzwerk ist nicht gesperrt**, weil die Paketwiederherstellung es braucht; das ist das wichtigste Restrisiko und der Grund für die Bestätigung.
 
@@ -88,4 +89,4 @@ Ein Index gilt für eine Datei nur, solange ihr Inhalt der zum Zeitpunkt der Ind
 
 ## Fehler
 
-`RES-201` Indexer oder Werkzeugkette fehlt oder ist zu alt, `RES-501` Index zu groß, `RES-502` Zeitlimit, `RES-503` Ausgabe zu groß, `RES-504` Speichergrenze, `RES-601` der Indexer konnte nicht gestartet werden oder ist fehlgeschlagen, `RES-101` der Index ist beschädigt, `RES-302` zu wenige Vorkommen lassen sich Ihren Symbolen zuordnen, `SEC-301` Ebene 2 ist nicht eingeschaltet und bestätigt, `SEC-403` der Aufrufer darf Indexer nicht bestätigen oder starten, `PRJ-303` der Scan wurde abgebrochen. In allen bleibt Ebene 1 bestehen. Siehe [Fehlercodes](fehler.md).
+`RES-201` Indexer oder Werkzeugkette fehlt oder ist zu alt, `RES-501` Index zu groß, `RES-502` Zeitlimit, `RES-503` Ausgabe zu groß, `RES-504` Speichergrenze, `RES-601` der Indexer konnte nicht gestartet werden oder ist fehlgeschlagen, `RES-101` der Index ist beschädigt, `RES-303` Ebene 2 würde zu viele eigene Symbole anlegen, `RES-302` zu wenige Vorkommen lassen sich Ihren Symbolen zuordnen, `SEC-301` Ebene 2 ist nicht eingeschaltet und bestätigt, `SEC-403` der Aufrufer darf Indexer nicht bestätigen oder starten, `PRJ-303` der Scan wurde abgebrochen. In allen bleibt Ebene 1 bestehen. Siehe [Fehlercodes](fehler.md).

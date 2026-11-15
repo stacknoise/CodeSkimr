@@ -60,6 +60,7 @@ mod tests {
                 span: Span::new(position, position).expect("span"),
                 signature: None,
                 doc: None,
+                origin: codeskimr_domain::SymbolOrigin::Syntax,
             });
             id
         }

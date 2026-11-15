@@ -14,7 +14,7 @@ use std::collections::HashSet;
 
 use codeskimr_domain::{
     Confidence, FileId, Reference, ReferenceId, ReferenceKind, RelativePath, SnapshotId,
-    SourceFile, Span, Symbol, SymbolId,
+    SourceFile, Span, Symbol, SymbolId, SymbolOrigin,
 };
 
 use super::shape::{Shape, is_structural};
@@ -76,6 +76,14 @@ fn occurrence(reference: &Reference) -> Occurrence {
         reference.span,
         reference.kind,
     )
+}
+
+/// The symbols that level 1 made itself.
+fn level_one(symbols: Vec<Symbol>) -> Vec<Symbol> {
+    symbols
+        .into_iter()
+        .filter(|symbol| symbol.origin == SymbolOrigin::Syntax)
+        .collect()
 }
 
 fn edge(reference: &Reference) -> Edge {
@@ -184,7 +192,8 @@ impl Carried {
             verified_files: level_two.files,
             lost: level_two.lost,
             dead: gone.iter().map(site).collect(),
-            previous_shape: Shape::of(&vanished, &vanished_names),
+            // The symbols level 2 created are not part of what level 1 sees (ADR 0055).
+            previous_shape: Shape::of(&level_one(vanished), &vanished_names),
             ..Self::default()
         }
     }

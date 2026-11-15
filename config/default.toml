@@ -134,6 +134,8 @@ max_output_bytes = 536870912
 max_index_bytes = 268435456
 # Share mapped / (mapped + unmapped) among the uses of project symbols (symbols the index itself defines; library symbols are not counted) that an index must reach; a lower share, or an index where no use maps, fails with RES-302 and level 1 stays.
 min_mapped = 0.5
+# Most symbols one index may make level 2 create (ADR 0055): definitions that the index states and level 1 does not know, such as the types and enum variants a macro generates. An index that wants more fails as a whole with RES-303, nothing of it is stored and level 1 stays.
+max_created_symbols = 100000
 
 # Local server (blueprint 10.3, S-04). It listens on the loopback address 127.0.0.1 only.
 [server]

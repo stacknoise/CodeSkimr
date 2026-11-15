@@ -19,6 +19,7 @@ fn symbol(id: u64, kind: SymbolKind, name: &str) -> Result<Symbol, ModelError> {
         is_static: false,
         visibility: None,
         parent: None,
+        origin: codeskimr_domain::SymbolOrigin::Syntax,
     })
 }
 
