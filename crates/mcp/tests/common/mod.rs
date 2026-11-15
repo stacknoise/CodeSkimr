@@ -509,7 +509,11 @@ impl FileAnalyzer for FakeDisk {
         let counts = SymbolCounts {
             symbol: function.id,
             loc: Loc(50),
-            body: Some(BodyCounts::default()),
+            body: Some(BodyCounts {
+                cognitive: Some(20),
+                parameters: Some(7),
+                ..BodyCounts::default()
+            }),
             counted: true,
         };
         Ok(FileFacts {
@@ -529,6 +533,8 @@ pub fn checker() -> Arc<ConventionChecker> {
         disk,
         Conventions {
             max_function_lines: 40,
+            max_cognitive_complexity: 15,
+            max_parameters: 5,
             duplicate_similarity_percent: 85,
             duplicate_min_lines: 5,
             duplicate_max_owners: 50,

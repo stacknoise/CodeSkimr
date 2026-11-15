@@ -27,6 +27,8 @@ mod tests {
         seed: u32,
         /// A second function with the same body inside the first one.
         inner: bool,
+        /// Cognitive complexity and parameters of its functions; `None` is a pack that does not count.
+        counted: Option<(u32, u32)>,
     }
 
     /// Files by path; `broken` fails to analyse.
@@ -148,7 +150,11 @@ mod tests {
                     .map(|symbol| SymbolCounts {
                         symbol: symbol.id,
                         loc: Loc(body.loc),
-                        body: Some(BodyCounts::default()),
+                        body: Some(BodyCounts {
+                            cognitive: body.counted.map(|(cognitive, _)| cognitive),
+                            parameters: body.counted.map(|(_, parameters)| parameters),
+                            ..BodyCounts::default()
+                        }),
                         counted: true,
                     })
                     .collect(),
@@ -162,6 +168,8 @@ mod tests {
     fn limits() -> Conventions {
         Conventions {
             max_function_lines: 40,
+            max_cognitive_complexity: 15,
+            max_parameters: 5,
             duplicate_similarity_percent: 85,
             duplicate_min_lines: 5,
             duplicate_max_owners: 50,
@@ -205,6 +213,7 @@ mod tests {
                         loc: 12,
                         seed: 0,
                         inner: false,
+                        counted: None,
                     },
                 ),
                 (
@@ -213,6 +222,7 @@ mod tests {
                         loc: 90,
                         seed: 0,
                         inner: false,
+                        counted: None,
                     },
                 ),
                 (
@@ -221,6 +231,7 @@ mod tests {
                         loc: 8,
                         seed: 500,
                         inner: false,
+                        counted: None,
                     },
                 ),
             ],
@@ -291,6 +302,53 @@ mod tests {
         assert_eq!(codes_with(limits), [ErrorCode::FunctionTooLong]);
     }
 
+    fn counted(cognitive: u32, parameters: u32) -> Disk {
+        Disk {
+            files: vec![(
+                "src/a.rs",
+                Body {
+                    loc: 12,
+                    seed: 0,
+                    inner: false,
+                    counted: Some((cognitive, parameters)),
+                },
+            )],
+            broken: None,
+        }
+    }
+
+    #[test]
+    fn a_function_above_the_cognitive_limit_or_the_parameter_limit_is_reported() {
+        let report = run(&checker(counted(16, 6)), Principal::local_owner(), &[]).expect("checked");
+        let codes: Vec<ErrorCode> = report.findings.iter().map(|finding| finding.code).collect();
+        assert_eq!(
+            codes,
+            [ErrorCode::ComplexityTooHigh, ErrorCode::TooManyParameters]
+        );
+        assert_eq!(
+            report.findings[0].detail,
+            Detail::Over {
+                value: 16,
+                limit: 15
+            }
+        );
+        assert_eq!(
+            report.findings[1].detail,
+            Detail::Over { value: 6, limit: 5 }
+        );
+        assert_eq!(
+            report.not_checked,
+            [ErrorCode::LiteralFound, ErrorCode::LayerViolation],
+            "a language that counts both is checked for both"
+        );
+    }
+
+    #[test]
+    fn a_function_at_the_limits_is_clean() {
+        let report = run(&checker(counted(15, 5)), Principal::local_owner(), &[]).expect("checked");
+        assert_eq!(report.findings.len(), 0);
+    }
+
     #[test]
     fn files_in_test_folders_are_not_checked() {
         let limits = Conventions {
@@ -345,7 +403,8 @@ mod tests {
             [
                 ErrorCode::LiteralFound,
                 ErrorCode::LayerViolation,
-                ErrorCode::ComplexityTooHigh
+                ErrorCode::ComplexityTooHigh,
+                ErrorCode::TooManyParameters
             ]
         );
     }
@@ -370,6 +429,7 @@ mod tests {
             loc: 5,
             seed: 0,
             inner: false,
+            counted: None,
         };
         let checker = only(vec![("a.rs", copy()), ("b.rs", copy()), ("c.rs", copy())]);
         let report = run(&checker, Principal::local_owner(), &[]).expect("checked");
@@ -380,7 +440,7 @@ mod tests {
                 Detail::Duplicate { of, .. } => {
                     Some((finding.location.path.as_str(), of.path.as_str()))
                 }
-                Detail::TooLong { .. } => None,
+                Detail::TooLong { .. } | Detail::Over { .. } => None,
             })
             .collect();
         assert_eq!(found, [("b.rs", "a.rs"), ("c.rs", "a.rs")]);
@@ -445,7 +505,7 @@ mod tests {
                     finding.location.path.as_str().to_owned(),
                     of.path.as_str().to_owned(),
                 )),
-                Detail::TooLong { .. } => None,
+                Detail::TooLong { .. } | Detail::Over { .. } => None,
             })
             .collect()
     }
@@ -455,6 +515,7 @@ mod tests {
             loc: 5,
             seed,
             inner: false,
+            counted: None,
         }
     }
 
@@ -494,6 +555,7 @@ mod tests {
                         loc: 0,
                         seed: 0,
                         inner: false,
+                        counted: None,
                     },
                 ),
             ],
@@ -521,6 +583,7 @@ mod tests {
             loc: 5,
             seed: 0,
             inner: true,
+            counted: None,
         };
         let report =
             run(&only(vec![("a.rs", nested)]), Principal::local_owner(), &[]).expect("checked");
@@ -536,6 +599,7 @@ mod tests {
                     loc: 5,
                     seed: 0,
                     inner: false,
+                    counted: None,
                 },
             ),
             (
@@ -544,6 +608,7 @@ mod tests {
                     loc: 5,
                     seed: 9,
                     inner: false,
+                    counted: None,
                 },
             ),
         ]);
