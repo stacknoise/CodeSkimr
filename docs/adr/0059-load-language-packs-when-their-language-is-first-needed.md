@@ -37,5 +37,5 @@ Measured for issue #410 (release build, 4 cores, Newtonsoft.Json `Src`, 951 file
 
 - Start-up of `serve`, `mcp` and every CLI command that does not scan drops by about 1 s; the first scan of a language pays that language's pack once.
 - A broken pack is no longer an error at start-up but at the first file of its language (and in CI). The error text and code do not change.
-- The scan benchmark (`scan/full_100k_loc`, budget `full_scan_100k_loc_ms`) now includes the load of the pack inside the measured scan if the benchmark builds the packs inside the scan; the benchmark must load them before the timed part, as the interactive use does, or the budget must say what it contains. The implementation PR checks `tools/bench`.
+- The benchmarks of `tools/bench` do not build language packs, so no budget changes; the measurements above are by hand. A benchmark that scans real code (issue #410, plan step 3) loads the packs before the timed part.
 - The stage timing of the scan (`parse_micros`) is not affected.
