@@ -134,8 +134,10 @@
 (function_definition parameters: (parameters [(typed_parameter) (default_parameter) (typed_default_parameter) (list_splat_pattern) (dictionary_splat_pattern)] @parameter))
 
 ; Literals the rule of no literals reports (ADR 0058, R-06): numbers and strings in a function.
-; Exceptions: the integers 0 and 1, a docstring (a string that is a statement of its own) and a
-; string inside a type annotation. `True`, `False` and `None` are no literals here.
+; Exceptions: the integers 0 and 1, a string that is a statement of its own (a docstring; any such
+; statement has no effect, so it is no value to keep elsewhere) and a string inside a type
+; annotation. The floats 0.0 and 1.0 and the parts of a concatenation (`"a" "b"` counts two)
+; are literals. `True`, `False` and `None` are no literals here.
 [(integer) (float) (string)] @literal
 ((integer) @literal_exempt (#any-of? @literal_exempt "0" "1"))
 (expression_statement (string) @literal_exempt)

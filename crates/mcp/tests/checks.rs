@@ -236,23 +236,25 @@ fn the_check_reports_a_long_function_with_its_numbers() {
     let answer = tools()
         .check_conventions(&owner(), &conventions(&["src"]))
         .unwrap();
-    let finding = &answer["findings"][0];
+    let finding = answer["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|finding| finding["code"] == "CHK-104")
+        .unwrap();
     assert_eq!(answer["files_checked"], 1);
     assert_eq!(finding["code"], "CHK-104");
     assert_eq!(finding["path"], "src/big.cs");
     assert_eq!(finding["symbol"], "App.Big.Run");
     assert_eq!(finding["lines"], 50);
     assert_eq!(finding["max_lines"], 40);
-    assert_eq!(
-        answer["not_checked"],
-        serde_json::json!(["CHK-103", "CHK-101"])
-    );
+    assert_eq!(answer["not_checked"], serde_json::json!(["CHK-103"]));
 }
 
 #[test]
 fn the_check_reports_complexity_and_parameters_with_their_limits() {
     let args = ConventionsArgs {
-        limit: Some(10),
+        limit: Some(100),
         ..conventions(&["src"])
     };
     let answer = tools().check_conventions(&owner(), &args).unwrap();
@@ -267,6 +269,7 @@ fn the_check_reports_complexity_and_parameters_with_their_limits() {
     assert_eq!(find("CHK-105")["max_value"], 15);
     assert_eq!(find("CHK-106")["value"], 7);
     assert_eq!(find("CHK-106")["max_value"], 5);
+    assert_eq!(find("CHK-101")["literals"], 3);
 }
 
 #[test]
@@ -287,7 +290,7 @@ fn no_paths_check_the_whole_project() {
     };
     let answer = tools().check_conventions(&owner(), &args).unwrap();
     assert_eq!(answer["files_checked"], 1);
-    assert_eq!(answer["total"], 3);
+    assert_eq!(answer["total"], 4);
 }
 
 #[test]

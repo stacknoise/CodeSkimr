@@ -39,7 +39,7 @@ struct Support {
 }
 
 impl Tally<'_> {
-    fn counts(&self, support: Support, (cognitive, literals): (u32, u32)) -> BodyCounts {
+    fn counts(&self, support: Support, cognitive: u32, literals: u32) -> BodyCounts {
         BodyCounts {
             decisions: self.decisions,
             halstead: HalsteadCounts {
@@ -304,7 +304,7 @@ impl<'t> Measured<'t> {
         let empty = Tally::default();
         let tally = self.found.tallies.get(&id).unwrap_or(&empty);
         let literals = tally.literals.difference(&self.found.exempt).count();
-        tally.counts(self.support, (self.cognitive(id, tally), size(literals)))
+        tally.counts(self.support, self.cognitive(id, tally), size(literals))
     }
 }
 

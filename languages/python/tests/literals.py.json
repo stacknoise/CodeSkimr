@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 21,
+      "loc": 25,
       "operands": null,
       "operators": null,
       "symbol": "literals"
@@ -60,6 +60,32 @@
       "symbol": "literals.annotated"
     },
     {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "literals.joined"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "literals.interpolated"
+    },
+    {
       "decisions": 2,
       "loc": 2,
       "operands": [
@@ -93,7 +119,7 @@
       "symbol": "literals.Holder.method"
     }
   ],
-  "loc": 21,
+  "loc": 25,
   "references": [
     {
       "at": "20:38",
@@ -103,7 +129,7 @@
       "target": "int"
     },
     {
-      "at": "29:4",
+      "at": "37:4",
       "from": "literals.Holder.FIELD",
       "kind": "write",
       "receiver": null,
@@ -117,7 +143,7 @@
       "name": "literals",
       "parent": null,
       "signature": null,
-      "span": "0:0-34:0",
+      "span": "0:0-42:0",
       "static": false,
       "visibility": null
     },
@@ -164,10 +190,30 @@
     {
       "doc": null,
       "kind": "function",
+      "name": "literals.joined",
+      "parent": "literals",
+      "signature": null,
+      "span": "24:0-25:18",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "literals.interpolated",
+      "parent": "literals",
+      "signature": null,
+      "span": "28:0-29:25",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
       "name": "literals.flags",
       "parent": "literals",
       "signature": null,
-      "span": "24:0-25:32",
+      "span": "32:0-33:32",
       "static": false,
       "visibility": "public"
     },
@@ -177,7 +223,7 @@
       "name": "literals.Holder",
       "parent": "literals",
       "signature": null,
-      "span": "28:0-33:24",
+      "span": "36:0-41:24",
       "static": false,
       "visibility": "public"
     },
@@ -187,7 +233,7 @@
       "name": "literals.Holder.FIELD",
       "parent": "literals.Holder",
       "signature": null,
-      "span": "29:4-29:14",
+      "span": "37:4-37:14",
       "static": false,
       "visibility": "public"
     },
@@ -197,7 +243,7 @@
       "name": "literals.Holder.method",
       "parent": "literals.Holder",
       "signature": null,
-      "span": "31:4-33:24",
+      "span": "39:4-41:24",
       "static": false,
       "visibility": "public"
     }

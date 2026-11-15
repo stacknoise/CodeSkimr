@@ -56,10 +56,13 @@ mod tests {
         assert_eq!(literals("clean"), Some(0));
         // 42, 2.5; 0 and 1 are exceptions
         assert_eq!(literals("numbers"), Some(2));
-        // "x", 'y' and the text part of the f-string; the parts of an f-string are one string
+        // "x", 'y' and the f-string
         assert_eq!(literals("strings"), Some(3));
         // the default 7; the two strings in annotations are exceptions
         assert_eq!(literals("annotated"), Some(1));
+        // every part of a concatenation counts; so does a string inside an interpolation
+        assert_eq!(literals("joined"), Some(2));
+        assert_eq!(literals("interpolated"), Some(2));
         assert_eq!(literals("flags"), Some(0));
         // 1, 2 and 3: the 1 is an exception, a class field outside a function counts for nobody
         assert_eq!(literals("method"), Some(2));

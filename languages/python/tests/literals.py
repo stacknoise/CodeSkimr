@@ -22,6 +22,14 @@ def annotated(first: "Order", second: int = 7) -> "Order":
     return first
 
 
+def joined():
+    return "a" "b"
+
+
+def interpolated(data):
+    return f"{data['k']}"
+
+
 def flags():
     return True or False or None
 
