@@ -42,7 +42,7 @@ export function handler(x: string): number {
 }
 
 export function callbacks(items: number[]): number[] {
-  return items.map((x) => (x > 1 ? x : 0));
+  return items.map((x, i) => (x > i ? x : 0));
 }
 
 export const arrow = (x: number): number => {
@@ -80,7 +80,16 @@ export function loops(a: number): number {
   return a;
 }
 
+export function typed(cb: (a: number, b: number) => void): void {
+  cb(1, 2);
+}
+
+export const single = (x: number) => x;
+export const bare = async (x) => x;
+
 export class Shop {
+  field = (p: number, q: number): number => p + q;
+
   method(this: Shop, a: number, b?: string, c = 3, ...rest: number[]): number {
     return a + c + rest.length + (b ? 1 : 0);
   }

@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 75,
+      "loc": 81,
       "operands": null,
       "operators": null,
       "symbol": "cognitive"
@@ -125,11 +125,63 @@
       "symbol": "cognitive.loops"
     },
     {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        3,
+        3
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "cognitive.typed"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "cognitive.single"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "cognitive.bare"
+    },
+    {
       "decisions": null,
-      "loc": 5,
+      "loc": 6,
       "operands": null,
       "operators": null,
       "symbol": "cognitive.Shop"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "cognitive.Shop.field"
     },
     {
       "decisions": 1,
@@ -145,7 +197,7 @@
       "symbol": "cognitive.Shop.method"
     }
   ],
-  "loc": 75,
+  "loc": 81,
   "references": [
     {
       "at": "34:11",
@@ -162,21 +214,21 @@
       "target": "map"
     },
     {
-      "at": "83:15",
+      "at": "92:15",
       "from": "cognitive.Shop.method",
       "kind": "type_use",
       "receiver": null,
       "target": "Shop"
     },
     {
-      "at": "84:19",
+      "at": "93:19",
       "from": "cognitive.Shop.method",
       "kind": "read",
       "receiver": null,
       "target": "rest"
     },
     {
-      "at": "84:24",
+      "at": "93:24",
       "from": "cognitive.Shop.method",
       "kind": "read",
       "receiver": "named rest",
@@ -190,7 +242,7 @@
       "name": "cognitive",
       "parent": null,
       "signature": null,
-      "span": "0:0-87:0",
+      "span": "0:0-96:0",
       "static": false,
       "visibility": null
     },
@@ -286,11 +338,51 @@
     },
     {
       "doc": null,
+      "kind": "function",
+      "name": "cognitive.typed",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "82:7-84:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.single",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "86:22-86:38",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.bare",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "87:20-87:34",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
       "kind": "class",
       "name": "cognitive.Shop",
       "parent": "cognitive",
       "signature": null,
-      "span": "82:7-86:1",
+      "span": "89:7-95:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "cognitive.Shop.field",
+      "parent": "cognitive.Shop",
+      "signature": null,
+      "span": "90:10-90:49",
       "static": false,
       "visibility": "public"
     },
@@ -300,7 +392,7 @@
       "name": "cognitive.Shop.method",
       "parent": "cognitive.Shop",
       "signature": null,
-      "span": "83:2-85:3",
+      "span": "92:2-94:3",
       "static": false,
       "visibility": "public"
     }

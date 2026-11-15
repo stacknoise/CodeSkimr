@@ -58,6 +58,24 @@ mod tests {
         assert_eq!(parameters("runs"), Some(4));
         // `this: Shop` is only a type, then a, b?, c = 3 and ...rest
         assert_eq!(parameters("method"), Some(4));
+        // the callback `(x, i) => ...` and the function type of `cb` are not parameters of
+        // the function around them
+        assert_eq!(parameters("callbacks"), Some(1));
+        assert_eq!(parameters("typed"), Some(1));
+        // the unparenthesised parameter, and a function value in a class field
+        assert_eq!(parameters("single"), Some(1));
+        assert_eq!(parameters("bare"), Some(1));
+        assert_eq!(parameters("field"), Some(2));
+    }
+
+    #[test]
+    fn the_javascript_pack_counts_with_the_same_queries() {
+        let found = by_name(&facts("javascript", "cognitive.js"));
+        assert_eq!(body(&found, "nested").cognitive, Some(6));
+        assert_eq!(body(&found, "callbacks").cognitive, Some(2));
+        assert_eq!(body(&found, "callbacks").parameters, Some(1));
+        assert_eq!(body(&found, "single").parameters, Some(1));
+        assert_eq!(body(&found, "field").parameters, Some(2));
     }
 
     #[test]

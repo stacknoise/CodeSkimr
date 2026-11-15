@@ -122,6 +122,20 @@
 (await_expression [(arrow_function) (function_expression) (generator_function)] @nesting)
 (pair value: [(arrow_function) (function_expression) (generator_function)] @nesting)
 (assignment_expression right: [(arrow_function) (function_expression) (generator_function)] @nesting)
+(ternary_expression [(arrow_function) (function_expression) (generator_function)] @nesting)
+(binary_expression [(arrow_function) (function_expression) (generator_function)] @nesting)
 
-; Parameters of a function: every child of the list but a comment and the `this` type
-(formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])"))
+; Parameters, only those of a function of its own: a declaration, a method, and a function value in
+; a `const` or in a class field. The parameters of a callback or of a function type are not the
+; ones of the function around them. A list holds every child but a comment and the `this` type.
+(function_declaration parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])")))
+(generator_function_declaration parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])")))
+(method_definition parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])")))
+(variable_declarator value: (arrow_function parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])"))))
+(variable_declarator value: (function_expression parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])"))))
+(variable_declarator value: (generator_function parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])"))))
+(variable_declarator value: (arrow_function parameter: (identifier) @parameter))
+(class_body (_ value: (arrow_function parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])")))))
+(class_body (_ value: (function_expression parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])")))))
+(class_body (_ value: (generator_function parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])")))))
+(class_body (_ value: (arrow_function parameter: (identifier) @parameter)))
