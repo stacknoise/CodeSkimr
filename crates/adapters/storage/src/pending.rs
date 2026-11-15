@@ -130,22 +130,29 @@ pub fn load(
                 params![snapshot, files, callers],
             )
         }
-        Which::Targeting(names) => run(
-            conn,
-            sql::PENDING_TARGETING,
-            params![snapshot, text_list(names), import],
-        ),
-        Which::ImportsTargeting(names) => run(
-            conn,
-            sql::PENDING_IMPORTS_TARGETING,
-            params![snapshot, text_list(names), import],
-        ),
+        Which::Targeting(names) => by_names(conn, sql::PENDING_TARGETING, snapshot, names),
+        Which::ImportsTargeting(names) => {
+            by_names(conn, sql::PENDING_IMPORTS_TARGETING, snapshot, names)
+        }
         Which::OfFiles(files) => {
             let list = id_list(files.iter().map(|file| file.get()))?;
             run(conn, sql::PENDING_OF_FILES, params![snapshot, list])
         }
         Which::All => run(conn, sql::PENDING_OF_SNAPSHOT, params![snapshot]),
     }
+}
+
+/// Runs a statement that looks names up in the text list of `names`.
+fn by_names(
+    conn: &Connection,
+    statement: &str,
+    snapshot: i64,
+    names: &[String],
+) -> StorageResult<Vec<PendingReference>> {
+    let import = ReferenceKind::Import.label();
+    let separator = NAME_SEPARATOR.to_string();
+    let list = text_list(names);
+    run(conn, statement, params![snapshot, list, import, separator])
 }
 
 /// Runs one of the statements above and decodes its rows.
