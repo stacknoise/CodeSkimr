@@ -5,9 +5,9 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::ProjectScanner;
+use codeskimr_application::ports::{ProjectScanner, Rescanned};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Principal, ProjectId, Snapshot};
+use codeskimr_domain::{Principal, ProjectId};
 
 use crate::consts::MAX_PARALLEL_SCANS;
 
@@ -95,7 +95,7 @@ impl ProjectScanner for ExclusiveScans {
         principal: &Principal,
         project: ProjectId,
         paths: &[String],
-    ) -> Result<Snapshot, CodedError> {
+    ) -> Result<Rescanned, CodedError> {
         let _scanning = self.running.start(project)?;
         self.inner.rescan_paths(principal, project, paths)
     }
@@ -136,7 +136,7 @@ mod tests {
             _: &Principal,
             _: ProjectId,
             _: &[String],
-        ) -> Result<Snapshot, CodedError> {
+        ) -> Result<Rescanned, CodedError> {
             Err(CodedError::new(ErrorCode::ScanCancelled))
         }
     }

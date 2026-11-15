@@ -3,6 +3,7 @@
 use std::time::Instant;
 
 use codeskimr_application::access;
+use codeskimr_application::ports::Rescanned;
 use codeskimr_application::tools::ToolsView;
 use codeskimr_domain::Principal;
 use serde::Serialize;
@@ -28,6 +29,10 @@ struct Answer {
     tools: Vec<ToolInfo>,
     /// The paths the scan was restricted to; empty if it looked at the whole project.
     paths: Vec<String>,
+    /// Paths that name no file of the project, a typo for one; the scan changed nothing for them.
+    unmatched_paths: Vec<String>,
+    /// Whether the scan had to be a full one and so ignored `paths`.
+    paths_ignored: bool,
 }
 
 impl Tools {
@@ -41,7 +46,7 @@ impl Tools {
         access::require(principal, SCAN_TOOL_PERMISSION)?;
         let project = self.project(args.project)?;
         let started = Instant::now();
-        let snapshot = self.scanner().rescan_paths(
+        let Rescanned { snapshot, paths } = self.scanner().rescan_paths(
             principal,
             project.id,
             args.paths.as_deref().unwrap_or_default(),
@@ -61,6 +66,8 @@ impl Tools {
             duration_ms: u64::try_from(elapsed.as_millis()).unwrap_or(u64::MAX),
             tools: self.tool_infos(&view),
             paths: args.paths.clone().unwrap_or_default(),
+            unmatched_paths: paths.unmatched,
+            paths_ignored: paths.ignored,
         })
     }
 }

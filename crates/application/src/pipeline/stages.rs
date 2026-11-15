@@ -24,8 +24,8 @@ use crate::error::CodedError;
 use crate::ids::IdSequence;
 use crate::ports::{
     AnalyzeRequest, Clock, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts,
-    MetricsCalculator, PendingReference, ProjectRepository, ReferenceResolver, ScanWarning,
-    SnapshotData, SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints,
+    MetricsCalculator, PathsReport, PendingReference, ProjectRepository, ReferenceResolver,
+    ScanWarning, SnapshotData, SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints,
 };
 use crate::resolve::ambiguous_occurrences;
 use crate::selection::Selection;
@@ -51,6 +51,8 @@ pub struct ScanRun {
     pub mode: ScanMode,
     /// The paths an incremental scan looks at; empty means all.
     pub paths: Selection,
+    /// What became of the paths, set by the discover stage.
+    pub paths_report: PathsReport,
     /// The snapshot this scan will create.
     pub snapshot: SnapshotId,
     /// Local folder with the files.
@@ -165,6 +167,7 @@ impl Stage for FetchStage {
             project: input.project,
             mode: input.mode,
             paths: input.paths,
+            paths_report: PathsReport::default(),
             snapshot: self.ids.snapshot(),
             root: fetched.root,
             commit: fetched.commit,
@@ -219,6 +222,7 @@ impl Stage for DiscoverStage {
         let mut files = self
             .discovery
             .discover(&run.root, &state.files, ctx.cancel_token())?;
+        run.paths_report = report_paths(run.mode, &files, &state.files, &run.paths);
         if run.mode == ScanMode::Incremental {
             limit_to_paths(&mut files, &state.files, &run.paths);
         }
@@ -235,6 +239,24 @@ impl Stage for DiscoverStage {
             files,
             carried,
         })
+    }
+}
+
+/// What becomes of `paths`: those that name no file now and in the previous snapshot, and whether
+/// a full scan makes the scan ignore them.
+fn report_paths(
+    mode: ScanMode,
+    files: &[DiscoveredFile],
+    previous: &[SourceFile],
+    paths: &Selection,
+) -> PathsReport {
+    let known = files
+        .iter()
+        .map(|file| &file.path)
+        .chain(previous.iter().map(|file| &file.path));
+    PathsReport {
+        unmatched: paths.unmatched_in(known),
+        ignored: !paths.is_empty() && mode == ScanMode::Full,
     }
 }
 
@@ -567,6 +589,8 @@ pub struct Persisted {
     pub root: FolderPath,
     /// What the scan wants to tell besides its result: one entry per code, with a count.
     pub warnings: Vec<ScanWarning>,
+    /// What became of the paths of the scan.
+    pub paths: PathsReport,
 }
 
 /// Writes one log line per warning of the scan.
@@ -636,6 +660,7 @@ impl Stage for PersistStage {
             snapshot: stored,
             root,
             warnings,
+            paths: input.run.paths_report,
         })
     }
 }

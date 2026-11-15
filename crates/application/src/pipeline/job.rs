@@ -7,7 +7,7 @@ use codeskimr_domain::{ProjectId, ScanMode, Snapshot};
 
 use crate::cancel::CancelToken;
 use crate::level2::LanguageReport;
-use crate::ports::ScanWarning;
+use crate::ports::{PathsReport, ScanWarning};
 use crate::selection::Selection;
 
 mod sealed {
@@ -30,6 +30,7 @@ pub struct Finished {
     snapshot: Snapshot,
     level2: Vec<LanguageReport>,
     warnings: Vec<ScanWarning>,
+    paths: PathsReport,
 }
 /// Ended because the user cancelled; no snapshot exists.
 #[derive(Debug)]
@@ -166,19 +167,21 @@ impl Job<Running> {
         &self.cancel
     }
 
-    /// Ends the job with its snapshot, what the second pass reports per language and the
-    /// warnings of the scan.
+    /// Ends the job with its snapshot, what the second pass reports per language, the warnings
+    /// of the scan and what became of its paths.
     #[must_use]
     pub fn finish(
         self,
         snapshot: Snapshot,
         level2: Vec<LanguageReport>,
         warnings: Vec<ScanWarning>,
+        paths: PathsReport,
     ) -> Job<Finished> {
         self.into_state(Finished {
             snapshot,
             level2,
             warnings,
+            paths,
         })
     }
 
@@ -206,6 +209,12 @@ impl Job<Finished> {
     #[must_use]
     pub fn level2(&self) -> &[LanguageReport] {
         &self.state.level2
+    }
+
+    /// What became of the paths the job was asked to look at.
+    #[must_use]
+    pub const fn paths_report(&self) -> &PathsReport {
+        &self.state.paths
     }
 
     /// The warnings of the scan, one per code with a count; empty if there is none.

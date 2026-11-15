@@ -47,9 +47,19 @@ impl Selection {
     /// The named paths that select none of `files`; a typo must not look like a clean check.
     #[must_use]
     pub fn unmatched(&self, files: &[DiscoveredFile]) -> Vec<String> {
+        self.unmatched_in(files.iter().map(|file| &file.path))
+    }
+
+    /// The named paths that select none of `paths`, tidied.
+    #[must_use]
+    pub fn unmatched_in<'a>(
+        &self,
+        paths: impl IntoIterator<Item = &'a RelativePath>,
+    ) -> Vec<String> {
+        let known: Vec<&RelativePath> = paths.into_iter().collect();
         self.0
             .iter()
-            .filter(|wanted| !files.iter().any(|file| names(wanted, &file.path)))
+            .filter(|wanted| !known.iter().any(|path| names(wanted, path)))
             .cloned()
             .collect()
     }
