@@ -23,4 +23,10 @@ CREATE TABLE pending_references (
     receiver_name TEXT
 ) STRICT;
 
-CREATE INDEX pending_references_by_file ON pending_references (file_id);
+-- By file, then by the symbol the name is written in: the names of a file, and the names of some
+-- symbols of some files, are read with it.
+CREATE INDEX pending_references_by_file ON pending_references (file_id, from_symbol);
+
+-- The base lists of all types are read at the start of every incremental scan; there are few.
+CREATE INDEX pending_references_bases ON pending_references (file_id)
+    WHERE kind IN ('inherit', 'implement');

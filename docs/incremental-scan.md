@@ -72,9 +72,18 @@ base (`origin/main`) and this change, in milliseconds:
 The budget of blueprint 16.1 is 300 ms for one saved file on the reference laptop. This machine is
 not that laptop and the base already needs 360 ms on it (discover and persist are 80 percent of
 that, they are not part of this change), so the absolute number is no verdict on the budget; what
-counts is the change against the base, which is within the noise of the runs (CI measures it with
-`tools/bench`, ratio against the base commit, ADR 0014). Resolving all names every time would have cost 25 to 35 percent more, which is why a change of
-the declarations is the only case that does it.
+counts is the change against the base (CI measures it with `tools/bench`, ratio against the base
+commit, ADR 0014, limit 10 percent). Resolving all names every time would have cost 25 to 35 percent
+more, which is why a change of the declarations is the only case that does it.
+
+The names are not read with the previous state. `latest_state` reads files, symbols and references
+(and says whether names are stored); the resolver asks for the names it needs through
+`ProjectRepository::stored_names`: the base lists (inherit and implement, partial index
+`pending_references_bases`), the names at the sites that lost a target together with the names of the
+callers of removed symbols (index `(file_id, from_symbol)`), the imports of the involved files, or all
+names when the shape changed. An edit that keeps the shape therefore reads a few hundred rows instead
+of 64 000. `tools/bench` (release, this machine, base and head back to back): `rescan/one_file_100k_loc`
+123 ms against 133 ms, `rescan/one_file_100k_loc_csharp` 176 ms against 180 ms.
 
 The names take space: 64 333 rows in `pending_references` for the 84 880 references, 3.3 MB of a
 database of 37.1 MB with five snapshots (32.8 MB without; the rows are shared between snapshots that

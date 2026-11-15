@@ -49,7 +49,7 @@ pub use source::{
 };
 pub use storage::{
     PreviousIndex, PreviousState, ProjectRepository, ReferenceReplacement, SnapshotData,
-    SnapshotStore,
+    SnapshotStore, StoredNames,
 };
 pub use tools::{
     ProjectToolCheck, RequirementReader, RequirementValue, ToolCatalog, ToolPlan, ToolReportStore,

@@ -349,3 +349,31 @@ fn an_edit_that_only_adds_a_comment_gives_the_same_result() {
         )],
     ]);
 }
+
+#[test]
+fn a_name_that_an_import_makes_visible_follows_an_edit_of_the_imported_file() {
+    assert_same(&[(
+        "Lib.cs",
+        Some(
+            "namespace Demo.Lib;\n\npublic class Tool\n{\n    public static void Run() { Helper.Go(); }\n}\n",
+        ),
+    )]);
+}
+
+#[test]
+fn a_name_that_an_import_makes_visible_follows_a_rename_and_a_second_candidate() {
+    assert_same_in_steps(&[
+        &[(
+            "Lib.cs",
+            Some(
+                "namespace Demo.Lib;\n\npublic class Gadget\n{\n    public static void Run() { }\n}\n",
+            ),
+        )],
+        &[(
+            "Elsewhere.cs",
+            Some(
+                "namespace Demo.Elsewhere;\n\npublic class Tool\n{\n    public static void Run() { }\n}\n",
+            ),
+        )],
+    ]);
+}

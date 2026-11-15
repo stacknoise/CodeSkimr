@@ -2,7 +2,7 @@
 
 use codeskimr_domain::{
     FileId, LanguageId, Metric, Project, ProjectId, Reference, ReferenceId, RelativePath, Snapshot,
-    SnapshotId, SourceFile, Symbol,
+    SnapshotId, SourceFile, Symbol, SymbolId,
 };
 
 use super::{PendingReference, SymbolFingerprints};
@@ -59,17 +59,31 @@ pub struct PreviousIndex {
     pub references: Vec<Reference>,
 }
 
-/// The newest snapshot of a project as one consistent read: files, symbols and references, and the
-/// names that were not resolved to a symbol or were resolved. Read in one transaction, so a snapshot
-/// written in between cannot make the parts disagree.
+/// Which of the names as written a snapshot holds to read (see [`ProjectRepository::stored_names`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StoredNames<'a> {
+    /// The base lists of all types: what the resolver needs to know which type inherits from
+    /// which.
+    Bases,
+    /// The imports of these files: what the resolver needs to know what a file sees.
+    ImportsOf(&'a [FileId]),
+    /// The names written inside these symbols, which are in these files.
+    Callers(&'a [FileId], &'a [SymbolId]),
+    /// Every name.
+    All,
+}
+
+/// The newest snapshot of a project as one consistent read: files, symbols and references. Read in
+/// one transaction, so a snapshot written in between cannot make the parts disagree. The names as
+/// written are read from `snapshot` afterwards, as far as they are needed.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct PreviousState {
     /// The files.
     pub files: Vec<SourceFile>,
     /// All symbols and references.
     pub index: PreviousIndex,
-    /// The names as written in all files of the snapshot.
-    pub pending: Vec<PendingReference>,
+    /// The snapshot that was read, `None` if the project has none.
+    pub snapshot: Option<SnapshotId>,
     /// Whether the snapshot stores the names as written. One written before the store did cannot
     /// be continued by an incremental scan, because it could not resolve the names again.
     pub names_stored: bool,
@@ -106,10 +120,9 @@ pub trait ProjectRepository: Send + Sync {
     /// A coded failure of the `STO` group.
     fn latest_index(&self, id: ProjectId) -> Result<PreviousIndex, CodedError>;
 
-    /// Files, index and stored names of the newest snapshot in one read. The default calls
-    /// `latest_files` and `latest_index` one after the other and knows no stored names, so a scan
-    /// over it is always a full one; an adapter
-    /// that can read them in one transaction overrides it.
+    /// Files and index of the newest snapshot in one read. The default calls `latest_files` and
+    /// `latest_index` one after the other and knows no stored names, so a scan over it is always a
+    /// full one; an adapter that can read them in one transaction overrides it.
     ///
     /// # Errors
     /// A coded failure of the `STO` group.
@@ -117,9 +130,24 @@ pub trait ProjectRepository: Send + Sync {
         Ok(PreviousState {
             files: self.latest_files(id)?,
             index: self.latest_index(id)?,
-            pending: Vec::new(),
+            snapshot: None,
             names_stored: false,
         })
+    }
+
+    /// The names as written in the files of `snapshot` (one of `latest_state`), as far as `which`
+    /// asks. The rows belong to the files, which no scan changes, so the answer is the one of the
+    /// state. The default holds none.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn stored_names(
+        &self,
+        snapshot: SnapshotId,
+        which: StoredNames<'_>,
+    ) -> Result<Vec<PendingReference>, CodedError> {
+        let _ = (snapshot, which);
+        Ok(Vec::new())
     }
 
     /// The naming rules the newest snapshot of the project was scanned with, `None` if it has no

@@ -13,12 +13,15 @@
 use std::collections::HashSet;
 
 use codeskimr_domain::{
-    Confidence, FileId, Reference, ReferenceId, ReferenceKind, RelativePath, SourceFile, Span,
-    Symbol, SymbolId,
+    Confidence, FileId, Reference, ReferenceId, ReferenceKind, RelativePath, SnapshotId,
+    SourceFile, Span, Symbol, SymbolId,
 };
 
-use super::shape::{Shape, is_base};
-use crate::ports::{DiscoveredFile, PendingReference, PreviousIndex, PreviousState};
+use super::shape::{Shape, is_structural};
+use crate::error::CodedError;
+use crate::ports::{
+    DiscoveredFile, PendingReference, PreviousIndex, PreviousState, ProjectRepository, StoredNames,
+};
 
 /// The kept part of the previous snapshot. Empty in a full scan.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -32,8 +35,10 @@ pub struct Carried {
     /// References from unchanged files to symbols that still exist. [`Carried::reconcile`] removes
     /// those that a full scan would no longer produce.
     pub references: Vec<Reference>,
-    /// The names as written in the unchanged files, to be resolved again with every scan.
-    pub names: Vec<PendingReference>,
+    /// The base lists of the unchanged files, which every scan resolves again.
+    pub bases: Vec<PendingReference>,
+    /// The snapshot the other names are read from when they are needed.
+    snapshot: Option<SnapshotId>,
     /// Kept references that the resolution no longer produces; the store drops them.
     pub dropped: Vec<ReferenceId>,
     /// How many references that level 2 had verified pointed to a symbol that is gone and were
@@ -110,11 +115,15 @@ impl Carried {
     /// Splits the previous snapshot into what is kept and what is gone, and marks every
     /// discovered file that the previous snapshot does not know as changed.
     #[must_use]
-    pub fn from_previous(discovered: &mut [DiscoveredFile], previous: PreviousState) -> Self {
+    pub fn from_previous(
+        discovered: &mut [DiscoveredFile],
+        previous: PreviousState,
+        bases: Vec<PendingReference>,
+    ) -> Self {
         let PreviousState {
             files,
             index,
-            pending,
+            snapshot,
             names_stored: _,
         } = previous;
         let known: HashSet<&RelativePath> = files.iter().map(|file| &file.path).collect();
@@ -141,13 +150,14 @@ impl Carried {
             .collect();
         Self {
             removed,
-            ..Self::keep(kept, index, pending)
+            snapshot,
+            ..Self::keep(kept, index, bases)
         }
     }
 
     /// Keeps the symbols, references and names of `files`; the other fields stay empty, except
     /// what the resolver saw of the files that are not kept.
-    fn keep(files: Vec<SourceFile>, index: PreviousIndex, pending: Vec<PendingReference>) -> Self {
+    fn keep(files: Vec<SourceFile>, index: PreviousIndex, bases: Vec<PendingReference>) -> Self {
         let kept: HashSet<FileId> = files.iter().map(|file| file.id).collect();
         let PreviousIndex {
             symbols,
@@ -156,7 +166,7 @@ impl Carried {
         let (symbols, vanished): (Vec<Symbol>, Vec<Symbol>) = symbols
             .into_iter()
             .partition(|symbol| kept.contains(&symbol.file));
-        let (names, vanished_names): (Vec<PendingReference>, Vec<PendingReference>) = pending
+        let (names, vanished_names): (Vec<PendingReference>, Vec<PendingReference>) = bases
             .into_iter()
             .partition(|name| kept.contains(&name.file));
         let alive: HashSet<SymbolId> = symbols.iter().map(|symbol| symbol.id).collect();
@@ -169,7 +179,7 @@ impl Carried {
             files,
             symbols,
             references: stay,
-            names,
+            bases: names,
             discarded_verified: level_two.discarded,
             verified_files: level_two.files,
             lost: level_two.lost,
@@ -181,34 +191,72 @@ impl Carried {
 
     /// The names to resolve again besides the new ones `fresh`, written in the files `symbols`
     /// belong to. If the changed files show the same shape as before, nothing an unchanged name
-    /// resolves against has changed but the ids of the symbols: the names that pointed at such a
-    /// symbol are resolved again, and the imports and base lists, which the resolver needs to know
-    /// what a file sees and which type inherits from which. Otherwise all names are.
+    /// resolves against has changed but the ids of the symbols: the names written inside the
+    /// symbols that pointed at such a symbol are resolved again, and the imports and base lists,
+    /// which the resolver needs to know what a file sees and which type inherits from which.
+    /// Otherwise all names are. The names come from the store only now, and only as far as they are
+    /// needed.
+    ///
+    /// # Errors
+    /// A coded failure of the store.
     pub fn due_names(
         &mut self,
-        symbols: &[Symbol],
-        fresh: &[PendingReference],
-    ) -> Vec<PendingReference> {
+        (symbols, fresh): (&[Symbol], &[PendingReference]),
+        store: &dyn ProjectRepository,
+    ) -> Result<Vec<PendingReference>, CodedError> {
+        let Some(snapshot) = self.snapshot else {
+            return Ok(Vec::new());
+        };
         if Shape::of(symbols, fresh) != self.previous_shape {
             self.scope = None;
-            return self.names.clone();
+            return self.all_names(snapshot, store);
         }
-        let due: Vec<PendingReference> = self
-            .names
-            .iter()
-            .filter(|name| {
-                is_base(name.kind)
-                    || name.kind == ReferenceKind::Import
-                    || self.dead.contains(&(name.from, name.file, name.span))
-            })
-            .cloned()
-            .collect();
+        let due = self.narrow_names(snapshot, store)?;
         self.scope = Some(
             due.iter()
                 .map(|name| (name.from, name.file, name.span))
                 .collect(),
         );
-        due
+        Ok(due)
+    }
+
+    /// The base lists, the names written inside the symbols that pointed at a gone symbol, and the
+    /// imports of the files of those names and of the base lists, which tell what these see.
+    fn narrow_names(
+        &self,
+        snapshot: SnapshotId,
+        store: &dyn ProjectRepository,
+    ) -> Result<Vec<PendingReference>, CodedError> {
+        let callers: HashSet<SymbolId> = self.dead.iter().map(|(from, _, _)| *from).collect();
+        let callers: Vec<SymbolId> = callers.into_iter().collect();
+        let dead_files: HashSet<FileId> = self.dead.iter().map(|(_, file, _)| *file).collect();
+        let dead_files: Vec<FileId> = dead_files.into_iter().collect();
+        let mut due = self.bases.clone();
+        due.extend(
+            store
+                .stored_names(snapshot, StoredNames::Callers(&dead_files, &callers))?
+                .into_iter()
+                .filter(|name| !is_structural(name.kind))
+                .filter(|name| self.dead.contains(&(name.from, name.file, name.span))),
+        );
+        let files: HashSet<FileId> = due.iter().map(|name| name.file).collect();
+        let files: Vec<FileId> = files.into_iter().collect();
+        due.extend(store.stored_names(snapshot, StoredNames::ImportsOf(&files))?);
+        Ok(due)
+    }
+
+    /// Every name of the unchanged files.
+    fn all_names(
+        &self,
+        snapshot: SnapshotId,
+        store: &dyn ProjectRepository,
+    ) -> Result<Vec<PendingReference>, CodedError> {
+        let kept: HashSet<FileId> = self.files.iter().map(|file| file.id).collect();
+        Ok(store
+            .stored_names(snapshot, StoredNames::All)?
+            .into_iter()
+            .filter(|name| kept.contains(&name.file))
+            .collect())
     }
 
     /// Takes the references `resolved` for all names of this scan (the new ones and `names`) and
@@ -226,7 +274,12 @@ impl Carried {
             .filter(|reference| kept_files.contains(&reference.file))
             .map(edge)
             .collect();
-        let held: HashSet<Edge> = self.references.iter().map(edge).collect();
+        let held: HashSet<Edge> = self
+            .references
+            .iter()
+            .filter(|reference| self.in_scope(reference))
+            .map(edge)
+            .collect();
         let (stale, stay): (Vec<Reference>, Vec<Reference>) = std::mem::take(&mut self.references)
             .into_iter()
             .partition(|reference| {

@@ -1,7 +1,9 @@
 //! Registered projects: the `ProjectRepository` port and saving a project.
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{PreviousIndex, PreviousState, ProjectRepository};
+use codeskimr_application::ports::{
+    PendingReference, PreviousIndex, PreviousState, ProjectRepository, StoredNames,
+};
 use codeskimr_domain::{
     BranchName, ContentHash, CredentialId, FileId, FolderPath, GitUrl, LanguageId, Layer,
     LayerName, Loc, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, RelativePath,
@@ -282,7 +284,7 @@ fn load_latest_state(conn: &Connection, project: ProjectId) -> StorageResult<Pre
     Ok(PreviousState {
         files: load_latest_files(conn, project)?,
         index: load_latest_index(conn, project)?,
-        pending: pending::load(conn, snapshot)?,
+        snapshot: Some(SnapshotId::new(id_from(snapshot)?)),
         names_stored: pending::is_stored(conn, snapshot)?,
     })
 }
@@ -329,6 +331,21 @@ impl ProjectRepository for SqliteStore {
             load_latest_state(&tx, id)
         })
         .map_err(CodedError::from)
+    }
+
+    fn stored_names(
+        &self,
+        snapshot: SnapshotId,
+        which: StoredNames<'_>,
+    ) -> Result<Vec<PendingReference>, CodedError> {
+        let which = match which {
+            StoredNames::Bases => pending::Which::Bases,
+            StoredNames::ImportsOf(files) => pending::Which::ImportsOf(files),
+            StoredNames::Callers(files, callers) => pending::Which::Callers(files, callers),
+            StoredNames::All => pending::Which::All,
+        };
+        self.read(|conn| pending::load(conn, column_int(snapshot.get())?, &which))
+            .map_err(CodedError::from)
     }
 
     fn latest_naming_rules(&self, id: ProjectId) -> Result<Option<String>, CodedError> {

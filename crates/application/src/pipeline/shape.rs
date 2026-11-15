@@ -70,3 +70,9 @@ impl Shape {
 pub const fn is_base(kind: ReferenceKind) -> bool {
     matches!(kind, ReferenceKind::Inherit | ReferenceKind::Implement)
 }
+
+/// Whether a name is an import or tells the base list of a type: what the resolver learns from.
+#[must_use]
+pub const fn is_structural(kind: ReferenceKind) -> bool {
+    is_base(kind) || matches!(kind, ReferenceKind::Import)
+}

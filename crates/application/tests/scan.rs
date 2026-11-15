@@ -17,7 +17,8 @@ use codeskimr_application::ports::{
     FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob, IndexRunner,
     IndexerSpec, IndexerStatus, MetricsCalculator, PendingReference, PreviousIndex, PreviousState,
     ProjectRepository, ProjectScanner, ReferenceImporter, ReferenceReplacement, ReferenceResolver,
-    SnapshotData, SnapshotStore, SourceProvider, SymbolFingerprints, ToolSpec, ToolVersion,
+    SnapshotData, SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints, ToolSpec,
+    ToolVersion,
 };
 use codeskimr_application::stage::StageKind;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -309,9 +310,34 @@ impl ProjectRepository for World {
         Ok(PreviousState {
             files: self.previous.files.clone(),
             index: self.previous.index.clone(),
-            pending: self.previous.names.clone(),
+            snapshot: Some(SnapshotId::new(9)),
             names_stored: self.previous.names_stored,
         })
+    }
+
+    fn stored_names(
+        &self,
+        _: SnapshotId,
+        which: StoredNames<'_>,
+    ) -> Result<Vec<PendingReference>, CodedError> {
+        Ok(self
+            .previous
+            .names
+            .iter()
+            .filter(|name| match which {
+                StoredNames::Bases => {
+                    matches!(name.kind, ReferenceKind::Inherit | ReferenceKind::Implement)
+                }
+                StoredNames::ImportsOf(files) => {
+                    name.kind == ReferenceKind::Import && files.contains(&name.file)
+                }
+                StoredNames::Callers(files, callers) => {
+                    files.contains(&name.file) && callers.contains(&name.from)
+                }
+                StoredNames::All => true,
+            })
+            .cloned()
+            .collect())
     }
 
     fn latest_naming_rules(&self, _: ProjectId) -> Result<Option<String>, CodedError> {

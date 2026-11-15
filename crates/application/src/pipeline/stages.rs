@@ -25,7 +25,7 @@ use crate::ids::IdSequence;
 use crate::ports::{
     AnalyzeRequest, Clock, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts,
     MetricsCalculator, PendingReference, ProjectRepository, ReferenceResolver, SnapshotData,
-    SnapshotStore, SourceProvider, SymbolFingerprints,
+    SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints,
 };
 use crate::stage::StageKind;
 
@@ -212,8 +212,9 @@ impl Stage for DiscoverStage {
         let mut files = self
             .discovery
             .discover(&run.root, &state.files, ctx.cancel_token())?;
-        let carried = if run.mode == ScanMode::Incremental {
-            Carried::from_previous(&mut files, state)
+        let carried = if let (ScanMode::Incremental, Some(snapshot)) = (run.mode, state.snapshot) {
+            let bases = self.projects.stored_names(snapshot, StoredNames::Bases)?;
+            Carried::from_previous(&mut files, state, bases)
         } else {
             Carried::default()
         };
@@ -402,6 +403,8 @@ impl AnalyzeStage {
 
 /// Resolve: map pending names to symbols after the global symbol table is complete.
 pub struct ResolveStage {
+    /// Source of the stored names of the previous snapshot.
+    pub projects: Arc<dyn ProjectRepository>,
     /// The resolver strategy.
     pub resolver: Arc<dyn ReferenceResolver>,
     /// Id allocation for references.
@@ -426,7 +429,7 @@ impl Stage for ResolveStage {
             fingerprints,
             mut carried,
         } = input;
-        let due = carried.due_names(&symbols, &pending);
+        let due = carried.due_names((&symbols, &pending), self.projects.as_ref())?;
         let names: Vec<PendingReference> = pending.iter().chain(&due).cloned().collect();
         let total = count(&names);
         ctx.progress(0, total);

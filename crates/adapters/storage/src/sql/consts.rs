@@ -404,7 +404,25 @@ pub const PARSE_TIMES: &str = "SELECT language, micros FROM parse_times WHERE sn
 pub const PENDING_INSERT: &str = "INSERT INTO pending_references (file_id, from_symbol, \
     start_line, start_column, end_line, end_column, kind, target, receiver_kind, receiver_name) \
     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)";
-/// The names of the files of a snapshot: snapshot.
+/// The base lists of the files of a snapshot: snapshot. The kinds are written out so that the
+/// partial index `pending_references_bases` serves the query.
+pub const PENDING_BASES: &str = "SELECT file_id, from_symbol, start_line, start_column, end_line, \
+    end_column, kind, target, receiver_kind, receiver_name FROM pending_references \
+    WHERE kind IN ('inherit', 'implement') AND file_id IN \
+    (SELECT id FROM files WHERE snapshot_id = ?1) ORDER BY rowid";
+/// The imports of some files of a snapshot: snapshot, JSON list of file ids, import label.
+pub const PENDING_IMPORTS_OF: &str = "SELECT file_id, from_symbol, start_line, start_column, \
+    end_line, end_column, kind, target, receiver_kind, receiver_name FROM pending_references \
+    WHERE file_id IN (SELECT value FROM json_each(?2)) AND kind = ?3 AND file_id IN \
+    (SELECT id FROM files WHERE snapshot_id = ?1) ORDER BY rowid";
+/// The names written inside some symbols of some files of a snapshot: snapshot, JSON list of file
+/// ids, JSON list of symbol ids.
+pub const PENDING_OF_CALLERS: &str = "SELECT file_id, from_symbol, start_line, start_column, \
+    end_line, end_column, kind, target, receiver_kind, receiver_name FROM pending_references \
+    WHERE file_id IN (SELECT value FROM json_each(?2)) \
+    AND from_symbol IN (SELECT value FROM json_each(?3)) AND file_id IN \
+    (SELECT id FROM files WHERE snapshot_id = ?1) ORDER BY rowid";
+/// All names of the files of a snapshot: snapshot.
 pub const PENDING_OF_SNAPSHOT: &str = "SELECT file_id, from_symbol, start_line, start_column, \
     end_line, end_column, kind, target, receiver_kind, receiver_name FROM pending_references \
     WHERE file_id IN (SELECT id FROM files WHERE snapshot_id = ?1) ORDER BY rowid";
