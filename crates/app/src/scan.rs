@@ -152,6 +152,7 @@ impl Session {
                     references: snapshot.stats.references,
                     seconds,
                     cpu_seconds: seconds_since(cpu_start),
+                    pack_load_seconds: loading.as_secs_f64(),
                     level2: job.level2().iter().map(level2_line).collect(),
                     warnings: job.warnings().iter().map(warning_line).collect(),
                     tools: self.check_tools(mode),
