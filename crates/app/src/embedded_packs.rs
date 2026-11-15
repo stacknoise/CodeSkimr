@@ -5,6 +5,7 @@
 
 use std::ffi::OsString;
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use codeskimr_application::error::CodedError;
@@ -12,7 +13,8 @@ use codeskimr_cli::GlobalOptions;
 use codeskimr_codes::ErrorCode;
 
 use crate::consts::{
-    ENV_LANGUAGES_DIR, PACKS_CACHE_DIR, PACKS_COMPLETE_MARKER, PACKS_STAGING_SEPARATOR,
+    ENV_LANGUAGES_DIR, PACKS_CACHE_DIR, PACKS_COMPLETE_MARKER, PACKS_STAGING_MAX_AGE,
+    PACKS_STAGING_SEPARATOR,
 };
 use crate::locations::{Locations, Lookup};
 
@@ -46,6 +48,7 @@ pub fn prefer_embedded(
         return Ok(locations);
     }
     let languages_dir = materialize(files, fingerprint, &locations.data_dir)?;
+    remove_stale_staging(&locations.data_dir.join(PACKS_CACHE_DIR));
     Ok(Locations {
         languages_dir,
         ..locations
@@ -94,6 +97,29 @@ pub fn materialize(
     }
 }
 
+/// Removes the unfinished folders of starts that crashed long ago. Younger ones may belong to a
+/// start that is writing right now. Failures do not matter: the next start tries again.
+fn remove_stale_staging(cache: &Path) {
+    let Ok(entries) = fs::read_dir(cache) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let stale = entry
+            .file_name()
+            .to_string_lossy()
+            .contains(PACKS_STAGING_SEPARATOR)
+            && entry
+                .metadata()
+                .and_then(|meta| meta.modified())
+                .ok()
+                .and_then(|time| time.elapsed().ok())
+                .is_some_and(|age| age >= PACKS_STAGING_MAX_AGE);
+        if stale {
+            let _ = fs::remove_dir_all(entry.path());
+        }
+    }
+}
+
 fn is_complete(folder: &Path) -> bool {
     folder.join(PACKS_COMPLETE_MARKER).is_file()
 }
@@ -108,10 +134,18 @@ fn write_all(files: Files<'_>, folder: &Path) -> std::io::Result<()> {
         if let Some(parent) = path.parent() {
             fs::create_dir_all(parent)?;
         }
-        fs::write(path, content)?;
+        write_synced(&path, content)?;
     }
     fs::create_dir_all(folder)?;
-    fs::write(folder.join(PACKS_COMPLETE_MARKER), [])
+    // The marker comes last and only after the files are on disk, so that it never vouches for
+    // empty files after a power loss.
+    write_synced(&folder.join(PACKS_COMPLETE_MARKER), &[])
+}
+
+fn write_synced(path: &Path, content: &[u8]) -> std::io::Result<()> {
+    let mut file = fs::File::create(path)?;
+    file.write_all(content)?;
+    file.sync_all()
 }
 
 #[cfg(test)]
@@ -258,5 +292,30 @@ mod tests {
             fs::read(second.join("go/language.toml")).unwrap(),
             b"in use"
         );
+    }
+
+    #[test]
+    fn a_fresh_unfinished_folder_of_another_start_is_kept() {
+        let data = tempfile::tempdir().unwrap();
+        let busy = data.path().join(PACKS_CACHE_DIR).join("old.writing-1");
+        fs::create_dir_all(&busy).unwrap();
+        materialize(FILES_OF_TWO_PACKS, "new", data.path()).unwrap();
+        remove_stale_staging(&data.path().join(PACKS_CACHE_DIR));
+        assert!(busy.is_dir());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn an_old_unfinished_folder_is_removed() {
+        let data = tempfile::tempdir().unwrap();
+        let left = data.path().join(PACKS_CACHE_DIR).join("old.writing-1");
+        fs::create_dir_all(&left).unwrap();
+        let long_ago = std::time::SystemTime::now() - PACKS_STAGING_MAX_AGE * 2;
+        fs::File::open(&left)
+            .unwrap()
+            .set_modified(long_ago)
+            .unwrap();
+        remove_stale_staging(&data.path().join(PACKS_CACHE_DIR));
+        assert!(!left.exists());
     }
 }

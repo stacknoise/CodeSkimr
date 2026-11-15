@@ -147,7 +147,11 @@ fn main() -> ExitCode {
     };
     let out_dir = Path::new(&out_dir);
     let written = fs::write(out_dir.join(OUTPUT_FILE), render(&base, &files));
-    if written.is_err() || embed_packs(root, out_dir).is_err() {
+    if written.is_err() {
+        eprintln!("embedded UI: cannot write the table");
+        return ExitCode::FAILURE;
+    }
+    if embed_packs(root, out_dir).is_err() {
         eprintln!("embedded packs: cannot read {PACKS_DIR}");
         return ExitCode::FAILURE;
     }
