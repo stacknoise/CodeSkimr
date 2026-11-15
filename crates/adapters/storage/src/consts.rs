@@ -13,6 +13,7 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0009_parse_times.sql"),
     include_str!("../migrations/0010_coupling_rows.sql"),
     include_str!("../migrations/0011_pending_references.sql"),
+    include_str!("../migrations/0012_layer_directions.sql"),
 ];
 
 /// Name of the pragma that holds the schema version.
@@ -79,8 +80,6 @@ pub const FIRST_VERSION: i64 = 1;
 pub const FIRST_COLUMN: usize = 0;
 /// Distance between two neighbouring columns.
 pub const COLUMN_STEP: usize = 1;
-/// Whether an edge of the layer graph violates the layering; not computed yet (see docs).
-pub const NOT_VIOLATING: bool = false;
 /// Kinds that get an entry in `type_summary`.
 pub const TYPE_KINDS: &[codeskimr_domain::SymbolKind] = &[
     codeskimr_domain::SymbolKind::Class,

@@ -53,6 +53,7 @@ fn layer_inputs(count: usize) -> Result<(Vec<Layer>, Vec<LayerEdge>), ModelError
         .map(|index| {
             let name = format!("layer{index}");
             Ok(Layer {
+                may_use: None,
                 name: LayerName::new(&name)?,
                 namespaces: vec![QualifiedName::new(&name)?],
             })

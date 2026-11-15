@@ -3,8 +3,9 @@
 #[cfg(test)]
 mod common;
 
-use codeskimr_domain::{MetricKind, SnapshotId, SymbolId, SymbolKind};
-use common::{metric, reference, scanned, symbol};
+use codeskimr_application::ports::ProjectRepository;
+use codeskimr_domain::{MetricKind, ProjectId, SnapshotId, SymbolId, SymbolKind};
+use common::{metric, project, reference, scanned, scanned_project, symbol};
 
 const SNAPSHOT: SnapshotId = SnapshotId::new(10);
 
@@ -165,4 +166,42 @@ fn layer_graph_aggregates_references_between_layers() {
 fn project_without_layers_has_no_layer_graph() {
     let store = searchable();
     assert_eq!(store.layer_edges(SNAPSHOT).unwrap(), Vec::new());
+}
+
+#[test]
+fn an_edge_against_the_allowed_directions_violates_the_layering() {
+    use codeskimr_domain::LayerName;
+    let name = |text: &str| LayerName::new(text).unwrap();
+    let mut project = project(
+        1,
+        "/work/app",
+        &[("Api", &["App.Api"]), ("Core", &["App.Core"])],
+    );
+    project.layers[0].may_use = Some(Vec::new());
+    project.layers[1].may_use = Some(vec![name("Api")]);
+    let symbols = vec![
+        symbol(21, 11, SymbolKind::Class, "App.Api.Controller", None),
+        symbol(22, 11, SymbolKind::Class, "App.Core.Service", None),
+    ];
+    let references = vec![reference(31, 11, 21, 22), reference(32, 11, 22, 21)];
+    let store = scanned_project(&project, symbols, references, vec![]);
+    let edges = store.layer_edges(SNAPSHOT).unwrap();
+    let shown: Vec<_> = edges
+        .iter()
+        .map(|edge| (edge.from.as_str(), edge.to.as_str(), edge.violates_layering))
+        .collect();
+    assert_eq!(shown, [("Api", "Core", true), ("Core", "Api", false)]);
+    let layers = store.project(ProjectId::new(1)).unwrap().layers;
+    assert_eq!(
+        layers[0].may_use,
+        Some(Vec::new()),
+        "an empty list stays a limit"
+    );
+    assert_eq!(layers[1].may_use, Some(vec![name("Api")]));
+}
+
+#[test]
+fn a_layer_without_a_limit_never_violates() {
+    let edges = layered().layer_edges(SNAPSHOT).unwrap();
+    assert!(edges.iter().all(|edge| !edge.violates_layering));
 }

@@ -26,6 +26,54 @@ mod tests {
     }
 
     #[test]
+    fn cognitive_complexity_counts_structures_with_their_nesting() {
+        let found = by_name(&facts("typescript", "cognitive.ts"));
+        let expected = [
+            ("straight", 0),
+            ("nested", 6),    // if (+1), for (+2), inner if (+3)
+            ("chain", 3),     // if (+1), else if (+1 for its `else`), else (+1)
+            ("runs", 2),      // the `&&` run (+1) and `||` (+1)
+            ("handler", 3),   // catch (+1), the if inside it (+2); `try` adds nothing
+            ("callbacks", 2), // the conditional in the callback: +2 (nested once by the callback)
+            ("arrow", 1),     // a `const` arrow function starts at depth zero: if (+1)
+            ("branches", 1),  // switch (+1); the cases add nothing
+            ("loops", 9), // while (+1), do (+1), for of (+1), inner for of (+2), if (+3), `continue outer` (+1)
+            ("method", 1), // the conditional (+1)
+        ];
+        for (name, value) in expected {
+            assert_eq!(body(&found, name).cognitive, Some(value), "{name}");
+        }
+    }
+
+    #[test]
+    fn parameters_are_counted_without_the_this_type() {
+        let found = by_name(&facts("typescript", "cognitive.ts"));
+        let parameters = |name: &str| body(&found, name).parameters;
+        assert_eq!(parameters("straight"), Some(1));
+        assert_eq!(parameters("runs"), Some(4));
+        // `this: Shop` is only a type, then a, b?, c = 3 and ...rest
+        assert_eq!(parameters("method"), Some(4));
+        // the callback `(x, i) => ...` and the function type of `cb` are not parameters of
+        // the function around them
+        assert_eq!(parameters("callbacks"), Some(1));
+        assert_eq!(parameters("typed"), Some(1));
+        // the unparenthesised parameter, and a function value in a class field
+        assert_eq!(parameters("single"), Some(1));
+        assert_eq!(parameters("bare"), Some(1));
+        assert_eq!(parameters("field"), Some(2));
+    }
+
+    #[test]
+    fn the_javascript_pack_counts_with_the_same_queries() {
+        let found = by_name(&facts("javascript", "cognitive.js"));
+        assert_eq!(body(&found, "nested").cognitive, Some(6));
+        assert_eq!(body(&found, "callbacks").cognitive, Some(2));
+        assert_eq!(body(&found, "callbacks").parameters, Some(1));
+        assert_eq!(body(&found, "single").parameters, Some(1));
+        assert_eq!(body(&found, "field").parameters, Some(2));
+    }
+
+    #[test]
     fn the_loc_of_a_callable_leaves_out_its_local_function() {
         let found = by_name(&facts("typescript", "metrics.ts"));
         assert_eq!(found["arrow"].loc.0, 3);
