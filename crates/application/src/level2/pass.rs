@@ -175,7 +175,7 @@ impl Level2Pass {
             scan.root,
         )
         .map_err(Skipped::from)?;
-        if let IndexerStatus::Unavailable(problems) = self.runner.check(group.spec) {
+        if let IndexerStatus::Unavailable { problems, .. } = self.runner.check(group.spec) {
             return Err(Skipped::Unavailable(problems));
         }
         let language = group.languages.first().copied().ok_or(Skipped::Stale)?;

@@ -217,6 +217,9 @@ jobs:
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: cargo test (indexer runner)
         run: cargo test -p codeskimr_indexer --all-features --locked
+      # Issue #104: the launch file folder (access rules, junctions) only runs on Windows.
+      - name: cargo test (launch file on Windows)
+        run: cargo test -p codeskimr --bins launch_file --locked
 
   architecture:
     name: architecture

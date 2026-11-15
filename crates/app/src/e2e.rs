@@ -20,7 +20,7 @@ use codeskimr_cli::GlobalOptions;
 use codeskimr_secrets::KeystoreCredentials;
 use tokio::sync::oneshot;
 
-use crate::locations::Locations;
+use crate::mcp_http_tests::locations;
 use crate::memory_keystore::Memory;
 use crate::open::{Plan, launch};
 use crate::serve::{Parts, serve_for_test, test_ui};
@@ -30,18 +30,7 @@ const UI_DIR_VARIABLE: &str = "CODESKIMR_E2E_UI_DIR";
 const LAUNCH_COMMAND: &str = "launch";
 const RESET_COMMAND: &str = "reset";
 const RESET_DONE_LINE: &str = "E2E_RESET=done";
-const LANGUAGES_PATH: &str = "../../languages";
 const CODE_LIFETIME: Duration = Duration::from_secs(60);
-
-/// Where the scans of the tests keep their data: a folder of its own, the packs of the repository.
-fn locations(data: &std::path::Path) -> Locations {
-    Locations {
-        data_dir: data.to_path_buf(),
-        languages_dir: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(LANGUAGES_PATH),
-        user_config: None,
-        bases: Vec::new(),
-    }
-}
 
 fn say(line: &str) {
     let mut out = stdout().lock();

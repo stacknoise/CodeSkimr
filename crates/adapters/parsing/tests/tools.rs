@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use codeskimr_application::ports::ToolCatalog;
 use codeskimr_codes::{Coded, ErrorCode};
-use codeskimr_domain::{LanguageId, RequirementFormat};
+use codeskimr_domain::{Ceiling, LanguageId, RequirementFormat};
 use codeskimr_parsing::PackTools;
 
 fn shipped() -> PathBuf {
@@ -48,6 +48,24 @@ fn csharp_needs_an_indexer_and_the_sdk_the_project_names() {
     assert_eq!(requirement.file.file, "global.json");
     assert_eq!(requirement.file.format, RequirementFormat::Json);
     assert_eq!(requirement.file.path, ["sdk", "version"]);
+    let rule = requirement
+        .file
+        .roll_forward
+        .as_ref()
+        .expect("a rollForward rule");
+    assert_eq!(rule.path, ["sdk", "rollForward"]);
+    // No policy means latestPatch, which stays in the feature band.
+    assert_eq!(rule.ceiling_of(None), Ceiling::SameBand);
+    for (policy, ceiling) in [
+        ("disable", Ceiling::Exact),
+        ("patch", Ceiling::SameBand),
+        ("latestFeature", Ceiling::SameMinor),
+        ("latestMinor", Ceiling::SameMajor),
+        ("latestMajor", Ceiling::Any),
+        ("aFutureValue", Ceiling::Any),
+    ] {
+        assert_eq!(rule.ceiling_of(Some(policy)), ceiling, "{policy}");
+    }
 }
 
 #[test]
@@ -109,6 +127,10 @@ fn a_wrong_requirement_makes_the_pack_invalid() {
         (
             "typo",
             "requirement = { file = \"a\", format = \"text\", pth = [] }\n",
+        ),
+        (
+            "ceiling",
+            "requirement = { file = \"a\", format = \"json\", roll_forward = { path = [\"p\"], default = \"soon\", values = {} } }\n",
         ),
     ] {
         let manifest = format!("id = \"rust\"\n{BASE}{INDEXER}{toolchain}{requirement}");

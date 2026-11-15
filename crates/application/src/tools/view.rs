@@ -11,7 +11,7 @@ pub struct ToolView {
     pub tool: String,
     /// `indexer` or `toolchain`.
     pub role: &'static str,
-    /// `ready`, `missing`, `too_old` or `version_unknown`.
+    /// `ready`, `missing`, `too_old`, `too_new` or `version_unknown`.
     pub state: &'static str,
     /// The languages of the project that need the tool.
     pub languages: Vec<String>,

@@ -20,7 +20,7 @@ cd web && npm ci && npm run build && cd ..
 cargo build --release --locked
 ```
 
-Das Programm liegt in `target/release/codeskimr` (`codeskimr.exe` unter Windows). Die gebaute Oberfläche liegt in `web/dist` und wird beim Bauen ins Programm eingebettet, darum kommt `web/` zuerst. Node.js 22 (`.node-version`). Die Sprachpakete aus `languages/` sind ebenfalls im Programm eingebettet; beim ersten Start schreibt es sie in den Datenordner (`languages/<Kennung>/`). Ein Ordner `languages/` neben dem Programm hat Vorrang (ein Ordner `languages/` im aktuellen Ordner wird nicht benutzt), ebenso die Option `--languages` oder `CODESKIMR_LANGUAGES_DIR`; so lassen sich Sprachpakete ändern, ohne neu zu bauen.
+Das Programm liegt in `target/release/codeskimr` (`codeskimr.exe` unter Windows). Die gebaute Oberfläche liegt in `web/dist` und wird beim Bauen ins Programm eingebettet, darum kommt `web/` zuerst. Node.js 22 (`.node-version`). Die Sprachpakete aus `languages/` sind ebenfalls im Programm eingebettet; beim ersten Start schreibt es sie in den Datenordner (`languages/<Kennung>/`). Ein Ordner `languages/` neben dem Programm hat Vorrang, wenn er mindestens ein `<Sprache>/language.toml` enthält (ein Ordner `languages/` im aktuellen Ordner wird nicht benutzt), ebenso die Option `--languages` oder `CODESKIMR_LANGUAGES_DIR`; so lassen sich Sprachpakete ändern, ohne neu zu bauen.
 
 ## Erster Start
 

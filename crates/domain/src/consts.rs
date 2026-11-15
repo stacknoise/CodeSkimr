@@ -211,6 +211,18 @@ pub const TOOL_STATE_MISSING: &str = "missing";
 pub const TOOL_STATE_TOO_OLD: &str = "too_old";
 /// Label of `ToolState::VersionUnknown`.
 pub const TOOL_STATE_VERSION_UNKNOWN: &str = "version_unknown";
+/// Label of `ToolState::TooNew`.
+pub const TOOL_STATE_TOO_NEW: &str = "too_new";
+/// Label of `Ceiling::Exact`.
+pub const CEILING_EXACT: &str = "exact";
+/// Label of `Ceiling::SameBand`.
+pub const CEILING_SAME_BAND: &str = "same_band";
+/// Label of `Ceiling::SameMinor`.
+pub const CEILING_SAME_MINOR: &str = "same_minor";
+/// Label of `Ceiling::SameMajor`.
+pub const CEILING_SAME_MAJOR: &str = "same_major";
+/// Label of `Ceiling::Any`.
+pub const CEILING_ANY: &str = "any";
 /// Label of `RequirementFormat::Json`.
 pub const REQUIREMENT_FORMAT_JSON: &str = "json";
 /// Label of `RequirementFormat::Toml`.

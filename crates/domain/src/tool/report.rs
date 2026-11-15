@@ -3,7 +3,8 @@
 use std::collections::BTreeMap;
 
 use crate::consts::{
-    TOOL_STATE_MISSING, TOOL_STATE_READY, TOOL_STATE_TOO_OLD, TOOL_STATE_VERSION_UNKNOWN,
+    TOOL_STATE_MISSING, TOOL_STATE_READY, TOOL_STATE_TOO_NEW, TOOL_STATE_TOO_OLD,
+    TOOL_STATE_VERSION_UNKNOWN,
 };
 use crate::file::LanguageId;
 use crate::snapshot::Timestamp;
@@ -21,6 +22,9 @@ labeled_enum!(
         TooOld => TOOL_STATE_TOO_OLD,
         /// A version is required and the tool did not say one (or did not answer in time).
         VersionUnknown => TOOL_STATE_VERSION_UNKNOWN,
+        /// It runs, but its version is newer than the project allows (for example through the
+        /// `rollForward` of `global.json`).
+        TooNew => TOOL_STATE_TOO_NEW,
     }
 );
 

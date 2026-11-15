@@ -46,6 +46,7 @@ fn a_report_is_stored_with_its_findings_in_order() {
         vec![
             finding("scip-dotnet", ToolState::Missing, None),
             finding("dotnet", ToolState::TooOld, Some("8.0.404")),
+            finding("dotnet", ToolState::TooNew, Some("9.0.100")),
         ],
     );
     store.replace(PROJECT, &stored).unwrap();
