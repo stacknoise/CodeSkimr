@@ -145,14 +145,14 @@
       "at": "10:17",
       "from": "cognitive.nested",
       "kind": "call",
-      "receiver": null,
+      "receiver": "free",
       "target": "range"
     },
     {
       "at": "31:15",
       "from": "cognitive.handler",
       "kind": "call",
-      "receiver": null,
+      "receiver": "free",
       "target": "int"
     },
     {
