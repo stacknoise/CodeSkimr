@@ -73,15 +73,21 @@ type Change = (&'static str, Option<&'static str>);
 fn write_project(folder: &Path, base: &[(&str, &str)], changes: &[Change]) {
     fs::create_dir_all(folder).unwrap();
     for (path, text) in base {
-        fs::write(folder.join(path), text).unwrap();
+        write_file(folder, path, text);
     }
     apply(folder, changes);
+}
+
+fn write_file(folder: &Path, path: &str, text: &str) {
+    let file = folder.join(path);
+    fs::create_dir_all(file.parent().unwrap()).unwrap();
+    fs::write(file, text).unwrap();
 }
 
 fn apply(folder: &Path, changes: &[Change]) {
     for (path, text) in changes {
         match text {
-            Some(text) => fs::write(folder.join(path), text).unwrap(),
+            Some(text) => write_file(folder, path, text),
             None => fs::remove_file(folder.join(path)).unwrap(),
         }
     }
@@ -415,4 +421,376 @@ fn a_python_file_with_only_an_import_follows_an_edit_of_the_imported_file() {
         "{full:?}"
     );
     assert_eq!(incremental, full);
+}
+
+// Issue #408: a changed declaration resolves again only the names that the resolver looks up by a
+// changed symbol; each case compares with the full scan, as every case above.
+
+/// The files of a TypeScript project: an import of a class, a call of its method.
+const TYPESCRIPT_BASE: &[(&str, &str)] = &[
+    (
+        "caller.ts",
+        "import { Target } from \"./target\";\n\nexport function run(): void {\n  const item = new Target();\n  item.act();\n  helper();\n}\n",
+    ),
+    ("target.ts", "export class Target {\n  act(): void {}\n}\n"),
+    (
+        "util.ts",
+        "export function helper(): number {\n  return 1;\n}\n",
+    ),
+];
+
+/// A Java project: a caller of a class in the same package, one in another package.
+const JAVA_BASE: &[(&str, &str)] = &[
+    (
+        "demo/Caller.java",
+        "package demo;\n\npublic class Caller {\n    public void run() {\n        Target t = new Target();\n        t.act();\n        Helper.go();\n    }\n}\n",
+    ),
+    (
+        "demo/Target.java",
+        "package demo;\n\npublic class Target {\n    public void act() { }\n}\n",
+    ),
+    (
+        "demo/Helper.java",
+        "package demo;\n\npublic class Helper {\n    public static void go() { }\n}\n",
+    ),
+];
+
+/// A Kotlin project: a caller of a class and of a top-level function.
+const KOTLIN_BASE: &[(&str, &str)] = &[
+    (
+        "Caller.kt",
+        "package demo\n\nclass Caller {\n    fun run() {\n        val t = Target()\n        t.act()\n        helper()\n    }\n}\n",
+    ),
+    (
+        "Target.kt",
+        "package demo\n\nclass Target {\n    fun act() { }\n}\n",
+    ),
+    ("Util.kt", "package demo\n\nfun helper() { }\n"),
+];
+
+/// A Rust project: modules that call each other.
+const RUST_BASE: &[(&str, &str)] = &[
+    (
+        "caller.rs",
+        "use crate::target::Target;\n\npub fn run() {\n    let item = Target::new();\n    item.act();\n    helper();\n}\n",
+    ),
+    (
+        "target.rs",
+        "pub struct Target;\n\nimpl Target {\n    pub fn new() -> Self {\n        Self\n    }\n\n    pub fn act(&self) {}\n}\n",
+    ),
+    ("util.rs", "pub fn helper() {}\n"),
+];
+
+fn assert_same_for(base: &[(&str, &str)], steps: &[&[Change]]) {
+    let (full, incremental) = both_ways(base, steps);
+    assert_eq!(incremental, full);
+}
+
+#[test]
+fn a_new_method_elsewhere_changes_nothing_for_unrelated_callers() {
+    assert_same(&[(
+        "Other.cs",
+        Some("namespace Demo;\n\npublic class Other\n{\n    public void Added() { }\n}\n"),
+    )]);
+}
+
+#[test]
+fn a_new_class_with_the_name_of_a_receiver_changes_the_unchanged_members() {
+    // `Derived d` in `UsesDerived`: a second `Derived` in another namespace is a new candidate.
+    assert_same(&[(
+        "Elsewhere.cs",
+        Some("namespace Other;\n\npublic class Derived\n{\n    public void Hello() { }\n}\n"),
+    )]);
+}
+
+#[test]
+fn a_moved_namespace_changes_the_files_that_import_it() {
+    let lib = "namespace Demo.Lib;\n\npublic class Tool\n{\n    public static void Run() { }\n}\n";
+    let importer = "using Demo.Lib;\n\nnamespace Elsewhere;\n\npublic class Importer\n{\n    public void Go() { Tool.Run(); }\n}\n";
+    let moved =
+        "namespace Demo.Moved;\n\npublic class Tool\n{\n    public static void Run() { }\n}\n";
+    assert_same_for(
+        BASE,
+        &[
+            &[("Lib.cs", Some(lib)), ("Importer.cs", Some(importer))],
+            &[("Lib.cs", Some(moved))],
+            &[("Lib.cs", Some(lib))],
+        ],
+    );
+}
+
+#[test]
+fn a_namespace_that_an_import_waited_for_is_found_when_it_appears() {
+    let importer = "using Demo.Late;\n\nnamespace Elsewhere;\n\npublic class Importer\n{\n    public void Go() { Tool.Run(); }\n}\n";
+    let late =
+        "namespace Demo.Late;\n\npublic class Tool\n{\n    public static void Run() { }\n}\n";
+    assert_same_for(
+        BASE,
+        &[
+            &[("Importer.cs", Some(importer))],
+            &[("Late.cs", Some(late))],
+        ],
+    );
+}
+
+#[test]
+fn typescript_follows_a_renamed_class_a_second_candidate_and_a_new_method() {
+    assert_same_for(
+        TYPESCRIPT_BASE,
+        &[
+            &[(
+                "target.ts",
+                Some("export class Target {\n  act(): void {}\n  more(): void {}\n}\n"),
+            )],
+            &[(
+                "other.ts",
+                Some(
+                    "export class Target {\n  act(): void {}\n}\n\nexport function helper(): number {\n  return 2;\n}\n",
+                ),
+            )],
+            &[(
+                "target.ts",
+                Some("export class Goal {\n  act(): void {}\n}\n"),
+            )],
+            &[("util.ts", None)],
+        ],
+    );
+}
+
+#[test]
+fn java_follows_a_renamed_class_a_second_candidate_and_a_deleted_file() {
+    assert_same_for(
+        JAVA_BASE,
+        &[
+            &[(
+                "other/Helper.java",
+                Some(
+                    "package other;\n\npublic class Helper {\n    public static void go() { }\n}\n",
+                ),
+            )],
+            &[(
+                "demo/Target.java",
+                Some("package demo;\n\npublic class Goal {\n    public void act() { }\n}\n"),
+            )],
+            &[("demo/Helper.java", None)],
+        ],
+    );
+}
+
+#[test]
+fn kotlin_follows_a_renamed_class_a_second_candidate_and_a_new_method() {
+    assert_same_for(
+        KOTLIN_BASE,
+        &[
+            &[(
+                "Target.kt",
+                Some("package demo\n\nclass Target {\n    fun act() { }\n    fun more() { }\n}\n"),
+            )],
+            &[("Other.kt", Some("package other\n\nfun helper() { }\n"))],
+            &[(
+                "Target.kt",
+                Some("package demo\n\nclass Goal {\n    fun act() { }\n}\n"),
+            )],
+        ],
+    );
+}
+
+#[test]
+fn rust_follows_a_renamed_type_a_second_candidate_and_a_deleted_module() {
+    assert_same_for(
+        RUST_BASE,
+        &[
+            &[(
+                "other.rs",
+                Some(
+                    "pub fn helper() {}\n\npub struct Target;\n\nimpl Target {\n    pub fn act(&self) {}\n}\n",
+                ),
+            )],
+            &[(
+                "target.rs",
+                Some("pub struct Goal;\n\nimpl Goal {\n    pub fn act(&self) {}\n}\n"),
+            )],
+            &[("util.rs", None)],
+        ],
+    );
+}
+
+/// A small generator of C# projects, so that the rule of issue #408 meets changes nobody wrote
+/// down: the same generator makes the file of every step, and the full scan decides.
+mod random {
+    use std::fmt::Write;
+
+    /// Number of files, namespaces, classes and methods the generator draws from. Few of each, so
+    /// that names meet: the same class name in two namespaces, a call that one file can answer.
+    const SLOTS: usize = 6;
+    const NAMESPACES: u64 = 3;
+    const CLASSES: u64 = 4;
+    const METHODS: u64 = 3;
+
+    /// A fixed sequence of numbers for a seed (a linear congruential generator).
+    pub struct Dice(u64);
+
+    impl Dice {
+        pub fn new(seed: u64) -> Self {
+            Self(seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1))
+        }
+
+        pub fn below(&mut self, limit: u64) -> u64 {
+            self.0 = self
+                .0
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            (self.0 >> 33) % limit
+        }
+
+        fn chance(&mut self, percent: u64) -> bool {
+            self.below(100) < percent
+        }
+    }
+
+    /// One file: a class in a namespace with methods, maybe a base class, imports and calls.
+    #[derive(Clone)]
+    pub struct Spec {
+        namespace: u64,
+        class: u64,
+        base: Option<u64>,
+        methods: Vec<u64>,
+        usings: Vec<u64>,
+        calls: Vec<(u64, u64)>,
+    }
+
+    impl Spec {
+        pub fn draw(dice: &mut Dice) -> Self {
+            Self {
+                namespace: dice.below(NAMESPACES),
+                class: dice.below(CLASSES),
+                base: dice.chance(30).then(|| dice.below(CLASSES)),
+                methods: (0..dice.below(METHODS + 1))
+                    .map(|_| dice.below(METHODS))
+                    .collect(),
+                usings: (0..dice.below(3)).map(|_| dice.below(NAMESPACES)).collect(),
+                calls: (0..dice.below(4))
+                    .map(|_| (dice.below(CLASSES), dice.below(METHODS)))
+                    .collect(),
+            }
+        }
+
+        /// A small change of one part, or a new draw.
+        pub fn tweak(&self, dice: &mut Dice) -> Self {
+            let mut next = self.clone();
+            match dice.below(7) {
+                0 => next.namespace = dice.below(NAMESPACES),
+                1 => next.class = dice.below(CLASSES),
+                2 => next.base = dice.chance(60).then(|| dice.below(CLASSES)),
+                3 => next.methods.push(dice.below(METHODS)),
+                4 => {
+                    next.methods.pop();
+                }
+                5 => next.usings.push(dice.below(NAMESPACES)),
+                _ => return Self::draw(dice),
+            }
+            next
+        }
+
+        pub fn render(&self) -> String {
+            let mut text = String::new();
+            for using in &self.usings {
+                writeln!(text, "using Demo.N{using};").unwrap();
+            }
+            writeln!(text, "\nnamespace Demo.N{};\n", self.namespace).unwrap();
+            let base = self
+                .base
+                .map(|base| format!(" : K{base}"))
+                .unwrap_or_default();
+            writeln!(text, "public class K{}{base}\n{{", self.class).unwrap();
+            for method in &self.methods {
+                writeln!(text, "    public void M{method}() {{ }}").unwrap();
+            }
+            writeln!(text, "    public void Run()\n    {{").unwrap();
+            for (index, (class, method)) in self.calls.iter().enumerate() {
+                if index % 2 == 0 {
+                    writeln!(text, "        K{class}.M{method}();").unwrap();
+                } else {
+                    writeln!(
+                        text,
+                        "        K{class} v{index} = new K{class}();\n        v{index}.M{method}();"
+                    )
+                    .unwrap();
+                }
+            }
+            writeln!(
+                text,
+                "        this.M{}();\n    }}\n}}",
+                self.calls.len() as u64 % METHODS
+            )
+            .unwrap();
+            text
+        }
+    }
+
+    /// The files of the project: a slot is a file or empty.
+    pub fn slots() -> usize {
+        SLOTS
+    }
+}
+
+/// The references of a full scan of the files in `folder`, in a data folder of its own.
+fn full_scan_of(folder: &Path, root: &Path, name: &str) -> Vec<String> {
+    let copy = root.join(name);
+    fs::create_dir_all(&copy).unwrap();
+    for entry in fs::read_dir(folder).unwrap() {
+        let entry = entry.unwrap();
+        fs::copy(entry.path(), copy.join(entry.file_name())).unwrap();
+    }
+    let data = locations(&root.join(format!("{name}-data")));
+    session(&copy, &data).scan_quick(ScanMode::Full).unwrap();
+    references_of(&data)
+}
+
+fn random_project_stays_equal(seed: u64, steps: usize) {
+    use random::{Dice, Spec, slots};
+    let mut dice = Dice::new(seed);
+    let root = tempfile::tempdir().unwrap();
+    let folder = root.path().join("live");
+    let mut files: Vec<Option<Spec>> = (0..slots())
+        .map(|_| (dice.below(4) != 0).then(|| Spec::draw(&mut dice)))
+        .collect();
+    let path_of = |slot: usize| format!("F{slot}.cs");
+    let text: Vec<(String, String)> = files
+        .iter()
+        .enumerate()
+        .filter_map(|(slot, spec)| spec.as_ref().map(|s| (path_of(slot), s.render())))
+        .collect();
+    let base: Vec<(&str, &str)> = text.iter().map(|(p, t)| (p.as_str(), t.as_str())).collect();
+    write_project(&folder, &base, &[]);
+    let data = locations(&root.path().join("live-data"));
+    let live = session(&folder, &data);
+    live.scan_quick(ScanMode::Full).unwrap();
+    for step in 0..steps {
+        for _ in 0..=dice.below(2) {
+            let slot = usize::try_from(dice.below(slots() as u64)).unwrap();
+            let path = path_of(slot);
+            files[slot] = match (&files[slot], dice.below(5)) {
+                (Some(_), 0) => {
+                    fs::remove_file(folder.join(&path)).unwrap();
+                    None
+                }
+                (Some(spec), _) => Some(spec.tweak(&mut dice)),
+                (None, _) => Some(Spec::draw(&mut dice)),
+            };
+            if let Some(spec) = &files[slot] {
+                write_file(&folder, &path, &spec.render());
+            }
+        }
+        live.scan_quick(ScanMode::Incremental).unwrap();
+        let full = full_scan_of(&folder, root.path(), &format!("full{step}"));
+        assert_eq!(references_of(&data), full, "seed {seed}, step {step}");
+    }
+}
+
+#[test]
+fn random_changes_of_a_csharp_project_give_the_references_of_a_full_scan() {
+    for seed in 1..=3 {
+        random_project_stays_equal(seed, 8);
+    }
 }

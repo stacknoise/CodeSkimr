@@ -342,6 +342,9 @@ impl ProjectRepository for SqliteStore {
             StoredNames::Bases => pending::Which::Bases,
             StoredNames::ImportsOf(files) => pending::Which::ImportsOf(files),
             StoredNames::Callers(files, callers) => pending::Which::Callers(files, callers),
+            StoredNames::Targeting(names) => pending::Which::Targeting(names),
+            StoredNames::ImportsTargeting(names) => pending::Which::ImportsTargeting(names),
+            StoredNames::OfFiles(files) => pending::Which::OfFiles(files),
             StoredNames::All => pending::Which::All,
         };
         self.read(|conn| pending::load(conn, column_int(snapshot.get())?, &which))

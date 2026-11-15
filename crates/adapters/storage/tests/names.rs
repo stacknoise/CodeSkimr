@@ -145,14 +145,7 @@ fn names_are_read_by_kind_and_by_the_symbol_they_are_written_in() {
     let mut import = name(11, 21, 3, "System", None);
     import.kind = ReferenceKind::Import;
     let call = name(11, 22, 4, "Target", Some(Receiver::Own));
-    store
-        .persist(first_scan(vec![
-            inherit.clone(),
-            import.clone(),
-            call.clone(),
-        ]))
-        .unwrap();
-    let snapshot = store.latest_state(PROJECT).unwrap().snapshot.unwrap();
+    let snapshot = persist_names(&store, vec![inherit.clone(), import.clone(), call.clone()]);
     let read = |which: StoredNames<'_>| store.stored_names(snapshot, which).unwrap();
     let inside_run = [SymbolId::new(22)];
     assert_eq!(read(StoredNames::Bases), vec![inherit]);
@@ -174,6 +167,66 @@ fn names_are_read_by_kind_and_by_the_symbol_they_are_written_in() {
         Vec::new(),
         "the symbol is not in that file"
     );
+}
+
+/// Persists a first scan that wrote `names` and returns its snapshot.
+#[cfg(test)]
+fn persist_names(
+    store: &codeskimr_storage::SqliteStore,
+    names: Vec<PendingReference>,
+) -> SnapshotId {
+    store.persist(first_scan(names)).unwrap();
+    store.latest_state(PROJECT).unwrap().snapshot.unwrap()
+}
+
+/// An import of `target` written by symbol 21 in file 11.
+#[cfg(test)]
+fn import_name(id: u32, target: &str) -> PendingReference {
+    let mut import = name(11, 21, id, target, None);
+    import.kind = ReferenceKind::Import;
+    import
+}
+
+#[test]
+fn names_are_read_by_the_name_they_are_looked_up_by() {
+    let store = registered_store();
+    let by_target = name(11, 22, 4, "Target", None);
+    let by_receiver = name(
+        11,
+        22,
+        5,
+        "Run",
+        Some(Receiver::Typed(QualifiedName::new("Widget").unwrap())),
+    );
+    let other = name(
+        11,
+        22,
+        6,
+        "Elsewhere",
+        Some(Receiver::Named(QualifiedName::new("gadget").unwrap())),
+    );
+    let import = import_name(3, "Target");
+    let lib = import_name(2, "Demo.Lib");
+    let all = vec![
+        by_target.clone(),
+        by_receiver.clone(),
+        other,
+        import,
+        lib.clone(),
+    ];
+    let snapshot = persist_names(&store, all);
+    let read = |which: StoredNames<'_>| store.stored_names(snapshot, which).unwrap();
+    let simple = ["Target".to_owned(), "Widget".to_owned()];
+    assert_eq!(
+        read(StoredNames::Targeting(&simple)),
+        vec![by_target, by_receiver],
+        "an import is not found by its target, a name by its target or its receiver"
+    );
+    assert_eq!(read(StoredNames::Targeting(&[])), Vec::new());
+    let imported = ["Demo.Lib".to_owned(), "Tar".to_owned()];
+    assert_eq!(read(StoredNames::ImportsTargeting(&imported)), vec![lib]);
+    assert_eq!(read(StoredNames::OfFiles(&[FileId::new(12)])), Vec::new());
+    assert_eq!(read(StoredNames::OfFiles(&[FileId::new(11)])).len(), 5);
 }
 
 #[test]
