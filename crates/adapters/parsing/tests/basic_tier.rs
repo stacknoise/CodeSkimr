@@ -123,7 +123,7 @@ mod tests {
     fn a_full_pack_is_loaded_when_its_language_is_first_needed_and_verify_loads_all() {
         let root = broken_pack("full", "load");
         let packs = LanguagePacks::load(&root).expect("listing does not load the pack");
-        let error = packs.verify().err().expect("verify finds the broken pack");
+        let error = packs.verify().expect_err("verify finds the broken pack");
         assert_eq!(error.code(), ErrorCode::LanguagePackInvalid);
         let error = packs.get(&id("rust")).err().expect("invalid when needed");
         assert_eq!(error.code(), ErrorCode::LanguagePackInvalid);
