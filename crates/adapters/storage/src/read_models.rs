@@ -5,7 +5,7 @@
 
 use std::collections::BTreeMap;
 
-use codeskimr_domain::{Layer, MetricKind, ReferenceKind, SnapshotId, SymbolKind};
+use codeskimr_domain::{Confidence, Layer, MetricKind, ReferenceKind, SnapshotId, SymbolKind};
 use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, column_int, id_from};
@@ -86,14 +86,21 @@ fn layer_of_symbols(
     Ok(owners)
 }
 
-/// Counts the references between different layers, without those of kind `test`.
+/// Counts the references between different layers, without those of kind `test` and without
+/// those that are only probable: a name that matches several symbols says nothing about the
+/// dependency (issue #464).
 fn count_edges(
     conn: &Connection,
     snapshot: i64,
     owners: &BTreeMap<u64, usize>,
 ) -> StorageResult<BTreeMap<(usize, usize), u32>> {
     let mut statement = conn.prepare_cached(sql::REFERENCE_ENDS)?;
-    let rows = statement.query_map(params![snapshot, ReferenceKind::Test.label()], |row| {
+    let bind = params![
+        snapshot,
+        ReferenceKind::Test.label(),
+        Confidence::Certain.label()
+    ];
+    let rows = statement.query_map(bind, |row| {
         let cols = Cols::new(row);
         Ok((cols.take::<i64>()?, cols.take::<i64>()?))
     })?;

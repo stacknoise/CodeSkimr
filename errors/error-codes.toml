@@ -521,7 +521,7 @@ id = "API-201"
 name = "command_not_found"
 severity = "error"
 retryable = false
-description = "The REST request names a command or route that does not exist."
+description = "The request names a command, tool or route that does not exist."
 since = "0.1.0"
 
 [[codes]]
@@ -537,7 +537,7 @@ id = "API-401"
 name = "token_missing_or_invalid"
 severity = "error"
 retryable = false
-description = "A state-changing request lacks a valid installation token."
+description = "The request lacks a valid installation token."
 since = "0.1.0"
 
 [[codes]]

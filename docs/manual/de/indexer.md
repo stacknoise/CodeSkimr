@@ -34,7 +34,7 @@ Immer wenn ein Projekt geladen wird (hinzugefügt, vollständig gescannt, wieder
 - in der Zusammenfassung von `codeskimr scan` (und mit `--json` als `tools`);
 - über MCP mit dem Werkzeug `get_project`.
 
-Ein Werkzeug ist `ready` (bereit), `missing` (nicht im `PATH`), `too_old` (unter der Mindestversion oder der Version, die das Projekt in `global.json`, `.nvmrc` oder `rust-toolchain.toml` verlangt), `too_new` (neuer, als die `rollForward`-Regel in `global.json` zulässt, zum Beispiel ein SDK 9, obwohl das Projekt 8.0 nennt und nichts darüber erlaubt) oder `version_unknown` (es lief, aber eine Version war nicht lesbar). Ein fehlendes Werkzeug **stoppt nie einen Scan**: Sie bekommen Ebene 1, ungeprüft markiert. Ein schneller Neuscan nach einer Dateiänderung wiederholt die Prüfung nicht.
+Ein Werkzeug ist `ready` (bereit), `missing` (nicht im `PATH`, oder die Versionsabfrage schlägt fehl, etwa bei der `rustup`-Hülle einer nie hinzugefügten Komponente), `too_old` (unter der Mindestversion oder der Version, die das Projekt in `global.json`, `.nvmrc` oder `rust-toolchain.toml` verlangt), `too_new` (neuer, als die `rollForward`-Regel in `global.json` zulässt, zum Beispiel ein SDK 9, obwohl das Projekt 8.0 nennt und nichts darüber erlaubt) oder `version_unknown` (es lief, aber eine Version war nicht lesbar). Ein fehlendes Werkzeug **stoppt nie einen Scan**: Sie bekommen Ebene 1, ungeprüft markiert. Ein schneller Neuscan nach einer Dateiänderung wiederholt die Prüfung nicht.
 
 ## Einschalten
 

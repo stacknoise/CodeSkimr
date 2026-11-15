@@ -142,9 +142,9 @@ Owner: `codeskimr_server`
 |---|---|---|---|---|---|
 | API-101 | `request_invalid` | error | no | 0.1.0 | The REST request failed validation. |
 | API-102 | `bind_address_not_local` | error | no | 0.1.0 | The server was asked to listen on an address that is not a loopback address. |
-| API-201 | `command_not_found` | error | no | 0.1.0 | The REST request names a command or route that does not exist. |
+| API-201 | `command_not_found` | error | no | 0.1.0 | The request names a command, tool or route that does not exist. |
 | API-301 | `server_bind_failed` | error | no | 0.1.0 | The server could not listen on its address, for example because the port is taken. |
-| API-401 | `token_missing_or_invalid` | error | no | 0.1.0 | A state-changing request lacks a valid installation token. |
+| API-401 | `token_missing_or_invalid` | error | no | 0.1.0 | The request lacks a valid installation token. |
 | API-402 | `host_or_origin_rejected` | error | no | 0.1.0 | The Host or Origin header of the request is not one of this server. |
 | API-403 | `launch_code_invalid` | error | no | 0.1.0 | The one-time launch code is wrong, already used or expired. |
 | API-501 | `request_too_large` | error | no | 0.1.0 | The request body is larger than the server accepts. |

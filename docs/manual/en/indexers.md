@@ -32,7 +32,7 @@ Whenever a project is loaded (added, fully scanned, reopened), CodeSkimr checks 
 - in the summary of `codeskimr scan` (and in `--json` as `tools`);
 - over MCP with the tool `get_project`.
 
-A tool is `ready`, `missing` (not on the `PATH`), `too_old` (below the minimum version or the version the project asks for in `global.json`, `.nvmrc` or `rust-toolchain.toml`), `too_new` (newer than the `rollForward` rule in `global.json` lets through, for example SDK 9 although the project names 8.0 and allows nothing above it) or `version_unknown` (it ran but no version could be read). A missing tool **never stops a scan**: you get level 1, marked unchecked. A quick re-scan after a file change does not repeat the check.
+A tool is `ready`, `missing` (not on the `PATH`, or its version command fails, as with the `rustup` shim of a component that was never added), `too_old` (below the minimum version or the version the project asks for in `global.json`, `.nvmrc` or `rust-toolchain.toml`), `too_new` (newer than the `rollForward` rule in `global.json` lets through, for example SDK 9 although the project names 8.0 and allows nothing above it) or `version_unknown` (it ran but no version could be read). A missing tool **never stops a scan**: you get level 1, marked unchecked. A quick re-scan after a file change does not repeat the check.
 
 ## Switching it on
 
