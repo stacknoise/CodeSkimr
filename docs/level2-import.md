@@ -50,7 +50,7 @@ Not part of the tests (no foreign data in the repository). The comparison is aga
 | recall / precision against the index | 100 % / 100 % | 100 % / 100 % |
 | level 1 on the same symbols: recall / precision | 71 % / 97 % | 51 % / 20 % |
 
-The 15 % that did not map in Rust are 77 types, enum variants and macros that a `macro_rules!` invocation defines (`labeled_enum!`, `id_type!`), which the syntax tree does not show (17.0 % of the project uses, 1498 of 8792; `tools/accuracy/measure.py` reports it as `without_level1_symbol`, see `docs/accuracy.md`). They are dropped, not guessed: nothing in the snapshot is their symbol. Import time on the Rust index (9 MB) was about 30 ms for decoding and 30 ms for mapping.
+The 15 % that did not map in Rust (the 4315 of the table, measured on another index) were not split by cause. A later measurement on the CodeSkimr corpus (1498 of 8792 project uses, 17.0 %; `tools/accuracy/measure.py` reports it as `without_level1_symbol`, see `docs/accuracy.md`) shows a cause that was examined: 77 types, enum variants and macros that a `macro_rules!` invocation defines (`labeled_enum!`, `id_type!`), which the syntax tree does not show. The 1498 are an upper bound for that case, since `unmapped` also counts uses that lie in no symbol. Unmapped uses are dropped, not guessed: nothing in the snapshot is their symbol. Import time on the Rust index (9 MB) was about 30 ms for decoding and 30 ms for mapping.
 
 ## Limits
 
