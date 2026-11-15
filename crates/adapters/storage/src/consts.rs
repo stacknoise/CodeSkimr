@@ -133,3 +133,7 @@ pub const BULK_REFERENCES_MIN: usize = 20_000;
 /// The indexes are built again after the load when the new references are at least this share of
 /// the stored ones, expressed as "one in N" (a load of half the table or more).
 pub const BULK_REFERENCES_SHARE_DIVISOR: usize = 2;
+
+/// Separates names in a text that is handed to SQL as a list of names (the unit separator, which
+/// no name holds).
+pub const NAME_SEPARATOR: char = '\u{1f}';

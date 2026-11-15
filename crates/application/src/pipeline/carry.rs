@@ -6,9 +6,10 @@
 //! ones are written, kept ones that are no longer produced are dropped. References that level 2
 //! verified are the exception, see [`Carried::reconcile`].
 //!
-//! Which names are resolved again depends on what changed ([`Carried::due_names`]): if the changed
-//! files show the same [`Shape`] as before, only the names that pointed into them (and the imports
-//! and base lists, which tell the resolver what a file sees), otherwise all names.
+//! Which names are resolved again depends on what changed ([`Carried::due_names`]): the names that
+//! pointed into the changed files, the names the resolver looks up by a symbol whose [`Shape`]
+//! differs, the files that import a changed qualified name, and the imports and base lists, which
+//! tell the resolver what a file sees; all names only if a base list changed (issue #408).
 
 use std::collections::HashSet;
 
@@ -17,7 +18,7 @@ use codeskimr_domain::{
     SourceFile, Span, Symbol, SymbolId, SymbolOrigin,
 };
 
-use super::shape::{Shape, is_structural};
+use super::shape::{Delta, Shape, is_structural};
 use crate::error::CodedError;
 use crate::ports::{
     DiscoveredFile, PendingReference, PreviousIndex, PreviousState, ProjectRepository, StoredNames,
@@ -199,12 +200,20 @@ impl Carried {
     }
 
     /// The names to resolve again besides the new ones `fresh`, written in the files `symbols`
-    /// belong to. If the changed files show the same shape as before, nothing an unchanged name
-    /// resolves against has changed but the ids of the symbols: the names written inside the
-    /// symbols that pointed at such a symbol are resolved again, and the imports and base lists,
-    /// which the resolver needs to know what a file sees and which type inherits from which.
-    /// Otherwise all names are. The names come from the store only now, and only as far as they are
-    /// needed.
+    /// belong to. What an unchanged name resolves against differs from before only where a symbol
+    /// was added, removed, renamed, moved or changed in kind in the changed files, and where an
+    /// id changed. So these names are resolved again (issue #408):
+    ///
+    /// - the base lists, which the resolver needs to know which type inherits from which,
+    /// - the names written inside the symbols that pointed at a gone symbol,
+    /// - the names that the resolver looks up by the simple name of a changed symbol, as target or
+    ///   as named receiver,
+    /// - all names of a file with an import of a changed qualified name, because the import decides
+    ///   what the file sees,
+    /// - the imports of the files of all these names.
+    ///
+    /// If a base list changed, a type can inherit something else and all names are resolved again.
+    /// The names come from the store only now, and only as far as they are needed.
     ///
     /// # Errors
     /// A coded failure of the store.
@@ -216,11 +225,11 @@ impl Carried {
         let Some(snapshot) = self.snapshot else {
             return Ok(Vec::new());
         };
-        if Shape::of(symbols, fresh) != self.previous_shape {
+        let Some(delta) = Shape::of(symbols, fresh).delta(&self.previous_shape) else {
             self.scope = None;
             return self.all_names(snapshot, store);
-        }
-        let due = self.narrow_names(snapshot, store)?;
+        };
+        let due = self.narrow_names(snapshot, &delta, store)?;
         self.scope = Some(
             due.iter()
                 .map(|name| (name.from, name.file, name.span))
@@ -229,11 +238,11 @@ impl Carried {
         Ok(due)
     }
 
-    /// The base lists, the names written inside the symbols that pointed at a gone symbol, and the
-    /// imports of the files of those names and of the base lists, which tell what these see.
+    /// The names that [`Carried::due_names`] lists for a scan whose changed files differ by `delta`.
     fn narrow_names(
         &self,
         snapshot: SnapshotId,
+        delta: &Delta,
         store: &dyn ProjectRepository,
     ) -> Result<Vec<PendingReference>, CodedError> {
         let callers: HashSet<SymbolId> = self.dead.iter().map(|(from, _, _)| *from).collect();
@@ -248,11 +257,69 @@ impl Carried {
                 .filter(|name| !is_structural(name.kind))
                 .filter(|name| self.dead.contains(&(name.from, name.file, name.span))),
         );
+        due.extend(self.looked_up_by(snapshot, delta, store)?);
         let mut files: HashSet<FileId> = due.iter().map(|name| name.file).collect();
         files.extend(dead_files);
+        files.extend(self.names_of_importers(snapshot, delta, store, &mut due)?);
         let files: Vec<FileId> = files.into_iter().collect();
         due.extend(store.stored_names(snapshot, StoredNames::ImportsOf(&files))?);
-        Ok(due)
+        Ok(Self::distinct(due))
+    }
+
+    /// The names of unchanged files that the resolver looks up by a changed simple name.
+    fn looked_up_by(
+        &self,
+        snapshot: SnapshotId,
+        delta: &Delta,
+        store: &dyn ProjectRepository,
+    ) -> Result<Vec<PendingReference>, CodedError> {
+        if delta.names.is_empty() {
+            return Ok(Vec::new());
+        }
+        let names: Vec<String> = delta.names.iter().cloned().collect();
+        Ok(self.kept(store.stored_names(snapshot, StoredNames::Targeting(&names))?))
+    }
+
+    /// Adds every name of the files with an import of a changed qualified name to `due` and
+    /// returns those files.
+    fn names_of_importers(
+        &self,
+        snapshot: SnapshotId,
+        delta: &Delta,
+        store: &dyn ProjectRepository,
+        due: &mut Vec<PendingReference>,
+    ) -> Result<Vec<FileId>, CodedError> {
+        if delta.qualified.is_empty() {
+            return Ok(Vec::new());
+        }
+        let qualified: Vec<String> = delta.qualified.iter().cloned().collect();
+        let importers: HashSet<FileId> = self
+            .kept(store.stored_names(snapshot, StoredNames::ImportsTargeting(&qualified))?)
+            .into_iter()
+            .map(|name| name.file)
+            .collect();
+        let importers: Vec<FileId> = importers.into_iter().collect();
+        due.extend(self.kept(store.stored_names(snapshot, StoredNames::OfFiles(&importers))?));
+        Ok(importers)
+    }
+
+    /// The names that belong to an unchanged file. The store reads names of the whole previous
+    /// snapshot, which holds the files that changed too.
+    fn kept(&self, names: Vec<PendingReference>) -> Vec<PendingReference> {
+        let kept: HashSet<FileId> = self.files.iter().map(|file| file.id).collect();
+        names
+            .into_iter()
+            .filter(|name| kept.contains(&name.file))
+            .collect()
+    }
+
+    /// `names` without the occurrences that appear twice.
+    fn distinct(names: Vec<PendingReference>) -> Vec<PendingReference> {
+        let mut seen: HashSet<(Site, ReferenceKind)> = HashSet::new();
+        names
+            .into_iter()
+            .filter(|name| seen.insert(((name.from, name.file, name.span), name.kind)))
+            .collect()
     }
 
     /// Every name of the unchanged files.
@@ -261,12 +328,7 @@ impl Carried {
         snapshot: SnapshotId,
         store: &dyn ProjectRepository,
     ) -> Result<Vec<PendingReference>, CodedError> {
-        let kept: HashSet<FileId> = self.files.iter().map(|file| file.id).collect();
-        Ok(store
-            .stored_names(snapshot, StoredNames::All)?
-            .into_iter()
-            .filter(|name| kept.contains(&name.file))
-            .collect())
+        Ok(self.kept(store.stored_names(snapshot, StoredNames::All)?))
     }
 
     /// Takes the references `resolved` for all names of this scan (the new ones and `names`) and

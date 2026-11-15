@@ -17,7 +17,7 @@ use codeskimr_application::ports::{
     AnalyzeRequest, Clock, ConsentStore, DiscoveredFile, FetchedSource, FileAnalyzer,
     FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob, IndexRunner,
     IndexerSpec, IndexerStatus, Level2Replacement, MetricsCalculator, PendingReference,
-    PreviousIndex, PreviousState, ProjectRepository, ProjectScanner, ReferenceImporter,
+    PreviousIndex, PreviousState, ProjectRepository, ProjectScanner, Receiver, ReferenceImporter,
     ReferenceResolver, SnapshotData, SnapshotStore, SourceProvider, StoredNames,
     SymbolFingerprints, ToolSpec, ToolVersion,
 };
@@ -193,7 +193,7 @@ impl FileAnalyzer for World {
             file: file.id,
             span: span()?,
             kind: ReferenceKind::Call,
-            target: symbol.qualified_name.clone(),
+            target: model(QualifiedName::new(symbol.name.as_str()))?,
             receiver: None,
         }];
         Ok(FileFacts {
@@ -234,7 +234,7 @@ impl ReferenceResolver for World {
             .filter_map(|item| {
                 let target = symbols
                     .iter()
-                    .find(|symbol| symbol.qualified_name == item.target)?;
+                    .find(|symbol| symbol.name.as_str() == item.target.as_str())?;
                 Some(Reference {
                     id: ids.reference(),
                     from: item.from,
@@ -323,6 +323,18 @@ impl ProjectRepository for World {
                 StoredNames::Callers(files, callers) => {
                     files.contains(&name.file) && callers.contains(&name.from)
                 }
+                StoredNames::Targeting(names) => {
+                    name.kind != ReferenceKind::Import
+                        && (names.iter().any(|n| n == name.target.as_str())
+                            || matches!(&name.receiver,
+                                Some(Receiver::Typed(r) | Receiver::Named(r))
+                                    if names.iter().any(|n| n == r.as_str())))
+                }
+                StoredNames::ImportsTargeting(names) => {
+                    name.kind == ReferenceKind::Import
+                        && names.iter().any(|n| n == name.target.as_str())
+                }
+                StoredNames::OfFiles(files) => files.contains(&name.file),
                 StoredNames::All => true,
             })
             .cloned()
@@ -513,9 +525,9 @@ fn previous_snapshot() -> Result<Previous, CodedError> {
     Ok(Previous {
         names_stored: true,
         names: vec![
-            old_name("m::b", 300)?,
-            old_name("m::c", 301)?,
-            old_name("m::a", 302)?,
+            old_name("b", 300)?,
+            old_name("c", 301)?,
+            old_name("a", 302)?,
         ],
         files: vec![
             old_file(100, "a.rs")?,
@@ -610,8 +622,9 @@ fn a_snapshot_without_stored_names_is_followed_by_a_full_scan() -> Result<(), Co
 fn a_name_that_found_nothing_before_finds_a_new_target_in_a_changed_file() -> Result<(), CodedError>
 {
     let mut previous = previous_snapshot()?;
-    // `a` wrote the name `m::b` before, but there was no `b` then, so no reference was stored.
+    // `a` wrote the name `b` before, but there was no `b` then, so no reference was stored.
     previous.index.references.retain(|r| r.id.get() != 300);
+    previous.index.symbols.retain(|s| s.id.get() != 201);
     let world = world_over(previous);
     let _ = run(&world, ScanMode::Incremental);
     let persisted = world.last_persisted()?;
@@ -630,7 +643,10 @@ fn a_name_that_found_nothing_before_finds_a_new_target_in_a_changed_file() -> Re
 fn a_kept_reference_that_the_full_resolution_no_longer_produces_is_dropped()
 -> Result<(), CodedError> {
     let mut previous = previous_snapshot()?;
-    previous.names.retain(|name| name.target.as_str() != "m::a");
+    // The stored call of `a` to itself is now a name that looks up the removed `c`, so the
+    // resolution is due and finds nothing for it.
+    previous.names.retain(|name| name.target.as_str() != "a");
+    previous.names.push(old_name("c", 302)?);
     let world = world_over(previous);
     let _ = run(&world, ScanMode::Incremental);
     let persisted = world.last_persisted()?;
@@ -670,7 +686,7 @@ fn level_two_references_stay_and_one_whose_target_is_gone_falls_back_to_level_on
     let mut previous = previous_snapshot()?;
     previous.index.references = vec![verified(old_call(300, 201)?), verified(old_call(302, 200)?)];
     // Level 2 reported nothing for the call of `c`; level 1 must not add what it replaced.
-    previous.names.push(old_name("m::a", 302)?);
+    previous.names.push(old_name("a", 302)?);
     let world = world_over(previous);
     let (result, _) = run(&world, ScanMode::Incremental);
     let JobResult::Finished(job) = result else {
@@ -792,7 +808,7 @@ fn a_change_that_keeps_the_declarations_resolves_only_the_names_that_pointed_int
     previous.files.retain(|f| f.path.as_str() != "c.rs");
     previous.index.symbols.retain(|s| s.file.get() != 102);
     previous.index.references.retain(|r| r.to.get() != 202);
-    previous.names.retain(|n| n.target.as_str() != "m::c");
+    previous.names.retain(|n| n.target.as_str() != "c");
     let world = world_over(previous);
     let _ = run(&world, ScanMode::Incremental);
     // The new call in `b.rs` and the call of `a` that pointed at the old `b`; the call of `a` to
@@ -805,11 +821,12 @@ fn a_change_that_keeps_the_declarations_resolves_only_the_names_that_pointed_int
 }
 
 #[test]
-fn a_change_of_the_declarations_resolves_all_names_again() -> Result<(), CodedError> {
+fn a_gone_declaration_resolves_the_names_that_looked_it_up_again() -> Result<(), CodedError> {
     let world = a_unchanged_b_changed()?;
     let _ = run(&world, ScanMode::Incremental);
-    // `c.rs` is gone: the new call of `b.rs` and the three names of `a`.
-    assert_eq!(resolved_names(&world), [4]);
+    // `c.rs` is gone: the new call of `b.rs`, the name of `a` that looked up `c`, and the name that
+    // pointed at the replaced symbol of `b`; the call of `a` to itself is not resolved again.
+    assert_eq!(resolved_names(&world), [3]);
     Ok(())
 }
 
@@ -1011,7 +1028,7 @@ fn a_reference_that_is_kept_is_not_resolved_a_second_time() -> Result<(), CodedE
     // name is resolved again to the same unchanged candidate and the new `b`.
     previous.index.symbols.push(old_symbol(203, 100, "b")?);
     previous.index.references.push(old_call(303, 203)?);
-    previous.names.push(old_name("m::b", 303)?);
+    previous.names.push(old_name("b", 303)?);
     let world = world_over(previous);
     let _ = run(&world, ScanMode::Incremental);
     let calls_to_203 = world

@@ -46,14 +46,27 @@ The resolver reads of a symbol its name, kind, qualified name and parent, and of
 list (`pipeline/shape.rs`). `Carried::due_names` compares that shape of the changed and removed
 files, before and after:
 
-- **Same shape** (a typical save: bodies and comments changed, declarations did not): nothing an
-  unchanged name resolves against has changed but the ids of the symbols in the changed files. The
-  names that pointed into those files are resolved again (including an import that pointed into
-  them, also when it is the only name of its file), and the imports of the files that hold such a
-  name and the base lists, because the resolver learns from them what a file sees and which type inherits
-  from which.
-- **Other shape** (a symbol or base added, removed, renamed or moved, a file added or removed):
-  all names of the unchanged files.
+- **Always** (the part that a typical save needs, where bodies and comments changed and
+  declarations did not): the names that pointed into the changed files, because the ids of their
+  symbols are new (including an import that pointed into them, also when it is the only name of its
+  file), the imports of the files that hold such a name, and the base lists, because the resolver
+  learns from them what a file sees and which type inherits from which.
+- **A symbol differs** (added, removed, renamed, moved or changed in kind, or a file added or
+  removed): `Shape::delta` lists the simple names and the qualified names of these symbols. The
+  resolver looks a name up by the simple name of its target and, for a typed or named receiver, by the
+  simple name of the receiver, so every name whose target or receiver is one of the changed simple
+  names is resolved again (`StoredNames::Targeting`). An import is looked up by its qualified name;
+  every name of a file with an import of a changed qualified name is resolved again, because the
+  import decides what the file sees (`ImportsTargeting`, `OfFiles`). A moved symbol carries its
+  members with it, since their qualified names change too.
+- **A base list differs** (a type gets, loses or changes a base): all names of the unchanged files,
+  because what a type inherits decides how members resolve anywhere.
+
+The rule is proven against the full scan as the oracle: the cases of
+`crates/app/src/incremental_tests.rs` (C#, Python, TypeScript, Java, Kotlin, Rust) and a test that
+draws random changes of a C# project (files that are added, deleted, renamed, moved to another
+namespace, given another base class, another import, other calls) and compares every step with a
+full scan. Taking away any part of the rule makes that test fail.
 
 `Carried::reconcile` drops a kept reference only if its name was resolved again.
 
@@ -81,16 +94,26 @@ The names are not read with the previous state. `latest_state` reads files, symb
 (and says whether names are stored); the resolver asks for the names it needs through
 `ProjectRepository::stored_names`: the base lists (inherit and implement, partial index
 `pending_references_bases`), the names at the sites that lost a target together with the names of the
-callers of removed symbols (index `(file_id, from_symbol)`), the imports of the involved files, or all
-names when the shape changed. An edit that keeps the shape therefore reads a few hundred rows instead
-of 64 000. `tools/bench` (release, this machine, base and head back to back): `rescan/one_file_100k_loc`
+callers of removed symbols (index `(file_id, from_symbol)`), the names whose target or receiver is
+a changed simple name, the imports of the involved files, or all names when a base list changed. An
+edit therefore reads a few hundred rows instead of 64 000. `tools/bench` (release, this machine, base and head back to back): `rescan/one_file_100k_loc`
 123 ms against 133 ms, `rescan/one_file_100k_loc_csharp` 176 ms against 180 ms.
 
 The names take space: 64 333 rows in `pending_references` for the 84 880 references, 3.3 MB of a
 database of 37.1 MB with five snapshots (32.8 MB without; the rows are shared between snapshots that
-carry a file, ADR 0032). One row is about 50 bytes. A change of the declarations still resolves
-all names; a project that renames or adds symbols in every save pays the full resolve stage of
-a full scan (80 ms here) on top of the base.
+carry a file, ADR 0032). One row is about 50 bytes.
+
+A save that adds a declaration (issue #408; CodeSkimr's own `crates/` as the corpus, release build,
+one function added to a file, resolve stage and the whole rescan that watch mode reports, this
+machine):
+
+| | all names (before) | by changed symbols (now) |
+|---|---|---|
+| resolve | 226 ms | 43 to 59 ms |
+| rescan, total | 410 to 483 ms | 231 to 273 ms |
+
+A save that changes only a body takes 190 to 220 ms and 26 to 34 ms in the resolve stage, so a
+declaration costs about 40 ms more. A change of a base list still resolves all names.
 
 ## Level 2
 
