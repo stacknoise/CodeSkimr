@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 48,
+      "loc": 59,
       "operands": null,
       "operators": null,
       "symbol": "references"
@@ -53,9 +53,29 @@
         50
       ],
       "symbol": "references::Order::find"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "references::Pair"
+    },
+    {
+      "decisions": 0,
+      "loc": 5,
+      "operands": [
+        5,
+        7
+      ],
+      "operators": [
+        2,
+        3
+      ],
+      "symbol": "references::Pair::build"
     }
   ],
-  "loc": 48,
+  "loc": 59,
   "references": [
     {
       "at": "2:23",
@@ -229,7 +249,7 @@
       "at": "27:8",
       "from": "references::Order::find",
       "kind": "call",
-      "receiver": null,
+      "receiver": "free",
       "target": "helper"
     },
     {
@@ -257,7 +277,7 @@
       "at": "29:34",
       "from": "references::Order::find",
       "kind": "read",
-      "receiver": null,
+      "receiver": "free",
       "target": "OFFSET"
     },
     {
@@ -271,7 +291,7 @@
       "at": "31:28",
       "from": "references::Order::find",
       "kind": "read",
-      "receiver": null,
+      "receiver": "free",
       "target": "Item"
     },
     {
@@ -285,14 +305,14 @@
       "at": "32:28",
       "from": "references::Order::find",
       "kind": "call",
-      "receiver": null,
+      "receiver": "free",
       "target": "pair"
     },
     {
       "at": "33:19",
       "from": "references::Order::find",
       "kind": "read",
-      "receiver": null,
+      "receiver": "free",
       "target": "Item"
     },
     {
@@ -313,7 +333,7 @@
       "at": "35:20",
       "from": "references::Order::find",
       "kind": "call",
-      "receiver": null,
+      "receiver": "free",
       "target": "compute"
     },
     {
@@ -362,7 +382,7 @@
       "at": "40:20",
       "from": "references::Order::find",
       "kind": "read",
-      "receiver": null,
+      "receiver": "free",
       "target": "Style"
     },
     {
@@ -404,7 +424,7 @@
       "at": "50:12",
       "from": "references::Order::find",
       "kind": "read",
-      "receiver": null,
+      "receiver": "free",
       "target": "Style"
     },
     {
@@ -418,14 +438,14 @@
       "at": "50:28",
       "from": "references::Order::find",
       "kind": "call",
-      "receiver": null,
+      "receiver": "free",
       "target": "Ok"
     },
     {
       "at": "51:17",
       "from": "references::Order::find",
       "kind": "call",
-      "receiver": null,
+      "receiver": "free",
       "target": "Err"
     },
     {
@@ -434,6 +454,48 @@
       "kind": "call",
       "receiver": "typed Item",
       "target": "into"
+    },
+    {
+      "at": "61:5",
+      "from": "references::Pair",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Pair"
+    },
+    {
+      "at": "62:43",
+      "from": "references::Pair::build",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Self"
+    },
+    {
+      "at": "64:19",
+      "from": "references::Pair::build",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Self"
+    },
+    {
+      "at": "64:26",
+      "from": "references::Pair::build",
+      "kind": "read",
+      "receiver": "own",
+      "target": "left"
+    },
+    {
+      "at": "65:20",
+      "from": "references::Pair::build",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Pair"
+    },
+    {
+      "at": "65:27",
+      "from": "references::Pair::build",
+      "kind": "read",
+      "receiver": "typed Pair",
+      "target": "right"
     }
   ],
   "symbols": [
@@ -443,7 +505,7 @@
       "name": "references",
       "parent": null,
       "signature": null,
-      "span": "0:0-55:0",
+      "span": "0:0-69:0",
       "static": false,
       "visibility": null
     },
@@ -535,6 +597,46 @@
       "signature": null,
       "span": "26:4-53:5",
       "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "struct",
+      "name": "references::Pair",
+      "parent": "references",
+      "signature": null,
+      "span": "56:0-59:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "references::Pair::left",
+      "parent": "references::Pair",
+      "signature": null,
+      "span": "57:4-57:17",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "references::Pair::right",
+      "parent": "references::Pair",
+      "signature": null,
+      "span": "58:4-58:18",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "references::Pair::build",
+      "parent": "references::Pair",
+      "signature": null,
+      "span": "62:4-67:5",
+      "static": true,
       "visibility": "public"
     }
   ]

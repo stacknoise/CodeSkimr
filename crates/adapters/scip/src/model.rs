@@ -59,6 +59,64 @@ pub struct ScipDocument {
     /// What the local symbols that the document defines are called, read from the text of their
     /// definitions by `convert_columns`. Empty while the text is not known.
     pub local_names: HashMap<SymbolRef, Arc<str>>,
+    /// What the text of the file adds to the index (Java); empty while the text is not known.
+    pub facts: TextFacts,
+}
+
+/// How many parameters a constructor declares.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Arity {
+    /// None.
+    Zero,
+    /// One, which may take a variable number of arguments (`String... names`).
+    One {
+        /// Whether the parameter is a varargs parameter.
+        varargs: bool,
+    },
+    /// Two or more.
+    Several,
+}
+
+/// A constructor that a document defines, with what only its text tells.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ConstructorSite {
+    /// The symbol of the constructor.
+    pub symbol: SymbolRef,
+    /// Whether the source declares it; the default constructor of a class without one is only
+    /// defined by the index.
+    pub declared: bool,
+    /// Its parameters.
+    pub arity: Arity,
+    /// Where the compiler puts the call of the constructor of the superclass that the source does
+    /// not write: the opening brace of a declared constructor, the name of the class for a default
+    /// constructor.
+    pub call_at: Span,
+    /// Whether the body starts with `this(...)` or `super(...)`, so that no call is implied.
+    pub explicit_call: bool,
+}
+
+/// `new Type(...) { ... }`: the creation of an anonymous subclass.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AnonymousCreation {
+    /// The symbol of the type that is created.
+    pub symbol: SymbolRef,
+    /// Where the name of the type stands.
+    pub range: Span,
+    /// The opening brace of the body, where the compiler puts the call of the constructor.
+    pub body: Span,
+}
+
+/// What the text of a file adds to the index: calls that the compiler counts and the indexer
+/// does not write.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct TextFacts {
+    /// The constructors the document defines.
+    pub constructors: Vec<ConstructorSite>,
+    /// The anonymous subclasses the document creates.
+    pub anonymous: Vec<AnonymousCreation>,
+    /// The names of the enum constants that have a body (`NAME(args) { ... }`); the compiler
+    /// reads each of them as the creation of a subclass of the enum.
+    pub enum_bodies: Vec<Span>,
 }
 
 /// A decoded SCIP index, reduced to what the import needs.

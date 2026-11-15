@@ -165,7 +165,7 @@
       "at": "21:17",
       "from": "metrics::patterns",
       "kind": "read",
-      "receiver": null,
+      "receiver": "free",
       "target": "first"
     },
     {
@@ -186,14 +186,14 @@
       "at": "25:17",
       "from": "metrics::patterns",
       "kind": "read",
-      "receiver": null,
+      "receiver": "free",
       "target": "next"
     },
     {
       "at": "49:13",
       "from": "metrics::arms",
       "kind": "read",
-      "receiver": null,
+      "receiver": "free",
       "target": "n"
     },
     {
@@ -228,21 +228,21 @@
       "at": "66:15",
       "from": "metrics::not_counted",
       "kind": "read",
-      "receiver": null,
+      "receiver": "free",
       "target": "None"
     },
     {
       "at": "68:13",
       "from": "metrics::not_counted",
       "kind": "call",
-      "receiver": null,
+      "receiver": "free",
       "target": "Some"
     },
     {
       "at": "68:18",
       "from": "metrics::not_counted",
       "kind": "read",
-      "receiver": null,
+      "receiver": "free",
       "target": "double"
     },
     {
@@ -270,7 +270,7 @@
       "at": "76:46",
       "from": "metrics::outer",
       "kind": "call",
-      "receiver": null,
+      "receiver": "free",
       "target": "local"
     },
     {

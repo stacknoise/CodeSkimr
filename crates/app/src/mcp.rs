@@ -25,8 +25,8 @@ use crate::principal;
 use crate::running::{ExclusiveScans, RunningScans};
 use crate::source_arg::folder_spec;
 use crate::wiring::{
-    Analysis, Secrets, build_analysis, index_runner, open_serving_store, open_store, os_secrets,
-    scanner_over, tool_checker,
+    Analysis, Secrets, build_analysis, index_runner, open_store, os_secrets, scanner_over,
+    tool_checker,
 };
 
 /// Serves MCP until the client disconnects.
@@ -100,18 +100,21 @@ pub fn http_service(
     )
 }
 
-/// Like [`http_service`], but a `rescan` and the scans of the UI share `running`, so a second
-/// scan of the same project is refused with `PRJ-302` whichever side started the first.
+/// Like [`http_service`], but over the `store` the UI uses too, and a `rescan` and the scans of
+/// the UI share `running`, so a second scan of the same project is refused with `PRJ-302`
+/// whichever side started the first. One store means one usages index: a level 2 import through
+/// either side is seen by the other (#358).
 ///
 /// # Errors
-/// The same as [`http_service`].
+/// The same as [`http_service`], without the opening of the store.
 pub fn http_service_sharing(
+    store: Arc<SqliteStore>,
     config: &Config,
     locations: &Locations,
     (events, secrets): (EventBus, &Arc<Secrets>),
     running: RunningScans,
 ) -> Result<HttpService, CodedError> {
-    http_service_probing(config, locations, (events, secrets), (None, running))
+    http_service_over(store, config, locations, (events, secrets), (None, running))
 }
 
 /// Like [`http_service`], but the tools are started through `runner` instead of as real processes
@@ -119,13 +122,24 @@ pub fn http_service_sharing(
 ///
 /// # Errors
 /// The same as [`http_service`].
+#[cfg(test)]
 pub fn http_service_probing(
+    config: &Config,
+    locations: &Locations,
+    (events, secrets): (EventBus, &Arc<Secrets>),
+    run: (Option<Arc<dyn IndexRunner>>, RunningScans),
+) -> Result<HttpService, CodedError> {
+    let store = crate::wiring::open_serving_store(locations, config)?;
+    http_service_over(store, config, locations, (events, secrets), run)
+}
+
+fn http_service_over(
+    store: Arc<SqliteStore>,
     config: &Config,
     locations: &Locations,
     (events, secrets): (EventBus, &Arc<Secrets>),
     (runner, running): (Option<Arc<dyn IndexRunner>>, RunningScans),
 ) -> Result<HttpService, CodedError> {
-    let store = open_serving_store(locations, config)?;
     let messages = Arc::new(Messages::load().map_err(CodedError::caused_by)?);
     let wiring = Wiring {
         locations,

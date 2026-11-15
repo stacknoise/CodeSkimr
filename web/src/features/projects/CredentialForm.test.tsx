@@ -113,6 +113,31 @@ describe("the login of a Git project", () => {
     expect(secret.value).toBe("");
   });
 
+  it("empties the secret when the screen is left without storing", async () => {
+    serve({ "projects.list": () => answer([]), "credentials.list": () => answer([]) });
+    const view = render(() => <ProjectsScreen />);
+    const secret = await type();
+    view.unmount();
+    expect(secret.value).toBe("");
+  });
+
+  it("empties the secret when the request cannot be sent at all", async () => {
+    serve({
+      "projects.list": () => answer([]),
+      "credentials.list": () => answer([]),
+      "credentials.set": () => {
+        throw new TypeError("network down");
+      },
+    });
+    const spy = vi.spyOn(console, "error");
+    render(() => <ProjectsScreen />);
+    const secret = await type();
+    fireEvent.click(screen.getByRole("button", { name: "Store login" }));
+    await waitFor(() => expect(secret.value).toBe(""));
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    nowhere(spy);
+  });
+
   it("sends no credential when none is chosen", async () => {
     serve({
       "projects.list": () => answer([]),

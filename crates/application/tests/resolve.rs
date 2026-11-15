@@ -524,6 +524,18 @@ mod tests {
     }
 
     #[test]
+    fn a_free_name_never_means_a_method_even_if_the_pack_nests_it_in_a_module() {
+        let mut table = Table::default();
+        let module = table.add(SymbolKind::Module, "demo", None, 1);
+        // The `impl` of Rust has no symbol: the method sits in the module.
+        table.add(SymbolKind::Method, "demo.from", Some(module), 1);
+        let caller = table.add(SymbolKind::Function, "demo.run", Some(module), 1);
+        let mut read = occurrence(caller, 1, ReferenceKind::Read, "from");
+        read.receiver = Some(Receiver::Free);
+        assert_eq!(targets(&resolve(&table, &[read])), []);
+    }
+
+    #[test]
     fn the_name_in_the_declaration_of_a_field_is_no_use_of_it() {
         let mut table = Table::default();
         let class = table.add(SymbolKind::Class, "Demo.Box", None, 1);

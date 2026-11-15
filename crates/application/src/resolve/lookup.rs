@@ -79,12 +79,14 @@ impl<'a> Context<'a> {
             && symbol.span.start() == occurrence.span.start()
     }
 
-    /// Whether the symbol is declared directly in a type.
+    /// Whether the symbol is a member: declared directly in a type, or a method or constructor,
+    /// which a pack may nest in a module (the `impl` of Rust stands for no symbol).
     fn is_member(&self, symbol: &Symbol) -> bool {
-        symbol
-            .parent
-            .and_then(|parent| self.table.get(parent))
-            .is_some_and(|parent| is_type(parent.kind))
+        matches!(symbol.kind, SymbolKind::Method | SymbolKind::Constructor)
+            || symbol
+                .parent
+                .and_then(|parent| self.table.get(parent))
+                .is_some_and(|parent| is_type(parent.kind))
     }
 
     /// An import, or a name that already is a qualified name because it is resolved again.
