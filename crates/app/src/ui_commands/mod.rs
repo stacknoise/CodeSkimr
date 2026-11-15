@@ -40,7 +40,6 @@ use codeskimr_source::FolderText;
 
 pub(crate) use status::{mark_ready, mark_started};
 
-use crate::config_files;
 use crate::locations::Locations;
 use crate::running::RunningScans;
 use crate::wiring::{Secrets, index_runner, tool_checker};
@@ -130,9 +129,15 @@ pub fn command_api_probing(
     (events, secrets): (EventBus, Arc<Secrets>),
     run: (Option<Arc<dyn IndexRunner>>, RunningScans),
 ) -> Result<CommandApi, CodedError> {
-    let config = config_files::load(locations, global, None)?;
+    let config = crate::config_files::load(locations, global, None)?;
     let catalog = crate::wiring::open_serving_store(locations, &config)?;
-    command_api_over(&catalog, (global, locations), (events, secrets), run)
+    command_api_over(
+        &catalog,
+        &config,
+        (global, locations),
+        (events, secrets),
+        run,
+    )
 }
 
 /// Like [`command_api_probing`], but over a `catalog` that the caller opened, so that the MCP
@@ -142,11 +147,11 @@ pub fn command_api_probing(
 /// The same as [`command_api`], without the opening of the database.
 pub fn command_api_over(
     catalog: &Arc<SqliteStore>,
+    config: &Config,
     (global, locations): (&GlobalOptions, &Locations),
     (events, secrets): (EventBus, Arc<Secrets>),
     (runner, running): (Option<Arc<dyn IndexRunner>>, RunningScans),
 ) -> Result<CommandApi, CodedError> {
-    let config = config_files::load(locations, global, None)?;
     let runner = runner.unwrap_or_else(|| index_runner(locations));
     let tools = tool_checker(catalog, (locations, runner))?;
     let context = Arc::new(Context {
@@ -177,7 +182,7 @@ pub fn command_api_over(
     register_explorer(&mut registry, catalog, config.metrics.clone())?;
     register_preferences(&mut registry, locations)?;
     registry
-        .register(export_command(catalog, &config, locations))
+        .register(export_command(catalog, config, locations))
         .map_err(CodedError::caused_by)?;
     let mut api = CommandApi::new(Arc::new(registry));
     expose_all(&mut api)?;
