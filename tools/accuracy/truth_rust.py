@@ -91,9 +91,8 @@ def utf16(text, column):
     return len(text[:column].encode("utf-16-le")) // 2
 
 
-def main():
-    workspace, source = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve()
-    targets = json.load(sys.stdin)
+def start(workspace):
+    """Starts rust-analyzer on the workspace and waits until it is quiet."""
     lsp = Lsp(workspace)
     lsp.send({"id": 0, "method": "initialize", "params": {
         "processId": os.getpid(), "rootUri": workspace.as_uri(),
@@ -105,29 +104,41 @@ def main():
         pass
     lsp.send({"method": "initialized", "params": {}})
     lsp.wait_quiescent()
-    out, opened = [], set()
-    for target in targets:
-        path = workspace / target["file"]
-        text = path.read_text(encoding="utf-8")
-        lines = text.splitlines()
-        uses, position = set(), name_position(lines, target)
-        if position is None:
-            print(f"ra: {target['name']}: name not found", file=sys.stderr)
-        else:
-            if path not in opened:
-                lsp.send({"method": "textDocument/didOpen", "params": {"textDocument": {
-                    "uri": path.as_uri(), "languageId": "rust", "version": 1, "text": text}}})
-                opened.add(path)
-            line, column = position
-            result = lsp.request("textDocument/references", {
-                "textDocument": {"uri": path.as_uri()},
-                "position": {"line": line, "character": utf16(lines[line], column)},
-                "context": {"includeDeclaration": False}}) or []
-            for ref in result:
-                file = uri_path(ref["uri"])
-                if file.is_relative_to(workspace) and (source / file.relative_to(workspace)).exists():
-                    uses.add((str(file.relative_to(workspace)).replace("\\", "/"), ref["range"]["start"]["line"] + 1))
-        out.append(sorted(uses))
+    return lsp
+
+
+def uses_of(lsp, workspace, source, target, opened):
+    """The (file, line) pairs that refer to the target, as rust-analyzer finds them."""
+    path = workspace / target["file"]
+    text = path.read_text(encoding="utf-8")
+    lines = text.splitlines()
+    position = name_position(lines, target)
+    if position is None:
+        print(f"ra: {target['name']}: name not found", file=sys.stderr)
+        return set()
+    if path not in opened:
+        lsp.send({"method": "textDocument/didOpen", "params": {"textDocument": {
+            "uri": path.as_uri(), "languageId": "rust", "version": 1, "text": text}}})
+        opened.add(path)
+    line, column = position
+    result = lsp.request("textDocument/references", {
+        "textDocument": {"uri": path.as_uri()},
+        "position": {"line": line, "character": utf16(lines[line], column)},
+        "context": {"includeDeclaration": False}}) or []
+    uses = set()
+    for ref in result:
+        file = uri_path(ref["uri"])
+        if file.is_relative_to(workspace) and (source / file.relative_to(workspace)).exists():
+            uses.add((str(file.relative_to(workspace)).replace("\\", "/"), ref["range"]["start"]["line"] + 1))
+    return uses
+
+
+def main():
+    workspace, source = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve()
+    targets = json.load(sys.stdin)
+    lsp = start(workspace)
+    opened = set()
+    out = [sorted(uses_of(lsp, workspace, source, target, opened)) for target in targets]
     print(json.dumps(out))
     lsp.proc.kill()
 
