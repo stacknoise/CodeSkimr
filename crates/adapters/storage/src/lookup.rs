@@ -20,6 +20,7 @@ use crate::sql;
 #[derive(Debug, Clone)]
 struct Placed {
     label: SymbolLabel,
+    parent: Option<SymbolId>,
     visibility: Option<Visibility>,
     path: RelativePath,
 }
@@ -40,6 +41,7 @@ struct LabelRow {
     id: i64,
     qualified: String,
     kind: String,
+    parent: Option<i64>,
     visibility: Option<String>,
     path: String,
 }
@@ -49,6 +51,7 @@ fn read_label(cols: &Cols<'_>) -> rusqlite::Result<LabelRow> {
         id: cols.take()?,
         qualified: cols.take()?,
         kind: cols.take()?,
+        parent: cols.take()?,
         visibility: cols.take()?,
         path: cols.take()?,
     })
@@ -62,6 +65,7 @@ fn decode_place(row: LabelRow) -> StorageResult<(u64, Placed)> {
             qualified_name: QualifiedName::new(row.qualified)?,
             kind: label_from(&row.kind)?,
         },
+        parent: row.parent.map(id_from).transpose()?.map(SymbolId::new),
         visibility: row.visibility.as_deref().map(label_from).transpose()?,
         path: RelativePath::new(row.path)?,
     };
@@ -144,6 +148,7 @@ impl SnapshotLookup {
                 found.label.id,
                 found.label.kind,
                 &found.label.qualified_name,
+                found.parent,
             )
         });
         let Some(found) = type_neighbours(symbol, symbols, self.index.ends()) else {
