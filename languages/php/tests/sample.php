@@ -28,3 +28,10 @@ function helper(int $x): int {
     helper(strlen("a"));
     return $x ?: 0;
 }
+
+namespace Shop\Second;
+
+/** Known gap of the basic tier: a second namespace without braces is nested in the first. */
+function second(): int {
+    return 1;
+}
