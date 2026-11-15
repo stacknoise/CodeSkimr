@@ -109,7 +109,7 @@ impl Command for StatusInfo {
         permission: Permission::Read,
     };
 
-    fn execute(&self, request: Request<'_, ()>) -> Result<StatusOut, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<StatusOut, CodedError> {
         access::require(request.principal, Permission::Read)?;
         Ok(StatusOut {
             startup_ms: startup_ms(),

@@ -467,6 +467,89 @@ mod tests {
     }
 
     #[test]
+    fn a_member_call_on_a_named_receiver_is_not_certain_for_a_local_of_the_same_name() {
+        let mut table = Table::default();
+        let module = table.add(SymbolKind::Module, "Demo.model", None, 1);
+        table.add(SymbolKind::Constant, "Demo.model.keys", Some(module), 1);
+        let walk = table.add(SymbolKind::Function, "Demo.model.walk", Some(module), 3);
+        table.add(SymbolKind::Function, "Demo.model.walk.room", Some(walk), 4);
+        // `keys.room()` is a member of `keys`, not the local function `room` of the same name.
+        let call = named(occurrence(walk, 5, ReferenceKind::Call, "room"), "keys");
+        let found = resolve(&table, &[call]);
+        assert_eq!(found.len(), 1);
+        assert!(found[0].confidence == Confidence::Probable && !found[0].verified);
+    }
+
+    #[test]
+    fn a_call_through_a_module_qualifier_resolves_by_scope_as_before() {
+        let mut table = Table::default();
+        let module = table.add(SymbolKind::Module, "Demo.util", None, 1);
+        let helper = table.add(SymbolKind::Function, "Demo.util.helper", Some(module), 1);
+        let caller = table.add(SymbolKind::Function, "Demo.util.run", Some(module), 3);
+        // `util.helper()` inside the module: `util` is a module, not a variable.
+        let call = named(occurrence(caller, 4, ReferenceKind::Call, "helper"), "util");
+        let found = resolve(&table, &[call]);
+        assert_eq!(targets(&found), [helper]);
+        assert_eq!(found[0].confidence, Confidence::Certain);
+    }
+
+    /// A class `Demo.Box` with a field `count` and a method `run`, and a free read of `count`.
+    fn box_with_count() -> (Table, SymbolId, PendingReference) {
+        let mut table = Table::default();
+        let class = table.add(SymbolKind::Class, "Demo.Box", None, 1);
+        table.add(SymbolKind::Field, "Demo.Box.count", Some(class), 1);
+        let method = table.add(SymbolKind::Method, "Demo.Box.run", Some(class), 1);
+        let mut read = occurrence(method, 1, ReferenceKind::Read, "count");
+        read.receiver = Some(Receiver::Free);
+        (table, method, read)
+    }
+
+    #[test]
+    fn a_free_name_in_a_function_never_means_a_member_of_the_enclosing_type() {
+        let (mut table, _, read) = box_with_count();
+        let module_level = table.add(SymbolKind::Constant, "Demo.count", None, 1);
+        let found = resolve(&table, &[read]);
+        // The field is no candidate; the constant outside the class is, by the last resort only.
+        assert_eq!(targets(&found), [module_level]);
+        assert_eq!(found[0].confidence, Confidence::Probable);
+    }
+
+    #[test]
+    fn a_free_name_with_only_members_of_that_name_gives_no_hit() {
+        let (table, method, read) = box_with_count();
+        assert_eq!(targets(&resolve(&table, &[read])), []);
+        // The same name without that knowledge still finds the field of the own type.
+        let plain = occurrence(method, 1, ReferenceKind::Read, "count");
+        assert_eq!(resolve(&table, &[plain]).len(), 1);
+    }
+
+    #[test]
+    fn a_free_name_never_means_a_method_even_if_the_pack_nests_it_in_a_module() {
+        let mut table = Table::default();
+        let module = table.add(SymbolKind::Module, "demo", None, 1);
+        // The `impl` of Rust has no symbol: the method sits in the module.
+        table.add(SymbolKind::Method, "demo.from", Some(module), 1);
+        let caller = table.add(SymbolKind::Function, "demo.run", Some(module), 1);
+        let mut read = occurrence(caller, 1, ReferenceKind::Read, "from");
+        read.receiver = Some(Receiver::Free);
+        assert_eq!(targets(&resolve(&table, &[read])), []);
+    }
+
+    #[test]
+    fn the_name_in_the_declaration_of_a_field_is_no_use_of_it() {
+        let mut table = Table::default();
+        let class = table.add(SymbolKind::Class, "Demo.Box", None, 1);
+        let field = table.add(SymbolKind::Field, "Demo.Box.count", Some(class), 1);
+        let other = table.add(SymbolKind::Field, "Demo.Other.count", None, 2);
+        let mut write = occurrence(class, 1, ReferenceKind::Write, "count");
+        // The occurrence starts where the field does: `count: int` in a class body.
+        let at = Position { line: 0, column: 0 };
+        write.span = Span::new(at, at).expect("span");
+        let found = resolve(&table, &[write]);
+        assert_eq!(targets(&found), [], "{field:?} {other:?}");
+    }
+
+    #[test]
     fn a_call_of_an_interface_member_is_probable_even_without_implementer() {
         let shop = shop();
         let call = typed(

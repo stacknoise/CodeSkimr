@@ -3,6 +3,7 @@
 //! the snapshot: no input or output, no state.
 
 use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 
 use codeskimr_domain::{
     Confidence, FileId, Position, Reference, ReferenceId, ReferenceKind, SourceFile, Span, Symbol,
@@ -13,10 +14,13 @@ use crate::consts::{MAX_OVERLOAD_TARGETS, MAX_SYMBOLS_PER_KEY, NO_OWNER, SUFFIX_
 use crate::error::ScipError;
 use crate::fitting::Fitting;
 use crate::impl_symbol::{ImplSymbol, TypeName, parse as parse_impl};
+use crate::interval::IntervalIndex;
 use crate::locals::match_functions;
 use crate::model::{Occurrence, ScipDocument, ScipIndex, SymbolRef};
 use crate::symbol::{Descriptor, DescriptorKind, is_local, last_descriptor, last_two, namespaces};
 use crate::table::SymbolTable;
+
+mod implicit;
 
 /// The parts of a snapshot the import reads.
 #[derive(Debug, Clone, Copy)]
@@ -76,7 +80,8 @@ enum Fate {
     Ignore,
     Library,
     Unmapped,
-    Map(Vec<SymbolId>),
+    /// The targets, shared with the table they come from instead of copied for every occurrence.
+    Map(Rc<[SymbolId]>),
 }
 
 /// How a SCIP symbol is used by the import, decided once per distinct symbol.
@@ -111,7 +116,7 @@ fn shape_of(symbol: &str, parsed: Option<&ImplSymbol>) -> Shape {
 
 /// The level 1 references of the covered files, by file and line of their start.
 struct LevelOne<'a> {
-    by_line: HashMap<(FileId, u32), Vec<&'a Reference>>,
+    by_line: HashMap<(FileId, u32), IntervalIndex<&'a Reference>>,
     by_start: HashMap<(FileId, u32, u32), Vec<&'a Reference>>,
 }
 
@@ -130,6 +135,15 @@ impl<'a> LevelOne<'a> {
                 .or_default()
                 .push(reference);
         }
+        let by_line = by_line
+            .into_iter()
+            .map(|(key, list)| {
+                let items = list
+                    .into_iter()
+                    .map(|reference| (reference.span.start(), reference.span.end(), reference));
+                (key, IntervalIndex::new(items))
+            })
+            .collect();
         Self { by_line, by_start }
     }
 
@@ -153,16 +167,20 @@ impl<'a> LevelOne<'a> {
     /// same target, else one at the same start, else one whose span holds the occurrence.
     fn kind_at(&self, file: FileId, span: Span, targets: &[SymbolId]) -> Option<ReferenceKind> {
         let same_start = self.starting_at(file, span);
-        let holds = |r: &&&Reference| r.span.start() <= span.start() && span.end() <= r.span.end();
         same_start
             .iter()
             .find(|r| targets.contains(&r.to))
             .or_else(|| same_start.first())
+            .copied()
             .or_else(|| {
+                // The first (in the order of the snapshot) reference of the line that holds the
+                // occurrence, found without looking at every reference of the line (issue #220).
                 self.by_line
                     .get(&(file, span.start().line))?
-                    .iter()
-                    .find(holds)
+                    .containing(span.start(), |end| span.end() <= end)
+                    .into_iter()
+                    .next()
+                    .copied()
             })
             .map(|r| r.kind)
     }
@@ -208,9 +226,15 @@ struct Importer<'a> {
     targets: HashMap<SymbolRef, Vec<SymbolId>>,
     defined: HashSet<SymbolRef>,
     heads: HashSet<(FileId, Position, SymbolRef)>,
-    locals: HashMap<SymbolRef, Vec<SymbolId>>,
+    locals: HashMap<SymbolRef, Rc<[SymbolId]>>,
+    /// The targets of every symbol once the steps before the placing are done.
+    frozen: HashMap<SymbolRef, Rc<[SymbolId]>>,
     impls: Vec<(SymbolRef, ImplSymbol)>,
     overrides: HashMap<SymbolRef, Vec<SymbolId>>,
+    /// The constructors of every type that the text of its file shows (Java).
+    constructors: implicit::Constructors,
+    /// The superclass of every class that has one in its `extends` (Java).
+    superclass: HashMap<SymbolId, Vec<SymbolRef>>,
     trait_members: HashSet<SymbolId>,
     stats: ImportStats,
     next_id: u64,
@@ -234,6 +258,8 @@ impl<'a> Importer<'a> {
             shapes,
             impls,
             overrides: HashMap::new(),
+            constructors: implicit::constructors_by_owner(index),
+            superclass: HashMap::new(),
             trait_members: members_of_traits(snapshot.symbols),
             kinds_of: snapshot.symbols.iter().map(|s| (s.id, s.kind)).collect(),
             owners: constructor_owners(snapshot.symbols),
@@ -241,6 +267,7 @@ impl<'a> Importer<'a> {
             defined: HashSet::new(),
             heads: HashSet::new(),
             locals: HashMap::new(),
+            frozen: HashMap::new(),
             stats: ImportStats::default(),
             next_id: highest.map_or(0, |id| id.saturating_add(1)),
         }
@@ -550,9 +577,9 @@ impl<'a> Importer<'a> {
     fn fate(&self, symbol: SymbolRef) -> Fate {
         let descriptor = match self.shape(symbol) {
             Shape::SelfType => {
-                return match self.targets.get(&symbol) {
-                    Some(targets) if !targets.is_empty() => Fate::Map(targets.clone()),
-                    _ => Fate::Ignore,
+                return match self.frozen.get(&symbol) {
+                    Some(targets) => Fate::Map(Rc::clone(targets)),
+                    None => Fate::Ignore,
                 };
             }
             Shape::Named(descriptor) => descriptor,
@@ -560,18 +587,23 @@ impl<'a> Importer<'a> {
                 return self
                     .locals
                     .get(&symbol)
-                    .map_or(Fate::Ignore, |targets| Fate::Map(targets.clone()));
+                    .map_or(Fate::Ignore, |targets| Fate::Map(Rc::clone(targets)));
             }
             Shape::Malformed => return Fate::Unmapped,
         };
         if is_ignorable(descriptor.kind) {
             return Fate::Ignore;
         }
-        match self.targets.get(&symbol) {
-            Some(targets) if !targets.is_empty() => Fate::Map(targets.clone()),
-            _ if self.defined.contains(&symbol) => Fate::Unmapped,
-            _ if descriptor.kind == DescriptorKind::Namespace => Fate::Ignore,
-            _ => Fate::Library,
+        match self.frozen.get(&symbol) {
+            Some(targets) => Fate::Map(Rc::clone(targets)),
+            None if self.defined.contains(&symbol) => self
+                .constructors
+                .defaults
+                .get(&symbol)
+                .and_then(|ty| self.frozen.get(ty))
+                .map_or(Fate::Unmapped, |targets| Fate::Map(Rc::clone(targets))),
+            None if descriptor.kind == DescriptorKind::Namespace => Fate::Ignore,
+            None => Fate::Library,
         }
     }
 
@@ -607,7 +639,8 @@ impl<'a> Importer<'a> {
         let level_one_kind = level_one.kind_at(file, occurrence.range, &targets);
         let types = self.types_of_constructors(file, occurrence.range, &targets, level_one);
         let mut aims: Vec<(SymbolId, ReferenceKind)> = targets
-            .into_iter()
+            .iter()
+            .copied()
             .map(|to| {
                 let kind = level_one_kind.unwrap_or_else(|| self.kind_of_target(to));
                 (to, kind)
@@ -691,8 +724,20 @@ impl<'a> Importer<'a> {
     ) -> Vec<Reference> {
         let mut seen: HashSet<(FileId, SymbolId, SymbolId, Span)> = HashSet::new();
         let mut placed = Vec::new();
+        self.frozen = self
+            .targets
+            .iter()
+            .filter(|(_, targets)| !targets.is_empty())
+            .map(|(at, targets)| (*at, Rc::from(targets.as_slice())))
+            .collect();
+        self.collect_superclasses(covered, level_one);
         for (document, file) in covered {
-            self.locals = self.locals_of(document, *file);
+            self.locals = self
+                .locals_of(document, *file)
+                .into_iter()
+                .map(|(at, targets)| (at, Rc::from(targets)))
+                .collect();
+            let mut found = Vec::new();
             for occurrence in &document.occurrences {
                 if self
                     .heads
@@ -701,16 +746,17 @@ impl<'a> Importer<'a> {
                     self.count(Count::Ignored);
                     continue;
                 }
-                let references = if occurrence.is_definition() {
+                found.extend(if occurrence.is_definition() {
                     self.place_override(*file, occurrence)
                 } else {
                     self.place(*file, occurrence, level_one)
-                };
-                for reference in references {
-                    let key = (reference.file, reference.from, reference.to, reference.span);
-                    if seen.insert(key) {
-                        placed.push(reference);
-                    }
+                });
+            }
+            found.extend(self.implicit_calls(*file, document));
+            for reference in found {
+                let key = (reference.file, reference.from, reference.to, reference.span);
+                if seen.insert(key) {
+                    placed.push(reference);
                 }
             }
         }

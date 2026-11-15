@@ -59,6 +59,7 @@ mod cases {
             let languages = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../languages");
             let locations = Locations {
                 bases: Vec::new(),
+                program_dir: None,
                 user_config: None,
                 languages_dir: languages,
                 data_dir: root.path().join("data"),

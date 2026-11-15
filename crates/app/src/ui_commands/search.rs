@@ -177,7 +177,7 @@ impl Command for SearchQuery {
         permission: Permission::Read,
     };
 
-    fn execute(&self, request: Request<'_, SearchInput>) -> Result<SearchOut, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<SearchOut, CodedError> {
         access::require(request.principal, Permission::Read)?;
         let ports = &self.ports;
         let mut out = SearchOut {

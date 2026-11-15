@@ -8,11 +8,14 @@ use codeskimr_domain::{FileId, Position, Span, Symbol, SymbolId, SymbolKind};
 use crate::consts::{
     ACCESSOR_PREFIXES, CONSTRUCTOR_NAMES, MAX_LINE_CANDIDATES, NAME_SEGMENT_SEPARATOR,
 };
+use crate::interval::IntervalIndex;
 use crate::symbol::{Descriptor, DescriptorKind};
 
 /// The symbols of a snapshot, grouped by file.
 pub(crate) struct SymbolTable<'a> {
     by_file: HashMap<FileId, Vec<&'a Symbol>>,
+    /// By file, the spans of its symbols, to find those around a position.
+    spans: HashMap<FileId, IntervalIndex<&'a Symbol>>,
     /// By file, line of the start and name; each list in the order of the starts.
     by_line_name: HashMap<(FileId, u32, &'a str), Vec<&'a Symbol>>,
 }
@@ -88,8 +91,18 @@ impl<'a> SymbolTable<'a> {
         for list in by_line_name.values_mut() {
             list.sort_by_key(|symbol| tightness(symbol));
         }
+        let spans = by_file
+            .iter()
+            .map(|(file, list)| {
+                let items = list
+                    .iter()
+                    .map(|symbol| (symbol.span.start(), symbol.span.end(), *symbol));
+                (*file, IntervalIndex::new(items))
+            })
+            .collect();
         Self {
             by_file,
+            spans,
             by_line_name,
         }
     }
@@ -108,12 +121,13 @@ impl<'a> SymbolTable<'a> {
     }
 
     fn enclosing(&self, file: FileId, at: Position) -> impl Iterator<Item = &'a Symbol> {
-        self.by_file
+        // Symbols in the order of the snapshot, as before, so that ties break the same way.
+        self.spans
             .get(&file)
+            .map(|index| index.containing(at, |end| at < end))
+            .unwrap_or_default()
             .into_iter()
-            .flatten()
             .copied()
-            .filter(move |symbol| contains(symbol.span, at))
     }
 
     /// The symbols of one file.

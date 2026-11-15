@@ -102,13 +102,64 @@ pub struct ToolProblem {
     pub issue: ToolIssue,
 }
 
+/// A tool that was found and is new enough, with the version it reported.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ToolSeen {
+    /// Name of the program.
+    pub program: String,
+    /// The version it reported.
+    pub version: ToolVersion,
+}
+
 /// Whether an indexer can run on this machine.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IndexerStatus {
     /// The indexer and its toolchain are installed in a usable version.
-    Ready,
+    Ready {
+        /// The version of every tool.
+        found: Vec<ToolSeen>,
+    },
     /// Something is missing or too old; level 1 stays.
-    Unavailable(Vec<ToolProblem>),
+    Unavailable {
+        /// What is wrong.
+        problems: Vec<ToolProblem>,
+        /// The tools that are fine, with their versions.
+        found: Vec<ToolSeen>,
+    },
+}
+
+impl IndexerStatus {
+    /// Ready, without versions (a runner that does not report them).
+    #[must_use]
+    pub const fn ready() -> Self {
+        Self::Ready { found: Vec::new() }
+    }
+
+    /// Unavailable, without versions of the other tools.
+    #[must_use]
+    pub fn unavailable(problems: Vec<ToolProblem>) -> Self {
+        Self::Unavailable {
+            problems,
+            found: Vec::new(),
+        }
+    }
+
+    /// The tools that are not usable; empty if the indexer is ready.
+    #[must_use]
+    pub fn problems(&self) -> &[ToolProblem] {
+        match self {
+            Self::Ready { .. } => &[],
+            Self::Unavailable { problems, .. } => problems,
+        }
+    }
+
+    /// The tools that were found and are new enough, with their versions.
+    #[must_use]
+    pub fn found(&self) -> &[ToolSeen] {
+        match self {
+            Self::Ready { found } | Self::Unavailable { found, .. } => found,
+        }
+    }
 }
 
 /// The index file of a finished run. The folder it lives in is removed when this value is dropped.
@@ -147,7 +198,7 @@ impl std::fmt::Debug for IndexArtifact {
 /// [`crate::level2::authorize_run`] hands out.
 pub trait IndexRunner: Send + Sync {
     /// Checks, without running any project code, whether the indexer and its toolchain exist and
-    /// have a usable version.
+    /// have a usable version. Every tool that is usable is reported with the version it printed.
     fn check(&self, spec: &IndexerSpec) -> IndexerStatus;
 
     /// Runs the indexer once and returns its index file.

@@ -56,7 +56,7 @@ async fn a_command_that_returns_source_text_needs_the_token_although_it_only_rea
 async fn a_caller_without_read_source_is_refused_even_with_the_token() {
     let server = start(reader()).await;
     let reply = Call::post(PEEK).token(TOKEN).send(&server).await;
-    assert_eq!((reply.status, reply.code().as_str()), (403, "AUTH-401"));
+    assert_eq!((reply.status, reply.code().as_str()), (404, "API-201"));
     assert!(!reply.body.contains("main"));
 }
 
@@ -123,11 +123,22 @@ async fn a_caller_without_the_permission_is_denied_before_the_input_is_read() {
     let mut answers = Vec::new();
     for call in bodies {
         let reply = call.send(&server).await;
-        assert_eq!(reply.status, 403);
-        assert_eq!(reply.code(), "AUTH-401");
+        assert_eq!(reply.status, 404);
+        assert_eq!(reply.code(), "API-201");
         answers.push(reply.body);
     }
     assert!(answers.windows(2).all(|pair| pair[0] == pair[1]));
+    // A denied command answers exactly like an unknown one (ADR 0044).
+    let unknown = Call::post("/api/v1/commands/unknown")
+        .token(TOKEN)
+        .send(&server)
+        .await;
+    assert_eq!(unknown.body, answers[0]);
+    // Without the token, an unknown id is refused like a known command that needs it.
+    let no_token = Call::post("/api/v1/commands/unknown").send(&server).await;
+    let wipe_no_token = Call::post(WIPE).send(&server).await;
+    assert_eq!(no_token.status, 401);
+    assert_eq!(no_token.body, wipe_no_token.body);
     assert_eq!(server.wipes.load(std::sync::atomic::Ordering::SeqCst), 0);
 }
 
@@ -135,7 +146,7 @@ async fn a_caller_without_the_permission_is_denied_before_the_input_is_read() {
 async fn unknown_commands_and_paths_have_a_code() {
     let server = start(owner()).await;
     for call in [
-        Call::post("/api/v1/commands/nope"),
+        Call::post("/api/v1/commands/nope").token(TOKEN),
         Call::get("/api/v1/unknown"),
         Call::get("/"),
     ] {

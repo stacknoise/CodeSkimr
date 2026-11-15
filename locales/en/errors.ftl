@@ -2,6 +2,7 @@
 
 error-APP-201 = The data directory cannot be created or opened.
 error-APP-202 = The private file for starting the browser could not be created.
+error-APP-203 = The language packs built into the program could not be written to the data directory.
 error-APP-301 = Another CodeSkimr instance is using this workspace and connecting to it failed.
 error-APP-901 = An unexpected internal error occurred.
 error-APP-601 = The browser could not be started.
@@ -45,7 +46,7 @@ error-SEC-301 = Level 2 is not enabled and confirmed for this project, so no ind
 error-SEC-401 = The platform rejected the credential.
 error-SEC-402 = The operating system keystore denied access.
 error-SEC-403 = Only the local owner may confirm or start indexers.
-error-SEC-601 = The operating system keystore is not available.
+error-SEC-601 = The operating system keystore is not available. Start a keystore service (on Linux a Secret Service such as gnome-keyring) and try again; there is no file fallback.
 error-SEC-901 = Locking secret memory against swapping failed.
 error-NET-501 = The request to the external platform timed out.
 error-NET-502 = The external platform rejected the request because of too many requests.

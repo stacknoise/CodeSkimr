@@ -56,6 +56,30 @@ pub trait FileDiscovery: Send + Sync {
         previous: &[SourceFile],
         cancel: &CancelToken,
     ) -> Result<Vec<DiscoveredFile>, CodedError>;
+
+    /// The paths of those `files` whose content below `root` is still the one in the list. A file
+    /// that is gone, unreadable, not a regular file (a link or a pipe is never followed or waited
+    /// for) or larger than the adapter's limit for the total is not among them. Cancellation works
+    /// as for [`FileDiscovery::discover`]: the list holds only the files checked up to then, and
+    /// the caller must check its token before using it. Only these files are
+    /// read, not the whole project; the second pass of level 2 uses it per indexer group (issue
+    /// #231). The default asks [`FileDiscovery::discover`], which reads everything.
+    ///
+    /// # Errors
+    /// A coded failure such as `SRC-201`.
+    fn unchanged_files(
+        &self,
+        root: &FolderPath,
+        files: &[SourceFile],
+        cancel: &CancelToken,
+    ) -> Result<Vec<RelativePath>, CodedError> {
+        Ok(self
+            .discover(root, files, cancel)?
+            .into_iter()
+            .filter(|file| !file.changed)
+            .map(|file| file.path)
+            .collect())
+    }
 }
 
 /// A run of lines of a file, as text.

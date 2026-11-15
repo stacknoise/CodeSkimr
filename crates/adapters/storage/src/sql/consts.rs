@@ -48,6 +48,8 @@ pub const LATEST_FILES: &str = "SELECT snapshot_id, id, path, language, content_
     ORDER BY path";
 /// Id of the newest snapshot of a project, null without one: project id.
 pub const LATEST_SNAPSHOT_ID: &str = "SELECT MAX(id) FROM snapshots WHERE project_id = ?1";
+/// Id of the newest snapshot of all projects, null without one.
+pub const SNAPSHOT_NEWEST: &str = "SELECT MAX(id) FROM snapshots";
 /// The newest snapshot of a project: project id.
 pub const LATEST_SNAPSHOT: &str = "SELECT id, commit_hash, created, mode, files, \
     symbols, refs FROM snapshots WHERE project_id = ?1 ORDER BY id DESC LIMIT 1";
@@ -136,6 +138,9 @@ pub const METRIC_INSERT: &str =
 /// kind, value.
 pub const COUPLING_INSERT: &str = "INSERT OR REPLACE INTO coupling_rows \
     (snapshot_id, symbol_id, kind, value) VALUES (?1, ?2, ?3, ?4)";
+
+/// Removes the coupling of one snapshot: snapshot.
+pub const COUPLING_DELETE: &str = "DELETE FROM coupling_rows WHERE snapshot_id = ?1";
 
 /// Whether a symbol is in a snapshot: snapshot, symbol.
 pub const SYMBOL_IN_SNAPSHOT: &str =

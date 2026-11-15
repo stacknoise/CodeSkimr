@@ -52,6 +52,7 @@ projects-tools-missing-count =
 projects-tools-warning = Without these tools, usages of the languages named stay unchecked.
 projects-tools-state-missing = missing
 projects-tools-state-too-old = too old: { $found } installed, { $required } required
+projects-tools-state-too-new = too new: { $found } installed, more than the project allows (it names { $required })
 projects-tools-state-unknown = version not readable (required: { $required })
 projects-tools-for = for { $languages }
 projects-tools-purpose = What it is for: { $text }

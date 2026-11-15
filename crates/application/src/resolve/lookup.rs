@@ -46,17 +46,47 @@ impl<'a> Context<'a> {
         }
         let receiver = self.receiver_types(occurrence);
         for kinds in candidates(occurrence.kind) {
-            let named = self.named_of(occurrence.target.as_str(), kinds);
-            let found = match &receiver {
+            let mut named = self.named_of(occurrence.target.as_str(), kinds);
+            if occurrence.receiver == Some(Receiver::Free) {
+                // A member needs its receiver here: a bare name is never one.
+                named.retain(|symbol| !self.is_member(symbol));
+            }
+            let mut found = match &receiver {
                 Some(types) => self.in_types(types, &named),
-                None if occurrence.receiver == Some(Receiver::Unknown) => Self::unknown(&named),
+                None if self.has_unknown_receiver(occurrence) => Self::unknown(&named),
                 None => self.in_scope(occurrence.from, occurrence.file, &named),
             };
+            let before = found.symbols.len();
+            found
+                .symbols
+                .retain(|symbol| !Self::is_declared_at(occurrence, symbol));
+            if before > 0 && found.symbols.is_empty() {
+                // The occurrence is the declaration itself: no use, and no other symbol of the name.
+                return Vec::new();
+            }
             if !found.symbols.is_empty() {
                 return self.hits(occurrence, found);
             }
         }
         Vec::new()
+    }
+
+    /// Whether the occurrence is the name in the declaration of `symbol`: `name: str` in a class
+    /// body writes nothing, it declares the field.
+    fn is_declared_at(occurrence: &PendingReference, symbol: &Symbol) -> bool {
+        occurrence.kind == ReferenceKind::Write
+            && symbol.file == occurrence.file
+            && symbol.span.start() == occurrence.span.start()
+    }
+
+    /// Whether the symbol is a member: declared directly in a type, or a method or constructor,
+    /// which a pack may nest in a module (the `impl` of Rust stands for no symbol).
+    fn is_member(&self, symbol: &Symbol) -> bool {
+        matches!(symbol.kind, SymbolKind::Method | SymbolKind::Constructor)
+            || symbol
+                .parent
+                .and_then(|parent| self.table.get(parent))
+                .is_some_and(|parent| is_type(parent.kind))
     }
 
     /// An import, or a name that already is a qualified name because it is resolved again.
@@ -84,6 +114,21 @@ impl<'a> Context<'a> {
             .collect()
     }
 
+    /// Whether the receiver says nothing about the type of the target. A named receiver counts when
+    /// it is a variable or a member: its members are not the names of the scope. A namespace or a
+    /// module is no receiver of a member but a qualifier, which the scope and the imports resolve.
+    fn has_unknown_receiver(&self, occurrence: &PendingReference) -> bool {
+        match &occurrence.receiver {
+            Some(Receiver::Unknown) => true,
+            Some(Receiver::Named(name)) => !self
+                .table
+                .named(name.as_str())
+                .iter()
+                .any(|symbol| matches!(symbol.kind, SymbolKind::Namespace | SymbolKind::Module)),
+            _ => false,
+        }
+    }
+
     /// The types in which a member must be found (step 3), or `None` if the syntax says nothing
     /// usable about the receiver. A receiver of a type outside the project gives an empty list,
     /// so its members are not mistaken for project symbols of the same name.
@@ -97,7 +142,7 @@ impl<'a> Context<'a> {
             (Some(Receiver::Named(name)), _) => {
                 self.named_receiver_types(occurrence, name.as_str())
             }
-            (Some(Receiver::Unknown) | None, _) => None,
+            (Some(Receiver::Unknown | Receiver::Free) | None, _) => None,
         }
     }
 

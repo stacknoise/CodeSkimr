@@ -15,8 +15,12 @@ function stateText(tool: ToolInfo): string {
     return t(I18N_KEYS.PROJECTS_TOOLS_STATE_MISSING);
   }
   const required = tool.required ?? "";
-  return tool.state === TOOL_STATE.tooOld
-    ? t(I18N_KEYS.PROJECTS_TOOLS_STATE_TOO_OLD, { found: tool.found ?? "", required })
+  const found = tool.found ?? "";
+  if (tool.state === TOOL_STATE.tooOld) {
+    return t(I18N_KEYS.PROJECTS_TOOLS_STATE_TOO_OLD, { found, required });
+  }
+  return tool.state === TOOL_STATE.tooNew
+    ? t(I18N_KEYS.PROJECTS_TOOLS_STATE_TOO_NEW, { found, required })
     : t(I18N_KEYS.PROJECTS_TOOLS_STATE_UNKNOWN, { required });
 }
 
@@ -37,54 +41,70 @@ function Problem(props: { tool: ToolInfo }) {
   );
 }
 
-/** What the check of the tools found for the project: a warning with each tool that is missing,
- * too old or of unknown version, what it is for and how to install it (ADR 0033, decision 8). */
-export function ToolsPanel(props: { row: ProjectRow }) {
+/** The body of the panel once the tools were checked: problems and ready languages. */
+function Findings(props: { row: ProjectRow }) {
   const info = () => toolsOf(props.row);
   const problems = () => problemsOf(info());
   const ready = () => readyLanguages(info());
+  return (
+    <>
+      <Show when={problems().length > 0}>
+        <div role="status" class={styles.warning}>
+          <p>{t(I18N_KEYS.PROJECTS_TOOLS_WARNING)}</p>
+          <ul class={styles.list}>
+            <For each={problems()}>{(tool) => <Problem tool={tool} />}</For>
+          </ul>
+        </div>
+      </Show>
+      <Show when={ready().length > 0}>
+        <p class={styles.ready}>
+          {t(I18N_KEYS.PROJECTS_TOOLS_READY_LANGUAGES, { languages: languageList(ready()) })}
+        </p>
+      </Show>
+      <Show when={problems().length === 0}>
+        <p class={styles.muted}>
+          {ready().length > 0
+            ? t(I18N_KEYS.PROJECTS_TOOLS_ALL_READY)
+            : t(I18N_KEYS.PROJECTS_TOOLS_NO_LEVEL2)}
+        </p>
+      </Show>
+    </>
+  );
+}
+
+/** The header of the panel with the button that checks the tools again. */
+function PanelHeader(props: { row: ProjectRow }) {
+  return (
+    <header class={styles.header}>
+      <h2>{t(I18N_KEYS.PROJECTS_TOOLS_TITLE, { name: props.row.name })}</h2>
+      <button
+        type="button"
+        class={styles.again}
+        disabled={toolsChecking().has(props.row.id)}
+        onClick={() => void checkTools(props.row.id)}
+      >
+        {toolsChecking().has(props.row.id)
+          ? t(I18N_KEYS.PROJECTS_TOOLS_CHECKING)
+          : t(I18N_KEYS.PROJECTS_TOOLS_CHECK_AGAIN)}
+      </button>
+    </header>
+  );
+}
+
+/** What the check of the tools found for the project: a warning with each tool that is missing,
+ * too old, too new or of unknown version, what it is for and how to install it (ADR 0033, decision 8). */
+export function ToolsPanel(props: { row: ProjectRow }) {
   return (
     <section
       class={styles.panel}
       aria-label={t(I18N_KEYS.PROJECTS_TOOLS_TITLE, { name: props.row.name })}
     >
-      <header class={styles.header}>
-        <h2>{t(I18N_KEYS.PROJECTS_TOOLS_TITLE, { name: props.row.name })}</h2>
-        <button
-          type="button"
-          class={styles.again}
-          disabled={toolsChecking().has(props.row.id)}
-          onClick={() => void checkTools(props.row.id)}
-        >
-          {toolsChecking().has(props.row.id)
-            ? t(I18N_KEYS.PROJECTS_TOOLS_CHECKING)
-            : t(I18N_KEYS.PROJECTS_TOOLS_CHECK_AGAIN)}
-        </button>
-      </header>
+      <PanelHeader row={props.row} />
       <Show
-        when={info()?.checked_at != null}
+        when={toolsOf(props.row)?.checked_at != null}
         fallback={<p class={styles.muted}>{t(I18N_KEYS.PROJECTS_TOOLS_UNCHECKED)}</p>}
       >
-        <Show when={problems().length > 0}>
-          <div role="status" class={styles.warning}>
-            <p>{t(I18N_KEYS.PROJECTS_TOOLS_WARNING)}</p>
-            <ul class={styles.list}>
-              <For each={problems()}>{(tool) => <Problem tool={tool} />}</For>
-            </ul>
-          </div>
-        </Show>
-        <Show when={ready().length > 0}>
-          <p class={styles.ready}>
-            {t(I18N_KEYS.PROJECTS_TOOLS_READY_LANGUAGES, { languages: languageList(ready()) })}
-          </p>
-        </Show>
-        <Show when={problems().length === 0}>
-          <p class={styles.muted}>
-            {ready().length > 0
-              ? t(I18N_KEYS.PROJECTS_TOOLS_ALL_READY)
-              : t(I18N_KEYS.PROJECTS_TOOLS_NO_LEVEL2)}
-          </p>
-        </Show>
+        <Findings row={props.row} />
       </Show>
     </section>
   );

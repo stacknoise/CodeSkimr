@@ -18,7 +18,6 @@ case "${platform}" in
 esac
 
 cp "target/release/${binary}" "${stage}/"
-cp -R languages "${stage}/languages"
 cp config/default.toml "${stage}/default.toml"
 cp -R docs/manual "${stage}/docs/manual"
 cp LICENSE README.md "${stage}/"
