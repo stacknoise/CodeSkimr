@@ -40,7 +40,25 @@ pub struct CommandDescriptor {
 }
 
 /// One call of a command: who calls and with what input.
+///
+/// Only this crate can build a request (the struct is `#[non_exhaustive]`), and the only ways to
+/// get one are [`CommandExt::run`] and `Registry::execute`, which check the permission the command
+/// declares first. A holder of a command value therefore cannot reach `execute` around the check
+/// (issue #70). A command implementation could still hand its own request on to another command
+/// with the same input type; that gap is tracked in issue #344.
+///
+/// A crate outside the application layer cannot build one:
+///
+/// ```compile_fail,E0639
+/// use codeskimr_application::registry::Request;
+/// use codeskimr_domain::Principal;
+///
+/// fn forge(principal: &Principal) {
+///     let _ = Request { principal, input: () };
+/// }
+/// ```
 #[derive(Debug, Clone, Copy)]
+#[non_exhaustive]
 pub struct Request<'a, I> {
     /// The authenticated caller.
     pub principal: &'a Principal,
@@ -65,3 +83,18 @@ pub trait Command: Send + Sync + 'static {
     /// A coded failure; each command documents its own codes.
     fn execute(&self, request: Request<'_, Self::Input>) -> Result<Self::Output, CodedError>;
 }
+
+/// Runs a command for a caller after the permission check. It is implemented for every command
+/// and cannot be overridden, so no command can offer a way around the check.
+pub trait CommandExt: Command + Sized {
+    /// Checks that `principal` holds the permission of `DESCRIPTOR` and runs the command.
+    ///
+    /// # Errors
+    /// `AUTH-401` if the permission is missing, otherwise the command's own failure.
+    fn run(&self, principal: &Principal, input: Self::Input) -> Result<Self::Output, CodedError> {
+        crate::access::require(principal, Self::DESCRIPTOR.permission)?;
+        self.execute(Request { principal, input })
+    }
+}
+
+impl<C: Command> CommandExt for C {}

@@ -2,7 +2,7 @@
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::registry::{
-    Command, CommandDescriptor, CommandId, Registry, RegistryError, Request,
+    Command, CommandDescriptor, CommandExt, CommandId, Registry, RegistryError, Request,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Permission, PermissionSet, Principal};
@@ -101,6 +101,25 @@ fn a_principal_without_the_declared_permission_is_denied_before_the_command_runs
     let nobody = Principal::limited(PermissionSet::none());
     let error = registry
         .execute::<Shout>(&nobody, String::new())
+        .unwrap_err();
+    assert_eq!(error.code(), ErrorCode::PermissionDenied);
+}
+
+#[test]
+fn run_denies_a_caller_without_the_declared_permission() {
+    assert_eq!(
+        Shout.run(&Principal::local_owner(), "a".into()).unwrap(),
+        "A"
+    );
+    let error = Shout.run(&reader(), "quiet".into()).unwrap_err();
+    assert_eq!(error.code(), ErrorCode::PermissionDenied);
+}
+
+#[test]
+fn an_unregistered_command_looks_like_a_denial_to_a_caller_without_the_permission() {
+    let registry = Registry::new();
+    let error = registry
+        .execute::<Shout>(&reader(), String::new())
         .unwrap_err();
     assert_eq!(error.code(), ErrorCode::PermissionDenied);
 }

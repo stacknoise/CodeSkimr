@@ -11,7 +11,7 @@
 mod command;
 mod error;
 
-pub use command::{Command, CommandDescriptor, CommandId, Request};
+pub use command::{Command, CommandDescriptor, CommandExt, CommandId, Request};
 pub use error::RegistryError;
 
 use std::any::Any;
@@ -91,6 +91,8 @@ impl Registry {
         principal: &Principal,
         input: C::Input,
     ) -> Result<C::Output, CodedError> {
+        // The permission comes first, so that a caller without it cannot tell a registered command
+        // from an unregistered one.
         access::require(principal, C::DESCRIPTOR.permission)?;
         let command = self
             .entries
