@@ -23,9 +23,11 @@ const data = path.join(work, "data");
 const lines = [];
 const outputs = [];
 
+/** Writes a line of the result; the paths of this machine are replaced so the file can be committed. */
 function log(text) {
-    console.log(text);
-    lines.push(text);
+    const neutral = text.split(work).join("<tmp>").split(root).join("<repo>");
+    console.log(neutral);
+    lines.push(neutral);
 }
 
 function run(program, args, options = {}) {
