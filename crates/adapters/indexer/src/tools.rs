@@ -59,7 +59,11 @@ pub fn check_tool(tool: &ToolSpec, probe: &Probe<'_>) -> Result<ToolSeen, ToolPr
     let Some(found) = resolve(&tool.program, &path, probe.project_root) else {
         return problem(ToolIssue::Missing);
     };
-    let output = version_output(&found, tool, probe);
+    // A program that cannot even print its version is not installed in a usable way, such as the
+    // `rustup` shim of a component that was never added (#402).
+    let Some(output) = version_output(&found, tool, probe) else {
+        return problem(ToolIssue::Missing);
+    };
     match ToolVersion::find_in(&output) {
         Some(version) if version >= tool.min_version => Ok(ToolSeen {
             program: tool.program.clone(),
@@ -79,8 +83,8 @@ fn path_of(env: &Environment) -> Option<OsString> {
 }
 
 /// What the tool prints when asked for its version, console streams joined (`java -version`
-/// writes to standard error).
-fn version_output(program: &Path, tool: &ToolSpec, probe: &Probe<'_>) -> String {
+/// writes to standard error); `None` if the command did not run or did not succeed.
+fn version_output(program: &Path, tool: &ToolSpec, probe: &Probe<'_>) -> Option<String> {
     let launch = Launch {
         program: program.to_path_buf(),
         args: tool.version_args.iter().map(OsString::from).collect(),
@@ -96,9 +100,9 @@ fn version_output(program: &Path, tool: &ToolSpec, probe: &Probe<'_>) -> String 
     };
     match run_guarded(&launch, &CancelToken::new()) {
         Ok(finished) if finished.success => {
-            [finished.stdout_text(), finished.stderr_text()].join(WORD_SEPARATOR)
+            Some([finished.stdout_text(), finished.stderr_text()].join(WORD_SEPARATOR))
         }
-        _ => String::new(),
+        _ => None,
     }
 }
 

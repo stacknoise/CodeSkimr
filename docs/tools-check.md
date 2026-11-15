@@ -9,10 +9,10 @@ The tools are the ones the `[indexer]` table of the language pack names (`docs/l
 States of a tool:
 
 - `ready`: it is found and its version fits. The runner reports the version it read and the check shows it.
-- `missing`: the program is not found in the `PATH` of the user.
+- `missing`: the program is not found in the `PATH` of the user, or its version command fails (a non-zero exit or no answer in time), such as the `rustup` shim of a component that was never installed.
 - `too_old`: the version is lower than the strictest of the pack's `min_version` and the version the project requires.
 - `too_new`: the version is higher than a file of the project lets through (see below). It is judged only for a tool whose version the runner read; an unreadable version stays `version_unknown`.
-- `version_unknown`: it ran but printed no version that could be read (or did not answer in time).
+- `version_unknown`: its version command succeeded but printed no version that could be read.
 
 A language is `level2_ready` when all its tools are ready, so a `too_new` tool counts as a problem: the build of the project would fail with it.
 
