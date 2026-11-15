@@ -241,7 +241,14 @@ def main():
     args.add_argument("--no-overrides", action="store_true", help="leave out the links of a method to the method it overrides (no compiler counts them as uses)")
     args.add_argument("--certain-only", action="store_true", help="count only references with confidence certain (blueprint 17.2: precision of certain)")
     args.add_argument("--verified-only", action="store_true", help="count only references that level 2 produced (verified)")
+    args.add_argument("--level2-run", action="store_true", help="level 2 through the real way: `level2 confirm` and `scan` with the indexer started by the runner (tools/accuracy/level2_run.py); needs the indexer of the language and its toolchain on the PATH or in --tools-bin")
+    args.add_argument("--tools-bin", default=str(ROOT / "target/accuracy-tools/bin"), help="folder put in front of the PATH of the run (indexers)")
+    args.add_argument("--set", action="append", default=[], metavar="KEY=VALUE", help="--set of codeskimr for the level 2 scan (--level2-run), for example level2.max_memory_mb=8192")
     opt = args.parse_args()
+    if opt.level2_run:
+        opt.verified_only = True
+        if opt.scip:
+            sys.exit("--level2-run and --scip exclude each other")
     if opt.scip and not opt.verified_only:
         sys.exit("--scip needs --verified-only: without it level 1 and level 2 references are counted together")
     if opt.scip and opt.language not in SCIP_INDEXERS:
@@ -252,7 +259,15 @@ def main():
         tmp = Path(tmp)
         (tmp / "src").mkdir()
         filtered_copy(src, project, tmp / "src")
-        db = scan(opt.codeskimr, opt.languages, tmp / "src", tmp / "data")
+        run_report = None
+        if opt.level2_run:
+            import level2_run
+            copy, data, run_report = level2_run.run(opt.language, project, src, tmp, opt)
+            dbs = list(data.rglob("*.db"))
+            db = sqlite3.connect(max(dbs, key=lambda p: p.stat().st_size))
+            opt.workspace = opt.workspace or (str(copy) if opt.language == "csharp" else None)
+        else:
+            db = scan(opt.codeskimr, opt.languages, tmp / "src", tmp / "data")
         import_stats = None
         if opt.scip:
             db, import_stats = import_level2(opt, db, tmp / "src")
@@ -293,7 +308,7 @@ def main():
                "precision_where_tool_answers": round(sum(r["both"] for r in judged) / judged_ours, 3) if judged_ours else None,
                "tool_silent": {"symbols": len(blind), "usages_ours": sum(r["ours"] for r in blind)},
                "without_level1_symbol": without_symbol(import_stats),
-               "verified_only": opt.verified_only, "certain_only": opt.certain_only, "no_overrides": opt.no_overrides, "by_kind": by_kind}
+               "level2_run": run_report, "verified_only": opt.verified_only, "certain_only": opt.certain_only, "no_overrides": opt.no_overrides, "by_kind": by_kind}
     if opt.json:
         print(json.dumps({"summary": summary, "rows": rows}, indent=1))
     else:
