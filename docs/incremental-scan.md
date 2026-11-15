@@ -48,8 +48,9 @@ files, before and after:
 
 - **Same shape** (a typical save: bodies and comments changed, declarations did not): nothing an
   unchanged name resolves against has changed but the ids of the symbols in the changed files. The
-  names that pointed into those files are resolved again, and the imports and base lists of the
-  unchanged files, because the resolver learns from them what a file sees and which type inherits
+  names that pointed into those files are resolved again (including an import that pointed into
+  them, also when it is the only name of its file), and the imports of the files that hold such a
+  name and the base lists, because the resolver learns from them what a file sees and which type inherits
   from which.
 - **Other shape** (a symbol or base added, removed, renamed or moved, a file added or removed):
   all names of the unchanged files.

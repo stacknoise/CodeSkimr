@@ -377,3 +377,42 @@ fn a_name_that_an_import_makes_visible_follows_a_rename_and_a_second_candidate()
         )],
     ]);
 }
+
+#[test]
+fn a_file_with_only_an_import_follows_an_edit_of_the_imported_file() {
+    let lib = "namespace Demo.Lib;\n\npublic class Tool\n{\n    public static void Run() { }\n}\n";
+    let importer = "using Demo.Lib;\n\nnamespace Elsewhere;\n\npublic class Importer\n{\n}\n";
+    let edited = "namespace Demo.Lib;\n\npublic class Tool\n{\n    public static void Run() { int x = 1; }\n}\n";
+    let (full, incremental) = both_ways(
+        BASE,
+        &[
+            &[("Lib.cs", Some(lib)), ("Importer.cs", Some(importer))],
+            &[("Lib.cs", Some(edited))],
+        ],
+    );
+    assert!(
+        full.iter().any(|line| line.starts_with("Importer.cs")),
+        "{full:?}"
+    );
+    assert_eq!(incremental, full);
+}
+
+#[test]
+fn a_python_file_with_only_an_import_follows_an_edit_of_the_imported_file() {
+    let importer = ("importer.py", Some("from target import Target\n"));
+    let (full, incremental) = both_ways(
+        PYTHON_BASE,
+        &[
+            &[importer],
+            &[(
+                "target.py",
+                Some("class Target:\n    def do(self):\n        return 1\n"),
+            )],
+        ],
+    );
+    assert!(
+        full.iter().any(|line| line.contains("importer.py")),
+        "{full:?}"
+    );
+    assert_eq!(incremental, full);
+}

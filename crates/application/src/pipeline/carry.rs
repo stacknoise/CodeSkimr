@@ -239,7 +239,8 @@ impl Carried {
                 .filter(|name| !is_structural(name.kind))
                 .filter(|name| self.dead.contains(&(name.from, name.file, name.span))),
         );
-        let files: HashSet<FileId> = due.iter().map(|name| name.file).collect();
+        let mut files: HashSet<FileId> = due.iter().map(|name| name.file).collect();
+        files.extend(dead_files);
         let files: Vec<FileId> = files.into_iter().collect();
         due.extend(store.stored_names(snapshot, StoredNames::ImportsOf(&files))?);
         Ok(due)
