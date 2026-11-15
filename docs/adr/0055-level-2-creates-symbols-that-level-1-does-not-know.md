@@ -1,6 +1,6 @@
 # 0055 – Level 2 creates symbols that level 1 does not know
 
-Status: proposed
+Status: accepted
 
 Supplements ADR 0033, decision 2 ("occurrences that map to no symbol are dropped"): for definitions that the index states and level 1 lacks, level 2 now creates the symbol instead of dropping the uses. The other decisions of ADR 0033 stay.
 
@@ -70,8 +70,10 @@ Option B, in these parts.
 - **Other languages:** TypeScript and Python lose 6.9 % and 14.2 % of their uses for reasons that were not examined (dynamic definitions, decorators, generated code). The mechanism applies to them only where their pack has a kind table, and only after the cause of the gap is known to be a missing symbol. That is a task of its own.
 - **Consent:** the symbols exist only after level 2 ran, so a project without it keeps the gap. This is documented and measured, not hidden.
 
-## Questions for the product owner
+## Decisions of the product owner
 
-1. Does a created symbol get a visible marker in the UI, or only the origin in API and MCP for now? Advice: origin only; a marker needs a mock first (blueprint 15.1).
-2. Is Rust the only language of the first step, as proposed? Other languages only after the cause of their gap was measured and their pack has a kind table.
-3. Should `macro_rules!` definitions be symbols (a new kind, with its own decision) or stay out on purpose, as the Rust pack does today? This ADR proposes: stay out.
+The product owner accepted this ADR on 15 November 2026 with the recommended answers to the three questions:
+
+1. **Marker in the UI:** none for now. A created symbol carries its origin only in the API and in the MCP answers. A marker needs a mock first (blueprint 15.1).
+2. **Languages:** Rust only in the first step. Other languages only after the cause of their gap was measured and their pack has a kind table.
+3. **`macro_rules!`:** not created as symbols (72 symbols instead of 77). A symbol kind for macros would need its own decision.
