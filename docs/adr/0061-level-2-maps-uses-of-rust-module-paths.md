@@ -1,6 +1,6 @@
 # 0061 – Level 2 maps uses of Rust module paths onto the module symbols that level 1 has
 
-Status: proposed
+Status: accepted (Anton, 15 November 2026, decision card: option 3; the four other questions were not answered and carry the recommendations, see "Decisions of the product owner")
 
 Follow-up to ADR 0055 (issue #436). ADR 0055 aimed at fewer than 1 % of the Rust uses without a level 1 symbol and reached 7.5 %. This ADR explains the remainder and proposes how to close it. It supplements ADR 0033, decision 2 (mapping by file and range of the definition) and the mapping rules of `docs/level2-import.md`; it does not change ADR 0055.
 
@@ -10,7 +10,13 @@ Follow-up to ADR 0055 (issue #436). ADR 0055 aimed at fewer than 1 % of the Rust
 
 Corpus: CodeSkimr at `bcc970e` (`corpus/rust/corpus.toml`), `rust-analyzer 1.97.0 (2d8144b 2026-07-07)`, `codeskimr` and `codeskimr_import_scip` built from `main` at 5c2c6f0 (ADR 0055 implemented), the hand-made path of `tools/accuracy/measure.py rust --scip` (index made by `rust-analyzer scip` in a clone of the pinned checkout, 5.0 MB, 231 documents of which 147 are scanned files). The run reproduces the figures of ADR 0055: mapped 8146, unmapped 659, library 6881, ignored 6374, 72 symbols created, `without_level1_symbol` 659 of 8805 (7.5 %).
 
-The 659 were split by decoding the index (a small script that is not part of the repository) and by looking up each occurrence in the database after the import (is there a level 2 reference at that place that points to a symbol?). The two views agree to the occurrence.
+The 659 were split in two independent ways that agree to the occurrence. The split is repeatable by hand (no script is part of the repository; the implementation makes it a counter, see decision 4 and "by_cause"):
+
+1. Make the index and the database as `docs/accuracy.md` describes for `measure.py rust --scip` (index of the clone of the pinned checkout, scan of the filtered copy, import with `codeskimr_import_scip`; mapped 8146, unmapped 659).
+2. From the index: take every occurrence in a document that is a scanned file whose symbol is global, is defined by some document of the index (definition role, bit 1) and whose last descriptor has the suffix `/` (a namespace). Of these 1110 uses, look up in the database after the import whether a verified reference starts at the same file, line and column and points to a `module` or `namespace` symbol: 507 do, 603 do not.
+3. For the 603: the definition of the symbol lies in a scanned file (579; all with a whole-file range starting at line 0, column 0, which splits into 448 for `crate/` and 131 for the others) or only in documents that match no scanned file (24).
+4. The 56 of D: occurrences of global symbols with a non-namespace last descriptor, defined only in documents that match no scanned file. 448 + 131 + 24 + 56 = 659 is the `unmapped` of the import.
+5. Where the occurrence stands (use item, `mod` line, other path) comes from the text of the line at the range of the occurrence.
 
 | Cause | Uses | Share of 8805 |
 |---|---|---|
@@ -62,7 +68,7 @@ Option 3, and the separate report for C and D.
 - `without_level1_symbol` for Rust on the corpus: in scope **0 of 8725** expected, **under 1 %** in any case; with `outside_scan` counted as before 80 of 8805 (0.9 %), which is under 1 % as well. The acceptance states both numbers: the in-scope share must be under 1 % and the rule of decision 4 must give the same total of 659 minus what decision 1 maps (579).
 - Module symbols are checked completely, not by sample: all 147 file modules and the 150 `mod` items (297 symbols) against the references of rust-analyzer over LSP (`truth_rust.py`; `module` and `namespace` are not in `KINDS` of `measure.py` today and are added for this check). Precision and recall at least 99 %. Independence is as limited as for ADR 0055 (same engine for index and reference); the cases of decision 2 are checked by hand against the source.
 - Tests: golden import tests with a crate root, a `mod.rs` module, a file with a `mod` line, a package with `lib.rs` and `build.rs`, a file root whose file is not scanned, a definition range that is not the whole file (inline `mod x { ... }`: unchanged name rule); a rescan test (changed `lib.rs` drops the references to its module and the next level 2 pass restores them); a test that level 1 results do not change.
-- Budget: no new rows for symbols; references grow by 579 on 8193 verified references (7 %). Import time and memory are not expected to change measurably (one lookup per file root); the implementation reports the numbers.
+- Budget: no new rows for symbols; references grow by 579 on the 8193 verified references of the database after the import (the 8146 mapped occurrences plus 47 `override` links that level 2 adds; 7 %). Import time and memory are not expected to change measurably (one lookup per file root); the implementation reports the numbers.
 
 ## Consequences
 
@@ -78,10 +84,22 @@ Option 3, and the separate report for C and D.
 - **Wrong target for shared symbols** (decision 2). A package with `lib.rs` and several `src/bin/*.rs` shares one `crate/` symbol among targets; the use of `crate::` in a binary maps by rule (a) or (b) to the right root only if the use is in the same file or below its folder. A use from a sibling folder falls to rule (c) and counts for the library root. The corpus has no case beyond `build.rs`; the risk is an over-count for the library root, never a use that disappears.
 - **Skipped folders.** Counting `outside_scan` outside the denominator of `level2.min_mapped` lets an index pass the threshold that would have failed before if most of a project is skipped. The index still has to cover at least one file and map something (ADR 0033 and `docs/level2-import.md`, rule 7), so a project that skips everything still fails.
 
-## Questions to the product owner
+## Questions to the product owner (asked)
 
 1. **Accept option 3** (map file-root definitions by position, no new symbols)? Recommended: yes. It closes 579 of the 603 uses with no new row and no migration; the alternative of renaming modules (option 2) changes 147 symbols and does not reach crate roots.
 2. **References to a module as a path qualifier.** Today they are `read` and count in coupling, the usages page and the layer graph (507 already). Keep it for now and measure coupling in the implementation (recommended), or introduce a reference kind for path qualifiers first (a blueprint change, 6.1 and 9.4; listed in `find_usages` like `test`, left out of coupling like `test`)?
 3. **The skipped folders of the Rust corpus.** `config` and `tools` match product folders at any depth (47 of the 56 uses of D). Narrow `skip_folders` to the top level (more files, new expected counts in `corpus/rust/corpus.toml`, a deliberate change as that file says) or leave the corpus and rely on the separate report of decision 4 (recommended: leave it, report apart; the corpus stays comparable with earlier figures)?
 4. **`outside_scan` outside the denominator of `level2.min_mapped`** (decision 4), like `library`? Recommended: yes, because the user excluded those folders.
 5. **Crate root name.** The root of a crate appears as `lib`, `main` or `build` until ADR 0052 is decided. Should 0052 be accepted and implemented before this one reaches users, or is the interim acceptable? Recommended: interim is acceptable.
+
+## Decisions of the product owner
+
+Anton accepted this ADR on 15 November 2026 on a decision card (card `cmsg_01BurfeyeHWcU615RsoB5poQ58fEUUcav8vaBmUS1Q5U5o`).
+
+1. **Option 3** (map file-root definitions by position, no new symbols): accepted, confirmed by Anton himself.
+2. **References to a module as a path qualifier stay `read`; coupling is measured in the implementation** (question 2): recommendation, not individually confirmed. A reference kind for path qualifiers is a separate decision if the measurement shows a distortion.
+3. **The skipped folders of the Rust corpus stay as they are; the uses are reported apart as `outside_scan`** (question 3): recommendation, not individually confirmed.
+4. **`outside_scan` stays out of the denominator of `level2.min_mapped`, like `library`** (question 4): recommendation, not individually confirmed.
+5. **The crate root is called `lib`, `main` or `build` until ADR 0052 is decided** (question 5): recommendation, not individually confirmed.
+
+Anton can overrule points 2 to 5 at any time; they are then changed by an amendment of this ADR.
