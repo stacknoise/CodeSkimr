@@ -720,39 +720,205 @@ mod random {
             next
         }
 
-        pub fn render(&self) -> String {
+        /// The text of the file in the syntax of `lang`.
+        pub fn render(&self, lang: Lang) -> String {
+            match lang {
+                Lang::CSharp => self.csharp(),
+                Lang::Java => self.java(),
+                Lang::Kotlin => self.kotlin(),
+                Lang::TypeScript => self.typescript(),
+                Lang::Rust => self.rust(),
+                Lang::Python => self.python(),
+            }
+        }
+
+        /// The lines of the calls: a call on the class itself, then one on a new value, and so on.
+        fn call_lines(
+            &self,
+            indent: &str,
+            direct: impl Fn(u64, u64) -> String,
+            local: impl Fn(usize, u64, u64) -> String,
+        ) -> String {
+            let mut text = String::new();
+            for (index, (class, method)) in self.calls.iter().enumerate() {
+                let lines = if index % 2 == 0 {
+                    direct(*class, *method)
+                } else {
+                    local(index, *class, *method)
+                };
+                for line in lines.lines() {
+                    writeln!(text, "{indent}{line}").unwrap();
+                }
+            }
+            text
+        }
+
+        fn own(&self) -> u64 {
+            self.calls.len() as u64 % METHODS
+        }
+
+        fn csharp(&self) -> String {
             let mut text = String::new();
             for using in &self.usings {
                 writeln!(text, "using Demo.N{using};").unwrap();
             }
             writeln!(text, "\nnamespace Demo.N{};\n", self.namespace).unwrap();
-            let base = self
-                .base
-                .map(|base| format!(" : K{base}"))
-                .unwrap_or_default();
+            let base = self.base.map(|b| format!(" : K{b}")).unwrap_or_default();
             writeln!(text, "public class K{}{base}\n{{", self.class).unwrap();
             for method in &self.methods {
                 writeln!(text, "    public void M{method}() {{ }}").unwrap();
             }
             writeln!(text, "    public void Run()\n    {{").unwrap();
-            for (index, (class, method)) in self.calls.iter().enumerate() {
-                if index % 2 == 0 {
-                    writeln!(text, "        K{class}.M{method}();").unwrap();
-                } else {
-                    writeln!(
-                        text,
-                        "        K{class} v{index} = new K{class}();\n        v{index}.M{method}();"
-                    )
-                    .unwrap();
-                }
-            }
-            writeln!(
-                text,
-                "        this.M{}();\n    }}\n}}",
-                self.calls.len() as u64 % METHODS
-            )
-            .unwrap();
+            text += &self.call_lines(
+                "        ",
+                |c, m| format!("K{c}.M{m}();"),
+                |i, c, m| format!("K{c} v{i} = new K{c}();\nv{i}.M{m}();"),
+            );
+            writeln!(text, "        this.M{}();\n    }}\n}}", self.own()).unwrap();
             text
+        }
+
+        fn java(&self) -> String {
+            let mut text = format!("package demo.n{};\n\n", self.namespace);
+            for using in &self.usings {
+                writeln!(text, "import demo.n{using}.*;").unwrap();
+            }
+            let base = self
+                .base
+                .map(|b| format!(" extends K{b}"))
+                .unwrap_or_default();
+            writeln!(text, "\nclass K{}{base} {{", self.class).unwrap();
+            for method in &self.methods {
+                writeln!(text, "    public void m{method}() {{ }}").unwrap();
+            }
+            writeln!(text, "    public void run() {{").unwrap();
+            text += &self.call_lines(
+                "        ",
+                |c, m| format!("K{c}.m{m}();"),
+                |i, c, m| format!("K{c} v{i} = new K{c}();\nv{i}.m{m}();"),
+            );
+            writeln!(text, "        this.m{}();\n    }}\n}}", self.own()).unwrap();
+            text
+        }
+
+        fn kotlin(&self) -> String {
+            let mut text = format!("package demo.n{}\n\n", self.namespace);
+            for using in &self.usings {
+                writeln!(text, "import demo.n{using}.*").unwrap();
+            }
+            let base = self.base.map(|b| format!(" : K{b}()")).unwrap_or_default();
+            writeln!(text, "\nopen class K{}{base} {{", self.class).unwrap();
+            for method in &self.methods {
+                writeln!(text, "    fun m{method}() {{ }}").unwrap();
+            }
+            writeln!(text, "    fun run() {{").unwrap();
+            text += &self.call_lines(
+                "        ",
+                |c, m| format!("K{c}().m{m}()"),
+                |i, c, m| format!("val v{i} = K{c}()\nv{i}.m{m}()"),
+            );
+            writeln!(text, "        this.m{}()\n    }}\n}}", self.own()).unwrap();
+            text
+        }
+
+        fn typescript(&self) -> String {
+            let mut text = String::new();
+            for using in &self.usings {
+                writeln!(text, "import {{ K{using} }} from \"./F{using}\";").unwrap();
+            }
+            let base = self
+                .base
+                .map(|b| format!(" extends K{b}"))
+                .unwrap_or_default();
+            writeln!(text, "\nexport class K{}{base} {{", self.class).unwrap();
+            for method in &self.methods {
+                writeln!(text, "  m{method}(): void {{}}").unwrap();
+            }
+            writeln!(text, "  run(): void {{").unwrap();
+            text += &self.call_lines(
+                "    ",
+                |c, m| format!("new K{c}().m{m}();"),
+                |i, c, m| format!("const v{i} = new K{c}();\nv{i}.m{m}();"),
+            );
+            writeln!(text, "    this.m{}();\n  }}\n}}", self.own()).unwrap();
+            text
+        }
+
+        fn rust(&self) -> String {
+            let mut text = String::new();
+            for using in &self.usings {
+                writeln!(text, "use crate::f{using}::*;").unwrap();
+            }
+            writeln!(text, "\npub struct K{};", self.class).unwrap();
+            if let Some(base) = self.base {
+                writeln!(text, "\nimpl K{base} for K{} {{}}", self.class).unwrap();
+            }
+            writeln!(text, "\nimpl K{} {{", self.class).unwrap();
+            for method in &self.methods {
+                writeln!(text, "    pub fn m{method}(&self) {{}}").unwrap();
+            }
+            writeln!(text, "    pub fn run(&self) {{").unwrap();
+            text += &self.call_lines(
+                "        ",
+                |c, m| format!("K{c}::m{m}();"),
+                |i, c, m| format!("let v{i} = K{c};\nv{i}.m{m}();"),
+            );
+            writeln!(text, "        self.m{}();\n    }}\n}}", self.own()).unwrap();
+            text
+        }
+
+        fn python(&self) -> String {
+            let mut text = String::new();
+            for using in &self.usings {
+                writeln!(text, "from f{using} import *").unwrap();
+            }
+            let base = self.base.map(|b| format!("(K{b})")).unwrap_or_default();
+            writeln!(text, "\n\nclass K{}{base}:", self.class).unwrap();
+            for method in &self.methods {
+                writeln!(text, "    def m{method}(self):\n        pass\n").unwrap();
+            }
+            writeln!(text, "    def run(self):").unwrap();
+            text += &self.call_lines(
+                "        ",
+                |c, m| format!("K{c}().m{m}()"),
+                |i, c, m| format!("v{i} = K{c}()\nv{i}.m{m}()"),
+            );
+            writeln!(text, "        self.m{}()", self.own()).unwrap();
+            text
+        }
+    }
+
+    /// The languages the generator writes.
+    #[derive(Clone, Copy, Debug)]
+    pub enum Lang {
+        CSharp,
+        Java,
+        Kotlin,
+        TypeScript,
+        Rust,
+        Python,
+    }
+
+    impl Lang {
+        pub const ALL: [Lang; 6] = [
+            Lang::CSharp,
+            Lang::Java,
+            Lang::Kotlin,
+            Lang::TypeScript,
+            Lang::Rust,
+            Lang::Python,
+        ];
+
+        /// The path of a slot: one file per slot, named so that imports can find it.
+        pub fn path_of(self, slot: usize) -> String {
+            match self {
+                Lang::CSharp => format!("F{slot}.cs"),
+                Lang::Java => format!("F{slot}.java"),
+                Lang::Kotlin => format!("F{slot}.kt"),
+                Lang::TypeScript => format!("F{slot}.ts"),
+                Lang::Rust => format!("f{slot}.rs"),
+                Lang::Python => format!("f{slot}.py"),
+            }
         }
     }
 
@@ -775,7 +941,31 @@ fn full_scan_of(folder: &Path, root: &Path, name: &str) -> Vec<String> {
     references_of(&data)
 }
 
-fn random_project_stays_equal(seed: u64, steps: usize) {
+/// One to three random changes: a file deleted, tweaked or newly written.
+fn change_some_files(
+    lang: random::Lang,
+    folder: &Path,
+    files: &mut [Option<random::Spec>],
+    dice: &mut random::Dice,
+) {
+    for _ in 0..=dice.below(2) {
+        let slot = usize::try_from(dice.below(files.len() as u64)).unwrap();
+        let path = lang.path_of(slot);
+        files[slot] = match (&files[slot], dice.below(5)) {
+            (Some(_), 0) => {
+                fs::remove_file(folder.join(&path)).unwrap();
+                None
+            }
+            (Some(spec), _) => Some(spec.tweak(dice)),
+            (None, _) => Some(random::Spec::draw(dice)),
+        };
+        if let Some(spec) = &files[slot] {
+            write_file(folder, &path, &spec.render(lang));
+        }
+    }
+}
+
+fn random_project_stays_equal(lang: random::Lang, seed: u64, steps: usize) {
     use random::{Dice, Spec, slots};
     let mut dice = Dice::new(seed);
     let root = tempfile::tempdir().unwrap();
@@ -783,43 +973,46 @@ fn random_project_stays_equal(seed: u64, steps: usize) {
     let mut files: Vec<Option<Spec>> = (0..slots())
         .map(|_| (dice.below(4) != 0).then(|| Spec::draw(&mut dice)))
         .collect();
-    let path_of = |slot: usize| format!("F{slot}.cs");
+    let path_of = |slot: usize| lang.path_of(slot);
     let text: Vec<(String, String)> = files
         .iter()
         .enumerate()
-        .filter_map(|(slot, spec)| spec.as_ref().map(|s| (path_of(slot), s.render())))
+        .filter_map(|(slot, spec)| spec.as_ref().map(|s| (path_of(slot), s.render(lang))))
         .collect();
     let base: Vec<(&str, &str)> = text.iter().map(|(p, t)| (p.as_str(), t.as_str())).collect();
     write_project(&folder, &base, &[]);
     let data = locations(&root.path().join("live-data"));
     let live = session(&folder, &data);
     live.scan_quick(ScanMode::Full).unwrap();
+    let mut total = 0;
     for step in 0..steps {
-        for _ in 0..=dice.below(2) {
-            let slot = usize::try_from(dice.below(slots() as u64)).unwrap();
-            let path = path_of(slot);
-            files[slot] = match (&files[slot], dice.below(5)) {
-                (Some(_), 0) => {
-                    fs::remove_file(folder.join(&path)).unwrap();
-                    None
-                }
-                (Some(spec), _) => Some(spec.tweak(&mut dice)),
-                (None, _) => Some(Spec::draw(&mut dice)),
-            };
-            if let Some(spec) = &files[slot] {
-                write_file(&folder, &path, &spec.render());
-            }
-        }
+        change_some_files(lang, &folder, &mut files, &mut dice);
         live.scan_quick(ScanMode::Incremental).unwrap();
         let full = full_scan_of(&folder, root.path(), &format!("full{step}"));
-        assert_eq!(references_of(&data), full, "seed {seed}, step {step}");
+        assert_eq!(
+            references_of(&data),
+            full,
+            "{lang:?}, seed {seed}, step {step}"
+        );
+        total += full.len();
     }
+    // An oracle that compares two empty lists proves nothing.
+    assert!(total > 0, "{lang:?}, seed {seed}: no references at all");
 }
 
 #[test]
 fn random_changes_of_a_csharp_project_give_the_references_of_a_full_scan() {
     for seed in 1..=3 {
-        random_project_stays_equal(seed, 8);
+        random_project_stays_equal(random::Lang::CSharp, seed, 8);
+    }
+}
+
+#[test]
+fn random_changes_of_projects_in_other_languages_give_the_references_of_a_full_scan() {
+    for lang in random::Lang::ALL.into_iter().skip(1) {
+        for seed in 1..=2 {
+            random_project_stays_equal(lang, seed, 6);
+        }
     }
 }
 
