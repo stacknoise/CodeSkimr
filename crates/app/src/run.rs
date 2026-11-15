@@ -139,6 +139,11 @@ fn resolve_locations(
     )
 }
 
+/// Whether the command reads language packs; the credential commands do not.
+fn needs_packs(action: &Action) -> bool {
+    !matches!(action, Action::Credential(_))
+}
+
 fn run_invocation(
     invocation: &Invocation,
     env: Lookup<'_>,
@@ -151,7 +156,7 @@ fn run_invocation(
         &invocation.global,
         env,
         &current_dir,
-        !matches!(invocation.action, Action::Credential(_)),
+        needs_packs(&invocation.action),
     )?;
     match &invocation.action {
         Action::Credential(action) => run_credential(action, messages, language),
@@ -475,5 +480,17 @@ fn source_failure(error: SourceError, messages: &Messages, language: &str) -> Fa
     Failure {
         code: ErrorCode::ProjectSourceInvalid,
         detail,
+    }
+}
+
+#[cfg(test)]
+mod needs_packs_tests {
+    use super::*;
+
+    #[test]
+    fn only_the_credential_commands_go_without_packs() {
+        let delete = Action::Credential(CredentialAction::Delete { id: "x".to_owned() });
+        assert!(!needs_packs(&delete));
+        assert!(needs_packs(&Action::Start));
     }
 }
