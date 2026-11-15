@@ -42,6 +42,8 @@ serde_json.workspace = true
 # (volume and index), which needs no `unsafe` of ours (issue #372).
 [target.'cfg(windows)'.dependencies]
 same-file.workspace = true
+# Reads the owner of the launch folder through a safe interface (issue #372).
+windows-permissions.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

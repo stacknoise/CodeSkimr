@@ -46,6 +46,8 @@ fs4 = { version = "1", default-features = false, features = ["sync"] }
 memsec = { version = "0.7", default-features = false, features = ["alloc"] }
 # Windows only: compares an open file with its path by identity (issue #372).
 same-file = "1"
+# Windows only: reads who owns a file or folder (issue #372).
+windows-permissions = "0.2"
 # Names the length-limit error of a request body, to tell "too large" from "client left".
 http-body-util = { version = "0.1", default-features = false }
 libc = "0.2"

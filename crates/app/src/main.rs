@@ -59,6 +59,8 @@ mod start;
 mod tool_check_tests;
 mod ui_commands;
 mod watch;
+#[cfg(windows)]
+mod windows_owner;
 mod wiring;
 
 use std::process::ExitCode;

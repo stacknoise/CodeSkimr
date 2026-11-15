@@ -283,6 +283,13 @@ pub const ACL_TOOL: &str = "icacls.exe";
 /// Windows file attribute of a reparse point: a junction or a link (`FILE_ATTRIBUTE_REPARSE_POINT`).
 #[cfg(windows)]
 pub const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
+/// Opening flag that lets Windows open a folder as a handle (`FILE_FLAG_BACKUP_SEMANTICS`).
+#[cfg(windows)]
+pub const FILE_FLAG_BACKUP_SEMANTICS: u32 = 0x0200_0000;
+/// Owners besides the user that are fine for the launch folder, as SID strings: the group of the
+/// administrators and the system account (the Windows counterpart of root on Unix).
+#[cfg(windows)]
+pub const TRUSTED_OWNER_SIDS: &[&str] = &["S-1-5-32-544", "S-1-5-18"];
 /// Environment variable with the Windows folder, below which the tool is looked for.
 #[cfg(windows)]
 pub const ENV_SYSTEM_ROOT: &str = "SYSTEMROOT";
