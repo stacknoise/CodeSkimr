@@ -84,6 +84,7 @@ export function ProjectTable(props: ProjectTableProps) {
   );
 }
 
+/** Project name button and its location. */
 function NameCell(props: { row: ProjectRow; onOpen: (id: number) => void }) {
   return (
     <td>
@@ -100,6 +101,7 @@ function NameCell(props: { row: ProjectRow; onOpen: (id: number) => void }) {
   );
 }
 
+/** When and how the project was last scanned. */
 function ScanCell(props: { row: ProjectRow }) {
   const scan = () => lastScan(props.row);
   return (
@@ -110,6 +112,7 @@ function ScanCell(props: { row: ProjectRow }) {
   );
 }
 
+/** Status pills and the rescan button. */
 function StatusCell(props: { row: ProjectRow; onRescan: (id: number) => void }) {
   const state = () => status(props.row, projectsScanning().has(props.row.id));
   const problems = () => problemsOf(toolsOf(props.row)).length;

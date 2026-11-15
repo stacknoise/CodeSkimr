@@ -9,6 +9,7 @@ import styles from "./SettingsScreen.module.css";
 import { ThemeCard } from "./ThemeCard";
 import { LANGUAGES } from "../../shared/i18n/consts";
 
+/** The theme cards and the follow-system switch. */
 function ThemePanel() {
   const following = () => chosenTheme() === null;
   return (
@@ -40,6 +41,7 @@ function ThemePanel() {
   );
 }
 
+/** The interface language choice. */
 function LanguagePanel() {
   return (
     <section class={`${styles.panel} ${styles.narrow}`}>
@@ -66,6 +68,7 @@ function LanguagePanel() {
   );
 }
 
+/** The read-only editor link settings. */
 function EditorPanel(props: { config: UiConfig }) {
   return (
     <section class={`${styles.panel} ${styles.narrow}`}>
