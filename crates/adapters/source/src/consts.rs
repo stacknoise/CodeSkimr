@@ -184,3 +184,23 @@ pub const REFSPEC_FORCE: &str = "+";
 
 /// Separator of source and destination in a refspec.
 pub const REFSPEC_SEPARATOR: &str = ":";
+
+/// Name of the folder with the pack files inside the Git data folder.
+pub const PACK_DIR_NAME: &str = "pack";
+
+/// File extension of a pack file.
+pub const PACK_EXTENSION: &str = "pack";
+
+/// Packs an updated clone may hold. Every update by fetch adds one, and the objects of earlier
+/// commits stay in the older ones (issue #363); once the limit is reached the branch is cloned
+/// again, which leaves one pack with the newest commit only.
+pub const MAX_PACKS_BEFORE_RECLONE: usize = 20;
+
+/// Detail of the reason when the pack limit made the update give way to a new clone.
+pub const TOO_MANY_PACKS_DETAIL: &str = "the clone holds too many packs";
+
+/// Name of the log field that carries why an update fell back to a new clone (issue #365).
+pub const LOG_REASON: &str = "reason";
+
+/// Name of the log field that carries the error code of a fallback.
+pub const LOG_CODE: &str = "code";

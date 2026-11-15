@@ -16,8 +16,9 @@ use gix::remote::fetch::{Shallow, Tags};
 use super::{Attempt, LoginRefusal, answer};
 use crate::consts::{
     BRANCH_REF_PREFIX, CLONE_CONFIG_OVERRIDES, GIT_DIR_NAME, HEAD_MISMATCH_DETAIL,
-    NO_WORKTREE_DETAIL, OBJECTS_DIR_NAME, REFSPEC_FORCE, REFSPEC_SEPARATOR, REMOTE_REF_PREFIX,
-    SHALLOW_CLONE_DEPTH, UPDATE_REFLOG_MESSAGE,
+    MAX_PACKS_BEFORE_RECLONE, NO_WORKTREE_DETAIL, OBJECTS_DIR_NAME, PACK_DIR_NAME, PACK_EXTENSION,
+    REFSPEC_FORCE, REFSPEC_SEPARATOR, REMOTE_REF_PREFIX, SHALLOW_CLONE_DEPTH,
+    TOO_MANY_PACKS_DETAIL, UPDATE_REFLOG_MESSAGE,
 };
 use crate::error::SourceError;
 
@@ -28,6 +29,31 @@ fn failed(error: &dyn std::error::Error) -> SourceError {
 /// Whether `old` holds a clone that can be updated.
 pub(super) fn can_update(old: &Path) -> bool {
     old.join(GIT_DIR_NAME).is_dir()
+}
+
+/// Refuses an update when the old clone holds [`MAX_PACKS_BEFORE_RECLONE`] packs or more: the
+/// branch is cloned again then, which drops the objects of earlier commits (issue #363).
+pub(super) fn check_pack_count(old: &Path) -> Result<(), SourceError> {
+    let dir = old
+        .join(GIT_DIR_NAME)
+        .join(OBJECTS_DIR_NAME)
+        .join(PACK_DIR_NAME);
+    let Ok(entries) = fs::read_dir(dir) else {
+        return Ok(());
+    };
+    let packs = entries
+        .flatten()
+        .filter(|entry| {
+            entry
+                .path()
+                .extension()
+                .is_some_and(|ext| ext == PACK_EXTENSION)
+        })
+        .count();
+    if packs >= MAX_PACKS_BEFORE_RECLONE {
+        return Err(failed(&io::Error::other(TOO_MANY_PACKS_DETAIL)));
+    }
+    Ok(())
 }
 
 /// Prepares the working tree of the newest commit of the branch in `path`, starting from the clone
