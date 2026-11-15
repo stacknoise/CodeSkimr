@@ -105,9 +105,7 @@ impl LanguagePack {
             bare_names_reach_members: manifest.bare_names_reach_members,
             comment_nodes: manifest.comment_nodes.into_iter().collect(),
             doc_prefixes: manifest.doc_prefixes,
-            doc_before_declaration: manifest
-                .doc_before_declaration
-                .map(|kinds| kinds.into_iter().collect()),
+            doc_before_declaration: manifest.doc_before_declaration.map(into_set),
             static_keywords: manifest.static_keywords.into_iter().collect(),
             modifier_kinds,
             doc_summary: manifest.doc_summary,
@@ -192,6 +190,11 @@ fn parent_kinds(
 }
 
 /// The patterns of the manifest as one matcher; a broken pattern is a reason for the pack.
+/// The items as a set.
+fn into_set(items: Vec<String>) -> HashSet<String> {
+    items.into_iter().collect()
+}
+
 fn test_files(patterns: &[String]) -> Result<GlobSet, String> {
     let mut builder = GlobSetBuilder::new();
     for pattern in patterns {
