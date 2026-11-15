@@ -122,6 +122,7 @@ fn language_row(share: &LanguageShare, context: &Context) -> LanguageRow {
     }
 }
 
+/// The row of one scan warning.
 fn warning_row(warning: &ScanWarning) -> WarningRow {
     WarningRow {
         code: warning.code.id(),
