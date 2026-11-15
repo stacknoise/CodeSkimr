@@ -26,6 +26,41 @@ mod tests {
     }
 
     #[test]
+    fn cognitive_complexity_counts_structures_with_their_nesting() {
+        let found = by_name(&facts("typescript", "cognitive.ts"));
+        let cognitive = |name: &str| body(&found, name).cognitive;
+        assert_eq!(cognitive("straight"), Some(0));
+        // if (+1), for (+2), inner if (+3)
+        assert_eq!(cognitive("nested"), Some(6));
+        // if (+1), else if (+1 for its `else`), else (+1)
+        assert_eq!(cognitive("chain"), Some(3));
+        // the `&&` run (+1) and `||` (+1)
+        assert_eq!(cognitive("runs"), Some(2));
+        // catch (+1), the if inside it (+2); `try` adds nothing
+        assert_eq!(cognitive("handler"), Some(3));
+        // the conditional in the callback: +2 (nested once by the callback)
+        assert_eq!(cognitive("callbacks"), Some(2));
+        // a `const` arrow function starts at depth zero: if (+1)
+        assert_eq!(cognitive("arrow"), Some(1));
+        // switch (+1); the cases add nothing
+        assert_eq!(cognitive("branches"), Some(1));
+        // while (+1), do (+1), for of (+1), inner for of (+2), if (+3), `continue outer` (+1)
+        assert_eq!(cognitive("loops"), Some(9));
+        // the conditional (+1)
+        assert_eq!(cognitive("method"), Some(1));
+    }
+
+    #[test]
+    fn parameters_are_counted_without_the_this_type() {
+        let found = by_name(&facts("typescript", "cognitive.ts"));
+        let parameters = |name: &str| body(&found, name).parameters;
+        assert_eq!(parameters("straight"), Some(1));
+        assert_eq!(parameters("runs"), Some(4));
+        // `this: Shop` is only a type, then a, b?, c = 3 and ...rest
+        assert_eq!(parameters("method"), Some(4));
+    }
+
+    #[test]
     fn the_loc_of_a_callable_leaves_out_its_local_function() {
         let found = by_name(&facts("typescript", "metrics.ts"));
         assert_eq!(found["arrow"].loc.0, 3);
