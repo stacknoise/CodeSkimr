@@ -123,7 +123,8 @@ def check_reference_pins(lang):
 
 
 def import_level2(opt, db, source):
-    """Maps the hand-made SCIP index onto the scanned database (tools/accuracy/import_scip) and reopens it."""
+    """Maps the hand-made SCIP index onto the scanned database (tools/accuracy/import_scip) and reopens it; also returns the
+    counters of the import."""
     section, program, key = SCIP_INDEXERS[opt.language]
     pin = tomllib.loads((Path(__file__).parent / "reference_tools.toml").read_text())[section][key]
     found = subprocess.run([opt.indexer or program, "--version"], capture_output=True, text=True).stdout.strip()
@@ -148,7 +149,17 @@ def import_level2(opt, db, source):
         names = sorted(uncovered_paths(source, opt.scip))
         print(f"warning: {uncovered} scanned files are not in the index (allowed by --allow-uncovered), their references are not counted: {', '.join(names)}", file=sys.stderr)
     check_reference_pins(opt.language)
-    return sqlite3.connect(dbfile)
+    return sqlite3.connect(dbfile), stats
+
+
+def without_symbol(stats):
+    """The blind spot of the sample: uses of symbols that the index defines in the project but level 1 has no symbol for
+    (types and variants that a macro generates). The sample is drawn from the symbols of level 1, so it cannot see them.
+    `None` without an index."""
+    if stats is None:
+        return None
+    project = stats["mapped"] + stats["unmapped"]
+    return {"uses": stats["unmapped"], "project_uses": project, "share": round(stats["unmapped"] / project, 3) if project else None}
 
 
 # Kind of a symbol -> category of a declaration for TruthJava and TruthCSharp.
@@ -242,8 +253,9 @@ def main():
         (tmp / "src").mkdir()
         filtered_copy(src, project, tmp / "src")
         db = scan(opt.codeskimr, opt.languages, tmp / "src", tmp / "data")
+        import_stats = None
         if opt.scip:
-            db = import_level2(opt, db, tmp / "src")
+            db, import_stats = import_level2(opt, db, tmp / "src")
         files, symbols, used, kinds = ours(db, opt.verified_only, opt.certain_only, ("import", "override") if opt.no_overrides else ("import",))
         # Drawn by qualified name so that two versions of the scanner see the same symbols.
         pool = sorted((s[4], i) for i, s in symbols.items() if s[2] in KINDS and not s[3].startswith("_"))
@@ -280,6 +292,7 @@ def main():
                "usages_ours": tp + fp, "usages_tool": tp + fn, "wrong_by_our_kind": dict(sorted(wrong_kinds.items(), key=lambda x: -x[1])),
                "precision_where_tool_answers": round(sum(r["both"] for r in judged) / judged_ours, 3) if judged_ours else None,
                "tool_silent": {"symbols": len(blind), "usages_ours": sum(r["ours"] for r in blind)},
+               "without_level1_symbol": without_symbol(import_stats),
                "verified_only": opt.verified_only, "certain_only": opt.certain_only, "no_overrides": opt.no_overrides, "by_kind": by_kind}
     if opt.json:
         print(json.dumps({"summary": summary, "rows": rows}, indent=1))
