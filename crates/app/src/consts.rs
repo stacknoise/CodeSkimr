@@ -83,6 +83,9 @@ pub const QUERY_MARKERS: [char; 2] = ['?', '#'];
 pub const VERBATIM_PREFIX: &str = "\\\\?\\";
 /// What follows the verbatim prefix of a UNC path.
 pub const VERBATIM_UNC: &str = "UNC\\";
+/// The start of a UNC path as users and the system opener know it (`\\server\share`).
+#[cfg(any(windows, test))]
+pub const UNC_PREFIX: &str = "\\\\";
 /// Separates the parts of a URL path.
 pub const URL_PATH_SEPARATOR: char = '/';
 /// Separates host and path in an scp-style Git address.
