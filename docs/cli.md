@@ -105,7 +105,7 @@ The package added two keys: `scan.parse_timeout_ms` (default 5000, `PRS-501` on 
 ## Known limits
 
 - References come from the level-1 resolver (`docs/references.md`).
-- The language packs are read from a folder (see `--languages`); the packs built into the binary are used (and written to the data folder) only if no folder was named and none lies next to the executable. A `languages/` folder in the current folder (for example in a scanned repository) is ignored.
+- The language packs are read from a folder (see `--languages`); the packs built into the binary are used (and written to the data folder) only if no folder was named and no `languages/` folder with at least one `<language>/language.toml` lies next to the executable. A `languages/` folder in the current folder (for example in a scanned repository) is ignored.
 - `Ctrl+C` ends the process; the server cancels a scan cleanly through `CancelToken` (`projects.cancel`, `docs/server.md`); the CLI does not, so the process just ends.
 - A user config error that is not TOML syntax (unreadable file) is reported as `CFG-102`.
 

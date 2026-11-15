@@ -139,9 +139,9 @@ fn resolve_locations(
     )
 }
 
-/// Whether the command reads language packs; the credential commands do not.
+/// Whether the command reads language packs; the credential commands and `open` do not.
 fn needs_packs(action: &Action) -> bool {
-    !matches!(action, Action::Credential(_))
+    !matches!(action, Action::Credential(_) | Action::Open(_))
 }
 
 fn run_invocation(
@@ -491,6 +491,7 @@ mod needs_packs_tests {
     fn only_the_credential_commands_go_without_packs() {
         let delete = Action::Credential(CredentialAction::Delete { id: "x".to_owned() });
         assert!(!needs_packs(&delete));
+        assert!(!needs_packs(&Action::Open(OpenArgs::default())));
         assert!(needs_packs(&Action::Start));
     }
 }

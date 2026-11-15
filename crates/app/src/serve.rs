@@ -210,6 +210,7 @@ pub(crate) fn test_ui() -> UiOptions {
         languages_dir: std::path::PathBuf::new(),
         user_config: None,
         bases: Vec::new(),
+        program_dir: None,
     };
     ui_options(&config, &locations)
 }
