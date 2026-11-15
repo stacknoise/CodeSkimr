@@ -161,9 +161,6 @@ pub const COUPLING_INSERT: &str = "INSERT OR REPLACE INTO coupling_rows \
 /// Removes the coupling of one snapshot: snapshot.
 pub const COUPLING_DELETE: &str = "DELETE FROM coupling_rows WHERE snapshot_id = ?1";
 
-/// Whether a symbol is in a snapshot: snapshot, symbol.
-pub const SYMBOL_IN_SNAPSHOT: &str =
-    "SELECT EXISTS (SELECT 1 FROM symbols WHERE snapshot_id = ?1 AND id = ?2)";
 /// How many of the symbols in a JSON array of ids are in a snapshot: snapshot, ids.
 pub const SYMBOLS_IN_SNAPSHOT_COUNT: &str = "SELECT COUNT(*) FROM json_each(?2) j \
     CROSS JOIN symbol_rows s ON s.id = j.value \
@@ -171,9 +168,6 @@ pub const SYMBOLS_IN_SNAPSHOT_COUNT: &str = "SELECT COUNT(*) FROM json_each(?2) 
 /// How many of the files in a JSON array of ids are in a snapshot: snapshot, ids.
 pub const FILES_IN_SNAPSHOT_COUNT: &str = "SELECT COUNT(*) FROM json_each(?2) j \
     CROSS JOIN files f ON f.id = j.value AND f.snapshot_id = ?1";
-/// Whether a file is in a snapshot: snapshot, file.
-pub const FILE_IN_SNAPSHOT: &str =
-    "SELECT EXISTS (SELECT 1 FROM files WHERE snapshot_id = ?1 AND id = ?2)";
 
 /// Adds a fingerprint: snapshot, symbol, position, hash.
 pub const FINGERPRINT_INSERT: &str =

@@ -53,9 +53,8 @@ async function choosePreferences(page, theme, language) {
     console.log(`chosen ${theme}/${language}; html data-theme=${marked}`);
 }
 
-async function walk(theme, language) {
-    const { browser, page } = await openUi(server, folder, "codeskimr-qa-");
-    const problems = [];
+/** Collects what goes wrong in the page: console errors, page errors, failed requests and http errors. */
+function watchProblems(page, problems) {
     page.on("console", (m) => {
         if (m.type() === "error")
             problems.push(`console error: ${m.text().slice(0, 200)}`);
@@ -68,6 +67,12 @@ async function walk(theme, language) {
         if (r.status() >= 400)
             problems.push(`http ${r.status()}: ${r.url()}`);
     });
+}
+
+async function walk(theme, language) {
+    const { browser, page } = await openUi(server, folder, "codeskimr-qa-");
+    const problems = [];
+    watchProblems(page, problems);
     await page
         .getByText(path.basename(folder), { exact: true })
         .first()

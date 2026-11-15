@@ -457,6 +457,28 @@ pub(crate) fn wants_facts(document: &ScipDocument) -> bool {
     document.path.as_str().ends_with(JAVA_EXTENSION)
 }
 
+/// The places in the document where an anonymous class is created: a type name after `new` that
+/// is followed by a class body.
+fn anonymous_creations(
+    document: &ScipDocument,
+    text: &Text<'_>,
+    symbols: &[String],
+) -> Vec<AnonymousCreation> {
+    document
+        .occurrences
+        .iter()
+        .filter(|o| !o.is_definition() && follows_new(text, o.range.start()))
+        .filter(|o| is_type(symbols, o.symbol))
+        .filter_map(|o| {
+            Some(AnonymousCreation {
+                symbol: o.symbol,
+                range: o.range,
+                body: anonymous_body(text, o.range.end())?,
+            })
+        })
+        .collect()
+}
+
 /// Reads the text facts of one document (its columns are bytes) and drops what is no use.
 pub(crate) fn read_document(document: &mut ScipDocument, lines: &[String], symbols: &[String]) {
     let imports = import_lines(lines);
@@ -470,19 +492,7 @@ pub(crate) fn read_document(document: &mut ScipDocument, lines: &[String], symbo
         .filter(|o| o.is_definition() && is_constructor(symbols, o.symbol))
         .filter_map(|o| site_of(&text, o.symbol, o.range))
         .collect();
-    let anonymous = document
-        .occurrences
-        .iter()
-        .filter(|o| !o.is_definition() && follows_new(&text, o.range.start()))
-        .filter(|o| is_type(symbols, o.symbol))
-        .filter_map(|o| {
-            Some(AnonymousCreation {
-                symbol: o.symbol,
-                range: o.range,
-                body: anonymous_body(&text, o.range.end())?,
-            })
-        })
-        .collect();
+    let anonymous = anonymous_creations(document, &text, symbols);
     let enum_bodies = document
         .occurrences
         .iter()
