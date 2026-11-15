@@ -56,6 +56,14 @@ pub enum ScipError {
         /// Occurrences that were counted, mapped or not.
         total: u64,
     },
+    /// The index wants more symbols created than `level2.max_created_symbols` allows.
+    #[error("{}", ErrorCode::ScipTooManyCreatedSymbols.description())]
+    TooManyCreatedSymbols {
+        /// How many symbols the index asks for.
+        wanted: usize,
+        /// The limit from `level2.max_created_symbols`.
+        limit: usize,
+    },
 }
 
 impl Coded for ScipError {
@@ -64,6 +72,7 @@ impl Coded for ScipError {
             Self::Corrupt(_) | Self::Unreadable(_) => ErrorCode::ScipIndexInvalid,
             Self::TooLarge { .. } => ErrorCode::ScipIndexTooLarge,
             Self::MappingTooLow { .. } => ErrorCode::ScipMappingTooLow,
+            Self::TooManyCreatedSymbols { .. } => ErrorCode::ScipTooManyCreatedSymbols,
         }
     }
 }

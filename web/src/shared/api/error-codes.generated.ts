@@ -31,6 +31,7 @@ export type ErrorCode =
   | "RES-201"
   | "RES-301"
   | "RES-302"
+  | "RES-303"
   | "RES-501"
   | "RES-502"
   | "RES-503"
@@ -131,6 +132,7 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "RES-201": { id: "RES-201", name: "indexer_unavailable", group: "RES", class: "not_found", severity: "error", retryable: false, description: "The indexer of a language or its toolchain is not installed or is older than the version the language pack requires; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-201" },
   "RES-301": { id: "RES-301", name: "ambiguous_reference", group: "RES", class: "conflict", severity: "warning", retryable: false, description: "A reference matches several symbols; it was stored as probable.", since: "0.1.0", deprecated: false, messageKey: "error-RES-301" },
   "RES-302": { id: "RES-302", name: "scip_mapping_too_low", group: "RES", class: "conflict", severity: "error", retryable: false, description: "Too few occurrences of a SCIP index map onto project symbols; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-302" },
+  "RES-303": { id: "RES-303", name: "scip_too_many_created_symbols", group: "RES", class: "conflict", severity: "error", retryable: false, description: "A SCIP index wants level 2 to create more symbols than level2.max_created_symbols allows; the whole import is refused and level 1 stays.", since: "0.1.0", deprecated: false, messageKey: "error-RES-303" },
   "RES-501": { id: "RES-501", name: "scip_index_too_large", group: "RES", class: "limit", severity: "error", retryable: false, description: "A SCIP index is larger than the configured limit and was refused; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-501" },
   "RES-502": { id: "RES-502", name: "indexer_timeout", group: "RES", class: "limit", severity: "error", retryable: false, description: "An indexer ran longer than level2.timeout_seconds and was stopped with all its child processes; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-502" },
   "RES-503": { id: "RES-503", name: "indexer_output_too_large", group: "RES", class: "limit", severity: "error", retryable: false, description: "An indexer wrote more than level2.max_output_bytes and was stopped; level 1 references stay.", since: "0.1.0", deprecated: false, messageKey: "error-RES-503" },

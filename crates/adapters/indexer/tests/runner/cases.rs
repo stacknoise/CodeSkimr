@@ -56,6 +56,8 @@ fn spec(mode: &str) -> IndexerSpec {
         ],
         env: vec![("FIXED_BY_PACK".to_owned(), "yes".to_owned())],
         install_hint: "install it".to_owned(),
+        symbol_kinds: Vec::new(),
+        separator: String::new(),
     }
 }
 

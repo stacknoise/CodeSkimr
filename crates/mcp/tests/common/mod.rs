@@ -59,6 +59,7 @@ pub fn symbol_named(id: u64, kind: SymbolKind, qualified: &str) -> Symbol {
         span: Span::new(start, end).unwrap(),
         signature: Some(format!("{name}()")),
         doc: Some("Does the work.".to_owned()),
+        origin: codeskimr_domain::SymbolOrigin::Syntax,
     }
 }
 

@@ -237,3 +237,8 @@ pub const ID_HASH_ROTATION: u32 = 5;
 /// Rotation of the id hasher at the end: the best mixed bits of the product are the top ones, and
 /// the hash tables read the bottom ones.
 pub const ID_HASH_FINISH_ROTATION: u32 = 26;
+
+/// Label of the origin of a symbol that level 1 read from the syntax tree.
+pub const ORIGIN_SYNTAX: &str = "syntax";
+/// Label of the origin of a symbol that level 2 created from an index (ADR 0055).
+pub const ORIGIN_INDEX: &str = "index";

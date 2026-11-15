@@ -5,7 +5,8 @@
 //! read it. So the rules inherited from the parent are dropped and only the account of the user is
 //! granted access. Files created in the folder inherit that rule. A folder that someone else has
 //! created beforehand keeps its owner and the explicit entries of that owner; the rules cannot
-//! take those away (known limit, see ADR 0041).
+//! take those away, so such a folder is refused before the rules are set (`windows_owner`, issue
+//! #372; see ADR 0041).
 
 use std::ffi::OsString;
 use std::path::Path;

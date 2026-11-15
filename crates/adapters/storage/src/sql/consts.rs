@@ -121,15 +121,23 @@ pub const SHARED_ROWS_DELETE: &[&str] = &[
         (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1))",
 ];
 
+/// Deletes the references that point at, or start in, a symbol of origin `?2` of file `?1`.
+pub const ORIGIN_REFERENCES_DELETE: &str = "DELETE FROM symbol_references WHERE \
+    to_symbol IN (SELECT id FROM symbol_rows WHERE file_id = ?1 AND origin = ?2) \
+    OR from_symbol IN (SELECT id FROM symbol_rows WHERE file_id = ?1 AND origin = ?2)";
+/// Deletes the symbols of origin `?2` of file `?1`.
+pub const ORIGIN_SYMBOLS_DELETE: &str =
+    "DELETE FROM symbol_rows WHERE file_id = ?1 AND origin = ?2";
+
 /// Adds a file: snapshot, id, path, language, hash, loc.
 pub const FILE_INSERT: &str = "INSERT INTO files \
     (snapshot_id, id, path, language, content_hash, loc) VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
 /// Adds a symbol: id, file, kind, name, qualified name, parent, visibility, static,
-/// start line and column, end line and column, signature, doc.
+/// start line and column, end line and column, signature, doc, origin.
 pub const SYMBOL_INSERT: &str = "INSERT INTO symbol_rows (id, file_id, kind, name, \
     qualified_name, parent_id, visibility, is_static, start_line, start_column, end_line, \
-    end_column, signature, doc) \
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)";
+    end_column, signature, doc, origin) \
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)";
 /// Adds a reference: id, snapshot that writes it, from, to, file, start line and column, end line
 /// and column, kind, confidence, verified.
 pub const REFERENCE_INSERT: &str = "INSERT INTO symbol_references (id, first_snapshot, \
@@ -196,11 +204,17 @@ pub const CARRY_FILES: &str = "INSERT INTO files \
     (snapshot_id, id, path, language, content_hash, loc) \
     SELECT ?2, id, path, language, content_hash, loc FROM files \
     WHERE snapshot_id = ?1 AND path NOT IN (SELECT path FROM files WHERE snapshot_id = ?2)";
-/// Number of files, symbols and references of a snapshot: snapshot. The references are the sum of
-/// the usage counts, so the read models of the snapshot must be up to date.
+/// Number of files, symbols and references of a snapshot: snapshot, kind that the usage counts
+/// leave out (`test`). The references are the sum of the usage counts plus the references of
+/// that kind that the snapshot holds (as in the view `snapshot_references`, but the view would
+/// cost half a second on a large snapshot), so the read models of the snapshot must be up to date.
 pub const TOTALS: &str = "SELECT (SELECT COUNT(*) FROM files WHERE snapshot_id = ?1), \
     (SELECT COUNT(*) FROM symbols WHERE snapshot_id = ?1), \
-    (SELECT COALESCE(SUM(usages), 0) FROM usage_counts WHERE snapshot_id = ?1)";
+    (SELECT COALESCE(SUM(usages), 0) FROM usage_counts WHERE snapshot_id = ?1) + \
+    (SELECT COUNT(*) FROM symbol_references r WHERE r.kind = ?2 AND r.first_snapshot <= ?1 \
+        AND r.file_id IN (SELECT id FROM files WHERE snapshot_id = ?1) \
+        AND r.to_symbol IN (SELECT s.id FROM symbol_rows s \
+            JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?1))";
 
 /// Fills `search_index`: snapshot, kind that is left out.
 pub const SEARCH_REBUILD: &str = "INSERT INTO search_index \
@@ -213,11 +227,12 @@ pub const FILE_IDS: &str = "SELECT id FROM files WHERE snapshot_id = ?1";
 /// The ids of the symbols of a snapshot: snapshot.
 pub const SYMBOL_IDS: &str = "SELECT s.id FROM symbol_rows s \
     JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?1";
-/// File and target of every reference that is not newer than a snapshot: snapshot. The view
-/// `snapshot_references` keeps those whose file and target the snapshot holds; counting them
-/// here in one pass over the table is much cheaper than its four lookups per reference.
+/// File and target of every reference that is not newer than a snapshot and not of the given
+/// kind: snapshot, excluded kind (`test`). The view `snapshot_references` keeps those whose file
+/// and target the snapshot holds; counting them here in one pass over the table is much cheaper
+/// than its four lookups per reference.
 pub const REFERENCE_TARGETS: &str =
-    "SELECT file_id, to_symbol FROM symbol_references WHERE first_snapshot <= ?1";
+    "SELECT file_id, to_symbol FROM symbol_references WHERE first_snapshot <= ?1 AND kind <> ?2";
 /// Adds the usage count of a symbol: snapshot, symbol, usages.
 pub const USAGE_INSERT: &str =
     "INSERT INTO usage_counts (snapshot_id, symbol_id, usages) VALUES (?1, ?2, ?3)";
@@ -234,9 +249,10 @@ pub const TYPE_SUMMARY_REBUILD: &str = "INSERT INTO type_summary \
     WHERE f.snapshot_id = ?1 GROUP BY t.id";
 /// Names of the symbols of a snapshot: snapshot.
 pub const SYMBOL_NAMES: &str = "SELECT id, qualified_name FROM symbols WHERE snapshot_id = ?1";
-/// Ends of all references of a snapshot: snapshot.
+/// Ends of the references of a snapshot that are not of the given kind: snapshot, excluded kind
+/// (`test`).
 pub const REFERENCE_ENDS: &str =
-    "SELECT from_symbol, to_symbol FROM snapshot_references WHERE snapshot_id = ?1";
+    "SELECT from_symbol, to_symbol FROM snapshot_references WHERE snapshot_id = ?1 AND kind <> ?2";
 /// Adds a layer graph edge: snapshot, from, to, count, violates, in cycle.
 pub const EDGE_INSERT: &str = "INSERT INTO layer_graph \
     (snapshot_id, from_layer, to_layer, edge_count, violates_layering, in_cycle) \
@@ -298,7 +314,7 @@ pub const TYPE_SUMMARY: &str = "SELECT member_count, loc, max_complexity, mainta
 /// `SYMBOL_BY_ID` or `SYMBOL_BY_NAME` follows.
 pub const SYMBOL_SELECT: &str = "SELECT s.id, s.file_id, s.kind, s.name, s.qualified_name, \
     s.parent_id, s.visibility, s.is_static, s.start_line, s.start_column, s.end_line, \
-    s.end_column, s.signature, s.doc, f.path FROM symbols s \
+    s.end_column, s.signature, s.doc, s.origin, f.path FROM symbols s \
     JOIN files f ON f.snapshot_id = s.snapshot_id AND f.id = s.file_id \
     WHERE s.snapshot_id = ?1 AND ";
 /// Condition of `SYMBOL_SELECT`: symbol id.

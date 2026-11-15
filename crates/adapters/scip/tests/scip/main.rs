@@ -3,6 +3,8 @@
 #[cfg(test)]
 mod common;
 #[cfg(test)]
+mod created;
+#[cfg(test)]
 mod decode;
 #[cfg(test)]
 mod fuzz;

@@ -9,7 +9,7 @@ use std::time::Instant;
 
 use codeskimr_domain::{
     CommitHash, FileId, FolderPath, LanguageId, Metric, Project, Reference, ScanMode, Snapshot,
-    SnapshotId, SnapshotStats, SourceFile, Symbol, SymbolCounts,
+    SnapshotId, SnapshotStats, SourceFile, Symbol, SymbolCounts, SymbolOrigin,
 };
 
 use codeskimr_codes::ErrorCode;
@@ -436,7 +436,7 @@ impl Stage for ResolveStage {
         let names: Vec<PendingReference> = pending.iter().chain(&due).cloned().collect();
         let total = count(&names);
         ctx.progress(0, total);
-        let table: Vec<Symbol> = carried.symbols.iter().chain(&symbols).cloned().collect();
+        let table = level_one_symbols(&carried.symbols, &symbols);
         let test_files = self.test_files(files.iter().chain(&carried.files));
         let resolved = self
             .resolver
@@ -620,4 +620,16 @@ pub fn analyze_workers(max_workers: u32) -> usize {
         Ok(limit) if limit > 0 => cores.min(limit),
         _ => cores,
     }
+}
+
+/// The symbols the resolver looks names up in. Symbols that level 2 created are not names level 1
+/// resolves to (ADR 0055, decision 5): the result of a scan must not depend on whether level 2 ran
+/// before.
+fn level_one_symbols(carried: &[Symbol], fresh: &[Symbol]) -> Vec<Symbol> {
+    carried
+        .iter()
+        .chain(fresh)
+        .filter(|symbol| symbol.origin == SymbolOrigin::Syntax)
+        .cloned()
+        .collect()
 }

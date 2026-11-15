@@ -127,6 +127,8 @@ pub mod keys {
     pub const LEVEL2_MAX_OUTPUT_BYTES: &str = "level2.max_output_bytes";
     /// `level2.min_mapped`
     pub const LEVEL2_MIN_MAPPED: &str = "level2.min_mapped";
+    /// `level2.max_created_symbols`
+    pub const LEVEL2_MAX_CREATED_SYMBOLS: &str = "level2.max_created_symbols";
     /// `server.port`
     pub const SERVER_PORT: &str = "server.port";
     /// `editor.url_template`
