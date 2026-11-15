@@ -84,7 +84,6 @@ fn usage_counts_count_references_per_target() {
     assert_eq!(store.usage_count(SNAPSHOT, SymbolId::new(21)).unwrap(), 0);
 }
 
-#[cfg(test)]
 fn from_a_test(reference: Reference) -> Reference {
     Reference {
         kind: ReferenceKind::Test,
@@ -105,6 +104,9 @@ fn usage_counts_leave_out_references_of_kind_test() {
     ];
     let store = scanned(&[], symbols, references, vec![]);
     assert_eq!(store.usage_count(SNAPSHOT, SymbolId::new(22)).unwrap(), 1);
+    // The total of the snapshot is a count of what is stored, so it keeps the test references.
+    let latest = store.latest_snapshot(ProjectId::new(1)).unwrap().unwrap();
+    assert_eq!(latest.stats.references, 3);
 }
 
 #[test]

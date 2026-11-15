@@ -196,11 +196,17 @@ pub const CARRY_FILES: &str = "INSERT INTO files \
     (snapshot_id, id, path, language, content_hash, loc) \
     SELECT ?2, id, path, language, content_hash, loc FROM files \
     WHERE snapshot_id = ?1 AND path NOT IN (SELECT path FROM files WHERE snapshot_id = ?2)";
-/// Number of files, symbols and references of a snapshot: snapshot. The references are the sum of
-/// the usage counts, so the read models of the snapshot must be up to date.
+/// Number of files, symbols and references of a snapshot: snapshot, kind that the usage counts
+/// leave out (`test`). The references are the sum of the usage counts plus the references of
+/// that kind that the snapshot holds (as in the view `snapshot_references`, but the view would
+/// cost half a second on a large snapshot), so the read models of the snapshot must be up to date.
 pub const TOTALS: &str = "SELECT (SELECT COUNT(*) FROM files WHERE snapshot_id = ?1), \
     (SELECT COUNT(*) FROM symbols WHERE snapshot_id = ?1), \
-    (SELECT COALESCE(SUM(usages), 0) FROM usage_counts WHERE snapshot_id = ?1)";
+    (SELECT COALESCE(SUM(usages), 0) FROM usage_counts WHERE snapshot_id = ?1) + \
+    (SELECT COUNT(*) FROM symbol_references r WHERE r.kind = ?2 AND r.first_snapshot <= ?1 \
+        AND r.file_id IN (SELECT id FROM files WHERE snapshot_id = ?1) \
+        AND r.to_symbol IN (SELECT s.id FROM symbol_rows s \
+            JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?1))";
 
 /// Fills `search_index`: snapshot, kind that is left out.
 pub const SEARCH_REBUILD: &str = "INSERT INTO search_index \
