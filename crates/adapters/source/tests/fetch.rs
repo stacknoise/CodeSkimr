@@ -221,6 +221,98 @@ fn a_broken_earlier_clone_is_replaced_by_a_new_clone() -> TestResult {
     Ok(())
 }
 
+/// Collects what the adapter logs while `work` runs.
+fn logged<T>(work: impl FnOnce() -> TestResult<T>) -> TestResult<(T, String)> {
+    #[derive(Clone, Default)]
+    struct Captured(Arc<std::sync::Mutex<Vec<u8>>>);
+    impl std::io::Write for Captured {
+        fn write(&mut self, bytes: &[u8]) -> std::io::Result<usize> {
+            let mut held = self
+                .0
+                .lock()
+                .map_err(|_| std::io::Error::other("poisoned"))?;
+            held.extend_from_slice(bytes);
+            Ok(bytes.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    impl<'a> tracing_subscriber::fmt::MakeWriter<'a> for Captured {
+        type Writer = Self;
+        fn make_writer(&'a self) -> Self {
+            self.clone()
+        }
+    }
+    let captured = Captured::default();
+    let subscriber = tracing_subscriber::fmt()
+        .with_writer(captured.clone())
+        .with_ansi(false)
+        .finish();
+    let result = tracing::subscriber::with_default(subscriber, work)?;
+    let text = captured.0.lock().map_err(|_| "poisoned")?.clone();
+    Ok((result, String::from_utf8(text)?))
+}
+
+#[test]
+fn a_fallback_to_a_new_clone_logs_its_reason() -> TestResult {
+    let fixture = fixture()?;
+    let first = fetcher(fixture.cache.path()).fetch(&fixture.source, &CancelToken::new())?;
+    std::fs::write(
+        PathBuf::from(first.root.as_str()).join(".git").join("HEAD"),
+        "not a reference",
+    )?;
+    change_origin(fixture.remote.path())?;
+    let (second, log) =
+        logged(|| Ok(fetcher(fixture.cache.path()).fetch(&fixture.source, &CancelToken::new())?))?;
+    assert_ne!(second.commit, first.commit);
+    assert!(log.contains("WARN"), "{log}");
+    assert!(log.contains("reason="), "{log}");
+    assert!(log.contains("code=\"SRC-"), "{log}");
+    Ok(())
+}
+
+#[test]
+fn an_update_logs_nothing_and_a_first_clone_neither() -> TestResult {
+    let fixture = fixture()?;
+    let (_, log) = logged(|| {
+        let first = fetcher(fixture.cache.path()).fetch(&fixture.source, &CancelToken::new())?;
+        change_origin(fixture.remote.path())?;
+        let second = fetcher(fixture.cache.path()).fetch(&fixture.source, &CancelToken::new())?;
+        Ok(second.commit != first.commit)
+    })?;
+    assert_eq!(log, "");
+    Ok(())
+}
+
+#[test]
+fn a_clone_with_many_packs_is_cloned_again_and_holds_one_pack() -> TestResult {
+    let fixture = fixture()?;
+    let first = fetcher(fixture.cache.path()).fetch(&fixture.source, &CancelToken::new())?;
+    let root = PathBuf::from(first.root.as_str());
+    let packs = root.join(".git").join("objects").join("pack");
+    for number in 0..20 {
+        std::fs::write(packs.join(format!("pack-extra{number}.pack")), "")?;
+    }
+    std::fs::write(root.join(".git").join(MARK), "x")?;
+    change_origin(fixture.remote.path())?;
+    let (second, log) =
+        logged(|| Ok(fetcher(fixture.cache.path()).fetch(&fixture.source, &CancelToken::new())?))?;
+    assert_ne!(second.commit, first.commit);
+    assert!(
+        !root.join(".git").join(MARK).exists(),
+        "the clone was updated, not cloned again"
+    );
+    assert!(log.contains("INFO"), "{log}");
+    assert!(log.contains("too many packs"), "{log}");
+    let kept = std::fs::read_dir(&packs)?
+        .flatten()
+        .filter(|entry| entry.path().extension().is_some_and(|ext| ext == "pack"))
+        .count();
+    assert_eq!(kept, 1);
+    Ok(())
+}
+
 #[test]
 fn a_missing_branch_is_reported() -> TestResult {
     let remote = tempfile::tempdir()?;

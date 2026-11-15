@@ -22,6 +22,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::ports::{AuthError, Credential, FetchedSource};
+use codeskimr_codes::Coded;
 use codeskimr_domain::{BranchName, CommitHash, FolderPath, GitUrl};
 use gix::credentials::helper::Action;
 use gix::credentials::protocol::Outcome;
@@ -30,8 +31,9 @@ use secrecy::ExposeSecret;
 
 use crate::consts::{
     AUTH_FAILURE_HINTS, BRANCH_REF_PREFIX, CANCEL_POLL_MS, CANCELLED_DETAIL,
-    CLONE_CONFIG_OVERRIDES, HTTP_NOT_FOUND_HINT, MISSING_BRANCH_HINT, NO_LOGIN_MESSAGE,
-    SHALLOW_CLONE_DEPTH, URL_SCHEME_MARKER, WORK_FOLDER_MAX_AGE_SECS, WORK_PREFIX, WORK_SEPARATOR,
+    CLONE_CONFIG_OVERRIDES, HTTP_NOT_FOUND_HINT, LOG_CODE, LOG_REASON, MISSING_BRANCH_HINT,
+    NO_LOGIN_MESSAGE, SHALLOW_CLONE_DEPTH, TOO_MANY_PACKS_DETAIL, URL_SCHEME_MARKER,
+    WORK_FOLDER_MAX_AGE_SECS, WORK_PREFIX, WORK_SEPARATOR,
 };
 use crate::error::{SourceError, error_chain_text};
 
@@ -215,19 +217,24 @@ fn prepare_polling(attempt: &Attempt<'_>, target: &Path, fresh: &Path) -> Result
     })
 }
 
-/// An update that fails for any reason but a cancel is not reported: the clone that follows gives
-/// the answer the caller needs (the adapter has no logging yet). If the leftovers of the update
-/// cannot be removed, the clone fails on the folder that is not empty.
+/// An update that fails for any reason but a cancel is not reported to the caller: the clone that
+/// follows gives the answer it needs. The reason is logged instead (issue #365), so a clone that
+/// keeps falling back can be found. If the leftovers of the update cannot be removed, the clone
+/// fails on the folder that is not empty.
 fn update_or_clone(
     attempt: &Attempt<'_>,
     target: &Path,
     fresh: &Path,
     interrupt: &AtomicBool,
 ) -> Result<(), SourceError> {
-    if update::can_update(target)
-        && update::update_branch(attempt, target, fresh, interrupt).is_ok()
-    {
-        return Ok(());
+    if update::can_update(target) {
+        let updated = update::check_pack_count(target)
+            .and_then(|()| update::update_branch(attempt, target, fresh, interrupt));
+        match updated {
+            Ok(()) => return Ok(()),
+            Err(_) if attempt.cancel.is_cancelled() => return Err(cancelled()),
+            Err(error) => log_fallback(&error),
+        }
     }
     if attempt.cancel.is_cancelled() {
         return Err(cancelled());
@@ -235,6 +242,21 @@ fn update_or_clone(
     // Whatever the update left behind must not get in the way of the clone.
     let _ = fs::remove_dir_all(fresh);
     clone_branch(attempt, fresh, interrupt)
+}
+
+/// Logs why the clone is made again instead of updated. The text of the cause carries no
+/// credentials (E-05) and the log writer masks what is left.
+fn log_fallback(error: &SourceError) {
+    let reason = match error {
+        SourceError::GitFetchFailed { detail } => detail.clone(),
+        other => other.to_string(),
+    };
+    if reason == TOO_MANY_PACKS_DETAIL {
+        // Expected housekeeping, not a problem.
+        tracing::info!({ LOG_CODE } = error.code().id(), { LOG_REASON } = %reason);
+    } else {
+        tracing::warn!({ LOG_CODE } = error.code().id(), { LOG_REASON } = %reason);
+    }
 }
 
 /// Shallow clone of one branch with its working tree.
