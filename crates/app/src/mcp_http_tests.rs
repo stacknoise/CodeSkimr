@@ -3,8 +3,10 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::sync::mpsc::channel;
 
+use codeskimr_application::events::EventBus;
 use codeskimr_cli::GlobalOptions;
 use codeskimr_secrets::KeystoreCredentials;
 use serde_json::{Value, json};
@@ -12,9 +14,12 @@ use tokio::sync::oneshot;
 
 use crate::consts::URL_SCHEME;
 use crate::locations::Locations;
-use crate::mcp::http_service;
+use crate::mcp::{http_service, http_service_sharing};
 use crate::memory_keystore::Memory;
+use crate::running::RunningScans;
 use crate::serve::{bare_parts, serve_for_test, test_ui};
+use crate::ui_commands::command_api_over;
+use crate::wiring::open_store;
 use crate::{config_files, installation_token};
 
 const ACCEPT: &str = "application/json, text/event-stream";
@@ -140,4 +145,37 @@ fn the_running_app_answers_mcp_at_slash_mcp_with_the_token_only() {
     });
     serve_for_test(&store, parts, &found, stopped).unwrap();
     requests.join().unwrap();
+}
+
+/// The UI and the MCP service of the running app use one store, so one usages index (#358): both
+/// keep a handle of the store that was opened for them.
+#[test]
+fn the_ui_and_the_mcp_service_share_one_store() {
+    let data = tempfile::tempdir().unwrap();
+    let locations = locations(data.path());
+    let global = GlobalOptions::default();
+    let config = config_files::load(&locations, &global, None).unwrap();
+    let catalog = open_store(&locations, &config).unwrap();
+    assert_eq!(Arc::strong_count(&catalog), 1);
+    let secrets = crate::memory_keystore::secrets();
+    let events = EventBus::new();
+    let running = RunningScans::default();
+    let _api = command_api_over(
+        &catalog,
+        (&global, &locations),
+        (events.clone(), Arc::clone(&secrets)),
+        (None, running.clone()),
+    )
+    .unwrap();
+    let with_ui = Arc::strong_count(&catalog);
+    assert!(with_ui > 1);
+    let _mcp = http_service_sharing(
+        Arc::clone(&catalog),
+        &config,
+        &locations,
+        (events, &secrets),
+        running,
+    )
+    .unwrap();
+    assert!(Arc::strong_count(&catalog) > with_ui);
 }

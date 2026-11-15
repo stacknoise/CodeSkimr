@@ -18,7 +18,7 @@ use codeskimr_server::{CommandApi, EditorSettings, Server, UiOptions, UiSettings
 use crate::consts::URL_SCHEME;
 use crate::locations::Locations;
 use crate::running::RunningScans;
-use crate::wiring::os_secrets;
+use crate::wiring::{open_serving_store, os_secrets};
 use crate::{config_files, installation_token, mcp, principal, ui_commands};
 
 /// Serves until the user interrupts the program. `listening` is called once with the address as
@@ -42,15 +42,18 @@ pub fn run(
     let events = EventBus::new();
     // The UI and the MCP service refuse a second scan of a project together.
     let running = RunningScans::default();
+    // One store for both: they share one usages index, which a level 2 import renews.
+    let catalog = open_serving_store(locations, &config)?;
     let parts = Parts {
         ui: ui_options(&config, locations),
-        api: ui_commands::command_api_probing(
-            global,
-            locations,
+        api: ui_commands::command_api_over(
+            &catalog,
+            (global, locations),
             (events.clone(), Arc::clone(&secrets)),
             (None, running.clone()),
         )?,
         mcp: Some(mcp::http_service_sharing(
+            catalog,
             &config,
             locations,
             (events.clone(), &secrets),
