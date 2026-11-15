@@ -249,10 +249,11 @@ pub const TYPE_SUMMARY_REBUILD: &str = "INSERT INTO type_summary \
     WHERE f.snapshot_id = ?1 GROUP BY t.id";
 /// Names of the symbols of a snapshot: snapshot.
 pub const SYMBOL_NAMES: &str = "SELECT id, qualified_name FROM symbols WHERE snapshot_id = ?1";
-/// Ends of the references of a snapshot that are not of the given kind: snapshot, excluded kind
-/// (`test`).
-pub const REFERENCE_ENDS: &str =
-    "SELECT from_symbol, to_symbol FROM snapshot_references WHERE snapshot_id = ?1 AND kind <> ?2";
+/// Ends of the references of a snapshot that are not of the given kind and have the given
+/// confidence: snapshot, excluded kind (`test`), confidence (`certain`). References whose name
+/// matches several symbols are no layer edges (issue #464).
+pub const REFERENCE_ENDS: &str = "SELECT from_symbol, to_symbol FROM snapshot_references \
+    WHERE snapshot_id = ?1 AND kind <> ?2 AND confidence = ?3";
 /// Adds a layer graph edge: snapshot, from, to, count, violates, in cycle.
 pub const EDGE_INSERT: &str = "INSERT INTO layer_graph \
     (snapshot_id, from_layer, to_layer, edge_count, violates_layering, in_cycle) \
