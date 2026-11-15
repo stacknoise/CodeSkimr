@@ -43,7 +43,7 @@ pub(crate) use status::{mark_ready, mark_started};
 use crate::config_files;
 use crate::locations::Locations;
 use crate::running::RunningScans;
-use crate::wiring::{Secrets, index_runner, open_store, tool_checker};
+use crate::wiring::{Secrets, index_runner, open_serving_store, tool_checker};
 use codeskimr_storage::SqliteStore;
 #[cfg(test)]
 pub(crate) use consts::PREFERENCES_FILE;
@@ -130,7 +130,7 @@ pub fn command_api_probing(
     (runner, running): (Option<Arc<dyn IndexRunner>>, RunningScans),
 ) -> Result<CommandApi, CodedError> {
     let config = config_files::load(locations, global, None)?;
-    let catalog = open_store(locations, &config)?;
+    let catalog = open_serving_store(locations, &config)?;
     let runner = runner.unwrap_or_else(|| index_runner(locations));
     let tools = tool_checker(&catalog, (locations, runner))?;
     let context = Arc::new(Context {

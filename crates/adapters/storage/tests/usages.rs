@@ -7,11 +7,11 @@ mod common;
 mod tests {
     use codeskimr_application::ports::{DependencyQuery, SnapshotStore, UsageIndex};
     use codeskimr_domain::{
-        Direction, ReferenceKind, ScanMode, SnapshotId, SymbolId, SymbolKind, UsageQuery,
-        Visibility,
+        Direction, ProjectId, ReferenceKind, ScanMode, SnapshotId, SymbolId, SymbolKind,
+        UsageQuery, Visibility,
     };
 
-    use super::common::{data, file, header, reference, scanned, symbol};
+    use super::common::{data, file, header, project, reference, scanned, symbol};
 
     const SNAPSHOT: SnapshotId = SnapshotId::new(10);
 
@@ -258,5 +258,53 @@ mod tests {
         let mut missing = scope(Direction::Outgoing, true);
         missing.symbol = SymbolId::new(99);
         assert_eq!(store.dependencies(SNAPSHOT, &missing, 10).unwrap().total, 0);
+    }
+
+    /// A scan of snapshot `id` of `project`, with one file of its own and no symbols.
+    fn later_scan(project: u64, id: u64) -> codeskimr_application::ports::SnapshotData {
+        let mut header = header(id, ScanMode::Full);
+        header.project = ProjectId::new(project);
+        let mut scan = data(header);
+        scan.files = vec![file(id, id + 100, "src/other.cs", "h-other")];
+        scan
+    }
+
+    #[test]
+    fn warming_builds_the_index_of_the_newest_snapshot() {
+        let store = calls();
+        assert_eq!(store.kept_snapshot(), None);
+        store.warm_newest().unwrap();
+        assert_eq!(store.kept_snapshot(), Some(SNAPSHOT));
+    }
+
+    #[test]
+    fn warming_an_empty_store_does_nothing() {
+        let store = super::common::store(3);
+        store.warm_newest().unwrap();
+        assert_eq!(store.kept_snapshot(), None);
+    }
+
+    #[test]
+    fn a_scan_nobody_queried_builds_no_index() {
+        let store = calls();
+        store.persist(later_scan(1, 20)).unwrap();
+        assert_eq!(store.kept_snapshot(), None);
+    }
+
+    #[test]
+    fn a_new_snapshot_of_the_project_takes_over_the_kept_index() {
+        let store = calls();
+        store.warm_newest().unwrap();
+        store.persist(later_scan(1, 20)).unwrap();
+        assert_eq!(store.kept_snapshot(), Some(SnapshotId::new(20)));
+    }
+
+    #[test]
+    fn a_snapshot_of_another_project_leaves_the_kept_index() {
+        let store = calls();
+        store.save_project(&project(2, "/work/other", &[])).unwrap();
+        store.warm_newest().unwrap();
+        store.persist(later_scan(2, 20)).unwrap();
+        assert_eq!(store.kept_snapshot(), Some(SNAPSHOT));
     }
 }
