@@ -275,6 +275,9 @@ pub const OTHERS_MODE_MASK: u32 = 0o077;
 /// The Windows tool that sets access rules.
 #[cfg(windows)]
 pub const ACL_TOOL: &str = "icacls.exe";
+/// Windows file attribute of a reparse point: a junction or a link (`FILE_ATTRIBUTE_REPARSE_POINT`).
+#[cfg(windows)]
+pub const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
 /// Environment variable with the Windows folder, below which the tool is looked for.
 #[cfg(windows)]
 pub const ENV_SYSTEM_ROOT: &str = "SYSTEMROOT";

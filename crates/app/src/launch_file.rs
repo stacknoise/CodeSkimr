@@ -100,7 +100,12 @@ fn check_private(dir: &Path) -> std::io::Result<()> {
         return Err(std::io::ErrorKind::InvalidInput.into());
     }
     #[cfg(windows)]
-    crate::private_acl::restrict_to_user(dir)?;
+    {
+        if is_reparse_point(dir)? {
+            return Err(std::io::ErrorKind::PermissionDenied.into());
+        }
+        crate::private_acl::restrict_to_user(dir)?;
+    }
     Ok(())
 }
 
@@ -141,7 +146,28 @@ fn check_owner(dir: &Path, path: &Path, own_file: &File) -> std::io::Result<()> 
 }
 
 /// On Windows the access rules of the folder are set for the user alone (see `check_private`).
-#[cfg(not(unix))]
+/// A folder or file that is a reparse point (a junction or a link) is refused: it could lead to a
+/// place that others can read, and the access rules would be set on that place instead.
+#[cfg(windows)]
+fn check_owner(dir: &Path, path: &Path, _own_file: &File) -> std::io::Result<()> {
+    if is_reparse_point(dir)? || is_reparse_point(path)? {
+        return Err(std::io::ErrorKind::PermissionDenied.into());
+    }
+    Ok(())
+}
+
+/// Whether `path` itself (not what it points to) is a reparse point.
+#[cfg(windows)]
+fn is_reparse_point(path: &Path) -> std::io::Result<bool> {
+    use std::os::windows::fs::MetadataExt;
+
+    use crate::consts::FILE_ATTRIBUTE_REPARSE_POINT;
+
+    Ok(fs::symlink_metadata(path)?.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0)
+}
+
+/// Other systems without a Unix mode have nothing more to check.
+#[cfg(not(any(unix, windows)))]
 fn check_owner(_dir: &Path, _path: &Path, _own_file: &File) -> std::io::Result<()> {
     Ok(())
 }
@@ -323,5 +349,43 @@ mod tests {
         assert!(other.exists());
         let fresh = LaunchFile::create(dir.path(), URL, LIFETIME).unwrap();
         assert!(fresh.path().exists());
+    }
+
+    /// A junction is made with the system shell: the standard library cannot create one.
+    #[cfg(windows)]
+    fn junction(link: &Path, target: &Path) {
+        let made = std::process::Command::new("cmd")
+            .args(["/C", "mklink", "/J"])
+            .arg(link)
+            .arg(target)
+            .stdout(std::process::Stdio::null())
+            .status()
+            .unwrap();
+        assert!(made.success());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn a_junction_as_the_folder_is_refused() {
+        let dir = tempfile::tempdir().unwrap();
+        let target = dir.path().join("target");
+        fs::create_dir(&target).unwrap();
+        let link = dir.path().join("link");
+        junction(&link, &target);
+        assert!(LaunchFile::create(&link, URL, LIFETIME).is_err());
+        assert_eq!(fs::read_dir(&target).unwrap().count(), 0);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn the_folder_is_private_and_the_file_goes_on_windows() {
+        let dir = tempfile::tempdir().unwrap();
+        let folder = dir.path().join("launch");
+        let file = LaunchFile::create(&folder, URL, LIFETIME).unwrap();
+        assert!(!is_reparse_point(&folder).unwrap());
+        let path = file.path().to_owned();
+        assert!(path.is_file());
+        drop(file);
+        assert!(!path.exists());
     }
 }
