@@ -163,6 +163,28 @@ mod tests {
     }
 
     #[test]
+    fn test_patterns_tell_the_test_files_of_a_language() {
+        let dir = scratch("test-files");
+        let manifest = fs::read_to_string(dir.join("language.toml")).expect("read");
+        let patterns = "test_patterns = [\"**/tests/**/*.rs\", \"**/*_test.rs\"]\n";
+        fs::write(dir.join("language.toml"), format!("{patterns}{manifest}")).expect("write");
+        let pack = LanguagePack::load(&dir).expect("loads");
+        assert!(pack.is_test_file("crates/a/tests/it.rs"));
+        assert!(pack.is_test_file("src/parser_test.rs"));
+        assert!(!pack.is_test_file("src/parser.rs"));
+        remove(&dir);
+    }
+
+    #[test]
+    fn a_broken_test_pattern_makes_the_pack_invalid() {
+        let dir = scratch("broken-pattern");
+        let manifest = fs::read_to_string(dir.join("language.toml")).expect("read");
+        let patterns = "test_patterns = [\"**/[\"]\n";
+        fs::write(dir.join("language.toml"), format!("{patterns}{manifest}")).expect("write");
+        assert_invalid(&dir, "broken pattern");
+    }
+
+    #[test]
     fn rejects_unknown_manifest_keys() {
         let dir = scratch("keys");
         let manifest = fs::read_to_string(dir.join("language.toml")).expect("read");

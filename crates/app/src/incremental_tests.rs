@@ -416,3 +416,32 @@ fn a_python_file_with_only_an_import_follows_an_edit_of_the_imported_file() {
     );
     assert_eq!(incremental, full);
 }
+
+/// A file of tests next to the code it tests: its uses are `test` references (issue #406).
+const TEST_FILE: Change = (
+    "test_target.py",
+    Some("from target import Target\n\n\ndef test_do():\n    Target().do()\n"),
+);
+
+#[test]
+fn uses_in_a_test_file_are_test_references_in_both_ways_of_scanning() {
+    let (full, incremental) = both_ways(PYTHON_BASE, &[&[TEST_FILE]]);
+    assert_eq!(incremental, full);
+    let in_test: Vec<&String> = full
+        .iter()
+        .filter(|line| line.starts_with("test_target.py"))
+        .collect();
+    assert!(
+        in_test.iter().any(|line| line.contains("} test ")),
+        "{full:?}"
+    );
+    assert!(
+        !in_test.iter().any(|line| line.contains("} call ")),
+        "{full:?}"
+    );
+    // The code under test keeps its calls.
+    assert!(
+        full.iter()
+            .any(|line| line.starts_with("caller.py") && line.contains(" call "))
+    );
+}

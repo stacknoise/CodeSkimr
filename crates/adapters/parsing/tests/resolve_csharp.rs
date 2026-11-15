@@ -5,7 +5,7 @@ mod common;
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeMap;
+    use std::collections::{BTreeMap, HashSet};
     use std::path::Path;
     use std::time::Duration;
 
@@ -27,7 +27,7 @@ mod tests {
         let ids = IdSequence::starting_at(1);
         let facts = analyze_file(&analyzer, &ids, &root, file, "csharp");
         let found = ScopedResolver
-            .resolve(&facts.symbols, &facts.pending, &ids)
+            .resolve(&facts.symbols, &facts.pending, &HashSet::new(), &ids)
             .expect("resolves");
         (facts, found)
     }

@@ -58,6 +58,7 @@ impl ReferenceResolver for ScopedResolver {
         &self,
         symbols: &[Symbol],
         pending: &[PendingReference],
+        test_files: &HashSet<FileId>,
         ids: &IdSequence,
     ) -> Result<Vec<Reference>, CodedError> {
         let mut context = Context::new(SymbolTable::new(symbols));
@@ -67,7 +68,10 @@ impl ReferenceResolver for ScopedResolver {
             for occurrence in pending.iter().filter(|p| Pass::of(p.kind) == pass) {
                 let hits = context.lookup(occurrence);
                 context.learn(occurrence, &hits);
-                for hit in hits {
+                for mut hit in hits {
+                    if test_files.contains(&occurrence.file) {
+                        hit.kind = kinds::in_test(hit.kind);
+                    }
                     if seen.insert(edge_of(occurrence, &hit)) {
                         references.push(reference_of(occurrence, hit, ids));
                     }
