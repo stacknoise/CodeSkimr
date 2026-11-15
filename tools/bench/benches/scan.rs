@@ -13,7 +13,9 @@ use criterion::Criterion;
 
 mod common;
 
-use common::{SCRATCH, build_binary, build_corpus, measure, root, scan_summary, wipe};
+use common::{
+    SCRATCH, build_binary, build_corpus, build_csharp_corpus, measure, root, scan_summary, wipe,
+};
 
 /// Where criterion writes its results, relative to the repository root.
 const CRITERION_DIR: &str = "target/criterion";
@@ -30,25 +32,28 @@ fn scan_once(binary: &Path, corpus: &Path, data: &Path) -> io::Result<(Duration,
 
 fn scans(c: &mut Criterion) -> io::Result<()> {
     let scratch = root().join(SCRATCH);
-    let corpus = build_corpus(&scratch)?;
     let binary = build_binary()?;
+    scan_corpus(c, &binary, &build_corpus(&scratch)?, "full_100k_loc")?;
+    // Dense references between many symbols of the same names, as in real C# projects. Only its
+    // change against the base commit is checked until it keeps the budget of the Rust corpus.
+    scan_corpus(
+        c,
+        &binary,
+        &build_csharp_corpus(&scratch)?,
+        "full_100k_loc_csharp",
+    )
+}
+
+fn scan_corpus(c: &mut Criterion, binary: &Path, corpus: &Path, name: &str) -> io::Result<()> {
+    let scratch = root().join(SCRATCH);
     let data = scratch.join("data");
     let cpu = RefCell::new(Vec::new());
-    measure(
-        c,
-        ("scan", "full_100k_loc"),
-        (SAMPLES, MEASUREMENT_SECONDS),
-        || {
-            let (wall, cpu_time) = scan_once(&binary, &corpus, &data)?;
-            cpu.borrow_mut().push(cpu_time);
-            Ok(wall)
-        },
-    );
-    write(
-        &root().join(CRITERION_DIR),
-        ("scan", "full_100k_loc"),
-        &cpu.borrow(),
-    )
+    measure(c, ("scan", name), (SAMPLES, MEASUREMENT_SECONDS), || {
+        let (wall, cpu_time) = scan_once(binary, corpus, &data)?;
+        cpu.borrow_mut().push(cpu_time);
+        Ok(wall)
+    });
+    write(&root().join(CRITERION_DIR), ("scan", name), &cpu.borrow())
 }
 
 fn main() -> io::Result<()> {
