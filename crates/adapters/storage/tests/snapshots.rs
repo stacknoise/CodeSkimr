@@ -272,7 +272,8 @@ fn full_scan_from(snapshot: u64, base: u64) -> SnapshotData {
 
 #[test]
 fn the_references_of_the_newest_snapshot_do_not_include_those_of_older_full_scans() {
-    let store = registered();
+    let store = common::store(3);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
     store.persist(full_scan_from(10, 100)).unwrap();
     let newest = store.persist(full_scan_from(20, 200)).unwrap();
     assert_eq!(newest.stats.references, 2);
