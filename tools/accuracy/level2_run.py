@@ -43,6 +43,18 @@ def environment(extra, tools_bin):
     return env
 
 
+def read_ready(master):
+    """Reads what the terminal has ready: (chunk, ready); the chunk is None once the output ended."""
+    ready, _, _ = select.select([master], [], [], 0.2)
+    if not ready:
+        return b"", False
+    try:
+        chunk = os.read(master, 4096)
+    except OSError:
+        return None, True
+    return (chunk or None), True
+
+
 def confirm(base, copy, env):
     """Types the project name at the prompt of `level2 confirm` through a pseudo terminal, as a person would."""
     master, slave = pty.openpty()
@@ -50,15 +62,10 @@ def confirm(base, copy, env):
     os.close(slave)
     out, sent, end = b"", False, time.time() + CONFIRM_TIMEOUT
     while time.time() < end:
-        ready, _, _ = select.select([master], [], [], 0.2)
-        if ready:
-            try:
-                chunk = os.read(master, 4096)
-            except OSError:
-                break
-            if not chunk:
-                break
-            out += chunk
+        chunk, ready = read_ready(master)
+        if chunk is None:
+            break
+        out += chunk
         if not sent and time.time() > end - CONFIRM_TIMEOUT + CONFIRM_DELAY and out:
             os.write(master, copy.name.encode() + b"\n")
             sent = True
