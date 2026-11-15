@@ -76,7 +76,7 @@ fn opener_path(path: PathBuf) -> PathBuf {
         // A path that is not valid text stays as it is, so that it still names the file.
         path.to_str().map_or_else(
             || path.clone(),
-            |text| PathBuf::from(crate::source_arg::display_path(text)),
+            |text| PathBuf::from(crate::source_arg::opener_form(text)),
         )
     }
     #[cfg(not(windows))]

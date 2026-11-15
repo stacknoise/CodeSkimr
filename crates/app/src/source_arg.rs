@@ -115,6 +115,17 @@ pub(crate) fn display_path(path: &str) -> String {
         .to_owned()
 }
 
+/// The form of a path that the system opener takes: like [`display_path`], but a UNC path loses its
+/// verbatim prefix too (`\\?\UNC\srv\share` becomes `\\srv\share`).
+#[cfg(any(windows, test))]
+pub(crate) fn opener_form(path: &str) -> String {
+    use crate::consts::UNC_PREFIX;
+
+    path.strip_prefix(VERBATIM_PREFIX)
+        .and_then(|rest| rest.strip_prefix(VERBATIM_UNC))
+        .map_or_else(|| display_path(path), |unc| [UNC_PREFIX, unc].concat())
+}
+
 /// Whether `text` could be read as an option, holds control characters or blanks, or is too long.
 /// What goes to `git` and `ssh` as an argument must be none of these.
 fn is_unsafe_argument(text: &str, longest: usize) -> bool {
@@ -318,6 +329,16 @@ mod tests {
             display_path("\\\\?\\UNC\\srv\\share"),
             "\\\\?\\UNC\\srv\\share"
         );
+    }
+
+    #[test]
+    fn the_opener_gets_a_plain_path_also_for_unc() {
+        assert_eq!(opener_form("\\\\?\\C:\\work\\app"), "C:\\work\\app");
+        assert_eq!(
+            opener_form("\\\\?\\UNC\\srv\\share\\launch"),
+            "\\\\srv\\share\\launch"
+        );
+        assert_eq!(opener_form("C:\\plain"), "C:\\plain");
     }
 
     #[test]
