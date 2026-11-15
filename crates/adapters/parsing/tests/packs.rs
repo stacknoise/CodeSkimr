@@ -164,7 +164,8 @@ mod tests {
 
     #[test]
     fn test_patterns_tell_the_test_files_of_a_language() {
-        let dir = scratch("test-files");
+        let first = scratch("test-files");
+        let dir = first.clone();
         let manifest = fs::read_to_string(dir.join("language.toml")).expect("read");
         let patterns = "test_patterns = [\"**/tests/**/*.rs\", \"**/*_test.rs\"]\n";
         fs::write(dir.join("language.toml"), format!("{patterns}{manifest}")).expect("write");
@@ -184,7 +185,7 @@ mod tests {
         assert!(star.is_test_file("src/test_parser.rs"));
         assert!(!star.is_test_file("src/test_helpers/real.rs"));
         remove(&dir);
-        remove(&dir);
+        remove(&first);
     }
 
     #[test]
