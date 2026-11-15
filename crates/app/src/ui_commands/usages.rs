@@ -310,7 +310,7 @@ impl Command for UsagesQuery {
         permission: Permission::Read,
     };
 
-    fn execute(&self, request: Request<'_, UsagesInput>) -> Result<UsagesOut, CodedError> {
+    fn execute(&self, request: Request<'_, Self>) -> Result<UsagesOut, CodedError> {
         access::require(request.principal, Permission::Read)?;
         let ports = &self.ports;
         let input = request.input;
