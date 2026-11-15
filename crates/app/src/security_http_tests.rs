@@ -215,6 +215,16 @@ fn host_and_origin(url: &str, token: &str, source: &str) {
     );
 }
 
+/// An answer sends the security headers and allows no cross-site read.
+fn assert_safe_headers(answer: &str) {
+    let lower = answer.to_ascii_lowercase();
+    assert!(!lower.contains("access-control-allow-origin"));
+    assert!(lower.contains("content-security-policy:"));
+    assert!(lower.contains("frame-ancestors 'none'"));
+    assert!(lower.contains("x-content-type-options: nosniff"));
+    assert!(lower.contains("cache-control:"));
+}
+
 /// No answer allows a cross-site read, and a preflight from a foreign site is refused.
 fn cors_and_headers(url: &str, token: &str) -> Vec<String> {
     let preflight = raw(
@@ -245,12 +255,7 @@ fn cors_and_headers(url: &str, token: &str) -> Vec<String> {
     );
     let answers = vec![preflight, normal, foreign];
     for answer in &answers {
-        let lower = answer.to_ascii_lowercase();
-        assert!(!lower.contains("access-control-allow-origin"));
-        assert!(lower.contains("content-security-policy:"));
-        assert!(lower.contains("frame-ancestors 'none'"));
-        assert!(lower.contains("x-content-type-options: nosniff"));
-        assert!(lower.contains("cache-control:"));
+        assert_safe_headers(answer);
     }
     assert!(answers[0].contains("API-402"));
     assert_eq!(status(&answers[1]), 200);

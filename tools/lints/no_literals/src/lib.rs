@@ -12,7 +12,7 @@ extern crate rustc_span;
 mod allowed;
 mod macro_body;
 
-use rustc_ast::{Attribute, Expr, ExprKind, FormatArgsPiece, Item, ItemKind};
+use rustc_ast::{Attribute, Expr, ExprKind, FormatArgs, FormatArgsPiece, Item, ItemKind};
 use rustc_lint::{EarlyContext, EarlyLintPass, LintContext};
 use rustc_span::Span;
 
@@ -116,32 +116,35 @@ impl EarlyLintPass for NoLiterals {
             return;
         }
         match &expr.kind {
-            ExprKind::Lit(lit) if !allowed::is_free_literal(lit) => {
-                if allowed::from_local_macro(expr.span) {
-                    // Reported once where the macro is defined (`check_macro_body`).
-                } else if allowed::own_source(expr.span)
-                    && allowed::is_written_literal(cx, expr.span)
-                {
-                    Self::report(cx, expr.span);
-                } else if let Some(call) = allowed::concat_call_in_own_source(expr.span) {
-                    Self::report(cx, call);
-                }
-            }
-            ExprKind::FormatArgs(args) => {
-                let has_text = args
-                    .template
-                    .iter()
-                    .any(|piece| matches!(piece, FormatArgsPiece::Literal(_)));
-                if has_text {
-                    if let Some(span) = allowed::macro_call_in_own_source(args.span) {
-                        // A call inside a local macro is reported at its definition.
-                        if !span.from_expansion() {
-                            Self::report(cx, span);
-                        }
-                    }
-                }
-            }
+            ExprKind::Lit(lit) if !allowed::is_free_literal(lit) => Self::check_lit(cx, expr),
+            ExprKind::FormatArgs(args) => Self::check_format_args(cx, args),
             _ => {}
+        }
+    }
+
+    fn check_lit(cx: &EarlyContext<'_>, expr: &Expr) {
+        if allowed::from_local_macro(expr.span) {
+            // Reported once where the macro is defined (`check_macro_body`).
+        } else if allowed::own_source(expr.span) && allowed::is_written_literal(cx, expr.span) {
+            Self::report(cx, expr.span);
+        } else if let Some(call) = allowed::concat_call_in_own_source(expr.span) {
+            Self::report(cx, call);
+        }
+    }
+
+    fn check_format_args(cx: &EarlyContext<'_>, args: &FormatArgs) {
+        let has_text = args
+            .template
+            .iter()
+            .any(|piece| matches!(piece, FormatArgsPiece::Literal(_)));
+        if !has_text {
+            return;
+        }
+        if let Some(span) = allowed::macro_call_in_own_source(args.span) {
+            // A call inside a local macro is reported at its definition.
+            if !span.from_expansion() {
+                Self::report(cx, span);
+            }
         }
     }
 }
