@@ -12,6 +12,12 @@ fn project(text: &str) -> ConfigLayer {
 }
 
 #[test]
+fn the_budget_of_loading_the_language_packs_is_in_the_defaults() {
+    let config = Config::defaults().expect("shipped defaults are valid");
+    assert_eq!(config.budgets.pack_load_ms, 1500);
+}
+
+#[test]
 fn defaults_match_the_blueprint() {
     let config = Config::defaults().expect("shipped defaults are valid");
     assert_eq!(config.metrics.cyclomatic_good_max, 5);
@@ -22,7 +28,6 @@ fn defaults_match_the_blueprint() {
     assert!((config.metrics.instability_medium_max - 0.8).abs() < f64::EPSILON);
     assert_eq!(config.budgets.cold_start_ms, 300);
     assert_eq!(config.budgets.full_scan_100k_loc_ms, 1000);
-    assert_eq!(config.budgets.pack_load_ms, 1500);
     for folder in ["bin", "obj", ".git", "node_modules", "target", "dist"] {
         assert!(config.scan.excluded_folders.iter().any(|f| f == folder));
     }
