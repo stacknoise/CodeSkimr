@@ -213,11 +213,12 @@ pub const FILE_IDS: &str = "SELECT id FROM files WHERE snapshot_id = ?1";
 /// The ids of the symbols of a snapshot: snapshot.
 pub const SYMBOL_IDS: &str = "SELECT s.id FROM symbol_rows s \
     JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?1";
-/// File and target of every reference that is not newer than a snapshot: snapshot. The view
-/// `snapshot_references` keeps those whose file and target the snapshot holds; counting them
-/// here in one pass over the table is much cheaper than its four lookups per reference.
+/// File and target of every reference that is not newer than a snapshot and not of the given
+/// kind: snapshot, excluded kind (`test`). The view `snapshot_references` keeps those whose file
+/// and target the snapshot holds; counting them here in one pass over the table is much cheaper
+/// than its four lookups per reference.
 pub const REFERENCE_TARGETS: &str =
-    "SELECT file_id, to_symbol FROM symbol_references WHERE first_snapshot <= ?1";
+    "SELECT file_id, to_symbol FROM symbol_references WHERE first_snapshot <= ?1 AND kind <> ?2";
 /// Adds the usage count of a symbol: snapshot, symbol, usages.
 pub const USAGE_INSERT: &str =
     "INSERT INTO usage_counts (snapshot_id, symbol_id, usages) VALUES (?1, ?2, ?3)";
@@ -234,9 +235,10 @@ pub const TYPE_SUMMARY_REBUILD: &str = "INSERT INTO type_summary \
     WHERE f.snapshot_id = ?1 GROUP BY t.id";
 /// Names of the symbols of a snapshot: snapshot.
 pub const SYMBOL_NAMES: &str = "SELECT id, qualified_name FROM symbols WHERE snapshot_id = ?1";
-/// Ends of all references of a snapshot: snapshot.
+/// Ends of the references of a snapshot that are not of the given kind: snapshot, excluded kind
+/// (`test`).
 pub const REFERENCE_ENDS: &str =
-    "SELECT from_symbol, to_symbol FROM snapshot_references WHERE snapshot_id = ?1";
+    "SELECT from_symbol, to_symbol FROM snapshot_references WHERE snapshot_id = ?1 AND kind <> ?2";
 /// Adds a layer graph edge: snapshot, from, to, count, violates, in cycle.
 pub const EDGE_INSERT: &str = "INSERT INTO layer_graph \
     (snapshot_id, from_layer, to_layer, edge_count, violates_layering, in_cycle) \

@@ -4,7 +4,9 @@
 mod common;
 
 use codeskimr_application::ports::ProjectRepository;
-use codeskimr_domain::{MetricKind, ProjectId, SnapshotId, SymbolId, SymbolKind};
+use codeskimr_domain::{
+    MetricKind, ProjectId, Reference, ReferenceKind, SnapshotId, SymbolId, SymbolKind,
+};
 use common::{metric, project, reference, scanned, scanned_project, symbol};
 
 const SNAPSHOT: SnapshotId = SnapshotId::new(10);
@@ -80,6 +82,29 @@ fn usage_counts_count_references_per_target() {
     let store = scanned(&[], symbols, references, vec![]);
     assert_eq!(store.usage_count(SNAPSHOT, SymbolId::new(22)).unwrap(), 3);
     assert_eq!(store.usage_count(SNAPSHOT, SymbolId::new(21)).unwrap(), 0);
+}
+
+#[cfg(test)]
+fn from_a_test(reference: Reference) -> Reference {
+    Reference {
+        kind: ReferenceKind::Test,
+        ..reference
+    }
+}
+
+#[test]
+fn usage_counts_leave_out_references_of_kind_test() {
+    let symbols = vec![
+        symbol(21, 11, SymbolKind::Method, "App.A.Run", None),
+        symbol(22, 11, SymbolKind::Method, "App.A.Stop", None),
+    ];
+    let references = vec![
+        reference(31, 11, 21, 22),
+        from_a_test(reference(32, 11, 21, 22)),
+        from_a_test(reference(33, 11, 21, 22)),
+    ];
+    let store = scanned(&[], symbols, references, vec![]);
+    assert_eq!(store.usage_count(SNAPSHOT, SymbolId::new(22)).unwrap(), 1);
 }
 
 #[test]
@@ -160,6 +185,27 @@ fn layer_graph_aggregates_references_between_layers() {
         ],
         "same-layer references and names outside every layer are not edges"
     );
+}
+
+#[test]
+fn layer_graph_leaves_out_references_of_kind_test() {
+    let layers = [("Api", &["App.Api"][..]), ("Core", &["App.Core"])];
+    let symbols = vec![
+        symbol(21, 11, SymbolKind::Class, "App.Api.Controller", None),
+        symbol(22, 11, SymbolKind::Class, "App.Core.Service", None),
+    ];
+    let references = vec![
+        reference(31, 11, 21, 22),
+        from_a_test(reference(32, 11, 22, 21)),
+        from_a_test(reference(33, 11, 21, 22)),
+    ];
+    let store = scanned(&layers, symbols, references, vec![]);
+    let edges = store.layer_edges(SNAPSHOT).unwrap();
+    let shown: Vec<_> = edges
+        .iter()
+        .map(|edge| (edge.from.as_str(), edge.to.as_str(), edge.count))
+        .collect();
+    assert_eq!(shown, [("Api", "Core", 1)]);
 }
 
 #[test]

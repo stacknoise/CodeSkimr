@@ -25,7 +25,7 @@ Which kinds a name can point to depends on the kind of occurrence (`resolve/kind
 
 ## Uses in test files
 
-A call, read, write or type use in a test file is reported with the kind `test` (issue #406). The test files of a language are the `test_patterns` of its pack (globs on the path relative to the project, `**` crosses folders). Imports, base types and overrides keep their kind, because they decide what a file sees and what a type inherits. `find_usages` leaves `test` references out unless `include_tests` is set, and coupling does not count them. The resolve stage asks the analysis port (`FileAnalyzer::is_test_file`) for every file of the scan, changed or kept, so a full scan and an incremental scan give the same kinds.
+A call, read, write or type use in a test file is reported with the kind `test` (issue #406). The test files of a language are the `test_patterns` of its pack (globs on the path relative to the project, `**` crosses folders). Imports, base types and overrides keep their kind, because they decide what a file sees and what a type inherits. `find_usages` leaves `test` references out unless `include_tests` is set, and neither do coupling, the usage counts and the layer graph (issue #430). The resolve stage asks the analysis port (`FileAnalyzer::is_test_file`) for every file of the scan, changed or kept, so a full scan and an incremental scan give the same kinds.
 
 ## Known limits (follow-up work)
 
