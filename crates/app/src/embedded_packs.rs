@@ -304,6 +304,15 @@ mod tests {
         );
     }
 
+    /// A program folder, a current folder and a data folder, all empty.
+    fn three_folders() -> (tempfile::TempDir, tempfile::TempDir, tempfile::TempDir) {
+        (
+            tempfile::tempdir().unwrap(),
+            tempfile::tempdir().unwrap(),
+            tempfile::tempdir().unwrap(),
+        )
+    }
+
     fn prefer_at(locations: Locations) -> Locations {
         prefer_embedded(
             locations,
@@ -317,11 +326,7 @@ mod tests {
 
     #[test]
     fn a_folder_next_to_the_program_is_kept() {
-        let (program, cwd, data) = (
-            tempfile::tempdir().unwrap(),
-            tempfile::tempdir().unwrap(),
-            tempfile::tempdir().unwrap(),
-        );
+        let (program, cwd, data) = three_folders();
         fs::create_dir_all(program.path().join(LANGUAGES_DIR).join("rust")).unwrap();
         fs::write(
             program
@@ -339,11 +344,7 @@ mod tests {
 
     #[test]
     fn a_folder_in_the_current_folder_does_not_replace_the_packs_of_the_program() {
-        let (program, cwd, data) = (
-            tempfile::tempdir().unwrap(),
-            tempfile::tempdir().unwrap(),
-            tempfile::tempdir().unwrap(),
-        );
+        let (program, cwd, data) = three_folders();
         // What `Locations::resolve` finds when only the current folder has `languages/`.
         fs::create_dir(cwd.path().join(LANGUAGES_DIR)).unwrap();
         let mut found = with_bases(program.path(), cwd.path(), data.path());
@@ -450,11 +451,7 @@ mod tests {
 
     #[test]
     fn a_folder_beside_the_program_without_any_pack_is_ignored() {
-        let (program, cwd, data) = (
-            tempfile::tempdir().unwrap(),
-            tempfile::tempdir().unwrap(),
-            tempfile::tempdir().unwrap(),
-        );
+        let (program, cwd, data) = three_folders();
         fs::create_dir_all(program.path().join(LANGUAGES_DIR).join("empty")).unwrap();
         let found = prefer_at(with_bases(program.path(), cwd.path(), data.path()));
         assert_eq!(
