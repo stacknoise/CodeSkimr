@@ -8,7 +8,7 @@ use crate::consts::{ID_HASH_FINISH_ROTATION, ID_HASH_MULTIPLIER, ID_HASH_ROTATIO
 
 /// Mixes each written number into the state with a rotation, an exclusive or and a multiplication.
 #[derive(Debug, Default, Clone, Copy)]
-pub struct IdHasher(u64);
+pub(crate) struct IdHasher(u64);
 
 impl IdHasher {
     fn mix(&mut self, value: u64) {
@@ -31,18 +31,10 @@ impl Hasher for IdHasher {
         self.mix(value);
     }
 
-    fn write_u32(&mut self, value: u32) {
-        self.mix(u64::from(value));
-    }
-
-    fn write_u8(&mut self, value: u8) {
-        self.mix(u64::from(value));
-    }
-
     fn write_usize(&mut self, value: usize) {
         self.mix(u64::try_from(value).unwrap_or(u64::MAX));
     }
 }
 
 /// The hasher of maps and sets keyed by ids.
-pub type IdHash = BuildHasherDefault<IdHasher>;
+pub(crate) type IdHash = BuildHasherDefault<IdHasher>;
