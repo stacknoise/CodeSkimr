@@ -107,5 +107,5 @@ fn an_unreadable_tool_report_does_not_take_the_list_down() {
             count: 4
         }]
     );
-    assert!(rows[1].warnings.is_empty());
+    assert_eq!(rows[1].warnings, Vec::<WarningRow>::new());
 }
