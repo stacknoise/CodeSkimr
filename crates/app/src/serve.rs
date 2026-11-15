@@ -6,6 +6,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
+use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::ports::CredentialStore;
@@ -14,11 +15,12 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_mcp::HttpService;
 use codeskimr_secrets::{OsCredentialStore, OsKeystore};
 use codeskimr_server::{CommandApi, EditorSettings, Server, UiOptions, UiSettings};
+use codeskimr_storage::SqliteStore;
 
 use crate::consts::URL_SCHEME;
 use crate::locations::Locations;
 use crate::running::RunningScans;
-use crate::wiring::os_secrets;
+use crate::wiring::{Secrets, open_serving_store, os_secrets};
 use crate::{config_files, installation_token, mcp, principal, ui_commands};
 
 /// Serves until the user interrupts the program. `listening` is called once with the address as
@@ -42,23 +44,15 @@ pub fn run(
     let events = EventBus::new();
     // The UI and the MCP service refuse a second scan of a project together.
     let running = RunningScans::default();
-    let parts = Parts {
-        ui: ui_options(&config, locations),
-        api: ui_commands::command_api_probing(
-            global,
-            locations,
-            (events.clone(), Arc::clone(&secrets)),
-            (None, running.clone()),
-        )?,
-        mcp: Some(mcp::http_service_sharing(
-            &config,
-            locations,
-            (events.clone(), &secrets),
-            running,
-        )?),
-        events,
-        token_lock: Some(locations.token_lock()),
-    };
+    // One store for both: they share one usages index, which a level 2 import renews.
+    let catalog = open_serving_store(locations, &config)?;
+    let parts = serving_parts(
+        &catalog,
+        &config,
+        (global, locations),
+        (events, &secrets),
+        running,
+    )?;
     tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
@@ -105,6 +99,40 @@ fn is_inside(folder: &std::path::Path, base: &std::path::Path) -> bool {
         (Ok(folder), Ok(base)) => folder.starts_with(base),
         _ => false,
     }
+}
+
+/// The UI and the MCP service of the running app, both over the one `catalog`: they share its
+/// usages index, which a level 2 import through either renews (#358). The scans of both are
+/// counted in `running`.
+///
+/// # Errors
+/// A coded failure of the commands or of the MCP service.
+pub(crate) fn serving_parts(
+    catalog: &Arc<SqliteStore>,
+    config: &Config,
+    (global, locations): (&GlobalOptions, &Locations),
+    (events, secrets): (EventBus, &Arc<Secrets>),
+    running: RunningScans,
+) -> Result<Parts, CodedError> {
+    Ok(Parts {
+        ui: ui_options(config, locations),
+        api: ui_commands::command_api_over(
+            catalog,
+            config,
+            (global, locations),
+            (events.clone(), Arc::clone(secrets)),
+            (None, running.clone()),
+        )?,
+        mcp: Some(mcp::http_service_sharing(
+            Arc::clone(catalog),
+            config,
+            locations,
+            (events.clone(), secrets),
+            running,
+        )?),
+        events,
+        token_lock: Some(locations.token_lock()),
+    })
 }
 
 /// What the server offers: the UI, the commands over REST and the events over the WebSocket. The
