@@ -41,7 +41,7 @@ impl<'a> Found<'a> {
 impl<'a> Context<'a> {
     /// Resolves one occurrence. Names that match nothing give no hit.
     pub fn lookup(&self, occurrence: &PendingReference) -> Vec<Hit> {
-        if occurrence.kind == ReferenceKind::Import || occurrence.previous.is_some() {
+        if occurrence.kind == ReferenceKind::Import {
             return self.exact(occurrence);
         }
         let receiver = self.receiver_types(occurrence);
@@ -89,18 +89,16 @@ impl<'a> Context<'a> {
                 .is_some_and(|parent| is_type(parent.kind))
     }
 
-    /// An import, or a name that already is a qualified name because it is resolved again.
+    /// An import: the name is a qualified name.
     fn exact(&self, occurrence: &PendingReference) -> Vec<Hit> {
-        let confidence = occurrence.previous.unwrap_or(Confidence::Certain);
-        let imported = occurrence.kind == ReferenceKind::Import;
         self.table
             .qualified(occurrence.target.as_str())
             .iter()
-            .filter(|symbol| !imported || fits(occurrence.kind, symbol.kind))
+            .filter(|symbol| fits(occurrence.kind, symbol.kind))
             .map(|symbol| Hit {
                 to: symbol.id,
                 kind: reported(occurrence.kind, symbol.kind),
-                confidence,
+                confidence: Confidence::Certain,
             })
             .collect()
     }

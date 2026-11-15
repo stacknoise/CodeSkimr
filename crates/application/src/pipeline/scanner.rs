@@ -91,6 +91,7 @@ impl Scanner {
             max_workers: ports.max_workers,
         })
         .then(ResolveStage {
+            projects: Arc::clone(&ports.projects),
             resolver: ports.resolver,
             ids: Arc::clone(ids),
         })

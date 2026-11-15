@@ -7,7 +7,9 @@ use codeskimr_application::ports::{
     PreviousIndex, ProjectRepository, SnapshotData, SnapshotStore, SymbolKey,
 };
 use codeskimr_domain::{FileId, MetricKind, RelativePath, ScanMode, SnapshotId, SymbolKind};
-use common::{PROJECT, code_of, data, file, header, metric, project, reference, store, symbol};
+use common::{
+    PROJECT, code_of, data, file, header, metric, project, reference, registered_store, symbol,
+};
 
 /// Two files: `a.cs` declares `App.A` with method `Run`, `b.cs` declares `App.B`; `Run` calls `B`.
 #[cfg(test)]
@@ -40,16 +42,9 @@ fn b_rewritten(name: &str, references: Vec<codeskimr_domain::Reference>) -> Snap
     scan
 }
 
-#[cfg(test)]
-fn registered() -> codeskimr_storage::SqliteStore {
-    let store = store(3);
-    store.save_project(&project(1, "/work/app", &[])).unwrap();
-    store
-}
-
 #[test]
 fn persist_returns_the_totals() {
-    let store = registered();
+    let store = registered_store();
     let snapshot = store.persist(first_scan(10)).unwrap();
     assert_eq!(
         (
@@ -64,7 +59,7 @@ fn persist_returns_the_totals() {
 
 #[test]
 fn a_failing_snapshot_leaves_nothing_behind() {
-    let store = registered();
+    let store = registered_store();
     let mut broken = first_scan(10);
     broken.references.push(reference(32, 11, 22, 999));
     let error = store.persist(broken).unwrap_err();
@@ -76,7 +71,7 @@ fn a_failing_snapshot_leaves_nothing_behind() {
 
 #[test]
 fn incremental_scan_keeps_unchanged_files_and_replaces_changed_ones() {
-    let store = registered();
+    let store = registered_store();
     store.persist(first_scan(10)).unwrap();
     let snapshot = store.persist(b_rewritten("App.B2", Vec::new())).unwrap();
     assert_eq!(
@@ -99,7 +94,7 @@ fn incremental_scan_keeps_unchanged_files_and_replaces_changed_ones() {
 
 #[test]
 fn incremental_scan_carries_references_inside_unchanged_files() {
-    let store = registered();
+    let store = registered_store();
     let mut first = data(header(10, ScanMode::Full));
     first.files = vec![file(10, 11, "a.cs", "ha")];
     first.symbols = vec![
@@ -123,7 +118,7 @@ fn incremental_scan_carries_references_inside_unchanged_files() {
 
 #[test]
 fn full_scan_does_not_carry_anything() {
-    let store = registered();
+    let store = registered_store();
     store.persist(first_scan(10)).unwrap();
     let mut scan = data(header(40, ScanMode::Full));
     scan.files = vec![file(40, 41, "c.cs", "hc")];
@@ -172,7 +167,7 @@ fn first_scan_with_ids(snapshot: u64) -> SnapshotData {
 
 #[test]
 fn next_free_id_is_above_every_stored_id() {
-    let store = registered();
+    let store = registered_store();
     assert_eq!(store.next_free_id().unwrap(), 1);
     store.persist(first_scan(10)).unwrap();
     assert_eq!(store.next_free_id().unwrap(), 32);
@@ -190,7 +185,7 @@ fn scan_of_c(references: Vec<codeskimr_domain::Reference>) -> SnapshotData {
 #[cfg(test)]
 #[test]
 fn new_references_may_point_at_carried_symbols() {
-    let store = registered();
+    let store = registered_store();
     store.persist(first_scan(10)).unwrap();
     let mut scan = scan_of_c(vec![reference(43, 41, 42, 21)]);
     scan.symbols = vec![symbol(42, 41, SymbolKind::Method, "App.C.Go", None)];
@@ -207,7 +202,7 @@ fn new_references_may_point_at_carried_symbols() {
 #[cfg(test)]
 #[test]
 fn a_failing_incremental_scan_keeps_the_previous_snapshot_intact() {
-    let store = registered();
+    let store = registered_store();
     store.persist(first_scan(10)).unwrap();
     assert!(
         store
@@ -221,7 +216,7 @@ fn a_failing_incremental_scan_keeps_the_previous_snapshot_intact() {
 
 #[test]
 fn removed_files_leave_the_snapshot_with_their_symbols_and_references() {
-    let store = registered();
+    let store = registered_store();
     store.persist(first_scan(10)).unwrap();
     let mut scan = data(header(40, ScanMode::Incremental));
     scan.removed = vec![RelativePath::new("b.cs").unwrap()];
@@ -242,7 +237,7 @@ fn removed_files_leave_the_snapshot_with_their_symbols_and_references() {
 
 #[test]
 fn resolved_again_references_of_unchanged_files_replace_the_dropped_ones() {
-    let store = registered();
+    let store = registered_store();
     store.persist(first_scan(10)).unwrap();
     let again = vec![reference(43, 11, 22, 42)];
     let snapshot = store.persist(b_rewritten("App.B", again)).unwrap();
@@ -257,7 +252,7 @@ fn resolved_again_references_of_unchanged_files_replace_the_dropped_ones() {
 
 #[test]
 fn new_metrics_replace_carried_ones_of_the_same_symbol_and_kind() {
-    let store = registered();
+    let store = registered_store();
     store.persist(first_scan(10)).unwrap();
     let mut scan = data(header(40, ScanMode::Incremental));
     scan.metrics = vec![metric(21, MetricKind::Loc, 99.0)];
@@ -280,7 +275,7 @@ fn new_metrics_replace_carried_ones_of_the_same_symbol_and_kind() {
 
 #[test]
 fn the_latest_index_holds_every_symbol_and_reference_or_nothing() {
-    let store = registered();
+    let store = registered_store();
     assert_eq!(
         store.latest_index(PROJECT).unwrap(),
         PreviousIndex::default()
@@ -313,7 +308,7 @@ fn ce_of_a(store: &codeskimr_storage::SqliteStore, snapshot: u64) -> Vec<f64> {
 /// value does not change an older snapshot, and a snapshot that computed none has none (ADR 0037).
 #[test]
 fn coupling_metrics_belong_to_their_snapshot() {
-    let store = registered();
+    let store = registered_store();
     let mut first = first_scan(10);
     first
         .metrics

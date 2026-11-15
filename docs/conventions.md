@@ -10,7 +10,7 @@ Blueprint 10.4 (`check_conventions`), 10.2 (`codeskimr check`), 11.6 (E-04) and 
 | `CHK-102` `duplicate_block` | R-01: two functions whose syntax fingerprints are at least `conventions.duplicate_similarity_percent` similar (default 85) | checked, within the checked files and (MCP) against the stored project |
 | `CHK-101` `literal_found` | R-06 | not checked yet (#93): the language packs do not report literals. The Dylint lint `no_literals` covers Rust in CI |
 | `CHK-103` `layer_violation` | R-04 | not checked yet: the project model has no allowed directions (issue #45) |
-| `CHK-105` `complexity_too_high` | R-02: cognitive complexity at most `conventions.max_cognitive_complexity` (default 15) | checked for the languages whose pack counts it (ADR 0048; Rust, Python, Java and C# so far), else listed in `not_checked` |
+| `CHK-105` `complexity_too_high` | R-02: cognitive complexity at most `conventions.max_cognitive_complexity` (default 15) | checked for the languages whose pack counts it (ADR 0048; Rust, Python, Java, TypeScript, TSX, JavaScript and C# so far), else listed in `not_checked` |
 | `CHK-106` `too_many_parameters` | R-02: at most `conventions.max_parameters` parameters (default 5), without the receiver | like `CHK-105` |
 
 The report always lists the rules it did not check (`not_checked`), so a clean report is never read as "all rules are met". `CHK-105` and `CHK-106` appear there as soon as a function of a language whose pack does not count them is among the checked files.

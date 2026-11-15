@@ -120,6 +120,20 @@ pub async fn bound_body(request: Request, next: Next) -> Response {
     }
 }
 
+/// Gives the answers of the MCP service that are not JSON-RPC (a method it does not offer, a body it
+/// cannot read) the error format of every other route, so a client always gets `{ code, description }`
+/// (#400). Answers with any other status pass unchanged.
+pub async fn mcp_error_format(request: Request, next: Next) -> Response {
+    let response = next.run(request).await;
+    match response.status() {
+        StatusCode::METHOD_NOT_ALLOWED => wrong_method().await,
+        StatusCode::UNSUPPORTED_MEDIA_TYPE => {
+            Failure::code(ErrorCode::RequestInvalid).into_response()
+        }
+        _ => response,
+    }
+}
+
 /// The too-large code only if the body was longer than the limit; a client that left or sent a broken
 /// body is a plain invalid request.
 fn read_failure(error: &axum::Error) -> ErrorCode {
