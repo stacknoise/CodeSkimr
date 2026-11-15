@@ -1,9 +1,9 @@
 //! Hand-built Protobuf bytes of an index and the model types of a snapshot.
 
 use codeskimr_domain::{
-    Confidence, ContentHash, FileId, LanguageId, Loc, Position, QualifiedName, Reference,
-    ReferenceId, ReferenceKind, RelativePath, SnapshotId, SourceFile, Span, Symbol, SymbolId,
-    SymbolKind, SymbolName,
+    Confidence, ContentHash, FileId, FolderPath, LanguageId, Loc, Position, QualifiedName,
+    Reference, ReferenceId, ReferenceKind, RelativePath, SnapshotId, SourceFile, Span, Symbol,
+    SymbolId, SymbolKind, SymbolName,
 };
 
 /// A limit that no test index reaches.
@@ -191,4 +191,31 @@ pub fn sample_index() -> Vec<u8> {
         ],
     );
     index("file:///work/project", &[doc])
+}
+
+/// A request for `index` over the given snapshot, with the limits of the tests; the caller sets
+/// the limit of a file and the share that has to map.
+pub fn request<'a>(
+    index: &'a std::path::Path,
+    root: &'a FolderPath,
+    (files, symbols, references): (&'a [SourceFile], &'a [Symbol], &'a [Reference]),
+) -> codeskimr_application::ports::ImportRequest<'a> {
+    codeskimr_application::ports::ImportRequest {
+        index,
+        root,
+        files,
+        symbols,
+        references,
+        max_index_bytes: LIMIT,
+        max_file_bytes: LIMIT,
+        min_mapped: 0.0,
+    }
+}
+
+/// Writes the bytes of an index into a folder that lives as long as the returned guard.
+pub fn written(bytes: &[u8]) -> (tempfile::TempDir, std::path::PathBuf) {
+    let dir = tempfile::tempdir().expect("temp dir");
+    let path = dir.path().join("index.scip");
+    std::fs::write(&path, bytes).expect("writes");
+    (dir, path)
 }

@@ -137,8 +137,19 @@ public class TruthJava {
         }
 
         void use(Tree tree) {
+            use(tree, line(tree));
+        }
+
+        void use(Tree tree, int line) {
             Key k = key(trees.getElement(getCurrentPath()));
-            if (k != null && file != null) uses.computeIfAbsent(k, x -> new ArrayList<>()).add(file + ":" + line(tree));
+            if (k != null && file != null) uses.computeIfAbsent(k, x -> new ArrayList<>()).add(file + ":" + line);
+        }
+
+        /** The line of the last `length` characters of the tree: the name behind a dot, not the start of the receiver. */
+        int nameLine(Tree tree, int length) {
+            long end = positions.getEndPosition(unit, tree);
+            if (end < 0) return line(tree);
+            return (int) unit.getLineMap().getLineNumber(Math.max(positions.getStartPosition(unit, tree), end - length));
         }
 
         /** A declaration is known even if nothing uses it, so that a neighbour of the same name cannot stand in for it. */
@@ -152,8 +163,8 @@ public class TruthJava {
         @Override public Void visitVariable(VariableTree tree, Void v) { declare(tree); return super.visitVariable(tree, v); }
         @Override public Void visitImport(ImportTree tree, Void v) { return null; }
         @Override public Void visitIdentifier(IdentifierTree tree, Void v) { use(tree); return super.visitIdentifier(tree, v); }
-        @Override public Void visitMemberSelect(MemberSelectTree tree, Void v) { use(tree); return super.visitMemberSelect(tree, v); }
-        @Override public Void visitMemberReference(MemberReferenceTree tree, Void v) { use(tree); return super.visitMemberReference(tree, v); }
+        @Override public Void visitMemberSelect(MemberSelectTree tree, Void v) { use(tree, nameLine(tree, tree.getIdentifier().length())); return super.visitMemberSelect(tree, v); }
+        @Override public Void visitMemberReference(MemberReferenceTree tree, Void v) { use(tree, nameLine(tree, tree.getMode() == MemberReferenceTree.ReferenceMode.NEW ? 3 : tree.getName().length())); return super.visitMemberReference(tree, v); }
         @Override public Void visitNewClass(NewClassTree tree, Void v) { use(tree); return super.visitNewClass(tree, v); }
     }
 }

@@ -159,3 +159,47 @@ pub(crate) const MAX_SYMBOLS: usize = 4_000_000;
 
 /// The first line of a file when a range of lines is asked for.
 pub(crate) const FIRST_LINE: u32 = 1;
+
+/// Extension of the files whose text is read for what the indexer leaves out (Java).
+pub(crate) const JAVA_EXTENSION: &str = ".java";
+/// The word that starts an import declaration.
+pub(crate) const IMPORT_KEYWORD: &str = "import";
+/// Ends a declaration or a statement.
+pub(crate) const SEMICOLON: char = ';';
+/// The word before the type of an object creation.
+pub(crate) const NEW_KEYWORD: &str = "new";
+/// The words that start an explicit call of another constructor.
+pub(crate) const CONSTRUCTOR_CALL_KEYWORDS: [&str; 2] = ["this", "super"];
+/// The word that starts the list of exceptions of a method or constructor.
+pub(crate) const THROWS_KEYWORD: &str = "throws";
+/// Marks the last parameter of a method as a variable number of arguments.
+pub(crate) const VARARGS_MARK: &str = "...";
+/// Starts a comment up to the end of the line.
+pub(crate) const LINE_COMMENT: &str = "//";
+/// Starts a block comment.
+pub(crate) const BLOCK_COMMENT_OPEN: &str = "/*";
+/// Ends a block comment.
+pub(crate) const BLOCK_COMMENT_CLOSE: &str = "*/";
+/// Starts a comment (first character of both comment marks).
+pub(crate) const SLASH: char = '/';
+/// Separates parameters.
+pub(crate) const COMMA: char = ',';
+/// Opens a body.
+pub(crate) const OPEN_BRACE: char = '{';
+/// Closes a list of type arguments.
+pub(crate) const CLOSE_ANGLE: char = '>';
+/// Quotes of strings and of characters.
+pub(crate) const LITERAL_QUOTES: [char; 2] = ['"', '\''];
+/// Escapes the next character of a string.
+pub(crate) const LITERAL_ESCAPE: char = '\\';
+/// Most characters one scan of the text of a file looks at: a hostile file cannot make the
+/// import read on without end.
+pub(crate) const MAX_SCAN_CHARS: usize = 8192;
+/// Characters that may be part of a Java identifier besides letters and digits.
+pub(crate) const JAVA_IDENTIFIER_EXTRA: [char; 2] = ['_', '$'];
+/// The end of a line, which the scan of the text of a file reads as a character.
+pub(crate) const NEWLINE: char = '\n';
+/// What opens a group inside a list of parameters.
+pub(crate) const GROUP_OPENERS: [char; 4] = ['(', '[', '{', '<'];
+/// What closes a group inside a list of parameters.
+pub(crate) const GROUP_CLOSERS: [char; 4] = [')', ']', '}', '>'];
