@@ -73,6 +73,7 @@ fn an_unreadable_tool_report_does_not_take_the_list_down() {
             languages_dir: Path::new("languages").to_path_buf(),
             user_config: None,
             bases: Vec::new(),
+            program_dir: None,
         },
         events: EventBus::new(),
         secrets: crate::memory_keystore::secrets(),

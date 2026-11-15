@@ -40,6 +40,7 @@ fn locations(data: &std::path::Path) -> Locations {
         languages_dir: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(LANGUAGES_PATH),
         user_config: None,
         bases: Vec::new(),
+        program_dir: None,
     }
 }
 

@@ -13,7 +13,7 @@ use codeskimr_cli::GlobalOptions;
 use codeskimr_codes::ErrorCode;
 
 use crate::consts::{
-    ENV_LANGUAGES_DIR, LANGUAGES_DIR, PACKS_CACHE_DIR, PACKS_COMPLETE_MARKER,
+    ENV_LANGUAGES_DIR, LANGUAGES_DIR, PACK_FILE, PACKS_CACHE_DIR, PACKS_COMPLETE_MARKER,
     PACKS_REPLACED_MAX_AGE, PACKS_STAGING_MAX_AGE, PACKS_STAGING_SEPARATOR,
 };
 use crate::locations::{Locations, Lookup};
@@ -56,13 +56,18 @@ pub fn prefer_embedded(
 }
 
 /// True if a folder with packs lies next to the program: the layout of a deliberate installation.
+/// A folder without any `<language>/language.toml` is no installation of packs and is ignored.
 /// A `languages/` folder in the current folder does not count, because it may belong to the
 /// scanned repository and must not replace the packs of the program without the user asking.
 fn beside_program(locations: &Locations) -> bool {
-    locations
-        .bases
-        .first()
-        .is_some_and(|base| base.join(LANGUAGES_DIR).is_dir())
+    locations.program_dir.as_ref().is_some_and(|folder| {
+        folder
+            .join(LANGUAGES_DIR)
+            .read_dir()
+            .is_ok_and(|mut packs| {
+                packs.any(|pack| pack.is_ok_and(|pack| pack.path().join(PACK_FILE).is_file()))
+            })
+    })
 }
 
 /// Writes `files` to `<data_dir>/<cache>/<fingerprint>` unless that folder is complete already, and
@@ -99,7 +104,10 @@ pub fn materialize(
         let _ = fs::remove_dir_all(&target);
     }
     match fs::rename(&staging, &target) {
-        Ok(()) => Ok(target),
+        Ok(()) => {
+            sync_dir(&cache);
+            Ok(target)
+        }
         // Another start was faster: its folder is as good as ours.
         Err(_) if is_complete(&target) => {
             let _ = fs::remove_dir_all(&staging);
@@ -138,6 +146,16 @@ fn remove_stale(cache: &Path, keep: &Path) {
             let _ = fs::remove_dir_all(entry.path());
         }
     }
+}
+
+/// Makes the new entry of `folder` durable (not possible on every platform; then it is skipped).
+fn sync_dir(folder: &Path) {
+    #[cfg(unix)]
+    if let Ok(dir) = fs::File::open(folder) {
+        let _ = dir.sync_all();
+    }
+    #[cfg(not(unix))]
+    let _ = folder;
 }
 
 fn is_complete(folder: &Path) -> bool {
@@ -231,6 +249,7 @@ mod tests {
             languages_dir,
             user_config: None,
             bases: Vec::new(),
+            program_dir: None,
         }
     }
 
@@ -238,6 +257,7 @@ mod tests {
     fn with_bases(program: &Path, cwd: &Path, data: &Path) -> Locations {
         Locations {
             bases: vec![program.to_path_buf(), cwd.to_path_buf()],
+            program_dir: Some(program.to_path_buf()),
             ..locations(program.join(LANGUAGES_DIR), data.to_path_buf())
         }
     }
@@ -302,7 +322,16 @@ mod tests {
             tempfile::tempdir().unwrap(),
             tempfile::tempdir().unwrap(),
         );
-        fs::create_dir(program.path().join(LANGUAGES_DIR)).unwrap();
+        fs::create_dir_all(program.path().join(LANGUAGES_DIR).join("rust")).unwrap();
+        fs::write(
+            program
+                .path()
+                .join(LANGUAGES_DIR)
+                .join("rust")
+                .join(PACK_FILE),
+            "",
+        )
+        .unwrap();
         let found = prefer_at(with_bases(program.path(), cwd.path(), data.path()));
         assert_eq!(found.languages_dir, program.path().join(LANGUAGES_DIR));
         assert!(!data.path().join(PACKS_CACHE_DIR).exists());
@@ -396,5 +425,41 @@ mod tests {
             .unwrap();
         remove_stale(&data.path().join(PACKS_CACHE_DIR), Path::new("-"));
         assert!(!left.exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_reused_folder_gets_a_fresh_marker_time() {
+        let data = tempfile::tempdir().unwrap();
+        let folder = materialize(FILES_OF_TWO_PACKS, "abc", data.path()).unwrap();
+        let marker = folder.join(PACKS_COMPLETE_MARKER);
+        let long_ago = std::time::SystemTime::now() - PACKS_REPLACED_MAX_AGE * 2;
+        fs::File::open(&marker)
+            .unwrap()
+            .set_modified(long_ago)
+            .unwrap();
+        materialize(FILES_OF_TWO_PACKS, "abc", data.path()).unwrap();
+        let age = fs::metadata(&marker)
+            .unwrap()
+            .modified()
+            .unwrap()
+            .elapsed()
+            .unwrap();
+        assert!(age < PACKS_REPLACED_MAX_AGE);
+    }
+
+    #[test]
+    fn a_folder_beside_the_program_without_any_pack_is_ignored() {
+        let (program, cwd, data) = (
+            tempfile::tempdir().unwrap(),
+            tempfile::tempdir().unwrap(),
+            tempfile::tempdir().unwrap(),
+        );
+        fs::create_dir_all(program.path().join(LANGUAGES_DIR).join("empty")).unwrap();
+        let found = prefer_at(with_bases(program.path(), cwd.path(), data.path()));
+        assert_eq!(
+            found.languages_dir,
+            data.path().join(PACKS_CACHE_DIR).join("fp")
+        );
     }
 }

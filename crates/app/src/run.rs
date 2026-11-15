@@ -139,9 +139,9 @@ fn resolve_locations(
     )
 }
 
-/// Whether the command reads language packs; the credential commands do not.
+/// Whether the command reads language packs; the credential commands and `open` do not.
 fn needs_packs(action: &Action) -> bool {
-    !matches!(action, Action::Credential(_))
+    !matches!(action, Action::Credential(_) | Action::Open(_))
 }
 
 fn run_invocation(

@@ -45,6 +45,8 @@ pub const GIT_CACHE_DIR: &str = "git";
 pub const USER_CONFIG_FILE: &str = "config.toml";
 /// The folder of the language packs next to the executable or the current folder.
 pub const LANGUAGES_DIR: &str = "languages";
+/// The file that makes a folder a language pack.
+pub const PACK_FILE: &str = "language.toml";
 /// The folder inside the data folder that holds the language packs written from the program.
 pub const PACKS_CACHE_DIR: &str = "languages";
 /// The file that says a folder of embedded packs was written completely.
