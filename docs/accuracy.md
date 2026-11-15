@@ -57,7 +57,9 @@ python3 REPO/tools/accuracy/measure.py csharp --verified-only --scip COPY/index.
 
 The Java reference (javac) does not read a SCIP index and is independent of the level 2 indexer (ADR 0033, decision 14). For Rust the reference tool and the indexer are the same engine: the reference is rust-analyzer over LSP, the index comes from `rust-analyzer scip`. The reference does not read the index file, which meets the letter of decision 14, but agreement of 100 % precision is partly an engine agreeing with itself, and errors of rust-analyzer do not show. The two runs also differ: LSP runs without build scripts and proc macros, `scip` runs them.
 
-Numbers over all drawn symbols: precision = usages of ours that the tool confirms / usages of ours; recall = usages of the tool that we found / usages of the tool; exact = share of symbols whose set of lines is identical. To compare two versions, pass the binary and the language packs that belong to it (`--codeskimr`, `--languages`).
+Numbers over all drawn symbols: precision = usages of ours that the tool confirms / usages of ours; recall = usages of the tool that we found / usages of the tool; exact = share of symbols whose set of lines is identical. `node tools/acceptance/m5-measure.mjs` runs the script for several languages and prints one table, with level 1 and level 2 (`--level2 LANG=INDEX[:INDEXER[:WORKSPACE]]`) in separate rows, level 2 judged against the 99 % threshold of ADR 0033 decision 14 (milestone M5, `docs/acceptance/m6.md`).
+
+To compare two versions, pass the binary and the language packs that belong to it (`--codeskimr`, `--languages`).
 
 ## Limits of the comparison
 
