@@ -325,9 +325,23 @@ impl<'a> Context<'a> {
     }
 
     fn replacements_of(&self, member: &Symbol) -> Vec<&'a Symbol> {
+        if let Some(known) = self.replacements.borrow().get(&member.id) {
+            return known.clone();
+        }
+        let found = self.find_replacements(member);
+        self.replacements
+            .borrow_mut()
+            .insert(member.id, found.clone());
+        found
+    }
+
+    fn find_replacements(&self, member: &Symbol) -> Vec<&'a Symbol> {
         let Some(owner) = member.parent else {
             return Vec::new();
         };
+        if !self.hierarchy.has_subtypes(owner) {
+            return Vec::new();
+        }
         let below: HashSet<SymbolId> = self.hierarchy.descendants_of(owner).into_iter().collect();
         self.named_of(member.name.as_str(), OVERRIDABLE)
             .into_iter()
