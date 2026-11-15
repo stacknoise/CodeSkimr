@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 48,
+      "loc": 64,
       "operands": null,
       "operators": null,
       "symbol": "references"
@@ -53,9 +53,22 @@
         50
       ],
       "symbol": "references::Order::find"
+    },
+    {
+      "decisions": 4,
+      "loc": 16,
+      "operands": [
+        10,
+        14
+      ],
+      "operators": [
+        9,
+        22
+      ],
+      "symbol": "references::bindings"
     }
   ],
-  "loc": 48,
+  "loc": 64,
   "references": [
     {
       "at": "2:23",
@@ -434,6 +447,69 @@
       "kind": "call",
       "receiver": "typed Item",
       "target": "into"
+    },
+    {
+      "at": "56:19",
+      "from": "references::bindings",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Option"
+    },
+    {
+      "at": "56:32",
+      "from": "references::bindings",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Item"
+    },
+    {
+      "at": "56:52",
+      "from": "references::bindings",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Vec"
+    },
+    {
+      "at": "58:43",
+      "from": "references::bindings",
+      "kind": "call",
+      "receiver": null,
+      "target": "use_all"
+    },
+    {
+      "at": "61:36",
+      "from": "references::bindings",
+      "kind": "call",
+      "receiver": "typed Vec",
+      "target": "pop"
+    },
+    {
+      "at": "62:8",
+      "from": "references::bindings",
+      "kind": "call",
+      "receiver": null,
+      "target": "use_all"
+    },
+    {
+      "at": "64:37",
+      "from": "references::bindings",
+      "kind": "call",
+      "receiver": "typed Vec",
+      "target": "as_slice"
+    },
+    {
+      "at": "65:8",
+      "from": "references::bindings",
+      "kind": "call",
+      "receiver": null,
+      "target": "use_all"
+    },
+    {
+      "at": "70:12",
+      "from": "references::bindings",
+      "kind": "read",
+      "receiver": null,
+      "target": "OFFSET"
     }
   ],
   "symbols": [
@@ -443,7 +519,7 @@
       "name": "references",
       "parent": null,
       "signature": null,
-      "span": "0:0-55:0",
+      "span": "0:0-72:0",
       "static": false,
       "visibility": null
     },
@@ -536,6 +612,16 @@
       "span": "26:4-53:5",
       "static": false,
       "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "references::bindings",
+      "parent": "references",
+      "signature": null,
+      "span": "56:0-71:1",
+      "static": false,
+      "visibility": "private"
     }
   ]
 }

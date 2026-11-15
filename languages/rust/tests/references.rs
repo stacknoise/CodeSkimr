@@ -53,3 +53,20 @@ impl Order {
         }
     }
 }
+
+fn bindings(input: Option<(u32, Item)>, queue: &mut Vec<u32>) {
+    match input {
+        Some((helper, Item { id, .. })) => use_all(helper, id),
+        Some(_) | None => (),
+    }
+    while let Some(compute) = queue.pop() {
+        use_all(compute, 0);
+    }
+    if let [first, .., last] = queue.as_slice() {
+        use_all(*first, *last);
+    }
+    let Some(pair) = input else { return };
+    let Item { id: ref helper, .. } = pair.1;
+    let _ = helper;
+    let _ = OFFSET;
+}
