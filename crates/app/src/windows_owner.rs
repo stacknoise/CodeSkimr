@@ -79,6 +79,13 @@ mod tests {
     }
 
     #[test]
+    fn every_trusted_owner_is_a_valid_sid() {
+        for text in TRUSTED_OWNER_SIDS {
+            assert!(text.parse::<LocalBox<Sid>>().is_ok(), "{text}");
+        }
+    }
+
+    #[test]
     fn an_account_that_is_not_known_is_not_trusted() {
         let stranger: LocalBox<Sid> = "S-1-5-21-1-2-3-1001".parse().unwrap();
         assert!(!is_trusted(&stranger).unwrap());
