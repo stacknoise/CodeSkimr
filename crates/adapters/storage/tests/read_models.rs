@@ -4,7 +4,9 @@
 mod common;
 
 use codeskimr_application::ports::ProjectRepository;
-use codeskimr_domain::{MetricKind, ProjectId, SnapshotId, SymbolId, SymbolKind};
+use codeskimr_domain::{
+    MetricKind, ProjectId, Reference, ReferenceKind, SnapshotId, SymbolId, SymbolKind,
+};
 use common::{metric, project, reference, scanned, scanned_project, symbol};
 
 const SNAPSHOT: SnapshotId = SnapshotId::new(10);
@@ -66,6 +68,13 @@ fn search_respects_the_limit_and_returns_where_the_symbol_lives() {
     assert_eq!(hits[0].qualified_name.as_str(), "App.Order");
 }
 
+fn from_a_test(reference: Reference) -> Reference {
+    Reference {
+        kind: ReferenceKind::Test,
+        ..reference
+    }
+}
+
 #[test]
 fn usage_counts_count_references_per_target() {
     let symbols = vec![
@@ -76,10 +85,15 @@ fn usage_counts_count_references_per_target() {
         reference(31, 11, 21, 22),
         reference(32, 11, 21, 22),
         reference(33, 11, 22, 22),
+        // References of kind `test` are not counted as usages (issue #430) ...
+        from_a_test(reference(34, 11, 21, 22)),
     ];
     let store = scanned(&[], symbols, references, vec![]);
     assert_eq!(store.usage_count(SNAPSHOT, SymbolId::new(22)).unwrap(), 3);
     assert_eq!(store.usage_count(SNAPSHOT, SymbolId::new(21)).unwrap(), 0);
+    // ... but the total of the snapshot is a count of what is stored.
+    let latest = store.latest_snapshot(ProjectId::new(1)).unwrap().unwrap();
+    assert_eq!(latest.stats.references, 4);
 }
 
 #[test]
@@ -133,6 +147,8 @@ fn layered() -> codeskimr_storage::SqliteStore {
         reference(34, 11, 23, 22),
         reference(35, 11, 22, 24),
         reference(36, 11, 25, 22),
+        // A reference of kind `test` is no edge of the graph (issue #430).
+        from_a_test(reference(37, 11, 22, 21)),
     ];
     scanned(&layers, symbols, references, vec![])
 }
