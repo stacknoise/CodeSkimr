@@ -262,7 +262,7 @@ mod cases {
                 files: vec![file(1, "a.cs", "csharp")],
                 changed: Vec::new(),
                 indexers: vec![("csharp", "scip-dotnet")],
-                status: IndexerStatus::Ready,
+                status: IndexerStatus::ready(),
                 run_fails: None,
                 import_fails: None,
                 cancel_in_import: false,
@@ -433,7 +433,7 @@ mod cases {
     #[test]
     fn a_missing_tool_keeps_level_one() {
         let outcome = run(Setup {
-            status: IndexerStatus::Unavailable(Vec::new()),
+            status: IndexerStatus::unavailable(Vec::new()),
             ..Setup::default()
         });
         assert_eq!(outcome.runs, 0);

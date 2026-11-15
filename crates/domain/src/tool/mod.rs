@@ -4,4 +4,4 @@ mod report;
 mod spec;
 
 pub use report::{ToolEntry, ToolFinding, ToolReport, ToolState};
-pub use spec::{RequirementFormat, RequirementSpec, ToolRole};
+pub use spec::{Ceiling, RequirementFormat, RequirementSpec, RollForwardSpec, ToolRole};

@@ -38,7 +38,7 @@ mod cases {
         let data = tempfile::tempdir().unwrap();
         let runner = ProcessIndexRunner::new(data.path().to_path_buf(), redact)
             .with_environment(vec![(OsString::from("PATH"), OsString::from(SEARCH_PATH))]);
-        let IndexerStatus::Unavailable(problems) = runner.check(&spec()) else {
+        let IndexerStatus::Unavailable { problems, .. } = runner.check(&spec()) else {
             panic!("the tool prints no version, so it cannot be ready");
         };
         let ToolIssue::TooOld { found, .. } = &problems[0].issue else {

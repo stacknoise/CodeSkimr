@@ -8,12 +8,13 @@ The tools are the ones the `[indexer]` table of the language pack names (`docs/l
 
 States of a tool:
 
-- `ready`: it is found and its version fits (the runner does not report which version; a ready tool shows none).
+- `ready`: it is found and its version fits. The runner reports the version it read and the check shows it.
 - `missing`: the program is not found in the `PATH` of the user.
 - `too_old`: the version is lower than the strictest of the pack's `min_version` and the version the project requires.
+- `too_new`: the version is higher than a file of the project lets through (see below). It is judged only for a tool whose version the runner read; an unreadable version stays `version_unknown`.
 - `version_unknown`: it ran but printed no version that could be read (or did not answer in time).
 
-A language is `level2_ready` when all its tools are ready.
+A language is `level2_ready` when all its tools are ready, so a `too_new` tool counts as a problem: the build of the project would fail with it.
 
 ## How tools are started
 
@@ -22,6 +23,10 @@ The check starts nothing itself. `IndexRunner::check` (`codeskimr_indexer`) look
 ## What the project requires
 
 A `[[indexer.toolchain]]` of the pack may carry a `requirement`: `global.json` (`sdk.version`) for `dotnet`, `rust-toolchain.toml` (`toolchain.channel`) for `cargo`, `.nvmrc` for `node`. The check raises the `min_version` of that tool to the version the project names when that is newer, then asks the runner. The file is looked for in the project root and in every folder below it (nested solutions and workspaces have their own `global.json` or `.nvmrc`): down to 6 levels, at most 32 files of one name and 2000 folders looked into (the search stops there), and not in `.git`, `node_modules`, `target`, `bin`, `obj`, `vendor`, `dist`, `.venv` and `venv`, which hold files of other projects. When several files ask for a version, the newest counts. A file is read only if it lies inside the project folder (no `..`, no symlink out of it) and is at most 64 KiB (`REQUIREMENT_MAX_BYTES`). `global.json` may hold comments (`//`, `/* */`) and trailing commas, as the .NET SDK accepts them. Python has none: `.python-version` is not read since the pack's toolchain is `node`. The leading number of the value counts (`v20.11` gives 20.11); a value that is not a number, such as `stable`, asks for nothing. The comparison is numeric per segment, a missing segment counts as zero.
+
+## How new a tool may be (`rollForward`)
+
+`global.json` can also limit from above: its `rollForward` (default `latestPatch`) says which SDKs the project accepts. The pack maps each policy to a ceiling counted from `sdk.version` (`roll_forward` of the requirement, `docs/language-packs.md`): `disable` the named version only, `patch` and `latestPatch` the same feature band (8.0.1xx), `feature` and `latestFeature` the same major and minor, `minor` and `latestMinor` the same major, `major` and `latestMajor` no limit. A tool that passed the minimum but lies beyond the ceiling of any `global.json` is `too_new`; the finding shows the version found and, as required, the version that file names. A policy value that the pack does not list limits nothing.
 
 ## Storage and outputs
 
@@ -33,7 +38,9 @@ A failing check never fails a scan: the error is logged and the project is shown
 
 ## Known limits
 
-- `rollForward` of `global.json` is not modelled. It can only limit from above (for example `disable` or `patch` refuse a newer major SDK), and the check does not know the version of an installed tool that it finds ready (the runner reports only ready, missing or too old). So a tool that is newer than the project allows shows as `ready`, and the build fails later. A state `too_new` (port, storage, UI and texts) is tracked in issue #328.
+- The check sees the version that `dotnet --version` prints in a neutral folder, which is the newest SDK installed. If several SDKs are installed, an older one that fits the project may exist; then `too_new` is shown although the build would work. The check does not list installed SDKs.
+- `allowPrerelease` of `global.json` is not modelled: the version type holds no prerelease part, so a prerelease SDK is judged by its numbers only.
+- A ceiling is judged on the version of a tool that the runner read; the level 2 run itself does not refuse a too new tool (it does not read the project files), the build fails as before.
 - Requirement files are searched with a depth and a count limit (see above); a manifest deeper than 6 levels is not seen.
 - The version flags and `min_version` of the indexers are confirmed by the spike of ADR 0033.
 - **A Git project has no clone before its first scan.** The requirement files are read from the clone of the last scan (`GitCache`). At registration and in every check before the first full scan there is no clone, so no requirement is known and only the `min_version` of the pack counts. The check that every full scan runs after the scan finds the clone and reads the files, so the report is complete from the first scan on. The check does not fetch anything itself.

@@ -6,7 +6,7 @@ use codeskimr_application::ports::ToolVersion;
 use codeskimr_application::ports::{
     IndexerSpec, PLACEHOLDER_OUTPUT, PLACEHOLDER_PROJECT, ToolRequirement, ToolSpec,
 };
-use codeskimr_domain::{RequirementFormat, RequirementSpec};
+use codeskimr_domain::{Ceiling, RequirementFormat, RequirementSpec, RollForwardSpec};
 use std::collections::BTreeMap;
 use std::path::{Component, Path};
 
@@ -28,6 +28,38 @@ pub struct RequirementManifest {
     /// The keys down to the version in a `json` or `toml` file.
     #[serde(default)]
     pub path: Vec<String>,
+    /// Where the same file limits how new a tool may be, and what each policy means.
+    #[serde(default)]
+    pub roll_forward: Option<RollForwardManifest>,
+}
+
+/// `roll_forward` of a `requirement`: the key of the policy, what counts without one, and the
+/// ceiling of each policy value.
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RollForwardManifest {
+    /// The keys down to the policy.
+    pub path: Vec<String>,
+    /// The ceiling if the file holds no policy: `exact`, `same_band`, `same_minor`, `same_major`
+    /// or `any`.
+    pub default: String,
+    /// The ceiling of each policy value of the file.
+    pub values: BTreeMap<String, String>,
+}
+
+impl RollForwardManifest {
+    fn spec(&self) -> Result<RollForwardSpec, String> {
+        let ceiling = |text: &String| text.parse::<Ceiling>().map_err(|_| text.clone());
+        Ok(RollForwardSpec {
+            path: self.path.clone(),
+            default: ceiling(&self.default)?,
+            values: self
+                .values
+                .iter()
+                .map(|(policy, text)| Ok((policy.clone(), ceiling(text)?)))
+                .collect::<Result<_, String>>()?,
+        })
+    }
 }
 
 impl RequirementManifest {
@@ -43,6 +75,11 @@ impl RequirementManifest {
             file: self.file.clone(),
             format,
             path: self.path.clone(),
+            roll_forward: self
+                .roll_forward
+                .as_ref()
+                .map(RollForwardManifest::spec)
+                .transpose()?,
         })
     }
 }

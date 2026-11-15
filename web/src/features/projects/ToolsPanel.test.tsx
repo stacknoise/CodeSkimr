@@ -81,6 +81,24 @@ describe("the tools of a project", () => {
     expect(screen.getByText("2 tools missing")).toBeInTheDocument();
   });
 
+  it("warns about an SDK that is newer than the project allows, in both languages", async () => {
+    const tooNew: ToolsInfo = {
+      ...MISSING,
+      tools: [{ ...(MISSING.tools[0] as ToolsInfo["tools"][number]), state: "too_new" }],
+    };
+    serve({
+      "projects.list": () => answer([{ ...ROW, tools: tooNew }]),
+      "projects.tools": () => answer(tooNew),
+    });
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByText("/work/shop"));
+    const warning = await screen.findByRole("status");
+    expect(warning).toHaveTextContent(
+      "too new: 8.0.404 installed, more than the project allows (it names 9.0.100)",
+    );
+    expect(screen.getByText("1 tool missing")).toBeInTheDocument();
+  });
+
   it("says the same in German", async () => {
     setLanguage("de");
     const warning = await openWarning();

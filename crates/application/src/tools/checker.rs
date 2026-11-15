@@ -2,13 +2,14 @@
 
 use std::sync::Arc;
 
-use codeskimr_domain::{ProjectId, ProjectSource, ToolReport};
+use codeskimr_domain::{Ceiling, ProjectId, ProjectSource, ToolReport};
 
-use super::judge::findings_of;
+use super::judge::{ToolLimit, findings_of};
 use crate::error::CodedError;
 use crate::ports::{
     Clock, IndexRunner, IndexerSpec, IndexerStatus, ProjectCatalog, ProjectRepository,
-    ProjectToolCheck, RequirementReader, ToolCatalog, ToolPlan, ToolReportStore, ToolVersion,
+    ProjectToolCheck, RequirementReader, RequirementValue, ToolCatalog, ToolPlan, ToolReportStore,
+    ToolRequirement, ToolVersion,
 };
 
 /// Everything the check needs from the adapters, wired by the composition root.
@@ -42,24 +43,48 @@ impl ToolChecker {
     }
 
     /// The indexer of `plan` with every toolchain version raised to what the project asks for, if
-    /// that is newer than what the pack asks for.
-    fn asked_for(&self, source: &ProjectSource, plan: ToolPlan) -> IndexerSpec {
+    /// that is newer than what the pack asks for, and the ceilings that the files of the project
+    /// set for the tools.
+    fn asked_for(&self, source: &ProjectSource, plan: ToolPlan) -> (IndexerSpec, Vec<ToolLimit>) {
         let mut spec = plan.indexer;
+        let mut limits = Vec::new();
         for requirement in &plan.requirements {
             // Every manifest folder asks; the newest version counts.
-            for text in self.ports.requirements.read_all(source, &requirement.file) {
-                let Some(asked) = ToolVersion::parse_requirement(&text) else {
+            for value in self.ports.requirements.read_all(source, &requirement.file) {
+                let Some(asked) = ToolVersion::parse_requirement(&value.version) else {
                     continue;
                 };
-                for tool in &mut spec.toolchain {
-                    if tool.program == requirement.program && tool.min_version < asked {
-                        tool.min_version = asked;
-                    }
-                }
+                raise(&mut spec, &requirement.program, asked);
+                limits.extend(limit_of(requirement, &value, asked));
             }
         }
-        spec
+        (spec, limits)
     }
+}
+
+/// Raises the minimum of `program` to `asked` if that is newer.
+fn raise(spec: &mut IndexerSpec, program: &str, asked: ToolVersion) {
+    for tool in &mut spec.toolchain {
+        if tool.program == program && tool.min_version < asked {
+            tool.min_version = asked;
+        }
+    }
+}
+
+/// The ceiling that one file sets, if it sets one: a file whose pack names no `rollForward`
+/// rule, or whose policy lets everything through, limits nothing.
+fn limit_of(
+    requirement: &ToolRequirement,
+    value: &RequirementValue,
+    asked: ToolVersion,
+) -> Option<ToolLimit> {
+    let rule = requirement.file.roll_forward.as_ref()?;
+    let ceiling = rule.ceiling_of(value.policy.as_deref());
+    (ceiling != Ceiling::Any).then(|| ToolLimit {
+        program: requirement.program.clone(),
+        asked,
+        ceiling,
+    })
 }
 
 impl ToolChecker {
@@ -88,9 +113,9 @@ impl ProjectToolCheck for ToolChecker {
             let Some(plan) = self.ports.catalog.plan_of(&share.language) else {
                 continue;
             };
-            let spec = self.asked_for(&source, plan);
+            let (spec, limits) = self.asked_for(&source, plan);
             let status = self.status_of(&mut checked, &spec);
-            findings.extend(findings_of(&share.language, &spec, &status));
+            findings.extend(findings_of(&share.language, &spec, &status, &limits));
         }
         let report = ToolReport {
             checked_at: self.ports.clock.now(),

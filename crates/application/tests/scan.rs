@@ -889,7 +889,7 @@ struct CountingRunner(Mutex<u32>);
 
 impl IndexRunner for CountingRunner {
     fn check(&self, _: &IndexerSpec) -> IndexerStatus {
-        IndexerStatus::Ready
+        IndexerStatus::ready()
     }
 
     fn run(&self, _: &IndexJob<'_>, _: &CancelToken) -> Result<IndexArtifact, CodedError> {

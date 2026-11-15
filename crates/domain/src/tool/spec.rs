@@ -1,6 +1,9 @@
 //! What a language pack says about the project files that name the version of a tool.
 
+use std::collections::BTreeMap;
+
 use crate::consts::{
+    CEILING_ANY, CEILING_EXACT, CEILING_SAME_BAND, CEILING_SAME_MAJOR, CEILING_SAME_MINOR,
     REQUIREMENT_FORMAT_JSON, REQUIREMENT_FORMAT_TEXT, REQUIREMENT_FORMAT_TOML, TOOL_ROLE_INDEXER,
     TOOL_ROLE_TOOLCHAIN,
 };
@@ -37,4 +40,46 @@ pub struct RequirementSpec {
     pub format: RequirementFormat,
     /// The keys down to the version for `Json` and `Toml`; empty for `Text`.
     pub path: Vec<String>,
+    /// How far above the named version the project lets a tool go, if the file says so.
+    pub roll_forward: Option<RollForwardSpec>,
+}
+
+labeled_enum!(
+    /// The newest version that a project lets through, counted from the version it names.
+    Ceiling {
+        /// Only the named version.
+        Exact => CEILING_EXACT,
+        /// The same major, the same minor and the same hundreds of the patch number (the feature
+        /// band of the .NET SDK: 8.0.1xx).
+        SameBand => CEILING_SAME_BAND,
+        /// The same major and the same minor.
+        SameMinor => CEILING_SAME_MINOR,
+        /// The same major.
+        SameMajor => CEILING_SAME_MAJOR,
+        /// Any newer version.
+        Any => CEILING_ANY,
+    }
+);
+
+/// Where a project file limits how new a tool may be, such as `rollForward` of `global.json`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RollForwardSpec {
+    /// The keys down to the policy in the same file.
+    pub path: Vec<String>,
+    /// What counts if the file names no policy.
+    pub default: Ceiling,
+    /// What each policy of the file means. A policy that is not listed limits nothing: it is not
+    /// guessed.
+    pub values: BTreeMap<String, Ceiling>,
+}
+
+impl RollForwardSpec {
+    /// The ceiling for the policy text a file holds, or the default for no text.
+    #[must_use]
+    pub fn ceiling_of(&self, policy: Option<&str>) -> Ceiling {
+        match policy {
+            None => self.default,
+            Some(text) => self.values.get(text).copied().unwrap_or(Ceiling::Any),
+        }
+    }
 }
