@@ -81,6 +81,13 @@ pub enum StoredNames<'a> {
     ImportsOf(&'a [FileId]),
     /// The names written inside these symbols, which are in these files.
     Callers(&'a [FileId], &'a [SymbolId]),
+    /// The names, imports excepted, whose target or whose named receiver is one of these simple
+    /// names: what the resolver looks up by them.
+    Targeting(&'a [String]),
+    /// The imports whose target is one of these qualified names.
+    ImportsTargeting(&'a [String]),
+    /// Every name written in these files.
+    OfFiles(&'a [FileId]),
     /// Every name.
     All,
 }

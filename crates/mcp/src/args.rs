@@ -195,4 +195,7 @@ pub struct DependenciesArgs {
 pub struct RescanArgs {
     /// Id of the project; the project of this server if left out.
     pub project: Option<u64>,
+    /// Files and folders, relative to the project root, to look at for changes; everything else
+    /// stays as the last scan has it. The whole project if left out.
+    pub paths: Option<Vec<String>>,
 }

@@ -18,5 +18,6 @@ pub mod pipeline;
 pub mod ports;
 pub mod registry;
 pub mod resolve;
+pub mod selection;
 pub mod stage;
 pub mod tools;

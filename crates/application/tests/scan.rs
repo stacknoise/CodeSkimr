@@ -16,9 +16,9 @@ use codeskimr_application::pipeline::{Job, JobResult, Scanner, ScannerPorts};
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, ConsentStore, DiscoveredFile, FetchedSource, FileAnalyzer,
     FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob, IndexRunner,
-    IndexerSpec, IndexerStatus, Level2Replacement, MetricsCalculator, PendingReference,
-    PreviousIndex, PreviousState, ProjectRepository, ProjectScanner, ReferenceImporter,
-    ReferenceResolver, SnapshotData, SnapshotStore, SourceProvider, StoredNames,
+    IndexerSpec, IndexerStatus, Level2Replacement, MetricsCalculator, PathsReport,
+    PendingReference, PreviousIndex, PreviousState, ProjectRepository, ProjectScanner, Receiver,
+    ReferenceImporter, ReferenceResolver, SnapshotData, SnapshotStore, SourceProvider, StoredNames,
     SymbolFingerprints, ToolSpec, ToolVersion,
 };
 use codeskimr_application::stage::StageKind;
@@ -193,7 +193,7 @@ impl FileAnalyzer for World {
             file: file.id,
             span: span()?,
             kind: ReferenceKind::Call,
-            target: symbol.qualified_name.clone(),
+            target: model(QualifiedName::new(symbol.name.as_str()))?,
             receiver: None,
         }];
         Ok(FileFacts {
@@ -234,7 +234,7 @@ impl ReferenceResolver for World {
             .filter_map(|item| {
                 let target = symbols
                     .iter()
-                    .find(|symbol| symbol.qualified_name == item.target)?;
+                    .find(|symbol| symbol.name.as_str() == item.target.as_str())?;
                 Some(Reference {
                     id: ids.reference(),
                     from: item.from,
@@ -323,6 +323,18 @@ impl ProjectRepository for World {
                 StoredNames::Callers(files, callers) => {
                     files.contains(&name.file) && callers.contains(&name.from)
                 }
+                StoredNames::Targeting(names) => {
+                    name.kind != ReferenceKind::Import
+                        && (names.iter().any(|n| n == name.target.as_str())
+                            || matches!(&name.receiver,
+                                Some(Receiver::Typed(r) | Receiver::Named(r))
+                                    if names.iter().any(|n| n == r.as_str())))
+                }
+                StoredNames::ImportsTargeting(names) => {
+                    name.kind == ReferenceKind::Import
+                        && names.iter().any(|n| n == name.target.as_str())
+                }
+                StoredNames::OfFiles(files) => files.contains(&name.file),
                 StoredNames::All => true,
             })
             .cloned()
@@ -513,9 +525,9 @@ fn previous_snapshot() -> Result<Previous, CodedError> {
     Ok(Previous {
         names_stored: true,
         names: vec![
-            old_name("m::b", 300)?,
-            old_name("m::c", 301)?,
-            old_name("m::a", 302)?,
+            old_name("b", 300)?,
+            old_name("c", 301)?,
+            old_name("a", 302)?,
         ],
         files: vec![
             old_file(100, "a.rs")?,
@@ -610,8 +622,9 @@ fn a_snapshot_without_stored_names_is_followed_by_a_full_scan() -> Result<(), Co
 fn a_name_that_found_nothing_before_finds_a_new_target_in_a_changed_file() -> Result<(), CodedError>
 {
     let mut previous = previous_snapshot()?;
-    // `a` wrote the name `m::b` before, but there was no `b` then, so no reference was stored.
+    // `a` wrote the name `b` before, but there was no `b` then, so no reference was stored.
     previous.index.references.retain(|r| r.id.get() != 300);
+    previous.index.symbols.retain(|s| s.id.get() != 201);
     let world = world_over(previous);
     let _ = run(&world, ScanMode::Incremental);
     let persisted = world.last_persisted()?;
@@ -630,7 +643,10 @@ fn a_name_that_found_nothing_before_finds_a_new_target_in_a_changed_file() -> Re
 fn a_kept_reference_that_the_full_resolution_no_longer_produces_is_dropped()
 -> Result<(), CodedError> {
     let mut previous = previous_snapshot()?;
-    previous.names.retain(|name| name.target.as_str() != "m::a");
+    // The stored call of `a` to itself is now a name that looks up the removed `c`, so the
+    // resolution is due and finds nothing for it.
+    previous.names.retain(|name| name.target.as_str() != "a");
+    previous.names.push(old_name("c", 302)?);
     let world = world_over(previous);
     let _ = run(&world, ScanMode::Incremental);
     let persisted = world.last_persisted()?;
@@ -670,7 +686,7 @@ fn level_two_references_stay_and_one_whose_target_is_gone_falls_back_to_level_on
     let mut previous = previous_snapshot()?;
     previous.index.references = vec![verified(old_call(300, 201)?), verified(old_call(302, 200)?)];
     // Level 2 reported nothing for the call of `c`; level 1 must not add what it replaced.
-    previous.names.push(old_name("m::a", 302)?);
+    previous.names.push(old_name("a", 302)?);
     let world = world_over(previous);
     let (result, _) = run(&world, ScanMode::Incremental);
     let JobResult::Finished(job) = result else {
@@ -792,7 +808,7 @@ fn a_change_that_keeps_the_declarations_resolves_only_the_names_that_pointed_int
     previous.files.retain(|f| f.path.as_str() != "c.rs");
     previous.index.symbols.retain(|s| s.file.get() != 102);
     previous.index.references.retain(|r| r.to.get() != 202);
-    previous.names.retain(|n| n.target.as_str() != "m::c");
+    previous.names.retain(|n| n.target.as_str() != "c");
     let world = world_over(previous);
     let _ = run(&world, ScanMode::Incremental);
     // The new call in `b.rs` and the call of `a` that pointed at the old `b`; the call of `a` to
@@ -805,11 +821,12 @@ fn a_change_that_keeps_the_declarations_resolves_only_the_names_that_pointed_int
 }
 
 #[test]
-fn a_change_of_the_declarations_resolves_all_names_again() -> Result<(), CodedError> {
+fn a_gone_declaration_resolves_the_names_that_looked_it_up_again() -> Result<(), CodedError> {
     let world = a_unchanged_b_changed()?;
     let _ = run(&world, ScanMode::Incremental);
-    // `c.rs` is gone: the new call of `b.rs` and the three names of `a`.
-    assert_eq!(resolved_names(&world), [4]);
+    // `c.rs` is gone: the new call of `b.rs`, the name of `a` that looked up `c`, and the name that
+    // pointed at the replaced symbol of `b`; the call of `a` to itself is not resolved again.
+    assert_eq!(resolved_names(&world), [3]);
     Ok(())
 }
 
@@ -1011,7 +1028,7 @@ fn a_reference_that_is_kept_is_not_resolved_a_second_time() -> Result<(), CodedE
     // name is resolved again to the same unchanged candidate and the new `b`.
     previous.index.symbols.push(old_symbol(203, 100, "b")?);
     previous.index.references.push(old_call(303, 203)?);
-    previous.names.push(old_name("m::b", 303)?);
+    previous.names.push(old_name("b", 303)?);
     let world = world_over(previous);
     let _ = run(&world, ScanMode::Incremental);
     let calls_to_203 = world
@@ -1345,4 +1362,128 @@ fn the_worker_limit_caps_the_threads_and_zero_means_all_cores() {
     assert!(cores >= 1);
     assert_eq!(analyze_workers(1), 1);
     assert_eq!(analyze_workers(u32::MAX), cores);
+}
+
+/// An incremental scan restricted to `paths` over a world where `found` is what discovery sees.
+fn restricted_scan(
+    found: Vec<(&'static str, bool)>,
+    paths: &[&str],
+) -> Result<SnapshotData, CodedError> {
+    let world = Arc::new(World {
+        found: Some(found),
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let paths: Vec<String> = paths.iter().map(|path| (*path).to_owned()).collect();
+    let job = Job::new(ProjectId::new(7), ScanMode::Incremental).with_paths(&paths);
+    let result = scanner(&world, &EventBus::new()).run(&Principal::local_owner(), job);
+    assert!(
+        matches!(result, JobResult::Finished(_)),
+        "scan did not finish"
+    );
+    world.last_persisted()
+}
+
+fn analysed(data: &SnapshotData) -> Vec<&str> {
+    data.files.iter().map(|file| file.path.as_str()).collect()
+}
+
+#[test]
+fn a_scan_restricted_to_paths_does_not_look_at_a_change_elsewhere() -> Result<(), CodedError> {
+    let found = || vec![("a.rs", false), ("b.rs", true), ("c.rs", false)];
+    assert_eq!(
+        analysed(&restricted_scan(found(), &["a.rs"])?),
+        Vec::<&str>::new()
+    );
+    assert_eq!(analysed(&restricted_scan(found(), &["b.rs"])?), ["b.rs"]);
+    assert_eq!(analysed(&restricted_scan(found(), &[])?), ["b.rs"]);
+    Ok(())
+}
+
+#[test]
+fn a_scan_restricted_to_paths_keeps_a_file_that_is_gone_elsewhere() -> Result<(), CodedError> {
+    let found = || vec![("a.rs", false), ("c.rs", false)];
+    let kept = restricted_scan(found(), &["a.rs"])?;
+    assert_eq!(kept.removed, Vec::<RelativePath>::new());
+    let all = restricted_scan(found(), &[])?;
+    assert_eq!(all.removed, [model(RelativePath::new("b.rs"))?]);
+    let named = restricted_scan(found(), &["b.rs"])?;
+    assert_eq!(named.removed, [model(RelativePath::new("b.rs"))?]);
+    Ok(())
+}
+
+#[test]
+fn a_scan_restricted_to_paths_that_name_no_file_changes_nothing() -> Result<(), CodedError> {
+    let found = vec![("a.rs", false), ("b.rs", true), ("c.rs", false)];
+    let in_folder = restricted_scan(found, &["./src/"])?;
+    assert_eq!(
+        analysed(&in_folder),
+        Vec::<&str>::new(),
+        "no file lies below src"
+    );
+    let found = vec![("a.rs", false), ("b.rs", true), ("c.rs", false)];
+    let escaping = restricted_scan(found, &["../b.rs", "/b.rs"])?;
+    assert_eq!(
+        analysed(&escaping),
+        Vec::<&str>::new(),
+        "a path that leaves the project names nothing"
+    );
+    Ok(())
+}
+
+/// What a scan over the world of `a.rs`, `b.rs` and `c.rs` made of the `paths` it was asked for.
+fn paths_report(mode: ScanMode, paths: &[&str]) -> Result<PathsReport, CodedError> {
+    let world = Arc::new(World {
+        found: Some(vec![("a.rs", false), ("c.rs", false)]),
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let paths: Vec<String> = paths.iter().map(|path| (*path).to_owned()).collect();
+    let job = Job::new(ProjectId::new(7), mode).with_paths(&paths);
+    let JobResult::Finished(job) =
+        scanner(&world, &EventBus::new()).run(&Principal::local_owner(), job)
+    else {
+        return Err(CodedError::new(ErrorCode::UnexpectedInternalError));
+    };
+    Ok(job.paths_report().clone())
+}
+
+#[test]
+fn a_path_that_names_no_file_is_reported_and_a_deleted_file_is_not_unmatched()
+-> Result<(), CodedError> {
+    // `b.rs` is gone from the folder but known to the previous snapshot: a legitimate path.
+    let report = paths_report(
+        ScanMode::Incremental,
+        &["a.rs", "b.rs", "typo.rs", "../a.rs", "/a.rs"],
+    )?;
+    assert_eq!(report.unmatched, ["typo.rs", "../a.rs", "/a.rs"]);
+    assert!(!report.ignored);
+    Ok(())
+}
+
+#[test]
+fn a_scan_without_paths_has_nothing_to_report() -> Result<(), CodedError> {
+    assert_eq!(
+        paths_report(ScanMode::Incremental, &[])?,
+        PathsReport::default()
+    );
+    Ok(())
+}
+
+#[test]
+fn paths_of_a_scan_that_had_to_be_a_full_one_are_reported_as_ignored() -> Result<(), CodedError> {
+    assert!(paths_report(ScanMode::Full, &["a.rs"])?.ignored);
+    let world = world_with_rules("csharp=namespace", Some("csharp=file"))?;
+    let job = Job::new(ProjectId::new(7), ScanMode::Incremental).with_paths(&["a.rs".to_owned()]);
+    let JobResult::Finished(job) =
+        scanner(&world, &EventBus::new()).run(&Principal::local_owner(), job)
+    else {
+        panic!("scan did not finish");
+    };
+    assert_eq!(job.snapshot().mode, ScanMode::Full);
+    assert!(
+        job.paths_report().ignored,
+        "other naming rules make a full scan"
+    );
+    Ok(())
 }

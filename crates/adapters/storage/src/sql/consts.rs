@@ -446,6 +446,24 @@ pub const PENDING_OF_CALLERS: &str = "SELECT file_id, from_symbol, start_line, s
     WHERE file_id IN (SELECT value FROM json_each(?2)) \
     AND from_symbol IN (SELECT value FROM json_each(?3)) AND file_id IN \
     (SELECT id FROM files WHERE snapshot_id = ?1) ORDER BY rowid";
+/// The names of a snapshot, imports excepted, whose target or named receiver is one of some simple
+/// names: snapshot, names joined by the unit separator, import label, the unit separator.
+pub const PENDING_TARGETING: &str = "SELECT file_id, from_symbol, start_line, start_column, \
+    end_line, end_column, kind, target, receiver_kind, receiver_name FROM pending_references \
+    WHERE kind <> ?3 AND (instr(?2, ?4 || target || ?4) > 0 \
+    OR instr(?2, ?4 || receiver_name || ?4) > 0) AND file_id IN \
+    (SELECT id FROM files WHERE snapshot_id = ?1) ORDER BY rowid";
+/// The imports of a snapshot whose target is one of some qualified names: snapshot, names joined by
+/// the unit separator, import label, the unit separator.
+pub const PENDING_IMPORTS_TARGETING: &str = "SELECT file_id, from_symbol, start_line, \
+    start_column, end_line, end_column, kind, target, receiver_kind, receiver_name \
+    FROM pending_references WHERE kind = ?3 AND instr(?2, ?4 || target || ?4) > 0 \
+    AND file_id IN (SELECT id FROM files WHERE snapshot_id = ?1) ORDER BY rowid";
+/// All names of some files of a snapshot: snapshot, JSON list of file ids.
+pub const PENDING_OF_FILES: &str = "SELECT file_id, from_symbol, start_line, start_column, \
+    end_line, end_column, kind, target, receiver_kind, receiver_name FROM pending_references \
+    WHERE file_id IN (SELECT value FROM json_each(?2)) AND file_id IN \
+    (SELECT id FROM files WHERE snapshot_id = ?1) ORDER BY rowid";
 /// All names of the files of a snapshot: snapshot.
 pub const PENDING_OF_SNAPSHOT: &str = "SELECT file_id, from_symbol, start_line, start_column, \
     end_line, end_column, kind, target, receiver_kind, receiver_name FROM pending_references \

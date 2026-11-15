@@ -4,7 +4,7 @@ Benchmarks implement blueprint 16.1 and 17.1. The harness is `tools/bench` (crat
 
 ## How the check works
 
-1. The `bench` job measures the **base commit** (the target branch of the pull request) and then the **change** with `criterion`, one after the other on the same runner (`tools/bench/ci.sh`).
+1. The `bench` job measures the **base commit** (the target branch of the pull request) and the **change** with `criterion` on the same runner (`tools/bench/ci.sh`). The two sides alternate benchmark target by benchmark target, so a slow phase of the runner hits both sides alike.
 2. `bench-check` compares the medians per benchmark. A benchmark that is slower than `regression_tolerance_percent` (`config/default.toml`, 10 %) fails the job.
 3. Benchmarks listed in `tools/bench/budgets.toml` are also checked against their absolute budget from `[budgets]` in `config/default.toml`.
 4. A benchmark without a base measurement (new benchmark, or the base has no harness yet) is reported and does not fail.
@@ -27,7 +27,7 @@ tools/bench/ci.sh HEAD
 cargo bench -p codeskimr_bench
 ```
 
-A failed comparison is measured once more before the job fails, because one run on a shared runner can be an outlier. Results of earlier runs (for example from the build cache) are deleted first, and an error while reading results always fails the check; only `--no-base` (the base commit has no harness yet) skips the comparison.
+A failed comparison is measured once more before the job fails, because one run on a shared runner can be an outlier. The second run is a full run of both sides with the order reversed (change first, then base), so an effect of the order does not stay in both runs; `bench-check` then takes the best (lowest) median of each benchmark and side over both runs (`--criterion-dir` may be given more than once). Noise only ever makes a run slower, so the best median is the closest to the true value; the tolerance and the budgets stay as they are, and a real regression is slower in both runs and still fails. Results of earlier runs (for example from the build cache) are deleted first, and an error while reading results always fails the check; only `--no-base` (the base commit has no harness yet) skips the comparison.
 
 `ci.sh` needs Linux or macOS with bash. On Windows use Git Bash or WSL, or run `cargo bench -p codeskimr_bench` directly.
 

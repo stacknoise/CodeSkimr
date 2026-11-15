@@ -6,7 +6,7 @@ use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Permission, Principal, ProjectId, ScanMode, Snapshot};
 
 use super::flow::{Chain, Halt, Pipeline, Single, StageContext};
-use super::job::{Cancelled, Failed, Finished, Job, Queued};
+use super::job::{Cancelled, Failed, Finished, Job, Queued, Running};
 use super::stages::{
     AnalyzeStage, DiscoverStage, FetchStage, MeasureStage, PersistStage, Persisted, ResolveStage,
     ScanRequest,
@@ -19,7 +19,7 @@ use crate::ids::IdSequence;
 use crate::level2::{LanguageReport, Level2Pass};
 use crate::ports::{
     Clock, FileAnalyzer, FileDiscovery, MetricsCalculator, ProjectRepository, ProjectScanner,
-    ReferenceResolver, SnapshotStore, SourceProvider,
+    ReferenceResolver, Rescanned, SnapshotStore, SourceProvider,
 };
 
 /// Everything the scanner needs from the adapters, wired by the composition root.
@@ -137,26 +137,36 @@ impl Scanner {
             Err(cause) => return self.fail(job.fail(cause.code()), project_id),
         };
         let ctx = StageContext::new(project_id, job.token(), &self.events);
-        match self.pipeline.run(ScanRequest { project, mode }, &ctx) {
-            Ok(persisted) => {
-                // Level 1 is complete and usable now; level 2 may take minutes.
-                self.created(&persisted.snapshot);
-                let (snapshot, reports) = self.second_pass(
-                    *principal,
-                    persisted.clone(),
-                    (job.token(), job.level2_wanted()),
-                );
-                if snapshot != persisted.snapshot {
-                    self.created(&snapshot);
-                }
-                JobResult::Finished(job.finish(snapshot, reports, persisted.warnings))
-            }
+        match self.pipeline.run(
+            ScanRequest {
+                project,
+                mode,
+                paths: job.paths().clone(),
+            },
+            &ctx,
+        ) {
+            Ok(persisted) => self.finished(*principal, job, persisted),
             Err(Halt::Cancelled(_)) => {
                 self.stopped(project_id, StopReason::Cancelled);
                 JobResult::Cancelled(job.cancel())
             }
             Err(Halt::Failed(error)) => self.fail(job.fail(error.code()), project_id),
         }
+    }
+
+    /// Level 1 is complete and usable now; level 2 may take minutes. Tells so, runs the second
+    /// pass and ends the job.
+    fn finished(&self, principal: Principal, job: Job<Running>, persisted: Persisted) -> JobResult {
+        self.created(&persisted.snapshot);
+        let (snapshot, reports) = self.second_pass(
+            principal,
+            persisted.clone(),
+            (job.token(), job.level2_wanted()),
+        );
+        if snapshot != persisted.snapshot {
+            self.created(&snapshot);
+        }
+        JobResult::Finished(job.finish(snapshot, reports, persisted.warnings, persisted.paths))
     }
 
     /// Level 2 runs after level 1 is stored, so a cancel or a failure of it leaves level 1 as it
@@ -195,14 +205,24 @@ impl Scanner {
 }
 
 impl ProjectScanner for Scanner {
-    fn rescan(&self, principal: &Principal, project: ProjectId) -> Result<Snapshot, CodedError> {
+    fn rescan_paths(
+        &self,
+        principal: &Principal,
+        project: ProjectId,
+        paths: &[String],
+    ) -> Result<Rescanned, CodedError> {
         // A rescan asked for through MCP or the UI is level 1 only: it must not start the build tools
         // of the project. Level 2 runs with the scan of the command line (ADR 0033).
         match self.run(
             principal,
-            Job::new(project, ScanMode::Incremental).without_level2(),
+            Job::new(project, ScanMode::Incremental)
+                .without_level2()
+                .with_paths(paths),
         ) {
-            JobResult::Finished(job) => Ok(job.snapshot().clone()),
+            JobResult::Finished(job) => Ok(Rescanned {
+                snapshot: job.snapshot().clone(),
+                paths: job.paths_report().clone(),
+            }),
             JobResult::Failed(job) => Err(CodedError::new(job.code())),
             JobResult::Cancelled(_) => Err(CodedError::new(ErrorCode::ScanCancelled)),
         }

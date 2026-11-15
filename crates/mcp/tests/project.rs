@@ -111,7 +111,13 @@ fn a_failing_check_is_reported_with_its_code() {
 #[test]
 fn a_rescan_reports_the_tools_it_found_missing() {
     let answer = tools()
-        .rescan(&owner(), &RescanArgs { project: None })
+        .rescan(
+            &owner(),
+            &RescanArgs {
+                project: None,
+                paths: None,
+            },
+        )
         .unwrap();
     assert_eq!(tool_named(&answer, "scip-dotnet")["state"], "missing");
 }
@@ -123,7 +129,13 @@ fn a_rescan_does_not_fail_when_the_check_does() {
         ..FakeToolCheck::default()
     };
     let answer = tools_checking(Arc::new(check))
-        .rescan(&owner(), &RescanArgs { project: None })
+        .rescan(
+            &owner(),
+            &RescanArgs {
+                project: None,
+                paths: None,
+            },
+        )
         .unwrap();
     assert_eq!(answer["tools"].as_array().unwrap().len(), 0);
 }
