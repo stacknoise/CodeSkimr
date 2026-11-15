@@ -68,6 +68,13 @@ fn search_respects_the_limit_and_returns_where_the_symbol_lives() {
     assert_eq!(hits[0].qualified_name.as_str(), "App.Order");
 }
 
+fn from_a_test(reference: Reference) -> Reference {
+    Reference {
+        kind: ReferenceKind::Test,
+        ..reference
+    }
+}
+
 #[test]
 fn usage_counts_count_references_per_target() {
     let symbols = vec![
@@ -78,35 +85,15 @@ fn usage_counts_count_references_per_target() {
         reference(31, 11, 21, 22),
         reference(32, 11, 21, 22),
         reference(33, 11, 22, 22),
+        // References of kind `test` are not counted as usages (issue #430) ...
+        from_a_test(reference(34, 11, 21, 22)),
     ];
     let store = scanned(&[], symbols, references, vec![]);
     assert_eq!(store.usage_count(SNAPSHOT, SymbolId::new(22)).unwrap(), 3);
     assert_eq!(store.usage_count(SNAPSHOT, SymbolId::new(21)).unwrap(), 0);
-}
-
-fn from_a_test(reference: Reference) -> Reference {
-    Reference {
-        kind: ReferenceKind::Test,
-        ..reference
-    }
-}
-
-#[test]
-fn usage_counts_leave_out_references_of_kind_test() {
-    let symbols = vec![
-        symbol(21, 11, SymbolKind::Method, "App.A.Run", None),
-        symbol(22, 11, SymbolKind::Method, "App.A.Stop", None),
-    ];
-    let references = vec![
-        reference(31, 11, 21, 22),
-        from_a_test(reference(32, 11, 21, 22)),
-        from_a_test(reference(33, 11, 21, 22)),
-    ];
-    let store = scanned(&[], symbols, references, vec![]);
-    assert_eq!(store.usage_count(SNAPSHOT, SymbolId::new(22)).unwrap(), 1);
-    // The total of the snapshot is a count of what is stored, so it keeps the test references.
+    // ... but the total of the snapshot is a count of what is stored.
     let latest = store.latest_snapshot(ProjectId::new(1)).unwrap().unwrap();
-    assert_eq!(latest.stats.references, 3);
+    assert_eq!(latest.stats.references, 4);
 }
 
 #[test]
@@ -160,6 +147,8 @@ fn layered() -> codeskimr_storage::SqliteStore {
         reference(34, 11, 23, 22),
         reference(35, 11, 22, 24),
         reference(36, 11, 25, 22),
+        // A reference of kind `test` is no edge of the graph (issue #430).
+        from_a_test(reference(37, 11, 22, 21)),
     ];
     scanned(&layers, symbols, references, vec![])
 }
@@ -187,27 +176,6 @@ fn layer_graph_aggregates_references_between_layers() {
         ],
         "same-layer references and names outside every layer are not edges"
     );
-}
-
-#[test]
-fn layer_graph_leaves_out_references_of_kind_test() {
-    let layers = [("Api", &["App.Api"][..]), ("Core", &["App.Core"])];
-    let symbols = vec![
-        symbol(21, 11, SymbolKind::Class, "App.Api.Controller", None),
-        symbol(22, 11, SymbolKind::Class, "App.Core.Service", None),
-    ];
-    let references = vec![
-        reference(31, 11, 21, 22),
-        from_a_test(reference(32, 11, 22, 21)),
-        from_a_test(reference(33, 11, 21, 22)),
-    ];
-    let store = scanned(&layers, symbols, references, vec![]);
-    let edges = store.layer_edges(SNAPSHOT).unwrap();
-    let shown: Vec<_> = edges
-        .iter()
-        .map(|edge| (edge.from.as_str(), edge.to.as_str(), edge.count))
-        .collect();
-    assert_eq!(shown, [("Api", "Core", 1)]);
 }
 
 #[test]
