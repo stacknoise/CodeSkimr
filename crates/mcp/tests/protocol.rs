@@ -105,6 +105,8 @@ async fn lists_exactly_the_eleven_tools_with_schemas_and_only_rescan_writes() {
         assert_ne!(tool["description"].as_str().unwrap(), "");
     }
     assert_eq!(tools[0]["inputSchema"]["required"][0], "query");
+    let symbol = &tools[1]["inputSchema"]["properties"]["symbol"];
+    assert_eq!(symbol["anyOf"].as_array().unwrap().len(), 2);
 }
 
 #[tokio::test]
