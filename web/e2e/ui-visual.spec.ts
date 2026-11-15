@@ -1,4 +1,4 @@
-// Visual check of the screens against the mocks (blueprint 17.1, 1440 x 900, light theme).
+// Visual check of the screens against the mocks (blueprint 17.1, 1440 x 900, all three themes).
 //
 // The mocks are plain HTML with inline styles, so a browser lays them out even without the design
 // canvas: the test opens the mock, adds the one rule the canvas adds (border-box), measures
@@ -25,6 +25,7 @@ import {
 const MOCKS = path.resolve(import.meta.dirname, "../../docs/mocks");
 const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/visual");
 const TOKENS = path.resolve(import.meta.dirname, "../../design/tokens.toml");
+const THEMES = ["hell", "petrol", "dunkel"];
 const VIEWPORT = { width: 1440, height: 900 };
 /** Pixels by which a landmark may differ from the mock (rounding of fractions). */
 const TOLERANCE = 1;
@@ -164,180 +165,188 @@ const MANY_MEMBERS = [
   "",
 ].join("\n");
 
-test.describe("the screens against the mocks (1440 x 900, light)", () => {
-  test.use({ viewport: VIEWPORT });
+// The landmarks do not move with the theme, so every screen is measured against the same mock in
+// all three themes (blueprint 19, M3). The colours of the frame per theme are checked below.
+for (const theme of THEMES) {
+  test.describe(`the screens against the mocks (1440 x 900, ${theme})`, () => {
+    test.use({ viewport: VIEWPORT });
 
-  test("the frame has the colours, sizes and type of the mocks", async ({ page, harness }) => {
-    await openUi(page, harness);
-    await expect(page.getByText("● Connected")).toBeVisible();
-    const mock = await openMock(page, "Main");
-    const wanted = await frameStyle(mock);
-    const actual = await frameStyle(page);
-    expect(actual).toEqual(wanted);
-    await compare(page, mock, SHELL);
-  });
+    // The colours of the mocks 1 to 6 are those of Hell; Petrol and Dunkel are checked against the
+    // token file below.
+    if (theme === "hell") {
+      test("the frame has the colours, sizes and type of the mocks", async ({ page, harness }) => {
+        await openUi(page, harness, theme);
+        await expect(page.getByText("● Connected")).toBeVisible();
+        const mock = await openMock(page, "Main");
+        const wanted = await frameStyle(mock);
+        const actual = await frameStyle(page);
+        expect(actual).toEqual(wanted);
+        await compare(page, mock, SHELL);
+      });
+    }
 
-  test("Projects (1)", async ({ page, harness }, info) => {
-    await prepare(page);
-    const row = await addScannedProject(page, harness, "visprojects", SOURCE);
-    await expect(row).toBeVisible();
-    const mock = await openMock(page, "Main");
-    await compare(page, mock, [
-      ...SHELL,
-      { name: "screen", mock: "nav ~ main", real: "main" },
-      { name: "form", mock: "nav ~ main form", real: "main form", only: ["x", "width"] },
-      { name: "list", mock: "nav ~ main table", real: "main table", only: ["x", "width"] },
-    ]);
-    await shot(page, "projects-hell", info);
-  });
+    test("Projects (1)", async ({ page, harness }, info) => {
+      await prepare(page, theme);
+      const row = await addScannedProject(page, harness, `visprojects${theme}`, SOURCE);
+      await expect(row).toBeVisible();
+      const mock = await openMock(page, "Main");
+      await compare(page, mock, [
+        ...SHELL,
+        { name: "screen", mock: "nav ~ main", real: "main" },
+        { name: "form", mock: "nav ~ main form", real: "main form", only: ["x", "width"] },
+        { name: "list", mock: "nav ~ main table", real: "main table", only: ["x", "width"] },
+      ]);
+      await shot(page, `projects-${theme}`, info);
+    });
 
-  test("Explorer (2)", async ({ page, harness }, info) => {
-    await prepare(page);
-    const row = await addScannedProject(page, harness, "visexplorer", SOURCE);
-    await row.click({ position: { x: 4, y: 4 } });
-    await page.keyboard.press("Enter");
-    await page.getByText("(no layer)").click();
-    await page.getByText("Vis", { exact: true }).click();
-    await page.getByText("Calculator", { exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Calculator" })).toBeVisible();
-    const mock = await openMock(page, "Explorer");
-    await compare(page, mock, [
-      ...SHELL,
-      {
-        name: "tree column",
-        mock: "nav ~ section:nth-of-type(1)",
-        real: "main section[aria-label='Structure']",
-      },
-      {
-        name: "source column",
-        mock: "nav ~ section:nth-of-type(3)",
-        real: "main section[aria-label='Source']",
-      },
-    ]);
-    await shot(page, "explorer-hell", info);
-  });
+    test("Explorer (2)", async ({ page, harness }, info) => {
+      await prepare(page, theme);
+      const row = await addScannedProject(page, harness, `visexplorer${theme}`, SOURCE);
+      await row.click({ position: { x: 4, y: 4 } });
+      await page.keyboard.press("Enter");
+      await page.getByText("(no layer)").click();
+      await page.getByText("Vis", { exact: true }).click();
+      await page.getByText("Calculator", { exact: true }).click();
+      await expect(page.getByRole("heading", { name: "Calculator" })).toBeVisible();
+      const mock = await openMock(page, "Explorer");
+      await compare(page, mock, [
+        ...SHELL,
+        {
+          name: "tree column",
+          mock: "nav ~ section:nth-of-type(1)",
+          real: "main section[aria-label='Structure']",
+        },
+        {
+          name: "source column",
+          mock: "nav ~ section:nth-of-type(3)",
+          real: "main section[aria-label='Source']",
+        },
+      ]);
+      await shot(page, `explorer-${theme}`, info);
+    });
 
-  test("Quick search (4)", async ({ page, harness }, info) => {
-    await prepare(page);
-    const row = await addScannedProject(page, harness, "vissearch", MANY_MEMBERS);
-    await row.click({ position: { x: 4, y: 4 } });
-    await page.keyboard.press("Enter");
-    await expect(page.getByRole("tree")).toBeVisible();
-    await page.keyboard.press("Control+k");
-    // With many hits the dialog is cut to 70 vh: the rows above the list keep their size.
-    await page.getByRole("combobox").fill("Item");
-    await expect(page.getByRole("option").first()).toBeVisible();
-    const mock = await openMock(page, "Palette");
-    await compare(page, mock, [
-      { name: "dialog", mock: "[role=dialog]", real: "[role=dialog]", only: ["x", "y", "width"] },
-      {
-        name: "input row",
-        mock: "[role=dialog] > div:nth-child(1)",
-        real: "[role=dialog] > div:nth-child(1)",
-        only: ["height"],
-      },
-      {
-        name: "preview",
-        mock: "[role=dialog] > div:nth-child(3) > div:last-child",
-        real: "[role=dialog] aside",
-        only: ["x", "width"],
-      },
-    ]);
-    await shot(page, "search-hell", info);
-  });
+    test("Quick search (4)", async ({ page, harness }, info) => {
+      await prepare(page, theme);
+      const row = await addScannedProject(page, harness, `vissearch${theme}`, MANY_MEMBERS);
+      await row.click({ position: { x: 4, y: 4 } });
+      await page.keyboard.press("Enter");
+      await expect(page.getByRole("tree")).toBeVisible();
+      await page.keyboard.press("Control+k");
+      // With many hits the dialog is cut to 70 vh: the rows above the list keep their size.
+      await page.getByRole("combobox").fill("Item");
+      await expect(page.getByRole("option").first()).toBeVisible();
+      const mock = await openMock(page, "Palette");
+      await compare(page, mock, [
+        { name: "dialog", mock: "[role=dialog]", real: "[role=dialog]", only: ["x", "y", "width"] },
+        {
+          name: "input row",
+          mock: "[role=dialog] > div:nth-child(1)",
+          real: "[role=dialog] > div:nth-child(1)",
+          only: ["height"],
+        },
+        {
+          name: "preview",
+          mock: "[role=dialog] > div:nth-child(3) > div:last-child",
+          real: "[role=dialog] aside",
+          only: ["x", "width"],
+        },
+      ]);
+      await shot(page, `search-${theme}`, info);
+    });
 
-  test("Settings (13)", async ({ page, harness }, info) => {
-    await openUi(page, harness);
-    await expect(page.getByText("● Connected")).toBeVisible();
-    await page.getByRole("link", { name: "Settings" }).click();
-    await expect(page.getByRole("heading", { name: "Language" })).toBeVisible();
-    const mock = await openMock(page, "Themes");
-    await compare(page, mock, [
-      ...SHELL,
-      {
-        name: "theme card",
-        mock: "main .panel",
-        real: "main section:nth-of-type(1)",
-        only: ["x", "width"],
-      },
-      {
-        name: "language card",
-        mock: "main .panel[style*='max-width:560px']",
-        real: "main section:has(select)",
-        only: ["x", "width"],
-      },
-    ]);
-    await shot(page, "settings-hell", info);
-  });
+    test("Settings (13)", async ({ page, harness }, info) => {
+      await openUi(page, harness, theme);
+      await expect(page.getByText("● Connected")).toBeVisible();
+      await page.getByRole("link", { name: "Settings" }).click();
+      await expect(page.getByRole("heading", { name: "Language" })).toBeVisible();
+      const mock = await openMock(page, "Themes");
+      await compare(page, mock, [
+        ...SHELL,
+        {
+          name: "theme card",
+          mock: "main .panel",
+          real: "main section:nth-of-type(1)",
+          only: ["x", "width"],
+        },
+        {
+          name: "language card",
+          mock: "main .panel[style*='max-width:560px']",
+          real: "main section:has(select)",
+          only: ["x", "width"],
+        },
+      ]);
+      await shot(page, `settings-${theme}`, info);
+    });
 
-  test("Scan and performance (5)", async ({ page, harness }, info) => {
-    await prepare(page);
-    await addScannedProject(page, harness, "visscan", SOURCE);
-    await page.getByRole("link", { name: "Scans and performance" }).click();
-    await expect(page.getByRole("heading", { name: "Scan finished" })).toBeVisible();
-    const mock = await openMock(page, "Scan");
-    await compare(page, mock, [
-      ...SHELL,
-      {
-        name: "progress column",
-        mock: "nav ~ main > div",
-        real: "main section > div",
-        only: ["x", "width"],
-      },
-      {
-        name: "side column",
-        mock: "nav ~ main > aside",
-        real: "main section > aside",
-        only: ["x", "width"],
-      },
-    ]);
-    await shot(page, "scan-hell", info);
-  });
+    test("Scan and performance (5)", async ({ page, harness }, info) => {
+      await prepare(page, theme);
+      await addScannedProject(page, harness, `visscan${theme}`, SOURCE);
+      await page.getByRole("link", { name: "Scans and performance" }).click();
+      await expect(page.getByRole("heading", { name: "Scan finished" })).toBeVisible();
+      const mock = await openMock(page, "Scan");
+      await compare(page, mock, [
+        ...SHELL,
+        {
+          name: "progress column",
+          mock: "nav ~ main > div",
+          real: "main section > div",
+          only: ["x", "width"],
+        },
+        {
+          name: "side column",
+          mock: "nav ~ main > aside",
+          real: "main section > aside",
+          only: ["x", "width"],
+        },
+      ]);
+      await shot(page, `scan-${theme}`, info);
+    });
 
-  test("Usages (6)", async ({ page, harness }, info) => {
-    await prepare(page);
-    const row = await addScannedProject(page, harness, "visusages", SOURCE);
-    await selectAdd(page, row, "Vis");
-    await page.keyboard.press("u");
-    await expect(page.getByRole("region", { name: "Usage graph" })).toBeVisible();
-    await expect(page.getByText("Hits 1")).toBeVisible();
-    const mock = await openMock(page, "Usages");
-    await compare(page, mock, [
-      ...SHELL,
-      { name: "graph column", mock: "nav ~ section", real: "main section", only: ["x", "width"] },
-      {
-        name: "toolbar",
-        mock: "nav ~ section > div:nth-child(1)",
-        real: "main section > div:nth-child(1)",
-        only: ["x", "width"],
-      },
-      { name: "side panel", mock: "nav ~ aside", real: "main aside" },
-    ]);
-    await shot(page, "usages-hell", info);
-  });
+    test("Usages (6)", async ({ page, harness }, info) => {
+      await prepare(page, theme);
+      const row = await addScannedProject(page, harness, `visusages${theme}`, SOURCE);
+      await selectAdd(page, row, "Vis");
+      await page.keyboard.press("u");
+      await expect(page.getByRole("region", { name: "Usage graph" })).toBeVisible();
+      await expect(page.getByText("Hits 1")).toBeVisible();
+      const mock = await openMock(page, "Usages");
+      await compare(page, mock, [
+        ...SHELL,
+        { name: "graph column", mock: "nav ~ section", real: "main section", only: ["x", "width"] },
+        {
+          name: "toolbar",
+          mock: "nav ~ section > div:nth-child(1)",
+          real: "main section > div:nth-child(1)",
+          only: ["x", "width"],
+        },
+        { name: "side panel", mock: "nav ~ aside", real: "main aside" },
+      ]);
+      await shot(page, `usages-${theme}`, info);
+    });
 
-  test("Dependencies (3)", async ({ page, harness }, info) => {
-    await openUi(page, harness);
-    await expect(page.getByText("● Connected")).toBeVisible();
-    const open = await addLayeredProject(page, harness, "visgraph");
-    await open.click();
-    await page.getByRole("link", { name: "Dependencies" }).click();
-    await page.getByRole("button", { name: "Domain" }).click();
-    await expect(page.getByRole("heading", { name: "Domain" })).toBeVisible({ timeout: SCAN_MS });
-    const mock = await openMock(page, "Graph");
-    await compare(page, mock, [
-      ...SHELL,
-      {
-        name: "map",
-        mock: "nav ~ section",
-        real: "main section > div:first-of-type",
-        only: ["x", "width"],
-      },
-      { name: "side panel", mock: "nav ~ aside", real: "main aside" },
-    ]);
-    await shot(page, "graph-hell", info);
+    test("Dependencies (3)", async ({ page, harness }, info) => {
+      await openUi(page, harness, theme);
+      await expect(page.getByText("● Connected")).toBeVisible();
+      const open = await addLayeredProject(page, harness, `visgraph${theme}`);
+      await open.click();
+      await page.getByRole("link", { name: "Dependencies" }).click();
+      await page.getByRole("button", { name: "Domain" }).click();
+      await expect(page.getByRole("heading", { name: "Domain" })).toBeVisible({ timeout: SCAN_MS });
+      const mock = await openMock(page, "Graph");
+      await compare(page, mock, [
+        ...SHELL,
+        {
+          name: "map",
+          mock: "nav ~ section",
+          real: "main section > div:first-of-type",
+          only: ["x", "width"],
+        },
+        { name: "side panel", mock: "nav ~ aside", real: "main aside" },
+      ]);
+      await shot(page, `graph-${theme}`, info);
+    });
   });
-});
+}
 
 /** The colour tokens of one theme from design/tokens.toml (blueprint 15.3), as `{ token: "#RRGGBB" }`. */
 function themeTokens(theme: string): Record<string, string> {
@@ -362,7 +371,7 @@ function rgb(hex: string): string {
 
 // Every theme is drawn with its own tokens (the mocks of 1 to 6 are Hell only, so Petrol and Dunkel
 // are checked against the token file of 15.3), and the landmarks do not move with the theme.
-for (const theme of ["hell", "petrol", "dunkel"]) {
+for (const theme of THEMES) {
   test.describe(`the frame in the theme ${theme} (1440 x 900)`, () => {
     test.use({ viewport: VIEWPORT });
 

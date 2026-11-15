@@ -1,5 +1,7 @@
 //! The references of a snapshot as stored.
 
+use std::collections::HashSet;
+
 use codeskimr_domain::{Confidence, FileId, Reference, ReferenceId, ReferenceKind, SymbolId};
 use rusqlite::{Connection, params};
 
@@ -45,12 +47,29 @@ fn decode_reference(row: &ReferenceRow) -> StorageResult<Reference> {
     })
 }
 
+/// The ids that the first column of `statement` returns for `snapshot`.
+pub(crate) fn id_set(
+    conn: &Connection,
+    statement: &str,
+    snapshot: i64,
+) -> StorageResult<HashSet<i64>> {
+    let mut prepared = conn.prepare_cached(statement)?;
+    let rows = prepared.query_map(params![snapshot], |row| row.get::<_, i64>(0))?;
+    Ok(rows.collect::<Result<_, _>>()?)
+}
+
+/// The references of a snapshot: those whose file and target it holds.
 pub(crate) fn load_references(conn: &Connection, snapshot: i64) -> StorageResult<Vec<Reference>> {
+    let files = id_set(conn, sql::FILE_IDS, snapshot)?;
+    let symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
     let mut prepared = conn.prepare_cached(sql::REFERENCES_OF_SNAPSHOT)?;
     let rows = prepared.query_map(params![snapshot], |row| read_reference(&Cols::new(row)))?;
     let mut references = Vec::new();
     for row in rows {
-        references.push(decode_reference(&row?)?);
+        let row = row?;
+        if files.contains(&row.file) && symbols.contains(&row.to) {
+            references.push(decode_reference(&row)?);
+        }
     }
     Ok(references)
 }

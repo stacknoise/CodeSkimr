@@ -126,3 +126,9 @@ pub const RECEIVER_BASE: &str = "base";
 pub const RECEIVER_UNKNOWN: &str = "unknown";
 /// Stored label of `Receiver::Free`.
 pub const RECEIVER_FREE: &str = "free";
+
+/// Below this many new references the indexes stay in place while rows are added.
+pub const BULK_REFERENCES_MIN: usize = 20_000;
+/// The indexes are built again after the load when the new references are at least this share of
+/// the stored ones, expressed as "one in N" (a load of half the table or more).
+pub const BULK_REFERENCES_SHARE_DIVISOR: usize = 2;

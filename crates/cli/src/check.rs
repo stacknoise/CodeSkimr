@@ -4,7 +4,8 @@ use codeskimr_application::conventions::{CheckReport, Detail, Finding, Location}
 use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
     CLI_CHECK_DUPLICATE, CLI_CHECK_FINDING, CLI_CHECK_NOT_CHECKED, CLI_CHECK_SUMMARY,
-    CLI_CHECK_TOO_LONG, CLI_CHECK_UNCHECKED, CLI_CHECK_UNMATCHED,
+    CLI_CHECK_TOO_COMPLEX, CLI_CHECK_TOO_LONG, CLI_CHECK_TOO_MANY_PARAMETERS, CLI_CHECK_UNCHECKED,
+    CLI_CHECK_UNMATCHED,
 };
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
 use serde::Serialize;
@@ -83,6 +84,16 @@ fn detail_line(
             args.set(arg::LIMIT, FluentValue::from(*limit));
             messages.format(language, CLI_CHECK_TOO_LONG, Some(&args))
         }
+        Detail::Over { value, limit } => {
+            args.set(arg::VALUE, FluentValue::from(*value));
+            args.set(arg::LIMIT, FluentValue::from(*limit));
+            let key = if finding.code == ErrorCode::TooManyParameters {
+                CLI_CHECK_TOO_MANY_PARAMETERS
+            } else {
+                CLI_CHECK_TOO_COMPLEX
+            };
+            messages.format(language, key, Some(&args))
+        }
         Detail::Duplicate {
             of,
             similarity_percent,
@@ -110,6 +121,8 @@ struct JsonFinding {
     at: JsonPlace,
     #[serde(skip_serializing_if = "Option::is_none")]
     lines: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    value: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     limit: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -146,6 +159,7 @@ fn json_finding(finding: &Finding) -> JsonFinding {
         code: finding.code.id(),
         at: place(&finding.location),
         lines: None,
+        value: None,
         limit: None,
         duplicate_of: None,
         similarity_percent: None,
@@ -153,6 +167,10 @@ fn json_finding(finding: &Finding) -> JsonFinding {
     match &finding.detail {
         Detail::TooLong { lines, limit } => {
             json.lines = Some(*lines);
+            json.limit = Some(*limit);
+        }
+        Detail::Over { value, limit } => {
+            json.value = Some(*value);
             json.limit = Some(*limit);
         }
         Detail::Duplicate {

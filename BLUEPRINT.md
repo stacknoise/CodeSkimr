@@ -342,7 +342,7 @@ languages/csharp/
 ├─ language.toml      metadata and rules
 ├─ symbols.scm        Tree-sitter query: declarations → symbol kinds
 ├─ references.scm     Tree-sitter query: identifiers, calls, imports, scopes
-├─ metrics.scm        Tree-sitter query: comments, decision points, Halstead operators and operands
+├─ metrics.scm        Tree-sitter query: comments, decision points, Halstead operators and operands, cognitive complexity and parameters (ADR 0048)
 ├─ highlights.scm     syntax highlighting for the UI
 └─ tests/             small sample files + expected JSON (golden tests)
 ```
@@ -1177,6 +1177,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | CHK-103 | `layer_violation` | A dependency points against the allowed direction. |
 | CHK-104 | `function_too_long` | A function exceeds the configured length. |
 | CHK-105 | `complexity_too_high` | A function exceeds the configured cognitive complexity. |
+| CHK-106 | `too_many_parameters` | A function has more parameters than the configured maximum. |
 
 ---
 

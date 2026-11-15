@@ -83,6 +83,10 @@ max_depth = 6
 [conventions]
 # Longest function in code lines (R-02); a longer one is reported as CHK-104.
 max_function_lines = 40
+# Highest cognitive complexity of a function (R-02); a higher one is reported as CHK-105.
+max_cognitive_complexity = 15
+# Most parameters of a function (R-02); more are reported as CHK-106.
+max_parameters = 5
 # Two functions whose syntax fingerprints are at least this similar, in percent, are reported as CHK-102.
 duplicate_similarity_percent = 85
 # Functions with fewer code lines than this are not compared for duplicates (CHK-102); measured on this repository: 5 gives 21 findings, 8 gives 9, mostly real.

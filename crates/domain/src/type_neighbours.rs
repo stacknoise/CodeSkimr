@@ -1,7 +1,9 @@
 //! The neighbours of one type (blueprint 15, screen 3, "type focus"): the types that use it and
 //! the types it uses. A reference counts for the type that owns each of its ends: a type owns
-//! itself and every member inside it, found by the qualified name; a symbol outside every type
-//! belongs to none and is not counted. References inside the type are left out.
+//! itself and every member inside it, found by the parent chain (so each part of a partial class
+//! keeps its own members, ADR 0036) and, where a symbol has no type among its parents, by the
+//! qualified name; a symbol outside every type belongs to none and is not counted. References
+//! inside the type are left out.
 
 use std::cmp::Reverse;
 use std::collections::{BTreeMap, HashMap};
@@ -28,18 +30,45 @@ pub struct TypeNeighbours {
     pub used: Vec<TypeLink>,
 }
 
+/// A symbol of a snapshot: id, kind, qualified name and enclosing symbol.
+pub type TypeSymbol<'a> = (SymbolId, SymbolKind, &'a QualifiedName, Option<SymbolId>);
+
+/// The nearest type among the parents of `start`, if the chain reaches one.
+fn type_above(
+    start: Option<SymbolId>,
+    parents: &HashMap<SymbolId, (bool, Option<SymbolId>)>,
+) -> Option<SymbolId> {
+    let mut at = start;
+    for _ in 0..parents.len() {
+        let id = at?;
+        let (is_type, parent) = *parents.get(&id)?;
+        if is_type {
+            return Some(id);
+        }
+        at = parent;
+    }
+    None
+}
+
 /// The type that owns every symbol that has one.
-fn owners(symbols: &[(SymbolId, SymbolKind, &QualifiedName)]) -> HashMap<SymbolId, SymbolId> {
+fn owners(symbols: &[TypeSymbol<'_>]) -> HashMap<SymbolId, SymbolId> {
     let types: HashMap<&str, SymbolId> = symbols
         .iter()
-        .filter(|(_, kind, _)| kind.is_type())
-        .map(|(id, _, name)| (name.as_str(), *id))
+        .filter(|(_, kind, _, _)| kind.is_type())
+        .map(|(id, _, name, _)| (name.as_str(), *id))
+        .collect();
+    let parents: HashMap<SymbolId, (bool, Option<SymbolId>)> = symbols
+        .iter()
+        .map(|(id, kind, _, parent)| (*id, (kind.is_type(), *parent)))
         .collect();
     symbols
         .iter()
-        .filter_map(|(id, kind, name)| {
+        .filter_map(|(id, kind, name, parent)| {
             if kind.is_type() {
                 return Some((*id, *id));
+            }
+            if let Some(owner) = type_above(*parent, &parents) {
+                return Some((*id, owner));
             }
             let owner = enclosing(&types, name.as_str())?;
             Some((*id, *types.get(owner)?))
@@ -56,12 +85,12 @@ fn ranked(counts: BTreeMap<SymbolId, u32>) -> Vec<TypeLink> {
     links
 }
 
-/// The neighbours of `focus`, from the symbols (id, kind, qualified name) and the references
-/// (from, to) of a snapshot. `None` if `focus` is not a type of the snapshot.
+/// The neighbours of `focus`, from the symbols (id, kind, qualified name, parent) and the
+/// references (from, to) of a snapshot. `None` if `focus` is not a type of the snapshot.
 #[must_use]
 pub fn type_neighbours<'a>(
     focus: SymbolId,
-    symbols: impl IntoIterator<Item = (SymbolId, SymbolKind, &'a QualifiedName)>,
+    symbols: impl IntoIterator<Item = TypeSymbol<'a>>,
     references: impl IntoIterator<Item = (SymbolId, SymbolId)>,
 ) -> Option<TypeNeighbours> {
     let symbols: Vec<_> = symbols.into_iter().collect();
@@ -109,11 +138,11 @@ mod tests {
     fn triples<'a>(
         names: &'a [(u64, SymbolKind, &str)],
         qualified: &'a [QualifiedName],
-    ) -> impl Iterator<Item = (SymbolId, SymbolKind, &'a QualifiedName)> {
+    ) -> impl Iterator<Item = TypeSymbol<'a>> {
         names
             .iter()
             .zip(qualified)
-            .map(|((value, kind, _), qualified)| (id(*value), *kind, qualified))
+            .map(|((value, kind, _), qualified)| (id(*value), *kind, qualified, None))
     }
 
     #[test]
@@ -158,7 +187,7 @@ mod tests {
     #[test]
     fn something_that_is_not_a_type_has_no_neighbours() {
         let app = name("App");
-        let symbols = [(id(1), SymbolKind::Namespace, &app)];
+        let symbols = [(id(1), SymbolKind::Namespace, &app, None)];
         assert_eq!(type_neighbours(id(1), symbols, []), None);
         assert_eq!(type_neighbours(id(9), [], []), None);
     }
@@ -176,5 +205,40 @@ mod tests {
         let found = type_neighbours(id(1), symbols, calls).unwrap();
         let order: Vec<u64> = found.used.iter().map(|link| link.symbol.get()).collect();
         assert_eq!(order, [3, 2]);
+    }
+
+    #[test]
+    fn the_parts_of_a_partial_class_keep_their_own_members() {
+        let part = name("App.Cart");
+        let second_part = name("App.Cart");
+        let total = name("App.Cart.Total");
+        let clear = name("App.Cart.Clear");
+        let view = name("App.View");
+        let draw = name("App.View.Draw");
+        let symbols = [
+            (id(1), SymbolKind::Class, &part, None),
+            (id(2), SymbolKind::Class, &second_part, None),
+            (id(3), SymbolKind::Method, &total, Some(id(1))),
+            (id(4), SymbolKind::Method, &clear, Some(id(2))),
+            (id(5), SymbolKind::Class, &view, None),
+            (id(6), SymbolKind::Method, &draw, Some(id(5))),
+        ];
+        let calls = [(id(6), id(3)), (id(6), id(4)), (id(6), id(4))];
+        let first = type_neighbours(id(1), symbols, calls).unwrap();
+        assert_eq!(
+            first.users,
+            [TypeLink {
+                symbol: id(5),
+                count: 1
+            }]
+        );
+        let second = type_neighbours(id(2), symbols, calls).unwrap();
+        assert_eq!(
+            second.users,
+            [TypeLink {
+                symbol: id(5),
+                count: 2
+            }]
+        );
     }
 }

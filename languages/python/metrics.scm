@@ -106,3 +106,29 @@
   (generator_expression (if_clause (identifier) @operand))]
 (lambda body: (identifier) @operand)
 (keyword_argument value: (identifier) @operand)
+
+; Cognitive complexity (ADR 0048). A structure adds one and one more for every nesting level it
+; stands in; `elif`, `else` of an `if` and a run of the same boolean operator add one at any depth.
+; A lambda nests what is in it but adds nothing. Not counted: `with`, `assert`, comprehensions,
+; `case` clauses (the `match` counts once), recursion, and the `else` of `for`, `while` and `try`,
+; which is a rare construct and is left out on purpose.
+(if_statement) @cognitive
+(if_statement) @nesting
+(elif_clause) @cognitive_flat
+(if_statement alternative: (else_clause) @cognitive_flat)
+(conditional_expression) @cognitive
+(conditional_expression) @nesting
+(for_statement) @cognitive
+(for_statement) @nesting
+(while_statement) @cognitive
+(while_statement) @nesting
+(except_clause) @cognitive
+(except_clause) @nesting
+(match_statement) @cognitive
+(match_statement) @nesting
+(lambda) @nesting
+(boolean_operator operator: ["and" "or"] @cognitive_sequence)
+
+; Parameters of a function, without `self` and `cls`
+(function_definition parameters: (parameters (identifier) @parameter (#not-any-of? @parameter "self" "cls")))
+(function_definition parameters: (parameters [(typed_parameter) (default_parameter) (typed_default_parameter) (list_splat_pattern) (dictionary_splat_pattern)] @parameter))

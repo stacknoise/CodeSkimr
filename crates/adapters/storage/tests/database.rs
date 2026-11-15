@@ -616,3 +616,63 @@ fn a_database_that_cannot_grow_any_more_fails_like_a_full_disk() {
         .expect("the page limit is reached long before 1000 projects");
     assert_eq!(code_of(&error), "STO-501");
 }
+
+/// A full scan with `count` references from `A` to `B`; the ids of the file and the symbols start
+/// at `base`, so that two scans do not clash.
+#[cfg(test)]
+fn scan_with_references(snapshot: u64, base: u64, count: u64) -> SnapshotData {
+    let mut scan = data(header(snapshot, ScanMode::Full));
+    scan.files = vec![file(snapshot, base, "a.cs", "ha")];
+    scan.symbols = vec![
+        symbol(base + 1, base, SymbolKind::Class, "App.A", None),
+        symbol(base + 2, base, SymbolKind::Class, "App.B", None),
+    ];
+    scan.references = (0..count)
+        .map(|offset| reference(base * 1_000_000 + offset, base, base + 1, base + 2))
+        .collect();
+    scan
+}
+
+#[cfg(test)]
+fn reference_indexes(conn: &Connection) -> Vec<String> {
+    let mut statement = conn
+        .prepare(
+            "SELECT name FROM sqlite_master WHERE type = 'index' \
+             AND tbl_name = 'symbol_references' ORDER BY name",
+        )
+        .unwrap();
+    statement
+        .query_map([], |row| row.get(0))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect()
+}
+
+#[test]
+fn a_bulk_load_of_references_keeps_the_indexes_totals_and_usage_counts() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    let count = 25_000;
+    // The second scan finds the table filled and loads as many rows again.
+    for (snapshot, base) in [(10, 100), (20, 200)] {
+        let stored = store
+            .persist(scan_with_references(snapshot, base, count))
+            .unwrap();
+        assert_eq!(u64::from(stored.stats.references), count);
+        let id = codeskimr_domain::SnapshotId::new(snapshot);
+        assert_eq!(
+            u64::from(store.usage_count(id, SymbolId::new(base + 2)).unwrap()),
+            count
+        );
+    }
+    let conn = Connection::open(&db.0).unwrap();
+    assert_eq!(
+        reference_indexes(&conn),
+        [
+            "references_by_file",
+            "references_by_source",
+            "references_by_target"
+        ]
+    );
+}

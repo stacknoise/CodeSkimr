@@ -50,6 +50,14 @@ pub enum Detail {
         /// The configured maximum.
         limit: u32,
     },
+    /// `CHK-105` and `CHK-106`: a count above its maximum, the cognitive complexity or the number of
+    /// parameters; the code of the finding says which.
+    Over {
+        /// The count of the function.
+        value: u32,
+        /// The configured maximum.
+        limit: u32,
+    },
     /// `CHK-102`: the function is a near copy of an earlier one.
     Duplicate {
         /// The function that came first in path and line order.
