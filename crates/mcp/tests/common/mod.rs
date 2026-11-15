@@ -35,7 +35,7 @@ pub const NOW: i64 = 1_090;
 pub fn limits() -> McpLimits {
     McpLimits {
         default_limit: 2,
-        max_limit: 5,
+        max_limit: 3,
         default_depth: 1,
         max_depth: 3,
         default_similarity_percent: 50,

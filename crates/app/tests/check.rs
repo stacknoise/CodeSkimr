@@ -118,13 +118,18 @@ mod tests {
         assert!(german.contains("kopiert"), "{german}");
     }
 
-    #[test]
-    fn literals_in_a_python_function_are_reported_in_both_languages() {
+    fn python_project() -> Project {
         let project = Project::new();
         fs::write(project.root.path().join("project/src/limits.py"), PYTHON).unwrap();
-        let json = report(&project.check(&["--json", "src/limits.py"]));
-        let findings = json["findings"].as_array().unwrap();
-        let counts: Vec<(&str, u64)> = findings
+        project
+    }
+
+    #[test]
+    fn literals_in_a_python_function_are_counted_in_the_json() {
+        let json = report(&python_project().check(&["--json", "src/limits.py"]));
+        let counts: Vec<(&str, u64)> = json["findings"]
+            .as_array()
+            .unwrap()
             .iter()
             .filter(|finding| finding["code"] == "CHK-101")
             .map(|finding| {
@@ -134,15 +139,23 @@ mod tests {
                 )
             })
             .collect();
-        assert_eq!(
-            counts,
-            [("src.limits.pair", 2), ("src.limits.single", 1)],
-            "{json}"
+        assert_eq!(counts, [("src.limits.pair", 2), ("src.limits.single", 1)]);
+        assert!(
+            !json["not_checked"]
+                .as_array()
+                .unwrap()
+                .contains(&Value::from("CHK-101"))
         );
-        let codes = json["not_checked"].as_array().unwrap();
-        assert!(!codes.contains(&Value::from("CHK-101")), "{json}");
-        let english =
-            String::from_utf8_lossy(&project.check(&["src/limits.py"]).stdout).into_owned();
+    }
+
+    #[test]
+    fn literals_are_worded_in_both_languages() {
+        let project = python_project();
+        let text = |language: &str| {
+            let output = project.check_in(language, &["src/limits.py"]);
+            String::from_utf8_lossy(&output.stdout).into_owned()
+        };
+        let english = text("en");
         assert!(
             english.contains("src.limits.pair contains 2 literals"),
             "{english}"
@@ -151,8 +164,7 @@ mod tests {
             english.contains("src.limits.single contains one literal"),
             "{english}"
         );
-        let german = String::from_utf8_lossy(&project.check_in("de", &["src/limits.py"]).stdout)
-            .into_owned();
+        let german = text("de");
         assert!(
             german.contains("src.limits.pair enthält 2 Literale"),
             "{german}"
