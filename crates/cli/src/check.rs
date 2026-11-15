@@ -3,9 +3,9 @@
 use codeskimr_application::conventions::{CheckReport, Detail, Finding, Location};
 use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
-    CLI_CHECK_DUPLICATE, CLI_CHECK_FINDING, CLI_CHECK_NOT_CHECKED, CLI_CHECK_SUMMARY,
-    CLI_CHECK_TOO_COMPLEX, CLI_CHECK_TOO_LONG, CLI_CHECK_TOO_MANY_PARAMETERS, CLI_CHECK_UNCHECKED,
-    CLI_CHECK_UNMATCHED,
+    CLI_CHECK_DUPLICATE, CLI_CHECK_FINDING, CLI_CHECK_LITERALS, CLI_CHECK_NOT_CHECKED,
+    CLI_CHECK_SUMMARY, CLI_CHECK_TOO_COMPLEX, CLI_CHECK_TOO_LONG, CLI_CHECK_TOO_MANY_PARAMETERS,
+    CLI_CHECK_UNCHECKED, CLI_CHECK_UNMATCHED,
 };
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
 use serde::Serialize;
@@ -94,6 +94,10 @@ fn detail_line(
             };
             messages.format(language, key, Some(&args))
         }
+        Detail::Literals { count } => {
+            args.set(arg::COUNT, FluentValue::from(*count));
+            messages.format(language, CLI_CHECK_LITERALS, Some(&args))
+        }
         Detail::Duplicate {
             of,
             similarity_percent,
@@ -125,6 +129,8 @@ struct JsonFinding {
     value: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     limit: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    literals: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     duplicate_of: Option<JsonPlace>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -161,6 +167,7 @@ fn json_finding(finding: &Finding) -> JsonFinding {
         lines: None,
         value: None,
         limit: None,
+        literals: None,
         duplicate_of: None,
         similarity_percent: None,
     };
@@ -173,6 +180,7 @@ fn json_finding(finding: &Finding) -> JsonFinding {
             json.value = Some(*value);
             json.limit = Some(*limit);
         }
+        Detail::Literals { count } => json.literals = Some(*count),
         Detail::Duplicate {
             of,
             similarity_percent,

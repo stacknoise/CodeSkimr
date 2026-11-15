@@ -7,7 +7,9 @@ use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Permission, RelativePath, SnapshotId};
 
 use super::duplicates::{Fingerprinted, duplicates};
-use super::length::{Callable, callables, too_complex, too_long, too_many_parameters};
+use super::length::{
+    Callable, callables, too_complex, too_long, too_many_parameters, with_literals,
+};
 use super::model::{CheckReport, CheckRequest, Finding, StoredProject, Unchecked};
 use super::selection::Selection;
 use super::stored::{Rules, against_stored};
@@ -19,11 +21,10 @@ use crate::error::CodedError;
 use crate::ids::IdSequence;
 use crate::ports::{AnalyzeRequest, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts};
 
-/// The rules with a `CHK` code that this version cannot check yet. Literals need positions the
-/// language packs do not deliver; layering needs the layer of every reference (issue #45). The
-/// cognitive complexity and the parameters are added for the languages whose pack counts them
-/// (ADR 0048).
-const NOT_CHECKED: &[ErrorCode] = &[ErrorCode::LiteralFound, ErrorCode::LayerViolation];
+/// The rules with a `CHK` code that this version cannot check yet: layering needs the layer of
+/// every reference (issue #45). The cognitive complexity, the parameters and the literals are added
+/// for the languages whose pack does not report them (ADR 0048, ADR 0058).
+const NOT_CHECKED: &[ErrorCode] = &[ErrorCode::LayerViolation];
 
 /// A file after analysis, with the callables it declares.
 struct Analysed {
@@ -151,6 +152,7 @@ impl ConventionChecker {
         let mut findings = too_long(callables, self.limits.max_function_lines);
         findings.extend(too_complex(callables, self.limits.max_cognitive_complexity));
         findings.extend(too_many_parameters(callables, self.limits.max_parameters));
+        findings.extend(with_literals(callables));
         findings
     }
 
@@ -175,8 +177,9 @@ impl ConventionChecker {
     }
 }
 
-/// The rules this check did not (fully) check: the fixed ones, and the cognitive complexity and the
-/// parameters when a function of a language whose pack does not count them was among the files.
+/// The rules this check did not (fully) check: the fixed ones, and the cognitive complexity, the
+/// parameters and the literals when a function of a language whose pack does not report them was
+/// among the files.
 fn not_checked(analysed: &[Analysed]) -> Vec<ErrorCode> {
     let mut rules = NOT_CHECKED.to_vec();
     let all = || analysed.iter().flat_map(|done| &done.callables);
@@ -185,6 +188,9 @@ fn not_checked(analysed: &[Analysed]) -> Vec<ErrorCode> {
     }
     if all().any(|callable| callable.parameters.is_none()) {
         rules.push(ErrorCode::TooManyParameters);
+    }
+    if all().any(|callable| callable.literals.is_none()) {
+        rules.push(ErrorCode::LiteralFound);
     }
     rules
 }

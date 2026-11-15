@@ -58,6 +58,11 @@ pub enum Detail {
         /// The configured maximum.
         limit: u32,
     },
+    /// `CHK-101`: the function contains literals outside the exceptions of rule R-06.
+    Literals {
+        /// How many there are.
+        count: u32,
+    },
     /// `CHK-102`: the function is a near copy of an earlier one.
     Duplicate {
         /// The function that came first in path and line order.

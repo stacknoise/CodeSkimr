@@ -50,6 +50,10 @@ pub const CONTINUATION_CAPTURE: &str = "continuation";
 pub const NESTING_CAPTURE: &str = "nesting";
 /// Capture of one parameter of a callable declaration, without a receiver.
 pub const PARAMETER_CAPTURE: &str = "parameter";
+/// Capture name of a literal that the rule of no literals reports (ADR 0058).
+pub const LITERAL_CAPTURE: &str = "literal";
+/// Capture name of a node whose literal is an exception of the rule (a docstring, a type string).
+pub const LITERAL_EXEMPT_CAPTURE: &str = "literal_exempt";
 /// Field name that holds the body of a callable declaration in the grammar; a callable without it
 /// (abstract, interface member, extern) is not measured.
 pub const BODY_FIELD: &str = "body";

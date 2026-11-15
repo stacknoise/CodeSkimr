@@ -8,12 +8,12 @@ Blueprint 10.4 (`check_conventions`), 10.2 (`codeskimr check`), 11.6 (E-04) and 
 |---|---|---|
 | `CHK-104` `function_too_long` | R-02: at most `conventions.max_function_lines` code lines per function (default 40) | checked |
 | `CHK-102` `duplicate_block` | R-01: two functions whose syntax fingerprints are at least `conventions.duplicate_similarity_percent` similar (default 85) | checked, within the checked files and (MCP) against the stored project |
-| `CHK-101` `literal_found` | R-06 | not checked yet (#93): the language packs do not report literals. The Dylint lint `no_literals` covers Rust in CI |
+| `CHK-101` `literal_found` | R-06: no literals in a function except the exceptions of its language pack (ADR 0058) | checked for the languages whose pack reports literals (Python so far), else listed in `not_checked`. The Dylint lint `no_literals` covers Rust in CI |
 | `CHK-103` `layer_violation` | R-04 | not checked yet: the project model has no allowed directions (issue #45) |
 | `CHK-105` `complexity_too_high` | R-02: cognitive complexity at most `conventions.max_cognitive_complexity` (default 15) | checked for the languages whose pack counts it (ADR 0048; Rust and Python so far), else listed in `not_checked` |
 | `CHK-106` `too_many_parameters` | R-02: at most `conventions.max_parameters` parameters (default 5), without the receiver | like `CHK-105` |
 
-The report always lists the rules it did not check (`not_checked`), so a clean report is never read as "all rules are met". `CHK-105` and `CHK-106` appear there as soon as a function of a language whose pack does not count them is among the checked files.
+The report always lists the rules it did not check (`not_checked`), so a clean report is never read as "all rules are met". `CHK-101`, `CHK-105` and `CHK-106` appear there as soon as a function of a language whose pack does not count them is among the checked files.
 
 ## Where it lives
 
@@ -46,9 +46,9 @@ test_folders = ["tests", "benches"]
 
 ## The MCP tool
 
-`check_conventions` (WP-37) runs this check for a registered project: `paths` (the files of a change; none means the whole project) and `limit`. It needs a project that is a folder on this machine (`PRJ-101` for a Git source, whose files live in the cache) and the permissions `read` and `read_source`. The answer lists `findings` (code, description, path, symbol, one-based lines, and `lines`/`max_lines` or `duplicate_of`/`similarity_percent`), `total`, `files_checked`, `unchecked`, `unmatched` and `not_checked`; findings beyond the limit are cut with the notice `MCP-501`. Paths are never opened (see above), so the tool cannot be used to read outside the project (blueprint S-05).
+`check_conventions` (WP-37) runs this check for a registered project: `paths` (the files of a change; none means the whole project) and `limit`. It needs a project that is a folder on this machine (`PRJ-101` for a Git source, whose files live in the cache) and the permissions `read` and `read_source`. The answer lists `findings` (code, description, path, symbol, one-based lines, and `lines`/`max_lines`, `value`/`max_value`, `literals` or `duplicate_of`/`similarity_percent`), `total`, `files_checked`, `unchecked`, `unmatched` and `not_checked`; findings beyond the limit are cut with the notice `MCP-501`. Paths are never opened (see above), so the tool cannot be used to read outside the project (blueprint S-05).
 
 ## Not part of this package
 
 - The duplicate check against the stored project in `codeskimr check` (it has no store; over MCP it is done, #94).
-- `CHK-101`, `CHK-103` and `CHK-105` as listed above, and the matching `get_architecture` conventions (#45).
+- `CHK-103` as listed above, and the matching `get_architecture` conventions (#45).

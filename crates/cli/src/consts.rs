@@ -163,6 +163,8 @@ pub mod arg {
     pub const LINES: &str = "lines";
     /// A count that is above its maximum.
     pub const VALUE: &str = "value";
+    /// A number of literals.
+    pub const COUNT: &str = "count";
     /// `{ $limit }`: the configured maximum.
     pub const LIMIT: &str = "limit";
     /// `{ $percent }`: similarity in percent.

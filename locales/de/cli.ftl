@@ -33,6 +33,10 @@ cli-arg-paths = Dateien oder Ordner, relativ zum aktuellen Ordner (Standard: all
 cli-check-finding = { $path }:{ $line }: { $code } { $message }
 cli-check-too-complex = { $name } hat die kognitive Komplexität { $value }, erlaubt sind höchstens { $limit }.
 cli-check-too-many-parameters = { $name } hat { $value } Parameter, erlaubt sind höchstens { $limit }.
+cli-check-literals = { $name } enthält { $count ->
+    [one] ein Literal
+   *[other] { $count } Literale
+}; Werte gehören in Konstanten, Konfiguration oder Textdateien.
 cli-check-too-long = { $name } hat { $lines } Codezeilen, erlaubt sind höchstens { $limit }.
 cli-check-duplicate = { $name } kopiert { $original } ({ $path }:{ $line }), zu { $percent } % ähnlich.
 cli-check-unchecked = { $path } übersprungen: { $code } { $message }

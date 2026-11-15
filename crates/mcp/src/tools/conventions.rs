@@ -46,6 +46,8 @@ struct Violation {
     value: Option<u32>,
     /// `CHK-105` and `CHK-106`: the most that is allowed.
     max_value: Option<u32>,
+    /// `CHK-101`: how many literals outside the exceptions the function contains.
+    literals: Option<u32>,
     /// `CHK-102`: the earlier function this one copies.
     duplicate_of: Option<Place>,
     /// `CHK-102`: how similar the two are, in whole percent.
@@ -61,6 +63,7 @@ fn violation(finding: &Finding) -> Violation {
         max_lines: None,
         value: None,
         max_value: None,
+        literals: None,
         duplicate_of: None,
         similarity_percent: None,
     };
@@ -73,6 +76,7 @@ fn violation(finding: &Finding) -> Violation {
             out.value = Some(*value);
             out.max_value = Some(*limit);
         }
+        Detail::Literals { count } => out.literals = Some(*count),
         Detail::Duplicate {
             of,
             similarity_percent,
