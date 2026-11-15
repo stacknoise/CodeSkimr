@@ -15,15 +15,21 @@ pub const PROJECT_UPSERT: &str = "INSERT INTO projects (id, name, source_kind, l
 pub const PROJECT_EXISTS: &str = "SELECT COUNT(*) FROM projects WHERE id = ?1";
 /// Removes the layers of a project (their namespaces go with them): project id.
 pub const LAYERS_DELETE: &str = "DELETE FROM layers WHERE project_id = ?1";
-/// Adds a layer: project id, position, name.
+/// Adds a layer: project id, position, name, whether it has a `may_use` list.
 pub const LAYER_INSERT: &str =
-    "INSERT INTO layers (project_id, position, name) VALUES (?1, ?2, ?3)";
+    "INSERT INTO layers (project_id, position, name, restricted) VALUES (?1, ?2, ?3, ?4)";
+/// Adds an allowed layer to a layer: project id, layer position, position, name.
+pub const USED_INSERT: &str = "INSERT INTO layer_uses \
+    (project_id, layer_position, position, used) VALUES (?1, ?2, ?3, ?4)";
+/// The allowed layers of one layer in order: project id, layer position.
+pub const USED_OF_LAYER: &str = "SELECT used FROM layer_uses \
+    WHERE project_id = ?1 AND layer_position = ?2 ORDER BY position";
 /// Adds a namespace to a layer: project id, layer position, position, namespace.
 pub const NAMESPACE_INSERT: &str = "INSERT INTO layer_namespaces \
     (project_id, layer_position, position, namespace) VALUES (?1, ?2, ?3, ?4)";
 /// Layers of a project in order: project id.
 pub const LAYERS_OF_PROJECT: &str =
-    "SELECT position, name FROM layers WHERE project_id = ?1 ORDER BY position";
+    "SELECT position, name, restricted FROM layers WHERE project_id = ?1 ORDER BY position";
 /// Namespaces of one layer in order: project id, layer position.
 pub const NAMESPACES_OF_LAYER: &str = "SELECT namespace FROM layer_namespaces \
     WHERE project_id = ?1 AND layer_position = ?2 ORDER BY position";
