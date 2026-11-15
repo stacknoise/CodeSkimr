@@ -52,6 +52,7 @@ fn patterns(query: &str) -> (String, String) {
 /// The columns of one row of the symbol search, in the order of `sql::SEARCH`.
 type SearchRow = (i64, String, String, String, String, Option<i64>);
 
+/// Reads one row of the symbol search.
 fn read_search_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SearchRow> {
     let cols = Cols::new(row);
     Ok((
@@ -64,6 +65,7 @@ fn read_search_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SearchRow> {
     ))
 }
 
+/// Turns a row of the symbol search into a hit.
 fn hit_of(row: SearchRow) -> StorageResult<SearchHit> {
     let (symbol, name, qualified, kind, path, parent) = row;
     Ok(SearchHit {

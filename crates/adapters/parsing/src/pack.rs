@@ -189,12 +189,12 @@ fn parent_kinds(
     Ok(kinds)
 }
 
-/// The patterns of the manifest as one matcher; a broken pattern is a reason for the pack.
 /// The items as a set.
 fn into_set(items: Vec<String>) -> HashSet<String> {
     items.into_iter().collect()
 }
 
+/// The patterns of the manifest as one matcher; a broken pattern is a reason for the pack.
 fn test_files(patterns: &[String]) -> Result<GlobSet, String> {
     let mut builder = GlobSetBuilder::new();
     for pattern in patterns {
