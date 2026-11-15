@@ -81,6 +81,8 @@ pub struct SymbolOut {
     pub visibility: Option<&'static str>,
     /// Whether the symbol is static.
     pub is_static: bool,
+    /// Where the symbol comes from: `syntax` (level 1) or `index` (created by level 2, ADR 0055).
+    pub origin: &'static str,
     /// Path of the declaring file.
     pub path: String,
     /// First line, counted from 1.
@@ -188,6 +190,7 @@ fn answer(
         kind: symbol.kind.label(),
         visibility: symbol.visibility.map(Visibility::label),
         is_static: symbol.is_static,
+        origin: symbol.origin.label(),
         path: detail.path.to_string(),
         first_line: symbol.span.start().line + LINE_OFFSET,
         last_line: symbol.span.end().line + LINE_OFFSET,

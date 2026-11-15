@@ -3,18 +3,19 @@
 //! The resolver reads of a symbol its name, kind, qualified name and parent, and of a type its base
 //! list. If the files that changed show the same [`Shape`] as before, nothing that an unchanged
 //! file could resolve against has changed, except the ids of the symbols (issue #49). The
-//! incremental scan then resolves again only the names that pointed at one of those ids, and
-//! otherwise all names.
+//! incremental scan then resolves again only the names that pointed at one of those ids. If the
+//! shape differs, [`Shape::delta`] says which names and qualified names are involved (issue #408),
+//! unless a base list changed, which can reach any name.
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use codeskimr_domain::{ReferenceKind, Symbol, SymbolId};
 
 use crate::ports::PendingReference;
 
-/// One symbol as the resolver sees it: qualified name, kind label, and the parent's qualified name
-/// and kind label.
-type SymbolKey = (String, &'static str, Option<(String, &'static str)>);
+/// One symbol as the resolver sees it: simple name, qualified name, kind label, and the parent's
+/// qualified name and kind label.
+type SymbolKey = (String, String, &'static str, Option<(String, &'static str)>);
 
 /// One base-list entry: qualified name of the type, kind label, the base name as written.
 type BaseKey = (String, &'static str, String);
@@ -43,6 +44,7 @@ impl Shape {
             *shape
                 .symbols
                 .entry((
+                    symbol.name.as_str().to_owned(),
                     symbol.qualified_name.as_str().to_owned(),
                     symbol.kind.label(),
                     parent,
@@ -63,6 +65,33 @@ impl Shape {
         }
         shape
     }
+
+    /// What differs between `self` (the files as they are now) and `before`, or `None` if a base
+    /// list differs: a base list decides what a type inherits, which reaches names of any file.
+    #[must_use]
+    pub fn delta(&self, before: &Self) -> Option<Delta> {
+        if self.bases != before.bases {
+            return None;
+        }
+        let mut delta = Delta::default();
+        for key in self.symbols.keys().chain(before.symbols.keys()) {
+            if self.symbols.get(key) != before.symbols.get(key) {
+                delta.names.insert(key.0.clone());
+                delta.qualified.insert(key.1.clone());
+            }
+        }
+        Some(delta)
+    }
+}
+
+/// The symbols that were added, removed, renamed, moved or changed in kind between two shapes,
+/// as the resolver looks them up.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct Delta {
+    /// Simple names: what a name or the receiver of a name is looked up by.
+    pub names: BTreeSet<String>,
+    /// Qualified names: what an import is looked up by.
+    pub qualified: BTreeSet<String>,
 }
 
 /// Whether a name tells the base list of a type.

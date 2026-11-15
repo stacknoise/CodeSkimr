@@ -10,10 +10,11 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, CodeIndex, CodeSpan, DependencyEdge, DependencyPage, DependencyQuery,
     DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, FileHit, ImpactPage, ImpactedSymbol,
-    KeyEntry, KeyKind, KeySearch, LanguageShare, MemberRef, PreviousIndex, ProjectCatalog,
-    ProjectKeys, ProjectOverview, ProjectRepository, ProjectScanner, ProjectToolCheck, SearchHit,
-    SimilarHit, SimilarQuery, SimilarityIndex, SnippetFingerprinter, SymbolDetail, SymbolKey,
-    SymbolLabel, TypeFocus, UsageEntry, UsageIndex, UsagePage,
+    KeyEntry, KeyKind, KeySearch, LanguageShare, MemberRef, PathsReport, PreviousIndex,
+    ProjectCatalog, ProjectKeys, ProjectOverview, ProjectRepository, ProjectScanner,
+    ProjectToolCheck, Rescanned, SearchHit, SimilarHit, SimilarQuery, SimilarityIndex,
+    SnippetFingerprinter, SymbolDetail, SymbolKey, SymbolLabel, TypeFocus, UsageEntry, UsageIndex,
+    UsagePage,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
@@ -59,6 +60,7 @@ pub fn symbol_named(id: u64, kind: SymbolKind, qualified: &str) -> Symbol {
         span: Span::new(start, end).unwrap(),
         signature: Some(format!("{name}()")),
         doc: Some("Does the work.".to_owned()),
+        origin: codeskimr_domain::SymbolOrigin::Syntax,
     }
 }
 
@@ -360,16 +362,26 @@ impl UsageIndex for FakeUsages {
 #[derive(Default)]
 pub struct FakeScanner {
     pub asked: Mutex<Vec<(Principal, ProjectId)>>,
+    /// The paths of each question, in the same order.
+    pub asked_paths: Mutex<Vec<Vec<String>>>,
+    /// What the scan reports of its paths.
+    pub paths: PathsReport,
     pub fail: bool,
 }
 
 impl ProjectScanner for FakeScanner {
-    fn rescan(&self, principal: &Principal, project: ProjectId) -> Result<Snapshot, CodedError> {
+    fn rescan_paths(
+        &self,
+        principal: &Principal,
+        project: ProjectId,
+        paths: &[String],
+    ) -> Result<Rescanned, CodedError> {
         self.asked.lock().unwrap().push((*principal, project));
+        self.asked_paths.lock().unwrap().push(paths.to_vec());
         if self.fail {
             return Err(CodedError::new(ErrorCode::UnexpectedInternalError));
         }
-        Ok(Snapshot {
+        let snapshot = Snapshot {
             id: SnapshotId::new(11),
             project,
             commit: None,
@@ -380,6 +392,10 @@ impl ProjectScanner for FakeScanner {
                 symbols: 40,
                 references: 90,
             },
+        };
+        Ok(Rescanned {
+            snapshot,
+            paths: self.paths.clone(),
         })
     }
 }

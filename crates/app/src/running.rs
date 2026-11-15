@@ -5,9 +5,9 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::ProjectScanner;
+use codeskimr_application::ports::{ProjectScanner, Rescanned};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Principal, ProjectId, Snapshot};
+use codeskimr_domain::{Principal, ProjectId};
 
 use crate::consts::MAX_PARALLEL_SCANS;
 
@@ -90,9 +90,14 @@ impl ExclusiveScans {
 }
 
 impl ProjectScanner for ExclusiveScans {
-    fn rescan(&self, principal: &Principal, project: ProjectId) -> Result<Snapshot, CodedError> {
+    fn rescan_paths(
+        &self,
+        principal: &Principal,
+        project: ProjectId,
+        paths: &[String],
+    ) -> Result<Rescanned, CodedError> {
         let _scanning = self.running.start(project)?;
-        self.inner.rescan(principal, project)
+        self.inner.rescan_paths(principal, project, paths)
     }
 }
 
@@ -126,7 +131,12 @@ mod tests {
     struct Scanner;
 
     impl ProjectScanner for Scanner {
-        fn rescan(&self, _: &Principal, _: ProjectId) -> Result<Snapshot, CodedError> {
+        fn rescan_paths(
+            &self,
+            _: &Principal,
+            _: ProjectId,
+            _: &[String],
+        ) -> Result<Rescanned, CodedError> {
             Err(CodedError::new(ErrorCode::ScanCancelled))
         }
     }

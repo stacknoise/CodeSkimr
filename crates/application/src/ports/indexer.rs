@@ -8,7 +8,7 @@ use std::any::Any;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use codeskimr_domain::LanguageId;
+use codeskimr_domain::{LanguageId, SymbolKind};
 
 use crate::cancel::CancelToken;
 use crate::error::CodedError;
@@ -52,6 +52,13 @@ pub struct IndexerSpec {
     pub env: Vec<(String, String)>,
     /// How the user installs the indexer, shown when it is missing.
     pub install_hint: String,
+    /// What the index says a definition is, by the name of its SCIP kind (`SymbolInformation.kind`),
+    /// mapped onto the symbol kinds of the model. Level 2 creates symbols only for these kinds
+    /// (ADR 0055); a language without a table gets none.
+    pub symbol_kinds: Vec<(String, SymbolKind)>,
+    /// The separator of qualified names of the language (`::` for Rust), which joins the name of
+    /// a created symbol to the qualified name of its parent.
+    pub separator: String,
 }
 
 /// Limits of one run, from `level2.*` of the configuration.

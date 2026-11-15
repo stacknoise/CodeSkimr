@@ -86,6 +86,7 @@ pub const SNAPSHOT_CONTENT_DELETE: &[&str] = &[
     "DELETE FROM usage_counts WHERE snapshot_id = ?1",
     "DELETE FROM layer_graph WHERE snapshot_id = ?1",
     "DELETE FROM parse_times WHERE snapshot_id = ?1",
+    "DELETE FROM snapshot_warnings WHERE snapshot_id = ?1",
     "DELETE FROM coupling_rows WHERE snapshot_id = ?1",
     "DELETE FROM files WHERE snapshot_id = ?1",
 ];
@@ -120,15 +121,23 @@ pub const SHARED_ROWS_DELETE: &[&str] = &[
         (SELECT 1 FROM files o WHERE o.id = f.id AND o.snapshot_id <> ?1))",
 ];
 
+/// Deletes the references that point at, or start in, a symbol of origin `?2` of file `?1`.
+pub const ORIGIN_REFERENCES_DELETE: &str = "DELETE FROM symbol_references WHERE \
+    to_symbol IN (SELECT id FROM symbol_rows WHERE file_id = ?1 AND origin = ?2) \
+    OR from_symbol IN (SELECT id FROM symbol_rows WHERE file_id = ?1 AND origin = ?2)";
+/// Deletes the symbols of origin `?2` of file `?1`.
+pub const ORIGIN_SYMBOLS_DELETE: &str =
+    "DELETE FROM symbol_rows WHERE file_id = ?1 AND origin = ?2";
+
 /// Adds a file: snapshot, id, path, language, hash, loc.
 pub const FILE_INSERT: &str = "INSERT INTO files \
     (snapshot_id, id, path, language, content_hash, loc) VALUES (?1, ?2, ?3, ?4, ?5, ?6)";
 /// Adds a symbol: id, file, kind, name, qualified name, parent, visibility, static,
-/// start line and column, end line and column, signature, doc.
+/// start line and column, end line and column, signature, doc, origin.
 pub const SYMBOL_INSERT: &str = "INSERT INTO symbol_rows (id, file_id, kind, name, \
     qualified_name, parent_id, visibility, is_static, start_line, start_column, end_line, \
-    end_column, signature, doc) \
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)";
+    end_column, signature, doc, origin) \
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)";
 /// Adds a reference: id, snapshot that writes it, from, to, file, start line and column, end line
 /// and column, kind, confidence, verified.
 pub const REFERENCE_INSERT: &str = "INSERT INTO symbol_references (id, first_snapshot, \
@@ -160,9 +169,6 @@ pub const COUPLING_INSERT: &str = "INSERT OR REPLACE INTO coupling_rows \
 /// Removes the coupling of one snapshot: snapshot.
 pub const COUPLING_DELETE: &str = "DELETE FROM coupling_rows WHERE snapshot_id = ?1";
 
-/// Whether a symbol is in a snapshot: snapshot, symbol.
-pub const SYMBOL_IN_SNAPSHOT: &str =
-    "SELECT EXISTS (SELECT 1 FROM symbols WHERE snapshot_id = ?1 AND id = ?2)";
 /// How many of the symbols in a JSON array of ids are in a snapshot: snapshot, ids.
 pub const SYMBOLS_IN_SNAPSHOT_COUNT: &str = "SELECT COUNT(*) FROM json_each(?2) j \
     CROSS JOIN symbol_rows s ON s.id = j.value \
@@ -170,9 +176,6 @@ pub const SYMBOLS_IN_SNAPSHOT_COUNT: &str = "SELECT COUNT(*) FROM json_each(?2) 
 /// How many of the files in a JSON array of ids are in a snapshot: snapshot, ids.
 pub const FILES_IN_SNAPSHOT_COUNT: &str = "SELECT COUNT(*) FROM json_each(?2) j \
     CROSS JOIN files f ON f.id = j.value AND f.snapshot_id = ?1";
-/// Whether a file is in a snapshot: snapshot, file.
-pub const FILE_IN_SNAPSHOT: &str =
-    "SELECT EXISTS (SELECT 1 FROM files WHERE snapshot_id = ?1 AND id = ?2)";
 
 /// Adds a fingerprint: snapshot, symbol, position, hash.
 pub const FINGERPRINT_INSERT: &str =
@@ -201,11 +204,17 @@ pub const CARRY_FILES: &str = "INSERT INTO files \
     (snapshot_id, id, path, language, content_hash, loc) \
     SELECT ?2, id, path, language, content_hash, loc FROM files \
     WHERE snapshot_id = ?1 AND path NOT IN (SELECT path FROM files WHERE snapshot_id = ?2)";
-/// Number of files, symbols and references of a snapshot: snapshot. The references are the sum of
-/// the usage counts, so the read models of the snapshot must be up to date.
+/// Number of files, symbols and references of a snapshot: snapshot, kind that the usage counts
+/// leave out (`test`). The references are the sum of the usage counts plus the references of
+/// that kind that the snapshot holds (as in the view `snapshot_references`, but the view would
+/// cost half a second on a large snapshot), so the read models of the snapshot must be up to date.
 pub const TOTALS: &str = "SELECT (SELECT COUNT(*) FROM files WHERE snapshot_id = ?1), \
     (SELECT COUNT(*) FROM symbols WHERE snapshot_id = ?1), \
-    (SELECT COALESCE(SUM(usages), 0) FROM usage_counts WHERE snapshot_id = ?1)";
+    (SELECT COALESCE(SUM(usages), 0) FROM usage_counts WHERE snapshot_id = ?1) + \
+    (SELECT COUNT(*) FROM symbol_references r WHERE r.kind = ?2 AND r.first_snapshot <= ?1 \
+        AND r.file_id IN (SELECT id FROM files WHERE snapshot_id = ?1) \
+        AND r.to_symbol IN (SELECT s.id FROM symbol_rows s \
+            JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?1))";
 
 /// Fills `search_index`: snapshot, kind that is left out.
 pub const SEARCH_REBUILD: &str = "INSERT INTO search_index \
@@ -218,11 +227,12 @@ pub const FILE_IDS: &str = "SELECT id FROM files WHERE snapshot_id = ?1";
 /// The ids of the symbols of a snapshot: snapshot.
 pub const SYMBOL_IDS: &str = "SELECT s.id FROM symbol_rows s \
     JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?1";
-/// File and target of every reference that is not newer than a snapshot: snapshot. The view
-/// `snapshot_references` keeps those whose file and target the snapshot holds; counting them
-/// here in one pass over the table is much cheaper than its four lookups per reference.
+/// File and target of every reference that is not newer than a snapshot and not of the given
+/// kind: snapshot, excluded kind (`test`). The view `snapshot_references` keeps those whose file
+/// and target the snapshot holds; counting them here in one pass over the table is much cheaper
+/// than its four lookups per reference.
 pub const REFERENCE_TARGETS: &str =
-    "SELECT file_id, to_symbol FROM symbol_references WHERE first_snapshot <= ?1";
+    "SELECT file_id, to_symbol FROM symbol_references WHERE first_snapshot <= ?1 AND kind <> ?2";
 /// Adds the usage count of a symbol: snapshot, symbol, usages.
 pub const USAGE_INSERT: &str =
     "INSERT INTO usage_counts (snapshot_id, symbol_id, usages) VALUES (?1, ?2, ?3)";
@@ -239,9 +249,11 @@ pub const TYPE_SUMMARY_REBUILD: &str = "INSERT INTO type_summary \
     WHERE f.snapshot_id = ?1 GROUP BY t.id";
 /// Names of the symbols of a snapshot: snapshot.
 pub const SYMBOL_NAMES: &str = "SELECT id, qualified_name FROM symbols WHERE snapshot_id = ?1";
-/// Ends of all references of a snapshot: snapshot.
-pub const REFERENCE_ENDS: &str =
-    "SELECT from_symbol, to_symbol FROM snapshot_references WHERE snapshot_id = ?1";
+/// Ends of the references of a snapshot that are not of the given kind and have the given
+/// confidence: snapshot, excluded kind (`test`), confidence (`certain`). References whose name
+/// matches several symbols are no layer edges (issue #464).
+pub const REFERENCE_ENDS: &str = "SELECT from_symbol, to_symbol FROM snapshot_references \
+    WHERE snapshot_id = ?1 AND kind <> ?2 AND confidence = ?3";
 /// Adds a layer graph edge: snapshot, from, to, count, violates, in cycle.
 pub const EDGE_INSERT: &str = "INSERT INTO layer_graph \
     (snapshot_id, from_layer, to_layer, edge_count, violates_layering, in_cycle) \
@@ -303,7 +315,7 @@ pub const TYPE_SUMMARY: &str = "SELECT member_count, loc, max_complexity, mainta
 /// `SYMBOL_BY_ID` or `SYMBOL_BY_NAME` follows.
 pub const SYMBOL_SELECT: &str = "SELECT s.id, s.file_id, s.kind, s.name, s.qualified_name, \
     s.parent_id, s.visibility, s.is_static, s.start_line, s.start_column, s.end_line, \
-    s.end_column, s.signature, s.doc, f.path FROM symbols s \
+    s.end_column, s.signature, s.doc, s.origin, f.path FROM symbols s \
     JOIN files f ON f.snapshot_id = s.snapshot_id AND f.id = s.file_id \
     WHERE s.snapshot_id = ?1 AND ";
 /// Condition of `SYMBOL_SELECT`: symbol id.
@@ -405,6 +417,13 @@ pub const PARSE_TIME_CARRY: &str = "INSERT INTO parse_times (snapshot_id, langua
 /// The parse times of a snapshot: snapshot.
 pub const PARSE_TIMES: &str = "SELECT language, micros FROM parse_times WHERE snapshot_id = ?1";
 
+/// Records one warning of a snapshot: snapshot, code, count.
+pub const WARNING_INSERT: &str =
+    "INSERT INTO snapshot_warnings (snapshot_id, code, count) VALUES (?1, ?2, ?3)";
+/// The warnings of a snapshot: snapshot.
+pub const WARNINGS: &str =
+    "SELECT code, count FROM snapshot_warnings WHERE snapshot_id = ?1 ORDER BY code";
+
 /// Adds a name as written: file, from, start line and column, end line and column, kind, target,
 /// receiver kind, receiver name.
 pub const PENDING_INSERT: &str = "INSERT INTO pending_references (file_id, from_symbol, \
@@ -427,6 +446,24 @@ pub const PENDING_OF_CALLERS: &str = "SELECT file_id, from_symbol, start_line, s
     end_line, end_column, kind, target, receiver_kind, receiver_name FROM pending_references \
     WHERE file_id IN (SELECT value FROM json_each(?2)) \
     AND from_symbol IN (SELECT value FROM json_each(?3)) AND file_id IN \
+    (SELECT id FROM files WHERE snapshot_id = ?1) ORDER BY rowid";
+/// The names of a snapshot, imports excepted, whose target or named receiver is one of some simple
+/// names: snapshot, names joined by the unit separator, import label, the unit separator.
+pub const PENDING_TARGETING: &str = "SELECT file_id, from_symbol, start_line, start_column, \
+    end_line, end_column, kind, target, receiver_kind, receiver_name FROM pending_references \
+    WHERE kind <> ?3 AND (instr(?2, ?4 || target || ?4) > 0 \
+    OR instr(?2, ?4 || receiver_name || ?4) > 0) AND file_id IN \
+    (SELECT id FROM files WHERE snapshot_id = ?1) ORDER BY rowid";
+/// The imports of a snapshot whose target is one of some qualified names: snapshot, names joined by
+/// the unit separator, import label, the unit separator.
+pub const PENDING_IMPORTS_TARGETING: &str = "SELECT file_id, from_symbol, start_line, \
+    start_column, end_line, end_column, kind, target, receiver_kind, receiver_name \
+    FROM pending_references WHERE kind = ?3 AND instr(?2, ?4 || target || ?4) > 0 \
+    AND file_id IN (SELECT id FROM files WHERE snapshot_id = ?1) ORDER BY rowid";
+/// All names of some files of a snapshot: snapshot, JSON list of file ids.
+pub const PENDING_OF_FILES: &str = "SELECT file_id, from_symbol, start_line, start_column, \
+    end_line, end_column, kind, target, receiver_kind, receiver_name FROM pending_references \
+    WHERE file_id IN (SELECT value FROM json_each(?2)) AND file_id IN \
     (SELECT id FROM files WHERE snapshot_id = ?1) ORDER BY rowid";
 /// All names of the files of a snapshot: snapshot.
 pub const PENDING_OF_SNAPSHOT: &str = "SELECT file_id, from_symbol, start_line, start_column, \

@@ -31,20 +31,42 @@ public class TruthJava {
 
     public static void main(String[] args) throws Exception {
         root = Path.of(args[0]).toAbsolutePath().normalize();
+        List<String[]> targets = readTargets();
+        List<Path> files = sourceFiles(args);
+        String classpath = args.length > 1 ? args[1] : "";
+        analyze(files, classpath);
+        StringBuilder out = new StringBuilder("[");
+        for (int i = 0; i < targets.size(); i++) {
+            out.append(i > 0 ? "," : "").append(answer(targets.get(i)));
+        }
+        System.out.println(out.append("]"));
+    }
+
+    /** The targets on standard input, one per row: file, line, name, category (tab separated). */
+    static List<String[]> readTargets() throws Exception {
         List<String[]> targets = new ArrayList<>();
         try (BufferedReader in = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8))) {
             for (String row; (row = in.readLine()) != null; ) targets.add(row.split("\t"));
         }
+        return targets;
+    }
+
+    /** The Java files below the root and, if given, below the extra source folder of the third argument. */
+    static List<Path> sourceFiles(String[] args) throws Exception {
         List<Path> files = new ArrayList<>();
         try (var walk = Files.walk(root)) {
             walk.filter(p -> p.toString().endsWith(".java") && !p.getFileName().toString().equals("module-info.java")).sorted().forEach(files::add);
         }
-        String classpath = args.length > 1 ? args[1] : "";
         if (args.length > 2 && !args[2].isEmpty() && Files.isDirectory(Path.of(args[2]))) {
             try (var walk = Files.walk(Path.of(args[2]))) {
                 walk.filter(p -> p.toString().endsWith(".java")).sorted().forEach(files::add);
             }
         }
+        return files;
+    }
+
+    /** Parses and attributes the files, then records every declaration with its uses. */
+    static void analyze(List<Path> files, String classpath) throws Exception {
         JavaCompiler compiler = ToolProvider.getSystemJavaCompiler();
         StandardJavaFileManager fm = compiler.getStandardFileManager(null, null, StandardCharsets.UTF_8);
         JavacTask task = (JavacTask) compiler.getTask(null, fm, d -> { if (d.getKind() == Diagnostic.Kind.ERROR) System.err.println("javac: " + d.getMessage(null) + " @" + (d.getSource() == null ? "" : d.getSource().getName()) + ":" + d.getLineNumber()); }, List.of("-proc:none", "-Xlint:none", "--release", "17", "-classpath", classpath), null,
@@ -55,32 +77,31 @@ public class TruthJava {
         for (CompilationUnitTree unit : task.parse()) units.add(unit);
         task.analyze();
         for (CompilationUnitTree unit : units) new Scanner(unit, positions).scan(unit, null);
-        StringBuilder out = new StringBuilder("[");
-        for (int i = 0; i < targets.size(); i++) {
-            String[] t = targets.get(i);
-            int line = Integer.parseInt(t[1]);
-            Set<String> found = new TreeSet<>();
-            // The declaration may start above the name (annotations, modifiers): accept the next lines.
-            // The nearest declaration of that name and category counts, whether or not it is used.
-            boolean declared = false;
-            for (int d = 0; d < 8 && !declared; d++) {
-                for (int l : new int[] {line + d, line - d}) {
-                    List<String> hit = uses.get(new Key(t[0], l, t[2], t[3]));
-                    if (hit != null) {
-                        found.addAll(hit);
-                        declared = true;
-                    }
+    }
+
+    /** The uses of one target as a JSON array of [path, line] pairs. */
+    static String answer(String[] t) {
+        int line = Integer.parseInt(t[1]);
+        Set<String> found = new TreeSet<>();
+        // The declaration may start above the name (annotations, modifiers): accept the next lines.
+        // The nearest declaration of that name and category counts, whether or not it is used.
+        boolean declared = false;
+        for (int d = 0; d < 8 && !declared; d++) {
+            for (int l : new int[] {line + d, line - d}) {
+                List<String> hit = uses.get(new Key(t[0], l, t[2], t[3]));
+                if (hit != null) {
+                    found.addAll(hit);
+                    declared = true;
                 }
             }
-            out.append(i > 0 ? "," : "").append("[");
-            int n = 0;
-            for (String u : found) {
-                int cut = u.lastIndexOf(':');
-                out.append(n++ > 0 ? "," : "").append("[\"").append(u.substring(0, cut).replace("\\", "\\\\")).append("\",").append(u.substring(cut + 1)).append("]");
-            }
-            out.append("]");
         }
-        System.out.println(out.append("]"));
+        StringBuilder out = new StringBuilder("[");
+        int n = 0;
+        for (String u : found) {
+            int cut = u.lastIndexOf(':');
+            out.append(n++ > 0 ? "," : "").append("[\"").append(u.substring(0, cut).replace("\\", "\\\\")).append("\",").append(u.substring(cut + 1)).append("]");
+        }
+        return out.append("]").toString();
     }
 
     /** Path of a compilation unit relative to the scanned root, or null for generated sources outside it. */

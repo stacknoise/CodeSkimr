@@ -8,11 +8,13 @@
 
 mod columns;
 mod consts;
+mod create;
 mod decode;
 mod error;
 mod fitting;
 mod impl_symbol;
 mod importer;
+mod info;
 mod interval;
 mod javatext;
 mod locals;
@@ -24,12 +26,15 @@ mod table;
 mod wire;
 
 pub use columns::convert_columns;
+pub use create::Creation;
 pub use decode::{decode_index, read_index};
 pub use error::{Corruption, ScipError};
 pub use importer::ScipImporter;
-pub use mapping::{ImportOutcome, ImportStats, SnapshotView, import_references};
+pub use mapping::{
+    ImportOutcome, ImportStats, SnapshotView, import_references, import_with_creation,
+};
 pub use model::{
     AnonymousCreation, Arity, ConstructorSite, Occurrence, PositionEncoding, ScipDocument,
-    ScipIndex, SymbolRef, TextFacts,
+    ScipIndex, SymbolInfo, SymbolRef, TextFacts,
 };
 pub use path::normalize_path;

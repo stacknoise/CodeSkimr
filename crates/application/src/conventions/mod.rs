@@ -9,7 +9,6 @@ mod checker;
 mod duplicates;
 mod length;
 mod model;
-mod selection;
 mod stored;
 
 pub use checker::ConventionChecker;

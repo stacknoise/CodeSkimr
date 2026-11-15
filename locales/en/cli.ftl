@@ -88,3 +88,5 @@ cli-level2-prompt = Type the name of the project ("{ $project }") to allow level
 cli-level2-confirmed = Level 2 is allowed for project { $project }. It runs with the next scan on the command line.
 cli-level2-declined = Nothing changed: level 2 stays off for project { $project }.
 cli-level2-revoked = Level 2 is forbidden again for project { $project }.
+cli-scan-warning-ambiguous-reference = Warning RES-301: { $count } places match several symbols and are stored as probable.
+cli-scan-warning-other = Warning { $code }: { $count } times.

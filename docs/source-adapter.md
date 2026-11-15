@@ -14,6 +14,7 @@ Implements the driven ports `SourceProvider` and `FileDiscovery` of `codeskimr_a
 ## Credentials (WP-71)
 
 - A Git source may name a credential (`CredentialId`). `SourceFetcher<S: CredentialStore>` then lends it to the login callback of the connection: the store is asked again for every request of the connection and nothing is cached. Without a credential the system's Git credential helper decides; a terminal prompt is always off (issue #58).
+- `file://` addresses are accepted as Git sources (decision on #388): a local mirror is useful for a single user. The team edition must keep `file://` out of its clone allow-list (blueprint S-05, #289).
 - Secrets never go into the URL. `GitUrl` removes credentials when it is created (Git would write the URL into `.git/config`, issue #35): the password always, for `http` and `https` also the user (a token is often put there), for other schemes the user stays (`ssh://git@host`). Whoever used a password in the URL so far must create a credential instead; without one the remote answers `SRC-401`.
 - The credential is only given to the server the source points at. After a redirect to another host Git asks again for that address and gets nothing (test with two local servers). Tests clone with a canary secret and search the whole cache folder for it.
 - Git refuses to send credentials over plain `http://`; this stays as it is. Only the test build switches it off (`gix-transport` feature `http-client-insecure-credentials` as a dev dependency) to talk to a local server.

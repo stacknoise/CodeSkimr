@@ -87,6 +87,7 @@ pub fn symbol(
         span: span(1),
         signature: Some(format!("{name}()")),
         doc: None,
+        origin: codeskimr_domain::SymbolOrigin::Syntax,
     }
 }
 
@@ -135,6 +136,7 @@ pub fn data(snapshot: Snapshot) -> SnapshotData {
         dropped_references: Vec::new(),
         naming_rules: String::new(),
         parse_micros: Vec::new(),
+        warnings: Vec::new(),
     }
 }
 

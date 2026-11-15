@@ -5,7 +5,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use codeskimr_bench::BenchError;
-use codeskimr_bench::estimates::collect;
+use codeskimr_bench::estimates::{collect, collect_best};
 
 type TestResult = Result<(), Box<dyn Error>>;
 
@@ -70,5 +70,26 @@ fn baseline_without_estimates_file_is_skipped() -> TestResult {
     let dir = fresh_dir("estimates_empty")?;
     fs::create_dir_all(dir.join("domain/a/ci-base"))?;
     assert!(collect(&dir, "ci-base")?.is_empty());
+    Ok(())
+}
+
+#[test]
+fn the_best_median_over_several_runs_counts() -> TestResult {
+    let first = fresh_dir("estimates_best_first")?;
+    let second = fresh_dir("estimates_best_second")?;
+    let write = |dir: &Path, bench: &str, median: f64| {
+        write_estimates(
+            dir,
+            bench,
+            "ci-head",
+            &format!(r#"{{"median":{{"point_estimate":{median}}}}}"#),
+        )
+    };
+    write(&first, "domain/a", 30.0)?;
+    write(&second, "domain/a", 20.0)?;
+    write(&first, "domain/only_first", 5.0)?;
+    let best = collect_best(&[first, second], "ci-head")?;
+    assert_eq!(best.get("domain/a"), Some(&20.0));
+    assert_eq!(best.get("domain/only_first"), Some(&5.0));
     Ok(())
 }

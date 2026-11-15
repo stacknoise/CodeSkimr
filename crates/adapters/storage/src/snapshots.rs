@@ -1,19 +1,18 @@
 //! The `SnapshotStore` port: one snapshot written atomically, with its read models.
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{ReferenceReplacement, SnapshotData, SnapshotStore};
+use codeskimr_application::ports::{Level2Replacement, SnapshotData, SnapshotStore};
 use codeskimr_domain::{
-    CommitHash, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile, Symbol,
-    Visibility,
+    CommitHash, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile,
 };
 use rusqlite::{Connection, params};
 
-use crate::codec::{SpanColumns, column_int};
+use crate::codec::column_int;
 use crate::consts::{
     BULK_REFERENCES_MIN, BULK_REFERENCES_SHARE_DIVISOR, PRAGMA_DEFER_FOREIGN_KEYS, PRAGMA_ON,
 };
 use crate::error::{StorageError, StorageResult};
-use crate::headers::{insert_metric, insert_reference, set_totals, totals};
+use crate::headers::{insert_metric, insert_reference, insert_symbol, set_totals, totals};
 use crate::integrity;
 use crate::pending;
 use crate::projects::load_layers;
@@ -31,12 +30,9 @@ impl SnapshotStore for SqliteStore {
         Ok(stored)
     }
 
-    fn replace_references(
-        &self,
-        replacement: ReferenceReplacement,
-    ) -> Result<Snapshot, CodedError> {
+    fn replace_level2(&self, replacement: Level2Replacement) -> Result<Snapshot, CodedError> {
         let stored = self
-            .write(|tx| crate::replace::replace_references(tx, &replacement))
+            .write(|tx| crate::replace::replace_level2(tx, &replacement))
             .map_err(CodedError::from)?;
         self.refresh_lookup(stored.id);
         Ok(stored)
@@ -58,6 +54,7 @@ fn write_snapshot(conn: &Connection, data: &SnapshotData, keep: u32) -> StorageR
     )?;
     insert_facts(conn, data)?;
     insert_parse_times(conn, data)?;
+    insert_warnings(conn, data)?;
     if header.mode == ScanMode::Incremental {
         carry_over(conn, header.project, header.id, &data.removed)?;
     }
@@ -168,6 +165,20 @@ fn insert_parse_times(conn: &Connection, data: &SnapshotData) -> StorageResult<(
     Ok(())
 }
 
+/// The warnings of the scan, counted over the whole snapshot.
+fn insert_warnings(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
+    let snapshot = column_int(data.snapshot.id.get())?;
+    let mut insert = conn.prepare_cached(sql::WARNING_INSERT)?;
+    for warning in &data.warnings {
+        insert.execute(params![
+            snapshot,
+            warning.code.id(),
+            column_int(warning.count)?
+        ])?;
+    }
+    Ok(())
+}
+
 fn insert_file(conn: &Connection, snapshot: i64, file: &SourceFile) -> StorageResult<()> {
     conn.prepare_cached(sql::FILE_INSERT)?.execute(params![
         snapshot,
@@ -176,31 +187,6 @@ fn insert_file(conn: &Connection, snapshot: i64, file: &SourceFile) -> StorageRe
         file.language.as_str(),
         file.content_hash.as_str(),
         i64::from(file.loc.0),
-    ])?;
-    Ok(())
-}
-
-fn insert_symbol(conn: &Connection, symbol: &Symbol) -> StorageResult<()> {
-    let parent = symbol
-        .parent
-        .map(|parent| column_int(parent.get()))
-        .transpose()?;
-    let span = SpanColumns::of(&symbol.span);
-    conn.prepare_cached(sql::SYMBOL_INSERT)?.execute(params![
-        column_int(symbol.id.get())?,
-        column_int(symbol.file.get())?,
-        symbol.kind.label(),
-        symbol.name.as_str(),
-        symbol.qualified_name.as_str(),
-        parent,
-        symbol.visibility.map(Visibility::label),
-        symbol.is_static,
-        span.start_line,
-        span.start_column,
-        span.end_line,
-        span.end_column,
-        symbol.signature,
-        symbol.doc,
     ])?;
     Ok(())
 }

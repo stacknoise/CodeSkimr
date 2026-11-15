@@ -184,6 +184,8 @@ pub const INDEXER_BAD_VERSION: &str = "indexer version cannot be read: ";
 pub const INDEXER_UNKNOWN_PLACEHOLDER: &str = "indexer argument has an unknown placeholder: ";
 /// Reason: a `home_dirs` entry of an `[indexer]` is empty, absolute or leaves the home.
 pub const INDEXER_BAD_HOME_DIR: &str = "indexer home_dirs must name a folder below the home: ";
+/// Reason: a kind of `[indexer.symbol_kinds]` is not a symbol kind of the model.
+pub const INDEXER_BAD_SYMBOL_KIND: &str = "indexer symbol_kinds names an unknown symbol kind: ";
 /// Reason: no argument of an `[indexer]` names the index file.
 pub const INDEXER_NO_OUTPUT: &str = "indexer args must contain {output}";
 /// Opens a placeholder in an indexer argument.
@@ -194,6 +196,8 @@ pub const PLACEHOLDER_CLOSE: char = '}';
 pub const PATH_SEPARATORS: [char; 2] = ['/', '\\'];
 /// Character that a folder name taken from a manifest must not contain (no `..`).
 pub const PATH_DOT: char = '.';
+/// Between a broken test pattern and the reason in the message about it.
+pub const TEST_PATTERN_SEPARATOR: &str = ": ";
 /// Nothing: what a placeholder is replaced with when the rest of an argument is checked.
 pub const NOTHING: &str = "";
 
@@ -205,6 +209,11 @@ pub const NAMING_RULES_SEPARATOR: &str = ";";
 pub const NAMING_FILE_IN_NAMES: &str = "file";
 /// Rule of a pack whose qualified names start with its own namespaces (ADR 0036).
 pub const NAMING_NAMESPACED: &str = "namespace";
+
+/// Between the naming rule of a pack and its test patterns.
+pub const NAMING_TESTS: &str = "+tests:";
+/// Between two test patterns in the text of the naming rules.
+pub const NAMING_PATTERN_SEPARATOR: &str = ",";
 
 /// Revision of the naming rules of the engine itself, part of the text of the naming rules: it
 /// changes when names change for reasons other than a pack key (2: members of an `impl` carry

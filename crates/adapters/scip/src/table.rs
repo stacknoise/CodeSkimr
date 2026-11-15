@@ -135,6 +135,11 @@ impl<'a> SymbolTable<'a> {
         self.by_file.get(&file).map_or(&[], Vec::as_slice)
     }
 
+    /// The symbol of the file with this id.
+    pub(crate) fn find(&self, file: FileId, id: SymbolId) -> Option<&'a Symbol> {
+        self.symbols_of(file).iter().copied().find(|s| s.id == id)
+    }
+
     /// The smallest symbol of the file whose span contains `at`.
     pub(crate) fn innermost(&self, file: FileId, at: Position) -> Option<&'a Symbol> {
         self.enclosing(file, at)

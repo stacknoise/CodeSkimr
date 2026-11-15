@@ -14,6 +14,8 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0010_coupling_rows.sql"),
     include_str!("../migrations/0011_pending_references.sql"),
     include_str!("../migrations/0012_layer_directions.sql"),
+    include_str!("../migrations/0013_scan_warnings.sql"),
+    include_str!("../migrations/0014_symbol_origin.sql"),
 ];
 
 /// Name of the pragma that holds the schema version.
@@ -131,3 +133,7 @@ pub const BULK_REFERENCES_MIN: usize = 20_000;
 /// The indexes are built again after the load when the new references are at least this share of
 /// the stored ones, expressed as "one in N" (a load of half the table or more).
 pub const BULK_REFERENCES_SHARE_DIVISOR: usize = 2;
+
+/// Separates names in a text that is handed to SQL as a list of names (the unit separator, which
+/// no name holds).
+pub const NAME_SEPARATOR: char = '\u{1f}';

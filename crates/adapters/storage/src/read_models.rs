@@ -5,7 +5,7 @@
 
 use std::collections::BTreeMap;
 
-use codeskimr_domain::{Layer, MetricKind, SnapshotId, SymbolKind};
+use codeskimr_domain::{Confidence, Layer, MetricKind, ReferenceKind, SnapshotId, SymbolKind};
 use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, column_int, id_from};
@@ -38,14 +38,15 @@ pub fn rebuild(conn: &Connection, snapshot: SnapshotId, layers: &[Layer]) -> Sto
     rebuild_layer_graph(conn, id, layers)
 }
 
-/// Fills `usage_counts`: how many references of the snapshot point at each symbol. A reference
+/// Fills `usage_counts`: how many references of the snapshot point at each symbol. References of
+/// kind `test` are left out, like in coupling; the usages list still shows them. A reference
 /// counts when its file and its target are in the snapshot, as in the view `snapshot_references`.
 fn rebuild_usages(conn: &Connection, snapshot: i64) -> StorageResult<()> {
     let files = id_set(conn, sql::FILE_IDS, snapshot)?;
     let symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
     let mut counts: BTreeMap<i64, i64> = BTreeMap::new();
     let mut statement = conn.prepare_cached(sql::REFERENCE_TARGETS)?;
-    let mut rows = statement.query(params![snapshot])?;
+    let mut rows = statement.query(params![snapshot, ReferenceKind::Test.label()])?;
     while let Some(row) = rows.next()? {
         let (file, target): (i64, i64) = (row.get(0)?, row.get(1)?);
         if files.contains(&file) && symbols.contains(&target) {
@@ -85,14 +86,21 @@ fn layer_of_symbols(
     Ok(owners)
 }
 
-/// Counts the references between different layers.
+/// Counts the references between different layers, without those of kind `test` and without
+/// those that are only probable: a name that matches several symbols says nothing about the
+/// dependency (issue #464).
 fn count_edges(
     conn: &Connection,
     snapshot: i64,
     owners: &BTreeMap<u64, usize>,
 ) -> StorageResult<BTreeMap<(usize, usize), u32>> {
     let mut statement = conn.prepare_cached(sql::REFERENCE_ENDS)?;
-    let rows = statement.query_map(params![snapshot], |row| {
+    let bind = params![
+        snapshot,
+        ReferenceKind::Test.label(),
+        Confidence::Certain.label()
+    ];
+    let rows = statement.query_map(bind, |row| {
         let cols = Cols::new(row);
         Ok((cols.take::<i64>()?, cols.take::<i64>()?))
     })?;

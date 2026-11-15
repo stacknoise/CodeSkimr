@@ -7,6 +7,8 @@ use codeskimr_domain::{ProjectId, ScanMode, Snapshot};
 
 use crate::cancel::CancelToken;
 use crate::level2::LanguageReport;
+use crate::ports::{PathsReport, ScanWarning};
+use crate::selection::Selection;
 
 mod sealed {
     /// Keeps the set of job states closed.
@@ -27,6 +29,8 @@ pub struct Running;
 pub struct Finished {
     snapshot: Snapshot,
     level2: Vec<LanguageReport>,
+    warnings: Vec<ScanWarning>,
+    paths: PathsReport,
 }
 /// Ended because the user cancelled; no snapshot exists.
 #[derive(Debug)]
@@ -54,6 +58,7 @@ pub struct Job<S: JobState> {
     mode: ScanMode,
     cancel: CancelToken,
     level2: bool,
+    paths: Selection,
     state: S,
 }
 
@@ -77,12 +82,19 @@ impl<S: JobState> Job<S> {
         self.level2
     }
 
+    /// The paths an incremental scan is restricted to; none means the whole project.
+    #[must_use]
+    pub const fn paths(&self) -> &Selection {
+        &self.paths
+    }
+
     fn into_state<T: JobState>(self, state: T) -> Job<T> {
         Job {
             project: self.project,
             mode: self.mode,
             cancel: self.cancel,
             level2: self.level2,
+            paths: self.paths,
             state,
         }
     }
@@ -97,6 +109,7 @@ impl Job<Queued> {
             mode,
             cancel: CancelToken::new(),
             level2: false,
+            paths: Selection::default(),
             state: Queued,
         }
     }
@@ -116,6 +129,15 @@ impl Job<Queued> {
     #[must_use]
     pub const fn without_level2(mut self) -> Self {
         self.level2 = false;
+        self
+    }
+
+    /// The same job restricted to the files and folders `paths` name: an incremental scan then
+    /// looks only there for changes, and every other file of the previous snapshot stays as it
+    /// is, deleted or not. A full scan ignores the limit. No path means the whole project.
+    #[must_use]
+    pub fn with_paths(mut self, paths: &[String]) -> Self {
+        self.paths = Selection::new(paths);
         self
     }
 
@@ -145,10 +167,22 @@ impl Job<Running> {
         &self.cancel
     }
 
-    /// Ends the job with its snapshot and what the second pass reports per language.
+    /// Ends the job with its snapshot, what the second pass reports per language, the warnings
+    /// of the scan and what became of its paths.
     #[must_use]
-    pub fn finish(self, snapshot: Snapshot, level2: Vec<LanguageReport>) -> Job<Finished> {
-        self.into_state(Finished { snapshot, level2 })
+    pub fn finish(
+        self,
+        snapshot: Snapshot,
+        level2: Vec<LanguageReport>,
+        warnings: Vec<ScanWarning>,
+        paths: PathsReport,
+    ) -> Job<Finished> {
+        self.into_state(Finished {
+            snapshot,
+            level2,
+            warnings,
+            paths,
+        })
     }
 
     /// Ends the job because the user cancelled.
@@ -175,6 +209,18 @@ impl Job<Finished> {
     #[must_use]
     pub fn level2(&self) -> &[LanguageReport] {
         &self.state.level2
+    }
+
+    /// What became of the paths the job was asked to look at.
+    #[must_use]
+    pub const fn paths_report(&self) -> &PathsReport {
+        &self.state.paths
+    }
+
+    /// The warnings of the scan, one per code with a count; empty if there is none.
+    #[must_use]
+    pub fn warnings(&self) -> &[ScanWarning] {
+        &self.state.warnings
     }
 }
 

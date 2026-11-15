@@ -8,3 +8,7 @@
 /tools/accuracy/truth_csharp/bin/
 /tools/accuracy/truth_csharp/obj/
 /dist
+
+# Python bytecode
+__pycache__/
+*.pyc

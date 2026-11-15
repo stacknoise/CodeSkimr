@@ -4,11 +4,11 @@
 mod common;
 
 use codeskimr_application::ports::{
-    ProjectRepository, ReferenceReplacement, SnapshotData, SnapshotStore, SymbolKey, UsageIndex,
+    Level2Replacement, ProjectRepository, SnapshotData, SnapshotStore, SymbolKey, UsageIndex,
 };
 use codeskimr_domain::{
-    Direction, FileId, MetricKind, Reference, ScanMode, SnapshotId, SymbolId, SymbolKind,
-    UsageQuery,
+    Direction, FileId, MetricKind, Reference, ScanMode, SnapshotId, Symbol, SymbolId, SymbolKind,
+    SymbolOrigin, UsageQuery,
 };
 use common::{PROJECT, code_of, data, file, header, metric, project, reference, store, symbol};
 
@@ -56,10 +56,11 @@ fn verified(id: u64, file: u64, from: u64, to: u64) -> Reference {
 }
 
 #[cfg(test)]
-fn replacement(files: &[u64], references: Vec<Reference>) -> ReferenceReplacement {
-    ReferenceReplacement {
+fn replacement(files: &[u64], references: Vec<Reference>) -> Level2Replacement {
+    Level2Replacement {
         snapshot: SnapshotId::new(SNAPSHOT),
         files: files.iter().copied().map(FileId::new).collect(),
+        symbols: Vec::new(),
         references,
     }
 }
@@ -81,7 +82,7 @@ fn stored(store: &codeskimr_storage::SqliteStore) -> Vec<(u64, bool)> {
 fn the_references_of_the_files_are_replaced_and_the_others_stay() {
     let store = registered();
     let snapshot = store
-        .replace_references(replacement(&[71], vec![verified(900, 71, 82, 84)]))
+        .replace_level2(replacement(&[71], vec![verified(900, 71, 82, 84)]))
         .unwrap();
     assert_eq!(stored(&store), [(92, false), (900, true)]);
     assert_eq!(snapshot.stats.references, 2);
@@ -97,7 +98,7 @@ fn the_read_models_follow_the_new_references() {
     };
     assert_eq!((usages(83), usages(84)), (1, 0));
     store
-        .replace_references(replacement(&[71], vec![verified(900, 71, 82, 84)]))
+        .replace_level2(replacement(&[71], vec![verified(900, 71, 82, 84)]))
         .unwrap();
     assert_eq!((usages(83), usages(84)), (0, 1));
 }
@@ -106,7 +107,7 @@ fn the_read_models_follow_the_new_references() {
 fn a_replacement_without_references_removes_those_of_the_file() {
     let store = registered();
     store
-        .replace_references(replacement(&[71], Vec::new()))
+        .replace_level2(replacement(&[71], Vec::new()))
         .unwrap();
     assert_eq!(stored(&store), [(92, false)]);
 }
@@ -118,7 +119,7 @@ fn a_bad_replacement_changes_nothing() {
     let unknown_symbol = replacement(&[71], vec![verified(900, 71, 82, 99)]);
     let unknown_file = replacement(&[77], Vec::new());
     for bad in [wrong_file, unknown_symbol, unknown_file] {
-        let error = store.replace_references(bad).unwrap_err();
+        let error = store.replace_level2(bad).unwrap_err();
         assert_eq!(code_of(&error), "STO-901");
     }
     assert_eq!(stored(&store), [(91, false), (92, false)]);
@@ -137,11 +138,11 @@ fn an_older_snapshot_that_shares_the_file_follows_in_its_read_models_too() {
             .unwrap()
     };
     assert_eq!((usages(10, 83), usages(20, 83)), (1, 1));
-    let replacement = ReferenceReplacement {
+    let replacement = Level2Replacement {
         snapshot: SnapshotId::new(20),
         ..replacement(&[71], vec![verified(900, 71, 82, 84)])
     };
-    store.replace_references(replacement).unwrap();
+    store.replace_level2(replacement).unwrap();
     for snapshot in [10, 20] {
         assert_eq!((usages(snapshot, 83), usages(snapshot, 84)), (0, 1));
     }
@@ -154,7 +155,7 @@ fn only_the_newest_snapshot_may_be_changed() {
     later.files = vec![file(20, 51, "alpha.cs", "h-alpha")];
     store.persist(later).unwrap();
     let error = store
-        .replace_references(replacement(&[71], Vec::new()))
+        .replace_level2(replacement(&[71], Vec::new()))
         .unwrap_err();
     assert_eq!(code_of(&error), "STO-901");
 }
@@ -205,7 +206,7 @@ fn the_coupling_follows_the_new_references() {
     let ca = |symbol| coupling_of(&store, symbol, MetricKind::AfferentCoupling);
     assert_eq!((ce(81), ca(83)), (Some(1.0), Some(1.0)));
     store
-        .replace_references(replacement(&[71], Vec::new()))
+        .replace_level2(replacement(&[71], Vec::new()))
         .unwrap();
     assert_eq!((ce(81), ca(83)), (Some(0.0), Some(0.0)));
     assert_eq!(
@@ -219,7 +220,7 @@ fn the_coupling_follows_the_new_references() {
 fn a_verified_reference_adds_the_dependency() {
     let store = namespaces();
     store
-        .replace_references(replacement(&[72], vec![verified(900, 72, 84, 82)]))
+        .replace_level2(replacement(&[72], vec![verified(900, 72, 84, 82)]))
         .unwrap();
     let value = |symbol, kind| coupling_of(&store, symbol, kind);
     assert_eq!(value(83, MetricKind::EfferentCoupling), Some(1.0));
@@ -244,8 +245,119 @@ fn a_kept_usage_index_follows_the_replacement() {
     let store = namespaces();
     assert_eq!(users_of(&store, 84), [82]);
     store
-        .replace_references(replacement(&[71], vec![verified(900, 71, 82, 83)]))
+        .replace_level2(replacement(&[71], vec![verified(900, 71, 82, 83)]))
         .unwrap();
     assert_eq!(users_of(&store, 84), Vec::<u64>::new());
     assert_eq!(users_of(&store, 83), [82]);
+}
+
+/// A symbol that level 2 created (ADR 0055).
+#[cfg(test)]
+fn created(id: u64, file: u64, kind: SymbolKind, qualified: &str, parent: Option<u64>) -> Symbol {
+    Symbol {
+        origin: SymbolOrigin::Index,
+        visibility: None,
+        signature: Some("pub struct Gen".to_owned()),
+        ..symbol(id, file, kind, qualified, parent)
+    }
+}
+
+/// `Lib.Gen` and its variant, created in `alpha.cs`, and a use of the variant from `Go`.
+#[cfg(test)]
+fn with_created() -> Level2Replacement {
+    Level2Replacement {
+        symbols: vec![
+            created(301, 71, SymbolKind::Enum, "Lib.Gen", Some(81)),
+            created(302, 71, SymbolKind::EnumMember, "Lib.Gen.One", Some(301)),
+        ],
+        ..replacement(&[71], vec![verified(900, 72, 84, 302)])
+    }
+}
+
+#[cfg(test)]
+fn symbols_of_index(store: &codeskimr_storage::SqliteStore) -> Vec<(u64, Option<u64>)> {
+    let mut found: Vec<_> = store
+        .latest_index(PROJECT)
+        .unwrap()
+        .symbols
+        .iter()
+        .filter(|s| s.origin == SymbolOrigin::Index)
+        .map(|s| (s.id.get(), s.parent.map(SymbolId::get)))
+        .collect();
+    found.sort_unstable();
+    found
+}
+
+#[test]
+fn the_symbols_of_level_two_are_stored_with_their_origin_and_counted_as_usages() {
+    let store = registered();
+    // The reference stands in `beta.cs`, which is not replaced, so it is not allowed: only the
+    // files of the replacement may hold references.
+    let error = store.replace_level2(with_created()).unwrap_err();
+    assert_eq!(code_of(&error), "STO-901");
+    let allowed = Level2Replacement {
+        files: vec![FileId::new(71), FileId::new(72)],
+        ..with_created()
+    };
+    let snapshot = store.replace_level2(allowed).unwrap();
+    assert_eq!(
+        symbols_of_index(&store),
+        [(301, Some(81)), (302, Some(301))]
+    );
+    assert_eq!(snapshot.stats.symbols, 6);
+    assert_eq!(
+        store
+            .usage_count(SnapshotId::new(SNAPSHOT), SymbolId::new(302))
+            .unwrap(),
+        1
+    );
+    let index = store.latest_index(PROJECT).unwrap();
+    let stored = index.symbols.iter().find(|s| s.id.get() == 302).unwrap();
+    assert_eq!(stored.origin, SymbolOrigin::Index);
+    assert_eq!(stored.qualified_name.as_str(), "Lib.Gen.One");
+}
+
+#[test]
+fn a_second_replacement_replaces_the_created_symbols_and_the_references_to_them() {
+    let store = registered();
+    let both = |symbols: Vec<Symbol>, references: Vec<Reference>| Level2Replacement {
+        symbols,
+        ..replacement(&[71, 72], references)
+    };
+    store
+        .replace_level2(both(
+            vec![created(301, 71, SymbolKind::Struct, "Lib.Old", Some(81))],
+            vec![verified(900, 72, 84, 301)],
+        ))
+        .unwrap();
+    // Only `alpha.cs` is replaced again: its created symbol is gone, and so is the reference
+    // from `beta.cs` that pointed at it.
+    store
+        .replace_level2(Level2Replacement {
+            symbols: vec![created(310, 71, SymbolKind::Struct, "Lib.New", Some(81))],
+            ..replacement(&[71], Vec::new())
+        })
+        .unwrap();
+    assert_eq!(symbols_of_index(&store), [(310, Some(81))]);
+    // Level 1 references 91 and 92 went with the first replacement of their files; 900 went with
+    // its target.
+    assert_eq!(stored(&store), Vec::<(u64, bool)>::new());
+}
+
+#[test]
+fn a_replacement_with_bad_symbols_changes_nothing() {
+    let store = registered();
+    let bad = |symbols: Vec<Symbol>| Level2Replacement {
+        symbols,
+        ..replacement(&[71], Vec::new())
+    };
+    let syntax = symbol(301, 71, SymbolKind::Class, "Lib.G", Some(81));
+    let other_file = created(301, 72, SymbolKind::Class, "Lib.G", Some(83));
+    let no_parent = created(301, 71, SymbolKind::Class, "Lib.G", Some(999));
+    for symbols in [vec![syntax], vec![other_file], vec![no_parent]] {
+        let error = store.replace_level2(bad(symbols)).unwrap_err();
+        assert_eq!(code_of(&error), "STO-901");
+    }
+    assert_eq!(symbols_of_index(&store), []);
+    assert_eq!(stored(&store), [(91, false), (92, false)]);
 }

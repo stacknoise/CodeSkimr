@@ -2,6 +2,8 @@
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use codeskimr_application::ids::IdSequence;
     use codeskimr_application::ports::{PendingReference, Receiver, ReferenceResolver};
     use codeskimr_application::resolve::ScopedResolver;
@@ -58,6 +60,7 @@ mod tests {
                 span: Span::new(position, position).expect("span"),
                 signature: None,
                 doc: None,
+                origin: codeskimr_domain::SymbolOrigin::Syntax,
             });
             id
         }
@@ -88,8 +91,21 @@ mod tests {
     }
 
     fn resolve(table: &Table, pending: &[PendingReference]) -> Vec<Reference> {
+        resolve_with_tests(table, pending, &HashSet::new())
+    }
+
+    fn resolve_with_tests(
+        table: &Table,
+        pending: &[PendingReference],
+        test_files: &HashSet<FileId>,
+    ) -> Vec<Reference> {
         ScopedResolver
-            .resolve(&table.symbols, pending, &IdSequence::starting_at(1000))
+            .resolve(
+                &table.symbols,
+                pending,
+                test_files,
+                &IdSequence::starting_at(1000),
+            )
             .expect("resolves")
     }
 
@@ -159,6 +175,30 @@ mod tests {
         );
         assert_eq!(targets(&found), [shop.save]);
         assert_eq!(found[0].confidence, Confidence::Certain);
+    }
+
+    #[test]
+    fn uses_in_a_test_file_are_test_references_and_imports_stay_imports() {
+        let mut shop = shop();
+        let (elsewhere, tool) = shop.table.add_tool("Elsewhere", 3);
+        let uses = [
+            (2, ReferenceKind::Import, "Elsewhere"),
+            (2, ReferenceKind::TypeUse, "Tool"),
+            (2, ReferenceKind::Call, "Tool"),
+            (7, ReferenceKind::TypeUse, "Tool"),
+        ];
+        let pending: Vec<_> = uses
+            .iter()
+            .map(|&(file, kind, name)| occurrence(shop.save, file, kind, name))
+            .collect();
+        let tests = HashSet::from([FileId::new(2)]);
+        let found = resolve_with_tests(&shop.table, &pending, &tests);
+        let kinds: Vec<_> = found.iter().map(|r| (r.to, r.file, r.kind)).collect();
+        assert!(kinds.contains(&(elsewhere, FileId::new(2), ReferenceKind::Import)));
+        assert!(kinds.contains(&(tool, FileId::new(2), ReferenceKind::Test)));
+        // The same name in a file that is no test file keeps its kind.
+        assert!(kinds.contains(&(tool, FileId::new(7), ReferenceKind::TypeUse)));
+        assert!(!kinds.contains(&(tool, FileId::new(2), ReferenceKind::TypeUse)));
     }
 
     #[test]

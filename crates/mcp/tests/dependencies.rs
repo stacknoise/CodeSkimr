@@ -5,6 +5,7 @@ mod common;
 
 use std::sync::Arc;
 
+use codeskimr_application::ports::PathsReport;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Direction, Permission, PermissionSet, Principal};
 use codeskimr_mcp::{DependenciesArgs, RescanArgs};
@@ -172,7 +173,13 @@ fn a_caller_without_read_gets_the_same_denial_for_valid_and_invalid_arguments() 
 fn rescan_runs_the_scanner_and_names_snapshot_and_duration() {
     let scanner = Arc::new(FakeScanner::default());
     let answer = tools_scanning(Arc::clone(&scanner))
-        .rescan(&owner(), &RescanArgs { project: None })
+        .rescan(
+            &owner(),
+            &RescanArgs {
+                project: None,
+                paths: None,
+            },
+        )
         .unwrap();
     assert_eq!(answer["snapshot"]["id"], 11);
     assert_eq!(answer["snapshot"]["age_seconds"], 5);
@@ -187,11 +194,56 @@ fn rescan_runs_the_scanner_and_names_snapshot_and_duration() {
 }
 
 #[test]
+fn rescan_hands_its_paths_to_the_scanner_and_names_them() {
+    let scanner = Arc::new(FakeScanner::default());
+    let paths = vec!["src/a.cs".to_owned(), "docs".to_owned()];
+    let answer = tools_scanning(Arc::clone(&scanner))
+        .rescan(
+            &owner(),
+            &RescanArgs {
+                project: None,
+                paths: Some(paths.clone()),
+            },
+        )
+        .unwrap();
+    assert_eq!(answer["paths"], serde_json::json!(paths));
+    assert_eq!(*scanner.asked_paths.lock().unwrap(), vec![paths]);
+}
+
+#[test]
+fn rescan_names_the_paths_that_matched_no_file_and_whether_it_ignored_them() {
+    let scanner = Arc::new(FakeScanner {
+        paths: PathsReport {
+            unmatched: vec!["srcc/a.cs".to_owned()],
+            ignored: true,
+        },
+        ..FakeScanner::default()
+    });
+    let answer = tools_scanning(scanner)
+        .rescan(
+            &owner(),
+            &RescanArgs {
+                project: None,
+                paths: Some(vec!["srcc/a.cs".to_owned()]),
+            },
+        )
+        .unwrap();
+    assert_eq!(answer["unmatched_paths"], serde_json::json!(["srcc/a.cs"]));
+    assert_eq!(answer["paths_ignored"], true);
+}
+
+#[test]
 fn rescan_without_the_scan_permission_starts_nothing() {
     let scanner = Arc::new(FakeScanner::default());
     let reader = Principal::limited(PermissionSet::none().with(Permission::Read));
     let error = tools_scanning(Arc::clone(&scanner))
-        .rescan(&reader, &RescanArgs { project: None })
+        .rescan(
+            &reader,
+            &RescanArgs {
+                project: None,
+                paths: None,
+            },
+        )
         .unwrap_err();
     assert_eq!(error.code(), ErrorCode::PermissionDenied);
     assert_eq!(scanner.asked.lock().unwrap().len(), 0);
@@ -201,7 +253,13 @@ fn rescan_without_the_scan_permission_starts_nothing() {
 fn rescan_of_an_unknown_project_starts_nothing() {
     let scanner = Arc::new(FakeScanner::default());
     let error = tools_scanning(Arc::clone(&scanner))
-        .rescan(&owner(), &RescanArgs { project: Some(99) })
+        .rescan(
+            &owner(),
+            &RescanArgs {
+                project: Some(99),
+                paths: None,
+            },
+        )
         .unwrap_err();
     assert_eq!(error.code(), ErrorCode::ProjectNotRegistered);
     assert_eq!(scanner.asked.lock().unwrap().len(), 0);
@@ -214,7 +272,13 @@ fn rescan_keeps_the_code_of_a_failed_scan() {
         ..FakeScanner::default()
     });
     let error = tools_scanning(scanner)
-        .rescan(&owner(), &RescanArgs { project: None })
+        .rescan(
+            &owner(),
+            &RescanArgs {
+                project: None,
+                paths: None,
+            },
+        )
         .unwrap_err();
     assert_eq!(error.code(), ErrorCode::UnexpectedInternalError);
 }

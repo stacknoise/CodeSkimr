@@ -4,7 +4,9 @@
 mod common;
 
 use codeskimr_application::ports::ProjectRepository;
-use codeskimr_domain::{MetricKind, ProjectId, SnapshotId, SymbolId, SymbolKind};
+use codeskimr_domain::{
+    Confidence, MetricKind, ProjectId, Reference, ReferenceKind, SnapshotId, SymbolId, SymbolKind,
+};
 use common::{metric, project, reference, scanned, scanned_project, symbol};
 
 const SNAPSHOT: SnapshotId = SnapshotId::new(10);
@@ -66,6 +68,20 @@ fn search_respects_the_limit_and_returns_where_the_symbol_lives() {
     assert_eq!(hits[0].qualified_name.as_str(), "App.Order");
 }
 
+fn from_a_test(reference: Reference) -> Reference {
+    Reference {
+        kind: ReferenceKind::Test,
+        ..reference
+    }
+}
+
+fn probable(reference: Reference) -> Reference {
+    Reference {
+        confidence: Confidence::Probable,
+        ..reference
+    }
+}
+
 #[test]
 fn usage_counts_count_references_per_target() {
     let symbols = vec![
@@ -76,10 +92,15 @@ fn usage_counts_count_references_per_target() {
         reference(31, 11, 21, 22),
         reference(32, 11, 21, 22),
         reference(33, 11, 22, 22),
+        // References of kind `test` are not counted as usages (issue #430) ...
+        from_a_test(reference(34, 11, 21, 22)),
     ];
     let store = scanned(&[], symbols, references, vec![]);
     assert_eq!(store.usage_count(SNAPSHOT, SymbolId::new(22)).unwrap(), 3);
     assert_eq!(store.usage_count(SNAPSHOT, SymbolId::new(21)).unwrap(), 0);
+    // ... but the total of the snapshot is a count of what is stored.
+    let latest = store.latest_snapshot(ProjectId::new(1)).unwrap().unwrap();
+    assert_eq!(latest.stats.references, 4);
 }
 
 #[test]
@@ -133,6 +154,10 @@ fn layered() -> codeskimr_storage::SqliteStore {
         reference(34, 11, 23, 22),
         reference(35, 11, 22, 24),
         reference(36, 11, 25, 22),
+        // A reference of kind `test` is no edge of the graph (issue #430).
+        from_a_test(reference(37, 11, 22, 21)),
+        // A reference that only probably points there is no edge either (issue #464).
+        probable(reference(38, 11, 21, 23)),
     ];
     scanned(&layers, symbols, references, vec![])
 }
@@ -158,7 +183,7 @@ fn layer_graph_aggregates_references_between_layers() {
             ("Core", "Data", 1, true),
             ("Data", "Core", 1, true)
         ],
-        "same-layer references and names outside every layer are not edges"
+        "same-layer, outside-layer, test and probable references are no edges"
     );
 }
 
@@ -204,4 +229,31 @@ fn an_edge_against_the_allowed_directions_violates_the_layering() {
 fn a_layer_without_a_limit_never_violates() {
     let edges = layered().layer_edges(SNAPSHOT).unwrap();
     assert!(edges.iter().all(|edge| !edge.violates_layering));
+}
+
+#[test]
+fn namespace_edges_leave_out_probable_and_test_references() {
+    let symbols = vec![
+        symbol(41, 11, SymbolKind::Namespace, "App.Api", None),
+        symbol(42, 11, SymbolKind::Namespace, "App.Core", None),
+        symbol(43, 11, SymbolKind::Namespace, "App.Data", None),
+        symbol(44, 11, SymbolKind::Class, "App.Api.Controller", None),
+        symbol(45, 11, SymbolKind::Class, "App.Core.Service", None),
+        symbol(46, 11, SymbolKind::Class, "App.Data.Repo", None),
+    ];
+    let references = vec![
+        reference(51, 11, 44, 45),
+        probable(reference(52, 11, 44, 46)),
+        from_a_test(reference(53, 11, 45, 44)),
+    ];
+    let graph = scanned(&[], symbols, references, vec![])
+        .namespace_graph(SNAPSHOT)
+        .unwrap();
+    let named = |index: usize| graph.namespaces[index].name.as_str().to_owned();
+    let edges: Vec<_> = graph
+        .edges
+        .iter()
+        .map(|edge| (named(edge.from), named(edge.to), edge.count))
+        .collect();
+    assert_eq!(edges, [("App.Api".to_owned(), "App.Core".to_owned(), 1)]);
 }

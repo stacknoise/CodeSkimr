@@ -38,6 +38,13 @@ tracing-subscriber.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 
+# Windows only: compares the open launch file with its path by the identity the system gives the file
+# (volume and index), which needs no `unsafe` of ours (issue #372).
+[target.'cfg(windows)'.dependencies]
+same-file.workspace = true
+# Reads the owner of the launch folder through a safe interface (issue #372).
+windows-permissions.workspace = true
+
 [dev-dependencies]
 tempfile.workspace = true
 # Test-only: the login canary test talks to a local server over plain HTTP, which Git refuses for

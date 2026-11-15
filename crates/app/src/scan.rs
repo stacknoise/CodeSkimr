@@ -2,7 +2,7 @@
 //! what watch mode scans again and again.
 
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use codeskimr_application::access;
 use codeskimr_application::cancel::CancelToken;
@@ -11,9 +11,11 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::level2::{LanguageReport, Level2Outcome, Skipped};
 use codeskimr_application::pipeline::{Job, JobResult, Queued, Scanner};
-use codeskimr_application::ports::{ProjectRepository, ProjectToolCheck};
+use codeskimr_application::ports::{
+    FileAnalyzer, ProjectRepository, ProjectToolCheck, ScanWarning,
+};
 use codeskimr_application::tools::ToolsView;
-use codeskimr_cli::{GlobalOptions, Level2Line, Level2Reason, ScanArgs, ScanSummary};
+use codeskimr_cli::{GlobalOptions, Level2Line, Level2Reason, ScanArgs, ScanSummary, WarningLine};
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Permission, Principal, Project, ProjectId, ProjectSource, ScanMode};
 use codeskimr_storage::SqliteStore;
@@ -24,7 +26,9 @@ use crate::cpu_time::{process_cpu_time, seconds_since};
 use crate::locations::Locations;
 use crate::principal;
 use crate::source_arg::{SourceError, SourceSpec, classify};
-use crate::wiring::{Secrets, build_scanner, index_runner, open_store, tool_checker};
+use crate::wiring::{
+    Secrets, build_analysis, index_runner, open_store, scanner_over, tool_checker,
+};
 
 /// Checks the source argument before anything is scanned or printed.
 ///
@@ -42,6 +46,7 @@ pub fn prepare(args: &ScanArgs) -> Result<SourceSpec, SourceError> {
 /// A registered project with everything needed to scan it again and again.
 pub struct Session {
     scanner: Scanner,
+    analyzer: Arc<dyn FileAnalyzer>,
     tools: Arc<dyn ProjectToolCheck>,
     principal: Principal,
     project: Project,
@@ -110,6 +115,20 @@ impl Session {
         self.run_job(Job::new(self.project.id, mode).without_level2())
     }
 
+    /// An incremental scan of level 1 that looks for changes only in `paths` (the way MCP
+    /// `rescan` with `paths` does), for the tests.
+    ///
+    /// # Errors
+    /// The same as [`Session::scan`].
+    #[cfg(test)]
+    pub fn scan_paths(&self, paths: &[String]) -> Result<ScanSummary, CodedError> {
+        self.run_job(
+            Job::new(self.project.id, ScanMode::Incremental)
+                .without_level2()
+                .with_paths(paths),
+        )
+    }
+
     /// Like [`Session::scan`], but level 1 only, and it hands the token that cancels this scan to
     /// `on_token` before the scan starts. The UI uses it; only the scan of the command line runs
     /// level 2.
@@ -128,12 +147,17 @@ impl Session {
 
     fn run_job(&self, job: Job<Queued>) -> Result<ScanSummary, CodedError> {
         let started = Instant::now();
+        let loading_before = self.analyzer.pack_load_time();
         let cpu_start = process_cpu_time();
         let mode = job.mode();
         match self.scanner.run(&self.principal, job) {
             JobResult::Finished(job) => {
                 let snapshot = job.snapshot();
-                let seconds = started.elapsed().as_secs_f64();
+                let loading = self
+                    .analyzer
+                    .pack_load_time()
+                    .saturating_sub(loading_before);
+                let seconds = without_loading(started.elapsed(), loading);
                 Ok(ScanSummary {
                     project: self.project.name.to_string(),
                     snapshot: snapshot.id.get(),
@@ -142,13 +166,29 @@ impl Session {
                     references: snapshot.stats.references,
                     seconds,
                     cpu_seconds: seconds_since(cpu_start),
+                    pack_load_seconds: loading.as_secs_f64(),
                     level2: job.level2().iter().map(level2_line).collect(),
+                    warnings: job.warnings().iter().map(warning_line).collect(),
                     tools: self.check_tools(mode),
                 })
             }
             JobResult::Failed(job) => Err(CodedError::new(job.code())),
             JobResult::Cancelled(_) => Err(CodedError::new(ErrorCode::ScanCancelled)),
         }
+    }
+}
+
+/// The time of a scan without loading language packs (ADR 0059), so that it stays comparable
+/// between runs that load different packs. Not below zero.
+fn without_loading(elapsed: Duration, loading: Duration) -> f64 {
+    elapsed.saturating_sub(loading).as_secs_f64()
+}
+
+/// The line of the summary for one warning of the scan.
+fn warning_line(warning: &ScanWarning) -> WarningLine {
+    WarningLine {
+        code: warning.code.id().to_owned(),
+        count: warning.count,
     }
 }
 
@@ -283,10 +323,16 @@ fn session(
         events,
         secrets,
     } = wiring;
-    let scanner = build_scanner(store, &config, locations, events.clone(), secrets)?;
+    let analysis = build_analysis(&config, locations)?;
+    let scanner = scanner_over(
+        &analysis,
+        (store, &config, locations),
+        (events.clone(), secrets),
+    )?;
     let tools = tool_checker(store, (locations, index_runner(locations)))?;
     Ok(Session {
         scanner,
+        analyzer: analysis.analyzer,
         tools,
         principal,
         project,
@@ -330,4 +376,16 @@ fn with_layers(
 /// so concurrent scans of different sources never share an id).
 fn register(store: &SqliteStore, spec: SourceSpec) -> Result<Project, CodedError> {
     store.register_project(spec.name, spec.source)
+}
+
+#[cfg(test)]
+mod load_time_tests {
+    use super::*;
+
+    #[test]
+    fn the_load_time_is_taken_out_of_the_scan_time_and_never_goes_below_zero() {
+        let second = Duration::from_secs(1);
+        assert!((without_loading(second * 3, second) - 2.0).abs() < f64::EPSILON);
+        assert!(without_loading(second, second * 2).abs() < f64::EPSILON);
+    }
 }

@@ -134,6 +134,7 @@ fn write_corpus(
     Ok(corpus)
 }
 
+#[allow(dead_code, reason = "not every benchmark scans the Rust corpus")]
 pub fn build_corpus(scratch: &Path) -> io::Result<PathBuf> {
     write_corpus(
         (scratch, "corpus"),
@@ -193,16 +194,19 @@ const SECONDS_FIELD: &str = "seconds";
 /// Field of the JSON summary that holds the CPU time of the scan in seconds, summed over all threads.
 #[allow(dead_code, reason = "not every benchmark runs the scan binary")]
 const CPU_SECONDS_FIELD: &str = "cpu_seconds";
+/// Field of the JSON summary that holds the time spent loading language packs in seconds.
+#[allow(dead_code, reason = "not every benchmark runs the scan binary")]
+const PACK_LOAD_SECONDS_FIELD: &str = "pack_load_seconds";
 
 /// Runs `codeskimr scan` on a folder or a Git URL (with `branch`) against the database in `data`
-/// and returns the time the scan itself reports and its CPU time.
+/// and returns its JSON summary.
 #[allow(dead_code, reason = "not every benchmark runs the scan binary")]
-pub fn scan_summary(
+fn scan_report(
     binary: &Path,
     source: impl AsRef<OsStr>,
     data: &Path,
     branch: Option<&str>,
-) -> io::Result<(Duration, Duration)> {
+) -> io::Result<serde_json::Value> {
     let mut command = Command::new(binary);
     command
         .current_dir(root())
@@ -219,13 +223,41 @@ pub fn scan_summary(
     if !output.status.success() {
         return Err(io::Error::other("the scan failed"));
     }
-    let summary: serde_json::Value = serde_json::from_slice(&output.stdout)?;
-    let seconds = |field: &str| {
-        summary
-            .get(field)
-            .and_then(serde_json::Value::as_f64)
-            .map(Duration::from_secs_f64)
-            .ok_or_else(|| io::Error::other("the summary has no duration"))
-    };
-    Ok((seconds(SECONDS_FIELD)?, seconds(CPU_SECONDS_FIELD)?))
+    Ok(serde_json::from_slice(&output.stdout)?)
+}
+
+/// The duration in the field `field` of a summary.
+#[allow(dead_code, reason = "not every benchmark runs the scan binary")]
+fn seconds_in(summary: &serde_json::Value, field: &str) -> io::Result<Duration> {
+    summary
+        .get(field)
+        .and_then(serde_json::Value::as_f64)
+        .map(Duration::from_secs_f64)
+        .ok_or_else(|| io::Error::other("the summary has no duration"))
+}
+
+/// Runs `codeskimr scan` on a folder or a Git URL (with `branch`) against the database in `data`
+/// and returns the time the scan itself reports and its CPU time.
+#[allow(dead_code, reason = "not every benchmark runs the scan binary")]
+pub fn scan_summary(
+    binary: &Path,
+    source: impl AsRef<OsStr>,
+    data: &Path,
+    branch: Option<&str>,
+) -> io::Result<(Duration, Duration)> {
+    let summary = scan_report(binary, source, data, branch)?;
+    Ok((
+        seconds_in(&summary, SECONDS_FIELD)?,
+        seconds_in(&summary, CPU_SECONDS_FIELD)?,
+    ))
+}
+
+/// Runs `codeskimr scan` on a folder and returns the time the process spent loading language
+/// packs (ADR 0059), which the scan time leaves out.
+#[allow(dead_code, reason = "not every benchmark runs the scan binary")]
+pub fn pack_load_time(binary: &Path, source: &Path, data: &Path) -> io::Result<Duration> {
+    seconds_in(
+        &scan_report(binary, source, data, None)?,
+        PACK_LOAD_SECONDS_FIELD,
+    )
 }

@@ -11,12 +11,14 @@ use std::path::Path;
 use codeskimr_domain::{Position, Span};
 
 use crate::consts::{
-    DOCUMENT_OCCURRENCES, DOCUMENT_POSITION_ENCODING, DOCUMENT_RELATIVE_PATH, ENCODING_UTF8,
-    ENCODING_UTF16, ENCODING_UTF32, INDEX_DOCUMENTS, INDEX_METADATA, MAX_DOCUMENTS,
+    DOCUMENT_OCCURRENCES, DOCUMENT_POSITION_ENCODING, DOCUMENT_RELATIVE_PATH, DOCUMENT_SYMBOLS,
+    ENCODING_UTF8, ENCODING_UTF16, ENCODING_UTF32, INDEX_DOCUMENTS, INDEX_METADATA, MAX_DOCUMENTS,
     MAX_OCCURRENCES, MAX_PATH_BYTES, MAX_SYMBOL_BYTES, MAX_SYMBOLS, METADATA_PROJECT_ROOT,
-    OCCURRENCE_RANGE, OCCURRENCE_ROLES, OCCURRENCE_SYMBOL, RANGE_MULTI_LINE,
+    OCCURRENCE_ENCLOSING_RANGE, OCCURRENCE_RANGE, OCCURRENCE_ROLES, OCCURRENCE_SYMBOL,
+    RANGE_MULTI_LINE,
 };
 use crate::error::{Corruption, ScipError};
+use crate::info::{InfoBudget, decode_info};
 use crate::model::{Occurrence, PositionEncoding, ScipDocument, ScipIndex, SymbolRef, TextFacts};
 use crate::path::normalize_path;
 use crate::wire::{Fields, Value, packed_varints};
@@ -86,6 +88,7 @@ pub(crate) fn decode_bounded(
     refuse_above(size, max_index_bytes)?;
     let mut symbols = Interner::new(limits.symbols);
     let mut index = ScipIndex::default();
+    let mut budget = InfoBudget::default();
     let mut occurrences: usize = 0;
     for field in Fields::new(bytes) {
         match field? {
@@ -93,7 +96,7 @@ pub(crate) fn decode_bounded(
                 index.project_root = decode_project_root(message)?;
             }
             (INDEX_DOCUMENTS, Value::Bytes(message)) => {
-                let document = decode_document(message, &mut symbols)?;
+                let document = decode_document(message, &mut symbols, &mut budget)?;
                 occurrences = occurrences.saturating_add(document.occurrences.len());
                 admit(index.documents.len(), occurrences, limits)?;
                 index.documents.push(document);
@@ -170,20 +173,50 @@ fn decode_project_root(message: &[u8]) -> Result<String, Corruption> {
     Ok(root)
 }
 
-fn decode_document(message: &[u8], symbols: &mut Interner) -> Result<ScipDocument, Corruption> {
+/// Decodes one occurrence into `occurrences`; the extent of a definition goes to `extents`.
+fn take_occurrence(
+    bytes: &[u8],
+    symbols: &mut Interner,
+    occurrences: &mut Vec<Occurrence>,
+    extents: &mut HashMap<Span, Span>,
+) -> Result<(), Corruption> {
+    if let Some((occurrence, extent)) = decode_occurrence(bytes, symbols)? {
+        if let (true, Some(extent)) = (occurrence.is_definition(), extent) {
+            extents.insert(occurrence.range, extent);
+        }
+        occurrences.push(occurrence);
+    }
+    Ok(())
+}
+
+fn decode_document(
+    message: &[u8],
+    symbols: &mut Interner,
+    budget: &mut InfoBudget,
+) -> Result<ScipDocument, Corruption> {
     let mut path = None;
     let mut encoding = PositionEncoding::default();
     let mut occurrences = Vec::new();
+    let mut infos = Vec::new();
+    let mut extents = HashMap::new();
     for field in Fields::new(message) {
         match field? {
             (DOCUMENT_RELATIVE_PATH, Value::Bytes(bytes)) => {
                 path = Some(normalize_path(text(bytes, MAX_PATH_BYTES)?)?);
             }
             (DOCUMENT_OCCURRENCES, Value::Bytes(bytes)) => {
-                occurrences.extend(decode_occurrence(bytes, symbols)?);
+                take_occurrence(bytes, symbols, &mut occurrences, &mut extents)?;
+            }
+            (DOCUMENT_SYMBOLS, Value::Bytes(bytes)) => {
+                infos.extend(decode_info(bytes, budget, &mut |text| {
+                    symbols.intern(text)
+                })?);
             }
             (DOCUMENT_POSITION_ENCODING, Value::Varint(value)) => encoding = encoding_of(value),
-            (DOCUMENT_RELATIVE_PATH | DOCUMENT_OCCURRENCES, Value::Varint(_))
+            (
+                DOCUMENT_RELATIVE_PATH | DOCUMENT_OCCURRENCES | DOCUMENT_SYMBOLS,
+                Value::Varint(_),
+            )
             | (DOCUMENT_POSITION_ENCODING, Value::Bytes(_)) => {
                 return Err(Corruption::WireType);
             }
@@ -194,6 +227,8 @@ fn decode_document(message: &[u8], symbols: &mut Interner) -> Result<ScipDocumen
         path: path.ok_or(Corruption::UnsafePath)?,
         encoding,
         occurrences,
+        infos,
+        extents,
         local_names: HashMap::new(),
         facts: TextFacts::default(),
     })
@@ -235,12 +270,14 @@ impl RangeNumbers {
     }
 }
 
-/// An occurrence without a symbol says nothing and is dropped; `None` then.
+/// An occurrence without a symbol says nothing and is dropped; `None` then. The second part is
+/// its `enclosing_range`, if it has one: the range of the whole definition.
 fn decode_occurrence(
     message: &[u8],
     symbols: &mut Interner,
-) -> Result<Option<Occurrence>, Corruption> {
+) -> Result<Option<(Occurrence, Option<Span>)>, Corruption> {
     let mut range = RangeNumbers::default();
+    let mut enclosing = RangeNumbers::default();
     let mut symbol = None;
     let mut roles = 0;
     for field in Fields::new(message) {
@@ -249,6 +286,12 @@ fn decode_occurrence(
             (OCCURRENCE_RANGE, Value::Bytes(bytes)) => {
                 for number in packed_varints(bytes) {
                     range.push(number?)?;
+                }
+            }
+            (OCCURRENCE_ENCLOSING_RANGE, Value::Varint(number)) => enclosing.push(number)?,
+            (OCCURRENCE_ENCLOSING_RANGE, Value::Bytes(bytes)) => {
+                for number in packed_varints(bytes) {
+                    enclosing.push(number?)?;
                 }
             }
             (OCCURRENCE_SYMBOL, Value::Bytes(bytes)) => {
@@ -264,10 +307,15 @@ fn decode_occurrence(
         }
     }
     let range = range.span()?;
-    Ok(symbol.map(|symbol| Occurrence {
-        range,
-        symbol,
-        roles,
+    // A damaged enclosing range only costs the extent, not the index.
+    let extent = enclosing.span().ok();
+    Ok(symbol.map(|symbol| {
+        let occurrence = Occurrence {
+            range,
+            symbol,
+            roles,
+        };
+        (occurrence, extent)
     }))
 }
 
