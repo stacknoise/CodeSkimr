@@ -17,6 +17,7 @@ export const TOOL_STATE = {
   ready: "ready",
   missing: "missing",
   tooOld: "too_old",
+  tooNew: "too_new",
   versionUnknown: "version_unknown",
 } as const;
 

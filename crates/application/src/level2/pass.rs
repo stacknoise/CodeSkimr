@@ -5,6 +5,7 @@
 //! written and the report says why a language was skipped.
 
 use std::collections::{BTreeMap, HashSet};
+use std::path::Path;
 use std::sync::Arc;
 
 use codeskimr_codes::{Coded, ErrorCode};
@@ -175,7 +176,7 @@ impl Level2Pass {
             scan.root,
         )
         .map_err(Skipped::from)?;
-        if let IndexerStatus::Unavailable(problems) = self.runner.check(group.spec) {
+        if let IndexerStatus::Unavailable { problems, .. } = self.runner.check(group.spec) {
             return Err(Skipped::Unavailable(problems));
         }
         let language = group.languages.first().copied().ok_or(Skipped::Stale)?;
@@ -187,23 +188,32 @@ impl Level2Pass {
         };
         let artifact = self.runner.run(&job, scan.cancel).map_err(Skipped::from)?;
         let (current, stale) = self.unchanged(scan, group)?;
-        let imported = self
-            .importer
+        let imported = self.import(scan, artifact.path(), &current)?;
+        if scan.cancel.is_cancelled() {
+            return Err(Skipped::Cancelled);
+        }
+        self.replace(scan.snapshot, &imported, stale)
+    }
+
+    /// Reads the index at `index` against the `files` and the symbols of the scan.
+    fn import(
+        &self,
+        scan: &Scan<'_>,
+        index: &Path,
+        files: &[SourceFile],
+    ) -> Result<Imported, Skipped> {
+        self.importer
             .import(&ImportRequest {
-                index: artifact.path(),
+                index,
                 root: scan.root,
-                files: &current,
+                files,
                 symbols: &scan.index.symbols,
                 references: &scan.index.references,
                 max_index_bytes: self.settings.max_index_bytes,
                 max_file_bytes: self.max_file_bytes,
                 min_mapped: self.settings.min_mapped,
             })
-            .map_err(Skipped::from)?;
-        if scan.cancel.is_cancelled() {
-            return Err(Skipped::Cancelled);
-        }
-        self.replace(scan.snapshot, &imported, stale)
+            .map_err(Skipped::from)
     }
 
     /// The files of the group whose content is still the one of the snapshot, and the number of

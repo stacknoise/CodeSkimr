@@ -80,6 +80,7 @@ fn build_router(state: AppState, guard: Arc<Guard>, mcp: Option<MethodRouter<App
     if let Some(mcp) = mcp {
         // The last layer runs first: the token is checked before a byte of the body is read.
         let checked = mcp
+            .layer(from_fn(routes::mcp_error_format))
             .layer(from_fn(routes::bound_body))
             .layer(from_fn_with_state(Arc::clone(&guard), require_token));
         router = router.route(MCP_PATH, checked);

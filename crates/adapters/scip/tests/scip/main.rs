@@ -13,6 +13,8 @@ mod impls;
 #[cfg(test)]
 mod importer;
 #[cfg(test)]
+mod java;
+#[cfg(test)]
 mod mapping;
 #[cfg(test)]
 mod replace;

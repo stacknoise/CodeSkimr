@@ -98,6 +98,19 @@
  (_ right: [(identifier) @name (field_expression field: (field_identifier) @name)])
  (_ condition: [(identifier) @name (field_expression field: (field_identifier) @name)])] @reference.read
 (shorthand_field_initializer (identifier) @name) @reference.read
+; `Foo { a }` names the field `a` of `Foo`, not a bare name (also if a local `a` exists).
+(struct_expression
+  name: [((type_identifier) @receiver.own (#eq? @receiver.own "Self"))
+         (type_identifier) @receiver.type
+         (_) @receiver.other]
+  body: (field_initializer_list (shorthand_field_initializer (identifier) @name)))
+; `Foo { a: 1 }` writes the field `a` of `Foo`.
+(field_initializer field: (field_identifier) @name) @reference.write
+(struct_expression
+  name: [((type_identifier) @receiver.own (#eq? @receiver.own "Self"))
+         (type_identifier) @receiver.type
+         (_) @receiver.other]
+  body: (field_initializer_list (field_initializer field: (field_identifier) @name)))
 ; A path in a value position (`Style::Plain`, `limits::MAX`) reads its last name and the type or
 ; module in front of it
 [(arguments (scoped_identifier [path: (identifier) @name name: (identifier) @name]))
@@ -162,11 +175,25 @@
 (let_declaration
   pattern: (identifier) @local
   value: (struct_expression name: (type_identifier) @declared_type))
-(let_declaration pattern: (tuple_pattern (identifier) @local))
 (let_declaration pattern: (mut_pattern (identifier) @local))
 (for_expression pattern: (identifier) @local)
-(for_expression pattern: (tuple_pattern (identifier) @local))
-(let_condition pattern: (tuple_struct_pattern type: (_) . (identifier) @local))
+(for_expression pattern: (mut_pattern (identifier) @local))
+
+; Names bound by a pattern in any position (`let`, `for`, `if let`, `while let`, `match` arms):
+; inside tuple, tuple-struct, struct, slice, reference, `mut`, `ref`, `@` and or patterns. Where a
+; bare identifier can also be a variant or a constant (`None`, `FOO`), only a lower case start counts.
+(match_pattern (identifier) @local (#match? @local "^[a-z_]"))
+(tuple_pattern (identifier) @local (#match? @local "^[a-z_]"))
+(tuple_struct_pattern type: (_) (identifier) @local (#match? @local "^[a-z_]"))
+(slice_pattern (identifier) @local (#match? @local "^[a-z_]"))
+(or_pattern (identifier) @local (#match? @local "^[a-z_]"))
+(mut_pattern (identifier) @local)
+(ref_pattern (identifier) @local)
+(reference_pattern (identifier) @local (#match? @local "^[a-z_]"))
+; `name @ pattern`: the first name is always the binding
+(captured_pattern . (identifier) @local)
+(field_pattern name: (shorthand_field_identifier) @local)
+(field_pattern pattern: (identifier) @local (#match? @local "^[a-z_]"))
 
 ; Fields tell the type of a receiver, but an occurrence of them is a reference.
 (field_declaration

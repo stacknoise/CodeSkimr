@@ -351,10 +351,31 @@
       "target": "Self"
     },
     {
+      "at": "53:19",
+      "from": "declarations::shapes::Point::new",
+      "kind": "read",
+      "receiver": "own",
+      "target": "x"
+    },
+    {
+      "at": "53:22",
+      "from": "declarations::shapes::Point::new",
+      "kind": "read",
+      "receiver": "own",
+      "target": "y"
+    },
+    {
+      "at": "53:25",
+      "from": "declarations::shapes::Point::new",
+      "kind": "write",
+      "receiver": "own",
+      "target": "label"
+    },
+    {
       "at": "53:32",
       "from": "declarations::shapes::Point::new",
       "kind": "read",
-      "receiver": null,
+      "receiver": "free",
       "target": "String"
     },
     {
@@ -407,10 +428,31 @@
       "target": "Self"
     },
     {
+      "at": "67:19",
+      "from": "declarations::shapes::Point::origin",
+      "kind": "write",
+      "receiver": "own",
+      "target": "x"
+    },
+    {
+      "at": "67:27",
+      "from": "declarations::shapes::Point::origin",
+      "kind": "write",
+      "receiver": "own",
+      "target": "y"
+    },
+    {
+      "at": "67:35",
+      "from": "declarations::shapes::Point::origin",
+      "kind": "write",
+      "receiver": "own",
+      "target": "label"
+    },
+    {
       "at": "67:42",
       "from": "declarations::shapes::Point::origin",
       "kind": "read",
-      "receiver": null,
+      "receiver": "free",
       "target": "String"
     },
     {
@@ -480,7 +522,7 @@
       "at": "99:4",
       "from": "declarations::double",
       "kind": "call",
-      "receiver": null,
+      "receiver": "free",
       "target": "twice"
     }
   ],

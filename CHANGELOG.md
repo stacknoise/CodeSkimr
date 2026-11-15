@@ -3,6 +3,66 @@
 All notable changes of CodeSkimr. The format follows [Keep a Changelog](https://keepachangelog.com/), the versions follow [SemVer](https://semver.org/).
 Each section is generated from the Conventional Commit titles of the squash-merged pull requests with `tools/release/changelog.py` (see `docs/release.md`); the titles are English, as CLAUDE.md requires for commit messages (`changelog.py` refuses German titles).
 
+## [Unreleased] - 2026-11-15
+
+### Added
+
+- coupling metrics Ce, Ca and instability per snapshot ([#275](https://github.com/stacknoise/CodeSkimr/pull/275))
+- `#private` members in TypeScript and JavaScript are private (ADR 0047, #81) ([#323](https://github.com/stacknoise/CodeSkimr/pull/323))
+- tool check reports an SDK that is newer than global.json allows ([#328](https://github.com/stacknoise/CodeSkimr/pull/328))
+- refuse a junction as the launch file folder on Windows ([#370](https://github.com/stacknoise/CodeSkimr/pull/370))
+- tie a command request to its command type ([#362](https://github.com/stacknoise/CodeSkimr/pull/362))
+- seal principal construction and command execution by types ([#343](https://github.com/stacknoise/CodeSkimr/pull/343))
+- embed the language packs in the program (#327) ([#350](https://github.com/stacknoise/CodeSkimr/pull/350))
+- check macro_rules bodies where they are defined (no_literals) ([#346](https://github.com/stacknoise/CodeSkimr/pull/346))
+
+### Fixed
+
+- link check when opening and a hardened answer buffer ([#322](https://github.com/stacknoise/CodeSkimr/pull/322))
+- error text for unreadable sources, storage error tests and stale Git work folders ([#319](https://github.com/stacknoise/CodeSkimr/pull/319))
+- finish the follow-ups of the embedded packs: directory sync, open without packs, pack check beside the program (#351) ([#383](https://github.com/stacknoise/CodeSkimr/pull/383))
+- capture more Rust locals so free names stop matching functions ([#385](https://github.com/stacknoise/CodeSkimr/pull/385))
+- let the Rust pack treat bare names in functions as no members, type the struct shorthand (#81) ([#377](https://github.com/stacknoise/CodeSkimr/pull/377))
+- let the UI and the MCP service share one store ([#380](https://github.com/stacknoise/CodeSkimr/pull/380))
+- Java level 2 reads implicit constructor calls and import lines from the text (`cd0475d`)
+- a languages folder in the current folder no longer replaces the embedded packs, remove old pack folders (#351) ([#369](https://github.com/stacknoise/CodeSkimr/pull/369))
+- order usages verified first before the limit cuts them ([#367](https://github.com/stacknoise/CodeSkimr/pull/367))
+- stop a bare name in a Python function from matching a field, measure Java, Python and C# certain precision (#81) ([#355](https://github.com/stacknoise/CodeSkimr/pull/355))
+- clean up stale pack staging folders, sync written packs, skip packs for credential commands (#351) ([#359](https://github.com/stacknoise/CodeSkimr/pull/359))
+- build the usages index ahead of the first query and after writes ([#356](https://github.com/stacknoise/CodeSkimr/pull/356))
+- tool check reads global.json like the SDK and all manifest folders (#207, #208) (`ffd20c8`)
+- usages legend and name wrap, settings note, frame test per theme, ADR 0052 for Rust names (#331, #332, #335, #336) ([#352](https://github.com/stacknoise/CodeSkimr/pull/352))
+- SCIP import no longer quadratic on very large or single-line files ([#220](https://github.com/stacknoise/CodeSkimr/pull/220))
+- recalculate coupling after the level 2 import ([#342](https://github.com/stacknoise/CodeSkimr/pull/342))
+- remove parked Git copies left by a crash during the swap ([#349](https://github.com/stacknoise/CodeSkimr/pull/349))
+- measure TypeScript level 1 accuracy and stop a named receiver from matching a local function as certain (#81) ([#345](https://github.com/stacknoise/CodeSkimr/pull/345))
+- close command oracle, send budget for event streams, read_body error class (#269, #273, #301) ([#315](https://github.com/stacknoise/CodeSkimr/pull/315))
+- level 2 indexer hardening, consent and content hash (#230, #231) (`f2c0aa9`)
+
+### Changed
+
+- split remaining long web components and enforce max-lines-per-function ([#371](https://github.com/stacknoise/CodeSkimr/pull/371))
+- split long web components and add golden cases for owner lookup limits ([#360](https://github.com/stacknoise/CodeSkimr/pull/360))
+
+### Documentation
+
+- changelog generator, README and checklist for the 1.0 release (WP-81, WP-83) ([#326](https://github.com/stacknoise/CodeSkimr/pull/326))
+- result of the sample of 20 usages in the acceptance report (WP-38) ([#312](https://github.com/stacknoise/CodeSkimr/pull/312))
+- report uses of symbols that level 1 does not have (`2b9e927`)
+- repeat the M3 and M4 acceptance runs ([#338](https://github.com/stacknoise/CodeSkimr/pull/338))
+
+### Tests
+
+- pin the literal rules of the frontend ([#341](https://github.com/stacknoise/CodeSkimr/pull/341))
+- cover secret clearing of the credential form on cleanup and send failure ([#382](https://github.com/stacknoise/CodeSkimr/pull/382))
+- credential store against the real OS keystore in CI (#197, #320) ([#353](https://github.com/stacknoise/CodeSkimr/pull/353))
+- benchmark scans of a Git source ([#354](https://github.com/stacknoise/CodeSkimr/pull/354))
+
+### Maintenance
+
+- adapt the lock file of import_scip to new dependencies ([#329](https://github.com/stacknoise/CodeSkimr/pull/329))
+- fail CI on tracked paths that differ only in letter case ([#340](https://github.com/stacknoise/CodeSkimr/pull/340))
+
 ## [0.9.0-preview.1] - 2026-11-14
 
 ### Added

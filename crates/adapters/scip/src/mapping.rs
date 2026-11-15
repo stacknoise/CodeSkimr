@@ -20,6 +20,8 @@ use crate::model::{Occurrence, ScipDocument, ScipIndex, SymbolRef};
 use crate::symbol::{Descriptor, DescriptorKind, is_local, last_descriptor, last_two, namespaces};
 use crate::table::SymbolTable;
 
+mod implicit;
+
 /// The parts of a snapshot the import reads.
 #[derive(Debug, Clone, Copy)]
 pub struct SnapshotView<'a> {
@@ -229,6 +231,10 @@ struct Importer<'a> {
     frozen: HashMap<SymbolRef, Rc<[SymbolId]>>,
     impls: Vec<(SymbolRef, ImplSymbol)>,
     overrides: HashMap<SymbolRef, Vec<SymbolId>>,
+    /// The constructors of every type that the text of its file shows (Java).
+    constructors: implicit::Constructors,
+    /// The superclass of every class that has one in its `extends` (Java).
+    superclass: HashMap<SymbolId, Vec<SymbolRef>>,
     trait_members: HashSet<SymbolId>,
     stats: ImportStats,
     next_id: u64,
@@ -252,6 +258,8 @@ impl<'a> Importer<'a> {
             shapes,
             impls,
             overrides: HashMap::new(),
+            constructors: implicit::constructors_by_owner(index),
+            superclass: HashMap::new(),
             trait_members: members_of_traits(snapshot.symbols),
             kinds_of: snapshot.symbols.iter().map(|s| (s.id, s.kind)).collect(),
             owners: constructor_owners(snapshot.symbols),
@@ -588,7 +596,12 @@ impl<'a> Importer<'a> {
         }
         match self.frozen.get(&symbol) {
             Some(targets) => Fate::Map(Rc::clone(targets)),
-            None if self.defined.contains(&symbol) => Fate::Unmapped,
+            None if self.defined.contains(&symbol) => self
+                .constructors
+                .defaults
+                .get(&symbol)
+                .and_then(|ty| self.frozen.get(ty))
+                .map_or(Fate::Unmapped, |targets| Fate::Map(Rc::clone(targets))),
             None if descriptor.kind == DescriptorKind::Namespace => Fate::Ignore,
             None => Fate::Library,
         }
@@ -717,12 +730,14 @@ impl<'a> Importer<'a> {
             .filter(|(_, targets)| !targets.is_empty())
             .map(|(at, targets)| (*at, Rc::from(targets.as_slice())))
             .collect();
+        self.collect_superclasses(covered, level_one);
         for (document, file) in covered {
             self.locals = self
                 .locals_of(document, *file)
                 .into_iter()
                 .map(|(at, targets)| (at, Rc::from(targets)))
                 .collect();
+            let mut found = Vec::new();
             for occurrence in &document.occurrences {
                 if self
                     .heads
@@ -731,16 +746,17 @@ impl<'a> Importer<'a> {
                     self.count(Count::Ignored);
                     continue;
                 }
-                let references = if occurrence.is_definition() {
+                found.extend(if occurrence.is_definition() {
                     self.place_override(*file, occurrence)
                 } else {
                     self.place(*file, occurrence, level_one)
-                };
-                for reference in references {
-                    let key = (reference.file, reference.from, reference.to, reference.span);
-                    if seen.insert(key) {
-                        placed.push(reference);
-                    }
+                });
+            }
+            found.extend(self.implicit_calls(*file, document));
+            for reference in found {
+                let key = (reference.file, reference.from, reference.to, reference.span);
+                if seen.insert(key) {
+                    placed.push(reference);
                 }
             }
         }

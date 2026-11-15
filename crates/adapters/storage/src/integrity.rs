@@ -12,9 +12,17 @@ use crate::error::{StorageError, StorageResult};
 use crate::similarity::json_list;
 use crate::sql;
 
-/// The ids the new data brings itself; everything else is looked up in the carried rows.
+/// The ids the new data brings itself and the ids it points at; what is not new is looked up in
+/// the carried rows, all ids of a kind in one statement.
 struct Known {
     snapshot: i64,
+    files: HashSet<u64>,
+    symbols: HashSet<u64>,
+}
+
+/// The files and symbols that the new rows point at, without the ones the data brings itself.
+#[derive(Default)]
+struct Wanted {
     files: HashSet<u64>,
     symbols: HashSet<u64>,
 }
@@ -28,51 +36,42 @@ impl Known {
         })
     }
 
-    fn has_file(&self, conn: &Connection, file: u64) -> StorageResult<bool> {
-        self.has(
-            conn,
-            sql::FILE_IN_SNAPSHOT,
-            self.files.contains(&file),
-            file,
-        )
-    }
-
-    fn has_symbol(&self, conn: &Connection, symbol: u64) -> StorageResult<bool> {
-        self.has(
-            conn,
-            sql::SYMBOL_IN_SNAPSHOT,
-            self.symbols.contains(&symbol),
-            symbol,
-        )
-    }
-
-    /// Whether every symbol of `ids` is new or in the carried rows; the carried ones are looked up
-    /// together, because coupling brings a metric for every namespace of the snapshot.
-    fn have_symbols(&self, conn: &Connection, ids: &[u64]) -> StorageResult<bool> {
-        let carried: HashSet<u64> = ids
-            .iter()
-            .copied()
-            .filter(|id| !self.symbols.contains(id))
-            .collect();
-        let mut ids = Vec::with_capacity(carried.len());
-        for id in &carried {
-            ids.push(column_int(*id)?);
+    fn want_file(&self, wanted: &mut Wanted, file: u64) {
+        if !self.files.contains(&file) {
+            wanted.files.insert(file);
         }
-        let list = json_list(ids.into_iter());
+    }
+
+    fn want_symbol(&self, wanted: &mut Wanted, symbol: u64) {
+        if !self.symbols.contains(&symbol) {
+            wanted.symbols.insert(symbol);
+        }
+    }
+
+    /// Whether every wanted id is in the carried rows of the snapshot.
+    fn all_carried(&self, conn: &Connection, wanted: &Wanted) -> StorageResult<bool> {
+        Ok(
+            self.count_matches(conn, sql::FILES_IN_SNAPSHOT_COUNT, &wanted.files)?
+                && self.count_matches(conn, sql::SYMBOLS_IN_SNAPSHOT_COUNT, &wanted.symbols)?,
+        )
+    }
+
+    /// Whether `count_query` finds all of `ids`: snapshot and a JSON list of the ids.
+    fn count_matches(
+        &self,
+        conn: &Connection,
+        count_query: &str,
+        ids: &HashSet<u64>,
+    ) -> StorageResult<bool> {
+        let mut columns = Vec::with_capacity(ids.len());
+        for id in ids {
+            columns.push(column_int(*id)?);
+        }
+        let list = json_list(columns.into_iter());
         let found: i64 = conn
-            .prepare_cached(sql::SYMBOLS_IN_SNAPSHOT_COUNT)?
+            .prepare_cached(count_query)?
             .query_row(params![self.snapshot, list], |row| row.get(0))?;
-        Ok(usize::try_from(found).is_ok_and(|found| found == carried.len()))
-    }
-
-    fn has(&self, conn: &Connection, query: &str, new: bool, id: u64) -> StorageResult<bool> {
-        if new {
-            return Ok(true);
-        }
-        let found: bool = conn
-            .prepare_cached(query)?
-            .query_row(params![self.snapshot, column_int(id)?], |row| row.get(0))?;
-        Ok(found)
+        Ok(usize::try_from(found).is_ok_and(|found| found == ids.len()))
     }
 }
 
@@ -80,24 +79,25 @@ impl Known {
 /// file or symbol that the snapshot does not hold. Run after the carried rows are in place.
 pub(crate) fn check(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
     let known = Known::of(data)?;
-    let mut ok = true;
+    let mut wanted = Wanted::default();
     for symbol in &data.symbols {
-        ok &= known.has_file(conn, symbol.file.get())?;
+        known.want_file(&mut wanted, symbol.file.get());
         if let Some(parent) = symbol.parent {
-            ok &= known.has_symbol(conn, parent.get())?;
+            known.want_symbol(&mut wanted, parent.get());
         }
     }
     for reference in &data.references {
-        ok &= known.has_file(conn, reference.file.get())?
-            && known.has_symbol(conn, reference.from.get())?
-            && known.has_symbol(conn, reference.to.get())?;
+        known.want_file(&mut wanted, reference.file.get());
+        known.want_symbol(&mut wanted, reference.from.get());
+        known.want_symbol(&mut wanted, reference.to.get());
     }
-    let measured: Vec<u64> = data.metrics.iter().map(|m| m.symbol.get()).collect();
-    ok &= known.have_symbols(conn, &measured)?;
+    for metric in &data.metrics {
+        known.want_symbol(&mut wanted, metric.symbol.get());
+    }
     for found in &data.fingerprints {
-        ok &= known.has_symbol(conn, found.symbol.get())?;
+        known.want_symbol(&mut wanted, found.symbol.get());
     }
-    if ok {
+    if known.all_carried(conn, &wanted)? {
         Ok(())
     } else {
         Err(StorageError::DanglingReference)

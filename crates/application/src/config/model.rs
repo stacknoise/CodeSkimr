@@ -176,6 +176,10 @@ pub struct Watcher {
 pub struct Conventions {
     /// Longest allowed function in code lines.
     pub max_function_lines: u32,
+    /// Highest allowed cognitive complexity of a function (ADR 0048).
+    pub max_cognitive_complexity: u32,
+    /// Most parameters a function may have (ADR 0048).
+    pub max_parameters: u32,
     /// Fingerprint similarity in percent from which two functions count as duplicates.
     pub duplicate_similarity_percent: u32,
     /// Fewest code lines a function needs to be compared for duplicates; shorter ones are too

@@ -59,6 +59,7 @@ pub use snapshot::{CommitHash, ScanMode, Snapshot, SnapshotId, SnapshotStats, Ti
 pub use span::{Position, Span};
 pub use symbol::{Symbol, SymbolId, SymbolKind, SymbolName, Visibility};
 pub use tool::{
-    RequirementFormat, RequirementSpec, ToolEntry, ToolFinding, ToolReport, ToolRole, ToolState,
+    Ceiling, RequirementFormat, RequirementSpec, RollForwardSpec, ToolEntry, ToolFinding,
+    ToolReport, ToolRole, ToolState,
 };
-pub use type_neighbours::{TypeLink, TypeNeighbours, type_neighbours};
+pub use type_neighbours::{TypeLink, TypeNeighbours, TypeSymbol, type_neighbours};

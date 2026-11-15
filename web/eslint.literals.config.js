@@ -60,6 +60,8 @@ export default tseslint.config(
       ],
       // User-visible text lives in locales/, everything else in consts.ts.
       "i18next/no-literal-string": ["error", { mode: "all" }],
+      // Functions of at most 40 lines of code (blueprint section 3), like CHK-104.
+      "max-lines-per-function": ["error", { max: 40, skipBlankLines: true, skipComments: true }],
     },
   },
   {

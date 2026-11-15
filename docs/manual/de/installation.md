@@ -20,7 +20,7 @@ cd web && npm ci && npm run build && cd ..
 cargo build --release --locked
 ```
 
-Das Programm liegt in `target/release/codeskimr` (`codeskimr.exe` unter Windows). Die gebaute Oberfläche liegt in `web/dist` und wird beim Bauen ins Programm eingebettet, darum kommt `web/` zuerst. Node.js 22 (`.node-version`). Die Sprachpakete aus `languages/` sind ebenfalls im Programm eingebettet; beim ersten Start schreibt es sie in den Datenordner (`languages/<Kennung>/`). Ein Ordner `languages/` neben dem Programm oder im aktuellen Ordner hat Vorrang, ebenso die Option `--languages` oder `CODESKIMR_LANGUAGES_DIR`; so lassen sich Sprachpakete ändern, ohne neu zu bauen.
+Das Programm liegt in `target/release/codeskimr` (`codeskimr.exe` unter Windows). Die gebaute Oberfläche liegt in `web/dist` und wird beim Bauen ins Programm eingebettet, darum kommt `web/` zuerst. Node.js 22 (`.node-version`). Die Sprachpakete aus `languages/` sind ebenfalls im Programm eingebettet; beim ersten Start schreibt es sie in den Datenordner (`languages/<Kennung>/`). Ein Ordner `languages/` neben dem Programm hat Vorrang, wenn er mindestens ein `<Sprache>/language.toml` enthält (ein Ordner `languages/` im aktuellen Ordner wird nicht benutzt), ebenso die Option `--languages` oder `CODESKIMR_LANGUAGES_DIR`; so lassen sich Sprachpakete ändern, ohne neu zu bauen.
 
 ## Erster Start
 
@@ -51,6 +51,7 @@ Ist Port 7421 belegt, bricht der Server mit `API-301` ab; einen anderen Port ste
 | Datenbank `codeskimr.db` und Cache der Git-Quellen `git/` | Windows `%LOCALAPPDATA%\codeskimr`, macOS `~/Library/Application Support/codeskimr`, Linux `$XDG_DATA_HOME/codeskimr` oder `~/.local/share/codeskimr`; ändern mit `--data-dir` oder `CODESKIMR_DATA_DIR` |
 | Benutzerkonfiguration `config.toml` (optional) | Windows `%APPDATA%\codeskimr`, macOS `~/Library/Application Support/codeskimr`, Linux `$XDG_CONFIG_HOME/codeskimr`; ändern mit `--config` oder `CODESKIMR_CONFIG` |
 | Sprachpakete des Programms `languages/<Kennung>/` (beim ersten Start geschrieben, kann gelöscht werden) | im Datenordner |
+| Theme und Sprache der Oberfläche `preferences.json` | im Datenordner |
 | Installations-Token, Git-Zugangsdaten | Schlüsselspeicher des Betriebssystems, Dienstname `codeskimr` |
 
 ## Konfiguration

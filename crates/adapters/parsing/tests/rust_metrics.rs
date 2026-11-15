@@ -29,6 +29,38 @@ mod tests {
     }
 
     #[test]
+    fn cognitive_complexity_counts_structures_with_their_nesting() {
+        let found = by_name(&facts("rust", "cognitive.rs"));
+        let cognitive = |name: &str| body(&found, name).cognitive;
+        assert_eq!(cognitive("straight"), Some(0));
+        // if (+1), for (+2 nested once), inner if (+3 nested twice)
+        assert_eq!(cognitive("nested"), Some(6));
+        // if (+1), else if (+1), else (+1): the `else if` is no deeper than the first `if`
+        assert_eq!(cognitive("chain"), Some(3));
+        // `&&` run (+1) and `||` (+1)
+        assert_eq!(cognitive("runs"), Some(2));
+        // the closure nests: if (+2) and else (+1)
+        assert_eq!(cognitive("closure_nests"), Some(3));
+        // match (+1); the arms add nothing
+        assert_eq!(cognitive("method"), Some(1));
+        // `||` (+1), `&&` (+1), `||` (+1): every change of operator starts a run
+        assert_eq!(cognitive("mixed"), Some(3));
+        // for (+1), loop (+2), if (+3), labelled break (+1)
+        assert_eq!(cognitive("labelled"), Some(7));
+        // while (+1); loop (+1), its if (+2), else if (+1, the body is no deeper)
+        assert_eq!(cognitive("loops"), Some(5));
+    }
+
+    #[test]
+    fn parameters_are_counted_without_the_receiver() {
+        let found = by_name(&facts("rust", "cognitive.rs"));
+        let parameters = |name: &str| body(&found, name).parameters;
+        assert_eq!(parameters("straight"), Some(1));
+        assert_eq!(parameters("runs"), Some(4));
+        assert_eq!(parameters("method"), Some(3));
+    }
+
+    #[test]
     fn halstead_counts_of_a_small_body() {
         let found = by_name(&facts("rust", "metrics.rs"));
         // `1` is one operand and no operator.

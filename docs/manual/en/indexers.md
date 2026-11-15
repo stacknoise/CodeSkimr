@@ -2,7 +2,7 @@
 
 Level 2 makes usages **exact**: instead of guessing which `Save()` a call means, CodeSkimr takes the answer of the language's own tool, which knows the types, and marks those usages **verified**. This chapter explains what you install, how you switch it on and what happens when you scan.
 
-> **State:** level 2 is built for C#, TypeScript, JavaScript, Python, Rust, Java and Kotlin and is **off by default**. **No language is formally accepted yet.** Measurements on sample projects are kept in the source repository (`docs/accuracy.md`); Kotlin has not been measured at all, and for C# level 2 currently misses usages that level 1 finds (a known problem with overloaded extension methods in the C# indexer). "Verified" means: this usage is exact. It does **not** mean the list is complete, so a verified list can still lack usages. The decision record, ADR 0033, still has the status "proposed", so details can change.
+> **State:** level 2 is built for C#, TypeScript, JavaScript, Python, Rust, Java and Kotlin and is **off by default**. **No language is formally accepted yet.** The measurements on public sample projects (150 symbols each, `docs/accuracy.md` in the source repository) show how far "verified" can be trusted today: Rust and Java 100 % precision and recall, TypeScript 99 % precision and 100 % recall; Python finds 99 % of the usages but lists extra hits for fields (precision 63 %); for C# level 2 misses most usages that level 1 finds (recall 34 %, a known problem of the C# indexer `scip-dotnet` with overloaded extension methods). Kotlin has not been measured at all. Languages below 99 % are approximations. "Verified" means: this usage is exact. It does **not** mean the list is complete, so a verified list can still lack usages. The decision record, ADR 0033, still has the status "proposed", so details can change.
 
 ## Why
 
@@ -32,7 +32,7 @@ Whenever a project is loaded (added, fully scanned, reopened), CodeSkimr checks 
 - in the summary of `codeskimr scan` (and in `--json` as `tools`);
 - over MCP with the tool `get_project`.
 
-A tool is `ready`, `missing` (not on the `PATH`), `too_old` (below the minimum version or the version the project asks for in `global.json`, `.nvmrc` or `rust-toolchain.toml`) or `version_unknown` (it ran but no version could be read). A missing tool **never stops a scan**: you get level 1, marked unchecked. A quick re-scan after a file change does not repeat the check.
+A tool is `ready`, `missing` (not on the `PATH`), `too_old` (below the minimum version or the version the project asks for in `global.json`, `.nvmrc` or `rust-toolchain.toml`), `too_new` (newer than the `rollForward` rule in `global.json` lets through, for example SDK 9 although the project names 8.0 and allows nothing above it) or `version_unknown` (it ran but no version could be read). A missing tool **never stops a scan**: you get level 1, marked unchecked. A quick re-scan after a file change does not repeat the check.
 
 ## Switching it on
 

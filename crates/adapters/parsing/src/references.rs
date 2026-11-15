@@ -218,7 +218,7 @@ fn pending_reference(
         target,
         receiver: match seen {
             Some(seen) => receiver_of(seen, scopes),
-            None => free_receiver(ctx, from.kind),
+            None => free_receiver(ctx, from.kind, occurrence.kind),
         },
         previous: None,
     }))
@@ -226,12 +226,21 @@ fn pending_reference(
 
 /// The receiver of a name without one: where members need their receiver, a name inside a
 /// function is not a member of the enclosing type.
-fn free_receiver(ctx: &SymbolContext<'_>, container: SymbolKind) -> Option<Receiver> {
+fn free_receiver(
+    ctx: &SymbolContext<'_>,
+    container: SymbolKind,
+    kind: ReferenceKind,
+) -> Option<Receiver> {
     let callable = matches!(
         container,
         SymbolKind::Method | SymbolKind::Function | SymbolKind::Constructor | SymbolKind::Property
     );
-    (callable && !ctx.pack.bare_names_reach_members).then_some(Receiver::Free)
+    // An override names the member of a base type, an import or a base list names no member.
+    let used = matches!(
+        kind,
+        ReferenceKind::Read | ReferenceKind::Write | ReferenceKind::Call
+    );
+    (callable && used && !ctx.pack.bare_names_reach_members).then_some(Receiver::Free)
 }
 
 /// A receiver name that is declared counts through its declared type, an undeclared one by its name.

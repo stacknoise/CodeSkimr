@@ -44,6 +44,17 @@ pub struct NameRule {
     pub visibility: String,
 }
 
+/// Query files that a pack takes over from another pack (ADR 0056).
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct QueriesFrom {
+    /// Folder name of the pack that owns the files; it must not take files from a pack itself.
+    pub from: String,
+    /// The query files (`symbols.scm`, `references.scm`, `metrics.scm`) whose text of the other
+    /// pack comes first; the file of this pack, if there is one, follows and adds patterns.
+    pub files: Vec<String>,
+}
+
 /// Visibility rules of a language.
 #[derive(Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -168,6 +179,9 @@ pub struct PackManifest {
     /// level 1.
     #[serde(default)]
     pub indexer: Option<IndexerManifest>,
+    /// Query files taken over from another pack (ADR 0056); without it every file is the pack's own.
+    #[serde(default)]
+    pub queries: Option<QueriesFrom>,
 }
 
 impl PackManifest {

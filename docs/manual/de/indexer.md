@@ -4,7 +4,7 @@
 
 Ebene 2 macht Verwendungen **exakt**: Statt zu raten, welches `Save()` ein Aufruf meint, übernimmt CodeSkimr die Antwort des Werkzeugs der Sprache, das die Typen kennt, und markiert diese Verwendungen als **geprüft**. Dieses Kapitel erklärt, was Sie installieren, wie Sie es einschalten und was beim Scan passiert.
 
-> **Stand:** Ebene 2 ist für C#, TypeScript, JavaScript, Python, Rust, Java und Kotlin gebaut und standardmäßig **aus**. **Keine Sprache ist bisher formal abgenommen.** Messungen an Beispielprojekten stehen im Quellcode-Repository (`docs/accuracy.md`); Kotlin wurde noch gar nicht gemessen, und bei C# übersieht Ebene 2 derzeit Verwendungen, die Ebene 1 findet (ein bekanntes Problem des C#-Indexers mit überladenen Erweiterungsmethoden). „Geprüft“ heißt: Diese Verwendung ist exakt. Es heißt **nicht**, dass die Liste vollständig ist, eine geprüfte Liste kann also trotzdem Verwendungen vermissen. Der Entscheidungstext, ADR 0033, hat noch den Status „proposed“, Einzelheiten können sich ändern.
+> **Stand:** Ebene 2 ist für C#, TypeScript, JavaScript, Python, Rust, Java und Kotlin gebaut und standardmäßig **aus**. **Keine Sprache ist bisher formal abgenommen.** Die Messungen an öffentlichen Beispielprojekten (je 150 Symbole, `docs/accuracy.md` im Quellcode-Repository) zeigen, wie weit „geprüft“ heute trägt: Rust und Java 100 % Genauigkeit und Trefferquote, TypeScript 99 % Genauigkeit und 100 % Trefferquote; Python findet 99 % der Verwendungen, nennt aber zusätzliche Treffer bei Feldern (Genauigkeit 63 %); bei C# übersieht Ebene 2 die meisten Verwendungen, die Ebene 1 findet (Trefferquote 34 %, ein bekanntes Problem des C#-Indexers `scip-dotnet` mit überladenen Erweiterungsmethoden). Kotlin wurde noch gar nicht gemessen. Sprachen unter 99 % sind Näherungen. „Geprüft“ heißt: Diese Verwendung ist exakt. Es heißt **nicht**, dass die Liste vollständig ist, eine geprüfte Liste kann also trotzdem Verwendungen vermissen. Der Entscheidungstext, ADR 0033, hat noch den Status „proposed“, Einzelheiten können sich ändern.
 
 ## Wozu
 
@@ -34,7 +34,7 @@ Immer wenn ein Projekt geladen wird (hinzugefügt, vollständig gescannt, wieder
 - in der Zusammenfassung von `codeskimr scan` (und mit `--json` als `tools`);
 - über MCP mit dem Werkzeug `get_project`.
 
-Ein Werkzeug ist `ready` (bereit), `missing` (nicht im `PATH`), `too_old` (unter der Mindestversion oder der Version, die das Projekt in `global.json`, `.nvmrc` oder `rust-toolchain.toml` verlangt) oder `version_unknown` (es lief, aber eine Version war nicht lesbar). Ein fehlendes Werkzeug **stoppt nie einen Scan**: Sie bekommen Ebene 1, ungeprüft markiert. Ein schneller Neuscan nach einer Dateiänderung wiederholt die Prüfung nicht.
+Ein Werkzeug ist `ready` (bereit), `missing` (nicht im `PATH`), `too_old` (unter der Mindestversion oder der Version, die das Projekt in `global.json`, `.nvmrc` oder `rust-toolchain.toml` verlangt), `too_new` (neuer, als die `rollForward`-Regel in `global.json` zulässt, zum Beispiel ein SDK 9, obwohl das Projekt 8.0 nennt und nichts darüber erlaubt) oder `version_unknown` (es lief, aber eine Version war nicht lesbar). Ein fehlendes Werkzeug **stoppt nie einen Scan**: Sie bekommen Ebene 1, ungeprüft markiert. Ein schneller Neuscan nach einer Dateiänderung wiederholt die Prüfung nicht.
 
 ## Einschalten
 

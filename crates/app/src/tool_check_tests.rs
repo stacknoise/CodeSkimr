@@ -59,7 +59,7 @@ fn machine() -> Arc<dyn IndexRunner> {
         program: "scip-dotnet".to_owned(),
         issue: ToolIssue::Missing,
     };
-    Arc::new(Machine(IndexerStatus::Unavailable(vec![indexer, sdk])))
+    Arc::new(Machine(IndexerStatus::unavailable(vec![indexer, sdk])))
 }
 
 /// A project folder and an installation, both in one temporary folder.
@@ -266,7 +266,7 @@ fn a_scan_whose_tools_are_all_there_prints_no_tool_line() {
     let global = GlobalOptions::default();
     let config = config_files::load(&world.locations, &global, None).unwrap();
     let store = open_store(&world.locations, &config).unwrap();
-    let everything = Machine(IndexerStatus::Ready);
+    let everything = Machine(IndexerStatus::ready());
     let checker = tool_checker(&store, (&world.locations, Arc::new(everything))).unwrap();
     let args = ScanArgs {
         source: world.project(),

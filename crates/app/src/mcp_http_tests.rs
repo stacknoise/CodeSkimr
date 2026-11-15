@@ -3,8 +3,10 @@
 use std::io::{Read, Write};
 use std::net::TcpStream;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 use std::sync::mpsc::channel;
 
+use codeskimr_application::events::EventBus;
 use codeskimr_cli::GlobalOptions;
 use codeskimr_secrets::KeystoreCredentials;
 use serde_json::{Value, json};
@@ -14,7 +16,9 @@ use crate::consts::URL_SCHEME;
 use crate::locations::Locations;
 use crate::mcp::http_service;
 use crate::memory_keystore::Memory;
-use crate::serve::{bare_parts, serve_for_test, test_ui};
+use crate::running::RunningScans;
+use crate::serve::{bare_parts, serve_for_test, serving_parts, test_ui};
+use crate::wiring::open_store;
 use crate::{config_files, installation_token};
 
 const ACCEPT: &str = "application/json, text/event-stream";
@@ -26,6 +30,7 @@ pub(crate) fn locations(data: &Path) -> Locations {
         languages_dir: PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(LANGUAGES_PATH),
         user_config: None,
         bases: Vec::new(),
+        program_dir: None,
     }
 }
 
@@ -140,4 +145,27 @@ fn the_running_app_answers_mcp_at_slash_mcp_with_the_token_only() {
     });
     serve_for_test(&store, parts, &found, stopped).unwrap();
     requests.join().unwrap();
+}
+
+/// The UI and the MCP service of the running app are built together over one store, so one
+/// usages index (#358): both keep a handle of the store that `run` opened for them.
+#[test]
+fn the_ui_and_the_mcp_service_share_one_store() {
+    let data = tempfile::tempdir().unwrap();
+    let locations = locations(data.path());
+    let global = GlobalOptions::default();
+    let config = config_files::load(&locations, &global, None).unwrap();
+    let catalog = open_store(&locations, &config).unwrap();
+    assert_eq!(Arc::strong_count(&catalog), 1);
+    let parts = serving_parts(
+        &catalog,
+        &config,
+        (&global, &locations),
+        (EventBus::new(), &crate::memory_keystore::secrets()),
+        RunningScans::default(),
+    )
+    .unwrap();
+    // One handle for the commands and one for the MCP service, none for a store of its own.
+    assert!(Arc::strong_count(&catalog) >= 3);
+    drop(parts);
 }

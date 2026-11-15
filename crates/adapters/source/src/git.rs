@@ -1,8 +1,11 @@
 //! Git sources: shallow clone of one branch into a cache folder (blueprint section 7, "Fetch").
 //!
-//! An update clones the branch again into a private work folder and then swaps it in: the old copy
-//! is parked, the new one is moved into place, and only then the old one is deleted. If anything
-//! fails or the scan is cancelled, the old copy is back in place and the work folder is removed.
+//! An update works in a private work folder and then swaps the result in: the Git data of the old
+//! copy is duplicated there, only the new commits are fetched into it and the files are written
+//! from them (`update.rs`). If there is no old copy or the update fails for any reason, the branch
+//! is cloned again. Either way the old copy is parked, the new one is moved into place, and only
+//! then the old one is deleted. If anything fails or the scan is cancelled, the old copy is back in
+//! place and the work folder is removed.
 //! A crash skips that cleanup; the next fetch removes work folders in which nothing changed for a day
 //! and parked copies of swaps that began a day ago.
 //!
@@ -19,6 +22,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::ports::{AuthError, Credential, FetchedSource};
+use codeskimr_codes::Coded;
 use codeskimr_domain::{BranchName, CommitHash, FolderPath, GitUrl};
 use gix::credentials::helper::Action;
 use gix::credentials::protocol::Outcome;
@@ -27,10 +31,13 @@ use secrecy::ExposeSecret;
 
 use crate::consts::{
     AUTH_FAILURE_HINTS, BRANCH_REF_PREFIX, CANCEL_POLL_MS, CANCELLED_DETAIL,
-    CLONE_CONFIG_OVERRIDES, HTTP_NOT_FOUND_HINT, MISSING_BRANCH_HINT, NO_LOGIN_MESSAGE,
-    SHALLOW_CLONE_DEPTH, URL_SCHEME_MARKER, WORK_FOLDER_MAX_AGE_SECS, WORK_PREFIX, WORK_SEPARATOR,
+    CLONE_CONFIG_OVERRIDES, HTTP_NOT_FOUND_HINT, LOG_CODE, LOG_REASON, MISSING_BRANCH_HINT,
+    NO_LOGIN_MESSAGE, SHALLOW_CLONE_DEPTH, URL_SCHEME_MARKER, WORK_FOLDER_MAX_AGE_SECS,
+    WORK_PREFIX, WORK_SEPARATOR,
 };
 use crate::error::{SourceError, error_chain_text};
+
+mod update;
 
 /// Lends the credential of a login to a closure, once per call. It reads from the secret store
 /// every time and nothing is kept between calls.
@@ -104,7 +111,7 @@ impl GitCache {
             login,
             cancel,
         };
-        clone_polling(&attempt, &work.fresh)?;
+        prepare_polling(&attempt, &target, &work.fresh)?;
         let commit = head_commit(&work.fresh)?;
         work.swap_into(&target)?;
         let root = FolderPath::new(target.to_string_lossy().into_owned())
@@ -189,8 +196,10 @@ struct Attempt<'a> {
     cancel: &'a CancelToken,
 }
 
-/// Runs the clone while a helper thread turns the cancel token into Git's interrupt flag.
-fn clone_polling(attempt: &Attempt<'_>, path: &Path) -> Result<(), SourceError> {
+/// Prepares the new copy in `fresh`: an update of the copy in `target` if there is one, otherwise
+/// (or if the update fails for any reason other than a cancel) a clone. Meanwhile a helper thread
+/// turns the cancel token into Git's interrupt flag.
+fn prepare_polling(attempt: &Attempt<'_>, target: &Path, fresh: &Path) -> Result<(), SourceError> {
     let interrupt = AtomicBool::new(false);
     let finished = AtomicBool::new(false);
     std::thread::scope(|scope| {
@@ -202,10 +211,53 @@ fn clone_polling(attempt: &Attempt<'_>, path: &Path) -> Result<(), SourceError> 
                 std::thread::sleep(Duration::from_millis(CANCEL_POLL_MS));
             }
         });
-        let result = clone_branch(attempt, path, &interrupt);
+        let result = update_or_clone(attempt, target, fresh, &interrupt);
         finished.store(true, Ordering::Release);
         result
     })
+}
+
+/// An update that fails for any reason but a cancel is not reported to the caller: the clone that
+/// follows gives the answer it needs. The reason is logged instead (issue #365), so a clone that
+/// keeps falling back can be found. If the leftovers of the update cannot be removed, the clone
+/// fails on the folder that is not empty.
+fn update_or_clone(
+    attempt: &Attempt<'_>,
+    target: &Path,
+    fresh: &Path,
+    interrupt: &AtomicBool,
+) -> Result<(), SourceError> {
+    if update::can_update(target) {
+        match update::check_pack_count(target) {
+            Err(error) => log_reason(&error, false),
+            Ok(()) => match update::update_branch(attempt, target, fresh, interrupt) {
+                Ok(()) => return Ok(()),
+                Err(_) if attempt.cancel.is_cancelled() => return Err(cancelled()),
+                Err(error) => log_reason(&error, true),
+            },
+        }
+    }
+    if attempt.cancel.is_cancelled() {
+        return Err(cancelled());
+    }
+    // Whatever the update left behind must not get in the way of the clone.
+    let _ = fs::remove_dir_all(fresh);
+    clone_branch(attempt, fresh, interrupt)
+}
+
+/// Logs why the clone is made again instead of updated: as a warning if the update failed, as
+/// information if the pack limit asked for it. The text of the cause carries no credentials (E-05)
+/// and the log writer masks what is left.
+fn log_reason(error: &SourceError, failed: bool) {
+    let reason = match error {
+        SourceError::GitFetchFailed { detail } => detail.clone(),
+        other => other.to_string(),
+    };
+    if failed {
+        tracing::warn!({ LOG_CODE } = error.code().id(), { LOG_REASON } = %reason);
+    } else {
+        tracing::info!({ LOG_CODE } = error.code().id(), { LOG_REASON } = %reason);
+    }
 }
 
 /// Shallow clone of one branch with its working tree.

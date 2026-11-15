@@ -46,6 +46,11 @@ literal_nodes = [
 ]
 static_keywords = ["static"]
 
+# Query files taken over from the TypeScript pack; the files of this pack add to them (ADR 0056).
+[queries]
+from = "typescript"
+files = ["symbols.scm", "references.scm", "metrics.scm"]
+
 # JSDoc: the description above the first block tag (`@param`, `@returns` …) is the documentation.
 [doc_block]
 open = "/**"

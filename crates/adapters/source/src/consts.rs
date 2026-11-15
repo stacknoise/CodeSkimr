@@ -163,3 +163,44 @@ pub const JSON_COMMA: char = ',';
 pub const JSON_CLOSERS: [char; 2] = ['}', ']'];
 /// Bytes read beyond the announced length of a file: one is enough to see that it grew.
 pub const GROWTH_PROBE_BYTES: u64 = 1;
+
+/// Name of the folder of the Git data that holds the objects.
+pub const OBJECTS_DIR_NAME: &str = "objects";
+
+/// Prefix of the references in which a clone keeps what it fetched from its remote.
+pub const REMOTE_REF_PREFIX: &str = "refs/remotes/origin/";
+
+/// Reflog message when an earlier clone is brought up to date.
+pub const UPDATE_REFLOG_MESSAGE: &str = "codeskimr: update";
+
+/// Detail of the failure when an earlier clone has no working tree.
+pub const NO_WORKTREE_DETAIL: &str = "the clone has no working tree";
+
+/// Detail of the failure when HEAD of an updated clone does not lead to the fetched commit.
+pub const HEAD_MISMATCH_DETAIL: &str = "HEAD does not lead to the fetched commit";
+
+/// Start of a refspec that may replace a reference that does not move forward (force-push).
+pub const REFSPEC_FORCE: &str = "+";
+
+/// Separator of source and destination in a refspec.
+pub const REFSPEC_SEPARATOR: &str = ":";
+
+/// Name of the folder with the pack files inside the Git data folder.
+pub const PACK_DIR_NAME: &str = "pack";
+
+/// File extension of a pack file.
+pub const PACK_EXTENSION: &str = "pack";
+
+/// Packs an updated clone may hold. Every update by fetch adds one, and the objects of earlier
+/// commits stay in the older ones (issue #363); once the limit is reached the branch is cloned
+/// again, which leaves one pack with the newest commit only.
+pub const MAX_PACKS_BEFORE_RECLONE: usize = 20;
+
+/// Detail of the reason when the pack limit made the update give way to a new clone.
+pub const TOO_MANY_PACKS_DETAIL: &str = "the clone holds too many packs";
+
+/// Name of the log field that carries why an update fell back to a new clone (issue #365).
+pub const LOG_REASON: &str = "reason";
+
+/// Name of the log field that carries the error code of a fallback.
+pub const LOG_CODE: &str = "code";

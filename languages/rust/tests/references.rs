@@ -53,3 +53,40 @@ impl Order {
         }
     }
 }
+
+pub struct Pair {
+    pub left: u32,
+    pub right: u32,
+}
+
+impl Pair {
+    pub fn build(left: u32, right: u32) -> Self {
+        // `Self { left }` names the field, a bare `right` here is the parameter.
+        let pair = Self { left, right: right + 1 };
+        let other = Pair { right };
+        pair
+    }
+}
+
+fn bindings(input: Option<(u32, Item)>, queue: &mut Vec<u32>) {
+    match input {
+        Some((helper, Item { id, .. })) => use_all(helper, id),
+        Some(_) | None => (),
+    }
+    while let Some(compute) = queue.pop() {
+        use_all(compute, 0);
+    }
+    if let [first, .., last] = queue.as_slice() {
+        use_all(*first, *last);
+    }
+    let Some(pair) = input else { return };
+    let Item { id: ref helper, .. } = pair.1;
+    let _ = helper;
+    let _ = OFFSET;
+    if let &OFFSET = &first_value(queue) {}
+}
+
+fn variants(id: u32) -> Outer {
+    let shape = Shape::Circle { radius: id };
+    Outer { inner: Pair { left: id, right: 1 }, shape }
+}

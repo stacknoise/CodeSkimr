@@ -115,7 +115,7 @@ mod tests {
     fn the_naming_rules_carry_the_revision_of_the_engine() {
         let packs = LanguagePacks::load(&languages()).expect("packs load");
         let rules = packs.naming_rules();
-        assert!(rules.contains("revision=2"), "{rules}");
+        assert!(rules.contains("revision=3"), "{rules}");
         assert!(rules.contains("rust=file"), "{rules}");
     }
 

@@ -13,8 +13,8 @@ use codeskimr_cli::GlobalOptions;
 use codeskimr_codes::ErrorCode;
 
 use crate::consts::{
-    ENV_LANGUAGES_DIR, PACKS_CACHE_DIR, PACKS_COMPLETE_MARKER, PACKS_STAGING_MAX_AGE,
-    PACKS_STAGING_SEPARATOR,
+    ENV_LANGUAGES_DIR, LANGUAGES_DIR, PACK_FILE, PACKS_CACHE_DIR, PACKS_COMPLETE_MARKER,
+    PACKS_REPLACED_MAX_AGE, PACKS_STAGING_MAX_AGE, PACKS_STAGING_SEPARATOR,
 };
 use crate::locations::{Locations, Lookup};
 
@@ -44,14 +44,29 @@ pub fn prefer_embedded(
     fingerprint: &str,
 ) -> Result<Locations, CodedError> {
     let named = global.languages_dir.is_some() || env(ENV_LANGUAGES_DIR).is_some();
-    if named || locations.languages_dir.is_dir() || files.is_empty() {
+    if named || beside_program(&locations) || files.is_empty() {
         return Ok(locations);
     }
     let languages_dir = materialize(files, fingerprint, &locations.data_dir)?;
-    remove_stale_staging(&locations.data_dir.join(PACKS_CACHE_DIR));
+    remove_stale(&locations.data_dir.join(PACKS_CACHE_DIR), &languages_dir);
     Ok(Locations {
         languages_dir,
         ..locations
+    })
+}
+
+/// True if a folder with packs lies next to the program: the layout of a deliberate installation.
+/// A folder without any `<language>/language.toml` is no installation of packs and is ignored.
+/// A `languages/` folder in the current folder does not count, because it may belong to the
+/// scanned repository and must not replace the packs of the program without the user asking.
+fn beside_program(locations: &Locations) -> bool {
+    locations.program_dir.as_ref().is_some_and(|folder| {
+        folder
+            .join(LANGUAGES_DIR)
+            .read_dir()
+            .is_ok_and(|mut packs| {
+                packs.any(|pack| pack.is_ok_and(|pack| pack.path().join(PACK_FILE).is_file()))
+            })
     })
 }
 
@@ -70,6 +85,8 @@ pub fn materialize(
     let cache = data_dir.join(PACKS_CACHE_DIR);
     let target = cache.join(fingerprint);
     if is_complete(&target) {
+        // Touches the marker: the folder is in use, so it is not old (see `remove_stale`).
+        let _ = fs::write(target.join(PACKS_COMPLETE_MARKER), []);
         return Ok(target);
     }
     let mut staging_name = OsString::from(fingerprint);
@@ -87,7 +104,10 @@ pub fn materialize(
         let _ = fs::remove_dir_all(&target);
     }
     match fs::rename(&staging, &target) {
-        Ok(()) => Ok(target),
+        Ok(()) => {
+            sync_dir(&cache);
+            Ok(target)
+        }
         // Another start was faster: its folder is as good as ours.
         Err(_) if is_complete(&target) => {
             let _ = fs::remove_dir_all(&staging);
@@ -97,27 +117,45 @@ pub fn materialize(
     }
 }
 
-/// Removes the unfinished folders of starts that crashed long ago. Younger ones may belong to a
-/// start that is writing right now. Failures do not matter: the next start tries again.
-fn remove_stale_staging(cache: &Path) {
+/// Removes what earlier starts left in `cache` and the current program does not use: unfinished
+/// folders of crashed starts (younger ones may belong to a start that is writing right now) and
+/// folders of programs that were replaced long ago. `keep` is never removed. Failures do not
+/// matter: the next start tries again.
+fn remove_stale(cache: &Path, keep: &Path) {
     let Ok(entries) = fs::read_dir(cache) else {
         return;
     };
     for entry in entries.flatten() {
-        let stale = entry
+        let unfinished = entry
             .file_name()
             .to_string_lossy()
-            .contains(PACKS_STAGING_SEPARATOR)
-            && entry
-                .metadata()
-                .and_then(|meta| meta.modified())
-                .ok()
-                .and_then(|time| time.elapsed().ok())
-                .is_some_and(|age| age >= PACKS_STAGING_MAX_AGE);
-        if stale {
+            .contains(PACKS_STAGING_SEPARATOR);
+        let limit = if unfinished {
+            PACKS_STAGING_MAX_AGE
+        } else {
+            PACKS_REPLACED_MAX_AGE
+        };
+        // The marker is rewritten at every start that uses the folder; unfinished folders have none.
+        let old = fs::metadata(entry.path().join(PACKS_COMPLETE_MARKER))
+            .or_else(|_| entry.metadata())
+            .and_then(|meta| meta.modified())
+            .ok()
+            .and_then(|time| time.elapsed().ok())
+            .is_some_and(|age| age >= limit);
+        if old && entry.path() != keep {
             let _ = fs::remove_dir_all(entry.path());
         }
     }
+}
+
+/// Makes the new entry of `folder` durable (not possible on every platform; then it is skipped).
+fn sync_dir(folder: &Path) {
+    #[cfg(unix)]
+    if let Ok(dir) = fs::File::open(folder) {
+        let _ = dir.sync_all();
+    }
+    #[cfg(not(unix))]
+    let _ = folder;
 }
 
 fn is_complete(folder: &Path) -> bool {
@@ -211,6 +249,16 @@ mod tests {
             languages_dir,
             user_config: None,
             bases: Vec::new(),
+            program_dir: None,
+        }
+    }
+
+    /// Locations whose program folder is `program` and whose current folder is `cwd`.
+    fn with_bases(program: &Path, cwd: &Path, data: &Path) -> Locations {
+        Locations {
+            bases: vec![program.to_path_buf(), cwd.to_path_buf()],
+            program_dir: Some(program.to_path_buf()),
+            ..locations(program.join(LANGUAGES_DIR), data.to_path_buf())
         }
     }
 
@@ -238,9 +286,8 @@ mod tests {
     }
 
     #[test]
-    fn a_folder_the_user_named_or_that_exists_is_kept() {
+    fn a_folder_the_user_named_is_kept() {
         let data = tempfile::tempdir().unwrap();
-        let existing = tempfile::tempdir().unwrap();
         let missing = Path::new("/nowhere/languages");
         let flag = GlobalOptions {
             languages_dir: Some(PathBuf::from("/flag")),
@@ -255,14 +302,76 @@ mod tests {
             prefer(&GlobalOptions::default(), &by_env, missing, data.path()).languages_dir,
             missing
         );
-        let found = prefer(
+    }
+
+    /// A program folder, a current folder and a data folder, all empty.
+    fn three_folders() -> (tempfile::TempDir, tempfile::TempDir, tempfile::TempDir) {
+        (
+            tempfile::tempdir().unwrap(),
+            tempfile::tempdir().unwrap(),
+            tempfile::tempdir().unwrap(),
+        )
+    }
+
+    fn prefer_at(locations: Locations) -> Locations {
+        prefer_embedded(
+            locations,
             &GlobalOptions::default(),
             &|_| None,
-            existing.path(),
-            data.path(),
-        );
-        assert_eq!(found.languages_dir, existing.path());
+            FILES_OF_TWO_PACKS,
+            "fp",
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn a_folder_next_to_the_program_is_kept() {
+        let (program, cwd, data) = three_folders();
+        fs::create_dir_all(program.path().join(LANGUAGES_DIR).join("rust")).unwrap();
+        fs::write(
+            program
+                .path()
+                .join(LANGUAGES_DIR)
+                .join("rust")
+                .join(PACK_FILE),
+            "",
+        )
+        .unwrap();
+        let found = prefer_at(with_bases(program.path(), cwd.path(), data.path()));
+        assert_eq!(found.languages_dir, program.path().join(LANGUAGES_DIR));
         assert!(!data.path().join(PACKS_CACHE_DIR).exists());
+    }
+
+    #[test]
+    fn a_folder_in_the_current_folder_does_not_replace_the_packs_of_the_program() {
+        let (program, cwd, data) = three_folders();
+        // What `Locations::resolve` finds when only the current folder has `languages/`.
+        fs::create_dir(cwd.path().join(LANGUAGES_DIR)).unwrap();
+        let mut found = with_bases(program.path(), cwd.path(), data.path());
+        found.languages_dir = cwd.path().join(LANGUAGES_DIR);
+        let found = prefer_at(found);
+        assert_eq!(
+            found.languages_dir,
+            data.path().join(PACKS_CACHE_DIR).join("fp")
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn the_folder_of_a_long_replaced_program_is_removed_but_not_the_current_one() {
+        let data = tempfile::tempdir().unwrap();
+        let old = materialize(FILES_OF_TWO_PACKS, "old", data.path()).unwrap();
+        let current = materialize(FILES_OF_TWO_PACKS, "cur", data.path()).unwrap();
+        let long_ago = std::time::SystemTime::now() - PACKS_REPLACED_MAX_AGE * 2;
+        for folder in [&old, &current] {
+            fs::File::open(folder.join(PACKS_COMPLETE_MARKER))
+                .unwrap()
+                .set_modified(long_ago)
+                .unwrap();
+        }
+        remove_stale(&data.path().join(PACKS_CACHE_DIR), &current);
+        assert!(!old.exists());
+        assert!(current.is_dir());
     }
 
     #[test]
@@ -300,7 +409,7 @@ mod tests {
         let busy = data.path().join(PACKS_CACHE_DIR).join("old.writing-1");
         fs::create_dir_all(&busy).unwrap();
         materialize(FILES_OF_TWO_PACKS, "new", data.path()).unwrap();
-        remove_stale_staging(&data.path().join(PACKS_CACHE_DIR));
+        remove_stale(&data.path().join(PACKS_CACHE_DIR), Path::new("-"));
         assert!(busy.is_dir());
     }
 
@@ -315,7 +424,39 @@ mod tests {
             .unwrap()
             .set_modified(long_ago)
             .unwrap();
-        remove_stale_staging(&data.path().join(PACKS_CACHE_DIR));
+        remove_stale(&data.path().join(PACKS_CACHE_DIR), Path::new("-"));
         assert!(!left.exists());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn a_reused_folder_gets_a_fresh_marker_time() {
+        let data = tempfile::tempdir().unwrap();
+        let folder = materialize(FILES_OF_TWO_PACKS, "abc", data.path()).unwrap();
+        let marker = folder.join(PACKS_COMPLETE_MARKER);
+        let long_ago = std::time::SystemTime::now() - PACKS_REPLACED_MAX_AGE * 2;
+        fs::File::open(&marker)
+            .unwrap()
+            .set_modified(long_ago)
+            .unwrap();
+        materialize(FILES_OF_TWO_PACKS, "abc", data.path()).unwrap();
+        let age = fs::metadata(&marker)
+            .unwrap()
+            .modified()
+            .unwrap()
+            .elapsed()
+            .unwrap();
+        assert!(age < PACKS_REPLACED_MAX_AGE);
+    }
+
+    #[test]
+    fn a_folder_beside_the_program_without_any_pack_is_ignored() {
+        let (program, cwd, data) = three_folders();
+        fs::create_dir_all(program.path().join(LANGUAGES_DIR).join("empty")).unwrap();
+        let found = prefer_at(with_bases(program.path(), cwd.path(), data.path()));
+        assert_eq!(
+            found.languages_dir,
+            data.path().join(PACKS_CACHE_DIR).join("fp")
+        );
     }
 }

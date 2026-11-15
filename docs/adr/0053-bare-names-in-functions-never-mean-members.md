@@ -11,6 +11,7 @@ The resolver (blueprint 9.2, step 2) looks for a name without receiver in the en
 1. The pack vocabulary gets one key in `language.toml`: `bare_names_reach_members` (default `true`). With `false`, the analysis reports a name without receiver inside a method, function, constructor or property with the new receiver `Free` (port `Receiver::Free`).
 2. For a `Free` name the resolver drops every candidate that is declared directly in a type. Scopes outside the types, the imports and the last resort work as before, so such a name can still end `probable` on a module-level symbol.
 3. The Python pack sets `bare_names_reach_members = false`. The packs of the other languages are not changed by this ADR; each can opt in after its own measurement.
+   Update 2026-11-15: the Rust pack opts in. The analysis reports `Free` only for reads, writes and calls: an override names the member of a base type, so it is no bare name. The Rust pack types the shorthand `Foo { a }` (or `Self { a }`) with the struct, so it names the field and no local hides it. The TypeScript, TSX and JavaScript packs do not opt in (their object shorthand `{ a }` cannot be typed, recall would fall, see `docs/accuracy.md`). Go has no reference query.
 4. A write whose name stands at the start of the declaration of the symbol it would resolve to (`name: str` in a class body) is the declaration, not a use. The resolver drops it for all languages.
 5. The Python pack also hides parameters with a union or other complex type (`x: str | None = None`), which the earlier patterns missed.
 

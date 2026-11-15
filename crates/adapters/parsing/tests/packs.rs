@@ -58,6 +58,110 @@ mod tests {
         }
     }
 
+    fn from_rust(file: &str) -> String {
+        format!("[queries]\nfrom = \"rust\"\nfiles = [\"{file}\"]\n")
+    }
+
+    /// A pack `derived` beside the copy of the fixture pack `rust`, with `queries` in its manifest.
+    fn derived(name: &str, queries: &str, own_symbols: bool) -> PathBuf {
+        let rust = scratch(name);
+        let dir = rust.with_file_name("derived");
+        fs::create_dir_all(&dir).expect("dir");
+        let manifest = fs::read_to_string(rust.join("language.toml")).expect("read");
+        let manifest = manifest.replace("id = \"rust\"", "id = \"derived\"");
+        fs::write(dir.join("language.toml"), format!("{manifest}\n{queries}")).expect("write");
+        if own_symbols {
+            fs::copy(rust.join("symbols.scm"), dir.join("symbols.scm")).expect("copy");
+        }
+        dir
+    }
+
+    #[test]
+    fn a_pack_takes_query_files_over_from_another_pack() {
+        let queries = from_rust("symbols.scm");
+        let dir = derived("take-over", &queries, false);
+        let pack = LanguagePack::load(&dir).expect("loads without an own symbols.scm");
+        assert_eq!(pack.id().as_str(), "derived");
+        remove(&dir);
+    }
+
+    #[test]
+    fn the_own_file_adds_to_the_taken_over_one() {
+        let queries = from_rust("symbols.scm");
+        let dir = derived("add-to", &queries, true);
+        LanguagePack::load(&dir).expect("both texts compile together");
+        remove(&dir);
+    }
+
+    #[test]
+    fn both_texts_are_compiled_and_the_own_one_follows_the_base() {
+        let queries = from_rust("symbols.scm");
+        // A broken own file breaks the pack: it is part of the query.
+        let dir = derived("own-broken", &queries, true);
+        fs::write(dir.join("symbols.scm"), "(no_such_node) @symbol.function").expect("write");
+        assert_invalid(&dir, "own file");
+        // A broken file of the base breaks the pack that takes it over, even with a good own file.
+        let dir = derived("base-broken", &queries, true);
+        let base = dir.with_file_name("rust").join("symbols.scm");
+        fs::write(base, "(no_such_node) @symbol.function").expect("write");
+        assert_invalid(&dir, "base file");
+    }
+
+    #[test]
+    fn references_and_metrics_are_taken_over_like_symbols() {
+        let queries = "[queries]\nfrom = \"rust\"\nfiles = [\"symbols.scm\", \"references.scm\"]\n";
+        let dir = derived("references", queries, false);
+        let base = dir.with_file_name("rust").join("references.scm");
+        let loaded = LanguagePack::load(&dir).err().map(|e| e.to_string());
+        assert_eq!(loaded, None);
+        fs::write(base, "(no_such_node) @reference.call").expect("write");
+        assert_invalid(&dir, "references of the base");
+    }
+
+    #[test]
+    fn a_pack_without_its_own_symbols_file_and_without_queries_is_invalid() {
+        let dir = derived("no-symbols", "", false);
+        assert_invalid(&dir, "no symbols");
+    }
+
+    #[test]
+    fn queries_that_break_the_rules_are_invalid() {
+        for (name, queries) in [
+            (
+                "self",
+                "[queries]\nfrom = \"derived\"\nfiles = [\"symbols.scm\"]\n",
+            ),
+            (
+                "path",
+                "[queries]\nfrom = \"../rust\"\nfiles = [\"symbols.scm\"]\n",
+            ),
+            (
+                "missing",
+                "[queries]\nfrom = \"nothing\"\nfiles = [\"symbols.scm\"]\n",
+            ),
+            (
+                "file",
+                "[queries]\nfrom = \"rust\"\nfiles = [\"highlights.scm\"]\n",
+            ),
+        ] {
+            assert_invalid(&derived(name, queries, true), name);
+        }
+    }
+
+    #[test]
+    fn a_pack_cannot_take_files_from_a_pack_that_takes_files() {
+        let queries = from_rust("symbols.scm");
+        let dir = derived("chain", &queries, true);
+        let rust = dir.with_file_name("rust");
+        let manifest = fs::read_to_string(rust.join("language.toml")).expect("read");
+        fs::write(
+            rust.join("language.toml"),
+            format!("{manifest}\n[queries]\nfrom = \"derived\"\nfiles = [\"metrics.scm\"]\n"),
+        )
+        .expect("write");
+        assert_invalid(&dir, "chain");
+    }
+
     #[test]
     fn rejects_unknown_manifest_keys() {
         let dir = scratch("keys");

@@ -68,8 +68,6 @@ Auf der Projektseite hat das Formular „Neues Projekt“ ein Feld **Zugangsdate
 - Es wird nur an den Server geschickt, auf den die Quelle zeigt. Nach einer Weiterleitung auf einen anderen Host wird nichts geschickt.
 - Git weigert sich, Zugangsdaten über einfaches `http://` zu schicken; nehmen Sie `https://` oder SSH.
 
-> **Stand:** Die Browser-Oberfläche hat noch kein Formular für Zugangsangaben; legen Sie sie auf der Kommandozeile an.
-
 ## Installations-Token
 
 Ein zweites Geheimnis gibt es: das **Installations-Token** (`csk_` und 64 Hexziffern). Es schützt alles, was Zustand ändert oder Quelltext liefert, und den MCP-Endpunkt, damit andere Programme auf Ihrem Rechner den lokalen Server nicht nutzen können. Es entsteht beim ersten `codeskimr serve`, liegt im selben Schlüsselspeicher (Eintrag `installation-token`), wird von keinem Befehl angezeigt und nie protokolliert. `codeskimr open` gibt dem Browser statt des Tokens einen einmaligen Startcode (60 Sekunden gültig, einmal verwendbar); die Browser-Oberfläche behält das Token nur in ihrem Tab.

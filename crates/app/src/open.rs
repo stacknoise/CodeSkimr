@@ -312,6 +312,7 @@ mod tests {
             languages_dir: PathBuf::new(),
             user_config: None,
             bases: Vec::new(),
+            program_dir: None,
         };
         let runtime = |name: &str| (name == ENV_XDG_RUNTIME_DIR).then(|| "/run/user/1".to_owned());
         let none = |_: &str| None;

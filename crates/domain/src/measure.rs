@@ -20,6 +20,10 @@ pub struct BodyCounts {
     pub decisions: u32,
     /// Operators and operands of the body.
     pub halstead: HalsteadCounts,
+    /// Cognitive complexity of the body (ADR 0048); `None` if the language pack does not count it.
+    pub cognitive: Option<u32>,
+    /// Number of parameters, without a receiver (ADR 0048); `None` if the pack does not count them.
+    pub parameters: Option<u32>,
 }
 
 /// The counts of one measurable symbol.
