@@ -16,8 +16,8 @@ use gix::remote::fetch::{Shallow, Tags};
 use super::{Attempt, LoginRefusal, answer};
 use crate::consts::{
     BRANCH_REF_PREFIX, CLONE_CONFIG_OVERRIDES, GIT_DIR_NAME, HEAD_MISMATCH_DETAIL,
-    NO_WORKTREE_DETAIL, OBJECTS_DIR_NAME, REMOTE_REF_PREFIX, SHALLOW_CLONE_DEPTH,
-    UPDATE_REFLOG_MESSAGE,
+    NO_WORKTREE_DETAIL, OBJECTS_DIR_NAME, REFSPEC_FORCE, REFSPEC_SEPARATOR, REMOTE_REF_PREFIX,
+    SHALLOW_CLONE_DEPTH, UPDATE_REFLOG_MESSAGE,
 };
 use crate::error::SourceError;
 
@@ -70,7 +70,7 @@ fn fetch_tip(
 ) -> Result<gix::ObjectId, SourceError> {
     let branch = attempt.branch;
     let tracking = format!("{REMOTE_REF_PREFIX}{branch}");
-    let spec = format!("+{BRANCH_REF_PREFIX}{branch}:{tracking}");
+    let spec = format!("{REFSPEC_FORCE}{BRANCH_REF_PREFIX}{branch}{REFSPEC_SEPARATOR}{tracking}");
     let remote = repo
         .remote_at(attempt.url.as_str())
         .map_err(|error| failed(&error))?

@@ -178,3 +178,9 @@ pub const NO_WORKTREE_DETAIL: &str = "the clone has no working tree";
 
 /// Detail of the failure when HEAD of an updated clone does not lead to the fetched commit.
 pub const HEAD_MISMATCH_DETAIL: &str = "HEAD does not lead to the fetched commit";
+
+/// Start of a refspec that may replace a reference that does not move forward (force-push).
+pub const REFSPEC_FORCE: &str = "+";
+
+/// Separator of source and destination in a refspec.
+pub const REFSPEC_SEPARATOR: &str = ":";

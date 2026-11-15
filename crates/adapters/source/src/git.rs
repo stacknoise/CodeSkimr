@@ -215,6 +215,9 @@ fn prepare_polling(attempt: &Attempt<'_>, target: &Path, fresh: &Path) -> Result
     })
 }
 
+/// An update that fails for any reason but a cancel is not reported: the clone that follows gives
+/// the answer the caller needs (the adapter has no logging yet). If the leftovers of the update
+/// cannot be removed, the clone fails on the folder that is not empty.
 fn update_or_clone(
     attempt: &Attempt<'_>,
     target: &Path,
