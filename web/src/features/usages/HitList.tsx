@@ -86,62 +86,76 @@ function Row(props: { hit: Hit; place: Place; index: number; onOpen: (hit: Hit) 
   );
 }
 
-/** The hit list of screen 6 with the counts by kind and by certainty (mock 6). */
-export function HitList(props: { answer: UsagesAnswer; hits: Hit[]; onOpen: (hit: Hit) => void }) {
+/** The head of the list: the count and the counts by kind, the cut note and the keys. */
+function ListHead(props: { answer: UsagesAnswer; hits: Hit[] }) {
   const kinds = () => countKinds(props.hits);
   const walk = () => props.answer.incoming ?? props.answer.outgoing;
   return (
-    <div class={styles.list} role={ROLE.region} aria-label={t(I18N_KEYS.USAGES_HITS_LABEL)}>
-      <div class={styles.head}>
-        <b>{t(I18N_KEYS.USAGES_HITS, { count: props.hits.length })}</b>
-        <Show when={kinds().tests > 0}>
-          <Pill tone={PILL_TONE.accent}>
-            {t(I18N_KEYS.USAGES_REF_TEST)} {kinds().tests}
-          </Pill>
-        </Show>
-        <Show when={kinds().presumed > 0}>
-          <Pill>
-            {t(I18N_KEYS.USAGES_PRESUMED)} {kinds().presumed}
-          </Pill>
-        </Show>
-        <Show when={(walk()?.total ?? 0) > props.hits.length}>
-          <span class={styles.cut}>
-            {t(I18N_KEYS.USAGES_HITS_CUT, {
-              shown: props.hits.length,
-              total: walk()?.total ?? 0,
-            })}
-          </span>
-        </Show>
-        <span class={styles.keys}>
-          <kbd>{KEY.next}</kbd>
-          <span>{t(I18N_KEYS.USAGES_HITS_NEXT)}</span>
-          <kbd>{KEY.open}</kbd>
-          <span>{t(I18N_KEYS.USAGES_HITS_OPEN)}</span>
+    <div class={styles.head}>
+      <b>{t(I18N_KEYS.USAGES_HITS, { count: props.hits.length })}</b>
+      <Show when={kinds().tests > 0}>
+        <Pill tone={PILL_TONE.accent}>
+          {t(I18N_KEYS.USAGES_REF_TEST)} {kinds().tests}
+        </Pill>
+      </Show>
+      <Show when={kinds().presumed > 0}>
+        <Pill>
+          {t(I18N_KEYS.USAGES_PRESUMED)} {kinds().presumed}
+        </Pill>
+      </Show>
+      <Show when={(walk()?.total ?? 0) > props.hits.length}>
+        <span class={styles.cut}>
+          {t(I18N_KEYS.USAGES_HITS_CUT, {
+            shown: props.hits.length,
+            total: walk()?.total ?? 0,
+          })}
         </span>
-      </div>
+      </Show>
+      <span class={styles.keys}>
+        <kbd>{KEY.next}</kbd>
+        <span>{t(I18N_KEYS.USAGES_HITS_NEXT)}</span>
+        <kbd>{KEY.open}</kbd>
+        <span>{t(I18N_KEYS.USAGES_HITS_OPEN)}</span>
+      </span>
+    </div>
+  );
+}
+
+/** The rows of the list, or the sentence that says why there are none. */
+function Hits(props: { answer: UsagesAnswer; hits: Hit[]; onOpen: (hit: Hit) => void }) {
+  return (
+    <Show
+      when={props.hits.length > 0}
+      fallback={
+        <p class={styles.empty}>
+          {t(I18N_KEYS.USAGES_HITS_EMPTY)}
+          <Show when={props.answer.level2 === LEVEL2_UNAVAILABLE}>
+            {t(I18N_KEYS.USAGES_HITS_EMPTY_UNCHECKED)}
+          </Show>
+        </p>
+      }
+    >
+      <For each={props.hits}>
+        {(hit, index) => (
+          <Row
+            hit={hit}
+            place={listedPlace(props.answer, hit)}
+            index={index()}
+            onOpen={props.onOpen}
+          />
+        )}
+      </For>
+    </Show>
+  );
+}
+
+/** The hit list of screen 6 with the counts by kind and by certainty (mock 6). */
+export function HitList(props: { answer: UsagesAnswer; hits: Hit[]; onOpen: (hit: Hit) => void }) {
+  return (
+    <div class={styles.list} role={ROLE.region} aria-label={t(I18N_KEYS.USAGES_HITS_LABEL)}>
+      <ListHead answer={props.answer} hits={props.hits} />
       <div class={styles.rows}>
-        <Show
-          when={props.hits.length > 0}
-          fallback={
-            <p class={styles.empty}>
-              {t(I18N_KEYS.USAGES_HITS_EMPTY)}
-              <Show when={props.answer.level2 === LEVEL2_UNAVAILABLE}>
-                {t(I18N_KEYS.USAGES_HITS_EMPTY_UNCHECKED)}
-              </Show>
-            </p>
-          }
-        >
-          <For each={props.hits}>
-            {(hit, index) => (
-              <Row
-                hit={hit}
-                place={listedPlace(props.answer, hit)}
-                index={index()}
-                onOpen={props.onOpen}
-              />
-            )}
-          </For>
-        </Show>
+        <Hits answer={props.answer} hits={props.hits} onOpen={props.onOpen} />
       </div>
     </div>
   );

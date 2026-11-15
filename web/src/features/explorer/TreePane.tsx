@@ -137,6 +137,30 @@ function Tools(props: { onReveal: () => void }) {
   );
 }
 
+/** The tall window that holds the rows in view. */
+function Window(props: {
+  view: ReturnType<typeof useWindow<TreeRow>>;
+  places: ReturnType<typeof siblingPlaces>;
+  cursorIndex: number;
+  actions: TreeActions;
+}) {
+  return (
+    <div class={styles.window} style={{ height: `${props.view.total()}px` }}>
+      <For each={props.view.visible()}>
+        {(place) => (
+          <Item
+            row={place.item}
+            place={props.places[place.index]}
+            index={place.index}
+            cursor={place.index === props.cursorIndex}
+            actions={props.actions}
+          />
+        )}
+      </For>
+    </div>
+  );
+}
+
 /** The left column: filter, the two buttons and the tree (mock 2). The tree draws only the rows
  * in view (blueprint 15.5) and is one tab stop; its cursor moves with the arrow keys. */
 export function TreePane(props: {
@@ -164,19 +188,7 @@ export function TreePane(props: {
         onScroll={view.onScroll}
         onKeyDown={(event) => onTreeKey(event, props.rows, cursorIndex(), props.actions)}
       >
-        <div class={styles.window} style={{ height: `${view.total()}px` }}>
-          <For each={view.visible()}>
-            {(place) => (
-              <Item
-                row={place.item}
-                place={places()[place.index]}
-                index={place.index}
-                cursor={place.index === cursorIndex()}
-                actions={props.actions}
-              />
-            )}
-          </For>
-        </div>
+        <Window view={view} places={places()} cursorIndex={cursorIndex()} actions={props.actions} />
       </div>
     </section>
   );
