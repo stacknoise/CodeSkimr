@@ -67,3 +67,6 @@ pub const TOOL_INSTALL_SUFFIX: &str = "-install";
 pub const DATE_SEPARATORS: &[char] = &['-', '/'];
 /// A number of this many digits or more is a date or an id (`20240501`), not a version.
 pub const DATE_MIN_DIGITS: usize = 8;
+
+/// The patch numbers of one feature band of the .NET SDK (8.0.100 to 8.0.199).
+pub const FEATURE_BAND_SIZE: u32 = 100;

@@ -6,7 +6,7 @@ use std::iter::Peekable;
 use std::path::{Path, PathBuf};
 use std::str::Chars;
 
-use codeskimr_application::ports::RequirementReader;
+use codeskimr_application::ports::{RequirementReader, RequirementValue};
 use codeskimr_domain::{ProjectSource, RelativePath, RequirementFormat, RequirementSpec};
 
 use crate::consts::{
@@ -162,6 +162,23 @@ impl ProjectRequirements {
         }
     }
 
+    /// The policy that limits how new a tool may be, from the same file. Plain text has no keys.
+    fn policy(requirement: &RequirementSpec, text: &str) -> Option<String> {
+        let path = &requirement.roll_forward.as_ref()?.path;
+        match requirement.format {
+            RequirementFormat::Json => json_string(text, path),
+            RequirementFormat::Toml => toml_string(text, path),
+            RequirementFormat::Text => None,
+        }
+    }
+
+    fn values(requirement: &RequirementSpec, text: &str) -> Option<RequirementValue> {
+        Some(RequirementValue {
+            version: Self::value(requirement, text)?,
+            policy: Self::policy(requirement, text),
+        })
+    }
+
     /// The folders below `root` that hold a file called `name`, root first. Folders that hold
     /// dependencies or build output are not entered, links are not followed, and the search is
     /// bounded in depth and in the number of files.
@@ -212,19 +229,27 @@ impl RequirementReader for ProjectRequirements {
         Self::value(requirement, &self.text(source, &requirement.file)?)
     }
 
-    fn read_all(&self, source: &ProjectSource, requirement: &RequirementSpec) -> Vec<String> {
+    fn read_all(
+        &self,
+        source: &ProjectSource,
+        requirement: &RequirementSpec,
+    ) -> Vec<RequirementValue> {
         let root = self.root(source);
         let name = Path::new(&requirement.file)
             .file_name()
             .and_then(|name| name.to_str());
         let Some(name) = name.filter(|name| *name == requirement.file) else {
-            return self.read(source, requirement).into_iter().collect();
+            return self
+                .text(source, &requirement.file)
+                .and_then(|text| Self::values(requirement, &text))
+                .into_iter()
+                .collect();
         };
         Self::manifests(&root, name)
             .iter()
             .filter_map(|file| relative_path(&root, file))
             .filter_map(|file| self.text(source, file.as_str()))
-            .filter_map(|text| Self::value(requirement, &text))
+            .filter_map(|text| Self::values(requirement, &text))
             .collect()
     }
 }

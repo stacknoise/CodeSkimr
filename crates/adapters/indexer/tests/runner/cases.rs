@@ -11,7 +11,7 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::level2;
 use codeskimr_application::ports::{
     ConsentGrant, ConsentRecord, ConsentStore, IndexJob, IndexLimits, IndexRunner, IndexerSpec,
-    IndexerStatus, RunPermit, ToolIssue, ToolSpec, ToolVersion,
+    IndexerStatus, RunPermit, ToolIssue, ToolSeen, ToolSpec, ToolVersion,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
@@ -212,7 +212,7 @@ fn failure_reason(error: &CodedError) -> Option<FailureReason> {
 fn too_old_issue(fixture: &Fixture) -> ToolIssue {
     let mut old = spec("ok");
     old.indexer.min_version = ToolVersion::parse("9.0.0").unwrap();
-    let IndexerStatus::Unavailable(problems) = fixture.runner.check(&old) else {
+    let IndexerStatus::Unavailable { problems, .. } = fixture.runner.check(&old) else {
         panic!("ready");
     };
     problems.into_iter().next().expect("a problem").issue
@@ -511,7 +511,7 @@ fn a_missing_indexer_is_unavailable_and_nothing_runs() {
     let mut missing = spec("ok");
     missing.indexer.program = "no_such_indexer_for_codeskimr".to_owned();
     let status = fixture.runner.check(&missing);
-    let IndexerStatus::Unavailable(problems) = status else {
+    let IndexerStatus::Unavailable { problems, .. } = status else {
         panic!("ready");
     };
     assert_eq!(problems.len(), 1);
@@ -530,7 +530,39 @@ fn an_indexer_older_than_required_is_unavailable() {
         too_old_issue(&fixture),
         ToolIssue::TooOld { found, .. } if found.contains("1.2.3")
     ));
-    assert_eq!(fixture.runner.check(&spec("ok")), IndexerStatus::Ready);
+    assert!(matches!(
+        fixture.runner.check(&spec("ok")),
+        IndexerStatus::Ready { .. }
+    ));
+}
+
+#[test]
+fn a_ready_tool_reports_the_version_it_printed() {
+    let fixture = Fixture::new();
+    let status = fixture.runner.check(&spec("ok"));
+    assert_eq!(
+        status.found(),
+        [ToolSeen {
+            program: "fake_indexer".to_owned(),
+            version: ToolVersion::parse("1.2.3").unwrap(),
+        }]
+    );
+}
+
+#[test]
+fn a_tool_that_is_fine_keeps_its_version_when_another_is_missing() {
+    let fixture = Fixture::new();
+    let mut spec = spec("ok");
+    let mut gone = spec.indexer.clone();
+    gone.program = "no_such_tool_for_codeskimr".to_owned();
+    spec.toolchain = vec![gone];
+    let status = fixture.runner.check(&spec);
+    assert_eq!(status.problems().len(), 1);
+    assert_eq!(status.found().len(), 1);
+    assert_eq!(
+        status.found().first().map(|seen| seen.program.as_str()),
+        Some("fake_indexer")
+    );
 }
 
 #[test]
