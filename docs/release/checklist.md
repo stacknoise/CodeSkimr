@@ -23,8 +23,8 @@ Only the product owner creates the tag and publishes the release (`docs/release.
 
 - [ ] Actions, Release, Run workflow with the version. The job `draft release` creates a draft; `package` builds the single file for Linux, Windows and macOS, its `.sha256` and the attestation; `clean install` checks the provenance and the sum, runs each file alone in an empty folder on a fresh runner and scans a small project.
 - [ ] All jobs are green. If one is red, do not publish; fix, merge and run the workflow again (a leftover draft is replaced).
-- [ ] By hand on real machines (the probe has no browser and no keystore): Windows, Linux with a Secret Service, macOS. Unpack, start `codeskimr`, the browser opens, scan a project, open Explorer, Usages and the dependency map, export HTML, `codeskimr --version` shows the release version.
-- [ ] Checksums of the packages match the `.sha256` files.
+- [ ] By hand on real machines (the probe has no browser and no keystore): Windows, Linux with a Secret Service, macOS. Download the single file (on Linux and macOS `chmod +x`, on macOS remove the quarantine flag), start it, the browser opens, scan a project, open Explorer, Usages and the dependency map, export HTML, `codeskimr --version` shows the release version.
+- [ ] Checksums of the downloaded files match the `.sha256` files, and `gh attestation verify <file> --repo stacknoise/CodeSkimr` succeeds for each.
 
 ## Publishing (product owner)
 
