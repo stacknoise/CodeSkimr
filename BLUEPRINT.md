@@ -903,7 +903,7 @@ Reference: the budgets are meant for a mid-range developer laptop (class recorde
 | Graph layout (≤ 200 nodes) | < 50 ms |
 | Full scan, 100k LOC (full tier) | < 1 s |
 | Incremental re-scan after saving one file | < 300 ms |
-| Loading the language packs of a first scan (Rust and C#, the longest; ADR 0063) | < 1.5 s |
+| Loading the Rust and C# packs on a first scan (benchmark `pack_load`; ADR 0063) | < 1.5 s |
 | Idle CPU (app open, nothing happening) | 0 % (no timers, no polling) |
 | Memory for 1M LOC indexed | < 500 MB |
 | Binary size (full-tier languages built in) | < 60 MB |

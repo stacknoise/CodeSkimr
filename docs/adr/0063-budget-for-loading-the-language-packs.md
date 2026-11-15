@@ -20,14 +20,16 @@ Measured on 2026-11-15 (release build, 4 cores, no other load), `pack_load_secon
 | All eight in one folder | 0.96 to 1.07 s (parallel, C# is the long pole) |
 | Rust and C# (the benchmark), five runs | 0.78 to 0.92 s |
 
+The numbers are the author's own measurements of this day and cannot be checked from the repository. ADR 0059 gives about 0.75 s for C# alone; the difference to 0.96 s here is a different run and machine load (the figures are single runs, and the loads of several packs overlap, so Rust and C# together can be faster than C# alone in another run).
+
 In a real scan of CodeSkimr itself (eight languages, 749 files) the load time is 2.1 s next to a scan time of 1.5 s, because loading competes with parsing for the cores. For a project in one language the load is 0.1 to 1 s.
 
 ## Decision
 
-1. Blueprint 16.1 gets the row "Loading the language packs of a first scan (Rust and C#, the longest) < 1.5 s", and `config/default.toml` the key `budgets.pack_load_ms = 1500`.
+1. Blueprint 16.1 gets the row "Loading the Rust and C# packs on a first scan (benchmark `pack_load`) < 1.5 s", and `config/default.toml` the key `budgets.pack_load_ms = 1500`.
 2. The benchmark `pack_load/rust_and_csharp` is checked against it (`tools/bench/budgets.toml`), on the same runner as the other budgets.
 3. The value is 1.5 s, not lower, because the benchmark runs on a shared CI runner with fewer cores than the container of the measurement and the budgets there are a coarse upper bound (`tools/bench/machine.toml`). It is above today's 0.8 to 0.9 s by a factor of about 1.7 so that noise does not fail the check, and low enough that a pack that doubles its load time does. A later change that makes the packs faster (for example splitting `references.scm`, ADR 0059 "not chosen") may lower it through a new ADR.
-4. The budget covers the two longest packs in isolation. The load time of a project with many languages (2.1 s for CodeSkimr itself) is reported in `docs/benchmarks.md` and not budgeted, because it depends on the number of languages and the cores left over by the parser.
+4. The budget covers the benchmark `pack_load/rust_and_csharp` (one Rust and one C# file; C# is the longest pack, Rust the fifth) in isolation. The load time of a project with many languages (2.1 s for CodeSkimr itself) is reported in `docs/benchmarks.md` and not budgeted, because it depends on the number of languages and the cores left over by the parser.
 5. No other budget changes. The "Scanned in" time still leaves the load out.
 
 ## Options not chosen
