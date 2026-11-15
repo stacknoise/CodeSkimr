@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 34,
+      "loc": 42,
       "operands": null,
       "operators": null,
       "symbol": "cognitive"
@@ -104,9 +104,42 @@
         5
       ],
       "symbol": "cognitive.Shop.method"
+    },
+    {
+      "decisions": 1,
+      "loc": 4,
+      "operands": [
+        2,
+        4
+      ],
+      "operators": [
+        3,
+        3
+      ],
+      "symbol": "cognitive.looped"
+    },
+    {
+      "decisions": null,
+      "loc": 4,
+      "operands": null,
+      "operators": null,
+      "symbol": "cognitive.Maker"
+    },
+    {
+      "decisions": 0,
+      "loc": 2,
+      "operands": [
+        1,
+        1
+      ],
+      "operators": [
+        1,
+        1
+      ],
+      "symbol": "cognitive.Maker.make"
     }
   ],
-  "loc": 34,
+  "loc": 42,
   "references": [
     {
       "at": "10:17",
@@ -137,7 +170,7 @@
       "name": "cognitive",
       "parent": null,
       "signature": null,
-      "span": "0:0-50:0",
+      "span": "0:0-62:0",
       "static": false,
       "visibility": null
     },
@@ -218,6 +251,36 @@
       "parent": "cognitive.Shop",
       "signature": null,
       "span": "44:4-49:24",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "cognitive.looped",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "52:0-55:12",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "cognitive.Maker",
+      "parent": "cognitive",
+      "signature": null,
+      "span": "58:0-61:16",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "method",
+      "name": "cognitive.Maker.make",
+      "parent": "cognitive.Maker",
+      "signature": null,
+      "span": "60:4-61:16",
       "static": false,
       "visibility": "public"
     }

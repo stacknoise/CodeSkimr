@@ -48,3 +48,15 @@ class Shop:
                 return b
             case _:
                 return c
+
+
+def looped(a):
+    while a:
+        a -= 1
+    return a
+
+
+class Maker:
+    @classmethod
+    def make(cls, a):
+        return a

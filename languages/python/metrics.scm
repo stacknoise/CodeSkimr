@@ -110,7 +110,8 @@
 ; Cognitive complexity (ADR 0048). A structure adds one and one more for every nesting level it
 ; stands in; `elif`, `else` of an `if` and a run of the same boolean operator add one at any depth.
 ; A lambda nests what is in it but adds nothing. Not counted: `with`, `assert`, comprehensions,
-; `case` clauses (the `match` counts once), recursion.
+; `case` clauses (the `match` counts once), recursion, and the `else` of `for`, `while` and `try`,
+; which is a rare construct and is left out on purpose.
 (if_statement) @cognitive
 (if_statement) @nesting
 (elif_clause) @cognitive_flat

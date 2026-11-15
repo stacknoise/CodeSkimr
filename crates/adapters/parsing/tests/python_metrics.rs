@@ -45,6 +45,7 @@ mod tests {
         assert_eq!(cognitive("lambdas"), Some(2));
         // match (+1); the cases add nothing
         assert_eq!(cognitive("method"), Some(1));
+        assert_eq!(cognitive("looped"), Some(1));
     }
 
     #[test]
@@ -55,6 +56,7 @@ mod tests {
         assert_eq!(parameters("runs"), Some(4));
         // a, b: int, c=3, *rest, **named; `self` does not count
         assert_eq!(parameters("method"), Some(5));
+        assert_eq!(parameters("make"), Some(1));
     }
 
     #[test]
