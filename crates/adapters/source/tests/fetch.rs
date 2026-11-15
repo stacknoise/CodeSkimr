@@ -4,7 +4,7 @@
 mod common;
 
 use codeskimr_application::cancel::CancelToken;
-use codeskimr_application::ports::SourceProvider;
+use codeskimr_application::ports::{FetchedSource, SourceProvider};
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{BranchName, GitUrl, ProjectSource};
 use codeskimr_source::{GitCache, SourceFetcher};
@@ -105,120 +105,119 @@ fn change_origin(remote: &Path) -> TestResult {
     git(remote, &["commit", "-q", "-m", "two"])
 }
 
+/// Two fetches of the fixture's origin with `change` applied to the origin in between. The Git data
+/// of the cached clone is marked after the first fetch, so that a test can tell an update (the
+/// mark stays) from a new clone (the mark is gone).
+struct Updated {
+    fixture: Fixture,
+    root: PathBuf,
+    first: FetchedSource,
+    second: Result<FetchedSource, codeskimr_application::error::CodedError>,
+}
+
+impl Updated {
+    fn new(change: impl FnOnce(&Path) -> TestResult) -> TestResult<Self> {
+        let fixture = fixture()?;
+        let first = fetcher(fixture.cache.path()).fetch(&fixture.source, &CancelToken::new())?;
+        let root = PathBuf::from(first.root.as_str());
+        std::fs::write(root.join(".git").join(MARK), "x")?;
+        change(fixture.remote.path())?;
+        let second = fetcher(fixture.cache.path()).fetch(&fixture.source, &CancelToken::new());
+        Ok(Self {
+            fixture,
+            root,
+            first,
+            second,
+        })
+    }
+
+    fn was_updated(&self) -> bool {
+        self.root.join(".git").join(MARK).exists()
+    }
+
+    fn content(&self, file: &str) -> TestResult<String> {
+        Ok(std::fs::read_to_string(self.root.join(file))?)
+    }
+
+    /// The second fetch worked and led to another commit.
+    fn moved(&self) -> TestResult<bool> {
+        let second = self.second.as_ref().map_err(|error| error.to_string())?;
+        Ok(second.commit != self.first.commit)
+    }
+}
+
+/// Name of the file that marks a clone as updated in place.
+const MARK: &str = "kept-by-update";
+
 #[test]
 fn an_update_reuses_the_earlier_clone_and_mirrors_the_new_commit() -> TestResult {
-    let Fixture {
-        remote,
-        cache,
-        source,
-    } = fixture()?;
-    write(remote.path(), "old.rs", "fn old() {}")?;
-    git(remote.path(), &["add", "."])?;
-    git(remote.path(), &["commit", "-q", "-m", "old"])?;
-    let first = fetcher(cache.path()).fetch(&source, &CancelToken::new())?;
-    let root = PathBuf::from(first.root.as_str());
-    // A file in the Git data that only an update takes over; a new clone would not have it.
-    std::fs::write(root.join(".git").join("kept-by-update"), "x")?;
-    std::fs::remove_file(remote.path().join("old.rs"))?;
-    change_origin(remote.path())?;
-    let second = fetcher(cache.path()).fetch(&source, &CancelToken::new())?;
-    assert_ne!(second.commit, first.commit);
-    assert!(root.join(".git").join("kept-by-update").exists());
-    assert_eq!(std::fs::read_to_string(root.join("lib.rs"))?, "fn two() {}");
-    assert_eq!(std::fs::read_to_string(root.join("new.rs"))?, "fn new() {}");
-    assert!(!root.join("old.rs").exists());
-    assert_eq!(entries(cache.path())?, 1);
+    let updated = Updated::new(|remote| {
+        write(remote, "old.rs", "fn old() {}")?;
+        git(remote, &["add", "."])?;
+        git(remote, &["commit", "-q", "-m", "old"])?;
+        change_origin(remote)
+    })?;
+    assert!(updated.moved()? && updated.was_updated());
+    assert_eq!(updated.content("lib.rs")?, "fn two() {}");
+    assert_eq!(updated.content("new.rs")?, "fn new() {}");
+    assert_eq!(entries(updated.fixture.cache.path())?, 1);
     Ok(())
 }
 
-/// Marks the Git data of the cached clone so that a test can tell an update from a new clone.
-fn mark_clone(root: &Path) -> TestResult {
-    Ok(std::fs::write(
-        root.join(".git").join("kept-by-update"),
-        "x",
-    )?)
-}
-
-fn is_updated(root: &Path) -> bool {
-    root.join(".git").join("kept-by-update").exists()
+#[test]
+fn an_update_removes_files_that_are_gone() -> TestResult {
+    let updated = Updated::new(|remote| {
+        git(remote, &["rm", "-q", "lib.rs"])?;
+        write(remote, "other.rs", "fn other() {}")?;
+        git(remote, &["add", "."])?;
+        git(remote, &["commit", "-q", "-m", "swap"])
+    })?;
+    assert!(updated.moved()? && updated.was_updated());
+    assert!(!updated.root.join("lib.rs").exists());
+    assert_eq!(updated.content("other.rs")?, "fn other() {}");
+    Ok(())
 }
 
 #[test]
 fn an_update_without_a_new_commit_changes_nothing() -> TestResult {
-    let Fixture {
-        remote: _remote,
-        cache,
-        source,
-    } = fixture()?;
-    let first = fetcher(cache.path()).fetch(&source, &CancelToken::new())?;
-    let root = PathBuf::from(first.root.as_str());
-    mark_clone(&root)?;
-    let second = fetcher(cache.path()).fetch(&source, &CancelToken::new())?;
-    assert_eq!(second.commit, first.commit);
-    assert!(is_updated(&root));
-    assert_eq!(std::fs::read_to_string(root.join("lib.rs"))?, "fn one() {}");
+    let updated = Updated::new(|_| Ok(()))?;
+    assert!(!updated.moved()? && updated.was_updated());
+    assert_eq!(updated.content("lib.rs")?, "fn one() {}");
     Ok(())
 }
 
 #[test]
 fn an_update_follows_a_force_push() -> TestResult {
-    let Fixture {
-        remote,
-        cache,
-        source,
-    } = fixture()?;
-    let first = fetcher(cache.path()).fetch(&source, &CancelToken::new())?;
-    let root = PathBuf::from(first.root.as_str());
-    mark_clone(&root)?;
-    write(remote.path(), "lib.rs", "fn rewritten() {}")?;
-    git(
-        remote.path(),
-        &["commit", "-q", "-a", "--amend", "-m", "again"],
-    )?;
-    let second = fetcher(cache.path()).fetch(&source, &CancelToken::new())?;
-    assert_ne!(second.commit, first.commit);
-    assert!(is_updated(&root));
-    assert_eq!(
-        std::fs::read_to_string(root.join("lib.rs"))?,
-        "fn rewritten() {}"
-    );
+    let updated = Updated::new(|remote| {
+        write(remote, "lib.rs", "fn rewritten() {}")?;
+        git(remote, &["commit", "-q", "-a", "--amend", "-m", "again"])
+    })?;
+    assert!(updated.moved()? && updated.was_updated());
+    assert_eq!(updated.content("lib.rs")?, "fn rewritten() {}");
     Ok(())
 }
 
 #[test]
 fn a_branch_that_is_gone_is_reported_and_keeps_the_old_copy() -> TestResult {
-    let Fixture {
-        remote,
-        cache,
-        source,
-    } = fixture()?;
-    let first = fetcher(cache.path()).fetch(&source, &CancelToken::new())?;
-    let root = PathBuf::from(first.root.as_str());
-    git(remote.path(), &["branch", "-m", "main", "renamed"])?;
-    let error = fetcher(cache.path())
-        .fetch(&source, &CancelToken::new())
-        .expect_err("the branch no longer exists");
+    let updated = Updated::new(|remote| git(remote, &["branch", "-m", "main", "renamed"]))?;
+    let error = updated.second.as_ref().expect_err("the branch is gone");
     assert_eq!(error.code(), ErrorCode::GitBranchNotFound);
-    assert_eq!(std::fs::read_to_string(root.join("lib.rs"))?, "fn one() {}");
-    assert_eq!(entries(cache.path())?, 1);
+    assert_eq!(updated.content("lib.rs")?, "fn one() {}");
+    assert_eq!(entries(updated.fixture.cache.path())?, 1);
     Ok(())
 }
 
 #[test]
 fn a_broken_earlier_clone_is_replaced_by_a_new_clone() -> TestResult {
-    let Fixture {
-        remote,
-        cache,
-        source,
-    } = fixture()?;
-    let first = fetcher(cache.path()).fetch(&source, &CancelToken::new())?;
+    let fixture = fixture()?;
+    let first = fetcher(fixture.cache.path()).fetch(&fixture.source, &CancelToken::new())?;
     let root = PathBuf::from(first.root.as_str());
     std::fs::write(root.join(".git").join("HEAD"), "not a reference")?;
-    change_origin(remote.path())?;
-    let second = fetcher(cache.path()).fetch(&source, &CancelToken::new())?;
+    change_origin(fixture.remote.path())?;
+    let second = fetcher(fixture.cache.path()).fetch(&fixture.source, &CancelToken::new())?;
     assert_ne!(second.commit, first.commit);
     assert_eq!(std::fs::read_to_string(root.join("lib.rs"))?, "fn two() {}");
-    assert_eq!(entries(cache.path())?, 1);
+    assert_eq!(entries(fixture.cache.path())?, 1);
     Ok(())
 }
 
