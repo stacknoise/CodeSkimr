@@ -4,8 +4,9 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use codeskimr_codes::{Coded, ErrorCode};
-use codeskimr_domain::{Permission, RelativePath, SnapshotId};
+use codeskimr_domain::{FolderPath, Permission, RelativePath, SnapshotId};
 
+use super::allowed::is_allowed;
 use super::duplicates::{Fingerprinted, duplicates};
 use super::length::{Callable, callables, too_complex, too_long, too_many_parameters};
 use super::model::{CheckReport, CheckRequest, Finding, StoredProject, Unchecked};
@@ -17,7 +18,9 @@ use crate::config::Conventions;
 use crate::consts::{CHECK_FIRST_ID, CHECK_SNAPSHOT_ID, PATH_SEPARATOR};
 use crate::error::CodedError;
 use crate::ids::IdSequence;
-use crate::ports::{AnalyzeRequest, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts};
+use crate::ports::{
+    AnalyzeRequest, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, SourceText,
+};
 
 /// The rules with a `CHK` code that this version cannot check yet. Literals need positions the
 /// language packs do not deliver; layering needs the layer of every reference (issue #45). The
@@ -36,21 +39,25 @@ struct Analysed {
 pub struct ConventionChecker {
     discovery: Arc<dyn FileDiscovery>,
     analyzer: Arc<dyn FileAnalyzer>,
+    text: Arc<dyn SourceText>,
     limits: Conventions,
 }
 
 impl ConventionChecker {
     /// Builds the checker over the same ports a scan uses. The analyzer must have fingerprints
-    /// switched on, otherwise no duplicate is found.
+    /// switched on, otherwise no duplicate is found. `text` is read for the marker that exempts a
+    /// pure mapping function from `CHK-102` (ADR 0060).
     #[must_use]
     pub fn new(
         discovery: Arc<dyn FileDiscovery>,
         analyzer: Arc<dyn FileAnalyzer>,
+        text: Arc<dyn SourceText>,
         limits: Conventions,
     ) -> Self {
         Self {
             discovery,
             analyzer,
+            text,
             limits,
         }
     }
@@ -85,7 +92,11 @@ impl ConventionChecker {
             }
         }
         let unmatched = selection.unmatched(&files);
-        self.report(&analysed, request.stored.as_ref(), (unchecked, unmatched))
+        self.report(
+            &analysed,
+            (request.stored.as_ref(), request.root),
+            (unchecked, unmatched),
+        )
     }
 
     fn analyse(
@@ -110,7 +121,7 @@ impl ConventionChecker {
     fn report(
         &self,
         analysed: &[Analysed],
-        stored: Option<&StoredProject<'_>>,
+        (stored, root): (Option<&StoredProject<'_>>, &FolderPath),
         (unchecked, unmatched): (Vec<Unchecked>, Vec<String>),
     ) -> Result<CheckReport, CodedError> {
         let mut findings: Vec<Finding> = analysed
@@ -130,6 +141,7 @@ impl ConventionChecker {
             findings.extend(self.outside((analysed, &items), stored, &inside)?);
         }
         findings.extend(inside);
+        findings.retain(|finding| !self.allowed(analysed, root, finding));
         findings.sort_by_key(|finding| {
             (
                 finding.location.path.clone(),
@@ -144,6 +156,16 @@ impl ConventionChecker {
             not_checked: not_checked(analysed),
             unmatched,
         })
+    }
+
+    /// Whether `finding` is a copy that its function excuses with the marker (ADR 0060).
+    fn allowed(&self, analysed: &[Analysed], root: &FolderPath, finding: &Finding) -> bool {
+        finding.code == ErrorCode::DuplicateBlock
+            && analysed
+                .iter()
+                .flat_map(|done| &done.callables)
+                .find(|callable| callable.location == finding.location)
+                .is_some_and(|callable| is_allowed(self.text.as_ref(), root, callable))
     }
 
     /// The findings about length, cognitive complexity and parameters.

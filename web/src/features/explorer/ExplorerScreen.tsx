@@ -25,17 +25,13 @@ import { useExplorerKeys } from "./keys";
 import { Overview } from "./Overview";
 import { clearSource, loadSource } from "./source";
 import { SourcePane } from "./SourcePane";
+import { NoticeBox } from "../../shared/ui/NoticeBox";
 import { TreePane } from "./TreePane";
 import { useExplorer } from "./useExplorer";
 import styles from "./ExplorerScreen.module.css";
 
 function Message(props: { title?: string; text: string; alert?: boolean }) {
-  return (
-    <div class={styles.message} role={props.alert ? "alert" : undefined}>
-      <Show when={props.title}>{(title) => <h2>{title()}</h2>}</Show>
-      <p>{props.text}</p>
-    </div>
-  );
+  return <NoticeBox class={styles.message} {...props} />;
 }
 
 function failureText(failure: Failure): string {

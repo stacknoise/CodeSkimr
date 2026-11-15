@@ -2,7 +2,7 @@
 
 use codeskimr_application::access;
 use codeskimr_application::conventions::{
-    CheckReport, CheckRequest, Detail, Finding, Location, StoredProject, Unchecked,
+    CheckReport, CheckRequest, Finding, Location, StoredProject, Unchecked,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{FolderPath, Principal, Project, ProjectSource};
@@ -52,36 +52,20 @@ struct Violation {
     similarity_percent: Option<u32>,
 }
 
+// codeskimr: allow CHK-102 maps a finding of the check into the violation of the answer
 fn violation(finding: &Finding) -> Violation {
-    let mut out = Violation {
+    let measure = finding.detail.measure();
+    Violation {
         code: finding.code.id(),
         description: finding.code.description(),
         at: place(&finding.location),
-        lines: None,
-        max_lines: None,
-        value: None,
-        max_value: None,
-        duplicate_of: None,
-        similarity_percent: None,
-    };
-    match &finding.detail {
-        Detail::TooLong { lines, limit } => {
-            out.lines = Some(*lines);
-            out.max_lines = Some(*limit);
-        }
-        Detail::Over { value, limit } => {
-            out.value = Some(*value);
-            out.max_value = Some(*limit);
-        }
-        Detail::Duplicate {
-            of,
-            similarity_percent,
-        } => {
-            out.duplicate_of = Some(place(of));
-            out.similarity_percent = Some(*similarity_percent);
-        }
+        lines: measure.lines,
+        max_lines: measure.lines.and(measure.limit),
+        value: measure.value,
+        max_value: measure.value.and(measure.limit),
+        duplicate_of: measure.duplicate_of.map(place),
+        similarity_percent: measure.similarity_percent,
     }
-    out
 }
 
 #[derive(Serialize)]

@@ -27,15 +27,13 @@ import {
   usagesLoading,
   walkDepth,
 } from "./usages";
+import { NoticeBox } from "../../shared/ui/NoticeBox";
 import styles from "./UsagesScreen.module.css";
 
 function Message(props: { title?: string; text: string; alert?: boolean }) {
   return (
     <div class={styles.centered}>
-      <div class={styles.message} role={props.alert ? ROLE.alert : undefined}>
-        <Show when={props.title}>{(title) => <h2>{title()}</h2>}</Show>
-        <p>{props.text}</p>
-      </div>
+      <NoticeBox class={styles.message} {...props} />
     </div>
   );
 }

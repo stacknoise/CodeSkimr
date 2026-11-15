@@ -29,6 +29,18 @@ The report always lists the rules it did not check (`not_checked`), so a clean r
 - A function reports at most one duplicate finding: on the later function in path and line order, naming the earlier one and the similarity (rounded down to a whole percent). Findings are ordered by file, line and code.
 - Length is the code lines of the whole declaration, signature included (ADR 0015: no blank or comment-only lines). Clippy's `too_many_lines` in CI counts from the opening brace of the body, so a function with a signature over several lines can be reported here (`CHK-104`) with 41 to 43 lines while clippy accepts it. CI stays the authority; the difference is at most the extra signature lines. A nested function counts for itself and for the function around it. A function and one nested inside it are never reported as duplicates of each other.
 
+## Reasoned exception for mapping functions (ADR 0060)
+
+A pure mapping function (it copies the fields of one shape into another, no branch, no loop) can be excused from `CHK-102` with a comment directly above its declaration:
+
+```rust
+/// The budgets as the status bar shows them.
+// codeskimr: allow CHK-102 maps the budgets of the configuration into the status view
+fn from(budgets: &Budgets) -> Self { ... }
+```
+
+The marker `codeskimr: allow CHK-102` needs a reason of at least 8 letters or digits after it. It counts only in the comment block right above the declaration (up to 12 lines, attributes and doc comments included, ended by a blank line), only for a function whose cognitive complexity is 0, and only if the language pack counts that (Rust, Python and Java so far). It removes the `CHK-102` finding of that function and nothing else; `CHK-104`, `CHK-105` and `CHK-106` still apply. List all exceptions with `rg "codeskimr: allow CHK-102"`.
+
 ## Configuration
 
 ```toml

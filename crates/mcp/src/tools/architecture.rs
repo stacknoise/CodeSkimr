@@ -44,6 +44,7 @@ fn layer(layer: &Layer) -> LayerInfo {
     }
 }
 
+// codeskimr: allow CHK-102 maps a layer edge into the dependency of the answer
 fn dependency(edge: &LayerEdge) -> Dependency {
     Dependency {
         from: edge.from.as_str().to_owned(),

@@ -222,6 +222,7 @@ impl CodeIndex for SqliteStore {
         Self::latest_snapshot(self, project)
     }
 
+    // codeskimr: allow CHK-102 hands the port call to the search of the store
     fn search(
         &self,
         snapshot: SnapshotId,

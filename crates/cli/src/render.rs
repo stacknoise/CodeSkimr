@@ -113,6 +113,7 @@ pub fn open_ready(
 ///
 /// # Errors
 /// `I18N-201` if the message is missing.
+// codeskimr: allow CHK-102 hands the export numbers to the message formatter
 pub fn export_written(
     messages: &Messages,
     language: &str,

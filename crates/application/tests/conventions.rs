@@ -11,8 +11,8 @@ mod tests {
     };
     use codeskimr_application::error::CodedError;
     use codeskimr_application::ports::{
-        AnalyzeRequest, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, SimilarHit,
-        SimilarQuery, SimilarityIndex, SymbolFingerprints,
+        AnalyzeRequest, DiscoveredFile, Excerpt, FileAnalyzer, FileDiscovery, FileFacts,
+        SimilarHit, SimilarQuery, SimilarityIndex, SourceText, SymbolFingerprints,
     };
     use codeskimr_codes::{Coded, ErrorCode};
     use codeskimr_domain::{
@@ -182,8 +182,102 @@ mod tests {
     }
 
     fn checker_with(disk: Disk, limits: Conventions) -> ConventionChecker {
+        checker_noted(disk, limits, &Notes::default())
+    }
+
+    fn checker_noted(disk: Disk, limits: Conventions, notes: &Notes) -> ConventionChecker {
         let disk = Arc::new(disk);
-        ConventionChecker::new(disk.clone(), disk, limits)
+        ConventionChecker::new(disk.clone(), disk, Arc::new(notes.clone()), limits)
+    }
+
+    /// The text above every declaration: a comment line `note`, optionally after a blank line.
+    #[derive(Clone, Default)]
+    struct Notes {
+        note: Option<&'static str>,
+        blank_between: bool,
+    }
+
+    impl SourceText for Notes {
+        fn excerpt(
+            &self,
+            _: &FolderPath,
+            _: &RelativePath,
+            (first, last): (u32, u32),
+            _: (u32, u64),
+        ) -> Result<Excerpt, CodedError> {
+            let lines = (first..=last)
+                .map(|line| match (last - line, self.note) {
+                    (1, Some(note)) if !self.blank_between => note.to_owned(),
+                    (1, Some(_)) => String::new(),
+                    (2, Some(note)) if self.blank_between => note.to_owned(),
+                    _ => "let x = 1;".to_owned(),
+                })
+                .collect();
+            Ok(Excerpt {
+                lines,
+                truncated: false,
+            })
+        }
+    }
+
+    const REASON: &str = "// codeskimr: allow CHK-102 maps the storage row into the model";
+
+    /// The files `a.rs` and `b.rs` with the same body; its cognitive complexity is `cognitive`.
+    fn twins(cognitive: u32) -> Disk {
+        let body = || Body {
+            loc: 9,
+            seed: 0,
+            inner: false,
+            counted: Some((cognitive, 1)),
+        };
+        Disk {
+            files: vec![("a.rs", body()), ("b.rs", body())],
+            broken: None,
+        }
+    }
+
+    fn copies_with(cognitive: u32, notes: &Notes) -> usize {
+        let checker = checker_noted(twins(cognitive), limits(), notes);
+        let report = run(&checker, Principal::local_owner(), &[]).expect("checked");
+        report.findings.len()
+    }
+
+    #[test]
+    fn a_pure_mapping_function_with_a_reasoned_marker_is_not_a_copy() {
+        let notes = Notes {
+            note: Some(REASON),
+            blank_between: false,
+        };
+        assert_eq!(copies_with(0, &notes), 0);
+    }
+
+    #[test]
+    fn without_a_marker_or_a_reason_the_copy_is_reported() {
+        let bare = "// codeskimr: allow CHK-102";
+        let notes = |note| Notes {
+            note,
+            blank_between: false,
+        };
+        assert_eq!(copies_with(0, &notes(None)), 1);
+        assert_eq!(copies_with(0, &notes(Some(bare))), 1);
+    }
+
+    #[test]
+    fn a_marker_cut_off_by_a_blank_line_does_not_count() {
+        let notes = Notes {
+            note: Some(REASON),
+            blank_between: true,
+        };
+        assert_eq!(copies_with(0, &notes), 1);
+    }
+
+    #[test]
+    fn a_function_with_branches_cannot_be_excused() {
+        let notes = Notes {
+            note: Some(REASON),
+            blank_between: false,
+        };
+        assert_eq!(copies_with(1, &notes), 1);
     }
 
     fn root() -> FolderPath {

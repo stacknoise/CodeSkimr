@@ -217,6 +217,7 @@ impl SqliteStore {
     ///
     /// # Errors
     /// A coded `STO` failure.
+    // codeskimr: allow CHK-102 hands the arguments to the read of the file search
     pub fn search_files(
         &self,
         snapshot: SnapshotId,

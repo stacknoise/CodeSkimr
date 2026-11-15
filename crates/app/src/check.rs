@@ -2,12 +2,14 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
 use codeskimr_application::conventions::{CheckReport, CheckRequest, ConventionChecker};
 use codeskimr_application::error::CodedError;
 use codeskimr_cli::{CheckArgs, GlobalOptions};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::FolderPath;
+use codeskimr_source::FolderText;
 
 use crate::config_files;
 use crate::locations::Locations;
@@ -38,7 +40,12 @@ pub fn run(
         analyzer,
         ..
     } = build_analysis(&config, locations)?;
-    let checker = ConventionChecker::new(discovery, analyzer, config.conventions);
+    let checker = ConventionChecker::new(
+        discovery,
+        analyzer,
+        Arc::new(FolderText),
+        config.conventions,
+    );
     let paths: Vec<String> = args
         .paths
         .iter()

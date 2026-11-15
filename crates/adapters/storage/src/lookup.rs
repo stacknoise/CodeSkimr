@@ -46,6 +46,7 @@ struct LabelRow {
     path: String,
 }
 
+// codeskimr: allow CHK-102 maps a row of the label query into its columns
 fn read_label(cols: &Cols<'_>) -> rusqlite::Result<LabelRow> {
     Ok(LabelRow {
         id: cols.take()?,
