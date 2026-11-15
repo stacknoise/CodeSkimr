@@ -120,11 +120,20 @@ mod tests {
     }
 
     #[test]
-    fn a_full_pack_is_checked_when_the_packs_are_loaded() {
+    fn a_full_pack_is_loaded_when_its_language_is_first_needed_and_verify_loads_all() {
         let root = broken_pack("full", "load");
-        let error = LanguagePacks::load(&root).err().expect("invalid at once");
+        let packs = LanguagePacks::load(&root).expect("listing does not load the pack");
+        let error = packs.verify().err().expect("verify finds the broken pack");
+        assert_eq!(error.code(), ErrorCode::LanguagePackInvalid);
+        let error = packs.get(&id("rust")).err().expect("invalid when needed");
         assert_eq!(error.code(), ErrorCode::LanguagePackInvalid);
         fs::remove_dir_all(root).ok();
+    }
+
+    #[test]
+    fn every_installed_pack_loads() {
+        let packs = LanguagePacks::load(&languages()).expect("packs list");
+        packs.verify().expect("every pack compiles");
     }
 
     #[test]

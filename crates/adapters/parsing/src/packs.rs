@@ -65,6 +65,18 @@ fn read_next(dirs: &[PathBuf], next: &AtomicUsize) -> Vec<(usize, Result<Slot, P
     }
 }
 
+/// One verifying thread: loads the next pack until none is left.
+fn verify_next(slots: &[&Slot], next: &AtomicUsize) -> Vec<(usize, Result<(), ParsingError>)> {
+    let mut done = Vec::new();
+    loop {
+        let index = next.fetch_add(1, Ordering::Relaxed);
+        let Some(slot) = slots.get(index) else {
+            return done;
+        };
+        done.push((index, slot.pack().map(drop)));
+    }
+}
+
 /// What is known about a pack without loading its grammar and queries: enough to route files to
 /// languages and to show the tier.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -108,15 +120,16 @@ impl PackSummary {
     }
 }
 
-/// One installed pack. A full-tier pack is loaded with the set; a basic-tier pack is loaded when a
-/// file of its language is first analyzed (blueprint 8.2).
+/// One installed pack. A pack is loaded when a file of its language is first analyzed (ADR 0059):
+/// reading and compiling the queries of a full-tier pack takes long and most scans use one or two
+/// languages.
 struct Slot {
     summary: PackSummary,
     dir: PathBuf,
-    pack: OnceLock<LanguagePack>,
-    /// Why the pack could not be loaded (folder, reason), kept so that the other files of the
-    /// language fail at once instead of building the pack again (issue #66).
-    failed: OnceLock<(String, String)>,
+    /// The pack, or why it could not be loaded (folder, reason), kept so that the other files of the
+    /// language fail at once instead of building the pack again (issue #66). The first thread that
+    /// needs the pack builds it; the others wait for the result instead of building it again.
+    loaded: OnceLock<Result<LanguagePack, (String, String)>>,
 }
 
 impl Slot {
@@ -140,33 +153,24 @@ impl Slot {
             file_in_names: manifest.file_in_names,
             indexer,
         };
-        let slot = Self {
+        Ok(Self {
             summary,
             dir,
-            pack: OnceLock::new(),
-            failed: OnceLock::new(),
-        };
-        if slot.summary.tier == Tier::Full {
-            slot.pack().map(drop)?;
-        }
-        Ok(slot)
+            loaded: OnceLock::new(),
+        })
     }
 
     fn pack(&self) -> Result<&LanguagePack, ParsingError> {
-        if let Some(pack) = self.pack.get() {
-            return Ok(pack);
-        }
-        if let Some((pack, reason)) = self.failed.get() {
-            return Err(ParsingError::invalid(pack.clone(), reason.clone()));
-        }
-        match LanguagePack::load(&self.dir) {
-            Ok(loaded) => Ok(self.pack.get_or_init(|| loaded)),
-            Err(ParsingError::PackInvalid { pack, reason }) => {
-                let (pack, reason) = self.failed.get_or_init(|| (pack, reason));
-                Err(ParsingError::invalid(pack.clone(), reason.clone()))
-            }
-            Err(other) => Err(other),
-        }
+        let loaded = self
+            .loaded
+            .get_or_init(|| match LanguagePack::load(&self.dir) {
+                Ok(pack) => Ok(pack),
+                Err(ParsingError::PackInvalid { pack, reason }) => Err((pack, reason)),
+                Err(other) => Err((folder(&self.dir), other.to_string())),
+            });
+        loaded
+            .as_ref()
+            .map_err(|(pack, reason)| ParsingError::invalid(pack.clone(), reason.clone()))
     }
 }
 
@@ -210,16 +214,16 @@ pub struct LanguagePacks {
 }
 
 impl LanguagePacks {
-    /// Reads every sub folder of `root` that holds a `language.toml`. Full-tier packs are loaded
-    /// completely; of a basic-tier pack only the manifest is read until its language is needed.
+    /// Reads the `language.toml` of every sub folder of `root` that holds one. The grammar and the
+    /// queries of a pack are compiled when its language is first needed (ADR 0059); `verify` loads
+    /// all of them at once.
     ///
     /// # Errors
     /// [`ParsingError::Unreadable`] if `root` cannot be listed, or the error of the first pack that
     /// is invalid.
     pub fn load(root: &Path) -> Result<Self, ParsingError> {
         let dirs = pack_dirs(root)?;
-        // Compiling the queries of a full-tier pack takes long, so the packs are read in parallel;
-        // the error reported is the one of the first pack in the order of the folders.
+        // The error reported is the one of the first pack in the order of the folders.
         let read = read_all(&dirs);
         let mut slots = HashMap::new();
         for slot in read {
@@ -258,7 +262,31 @@ impl LanguagePacks {
         rules.join(NAMING_RULES_SEPARATOR)
     }
 
-    /// The pack for `language`; a basic-tier pack is loaded by the first call.
+    /// Loads every installed pack now, on at most one thread per core, so that a broken pack is
+    /// found at once instead of when a file of its language is analyzed. For tests and checks of
+    /// the packs; a scan does not need it.
+    ///
+    /// # Errors
+    /// The error of the first pack, in the order of the language ids, that cannot be loaded.
+    pub fn verify(&self) -> Result<(), ParsingError> {
+        let mut slots: Vec<&Slot> = self.slots.values().collect();
+        slots.sort_by(|a, b| a.summary.id.as_str().cmp(b.summary.id.as_str()));
+        let next = AtomicUsize::new(0);
+        let results: Vec<(usize, Result<(), ParsingError>)> = thread::scope(|scope| {
+            let handles: Vec<_> = (0..load_workers(slots.len()))
+                .map(|_| scope.spawn(|| verify_next(&slots, &next)))
+                .collect();
+            handles
+                .into_iter()
+                .flat_map(|handle| handle.join().unwrap_or_default())
+                .collect()
+        });
+        let mut results = results;
+        results.sort_by_key(|(index, _)| *index);
+        results.into_iter().try_for_each(|(_, result)| result)
+    }
+
+    /// The pack for `language`; it is loaded by the first call.
     ///
     /// # Errors
     /// [`ParsingError::PackMissing`] if none is installed, [`ParsingError::PackInvalid`] if a
