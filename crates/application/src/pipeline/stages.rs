@@ -1,6 +1,6 @@
 //! The six concrete stages, each built from the ports it needs, and the values passed between them.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
@@ -8,8 +8,8 @@ use std::thread;
 use std::time::Instant;
 
 use codeskimr_domain::{
-    CommitHash, FolderPath, LanguageId, Metric, Project, Reference, ScanMode, Snapshot, SnapshotId,
-    SnapshotStats, SourceFile, Symbol, SymbolCounts, SymbolOrigin,
+    CommitHash, FileId, FolderPath, LanguageId, Metric, Project, Reference, ScanMode, Snapshot,
+    SnapshotId, SnapshotStats, SourceFile, Symbol, SymbolCounts, SymbolOrigin,
 };
 
 use codeskimr_codes::ErrorCode;
@@ -17,8 +17,8 @@ use codeskimr_codes::ErrorCode;
 use super::carry::Carried;
 use super::flow::{Interruption, Stage, StageContext};
 use crate::consts::{
-    DONE_STEP, FILE_ID_BLOCK, FIRST_INDEX, INDEX_STEP, LOG_VERIFIED_DISCARDED, MIN_WORKERS,
-    NONE_DONE,
+    DONE_STEP, FILE_ID_BLOCK, FIRST_INDEX, INDEX_STEP, LOG_SCAN_WARNING, LOG_VERIFIED_DISCARDED,
+    MIN_WORKERS, NONE_DONE,
 };
 use crate::error::CodedError;
 use crate::ids::IdSequence;
@@ -27,6 +27,7 @@ use crate::ports::{
     MetricsCalculator, PendingReference, ProjectRepository, ReferenceResolver, SnapshotData,
     SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints,
 };
+use crate::resolve::ambiguous_occurrences;
 use crate::stage::StageKind;
 
 /// What starts a scan.
@@ -407,6 +408,8 @@ pub struct ResolveStage {
     pub projects: Arc<dyn ProjectRepository>,
     /// The resolver strategy.
     pub resolver: Arc<dyn ReferenceResolver>,
+    /// Tells which files are test files.
+    pub analyzer: Arc<dyn FileAnalyzer>,
     /// Id allocation for references.
     pub ids: Arc<IdSequence>,
 }
@@ -433,16 +436,11 @@ impl Stage for ResolveStage {
         let names: Vec<PendingReference> = pending.iter().chain(&due).cloned().collect();
         let total = count(&names);
         ctx.progress(0, total);
-        // Symbols that level 2 created are not names level 1 resolves to (ADR 0055, decision 5):
-        // the result of a scan must not depend on whether level 2 ran before.
-        let table: Vec<Symbol> = carried
-            .symbols
-            .iter()
-            .chain(&symbols)
-            .filter(|symbol| symbol.origin == SymbolOrigin::Syntax)
-            .cloned()
-            .collect();
-        let resolved = self.resolver.resolve(&table, &names, &self.ids)?;
+        let table = level_one_symbols(&carried.symbols, &symbols);
+        let test_files = self.test_files(files.iter().chain(&carried.files));
+        let resolved = self
+            .resolver
+            .resolve(&table, &names, &test_files, &self.ids)?;
         let references = carried.reconcile(resolved);
         if carried.discarded_verified > 0 {
             tracing::info!(
@@ -461,6 +459,16 @@ impl Stage for ResolveStage {
             fingerprints,
             carried,
         })
+    }
+}
+
+impl ResolveStage {
+    /// Ids of the files among `files` that are test files of their language.
+    fn test_files<'a>(&self, files: impl Iterator<Item = &'a SourceFile>) -> HashSet<FileId> {
+        files
+            .filter(|file| self.analyzer.is_test_file(&file.language, &file.path))
+            .map(|file| file.id)
+            .collect()
     }
 }
 
@@ -528,6 +536,39 @@ pub struct Persisted {
     pub snapshot: Snapshot,
     /// Local folder with the files, which level 2 runs its indexers in.
     pub root: FolderPath,
+    /// What the scan wants to tell besides its result: one entry per code, with a count.
+    pub warnings: Vec<ScanWarning>,
+}
+
+/// A warning of a scan: how often something happened, not one message per occurrence.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ScanWarning {
+    /// The registered code, a warning.
+    pub code: ErrorCode,
+    /// How many times it happened in the scan.
+    pub count: u64,
+}
+
+/// Writes one log line per warning of the scan.
+fn log_warnings(warnings: &[ScanWarning]) {
+    for warning in warnings {
+        tracing::warn!(
+            event = LOG_SCAN_WARNING,
+            code = warning.code.id(),
+            count = warning.count
+        );
+    }
+}
+
+/// The warnings of a scan over all references of the snapshot, changed and kept ones.
+fn warnings_of(references: &[Reference], carried: &[Reference]) -> Vec<ScanWarning> {
+    let ambiguous = ambiguous_occurrences(references.iter().chain(carried));
+    let found = [(ErrorCode::AmbiguousReference, ambiguous)];
+    found
+        .into_iter()
+        .filter(|(_, count)| *count > 0)
+        .map(|(code, count)| ScanWarning { code, count })
+        .collect()
 }
 
 impl Stage for PersistStage {
@@ -566,11 +607,14 @@ impl Stage for PersistStage {
             naming_rules: input.run.naming_rules,
             parse_micros: input.run.parse_micros,
         };
+        let warnings = warnings_of(&data.references, &input.carried.references);
         let stored = self.store.persist(data)?;
+        log_warnings(&warnings);
         ctx.progress(1, 1);
         Ok(Persisted {
             snapshot: stored,
             root,
+            warnings,
         })
     }
 }
@@ -584,4 +628,16 @@ pub fn analyze_workers(max_workers: u32) -> usize {
         Ok(limit) if limit > 0 => cores.min(limit),
         _ => cores,
     }
+}
+
+/// The symbols the resolver looks names up in. Symbols that level 2 created are not names level 1
+/// resolves to (ADR 0055, decision 5): the result of a scan must not depend on whether level 2 ran
+/// before.
+fn level_one_symbols(carried: &[Symbol], fresh: &[Symbol]) -> Vec<Symbol> {
+    carried
+        .iter()
+        .chain(fresh)
+        .filter(|symbol| symbol.origin == SymbolOrigin::Syntax)
+        .cloned()
+        .collect()
 }

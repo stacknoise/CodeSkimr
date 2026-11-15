@@ -63,10 +63,11 @@ mod tests {
     }
 
     fn pack_with(extra: &str) -> PathBuf {
+        static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
         let root = std::env::temp_dir().join(format!(
             "codeskimr-indexer-packs-{}-{}",
             std::process::id(),
-            extra.len()
+            NEXT.fetch_add(1, std::sync::atomic::Ordering::Relaxed)
         ));
         let dir = root.join("rust");
         fs::create_dir_all(&dir).expect("temp dir");

@@ -196,6 +196,8 @@ pub const PLACEHOLDER_CLOSE: char = '}';
 pub const PATH_SEPARATORS: [char; 2] = ['/', '\\'];
 /// Character that a folder name taken from a manifest must not contain (no `..`).
 pub const PATH_DOT: char = '.';
+/// Between a broken test pattern and the reason in the message about it.
+pub const TEST_PATTERN_SEPARATOR: &str = ": ";
 /// Nothing: what a placeholder is replaced with when the rest of an argument is checked.
 pub const NOTHING: &str = "";
 
