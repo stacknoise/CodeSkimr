@@ -28,6 +28,7 @@ use crate::ports::{
     SnapshotData, SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints,
 };
 use crate::resolve::ambiguous_occurrences;
+use crate::selection::Selection;
 use crate::stage::StageKind;
 
 /// What starts a scan.
@@ -37,6 +38,8 @@ pub struct ScanRequest {
     pub project: Project,
     /// Full or incremental.
     pub mode: ScanMode,
+    /// The paths an incremental scan looks at; empty means all.
+    pub paths: Selection,
 }
 
 /// A scan whose source is available locally; carried through all later stages.
@@ -46,6 +49,8 @@ pub struct ScanRun {
     pub project: Project,
     /// Full or incremental.
     pub mode: ScanMode,
+    /// The paths an incremental scan looks at; empty means all.
+    pub paths: Selection,
     /// The snapshot this scan will create.
     pub snapshot: SnapshotId,
     /// Local folder with the files.
@@ -159,6 +164,7 @@ impl Stage for FetchStage {
         Ok(ScanRun {
             project: input.project,
             mode: input.mode,
+            paths: input.paths,
             snapshot: self.ids.snapshot(),
             root: fetched.root,
             commit: fetched.commit,
@@ -213,6 +219,9 @@ impl Stage for DiscoverStage {
         let mut files = self
             .discovery
             .discover(&run.root, &state.files, ctx.cancel_token())?;
+        if run.mode == ScanMode::Incremental {
+            limit_to_paths(&mut files, &state.files, &run.paths);
+        }
         let carried = if let (ScanMode::Incremental, Some(snapshot)) = (run.mode, state.snapshot) {
             let bases = self.projects.stored_names(snapshot, StoredNames::Bases)?;
             Carried::from_previous(&mut files, state, bases)
@@ -227,6 +236,26 @@ impl Stage for DiscoverStage {
             carried,
         })
     }
+}
+
+/// Limits an incremental scan to `paths`: what lies elsewhere is taken over from `previous`
+/// unchanged, a new file there is not looked at and a file that is gone there is not removed.
+fn limit_to_paths(files: &mut Vec<DiscoveredFile>, previous: &[SourceFile], paths: &Selection) {
+    if paths.is_empty() {
+        return;
+    }
+    files.retain(|file| paths.contains(&file.path));
+    files.extend(
+        previous
+            .iter()
+            .filter(|file| !paths.contains(&file.path))
+            .map(|file| DiscoveredFile {
+                path: file.path.clone(),
+                language: file.language.clone(),
+                content_hash: file.content_hash.clone(),
+                changed: false,
+            }),
+    );
 }
 
 /// Analyze: parse and extract, file by file, skipping unchanged files in incremental scans.

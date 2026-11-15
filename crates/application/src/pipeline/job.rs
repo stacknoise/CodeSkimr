@@ -8,6 +8,7 @@ use codeskimr_domain::{ProjectId, ScanMode, Snapshot};
 use crate::cancel::CancelToken;
 use crate::level2::LanguageReport;
 use crate::ports::ScanWarning;
+use crate::selection::Selection;
 
 mod sealed {
     /// Keeps the set of job states closed.
@@ -56,6 +57,7 @@ pub struct Job<S: JobState> {
     mode: ScanMode,
     cancel: CancelToken,
     level2: bool,
+    paths: Selection,
     state: S,
 }
 
@@ -79,12 +81,19 @@ impl<S: JobState> Job<S> {
         self.level2
     }
 
+    /// The paths an incremental scan is restricted to; none means the whole project.
+    #[must_use]
+    pub const fn paths(&self) -> &Selection {
+        &self.paths
+    }
+
     fn into_state<T: JobState>(self, state: T) -> Job<T> {
         Job {
             project: self.project,
             mode: self.mode,
             cancel: self.cancel,
             level2: self.level2,
+            paths: self.paths,
             state,
         }
     }
@@ -99,6 +108,7 @@ impl Job<Queued> {
             mode,
             cancel: CancelToken::new(),
             level2: false,
+            paths: Selection::default(),
             state: Queued,
         }
     }
@@ -118,6 +128,15 @@ impl Job<Queued> {
     #[must_use]
     pub const fn without_level2(mut self) -> Self {
         self.level2 = false;
+        self
+    }
+
+    /// The same job restricted to the files and folders `paths` name: an incremental scan then
+    /// looks only there for changes, and every other file of the previous snapshot stays as it
+    /// is, deleted or not. A full scan ignores the limit. No path means the whole project.
+    #[must_use]
+    pub fn with_paths(mut self, paths: &[String]) -> Self {
+        self.paths = Selection::new(paths);
         self
     }
 

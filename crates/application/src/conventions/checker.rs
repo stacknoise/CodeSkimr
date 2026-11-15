@@ -9,7 +9,6 @@ use codeskimr_domain::{Permission, RelativePath, SnapshotId};
 use super::duplicates::{Fingerprinted, duplicates};
 use super::length::{Callable, callables, too_complex, too_long, too_many_parameters};
 use super::model::{CheckReport, CheckRequest, Finding, StoredProject, Unchecked};
-use super::selection::Selection;
 use super::stored::{Rules, against_stored};
 use crate::access;
 use crate::cancel::CancelToken;
@@ -18,6 +17,7 @@ use crate::consts::{CHECK_FIRST_ID, CHECK_SNAPSHOT_ID, PATH_SEPARATOR};
 use crate::error::CodedError;
 use crate::ids::IdSequence;
 use crate::ports::{AnalyzeRequest, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts};
+use crate::selection::Selection;
 
 /// The rules with a `CHK` code that this version cannot check yet. Literals need positions the
 /// language packs do not deliver; layering needs the layer of every reference (issue #45). The

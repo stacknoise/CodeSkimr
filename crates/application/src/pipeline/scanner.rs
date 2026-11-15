@@ -137,7 +137,14 @@ impl Scanner {
             Err(cause) => return self.fail(job.fail(cause.code()), project_id),
         };
         let ctx = StageContext::new(project_id, job.token(), &self.events);
-        match self.pipeline.run(ScanRequest { project, mode }, &ctx) {
+        match self.pipeline.run(
+            ScanRequest {
+                project,
+                mode,
+                paths: job.paths().clone(),
+            },
+            &ctx,
+        ) {
             Ok(persisted) => {
                 // Level 1 is complete and usable now; level 2 may take minutes.
                 self.created(&persisted.snapshot);
@@ -195,12 +202,19 @@ impl Scanner {
 }
 
 impl ProjectScanner for Scanner {
-    fn rescan(&self, principal: &Principal, project: ProjectId) -> Result<Snapshot, CodedError> {
+    fn rescan_paths(
+        &self,
+        principal: &Principal,
+        project: ProjectId,
+        paths: &[String],
+    ) -> Result<Snapshot, CodedError> {
         // A rescan asked for through MCP or the UI is level 1 only: it must not start the build tools
         // of the project. Level 2 runs with the scan of the command line (ADR 0033).
         match self.run(
             principal,
-            Job::new(project, ScanMode::Incremental).without_level2(),
+            Job::new(project, ScanMode::Incremental)
+                .without_level2()
+                .with_paths(paths),
         ) {
             JobResult::Finished(job) => Ok(job.snapshot().clone()),
             JobResult::Failed(job) => Err(CodedError::new(job.code())),

@@ -643,6 +643,45 @@ fn rust_follows_a_renamed_type_a_second_candidate_and_a_deleted_module() {
     );
 }
 
+#[test]
+fn a_scan_restricted_to_paths_leaves_the_rest_of_the_snapshot_as_it_was() {
+    let root = tempfile::tempdir().unwrap();
+    let folder = root.path().join("live");
+    write_project(&folder, PYTHON_BASE, &[]);
+    let data = locations(&root.path().join("live-data"));
+    let live = session(&folder, &data);
+    live.scan_quick(ScanMode::Full).unwrap();
+    let before = references_of(&data);
+    // One file below the paths changes, one elsewhere changes and one elsewhere is gone.
+    apply(
+        &folder,
+        &[
+            (
+                "util.py",
+                Some(
+                    "def helper():\n    return 1\n\n\ndef work():\n    return helper()\n# a note\n",
+                ),
+            ),
+            ("caller.py", Some("def run():\n    pass\n")),
+            ("target.py", None),
+        ],
+    );
+    live.scan_paths(&["util.py".to_owned()]).unwrap();
+    assert_eq!(latest_mode(&data), ScanMode::Incremental);
+    assert_eq!(
+        references_of(&data),
+        before,
+        "the changes outside the paths are not seen yet"
+    );
+    // The next scan of the whole project sees them and gives what a full scan gives.
+    live.scan_quick(ScanMode::Incremental).unwrap();
+    assert_ne!(references_of(&data), before);
+    assert_eq!(
+        references_of(&data),
+        full_scan_of(&folder, root.path(), "full")
+    );
+}
+
 /// A small generator of C# projects, so that the rule of issue #408 meets changes nobody wrote
 /// down: the same generator makes the file of every step, and the full scan decides.
 mod random {

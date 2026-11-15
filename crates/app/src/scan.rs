@@ -115,6 +115,20 @@ impl Session {
         self.run_job(Job::new(self.project.id, mode).without_level2())
     }
 
+    /// An incremental scan of level 1 that looks for changes only in `paths` (the way MCP
+    /// `rescan` with `paths` does), for the tests.
+    ///
+    /// # Errors
+    /// The same as [`Session::scan`].
+    #[cfg(test)]
+    pub fn scan_paths(&self, paths: &[String]) -> Result<ScanSummary, CodedError> {
+        self.run_job(
+            Job::new(self.project.id, ScanMode::Incremental)
+                .without_level2()
+                .with_paths(paths),
+        )
+    }
+
     /// Like [`Session::scan`], but level 1 only, and it hands the token that cancels this scan to
     /// `on_token` before the scan starts. The UI uses it; only the scan of the command line runs
     /// level 2.

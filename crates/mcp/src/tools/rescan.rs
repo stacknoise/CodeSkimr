@@ -26,11 +26,13 @@ struct Answer {
     /// The tools level 2 needs, checked after the scan; empty if the check failed or the project
     /// has no languages with level 2.
     tools: Vec<ToolInfo>,
+    /// The paths the scan was restricted to; empty if it looked at the whole project.
+    paths: Vec<String>,
 }
 
 impl Tools {
-    /// Scans the project again, processing only the files that changed since the last scan, and
-    /// returns the new snapshot. This is the only tool that changes anything.
+    /// Scans the project again, processing only the files that changed since the last scan (only
+    /// those below `paths` if given), and returns the new snapshot. This is the only tool that changes anything.
     ///
     /// # Errors
     /// `AUTH-401` if the principal may not scan, `MCP-201` if the project is not registered, or
@@ -39,7 +41,11 @@ impl Tools {
         access::require(principal, SCAN_TOOL_PERMISSION)?;
         let project = self.project(args.project)?;
         let started = Instant::now();
-        let snapshot = self.scanner().rescan(principal, project.id)?;
+        let snapshot = self.scanner().rescan_paths(
+            principal,
+            project.id,
+            args.paths.as_deref().unwrap_or_default(),
+        )?;
         let elapsed = started.elapsed();
         // A failing check never fails the scan: the answer then lists no tools.
         let view = self
@@ -54,6 +60,7 @@ impl Tools {
             references: snapshot.stats.references,
             duration_ms: u64::try_from(elapsed.as_millis()).unwrap_or(u64::MAX),
             tools: self.tool_infos(&view),
+            paths: args.paths.clone().unwrap_or_default(),
         })
     }
 }

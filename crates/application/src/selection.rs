@@ -1,4 +1,8 @@
-//! Which of the project's files a request names.
+//! Which of the project's files a request names: the paths of `check_conventions` and of `rescan`.
+//!
+//! A path of a caller is never opened (blueprint S-05): it is only compared with the paths of the
+//! files that discovery found below the project root, so `..`, an absolute path or a link out of
+//! the project names nothing.
 
 use codeskimr_domain::RelativePath;
 
@@ -7,10 +11,13 @@ use crate::ports::DiscoveredFile;
 
 /// The wanted paths in the form the project uses: forward slashes, no leading `./`, no trailing
 /// separator.
-pub(super) struct Selection(Vec<String>);
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct Selection(Vec<String>);
 
 impl Selection {
-    pub(super) fn new(paths: &[String]) -> Self {
+    /// Tidies the paths a caller named.
+    #[must_use]
+    pub fn new(paths: &[String]) -> Self {
         let tidy = |path: &String| {
             let slashed = path.replace(WINDOWS_SEPARATOR, &PATH_SEPARATOR.to_string());
             let trimmed = slashed
@@ -25,13 +32,21 @@ impl Selection {
         Self(paths.iter().map(tidy).collect())
     }
 
+    /// Whether no path is named, which selects everything.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     /// Whether `path` is named, or lies below a named folder. No path named selects everything.
-    pub(super) fn contains(&self, path: &RelativePath) -> bool {
+    #[must_use]
+    pub fn contains(&self, path: &RelativePath) -> bool {
         self.0.is_empty() || self.0.iter().any(|wanted| names(wanted, path))
     }
 
     /// The named paths that select none of `files`; a typo must not look like a clean check.
-    pub(super) fn unmatched(&self, files: &[DiscoveredFile]) -> Vec<String> {
+    #[must_use]
+    pub fn unmatched(&self, files: &[DiscoveredFile]) -> Vec<String> {
         self.0
             .iter()
             .filter(|wanted| !files.iter().any(|file| names(wanted, &file.path)))
