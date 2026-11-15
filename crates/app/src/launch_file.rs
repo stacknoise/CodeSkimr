@@ -73,7 +73,11 @@ impl Drop for LaunchFile {
 fn opener_path(path: PathBuf) -> PathBuf {
     #[cfg(windows)]
     {
-        PathBuf::from(crate::source_arg::display_path(&path.to_string_lossy()))
+        // A path that is not valid text stays as it is, so that it still names the file.
+        path.to_str().map_or_else(
+            || path.clone(),
+            |text| PathBuf::from(crate::source_arg::display_path(text)),
+        )
     }
     #[cfg(not(windows))]
     path
