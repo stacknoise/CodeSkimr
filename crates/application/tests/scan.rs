@@ -16,8 +16,9 @@ use codeskimr_application::ports::{
     AnalyzeRequest, Clock, ConsentStore, DiscoveredFile, FetchedSource, FileAnalyzer,
     FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob, IndexRunner,
     IndexerSpec, IndexerStatus, Level2Replacement, MetricsCalculator, PendingReference,
-    PreviousIndex, ProjectRepository, ProjectScanner, ReferenceImporter, ReferenceResolver,
-    SnapshotData, SnapshotStore, SourceProvider, SymbolFingerprints, ToolSpec, ToolVersion,
+    PreviousIndex, PreviousState, ProjectRepository, ProjectScanner, ReferenceImporter,
+    ReferenceResolver, SnapshotData, SnapshotStore, SourceProvider, StoredNames,
+    SymbolFingerprints, ToolSpec, ToolVersion,
 };
 use codeskimr_application::stage::StageKind;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -35,6 +36,9 @@ use common::InMemoryConsent;
 struct Previous {
     files: Vec<SourceFile>,
     index: PreviousIndex,
+    /// The names as written in the files, as the store keeps them.
+    names: Vec<PendingReference>,
+    names_stored: bool,
 }
 
 /// One fake that plays every port. `fail_at` makes that stage fail, `cancel_at` raises the token
@@ -52,6 +56,8 @@ struct World {
     rules: (&'static str, Option<&'static str>),
     persisted: Mutex<Vec<SnapshotData>>,
     measured: Mutex<Vec<(usize, usize)>>,
+    /// How many names each resolution got.
+    resolved: Mutex<Vec<usize>>,
     counted: Mutex<Vec<usize>>,
 }
 
@@ -117,7 +123,11 @@ fn discovered(path: &str, changed: bool) -> Result<DiscoveredFile, CodedError> {
 }
 
 fn span() -> Result<Span, CodedError> {
-    let at = Position { line: 1, column: 1 };
+    span_at(1)
+}
+
+fn span_at(line: u32) -> Result<Span, CodedError> {
+    let at = Position { line, column: 1 };
     model(Span::new(at, at))
 }
 
@@ -184,7 +194,6 @@ impl FileAnalyzer for World {
             kind: ReferenceKind::Call,
             target: symbol.qualified_name.clone(),
             receiver: None,
-            previous: None,
         }];
         Ok(FileFacts {
             file,
@@ -194,24 +203,6 @@ impl FileAnalyzer for World {
             symbols: vec![symbol],
         })
     }
-}
-
-fn stem_symbol(request: &AnalyzeRequest<'_>, file: &SourceFile) -> Result<Symbol, CodedError> {
-    let stem = request.file.path.as_str().trim_end_matches(".rs");
-    Ok(Symbol {
-        id: request.ids.symbol(),
-        file: file.id,
-        kind: SymbolKind::Function,
-        name: model(SymbolName::new(stem))?,
-        qualified_name: model(QualifiedName::new(format!("m::{stem}")))?,
-        parent: None,
-        visibility: None,
-        is_static: false,
-        span: span()?,
-        signature: None,
-        doc: None,
-        origin: SymbolOrigin::Syntax,
-    })
 }
 
 fn fingerprinted(symbol: SymbolId) -> SymbolFingerprints {
@@ -232,6 +223,10 @@ impl ReferenceResolver for World {
         ids: &IdSequence,
     ) -> Result<Vec<Reference>, CodedError> {
         self.gate(StageKind::Resolve)?;
+        self.resolved
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .push(pending.len());
         Ok(pending
             .iter()
             .filter_map(|item| {
@@ -296,6 +291,40 @@ impl ProjectRepository for World {
 
     fn latest_index(&self, _: ProjectId) -> Result<PreviousIndex, CodedError> {
         Ok(self.previous.index.clone())
+    }
+
+    fn latest_state(&self, _: ProjectId) -> Result<PreviousState, CodedError> {
+        Ok(PreviousState {
+            files: self.previous.files.clone(),
+            index: self.previous.index.clone(),
+            snapshot: Some(SnapshotId::new(9)),
+            names_stored: self.previous.names_stored,
+        })
+    }
+
+    fn stored_names(
+        &self,
+        _: SnapshotId,
+        which: StoredNames<'_>,
+    ) -> Result<Vec<PendingReference>, CodedError> {
+        Ok(self
+            .previous
+            .names
+            .iter()
+            .filter(|name| match which {
+                StoredNames::Bases => {
+                    matches!(name.kind, ReferenceKind::Inherit | ReferenceKind::Implement)
+                }
+                StoredNames::ImportsOf(files) => {
+                    name.kind == ReferenceKind::Import && files.contains(&name.file)
+                }
+                StoredNames::Callers(files, callers) => {
+                    files.contains(&name.file) && callers.contains(&name.from)
+                }
+                StoredNames::All => true,
+            })
+            .cloned()
+            .collect())
     }
 
     fn latest_naming_rules(&self, _: ProjectId) -> Result<Option<String>, CodedError> {
@@ -414,6 +443,24 @@ fn old_file(id: u64, path: &str) -> Result<SourceFile, CodedError> {
     })
 }
 
+fn stem_symbol(request: &AnalyzeRequest<'_>, file: &SourceFile) -> Result<Symbol, CodedError> {
+    let stem = request.file.path.as_str().trim_end_matches(".rs");
+    Ok(Symbol {
+        id: request.ids.symbol(),
+        file: file.id,
+        kind: SymbolKind::Function,
+        name: model(SymbolName::new(stem))?,
+        qualified_name: model(QualifiedName::new(format!("m::{stem}")))?,
+        parent: None,
+        visibility: None,
+        is_static: false,
+        span: span()?,
+        signature: None,
+        doc: None,
+        origin: SymbolOrigin::Syntax,
+    })
+}
+
 fn old_symbol(id: u64, file: u64, name: &str) -> Result<Symbol, CodedError> {
     Ok(Symbol {
         id: SymbolId::new(id),
@@ -438,10 +485,23 @@ fn old_call(id: u64, to: u64) -> Result<Reference, CodedError> {
         from: SymbolId::new(200),
         to: SymbolId::new(to),
         file: FileId::new(100),
-        span: span()?,
+        span: span_at(u32::try_from(id).unwrap_or_default())?,
         kind: ReferenceKind::Call,
         confidence: Confidence::Certain,
         verified: false,
+    })
+}
+
+/// The name `a` (symbol 200 in file 100) wrote for a call of `target`, in the place of the call
+/// `id`.
+fn old_name(target: &str, id: u32) -> Result<PendingReference, CodedError> {
+    Ok(PendingReference {
+        from: SymbolId::new(200),
+        file: FileId::new(100),
+        span: span_at(id)?,
+        kind: ReferenceKind::Call,
+        target: model(QualifiedName::new(target))?,
+        receiver: None,
     })
 }
 
@@ -449,6 +509,12 @@ fn old_call(id: u64, to: u64) -> Result<Reference, CodedError> {
 /// and itself.
 fn previous_snapshot() -> Result<Previous, CodedError> {
     Ok(Previous {
+        names_stored: true,
+        names: vec![
+            old_name("m::b", 300)?,
+            old_name("m::c", 301)?,
+            old_name("m::a", 302)?,
+        ],
         files: vec![
             old_file(100, "a.rs")?,
             old_file(101, "b.rs")?,
@@ -515,53 +581,157 @@ fn incremental_scan_analyses_only_changed_files_and_resolves_dependents_again()
     Ok(())
 }
 
-/// A symbol that level 2 created (ADR 0055).
-fn created_symbol(id: u64, file: u64, qualified: &str) -> Result<Symbol, CodedError> {
-    Ok(Symbol {
-        qualified_name: model(QualifiedName::new(qualified))?,
-        origin: SymbolOrigin::Index,
-        ..old_symbol(id, file, "Gen")?
+/// The world of `a_unchanged_b_changed` over this previous snapshot.
+fn world_over(previous: Previous) -> Arc<World> {
+    Arc::new(World {
+        previous,
+        found: Some(vec![("a.rs", false), ("b.rs", true)]),
+        ..World::default()
     })
 }
 
 #[test]
-fn symbols_of_level_two_are_carried_with_their_file_and_never_resolved_by_name()
+fn a_snapshot_without_stored_names_is_followed_by_a_full_scan() -> Result<(), CodedError> {
+    let mut previous = previous_snapshot()?;
+    previous.names_stored = false;
+    let world = world_over(previous);
+    let (result, _) = run(&world, ScanMode::Incremental);
+    let JobResult::Finished(job) = result else {
+        panic!("scan did not finish");
+    };
+    assert_eq!(job.snapshot().mode, ScanMode::Full);
+    assert_eq!(world.last_persisted()?.files.len(), 2);
+    Ok(())
+}
+
+#[test]
+fn a_name_that_found_nothing_before_finds_a_new_target_in_a_changed_file() -> Result<(), CodedError>
+{
+    let mut previous = previous_snapshot()?;
+    // `a` wrote the name `m::b` before, but there was no `b` then, so no reference was stored.
+    previous.index.references.retain(|r| r.id.get() != 300);
+    let world = world_over(previous);
+    let _ = run(&world, ScanMode::Incremental);
+    let persisted = world.last_persisted()?;
+    let new_b = persisted.symbols[0].id;
+    assert!(
+        persisted
+            .references
+            .iter()
+            .any(|r| r.from.get() == 200 && r.to == new_b),
+        "the unchanged caller reaches the new target"
+    );
+    Ok(())
+}
+
+#[test]
+fn a_kept_reference_that_the_full_resolution_no_longer_produces_is_dropped()
 -> Result<(), CodedError> {
     let mut previous = previous_snapshot()?;
-    // 210 lives in the unchanged `a.rs` and has the name of the changed `b`; 211 lives in `b.rs`.
-    previous
-        .index
-        .symbols
-        .push(created_symbol(210, 100, "m::b")?);
-    previous
-        .index
-        .symbols
-        .push(created_symbol(211, 101, "m::Gen")?);
-    previous.index.references.push(old_call(310, 210)?);
-    previous.index.references.push(old_call(311, 211)?);
-    let world = Arc::new(World {
-        previous,
-        found: Some(vec![("a.rs", false), ("b.rs", true)]),
-        ..World::default()
-    });
+    previous.names.retain(|name| name.target.as_str() != "m::a");
+    let world = world_over(previous);
+    let _ = run(&world, ScanMode::Incremental);
+    let persisted = world.last_persisted()?;
+    let dropped: Vec<u64> = persisted
+        .dropped_references
+        .iter()
+        .map(|id| id.get())
+        .collect();
+    assert_eq!(dropped, [302]);
+    Ok(())
+}
+
+#[test]
+fn a_kept_reference_that_is_produced_again_is_neither_written_nor_dropped() -> Result<(), CodedError>
+{
+    let world = a_unchanged_b_changed()?;
+    let _ = run(&world, ScanMode::Incremental);
+    let persisted = world.last_persisted()?;
+    assert_eq!(persisted.dropped_references, Vec::new());
+    assert!(
+        persisted.references.iter().all(|r| r.to.get() != 200),
+        "the call from a to itself stays in the store as it is"
+    );
+    Ok(())
+}
+
+fn verified(reference: Reference) -> Reference {
+    Reference {
+        verified: true,
+        ..reference
+    }
+}
+
+#[test]
+fn level_two_references_stay_and_one_whose_target_is_gone_falls_back_to_level_one()
+-> Result<(), CodedError> {
+    let mut previous = previous_snapshot()?;
+    previous.index.references = vec![verified(old_call(300, 201)?), verified(old_call(302, 200)?)];
+    // Level 2 reported nothing for the call of `c`; level 1 must not add what it replaced.
+    previous.names.push(old_name("m::a", 302)?);
+    let world = world_over(previous);
     let (result, _) = run(&world, ScanMode::Incremental);
     let JobResult::Finished(job) = result else {
         panic!("scan did not finish");
     };
     let persisted = world.last_persisted()?;
-    let targets: Vec<u64> = persisted.references.iter().map(|r| r.to.get()).collect();
-    let new_b = persisted.symbols[0].id.get();
-    assert!(
-        targets.contains(&new_b),
-        "the call to the changed `b` is resolved again, to the new `b` and not to 210"
+    assert_eq!(
+        persisted.dropped_references,
+        Vec::new(),
+        "the verified call of a stays"
     );
-    assert!(
-        !targets.contains(&210) && !targets.contains(&211),
-        "level 1 never resolves to a symbol of level 2; 211 left with its file and the call to it is dropped"
+    let new_b = persisted.symbols[0].id;
+    let again: Vec<bool> = persisted
+        .references
+        .iter()
+        .filter(|r| r.from.get() == 200 && r.to == new_b)
+        .map(|r| r.verified)
+        .collect();
+    assert_eq!(
+        again,
+        [false],
+        "the discarded verified call is an unchecked level 1 one"
     );
-    // The carried reference 310 to 210 stays in the store with its file (the store shares rows);
-    // the totals count it with the carried symbol 210.
-    assert_eq!(job.snapshot().stats.symbols, 3, "a, 210 and the new b");
+    assert_eq!(persisted.references.len(), 2, "that and the call inside b");
+    assert_eq!(job.snapshot().stats.references, 3);
+    Ok(())
+}
+
+/// How many names the last scan handed to the resolver.
+fn resolved_names(world: &World) -> Vec<usize> {
+    world
+        .resolved
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .clone()
+}
+
+#[test]
+fn a_change_that_keeps_the_declarations_resolves_only_the_names_that_pointed_into_it()
+-> Result<(), CodedError> {
+    // `c.rs` is not gone in this snapshot, so the changed `b.rs` declares what it declared before.
+    let mut previous = previous_snapshot()?;
+    previous.files.retain(|f| f.path.as_str() != "c.rs");
+    previous.index.symbols.retain(|s| s.file.get() != 102);
+    previous.index.references.retain(|r| r.to.get() != 202);
+    previous.names.retain(|n| n.target.as_str() != "m::c");
+    let world = world_over(previous);
+    let _ = run(&world, ScanMode::Incremental);
+    // The new call in `b.rs` and the call of `a` that pointed at the old `b`; the call of `a` to
+    // itself is not resolved again.
+    assert_eq!(resolved_names(&world), [2]);
+    let persisted = world.last_persisted()?;
+    assert_eq!(persisted.dropped_references, Vec::new());
+    assert_eq!(persisted.references.len(), 2);
+    Ok(())
+}
+
+#[test]
+fn a_change_of_the_declarations_resolves_all_names_again() -> Result<(), CodedError> {
+    let world = a_unchanged_b_changed()?;
+    let _ = run(&world, ScanMode::Incremental);
+    // `c.rs` is gone: the new call of `b.rs` and the three names of `a`.
+    assert_eq!(resolved_names(&world), [4]);
     Ok(())
 }
 
@@ -759,24 +929,18 @@ fn ids_are_unique_and_stage_labels_round_trip() {
 #[test]
 fn a_reference_that_is_kept_is_not_resolved_a_second_time() -> Result<(), CodedError> {
     let mut previous = previous_snapshot()?;
-    // `m::b` is declared in the unchanged a.rs as well; a call to it stays valid, and the call to
-    // the `b` in the changed file is resolved again to the same unchanged candidate.
+    // `m::b` is declared in the unchanged a.rs as well; the call at 303 to it stays valid, and the
+    // name is resolved again to the same unchanged candidate and the new `b`.
     previous.index.symbols.push(old_symbol(203, 100, "b")?);
-    previous
-        .index
-        .references
-        .extend([old_call(303, 203)?, old_call(304, 201)?]);
-    let world = Arc::new(World {
-        previous,
-        found: Some(vec![("a.rs", false), ("b.rs", true)]),
-        ..World::default()
-    });
+    previous.index.references.push(old_call(303, 203)?);
+    previous.names.push(old_name("m::b", 303)?);
+    let world = world_over(previous);
     let _ = run(&world, ScanMode::Incremental);
     let calls_to_203 = world
         .last_persisted()?
         .references
         .iter()
-        .filter(|r| r.to.get() == 203 && r.from.get() == 200)
+        .filter(|r| r.to.get() == 203 && r.span.start().line == 303)
         .count();
     assert_eq!(
         calls_to_203, 0,

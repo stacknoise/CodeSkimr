@@ -1,8 +1,8 @@
 //! Understanding code (adapters: `codeskimr_parsing` and the metrics of `codeskimr_domain`).
 
 use codeskimr_domain::{
-    Confidence, FileId, Fingerprints, FolderPath, LanguageId, Metric, QualifiedName, Reference,
-    ReferenceKind, SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId,
+    FileId, Fingerprints, FolderPath, LanguageId, Metric, QualifiedName, Reference, ReferenceKind,
+    SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId,
 };
 
 use super::DiscoveredFile;
@@ -56,13 +56,10 @@ pub struct PendingReference {
     pub span: Span,
     /// Kind of use.
     pub kind: ReferenceKind,
-    /// The name as written, to be resolved. A name that equals the qualified name of a symbol
-    /// stands for exactly that symbol (this is how references are resolved again).
+    /// The name as written, to be resolved. An import names exactly one qualified name.
     pub target: QualifiedName,
     /// What the syntax says about the receiver in front of the name, if there is one.
     pub receiver: Option<Receiver>,
-    /// The confidence of an earlier resolution of this occurrence; the resolver never raises it.
-    pub previous: Option<Confidence>,
 }
 
 /// The syntax fingerprints of one function-like symbol (blueprint 10.4).

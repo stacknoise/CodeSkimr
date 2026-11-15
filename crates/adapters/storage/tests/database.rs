@@ -8,10 +8,11 @@ use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 
 use codeskimr_application::ports::{
-    ProjectRepository, SnapshotData, SnapshotStore, SymbolFingerprints,
+    PendingReference, ProjectRepository, Receiver, SnapshotData, SnapshotStore, SymbolFingerprints,
 };
 use codeskimr_domain::{
-    Fingerprint, Fingerprints, LanguageId, MetricKind, ScanMode, SymbolId, SymbolKind,
+    FileId, Fingerprint, Fingerprints, LanguageId, MetricKind, QualifiedName, ReferenceKind,
+    ScanMode, SymbolId, SymbolKind,
 };
 use codeskimr_storage::{SqliteStore, StoreOptions};
 use common::{PROJECT, code_of, data, file, header, metric, project, reference, symbol};
@@ -69,7 +70,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 11));
+    assert_eq!((mode.as_str(), version), ("wal", 12));
 }
 
 #[test]
@@ -142,6 +143,14 @@ fn scan_with_every_table(snapshot: u64, base: u64) -> SnapshotData {
         metric(base + 1, MetricKind::EfferentCoupling, 1.0),
     ];
     scan.parse_micros = vec![(LanguageId::new("csharp").unwrap(), base)];
+    scan.pending = vec![PendingReference {
+        from: SymbolId::new(base + 2),
+        file: FileId::new(base),
+        span: common::span(2),
+        kind: ReferenceKind::Call,
+        target: QualifiedName::new("App.A").unwrap(),
+        receiver: Some(Receiver::Own),
+    }];
     scan.fingerprints = vec![SymbolFingerprints {
         symbol: SymbolId::new(base + 1),
         fingerprints: Fingerprints::from_entries(vec![Fingerprint {
@@ -177,6 +186,7 @@ fn pruned_snapshots_leave_no_rows_behind() {
         ("type_summary", 1),
         ("fingerprints", 1),
         ("parse_times", 1),
+        ("pending_references", 1),
     ] {
         let rows: i64 = conn
             .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
@@ -221,6 +231,11 @@ fn an_incremental_scan_shares_references_and_fingerprints_instead_of_copying_the
     // The symbols and metrics of `a.cs` exist once: two of the first scan, one of the second.
     assert_eq!(rows_of(&conn, "symbol_rows"), 3);
     assert_eq!(rows_of(&conn, "metric_rows"), 2);
+    assert_eq!(
+        rows_of(&conn, "pending_references"),
+        1,
+        "the names of the carried file are stored once"
+    );
     let seen = |snapshot: i64| -> i64 {
         conn.query_row(
             "SELECT COUNT(*) FROM snapshot_references WHERE snapshot_id = ?1",
@@ -245,9 +260,11 @@ fn pruning_keeps_the_shared_rows_another_snapshot_still_contains() {
     assert_eq!(rows_of(&conn, "snapshots"), 1);
     assert_eq!(rows_of(&conn, "symbol_references"), 2);
     assert_eq!(rows_of(&conn, "fingerprints"), 1);
+    assert_eq!(rows_of(&conn, "pending_references"), 1);
     store.persist(scan_with_every_table(30, 300)).unwrap();
     // A full scan shares nothing with the snapshot it replaces.
     assert_eq!(rows_of(&conn, "symbol_references"), 1);
+    assert_eq!(rows_of(&conn, "pending_references"), 1);
     assert_eq!(rows_of(&conn, "fingerprints"), 1);
 }
 
@@ -513,6 +530,10 @@ fn a_version_seven_database_has_no_naming_rules_for_its_old_snapshots() {
     drop(conn);
     let store = SqliteStore::open(&db.0, keep(3)).unwrap();
     assert_eq!(store.latest_naming_rules(PROJECT).unwrap(), None);
+    assert!(
+        !store.latest_state(PROJECT).unwrap().names_stored,
+        "a snapshot from before the names were stored cannot be continued incrementally"
+    );
     assert_eq!(
         store.latest_snapshot(PROJECT).unwrap().unwrap().id.get(),
         10

@@ -15,6 +15,7 @@ use crate::consts::{
 use crate::error::{StorageError, StorageResult};
 use crate::headers::{insert_metric, insert_reference, set_totals, totals};
 use crate::integrity;
+use crate::pending;
 use crate::projects::load_layers;
 use crate::read_models;
 use crate::similarity;
@@ -127,6 +128,12 @@ fn insert_facts(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
         insert_metric(conn, snapshot, metric)?;
     }
     similarity::insert_all(conn, &data.fingerprints)?;
+    pending::insert_all(conn, &data.pending)?;
+    pending::mark_stored(conn, snapshot)?;
+    let mut dropped = conn.prepare_cached(sql::REFERENCE_DELETE)?;
+    for id in &data.dropped_references {
+        dropped.execute(params![column_int(id.get())?])?;
+    }
     Ok(())
 }
 

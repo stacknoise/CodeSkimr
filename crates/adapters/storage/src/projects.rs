@@ -1,7 +1,9 @@
 //! Registered projects: the `ProjectRepository` port and saving a project.
 
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{PreviousIndex, ProjectRepository};
+use codeskimr_application::ports::{
+    PendingReference, PreviousIndex, PreviousState, ProjectRepository, StoredNames,
+};
 use codeskimr_domain::{
     BranchName, ContentHash, CredentialId, FileId, FolderPath, GitUrl, LanguageId, Layer,
     LayerName, Loc, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, RelativePath,
@@ -14,7 +16,8 @@ use crate::consts::{
     FIRST_PROJECT_ID, ID_STEP, NO_BRANCH, NO_CREDENTIAL, SOURCE_FOLDER, SOURCE_GIT,
 };
 use crate::error::{StorageError, StorageResult};
-use crate::previous::load_latest_index;
+use crate::pending;
+use crate::previous::{latest_snapshot_id, load_latest_index};
 use crate::sql;
 use crate::store::SqliteStore;
 
@@ -274,6 +277,18 @@ fn file_from(row: &Row<'_>) -> rusqlite::Result<(i64, i64, String, String, Strin
     ))
 }
 
+fn load_latest_state(conn: &Connection, project: ProjectId) -> StorageResult<PreviousState> {
+    let Some(snapshot) = latest_snapshot_id(conn, project)? else {
+        return Ok(PreviousState::default());
+    };
+    Ok(PreviousState {
+        files: load_latest_files(conn, project)?,
+        index: load_latest_index(conn, project)?,
+        snapshot: Some(SnapshotId::new(id_from(snapshot)?)),
+        names_stored: pending::is_stored(conn, snapshot)?,
+    })
+}
+
 fn load_latest_files(conn: &Connection, project: ProjectId) -> StorageResult<Vec<SourceFile>> {
     let raw = column_int(project.get())?;
     let mut statement = conn.prepare_cached(sql::LATEST_FILES)?;
@@ -306,6 +321,30 @@ impl ProjectRepository for SqliteStore {
 
     fn latest_index(&self, id: ProjectId) -> Result<PreviousIndex, CodedError> {
         self.read(|conn| load_latest_index(conn, id))
+            .map_err(CodedError::from)
+    }
+
+    fn latest_state(&self, id: ProjectId) -> Result<PreviousState, CodedError> {
+        self.read(|conn| {
+            // One read transaction, so a snapshot written in between cannot split the parts.
+            let tx = conn.unchecked_transaction()?;
+            load_latest_state(&tx, id)
+        })
+        .map_err(CodedError::from)
+    }
+
+    fn stored_names(
+        &self,
+        snapshot: SnapshotId,
+        which: StoredNames<'_>,
+    ) -> Result<Vec<PendingReference>, CodedError> {
+        let which = match which {
+            StoredNames::Bases => pending::Which::Bases,
+            StoredNames::ImportsOf(files) => pending::Which::ImportsOf(files),
+            StoredNames::Callers(files, callers) => pending::Which::Callers(files, callers),
+            StoredNames::All => pending::Which::All,
+        };
+        self.read(|conn| pending::load(conn, column_int(snapshot.get())?, &which))
             .map_err(CodedError::from)
     }
 
