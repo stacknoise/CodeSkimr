@@ -32,8 +32,8 @@ use secrecy::ExposeSecret;
 use crate::consts::{
     AUTH_FAILURE_HINTS, BRANCH_REF_PREFIX, CANCEL_POLL_MS, CANCELLED_DETAIL,
     CLONE_CONFIG_OVERRIDES, HTTP_NOT_FOUND_HINT, LOG_CODE, LOG_REASON, MISSING_BRANCH_HINT,
-    NO_LOGIN_MESSAGE, SHALLOW_CLONE_DEPTH, TOO_MANY_PACKS_DETAIL, URL_SCHEME_MARKER,
-    WORK_FOLDER_MAX_AGE_SECS, WORK_PREFIX, WORK_SEPARATOR,
+    NO_LOGIN_MESSAGE, SHALLOW_CLONE_DEPTH, URL_SCHEME_MARKER, WORK_FOLDER_MAX_AGE_SECS,
+    WORK_PREFIX, WORK_SEPARATOR,
 };
 use crate::error::{SourceError, error_chain_text};
 
@@ -228,12 +228,13 @@ fn update_or_clone(
     interrupt: &AtomicBool,
 ) -> Result<(), SourceError> {
     if update::can_update(target) {
-        let updated = update::check_pack_count(target)
-            .and_then(|()| update::update_branch(attempt, target, fresh, interrupt));
-        match updated {
-            Ok(()) => return Ok(()),
-            Err(_) if attempt.cancel.is_cancelled() => return Err(cancelled()),
-            Err(error) => log_fallback(&error),
+        match update::check_pack_count(target) {
+            Err(error) => log_reason(&error, false),
+            Ok(()) => match update::update_branch(attempt, target, fresh, interrupt) {
+                Ok(()) => return Ok(()),
+                Err(_) if attempt.cancel.is_cancelled() => return Err(cancelled()),
+                Err(error) => log_reason(&error, true),
+            },
         }
     }
     if attempt.cancel.is_cancelled() {
@@ -244,18 +245,18 @@ fn update_or_clone(
     clone_branch(attempt, fresh, interrupt)
 }
 
-/// Logs why the clone is made again instead of updated. The text of the cause carries no
-/// credentials (E-05) and the log writer masks what is left.
-fn log_fallback(error: &SourceError) {
+/// Logs why the clone is made again instead of updated: as a warning if the update failed, as
+/// information if the pack limit asked for it. The text of the cause carries no credentials (E-05)
+/// and the log writer masks what is left.
+fn log_reason(error: &SourceError, failed: bool) {
     let reason = match error {
         SourceError::GitFetchFailed { detail } => detail.clone(),
         other => other.to_string(),
     };
-    if reason == TOO_MANY_PACKS_DETAIL {
-        // Expected housekeeping, not a problem.
-        tracing::info!({ LOG_CODE } = error.code().id(), { LOG_REASON } = %reason);
-    } else {
+    if failed {
         tracing::warn!({ LOG_CODE } = error.code().id(), { LOG_REASON } = %reason);
+    } else {
+        tracing::info!({ LOG_CODE } = error.code().id(), { LOG_REASON } = %reason);
     }
 }
 
