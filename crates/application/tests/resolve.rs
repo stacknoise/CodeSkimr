@@ -180,12 +180,16 @@ mod tests {
     fn uses_in_a_test_file_are_test_references_and_imports_stay_imports() {
         let mut shop = shop();
         let (elsewhere, tool) = shop.table.add_tool("Elsewhere", 3);
-        let pending = [
-            occurrence(shop.save, 2, ReferenceKind::Import, "Elsewhere"),
-            occurrence(shop.save, 2, ReferenceKind::TypeUse, "Tool"),
-            occurrence(shop.save, 2, ReferenceKind::Call, "Tool"),
-            occurrence(shop.save, 7, ReferenceKind::TypeUse, "Tool"),
+        let uses = [
+            (2, ReferenceKind::Import, "Elsewhere"),
+            (2, ReferenceKind::TypeUse, "Tool"),
+            (2, ReferenceKind::Call, "Tool"),
+            (7, ReferenceKind::TypeUse, "Tool"),
         ];
+        let pending: Vec<_> = uses
+            .iter()
+            .map(|&(file, kind, name)| occurrence(shop.save, file, kind, name))
+            .collect();
         let tests = HashSet::from([FileId::new(2)]);
         let found = resolve_with_tests(&shop.table, &pending, &tests);
         let kinds: Vec<_> = found.iter().map(|r| (r.to, r.file, r.kind)).collect();
