@@ -59,7 +59,7 @@ pub struct GraphInput {
 pub struct BoxOut {
     /// Name of the layer, namespace or type; the key of the box in the links.
     pub name: String,
-    /// The text of the box: the name, or the part of it the frames around the box do not say.
+    /// The text of the box: the short name; the namespace path is in `context`.
     pub label: String,
     /// The path of namespaces in front of a type, as a breadcrumb; empty where there is none.
     pub context: String,

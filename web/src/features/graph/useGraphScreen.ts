@@ -76,7 +76,8 @@ export function useGraphLoading(state: MapState): void {
     }),
   );
   createEffect(on([() => graphData()?.snapshot, size], fitView));
-  // On the type and namespace levels the one in the middle is selected, so the panel shows what surrounds it.
+  // On the type and namespace levels the one in the middle is selected,
+  // so the panel shows what surrounds it.
   createEffect(on(graphData, (loaded) => loaded?.focus && setSelected(loaded.focus.name)));
   createEffect(() => {
     const layer = wantedLayer();

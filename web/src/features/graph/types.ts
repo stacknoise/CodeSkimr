@@ -2,7 +2,7 @@
 export interface LayerBox {
   /** The key of the box in the links and the selection. */
   name: string;
-  /** The text of the box: the name without the part the frames around it say. */
+  /** The text of the box: the short name; the path is in `context`. */
   label: string;
   /** The namespaces in front of a type, as a breadcrumb; empty where there is none. */
   context: string;
