@@ -894,7 +894,7 @@ fn a_depth_merges_the_namespaces_and_leaves_no_dependency_to_itself() {
     for link in top["links"].as_array().unwrap() {
         assert_ne!(link["from"], link["to"]);
     }
-    assert!(!names(&top).is_empty());
+    assert_ne!(names(&top), Vec::<String>::new());
 }
 
 /// The id of the type `name` in the explorer outline of the project.
