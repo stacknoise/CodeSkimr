@@ -89,6 +89,9 @@ axum = { version = "0.8", default-features = false, features = ["http1", "json",
 getrandom = "0.4"
 tracing = { version = "0.1", default-features = false, features = ["std"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "std"] }
+# The tray icon with its menu (ADR 0067) and the event loop it needs, on Windows and macOS only.
+tray-icon = { version = "0.26", default-features = false }
+tao = { version = "0.37", default-features = false }
 clap = { version = "4", default-features = false, features = ["std", "help", "usage", "error-context"] }
 
 # Binding rules from blueprint section 3 and 17.3. Thresholds live in clippy.toml.

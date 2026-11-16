@@ -56,6 +56,13 @@ pub struct OpenArgs {
     pub no_browser: bool,
 }
 
+/// Arguments of the bare `codeskimr`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct StartArgs {
+    /// Stay in this console window instead of running in the system tray (ADR 0067).
+    pub console: bool,
+}
+
 /// Arguments of `codeskimr export`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExportArgs {
@@ -126,8 +133,9 @@ pub enum Action {
     Credential(CredentialAction),
     /// `codeskimr level2`.
     Level2(Level2Action),
-    /// `codeskimr` without a command: start the server and open the browser.
-    Start,
+    /// `codeskimr` without a command: start the server and open the browser, in the tray where
+    /// the system has one.
+    Start(StartArgs),
     /// `codeskimr scan <source>`.
     Scan(ScanArgs),
     /// `codeskimr mcp`.

@@ -126,6 +126,14 @@ description = "The language packs built into the program could not be written to
 since = "0.1.0"
 
 [[codes]]
+id = "APP-603"
+name = "tray_start_failed"
+severity = "error"
+retryable = true
+description = "The program could not start itself in the background or show its tray icon."
+since = "0.1.0"
+
+[[codes]]
 id = "CFG-101"
 name = "config_invalid_value"
 severity = "error"

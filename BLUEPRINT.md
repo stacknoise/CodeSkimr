@@ -455,7 +455,7 @@ The registry generates:
 ### 10.2 CLI
 
 ```
-codeskimr                         start the app, open the browser
+codeskimr                         start the app, open the browser (Windows, macOS: in the system tray, ADR 0067; --console stays in the window)
 codeskimr scan <path|git-url>     scan and print a summary (--json for machines, --watch to keep scanning on changes)
 codeskimr serve                   start the server without opening a browser
 codeskimr mcp                     MCP over stdio
@@ -1106,6 +1106,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | APP-901 | `unexpected_internal_error` | An unexpected internal error occurred (bug). |
 | APP-601 | `browser_start_failed` | The system did not start a browser for the launch file. |
 | APP-602 | `language_packs_unavailable` | The language packs built into the program could not be written to the data directory. |
+| APP-603 | `tray_start_failed` | The program could not start itself in the background or show its tray icon. |
 | CFG-101 | `config_invalid_value` | A configuration value is outside its allowed range or has the wrong type. |
 | CFG-102 | `config_parse_failed` | A configuration file is not valid TOML. |
 | CFG-103 | `config_unknown_key` | A configuration file or flag sets a key that does not exist. |

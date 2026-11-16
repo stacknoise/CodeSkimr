@@ -16,6 +16,7 @@ Owner: `codeskimr`
 | APP-901 | `unexpected_internal_error` | error | no | 0.1.0 | An unexpected internal error occurred (bug). |
 | APP-601 | `browser_start_failed` | error | yes | 0.1.0 | The system did not start a browser for the launch file. |
 | APP-602 | `language_packs_unavailable` | error | yes | 0.1.0 | The language packs built into the program could not be written to the data directory. |
+| APP-603 | `tray_start_failed` | error | yes | 0.1.0 | The program could not start itself in the background or show its tray icon. |
 
 ## CFG – Configuration
 

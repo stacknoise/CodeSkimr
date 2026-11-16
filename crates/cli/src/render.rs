@@ -6,8 +6,8 @@ use codeskimr_codes::i18n::{
     CLI_CREDENTIAL_DELETED, CLI_CREDENTIAL_DEVICE_PROMPT, CLI_CREDENTIAL_STORED, CLI_ERROR_LINE,
     CLI_EXPORT_WRITTEN, CLI_OPEN_READY, CLI_SCAN_DETAILS, CLI_SCAN_FINISHED, CLI_SCAN_STARTED,
     CLI_SCAN_TOOL_MISSING, CLI_SCAN_TOOL_TOO_NEW, CLI_SCAN_TOOL_TOO_OLD, CLI_SCAN_TOOL_UNKNOWN,
-    CLI_SECRET_PROMPT, CLI_SERVE_LISTENING, CLI_START_KEEP_OPEN, CLI_WATCH_STARTED,
-    CLI_WATCH_UPDATED,
+    CLI_SECRET_PROMPT, CLI_SERVE_LISTENING, CLI_START_KEEP_OPEN, CLI_START_TRAY, CLI_TRAY_LOG,
+    CLI_TRAY_OPEN, CLI_TRAY_QUIT, CLI_TRAY_TOOLTIP, CLI_WATCH_STARTED, CLI_WATCH_UPDATED,
 };
 use codeskimr_domain::ToolState;
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
@@ -103,6 +103,42 @@ pub fn serve_started(messages: &Messages, language: &str, url: &str) -> Result<S
 /// `I18N-201` if the message is missing.
 pub fn start_keep_open(messages: &Messages, language: &str) -> Result<String, I18nError> {
     format_with(messages, language, CLI_START_KEEP_OPEN, &[])
+}
+
+/// The line that the starting program prints before it hands over to the tray program: where the
+/// menu is and where the log lies.
+///
+/// # Errors
+/// `I18N-201` if the message is missing.
+pub fn start_tray(messages: &Messages, language: &str, log: &str) -> Result<String, I18nError> {
+    format_with(messages, language, CLI_START_TRAY, &[(arg::LOG, log)])
+}
+
+/// The texts of the tray icon: its tooltip and the three menu entries.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TrayLabels {
+    /// Shown when the mouse rests on the icon.
+    pub tooltip: String,
+    /// Menu entry that opens the UI in the browser.
+    pub open: String,
+    /// Menu entry that shows the log.
+    pub log: String,
+    /// Menu entry that ends the program.
+    pub quit: String,
+}
+
+/// The texts of the tray icon in `language`.
+///
+/// # Errors
+/// `I18N-201` if a message is missing.
+pub fn tray_labels(messages: &Messages, language: &str) -> Result<TrayLabels, I18nError> {
+    let say = |key: &str| format_with(messages, language, key, &[]);
+    Ok(TrayLabels {
+        tooltip: say(CLI_TRAY_TOOLTIP)?,
+        open: say(CLI_TRAY_OPEN)?,
+        log: say(CLI_TRAY_LOG)?,
+        quit: say(CLI_TRAY_QUIT)?,
+    })
 }
 
 /// The line that tells where the launch file is and how long it is good for.
