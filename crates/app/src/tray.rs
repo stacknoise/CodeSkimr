@@ -15,6 +15,8 @@ use codeskimr_application::error::CodedError;
 #[cfg(any(windows, target_os = "macos"))]
 use codeskimr_cli::OpenArgs;
 use codeskimr_cli::{GlobalOptions, StartArgs, TrayLabels};
+#[cfg(any(windows, target_os = "macos"))]
+use codeskimr_codes::Coded;
 use codeskimr_codes::ErrorCode;
 
 use crate::consts::{ENV_TRAY_CHILD, TRAY_CHILD_ON, TRAY_LOG_FILE};
