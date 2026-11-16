@@ -205,6 +205,19 @@ function keepCalleesColumn(columns: Column[], callees: Side, reach: number): voi
   columns.push({ kind: COLUMN.callees, level: FIRST_LEVEL, x, hidden: 0 });
 }
 
+/** Moves every column down so that its cards hang evenly around the middle line of the graph, the
+ * line of the focus; the longest column keeps its place. This keeps the lines between the columns
+ * short and flat. `span` is the height of the longest column from the first to the last card. */
+function centreColumns(cards: Map<string, Card>, span: number): void {
+  const heights = new Map<number, number>();
+  for (const card of cards.values()) {
+    heights.set(card.x, Math.max(heights.get(card.x) ?? 0, card.y - GRAPH.top));
+  }
+  for (const card of cards.values()) {
+    card.y += (span - (heights.get(card.x) ?? 0)) / GRAPH.half;
+  }
+}
+
 /** Lays the walks of an answer out as columns of cards and the lines between them (mock 6). */
 export function buildGraph(answer: UsagesAnswer): Graph {
   const focusId = answer.symbol.id;
@@ -220,6 +233,7 @@ export function buildGraph(answer: UsagesAnswer): Graph {
     ...columns.map((column) => [...cards.values()].filter((card) => card.x === column.x).length),
   );
   const span = (rows - 1) * (GRAPH.cardHeight + GRAPH.rowGap);
+  centreColumns(cards, span);
   const focusX = GRAPH.left + reach * (GRAPH.columnWidth + GRAPH.columnGap);
   const focus: Card = {
     place: answer.symbol,

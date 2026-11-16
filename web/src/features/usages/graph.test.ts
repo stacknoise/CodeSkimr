@@ -34,6 +34,22 @@ describe("buildGraph", () => {
     );
   });
 
+  it("hangs every column evenly around the middle line of the focus", () => {
+    const middle = (c: { y: number; height: number }) => c.y + c.height / 2;
+    const focus = card(FOCUS.qualified_name);
+    const columns = new Map<number, { top: number; bottom: number }>();
+    for (const c of graph.cards.filter((item) => !item.focus)) {
+      const old = columns.get(c.x) ?? { top: c.y, bottom: c.y + c.height };
+      columns.set(c.x, {
+        top: Math.min(old.top, c.y),
+        bottom: Math.max(old.bottom, c.y + c.height),
+      });
+    }
+    for (const { top, bottom } of columns.values()) {
+      expect((top + bottom) / 2).toBeCloseTo(middle(focus), 5);
+    }
+  });
+
   it("keeps the column of what is called when nothing is called", () => {
     const empty = buildGraph({ ...ANSWER, outgoing: { ...ANSWER.outgoing!, hits: [], total: 0 } });
     const callees = empty.columns.filter((column) => column.kind === COLUMN.callees);

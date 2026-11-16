@@ -4,9 +4,9 @@ import {
   GROUP,
   INDENT_PX,
   KEY_SEPARATOR,
+  NAME_PART,
   METHOD_KINDS,
   ROW,
-  TYPE_DEPTH,
   TYPE_KINDS,
   type RowKind,
 } from "./consts";
@@ -154,24 +154,91 @@ function typeRows(node: TypeNode, depth: number, ctx: Context, nested = false): 
   return open && info ? [row, ...groupRows(info, depth + 1, ctx)] : [row];
 }
 
-function namespaceRows(layer: string, space: NamespaceNode, ctx: Context): TreeRow[] {
-  const types = space.types.filter((node) => ctx.matches(node.name));
-  if (types.length === 0) {
+/** A namespace segment of a layer: the types declared exactly here and the segments below. */
+interface Segment {
+  /** The name up to and including this segment, as the scan wrote it (`App.Domain`). */
+  path: string;
+  /** The last part of the name (`Domain`). */
+  label: string;
+  children: Map<string, Segment>;
+  types: TypeNode[];
+}
+
+function segment(path: string, label: string): Segment {
+  return { path, label, children: new Map<string, Segment>(), types: [] };
+}
+
+/** The parts of a namespace name with the name up to and including each part (`App.Domain` gives
+ * `App` at `App` and `Domain` at `App.Domain`). A name without any part, empty or only separators,
+ * has none; its types belong to the unnamed namespace. */
+export function nameParts(name: string): { label: string; path: string }[] {
+  return [...name.matchAll(NAME_PART)].map((part) => ({
+    label: part[0],
+    path: name.slice(0, (part.index ?? 0) + part[0].length),
+  }));
+}
+
+/** Groups the namespaces of a layer by their parts, so `App.Domain` and `App.Ui` are two rows
+ * below one row `App`. A namespace without a name is the segment with the empty path. */
+export function segmentsOf(spaces: readonly NamespaceNode[]): Segment[] {
+  const roots = new Map<string, Segment>();
+  for (const space of spaces) {
+    const parts = nameParts(space.name);
+    if (parts.length === 0) {
+      const root = roots.get("") ?? segment("", "");
+      roots.set("", root);
+      root.types.push(...space.types);
+      continue;
+    }
+    let level = roots;
+    let current: Segment | undefined;
+    for (const { label, path } of parts) {
+      current = level.get(path) ?? segment(path, label);
+      level.set(path, current);
+      level = current.children;
+    }
+    current?.types.push(...space.types);
+  }
+  return [...roots.values()];
+}
+
+/** How many types below a segment, itself included, match the filter. */
+function matching(node: Segment, ctx: Context): number {
+  const own = node.types.filter((type) => ctx.matches(type.name)).length;
+  return [...node.children.values()].reduce((sum, child) => sum + matching(child, ctx), own);
+}
+
+/** The rows of a segment: its row, and if it is open the segments below, then its own types.
+ * A segment without a matching type has no row. `depth` is the depth of its row. */
+function segmentRows(layer: string, node: Segment, depth: number, ctx: Context): TreeRow[] {
+  const count = matching(node, ctx);
+  if (count === 0) {
     return [];
   }
-  const key = namespaceKey(layer, space.name);
+  const key = namespaceKey(layer, node.path);
   const open = ctx.filtering || ctx.expanded.has(key);
   const row: TreeRow = {
-    ...base(key, ROW.namespace, 1, space.name || ctx.labels.noNamespace),
-    meta: String(types.length),
+    ...base(key, ROW.namespace, depth, node.label || ctx.labels.noNamespace),
+    meta: String(count),
     expandable: true,
     open,
   };
-  return open ? [row, ...types.flatMap((node) => typeRows(node, TYPE_DEPTH, ctx))] : [row];
+  if (!open) {
+    return [row];
+  }
+  const below = [...node.children.values()].flatMap((child) =>
+    segmentRows(layer, child, depth + 1, ctx),
+  );
+  const own = node.types
+    .filter((type) => ctx.matches(type.name))
+    .flatMap((type) => typeRows(type, depth + 1, ctx));
+  return [row, ...below, ...own];
 }
 
 function layerRows(layer: LayerNode, index: number, ctx: Context): TreeRow[] {
-  const children = layer.namespaces.flatMap((space) => namespaceRows(layer.name, space, ctx));
+  const children = segmentsOf(layer.namespaces).flatMap((root) =>
+    segmentRows(layer.name, root, 1, ctx),
+  );
   if (children.length === 0) {
     return [];
   }
@@ -209,13 +276,20 @@ export function buildRows(
   return outline.layers.flatMap((layer, index) => layerRows(layer, index, ctx));
 }
 
-/** The keys that must be open for the row of `type` to be visible: its layer, its namespace and
- * the type itself. Empty if the type is not in the outline. */
+/** The keys that must be open for the row of `type` to be visible: its layer, every segment of
+ * its namespace down to the last one, and the type itself. Empty if the type is not in the
+ * outline. */
 export function revealKeys(outline: Outline, type: number): string[] {
   for (const layer of outline.layers) {
     for (const space of layer.namespaces) {
       if (space.types.some((node) => node.id === type)) {
-        return [layerKey(layer.name), namespaceKey(layer.name, space.name), typeKey(type)];
+        const parts = nameParts(space.name);
+        const paths = parts.length === 0 ? [""] : parts.map((part) => part.path);
+        return [
+          layerKey(layer.name),
+          ...paths.map((path) => namespaceKey(layer.name, path)),
+          typeKey(type),
+        ];
       }
     }
   }

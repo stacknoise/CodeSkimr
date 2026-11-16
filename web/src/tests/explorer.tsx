@@ -16,7 +16,7 @@ export const OUTLINE: Outline = {
     {
       name: "Domain",
       namespaces: [
-        { name: "Shop.Domain", types: [{ id: 7, name: "Order", kind: "class", members: 2 }] },
+        { name: "Shop.Sales", types: [{ id: 7, name: "Order", kind: "class", members: 2 }] },
       ],
     },
   ],
@@ -69,9 +69,10 @@ export const ORDER: SymbolInfo = {
   ],
 };
 
-/** Opens layer, namespace and the type `Order` by clicking. */
+/** Opens layer, the two parts of the namespace and the type `Order` by clicking. */
 export async function openOrder() {
   fireEvent.click(await screen.findByText("Domain"));
-  fireEvent.click(await screen.findByText("Shop.Domain"));
+  fireEvent.click(await screen.findByText("Shop"));
+  fireEvent.click(await screen.findByText("Sales"));
   fireEvent.click(await screen.findByText("Order"));
 }

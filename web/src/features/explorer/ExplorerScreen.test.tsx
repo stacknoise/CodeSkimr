@@ -107,7 +107,7 @@ describe("ExplorerScreen", () => {
     renderOrder();
     expect(await screen.findByText("Overview")).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Order" })).toBeNull();
-    expect(screen.queryByText("Shop.Domain")).toBeNull();
+    expect(screen.queryByText("Sales")).toBeNull();
   });
 
   it("counts in the singular when there is one of a kind", async () => {
@@ -141,7 +141,8 @@ describe("the click rules of the tree", () => {
   it("lets the caret only open and close, and leaves the selection", async () => {
     renderOrder();
     fireEvent.click(await screen.findByText("Domain"));
-    fireEvent.click(await screen.findByText("Shop.Domain"));
+    fireEvent.click(await screen.findByText("Shop"));
+    fireEvent.click(await screen.findByText("Sales"));
     fireEvent.click(caretOf("Order"));
     expect(await screen.findByText(GROUP_NAME)).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "Order" })).toBeNull();
@@ -168,13 +169,15 @@ describe("the keys of the tree", () => {
     fireEvent.keyDown(tree, { key: "ArrowDown" });
     expect(tree.getAttribute("aria-activedescendant")).toBe("explorer-row-0");
     fireEvent.keyDown(tree, { key: "Enter" });
-    expect(await screen.findByText("Shop.Domain")).toBeTruthy();
+    expect(await screen.findByText("Shop")).toBeTruthy();
     fireEvent.keyDown(tree, { key: "ArrowDown" });
     expect(tree.getAttribute("aria-activedescendant")).toBe("explorer-row-1");
+    fireEvent.keyDown(tree, { key: "Enter" });
+    expect(await screen.findByText("Sales")).toBeTruthy();
     fireEvent.keyDown(tree, { key: "ArrowLeft" });
     fireEvent.keyDown(tree, { key: "ArrowUp" });
     fireEvent.keyDown(tree, { key: "ArrowLeft" });
-    await waitFor(() => expect(screen.queryByText("Shop.Domain")).toBeNull());
+    await waitFor(() => expect(screen.queryByText("Shop")).toBeNull());
   });
 
   it("closes everything on Ctrl+Left and shows the selection on Ctrl+.", async () => {
@@ -183,9 +186,9 @@ describe("the keys of the tree", () => {
     await screen.findByRole("heading", { name: "Order" });
     fireEvent.keyDown(document.body, { key: "ArrowLeft", ctrlKey: true });
     const tree = screen.getByRole("tree");
-    await waitFor(() => expect(within(tree).queryByText("Shop.Domain")).toBeNull());
+    await waitFor(() => expect(within(tree).queryByText("Sales")).toBeNull());
     fireEvent.keyDown(document.body, { key: ".", ctrlKey: true });
-    expect(await within(tree).findByText("Shop.Domain")).toBeTruthy();
+    expect(await within(tree).findByText("Sales")).toBeTruthy();
   });
 });
 
@@ -224,7 +227,7 @@ describe("the details", () => {
     render(() => <ExplorerScreen />);
     await openOrder();
     expect((await screen.findAllByRole("alert")).length).toBeGreaterThan(0);
-    expect(screen.getByText("Shop.Domain")).toBeTruthy();
+    expect(screen.getByText("Sales")).toBeTruthy();
   });
 
   it("reveals a nested type of the table in the tree", async () => {
@@ -248,7 +251,7 @@ describe("a navigation from another screen", () => {
     expect(await screen.findByRole("heading", { name: "Order" })).toBeTruthy();
     const tree = screen.getByRole("tree");
     expect(await within(tree).findByText("Total")).toBeTruthy();
-    expect(within(tree).getByText("Shop.Domain")).toBeTruthy();
+    expect(within(tree).getByText("Sales")).toBeTruthy();
     const cursor = tree.getAttribute("aria-activedescendant") ?? "";
     expect(document.getElementById(cursor)?.textContent).toContain("Total");
   });
@@ -257,7 +260,7 @@ describe("a navigation from another screen", () => {
     requestFocus({ type: 7, member: null, kind: null });
     renderOrder();
     expect(await screen.findByRole("heading", { name: "Order" })).toBeTruthy();
-    expect(within(screen.getByRole("tree")).getByText("Shop.Domain")).toBeTruthy();
+    expect(within(screen.getByRole("tree")).getByText("Sales")).toBeTruthy();
   });
 });
 
@@ -269,7 +272,7 @@ describe("coming back to the explorer", () => {
     first.unmount();
     render(() => <ExplorerScreen />);
     expect(await screen.findByRole("heading", { name: "Order" })).toBeTruthy();
-    expect(screen.getAllByText("Shop.Domain").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Sales").length).toBeGreaterThan(0);
     expect(screen.getAllByRole("treeitem", { selected: true }).length).toBe(1);
   });
 
@@ -281,7 +284,7 @@ describe("coming back to the explorer", () => {
     openProject(2);
     render(() => <ExplorerScreen />);
     expect(await screen.findByText("Domain")).toBeTruthy();
-    expect(screen.queryByText("Shop.Domain")).toBeNull();
+    expect(screen.queryByText("Sales")).toBeNull();
   });
 
   it("reads the tree again on the way back and drops a symbol that is gone", async () => {
@@ -295,7 +298,7 @@ describe("coming back to the explorer", () => {
         {
           name: "Domain",
           namespaces: [
-            { name: "Shop.Domain", types: [{ id: 7, name: "Order2", kind: "class", members: 2 }] },
+            { name: "Shop.Sales", types: [{ id: 7, name: "Order2", kind: "class", members: 2 }] },
           ],
         },
       ],
@@ -306,7 +309,7 @@ describe("coming back to the explorer", () => {
     });
     render(() => <ExplorerScreen />);
     expect(await screen.findByText("Order2")).toBeTruthy();
-    expect(screen.getAllByText("Shop.Domain").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Sales").length).toBeGreaterThan(0);
   });
 
   it("scrolls the tree to where it was", async () => {
