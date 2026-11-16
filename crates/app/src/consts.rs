@@ -426,3 +426,23 @@ pub const INVISIBLE_RANGES: [(char, char); 7] = [
 
 /// Name of the thread that builds the usages index in the background.
 pub const WARM_THREAD_NAME: &str = "usages-warm-up";
+
+/// Environment variable that marks the program started by the bare `codeskimr` for the tray: it
+/// runs the server and the tray icon, the starting program only starts it and ends (ADR 0067).
+pub const ENV_TRAY_CHILD: &str = "CODESKIMR_TRAY_CHILD";
+/// Value of [`ENV_TRAY_CHILD`].
+pub const TRAY_CHILD_ON: &str = "1";
+/// The log of the tray program, inside the data folder. It starts empty with every start.
+pub const TRAY_LOG_FILE: &str = "codeskimr.log";
+/// Windows process creation flag: the new process gets no console window.
+#[cfg(windows)]
+pub const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+/// How often the tray looks whether the server has ended on its own.
+#[cfg(any(windows, target_os = "macos"))]
+pub const TRAY_SERVER_POLL: std::time::Duration = std::time::Duration::from_secs(1);
+/// Width and height of the tray icon in pixels.
+#[cfg(any(windows, target_os = "macos"))]
+pub const TRAY_ICON_SIZE: u32 = 32;
+/// Colour of the tray icon (red, green, blue, opaque): the petrol of the UI.
+#[cfg(any(windows, target_os = "macos"))]
+pub const TRAY_ICON_PIXEL: [u8; 4] = [0x0f, 0x76, 0x6e, 0xff];

@@ -33,6 +33,7 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | `APP-202` | the private file for starting the browser could not be created; also refused when its folder is a link or a junction (Windows) | check the rights of the data folder; `codeskimr serve` and open the address by hand |
 | `APP-301` | another CodeSkimr instance holds the workspace and connecting to it failed | close the other instance or use `--data-dir` |
 | `APP-601` | the system did not start a browser | open the address printed by `codeskimr serve` by hand |
+| `APP-603` | the program could not start itself in the background or show its tray icon | start it with `--console` to stay in the window and look at the log in the data folder (`codeskimr.log`) |
 | `APP-602` | the language packs built into the program could not be written to the data folder | free space and check the rights of the data folder; a `languages/` folder next to the program (with at least one `<language>/language.toml`) is used instead ([Installation](installation.md#build)) |
 | `PRJ-101` | the source is no existing folder and no valid Git address, or the address contains secrets, blanks or starts with a dash, or the branch name is not valid, or the folder is relative | give an absolute path; take secrets out of the address ([Sources and credentials](sources-and-credentials.md)) |
 | `PRJ-201` | no such project | add and scan it first |

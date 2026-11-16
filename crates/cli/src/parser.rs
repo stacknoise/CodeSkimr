@@ -7,24 +7,26 @@ use std::path::PathBuf;
 use clap::error::ErrorKind;
 use clap::{Arg, ArgAction, ArgMatches, Command};
 use codeskimr_codes::i18n::{
-    CLI_ABOUT, CLI_ARG_BRANCH, CLI_ARG_CONFIG, CLI_ARG_DATA_DIR, CLI_ARG_EXPORT_PROJECT,
-    CLI_ARG_HTML, CLI_ARG_JSON, CLI_ARG_LANGUAGES, CLI_ARG_NO_BROWSER, CLI_ARG_PATHS,
-    CLI_ARG_PROJECT, CLI_ARG_SCAN_CREDENTIAL, CLI_ARG_SET, CLI_ARG_SOURCE, CLI_ARG_WATCH,
-    CLI_CMD_CHECK, CLI_CMD_EXPORT, CLI_CMD_MCP, CLI_CMD_OPEN, CLI_CMD_SCAN, CLI_CMD_SERVE,
+    CLI_ABOUT, CLI_ARG_BRANCH, CLI_ARG_CONFIG, CLI_ARG_CONSOLE, CLI_ARG_DATA_DIR,
+    CLI_ARG_EXPORT_PROJECT, CLI_ARG_HTML, CLI_ARG_JSON, CLI_ARG_LANGUAGES, CLI_ARG_NO_BROWSER,
+    CLI_ARG_PATHS, CLI_ARG_PROJECT, CLI_ARG_SCAN_CREDENTIAL, CLI_ARG_SET, CLI_ARG_SOURCE,
+    CLI_ARG_WATCH, CLI_CMD_CHECK, CLI_CMD_EXPORT, CLI_CMD_MCP, CLI_CMD_OPEN, CLI_CMD_SCAN,
+    CLI_CMD_SERVE,
 };
 use codeskimr_i18n::Messages;
 
 use crate::args::{
     Action, CheckArgs, ExportArgs, GlobalOptions, Invocation, McpArgs, OpenArgs, Parsed, ScanArgs,
-    ServeArgs,
+    ServeArgs, StartArgs,
 };
 use crate::consent;
 use crate::consts::{
-    ARG_BRANCH, ARG_CONFIG, ARG_CREDENTIAL, ARG_DATA_DIR, ARG_EXPORT_PROJECT, ARG_HTML, ARG_JSON,
-    ARG_LANGUAGES, ARG_NO_BROWSER, ARG_PATHS, ARG_PROJECT, ARG_SET, ARG_SOURCE, ARG_WATCH,
-    BINARY_NAME, COMMAND_CHECK, COMMAND_CREDENTIAL, COMMAND_EXPORT, COMMAND_LEVEL2, COMMAND_MCP,
-    COMMAND_OPEN, COMMAND_SCAN, COMMAND_SERVE, OVERRIDE_SEPARATOR, VALUE_BRANCH, VALUE_DIR,
-    VALUE_EXPORT_PROJECT, VALUE_FILE, VALUE_ID, VALUE_OVERRIDE, VALUE_PATH, VALUE_SOURCE, VERSION,
+    ARG_BRANCH, ARG_CONFIG, ARG_CONSOLE, ARG_CREDENTIAL, ARG_DATA_DIR, ARG_EXPORT_PROJECT,
+    ARG_HTML, ARG_JSON, ARG_LANGUAGES, ARG_NO_BROWSER, ARG_PATHS, ARG_PROJECT, ARG_SET, ARG_SOURCE,
+    ARG_WATCH, BINARY_NAME, COMMAND_CHECK, COMMAND_CREDENTIAL, COMMAND_EXPORT, COMMAND_LEVEL2,
+    COMMAND_MCP, COMMAND_OPEN, COMMAND_SCAN, COMMAND_SERVE, OVERRIDE_SEPARATOR, VALUE_BRANCH,
+    VALUE_DIR, VALUE_EXPORT_PROJECT, VALUE_FILE, VALUE_ID, VALUE_OVERRIDE, VALUE_PATH,
+    VALUE_SOURCE, VERSION,
 };
 use crate::credential;
 use crate::error::CliError;
@@ -60,6 +62,12 @@ fn definition(messages: &Messages, language: &str) -> Result<Command, CliError> 
         .version(VERSION)
         .about(say(CLI_ABOUT)?)
         .args(global_args(messages, language)?)
+        .arg(
+            Arg::new(ARG_CONSOLE)
+                .long(ARG_CONSOLE)
+                .action(ArgAction::SetTrue)
+                .help(say(CLI_ARG_CONSOLE)?),
+        )
         .subcommand(scan_command(messages, language)?)
         .subcommand(check_command(messages, language)?)
         .subcommand(export_command(messages, language)?)
@@ -188,7 +196,9 @@ fn invocation(matches: &ArgMatches) -> Result<Invocation, CliError> {
             no_browser: open.get_flag(ARG_NO_BROWSER),
         }),
         Some((COMMAND_EXPORT, export)) => Action::Export(export_args(export)),
-        None => Action::Start,
+        None => Action::Start(StartArgs {
+            console: matches.get_flag(ARG_CONSOLE),
+        }),
         _ => return Err(CliError::Arguments(String::new())),
     };
     Ok(Invocation {

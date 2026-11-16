@@ -3,8 +3,8 @@
 use std::path::PathBuf;
 
 use codeskimr_cli::{
-    Action, CliError, CredentialAction, Parsed, ProviderChoice, ScanArgs, ServeArgs, language_from,
-    parse, serve_started, start_keep_open,
+    Action, CliError, CredentialAction, Parsed, ProviderChoice, ScanArgs, ServeArgs, StartArgs,
+    language_from, parse, serve_started, start_keep_open,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_i18n::Messages;
@@ -137,8 +137,23 @@ fn missing_and_unknown_arguments_are_cli_101() {
 #[test]
 fn no_command_starts_the_app() {
     match run(&["codeskimr"]).unwrap() {
-        Parsed::Run(invocation) => assert_eq!(invocation.action, Action::Start),
+        Parsed::Run(invocation) => {
+            assert_eq!(invocation.action, Action::Start(StartArgs::default()));
+        }
         Parsed::Display(_) => panic!("the bare command runs"),
+    }
+}
+
+#[test]
+fn the_console_flag_keeps_the_app_out_of_the_tray() {
+    match run(&["codeskimr", "--console"]).unwrap() {
+        Parsed::Run(invocation) => {
+            assert_eq!(
+                invocation.action,
+                Action::Start(StartArgs { console: true })
+            );
+        }
+        Parsed::Display(_) => panic!("the flag runs the app"),
     }
 }
 
@@ -249,4 +264,17 @@ fn credential_delete_and_login_are_parsed() {
             host: Some("https://git.example.com".to_owned()),
         })
     );
+}
+
+#[test]
+fn the_tray_texts_exist_in_both_languages() {
+    let messages = Messages::load().unwrap();
+    for language in ["en", "de"] {
+        let labels = codeskimr_cli::tray_labels(&messages, language).unwrap();
+        for text in [&labels.tooltip, &labels.open, &labels.log, &labels.quit] {
+            assert!(!text.is_empty(), "{language}");
+        }
+        let line = codeskimr_cli::start_tray(&messages, language, "codeskimr.log").unwrap();
+        assert!(line.contains("codeskimr.log"), "{language}: {line}");
+    }
 }
