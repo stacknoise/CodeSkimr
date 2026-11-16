@@ -5,7 +5,6 @@ usages-level-label = Level
 usages-level-namespaces = Namespaces
 usages-level-types = Types
 usages-level-symbol = Symbol
-usages-level-soon = The dependency map has its own screen and is not available yet.
 usages-direction-label = Direction
 usages-mode-both = both
 usages-mode-callers = who calls

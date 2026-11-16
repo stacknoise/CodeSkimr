@@ -168,6 +168,20 @@ pub const EXPORT_DIRECT_DEPTH: u32 = 1;
 /// The gap between two rows is divided by this to get the space a layer band adds above and
 /// below its boxes.
 pub const BAND_PAD_DIVISOR: u32 = 2;
+/// A line of a wrapped row is centred: the free space is divided by this and put on the left.
+pub const CENTRE_DIVISOR: u32 = 2;
+/// The fewest boxes in a line of a row, whatever the configuration says.
+pub const MIN_LINE_BOXES: u32 = 1;
+/// The gap between two boxes inside a frame is the gap between boxes divided by this.
+pub const FRAME_GAP_DIVISOR: u32 = 2;
+/// The title bar of a frame is as high as a box divided by this.
+pub const FRAME_TITLE_DIVISOR: u32 = 2;
+/// Joins the namespaces in the breadcrumb of a type box.
+pub const BREADCRUMB_JOIN: &str = " › ";
+/// Joins the segments of a namespace name in the title of a frame.
+pub const NAME_JOIN: &str = ".";
+/// The margin of the picture applies on both sides.
+pub const MARGIN_SIDES: u32 = 2;
 /// Id of the command that lists the credentials of the Git projects.
 pub const CREDENTIALS_LIST: &str = "credentials.list";
 /// Id of the command that stores a credential.

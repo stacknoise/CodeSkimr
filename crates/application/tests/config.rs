@@ -366,6 +366,11 @@ fn the_size_of_a_graph_box_must_be_positive() {
             "graph.node_height",
             Violation::MustBePositive,
         ),
+        (
+            "[graph]\nrow_boxes = 0\n",
+            "graph.row_boxes",
+            Violation::MustBePositive,
+        ),
     ]);
 }
 

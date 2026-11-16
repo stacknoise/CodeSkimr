@@ -3,11 +3,19 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { currentPath } from "../../app/router";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { activeProject, openProject } from "../../shared/project/active";
+import { pointer } from "../../tests/pointer";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import type { ProjectRow } from "../projects/types";
 import { selectType } from "../explorer/explorer";
 import { DEPTH_ALL, LEVEL } from "./consts";
-import { resetGraph, setGraphDepth, setGraphLevel, wantedLayer, wantLayer } from "./graph";
+import {
+  graphLevel,
+  resetGraph,
+  setGraphDepth,
+  setGraphLevel,
+  wantedLayer,
+  wantLayer,
+} from "./graph";
 import { GraphScreen } from "./GraphScreen";
 
 const ROW: ProjectRow = {
@@ -31,14 +39,15 @@ const GRAPH = {
   width: 400,
   height: 300,
   boxes: [
-    { name: "Domain", x: 120, y: 200, rank: 1, ...BOX },
-    { name: "Ui", x: 120, y: 0, rank: 0, ...BOX },
-    { name: "Infra", x: 300, y: 100, rank: 0, ...BOX },
+    { name: "Domain", label: "Domain", context: "", x: 120, y: 200, rank: 1, ...BOX },
+    { name: "Ui", label: "Ui", context: "", x: 120, y: 0, rank: 0, ...BOX },
+    { name: "Infra", label: "Infra", context: "", x: 300, y: 100, rank: 0, ...BOX },
   ],
   bands: [
     { name: "Ui", rank: 0, y: 0, height: 60 },
     { name: "Domain", rank: 1, y: 180, height: 60 },
   ],
+  groups: [],
   links: [
     { from: "Ui", to: "Domain", count: 12, violates_layering: false, in_cycle: false },
     { from: "Domain", to: "Infra", count: 2, violates_layering: true, in_cycle: false },
@@ -63,6 +72,17 @@ describe("GraphScreen", () => {
     served({ ...GRAPH, boxes: [], links: [], bands: [] });
     render(() => <GraphScreen />);
     expect(await screen.findByRole("button", { name: "Set layers" })).toBeInTheDocument();
+  });
+
+  it("keeps the level buttons when there are no layers, so another level can be chosen", async () => {
+    served({ ...GRAPH, boxes: [], links: [], bands: [] });
+    render(() => <GraphScreen />);
+    await screen.findByRole("button", { name: "Set layers" });
+    fireEvent.click(screen.getByRole("button", { name: "Namespaces" }));
+    await waitFor(() => expect(graphLevel()).toBe("namespaces"));
+    expect(screen.getByRole("button", { name: "Namespaces" }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
   });
 
   it("draws a box per layer with the totals and the breaks of the layering", async () => {
@@ -194,6 +214,50 @@ describe("GraphScreen", () => {
     served({ ...GRAPH, links: [] });
     render(() => <GraphScreen />);
     expect(await screen.findByText(/No dependencies between the layers/)).toBeInTheDocument();
+  });
+
+  it("says that one layer alone needs a second one for a dependency map", async () => {
+    served({
+      ...GRAPH,
+      boxes: [GRAPH.boxes[1]],
+      bands: [GRAPH.bands[0]],
+      links: [],
+    });
+    render(() => <GraphScreen />);
+    expect(await screen.findByText(/needs at least two layers/)).toBeInTheDocument();
+    expect(screen.queryByText(/No dependencies between the layers/)).toBeNull();
+  });
+
+  it("pans with the primary button on the empty ground but not on a box", async () => {
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    const box = await screen.findByRole("button", { name: /Ui/ });
+    const stage = box.parentElement as HTMLElement;
+    const area = stage.parentElement as HTMLElement;
+    area.setPointerCapture = () => undefined;
+    const drag = (target: Element) => {
+      const before = stage.style.transform;
+      pointer(target, "pointerdown", { button: 0 });
+      pointer(area, "pointermove", { movementX: 30, movementY: 20 });
+      pointer(area, "pointerup");
+      return stage.style.transform !== before;
+    };
+    expect(drag(box)).toBe(false);
+    expect(drag(area)).toBe(true);
+  });
+
+  it("draws the frames around namespaces and the short label in the boxes", async () => {
+    setGraphLevel(LEVEL.namespaces);
+    served({
+      ...GRAPH,
+      boxes: [{ ...GRAPH.boxes[1]!, name: "Shop.Cart", label: "Cart", context: "Shop" }],
+      bands: [],
+      links: [],
+      groups: [{ name: "Shop", label: "Shop", x: 0, y: 0, width: 200, height: 100, depth: 0 }],
+    });
+    render(() => <GraphScreen />);
+    expect((await screen.findAllByText("Shop")).length).toBe(2);
+    expect(screen.getByRole("button", { name: /^Cart/ })).toHaveAttribute("aria-pressed");
   });
 
   it("is written in German too", async () => {

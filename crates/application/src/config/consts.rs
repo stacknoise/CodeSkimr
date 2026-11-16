@@ -81,6 +81,8 @@ pub mod keys {
     pub const GRAPH_NODE_WIDTH: &str = "graph.node_width";
     /// `graph.node_height`
     pub const GRAPH_NODE_HEIGHT: &str = "graph.node_height";
+    /// `graph.row_boxes`
+    pub const GRAPH_ROW_BOXES: &str = "graph.row_boxes";
     /// `similarity.ngram_size`
     pub const NGRAM_SIZE: &str = "similarity.ngram_size";
     /// `similarity.window_size`
