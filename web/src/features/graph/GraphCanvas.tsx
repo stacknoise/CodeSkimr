@@ -1,10 +1,10 @@
 import { For, onCleanup, onMount, Show } from "solid-js";
+import { onEnter } from "../../shared/keys/keydown";
 import { cx } from "../../shared/ui/cx";
 import {
   ARROW,
   BOX_COLOR_PROPERTY,
   EDGE,
-  KEY,
   MARKER_FILL,
   MARKER_IDS,
   NO_FILL,
@@ -139,14 +139,6 @@ function Edges(props: {
   );
 }
 
-/** Enter on a focused box changes the focus, like a double click; Space and a click only select. */
-function openOnEnter(event: KeyboardEvent, open: () => void): void {
-  if (event.key === KEY.open) {
-    event.preventDefault();
-    open();
-  }
-}
-
 /** The boxes, one button for each layer, namespace or type. */
 function Boxes(props: {
   data: GraphData;
@@ -170,7 +162,7 @@ function Boxes(props: {
           aria-pressed={props.selected === box.name}
           onClick={() => props.onSelect(box.name)}
           onDblClick={() => props.onOpen(box.name)}
-          onKeyDown={(event) => openOnEnter(event, () => props.onOpen(box.name))}
+          onKeyDown={(event) => onEnter(event, () => props.onOpen(box.name))}
         >
           <span class={styles.text} title={box.name}>
             <span class={styles.name}>{box.label}</span>

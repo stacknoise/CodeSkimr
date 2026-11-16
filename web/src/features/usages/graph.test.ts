@@ -85,7 +85,7 @@ describe("buildGraph", () => {
     const card = lonely.cards.find((x) => x.place.id === 30)!;
     const focus = lonely.cards.find((x) => x.focus)!;
     expect(Number.isFinite(card.y)).toBe(true);
-    expect(card.y + card.height / 2).toBeLessThanOrEqual(focus.y + focus.height / 2 + 200);
+    expect(card.y + card.height / 2).toBeCloseTo(focus.y + focus.height / 2, 5);
   });
 
   it("keeps the column of what is called when nothing is called", () => {
