@@ -119,16 +119,6 @@ describe("the tools of a project", () => {
     await screen.findByRole("status");
     const call = fetchMock.mock.calls.find(([path]) => String(path).endsWith("projects.tools"));
     expect(JSON.parse(call?.[1].body)).toEqual({ project: 1 });
-  });
-
-  it("shows when the tools were checked last, so that a check without change is visible", async () => {
-    serve({
-      "projects.list": () => answer([{ ...ROW, tools: null }]),
-      "projects.tools": () => answer(MISSING),
-    });
-    render(() => <ProjectsScreen />);
-    fireEvent.click(await screen.findByText("/work/shop"));
-    await screen.findByRole("status");
     expect(screen.getByText(/Last checked:/)).toBeInTheDocument();
   });
 
