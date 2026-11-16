@@ -102,7 +102,7 @@ function useView(graph: () => Graph) {
     height: area?.clientHeight ?? 0,
   });
   createEffect(on(graph, (current) => setView(startView(current, sizeOf()))));
-  const navigation = useNavigation(() => area, view, setView, true);
+  const navigation = useNavigation(() => area, view, setView);
   const centre = () => ({ x: sizeOf().width / GRAPH.half, y: sizeOf().height / GRAPH.half });
   return {
     view,

@@ -42,14 +42,13 @@ function onBackground(event: PointerEvent): boolean {
   );
 }
 
-/** Mouse navigation of the map: the wheel zooms around the pointer; dragging with the space key
- * held, or with the middle button, pans. Returns the handlers for the pointer and whether a drag
+/** Mouse navigation of the map: the wheel zooms around the pointer; dragging the background with the
+ * primary button, or with the space key held, or with the middle button, pans. Returns the handlers for the pointer and whether a drag
  * is possible or running (for the cursor). */
 export function useNavigation(
   area: () => HTMLElement | undefined,
   view: () => View,
   onView: (view: View) => void,
-  dragBackground = false,
 ) {
   const [spaceDown, setSpaceDown] = createSignal(false);
   const [dragging, setDragging] = createSignal(false);
@@ -65,11 +64,7 @@ export function useNavigation(
   return {
     grabbing: () => spaceDown() || dragging(),
     start: (event: PointerEvent) => {
-      if (
-        spaceDown() ||
-        event.button === BUTTON_MIDDLE ||
-        (dragBackground && onBackground(event))
-      ) {
+      if (spaceDown() || event.button === BUTTON_MIDDLE || onBackground(event)) {
         event.preventDefault();
         setDragging(true);
         area()?.setPointerCapture(event.pointerId);

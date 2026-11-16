@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { currentPath } from "../../app/router";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { activeProject, openProject } from "../../shared/project/active";
+import { pointer } from "../../tests/pointer";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import type { ProjectRow } from "../projects/types";
 import { selectType } from "../explorer/explorer";
@@ -206,6 +207,24 @@ describe("GraphScreen", () => {
     render(() => <GraphScreen />);
     expect(await screen.findByText(/needs at least two layers/)).toBeInTheDocument();
     expect(screen.queryByText(/No dependencies between the layers/)).toBeNull();
+  });
+
+  it("pans with the primary button on the empty ground but not on a box", async () => {
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    const box = await screen.findByRole("button", { name: /Ui/ });
+    const stage = box.parentElement as HTMLElement;
+    const area = stage.parentElement as HTMLElement;
+    area.setPointerCapture = () => undefined;
+    const drag = (target: Element) => {
+      const before = stage.style.transform;
+      pointer(target, "pointerdown", { button: 0 });
+      pointer(area, "pointermove", { movementX: 30, movementY: 20 });
+      pointer(area, "pointerup");
+      return stage.style.transform !== before;
+    };
+    expect(drag(box)).toBe(false);
+    expect(drag(area)).toBe(true);
   });
 
   it("is written in German too", async () => {
