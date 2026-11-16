@@ -50,12 +50,17 @@ function CardButton(props: { card: Card; onPick: (card: Card) => void }) {
     >
       <span class={styles.line}>
         <KindBadge kind={card().place.kind} />
-        <span class={styles.name}>{card().name}</span>
+        <span class={styles.name}>{card().member}</span>
         <Show when={card().count > 0}>
           <span class={styles.count}>{card().count}</span>
         </Show>
       </span>
-      <span class={styles.context}>{card().place.layer ?? MISSING}</span>
+      <span class={styles.context}>
+        <span class={styles.owner}>{card().owner}</span>
+        <Show when={card().place.layer ?? MISSING}>
+          {(layer) => <span class={styles.layer}>{layer()}</span>}
+        </Show>
+      </span>
     </button>
   );
 }

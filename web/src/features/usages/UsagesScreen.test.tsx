@@ -59,9 +59,9 @@ describe("UsagesScreen", () => {
     expect(screen.getByText("decimal Total()")).toBeTruthy();
     expect(screen.getByText(/reaches 5 symbols in 2 layers, 2 of them public/)).toBeTruthy();
     const graph = screen.getByRole("region", { name: "Usage graph" });
-    expect(within(graph).getByText("CartView.Render")).toBeTruthy();
+    expect(within(graph).getByText("Render")).toBeTruthy();
     expect(within(graph).getByText("Callers · level 2")).toBeTruthy();
-    expect(within(graph).getByText("Price.Value")).toBeTruthy();
+    expect(within(graph).getByText("Value")).toBeTruthy();
   });
 
   it("explains the lines and the number on the cards with a legend", async () => {
@@ -87,7 +87,7 @@ describe("UsagesScreen", () => {
     });
     showUsages(10);
     render(() => <UsagesScreen />);
-    const mark = await screen.findByText("Total");
+    const mark = await screen.findByText("Total", { selector: "mark" });
     expect(mark.tagName).toBe("MARK");
     expect(mark.parentElement?.textContent).toBe("var sum = cart.Total();");
     expect(screen.getByText("src/Ui.cs:40")).toBeTruthy();
@@ -154,7 +154,7 @@ describe("UsagesScreen", () => {
   it("makes a clicked card the focus", async () => {
     shown();
     const graph = await screen.findByRole("region", { name: "Usage graph" });
-    fireEvent.click(within(graph).getByText("CartView.Render"));
+    fireEvent.click(within(graph).getByText("Render"));
     await waitFor(() => expect(lastRequest().symbol).toBe(11));
   });
 
@@ -232,7 +232,7 @@ describe("the graph of the usages", () => {
 
   it("moves the picture when the empty ground or the middle button is dragged, not a card", async () => {
     const { graph, drag } = await dragging();
-    expect(drag(within(graph).getByText("CartView.Render"), 0)).toBe(false);
+    expect(drag(within(graph).getByText("Render"), 0)).toBe(false);
     expect(drag(graph, 0)).toBe(true);
   });
 

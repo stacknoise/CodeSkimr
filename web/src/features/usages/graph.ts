@@ -13,7 +13,7 @@ import {
   type End,
   type Tone,
 } from "./consts";
-import { shortName } from "./names";
+import { cardNames, shortName } from "./names";
 import type { Hit, Place, UsagesAnswer, Walk } from "./types";
 
 /** A column of the graph with its heading. */
@@ -30,6 +30,9 @@ export interface Column {
 export interface Card {
   place: Place;
   name: string;
+  /** What the card writes big and small: the symbol, and the one it belongs to. */
+  member: string;
+  owner: string;
   x: number;
   y: number;
   height: number;
@@ -151,6 +154,7 @@ function stack(side: Side, reach: number, cards: Map<string, Card>, columns: Col
       cards.set(`${side.kind}${node.place.id}`, {
         place: node.place,
         name: shortName(node.place.qualified_name),
+        ...cardNames(node.place.qualified_name),
         x,
         y: GRAPH.top + row * (GRAPH.cardHeight + GRAPH.rowGap),
         height: GRAPH.cardHeight,
@@ -218,6 +222,21 @@ function centreColumns(cards: Map<string, Card>, span: number): void {
   }
 }
 
+/** The card of the symbol in focus: taller than the others, in the middle of the longest column. */
+function focusCard(place: Place, x: number, span: number): Card {
+  return {
+    place,
+    name: shortName(place.qualified_name),
+    ...cardNames(place.qualified_name),
+    x,
+    y: GRAPH.top + (span + GRAPH.cardHeight - GRAPH.focusHeight) / GRAPH.half,
+    height: GRAPH.focusHeight,
+    count: 0,
+    focus: true,
+    test: false,
+  };
+}
+
 /** Lays the walks of an answer out as columns of cards and the lines between them (mock 6). */
 export function buildGraph(answer: UsagesAnswer): Graph {
   const focusId = answer.symbol.id;
@@ -235,16 +254,7 @@ export function buildGraph(answer: UsagesAnswer): Graph {
   const span = (rows - 1) * (GRAPH.cardHeight + GRAPH.rowGap);
   centreColumns(cards, span);
   const focusX = GRAPH.left + reach * (GRAPH.columnWidth + GRAPH.columnGap);
-  const focus: Card = {
-    place: answer.symbol,
-    name: shortName(answer.symbol.qualified_name),
-    x: focusX,
-    y: GRAPH.top + (span + GRAPH.cardHeight - GRAPH.focusHeight) / GRAPH.half,
-    height: GRAPH.focusHeight,
-    count: 0,
-    focus: true,
-    test: false,
-  };
+  const focus = focusCard(answer.symbol, focusX, span);
   columns.push({ kind: COLUMN.focus, level: 0, x: focusX, hidden: 0 });
   const last = Math.max(
     answer.outgoing === null ? 0 : FIRST_LEVEL,
