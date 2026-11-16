@@ -84,17 +84,18 @@ fn other_languages_are_coloured_by_their_own_pack() {
 
 #[test]
 fn an_unknown_extension_or_empty_code_gives_no_runs() {
-    assert!(run("notes.txt", &["fn x"]).is_empty());
-    assert!(run("noextension", &["fn x"]).is_empty());
-    assert!(run("a.rs", &[]).is_empty());
+    assert_eq!(run("notes.txt", &["fn x"]).len(), 0);
+    assert_eq!(run("noextension", &["fn x"]).len(), 0);
+    assert_eq!(run("a.rs", &[]).len(), 0);
 }
 
 #[test]
 fn a_missing_languages_folder_gives_no_runs() {
     let none = TreeSitterHighlighter::new(Path::new("/nowhere/languages"));
     let lines = vec!["fn x() {}".to_owned()];
-    assert!(
+    assert_eq!(
         none.highlight(&RelativePath::new("a.rs").expect("a path"), &lines)
-            .is_empty()
+            .len(),
+        0
     );
 }
