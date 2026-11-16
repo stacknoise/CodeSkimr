@@ -211,37 +211,39 @@ describe("the graph of the usages", () => {
     expect(planeOf().style.transform).not.toContain("scale(1)");
   });
 
-  it("moves the picture when the empty ground is dragged, but not when a card is", async () => {
+  /** Shows the graph and returns it with a way to drag on `target` with `button` and tell whether
+   * the picture moved. */
+  async function dragging() {
     shown();
     await screen.findByRole("heading", { name: "Cart.Total" });
     const graph = screen.getByRole("region", { name: "Usage graph" });
     graph.setPointerCapture = () => undefined;
     const before = planeOf().style.transform;
-    const card = within(graph).getByText("CartView.Render");
-    pointer(card, "pointerdown", { button: 0 });
-    pointer(graph, "pointermove", { movementX: 30, movementY: 20 });
-    expect(planeOf().style.transform).toBe(before);
-    pointer(graph, "pointerdown", { button: 0 });
-    pointer(graph, "pointermove", { movementX: 30, movementY: 20 });
-    pointer(graph, "pointerup");
-    expect(planeOf().style.transform).not.toBe(before);
+    return {
+      graph,
+      drag: (target: Element, button: number) => {
+        pointer(target, "pointerdown", { button });
+        pointer(graph, "pointermove", { movementX: 30, movementY: 20 });
+        pointer(graph, "pointerup");
+        return planeOf().style.transform !== before;
+      },
+    };
+  }
+
+  it("moves the picture when the empty ground or the middle button is dragged, not a card", async () => {
+    const { graph, drag } = await dragging();
+    expect(drag(within(graph).getByText("CartView.Render"), 0)).toBe(false);
+    expect(drag(graph, 0)).toBe(true);
+  });
+
+  it("moves the picture when the middle button is dragged", async () => {
+    const { graph, drag } = await dragging();
+    expect(drag(graph, 1)).toBe(true);
   });
 
   it("starts with the focus in the middle of the height", () => {
     const graph = { height: 1000, cards: [{ focus: true, y: 480, height: 40 }] } as Graph;
     expect(startView(graph, { width: 800, height: 400 })).toEqual({ scale: 1, x: 0, y: -300 });
     expect(startView(graph, { width: 800, height: 2000 })).toEqual({ scale: 1, x: 0, y: 0 });
-  });
-
-  it("moves the picture when the middle button is dragged", async () => {
-    shown();
-    await screen.findByRole("heading", { name: "Cart.Total" });
-    const graph = screen.getByRole("region", { name: "Usage graph" });
-    graph.setPointerCapture = () => undefined;
-    const before = planeOf().style.transform;
-    pointer(graph, "pointerdown", { button: 1 });
-    pointer(graph, "pointermove", { movementX: 30, movementY: 20 });
-    pointer(graph, "pointerup");
-    expect(planeOf().style.transform).not.toBe(before);
   });
 });
