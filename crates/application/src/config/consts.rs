@@ -170,3 +170,12 @@ pub const SCAN_TABLE: &str = "scan";
 /// lift the protection of the machine that scans it (#54). The user file and the flags may still
 /// raise them.
 pub const LOWER_ONLY_SCAN_KEYS: [&str; 2] = ["max_source_mb", "parse_timeout_ms"];
+
+/// Header of a table in an array of tables, as it starts a layer in `.codeskimr.toml`.
+pub const LAYER_TABLE_HEADER: &str = "[[layers]]";
+/// First character of every table header line.
+pub const TABLE_HEADER_START: char = '[';
+/// Separates the kept part of the project file from the written layers.
+pub const BLOCK_SEPARATOR: &str = "\n\n";
+/// Ends a line.
+pub const LINE_END: char = '\n';

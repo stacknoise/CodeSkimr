@@ -2,7 +2,7 @@
 
 The dependency map shows the **layers** of the active project as boxes and how they depend on each other. It answers: does the program follow its architecture, and where not?
 
-It needs layers. Declare them in `.codeskimr.toml` and scan again ([Projects and scan](projects-and-scan.md#layers)). Without layers the screen says "No layers to show".
+It needs layers. Set them in the UI (the hint on the empty map leads there) or declare them in `.codeskimr.toml`, and scan again ([Projects and scan](projects-and-scan.md#layers)). Without layers the screen says "No layers to show".
 
 ## Reading the map
 

@@ -47,6 +47,7 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 | `PRS-201` | kein Sprachpaket für einen Dateityp | die Dateien dieses Typs werden nicht analysiert; Paket installieren |
 | `PRS-501` | eine Datei brauchte zu lange zum Parsen | `scan.parse_timeout_ms` erhöhen, wenn die Datei in Ordnung ist |
 | `CFG-101`, `CFG-102`, `CFG-103` | ungültiger Wert, nicht lesbare Datei, unbekannter Schlüssel in der Konfiguration | die in der Meldung genannte Einstellung korrigieren |
+| `CFG-104` | die Datei `.codeskimr.toml` ließ sich beim Speichern der Schichten in der Oberfläche nicht schreiben | Projektordner beschreibbar machen oder die `[[layers]]`-Tabellen von Hand eintragen |
 | `RES-*` | Ebene 2 (Indexer): Werkzeug fehlt oder zu alt (`RES-201`), Index zu groß, Zeitlimit, Ausgabe- oder Speichergrenze (`RES-501` bis `RES-504`), Indexer fehlgeschlagen (`RES-601`), Index beschädigt (`RES-101`), zu wenige Vorkommen zuordenbar (`RES-302`); Ebene 1 bleibt in jedem Fall | siehe [Sprach-Indexer](indexer.md#fehler) |
 | `SEC-301`, `SEC-403` | Ebene 2 ist nicht eingeschaltet und bestätigt, oder der Aufrufer darf sie nicht bestätigen | einschalten und `codeskimr level2 confirm <Projekt>` in einem Terminal ausführen |
 | `PRJ-303` | kein Fehler: Sie haben den Scan abgebrochen | erneut starten |

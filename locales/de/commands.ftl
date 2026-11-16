@@ -38,3 +38,7 @@ command-preferences-get-title = Einstellungen anzeigen
 command-preferences-get-description = Zeigt das Theme und die Sprache, die der Benutzer für die Oberfläche gewählt hat.
 command-preferences-set-title = Einstellungen speichern
 command-preferences-set-description = Speichert Theme und Sprache der Oberfläche, damit jeder Browser des Benutzers sie zeigt.
+command-layers-get-title = Schichten anzeigen
+command-layers-get-description = Zeigt die festgelegten Schichten eines Projekts und die Namensräume des letzten Scans, aus denen sich Schichten zusammenstellen lassen.
+command-layers-set-title = Schichten speichern
+command-layers-set-description = Schreibt die Schichten eines Ordnerprojekts in dessen Datei `.codeskimr.toml`; sie gelten ab dem nächsten Scan.

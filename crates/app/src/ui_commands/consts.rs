@@ -212,8 +212,8 @@ pub const PREFERENCES_SET_TITLE: &str = i18n::COMMAND_PREFERENCES_SET_TITLE;
 pub const PREFERENCES_SET_DESCRIPTION: &str = i18n::COMMAND_PREFERENCES_SET_DESCRIPTION;
 /// File in the data folder that holds the preferences.
 pub const PREFERENCES_FILE: &str = "preferences.json";
-/// Ending of the file the preferences are written to before they replace the real one.
-pub const PREFERENCES_TEMP_SUFFIX: &str = ".tmp";
+/// Ending of the file a content is written to before it replaces the real one.
+pub const TEMP_SUFFIX: &str = ".tmp";
 /// Longest name of a theme or a language that is stored.
 pub const PREFERENCE_MAX_CHARS: usize = 32;
 /// Characters besides lower-case letters and digits that a stored name may contain.
@@ -223,5 +223,20 @@ pub const PREFERENCES_MAX_BYTES: u64 = 4096;
 /// Mode of the preferences file: the owner may read and write, nobody else.
 #[cfg(unix)]
 pub const PREFERENCES_FILE_MODE: u32 = 0o600;
-/// Separator in the name of the file the preferences are written to first.
-pub const PREFERENCES_TEMP_SEPARATOR: &str = ".";
+/// Separator in the name of that file.
+pub const TEMP_SEPARATOR: &str = ".";
+
+/// Id of the command that shows the layers of a project and the namespaces to build them from.
+pub const LAYERS_GET: &str = "layers.get";
+/// Title key of `layers.get`.
+pub const LAYERS_GET_TITLE: &str = i18n::COMMAND_LAYERS_GET_TITLE;
+/// Description key of `layers.get`.
+pub const LAYERS_GET_DESCRIPTION: &str = i18n::COMMAND_LAYERS_GET_DESCRIPTION;
+/// Id of the command that writes the layers into the project file.
+pub const LAYERS_SET: &str = "layers.set";
+/// Title key of `layers.set`.
+pub const LAYERS_SET_TITLE: &str = i18n::COMMAND_LAYERS_SET_TITLE;
+/// Description key of `layers.set`.
+pub const LAYERS_SET_DESCRIPTION: &str = i18n::COMMAND_LAYERS_SET_DESCRIPTION;
+/// Largest project file that is read; a bigger one is refused.
+pub const PROJECT_FILE_MAX_BYTES: u64 = 1_048_576;

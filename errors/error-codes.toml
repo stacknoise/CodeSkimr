@@ -150,6 +150,14 @@ description = "A configuration file or flag sets a key that does not exist."
 since = "0.1.0"
 
 [[codes]]
+id = "CFG-104"
+name = "project_file_not_writable"
+severity = "error"
+retryable = false
+description = "The project file `.codeskimr.toml` could not be written."
+since = "0.9.0"
+
+[[codes]]
 id = "PRJ-101"
 name = "project_source_invalid"
 severity = "error"

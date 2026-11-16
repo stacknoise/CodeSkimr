@@ -3,7 +3,7 @@
 use codeskimr_domain::{
     FingerprintParams, Layer, LayerName, LayoutParams, ModelError, NodeSize, QualifiedName,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::time::Duration;
 
@@ -65,7 +65,7 @@ pub struct KeySources {
 }
 
 /// One architecture layer as written in `.codeskimr.toml`.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct LayerRule {
     /// Name of the layer, unique in the project.
@@ -74,7 +74,7 @@ pub struct LayerRule {
     pub namespaces: Vec<String>,
     /// Names of the layers this layer may depend on (ADR 0054). Missing means no limit; an empty
     /// list means none.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub may_use: Option<Vec<String>>,
 }
 

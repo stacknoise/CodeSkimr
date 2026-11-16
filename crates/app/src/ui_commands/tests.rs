@@ -135,6 +135,8 @@ fn the_commands_are_offered() {
             "explorer.symbol",
             "export.html",
             "graph.layers",
+            "layers.get",
+            "layers.set",
             "preferences.get",
             "preferences.set",
             "projects.add",
