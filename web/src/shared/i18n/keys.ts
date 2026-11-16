@@ -547,7 +547,6 @@ export const I18N_KEYS = {
   USAGES_LEVEL_NAMESPACES: "usages-level-namespaces",
   USAGES_LEVEL_TYPES: "usages-level-types",
   USAGES_LEVEL_SYMBOL: "usages-level-symbol",
-  USAGES_LEVEL_SOON: "usages-level-soon",
   USAGES_DIRECTION_LABEL: "usages-direction-label",
   USAGES_MODE_BOTH: "usages-mode-both",
   USAGES_MODE_CALLERS: "usages-mode-callers",

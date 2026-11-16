@@ -5,7 +5,6 @@ usages-level-label = Ebene
 usages-level-namespaces = Namespaces
 usages-level-types = Typen
 usages-level-symbol = Symbol
-usages-level-soon = Die Abhängigkeitskarte hat einen eigenen Bildschirm und ist noch nicht verfügbar.
 usages-direction-label = Richtung
 usages-mode-both = beide
 usages-mode-callers = wer ruft auf

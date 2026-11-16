@@ -2,6 +2,12 @@ import { For } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
+import { GRAPH_ROUTE } from "../../app/consts";
+import { navigate } from "../../app/router";
+import { currentType } from "../explorer/explorer";
+import { LEVEL } from "../graph/consts";
+import { setGraphFocus, setGraphLevel } from "../graph/graph";
+import type { Level } from "../graph/types";
 import { DEPTH_ALL, DEPTHS, ROLE, WAYS } from "./consts";
 import {
   direction,
@@ -13,16 +19,22 @@ import {
 } from "./usages";
 import styles from "./Toolbar.module.css";
 
-/** The level of the mock: only the symbol level exists here; the other two belong to the graph
- * screen and are shown off, with the reason as a tooltip. */
+/** The levels of the mock: the symbol level is this screen; the other two open the dependency
+ * map on that level. The type level needs a type chosen in the explorer. */
 function Levels() {
-  const soon = t(I18N_KEYS.USAGES_LEVEL_SOON);
+  const pick = t(I18N_KEYS.GRAPH_TYPES_PICK);
+  const typed = () => currentType() !== null;
   return (
     <div class={styles.group} role={ROLE.group} aria-label={t(I18N_KEYS.USAGES_LEVEL_LABEL)}>
-      <button type="button" aria-disabled={true} title={soon}>
+      <button type="button" onClick={() => openMap(LEVEL.namespaces)}>
         {t(I18N_KEYS.USAGES_LEVEL_NAMESPACES)}
       </button>
-      <button type="button" aria-disabled={true} title={soon}>
+      <button
+        type="button"
+        aria-disabled={!typed()}
+        title={typed() ? undefined : pick}
+        onClick={() => typed() && openMap(LEVEL.types)}
+      >
         {t(I18N_KEYS.USAGES_LEVEL_TYPES)}
       </button>
       <button type="button" class={styles.current} aria-pressed={true}>
@@ -30,6 +42,16 @@ function Levels() {
       </button>
     </div>
   );
+}
+
+/** Opens the dependency map on `level`; the type level puts the explorer's type in the middle. */
+function openMap(level: Level) {
+  const type = currentType();
+  if (level === LEVEL.types && type !== null) {
+    setGraphFocus(type);
+  }
+  setGraphLevel(level);
+  navigate(GRAPH_ROUTE.path);
 }
 
 function Directions() {

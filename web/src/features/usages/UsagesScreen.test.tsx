@@ -7,6 +7,7 @@ import { pendingFocus, requestFocus } from "../../shared/navigation/navigation";
 import { pointer } from "../../tests/pointer";
 import { ANSWER } from "../../tests/usages";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
+import { graphLevel } from "../graph/graph";
 import { startView } from "./GraphView";
 import type { Graph } from "./graph";
 import { UsagesScreen } from "./UsagesScreen";
@@ -51,6 +52,14 @@ describe("UsagesScreen", () => {
     clearUsages();
     render(() => <UsagesScreen />);
     expect(await screen.findByText("No symbol chosen")).toBeTruthy();
+  });
+
+  it("opens the dependency map from the level buttons", async () => {
+    shown();
+    await screen.findByRole("heading", { name: "Cart.Total" });
+    fireEvent.click(screen.getByRole("button", { name: "Namespaces" }));
+    await waitFor(() => expect(currentPath()).toBe("/graph"));
+    expect(graphLevel()).toBe("namespaces");
   });
 
   it("shows the symbol, the counts, the impact and the cards of the graph", async () => {
