@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use codeskimr_application::config::Graph;
 use codeskimr_domain::name_parts;
 
-use super::consts::{FRAME_GAP_DIVISOR, FRAME_TITLE_DIVISOR, NAME_JOIN};
+use super::consts::{FRAME_GAP_DIVISOR, FRAME_TITLE_DIVISOR, MIN_LINE_BOXES, NAME_JOIN};
 use super::graph::{BoxOut, GroupOut};
 use super::graph_wrap::Extent;
 
@@ -189,7 +189,7 @@ pub(super) fn arrange(boxes: &mut [BoxOut], look: &Graph) -> (Vec<GroupOut>, Ext
             .or_default()
             .insert(&name_parts(&found.name), index);
     }
-    let per_line = look.row_boxes.max(1);
+    let per_line = look.row_boxes.max(MIN_LINE_BOXES);
     let max = per_line * (look.node_width + look.node_gap) - look.node_gap;
     let (mut groups, mut top, mut width) = (Vec::new(), 0, 0);
     for tree in rows.values() {

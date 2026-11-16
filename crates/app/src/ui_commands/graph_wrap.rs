@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use codeskimr_application::config::Graph;
 
-use super::consts::{BAND_PAD_DIVISOR, CENTRE_DIVISOR, MARGIN_SIDES};
+use super::consts::{BAND_PAD_DIVISOR, CENTRE_DIVISOR, MARGIN_SIDES, MIN_LINE_BOXES};
 use super::graph::{BoxOut, GroupOut};
 
 /// The size of the picture after [`arrange`].
@@ -38,7 +38,7 @@ fn rows(boxes: &[BoxOut]) -> BTreeMap<u32, Vec<usize>> {
 /// Puts the boxes of a row that is too long into a grid; a picture with no long row stays as the
 /// layout placed it. Returns the new size, or `None` when nothing changed.
 fn wrap_rows(boxes: &mut [BoxOut], look: &Graph, always: bool) -> Option<Extent> {
-    let per_line = to_usize(look.row_boxes.max(1));
+    let per_line = to_usize(look.row_boxes.max(MIN_LINE_BOXES));
     let rows = rows(boxes);
     if !always && rows.values().all(|row| row.len() <= per_line) {
         return None;

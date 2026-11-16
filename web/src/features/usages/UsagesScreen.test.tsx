@@ -7,7 +7,8 @@ import { pendingFocus, requestFocus } from "../../shared/navigation/navigation";
 import { pointer } from "../../tests/pointer";
 import { ANSWER } from "../../tests/usages";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
-import { graphLevel } from "../graph/graph";
+import { graphFocus, graphLevel } from "../graph/graph";
+import { selectType } from "../explorer/explorer";
 import { startView } from "./GraphView";
 import type { Graph } from "./graph";
 import { UsagesScreen } from "./UsagesScreen";
@@ -66,6 +67,16 @@ describe("UsagesScreen", () => {
     shown();
     await screen.findByRole("heading", { name: "Cart.Total" });
     expect(screen.getByRole("button", { name: "Types" })).toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("opens the type focus with the type chosen in the explorer", async () => {
+    shown();
+    await screen.findByRole("heading", { name: "Cart.Total" });
+    await selectType(1, 7);
+    fireEvent.click(screen.getByRole("button", { name: "Types" }));
+    await waitFor(() => expect(currentPath()).toBe("/graph"));
+    expect(graphLevel()).toBe("types");
+    expect(graphFocus()).toBe(7);
   });
 
   it("shows the symbol, the counts, the impact and the cards of the graph", async () => {
