@@ -11,13 +11,17 @@ import {
   MISSING,
   PROPERTY_KINDS,
   PUBLIC,
+  SORT_COLUMN,
+  SORT_MARK,
+  type SortColumn,
   TRUE,
   type ChipId,
 } from "./consts";
-import { currentMember } from "./explorer";
+import { currentMember, memberSort, setMemberSort } from "./explorer";
 import { lineRange, metricValue } from "./format";
 import { KindBadge } from "./KindBadge";
 import { tipFor } from "./metrics";
+import { pressColumn, sortMembers } from "./memberSort";
 import { ratingClass } from "./ratingClass";
 import type { MemberRow, SymbolInfo, Thresholds } from "./types";
 import styles from "./MemberTable.module.css";
@@ -99,23 +103,57 @@ function Chips(props: { chip: ChipId; onChip: (chip: ChipId) => void }) {
   );
 }
 
+/** The head of a column that sorts the table when it is pressed. */
+function SortHead(props: {
+  column: SortColumn;
+  label: MessageKey;
+  number?: boolean;
+  tip?: string;
+}) {
+  const current = () => memberSort();
+  const sorted = () => current().column === props.column;
+  return (
+    <th
+      class={props.number ? styles.number : undefined}
+      title={props.tip}
+      aria-sort={sorted() ? current().direction : undefined}
+    >
+      <button
+        type="button"
+        class={cx(styles.sort, sorted() && styles.sorted)}
+        onClick={() => setMemberSort(pressColumn(current(), props.column))}
+      >
+        {t(props.label)}
+        <Show when={sorted()}>
+          <span class={styles.mark} aria-hidden={true}>
+            {SORT_MARK[current().direction]}
+          </span>
+        </Show>
+      </button>
+    </th>
+  );
+}
+
 function Head(props: { thresholds: Thresholds | null }) {
   return (
     <thead>
       <tr>
-        <th>{t(I18N_KEYS.EXPLORER_COLUMN_NAME)}</th>
-        <th>{t(I18N_KEYS.EXPLORER_COLUMN_SIGNATURE)}</th>
-        <th>{t(I18N_KEYS.EXPLORER_COLUMN_ACCESS)}</th>
-        <th
-          class={styles.number}
-          title={tipFor(CC_METRIC, I18N_KEYS.EXPLORER_COLUMN_COMPLEXITY_TIP, props.thresholds)}
-        >
-          {t(I18N_KEYS.EXPLORER_COLUMN_COMPLEXITY)}
-        </th>
-        <th class={styles.number} title={t(I18N_KEYS.EXPLORER_COLUMN_USES_TIP)}>
-          {t(I18N_KEYS.EXPLORER_COLUMN_USES)}
-        </th>
-        <th class={styles.number}>{t(I18N_KEYS.EXPLORER_COLUMN_LINES)}</th>
+        <SortHead column={SORT_COLUMN.name} label={I18N_KEYS.EXPLORER_COLUMN_NAME} />
+        <SortHead column={SORT_COLUMN.signature} label={I18N_KEYS.EXPLORER_COLUMN_SIGNATURE} />
+        <SortHead column={SORT_COLUMN.access} label={I18N_KEYS.EXPLORER_COLUMN_ACCESS} />
+        <SortHead
+          column={SORT_COLUMN.complexity}
+          label={I18N_KEYS.EXPLORER_COLUMN_COMPLEXITY}
+          tip={tipFor(CC_METRIC, I18N_KEYS.EXPLORER_COLUMN_COMPLEXITY_TIP, props.thresholds)}
+          number
+        />
+        <SortHead
+          column={SORT_COLUMN.usages}
+          label={I18N_KEYS.EXPLORER_COLUMN_USES}
+          tip={t(I18N_KEYS.EXPLORER_COLUMN_USES_TIP)}
+          number
+        />
+        <SortHead column={SORT_COLUMN.lines} label={I18N_KEYS.EXPLORER_COLUMN_LINES} number />
       </tr>
     </thead>
   );
@@ -129,7 +167,11 @@ export function MemberTable(props: {
   onPick: (row: MemberRow) => void;
 }) {
   const [chip, setChip] = createSignal<ChipId>(CHIP.all);
-  const rows = () => props.info.members.filter((row) => keeps(chip(), row));
+  const rows = () =>
+    sortMembers(
+      props.info.members.filter((row) => keeps(chip(), row)),
+      memberSort(),
+    );
   return (
     <div class={styles.table}>
       <div class={styles.bar} role="tablist">

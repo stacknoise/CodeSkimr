@@ -48,7 +48,7 @@ describe("ExplorerScreen", () => {
     await screen.findByText("decimal Total()");
     fireEvent.click(screen.getAllByTitle("Show the usages")[0]!);
     expect(currentPath()).toBe("/usages");
-    expect(focusSymbol()).toBe(8);
+    expect(focusSymbol()).toBe(9);
     navigate("/explorer");
     fireEvent.click(screen.getByRole("button", { name: /^Usages/ }));
     expect(focusSymbol()).toBe(7);
@@ -239,7 +239,7 @@ describe("the details", () => {
     });
     render(() => <ExplorerScreen />);
     await openOrder();
-    fireEvent.click(await screen.findByRole("button", { name: /Line/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Line$/ }));
     expect(await screen.findByRole("treeitem", { name: /Line/ })).toBeTruthy();
   });
 });
@@ -324,5 +324,32 @@ describe("coming back to the explorer", () => {
     render(() => <ExplorerScreen />);
     await screen.findByRole("heading", { name: "Order" });
     await waitFor(() => expect(screen.getByRole("tree").scrollTop).toBe(52));
+  });
+});
+
+describe("sorting the member table", () => {
+  const names = () =>
+    Array.from(document.querySelectorAll("tbody td:first-child button")).map((cell) =>
+      (cell.textContent ?? "").trim(),
+    );
+
+  it("sorts by name at first and by a column when its head is pressed, turning it round on the second press", async () => {
+    renderOrder();
+    await openOrder();
+    await screen.findByText("decimal Total()");
+    expect(names().length).toBe(2);
+    expect(names()[0]).toContain("Id");
+    expect(screen.getByRole("columnheader", { name: /Name/ }).getAttribute("aria-sort")).toBe(
+      "ascending",
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^CC/ }));
+    expect(names()[0]).toContain("Total");
+    expect(screen.getByRole("columnheader", { name: /CC/ }).getAttribute("aria-sort")).toBe(
+      "descending",
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^CC/ }));
+    // A member without a value stays last, also when the order is turned round.
+    expect(names()[0]).toContain("Total");
+    expect(names()[1]).toContain("Id");
   });
 });
