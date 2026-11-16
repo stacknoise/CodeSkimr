@@ -18,6 +18,7 @@ import {
   outlineError,
   outlineLoading,
   symbolDetails,
+  shownMember,
   symbolError,
   treeOutline,
   type Failure,
@@ -160,6 +161,27 @@ function useShortcuts(explorer: ReturnType<typeof useExplorer>): void {
   });
 }
 
+/** The three columns: tree, details and source. */
+function Columns(props: { explorer: ReturnType<typeof useExplorer> }) {
+  const { explorer } = props;
+  return (
+    <div class={styles.screen}>
+      <TreePane
+        rows={explorer.rows()}
+        cursor={explorer.cursor()}
+        actions={explorer.actions}
+        note={treeNote(explorer.rows().length)}
+      />
+      <Splitter pane={treeWidth} orientation={ORIENTATION.vertical} side={SIDE.before} />
+      <Details onPickMember={explorer.pickMember} />
+      <Show when={shownMember() === null}>
+        <Splitter pane={sourceWidth} orientation={ORIENTATION.vertical} side={SIDE.after} />
+      </Show>
+      <SourcePane shown={shownSymbol() !== null} wide={shownMember() !== null} />
+    </div>
+  );
+}
+
 /** Screen 2, the explorer: tree, details and source (blueprint B.2, mock `Explorer.dc.html`). */
 export function ExplorerScreen() {
   const explorer = useExplorer();
@@ -184,18 +206,7 @@ export function ExplorerScreen() {
         )}
       </Match>
       <Match when={true}>
-        <div class={styles.screen}>
-          <TreePane
-            rows={explorer.rows()}
-            cursor={explorer.cursor()}
-            actions={explorer.actions}
-            note={treeNote(explorer.rows().length)}
-          />
-          <Splitter pane={treeWidth} orientation={ORIENTATION.vertical} side={SIDE.before} />
-          <Details onPickMember={explorer.pickMember} />
-          <Splitter pane={sourceWidth} orientation={ORIENTATION.vertical} side={SIDE.after} />
-          <SourcePane shown={shownSymbol() !== null} />
-        </div>
+        <Columns explorer={explorer} />
       </Match>
     </Switch>
   );

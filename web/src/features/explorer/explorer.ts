@@ -1,11 +1,11 @@
 import { createSignal } from "solid-js";
 import { runCommand } from "../../shared/api/commands";
 import { pendingFocus, requestFocus } from "../../shared/navigation/navigation";
-import { COMMAND, GROUP, NOT_FOUND, TYPE_KINDS } from "./consts";
+import { CHIP, COMMAND, GROUP, NOT_FOUND, TYPE_KINDS, type ChipId } from "./consts";
 import { failed, type Failure } from "./failure";
-import { INITIAL_SORT, sortMembers, type MemberSort } from "./memberSort";
+import { INITIAL_SORT, tableRows, type MemberSort } from "./memberSort";
 import { groupKey, groupOfKind, memberKey, revealKeys, typeKey } from "./tree";
-import type { Outline, SymbolInfo } from "./types";
+import type { MemberRow, Outline, SymbolInfo } from "./types";
 
 export type { Failure };
 
@@ -20,6 +20,7 @@ const [selectedMember, setSelectedMember] = createSignal<number | null>(null);
 const [filter, setFilter] = createSignal("");
 const [cursor, setCursor] = createSignal<string | null>(null);
 const [sort, setSort] = createSignal<MemberSort>(INITIAL_SORT);
+const [chip, setChip] = createSignal<ChipId>(CHIP.all);
 
 /** Counts the projects read so far; an answer for an earlier one is dropped. */
 let generation = 0;
@@ -43,10 +44,12 @@ export const currentMember = selectedMember;
 /** The row of the tree that the keys act on. */
 export const treeCursor = cursor;
 export const setTreeCursor = setCursor;
-/** The navigation that waits for the tree to be read. */
 /** How the member table is sorted. It stays when another type is shown. */
 export const memberSort = sort;
 export const setMemberSort = setSort;
+/** Which members the table shows (all, properties, methods, public only). */
+export const memberChip = chip;
+export const setMemberChip = setChip;
 /** What the filter field holds. */
 export const treeFilter = filter;
 export const setTreeFilter = setFilter;
@@ -108,6 +111,15 @@ async function refreshOutline(project: number): Promise<void> {
   }
 }
 
+/** The member row that is selected in the shown type, `null` if no member is selected (or it is
+ * not a member of the shown type). The details then show the member, not the type. */
+export function shownMember(): MemberRow | null {
+  const type = selectedType();
+  const id = selectedMember();
+  const info = type === null || id === null ? undefined : details().get(type);
+  return info?.members.find((member) => member.id === id) ?? null;
+}
+
 /** Reads the tree of `project` and forgets everything that was read for another one. */
 async function readOutline(project: number): Promise<void> {
   heldProject = project;
@@ -119,6 +131,7 @@ async function readOutline(project: number): Promise<void> {
   setExpanded(new Set<string>());
   setSelectedType(null);
   setSelectedMember(null);
+  setChip(CHIP.all);
   setCursor(null);
   setSymbolFailure(null);
   setOutlineFailure(null);
@@ -207,9 +220,8 @@ export async function selectType(
 export async function stepMember(project: number, step: number): Promise<void> {
   const type = selectedType();
   const members = (type === null ? undefined : details().get(type))?.members ?? [];
-  const own = sortMembers(
-    members.filter((member) => !TYPE_KINDS.includes(member.kind)),
-    sort(),
+  const own = tableRows(members, chip(), sort()).filter(
+    (member) => !TYPE_KINDS.includes(member.kind),
   );
   if (type === null || own.length === 0) {
     return;

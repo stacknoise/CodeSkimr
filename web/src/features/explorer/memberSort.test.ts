@@ -43,6 +43,15 @@ describe("sortMembers", () => {
     expect(by("access", "ascending")).toEqual(["beta", "Alpha", "gamma"]);
   });
 
+  it("orders rows that both have no value by name", () => {
+    const empty = [row("b"), row("a"), row("c", { complexity: 1 })];
+    const sorted = sortMembers(empty, {
+      column: SORT_COLUMN.complexity,
+      direction: SORT_DIRECTION.descending,
+    });
+    expect(names(sorted)).toEqual(["c", "a", "b"]);
+  });
+
   it("orders equal values by name and does not change the list it is given", () => {
     const same = [row("b"), row("a")];
     expect(

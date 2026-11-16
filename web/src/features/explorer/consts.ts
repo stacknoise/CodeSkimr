@@ -296,3 +296,6 @@ export const NAME_COLLATION: Intl.CollatorOptions = { sensitivity: "base", numer
 
 /** The sign that turns the order of a comparison for the direction of a sort. */
 export const SORT_SIGN = { ascending: 1, descending: -1 } as const;
+
+/** The `flex` of the source column when it takes all the room that is left. */
+export const WIDE_FLEX = "1 1 0";

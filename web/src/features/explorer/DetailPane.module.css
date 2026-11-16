@@ -8,6 +8,11 @@
     gap: 14px;
 }
 
+/* A member is selected: only the header stays, the source takes the room. */
+.compact {
+    flex: 0 1 380px;
+}
+
 .crumbs {
     display: flex;
     flex-wrap: wrap;

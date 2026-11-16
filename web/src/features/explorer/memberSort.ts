@@ -1,10 +1,15 @@
 import {
+  CHIP,
   DEFAULT_SORT,
   NAME_COLLATION,
+  METHOD_KINDS,
   NUMBER_COLUMNS,
+  PROPERTY_KINDS,
+  PUBLIC,
   SORT_COLUMN,
   SORT_DIRECTION,
   SORT_SIGN,
+  type ChipId,
   type SortColumn,
   type SortDirection,
 } from "./consts";
@@ -47,10 +52,11 @@ export function sortMembers(rows: readonly MemberRow[], sort: MemberSort): Membe
   return [...rows].sort((a, b) => {
     const left = valueOf(a, sort.column);
     const right = valueOf(b, sort.column);
-    if (left === null || right === null) {
-      return left === right ? 0 : left === null ? SORT_SIGN.ascending : SORT_SIGN.descending;
-    }
-    return sign * compare(left, right) || compare(a.name, b.name) || a.first_line - b.first_line;
+    const byValue =
+      left === null || right === null
+        ? Number(left === null) - Number(right === null)
+        : sign * compare(left, right);
+    return byValue || compare(a.name, b.name) || a.first_line - b.first_line;
   });
 }
 
@@ -75,3 +81,25 @@ export function pressColumn(current: MemberSort, column: SortColumn): MemberSort
 }
 
 export const INITIAL_SORT: MemberSort = { ...DEFAULT_SORT };
+
+/** Whether the chip of the member table keeps a row. */
+export function keeps(chip: ChipId, row: MemberRow): boolean {
+  switch (chip) {
+    case CHIP.properties:
+      return PROPERTY_KINDS.includes(row.kind);
+    case CHIP.methods:
+      return METHOD_KINDS.includes(row.kind);
+    case CHIP.public:
+      return row.visibility === PUBLIC;
+    default:
+      return true;
+  }
+}
+
+/** The rows of the member table: those the chip keeps, in the order of the sort. */
+export function tableRows(rows: readonly MemberRow[], chip: ChipId, sort: MemberSort): MemberRow[] {
+  return sortMembers(
+    rows.filter((row) => keeps(chip, row)),
+    sort,
+  );
+}
