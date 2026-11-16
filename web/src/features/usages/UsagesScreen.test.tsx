@@ -241,9 +241,23 @@ describe("the graph of the usages", () => {
     expect(drag(graph, 1)).toBe(true);
   });
 
-  it("starts with the focus in the middle of the height", () => {
-    const graph = { height: 1000, cards: [{ focus: true, y: 480, height: 40 }] } as Graph;
-    expect(startView(graph, { width: 800, height: 400 })).toEqual({ scale: 1, x: 0, y: -300 });
-    expect(startView(graph, { width: 800, height: 2000 })).toEqual({ scale: 1, x: 0, y: 0 });
+  it("opens a small graph in the middle of the area, at its own size", () => {
+    const graph = { width: 400, height: 200, cards: [] } as unknown as Graph;
+    expect(startView(graph, { width: 1000, height: 600 })).toEqual({ scale: 1, x: 300, y: 200 });
+  });
+
+  it("opens a graph that is a little too large smaller, and a huge one on the focus", () => {
+    const big = { width: 1500, height: 600, cards: [] } as unknown as Graph;
+    const view = startView(big, { width: 1000, height: 600 });
+    expect(view.scale).toBeCloseTo(0.624, 3);
+    const tall = {
+      width: 500,
+      height: 4000,
+      cards: [{ focus: true, x: 100, y: 2000, height: 40 }],
+    } as unknown as Graph;
+    const centred = startView(tall, { width: 1000, height: 600 });
+    expect(centred.scale).toBe(0.6);
+    expect(centred.x).toBe(350);
+    expect(centred.y).toBeCloseTo(300 - 2020 * 0.6, 5);
   });
 });

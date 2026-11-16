@@ -134,3 +134,5 @@ export const HITS_PANE_KEY = "usages.hits";
 export const HITS_PANE_BOUNDS = { initial: 250, min: 80, max: 700 } as const;
 /** Symbols on the buttons that zoom, and the text of the one that fits the graph. */
 export const ZOOM_SYMBOL = { in: "+", out: "−", fit: "⤢" } as const;
+/** The smallest scale a new graph opens with; a larger graph is centred on the focus instead. */
+export const START_MIN_SCALE = 0.6;

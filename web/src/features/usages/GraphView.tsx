@@ -6,7 +6,15 @@ import { KindBadge } from "../explorer/KindBadge";
 import { fit, transformOf, zoomAt } from "../graph/viewport";
 import { useNavigation } from "../graph/useNavigation";
 import type { Size, View } from "../graph/types";
-import { COLUMN, GRAPH, MISSING, ROLE, ZOOM_BUTTON_NOTCHES, ZOOM_SYMBOL } from "./consts";
+import {
+  COLUMN,
+  GRAPH,
+  MISSING,
+  ROLE,
+  START_MIN_SCALE,
+  ZOOM_BUTTON_NOTCHES,
+  ZOOM_SYMBOL,
+} from "./consts";
 import { buildGraph, type Card, type Column, type Graph } from "./graph";
 import { Legend } from "./Legend";
 import type { UsagesAnswer } from "./types";
@@ -52,12 +60,33 @@ function CardButton(props: { card: Card; onPick: (card: Card) => void }) {
   );
 }
 
-/** The first view of a graph: 1:1, the focus in the middle of the height of the area. */
+/** Where a picture of `content` pixels, scaled, starts along one axis of an area of `length`
+ * pixels: in the middle if it fits, else with `focus` (a point of the picture) in the middle,
+ * without leaving a gap at either end. */
+function startAlong(length: number, content: number, scale: number, focus: number): number {
+  const shown = content * scale;
+  if (shown <= length) {
+    return (length - shown) / GRAPH.half;
+  }
+  return Math.min(0, Math.max(length - shown, length / GRAPH.half - focus * scale));
+}
+
+/** The first view of a graph: all of it in the middle of the area, as large as fits but not
+ * smaller than `START_MIN_SCALE`. A graph too large for that is centred on the focus. */
 export function startView(graph: Graph, area: Size): View {
+  const whole = fit(graph, area);
+  const scale = Math.max(whole.scale, START_MIN_SCALE);
+  if (scale === whole.scale) {
+    return whole;
+  }
   const focus = graph.cards.find((card) => card.focus);
-  const middle = focus ? focus.y + focus.height / GRAPH.half : 0;
-  const lowest = Math.min(0, area.height - graph.height);
-  return { scale: 1, x: 0, y: Math.min(0, Math.max(lowest, area.height / GRAPH.half - middle)) };
+  const x = focus ? focus.x + GRAPH.columnWidth / GRAPH.half : 0;
+  const y = focus ? focus.y + focus.height / GRAPH.half : 0;
+  return {
+    scale,
+    x: startAlong(area.width, graph.width, scale, x),
+    y: startAlong(area.height, graph.height, scale, y),
+  };
 }
 
 function ZoomButtons(props: { onZoom: (notches: number) => void; onFit: () => void }) {
@@ -92,8 +121,7 @@ function ZoomButtons(props: { onZoom: (notches: number) => void; onFit: () => vo
 }
 
 /** The view of the graph and what moves it: the wheel zooms around the pointer, a drag on the
- * empty ground or with the middle button pans, the buttons zoom and fit. A new graph starts at
- * the focus. */
+ * empty ground or with the middle button pans, the buttons zoom and fit. A new graph starts in the middle of the area. */
 function useView(graph: () => Graph) {
   let area: HTMLDivElement | undefined;
   const [view, setView] = createSignal<View>({ scale: 1, x: 0, y: 0 });
