@@ -47,9 +47,24 @@ function Message(props: { title?: string | undefined; text: string; hint?: boole
 
 type Actions = ReturnType<typeof useSelectionActions>;
 
+/** What the selected box is, by level. */
+const SELECTED_KIND = {
+  layers: I18N_KEYS.GRAPH_SELECTED_KIND,
+  namespaces: I18N_KEYS.GRAPH_SELECTED_NAMESPACE,
+  types: I18N_KEYS.GRAPH_SELECTED_TYPE,
+} as const;
+
 /** Whether the map shows one layer only, which has nothing to depend on. */
 function singleLayer(current: GraphData): boolean {
   return graphLevel() === LEVEL.layers && current.boxes.length === 1;
+}
+
+/** The note for a map without a line: by level, and a single layer needs a second one. */
+function noEdgesText(current: GraphData) {
+  if (graphLevel() === LEVEL.namespaces) {
+    return I18N_KEYS.GRAPH_NAMESPACE_ALONE;
+  }
+  return singleLayer(current) ? I18N_KEYS.GRAPH_SINGLE_LAYER : I18N_KEYS.GRAPH_NO_EDGES;
 }
 
 /** The notes under the map: types left out, no edges. */
@@ -57,12 +72,19 @@ function Notes(props: { current: GraphData }) {
   return (
     <>
       <Show when={moreTypes(props.current)}>
-        {(count) => <p class={styles.note}>{t(I18N_KEYS.GRAPH_TYPES_MORE, { count: count() })}</p>}
+        {(count) => (
+          <p class={styles.note}>
+            {t(
+              graphLevel() === LEVEL.namespaces
+                ? I18N_KEYS.GRAPH_NAMESPACES_MORE
+                : I18N_KEYS.GRAPH_TYPES_MORE,
+              { count: count() },
+            )}
+          </p>
+        )}
       </Show>
       <Show when={props.current.links.length === 0}>
-        <p class={styles.note}>
-          {t(singleLayer(props.current) ? I18N_KEYS.GRAPH_SINGLE_LAYER : I18N_KEYS.GRAPH_NO_EDGES)}
-        </p>
+        <p class={styles.note}>{t(noEdgesText(props.current))}</p>
       </Show>
     </>
   );
@@ -146,11 +168,7 @@ function PanelPane(props: {
       violations={violations(props.current.links)}
       onSelect={props.state.setSelected}
       onOpen={props.actions.openExplorer}
-      kind={
-        graphLevel() === LEVEL.types
-          ? t(I18N_KEYS.GRAPH_SELECTED_TYPE)
-          : t(I18N_KEYS.GRAPH_SELECTED_KIND)
-      }
+      kind={t(SELECTED_KIND[graphLevel()])}
     />
   );
 }

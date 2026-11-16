@@ -12,10 +12,12 @@ import {
   graphDepth,
   graphFocus,
   graphLevel,
+  graphNamespace,
   loadGraph,
   resetGraph,
   setGraphFocus,
   setGraphLevel,
+  setGraphNamespace,
   wantedLayer,
   wantLayer,
 } from "./graph";
@@ -74,7 +76,8 @@ export function useGraphLoading(state: MapState): void {
     }),
   );
   createEffect(on([() => graphData()?.snapshot, size], fitView));
-  // On the type level the type in the middle is selected, so the panel shows what surrounds it.
+  // On the type and namespace levels the one in the middle is selected,
+  // so the panel shows what surrounds it.
   createEffect(on(graphData, (loaded) => loaded?.focus && setSelected(loaded.focus.name)));
   createEffect(() => {
     const layer = wantedLayer();
@@ -86,7 +89,7 @@ export function useGraphLoading(state: MapState): void {
   });
   createEffect(
     on(
-      [graphLevel, graphDepth, graphFocus],
+      [graphLevel, graphDepth, graphFocus, graphNamespace],
       () => {
         const id = project();
         if (id !== null) {
@@ -103,24 +106,24 @@ function isButton(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && target.tagName === "BUTTON";
 }
 
-/** What the screen does with the selected box: open it in the explorer, make it the focus. */
-export function useSelectionActions(state: MapState) {
-  const { selected, project, data } = state;
-  const selectedType = () => {
-    const name = selected();
-    return graphLevel() === LEVEL.types
-      ? data()?.boxes.find((box) => box.name === name)?.symbol
-      : null;
-  };
-  const openExplorer = () => {
-    const id = project();
-    if (id !== null) {
-      const type = selectedType();
-      if (type !== null && type !== undefined) {
-        requestFocus({ type, member: null, kind: null });
-      }
-      openProject(id);
-      navigate(EXPLORER_ROUTE.path);
+/** The type of the selected box on the type level, `null` elsewhere. */
+function selectedTypeOf(state: MapState): number | null | undefined {
+  const name = state.selected();
+  return graphLevel() === LEVEL.types
+    ? state.data()?.boxes.find((box) => box.name === name)?.symbol
+    : null;
+}
+
+/** Puts a box in the middle of the map: a namespace on the namespace level, a type on the type
+ * level. */
+function useFocusActions(state: MapState) {
+  const { data } = state;
+  const focusBox = (name: string) => {
+    const symbol = data()?.boxes.find((box) => box.name === name)?.symbol;
+    if (graphLevel() === LEVEL.namespaces) {
+      setGraphNamespace(name);
+    } else if (graphLevel() === LEVEL.types && symbol !== null && symbol !== undefined) {
+      setGraphFocus(symbol);
     }
   };
   const focusType = () => {
@@ -130,15 +133,24 @@ export function useSelectionActions(state: MapState) {
       setGraphLevel(LEVEL.types);
     }
   };
-  /** Double click on a box: on the type level the type becomes the middle of the map. */
-  const focusBox = (name: string) => {
-    const type =
-      graphLevel() === LEVEL.types ? data()?.boxes.find((box) => box.name === name)?.symbol : null;
-    if (type !== null && type !== undefined && type !== graphFocus()) {
-      setGraphFocus(type);
+  return { focusType, focusBox };
+}
+
+/** What the screen does with the selected box: open it in the explorer, make it the focus. */
+export function useSelectionActions(state: MapState) {
+  const { project } = state;
+  const openExplorer = () => {
+    const id = project();
+    if (id !== null) {
+      const type = selectedTypeOf(state);
+      if (type !== null && type !== undefined) {
+        requestFocus({ type, member: null, kind: null });
+      }
+      openProject(id);
+      navigate(EXPLORER_ROUTE.path);
     }
   };
-  return { openExplorer, focusType, focusBox };
+  return { openExplorer, ...useFocusActions(state) };
 }
 
 /** The keys of the screen: fit the view and open the selection. */

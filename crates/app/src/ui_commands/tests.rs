@@ -827,7 +827,7 @@ fn the_layer_map_has_a_band_behind_every_layer_row() {
 }
 
 #[test]
-fn the_namespace_level_has_one_box_per_namespace_with_its_types_and_dependencies() {
+fn the_namespace_level_puts_one_namespace_in_the_middle_with_its_neighbours() {
     let graph = layered_graph(&json!({ "level": "namespaces" }));
     let boxes = graph["boxes"].as_array().unwrap();
     let found: Vec<_> = boxes
@@ -838,16 +838,41 @@ fn the_namespace_level_has_one_box_per_namespace_with_its_types_and_dependencies
     assert_eq!(typed("Demo.Core").map(|found| found.1), Some(1));
     assert_eq!(typed("Demo.Ui").map(|found| found.1), Some(1));
     assert!(found.iter().all(|(_, types)| *types > 0));
-    assert!(graph["groups"].is_array());
     assert!(
         boxes
             .iter()
             .all(|b| !b["label"].as_str().unwrap().is_empty())
     );
+    assert!(graph["focus"]["name"].is_string());
+    assert!(graph["focus"]["symbol"].is_null());
     let links = graph["links"].as_array().unwrap();
     assert_eq!(links.len(), 1);
     assert!(links[0]["from"].as_str().unwrap().ends_with("Demo.Ui"));
     assert!(links[0]["to"].as_str().unwrap().ends_with("Demo.Core"));
+}
+
+#[test]
+fn the_namespace_in_the_middle_can_be_chosen_and_its_neighbours_sit_above_and_below() {
+    let ui = layered_graph(&json!({ "level": "namespaces", "namespace": "Demo.Ui" }));
+    let core = layered_graph(&json!({ "level": "namespaces", "namespace": "Demo.Core" }));
+    let row_of = |graph: &serde_json::Value, suffix: &str| {
+        graph["boxes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|b| b["name"].as_str().unwrap().ends_with(suffix))
+            .map(|b| b["rank"].as_u64().unwrap())
+    };
+    assert!(ui["focus"]["name"].as_str().unwrap().ends_with("Demo.Ui"));
+    assert!(row_of(&ui, "Demo.Ui") < row_of(&ui, "Demo.Core"));
+    assert!(
+        core["focus"]["name"]
+            .as_str()
+            .unwrap()
+            .ends_with("Demo.Core")
+    );
+    assert!(row_of(&core, "Demo.Core") > row_of(&core, "Demo.Ui"));
+    assert_eq!(core["bands"].as_array().unwrap().len(), 0);
 }
 
 #[test]
@@ -869,21 +894,7 @@ fn a_depth_merges_the_namespaces_and_leaves_no_dependency_to_itself() {
     for link in top["links"].as_array().unwrap() {
         assert_ne!(link["from"], link["to"]);
     }
-    let types: u64 = top["boxes"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|b| b["types"].as_u64().unwrap())
-        .sum();
-    assert_eq!(
-        types,
-        all["boxes"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|b| b["types"].as_u64().unwrap())
-            .sum::<u64>()
-    );
+    assert_ne!(names(&top), Vec::<String>::new());
 }
 
 /// The id of the type `name` in the explorer outline of the project.

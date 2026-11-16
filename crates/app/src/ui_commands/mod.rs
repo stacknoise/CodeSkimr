@@ -11,7 +11,7 @@ mod export;
 #[cfg(test)]
 mod export_tests;
 mod graph;
-mod graph_group;
+mod graph_focus;
 mod graph_types;
 mod graph_wrap;
 mod layers;

@@ -9,7 +9,8 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{TypeFocus, TypeNeighbour};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
-    LayoutEdge, LayoutGraph, LayoutNode, NodeIndex, Project, SnapshotId, SymbolId, name_parts,
+    Layout, LayoutEdge, LayoutGraph, LayoutNode, NodeIndex, Project, SnapshotId, SymbolId,
+    name_parts,
 };
 
 use super::consts::{
@@ -72,14 +73,14 @@ fn name_boxes(all: &mut [Drawn]) {
 
 /// The namespaces in front of a type as a breadcrumb (`App › Views`); empty for a type without
 /// namespace.
-fn breadcrumb(qualified: &str) -> String {
+pub(super) fn breadcrumb(qualified: &str) -> String {
     let parts = name_parts(qualified);
     let (_, path) = parts.split_last().unwrap_or((&qualified, &[]));
     path.join(BREADCRUMB_JOIN)
 }
 
 /// The name of a type without the namespace in front of it.
-fn short_name(qualified: &str) -> String {
+pub(super) fn short_name(qualified: &str) -> String {
     name_parts(qualified)
         .last()
         .map_or_else(|| qualified.to_owned(), |last| (*last).to_owned())
@@ -121,16 +122,22 @@ fn links(found: &TypeFocus, types: &[Drawn]) -> Vec<LinkOut> {
     all
 }
 
-fn place(look: &Graph, types: &[Drawn], links: &[LinkOut]) -> Result<Vec<BoxOut>, CodedError> {
-    let size = look.node_size();
-    let nodes = types
+/// Places boxes in the given rows (0 above the middle, 1 the middle, 2 below); `names` are the
+/// names of the boxes in the same order, which the links refer to.
+pub(super) fn layout_rows(
+    look: &Graph,
+    rows: &[u32],
+    names: &[&str],
+    links: &[LinkOut],
+) -> Result<Layout, CodedError> {
+    let position = |name: &str| names.iter().position(|one| *one == name);
+    let nodes = rows
         .iter()
-        .map(|one| LayoutNode {
-            size,
-            rank: Some(one.row),
+        .map(|&row| LayoutNode {
+            size: look.node_size(),
+            rank: Some(row),
         })
         .collect();
-    let position = |name: &str| types.iter().position(|one| one.name == name);
     let edges = links
         .iter()
         .filter_map(|link| {
@@ -140,25 +147,24 @@ fn place(look: &Graph, types: &[Drawn], links: &[LinkOut]) -> Result<Vec<BoxOut>
             })
         })
         .collect();
-    let layout = LayoutGraph::new(nodes, edges)
+    Ok(LayoutGraph::new(nodes, edges)
         .map_err(CodedError::caused_by)?
-        .layout(&look.layout_params());
+        .layout(&look.layout_params()))
+}
+
+fn place(look: &Graph, types: &[Drawn], links: &[LinkOut]) -> Result<Vec<BoxOut>, CodedError> {
+    let size = look.node_size();
+    let rows: Vec<u32> = types.iter().map(|one| one.row).collect();
+    let names: Vec<&str> = types.iter().map(|one| one.name.as_str()).collect();
+    let layout = layout_rows(look, &rows, &names, links)?;
     Ok(types
         .iter()
         .zip(&layout.placements)
         .map(|(one, spot)| BoxOut {
-            name: one.name.clone(),
             label: short_name(&one.qualified),
             context: breadcrumb(&one.qualified),
-            x: spot.x,
-            y: spot.y,
-            width: size.width,
-            height: size.height,
-            rank: spot.rank,
-            order: spot.order,
-            layer: None,
-            types: None,
             symbol: Some(one.symbol),
+            ..BoxOut::placed(&one.name, spot, size, None, None)
         })
         .collect())
 }
@@ -191,7 +197,7 @@ pub(super) fn types_out(
         width: centred.width,
         height: centred.height,
         focus: Some(FocusOut {
-            symbol: found.focus.id.get(),
+            symbol: Some(found.focus.id.get()),
             name: types
                 .first()
                 .map(|one| one.name.clone())
