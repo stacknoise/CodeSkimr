@@ -15,7 +15,7 @@ pub const MIN_CONTRAST: f64 = 4.5;
 const DARK_LUMINANCE: f64 = 0.18;
 
 /// The tokens every theme has to define, in the order they are written.
-pub const COLOR_TOKENS: [&str; 32] = [
+pub const COLOR_TOKENS: [&str; 39] = [
     "bg",
     "surface",
     "line",
@@ -48,6 +48,13 @@ pub const COLOR_TOKENS: [&str; 32] = [
     "layer-4",
     "layer-5",
     "layer-6",
+    "syn-keyword",
+    "syn-string",
+    "syn-number",
+    "syn-comment",
+    "syn-type",
+    "syn-function",
+    "syn-attribute",
 ];
 
 /// Text on background pairs that must reach [`MIN_CONTRAST`] (blueprint 15.3): the first token
@@ -67,7 +74,7 @@ const PAIRS: [(&str, &[&str]); 11] = [
 ];
 
 /// Further text tokens that are read on `surface`.
-const ON_SURFACE: [&str; 11] = [
+const ON_SURFACE: [&str; 18] = [
     "kind-class",
     "kind-interface",
     "kind-record",
@@ -79,6 +86,13 @@ const ON_SURFACE: [&str; 11] = [
     "layer-4",
     "layer-5",
     "layer-6",
+    "syn-keyword",
+    "syn-string",
+    "syn-number",
+    "syn-comment",
+    "syn-type",
+    "syn-function",
+    "syn-attribute",
 ];
 
 /// `[meta]`.

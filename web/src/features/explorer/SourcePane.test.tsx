@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@solidjs/testing-library";
+import { fireEvent, render, screen, within } from "@solidjs/testing-library";
 import { afterEach, describe, expect, it } from "vitest";
 import { focusSymbol } from "../../shared/navigation/navigation";
 import { openProject } from "../../shared/project/active";
@@ -131,5 +131,43 @@ describe("the names of symbols in the code", () => {
     expect(screen.getByRole("region", { name: "Source" }).textContent).toContain(
       "    decimal Total() => 1m;",
     );
+  });
+});
+
+describe("the colours of the syntax", () => {
+  const COLOURED: SourceInfo = {
+    ...TYPE_SOURCE,
+    spans: [{ line: 2, start: 4, end: 11, symbol: 41 }],
+    tokens: [
+      { line: 0, start: 0, end: 6, class: "keyword" },
+      { line: 2, start: 4, end: 11, class: "type" },
+    ],
+  };
+
+  it("colour a keyword and leave the text whole", async () => {
+    renderWith(() => answer(COLOURED));
+    await openOrder();
+    const pane = await screen.findByRole("region", { name: "Source" });
+    const keyword = await within(pane).findByText("public");
+    expect(keyword.className).toContain("keyword");
+    expect(screen.getByRole("region", { name: "Source" }).textContent).toContain(
+      "public class Order",
+    );
+  });
+
+  it("keep a coloured name clickable for Alt+click", async () => {
+    renderWith(() => answer(COLOURED));
+    await openOrder();
+    const name = await screen.findByText("decimal");
+    expect(name.className).toContain("type");
+    fireEvent.click(name, { altKey: true });
+    expect(focusSymbol()).toBe(41);
+  });
+
+  it("show plain code when the answer has no colours", async () => {
+    renderWith(() => answer(TYPE_SOURCE));
+    await openOrder();
+    const code = await screen.findByText(/public class Order/);
+    expect(code.className).not.toContain("keyword");
   });
 });
