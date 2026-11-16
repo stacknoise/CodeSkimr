@@ -70,18 +70,33 @@ export async function loadOutline(project: number): Promise<void> {
   await readOutline(project);
 }
 
-/** Reads the tree and the symbols read so far again, and keeps what the user did with them. */
+/** Reads one symbol again; `null` if it is gone (a scan removed it) or cannot be read. */
+async function rereadSymbol(project: number, id: number): Promise<SymbolInfo | null> {
+  try {
+    return await runCommand<SymbolInfo>(COMMAND.symbol, { project, symbol: id });
+  } catch {
+    return null;
+  }
+}
+
+/** Reads the tree and the symbols read so far again, and keeps what the user did with them. A
+ * symbol that cannot be read any more is dropped from the held ones; the tree is still replaced. */
 async function refreshOutline(project: number): Promise<void> {
   const mine = generation;
   try {
     const read = await runCommand<Outline>(COMMAND.outline, { project });
     const known = [...details().keys()];
-    const symbols = await Promise.all(
-      known.map((id) => runCommand<SymbolInfo>(COMMAND.symbol, { project, symbol: id })),
-    );
+    const symbols = await Promise.all(known.map((id) => rereadSymbol(project, id)));
     if (mine === generation) {
       setOutline(read);
-      setDetails(new Map(known.map((id, index) => [id, symbols[index] as SymbolInfo])));
+      setDetails(
+        new Map(
+          known.flatMap((id, index) => {
+            const info = symbols[index];
+            return info ? [[id, info] as const] : [];
+          }),
+        ),
+      );
     }
   } catch {
     // The old tree is still right for what the user sees; the next scan or visit tries again.

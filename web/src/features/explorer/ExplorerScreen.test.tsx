@@ -7,7 +7,7 @@ import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { openOrder, ORDER, OUTLINE } from "../../tests/explorer";
-import { forgetExplorer } from "./explorer";
+import { forgetExplorer, treeScroll } from "./explorer";
 import { ExplorerScreen } from "./ExplorerScreen";
 import { requestFocus } from "../../shared/navigation/navigation";
 
@@ -282,5 +282,44 @@ describe("coming back to the explorer", () => {
     render(() => <ExplorerScreen />);
     expect(await screen.findByText("Domain")).toBeTruthy();
     expect(screen.queryByText("Shop.Domain")).toBeNull();
+  });
+
+  it("reads the tree again on the way back and drops a symbol that is gone", async () => {
+    const first = renderOrder();
+    await openOrder();
+    await screen.findByRole("heading", { name: "Order" });
+    first.unmount();
+    const renamed = {
+      ...OUTLINE,
+      layers: [
+        {
+          name: "Domain",
+          namespaces: [
+            { name: "Shop.Domain", types: [{ id: 7, name: "Order2", kind: "class", members: 2 }] },
+          ],
+        },
+      ],
+    };
+    serve({
+      "explorer.outline": () => answer(renamed),
+      "explorer.symbol": () => answer({ code: "gone" }, 404),
+    });
+    render(() => <ExplorerScreen />);
+    expect(await screen.findByText("Order2")).toBeTruthy();
+    expect(screen.getAllByText("Shop.Domain").length).toBeGreaterThan(0);
+  });
+
+  it("scrolls the tree to where it was", async () => {
+    const first = renderOrder();
+    await openOrder();
+    await screen.findByRole("heading", { name: "Order" });
+    const tree = screen.getByRole("tree");
+    tree.scrollTop = 52;
+    fireEvent.scroll(tree);
+    expect(treeScroll()).toBe(52);
+    first.unmount();
+    render(() => <ExplorerScreen />);
+    await screen.findByRole("heading", { name: "Order" });
+    await waitFor(() => expect(screen.getByRole("tree").scrollTop).toBe(52));
   });
 });

@@ -17,6 +17,15 @@ function restoreScroll(target: HTMLElement, top: number, report: (top: number) =
   }
 }
 
+/** Reports the height of `target` whenever it changes, until the owner is cleaned up. */
+function observeHeight(target: HTMLElement, report: (height: number) => void): void {
+  if (typeof ResizeObserver !== "undefined") {
+    const observer = new ResizeObserver(() => report(target.clientHeight));
+    observer.observe(target);
+    onCleanup(() => observer.disconnect());
+  }
+}
+
 /** The window of a long list that is drawn (blueprint 15.5): only the rows in view and a few
  * more are in the document, the scroll bar still has the length of the whole list. */
 export function useWindow<T>(items: () => T[], cursorIndex: () => number, initialTop = 0) {
@@ -50,11 +59,7 @@ export function useWindow<T>(items: () => T[], cursorIndex: () => number, initia
     element = target;
     setHeight(target.clientHeight);
     restoreScroll(target, initialTop, setTop);
-    if (typeof ResizeObserver !== "undefined") {
-      const observer = new ResizeObserver(() => setHeight(target.clientHeight));
-      observer.observe(target);
-      onCleanup(() => observer.disconnect());
-    }
+    observeHeight(target, setHeight);
   };
   return {
     visible,

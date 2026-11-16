@@ -7,6 +7,8 @@ import { pendingFocus, requestFocus } from "../../shared/navigation/navigation";
 import { pointer } from "../../tests/pointer";
 import { ANSWER } from "../../tests/usages";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
+import { startView } from "./GraphView";
+import type { Graph } from "./graph";
 import { UsagesScreen } from "./UsagesScreen";
 import { showUsages } from "../../shared/navigation/navigation";
 import { clearUsages } from "./usages";
@@ -207,6 +209,28 @@ describe("the graph of the usages", () => {
     expect(planeOf().style.transform).toContain("scale(1)");
     fireEvent.click(screen.getByRole("button", { name: "Zoom out" }));
     expect(planeOf().style.transform).not.toContain("scale(1)");
+  });
+
+  it("moves the picture when the empty ground is dragged, but not when a card is", async () => {
+    shown();
+    await screen.findByRole("heading", { name: "Cart.Total" });
+    const graph = screen.getByRole("region", { name: "Usage graph" });
+    graph.setPointerCapture = () => undefined;
+    const before = planeOf().style.transform;
+    const card = within(graph).getByText("CartView.Render");
+    pointer(card, "pointerdown", { button: 0 });
+    pointer(graph, "pointermove", { movementX: 30, movementY: 20 });
+    expect(planeOf().style.transform).toBe(before);
+    pointer(graph, "pointerdown", { button: 0 });
+    pointer(graph, "pointermove", { movementX: 30, movementY: 20 });
+    pointer(graph, "pointerup");
+    expect(planeOf().style.transform).not.toBe(before);
+  });
+
+  it("starts with the focus in the middle of the height", () => {
+    const graph = { height: 1000, cards: [{ focus: true, y: 480, height: 40 }] } as Graph;
+    expect(startView(graph, { width: 800, height: 400 })).toEqual({ scale: 1, x: 0, y: -300 });
+    expect(startView(graph, { width: 800, height: 2000 })).toEqual({ scale: 1, x: 0, y: 0 });
   });
 
   it("moves the picture when the middle button is dragged", async () => {
