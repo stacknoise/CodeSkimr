@@ -26,6 +26,8 @@ export const TOOL_LANGUAGE_SEPARATOR = ", ";
 
 /** How often the list is read while a scan runs, in milliseconds. */
 export const POLL_MS = 1500;
+/** How often a relative time ("3 min ago") is renewed, in milliseconds. */
+export const NOW_TICK_MS = 5000;
 
 /** Key that sends a field. */
 export const ENTER_KEY = "Enter";

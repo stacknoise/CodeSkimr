@@ -63,6 +63,7 @@ projects-tools-no-level2 = No language of this project has level 2 yet.
 projects-tools-unchecked = The tools have not been checked yet.
 projects-tools-check-again = Check again
 projects-tools-checking = Checking …
+projects-tools-checked = Last checked: { $when }
 
 projects-credential-label = Login
 projects-credential-none = None (the system's Git login)
