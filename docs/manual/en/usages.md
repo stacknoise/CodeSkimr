@@ -11,7 +11,7 @@ In the explorer, select a member (or a type) and press `U`, click "Usages", or c
 - **Direction:** both, who calls (incoming), what is called (outgoing).
 - **Depth:** 1, 2, 3 or all. "All" is cut at the configured maximum (`mcp.max_depth`, default 5).
 - **Show tests:** references from test code are left out unless you switch this on.
-- **Level:** only "Symbol" exists. "Namespaces" and "Types" are shown off; they belong to the [dependency map](dependency-map.md).
+- **Level:** this screen is the "Symbol" level. "Namespaces" opens the [dependency map](dependency-map.md) on the namespace level; "Types" opens it with the type chosen in the explorer in the middle (without a chosen type the button is off).
 
 Every change reads the usages again.
 

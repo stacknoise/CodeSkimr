@@ -48,7 +48,7 @@ fn wrap_rows(boxes: &mut [BoxOut], look: &Graph, always: bool) -> Option<Extent>
         look.node_height + look.node_gap,
     );
     let widest = rows.values().map(Vec::len).max().unwrap_or(0).min(per_line);
-    let width = to_u32(widest) * cell_width - look.node_gap;
+    let width = (to_u32(widest) * cell_width).saturating_sub(look.node_gap);
     let mut top = 0;
     for row in rows.values() {
         for (line, members) in row.chunks(per_line).enumerate() {
@@ -72,8 +72,11 @@ fn wrap_rows(boxes: &mut [BoxOut], look: &Graph, always: bool) -> Option<Extent>
 
 /// Puts every row into centred lines of at most `row_boxes` boxes, even a short one, so that the
 /// rows of the type level sit centred above and below the type in the middle.
-pub(super) fn centre(boxes: &mut [BoxOut], look: &Graph) -> Option<Extent> {
-    wrap_rows(boxes, look, true)
+pub(super) fn centre(boxes: &mut [BoxOut], look: &Graph) -> Extent {
+    wrap_rows(boxes, look, true).unwrap_or(Extent {
+        width: 0,
+        height: 0,
+    })
 }
 
 /// Wraps long rows and gives the picture its margin. `extent` is the size the layout reported.
@@ -185,7 +188,7 @@ mod tests {
     #[test]
     fn centred_rows_share_one_axis() {
         let mut placed = boxes(&[0, 0, 0, 1]);
-        let out = centre(&mut placed, &look()).expect("always arranged");
+        let out = centre(&mut placed, &look());
         let middle = |found: &BoxOut| found.x + found.width / 2;
         assert_eq!(middle(&placed[1]), out.width / 2);
         assert_eq!(middle(&placed[3]), out.width / 2);

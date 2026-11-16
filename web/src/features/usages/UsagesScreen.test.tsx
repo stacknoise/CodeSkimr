@@ -62,6 +62,12 @@ describe("UsagesScreen", () => {
     expect(graphLevel()).toBe("namespaces");
   });
 
+  it("keeps the Types button off until the explorer has a type chosen", async () => {
+    shown();
+    await screen.findByRole("heading", { name: "Cart.Total" });
+    expect(screen.getByRole("button", { name: "Types" })).toHaveAttribute("aria-disabled", "true");
+  });
+
   it("shows the symbol, the counts, the impact and the cards of the graph", async () => {
     shown();
     expect(await screen.findByRole("heading", { name: "Cart.Total" })).toBeTruthy();

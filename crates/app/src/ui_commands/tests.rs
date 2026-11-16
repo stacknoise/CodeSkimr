@@ -838,6 +838,12 @@ fn the_namespace_level_has_one_box_per_namespace_with_its_types_and_dependencies
     assert_eq!(typed("Demo.Core").map(|found| found.1), Some(1));
     assert_eq!(typed("Demo.Ui").map(|found| found.1), Some(1));
     assert!(found.iter().all(|(_, types)| *types > 0));
+    assert!(graph["groups"].is_array());
+    assert!(
+        boxes
+            .iter()
+            .all(|b| !b["label"].as_str().unwrap().is_empty())
+    );
     let links = graph["links"].as_array().unwrap();
     assert_eq!(links.len(), 1);
     assert!(links[0]["from"].as_str().unwrap().ends_with("Demo.Ui"));

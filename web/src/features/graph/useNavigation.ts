@@ -42,9 +42,9 @@ function onBackground(event: PointerEvent): boolean {
   );
 }
 
-/** Mouse navigation of the map: the wheel zooms around the pointer; dragging the background with the
- * primary button, or with the space key held, or with the middle button, pans. Returns the handlers for the pointer and whether a drag
- * is possible or running (for the cursor). */
+/** Mouse navigation of the map: the wheel zooms around the pointer; dragging the background with
+ * the primary button, with the middle button or with the space key held pans. Returns the
+ * handlers for the pointer and whether a drag is possible or running (for the cursor). */
 export function useNavigation(
   area: () => HTMLElement | undefined,
   view: () => View,

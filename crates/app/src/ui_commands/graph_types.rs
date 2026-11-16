@@ -186,11 +186,10 @@ pub(super) fn types_out(
         one.layer = project.layer_name_of(&drawn.qualified);
     }
     let centred = centre(&mut boxes, &ports.look);
-    let reach = |pick: fn(&BoxOut) -> u32| boxes.iter().map(pick).max().unwrap_or(0);
     let hidden = |list: &[TypeNeighbour]| u32::try_from(list.len().saturating_sub(TYPE_SIDE_MAX));
     Ok(GraphOut {
-        width: centred.map_or_else(|| reach(|one| one.x + one.width), |size| size.width),
-        height: centred.map_or_else(|| reach(|one| one.y + one.height), |size| size.height),
+        width: centred.width,
+        height: centred.height,
         focus: Some(FocusOut {
             symbol: found.focus.id.get(),
             name: types

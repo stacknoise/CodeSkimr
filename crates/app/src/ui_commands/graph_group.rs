@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 use codeskimr_application::config::Graph;
 use codeskimr_domain::name_parts;
 
-use super::consts::{CENTRE_DIVISOR, NAME_JOIN};
+use super::consts::{FRAME_GAP_DIVISOR, FRAME_TITLE_DIVISOR, NAME_JOIN};
 use super::graph::{BoxOut, GroupOut};
 use super::graph_wrap::Extent;
 
@@ -174,8 +174,8 @@ fn emit(
 fn metrics(look: &Graph) -> Metrics {
     Metrics {
         node: (look.node_width, look.node_height),
-        gap: look.node_gap / CENTRE_DIVISOR,
-        title: look.node_height / CENTRE_DIVISOR,
+        gap: look.node_gap / FRAME_GAP_DIVISOR,
+        title: look.node_height / FRAME_TITLE_DIVISOR,
     }
 }
 

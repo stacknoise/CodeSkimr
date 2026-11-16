@@ -170,6 +170,10 @@ pub const EXPORT_DIRECT_DEPTH: u32 = 1;
 pub const BAND_PAD_DIVISOR: u32 = 2;
 /// A line of a wrapped row is centred: the free space is divided by this and put on the left.
 pub const CENTRE_DIVISOR: u32 = 2;
+/// The gap between two boxes inside a frame is the gap between boxes divided by this.
+pub const FRAME_GAP_DIVISOR: u32 = 2;
+/// The title bar of a frame is as high as a box divided by this.
+pub const FRAME_TITLE_DIVISOR: u32 = 2;
 /// Joins the namespaces in the breadcrumb of a type box.
 pub const BREADCRUMB_JOIN: &str = " › ";
 /// Joins the segments of a namespace name in the title of a frame.
