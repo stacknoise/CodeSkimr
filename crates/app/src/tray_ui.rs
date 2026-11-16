@@ -1,16 +1,18 @@
 //! The tray icon and its menu (ADR 0067), on Windows and macOS.
 //!
-//! The icon needs the event loop of the thread that owns it, which is the main thread of the
+//! The icon needs the event loop (winit, which opens no window here) of the thread that owns it, which is the main thread of the
 //! program. [`run`] therefore blocks until the user picks "Quit"; the server runs on another thread.
 
 use codeskimr_application::error::CodedError;
 use codeskimr_cli::TrayLabels;
 use codeskimr_codes::ErrorCode;
-use tao::event::{Event, StartCause};
-use tao::event_loop::{ControlFlow, EventLoopBuilder};
-use tao::platform::run_return::EventLoopExtRunReturn;
 use tray_icon::menu::{Menu, MenuEvent, MenuId, MenuItem, PredefinedMenuItem};
 use tray_icon::{Icon, TrayIcon, TrayIconBuilder};
+use winit::application::ApplicationHandler;
+use winit::event::{StartCause, WindowEvent};
+use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
+use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
+use winit::window::WindowId;
 
 use crate::consts::{TRAY_ICON_PIXEL, TRAY_ICON_SIZE};
 
@@ -81,45 +83,81 @@ fn show(labels: &TrayLabels, menu: Menu) -> Result<TrayIcon, CodedError> {
         .map_err(failed)
 }
 
+/// The event loop. On macOS the program is an accessory: no Dock icon and no menu bar of its own.
+fn event_loop() -> Result<EventLoop<MenuEvent>, CodedError> {
+    let mut builder = EventLoop::<MenuEvent>::with_user_event();
+    #[cfg(target_os = "macos")]
+    {
+        use winit::platform::macos::{ActivationPolicy, EventLoopBuilderExtMacOS};
+        builder.with_activation_policy(ActivationPolicy::Accessory);
+    }
+    builder.build().map_err(failed)
+}
+
+/// The state of the event loop: the icon, once it exists, and what the menu does.
+struct Tray<'a, O, L> {
+    labels: &'a TrayLabels,
+    menu: Option<Menu>,
+    icon: Option<TrayIcon>,
+    entries: Entries,
+    open: O,
+    log: L,
+    outcome: Result<(), CodedError>,
+}
+
+impl<O: Fn(), L: Fn()> ApplicationHandler<MenuEvent> for Tray<'_, O, L> {
+    fn new_events(&mut self, event_loop: &ActiveEventLoop, cause: StartCause) {
+        // The icon is created inside the loop: macOS needs the application to be running.
+        if !matches!(cause, StartCause::Init) {
+            return;
+        }
+        match self.menu.take().map(|menu| show(self.labels, menu)) {
+            Some(Ok(shown)) => self.icon = Some(shown),
+            Some(Err(error)) => {
+                self.outcome = Err(error);
+                event_loop.exit();
+            }
+            None => {}
+        }
+    }
+
+    fn resumed(&mut self, _event_loop: &ActiveEventLoop) {}
+
+    fn window_event(&mut self, _: &ActiveEventLoop, _: WindowId, _: WindowEvent) {}
+
+    fn user_event(&mut self, event_loop: &ActiveEventLoop, picked: MenuEvent) {
+        match self.entries.pick(&picked.id) {
+            Some(Pick::Open) => (self.open)(),
+            Some(Pick::Log) => (self.log)(),
+            Some(Pick::Quit) => event_loop.exit(),
+            None => {}
+        }
+    }
+}
+
 /// Shows the tray icon and handles its menu until the user picks "Quit". `open` and `log` are
 /// called on the main thread for the two other entries and must not block.
 ///
 /// # Errors
-/// `APP-603` if the icon or the menu cannot be created.
+/// `APP-603` if the icon, the menu or the event loop cannot be created.
 pub(crate) fn run(labels: &TrayLabels, open: impl Fn(), log: impl Fn()) -> Result<(), CodedError> {
     let (menu, entries) = menu(labels)?;
-    let mut event_loop = EventLoopBuilder::<MenuEvent>::with_user_event().build();
+    let mut event_loop = event_loop()?;
+    event_loop.set_control_flow(ControlFlow::Wait);
     let proxy = event_loop.create_proxy();
     MenuEvent::set_event_handler(Some(move |event| {
         let _ = proxy.send_event(event);
     }));
-    let mut menu = Some(menu);
-    let mut icon = None;
-    let mut outcome = Ok(());
-    event_loop.run_return(|event, _, flow| {
-        *flow = ControlFlow::Wait;
-        match event {
-            // The icon is created inside the loop: macOS needs the application to be running.
-            Event::NewEvents(StartCause::Init) => {
-                match menu.take().map(|menu| show(labels, menu)) {
-                    Some(Ok(shown)) => icon = Some(shown),
-                    Some(Err(error)) => {
-                        outcome = Err(error);
-                        *flow = ControlFlow::Exit;
-                    }
-                    None => {}
-                }
-            }
-            Event::UserEvent(picked) => match entries.pick(&picked.id) {
-                Some(Pick::Open) => open(),
-                Some(Pick::Log) => log(),
-                Some(Pick::Quit) => *flow = ControlFlow::Exit,
-                None => {}
-            },
-            _ => {}
-        }
-    });
+    let mut tray = Tray {
+        labels,
+        menu: Some(menu),
+        icon: None,
+        entries,
+        open,
+        log,
+        outcome: Ok(()),
+    };
+    event_loop.run_app_on_demand(&mut tray).map_err(failed)?;
     // The icon leaves the tray when it is dropped, after the loop has ended.
-    drop(icon);
-    outcome
+    tray.outcome
 }

@@ -49,7 +49,7 @@ windows-permissions.workspace = true
 # no common tray without extra system libraries, so it keeps the console.
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]
 tray-icon.workspace = true
-tao.workspace = true
+winit.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

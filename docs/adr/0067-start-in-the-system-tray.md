@@ -14,7 +14,7 @@ The bare `codeskimr` runs the server in the console window that started it; clos
 4. **Console and servers stay.** `codeskimr --console` keeps the old behaviour (server, browser and messages in the window). `codeskimr serve`, `scan`, `mcp` and every other command are unchanged and need no tray or desktop. **Linux** has no common tray without system libraries (GTK, an AppIndicator extension) that a single-file download cannot bring, so the bare start stays in the console there. A Linux tray is possible later as an own decision.
 5. **One program.** The release stays one file per system: no second program for the tray, and no `windows_subsystem` attribute, which would break the console commands. The copy is marked by the environment variable `CODESKIMR_TRAY_CHILD`; nothing else changes about how it runs.
 6. **New error code `APP-603`** `tray_start_failed`: the copy could not be started, or the icon could not be shown. Its hint tells to start with `--console`.
-7. **New dependencies (Windows and macOS builds only):** `tray-icon` (tray icon and menu, from the Tauri project) and `tao` (the event loop that the icon needs, same project). Both are MIT or Apache-2.0 and are pulled in only for these two systems. No `unsafe` of our own is needed (rule R-08 stays).
+7. **New dependencies (Windows and macOS builds only):** `tray-icon` (tray icon and menu) and `winit` (the event loop that the icon needs, no window is opened; chosen over `tao`, which pulls GTK crates into the lock file that `cargo audit` rejects). Both are MIT or Apache-2.0 and are pulled in only for these two systems. No `unsafe` of our own is needed (rule R-08 stays).
 
 ## Consequences
 
