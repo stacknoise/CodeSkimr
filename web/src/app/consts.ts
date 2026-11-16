@@ -31,6 +31,10 @@ export const SETTINGS_ROUTE: Route = {
   icon: "settings",
 };
 
+/** The button of the rail that stays marked on a screen that has no button of its own: the symbol
+ * view is the symbol level of the graph. */
+export const RAIL_OWNER: Record<string, string> = { [USAGES_ROUTE.path]: GRAPH_ROUTE.path };
+
 /** Screens in the upper part of the rail. */
 export const MAIN_ROUTES: Route[] = [PROJECTS_ROUTE, EXPLORER_ROUTE, GRAPH_ROUTE, SCAN_ROUTE];
 /** Screens in the lower part of the rail. */

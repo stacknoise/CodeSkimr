@@ -9,6 +9,7 @@ import type { ProjectRow } from "../projects/types";
 import { selectType } from "../explorer/explorer";
 import { DEPTH_ALL, LEVEL } from "./consts";
 import {
+  graphFocus,
   graphLevel,
   resetGraph,
   setGraphDepth,
@@ -139,6 +140,19 @@ describe("GraphScreen", () => {
         true,
       );
     });
+  });
+
+  it("makes a double-clicked type the focus of the map, a single click only selects it", async () => {
+    const typed = { ...GRAPH, boxes: GRAPH.boxes.map((box, i) => ({ ...box, symbol: 40 + i })) };
+    served(typed);
+    render(() => <GraphScreen />);
+    await screen.findByRole("button", { name: /Domain/ });
+    setGraphLevel(LEVEL.types);
+    const box = await screen.findByRole("button", { name: /Domain/ });
+    fireEvent.click(box);
+    expect(graphFocus()).not.toBe(40);
+    fireEvent.dblClick(box);
+    expect(graphFocus()).toBe(40);
   });
 
   it("asks for the namespace level when it is chosen", async () => {
