@@ -20,6 +20,9 @@ export const EXPLORER_ROUTE: Route = {
 };
 /** Screen 6; it is reached from the explorer and the graph, so it has no button in the rail. */
 export const USAGES_ROUTE = { path: "/usages", label: I18N_KEYS.USAGES_TITLE } as const;
+/** The editor of the layers; it is reached from the settings and from the hints, so it has no
+ * button in the rail. */
+export const LAYERS_ROUTE = { path: "/layers", label: I18N_KEYS.LAYERS_TITLE } as const;
 export const SCAN_ROUTE: Route = { path: "/scan", label: I18N_KEYS.NAV_SCAN, icon: "scan" };
 export const GRAPH_ROUTE: Route = { path: "/graph", label: I18N_KEYS.NAV_GRAPH, icon: "graph" };
 export const SETTINGS_ROUTE: Route = {

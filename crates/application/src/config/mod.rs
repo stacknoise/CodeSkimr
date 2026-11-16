@@ -8,12 +8,14 @@
 mod consts;
 mod error;
 mod layer;
+mod layer_file;
 mod model;
 mod validate;
 
 pub use consts::PROJECT_CONFIG_FILE;
 pub use error::{ConfigError, LayerSource, Violation};
 pub use layer::ConfigLayer;
+pub use layer_file::with_layers;
 pub use model::{
     Budgets, Config, Conventions, Editor, Graph, KeySources, LayerRule, Level2, McpLimits,
     MetricThresholds, Scan, Similarity, SnapshotRetention, Ui, Watcher,

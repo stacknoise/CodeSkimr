@@ -1109,6 +1109,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | CFG-101 | `config_invalid_value` | A configuration value is outside its allowed range or has the wrong type. |
 | CFG-102 | `config_parse_failed` | A configuration file is not valid TOML. |
 | CFG-103 | `config_unknown_key` | A configuration file or flag sets a key that does not exist. |
+| CFG-104 | `project_file_not_writable` | The project file `.codeskimr.toml` could not be written. |
 | PRJ-101 | `project_source_invalid` | The given source is neither an existing folder nor a valid Git URL. |
 | PRJ-201 | `project_not_found` | No project with this id exists. |
 | PRJ-301 | `project_already_registered` | A project with the same source is already registered. |

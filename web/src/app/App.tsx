@@ -1,6 +1,7 @@
 import { createEffect, For, Match, onCleanup, Show, Switch } from "solid-js";
 import { ConnectionScreen } from "../features/session/ConnectionScreen";
 import { GraphScreen } from "../features/graph/GraphScreen";
+import { LayersScreen } from "../features/layers/LayersScreen";
 import { ExplorerScreen } from "../features/explorer/ExplorerScreen";
 import { listenToScans } from "../features/scan/events";
 import { ScanScreen } from "../features/scan/ScanScreen";
@@ -21,6 +22,7 @@ import {
   FLUSH_PATHS,
   FOOTER_ROUTES,
   GRAPH_ROUTE,
+  LAYERS_ROUTE,
   MAIN_ROUTES,
   SCAN_ROUTE,
   SETTINGS_ROUTE,
@@ -37,6 +39,9 @@ function Screen() {
     <Switch fallback={<ProjectsScreen />}>
       <Match when={currentPath() === SETTINGS_ROUTE.path}>
         <SettingsScreen />
+      </Match>
+      <Match when={currentPath() === LAYERS_ROUTE.path}>
+        <LayersScreen />
       </Match>
       <Match when={currentPath() === GRAPH_ROUTE.path}>
         <GraphScreen />

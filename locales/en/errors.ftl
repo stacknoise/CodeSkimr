@@ -9,6 +9,7 @@ error-APP-601 = The browser could not be started.
 error-CFG-101 = A configuration value is out of range or has the wrong type.
 error-CFG-102 = A configuration file is not valid TOML.
 error-CFG-103 = A configuration file or flag sets a setting that does not exist.
+error-CFG-104 = The file `.codeskimr.toml` in the project folder could not be written. Check that the folder is writable.
 error-PRJ-101 = The source is neither an existing folder nor a valid Git URL.
 error-PRJ-201 = The project is not registered. Scan its folder first with `codeskimr scan`.
 error-PRJ-301 = A project with the same source is already registered.

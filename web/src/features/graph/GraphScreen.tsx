@@ -1,6 +1,7 @@
 import { Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { LayersHint } from "../layers/LayersHint";
 import { currentType } from "../explorer/explorer";
 import { LEVEL } from "./consts";
 import {
@@ -27,13 +28,16 @@ import {
 } from "./useGraphScreen";
 import styles from "./GraphScreen.module.css";
 
-function Message(props: { title?: string; text: string }) {
+function Message(props: { title?: string; text: string; hint?: boolean }) {
   return (
     <div class={styles.empty}>
       <Show when={props.title}>
         <h2>{props.title}</h2>
       </Show>
       <p>{props.text}</p>
+      <Show when={props.hint}>
+        <LayersHint />
+      </Show>
     </div>
   );
 }
@@ -124,7 +128,11 @@ function Loaded(props: { state: MapState; actions: Actions }) {
       when={state.data()}
       fallback={
         graphData() ? (
-          <Message title={t(I18N_KEYS.GRAPH_EMPTY_TITLE)} text={t(I18N_KEYS.GRAPH_EMPTY_TEXT)} />
+          <Message
+            title={t(I18N_KEYS.GRAPH_EMPTY_TITLE)}
+            text={t(I18N_KEYS.GRAPH_EMPTY_TEXT)}
+            hint
+          />
         ) : null
       }
     >

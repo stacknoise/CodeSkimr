@@ -2,7 +2,7 @@
 
 Die Abhängigkeitskarte zeigt die **Schichten** des aktiven Projekts als Kästen und wie sie voneinander abhängen. Sie beantwortet: Hält sich das Programm an seine Architektur, und wo nicht?
 
-Sie braucht Schichten. Legen Sie sie in `.codeskimr.toml` fest und scannen Sie neu ([Projekte und Scan](projekte-und-scan.md#schichten)). Ohne Schichten steht auf dem Bildschirm „Keine Schichten zu zeigen“.
+Sie braucht Schichten. Legen Sie sie in der Oberfläche fest (der Hinweis auf der leeren Karte führt dorthin) oder in `.codeskimr.toml` ([Projekte und Scan](projekte-und-scan.md#schichten)) und scannen Sie neu. Ohne Schichten steht auf dem Bildschirm „Keine Schichten zu zeigen“.
 
 ## Die Karte lesen
 

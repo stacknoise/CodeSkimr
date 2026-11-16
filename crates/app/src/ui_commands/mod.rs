@@ -12,6 +12,9 @@ mod export;
 mod export_tests;
 mod graph;
 mod graph_types;
+mod layers;
+#[cfg(test)]
+mod layers_tests;
 mod preferences;
 mod projects;
 #[cfg(test)]
@@ -21,6 +24,7 @@ mod search;
 mod source;
 mod status;
 mod symbol;
+mod temp_file;
 #[cfg(test)]
 mod tests;
 mod usages;
@@ -51,6 +55,7 @@ use credentials::{DeleteCredential, ListCredentials, SetCredential};
 use explorer::{ExplorerOutline, ExplorerPorts};
 pub(crate) use export::{ExportInput, HtmlExport};
 use graph::{GraphLayers, GraphPorts};
+use layers::{LayersGet, LayersSet};
 use preferences::{GetPreferences, PreferencesFile, SetPreferences};
 use projects::{AddProject, CancelScan, CheckTools, ListProjects, RescanProject};
 use search::{SearchPorts, SearchQuery};
@@ -218,6 +223,8 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<UsagesQuery>()?;
     api.expose::<UsagesCode>()?;
     api.expose::<GraphLayers>()?;
+    api.expose::<LayersGet>()?;
+    api.expose::<LayersSet>()?;
     api.expose::<StatusInfo>()?;
     api.expose::<GetPreferences>()?;
     api.expose::<SetPreferences>()?;
@@ -332,6 +339,18 @@ fn register_explorer(
     add(
         registry,
         ExplorerOutline {
+            ports: Arc::clone(&ports),
+        },
+    )?;
+    add(
+        registry,
+        LayersGet {
+            ports: Arc::clone(&ports),
+        },
+    )?;
+    add(
+        registry,
+        LayersSet {
             ports: Arc::clone(&ports),
         },
     )?;

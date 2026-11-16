@@ -61,3 +61,7 @@ namespaces = ["Shop.Infrastructure", "Shop.Data"]
 ```
 
 `namespaces` are qualified-name prefixes; the separator is `.` or `::`. A name belongs to the first layer whose prefix matches. List outer layers first: the dependency map draws them on top, one row per layer. Layers apply at the next scan. Without layers the explorer groups everything under an empty layer and the map is empty.
+
+### Setting layers in the UI
+
+You do not have to write the file by hand. Under **Settings → Edit layers** (also through the hint in the explorer and on the empty dependency map) CodeSkimr shows the namespaces of the last scan as a tree. Tick the namespaces that belong together (a tick counts with everything below it), name the layer and create it. Reordering, renaming and taking namespaces out is done in the list on the right. **Save and scan again** writes the `[[layers]]` blocks into the `.codeskimr.toml` of your project folder and scans the project again, after which the layers apply. Only these blocks are replaced; everything else in the file stays, and so does `may_use` for layers of the same name. Comments inside the old `[[layers]]` blocks are lost. CodeSkimr proposes nothing itself: layers only come from your choice. A Git project has no project folder; add the layers in the repository there.

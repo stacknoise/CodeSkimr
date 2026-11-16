@@ -61,3 +61,7 @@ namespaces = ["Shop.Infrastructure", "Shop.Data"]
 ```
 
 `namespaces` sind Präfixe qualifizierter Namen; Trenner ist `.` oder `::`. Ein Name gehört zur ersten Schicht, deren Präfix passt. Nennen Sie äußere Schichten zuerst: Die Abhängigkeitskarte zeichnet sie oben, eine Zeile je Schicht. Schichten gelten ab dem nächsten Scan. Ohne Schichten gruppiert der Explorer alles unter einer leeren Schicht, und die Karte bleibt leer.
+
+### Schichten in der Oberfläche festlegen
+
+Sie müssen die Datei nicht von Hand schreiben. Unter **Einstellungen → Schichten bearbeiten** (auch über den Hinweis im Explorer und auf der leeren Abhängigkeitskarte) zeigt CodeSkimr die Namensräume des letzten Scans als Baum. Haken Sie die Namensräume an, die zusammengehören (ein Haken gilt samt allem darunter), geben Sie der Schicht einen Namen und legen Sie sie an. Reihenfolge ändern, umbenennen und Namensräume herausnehmen geht in der Liste rechts. **Speichern und neu scannen** schreibt die `[[layers]]`-Blöcke in die `.codeskimr.toml` Ihres Projektordners und scannt das Projekt neu, danach gelten die Schichten. Nur diese Blöcke werden ersetzt; alles andere in der Datei bleibt, ebenso `may_use` bei gleichnamigen Schichten. Kommentare innerhalb der alten `[[layers]]`-Blöcke gehen verloren. CodeSkimr schlägt dabei nichts selbst vor: Schichten entstehen nur aus Ihrer Auswahl. Ein Git-Projekt hat keinen Projektordner; dort tragen Sie die Schichten im Repository ein.

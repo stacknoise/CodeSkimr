@@ -26,6 +26,7 @@ Owner: `codeskimr_application`
 | CFG-101 | `config_invalid_value` | error | no | 0.1.0 | A configuration value is outside its allowed range or has the wrong type. |
 | CFG-102 | `config_parse_failed` | error | no | 0.1.0 | A configuration file is not valid TOML. |
 | CFG-103 | `config_unknown_key` | error | no | 0.1.0 | A configuration file or flag sets a key that does not exist. |
+| CFG-104 | `project_file_not_writable` | error | no | 0.9.0 | The project file `.codeskimr.toml` could not be written. |
 
 ## PRJ – Projects and snapshots
 

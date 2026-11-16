@@ -12,7 +12,7 @@ use codeskimr_application::ports::{
 };
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Layer, Permission, ProjectId, Snapshot, SymbolId};
+use codeskimr_domain::{Layer, Permission, Project, ProjectId, Snapshot, SymbolId};
 use serde::{Deserialize, Serialize};
 
 use super::consts::{EXPLORER_OUTLINE, OUTLINE_DESCRIPTION, OUTLINE_TITLE};
@@ -29,6 +29,19 @@ pub struct ExplorerPorts {
 }
 
 impl ExplorerPorts {
+    /// A registered project and its newest snapshot, `None` before the first scan.
+    ///
+    /// # Errors
+    /// `PRJ-201` for an unknown project.
+    pub(super) fn project_and_newest(
+        &self,
+        project: u64,
+    ) -> Result<(Project, Option<Snapshot>), CodedError> {
+        let found = self.projects.project(ProjectId::new(project))?;
+        let snapshot = self.index.latest_snapshot(found.id)?;
+        Ok((found, snapshot))
+    }
+
     /// The newest snapshot of a registered project.
     ///
     /// # Errors
@@ -133,7 +146,10 @@ fn type_node(node: &OutlineNode) -> TypeNode {
 }
 
 /// The namespace a top-level type sits in: its parent container, or the name before its own.
-fn namespace_of(node: &OutlineNode, names: &HashMap<SymbolId, &OutlineNode>) -> Option<String> {
+pub(super) fn namespace_of(
+    node: &OutlineNode,
+    names: &HashMap<SymbolId, &OutlineNode>,
+) -> Option<String> {
     match node.parent {
         Some(parent) => names
             .get(&parent)
@@ -219,10 +235,8 @@ impl Command for ExplorerOutline {
     fn execute(&self, request: Request<'_, Self>) -> Result<Outline, CodedError> {
         access::require(request.principal, Permission::Read)?;
         let ports = &self.ports;
-        let project = ports
-            .projects
-            .project(ProjectId::new(request.input.project))?;
-        let Some(snapshot) = ports.index.latest_snapshot(project.id)? else {
+        let (project, snapshot) = ports.project_and_newest(request.input.project)?;
+        let Some(snapshot) = snapshot else {
             return Ok(Outline {
                 snapshot: None,
                 layers: Vec::new(),

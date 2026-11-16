@@ -59,6 +59,12 @@ function served(graph: unknown) {
 }
 
 describe("GraphScreen", () => {
+  it("offers to set layers when the project has none", async () => {
+    served({ ...GRAPH, boxes: [], links: [], bands: [] });
+    render(() => <GraphScreen />);
+    expect(await screen.findByRole("button", { name: "Set layers" })).toBeInTheDocument();
+  });
+
   it("draws a box per layer with the totals and the breaks of the layering", async () => {
     served(GRAPH);
     render(() => <GraphScreen />);
