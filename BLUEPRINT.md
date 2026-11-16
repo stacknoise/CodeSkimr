@@ -1201,7 +1201,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 
 ### B.2 Explorer (`Explorer.dc.html`)
 
-- **Three columns:** tree | details | source.
+- **Three columns:** tree | details | source. With a member selected in the tree there are two: tree | header and source (the source takes the place of the facts and the member table, ADR 0066).
 - **Tree:** layer → namespace → type → groups "Properties & fields" / "Methods" → members. Kind badges and counts; the selected member is highlighted.
 - **Details:**
   - breadcrumb, name with kind pill and base type
