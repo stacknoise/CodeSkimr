@@ -11,7 +11,7 @@ use codeskimr_application::ports::{CodeIndex, ProjectRepository};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_domain::{
     Layer, LayerEdge, LayerMap, Layout, LayoutEdge, LayoutGraph, LayoutNode, NamespaceGraph,
-    NodeIndex, Permission, ProjectId, SnapshotId, layer_map,
+    NodeIndex, NodePlacement, NodeSize, Permission, ProjectId, SnapshotId, layer_map,
 };
 use serde::{Deserialize, Serialize};
 
@@ -77,6 +77,32 @@ pub struct BoxOut {
     pub types: Option<u32>,
     /// Id of the type of a box on the level `types`; `None` on the other levels.
     pub symbol: Option<u64>,
+}
+
+impl BoxOut {
+    /// A box of a layer or a namespace at its place; the label is the name.
+    fn placed(
+        name: &str,
+        place: &NodePlacement,
+        size: NodeSize,
+        layer: Option<String>,
+        types: Option<u32>,
+    ) -> Self {
+        Self {
+            name: name.to_owned(),
+            label: name.to_owned(),
+            context: String::new(),
+            x: place.x,
+            y: place.y,
+            width: size.width,
+            height: size.height,
+            rank: place.rank,
+            order: place.order,
+            layer,
+            types,
+            symbol: None,
+        }
+    }
 }
 
 /// The background of one layer: a stripe over the whole width behind the rows of its boxes.
@@ -188,19 +214,9 @@ fn boxes_out(map: &LayerMap, look: &Graph) -> Vec<BoxOut> {
     map.names
         .iter()
         .zip(&map.layout.placements)
-        .map(|(name, place)| BoxOut {
-            name: name.as_str().to_owned(),
-            label: name.as_str().to_owned(),
-            context: String::new(),
-            x: place.x,
-            y: place.y,
-            width: size.width,
-            height: size.height,
-            rank: place.rank,
-            order: place.order,
-            layer: Some(name.as_str().to_owned()),
-            types: None,
-            symbol: None,
+        .map(|(name, place)| {
+            let layer = Some(name.as_str().to_owned());
+            BoxOut::placed(name.as_str(), place, size, layer, None)
         })
         .collect()
 }
@@ -347,19 +363,9 @@ fn namespace_boxes(
         .iter()
         .zip(&layout.placements)
         .zip(owners)
-        .map(|((node, place), (_, layer))| BoxOut {
-            name: node.name.to_string(),
-            label: node.name.to_string(),
-            context: String::new(),
-            x: place.x,
-            y: place.y,
-            width: size.width,
-            height: size.height,
-            rank: place.rank,
-            order: place.order,
-            layer: layer.map(|found| found.name.as_str().to_owned()),
-            types: Some(node.types),
-            symbol: None,
+        .map(|((node, place), (_, layer))| {
+            let owner = layer.map(|found| found.name.as_str().to_owned());
+            BoxOut::placed(node.name.as_str(), place, size, owner, Some(node.types))
         })
         .collect()
 }
