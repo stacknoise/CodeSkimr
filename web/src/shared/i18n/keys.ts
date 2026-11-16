@@ -261,6 +261,7 @@ export const I18N_KEYS = {
   GRAPH_EMPTY_TEXT: "graph-empty-text",
   GRAPH_NO_PROJECT: "graph-no-project",
   GRAPH_NO_EDGES: "graph-no-edges",
+  GRAPH_SINGLE_LAYER: "graph-single-layer",
   GRAPH_FAILED: "graph-failed",
   GRAPH_FIT_KEY: "graph-fit-key",
   GRAPH_OPEN_KEY: "graph-open-key",

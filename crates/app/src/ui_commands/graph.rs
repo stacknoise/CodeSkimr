@@ -17,6 +17,7 @@ use serde::{Deserialize, Serialize};
 
 use super::consts::{BAND_PAD_DIVISOR, GRAPH_DESCRIPTION, GRAPH_LAYERS, GRAPH_TITLE};
 use super::graph_types::types_out;
+use super::graph_wrap::{Extent, arrange};
 
 /// What a box of the map stands for.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
@@ -233,6 +234,15 @@ impl Command for GraphLayers {
         };
         out.snapshot = Some(snapshot.id.get());
         if request.input.level != Level::Types {
+            let size = arrange(
+                &mut out.boxes,
+                Extent {
+                    width: out.width,
+                    height: out.height,
+                },
+                look,
+            );
+            (out.width, out.height) = (size.width, size.height);
             out.bands = bands_out(&project.layers, &out.boxes, look);
         }
         let reach = out.bands.iter().map(|band| band.y + band.height).max();

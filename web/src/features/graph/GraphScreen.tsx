@@ -44,6 +44,11 @@ function Message(props: { title?: string; text: string; hint?: boolean }) {
 
 type Actions = ReturnType<typeof useSelectionActions>;
 
+/** Whether the map shows one layer only, which has nothing to depend on. */
+function singleLayer(current: GraphData): boolean {
+  return graphLevel() === LEVEL.layers && current.boxes.length === 1;
+}
+
 /** The notes under the map: types left out, no edges. */
 function Notes(props: { current: GraphData }) {
   return (
@@ -52,7 +57,9 @@ function Notes(props: { current: GraphData }) {
         {(count) => <p class={styles.note}>{t(I18N_KEYS.GRAPH_TYPES_MORE, { count: count() })}</p>}
       </Show>
       <Show when={props.current.links.length === 0}>
-        <p class={styles.note}>{t(I18N_KEYS.GRAPH_NO_EDGES)}</p>
+        <p class={styles.note}>
+          {t(singleLayer(props.current) ? I18N_KEYS.GRAPH_SINGLE_LAYER : I18N_KEYS.GRAPH_NO_EDGES)}
+        </p>
       </Show>
     </>
   );

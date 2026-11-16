@@ -171,3 +171,5 @@ node_gap = 24
 # Effort of the layout: sweeps against crossing edges and passes that centre boxes between their neighbours.
 sweeps = 12
 placement_passes = 6
+# Most boxes in one line of a row. A longer row (many namespaces in one layer) wraps into several lines.
+row_boxes = 8

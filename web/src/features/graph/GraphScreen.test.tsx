@@ -196,6 +196,18 @@ describe("GraphScreen", () => {
     expect(await screen.findByText(/No dependencies between the layers/)).toBeInTheDocument();
   });
 
+  it("says that one layer alone needs a second one for a dependency map", async () => {
+    served({
+      ...GRAPH,
+      boxes: [GRAPH.boxes[1]],
+      bands: [GRAPH.bands[0]],
+      links: [],
+    });
+    render(() => <GraphScreen />);
+    expect(await screen.findByText(/needs at least two layers/)).toBeInTheDocument();
+    expect(screen.queryByText(/No dependencies between the layers/)).toBeNull();
+  });
+
   it("is written in German too", async () => {
     setLanguage("de");
     served(GRAPH);

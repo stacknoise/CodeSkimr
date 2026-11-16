@@ -331,6 +331,9 @@ pub struct Graph {
     pub sweeps: u32,
     /// Number of passes that move the boxes towards their neighbours.
     pub placement_passes: u32,
+    /// Most boxes in one line of a row; a longer row wraps into several lines, so that a project
+    /// with hundreds of namespaces stays readable.
+    pub row_boxes: u32,
 }
 
 impl Graph {
