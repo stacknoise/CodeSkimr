@@ -125,6 +125,8 @@ export function SidePanel(props: {
   kind: string;
   /** Puts the selected type in the middle of the map; `undefined` where that makes no sense. */
   onFocus: (() => void) | undefined;
+  /** The text of the button that puts the selection in the middle. */
+  focusLabel: string;
 }) {
   return (
     <aside class={styles.panel} aria-label={t(I18N_KEYS.GRAPH_ARIA_SELECTION)}>
@@ -138,7 +140,7 @@ export function SidePanel(props: {
       <Show when={props.onFocus}>
         {(focus) => (
           <button type="button" class={styles.open} onClick={focus()}>
-            {t(I18N_KEYS.GRAPH_FOCUS_HERE)}
+            {props.focusLabel}
           </button>
         )}
       </Show>

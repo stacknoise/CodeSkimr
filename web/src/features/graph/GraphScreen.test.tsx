@@ -47,7 +47,6 @@ const GRAPH = {
     { name: "Ui", rank: 0, y: 0, height: 60 },
     { name: "Domain", rank: 1, y: 180, height: 60 },
   ],
-  groups: [],
   links: [
     { from: "Ui", to: "Domain", count: 12, violates_layering: false, in_cycle: false },
     { from: "Domain", to: "Infra", count: 2, violates_layering: true, in_cycle: false },
@@ -246,18 +245,29 @@ describe("GraphScreen", () => {
     expect(drag(area)).toBe(true);
   });
 
-  it("draws the frames around namespaces and the short label in the boxes", async () => {
+  it("builds the namespace level like the type focus: short label, breadcrumb, double click focuses", async () => {
     setGraphLevel(LEVEL.namespaces);
+    const middle = { ...GRAPH.boxes[1]!, name: "Shop.Cart", label: "Cart", context: "Shop" };
+    const other = { ...GRAPH.boxes[0]!, name: "Shop.Pay", label: "Pay", context: "Shop" };
     served({
       ...GRAPH,
-      boxes: [{ ...GRAPH.boxes[1]!, name: "Shop.Cart", label: "Cart", context: "Shop" }],
+      boxes: [middle, other],
       bands: [],
-      links: [],
-      groups: [{ name: "Shop", label: "Shop", x: 0, y: 0, width: 200, height: 100, depth: 0 }],
+      links: [
+        { from: "Shop.Cart", to: "Shop.Pay", count: 3, violates_layering: false, in_cycle: false },
+      ],
+      focus: { symbol: null, name: "Shop.Cart", users_more: 2, used_more: 0 },
     });
     render(() => <GraphScreen />);
-    expect((await screen.findAllByText("Shop")).length).toBe(2);
-    expect(screen.getByRole("button", { name: /^Cart/ })).toHaveAttribute("aria-pressed");
+    const pay = await screen.findByRole("button", { name: /^Pay/ });
+    expect(within(pay).getByText("Shop")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Shop.Cart" })).toBeInTheDocument();
+    expect(screen.getByText("2 more namespaces are not shown.")).toBeInTheDocument();
+    fireEvent.dblClick(pay);
+    await waitFor(() => {
+      const bodies = fetchMock.mock.calls.map((call) => String(call[1]?.body ?? ""));
+      expect(bodies.some((body) => body.includes('"namespace":"Shop.Pay"'))).toBe(true);
+    });
   });
 
   it("is written in German too", async () => {

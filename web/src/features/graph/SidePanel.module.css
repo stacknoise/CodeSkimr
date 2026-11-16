@@ -16,6 +16,7 @@
 }
 
 .title {
+    overflow-wrap: anywhere;
     margin: 2px 0 0;
     font: 700 18px var(--font-mono);
 }

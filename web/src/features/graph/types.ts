@@ -28,18 +28,6 @@ export interface LayerBand {
   height: number;
 }
 
-/** A frame around the namespaces that share the first segments of their names (`GroupOut`). */
-export interface LayerGroup {
-  name: string;
-  label: string;
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  /** How many frames surround this one. */
-  depth: number;
-}
-
 /** What a box stands for. */
 export type Level = "layers" | "namespaces" | "types";
 
@@ -54,7 +42,8 @@ export interface LayerLink {
 
 /** The type in the middle of the map on the type level, and what the picture leaves out. */
 export interface FocusInfo {
-  symbol: number;
+  /** Id of the type in the middle; `null` for a namespace. */
+  symbol: number | null;
   name: string;
   users_more: number;
   used_more: number;
@@ -68,8 +57,6 @@ export interface GraphData {
   boxes: LayerBox[];
   bands: LayerBand[];
   links: LayerLink[];
-  /** The frames around the namespaces, outer frames first. */
-  groups: LayerGroup[];
   /** The type in the middle; `null` on the other levels. */
   focus: FocusInfo | null;
 }

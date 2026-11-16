@@ -6,7 +6,7 @@ use std::collections::BTreeMap;
 use codeskimr_application::config::Graph;
 
 use super::consts::{BAND_PAD_DIVISOR, CENTRE_DIVISOR, MARGIN_SIDES, MIN_LINE_BOXES};
-use super::graph::{BoxOut, GroupOut};
+use super::graph::BoxOut;
 
 /// The size of the picture after [`arrange`].
 #[derive(Clone, Copy)]
@@ -79,28 +79,15 @@ pub(super) fn centre(boxes: &mut [BoxOut], look: &Graph) -> Extent {
     })
 }
 
-/// Wraps long rows and gives the picture its margin. `extent` is the size the layout reported.
+/// Wraps long rows and gives the picture its margin: the boxes move down and to the right by
+/// half a row gap, so that the stripe of the first layer has room above its boxes. `extent` is the
+/// size the layout reported; the result has the margin on both sides.
 pub(super) fn arrange(boxes: &mut [BoxOut], extent: Extent, look: &Graph) -> Extent {
     let extent = wrap_rows(boxes, look, false).unwrap_or(extent);
-    margin(boxes, &mut [], extent, look)
-}
-
-/// Moves the boxes and frames down and to the right by half a row gap, so that the stripe of the
-/// first layer has room above its boxes. Returns the size with the margin on both sides.
-pub(super) fn margin(
-    boxes: &mut [BoxOut],
-    groups: &mut [GroupOut],
-    extent: Extent,
-    look: &Graph,
-) -> Extent {
     let pad = look.rank_gap / BAND_PAD_DIVISOR;
     for found in boxes.iter_mut() {
         found.y += pad;
         found.x += pad;
-    }
-    for group in groups.iter_mut() {
-        group.y += pad;
-        group.x += pad;
     }
     Extent {
         width: extent.width + pad * MARGIN_SIDES,

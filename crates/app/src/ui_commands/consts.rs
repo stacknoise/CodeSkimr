@@ -172,14 +172,8 @@ pub const BAND_PAD_DIVISOR: u32 = 2;
 pub const CENTRE_DIVISOR: u32 = 2;
 /// The fewest boxes in a line of a row, whatever the configuration says.
 pub const MIN_LINE_BOXES: u32 = 1;
-/// The gap between two boxes inside a frame is the gap between boxes divided by this.
-pub const FRAME_GAP_DIVISOR: u32 = 2;
-/// The title bar of a frame is as high as a box divided by this.
-pub const FRAME_TITLE_DIVISOR: u32 = 2;
 /// Joins the namespaces in the breadcrumb of a type box.
 pub const BREADCRUMB_JOIN: &str = " › ";
-/// Joins the segments of a namespace name in the title of a frame.
-pub const NAME_JOIN: &str = ".";
 /// The margin of the picture applies on both sides.
 pub const MARGIN_SIDES: u32 = 2;
 /// Id of the command that lists the credentials of the Git projects.
@@ -203,6 +197,8 @@ pub const CREDENTIALS_DELETE_DESCRIPTION: &str = i18n::COMMAND_CREDENTIALS_DELET
 
 /// Most types drawn on each side of the type in the middle of the map; the rest is counted.
 pub const TYPE_SIDE_MAX: usize = 12;
+/// The most namespaces drawn on each side of the namespace in the middle.
+pub const NAMESPACE_SIDE_MAX: usize = 24;
 /// Between the qualified name and the id in the name of a box, if two drawn types share a name.
 pub const BOX_ID_SEPARATOR: &str = " #";
 /// Row of the types that use the type in the middle.
