@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { rescanAsked, rescanned } from "../../tests/scanned";
@@ -33,6 +33,8 @@ const MISSING: ToolsInfo = {
     },
   ],
 };
+
+const TWO_MINUTES = 120;
 
 const READY: ToolsInfo = {
   checked_at: 1_800_000_100,
@@ -70,6 +72,8 @@ async function openWarning(): Promise<HTMLElement> {
 }
 
 describe("the tools of a project", () => {
+  afterEach(() => vi.useRealTimers());
+
   it("warns about a missing indexer with its name, purpose and how to install it", async () => {
     const warning = await openWarning();
     expect(warning).toHaveTextContent("scip-dotnet");
@@ -159,6 +163,22 @@ describe("the tools of a project", () => {
     fireEvent.click(again);
     await waitFor(() => expect(screen.queryByRole("status")).toBeNull());
     expect(screen.getByText("Level 2 can run for: Rust")).toBeInTheDocument();
+  });
+
+  it("shows a fresh check time after a click, even when the result is the same", async () => {
+    const later = MISSING.checked_at ?? 0;
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime((later + TWO_MINUTES) * 1000);
+    serve({
+      "projects.list": () => answer([{ ...ROW, id: 9, location: "/work/nine", tools: MISSING }]),
+      "projects.tools": () => answer({ ...MISSING, checked_at: later + TWO_MINUTES }),
+    });
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByText("/work/nine"));
+    expect(await screen.findByText(/Last checked: .*minutes ago/)).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: "Check again" }));
+    await waitFor(() => expect(screen.queryByText(/minutes ago/)).toBeNull());
+    expect(screen.getByText(/Last checked:/)).toBeInTheDocument();
   });
 
   it("keeps the warning after a rescan, which does not check the tools again", async () => {
