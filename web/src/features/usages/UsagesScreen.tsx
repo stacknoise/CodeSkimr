@@ -105,7 +105,7 @@ function Body(props: { answer: UsagesAnswer }) {
   return (
     <div class={styles.screen}>
       <section class={styles.main}>
-        <Toolbar />
+        <Toolbar onBack={() => open(props.answer.symbol)} />
         <GraphView
           answer={props.answer}
           picked={previewAnswer()?.symbol.id ?? null}

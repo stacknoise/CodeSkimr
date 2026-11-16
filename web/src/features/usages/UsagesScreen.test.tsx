@@ -7,11 +7,11 @@ import { pendingFocus, requestFocus } from "../../shared/navigation/navigation";
 import { pointer } from "../../tests/pointer";
 import { ANSWER } from "../../tests/usages";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
-import { graphFocus, graphLevel } from "../graph/graph";
-import { selectType } from "../explorer/explorer";
 import { startView } from "./GraphView";
 import type { Graph } from "./graph";
 import { UsagesScreen } from "./UsagesScreen";
+import { RailLink } from "../../app/Frame";
+import { GRAPH_ROUTE } from "../../app/consts";
 import { showUsages } from "../../shared/navigation/navigation";
 import { clearUsages, focusSymbol } from "./usages";
 
@@ -55,28 +55,24 @@ describe("UsagesScreen", () => {
     expect(await screen.findByText("No symbol chosen")).toBeTruthy();
   });
 
-  it("opens the dependency map from the level buttons", async () => {
+  it("offers no buttons to the other levels of the map", async () => {
     shown();
     await screen.findByRole("heading", { name: "Cart.Total" });
-    fireEvent.click(screen.getByRole("button", { name: "Namespaces" }));
-    await waitFor(() => expect(currentPath()).toBe("/graph"));
-    expect(graphLevel()).toBe("namespaces");
+    expect(screen.queryByRole("button", { name: "Namespaces" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Types" })).toBeNull();
   });
 
-  it("keeps the Types button off until the explorer has a type chosen", async () => {
+  it("goes back to the symbol in the explorer with the back button", async () => {
     shown();
     await screen.findByRole("heading", { name: "Cart.Total" });
-    expect(screen.getByRole("button", { name: "Types" })).toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(screen.getByRole("button", { name: /Back to the symbol/ }));
+    await waitFor(() => expect(currentPath()).toBe("/explorer"));
   });
 
-  it("opens the type focus with the type chosen in the explorer", async () => {
-    shown();
-    await screen.findByRole("heading", { name: "Cart.Total" });
-    await selectType(1, 7);
-    fireEvent.click(screen.getByRole("button", { name: "Types" }));
-    await waitFor(() => expect(currentPath()).toBe("/graph"));
-    expect(graphLevel()).toBe("types");
-    expect(graphFocus()).toBe(7);
+  it("keeps the graph button of the rail marked on the symbol view", async () => {
+    navigate("/usages");
+    render(() => <RailLink route={GRAPH_ROUTE} />);
+    expect(screen.getByRole("link")).toHaveAttribute("aria-current", "page");
   });
 
   it("shows the symbol, the counts, the impact and the cards of the graph", async () => {

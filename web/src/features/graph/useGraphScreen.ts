@@ -130,17 +130,15 @@ export function useSelectionActions(state: MapState) {
       setGraphLevel(LEVEL.types);
     }
   };
-  const focusableHere = () => {
-    const type = selectedType();
-    return type !== null && type !== undefined && type !== graphFocus();
-  };
-  const focusHere = () => {
-    const type = selectedType();
+  /** Double click on a box: on the type level the type becomes the middle of the map. */
+  const focusBox = (name: string) => {
+    const type =
+      graphLevel() === LEVEL.types ? data()?.boxes.find((box) => box.name === name)?.symbol : null;
     if (type !== null && type !== undefined && type !== graphFocus()) {
       setGraphFocus(type);
     }
   };
-  return { openExplorer, focusType, focusHere, focusableHere };
+  return { openExplorer, focusType, focusBox };
 }
 
 /** The keys of the screen: fit the view and open the selection. */

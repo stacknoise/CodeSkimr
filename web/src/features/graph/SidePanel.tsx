@@ -123,8 +123,6 @@ export function SidePanel(props: {
   onOpen: () => void;
   /** What the selection is: a layer or namespace, or a type on the type level. */
   kind: string;
-  /** Puts the selected type in the middle of the map; `undefined` where that makes no sense. */
-  onFocus: (() => void) | undefined;
 }) {
   return (
     <aside class={styles.panel} aria-label={t(I18N_KEYS.GRAPH_ARIA_SELECTION)}>
@@ -135,13 +133,6 @@ export function SidePanel(props: {
       <Stats neighbours={props.neighbours} />
       <Lists neighbours={props.neighbours} onSelect={props.onSelect} />
       <Violations links={props.violations} onSelect={props.onSelect} />
-      <Show when={props.onFocus}>
-        {(focus) => (
-          <button type="button" class={styles.open} onClick={focus()}>
-            {t(I18N_KEYS.GRAPH_FOCUS_HERE)}
-          </button>
-        )}
-      </Show>
       <button type="button" class={styles.open} onClick={props.onOpen}>
         {t(I18N_KEYS.APP_ACTION_OPEN_IN_EXPLORER)} <kbd>{t(I18N_KEYS.GRAPH_OPEN_KEY)}</kbd>
       </button>

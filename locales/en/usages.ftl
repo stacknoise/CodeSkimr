@@ -1,10 +1,6 @@
 # Usages screen (symbol level).
 
 usages-title = Usages
-usages-level-label = Level
-usages-level-namespaces = Namespaces
-usages-level-types = Types
-usages-level-symbol = Symbol
 usages-direction-label = Direction
 usages-mode-both = both
 usages-mode-callers = who calls
@@ -12,6 +8,7 @@ usages-mode-callees = what is called
 usages-depth = Depth
 usages-depth-all = all
 usages-show-tests = Show tests
+usages-back = ← Back to the symbol
 usages-hint-open = Alt + click on a symbol in the code opens this view
 usages-callers-level = Callers · level { $level }
 usages-callees-level = Calls / reads · level { $level }

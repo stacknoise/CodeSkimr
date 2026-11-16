@@ -96,6 +96,7 @@ function MapPane(props: { state: MapState; actions: Actions; current: GraphData 
         data={props.current}
         selected={state.selected()}
         onSelect={state.setSelected}
+        onOpen={props.actions.focusBox}
         view={state.view()}
         onView={state.setView}
         onSize={state.setSize}
@@ -147,7 +148,6 @@ function PanelPane(props: {
           ? t(I18N_KEYS.GRAPH_SELECTED_TYPE)
           : t(I18N_KEYS.GRAPH_SELECTED_KIND)
       }
-      onFocus={props.actions.focusableHere() ? props.actions.focusHere : undefined}
     />
   );
 }

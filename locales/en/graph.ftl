@@ -47,6 +47,5 @@ graph-depth-all = all
 graph-depth-1 = 1 level
 graph-depth-2 = 2 levels
 graph-selected-type = Type
-graph-focus-here = Focus on this type
 graph-types-more = { $count } more types are not shown.
 graph-types-pick = Choose a type in the explorer first.

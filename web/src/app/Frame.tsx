@@ -4,18 +4,19 @@ import { t } from "../shared/i18n/i18n";
 import { I18N_KEYS } from "../shared/i18n/keys";
 import { cx } from "../shared/ui/cx";
 import { Icon } from "../shared/ui/Icon";
-import { BREADCRUMB_SLASH, CURRENT_PAGE, LOGO_LETTER, type Route } from "./consts";
+import { BREADCRUMB_SLASH, CURRENT_PAGE, LOGO_LETTER, RAIL_OWNER, type Route } from "./consts";
 import styles from "./App.module.css";
 import { currentPath, hrefOf, navigate } from "./router";
 
 /** One button of the rail: it shows its screen without loading the page again. */
 export function RailLink(props: { route: Route }) {
+  const active = () => (RAIL_OWNER[currentPath()] ?? currentPath()) === props.route.path;
   return (
     <a
       href={hrefOf(props.route.path)}
-      class={cx(styles.railButton, currentPath() === props.route.path && styles.on)}
+      class={cx(styles.railButton, active() && styles.on)}
       aria-label={t(props.route.label)}
-      aria-current={currentPath() === props.route.path ? CURRENT_PAGE : undefined}
+      aria-current={active() ? CURRENT_PAGE : undefined}
       onClick={(event) => {
         event.preventDefault();
         navigate(props.route.path);
