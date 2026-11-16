@@ -5,7 +5,7 @@ import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { pendingFocus, requestFocus } from "../../shared/navigation/navigation";
 import { pointer } from "../../tests/pointer";
-import { ANSWER } from "../../tests/usages";
+import { ANSWER, VIEW } from "../../tests/usages";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { startView } from "./GraphView";
 import type { Graph } from "./graph";
@@ -175,9 +175,16 @@ describe("UsagesScreen", () => {
 
   it("shows a clicked card in the side panel and makes a double-clicked card the focus", async () => {
     shown();
+    const first = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation((path: string, init: RequestInit) =>
+      String(path).endsWith("usages.query") && String(init?.body).includes('"symbol":11')
+        ? Promise.resolve(answer({ ...ANSWER, symbol: VIEW, signature: "void Render()" }))
+        : first(path, init),
+    );
     const graph = await screen.findByRole("region", { name: "Usage graph" });
     fireEvent.click(within(graph).getByText("Render"));
-    await waitFor(() => expect(lastRequest().symbol).toBe(11));
+    expect(await screen.findByText("void Render()")).toBeTruthy();
+    expect(focusSymbol()).not.toBe(11);
     fireEvent.dblClick(within(graph).getByText("Render"));
     await waitFor(() => expect(focusSymbol()).toBe(11));
   });

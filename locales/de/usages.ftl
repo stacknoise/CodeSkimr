@@ -62,4 +62,4 @@ usages-load-failed = Die Verwendungen konnten nicht gelesen werden.
 usages-zoom-in = Vergrößern
 usages-zoom-out = Verkleinern
 usages-zoom-fit = Alles zeigen
-usages-hint-navigation = Mausrad zoomt · Ziehen verschiebt · Klick zeigt Details · Doppelklick wechselt den Fokus
+usages-hint-navigation = Mausrad zoomt · Ziehen oder Mittelmaustaste verschiebt · Klick zeigt Details · Doppelklick oder Enter wechselt den Fokus

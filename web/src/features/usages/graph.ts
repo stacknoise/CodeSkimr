@@ -175,15 +175,15 @@ interface Wish {
 
 /** Moves the wished middle lines (in ascending order) apart until the cards do not touch, then
  * shifts them all together so that they stay as close to their wish as possible. */
-function spread(wishes: Wish[]): Wish[] {
+function spread(wished: Wish[]): Wish[] {
   const step = GRAPH.cardHeight + GRAPH.rowGap;
   let floor = -Infinity;
-  const placed = wishes.map((wish) => {
+  const placed = wished.map((wish) => {
     floor = Math.max(wish.middle, floor + step);
     return { node: wish.node, middle: floor };
   });
   const missed = placed.reduce(
-    (sum, wish, i) => sum + (wishes[i]?.middle ?? wish.middle) - wish.middle,
+    (sum, wish, i) => sum + (wished[i]?.middle ?? wish.middle) - wish.middle,
     0,
   );
   const shift = placed.length === 0 ? 0 : missed / placed.length;

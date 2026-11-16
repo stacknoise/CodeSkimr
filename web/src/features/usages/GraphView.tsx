@@ -9,6 +9,7 @@ import type { Size, View } from "../graph/types";
 import {
   COLUMN,
   GRAPH,
+  KEY,
   MISSING,
   ROLE,
   START_MIN_SCALE,
@@ -31,6 +32,14 @@ function heading(column: Column): string {
   return column.level === 1
     ? t(I18N_KEYS.USAGES_CALLEES)
     : t(I18N_KEYS.USAGES_CALLEES_LEVEL, { level });
+}
+
+/** Enter on a focused card changes the focus, like a double click; Space and a click only pick. */
+function openOnEnter(event: KeyboardEvent, open: () => void): void {
+  if (event.key === KEY.open) {
+    event.preventDefault();
+    open();
+  }
 }
 
 function cardStyle(card: Card) {
@@ -62,6 +71,7 @@ function CardButton(props: {
       title={card().place.qualified_name}
       onClick={() => props.onPick(card())}
       onDblClick={() => props.onOpen(card())}
+      onKeyDown={(event) => openOnEnter(event, () => props.onOpen(card()))}
     >
       <span class={styles.line}>
         <KindBadge kind={card().place.kind} />

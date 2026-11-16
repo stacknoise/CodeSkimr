@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { COLUMN, GRAPH, TONE } from "./consts";
 import { buildGraph } from "./graph";
-import { ANSWER, FOCUS, hit, place, PRICE, VIEW } from "../../tests/usages";
+import { ANSWER, FOCUS, HANDLER, hit, place, PRICE, VIEW } from "../../tests/usages";
 import { nextHit } from "./keys";
 import { shortName } from "./names";
 
@@ -40,6 +40,52 @@ describe("buildGraph", () => {
     const page = card("Shop.Ui.Page.Open");
     expect(middle(page)).toBeCloseTo(middle(view), 5);
     expect(page.y).toBeGreaterThanOrEqual(GRAPH.top);
+  });
+
+  it("spreads several children and several parents without overlap and keeps their order", () => {
+    const a = place(21, "Shop.A.One");
+    const b = place(22, "Shop.A.Two");
+    const c = place(23, "Shop.A.Three");
+    const answer = {
+      ...ANSWER,
+      incoming: {
+        total: 5,
+        hits: [
+          ...ANSWER.incoming!.hits,
+          hit(a, VIEW, { depth: 2 }),
+          hit(b, VIEW, { depth: 2 }),
+          hit(c, HANDLER, { depth: 2 }),
+        ],
+      },
+    };
+    const wide = buildGraph(answer);
+    const find = (name: string) => wide.cards.find((x) => x.place.qualified_name === name)!;
+    const column = wide.cards.filter((x) => x.x === find("Shop.A.One").x).sort((p, q) => p.y - q.y);
+    expect(column).toHaveLength(4);
+    for (let i = 1; i < column.length; i += 1) {
+      expect(column[i]!.y - column[i - 1]!.y).toBeGreaterThanOrEqual(
+        GRAPH.cardHeight + GRAPH.rowGap - 1e-6,
+      );
+    }
+    const upper = find(VIEW.qualified_name).y < find(HANDLER.qualified_name).y;
+    const order = column.map((x) => x.place.id);
+    expect(order.indexOf(21) < order.indexOf(23)).toBe(upper);
+    expect(Math.min(...wide.cards.map((x) => x.y))).toBe(GRAPH.top);
+  });
+
+  it("puts a card without a parent in the graph at the height of the focus", () => {
+    const orphan = place(30, "Shop.Lost.Caller");
+    const lonely = buildGraph({
+      ...ANSWER,
+      incoming: {
+        total: 5,
+        hits: [...ANSWER.incoming!.hits, hit(orphan, place(31, "Shop.Lost.Parent"), { depth: 2 })],
+      },
+    });
+    const card = lonely.cards.find((x) => x.place.id === 30)!;
+    const focus = lonely.cards.find((x) => x.focus)!;
+    expect(Number.isFinite(card.y)).toBe(true);
+    expect(card.y + card.height / 2).toBeLessThanOrEqual(focus.y + focus.height / 2 + 200);
   });
 
   it("keeps the column of what is called when nothing is called", () => {
