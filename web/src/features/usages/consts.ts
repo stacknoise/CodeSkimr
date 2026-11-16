@@ -140,5 +140,3 @@ export const START_MIN_SCALE = 0.6;
 /** The width of the side panel, and the key under which it is remembered. */
 export const PANEL_PANE_KEY = "usages.panel";
 export const PANEL_PANE_BOUNDS = { initial: 300, min: 240, max: 720 } as const;
-/** The custom property that carries the width of the panel into its style sheet. */
-export const PANEL_WIDTH_VAR = "--panel-width";

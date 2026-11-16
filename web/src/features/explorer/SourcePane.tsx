@@ -4,7 +4,7 @@ import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
 import { showUsages } from "../../shared/navigation/navigation";
-import { PILL_SEPARATOR, WIDE_FLEX } from "./consts";
+import { PILL_SEPARATOR } from "./consts";
 import { sourceWidth } from "./layout";
 import { lineRange } from "./format";
 import { type Segment, segments } from "./segments";
@@ -146,7 +146,7 @@ export function SourcePane(props: { shown: boolean; wide: boolean }) {
   return (
     <section
       class={cx(styles.pane, props.wide && styles.inColumn)}
-      style={props.wide ? { flex: WIDE_FLEX } : { "flex-basis": `${sourceWidth.size()}px` }}
+      style={props.wide ? undefined : { "flex-basis": `${sourceWidth.size()}px` }}
       aria-label={t(I18N_KEYS.EXPLORER_SOURCE_LABEL)}
     >
       <Content shown={props.shown} />

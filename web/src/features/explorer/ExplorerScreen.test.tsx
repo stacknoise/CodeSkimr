@@ -396,5 +396,7 @@ describe("a member selected in the tree", () => {
     // The source sits in the middle column, under the header, and no third column is left.
     const details = screen.getByRole("region", { name: "Details" });
     expect(within(details).getByRole("region", { name: "Source" })).toBeTruthy();
+    // Only the tree has a separator left; the one of the source column is gone.
+    expect(screen.getAllByRole("separator")).toHaveLength(1);
   });
 });

@@ -1,5 +1,5 @@
 .panel {
-    width: var(--panel-width, 300px);
+    width: var(--panel-width, 300px) /* fallback */;
     flex: none;
     overflow: auto;
     display: flex;

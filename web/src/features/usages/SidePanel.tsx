@@ -12,7 +12,7 @@ import {
 import { Breakable } from "../../shared/ui/Breakable";
 import { shortName } from "./names";
 import type { UsagesAnswer } from "./types";
-import { PANEL_WIDTH_VAR } from "./consts";
+import { panelStyle } from "../../shared/layout/panelStyle";
 import { panelWidth } from "./layout";
 import styles from "./SidePanel.module.css";
 
@@ -89,7 +89,7 @@ export function SidePanel(props: { answer: UsagesAnswer; onOpen: () => void }) {
   return (
     <aside
       class={styles.panel}
-      style={{ [PANEL_WIDTH_VAR]: `${panelWidth.size()}px` }}
+      style={panelStyle(panelWidth)}
       aria-label={t(I18N_KEYS.USAGES_TITLE)}
     >
       <div>

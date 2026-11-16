@@ -5,7 +5,7 @@ import { cx } from "../../shared/ui/cx";
 import { count } from "../projects/format";
 import type { Neighbours } from "./neighbours";
 import type { LayerLink } from "./types";
-import { PANEL_WIDTH_VAR } from "./consts";
+import { panelStyle } from "../../shared/layout/panelStyle";
 import { panelWidth } from "./layout";
 import styles from "./SidePanel.module.css";
 
@@ -131,7 +131,7 @@ export function SidePanel(props: {
   return (
     <aside
       class={styles.panel}
-      style={{ [PANEL_WIDTH_VAR]: `${panelWidth.size()}px` }}
+      style={panelStyle(panelWidth)}
       aria-label={t(I18N_KEYS.GRAPH_ARIA_SELECTION)}
     >
       <div>
