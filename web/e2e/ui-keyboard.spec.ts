@@ -241,7 +241,7 @@ test.describe("quick search and Esc (15.4)", () => {
     await expect(page.getByRole("option", { name: /Show/ }).first()).toBeVisible();
     await page.keyboard.press("Enter");
     await expect(page.getByRole("dialog")).toBeHidden();
-    await expect(page.getByRole("heading", { name: "Report" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Show" })).toBeVisible();
   });
 });
 
