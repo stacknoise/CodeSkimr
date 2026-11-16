@@ -8,7 +8,14 @@ import { answer, fetchMock, serve, useServerSession } from "../../tests/commands
 import type { ProjectRow } from "../projects/types";
 import { selectType } from "../explorer/explorer";
 import { DEPTH_ALL, LEVEL } from "./consts";
-import { resetGraph, setGraphDepth, setGraphLevel, wantedLayer, wantLayer } from "./graph";
+import {
+  graphLevel,
+  resetGraph,
+  setGraphDepth,
+  setGraphLevel,
+  wantedLayer,
+  wantLayer,
+} from "./graph";
 import { GraphScreen } from "./GraphScreen";
 
 const ROW: ProjectRow = {
@@ -65,6 +72,17 @@ describe("GraphScreen", () => {
     served({ ...GRAPH, boxes: [], links: [], bands: [] });
     render(() => <GraphScreen />);
     expect(await screen.findByRole("button", { name: "Set layers" })).toBeInTheDocument();
+  });
+
+  it("keeps the level buttons when there are no layers, so another level can be chosen", async () => {
+    served({ ...GRAPH, boxes: [], links: [], bands: [] });
+    render(() => <GraphScreen />);
+    await screen.findByRole("button", { name: "Set layers" });
+    fireEvent.click(screen.getByRole("button", { name: "Namespaces" }));
+    await waitFor(() => expect(graphLevel()).toBe("namespaces"));
+    expect(screen.getByRole("button", { name: "Namespaces" }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
   });
 
   it("draws a box per layer with the totals and the breaks of the layering", async () => {

@@ -28,7 +28,7 @@ import {
 } from "./useGraphScreen";
 import styles from "./GraphScreen.module.css";
 
-function Message(props: { title?: string; text: string; hint?: boolean }) {
+function Message(props: { title?: string | undefined; text: string; hint?: boolean }) {
   return (
     <div class={styles.empty}>
       <Show when={props.title}>
@@ -65,24 +65,33 @@ function Notes(props: { current: GraphData }) {
   );
 }
 
+/** The toolbar of the map; it stays when there is nothing to draw, so that another level can be
+ * chosen. */
+function MapToolbar(props: { state: MapState; actions: Actions }) {
+  const { state } = props;
+  return (
+    <Toolbar
+      level={graphLevel()}
+      onLevel={setGraphLevel}
+      focusable={currentType() !== null || graphFocus() !== null}
+      onTypeFocus={props.actions.focusType}
+      depth={graphDepth()}
+      onDepth={setGraphDepth}
+      weak={state.weak()}
+      onWeak={state.setWeak}
+      violationsOnly={state.filtering()}
+      onViolationsOnly={state.setViolationsOnly}
+      onFit={state.fitView}
+    />
+  );
+}
+
 /** The drawn map: toolbar, canvas, notes and legend. */
 function MapPane(props: { state: MapState; actions: Actions; current: GraphData }) {
   const { state } = props;
   return (
     <div class={styles.map}>
-      <Toolbar
-        level={graphLevel()}
-        onLevel={setGraphLevel}
-        focusable={currentType() !== null || graphFocus() !== null}
-        onTypeFocus={props.actions.focusType}
-        depth={graphDepth()}
-        onDepth={setGraphDepth}
-        weak={state.weak()}
-        onWeak={state.setWeak}
-        violationsOnly={state.filtering()}
-        onViolationsOnly={state.setViolationsOnly}
-        onFit={state.fitView}
-      />
+      <MapToolbar state={state} actions={props.actions} />
       <GraphCanvas
         data={props.current}
         selected={state.selected()}
@@ -98,6 +107,22 @@ function MapPane(props: { state: MapState; actions: Actions; current: GraphData 
         layers={props.current.boxes.length}
         links={props.current.links.length}
         violations={violations(props.current.links).length}
+      />
+    </div>
+  );
+}
+
+/** The map with nothing on it: the toolbar stays, the text says why and what to do. The layers
+ * need a layer to be set; the other levels only a scanned project. */
+function EmptyMap(props: { state: MapState; actions: Actions }) {
+  const layers = () => graphLevel() === LEVEL.layers;
+  return (
+    <div class={styles.map}>
+      <MapToolbar state={props.state} actions={props.actions} />
+      <Message
+        title={layers() ? t(I18N_KEYS.GRAPH_EMPTY_TITLE) : undefined}
+        text={t(layers() ? I18N_KEYS.GRAPH_EMPTY_TEXT : I18N_KEYS.GRAPH_NO_NAMESPACES)}
+        hint={layers()}
       />
     </div>
   );
@@ -133,15 +158,7 @@ function Loaded(props: { state: MapState; actions: Actions }) {
   return (
     <Show
       when={state.data()}
-      fallback={
-        graphData() ? (
-          <Message
-            title={t(I18N_KEYS.GRAPH_EMPTY_TITLE)}
-            text={t(I18N_KEYS.GRAPH_EMPTY_TEXT)}
-            hint
-          />
-        ) : null
-      }
+      fallback={graphData() ? <EmptyMap state={state} actions={props.actions} /> : null}
     >
       {(current) => (
         <>

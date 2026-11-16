@@ -37,6 +37,7 @@ graph-empty-title = Keine Schichten zu zeigen
 graph-empty-text = Dieses Projekt hat noch keine Schichten. Lege sie fest, dann baut die Karte sich beim nächsten Scan auf.
 graph-no-project = Öffne zuerst ein Projekt, dann erscheinen hier seine Schichten.
 graph-no-edges = Zwischen den Schichten wurden noch keine Abhängigkeiten gefunden.
+graph-no-namespaces = In diesem Projekt wurden keine Namensräume mit Typen gefunden.
 graph-single-layer = Für eine Abhängigkeitskarte braucht es mindestens zwei Schichten. Mit der Ansicht „Namespaces“ siehst du die Namensräume dieser Schicht.
 graph-failed = Die Karte konnte nicht geladen werden.
 graph-fit-key = F

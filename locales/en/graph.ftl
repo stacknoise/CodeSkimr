@@ -37,6 +37,7 @@ graph-empty-title = No layers to show
 graph-empty-text = This project has no layers yet. Set them, and the map builds up with the next scan.
 graph-no-project = Open a project first, then its layers show up here.
 graph-no-edges = No dependencies between the layers were found yet.
+graph-no-namespaces = No namespaces with types were found in this project.
 graph-single-layer = A dependency map needs at least two layers. The "Namespaces" view shows the namespaces of this layer.
 graph-failed = The map could not be loaded.
 graph-fit-key = F
