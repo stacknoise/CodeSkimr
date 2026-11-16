@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 use codeskimr_application::config::Graph;
 
-use super::consts::BAND_PAD_DIVISOR;
+use super::consts::{BAND_PAD_DIVISOR, CENTRE_DIVISOR, MARGIN_SIDES};
 use super::graph::BoxOut;
 
 /// The size of the picture after [`arrange`].
@@ -51,7 +51,8 @@ fn wrap_rows(boxes: &mut [BoxOut], look: &Graph) -> Option<Extent> {
     let mut top = 0;
     for row in rows.values() {
         for (line, members) in row.chunks(per_line).enumerate() {
-            let indent = (width + look.node_gap - to_u32(members.len()) * cell_width) / 2;
+            let indent =
+                (width + look.node_gap - to_u32(members.len()) * cell_width) / CENTRE_DIVISOR;
             let y = top + to_u32(line) * cell_height;
             for (column, &index) in members.iter().enumerate() {
                 if let Some(found) = boxes.get_mut(index) {
@@ -78,8 +79,8 @@ pub(super) fn arrange(boxes: &mut [BoxOut], extent: Extent, look: &Graph) -> Ext
         found.x += pad;
     }
     Extent {
-        width: extent.width + pad * 2,
-        height: extent.height + pad * 2,
+        width: extent.width + pad * MARGIN_SIDES,
+        height: extent.height + pad * MARGIN_SIDES,
     }
 }
 
