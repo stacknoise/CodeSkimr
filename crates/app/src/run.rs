@@ -12,8 +12,8 @@ use codeskimr_cli::{
     ScanArgs, ScanSummary, check_json, check_text, confirm_prompt, confirm_target, confirm_warning,
     credential_deleted, credential_stored, device_prompt, error_line, export_written,
     language_from, level2_confirmed, level2_declined, level2_revoked, open_ready, parse,
-    scan_finished, scan_json, scan_started, secret_prompt, serve_started, watch_started,
-    watch_updated,
+    scan_finished, scan_json, scan_started, secret_prompt, serve_started, start_keep_open,
+    watch_started, watch_updated,
 };
 use codeskimr_codes::i18n::{CLI_CREDENTIAL_UNUSABLE_HINT, CLI_CREDENTIALS_HINT};
 use codeskimr_codes::{Coded, ErrorCode};
@@ -303,6 +303,9 @@ fn run_start(
     };
     let listening = |url: &str| {
         if let Ok(line) = serve_started(messages, language, url) {
+            write_out(&line);
+        }
+        if let Ok(line) = start_keep_open(messages, language) {
             write_out(&line);
         }
         let args = OpenArgs { no_browser: false };

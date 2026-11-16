@@ -173,4 +173,18 @@ jobs:
           VERSION: ${{ inputs.version }}
           PLATFORM: ${{ matrix.platform }}
           SUFFIX: ${{ matrix.suffix }}
-        run: tools/release/verify.sh "download/codeskimr-${VERSION}-${PLATFORM}${SUFFIX}" "$VERSION"
+        run: |
+          asset="download/codeskimr-${VERSION}-${PLATFORM}${SUFFIX}"
+          if [ "$RUNNER_OS" = Linux ]; then
+            # The start without arguments needs a Secret Service: gnome-keyring in a private D-Bus session,
+            # as in the CI job for the credential store. The probe itself stays as strict as on the other systems.
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends gnome-keyring dbus-x11
+            ASSET="$asset" dbus-run-session -- bash -c '
+              set -euo pipefail
+              eval "$(echo ci-keyring | gnome-keyring-daemon --daemonize --unlock --components=secrets)"
+              tools/release/verify.sh "$ASSET" "$VERSION"
+            '
+          else
+            tools/release/verify.sh "$asset" "$VERSION"
+          fi
