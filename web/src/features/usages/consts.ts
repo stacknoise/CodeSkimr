@@ -22,8 +22,8 @@ export const WAYS = [
 export const DEPTH_ALL = 0;
 /** Depth shown at first (mock 6). */
 export const DEFAULT_DEPTH = 2;
-/** The depths of the select, in the order of the mock. */
-export const DEPTHS: readonly number[] = [DEFAULT_DEPTH, 1, 3, DEPTH_ALL];
+/** The depths of the select, ascending, "all" last. */
+export const DEPTHS: readonly number[] = [1, DEFAULT_DEPTH, 3, DEPTH_ALL];
 
 /** Tests are shown at first (mock 6). */
 export const DEFAULT_SHOW_TESTS = true;
