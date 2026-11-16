@@ -15,7 +15,16 @@ import {
   ROW_ID_PREFIX,
   TRUE,
 } from "./consts";
-import { collapseAll, currentMember, currentType, setTreeFilter, treeFilter } from "./explorer";
+import {
+  collapseAll,
+  currentMember,
+  currentType,
+  setTreeFilter,
+  setTreeScroll,
+  treeFilter,
+  treeScroll,
+} from "./explorer";
+import { treeWidth } from "./layout";
 import { KindBadge } from "./KindBadge";
 import { onTreeKey } from "./keys";
 import { indent, siblingPlaces, type Place, type TreeRow } from "./tree";
@@ -170,10 +179,14 @@ export function TreePane(props: {
   note: string | null;
 }) {
   const cursorIndex = createMemo(() => props.rows.findIndex((row) => row.key === props.cursor));
-  const view = useWindow(() => props.rows, cursorIndex);
+  const view = useWindow(() => props.rows, cursorIndex, treeScroll());
   const places = createMemo(() => siblingPlaces(props.rows));
   return (
-    <section class={styles.pane} aria-label={t(I18N_KEYS.EXPLORER_STRUCTURE_LABEL)}>
+    <section
+      class={styles.pane}
+      style={{ width: `${treeWidth.size()}px` }}
+      aria-label={t(I18N_KEYS.EXPLORER_STRUCTURE_LABEL)}
+    >
       <Tools onReveal={props.actions.onReveal} />
       <Show when={props.note}>{(note) => <p class={styles.note}>{note()}</p>}</Show>
       <div
@@ -185,7 +198,10 @@ export function TreePane(props: {
         aria-activedescendant={
           cursorIndex() === NOT_FOUND ? undefined : `${ROW_ID_PREFIX}${cursorIndex()}`
         }
-        onScroll={view.onScroll}
+        onScroll={(event) => {
+          view.onScroll(event);
+          setTreeScroll(event.currentTarget.scrollTop);
+        }}
         onKeyDown={(event) => onTreeKey(event, props.rows, cursorIndex(), props.actions)}
       >
         <Window view={view} places={places()} cursorIndex={cursorIndex()} actions={props.actions} />

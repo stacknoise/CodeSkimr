@@ -251,3 +251,11 @@ export const PATH_JOINER = "/";
 
 /** Keyboard hints on the three buttons of the header. */
 export const HOTKEY = { usages: "U", graph: "G", editor: "E" } as const;
+
+/** Keys under which the sizes of the columns are kept, and their limits in pixels (mock 2 shows
+ * the first values). */
+export const PANE_KEY = { tree: "explorer.tree", source: "explorer.source" } as const;
+export const PANE_BOUNDS = {
+  tree: { initial: 290, min: 200, max: 640 },
+  source: { initial: 560, min: 280, max: 1100 },
+} as const;

@@ -4,8 +4,11 @@ import { currentPath, navigate } from "../../app/router";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { pendingFocus, requestFocus } from "../../shared/navigation/navigation";
+import { pointer } from "../../tests/pointer";
 import { ANSWER } from "../../tests/usages";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
+import { startView } from "./GraphView";
+import type { Graph } from "./graph";
 import { UsagesScreen } from "./UsagesScreen";
 import { showUsages } from "../../shared/navigation/navigation";
 import { clearUsages } from "./usages";
@@ -188,5 +191,59 @@ describe("UsagesScreen", () => {
     shown();
     expect(await screen.findByText("Fundstellen 4")).toBeTruthy();
     expect(screen.getAllByText("ungeprüft").length).toBe(3);
+  });
+});
+
+describe("the graph of the usages", () => {
+  const planeOf = () =>
+    screen.getByRole("region", { name: "Usage graph" }).firstElementChild as HTMLElement;
+
+  it("zooms with the wheel and the buttons and goes back to the whole picture", async () => {
+    shown();
+    await screen.findByRole("heading", { name: "Cart.Total" });
+    const graph = screen.getByRole("region", { name: "Usage graph" });
+    expect(planeOf().style.transform).toContain("scale(1)");
+    fireEvent.wheel(graph, { deltaY: -100 });
+    expect(planeOf().style.transform).not.toContain("scale(1)");
+    fireEvent.click(screen.getByRole("button", { name: "Show everything" }));
+    expect(planeOf().style.transform).toContain("scale(1)");
+    fireEvent.click(screen.getByRole("button", { name: "Zoom out" }));
+    expect(planeOf().style.transform).not.toContain("scale(1)");
+  });
+
+  /** Shows the graph and returns it with a way to drag on `target` with `button` and tell whether
+   * the picture moved. */
+  async function dragging() {
+    shown();
+    await screen.findByRole("heading", { name: "Cart.Total" });
+    const graph = screen.getByRole("region", { name: "Usage graph" });
+    graph.setPointerCapture = () => undefined;
+    const before = planeOf().style.transform;
+    return {
+      graph,
+      drag: (target: Element, button: number) => {
+        pointer(target, "pointerdown", { button });
+        pointer(graph, "pointermove", { movementX: 30, movementY: 20 });
+        pointer(graph, "pointerup");
+        return planeOf().style.transform !== before;
+      },
+    };
+  }
+
+  it("moves the picture when the empty ground or the middle button is dragged, not a card", async () => {
+    const { graph, drag } = await dragging();
+    expect(drag(within(graph).getByText("CartView.Render"), 0)).toBe(false);
+    expect(drag(graph, 0)).toBe(true);
+  });
+
+  it("moves the picture when the middle button is dragged", async () => {
+    const { graph, drag } = await dragging();
+    expect(drag(graph, 1)).toBe(true);
+  });
+
+  it("starts with the focus in the middle of the height", () => {
+    const graph = { height: 1000, cards: [{ focus: true, y: 480, height: 40 }] } as Graph;
+    expect(startView(graph, { width: 800, height: 400 })).toEqual({ scale: 1, x: 0, y: -300 });
+    expect(startView(graph, { width: 800, height: 2000 })).toEqual({ scale: 1, x: 0, y: 0 });
   });
 });

@@ -4,6 +4,8 @@ import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
 import { pendingFocus, showUsages } from "../../shared/navigation/navigation";
+import { ORIENTATION, SIDE } from "../../shared/layout/consts";
+import { Splitter } from "../../shared/layout/Splitter";
 import { showInGraph } from "../graph/show";
 import { DetailPane } from "./DetailPane";
 import {
@@ -22,6 +24,7 @@ import {
 } from "./explorer";
 import { openInEditor } from "./editor";
 import { useExplorerKeys } from "./keys";
+import { sourceWidth, treeWidth } from "./layout";
 import { Overview } from "./Overview";
 import { clearSource, loadSource } from "./source";
 import { SourcePane } from "./SourcePane";
@@ -188,7 +191,9 @@ export function ExplorerScreen() {
             actions={explorer.actions}
             note={treeNote(explorer.rows().length)}
           />
+          <Splitter pane={treeWidth} orientation={ORIENTATION.vertical} side={SIDE.before} />
           <Details onPickMember={explorer.pickMember} />
+          <Splitter pane={sourceWidth} orientation={ORIENTATION.vertical} side={SIDE.after} />
           <SourcePane shown={shownSymbol() !== null} />
         </div>
       </Match>
