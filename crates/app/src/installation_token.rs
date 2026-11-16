@@ -202,8 +202,10 @@ mod tests {
         let folder = tempfile::tempdir().unwrap();
         let lock = folder.path().join("token.lock");
         let holder = File::options()
+            .read(true)
+            .write(true)
             .create(true)
-            .append(true)
+            .truncate(false)
             .open(&lock)
             .unwrap();
         fs4::FileExt::try_lock(&holder).unwrap();
