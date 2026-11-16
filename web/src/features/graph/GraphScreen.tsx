@@ -3,7 +3,10 @@ import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { LayersHint } from "../layers/LayersHint";
 import { currentType } from "../explorer/explorer";
+import { ORIENTATION, SIDE } from "../../shared/layout/consts";
+import { Splitter } from "../../shared/layout/Splitter";
 import { LEVEL } from "./consts";
+import { panelWidth } from "./layout";
 import {
   graphData,
   graphFailed,
@@ -165,12 +168,15 @@ function Loaded(props: { state: MapState; actions: Actions }) {
           <MapPane state={state} actions={props.actions} current={current()} />
           <Show when={state.selected()}>
             {(layer) => (
-              <PanelPane
-                state={state}
-                actions={props.actions}
-                current={current()}
-                layer={layer()}
-              />
+              <>
+                <Splitter pane={panelWidth} orientation={ORIENTATION.vertical} side={SIDE.after} />
+                <PanelPane
+                  state={state}
+                  actions={props.actions}
+                  current={current()}
+                  layer={layer()}
+                />
+              </>
             )}
           </Show>
         </>

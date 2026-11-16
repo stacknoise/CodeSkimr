@@ -5,6 +5,8 @@ import { cx } from "../../shared/ui/cx";
 import { count } from "../projects/format";
 import type { Neighbours } from "./neighbours";
 import type { LayerLink } from "./types";
+import { PANEL_WIDTH_VAR } from "./consts";
+import { panelWidth } from "./layout";
 import styles from "./SidePanel.module.css";
 
 function Stat(props: { value: number; label: string; tone?: string | undefined }) {
@@ -127,7 +129,11 @@ export function SidePanel(props: {
   onFocus: (() => void) | undefined;
 }) {
   return (
-    <aside class={styles.panel} aria-label={t(I18N_KEYS.GRAPH_ARIA_SELECTION)}>
+    <aside
+      class={styles.panel}
+      style={{ [PANEL_WIDTH_VAR]: `${panelWidth.size()}px` }}
+      aria-label={t(I18N_KEYS.GRAPH_ARIA_SELECTION)}
+    >
       <div>
         <div class={styles.kind}>{props.kind}</div>
         <h2 class={styles.title}>{props.layer}</h2>

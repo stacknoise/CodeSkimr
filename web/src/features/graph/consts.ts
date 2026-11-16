@@ -106,3 +106,9 @@ export const SPACE = " ";
 export const HALF = 0.5;
 /** The padding applies on both sides. */
 export const PADDING_SIDES = 2;
+
+/** The width of the side panel, and the key under which it is remembered. */
+export const PANEL_PANE_KEY = "graph.panel";
+export const PANEL_PANE_BOUNDS = { initial: 320, min: 240, max: 720 } as const;
+/** The custom property that carries the width of the panel into its style sheet. */
+export const PANEL_WIDTH_VAR = "--panel-width";

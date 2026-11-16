@@ -12,6 +12,8 @@ import {
 import { Breakable } from "../../shared/ui/Breakable";
 import { shortName } from "./names";
 import type { UsagesAnswer } from "./types";
+import { PANEL_WIDTH_VAR } from "./consts";
+import { panelWidth } from "./layout";
 import styles from "./SidePanel.module.css";
 
 function Tile(props: { value: number; label: string; accent?: boolean }) {
@@ -85,7 +87,11 @@ function Accuracy(props: { answer: UsagesAnswer }) {
 export function SidePanel(props: { answer: UsagesAnswer; onOpen: () => void }) {
   const symbol = () => props.answer.symbol;
   return (
-    <aside class={styles.panel} aria-label={t(I18N_KEYS.USAGES_TITLE)}>
+    <aside
+      class={styles.panel}
+      style={{ [PANEL_WIDTH_VAR]: `${panelWidth.size()}px` }}
+      aria-label={t(I18N_KEYS.USAGES_TITLE)}
+    >
       <div>
         <div class={styles.kind}>
           {[symbol().kind, symbol().layer ?? MISSING].join(KIND_SEPARATOR)}
