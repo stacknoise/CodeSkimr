@@ -25,6 +25,7 @@ const [answer, setAnswer] = createSignal<UsagesAnswer | null>(null);
 const [failure, setFailure] = createSignal<Failure | null>(null);
 const [loading, setLoading] = createSignal(false);
 const [selected, setSelected] = createSignal(NO_HIT);
+const [preview, setPreview] = createSignal<UsagesAnswer | null>(null);
 const [code, setCode] = createSignal<Map<string, string>>(new Map());
 
 /** Counts the questions asked; the answer to an earlier one is dropped. */
@@ -50,10 +51,44 @@ export const setSelectedHit = setSelected;
 /** The code lines of the hits by place; empty until read, or if the code cannot be read. */
 export const hitCode = code;
 
+/** The answer for the symbol a single click on a card picked, `null` if none is picked. The side
+ * panel shows it instead of the answer of the focus. */
+export const previewAnswer = preview;
+
+/** Counts the previews asked; an earlier one is dropped. */
+let previewGeneration = 0;
+
+/** Forgets the picked symbol, so that the side panel shows the focus again. */
+export function clearPreview(): void {
+  previewGeneration += 1;
+  setPreview(null);
+}
+
+/** Reads the usages of the picked symbol for the side panel; the graph stays as it is. */
+export async function loadPreview(project: number, symbol: number): Promise<void> {
+  previewGeneration += 1;
+  const mine = previewGeneration;
+  try {
+    const read = await runCommand<UsagesAnswer>(USAGES_COMMAND, {
+      project,
+      symbol,
+      way: way(),
+      depth: depth(),
+      include_tests: showTests(),
+    });
+    if (mine === previewGeneration) {
+      setPreview(read);
+    }
+  } catch {
+    // The side panel keeps showing what it showed.
+  }
+}
+
 /** Reads the usages of `symbol` with the settings of the toolbar. */
 export async function loadUsages(project: number, symbol: number): Promise<void> {
   generation += 1;
   const mine = generation;
+  clearPreview();
   setLoading(true);
   setFailure(null);
   const input = {
@@ -100,6 +135,7 @@ async function loadCode(input: Record<string, unknown>, mine: number): Promise<v
  * usages. */
 export function clearUsages(): void {
   generation += 1;
+  clearPreview();
   setFocusSymbol(null);
   setAnswer(null);
   setCode(new Map());

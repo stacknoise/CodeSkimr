@@ -54,7 +54,7 @@ export const GRAPH = {
   top: 40,
   bottom: 56,
   columnWidth: 236,
-  columnGap: 30,
+  columnGap: 90,
   cardHeight: 50,
   focusHeight: 64,
   rowGap: 20,

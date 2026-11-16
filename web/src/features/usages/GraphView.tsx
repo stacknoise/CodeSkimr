@@ -33,20 +33,35 @@ function heading(column: Column): string {
     : t(I18N_KEYS.USAGES_CALLEES_LEVEL, { level });
 }
 
-function CardButton(props: { card: Card; onPick: (card: Card) => void }) {
+function cardStyle(card: Card) {
+  return {
+    left: `${card.x}px`,
+    top: `${card.y}px`,
+    width: `${GRAPH.columnWidth}px`,
+    height: `${card.height}px`,
+  };
+}
+
+function CardButton(props: {
+  card: Card;
+  picked: boolean;
+  onPick: (card: Card) => void;
+  onOpen: (card: Card) => void;
+}) {
   const card = () => props.card;
   return (
     <button
       type="button"
-      class={cx(styles.card, card().focus && styles.focus, card().test && styles.test)}
-      style={{
-        left: `${card().x}px`,
-        top: `${card().y}px`,
-        width: `${GRAPH.columnWidth}px`,
-        height: `${card().height}px`,
-      }}
+      class={cx(
+        styles.card,
+        card().focus && styles.focus,
+        card().test && styles.test,
+        props.picked && styles.picked,
+      )}
+      style={cardStyle(card())}
       title={card().place.qualified_name}
       onClick={() => props.onPick(card())}
+      onDblClick={() => props.onOpen(card())}
     >
       <span class={styles.line}>
         <KindBadge kind={card().place.kind} />
@@ -146,8 +161,29 @@ function useView(graph: () => Graph) {
   };
 }
 
+function Headings(props: { columns: Column[] }) {
+  return (
+    <For each={props.columns}>
+      {(column) => (
+        <span class={styles.heading} style={{ left: `${column.x}px` }}>
+          {heading(column)}
+          <Show when={column.hidden > 0}>
+            <b class={styles.more}>{t(I18N_KEYS.USAGES_CARDS_MORE, { count: column.hidden })}</b>
+          </Show>
+        </span>
+      )}
+    </For>
+  );
+}
+
 /** The plane that is moved and scaled: column headings, edges and cards. */
-function Plane(props: { graph: Graph; view: View; onPick: (card: Card) => void }) {
+function Plane(props: {
+  graph: Graph;
+  view: View;
+  picked: number | null;
+  onPick: (card: Card) => void;
+  onOpen: (card: Card) => void;
+}) {
   return (
     <div
       class={styles.plane}
@@ -157,32 +193,35 @@ function Plane(props: { graph: Graph; view: View; onPick: (card: Card) => void }
         transform: transformOf(props.view),
       }}
     >
-      <For each={props.graph.columns}>
-        {(column) => (
-          <span class={styles.heading} style={{ left: `${column.x}px` }}>
-            {heading(column)}
-            <Show when={column.hidden > 0}>
-              <b class={styles.more}>{t(I18N_KEYS.USAGES_CARDS_MORE, { count: column.hidden })}</b>
-            </Show>
-          </span>
-        )}
-      </For>
+      <Headings columns={props.graph.columns} />
       <svg class={styles.edges} aria-hidden={true}>
         <For each={props.graph.edges}>
           {(edge) => <path d={edge.d} class={cx(styles.edge, styles[edge.tone])} />}
         </For>
       </svg>
       <For each={props.graph.cards}>
-        {(card) => <CardButton card={card} onPick={props.onPick} />}
+        {(card) => (
+          <CardButton
+            card={card}
+            picked={card.place.id === props.picked}
+            onPick={props.onPick}
+            onOpen={props.onOpen}
+          />
+        )}
       </For>
     </div>
   );
 }
 
 /** The graph of screen 6: callers on the left, the symbol in focus, what it uses on the right
- * (mock 6). A click on a card makes that symbol the focus. The picture can be zoomed and moved
+ * (mock 6). A click on a card shows that symbol in the side panel, a double click makes it the focus. The picture can be zoomed and moved
  * like the map of screen 3. */
-export function GraphView(props: { answer: UsagesAnswer; onPick: (card: Card) => void }) {
+export function GraphView(props: {
+  answer: UsagesAnswer;
+  picked: number | null;
+  onPick: (card: Card) => void;
+  onOpen: (card: Card) => void;
+}) {
   const graph = createMemo(() => buildGraph(props.answer));
   const state = useView(graph);
   return (
@@ -198,7 +237,13 @@ export function GraphView(props: { answer: UsagesAnswer; onPick: (card: Card) =>
         onPointerUp={state.navigation.stop}
         onPointerCancel={state.navigation.stop}
       >
-        <Plane graph={graph()} view={state.view()} onPick={props.onPick} />
+        <Plane
+          graph={graph()}
+          view={state.view()}
+          picked={props.picked}
+          onPick={props.onPick}
+          onOpen={props.onOpen}
+        />
         <ZoomButtons onZoom={state.zoom} onFit={state.fit} />
       </div>
       <Legend />

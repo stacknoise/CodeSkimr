@@ -13,7 +13,7 @@ import { startView } from "./GraphView";
 import type { Graph } from "./graph";
 import { UsagesScreen } from "./UsagesScreen";
 import { showUsages } from "../../shared/navigation/navigation";
-import { clearUsages } from "./usages";
+import { clearUsages, focusSymbol } from "./usages";
 
 useServerSession();
 afterEach(() => {
@@ -177,11 +177,13 @@ describe("UsagesScreen", () => {
     expect(await screen.findByText(/does not rule out usages that were missed/)).toBeTruthy();
   });
 
-  it("makes a clicked card the focus", async () => {
+  it("shows a clicked card in the side panel and makes a double-clicked card the focus", async () => {
     shown();
     const graph = await screen.findByRole("region", { name: "Usage graph" });
     fireEvent.click(within(graph).getByText("Render"));
     await waitFor(() => expect(lastRequest().symbol).toBe(11));
+    fireEvent.dblClick(within(graph).getByText("Render"));
+    await waitFor(() => expect(focusSymbol()).toBe(11));
   });
 
   it("steps through the hits with F8 and opens the selected one in the explorer", async () => {

@@ -34,20 +34,12 @@ describe("buildGraph", () => {
     );
   });
 
-  it("hangs every column evenly around the middle line of the focus", () => {
+  it("hangs the callers of a caller around that caller, not around the focus", () => {
     const middle = (c: { y: number; height: number }) => c.y + c.height / 2;
-    const focus = card(FOCUS.qualified_name);
-    const columns = new Map<number, { top: number; bottom: number }>();
-    for (const c of graph.cards.filter((item) => !item.focus)) {
-      const old = columns.get(c.x) ?? { top: c.y, bottom: c.y + c.height };
-      columns.set(c.x, {
-        top: Math.min(old.top, c.y),
-        bottom: Math.max(old.bottom, c.y + c.height),
-      });
-    }
-    for (const { top, bottom } of columns.values()) {
-      expect((top + bottom) / 2).toBeCloseTo(middle(focus), 5);
-    }
+    const view = card(VIEW.qualified_name);
+    const page = card("Shop.Ui.Page.Open");
+    expect(middle(page)).toBeCloseTo(middle(view), 5);
+    expect(page.y).toBeGreaterThanOrEqual(GRAPH.top);
   });
 
   it("keeps the column of what is called when nothing is called", () => {

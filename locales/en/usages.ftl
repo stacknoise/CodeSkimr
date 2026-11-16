@@ -65,4 +65,4 @@ usages-load-failed = The usages could not be read.
 usages-zoom-in = Zoom in
 usages-zoom-out = Zoom out
 usages-zoom-fit = Show everything
-usages-hint-navigation = Mouse wheel zooms · drag or middle button pans
+usages-hint-navigation = Mouse wheel zooms · drag pans · click shows details · double click changes the focus

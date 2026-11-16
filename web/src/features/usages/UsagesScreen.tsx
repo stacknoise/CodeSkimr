@@ -5,6 +5,7 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
 import type { Failure } from "../explorer/failure";
 import { GraphView } from "./GraphView";
+import type { Card } from "./graph";
 import { ORIENTATION, SIDE } from "../../shared/layout/consts";
 import { Splitter } from "../../shared/layout/Splitter";
 import { HitList } from "./HitList";
@@ -17,11 +18,14 @@ import { SidePanel } from "./SidePanel";
 import { Toolbar } from "./Toolbar";
 import type { Hit, UsagesAnswer } from "./types";
 import {
+  clearPreview,
   clearUsages,
   direction,
   focusSymbol,
+  loadPreview,
   loadUsages,
   openInExplorer,
+  previewAnswer,
   selectedHit,
   setSelectedHit,
   testsShown,
@@ -64,19 +68,36 @@ function useReading(): void {
   });
 }
 
-function Body(props: { answer: UsagesAnswer }) {
-  const hits = () => listedHits(props.answer);
-  const project = () => activeProject();
-  const selectedPlace = () => {
-    const hit = hits()[selectedHit()];
-    return hit ? listedPlace(props.answer, hit) : undefined;
-  };
-  const open = (place: Hit["from"]) => {
-    const id = project();
+/** Opens a symbol in the explorer. */
+function useOpener(): (place: Hit["from"]) => void {
+  return (place) => {
+    const id = activeProject();
     if (id !== null) {
       void openInExplorer(id, place);
     }
   };
+}
+
+/** A click on a card: the side panel shows its symbol; a click on the focus shows the focus. */
+function usePicker(): (card: Card) => void {
+  return (card) => {
+    const id = activeProject();
+    if (card.focus || id === null) {
+      clearPreview();
+    } else {
+      void loadPreview(id, card.place.id);
+    }
+  };
+}
+
+function Body(props: { answer: UsagesAnswer }) {
+  const hits = () => listedHits(props.answer);
+  const selectedPlace = () => {
+    const hit = hits()[selectedHit()];
+    return hit ? listedPlace(props.answer, hit) : undefined;
+  };
+  const open = useOpener();
+  const pick = usePicker();
   useUsagesKeys({
     step: (step) => setSelectedHit(nextHit(selectedHit(), step, hits().length)),
     open: () => open(selectedPlace() ?? props.answer.symbol),
@@ -87,7 +108,9 @@ function Body(props: { answer: UsagesAnswer }) {
         <Toolbar />
         <GraphView
           answer={props.answer}
-          onPick={(card) => !card.focus && showUsages(card.place.id)}
+          picked={previewAnswer()?.symbol.id ?? null}
+          onPick={pick}
+          onOpen={(card) => !card.focus && showUsages(card.place.id)}
         />
         <Splitter pane={hitsHeight} orientation={ORIENTATION.horizontal} side={SIDE.after} />
         <HitList
@@ -96,7 +119,10 @@ function Body(props: { answer: UsagesAnswer }) {
           onOpen={(hit) => open(listedPlace(props.answer, hit))}
         />
       </section>
-      <SidePanel answer={props.answer} onOpen={() => open(props.answer.symbol)} />
+      <SidePanel
+        answer={previewAnswer() ?? props.answer}
+        onOpen={() => open((previewAnswer() ?? props.answer).symbol)}
+      />
     </div>
   );
 }
