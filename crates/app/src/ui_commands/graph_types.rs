@@ -13,7 +13,7 @@ use codeskimr_domain::{
 };
 
 use super::consts::{
-    BOX_ID_SEPARATOR, TYPE_ROW_FOCUS, TYPE_ROW_USED, TYPE_ROW_USERS, TYPE_SIDE_MAX,
+    BOX_ID_SEPARATOR, BREADCRUMB_JOIN, TYPE_ROW_FOCUS, TYPE_ROW_USED, TYPE_ROW_USERS, TYPE_SIDE_MAX,
 };
 use super::graph::{BoxOut, FocusOut, GraphOut, GraphPorts, LinkOut};
 use super::graph_wrap::centre;
@@ -68,6 +68,14 @@ fn name_boxes(all: &mut [Drawn]) {
             one.qualified.clone()
         };
     }
+}
+
+/// The namespaces in front of a type as a breadcrumb (`App › Views`); empty for a type without
+/// namespace.
+fn breadcrumb(qualified: &str) -> String {
+    let parts = name_parts(qualified);
+    let (_, path) = parts.split_last().unwrap_or((&qualified, &[]));
+    path.join(BREADCRUMB_JOIN)
 }
 
 /// The name of a type without the namespace in front of it.
@@ -141,6 +149,7 @@ fn place(look: &Graph, types: &[Drawn], links: &[LinkOut]) -> Result<Vec<BoxOut>
         .map(|(one, spot)| BoxOut {
             name: one.name.clone(),
             label: short_name(&one.qualified),
+            context: breadcrumb(&one.qualified),
             x: spot.x,
             y: spot.y,
             width: size.width,
@@ -200,6 +209,14 @@ pub(super) fn types_out(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_type_box_shows_the_type_name_and_the_namespaces_as_a_breadcrumb() {
+        assert_eq!(short_name("App.Views.Board"), "Board");
+        assert_eq!(breadcrumb("App.Views.Board"), "App › Views");
+        assert_eq!(short_name("Board"), "Board");
+        assert_eq!(breadcrumb("Board"), "");
+    }
 
     fn drawn_as(symbol: u64, qualified: &str) -> Drawn {
         Drawn {

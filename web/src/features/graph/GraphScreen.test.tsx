@@ -32,9 +32,9 @@ const GRAPH = {
   width: 400,
   height: 300,
   boxes: [
-    { name: "Domain", label: "Domain", x: 120, y: 200, rank: 1, ...BOX },
-    { name: "Ui", label: "Ui", x: 120, y: 0, rank: 0, ...BOX },
-    { name: "Infra", label: "Infra", x: 300, y: 100, rank: 0, ...BOX },
+    { name: "Domain", label: "Domain", context: "", x: 120, y: 200, rank: 1, ...BOX },
+    { name: "Ui", label: "Ui", context: "", x: 120, y: 0, rank: 0, ...BOX },
+    { name: "Infra", label: "Infra", context: "", x: 300, y: 100, rank: 0, ...BOX },
   ],
   bands: [
     { name: "Ui", rank: 0, y: 0, height: 60 },
@@ -232,14 +232,14 @@ describe("GraphScreen", () => {
     setGraphLevel(LEVEL.namespaces);
     served({
       ...GRAPH,
-      boxes: [{ ...GRAPH.boxes[1]!, name: "Shop.Cart", label: "Cart" }],
+      boxes: [{ ...GRAPH.boxes[1]!, name: "Shop.Cart", label: "Cart", context: "Shop" }],
       bands: [],
       links: [],
       groups: [{ name: "Shop", label: "Shop", x: 0, y: 0, width: 200, height: 100, depth: 0 }],
     });
     render(() => <GraphScreen />);
-    expect(await screen.findByText("Shop")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Cart" })).toHaveAttribute("aria-pressed");
+    expect((await screen.findAllByText("Shop")).length).toBe(2);
+    expect(screen.getByRole("button", { name: /^Cart/ })).toHaveAttribute("aria-pressed");
   });
 
   it("is written in German too", async () => {

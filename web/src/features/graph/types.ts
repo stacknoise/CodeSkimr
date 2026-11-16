@@ -4,6 +4,8 @@ export interface LayerBox {
   name: string;
   /** The text of the box: the name without the part the frames around it say. */
   label: string;
+  /** The namespaces in front of a type, as a breadcrumb; empty where there is none. */
+  context: string;
   x: number;
   y: number;
   width: number;

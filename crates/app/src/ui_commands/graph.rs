@@ -57,6 +57,8 @@ pub struct BoxOut {
     pub name: String,
     /// The text of the box: the name, or the part of it the frames around the box do not say.
     pub label: String,
+    /// The path of namespaces in front of a type, as a breadcrumb; empty where there is none.
+    pub context: String,
     /// Left edge.
     pub x: u32,
     /// Top edge.
@@ -189,6 +191,7 @@ fn boxes_out(map: &LayerMap, look: &Graph) -> Vec<BoxOut> {
         .map(|(name, place)| BoxOut {
             name: name.as_str().to_owned(),
             label: name.as_str().to_owned(),
+            context: String::new(),
             x: place.x,
             y: place.y,
             width: size.width,
@@ -347,6 +350,7 @@ fn namespace_boxes(
         .map(|((node, place), (_, layer))| BoxOut {
             name: node.name.to_string(),
             label: node.name.to_string(),
+            context: String::new(),
             x: place.x,
             y: place.y,
             width: size.width,

@@ -9,6 +9,7 @@ import { fit, pan, zoomAt } from "./viewport";
 const box = (name: string, x: number, y: number): LayerBox => ({
   name,
   label: name,
+  context: "",
   x,
   y,
   width: 100,

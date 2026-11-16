@@ -231,6 +231,7 @@ mod tests {
             .map(|name| BoxOut {
                 name: (*name).to_owned(),
                 label: String::new(),
+                context: String::new(),
                 x: 0,
                 y: 0,
                 width: 100,

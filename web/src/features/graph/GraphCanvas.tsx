@@ -160,8 +160,11 @@ function Boxes(props: {
           aria-pressed={props.selected === box.name}
           onClick={() => props.onSelect(box.name)}
         >
-          <span class={styles.name} title={box.name}>
-            {box.label}
+          <span class={styles.text} title={box.name}>
+            <span class={styles.name}>{box.label}</span>
+            <Show when={box.context}>
+              <span class={styles.context}>{box.context}</span>
+            </Show>
           </span>
           <Show when={box.types}>{(types) => <span class={styles.types}>{types()}</span>}</Show>
         </button>

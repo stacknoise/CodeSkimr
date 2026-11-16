@@ -131,6 +131,7 @@ mod tests {
                 BoxOut {
                     name: String::new(),
                     label: String::new(),
+                    context: String::new(),
                     x: *order * 500,
                     y: rank * 100,
                     width: 100,
