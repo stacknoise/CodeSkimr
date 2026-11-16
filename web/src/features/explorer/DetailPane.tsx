@@ -1,4 +1,4 @@
-import { For, Show } from "solid-js";
+import { For, type JSX, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
@@ -91,11 +91,13 @@ function Title(props: { info: SymbolInfo; member: MemberRow | null }) {
 }
 
 /** The middle column: breadcrumb, name and buttons, and for a type its documentation, metrics and
- * member table (mock 2). With a member selected only the header stays, so the source has the room. */
+ * member table (mock 2). With a member selected the source takes the place of the facts and the member table. */
 export function DetailPane(props: {
   info: SymbolInfo;
   thresholds: Thresholds | null;
   onPickMember: (row: MemberRow) => void;
+  /** The source, shown instead of the facts and the member table when a member is selected. */
+  source: JSX.Element;
 }) {
   const member = () => shownMember();
   return (
@@ -105,7 +107,7 @@ export function DetailPane(props: {
     >
       <Breadcrumb info={props.info} member={member()} />
       <Title info={props.info} member={member()} />
-      <Show when={member() === null}>
+      <Show when={member() === null} fallback={props.source}>
         <Show when={props.info.doc}>{(doc) => <p class={styles.doc}>{doc()}</p>}</Show>
         <MetricStrip info={props.info} thresholds={props.thresholds} />
         <MemberTable info={props.info} thresholds={props.thresholds} onPick={props.onPickMember} />

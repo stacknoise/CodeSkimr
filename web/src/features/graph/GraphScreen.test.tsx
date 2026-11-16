@@ -184,6 +184,16 @@ describe("GraphScreen", () => {
     expect(screen.getByText(/Domain → Infra \(2\)/)).toBeInTheDocument();
   });
 
+  it("widens the side panel with the keys of its separator", async () => {
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Domain" }));
+    const separator = screen.getByRole("separator");
+    const before = Number(separator.getAttribute("aria-valuenow"));
+    fireEvent.keyDown(separator, { key: "ArrowLeft" });
+    expect(Number(separator.getAttribute("aria-valuenow"))).toBeGreaterThan(before);
+  });
+
   it("selects the layer another screen asked for, once the map is there", async () => {
     served(GRAPH);
     wantLayer("Domain");
