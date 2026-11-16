@@ -6,7 +6,8 @@ use codeskimr_codes::i18n::{
     CLI_CREDENTIAL_DELETED, CLI_CREDENTIAL_DEVICE_PROMPT, CLI_CREDENTIAL_STORED, CLI_ERROR_LINE,
     CLI_EXPORT_WRITTEN, CLI_OPEN_READY, CLI_SCAN_DETAILS, CLI_SCAN_FINISHED, CLI_SCAN_STARTED,
     CLI_SCAN_TOOL_MISSING, CLI_SCAN_TOOL_TOO_NEW, CLI_SCAN_TOOL_TOO_OLD, CLI_SCAN_TOOL_UNKNOWN,
-    CLI_SECRET_PROMPT, CLI_SERVE_LISTENING, CLI_WATCH_STARTED, CLI_WATCH_UPDATED,
+    CLI_SECRET_PROMPT, CLI_SERVE_LISTENING, CLI_START_KEEP_OPEN, CLI_WATCH_STARTED,
+    CLI_WATCH_UPDATED,
 };
 use codeskimr_domain::ToolState;
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
@@ -93,6 +94,15 @@ pub fn scan_started(
 /// `I18N-201` if the message is missing.
 pub fn serve_started(messages: &Messages, language: &str, url: &str) -> Result<String, I18nError> {
     format_with(messages, language, CLI_SERVE_LISTENING, &[(arg::URL, url)])
+}
+
+/// The line after the start message of the bare `codeskimr`: the window must stay open, because
+/// closing it ends the server.
+///
+/// # Errors
+/// `I18N-201` if the message is missing.
+pub fn start_keep_open(messages: &Messages, language: &str) -> Result<String, I18nError> {
+    format_with(messages, language, CLI_START_KEEP_OPEN, &[])
 }
 
 /// The line that tells where the launch file is and how long it is good for.

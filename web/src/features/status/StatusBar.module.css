@@ -17,6 +17,10 @@
     color: var(--good);
 }
 
+.lost {
+    color: var(--bad);
+}
+
 .language {
     margin-left: auto;
     display: flex;
