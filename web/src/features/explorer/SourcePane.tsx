@@ -3,7 +3,7 @@ import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { showUsages } from "../../shared/navigation/navigation";
-import { PILL_SEPARATOR } from "./consts";
+import { PILL_SEPARATOR, WIDE_FLEX } from "./consts";
 import { sourceWidth } from "./layout";
 import { lineRange } from "./format";
 import { type Segment, segments } from "./segments";
@@ -139,12 +139,13 @@ function Content(props: { shown: boolean }) {
 }
 
 /** The right column of the explorer: file, position and code of the selected type or member
- * (blueprint B.2, mock `Explorer.dc.html`). */
-export function SourcePane(props: { shown: boolean }) {
+ * (blueprint B.2, mock `Explorer.dc.html`). With a member selected it takes all the room that the
+ * details leave (`wide`). */
+export function SourcePane(props: { shown: boolean; wide: boolean }) {
   return (
     <section
       class={styles.pane}
-      style={{ "flex-basis": `${sourceWidth.size()}px` }}
+      style={props.wide ? { flex: WIDE_FLEX } : { "flex-basis": `${sourceWidth.size()}px` }}
       aria-label={t(I18N_KEYS.EXPLORER_SOURCE_LABEL)}
     >
       <Content shown={props.shown} />

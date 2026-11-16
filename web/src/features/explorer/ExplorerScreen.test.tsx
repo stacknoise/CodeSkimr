@@ -7,7 +7,7 @@ import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { openOrder, ORDER, OUTLINE } from "../../tests/explorer";
-import { forgetExplorer, treeScroll } from "./explorer";
+import { currentMember, forgetExplorer, treeScroll } from "./explorer";
 import { ExplorerScreen } from "./ExplorerScreen";
 import { requestFocus } from "../../shared/navigation/navigation";
 
@@ -48,7 +48,7 @@ describe("ExplorerScreen", () => {
     await screen.findByText("decimal Total()");
     fireEvent.click(screen.getAllByTitle("Show the usages")[0]!);
     expect(currentPath()).toBe("/usages");
-    expect(focusSymbol()).toBe(8);
+    expect(focusSymbol()).toBe(9);
     navigate("/explorer");
     fireEvent.click(screen.getByRole("button", { name: /^Usages/ }));
     expect(focusSymbol()).toBe(7);
@@ -239,7 +239,7 @@ describe("the details", () => {
     });
     render(() => <ExplorerScreen />);
     await openOrder();
-    fireEvent.click(await screen.findByRole("button", { name: /Line/ }));
+    fireEvent.click(await screen.findByRole("button", { name: /Line$/ }));
     expect(await screen.findByRole("treeitem", { name: /Line/ })).toBeTruthy();
   });
 });
@@ -248,7 +248,7 @@ describe("a navigation from another screen", () => {
   it("opens the rows down to a member and shows its type", async () => {
     requestFocus({ type: 7, member: 8, kind: "method" });
     renderOrder();
-    expect(await screen.findByRole("heading", { name: "Order" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "Total" })).toBeTruthy();
     const tree = screen.getByRole("tree");
     expect(await within(tree).findByText("Total")).toBeTruthy();
     expect(within(tree).getByText("Sales")).toBeTruthy();
@@ -324,5 +324,74 @@ describe("coming back to the explorer", () => {
     render(() => <ExplorerScreen />);
     await screen.findByRole("heading", { name: "Order" });
     await waitFor(() => expect(screen.getByRole("tree").scrollTop).toBe(52));
+  });
+});
+
+describe("sorting the member table", () => {
+  const names = () =>
+    Array.from(document.querySelectorAll("tbody td:first-child button")).map((cell) =>
+      (cell.textContent ?? "").trim(),
+    );
+
+  it("sorts by name at first and by a column when its head is pressed, turning it round on the second press", async () => {
+    renderOrder();
+    await openOrder();
+    await screen.findByText("decimal Total()");
+    expect(names().length).toBe(2);
+    expect(names()[0]).toContain("Id");
+    expect(screen.getByRole("columnheader", { name: /Name/ }).getAttribute("aria-sort")).toBe(
+      "ascending",
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^CC/ }));
+    expect(names()[0]).toContain("Total");
+    expect(screen.getByRole("columnheader", { name: /CC/ }).getAttribute("aria-sort")).toBe(
+      "descending",
+    );
+    fireEvent.click(screen.getByRole("button", { name: /^CC/ }));
+    // A member without a value stays last, also when the order is turned round.
+    expect(names()[0]).toContain("Total");
+    expect(names()[1]).toContain("Id");
+  });
+
+  it("steps through the members in the order of the table", async () => {
+    renderOrder();
+    await openOrder();
+    await screen.findByText("decimal Total()");
+    const step = () => fireEvent.keyDown(document.body, { key: "ArrowDown", altKey: true });
+    fireEvent.click(screen.getByRole("button", { name: /^CC/ }));
+    step();
+    await waitFor(() => expect(currentMember()).toBe(8));
+    step();
+    await waitFor(() => expect(currentMember()).toBe(9));
+  });
+
+  it("steps only through the members that the chip keeps", async () => {
+    renderOrder();
+    await openOrder();
+    await screen.findByText("decimal Total()");
+    fireEvent.click(screen.getByRole("button", { name: "Properties" }));
+    fireEvent.keyDown(document.body, { key: "ArrowDown", altKey: true });
+    await waitFor(() => expect(currentMember()).toBe(9));
+    fireEvent.keyDown(document.body, { key: "ArrowDown", altKey: true });
+    await waitFor(() => expect(currentMember()).toBe(9));
+  });
+});
+
+describe("a member selected in the tree", () => {
+  it("shows only the header and the source, with the member as the title", async () => {
+    renderOrder();
+    await openOrder();
+    fireEvent.click(
+      await screen
+        .findByRole("heading", { name: "Order" })
+        .then(() => screen.getAllByRole("button", { name: /Total/ })[0]!),
+    );
+    expect(await screen.findByRole("heading", { name: "Total" })).toBeTruthy();
+    expect(screen.queryByText("Members 2")).toBeNull();
+    expect(screen.queryByText("Codelines")).toBeNull();
+    const crumbs = document.querySelector("[class*=crumbs]")?.textContent ?? "";
+    expect(crumbs).toContain("Order");
+    expect(crumbs).toContain("Total");
+    expect(screen.getByRole("button", { name: /^Usages/ })).toBeTruthy();
   });
 });

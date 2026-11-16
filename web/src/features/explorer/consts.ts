@@ -259,3 +259,43 @@ export const PANE_BOUNDS = {
   tree: { initial: 290, min: 200, max: 640 },
   source: { initial: 560, min: 280, max: 1100 },
 } as const;
+
+/** The columns of the member table that sort it. */
+export const SORT_COLUMN = {
+  name: "name",
+  signature: "signature",
+  access: "access",
+  complexity: "complexity",
+  usages: "usages",
+  lines: "lines",
+} as const;
+export type SortColumn = (typeof SORT_COLUMN)[keyof typeof SORT_COLUMN];
+
+/** The directions of a sort, as `aria-sort` names them. */
+export const SORT_DIRECTION = { ascending: "ascending", descending: "descending" } as const;
+export type SortDirection = (typeof SORT_DIRECTION)[keyof typeof SORT_DIRECTION];
+
+/** The member table is sorted by name until a column head is pressed. */
+export const DEFAULT_SORT = {
+  column: SORT_COLUMN.name,
+  direction: SORT_DIRECTION.ascending,
+} as const;
+
+/** The columns of numbers sort the largest first when they are chosen. */
+export const NUMBER_COLUMNS: readonly SortColumn[] = [
+  SORT_COLUMN.complexity,
+  SORT_COLUMN.usages,
+  SORT_COLUMN.lines,
+];
+
+/** The marks next to the name of the column that sorts the table. */
+export const SORT_MARK = { ascending: "▲", descending: "▼" } as const;
+
+/** Compares names without regard to case and accents. */
+export const NAME_COLLATION: Intl.CollatorOptions = { sensitivity: "base", numeric: true };
+
+/** The sign that turns the order of a comparison for the direction of a sort. */
+export const SORT_SIGN = { ascending: 1, descending: -1 } as const;
+
+/** The `flex` of the source column when it takes all the room that is left. */
+export const WIDE_FLEX = "1 1 0";

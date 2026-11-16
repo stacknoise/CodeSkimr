@@ -30,7 +30,7 @@ test.describe("the usages screen", () => {
 
     await page.keyboard.press("u");
     const graph = page.getByRole("region", { name: "Usage graph" });
-    await expect(graph.getByText("Checkout.Total")).toBeVisible();
+    await expect(graph.getByText("Total", { exact: true })).toBeVisible();
     await expect(page.getByText("Hits 1")).toBeVisible();
     await expect(page.getByText("unchecked", { exact: true })).toBeVisible();
     await expect(page.getByText(/No indexer is set up/)).toBeVisible();
