@@ -32,6 +32,6 @@ pub use parser::parse;
 pub use render::{
     ScanSummary, credential_deleted, credential_stored, device_prompt, error_line, export_written,
     open_ready, scan_finished, scan_json, scan_started, scan_tools, secret_prompt, serve_started,
-    watch_started, watch_updated,
+    start_keep_open, watch_started, watch_updated,
 };
 pub use warning::WarningLine;

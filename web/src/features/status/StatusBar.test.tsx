@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { describe, expect, it } from "vitest";
+import { fetchMock } from "../../tests/commands";
 import { currentLanguage, setLanguage } from "../../shared/i18n/i18n";
 import { SESSION_PATH } from "../../shared/api/consts";
 import { recordTime, resetTimings } from "../../shared/api/timings";
@@ -9,6 +10,7 @@ import { answer, serve, useServerSession } from "../../tests/commands";
 import type { ProjectRow } from "../projects/types";
 import { refreshProjects } from "../projects/projects";
 import { StatusBar } from "./StatusBar";
+import { refreshStatus } from "./status";
 
 const PROJECT: ProjectRow = {
   id: 1,
@@ -89,5 +91,28 @@ describe("StatusBar", () => {
     await refreshProjects();
     render(() => <StatusBar />);
     expect(await screen.findByText("Reference index 48,210")).toBeInTheDocument();
+  });
+
+  it("shows that the server is gone and says it is back once it answers", async () => {
+    await served({ startup_ms: 180, memory_mb: 41 });
+    await screen.findByText(/Connected/);
+    fetchMock.mockImplementation(() => Promise.reject(new TypeError("Failed to fetch")));
+    await refreshStatus();
+    expect(await screen.findByText(/Not connected/)).toBeInTheDocument();
+    expect(screen.getByText(/Do not close the console window/)).toBeInTheDocument();
+    expect(screen.queryByText(/Connected/)).toBeNull();
+    serve({ "status.info": () => answer({ startup_ms: 180, memory_mb: 41 }) });
+    await refreshStatus();
+    expect(await screen.findByText(/Connected/)).toBeInTheDocument();
+    expect(screen.queryByText(/Do not close/)).toBeNull();
+  });
+
+  it("keeps saying connected when the server answers with a refusal", async () => {
+    await served({ startup_ms: 180, memory_mb: 41 });
+    await screen.findByText(/Connected/);
+    serve({ "status.info": () => answer({ code: "API-201" }, 500) });
+    await refreshStatus();
+    expect(screen.getByText(/Connected/)).toBeInTheDocument();
+    expect(screen.queryByText(/Not connected/)).toBeNull();
   });
 });

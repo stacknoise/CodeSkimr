@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use codeskimr_cli::{
     Action, CliError, CredentialAction, Parsed, ProviderChoice, ScanArgs, ServeArgs, language_from,
-    parse, serve_started,
+    parse, serve_started, start_keep_open,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_i18n::Messages;
@@ -107,6 +107,15 @@ fn the_listening_line_names_the_address_in_both_languages() {
         let line = serve_started(&messages, language, url).unwrap();
         assert!(line.contains(url), "{language}: {line}");
     }
+}
+
+#[test]
+fn the_start_tells_to_keep_the_window_open_in_both_languages() {
+    let messages = Messages::load().unwrap();
+    let english = start_keep_open(&messages, "en").unwrap();
+    let german = start_keep_open(&messages, "de").unwrap();
+    assert!(english.contains("window open"), "{english}");
+    assert!(german.contains("offen lassen"), "{german}");
 }
 
 #[test]
