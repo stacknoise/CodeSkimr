@@ -220,6 +220,10 @@ jobs:
       # Issue #104: the launch file folder (access rules, junctions) only runs on Windows.
       - name: cargo test (launch file on Windows)
         run: cargo test -p codeskimr --bins launch_file --locked
+      # The start of the program locks a file (installation token). Locking behaves differently on
+      # Windows, so its tests run here too (a failed lock ended the bare start with APP-901).
+      - name: cargo test (installation token lock on Windows)
+        run: cargo test -p codeskimr --bins installation_token --locked
 
   architecture:
     name: architecture
