@@ -36,6 +36,7 @@ projects-empty-text = Paste a folder path or a Git URL above and add it. It appe
 status-connected = Connected
 status-connecting = Connecting …
 status-disconnected = Not connected
+status-server-gone = Is CodeSkimr still running? Do not close the console window.
 session-reopen-title = Open CodeSkimr again
 session-reopen-text = This page has no access to the local server. Run this command in a terminal; it opens CodeSkimr with a new launch code.
 session-code-used = The launch code was already used or has expired.

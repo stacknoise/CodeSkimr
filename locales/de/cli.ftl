@@ -16,6 +16,7 @@ cli-cmd-scan = Einen Ordner oder eine Git-URL scannen und eine Zusammenfassung a
 cli-cmd-mcp = Das MCP-Protokoll über Standardein- und -ausgabe bereitstellen
 cli-cmd-serve = Den lokalen Server starten, ohne den Browser zu öffnen
 cli-serve-listening = Lauscht auf { $url }. Beenden mit Strg+C.
+cli-start-keep-open = Dieses Fenster offen lassen, solange du CodeSkimr benutzt.
 cli-arg-source = Ordner oder Git-URL, die gescannt werden soll
 cli-arg-branch = Branch einer Git-Quelle (Standard: main)
 cli-arg-json = Die Zusammenfassung als JSON ausgeben

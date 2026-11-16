@@ -40,7 +40,7 @@ Das Programm liegt in `target/release/codeskimr` (`codeskimr.exe` unter Windows)
 codeskimr
 ```
 
-startet den Server und öffnet den Browser; die Oberfläche ist Teil des Programms (vor `cargo build` `web/` bauen). Die zwei Schritte gehen auch einzeln:
+startet den Server und öffnet den Browser; die Oberfläche ist Teil des Programms (vor `cargo build` `web/` bauen). **Lassen Sie das Konsolenfenster offen, solange Sie CodeSkimr benutzen:** Das Programm läuft in diesem Fenster, und mit dem Fenster endet der Server. Die Oberfläche im Browser zeigt dann in der Statusleiste „Nicht verbunden“ und „Läuft CodeSkimr noch? Das Konsolenfenster nicht schließen.“; sie verbindet sich wieder, sobald Sie CodeSkimr neu gestartet haben und der Server antwortet. Öffnen Sie CodeSkimr danach mit einem neuen Start. Die zwei Schritte gehen auch einzeln:
 
 ```
 codeskimr serve

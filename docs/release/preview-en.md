@@ -6,7 +6,7 @@ First version to try out. **This is not 1.0.** Built for Windows (x86_64), Linux
 
 One single file per system (UI and language packs are inside) plus a `.sha256` file.
 
-Windows: run `.\codeskimr-0.9.0-preview.1-windows-x86_64.exe` (SmartScreen warns because the file is not signed yet: "More info", then "Run anyway"). Linux: `chmod +x codeskimr-0.9.0-preview.1-linux-x86_64`, then run it (needs a Secret Service such as GNOME Keyring or KWallet, otherwise `SEC-601`). macOS: `chmod +x codeskimr-0.9.0-preview.1-macos-aarch64`, then `xattr -d com.apple.quarantine codeskimr-0.9.0-preview.1-macos-aarch64` (the file is not signed yet) and run it. The program starts the local server and opens the browser.
+Windows: run `.\codeskimr-0.9.0-preview.1-windows-x86_64.exe` (SmartScreen warns because the file is not signed yet: "More info", then "Run anyway"). Linux: `chmod +x codeskimr-0.9.0-preview.1-linux-x86_64`, then run it (needs a Secret Service such as GNOME Keyring or KWallet, otherwise `SEC-601`). macOS: `chmod +x codeskimr-0.9.0-preview.1-macos-aarch64`, then `xattr -d com.apple.quarantine codeskimr-0.9.0-preview.1-macos-aarch64` (the file is not signed yet) and run it. The program starts the local server and opens the browser. **Keep that window open as long as you use CodeSkimr:** closing it ends the server, and the UI in the browser then shows "Not connected".
 
 Check the sum: `Get-FileHash <file> -Algorithm SHA256` (Windows), `sha256sum -c <file>.sha256` (Linux), `shasum -a 256 -c <file>.sha256` (macOS). Check the origin (optional): `gh attestation verify <file> --repo stacknoise/CodeSkimr`.
 
