@@ -602,6 +602,11 @@ fn the_source_of_a_type_and_of_a_member_comes_from_the_project_folder() {
     assert_eq!(shown["lines"][0], "public class Calculator");
     assert_eq!(shown["lines"].as_array().unwrap().len(), 4);
     assert_eq!(shown["truncated"], false);
+    let tokens = shown["tokens"].as_array().unwrap();
+    assert!(tokens.iter().any(|token| token["line"] == 0
+        && token["start"] == 0
+        && token["end"] == 6
+        && token["class"] == "keyword"));
     let member = fixture
         .call(
             "explorer.symbol",

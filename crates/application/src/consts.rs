@@ -76,3 +76,18 @@ pub const LOG_SCAN_WARNING: &str = "scan_warning";
 
 /// Log event: references that level 2 had verified were discarded because their target is gone.
 pub const LOG_VERIFIED_DISCARDED: &str = "verified_references_discarded";
+
+/// Wire word of `TokenClass::Comment`.
+pub const TOKEN_COMMENT: &str = "comment";
+/// Wire word of `TokenClass::String`.
+pub const TOKEN_STRING: &str = "string";
+/// Wire word of `TokenClass::Number`.
+pub const TOKEN_NUMBER: &str = "number";
+/// Wire word of `TokenClass::Keyword`.
+pub const TOKEN_KEYWORD: &str = "keyword";
+/// Wire word of `TokenClass::Type`.
+pub const TOKEN_TYPE: &str = "type";
+/// Wire word of `TokenClass::Function`.
+pub const TOKEN_FUNCTION: &str = "function";
+/// Wire word of `TokenClass::Attribute`.
+pub const TOKEN_ATTRIBUTE: &str = "attribute";

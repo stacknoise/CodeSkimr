@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::CodeSpan;
+use codeskimr_application::ports::{CodeSpan, TokenSpan};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_domain::{Permission, ProjectId, ProjectSource, RelativePath, SnapshotId, SymbolId};
 use serde::{Deserialize, Serialize};
@@ -40,6 +40,20 @@ pub struct SpanOut {
     pub symbol: u64,
 }
 
+/// A run of code of one class, for the colours: the text between `start` and `end` of the line is
+/// a `class` (a word such as `keyword` or `string`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct TokenOut {
+    /// Index of the line within `lines`, counted from 0.
+    pub line: u32,
+    /// First UTF-16 unit of the run in that line, counted from 0.
+    pub start: u32,
+    /// Position right after the last unit of the run.
+    pub end: u32,
+    /// What the run is.
+    pub class: &'static str,
+}
+
 /// The answer of `explorer.source`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct SourceOut {
@@ -58,6 +72,19 @@ pub struct SourceOut {
     /// The places in `lines` where a symbol is named, in the order of the text. Used for Alt+click
     /// on a name; a project whose scan holds no references has none.
     pub spans: Vec<SpanOut>,
+    /// The runs of `lines` that have a colour, in the order of the text and without overlaps. A
+    /// language without `highlights.scm` has none.
+    pub tokens: Vec<TokenOut>,
+}
+
+/// The positions in UTF-16 units of the bytes `from` and `to` of `text`; `None` if they do not
+/// lie inside the line on character borders.
+fn utf16_range(text: &str, from: u32, to: u32) -> Option<(u32, u32)> {
+    let units = |column: u32| {
+        let head = text.get(..usize::try_from(column).ok()?)?;
+        u32::try_from(head.encode_utf16().count()).ok()
+    };
+    Some((units(from)?, units(to)?))
 }
 
 /// Turns the places of the index (zero-based lines of the file, columns in bytes) into places in
@@ -69,16 +96,33 @@ fn span_outs(spans: &[CodeSpan], first_line: u32, lines: &[String]) -> Vec<SpanO
         .filter_map(|found| {
             let line = found.span.start().line.checked_sub(first_line)?;
             let text = lines.get(usize::try_from(line).ok()?)?;
-            let start = text.get(..usize::try_from(found.span.start().column).ok()?)?;
-            let end = text.get(..usize::try_from(found.span.end().column).ok()?)?;
+            let (start, end) =
+                utf16_range(text, found.span.start().column, found.span.end().column)?;
             Some(SpanOut {
                 line,
-                start: u32::try_from(start.encode_utf16().count()).ok()?,
-                end: u32::try_from(end.encode_utf16().count()).ok()?,
+                start,
+                end,
                 symbol: found.to.get(),
             })
         })
         .take(SOURCE_MAX_SPANS)
+        .collect()
+}
+
+/// Turns the runs of the highlighter (bytes) into runs in the lines that were read (UTF-16 units).
+fn token_outs(tokens: &[TokenSpan], lines: &[String]) -> Vec<TokenOut> {
+    tokens
+        .iter()
+        .filter_map(|token| {
+            let text = lines.get(usize::try_from(token.line).ok()?)?;
+            let (start, end) = utf16_range(text, token.start, token.end)?;
+            Some(TokenOut {
+                line: token.line,
+                start,
+                end,
+                class: token.class.label(),
+            })
+        })
         .collect()
 }
 
@@ -139,6 +183,7 @@ impl Command for ExplorerSource {
             lines: Vec::new(),
             truncated: false,
             spans: Vec::new(),
+            tokens: Vec::new(),
         };
         let ProjectSource::Folder(root) = &project.source else {
             return Ok(out);
@@ -151,6 +196,10 @@ impl Command for ExplorerSource {
         )?;
         out.available = true;
         out.spans = ports.spans_of(snapshot, &detail.path, first, &excerpt.lines)?;
+        out.tokens = token_outs(
+            &ports.highlighter.highlight(&detail.path, &excerpt.lines),
+            &excerpt.lines,
+        );
         out.lines = excerpt.lines;
         out.truncated = excerpt.truncated;
         Ok(out)

@@ -39,6 +39,7 @@ use codeskimr_application::events::EventBus;
 use codeskimr_application::ports::{IndexRunner, ProjectToolCheck};
 use codeskimr_application::registry::{Command, Registry};
 use codeskimr_cli::GlobalOptions;
+use codeskimr_parsing::TreeSitterHighlighter;
 use codeskimr_server::CommandApi;
 use codeskimr_source::FolderText;
 
@@ -177,7 +178,7 @@ pub fn command_api_over(
     register_usages(&mut registry, catalog, config.mcp.max_depth)?;
     register_graph(&mut registry, catalog, config.graph.clone())?;
     add(&mut registry, status_info(config))?;
-    register_explorer(&mut registry, catalog, config.metrics.clone())?;
+    register_explorer(&mut registry, catalog, config.metrics.clone(), locations)?;
     register_preferences(&mut registry, locations)?;
     add(&mut registry, export_command(catalog, config, locations))?;
     let mut api = CommandApi::new(Arc::new(registry));
@@ -332,8 +333,9 @@ fn register_explorer(
     registry: &mut Registry,
     store: &Arc<SqliteStore>,
     thresholds: MetricThresholds,
+    locations: &Locations,
 ) -> Result<(), CodedError> {
-    let ports = explorer_ports(store, thresholds);
+    let ports = explorer_ports(store, thresholds, locations);
     add(
         registry,
         ExplorerOutline {
@@ -379,12 +381,17 @@ fn graph_ports(store: &Arc<SqliteStore>, look: Graph) -> Arc<GraphPorts> {
     })
 }
 
-fn explorer_ports(store: &Arc<SqliteStore>, thresholds: MetricThresholds) -> Arc<ExplorerPorts> {
+fn explorer_ports(
+    store: &Arc<SqliteStore>,
+    thresholds: MetricThresholds,
+    locations: &Locations,
+) -> Arc<ExplorerPorts> {
     Arc::new(ExplorerPorts {
         projects: store.clone(),
         index: store.clone(),
         outline: store.clone(),
         text: Arc::new(FolderText),
+        highlighter: Arc::new(TreeSitterHighlighter::new(&locations.languages_dir)),
         thresholds,
     })
 }
@@ -396,7 +403,7 @@ pub(crate) fn export_command(
     config: &Config,
     locations: &Locations,
 ) -> HtmlExport {
-    let explorer = explorer_ports(store, config.metrics.clone());
+    let explorer = explorer_ports(store, config.metrics.clone(), locations);
     HtmlExport::new(
         export::ExportParts {
             projects: store.clone(),
