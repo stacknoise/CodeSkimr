@@ -204,6 +204,28 @@ describe("namespaces grouped by their parts", () => {
     expect(labels(rows)).toEqual(["Test", "Co", "App", "Cutting", "Cut"]);
   });
 
+  it("keeps `App.Domain` and `App::Domain` apart, and a name of only separators is the unnamed one", () => {
+    const outline: Outline = {
+      ...OUTLINE,
+      layers: [
+        {
+          name: "Test",
+          namespaces: [
+            { name: "App.Domain", types: [type(1, "A")] },
+            { name: "App::Domain", types: [type(2, "B")] },
+            { name: "::", types: [type(3, "C")] },
+          ],
+        },
+      ],
+    };
+    const keys = (id: number) => revealKeys(outline, id);
+    expect(keys(1)).not.toEqual(keys(2));
+    expect(keys(3)).toEqual([layerKey("Test"), namespaceKey("Test", ""), typeKey(3)]);
+    const open = new Set([layerKey("Test"), ...keys(1), ...keys(2), ...keys(3)]);
+    const rows = buildRows(outline, open, new Map(), "", LABELS);
+    expect(labels(rows)).toEqual(["Test", "App", "Domain", "A", "Domain", "B", "root", "C"]);
+  });
+
   it("names every part that has to be open for a type, also with `::`", () => {
     expect(revealKeys(GROUPED, 4)).toEqual([
       layerKey("Test"),

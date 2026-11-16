@@ -168,12 +168,22 @@ function segment(path: string, label: string): Segment {
   return { path, label, children: new Map<string, Segment>(), types: [] };
 }
 
+/** The parts of a namespace name with the name up to and including each part (`App.Domain` gives
+ * `App` at `App` and `Domain` at `App.Domain`). A name without any part, empty or only separators,
+ * has none; its types belong to the unnamed namespace. */
+export function nameParts(name: string): { label: string; path: string }[] {
+  return [...name.matchAll(NAME_PART)].map((part) => ({
+    label: part[0],
+    path: name.slice(0, (part.index ?? 0) + part[0].length),
+  }));
+}
+
 /** Groups the namespaces of a layer by their parts, so `App.Domain` and `App.Ui` are two rows
  * below one row `App`. A namespace without a name is the segment with the empty path. */
 export function segmentsOf(spaces: readonly NamespaceNode[]): Segment[] {
   const roots = new Map<string, Segment>();
   for (const space of spaces) {
-    const parts = [...space.name.matchAll(NAME_PART)];
+    const parts = nameParts(space.name);
     if (parts.length === 0) {
       const root = roots.get("") ?? segment("", "");
       roots.set("", root);
@@ -182,9 +192,8 @@ export function segmentsOf(spaces: readonly NamespaceNode[]): Segment[] {
     }
     let level = roots;
     let current: Segment | undefined;
-    for (const part of parts) {
-      const path = space.name.slice(0, (part.index ?? 0) + part[0].length);
-      current = level.get(path) ?? segment(path, part[0]);
+    for (const { label, path } of parts) {
+      current = level.get(path) ?? segment(path, label);
       level.set(path, current);
       level = current.children;
     }
@@ -274,12 +283,8 @@ export function revealKeys(outline: Outline, type: number): string[] {
   for (const layer of outline.layers) {
     for (const space of layer.namespaces) {
       if (space.types.some((node) => node.id === type)) {
-        const paths =
-          space.name === ""
-            ? [""]
-            : [...space.name.matchAll(NAME_PART)].map((part) =>
-                space.name.slice(0, (part.index ?? 0) + part[0].length),
-              );
+        const parts = nameParts(space.name);
+        const paths = parts.length === 0 ? [""] : parts.map((part) => part.path);
         return [
           layerKey(layer.name),
           ...paths.map((path) => namespaceKey(layer.name, path)),
