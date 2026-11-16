@@ -3,7 +3,7 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::fs;
-use std::io::{ErrorKind, Write};
+use std::io::{ErrorKind, Read, Write};
 use std::path::Path;
 use std::sync::Arc;
 
@@ -151,28 +151,52 @@ fn rule_of(entry: &LayerEntry) -> LayerRule {
     }
 }
 
-/// The text of the project file; empty if there is none.
+/// The text of the project file; empty if there is none. A link or anything but a file is
+/// refused, and no more than the limit is read, however the file grows while it is read.
 fn read_project_file(path: &Path) -> Result<String, CodedError> {
     let unreadable = || CodedError::new(ErrorCode::ConfigParseFailed);
-    match fs::metadata(path) {
-        Err(error) if error.kind() == ErrorKind::NotFound => Ok(String::new()),
-        Err(_) => Err(unreadable()),
-        Ok(meta) if !meta.is_file() || meta.len() > PROJECT_FILE_MAX_BYTES => Err(unreadable()),
-        Ok(_) => fs::read_to_string(path).map_err(|_| unreadable()),
+    let meta = match fs::symlink_metadata(path) {
+        Err(error) if error.kind() == ErrorKind::NotFound => return Ok(String::new()),
+        Err(_) => return Err(unreadable()),
+        Ok(meta) => meta,
+    };
+    if !meta.is_file() {
+        return Err(unreadable());
     }
+    let mut text = String::new();
+    let read = fs::File::open(path).and_then(|file| {
+        file.take(PROJECT_FILE_MAX_BYTES + 1)
+            .read_to_string(&mut text)
+    });
+    match read {
+        Ok(_) if text.len() as u64 <= PROJECT_FILE_MAX_BYTES => Ok(text),
+        _ => Err(unreadable()),
+    }
+}
+
+/// Writes `text` to the new file `temp`, gives it the mode of the file it replaces and makes sure
+/// it is on disk.
+fn write_temp(temp: &Path, path: &Path, text: &str) -> std::io::Result<()> {
+    let mut file = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(temp)?;
+    file.write_all(text.as_bytes())?;
+    if let Ok(old) = fs::metadata(path) {
+        fs::set_permissions(temp, old.permissions())?;
+    }
+    file.sync_all()
 }
 
 /// Replaces the file: the text goes to a new file beside it (created exclusively, so a link
 /// someone put there is never followed) that is renamed over it, so a reader never sees half a
-/// file.
-fn write_project_file(path: &Path, text: &str) -> Result<(), CodedError> {
+/// file. A text over the limit is refused, because the next read would refuse the file.
+pub(super) fn write_project_file(path: &Path, text: &str) -> Result<(), CodedError> {
+    if text.len() as u64 > PROJECT_FILE_MAX_BYTES {
+        return Err(CodedError::new(ErrorCode::ConfigInvalidValue));
+    }
     let temp = super::temp_file::beside(path);
-    let written = fs::OpenOptions::new()
-        .write(true)
-        .create_new(true)
-        .open(&temp)
-        .and_then(|mut file| file.write_all(text.as_bytes()));
-    let moved = written.and_then(|()| fs::rename(&temp, path));
+    let moved = write_temp(&temp, path, text).and_then(|()| fs::rename(&temp, path));
     if moved.is_err() {
         let _ = fs::remove_file(&temp);
     }

@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { LAYERS_ROUTE } from "../../app/consts";
 import { currentPath } from "../../app/router";
 import { setLanguage } from "../../shared/i18n/i18n";
-import { hasLayers } from "../explorer/Overview";
+import { hasLayers, Overview } from "../explorer/Overview";
 import type { Outline } from "../explorer/types";
 import { LayersHint } from "./LayersHint";
 
@@ -40,5 +40,15 @@ describe("hasLayers", () => {
     expect(hasLayers(outline(""))).toBe(false);
     expect(hasLayers(outline())).toBe(false);
     expect(hasLayers(outline("domain", ""))).toBe(true);
+  });
+});
+
+describe("the hint in the overview", () => {
+  it("shows while no layer is set and not once one is", () => {
+    const { unmount } = render(() => <Overview outline={outline("")} />);
+    expect(screen.getByRole("button", { name: "Set layers" })).toBeInTheDocument();
+    unmount();
+    render(() => <Overview outline={outline("domain")} />);
+    expect(screen.queryByRole("button", { name: "Set layers" })).toBeNull();
   });
 });

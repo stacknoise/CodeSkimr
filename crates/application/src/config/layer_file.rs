@@ -5,7 +5,9 @@ use std::collections::HashSet;
 
 use serde::Serialize;
 
-use super::consts::{BLOCK_SEPARATOR, LAYER_TABLE_HEADER, LINE_END, TABLE_HEADER_START};
+use super::consts::{
+    BLOCK_SEPARATOR, LAYER_TABLE_HEADER, LINE_END, TABLE_HEADER_START, WINDOWS_LINE_END,
+};
 use super::error::{ConfigError, LayerSource, Violation};
 use super::model::LayerRule;
 use super::{Config, ConfigLayer};
@@ -83,7 +85,11 @@ pub fn with_layers(text: &str, wanted: Vec<LayerRule>) -> Result<String, ConfigE
     if !result.is_empty() {
         result.push(LINE_END);
     }
-    Ok(result)
+    Ok(if text.contains(WINDOWS_LINE_END) {
+        result.replace(LINE_END, WINDOWS_LINE_END)
+    } else {
+        result
+    })
 }
 
 #[cfg(test)]
@@ -114,6 +120,17 @@ mod tests {
         let written = with_layers(text, vec![rule("b", &["z"])]).unwrap();
         assert!(written.starts_with("# mine\n[keys]\nmax_files = 7\n\n[[layers]]\nname = \"b\""));
         assert!(!written.contains("\"x\""));
+    }
+
+    #[test]
+    fn a_file_with_windows_line_ends_keeps_them() {
+        let text = "[keys]\r\nmax_files = 100\r\n";
+        let written = with_layers(text, vec![rule("core", &["app::core"])]).unwrap();
+        assert!(written.starts_with("[keys]\r\nmax_files = 100\r\n\r\n[[layers]]\r\n"));
+        assert_eq!(
+            written.matches('\n').count(),
+            written.matches("\r\n").count()
+        );
     }
 
     #[test]

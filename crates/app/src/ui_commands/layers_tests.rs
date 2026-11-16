@@ -3,6 +3,7 @@
 use std::fs;
 use std::num::NonZeroU32;
 
+use codeskimr_codes::Coded;
 use codeskimr_domain::{Project, ProjectId};
 use codeskimr_storage::SqliteStore;
 use serde_json::{Value, json};
@@ -116,4 +117,61 @@ fn an_unknown_project_is_refused() {
         fixture.call("layers.get", json!({ "project": 99 })),
         Err("PRJ-201")
     );
+}
+
+#[test]
+fn a_result_over_the_size_limit_is_refused_and_the_file_stays() {
+    let fixture = Fixture::installed(None);
+    let project = scanned(&fixture);
+    let path = fixture.root.path().join("app").join(PROJECT_FILE);
+    let before = format!("# {}\n", "x".repeat(1_048_000));
+    fs::write(&path, &before).unwrap();
+    let layers = json!([{ "name": "big", "namespaces": ["n".repeat(2_000)] }]);
+    let input = json!({ "project": project, "layers": layers });
+    assert_eq!(fixture.call("layers.set", input), Err("CFG-101"));
+    assert_eq!(fs::read_to_string(path).unwrap(), before);
+}
+
+#[cfg(unix)]
+#[test]
+fn a_link_as_project_file_is_not_read_and_not_replaced() {
+    let fixture = Fixture::installed(None);
+    let project = scanned(&fixture);
+    let target = fixture.root.path().join("elsewhere.toml");
+    fs::write(&target, "").unwrap();
+    let path = fixture.root.path().join("app").join(PROJECT_FILE);
+    std::os::unix::fs::symlink(&target, &path).unwrap();
+    let input = json!({ "project": project, "layers": demo_layer() });
+    assert_eq!(fixture.call("layers.set", input), Err("CFG-102"));
+    assert!(
+        fs::symlink_metadata(&path)
+            .unwrap()
+            .file_type()
+            .is_symlink()
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn the_mode_of_the_old_file_is_kept() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let fixture = Fixture::installed(None);
+    let project = scanned(&fixture);
+    let path = fixture.root.path().join("app").join(PROJECT_FILE);
+    fs::write(&path, "").unwrap();
+    fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();
+    let input = json!({ "project": project, "layers": demo_layer() });
+    fixture.call("layers.set", input).unwrap();
+    let mode = fs::metadata(&path).unwrap().permissions().mode();
+    assert_eq!(mode & 0o777, 0o600);
+}
+
+#[test]
+fn a_file_that_cannot_be_written_is_cfg_104_and_leaves_nothing_behind() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("missing-folder").join(PROJECT_FILE);
+    let failure = super::layers::write_project_file(&path, "text").unwrap_err();
+    assert_eq!(failure.code().entry().id, "CFG-104");
+    assert_eq!(fs::read_dir(dir.path()).unwrap().count(), 0);
 }

@@ -179,3 +179,5 @@ pub const TABLE_HEADER_START: char = '[';
 pub const BLOCK_SEPARATOR: &str = "\n\n";
 /// Ends a line.
 pub const LINE_END: char = '\n';
+/// Ends a line in a file written on Windows.
+pub const WINDOWS_LINE_END: &str = "\r\n";
