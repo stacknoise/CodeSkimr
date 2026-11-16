@@ -10,6 +10,9 @@ use std::ffi::OsString;
 use std::fs::{File, OpenOptions, create_dir_all};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::atomic::AtomicBool;
+#[cfg(any(windows, target_os = "macos"))]
+use std::sync::atomic::Ordering;
 
 use codeskimr_application::error::CodedError;
 #[cfg(any(windows, target_os = "macos"))]
@@ -110,7 +113,11 @@ pub(crate) fn detach(
     locations: &Locations,
     arguments: impl IntoIterator<Item = OsString>,
 ) -> Result<PathBuf, CodedError> {
-    let failed = |_| CodedError::new(ErrorCode::TrayStartFailed);
+    let failed = |error: std::io::Error| {
+        // The terminal is gone once the copy runs, so the cause is kept in the log of this program.
+        tracing::debug!(cause = %error);
+        CodedError::new(ErrorCode::TrayStartFailed)
+    };
     let log = log_path(locations);
     let file = open_log(&log).map_err(failed)?;
     let program = std::env::current_exe().map_err(failed)?;
@@ -130,6 +137,7 @@ pub(crate) fn show(
     global: &GlobalOptions,
     locations: &Locations,
     labels: &TrayLabels,
+    server_ended: &AtomicBool,
 ) -> Result<(), CodedError> {
     std::thread::scope(|threads| {
         let open = || {
@@ -139,7 +147,7 @@ pub(crate) fn show(
         let log = || {
             let _ = browser::open(&log_path(locations));
         };
-        crate::tray_ui::run(labels, open, log)
+        crate::tray_ui::run(labels, open, log, || server_ended.load(Ordering::Acquire))
     })
 }
 
@@ -152,6 +160,7 @@ pub(crate) fn show(
     _global: &GlobalOptions,
     _locations: &Locations,
     _labels: &TrayLabels,
+    _server_ended: &AtomicBool,
 ) -> Result<(), CodedError> {
     Err(CodedError::new(ErrorCode::TrayStartFailed))
 }
@@ -169,6 +178,8 @@ fn open_browser(global: &GlobalOptions, locations: &Locations) {
 
 #[cfg(test)]
 mod tests {
+    use codeskimr_codes::Coded;
+
     use super::*;
 
     fn no_env(_: &str) -> Option<String> {
@@ -218,6 +229,23 @@ mod tests {
             .any(|(name, value)| name == ENV_TRAY_CHILD && value.is_some());
         assert!(marked);
         assert!(folder.path().join("nested").join("run.log").exists());
+    }
+
+    #[test]
+    fn a_log_that_cannot_be_created_is_app_603() {
+        let folder = tempfile::tempdir().unwrap();
+        let blocker = folder.path().join("file");
+        std::fs::write(&blocker, "").unwrap();
+        // The data folder lies below a file, so neither it nor the log can be created.
+        let locations = Locations {
+            data_dir: blocker.join("data"),
+            languages_dir: PathBuf::new(),
+            user_config: None,
+            bases: Vec::new(),
+            program_dir: None,
+        };
+        let error = detach(&locations, Vec::new()).unwrap_err();
+        assert_eq!(error.code(), ErrorCode::TrayStartFailed);
     }
 
     #[test]

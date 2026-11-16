@@ -437,6 +437,9 @@ pub const TRAY_LOG_FILE: &str = "codeskimr.log";
 /// Windows process creation flag: the new process gets no console window.
 #[cfg(windows)]
 pub const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+/// How often the tray looks whether the server has ended on its own.
+#[cfg(any(windows, target_os = "macos"))]
+pub const TRAY_SERVER_POLL: std::time::Duration = std::time::Duration::from_secs(1);
 /// Width and height of the tray icon in pixels.
 #[cfg(any(windows, target_os = "macos"))]
 pub const TRAY_ICON_SIZE: u32 = 32;

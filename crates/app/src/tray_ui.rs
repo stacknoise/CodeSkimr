@@ -14,7 +14,9 @@ use winit::event_loop::{ActiveEventLoop, ControlFlow, EventLoop};
 use winit::platform::run_on_demand::EventLoopExtRunOnDemand;
 use winit::window::WindowId;
 
-use crate::consts::{TRAY_ICON_PIXEL, TRAY_ICON_SIZE};
+use std::time::Instant;
+
+use crate::consts::{TRAY_ICON_PIXEL, TRAY_ICON_SIZE, TRAY_SERVER_POLL};
 
 /// What the user asked for through the menu.
 enum Pick {
@@ -95,8 +97,9 @@ fn event_loop() -> Result<EventLoop<MenuEvent>, CodedError> {
 }
 
 /// The state of the event loop: the icon, once it exists, and what the menu does.
-struct Tray<'a, O, L> {
+struct Tray<'a, O, L, E> {
     labels: &'a TrayLabels,
+    server_ended: E,
     menu: Option<Menu>,
     icon: Option<TrayIcon>,
     entries: Entries,
@@ -105,7 +108,7 @@ struct Tray<'a, O, L> {
     outcome: Result<(), CodedError>,
 }
 
-impl<O: Fn(), L: Fn()> ApplicationHandler<MenuEvent> for Tray<'_, O, L> {
+impl<O: Fn(), L: Fn(), E: Fn() -> bool> ApplicationHandler<MenuEvent> for Tray<'_, O, L, E> {
     fn new_events(&mut self, event_loop: &ActiveEventLoop, cause: StartCause) {
         // The icon is created inside the loop: macOS needs the application to be running.
         if !matches!(cause, StartCause::Init) {
@@ -123,6 +126,15 @@ impl<O: Fn(), L: Fn()> ApplicationHandler<MenuEvent> for Tray<'_, O, L> {
 
     fn resumed(&mut self, _event_loop: &ActiveEventLoop) {}
 
+    /// Looks whether the server has ended on its own; then the icon would stand for nothing.
+    fn about_to_wait(&mut self, event_loop: &ActiveEventLoop) {
+        if (self.server_ended)() {
+            event_loop.exit();
+        } else {
+            event_loop.set_control_flow(ControlFlow::WaitUntil(Instant::now() + TRAY_SERVER_POLL));
+        }
+    }
+
     fn window_event(&mut self, _: &ActiveEventLoop, _: WindowId, _: WindowEvent) {}
 
     fn user_event(&mut self, event_loop: &ActiveEventLoop, picked: MenuEvent) {
@@ -136,11 +148,17 @@ impl<O: Fn(), L: Fn()> ApplicationHandler<MenuEvent> for Tray<'_, O, L> {
 }
 
 /// Shows the tray icon and handles its menu until the user picks "Quit". `open` and `log` are
-/// called on the main thread for the two other entries and must not block.
+/// called on the main thread for the two other entries and must not block. `server_ended` is asked
+/// about once a second; when it says yes, the loop ends too.
 ///
 /// # Errors
 /// `APP-603` if the icon, the menu or the event loop cannot be created.
-pub(crate) fn run(labels: &TrayLabels, open: impl Fn(), log: impl Fn()) -> Result<(), CodedError> {
+pub(crate) fn run(
+    labels: &TrayLabels,
+    open: impl Fn(),
+    log: impl Fn(),
+    server_ended: impl Fn() -> bool,
+) -> Result<(), CodedError> {
     let (menu, entries) = menu(labels)?;
     let mut event_loop = event_loop()?;
     event_loop.set_control_flow(ControlFlow::Wait);
@@ -150,6 +168,7 @@ pub(crate) fn run(labels: &TrayLabels, open: impl Fn(), log: impl Fn()) -> Resul
     }));
     let mut tray = Tray {
         labels,
+        server_ended,
         menu: Some(menu),
         icon: None,
         entries,

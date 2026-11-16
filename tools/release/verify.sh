@@ -31,7 +31,8 @@ project="${work}/project"
 mkdir "${project}"
 printf 'fn main() {}\n' > "${project}/main.rs"
 (cd "${work}" && "${bin}" --data-dir "${work}/data" scan "${project}" --json) | grep -F '"files":1'
-# The start as a user does it, but in the console (--console; the tray start of Windows and macOS has no output a probe could read, ADR 0067): so the server starts and the browser is asked to open. A
+# The start as a user does it, but in the console: --console, because the tray start of Windows and
+# macOS has no output that a probe could read (ADR 0067). So the server starts and the browser is asked to open. A
 # runner without a browser is fine (the server keeps running then); a program that ends is not. The
 # probe waits until the start page answers on its own port, then ends the program again.
 # A port from the private range, so that a busy standard port does not matter; if it is taken anyway, the

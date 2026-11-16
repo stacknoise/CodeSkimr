@@ -19,6 +19,8 @@ The bare `codeskimr` runs the server in the console window that started it; clos
 ## Consequences
 
 - A start that fails in the copy (for example a taken port `API-301`) shows no window; the reason is in the log. The starting program cannot see it, because it has ended already. This is the price of closing the terminal.
+- A server that ends on its own after the start takes the icon with it: the tray looks once a second whether the server thread has ended, then the program ends and the cause is in the log.
+- `CODESKIMR_TRAY_CHILD` is inherited by the processes of the copy. Nothing in the program starts `codeskimr` again without a command; if that ever changes, that call must remove the variable.
 - The icon is a plain colour square for now; a real image is a follow-up.
 - The clean-install probe of the release starts with `--console`, because a runner has no tray the probe could look at. The tray start itself is checked by hand on Windows and macOS.
 - Blueprint 10.2 describes the bare start; the sentence about the tray is added there with this ADR.

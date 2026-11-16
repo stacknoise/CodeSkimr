@@ -324,6 +324,7 @@ fn run_tray_start(
 ) -> Result<Outcome, Failure> {
     let labels = tray_labels(messages, language).map_err(CliError::from)?;
     let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
+    let server_ended = std::sync::atomic::AtomicBool::new(false);
     let serve = |address: std::sync::mpsc::Sender<String>| {
         let listening = move |url: &str| {
             let _ = address.send(url.to_owned());
@@ -331,10 +332,13 @@ fn run_tray_start(
         let shutdown = async move {
             let _ = stopped.await;
         };
-        serve::run_until(&invocation.global, locations, listening, shutdown)
+        let result = serve::run_until(&invocation.global, locations, listening, shutdown);
+        // The tray looks at this: a server that ended on its own takes the icon with it.
+        server_ended.store(true, std::sync::atomic::Ordering::Release);
+        result
     };
     let listening = |_: &str| {
-        let shown = tray::show(&invocation.global, locations, &labels);
+        let shown = tray::show(&invocation.global, locations, &labels, &server_ended);
         // However the icon ended, the server ends with it.
         let _ = stop.send(());
         shown
