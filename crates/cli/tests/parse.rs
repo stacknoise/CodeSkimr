@@ -138,7 +138,7 @@ fn missing_and_unknown_arguments_are_cli_101() {
 fn no_command_starts_the_app() {
     match run(&["codeskimr"]).unwrap() {
         Parsed::Run(invocation) => {
-            assert_eq!(invocation.action, Action::Start(StartArgs::default()))
+            assert_eq!(invocation.action, Action::Start(StartArgs::default()));
         }
         Parsed::Display(_) => panic!("the bare command runs"),
     }
