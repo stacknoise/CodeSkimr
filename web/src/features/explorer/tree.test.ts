@@ -94,6 +94,9 @@ const ORDER: SymbolInfo = {
   ],
 };
 
+/** The keys of the two segments of `App.Domain`, `App` and `App.Domain`. */
+const APP = [namespaceKey("Domain", "App"), namespaceKey("Domain", "App.Domain")];
+
 const labels = (rows: { label: string }[]) => rows.map((row) => row.label);
 
 describe("buildRows", () => {
@@ -104,23 +107,20 @@ describe("buildRows", () => {
   });
 
   it("opens a layer into its namespaces and a namespace into its types", () => {
-    const expanded = new Set([layerKey("Domain"), namespaceKey("Domain", "App.Domain")]);
+    const expanded = new Set([layerKey("Domain"), ...APP]);
     const rows = buildRows(OUTLINE, expanded, new Map(), "", LABELS);
-    expect(labels(rows)).toEqual(["Domain", "App.Domain", "Order", "IOrder", "none"]);
-    expect(rows[2]?.symbolKind).toBe("class");
-    expect(rows[3]?.expandable).toBe(false);
+    expect(labels(rows)).toEqual(["Domain", "App", "Domain", "Order", "IOrder", "none"]);
+    expect(rows[3]?.symbolKind).toBe("class");
+    expect(rows[4]?.expandable).toBe(false);
   });
 
   it("opens a type into groups with their members once they are read", () => {
-    const expanded = new Set([
-      layerKey("Domain"),
-      namespaceKey("Domain", "App.Domain"),
-      typeKey(1),
-    ]);
+    const expanded = new Set([layerKey("Domain"), ...APP, typeKey(1)]);
     const rows = buildRows(OUTLINE, expanded, new Map([[1, ORDER]]), "", LABELS);
     expect(labels(rows)).toEqual([
       "Domain",
-      "App.Domain",
+      "App",
+      "Domain",
       "Order",
       "Fields",
       "Methods",
@@ -131,13 +131,92 @@ describe("buildRows", () => {
 
   it("a filter shows the matching types with their parents opened", () => {
     const rows = buildRows(OUTLINE, new Set(), new Map(), "ord", LABELS);
-    expect(labels(rows)).toEqual(["Domain", "App.Domain", "Order", "IOrder"]);
+    expect(labels(rows)).toEqual(["Domain", "App", "Domain", "Order", "IOrder"]);
     expect(buildRows(OUTLINE, new Set(), new Map(), "zzz", LABELS)).toEqual([]);
   });
 
   it("names the layer and the namespace that have no name", () => {
     const rows = buildRows(OUTLINE, new Set([layerKey("")]), new Map(), "", LABELS);
     expect(labels(rows)).toContain("root");
+  });
+});
+
+describe("namespaces grouped by their parts", () => {
+  const type = (id: number, name: string) => ({ id, name, kind: "class", members: 0 });
+  const GROUPED: Outline = {
+    ...OUTLINE,
+    layers: [
+      {
+        name: "Test",
+        namespaces: [
+          { name: "Co.App", types: [type(1, "Root")] },
+          { name: "Co.App.Catalog", types: [type(2, "Item")] },
+          { name: "Co.App.Cutting", types: [type(3, "Cut")] },
+          { name: "Co.Domain::Errors", types: [type(4, "Fault")] },
+          { name: "", types: [type(5, "Loose")] },
+        ],
+      },
+    ],
+  };
+  const all = [
+    layerKey("Test"),
+    ...[
+      "Co",
+      "Co.App",
+      "Co.App.Catalog",
+      "Co.App.Cutting",
+      "Co.Domain",
+      "Co.Domain::Errors",
+      "",
+    ].map((path) => namespaceKey("Test", path)),
+  ];
+
+  it("shows one row for each part, with the parts below it", () => {
+    const rows = buildRows(GROUPED, new Set(all), new Map(), "", LABELS);
+    expect(rows.map((row) => `${row.depth}:${row.label}:${row.meta}`)).toEqual([
+      "0:Test:5",
+      "1:Co:4",
+      "2:App:3",
+      "3:Catalog:1",
+      "4:Item:0",
+      "3:Cutting:1",
+      "4:Cut:0",
+      "3:Root:0",
+      "2:Domain:1",
+      "3:Errors:1",
+      "4:Fault:0",
+      "1:root:1",
+      "2:Loose:0",
+    ]);
+  });
+
+  it("opens a part on its own and counts the types below it while it is closed", () => {
+    const rows = buildRows(GROUPED, new Set([layerKey("Test")]), new Map(), "", LABELS);
+    expect(rows.map((row) => `${row.label}:${row.meta}:${row.open}`)).toEqual([
+      "Test:5:true",
+      "Co:4:false",
+      "root:1:false",
+    ]);
+  });
+
+  it("keeps the parts that lead to a match when filtering, and drops the others", () => {
+    const rows = buildRows(GROUPED, new Set(), new Map(), "cut", LABELS);
+    expect(labels(rows)).toEqual(["Test", "Co", "App", "Cutting", "Cut"]);
+  });
+
+  it("names every part that has to be open for a type, also with `::`", () => {
+    expect(revealKeys(GROUPED, 4)).toEqual([
+      layerKey("Test"),
+      namespaceKey("Test", "Co"),
+      namespaceKey("Test", "Co.Domain"),
+      namespaceKey("Test", "Co.Domain::Errors"),
+      typeKey(4),
+    ]);
+    expect(revealKeys(GROUPED, 5)).toEqual([
+      layerKey("Test"),
+      namespaceKey("Test", ""),
+      typeKey(5),
+    ]);
   });
 });
 
@@ -149,8 +228,7 @@ describe("nested types", () => {
       { ...ORDER.members[0]!, id: 12, name: "Line", kind: "class", signature: null },
     ],
   };
-  const open = (...extra: string[]) =>
-    new Set([layerKey("Domain"), namespaceKey("Domain", "App.Domain"), typeKey(1), ...extra]);
+  const open = (...extra: string[]) => new Set([layerKey("Domain"), ...APP, typeKey(1), ...extra]);
 
   it("gives them a group of their own, closed at first", () => {
     const rows = buildRows(OUTLINE, open(), new Map([[1, NESTED]]), "", LABELS);
@@ -169,12 +247,8 @@ describe("nested types", () => {
 });
 
 describe("revealKeys", () => {
-  it("names the layer, the namespace and the type", () => {
-    expect(revealKeys(OUTLINE, 2)).toEqual([
-      layerKey("Domain"),
-      namespaceKey("Domain", "App.Domain"),
-      typeKey(2),
-    ]);
+  it("names the layer, every part of the namespace and the type", () => {
+    expect(revealKeys(OUTLINE, 2)).toEqual([layerKey("Domain"), ...APP, typeKey(2)]);
   });
 
   it("is empty for an unknown type", () => {

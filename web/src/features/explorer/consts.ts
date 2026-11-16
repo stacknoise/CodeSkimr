@@ -100,13 +100,10 @@ export const MEMBER_STEP: Readonly<Record<string, number>> = {
 };
 export const NOT_FOUND = -1;
 
-/** What a row of the tree is. */
-/** Depth of the rows below a namespace row. */
-export const TYPE_DEPTH = 2;
-
 /** Id of the complexity metric, which names the limits of its column. */
 export const CC_METRIC = "cc";
 
+/** What a row of the tree is. */
 export const ROW = {
   layer: "layer",
   namespace: "namespace",
@@ -115,6 +112,9 @@ export const ROW = {
   member: "member",
 } as const;
 export type RowKind = (typeof ROW)[keyof typeof ROW];
+
+/** One part of a namespace name; the parts are separated by `.` or `::`. */
+export const NAME_PART = /[^.:]+/g;
 
 /** Keys of expanded rows are built from a prefix and the names, separated by this. */
 export const KEY_SEPARATOR = "\u0001";
