@@ -1,10 +1,6 @@
 # Verwendungen (Symbolebene).
 
 usages-title = Verwendungen
-usages-level-label = Ebene
-usages-level-namespaces = Namespaces
-usages-level-types = Typen
-usages-level-symbol = Symbol
 usages-direction-label = Richtung
 usages-mode-both = beide
 usages-mode-callers = wer ruft auf
@@ -12,6 +8,7 @@ usages-mode-callees = was wird aufgerufen
 usages-depth = Tiefe
 usages-depth-all = alle
 usages-show-tests = Tests zeigen
+usages-back = ← Zurück zum Symbol
 usages-hint-open = Alt + Klick auf ein Symbol im Code öffnet diese Ansicht
 usages-callers-level = Aufrufer · Stufe { $level }
 usages-callees-level = Ruft auf / liest · Stufe { $level }
@@ -65,4 +62,4 @@ usages-load-failed = Die Verwendungen konnten nicht gelesen werden.
 usages-zoom-in = Vergrößern
 usages-zoom-out = Verkleinern
 usages-zoom-fit = Alles zeigen
-usages-hint-navigation = Mausrad zoomt · Ziehen oder Mittelmaustaste verschiebt
+usages-hint-navigation = Mausrad zoomt · Ziehen oder Mittelmaustaste verschiebt · Klick zeigt Details · Doppelklick oder Enter wechselt den Fokus

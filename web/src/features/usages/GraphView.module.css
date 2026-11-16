@@ -114,6 +114,10 @@
 .card.test {
     border-color: var(--kind-interface);
 }
+.card.picked {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-bg);
+}
 .card.focus {
     border: 2px solid var(--ink);
     box-shadow: 0 0 0 4px var(--mark);

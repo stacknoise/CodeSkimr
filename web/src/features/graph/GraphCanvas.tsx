@@ -1,4 +1,5 @@
 import { For, onCleanup, onMount, Show } from "solid-js";
+import { onEnter } from "../../shared/keys/keydown";
 import { cx } from "../../shared/ui/cx";
 import {
   ARROW,
@@ -121,7 +122,7 @@ function Boxes(props: {
   data: GraphData;
   selected: string | null;
   onSelect: (name: string) => void;
-  onActivate: (name: string) => void;
+  onOpen: (name: string) => void;
 }) {
   return (
     <For each={props.data.boxes}>
@@ -138,7 +139,8 @@ function Boxes(props: {
           }}
           aria-pressed={props.selected === box.name}
           onClick={() => props.onSelect(box.name)}
-          onDblClick={() => props.onActivate(box.name)}
+          onDblClick={() => props.onOpen(box.name)}
+          onKeyDown={(event) => onEnter(event, () => props.onOpen(box.name))}
         >
           <span class={styles.text} title={box.name}>
             <span class={styles.name}>{box.label}</span>
@@ -174,7 +176,7 @@ function Stage(props: {
   data: GraphData;
   selected: string | null;
   onSelect: (name: string) => void;
-  onActivate: (name: string) => void;
+  onOpen: (name: string) => void;
   view: View;
   violationsOnly: boolean;
   weak: boolean;
@@ -199,7 +201,7 @@ function Stage(props: {
         data={props.data}
         selected={props.selected}
         onSelect={props.onSelect}
-        onActivate={props.onActivate}
+        onOpen={props.onOpen}
       />
     </div>
   );
@@ -211,7 +213,7 @@ export function GraphCanvas(props: {
   data: GraphData;
   selected: string | null;
   onSelect: (name: string) => void;
-  onActivate: (name: string) => void;
+  onOpen: (name: string) => void;
   view: View;
   onView: (view: View) => void;
   onSize: (size: Size) => void;

@@ -2,12 +2,6 @@ import { For } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
-import { GRAPH_ROUTE } from "../../app/consts";
-import { navigate } from "../../app/router";
-import { currentType } from "../explorer/explorer";
-import { LEVEL } from "../graph/consts";
-import { setGraphFocus, setGraphLevel } from "../graph/graph";
-import type { Level } from "../graph/types";
 import { DEPTH_ALL, DEPTHS, ROLE, WAYS } from "./consts";
 import {
   direction,
@@ -18,41 +12,6 @@ import {
   walkDepth,
 } from "./usages";
 import styles from "./Toolbar.module.css";
-
-/** The levels of the mock: the symbol level is this screen; the other two open the dependency
- * map on that level. The type level needs a type chosen in the explorer. */
-function Levels() {
-  const pick = t(I18N_KEYS.GRAPH_TYPES_PICK);
-  const typed = () => currentType() !== null;
-  return (
-    <div class={styles.group} role={ROLE.group} aria-label={t(I18N_KEYS.USAGES_LEVEL_LABEL)}>
-      <button type="button" onClick={() => openMap(LEVEL.namespaces)}>
-        {t(I18N_KEYS.USAGES_LEVEL_NAMESPACES)}
-      </button>
-      <button
-        type="button"
-        aria-disabled={!typed()}
-        title={typed() ? undefined : pick}
-        onClick={() => typed() && openMap(LEVEL.types)}
-      >
-        {t(I18N_KEYS.USAGES_LEVEL_TYPES)}
-      </button>
-      <button type="button" class={styles.current} aria-pressed={true}>
-        {t(I18N_KEYS.USAGES_LEVEL_SYMBOL)}
-      </button>
-    </div>
-  );
-}
-
-/** Opens the dependency map on `level`; the type level puts the explorer's type in the middle. */
-function openMap(level: Level) {
-  const type = currentType();
-  if (level === LEVEL.types && type !== null) {
-    setGraphFocus(type);
-  }
-  setGraphLevel(level);
-  navigate(GRAPH_ROUTE.path);
-}
 
 function Directions() {
   return (
@@ -73,11 +32,15 @@ function Directions() {
   );
 }
 
-/** The toolbar of screen 6: level, direction, depth, tests and the key hint (mock 6). */
-export function Toolbar() {
+/** The toolbar of screen 6: the way back, direction, depth, tests and the key hint (mock 6). */
+export function Toolbar(props: { onBack: () => void }) {
   return (
     <div class={styles.bar}>
-      <Levels />
+      <div class={styles.group}>
+        <button type="button" onClick={props.onBack}>
+          {t(I18N_KEYS.USAGES_BACK)}
+        </button>
+      </div>
       <Directions />
       <label class={styles.field}>
         {t(I18N_KEYS.USAGES_DEPTH)}

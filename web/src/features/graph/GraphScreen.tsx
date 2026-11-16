@@ -121,7 +121,7 @@ function MapPane(props: { state: MapState; actions: Actions; current: GraphData 
         data={props.current}
         selected={state.selected()}
         onSelect={state.setSelected}
-        onActivate={props.actions.focusBox}
+        onOpen={props.actions.focusBox}
         view={state.view()}
         onView={state.setView}
         onSize={state.setSize}
@@ -169,12 +169,6 @@ function PanelPane(props: {
       onSelect={props.state.setSelected}
       onOpen={props.actions.openExplorer}
       kind={t(SELECTED_KIND[graphLevel()])}
-      onFocus={props.actions.focusableHere() ? props.actions.focusHere : undefined}
-      focusLabel={t(
-        graphLevel() === LEVEL.namespaces
-          ? I18N_KEYS.GRAPH_FOCUS_HERE_NAMESPACE
-          : I18N_KEYS.GRAPH_FOCUS_HERE,
-      )}
     />
   );
 }

@@ -5,15 +5,15 @@ import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { pendingFocus, requestFocus } from "../../shared/navigation/navigation";
 import { pointer } from "../../tests/pointer";
-import { ANSWER } from "../../tests/usages";
+import { ANSWER, VIEW } from "../../tests/usages";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
-import { graphFocus, graphLevel } from "../graph/graph";
-import { selectType } from "../explorer/explorer";
 import { startView } from "./GraphView";
 import type { Graph } from "./graph";
 import { UsagesScreen } from "./UsagesScreen";
+import { RailLink } from "../../app/Frame";
+import { GRAPH_ROUTE } from "../../app/consts";
 import { showUsages } from "../../shared/navigation/navigation";
-import { clearUsages } from "./usages";
+import { clearUsages, focusSymbol } from "./usages";
 
 useServerSession();
 afterEach(() => {
@@ -67,28 +67,24 @@ describe("UsagesScreen", () => {
     expect(localStorage.getItem("codeskimr.layout.usages.panel")).toBe(String(after));
   });
 
-  it("opens the dependency map from the level buttons", async () => {
+  it("offers no buttons to the other levels of the map", async () => {
     shown();
     await screen.findByRole("heading", { name: "Cart.Total" });
-    fireEvent.click(screen.getByRole("button", { name: "Namespaces" }));
-    await waitFor(() => expect(currentPath()).toBe("/graph"));
-    expect(graphLevel()).toBe("namespaces");
+    expect(screen.queryByRole("button", { name: "Namespaces" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Types" })).toBeNull();
   });
 
-  it("keeps the Types button off until the explorer has a type chosen", async () => {
+  it("goes back to the symbol in the explorer with the back button", async () => {
     shown();
     await screen.findByRole("heading", { name: "Cart.Total" });
-    expect(screen.getByRole("button", { name: "Types" })).toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(screen.getByRole("button", { name: /Back to the symbol/ }));
+    await waitFor(() => expect(currentPath()).toBe("/explorer"));
   });
 
-  it("opens the type focus with the type chosen in the explorer", async () => {
-    shown();
-    await screen.findByRole("heading", { name: "Cart.Total" });
-    await selectType(1, 7);
-    fireEvent.click(screen.getByRole("button", { name: "Types" }));
-    await waitFor(() => expect(currentPath()).toBe("/graph"));
-    expect(graphLevel()).toBe("types");
-    expect(graphFocus()).toBe(7);
+  it("keeps the graph button of the rail marked on the symbol view", async () => {
+    navigate("/usages");
+    render(() => <RailLink route={GRAPH_ROUTE} />);
+    expect(screen.getByRole("link")).toHaveAttribute("aria-current", "page");
   });
 
   it("shows the symbol, the counts, the impact and the cards of the graph", async () => {
@@ -189,11 +185,20 @@ describe("UsagesScreen", () => {
     expect(await screen.findByText(/does not rule out usages that were missed/)).toBeTruthy();
   });
 
-  it("makes a clicked card the focus", async () => {
+  it("shows a clicked card in the side panel and makes a double-clicked card the focus", async () => {
     shown();
+    const first = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation((path: string, init: RequestInit) =>
+      String(path).endsWith("usages.query") && String(init?.body).includes('"symbol":11')
+        ? Promise.resolve(answer({ ...ANSWER, symbol: VIEW, signature: "void Render()" }))
+        : first(path, init),
+    );
     const graph = await screen.findByRole("region", { name: "Usage graph" });
     fireEvent.click(within(graph).getByText("Render"));
-    await waitFor(() => expect(lastRequest().symbol).toBe(11));
+    expect(await screen.findByText("void Render()")).toBeTruthy();
+    expect(focusSymbol()).not.toBe(11);
+    fireEvent.dblClick(within(graph).getByText("Render"));
+    await waitFor(() => expect(focusSymbol()).toBe(11));
   });
 
   it("steps through the hits with F8 and opens the selected one in the explorer", async () => {

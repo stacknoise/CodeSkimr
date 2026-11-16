@@ -117,27 +117,13 @@ function selectedTypeOf(state: MapState): number | null | undefined {
 /** Puts a box in the middle of the map: a namespace on the namespace level, a type on the type
  * level. */
 function useFocusActions(state: MapState) {
-  const { selected, data } = state;
+  const { data } = state;
   const focusBox = (name: string) => {
     const symbol = data()?.boxes.find((box) => box.name === name)?.symbol;
     if (graphLevel() === LEVEL.namespaces) {
       setGraphNamespace(name);
     } else if (graphLevel() === LEVEL.types && symbol !== null && symbol !== undefined) {
       setGraphFocus(symbol);
-    }
-  };
-  const focusableHere = () => {
-    const name = selected();
-    if (graphLevel() === LEVEL.namespaces) {
-      return name !== null && name !== data()?.focus?.name;
-    }
-    const type = selectedTypeOf(state);
-    return type !== null && type !== undefined && type !== graphFocus();
-  };
-  const focusHere = () => {
-    const name = selected();
-    if (name !== null && focusableHere()) {
-      focusBox(name);
     }
   };
   const focusType = () => {
@@ -147,7 +133,7 @@ function useFocusActions(state: MapState) {
       setGraphLevel(LEVEL.types);
     }
   };
-  return { focusType, focusBox, focusHere, focusableHere };
+  return { focusType, focusBox };
 }
 
 /** What the screen does with the selected box: open it in the explorer, make it the focus. */
