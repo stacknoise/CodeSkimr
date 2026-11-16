@@ -1,6 +1,9 @@
 /** One placed layer, in layout units (`BoxOut` in crates/app/src/ui_commands/graph.rs). */
 export interface LayerBox {
+  /** The key of the box in the links and the selection. */
   name: string;
+  /** The text of the box: the name without the part the frames around it say. */
+  label: string;
   x: number;
   y: number;
   width: number;
@@ -21,6 +24,18 @@ export interface LayerBand {
   rank: number;
   y: number;
   height: number;
+}
+
+/** A frame around the namespaces that share the first segments of their names (`GroupOut`). */
+export interface LayerGroup {
+  name: string;
+  label: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  /** How many frames surround this one. */
+  depth: number;
 }
 
 /** What a box stands for. */
@@ -51,6 +66,8 @@ export interface GraphData {
   boxes: LayerBox[];
   bands: LayerBand[];
   links: LayerLink[];
+  /** The frames around the namespaces, outer frames first. */
+  groups: LayerGroup[];
   /** The type in the middle; `null` on the other levels. */
   focus: FocusInfo | null;
 }

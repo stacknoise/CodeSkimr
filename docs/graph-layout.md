@@ -35,3 +35,5 @@ Benchmark `graph_layout/nodes_200` is checked against `budgets.graph_layout_ms` 
 ## Wrapping long rows
 
 On the namespace level one layer can own hundreds of namespaces, which the layout puts into one row. The command `graph.layers` therefore wraps a row that is longer than `graph.row_boxes` into several lines (a grid, keeping the order of the crossing minimisation, centred) and leaves a margin of half a row gap around the picture, so that the stripe of a layer is symmetric around its boxes.
+
+On the namespace level the boxes of a layer are not put in one flat grid: every segment of the names that several namespaces share becomes a frame (`App` around `App.Views` and `App.Models`, recursively; a chain of single segments is one title). Frames and boxes are packed into lines of at most `row_boxes` boxes. The type level puts the types that use the middle type above it and the types it uses below it, each row in centred lines on the axis of the type in the middle.

@@ -78,3 +78,24 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+.group {
+    position: absolute;
+    box-sizing: border-box;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: color-mix(in srgb, var(--ink) 3%, transparent);
+    pointer-events: none;
+}
+
+.groupName {
+    position: absolute;
+    left: var(--space-8);
+    top: var(--space-4);
+    max-width: calc(100% - 2 * var(--space-8));
+    font: 600 11px var(--font-mono);
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

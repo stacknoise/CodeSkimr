@@ -38,6 +38,15 @@ pub struct NamespaceGraph {
     pub edges: Vec<NamespaceEdge>,
 }
 
+/// The segments of a namespace name, split at every `.` and `::` (`App.Views::Board` gives `App`,
+/// `Views`, `Board`).
+#[must_use]
+pub fn name_parts(name: &str) -> Vec<&str> {
+    name.split(NAME_SEPARATOR)
+        .flat_map(|part| part.split(MODULE_NAME_SEPARATOR))
+        .collect()
+}
+
 /// The first `depth` segments of `name`; the whole name if it has no more segments.
 fn leading_segments(name: &str, depth: usize) -> &str {
     let mut cuts: Vec<usize> = name

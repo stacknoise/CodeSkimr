@@ -45,7 +45,9 @@ pub use metric::{Metric, MetricKind, MetricValue};
 pub use metrics::{
     HalsteadCounts, LineKind, cyclomatic_complexity, lines_of_code, maintainability_index,
 };
-pub use namespace_graph::{NamespaceEdge, NamespaceGraph, NamespaceNode, namespace_graph};
+pub use namespace_graph::{
+    NamespaceEdge, NamespaceGraph, NamespaceNode, name_parts, namespace_graph,
+};
 pub use project::{
     BranchName, CredentialId, FolderPath, GitUrl, Layer, LayerName, Project, ProjectId,
     ProjectName, ProjectSource,

@@ -91,6 +91,28 @@ function Bands(props: { data: GraphData }) {
   );
 }
 
+/** The frames around namespaces that share the first segments of their names. */
+function Groups(props: { data: GraphData }) {
+  return (
+    <For each={props.data.groups}>
+      {(group) => (
+        <div
+          class={styles.group}
+          title={group.name}
+          style={{
+            left: group.x + PX,
+            top: group.y + PX,
+            width: group.width + PX,
+            height: group.height + PX,
+          }}
+        >
+          <span class={styles.groupName}>{group.label}</span>
+        </div>
+      )}
+    </For>
+  );
+}
+
 /** The edges between the boxes, drawn as curves. */
 function Edges(props: {
   data: GraphData;
@@ -139,7 +161,7 @@ function Boxes(props: {
           onClick={() => props.onSelect(box.name)}
         >
           <span class={styles.name} title={box.name}>
-            {box.name}
+            {box.label}
           </span>
           <Show when={box.types}>{(types) => <span class={styles.types}>{types()}</span>}</Show>
         </button>
@@ -183,6 +205,7 @@ function Stage(props: {
       }}
     >
       <Bands data={props.data} />
+      <Groups data={props.data} />
       <Edges
         data={props.data}
         selected={props.selected}

@@ -6,9 +6,10 @@ use std::collections::BTreeMap;
 use codeskimr_application::config::Graph;
 
 use super::consts::{BAND_PAD_DIVISOR, CENTRE_DIVISOR, MARGIN_SIDES};
-use super::graph::BoxOut;
+use super::graph::{BoxOut, GroupOut};
 
 /// The size of the picture after [`arrange`].
+#[derive(Clone, Copy)]
 pub(super) struct Extent {
     pub(super) width: u32,
     pub(super) height: u32,
@@ -36,10 +37,10 @@ fn rows(boxes: &[BoxOut]) -> BTreeMap<u32, Vec<usize>> {
 
 /// Puts the boxes of a row that is too long into a grid; a picture with no long row stays as the
 /// layout placed it. Returns the new size, or `None` when nothing changed.
-fn wrap_rows(boxes: &mut [BoxOut], look: &Graph) -> Option<Extent> {
+fn wrap_rows(boxes: &mut [BoxOut], look: &Graph, always: bool) -> Option<Extent> {
     let per_line = to_usize(look.row_boxes.max(1));
     let rows = rows(boxes);
-    if rows.values().all(|row| row.len() <= per_line) {
+    if !always && rows.values().all(|row| row.len() <= per_line) {
         return None;
     }
     let (cell_width, cell_height) = (
@@ -69,14 +70,34 @@ fn wrap_rows(boxes: &mut [BoxOut], look: &Graph) -> Option<Extent> {
     })
 }
 
-/// Wraps long rows and moves the boxes down and to the right by half a row gap, so that the
-/// stripe of the first layer has room above its boxes. `extent` is the size the layout reported.
+/// Puts every row into centred lines of at most `row_boxes` boxes, even a short one, so that the
+/// rows of the type level sit centred above and below the type in the middle.
+pub(super) fn centre(boxes: &mut [BoxOut], look: &Graph) -> Option<Extent> {
+    wrap_rows(boxes, look, true)
+}
+
+/// Wraps long rows and gives the picture its margin. `extent` is the size the layout reported.
 pub(super) fn arrange(boxes: &mut [BoxOut], extent: Extent, look: &Graph) -> Extent {
-    let extent = wrap_rows(boxes, look).unwrap_or(extent);
+    let extent = wrap_rows(boxes, look, false).unwrap_or(extent);
+    margin(boxes, &mut [], extent, look)
+}
+
+/// Moves the boxes and frames down and to the right by half a row gap, so that the stripe of the
+/// first layer has room above its boxes. Returns the size with the margin on both sides.
+pub(super) fn margin(
+    boxes: &mut [BoxOut],
+    groups: &mut [GroupOut],
+    extent: Extent,
+    look: &Graph,
+) -> Extent {
     let pad = look.rank_gap / BAND_PAD_DIVISOR;
     for found in boxes.iter_mut() {
         found.y += pad;
         found.x += pad;
+    }
+    for group in groups.iter_mut() {
+        group.y += pad;
+        group.x += pad;
     }
     Extent {
         width: extent.width + pad * MARGIN_SIDES,
@@ -109,6 +130,7 @@ mod tests {
                 *order += 1;
                 BoxOut {
                     name: String::new(),
+                    label: String::new(),
                     x: *order * 500,
                     y: rank * 100,
                     width: 100,
@@ -157,6 +179,15 @@ mod tests {
         assert!(out.width <= 400, "wrapped width {}", out.width);
         assert!(placed.iter().all(|b| b.x + b.width <= out.width));
         assert!(placed.iter().all(|b| b.y + b.height <= out.height));
+    }
+
+    #[test]
+    fn centred_rows_share_one_axis() {
+        let mut placed = boxes(&[0, 0, 0, 1]);
+        let out = centre(&mut placed, &look()).expect("always arranged");
+        let middle = |found: &BoxOut| found.x + found.width / 2;
+        assert_eq!(middle(&placed[1]), out.width / 2);
+        assert_eq!(middle(&placed[3]), out.width / 2);
     }
 
     #[test]

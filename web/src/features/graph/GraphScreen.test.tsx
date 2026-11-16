@@ -32,14 +32,15 @@ const GRAPH = {
   width: 400,
   height: 300,
   boxes: [
-    { name: "Domain", x: 120, y: 200, rank: 1, ...BOX },
-    { name: "Ui", x: 120, y: 0, rank: 0, ...BOX },
-    { name: "Infra", x: 300, y: 100, rank: 0, ...BOX },
+    { name: "Domain", label: "Domain", x: 120, y: 200, rank: 1, ...BOX },
+    { name: "Ui", label: "Ui", x: 120, y: 0, rank: 0, ...BOX },
+    { name: "Infra", label: "Infra", x: 300, y: 100, rank: 0, ...BOX },
   ],
   bands: [
     { name: "Ui", rank: 0, y: 0, height: 60 },
     { name: "Domain", rank: 1, y: 180, height: 60 },
   ],
+  groups: [],
   links: [
     { from: "Ui", to: "Domain", count: 12, violates_layering: false, in_cycle: false },
     { from: "Domain", to: "Infra", count: 2, violates_layering: true, in_cycle: false },
@@ -225,6 +226,20 @@ describe("GraphScreen", () => {
     };
     expect(drag(box)).toBe(false);
     expect(drag(area)).toBe(true);
+  });
+
+  it("draws the frames around namespaces and the short label in the boxes", async () => {
+    setGraphLevel(LEVEL.namespaces);
+    served({
+      ...GRAPH,
+      boxes: [{ ...GRAPH.boxes[1]!, name: "Shop.Cart", label: "Cart" }],
+      bands: [],
+      links: [],
+      groups: [{ name: "Shop", label: "Shop", x: 0, y: 0, width: 200, height: 100, depth: 0 }],
+    });
+    render(() => <GraphScreen />);
+    expect(await screen.findByText("Shop")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Cart" })).toHaveAttribute("aria-pressed");
   });
 
   it("is written in German too", async () => {

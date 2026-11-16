@@ -9,13 +9,14 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{TypeFocus, TypeNeighbour};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
-    LayoutEdge, LayoutGraph, LayoutNode, NodeIndex, Project, SnapshotId, SymbolId,
+    LayoutEdge, LayoutGraph, LayoutNode, NodeIndex, Project, SnapshotId, SymbolId, name_parts,
 };
 
 use super::consts::{
     BOX_ID_SEPARATOR, TYPE_ROW_FOCUS, TYPE_ROW_USED, TYPE_ROW_USERS, TYPE_SIDE_MAX,
 };
 use super::graph::{BoxOut, FocusOut, GraphOut, GraphPorts, LinkOut};
+use super::graph_wrap::centre;
 
 /// One type that is drawn: its id, qualified name, the name of its box and its row. The box name
 /// is the qualified name, with the id added if another drawn type has the same one, so that the
@@ -67,6 +68,13 @@ fn name_boxes(all: &mut [Drawn]) {
             one.qualified.clone()
         };
     }
+}
+
+/// The name of a type without the namespace in front of it.
+fn short_name(qualified: &str) -> String {
+    name_parts(qualified)
+        .last()
+        .map_or_else(|| qualified.to_owned(), |last| (*last).to_owned())
 }
 
 fn links(found: &TypeFocus, types: &[Drawn]) -> Vec<LinkOut> {
@@ -132,6 +140,7 @@ fn place(look: &Graph, types: &[Drawn], links: &[LinkOut]) -> Result<Vec<BoxOut>
         .zip(&layout.placements)
         .map(|(one, spot)| BoxOut {
             name: one.name.clone(),
+            label: short_name(&one.qualified),
             x: spot.x,
             y: spot.y,
             width: size.width,
@@ -167,11 +176,12 @@ pub(super) fn types_out(
     for (one, drawn) in boxes.iter_mut().zip(&types) {
         one.layer = project.layer_name_of(&drawn.qualified);
     }
+    let centred = centre(&mut boxes, &ports.look);
     let reach = |pick: fn(&BoxOut) -> u32| boxes.iter().map(pick).max().unwrap_or(0);
     let hidden = |list: &[TypeNeighbour]| u32::try_from(list.len().saturating_sub(TYPE_SIDE_MAX));
     Ok(GraphOut {
-        width: reach(|one| one.x + one.width),
-        height: reach(|one| one.y + one.height),
+        width: centred.map_or_else(|| reach(|one| one.x + one.width), |size| size.width),
+        height: centred.map_or_else(|| reach(|one| one.y + one.height), |size| size.height),
         focus: Some(FocusOut {
             symbol: found.focus.id.get(),
             name: types

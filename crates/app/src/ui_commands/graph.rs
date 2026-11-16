@@ -16,8 +16,9 @@ use codeskimr_domain::{
 use serde::{Deserialize, Serialize};
 
 use super::consts::{BAND_PAD_DIVISOR, GRAPH_DESCRIPTION, GRAPH_LAYERS, GRAPH_TITLE};
+use super::graph_group;
 use super::graph_types::types_out;
-use super::graph_wrap::{Extent, arrange};
+use super::graph_wrap::{Extent, arrange, margin};
 
 /// What a box of the map stands for.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
@@ -52,8 +53,10 @@ pub struct GraphInput {
 /// One layer box of the map. `x` and `y` are the top-left corner in layout units.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct BoxOut {
-    /// Name of the layer.
+    /// Name of the layer, namespace or type; the key of the box in the links.
     pub name: String,
+    /// The text of the box: the name, or the part of it the frames around the box do not say.
+    pub label: String,
     /// Left edge.
     pub x: u32,
     /// Top edge.
@@ -87,6 +90,25 @@ pub struct BandOut {
     pub height: u32,
 }
 
+/// A frame around the namespaces that share the first segments of their names.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct GroupOut {
+    /// The shared leading part of the names.
+    pub name: String,
+    /// The title of the frame: the part its outer frame does not say.
+    pub label: String,
+    /// Left edge.
+    pub x: u32,
+    /// Top edge.
+    pub y: u32,
+    /// Width of the frame.
+    pub width: u32,
+    /// Height of the frame.
+    pub height: u32,
+    /// How many frames surround this one.
+    pub depth: u32,
+}
+
 /// One dependency between two layers.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct LinkOut {
@@ -117,6 +139,8 @@ pub struct GraphOut {
     pub bands: Vec<BandOut>,
     /// The dependencies between the layers.
     pub links: Vec<LinkOut>,
+    /// On the level `namespaces`: the frames around the boxes, outer frames first.
+    pub groups: Vec<GroupOut>,
     /// On the level `types`: the type in the middle and what the picture leaves out.
     pub focus: Option<FocusOut>,
 }
@@ -164,6 +188,7 @@ fn boxes_out(map: &LayerMap, look: &Graph) -> Vec<BoxOut> {
         .zip(&map.layout.placements)
         .map(|(name, place)| BoxOut {
             name: name.as_str().to_owned(),
+            label: name.as_str().to_owned(),
             x: place.x,
             y: place.y,
             width: size.width,
@@ -234,14 +259,21 @@ impl Command for GraphLayers {
         };
         out.snapshot = Some(snapshot.id.get());
         if request.input.level != Level::Types {
-            let size = arrange(
-                &mut out.boxes,
-                Extent {
-                    width: out.width,
-                    height: out.height,
-                },
-                look,
-            );
+            let size = match request.input.level {
+                Level::Namespaces => {
+                    let (groups, size) = graph_group::arrange(&mut out.boxes, look);
+                    out.groups = groups;
+                    margin(&mut out.boxes, &mut out.groups, size, look)
+                }
+                _ => arrange(
+                    &mut out.boxes,
+                    Extent {
+                        width: out.width,
+                        height: out.height,
+                    },
+                    look,
+                ),
+            };
             (out.width, out.height) = (size.width, size.height);
             out.bands = bands_out(&project.layers, &out.boxes, look);
         }
@@ -314,6 +346,7 @@ fn namespace_boxes(
         .zip(owners)
         .map(|((node, place), (_, layer))| BoxOut {
             name: node.name.to_string(),
+            label: node.name.to_string(),
             x: place.x,
             y: place.y,
             width: size.width,

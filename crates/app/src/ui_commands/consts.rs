@@ -170,6 +170,8 @@ pub const EXPORT_DIRECT_DEPTH: u32 = 1;
 pub const BAND_PAD_DIVISOR: u32 = 2;
 /// A line of a wrapped row is centred: the free space is divided by this and put on the left.
 pub const CENTRE_DIVISOR: u32 = 2;
+/// Joins the segments of a namespace name in the title of a frame.
+pub const NAME_JOIN: &str = ".";
 /// The margin of the picture applies on both sides.
 pub const MARGIN_SIDES: u32 = 2;
 /// Id of the command that lists the credentials of the Git projects.
