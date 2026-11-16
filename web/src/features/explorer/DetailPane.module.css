@@ -8,9 +8,9 @@
     gap: 14px;
 }
 
-/* A member is selected: only the header stays, the source takes the room. */
+/* A member is selected: the header stays, the source fills the rest of the column. */
 .compact {
-    flex: 0 1 380px;
+    overflow: hidden;
 }
 
 .crumbs {

@@ -136,3 +136,7 @@ export const HITS_PANE_BOUNDS = { initial: 250, min: 80, max: 700 } as const;
 export const ZOOM_SYMBOL = { in: "+", out: "−", fit: "⤢" } as const;
 /** The smallest scale a new graph opens with; a larger graph is centred on the focus instead. */
 export const START_MIN_SCALE = 0.6;
+
+/** The width of the side panel, and the key under which it is remembered. */
+export const PANEL_PANE_KEY = "usages.panel";
+export const PANEL_PANE_BOUNDS = { initial: 300, min: 240, max: 720 } as const;

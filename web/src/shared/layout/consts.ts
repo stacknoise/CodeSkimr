@@ -24,3 +24,6 @@ export const DECIMAL = 10;
  * right or down, `after` (right or below) shrinks. */
 export const SIDE = { before: 1, after: -1 } as const;
 export type Side = (typeof SIDE)[keyof typeof SIDE];
+
+/** The custom property that carries the width of a side panel into its style sheet. */
+export const PANEL_WIDTH_VAR = "--panel-width";

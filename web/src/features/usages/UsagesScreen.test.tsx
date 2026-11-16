@@ -55,6 +55,18 @@ describe("UsagesScreen", () => {
     expect(await screen.findByText("No symbol chosen")).toBeTruthy();
   });
 
+  it("widens the side panel and keeps the width for the next visit", async () => {
+    shown();
+    await screen.findByRole("heading", { name: "Cart.Total" });
+    const separators = screen.getAllByRole("separator");
+    const panel = separators.find((item) => item.getAttribute("aria-orientation") === "vertical")!;
+    const before = Number(panel.getAttribute("aria-valuenow"));
+    fireEvent.keyDown(panel, { key: "ArrowLeft" });
+    const after = Number(panel.getAttribute("aria-valuenow"));
+    expect(after).toBeGreaterThan(before);
+    expect(localStorage.getItem("codeskimr.layout.usages.panel")).toBe(String(after));
+  });
+
   it("offers no buttons to the other levels of the map", async () => {
     shown();
     await screen.findByRole("heading", { name: "Cart.Total" });

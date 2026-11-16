@@ -9,7 +9,7 @@ import type { Card } from "./graph";
 import { ORIENTATION, SIDE } from "../../shared/layout/consts";
 import { Splitter } from "../../shared/layout/Splitter";
 import { HitList } from "./HitList";
-import { hitsHeight } from "./layout";
+import { hitsHeight, panelWidth } from "./layout";
 import { ROLE } from "./consts";
 import { listedHits, listedPlace } from "./hits";
 import { nextHit, useUsagesKeys } from "./keys";
@@ -119,6 +119,7 @@ function Body(props: { answer: UsagesAnswer }) {
           onOpen={(hit) => open(listedPlace(props.answer, hit))}
         />
       </section>
+      <Splitter pane={panelWidth} orientation={ORIENTATION.vertical} side={SIDE.after} />
       <SidePanel
         answer={previewAnswer() ?? props.answer}
         onOpen={() => open((previewAnswer() ?? props.answer).symbol)}
