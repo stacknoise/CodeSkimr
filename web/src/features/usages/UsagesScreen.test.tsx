@@ -4,6 +4,7 @@ import { currentPath, navigate } from "../../app/router";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { pendingFocus, requestFocus } from "../../shared/navigation/navigation";
+import { pointer } from "../../tests/pointer";
 import { ANSWER } from "../../tests/usages";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { UsagesScreen } from "./UsagesScreen";
@@ -188,5 +189,35 @@ describe("UsagesScreen", () => {
     shown();
     expect(await screen.findByText("Fundstellen 4")).toBeTruthy();
     expect(screen.getAllByText("ungeprüft").length).toBe(3);
+  });
+});
+
+describe("the graph of the usages", () => {
+  const planeOf = () =>
+    screen.getByRole("region", { name: "Usage graph" }).firstElementChild as HTMLElement;
+
+  it("zooms with the wheel and the buttons and goes back to the whole picture", async () => {
+    shown();
+    await screen.findByRole("heading", { name: "Cart.Total" });
+    const graph = screen.getByRole("region", { name: "Usage graph" });
+    expect(planeOf().style.transform).toContain("scale(1)");
+    fireEvent.wheel(graph, { deltaY: -100 });
+    expect(planeOf().style.transform).not.toContain("scale(1)");
+    fireEvent.click(screen.getByRole("button", { name: "Show everything" }));
+    expect(planeOf().style.transform).toContain("scale(1)");
+    fireEvent.click(screen.getByRole("button", { name: "Zoom out" }));
+    expect(planeOf().style.transform).not.toContain("scale(1)");
+  });
+
+  it("moves the picture when the middle button is dragged", async () => {
+    shown();
+    await screen.findByRole("heading", { name: "Cart.Total" });
+    const graph = screen.getByRole("region", { name: "Usage graph" });
+    graph.setPointerCapture = () => undefined;
+    const before = planeOf().style.transform;
+    pointer(graph, "pointerdown", { button: 1 });
+    pointer(graph, "pointermove", { movementX: 30, movementY: 20 });
+    pointer(graph, "pointerup");
+    expect(planeOf().style.transform).not.toBe(before);
   });
 });

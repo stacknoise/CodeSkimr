@@ -46,8 +46,52 @@ export const setTreeCursor = setCursor;
 export const treeFilter = filter;
 export const setTreeFilter = setFilter;
 
-/** Reads the tree of `project` and forgets everything that was read for another one. */
+/** The project whose tree is held, `null` if none was read yet. */
+let heldProject: number | null = null;
+
+/** The scroll position of the tree, kept so that it is the same when the screen comes back. */
+const [scroll, setScroll] = createSignal(0);
+export const treeScroll = scroll;
+export const setTreeScroll = setScroll;
+
+/** Forgets the held tree, so the next visit reads it from nothing (the tests start so). */
+export function forgetExplorer(): void {
+  heldProject = null;
+}
+
+/** Shows the tree of `project`. If the screen comes back to the project it showed before, the open
+ * rows, the selection, the cursor and the scroll position stay and the tree is only read again
+ * quietly, so a scan in between shows up. Another project starts from nothing. */
 export async function loadOutline(project: number): Promise<void> {
+  if (heldProject === project && outline() !== null) {
+    await refreshOutline(project);
+    return;
+  }
+  await readOutline(project);
+}
+
+/** Reads the tree and the symbols read so far again, and keeps what the user did with them. */
+async function refreshOutline(project: number): Promise<void> {
+  const mine = generation;
+  try {
+    const read = await runCommand<Outline>(COMMAND.outline, { project });
+    const known = [...details().keys()];
+    const symbols = await Promise.all(
+      known.map((id) => runCommand<SymbolInfo>(COMMAND.symbol, { project, symbol: id })),
+    );
+    if (mine === generation) {
+      setOutline(read);
+      setDetails(new Map(known.map((id, index) => [id, symbols[index] as SymbolInfo])));
+    }
+  } catch {
+    // The old tree is still right for what the user sees; the next scan or visit tries again.
+  }
+}
+
+/** Reads the tree of `project` and forgets everything that was read for another one. */
+async function readOutline(project: number): Promise<void> {
+  heldProject = project;
+  setScroll(0);
   generation += 1;
   const mine = generation;
   setOutline(null);

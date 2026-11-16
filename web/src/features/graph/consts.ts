@@ -68,6 +68,9 @@ export const KEY = { fit: "f", pan: " ", open: "Enter" } as const;
 
 /** Wheel and pointer values. */
 export const BUTTON_MIDDLE = 1;
+/** The primary mouse button, and the element a drag must not start on. */
+export const BUTTON_PRIMARY = 0;
+export const BUTTON_TAG = "button";
 
 /** How many colours the layers cycle through (`--layer-1` to `--layer-N`). */
 export const LAYER_COLORS = 4;

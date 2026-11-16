@@ -1,9 +1,10 @@
 import { fireEvent, render, screen } from "@solidjs/testing-library";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { focusSymbol } from "../../shared/navigation/navigation";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { openOrder, ORDER, OUTLINE } from "../../tests/explorer";
+import { forgetExplorer } from "./explorer";
 import { ExplorerScreen } from "./ExplorerScreen";
 import type { SourceInfo } from "./types";
 
@@ -17,6 +18,7 @@ const TYPE_SOURCE: SourceInfo = {
 };
 
 useServerSession();
+afterEach(forgetExplorer);
 
 function renderWith(source: () => Response) {
   openProject(1);

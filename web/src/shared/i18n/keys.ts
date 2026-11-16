@@ -22,6 +22,8 @@ export const I18N_KEYS = {
   APP_ACTION_OPEN_IN_EXPLORER: "app-action-open-in-explorer",
   APP_ACTION_SHOW_IN_GRAPH: "app-action-show-in-graph",
   APP_ACTION_COPY_NAME: "app-action-copy-name",
+  APP_RESIZE_WIDTH: "app-resize-width",
+  APP_RESIZE_HEIGHT: "app-resize-height",
   CLI_ERROR_LINE: "cli-error-line",
   CLI_SCAN_STARTED: "cli-scan-started",
   CLI_SCAN_FINISHED: "cli-scan-finished",
@@ -557,6 +559,10 @@ export const I18N_KEYS = {
   USAGES_NO_SYMBOL_TEXT: "usages-no-symbol-text",
   USAGES_LOADING: "usages-loading",
   USAGES_LOAD_FAILED: "usages-load-failed",
+  USAGES_ZOOM_IN: "usages-zoom-in",
+  USAGES_ZOOM_OUT: "usages-zoom-out",
+  USAGES_ZOOM_FIT: "usages-zoom-fit",
+  USAGES_HINT_NAVIGATION: "usages-hint-navigation",
 } as const;
 
 /** A message key that exists in every language. */

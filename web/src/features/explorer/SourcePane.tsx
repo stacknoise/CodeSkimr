@@ -4,6 +4,7 @@ import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { showUsages } from "../../shared/navigation/navigation";
 import { PILL_SEPARATOR } from "./consts";
+import { sourceWidth } from "./layout";
 import { lineRange } from "./format";
 import { segments } from "./segments";
 import { sourceError, sourceInfo, sourceLoading } from "./source";
@@ -83,45 +84,56 @@ function Lines(props: { info: SourceInfo }) {
   );
 }
 
+/** What the right column shows: a hint, a failure, the wait, or the source. */
+function Content(props: { shown: boolean }) {
+  return (
+    <Switch>
+      <Match when={!props.shown}>
+        <Note text={t(I18N_KEYS.EXPLORER_SOURCE_PICK)} />
+      </Match>
+      <Match when={sourceError()}>
+        {(failure) => (
+          <Note
+            text={
+              failure().code === null
+                ? t(I18N_KEYS.EXPLORER_SOURCE_FAILED)
+                : errorText(failure().code as ErrorCode)
+            }
+            alert
+          />
+        )}
+      </Match>
+      <Match when={sourceLoading()}>
+        <Note text={t(I18N_KEYS.EXPLORER_SOURCE_LOADING)} />
+      </Match>
+      <Match when={sourceInfo()}>
+        {(info) => (
+          <>
+            <div class={styles.head}>
+              <span class={styles.path}>{info().path}</span>
+              <span>
+                {PILL_SEPARATOR}
+                {lineRange(info().first_line, info().last_line)}
+              </span>
+            </div>
+            <Lines info={info()} />
+          </>
+        )}
+      </Match>
+    </Switch>
+  );
+}
+
 /** The right column of the explorer: file, position and code of the selected type or member
  * (blueprint B.2, mock `Explorer.dc.html`). */
 export function SourcePane(props: { shown: boolean }) {
   return (
-    <section class={styles.pane} aria-label={t(I18N_KEYS.EXPLORER_SOURCE_LABEL)}>
-      <Switch>
-        <Match when={!props.shown}>
-          <Note text={t(I18N_KEYS.EXPLORER_SOURCE_PICK)} />
-        </Match>
-        <Match when={sourceError()}>
-          {(failure) => (
-            <Note
-              text={
-                failure().code === null
-                  ? t(I18N_KEYS.EXPLORER_SOURCE_FAILED)
-                  : errorText(failure().code as ErrorCode)
-              }
-              alert
-            />
-          )}
-        </Match>
-        <Match when={sourceLoading()}>
-          <Note text={t(I18N_KEYS.EXPLORER_SOURCE_LOADING)} />
-        </Match>
-        <Match when={sourceInfo()}>
-          {(info) => (
-            <>
-              <div class={styles.head}>
-                <span class={styles.path}>{info().path}</span>
-                <span>
-                  {PILL_SEPARATOR}
-                  {lineRange(info().first_line, info().last_line)}
-                </span>
-              </div>
-              <Lines info={info()} />
-            </>
-          )}
-        </Match>
-      </Switch>
+    <section
+      class={styles.pane}
+      style={{ "flex-basis": `${sourceWidth.size()}px` }}
+      aria-label={t(I18N_KEYS.EXPLORER_SOURCE_LABEL)}
+    >
+      <Content shown={props.shown} />
     </section>
   );
 }

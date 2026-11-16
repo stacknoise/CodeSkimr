@@ -63,3 +63,7 @@ usages-no-symbol-title = No symbol chosen
 usages-no-symbol-text = Pick a type or a member in the explorer and press U, or click the usage count of a member.
 usages-loading = Reading the usages …
 usages-load-failed = The usages could not be read.
+usages-zoom-in = Zoom in
+usages-zoom-out = Zoom out
+usages-zoom-fit = Show everything
+usages-hint-navigation = Mouse wheel zooms · drag or middle button pans

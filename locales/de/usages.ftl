@@ -63,3 +63,7 @@ usages-no-symbol-title = Kein Symbol gewählt
 usages-no-symbol-text = Wähle im Explorer einen Typ oder ein Member und drücke U, oder klicke auf die Anzahl der Verwendungen eines Members.
 usages-loading = Verwendungen werden gelesen …
 usages-load-failed = Die Verwendungen konnten nicht gelesen werden.
+usages-zoom-in = Vergrößern
+usages-zoom-out = Verkleinern
+usages-zoom-fit = Alles zeigen
+usages-hint-navigation = Mausrad zoomt · Ziehen oder Mittelmaustaste verschiebt
