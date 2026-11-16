@@ -7,7 +7,9 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::config::MetricThresholds;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{CodeIndex, CodeOutline, OutlineNode, SourceText};
+use codeskimr_application::ports::{
+    CodeIndex, CodeOutline, OutlineNode, SourceText, SyntaxHighlighter,
+};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{Layer, Permission, ProjectId, Snapshot, SymbolId};
@@ -22,6 +24,7 @@ pub struct ExplorerPorts {
     pub(super) index: Arc<dyn CodeIndex>,
     pub(super) outline: Arc<dyn CodeOutline>,
     pub(super) text: Arc<dyn SourceText>,
+    pub(super) highlighter: Arc<dyn SyntaxHighlighter>,
     pub(super) thresholds: MetricThresholds,
 }
 

@@ -27,6 +27,7 @@ mod encoding;
 mod error;
 mod fingerprints;
 mod grammar;
+mod highlight;
 mod indexer;
 mod lines;
 mod location;
@@ -42,6 +43,7 @@ mod visibility;
 
 pub use analyzer::TreeSitterAnalyzer;
 pub use error::ParsingError;
+pub use highlight::TreeSitterHighlighter;
 pub use manifest::Tier;
 pub use pack::LanguagePack;
 pub use packs::{LanguagePacks, PackSummary, tiers};
