@@ -2,6 +2,7 @@ import { createMemo, For, Match, Show, Switch } from "solid-js";
 import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { cx } from "../../shared/ui/cx";
 import { showUsages } from "../../shared/navigation/navigation";
 import { PILL_SEPARATOR, WIDE_FLEX } from "./consts";
 import { sourceWidth } from "./layout";
@@ -139,12 +140,12 @@ function Content(props: { shown: boolean }) {
 }
 
 /** The right column of the explorer: file, position and code of the selected type or member
- * (blueprint B.2, mock `Explorer.dc.html`). With a member selected it takes all the room that the
- * details leave (`wide`). */
+ * (blueprint B.2, mock `Explorer.dc.html`). With a member selected it sits under the header in the
+ * middle column and takes all the room there (`wide`). */
 export function SourcePane(props: { shown: boolean; wide: boolean }) {
   return (
     <section
-      class={styles.pane}
+      class={cx(styles.pane, props.wide && styles.inColumn)}
       style={props.wide ? { flex: WIDE_FLEX } : { "flex-basis": `${sourceWidth.size()}px` }}
       aria-label={t(I18N_KEYS.EXPLORER_SOURCE_LABEL)}
     >

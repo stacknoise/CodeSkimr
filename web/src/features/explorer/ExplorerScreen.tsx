@@ -77,6 +77,7 @@ function Details(props: { onPickMember: ReturnType<typeof useExplorer>["pickMemb
             info={detail()}
             thresholds={treeOutline()?.thresholds ?? null}
             onPickMember={(row) => props.onPickMember(detail().id, row)}
+            source={<SourcePane shown wide />}
           />
         )}
       </Match>
@@ -176,8 +177,8 @@ function Columns(props: { explorer: ReturnType<typeof useExplorer> }) {
       <Details onPickMember={explorer.pickMember} />
       <Show when={shownMember() === null}>
         <Splitter pane={sourceWidth} orientation={ORIENTATION.vertical} side={SIDE.after} />
+        <SourcePane shown={shownSymbol() !== null} wide={false} />
       </Show>
-      <SourcePane shown={shownSymbol() !== null} wide={shownMember() !== null} />
     </div>
   );
 }
