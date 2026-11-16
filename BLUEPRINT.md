@@ -344,7 +344,7 @@ languages/csharp/
 ├─ symbols.scm        Tree-sitter query: declarations → symbol kinds
 ├─ references.scm     Tree-sitter query: identifiers, calls, imports, scopes
 ├─ metrics.scm        Tree-sitter query: comments, decision points, Halstead operators and operands, cognitive complexity and parameters (ADR 0048)
-├─ highlights.scm     syntax highlighting for the UI
+├─ highlights.scm     syntax highlighting for the UI (captures: ADR 0064)
 └─ tests/             small sample files + expected JSON (golden tests)
 ```
 
@@ -802,6 +802,7 @@ Defined once in `design/tokens.toml`. TypeScript/CSS variables are generated fro
 | `highlight` / `mark` | `#FFF7D6` / `#FDE68A` | selected member lines / search hit, focus ring |
 | kind colours | class `#2457D6`, interface `#7C3AED`, record `#0F766E`, struct `#B45309`, enum `#BE185D` | kind badges |
 | layer colours | in `meta.layers` order: `#2457D6`, `#0F766E`, `#7C3AED`, `#B45309`, `#BE185D`, `#5B6370`, … | layer dots and bands |
+| syntax colours `syn-keyword`, `-string`, `-number`, `-comment`, `-type`, `-function`, `-attribute` | `#6D28D9`, `#15803D`, `#B45309`, `#5B6370`, `#0E7490`, `#1D4ED8`, `#BE185D` | code in the source column (ADR 0064) |
 | radius | 4 / 6 / 8 / 10 / 14 px | badge / button / card / panel / dialog |
 | spacing | 4, 6, 8, 10, 12, 16, 24, 32 px | — |
 
@@ -839,7 +840,7 @@ Kind and layer colours of Petrol equal those of Hell. Dunkel uses lighter varian
 
 In Hell, `good-bg` is `#EAF7EF`; the value `#E7F6EC` of the first mock version reached only 4.49:1 with `good` and was replaced in all mocks.
 
-- **Rules:** a theme is a table in `tokens.toml` plus its name in `locales/`; adding one needs no code change, an ADR decides which themes ship. CI (job `codegen`) fails if a theme misses a token or if a text/background pair (`ink`, `ink-2`, `muted`, `faint` on `bg` and `surface`; `accent` on `surface`, `bg` and `accent-bg`; `good`, `warn`, `bad` on their `-bg` and on `surface`; `accent-fg` on `accent`; `ink-2` on `line-soft`; `ink` on `accent-bg`; `outgoing`, kind and layer colours on `surface`) is below 4.5:1. `faint` is used on `bg` and `surface` only, never on tinted backgrounds.
+- **Rules:** a theme is a table in `tokens.toml` plus its name in `locales/`; adding one needs no code change, an ADR decides which themes ship. CI (job `codegen`) fails if a theme misses a token or if a text/background pair (`ink`, `ink-2`, `muted`, `faint` on `bg` and `surface`; `accent` on `surface`, `bg` and `accent-bg`; `good`, `warn`, `bad` on their `-bg` and on `surface`; `accent-fg` on `accent`; `ink-2` on `line-soft`; `ink` on `accent-bg`; `outgoing`, kind, layer and syntax colours on `surface`) is below 4.5:1. `faint` is used on `bg` and `surface` only, never on tinted backgrounds.
 - **Choice:** stored per user (see 13); without a team server in the local settings. Until the user chooses, the theme is Petrol, or Dunkel when the operating system is set to dark. The default key is in `config/default.toml`.
 - **Settings page (mock 13):** one preview card per theme with the name, a colour strip and a miniature of the real UI (top bar, rail, list, badges, button) drawn by the actual components inside a container with that `data-theme`. Selecting a card applies it at once. Petrol is the default theme and is drawn as selected in mock 13 and used by mocks 7 to 13. Mocks 1 to 6 are drawn in Hell; for them layout, proportions and labels are binding and the colours follow the active theme, so a Petrol build is not a deviation from them.
 - **Build:** `tokens.toml` generates one CSS file with the variables of all themes, scoped by `data-theme`; the theme is set on `<html>` before the first paint by a same-origin script that reads a `localStorage` mirror of the choice (ADR 0028).

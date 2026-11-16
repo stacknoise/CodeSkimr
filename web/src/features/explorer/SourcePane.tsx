@@ -5,7 +5,7 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 import { showUsages } from "../../shared/navigation/navigation";
 import { PILL_SEPARATOR } from "./consts";
 import { lineRange } from "./format";
-import { segments } from "./segments";
+import { type Segment, segments } from "./segments";
 import { sourceError, sourceInfo, sourceLoading } from "./source";
 import type { SourceInfo } from "./types";
 import styles from "./SourcePane.module.css";
@@ -28,13 +28,20 @@ function onNameClick(event: MouseEvent): void {
   }
 }
 
-/** The line numbers and the code side by side. The line numbers are plain text; the code is plain
- * text too, but for the names of symbols, which are small elements of their own. */
+/** The class of the colour of a piece; plain code has none (`styles.plain` is no rule). */
+function colourOf(piece: Segment): string | undefined {
+  return piece.tokenClass === null ? undefined : styles[piece.tokenClass];
+}
+
+/** The line numbers and the code side by side. The line numbers are plain text; the code is
+ * coloured by its syntax, and the names of symbols are small elements of their own. */
 function Code(props: { info: SourceInfo }) {
   const numbers = createMemo(() =>
     props.info.lines.map((_, index) => props.info.first_line + index).join("\n"),
   );
-  const pieces = createMemo(() => segments(props.info.lines, props.info.spans ?? []));
+  const pieces = createMemo(() =>
+    segments(props.info.lines, props.info.spans ?? [], props.info.tokens ?? []),
+  );
   return (
     <div class={styles.code}>
       <pre class={styles.gutter} aria-hidden="true">
@@ -44,9 +51,16 @@ function Code(props: { info: SourceInfo }) {
         <code>
           <For each={pieces()}>
             {(piece) => (
-              <Show when={piece.symbol !== null} fallback={piece.text}>
+              <Show
+                when={piece.symbol !== null}
+                fallback={
+                  <Show when={colourOf(piece)} fallback={piece.text}>
+                    {(colour) => <span class={colour()}>{piece.text}</span>}
+                  </Show>
+                }
+              >
                 <span
-                  class={styles.name}
+                  class={[styles.name, colourOf(piece)].filter(Boolean).join(" ")}
                   data-symbol={piece.symbol}
                   title={t(I18N_KEYS.EXPLORER_SOURCE_NAME_HINT)}
                 >
