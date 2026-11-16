@@ -121,6 +121,17 @@ describe("the tools of a project", () => {
     expect(JSON.parse(call?.[1].body)).toEqual({ project: 1 });
   });
 
+  it("shows when the tools were checked last, so that a check without change is visible", async () => {
+    serve({
+      "projects.list": () => answer([{ ...ROW, tools: null }]),
+      "projects.tools": () => answer(MISSING),
+    });
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByText("/work/shop"));
+    await screen.findByRole("status");
+    expect(screen.getByText(/Last checked:/)).toBeInTheDocument();
+  });
+
   it("lists the languages that have level 2 and no warning when all tools are there", async () => {
     serve({
       "projects.list": () => answer([{ ...ROW, tools: READY }]),

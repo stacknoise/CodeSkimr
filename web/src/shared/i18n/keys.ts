@@ -410,6 +410,7 @@ export const I18N_KEYS = {
   PROJECTS_TOOLS_UNCHECKED: "projects-tools-unchecked",
   PROJECTS_TOOLS_CHECK_AGAIN: "projects-tools-check-again",
   PROJECTS_TOOLS_CHECKING: "projects-tools-checking",
+  PROJECTS_TOOLS_CHECKED: "projects-tools-checked",
   PROJECTS_CREDENTIAL_LABEL: "projects-credential-label",
   PROJECTS_CREDENTIAL_NONE: "projects-credential-none",
   PROJECTS_CREDENTIAL_NEW: "projects-credential-new",

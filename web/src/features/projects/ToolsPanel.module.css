@@ -21,6 +21,12 @@
     font-weight: 600;
 }
 
+.checked {
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 12px;
+}
+
 .again {
     padding: var(--space-4) var(--space-12);
     border: 1px solid var(--line);
