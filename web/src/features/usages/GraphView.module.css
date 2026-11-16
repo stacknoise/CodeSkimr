@@ -11,13 +11,46 @@
     min-width: 0;
     min-height: 0;
     position: relative;
-    overflow: auto;
+    overflow: hidden;
     background: var(--bg);
 }
 
+.grab {
+    cursor: grab;
+}
+
 .plane {
-    position: relative;
-    min-width: 100%;
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: 0 0;
+}
+
+.zoom {
+    position: absolute;
+    right: var(--space-12);
+    bottom: var(--space-12);
+    display: flex;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    overflow: hidden;
+    background: var(--surface);
+}
+.zoom button {
+    width: 30px;
+    height: 28px;
+    border: 0;
+    border-left: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink-2);
+    font: 14px var(--font-sans);
+    cursor: pointer;
+}
+.zoom button:first-child {
+    border-left: 0;
+}
+.zoom button:hover {
+    color: var(--accent);
 }
 
 .heading {

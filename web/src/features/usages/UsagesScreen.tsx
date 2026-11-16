@@ -5,7 +5,10 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
 import type { Failure } from "../explorer/failure";
 import { GraphView } from "./GraphView";
+import { ORIENTATION, SIDE } from "../../shared/layout/consts";
+import { Splitter } from "../../shared/layout/Splitter";
 import { HitList } from "./HitList";
+import { hitsHeight } from "./layout";
 import { ROLE } from "./consts";
 import { listedHits, listedPlace } from "./hits";
 import { nextHit, useUsagesKeys } from "./keys";
@@ -86,6 +89,7 @@ function Body(props: { answer: UsagesAnswer }) {
           answer={props.answer}
           onPick={(card) => !card.focus && showUsages(card.place.id)}
         />
+        <Splitter pane={hitsHeight} orientation={ORIENTATION.horizontal} side={SIDE.after} />
         <HitList
           answer={props.answer}
           hits={hits()}

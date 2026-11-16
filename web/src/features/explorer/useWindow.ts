@@ -7,9 +7,28 @@ export interface Placed<T> {
   index: number;
 }
 
+/** Scrolls to `top` once the rows are in the document and the scroll bar has its length. */
+function restoreScroll(target: HTMLElement, top: number, report: (top: number) => void): void {
+  if (top > 0) {
+    queueMicrotask(() => {
+      target.scrollTop = top;
+      report(target.scrollTop);
+    });
+  }
+}
+
+/** Reports the height of `target` whenever it changes, until the owner is cleaned up. */
+function observeHeight(target: HTMLElement, report: (height: number) => void): void {
+  if (typeof ResizeObserver !== "undefined") {
+    const observer = new ResizeObserver(() => report(target.clientHeight));
+    observer.observe(target);
+    onCleanup(() => observer.disconnect());
+  }
+}
+
 /** The window of a long list that is drawn (blueprint 15.5): only the rows in view and a few
  * more are in the document, the scroll bar still has the length of the whole list. */
-export function useWindow<T>(items: () => T[], cursorIndex: () => number) {
+export function useWindow<T>(items: () => T[], cursorIndex: () => number, initialTop = 0) {
   const [top, setTop] = createSignal(0);
   const [height, setHeight] = createSignal(0);
   let element: HTMLElement | undefined;
@@ -39,11 +58,8 @@ export function useWindow<T>(items: () => T[], cursorIndex: () => number) {
   const attach = (target: HTMLElement) => {
     element = target;
     setHeight(target.clientHeight);
-    if (typeof ResizeObserver !== "undefined") {
-      const observer = new ResizeObserver(() => setHeight(target.clientHeight));
-      observer.observe(target);
-      onCleanup(() => observer.disconnect());
-    }
+    restoreScroll(target, initialTop, setTop);
+    observeHeight(target, setHeight);
   };
   return {
     visible,

@@ -2,6 +2,7 @@ import { createEffect, For, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import type { MessageKey } from "../../shared/i18n/i18n";
+import { hitsHeight } from "./layout";
 import { Pill } from "../../shared/ui/Pill";
 import { TONE as PILL_TONE } from "../../shared/ui/consts";
 import { cx } from "../../shared/ui/cx";
@@ -152,7 +153,12 @@ function Hits(props: { answer: UsagesAnswer; hits: Hit[]; onOpen: (hit: Hit) => 
 /** The hit list of screen 6 with the counts by kind and by certainty (mock 6). */
 export function HitList(props: { answer: UsagesAnswer; hits: Hit[]; onOpen: (hit: Hit) => void }) {
   return (
-    <div class={styles.list} role={ROLE.region} aria-label={t(I18N_KEYS.USAGES_HITS_LABEL)}>
+    <div
+      class={styles.list}
+      style={{ height: `${hitsHeight.size()}px` }}
+      role={ROLE.region}
+      aria-label={t(I18N_KEYS.USAGES_HITS_LABEL)}
+    >
       <ListHead answer={props.answer} hits={props.hits} />
       <div class={styles.rows}>
         <Hits answer={props.answer} hits={props.hits} onOpen={props.onOpen} />

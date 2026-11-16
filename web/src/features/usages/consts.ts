@@ -126,3 +126,11 @@ export const SCROLL_NEAREST: ScrollIntoViewOptions = { block: "nearest" };
 export const PATH = { move: "M", curve: "C", space: " " } as const;
 export const PAIR_SEPARATOR = ">";
 export const JOIN_NONE = "";
+
+/** Zoom of the graph: the notch of a zoom button, the first scale, and the key and limits of the
+ * height of the hit list (mock 6 shows 250 px). */
+export const ZOOM_BUTTON_NOTCHES = 2;
+export const HITS_PANE_KEY = "usages.hits";
+export const HITS_PANE_BOUNDS = { initial: 250, min: 80, max: 700 } as const;
+/** Symbols on the buttons that zoom, and the text of the one that fits the graph. */
+export const ZOOM_SYMBOL = { in: "+", out: "−", fit: "⤢" } as const;

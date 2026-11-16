@@ -7,11 +7,13 @@ import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { openOrder, ORDER, OUTLINE } from "../../tests/explorer";
+import { forgetExplorer, treeScroll } from "./explorer";
 import { ExplorerScreen } from "./ExplorerScreen";
 import { requestFocus } from "../../shared/navigation/navigation";
 
 useServerSession();
 afterEach(() => {
+  forgetExplorer();
   clearUsages();
   navigate("/");
 });
@@ -20,7 +22,7 @@ afterEach(() => {
 function renderOrder() {
   openProject(1);
   serve({ "explorer.outline": () => answer(OUTLINE), "explorer.symbol": () => answer(ORDER) });
-  render(() => <ExplorerScreen />);
+  return render(() => <ExplorerScreen />);
 }
 
 describe("ExplorerScreen", () => {
@@ -256,5 +258,68 @@ describe("a navigation from another screen", () => {
     renderOrder();
     expect(await screen.findByRole("heading", { name: "Order" })).toBeTruthy();
     expect(within(screen.getByRole("tree")).getByText("Shop.Domain")).toBeTruthy();
+  });
+});
+
+describe("coming back to the explorer", () => {
+  it("keeps the open rows, the selection and the filter when another screen was shown", async () => {
+    const first = renderOrder();
+    await openOrder();
+    expect(await screen.findByRole("heading", { name: "Order" })).toBeTruthy();
+    first.unmount();
+    render(() => <ExplorerScreen />);
+    expect(await screen.findByRole("heading", { name: "Order" })).toBeTruthy();
+    expect(screen.getAllByText("Shop.Domain").length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("treeitem", { selected: true }).length).toBe(1);
+  });
+
+  it("starts from nothing for another project", async () => {
+    const first = renderOrder();
+    await openOrder();
+    await screen.findByRole("heading", { name: "Order" });
+    first.unmount();
+    openProject(2);
+    render(() => <ExplorerScreen />);
+    expect(await screen.findByText("Domain")).toBeTruthy();
+    expect(screen.queryByText("Shop.Domain")).toBeNull();
+  });
+
+  it("reads the tree again on the way back and drops a symbol that is gone", async () => {
+    const first = renderOrder();
+    await openOrder();
+    await screen.findByRole("heading", { name: "Order" });
+    first.unmount();
+    const renamed = {
+      ...OUTLINE,
+      layers: [
+        {
+          name: "Domain",
+          namespaces: [
+            { name: "Shop.Domain", types: [{ id: 7, name: "Order2", kind: "class", members: 2 }] },
+          ],
+        },
+      ],
+    };
+    serve({
+      "explorer.outline": () => answer(renamed),
+      "explorer.symbol": () => answer({ code: "gone" }, 404),
+    });
+    render(() => <ExplorerScreen />);
+    expect(await screen.findByText("Order2")).toBeTruthy();
+    expect(screen.getAllByText("Shop.Domain").length).toBeGreaterThan(0);
+  });
+
+  it("scrolls the tree to where it was", async () => {
+    const first = renderOrder();
+    await openOrder();
+    await screen.findByRole("heading", { name: "Order" });
+    const tree = screen.getByRole("tree");
+    tree.scrollTop = 52;
+    fireEvent.scroll(tree);
+    expect(treeScroll()).toBe(52);
+    first.unmount();
+    render(() => <ExplorerScreen />);
+    await screen.findByRole("heading", { name: "Order" });
+    await waitFor(() => expect(screen.getByRole("tree").scrollTop).toBe(52));
   });
 });
