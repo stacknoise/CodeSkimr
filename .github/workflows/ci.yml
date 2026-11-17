@@ -132,8 +132,9 @@ jobs:
         with:
           tool: cargo-audit,cargo-deny,cargo-machete
       # S-03: a known vulnerability blocks the merge.
+      # ADR 0069: chrono is unmaintained and only reachable through rmcp; time-limited exception until 2027-02-28.
       - name: cargo audit
-        run: cargo audit --deny warnings
+        run: cargo audit --deny warnings --ignore RUSTSEC-2026-0543
       - name: cargo deny
         run: cargo deny --locked check
       # The lint lives in its own Cargo workspace (about 120 packages), which the two checks above do
