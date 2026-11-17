@@ -5,7 +5,7 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 import { readSymbol } from "./api";
 import { KIND, TAB } from "./consts";
 import { targetKey } from "./join";
-import { activeTab } from "./panel";
+import { activeTab } from "./panelState";
 import { annotationChanges } from "./store";
 import type { Annotation, Target } from "./types";
 

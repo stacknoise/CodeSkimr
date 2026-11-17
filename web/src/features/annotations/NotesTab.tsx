@@ -6,7 +6,7 @@ import { addNote } from "./api";
 import { NoteCard } from "./Cards";
 import { KIND } from "./consts";
 import { NoteForm } from "./Forms";
-import { report, useRequestedForm } from "./panel";
+import { report, useRequestedForm } from "./panelState";
 import { change } from "./store";
 import type { Annotation, Target } from "./types";
 import styles from "./Tabs.module.css";

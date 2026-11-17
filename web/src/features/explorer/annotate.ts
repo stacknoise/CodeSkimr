@@ -1,6 +1,6 @@
 import { activeProject } from "../../shared/project/active";
 import { KIND } from "../annotations/consts";
-import { compose, toggleCritical } from "../annotations/panel";
+import { compose, toggleCritical } from "../annotations/panelState";
 import { annotationsAvailable } from "../annotations/store";
 import type { Target } from "../annotations/types";
 import { currentType, shownMember, symbolDetails } from "./explorer";

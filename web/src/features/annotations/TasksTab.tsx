@@ -6,7 +6,7 @@ import { addTask } from "./api";
 import { TaskCard } from "./Cards";
 import { KIND, STATUS } from "./consts";
 import { TaskForm } from "./Forms";
-import { report, useRequestedForm } from "./panel";
+import { report, useRequestedForm } from "./panelState";
 import { change } from "./store";
 import type { Annotation, Target } from "./types";
 import styles from "./Tabs.module.css";
