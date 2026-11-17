@@ -2,7 +2,7 @@
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{CodeOutline, MemberRow, OutlineNode};
-use codeskimr_domain::{MetricKind, QualifiedName, SnapshotId, SymbolId, SymbolName};
+use codeskimr_domain::{LanguageId, MetricKind, QualifiedName, SnapshotId, SymbolId, SymbolName};
 use rusqlite::{Connection, Row, params};
 
 use crate::codec::{Cols, column_int, id_from, label_from, small_from};
@@ -19,6 +19,7 @@ struct NodeRow {
     qualified: String,
     parent: Option<i64>,
     members: i64,
+    language: String,
 }
 
 impl NodeRow {
@@ -31,6 +32,7 @@ impl NodeRow {
             qualified: cols.take()?,
             parent: cols.take()?,
             members: cols.take()?,
+            language: cols.take()?,
         })
     }
 
@@ -45,6 +47,7 @@ impl NodeRow {
                 .map(|parent| id_from(parent).map(SymbolId::new))
                 .transpose()?,
             members: small_from(self.members)?,
+            language: LanguageId::new(self.language)?,
         })
     }
 }

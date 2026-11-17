@@ -156,7 +156,8 @@ export async function openInExplorer(project: number, place: Place): Promise<voi
     requestFocus({ type: place.id, member: null, kind: null });
   } else {
     const info = await runCommand<SymbolInfo>(COMMAND.symbol, { project, symbol: place.id });
-    const owner = info.breadcrumb[info.breadcrumb.length - 1]?.id ?? place.id;
+    const holder = [...info.breadcrumb].reverse().find((crumb) => TYPE_KINDS.includes(crumb.kind));
+    const owner = holder?.id ?? place.id;
     requestFocus({ type: owner, member: owner === place.id ? null : place.id, kind: place.kind });
   }
   navigate(EXPLORER_ROUTE.path);

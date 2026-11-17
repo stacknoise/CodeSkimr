@@ -11,7 +11,7 @@ use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::ports::{ToolIssue, ToolProblem, ToolSeen, ToolSpec, ToolVersion};
 
 use crate::consts::{
-    EXECUTABLE_SUFFIXES, PATH_ENV, PROBE_MAX_MEMORY, PROBE_MAX_OUTPUT, PROBE_TIMEOUT,
+    ERROR_WORD, EXECUTABLE_SUFFIXES, PATH_ENV, PROBE_MAX_MEMORY, PROBE_MAX_OUTPUT, PROBE_TIMEOUT,
     VERSION_EXCERPT_CHARS, WORD_SEPARATOR,
 };
 use crate::env::{Environment, safe_dirs};
@@ -60,9 +60,15 @@ pub fn check_tool(tool: &ToolSpec, probe: &Probe<'_>) -> Result<ToolSeen, ToolPr
         return problem(ToolIssue::Missing);
     };
     // A program that cannot even print its version is not installed in a usable way, such as the
-    // `rustup` shim of a component that was never added (#402).
-    let Some(output) = version_output(&found, tool, probe) else {
-        return problem(ToolIssue::Missing);
+    // `rustup` shim of a component that was never added (#402) or an indexer that crashes on
+    // start. It is reported as found but not runnable, with the line that tells why.
+    let output = match version_output(&found, tool, probe) {
+        Ok(output) => output,
+        Err(failure) => {
+            return problem(ToolIssue::NotRunnable {
+                output: excerpt(&error_line(&failure), VERSION_EXCERPT_CHARS, probe.redact),
+            });
+        }
     };
     match ToolVersion::find_in(&output) {
         Some(version) if version >= tool.min_version => Ok(ToolSeen {
@@ -82,9 +88,27 @@ fn path_of(env: &Environment) -> Option<OsString> {
         .map(|(_, value)| value.clone())
 }
 
+/// The line of a failure that says what went wrong: the first one that names an error (a crash
+/// prints its path and source line first), else the first line that says anything.
+fn error_line(failure: &str) -> String {
+    let lines: Vec<&str> = failure
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect();
+    lines
+        .iter()
+        .copied()
+        .find(|line| line.to_lowercase().contains(ERROR_WORD))
+        .or_else(|| lines.first().copied())
+        .unwrap_or_default()
+        .to_owned()
+}
+
 /// What the tool prints when asked for its version, console streams joined (`java -version`
-/// writes to standard error); `None` if the command did not run or did not succeed.
-fn version_output(program: &Path, tool: &ToolSpec, probe: &Probe<'_>) -> Option<String> {
+/// writes to standard error). The error is what it printed if the command ran but did not
+/// succeed; it is empty if the command could not run at all.
+fn version_output(program: &Path, tool: &ToolSpec, probe: &Probe<'_>) -> Result<String, String> {
     let launch = Launch {
         program: program.to_path_buf(),
         args: tool.version_args.iter().map(OsString::from).collect(),
@@ -99,10 +123,15 @@ fn version_output(program: &Path, tool: &ToolSpec, probe: &Probe<'_>) -> Option<
         note_dir: None,
     };
     match run_guarded(&launch, &CancelToken::new()) {
-        Ok(finished) if finished.success => {
-            Some([finished.stdout_text(), finished.stderr_text()].join(WORD_SEPARATOR))
+        Ok(finished) => {
+            let text = [finished.stdout_text(), finished.stderr_text()].join(WORD_SEPARATOR);
+            if finished.success {
+                Ok(text)
+            } else {
+                Err(text)
+            }
         }
-        _ => None,
+        Err(_) => Err(String::new()),
     }
 }
 
@@ -111,7 +140,7 @@ mod tests {
     use std::ffi::OsStr;
     use std::path::Path;
 
-    use super::resolve;
+    use super::{error_line, resolve};
 
     /// A file of the folder the tests run in must not be found through an empty or relative path.
     #[test]
@@ -122,5 +151,15 @@ mod tests {
             assert_eq!(resolve(program, OsStr::new(path), &root), None, "{path:?}");
         }
         assert!(Path::new("Cargo.toml").is_file());
+    }
+
+    /// A crash prints the path and the source line before the error: the error line is the one
+    /// that is kept.
+    #[test]
+    fn the_error_line_of_a_crash_is_the_one_that_names_the_error() {
+        let crash = "C:\\x\\Env.ts:4\nconst a = 1;\n   ^\n\nSyntaxError: Invalid regular expression\n    at new RegExp";
+        assert_eq!(error_line(crash), "SyntaxError: Invalid regular expression");
+        assert_eq!(error_line("\n first words \nsecond"), "first words");
+        assert_eq!(error_line(""), "");
     }
 }

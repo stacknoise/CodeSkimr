@@ -6,6 +6,7 @@ import { TONE } from "../../shared/ui/consts";
 import { cx } from "../../shared/ui/cx";
 import { Pill } from "../../shared/ui/Pill";
 import { CRUMB_SEPARATOR, HOTKEY, PILL_SEPARATOR } from "./consts";
+import { languageName } from "../projects/format";
 import { showInGraph } from "../graph/show";
 import { showUsages } from "../../shared/navigation/navigation";
 import { openInEditor } from "./editor";
@@ -97,6 +98,7 @@ function Title(props: { info: SymbolInfo; member: MemberRow | null }) {
       </Show>
       <h1>{shown().name}</h1>
       <Pill tone={TONE.accent}>{kind()}</Pill>
+      <Pill>{languageName(props.info.language)}</Pill>
       <Actions symbol={shown().id} />
     </div>
   );

@@ -2,8 +2,8 @@
 //! (adapter: `codeskimr_storage`).
 
 use codeskimr_domain::{
-    LayerEdge, Metric, NamespaceGraph, ProjectId, QualifiedName, RelativePath, Snapshot,
-    SnapshotId, Span, Symbol, SymbolId, SymbolKind, SymbolName,
+    LanguageId, LayerEdge, Metric, NamespaceGraph, ProjectId, QualifiedName, RelativePath,
+    Snapshot, SnapshotId, Span, Symbol, SymbolId, SymbolKind, SymbolName,
 };
 
 use crate::error::CodedError;
@@ -73,6 +73,8 @@ pub struct SymbolDetail {
     pub symbol: Symbol,
     /// File that declares it.
     pub path: RelativePath,
+    /// Language of that file.
+    pub language: LanguageId,
     /// Direct members, ordered by id.
     pub members: Vec<MemberRef>,
     /// Measured values of the symbol itself.

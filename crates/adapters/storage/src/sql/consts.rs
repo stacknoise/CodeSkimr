@@ -361,8 +361,11 @@ pub const TYPE_COUNT: &str = "SELECT COUNT(*) FROM type_summary WHERE snapshot_i
 
 /// Namespaces, modules and types of one kind with their member count: snapshot, kind.
 pub const OUTLINE_OF_KIND: &str = "SELECT s.kind, s.id, s.name, s.qualified_name, s.parent_id, \
-    (SELECT COUNT(*) FROM symbols m WHERE m.snapshot_id = s.snapshot_id AND m.parent_id = s.id) \
+    (SELECT COUNT(*) FROM symbols m WHERE m.snapshot_id = s.snapshot_id AND m.parent_id = s.id), \
+    (SELECT f.language FROM files f WHERE f.snapshot_id = s.snapshot_id AND f.id = s.file_id) \
     FROM symbols s WHERE s.snapshot_id = ?1 AND s.kind = ?2";
+/// The language of a file: snapshot, file id.
+pub const FILE_LANGUAGE: &str = "SELECT language FROM files WHERE snapshot_id = ?1 AND id = ?2";
 /// Member table of a symbol: snapshot, symbol, complexity metric.
 pub const MEMBER_ROWS: &str = "SELECT s.id, s.name, s.kind, s.visibility, s.signature, \
     s.start_line, s.end_line, s.qualified_name, \
@@ -536,10 +539,20 @@ pub const BASELINE_DELETE: &str = "DELETE FROM annotation_baseline WHERE annotat
 /// Counts the open alert of an annotation once more and keeps its latest sighting: annotation id,
 /// now, kind, snapshot, commit, trigger, changes, references, closest, seen content, seen
 /// signature, seen loc, seen cc.
-pub const ALERT_RAISE_OPEN: &str = "UPDATE alert SET counter = counter + 1, last_seen = ?2, \
-    kind = ?3, snapshot_id = ?4, commit_hash = ?5, trigger = ?6, changes = ?7, refs = ?8, \
-    closest = ?9, seen_content = ?10, seen_signature = ?11, seen_loc = ?12, seen_cc = ?13 \
-    WHERE annotation_id = ?1 AND state = 'open'";
+pub const ALERT_RAISE_OPEN: &str = concat!(
+    "UPDATE alert SET counter = counter + 1, last_seen = ?2, ",
+    "kind = ?3, snapshot_id = ?4, commit_hash = ?5, trigger = ?6, changes = ?7, refs = ?8, ",
+    "closest = ?9, seen_content = ?10, seen_signature = ?11, seen_loc = ?12, seen_cc = ?13 ",
+    "WHERE annotation_id = ?1 AND state = 'open'"
+);
+/// Like `ALERT_RAISE_OPEN`, but the counter stays: the open alert only says what the symbol looks
+/// like now (a symbol that came back after it was removed).
+pub const ALERT_UPDATE_OPEN: &str = concat!(
+    "UPDATE alert SET last_seen = ?2, ",
+    "kind = ?3, snapshot_id = ?4, commit_hash = ?5, trigger = ?6, changes = ?7, refs = ?8, ",
+    "closest = ?9, seen_content = ?10, seen_signature = ?11, seen_loc = ?12, seen_cc = ?13 ",
+    "WHERE annotation_id = ?1 AND state = 'open'"
+);
 /// Adds an open alert with the counter one: annotation id, now, kind, snapshot, commit, trigger,
 /// changes, references, closest, seen content, seen signature, seen loc, seen cc.
 pub const ALERT_INSERT: &str = "INSERT INTO alert (annotation_id, state, counter, first_seen, \
@@ -592,6 +605,17 @@ pub const STATE_CHILD_HASHES: &str = "WITH RECURSIVE tree(id) AS ( \
 pub const STATE_REMAINING_NAMES: &str = "SELECT COUNT(*) FROM pending_references p \
     WHERE p.file_id IN (SELECT id FROM files WHERE snapshot_id = ?1) \
     AND (p.target = ?2 OR p.target = ?3)";
+/// How many of the indexes of `ENSURE_STATE_INDEXES` exist.
+pub const STATE_INDEX_PROBE: &str = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND \
+    name IN ('symbols_by_name', 'symbols_by_simple_name', 'pending_references_by_target')";
+/// The indexes the alert step reads through: by qualified name and by simple name for the symbols of
+/// an annotation, and by target for the names that still point at a vanished one. They are made
+/// when the first critical annotation needs them and not with the schema, because every scan pays
+/// for them on writing.
+pub const ENSURE_STATE_INDEXES: &str = "\
+    CREATE INDEX IF NOT EXISTS symbols_by_name ON symbol_rows (qualified_name); \
+    CREATE INDEX IF NOT EXISTS symbols_by_simple_name ON symbol_rows (name); \
+    CREATE INDEX IF NOT EXISTS pending_references_by_target ON pending_references (target);";
 /// Kind and qualified name of the symbols of a snapshot with a simple name, of level 1: snapshot,
 /// name, origin of level 1.
 pub const STATE_SAME_NAME: &str = "SELECT s.kind, s.qualified_name FROM symbol_rows s \

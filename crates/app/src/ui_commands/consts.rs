@@ -15,6 +15,12 @@ pub const PROJECTS_TOOLS: &str = "projects.tools";
 pub const TOOLS_TITLE: &str = i18n::COMMAND_PROJECTS_TOOLS_TITLE;
 /// Description key of `projects.tools`.
 pub const TOOLS_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_TOOLS_DESCRIPTION;
+/// Id of the command that lists the indexers of this machine.
+pub const TOOLS_INDEXERS: &str = "tools.indexers";
+/// Title key of `tools.indexers`.
+pub const INDEXERS_TITLE: &str = i18n::COMMAND_TOOLS_INDEXERS_TITLE;
+/// Description key of `tools.indexers`.
+pub const INDEXERS_DESCRIPTION: &str = i18n::COMMAND_TOOLS_INDEXERS_DESCRIPTION;
 /// Id of the command that cancels a running scan.
 pub const PROJECTS_CANCEL: &str = "projects.cancel";
 

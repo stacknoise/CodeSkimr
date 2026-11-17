@@ -69,7 +69,12 @@ export const DATA = {
     layers: [
       {
         name: "",
-        namespaces: [{ name: "a", types: [{ id: 1, name: "Foo", kind: "struct", members: 1 }] }],
+        namespaces: [
+          {
+            name: "a",
+            types: [{ id: 1, name: "Foo", kind: "struct", members: 1, language: "csharp" }],
+          },
+        ],
       },
     ],
     thresholds: {},

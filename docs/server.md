@@ -114,4 +114,5 @@ The server holds at most 256 connections; a further client waits in the backlog 
 - `serve` needs a usable keystore. On a headless Linux without a Secret Service it stops with `SEC-601`; there is no file fallback (ADR 0045), start a Secret Service such as `gnome-keyring` or `KeePassXC` first.
 - Events are not filtered per principal; in single-user mode there is only the local owner.
 
+- `tools.indexers` (scan right, not read only, because it starts version queries as processes; it stores nothing) takes no input and returns the `ToolsView` of all indexers of the language packs, each tool with its `path` where it was found (`docs/tools-check.md`, section "The listing of all indexers"). The rows of `projects.tools` have `path: null`.
 - `projects.tools` (scan right, not read only) takes a project id, runs the tool check (`docs/tools-check.md`), stores it and returns the `ToolsView`. `projects.list` rows carry `tools` (the stored report, `null` if never checked) and `projects.add` and `projects.rescan` answer with `tools` of the scan they ran.

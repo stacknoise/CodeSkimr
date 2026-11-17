@@ -22,6 +22,8 @@ export interface TreeRow {
   label: string;
   /** Count or signature at the right edge. */
   meta: string;
+  /** Language of a type row (id of the language pack), `null` for the other rows. */
+  language: string | null;
   /** Kind of a type or member row, for its badge. */
   symbolKind: string | null;
   /** Position of a layer among the layers, for its colour dot; `null` for other rows. */
@@ -63,6 +65,7 @@ function base(key: string, kind: RowKind, depth: number, label: string): TreeRow
     depth,
     label,
     meta: "",
+    language: null,
     symbolKind: null,
     layerIndex: null,
     expandable: false,
@@ -93,8 +96,8 @@ interface Context {
 
 /** A type inside a type is a row of its own, so it can be opened and shown; its member count
  * is not known before it is read. */
-function nestedNode(member: MemberRow): TypeNode {
-  return { id: member.id, name: member.name, kind: member.kind, members: 0 };
+function nestedNode(member: MemberRow, language: string): TypeNode {
+  return { id: member.id, name: member.name, kind: member.kind, members: 0, language };
 }
 
 /** The group of the tree that holds a member of this kind, `null` if it has none. */
@@ -133,7 +136,9 @@ function groupRows(info: SymbolInfo, depth: number, ctx: Context): TreeRow[] {
     const open = ctx.expanded.has(row.key);
     const children =
       id === GROUP.nested
-        ? members.flatMap((member) => typeRows(nestedNode(member), depth + 1, ctx, true))
+        ? members.flatMap((member) =>
+            typeRows(nestedNode(member, info.language), depth + 1, ctx, true),
+          )
         : members.map((member) => memberRow(info.id, depth + 1, member));
     return [{ ...row, open }, ...(open ? children : [])];
   });
@@ -145,6 +150,7 @@ function typeRows(node: TypeNode, depth: number, ctx: Context, nested = false): 
   const row: TreeRow = {
     ...base(key, ROW.type, depth, node.name),
     symbolKind: node.kind,
+    language: node.language,
     meta: nested ? "" : String(node.members),
     expandable: nested || node.members > 0,
     open,

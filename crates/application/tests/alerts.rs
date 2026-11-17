@@ -75,6 +75,16 @@ impl Fixture {
     }
 }
 
+/// The sighting says `orphaned` and names `Demo.Moved.Work` as the closest symbol.
+#[cfg(test)]
+fn assert_orphaned_to_moved(sighting: &codeskimr_domain::AlertSighting) {
+    assert_eq!(sighting.kind, AlertKind::Orphaned);
+    assert_eq!(
+        sighting.closest,
+        Some(QualifiedName::new("Demo.Moved.Work").unwrap())
+    );
+}
+
 #[test]
 fn the_first_run_takes_a_baseline_and_raises_nothing() {
     let world = fixture();
@@ -217,12 +227,56 @@ fn a_symbol_that_is_gone_with_a_namesake_is_orphaned_and_names_the_closest_one()
     ];
     world.run(2, AlertTrigger::Scan);
     let sighting = world.annotations.open_alerts().remove(0).sighting;
-    assert_eq!(sighting.kind, AlertKind::Orphaned);
-    assert_eq!(
-        sighting.closest,
-        Some(QualifiedName::new("Demo.Moved.Work").unwrap())
-    );
+    assert_orphaned_to_moved(&sighting);
     assert_eq!(sighting.references, None);
+}
+
+#[test]
+fn an_open_alert_follows_the_state_of_the_symbol_without_counting_the_way_back() {
+    let world = watched();
+    world.with_work("two");
+    world.run(2, AlertTrigger::Scan);
+    let counter = || world.annotations.open_alerts()[0].counter;
+    assert_eq!(counter(), 1);
+
+    // Gone without a namesake: the alert turns to `removed` and counts the new event.
+    world.states.set(Vec::new());
+    world.states.references.store(2, Ordering::SeqCst);
+    world.run(3, AlertTrigger::Scan);
+    let sighting = world.annotations.open_alerts().remove(0).sighting;
+    assert_eq!(
+        (sighting.kind, sighting.references),
+        (AlertKind::Removed, Some(2))
+    );
+    assert_eq!(counter(), 2);
+
+    // A namesake appears: `removed` becomes `orphaned` and names it, without another count.
+    *world.states.same_name.lock().unwrap() = vec![SameName {
+        kind: SymbolKind::Method,
+        name: QualifiedName::new("Demo.Moved.Work").unwrap(),
+    }];
+    world.run(4, AlertTrigger::Scan);
+    let sighting = world.annotations.open_alerts().remove(0).sighting;
+    assert_orphaned_to_moved(&sighting);
+    assert_eq!(counter(), 2);
+
+    // The same scan again says nothing new.
+    assert_eq!(world.run(5, AlertTrigger::Scan).raised, 0);
+
+    // Back in the state it was seen last: `changed` again and no additional count.
+    world.with_work("two");
+    world.run(6, AlertTrigger::Scan);
+    let alert = world.annotations.open_alerts().remove(0);
+    assert_eq!(alert.sighting.kind, AlertKind::Changed);
+    assert_eq!(alert.sighting.closest, None);
+    assert_eq!(alert.counter, 2);
+
+    // Back but different from what was seen: a new change counts.
+    world.states.set(Vec::new());
+    world.run(7, AlertTrigger::Scan);
+    world.with_work("three");
+    world.run(8, AlertTrigger::Scan);
+    assert_eq!(world.annotations.open_alerts()[0].counter, 4);
 }
 
 #[test]

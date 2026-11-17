@@ -137,7 +137,7 @@ impl Fixture {
 }
 
 /// Every command of the registry, in the order the API lists them.
-const COMMAND_IDS: [&str; 32] = [
+const COMMAND_IDS: [&str; 33] = [
     "alerts.dismiss",
     "alerts.dismiss_all",
     "alerts.list",
@@ -168,6 +168,7 @@ const COMMAND_IDS: [&str; 32] = [
     "projects.tools",
     "search.query",
     "status.info",
+    "tools.indexers",
     "usages.code",
     "usages.query",
 ];
@@ -182,6 +183,20 @@ fn the_commands_are_offered() {
         .map(|info| info.id)
         .collect();
     assert_eq!(ids, COMMAND_IDS);
+}
+
+#[test]
+fn the_indexers_are_listed_without_any_project() {
+    let fixture = Fixture::new();
+    let view = fixture.call("tools.indexers", Value::Null).unwrap();
+    let tools: Vec<&str> = view["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|tool| tool["tool"].as_str())
+        .collect();
+    assert!(tools.contains(&"scip-dotnet"), "{tools:?}");
+    assert!(view["checked_at"].is_i64());
 }
 
 #[test]

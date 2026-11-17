@@ -51,6 +51,8 @@ pub const TEMP_ENV: &[&str] = &["TMPDIR", "TEMP", "TMP"];
 pub const FIXED_ENV: &[(&str, &str)] = &[("NoDefaultCurrentDirectoryInExePath", "1")];
 /// Most characters of the version output that an error or the tool check keeps.
 pub const VERSION_EXCERPT_CHARS: usize = 200;
+/// What a line of a failed version command contains when it names the error (lower case).
+pub const ERROR_WORD: &str = "error";
 /// Name of the `PATH` variable.
 pub const PATH_ENV: &str = "PATH";
 

@@ -49,6 +49,10 @@ pub struct AlertRaise {
     pub sighting: AlertSighting,
     /// The time of the scan.
     pub now: Timestamp,
+    /// Whether an open alert counts this sighting. False when the sighting only brings the alert
+    /// up to date with what the symbol looks like now, as when a removed symbol is back in the
+    /// state the alert saw before; a new alert starts at one either way.
+    pub counted: bool,
 }
 
 /// Which alerts to list, newest sighting first.

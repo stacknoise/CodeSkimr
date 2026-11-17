@@ -19,6 +19,7 @@ mod graph;
 mod graph_focus;
 mod graph_types;
 mod graph_wrap;
+mod indexers;
 mod layers;
 #[cfg(test)]
 mod layers_tests;
@@ -57,7 +58,7 @@ pub(crate) use status::{mark_ready, mark_started};
 use crate::clock::SystemClock;
 use crate::locations::Locations;
 use crate::running::RunningScans;
-use crate::wiring::{Secrets, index_runner, tool_checker};
+use crate::wiring::{Secrets, index_runner, indexer_check, tool_checker};
 pub(crate) use alerts::{
     AlertListInput, AlertListOut, AlertsDismiss, AlertsDismissAll, AlertsList, DismissAllInput,
     DismissInput, Dismissed,
@@ -76,6 +77,7 @@ use credentials::{DeleteCredential, ListCredentials, SetCredential};
 use explorer::{ExplorerOutline, ExplorerPorts};
 pub(crate) use export::{ExportInput, HtmlExport};
 use graph::{GraphLayers, GraphPorts};
+use indexers::ListIndexers;
 use layers::{LayersGet, LayersSet};
 use preferences::{GetPreferences, PreferencesFile, SetPreferences};
 use projects::{AddProject, CancelScan, CheckTools, ListProjects, RescanProject};
@@ -180,6 +182,7 @@ pub fn command_api_over(
     (runner, running): (Option<Arc<dyn IndexRunner>>, RunningScans),
 ) -> Result<CommandApi, CodedError> {
     let runner = runner.unwrap_or_else(|| index_runner(locations));
+    let indexers = indexer_check(locations, runner.clone())?;
     let tools = tool_checker(catalog, (locations, runner))?;
     let context = Arc::new(Context {
         global: global.clone(),
@@ -194,6 +197,7 @@ pub fn command_api_over(
     let mut registry = Registry::new();
     register_projects(&mut registry, catalog, &context)?;
     add(&mut registry, CheckTools { tools })?;
+    add(&mut registry, ListIndexers { indexers })?;
     register_credentials(&mut registry, catalog, &context)?;
     register_search(&mut registry, catalog)?;
     register_usages(&mut registry, catalog, config.mcp.max_depth)?;
@@ -281,6 +285,7 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<AddProject>()?;
     api.expose::<RescanProject>()?;
     api.expose::<CheckTools>()?;
+    api.expose::<ListIndexers>()?;
     api.expose::<CancelScan>()?;
     api.expose::<ListCredentials>()?;
     api.expose::<SetCredential>()?;

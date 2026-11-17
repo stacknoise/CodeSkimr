@@ -25,7 +25,7 @@ struct LanguageInfo {
 pub(super) struct ToolInfo {
     tool: String,
     role: &'static str,
-    /// `ready`, `missing`, `too_old`, `too_new` or `version_unknown`.
+    /// `ready`, `missing`, `not_runnable`, `too_old`, `too_new` or `version_unknown`.
     state: &'static str,
     languages: Vec<String>,
     found: Option<String>,

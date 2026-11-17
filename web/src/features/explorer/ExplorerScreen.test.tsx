@@ -33,6 +33,14 @@ describe("ExplorerScreen", () => {
     expect(await screen.findByText("No project open")).toBeTruthy();
   });
 
+  it("names the language of a type in the tree and in the details", async () => {
+    renderOrder();
+    await openOrder();
+    expect(await screen.findByRole("heading", { name: "Order" })).toBeTruthy();
+    expect(within(screen.getByRole("tree")).getByTitle("C#")).toBeTruthy();
+    expect(screen.getAllByText("C#").length).toBeGreaterThan(1);
+  });
+
   it("shows the structure, opens a type and shows its metrics and members", async () => {
     renderOrder();
     await openOrder();
@@ -312,6 +320,32 @@ describe("a navigation from another screen", () => {
   });
 });
 
+describe("a navigation while the tree is read again", () => {
+  it("keeps the type the navigation read, so the details do not fall back to the overview", async () => {
+    const first = renderOrder();
+    await openOrder();
+    await screen.findByRole("heading", { name: "Order" });
+    first.unmount();
+    requestFocus({ type: 30, member: null, kind: null });
+    fetchMock.mockImplementation((path: string, init?: RequestInit) => {
+      const other = String(init?.body ?? "").includes('"symbol":30');
+      return Promise.resolve(
+        answer(
+          path.endsWith("explorer.outline")
+            ? OUTLINE
+            : other
+              ? { ...ORDER, id: 30, name: "Other" }
+              : ORDER,
+        ),
+      );
+    });
+    render(() => <ExplorerScreen />);
+    expect(await screen.findByRole("heading", { name: "Other" })).toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.getByRole("heading", { name: "Other" })).toBeTruthy();
+  });
+});
+
 describe("coming back to the explorer", () => {
   it("keeps the open rows, the selection and the filter when another screen was shown", async () => {
     const first = renderOrder();
@@ -346,7 +380,10 @@ describe("coming back to the explorer", () => {
         {
           name: "Domain",
           namespaces: [
-            { name: "Shop.Sales", types: [{ id: 7, name: "Order2", kind: "class", members: 2 }] },
+            {
+              name: "Shop.Sales",
+              types: [{ id: 7, name: "Order2", kind: "class", members: 2, language: "csharp" }],
+            },
           ],
         },
       ],

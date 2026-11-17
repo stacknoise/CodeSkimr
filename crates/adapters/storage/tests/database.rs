@@ -572,7 +572,6 @@ fn a_version_eleven_database_keeps_its_layers_without_a_limit() {
          DROP TABLE layer_uses;
          ALTER TABLE layers DROP COLUMN restricted;
          DROP VIEW symbols;
-         DROP INDEX symbols_by_name;
          ALTER TABLE symbol_rows DROP COLUMN content_hash;
          ALTER TABLE symbol_rows DROP COLUMN origin;
          PRAGMA user_version = 11;

@@ -68,6 +68,8 @@ pub struct TypeNode {
     pub kind: &'static str,
     /// Number of direct members.
     pub members: u32,
+    /// Id of the language pack of the declaring file.
+    pub language: String,
 }
 
 /// A namespace with its types.
@@ -145,6 +147,7 @@ fn type_node(node: &OutlineNode) -> TypeNode {
         qualified_name: node.qualified_name.to_string(),
         kind: node.kind.label(),
         members: node.members,
+        language: node.language.to_string(),
     }
 }
 

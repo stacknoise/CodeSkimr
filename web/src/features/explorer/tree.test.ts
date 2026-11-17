@@ -37,15 +37,20 @@ const OUTLINE: Outline = {
         {
           name: "App.Domain",
           types: [
-            { id: 1, name: "Order", kind: "class", members: 2 },
-            { id: 2, name: "IOrder", kind: "interface", members: 0 },
+            { id: 1, name: "Order", kind: "class", members: 2, language: "csharp" },
+            { id: 2, name: "IOrder", kind: "interface", members: 0, language: "csharp" },
           ],
         },
       ],
     },
     {
       name: "",
-      namespaces: [{ name: "", types: [{ id: 3, name: "Loose", kind: "struct", members: 0 }] }],
+      namespaces: [
+        {
+          name: "",
+          types: [{ id: 3, name: "Loose", kind: "struct", members: 0, language: "csharp" }],
+        },
+      ],
     },
   ],
 };
@@ -59,6 +64,7 @@ const ORDER: SymbolInfo = {
   visibility: "public",
   is_static: false,
   path: "src/order.cs",
+  language: "csharp",
   first_line: 1,
   last_line: 20,
   signature: null,
@@ -142,7 +148,13 @@ describe("buildRows", () => {
 });
 
 describe("namespaces grouped by their parts", () => {
-  const type = (id: number, name: string) => ({ id, name, kind: "class", members: 0 });
+  const type = (id: number, name: string) => ({
+    id,
+    name,
+    kind: "class",
+    members: 0,
+    language: "csharp",
+  });
   const GROUPED: Outline = {
     ...OUTLINE,
     layers: [
@@ -297,6 +309,7 @@ describe("siblingPlaces", () => {
     depth: 0,
     label: "",
     meta: "",
+    language: null,
     symbolKind: null,
     layerIndex: null,
     expandable: false,

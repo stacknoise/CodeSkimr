@@ -21,7 +21,7 @@ use codeskimr_application::ports::{
     FileAnalyzer, FileDiscovery, IndexRunner, IndexerSpec, SnippetFingerprinter,
 };
 use codeskimr_application::resolve::ScopedResolver;
-use codeskimr_application::tools::{ToolCheckPorts, ToolChecker};
+use codeskimr_application::tools::{IndexerCheck, IndexerOverview, ToolCheckPorts, ToolChecker};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{CredentialId, LanguageId};
 use codeskimr_indexer::ProcessIndexRunner;
@@ -195,6 +195,22 @@ pub fn tool_checker(
         overview: store.clone(),
         clock: Arc::new(SystemClock),
     })))
+}
+
+/// The check of all indexers of the language packs, for the settings; it needs no project.
+///
+/// # Errors
+/// `PRS` failures if the language packs cannot be read.
+pub fn indexer_check(
+    locations: &Locations,
+    runner: Arc<dyn IndexRunner>,
+) -> Result<Arc<dyn IndexerCheck>, CodedError> {
+    let catalog = PackTools::load(&locations.languages_dir).map_err(CodedError::caused_by)?;
+    Ok(Arc::new(IndexerOverview::new(
+        Arc::new(catalog),
+        runner,
+        Arc::new(SystemClock),
+    )))
 }
 
 /// The id sequence of the database file in this process. Scans of different projects run at the
