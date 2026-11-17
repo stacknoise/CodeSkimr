@@ -277,8 +277,6 @@ export const PATH_JOINER = "/";
 
 /** Keyboard hints on the three buttons of the header. */
 export const HOTKEY = { usages: "U", graph: "G", editor: "E" } as const;
-/** Width of the side panel next to a selected member, whose source takes the middle column. */
-
 /** Keys under which the sizes of the columns are kept, and their limits in pixels (mock 2 shows
  * the first values). */
 export const PANE_KEY = {

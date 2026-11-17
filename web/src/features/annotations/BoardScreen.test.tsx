@@ -6,6 +6,7 @@ import { answer, useServerSession } from "../../tests/commands";
 import { resetBoard } from "./board";
 import { BoardScreen } from "./BoardScreen";
 import { forgetMe, rememberAuthor } from "./me";
+import { forgetAnnotations } from "./store";
 
 useServerSession();
 
@@ -40,7 +41,10 @@ beforeEach(() => {
   openProject(1);
   forgetMe();
 });
-afterEach(resetBoard);
+afterEach(() => {
+  resetBoard();
+  forgetAnnotations();
+});
 
 describe("the board of the tasks", () => {
   it("has a column for each status with its number, and reads the project with three calls", async () => {
@@ -125,6 +129,21 @@ describe("the board of the tasks", () => {
     await waitFor(() =>
       expect(bodiesOf("annotations.delete")).toEqual([{ project: 1, id: NOTE.id }]),
     );
+  });
+
+  it("says so when a note cannot be deleted, and names the delete button after the symbol", async () => {
+    serveBodies({
+      "annotations.list": (body) => answer(body.kind === "note" ? page([NOTE]) : page([], null)),
+      "annotations.summary": () => answer(page([])),
+      "annotations.delete": () => answer({ code: "ANN-102" }, 404),
+    });
+    render(() => <BoardScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: /^Notes 1/ }));
+    const group = await screen.findByRole("group", { name: NOTE.target.name });
+    fireEvent.click(within(group).getByRole("button", { name: "Delete" }));
+    fireEvent.click(within(group).getByRole("button", { name: "Delete for good?" }));
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(screen.getByText("The entry could not be deleted.")).toBeTruthy();
   });
 
   it("says so when the server has no tasks or cannot be read", async () => {

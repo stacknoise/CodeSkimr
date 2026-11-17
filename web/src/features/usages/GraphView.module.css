@@ -94,6 +94,7 @@
     stroke-dasharray: 5 4;
 }
 
+/* The look of a weak edge of the maps of screen 3 (EDGE_STYLE.weak in graph/consts.ts). */
 .dimEdge {
     stroke: var(--faint);
     stroke-width: 1;
@@ -125,6 +126,7 @@
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-bg);
 }
+/* A card that the picked card does not touch: still readable, clearly behind. */
 .card.dim {
     opacity: 0.45;
 }

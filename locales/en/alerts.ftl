@@ -57,6 +57,7 @@ board-column = { $name } ({ $count })
 board-empty-column = No tasks
 board-empty = No tasks yet. Add one in the explorer with T.
 board-empty-notes = No notes yet. Add one in the explorer with N.
+board-delete-failed = The entry could not be deleted.
 board-view-label = Show tasks or notes
 board-loading = Reading tasks ...
 board-failed = The tasks could not be read.

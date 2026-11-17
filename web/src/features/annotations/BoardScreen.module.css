@@ -182,3 +182,9 @@
 .actions {
     margin-top: var(--space-8);
 }
+
+.problem {
+    margin: var(--space-4) 0 0;
+    color: var(--bad);
+    font-size: 11px;
+}

@@ -44,8 +44,12 @@ export function DeleteAction(props: {
 }
 
 /** The buttons of a card in a row: `children` (for example "Edit") and "Delete". */
-export function ActionRow(props: { children?: JSX.Element }) {
-  return <span class={styles.actions}>{props.children}</span>;
+export function ActionRow(props: { children?: JSX.Element; label?: string }) {
+  return (
+    <span class={styles.actions} role={props.label ? "group" : undefined} aria-label={props.label}>
+      {props.children}
+    </span>
+  );
 }
 
 /** "Edit" and "Delete" of a card. */

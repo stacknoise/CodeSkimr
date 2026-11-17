@@ -80,18 +80,31 @@ function StatusPick(props: { project: number; task: Annotation }) {
   );
 }
 
-/** "Delete" of a card on the board: it asks once more, then removes the annotation. */
+/** The card whose last delete failed. It is kept here and not in the card, because the card is
+ * drawn again when the board reads its lists. */
+const [failedDelete, setFailedDelete] = createSignal<number | null>(null);
+
+/** "Delete" of a card on the board: it asks once more, then removes the annotation. If the server
+ * refuses, the card says so. The group is named after the symbol, so that a screen reader knows
+ * which card the button belongs to. */
 function DeleteButton(props: { project: number; item: Annotation }) {
+  const failed = () => failedDelete() === props.item.id;
   return (
     <div class={styles.actions}>
-      <ActionRow>
+      <ActionRow label={props.item.target.name}>
         <DeleteAction
-          onDelete={() =>
-            change(props.project, () => deleteAnnotation(props.project, props.item.id))
-          }
-          onFailed={() => undefined}
+          onDelete={() => {
+            setFailedDelete(null);
+            return change(props.project, () => deleteAnnotation(props.project, props.item.id));
+          }}
+          onFailed={() => setFailedDelete(props.item.id)}
         />
       </ActionRow>
+      <Show when={failed()}>
+        <p class={styles.problem} role="alert">
+          {t(I18N_KEYS.BOARD_DELETE_FAILED)}
+        </p>
+      </Show>
     </div>
   );
 }
