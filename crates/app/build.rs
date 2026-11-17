@@ -121,7 +121,25 @@ fn embed_packs(root: &Path, out_dir: &Path) -> std::io::Result<()> {
     fs::write(out_dir.join(PACKS_OUTPUT_FILE), source)
 }
 
+/// The app icon, relative to this crate (made by `tools/logo/make_icons.py`).
+#[cfg(windows)]
+const APP_ICON: &str = "assets/codeskimr.ico";
+
+/// Embeds the app icon into the Windows exe, so Explorer and the task bar show the logo.
+#[cfg(windows)]
+fn embed_app_icon() -> std::io::Result<()> {
+    println!("cargo:rerun-if-changed={APP_ICON}");
+    let mut resource = winresource::WindowsResource::new();
+    resource.set_icon(APP_ICON);
+    resource.compile()
+}
+
 fn main() -> ExitCode {
+    #[cfg(windows)]
+    if let Err(error) = embed_app_icon() {
+        eprintln!("app icon: {error}");
+        return ExitCode::FAILURE;
+    }
     let root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let base = root.join(UI_DIST);
     // A path that does not exist makes Cargo build the crate again every time; the empty folder
