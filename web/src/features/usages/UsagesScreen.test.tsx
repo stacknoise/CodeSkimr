@@ -43,6 +43,18 @@ function lastRequest(): Record<string, unknown> {
   return JSON.parse(calls[calls.length - 1]![1].body as string) as Record<string, unknown>;
 }
 
+/** The screen with a server that also answers the usages of `Render`, and its graph. */
+async function shownWithRender() {
+  shown();
+  const first = fetchMock.getMockImplementation()!;
+  fetchMock.mockImplementation((path: string, init: RequestInit) =>
+    String(path).endsWith("usages.query") && String(init?.body).includes('"symbol":11')
+      ? Promise.resolve(answer({ ...ANSWER, symbol: VIEW, signature: "void Render()" }))
+      : first(path, init),
+  );
+  return screen.findByRole("region", { name: "Usage graph" });
+}
+
 describe("UsagesScreen", () => {
   it("asks to open a project first, then to choose a symbol", async () => {
     clearUsages();
@@ -201,14 +213,7 @@ describe("UsagesScreen", () => {
   });
 
   it("shows a clicked card in the side panel and makes a double-clicked card the focus", async () => {
-    shown();
-    const first = fetchMock.getMockImplementation()!;
-    fetchMock.mockImplementation((path: string, init: RequestInit) =>
-      String(path).endsWith("usages.query") && String(init?.body).includes('"symbol":11')
-        ? Promise.resolve(answer({ ...ANSWER, symbol: VIEW, signature: "void Render()" }))
-        : first(path, init),
-    );
-    const graph = await screen.findByRole("region", { name: "Usage graph" });
+    const graph = await shownWithRender();
     fireEvent.click(within(graph).getByText("Render"));
     expect(await screen.findByText("void Render()")).toBeTruthy();
     expect(focusSymbol()).not.toBe(11);
@@ -217,14 +222,7 @@ describe("UsagesScreen", () => {
   });
 
   it("colours the lines of a clicked card and fades the others", async () => {
-    shown();
-    const first = fetchMock.getMockImplementation()!;
-    fetchMock.mockImplementation((path: string, init: RequestInit) =>
-      String(path).endsWith("usages.query") && String(init?.body).includes('"symbol":11')
-        ? Promise.resolve(answer({ ...ANSWER, symbol: VIEW, signature: "void Render()" }))
-        : first(path, init),
-    );
-    const graph = await screen.findByRole("region", { name: "Usage graph" });
+    const graph = await shownWithRender();
     const lines = () =>
       [...graph.querySelectorAll("path")].map((line) => line.getAttribute("class"));
     expect(lines().some((name) => /linked|dim/.test(name ?? ""))).toBe(false);
