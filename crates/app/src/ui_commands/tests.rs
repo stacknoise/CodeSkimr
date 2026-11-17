@@ -34,6 +34,7 @@ pub(super) struct Fixture {
     pub(super) locations: Locations,
     pub(super) api: Arc<CommandApi>,
     pub(super) secrets: Arc<Secrets>,
+    pub(super) events: EventBus,
 }
 
 impl Fixture {
@@ -63,12 +64,14 @@ impl Fixture {
             ..GlobalOptions::default()
         };
         let secrets = crate::memory_keystore::secrets();
-        let api = command_api(&global, &locations, EventBus::new(), Arc::clone(&secrets)).unwrap();
+        let events = EventBus::new();
+        let api = command_api(&global, &locations, events.clone(), Arc::clone(&secrets)).unwrap();
         Self {
             root,
             locations,
             api: Arc::new(api),
             secrets,
+            events,
         }
     }
 
@@ -101,19 +104,74 @@ impl Fixture {
         project.id.get()
     }
 
+    /// Registers and scans the demo project and returns its id.
+    pub(super) fn scanned(&self) -> u64 {
+        let added = self
+            .call("projects.add", json!({ "source": self.folder() }))
+            .unwrap();
+        added["project"].as_u64().unwrap()
+    }
+
     pub(super) fn folder(&self) -> String {
         self.root.path().join("app").to_string_lossy().into_owned()
     }
 
     pub(super) fn call(&self, id: &str, input: Value) -> Result<Value, &'static str> {
+        self.call_as(principal::resolve(), id, input)
+    }
+
+    /// The same call for another caller.
+    pub(super) fn call_as(
+        &self,
+        caller: codeskimr_domain::Principal,
+        id: &str,
+        input: Value,
+    ) -> Result<Value, &'static str> {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .build()
             .unwrap();
         runtime
-            .block_on(self.api.run(principal::resolve(), id, input))
+            .block_on(self.api.run(caller, id, input))
             .map_err(|error| error.code().entry().id)
     }
 }
+
+/// Every command of the registry, in the order the API lists them.
+const COMMAND_IDS: [&str; 33] = [
+    "alerts.dismiss",
+    "alerts.dismiss_all",
+    "alerts.list",
+    "annotations.add_note",
+    "annotations.add_task",
+    "annotations.create",
+    "annotations.delete",
+    "annotations.list",
+    "annotations.mark_critical",
+    "annotations.summary",
+    "annotations.update",
+    "credentials.delete",
+    "credentials.list",
+    "credentials.set",
+    "explorer.outline",
+    "explorer.source",
+    "explorer.symbol",
+    "export.html",
+    "graph.layers",
+    "layers.get",
+    "layers.set",
+    "preferences.get",
+    "preferences.set",
+    "projects.add",
+    "projects.cancel",
+    "projects.list",
+    "projects.rescan",
+    "projects.tools",
+    "search.query",
+    "status.info",
+    "tools.indexers",
+    "usages.code",
+    "usages.query",
+];
 
 #[test]
 fn the_commands_are_offered() {
@@ -124,33 +182,7 @@ fn the_commands_are_offered() {
         .into_iter()
         .map(|info| info.id)
         .collect();
-    assert_eq!(
-        ids,
-        [
-            "credentials.delete",
-            "credentials.list",
-            "credentials.set",
-            "explorer.outline",
-            "explorer.source",
-            "explorer.symbol",
-            "export.html",
-            "graph.layers",
-            "layers.get",
-            "layers.set",
-            "preferences.get",
-            "preferences.set",
-            "projects.add",
-            "projects.cancel",
-            "projects.list",
-            "projects.rescan",
-            "projects.tools",
-            "search.query",
-            "status.info",
-            "tools.indexers",
-            "usages.code",
-            "usages.query"
-        ]
-    );
+    assert_eq!(ids, COMMAND_IDS);
 }
 
 #[test]

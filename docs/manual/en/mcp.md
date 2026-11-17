@@ -46,6 +46,8 @@ All tools only read, except `rescan` (and `get_project` runs the tool check, a f
 | `find_constants` | find existing constants by name before adding a literal |
 | `check_conventions` | run the convention checks over files of the project |
 | `get_project` | languages of the project and the **tool check** of level 2: which indexers are ready, missing or too old, with purpose and install hint |
+| `list_annotations` | the notes, tasks and critical marks that people put on symbols (`symbol`, `kind`, `status`; paged with `limit` and `offset`) |
+| `get_alerts` | the alerts of critical symbols that changed, were removed or lost their place (`state`, `kind`; the open ones by default; paged). Agents can read them but not dismiss them |
 | `rescan` | read changed files again (incremental); needs the right to scan. It never starts level 2 |
 
 Good habits for agents: call `find_similar_code` and `find_constants` before writing new code and `check_conventions` before a commit.

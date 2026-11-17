@@ -32,6 +32,8 @@ pub struct MemberRow {
     pub id: SymbolId,
     /// Its simple name.
     pub name: SymbolName,
+    /// Its qualified name: with its kind it is the key that annotations name it by (ADR 0068).
+    pub qualified_name: QualifiedName,
     /// Its kind.
     pub kind: SymbolKind,
     /// Visibility, if the language has one.

@@ -1,5 +1,5 @@
 // Runs after ui-explorer.spec.ts: the worker shares one server and every scan adds a project.
-import { expect, openScannedProject, test, watchPolicy } from "./fixtures";
+import { addScannedProject, expect, test, watchPolicy } from "./fixtures";
 
 const SOURCE =
   "namespace Scan;\n\npublic class Meter\n{\n    public int Count() { return 1; }\n}\n";
@@ -10,7 +10,7 @@ test.describe("the scan and performance screen", () => {
     harness,
   }) => {
     const violations = await watchPolicy(page);
-    await openScannedProject(page, harness, "metered", SOURCE);
+    await addScannedProject(page, harness, "metered", SOURCE);
 
     await page.getByRole("link", { name: "Scans and performance" }).click();
     // The stream was open while the scan ran, so the finished run is listed.

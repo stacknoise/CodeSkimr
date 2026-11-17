@@ -1,6 +1,6 @@
 import { isEditorShortcut } from "../../shared/editor/editor";
 import { isTyping, useKeydown } from "../../shared/keys/keydown";
-import { KEY, MEMBER_STEP, NOT_FOUND } from "./consts";
+import { KEY, MEMBER_STEP, NOT_FOUND, PLAIN_KEYS } from "./consts";
 import type { TreeRow } from "./tree";
 
 /** What the document-wide keys of the explorer do. */
@@ -15,6 +15,12 @@ export interface ExplorerKeys {
   editor: () => void;
   /** Selects the previous (`-1`) or next (`1`) member of the shown type. */
   member: (step: number) => void;
+  /** Marks the selection as system critical, or takes the mark off (ADR 0068). */
+  critical: () => void;
+  /** Opens the form of a new note for the selection. */
+  note: () => void;
+  /** Opens the form of a new task for the selection. */
+  task: () => void;
 }
 
 /** The lower-case key of a press without a modifier and outside a field, or `null`. */
@@ -33,15 +39,12 @@ function runPlain(event: KeyboardEvent, keys: ExplorerKeys): boolean {
     }
   }
   const plain = plainKey(event);
-  if (plain === KEY.usages) {
-    keys.usages();
-    return true;
+  const action = plain === null ? undefined : PLAIN_KEYS[plain];
+  if (action === undefined) {
+    return false;
   }
-  if (plain === KEY.graph) {
-    keys.graph();
-    return true;
-  }
-  return false;
+  keys[action]();
+  return true;
 }
 
 /** Runs the action of a `Ctrl` key (close the tree, show the selection); whether it ran. */
@@ -59,8 +62,9 @@ function runControl(event: KeyboardEvent, keys: ExplorerKeys): boolean {
   return true;
 }
 
-/** Registers `Ctrl+Left` (close the whole tree), `Ctrl+.` (show the selection) and `U` (usages of
- * the selection), `G` (its layer in the dependency map) while the screen is shown. The plain arrows belong to the tree itself, so the page can still scroll. */
+/** Registers `Ctrl+Left` (close the whole tree), `Ctrl+.` (show the selection), `U` (usages of
+ * the selection), `G` (its layer in the dependency map) and `K`, `N` and `T` (mark critical, add a
+ * note, add a task) while the screen is shown. The plain arrows belong to the tree itself, so the page can still scroll. */
 export function useExplorerKeys(keys: ExplorerKeys): void {
   useKeydown((event) => {
     const editor = isEditorShortcut(event);

@@ -96,16 +96,6 @@
     color: var(--ink);
 }
 
-.railButton.shut {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-.railButton.shut:hover {
-    background: none;
-    color: var(--muted);
-}
-
 .railButton.on {
     background: var(--accent-bg);
     color: var(--accent);

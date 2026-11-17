@@ -6,8 +6,9 @@
 //! authenticator without changing the signatures that carry them.
 
 use crate::consts::{
-    PERMISSION_ADMIN, PERMISSION_CONFIRM_INDEXER, PERMISSION_MANAGE, PERMISSION_READ,
-    PERMISSION_READ_SOURCE, PERMISSION_REGISTER_PROJECT, PERMISSION_RUN_INDEXER, PERMISSION_SCAN,
+    PERMISSION_ADMIN, PERMISSION_ANNOTATE, PERMISSION_CONFIRM_INDEXER, PERMISSION_MANAGE,
+    PERMISSION_READ, PERMISSION_READ_SOURCE, PERMISSION_REGISTER_PROJECT, PERMISSION_RUN_INDEXER,
+    PERMISSION_SCAN,
 };
 use crate::vocabulary::labeled_enum;
 
@@ -20,6 +21,10 @@ labeled_enum!(
         ReadSource => PERMISSION_READ_SOURCE,
         /// Start scans.
         Scan => PERMISSION_SCAN,
+        /// Write and delete annotations (critical marks, notes, tasks) and dismiss alerts
+        /// (ADR 0068). The local owner holds it; in the team edition Admin, Maintainer and Member
+        /// do, Viewer does not.
+        Annotate => PERMISSION_ANNOTATE,
         /// Manage a project and its members.
         Manage => PERMISSION_MANAGE,
         /// Register new projects.
@@ -35,18 +40,18 @@ labeled_enum!(
     }
 );
 
-// The set stores one bit per permission in a `u8`.
-const _: () = assert!(Permission::ALL.len() <= u8::BITS as usize);
+// The set stores one bit per permission in a `u16`.
+const _: () = assert!(Permission::ALL.len() <= u16::BITS as usize);
 
 impl Permission {
-    const fn bit(self) -> u8 {
+    const fn bit(self) -> u16 {
         1 << self as u8
     }
 }
 
 /// A set of permissions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
-pub struct PermissionSet(u8);
+pub struct PermissionSet(u16);
 
 impl PermissionSet {
     /// The set that allows nothing.
@@ -63,6 +68,7 @@ impl PermissionSet {
             .with(Permission::Read)
             .with(Permission::ReadSource)
             .with(Permission::Scan)
+            .with(Permission::Annotate)
             .with(Permission::Manage)
             .with(Permission::RegisterProject)
             .with(Permission::Admin)
@@ -145,6 +151,7 @@ mod tests {
         assert!(principal.holds(Permission::Scan));
         for denied in [
             Permission::ReadSource,
+            Permission::Annotate,
             Permission::Manage,
             Permission::RegisterProject,
             Permission::Admin,
@@ -156,6 +163,16 @@ mod tests {
                 .iter()
                 .all(|p| !Principal::limited(PermissionSet::none()).holds(*p))
         );
+    }
+
+    #[test]
+    fn annotating_is_its_own_permission() {
+        let reader = Principal::limited(PermissionSet::none().with(Permission::Read));
+        assert!(!reader.holds(Permission::Annotate));
+        let writer = Principal::limited(PermissionSet::none().with(Permission::Annotate));
+        assert!(writer.holds(Permission::Annotate));
+        assert!(!writer.holds(Permission::Read));
+        assert!(Principal::local_owner().holds(Permission::Annotate));
     }
 
     #[test]

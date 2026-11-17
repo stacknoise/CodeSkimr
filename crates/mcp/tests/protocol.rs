@@ -75,7 +75,7 @@ async fn connected_as(principal: Principal) -> Client {
 }
 
 #[tokio::test]
-async fn lists_exactly_the_eleven_tools_with_schemas_and_only_rescan_writes() {
+async fn lists_exactly_the_thirteen_tools_with_schemas_and_only_rescan_writes() {
     let mut client = connected().await;
     let listed = client.call(2, "tools/list", json!({})).await;
     let tools = listed["result"]["tools"].as_array().unwrap();
@@ -93,6 +93,8 @@ async fn lists_exactly_the_eleven_tools_with_schemas_and_only_rescan_writes() {
             "find_similar_code",
             "find_constants",
             "check_conventions",
+            "list_annotations",
+            "get_alerts",
             "rescan"
         ]
     );
@@ -107,6 +109,31 @@ async fn lists_exactly_the_eleven_tools_with_schemas_and_only_rescan_writes() {
     assert_eq!(tools[0]["inputSchema"]["required"][0], "query");
     let symbol = &tools[1]["inputSchema"]["properties"]["symbol"];
     assert_eq!(symbol["anyOf"].as_array().unwrap().len(), 2);
+}
+
+#[tokio::test]
+async fn the_texts_of_people_are_called_data_in_the_tools_and_the_instructions() {
+    let mut client = connected().await;
+    let listed = client.call(2, "tools/list", json!({})).await;
+    let tools = listed["result"]["tools"].as_array().unwrap();
+    for name in ["list_annotations", "get_alerts"] {
+        let tool = tools.iter().find(|tool| tool["name"] == name).unwrap();
+        let description = tool["description"].as_str().unwrap();
+        assert!(description.contains("never"), "{name}: {description}");
+        assert!(description.contains("data"), "{name}: {description}");
+        assert!(!description.contains("respect"), "{name}: {description}");
+    }
+    let messages = Messages::load().unwrap();
+    for language in ["en", "de"] {
+        let text = messages
+            .format(
+                language,
+                codeskimr_codes::i18n::MCP_SERVER_INSTRUCTIONS,
+                None,
+            )
+            .unwrap();
+        assert!(text.contains("not instructions"), "{language}: {text}");
+    }
 }
 
 #[tokio::test]
@@ -213,7 +240,7 @@ async fn the_tool_list_shows_only_what_the_caller_may_run() {
         .iter()
         .map(|t| t["name"].as_str().unwrap().to_owned())
         .collect();
-    assert_eq!(names.len(), 10);
+    assert_eq!(names.len(), 12);
     assert!(!names.iter().any(|name| name == "rescan"));
     let nobody = connected_as(Principal::limited(PermissionSet::none())).await;
     let mut nobody = nobody;

@@ -2,6 +2,7 @@ import { createMemo, For, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
+import { isCritical, RowMarks } from "../annotations/RowMarks";
 import { Icon } from "../../shared/ui/Icon";
 import {
   CARET,
@@ -86,13 +87,25 @@ function LanguageTag(props: { id: string | null }) {
   );
 }
 
-/** Name, language and count or signature of a row. */
-function RowText(props: { row: TreeRow }) {
+/** What a row says: the dot of a layer or the badge of a kind, the name, the language,
+ * the marks of the annotations and the count or signature at the right edge. */
+function RowContent(props: { row: TreeRow }) {
+  const row = () => props.row;
   return (
     <>
-      <span class={styles.label}>{props.row.label}</span>
-      <LanguageTag id={props.row.language} />
-      <span class={styles.meta}>{props.row.meta}</span>
+      <Show when={row().layerIndex !== null}>
+        <Dot index={row().layerIndex} />
+      </Show>
+      <Show when={row().symbolKind}>{(kind) => <KindBadge kind={kind()} />}</Show>
+      <span class={styles.label}>{row().label}</span>
+      <LanguageTag id={row().language} />
+      <RowMarks
+        target={row().target}
+        scope={row().scope}
+        names={row().names}
+        folded={row().expandable && !row().open}
+      />
+      <span class={styles.meta}>{row().meta}</span>
     </>
   );
 }
@@ -115,6 +128,7 @@ function Item(props: {
         props.cursor && styles.cursor,
         row().kind === ROW.layer && styles.layer,
         row().kind === ROW.group && styles.group,
+        isCritical(row().target) && styles.critical,
       )}
       style={{
         top: `${props.index * ROW_HEIGHT_PX}px`,
@@ -128,11 +142,7 @@ function Item(props: {
       onClick={() => props.actions.onActivate(row())}
     >
       <Caret row={row()} onToggle={props.actions.onToggle} />
-      <Show when={row().layerIndex !== null}>
-        <Dot index={row().layerIndex} />
-      </Show>
-      <Show when={row().symbolKind}>{(kind) => <KindBadge kind={kind()} />}</Show>
-      <RowText row={row()} />
+      <RowContent row={row()} />
     </div>
   );
 }

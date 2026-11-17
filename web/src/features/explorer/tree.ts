@@ -10,6 +10,8 @@ import {
   TYPE_KINDS,
   type RowKind,
 } from "./consts";
+import { NAMESPACE_KIND } from "../annotations/consts";
+import type { Target } from "../annotations/types";
 import type { LayerNode, MemberRow, NamespaceNode, Outline, SymbolInfo, TypeNode } from "./types";
 
 /** One visible row of the explorer tree. */
@@ -34,6 +36,12 @@ export interface TreeRow {
   /** The type that a type or member row belongs to, and the member itself. */
   type: number | null;
   member: number | null;
+  /** The symbol an annotation on this row is about; `null` for a layer and a group. */
+  target: Target | null;
+  /** The name whose critical symbols below are counted on a collapsed namespace or type. */
+  scope: string | null;
+  /** The qualified names of the members a group holds, to count the critical ones. */
+  names: readonly string[];
 }
 
 /** The texts the tree needs that depend on the language. */
@@ -72,6 +80,9 @@ function base(key: string, kind: RowKind, depth: number, label: string): TreeRow
     open: false,
     type: null,
     member: null,
+    target: null,
+    scope: null,
+    names: [],
   };
 }
 
@@ -82,6 +93,7 @@ function memberRow(owner: number, depth: number, member: MemberRow): TreeRow {
     meta: member.signature ?? "",
     type: owner,
     member: member.id,
+    target: { kind: member.kind, name: member.qualified_name },
   };
 }
 
@@ -97,7 +109,14 @@ interface Context {
 /** A type inside a type is a row of its own, so it can be opened and shown; its member count
  * is not known before it is read. */
 function nestedNode(member: MemberRow, language: string): TypeNode {
-  return { id: member.id, name: member.name, kind: member.kind, members: 0, language };
+  return {
+    id: member.id,
+    name: member.name,
+    qualified_name: member.qualified_name,
+    kind: member.kind,
+    members: 0,
+    language,
+  };
 }
 
 /** The group of the tree that holds a member of this kind, `null` if it has none. */
@@ -111,13 +130,14 @@ export function groupOfKind(kind: string): string | null {
   return TYPE_KINDS.includes(kind) ? GROUP.nested : null;
 }
 
-function groupRow(info: SymbolInfo, depth: number, id: string, label: string, count: number) {
+function groupRow(info: SymbolInfo, depth: number, id: string, label: string, held: MemberRow[]) {
   const key = groupKey(info.id, id);
   return {
     ...base(key, ROW.group, depth, label),
-    meta: String(count),
+    meta: String(held.length),
     expandable: true,
     type: info.id,
+    names: held.map((member) => member.qualified_name),
   };
 }
 
@@ -132,7 +152,7 @@ function groupRows(info: SymbolInfo, depth: number, ctx: Context): TreeRow[] {
     if (members.length === 0) {
       return [];
     }
-    const row = groupRow(info, depth, id, label, members.length);
+    const row = groupRow(info, depth, id, label, members);
     const open = ctx.expanded.has(row.key);
     const children =
       id === GROUP.nested
@@ -155,6 +175,8 @@ function typeRows(node: TypeNode, depth: number, ctx: Context, nested = false): 
     expandable: nested || node.members > 0,
     open,
     type: node.id,
+    target: { kind: node.kind, name: node.qualified_name },
+    scope: node.qualified_name,
   };
   const info = ctx.details.get(node.id);
   return open && info ? [row, ...groupRows(info, depth + 1, ctx)] : [row];
@@ -228,6 +250,8 @@ function segmentRows(layer: string, node: Segment, depth: number, ctx: Context):
     meta: String(count),
     expandable: true,
     open,
+    target: node.path === "" ? null : { kind: NAMESPACE_KIND, name: node.path },
+    scope: node.path === "" ? null : node.path,
   };
   if (!open) {
     return [row];

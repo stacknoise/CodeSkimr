@@ -4,9 +4,15 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 import type { MessageKey } from "../../shared/i18n/i18n";
 import { cx } from "../../shared/ui/cx";
 import { showUsages } from "../../shared/navigation/navigation";
+import { showAnnotationText } from "../annotations/flags";
+import { InlineText, ShowTextSwitch } from "../annotations/InlineText";
+import { targetKey } from "../annotations/join";
+import { CounterChips, CriticalLabel } from "../annotations/Marks";
+import { annotationsAvailable, annotationTexts, countersFor } from "../annotations/store";
 import {
   CC_METRIC,
   CHIP,
+  COLUMN_COUNT,
   MISSING,
   SORT_COLUMN,
   SORT_DIRECTION,
@@ -16,6 +22,7 @@ import {
   type ChipId,
 } from "./consts";
 import { currentMember, memberChip, memberSort, setMemberChip, setMemberSort } from "./explorer";
+import { memberTarget } from "./annotate";
 import { lineRange, metricValue } from "./format";
 import { KindBadge } from "./KindBadge";
 import { tipFor } from "./metrics";
@@ -35,21 +42,61 @@ function lines(row: MemberRow): string {
   return lineRange(row.first_line, row.last_line);
 }
 
-function Row(props: { row: MemberRow; onPick: (row: MemberRow) => void }) {
+/** The cells of a member row that carry the annotations: the label "Critical" after the name
+ * (variant B has no shield here) and the counters. */
+function Notes(props: { row: MemberRow }) {
+  const counters = () => countersFor(memberTarget(props.row));
+  return (
+    <td class={styles.notes}>
+      <CounterChips counters={counters()} />
+    </td>
+  );
+}
+
+/** The text of the notes and tasks of a member, under its row, while the switch is on. */
+function Under(props: { row: MemberRow }) {
+  const items = () => annotationTexts().get(targetKey(props.row.kind, props.row.qualified_name));
+  return (
+    <Show when={showAnnotationText() && items()?.length}>
+      <tr>
+        <td
+          class={styles.inline}
+          colSpan={annotationsAvailable() === false ? COLUMN_COUNT - 1 : COLUMN_COUNT}
+        >
+          <InlineText items={items() ?? []} />
+        </td>
+      </tr>
+    </Show>
+  );
+}
+
+/** The cell of the name: the button that selects the member and, for a critical one, the label. */
+function NameCell(props: { row: MemberRow; critical: boolean; onPick: (row: MemberRow) => void }) {
   const row = () => props.row;
   return (
-    <tr class={cx(styles.row, currentMember() === row().id && styles.selected)}>
-      <td class={styles.name}>
-        <button
-          type="button"
-          class={styles.pick}
-          aria-current={currentMember() === row().id ? TRUE : undefined}
-          onClick={() => props.onPick(row())}
-        >
-          <KindBadge kind={row().kind} /> <span>{row().name}</span>
-        </button>
-      </td>
-      <td class={styles.signature}>{row().signature ?? MISSING}</td>
+    <td class={styles.name}>
+      <button
+        type="button"
+        class={styles.pick}
+        aria-current={currentMember() === row().id ? TRUE : undefined}
+        onClick={() => props.onPick(row())}
+      >
+        <KindBadge kind={row().kind} /> <span>{row().name}</span>
+      </button>
+      <Show when={props.critical}>
+        <span class={styles.label}>
+          <CriticalLabel />
+        </span>
+      </Show>
+    </td>
+  );
+}
+
+/** The cells with the measures of a member: access, complexity, usages and lines. */
+function MeasureCells(props: { row: MemberRow }) {
+  const row = () => props.row;
+  return (
+    <>
       <td class={styles.access}>{row().visibility ?? MISSING}</td>
       <td class={cx(styles.number, ratingClass(row().complexity_rating, styles))}>
         {metricValue(row().complexity ?? undefined, currentLanguage())}
@@ -65,7 +112,31 @@ function Row(props: { row: MemberRow; onPick: (row: MemberRow) => void }) {
         </button>
       </td>
       <td class={styles.number}>{lines(row())}</td>
-    </tr>
+    </>
+  );
+}
+
+function Row(props: { row: MemberRow; onPick: (row: MemberRow) => void }) {
+  const row = () => props.row;
+  const critical = () => countersFor(memberTarget(row()))?.critical ?? false;
+  return (
+    <>
+      <tr
+        class={cx(
+          styles.row,
+          currentMember() === row().id && styles.selected,
+          critical() && styles.critical,
+        )}
+      >
+        <NameCell row={row()} critical={critical()} onPick={props.onPick} />
+        <Show when={annotationsAvailable() !== false}>
+          <Notes row={row()} />
+        </Show>
+        <td class={styles.signature}>{row().signature ?? MISSING}</td>
+        <MeasureCells row={row()} />
+      </tr>
+      <Under row={row()} />
+    </>
   );
 }
 
@@ -121,6 +192,9 @@ function Head(props: { thresholds: Thresholds | null }) {
     <thead>
       <tr>
         <SortHead column={SORT_COLUMN.name} label={I18N_KEYS.EXPLORER_COLUMN_NAME} />
+        <Show when={annotationsAvailable() !== false}>
+          <th>{t(I18N_KEYS.ANNOTATIONS_COLUMN)}</th>
+        </Show>
         <SortHead column={SORT_COLUMN.signature} label={I18N_KEYS.EXPLORER_COLUMN_SIGNATURE} />
         <SortHead column={SORT_COLUMN.access} label={I18N_KEYS.EXPLORER_COLUMN_ACCESS} />
         <SortHead
@@ -157,6 +231,9 @@ export function MemberTable(props: {
             count: metricValue(props.info.members.length, currentLanguage()),
           })}
         </button>
+        <Show when={annotationsAvailable() !== false}>
+          <ShowTextSwitch />
+        </Show>
         <Chips chip={memberChip()} onChip={setMemberChip} />
       </div>
       <Show

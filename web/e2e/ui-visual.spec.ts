@@ -14,7 +14,6 @@ import type { Page, TestInfo } from "@playwright/test";
 import {
   addLayeredProject,
   addScannedProject,
-  openScannedProject,
   expect,
   keepLaunchFile,
   SCAN_MS,
@@ -155,6 +154,16 @@ const SOURCE = [
   "",
 ].join("\n");
 
+/** Adds the project `name`, opens it and selects its type `Calculator`. */
+async function openCalculator(page: Page, harness: Harness, name: string): Promise<void> {
+  const row = await addScannedProject(page, harness, name, SOURCE);
+  await row.click({ position: { x: 4, y: 4 } });
+  await page.keyboard.press("Enter");
+  await page.getByText("Vis", { exact: true }).click();
+  await page.getByText("Calculator", { exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Calculator" })).toBeVisible();
+}
+
 /** One type with 40 members, so a search for "Item" fills the list of the quick search. */
 const MANY_MEMBERS = [
   "namespace Many;",
@@ -202,12 +211,7 @@ for (const theme of THEMES) {
 
     test("Explorer (2)", async ({ page, harness }, info) => {
       await prepare(page, theme);
-      const row = await addScannedProject(page, harness, `visexplorer${theme}`, SOURCE);
-      await row.click({ position: { x: 4, y: 4 } });
-      await page.keyboard.press("Enter");
-      await page.getByText("Vis", { exact: true }).click();
-      await page.getByText("Calculator", { exact: true }).click();
-      await expect(page.getByRole("heading", { name: "Calculator" })).toBeVisible();
+      await openCalculator(page, harness, `visexplorer${theme}`);
       const mock = await openMock(page, "Explorer");
       await compare(page, mock, [
         ...SHELL,
@@ -216,10 +220,17 @@ for (const theme of THEMES) {
           mock: "nav ~ section:nth-of-type(1)",
           real: "main section[aria-label='Structure']",
         },
+        // The right column holds the tabs of the annotations (mock 14) above the source.
         {
           name: "source column",
           mock: "nav ~ section:nth-of-type(3)",
+          real: "main section[aria-label='Side panel']",
+        },
+        {
+          name: "source pane",
+          mock: "nav ~ section:nth-of-type(3)",
           real: "main section[aria-label='Source']",
+          only: ["x", "width"],
         },
       ]);
       await shot(page, `explorer-${theme}`, info);
@@ -280,7 +291,7 @@ for (const theme of THEMES) {
 
     test("Scan and performance (5)", async ({ page, harness }, info) => {
       await prepare(page, theme);
-      await openScannedProject(page, harness, `visscan${theme}`, SOURCE);
+      await addScannedProject(page, harness, `visscan${theme}`, SOURCE);
       await page.getByRole("link", { name: "Scans and performance" }).click();
       await expect(page.getByRole("heading", { name: "Scan finished" })).toBeVisible();
       const mock = await openMock(page, "Scan");
@@ -322,6 +333,55 @@ for (const theme of THEMES) {
         { name: "side panel", mock: "nav ~ aside", real: "main aside" },
       ]);
       await shot(page, `usages-${theme}`, info);
+    });
+
+    test("Annotations in the explorer (14)", async ({ page, harness }, info) => {
+      await prepare(page, theme);
+      await openCalculator(page, harness, `visnotes${theme}`);
+      await page.keyboard.press("k");
+      await expect(page.getByText("Marked as system critical.")).toBeVisible();
+      const mock = await openMock(page, "Annotations");
+      await compare(page, mock, [
+        { name: "top bar", mock: "header", real: "header", only: ["y", "height"] },
+        {
+          name: "tab list",
+          mock: ".tabs",
+          real: "[role=tablist][aria-label='Annotations of the symbol']",
+          only: ["height"],
+        },
+      ]);
+      await shot(page, `annotations-${theme}`, info);
+    });
+
+    test("Alerts (15)", async ({ page, harness }, info) => {
+      await prepare(page, theme);
+      const row = await addScannedProject(page, harness, `visalerts${theme}`, SOURCE);
+      await row.click({ position: { x: 4, y: 4 } });
+      await page.keyboard.press("Enter");
+      await expect(page.getByRole("tree")).toBeVisible();
+      await page.getByRole("button", { name: /^Alerts/ }).click();
+      await expect(page.getByRole("dialog", { name: "Alerts" })).toBeVisible();
+      const mock = await openMock(page, "Alerts");
+      await compare(page, mock, [
+        { name: "drawer", mock: ".drawer", real: "[role=dialog]", only: ["y", "width"] },
+      ]);
+      await shot(page, `alerts-${theme}`, info);
+    });
+
+    test("Task board (16)", async ({ page, harness }, info) => {
+      await prepare(page, theme);
+      await openCalculator(page, harness, `visboard${theme}`);
+      await page.keyboard.press("t");
+      await page.getByLabel("Title").fill("Check the calculator");
+      await page.keyboard.press("Control+Enter");
+      await page.getByRole("link", { name: "Annotations", exact: true }).click();
+      await expect(page.getByText("Check the calculator")).toBeVisible();
+      const mock = await openMock(page, "Tasks");
+      await compare(page, mock, [
+        { name: "top bar", mock: "header", real: "header", only: ["y", "height"] },
+        { name: "screen", mock: ".mid", real: "main", only: ["x", "y"] },
+      ]);
+      await shot(page, `board-${theme}`, info);
     });
 
     test("Dependencies (3)", async ({ page, harness }, info) => {

@@ -23,6 +23,7 @@ pub fn remote_client() -> Principal {
         Permission::Read,
         Permission::ReadSource,
         Permission::Scan,
+        Permission::Annotate,
         Permission::Manage,
         Permission::RegisterProject,
         Permission::Admin,
@@ -46,4 +47,11 @@ pub fn nobody() -> Principal {
 #[must_use]
 pub fn reader() -> Principal {
     Principal::limited(PermissionSet::none().with(Permission::Read))
+}
+
+/// A caller who may annotate but not read, for the tests of the two rights apart.
+#[cfg(test)]
+#[must_use]
+pub fn annotator() -> Principal {
+    Principal::limited(PermissionSet::none().with(Permission::Annotate))
 }

@@ -256,3 +256,34 @@ pub const LAYERS_SET_TITLE: &str = i18n::COMMAND_LAYERS_SET_TITLE;
 pub const LAYERS_SET_DESCRIPTION: &str = i18n::COMMAND_LAYERS_SET_DESCRIPTION;
 /// Largest project file that is read; a bigger one is refused.
 pub const PROJECT_FILE_MAX_BYTES: u64 = 1_048_576;
+
+/// Id of the command that lists annotations.
+pub const ANNOTATIONS_LIST: &str = "annotations.list";
+/// Id of the command that counts annotations per symbol.
+pub const ANNOTATIONS_SUMMARY: &str = "annotations.summary";
+/// Id of the command that adds an annotation of any kind.
+pub const ANNOTATIONS_CREATE: &str = "annotations.create";
+/// Id of the command that marks a symbol as critical.
+pub const ANNOTATIONS_MARK_CRITICAL: &str = "annotations.mark_critical";
+/// Id of the command that adds a note.
+pub const ANNOTATIONS_ADD_NOTE: &str = "annotations.add_note";
+/// Id of the command that adds a task.
+pub const ANNOTATIONS_ADD_TASK: &str = "annotations.add_task";
+/// Id of the command that changes an annotation.
+pub const ANNOTATIONS_UPDATE: &str = "annotations.update";
+/// Id of the command that deletes an annotation.
+pub const ANNOTATIONS_DELETE: &str = "annotations.delete";
+/// Id of the command that lists alerts.
+pub const ALERTS_LIST: &str = "alerts.list";
+/// Id of the command that dismisses one alert.
+pub const ALERTS_DISMISS: &str = "alerts.dismiss";
+/// Id of the command that dismisses the alerts of a filter.
+pub const ALERTS_DISMISS_ALL: &str = "alerts.dismiss_all";
+/// Default shortcut of `annotations.mark_critical` (blueprint 15.4).
+pub const SHORTCUT_CRITICAL: &str = "K";
+/// Default shortcut of `annotations.add_note`.
+pub const SHORTCUT_NOTE: &str = "N";
+/// Default shortcut of `annotations.add_task`.
+pub const SHORTCUT_TASK: &str = "T";
+/// The author of every annotation until the team edition has accounts (ADR 0068).
+pub const LOCAL_AUTHOR: &str = "local";

@@ -1,0 +1,62 @@
+# Meldungen über geänderte systemkritische Symbole und das Aufgabenbrett (ADR 0068, Mocks 15 und 16).
+
+nav-annotations = Anmerkungen
+alerts-bell-label = Meldungen, { $count } offen
+alerts-bell-none = Meldungen, keine offen
+alerts-title = Meldungen
+alerts-open-chip = { $count } offen
+alerts-close = Meldungen schließen
+alerts-dismiss-all = Alle offenen Meldungen entfernen
+alerts-dismiss-all-ask = Alle { $count } Meldungen dieses Reiters entfernen?
+alerts-dismiss-all-yes = Ja, alle entfernen
+alerts-tabs-label = Arten von Meldungen
+alerts-tab-open = Offen
+alerts-tab-changed = Geändert
+alerts-tab-removed = Entfernt
+alerts-tab-done = Erledigt
+alerts-kind-changed = GEÄNDERT
+alerts-kind-removed = ENTFERNT
+alerts-kind-orphaned = VERWAIST
+alerts-text-changed = Geändert: { $what }.
+alerts-text-changed-plain = Das Symbol hat sich geändert.
+alerts-change-content = Inhalt
+alerts-change-signature = Signatur
+alerts-change-cc = Komplexität
+alerts-change-loc = Zeilenzahl
+alerts-text-removed = Das Symbol gibt es nicht mehr. { $count ->
+    [one] Eine Stelle verweist noch darauf.
+   *[other] { $count } Stellen verweisen noch darauf.
+}
+alerts-text-removed-plain = Das Symbol gibt es nicht mehr.
+alerts-text-orphaned = Ziel nicht gefunden. Ähnliches Symbol: { $closest }.
+alerts-text-orphaned-plain = Ziel nicht gefunden.
+alerts-seen = { $count } Mal gesehen
+alerts-trigger-scan = Scan
+alerts-trigger-watcher = Dateiwächter
+alerts-trigger-fetch = Git-Prüfung
+alerts-reason = Begründung: { $reason }
+alerts-reassign = Neu zuordnen
+alerts-remove-mark = Markierung entfernen
+alerts-dismiss = Meldung entfernen: { $name }
+alerts-dismissed-on = erledigt { $when }
+alerts-baseline = Vergleich gegen: zuletzt bestätigter Stand des Symbols
+alerts-footer = Verwaiste Ziele stehen im Reiter „Entfernt“. Ein Klick springt zum Member, das Kreuz entfernt die Meldung.
+alerts-empty = Hier gibt es keine Meldungen.
+alerts-loading = Meldungen werden gelesen ...
+alerts-failed = Die Meldungen konnten nicht gelesen werden.
+alerts-action-failed = Die Meldung konnte nicht geändert werden.
+board-title = Anmerkungen
+board-chip-tasks = Aufgaben { $count } offen
+board-chip-notes = Notizen { $count }
+board-filters-label = Filter der Aufgaben
+board-filter-mine = Meine
+board-filter-mine-unknown = Ihr Name ist bekannt, sobald Sie hier eine Anmerkung angelegt haben.
+board-filter-critical = Nur Kritische
+board-filter-due = Fällig
+board-column = { $name } ({ $count })
+board-empty-column = Keine Aufgaben
+board-empty = Noch keine Aufgaben. Im Explorer mit T anlegen.
+board-loading = Aufgaben werden gelesen ...
+board-failed = Die Aufgaben konnten nicht gelesen werden.
+board-open-symbol = Im Explorer zeigen: { $name }
+board-done-on = erledigt { $date }

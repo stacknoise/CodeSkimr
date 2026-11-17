@@ -52,3 +52,7 @@ graph-types-pick = Choose a type in the explorer first.
 graph-namespaces-more = { $count } more namespaces are not shown.
 graph-namespace-alone = This namespace has no dependencies on others, and no other uses it.
 graph-selected-namespace = Namespace
+graph-toggle-critical = Highlight critical
+graph-toggle-critical-only = only critical and their neighbours
+graph-legend-critical = System critical
+graph-critical-none = No critical symbol on this map.

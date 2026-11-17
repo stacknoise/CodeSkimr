@@ -1,0 +1,69 @@
+/* The marks of the annotations (ADR 0068, mock Annotations.dc.html). Labels and counters never
+   wrap (blueprint 15.4). */
+.shield {
+    flex: none;
+    color: var(--critical);
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    flex: none;
+    color: var(--critical);
+}
+
+.label {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-4);
+    flex: none;
+    padding: 1px var(--space-6);
+    border: 1px solid var(--critical);
+    border-radius: var(--radius-badge);
+    background: var(--critical-bg);
+    color: var(--critical);
+    font: 700 10px var(--font-sans);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    flex: none;
+    padding: 1px 7px;
+    border-radius: 9px;
+    background: var(--accent-bg);
+    color: var(--accent);
+    font: 11px var(--font-sans);
+    white-space: nowrap;
+}
+
+.tasks {
+    background: var(--warn-bg);
+    color: var(--warn);
+}
+
+.count {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    flex: none;
+    padding: 0 var(--space-6);
+    border: 1px solid var(--critical);
+    border-radius: 9px;
+    color: var(--critical);
+    font: 11px var(--font-sans);
+    white-space: nowrap;
+}

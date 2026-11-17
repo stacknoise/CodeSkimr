@@ -3,9 +3,10 @@ import { EXPLORER_ROUTE } from "../../app/consts";
 import { navigate } from "../../app/router";
 import { activeProject, openProject } from "../../shared/project/active";
 import { isTyping, useKeydown } from "../../shared/keys/keydown";
+import { loadSummary } from "../annotations/store";
 import { currentType } from "../explorer/explorer";
 import { requestFocus } from "../../shared/navigation/navigation";
-import { refreshProjects } from "../projects/projects";
+import { projects, refreshProjects } from "../projects/projects";
 import { KEY, LEVEL } from "./consts";
 import {
   graphData,
@@ -33,7 +34,7 @@ export function useMapState() {
   const filtering = () => violationsOnly() && graphLevel() === LEVEL.layers;
   const [view, setView] = createSignal<View>({ scale: 1, x: 0, y: 0 });
   const [size, setSize] = createSignal<Size>({ width: 0, height: 0 });
-  const project = createMemo(() => activeProject());
+  const project = createMemo(() => activeProject() ?? projects()[0]?.id ?? null);
   const data = () => (graphData() && graphData()!.boxes.length > 0 ? graphData() : null);
   const fitView = () => {
     const current = data();
@@ -61,6 +62,17 @@ export function useMapState() {
 /** The state of the screen as the hooks and components share it. */
 export type MapState = ReturnType<typeof useMapState>;
 
+/** The critical marks: the counters of the annotations are read once for each snapshot. */
+function useSummary(project: () => number | null): void {
+  createEffect(() => {
+    const id = project();
+    const snapshot = graphData()?.snapshot ?? null;
+    if (id !== null) {
+      void loadSummary(id, snapshot);
+    }
+  });
+}
+
 /** Loads the graph for the project and keeps the view and the selection in step with it. */
 export function useGraphLoading(state: MapState): void {
   const { project, setSelected, size, fitView } = state;
@@ -76,6 +88,7 @@ export function useGraphLoading(state: MapState): void {
     }),
   );
   createEffect(on([() => graphData()?.snapshot, size], fitView));
+  useSummary(project);
   // On the type and namespace levels the one in the middle is selected,
   // so the panel shows what surrounds it.
   createEffect(on(graphData, (loaded) => loaded?.focus && setSelected(loaded.focus.name)));

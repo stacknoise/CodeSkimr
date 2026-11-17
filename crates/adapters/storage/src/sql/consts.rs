@@ -368,7 +368,7 @@ pub const OUTLINE_OF_KIND: &str = "SELECT s.kind, s.id, s.name, s.qualified_name
 pub const FILE_LANGUAGE: &str = "SELECT language FROM files WHERE snapshot_id = ?1 AND id = ?2";
 /// Member table of a symbol: snapshot, symbol, complexity metric.
 pub const MEMBER_ROWS: &str = "SELECT s.id, s.name, s.kind, s.visibility, s.signature, \
-    s.start_line, s.end_line, \
+    s.start_line, s.end_line, s.qualified_name, \
     (SELECT x.value FROM metrics x WHERE x.snapshot_id = s.snapshot_id AND x.symbol_id = s.id \
         AND x.kind = ?3), \
     COALESCE((SELECT u.usages FROM usage_counts u WHERE u.snapshot_id = s.snapshot_id \

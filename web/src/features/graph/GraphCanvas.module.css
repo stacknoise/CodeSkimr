@@ -95,3 +95,15 @@
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+/* A system-critical box (mock 15, second board): the thick stripe in the colour of the mark and the
+   label "K"; the stripe replaces the colour of the layer on the left edge. */
+.critical {
+    border-left-color: var(--critical);
+    border-left-width: 5px;
+}
+
+.mark {
+    margin-left: var(--space-8);
+    flex: none;
+}

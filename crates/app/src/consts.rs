@@ -449,3 +449,38 @@ pub const TRAY_ICON_RGBA: &[u8] = include_bytes!("../assets/tray-icon.rgba");
 // A wrongly made icon file fails the build, not the start of the tray.
 #[cfg(any(windows, target_os = "macos"))]
 const _: () = assert!(TRAY_ICON_RGBA.len() == (TRAY_ICON_SIZE * TRAY_ICON_SIZE * 4) as usize);
+
+/// Separates the lines of the output of `annotations` and `alerts`.
+pub const CLI_LINE_BREAK: &str = "\n";
+/// The control characters that stay in the text output of `annotations` and `alerts`.
+pub const CLI_KEPT_CONTROLS: [char; 2] = ['\t', '\n'];
+/// Separates the parts of the summary of an annotation or of the detail of an alert.
+pub const CLI_LIST_SEPARATOR: &str = ", ";
+
+/// Names of the Fluent arguments of the messages of `annotations` and `alerts`.
+pub mod note_arg {
+    /// `{ $id }`: id of an annotation or an alert.
+    pub const ID: &str = "id";
+    /// `{ $kind }`: kind of an annotation or an alert.
+    pub const KIND: &str = "kind";
+    /// `{ $name }`: qualified name of the symbol.
+    pub const NAME: &str = "name";
+    /// `{ $state }`: state of an alert.
+    pub const STATE: &str = "state";
+    /// `{ $parts }`: 0 if the line has no summary or detail, 1 if it has.
+    pub const PARTS: &str = "parts";
+    /// `{ $summary }`: what an annotation says.
+    pub const SUMMARY: &str = "summary";
+    /// `{ $detail }`: what an alert found.
+    pub const DETAIL: &str = "detail";
+    /// `{ $shown }`: rows on this page.
+    pub const SHOWN: &str = "shown";
+    /// `{ $total }`: rows of the whole list.
+    pub const TOTAL: &str = "total";
+    /// `{ $next }`: the offset of the next page.
+    pub const NEXT: &str = "next";
+    /// `{ $open }`: open alerts.
+    pub const OPEN: &str = "open";
+    /// `{ $dismissed }`: alerts that were dismissed.
+    pub const DISMISSED: &str = "dismissed";
+}

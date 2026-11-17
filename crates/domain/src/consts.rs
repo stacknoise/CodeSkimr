@@ -191,6 +191,8 @@ pub const PERMISSION_READ: &str = "read";
 pub const PERMISSION_READ_SOURCE: &str = "read_source";
 /// Label of `Permission::Scan`.
 pub const PERMISSION_SCAN: &str = "scan";
+/// Label of `Permission::Annotate`.
+pub const PERMISSION_ANNOTATE: &str = "annotate";
 /// Label of `Permission::Manage`.
 pub const PERMISSION_MANAGE: &str = "manage";
 /// Label of `Permission::RegisterProject`.

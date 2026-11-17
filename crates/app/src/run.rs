@@ -31,7 +31,8 @@ use crate::source_arg::SourceError;
 use crate::watch::{self, Report};
 use crate::wiring::os_secrets;
 use crate::{
-    check, credential, export, level2_consent, mcp, open, scan, serve, start, tray, ui_commands,
+    annotations_cli, check, credential, export, level2_consent, mcp, open, scan, serve, start,
+    tray, ui_commands,
 };
 
 /// Why a command did not finish: a registered code, plus the parser's text for usage errors.
@@ -159,6 +160,14 @@ fn run_invocation(
         needs_packs(&invocation.action),
     )?;
     match &invocation.action {
+        Action::Annotations(action) => {
+            let around = surroundings(invocation, &locations, (messages, language));
+            print_text(annotations_cli::run_annotations(action, &around))
+        }
+        Action::Alerts(action) => {
+            let around = surroundings(invocation, &locations, (messages, language));
+            print_text(annotations_cli::run_alerts(action, &around))
+        }
         Action::Credential(action) => run_credential(action, messages, language),
         Action::Level2(action) => run_level2(action, invocation, &locations, messages, language),
         Action::Scan(args) => run_scan(args, invocation, &locations, messages, language),
@@ -377,6 +386,26 @@ fn run_console_start(
         let _ = report(messages, language, &failure);
     };
     start::together(serve, listening, failed)?;
+    Ok(Outcome::Done)
+}
+
+/// What `codeskimr annotations` and `codeskimr alerts` run in.
+fn surroundings<'a>(
+    invocation: &'a Invocation,
+    locations: &'a Locations,
+    (messages, language): (&'a Messages, &'a str),
+) -> annotations_cli::Surroundings<'a> {
+    annotations_cli::Surroundings {
+        global: &invocation.global,
+        locations,
+        messages,
+        language,
+    }
+}
+
+/// Prints what a command made and ends the run.
+fn print_text(text: Result<String, CodedError>) -> Result<Outcome, Failure> {
+    write_out(&text?);
     Ok(Outcome::Done)
 }
 

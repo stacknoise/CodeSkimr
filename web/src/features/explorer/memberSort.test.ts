@@ -6,6 +6,7 @@ import type { MemberRow } from "./types";
 const row = (name: string, over: Partial<MemberRow> = {}): MemberRow => ({
   id: 1,
   name,
+  qualified_name: name,
   kind: "method",
   visibility: "public",
   signature: null,

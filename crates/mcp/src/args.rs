@@ -188,6 +188,45 @@ pub struct DependenciesArgs {
     pub limit: Option<u32>,
 }
 
+/// Arguments of `list_annotations`.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+#[schemars(crate = "rmcp::schemars")]
+pub struct AnnotationsArgs {
+    /// A symbol id (digits, as a string or a number) or a qualified name: only the annotations of
+    /// this symbol (every overload of the name). All annotations of the project if left out.
+    #[serde(default, deserialize_with = "symbol_text_opt")]
+    #[schemars(with = "Option<SymbolRef>")]
+    pub symbol: Option<String>,
+    /// Only this kind: `critical`, `note` or `task`.
+    pub kind: Option<String>,
+    /// Only tasks in this status: `open`, `in_progress` or `done`.
+    pub status: Option<String>,
+    /// Id of the project; the project of this server if left out.
+    pub project: Option<u64>,
+    /// Number of results; the configured default if left out, never more than the configured maximum.
+    pub limit: Option<u32>,
+    /// Results to skip, to read the next page; 0 if left out.
+    pub offset: Option<u32>,
+}
+
+/// Arguments of `get_alerts`.
+#[derive(Debug, Clone, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+#[schemars(crate = "rmcp::schemars")]
+pub struct AlertsArgs {
+    /// `open` (the default) or `dismissed`.
+    pub state: Option<String>,
+    /// Only alerts of this kind: `changed`, `removed` or `orphaned`.
+    pub kind: Option<String>,
+    /// Id of the project; the project of this server if left out.
+    pub project: Option<u64>,
+    /// Number of results; the configured default if left out, never more than the configured maximum.
+    pub limit: Option<u32>,
+    /// Results to skip, to read the next page; 0 if left out.
+    pub offset: Option<u32>,
+}
+
 /// Arguments of `rescan`.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 #[serde(deny_unknown_fields)]

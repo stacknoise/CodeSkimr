@@ -5,6 +5,8 @@ import { activeProject } from "../../shared/project/active";
 import { TONE } from "../../shared/ui/consts";
 import { cx } from "../../shared/ui/cx";
 import { Pill } from "../../shared/ui/Pill";
+import { CounterChips, CriticalLabel } from "../annotations/Marks";
+import { countersFor } from "../annotations/store";
 import { CRUMB_SEPARATOR, HOTKEY, PILL_SEPARATOR } from "./consts";
 import { languageName } from "../projects/format";
 import { showInGraph } from "../graph/show";
@@ -89,6 +91,7 @@ function Title(props: { info: SymbolInfo; member: MemberRow | null }) {
     }
   };
   const kind = () => [shown().kind, shown().visibility].filter(Boolean).join(PILL_SEPARATOR);
+  const counters = () => countersFor({ kind: shown().kind, name: shown().qualified_name });
   return (
     <div class={styles.title}>
       <Show when={props.member !== null && memberFromTable()}>
@@ -97,6 +100,10 @@ function Title(props: { info: SymbolInfo; member: MemberRow | null }) {
         </button>
       </Show>
       <h1>{shown().name}</h1>
+      <Show when={counters()?.critical}>
+        <CriticalLabel shield />
+      </Show>
+      <CounterChips counters={counters()} />
       <Pill tone={TONE.accent}>{kind()}</Pill>
       <Pill>{languageName(props.info.language)}</Pill>
       <Actions symbol={shown().id} />

@@ -1,0 +1,15 @@
+.text {
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
+}
+
+.text a {
+    color: var(--accent);
+}
+
+.code {
+    padding: 0 var(--space-4);
+    border-radius: var(--radius-badge);
+    background: var(--line-soft);
+    font: 12px var(--font-mono);
+}

@@ -13,13 +13,6 @@ use crate::source_arg::classify;
 
 const PROJECT_FILE: &str = ".codeskimr.toml";
 
-fn scanned(fixture: &Fixture) -> u64 {
-    let scanned = fixture
-        .call("projects.add", json!({ "source": fixture.folder() }))
-        .unwrap();
-    scanned["project"].as_u64().unwrap()
-}
-
 fn demo_layer() -> Value {
     json!([{ "name": "calculation", "namespaces": ["Demo"] }])
 }
@@ -27,7 +20,7 @@ fn demo_layer() -> Value {
 #[test]
 fn the_namespaces_of_the_scan_are_offered_without_a_layer() {
     let fixture = Fixture::installed(None);
-    let project = scanned(&fixture);
+    let project = fixture.scanned();
     let shown = fixture
         .call("layers.get", json!({ "project": project }))
         .unwrap();
@@ -43,7 +36,7 @@ fn the_namespaces_of_the_scan_are_offered_without_a_layer() {
 #[test]
 fn saved_layers_reach_the_file_and_apply_with_the_next_scan() {
     let fixture = Fixture::installed(None);
-    let project = scanned(&fixture);
+    let project = fixture.scanned();
     let input = json!({ "project": project, "layers": demo_layer() });
     assert_eq!(
         fixture.call("layers.set", input),
@@ -68,7 +61,7 @@ fn saved_layers_reach_the_file_and_apply_with_the_next_scan() {
 #[test]
 fn invalid_layers_leave_the_file_alone() {
     let fixture = Fixture::installed(None);
-    let project = scanned(&fixture);
+    let project = fixture.scanned();
     let twice = json!([
         { "name": "a", "namespaces": ["Demo"] },
         { "name": "a", "namespaces": ["Other"] },
@@ -83,7 +76,7 @@ fn invalid_layers_leave_the_file_alone() {
 #[test]
 fn a_file_that_is_not_toml_is_not_touched() {
     let fixture = Fixture::installed(None);
-    let project = scanned(&fixture);
+    let project = fixture.scanned();
     let path = fixture.root.path().join("app").join(PROJECT_FILE);
     fs::write(&path, "[broken").unwrap();
     let input = json!({ "project": project, "layers": demo_layer() });
@@ -122,7 +115,7 @@ fn an_unknown_project_is_refused() {
 #[test]
 fn a_result_over_the_size_limit_is_refused_and_the_file_stays() {
     let fixture = Fixture::installed(None);
-    let project = scanned(&fixture);
+    let project = fixture.scanned();
     let path = fixture.root.path().join("app").join(PROJECT_FILE);
     let before = format!("# {}\n", "x".repeat(1_048_000));
     fs::write(&path, &before).unwrap();
@@ -136,7 +129,7 @@ fn a_result_over_the_size_limit_is_refused_and_the_file_stays() {
 #[test]
 fn a_link_as_project_file_is_not_read_and_not_replaced() {
     let fixture = Fixture::installed(None);
-    let project = scanned(&fixture);
+    let project = fixture.scanned();
     let target = fixture.root.path().join("elsewhere.toml");
     fs::write(&target, "").unwrap();
     let path = fixture.root.path().join("app").join(PROJECT_FILE);
@@ -157,7 +150,7 @@ fn the_mode_of_the_old_file_is_kept() {
     use std::os::unix::fs::PermissionsExt;
 
     let fixture = Fixture::installed(None);
-    let project = scanned(&fixture);
+    let project = fixture.scanned();
     let path = fixture.root.path().join("app").join(PROJECT_FILE);
     fs::write(&path, "").unwrap();
     fs::set_permissions(&path, fs::Permissions::from_mode(0o600)).unwrap();

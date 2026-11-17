@@ -46,6 +46,8 @@ Alle Werkzeuge lesen nur, außer `rescan` (und `get_project` führt die Werkzeug
 | `find_constants` | vorhandene Konstanten nach Namen finden, bevor ein Literal dazukommt |
 | `check_conventions` | die Konventionsprüfungen über Dateien des Projekts ausführen |
 | `get_project` | Sprachen des Projekts und die **Werkzeugprüfung** der Ebene 2: welche Indexer bereit, fehlend oder zu alt sind, mit Zweck und Installationshinweis |
+| `list_annotations` | die Notizen, Aufgaben und kritischen Markierungen, die Menschen an Symbole geheftet haben (`symbol`, `kind`, `status`; seitenweise mit `limit` und `offset`) |
+| `get_alerts` | die Warnungen zu kritischen Symbolen, die sich geändert haben, entfernt wurden oder ihren Platz verloren haben (`state`, `kind`; standardmäßig die offenen; seitenweise). Agenten können sie lesen, aber nicht ausblenden |
 | `rescan` | geänderte Dateien neu einlesen (inkrementell); braucht das Recht zum Scannen. Es startet nie Ebene 2 |
 
 Gute Gewohnheiten für Agenten: `find_similar_code` und `find_constants` aufrufen, bevor neuer Code entsteht, und `check_conventions` vor einem Commit.

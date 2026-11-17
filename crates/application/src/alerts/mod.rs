@@ -6,6 +6,7 @@
 //! to log, and it never undoes the snapshot.
 
 pub mod compare;
+pub mod observe;
 pub mod target;
 
 use std::collections::{BTreeSet, HashMap};
@@ -14,7 +15,7 @@ use std::sync::Arc;
 use codeskimr_domain::{
     Alert, AlertChange, AlertKind, AlertSighting, AlertState, AlertTrigger, Annotation,
     AnnotationId, AnnotationKind, AnnotationTarget, ProjectId, QualifiedName, Snapshot,
-    SymbolBaseline, SymbolKind, Timestamp,
+    SymbolBaseline, Timestamp,
 };
 
 use crate::error::CodedError;
@@ -273,54 +274,42 @@ impl AlertStep {
         Ok(Outcome::Raised)
     }
 
-    /// What the symbol looks like now. A namespace has no hash of its own: its content is the hash
-    /// over the sorted hashes of the types and members below it, so it changes when one of them
-    /// does, is added or is removed. A symbol without a hash (an old row, a kind that has none)
-    /// hashes as empty, so only its signature, complexity and lines can tell it apart.
+    /// What the symbol looks like now; see [`observe::baseline_of`].
     fn observe(
         &self,
         snapshot: &Snapshot,
         state: &SymbolState,
     ) -> Result<SymbolBaseline, CodedError> {
-        let content_hash = if state.kind == SymbolKind::Namespace {
-            let mut hashes = self.states.child_hashes(snapshot.id, &state.name)?;
-            hashes.sort();
-            let parts: Vec<&str> = hashes
-                .iter()
-                .map(codeskimr_domain::ContentHash::as_str)
-                .collect();
-            self.digest.digest(&parts)?
-        } else {
-            match &state.content_hash {
-                Some(hash) => hash.clone(),
-                None => self.digest.digest(&[])?,
-            }
-        };
-        let words: Vec<&str> = state
-            .signature
-            .as_deref()
-            .unwrap_or_default()
-            .split_whitespace()
-            .collect();
-        Ok(SymbolBaseline {
-            content_hash,
-            signature_hash: self.digest.digest(&words)?,
-            loc: state.loc,
-            cc: state.cc,
-        })
+        observe::baseline_of(
+            (self.states.as_ref(), self.digest.as_ref()),
+            snapshot.id,
+            state,
+        )
     }
 
     fn announce(&self, project: ProjectId) -> Result<(), CodedError> {
-        let open = self.annotations.list_alerts(&AlertFilter {
-            project,
-            state: Some(AlertState::Open),
-        })?;
-        self.events.publish(&Event::AlertsChanged(AlertsChanged {
-            project,
-            open: u32::try_from(open.len()).unwrap_or(u32::MAX),
-        }));
-        Ok(())
+        announce_open(self.annotations.as_ref(), &self.events, project)
     }
+}
+
+/// Publishes `AlertsChanged` with the number of alerts of `project` that are open now.
+///
+/// # Errors
+/// The code of the store if the alerts cannot be read.
+pub fn announce_open(
+    store: &dyn AnnotationStore,
+    events: &EventBus,
+    project: ProjectId,
+) -> Result<(), CodedError> {
+    let open = store.list_alerts(&AlertFilter {
+        project,
+        state: Some(AlertState::Open),
+    })?;
+    events.publish(&Event::AlertsChanged(AlertsChanged {
+        project,
+        open: u32::try_from(open.len()).unwrap_or(u32::MAX),
+    }));
+    Ok(())
 }
 
 fn count(report: &mut AlertReport, outcome: Outcome) {

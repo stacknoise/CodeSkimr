@@ -52,3 +52,7 @@ graph-types-pick = Wähle im Explorer zuerst einen Typ.
 graph-namespaces-more = { $count } weitere Namensräume werden nicht gezeigt.
 graph-namespace-alone = Dieser Namensraum nutzt keinen anderen und wird von keinem genutzt.
 graph-selected-namespace = Namensraum
+graph-toggle-critical = Kritische hervorheben
+graph-toggle-critical-only = nur Kritische und ihre Nachbarn
+graph-legend-critical = Systemkritisch
+graph-critical-none = Auf dieser Karte ist kein Symbol kritisch.

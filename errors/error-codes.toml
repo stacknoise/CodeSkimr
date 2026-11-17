@@ -722,6 +722,22 @@ description = "The fields of an annotation do not fit its kind (for example a du
 since = "0.1.0"
 
 [[codes]]
+id = "ANN-104"
+name = "annotation_assignee_too_long"
+severity = "error"
+retryable = false
+description = "The assignee of a task is longer than the configured limit."
+since = "0.1.0"
+
+[[codes]]
+id = "ANN-105"
+name = "annotation_target_too_long"
+severity = "error"
+retryable = false
+description = "The qualified name or a parameter type of the symbol of an annotation is longer than the configured limit, or the symbol has more parameter types than allowed."
+since = "0.1.0"
+
+[[codes]]
 id = "ANN-201"
 name = "annotation_not_found"
 severity = "error"

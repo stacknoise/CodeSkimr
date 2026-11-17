@@ -26,6 +26,9 @@ const row = (key: string, extra: Partial<TreeRow> = {}): TreeRow => ({
   member: null,
   symbolKind: null,
   layerIndex: null,
+  target: null,
+  scope: null,
+  names: [],
   ...extra,
 });
 
@@ -95,6 +98,9 @@ describe("useExplorerKeys", () => {
       graph: vi.fn(),
       editor: vi.fn(),
       member: vi.fn(),
+      critical: vi.fn(),
+      note: vi.fn(),
+      task: vi.fn(),
     };
     const view = render(() => {
       useExplorerKeys(keys);
@@ -126,6 +132,19 @@ describe("useExplorerKeys", () => {
     fireEvent.keyDown(view.getByLabelText("field"), { key: "g" });
     expect(keys.graph).toHaveBeenCalledOnce();
     expect(keys.usages).not.toHaveBeenCalled();
+  });
+
+  it("marks on K, adds a note on N and a task on T, but not with a modifier or while typing", () => {
+    const { keys, view } = shown();
+    for (const key of ["k", "n", "t"]) {
+      fireEvent.keyDown(document.body, { key });
+      fireEvent.keyDown(document.body, { key, ctrlKey: true });
+      fireEvent.keyDown(document.body, { key, altKey: true });
+      fireEvent.keyDown(view.getByLabelText("field"), { key });
+    }
+    expect(keys.critical).toHaveBeenCalledOnce();
+    expect(keys.note).toHaveBeenCalledOnce();
+    expect(keys.task).toHaveBeenCalledOnce();
   });
 
   it("opens the editor on E and Alt+Enter, but not with Ctrl or while the user types", () => {

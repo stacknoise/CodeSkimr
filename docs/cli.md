@@ -77,6 +77,20 @@ codeskimr export <project> --html <file>
 
 Writes the explorer, the dependency map, the usages and the search of a scanned project into one self-contained HTML file, without source text (`docs/export.md`). `<project>` is a project id or the folder or Git URL it was scanned from. The export page is the built UI: it is part of the program, and a UI folder (`ui.dir`) that exists is read instead. If the program was built without the UI and there is no folder with the built export page (`npm run build` in `web/`), the command stops with `EXP-201`; an unwritable file is `EXP-601`.
 
+## `codeskimr annotations` and `codeskimr alerts`
+
+```
+codeskimr annotations list <project> [--symbol NAME --symbol-kind KIND [--param TYPE]...] [--kind K] [--status S] [--limit N] [--offset N] [--json]
+codeskimr annotations add <project> --symbol NAME --symbol-kind KIND --kind critical|note|task [--title T] [--text T] [--status S] [--due SECONDS] [--assignee NAME] [--json]
+codeskimr annotations update <project> <id> [--symbol NAME --symbol-kind KIND] [--title T] [--text T] [--status S] [--due SECONDS] [--assignee NAME] [--clear-text] [--clear-due] [--clear-assignee] [--json]
+codeskimr annotations remove <project> <id> [--json]
+codeskimr alerts list <project> [--state open|dismissed] [--kind K]... [--limit N] [--offset N] [--json]
+codeskimr alerts dismiss <project> <alert> [--json]
+codeskimr alerts dismiss-all <project> [--kind K]... --yes [--json]
+```
+
+Notes, tasks and critical marks on symbols and the alerts of critical symbols that changed (ADR 0068). `<project>` is a project id or the folder or Git URL it was scanned from. The commands run the registered commands `annotations.*` and `alerts.*` as the local owner, so they answer the same as the REST routes (`docs/server.md`); `--json` prints that answer, otherwise one line per row in the language of the system. `--symbol` is a qualified name and `--symbol-kind` its kind label (`class`, `method`, ...); `--param` repeats for the parameter types of an overload. `dismiss-all` does nothing without `--yes` and ends with `API-101`. Lists are paged; the text says how to continue (`--offset`). Exit code 0, or 1 with the code on standard error. The parser is written by hand with the other commands; it is not generated from the registry.
+
 ## Global options
 
 | Option | Environment | Default |

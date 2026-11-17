@@ -141,12 +141,13 @@ function Content(props: { shown: boolean }) {
 
 /** The right column of the explorer: file, position and code of the selected type or member
  * (blueprint B.2, mock `Explorer.dc.html`). With a member selected it sits under the header in the
- * middle column and takes all the room there (`wide`). */
-export function SourcePane(props: { shown: boolean; wide: boolean }) {
+ * middle column and takes all the room there (`wide`). `bare` is the source as the first tab of the
+ * side panel, which brings its own column. */
+export function SourcePane(props: { shown: boolean; wide: boolean; bare?: boolean }) {
   return (
     <section
-      class={cx(styles.pane, props.wide && styles.inColumn)}
-      style={props.wide ? undefined : { "flex-basis": `${sourceWidth.size()}px` }}
+      class={cx(styles.pane, props.wide && styles.inColumn, props.bare && styles.bare)}
+      style={props.wide || props.bare ? undefined : { "flex-basis": `${sourceWidth.size()}px` }}
       aria-label={t(I18N_KEYS.EXPLORER_SOURCE_LABEL)}
     >
       <Content shown={props.shown} />
