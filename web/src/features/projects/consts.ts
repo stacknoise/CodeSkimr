@@ -58,13 +58,14 @@ export const LANGUAGE_NAMES: Record<string, string> = {
   typescript: "TypeScript",
 };
 
-/** The colour class of a language bar segment; languages without one share the last. */
+/** The colour class of a language bar segment; TypeScript and TSX share one colour (same family), every
+ * other common language of a mixed project has its own; languages without one share the last. */
 export const LANGUAGE_TONE: Record<string, string> = {
   csharp: "tone1",
   typescript: "tone2",
   tsx: "tone2",
-  javascript: "tone2",
-  kotlin: "tone3",
+  javascript: "tone3",
+  kotlin: "tone1",
   python: "tone4",
   java: "tone5",
 };
