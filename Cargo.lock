@@ -590,6 +590,7 @@ dependencies = [
 name = "codeskimr_parsing"
 version = "0.9.0-preview.1"
 dependencies = [
+ "blake3",
  "codeskimr_application",
  "codeskimr_codes",
  "codeskimr_domain",

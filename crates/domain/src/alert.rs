@@ -95,6 +95,10 @@ pub struct AlertSighting {
     pub references: Option<u32>,
     /// For `orphaned`: the closest symbol with the same name, if any.
     pub closest: Option<QualifiedName>,
+    /// For `changed`: what the symbol looked like at this sighting. A later scan raises the alert's
+    /// counter only if the symbol looks different again, so a scan that did not touch it counts for
+    /// nothing. `None` for `removed` and `orphaned`.
+    pub observed: Option<SymbolBaseline>,
 }
 
 /// A stored alert. There is at most one open alert per annotation; a further sighting raises its

@@ -74,9 +74,11 @@ pub enum WireEvent {
     },
 }
 
-impl From<&Event> for WireEvent {
-    fn from(event: &Event) -> Self {
-        match event {
+impl WireEvent {
+    /// The wire form of an event; `None` for an event that the stream does not carry yet (the
+    /// alerts, ADR 0068, follow with their commands).
+    fn of(event: &Event) -> Option<Self> {
+        Some(match event {
             Event::ScanProgressed(ScanProgressed {
                 project,
                 stage,
@@ -104,11 +106,10 @@ impl From<&Event> for WireEvent {
                 rescan: *rescan,
             },
             Event::ScanStopped(stopped) => Self::stopped(stopped),
-        }
+            Event::AlertsChanged(_) => return None,
+        })
     }
-}
 
-impl WireEvent {
     fn stopped(stopped: &ScanStopped) -> Self {
         let (reason, code): (_, Option<ErrorCode>) = match stopped.reason {
             StopReason::Cancelled => (REASON_CANCELLED, None),
@@ -198,7 +199,8 @@ async fn pump(
         }
         match timeout(EVENT_POLL, events.recv()).await {
             Ok(Some(event)) => {
-                let Ok(text) = serde_json::to_string(&WireEvent::from(&event)) else {
+                let Some(Ok(text)) = WireEvent::of(&event).map(|wire| serde_json::to_string(&wire))
+                else {
                     continue;
                 };
                 if !send_within(&mut socket, Message::Text(text.into()), &mut waits).await {

@@ -112,7 +112,11 @@ impl Session {
     /// # Errors
     /// The same as [`Session::scan`].
     pub fn scan_quick(&self, mode: ScanMode) -> Result<ScanSummary, CodedError> {
-        self.run_job(Job::new(self.project.id, mode).without_level2())
+        self.run_job(
+            Job::new(self.project.id, mode)
+                .without_level2()
+                .from_watcher(),
+        )
     }
 
     /// An incremental scan of level 1 that looks for changes only in `paths` (the way MCP

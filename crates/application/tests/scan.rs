@@ -5,6 +5,9 @@ use std::sync::{Arc, Mutex, PoisonError};
 
 #[cfg(test)]
 mod common;
+#[cfg(test)]
+#[path = "common/alerts.rs"]
+mod fakes;
 
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::config::Config;
@@ -24,13 +27,15 @@ use codeskimr_application::ports::{
 use codeskimr_application::stage::StageKind;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    BranchName, CommitHash, Confidence, ContentHash, FileId, Fingerprint, Fingerprints, FolderPath,
-    LanguageId, Loc, Metric, MetricKind, MetricValue, ModelError, Permission, PermissionSet,
-    Position, Principal, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference,
-    ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile, Span,
-    Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName, SymbolOrigin, Timestamp,
+    AlertTrigger, BranchName, CommitHash, Confidence, ContentHash, FileId, Fingerprint,
+    Fingerprints, FolderPath, LanguageId, Loc, Metric, MetricKind, MetricValue, ModelError,
+    Permission, PermissionSet, Position, Principal, Project, ProjectId, ProjectName, ProjectSource,
+    QualifiedName, Reference, ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot,
+    SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName,
+    SymbolOrigin, Timestamp,
 };
 use common::InMemoryConsent;
+use fakes::{MemoryAnnotations, MemoryStates, step, symbol};
 
 /// The newest snapshot as the repository reports it.
 #[derive(Default, Clone)]
@@ -53,6 +58,8 @@ struct World {
     found: Option<Vec<(&'static str, bool)>>,
     missing_project: bool,
     panic_in_analyze: bool,
+    /// The project is a folder, not a Git repository.
+    folder_project: bool,
     /// The naming rules of the packs, and those the previous snapshot was scanned with.
     rules: (&'static str, Option<&'static str>),
     persisted: Mutex<Vec<SnapshotData>>,
@@ -201,6 +208,7 @@ impl FileAnalyzer for World {
             pending,
             fingerprints: vec![fingerprinted(symbol.id)],
             counts: vec![counted(symbol.id)],
+            hashes: Vec::new(),
             symbols: vec![symbol],
         })
     }
@@ -282,6 +290,11 @@ impl ProjectRepository for World {
     fn project(&self, _: ProjectId) -> Result<Project, CodedError> {
         if self.missing_project {
             Err(CodedError::new(ErrorCode::ProjectNotFound))
+        } else if self.folder_project {
+            Ok(Project {
+                source: ProjectSource::Folder(model(FolderPath::new("/work/demo"))?),
+                ..project()?
+            })
         } else {
             project()
         }
@@ -1524,4 +1537,89 @@ fn paths_of_a_scan_that_had_to_be_a_full_one_are_reported_as_ignored() -> Result
         "other naming rules make a full scan"
     );
     Ok(())
+}
+
+/// The scanner with the alert step over the fakes; the critical symbol `Demo.Box.Work` is in the
+/// snapshot the states hold.
+fn alerting(
+    world: &Arc<World>,
+    bus: &EventBus,
+) -> (Scanner, Arc<MemoryAnnotations>, Arc<MemoryStates>) {
+    let annotations = Arc::new(MemoryAnnotations::default());
+    let states = Arc::new(MemoryStates::default());
+    annotations.critical(SymbolKind::Method, "Demo.Box.Work", &[]);
+    states.set(vec![symbol(SymbolKind::Method, "Demo.Box.Work", "one")]);
+    let scanner = scanner(world, bus).with_alerts(step(&annotations, &states, bus));
+    (scanner, annotations, states)
+}
+
+fn scan_once(scanner: &Scanner, job: Job<codeskimr_application::pipeline::Queued>) -> JobResult {
+    scanner.run(&Principal::local_owner(), job)
+}
+
+#[test]
+fn the_alert_of_a_git_project_says_it_came_with_a_fetch_whatever_started_the_scan() {
+    let world = Arc::new(World::default());
+    let bus = EventBus::new();
+    let (scanner, annotations, states) = alerting(&world, &bus);
+    let job = || Job::new(ProjectId::new(7), ScanMode::Full).from_watcher();
+    assert!(matches!(scan_once(&scanner, job()), JobResult::Finished(_)));
+    states.set(vec![symbol(SymbolKind::Method, "Demo.Box.Work", "two")]);
+    assert!(matches!(scan_once(&scanner, job()), JobResult::Finished(_)));
+    let alerts = annotations.open_alerts();
+    assert_eq!(alerts.len(), 1);
+    assert_eq!(alerts[0].sighting.trigger, AlertTrigger::Fetch);
+}
+
+#[test]
+fn the_alert_of_a_folder_project_names_what_started_the_scan() {
+    let world = Arc::new(World {
+        folder_project: true,
+        ..World::default()
+    });
+    let bus = EventBus::new();
+    let (scanner, annotations, states) = alerting(&world, &bus);
+    scan_once(&scanner, Job::new(ProjectId::new(7), ScanMode::Full));
+    states.set(vec![symbol(SymbolKind::Method, "Demo.Box.Work", "two")]);
+    scan_once(&scanner, Job::new(ProjectId::new(7), ScanMode::Full));
+    states.set(vec![symbol(SymbolKind::Method, "Demo.Box.Work", "three")]);
+    scan_once(
+        &scanner,
+        Job::new(ProjectId::new(7), ScanMode::Incremental).from_watcher(),
+    );
+    let alerts = annotations.open_alerts();
+    assert_eq!(alerts[0].counter, 2);
+    assert_eq!(alerts[0].sighting.trigger, AlertTrigger::Watcher);
+}
+
+#[test]
+fn a_failure_of_the_alert_step_leaves_the_snapshot_and_its_event_as_they_are() {
+    let world = Arc::new(World::default());
+    let bus = EventBus::new();
+    let events = bus.subscribe();
+    let (scanner, annotations, _) = alerting(&world, &bus);
+    *annotations.fail.lock().unwrap() = Some(ErrorCode::DiskFull);
+    let result = scan_once(&scanner, Job::new(ProjectId::new(7), ScanMode::Full));
+    let JobResult::Finished(job) = result else {
+        panic!("a failed alert step must not fail the scan");
+    };
+    assert_eq!(job.snapshot().stats.files, 2);
+    assert_eq!(world.persisted_count(), 1);
+    let events: Vec<Event> = events.try_iter().collect();
+    assert!(matches!(events.last(), Some(Event::SnapshotCreated(_))));
+    assert!(
+        events
+            .iter()
+            .all(|event| !matches!(event, Event::ScanStopped(_)))
+    );
+}
+
+#[test]
+fn the_alert_step_runs_after_the_snapshot_is_stored() {
+    let world = Arc::new(World::default());
+    let bus = EventBus::new();
+    let (scanner, annotations, _) = alerting(&world, &bus);
+    scan_once(&scanner, Job::new(ProjectId::new(7), ScanMode::Full));
+    assert_eq!(world.persisted_count(), 1);
+    assert_eq!(annotations.calls_named("refresh_targets"), 1);
 }

@@ -540,6 +540,7 @@ impl FileAnalyzer for FakeDisk {
             symbols: vec![function],
             pending: Vec::new(),
             fingerprints: Vec::new(),
+            hashes: Vec::new(),
             counts: vec![counts],
         })
     }

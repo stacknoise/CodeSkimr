@@ -3,7 +3,9 @@
 use std::sync::Arc;
 
 use codeskimr_codes::{Coded, ErrorCode};
-use codeskimr_domain::{Permission, Principal, ProjectId, ScanMode, Snapshot};
+use codeskimr_domain::{
+    AlertTrigger, Permission, Principal, ProjectId, ProjectSource, ScanMode, Snapshot,
+};
 
 use super::flow::{Chain, Halt, Pipeline, Single, StageContext};
 use super::job::{Cancelled, Failed, Finished, Job, Queued, Running};
@@ -12,7 +14,9 @@ use super::stages::{
     ScanRequest,
 };
 use crate::access;
+use crate::alerts::AlertStep;
 use crate::cancel::CancelToken;
+use crate::consts::{LOG_ALERT_STEP_FAILED, LOG_ALERTS_CHECKED};
 use crate::error::CodedError;
 use crate::events::{Event, EventBus, ScanStopped, SnapshotCreated, StopReason};
 use crate::ids::IdSequence;
@@ -70,6 +74,7 @@ pub struct Scanner {
     projects: Arc<dyn ProjectRepository>,
     events: EventBus,
     level2: Option<Level2Pass>,
+    alerts: Option<AlertStep>,
 }
 
 impl Scanner {
@@ -108,6 +113,7 @@ impl Scanner {
             projects: ports.projects,
             events,
             level2: None,
+            alerts: None,
         }
     }
 
@@ -116,6 +122,15 @@ impl Scanner {
     #[must_use]
     pub fn with_level2(mut self, pass: Level2Pass) -> Self {
         self.level2 = Some(pass);
+        self
+    }
+
+    /// Adds the alert step: after each snapshot the critical symbols are compared with their
+    /// baselines (ADR 0068). It runs after the snapshot is stored, so a failure of it never
+    /// undoes the snapshot.
+    #[must_use]
+    pub fn with_alerts(mut self, step: AlertStep) -> Self {
+        self.alerts = Some(step);
         self
     }
 
@@ -136,6 +151,7 @@ impl Scanner {
             Ok(project) => project,
             Err(cause) => return self.fail(job.fail(cause.code()), project_id),
         };
+        let trigger = trigger_of(&project.source, job.trigger());
         let ctx = StageContext::new(project_id, job.token(), &self.events);
         match self.pipeline.run(
             ScanRequest {
@@ -145,7 +161,7 @@ impl Scanner {
             },
             &ctx,
         ) {
-            Ok(persisted) => self.finished(*principal, job, persisted),
+            Ok(persisted) => self.finished(*principal, job, (persisted, trigger)),
             Err(Halt::Cancelled(_)) => {
                 self.stopped(project_id, StopReason::Cancelled);
                 JobResult::Cancelled(job.cancel())
@@ -156,8 +172,14 @@ impl Scanner {
 
     /// Level 1 is complete and usable now; level 2 may take minutes. Tells so, runs the second
     /// pass and ends the job.
-    fn finished(&self, principal: Principal, job: Job<Running>, persisted: Persisted) -> JobResult {
+    fn finished(
+        &self,
+        principal: Principal,
+        job: Job<Running>,
+        (persisted, trigger): (Persisted, AlertTrigger),
+    ) -> JobResult {
         self.created(&persisted.snapshot);
+        self.check_alerts(&persisted.snapshot, trigger);
         let (snapshot, reports) = self.second_pass(
             principal,
             persisted.clone(),
@@ -186,6 +208,23 @@ impl Scanner {
         }
     }
 
+    /// Runs the alert step on the snapshot that was just stored. A failure is logged and goes no
+    /// further: the snapshot is written, and the next scan checks again.
+    fn check_alerts(&self, snapshot: &Snapshot, trigger: AlertTrigger) {
+        let Some(step) = &self.alerts else {
+            return;
+        };
+        match step.run(snapshot, trigger) {
+            Ok(report) => tracing::info!(
+                event = LOG_ALERTS_CHECKED,
+                checked = report.checked,
+                baselines = report.baselines,
+                raised = report.raised
+            ),
+            Err(error) => tracing::warn!(event = LOG_ALERT_STEP_FAILED, code = error.code().id()),
+        }
+    }
+
     fn created(&self, snapshot: &Snapshot) {
         self.events
             .publish(&Event::SnapshotCreated(SnapshotCreated {
@@ -201,6 +240,15 @@ impl Scanner {
     fn stopped(&self, project: ProjectId, reason: StopReason) {
         self.events
             .publish(&Event::ScanStopped(ScanStopped { project, reason }));
+    }
+}
+
+/// What started the scan: the trigger of the job, but a project that lives in a Git repository
+/// only changes through a fetch.
+const fn trigger_of(source: &ProjectSource, started_by: AlertTrigger) -> AlertTrigger {
+    match source {
+        ProjectSource::Git { .. } => AlertTrigger::Fetch,
+        ProjectSource::Folder(_) => started_by,
     }
 }
 

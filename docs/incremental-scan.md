@@ -128,6 +128,56 @@ References that level 2 verified (ADR 0033) are not touched by level 1:
 - The names of such a file are still given to the resolver, so it knows the type hierarchy of the
   whole project.
 
+## Content hashes and alerts (ADR 0068)
+
+The parse stage takes a content hash of every type and every member (`SymbolKind::has_content_hash`):
+BLAKE3 over the leaf tokens of the symbol's span, each token followed by a unit separator, comments
+left out, so whitespace, layout and comments do not change it. It is the same function as the file
+hashes. A type hashes its own whole span, including its members; a namespace has no hash of its own
+and gets a derived one from the sorted hashes of its children when it is read. Modules and parameters
+have none. All 13 language packs are covered, because the hash only needs the tree and the comment
+kinds of the pack. In Rust and Go the methods of a type are written outside its span (`impl` blocks,
+receivers), so the hash of such a type does not change when a method changes; the method has its own
+hash. Python has no token for the start and end of a block, so its pack lists the node kind `block`
+in `block_nodes` and the walk puts a marker for the start and end of every block into the stream: moving
+a statement out of an `if` changes the hash, a comment or a blank line does not. Another pack with an
+indentation grammar would need the same entry.
+
+The hashes are stored with the symbol rows (`symbol_rows.content_hash`, schema version 16), so a file
+that is carried over keeps its hashes and an incremental scan stores the same hashes as a full scan of
+the same files (`crates/app/src/alert_tests.rs`). The naming revision rose to 4 with this change, so the
+first scan after the update is a full one.
+
+After every snapshot (full, incremental, watch mode, Git fetch) the composition root runs the alert
+step (`codeskimr_application::alerts`) as a read-model step: it runs after the snapshot transaction, a
+failure is logged (`alert_step_failed`) and never undoes the snapshot. For each critical annotation it
+looks up the target in the new snapshot:
+
+- no baseline yet: the current state is stored as the baseline, no alert;
+- content hash or signature hash differ from the baseline: alert `changed`; lines of code and
+  complexity are recorded as well, but they alone never raise an alert, so a cosmetic edit stays silent;
+- the symbol is gone and no symbol with the same simple name exists: alert `removed`, with the number
+  of names in the snapshot that still point at it;
+- the symbol is gone and one with the same simple name exists elsewhere: alert `orphaned`, naming the
+  closest one;
+- there is one open alert per annotation; another sighting counts it once more, but only if the symbol
+  looks different from the last sighting (the alert keeps what it saw), so unrelated saves add nothing.
+  A dismissed alert is closed and a new change opens a new one.
+
+A note or a task whose target is gone is marked `without_target` and raises no alert. The trigger of
+an alert is `scan`, `watcher` (watch mode) or `fetch` (every scan of a Git project). The step publishes
+`AlertsChanged` (project and number of open alerts) on the event bus; the REST and WebSocket API do not
+carry it yet. Without annotations the step costs two cheap statements (does the project have any, then
+the list of critical ones). With 100 critical annotations on 20,000 symbols it takes about 1 ms
+(`alerts/step_100_critical`, checked against `incremental_rescan_ms`; the targets are found through the
+index `symbols_by_name`), and with 50 more whose symbols are gone about 2 ms (`alerts/step_50_vanished`; the
+lookups of namesakes and of the names that still point at the symbol use the indexes `symbols_by_simple_name`
+and `pending_references_by_target`; the step makes them when the first critical annotation needs them, so a project without one does not pay for them on writing, see `docs/benchmarks.md`).
+While an alert is open the step looks at a vanished symbol again at every scan: if it is now `orphaned`
+instead of `removed` or the other way round, or the closest symbol changed, the alert says so; if the
+symbol is back with the state the alert saw last, the alert turns to `changed` again without counting
+another time.
+
 ## Limits
 
 - The names are stored once per file and shared by the snapshots that carry the file (migration 11,

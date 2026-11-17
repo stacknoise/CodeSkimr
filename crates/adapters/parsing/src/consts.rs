@@ -155,6 +155,24 @@ pub const ID_MISMATCH: &str = "id differs from the folder name: ";
 /// Reason of an invalid pack whose `[[tools]]` entry is wrong; the entry follows.
 pub const TOOL_INVALID: &str = "invalid tool: ";
 
+/// Ends every token, and every part of a text, in a content hash, so that where one ends is part of
+/// the hash (the unit separator).
+pub const TOKEN_SEPARATOR: u8 = 0x1f;
+
+/// Bytes of a token stream that are collected before they go to the hasher (one call per token
+/// costs more than hashing the bytes).
+pub const HASH_CHUNK_BYTES: usize = 16_384;
+
+/// Capacity of that buffer: a chunk and the token that crosses its end.
+pub const HASH_BUFFER_BYTES: usize = 32_768;
+
+/// The start of a block that no token delimits, in a content hash (a control character, which no
+/// token of source text consists of on its own).
+pub const BLOCK_OPEN: u8 = 0x02;
+
+/// The end of such a block, in a content hash.
+pub const BLOCK_CLOSE: u8 = 0x03;
+
 /// Replacement extension that removes the extension of a path.
 pub const NO_EXTENSION: &str = "";
 
@@ -217,8 +235,9 @@ pub const NAMING_PATTERN_SEPARATOR: &str = ",";
 
 /// Revision of the naming rules of the engine itself, part of the text of the naming rules: it
 /// changes when names change for reasons other than a pack key (2: members of an `impl` carry
-/// their type, ADR 0039; 3: methods of Go and C++ carry their owner, ADR 0042).
-pub const NAMING_REVISION: &str = "revision=3";
+/// their type, ADR 0039; 3: methods of Go and C++ carry their owner, ADR 0042; 4: types and members
+/// carry the hash of their tokens, ADR 0068, which an earlier snapshot lacks).
+pub const NAMING_REVISION: &str = "revision=4";
 
 /// Ends a signature that was cut at `scan.max_signature_chars`.
 pub const SIGNATURE_CUT: &str = "…";
