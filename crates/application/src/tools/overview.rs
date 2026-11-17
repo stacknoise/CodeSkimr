@@ -38,9 +38,7 @@ impl IndexerOverview {
             clock,
         }
     }
-}
 
-impl IndexerOverview {
     /// What the runner says about `spec`, asked once per distinct spec.
     fn status_of(
         &self,

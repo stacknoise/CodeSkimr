@@ -3,7 +3,7 @@ import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { TONE } from "../../shared/ui/consts";
 import { Pill } from "../../shared/ui/Pill";
-import { TOOL_STATE } from "../projects/consts";
+import { TOOL_ROLE_TOOLCHAIN, TOOL_STATE } from "../projects/consts";
 import { ago } from "../projects/format";
 import { languageList, toolTexts } from "../projects/tools";
 import { stateText } from "../projects/ToolsPanel";
@@ -73,7 +73,7 @@ function Row(props: { tool: ToolInfo }) {
       <td>
         <strong class={styles.mono}>{props.tool.tool}</strong>
         <div class={styles.sub}>
-          {props.tool.role === "toolchain"
+          {props.tool.role === TOOL_ROLE_TOOLCHAIN
             ? t(I18N_KEYS.SETTINGS_INDEXERS_TOOLCHAIN, {
                 languages: languageList(props.tool.languages),
               })
