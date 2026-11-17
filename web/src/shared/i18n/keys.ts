@@ -775,9 +775,6 @@ export const I18N_KEYS = {
   USAGES_HINT_OPEN: "usages-hint-open",
   USAGES_CALLERS_LEVEL: "usages-callers-level",
   USAGES_CALLEES_LEVEL: "usages-callees-level",
-  USAGES_COUNT_TITLE: "usages-count-title",
-  USAGES_LAYER_TITLE: "usages-layer-title",
-  USAGES_LAYER_NONE_TITLE: "usages-layer-none-title",
   USAGES_FOCUS: "usages-focus",
   USAGES_CALLEES: "usages-callees",
   USAGES_GRAPH_LABEL: "usages-graph-label",
@@ -829,6 +826,9 @@ export const I18N_KEYS = {
   USAGES_ZOOM_OUT: "usages-zoom-out",
   USAGES_ZOOM_FIT: "usages-zoom-fit",
   USAGES_HINT_NAVIGATION: "usages-hint-navigation",
+  USAGES_COUNT_TITLE: "usages-count-title",
+  USAGES_LAYER_TITLE: "usages-layer-title",
+  USAGES_LAYER_NONE_TITLE: "usages-layer-none-title",
 } as const;
 
 /** A message key that exists in every language. */
