@@ -4,7 +4,7 @@ import { activeProject } from "../../shared/project/active";
 import { loadOutline } from "../explorer/explorer";
 import { resetGraph } from "../graph/graph";
 import { failed, type Failure } from "../explorer/failure";
-import { projects, projectsFailure, rescanProject } from "../projects/projects";
+import { projectsFailure, rescanProject } from "../projects/projects";
 import { COMMAND } from "./consts";
 import { isValid, sameLayers } from "./draft";
 import type { LayerEntry, LayersData } from "./types";
@@ -31,7 +31,7 @@ export const layersSaving = saving;
 export const layersSaved = saved;
 
 /** The project the editor works on: the one that is open, else the first. */
-export const layersProject = createMemo(() => activeProject() ?? projects()[0]?.id ?? null);
+export const layersProject = createMemo(() => activeProject());
 
 /** Whether the draft differs from what the project has. */
 export function layersChanged(): boolean {
