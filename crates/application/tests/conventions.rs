@@ -121,6 +121,19 @@ mod tests {
         Ok(symbols)
     }
 
+    fn counts_of(body: &Body, symbol: &Symbol) -> SymbolCounts {
+        SymbolCounts {
+            symbol: symbol.id,
+            loc: Loc(body.loc),
+            body: Some(BodyCounts {
+                cognitive: body.counted.map(|(cognitive, _)| cognitive),
+                parameters: body.counted.map(|(_, parameters)| parameters),
+                ..BodyCounts::default()
+            }),
+            counted: true,
+        }
+    }
+
     impl FileAnalyzer for Disk {
         fn analyze(&self, request: &AnalyzeRequest<'_>) -> Result<FileFacts, CodedError> {
             let path = request.file.path.as_str();
@@ -148,16 +161,7 @@ mod tests {
                     .collect::<Result<_, _>>()?,
                 counts: symbols
                     .iter()
-                    .map(|symbol| SymbolCounts {
-                        symbol: symbol.id,
-                        loc: Loc(body.loc),
-                        body: Some(BodyCounts {
-                            cognitive: body.counted.map(|(cognitive, _)| cognitive),
-                            parameters: body.counted.map(|(_, parameters)| parameters),
-                            ..BodyCounts::default()
-                        }),
-                        counted: true,
-                    })
+                    .map(|symbol| counts_of(body, symbol))
                     .collect(),
                 symbols,
                 pending: Vec::new(),

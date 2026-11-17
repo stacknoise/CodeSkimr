@@ -210,15 +210,21 @@ fn an_incremental_snapshot_keeps_the_hashes_of_the_files_it_did_not_analyse() {
     assert_eq!(hashes, ["total-1", "other-1"]);
 }
 
-#[test]
-fn a_critical_symbol_gets_a_baseline_and_a_change_of_its_tokens_an_alert() {
-    let store = seeded(&version("total-1"));
+/// Marks the method `Total` critical and takes its first baseline with a scan.
+fn watch_total(store: &Arc<SqliteStore>) -> Annotation {
     let critical = mark(
-        &store,
+        store,
         AnnotationKind::Critical,
         target(SymbolKind::Method, "App.Order.Total"),
     );
-    run(&store, 10, AlertTrigger::Scan);
+    run(store, 10, AlertTrigger::Scan);
+    critical
+}
+
+#[test]
+fn a_critical_symbol_gets_a_baseline_and_a_change_of_its_tokens_an_alert() {
+    let store = seeded(&version("total-1"));
+    let critical = watch_total(&store);
     let baseline = store.baseline(critical.id).unwrap().unwrap();
     assert_eq!(baseline.content_hash.as_str(), "total-1");
     assert_eq!(baseline.signature_hash.as_str(), "d[Total()]");
@@ -257,12 +263,7 @@ fn a_critical_symbol_gets_a_baseline_and_a_change_of_its_tokens_an_alert() {
 #[test]
 fn a_change_in_the_layout_only_gives_no_alert() {
     let store = seeded(&version("total-1"));
-    mark(
-        &store,
-        AnnotationKind::Critical,
-        target(SymbolKind::Method, "App.Order.Total"),
-    );
-    run(&store, 10, AlertTrigger::Scan);
+    watch_total(&store);
     scan(
         &store,
         20,
@@ -278,12 +279,7 @@ fn a_change_in_the_layout_only_gives_no_alert() {
 #[test]
 fn dismissing_an_alert_and_changing_the_symbol_again_gives_a_new_alert() {
     let store = seeded(&version("total-1"));
-    let critical = mark(
-        &store,
-        AnnotationKind::Critical,
-        target(SymbolKind::Method, "App.Order.Total"),
-    );
-    run(&store, 10, AlertTrigger::Scan);
+    let critical = watch_total(&store);
     scan(&store, 20, &version("total-2"));
     run(&store, 20, AlertTrigger::Scan);
     let first = open_alerts(&store).remove(0);
@@ -314,12 +310,7 @@ fn dismissing_an_alert_and_changing_the_symbol_again_gives_a_new_alert() {
 #[test]
 fn a_gone_symbol_is_removed_with_the_names_that_still_point_at_it() {
     let store = seeded(&version("total-1"));
-    mark(
-        &store,
-        AnnotationKind::Critical,
-        target(SymbolKind::Method, "App.Order.Total"),
-    );
-    run(&store, 10, AlertTrigger::Scan);
+    watch_total(&store);
     // Snapshot 20 no longer has the method, but two names in `App.Billing` still use `Total`.
     let mut next = data(header(20, ScanMode::Full));
     next.files = vec![file(20, 21, "src/order.cs", "h20")];
@@ -348,12 +339,7 @@ fn a_gone_symbol_is_removed_with_the_names_that_still_point_at_it() {
 #[test]
 fn a_symbol_with_the_same_name_elsewhere_makes_the_annotation_orphaned() {
     let store = seeded(&version("total-1"));
-    mark(
-        &store,
-        AnnotationKind::Critical,
-        target(SymbolKind::Method, "App.Order.Total"),
-    );
-    run(&store, 10, AlertTrigger::Scan);
+    watch_total(&store);
     let mut next = data(header(20, ScanMode::Full));
     next.files = vec![file(20, 21, "src/billing.cs", "h20")];
     next.symbols = vec![
@@ -432,6 +418,19 @@ fn a_namespace_hashes_the_types_below_it_also_in_nested_namespaces() {
     assert_eq!(alert.sighting.changes, [AlertChange::Content]);
 }
 
+fn flags(store: &SqliteStore) -> Vec<bool> {
+    store
+        .list_annotations(&AnnotationFilter {
+            project: PROJECT,
+            target: None,
+            kind: None,
+        })
+        .unwrap()
+        .iter()
+        .map(|annotation| annotation.without_target)
+        .collect()
+}
+
 #[test]
 fn a_note_without_its_symbol_is_marked_and_unmarked_when_the_symbol_returns() {
     let store = seeded(&version("total-1"));
@@ -445,18 +444,6 @@ fn a_note_without_its_symbol_is_marked_and_unmarked_when_the_symbol_returns() {
         AnnotationKind::Task,
         target(SymbolKind::Class, "App.Billing"),
     );
-    let flags = |store: &SqliteStore| -> Vec<bool> {
-        store
-            .list_annotations(&AnnotationFilter {
-                project: PROJECT,
-                target: None,
-                kind: None,
-            })
-            .unwrap()
-            .iter()
-            .map(|annotation| annotation.without_target)
-            .collect()
-    };
     assert_eq!(flags(&store), [false, false]);
     let store = Arc::new(store);
 

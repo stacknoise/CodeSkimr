@@ -8,7 +8,7 @@ use std::sync::atomic::Ordering;
 #[path = "common/alerts.rs"]
 mod fakes;
 
-use codeskimr_application::alerts::{compare, target};
+use codeskimr_application::alerts::{AlertReport, compare, target};
 use codeskimr_application::events::{AlertsChanged, Event, EventBus};
 use codeskimr_application::ports::{AlertDismissal, AnnotationStore, SameName};
 use codeskimr_codes::{Coded, ErrorCode};
@@ -34,6 +34,18 @@ fn fixture() -> Fixture {
     }
 }
 
+#[cfg(test)]
+/// A fixture with a critical annotation on `WORK` and its baseline taken from the first scan.
+#[cfg(test)]
+fn watched() -> Fixture {
+    let world = fixture();
+    world.annotations.critical(SymbolKind::Method, WORK, &[]);
+    world.with_work("one");
+    world.run(1, AlertTrigger::Scan);
+    world
+}
+
+#[cfg(test)]
 fn snapshot(id: u64) -> Snapshot {
     Snapshot {
         id: SnapshotId::new(id),
@@ -46,6 +58,7 @@ fn snapshot(id: u64) -> Snapshot {
 }
 
 impl Fixture {
+    #[cfg(test)]
     fn run(
         &self,
         snapshot: u64,
@@ -76,10 +89,7 @@ fn the_first_run_takes_a_baseline_and_raises_nothing() {
 
 #[test]
 fn a_changed_symbol_raises_an_alert_that_says_what_changed_and_where_it_was_seen() {
-    let world = fixture();
-    world.annotations.critical(SymbolKind::Method, WORK, &[]);
-    world.with_work("one");
-    world.run(1, AlertTrigger::Scan);
+    let world = watched();
     world.states.set(vec![{
         let mut changed = symbol(SymbolKind::Method, WORK, "two");
         changed.loc = Loc(14);
@@ -103,10 +113,7 @@ fn a_changed_symbol_raises_an_alert_that_says_what_changed_and_where_it_was_seen
 
 #[test]
 fn a_cosmetic_edit_gives_no_alert() {
-    let world = fixture();
-    world.annotations.critical(SymbolKind::Method, WORK, &[]);
-    world.with_work("one");
-    world.run(1, AlertTrigger::Scan);
+    let world = watched();
     // The same tokens in another layout: the hash is the same, the lines of code differ.
     world.states.set(vec![{
         let mut laid_out = symbol(SymbolKind::Method, WORK, "one");
@@ -119,10 +126,7 @@ fn a_cosmetic_edit_gives_no_alert() {
 
 #[test]
 fn a_changed_signature_alone_raises_an_alert() {
-    let world = fixture();
-    world.annotations.critical(SymbolKind::Method, WORK, &[]);
-    world.with_work("one");
-    world.run(1, AlertTrigger::Scan);
+    let world = watched();
     world.states.set(vec![{
         let mut other = symbol(SymbolKind::Method, WORK, "one");
         other.signature = Some("Work(int x)".to_owned());
@@ -135,10 +139,7 @@ fn a_changed_signature_alone_raises_an_alert() {
 
 #[test]
 fn several_saves_give_one_alert_with_a_counter_and_a_scan_that_changes_nothing_adds_nothing() {
-    let world = fixture();
-    world.annotations.critical(SymbolKind::Method, WORK, &[]);
-    world.with_work("one");
-    world.run(1, AlertTrigger::Scan);
+    let world = watched();
     world.with_work("two");
     world.run(2, AlertTrigger::Watcher);
     world.with_work("three");
@@ -187,10 +188,7 @@ fn dismissing_takes_the_current_state_as_the_baseline_and_a_later_change_is_a_ne
 
 #[test]
 fn a_symbol_that_is_gone_without_a_namesake_is_removed_with_the_names_that_still_point_at_it() {
-    let world = fixture();
-    world.annotations.critical(SymbolKind::Method, WORK, &[]);
-    world.with_work("one");
-    world.run(1, AlertTrigger::Scan);
+    let world = watched();
     world.states.set(Vec::new());
     world.states.references.store(3, Ordering::SeqCst);
     world.run(2, AlertTrigger::Scan);
@@ -205,10 +203,7 @@ fn a_symbol_that_is_gone_without_a_namesake_is_removed_with_the_names_that_still
 
 #[test]
 fn a_symbol_that_is_gone_with_a_namesake_is_orphaned_and_names_the_closest_one() {
-    let world = fixture();
-    world.annotations.critical(SymbolKind::Method, WORK, &[]);
-    world.with_work("one");
-    world.run(1, AlertTrigger::Scan);
+    let world = watched();
     world.states.set(Vec::new());
     *world.states.same_name.lock().unwrap() = vec![
         SameName {
@@ -289,7 +284,7 @@ fn without_critical_annotations_the_step_reads_no_snapshot() {
     let world = fixture();
     world.with_work("one");
     let report = world.run(1, AlertTrigger::Scan);
-    assert_eq!(report, Default::default());
+    assert_eq!(report, AlertReport::default());
     assert_eq!(world.states.reads(), 0);
     assert_eq!(world.annotations.calls_named("list_annotations"), 1);
     assert_eq!(world.annotations.calls_named("baseline"), 0);

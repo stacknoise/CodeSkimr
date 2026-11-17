@@ -258,23 +258,36 @@ fn insert(conn: &Connection, creation: &AnnotationCreation) -> StorageResult<Ann
     })
 }
 
-fn update(conn: &Connection, update: &AnnotationUpdate) -> StorageResult<Annotation> {
-    let next = &update.annotation;
-    let stored = find(conn, next.id)?;
+/// The new content must fit its kind, and the kind of an annotation never changes.
+fn ensure_same_kind(stored: &Annotation, next: &Annotation) -> StorageResult<()> {
     next.content
         .check()
         .map_err(|_| StorageError::AnnotationInvalid)?;
     if next.content.kind != stored.content.kind {
         return Err(StorageError::AnnotationInvalid);
     }
+    Ok(())
+}
+
+/// Checks the new symbol of an annotation and drops the baseline of the old one.
+fn retarget(conn: &Connection, stored: &Annotation, next: &Annotation) -> StorageResult<()> {
+    ensure_target(conn, stored.project, &next.target)?;
+    let id = column_int(next.id.get())?;
+    ensure_single_critical(conn, stored.project, &next.target, next.content.kind, id)?;
+    // The baseline describes the old symbol; the next scan takes one of the new symbol.
+    conn.execute(sql::BASELINE_DELETE, params![id])?;
+    Ok(())
+}
+
+fn update(conn: &Connection, update: &AnnotationUpdate) -> StorageResult<Annotation> {
+    let next = &update.annotation;
+    let stored = find(conn, next.id)?;
+    ensure_same_kind(&stored, next)?;
     let id = column_int(next.id.get())?;
     // A target that was just checked against the newest snapshot is there.
     let without_target = next.target == stored.target && stored.without_target;
     if next.target != stored.target {
-        ensure_target(conn, stored.project, &next.target)?;
-        ensure_single_critical(conn, stored.project, &next.target, next.content.kind, id)?;
-        // The baseline describes the old symbol; the new one gets its own when the alert is dismissed.
-        conn.execute(sql::BASELINE_DELETE, params![id])?;
+        retarget(conn, &stored, next)?;
     }
     let (target, content) = (
         TargetColumns::of(&next.target),

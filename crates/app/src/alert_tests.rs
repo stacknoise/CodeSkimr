@@ -118,6 +118,24 @@ fn open_alerts(store: &SqliteStore) -> Vec<codeskimr_domain::Alert> {
         .unwrap()
 }
 
+/// A project of two files under `root` with a critical annotation on `name`, scanned twice.
+fn watched(
+    root: &tempfile::TempDir,
+    kind: SymbolKind,
+    name: &str,
+) -> (std::path::PathBuf, Session, std::sync::Arc<SqliteStore>) {
+    let folder = root.path().join("project");
+    write(&folder, "Target.cs", TARGET);
+    write(&folder, "Other.cs", OTHER);
+    let data = locations(&root.path().join("data"));
+    let session = session(&folder, &data);
+    session.scan_quick(ScanMode::Full).unwrap();
+    let store = store_of(&data);
+    critical(&store, kind, name);
+    session.scan_quick(ScanMode::Incremental).unwrap();
+    (folder, session, store)
+}
+
 #[test]
 fn an_incremental_scan_stores_the_hashes_a_full_scan_of_the_same_files_stores() {
     let root = tempfile::tempdir().unwrap();
@@ -157,15 +175,7 @@ fn an_incremental_scan_stores_the_hashes_a_full_scan_of_the_same_files_stores() 
 #[test]
 fn a_critical_method_raises_an_alert_for_a_change_of_code_and_not_for_a_cosmetic_edit() {
     let root = tempfile::tempdir().unwrap();
-    let folder = root.path().join("project");
-    write(&folder, "Target.cs", TARGET);
-    write(&folder, "Other.cs", OTHER);
-    let data = locations(&root.path().join("data"));
-    let session = session(&folder, &data);
-    session.scan_quick(ScanMode::Full).unwrap();
-    let store = store_of(&data);
-    critical(&store, SymbolKind::Method, "Demo.Target.Do");
-    session.scan_quick(ScanMode::Incremental).unwrap();
+    let (folder, session, store) = watched(&root, SymbolKind::Method, "Demo.Target.Do");
     assert_eq!(open_alerts(&store).len(), 0);
 
     // Comments and layout: no alert.
@@ -195,15 +205,7 @@ fn a_critical_method_raises_an_alert_for_a_change_of_code_and_not_for_a_cosmetic
 #[test]
 fn a_deleted_critical_file_raises_a_removed_alert_and_a_full_scan_agrees() {
     let root = tempfile::tempdir().unwrap();
-    let folder = root.path().join("project");
-    write(&folder, "Target.cs", TARGET);
-    write(&folder, "Other.cs", OTHER);
-    let data = locations(&root.path().join("data"));
-    let session = session(&folder, &data);
-    session.scan_with(ScanMode::Full, |_| {}).unwrap();
-    let store = store_of(&data);
-    critical(&store, SymbolKind::Class, "Demo.Target");
-    session.scan_with(ScanMode::Incremental, |_| {}).unwrap();
+    let (folder, session, store) = watched(&root, SymbolKind::Class, "Demo.Target");
     fs::remove_file(folder.join("Target.cs")).unwrap();
     session.scan_with(ScanMode::Full, |_| {}).unwrap();
     let alerts = open_alerts(&store);

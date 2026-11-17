@@ -13,8 +13,8 @@ use std::sync::Arc;
 
 use codeskimr_domain::{
     Alert, AlertChange, AlertKind, AlertSighting, AlertState, AlertTrigger, Annotation,
-    AnnotationId, AnnotationKind, ProjectId, QualifiedName, Snapshot, SymbolBaseline, SymbolKind,
-    Timestamp,
+    AnnotationId, AnnotationKind, AnnotationTarget, ProjectId, QualifiedName, Snapshot,
+    SymbolBaseline, SymbolKind, Timestamp,
 };
 
 use crate::error::CodedError;
@@ -209,38 +209,35 @@ impl AlertStep {
         if said {
             return Ok(Outcome::Quiet);
         }
-        let target = &annotation.target;
+        let finding = self.loss(look, &annotation.target)?;
+        self.raise(look, annotation, finding)
+    }
+
+    /// What the scan says about a target that is not in the snapshot.
+    fn loss(&self, look: &Look<'_>, target: &AnnotationTarget) -> Result<Finding, CodedError> {
         let simple = target::simple_name(&target.name);
         let same = match &simple {
             Some(simple) => self.states.same_simple_name(look.snapshot.id, simple)?,
             None => Vec::new(),
         };
         let closest = target::closest(target, &same);
-        let references = match (&closest, &simple) {
-            (None, Some(simple)) => Some(self.states.remaining_references(
-                look.snapshot.id,
-                &target.name,
-                simple,
-            )?),
-            (None, None) => Some(0),
-            (Some(_), _) => None,
+        let (kind, references) = match (&closest, &simple) {
+            (Some(_), _) => (AlertKind::Orphaned, None),
+            (None, Some(simple)) => {
+                let names =
+                    self.states
+                        .remaining_references(look.snapshot.id, &target.name, simple)?;
+                (AlertKind::Removed, Some(names))
+            }
+            (None, None) => (AlertKind::Removed, Some(0)),
         };
-        let kind = if closest.is_some() {
-            AlertKind::Orphaned
-        } else {
-            AlertKind::Removed
-        };
-        self.raise(
-            look,
-            annotation,
-            Finding {
-                kind,
-                changes: Vec::new(),
-                references,
-                closest,
-                observed: None,
-            },
-        )
+        Ok(Finding {
+            kind,
+            changes: Vec::new(),
+            references,
+            closest,
+            observed: None,
+        })
     }
 
     fn raise(

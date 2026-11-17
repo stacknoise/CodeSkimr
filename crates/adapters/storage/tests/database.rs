@@ -572,6 +572,7 @@ fn a_version_eleven_database_keeps_its_layers_without_a_limit() {
          DROP TABLE layer_uses;
          ALTER TABLE layers DROP COLUMN restricted;
          DROP VIEW symbols;
+         ALTER TABLE symbol_rows DROP COLUMN content_hash;
          ALTER TABLE symbol_rows DROP COLUMN origin;
          PRAGMA user_version = 11;
          INSERT INTO projects (id, name, source_kind, location, branch)

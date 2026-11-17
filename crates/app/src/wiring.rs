@@ -151,16 +151,20 @@ pub fn scanner_over(
         clock: Arc::new(SystemClock),
         max_workers: config.scan.max_workers,
     };
-    let alerts = AlertStep {
+    Ok(Scanner::new(ports, &ids, events.clone())
+        .with_level2(pass)
+        .with_alerts(alert_step(store, events)))
+}
+
+/// The alert step of ADR 0068 over the store; it publishes on `events`.
+fn alert_step(store: &Arc<SqliteStore>, events: EventBus) -> AlertStep {
+    AlertStep {
         annotations: store.clone(),
         states: store.clone(),
         digest: Arc::new(Blake3Digest),
         clock: Arc::new(SystemClock),
-        events: events.clone(),
-    };
-    Ok(Scanner::new(ports, &ids, events)
-        .with_level2(pass)
-        .with_alerts(alerts))
+        events,
+    }
 }
 
 /// The runner that finds out which tools exist, for the check of ADR 0033: version queries only,
