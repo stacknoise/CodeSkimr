@@ -24,6 +24,8 @@ import {
   GRAPH_ROUTE,
   LAYERS_ROUTE,
   MAIN_ROUTES,
+  PROJECT_PATHS,
+  PROJECTS_ROUTE,
   SCAN_ROUTE,
   SETTINGS_ROUTE,
   USAGES_ROUTE,
@@ -31,10 +33,16 @@ import {
 import styles from "./App.module.css";
 import { RailLink, TopBar } from "./Frame";
 import { ProjectCrumb } from "./ProjectCrumb";
-import { currentPath } from "./router";
+import { activeProject } from "../shared/project/active";
+import { currentPath, navigate } from "./router";
 
 /** The screen of the current path. */
 function Screen() {
+  createEffect(() => {
+    if (PROJECT_PATHS.includes(currentPath()) && activeProject() === null) {
+      navigate(PROJECTS_ROUTE.path);
+    }
+  });
   return (
     <Switch fallback={<ProjectsScreen />}>
       <Match when={currentPath() === SETTINGS_ROUTE.path}>
