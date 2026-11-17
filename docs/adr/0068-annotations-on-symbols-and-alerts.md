@@ -1,0 +1,43 @@
+# 0068 – Annotations on symbols: system-critical marks, notes, tasks and the alert list
+
+Status: proposed
+
+## Context
+
+The product owner wants three things on types and members. First, to mark them as *system critical*, so that the mark is visible everywhere the symbol is shown, and an alert appears when a critical symbol changes; alerts can be removed. Second, to write notes and tasks on symbols and see them in the UI. A concept with mocks was shown and chosen on 2026-11-17: mark variant B (edge stripe and label, no shield in the member table), notes and tasks as tabs in the side panel with counters (N1), text under the row as a switch (N2) and a task board (N3).
+
+Snapshots are replaced by retention (blueprint 6.2: the last N) and rewritten by every scan, so nothing that belongs to the user can live in them. The scanned repository is not trusted (blueprint 12), the source text is not copied (6.2), and the live view (concept of 2026-11-16, not decided) is not built yet. Git projects change only after a fetch.
+
+## Options
+
+Storage: (S1) own tables in the project database; (S2) S1 plus export and import as a file; (S3) a file inside the scanned repository. S3 is rejected: the repository is untrusted input and CodeSkimr must not change it. S2 is a later add-on.
+
+Detecting a change: (D1) compare whole snapshots; (D2) keep a *baseline* per marked symbol and compare only marked symbols after each scan. D1 needs snapshot comparison (WP-103, after 1.0) and breaks with retention. D2 is cheap and independent of retention.
+
+## Decision
+
+1. **One entity `Annotation`** with kind `critical`, `note` or `task`. Fields: id, project, target, kind, text (the reason for `critical`, optional), status (tasks: `open`, `in_progress`, `done`), due date (tasks, optional), assignee (tasks, optional, free text), author, created, updated. A symbol can have any number of notes and tasks and at most one `critical` annotation. The target can be a namespace, type or member.
+2. **Storage S1.** Tables `annotation`, `annotation_baseline` and `alert` in the project database, new migration, not tied to a snapshot id, so retention does not touch them. Annotations are deleted with the project. The tables carry `project` and `author` so that the team server (after 1.0, PostgreSQL) can share them; the first version is local only.
+3. **Target key.** Kind, qualified name and the parameter types of the signature, never a line or a snapshot id. After each scan the key is looked up in the new snapshot. If it is not found, the annotation becomes *orphaned*: it stays, an alert of kind `orphaned` names the closest symbol with the same name (if any), and the user re-assigns or removes it. Nothing is deleted silently.
+4. **Baseline.** For each `critical` annotation the baseline stores the content hash of the symbol, its signature hash, LOC and CC. The content hash is taken in the parse stage over the token stream of the symbol (whitespace and comments excluded, so cosmetic edits give no alert), with the hash function already used for file content hashes. A type hashes its own span; a namespace hashes the sorted hashes of its children.
+5. **Alerts.** After every snapshot (full, incremental, file watcher, Git fetch) the application compares the *critical* symbols with their baseline, as a read-model step after the snapshot transaction. A failure there is logged and never undoes the snapshot. Kinds: `changed` (with what changed: content, signature, CC, LOC), `removed` (with the number of references that remain), `orphaned`. Per annotation there is at most one open alert; further changes raise its counter and its last-seen time. An alert holds the snapshot id, the commit id if the source is Git, and the trigger (scan, watcher, fetch).
+6. **Removing.** Dismissing an alert sets its state to `dismissed`, moves it to the tab "Done" and sets the baseline to the current state; a later change makes a new alert. Dismissing all alerts of the current filter asks for confirmation. Dismissed alerts are kept for `annotations.dismissed_retention_days` (default 30, `config/default.toml`) and purged at start and once a day. An orphaned annotation can be re-assigned from its alert.
+7. **Commands and permission.** New registry commands: `annotation_list`, `annotation_create`, `annotation_update`, `annotation_delete`, `alert_list`, `alert_dismiss`, `alert_dismiss_all`. Reading needs `read`; changing annotations and alerts needs the new permission `annotate`. The local owner holds it (ADR 0019). CLI: `codeskimr annotations` and `codeskimr alerts`. MCP gets two read-only tools, `list_annotations` and `get_alerts` (an agent can ask "which critical symbols changed?"); writing through MCP is not offered. The WebSocket carries a new event `alerts_changed` with the project id and the number of open alerts only, never text (events are not filtered per user).
+8. **Text.** Notes and task texts are user input. They are limited by `annotations.max_text_chars` and `annotations.max_title_chars` (config), stored as plain text with a small Markdown subset (paragraph, bold, italic, code, links with `http` and `https` only), and drawn as text nodes, never as HTML. The UI hints that notes must not hold credentials (blueprint 12). No annotation is sent anywhere.
+9. **UI.** Binding mocks 14 (Annotations), 15 (Alerts) and 16 (Tasks), blueprint 15 and appendix B.
+   - Mark: edge stripe and the label "Critical" / "Kritisch" in the member table, the stripe plus a count of critical symbols on collapsed groups in the tree, shield and label in the details and in diagrams. No shield in the member table. Marking by switch, key `K` or context menu. Dependency map: highlight critical nodes (switch), and "only critical and their neighbours". Quick search and usages show the mark too.
+   - Notes and tasks: tabs Info, Critical (shield only), Notes, Tasks in the side panel; counters in tree and table; text under the row as a switch; page "Annotations" with the task board and the filters Mine, Only critical, Due. Keys `N` (note), `T` (task), `K` (critical).
+   - Alerts: a bell in the top bar with the number of open alerts and a drawer with the tabs Open, Changed, Removed, Done; a click jumps to the symbol, the cross removes the alert.
+   - **Labels and tabs never wrap** (new rule in 15.4). If space is short, an inactive tab shows only its symbol and counter.
+   - New tokens `critical` and `critical-bg` in every theme (Hell and Petrol `#A3197A` / `#FBE8F5`, Dunkel `#F08BD0` / `#3D1634`; contrast 6.0:1 or more on the background and 7.0:1 or more on the surface). A magenta that is not the red of errors, so that the mark is not read as a fault; the shield and the label make the mark independent of colour.
+10. **Errors.** New group `ANN` (annotations and alerts, `application`, `storage`): target not found, text too long, annotation not found, alert not found. The codes are registered with the package that uses them (blueprint 11.6).
+11. **No new dependency** is expected.
+
+## Consequences
+
+- The content hash per symbol is also what snapshot comparison (WP-103) and the live view need; it is built once. The parse stage becomes a little more expensive; the budget of blueprint 16 applies and is measured with the change.
+- Stage 1 (names, not the compiler) makes references "provisional"; the alert therefore does not rely on reference counts for `changed`, only for the hint at `removed`.
+- A rename shows as `removed` or `orphaned`, not as a move; a move detection is not part of this decision.
+- Git projects alert only after a fetch; several commits between two fetches give one alert (shallow clone).
+- Local only in the first version. The team server needs the author and rights per annotation (ADR 0019); that is a follow-up.
+- Work packages (in this order): this ADR with blueprint and mocks; domain and storage (tables, migration, content hash); alerts in the scan; commands, REST, CLI, MCP, event; UI marks and tabs; UI alerts and board; documentation and security review (user text).

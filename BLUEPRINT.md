@@ -285,6 +285,8 @@ codeskimr/
 | `Reference` | one occurrence of a symbol | id, from symbol, to symbol, file, span, kind, confidence |
 | `Metric` | measured value | symbol, kind (loc, cc, cc_max, mi, ce, ca, instability), value |
 | `LayerEdge` | aggregated dependency between namespaces / layers | from, to, count, violates layering, part of cycle |
+| `Annotation` | user mark, note or task on a symbol, not part of a snapshot (ADR 0068) | id, project, target, kind (`critical` \| `note` \| `task`), text, status, due, assignee, author |
+| `Alert` | message that a system-critical symbol changed, was removed or lost its target (ADR 0068) | id, annotation, kind, counter, snapshot, commit (if Git), state (`open` \| `dismissed`) |
 
 **Symbol kinds** are language-neutral: `module`, `namespace`, `class`, `interface`, `trait`, `record`, `struct`, `enum`, `union`, `function`, `method`, `constructor`, `property`, `field`, `constant`, `event`, `enum_member`, `parameter`, `type_alias`. Language packs map their syntax onto these kinds. Free functions belong to a `module` symbol, one per file.
 
@@ -304,6 +306,7 @@ codeskimr/
   - `layer_graph` – the dependency map
   - `type_summary` – the metric strip
 - **Retention:** keep the last N snapshots per project (configurable, default from `config/default.toml`).
+- **Annotations (ADR 0068):** the tables `annotation`, `annotation_baseline` and `alert` are not tied to a snapshot and are not touched by retention. A symbol is found again by kind, qualified name and parameter types. Dismissed alerts are kept for `annotations.dismissed_retention_days`.
 - Schema migrations are versioned SQL files in `crates/adapters/storage/migrations/`, applied at start-up.
 
 ---
@@ -434,7 +437,7 @@ Every user-facing action is a `Command` with:
 - input and output types
 - a default keyboard shortcut (optional)
 - a flag saying whether it is read-only
-- the `Permission` a caller needs (`read`, `read_source`, `scan`, `manage`, `register_project`, `admin`)
+- the `Permission` a caller needs (`read`, `read_source`, `scan`, `annotate` (ADR 0068), `manage`, `register_project`, `admin`)
 
 The registry generates:
 
@@ -560,6 +563,7 @@ The local commands run as the local owner without login. After 1.0 the team edit
 | `CLI` | command line | `cli` |
 | `I18N` | translations | `i18n` |
 | `EXP` | export | `application` |
+| `ANN` | annotations and alerts (ADR 0068) | `application`, `storage` |
 | `UI` | frontend | `web` |
 | `CHK` | convention-check findings (not failures, see 11.6) | `application` |
 
@@ -765,8 +769,11 @@ The screens (details in Appendix B):
 | 11 | Audit log | `docs/mocks/Audit.dc.html` |
 | 12 | Single sign-on | `docs/mocks/Sso.dc.html` |
 | 13 | Settings: themes and language | `docs/mocks/Themes.dc.html` |
+| 14 | Annotations: marks, notes, tasks | `docs/mocks/Annotations.dc.html` |
+| 15 | Alerts | `docs/mocks/Alerts.dc.html` |
+| 16 | Task board | `docs/mocks/Tasks.dc.html` |
 
-Screens 7 to 12 belong to the team edition (after 1.0, ADR 0019, milestone T2) and exist as mocks so that the UI can be built to them; screen 13 belongs to 1.0 (ADR 0021). The mocks 7 to 13 take a `theme` property (15.3); mocks 1 to 6 are drawn in the theme Hell (layout binding, colours follow the active theme, see 15.3).
+Screens 7 to 12 belong to the team edition (after 1.0, ADR 0019, milestone T2) and exist as mocks so that the UI can be built to them; screen 13 belongs to 1.0 (ADR 0021); screens 14 to 16 belong to the annotations (ADR 0068). Mocks 14 to 16 are static pages: they show all three themes by the class of `body`. The mocks 7 to 13 take a `theme` property (15.3); mocks 1 to 6 are drawn in the theme Hell (layout binding, colours follow the active theme, see 15.3).
 
 The mock sources are written in a design-canvas format; render them through the link above. Read the files for exact values (inline styles). All numbers and names in them are **sample data**.
 
@@ -800,6 +807,7 @@ Defined once in `design/tokens.toml`. TypeScript/CSS variables are generated fro
 | `warn` / `warn-bg` | `#B45309` / `#FFF4E5` | metric medium, attention |
 | `bad` / `bad-bg` | `#B91C1C` / `#FDF2F2` | metric bad, violations |
 | `highlight` / `mark` | `#FFF7D6` / `#FDE68A` | selected member lines / search hit, focus ring |
+| `critical` / `critical-bg` | `#A3197A` / `#FBE8F5` | system-critical mark: stripe, label, shield, alert dot (ADR 0068) |
 | kind colours | class `#2457D6`, interface `#7C3AED`, record `#0F766E`, struct `#B45309`, enum `#BE185D` | kind badges |
 | layer colours | in `meta.layers` order: `#2457D6`, `#0F766E`, `#7C3AED`, `#B45309`, `#BE185D`, `#5B6370`, … | layer dots and bands |
 | syntax colours `syn-keyword`, `-string`, `-number`, `-comment`, `-type`, `-function`, `-attribute` | `#6D28D9`, `#15803D`, `#B45309`, `#5B6370`, `#0E7490`, `#1D4ED8`, `#BE185D` | code in the source column (ADR 0064) |
@@ -830,6 +838,7 @@ The UI offers three themes in the first version (ADR 0021). Every theme defines 
 | `bad` / `bad-bg` | `#B91C1C` / `#FDF2F2` | `#A82D2D` / `#F9DCDC` | `#FF8C8C` / `#401B1B` |
 | `outgoing` | `#C2410C` | `#C2410C` | `#FB923C` |
 | `highlight` / `mark` | `#FFF7D6` / `#FDE68A` | `#FFF7D6` / `#FDE68A` | `#3A3413` / `#6B5A12` |
+| `critical` / `critical-bg` | `#A3197A` / `#FBE8F5` | `#A3197A` / `#FBE8F5` | `#F08BD0` / `#3D1634` |
 
 Kind and layer colours of Petrol equal those of Hell. Dunkel uses lighter variants of the same hues:
 
@@ -878,6 +887,8 @@ In Hell, `good-bg` is `#EAF7EF`; the value `#E7F6EC` of the first mock version r
 - **Explorer → Usages:** "Usages (U)" button, the "Usages" column with counts (click opens), Alt+click in code.
 - **Section open/closed states** in the details panel persist across type changes.
 - **Column header tooltips** explain each metric and its thresholds.
+- **Labels and tabs never wrap.** Tab labels, labels such as "Critical" and counters stay on one line; if space is short, an inactive tab shows only its symbol and counter (ADR 0068).
+- **Annotations (ADR 0068):** `K` marks the selection as system critical, `N` adds a note, `T` adds a task. The mark is never shown by colour alone (stripe, label and shield). The member table shows stripe and label, no shield.
 - **Accessibility:** real buttons, links and inputs; visible focus; `aria-label` on icon buttons; text contrast ≥ 4.5:1; colours that must be distinguished also differ in lightness (blue/orange, not red/green alone).
 
 ### 15.5 Performance rules for the UI
@@ -1276,6 +1287,22 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 
 - **Theme cards** (Hell, Petrol, Dunkel) with live miniature preview, name, short description, colour strip and "Select" or "Selected" pill. Option "Follow system setting".
 - **Language** select. Note that theme and language are stored per user.
+
+### B.14 Annotations (`Annotations.dc.html`)
+
+- **Mark "system critical" (variant B):** edge stripe and label "KRITISCH" on the row in the member table (no shield there), stripe and a count chip on groups, shield and label in the details and on diagram nodes.
+- **Tree and table:** counters for notes and tasks (tasks as done/total).
+- **Side panel:** tabs Info, Critical (shield only), Notes, Tasks; notes with author and date, tasks with a check box, due date and assignee; buttons "Add note" and "Remove mark".
+- **Second board:** the same table with the text of notes and tasks under the row (switch "Show annotations").
+
+### B.15 Alerts (`Alerts.dc.html`)
+
+- **Bell** in the top bar with the number of open alerts; **drawer** with the tabs Open, Changed, Removed, Done; per alert kind label, symbol, what changed (for example "CC 7 → 9"), time and trigger (file watcher, Git check); a cross removes it; "Remove all" for the current filter.
+- **Second board:** the dependency map with critical nodes (stripe, label "K"), switch "Highlight critical" and "only critical and their neighbours".
+
+### B.16 Task board (`Tasks.dc.html`)
+
+- Page "Annotations": columns Open, In progress, Done with task cards (symbol, text, due date, assignee); filters Mine, Only critical, Due; counters for open tasks and notes.
 
 ---
 
