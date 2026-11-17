@@ -14,6 +14,7 @@ import {
   currentMember,
   currentType,
   loadOutline,
+  shownHasLayer,
   stepMember,
   outlineError,
   outlineLoading,
@@ -142,7 +143,7 @@ function useShortcuts(explorer: ReturnType<typeof useExplorer>): void {
     graph: () => {
       const symbol = shownSymbol();
       const project = activeProject();
-      if (symbol !== null && project !== null) {
+      if (symbol !== null && project !== null && shownHasLayer()) {
         void showInGraph(project, symbol);
       }
     },

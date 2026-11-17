@@ -9,6 +9,7 @@ import {
   CHIP,
   MISSING,
   SORT_COLUMN,
+  SORT_DIRECTION,
   SORT_MARK,
   type SortColumn,
   TRUE,
@@ -95,13 +96,10 @@ function SortHead(props: {
   tip?: string;
 }) {
   const current = () => memberSort();
-  const sorted = () => current().column === props.column;
+  const sorted = () => current()?.column === props.column;
+  const direction = () => current()?.direction;
   return (
-    <th
-      class={props.number ? styles.number : undefined}
-      title={props.tip}
-      aria-sort={sorted() ? current().direction : undefined}
-    >
+    <th class={props.number ? styles.number : undefined} title={props.tip} aria-sort={direction()}>
       <button
         type="button"
         class={cx(styles.sort, sorted() && styles.sorted)}
@@ -110,7 +108,7 @@ function SortHead(props: {
         {t(props.label)}
         <Show when={sorted()}>
           <span class={styles.mark} aria-hidden={true}>
-            {SORT_MARK[current().direction]}
+            {SORT_MARK[direction() ?? SORT_DIRECTION.ascending]}
           </span>
         </Show>
       </button>

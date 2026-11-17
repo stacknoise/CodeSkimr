@@ -9,7 +9,7 @@ import { CRUMB_SEPARATOR, HOTKEY, PILL_SEPARATOR } from "./consts";
 import { showInGraph } from "../graph/show";
 import { showUsages } from "../../shared/navigation/navigation";
 import { openInEditor } from "./editor";
-import { shownMember } from "./explorer";
+import { memberFromTable, selectType, shownHasLayer, shownMember } from "./explorer";
 import { MemberTable } from "./MemberTable";
 import { MetricStrip } from "./MetricStrip";
 import type { MemberRow, SymbolInfo, Thresholds } from "./types";
@@ -36,9 +36,9 @@ function Breadcrumb(props: { info: SymbolInfo; member: MemberRow | null }) {
   );
 }
 
-function Action(props: { label: string; hotkey: string; onClick: () => void }) {
+function Action(props: { label: string; hotkey: string; onClick: () => void; disabled?: boolean }) {
   return (
-    <button type="button" onClick={() => props.onClick()}>
+    <button type="button" disabled={props.disabled} onClick={() => props.onClick()}>
       {props.label} <kbd class={styles.kbd}>{props.hotkey}</kbd>
     </button>
   );
@@ -56,6 +56,7 @@ function Actions(props: { symbol: number }) {
       <Action
         label={t(I18N_KEYS.EXPLORER_ACTION_GRAPH)}
         hotkey={HOTKEY.graph}
+        disabled={!shownHasLayer()}
         onClick={() => {
           const project = activeProject();
           if (project !== null) {
@@ -80,9 +81,20 @@ function Actions(props: { symbol: number }) {
 /** Name, kind and the buttons of the shown symbol: the member if one is selected, else the type. */
 function Title(props: { info: SymbolInfo; member: MemberRow | null }) {
   const shown = () => props.member ?? props.info;
+  const back = () => {
+    const project = activeProject();
+    if (project !== null) {
+      void selectType(project, props.info.id);
+    }
+  };
   const kind = () => [shown().kind, shown().visibility].filter(Boolean).join(PILL_SEPARATOR);
   return (
     <div class={styles.title}>
+      <Show when={props.member !== null && memberFromTable()}>
+        <button type="button" class={styles.back} onClick={back}>
+          {t(I18N_KEYS.EXPLORER_BACK_TO_MEMBERS)}
+        </button>
+      </Show>
       <h1>{shown().name}</h1>
       <Pill tone={TONE.accent}>{kind()}</Pill>
       <Actions symbol={shown().id} />

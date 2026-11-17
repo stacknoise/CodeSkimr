@@ -171,6 +171,18 @@ describe("namespaces grouped by their parts", () => {
     ].map((path) => namespaceKey("Test", path)),
   ];
 
+  it("leaves out the row for no layer when the project has no layers at all", () => {
+    const flat: Outline = {
+      ...OUTLINE,
+      layers: [{ name: "", namespaces: [{ name: "Co", types: [type(1, "Root")] }] }],
+    };
+    const rows = buildRows(flat, new Set([namespaceKey("", "Co")]), new Map(), "", LABELS);
+    expect(rows.map((row) => [row.label, row.depth])).toEqual([
+      ["Co", 0],
+      ["Root", 1],
+    ]);
+  });
+
   it("shows one row for each part, with the parts below it", () => {
     const rows = buildRows(GROUPED, new Set(all), new Map(), "", LABELS);
     expect(rows.map((row) => `${row.depth}:${row.label}:${row.meta}`)).toEqual([

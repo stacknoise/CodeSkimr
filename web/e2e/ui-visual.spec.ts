@@ -204,7 +204,6 @@ for (const theme of THEMES) {
       const row = await addScannedProject(page, harness, `visexplorer${theme}`, SOURCE);
       await row.click({ position: { x: 4, y: 4 } });
       await page.keyboard.press("Enter");
-      await page.getByText("(no layer)").click();
       await page.getByText("Vis", { exact: true }).click();
       await page.getByText("Calculator", { exact: true }).click();
       await expect(page.getByRole("heading", { name: "Calculator" })).toBeVisible();

@@ -81,7 +81,7 @@ export function pick(project: number, owner: number, member: MemberRow): void {
   if (TYPE_KINDS.includes(member.kind)) {
     void revealNested(project, owner, member.id);
   } else {
-    void selectType(project, owner, member.id);
+    void selectType(project, owner, member.id, true);
   }
 }
 

@@ -28,7 +28,9 @@ describe("ExportApp", () => {
   it("shows the tree from the data without asking any server", async () => {
     const fetched = vi.spyOn(globalThis, "fetch");
     render(() => <ExportApp data={DATA} />);
-    expect(await screen.findByText("(no layer)")).toBeInTheDocument();
+    // The project has no layers, so the namespaces stand at the top without a "(no layer)" row.
+    expect(await screen.findByText("a")).toBeInTheDocument();
+    expect(screen.queryByText("(no layer)")).toBeNull();
     expect(fetched).not.toHaveBeenCalled();
   });
 });

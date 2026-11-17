@@ -2,7 +2,12 @@ import { createSignal } from "solid-js";
 import { navigate } from "../../app/router";
 import { EXPLORER_ROUTE } from "../../app/consts";
 import { runCommand } from "../../shared/api/commands";
-import { focusSymbol, requestFocus, setFocusSymbol } from "../../shared/navigation/navigation";
+import {
+  clearOrigin,
+  focusSymbol,
+  requestFocus,
+  setFocusSymbol,
+} from "../../shared/navigation/navigation";
 import { COMMAND, TYPE_KINDS } from "../explorer/consts";
 import { failed, type Failure } from "../explorer/failure";
 import type { SymbolInfo } from "../explorer/types";
@@ -137,6 +142,7 @@ export function clearUsages(): void {
   generation += 1;
   clearPreview();
   setFocusSymbol(null);
+  clearOrigin();
   setAnswer(null);
   setCode(new Map());
   setFailure(null);
@@ -154,4 +160,15 @@ export async function openInExplorer(project: number, place: Place): Promise<voi
     requestFocus({ type: owner, member: owner === place.id ? null : place.id, kind: place.kind });
   }
   navigate(EXPLORER_ROUTE.path);
+}
+
+/** Shows the symbol the user came from in the explorer, as the way back of the usages screen. */
+export async function openOriginInExplorer(project: number, symbol: number): Promise<void> {
+  const info = await runCommand<SymbolInfo>(COMMAND.symbol, { project, symbol });
+  await openInExplorer(project, {
+    id: info.id,
+    qualified_name: info.qualified_name,
+    kind: info.kind,
+    layer: info.layer,
+  });
 }
