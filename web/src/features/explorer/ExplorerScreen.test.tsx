@@ -33,6 +33,14 @@ describe("ExplorerScreen", () => {
     expect(await screen.findByText("No project open")).toBeTruthy();
   });
 
+  it("names the language of a type in the tree and in the details", async () => {
+    renderOrder();
+    await openOrder();
+    expect(await screen.findByRole("heading", { name: "Order" })).toBeTruthy();
+    expect(within(screen.getByRole("tree")).getByTitle("C#")).toBeTruthy();
+    expect(screen.getAllByText("C#").length).toBeGreaterThan(1);
+  });
+
   it("shows the structure, opens a type and shows its metrics and members", async () => {
     renderOrder();
     await openOrder();
@@ -413,7 +421,10 @@ describe("coming back to the explorer", () => {
         {
           name: "Domain",
           namespaces: [
-            { name: "Shop.Sales", types: [{ id: 7, name: "Order2", kind: "class", members: 2 }] },
+            {
+              name: "Shop.Sales",
+              types: [{ id: 7, name: "Order2", kind: "class", members: 2, language: "csharp" }],
+            },
           ],
         },
       ],

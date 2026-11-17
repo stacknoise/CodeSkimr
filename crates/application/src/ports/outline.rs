@@ -1,6 +1,8 @@
 //! The structure of a snapshot for the explorer tree (adapter: `codeskimr_storage`).
 
-use codeskimr_domain::{QualifiedName, SnapshotId, SymbolId, SymbolKind, SymbolName, Visibility};
+use codeskimr_domain::{
+    LanguageId, QualifiedName, SnapshotId, SymbolId, SymbolKind, SymbolName, Visibility,
+};
 
 use crate::error::CodedError;
 
@@ -19,6 +21,8 @@ pub struct OutlineNode {
     pub parent: Option<SymbolId>,
     /// Number of direct members.
     pub members: u32,
+    /// Language of the file that declares it.
+    pub language: LanguageId,
 }
 
 /// One row of the member table of a symbol.

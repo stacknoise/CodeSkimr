@@ -25,6 +25,8 @@ import {
   treeScroll,
 } from "./explorer";
 import { treeWidth } from "./layout";
+import { languageName } from "../projects/format";
+import { LANGUAGE_SHORT } from "./consts";
 import { KindBadge } from "./KindBadge";
 import { onTreeKey } from "./keys";
 import { indent, siblingPlaces, type Place, type TreeRow } from "./tree";
@@ -71,6 +73,30 @@ function Caret(props: { row: TreeRow; onToggle: (row: TreeRow) => void }) {
   );
 }
 
+/** The short name of the language of a type row; the title has the full name. */
+function LanguageTag(props: { id: string | null }) {
+  return (
+    <Show when={props.id}>
+      {(id) => (
+        <span class={styles.language} title={languageName(id())}>
+          {LANGUAGE_SHORT[id()] ?? id()}
+        </span>
+      )}
+    </Show>
+  );
+}
+
+/** Name, language and count or signature of a row. */
+function RowText(props: { row: TreeRow }) {
+  return (
+    <>
+      <span class={styles.label}>{props.row.label}</span>
+      <LanguageTag id={props.row.language} />
+      <span class={styles.meta}>{props.row.meta}</span>
+    </>
+  );
+}
+
 function Item(props: {
   row: TreeRow;
   place: Place | undefined;
@@ -106,8 +132,7 @@ function Item(props: {
         <Dot index={row().layerIndex} />
       </Show>
       <Show when={row().symbolKind}>{(kind) => <KindBadge kind={kind()} />}</Show>
-      <span class={styles.label}>{row().label}</span>
-      <span class={styles.meta}>{row().meta}</span>
+      <RowText row={row()} />
     </div>
   );
 }

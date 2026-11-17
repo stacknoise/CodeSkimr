@@ -16,7 +16,10 @@ export const OUTLINE: Outline = {
     {
       name: "Domain",
       namespaces: [
-        { name: "Shop.Sales", types: [{ id: 7, name: "Order", kind: "class", members: 2 }] },
+        {
+          name: "Shop.Sales",
+          types: [{ id: 7, name: "Order", kind: "class", members: 2, language: "csharp" }],
+        },
       ],
     },
   ],
@@ -31,6 +34,7 @@ export const ORDER: SymbolInfo = {
   visibility: "public",
   is_static: false,
   path: "src/Order.cs",
+  language: "csharp",
   first_line: 3,
   last_line: 40,
   signature: null,
