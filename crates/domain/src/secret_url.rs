@@ -147,31 +147,47 @@ fn looks_like_password(authority: &str) -> bool {
 mod tests {
     use super::{without_secrets, without_userinfo};
 
+    /// Every input comes out as it went in.
+    fn assert_unchanged(clean: fn(&str) -> String, inputs: &[&str]) {
+        for input in inputs {
+            assert_eq!(clean(input), *input);
+        }
+    }
+
+    /// Every input comes out as the text beside it.
+    fn assert_cleaned(clean: fn(&str) -> String, pairs: &[(&str, &str)]) {
+        for (input, expected) in pairs {
+            assert_eq!(clean(input), *expected, "{input}");
+        }
+    }
+
+    const WEB_URLS: &[(&str, &str)] = &[
+        (
+            "https://user:tok@host.example/r.git",
+            "https://host.example/r.git",
+        ),
+        ("https://ghp_TOKEN@github.com/o/r", "https://github.com/o/r"),
+        ("ssh://git:pw@host/x", "ssh://git@host/x"),
+        ("ssh://git@host/x", "ssh://git@host/x"),
+        ("file:///tmp/repo", "file:///tmp/repo"),
+    ];
+
     #[test]
     fn web_urls_lose_user_and_password_and_other_schemes_only_the_password() {
-        assert_eq!(
-            without_secrets("https://user:tok@host.example/r.git"),
-            "https://host.example/r.git"
-        );
-        assert_eq!(
-            without_secrets("https://ghp_TOKEN@github.com/o/r"),
-            "https://github.com/o/r"
-        );
-        assert_eq!(without_secrets("ssh://git:pw@host/x"), "ssh://git@host/x");
-        assert_eq!(without_secrets("ssh://git@host/x"), "ssh://git@host/x");
-        assert_eq!(without_secrets("file:///tmp/repo"), "file:///tmp/repo");
+        assert_cleaned(without_secrets, WEB_URLS);
     }
 
     #[test]
     fn urls_without_credentials_stay_as_they_are() {
-        for url in [
-            "https://host.example/a@b",
-            "https://host:8080/a@b",
-            "https://[::1]:8080/a@b",
-            "https://host.example/r.git?x=a@b",
-        ] {
-            assert_eq!(without_secrets(url), url);
-        }
+        assert_unchanged(
+            without_secrets,
+            &[
+                "https://host.example/a@b",
+                "https://host:8080/a@b",
+                "https://[::1]:8080/a@b",
+                "https://host.example/r.git?x=a@b",
+            ],
+        );
     }
 
     #[test]
@@ -189,18 +205,22 @@ mod tests {
         }
     }
 
+    const TEXTS: &[(&str, &str)] = &[
+        (
+            "failed https://user:tok@host.example/r.git: denied",
+            "failed https://host.example/r.git: denied",
+        ),
+        (
+            "see https://host.example/a@b and ssh://git@host/x? no",
+            "see https://host.example/a@b and ssh://host/x? no",
+        ),
+        ("nothing here", "nothing here"),
+        ("https://u:pa/ss@h/r", "https://h/r"),
+    ];
+
     #[test]
     fn texts_lose_the_credentials_of_every_url() {
-        assert_eq!(
-            without_userinfo("failed https://user:tok@host.example/r.git: denied"),
-            "failed https://host.example/r.git: denied"
-        );
-        assert_eq!(
-            without_userinfo("see https://host.example/a@b and ssh://git@host/x? no"),
-            "see https://host.example/a@b and ssh://host/x? no"
-        );
-        assert_eq!(without_userinfo("nothing here"), "nothing here");
-        assert_eq!(without_userinfo("https://u:pa/ss@h/r"), "https://h/r");
+        assert_cleaned(without_userinfo, TEXTS);
     }
 
     #[test]
@@ -214,13 +234,14 @@ mod tests {
 
     #[test]
     fn scp_style_text_without_a_password_stays() {
-        for text in [
-            "git@host.example:org/r.git",
-            "see user@host:22 now",
-            "a: b@c",
-            "x:y@host",
-        ] {
-            assert_eq!(without_userinfo(text), text);
-        }
+        assert_unchanged(
+            without_userinfo,
+            &[
+                "git@host.example:org/r.git",
+                "see user@host:22 now",
+                "a: b@c",
+                "x:y@host",
+            ],
+        );
     }
 }

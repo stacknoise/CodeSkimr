@@ -5,6 +5,7 @@
 //! it checks today: function length (`CHK-104`, R-02) and duplicated functions (`CHK-102`, R-01).
 //! The report lists what it does not check yet in `not_checked`.
 
+mod allowed;
 mod checker;
 mod duplicates;
 mod length;
@@ -12,4 +13,6 @@ mod model;
 mod stored;
 
 pub use checker::ConventionChecker;
-pub use model::{CheckReport, CheckRequest, Detail, Finding, Location, StoredProject, Unchecked};
+pub use model::{
+    CheckReport, CheckRequest, Detail, Finding, Location, Measure, StoredProject, Unchecked,
+};

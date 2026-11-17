@@ -1,4 +1,5 @@
-import { For, Match, Switch } from "solid-js";
+import { For } from "solid-js";
+import { Dynamic } from "solid-js/web";
 import { ExplorerScreen } from "../features/explorer/ExplorerScreen";
 import { GraphScreen } from "../features/graph/GraphScreen";
 import { QuickSearch } from "../features/search/QuickSearch";
@@ -8,6 +9,7 @@ import { UsagesScreen } from "../features/usages/UsagesScreen";
 import { t, currentLanguage } from "../shared/i18n/i18n";
 import { I18N_KEYS } from "../shared/i18n/keys";
 import { cx } from "../shared/ui/cx";
+import { screenAt, type ScreenTable } from "../shared/ui/screenAt";
 import { EXPLORER_ROUTE, FLUSH_PATHS, GRAPH_ROUTE, USAGES_ROUTE, type Route } from "../app/consts";
 import appStyles from "../app/App.module.css";
 import { BANNER_SEPARATOR, MS_PER_SECOND, SHORT_COMMIT } from "./consts";
@@ -19,17 +21,14 @@ import styles from "./ExportApp.module.css";
 /** The screens of the export: the ones that read what a scan found. */
 const ROUTES: Route[] = [EXPLORER_ROUTE, GRAPH_ROUTE];
 
+/** The screens of the export by their path; the explorer answers every other path. */
+const SCREENS: ScreenTable = [
+  [GRAPH_ROUTE.path, GraphScreen],
+  [USAGES_ROUTE.path, UsagesScreen],
+];
+
 function Screen() {
-  return (
-    <Switch fallback={<ExplorerScreen />}>
-      <Match when={currentPath() === GRAPH_ROUTE.path}>
-        <GraphScreen />
-      </Match>
-      <Match when={currentPath() === USAGES_ROUTE.path}>
-        <UsagesScreen />
-      </Match>
-    </Switch>
-  );
+  return <Dynamic component={screenAt(SCREENS, currentPath(), ExplorerScreen)} />;
 }
 
 /** How many direct usages the export holds, split by whether level 2 verified them. */

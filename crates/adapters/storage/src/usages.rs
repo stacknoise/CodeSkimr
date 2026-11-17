@@ -170,6 +170,7 @@ struct EdgeRow {
     count: i64,
 }
 
+// codeskimr: allow CHK-102 maps a row of the dependency query into its columns
 fn read_edge(cols: &Cols<'_>) -> rusqlite::Result<EdgeRow> {
     Ok(EdgeRow {
         id: cols.take()?,

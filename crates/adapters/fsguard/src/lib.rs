@@ -25,35 +25,31 @@ pub fn open_regular(path: &Path) -> io::Result<File> {
     }
 }
 
-#[cfg(unix)]
+/// The options of the open: read only, plus what the system offers against a link.
 fn options() -> OpenOptions {
-    use std::os::unix::fs::OpenOptionsExt;
-
     let mut options = OpenOptions::new();
-    options
-        .read(true)
-        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
+    options.read(true);
+    guard(&mut options);
     options
 }
 
+#[cfg(unix)]
+fn guard(options: &mut OpenOptions) {
+    use std::os::unix::fs::OpenOptionsExt;
+
+    options.custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK);
+}
+
 #[cfg(windows)]
-fn options() -> OpenOptions {
+fn guard(options: &mut OpenOptions) {
     use std::os::windows::fs::OpenOptionsExt;
 
-    let mut options = OpenOptions::new();
-    options
-        .read(true)
-        .custom_flags(windows_sys::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT);
-    options
+    options.custom_flags(windows_sys::Win32::Storage::FileSystem::FILE_FLAG_OPEN_REPARSE_POINT);
 }
 
 // Other systems have no protection against a link; the type check on the handle remains.
 #[cfg(not(any(unix, windows)))]
-fn options() -> OpenOptions {
-    let mut options = OpenOptions::new();
-    options.read(true);
-    options
-}
+fn guard(_: &mut OpenOptions) {}
 
 #[cfg(all(test, unix))]
 mod tests {

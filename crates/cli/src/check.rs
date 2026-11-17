@@ -155,33 +155,16 @@ fn place(location: &Location) -> JsonPlace {
 }
 
 fn json_finding(finding: &Finding) -> JsonFinding {
-    let mut json = JsonFinding {
+    let measure = finding.detail.measure();
+    JsonFinding {
         code: finding.code.id(),
         at: place(&finding.location),
-        lines: None,
-        value: None,
-        limit: None,
-        duplicate_of: None,
-        similarity_percent: None,
-    };
-    match &finding.detail {
-        Detail::TooLong { lines, limit } => {
-            json.lines = Some(*lines);
-            json.limit = Some(*limit);
-        }
-        Detail::Over { value, limit } => {
-            json.value = Some(*value);
-            json.limit = Some(*limit);
-        }
-        Detail::Duplicate {
-            of,
-            similarity_percent,
-        } => {
-            json.duplicate_of = Some(place(of));
-            json.similarity_percent = Some(*similarity_percent);
-        }
+        lines: measure.lines,
+        value: measure.value,
+        limit: measure.limit,
+        duplicate_of: measure.duplicate_of.map(place),
+        similarity_percent: measure.similarity_percent,
     }
-    json
 }
 
 /// The report as one line of JSON. Lines are one-based.

@@ -198,6 +198,11 @@ fn assert_same_in_steps(steps: &[&[Change]]) {
     assert_eq!(incremental, full);
 }
 
+/// The result after two steps with one change each is the one of a full scan.
+fn assert_two_steps(first: Change, second: Change) {
+    assert_same_in_steps(&[&[first], &[second]]);
+}
+
 fn assert_python_same(steps: &[&[Change]]) {
     let (full, incremental) = both_ways(PYTHON_BASE, steps);
     assert_eq!(incremental, full);
@@ -366,22 +371,16 @@ fn an_edit_inside_a_body_gives_the_same_result() {
     )]);
 }
 
+const HELPER_FIRST: &str =
+    "namespace Demo;\n\n// first\npublic class Helper\n{\n    public static void Go() { }\n}\n";
+const HELPER_SECOND: &str = "namespace Demo;\n\n// first\n// second\npublic class Helper\n{\n    public static void Go() { }\n}\n";
+
 #[test]
 fn an_edit_that_only_adds_a_comment_gives_the_same_result() {
-    assert_same_in_steps(&[
-        &[(
-            "Helper.cs",
-            Some(
-                "namespace Demo;\n\n// first\npublic class Helper\n{\n    public static void Go() { }\n}\n",
-            ),
-        )],
-        &[(
-            "Helper.cs",
-            Some(
-                "namespace Demo;\n\n// first\n// second\npublic class Helper\n{\n    public static void Go() { }\n}\n",
-            ),
-        )],
-    ]);
+    assert_two_steps(
+        ("Helper.cs", Some(HELPER_FIRST)),
+        ("Helper.cs", Some(HELPER_SECOND)),
+    );
 }
 
 #[test]
@@ -394,22 +393,14 @@ fn a_name_that_an_import_makes_visible_follows_an_edit_of_the_imported_file() {
     )]);
 }
 
+const GADGET: &str =
+    "namespace Demo.Lib;\n\npublic class Gadget\n{\n    public static void Run() { }\n}\n";
+const TOOL: &str =
+    "namespace Demo.Elsewhere;\n\npublic class Tool\n{\n    public static void Run() { }\n}\n";
+
 #[test]
 fn a_name_that_an_import_makes_visible_follows_a_rename_and_a_second_candidate() {
-    assert_same_in_steps(&[
-        &[(
-            "Lib.cs",
-            Some(
-                "namespace Demo.Lib;\n\npublic class Gadget\n{\n    public static void Run() { }\n}\n",
-            ),
-        )],
-        &[(
-            "Elsewhere.cs",
-            Some(
-                "namespace Demo.Elsewhere;\n\npublic class Tool\n{\n    public static void Run() { }\n}\n",
-            ),
-        )],
-    ]);
+    assert_two_steps(("Lib.cs", Some(GADGET)), ("Elsewhere.cs", Some(TOOL)));
 }
 
 #[test]

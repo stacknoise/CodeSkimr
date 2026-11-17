@@ -15,7 +15,7 @@ use codeskimr_cli::{GlobalOptions, McpArgs};
 use codeskimr_codes::ErrorCode;
 use codeskimr_i18n::Messages;
 use codeskimr_mcp::{HttpService, McpServer, Ports, Tools, serve_stdio};
-use codeskimr_source::FolderKeys;
+use codeskimr_source::{FolderKeys, FolderText};
 use codeskimr_storage::SqliteStore;
 
 use crate::clock::SystemClock;
@@ -166,6 +166,7 @@ fn convention_checker(analysis: &Analysis, config: &Config) -> Arc<ConventionChe
     Arc::new(ConventionChecker::new(
         Arc::clone(&analysis.discovery),
         Arc::clone(&analysis.analyzer),
+        Arc::new(FolderText),
         config.conventions.clone(),
     ))
 }

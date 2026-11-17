@@ -119,8 +119,14 @@ fn parse<T: FromStr>(label: &str) -> Result<T, String> {
 mod tests {
     use super::*;
 
+    /// The rules that the text describes.
+    fn from_toml(toml: &str) -> Visibilities {
+        Visibilities::resolve(toml::from_str(toml).expect("rules")).expect("labels")
+    }
+
     fn rules() -> Visibilities {
-        let toml = r#"
+        from_toml(
+            r#"
             default = "private"
             unrated_kinds = ["namespace"]
             [keywords]
@@ -134,8 +140,8 @@ mod tests {
             [parent_defaults]
             module = "internal"
             interface = "public"
-        "#;
-        Visibilities::resolve(toml::from_str(toml).expect("rules")).expect("labels")
+        "#,
+        )
     }
 
     #[test]
@@ -207,7 +213,8 @@ mod tests {
     }
 
     fn by_name_rules() -> Visibilities {
-        let toml = r#"
+        from_toml(
+            r#"
             default = "public"
             [[name_rules]]
             prefix = "__"
@@ -219,8 +226,8 @@ mod tests {
             [[name_rules]]
             prefix = "_"
             visibility = "internal"
-        "#;
-        Visibilities::resolve(toml::from_str(toml).expect("rules")).expect("labels")
+        "#,
+        )
     }
 
     #[test]
