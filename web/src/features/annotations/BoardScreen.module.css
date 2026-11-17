@@ -170,8 +170,7 @@
     font-weight: 600;
 }
 
-.view:focus-visible,
-.actions button:focus-visible {
+.view:focus-visible {
     outline: 2px solid var(--accent);
     outline-offset: 1px;
 }
@@ -181,25 +180,5 @@
 }
 
 .actions {
-    display: flex;
-    gap: var(--space-8);
     margin-top: var(--space-8);
-}
-
-.actions button {
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--ink-2);
-    font: 11px var(--font-sans);
-    cursor: pointer;
-}
-
-.actions button:hover {
-    color: var(--accent);
-}
-
-.actions .danger {
-    color: var(--bad);
-    font-weight: 600;
 }

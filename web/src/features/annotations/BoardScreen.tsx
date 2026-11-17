@@ -16,7 +16,7 @@ import {
   openTasks,
   type Filters,
 } from "./board";
-import { TaskMeta } from "./Cards";
+import { ActionRow, DeleteAction, TaskMeta } from "./Cards";
 import { RichText } from "./RichText";
 import {
   BOARD,
@@ -82,29 +82,17 @@ function StatusPick(props: { project: number; task: Annotation }) {
 
 /** "Delete" of a card on the board: it asks once more, then removes the annotation. */
 function DeleteButton(props: { project: number; item: Annotation }) {
-  const [asking, setAsking] = createSignal(false);
-  const remove = async () => {
-    await change(props.project, () => deleteAnnotation(props.project, props.item.id));
-    setAsking(false);
-  };
   return (
-    <span class={styles.actions}>
-      <Show
-        when={asking()}
-        fallback={
-          <button type="button" onClick={() => setAsking(true)}>
-            {t(I18N_KEYS.ANNOTATIONS_DELETE)}
-          </button>
-        }
-      >
-        <button type="button" class={styles.danger} onClick={() => void remove()}>
-          {t(I18N_KEYS.ANNOTATIONS_DELETE_CONFIRM)}
-        </button>
-        <button type="button" onClick={() => setAsking(false)}>
-          {t(I18N_KEYS.ANNOTATIONS_CANCEL)}
-        </button>
-      </Show>
-    </span>
+    <div class={styles.actions}>
+      <ActionRow>
+        <DeleteAction
+          onDelete={() =>
+            change(props.project, () => deleteAnnotation(props.project, props.item.id))
+          }
+          onFailed={() => undefined}
+        />
+      </ActionRow>
+    </div>
   );
 }
 
