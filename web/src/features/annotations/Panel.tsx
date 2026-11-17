@@ -20,7 +20,7 @@ import {
 import { countersOf } from "./join";
 import { NoteIcon, Shield, TaskIcon } from "./Marks";
 import { NotesTab } from "./NotesTab";
-import { activeTab, clearNotice, panelNotice, selectTab } from "./panel";
+import { activeTab, clearNotice, panelNotice, selectTab } from "./panelState";
 import { annotationIndex } from "./store";
 import { TasksTab } from "./TasksTab";
 import type { Counters, Target } from "./types";

@@ -2,7 +2,7 @@ import { createSignal, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { CriticalLabel } from "./Marks";
-import { markAsCritical, removeCriticalMark, report } from "./panel";
+import { markAsCritical, removeCriticalMark, report } from "./panelState";
 import { RichText } from "./RichText";
 import { SHIELD } from "./consts";
 import type { Annotation, Target } from "./types";

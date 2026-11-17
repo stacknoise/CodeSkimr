@@ -18,7 +18,7 @@ import {
 import { answer, serve, useServerSession } from "../../tests/commands";
 import { openOrder, ORDER, OUTLINE } from "../../tests/explorer";
 import { setShowAnnotationText } from "../annotations/flags";
-import { selectTab } from "../annotations/panel";
+import { selectTab } from "../annotations/panelState";
 import { forgetAnnotations } from "../annotations/store";
 import { forgetExplorer, setMemberSort } from "./explorer";
 import { ExplorerScreen } from "./ExplorerScreen";

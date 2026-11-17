@@ -3,7 +3,7 @@ import { t, type MessageKey } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { STATUS_LABEL, STATUSES, STATUS, TEXT_ROWS, type TaskStatus } from "./consts";
 import { dateFieldOf, dueOfField } from "./format";
-import { failureText } from "./panel";
+import { failureText } from "./panelState";
 import type { ChangeFailure } from "./store";
 import type { Annotation, Draft } from "./types";
 import styles from "./Forms.module.css";
