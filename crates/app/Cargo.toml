@@ -51,6 +51,10 @@ windows-permissions.workspace = true
 tray-icon.workspace = true
 winit.workspace = true
 
+# Windows only, build time: embeds the app icon into the exe (the tray icon needs no extra crate).
+[target.'cfg(windows)'.build-dependencies]
+winresource.workspace = true
+
 [dev-dependencies]
 tempfile.workspace = true
 # Test-only: the login canary test talks to a local server over plain HTTP, which Git refuses for
