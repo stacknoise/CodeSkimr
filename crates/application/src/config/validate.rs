@@ -83,6 +83,16 @@ fn check_annotations(annotations: &Annotations) -> Result<(), ConfigError> {
         annotations.max_title_chars,
     )?;
     positive(
+        keys::ANNOTATIONS_MAX_ASSIGNEE_CHARS,
+        annotations.max_assignee_chars,
+    )?;
+    positive(keys::ANNOTATIONS_MAX_NAME_CHARS, annotations.max_name_chars)?;
+    positive(
+        keys::ANNOTATIONS_MAX_PARAMETER_CHARS,
+        annotations.max_parameter_chars,
+    )?;
+    positive(keys::ANNOTATIONS_MAX_PARAMETERS, annotations.max_parameters)?;
+    positive(
         keys::ANNOTATIONS_DEFAULT_PAGE,
         annotations.default_page_size,
     )?;

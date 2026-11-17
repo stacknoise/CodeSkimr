@@ -17,7 +17,7 @@ use codeskimr_codes::i18n::{
 use codeskimr_i18n::{FluentArgs, FluentValue, Messages};
 use serde::Serialize;
 
-use crate::consts::{CLI_LINE_BREAK, CLI_LIST_SEPARATOR, note_arg};
+use crate::consts::{CLI_KEPT_CONTROLS, CLI_LINE_BREAK, CLI_LIST_SEPARATOR, note_arg};
 use crate::locations::Locations;
 use crate::ui_commands::{
     AlertListInput, AlertListOut, AlertOut, AlertsDismiss, AlertsDismissAll, AlertsList,
@@ -93,10 +93,19 @@ fn printed<T: Serialize>(
     if json { json_of(answer) } else { text() }
 }
 
+/// The text without control characters (ANSI and OSC escapes, C0 and C1) except tab and line
+/// break: a note is user input, and a terminal must not act on it.
+pub(crate) fn printable(text: &str) -> String {
+    text.chars()
+        .filter(|found| !found.is_control() || CLI_KEPT_CONTROLS.contains(found))
+        .collect()
+}
+
 fn say(around: &Surroundings<'_>, key: &str, args: &FluentArgs<'_>) -> Result<String, CodedError> {
     around
         .messages
         .format(around.language, key, Some(args))
+        .map(|text| printable(&text))
         .map_err(CodedError::caused_by)
 }
 

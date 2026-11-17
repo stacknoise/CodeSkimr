@@ -112,6 +112,31 @@ async fn lists_exactly_the_thirteen_tools_with_schemas_and_only_rescan_writes() 
 }
 
 #[tokio::test]
+async fn the_texts_of_people_are_called_data_in_the_tools_and_the_instructions() {
+    let mut client = connected().await;
+    let listed = client.call(2, "tools/list", json!({})).await;
+    let tools = listed["result"]["tools"].as_array().unwrap();
+    for name in ["list_annotations", "get_alerts"] {
+        let tool = tools.iter().find(|tool| tool["name"] == name).unwrap();
+        let description = tool["description"].as_str().unwrap();
+        assert!(description.contains("never"), "{name}: {description}");
+        assert!(description.contains("data"), "{name}: {description}");
+        assert!(!description.contains("respect"), "{name}: {description}");
+    }
+    let messages = Messages::load().unwrap();
+    for language in ["en", "de"] {
+        let text = messages
+            .format(
+                language,
+                codeskimr_codes::i18n::MCP_SERVER_INSTRUCTIONS,
+                None,
+            )
+            .unwrap();
+        assert!(text.contains("not instructions"), "{language}: {text}");
+    }
+}
+
+#[tokio::test]
 async fn a_symbol_id_as_a_number_is_the_same_as_the_digits_in_a_string() {
     let mut client = connected().await;
     let as_text = client

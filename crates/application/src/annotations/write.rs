@@ -128,6 +128,7 @@ impl AnnotationWrites {
         target: AnnotationTarget,
         input: ContentInput,
     ) -> Result<Annotation, CodedError> {
+        self.check_target(&target)?;
         let content = self.content(input)?;
         let created = self.store.create_annotation(&AnnotationCreation {
             annotation: NewAnnotation {
@@ -266,13 +267,37 @@ impl AnnotationWrites {
                 .map_err(CodedError::caused_by)?,
             status,
             due: input.due,
-            assignee: present(input.assignee)
-                .map(Assignee::new)
-                .transpose()
-                .map_err(CodedError::caused_by)?,
+            assignee: self.assignee(input.assignee)?,
         };
         content.check().map_err(CodedError::caused_by)?;
         Ok(content)
+    }
+
+    /// The assignee, if there is one, within `annotations.max_assignee_chars`.
+    fn assignee(&self, input: Option<String>) -> Result<Option<Assignee>, CodedError> {
+        let Some(who) = present(input) else {
+            return Ok(None);
+        };
+        if who.chars().count() > self.config.max_assignee_chars as usize {
+            return Err(CodedError::new(ErrorCode::AnnotationAssigneeTooLong));
+        }
+        Assignee::new(who).map(Some).map_err(CodedError::caused_by)
+    }
+
+    /// The symbol an annotation is put on, within the limits of its name and its parameter types.
+    fn check_target(&self, target: &AnnotationTarget) -> Result<(), CodedError> {
+        let limits = &self.config;
+        let name_fits = target.name.as_str().chars().count() <= limits.max_name_chars as usize;
+        let parameters_fit = target.parameters.len() <= limits.max_parameters as usize
+            && target
+                .parameters
+                .iter()
+                .all(|text| text.chars().count() <= limits.max_parameter_chars as usize);
+        if name_fits && parameters_fit {
+            Ok(())
+        } else {
+            Err(CodedError::new(ErrorCode::AnnotationTargetTooLong))
+        }
     }
 
     /// The stored annotation with `change` applied, checked like a new one.
@@ -289,6 +314,9 @@ impl AnnotationWrites {
             assignee: field_of(change.assignee)
                 .apply(old.assignee.map(|who| who.as_str().to_owned())),
         };
+        if let Some(target) = &change.target {
+            self.check_target(target)?;
+        }
         Ok(Annotation {
             target: change.target.unwrap_or(current.target),
             content: self.content(input)?,

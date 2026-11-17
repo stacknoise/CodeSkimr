@@ -173,6 +173,40 @@ fn the_commands_with_a_shortcut_carry_it_and_fix_their_kind() {
 }
 
 #[test]
+fn the_assignee_the_name_and_the_parameters_are_held_to_the_configured_limits() {
+    let fixture = Fixture::installed(None);
+    let project = fixture.scanned();
+    let task = |extra: Value| {
+        let mut base = json!({ "project": project, "target": class(), "title": "t" });
+        base.as_object_mut()
+            .unwrap()
+            .extend(extra.as_object().unwrap().clone());
+        fixture.call("annotations.add_task", base)
+    };
+    assert_eq!(task(json!({ "assignee": "a".repeat(101) })), Err("ANN-104"));
+    let long_name = json!({ "kind": "class", "name": "n".repeat(501) });
+    assert_eq!(task(json!({ "target": long_name })), Err("ANN-105"));
+    let long_type = json!({ "kind": "class", "name": CLASS, "parameters": ["p".repeat(201)] });
+    assert_eq!(task(json!({ "target": long_type })), Err("ANN-105"));
+    let many = json!({ "kind": "class", "name": CLASS, "parameters": vec!["int"; 33] });
+    assert_eq!(task(json!({ "target": many })), Err("ANN-105"));
+    let created = task(json!({ "assignee": "a".repeat(100) })).unwrap();
+    let update = |extra: Value| {
+        let mut base = json!({ "project": project, "id": created["id"] });
+        base.as_object_mut()
+            .unwrap()
+            .extend(extra.as_object().unwrap().clone());
+        fixture.call("annotations.update", base)
+    };
+    assert_eq!(
+        update(json!({ "assignee": "a".repeat(101) })),
+        Err("ANN-104")
+    );
+    let moved = json!({ "kind": "class", "name": "n".repeat(501) });
+    assert_eq!(update(json!({ "target": moved })), Err("ANN-105"));
+}
+
+#[test]
 fn the_texts_are_held_to_the_configured_limits_and_the_fields_to_the_kind() {
     let fixture = Fixture::installed(None);
     let project = fixture.scanned();

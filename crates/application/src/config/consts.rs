@@ -85,6 +85,14 @@ pub mod keys {
     pub const ANNOTATIONS_DEFAULT_PAGE: &str = "annotations.default_page_size";
     /// `annotations.max_page_size`
     pub const ANNOTATIONS_MAX_PAGE: &str = "annotations.max_page_size";
+    /// `annotations.max_assignee_chars`
+    pub const ANNOTATIONS_MAX_ASSIGNEE_CHARS: &str = "annotations.max_assignee_chars";
+    /// `annotations.max_name_chars`
+    pub const ANNOTATIONS_MAX_NAME_CHARS: &str = "annotations.max_name_chars";
+    /// `annotations.max_parameter_chars`
+    pub const ANNOTATIONS_MAX_PARAMETER_CHARS: &str = "annotations.max_parameter_chars";
+    /// `annotations.max_parameters`
+    pub const ANNOTATIONS_MAX_PARAMETERS: &str = "annotations.max_parameters";
     /// `annotations.max_title_chars`
     pub const ANNOTATIONS_MAX_TITLE_CHARS: &str = "annotations.max_title_chars";
     /// `graph.node_width`

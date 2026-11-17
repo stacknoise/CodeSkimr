@@ -302,6 +302,14 @@ pub struct Annotations {
     pub max_text_chars: u32,
     /// Most characters of the title of a task.
     pub max_title_chars: u32,
+    /// Most characters of the assignee of a task.
+    pub max_assignee_chars: u32,
+    /// Most characters of the qualified name of the symbol an annotation is put on.
+    pub max_name_chars: u32,
+    /// Most characters of one parameter type of that symbol.
+    pub max_parameter_chars: u32,
+    /// Most parameter types of that symbol.
+    pub max_parameters: u32,
     /// Rows of a list of annotations or alerts when the caller gives no limit.
     pub default_page_size: u32,
     /// Most rows of one page of such a list.

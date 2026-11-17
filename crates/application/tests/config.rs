@@ -184,6 +184,42 @@ fn annotation_limits_are_checked() {
 }
 
 #[test]
+fn the_limits_of_assignee_name_and_parameters_are_checked() {
+    assert_rejected(&[
+        (
+            "[annotations]\nmax_assignee_chars = 0\n",
+            "annotations.max_assignee_chars",
+            Violation::MustBePositive,
+        ),
+        (
+            "[annotations]\nmax_name_chars = 0\n",
+            "annotations.max_name_chars",
+            Violation::MustBePositive,
+        ),
+        (
+            "[annotations]\nmax_parameter_chars = 0\n",
+            "annotations.max_parameter_chars",
+            Violation::MustBePositive,
+        ),
+        (
+            "[annotations]\nmax_parameters = 0\n",
+            "annotations.max_parameters",
+            Violation::MustBePositive,
+        ),
+    ]);
+    let defaults = Config::defaults().unwrap().annotations;
+    assert_eq!(
+        (
+            defaults.max_assignee_chars,
+            defaults.max_name_chars,
+            defaults.max_parameter_chars,
+            defaults.max_parameters
+        ),
+        (100, 500, 200, 32)
+    );
+}
+
+#[test]
 fn counts_and_percentages_are_checked() {
     assert_rejected(&[
         (

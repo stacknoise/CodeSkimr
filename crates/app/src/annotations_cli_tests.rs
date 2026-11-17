@@ -161,6 +161,29 @@ fn an_annotation_is_added_listed_in_both_forms_and_removed() {
 }
 
 #[test]
+fn control_characters_of_a_note_do_not_reach_the_terminal_but_json_keeps_them() {
+    let world = World::new();
+    let en = world.around("en");
+    let nasty = "ok\u{1b}]0;title\u{7}\u{1b}[31mred\u{9b}x\ttab";
+    run_annotations(&add("note", nasty, false), &en).unwrap();
+    let text = run_annotations(&list(false), &en).unwrap();
+    assert!(
+        !text
+            .chars()
+            .any(|c| c.is_control() && c != '\n' && c != '\t'),
+        "{text:?}"
+    );
+    assert!(text.contains("ok"), "{text:?}");
+    let json = run_annotations(&list(true), &en).unwrap();
+    assert!(!json.contains('\u{1b}'), "JSON escapes it: {json}");
+    assert!(json.contains("\\u001b"), "{json}");
+    assert_eq!(
+        crate::annotations_cli::printable("a\tb\nc\u{85}d"),
+        "a\tb\ncd"
+    );
+}
+
+#[test]
 fn an_unknown_project_or_symbol_is_a_coded_failure() {
     let world = World::new();
     let en = world.around("en");

@@ -452,6 +452,8 @@ const _: () = assert!(TRAY_ICON_RGBA.len() == (TRAY_ICON_SIZE * TRAY_ICON_SIZE *
 
 /// Separates the lines of the output of `annotations` and `alerts`.
 pub const CLI_LINE_BREAK: &str = "\n";
+/// The control characters that stay in the text output of `annotations` and `alerts`.
+pub const CLI_KEPT_CONTROLS: [char; 2] = ['\t', '\n'];
 /// Separates the parts of the summary of an annotation or of the detail of an alert.
 pub const CLI_LIST_SEPARATOR: &str = ", ";
 

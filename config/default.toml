@@ -68,6 +68,12 @@ dismissed_retention_days = 30
 max_text_chars = 4000
 # Longest title of a task, in characters; it must not exceed max_text_chars.
 max_title_chars = 500
+# Longest assignee of a task, longest qualified name of a symbol an annotation is put on, longest
+# parameter type and most parameter types of such a symbol, in characters and in number.
+max_assignee_chars = 100
+max_name_chars = 500
+max_parameter_chars = 200
+max_parameters = 32
 # Rows a list of annotations or alerts returns when the caller gives no limit, and the most it may
 # return in one page; it must not be less than the default.
 default_page_size = 100
