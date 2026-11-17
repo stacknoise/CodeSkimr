@@ -1,4 +1,7 @@
 import { createEffect, For, Match, onCleanup, Show, Switch } from "solid-js";
+import { AlertsDrawer } from "../features/alerts/Drawer";
+import { hideDrawer, refreshCount } from "../features/alerts/store";
+import { BoardScreen } from "../features/annotations/BoardScreen";
 import { ConnectionScreen } from "../features/session/ConnectionScreen";
 import { GraphScreen } from "../features/graph/GraphScreen";
 import { LayersScreen } from "../features/layers/LayersScreen";
@@ -14,10 +17,12 @@ import { StatusBar } from "../features/status/StatusBar";
 import { SettingsScreen } from "../features/settings/SettingsScreen";
 import { t } from "../shared/i18n/i18n";
 import { I18N_KEYS } from "../shared/i18n/keys";
+import { activeProject } from "../shared/project/active";
 import { KIND } from "../shared/session/consts";
 import { sessionState } from "../shared/session/session";
 import { cx } from "../shared/ui/cx";
 import {
+  ANNOTATIONS_ROUTE,
   EXPLORER_ROUTE,
   FLUSH_PATHS,
   FOOTER_ROUTES,
@@ -52,6 +57,9 @@ function Screen() {
       <Match when={currentPath() === EXPLORER_ROUTE.path}>
         <ExplorerScreen />
       </Match>
+      <Match when={currentPath() === ANNOTATIONS_ROUTE.path}>
+        <BoardScreen />
+      </Match>
       <Match when={currentPath() === USAGES_ROUTE.path}>
         <UsagesScreen />
       </Match>
@@ -65,6 +73,14 @@ export function App() {
   createEffect(() => {
     if (sessionState().kind === KIND.connected) {
       onCleanup(listenToScans());
+    }
+  });
+  createEffect(() => {
+    // The number on the bell follows the project; the drawer belongs to one project.
+    const project = activeProject();
+    hideDrawer();
+    if (sessionState().kind === KIND.connected) {
+      void refreshCount(project);
     }
   });
   return (
@@ -88,6 +104,7 @@ export function App() {
         </main>
       </div>
       <QuickSearch />
+      <AlertsDrawer />
       <StatusBar />
     </div>
   );

@@ -33,6 +33,8 @@ export const MAX_PAGES = 100;
 export const TARGET_SEPARATOR = "\u0001";
 /** Characters that follow the name of a container in the qualified name of a symbol inside it. */
 export const NAME_BOUNDARY = /^[.:]/;
+/** Separates the parts of a qualified name. */
+export const NAME_SEPARATOR = ".";
 
 /** The tabs of the side panel. */
 export const TAB = { info: "info", critical: "critical", notes: "notes", tasks: "tasks" } as const;
@@ -47,6 +49,17 @@ export const FLAG_OFF = "0";
 /** `localStorage` keys of the two switches of the dependency map. */
 export const HIGHLIGHT_KEY = "codeskimr.annotations.highlight";
 export const NEIGHBOURS_KEY = "codeskimr.annotations.only-critical";
+
+/** What the board is doing. */
+export const BOARD = { loading: "loading", ready: "ready", failed: "failed" } as const;
+export type BoardState = (typeof BOARD)[keyof typeof BOARD];
+/** The filters of the board. */
+export const FILTER = { mine: "mine", critical: "critical", due: "due" } as const;
+/** The columns of the board, left to right (mock 16). */
+export const COLUMNS: readonly TaskStatus[] = [STATUS.open, STATUS.inProgress, STATUS.done];
+
+/** `localStorage` key of the name of the author of the last annotation made in this browser. */
+export const ME_KEY = "codeskimr.annotations.me";
 
 /** The keys of the actions (blueprint 15.4). */
 export const HOTKEY = { critical: "K", note: "N", task: "T" } as const;
@@ -119,8 +132,6 @@ export const MARKUP_RULES: readonly { kind: PieceKind; pattern: RegExp }[] = [
 /** The schemes that the address of a link may have. */
 export const LINK_SCHEMES: readonly string[] = ["http:", "https:"];
 
-/** Keys of the tab list. */
-export const TAB_KEY = { next: "ArrowRight", previous: "ArrowLeft" } as const;
 /** Ids of the tab buttons (their prefix) and of the panel they control. */
 export const TAB_ID_PREFIX = "annotation-tab-";
 export const PANEL_ID = "annotation-panel";
@@ -135,7 +146,5 @@ export const BOX_DONE = "\u2611";
 
 /** Rows of the text fields of the forms. */
 export const TEXT_ROWS = 3;
-/** The steps of the arrow keys along the tabs. */
-export const TAB_STEP = { next: 1, previous: -1 } as const;
 /** The tab stops of the tab list: only the selected tab is reached with Tab, the arrows do the rest. */
 export const TAB_STOP = { reachable: 0, skipped: -1 } as const;

@@ -2,7 +2,6 @@
 
 annotations-critical-label = Kritisch
 annotations-critical-initial = K
-annotations-critical-system = Systemkritisch
 annotations-panel-label = Seitenleiste
 annotations-tabs-label = Anmerkungen des Symbols
 annotations-tab-info = Info
@@ -49,7 +48,6 @@ annotations-delete = Löschen
 annotations-delete-confirm = Endgültig löschen?
 annotations-empty-notes = An diesem Symbol gibt es noch keine Notizen.
 annotations-empty-tasks = An diesem Symbol gibt es noch keine Aufgaben.
-annotations-without-target = Das Symbol ist im neuesten Scan nicht mehr vorhanden.
 annotations-loading = Anmerkungen werden gelesen …
 annotations-load-failed = Die Anmerkungen konnten nicht gelesen werden.
 annotations-save-failed = Die Änderung konnte nicht gespeichert werden.
@@ -67,8 +65,6 @@ annotations-info-kind = Art
 annotations-info-location = Ort
 annotations-info-signature = Signatur
 annotations-info-layer = Schicht
-annotations-no-symbol = Wähle einen Typ oder ein Member, um seine Anmerkungen zu sehen.
 annotations-command-critical = Auswahl als kritisch markieren oder Markierung entfernen
 annotations-command-note = Neue Notiz zur Auswahl
 annotations-command-task = Neue Aufgabe zur Auswahl
-annotations-legend = Symbole: Schild = kritisch, Blatt = Notizen, Haken = Aufgaben (erledigt von allen)

@@ -6,6 +6,7 @@
 
 .bar {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--space-4);
     border-bottom: 1px solid var(--line);
@@ -13,9 +14,11 @@
 
 .bar > label {
     margin-left: auto;
+    white-space: nowrap;
 }
 
 .tab {
+    white-space: nowrap;
     padding: 8px var(--space-12);
     border: 0;
     border-bottom: 2px solid var(--accent);
@@ -52,6 +55,7 @@
 }
 
 .chip {
+    white-space: nowrap;
     height: 24px;
     padding: 0 var(--space-8);
     border: 1px solid var(--line);

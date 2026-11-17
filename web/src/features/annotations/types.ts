@@ -56,6 +56,8 @@ export interface Counters {
 
 /** The fields of a new or changed note or task. `null` clears a field of an update. */
 export interface Draft {
+  /** Assigns the annotation to another symbol (an update only). */
+  target?: Target;
   title?: string;
   text?: string | null;
   status?: string;

@@ -2,6 +2,7 @@ import { createMemo, For, Match, Show, Switch, type JSX } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import type { MessageKey } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { moveAlongTabs } from "../../shared/keys/tabs";
 import { cx } from "../../shared/ui/cx";
 import { CriticalTab } from "./CriticalTab";
 import {
@@ -12,8 +13,6 @@ import {
   SHIELD,
   TAB,
   TAB_ID_PREFIX,
-  TAB_KEY,
-  TAB_STEP,
   TAB_STOP,
   TABS,
   type TabId,
@@ -96,23 +95,9 @@ function TabButton(props: { id: TabId; counters: Counters | undefined }) {
   );
 }
 
-/** How far a key moves along the tabs: right is forward, left back, any other key stays. */
-function stepOf(key: string): number {
-  if (key === TAB_KEY.next) {
-    return TAB_STEP.next;
-  }
-  return key === TAB_KEY.previous ? TAB_STEP.previous : 0;
-}
-
 /** The arrows move between the tabs (the pattern of a tab list). */
 function onTabKey(event: KeyboardEvent): void {
-  const step = stepOf(event.key);
-  const next = TABS[(TABS.indexOf(activeTab()) + step + TABS.length) % TABS.length];
-  if (step !== 0 && next !== undefined) {
-    selectTab(next);
-    document.getElementById(`${TAB_ID_PREFIX}${next}`)?.focus();
-    event.preventDefault();
-  }
+  moveAlongTabs(event, TABS, activeTab(), selectTab, TAB_ID_PREFIX);
 }
 
 /** The tab list of the panel (mock 14). It sits in a container whose width decides whether an

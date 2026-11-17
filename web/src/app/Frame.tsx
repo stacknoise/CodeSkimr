@@ -1,4 +1,5 @@
 import { Show, type JSX } from "solid-js";
+import { Bell } from "../features/alerts/Bell";
 import { SearchField } from "../features/search/SearchField";
 import { t } from "../shared/i18n/i18n";
 import { I18N_KEYS } from "../shared/i18n/keys";
@@ -38,6 +39,7 @@ export function TopBar(props: { children?: JSX.Element }) {
       </div>
       {props.children}
       <SearchField />
+      <Bell />
     </header>
   );
 }

@@ -1,0 +1,62 @@
+# Alerts about changed system-critical symbols and the board of tasks (ADR 0068, mocks 15 and 16).
+
+nav-annotations = Annotations
+alerts-bell-label = Alerts, { $count } open
+alerts-bell-none = Alerts, none open
+alerts-title = Alerts
+alerts-open-chip = { $count } open
+alerts-close = Close alerts
+alerts-dismiss-all = Dismiss all open alerts
+alerts-dismiss-all-ask = Dismiss all { $count } alerts of this tab?
+alerts-dismiss-all-yes = Yes, dismiss all
+alerts-tabs-label = Kinds of alerts
+alerts-tab-open = Open
+alerts-tab-changed = Changed
+alerts-tab-removed = Removed
+alerts-tab-done = Dismissed
+alerts-kind-changed = CHANGED
+alerts-kind-removed = REMOVED
+alerts-kind-orphaned = ORPHANED
+alerts-text-changed = Changed: { $what }.
+alerts-text-changed-plain = The symbol changed.
+alerts-change-content = content
+alerts-change-signature = signature
+alerts-change-cc = complexity
+alerts-change-loc = lines of code
+alerts-text-removed = The symbol no longer exists. { $count ->
+    [one] 1 place still refers to it.
+   *[other] { $count } places still refer to it.
+}
+alerts-text-removed-plain = The symbol no longer exists.
+alerts-text-orphaned = Target not found. Closest symbol: { $closest }.
+alerts-text-orphaned-plain = Target not found.
+alerts-seen = seen { $count } times
+alerts-trigger-scan = scan
+alerts-trigger-watcher = file watcher
+alerts-trigger-fetch = Git check
+alerts-reason = Reason: { $reason }
+alerts-reassign = Reassign
+alerts-remove-mark = Remove mark
+alerts-dismiss = Dismiss alert: { $name }
+alerts-dismissed-on = dismissed { $when }
+alerts-baseline = Compared with: the last confirmed state of the symbol
+alerts-footer = Orphaned targets are in the tab "Removed". A click jumps to the member, the cross dismisses the alert.
+alerts-empty = No alerts here.
+alerts-loading = Reading alerts ...
+alerts-failed = The alerts could not be read.
+alerts-action-failed = The alert could not be changed.
+board-title = Annotations
+board-chip-tasks = Tasks { $count } open
+board-chip-notes = Notes { $count }
+board-filters-label = Filter of the tasks
+board-filter-mine = Mine
+board-filter-mine-unknown = Your name is known after you have added an annotation here.
+board-filter-critical = Only critical
+board-filter-due = Due
+board-column = { $name } ({ $count })
+board-empty-column = No tasks
+board-empty = No tasks yet. Add one in the explorer with T.
+board-loading = Reading tasks ...
+board-failed = The tasks could not be read.
+board-open-symbol = Show in the explorer: { $name }
+board-done-on = done { $date }

@@ -2,7 +2,6 @@
 
 annotations-critical-label = Critical
 annotations-critical-initial = C
-annotations-critical-system = System critical
 annotations-panel-label = Side panel
 annotations-tabs-label = Annotations of the symbol
 annotations-tab-info = Info
@@ -49,7 +48,6 @@ annotations-delete = Delete
 annotations-delete-confirm = Delete for good?
 annotations-empty-notes = No notes on this symbol yet.
 annotations-empty-tasks = No tasks on this symbol yet.
-annotations-without-target = The symbol is gone from the newest scan.
 annotations-loading = Reading the annotations …
 annotations-load-failed = The annotations could not be read.
 annotations-save-failed = The change could not be saved.
@@ -67,8 +65,6 @@ annotations-info-kind = Kind
 annotations-info-location = Location
 annotations-info-signature = Signature
 annotations-info-layer = Layer
-annotations-no-symbol = Select a type or a member to see its annotations.
 annotations-command-critical = Mark selection as critical or take the mark off
 annotations-command-note = New note on the selection
 annotations-command-task = New task on the selection
-annotations-legend = Symbols: shield = critical, document = notes, tick = tasks (done of all)

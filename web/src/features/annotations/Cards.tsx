@@ -104,7 +104,7 @@ export function NoteCard(props: {
 }
 
 /** The line under the title of a task: the due date, late or not, and the assignee. */
-function TaskMeta(props: { task: Annotation }) {
+export function TaskMeta(props: { task: Annotation }) {
   const due = () => props.task.due ?? null;
   const late = () => {
     const at = due();
