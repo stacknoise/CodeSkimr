@@ -159,6 +159,10 @@ pub const TOOL_INVALID: &str = "invalid tool: ";
 /// the hash (the unit separator).
 pub const TOKEN_SEPARATOR: u8 = 0x1f;
 
+/// Bytes of a token stream that are collected before they go to the hasher (one call per token
+/// costs more than hashing the bytes).
+pub const HASH_CHUNK_BYTES: usize = 16_384;
+
 /// The start of a block that no token delimits, in a content hash (a control character, which no
 /// token of source text consists of on its own).
 pub const BLOCK_OPEN: u8 = 0x02;

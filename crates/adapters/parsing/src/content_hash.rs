@@ -29,7 +29,7 @@ use codeskimr_application::ports::SymbolHash;
 use codeskimr_domain::ContentHash;
 use tree_sitter::Node;
 
-use crate::consts::{BLOCK_CLOSE, BLOCK_OPEN, TOKEN_SEPARATOR};
+use crate::consts::{BLOCK_CLOSE, BLOCK_OPEN, HASH_CHUNK_BYTES, TOKEN_SEPARATOR};
 use crate::error::ParsingError;
 use crate::pack::LanguagePack;
 use crate::symbols::SymbolTable;
@@ -84,33 +84,78 @@ impl Token {
     }
 }
 
+/// What the walk needs to know about a node kind.
+#[derive(Clone, Copy)]
+struct KindFlags {
+    comment: bool,
+    block: bool,
+}
+
+/// The flags of the node kinds seen so far, looked up once per kind and not once per node.
+struct KindCache<'p> {
+    pack: &'p LanguagePack,
+    flags: Vec<Option<KindFlags>>,
+}
+
+impl<'p> KindCache<'p> {
+    fn new(pack: &'p LanguagePack) -> Self {
+        Self {
+            pack,
+            flags: Vec::new(),
+        }
+    }
+
+    fn of(&mut self, node: Node<'_>) -> KindFlags {
+        let id = usize::from(node.kind_id());
+        if self.flags.len() <= id {
+            self.flags.resize(id.saturating_add(1), None);
+        }
+        let pack = self.pack;
+        match self.flags.get_mut(id) {
+            Some(Some(flags)) => *flags,
+            Some(slot) => {
+                let flags = KindFlags {
+                    comment: pack.comment_nodes.contains(node.kind()),
+                    block: pack.block_nodes.contains(node.kind()),
+                };
+                *slot = Some(flags);
+                flags
+            }
+            None => KindFlags {
+                comment: false,
+                block: false,
+            },
+        }
+    }
+}
+
 /// The leaves of the tree that are no comments, in source order, with the markers of the blocks
 /// that the pack names.
 fn token_ranges(pack: &LanguagePack, root: Node<'_>) -> Vec<Token> {
     let mut tokens = Vec::new();
+    let mut kinds = KindCache::new(pack);
     let mut cursor = root.walk();
     loop {
         let current = cursor.node();
-        let is_comment = pack.comment_nodes.contains(current.kind());
-        let is_leaf = is_comment || current.child_count() == 0;
-        let is_block = pack.block_nodes.contains(current.kind());
-        if is_block {
+        let flags = kinds.of(current);
+        let is_leaf = flags.comment || current.child_count() == 0;
+        if flags.block {
             tokens.push(Token::Open(current.start_byte()));
         }
-        if is_leaf && !is_comment && current.end_byte() > current.start_byte() {
+        if is_leaf && !flags.comment && current.end_byte() > current.start_byte() {
             tokens.push(Token::Text(current.start_byte()..current.end_byte()));
         }
         if !is_leaf && cursor.goto_first_child() {
             continue;
         }
-        if is_block {
+        if flags.block {
             tokens.push(Token::Close(current.end_byte()));
         }
         while !cursor.goto_next_sibling() {
             if !cursor.goto_parent() {
                 return tokens;
             }
-            if pack.block_nodes.contains(cursor.node().kind()) {
+            if kinds.of(cursor.node()).block {
                 tokens.push(Token::Close(cursor.node().end_byte()));
             }
         }
@@ -127,19 +172,21 @@ fn within<'t>(tokens: &'t [Token], range: &Range<usize>) -> &'t [Token] {
 
 fn hash_tokens(source: &str, tokens: &[Token]) -> Result<ContentHash, ParsingError> {
     let mut hasher = blake3::Hasher::new();
+    let mut buffer: Vec<u8> = Vec::with_capacity(HASH_CHUNK_BYTES.saturating_mul(2));
     for token in tokens {
         match token {
             Token::Text(range) => {
-                hasher.update(source.as_bytes().get(range.clone()).unwrap_or_default());
+                buffer.extend_from_slice(source.as_bytes().get(range.clone()).unwrap_or_default());
             }
-            Token::Open(_) => {
-                hasher.update(&[BLOCK_OPEN]);
-            }
-            Token::Close(_) => {
-                hasher.update(&[BLOCK_CLOSE]);
-            }
+            Token::Open(_) => buffer.push(BLOCK_OPEN),
+            Token::Close(_) => buffer.push(BLOCK_CLOSE),
         }
-        hasher.update(&[TOKEN_SEPARATOR]);
+        buffer.push(TOKEN_SEPARATOR);
+        if buffer.len() >= HASH_CHUNK_BYTES {
+            hasher.update(&buffer);
+            buffer.clear();
+        }
     }
+    hasher.update(&buffer);
     Ok(ContentHash::new(hasher.finalize().to_hex().to_string())?)
 }

@@ -7,14 +7,10 @@
 -- of the packs changed with it, so the next scan after the update is a full one.
 ALTER TABLE symbol_rows ADD COLUMN content_hash TEXT;
 
--- The alert step looks up the symbols of a few annotations by name; without the index that is a pass
--- over every symbol of the snapshot for each of them.
-CREATE INDEX symbols_by_name ON symbol_rows (qualified_name);
-
--- For a target that is gone the step looks for symbols with the same simple name and counts the names
--- written in the files of the snapshot that still point at it.
-CREATE INDEX symbols_by_simple_name ON symbol_rows (name);
-CREATE INDEX pending_references_by_target ON pending_references (target);
+-- The indexes that the alert step reads through (`symbols_by_name`, `symbols_by_simple_name`,
+-- `pending_references_by_target`) are not made here: the step makes them the first time a project has
+-- a critical annotation (`ENSURE_STATE_INDEXES`), so a project without one does not pay for them on
+-- every scan (the write of a full scan of 100k lines got 20 % slower with them).
 
 -- Whether the newest scan did not find the symbol of an annotation. It is set for every kind; only a
 -- critical annotation raises an alert for it.

@@ -127,12 +127,32 @@ fn same_name(
     .collect()
 }
 
+/// Number of indexes of `ENSURE_STATE_INDEXES`.
+const STATE_INDEX_COUNT: i64 = 3;
+
+impl SqliteStore {
+    /// Makes the indexes of the alert step if the database lacks one (once per database: a scan
+    /// that writes symbols keeps them up to date from then on).
+    fn ensure_state_indexes(&self) -> StorageResult<()> {
+        let present: i64 =
+            self.read(|conn| Ok(conn.query_row(sql::STATE_INDEX_PROBE, [], |row| row.get(0))?))?;
+        if present >= STATE_INDEX_COUNT {
+            return Ok(());
+        }
+        self.write(|tx| Ok(tx.execute_batch(sql::ENSURE_STATE_INDEXES)?))
+    }
+}
+
 impl SymbolStates for SqliteStore {
     fn states(
         &self,
         snapshot: SnapshotId,
         names: &[QualifiedName],
     ) -> Result<Vec<SymbolState>, CodedError> {
+        if names.is_empty() {
+            return Ok(Vec::new());
+        }
+        self.ensure_state_indexes().map_err(CodedError::from)?;
         self.read(|conn| states(conn, snapshot, names))
             .map_err(CodedError::from)
     }
@@ -142,6 +162,7 @@ impl SymbolStates for SqliteStore {
         snapshot: SnapshotId,
         name: &QualifiedName,
     ) -> Result<Vec<ContentHash>, CodedError> {
+        self.ensure_state_indexes().map_err(CodedError::from)?;
         self.read(|conn| child_hashes(conn, snapshot, name))
             .map_err(CodedError::from)
     }
@@ -152,6 +173,7 @@ impl SymbolStates for SqliteStore {
         name: &QualifiedName,
         simple: &SymbolName,
     ) -> Result<u32, CodedError> {
+        self.ensure_state_indexes().map_err(CodedError::from)?;
         self.read(|conn| remaining(conn, snapshot, (name, simple)))
             .map_err(CodedError::from)
     }
@@ -161,6 +183,7 @@ impl SymbolStates for SqliteStore {
         snapshot: SnapshotId,
         simple: &SymbolName,
     ) -> Result<Vec<SameName>, CodedError> {
+        self.ensure_state_indexes().map_err(CodedError::from)?;
         self.read(|conn| same_name(conn, snapshot, simple))
             .map_err(CodedError::from)
     }

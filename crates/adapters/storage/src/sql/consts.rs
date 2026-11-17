@@ -602,6 +602,17 @@ pub const STATE_CHILD_HASHES: &str = "WITH RECURSIVE tree(id) AS ( \
 pub const STATE_REMAINING_NAMES: &str = "SELECT COUNT(*) FROM pending_references p \
     WHERE p.file_id IN (SELECT id FROM files WHERE snapshot_id = ?1) \
     AND (p.target = ?2 OR p.target = ?3)";
+/// How many of the indexes of `ENSURE_STATE_INDEXES` exist.
+pub const STATE_INDEX_PROBE: &str = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND \
+    name IN ('symbols_by_name', 'symbols_by_simple_name', 'pending_references_by_target')";
+/// The indexes the alert step reads through: by qualified name and by simple name for the symbols of
+/// an annotation, and by target for the names that still point at a vanished one. They are made
+/// when the first critical annotation needs them and not with the schema, because every scan pays
+/// for them on writing.
+pub const ENSURE_STATE_INDEXES: &str = "\
+    CREATE INDEX IF NOT EXISTS symbols_by_name ON symbol_rows (qualified_name); \
+    CREATE INDEX IF NOT EXISTS symbols_by_simple_name ON symbol_rows (name); \
+    CREATE INDEX IF NOT EXISTS pending_references_by_target ON pending_references (target);";
 /// Kind and qualified name of the symbols of a snapshot with a simple name, of level 1: snapshot,
 /// name, origin of level 1.
 pub const STATE_SAME_NAME: &str = "SELECT s.kind, s.qualified_name FROM symbol_rows s \
