@@ -23,6 +23,21 @@ describe("languageShares", () => {
     expect(languageShares([])).toEqual([]);
   });
 
+  it("gives Python, TypeScript and JavaScript three different colours", () => {
+    const entry = (language: string) => ({
+      language,
+      files: 1,
+      loc: 10,
+      symbols: 1,
+      parse_micros: null,
+      tier: "full" as const,
+    });
+    const tones = languageShares(["python", "typescript", "javascript"].map(entry)).map(
+      (item) => item.tone,
+    );
+    expect(new Set(tones).size).toBe(3);
+  });
+
   it("gives a language without a colour the last one", () => {
     expect(
       languageShares([
