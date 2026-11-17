@@ -18,6 +18,9 @@ function stateText(tool: ToolInfo): string {
   }
   const required = tool.required ?? "";
   const found = tool.found ?? "";
+  if (tool.state === TOOL_STATE.notRunnable) {
+    return t(I18N_KEYS.PROJECTS_TOOLS_STATE_NOT_RUNNABLE, { found });
+  }
   if (tool.state === TOOL_STATE.tooOld) {
     return t(I18N_KEYS.PROJECTS_TOOLS_STATE_TOO_OLD, { found, required });
   }

@@ -105,6 +105,30 @@ describe("the tools of a project", () => {
     expect(screen.getByText("1 tool missing")).toBeInTheDocument();
   });
 
+  it("says that a tool was found but does not start, with the line of its error", async () => {
+    const crashed: ToolsInfo = {
+      ...MISSING,
+      tools: [
+        {
+          ...(MISSING.tools[0] as ToolsInfo["tools"][number]),
+          state: "not_runnable",
+          found: "SyntaxError: Invalid regular expression",
+        },
+      ],
+    };
+    const row = { ...ROW, id: 9, location: "/work/crashed", tools: crashed };
+    serve({
+      "projects.list": () => answer([row]),
+      "projects.tools": () => answer(crashed),
+    });
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByText("/work/crashed"));
+    const warning = await screen.findByRole("status");
+    expect(warning).toHaveTextContent(
+      "found, but it does not start: SyntaxError: Invalid regular expression",
+    );
+  });
+
   it("says the same in German", async () => {
     setLanguage("de");
     const warning = await openWarning();

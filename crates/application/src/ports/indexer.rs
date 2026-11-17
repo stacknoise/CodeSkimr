@@ -95,6 +95,11 @@ pub struct IndexJob<'a> {
 pub enum ToolIssue {
     /// The program is not found.
     Missing,
+    /// It is found, but its version command fails: it crashes or does not start.
+    NotRunnable {
+        /// What it printed about the failure, shortened and redacted; empty if it printed nothing.
+        output: String,
+    },
     /// It is found but older than required, or its version cannot be read.
     TooOld {
         /// What it reports, shortened and redacted; empty if the output has no version.

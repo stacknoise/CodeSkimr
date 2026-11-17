@@ -5,9 +5,10 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
     CLI_CREDENTIAL_DELETED, CLI_CREDENTIAL_DEVICE_PROMPT, CLI_CREDENTIAL_STORED, CLI_ERROR_LINE,
     CLI_EXPORT_WRITTEN, CLI_OPEN_READY, CLI_SCAN_DETAILS, CLI_SCAN_FINISHED, CLI_SCAN_STARTED,
-    CLI_SCAN_TOOL_MISSING, CLI_SCAN_TOOL_TOO_NEW, CLI_SCAN_TOOL_TOO_OLD, CLI_SCAN_TOOL_UNKNOWN,
-    CLI_SECRET_PROMPT, CLI_SERVE_LISTENING, CLI_START_KEEP_OPEN, CLI_START_TRAY, CLI_TRAY_LOG,
-    CLI_TRAY_OPEN, CLI_TRAY_QUIT, CLI_TRAY_TOOLTIP, CLI_WATCH_STARTED, CLI_WATCH_UPDATED,
+    CLI_SCAN_TOOL_MISSING, CLI_SCAN_TOOL_NOT_RUNNABLE, CLI_SCAN_TOOL_TOO_NEW,
+    CLI_SCAN_TOOL_TOO_OLD, CLI_SCAN_TOOL_UNKNOWN, CLI_SECRET_PROMPT, CLI_SERVE_LISTENING,
+    CLI_START_KEEP_OPEN, CLI_START_TRAY, CLI_TRAY_LOG, CLI_TRAY_OPEN, CLI_TRAY_QUIT,
+    CLI_TRAY_TOOLTIP, CLI_WATCH_STARTED, CLI_WATCH_UPDATED,
 };
 use codeskimr_domain::ToolState;
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
@@ -247,6 +248,8 @@ fn tool_text(messages: &Messages, language: &str, key: &str) -> String {
 fn tool_line(messages: &Messages, language: &str, tool: &ToolView) -> Result<String, I18nError> {
     let key = if tool.state == ToolState::Missing.label() {
         CLI_SCAN_TOOL_MISSING
+    } else if tool.state == ToolState::NotRunnable.label() {
+        CLI_SCAN_TOOL_NOT_RUNNABLE
     } else if tool.state == ToolState::TooOld.label() {
         CLI_SCAN_TOOL_TOO_OLD
     } else if tool.state == ToolState::TooNew.label() {

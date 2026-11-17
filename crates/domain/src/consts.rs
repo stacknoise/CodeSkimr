@@ -219,6 +219,8 @@ pub const TOOL_STATE_TOO_OLD: &str = "too_old";
 pub const TOOL_STATE_VERSION_UNKNOWN: &str = "version_unknown";
 /// Label of `ToolState::TooNew`.
 pub const TOOL_STATE_TOO_NEW: &str = "too_new";
+/// Label of `ToolState::NotRunnable`.
+pub const TOOL_STATE_NOT_RUNNABLE: &str = "not_runnable";
 /// Label of `Ceiling::Exact`.
 pub const CEILING_EXACT: &str = "exact";
 /// Label of `Ceiling::SameBand`.
