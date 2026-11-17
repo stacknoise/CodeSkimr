@@ -13,7 +13,7 @@ import { hitsHeight, panelWidth } from "./layout";
 import { ROLE } from "./consts";
 import { listedHits, listedPlace } from "./hits";
 import { nextHit, useUsagesKeys } from "./keys";
-import { showUsages } from "../../shared/navigation/navigation";
+import { moveUsages, originSymbol } from "../../shared/navigation/navigation";
 import { SidePanel } from "./SidePanel";
 import { Toolbar } from "./Toolbar";
 import type { Hit, UsagesAnswer } from "./types";
@@ -25,6 +25,7 @@ import {
   loadPreview,
   loadUsages,
   openInExplorer,
+  openOriginInExplorer,
   previewAnswer,
   selectedHit,
   setSelectedHit,
@@ -90,6 +91,19 @@ function usePicker(): (card: Card) => void {
   };
 }
 
+/** The way back: to the symbol the user came from, or to the focus if that is not known. */
+function useBack(open: (place: Hit["from"]) => void, focus: Hit["from"]): () => void {
+  return () => {
+    const project = activeProject();
+    const origin = originSymbol();
+    if (project !== null && origin !== null) {
+      void openOriginInExplorer(project, origin);
+    } else {
+      open(focus);
+    }
+  };
+}
+
 function Body(props: { answer: UsagesAnswer }) {
   const hits = () => listedHits(props.answer);
   const selectedPlace = () => {
@@ -98,6 +112,7 @@ function Body(props: { answer: UsagesAnswer }) {
   };
   const open = useOpener();
   const pick = usePicker();
+  const back = useBack(open, props.answer.symbol);
   useUsagesKeys({
     step: (step) => setSelectedHit(nextHit(selectedHit(), step, hits().length)),
     open: () => open(selectedPlace() ?? props.answer.symbol),
@@ -105,12 +120,12 @@ function Body(props: { answer: UsagesAnswer }) {
   return (
     <div class={styles.screen}>
       <section class={styles.main}>
-        <Toolbar onBack={() => open(props.answer.symbol)} />
+        <Toolbar onBack={back} />
         <GraphView
           answer={props.answer}
           picked={previewAnswer()?.symbol.id ?? null}
           onPick={pick}
-          onOpen={(card) => !card.focus && showUsages(card.place.id)}
+          onOpen={(card) => !card.focus && moveUsages(card.place.id)}
         />
         <Splitter pane={hitsHeight} orientation={ORIENTATION.horizontal} side={SIDE.after} />
         <HitList

@@ -7,12 +7,14 @@ import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { openOrder, ORDER, OUTLINE } from "../../tests/explorer";
-import { currentMember, forgetExplorer, treeScroll } from "./explorer";
+import { currentMember, forgetExplorer, setMemberSort, treeScroll } from "./explorer";
+import { INITIAL_SORT } from "./memberSort";
 import { ExplorerScreen } from "./ExplorerScreen";
 import { requestFocus } from "../../shared/navigation/navigation";
 
 useServerSession();
 afterEach(() => {
+  setMemberSort(INITIAL_SORT);
   forgetExplorer();
   clearUsages();
   navigate("/");
@@ -244,6 +246,27 @@ describe("the details", () => {
   });
 });
 
+describe("the way back from a member", () => {
+  it("leads from a member picked in the table back to the table, and only then", async () => {
+    renderOrder();
+    await openOrder();
+    await screen.findByText("decimal Total()");
+    expect(screen.queryByRole("button", { name: /Back to the members/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Total/ }));
+    await waitFor(() => expect(currentMember()).toBe(8));
+    fireEvent.click(await screen.findByRole("button", { name: /Back to the members/ }));
+    await waitFor(() => expect(currentMember()).toBeNull());
+    expect(await screen.findByText("decimal Total()")).toBeTruthy();
+  });
+
+  it("offers no way back to the table for a member reached from outside", async () => {
+    requestFocus({ type: 7, member: 8, kind: "method" });
+    renderOrder();
+    expect(await screen.findByRole("heading", { name: "Total" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Back to the members/ })).toBeNull();
+  });
+});
+
 describe("a navigation from another screen", () => {
   it("opens the rows down to a member and shows its type", async () => {
     requestFocus({ type: 7, member: 8, kind: "method" });
@@ -351,6 +374,9 @@ describe("sorting the member table", () => {
     // A member without a value stays last, also when the order is turned round.
     expect(names()[0]).toContain("Total");
     expect(names()[1]).toContain("Id");
+    // A third press removes the sort: no column is marked and the rows follow the code.
+    fireEvent.click(screen.getByRole("button", { name: /^CC/ }));
+    expect(screen.getByRole("columnheader", { name: /CC/ }).getAttribute("aria-sort")).toBeNull();
   });
 
   it("steps through the members in the order of the table", async () => {

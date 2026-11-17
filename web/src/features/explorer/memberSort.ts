@@ -47,7 +47,10 @@ function compare(a: string | number, b: string | number): number {
 
 /** The rows in the order of `sort`. A row without a value in the column comes last in either
  * direction; equal rows keep to the order of their names, then of their lines. */
-export function sortMembers(rows: readonly MemberRow[], sort: MemberSort): MemberRow[] {
+export function sortMembers(rows: readonly MemberRow[], sort: MemberSort | null): MemberRow[] {
+  if (sort === null) {
+    return [...rows].sort((a, b) => a.first_line - b.first_line || compare(a.name, b.name));
+  }
   const sign = SORT_SIGN[sort.direction];
   return [...rows].sort((a, b) => {
     const left = valueOf(a, sort.column);
@@ -60,24 +63,28 @@ export function sortMembers(rows: readonly MemberRow[], sort: MemberSort): Membe
   });
 }
 
-/** The sort after a press on the head of `column`: the same column turns around, another one
- * starts with its natural direction (numbers largest first). */
-export function pressColumn(current: MemberSort, column: SortColumn): MemberSort {
-  if (current.column === column) {
+/** The sort after a press on the head of `column`: another column starts with its natural
+ * direction (numbers largest first); the same column turns around once and the next press
+ * removes the sort (`null`, the rows keep to the order of the code). */
+export function pressColumn(current: MemberSort | null, column: SortColumn): MemberSort | null {
+  if (current?.column !== column) {
     return {
       column,
-      direction:
-        current.direction === SORT_DIRECTION.ascending
-          ? SORT_DIRECTION.descending
-          : SORT_DIRECTION.ascending,
+      direction: NUMBER_COLUMNS.includes(column)
+        ? SORT_DIRECTION.descending
+        : SORT_DIRECTION.ascending,
     };
   }
-  return {
-    column,
-    direction: NUMBER_COLUMNS.includes(column)
-      ? SORT_DIRECTION.descending
-      : SORT_DIRECTION.ascending,
-  };
+  const first = NUMBER_COLUMNS.includes(column)
+    ? SORT_DIRECTION.descending
+    : SORT_DIRECTION.ascending;
+  return current.direction === first ? { column, direction: turned(first) } : null;
+}
+
+function turned(direction: SortDirection): SortDirection {
+  return direction === SORT_DIRECTION.ascending
+    ? SORT_DIRECTION.descending
+    : SORT_DIRECTION.ascending;
 }
 
 export const INITIAL_SORT: MemberSort = { ...DEFAULT_SORT };
@@ -96,8 +103,12 @@ export function keeps(chip: ChipId, row: MemberRow): boolean {
   }
 }
 
-/** The rows of the member table: those the chip keeps, in the order of the sort. */
-export function tableRows(rows: readonly MemberRow[], chip: ChipId, sort: MemberSort): MemberRow[] {
+/** The rows of the member table: those the chip keeps, in the order of the sort (or of the code). */
+export function tableRows(
+  rows: readonly MemberRow[],
+  chip: ChipId,
+  sort: MemberSort | null,
+): MemberRow[] {
   return sortMembers(
     rows.filter((row) => keeps(chip, row)),
     sort,

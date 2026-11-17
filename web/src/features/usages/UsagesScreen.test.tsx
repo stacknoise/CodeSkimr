@@ -12,7 +12,7 @@ import type { Graph } from "./graph";
 import { UsagesScreen } from "./UsagesScreen";
 import { RailLink } from "../../app/Frame";
 import { GRAPH_ROUTE } from "../../app/consts";
-import { showUsages } from "../../shared/navigation/navigation";
+import { moveUsages, showUsages } from "../../shared/navigation/navigation";
 import { clearUsages, focusSymbol } from "./usages";
 
 useServerSession();
@@ -79,6 +79,21 @@ describe("UsagesScreen", () => {
     await screen.findByRole("heading", { name: "Cart.Total" });
     fireEvent.click(screen.getByRole("button", { name: /Back to the symbol/ }));
     await waitFor(() => expect(currentPath()).toBe("/explorer"));
+  });
+
+  it("leads back to the symbol the user came from, not to the one moved to in the graph", async () => {
+    shown();
+    serve({
+      "usages.query": () => answer(ANSWER),
+      "explorer.symbol": () =>
+        answer({ ...ORDER_SYMBOL, id: 10, kind: "class", qualified_name: "Cart", breadcrumb: [] }),
+    });
+    await screen.findByRole("heading", { name: "Cart.Total" });
+    moveUsages(11);
+    await waitFor(() => expect(focusSymbol()).toBe(11));
+    fireEvent.click(screen.getByRole("button", { name: /Back to the symbol/ }));
+    await waitFor(() => expect(currentPath()).toBe("/explorer"));
+    expect(pendingFocus()).toEqual({ type: 10, member: null, kind: null });
   });
 
   it("keeps the graph button of the rail marked on the symbol view", async () => {

@@ -176,6 +176,7 @@ export const I18N_KEYS = {
   EXPLORER_STATUS_TOTALS: "explorer-status-totals",
   EXPLORER_STATUS_VIRTUALISED: "explorer-status-virtualised",
   EXPLORER_ACTION_EDITOR: "explorer-action-editor",
+  EXPLORER_BACK_TO_MEMBERS: "explorer-back-to-members",
   EXPLORER_COLLAPSE_ALL: "explorer-collapse-all",
   EXPLORER_REVEAL_SELECTION: "explorer-reveal-selection",
   EXPLORER_STRUCTURE_LABEL: "explorer-structure-label",

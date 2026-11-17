@@ -64,14 +64,20 @@ describe("sortMembers", () => {
 });
 
 describe("pressColumn", () => {
-  it("turns the same column round, and starts another one by its natural direction", () => {
+  it("turns the same column round once, then removes the sort", () => {
     const turned = pressColumn(INITIAL_SORT, SORT_COLUMN.name);
-    expect(turned.direction).toBe(SORT_DIRECTION.descending);
-    expect(pressColumn(turned, SORT_COLUMN.name).direction).toBe(SORT_DIRECTION.ascending);
-    expect(pressColumn(INITIAL_SORT, SORT_COLUMN.usages)).toEqual({
-      column: SORT_COLUMN.usages,
-      direction: SORT_DIRECTION.descending,
-    });
-    expect(pressColumn(INITIAL_SORT, SORT_COLUMN.access).direction).toBe(SORT_DIRECTION.ascending);
+    expect(turned?.direction).toBe(SORT_DIRECTION.descending);
+    expect(pressColumn(turned, SORT_COLUMN.name)).toBeNull();
+    expect(pressColumn(null, SORT_COLUMN.name)?.direction).toBe(SORT_DIRECTION.ascending);
+    const byUsages = pressColumn(INITIAL_SORT, SORT_COLUMN.usages);
+    expect(byUsages).toEqual({ column: SORT_COLUMN.usages, direction: SORT_DIRECTION.descending });
+    expect(pressColumn(byUsages, SORT_COLUMN.usages)?.direction).toBe(SORT_DIRECTION.ascending);
+    expect(pressColumn(pressColumn(byUsages, SORT_COLUMN.usages), SORT_COLUMN.usages)).toBeNull();
+    expect(pressColumn(INITIAL_SORT, SORT_COLUMN.access)?.direction).toBe(SORT_DIRECTION.ascending);
+  });
+
+  it("keeps the rows in the order of the code without a sort", () => {
+    const rows = [row("b", { first_line: 9 }), row("a", { first_line: 3 })];
+    expect(names(sortMembers(rows, null))).toEqual(["a", "b"]);
   });
 });

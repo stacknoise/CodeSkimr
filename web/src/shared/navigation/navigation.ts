@@ -13,6 +13,7 @@ export interface Focus {
 
 const [pending, setPending] = createSignal<Focus | null>(null);
 const [usagesSymbol, setUsagesSymbol] = createSignal<number | null>(null);
+const [usagesOrigin, setUsagesOrigin] = createSignal<number | null>(null);
 
 /** The place the explorer has to show next, `null` if none is asked for. */
 export const pendingFocus = pending;
@@ -23,8 +24,20 @@ export const focusSymbol = usagesSymbol;
 /** Sets or forgets the symbol of the usages screen without leaving the current screen. */
 export const setFocusSymbol = setUsagesSymbol;
 
-/** Shows the usages of a symbol: from the explorer, or from a card of the graph. */
+/** The symbol the user left the explorer from to reach the usages screen; the way back leads to
+ * it, however far the user moved through the graph meanwhile. `null` until one is chosen. */
+export const originSymbol = usagesOrigin;
+/** Forgets the symbol the way back leads to. */
+export const clearOrigin = () => setUsagesOrigin(null);
+
+/** Shows the usages of a symbol from the explorer; the symbol is where the way back leads to. */
 export function showUsages(symbol: number): void {
+  setUsagesOrigin(symbol);
   setUsagesSymbol(symbol);
   navigate(USAGES_ROUTE.path);
+}
+
+/** Moves the usages screen to another symbol, from a card of the graph; the way back stays. */
+export function moveUsages(symbol: number): void {
+  setUsagesSymbol(symbol);
 }

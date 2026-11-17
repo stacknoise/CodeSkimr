@@ -17,9 +17,10 @@ const [details, setDetails] = createSignal<ReadonlyMap<number, SymbolInfo>>(new 
 const [expanded, setExpanded] = createSignal<ReadonlySet<string>>(new Set<string>());
 const [selectedType, setSelectedType] = createSignal<number | null>(null);
 const [selectedMember, setSelectedMember] = createSignal<number | null>(null);
+const [fromTable, setFromTable] = createSignal(false);
 const [filter, setFilter] = createSignal("");
 const [cursor, setCursor] = createSignal<string | null>(null);
-const [sort, setSort] = createSignal<MemberSort>(INITIAL_SORT);
+const [sort, setSort] = createSignal<MemberSort | null>(INITIAL_SORT);
 const [chip, setChip] = createSignal<ChipId>(CHIP.all);
 
 /** Counts the projects read so far; an answer for an earlier one is dropped. */
@@ -41,6 +42,9 @@ export const expandedRows = expanded;
 export const currentType = selectedType;
 /** The member that is highlighted in the tree and in the table. */
 export const currentMember = selectedMember;
+/** Whether the shown member was picked in the member table, so a way back to the table makes
+ * sense; a member reached through the tree or by a key has none. */
+export const memberFromTable = fromTable;
 /** The row of the tree that the keys act on. */
 export const treeCursor = cursor;
 export const setTreeCursor = setCursor;
@@ -207,9 +211,11 @@ export async function selectType(
   project: number,
   id: number,
   member: number | null = null,
+  picked = false,
 ): Promise<void> {
   setSelectedType(id);
   setSelectedMember(member);
+  setFromTable(picked && member !== null);
   setSymbolFailure(null);
   await loadSymbol(project, id);
 }
