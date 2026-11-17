@@ -66,6 +66,8 @@ interface Node {
   place: Place;
   level: number;
   count: number;
+  /** How often the symbol was hit at its own step; deeper hits do not change it. */
+  near: number;
   tests: number;
 }
 
@@ -78,8 +80,12 @@ function nodesOf(hits: Hit[], side: End, focus: number): Map<number, Node> {
     if (place.id === focus) {
       continue;
     }
-    const node = nodes.get(place.id) ?? { place, level: hit.depth, count: 0, tests: 0 };
-    node.level = Math.min(node.level, hit.depth);
+    const node = nodes.get(place.id) ?? { place, level: hit.depth, count: 0, near: 0, tests: 0 };
+    if (hit.depth < node.level) {
+      node.level = hit.depth;
+      node.near = 0;
+    }
+    node.near += hit.depth === node.level ? 1 : 0;
     node.count += 1;
     node.tests += hit.kind === REF.test ? 1 : 0;
     nodes.set(place.id, node);
@@ -87,8 +93,10 @@ function nodesOf(hits: Hit[], side: End, focus: number): Map<number, Node> {
   return nodes;
 }
 
+/** Which cards stay when a column is cut: the most hit at their own step, so that a deeper walk
+ * does not swap the cards of a column that was shown before. */
 function byWeight(a: Node, b: Node): number {
-  return b.count - a.count || a.place.qualified_name.localeCompare(b.place.qualified_name);
+  return b.near - a.near || a.place.qualified_name.localeCompare(b.place.qualified_name);
 }
 
 /** The order of the cards in a column: by the name the card shows, then by its owner. It does not

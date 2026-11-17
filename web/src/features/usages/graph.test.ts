@@ -145,6 +145,49 @@ describe("buildGraph", () => {
     expect(order(deeper.filter((h) => h.depth === 1))).toEqual([201, 202]);
   });
 
+  it("keeps the cards of a shown level where they are when a deeper level is added", () => {
+    const parents = Array.from({ length: GRAPH.maxCards + 2 }, (_, i) =>
+      place(300 + i, `Shop.Wide.Parent${String(i).padStart(2, "0")}.Run`),
+    );
+    const direct = parents.map((parent) => hit(parent, FOCUS));
+    const deeper = [
+      ...parents
+        .slice(0, 3)
+        .flatMap((parent, i) =>
+          Array.from({ length: 5 + i }, (_, k) =>
+            hit(place(400 + i * 10 + k, `Shop.Deep.C${i}${k}.Go`), parent, { depth: 2 }),
+          ),
+        ),
+      ...parents.slice(0, 2).flatMap((parent) =>
+        [1, 2, 3].map((n) =>
+          hit(place(500 + n, `Shop.Deeper.D${n}.Go`), place(400, "Shop.Deep.C00.Go"), {
+            depth: 3,
+          }),
+        ),
+      ),
+      ...parents
+        .slice(-1)
+        .flatMap((parent) => [
+          hit(parent, parents[0]!, { depth: 2 }),
+          hit(parent, parents[0]!, { depth: 2 }),
+        ]),
+    ];
+    const first = (depth: number) => {
+      const hits = [...direct, ...deeper].filter((h) => h.depth <= depth);
+      const built = buildGraph({
+        ...ANSWER,
+        incoming: { total: hits.length, hits },
+        outgoing: null,
+      });
+      return built.cards
+        .filter((c) => c.x === built.cards.find((x) => x.place.id === 300)!.x)
+        .sort((a, b) => a.y - b.y)
+        .map((c) => c.place.id);
+    };
+    expect(first(2)).toEqual(first(1));
+    expect(first(3)).toEqual(first(1));
+  });
+
   it("does not draw the reference that closes a cycle backwards", () => {
     const loop = buildGraph({
       ...ANSWER,
