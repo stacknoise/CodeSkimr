@@ -442,7 +442,7 @@ pub const CREATE_NO_WINDOW: u32 = 0x0800_0000;
 pub const TRAY_SERVER_POLL: std::time::Duration = std::time::Duration::from_secs(1);
 /// Width and height of the tray icon in pixels.
 #[cfg(any(windows, target_os = "macos"))]
-pub const TRAY_ICON_SIZE: u32 = 32;
-/// Colour of the tray icon (red, green, blue, opaque): the petrol of the UI.
+pub const TRAY_ICON_SIZE: u32 = 64;
+/// The tray icon: the app logo as raw RGBA pixels, `TRAY_ICON_SIZE` square (made by `tools/logo/make_icons.py`).
 #[cfg(any(windows, target_os = "macos"))]
-pub const TRAY_ICON_PIXEL: [u8; 4] = [0x0f, 0x76, 0x6e, 0xff];
+pub const TRAY_ICON_RGBA: &[u8] = include_bytes!("../assets/tray-icon.rgba");

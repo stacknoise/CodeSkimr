@@ -16,7 +16,7 @@ use winit::window::WindowId;
 
 use std::time::Instant;
 
-use crate::consts::{TRAY_ICON_PIXEL, TRAY_ICON_SIZE, TRAY_SERVER_POLL};
+use crate::consts::{TRAY_ICON_RGBA, TRAY_ICON_SIZE, TRAY_SERVER_POLL};
 
 /// What the user asked for through the menu.
 enum Pick {
@@ -52,13 +52,7 @@ fn failed<E>(_: E) -> CodedError {
 
 /// A solid square in the colour of the UI; the program has no image file of its own to load.
 fn icon() -> Result<Icon, CodedError> {
-    let pixels = (TRAY_ICON_SIZE * TRAY_ICON_SIZE) as usize;
-    Icon::from_rgba(
-        TRAY_ICON_PIXEL.repeat(pixels),
-        TRAY_ICON_SIZE,
-        TRAY_ICON_SIZE,
-    )
-    .map_err(failed)
+    Icon::from_rgba(TRAY_ICON_RGBA.to_vec(), TRAY_ICON_SIZE, TRAY_ICON_SIZE).map_err(failed)
 }
 
 fn menu(labels: &TrayLabels) -> Result<(Menu, Entries), CodedError> {
