@@ -9,7 +9,7 @@ import { CRUMB_SEPARATOR, HOTKEY, PILL_SEPARATOR } from "./consts";
 import { showInGraph } from "../graph/show";
 import { showUsages } from "../../shared/navigation/navigation";
 import { openInEditor } from "./editor";
-import { memberFromTable, selectType, shownMember } from "./explorer";
+import { memberFromTable, selectType, shownHasLayer, shownMember } from "./explorer";
 import { MemberTable } from "./MemberTable";
 import { MetricStrip } from "./MetricStrip";
 import type { MemberRow, SymbolInfo, Thresholds } from "./types";
@@ -36,9 +36,9 @@ function Breadcrumb(props: { info: SymbolInfo; member: MemberRow | null }) {
   );
 }
 
-function Action(props: { label: string; hotkey: string; onClick: () => void }) {
+function Action(props: { label: string; hotkey: string; onClick: () => void; disabled?: boolean }) {
   return (
-    <button type="button" onClick={() => props.onClick()}>
+    <button type="button" disabled={props.disabled} onClick={() => props.onClick()}>
       {props.label} <kbd class={styles.kbd}>{props.hotkey}</kbd>
     </button>
   );
@@ -56,6 +56,7 @@ function Actions(props: { symbol: number }) {
       <Action
         label={t(I18N_KEYS.EXPLORER_ACTION_GRAPH)}
         hotkey={HOTKEY.graph}
+        disabled={!shownHasLayer()}
         onClick={() => {
           const project = activeProject();
           if (project !== null) {

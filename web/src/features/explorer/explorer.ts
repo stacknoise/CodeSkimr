@@ -124,6 +124,13 @@ export function shownMember(): MemberRow | null {
   return info?.members.find((member) => member.id === id) ?? null;
 }
 
+/** Whether the shown symbol belongs to a layer of the dependency map. A member belongs to the
+ * layer of its type. */
+export function shownHasLayer(): boolean {
+  const type = selectedType();
+  return type !== null && (details().get(type)?.layer ?? null) !== null;
+}
+
 /** Reads the tree of `project` and forgets everything that was read for another one. */
 async function readOutline(project: number): Promise<void> {
   heldProject = project;

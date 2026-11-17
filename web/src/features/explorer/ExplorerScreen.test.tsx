@@ -246,6 +246,31 @@ describe("the details", () => {
   });
 });
 
+describe("the layer graph button", () => {
+  const renderWith = (layer: string | null) => {
+    openProject(1);
+    serve({
+      "explorer.outline": () => answer(OUTLINE),
+      "explorer.symbol": () => answer({ ...ORDER, layer }),
+    });
+    return render(() => <ExplorerScreen />);
+  };
+
+  it("is off for a symbol that no layer owns", async () => {
+    renderWith(null);
+    await openOrder();
+    await screen.findByText("decimal Total()");
+    expect(screen.getByRole("button", { name: /Layer graph/ })).toBeDisabled();
+  });
+
+  it("is on for a symbol of a layer", async () => {
+    renderWith("Domain");
+    await openOrder();
+    await screen.findByText("decimal Total()");
+    expect(screen.getByRole("button", { name: /Layer graph/ })).toBeEnabled();
+  });
+});
+
 describe("the way back from a member", () => {
   it("leads from a member picked in the table back to the table, and only then", async () => {
     renderOrder();
