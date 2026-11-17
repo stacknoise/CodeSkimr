@@ -10,7 +10,10 @@ test.describe("the scan and performance screen", () => {
     harness,
   }) => {
     const violations = await watchPolicy(page);
-    await addScannedProject(page, harness, "metered", SOURCE);
+    const row = await addScannedProject(page, harness, "metered", SOURCE);
+    await row.click({ position: { x: 4, y: 4 } });
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("tree")).toBeVisible();
 
     await page.getByRole("link", { name: "Scans and performance" }).click();
     // The stream was open while the scan ran, so the finished run is listed.

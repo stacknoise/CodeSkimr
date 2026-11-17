@@ -279,7 +279,10 @@ for (const theme of THEMES) {
 
     test("Scan and performance (5)", async ({ page, harness }, info) => {
       await prepare(page, theme);
-      await addScannedProject(page, harness, `visscan${theme}`, SOURCE);
+      const row = await addScannedProject(page, harness, `visscan${theme}`, SOURCE);
+      await row.click({ position: { x: 4, y: 4 } });
+      await page.keyboard.press("Enter");
+      await expect(page.getByRole("tree")).toBeVisible();
       await page.getByRole("link", { name: "Scans and performance" }).click();
       await expect(page.getByRole("heading", { name: "Scan finished" })).toBeVisible();
       const mock = await openMock(page, "Scan");
