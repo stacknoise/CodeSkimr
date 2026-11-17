@@ -320,6 +320,38 @@ describe("a navigation from another screen", () => {
   });
 });
 
+describe("a navigation from a map to a row", () => {
+  const cursorText = () => {
+    const tree = screen.getByRole("tree");
+    return document.getElementById(tree.getAttribute("aria-activedescendant") ?? "")?.textContent;
+  };
+
+  it("opens the layer and the segments of a namespace, and puts the cursor on it", async () => {
+    requestFocus({ namespace: "Shop.Sales" });
+    renderOrder();
+    const tree = screen.getByRole("tree");
+    expect(await within(tree).findByText("Order")).toBeTruthy();
+    expect(cursorText()).toContain("Sales");
+  });
+
+  it("puts the cursor on a layer and opens it", async () => {
+    requestFocus({ layer: "Domain" });
+    renderOrder();
+    expect(await within(screen.getByRole("tree")).findByText("Shop")).toBeTruthy();
+    expect(cursorText()).toContain("Domain");
+  });
+
+  it("leaves the tree as it is for a layer the outline does not have", async () => {
+    requestFocus({ layer: "Nowhere" });
+    renderOrder();
+    await within(screen.getByRole("tree")).findByText("Domain");
+    expect(screen.getByRole("tree").getAttribute("aria-activedescendant") ?? "").not.toContain(
+      "Nowhere",
+    );
+    expect(within(screen.getByRole("tree")).queryByText("Shop")).toBeNull();
+  });
+});
+
 describe("a navigation while the tree is read again", () => {
   it("keeps the type the navigation read, so the details do not fall back to the overview", async () => {
     const first = renderOrder();

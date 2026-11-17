@@ -96,6 +96,24 @@ describe("UsagesScreen", () => {
     expect(pendingFocus()).toEqual({ type: 10, member: null, kind: null });
   });
 
+  it("explains the count and the layer of a card on hover", async () => {
+    shown();
+    const graph = await screen.findByRole("region", { name: "Usage graph" });
+    expect(
+      within(graph).getAllByTitle(/places in the code that use or reach this symbol/).length,
+    ).toBeGreaterThan(0);
+    expect(within(graph).getAllByTitle(/^Layer: /).length).toBeGreaterThan(0);
+  });
+
+  it("says on hover that a card has no layer", async () => {
+    const bare = { ...ANSWER, symbol: { ...ANSWER.symbol, layer: null } };
+    shown(bare);
+    const graph = await screen.findByRole("region", { name: "Usage graph" });
+    expect(within(graph).getAllByTitle("No layer assigned to this symbol").length).toBeGreaterThan(
+      0,
+    );
+  });
+
   it("keeps the graph button of the rail marked on the symbol view", async () => {
     navigate("/usages");
     render(() => <RailLink route={GRAPH_ROUTE} />);

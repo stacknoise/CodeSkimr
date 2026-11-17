@@ -331,7 +331,8 @@ export function revealKeys(outline: Outline, type: number): string[] {
 
 /** What the tree has to open and where the cursor goes to show the namespace `name`: its layer and
  * every segment down to it (it opens itself too). `null` if no namespace of the outline has it as
- * a part of its name. */
+ * a part of its name. A name that exists in several layers is shown in the first of them: the map
+ * of the namespaces does not say which layer it came from. */
 export function revealNamespace(
   outline: Outline,
   name: string,

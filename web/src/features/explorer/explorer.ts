@@ -287,8 +287,10 @@ export async function revealNested(project: number, parent: number, id: number):
  * puts the cursor on its row. */
 function applyRowFocus(tree: Outline, target: RowFocus): void {
   if ("layer" in target) {
-    openRows([layerKey(target.layer)]);
-    setCursor(layerKey(target.layer));
+    if (tree.layers.some((layer) => layer.name === target.layer)) {
+      openRows([layerKey(target.layer)]);
+      setCursor(layerKey(target.layer));
+    }
     return;
   }
   const found = revealNamespace(tree, target.namespace);
