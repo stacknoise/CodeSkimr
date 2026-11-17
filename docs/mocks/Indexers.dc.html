@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Indexers</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap">
+<style>
+.hell{--bg:#F6F7F9;--surface:#FFFFFF;--line:#E3E6EB;--soft:#EEF0F3;--ink:#14171C;--ink-2:#3A414C;--muted:#5B6370;--accent:#2457D6;--accentbg:#EAF0FD;--fg:#fff;--good:#15803D;--warn:#B45309;--warnbg:#FFF4E5;--crit:#A3197A;--critbg:#FBE8F5;--l1:#2457D6;--l2:#0F766E;--l3:#7C3AED}
+.petrol{--bg:#F4F6F8;--surface:#FFFFFF;--line:#DDE3EA;--soft:#E8EDF2;--ink:#1B2430;--ink-2:#3A4656;--muted:#5D6B7C;--accent:#0C727B;--accentbg:#DFF1F2;--fg:#fff;--good:#1F7A45;--warn:#8A5A00;--warnbg:#FBECCB;--crit:#A3197A;--critbg:#FBE8F5;--l1:#2457D6;--l2:#0F766E;--l3:#7C3AED}
+.dunkel{--bg:#12171D;--surface:#1A212A;--line:#2C3643;--soft:#232C37;--ink:#E6EBF1;--ink-2:#C5CED9;--muted:#97A4B4;--accent:#3BB6C1;--accentbg:#16363B;--fg:#06222A;--good:#5FD18B;--warn:#F0BD5A;--warnbg:#3A2D10;--crit:#F08BD0;--critbg:#3D1634;--l1:#6E9BFF;--l2:#2DD4BF;--l3:#A78BFA}
+
+html,body{margin:0;background:#888}
+.board{position:relative;width:1400px;height:820px;margin:0 0 24px;overflow:hidden;background:var(--bg);color:var(--ink);font:13px Inter,system-ui,sans-serif}
+*{box-sizing:border-box}.mono{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px}
+header{height:48px;display:flex;align-items:center;gap:14px;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.logo{width:24px;height:24px;border-radius:6px;background:var(--ink);color:var(--surface);display:grid;place-items:center;font-weight:700}
+.chip{font:12px 'JetBrains Mono',monospace;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px}
+.main{display:flex;height:calc(100% - 48px)}.rail{width:56px;background:var(--surface);border-right:1px solid var(--line)}
+.content{flex:1;padding:24px 32px;overflow:hidden}h1{margin:0 0 16px;font-size:20px}h2{margin:0 0 4px;font-size:15px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px}.sec{padding:16px 18px;margin-bottom:16px}
+.note{margin:2px 0 12px;color:var(--muted)}.note.small{margin:12px 0 0;font-size:12px}.muted{color:var(--muted)}
+.top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.act{display:flex;align-items:center;gap:12px;white-space:nowrap}
+.btn{font:12px Inter,sans-serif;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:4px 10px}.btn.pri{background:var(--accent);color:var(--fg);border-color:var(--accent)}
+table{border-collapse:collapse;width:100%}th{text-align:left;font-size:11px;color:var(--muted);font-weight:600;padding:8px 12px;border-bottom:1px solid var(--line)}
+td{padding:10px 12px;border-bottom:1px solid var(--soft);vertical-align:top}.sub{color:var(--muted);font-size:12px;margin-top:2px}.path{color:var(--ink-2);word-break:break-all}
+.pill{display:inline-block;font-size:11px;font-weight:700;border-radius:9px;padding:2px 9px}
+.pill.ready{background:var(--accentbg);color:var(--good)}.pill.bad{background:var(--critbg);color:var(--crit)}.pill.miss,.pill.old{background:var(--warnbg);color:var(--warn)}
+.err{margin-top:6px;color:var(--crit)}.hint{display:flex;gap:8px;align-items:center;margin-top:6px;color:var(--ink-2)}
+</style>
+</head>
+<body>
+<div class="board petrol"><header><div class="logo">C</div><b>CodeSkimr</b><span class="chip">Einstellungen</span></header>
+<div class="main"><div class="rail"></div><div class="content">
+<h1>Einstellungen</h1>
+<section class="card sec"><h2>Design</h2><p class="note">Hell, Petrol oder Dunkel. (unverändert)</p></section>
+<section class="card sec"><div class="top"><div><h2>Indexer für genaue Verwendungen (Stufe 2)</h2>
+<p class="note">Welche Werkzeuge CodeSkimr auf diesem Rechner findet. CodeSkimr installiert nichts selbst; fehlt etwas, steht der Befehl zum Kopieren dabei.</p></div>
+<div class="act"><span class="muted">Zuletzt geprüft: vor 2 Min.</span><button class="btn pri">Erneut prüfen</button></div></div>
+<table><thead><tr><th>Werkzeug</th><th>Zustand</th><th>Version</th><th>Pfad</th></tr></thead><tbody><tr><td><b class="mono">scip-typescript</b><div class="sub">TypeScript, JavaScript</div></td><td><span class="pill ready">bereit</span></td><td class="mono">0.6.2</td><td class="mono path">C:\Users\anton\AppData\Roaming\npm\scip-typescript.cmd</td></tr><tr><td><b class="mono">scip-python</b><div class="sub">Python</div></td><td><span class="pill bad">gefunden, startet aber nicht</span><div class="err mono">SyntaxError: Invalid regular expression: /\/g: \ at end of pattern</div></td><td class="mono">–</td><td class="mono path">C:\Users\anton\AppData\Roaming\npm\scip-python.cmd</td></tr><tr><td><b class="mono">scip-dotnet</b><div class="sub">C#</div></td><td><span class="pill miss">fehlt</span><div class="hint"><span class="mono">dotnet tool install --global scip-dotnet</span><button class="btn">Kopieren</button></div></td><td class="mono">–</td><td class="mono path">–</td></tr><tr><td><b class="mono">scip-java</b><div class="sub">Java, Kotlin</div></td><td><span class="pill old">zu alt</span><div class="hint"><span class="mono">Neu installieren: coursier install scip-java</span><button class="btn">Kopieren</button></div></td><td class="mono">0.10.0 (gefordert: 0.12.0)</td><td class="mono path">C:\Tools\scip-java\scip-java.bat</td></tr><tr><td><b class="mono">node</b><div class="sub">Toolchain für TypeScript, JavaScript, Python</div></td><td><span class="pill ready">bereit</span></td><td class="mono">24.22.1</td><td class="mono path">C:\Program Files\nodejs\node.exe</td></tr></tbody></table>
+<p class="note small">Gesucht wird im PATH deines Benutzers, nie im Projekt. Geprüft wird nur mit der Versionsabfrage; Projektcode läuft dabei nicht.</p></section>
+</div></div></div>
+<div class="board hell"><header><div class="logo">C</div><b>CodeSkimr</b><span class="chip">Einstellungen</span></header>
+<div class="main"><div class="rail"></div><div class="content">
+<h1>Einstellungen</h1>
+<section class="card sec"><h2>Design</h2><p class="note">Hell, Petrol oder Dunkel. (unverändert)</p></section>
+<section class="card sec"><div class="top"><div><h2>Indexer für genaue Verwendungen (Stufe 2)</h2>
+<p class="note">Welche Werkzeuge CodeSkimr auf diesem Rechner findet. CodeSkimr installiert nichts selbst; fehlt etwas, steht der Befehl zum Kopieren dabei.</p></div>
+<div class="act"><span class="muted">Zuletzt geprüft: vor 2 Min.</span><button class="btn pri">Erneut prüfen</button></div></div>
+<table><thead><tr><th>Werkzeug</th><th>Zustand</th><th>Version</th><th>Pfad</th></tr></thead><tbody><tr><td><b class="mono">scip-typescript</b><div class="sub">TypeScript, JavaScript</div></td><td><span class="pill ready">bereit</span></td><td class="mono">0.6.2</td><td class="mono path">C:\Users\anton\AppData\Roaming\npm\scip-typescript.cmd</td></tr><tr><td><b class="mono">scip-python</b><div class="sub">Python</div></td><td><span class="pill bad">gefunden, startet aber nicht</span><div class="err mono">SyntaxError: Invalid regular expression: /\/g: \ at end of pattern</div></td><td class="mono">–</td><td class="mono path">C:\Users\anton\AppData\Roaming\npm\scip-python.cmd</td></tr><tr><td><b class="mono">scip-dotnet</b><div class="sub">C#</div></td><td><span class="pill miss">fehlt</span><div class="hint"><span class="mono">dotnet tool install --global scip-dotnet</span><button class="btn">Kopieren</button></div></td><td class="mono">–</td><td class="mono path">–</td></tr><tr><td><b class="mono">scip-java</b><div class="sub">Java, Kotlin</div></td><td><span class="pill old">zu alt</span><div class="hint"><span class="mono">Neu installieren: coursier install scip-java</span><button class="btn">Kopieren</button></div></td><td class="mono">0.10.0 (gefordert: 0.12.0)</td><td class="mono path">C:\Tools\scip-java\scip-java.bat</td></tr><tr><td><b class="mono">node</b><div class="sub">Toolchain für TypeScript, JavaScript, Python</div></td><td><span class="pill ready">bereit</span></td><td class="mono">24.22.1</td><td class="mono path">C:\Program Files\nodejs\node.exe</td></tr></tbody></table>
+<p class="note small">Gesucht wird im PATH deines Benutzers, nie im Projekt. Geprüft wird nur mit der Versionsabfrage; Projektcode läuft dabei nicht.</p></section>
+</div></div></div>
+<div class="board dunkel"><header><div class="logo">C</div><b>CodeSkimr</b><span class="chip">Einstellungen</span></header>
+<div class="main"><div class="rail"></div><div class="content">
+<h1>Einstellungen</h1>
+<section class="card sec"><h2>Design</h2><p class="note">Hell, Petrol oder Dunkel. (unverändert)</p></section>
+<section class="card sec"><div class="top"><div><h2>Indexer für genaue Verwendungen (Stufe 2)</h2>
+<p class="note">Welche Werkzeuge CodeSkimr auf diesem Rechner findet. CodeSkimr installiert nichts selbst; fehlt etwas, steht der Befehl zum Kopieren dabei.</p></div>
+<div class="act"><span class="muted">Zuletzt geprüft: vor 2 Min.</span><button class="btn pri">Erneut prüfen</button></div></div>
+<table><thead><tr><th>Werkzeug</th><th>Zustand</th><th>Version</th><th>Pfad</th></tr></thead><tbody><tr><td><b class="mono">scip-typescript</b><div class="sub">TypeScript, JavaScript</div></td><td><span class="pill ready">bereit</span></td><td class="mono">0.6.2</td><td class="mono path">C:\Users\anton\AppData\Roaming\npm\scip-typescript.cmd</td></tr><tr><td><b class="mono">scip-python</b><div class="sub">Python</div></td><td><span class="pill bad">gefunden, startet aber nicht</span><div class="err mono">SyntaxError: Invalid regular expression: /\/g: \ at end of pattern</div></td><td class="mono">–</td><td class="mono path">C:\Users\anton\AppData\Roaming\npm\scip-python.cmd</td></tr><tr><td><b class="mono">scip-dotnet</b><div class="sub">C#</div></td><td><span class="pill miss">fehlt</span><div class="hint"><span class="mono">dotnet tool install --global scip-dotnet</span><button class="btn">Kopieren</button></div></td><td class="mono">–</td><td class="mono path">–</td></tr><tr><td><b class="mono">scip-java</b><div class="sub">Java, Kotlin</div></td><td><span class="pill old">zu alt</span><div class="hint"><span class="mono">Neu installieren: coursier install scip-java</span><button class="btn">Kopieren</button></div></td><td class="mono">0.10.0 (gefordert: 0.12.0)</td><td class="mono path">C:\Tools\scip-java\scip-java.bat</td></tr><tr><td><b class="mono">node</b><div class="sub">Toolchain für TypeScript, JavaScript, Python</div></td><td><span class="pill ready">bereit</span></td><td class="mono">24.22.1</td><td class="mono path">C:\Program Files\nodejs\node.exe</td></tr></tbody></table>
+<p class="note small">Gesucht wird im PATH deines Benutzers, nie im Projekt. Geprüft wird nur mit der Versionsabfrage; Projektcode läuft dabei nicht.</p></section>
+</div></div></div>
+</body>
+</html>
