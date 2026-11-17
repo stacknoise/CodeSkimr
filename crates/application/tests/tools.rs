@@ -12,7 +12,7 @@ use codeskimr_application::ports::{
     RequirementReader, RequirementValue, ToolCatalog, ToolIssue, ToolPlan, ToolProblem,
     ToolReportStore, ToolRequirement, ToolSeen, ToolSpec, ToolVersion,
 };
-use codeskimr_application::tools::{ToolCheckPorts, ToolChecker};
+use codeskimr_application::tools::{IndexerCheck, IndexerOverview, ToolCheckPorts, ToolChecker};
 use codeskimr_domain::{
     Ceiling, FolderPath, LanguageId, Project, ProjectId, ProjectName, ProjectSource,
     RequirementFormat, RequirementSpec, RollForwardSpec, SourceFile, Timestamp, ToolReport,
@@ -99,6 +99,16 @@ struct World {
 impl ToolCatalog for World {
     fn plan_of(&self, language: &LanguageId) -> Option<ToolPlan> {
         self.plans.get(language.as_str()).cloned()
+    }
+
+    fn plans(&self) -> Vec<(LanguageId, ToolPlan)> {
+        let mut all: Vec<_> = self
+            .plans
+            .iter()
+            .map(|(language, plan)| (LanguageId::new(language).unwrap(), plan.clone()))
+            .collect();
+        all.sort_by(|left: &(LanguageId, ToolPlan), right| left.0.as_str().cmp(right.0.as_str()));
+        all
     }
 }
 
@@ -592,4 +602,31 @@ fn a_ceiling_of_the_toolchain_tool_does_not_judge_the_indexer() {
     );
     let report = run(world).1.unwrap();
     assert_eq!(report.findings[0].state, ToolState::Ready);
+}
+
+#[test]
+fn the_listing_of_all_indexers_needs_no_project_and_reports_every_tool_once() {
+    let world = Arc::new(csharp_world(
+        &[
+            ("scip-dotnet", "crash:SyntaxError: boom"),
+            ("dotnet", "8.0.404"),
+        ],
+        None,
+    ));
+    let overview = IndexerOverview::new(world.clone(), world.clone(), world.clone());
+    let view = overview.check();
+    let states: Vec<_> = view
+        .tools
+        .iter()
+        .map(|tool| (tool.tool.as_str(), tool.state, tool.found.as_deref()))
+        .collect();
+    assert_eq!(
+        states,
+        [
+            ("dotnet", "ready", Some("8.0.404")),
+            ("scip-dotnet", "not_runnable", Some("SyntaxError: boom")),
+        ]
+    );
+    assert!(view.tools.iter().all(|tool| tool.path.is_none()));
+    assert!(view.checked_at.is_some());
 }

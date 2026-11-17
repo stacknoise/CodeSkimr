@@ -33,6 +33,9 @@ pub struct ToolPlan {
 pub trait ToolCatalog: Send + Sync {
     /// The plan of level 2 for `language`; `None` for a language without an indexer.
     fn plan_of(&self, language: &LanguageId) -> Option<ToolPlan>;
+
+    /// The plans of all languages that have an indexer, ordered by language.
+    fn plans(&self) -> Vec<(LanguageId, ToolPlan)>;
 }
 
 /// What one project file says about a tool: the version it names and the policy that limits how

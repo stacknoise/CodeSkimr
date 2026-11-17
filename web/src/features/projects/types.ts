@@ -31,6 +31,8 @@ export interface ToolInfo {
   languages: string[];
   found: string | null;
   required: string | null;
+  /** Where the tool was found; only the listing of the settings knows it. */
+  path?: string | null;
   /** Message keys in the Fluent files of `locales/`, named by the language pack. */
   purpose_key: string;
   install_key: string;

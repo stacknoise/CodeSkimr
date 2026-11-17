@@ -19,6 +19,9 @@ pub struct ToolView {
     pub found: Option<String>,
     /// The version that is required.
     pub required: Option<String>,
+    /// Where the tool was found; only the listing of the settings (`IndexerCheck`) knows, the
+    /// check of a project leaves it empty.
+    pub path: Option<String>,
     /// Message key of what the tool is needed for.
     pub purpose_key: String,
     /// Message key of how to install it.
@@ -55,6 +58,7 @@ impl ToolView {
             languages: entry.languages.iter().map(ToString::to_string).collect(),
             found: entry.found.clone(),
             required: entry.required.clone(),
+            path: None,
             purpose_key: entry.purpose_key.clone(),
             install_key: entry.install_key.clone(),
         }

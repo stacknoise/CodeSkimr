@@ -571,6 +571,14 @@ fn an_indexer_older_than_required_is_unavailable() {
 }
 
 #[test]
+fn the_listing_knows_where_a_tool_is_found_and_nothing_for_a_tool_that_is_not() {
+    let fixture = Fixture::new();
+    let path = fixture.runner.locate("fake_indexer").unwrap();
+    assert!(path.contains("fake_indexer"), "{path}");
+    assert_eq!(fixture.runner.locate("no-such-tool-anywhere"), None);
+}
+
+#[test]
 fn a_ready_tool_reports_the_version_it_printed() {
     let fixture = Fixture::new();
     let status = fixture.runner.check(&spec("ok"));
