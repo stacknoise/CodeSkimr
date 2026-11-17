@@ -5,6 +5,7 @@ import {
   layerKey,
   namespaceKey,
   revealKeys,
+  revealNamespace,
   siblingPlaces,
   typeKey,
   type TreeLabels,
@@ -389,5 +390,35 @@ describe("siblingPlaces", () => {
       [3, 3],
       [2, 2],
     ]);
+  });
+});
+
+describe("revealNamespace", () => {
+  const outline = {
+    snapshot: 1,
+    thresholds: {} as never,
+    layers: [
+      {
+        name: "Domain",
+        namespaces: [
+          { name: "App.Domain.Model", types: [] },
+          { name: "App.Ui", types: [] },
+        ],
+      },
+    ],
+  };
+
+  it("opens the layer and the segments down to the namespace and puts the cursor on it", () => {
+    const found = revealNamespace(outline, "App.Domain");
+    expect(found?.cursor).toBe(namespaceKey("Domain", "App.Domain"));
+    expect(found?.open).toEqual([
+      layerKey("Domain"),
+      namespaceKey("Domain", "App"),
+      namespaceKey("Domain", "App.Domain"),
+    ]);
+  });
+
+  it("finds nothing for a name that is no part of a namespace", () => {
+    expect(revealNamespace(outline, "Shop")).toBeNull();
   });
 });

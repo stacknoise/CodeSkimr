@@ -73,7 +73,7 @@ describe("buildGraph", () => {
     expect(Math.min(...wide.cards.map((x) => x.y))).toBe(GRAPH.top);
   });
 
-  it("puts a card without a parent in the graph at the height of the focus", () => {
+  it("puts a card without a parent in the graph next to the height of the focus", () => {
     const orphan = place(30, "Shop.Lost.Caller");
     const lonely = buildGraph({
       ...ANSWER,
@@ -85,7 +85,9 @@ describe("buildGraph", () => {
     const card = lonely.cards.find((x) => x.place.id === 30)!;
     const focus = lonely.cards.find((x) => x.focus)!;
     expect(Number.isFinite(card.y)).toBe(true);
-    expect(card.y + card.height / 2).toBeCloseTo(focus.y + focus.height / 2, 5);
+    // Another card of the same column wants the same line, so the two share it, side by side.
+    const apart = Math.abs(card.y + card.height / 2 - (focus.y + focus.height / 2));
+    expect(apart).toBeLessThanOrEqual((GRAPH.cardHeight + GRAPH.rowGap) / 2 + 1e-6);
   });
 
   it("keeps the column of what is called when nothing is called", () => {
@@ -121,6 +123,26 @@ describe("buildGraph", () => {
     });
     expect(crowded.cards).toHaveLength(GRAPH.maxCards + 1);
     expect(crowded.columns.find((column) => column.hidden > 0)?.hidden).toBe(3);
+  });
+
+  it("orders the cards of a column by name, whatever their counts, and keeps that order at a greater depth", () => {
+    const alpha = place(201, "Shop.Z.Alpha.Run");
+    const beta = place(202, "Shop.Y.Beta.Run");
+    const hits = [hit(beta, FOCUS), hit(beta, FOCUS), hit(beta, FOCUS), hit(alpha, FOCUS)];
+    const order = (list: typeof hits) => {
+      const built = buildGraph({
+        ...ANSWER,
+        incoming: { total: list.length, hits: list },
+        outgoing: null,
+      });
+      return built.cards
+        .filter((c) => !c.focus && c.x === built.cards.find((x) => x.place.id === 201)!.x)
+        .sort((a, b) => a.y - b.y)
+        .map((c) => c.place.id);
+    };
+    expect(order(hits)).toEqual([201, 202]);
+    const deeper = [...hits, hit(alpha, beta, { depth: 2 }), hit(alpha, beta, { depth: 2 })];
+    expect(order(deeper.filter((h) => h.depth === 1))).toEqual([201, 202]);
   });
 
   it("does not draw the reference that closes a cycle backwards", () => {

@@ -35,6 +35,13 @@ function heading(column: Column): string {
     : t(I18N_KEYS.USAGES_CALLEES_LEVEL, { level });
 }
 
+/** What the layer field of a card says on hover: the layer, or that the symbol has none. */
+function layerTitle(layer: string): string {
+  return layer === MISSING
+    ? t(I18N_KEYS.USAGES_LAYER_NONE_TITLE)
+    : t(I18N_KEYS.USAGES_LAYER_TITLE, { layer });
+}
+
 function cardStyle(card: Card) {
   return {
     left: `${card.x}px`,
@@ -42,6 +49,38 @@ function cardStyle(card: Card) {
     width: `${GRAPH.columnWidth}px`,
     height: `${card.height}px`,
   };
+}
+
+/** The two lines of a card: kind, name and count, then the owner and the layer. The count and the
+ * layer say what they are on hover. */
+function CardText(props: { card: Card }) {
+  const card = () => props.card;
+  return (
+    <>
+      <span class={styles.line}>
+        <KindBadge kind={card().place.kind} />
+        <span class={styles.name}>{card().member}</span>
+        <Show when={card().count > 0}>
+          <span
+            class={styles.count}
+            title={t(I18N_KEYS.USAGES_COUNT_TITLE, { count: card().count })}
+          >
+            {card().count}
+          </span>
+        </Show>
+      </span>
+      <span class={styles.context}>
+        <span class={styles.owner}>{card().owner}</span>
+        <Show when={card().place.layer ?? MISSING}>
+          {(layer) => (
+            <span class={styles.layer} title={layerTitle(layer())}>
+              {layer()}
+            </span>
+          )}
+        </Show>
+      </span>
+    </>
+  );
 }
 
 function CardButton(props: {
@@ -68,19 +107,7 @@ function CardButton(props: {
       onDblClick={() => props.onOpen(card())}
       onKeyDown={(event) => onEnter(event, () => props.onOpen(card()))}
     >
-      <span class={styles.line}>
-        <KindBadge kind={card().place.kind} />
-        <span class={styles.name}>{card().member}</span>
-        <Show when={card().count > 0}>
-          <span class={styles.count}>{card().count}</span>
-        </Show>
-      </span>
-      <span class={styles.context}>
-        <span class={styles.owner}>{card().owner}</span>
-        <Show when={card().place.layer ?? MISSING}>
-          {(layer) => <span class={styles.layer}>{layer()}</span>}
-        </Show>
-      </span>
+      <CardText card={card()} />
     </button>
   );
 }

@@ -63,3 +63,6 @@ usages-zoom-in = Vergrößern
 usages-zoom-out = Verkleinern
 usages-zoom-fit = Alles zeigen
 usages-hint-navigation = Mausrad zoomt · Ziehen oder Mittelmaustaste verschiebt · Klick zeigt Details · Doppelklick oder Enter wechselt den Fokus
+usages-count-title = { $count } Stellen im Code, die dieses Symbol benutzen oder erreichen
+usages-layer-title = Schicht: { $layer }
+usages-layer-none-title = Diesem Symbol ist keine Schicht zugeordnet

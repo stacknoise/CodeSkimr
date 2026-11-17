@@ -329,6 +329,26 @@ export function revealKeys(outline: Outline, type: number): string[] {
   return [];
 }
 
+/** What the tree has to open and where the cursor goes to show the namespace `name`: its layer and
+ * every segment down to it (it opens itself too). `null` if no namespace of the outline has it as
+ * a part of its name. */
+export function revealNamespace(
+  outline: Outline,
+  name: string,
+): { open: string[]; cursor: string } | null {
+  for (const layer of outline.layers) {
+    for (const space of layer.namespaces) {
+      const parts = nameParts(space.name);
+      const at = parts.findIndex((part) => part.path === name);
+      if (at >= 0) {
+        const paths = parts.slice(0, at + 1).map((part) => namespaceKey(layer.name, part.path));
+        return { open: [layerKey(layer.name), ...paths], cursor: namespaceKey(layer.name, name) };
+      }
+    }
+  }
+  return null;
+}
+
 /** Where a row stands among its siblings: the count of rows with the same parent and its place
  * among them, counted from 1. */
 export interface Place {
