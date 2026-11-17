@@ -63,3 +63,6 @@ usages-zoom-in = Zoom in
 usages-zoom-out = Zoom out
 usages-zoom-fit = Show everything
 usages-hint-navigation = Mouse wheel zooms · drag or middle button pans · click shows details · double click or Enter changes the focus
+usages-count-title = { $count } places in the code that use or reach this symbol
+usages-layer-title = Layer: { $layer }
+usages-layer-none-title = No layer assigned to this symbol

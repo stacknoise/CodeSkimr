@@ -5,7 +5,7 @@ import { activeProject, openProject } from "../../shared/project/active";
 import { isTyping, useKeydown } from "../../shared/keys/keydown";
 import { loadSummary } from "../annotations/store";
 import { currentType } from "../explorer/explorer";
-import { requestFocus } from "../../shared/navigation/navigation";
+import { requestFocus, type Focus } from "../../shared/navigation/navigation";
 import { projects, refreshProjects } from "../projects/projects";
 import { KEY, LEVEL } from "./consts";
 import {
@@ -149,15 +149,29 @@ function useFocusActions(state: MapState) {
   return { focusType, focusBox };
 }
 
+/** Where the explorer goes for the selected box: the type, the namespace or the layer, by the level
+ * of the map. `null` without a selection. */
+function explorerFocus(state: MapState): Focus | null {
+  const name = state.selected();
+  const type = selectedTypeOf(state);
+  if (type !== null && type !== undefined) {
+    return { type, member: null, kind: null };
+  }
+  if (name === null) {
+    return null;
+  }
+  return graphLevel() === LEVEL.namespaces ? { namespace: name } : { layer: name };
+}
+
 /** What the screen does with the selected box: open it in the explorer, make it the focus. */
 export function useSelectionActions(state: MapState) {
   const { project } = state;
   const openExplorer = () => {
     const id = project();
     if (id !== null) {
-      const type = selectedTypeOf(state);
-      if (type !== null && type !== undefined) {
-        requestFocus({ type, member: null, kind: null });
+      const focus = explorerFocus(state);
+      if (focus !== null) {
+        requestFocus(focus);
       }
       openProject(id);
       navigate(EXPLORER_ROUTE.path);

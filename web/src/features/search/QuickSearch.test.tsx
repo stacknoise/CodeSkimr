@@ -5,7 +5,7 @@ import { setLanguage } from "../../shared/i18n/i18n";
 import { activeProject, openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { ORDER } from "../../tests/explorer";
-import { pendingFocus, requestFocus } from "../../shared/navigation/navigation";
+import { pendingFocus, requestFocus, type TypeFocus } from "../../shared/navigation/navigation";
 import { useSearchShortcut } from "./keys";
 import { QuickSearch } from "./QuickSearch";
 import { SearchField } from "./SearchField";
@@ -318,7 +318,7 @@ describe("the quick search", () => {
     ).toBe("true");
     fireEvent.keyDown(input(), { key: "Tab" });
     fireEvent.click(await screen.findByText("AddItem", { selector: "[class*=label]" }));
-    expect(pendingFocus()?.member).toBe(9);
+    expect((pendingFocus() as TypeFocus | null)?.member).toBe(9);
   });
 
   it("drops the answer of an earlier search that arrives late", async () => {
@@ -392,6 +392,6 @@ describe("the quick search", () => {
     expect(body.at(-1)).toMatchObject({ query: "cart", all_projects: true });
     fireEvent.keyDown(input(), { key: "Enter" });
     expect(activeProject()).toBe(2);
-    expect(pendingFocus()?.type).toBe(77);
+    expect((pendingFocus() as TypeFocus | null)?.type).toBe(77);
   });
 });

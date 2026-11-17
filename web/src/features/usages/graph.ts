@@ -91,6 +91,19 @@ function byWeight(a: Node, b: Node): number {
   return b.count - a.count || a.place.qualified_name.localeCompare(b.place.qualified_name);
 }
 
+/** The order of the cards in a column: by the name the card shows, then by its owner. It does not
+ * depend on how often a symbol was hit, so a deeper walk does not shuffle the cards that were
+ * shown before. */
+function byName(a: Node, b: Node): number {
+  const left = cardNames(a.place.qualified_name);
+  const right = cardNames(b.place.qualified_name);
+  return (
+    left.member.localeCompare(right.member) ||
+    left.owner.localeCompare(right.owner) ||
+    a.place.qualified_name.localeCompare(b.place.qualified_name)
+  );
+}
+
 /** How an edge looks: tests violet, presumed hits dashed, the rest by direction. */
 function toneOf(hits: Hit[], way: Tone): Tone {
   if (hits.some((hit) => hit.kind === REF.test)) {
@@ -208,7 +221,7 @@ function stack(
     const index = columnOf(reach, side.kind, level);
     const x = GRAPH.left + index * (GRAPH.columnWidth + GRAPH.columnGap);
     columns.push({ kind: side.kind, level, x, hidden: Math.max(0, all.length - GRAPH.maxCards) });
-    const kept = all.slice(0, GRAPH.maxCards);
+    const kept = all.slice(0, GRAPH.maxCards).sort(byName);
     const middles = wishes(kept, side, cards, focus);
     const wished = kept.map((node, i) => ({ node, middle: middles[i] ?? middleOf(focus) }));
     for (const { node, middle } of spread(wished.sort((a, b) => a.middle - b.middle))) {

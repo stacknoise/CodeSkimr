@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { currentPath, navigate } from "../../app/router";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
-import { pendingFocus, requestFocus } from "../../shared/navigation/navigation";
+import { pendingFocus, requestFocus, type TypeFocus } from "../../shared/navigation/navigation";
 import { pointer } from "../../tests/pointer";
 import { ANSWER, VIEW } from "../../tests/usages";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
@@ -192,7 +192,7 @@ describe("UsagesScreen", () => {
     fireEvent.keyDown(document.body, { key: "F8" });
     fireEvent.keyDown(document.body, { key: "Enter" });
     await waitFor(() => expect(currentPath()).toBe("/explorer"));
-    expect(pendingFocus()?.member).toBe(14);
+    expect((pendingFocus() as TypeFocus | null)?.member).toBe(14);
   });
 
   it("warns about missing indexers also on an empty list", async () => {

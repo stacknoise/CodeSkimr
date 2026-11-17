@@ -118,6 +118,15 @@
     box-shadow: inset 2px 0 0 var(--accent);
 }
 
+/* A selected critical row carries both stripes: the pink one of the mark lies on the edge, and the
+   stripe of the selection moves next to it, so that neither covers the other. */
+.selected.critical,
+.selected.critical:hover {
+    box-shadow:
+        inset 3px 0 0 var(--accent-bg),
+        inset 5px 0 0 var(--accent);
+}
+
 .caret {
     width: 12px;
     flex: none;
