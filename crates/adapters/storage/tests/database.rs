@@ -4,8 +4,6 @@
 mod common;
 
 use std::num::NonZeroU32;
-use std::path::PathBuf;
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use codeskimr_application::ports::{
     PendingReference, ProjectRepository, Receiver, SnapshotData, SnapshotStore, SymbolFingerprints,
@@ -15,33 +13,8 @@ use codeskimr_domain::{
     ScanMode, SymbolId, SymbolKind,
 };
 use codeskimr_storage::{SqliteStore, StoreOptions};
-use common::{PROJECT, code_of, data, file, header, metric, project, reference, symbol};
+use common::{PROJECT, TempDb, code_of, data, file, header, metric, project, reference, symbol};
 use rusqlite::Connection;
-
-static NEXT: AtomicU32 = AtomicU32::new(0);
-
-/// A database path in a fresh temporary folder that is removed again on drop.
-#[cfg(test)]
-struct TempDb(PathBuf);
-
-#[cfg(test)]
-impl TempDb {
-    fn new() -> Self {
-        let unique = NEXT.fetch_add(1, Ordering::Relaxed);
-        let folder =
-            std::env::temp_dir().join(format!("codeskimr-storage-{}-{unique}", std::process::id()));
-        Self(folder.join("nested").join("workspace.db"))
-    }
-}
-
-#[cfg(test)]
-impl Drop for TempDb {
-    fn drop(&mut self) {
-        if let Some(root) = self.0.parent().and_then(std::path::Path::parent) {
-            let _ = std::fs::remove_dir_all(root);
-        }
-    }
-}
 
 #[cfg(test)]
 fn keep(count: u32) -> NonZeroU32 {
@@ -70,7 +43,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 14));
+    assert_eq!((mode.as_str(), version), ("wal", 15));
 }
 
 #[test]
@@ -592,7 +565,10 @@ fn a_version_eleven_database_keeps_its_layers_without_a_limit() {
     drop(SqliteStore::open(&db.0, keep(3)).unwrap());
     let conn = Connection::open(&db.0).unwrap();
     conn.execute_batch(
-        "DROP TABLE snapshot_warnings;
+        "DROP TABLE alert;
+         DROP TABLE annotation_baseline;
+         DROP TABLE annotation;
+         DROP TABLE snapshot_warnings;
          DROP TABLE layer_uses;
          ALTER TABLE layers DROP COLUMN restricted;
          DROP VIEW symbols;

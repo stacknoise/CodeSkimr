@@ -475,3 +475,77 @@ pub const SNAPSHOT_NAMES_SET: &str = "UPDATE snapshots SET names_stored = 1 WHER
 pub const SNAPSHOT_NAMES_STORED: &str = "SELECT names_stored FROM snapshots WHERE id = ?1";
 /// Removes a reference that the new snapshot does not contain: id.
 pub const REFERENCE_DELETE: &str = "DELETE FROM symbol_references WHERE id = ?1";
+
+/// Whether the newest snapshot of the project holds a symbol: project, kind, qualified name.
+pub const ANNOTATION_TARGET_EXISTS: &str = "SELECT COUNT(*) FROM symbols WHERE snapshot_id = \
+    (SELECT MAX(id) FROM snapshots WHERE project_id = ?1) AND kind = ?2 AND qualified_name = ?3";
+/// The number of annotations of a kind on a symbol other than the given one: project, target kind,
+/// name, parameters, annotation kind, annotation id (0 for a new one).
+pub const ANNOTATION_KIND_COUNT: &str = "SELECT COUNT(*) FROM annotation WHERE project_id = ?1 \
+    AND target_kind = ?2 AND target_name = ?3 AND target_params = ?4 AND kind = ?5 AND id <> ?6";
+/// Adds an annotation: project, target kind, name, parameters, kind, title, text, status, due,
+/// assignee, author, created, updated.
+pub const ANNOTATION_INSERT: &str = "INSERT INTO annotation (project_id, target_kind, target_name, \
+    target_params, kind, title, text, status, due, assignee, author, created, updated) \
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)";
+/// One annotation: id.
+pub const ANNOTATION_BY_ID: &str = "SELECT id, project_id, target_kind, target_name, target_params, kind, title, text, status, \
+    due, assignee, author, created, updated \
+    FROM annotation WHERE id = ?1";
+/// Replaces target and content of an annotation: id, target kind, name, parameters, title, text,
+/// status, due, assignee, updated.
+pub const ANNOTATION_UPDATE: &str = "UPDATE annotation SET target_kind = ?2, target_name = ?3, \
+    target_params = ?4, title = ?5, text = ?6, status = ?7, due = ?8, assignee = ?9, updated = ?10 \
+    WHERE id = ?1";
+/// Deletes an annotation with its baseline and alerts: id.
+pub const ANNOTATION_DELETE: &str = "DELETE FROM annotation WHERE id = ?1";
+/// The annotations of a project, optionally of one kind: project, kind or null.
+pub const ANNOTATIONS_OF_PROJECT: &str = "SELECT id, project_id, target_kind, target_name, target_params, kind, title, text, status, \
+    due, assignee, author, created, updated \
+    FROM annotation WHERE project_id = ?1 AND (?2 IS NULL OR kind = ?2) ORDER BY id";
+/// The annotations of one symbol, optionally of one kind: project, kind or null, target kind, name,
+/// parameters.
+pub const ANNOTATIONS_OF_TARGET: &str = "SELECT id, project_id, target_kind, target_name, target_params, kind, title, text, status, \
+    due, assignee, author, created, updated \
+    FROM annotation WHERE project_id = ?1 AND (?2 IS NULL OR kind = ?2) AND target_name = ?4 \
+     AND target_kind = ?3 AND target_params = ?5 ORDER BY id";
+/// The kind of an annotation: id.
+pub const ANNOTATION_KIND: &str = "SELECT kind FROM annotation WHERE id = ?1";
+/// The baseline of an annotation: annotation id.
+pub const BASELINE_BY_ANNOTATION: &str = "SELECT content_hash, signature_hash, loc, cc \
+    FROM annotation_baseline WHERE annotation_id = ?1";
+/// Replaces the baseline of an annotation: annotation id, content hash, signature hash, loc, cc.
+pub const BASELINE_UPSERT: &str = "INSERT INTO annotation_baseline \
+    (annotation_id, content_hash, signature_hash, loc, cc) VALUES (?1, ?2, ?3, ?4, ?5) \
+    ON CONFLICT (annotation_id) DO UPDATE SET content_hash = excluded.content_hash, \
+    signature_hash = excluded.signature_hash, loc = excluded.loc, cc = excluded.cc";
+/// Drops the baseline of an annotation that now has another symbol: annotation id.
+pub const BASELINE_DELETE: &str = "DELETE FROM annotation_baseline WHERE annotation_id = ?1";
+/// Counts the open alert of an annotation once more and keeps its latest sighting: annotation id,
+/// now, kind, snapshot, commit, trigger, changes, references, closest.
+pub const ALERT_RAISE_OPEN: &str = "UPDATE alert SET counter = counter + 1, last_seen = ?2, \
+    kind = ?3, snapshot_id = ?4, commit_hash = ?5, trigger = ?6, changes = ?7, refs = ?8, \
+    closest = ?9 WHERE annotation_id = ?1 AND state = 'open'";
+/// Adds an open alert with the counter one: annotation id, now, kind, snapshot, commit, trigger,
+/// changes, references, closest.
+pub const ALERT_INSERT: &str = "INSERT INTO alert (annotation_id, state, counter, first_seen, \
+    last_seen, kind, snapshot_id, commit_hash, trigger, changes, refs, closest) \
+    VALUES (?1, 'open', 1, ?2, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)";
+/// The open alert of an annotation: annotation id.
+pub const ALERT_OPEN_OF_ANNOTATION: &str = "SELECT a.id, a.annotation_id, a.state, a.counter, a.first_seen, a.last_seen, a.dismissed, \
+    a.kind, a.snapshot_id, a.commit_hash, a.trigger, a.changes, a.refs, a.closest \
+    FROM alert a WHERE a.annotation_id = ?1 AND a.state = 'open'";
+/// One alert: id.
+pub const ALERT_BY_ID: &str = "SELECT a.id, a.annotation_id, a.state, a.counter, a.first_seen, a.last_seen, a.dismissed, \
+    a.kind, a.snapshot_id, a.commit_hash, a.trigger, a.changes, a.refs, a.closest \
+    FROM alert a WHERE a.id = ?1";
+/// The alerts of a project, optionally in one state, newest sighting first: project, state or null.
+pub const ALERTS_OF_PROJECT: &str = "SELECT a.id, a.annotation_id, a.state, a.counter, a.first_seen, a.last_seen, a.dismissed, \
+    a.kind, a.snapshot_id, a.commit_hash, a.trigger, a.changes, a.refs, a.closest \
+    FROM alert a JOIN annotation n ON n.id = a.annotation_id WHERE n.project_id = ?1 \
+     AND (?2 IS NULL OR a.state = ?2) ORDER BY a.last_seen DESC, a.id DESC";
+/// Dismisses an open alert: id, now.
+pub const ALERT_DISMISS: &str =
+    "UPDATE alert SET state = 'dismissed', dismissed = ?2 WHERE id = ?1 AND state = 'open'";
+/// Deletes the dismissed alerts that were dismissed before a time: time.
+pub const ALERT_PURGE: &str = "DELETE FROM alert WHERE state = 'dismissed' AND dismissed < ?1";

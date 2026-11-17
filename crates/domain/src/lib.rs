@@ -4,6 +4,8 @@
 //! so a `SymbolId` can never be passed where a `FileId` is expected.
 
 mod access;
+mod alert;
+mod annotation;
 mod consts;
 mod coupling;
 mod error;
@@ -31,6 +33,13 @@ mod type_neighbours;
 mod vocabulary;
 
 pub use access::{Permission, PermissionSet, Principal};
+pub use alert::{
+    Alert, AlertChange, AlertId, AlertKind, AlertSighting, AlertState, AlertTrigger, SymbolBaseline,
+};
+pub use annotation::{
+    Annotation, AnnotationContent, AnnotationId, AnnotationKind, AnnotationLimits,
+    AnnotationTarget, AnnotationText, AnnotationTitle, Assignee, Author, NewAnnotation, TaskStatus,
+};
 pub use coupling::coupling;
 pub use error::ModelError;
 pub use file::{ContentHash, FileId, LanguageId, Loc, RelativePath, SourceFile};

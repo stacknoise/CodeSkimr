@@ -69,6 +69,10 @@ crate = "codeskimr_i18n"
 title = "Export"
 crate = "codeskimr_application"
 
+[groups.ANN]
+title = "Annotations and alerts (ADR 0068)"
+crate = "codeskimr_application, codeskimr_storage"
+
 [groups.UI]
 title = "Frontend"
 crate = "web"
@@ -691,6 +695,54 @@ name = "export_write_failed"
 severity = "error"
 retryable = false
 description = "The export file could not be written."
+since = "0.1.0"
+
+[[codes]]
+id = "ANN-101"
+name = "annotation_target_not_found"
+severity = "error"
+retryable = false
+description = "The symbol an annotation is meant for is not in the newest snapshot of the project."
+since = "0.1.0"
+
+[[codes]]
+id = "ANN-102"
+name = "annotation_text_too_long"
+severity = "error"
+retryable = false
+description = "The text or the title of an annotation is longer than the configured limit."
+since = "0.1.0"
+
+[[codes]]
+id = "ANN-103"
+name = "annotation_invalid"
+severity = "error"
+retryable = false
+description = "The fields of an annotation do not fit its kind (for example a due date on a note), or a required text or title is missing or empty."
+since = "0.1.0"
+
+[[codes]]
+id = "ANN-201"
+name = "annotation_not_found"
+severity = "error"
+retryable = false
+description = "No annotation with this id exists."
+since = "0.1.0"
+
+[[codes]]
+id = "ANN-202"
+name = "alert_not_found"
+severity = "error"
+retryable = false
+description = "No alert with this id exists."
+since = "0.1.0"
+
+[[codes]]
+id = "ANN-301"
+name = "critical_already_marked"
+severity = "error"
+retryable = false
+description = "The symbol already has a critical mark; a symbol has at most one."
 since = "0.1.0"
 
 [[codes]]

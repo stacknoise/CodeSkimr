@@ -6,6 +6,7 @@
 //! application layer only sees finished results.
 
 mod analysis;
+mod annotations;
 mod catalog;
 mod clock;
 mod consent;
@@ -27,6 +28,10 @@ mod version;
 pub use analysis::{
     AnalyzeRequest, FileAnalyzer, FileFacts, MetricsCalculator, PendingReference, Receiver,
     ReferenceResolver, SnippetFingerprinter, SymbolFingerprints,
+};
+pub use annotations::{
+    AlertDismissal, AlertFilter, AlertPurge, AlertRaise, AnnotationCreation, AnnotationFilter,
+    AnnotationStore, AnnotationUpdate,
 };
 pub use catalog::{LanguageShare, ProjectCatalog, ProjectOverview};
 pub use clock::Clock;

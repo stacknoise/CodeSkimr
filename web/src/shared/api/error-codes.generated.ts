@@ -79,6 +79,12 @@ export type ErrorCode =
   | "I18N-201"
   | "EXP-201"
   | "EXP-601"
+  | "ANN-101"
+  | "ANN-102"
+  | "ANN-103"
+  | "ANN-201"
+  | "ANN-202"
+  | "ANN-301"
   | "UI-201"
   | "UI-901"
   | "CHK-101"
@@ -182,6 +188,12 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "I18N-201": { id: "I18N-201", name: "message_key_missing", group: "I18N", class: "not_found", severity: "error", retryable: false, description: "A message key is missing for the active language (falls back to English).", since: "0.1.0", deprecated: false, messageKey: "error-I18N-201" },
   "EXP-201": { id: "EXP-201", name: "export_bundle_missing", group: "EXP", class: "not_found", severity: "error", retryable: false, description: "The built export page of the UI is missing or unusable.", since: "0.1.0", deprecated: false, messageKey: "error-EXP-201" },
   "EXP-601": { id: "EXP-601", name: "export_write_failed", group: "EXP", class: "external", severity: "error", retryable: false, description: "The export file could not be written.", since: "0.1.0", deprecated: false, messageKey: "error-EXP-601" },
+  "ANN-101": { id: "ANN-101", name: "annotation_target_not_found", group: "ANN", class: "invalid_input", severity: "error", retryable: false, description: "The symbol an annotation is meant for is not in the newest snapshot of the project.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-101" },
+  "ANN-102": { id: "ANN-102", name: "annotation_text_too_long", group: "ANN", class: "invalid_input", severity: "error", retryable: false, description: "The text or the title of an annotation is longer than the configured limit.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-102" },
+  "ANN-103": { id: "ANN-103", name: "annotation_invalid", group: "ANN", class: "invalid_input", severity: "error", retryable: false, description: "The fields of an annotation do not fit its kind (for example a due date on a note), or a required text or title is missing or empty.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-103" },
+  "ANN-201": { id: "ANN-201", name: "annotation_not_found", group: "ANN", class: "not_found", severity: "error", retryable: false, description: "No annotation with this id exists.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-201" },
+  "ANN-202": { id: "ANN-202", name: "alert_not_found", group: "ANN", class: "not_found", severity: "error", retryable: false, description: "No alert with this id exists.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-202" },
+  "ANN-301": { id: "ANN-301", name: "critical_already_marked", group: "ANN", class: "conflict", severity: "error", retryable: false, description: "The symbol already has a critical mark; a symbol has at most one.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-301" },
   "UI-201": { id: "UI-201", name: "api_unreachable", group: "UI", class: "not_found", severity: "error", retryable: false, description: "The UI cannot reach the local server.", since: "0.1.0", deprecated: false, messageKey: "error-UI-201" },
   "UI-901": { id: "UI-901", name: "unexpected_ui_error", group: "UI", class: "internal", severity: "error", retryable: false, description: "An uncaught exception was converted at a feature boundary (bug).", since: "0.1.0", deprecated: false, messageKey: "error-UI-901" },
   "CHK-101": { id: "CHK-101", name: "literal_found", group: "CHK", class: "invalid_input", severity: "error", retryable: false, description: "A literal outside the allowed exceptions was found.", since: "0.1.0", deprecated: false, messageKey: "error-CHK-101" },

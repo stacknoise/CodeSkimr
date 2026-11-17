@@ -30,6 +30,17 @@ pub(crate) enum StorageError {
     ProjectNotFound,
     /// Another project already has this source.
     ProjectExists,
+    /// The symbol of an annotation is not in the newest snapshot of its project.
+    TargetNotFound,
+    /// The fields of an annotation do not fit its kind, or the annotation is not of the kind that
+    /// the operation needs.
+    AnnotationInvalid,
+    /// The annotation does not exist.
+    AnnotationNotFound,
+    /// The alert does not exist.
+    AlertNotFound,
+    /// The symbol already has a critical annotation.
+    CriticalExists,
 }
 
 impl StorageError {
@@ -65,6 +76,11 @@ impl Coded for StorageError {
             }
             Self::ProjectNotFound => ErrorCode::ProjectNotFound,
             Self::ProjectExists => ErrorCode::ProjectAlreadyRegistered,
+            Self::TargetNotFound => ErrorCode::AnnotationTargetNotFound,
+            Self::AnnotationInvalid => ErrorCode::AnnotationInvalid,
+            Self::AnnotationNotFound => ErrorCode::AnnotationNotFound,
+            Self::AlertNotFound => ErrorCode::AlertNotFound,
+            Self::CriticalExists => ErrorCode::CriticalAlreadyMarked,
         }
     }
 }
@@ -85,7 +101,12 @@ impl Error for StorageError {
             | Self::OutOfRange
             | Self::DanglingReference
             | Self::ProjectNotFound
-            | Self::ProjectExists => None,
+            | Self::ProjectExists
+            | Self::TargetNotFound
+            | Self::AnnotationInvalid
+            | Self::AnnotationNotFound
+            | Self::AlertNotFound
+            | Self::CriticalExists => None,
         }
     }
 }

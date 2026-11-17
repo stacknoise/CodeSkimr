@@ -78,6 +78,53 @@ macro_rules! text_type {
     };
 }
 
+/// Defines a text newtype for user input: never empty and at most as long as a limit that the caller
+/// passes in (the limits come from the configuration, so they are not a constant of the model).
+macro_rules! bounded_text_type {
+    ($(#[$meta:meta])* $name:ident) => {
+        $(#[$meta])*
+        #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+        pub struct $name(String);
+
+        impl $name {
+            /// Creates the value from user input.
+            ///
+            /// # Errors
+            ///
+            /// [`ModelError::EmptyText`] if the text is empty or only whitespace, and
+            /// [`ModelError::TooLong`] if it has more than `max_chars` characters.
+            pub fn new(value: impl Into<String>, max_chars: u32) -> Result<Self, $crate::ModelError> {
+                let text = value.into();
+                if text.trim().is_empty() {
+                    return Err($crate::ModelError::EmptyText);
+                }
+                if u32::try_from(text.chars().count()).map_or(true, |count| count > max_chars) {
+                    return Err($crate::ModelError::TooLong);
+                }
+                Ok(Self(text))
+            }
+
+            /// Takes a text that was stored earlier. A limit that was lowered since then does not
+            /// make a stored text invalid, so only emptiness is checked.
+            ///
+            /// # Errors
+            ///
+            /// [`ModelError::EmptyText`] if the text is empty or only whitespace.
+            pub fn restore(value: impl Into<String>) -> Result<Self, $crate::ModelError> {
+                Self::new(value, u32::MAX)
+            }
+
+            /// The text.
+            #[must_use]
+            pub fn as_str(&self) -> &str {
+                &self.0
+            }
+        }
+
+        $crate::vocabulary::display_as!($name, value => value.0.as_str());
+    };
+}
+
 /// Defines an enumeration whose variants have a fixed wire label (API, MCP, storage).
 macro_rules! labeled_enum {
     (
@@ -121,4 +168,4 @@ macro_rules! labeled_enum {
     };
 }
 
-pub(crate) use {display_as, id_type, labeled_enum, text_type};
+pub(crate) use {bounded_text_type, display_as, id_type, labeled_enum, text_type};

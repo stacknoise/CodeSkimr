@@ -16,6 +16,7 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0012_layer_directions.sql"),
     include_str!("../migrations/0013_scan_warnings.sql"),
     include_str!("../migrations/0014_symbol_origin.sql"),
+    include_str!("../migrations/0015_annotations.sql"),
 ];
 
 /// Name of the pragma that holds the schema version.
@@ -137,3 +138,10 @@ pub const BULK_REFERENCES_SHARE_DIVISOR: usize = 2;
 /// Separates names in a text that is handed to SQL as a list of names (the unit separator, which
 /// no name holds).
 pub const NAME_SEPARATOR: char = '\u{1f}';
+
+/// Seconds in a day, to turn the retention of dismissed alerts into a time.
+pub const SECONDS_PER_DAY: i64 = 86_400;
+/// Separates the labels of the changed parts of a symbol in the column `alert.changes`.
+pub const CHANGE_SEPARATOR: char = ',';
+/// The id that a new annotation has in the check for a second critical mark (no annotation has it).
+pub const NO_ANNOTATION: i64 = 0;

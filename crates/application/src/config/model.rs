@@ -1,7 +1,8 @@
 //! The typed configuration. There is no string-keyed access anywhere (blueprint section 14).
 
 use codeskimr_domain::{
-    FingerprintParams, Layer, LayerName, LayoutParams, ModelError, NodeSize, QualifiedName,
+    AnnotationLimits, FingerprintParams, Layer, LayerName, LayoutParams, ModelError, NodeSize,
+    QualifiedName,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -42,6 +43,8 @@ pub struct Config {
     pub ui: Ui,
     /// The picture of the dependency map.
     pub graph: Graph,
+    /// Limits of annotations and alerts (ADR 0068).
+    pub annotations: Annotations,
     /// Where `find_constants` looks for configuration and translation keys.
     pub keys: KeySources,
 }
@@ -287,6 +290,29 @@ pub struct Ui {
     pub dir: String,
     /// How long a one-time launch code is valid, in seconds.
     pub launch_code_seconds: u32,
+}
+
+/// Limits of annotations and alerts (blueprint 14, ADR 0068).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Annotations {
+    /// Days a dismissed alert is kept before it is purged.
+    pub dismissed_retention_days: u32,
+    /// Most characters of the text of an annotation.
+    pub max_text_chars: u32,
+    /// Most characters of the title of a task.
+    pub max_title_chars: u32,
+}
+
+impl Annotations {
+    /// The limits for the texts of annotations.
+    #[must_use]
+    pub const fn limits(&self) -> AnnotationLimits {
+        AnnotationLimits {
+            max_text_chars: self.max_text_chars,
+            max_title_chars: self.max_title_chars,
+        }
+    }
 }
 
 /// Syntax fingerprints (blueprint 10.4).

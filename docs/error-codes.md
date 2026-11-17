@@ -193,6 +193,19 @@ Owner: `codeskimr_application`
 | EXP-201 | `export_bundle_missing` | error | no | 0.1.0 | The built export page of the UI is missing or unusable. |
 | EXP-601 | `export_write_failed` | error | no | 0.1.0 | The export file could not be written. |
 
+## ANN – Annotations and alerts (ADR 0068)
+
+Owner: `codeskimr_application, codeskimr_storage`
+
+| Code | Name | Severity | Retryable | Since | Description |
+|---|---|---|---|---|---|
+| ANN-101 | `annotation_target_not_found` | error | no | 0.1.0 | The symbol an annotation is meant for is not in the newest snapshot of the project. |
+| ANN-102 | `annotation_text_too_long` | error | no | 0.1.0 | The text or the title of an annotation is longer than the configured limit. |
+| ANN-103 | `annotation_invalid` | error | no | 0.1.0 | The fields of an annotation do not fit its kind (for example a due date on a note), or a required text or title is missing or empty. |
+| ANN-201 | `annotation_not_found` | error | no | 0.1.0 | No annotation with this id exists. |
+| ANN-202 | `alert_not_found` | error | no | 0.1.0 | No alert with this id exists. |
+| ANN-301 | `critical_already_marked` | error | no | 0.1.0 | The symbol already has a critical mark; a symbol has at most one. |
+
 ## UI – Frontend
 
 Owner: `web`
