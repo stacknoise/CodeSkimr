@@ -167,7 +167,8 @@ pub struct Annotation {
     pub created: Timestamp,
     /// Time of the last change.
     pub updated: Timestamp,
-    /// Whether the newest scan did not find the symbol. Set for notes and tasks, which raise no
-    /// alert (ADR 0068, decision 3); the side panel and the task board show it.
+    /// Whether the newest scan did not find the symbol. It is kept for every kind; a note or a
+    /// task only shows it (the side panel and the task board), a critical annotation raises an
+    /// alert as well (ADR 0068, decision 3).
     pub without_target: bool,
 }

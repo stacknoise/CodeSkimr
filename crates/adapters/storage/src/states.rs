@@ -8,7 +8,6 @@ use codeskimr_domain::{
 use rusqlite::{Connection, params};
 
 use crate::codec::{Cols, column_int, label_from, small_from};
-use crate::consts::NAME_SEPARATOR;
 use crate::error::StorageResult;
 use crate::sql;
 use crate::store::SqliteStore;
@@ -52,32 +51,24 @@ fn states(
     snapshot: SnapshotId,
     names: &[QualifiedName],
 ) -> StorageResult<Vec<SymbolState>> {
-    if names.is_empty() {
-        return Ok(Vec::new());
-    }
     let mut statement = conn.prepare_cached(sql::STATE_SYMBOLS)?;
-    let rows = statement.query_map(
-        params![
-            column_int(snapshot.get())?,
-            name_list(names),
-            SymbolOrigin::Syntax.label(),
-            MetricKind::Loc.label(),
-            MetricKind::CyclomaticComplexity.label(),
-            NAME_SEPARATOR.to_string()
-        ],
-        |row| StateRow::read(&Cols::new(row)),
-    )?;
-    rows.map(|row| row?.decode()).collect()
-}
-
-/// The names as one text, each between two separators, which `instr` looks a name up in.
-fn name_list(names: &[QualifiedName]) -> String {
-    let mut list = String::from(NAME_SEPARATOR);
+    let mut found = Vec::new();
     for name in names {
-        list.push_str(name.as_str());
-        list.push(NAME_SEPARATOR);
+        let rows = statement.query_map(
+            params![
+                column_int(snapshot.get())?,
+                name.as_str(),
+                SymbolOrigin::Syntax.label(),
+                MetricKind::Loc.label(),
+                MetricKind::CyclomaticComplexity.label()
+            ],
+            |row| StateRow::read(&Cols::new(row)),
+        )?;
+        for row in rows {
+            found.push(row?.decode()?);
+        }
     }
-    list
+    Ok(found)
 }
 
 fn child_hashes(

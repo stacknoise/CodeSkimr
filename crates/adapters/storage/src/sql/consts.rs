@@ -501,12 +501,14 @@ pub const ANNOTATION_UPDATE: &str = "UPDATE annotation SET target_kind = ?2, tar
 pub const ANNOTATION_ANY: &str = "SELECT EXISTS (SELECT 1 FROM annotation WHERE project_id = ?1)";
 /// Marks the annotations of a project whose symbol the snapshot lacks: project, snapshot.
 pub const ANNOTATION_LOSE_TARGET: &str = "UPDATE annotation SET without_target = 1 \
-    WHERE project_id = ?1 AND without_target = 0 AND (target_kind, target_name) NOT IN \
-    (SELECT kind, qualified_name FROM symbols WHERE snapshot_id = ?2)";
+    WHERE project_id = ?1 AND without_target = 0 AND NOT EXISTS \
+    (SELECT 1 FROM symbol_rows s JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?2 \
+     WHERE s.qualified_name = annotation.target_name AND s.kind = annotation.target_kind)";
 /// Unmarks the annotations of a project whose symbol the snapshot has: project, snapshot.
 pub const ANNOTATION_FIND_TARGET: &str = "UPDATE annotation SET without_target = 0 \
-    WHERE project_id = ?1 AND without_target = 1 AND (target_kind, target_name) IN \
-    (SELECT kind, qualified_name FROM symbols WHERE snapshot_id = ?2)";
+    WHERE project_id = ?1 AND without_target = 1 AND EXISTS \
+    (SELECT 1 FROM symbol_rows s JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?2 \
+     WHERE s.qualified_name = annotation.target_name AND s.kind = annotation.target_kind)";
 /// Deletes an annotation with its baseline and alerts: id.
 pub const ANNOTATION_DELETE: &str = "DELETE FROM annotation WHERE id = ?1";
 /// The annotations of a project, optionally of one kind: project, kind or null.
@@ -566,16 +568,16 @@ pub const ALERT_DISMISS: &str =
 /// Deletes the dismissed alerts that were dismissed before a time: time.
 pub const ALERT_PURGE: &str = "DELETE FROM alert WHERE state = 'dismissed' AND dismissed < ?1";
 
-/// The symbols of a snapshot with one of some qualified names, with the content hash and the lines
-/// and complexity: snapshot, the names each between two unit separators, origin of level 1, label
-/// of the lines metric, label of the complexity metric, the unit separator.
+/// The symbols of a snapshot with a qualified name, with the content hash and the lines and
+/// complexity: snapshot, name, origin of level 1, label of the lines metric, label of the complexity
+/// metric.
 pub const STATE_SYMBOLS: &str = "SELECT s.kind, s.qualified_name, s.signature, s.content_hash, \
     COALESCE((SELECT CAST(m.value AS INTEGER) FROM metric_rows m \
         WHERE m.symbol_id = s.id AND m.kind = ?4), 0), \
     COALESCE((SELECT CAST(m.value AS INTEGER) FROM metric_rows m \
         WHERE m.symbol_id = s.id AND m.kind = ?5), 0) \
     FROM symbol_rows s JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?1 \
-    WHERE s.origin = ?3 AND instr(?2, ?6 || s.qualified_name || ?6) > 0 ORDER BY s.id";
+    WHERE s.origin = ?3 AND s.qualified_name = ?2 ORDER BY s.id";
 /// The content hashes below a namespace, through the symbols that have none (nested namespaces):
 /// snapshot, kind of the namespace, its qualified name.
 pub const STATE_CHILD_HASHES: &str = "WITH RECURSIVE tree(id) AS ( \

@@ -2,7 +2,7 @@
 
 use std::num::NonZeroU32;
 
-use codeskimr_application::ports::{SnapshotData, SnapshotStore};
+use codeskimr_application::ports::{SnapshotData, SnapshotStore, SymbolHash};
 use codeskimr_domain::{
     ContentHash, FileId, FolderPath, LanguageId, Loc, Position, Project, ProjectId, ProjectName,
     ProjectSource, QualifiedName, Reference, RelativePath, ScanMode, Snapshot, SnapshotId,
@@ -61,8 +61,13 @@ fn project() -> Option<Project> {
     })
 }
 
-/// A store that holds one snapshot with `symbols` and `references` in `FILES` files.
-pub fn store(symbols: Vec<Symbol>, references: Vec<Reference>) -> Option<SqliteStore> {
+/// A store that holds one snapshot with `symbols`, their content `hashes` and `references` in
+/// `FILES` files.
+pub fn store(
+    symbols: Vec<Symbol>,
+    references: Vec<Reference>,
+    hashes: Vec<SymbolHash>,
+) -> Option<SqliteStore> {
     let data = SnapshotData {
         snapshot: Snapshot {
             id: SnapshotId::new(SNAPSHOT),
@@ -81,7 +86,7 @@ pub fn store(symbols: Vec<Symbol>, references: Vec<Reference>) -> Option<SqliteS
         pending: Vec::new(),
         dropped_references: Vec::new(),
         parse_micros: Vec::new(),
-        hashes: Vec::new(),
+        hashes,
         warnings: Vec::new(),
         naming_rules: String::new(),
     };

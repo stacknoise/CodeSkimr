@@ -7,6 +7,10 @@
 -- of the packs changed with it, so the next scan after the update is a full one.
 ALTER TABLE symbol_rows ADD COLUMN content_hash TEXT;
 
+-- The alert step looks up the symbols of a few annotations by name; without the index that is a pass
+-- over every symbol of the snapshot for each of them.
+CREATE INDEX symbols_by_name ON symbol_rows (qualified_name);
+
 -- Whether the newest scan did not find the symbol of an annotation. It is set for every kind; only a
 -- critical annotation raises an alert for it.
 ALTER TABLE annotation ADD COLUMN without_target INTEGER NOT NULL DEFAULT 0;

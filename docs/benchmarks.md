@@ -55,6 +55,8 @@ Format strings and error messages of `tools/` are exempt from the no-literals ru
 
 `search/typed_1` (`crates/adapters/storage/benches/search.rs`) runs the query behind `search.query` on a snapshot with 20,000 symbols, for the first character of a query: it matches the most symbols and is the slowest keystroke. It is checked against `search_keystroke_ms`. The store benchmarks share their snapshot builder (`benches/common`).
 
+`alerts/step_100_critical` (`crates/adapters/storage/benches/alerts.rs`, ADR 0068) runs the alert step on a snapshot with 20,000 symbols and their content hashes and 100 critical annotations that did not change: what every save of a watched project pays after the snapshot is written. It is checked against `incremental_rescan_ms` (300 ms per saved file, and the 10 % of a scan the ADR asks for stay far below that); it takes about 1 ms. The targets are found through the index `symbols_by_name`; before it, the same step took about 80 ms because every lookup passed over all symbols. `rescan/one_file_100k_loc` runs the step too (without annotations it is two cheap statements).
+
 `similar/pairs_boilerplate_5k` (`benches/similar.rs`) runs `similar_pairs` over 5,000 bodies that all start with the same boilerplate, so some hashes have 5,000 owners. Without `conventions.duplicate_max_owners` this takes minutes (it grows with the square of the owners); with the default of 50 it takes about 20 ms. It has no absolute budget, a regression against the base fails like for every benchmark.
 
 ## Energy proxy

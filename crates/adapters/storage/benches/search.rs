@@ -41,6 +41,7 @@ fn store() -> Option<SqliteStore> {
             .filter_map(|id| symbol(id, &name(id)))
             .collect(),
         Vec::new(),
+        Vec::new(),
     )
 }
 
