@@ -446,3 +446,6 @@ pub const TRAY_ICON_SIZE: u32 = 64;
 /// The tray icon: the app logo as raw RGBA pixels, `TRAY_ICON_SIZE` square (made by `tools/logo/make_icons.py`).
 #[cfg(any(windows, target_os = "macos"))]
 pub const TRAY_ICON_RGBA: &[u8] = include_bytes!("../assets/tray-icon.rgba");
+// A wrongly made icon file fails the build, not the start of the tray.
+#[cfg(any(windows, target_os = "macos"))]
+const _: () = assert!(TRAY_ICON_RGBA.len() == (TRAY_ICON_SIZE * TRAY_ICON_SIZE * 4) as usize);

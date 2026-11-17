@@ -50,7 +50,7 @@ fn failed<E>(_: E) -> CodedError {
     CodedError::new(ErrorCode::TrayStartFailed)
 }
 
-/// A solid square in the colour of the UI; the program has no image file of its own to load.
+/// The tray icon: the app logo from the embedded RGBA pixels.
 fn icon() -> Result<Icon, CodedError> {
     Icon::from_rgba(TRAY_ICON_RGBA.to_vec(), TRAY_ICON_SIZE, TRAY_ICON_SIZE).map_err(failed)
 }

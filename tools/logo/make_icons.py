@@ -2,7 +2,8 @@
 
 Run from the repository root: python3 tools/logo/make_icons.py
 Output: crates/app/assets/codeskimr.ico (Windows exe icon) and tray-icon.rgba (raw RGBA, TRAY_SIZE square).
-Colours come from design/tokens.toml (petrol theme: accent and accent-bg).
+Colours equal the tokens `accent` of the petrol theme (PETROL) and of the dark theme (HIGHLIGHT) in
+design/tokens.toml. They are set by hand here: if the tokens change, change them here and run the script again.
 """
 from pathlib import Path
 from PIL import Image, ImageDraw
