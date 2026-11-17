@@ -216,6 +216,23 @@ describe("UsagesScreen", () => {
     await waitFor(() => expect(focusSymbol()).toBe(11));
   });
 
+  it("colours the lines of a clicked card and fades the others", async () => {
+    shown();
+    const first = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation((path: string, init: RequestInit) =>
+      String(path).endsWith("usages.query") && String(init?.body).includes('"symbol":11')
+        ? Promise.resolve(answer({ ...ANSWER, symbol: VIEW, signature: "void Render()" }))
+        : first(path, init),
+    );
+    const graph = await screen.findByRole("region", { name: "Usage graph" });
+    const lines = () =>
+      [...graph.querySelectorAll("path")].map((line) => line.getAttribute("class"));
+    expect(lines().some((name) => /linked|dim/.test(name ?? ""))).toBe(false);
+    fireEvent.click(within(graph).getByText("Render"));
+    await screen.findByText("void Render()");
+    expect(lines().some((name) => /linkedOut|linkedIn/.test(name ?? ""))).toBe(true);
+  });
+
   it("steps through the hits with F8 and opens the selected one in the explorer", async () => {
     shown();
     await screen.findByText("Hits 4");
