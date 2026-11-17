@@ -19,6 +19,7 @@ export const TOOL_STATE = {
   tooOld: "too_old",
   tooNew: "too_new",
   versionUnknown: "version_unknown",
+  notRunnable: "not_runnable",
 } as const;
 
 /** Separates the languages in a line about a tool. */

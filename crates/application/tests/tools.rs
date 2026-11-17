@@ -113,6 +113,10 @@ impl IndexRunner for World {
         for tool in std::iter::once(&spec.indexer).chain(&spec.toolchain) {
             let issue = match self.installed.get(&tool.program) {
                 None => ToolIssue::Missing,
+                // `crash: text` stands for a program that is found but whose version command fails.
+                Some(output) if output.starts_with(CRASH_PREFIX) => ToolIssue::NotRunnable {
+                    output: output[CRASH_PREFIX.len()..].to_owned(),
+                },
                 Some(output) => match ToolVersion::find_in(output) {
                     Some(version) if version >= tool.min_version => {
                         found.push(ToolSeen {
@@ -330,6 +334,23 @@ fn the_newest_version_of_all_manifest_folders_counts() {
     let dotnet = &report.unwrap().findings[1];
     assert_eq!(dotnet.state, ToolState::TooOld);
     assert_eq!(dotnet.required.as_deref(), Some("9.0.200"));
+}
+
+const CRASH_PREFIX: &str = "crash:";
+
+#[test]
+fn a_tool_that_does_not_start_is_not_runnable_with_what_it_said_and_blocks_level_2() {
+    for (said, found) in [
+        ("crash:SyntaxError: boom", Some("SyntaxError: boom")),
+        ("crash:", None),
+    ] {
+        let world = csharp_world(&[("scip-dotnet", said), ("dotnet", "8.0.404")], None);
+        let report = run(world).1.unwrap();
+        let indexer = &report.findings[0];
+        assert_eq!(indexer.state, ToolState::NotRunnable);
+        assert_eq!(indexer.found.as_deref(), found);
+        assert!(!report.level2_ready(&language("csharp")));
+    }
 }
 
 #[test]
