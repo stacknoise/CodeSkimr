@@ -48,6 +48,9 @@ export interface Edge {
   key: string;
   d: string;
   tone: Tone;
+  /** The ids of the symbols the line joins, so that a click on a card can find its lines. */
+  from: number;
+  to: number;
 }
 
 /** What the screen draws. */
@@ -251,7 +254,13 @@ function edgesOf(side: Side, cards: Map<string, Card>, focus: Card): Edge[] {
     const from = cardOf(pair.from);
     const to = cardOf(pair.to);
     if (from && to && from.x < to.x) {
-      edges.push({ key: `${side.kind}${key}`, d: curve(from, to), tone: toneOf(pair.hits, way) });
+      edges.push({
+        key: `${side.kind}${key}`,
+        d: curve(from, to),
+        tone: toneOf(pair.hits, way),
+        from: pair.from.id,
+        to: pair.to.id,
+      });
     }
   }
   return edges;

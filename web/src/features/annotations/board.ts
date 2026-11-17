@@ -1,5 +1,5 @@
 import { createSignal } from "solid-js";
-import { countKind, readKind } from "./api";
+import { readKind } from "./api";
 import { BOARD, KIND, STATUS, type BoardState } from "./consts";
 import { targetKey } from "./join";
 import type { Annotation, Target } from "./types";
@@ -15,36 +15,36 @@ export interface Filters {
 export const NO_FILTERS: Filters = { mine: false, critical: false, due: false };
 
 const [tasks, setTasks] = createSignal<Annotation[]>([]);
-const [notes, setNotes] = createSignal(0);
+const [notes, setNotes] = createSignal<Annotation[]>([]);
 const [marked, setMarked] = createSignal<ReadonlySet<string>>(new Set());
 const [state, setState] = createSignal<BoardState>(BOARD.loading);
 
 /** Counts the reads, so that the answer of an earlier one is dropped. */
 let generation = 0;
 
-/** The tasks of the project, the number of notes and what the board is doing. */
+/** The tasks and the notes of the project, and what the board is doing. */
 export const boardTasks = tasks;
-export const boardNotes = notes;
+export const boardNoteList = notes;
 export const boardState = state;
 
 function keyOfTarget(target: Target): string {
   return targetKey(target.kind, target.name);
 }
 
-/** Reads what the board shows: the tasks, the number of notes and the critical symbols, in three
- * calls (the tasks and the critical marks page by page), never one call for each task. */
+/** Reads what the board shows: the tasks, the notes and the critical symbols, in three calls
+ * (page by page), never one call for each task. */
 export async function loadBoard(project: number): Promise<void> {
   generation += 1;
   const mine = generation;
   try {
-    const [taskList, noteCount, marks] = await Promise.all([
+    const [taskList, noteList, marks] = await Promise.all([
       readKind(project, KIND.task),
-      countKind(project, KIND.note),
+      readKind(project, KIND.note),
       readKind(project, KIND.critical),
     ]);
     if (mine === generation) {
       setTasks(taskList);
-      setNotes(noteCount);
+      setNotes(noteList);
       setMarked(new Set<string>(marks.map((mark) => keyOfTarget(mark.target))));
       setState(BOARD.ready);
     }
@@ -93,7 +93,7 @@ export function openTasks(all: readonly Annotation[]): number {
 export function resetBoard(): void {
   generation += 1;
   setTasks([]);
-  setNotes(0);
+  setNotes([]);
   setMarked(new Set<string>());
   setState(BOARD.loading);
 }

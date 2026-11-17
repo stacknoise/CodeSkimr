@@ -53,6 +53,9 @@ export const NEIGHBOURS_KEY = "codeskimr.annotations.only-critical";
 /** What the board is doing. */
 export const BOARD = { loading: "loading", ready: "ready", failed: "failed" } as const;
 export type BoardState = (typeof BOARD)[keyof typeof BOARD];
+/** What the board shows: the tasks in columns, or the notes in a list. */
+export const VIEW = { tasks: "tasks", notes: "notes" } as const;
+export type BoardView = (typeof VIEW)[keyof typeof VIEW];
 /** The filters of the board. */
 export const FILTER = { mine: "mine", critical: "critical", due: "due" } as const;
 /** The columns of the board, left to right (mock 16). */

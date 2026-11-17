@@ -890,7 +890,7 @@ In Hell, `good-bg` is `#EAF7EF`; the value `#E7F6EC` of the first mock version r
 - **Explorer → Usages:** "Usages (U)" button, the "Usages" column with counts (click opens), Alt+click in code.
 - **Section open/closed states** in the details panel persist across type changes.
 - **Column header tooltips** explain each metric and its thresholds.
-- **Labels and tabs never wrap.** Tab labels, labels such as "Critical" and counters stay on one line; if space is short, an inactive tab shows only its symbol and counter (ADR 0068).
+- **Labels and tabs never wrap.** Tab labels, labels such as "Critical" and counters stay on one line; if space is short, an inactive tab shows only its symbol and counter, except Info, which has no symbol and keeps its name (ADR 0068).
 - **Annotations (ADR 0068):** `K` marks the selection as system critical, `N` adds a note, `T` adds a task. The mark is never shown by colour alone (stripe, label and shield). The member table shows stripe and label, no shield.
 - **Accessibility:** real buttons, links and inputs; visible focus; `aria-label` on icon buttons; text contrast ≥ 4.5:1; colours that must be distinguished also differ in lightness (blue/orange, not red/green alone).
 
@@ -1295,7 +1295,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 
 - **Mark "system critical" (variant B):** edge stripe and label "KRITISCH" on the row in the member table (no shield there), stripe, small shield and a count chip on groups in the tree, shield and label in the details and on diagram nodes.
 - **Tree and table:** counters for notes and tasks (tasks as done/total).
-- **Side panel:** tabs Info, Critical (shield only), Notes, Tasks; notes with author and date, tasks with a check box, due date and assignee; buttons "Add note" and "Remove mark".
+- **Side panel:** tabs Info, Critical, Notes, Tasks (each with its symbol and its name; amended 2026-11-17 after the product owner found the shield alone unclear); notes with author and date, tasks with a check box, due date and assignee; buttons "Add note" and "Remove mark".
 - **Second board:** the same table with the text of notes and tasks under the row (switch "Show annotations").
 
 ### B.15 Alerts (`Alerts.dc.html`)

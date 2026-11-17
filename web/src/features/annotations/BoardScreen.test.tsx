@@ -1,11 +1,12 @@
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { openProject } from "../../shared/project/active";
-import { bodiesOf, DONE_TASK, MARK, page, serveBodies, TASK } from "../../tests/annotations";
+import { bodiesOf, DONE_TASK, MARK, NOTE, page, serveBodies, TASK } from "../../tests/annotations";
 import { answer, useServerSession } from "../../tests/commands";
 import { resetBoard } from "./board";
 import { BoardScreen } from "./BoardScreen";
 import { forgetMe, rememberAuthor } from "./me";
+import { forgetAnnotations } from "./store";
 
 useServerSession();
 
@@ -25,9 +26,13 @@ function serveBoard() {
       if (body.kind === "task") {
         return answer(page([TASK, OTHER, DONE_TASK]));
       }
+      if (body.kind === "note") {
+        return answer(page([NOTE]));
+      }
       return answer(body.kind === "critical" ? page([MARK]) : page([], null));
     },
     "annotations.update": () => answer(TASK),
+    "annotations.delete": () => answer({}),
     "annotations.summary": () => answer(page([])),
   });
 }
@@ -36,7 +41,10 @@ beforeEach(() => {
   openProject(1);
   forgetMe();
 });
-afterEach(resetBoard);
+afterEach(() => {
+  resetBoard();
+  forgetAnnotations();
+});
 
 describe("the board of the tasks", () => {
   it("has a column for each status with its number, and reads the project with three calls", async () => {
@@ -95,6 +103,47 @@ describe("the board of the tasks", () => {
     await waitFor(() =>
       expect(bodiesOf("annotations.update")).toEqual([{ project: 1, id: 3, status: "done" }]),
     );
+  });
+
+  it("switches between the tasks and the notes, and the filters only belong to the tasks", async () => {
+    serveBoard();
+    render(() => <BoardScreen />);
+    await screen.findByText("Add a rounding test");
+    expect(screen.getByRole("button", { name: "Only critical" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /^Notes 1/ }));
+    expect(await screen.findByText(/Discount before/)).toBeTruthy();
+    expect(screen.queryByText("Add a rounding test")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Only critical" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^Tasks/ }));
+    expect(await screen.findByText("Add a rounding test")).toBeTruthy();
+  });
+
+  it("deletes a note or a task only after a second click", async () => {
+    serveBoard();
+    render(() => <BoardScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: /^Notes 1/ }));
+    const card = (await screen.findByText(/Discount before/)).closest("li")!;
+    fireEvent.click(within(card).getByRole("button", { name: "Delete" }));
+    expect(bodiesOf("annotations.delete")).toEqual([]);
+    fireEvent.click(within(card).getByRole("button", { name: "Delete for good?" }));
+    await waitFor(() =>
+      expect(bodiesOf("annotations.delete")).toEqual([{ project: 1, id: NOTE.id }]),
+    );
+  });
+
+  it("says so when a note cannot be deleted, and names the delete button after the symbol", async () => {
+    serveBodies({
+      "annotations.list": (body) => answer(body.kind === "note" ? page([NOTE]) : page([], null)),
+      "annotations.summary": () => answer(page([])),
+      "annotations.delete": () => answer({ code: "ANN-102" }, 404),
+    });
+    render(() => <BoardScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: /^Notes 1/ }));
+    const group = await screen.findByRole("group", { name: NOTE.target.name });
+    fireEvent.click(within(group).getByRole("button", { name: "Delete" }));
+    fireEvent.click(within(group).getByRole("button", { name: "Delete for good?" }));
+    expect(await screen.findByRole("alert")).toBeTruthy();
+    expect(screen.getByText("The entry could not be deleted.")).toBeTruthy();
   });
 
   it("says so when the server has no tasks or cannot be read", async () => {

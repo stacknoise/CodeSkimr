@@ -88,7 +88,8 @@ function LanguageTag(props: { id: string | null }) {
 }
 
 /** What a row says: the dot of a layer or the badge of a kind, the name, the language,
- * the marks of the annotations and the count or signature at the right edge. */
+ * the marks of the annotations and the count or signature at the right edge. In a narrow tree the
+ * language and the marks give way first, whole, and the name stays readable. */
 function RowContent(props: { row: TreeRow }) {
   const row = () => props.row;
   return (
@@ -98,13 +99,15 @@ function RowContent(props: { row: TreeRow }) {
       </Show>
       <Show when={row().symbolKind}>{(kind) => <KindBadge kind={kind()} />}</Show>
       <span class={styles.label}>{row().label}</span>
-      <LanguageTag id={row().language} />
-      <RowMarks
-        target={row().target}
-        scope={row().scope}
-        names={row().names}
-        folded={row().expandable && !row().open}
-      />
+      <span class={styles.tail}>
+        <LanguageTag id={row().language} />
+        <RowMarks
+          target={row().target}
+          scope={row().scope}
+          names={row().names}
+          folded={row().expandable && !row().open}
+        />
+      </span>
       <span class={styles.meta}>{row().meta}</span>
     </>
   );

@@ -16,7 +16,8 @@ import {
   ZOOM_BUTTON_NOTCHES,
   ZOOM_SYMBOL,
 } from "./consts";
-import { buildGraph, type Card, type Column, type Graph } from "./graph";
+import { buildGraph, type Card, type Column, type Edge, type Graph } from "./graph";
+import { highlightOf, type Highlight } from "./highlight";
 import { Legend } from "./Legend";
 import type { UsagesAnswer } from "./types";
 import styles from "./GraphView.module.css";
@@ -46,6 +47,7 @@ function cardStyle(card: Card) {
 function CardButton(props: {
   card: Card;
   picked: boolean;
+  dim: boolean;
   onPick: (card: Card) => void;
   onOpen: (card: Card) => void;
 }) {
@@ -58,6 +60,7 @@ function CardButton(props: {
         card().focus && styles.focus,
         card().test && styles.test,
         props.picked && styles.picked,
+        props.dim && styles.dim,
       )}
       style={cardStyle(card())}
       title={card().place.qualified_name}
@@ -178,11 +181,30 @@ function Headings(props: { columns: Column[] }) {
   );
 }
 
+/** The lines between the cards. After a click, the lines of the picked card keep their colour and
+ * the others turn faint, like the weak edges of the maps of screen 3. */
+function Edges(props: { graph: Graph; highlight: Highlight }) {
+  const dimmed = (edge: Edge) => props.highlight.active && !props.highlight.lit(edge);
+  return (
+    <svg class={styles.edges} aria-hidden={true}>
+      <For each={props.graph.edges}>
+        {(edge) => (
+          <path
+            d={edge.d}
+            class={cx(styles.edge, styles[edge.tone], dimmed(edge) && styles.dimEdge)}
+          />
+        )}
+      </For>
+    </svg>
+  );
+}
+
 /** The plane that is moved and scaled: column headings, edges and cards. */
 function Plane(props: {
   graph: Graph;
   view: View;
   picked: number | null;
+  highlight: Highlight;
   onPick: (card: Card) => void;
   onOpen: (card: Card) => void;
 }) {
@@ -196,16 +218,13 @@ function Plane(props: {
       }}
     >
       <Headings columns={props.graph.columns} />
-      <svg class={styles.edges} aria-hidden={true}>
-        <For each={props.graph.edges}>
-          {(edge) => <path d={edge.d} class={cx(styles.edge, styles[edge.tone])} />}
-        </For>
-      </svg>
+      <Edges graph={props.graph} highlight={props.highlight} />
       <For each={props.graph.cards}>
         {(card) => (
           <CardButton
             card={card}
             picked={card.place.id === props.picked}
+            dim={props.highlight.active && !props.highlight.related(card.place.id)}
             onPick={props.onPick}
             onOpen={props.onOpen}
           />
@@ -226,6 +245,7 @@ export function GraphView(props: {
 }) {
   const graph = createMemo(() => buildGraph(props.answer));
   const state = useView(graph);
+  const highlight = createMemo(() => highlightOf(graph(), props.picked));
   return (
     <div class={styles.frame}>
       <div
@@ -243,6 +263,7 @@ export function GraphView(props: {
           graph={graph()}
           view={state.view()}
           picked={props.picked}
+          highlight={highlight()}
           onPick={props.onPick}
           onOpen={props.onOpen}
         />

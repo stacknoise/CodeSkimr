@@ -58,12 +58,6 @@ export function readKind(project: number, kind: string): Promise<Annotation[]> {
   );
 }
 
-/** How many annotations of a kind the project has: a call for one row, which carries the total. */
-export async function countKind(project: number, kind: string): Promise<number> {
-  const page = await runCommand<Page<Annotation>>(COMMAND.list, { project, kind, limit: 1 });
-  return page.total;
-}
-
 /** Marks a symbol as system critical; the reason is optional. */
 export function markCritical(project: number, target: Target, text: string): Promise<Annotation> {
   return made(

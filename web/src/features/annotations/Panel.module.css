@@ -71,8 +71,9 @@
     color: var(--critical);
 }
 
+/* The tab Info has no symbol, so it keeps its name: without it nothing of the tab would be left. */
 @container (max-width: 380px) {
-    .tab:not(.on) .name {
+    .tab:not(.on):not(.iconless) .name {
         display: none;
     }
 }

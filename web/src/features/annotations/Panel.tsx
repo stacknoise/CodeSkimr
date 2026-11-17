@@ -27,9 +27,10 @@ import type { Counters, Target } from "./types";
 import { useSymbolItems } from "./useSymbolItems";
 import styles from "./Panel.module.css";
 
-/** The name of a tab that has one (the tab Critical is a shield). */
-const TAB_NAME: Partial<Record<TabId, MessageKey>> = {
+/** The name of each tab, written next to its symbol. */
+const TAB_NAME: Record<TabId, MessageKey> = {
   [TAB.info]: I18N_KEYS.ANNOTATIONS_TAB_INFO,
+  [TAB.critical]: I18N_KEYS.ANNOTATIONS_TAB_CRITICAL,
   [TAB.notes]: I18N_KEYS.ANNOTATIONS_TAB_NOTES,
   [TAB.tasks]: I18N_KEYS.ANNOTATIONS_TAB_TASKS,
 };
@@ -71,25 +72,22 @@ function TabIcon(props: { id: TabId; marked: boolean }) {
 
 function TabButton(props: { id: TabId; counters: Counters | undefined }) {
   const name = () => TAB_NAME[props.id];
-  const label = () => t(name() ?? I18N_KEYS.ANNOTATIONS_TAB_CRITICAL);
+  const label = () => t(name());
   const on = () => activeTab() === props.id;
   return (
     <button
       type="button"
       role="tab"
       id={`${TAB_ID_PREFIX}${props.id}`}
-      class={cx(styles.tab, on() && styles.on)}
+      class={cx(styles.tab, on() && styles.on, props.id === TAB.info && styles.iconless)}
       aria-selected={on()}
       aria-controls={PANEL_ID}
-      aria-label={name() === undefined ? label() : undefined}
       title={label()}
       tabIndex={on() ? TAB_STOP.reachable : TAB_STOP.skipped}
       onClick={() => selectTab(props.id)}
     >
       <TabIcon id={props.id} marked={props.counters?.critical ?? false} />
-      <Show when={name()}>
-        <span class={styles.name}>{label()}</span>
-      </Show>
+      <span class={styles.name}>{label()}</span>
       <Counter id={props.id} counters={props.counters} />
     </button>
   );

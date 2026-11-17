@@ -1,4 +1,4 @@
-import { createSignal, Show } from "solid-js";
+import { createSignal, Show, type JSX } from "solid-js";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
@@ -11,9 +11,8 @@ import { change, type ChangeFailure } from "./store";
 import type { Annotation, Draft } from "./types";
 import styles from "./Cards.module.css";
 
-/** "Edit" and "Delete" of a card. Delete asks once more before it deletes. */
-function CardActions(props: {
-  onEdit: () => void;
+/** "Delete" of a card: it asks once more before it deletes. Also used by the board. */
+export function DeleteAction(props: {
   onDelete: () => Promise<ChangeFailure | null>;
   onFailed: (failure: ChangeFailure) => void;
 }) {
@@ -26,26 +25,46 @@ function CardActions(props: {
     }
   };
   return (
-    <span class={styles.actions}>
+    <Show
+      when={asking()}
+      fallback={
+        <button type="button" onClick={() => setAsking(true)}>
+          {t(I18N_KEYS.ANNOTATIONS_DELETE)}
+        </button>
+      }
+    >
+      <button type="button" class={styles.danger} onClick={() => void remove()}>
+        {t(I18N_KEYS.ANNOTATIONS_DELETE_CONFIRM)}
+      </button>
+      <button type="button" onClick={() => setAsking(false)}>
+        {t(I18N_KEYS.ANNOTATIONS_CANCEL)}
+      </button>
+    </Show>
+  );
+}
+
+/** The buttons of a card in a row: `children` (for example "Edit") and "Delete". */
+export function ActionRow(props: { children?: JSX.Element; label?: string }) {
+  return (
+    <span class={styles.actions} role={props.label ? "group" : undefined} aria-label={props.label}>
+      {props.children}
+    </span>
+  );
+}
+
+/** "Edit" and "Delete" of a card. */
+function CardActions(props: {
+  onEdit: () => void;
+  onDelete: () => Promise<ChangeFailure | null>;
+  onFailed: (failure: ChangeFailure) => void;
+}) {
+  return (
+    <ActionRow>
       <button type="button" onClick={props.onEdit}>
         {t(I18N_KEYS.ANNOTATIONS_EDIT)}
       </button>
-      <Show
-        when={asking()}
-        fallback={
-          <button type="button" onClick={() => setAsking(true)}>
-            {t(I18N_KEYS.ANNOTATIONS_DELETE)}
-          </button>
-        }
-      >
-        <button type="button" class={styles.danger} onClick={() => void remove()}>
-          {t(I18N_KEYS.ANNOTATIONS_DELETE_CONFIRM)}
-        </button>
-        <button type="button" onClick={() => setAsking(false)}>
-          {t(I18N_KEYS.ANNOTATIONS_CANCEL)}
-        </button>
-      </Show>
-    </span>
+      <DeleteAction onDelete={props.onDelete} onFailed={props.onFailed} />
+    </ActionRow>
   );
 }
 

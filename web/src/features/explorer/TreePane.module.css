@@ -100,7 +100,10 @@
     display: flex;
     align-items: center;
     gap: var(--space-6);
-    height: 26px;
+    --tree-row-height: 26px;
+    /* Space above the one line of the tail, so that its badges sit in the middle of the row. */
+    --tree-tail-inset: 4px;
+    height: var(--tree-row-height);
     padding-right: var(--space-10);
     cursor: pointer;
 }
@@ -123,10 +126,28 @@
 }
 
 .label {
+    flex: 0 1 auto;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* Language and marks: one line high; what does not fit wraps below the row and is cut off, so a
+   narrow tree hides whole badges instead of drawing them over the name. */
+.tail {
+    flex: 0 100 auto;
+    min-width: 0;
+    height: 100%;
+    box-sizing: border-box;
+    padding-top: var(--tree-tail-inset);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    align-content: flex-start;
+    gap: var(--space-6);
+    row-gap: var(--tree-row-height);
+    overflow: hidden;
 }
 
 .layer .label {
