@@ -87,9 +87,12 @@ export const KEY = {
   enter: "Enter",
   space: " ",
   reveal: ".",
-  usages: "u",
-  graph: "g",
 } as const;
+/** The letters that act on the selection: the action each one runs, by the name of its key in
+ * `ExplorerKeys` (keys.ts). */
+export const PLAIN_KEYS: Readonly<
+  Record<string, "usages" | "graph" | "critical" | "note" | "task" | undefined>
+> = { u: "usages", g: "graph", k: "critical", n: "note", t: "task" };
 /** One row down and up. */
 export const STEP_DOWN = 1;
 export const STEP_UP = -1;
@@ -99,6 +102,12 @@ export const MEMBER_STEP: Readonly<Record<string, number>> = {
   [KEY.up]: STEP_UP,
 };
 export const NOT_FOUND = -1;
+
+/** Separates the file and the lines in a location. */
+export const LOCATION_SEPARATOR = ":";
+
+/** Columns of the member table: name, annotations, signature, access, CC, uses, lines. */
+export const COLUMN_COUNT = 7;
 
 /** Id of the complexity metric, which names the limits of its column. */
 export const CC_METRIC = "cc";
@@ -251,6 +260,8 @@ export const PATH_JOINER = "/";
 
 /** Keyboard hints on the three buttons of the header. */
 export const HOTKEY = { usages: "U", graph: "G", editor: "E" } as const;
+/** Width of the side panel next to a selected member, whose source takes the middle column. */
+export const PANEL_WIDTH_PX = 340;
 
 /** Keys under which the sizes of the columns are kept, and their limits in pixels (mock 2 shows
  * the first values). */

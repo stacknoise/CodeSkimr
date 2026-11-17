@@ -155,3 +155,15 @@
     padding: var(--space-10);
     color: var(--muted);
 }
+
+/* A system-critical symbol: the edge stripe (mock 14, variant B). The shield and the number of
+   critical symbols below say the same in a shape, so the stripe is not the only carrier. */
+.critical::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 2px;
+    bottom: 2px;
+    width: 3px;
+    background: var(--critical);
+}

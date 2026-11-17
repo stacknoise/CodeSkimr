@@ -37,15 +37,20 @@ const OUTLINE: Outline = {
         {
           name: "App.Domain",
           types: [
-            { id: 1, name: "Order", kind: "class", members: 2 },
-            { id: 2, name: "IOrder", kind: "interface", members: 0 },
+            { id: 1, name: "Order", qualified_name: "Order", kind: "class", members: 2 },
+            { id: 2, name: "IOrder", qualified_name: "IOrder", kind: "interface", members: 0 },
           ],
         },
       ],
     },
     {
       name: "",
-      namespaces: [{ name: "", types: [{ id: 3, name: "Loose", kind: "struct", members: 0 }] }],
+      namespaces: [
+        {
+          name: "",
+          types: [{ id: 3, name: "Loose", qualified_name: "Loose", kind: "struct", members: 0 }],
+        },
+      ],
     },
   ],
 };
@@ -70,6 +75,7 @@ const ORDER: SymbolInfo = {
     {
       id: 10,
       name: "Total",
+      qualified_name: "Total",
       kind: "method",
       visibility: "public",
       signature: "int Total()",
@@ -82,6 +88,7 @@ const ORDER: SymbolInfo = {
     {
       id: 11,
       name: "Id",
+      qualified_name: "Id",
       kind: "property",
       visibility: "public",
       signature: "int",
@@ -98,6 +105,38 @@ const ORDER: SymbolInfo = {
 const APP = [namespaceKey("Domain", "App"), namespaceKey("Domain", "App.Domain")];
 
 const labels = (rows: { label: string }[]) => rows.map((row) => row.label);
+
+describe("the annotation targets of the rows", () => {
+  const expanded = new Set([
+    layerKey("Domain"),
+    ...APP,
+    typeKey(1),
+    groupKey(1, "methods"),
+    groupKey(1, "fields"),
+  ]);
+
+  it("name the symbol of a namespace, a type and a member by kind and qualified name", () => {
+    const rows = buildRows(OUTLINE, expanded, new Map([[1, ORDER]]), "", LABELS);
+    const namespace = rows.find((row) => row.label === "Domain" && row.kind === "namespace");
+    const type = rows.find((row) => row.kind === "type");
+    const member = rows.find((row) => row.kind === "member" && row.label === "Total");
+    expect(namespace?.target).toEqual({ kind: "namespace", name: "App.Domain" });
+    expect(type?.target).toEqual({ kind: "class", name: "Order" });
+    expect(member?.target).toEqual({ kind: "method", name: "Total" });
+  });
+
+  it("give a folded namespace and type the name whose critical symbols below are counted", () => {
+    const rows = buildRows(OUTLINE, expanded, new Map([[1, ORDER]]), "", LABELS);
+    expect(rows.find((row) => row.kind === "type")?.scope).toBe("Order");
+    expect(rows.find((row) => row.kind === "namespace")?.scope).toBe("App");
+  });
+
+  it("give a group the qualified names of its members, and a layer no symbol", () => {
+    const rows = buildRows(OUTLINE, expanded, new Map([[1, ORDER]]), "", LABELS);
+    expect(rows.find((row) => row.kind === "group")?.names.length).toBeGreaterThan(0);
+    expect(rows.find((row) => row.kind === "layer")?.target).toBeNull();
+  });
+});
 
 describe("buildRows", () => {
   it("shows only the layers while everything is closed", () => {
@@ -142,7 +181,13 @@ describe("buildRows", () => {
 });
 
 describe("namespaces grouped by their parts", () => {
-  const type = (id: number, name: string) => ({ id, name, kind: "class", members: 0 });
+  const type = (id: number, name: string) => ({
+    id,
+    name,
+    qualified_name: name,
+    kind: "class",
+    members: 0,
+  });
   const GROUPED: Outline = {
     ...OUTLINE,
     layers: [
@@ -303,6 +348,9 @@ describe("siblingPlaces", () => {
     open: false,
     type: null,
     member: null,
+    target: null,
+    scope: null,
+    names: [],
   };
   it("counts the siblings of each parent, not the rows of the list", () => {
     const at = (depth: number): TreeRow => ({ ...base, depth });

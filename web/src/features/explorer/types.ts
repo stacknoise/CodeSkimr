@@ -2,6 +2,8 @@
 export interface TypeNode {
   id: number;
   name: string;
+  /** The qualified name, which an annotation names its symbol by (ADR 0068). */
+  qualified_name: string;
   kind: string;
   members: number;
 }
@@ -53,6 +55,8 @@ export interface MetricRow {
 export interface MemberRow {
   id: number;
   name: string;
+  /** The qualified name, which an annotation names its symbol by (ADR 0068). */
+  qualified_name: string;
   kind: string;
   visibility: string | null;
   signature: string | null;

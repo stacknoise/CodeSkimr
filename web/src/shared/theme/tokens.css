@@ -41,6 +41,8 @@
   --outgoing: #C2410C;
   --highlight: #FFF7D6;
   --mark: #FDE68A;
+  --critical: #A3197A;
+  --critical-bg: #FBE8F5;
   --kind-class: #2457D6;
   --kind-interface: #7C3AED;
   --kind-record: #0F766E;
@@ -84,6 +86,8 @@
   --outgoing: #C2410C;
   --highlight: #FFF7D6;
   --mark: #FDE68A;
+  --critical: #A3197A;
+  --critical-bg: #FBE8F5;
   --kind-class: #2457D6;
   --kind-interface: #7C3AED;
   --kind-record: #0F766E;
@@ -127,6 +131,8 @@
   --outgoing: #FB923C;
   --highlight: #3A3413;
   --mark: #6B5A12;
+  --critical: #F08BD0;
+  --critical-bg: #3D1634;
   --kind-class: #6E9BFF;
   --kind-interface: #A78BFA;
   --kind-record: #2DD4BF;

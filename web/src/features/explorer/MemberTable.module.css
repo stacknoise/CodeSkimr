@@ -11,6 +11,10 @@
     border-bottom: 1px solid var(--line);
 }
 
+.bar > label {
+    margin-left: auto;
+}
+
 .tab {
     padding: 8px var(--space-12);
     border: 0;
@@ -43,7 +47,6 @@
 }
 
 .chips {
-    margin-left: auto;
     display: flex;
     gap: var(--space-4);
 }
@@ -173,4 +176,25 @@ th.number {
 .mark {
     font-size: 9px;
     color: var(--accent);
+}
+
+/* A system-critical member (mock 14, variant B): the edge stripe and the label; no shield here. */
+.critical {
+    box-shadow: inset 3px 0 0 var(--critical);
+}
+
+.label {
+    margin-left: var(--space-6);
+}
+
+.notes {
+    white-space: nowrap;
+}
+
+.notes > * + * {
+    margin-left: var(--space-4);
+}
+
+.inline {
+    padding: 0;
 }

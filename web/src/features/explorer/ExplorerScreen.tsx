@@ -7,6 +7,9 @@ import { pendingFocus, showUsages } from "../../shared/navigation/navigation";
 import { ORIENTATION, SIDE } from "../../shared/layout/consts";
 import { Splitter } from "../../shared/layout/Splitter";
 import { showInGraph } from "../graph/show";
+import { loadSummary, loadTexts } from "../annotations/store";
+import { showAnnotationText } from "../annotations/flags";
+import { noteOnSelection, taskOnSelection, toggleSelectionCritical } from "./annotate";
 import { DetailPane } from "./DetailPane";
 import {
   applyFocus,
@@ -29,6 +32,7 @@ import { useExplorerKeys } from "./keys";
 import { sourceWidth, treeWidth } from "./layout";
 import { Overview } from "./Overview";
 import { clearSource, loadSource } from "./source";
+import { SidePanel } from "./SidePanel";
 import { SourcePane } from "./SourcePane";
 import { TreePane } from "./TreePane";
 import { useExplorer } from "./useExplorer";
@@ -111,6 +115,17 @@ function useReadingOfTheProject(): void {
       void applyFocus(project, tree);
     }
   });
+  // The counters of the annotations: one read for each snapshot (ADR 0068, no call for each row).
+  createEffect(() => {
+    const tree = treeOutline();
+    const project = activeProject();
+    if (tree !== null && project !== null) {
+      void loadSummary(project, tree.snapshot);
+      if (showAnnotationText()) {
+        void loadTexts(project, tree.snapshot);
+      }
+    }
+  });
 }
 
 /** The symbol whose source the right column shows: the member if one is picked, else the type. */
@@ -160,6 +175,9 @@ function useShortcuts(explorer: ReturnType<typeof useExplorer>): void {
         void openInEditor(project, symbol);
       }
     },
+    critical: toggleSelectionCritical,
+    note: noteOnSelection,
+    task: taskOnSelection,
   });
 }
 
@@ -178,8 +196,8 @@ function Columns(props: { explorer: ReturnType<typeof useExplorer> }) {
       <Details onPickMember={explorer.pickMember} />
       <Show when={shownMember() === null}>
         <Splitter pane={sourceWidth} orientation={ORIENTATION.vertical} side={SIDE.after} />
-        <SourcePane shown={shownSymbol() !== null} wide={false} />
       </Show>
+      <SidePanel />
     </div>
   );
 }

@@ -1,6 +1,13 @@
 import { Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { annotationIndex, annotationsAvailable } from "../annotations/store";
+import {
+  highlightCritical,
+  onlyCriticalAndNeighbours,
+  setHighlightCritical,
+  setOnlyCriticalAndNeighbours,
+} from "../annotations/flags";
 import { LayersHint } from "../layers/LayersHint";
 import { currentType } from "../explorer/explorer";
 import { ORIENTATION, SIDE } from "../../shared/layout/consts";
@@ -16,12 +23,13 @@ import {
   setGraphDepth,
   setGraphLevel,
 } from "./graph";
+import { hasCriticalBox, isCriticalBox, narrowToCritical } from "./critical";
 import { GraphCanvas } from "./GraphCanvas";
 import { Legend } from "./Legend";
 import { neighboursOf, violations } from "./neighbours";
 import { SidePanel } from "./SidePanel";
-import { Toolbar } from "./Toolbar";
-import type { GraphData } from "./types";
+import { Toolbar, type CriticalSwitches } from "./Toolbar";
+import type { GraphData, LayerBox } from "./types";
 import {
   type MapState,
   useGraphKeys,
@@ -90,6 +98,20 @@ function Notes(props: { current: GraphData }) {
   );
 }
 
+/** The switches of the critical symbols; the layer level has none, a layer is not annotated, and a
+ * server without annotations has none either. */
+function criticalSwitches(): CriticalSwitches | null {
+  if (annotationsAvailable() === false || graphLevel() === LEVEL.layers) {
+    return null;
+  }
+  return {
+    highlight: highlightCritical(),
+    onHighlight: setHighlightCritical,
+    only: onlyCriticalAndNeighbours(),
+    onOnly: setOnlyCriticalAndNeighbours,
+  };
+}
+
 /** The toolbar of the map; it stays when there is nothing to draw, so that another level can be
  * chosen. */
 function MapToolbar(props: { state: MapState; actions: Actions }) {
@@ -106,19 +128,41 @@ function MapToolbar(props: { state: MapState; actions: Actions }) {
       onWeak={state.setWeak}
       violationsOnly={state.filtering()}
       onViolationsOnly={state.setViolationsOnly}
+      critical={criticalSwitches()}
       onFit={state.fitView}
     />
   );
 }
 
+/** What the critical switches do to the drawn map: the map as it is shown (narrowed to the
+ * critical boxes and their neighbours, or whole) and whether a box is drawn as critical. */
+function useCriticalView(current: () => GraphData) {
+  const active = () => criticalSwitches() !== null;
+  return {
+    shown: () =>
+      active() && onlyCriticalAndNeighbours()
+        ? narrowToCritical(current(), annotationIndex(), graphLevel())
+        : current(),
+    isCritical: (box: LayerBox) =>
+      active() && highlightCritical() && isCriticalBox(annotationIndex(), box, graphLevel()),
+    nothing: () =>
+      active() &&
+      onlyCriticalAndNeighbours() &&
+      !hasCriticalBox(current(), annotationIndex(), graphLevel()),
+    marked: () => active() && highlightCritical(),
+  };
+}
+
 /** The drawn map: toolbar, canvas, notes and legend. */
 function MapPane(props: { state: MapState; actions: Actions; current: GraphData }) {
   const { state } = props;
+  const view = useCriticalView(() => props.current);
   return (
     <div class={styles.map}>
       <MapToolbar state={state} actions={props.actions} />
       <GraphCanvas
-        data={props.current}
+        data={view.shown()}
+        critical={view.isCritical}
         selected={state.selected()}
         onSelect={state.setSelected}
         onOpen={props.actions.focusBox}
@@ -129,7 +173,11 @@ function MapPane(props: { state: MapState; actions: Actions; current: GraphData 
         weak={state.weak()}
       />
       <Notes current={props.current} />
+      <Show when={view.nothing()}>
+        <p class={styles.note}>{t(I18N_KEYS.GRAPH_CRITICAL_NONE)}</p>
+      </Show>
       <Legend
+        critical={view.marked()}
         layers={props.current.boxes.length}
         links={props.current.links.length}
         violations={violations(props.current.links).length}

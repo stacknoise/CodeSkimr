@@ -16,6 +16,10 @@ export const DEPTHS = [
 /** Depth that keeps every namespace. */
 export const DEPTH_ALL = 0;
 
+/** The id that the server adds to the name of a box when two types have the same qualified name
+ * (crates/app/src/ui_commands/consts.rs, `BOX_ID_SEPARATOR`). */
+export const BOX_ID_SUFFIX = / #\d+$/;
+
 /** The look of an edge. */
 export const EDGE = { out: "out", in: "in", violation: "violation", weak: "weak" } as const;
 

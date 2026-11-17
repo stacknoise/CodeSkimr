@@ -1,10 +1,19 @@
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
+import { SHIELD } from "../annotations/consts";
+import { Shield } from "../annotations/Marks";
+import { Show } from "solid-js";
 import styles from "./Legend.module.css";
 
 /** The legend and the totals below the map (mock 3). */
-export function Legend(props: { layers: number; links: number; violations: number }) {
+export function Legend(props: {
+  layers: number;
+  links: number;
+  violations: number;
+  /** Whether critical boxes are marked, so that the mark is explained. */
+  critical: boolean;
+}) {
   return (
     <div class={styles.legend}>
       <span>
@@ -17,6 +26,11 @@ export function Legend(props: { layers: number; links: number; violations: numbe
         <i class={cx(styles.swatch, styles.violation)} />{" "}
         {t(I18N_KEYS.GRAPH_LEGEND_VIOLATION, { count: props.violations })}
       </span>
+      <Show when={props.critical}>
+        <span class={styles.critical}>
+          <Shield size={SHIELD.tree} /> {t(I18N_KEYS.GRAPH_LEGEND_CRITICAL)}
+        </span>
+      </Show>
       <span class={styles.total}>
         {t(I18N_KEYS.GRAPH_SUMMARY, { nodes: props.layers, edges: props.links })}
       </span>

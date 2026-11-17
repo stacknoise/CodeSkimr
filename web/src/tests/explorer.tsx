@@ -16,7 +16,18 @@ export const OUTLINE: Outline = {
     {
       name: "Domain",
       namespaces: [
-        { name: "Shop.Sales", types: [{ id: 7, name: "Order", kind: "class", members: 2 }] },
+        {
+          name: "Shop.Sales",
+          types: [
+            {
+              id: 7,
+              name: "Order",
+              qualified_name: "Shop.Domain.Order",
+              kind: "class",
+              members: 2,
+            },
+          ],
+        },
       ],
     },
   ],
@@ -45,6 +56,7 @@ export const ORDER: SymbolInfo = {
     {
       id: 8,
       name: "Total",
+      qualified_name: "Shop.Domain.Order.Total",
       kind: "method",
       visibility: "public",
       signature: "decimal Total()",
@@ -57,6 +69,7 @@ export const ORDER: SymbolInfo = {
     {
       id: 9,
       name: "Id",
+      qualified_name: "Shop.Domain.Order.Id",
       kind: "property",
       visibility: "public",
       signature: "int",
