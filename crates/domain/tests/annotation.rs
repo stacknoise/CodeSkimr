@@ -60,18 +60,21 @@ fn the_limit_counts_characters_not_bytes() {
 
 #[test]
 fn an_empty_text_is_refused_and_a_stored_text_ignores_the_limit() {
-    assert_eq!(LIMITS.text("  \n"), Err(ModelError::Empty));
+    assert_eq!(LIMITS.text("  \n"), Err(ModelError::EmptyText));
+    assert_eq!(LIMITS.title(" "), Err(ModelError::EmptyText));
+    assert_eq!(AnnotationText::restore(""), Err(ModelError::EmptyText));
     let stored = AnnotationText::restore("longer than any limit that was lowered later").unwrap();
     assert!(stored.as_str().starts_with("longer"));
 }
 
 #[test]
-fn too_long_and_inconsistent_have_their_own_codes() {
+fn user_input_errors_have_their_own_codes() {
     assert_eq!(ModelError::TooLong.code(), ErrorCode::AnnotationTextTooLong);
     assert_eq!(
         ModelError::Inconsistent.code(),
         ErrorCode::AnnotationInvalid
     );
+    assert_eq!(ModelError::EmptyText.code(), ErrorCode::AnnotationInvalid);
     assert_eq!(ModelError::Empty.code(), ErrorCode::UnexpectedInternalError);
 }
 

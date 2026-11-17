@@ -8,6 +8,8 @@ pub const MESSAGE_INVERTED_SPAN: &str = "span ends before it starts";
 pub const MESSAGE_UNKNOWN_LABEL: &str = "unknown label";
 /// Message of `ModelError::NotFinite`.
 pub const MESSAGE_NOT_FINITE: &str = "value must be a finite number";
+/// Message of `ModelError::EmptyText`.
+pub const MESSAGE_EMPTY_TEXT: &str = "text must not be empty";
 /// Message of `ModelError::TooLong`.
 pub const MESSAGE_TOO_LONG: &str = "text is longer than the limit";
 /// Message of `ModelError::Inconsistent`.

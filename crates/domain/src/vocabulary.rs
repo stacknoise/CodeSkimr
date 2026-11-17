@@ -91,12 +91,12 @@ macro_rules! bounded_text_type {
             ///
             /// # Errors
             ///
-            /// [`ModelError::Empty`] if the text is empty or only whitespace, and
+            /// [`ModelError::EmptyText`] if the text is empty or only whitespace, and
             /// [`ModelError::TooLong`] if it has more than `max_chars` characters.
             pub fn new(value: impl Into<String>, max_chars: u32) -> Result<Self, $crate::ModelError> {
                 let text = value.into();
                 if text.trim().is_empty() {
-                    return Err($crate::ModelError::Empty);
+                    return Err($crate::ModelError::EmptyText);
                 }
                 if u32::try_from(text.chars().count()).map_or(true, |count| count > max_chars) {
                     return Err($crate::ModelError::TooLong);
@@ -109,7 +109,7 @@ macro_rules! bounded_text_type {
             ///
             /// # Errors
             ///
-            /// [`ModelError::Empty`] if the text is empty or only whitespace.
+            /// [`ModelError::EmptyText`] if the text is empty or only whitespace.
             pub fn restore(value: impl Into<String>) -> Result<Self, $crate::ModelError> {
                 Self::new(value, u32::MAX)
             }

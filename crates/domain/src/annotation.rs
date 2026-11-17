@@ -70,7 +70,7 @@ impl AnnotationLimits {
     /// Validates a text.
     ///
     /// # Errors
-    /// [`ModelError::Empty`] or [`ModelError::TooLong`] (`ANN-102`).
+    /// [`ModelError::EmptyText`] or [`ModelError::TooLong`] (`ANN-102`).
     pub fn text(&self, value: impl Into<String>) -> Result<AnnotationText, ModelError> {
         AnnotationText::new(value, self.max_text_chars)
     }
@@ -78,7 +78,7 @@ impl AnnotationLimits {
     /// Validates a title.
     ///
     /// # Errors
-    /// [`ModelError::Empty`] or [`ModelError::TooLong`] (`ANN-102`).
+    /// [`ModelError::EmptyText`] or [`ModelError::TooLong`] (`ANN-102`).
     pub fn title(&self, value: impl Into<String>) -> Result<AnnotationTitle, ModelError> {
         AnnotationTitle::new(value, self.max_title_chars)
     }

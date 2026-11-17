@@ -718,7 +718,7 @@ id = "ANN-103"
 name = "annotation_invalid"
 severity = "error"
 retryable = false
-description = "The fields of an annotation do not fit its kind, for example a due date on a note or a note without text."
+description = "The fields of an annotation do not fit its kind (for example a due date on a note), or a required text or title is missing or empty."
 since = "0.1.0"
 
 [[codes]]
