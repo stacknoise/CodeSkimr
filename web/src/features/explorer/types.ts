@@ -4,6 +4,8 @@ export interface TypeNode {
   name: string;
   kind: string;
   members: number;
+  /** Id of the language pack of the declaring file. */
+  language: string;
 }
 
 /** A namespace with its types. */
@@ -73,6 +75,8 @@ export interface SymbolInfo {
   visibility: string | null;
   is_static: boolean;
   path: string;
+  /** Id of the language pack of the declaring file. */
+  language: string;
   first_line: number;
   last_line: number;
   signature: string | null;

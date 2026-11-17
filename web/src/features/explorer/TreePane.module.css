@@ -140,6 +140,15 @@
     color: var(--muted);
 }
 
+.language {
+    flex: none;
+    padding: 0 var(--space-4);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-badge);
+    color: var(--muted);
+    font: 600 9.5px var(--font-sans);
+}
+
 .meta {
     margin-left: auto;
     max-width: 110px;
