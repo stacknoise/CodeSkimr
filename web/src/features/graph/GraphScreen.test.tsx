@@ -68,6 +68,13 @@ function served(graph: unknown) {
 }
 
 describe("GraphScreen", () => {
+  it("shows no map of another project while none is open", async () => {
+    openProject(null as unknown as number);
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    expect(await screen.findByText(/Open a project first/)).toBeInTheDocument();
+  });
+
   it("offers to set layers when the project has none", async () => {
     served({ ...GRAPH, boxes: [], links: [], bands: [] });
     render(() => <GraphScreen />);

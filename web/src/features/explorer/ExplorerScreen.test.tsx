@@ -312,6 +312,47 @@ describe("a navigation from another screen", () => {
     expect(document.getElementById(cursor)?.textContent).toContain("Total");
   });
 
+  it("opens the rows down to a member of a nested type and selects it", async () => {
+    const line = { visibility: "public", signature: null, complexity: null, usages: 0 };
+    const nested = {
+      ...ORDER,
+      id: 20,
+      name: "Line",
+      breadcrumb: [
+        { id: 6, name: "Shop.Domain", kind: "namespace" },
+        { id: 7, name: "Order", kind: "class" },
+      ],
+      members: [
+        {
+          id: 21,
+          name: "Price",
+          kind: "property",
+          complexity_rating: null,
+          first_line: 1,
+          last_line: 1,
+          ...line,
+        },
+      ],
+    };
+    const outer = {
+      ...ORDER,
+      members: [{ ...nested.members[0]!, id: 20, name: "Line", kind: "class" }],
+    };
+    requestFocus({ type: 20, member: 21, kind: "property" });
+    openProject(1);
+    fetchMock.mockImplementation((path: string, init?: RequestInit) => {
+      const body = String(init?.body ?? "");
+      const symbol = path.endsWith("explorer.symbol") && body.includes('"symbol":20');
+      return Promise.resolve(
+        answer(path.endsWith("explorer.outline") ? OUTLINE : symbol ? nested : outer),
+      );
+    });
+    render(() => <ExplorerScreen />);
+    const tree = screen.getByRole("tree");
+    const price = await within(tree).findByText("Price");
+    expect(price.closest("[role=treeitem]")?.getAttribute("aria-selected")).toBe("true");
+  });
+
   it("opens the rows down to a type", async () => {
     requestFocus({ type: 7, member: null, kind: null });
     renderOrder();
