@@ -38,11 +38,6 @@ import { currentPath, navigate } from "./router";
 
 /** The screen of the current path. */
 function Screen() {
-  createEffect(() => {
-    if (PROJECT_PATHS.includes(currentPath()) && activeProject() === null) {
-      navigate(PROJECTS_ROUTE.path);
-    }
-  });
   return (
     <Switch fallback={<ProjectsScreen />}>
       <Match when={currentPath() === SETTINGS_ROUTE.path}>
@@ -70,6 +65,11 @@ function Screen() {
 /** The frame of every screen: top bar, rail, main area and status bar (blueprint 15.2). */
 export function App() {
   useSearchShortcut(openSearch);
+  createEffect(() => {
+    if (PROJECT_PATHS.includes(currentPath()) && activeProject() === null) {
+      navigate(PROJECTS_ROUTE.path);
+    }
+  });
   createEffect(() => {
     if (sessionState().kind === KIND.connected) {
       onCleanup(listenToScans());

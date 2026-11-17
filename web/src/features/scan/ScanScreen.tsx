@@ -38,8 +38,7 @@ const TITLE: Record<Run["state"] | "idle", MessageKey> = {
   idle: I18N_KEYS.SCAN_STATE_IDLE,
 };
 
-/** The project the screen is about: the one that is scanning, else the one the user opened, else
- * the first. */
+/** The project the screen is about: the one the user opened. */
 function subjectId(): number | null {
   return activeProject();
 }
