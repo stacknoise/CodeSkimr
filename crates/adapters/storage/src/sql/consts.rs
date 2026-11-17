@@ -536,10 +536,20 @@ pub const BASELINE_DELETE: &str = "DELETE FROM annotation_baseline WHERE annotat
 /// Counts the open alert of an annotation once more and keeps its latest sighting: annotation id,
 /// now, kind, snapshot, commit, trigger, changes, references, closest, seen content, seen
 /// signature, seen loc, seen cc.
-pub const ALERT_RAISE_OPEN: &str = "UPDATE alert SET counter = counter + 1, last_seen = ?2, \
-    kind = ?3, snapshot_id = ?4, commit_hash = ?5, trigger = ?6, changes = ?7, refs = ?8, \
-    closest = ?9, seen_content = ?10, seen_signature = ?11, seen_loc = ?12, seen_cc = ?13 \
-    WHERE annotation_id = ?1 AND state = 'open'";
+pub const ALERT_RAISE_OPEN: &str = concat!(
+    "UPDATE alert SET counter = counter + 1, last_seen = ?2, ",
+    "kind = ?3, snapshot_id = ?4, commit_hash = ?5, trigger = ?6, changes = ?7, refs = ?8, ",
+    "closest = ?9, seen_content = ?10, seen_signature = ?11, seen_loc = ?12, seen_cc = ?13 ",
+    "WHERE annotation_id = ?1 AND state = 'open'"
+);
+/// Like `ALERT_RAISE_OPEN`, but the counter stays: the open alert only says what the symbol looks
+/// like now (a symbol that came back after it was removed).
+pub const ALERT_UPDATE_OPEN: &str = concat!(
+    "UPDATE alert SET last_seen = ?2, ",
+    "kind = ?3, snapshot_id = ?4, commit_hash = ?5, trigger = ?6, changes = ?7, refs = ?8, ",
+    "closest = ?9, seen_content = ?10, seen_signature = ?11, seen_loc = ?12, seen_cc = ?13 ",
+    "WHERE annotation_id = ?1 AND state = 'open'"
+);
 /// Adds an open alert with the counter one: annotation id, now, kind, snapshot, commit, trigger,
 /// changes, references, closest, seen content, seen signature, seen loc, seen cc.
 pub const ALERT_INSERT: &str = "INSERT INTO alert (annotation_id, state, counter, first_seen, \

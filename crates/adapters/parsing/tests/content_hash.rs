@@ -192,6 +192,29 @@ mod tests {
         }
     }
 
+    const NESTED: &str = "class Box:\n    def work(self, x):\n        if x:\n            a()\n            b()\n        return x\n";
+
+    #[test]
+    fn moving_a_python_statement_out_of_a_block_changes_the_hash() {
+        let before = hashes_of("python", "box.py", NESTED);
+        let moved = NESTED.replace("            b()\n", "        b()\n");
+        let after = hashes_of("python", "box.py", &moved);
+        assert_ne!(before.get("work"), after.get("work"));
+        assert_ne!(before.get("Box"), after.get("Box"));
+    }
+
+    #[test]
+    fn comments_and_blank_lines_keep_the_hash_of_a_python_block() {
+        let before = hashes_of("python", "box.py", NESTED);
+        let spaced = NESTED
+            .replace(
+                "            a()\n",
+                "            a()  # first\n\n            # then\n",
+            )
+            .replace("        return x\n", "\n        return x  # done\n");
+        assert_eq!(before, hashes_of("python", "box.py", &spaced));
+    }
+
     #[test]
     fn a_rust_type_does_not_hash_its_impl_blocks() {
         let (language, _, file, source) = CASES[1];

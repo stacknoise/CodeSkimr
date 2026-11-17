@@ -19,6 +19,8 @@ separator = "."
 # A member always needs its receiver (`self.x`): a bare name in a function is a local or an outer name (ADR 0053).
 bare_names_reach_members = false
 comment_nodes = ["comment"]
+# The indentation is the block: the content hash of a symbol marks where a block starts and ends (ADR 0068).
+block_nodes = ["block"]
 manifest_files = [
     "pyproject.toml",
     "setup.py",

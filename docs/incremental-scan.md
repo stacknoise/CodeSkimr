@@ -138,7 +138,10 @@ and gets a derived one from the sorted hashes of its children when it is read. M
 have none. All 13 language packs are covered, because the hash only needs the tree and the comment
 kinds of the pack. In Rust and Go the methods of a type are written outside its span (`impl` blocks,
 receivers), so the hash of such a type does not change when a method changes; the method has its own
-hash.
+hash. Python has no token for the start and end of a block, so its pack lists the node kind `block`
+in `block_nodes` and the walk puts a marker for the start and end of every block into the stream: moving
+a statement out of an `if` changes the hash, a comment or a blank line does not. Another pack with an
+indentation grammar would need the same entry.
 
 The hashes are stored with the symbol rows (`symbol_rows.content_hash`, schema version 16), so a file
 that is carried over keeps its hashes and an incremental scan stores the same hashes as a full scan of
@@ -167,7 +170,13 @@ an alert is `scan`, `watcher` (watch mode) or `fetch` (every scan of a Git proje
 carry it yet. Without annotations the step costs two cheap statements (does the project have any, then
 the list of critical ones). With 100 critical annotations on 20,000 symbols it takes about 1 ms
 (`alerts/step_100_critical`, checked against `incremental_rescan_ms`; the targets are found through the
-index `symbols_by_name`).
+index `symbols_by_name`), and with 50 more whose symbols are gone about 2 ms (`alerts/step_50_vanished`; the
+lookups of namesakes and of the names that still point at the symbol use the indexes `symbols_by_simple_name`
+and `pending_references_by_target`, which cost 1 to 3 % of a full scan on writing, see `docs/benchmarks.md`).
+While an alert is open the step looks at a vanished symbol again at every scan: if it is now `orphaned`
+instead of `removed` or the other way round, or the closest symbol changed, the alert says so; if the
+symbol is back with the state the alert saw last, the alert turns to `changed` again without counting
+another time.
 
 ## Limits
 
