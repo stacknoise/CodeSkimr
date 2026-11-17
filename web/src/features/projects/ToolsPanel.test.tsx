@@ -129,6 +129,29 @@ describe("the tools of a project", () => {
     );
   });
 
+  it("says a tool does not start without a dangling colon when it printed no error", async () => {
+    const silent: ToolsInfo = {
+      ...MISSING,
+      tools: [
+        {
+          ...(MISSING.tools[0] as ToolsInfo["tools"][number]),
+          state: "not_runnable",
+          found: null,
+        },
+      ],
+    };
+    const row = { ...ROW, id: 10, location: "/work/silent", tools: silent };
+    serve({
+      "projects.list": () => answer([row]),
+      "projects.tools": () => answer(silent),
+    });
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByText("/work/silent"));
+    const warning = await screen.findByRole("status");
+    expect(warning).toHaveTextContent("found, but it does not start");
+    expect(warning).not.toHaveTextContent("does not start:");
+  });
+
   it("says the same in German", async () => {
     setLanguage("de");
     const warning = await openWarning();
