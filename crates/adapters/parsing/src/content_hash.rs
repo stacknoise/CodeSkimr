@@ -29,7 +29,9 @@ use codeskimr_application::ports::SymbolHash;
 use codeskimr_domain::ContentHash;
 use tree_sitter::Node;
 
-use crate::consts::{BLOCK_CLOSE, BLOCK_OPEN, HASH_CHUNK_BYTES, TOKEN_SEPARATOR};
+use crate::consts::{
+    BLOCK_CLOSE, BLOCK_OPEN, HASH_BUFFER_BYTES, HASH_CHUNK_BYTES, TOKEN_SEPARATOR,
+};
 use crate::error::ParsingError;
 use crate::pack::LanguagePack;
 use crate::symbols::SymbolTable;
@@ -172,7 +174,7 @@ fn within<'t>(tokens: &'t [Token], range: &Range<usize>) -> &'t [Token] {
 
 fn hash_tokens(source: &str, tokens: &[Token]) -> Result<ContentHash, ParsingError> {
     let mut hasher = blake3::Hasher::new();
-    let mut buffer: Vec<u8> = Vec::with_capacity(HASH_CHUNK_BYTES.saturating_mul(2));
+    let mut buffer: Vec<u8> = Vec::with_capacity(HASH_BUFFER_BYTES);
     for token in tokens {
         match token {
             Token::Text(range) => {

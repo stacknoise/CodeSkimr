@@ -163,6 +163,9 @@ pub const TOKEN_SEPARATOR: u8 = 0x1f;
 /// costs more than hashing the bytes).
 pub const HASH_CHUNK_BYTES: usize = 16_384;
 
+/// Capacity of that buffer: a chunk and the token that crosses its end.
+pub const HASH_BUFFER_BYTES: usize = 32_768;
+
 /// The start of a block that no token delimits, in a content hash (a control character, which no
 /// token of source text consists of on its own).
 pub const BLOCK_OPEN: u8 = 0x02;
