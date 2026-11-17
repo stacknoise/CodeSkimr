@@ -5,10 +5,10 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
     CLI_CREDENTIAL_DELETED, CLI_CREDENTIAL_DEVICE_PROMPT, CLI_CREDENTIAL_STORED, CLI_ERROR_LINE,
     CLI_EXPORT_WRITTEN, CLI_OPEN_READY, CLI_SCAN_DETAILS, CLI_SCAN_FINISHED, CLI_SCAN_STARTED,
-    CLI_SCAN_TOOL_MISSING, CLI_SCAN_TOOL_NOT_RUNNABLE, CLI_SCAN_TOOL_TOO_NEW,
-    CLI_SCAN_TOOL_TOO_OLD, CLI_SCAN_TOOL_UNKNOWN, CLI_SECRET_PROMPT, CLI_SERVE_LISTENING,
-    CLI_START_KEEP_OPEN, CLI_START_TRAY, CLI_TRAY_LOG, CLI_TRAY_OPEN, CLI_TRAY_QUIT,
-    CLI_TRAY_TOOLTIP, CLI_WATCH_STARTED, CLI_WATCH_UPDATED,
+    CLI_SCAN_TOOL_MISSING, CLI_SCAN_TOOL_NOT_RUNNABLE, CLI_SCAN_TOOL_NOT_RUNNABLE_SILENT,
+    CLI_SCAN_TOOL_TOO_NEW, CLI_SCAN_TOOL_TOO_OLD, CLI_SCAN_TOOL_UNKNOWN, CLI_SECRET_PROMPT,
+    CLI_SERVE_LISTENING, CLI_START_KEEP_OPEN, CLI_START_TRAY, CLI_TRAY_LOG, CLI_TRAY_OPEN,
+    CLI_TRAY_QUIT, CLI_TRAY_TOOLTIP, CLI_WATCH_STARTED, CLI_WATCH_UPDATED,
 };
 use codeskimr_domain::ToolState;
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
@@ -244,19 +244,30 @@ fn tool_text(messages: &Messages, language: &str, key: &str) -> String {
         .unwrap_or_else(|_| key.to_owned())
 }
 
-/// The line that says what is wrong with one tool: its name, what it is for and how to get it.
-fn tool_line(messages: &Messages, language: &str, tool: &ToolView) -> Result<String, I18nError> {
-    let key = if tool.state == ToolState::Missing.label() {
+/// The message that fits the state of a tool; a tool that does not start and said nothing about it
+/// has a message of its own, so that no colon dangles.
+fn tool_key(tool: &ToolView) -> &'static str {
+    let is = |state: ToolState| tool.state == state.label();
+    if is(ToolState::Missing) {
         CLI_SCAN_TOOL_MISSING
-    } else if tool.state == ToolState::NotRunnable.label() {
-        CLI_SCAN_TOOL_NOT_RUNNABLE
-    } else if tool.state == ToolState::TooOld.label() {
+    } else if is(ToolState::NotRunnable) {
+        if tool.found.is_some() {
+            CLI_SCAN_TOOL_NOT_RUNNABLE
+        } else {
+            CLI_SCAN_TOOL_NOT_RUNNABLE_SILENT
+        }
+    } else if is(ToolState::TooOld) {
         CLI_SCAN_TOOL_TOO_OLD
-    } else if tool.state == ToolState::TooNew.label() {
+    } else if is(ToolState::TooNew) {
         CLI_SCAN_TOOL_TOO_NEW
     } else {
         CLI_SCAN_TOOL_UNKNOWN
-    };
+    }
+}
+
+/// The line that says what is wrong with one tool: its name, what it is for and how to get it.
+fn tool_line(messages: &Messages, language: &str, tool: &ToolView) -> Result<String, I18nError> {
+    let key = tool_key(tool);
     let no_version = || NO_VERSION.to_owned();
     let mut args = FluentArgs::new();
     args.set(arg::TOOL, tool.tool.clone());
