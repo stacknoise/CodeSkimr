@@ -40,9 +40,9 @@ async function openExplorer(page: Page, harness: Harness, name: string): Promise
   await expect(tree(page)).toBeVisible();
 }
 
-/** Opens the layer and the namespace, so the two types are rows. */
+/** Opens the namespace (the project has no layers, so it is the top row), so the two types are
+ * rows. */
 async function openNamespace(page: Page): Promise<void> {
-  await item(page, /\(no layer\)/).click();
   await item(page, /Kbd/).click();
 }
 
@@ -55,7 +55,7 @@ test.describe("the explorer tree (15.4)", () => {
     await openExplorer(page, harness, "kbdstart");
     await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
     await expect(tree(page).getByRole("treeitem")).toHaveCount(1);
-    await expect(item(page, /\(no layer\)/)).toHaveAttribute("aria-expanded", "false");
+    await expect(item(page, /Kbd/)).toHaveAttribute("aria-expanded", "false");
     await expect(selected(page)).toHaveCount(0);
     expect(await violations()).toEqual([]);
   });
@@ -113,7 +113,7 @@ test.describe("the explorer tree (15.4)", () => {
   }) => {
     await openExplorer(page, harness, "kbdarrows");
     const root = tree(page);
-    const layer = item(page, /\(no layer\)/);
+    const layer = item(page, /Kbd/);
     await expect(layer).toBeVisible();
     // Reading the tree again resets the cursor and the rows (loadOutline), and a key that falls
     // into that window is lost (issue #225). The collapsed tree has one row, so pressing the
@@ -133,8 +133,6 @@ test.describe("the explorer tree (15.4)", () => {
     await expect(layer).toHaveAttribute("aria-expanded", "false");
     await page.keyboard.press("Enter");
 
-    await page.keyboard.press("ArrowDown");
-    await page.keyboard.press("Enter");
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("Enter");
     await expect(page.getByRole("heading", { name: "Ledger" })).toBeVisible();
@@ -208,7 +206,7 @@ test.describe("quick search and Esc (15.4)", () => {
     harness,
   }) => {
     await openExplorer(page, harness, "kbdsearch");
-    await item(page, /\(no layer\)/).focus();
+    await item(page, /Kbd/).focus();
     await page.keyboard.press("Control+k");
     const input = page.getByRole("combobox");
     await expect(input).toBeFocused();

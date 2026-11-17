@@ -178,11 +178,10 @@ export async function addLayeredProject(page: Page, harness: Harness, name: stri
 }
 
 /** From a project row: opens it in the explorer and selects the member `Add` of the type
- * `Calculator` in `namespace` (the layer is "(no layer)"). */
+ * `Calculator` in `namespace` (the project has no layers). */
 export async function selectAdd(page: Page, row: Locator, namespace: string): Promise<void> {
   await row.click({ position: { x: 4, y: 4 } });
   await page.keyboard.press("Enter");
-  await page.getByText("(no layer)").click();
   await page.getByText(namespace, { exact: true }).click();
   await page.getByText("Calculator", { exact: true }).click();
   await page.getByRole("button", { name: /Add/ }).first().click();

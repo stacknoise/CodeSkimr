@@ -235,12 +235,12 @@ function segmentRows(layer: string, node: Segment, depth: number, ctx: Context):
   return [row, ...below, ...own];
 }
 
-function layerRows(layer: LayerNode, index: number, ctx: Context): TreeRow[] {
+function layerRows(layer: LayerNode, index: number, ctx: Context, flat: boolean): TreeRow[] {
   const children = segmentsOf(layer.namespaces).flatMap((root) =>
-    segmentRows(layer.name, root, 1, ctx),
+    segmentRows(layer.name, root, flat ? 0 : 1, ctx),
   );
-  if (children.length === 0) {
-    return [];
+  if (flat || children.length === 0) {
+    return children;
   }
   const key = layerKey(layer.name);
   const open = ctx.filtering || ctx.expanded.has(key);
@@ -273,7 +273,10 @@ export function buildRows(
     filtering: needle !== "",
     matches: (name) => name.toLowerCase().includes(needle),
   };
-  return outline.layers.flatMap((layer, index) => layerRows(layer, index, ctx));
+  // Without any layer the "no layer" row would only be a lid on everything: the namespaces
+  // stand at the top instead.
+  const flat = outline.layers.every((layer) => layer.name === "");
+  return outline.layers.flatMap((layer, index) => layerRows(layer, index, ctx, flat));
 }
 
 /** The keys that must be open for the row of `type` to be visible: its layer, every segment of
