@@ -353,6 +353,32 @@ describe("a navigation from another screen", () => {
   });
 });
 
+describe("a navigation while the tree is read again", () => {
+  it("keeps the type the navigation read, so the details do not fall back to the overview", async () => {
+    const first = renderOrder();
+    await openOrder();
+    await screen.findByRole("heading", { name: "Order" });
+    first.unmount();
+    requestFocus({ type: 30, member: null, kind: null });
+    fetchMock.mockImplementation((path: string, init?: RequestInit) => {
+      const other = String(init?.body ?? "").includes('"symbol":30');
+      return Promise.resolve(
+        answer(
+          path.endsWith("explorer.outline")
+            ? OUTLINE
+            : other
+              ? { ...ORDER, id: 30, name: "Other" }
+              : ORDER,
+        ),
+      );
+    });
+    render(() => <ExplorerScreen />);
+    expect(await screen.findByRole("heading", { name: "Other" })).toBeTruthy();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(screen.getByRole("heading", { name: "Other" })).toBeTruthy();
+  });
+});
+
 describe("coming back to the explorer", () => {
   it("keeps the open rows, the selection and the filter when another screen was shown", async () => {
     const first = renderOrder();
