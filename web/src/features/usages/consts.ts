@@ -73,9 +73,6 @@ export const TONE = {
 } as const;
 export type Tone = (typeof TONE)[keyof typeof TONE];
 
-/** How an edge stands to the picked card: it leaves it, enters it, or has nothing to do with it. */
-export const LINK = { out: "linkedOut", in: "linkedIn", none: "dim" } as const;
-
 /** The three kinds of column of the graph. */
 export const COLUMN = { callers: "callers", focus: "focus", callees: "callees" } as const;
 export type ColumnKind = (typeof COLUMN)[keyof typeof COLUMN];

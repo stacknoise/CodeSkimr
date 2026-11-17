@@ -12,13 +12,16 @@ mod credential;
 mod error;
 mod level2;
 mod locale;
+mod notes;
 mod parser;
 mod render;
 mod warning;
 
 pub use args::{
-    Action, CheckArgs, CredentialAction, ExportArgs, GlobalOptions, Invocation, Level2Action,
-    McpArgs, OpenArgs, Parsed, ProviderChoice, ScanArgs, ServeArgs, StartArgs,
+    Action, AddAnnotation, AlertsAction, AnnotationFields, AnnotationsAction, ById, CheckArgs,
+    Clears, CredentialAction, DismissAlerts, ExportArgs, GlobalOptions, Invocation, Level2Action,
+    ListAlerts, ListAnnotations, McpArgs, OpenArgs, PageArgs, Parsed, ProviderChoice, ScanArgs,
+    ServeArgs, StartArgs, SymbolArg, UpdateAnnotation,
 };
 pub use check::{check_json, check_text};
 pub use consent::{

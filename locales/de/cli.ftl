@@ -98,3 +98,50 @@ cli-level2-declined = Nichts geändert: Stufe 2 bleibt für Projekt { $project }
 cli-level2-revoked = Stufe 2 ist für Projekt { $project } wieder verboten.
 cli-scan-warning-ambiguous-reference = Warnung RES-301: { $count } Stellen passen auf mehrere Symbole und sind als wahrscheinlich gespeichert.
 cli-scan-warning-other = Warnung { $code }: { $count }-mal.
+cli-cmd-annotations = Notizen, Aufgaben und Kritisch-Markierungen an Symbolen
+cli-cmd-annotations-list = Die Anmerkungen eines Projekts auflisten
+cli-cmd-annotations-add = Einem Symbol eine Kritisch-Markierung, eine Notiz oder eine Aufgabe hinzufügen
+cli-cmd-annotations-update = Eine Anmerkung ändern oder einem anderen Symbol zuordnen
+cli-cmd-annotations-remove = Eine Anmerkung samt Alarmen löschen
+cli-cmd-alerts = Alarme für kritische Symbole, die sich geändert haben, entfernt wurden oder ihren Platz verloren haben
+cli-cmd-alerts-list = Die Alarme eines Projekts auflisten
+cli-cmd-alerts-dismiss = Einen Alarm entfernen
+cli-cmd-alerts-dismiss-all = Alle offenen Alarme eines Filters entfernen; braucht --yes
+cli-arg-note-project = Nummer des Projekts oder der Ordner oder die Git-Adresse, aus der es gescannt wurde
+cli-arg-annotation = Nummer der Anmerkung
+cli-arg-alert = Nummer des Alarms
+cli-arg-symbol = Vollständiger Name des Symbols
+cli-arg-symbol-kind = Art des Symbols, zum Beispiel class, method oder namespace
+cli-arg-param = Parametertyp des Symbols, einmal je Parameter, um Überladungen zu unterscheiden
+cli-arg-kind = Art der Anmerkung: critical, note oder task
+cli-arg-status = Status einer Aufgabe: open, in_progress oder done
+cli-arg-title = Titel einer Aufgabe
+cli-arg-text = Text der Anmerkung oder Begründung einer Kritisch-Markierung
+cli-arg-due = Fälligkeitsdatum einer Aufgabe in Sekunden seit dem 1. Januar 1970
+cli-arg-assignee = Wem eine Aufgabe zugeordnet ist
+cli-arg-clear-text = Den Text entfernen
+cli-arg-clear-due = Das Fälligkeitsdatum entfernen
+cli-arg-clear-assignee = Den Bearbeiter entfernen
+cli-arg-limit = Anzahl der Zeilen; ohne Angabe die eingestellte Seitengröße
+cli-arg-offset = Zeilen, die übersprungen werden, um die nächste Seite zu lesen
+cli-arg-alert-state = Nur Alarme in diesem Zustand: open (Standard) oder dismissed
+cli-arg-alert-kinds = Nur Alarme dieser Art: changed, removed oder orphaned; darf mehrfach stehen
+cli-arg-yes = Bestätigt, dass alle passenden Alarme entfernt werden
+cli-annotation-line = Nr. { $id } [{ $kind }] { $name }{ $parts ->
+    [0] { "" }
+   *[other] : { $summary }
+}
+cli-annotation-saved = Anmerkung Nr. { $id } an { $name } gespeichert.
+cli-annotation-removed = Anmerkung Nr. { $id } gelöscht.
+cli-annotation-none = Keine Anmerkungen.
+cli-annotations-page = { $shown } von { $total } gezeigt; weiter mit --offset { $next }.
+cli-alert-line = Nr. { $id } [{ $state }/{ $kind }] { $name }{ $parts ->
+    [0] { "" }
+   *[other] : { $detail }
+}
+cli-alert-none = Keine Alarme.
+cli-alerts-page = { $shown } von { $total } Alarmen gezeigt, { $open } offen; weiter mit --offset { $next }.
+cli-alerts-dismissed = { $dismissed ->
+    [one] Ein Alarm entfernt, { $open } noch offen.
+   *[other] { $dismissed } Alarme entfernt, { $open } noch offen.
+}

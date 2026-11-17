@@ -3,6 +3,7 @@ import {
   applyEvent,
   files,
   filesPerSecond,
+  focusProject,
   latestRun,
   percent,
   secondsLeft,
@@ -109,6 +110,7 @@ describe("applyEvent", () => {
     ]);
     expect(latestRun(runs, 1)?.state).toBe("running");
     expect(latestRun(runs, null)).toBeUndefined();
+    expect(focusProject(runs)).toBe(1);
   });
 
   it("ignores an end without a run and file changes", () => {

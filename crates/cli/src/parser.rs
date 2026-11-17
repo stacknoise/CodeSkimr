@@ -23,13 +23,14 @@ use crate::consent;
 use crate::consts::{
     ARG_BRANCH, ARG_CONFIG, ARG_CONSOLE, ARG_CREDENTIAL, ARG_DATA_DIR, ARG_EXPORT_PROJECT,
     ARG_HTML, ARG_JSON, ARG_LANGUAGES, ARG_NO_BROWSER, ARG_PATHS, ARG_PROJECT, ARG_SET, ARG_SOURCE,
-    ARG_WATCH, BINARY_NAME, COMMAND_CHECK, COMMAND_CREDENTIAL, COMMAND_EXPORT, COMMAND_LEVEL2,
-    COMMAND_MCP, COMMAND_OPEN, COMMAND_SCAN, COMMAND_SERVE, OVERRIDE_SEPARATOR, VALUE_BRANCH,
-    VALUE_DIR, VALUE_EXPORT_PROJECT, VALUE_FILE, VALUE_ID, VALUE_OVERRIDE, VALUE_PATH,
-    VALUE_SOURCE, VERSION,
+    ARG_WATCH, BINARY_NAME, COMMAND_ALERTS, COMMAND_ANNOTATIONS, COMMAND_CHECK, COMMAND_CREDENTIAL,
+    COMMAND_EXPORT, COMMAND_LEVEL2, COMMAND_MCP, COMMAND_OPEN, COMMAND_SCAN, COMMAND_SERVE,
+    OVERRIDE_SEPARATOR, VALUE_BRANCH, VALUE_DIR, VALUE_EXPORT_PROJECT, VALUE_FILE, VALUE_ID,
+    VALUE_OVERRIDE, VALUE_PATH, VALUE_SOURCE, VERSION,
 };
 use crate::credential;
 use crate::error::CliError;
+use crate::notes;
 
 /// Reads `arguments`, the first of which is the program name.
 ///
@@ -73,6 +74,8 @@ fn definition(messages: &Messages, language: &str) -> Result<Command, CliError> 
         .subcommand(export_command(messages, language)?)
         .subcommand(credential::command(&say)?)
         .subcommand(consent::command(&say)?)
+        .subcommand(notes::annotations_command(&say)?)
+        .subcommand(notes::alerts_command(&say)?)
         .subcommand(
             Command::new(COMMAND_MCP)
                 .about(say(CLI_CMD_MCP)?)
@@ -187,6 +190,10 @@ fn invocation(matches: &ArgMatches) -> Result<Invocation, CliError> {
             Action::Credential(credential::action(credential)?)
         }
         Some((COMMAND_LEVEL2, level2)) => Action::Level2(consent::action(level2)?),
+        Some((COMMAND_ANNOTATIONS, notes)) => {
+            Action::Annotations(Box::new(notes::annotations_action(notes)?))
+        }
+        Some((COMMAND_ALERTS, notes)) => Action::Alerts(Box::new(notes::alerts_action(notes)?)),
         Some((COMMAND_MCP, mcp)) => Action::Mcp(McpArgs {
             project: mcp.get_one::<PathBuf>(ARG_PROJECT).cloned(),
         }),

@@ -159,13 +159,6 @@ pub const TOOL_INVALID: &str = "invalid tool: ";
 /// the hash (the unit separator).
 pub const TOKEN_SEPARATOR: u8 = 0x1f;
 
-/// The start of a block that no token delimits, in a content hash (a control character, which no
-/// token of source text consists of on its own).
-pub const BLOCK_OPEN: u8 = 0x02;
-
-/// The end of such a block, in a content hash.
-pub const BLOCK_CLOSE: u8 = 0x03;
-
 /// Replacement extension that removes the extension of a path.
 pub const NO_EXTENSION: &str = "";
 

@@ -35,8 +35,6 @@ pub struct LanguagePack {
     /// Whether a name without receiver inside a function can mean a member of its type (ADR 0053).
     pub(crate) bare_names_reach_members: bool,
     pub(crate) comment_nodes: HashSet<String>,
-    /// Node kinds whose start and end the content hash marks (blocks without delimiting tokens).
-    pub(crate) block_nodes: HashSet<String>,
     pub(crate) doc_prefixes: Vec<String>,
     pub(crate) doc_before_declaration: Option<HashSet<String>>,
     pub(crate) static_keywords: HashSet<String>,
@@ -106,7 +104,6 @@ impl LanguagePack {
             file_in_names: manifest.file_in_names,
             bare_names_reach_members: manifest.bare_names_reach_members,
             comment_nodes: manifest.comment_nodes.into_iter().collect(),
-            block_nodes: manifest.block_nodes.into_iter().collect(),
             doc_prefixes: manifest.doc_prefixes,
             doc_before_declaration: manifest.doc_before_declaration.map(into_set),
             static_keywords: manifest.static_keywords.into_iter().collect(),

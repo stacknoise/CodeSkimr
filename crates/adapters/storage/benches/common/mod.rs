@@ -2,7 +2,7 @@
 
 use std::num::NonZeroU32;
 
-use codeskimr_application::ports::{PendingReference, SnapshotData, SnapshotStore, SymbolHash};
+use codeskimr_application::ports::{SnapshotData, SnapshotStore, SymbolHash};
 use codeskimr_domain::{
     ContentHash, FileId, FolderPath, LanguageId, Loc, Position, Project, ProjectId, ProjectName,
     ProjectSource, QualifiedName, Reference, RelativePath, ScanMode, Snapshot, SnapshotId,
@@ -41,10 +41,10 @@ pub fn symbol(id: u64, name: &str) -> Option<Symbol> {
     })
 }
 
-fn file(snapshot: u64, id: u64) -> Option<SourceFile> {
+fn file(id: u64) -> Option<SourceFile> {
     Some(SourceFile {
         id: FileId::new(id),
-        snapshot: SnapshotId::new(snapshot),
+        snapshot: SnapshotId::new(SNAPSHOT),
         path: RelativePath::new(format!("src/module{id}.rs")).ok()?,
         language: LanguageId::new("rust").ok()?,
         content_hash: ContentHash::new(format!("hash{id}")).ok()?,
@@ -61,42 +61,6 @@ fn project() -> Option<Project> {
     })
 }
 
-/// What a snapshot of the benchmarks holds besides its files.
-pub struct Content {
-    pub symbols: Vec<Symbol>,
-    pub references: Vec<Reference>,
-    pub hashes: Vec<SymbolHash>,
-    pub pending: Vec<PendingReference>,
-}
-
-/// The data of snapshot `snapshot` with `FILES` files from `first_file` on.
-pub fn data(snapshot: u64, first_file: u64, content: Content) -> SnapshotData {
-    SnapshotData {
-        snapshot: Snapshot {
-            id: SnapshotId::new(snapshot),
-            project: ProjectId::new(PROJECT),
-            commit: None,
-            created: Timestamp(1),
-            mode: ScanMode::Full,
-            stats: SnapshotStats::default(),
-        },
-        files: (first_file..first_file + FILES)
-            .filter_map(|id| file(snapshot, id))
-            .collect(),
-        symbols: content.symbols,
-        references: content.references,
-        metrics: Vec::new(),
-        fingerprints: Vec::new(),
-        removed: Vec::new(),
-        pending: content.pending,
-        dropped_references: Vec::new(),
-        parse_micros: Vec::new(),
-        hashes: content.hashes,
-        warnings: Vec::new(),
-        naming_rules: String::new(),
-    }
-}
-
 /// A store that holds one snapshot with `symbols`, their content `hashes` and `references` in
 /// `FILES` files.
 pub fn store(
@@ -104,14 +68,30 @@ pub fn store(
     references: Vec<Reference>,
     hashes: Vec<SymbolHash>,
 ) -> Option<SqliteStore> {
-    let content = Content {
+    let data = SnapshotData {
+        snapshot: Snapshot {
+            id: SnapshotId::new(SNAPSHOT),
+            project: ProjectId::new(PROJECT),
+            commit: None,
+            created: Timestamp(1),
+            mode: ScanMode::Full,
+            stats: SnapshotStats::default(),
+        },
+        files: (1..=FILES).filter_map(file).collect(),
         symbols,
         references,
-        hashes,
+        metrics: Vec::new(),
+        fingerprints: Vec::new(),
+        removed: Vec::new(),
         pending: Vec::new(),
+        dropped_references: Vec::new(),
+        parse_micros: Vec::new(),
+        hashes,
+        warnings: Vec::new(),
+        naming_rules: String::new(),
     };
     let store = SqliteStore::open_in_memory(NonZeroU32::MIN).ok()?;
     store.save_project(&project()?).ok()?;
-    store.persist(data(SNAPSHOT, 1, content)).ok()?;
+    store.persist(data).ok()?;
     Some(store)
 }

@@ -7,6 +7,9 @@
 
 #[cfg(test)]
 mod alert_tests;
+mod annotations_cli;
+#[cfg(test)]
+mod annotations_cli_tests;
 mod browser;
 mod check;
 mod clock;

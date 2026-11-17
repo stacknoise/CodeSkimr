@@ -302,6 +302,10 @@ pub struct Annotations {
     pub max_text_chars: u32,
     /// Most characters of the title of a task.
     pub max_title_chars: u32,
+    /// Rows of a list of annotations or alerts when the caller gives no limit.
+    pub default_page_size: u32,
+    /// Most rows of one page of such a list.
+    pub max_page_size: u32,
 }
 
 impl Annotations {

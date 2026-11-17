@@ -11,11 +11,6 @@ ALTER TABLE symbol_rows ADD COLUMN content_hash TEXT;
 -- over every symbol of the snapshot for each of them.
 CREATE INDEX symbols_by_name ON symbol_rows (qualified_name);
 
--- For a target that is gone the step looks for symbols with the same simple name and counts the names
--- written in the files of the snapshot that still point at it.
-CREATE INDEX symbols_by_simple_name ON symbol_rows (name);
-CREATE INDEX pending_references_by_target ON pending_references (target);
-
 -- Whether the newest scan did not find the symbol of an annotation. It is set for every kind; only a
 -- critical annotation raises an alert for it.
 ALTER TABLE annotation ADD COLUMN without_target INTEGER NOT NULL DEFAULT 0;

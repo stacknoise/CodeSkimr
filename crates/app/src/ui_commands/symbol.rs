@@ -46,6 +46,8 @@ pub struct MemberOut {
     pub id: u64,
     /// Simple name.
     pub name: String,
+    /// Qualified name: with `kind` it is the key of the annotations of the member (ADR 0068).
+    pub qualified_name: String,
     /// Kind label.
     pub kind: &'static str,
     /// Visibility label, if there is one.
@@ -116,6 +118,7 @@ fn member_out(row: &MemberRow, thresholds: &MetricThresholds) -> MemberOut {
     MemberOut {
         id: row.id.get(),
         name: row.name.to_string(),
+        qualified_name: row.qualified_name.to_string(),
         kind: row.kind.label(),
         visibility: row.visibility.map(Visibility::label),
         signature: row.signature.clone(),

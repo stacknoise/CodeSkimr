@@ -4,7 +4,7 @@
 //! `codeskimr_application` and never touches a database itself. [`Tools`] holds the synchronous
 //! logic of `search_symbols`, `get_symbol`, `get_project`, `get_architecture`, `find_usages`,
 //! `impact_of_change`, `get_dependencies`, `find_similar_code`, `find_constants`,
-//! `check_conventions` and `rescan`; [`McpServer`] wraps it for the protocol, [`serve_stdio`]
+//! `check_conventions`, `list_annotations`, `get_alerts` and `rescan`; [`McpServer`] wraps it for the protocol, [`serve_stdio`]
 //! runs it over standard input and output and [`http_service`] offers it over streamable HTTP.
 
 mod args;
@@ -14,8 +14,9 @@ mod server;
 mod tools;
 
 pub use args::{
-    ArchitectureArgs, ConstantsArgs, ConventionsArgs, DependenciesArgs, ImpactArgs, ProjectArgs,
-    RescanArgs, SearchArgs, SimilarArgs, SymbolArgs, UsagesArgs,
+    AlertsArgs, AnnotationsArgs, ArchitectureArgs, ConstantsArgs, ConventionsArgs,
+    DependenciesArgs, ImpactArgs, ProjectArgs, RescanArgs, SearchArgs, SimilarArgs, SymbolArgs,
+    UsagesArgs,
 };
 pub use error::{CodeReport, McpError};
 pub use server::McpServer;

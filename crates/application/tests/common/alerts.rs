@@ -169,7 +169,7 @@ impl AnnotationStore for MemoryAnnotations {
             .iter_mut()
             .find(|alert| alert.annotation == raise.annotation && alert.state == AlertState::Open);
         if let Some(alert) = open {
-            alert.counter += u32::from(raise.counted);
+            alert.counter += 1;
             alert.last_seen = raise.now;
             alert.sighting = raise.sighting.clone();
             return Ok(alert.clone());

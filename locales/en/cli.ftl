@@ -98,3 +98,50 @@ cli-level2-declined = Nothing changed: level 2 stays off for project { $project 
 cli-level2-revoked = Level 2 is forbidden again for project { $project }.
 cli-scan-warning-ambiguous-reference = Warning RES-301: { $count } places match several symbols and are stored as probable.
 cli-scan-warning-other = Warning { $code }: { $count } times.
+cli-cmd-annotations = Notes, tasks and critical marks on symbols
+cli-cmd-annotations-list = List the annotations of a project
+cli-cmd-annotations-add = Add a critical mark, a note or a task to a symbol
+cli-cmd-annotations-update = Change an annotation, or assign it to another symbol
+cli-cmd-annotations-remove = Delete an annotation with its alerts
+cli-cmd-alerts = Alerts for critical symbols that changed, were removed or lost their place
+cli-cmd-alerts-list = List the alerts of a project
+cli-cmd-alerts-dismiss = Dismiss one alert
+cli-cmd-alerts-dismiss-all = Dismiss all open alerts of a filter; needs --yes
+cli-arg-note-project = Id of the project, or the folder or Git URL it was scanned from
+cli-arg-annotation = Id of the annotation
+cli-arg-alert = Id of the alert
+cli-arg-symbol = Qualified name of the symbol
+cli-arg-symbol-kind = Kind of the symbol, such as class, method or namespace
+cli-arg-param = Parameter type of the symbol, once per parameter, to tell overloads apart
+cli-arg-kind = Kind of annotation: critical, note or task
+cli-arg-status = Status of a task: open, in_progress or done
+cli-arg-title = Title of a task
+cli-arg-text = Text of the annotation, or the reason of a critical mark
+cli-arg-due = Due date of a task, in seconds since the Unix epoch
+cli-arg-assignee = Who a task is assigned to
+cli-arg-clear-text = Remove the text
+cli-arg-clear-due = Remove the due date
+cli-arg-clear-assignee = Remove the assignee
+cli-arg-limit = Rows to show; the configured page size if left out
+cli-arg-offset = Rows to skip, to read the next page
+cli-arg-alert-state = Only alerts in this state: open (default) or dismissed
+cli-arg-alert-kinds = Only alerts of this kind: changed, removed or orphaned; can be repeated
+cli-arg-yes = Confirm that all matching alerts are dismissed
+cli-annotation-line = #{ $id } [{ $kind }] { $name }{ $parts ->
+    [0] { "" }
+   *[other] : { $summary }
+}
+cli-annotation-saved = Saved annotation #{ $id } on { $name }.
+cli-annotation-removed = Deleted annotation #{ $id }.
+cli-annotation-none = No annotations.
+cli-annotations-page = Showing { $shown } of { $total }; continue with --offset { $next }.
+cli-alert-line = #{ $id } [{ $state }/{ $kind }] { $name }{ $parts ->
+    [0] { "" }
+   *[other] : { $detail }
+}
+cli-alert-none = No alerts.
+cli-alerts-page = Showing { $shown } of { $total } alerts, { $open } open; continue with --offset { $next }.
+cli-alerts-dismissed = { $dismissed ->
+    [one] One alert dismissed, { $open } still open.
+   *[other] { $dismissed } alerts dismissed, { $open } still open.
+}

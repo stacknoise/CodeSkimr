@@ -55,9 +55,7 @@
     width: 16px;
     height: 16px;
     border-radius: var(--radius-badge);
-    flex: none;
-    /* The outline sits outside, so every swatch shows its colour on the full 16px. */
-    box-shadow: 0 0 0 1px var(--line);
+    border: 1px solid var(--line);
 }
 
 .bg {

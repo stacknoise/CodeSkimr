@@ -1,6 +1,5 @@
 import { fireEvent, render, screen, within } from "@solidjs/testing-library";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { openProject } from "../../shared/project/active";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { recordTime, resetTimings } from "../../shared/api/timings";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
@@ -81,7 +80,6 @@ useServerSession();
 beforeEach(() => {
   vi.stubGlobal("WebSocket", FakeSocket);
   resetRuns();
-  openProject(ROW.id);
   serve({
     "projects.list": () => answer([ROW]),
     "status.info": () => answer(STATUS),

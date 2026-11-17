@@ -85,6 +85,7 @@ struct MemberColumns {
     signature: Option<String>,
     first: i64,
     last: i64,
+    qualified_name: String,
     complexity: Option<f64>,
     usages: i64,
 }
@@ -100,6 +101,7 @@ impl MemberColumns {
             signature: cols.take()?,
             first: cols.take()?,
             last: cols.take()?,
+            qualified_name: cols.take()?,
             complexity: cols.take()?,
             usages: cols.take()?,
         })
@@ -109,6 +111,7 @@ impl MemberColumns {
         Ok(MemberRow {
             id: SymbolId::new(id_from(self.id)?),
             name: SymbolName::new(self.name)?,
+            qualified_name: QualifiedName::new(self.qualified_name)?,
             kind: label_from(&self.kind)?,
             visibility: self.visibility.as_deref().map(label_from).transpose()?,
             signature: self.signature,

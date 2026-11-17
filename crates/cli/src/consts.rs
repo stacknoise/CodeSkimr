@@ -122,6 +122,95 @@ pub const SECONDS_DECIMALS: i32 = 2;
 /// Factor that moves `SECONDS_DECIMALS` decimals in front of the point.
 pub const SECONDS_BASE: f64 = 10.0;
 
+/// Name of the command that handles annotations.
+pub const COMMAND_ANNOTATIONS: &str = "annotations";
+/// Name of the command that handles alerts.
+pub const COMMAND_ALERTS: &str = "alerts";
+/// Sub-command of `annotations` and `alerts`: list.
+pub const COMMAND_LIST: &str = "list";
+/// Sub-command of `annotations`: add one.
+pub const COMMAND_ADD: &str = "add";
+/// Sub-command of `annotations`: change one.
+pub const COMMAND_UPDATE: &str = "update";
+/// Sub-command of `annotations`: delete one.
+pub const COMMAND_REMOVE: &str = "remove";
+/// Sub-command of `alerts`: dismiss one.
+pub const COMMAND_DISMISS: &str = "dismiss";
+/// Sub-command of `alerts`: dismiss all of a filter.
+pub const COMMAND_DISMISS_ALL: &str = "dismiss-all";
+/// Argument: the project, a number or the folder or Git URL it was scanned from.
+pub const ARG_NOTE_PROJECT: &str = "note-project";
+/// Value name of the project argument.
+pub const VALUE_NOTE_PROJECT: &str = "PROJECT";
+/// Argument: the id of an annotation.
+pub const ARG_ANNOTATION: &str = "annotation";
+/// Argument: the id of an alert.
+pub const ARG_ALERT: &str = "alert";
+/// Value name of an id.
+pub const VALUE_NUMBER: &str = "ID";
+/// Option: the qualified name of a symbol.
+pub const ARG_SYMBOL: &str = "symbol";
+/// Value name of the symbol.
+pub const VALUE_SYMBOL: &str = "NAME";
+/// Option: the kind of a symbol.
+pub const ARG_SYMBOL_KIND: &str = "symbol-kind";
+/// Value name of the kind of a symbol.
+pub const VALUE_SYMBOL_KIND: &str = "KIND";
+/// Option: a parameter type of a symbol.
+pub const ARG_PARAM: &str = "param";
+/// Value name of a parameter type.
+pub const VALUE_PARAM: &str = "TYPE";
+/// Option: the kind of an annotation.
+pub const ARG_KIND: &str = "kind";
+/// Value name of the kind of an annotation.
+pub const VALUE_KIND: &str = "KIND";
+/// Option: the status of a task.
+pub const ARG_STATUS: &str = "status";
+/// Value name of a status.
+pub const VALUE_STATUS: &str = "STATUS";
+/// Option: the title of a task.
+pub const ARG_TITLE: &str = "title";
+/// Value name of a title.
+pub const VALUE_TITLE: &str = "TITLE";
+/// Option: the text of an annotation.
+pub const ARG_TEXT: &str = "text";
+/// Value name of a text.
+pub const VALUE_TEXT: &str = "TEXT";
+/// Option: the due date of a task.
+pub const ARG_DUE: &str = "due";
+/// Value name of the due date.
+pub const VALUE_DUE: &str = "SECONDS";
+/// Option: the assignee of a task.
+pub const ARG_ASSIGNEE: &str = "assignee";
+/// Value name of the assignee.
+pub const VALUE_ASSIGNEE: &str = "NAME";
+/// Flag: remove the text.
+pub const ARG_CLEAR_TEXT: &str = "clear-text";
+/// Flag: remove the due date.
+pub const ARG_CLEAR_DUE: &str = "clear-due";
+/// Flag: remove the assignee.
+pub const ARG_CLEAR_ASSIGNEE: &str = "clear-assignee";
+/// Option: rows to skip.
+pub const ARG_OFFSET: &str = "offset";
+/// Option: rows to return.
+pub const ARG_ROWS: &str = "limit";
+/// Value name of a row count.
+pub const VALUE_ROWS: &str = "N";
+/// Option: the state of an alert.
+pub const ARG_STATE: &str = "state";
+/// Value name of a state.
+pub const VALUE_STATE: &str = "STATE";
+/// Flag: the confirmation of `dismiss-all`.
+pub const ARG_YES: &str = "yes";
+/// The kinds of annotations the command line accepts.
+pub const ANNOTATION_KINDS: [&str; 3] = ["critical", "note", "task"];
+/// The statuses of a task the command line accepts.
+pub const TASK_STATUSES: [&str; 3] = ["open", "in_progress", "done"];
+/// The states of an alert the command line accepts.
+pub const ALERT_STATES: [&str; 2] = ["open", "dismissed"];
+/// The kinds of alerts the command line accepts.
+pub const ALERT_KINDS: [&str; 3] = ["changed", "removed", "orphaned"];
+
 /// Names of the Fluent arguments of the messages.
 pub mod arg {
     /// `{ $place }`: the folder or Git address of a project.

@@ -123,8 +123,7 @@ fn find(conn: &Connection, id: AlertId) -> StorageResult<Alert> {
     .into_alert()
 }
 
-/// Counts the open alert of the annotation once more (or only updates it if the raise says it is not
-/// to be counted), or opens one.
+/// Counts the open alert of the annotation once more, or opens one.
 pub(crate) fn raise(conn: &Connection, raise: &AlertRaise) -> StorageResult<Alert> {
     baselines::ensure_critical(conn, raise.annotation)?;
     let sighting = &raise.sighting;
@@ -152,12 +151,7 @@ pub(crate) fn raise(conn: &Connection, raise: &AlertRaise) -> StorageResult<Aler
         sighting.observed.as_ref().map(|seen| i64::from(seen.loc.0)),
         sighting.observed.as_ref().map(|seen| i64::from(seen.cc))
     ];
-    let update = if raise.counted {
-        sql::ALERT_RAISE_OPEN
-    } else {
-        sql::ALERT_UPDATE_OPEN
-    };
-    if conn.execute(update, values)? == 0 {
+    if conn.execute(sql::ALERT_RAISE_OPEN, values)? == 0 {
         conn.execute(sql::ALERT_INSERT, values)?;
     }
     conn.query_row(

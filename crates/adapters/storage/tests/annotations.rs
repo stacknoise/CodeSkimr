@@ -134,7 +134,6 @@ fn raise(store: &SqliteStore, annotation: &Annotation, snapshot: u64, now: i64) 
             annotation: annotation.id,
             sighting: sighting(snapshot),
             now: Timestamp(now),
-            counted: true,
         })
         .unwrap()
 }
@@ -454,7 +453,6 @@ fn unknown_annotations_and_alerts_are_reported() {
         annotation: missing,
         sighting: sighting(10),
         now: Timestamp(1),
-        counted: true,
     });
     assert_eq!(code_of(&raised.unwrap_err()), "ANN-201");
     let dismissal = AlertDismissal {
@@ -481,7 +479,6 @@ fn only_critical_annotations_have_baselines_and_alerts() {
             annotation: note.id,
             sighting: sighting(10),
             now: Timestamp(1),
-            counted: true,
         })
         .unwrap_err();
     assert_eq!(code_of(&error), "ANN-103");
@@ -520,7 +517,6 @@ fn there_is_one_open_alert_per_annotation_and_it_counts() {
         annotation: critical.id,
         sighting: sighting(20),
         now: Timestamp(3_000),
-        counted: true,
     };
     again.sighting.kind = AlertKind::Removed;
     again.sighting.changes = Vec::new();
@@ -535,18 +531,7 @@ fn there_is_one_open_alert_per_annotation_and_it_counts() {
         (Timestamp(2_000), Timestamp(3_000))
     );
     assert_eq!(second.sighting, again.sighting);
-
-    // A sighting that is not counted brings the alert up to date and leaves the counter.
-    again.sighting.kind = AlertKind::Changed;
-    again.counted = false;
-    again.now = Timestamp(4_000);
-    let third = store.raise_alert(&again).unwrap();
-    assert_eq!((third.id, third.counter), (first.id, 2));
-    assert_eq!(
-        (third.sighting.kind, third.last_seen),
-        (AlertKind::Changed, Timestamp(4_000))
-    );
-    assert_eq!(alerts(&store, None), vec![third]);
+    assert_eq!(alerts(&store, None), vec![second]);
 }
 
 #[test]
@@ -557,7 +542,6 @@ fn an_orphaned_alert_names_the_closest_symbol() {
         annotation: critical.id,
         sighting: sighting(10),
         now: Timestamp(2_000),
-        counted: true,
     };
     orphaned.sighting.kind = AlertKind::Orphaned;
     orphaned.sighting.changes = Vec::new();

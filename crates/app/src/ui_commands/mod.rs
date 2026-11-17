@@ -2,6 +2,11 @@
 //! the server (blueprint 10.1). The scan runs on the thread of the call; the server runs every
 //! command on its blocking pool, and progress reaches the UI through the event bus.
 
+mod alerts;
+mod annotation_wire;
+mod annotations;
+#[cfg(test)]
+mod annotations_tests;
 mod consts;
 mod credentials;
 #[cfg(test)]
@@ -35,22 +40,36 @@ mod usages_code;
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 
+use codeskimr_application::annotations::AnnotationWrites;
 use codeskimr_application::config::{Config, Graph, MetricThresholds};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::ports::{IndexRunner, ProjectToolCheck};
 use codeskimr_application::registry::{Command, Registry};
 use codeskimr_cli::GlobalOptions;
-use codeskimr_parsing::TreeSitterHighlighter;
+use codeskimr_domain::Author;
+use codeskimr_parsing::{Blake3Digest, TreeSitterHighlighter};
 use codeskimr_server::CommandApi;
 use codeskimr_source::FolderText;
 
 pub(crate) use status::{mark_ready, mark_started};
 
+use crate::clock::SystemClock;
 use crate::locations::Locations;
 use crate::running::RunningScans;
 use crate::wiring::{Secrets, index_runner, tool_checker};
+pub(crate) use alerts::{
+    AlertListInput, AlertListOut, AlertsDismiss, AlertsDismissAll, AlertsList, DismissAllInput,
+    DismissInput, Dismissed,
+};
+pub(crate) use annotation_wire::{AlertOut, AnnotationOut, Nullable, PageOut, TargetIn};
+pub(crate) use annotations::{
+    AnnotationPorts, AnnotationsDelete, AnnotationsList, AnnotationsUpdate, AnyKind, Create,
+    CreateInput, DeleteInput, ListInput, UpdateInput,
+};
+use annotations::{AnnotationsSummary, CriticalMark, NoteKind, TaskKind};
 use codeskimr_storage::SqliteStore;
+use consts::LOCAL_AUTHOR;
 #[cfg(test)]
 pub(crate) use consts::PREFERENCES_FILE;
 use credentials::{DeleteCredential, ListCredentials, SetCredential};
@@ -179,6 +198,10 @@ pub fn command_api_over(
     register_search(&mut registry, catalog)?;
     register_usages(&mut registry, catalog, config.mcp.max_depth)?;
     register_graph(&mut registry, catalog, config.graph.clone())?;
+    register_annotations(
+        &mut registry,
+        &annotation_ports(catalog, config, &context.events)?,
+    )?;
     add(&mut registry, status_info(config))?;
     register_explorer(&mut registry, catalog, config.metrics.clone(), locations)?;
     register_preferences(&mut registry, locations)?;
@@ -186,6 +209,50 @@ pub fn command_api_over(
     let mut api = CommandApi::new(Arc::new(registry));
     expose_all(&mut api)?;
     Ok(api)
+}
+
+/// What the commands of annotations and alerts work through: the store, the checks of the texts
+/// against `config`, and the bus on which `AlertsChanged` goes out.
+pub(crate) fn annotation_ports(
+    store: &Arc<SqliteStore>,
+    config: &Config,
+    events: &EventBus,
+) -> Result<Arc<AnnotationPorts>, CodedError> {
+    let author = Author::new(LOCAL_AUTHOR).map_err(CodedError::caused_by)?;
+    Ok(Arc::new(AnnotationPorts {
+        store: store.clone(),
+        projects: store.clone(),
+        writes: AnnotationWrites {
+            store: store.clone(),
+            index: store.clone(),
+            states: store.clone(),
+            digest: Arc::new(Blake3Digest),
+            clock: Arc::new(SystemClock),
+            events: events.clone(),
+            config: config.annotations.clone(),
+            author,
+        },
+        config: config.annotations.clone(),
+    }))
+}
+
+/// Registers the commands of annotations and alerts.
+pub(crate) fn register_annotations(
+    registry: &mut Registry,
+    ports: &Arc<AnnotationPorts>,
+) -> Result<(), CodedError> {
+    let shared = || Arc::clone(ports);
+    add(registry, AnnotationsList { ports: shared() })?;
+    add(registry, AnnotationsSummary { ports: shared() })?;
+    add(registry, Create::<AnyKind>::new(shared()))?;
+    add(registry, Create::<CriticalMark>::new(shared()))?;
+    add(registry, Create::<NoteKind>::new(shared()))?;
+    add(registry, Create::<TaskKind>::new(shared()))?;
+    add(registry, AnnotationsUpdate { ports: shared() })?;
+    add(registry, AnnotationsDelete { ports: shared() })?;
+    add(registry, AlertsList { ports: shared() })?;
+    add(registry, AlertsDismiss { ports: shared() })?;
+    add(registry, AlertsDismissAll { ports: shared() })
 }
 
 /// The command behind the status bar, with the budgets and the worker limit of `config`.
@@ -231,6 +298,22 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<GetPreferences>()?;
     api.expose::<SetPreferences>()?;
     api.expose::<HtmlExport>()?;
+    expose_annotations(api)
+}
+
+/// Makes the commands of annotations and alerts reachable over REST.
+fn expose_annotations(api: &mut CommandApi) -> Result<(), CodedError> {
+    api.expose::<AnnotationsList>()?;
+    api.expose::<AnnotationsSummary>()?;
+    api.expose::<Create<AnyKind>>()?;
+    api.expose::<Create<CriticalMark>>()?;
+    api.expose::<Create<NoteKind>>()?;
+    api.expose::<Create<TaskKind>>()?;
+    api.expose::<AnnotationsUpdate>()?;
+    api.expose::<AnnotationsDelete>()?;
+    api.expose::<AlertsList>()?;
+    api.expose::<AlertsDismiss>()?;
+    api.expose::<AlertsDismissAll>()?;
     Ok(())
 }
 

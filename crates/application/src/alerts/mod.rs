@@ -6,6 +6,7 @@
 //! to log, and it never undoes the snapshot.
 
 pub mod compare;
+pub mod observe;
 pub mod target;
 
 use std::collections::{BTreeSet, HashMap};
@@ -14,7 +15,7 @@ use std::sync::Arc;
 use codeskimr_domain::{
     Alert, AlertChange, AlertKind, AlertSighting, AlertState, AlertTrigger, Annotation,
     AnnotationId, AnnotationKind, AnnotationTarget, ProjectId, QualifiedName, Snapshot,
-    SymbolBaseline, SymbolKind, Timestamp,
+    SymbolBaseline, Timestamp,
 };
 
 use crate::error::CodedError;
@@ -64,8 +65,6 @@ struct Finding {
     references: Option<u32>,
     closest: Option<QualifiedName>,
     observed: Option<SymbolBaseline>,
-    /// Whether an open alert counts it once more.
-    counted: bool,
 }
 
 /// Compares the critical symbols of a project with their baselines after each snapshot.
@@ -174,20 +173,16 @@ impl AlertStep {
             return Ok(Outcome::Baselined);
         };
         let changes = compare::differences(&baseline, &now);
-        let open = look.open.get(&annotation.id);
-        let seen = open.is_some_and(|alert| {
+        let seen = look.open.get(&annotation.id).is_some_and(|alert| {
             alert
                 .sighting
                 .observed
                 .as_ref()
                 .is_some_and(|before| compare::differences(before, &now).is_empty())
         });
-        let said_changed = open.is_some_and(|alert| alert.sighting.kind == AlertKind::Changed);
-        if changes.is_empty() || (seen && said_changed) {
+        if changes.is_empty() || seen {
             return Ok(Outcome::Quiet);
         }
-        // A symbol that comes back as the open alert saw it last only turns the alert to `changed`
-        // again; it is no new change.
         self.raise(
             look,
             annotation,
@@ -197,26 +192,25 @@ impl AlertStep {
                 references: None,
                 closest: None,
                 observed: Some(now),
-                counted: !seen,
             },
         )
     }
 
     /// The symbol is not in the snapshot: `orphaned` if a symbol of the same simple name exists
     /// (it may have been renamed or moved, and the user can re-assign the annotation), otherwise
-    /// `removed` with the names that still point at it. An open alert of the same kind and closest
-    /// symbol already says so; one of another kind is turned to what is true now and keeps what the
-    /// symbol looked like when it was last seen.
+    /// `removed` with the names that still point at it. An open alert of either kind already
+    /// says so.
     fn vanished(&self, look: &Look<'_>, annotation: &Annotation) -> Result<Outcome, CodedError> {
-        let mut finding = self.loss(look, &annotation.target)?;
-        if let Some(alert) = look.open.get(&annotation.id) {
-            let sighting = &alert.sighting;
-            if sighting.kind == finding.kind && sighting.closest == finding.closest {
-                return Ok(Outcome::Quiet);
-            }
-            finding.observed.clone_from(&sighting.observed);
-            finding.counted = sighting.kind == AlertKind::Changed;
+        let said = look.open.get(&annotation.id).is_some_and(|alert| {
+            matches!(
+                alert.sighting.kind,
+                AlertKind::Removed | AlertKind::Orphaned
+            )
+        });
+        if said {
+            return Ok(Outcome::Quiet);
         }
+        let finding = self.loss(look, &annotation.target)?;
         self.raise(look, annotation, finding)
     }
 
@@ -244,7 +238,6 @@ impl AlertStep {
             references,
             closest,
             observed: None,
-            counted: true,
         })
     }
 
@@ -268,59 +261,46 @@ impl AlertStep {
             annotation: annotation.id,
             sighting,
             now: look.now,
-            counted: finding.counted,
         })?;
         Ok(Outcome::Raised)
     }
 
-    /// What the symbol looks like now. A namespace has no hash of its own: its content is the hash
-    /// over the sorted hashes of the types and members below it, so it changes when one of them
-    /// does, is added or is removed. A symbol without a hash (an old row, a kind that has none)
-    /// hashes as empty, so only its signature, complexity and lines can tell it apart.
+    /// What the symbol looks like now (see [`observe::baseline_of`]).
     fn observe(
         &self,
         snapshot: &Snapshot,
         state: &SymbolState,
     ) -> Result<SymbolBaseline, CodedError> {
-        let content_hash = if state.kind == SymbolKind::Namespace {
-            let mut hashes = self.states.child_hashes(snapshot.id, &state.name)?;
-            hashes.sort();
-            let parts: Vec<&str> = hashes
-                .iter()
-                .map(codeskimr_domain::ContentHash::as_str)
-                .collect();
-            self.digest.digest(&parts)?
-        } else {
-            match &state.content_hash {
-                Some(hash) => hash.clone(),
-                None => self.digest.digest(&[])?,
-            }
-        };
-        let words: Vec<&str> = state
-            .signature
-            .as_deref()
-            .unwrap_or_default()
-            .split_whitespace()
-            .collect();
-        Ok(SymbolBaseline {
-            content_hash,
-            signature_hash: self.digest.digest(&words)?,
-            loc: state.loc,
-            cc: state.cc,
-        })
+        observe::baseline_of(
+            (self.states.as_ref(), self.digest.as_ref()),
+            snapshot.id,
+            state,
+        )
     }
 
     fn announce(&self, project: ProjectId) -> Result<(), CodedError> {
-        let open = self.annotations.list_alerts(&AlertFilter {
-            project,
-            state: Some(AlertState::Open),
-        })?;
-        self.events.publish(&Event::AlertsChanged(AlertsChanged {
-            project,
-            open: u32::try_from(open.len()).unwrap_or(u32::MAX),
-        }));
-        Ok(())
+        announce_open(self.annotations.as_ref(), &self.events, project)
     }
+}
+
+/// Publishes `AlertsChanged` with the number of alerts of `project` that are open now.
+///
+/// # Errors
+/// The code of the store if the alerts cannot be read.
+pub fn announce_open(
+    store: &dyn AnnotationStore,
+    events: &EventBus,
+    project: ProjectId,
+) -> Result<(), CodedError> {
+    let open = store.list_alerts(&AlertFilter {
+        project,
+        state: Some(AlertState::Open),
+    })?;
+    events.publish(&Event::AlertsChanged(AlertsChanged {
+        project,
+        open: u32::try_from(open.len()).unwrap_or(u32::MAX),
+    }));
+    Ok(())
 }
 
 fn count(report: &mut AlertReport, outcome: Outcome) {

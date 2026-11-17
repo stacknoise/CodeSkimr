@@ -10,14 +10,13 @@ import type { Size, View } from "../graph/types";
 import {
   COLUMN,
   GRAPH,
-  LINK,
   MISSING,
   ROLE,
   START_MIN_SCALE,
   ZOOM_BUTTON_NOTCHES,
   ZOOM_SYMBOL,
 } from "./consts";
-import { buildGraph, type Card, type Column, type Edge, type Graph } from "./graph";
+import { buildGraph, type Card, type Column, type Graph } from "./graph";
 import { Legend } from "./Legend";
 import type { UsagesAnswer } from "./types";
 import styles from "./GraphView.module.css";
@@ -179,16 +178,6 @@ function Headings(props: { columns: Column[] }) {
   );
 }
 
-/** The classes of an edge: its tone, and once a card is picked the way it stands to that card, as the
- * map of the namespaces shows the links of the selected layer. */
-function edgeClass(edge: Edge, picked: number | null): string {
-  if (picked === null) {
-    return cx(styles.edge, styles[edge.tone]);
-  }
-  const link = edge.from === picked ? LINK.out : edge.to === picked ? LINK.in : LINK.none;
-  return cx(styles.edge, styles[edge.tone], styles[link]);
-}
-
 /** The plane that is moved and scaled: column headings, edges and cards. */
 function Plane(props: {
   graph: Graph;
@@ -209,7 +198,7 @@ function Plane(props: {
       <Headings columns={props.graph.columns} />
       <svg class={styles.edges} aria-hidden={true}>
         <For each={props.graph.edges}>
-          {(edge) => <path d={edge.d} class={edgeClass(edge, props.picked)} />}
+          {(edge) => <path d={edge.d} class={cx(styles.edge, styles[edge.tone])} />}
         </For>
       </svg>
       <For each={props.graph.cards}>

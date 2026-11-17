@@ -317,6 +317,52 @@ fn event_stream(url: &str, token: &str, source: &str) -> (String, String) {
     (foreign, head + &listener.join().unwrap())
 }
 
+/// Changing an annotation or an alert needs the token; reading them does not (ADR 0068).
+fn annotations_need_the_token_to_change(url: &str, token: &str) {
+    let changes = [
+        ("annotations.add_note", json!({ "project": 1, "text": "x" })),
+        ("annotations.delete", json!({ "project": 1, "id": 1 })),
+        ("alerts.dismiss", json!({ "project": 1, "alert": 1 })),
+        (
+            "alerts.dismiss_all",
+            json!({ "project": 1, "confirm": true }),
+        ),
+    ];
+    let reads = [
+        ("annotations.list", json!({ "project": 1 })),
+        ("annotations.summary", json!({ "project": 1 })),
+        ("alerts.list", json!({ "project": 1 })),
+    ];
+    for wrong in [None, Some("csk_wrong")] {
+        let headers: Vec<String> = wrong.map(bearer).into_iter().collect();
+        for (id, body) in &changes {
+            let answer = command_request(url, id, &headers, body);
+            assert_eq!(status(&answer), 401, "{id}, token {wrong:?}");
+            assert!(answer.contains("API-401"), "{id}");
+        }
+        for (id, body) in &reads {
+            let answer = command_request(url, id, &headers, body);
+            assert_ne!(status(&answer), 401, "{id} needs no token");
+        }
+    }
+    // The control: with the token the call gets past the guard and fails for its own reason.
+    let right = [bearer(token)];
+    for (id, body) in &changes {
+        let answer = command_request(url, id, &right, body);
+        assert_ne!(status(&answer), 401, "{id} with the token");
+    }
+}
+
+#[test]
+fn changing_annotations_and_alerts_over_http_needs_the_token() {
+    let folders = folders();
+    let outcome = run(&folders, |url, token| {
+        annotations_need_the_token_to_change(url, token);
+        Vec::new()
+    });
+    assert_eq!(outcome.answers.len(), 0);
+}
+
 #[test]
 fn bad_tokens_hosts_and_origins_are_refused_and_the_event_stream_leaks_nothing() {
     let folders = folders();
