@@ -8,6 +8,10 @@ pub const MESSAGE_INVERTED_SPAN: &str = "span ends before it starts";
 pub const MESSAGE_UNKNOWN_LABEL: &str = "unknown label";
 /// Message of `ModelError::NotFinite`.
 pub const MESSAGE_NOT_FINITE: &str = "value must be a finite number";
+/// Message of `ModelError::TooLong`.
+pub const MESSAGE_TOO_LONG: &str = "text is longer than the limit";
+/// Message of `ModelError::Inconsistent`.
+pub const MESSAGE_INCONSISTENT: &str = "fields do not fit the kind of the annotation";
 
 /// Separates the parts of a qualified name.
 pub const NAME_SEPARATOR: char = '.';
@@ -242,3 +246,45 @@ pub const ID_HASH_FINISH_ROTATION: u32 = 26;
 pub const ORIGIN_SYNTAX: &str = "syntax";
 /// Label of the origin of a symbol that level 2 created from an index (ADR 0055).
 pub const ORIGIN_INDEX: &str = "index";
+
+/// Label of `AnnotationKind::Critical`.
+pub const ANNOTATION_CRITICAL: &str = "critical";
+/// Label of `AnnotationKind::Note`.
+pub const ANNOTATION_NOTE: &str = "note";
+/// Label of `AnnotationKind::Task`.
+pub const ANNOTATION_TASK: &str = "task";
+
+/// Label of `TaskStatus::Open`.
+pub const TASK_OPEN: &str = "open";
+/// Label of `TaskStatus::InProgress`.
+pub const TASK_IN_PROGRESS: &str = "in_progress";
+/// Label of `TaskStatus::Done`.
+pub const TASK_DONE: &str = "done";
+
+/// Label of `AlertKind::Changed`.
+pub const ALERT_CHANGED: &str = "changed";
+/// Label of `AlertKind::Removed`.
+pub const ALERT_REMOVED: &str = "removed";
+/// Label of `AlertKind::Orphaned`.
+pub const ALERT_ORPHANED: &str = "orphaned";
+
+/// Label of `AlertState::Open`.
+pub const ALERT_STATE_OPEN: &str = "open";
+/// Label of `AlertState::Dismissed`.
+pub const ALERT_STATE_DISMISSED: &str = "dismissed";
+
+/// Label of `AlertTrigger::Scan`.
+pub const TRIGGER_SCAN: &str = "scan";
+/// Label of `AlertTrigger::Watcher`.
+pub const TRIGGER_WATCHER: &str = "watcher";
+/// Label of `AlertTrigger::Fetch`.
+pub const TRIGGER_FETCH: &str = "fetch";
+
+/// Label of `AlertChange::Content`.
+pub const CHANGE_CONTENT: &str = "content";
+/// Label of `AlertChange::Signature`.
+pub const CHANGE_SIGNATURE: &str = "signature";
+/// Label of `AlertChange::Cc`.
+pub const CHANGE_CC: &str = "cc";
+/// Label of `AlertChange::Loc`.
+pub const CHANGE_LOC: &str = "loc";

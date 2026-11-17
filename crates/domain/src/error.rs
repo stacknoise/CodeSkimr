@@ -5,8 +5,8 @@ use std::fmt;
 use codeskimr_codes::{Coded, ErrorCode};
 
 use crate::consts::{
-    MESSAGE_EMPTY, MESSAGE_INVERTED_SPAN, MESSAGE_NOT_FINITE, MESSAGE_NOT_POSITIVE,
-    MESSAGE_UNKNOWN_LABEL, MESSAGE_UNKNOWN_NODE,
+    MESSAGE_EMPTY, MESSAGE_INCONSISTENT, MESSAGE_INVERTED_SPAN, MESSAGE_NOT_FINITE,
+    MESSAGE_NOT_POSITIVE, MESSAGE_TOO_LONG, MESSAGE_UNKNOWN_LABEL, MESSAGE_UNKNOWN_NODE,
 };
 
 /// A value violates a rule of the domain model.
@@ -27,11 +27,19 @@ pub enum ModelError {
     NotPositive,
     /// An edge names a node that does not exist.
     UnknownNode,
+    /// A text of user input is longer than the limit (ADR 0068).
+    TooLong,
+    /// The fields of an annotation do not fit its kind, for example a due date on a note.
+    Inconsistent,
 }
 
 impl Coded for ModelError {
     fn code(&self) -> ErrorCode {
-        ErrorCode::UnexpectedInternalError
+        match self {
+            Self::TooLong => ErrorCode::AnnotationTextTooLong,
+            Self::Inconsistent => ErrorCode::AnnotationInvalid,
+            _ => ErrorCode::UnexpectedInternalError,
+        }
     }
 }
 
@@ -44,6 +52,8 @@ impl fmt::Display for ModelError {
             Self::NotFinite => MESSAGE_NOT_FINITE,
             Self::NotPositive => MESSAGE_NOT_POSITIVE,
             Self::UnknownNode => MESSAGE_UNKNOWN_NODE,
+            Self::TooLong => MESSAGE_TOO_LONG,
+            Self::Inconsistent => MESSAGE_INCONSISTENT,
         })
     }
 }

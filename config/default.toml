@@ -60,6 +60,15 @@ debounce_ms = 200
 # A batch of file events is handed over at the latest this long after its first event, so a build that writes all the time cannot starve the re-scan.
 max_wait_ms = 2000
 
+# Annotations and alerts (ADR 0068): notes, tasks and system-critical marks on symbols.
+[annotations]
+# Dismissed alerts are kept this many days and then purged (at start and once a day).
+dismissed_retention_days = 30
+# Longest text of an annotation (note, task description, reason of a critical mark), in characters.
+max_text_chars = 4000
+# Longest title of a task, in characters; it must not exceed max_text_chars.
+max_title_chars = 500
+
 # Syntax fingerprints for similar-code search and the duplicate check (blueprint 10.4).
 [similarity]
 # Number of syntax tokens per n-gram that is hashed.

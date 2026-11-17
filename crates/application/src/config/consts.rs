@@ -77,6 +77,12 @@ pub mod keys {
     pub const MCP_MAX_SNIPPET_BYTES: &str = "mcp.max_snippet_bytes";
     /// `snapshots.retention_count`
     pub const RETENTION_COUNT: &str = "snapshots.retention_count";
+    /// `annotations.dismissed_retention_days`
+    pub const ANNOTATIONS_RETENTION_DAYS: &str = "annotations.dismissed_retention_days";
+    /// `annotations.max_text_chars`
+    pub const ANNOTATIONS_MAX_TEXT_CHARS: &str = "annotations.max_text_chars";
+    /// `annotations.max_title_chars`
+    pub const ANNOTATIONS_MAX_TITLE_CHARS: &str = "annotations.max_title_chars";
     /// `graph.node_width`
     pub const GRAPH_NODE_WIDTH: &str = "graph.node_width";
     /// `graph.node_height`

@@ -1,6 +1,6 @@
 # 0068 – Annotations on symbols: system-critical marks, notes, tasks and the alert list
 
-Status: proposed
+Status: accepted
 
 ## Context
 
