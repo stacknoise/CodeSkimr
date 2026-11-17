@@ -5,10 +5,10 @@ import { activeProject } from "../../shared/project/active";
 import { AnnotationPanel } from "../annotations/Panel";
 import { annotationsAvailable } from "../annotations/store";
 import { memberTarget, shownTarget, shownType } from "./annotate";
-import { LOCATION_SEPARATOR, PANEL_WIDTH_PX } from "./consts";
+import { LOCATION_SEPARATOR } from "./consts";
 import { lineRange } from "./format";
 import { shownMember } from "./explorer";
-import { sourceWidth } from "./layout";
+import { panelWidth, sourceWidth } from "./layout";
 import { SourcePane } from "./SourcePane";
 import type { Target } from "../annotations/types";
 import type { MemberRow, SymbolInfo } from "./types";
@@ -96,7 +96,7 @@ export function SidePanel() {
     <Show when={annotationsAvailable() !== false || !member()}>
       <section
         class={styles.column}
-        style={{ "flex-basis": `${member() ? PANEL_WIDTH_PX : sourceWidth.size()}px` }}
+        style={{ "flex-basis": `${(member() ? panelWidth : sourceWidth).size()}px` }}
         aria-label={t(I18N_KEYS.ANNOTATIONS_PANEL_LABEL)}
       >
         <Content />

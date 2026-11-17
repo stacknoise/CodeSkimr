@@ -55,6 +55,8 @@ export const I18N_KEYS = {
   BOARD_COLUMN: "board-column",
   BOARD_EMPTY_COLUMN: "board-empty-column",
   BOARD_EMPTY: "board-empty",
+  BOARD_EMPTY_NOTES: "board-empty-notes",
+  BOARD_VIEW_LABEL: "board-view-label",
   BOARD_LOADING: "board-loading",
   BOARD_FAILED: "board-failed",
   BOARD_OPEN_SYMBOL: "board-open-symbol",

@@ -94,6 +94,13 @@
     stroke-dasharray: 5 4;
 }
 
+.dimEdge {
+    stroke: var(--faint);
+    stroke-width: 1;
+    stroke-dasharray: none;
+    opacity: 0.35;
+}
+
 .card {
     position: absolute;
     display: flex;
@@ -117,6 +124,9 @@
 .card.picked {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--accent-bg);
+}
+.card.dim {
+    opacity: 0.45;
 }
 .card.focus {
     border: 2px solid var(--ink);

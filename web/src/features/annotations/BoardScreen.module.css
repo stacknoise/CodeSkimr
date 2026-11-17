@@ -19,15 +19,6 @@
     font-weight: 700;
 }
 
-.chip {
-    font: 12px var(--font-mono);
-    color: var(--muted);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-badge);
-    padding: 3px var(--space-8);
-    white-space: nowrap;
-}
-
 .fill {
     flex: 1;
 }
@@ -154,4 +145,61 @@
 .done {
     color: var(--muted);
     font-size: 11px;
+}
+
+.views {
+    display: flex;
+    gap: var(--space-6);
+}
+
+.view {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-badge);
+    padding: 3px var(--space-10);
+    background: var(--surface);
+    color: var(--muted);
+    font: 12px var(--font-mono);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.view.on {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.view:focus-visible,
+.actions button:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
+}
+
+.notes {
+    max-width: 720px;
+}
+
+.actions {
+    display: flex;
+    gap: var(--space-8);
+    margin-top: var(--space-8);
+}
+
+.actions button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ink-2);
+    font: 11px var(--font-sans);
+    cursor: pointer;
+}
+
+.actions button:hover {
+    color: var(--accent);
+}
+
+.actions .danger {
+    color: var(--bad);
+    font-weight: 600;
 }

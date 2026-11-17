@@ -17,6 +17,7 @@ export function RailLink(props: { route: Route }) {
       href={hrefOf(props.route.path)}
       class={cx(styles.railButton, active() && styles.on)}
       aria-label={t(props.route.label)}
+      title={t(props.route.label)}
       aria-current={active() ? CURRENT_PAGE : undefined}
       onClick={(event) => {
         event.preventDefault();

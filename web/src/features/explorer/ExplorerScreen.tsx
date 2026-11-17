@@ -7,7 +7,7 @@ import { pendingFocus, showUsages } from "../../shared/navigation/navigation";
 import { ORIENTATION, SIDE } from "../../shared/layout/consts";
 import { Splitter } from "../../shared/layout/Splitter";
 import { showInGraph } from "../graph/show";
-import { loadSummary, loadTexts } from "../annotations/store";
+import { annotationsAvailable, loadSummary, loadTexts } from "../annotations/store";
 import { showAnnotationText } from "../annotations/flags";
 import { noteOnSelection, taskOnSelection, toggleSelectionCritical } from "./annotate";
 import { DetailPane } from "./DetailPane";
@@ -29,7 +29,7 @@ import {
 } from "./explorer";
 import { openInEditor } from "./editor";
 import { useExplorerKeys } from "./keys";
-import { sourceWidth, treeWidth } from "./layout";
+import { panelWidth, sourceWidth, treeWidth } from "./layout";
 import { Overview } from "./Overview";
 import { clearSource, loadSource } from "./source";
 import { SidePanel } from "./SidePanel";
@@ -190,8 +190,15 @@ function Columns(props: { explorer: ReturnType<typeof useExplorer> }) {
       />
       <Splitter pane={treeWidth} orientation={ORIENTATION.vertical} side={SIDE.before} />
       <Details onPickMember={explorer.pickMember} />
-      <Show when={shownMember() === null}>
-        <Splitter pane={sourceWidth} orientation={ORIENTATION.vertical} side={SIDE.after} />
+      <Show
+        when={shownMember() !== null}
+        fallback={
+          <Splitter pane={sourceWidth} orientation={ORIENTATION.vertical} side={SIDE.after} />
+        }
+      >
+        <Show when={annotationsAvailable() !== false}>
+          <Splitter pane={panelWidth} orientation={ORIENTATION.vertical} side={SIDE.after} />
+        </Show>
       </Show>
       <SidePanel />
     </div>

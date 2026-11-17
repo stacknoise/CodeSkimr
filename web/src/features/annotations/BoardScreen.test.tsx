@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { openProject } from "../../shared/project/active";
-import { bodiesOf, DONE_TASK, MARK, page, serveBodies, TASK } from "../../tests/annotations";
+import { bodiesOf, DONE_TASK, MARK, NOTE, page, serveBodies, TASK } from "../../tests/annotations";
 import { answer, useServerSession } from "../../tests/commands";
 import { resetBoard } from "./board";
 import { BoardScreen } from "./BoardScreen";
@@ -25,9 +25,13 @@ function serveBoard() {
       if (body.kind === "task") {
         return answer(page([TASK, OTHER, DONE_TASK]));
       }
+      if (body.kind === "note") {
+        return answer(page([NOTE]));
+      }
       return answer(body.kind === "critical" ? page([MARK]) : page([], null));
     },
     "annotations.update": () => answer(TASK),
+    "annotations.delete": () => answer({}),
     "annotations.summary": () => answer(page([])),
   });
 }
@@ -94,6 +98,32 @@ describe("the board of the tasks", () => {
     });
     await waitFor(() =>
       expect(bodiesOf("annotations.update")).toEqual([{ project: 1, id: 3, status: "done" }]),
+    );
+  });
+
+  it("switches between the tasks and the notes, and the filters only belong to the tasks", async () => {
+    serveBoard();
+    render(() => <BoardScreen />);
+    await screen.findByText("Add a rounding test");
+    expect(screen.getByRole("button", { name: "Only critical" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /^Notes 1/ }));
+    expect(await screen.findByText(/Discount before/)).toBeTruthy();
+    expect(screen.queryByText("Add a rounding test")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Only critical" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^Tasks/ }));
+    expect(await screen.findByText("Add a rounding test")).toBeTruthy();
+  });
+
+  it("deletes a note or a task only after a second click", async () => {
+    serveBoard();
+    render(() => <BoardScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: /^Notes 1/ }));
+    const card = (await screen.findByText(/Discount before/)).closest("li")!;
+    fireEvent.click(within(card).getByRole("button", { name: "Delete" }));
+    expect(bodiesOf("annotations.delete")).toEqual([]);
+    fireEvent.click(within(card).getByRole("button", { name: "Delete for good?" }));
+    await waitFor(() =>
+      expect(bodiesOf("annotations.delete")).toEqual([{ project: 1, id: NOTE.id }]),
     );
   });
 

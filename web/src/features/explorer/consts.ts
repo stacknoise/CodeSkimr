@@ -278,14 +278,18 @@ export const PATH_JOINER = "/";
 /** Keyboard hints on the three buttons of the header. */
 export const HOTKEY = { usages: "U", graph: "G", editor: "E" } as const;
 /** Width of the side panel next to a selected member, whose source takes the middle column. */
-export const PANEL_WIDTH_PX = 340;
 
 /** Keys under which the sizes of the columns are kept, and their limits in pixels (mock 2 shows
  * the first values). */
-export const PANE_KEY = { tree: "explorer.tree", source: "explorer.source" } as const;
+export const PANE_KEY = {
+  tree: "explorer.tree",
+  source: "explorer.source",
+  panel: "explorer.panel",
+} as const;
 export const PANE_BOUNDS = {
   tree: { initial: 290, min: 200, max: 640 },
   source: { initial: 560, min: 280, max: 1100 },
+  panel: { initial: 400, min: 280, max: 640 },
 } as const;
 
 /** The columns of the member table that sort it. */
