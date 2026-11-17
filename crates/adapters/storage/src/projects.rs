@@ -274,6 +274,7 @@ struct ProjectRow {
 }
 
 impl ProjectRow {
+    // codeskimr: allow CHK-102 maps a row of the project query into its columns
     fn from_row(row: &Row<'_>) -> rusqlite::Result<Self> {
         let cols = Cols::new(row);
         Ok(Self {

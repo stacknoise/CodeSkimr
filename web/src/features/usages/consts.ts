@@ -102,7 +102,7 @@ export const MISSING = "–";
 export const LOCATION_JOIN = ":";
 
 /** Roles of the groups of the toolbar. */
-export const ROLE = { group: "group", region: "region", alert: "alert" } as const;
+export const ROLE = { group: "group", region: "region" } as const;
 /** Rating of the verification of a hit, named as the styles name it. */
 export const STATE = {
   verified: "verified",

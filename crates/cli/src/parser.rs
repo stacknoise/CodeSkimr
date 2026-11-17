@@ -232,6 +232,7 @@ fn check_args(check: &ArgMatches) -> CheckArgs {
     }
 }
 
+// codeskimr: allow CHK-102 maps the parsed arguments of export into its argument struct
 fn export_args(export: &ArgMatches) -> ExportArgs {
     ExportArgs {
         project: export

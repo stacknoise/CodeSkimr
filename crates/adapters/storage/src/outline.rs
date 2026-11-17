@@ -93,6 +93,7 @@ struct MemberColumns {
 }
 
 impl MemberColumns {
+    // codeskimr: allow CHK-102 maps a row of the member query into its columns
     fn from_row(row: &Row<'_>) -> rusqlite::Result<Self> {
         let cols = Cols::new(row);
         Ok(Self {

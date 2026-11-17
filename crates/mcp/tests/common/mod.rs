@@ -9,12 +9,12 @@ use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, CodeIndex, CodeSpan, DependencyEdge, DependencyPage, DependencyQuery,
-    DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, FileHit, ImpactPage, ImpactedSymbol,
-    KeyEntry, KeyKind, KeySearch, LanguageShare, MemberRef, PathsReport, PreviousIndex,
-    ProjectCatalog, ProjectKeys, ProjectOverview, ProjectRepository, ProjectScanner,
+    DiscoveredFile, Excerpt, FileAnalyzer, FileDiscovery, FileFacts, FileHit, ImpactPage,
+    ImpactedSymbol, KeyEntry, KeyKind, KeySearch, LanguageShare, MemberRef, PathsReport,
+    PreviousIndex, ProjectCatalog, ProjectKeys, ProjectOverview, ProjectRepository, ProjectScanner,
     ProjectToolCheck, Rescanned, SearchHit, SimilarHit, SimilarQuery, SimilarityIndex,
-    SnippetFingerprinter, SymbolDetail, SymbolKey, SymbolLabel, TypeFocus, UsageEntry, UsageIndex,
-    UsagePage,
+    SnippetFingerprinter, SourceText, SymbolDetail, SymbolKey, SymbolLabel, TypeFocus, UsageEntry,
+    UsageIndex, UsagePage,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
@@ -493,6 +493,22 @@ impl SnippetFingerprinter for FakeSnippets {
 /// A disk with one function of 50 code lines.
 pub struct FakeDisk;
 
+/// The fake disk has no text lines: a function never carries the marker of a reasoned exception.
+impl SourceText for FakeDisk {
+    fn excerpt(
+        &self,
+        _: &FolderPath,
+        _: &RelativePath,
+        _: (u32, u32),
+        _: (u32, u64),
+    ) -> Result<Excerpt, CodedError> {
+        Ok(Excerpt {
+            lines: Vec::new(),
+            truncated: false,
+        })
+    }
+}
+
 impl FileDiscovery for FakeDisk {
     fn discover(
         &self,
@@ -549,6 +565,7 @@ impl FileAnalyzer for FakeDisk {
 pub fn checker() -> Arc<ConventionChecker> {
     let disk = Arc::new(FakeDisk);
     Arc::new(ConventionChecker::new(
+        disk.clone(),
         disk.clone(),
         disk,
         Conventions {

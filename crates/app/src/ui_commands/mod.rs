@@ -276,27 +276,22 @@ fn register_projects(
 fn register_credentials(
     registry: &mut Registry,
     catalog: &Arc<SqliteStore>,
-    context: &Arc<Context>,
+    context: &Context,
 ) -> Result<(), CodedError> {
-    add(
-        registry,
-        ListCredentials {
-            catalog: catalog.clone(),
-            secrets: Arc::clone(&context.secrets),
-        },
-    )?;
+    let secrets = &context.secrets;
+    let list = ListCredentials {
+        catalog: catalog.clone(),
+        secrets: Arc::clone(secrets),
+    };
+    add(registry, list)?;
     add(
         registry,
         SetCredential {
-            secrets: Arc::clone(&context.secrets),
+            secrets: Arc::clone(secrets),
         },
     )?;
-    add(
-        registry,
-        DeleteCredential {
-            secrets: Arc::clone(&context.secrets),
-        },
-    )
+    let secrets = Arc::clone(secrets);
+    add(registry, DeleteCredential { secrets })
 }
 
 fn register_search(registry: &mut Registry, store: &Arc<SqliteStore>) -> Result<(), CodedError> {

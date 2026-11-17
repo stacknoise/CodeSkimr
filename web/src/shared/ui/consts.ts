@@ -55,3 +55,6 @@ export const TONE = {
 } as const;
 /** Where a name may break: right after `.`, `_` or `:`. */
 export const BREAK_AFTER = /(?<=[._:])/;
+
+/** The ARIA role of a note that screen readers announce at once. */
+export const ALERT_ROLE = "alert";

@@ -42,3 +42,15 @@ pub const TOKENS_TS_PATH: &str = "web/src/shared/theme/tokens.ts";
 pub const THEME_INIT_PATH: &str = "web/public/theme-init.js";
 /// Marker line at the top of generated token files.
 pub const TOKENS_NOTICE: &str = "Generated from design/tokens.toml by tools/codegen. Do not edit.";
+/// The class of an error code by its digit: the name in TypeScript and the `Class` variant in
+/// Rust (blueprint 11.2). A digit that is not listed is an internal error.
+pub const CLASS_NAMES: [(u8, &str, &str); 6] = [
+    (1, "invalid_input", "InvalidInput"),
+    (2, "not_found", "NotFound"),
+    (3, "conflict", "Conflict"),
+    (4, "permission", "Permission"),
+    (5, "limit", "Limit"),
+    (6, "external", "External"),
+];
+/// The name of every class that is not in [`CLASS_NAMES`], in TypeScript and in Rust.
+pub const INTERNAL_CLASS: (&str, &str) = ("internal", "Internal");

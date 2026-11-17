@@ -2,20 +2,15 @@
 
 use std::fmt::Write;
 
-use crate::consts::{GENERATED_NOTICE, MESSAGE_KEY_PREFIX};
+use crate::consts::{CLASS_NAMES, GENERATED_NOTICE, INTERNAL_CLASS, MESSAGE_KEY_PREFIX};
 use crate::registry::Registry;
 
 /// Class names in TypeScript, keyed by digit (see blueprint 11.2).
 fn class_name(digit: u8) -> &'static str {
-    match digit {
-        1 => "invalid_input",
-        2 => "not_found",
-        3 => "conflict",
-        4 => "permission",
-        5 => "limit",
-        6 => "external",
-        _ => "internal",
-    }
+    CLASS_NAMES
+        .iter()
+        .find(|(known, _, _)| *known == digit)
+        .map_or(INTERNAL_CLASS.0, |(_, name, _)| name)
 }
 
 /// Renders the complete generated TypeScript file.

@@ -29,6 +29,16 @@ pub const CHECK_FIRST_ID: u64 = 1;
 pub const STORED_DUPLICATE_HITS: u32 = 20;
 /// Snapshot id used for the throw-away analysis of a check; nothing is stored.
 pub const CHECK_SNAPSHOT_ID: u64 = 0;
+/// The words in a comment directly above a pure mapping function that exempt it from `CHK-102`
+/// (ADR 0070). A reason must follow.
+pub const CHECK_ALLOW_MARKER: &str = "codeskimr: allow CHK-102";
+/// How many lines above its declaration a function is searched for the marker, attributes and
+/// doc comments included.
+pub const CHECK_MARKER_LOOKBACK: u32 = 12;
+/// The marker only counts with a reason of at least this many letters and digits after it.
+pub const CHECK_MARKER_MIN_REASON: usize = 8;
+/// Largest file that is read for the marker, in bytes.
+pub const CHECK_MARKER_MAX_FILE_BYTES: u64 = 4_194_304;
 
 /// At least one analysis worker, whatever the machine reports.
 pub const MIN_WORKERS: usize = 1;

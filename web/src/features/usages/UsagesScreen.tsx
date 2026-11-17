@@ -1,4 +1,4 @@
-import { createEffect, Match, on, Show, Switch } from "solid-js";
+import { createEffect, Match, on, Switch } from "solid-js";
 import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
@@ -10,7 +10,6 @@ import { ORIENTATION, SIDE } from "../../shared/layout/consts";
 import { Splitter } from "../../shared/layout/Splitter";
 import { HitList } from "./HitList";
 import { hitsHeight, panelWidth } from "./layout";
-import { ROLE } from "./consts";
 import { listedHits, listedPlace } from "./hits";
 import { nextHit, useUsagesKeys } from "./keys";
 import { moveUsages, originSymbol } from "../../shared/navigation/navigation";
@@ -35,15 +34,13 @@ import {
   usagesLoading,
   walkDepth,
 } from "./usages";
+import { NoticeBox } from "../../shared/ui/NoticeBox";
 import styles from "./UsagesScreen.module.css";
 
 function Message(props: { title?: string; text: string; alert?: boolean }) {
   return (
     <div class={styles.centered}>
-      <div class={styles.message} role={props.alert ? ROLE.alert : undefined}>
-        <Show when={props.title}>{(title) => <h2>{title()}</h2>}</Show>
-        <p>{props.text}</p>
-      </div>
+      <NoticeBox class={styles.message} {...props} />
     </div>
   );
 }

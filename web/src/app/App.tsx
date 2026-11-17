@@ -1,4 +1,5 @@
-import { createEffect, For, Match, onCleanup, Show, Switch } from "solid-js";
+import { createEffect, For, onCleanup, Show } from "solid-js";
+import { Dynamic } from "solid-js/web";
 import { ConnectionScreen } from "../features/session/ConnectionScreen";
 import { GraphScreen } from "../features/graph/GraphScreen";
 import { LayersScreen } from "../features/layers/LayersScreen";
@@ -17,6 +18,7 @@ import { I18N_KEYS } from "../shared/i18n/keys";
 import { KIND } from "../shared/session/consts";
 import { sessionState } from "../shared/session/session";
 import { cx } from "../shared/ui/cx";
+import { screenAt, type ScreenTable } from "../shared/ui/screenAt";
 import {
   EXPLORER_ROUTE,
   FLUSH_PATHS,
@@ -36,30 +38,19 @@ import { ProjectCrumb } from "./ProjectCrumb";
 import { activeProject } from "../shared/project/active";
 import { currentPath, navigate } from "./router";
 
+/** The screens of the app by their path; the projects screen answers every other path. */
+const SCREENS: ScreenTable = [
+  [SETTINGS_ROUTE.path, SettingsScreen],
+  [LAYERS_ROUTE.path, LayersScreen],
+  [GRAPH_ROUTE.path, GraphScreen],
+  [SCAN_ROUTE.path, ScanScreen],
+  [EXPLORER_ROUTE.path, ExplorerScreen],
+  [USAGES_ROUTE.path, UsagesScreen],
+];
+
 /** The screen of the current path. */
 function Screen() {
-  return (
-    <Switch fallback={<ProjectsScreen />}>
-      <Match when={currentPath() === SETTINGS_ROUTE.path}>
-        <SettingsScreen />
-      </Match>
-      <Match when={currentPath() === LAYERS_ROUTE.path}>
-        <LayersScreen />
-      </Match>
-      <Match when={currentPath() === GRAPH_ROUTE.path}>
-        <GraphScreen />
-      </Match>
-      <Match when={currentPath() === SCAN_ROUTE.path}>
-        <ScanScreen />
-      </Match>
-      <Match when={currentPath() === EXPLORER_ROUTE.path}>
-        <ExplorerScreen />
-      </Match>
-      <Match when={currentPath() === USAGES_ROUTE.path}>
-        <UsagesScreen />
-      </Match>
-    </Switch>
-  );
+  return <Dynamic component={screenAt(SCREENS, currentPath(), ProjectsScreen)} />;
 }
 
 /** The frame of every screen: top bar, rail, main area and status bar (blueprint 15.2). */
