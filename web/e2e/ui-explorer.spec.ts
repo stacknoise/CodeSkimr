@@ -33,7 +33,16 @@ test.describe("the explorer", () => {
   test("without an open project the explorer asks for one", async ({ page, harness }) => {
     const { copy } = keepLaunchFile(await harness.launchFile());
     await page.goto(`file://${copy}`);
-    await page.getByRole("link", { name: "Explorer" }).click();
-    await expect(page.getByText("No project open")).toBeVisible();
+    // The screens of a project are shut until one is open; projects and settings stay open.
+    await expect(page.getByRole("link", { name: "Explorer" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    await expect(page.getByRole("link", { name: "Scans and performance" })).toHaveAttribute(
+      "aria-disabled",
+      "true",
+    );
+    await expect(page.getByRole("link", { name: "Settings" })).toHaveAttribute("href", "/settings");
+    await expect(page.getByRole("link", { name: "Projects" })).toHaveAttribute("title", "Projects");
   });
 });
