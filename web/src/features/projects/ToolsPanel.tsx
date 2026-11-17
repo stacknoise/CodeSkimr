@@ -12,7 +12,7 @@ import type { ProjectRow, ToolInfo } from "./types";
 import styles from "./ToolsPanel.module.css";
 
 /** What is wrong with a tool, in words. */
-function stateText(tool: ToolInfo): string {
+export function stateText(tool: ToolInfo): string {
   if (tool.state === TOOL_STATE.missing) {
     return t(I18N_KEYS.PROJECTS_TOOLS_STATE_MISSING);
   }

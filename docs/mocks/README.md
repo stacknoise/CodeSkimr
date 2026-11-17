@@ -20,12 +20,13 @@ Binding UI reference for the web frontend (blueprint section 15). One file per s
 | 14 | Annotations: marks, notes, tasks | `Annotations.dc.html` |
 | 15 | Alerts | `Alerts.dc.html` |
 | 16 | Task board | `Tasks.dc.html` |
+| 17 | Settings: indexers (tool check of level 2) | `Indexers.dc.html` |
 
 Mocks 7 to 13 have a `theme` property (`hell`, `petrol`, `dunkel`; values in blueprint 15.3, ADR 0021). Mocks 1 to 6 are drawn in Hell. Screens 7 to 12 belong to the team edition (ADR 0019), screen 13 to 1.0.
 
 The files are written in a design-canvas format and do not render on their own in a browser. Read them for exact values (inline styles); to look at the rendered screens, open the published canvas: <https://claude.ai/artifact/FRpzF7hdgZVdHCm2mxRuNZ> (the link works for the owner of the canvas).
 
-Mocks 14 to 16 (ADR 0068) are plain static pages with several boards each; they open in any browser. The theme is the class of `body` (`hell`, `petrol`, `dunkel`), the default is Petrol. They are not part of `canvas.json`.
+Mocks 14 to 17 (14 to 16: ADR 0068; 17: indexer section of the settings, approved by the product owner on 2026-11-17) are plain static pages with several boards each; they open in any browser. The theme is the class of `body` (`hell`, `petrol`, `dunkel`), the default is Petrol. They are not part of `canvas.json`.
 
 All names and numbers in the mocks are sample data.
 

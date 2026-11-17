@@ -217,6 +217,12 @@ pub trait IndexRunner: Send + Sync {
     /// have a usable version. Every tool that is usable is reported with the version it printed.
     fn check(&self, spec: &IndexerSpec) -> IndexerStatus;
 
+    /// Where `program` is found on the search path of the user, for a listing. `None` if it is
+    /// not found, or if the runner cannot tell.
+    fn locate(&self, _program: &str) -> Option<String> {
+        None
+    }
+
     /// Runs the indexer once and returns its index file.
     ///
     /// # Errors

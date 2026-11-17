@@ -6,6 +6,12 @@ export const COMMAND = {
   tools: "projects.tools",
 } as const;
 
+/** The role of a tool that an indexer needs besides itself. */
+export const TOOL_ROLE_TOOLCHAIN = "toolchain";
+
+/** Id of the command that lists the indexers of this machine, without a project. */
+export const INDEXERS_COMMAND = "tools.indexers";
+
 /** Ids of the credential commands (crates/app/src/ui_commands/consts.rs). */
 export const CREDENTIAL_COMMAND = {
   list: "credentials.list",

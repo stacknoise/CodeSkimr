@@ -36,3 +36,8 @@ export const FOLLOW_SYSTEM_ID = "follow-system";
 export const LANGUAGE_FIELD_ID = "language";
 /** Name of the second sample project in the preview. */
 export const PREVIEW_OTHER_PROJECT = "haac-bridge";
+
+/** What the table of indexers shows where a value is missing. */
+export const NO_VALUE = "–";
+/** How long "Copied" stays on the button, in milliseconds. */
+export const COPIED_MS = 2000;

@@ -147,6 +147,7 @@ mod cases {
                 languages: vec!["csharp".to_owned()],
                 found: found.map(str::to_owned),
                 required: None,
+                path: None,
                 purpose_key: "tool-scip-dotnet-purpose".to_owned(),
                 install_key: "tool-scip-dotnet-install".to_owned(),
             }],

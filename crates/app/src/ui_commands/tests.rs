@@ -146,10 +146,25 @@ fn the_commands_are_offered() {
             "projects.tools",
             "search.query",
             "status.info",
+            "tools.indexers",
             "usages.code",
             "usages.query"
         ]
     );
+}
+
+#[test]
+fn the_indexers_are_listed_without_any_project() {
+    let fixture = Fixture::new();
+    let view = fixture.call("tools.indexers", Value::Null).unwrap();
+    let tools: Vec<&str> = view["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|tool| tool["tool"].as_str())
+        .collect();
+    assert!(tools.contains(&"scip-dotnet"), "{tools:?}");
+    assert!(view["checked_at"].is_i64());
 }
 
 #[test]
