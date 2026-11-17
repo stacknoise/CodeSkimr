@@ -91,6 +91,29 @@ async function rereadSymbol(project: number, id: number): Promise<SymbolInfo | n
   }
 }
 
+/** The held symbols after a new read: those read again replace the old ones (a symbol that cannot
+ * be read any more is dropped), and a symbol that was read meanwhile, by a navigation from another
+ * screen, stays. */
+function keepRead(
+  now: ReadonlyMap<number, SymbolInfo>,
+  known: readonly number[],
+  symbols: readonly (SymbolInfo | null)[],
+): Map<number, SymbolInfo> {
+  const next = new Map<number, SymbolInfo>();
+  for (const [id, info] of now) {
+    if (!known.includes(id)) {
+      next.set(id, info);
+    }
+  }
+  known.forEach((id, index) => {
+    const info = symbols[index];
+    if (info) {
+      next.set(id, info);
+    }
+  });
+  return next;
+}
+
 /** Reads the tree and the symbols read so far again, and keeps what the user did with them. A
  * symbol that cannot be read any more is dropped from the held ones; the tree is still replaced. */
 async function refreshOutline(project: number): Promise<void> {
@@ -101,14 +124,7 @@ async function refreshOutline(project: number): Promise<void> {
     const symbols = await Promise.all(known.map((id) => rereadSymbol(project, id)));
     if (mine === generation) {
       setOutline(read);
-      setDetails(
-        new Map(
-          known.flatMap((id, index) => {
-            const info = symbols[index];
-            return info ? [[id, info] as const] : [];
-          }),
-        ),
-      );
+      setDetails((now) => keepRead(now, known, symbols));
     }
   } catch {
     // The old tree is still right for what the user sees; the next scan or visit tries again.
