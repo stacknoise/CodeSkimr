@@ -2,14 +2,20 @@ import { createSignal } from "solid-js";
 import { USAGES_ROUTE } from "../../app/consts";
 import { navigate } from "../../app/router";
 
-/** Where another screen (the quick search, the usages) wants the explorer tree to go: a type, or a
- * member of it. */
-export interface Focus {
+/** A type, or a member of it. */
+export interface TypeFocus {
   type: number;
   member: number | null;
   /** Kind of the member, to open the group that holds it. */
   kind: string | null;
 }
+
+/** A row of the tree above the types: a namespace (by its name, or by the start of it when the map
+ * joins several), or a layer. */
+export type RowFocus = { namespace: string } | { layer: string };
+
+/** Where another screen (the quick search, the usages, the maps) wants the explorer tree to go. */
+export type Focus = TypeFocus | RowFocus;
 
 const [pending, setPending] = createSignal<Focus | null>(null);
 const [usagesSymbol, setUsagesSymbol] = createSignal<number | null>(null);

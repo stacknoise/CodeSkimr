@@ -101,6 +101,7 @@
     align-items: center;
     gap: var(--space-6);
     --tree-row-height: 26px;
+    --critical-stripe: 3px;
     /* Space above the one line of the tail, so that its badges sit in the middle of the row. */
     --tree-tail-inset: 4px;
     height: var(--tree-row-height);
@@ -116,6 +117,16 @@
 .selected:hover {
     background: var(--accent-bg);
     box-shadow: inset 2px 0 0 var(--accent);
+}
+
+/* A selected critical row carries both stripes: the pink one of the mark lies on the edge, and the
+   stripe of the selection moves next to it, so that neither covers the other. The first shadow is
+   only a filler in the colour of the selected row under the pink stripe; it is not seen. */
+.selected.critical,
+.selected.critical:hover {
+    box-shadow:
+        inset var(--critical-stripe) 0 0 var(--accent-bg),
+        inset calc(var(--critical-stripe) + 2px) 0 0 var(--accent);
 }
 
 .caret {
@@ -194,6 +205,6 @@
     left: 0;
     top: 2px;
     bottom: 2px;
-    width: 3px;
+    width: var(--critical-stripe);
     background: var(--critical);
 }

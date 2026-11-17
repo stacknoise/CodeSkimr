@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
 import { beforeEach, describe, expect, it } from "vitest";
 import { currentPath } from "../../app/router";
+import { pendingFocus, requestFocus } from "../../shared/navigation/navigation";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { activeProject, openProject } from "../../shared/project/active";
 import { pointer } from "../../tests/pointer";
@@ -224,6 +225,24 @@ describe("GraphScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: /Open in Explorer/ }));
     expect(currentPath()).toBe("/explorer");
     expect(activeProject()).toBe(1);
+  });
+
+  it("asks the explorer for the layer, the namespace or the type of the selected box", async () => {
+    served(GRAPH);
+    const view = render(() => <GraphScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Ui" }));
+    fireEvent.click(screen.getByRole("button", { name: /Open in Explorer/ }));
+    expect(pendingFocus()).toEqual({ layer: "Ui" });
+    view.unmount();
+    requestFocus(null);
+    resetGraph();
+    setGraphLevel(LEVEL.namespaces);
+    served(GRAPH);
+    render(() => <GraphScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Ui" }));
+    fireEvent.click(screen.getByRole("button", { name: /Open in Explorer/ }));
+    expect(pendingFocus()).toEqual({ namespace: "Ui" });
+    requestFocus(null);
   });
 
   it("says that a project without layers has none, and notes missing edges", async () => {

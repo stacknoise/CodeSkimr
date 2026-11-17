@@ -1,10 +1,18 @@
 import { createSignal } from "solid-js";
 import { runCommand } from "../../shared/api/commands";
-import { pendingFocus, requestFocus } from "../../shared/navigation/navigation";
+import { pendingFocus, requestFocus, type RowFocus } from "../../shared/navigation/navigation";
 import { CHIP, COMMAND, GROUP, NOT_FOUND, TYPE_KINDS, type ChipId } from "./consts";
 import { failed, type Failure } from "./failure";
 import { INITIAL_SORT, tableRows, type MemberSort } from "./memberSort";
-import { groupKey, groupOfKind, memberKey, revealKeys, typeKey } from "./tree";
+import {
+  groupKey,
+  groupOfKind,
+  layerKey,
+  memberKey,
+  revealKeys,
+  revealNamespace,
+  typeKey,
+} from "./tree";
 import type { MemberRow, Outline, SymbolInfo } from "./types";
 
 export type { Failure };
@@ -275,6 +283,23 @@ export async function revealNested(project: number, parent: number, id: number):
   await selectType(project, id);
 }
 
+/** Shows a layer or a namespace that a map asked for: opens the rows down to it, opens it, and
+ * puts the cursor on its row. */
+function applyRowFocus(tree: Outline, target: RowFocus): void {
+  if ("layer" in target) {
+    if (tree.layers.some((layer) => layer.name === target.layer)) {
+      openRows([layerKey(target.layer)]);
+      setCursor(layerKey(target.layer));
+    }
+    return;
+  }
+  const found = revealNamespace(tree, target.namespace);
+  if (found !== null) {
+    openRows(found.open);
+    setCursor(found.cursor);
+  }
+}
+
 /** Goes where the pending navigation asks: opens the rows down to the type (and the group of the
  * member), shows the type and puts the cursor on the row. External navigation opens nodes
  * (blueprint 15.4). */
@@ -284,6 +309,10 @@ export async function applyFocus(project: number, tree: Outline): Promise<void> 
     return;
   }
   requestFocus(null);
+  if (!("type" in target)) {
+    applyRowFocus(tree, target);
+    return;
+  }
   const group = target.kind === null ? null : groupOfKind(target.kind);
   openRows([
     ...revealKeys(tree, target.type),

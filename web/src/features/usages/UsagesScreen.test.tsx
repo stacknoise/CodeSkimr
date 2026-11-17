@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { currentPath, navigate } from "../../app/router";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
-import { pendingFocus, requestFocus } from "../../shared/navigation/navigation";
+import { pendingFocus, requestFocus, type TypeFocus } from "../../shared/navigation/navigation";
 import { pointer } from "../../tests/pointer";
 import { ANSWER, VIEW } from "../../tests/usages";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
@@ -94,6 +94,24 @@ describe("UsagesScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: /Back to the symbol/ }));
     await waitFor(() => expect(currentPath()).toBe("/explorer"));
     expect(pendingFocus()).toEqual({ type: 10, member: null, kind: null });
+  });
+
+  it("explains the count and the layer of a card on hover", async () => {
+    shown();
+    const graph = await screen.findByRole("region", { name: "Usage graph" });
+    expect(
+      within(graph).getAllByTitle(/places in the code that use or reach this symbol/).length,
+    ).toBeGreaterThan(0);
+    expect(within(graph).getAllByTitle(/^Layer: /).length).toBeGreaterThan(0);
+  });
+
+  it("says on hover that a card has no layer", async () => {
+    const bare = { ...ANSWER, symbol: { ...ANSWER.symbol, layer: null } };
+    shown(bare);
+    const graph = await screen.findByRole("region", { name: "Usage graph" });
+    expect(within(graph).getAllByTitle("No layer assigned to this symbol").length).toBeGreaterThan(
+      0,
+    );
   });
 
   it("keeps the graph button of the rail marked on the symbol view", async () => {
@@ -192,7 +210,7 @@ describe("UsagesScreen", () => {
     fireEvent.keyDown(document.body, { key: "F8" });
     fireEvent.keyDown(document.body, { key: "Enter" });
     await waitFor(() => expect(currentPath()).toBe("/explorer"));
-    expect(pendingFocus()?.member).toBe(14);
+    expect((pendingFocus() as TypeFocus | null)?.member).toBe(14);
   });
 
   it("warns about missing indexers also on an empty list", async () => {
