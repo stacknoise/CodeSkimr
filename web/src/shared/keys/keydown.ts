@@ -8,6 +8,17 @@ export function isTyping(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && TYPING_TAGS.includes(target.tagName);
 }
 
+/** The key that confirms. */
+const CONFIRM_KEY = "Enter";
+
+/** Runs `action` when Enter is pressed on the element, instead of the click Enter would cause. */
+export function onEnter(event: KeyboardEvent, action: () => void): void {
+  if (event.key === CONFIRM_KEY) {
+    event.preventDefault();
+    action();
+  }
+}
+
 /** Listens to the keys of the whole document while the calling screen is shown. */
 export function useKeydown(listener: (event: KeyboardEvent) => void): void {
   onMount(() => document.addEventListener("keydown", listener));

@@ -11,7 +11,7 @@ Wählen Sie im Explorer ein Member (oder einen Typ) und drücken `U`, klicken �
 - **Richtung:** beide, wer ruft auf (eingehend), was wird aufgerufen (ausgehend).
 - **Tiefe:** 1, 2, 3 oder alle. „Alle“ wird am konfigurierten Höchstwert gekappt (`mcp.max_depth`, Vorgabe 5).
 - **Tests zeigen:** Verweise aus Testcode bleiben weg, solange Sie das nicht einschalten.
-- **Ebene:** Es gibt nur „Symbol“. „Namensräume“ und „Typen“ werden ausgeschaltet gezeigt; sie gehören zur [Abhängigkeitskarte](abhaengigkeitskarte.md).
+- **Ebene:** Dieser Bildschirm ist die Ebene „Symbol“. „Namensräume“ öffnet die [Abhängigkeitskarte](abhaengigkeitskarte.md) auf der Namespace-Ebene, „Typen“ öffnet sie mit dem im Explorer gewählten Typ in der Mitte (ohne gewählten Typ ist der Knopf ausgeschaltet).
 
 Jede Änderung liest die Verwendungen neu.
 

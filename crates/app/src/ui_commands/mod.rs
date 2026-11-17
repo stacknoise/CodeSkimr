@@ -11,7 +11,12 @@ mod export;
 #[cfg(test)]
 mod export_tests;
 mod graph;
+mod graph_focus;
 mod graph_types;
+mod graph_wrap;
+mod layers;
+#[cfg(test)]
+mod layers_tests;
 mod preferences;
 mod projects;
 #[cfg(test)]
@@ -21,6 +26,7 @@ mod search;
 mod source;
 mod status;
 mod symbol;
+mod temp_file;
 #[cfg(test)]
 mod tests;
 mod usages;
@@ -35,6 +41,7 @@ use codeskimr_application::events::EventBus;
 use codeskimr_application::ports::{IndexRunner, ProjectToolCheck};
 use codeskimr_application::registry::{Command, Registry};
 use codeskimr_cli::GlobalOptions;
+use codeskimr_parsing::TreeSitterHighlighter;
 use codeskimr_server::CommandApi;
 use codeskimr_source::FolderText;
 
@@ -50,6 +57,7 @@ use credentials::{DeleteCredential, ListCredentials, SetCredential};
 use explorer::{ExplorerOutline, ExplorerPorts};
 pub(crate) use export::{ExportInput, HtmlExport};
 use graph::{GraphLayers, GraphPorts};
+use layers::{LayersGet, LayersSet};
 use preferences::{GetPreferences, PreferencesFile, SetPreferences};
 use projects::{AddProject, CancelScan, CheckTools, ListProjects, RescanProject};
 use search::{SearchPorts, SearchQuery};
@@ -172,7 +180,7 @@ pub fn command_api_over(
     register_usages(&mut registry, catalog, config.mcp.max_depth)?;
     register_graph(&mut registry, catalog, config.graph.clone())?;
     add(&mut registry, status_info(config))?;
-    register_explorer(&mut registry, catalog, config.metrics.clone())?;
+    register_explorer(&mut registry, catalog, config.metrics.clone(), locations)?;
     register_preferences(&mut registry, locations)?;
     add(&mut registry, export_command(catalog, config, locations))?;
     let mut api = CommandApi::new(Arc::new(registry));
@@ -217,6 +225,8 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<UsagesQuery>()?;
     api.expose::<UsagesCode>()?;
     api.expose::<GraphLayers>()?;
+    api.expose::<LayersGet>()?;
+    api.expose::<LayersSet>()?;
     api.expose::<StatusInfo>()?;
     api.expose::<GetPreferences>()?;
     api.expose::<SetPreferences>()?;
@@ -320,11 +330,24 @@ fn register_explorer(
     registry: &mut Registry,
     store: &Arc<SqliteStore>,
     thresholds: MetricThresholds,
+    locations: &Locations,
 ) -> Result<(), CodedError> {
-    let ports = explorer_ports(store, thresholds);
+    let ports = explorer_ports(store, thresholds, locations);
     add(
         registry,
         ExplorerOutline {
+            ports: Arc::clone(&ports),
+        },
+    )?;
+    add(
+        registry,
+        LayersGet {
+            ports: Arc::clone(&ports),
+        },
+    )?;
+    add(
+        registry,
+        LayersSet {
             ports: Arc::clone(&ports),
         },
     )?;
@@ -355,12 +378,17 @@ fn graph_ports(store: &Arc<SqliteStore>, look: Graph) -> Arc<GraphPorts> {
     })
 }
 
-fn explorer_ports(store: &Arc<SqliteStore>, thresholds: MetricThresholds) -> Arc<ExplorerPorts> {
+fn explorer_ports(
+    store: &Arc<SqliteStore>,
+    thresholds: MetricThresholds,
+    locations: &Locations,
+) -> Arc<ExplorerPorts> {
     Arc::new(ExplorerPorts {
         projects: store.clone(),
         index: store.clone(),
         outline: store.clone(),
         text: Arc::new(FolderText),
+        highlighter: Arc::new(TreeSitterHighlighter::new(&locations.languages_dir)),
         thresholds,
     })
 }
@@ -372,7 +400,7 @@ pub(crate) fn export_command(
     config: &Config,
     locations: &Locations,
 ) -> HtmlExport {
-    let explorer = explorer_ports(store, config.metrics.clone());
+    let explorer = explorer_ports(store, config.metrics.clone(), locations);
     HtmlExport::new(
         export::ExportParts {
             projects: store.clone(),

@@ -8,6 +8,11 @@
     gap: 14px;
 }
 
+/* A member is selected: the header stays, the source fills the rest of the column. */
+.compact {
+    overflow: hidden;
+}
+
 .crumbs {
     display: flex;
     flex-wrap: wrap;
@@ -66,4 +71,14 @@
     border-radius: var(--radius-badge);
     background: var(--bg);
     font: 11px var(--font-mono);
+}
+
+.back {
+    height: 30px;
+    padding: 0 var(--space-10);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-button);
+    background: var(--surface);
+    color: var(--ink);
+    font: 13px var(--font-sans);
 }

@@ -4,6 +4,8 @@ export interface TypeNode {
   name: string;
   kind: string;
   members: number;
+  /** Id of the language pack of the declaring file. */
+  language: string;
 }
 
 /** A namespace with its types. */
@@ -73,6 +75,8 @@ export interface SymbolInfo {
   visibility: string | null;
   is_static: boolean;
   path: string;
+  /** Id of the language pack of the declaring file. */
+  language: string;
   first_line: number;
   last_line: number;
   signature: string | null;
@@ -96,6 +100,22 @@ export interface SourceSpan {
   symbol: number;
 }
 
+/** What a coloured run of code is (crates/application/src/ports/highlight.rs). */
+export type TokenClass =
+  "comment" | "string" | "number" | "keyword" | "type" | "function" | "attribute";
+
+/** A run of code that has a colour. */
+export interface SourceToken {
+  /** Index of the line within `lines`, counted from 0. */
+  line: number;
+  /** First character of the run in the line, counted from 0. */
+  start: number;
+  /** Position right after its last character. */
+  end: number;
+  /** What the run is. */
+  class: TokenClass;
+}
+
 /** The output of `explorer.source`: the declaration of one symbol as it is in the project folder. */
 export interface SourceInfo {
   path: string;
@@ -109,6 +129,8 @@ export interface SourceInfo {
   truncated: boolean;
   /** Where a symbol is named, in the order of the text; left out where none is known. */
   spans?: SourceSpan[];
+  /** The runs that have a colour, in the order of the text; left out for a language without one. */
+  tokens?: SourceToken[];
   /** True in the HTML export, which never holds source text. */
   excluded?: boolean;
 }

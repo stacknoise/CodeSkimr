@@ -57,6 +57,9 @@ mod source_arg;
 mod start;
 #[cfg(test)]
 mod tool_check_tests;
+mod tray;
+#[cfg(any(windows, target_os = "macos"))]
+mod tray_ui;
 mod ui_commands;
 mod watch;
 #[cfg(windows)]

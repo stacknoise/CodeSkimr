@@ -38,3 +38,7 @@ command-preferences-get-title = Show preferences
 command-preferences-get-description = Shows the theme and the language the user has chosen for the UI.
 command-preferences-set-title = Save preferences
 command-preferences-set-description = Saves the theme and the language of the UI, so that every browser of the user shows them.
+command-layers-get-title = Show layers
+command-layers-get-description = Shows the layers a project has set and the namespaces of the last scan that layers can be built from.
+command-layers-set-title = Save layers
+command-layers-set-description = Writes the layers of a folder project into its `.codeskimr.toml`; they apply from the next scan.

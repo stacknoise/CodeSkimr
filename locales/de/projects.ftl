@@ -51,6 +51,8 @@ projects-tools-missing-count =
     }
 projects-tools-warning = Ohne diese Werkzeuge bleiben die Verwendungen der genannten Sprachen ungeprüft.
 projects-tools-state-missing = fehlt
+projects-tools-state-not-runnable = gefunden, startet aber nicht: { $found }
+projects-tools-state-not-runnable-silent = gefunden, startet aber nicht
 projects-tools-state-too-old = zu alt: { $found } installiert, { $required } gefordert
 projects-tools-state-too-new = zu neu: { $found } installiert, mehr, als das Projekt erlaubt (es nennt { $required })
 projects-tools-state-unknown = Version nicht lesbar (gefordert: { $required })
@@ -63,6 +65,7 @@ projects-tools-no-level2 = Keine Sprache dieses Projekts hat schon Stufe 2.
 projects-tools-unchecked = Die Werkzeuge wurden noch nicht geprüft.
 projects-tools-check-again = Erneut prüfen
 projects-tools-checking = Prüfe …
+projects-tools-checked = Zuletzt geprüft: { $when }
 
 projects-credential-label = Zugangsdaten
 projects-credential-none = Keine (Git-Anmeldung des Systems)

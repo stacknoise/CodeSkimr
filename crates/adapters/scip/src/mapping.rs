@@ -19,6 +19,7 @@ use crate::impl_symbol::{ImplSymbol, TypeName, parse as parse_impl};
 use crate::interval::IntervalIndex;
 use crate::locals::match_functions;
 use crate::model::{Occurrence, ScipDocument, ScipIndex, SymbolRef};
+use crate::roots::{Pick, Roots};
 use crate::symbol::{Descriptor, DescriptorKind, is_local, last_descriptor, last_two, namespaces};
 use crate::table::SymbolTable;
 
@@ -48,6 +49,11 @@ pub struct ImportStats {
     /// no project symbol, or whose symbol text is malformed. They are dropped, and the share of
     /// them decides whether the index is usable.
     pub unmapped: u64,
+    /// Occurrences of symbols that the index defines only in documents that match no file of the
+    /// snapshot: folders the scan skips, generated code that is not scanned (ADR 0061). The
+    /// snapshot cannot hold their symbols, so they are dropped like those of a library and stay
+    /// out of the share that `level2.min_mapped` asks for.
+    pub outside_scan: u64,
     /// Occurrences of local symbols, parameters, type parameters, macros and namespaces without
     /// a definition; they are counted neither as mapped nor as dropped.
     pub ignored: u64,
@@ -58,10 +64,12 @@ pub struct ImportStats {
 }
 
 impl ImportStats {
-    /// All dropped occurrences: libraries and unmapped project symbols.
+    /// All dropped occurrences: libraries, symbols outside the scan and unmapped project symbols.
     #[must_use]
     pub const fn dropped(&self) -> u64 {
-        self.library.saturating_add(self.unmapped)
+        self.library
+            .saturating_add(self.outside_scan)
+            .saturating_add(self.unmapped)
     }
 }
 
@@ -84,6 +92,7 @@ pub struct ImportOutcome {
 enum Fate {
     Ignore,
     Library,
+    OutsideScan,
     Unmapped,
     /// The targets, shared with the table they come from instead of copied for every occurrence.
     Map(Rc<[SymbolId]>),
@@ -230,6 +239,12 @@ struct Importer<'a> {
     owners: HashMap<SymbolId, SymbolId>,
     targets: HashMap<SymbolRef, Vec<SymbolId>>,
     defined: HashSet<SymbolRef>,
+    /// The symbols that a document of the snapshot defines; the rest of `defined` lies outside.
+    scanned: HashSet<SymbolRef>,
+    /// The paths of the files of the snapshot.
+    paths: HashMap<FileId, &'a str>,
+    /// The files that the index defines as modules (ADR 0061).
+    roots: Roots<'a>,
     heads: HashSet<(FileId, Position, SymbolRef)>,
     locals: HashMap<SymbolRef, Rc<[SymbolId]>>,
     /// The targets of every symbol once the steps before the placing are done.
@@ -246,7 +261,7 @@ struct Importer<'a> {
 }
 
 impl<'a> Importer<'a> {
-    fn new(index: &'a ScipIndex, snapshot: SnapshotView<'a>) -> Self {
+    fn new(index: &'a ScipIndex, snapshot: SnapshotView<'a>, library_root: &'a str) -> Self {
         let highest = snapshot.references.iter().map(|r| r.id.get()).max();
         let impls = impl_symbols(index);
         let by_ref: HashMap<SymbolRef, &ImplSymbol> =
@@ -270,6 +285,13 @@ impl<'a> Importer<'a> {
             owners: constructor_owners(snapshot.symbols),
             targets: HashMap::new(),
             defined: HashSet::new(),
+            scanned: HashSet::new(),
+            paths: snapshot
+                .files
+                .iter()
+                .map(|file| (file.id, file.path.as_str()))
+                .collect(),
+            roots: Roots::new(library_root),
             heads: HashSet::new(),
             locals: HashMap::new(),
             frozen: HashMap::new(),
@@ -294,21 +316,44 @@ impl<'a> Importer<'a> {
         }
         for (document, file) in covered {
             for occurrence in document.occurrences.iter().filter(|o| o.is_definition()) {
-                let Shape::Named(descriptor) = self.shape(occurrence.symbol) else {
-                    continue;
-                };
-                if is_ignorable(descriptor.kind) {
-                    continue;
-                }
-                let found = self.table.definition(*file, occurrence.range, descriptor);
-                if let Some(target) = found {
-                    let targets = self.targets.entry(occurrence.symbol).or_default();
-                    if !targets.contains(&target) {
-                        targets.push(target);
-                    }
-                }
+                self.scanned.insert(occurrence.symbol);
+                self.define(*file, occurrence);
             }
         }
+    }
+
+    /// The project symbol of one definition: by name and position, and for a namespace that the
+    /// name does not find, the module of the file if the definition is the whole file (ADR 0061).
+    fn define(&mut self, file: FileId, occurrence: &Occurrence) {
+        let Shape::Named(descriptor) = self.shape(occurrence.symbol) else {
+            return;
+        };
+        if is_ignorable(descriptor.kind) {
+            return;
+        }
+        let namespace = descriptor.kind == DescriptorKind::Namespace;
+        match self.table.definition(file, occurrence.range, descriptor) {
+            Some(target) => {
+                let targets = self.targets.entry(occurrence.symbol).or_default();
+                if !targets.contains(&target) {
+                    targets.push(target);
+                }
+            }
+            None if namespace => self.add_root(file, occurrence),
+            None => {}
+        }
+    }
+
+    /// Records the file as a root of the symbol if the definition spans the whole file and the
+    /// file has a module symbol.
+    fn add_root(&mut self, file: FileId, occurrence: &Occurrence) {
+        let (Some(module), Some(path)) = (
+            self.table.file_root(file, occurrence.range),
+            self.paths.get(&file).copied(),
+        ) else {
+            return;
+        };
+        self.roots.add(occurrence.symbol, file, path, module);
     }
 
     /// The local functions of one document (see `locals.rs`), by their local symbol.
@@ -561,7 +606,7 @@ impl<'a> Importer<'a> {
         found
     }
 
-    fn fate(&self, symbol: SymbolRef) -> Fate {
+    fn fate(&self, file: FileId, symbol: SymbolRef) -> Fate {
         let descriptor = match self.shape(symbol) {
             Shape::SelfType => {
                 return match self.frozen.get(&symbol) {
@@ -583,14 +628,33 @@ impl<'a> Importer<'a> {
         }
         match self.frozen.get(&symbol) {
             Some(targets) => Fate::Map(Rc::clone(targets)),
-            None if self.defined.contains(&symbol) => self
-                .constructors
-                .defaults
-                .get(&symbol)
-                .and_then(|ty| self.frozen.get(ty))
-                .map_or(Fate::Unmapped, |targets| Fate::Map(Rc::clone(targets))),
+            None if self.defined.contains(&symbol) => self.fate_defined(file, symbol),
             None if descriptor.kind == DescriptorKind::Namespace => Fate::Ignore,
             None => Fate::Library,
+        }
+    }
+
+    /// The fate of a symbol that the index defines but that no definition mapped by name: a
+    /// module that is a root of its file (ADR 0061), the default constructor of a type, else it
+    /// is dropped: outside the scan if no document of the snapshot defines it, else unmapped.
+    fn fate_defined(&self, file: FileId, symbol: SymbolRef) -> Fate {
+        let path = self.paths.get(&file).copied().unwrap_or_default();
+        match self.roots.pick(symbol, file, path) {
+            Pick::Module(module) => return Fate::Map(module),
+            Pick::Nothing => return Fate::Unmapped,
+            Pick::NoRoots => {}
+        }
+        if let Some(targets) = self
+            .constructors
+            .defaults
+            .get(&symbol)
+            .and_then(|ty| self.frozen.get(ty))
+        {
+            Fate::Map(Rc::clone(targets))
+        } else if self.scanned.contains(&symbol) {
+            Fate::Unmapped
+        } else {
+            Fate::OutsideScan
         }
     }
 
@@ -636,9 +700,10 @@ impl<'a> Importer<'a> {
         occurrence: &Occurrence,
         level_one: &LevelOne<'_>,
     ) -> Vec<Reference> {
-        let targets = match self.fate(occurrence.symbol) {
+        let targets = match self.fate(file, occurrence.symbol) {
             Fate::Ignore => return self.count(Count::Ignored),
             Fate::Library => return self.count(Count::Library),
+            Fate::OutsideScan => return self.count(Count::OutsideScan),
             Fate::Unmapped => return self.count(Count::Unmapped),
             Fate::Map(targets) => targets,
         };
@@ -711,6 +776,7 @@ impl<'a> Importer<'a> {
         match what {
             Count::Ignored => self.stats.ignored += 1,
             Count::Library => self.stats.library += 1,
+            Count::OutsideScan => self.stats.outside_scan += 1,
             Count::Unmapped => self.stats.unmapped += 1,
         }
         Vec::new()
@@ -779,6 +845,7 @@ impl<'a> Importer<'a> {
 enum Count {
     Ignored,
     Library,
+    OutsideScan,
     Unmapped,
 }
 
@@ -814,6 +881,7 @@ fn check_threshold(stats: &ImportStats, min_mapped: f64) -> Result<(), ScipError
     let total = stats.mapped.saturating_add(stats.unmapped);
     let uses = total
         .saturating_add(stats.library)
+        .saturating_add(stats.outside_scan)
         .saturating_add(stats.ignored);
     let uncovered = stats.files_replaced == 0;
     let nothing_mapped = stats.mapped == 0 && uses > 0;
@@ -933,7 +1001,8 @@ pub fn import_with_creation(
         symbols: &all,
         ..*snapshot
     };
-    let mut outcome = place_references(index, &view, &covered, min_mapped)?;
+    let mut outcome =
+        place_references(index, &view, &covered, (min_mapped, creation.library_root))?;
     outcome.stats.files_unmatched = unmatched;
     outcome.symbols = created;
     Ok(outcome)
@@ -944,9 +1013,9 @@ fn place_references(
     index: &ScipIndex,
     snapshot: &SnapshotView<'_>,
     covered: &[(&ScipDocument, FileId)],
-    min_mapped: f64,
+    (min_mapped, library_root): (f64, &str),
 ) -> Result<ImportOutcome, ScipError> {
-    let mut importer = Importer::new(index, *snapshot);
+    let mut importer = Importer::new(index, *snapshot, library_root);
     let covered_files: HashSet<FileId> = covered.iter().map(|(_, file)| *file).collect();
     importer.stats.files_replaced = u64::try_from(covered_files.len()).unwrap_or(u64::MAX);
     importer.collect_definitions(covered);

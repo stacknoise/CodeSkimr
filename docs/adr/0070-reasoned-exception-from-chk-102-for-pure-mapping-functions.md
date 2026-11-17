@@ -1,4 +1,4 @@
-# 0060 – A reasoned exception from CHK-102 for pure mapping functions
+# 0070 – A reasoned exception from CHK-102 for pure mapping functions
 
 Status: accepted (product owner, issue #361)
 

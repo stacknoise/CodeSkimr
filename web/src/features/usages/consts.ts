@@ -22,8 +22,8 @@ export const WAYS = [
 export const DEPTH_ALL = 0;
 /** Depth shown at first (mock 6). */
 export const DEFAULT_DEPTH = 2;
-/** The depths of the select, in the order of the mock. */
-export const DEPTHS: readonly number[] = [DEFAULT_DEPTH, 1, 3, DEPTH_ALL];
+/** The depths of the select, ascending, "all" last. */
+export const DEPTHS: readonly number[] = [1, DEFAULT_DEPTH, 3, DEPTH_ALL];
 
 /** Tests are shown at first (mock 6). */
 export const DEFAULT_SHOW_TESTS = true;
@@ -54,7 +54,7 @@ export const GRAPH = {
   top: 40,
   bottom: 56,
   columnWidth: 236,
-  columnGap: 30,
+  columnGap: 90,
   cardHeight: 50,
   focusHeight: 64,
   rowGap: 20,
@@ -72,6 +72,9 @@ export const TONE = {
   probable: "probable",
 } as const;
 export type Tone = (typeof TONE)[keyof typeof TONE];
+
+/** How an edge stands to the picked card: it leaves it, enters it, or has nothing to do with it. */
+export const LINK = { out: "linkedOut", in: "linkedIn", none: "dim" } as const;
 
 /** The three kinds of column of the graph. */
 export const COLUMN = { callers: "callers", focus: "focus", callees: "callees" } as const;
@@ -126,3 +129,17 @@ export const SCROLL_NEAREST: ScrollIntoViewOptions = { block: "nearest" };
 export const PATH = { move: "M", curve: "C", space: " " } as const;
 export const PAIR_SEPARATOR = ">";
 export const JOIN_NONE = "";
+
+/** Zoom of the graph: the notch of a zoom button, the first scale, and the key and limits of the
+ * height of the hit list (mock 6 shows 250 px). */
+export const ZOOM_BUTTON_NOTCHES = 2;
+export const HITS_PANE_KEY = "usages.hits";
+export const HITS_PANE_BOUNDS = { initial: 250, min: 80, max: 700 } as const;
+/** Symbols on the buttons that zoom, and the text of the one that fits the graph. */
+export const ZOOM_SYMBOL = { in: "+", out: "−", fit: "⤢" } as const;
+/** The smallest scale a new graph opens with; a larger graph is centred on the focus instead. */
+export const START_MIN_SCALE = 0.6;
+
+/** The width of the side panel, and the key under which it is remembered. */
+export const PANEL_PANE_KEY = "usages.panel";
+export const PANEL_PANE_BOUNDS = { initial: 300, min: 240, max: 720 } as const;

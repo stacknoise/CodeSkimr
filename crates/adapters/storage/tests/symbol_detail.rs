@@ -37,6 +37,15 @@ fn finds_a_symbol_by_id_with_members_and_metrics() {
 }
 
 #[test]
+fn a_symbol_names_the_language_of_its_file() {
+    let found = store()
+        .symbol(SNAPSHOT, &SymbolKey::Id(SymbolId::new(22)))
+        .unwrap()
+        .unwrap();
+    assert_eq!(found.language.as_str(), "csharp");
+}
+
+#[test]
 fn finds_a_symbol_by_qualified_name() {
     let key = SymbolKey::Qualified(QualifiedName::new("App.Order.Total").unwrap());
     let found = store().symbol(SNAPSHOT, &key).unwrap().unwrap();

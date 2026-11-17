@@ -38,6 +38,20 @@ pub fn run(
     locations: &Locations,
     listening: impl FnOnce(&str),
 ) -> Result<(), CodedError> {
+    run_until(global, locations, listening, interrupted())
+}
+
+/// Like [`run`], but serves until `shutdown` completes instead of until Ctrl+C. The tray program
+/// ends the server this way when the user picks "Quit".
+///
+/// # Errors
+/// The same as [`run`].
+pub fn run_until(
+    global: &GlobalOptions,
+    locations: &Locations,
+    listening: impl FnOnce(&str),
+    shutdown: impl Future<Output = ()> + Send + 'static,
+) -> Result<(), CodedError> {
     let config = config_files::load(locations, global, None)?;
     let store = OsCredentialStore::new(OsKeystore);
     let secrets = os_secrets();
@@ -62,7 +76,7 @@ pub fn run(
             config.server.port,
             parts,
             listening,
-            interrupted(),
+            shutdown,
         ))
 }
 

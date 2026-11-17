@@ -26,3 +26,5 @@ app-action-open-in-editor = Im Editor öffnen
 app-action-open-in-explorer = Im Explorer öffnen
 app-action-show-in-graph = Im Graph zeigen
 app-action-copy-name = Namen kopieren
+app-resize-width = Breite ändern (ziehen oder Pfeiltasten)
+app-resize-height = Höhe ändern (ziehen oder Pfeiltasten)

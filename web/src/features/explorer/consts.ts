@@ -49,6 +49,23 @@ export const KIND_TONE: Record<string, string> = {
   event: "enum",
   enum_member: "struct",
 };
+/** The short name of a language in the tree; a language without one shows its id. */
+export const LANGUAGE_SHORT: Record<string, string> = {
+  c: "C",
+  cpp: "C++",
+  csharp: "C#",
+  go: "Go",
+  java: "Java",
+  javascript: "JS",
+  kotlin: "Kt",
+  php: "PHP",
+  python: "Py",
+  ruby: "Rb",
+  rust: "Rs",
+  tsx: "TSX",
+  typescript: "TS",
+};
+
 export const KIND_TONE_OTHER = "other";
 
 /** Kinds that the tree groups under "Properties & fields". */
@@ -100,13 +117,10 @@ export const MEMBER_STEP: Readonly<Record<string, number>> = {
 };
 export const NOT_FOUND = -1;
 
-/** What a row of the tree is. */
-/** Depth of the rows below a namespace row. */
-export const TYPE_DEPTH = 2;
-
 /** Id of the complexity metric, which names the limits of its column. */
 export const CC_METRIC = "cc";
 
+/** What a row of the tree is. */
 export const ROW = {
   layer: "layer",
   namespace: "namespace",
@@ -115,6 +129,9 @@ export const ROW = {
   member: "member",
 } as const;
 export type RowKind = (typeof ROW)[keyof typeof ROW];
+
+/** One part of a namespace name; the parts are separated by `.` or `::`. */
+export const NAME_PART = /[^.:]+/g;
 
 /** Keys of expanded rows are built from a prefix and the names, separated by this. */
 export const KEY_SEPARATOR = "\u0001";
@@ -251,3 +268,48 @@ export const PATH_JOINER = "/";
 
 /** Keyboard hints on the three buttons of the header. */
 export const HOTKEY = { usages: "U", graph: "G", editor: "E" } as const;
+
+/** Keys under which the sizes of the columns are kept, and their limits in pixels (mock 2 shows
+ * the first values). */
+export const PANE_KEY = { tree: "explorer.tree", source: "explorer.source" } as const;
+export const PANE_BOUNDS = {
+  tree: { initial: 290, min: 200, max: 640 },
+  source: { initial: 560, min: 280, max: 1100 },
+} as const;
+
+/** The columns of the member table that sort it. */
+export const SORT_COLUMN = {
+  name: "name",
+  signature: "signature",
+  access: "access",
+  complexity: "complexity",
+  usages: "usages",
+  lines: "lines",
+} as const;
+export type SortColumn = (typeof SORT_COLUMN)[keyof typeof SORT_COLUMN];
+
+/** The directions of a sort, as `aria-sort` names them. */
+export const SORT_DIRECTION = { ascending: "ascending", descending: "descending" } as const;
+export type SortDirection = (typeof SORT_DIRECTION)[keyof typeof SORT_DIRECTION];
+
+/** The member table is sorted by name until a column head is pressed. */
+export const DEFAULT_SORT = {
+  column: SORT_COLUMN.name,
+  direction: SORT_DIRECTION.ascending,
+} as const;
+
+/** The columns of numbers sort the largest first when they are chosen. */
+export const NUMBER_COLUMNS: readonly SortColumn[] = [
+  SORT_COLUMN.complexity,
+  SORT_COLUMN.usages,
+  SORT_COLUMN.lines,
+];
+
+/** The marks next to the name of the column that sorts the table. */
+export const SORT_MARK = { ascending: "▲", descending: "▼" } as const;
+
+/** Compares names without regard to case and accents. */
+export const NAME_COLLATION: Intl.CollatorOptions = { sensitivity: "base", numeric: true };
+
+/** The sign that turns the order of a comparison for the direction of a sort. */
+export const SORT_SIGN = { ascending: 1, descending: -1 } as const;

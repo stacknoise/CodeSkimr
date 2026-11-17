@@ -16,6 +16,9 @@ pub const COMMAND_OPEN: &str = "open";
 /// Flag of `open` that keeps the browser from starting.
 pub const ARG_NO_BROWSER: &str = "no-browser";
 
+/// Flag of the bare start that keeps the program in the console window.
+pub const ARG_CONSOLE: &str = "console";
+
 /// Sub-command that exports a project.
 pub const COMMAND_EXPORT: &str = "export";
 /// Argument id of the project of `export`.
@@ -155,6 +158,8 @@ pub mod arg {
     pub const CHANGED: &str = "changed";
     /// `{ $millis }`: duration of a re-scan in milliseconds.
     pub const MILLIS: &str = "millis";
+    /// `{ $log }`: path of the log file.
+    pub const LOG: &str = "log";
     /// `{ $url }`: address of the local server.
     pub const URL: &str = "url";
     /// `{ $line }`: one-based line of a finding.

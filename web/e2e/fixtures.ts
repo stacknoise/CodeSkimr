@@ -142,6 +142,20 @@ export async function addScannedProject(
   return row;
 }
 
+/** Adds a scanned project like `addScannedProject` and opens it (the screens of a project stay shut
+ * until one is open); the explorer is shown afterwards. */
+export async function openScannedProject(
+  page: Page,
+  harness: Harness,
+  name: string,
+  source: string,
+) {
+  const row = await addScannedProject(page, harness, name, source);
+  await row.click({ position: { x: 4, y: 4 } });
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("tree")).toBeVisible();
+}
+
 /** The layer file and the two sources of a small project with a Domain and a Presentation layer. */
 function layeredFiles(prefix: string): Record<string, string> {
   return {
@@ -178,11 +192,10 @@ export async function addLayeredProject(page: Page, harness: Harness, name: stri
 }
 
 /** From a project row: opens it in the explorer and selects the member `Add` of the type
- * `Calculator` in `namespace` (the layer is "(no layer)"). */
+ * `Calculator` in `namespace` (the project has no layers). */
 export async function selectAdd(page: Page, row: Locator, namespace: string): Promise<void> {
   await row.click({ position: { x: 4, y: 4 } });
   await page.keyboard.press("Enter");
-  await page.getByText("(no layer)").click();
   await page.getByText(namespace, { exact: true }).click();
   await page.getByText("Calculator", { exact: true }).click();
   await page.getByRole("button", { name: /Add/ }).first().click();

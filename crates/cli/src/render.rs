@@ -5,8 +5,10 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
     CLI_CREDENTIAL_DELETED, CLI_CREDENTIAL_DEVICE_PROMPT, CLI_CREDENTIAL_STORED, CLI_ERROR_LINE,
     CLI_EXPORT_WRITTEN, CLI_OPEN_READY, CLI_SCAN_DETAILS, CLI_SCAN_FINISHED, CLI_SCAN_STARTED,
-    CLI_SCAN_TOOL_MISSING, CLI_SCAN_TOOL_TOO_NEW, CLI_SCAN_TOOL_TOO_OLD, CLI_SCAN_TOOL_UNKNOWN,
-    CLI_SECRET_PROMPT, CLI_SERVE_LISTENING, CLI_WATCH_STARTED, CLI_WATCH_UPDATED,
+    CLI_SCAN_TOOL_MISSING, CLI_SCAN_TOOL_NOT_RUNNABLE, CLI_SCAN_TOOL_NOT_RUNNABLE_SILENT,
+    CLI_SCAN_TOOL_TOO_NEW, CLI_SCAN_TOOL_TOO_OLD, CLI_SCAN_TOOL_UNKNOWN, CLI_SECRET_PROMPT,
+    CLI_SERVE_LISTENING, CLI_START_KEEP_OPEN, CLI_START_TRAY, CLI_TRAY_LOG, CLI_TRAY_OPEN,
+    CLI_TRAY_QUIT, CLI_TRAY_TOOLTIP, CLI_WATCH_STARTED, CLI_WATCH_UPDATED,
 };
 use codeskimr_domain::ToolState;
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
@@ -93,6 +95,51 @@ pub fn scan_started(
 /// `I18N-201` if the message is missing.
 pub fn serve_started(messages: &Messages, language: &str, url: &str) -> Result<String, I18nError> {
     format_with(messages, language, CLI_SERVE_LISTENING, &[(arg::URL, url)])
+}
+
+/// The line after the start message of the bare `codeskimr`: the window must stay open, because
+/// closing it ends the server.
+///
+/// # Errors
+/// `I18N-201` if the message is missing.
+pub fn start_keep_open(messages: &Messages, language: &str) -> Result<String, I18nError> {
+    format_with(messages, language, CLI_START_KEEP_OPEN, &[])
+}
+
+/// The line that the starting program prints before it hands over to the tray program: where the
+/// menu is and where the log lies.
+///
+/// # Errors
+/// `I18N-201` if the message is missing.
+pub fn start_tray(messages: &Messages, language: &str, log: &str) -> Result<String, I18nError> {
+    format_with(messages, language, CLI_START_TRAY, &[(arg::LOG, log)])
+}
+
+/// The texts of the tray icon: its tooltip and the three menu entries.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TrayLabels {
+    /// Shown when the mouse rests on the icon.
+    pub tooltip: String,
+    /// Menu entry that opens the UI in the browser.
+    pub open: String,
+    /// Menu entry that shows the log.
+    pub log: String,
+    /// Menu entry that ends the program.
+    pub quit: String,
+}
+
+/// The texts of the tray icon in `language`.
+///
+/// # Errors
+/// `I18N-201` if a message is missing.
+pub fn tray_labels(messages: &Messages, language: &str) -> Result<TrayLabels, I18nError> {
+    let say = |key: &str| format_with(messages, language, key, &[]);
+    Ok(TrayLabels {
+        tooltip: say(CLI_TRAY_TOOLTIP)?,
+        open: say(CLI_TRAY_OPEN)?,
+        log: say(CLI_TRAY_LOG)?,
+        quit: say(CLI_TRAY_QUIT)?,
+    })
 }
 
 /// The line that tells where the launch file is and how long it is good for.
@@ -198,17 +245,30 @@ fn tool_text(messages: &Messages, language: &str, key: &str) -> String {
         .unwrap_or_else(|_| key.to_owned())
 }
 
-/// The line that says what is wrong with one tool: its name, what it is for and how to get it.
-fn tool_line(messages: &Messages, language: &str, tool: &ToolView) -> Result<String, I18nError> {
-    let key = if tool.state == ToolState::Missing.label() {
+/// The message that fits the state of a tool; a tool that does not start and said nothing about it
+/// has a message of its own, so that no colon dangles.
+fn tool_key(tool: &ToolView) -> &'static str {
+    let is = |state: ToolState| tool.state == state.label();
+    if is(ToolState::Missing) {
         CLI_SCAN_TOOL_MISSING
-    } else if tool.state == ToolState::TooOld.label() {
+    } else if is(ToolState::NotRunnable) {
+        if tool.found.is_some() {
+            CLI_SCAN_TOOL_NOT_RUNNABLE
+        } else {
+            CLI_SCAN_TOOL_NOT_RUNNABLE_SILENT
+        }
+    } else if is(ToolState::TooOld) {
         CLI_SCAN_TOOL_TOO_OLD
-    } else if tool.state == ToolState::TooNew.label() {
+    } else if is(ToolState::TooNew) {
         CLI_SCAN_TOOL_TOO_NEW
     } else {
         CLI_SCAN_TOOL_UNKNOWN
-    };
+    }
+}
+
+/// The line that says what is wrong with one tool: its name, what it is for and how to get it.
+fn tool_line(messages: &Messages, language: &str, tool: &ToolView) -> Result<String, I18nError> {
+    let key = tool_key(tool);
     let no_version = || NO_VERSION.to_owned();
     let mut args = FluentArgs::new();
     args.set(arg::TOOL, tool.tool.clone());

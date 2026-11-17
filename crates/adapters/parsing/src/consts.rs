@@ -222,3 +222,34 @@ pub const NAMING_REVISION: &str = "revision=3";
 
 /// Ends a signature that was cut at `scan.max_signature_chars`.
 pub const SIGNATURE_CUT: &str = "…";
+
+/// Tree-sitter query that colours the code of a language in the UI (blueprint 8.1); optional.
+pub const HIGHLIGHT_QUERY_FILE: &str = "highlights.scm";
+/// Longest time the highlighter may take to parse the code of one answer.
+pub const HIGHLIGHT_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(200);
+/// Separates the parts of a capture name (`function.call`).
+pub const CAPTURE_PART_SEPARATOR: char = '.';
+/// Joins lines into the text that is parsed.
+pub const LINE_BREAK: &str = "\n";
+/// Capture of a comment in `highlights.scm`.
+pub const HIGHLIGHT_COMMENT: &str = "comment";
+/// Capture of a string or character literal, and its escapes.
+pub const HIGHLIGHT_STRING: &str = "string";
+/// Capture of a number.
+pub const HIGHLIGHT_NUMBER: &str = "number";
+/// Capture of a constant, built in or not.
+pub const HIGHLIGHT_CONSTANT: &str = "constant";
+/// Capture of a keyword.
+pub const HIGHLIGHT_KEYWORD: &str = "keyword";
+/// Capture of a type, built in or not.
+pub const HIGHLIGHT_TYPE: &str = "type";
+/// Capture of a tag of a markup language.
+pub const HIGHLIGHT_TAG: &str = "tag";
+/// Capture of a function name, declared or called, and of a macro.
+pub const HIGHLIGHT_FUNCTION: &str = "function";
+/// Capture of an attribute or annotation.
+pub const HIGHLIGHT_ATTRIBUTE: &str = "attribute";
+/// Capture of a label such as a lifetime.
+pub const HIGHLIGHT_LABEL: &str = "label";
+/// Capture of the object itself (`self`, `this`); it is coloured like a keyword.
+pub const HIGHLIGHT_VARIABLE_BUILTIN: &str = "variable.builtin";

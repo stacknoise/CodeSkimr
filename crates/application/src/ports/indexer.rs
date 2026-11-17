@@ -59,6 +59,10 @@ pub struct IndexerSpec {
     /// The separator of qualified names of the language (`::` for Rust), which joins the name of
     /// a created symbol to the qualified name of its parent.
     pub separator: String,
+    /// The file name of the root that wins when the index gives one module symbol to several
+    /// files of a package and the folders do not decide (`lib.rs` for Rust, ADR 0061); empty if
+    /// the pack names none.
+    pub library_root: String,
 }
 
 /// Limits of one run, from `level2.*` of the configuration.
@@ -91,6 +95,11 @@ pub struct IndexJob<'a> {
 pub enum ToolIssue {
     /// The program is not found.
     Missing,
+    /// It is found, but its version command fails: it crashes or does not start.
+    NotRunnable {
+        /// What it printed about the failure, shortened and redacted; empty if it printed nothing.
+        output: String,
+    },
     /// It is found but older than required, or its version cannot be read.
     TooOld {
         /// What it reports, shortened and redacted; empty if the output has no version.

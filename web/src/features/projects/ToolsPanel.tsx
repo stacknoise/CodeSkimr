@@ -1,10 +1,12 @@
 import { For, Show } from "solid-js";
-import { t } from "../../shared/i18n/i18n";
+import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { TONE } from "../../shared/ui/consts";
 import { Pill } from "../../shared/ui/Pill";
 import { TOOL_STATE } from "./consts";
+import { ago } from "./format";
 import { checkTools, toolsChecking, toolsOf } from "./projects";
+import { useNow } from "./useNow";
 import { languageList, problemsOf, readyLanguages, toolTexts } from "./tools";
 import type { ProjectRow, ToolInfo } from "./types";
 import styles from "./ToolsPanel.module.css";
@@ -16,6 +18,11 @@ function stateText(tool: ToolInfo): string {
   }
   const required = tool.required ?? "";
   const found = tool.found ?? "";
+  if (tool.state === TOOL_STATE.notRunnable) {
+    return found
+      ? t(I18N_KEYS.PROJECTS_TOOLS_STATE_NOT_RUNNABLE, { found })
+      : t(I18N_KEYS.PROJECTS_TOOLS_STATE_NOT_RUNNABLE_SILENT);
+  }
   if (tool.state === TOOL_STATE.tooOld) {
     return t(I18N_KEYS.PROJECTS_TOOLS_STATE_TOO_OLD, { found, required });
   }
@@ -72,11 +79,29 @@ function Findings(props: { row: ProjectRow }) {
   );
 }
 
+/** When the tools were checked last, so that a new check shows even if nothing changed. */
+function CheckedAt(props: { row: ProjectRow }) {
+  const at = () => toolsOf(props.row)?.checked_at ?? null;
+  const now = useNow();
+  return (
+    <Show when={at()}>
+      {(seconds) => (
+        <span class={styles.checked}>
+          {t(I18N_KEYS.PROJECTS_TOOLS_CHECKED, {
+            when: ago(seconds(), now(), currentLanguage()),
+          })}
+        </span>
+      )}
+    </Show>
+  );
+}
+
 /** The header of the panel with the button that checks the tools again. */
 function PanelHeader(props: { row: ProjectRow }) {
   return (
     <header class={styles.header}>
       <h2>{t(I18N_KEYS.PROJECTS_TOOLS_TITLE, { name: props.row.name })}</h2>
+      <CheckedAt row={props.row} />
       <button
         type="button"
         class={styles.again}

@@ -28,6 +28,8 @@ usages_query_ms = 20
 graph_layout_ms = 50
 full_scan_100k_loc_ms = 1000
 incremental_rescan_ms = 300
+# Loading the Rust and C# packs on a first scan (C# is the longest pack), ADR 0063.
+pack_load_ms = 1500
 idle_cpu_percent = 0
 memory_1m_loc_mb = 500
 binary_size_mb = 60
@@ -57,6 +59,15 @@ retention_count = 5
 debounce_ms = 200
 # A batch of file events is handed over at the latest this long after its first event, so a build that writes all the time cannot starve the re-scan.
 max_wait_ms = 2000
+
+# Annotations and alerts (ADR 0068): notes, tasks and system-critical marks on symbols.
+[annotations]
+# Dismissed alerts are kept this many days and then purged (at start and once a day).
+dismissed_retention_days = 30
+# Longest text of an annotation (note, task description, reason of a critical mark), in characters.
+max_text_chars = 4000
+# Longest title of a task, in characters; it must not exceed max_text_chars.
+max_title_chars = 500
 
 # Syntax fingerprints for similar-code search and the duplicate check (blueprint 10.4).
 [similarity]
@@ -169,3 +180,5 @@ node_gap = 24
 # Effort of the layout: sweeps against crossing edges and passes that centre boxes between their neighbours.
 sweeps = 12
 placement_passes = 6
+# Most boxes in one line of a row. A longer row (many namespaces in one layer) wraps into several lines.
+row_boxes = 8

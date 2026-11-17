@@ -31,9 +31,10 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 |---|---|---|
 | `APP-201` | the data folder cannot be created or opened | check the path and rights (`--data-dir`) |
 | `APP-202` | the private file for starting the browser could not be created; also refused when its folder is a link or a junction (Windows) | check the rights of the data folder; `codeskimr serve` and open the address by hand |
-| `APP-203` (open) | the language packs built into the program could not be written to the data folder. **Open:** the packaging of the embedded packs is still being finished (issue #351), so cause and text can still change before 1.0 | free space and check the rights of the data folder; a `languages/` folder next to the program is used instead ([Installation](installation.md#build)) |
 | `APP-301` | another CodeSkimr instance holds the workspace and connecting to it failed | close the other instance or use `--data-dir` |
 | `APP-601` | the system did not start a browser | open the address printed by `codeskimr serve` by hand |
+| `APP-603` | the program could not start itself in the background or show its tray icon | start it with `--console` to stay in the window and look at the log in the data folder (`codeskimr.log`) |
+| `APP-602` | the language packs built into the program could not be written to the data folder | free space and check the rights of the data folder; a `languages/` folder next to the program (with at least one `<language>/language.toml`) is used instead ([Installation](installation.md#build)) |
 | `PRJ-101` | the source is no existing folder and no valid Git address, or the address contains secrets, blanks or starts with a dash, or the branch name is not valid, or the folder is relative | give an absolute path; take secrets out of the address ([Sources and credentials](sources-and-credentials.md)) |
 | `PRJ-201` | no such project | add and scan it first |
 | `PRJ-302` | a scan of this project is already running | wait for it |
@@ -47,6 +48,7 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | `PRS-201` | no language pack for a file type | the files of that type are not analysed; install the pack |
 | `PRS-501` | a file took too long to parse | raise `scan.parse_timeout_ms` if the file is legitimate |
 | `CFG-101`, `CFG-102`, `CFG-103` | invalid value, unreadable file, unknown key in the configuration | correct the setting named in the message |
+| `CFG-104` | the file `.codeskimr.toml` could not be written when layers were saved in the UI | make the project folder writable, or write the `[[layers]]` tables by hand |
 | `RES-*` | level 2 (indexers): tool missing or too old (`RES-201`), index too large, timeout, output or memory limit (`RES-501` to `RES-504`), indexer failed (`RES-601`), index corrupt (`RES-101`), too few occurrences map (`RES-302`); level 1 stays in every case | see [Language indexers](indexers.md#errors) |
 | `SEC-301`, `SEC-403` | level 2 is not enabled and confirmed, or the caller may not confirm it | enable it and run `codeskimr level2 confirm <project>` in a terminal |
 | `PRJ-303` | not an error: you cancelled the scan | start it again |

@@ -8,7 +8,8 @@ use super::consts::{
 };
 use super::error::{ConfigError, Violation};
 use super::model::{
-    Budgets, Config, Conventions, Editor, KeySources, Level2, McpLimits, MetricThresholds, Scan, Ui,
+    Annotations, Budgets, Config, Conventions, Editor, KeySources, Level2, McpLimits,
+    MetricThresholds, Scan, Ui,
 };
 
 fn check_keys(sources: &KeySources) -> Result<(), ConfigError> {
@@ -40,13 +41,15 @@ pub(super) fn validate(config: &Config) -> Result<(), ConfigError> {
     positive(keys::SERVER_PORT, u32::from(config.server.port))?;
     check_conventions(&config.conventions)?;
     check_keys(&config.keys)?;
+    check_annotations(&config.annotations)?;
     check_layers(config)?;
     check_scan(&config.scan)?;
     check_level2(&config.level2)?;
     check_editor(&config.editor)?;
     check_ui(&config.ui)?;
     positive(keys::GRAPH_NODE_WIDTH, config.graph.node_width)?;
-    positive(keys::GRAPH_NODE_HEIGHT, config.graph.node_height)
+    positive(keys::GRAPH_NODE_HEIGHT, config.graph.node_height)?;
+    positive(keys::GRAPH_ROW_BOXES, config.graph.row_boxes)
 }
 
 fn check_conventions(conventions: &Conventions) -> Result<(), ConfigError> {
@@ -66,6 +69,25 @@ fn check_conventions(conventions: &Conventions) -> Result<(), ConfigError> {
         keys::DUPLICATE_SIMILARITY_PERCENT,
         conventions.duplicate_similarity_percent,
     )?;
+    Ok(())
+}
+
+fn check_annotations(annotations: &Annotations) -> Result<(), ConfigError> {
+    positive(
+        keys::ANNOTATIONS_RETENTION_DAYS,
+        annotations.dismissed_retention_days,
+    )?;
+    positive(keys::ANNOTATIONS_MAX_TEXT_CHARS, annotations.max_text_chars)?;
+    positive(
+        keys::ANNOTATIONS_MAX_TITLE_CHARS,
+        annotations.max_title_chars,
+    )?;
+    if annotations.max_title_chars > annotations.max_text_chars {
+        return fail(
+            keys::ANNOTATIONS_MAX_TITLE_CHARS,
+            Violation::MustNotExceed(keys::ANNOTATIONS_MAX_TEXT_CHARS),
+        );
+    }
     Ok(())
 }
 
@@ -151,6 +173,7 @@ fn check_budgets(budgets: &Budgets) -> Result<(), ConfigError> {
         (keys::GRAPH_LAYOUT_MS, budgets.graph_layout_ms),
         (keys::FULL_SCAN_MS, budgets.full_scan_100k_loc_ms),
         (keys::INCREMENTAL_RESCAN_MS, budgets.incremental_rescan_ms),
+        (keys::PACK_LOAD_MS, budgets.pack_load_ms),
         (keys::MEMORY_MB, budgets.memory_1m_loc_mb),
         (keys::BINARY_SIZE_MB, budgets.binary_size_mb),
     ];

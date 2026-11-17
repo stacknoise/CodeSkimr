@@ -2,6 +2,7 @@ import { createEffect, For, onCleanup, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { ConnectionScreen } from "../features/session/ConnectionScreen";
 import { GraphScreen } from "../features/graph/GraphScreen";
+import { LayersScreen } from "../features/layers/LayersScreen";
 import { ExplorerScreen } from "../features/explorer/ExplorerScreen";
 import { listenToScans } from "../features/scan/events";
 import { ScanScreen } from "../features/scan/ScanScreen";
@@ -23,7 +24,10 @@ import {
   FLUSH_PATHS,
   FOOTER_ROUTES,
   GRAPH_ROUTE,
+  LAYERS_ROUTE,
   MAIN_ROUTES,
+  PROJECT_PATHS,
+  PROJECTS_ROUTE,
   SCAN_ROUTE,
   SETTINGS_ROUTE,
   USAGES_ROUTE,
@@ -31,11 +35,13 @@ import {
 import styles from "./App.module.css";
 import { RailLink, TopBar } from "./Frame";
 import { ProjectCrumb } from "./ProjectCrumb";
-import { currentPath } from "./router";
+import { activeProject } from "../shared/project/active";
+import { currentPath, navigate } from "./router";
 
 /** The screens of the app by their path; the projects screen answers every other path. */
 const SCREENS: ScreenTable = [
   [SETTINGS_ROUTE.path, SettingsScreen],
+  [LAYERS_ROUTE.path, LayersScreen],
   [GRAPH_ROUTE.path, GraphScreen],
   [SCAN_ROUTE.path, ScanScreen],
   [EXPLORER_ROUTE.path, ExplorerScreen],
@@ -50,6 +56,11 @@ function Screen() {
 /** The frame of every screen: top bar, rail, main area and status bar (blueprint 15.2). */
 export function App() {
   useSearchShortcut(openSearch);
+  createEffect(() => {
+    if (PROJECT_PATHS.includes(currentPath()) && activeProject() === null) {
+      navigate(PROJECTS_ROUTE.path);
+    }
+  });
   createEffect(() => {
     if (sessionState().kind === KIND.connected) {
       onCleanup(listenToScans());

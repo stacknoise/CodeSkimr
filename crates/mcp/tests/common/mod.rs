@@ -188,6 +188,7 @@ fn detail() -> SymbolDetail {
         same_name: 0,
         symbol: symbol_named(1, SymbolKind::Class, "App.Domain.Order"),
         path: RelativePath::new("src/order.cs").unwrap(),
+        language: LanguageId::new("csharp").unwrap(),
         members,
         metrics: vec![Metric {
             symbol: SymbolId::new(1),

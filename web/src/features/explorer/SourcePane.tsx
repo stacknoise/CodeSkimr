@@ -2,10 +2,12 @@ import { createMemo, For, Match, Show, Switch } from "solid-js";
 import type { ErrorCode } from "../../shared/api/error-codes.generated";
 import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
+import { cx } from "../../shared/ui/cx";
 import { showUsages } from "../../shared/navigation/navigation";
 import { PILL_SEPARATOR } from "./consts";
+import { sourceWidth } from "./layout";
 import { lineRange } from "./format";
-import { segments } from "./segments";
+import { type Segment, segments } from "./segments";
 import { sourceError, sourceInfo, sourceLoading } from "./source";
 import type { SourceInfo } from "./types";
 import styles from "./SourcePane.module.css";
@@ -28,13 +30,20 @@ function onNameClick(event: MouseEvent): void {
   }
 }
 
-/** The line numbers and the code side by side. The line numbers are plain text; the code is plain
- * text too, but for the names of symbols, which are small elements of their own. */
+/** The class of the colour of a piece; plain code has none (`styles.plain` is no rule). */
+function colourOf(piece: Segment): string | undefined {
+  return piece.tokenClass === null ? undefined : styles[piece.tokenClass];
+}
+
+/** The line numbers and the code side by side. The line numbers are plain text; the code is
+ * coloured by its syntax, and the names of symbols are small elements of their own. */
 function Code(props: { info: SourceInfo }) {
   const numbers = createMemo(() =>
     props.info.lines.map((_, index) => props.info.first_line + index).join("\n"),
   );
-  const pieces = createMemo(() => segments(props.info.lines, props.info.spans ?? []));
+  const pieces = createMemo(() =>
+    segments(props.info.lines, props.info.spans ?? [], props.info.tokens ?? []),
+  );
   return (
     <div class={styles.code}>
       <pre class={styles.gutter} aria-hidden="true">
@@ -44,9 +53,16 @@ function Code(props: { info: SourceInfo }) {
         <code>
           <For each={pieces()}>
             {(piece) => (
-              <Show when={piece.symbol !== null} fallback={piece.text}>
+              <Show
+                when={piece.symbol !== null}
+                fallback={
+                  <Show when={colourOf(piece)} fallback={piece.text}>
+                    {(colour) => <span class={colour()}>{piece.text}</span>}
+                  </Show>
+                }
+              >
                 <span
-                  class={styles.name}
+                  class={[styles.name, colourOf(piece)].filter(Boolean).join(" ")}
                   data-symbol={piece.symbol}
                   title={t(I18N_KEYS.EXPLORER_SOURCE_NAME_HINT)}
                 >
@@ -83,45 +99,57 @@ function Lines(props: { info: SourceInfo }) {
   );
 }
 
-/** The right column of the explorer: file, position and code of the selected type or member
- * (blueprint B.2, mock `Explorer.dc.html`). */
-export function SourcePane(props: { shown: boolean }) {
+/** What the right column shows: a hint, a failure, the wait, or the source. */
+function Content(props: { shown: boolean }) {
   return (
-    <section class={styles.pane} aria-label={t(I18N_KEYS.EXPLORER_SOURCE_LABEL)}>
-      <Switch>
-        <Match when={!props.shown}>
-          <Note text={t(I18N_KEYS.EXPLORER_SOURCE_PICK)} />
-        </Match>
-        <Match when={sourceError()}>
-          {(failure) => (
-            <Note
-              text={
-                failure().code === null
-                  ? t(I18N_KEYS.EXPLORER_SOURCE_FAILED)
-                  : errorText(failure().code as ErrorCode)
-              }
-              alert
-            />
-          )}
-        </Match>
-        <Match when={sourceLoading()}>
-          <Note text={t(I18N_KEYS.EXPLORER_SOURCE_LOADING)} />
-        </Match>
-        <Match when={sourceInfo()}>
-          {(info) => (
-            <>
-              <div class={styles.head}>
-                <span class={styles.path}>{info().path}</span>
-                <span>
-                  {PILL_SEPARATOR}
-                  {lineRange(info().first_line, info().last_line)}
-                </span>
-              </div>
-              <Lines info={info()} />
-            </>
-          )}
-        </Match>
-      </Switch>
+    <Switch>
+      <Match when={!props.shown}>
+        <Note text={t(I18N_KEYS.EXPLORER_SOURCE_PICK)} />
+      </Match>
+      <Match when={sourceError()}>
+        {(failure) => (
+          <Note
+            text={
+              failure().code === null
+                ? t(I18N_KEYS.EXPLORER_SOURCE_FAILED)
+                : errorText(failure().code as ErrorCode)
+            }
+            alert
+          />
+        )}
+      </Match>
+      <Match when={sourceLoading()}>
+        <Note text={t(I18N_KEYS.EXPLORER_SOURCE_LOADING)} />
+      </Match>
+      <Match when={sourceInfo()}>
+        {(info) => (
+          <>
+            <div class={styles.head}>
+              <span class={styles.path}>{info().path}</span>
+              <span>
+                {PILL_SEPARATOR}
+                {lineRange(info().first_line, info().last_line)}
+              </span>
+            </div>
+            <Lines info={info()} />
+          </>
+        )}
+      </Match>
+    </Switch>
+  );
+}
+
+/** The right column of the explorer: file, position and code of the selected type or member
+ * (blueprint B.2, mock `Explorer.dc.html`). With a member selected it sits under the header in the
+ * middle column and takes all the room there (`wide`). */
+export function SourcePane(props: { shown: boolean; wide: boolean }) {
+  return (
+    <section
+      class={cx(styles.pane, props.wide && styles.inColumn)}
+      style={props.wide ? undefined : { "flex-basis": `${sourceWidth.size()}px` }}
+      aria-label={t(I18N_KEYS.EXPLORER_SOURCE_LABEL)}
+    >
+      <Content shown={props.shown} />
     </section>
   );
 }

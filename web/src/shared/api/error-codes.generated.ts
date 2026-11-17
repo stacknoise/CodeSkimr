@@ -4,13 +4,15 @@
 export type ErrorCode =
   | "APP-201"
   | "APP-202"
-  | "APP-203"
   | "APP-301"
   | "APP-901"
   | "APP-601"
+  | "APP-602"
+  | "APP-603"
   | "CFG-101"
   | "CFG-102"
   | "CFG-103"
+  | "CFG-104"
   | "PRJ-101"
   | "PRJ-201"
   | "PRJ-301"
@@ -77,6 +79,12 @@ export type ErrorCode =
   | "I18N-201"
   | "EXP-201"
   | "EXP-601"
+  | "ANN-101"
+  | "ANN-102"
+  | "ANN-103"
+  | "ANN-201"
+  | "ANN-202"
+  | "ANN-301"
   | "UI-201"
   | "UI-901"
   | "CHK-101"
@@ -105,13 +113,15 @@ export interface ErrorCodeInfo {
 export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "APP-201": { id: "APP-201", name: "data_dir_unavailable", group: "APP", class: "not_found", severity: "error", retryable: false, description: "The user data directory cannot be created or opened.", since: "0.1.0", deprecated: false, messageKey: "error-APP-201" },
   "APP-202": { id: "APP-202", name: "launch_file_unavailable", group: "APP", class: "not_found", severity: "error", retryable: true, description: "The private file for starting the browser could not be created.", since: "0.1.0", deprecated: false, messageKey: "error-APP-202" },
-  "APP-203": { id: "APP-203", name: "language_packs_unavailable", group: "APP", class: "not_found", severity: "error", retryable: true, description: "The language packs built into the program could not be written to the data directory.", since: "0.1.0", deprecated: false, messageKey: "error-APP-203" },
   "APP-301": { id: "APP-301", name: "instance_already_running", group: "APP", class: "conflict", severity: "error", retryable: false, description: "Another CodeSkimr instance holds the workspace; connecting to it failed.", since: "0.1.0", deprecated: false, messageKey: "error-APP-301" },
   "APP-901": { id: "APP-901", name: "unexpected_internal_error", group: "APP", class: "internal", severity: "error", retryable: false, description: "An unexpected internal error occurred (bug).", since: "0.1.0", deprecated: false, messageKey: "error-APP-901" },
   "APP-601": { id: "APP-601", name: "browser_start_failed", group: "APP", class: "external", severity: "error", retryable: true, description: "The system did not start a browser for the launch file.", since: "0.1.0", deprecated: false, messageKey: "error-APP-601" },
+  "APP-602": { id: "APP-602", name: "language_packs_unavailable", group: "APP", class: "external", severity: "error", retryable: true, description: "The language packs built into the program could not be written to the data directory.", since: "0.1.0", deprecated: false, messageKey: "error-APP-602" },
+  "APP-603": { id: "APP-603", name: "tray_start_failed", group: "APP", class: "external", severity: "error", retryable: true, description: "The program could not start itself in the background or show its tray icon.", since: "0.1.0", deprecated: false, messageKey: "error-APP-603" },
   "CFG-101": { id: "CFG-101", name: "config_invalid_value", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration value is outside its allowed range or has the wrong type.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-101" },
   "CFG-102": { id: "CFG-102", name: "config_parse_failed", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration file is not valid TOML.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-102" },
   "CFG-103": { id: "CFG-103", name: "config_unknown_key", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration file or flag sets a key that does not exist.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-103" },
+  "CFG-104": { id: "CFG-104", name: "project_file_not_writable", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "The project file `.codeskimr.toml` could not be written.", since: "0.9.0", deprecated: false, messageKey: "error-CFG-104" },
   "PRJ-101": { id: "PRJ-101", name: "project_source_invalid", group: "PRJ", class: "invalid_input", severity: "error", retryable: false, description: "The given source is neither an existing folder nor a valid Git URL.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-101" },
   "PRJ-201": { id: "PRJ-201", name: "project_not_found", group: "PRJ", class: "not_found", severity: "error", retryable: false, description: "No project with this id exists.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-201" },
   "PRJ-301": { id: "PRJ-301", name: "project_already_registered", group: "PRJ", class: "conflict", severity: "error", retryable: false, description: "A project with the same source is already registered.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-301" },
@@ -158,9 +168,9 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "AUTH-401": { id: "AUTH-401", name: "permission_denied", group: "AUTH", class: "permission", severity: "error", retryable: false, description: "The caller lacks the permission this action needs.", since: "0.1.0", deprecated: false, messageKey: "error-AUTH-401" },
   "API-101": { id: "API-101", name: "request_invalid", group: "API", class: "invalid_input", severity: "error", retryable: false, description: "The REST request failed validation.", since: "0.1.0", deprecated: false, messageKey: "error-API-101" },
   "API-102": { id: "API-102", name: "bind_address_not_local", group: "API", class: "invalid_input", severity: "error", retryable: false, description: "The server was asked to listen on an address that is not a loopback address.", since: "0.1.0", deprecated: false, messageKey: "error-API-102" },
-  "API-201": { id: "API-201", name: "command_not_found", group: "API", class: "not_found", severity: "error", retryable: false, description: "The REST request names a command or route that does not exist.", since: "0.1.0", deprecated: false, messageKey: "error-API-201" },
+  "API-201": { id: "API-201", name: "command_not_found", group: "API", class: "not_found", severity: "error", retryable: false, description: "The request names a command, tool or route that does not exist.", since: "0.1.0", deprecated: false, messageKey: "error-API-201" },
   "API-301": { id: "API-301", name: "server_bind_failed", group: "API", class: "conflict", severity: "error", retryable: false, description: "The server could not listen on its address, for example because the port is taken.", since: "0.1.0", deprecated: false, messageKey: "error-API-301" },
-  "API-401": { id: "API-401", name: "token_missing_or_invalid", group: "API", class: "permission", severity: "error", retryable: false, description: "A state-changing request lacks a valid installation token.", since: "0.1.0", deprecated: false, messageKey: "error-API-401" },
+  "API-401": { id: "API-401", name: "token_missing_or_invalid", group: "API", class: "permission", severity: "error", retryable: false, description: "The request lacks a valid installation token.", since: "0.1.0", deprecated: false, messageKey: "error-API-401" },
   "API-402": { id: "API-402", name: "host_or_origin_rejected", group: "API", class: "permission", severity: "error", retryable: false, description: "The Host or Origin header of the request is not one of this server.", since: "0.1.0", deprecated: false, messageKey: "error-API-402" },
   "API-403": { id: "API-403", name: "launch_code_invalid", group: "API", class: "permission", severity: "error", retryable: false, description: "The one-time launch code is wrong, already used or expired.", since: "0.1.0", deprecated: false, messageKey: "error-API-403" },
   "API-501": { id: "API-501", name: "request_too_large", group: "API", class: "limit", severity: "error", retryable: false, description: "The request body is larger than the server accepts.", since: "0.1.0", deprecated: false, messageKey: "error-API-501" },
@@ -178,6 +188,12 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "I18N-201": { id: "I18N-201", name: "message_key_missing", group: "I18N", class: "not_found", severity: "error", retryable: false, description: "A message key is missing for the active language (falls back to English).", since: "0.1.0", deprecated: false, messageKey: "error-I18N-201" },
   "EXP-201": { id: "EXP-201", name: "export_bundle_missing", group: "EXP", class: "not_found", severity: "error", retryable: false, description: "The built export page of the UI is missing or unusable.", since: "0.1.0", deprecated: false, messageKey: "error-EXP-201" },
   "EXP-601": { id: "EXP-601", name: "export_write_failed", group: "EXP", class: "external", severity: "error", retryable: false, description: "The export file could not be written.", since: "0.1.0", deprecated: false, messageKey: "error-EXP-601" },
+  "ANN-101": { id: "ANN-101", name: "annotation_target_not_found", group: "ANN", class: "invalid_input", severity: "error", retryable: false, description: "The symbol an annotation is meant for is not in the newest snapshot of the project.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-101" },
+  "ANN-102": { id: "ANN-102", name: "annotation_text_too_long", group: "ANN", class: "invalid_input", severity: "error", retryable: false, description: "The text or the title of an annotation is longer than the configured limit.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-102" },
+  "ANN-103": { id: "ANN-103", name: "annotation_invalid", group: "ANN", class: "invalid_input", severity: "error", retryable: false, description: "The fields of an annotation do not fit its kind (for example a due date on a note), or a required text or title is missing or empty.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-103" },
+  "ANN-201": { id: "ANN-201", name: "annotation_not_found", group: "ANN", class: "not_found", severity: "error", retryable: false, description: "No annotation with this id exists.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-201" },
+  "ANN-202": { id: "ANN-202", name: "alert_not_found", group: "ANN", class: "not_found", severity: "error", retryable: false, description: "No alert with this id exists.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-202" },
+  "ANN-301": { id: "ANN-301", name: "critical_already_marked", group: "ANN", class: "conflict", severity: "error", retryable: false, description: "The symbol already has a critical mark; a symbol has at most one.", since: "0.1.0", deprecated: false, messageKey: "error-ANN-301" },
   "UI-201": { id: "UI-201", name: "api_unreachable", group: "UI", class: "not_found", severity: "error", retryable: false, description: "The UI cannot reach the local server.", since: "0.1.0", deprecated: false, messageKey: "error-UI-201" },
   "UI-901": { id: "UI-901", name: "unexpected_ui_error", group: "UI", class: "internal", severity: "error", retryable: false, description: "An uncaught exception was converted at a feature boundary (bug).", since: "0.1.0", deprecated: false, messageKey: "error-UI-901" },
   "CHK-101": { id: "CHK-101", name: "literal_found", group: "CHK", class: "invalid_input", severity: "error", retryable: false, description: "A literal outside the allowed exceptions was found.", since: "0.1.0", deprecated: false, messageKey: "error-CHK-101" },

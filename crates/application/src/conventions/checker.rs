@@ -46,7 +46,7 @@ pub struct ConventionChecker {
 impl ConventionChecker {
     /// Builds the checker over the same ports a scan uses. The analyzer must have fingerprints
     /// switched on, otherwise no duplicate is found. `text` is read for the marker that exempts a
-    /// pure mapping function from `CHK-102` (ADR 0060).
+    /// pure mapping function from `CHK-102` (ADR 0070).
     #[must_use]
     pub fn new(
         discovery: Arc<dyn FileDiscovery>,
@@ -164,7 +164,7 @@ impl ConventionChecker {
         })
     }
 
-    /// Whether `finding` is a copy that its function excuses with the marker (ADR 0060).
+    /// Whether `finding` is a copy that its function excuses with the marker (ADR 0070).
     fn allowed(&self, analysed: &[Analysed], root: &FolderPath, finding: &Finding) -> bool {
         finding.code == ErrorCode::DuplicateBlock
             && analysed

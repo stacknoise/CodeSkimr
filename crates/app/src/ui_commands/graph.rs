@@ -10,13 +10,15 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{CodeIndex, ProjectRepository};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_domain::{
-    Layer, LayerEdge, LayerMap, Layout, LayoutEdge, LayoutGraph, LayoutNode, NamespaceGraph,
-    NodeIndex, Permission, ProjectId, SnapshotId, layer_map,
+    Layer, LayerEdge, LayerMap, NodePlacement, NodeSize, Permission, ProjectId, SnapshotId,
+    layer_map,
 };
 use serde::{Deserialize, Serialize};
 
 use super::consts::{BAND_PAD_DIVISOR, GRAPH_DESCRIPTION, GRAPH_LAYERS, GRAPH_TITLE};
+use super::graph_focus::namespaces_out;
 use super::graph_types::types_out;
+use super::graph_wrap::{Extent, arrange};
 
 /// What a box of the map stands for.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
@@ -32,7 +34,7 @@ pub enum Level {
 }
 
 /// The input of `graph.layers`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct GraphInput {
     /// Id of the project.
     pub project: u64,
@@ -46,13 +48,21 @@ pub struct GraphInput {
     /// On the level `types`: id of the type in the middle.
     #[serde(default)]
     pub focus: Option<u64>,
+    /// On the level `namespaces`: name of the namespace in the middle; the one with the most
+    /// dependencies if left out or unknown.
+    #[serde(default)]
+    pub namespace: Option<String>,
 }
 
 /// One layer box of the map. `x` and `y` are the top-left corner in layout units.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct BoxOut {
-    /// Name of the layer.
+    /// Name of the layer, namespace or type; the key of the box in the links.
     pub name: String,
+    /// The text of the box: the short name; the namespace path is in `context`.
+    pub label: String,
+    /// The path of namespaces in front of a type, as a breadcrumb; empty where there is none.
+    pub context: String,
     /// Left edge.
     pub x: u32,
     /// Top edge.
@@ -71,6 +81,32 @@ pub struct BoxOut {
     pub types: Option<u32>,
     /// Id of the type of a box on the level `types`; `None` on the other levels.
     pub symbol: Option<u64>,
+}
+
+impl BoxOut {
+    /// A box of a layer or a namespace at its place; the label is the name.
+    pub(super) fn placed(
+        name: &str,
+        place: &NodePlacement,
+        size: NodeSize,
+        layer: Option<String>,
+        types: Option<u32>,
+    ) -> Self {
+        Self {
+            name: name.to_owned(),
+            label: name.to_owned(),
+            context: String::new(),
+            x: place.x,
+            y: place.y,
+            width: size.width,
+            height: size.height,
+            rank: place.rank,
+            order: place.order,
+            layer,
+            types,
+            symbol: None,
+        }
+    }
 }
 
 /// The background of one layer: a stripe over the whole width behind the rows of its boxes.
@@ -123,8 +159,8 @@ pub struct GraphOut {
 /// The type in the middle of a map on the level `types`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct FocusOut {
-    /// Id of the type.
-    pub symbol: u64,
+    /// Id of the type; `None` for a namespace.
+    pub symbol: Option<u64>,
     /// Qualified name of the type, as the name of its box.
     pub name: String,
     /// Number of types that use it and are not drawn.
@@ -161,17 +197,9 @@ fn boxes_out(map: &LayerMap, look: &Graph) -> Vec<BoxOut> {
     map.names
         .iter()
         .zip(&map.layout.placements)
-        .map(|(name, place)| BoxOut {
-            name: name.as_str().to_owned(),
-            x: place.x,
-            y: place.y,
-            width: size.width,
-            height: size.height,
-            rank: place.rank,
-            order: place.order,
-            layer: Some(name.as_str().to_owned()),
-            types: None,
-            symbol: None,
+        .map(|(name, place)| {
+            let layer = Some(name.as_str().to_owned());
+            BoxOut::placed(name.as_str(), place, size, layer, None)
         })
         .collect()
 }
@@ -226,13 +254,25 @@ impl Command for GraphLayers {
         let look = &ports.look;
         let mut out = match request.input.level {
             Level::Layers => layers_out(ports, &project.layers, snapshot.id)?,
-            Level::Namespaces => {
-                namespaces_out(ports, &project.layers, snapshot.id, request.input.depth)?
-            }
+            Level::Namespaces => namespaces_out(
+                ports,
+                &project.layers,
+                snapshot.id,
+                (request.input.depth, request.input.namespace.as_deref()),
+            )?,
             Level::Types => types_out(ports, &project, snapshot.id, request.input.focus)?,
         };
         out.snapshot = Some(snapshot.id.get());
-        if request.input.level != Level::Types {
+        if request.input.level == Level::Layers {
+            let size = arrange(
+                &mut out.boxes,
+                Extent {
+                    width: out.width,
+                    height: out.height,
+                },
+                look,
+            );
+            (out.width, out.height) = (size.width, size.height);
             out.bands = bands_out(&project.layers, &out.boxes, look);
         }
         let reach = out.bands.iter().map(|band| band.y + band.height).max();
@@ -259,111 +299,8 @@ fn layers_out(
     })
 }
 
-fn layer_index(layers: &[Layer], name: &str) -> Option<usize> {
+pub(super) fn layer_index(layers: &[Layer], name: &str) -> Option<usize> {
     layers.iter().position(|layer| layer.owns(name))
-}
-
-/// Places the namespaces, each in the row of the layer that owns it; a namespace of no layer is
-/// placed by its edges.
-fn namespace_layout(
-    look: &Graph,
-    graph: &NamespaceGraph,
-    owners: &[Option<usize>],
-) -> Result<Layout, CodedError> {
-    let nodes = owners
-        .iter()
-        .map(|owner| LayoutNode {
-            size: look.node_size(),
-            rank: owner.and_then(|position| u32::try_from(position).ok()),
-        })
-        .collect();
-    let links = graph
-        .edges
-        .iter()
-        .map(|edge| LayoutEdge {
-            from: NodeIndex::new(edge.from),
-            to: NodeIndex::new(edge.to),
-        })
-        .collect();
-    Ok(LayoutGraph::new(nodes, links)
-        .map_err(CodedError::caused_by)?
-        .layout(&look.layout_params()))
-}
-
-fn namespace_boxes(
-    look: &Graph,
-    graph: &NamespaceGraph,
-    layout: &Layout,
-    owners: &[(Option<usize>, Option<&Layer>)],
-) -> Vec<BoxOut> {
-    let size = look.node_size();
-    graph
-        .namespaces
-        .iter()
-        .zip(&layout.placements)
-        .zip(owners)
-        .map(|((node, place), (_, layer))| BoxOut {
-            name: node.name.to_string(),
-            x: place.x,
-            y: place.y,
-            width: size.width,
-            height: size.height,
-            rank: place.rank,
-            order: place.order,
-            layer: layer.map(|found| found.name.as_str().to_owned()),
-            types: Some(node.types),
-            symbol: None,
-        })
-        .collect()
-}
-
-fn namespace_links(graph: &NamespaceGraph) -> Vec<LinkOut> {
-    let name_of = |position: usize| {
-        graph
-            .namespaces
-            .get(position)
-            .map(|node| node.name.to_string())
-    };
-    graph
-        .edges
-        .iter()
-        .filter_map(|edge| {
-            Some(LinkOut {
-                from: name_of(edge.from)?,
-                to: name_of(edge.to)?,
-                count: edge.count,
-                violates_layering: false,
-                in_cycle: false,
-            })
-        })
-        .collect()
-}
-
-fn namespaces_out(
-    ports: &GraphPorts,
-    layers: &[Layer],
-    snapshot: SnapshotId,
-    depth: u32,
-) -> Result<GraphOut, CodedError> {
-    let depth = usize::try_from(depth).unwrap_or_default();
-    let graph = ports.index.namespace_graph(snapshot)?.collapsed(depth);
-    let positions: Vec<Option<usize>> = graph
-        .namespaces
-        .iter()
-        .map(|node| layer_index(layers, node.name.as_str()))
-        .collect();
-    let layout = namespace_layout(&ports.look, &graph, &positions)?;
-    let owners: Vec<_> = positions
-        .iter()
-        .map(|position| (*position, position.and_then(|at| layers.get(at))))
-        .collect();
-    Ok(GraphOut {
-        width: layout.width,
-        height: layout.height,
-        boxes: namespace_boxes(&ports.look, &graph, &layout, &owners),
-        links: namespace_links(&graph),
-        ..GraphOut::default()
-    })
 }
 
 #[cfg(test)]

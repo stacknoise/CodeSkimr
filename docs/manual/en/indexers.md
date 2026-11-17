@@ -32,7 +32,7 @@ Whenever a project is loaded (added, fully scanned, reopened), CodeSkimr checks 
 - in the summary of `codeskimr scan` (and in `--json` as `tools`);
 - over MCP with the tool `get_project`.
 
-A tool is `ready`, `missing` (not on the `PATH`, or its version command fails, as with the `rustup` shim of a component that was never added), `too_old` (below the minimum version or the version the project asks for in `global.json`, `.nvmrc` or `rust-toolchain.toml`), `too_new` (newer than the `rollForward` rule in `global.json` lets through, for example SDK 9 although the project names 8.0 and allows nothing above it) or `version_unknown` (it ran but no version could be read). A missing tool **never stops a scan**: you get level 1, marked unchecked. A quick re-scan after a file change does not repeat the check.
+A tool is `ready`, `missing` (not on the `PATH`), `not_runnable` (found, but its version command fails, as with the `rustup` shim of a component that was never added, or an indexer that crashes on start; the panel shows the line of its error), `too_old` (below the minimum version or the version the project asks for in `global.json`, `.nvmrc` or `rust-toolchain.toml`), `too_new` (newer than the `rollForward` rule in `global.json` lets through, for example SDK 9 although the project names 8.0 and allows nothing above it) or `version_unknown` (it ran but no version could be read). A missing tool **never stops a scan**: you get level 1, marked unchecked. A quick re-scan after a file change does not repeat the check.
 
 ## Switching it on
 
@@ -59,7 +59,7 @@ The confirmation is bound to the project's name, location and branch, **not to a
 
 ## When it runs
 
-- **`codeskimr scan`** runs level 2 after level 1 is stored: for each language with an indexer it checks permission and tools, runs the indexer, imports the index and replaces the references per file. It prints one line per language, for example "Level 2: C# checked (120 files)" or "Level 2: C# skipped (not enabled and confirmed for this project)". Other reasons: indexer or toolchain missing or too old, every file changed since the scan, scan cancelled, failed with an error code. If only some files changed since the scan, the same line says so and they stay at level 1.
+- **`codeskimr scan`** runs level 2 after level 1 is stored: for each language with an indexer it checks permission and tools, runs the indexer, imports the index and replaces the references per file. It prints one line per language, for example "Level 2: C# checked (120 files)" or "Level 2: C# skipped (not enabled and confirmed for this project)". Other reasons: indexer or toolchain missing or too old, every file changed since the scan, scan cancelled, failed with an error code. If only some files changed since the scan, the same line says so and they stay at level 1. If the index knows symbols in folders that the scan skips, a second line says how many uses of them were set aside ("uses of code in folders the scan skips, not counted"); they are not held against the index.
 - Watch mode (`--watch`) runs level 2 with its **first** scan only; later re-scans are level 1.
 - **Scans started from the browser or over MCP never run level 2**, even after you confirmed it. MCP, REST tokens and the browser cannot start the build tools of a project.
 - Level 1 is complete and usable before level 2 starts; the browser and MCP do not wait for the indexers.

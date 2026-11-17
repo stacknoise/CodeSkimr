@@ -53,6 +53,8 @@ pub mod keys {
     pub const FULL_SCAN_MS: &str = "budgets.full_scan_100k_loc_ms";
     /// `budgets.incremental_rescan_ms`
     pub const INCREMENTAL_RESCAN_MS: &str = "budgets.incremental_rescan_ms";
+    /// `budgets.pack_load_ms`
+    pub const PACK_LOAD_MS: &str = "budgets.pack_load_ms";
     /// `budgets.idle_cpu_percent`
     pub const IDLE_CPU_PERCENT: &str = "budgets.idle_cpu_percent";
     /// `budgets.memory_1m_loc_mb`
@@ -75,10 +77,18 @@ pub mod keys {
     pub const MCP_MAX_SNIPPET_BYTES: &str = "mcp.max_snippet_bytes";
     /// `snapshots.retention_count`
     pub const RETENTION_COUNT: &str = "snapshots.retention_count";
+    /// `annotations.dismissed_retention_days`
+    pub const ANNOTATIONS_RETENTION_DAYS: &str = "annotations.dismissed_retention_days";
+    /// `annotations.max_text_chars`
+    pub const ANNOTATIONS_MAX_TEXT_CHARS: &str = "annotations.max_text_chars";
+    /// `annotations.max_title_chars`
+    pub const ANNOTATIONS_MAX_TITLE_CHARS: &str = "annotations.max_title_chars";
     /// `graph.node_width`
     pub const GRAPH_NODE_WIDTH: &str = "graph.node_width";
     /// `graph.node_height`
     pub const GRAPH_NODE_HEIGHT: &str = "graph.node_height";
+    /// `graph.row_boxes`
+    pub const GRAPH_ROW_BOXES: &str = "graph.row_boxes";
     /// `similarity.ngram_size`
     pub const NGRAM_SIZE: &str = "similarity.ngram_size";
     /// `similarity.window_size`
@@ -168,3 +178,14 @@ pub const SCAN_TABLE: &str = "scan";
 /// lift the protection of the machine that scans it (#54). The user file and the flags may still
 /// raise them.
 pub const LOWER_ONLY_SCAN_KEYS: [&str; 2] = ["max_source_mb", "parse_timeout_ms"];
+
+/// Header of a table in an array of tables, as it starts a layer in `.codeskimr.toml`.
+pub const LAYER_TABLE_HEADER: &str = "[[layers]]";
+/// First character of every table header line.
+pub const TABLE_HEADER_START: char = '[';
+/// Separates the kept part of the project file from the written layers.
+pub const BLOCK_SEPARATOR: &str = "\n\n";
+/// Ends a line.
+pub const LINE_END: char = '\n';
+/// Ends a line in a file written on Windows.
+pub const WINDOWS_LINE_END: &str = "\r\n";

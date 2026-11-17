@@ -10,7 +10,7 @@ Blueprint 10.4 (`check_conventions`), 10.2 (`codeskimr check`), 11.6 (E-04) and 
 | `CHK-102` `duplicate_block` | R-01: two functions whose syntax fingerprints are at least `conventions.duplicate_similarity_percent` similar (default 85) | checked, within the checked files and (MCP) against the stored project |
 | `CHK-101` `literal_found` | R-06 | not checked yet (#93): the language packs do not report literals. The Dylint lint `no_literals` covers Rust in CI |
 | `CHK-103` `layer_violation` | R-04 | not checked yet: the project model has no allowed directions (issue #45) |
-| `CHK-105` `complexity_too_high` | R-02: cognitive complexity at most `conventions.max_cognitive_complexity` (default 15) | checked for the languages whose pack counts it (ADR 0048; Rust, Python, Java, TypeScript, TSX and JavaScript so far), else listed in `not_checked` |
+| `CHK-105` `complexity_too_high` | R-02: cognitive complexity at most `conventions.max_cognitive_complexity` (default 15) | checked for the languages whose pack counts it (ADR 0048; Rust, Python, Java, TypeScript, TSX, JavaScript and C# so far), else listed in `not_checked` |
 | `CHK-106` `too_many_parameters` | R-02: at most `conventions.max_parameters` parameters (default 5), without the receiver | like `CHK-105` |
 
 The report always lists the rules it did not check (`not_checked`), so a clean report is never read as "all rules are met". `CHK-105` and `CHK-106` appear there as soon as a function of a language whose pack does not count them is among the checked files.
@@ -29,7 +29,7 @@ The report always lists the rules it did not check (`not_checked`), so a clean r
 - A function reports at most one duplicate finding: on the later function in path and line order, naming the earlier one and the similarity (rounded down to a whole percent). Findings are ordered by file, line and code.
 - Length is the code lines of the whole declaration, signature included (ADR 0015: no blank or comment-only lines). Clippy's `too_many_lines` in CI counts from the opening brace of the body, so a function with a signature over several lines can be reported here (`CHK-104`) with 41 to 43 lines while clippy accepts it. CI stays the authority; the difference is at most the extra signature lines. A nested function counts for itself and for the function around it. A function and one nested inside it are never reported as duplicates of each other.
 
-## Reasoned exception for mapping functions (ADR 0060)
+## Reasoned exception for mapping functions (ADR 0070)
 
 A pure mapping function (it copies the fields of one shape into another, no branch, no loop) can be excused from `CHK-102` with a comment directly above its declaration:
 

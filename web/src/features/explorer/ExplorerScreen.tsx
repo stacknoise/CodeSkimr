@@ -4,6 +4,8 @@ import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
 import { pendingFocus, showUsages } from "../../shared/navigation/navigation";
+import { ORIENTATION, SIDE } from "../../shared/layout/consts";
+import { Splitter } from "../../shared/layout/Splitter";
 import { showInGraph } from "../graph/show";
 import { DetailPane } from "./DetailPane";
 import {
@@ -12,16 +14,19 @@ import {
   currentMember,
   currentType,
   loadOutline,
+  shownHasLayer,
   stepMember,
   outlineError,
   outlineLoading,
   symbolDetails,
+  shownMember,
   symbolError,
   treeOutline,
   type Failure,
 } from "./explorer";
 import { openInEditor } from "./editor";
 import { useExplorerKeys } from "./keys";
+import { sourceWidth, treeWidth } from "./layout";
 import { Overview } from "./Overview";
 import { clearSource, loadSource } from "./source";
 import { SourcePane } from "./SourcePane";
@@ -69,6 +74,7 @@ function Details(props: { onPickMember: ReturnType<typeof useExplorer>["pickMemb
             info={detail()}
             thresholds={treeOutline()?.thresholds ?? null}
             onPickMember={(row) => props.onPickMember(detail().id, row)}
+            source={<SourcePane shown wide />}
           />
         )}
       </Match>
@@ -133,7 +139,7 @@ function useShortcuts(explorer: ReturnType<typeof useExplorer>): void {
     graph: () => {
       const symbol = shownSymbol();
       const project = activeProject();
-      if (symbol !== null && project !== null) {
+      if (symbol !== null && project !== null && shownHasLayer()) {
         void showInGraph(project, symbol);
       }
     },
@@ -151,6 +157,27 @@ function useShortcuts(explorer: ReturnType<typeof useExplorer>): void {
       }
     },
   });
+}
+
+/** The three columns: tree, details and source. */
+function Columns(props: { explorer: ReturnType<typeof useExplorer> }) {
+  const { explorer } = props;
+  return (
+    <div class={styles.screen}>
+      <TreePane
+        rows={explorer.rows()}
+        cursor={explorer.cursor()}
+        actions={explorer.actions}
+        note={treeNote(explorer.rows().length)}
+      />
+      <Splitter pane={treeWidth} orientation={ORIENTATION.vertical} side={SIDE.before} />
+      <Details onPickMember={explorer.pickMember} />
+      <Show when={shownMember() === null}>
+        <Splitter pane={sourceWidth} orientation={ORIENTATION.vertical} side={SIDE.after} />
+        <SourcePane shown={shownSymbol() !== null} wide={false} />
+      </Show>
+    </div>
+  );
 }
 
 /** Screen 2, the explorer: tree, details and source (blueprint B.2, mock `Explorer.dc.html`). */
@@ -177,16 +204,7 @@ export function ExplorerScreen() {
         )}
       </Match>
       <Match when={true}>
-        <div class={styles.screen}>
-          <TreePane
-            rows={explorer.rows()}
-            cursor={explorer.cursor()}
-            actions={explorer.actions}
-            note={treeNote(explorer.rows().length)}
-          />
-          <Details onPickMember={explorer.pickMember} />
-          <SourcePane shown={shownSymbol() !== null} />
-        </div>
+        <Columns explorer={explorer} />
       </Match>
     </Switch>
   );

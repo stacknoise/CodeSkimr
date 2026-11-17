@@ -1,6 +1,11 @@
 /** One placed layer, in layout units (`BoxOut` in crates/app/src/ui_commands/graph.rs). */
 export interface LayerBox {
+  /** The key of the box in the links and the selection. */
   name: string;
+  /** The text of the box: the short name; the path is in `context`. */
+  label: string;
+  /** The namespaces in front of a type, as a breadcrumb; empty where there is none. */
+  context: string;
   x: number;
   y: number;
   width: number;
@@ -37,7 +42,8 @@ export interface LayerLink {
 
 /** The type in the middle of the map on the type level, and what the picture leaves out. */
 export interface FocusInfo {
-  symbol: number;
+  /** Id of the type in the middle; `null` for a namespace. */
+  symbol: number | null;
   name: string;
   users_more: number;
   used_more: number;

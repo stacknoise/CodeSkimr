@@ -13,25 +13,6 @@ import {
 } from "./usages";
 import styles from "./Toolbar.module.css";
 
-/** The level of the mock: only the symbol level exists here; the other two belong to the graph
- * screen and are shown off, with the reason as a tooltip. */
-function Levels() {
-  const soon = t(I18N_KEYS.USAGES_LEVEL_SOON);
-  return (
-    <div class={styles.group} role={ROLE.group} aria-label={t(I18N_KEYS.USAGES_LEVEL_LABEL)}>
-      <button type="button" aria-disabled={true} title={soon}>
-        {t(I18N_KEYS.USAGES_LEVEL_NAMESPACES)}
-      </button>
-      <button type="button" aria-disabled={true} title={soon}>
-        {t(I18N_KEYS.USAGES_LEVEL_TYPES)}
-      </button>
-      <button type="button" class={styles.current} aria-pressed={true}>
-        {t(I18N_KEYS.USAGES_LEVEL_SYMBOL)}
-      </button>
-    </div>
-  );
-}
-
 function Directions() {
   return (
     <div class={styles.group} role={ROLE.group} aria-label={t(I18N_KEYS.USAGES_DIRECTION_LABEL)}>
@@ -51,11 +32,15 @@ function Directions() {
   );
 }
 
-/** The toolbar of screen 6: level, direction, depth, tests and the key hint (mock 6). */
-export function Toolbar() {
+/** The toolbar of screen 6: the way back, direction, depth, tests and the key hint (mock 6). */
+export function Toolbar(props: { onBack: () => void }) {
   return (
     <div class={styles.bar}>
-      <Levels />
+      <div class={styles.group}>
+        <button type="button" onClick={props.onBack}>
+          {t(I18N_KEYS.USAGES_BACK)}
+        </button>
+      </div>
       <Directions />
       <label class={styles.field}>
         {t(I18N_KEYS.USAGES_DEPTH)}

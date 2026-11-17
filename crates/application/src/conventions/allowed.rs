@@ -1,4 +1,4 @@
-//! The reasoned exception from `CHK-102` for pure mapping functions (ADR 0060).
+//! The reasoned exception from `CHK-102` for pure mapping functions (ADR 0070).
 
 use codeskimr_domain::FolderPath;
 

@@ -6,10 +6,12 @@
 //! application layer only sees finished results.
 
 mod analysis;
+mod annotations;
 mod catalog;
 mod clock;
 mod consent;
 mod credentials;
+mod highlight;
 mod indexer;
 mod keys;
 mod level2;
@@ -27,10 +29,15 @@ pub use analysis::{
     AnalyzeRequest, FileAnalyzer, FileFacts, MetricsCalculator, PendingReference, Receiver,
     ReferenceResolver, SnippetFingerprinter, SymbolFingerprints,
 };
+pub use annotations::{
+    AlertDismissal, AlertFilter, AlertPurge, AlertRaise, AnnotationCreation, AnnotationFilter,
+    AnnotationStore, AnnotationUpdate,
+};
 pub use catalog::{LanguageShare, ProjectCatalog, ProjectOverview};
 pub use clock::Clock;
 pub use consent::{ConsentGrant, ConsentRecord, ConsentStore, RunPermit};
 pub use credentials::{AuthError, Credential, CredentialStore};
+pub use highlight::{SyntaxHighlighter, TokenClass, TokenSpan};
 pub use indexer::{
     IndexArtifact, IndexJob, IndexLimits, IndexRunner, IndexerSpec, IndexerStatus,
     PLACEHOLDER_OUTPUT, PLACEHOLDER_PROJECT, ToolIssue, ToolProblem, ToolSeen, ToolSpec,

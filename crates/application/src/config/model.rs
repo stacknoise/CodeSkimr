@@ -1,9 +1,10 @@
 //! The typed configuration. There is no string-keyed access anywhere (blueprint section 14).
 
 use codeskimr_domain::{
-    FingerprintParams, Layer, LayerName, LayoutParams, ModelError, NodeSize, QualifiedName,
+    AnnotationLimits, FingerprintParams, Layer, LayerName, LayoutParams, ModelError, NodeSize,
+    QualifiedName,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::time::Duration;
 
@@ -42,6 +43,8 @@ pub struct Config {
     pub ui: Ui,
     /// The picture of the dependency map.
     pub graph: Graph,
+    /// Limits of annotations and alerts (ADR 0068).
+    pub annotations: Annotations,
     /// Where `find_constants` looks for configuration and translation keys.
     pub keys: KeySources,
 }
@@ -65,7 +68,7 @@ pub struct KeySources {
 }
 
 /// One architecture layer as written in `.codeskimr.toml`.
-#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct LayerRule {
     /// Name of the layer, unique in the project.
@@ -74,7 +77,7 @@ pub struct LayerRule {
     pub namespaces: Vec<String>,
     /// Names of the layers this layer may depend on (ADR 0054). Missing means no limit; an empty
     /// list means none.
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub may_use: Option<Vec<String>>,
 }
 
@@ -146,6 +149,8 @@ pub struct Budgets {
     pub full_scan_100k_loc_ms: u32,
     /// Incremental re-scan after saving one file, in milliseconds.
     pub incremental_rescan_ms: u32,
+    /// Loading the Rust and C# packs on a first scan, in milliseconds.
+    pub pack_load_ms: u32,
     /// Idle CPU load in percent.
     pub idle_cpu_percent: u32,
     /// Memory for 1M lines of code, in megabytes.
@@ -287,6 +292,29 @@ pub struct Ui {
     pub launch_code_seconds: u32,
 }
 
+/// Limits of annotations and alerts (blueprint 14, ADR 0068).
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Annotations {
+    /// Days a dismissed alert is kept before it is purged.
+    pub dismissed_retention_days: u32,
+    /// Most characters of the text of an annotation.
+    pub max_text_chars: u32,
+    /// Most characters of the title of a task.
+    pub max_title_chars: u32,
+}
+
+impl Annotations {
+    /// The limits for the texts of annotations.
+    #[must_use]
+    pub const fn limits(&self) -> AnnotationLimits {
+        AnnotationLimits {
+            max_text_chars: self.max_text_chars,
+            max_title_chars: self.max_title_chars,
+        }
+    }
+}
+
 /// Syntax fingerprints (blueprint 10.4).
 #[derive(Debug, Clone, PartialEq, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -329,6 +357,9 @@ pub struct Graph {
     pub sweeps: u32,
     /// Number of passes that move the boxes towards their neighbours.
     pub placement_passes: u32,
+    /// Most boxes in one line of a row; a longer row wraps into several lines, so that a project
+    /// with hundreds of namespaces stays readable.
+    pub row_boxes: u32,
 }
 
 impl Graph {

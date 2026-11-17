@@ -30,7 +30,7 @@ pub const STORED_DUPLICATE_HITS: u32 = 20;
 /// Snapshot id used for the throw-away analysis of a check; nothing is stored.
 pub const CHECK_SNAPSHOT_ID: u64 = 0;
 /// The words in a comment directly above a pure mapping function that exempt it from `CHK-102`
-/// (ADR 0060). A reason must follow.
+/// (ADR 0070). A reason must follow.
 pub const CHECK_ALLOW_MARKER: &str = "codeskimr: allow CHK-102";
 /// How many lines above its declaration a function is searched for the marker, attributes and
 /// doc comments included.
@@ -86,3 +86,18 @@ pub const LOG_SCAN_WARNING: &str = "scan_warning";
 
 /// Log event: references that level 2 had verified were discarded because their target is gone.
 pub const LOG_VERIFIED_DISCARDED: &str = "verified_references_discarded";
+
+/// Wire word of `TokenClass::Comment`.
+pub const TOKEN_COMMENT: &str = "comment";
+/// Wire word of `TokenClass::String`.
+pub const TOKEN_STRING: &str = "string";
+/// Wire word of `TokenClass::Number`.
+pub const TOKEN_NUMBER: &str = "number";
+/// Wire word of `TokenClass::Keyword`.
+pub const TOKEN_KEYWORD: &str = "keyword";
+/// Wire word of `TokenClass::Type`.
+pub const TOKEN_TYPE: &str = "type";
+/// Wire word of `TokenClass::Function`.
+pub const TOKEN_FUNCTION: &str = "function";
+/// Wire word of `TokenClass::Attribute`.
+pub const TOKEN_ATTRIBUTE: &str = "attribute";

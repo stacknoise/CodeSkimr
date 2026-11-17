@@ -7,10 +7,12 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::config::MetricThresholds;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{CodeIndex, CodeOutline, OutlineNode, SourceText};
+use codeskimr_application::ports::{
+    CodeIndex, CodeOutline, OutlineNode, SourceText, SyntaxHighlighter,
+};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Layer, Permission, ProjectId, Snapshot, SymbolId};
+use codeskimr_domain::{Layer, Permission, Project, ProjectId, Snapshot, SymbolId};
 use serde::{Deserialize, Serialize};
 
 use super::consts::{EXPLORER_OUTLINE, OUTLINE_DESCRIPTION, OUTLINE_TITLE};
@@ -22,10 +24,24 @@ pub struct ExplorerPorts {
     pub(super) index: Arc<dyn CodeIndex>,
     pub(super) outline: Arc<dyn CodeOutline>,
     pub(super) text: Arc<dyn SourceText>,
+    pub(super) highlighter: Arc<dyn SyntaxHighlighter>,
     pub(super) thresholds: MetricThresholds,
 }
 
 impl ExplorerPorts {
+    /// A registered project and its newest snapshot, `None` before the first scan.
+    ///
+    /// # Errors
+    /// `PRJ-201` for an unknown project.
+    pub(super) fn project_and_newest(
+        &self,
+        project: u64,
+    ) -> Result<(Project, Option<Snapshot>), CodedError> {
+        let found = self.projects.project(ProjectId::new(project))?;
+        let snapshot = self.index.latest_snapshot(found.id)?;
+        Ok((found, snapshot))
+    }
+
     /// The newest snapshot of a registered project.
     ///
     /// # Errors
@@ -50,6 +66,8 @@ pub struct TypeNode {
     pub kind: &'static str,
     /// Number of direct members.
     pub members: u32,
+    /// Id of the language pack of the declaring file.
+    pub language: String,
 }
 
 /// A namespace with its types.
@@ -126,11 +144,15 @@ fn type_node(node: &OutlineNode) -> TypeNode {
         name: node.name.to_string(),
         kind: node.kind.label(),
         members: node.members,
+        language: node.language.to_string(),
     }
 }
 
 /// The namespace a top-level type sits in: its parent container, or the name before its own.
-fn namespace_of(node: &OutlineNode, names: &HashMap<SymbolId, &OutlineNode>) -> Option<String> {
+pub(super) fn namespace_of(
+    node: &OutlineNode,
+    names: &HashMap<SymbolId, &OutlineNode>,
+) -> Option<String> {
     match node.parent {
         Some(parent) => names
             .get(&parent)
@@ -216,10 +238,8 @@ impl Command for ExplorerOutline {
     fn execute(&self, request: Request<'_, Self>) -> Result<Outline, CodedError> {
         access::require(request.principal, Permission::Read)?;
         let ports = &self.ports;
-        let project = ports
-            .projects
-            .project(ProjectId::new(request.input.project))?;
-        let Some(snapshot) = ports.index.latest_snapshot(project.id)? else {
+        let (project, snapshot) = ports.project_and_newest(request.input.project)?;
+        let Some(snapshot) = snapshot else {
             return Ok(Outline {
                 snapshot: None,
                 layers: Vec::new(),

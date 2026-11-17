@@ -13,7 +13,7 @@ import {
   type End,
   type Tone,
 } from "./consts";
-import { shortName } from "./names";
+import { cardNames, shortName } from "./names";
 import type { Hit, Place, UsagesAnswer, Walk } from "./types";
 
 /** A column of the graph with its heading. */
@@ -30,6 +30,9 @@ export interface Column {
 export interface Card {
   place: Place;
   name: string;
+  /** What the card writes big and small: the symbol, and the one it belongs to. */
+  member: string;
+  owner: string;
   x: number;
   y: number;
   height: number;
@@ -45,6 +48,9 @@ export interface Edge {
   key: string;
   d: string;
   tone: Tone;
+  /** Id of the symbol the line starts at and of the one it ends at. */
+  from: number;
+  to: number;
 }
 
 /** What the screen draws. */
@@ -138,27 +144,86 @@ function sideOf(kind: ColumnKind, walk: Walk | null, focus: number): Side {
   return { kind, nodes: nodesOf(hits, end, focus), hits, requested: walk !== null };
 }
 
-function stack(side: Side, reach: number, cards: Map<string, Card>, columns: Column[]): void {
+/** The symbols of one column that the symbol `node` is reached from: the other ends of its hits. */
+function parentsOf(node: Node, side: Side): number[] {
+  const own = side.kind === COLUMN.callers ? END.from : END.to;
+  const other = side.kind === COLUMN.callers ? END.to : END.from;
+  return side.hits.filter((hit) => hit[own].id === node.place.id).map((hit) => hit[other].id);
+}
+
+/** The middle lines the cards of a column want: the average middle of their parents in the column
+ * nearer to the focus, so that children hang around their parent and not around the focus. */
+function wishes(nodes: Node[], side: Side, cards: Map<string, Card>, focus: Card): number[] {
+  return nodes.map((node) => {
+    const middles = parentsOf(node, side)
+      .map((id) => (id === focus.place.id ? focus : cards.get(`${side.kind}${id}`)))
+      .filter((card): card is Card => card !== undefined)
+      .map(middleOf);
+    return middles.length === 0
+      ? middleOf(focus)
+      : middles.reduce((sum, middle) => sum + middle, 0) / middles.length;
+  });
+}
+
+/** Middle line of a card. */
+function middleOf(card: Card): number {
+  return card.y + card.height / GRAPH.half;
+}
+
+/** A node with the middle line its card wants. */
+interface Wish {
+  node: Node;
+  middle: number;
+}
+
+/** Moves the wished middle lines (in ascending order) apart until the cards do not touch, then
+ * shifts them all together so that they stay as close to their wish as possible. */
+function spread(wished: Wish[]): Wish[] {
+  const step = GRAPH.cardHeight + GRAPH.rowGap;
+  let floor = -Infinity;
+  const placed = wished.map((wish) => {
+    floor = Math.max(wish.middle, floor + step);
+    return { node: wish.node, middle: floor };
+  });
+  const missed = placed.reduce(
+    (sum, wish, i) => sum + (wished[i]?.middle ?? wish.middle) - wish.middle,
+    0,
+  );
+  const shift = placed.length === 0 ? 0 : missed / placed.length;
+  return placed.map((wish) => ({ node: wish.node, middle: wish.middle + shift }));
+}
+
+function stack(
+  side: Side,
+  reach: number,
+  cards: Map<string, Card>,
+  columns: Column[],
+  focus: Card,
+): void {
   const levels = [...new Set([...side.nodes.values()].map((node) => node.level))].sort(
     (a, b) => a - b,
   );
   for (const level of levels) {
-    const nodes = [...side.nodes.values()].filter((node) => node.level === level).sort(byWeight);
+    const all = [...side.nodes.values()].filter((node) => node.level === level).sort(byWeight);
     const index = columnOf(reach, side.kind, level);
     const x = GRAPH.left + index * (GRAPH.columnWidth + GRAPH.columnGap);
-    columns.push({ kind: side.kind, level, x, hidden: Math.max(0, nodes.length - GRAPH.maxCards) });
-    nodes.slice(0, GRAPH.maxCards).forEach((node, row) => {
+    columns.push({ kind: side.kind, level, x, hidden: Math.max(0, all.length - GRAPH.maxCards) });
+    const kept = all.slice(0, GRAPH.maxCards);
+    const middles = wishes(kept, side, cards, focus);
+    const wished = kept.map((node, i) => ({ node, middle: middles[i] ?? middleOf(focus) }));
+    for (const { node, middle } of spread(wished.sort((a, b) => a.middle - b.middle))) {
       cards.set(`${side.kind}${node.place.id}`, {
         place: node.place,
         name: shortName(node.place.qualified_name),
+        ...cardNames(node.place.qualified_name),
         x,
-        y: GRAPH.top + row * (GRAPH.cardHeight + GRAPH.rowGap),
+        y: middle - GRAPH.cardHeight / GRAPH.half,
         height: GRAPH.cardHeight,
         count: node.count,
         focus: false,
         test: node.tests === node.count,
       });
-    });
+    }
   }
 }
 
@@ -189,7 +254,13 @@ function edgesOf(side: Side, cards: Map<string, Card>, focus: Card): Edge[] {
     const from = cardOf(pair.from);
     const to = cardOf(pair.to);
     if (from && to && from.x < to.x) {
-      edges.push({ key: `${side.kind}${key}`, d: curve(from, to), tone: toneOf(pair.hits, way) });
+      edges.push({
+        key: `${side.kind}${key}`,
+        d: curve(from, to),
+        tone: toneOf(pair.hits, way),
+        from: pair.from.id,
+        to: pair.to.id,
+      });
     }
   }
   return edges;
@@ -205,33 +276,45 @@ function keepCalleesColumn(columns: Column[], callees: Side, reach: number): voi
   columns.push({ kind: COLUMN.callees, level: FIRST_LEVEL, x, hidden: 0 });
 }
 
-/** Lays the walks of an answer out as columns of cards and the lines between them (mock 6). */
-export function buildGraph(answer: UsagesAnswer): Graph {
-  const focusId = answer.symbol.id;
-  const callers = sideOf(COLUMN.callers, answer.incoming, focusId);
-  const callees = sideOf(COLUMN.callees, answer.outgoing, focusId);
-  const reach = Math.max(0, ...[...callers.nodes.values()].map((node) => node.level));
-  const cards = new Map<string, Card>();
-  const columns: Column[] = [];
-  stack(callers, reach, cards, columns);
-  stack(callees, reach, cards, columns);
-  const rows = Math.max(
-    1,
-    ...columns.map((column) => [...cards.values()].filter((card) => card.x === column.x).length),
-  );
-  const span = (rows - 1) * (GRAPH.cardHeight + GRAPH.rowGap);
-  const focusX = GRAPH.left + reach * (GRAPH.columnWidth + GRAPH.columnGap);
-  const focus: Card = {
-    place: answer.symbol,
-    name: shortName(answer.symbol.qualified_name),
-    x: focusX,
-    y: GRAPH.top + (span + GRAPH.cardHeight - GRAPH.focusHeight) / GRAPH.half,
+/** The card of the symbol in focus: taller than the others, its middle on the line 0. */
+function focusCard(place: Place, x: number): Card {
+  return {
+    place,
+    name: shortName(place.qualified_name),
+    ...cardNames(place.qualified_name),
+    x,
+    y: -GRAPH.focusHeight / GRAPH.half,
     height: GRAPH.focusHeight,
     count: 0,
     focus: true,
     test: false,
   };
-  columns.push({ kind: COLUMN.focus, level: 0, x: focusX, hidden: 0 });
+}
+
+/** Moves all cards so that the top one sits at the top margin; returns the bottom of the lowest. */
+function alignTop(cards: Card[]): number {
+  const top = Math.min(...cards.map((card) => card.y));
+  cards.forEach((card) => {
+    card.y += GRAPH.top - top;
+  });
+  return Math.max(...cards.map((card) => card.y + card.height));
+}
+
+/** Lays the walks of an answer out as columns of cards and the lines between them (mock 6). Each
+ * card hangs around the middle of its parents, the focus in the middle of its column. */
+export function buildGraph(answer: UsagesAnswer): Graph {
+  const focusId = answer.symbol.id;
+  const callers = sideOf(COLUMN.callers, answer.incoming, focusId);
+  const callees = sideOf(COLUMN.callees, answer.outgoing, focusId);
+  const reach = Math.max(0, ...[...callers.nodes.values()].map((node) => node.level));
+  const focusX = GRAPH.left + reach * (GRAPH.columnWidth + GRAPH.columnGap);
+  const focus = focusCard(answer.symbol, focusX);
+  const cards = new Map<string, Card>();
+  const columns: Column[] = [{ kind: COLUMN.focus, level: 0, x: focusX, hidden: 0 }];
+  stack(callers, reach, cards, columns, focus);
+  stack(callees, reach, cards, columns, focus);
+  const all = [focus, ...cards.values()];
+  const bottom = alignTop(all);
   const last = Math.max(
     answer.outgoing === null ? 0 : FIRST_LEVEL,
     ...[...callees.nodes.values()].map((node) => node.level),
@@ -239,9 +322,9 @@ export function buildGraph(answer: UsagesAnswer): Graph {
   keepCalleesColumn(columns, callees, reach);
   return {
     columns,
-    cards: [focus, ...cards.values()],
+    cards: all,
     edges: [...edgesOf(callers, cards, focus), ...edgesOf(callees, cards, focus)],
     width: GRAPH.left + GRAPH.left + (reach + last + 1) * (GRAPH.columnWidth + GRAPH.columnGap),
-    height: GRAPH.top + span + GRAPH.cardHeight + GRAPH.bottom,
+    height: bottom + GRAPH.bottom,
   };
 }

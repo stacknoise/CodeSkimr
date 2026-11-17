@@ -9,11 +9,11 @@ use codeskimr_application::conventions::CheckReport;
 use codeskimr_application::error::CodedError;
 use codeskimr_cli::{
     Action, CliError, CredentialAction, ExportArgs, Invocation, Level2Action, OpenArgs, Parsed,
-    ScanArgs, ScanSummary, check_json, check_text, confirm_prompt, confirm_target, confirm_warning,
-    credential_deleted, credential_stored, device_prompt, error_line, export_written,
-    language_from, level2_confirmed, level2_declined, level2_revoked, open_ready, parse,
-    scan_finished, scan_json, scan_started, secret_prompt, serve_started, watch_started,
-    watch_updated,
+    ScanArgs, ScanSummary, StartArgs, check_json, check_text, confirm_prompt, confirm_target,
+    confirm_warning, credential_deleted, credential_stored, device_prompt, error_line,
+    export_written, language_from, level2_confirmed, level2_declined, level2_revoked, open_ready,
+    parse, scan_finished, scan_json, scan_started, secret_prompt, serve_started, start_keep_open,
+    start_tray, tray_labels, watch_started, watch_updated,
 };
 use codeskimr_codes::i18n::{CLI_CREDENTIAL_UNUSABLE_HINT, CLI_CREDENTIALS_HINT};
 use codeskimr_codes::{Coded, ErrorCode};
@@ -31,7 +31,7 @@ use crate::source_arg::SourceError;
 use crate::watch::{self, Report};
 use crate::wiring::os_secrets;
 use crate::{
-    check, credential, export, level2_consent, mcp, open, scan, serve, start, ui_commands,
+    check, credential, export, level2_consent, mcp, open, scan, serve, start, tray, ui_commands,
 };
 
 /// Why a command did not finish: a registered code, plus the parser's text for usage errors.
@@ -166,7 +166,7 @@ fn run_invocation(
             mcp::run(args, &invocation.global, &locations, &current_dir)?;
             Ok(Outcome::Done)
         }
-        Action::Start => run_start(invocation, &locations, env, (messages, language)),
+        Action::Start(args) => run_start(*args, invocation, &locations, env, (messages, language)),
         Action::Open(args) => run_open(*args, invocation, &locations, env, (messages, language)),
         Action::Serve(_) => {
             serve::run(&invocation.global, &locations, |url| {
@@ -287,10 +287,72 @@ fn run_open(
     Ok(Outcome::Done)
 }
 
-/// `codeskimr` without a command: the server runs on its own thread, and as soon as it listens the
-/// browser gets the launch code. The server keeps running until it is interrupted, also when the
-/// browser could not be started.
+/// `codeskimr` without a command. On Windows and macOS the program starts itself in the tray and
+/// ends (ADR 0067); with `--console`, and everywhere else, it stays in this window.
 fn run_start(
+    args: StartArgs,
+    invocation: &Invocation,
+    locations: &Locations,
+    env: Lookup<'_>,
+    texts: (&Messages, &str),
+) -> Result<Outcome, Failure> {
+    match tray::mode(args, env) {
+        tray::Start::Console => run_console_start(invocation, locations, env, texts),
+        tray::Start::Detach => run_detach(locations, texts),
+        tray::Start::Tray => run_tray_start(invocation, locations, texts),
+    }
+}
+
+/// Starts the copy of the program that lives in the tray, tells where its log is and ends.
+fn run_detach(
+    locations: &Locations,
+    (messages, language): (&Messages, &str),
+) -> Result<Outcome, Failure> {
+    let log = tray::detach(locations, std::env::args_os().skip(1))?;
+    if let Ok(line) = start_tray(messages, language, &log.display().to_string()) {
+        write_out(&line);
+    }
+    Ok(Outcome::Done)
+}
+
+/// The tray copy: the server runs on its own thread, the tray icon on this one. "Quit" in its menu
+/// ends the server and the program.
+fn run_tray_start(
+    invocation: &Invocation,
+    locations: &Locations,
+    (messages, language): (&Messages, &str),
+) -> Result<Outcome, Failure> {
+    let labels = tray_labels(messages, language).map_err(CliError::from)?;
+    let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
+    let server_ended = std::sync::atomic::AtomicBool::new(false);
+    let serve = |address: std::sync::mpsc::Sender<String>| {
+        let listening = move |url: &str| {
+            let _ = address.send(url.to_owned());
+        };
+        let shutdown = async move {
+            let _ = stopped.await;
+        };
+        let result = serve::run_until(&invocation.global, locations, listening, shutdown);
+        // The tray looks at this: a server that ended on its own takes the icon with it.
+        server_ended.store(true, std::sync::atomic::Ordering::Release);
+        result
+    };
+    let listening = |_: &str| {
+        let shown = tray::show(&invocation.global, locations, &labels, &server_ended);
+        // However the icon ended, the server ends with it.
+        let _ = stop.send(());
+        shown
+    };
+    let failed = |code: CodedError| {
+        let _ = report(messages, language, &Failure::from(code));
+    };
+    start::together(serve, listening, failed)?;
+    Ok(Outcome::Done)
+}
+
+/// The server runs on its own thread, and as soon as it listens the browser gets the launch code.
+/// The server keeps running until it is interrupted, also when the browser could not be started.
+fn run_console_start(
     invocation: &Invocation,
     locations: &Locations,
     env: Lookup<'_>,
@@ -303,6 +365,9 @@ fn run_start(
     };
     let listening = |url: &str| {
         if let Ok(line) = serve_started(messages, language, url) {
+            write_out(&line);
+        }
+        if let Ok(line) = start_keep_open(messages, language) {
             write_out(&line);
         }
         let args = OpenArgs { no_browser: false };
@@ -499,6 +564,6 @@ mod needs_packs_tests {
         let delete = Action::Credential(CredentialAction::Delete { id: "x".to_owned() });
         assert!(!needs_packs(&delete));
         assert!(!needs_packs(&Action::Open(OpenArgs::default())));
-        assert!(needs_packs(&Action::Start));
+        assert!(needs_packs(&Action::Start(StartArgs::default())));
     }
 }

@@ -19,6 +19,7 @@ export const TOOL_STATE = {
   tooOld: "too_old",
   tooNew: "too_new",
   versionUnknown: "version_unknown",
+  notRunnable: "not_runnable",
 } as const;
 
 /** Separates the languages in a line about a tool. */
@@ -26,6 +27,8 @@ export const TOOL_LANGUAGE_SEPARATOR = ", ";
 
 /** How often the list is read while a scan runs, in milliseconds. */
 export const POLL_MS = 1500;
+/** How often a relative time ("3 min ago") is renewed, in milliseconds. */
+export const NOW_TICK_MS = 5000;
 
 /** Key that sends a field. */
 export const ENTER_KEY = "Enter";
@@ -56,13 +59,14 @@ export const LANGUAGE_NAMES: Record<string, string> = {
   typescript: "TypeScript",
 };
 
-/** The colour class of a language bar segment; languages without one share the last. */
+/** The colour class of a language bar segment; TypeScript and TSX share one colour (same family), every
+ * other common language of a mixed project has its own; languages without one share the last. */
 export const LANGUAGE_TONE: Record<string, string> = {
   csharp: "tone1",
   typescript: "tone2",
   tsx: "tone2",
-  javascript: "tone2",
-  kotlin: "tone3",
+  javascript: "tone3",
+  kotlin: "tone1",
   python: "tone4",
   java: "tone5",
 };

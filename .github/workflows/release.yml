@@ -1,6 +1,7 @@
 # Release workflow (preview releases, docs/release.md). Started by hand: Actions -> Release -> Run workflow.
-# It creates a DRAFT pre-release, then builds the UI and the program on Linux, Windows and macOS, adds the packages and
-# then installs each package on a clean runner of its own system (clean-install probe).
+# It creates a DRAFT pre-release, then builds the UI and the program on Linux, Windows and macOS, adds one single file
+# per system (with SHA-256 checksum and GitHub provenance attestation) and then runs each file on a clean runner of its
+# own system (clean-install probe).
 # Nothing is public until the product owner publishes the draft.
 name: Release
 
@@ -63,6 +64,8 @@ jobs:
     needs: draft
     permissions:
       contents: write
+      id-token: write # the provenance attestation is signed with the OIDC token of the run
+      attestations: write
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     strategy:
@@ -100,19 +103,26 @@ jobs:
         run: cargo build --release --locked -p codeskimr
       - name: Smoke test
         run: target/release/codeskimr --version
-      - name: Pack
+      - name: Prepare the asset and its checksum
         env:
           VERSION: ${{ inputs.version }}
           PLATFORM: ${{ matrix.platform }}
         run: tools/release/package.sh "$PLATFORM" "$VERSION"
-      - name: Add the package to the draft release
+      # Proves that GitHub built this file from this repository and commit (verify with `gh attestation verify`).
+      - name: Attest the build provenance
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: |
+            dist/codeskimr-*
+            !dist/*.sha256
+      - name: Add the asset to the draft release
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
         run: gh release upload "v${VERSION}" dist/codeskimr-* --repo "$GITHUB_REPOSITORY"
 
-  # Clean-install probe: a fresh runner per system downloads the package from the draft like a user would,
-  # checks the checksum, unpacks it into an empty folder and runs it from there (tools/release/verify.sh).
+  # Clean-install probe: a fresh runner per system downloads the file from the draft like a user would, checks the
+  # checksum and the provenance, puts it alone into an empty folder and runs it from there (tools/release/verify.sh).
   verify:
     name: clean install (${{ matrix.platform }})
     needs: package
@@ -126,13 +136,13 @@ jobs:
         include:
           - os: ubuntu-latest
             platform: linux-x86_64
-            extension: tar.gz
+            suffix: ""
           - os: windows-latest
             platform: windows-x86_64
-            extension: zip
+            suffix: .exe
           - os: macos-latest
             platform: macos-aarch64
-            extension: tar.gz
+            suffix: ""
     defaults:
       run:
         shell: bash
@@ -147,14 +157,34 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
           PLATFORM: ${{ matrix.platform }}
-          EXTENSION: ${{ matrix.extension }}
         run: |
           mkdir download
           gh release download "v${VERSION}" --repo "$GITHUB_REPOSITORY" --dir download \
-            --pattern "codeskimr-${VERSION}-${PLATFORM}.${EXTENSION}*"
+            --pattern "codeskimr-${VERSION}-${PLATFORM}*"
+      - name: Verify the build provenance
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ inputs.version }}
+          PLATFORM: ${{ matrix.platform }}
+          SUFFIX: ${{ matrix.suffix }}
+        run: gh attestation verify "download/codeskimr-${VERSION}-${PLATFORM}${SUFFIX}" --repo "$GITHUB_REPOSITORY"
       - name: Verify and run from an empty folder
         env:
           VERSION: ${{ inputs.version }}
           PLATFORM: ${{ matrix.platform }}
-          EXTENSION: ${{ matrix.extension }}
-        run: tools/release/verify.sh "download/codeskimr-${VERSION}-${PLATFORM}.${EXTENSION}" "$VERSION"
+          SUFFIX: ${{ matrix.suffix }}
+        run: |
+          asset="download/codeskimr-${VERSION}-${PLATFORM}${SUFFIX}"
+          if [ "$RUNNER_OS" = Linux ]; then
+            # The start without arguments needs a Secret Service: gnome-keyring in a private D-Bus session,
+            # as in the CI job for the credential store. The probe itself stays as strict as on the other systems.
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends gnome-keyring dbus-x11
+            ASSET="$asset" dbus-run-session -- bash -c '
+              set -euo pipefail
+              eval "$(echo ci-keyring | gnome-keyring-daemon --daemonize --unlock --components=secrets)"
+              tools/release/verify.sh "$ASSET" "$VERSION"
+            '
+          else
+            tools/release/verify.sh "$asset" "$VERSION"
+          fi

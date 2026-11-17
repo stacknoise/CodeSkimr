@@ -12,6 +12,12 @@ fn project(text: &str) -> ConfigLayer {
 }
 
 #[test]
+fn the_budget_of_loading_the_language_packs_is_in_the_defaults() {
+    let config = Config::defaults().expect("shipped defaults are valid");
+    assert_eq!(config.budgets.pack_load_ms, 1500);
+}
+
+#[test]
 fn defaults_match_the_blueprint() {
     let config = Config::defaults().expect("shipped defaults are valid");
     assert_eq!(config.metrics.cyclomatic_good_max, 5);
@@ -135,6 +141,34 @@ fn the_longest_wait_of_the_watcher_is_not_shorter_than_its_quiet_window() {
         "watcher.max_wait_ms",
         Violation::MustNotBeBelow("watcher.debounce_ms"),
     )]);
+}
+
+#[test]
+fn annotation_limits_are_checked() {
+    assert_rejected(&[
+        (
+            "[annotations]\ndismissed_retention_days = 0\n",
+            "annotations.dismissed_retention_days",
+            Violation::MustBePositive,
+        ),
+        (
+            "[annotations]\nmax_text_chars = 0\n",
+            "annotations.max_text_chars",
+            Violation::MustBePositive,
+        ),
+        (
+            "[annotations]\nmax_title_chars = 0\n",
+            "annotations.max_title_chars",
+            Violation::MustBePositive,
+        ),
+        (
+            "[annotations]\nmax_title_chars = 5000\n",
+            "annotations.max_title_chars",
+            Violation::MustNotExceed("annotations.max_text_chars"),
+        ),
+    ]);
+    let limits = Config::defaults().unwrap().annotations.limits();
+    assert_eq!((limits.max_text_chars, limits.max_title_chars), (4000, 500));
 }
 
 #[test]
@@ -358,6 +392,11 @@ fn the_size_of_a_graph_box_must_be_positive() {
         (
             "[graph]\nnode_height = 0\n",
             "graph.node_height",
+            Violation::MustBePositive,
+        ),
+        (
+            "[graph]\nrow_boxes = 0\n",
+            "graph.row_boxes",
             Violation::MustBePositive,
         ),
     ]);

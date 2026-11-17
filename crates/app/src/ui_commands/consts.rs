@@ -168,6 +168,14 @@ pub const EXPORT_DIRECT_DEPTH: u32 = 1;
 /// The gap between two rows is divided by this to get the space a layer band adds above and
 /// below its boxes.
 pub const BAND_PAD_DIVISOR: u32 = 2;
+/// A line of a wrapped row is centred: the free space is divided by this and put on the left.
+pub const CENTRE_DIVISOR: u32 = 2;
+/// The fewest boxes in a line of a row, whatever the configuration says.
+pub const MIN_LINE_BOXES: u32 = 1;
+/// Joins the namespaces in the breadcrumb of a type box.
+pub const BREADCRUMB_JOIN: &str = " › ";
+/// The margin of the picture applies on both sides.
+pub const MARGIN_SIDES: u32 = 2;
 /// Id of the command that lists the credentials of the Git projects.
 pub const CREDENTIALS_LIST: &str = "credentials.list";
 /// Id of the command that stores a credential.
@@ -189,6 +197,8 @@ pub const CREDENTIALS_DELETE_DESCRIPTION: &str = i18n::COMMAND_CREDENTIALS_DELET
 
 /// Most types drawn on each side of the type in the middle of the map; the rest is counted.
 pub const TYPE_SIDE_MAX: usize = 12;
+/// The most namespaces drawn on each side of the namespace in the middle.
+pub const NAMESPACE_SIDE_MAX: usize = 24;
 /// Between the qualified name and the id in the name of a box, if two drawn types share a name.
 pub const BOX_ID_SEPARATOR: &str = " #";
 /// Row of the types that use the type in the middle.
@@ -212,8 +222,8 @@ pub const PREFERENCES_SET_TITLE: &str = i18n::COMMAND_PREFERENCES_SET_TITLE;
 pub const PREFERENCES_SET_DESCRIPTION: &str = i18n::COMMAND_PREFERENCES_SET_DESCRIPTION;
 /// File in the data folder that holds the preferences.
 pub const PREFERENCES_FILE: &str = "preferences.json";
-/// Ending of the file the preferences are written to before they replace the real one.
-pub const PREFERENCES_TEMP_SUFFIX: &str = ".tmp";
+/// Ending of the file a content is written to before it replaces the real one.
+pub const TEMP_SUFFIX: &str = ".tmp";
 /// Longest name of a theme or a language that is stored.
 pub const PREFERENCE_MAX_CHARS: usize = 32;
 /// Characters besides lower-case letters and digits that a stored name may contain.
@@ -223,5 +233,20 @@ pub const PREFERENCES_MAX_BYTES: u64 = 4096;
 /// Mode of the preferences file: the owner may read and write, nobody else.
 #[cfg(unix)]
 pub const PREFERENCES_FILE_MODE: u32 = 0o600;
-/// Separator in the name of the file the preferences are written to first.
-pub const PREFERENCES_TEMP_SEPARATOR: &str = ".";
+/// Separator in the name of that file.
+pub const TEMP_SEPARATOR: &str = ".";
+
+/// Id of the command that shows the layers of a project and the namespaces to build them from.
+pub const LAYERS_GET: &str = "layers.get";
+/// Title key of `layers.get`.
+pub const LAYERS_GET_TITLE: &str = i18n::COMMAND_LAYERS_GET_TITLE;
+/// Description key of `layers.get`.
+pub const LAYERS_GET_DESCRIPTION: &str = i18n::COMMAND_LAYERS_GET_DESCRIPTION;
+/// Id of the command that writes the layers into the project file.
+pub const LAYERS_SET: &str = "layers.set";
+/// Title key of `layers.set`.
+pub const LAYERS_SET_TITLE: &str = i18n::COMMAND_LAYERS_SET_TITLE;
+/// Description key of `layers.set`.
+pub const LAYERS_SET_DESCRIPTION: &str = i18n::COMMAND_LAYERS_SET_DESCRIPTION;
+/// Largest project file that is read; a bigger one is refused.
+pub const PROJECT_FILE_MAX_BYTES: u64 = 1_048_576;

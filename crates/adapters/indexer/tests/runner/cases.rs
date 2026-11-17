@@ -58,6 +58,7 @@ fn spec(mode: &str) -> IndexerSpec {
         install_hint: "install it".to_owned(),
         symbol_kinds: Vec::new(),
         separator: String::new(),
+        library_root: String::new(),
     }
 }
 
@@ -539,7 +540,7 @@ fn a_missing_indexer_is_unavailable_and_nothing_runs() {
 }
 
 #[test]
-fn a_program_whose_version_command_fails_counts_as_missing() {
+fn a_program_whose_version_command_fails_is_found_but_not_runnable() {
     let fixture = Fixture::new();
     let mut broken = spec("ok");
     // The fake indexer exits with an error for an argument it does not know, as the `rustup` shim
@@ -550,7 +551,9 @@ fn a_program_whose_version_command_fails_counts_as_missing() {
     };
     assert_eq!(
         problems.first().map(|p| &p.issue),
-        Some(&ToolIssue::Missing)
+        Some(&ToolIssue::NotRunnable {
+            output: String::new()
+        })
     );
 }
 

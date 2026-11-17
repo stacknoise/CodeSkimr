@@ -130,6 +130,11 @@ pub struct IndexerManifest {
     /// the model (`[indexer.symbol_kinds]`, ADR 0055). Without it level 2 creates no symbols.
     #[serde(default)]
     pub symbol_kinds: BTreeMap<String, String>,
+    /// The file name of the library root of a package (`lib.rs` for Rust). When the index gives
+    /// one module symbol to several files of a package (the library and the build script are both
+    /// `crate/`), a use that the folders do not place belongs to the file of this name (ADR 0061).
+    #[serde(default)]
+    pub library_root: String,
 }
 
 impl ToolManifest {
@@ -237,6 +242,7 @@ impl IndexerManifest {
             install_hint: self.install_hint.clone(),
             symbol_kinds: self.symbol_kinds()?,
             separator: separator.to_owned(),
+            library_root: self.library_root.clone(),
         })
     }
 }
