@@ -6,4 +6,6 @@ mod bus;
 mod event;
 
 pub use bus::{EventBus, Subscription};
-pub use event::{Event, FilesChanged, ScanProgressed, ScanStopped, SnapshotCreated, StopReason};
+pub use event::{
+    AlertsChanged, Event, FilesChanged, ScanProgressed, ScanStopped, SnapshotCreated, StopReason,
+};

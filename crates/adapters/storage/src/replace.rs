@@ -90,7 +90,7 @@ fn clear(conn: &Connection, files: &[FileId]) -> StorageResult<()> {
 fn insert_symbols(conn: &Connection, symbols: &[Symbol]) -> StorageResult<()> {
     symbols
         .iter()
-        .try_for_each(|symbol| insert_symbol(conn, symbol))
+        .try_for_each(|symbol| insert_symbol(conn, symbol, None))
 }
 
 fn project_of(conn: &Connection, snapshot: i64) -> StorageResult<ProjectId> {

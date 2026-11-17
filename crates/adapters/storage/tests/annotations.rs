@@ -124,6 +124,7 @@ fn sighting(snapshot: u64) -> AlertSighting {
         changes: vec![AlertChange::Content, AlertChange::Cc],
         references: None,
         closest: None,
+        observed: Some(baseline("hash", 4)),
     }
 }
 

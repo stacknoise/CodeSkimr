@@ -6,7 +6,7 @@ use codeskimr_domain::{
     SnapshotId, SourceFile, Symbol, SymbolId,
 };
 
-use super::{PendingReference, SymbolFingerprints};
+use super::{PendingReference, SymbolFingerprints, SymbolHash};
 use crate::error::CodedError;
 
 /// Everything one scan produced, written as one unit.
@@ -32,6 +32,9 @@ pub struct SnapshotData {
     /// Syntax fingerprints of the callables of the analysed files. The store carries those of
     /// the other files over, like their symbols.
     pub fingerprints: Vec<SymbolFingerprints>,
+    /// Content hashes of the types and members of the analysed files (ADR 0068). They are
+    /// stored with the symbol rows, so the store carries those of the other files over with them.
+    pub hashes: Vec<SymbolHash>,
     /// Paths of files that were in the previous snapshot and no longer exist; empty in a full scan.
     pub removed: Vec<RelativePath>,
     /// Names as written in the analysed files, resolved or not. The store keeps them so that the

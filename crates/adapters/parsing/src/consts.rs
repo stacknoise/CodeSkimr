@@ -155,6 +155,10 @@ pub const ID_MISMATCH: &str = "id differs from the folder name: ";
 /// Reason of an invalid pack whose `[[tools]]` entry is wrong; the entry follows.
 pub const TOOL_INVALID: &str = "invalid tool: ";
 
+/// Ends every token, and every part of a text, in a content hash, so that where one ends is part of
+/// the hash (the unit separator).
+pub const TOKEN_SEPARATOR: u8 = 0x1f;
+
 /// Replacement extension that removes the extension of a path.
 pub const NO_EXTENSION: &str = "";
 
@@ -217,8 +221,9 @@ pub const NAMING_PATTERN_SEPARATOR: &str = ",";
 
 /// Revision of the naming rules of the engine itself, part of the text of the naming rules: it
 /// changes when names change for reasons other than a pack key (2: members of an `impl` carry
-/// their type, ADR 0039; 3: methods of Go and C++ carry their owner, ADR 0042).
-pub const NAMING_REVISION: &str = "revision=3";
+/// their type, ADR 0039; 3: methods of Go and C++ carry their owner, ADR 0042; 4: types and members
+/// carry the hash of their tokens, ADR 0068, which an earlier snapshot lacks).
+pub const NAMING_REVISION: &str = "revision=4";
 
 /// Ends a signature that was cut at `scan.max_signature_chars`.
 pub const SIGNATURE_CUT: &str = "…";

@@ -3,7 +3,7 @@
 //! compile, because each method exists only in the state where it is allowed.
 
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{ProjectId, ScanMode, Snapshot};
+use codeskimr_domain::{AlertTrigger, ProjectId, ScanMode, Snapshot};
 
 use crate::cancel::CancelToken;
 use crate::level2::LanguageReport;
@@ -59,6 +59,7 @@ pub struct Job<S: JobState> {
     cancel: CancelToken,
     level2: bool,
     paths: Selection,
+    trigger: AlertTrigger,
     state: S,
 }
 
@@ -88,6 +89,13 @@ impl<S: JobState> Job<S> {
         &self.paths
     }
 
+    /// What started the scan; the alerts it raises name it (ADR 0068). A scan of a Git project is
+    /// a fetch whatever started it.
+    #[must_use]
+    pub const fn trigger(&self) -> AlertTrigger {
+        self.trigger
+    }
+
     fn into_state<T: JobState>(self, state: T) -> Job<T> {
         Job {
             project: self.project,
@@ -95,6 +103,7 @@ impl<S: JobState> Job<S> {
             cancel: self.cancel,
             level2: self.level2,
             paths: self.paths,
+            trigger: self.trigger,
             state,
         }
     }
@@ -110,6 +119,7 @@ impl Job<Queued> {
             cancel: CancelToken::new(),
             level2: false,
             paths: Selection::default(),
+            trigger: AlertTrigger::Scan,
             state: Queued,
         }
     }
@@ -138,6 +148,13 @@ impl Job<Queued> {
     #[must_use]
     pub fn with_paths(mut self, paths: &[String]) -> Self {
         self.paths = Selection::new(paths);
+        self
+    }
+
+    /// The same job started by the file watcher, so that its alerts say so.
+    #[must_use]
+    pub const fn from_watcher(mut self) -> Self {
+        self.trigger = AlertTrigger::Watcher;
         self
     }
 

@@ -4,7 +4,7 @@
 
 use codeskimr_domain::{
     Alert, AlertId, AlertSighting, AlertState, Annotation, AnnotationId, AnnotationKind,
-    AnnotationTarget, NewAnnotation, ProjectId, SymbolBaseline, Timestamp,
+    AnnotationTarget, NewAnnotation, ProjectId, SnapshotId, SymbolBaseline, Timestamp,
 };
 
 use crate::error::CodedError;
@@ -108,6 +108,14 @@ pub trait AnnotationStore: Send + Sync {
     /// # Errors
     /// A coded failure of the `STO` group.
     fn list_annotations(&self, filter: &AnnotationFilter) -> Result<Vec<Annotation>, CodedError>;
+
+    /// Sets `without_target` of every annotation of the project: true if no symbol of `snapshot`
+    /// has the kind and qualified name of its target, false if one has. Returns how many flags
+    /// changed. A project without annotations costs one read.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn refresh_targets(&self, project: ProjectId, snapshot: SnapshotId) -> Result<u64, CodedError>;
 
     /// The baseline of a critical annotation, `None` if none was taken yet.
     ///

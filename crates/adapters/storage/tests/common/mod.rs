@@ -133,6 +133,7 @@ pub fn data(snapshot: Snapshot) -> SnapshotData {
         references: Vec::new(),
         metrics: Vec::new(),
         fingerprints: Vec::new(),
+        hashes: Vec::new(),
         removed: Vec::new(),
         pending: Vec::new(),
         dropped_references: Vec::new(),

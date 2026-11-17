@@ -9,7 +9,7 @@ use codeskimr_application::ports::{
 use codeskimr_domain::{
     Alert, Annotation, AnnotationContent, AnnotationId, AnnotationKind, AnnotationTarget,
     AnnotationText, AnnotationTitle, Assignee, Author, NewAnnotation, ProjectId, QualifiedName,
-    SymbolBaseline, Timestamp,
+    SnapshotId, SymbolBaseline, Timestamp,
 };
 use rusqlite::{Connection, OptionalExtension, Params, Row, params};
 
@@ -36,6 +36,7 @@ struct AnnotationRow {
     author: String,
     created: i64,
     updated: i64,
+    without_target: bool,
 }
 
 impl AnnotationRow {
@@ -56,6 +57,7 @@ impl AnnotationRow {
             author: cols.take()?,
             created: cols.take()?,
             updated: cols.take()?,
+            without_target: cols.take()?,
         })
     }
 
@@ -81,6 +83,7 @@ impl AnnotationRow {
             content,
             created: Timestamp(self.created),
             updated: Timestamp(self.updated),
+            without_target: self.without_target,
         })
     }
 }
@@ -251,6 +254,7 @@ fn insert(conn: &Connection, creation: &AnnotationCreation) -> StorageResult<Ann
         content: new.content.clone(),
         created: creation.now,
         updated: creation.now,
+        without_target: false,
     })
 }
 
@@ -264,6 +268,8 @@ fn update(conn: &Connection, update: &AnnotationUpdate) -> StorageResult<Annotat
         return Err(StorageError::AnnotationInvalid);
     }
     let id = column_int(next.id.get())?;
+    // A target that was just checked against the newest snapshot is there.
+    let without_target = next.target == stored.target && stored.without_target;
     if next.target != stored.target {
         ensure_target(conn, stored.project, &next.target)?;
         ensure_single_critical(conn, stored.project, &next.target, next.content.kind, id)?;
@@ -286,10 +292,12 @@ fn update(conn: &Connection, update: &AnnotationUpdate) -> StorageResult<Annotat
             content.status,
             content.due,
             content.assignee,
-            update.now.0
+            update.now.0,
+            without_target
         ],
     )?;
     Ok(Annotation {
+        without_target,
         project: stored.project,
         author: stored.author,
         created: stored.created,
@@ -339,6 +347,22 @@ fn delete(conn: &Connection, id: AnnotationId) -> StorageResult<()> {
     Ok(())
 }
 
+fn any_annotation(conn: &Connection, project: ProjectId) -> StorageResult<bool> {
+    Ok(conn.query_row(
+        sql::ANNOTATION_ANY,
+        params![column_int(project.get())?],
+        |row| row.get(0),
+    )?)
+}
+
+/// Marks the annotations that the snapshot has no symbol for, and unmarks those it has one for.
+fn refresh(conn: &Connection, project: ProjectId, snapshot: SnapshotId) -> StorageResult<u64> {
+    let values = params![column_int(project.get())?, column_int(snapshot.get())?];
+    let lost = conn.execute(sql::ANNOTATION_LOSE_TARGET, values)?;
+    let found = conn.execute(sql::ANNOTATION_FIND_TARGET, values)?;
+    u64::try_from(lost + found).map_err(|_| StorageError::OutOfRange)
+}
+
 impl AnnotationStore for SqliteStore {
     fn create_annotation(&self, creation: &AnnotationCreation) -> Result<Annotation, CodedError> {
         self.write(|tx| insert(tx, creation))
@@ -356,6 +380,18 @@ impl AnnotationStore for SqliteStore {
 
     fn list_annotations(&self, filter: &AnnotationFilter) -> Result<Vec<Annotation>, CodedError> {
         self.read(|conn| list(conn, filter))
+            .map_err(CodedError::from)
+    }
+
+    fn refresh_targets(&self, project: ProjectId, snapshot: SnapshotId) -> Result<u64, CodedError> {
+        self.read(|conn| any_annotation(conn, project))
+            .and_then(|any| {
+                if any {
+                    self.write(|tx| refresh(tx, project, snapshot))
+                } else {
+                    Ok(0)
+                }
+            })
             .map_err(CodedError::from)
     }
 

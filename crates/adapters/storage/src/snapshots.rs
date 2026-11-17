@@ -1,9 +1,11 @@
 //! The `SnapshotStore` port: one snapshot written atomically, with its read models.
 
+use std::collections::HashMap;
+
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{Level2Replacement, SnapshotData, SnapshotStore};
 use codeskimr_domain::{
-    CommitHash, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile,
+    CommitHash, ProjectId, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile, SymbolId,
 };
 use rusqlite::{Connection, params};
 
@@ -111,8 +113,13 @@ fn insert_facts(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
     for file in &data.files {
         insert_file(conn, snapshot, file)?;
     }
+    let hashes: HashMap<SymbolId, &str> = data
+        .hashes
+        .iter()
+        .map(|found| (found.symbol, found.hash.as_str()))
+        .collect();
     for symbol in &data.symbols {
-        insert_symbol(conn, symbol)?;
+        insert_symbol(conn, symbol, hashes.get(&symbol.id).copied())?;
     }
     let bulk = bulk_load_starts(conn, data.references.len())?;
     let mut references = conn.prepare_cached(sql::REFERENCE_INSERT)?;

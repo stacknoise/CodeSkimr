@@ -161,6 +161,7 @@ mod tests {
                     .collect(),
                 symbols,
                 pending: Vec::new(),
+                hashes: Vec::new(),
                 file,
             })
         }

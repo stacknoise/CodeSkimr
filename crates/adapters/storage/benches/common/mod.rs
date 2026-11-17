@@ -77,6 +77,7 @@ pub fn store(symbols: Vec<Symbol>, references: Vec<Reference>) -> Option<SqliteS
         references,
         metrics: Vec::new(),
         fingerprints: Vec::new(),
+        hashes: Vec::new(),
         removed: Vec::new(),
         pending: Vec::new(),
         dropped_references: Vec::new(),

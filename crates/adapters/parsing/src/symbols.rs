@@ -99,6 +99,11 @@ impl SymbolTable {
         None
     }
 
+    /// Every symbol with the byte range of its declaration, in source order.
+    pub fn spans(&self) -> impl Iterator<Item = (&Symbol, &Range<usize>)> {
+        self.symbols.iter().zip(&self.ranges)
+    }
+
     /// The callable symbols (functions, methods, constructors) with the byte range of their
     /// declaration.
     pub fn callables(&self) -> impl Iterator<Item = (&Symbol, &Range<usize>)> {

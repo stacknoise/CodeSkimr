@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 use std::time::Duration;
 
+use codeskimr_application::alerts::AlertStep;
 use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
@@ -24,7 +25,7 @@ use codeskimr_application::tools::{ToolCheckPorts, ToolChecker};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{CredentialId, LanguageId};
 use codeskimr_indexer::ProcessIndexRunner;
-use codeskimr_parsing::{LanguagePacks, PackTools, TreeSitterAnalyzer};
+use codeskimr_parsing::{Blake3Digest, LanguagePacks, PackTools, TreeSitterAnalyzer};
 use codeskimr_scip::ScipImporter;
 use codeskimr_secrets::{KeystoreCredentials, OsKeystore};
 use codeskimr_source::{
@@ -150,7 +151,16 @@ pub fn scanner_over(
         clock: Arc::new(SystemClock),
         max_workers: config.scan.max_workers,
     };
-    Ok(Scanner::new(ports, &ids, events).with_level2(pass))
+    let alerts = AlertStep {
+        annotations: store.clone(),
+        states: store.clone(),
+        digest: Arc::new(Blake3Digest),
+        clock: Arc::new(SystemClock),
+        events: events.clone(),
+    };
+    Ok(Scanner::new(ports, &ids, events)
+        .with_level2(pass)
+        .with_alerts(alerts))
 }
 
 /// The runner that finds out which tools exist, for the check of ADR 0033: version queries only,

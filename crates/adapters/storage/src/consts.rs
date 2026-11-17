@@ -17,6 +17,7 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0013_scan_warnings.sql"),
     include_str!("../migrations/0014_symbol_origin.sql"),
     include_str!("../migrations/0015_annotations.sql"),
+    include_str!("../migrations/0016_symbol_content_hash.sql"),
 ];
 
 /// Name of the pragma that holds the schema version.
