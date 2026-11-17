@@ -26,6 +26,8 @@ import {
   treeScroll,
 } from "./explorer";
 import { treeWidth } from "./layout";
+import { languageName } from "../projects/format";
+import { LANGUAGE_SHORT } from "./consts";
 import { KindBadge } from "./KindBadge";
 import { onTreeKey } from "./keys";
 import { indent, siblingPlaces, type Place, type TreeRow } from "./tree";
@@ -72,8 +74,21 @@ function Caret(props: { row: TreeRow; onToggle: (row: TreeRow) => void }) {
   );
 }
 
-/** What a row says: the dot of a layer or the badge of a kind, the name, the marks of the
- * annotations and the count or signature at the right edge. */
+/** The short name of the language of a type row; the title has the full name. */
+function LanguageTag(props: { id: string | null }) {
+  return (
+    <Show when={props.id}>
+      {(id) => (
+        <span class={styles.language} title={languageName(id())}>
+          {LANGUAGE_SHORT[id()] ?? id()}
+        </span>
+      )}
+    </Show>
+  );
+}
+
+/** What a row says: the dot of a layer or the badge of a kind, the name, the language,
+ * the marks of the annotations and the count or signature at the right edge. */
 function RowContent(props: { row: TreeRow }) {
   const row = () => props.row;
   return (
@@ -83,6 +98,7 @@ function RowContent(props: { row: TreeRow }) {
       </Show>
       <Show when={row().symbolKind}>{(kind) => <KindBadge kind={kind()} />}</Show>
       <span class={styles.label}>{row().label}</span>
+      <LanguageTag id={row().language} />
       <RowMarks
         target={row().target}
         scope={row().scope}

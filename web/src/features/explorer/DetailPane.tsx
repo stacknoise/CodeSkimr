@@ -8,6 +8,7 @@ import { Pill } from "../../shared/ui/Pill";
 import { CounterChips, CriticalLabel } from "../annotations/Marks";
 import { countersFor } from "../annotations/store";
 import { CRUMB_SEPARATOR, HOTKEY, PILL_SEPARATOR } from "./consts";
+import { languageName } from "../projects/format";
 import { showInGraph } from "../graph/show";
 import { showUsages } from "../../shared/navigation/navigation";
 import { openInEditor } from "./editor";
@@ -104,6 +105,7 @@ function Title(props: { info: SymbolInfo; member: MemberRow | null }) {
       </Show>
       <CounterChips counters={counters()} />
       <Pill tone={TONE.accent}>{kind()}</Pill>
+      <Pill>{languageName(props.info.language)}</Pill>
       <Actions symbol={shown().id} />
     </div>
   );

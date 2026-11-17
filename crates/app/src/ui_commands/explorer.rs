@@ -62,10 +62,14 @@ pub struct TypeNode {
     pub id: u64,
     /// Simple name.
     pub name: String,
+    /// Qualified name: with `kind` it is the key of the annotations of the type (ADR 0068).
+    pub qualified_name: String,
     /// Kind label.
     pub kind: &'static str,
     /// Number of direct members.
     pub members: u32,
+    /// Id of the language pack of the declaring file.
+    pub language: String,
 }
 
 /// A namespace with its types.
@@ -140,8 +144,10 @@ fn type_node(node: &OutlineNode) -> TypeNode {
     TypeNode {
         id: node.id.get(),
         name: node.name.to_string(),
+        qualified_name: node.qualified_name.to_string(),
         kind: node.kind.label(),
         members: node.members,
+        language: node.language.to_string(),
     }
 }
 

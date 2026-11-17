@@ -91,6 +91,29 @@ async function rereadSymbol(project: number, id: number): Promise<SymbolInfo | n
   }
 }
 
+/** The held symbols after a new read: those read again replace the old ones (a symbol that cannot
+ * be read any more is dropped), and a symbol that was read meanwhile, by a navigation from another
+ * screen, stays. */
+function keepRead(
+  now: ReadonlyMap<number, SymbolInfo>,
+  known: readonly number[],
+  symbols: readonly (SymbolInfo | null)[],
+): Map<number, SymbolInfo> {
+  const next = new Map<number, SymbolInfo>();
+  for (const [id, info] of now) {
+    if (!known.includes(id)) {
+      next.set(id, info);
+    }
+  }
+  known.forEach((id, index) => {
+    const info = symbols[index];
+    if (info) {
+      next.set(id, info);
+    }
+  });
+  return next;
+}
+
 /** Reads the tree and the symbols read so far again, and keeps what the user did with them. A
  * symbol that cannot be read any more is dropped from the held ones; the tree is still replaced. */
 async function refreshOutline(project: number): Promise<void> {
@@ -101,14 +124,7 @@ async function refreshOutline(project: number): Promise<void> {
     const symbols = await Promise.all(known.map((id) => rereadSymbol(project, id)));
     if (mine === generation) {
       setOutline(read);
-      setDetails(
-        new Map(
-          known.flatMap((id, index) => {
-            const info = symbols[index];
-            return info ? [[id, info] as const] : [];
-          }),
-        ),
-      );
+      setDetails((now) => keepRead(now, known, symbols));
     }
   } catch {
     // The old tree is still right for what the user sees; the next scan or visit tries again.
@@ -268,27 +284,11 @@ export async function applyFocus(project: number, tree: Outline): Promise<void> 
     return;
   }
   requestFocus(null);
-  setFilter("");
   const group = target.kind === null ? null : groupOfKind(target.kind);
-  const owners = await nestedOwners(project, target.type);
   openRows([
-    ...revealKeys(tree, owners[0] ?? target.type),
-    ...owners.flatMap((owner) => [typeKey(owner), groupKey(owner, GROUP.nested)]),
-    typeKey(target.type),
+    ...revealKeys(tree, target.type),
     ...(target.member !== null && group !== null ? [groupKey(target.type, group)] : []),
   ]);
   setCursor(target.member === null ? typeKey(target.type) : memberKey(target.member));
   await selectType(project, target.type, target.member);
-}
-
-/** The types that hold a nested type, outermost first; none for a type that stands in a
- * namespace. The tree only lists the types of the namespaces, so the way down to a nested type
- * is read from its breadcrumb, and each holder is read so that its rows can show. */
-async function nestedOwners(project: number, type: number): Promise<number[]> {
-  const info = await loadSymbol(project, type);
-  const owners = (info?.breadcrumb ?? [])
-    .filter((crumb) => crumb.id !== type && TYPE_KINDS.includes(crumb.kind))
-    .map((crumb) => crumb.id);
-  await Promise.all(owners.map((owner) => loadSymbol(project, owner)));
-  return owners;
 }

@@ -49,6 +49,23 @@ export const KIND_TONE: Record<string, string> = {
   event: "enum",
   enum_member: "struct",
 };
+/** The short name of a language in the tree; a language without one shows its id. */
+export const LANGUAGE_SHORT: Record<string, string> = {
+  c: "C",
+  cpp: "C++",
+  csharp: "C#",
+  go: "Go",
+  java: "Java",
+  javascript: "JS",
+  kotlin: "Kt",
+  php: "PHP",
+  python: "Py",
+  ruby: "Rb",
+  rust: "Rs",
+  tsx: "TSX",
+  typescript: "TS",
+};
+
 export const KIND_TONE_OTHER = "other";
 
 /** Kinds that the tree groups under "Properties & fields". */

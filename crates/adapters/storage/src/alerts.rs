@@ -3,8 +3,8 @@
 
 use codeskimr_application::ports::{AlertDismissal, AlertFilter, AlertPurge, AlertRaise};
 use codeskimr_domain::{
-    Alert, AlertChange, AlertId, AlertSighting, AnnotationId, CommitHash, QualifiedName,
-    SnapshotId, Timestamp,
+    Alert, AlertChange, AlertId, AlertSighting, AnnotationId, CommitHash, ContentHash, Loc,
+    QualifiedName, SnapshotId, SymbolBaseline, Timestamp,
 };
 use rusqlite::{Connection, OptionalExtension, Row, params};
 
@@ -30,6 +30,7 @@ struct AlertRow {
     changes: String,
     references: Option<i64>,
     closest: Option<String>,
+    seen: Option<(String, String, i64, i64)>,
 }
 
 impl AlertRow {
@@ -50,6 +51,7 @@ impl AlertRow {
             changes: cols.take()?,
             references: cols.take()?,
             closest: cols.take()?,
+            seen: seen_from(cols.take()?, cols.take()?, cols.take()?, cols.take()?),
         })
     }
 
@@ -62,6 +64,7 @@ impl AlertRow {
             changes: split_changes(&self.changes)?,
             references: self.references.map(small_from).transpose()?,
             closest: self.closest.map(QualifiedName::new).transpose()?,
+            observed: self.seen.map(observed_from).transpose()?,
         };
         Ok(Alert {
             id: AlertId::new(id_from(self.id)?),
@@ -74,6 +77,27 @@ impl AlertRow {
             sighting,
         })
     }
+}
+
+/// The four columns of the state a `changed` sighting saw; all four are set or none.
+fn seen_from(
+    content: Option<String>,
+    signature: Option<String>,
+    loc: Option<i64>,
+    cc: Option<i64>,
+) -> Option<(String, String, i64, i64)> {
+    Some((content?, signature?, loc?, cc?))
+}
+
+fn observed_from(
+    (content, signature, loc, cc): (String, String, i64, i64),
+) -> StorageResult<SymbolBaseline> {
+    Ok(SymbolBaseline {
+        content_hash: ContentHash::new(content)?,
+        signature_hash: ContentHash::new(signature)?,
+        loc: Loc(small_from(loc)?),
+        cc: small_from(cc)?,
+    })
 }
 
 fn split_changes(joined: &str) -> StorageResult<Vec<AlertChange>> {
@@ -99,7 +123,8 @@ fn find(conn: &Connection, id: AlertId) -> StorageResult<Alert> {
     .into_alert()
 }
 
-/// Counts the open alert of the annotation once more, or opens one.
+/// Counts the open alert of the annotation once more (or only updates it if the raise says it is not
+/// to be counted), or opens one.
 pub(crate) fn raise(conn: &Connection, raise: &AlertRaise) -> StorageResult<Alert> {
     baselines::ensure_critical(conn, raise.annotation)?;
     let sighting = &raise.sighting;
@@ -115,9 +140,24 @@ pub(crate) fn raise(conn: &Connection, raise: &AlertRaise) -> StorageResult<Aler
         sighting.trigger.label(),
         changes,
         sighting.references,
-        sighting.closest.as_ref().map(QualifiedName::as_str)
+        sighting.closest.as_ref().map(QualifiedName::as_str),
+        sighting
+            .observed
+            .as_ref()
+            .map(|seen| seen.content_hash.as_str()),
+        sighting
+            .observed
+            .as_ref()
+            .map(|seen| seen.signature_hash.as_str()),
+        sighting.observed.as_ref().map(|seen| i64::from(seen.loc.0)),
+        sighting.observed.as_ref().map(|seen| i64::from(seen.cc))
     ];
-    if conn.execute(sql::ALERT_RAISE_OPEN, values)? == 0 {
+    let update = if raise.counted {
+        sql::ALERT_RAISE_OPEN
+    } else {
+        sql::ALERT_UPDATE_OPEN
+    };
+    if conn.execute(update, values)? == 0 {
         conn.execute(sql::ALERT_INSERT, values)?;
     }
     conn.query_row(

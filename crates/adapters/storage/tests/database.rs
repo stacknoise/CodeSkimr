@@ -43,7 +43,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 15));
+    assert_eq!((mode.as_str(), version), ("wal", 16));
 }
 
 #[test]
@@ -572,6 +572,7 @@ fn a_version_eleven_database_keeps_its_layers_without_a_limit() {
          DROP TABLE layer_uses;
          ALTER TABLE layers DROP COLUMN restricted;
          DROP VIEW symbols;
+         ALTER TABLE symbol_rows DROP COLUMN content_hash;
          ALTER TABLE symbol_rows DROP COLUMN origin;
          PRAGMA user_version = 11;
          INSERT INTO projects (id, name, source_kind, location, branch)

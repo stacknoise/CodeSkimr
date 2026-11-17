@@ -166,9 +166,21 @@ fn annotation_limits_are_checked() {
             "annotations.max_title_chars",
             Violation::MustNotExceed("annotations.max_text_chars"),
         ),
+        (
+            "[annotations]\ndefault_page_size = 0\n",
+            "annotations.default_page_size",
+            Violation::MustBePositive,
+        ),
+        (
+            "[annotations]\ndefault_page_size = 600\n",
+            "annotations.default_page_size",
+            Violation::MustNotExceed("annotations.max_page_size"),
+        ),
     ]);
     let limits = Config::defaults().unwrap().annotations.limits();
     assert_eq!((limits.max_text_chars, limits.max_title_chars), (4000, 500));
+    let pages = Config::defaults().unwrap().annotations;
+    assert_eq!((pages.default_page_size, pages.max_page_size), (100, 500));
 }
 
 #[test]

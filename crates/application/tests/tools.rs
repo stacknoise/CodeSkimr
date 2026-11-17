@@ -12,7 +12,7 @@ use codeskimr_application::ports::{
     RequirementReader, RequirementValue, ToolCatalog, ToolIssue, ToolPlan, ToolProblem,
     ToolReportStore, ToolRequirement, ToolSeen, ToolSpec, ToolVersion,
 };
-use codeskimr_application::tools::{ToolCheckPorts, ToolChecker};
+use codeskimr_application::tools::{IndexerCheck, IndexerOverview, ToolCheckPorts, ToolChecker};
 use codeskimr_domain::{
     Ceiling, FolderPath, LanguageId, Project, ProjectId, ProjectName, ProjectSource,
     RequirementFormat, RequirementSpec, RollForwardSpec, SourceFile, Timestamp, ToolReport,
@@ -100,6 +100,16 @@ impl ToolCatalog for World {
     fn plan_of(&self, language: &LanguageId) -> Option<ToolPlan> {
         self.plans.get(language.as_str()).cloned()
     }
+
+    fn plans(&self) -> Vec<(LanguageId, ToolPlan)> {
+        let mut all: Vec<_> = self
+            .plans
+            .iter()
+            .map(|(language, plan)| (LanguageId::new(language).unwrap(), plan.clone()))
+            .collect();
+        all.sort_by(|left: &(LanguageId, ToolPlan), right| left.0.as_str().cmp(right.0.as_str()));
+        all
+    }
 }
 
 impl IndexRunner for World {
@@ -113,6 +123,10 @@ impl IndexRunner for World {
         for tool in std::iter::once(&spec.indexer).chain(&spec.toolchain) {
             let issue = match self.installed.get(&tool.program) {
                 None => ToolIssue::Missing,
+                // `crash: text` stands for a program that is found but whose version command fails.
+                Some(output) if output.starts_with(CRASH_PREFIX) => ToolIssue::NotRunnable {
+                    output: output[CRASH_PREFIX.len()..].to_owned(),
+                },
                 Some(output) => match ToolVersion::find_in(output) {
                     Some(version) if version >= tool.min_version => {
                         found.push(ToolSeen {
@@ -330,6 +344,23 @@ fn the_newest_version_of_all_manifest_folders_counts() {
     let dotnet = &report.unwrap().findings[1];
     assert_eq!(dotnet.state, ToolState::TooOld);
     assert_eq!(dotnet.required.as_deref(), Some("9.0.200"));
+}
+
+const CRASH_PREFIX: &str = "crash:";
+
+#[test]
+fn a_tool_that_does_not_start_is_not_runnable_with_what_it_said_and_blocks_level_2() {
+    for (said, found) in [
+        ("crash:SyntaxError: boom", Some("SyntaxError: boom")),
+        ("crash:", None),
+    ] {
+        let world = csharp_world(&[("scip-dotnet", said), ("dotnet", "8.0.404")], None);
+        let report = run(world).1.unwrap();
+        let indexer = &report.findings[0];
+        assert_eq!(indexer.state, ToolState::NotRunnable);
+        assert_eq!(indexer.found.as_deref(), found);
+        assert!(!report.level2_ready(&language("csharp")));
+    }
 }
 
 #[test]
@@ -571,4 +602,31 @@ fn a_ceiling_of_the_toolchain_tool_does_not_judge_the_indexer() {
     );
     let report = run(world).1.unwrap();
     assert_eq!(report.findings[0].state, ToolState::Ready);
+}
+
+#[test]
+fn the_listing_of_all_indexers_needs_no_project_and_reports_every_tool_once() {
+    let world = Arc::new(csharp_world(
+        &[
+            ("scip-dotnet", "crash:SyntaxError: boom"),
+            ("dotnet", "8.0.404"),
+        ],
+        None,
+    ));
+    let overview = IndexerOverview::new(world.clone(), world.clone(), world.clone());
+    let view = overview.check();
+    let states: Vec<_> = view
+        .tools
+        .iter()
+        .map(|tool| (tool.tool.as_str(), tool.state, tool.found.as_deref()))
+        .collect();
+    assert_eq!(
+        states,
+        [
+            ("dotnet", "ready", Some("8.0.404")),
+            ("scip-dotnet", "not_runnable", Some("SyntaxError: boom")),
+        ]
+    );
+    assert!(view.tools.iter().all(|tool| tool.path.is_none()));
+    assert!(view.checked_at.is_some());
 }

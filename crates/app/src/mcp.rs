@@ -8,8 +8,8 @@ use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::ports::{
-    CodeIndex, IndexRunner, ProjectCatalog, ProjectRepository, ProjectScanner, SimilarityIndex,
-    UsageIndex,
+    AnnotationStore, CodeIndex, IndexRunner, ProjectCatalog, ProjectRepository, ProjectScanner,
+    SimilarityIndex, UsageIndex,
 };
 use codeskimr_cli::{GlobalOptions, McpArgs};
 use codeskimr_codes::ErrorCode;
@@ -196,6 +196,7 @@ fn build_ports(
     let similarity: Arc<dyn SimilarityIndex> = store.clone();
     let catalog: Arc<dyn ProjectCatalog> = store.clone();
     let tool_check = tool_checker(&store, (locations, runner))?;
+    let annotations: Arc<dyn AnnotationStore> = store.clone();
     let index: Arc<dyn CodeIndex> = store;
     Ok(Ports {
         projects,
@@ -211,5 +212,6 @@ fn build_ports(
         messages,
         keys: Arc::new(FolderKeys),
         key_sources: config.keys.clone(),
+        annotations,
     })
 }

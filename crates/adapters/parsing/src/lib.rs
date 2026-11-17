@@ -23,6 +23,8 @@
 mod analyzer;
 mod captures;
 mod consts;
+mod content_hash;
+mod digest;
 mod encoding;
 mod error;
 mod fingerprints;
@@ -42,6 +44,7 @@ mod tools;
 mod visibility;
 
 pub use analyzer::TreeSitterAnalyzer;
+pub use digest::Blake3Digest;
 pub use error::ParsingError;
 pub use highlight::TreeSitterHighlighter;
 pub use manifest::Tier;

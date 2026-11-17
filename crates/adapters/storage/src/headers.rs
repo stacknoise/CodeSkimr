@@ -133,7 +133,12 @@ pub(crate) fn insert_metric(
     Ok(())
 }
 
-pub(crate) fn insert_symbol(conn: &Connection, symbol: &Symbol) -> StorageResult<()> {
+/// Writes a symbol row with the content hash of the parse stage, `None` for a symbol that has none.
+pub(crate) fn insert_symbol(
+    conn: &Connection,
+    symbol: &Symbol,
+    content_hash: Option<&str>,
+) -> StorageResult<()> {
     let parent = symbol
         .parent
         .map(|parent| column_int(parent.get()))
@@ -155,6 +160,7 @@ pub(crate) fn insert_symbol(conn: &Connection, symbol: &Symbol) -> StorageResult
         symbol.signature,
         symbol.doc,
         symbol.origin.label(),
+        content_hash,
     ])?;
     Ok(())
 }

@@ -26,6 +26,7 @@ use crate::ports::{
     AnalyzeRequest, Clock, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts,
     MetricsCalculator, PathsReport, PendingReference, ProjectRepository, ReferenceResolver,
     ScanWarning, SnapshotData, SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints,
+    SymbolHash,
 };
 use crate::resolve::ambiguous_occurrences;
 use crate::selection::Selection;
@@ -92,6 +93,8 @@ pub struct Analyzed {
     pub counts: Vec<SymbolCounts>,
     /// The syntax fingerprints of the callables of the analysed files.
     pub fingerprints: Vec<SymbolFingerprints>,
+    /// The content hashes of the types and members of the analysed files.
+    pub hashes: Vec<SymbolHash>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
 }
@@ -113,6 +116,8 @@ pub struct Resolved {
     pub counts: Vec<SymbolCounts>,
     /// The syntax fingerprints of the callables of the analysed files.
     pub fingerprints: Vec<SymbolFingerprints>,
+    /// The content hashes of the types and members of the analysed files.
+    pub hashes: Vec<SymbolHash>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
 }
@@ -134,6 +139,8 @@ pub struct Measured {
     pub metrics: Vec<Metric>,
     /// The syntax fingerprints of the callables of the analysed files.
     pub fingerprints: Vec<SymbolFingerprints>,
+    /// The content hashes of the types and members of the analysed files.
+    pub hashes: Vec<SymbolHash>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
 }
@@ -315,6 +322,7 @@ impl Stage for AnalyzeStage {
             pending: Vec::new(),
             counts: Vec::new(),
             fingerprints: Vec::new(),
+            hashes: Vec::new(),
             carried,
         };
         let mut times: BTreeMap<LanguageId, u64> = BTreeMap::new();
@@ -325,6 +333,7 @@ impl Stage for AnalyzeStage {
             out.pending.extend(facts.pending);
             out.counts.extend(facts.counts);
             out.fingerprints.extend(facts.fingerprints);
+            out.hashes.extend(facts.hashes);
         }
         if run.mode == ScanMode::Full {
             out.run.parse_micros = times.into_iter().collect();
@@ -481,6 +490,7 @@ impl Stage for ResolveStage {
             pending,
             counts,
             fingerprints,
+            hashes,
             mut carried,
         } = input;
         let due = carried.due_names((&symbols, &pending), self.projects.as_ref())?;
@@ -508,6 +518,7 @@ impl Stage for ResolveStage {
             pending,
             counts,
             fingerprints,
+            hashes,
             carried,
         })
     }
@@ -566,6 +577,7 @@ impl Stage for MeasureStage {
             pending: input.pending,
             metrics,
             fingerprints: input.fingerprints,
+            hashes: input.hashes,
             carried: input.carried,
         })
     }
@@ -646,6 +658,7 @@ impl Stage for PersistStage {
             references: input.references,
             metrics: input.metrics,
             fingerprints: input.fingerprints,
+            hashes: input.hashes,
             removed: input.carried.removed,
             pending: input.pending,
             dropped_references: input.carried.dropped,

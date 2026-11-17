@@ -46,6 +46,8 @@ pub struct MemberOut {
     pub id: u64,
     /// Simple name.
     pub name: String,
+    /// Qualified name: with `kind` it is the key of the annotations of the member (ADR 0068).
+    pub qualified_name: String,
     /// Kind label.
     pub kind: &'static str,
     /// Visibility label, if there is one.
@@ -85,6 +87,8 @@ pub struct SymbolOut {
     pub origin: &'static str,
     /// Path of the declaring file.
     pub path: String,
+    /// Id of the language pack of the declaring file.
+    pub language: String,
     /// First line, counted from 1.
     pub first_line: u32,
     /// Last line, counted from 1.
@@ -116,6 +120,7 @@ fn member_out(row: &MemberRow, thresholds: &MetricThresholds) -> MemberOut {
     MemberOut {
         id: row.id.get(),
         name: row.name.to_string(),
+        qualified_name: row.qualified_name.to_string(),
         kind: row.kind.label(),
         visibility: row.visibility.map(Visibility::label),
         signature: row.signature.clone(),
@@ -192,6 +197,7 @@ fn answer(
         is_static: symbol.is_static,
         origin: symbol.origin.label(),
         path: detail.path.to_string(),
+        language: detail.language.to_string(),
         first_line: symbol.span.start().line + LINE_OFFSET,
         last_line: symbol.span.end().line + LINE_OFFSET,
         signature: symbol.signature.clone(),

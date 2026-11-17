@@ -37,8 +37,22 @@ const OUTLINE: Outline = {
         {
           name: "App.Domain",
           types: [
-            { id: 1, name: "Order", qualified_name: "Order", kind: "class", members: 2 },
-            { id: 2, name: "IOrder", qualified_name: "IOrder", kind: "interface", members: 0 },
+            {
+              id: 1,
+              name: "Order",
+              qualified_name: "Order",
+              kind: "class",
+              members: 2,
+              language: "csharp",
+            },
+            {
+              id: 2,
+              name: "IOrder",
+              qualified_name: "IOrder",
+              kind: "interface",
+              members: 0,
+              language: "csharp",
+            },
           ],
         },
       ],
@@ -48,7 +62,16 @@ const OUTLINE: Outline = {
       namespaces: [
         {
           name: "",
-          types: [{ id: 3, name: "Loose", qualified_name: "Loose", kind: "struct", members: 0 }],
+          types: [
+            {
+              id: 3,
+              name: "Loose",
+              qualified_name: "Loose",
+              kind: "struct",
+              members: 0,
+              language: "csharp",
+            },
+          ],
         },
       ],
     },
@@ -64,6 +87,7 @@ const ORDER: SymbolInfo = {
   visibility: "public",
   is_static: false,
   path: "src/order.cs",
+  language: "csharp",
   first_line: 1,
   last_line: 20,
   signature: null,
@@ -187,6 +211,7 @@ describe("namespaces grouped by their parts", () => {
     qualified_name: name,
     kind: "class",
     members: 0,
+    language: "csharp",
   });
   const GROUPED: Outline = {
     ...OUTLINE,
@@ -342,6 +367,7 @@ describe("siblingPlaces", () => {
     depth: 0,
     label: "",
     meta: "",
+    language: null,
     symbolKind: null,
     layerIndex: null,
     expandable: false,

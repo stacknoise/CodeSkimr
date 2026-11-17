@@ -5,6 +5,8 @@
 //! scan job and the level-1 reference resolver. It knows no database, file system, network or parser.
 
 pub mod access;
+pub mod alerts;
+pub mod annotations;
 pub mod cancel;
 pub mod config;
 mod consts;

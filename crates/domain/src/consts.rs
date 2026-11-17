@@ -191,6 +191,8 @@ pub const PERMISSION_READ: &str = "read";
 pub const PERMISSION_READ_SOURCE: &str = "read_source";
 /// Label of `Permission::Scan`.
 pub const PERMISSION_SCAN: &str = "scan";
+/// Label of `Permission::Annotate`.
+pub const PERMISSION_ANNOTATE: &str = "annotate";
 /// Label of `Permission::Manage`.
 pub const PERMISSION_MANAGE: &str = "manage";
 /// Label of `Permission::RegisterProject`.
@@ -219,6 +221,8 @@ pub const TOOL_STATE_TOO_OLD: &str = "too_old";
 pub const TOOL_STATE_VERSION_UNKNOWN: &str = "version_unknown";
 /// Label of `ToolState::TooNew`.
 pub const TOOL_STATE_TOO_NEW: &str = "too_new";
+/// Label of `ToolState::NotRunnable`.
+pub const TOOL_STATE_NOT_RUNNABLE: &str = "not_runnable";
 /// Label of `Ceiling::Exact`.
 pub const CEILING_EXACT: &str = "exact";
 /// Label of `Ceiling::SameBand`.

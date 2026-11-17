@@ -81,6 +81,10 @@ pub mod keys {
     pub const ANNOTATIONS_RETENTION_DAYS: &str = "annotations.dismissed_retention_days";
     /// `annotations.max_text_chars`
     pub const ANNOTATIONS_MAX_TEXT_CHARS: &str = "annotations.max_text_chars";
+    /// `annotations.default_page_size`
+    pub const ANNOTATIONS_DEFAULT_PAGE: &str = "annotations.default_page_size";
+    /// `annotations.max_page_size`
+    pub const ANNOTATIONS_MAX_PAGE: &str = "annotations.max_page_size";
     /// `annotations.max_title_chars`
     pub const ANNOTATIONS_MAX_TITLE_CHARS: &str = "annotations.max_title_chars";
     /// `graph.node_width`

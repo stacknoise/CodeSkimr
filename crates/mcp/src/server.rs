@@ -8,9 +8,10 @@ use codeskimr_application::error::CodedError;
 use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
     MCP_SERVER_INSTRUCTIONS, MCP_TOOL_CHECK_CONVENTIONS, MCP_TOOL_FIND_CONSTANTS,
-    MCP_TOOL_FIND_SIMILAR_CODE, MCP_TOOL_FIND_USAGES, MCP_TOOL_GET_ARCHITECTURE,
-    MCP_TOOL_GET_DEPENDENCIES, MCP_TOOL_GET_PROJECT, MCP_TOOL_GET_SYMBOL,
-    MCP_TOOL_IMPACT_OF_CHANGE, MCP_TOOL_RESCAN, MCP_TOOL_SEARCH_SYMBOLS,
+    MCP_TOOL_FIND_SIMILAR_CODE, MCP_TOOL_FIND_USAGES, MCP_TOOL_GET_ALERTS,
+    MCP_TOOL_GET_ARCHITECTURE, MCP_TOOL_GET_DEPENDENCIES, MCP_TOOL_GET_PROJECT,
+    MCP_TOOL_GET_SYMBOL, MCP_TOOL_IMPACT_OF_CHANGE, MCP_TOOL_LIST_ANNOTATIONS, MCP_TOOL_RESCAN,
+    MCP_TOOL_SEARCH_SYMBOLS,
 };
 use codeskimr_domain::{Permission, Principal};
 use codeskimr_i18n::Messages;
@@ -27,14 +28,16 @@ use serde::de::DeserializeOwned;
 use serde_json::Value;
 
 use crate::args::{
-    ArchitectureArgs, ConstantsArgs, ConventionsArgs, DependenciesArgs, ImpactArgs, ProjectArgs,
-    RescanArgs, SearchArgs, SimilarArgs, SymbolArgs, UsagesArgs,
+    AlertsArgs, AnnotationsArgs, ArchitectureArgs, ConstantsArgs, ConventionsArgs,
+    DependenciesArgs, ImpactArgs, ProjectArgs, RescanArgs, SearchArgs, SimilarArgs, SymbolArgs,
+    UsagesArgs,
 };
 use crate::consts::{
     READ_TOOL_PERMISSION, SCAN_TOOL_PERMISSION, SERVER_NAME, SERVER_VERSION, TEXT_LANGUAGE,
     TOOL_CHECK_CONVENTIONS, TOOL_FIND_CONSTANTS, TOOL_FIND_SIMILAR_CODE, TOOL_FIND_USAGES,
-    TOOL_GET_ARCHITECTURE, TOOL_GET_DEPENDENCIES, TOOL_GET_PROJECT, TOOL_GET_SYMBOL,
-    TOOL_IMPACT_OF_CHANGE, TOOL_RESCAN, TOOL_SEARCH_SYMBOLS,
+    TOOL_GET_ALERTS, TOOL_GET_ARCHITECTURE, TOOL_GET_DEPENDENCIES, TOOL_GET_PROJECT,
+    TOOL_GET_SYMBOL, TOOL_IMPACT_OF_CHANGE, TOOL_LIST_ANNOTATIONS, TOOL_RESCAN,
+    TOOL_SEARCH_SYMBOLS,
 };
 use crate::error::McpError;
 use crate::tools::Tools;
@@ -112,6 +115,8 @@ fn definitions(messages: &Messages) -> Result<Vec<Tool>, CodedError> {
             TOOL_CHECK_CONVENTIONS,
             MCP_TOOL_CHECK_CONVENTIONS,
         )?,
+        definition::<AnnotationsArgs>(messages, TOOL_LIST_ANNOTATIONS, MCP_TOOL_LIST_ANNOTATIONS)?,
+        definition::<AlertsArgs>(messages, TOOL_GET_ALERTS, MCP_TOOL_GET_ALERTS)?,
         definition_with::<RescanArgs>(messages, TOOL_RESCAN, MCP_TOOL_RESCAN, false)?,
     ])
 }
@@ -180,6 +185,10 @@ impl McpServer {
             TOOL_GET_DEPENDENCIES => {
                 call(arguments, |args| tools.get_dependencies(&principal, &args))
             }
+            TOOL_LIST_ANNOTATIONS => {
+                call(arguments, |args| tools.list_annotations(&principal, &args))
+            }
+            TOOL_GET_ALERTS => call(arguments, |args| tools.get_alerts(&principal, &args)),
             TOOL_RESCAN => call(arguments, |args| tools.rescan(&principal, &args)),
             TOOL_FIND_SIMILAR_CODE => {
                 call(arguments, |args| tools.find_similar_code(&principal, &args))

@@ -8,6 +8,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 use std::time::Duration;
 
+use codeskimr_application::alerts::AlertStep;
 use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
@@ -20,11 +21,11 @@ use codeskimr_application::ports::{
     FileAnalyzer, FileDiscovery, IndexRunner, IndexerSpec, SnippetFingerprinter,
 };
 use codeskimr_application::resolve::ScopedResolver;
-use codeskimr_application::tools::{ToolCheckPorts, ToolChecker};
+use codeskimr_application::tools::{IndexerCheck, IndexerOverview, ToolCheckPorts, ToolChecker};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{CredentialId, LanguageId};
 use codeskimr_indexer::ProcessIndexRunner;
-use codeskimr_parsing::{LanguagePacks, PackTools, TreeSitterAnalyzer};
+use codeskimr_parsing::{Blake3Digest, LanguagePacks, PackTools, TreeSitterAnalyzer};
 use codeskimr_scip::ScipImporter;
 use codeskimr_secrets::{KeystoreCredentials, OsKeystore};
 use codeskimr_source::{
@@ -150,7 +151,20 @@ pub fn scanner_over(
         clock: Arc::new(SystemClock),
         max_workers: config.scan.max_workers,
     };
-    Ok(Scanner::new(ports, &ids, events).with_level2(pass))
+    Ok(Scanner::new(ports, &ids, events.clone())
+        .with_level2(pass)
+        .with_alerts(alert_step(store, events)))
+}
+
+/// The alert step of ADR 0068 over the store; it publishes on `events`.
+fn alert_step(store: &Arc<SqliteStore>, events: EventBus) -> AlertStep {
+    AlertStep {
+        annotations: store.clone(),
+        states: store.clone(),
+        digest: Arc::new(Blake3Digest),
+        clock: Arc::new(SystemClock),
+        events,
+    }
 }
 
 /// The runner that finds out which tools exist, for the check of ADR 0033: version queries only,
@@ -181,6 +195,22 @@ pub fn tool_checker(
         overview: store.clone(),
         clock: Arc::new(SystemClock),
     })))
+}
+
+/// The check of all indexers of the language packs, for the settings; it needs no project.
+///
+/// # Errors
+/// `PRS` failures if the language packs cannot be read.
+pub fn indexer_check(
+    locations: &Locations,
+    runner: Arc<dyn IndexRunner>,
+) -> Result<Arc<dyn IndexerCheck>, CodedError> {
+    let catalog = PackTools::load(&locations.languages_dir).map_err(CodedError::caused_by)?;
+    Ok(Arc::new(IndexerOverview::new(
+        Arc::new(catalog),
+        runner,
+        Arc::new(SystemClock),
+    )))
 }
 
 /// The id sequence of the database file in this process. Scans of different projects run at the

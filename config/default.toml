@@ -68,6 +68,10 @@ dismissed_retention_days = 30
 max_text_chars = 4000
 # Longest title of a task, in characters; it must not exceed max_text_chars.
 max_title_chars = 500
+# Rows a list of annotations or alerts returns when the caller gives no limit, and the most it may
+# return in one page; it must not be less than the default.
+default_page_size = 100
+max_page_size = 500
 
 # Syntax fingerprints for similar-code search and the duplicate check (blueprint 10.4).
 [similarity]

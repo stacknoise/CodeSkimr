@@ -11,8 +11,8 @@ use axum::extract::ws::{CloseFrame, Message, WebSocket, WebSocketUpgrade, close_
 use axum::response::{IntoResponse, Response};
 use codeskimr_application::access;
 use codeskimr_application::events::{
-    Event, EventBus, FilesChanged, ScanProgressed, ScanStopped, SnapshotCreated, StopReason,
-    Subscription,
+    AlertsChanged, Event, EventBus, FilesChanged, ScanProgressed, ScanStopped, SnapshotCreated,
+    StopReason, Subscription,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::Permission;
@@ -72,10 +72,20 @@ pub enum WireEvent {
         /// The code of the failure, if it failed.
         code: Option<&'static str>,
     },
+    /// The alert list of a project changed (ADR 0068). It carries the project and a count, never a
+    /// symbol or a text: events are not filtered per user.
+    AlertsChanged {
+        /// Project whose alerts changed.
+        project: u64,
+        /// Number of open alerts of the project now.
+        open: u32,
+    },
 }
 
-impl From<&Event> for WireEvent {
-    fn from(event: &Event) -> Self {
+impl WireEvent {
+    /// The wire form of an event.
+    #[must_use]
+    pub fn of(event: &Event) -> Self {
         match event {
             Event::ScanProgressed(ScanProgressed {
                 project,
@@ -104,11 +114,13 @@ impl From<&Event> for WireEvent {
                 rescan: *rescan,
             },
             Event::ScanStopped(stopped) => Self::stopped(stopped),
+            Event::AlertsChanged(AlertsChanged { project, open }) => Self::AlertsChanged {
+                project: project.get(),
+                open: *open,
+            },
         }
     }
-}
 
-impl WireEvent {
     fn stopped(stopped: &ScanStopped) -> Self {
         let (reason, code): (_, Option<ErrorCode>) = match stopped.reason {
             StopReason::Cancelled => (REASON_CANCELLED, None),
@@ -198,7 +210,7 @@ async fn pump(
         }
         match timeout(EVENT_POLL, events.recv()).await {
             Ok(Some(event)) => {
-                let Ok(text) = serde_json::to_string(&WireEvent::from(&event)) else {
+                let Ok(text) = serde_json::to_string(&WireEvent::of(&event)) else {
                     continue;
                 };
                 if !send_within(&mut socket, Message::Text(text.into()), &mut waits).await {

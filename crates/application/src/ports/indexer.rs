@@ -95,6 +95,11 @@ pub struct IndexJob<'a> {
 pub enum ToolIssue {
     /// The program is not found.
     Missing,
+    /// It is found, but its version command fails: it crashes or does not start.
+    NotRunnable {
+        /// What it printed about the failure, shortened and redacted; empty if it printed nothing.
+        output: String,
+    },
     /// It is found but older than required, or its version cannot be read.
     TooOld {
         /// What it reports, shortened and redacted; empty if the output has no version.
@@ -211,6 +216,12 @@ pub trait IndexRunner: Send + Sync {
     /// Checks, without running any project code, whether the indexer and its toolchain exist and
     /// have a usable version. Every tool that is usable is reported with the version it printed.
     fn check(&self, spec: &IndexerSpec) -> IndexerStatus;
+
+    /// Where `program` is found on the search path of the user, for a listing. `None` if it is
+    /// not found, or if the runner cannot tell.
+    fn locate(&self, _program: &str) -> Option<String> {
+        None
+    }
 
     /// Runs the indexer once and returns its index file.
     ///

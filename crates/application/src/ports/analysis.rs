@@ -4,8 +4,8 @@ use std::collections::HashSet;
 use std::time::Duration;
 
 use codeskimr_domain::{
-    FileId, Fingerprints, FolderPath, LanguageId, Metric, QualifiedName, Reference, ReferenceKind,
-    RelativePath, SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId,
+    ContentHash, FileId, Fingerprints, FolderPath, LanguageId, Metric, QualifiedName, Reference,
+    ReferenceKind, RelativePath, SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId,
 };
 
 use super::DiscoveredFile;
@@ -74,6 +74,16 @@ pub struct SymbolFingerprints {
     pub fingerprints: Fingerprints,
 }
 
+/// The content hash of one symbol (ADR 0068): over the token stream of its span, whitespace and
+/// comments excluded.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SymbolHash {
+    /// The type or member.
+    pub symbol: SymbolId,
+    /// Its hash.
+    pub hash: ContentHash,
+}
+
 /// Everything the analysis found in one file.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileFacts {
@@ -87,6 +97,8 @@ pub struct FileFacts {
     pub fingerprints: Vec<SymbolFingerprints>,
     /// The counts behind the metrics of the file's callables, types and module (ADR 0015).
     pub counts: Vec<SymbolCounts>,
+    /// The content hashes of the types and members of the file (ADR 0068).
+    pub hashes: Vec<SymbolHash>,
 }
 
 /// Parses one file and extracts its symbols (Parse and Extract of blueprint section 7).

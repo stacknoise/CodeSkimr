@@ -16,6 +16,8 @@ pub enum Event {
     FilesChanged(FilesChanged),
     /// A scan ended without a snapshot.
     ScanStopped(ScanStopped),
+    /// The alerts of a project changed (ADR 0068).
+    AlertsChanged(AlertsChanged),
 }
 
 /// Progress inside one stage. `total` is zero while the amount of work is unknown.
@@ -68,4 +70,14 @@ pub struct ScanStopped {
     pub project: ProjectId,
     /// Why it stopped.
     pub reason: StopReason,
+}
+
+/// The alert list of a project changed. It names no symbol and no text: events are not filtered
+/// per user, so a subscriber asks for the alerts it may see (ADR 0068, decision 7).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AlertsChanged {
+    /// The project.
+    pub project: ProjectId,
+    /// How many alerts of the project are open now.
+    pub open: u32,
 }

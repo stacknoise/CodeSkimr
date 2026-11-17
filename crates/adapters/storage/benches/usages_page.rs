@@ -56,6 +56,7 @@ fn store() -> Option<SqliteStore> {
             .filter_map(|id| common::symbol(id, &format!("item{id}")))
             .collect(),
         (1..=REFERENCES).filter_map(reference).collect(),
+        Vec::new(),
     )
 }
 

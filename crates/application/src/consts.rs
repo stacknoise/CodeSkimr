@@ -77,6 +77,12 @@ pub const LOG_SCAN_WARNING: &str = "scan_warning";
 /// Log event: references that level 2 had verified were discarded because their target is gone.
 pub const LOG_VERIFIED_DISCARDED: &str = "verified_references_discarded";
 
+/// Log event: the critical symbols were compared with their baselines after a snapshot (ADR 0068).
+pub const LOG_ALERTS_CHECKED: &str = "alerts_checked";
+
+/// Log event: the alert step failed; the snapshot stays as it is.
+pub const LOG_ALERT_STEP_FAILED: &str = "alert_step_failed";
+
 /// Wire word of `TokenClass::Comment`.
 pub const TOKEN_COMMENT: &str = "comment";
 /// Wire word of `TokenClass::String`.

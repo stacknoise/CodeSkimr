@@ -19,6 +19,7 @@ const row = (key: string, extra: Partial<TreeRow> = {}): TreeRow => ({
   depth: 0,
   label: key,
   meta: "",
+  language: null,
   expandable: false,
   open: false,
   type: null,

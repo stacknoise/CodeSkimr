@@ -34,6 +34,12 @@ fn the_outline_holds_containers_and_types_but_no_members() {
 }
 
 #[test]
+fn a_node_names_the_language_of_its_file() {
+    let nodes = store().outline(SNAPSHOT).unwrap();
+    assert!(nodes.iter().all(|node| node.language.as_str() == "csharp"));
+}
+
+#[test]
 fn a_node_knows_its_parent_and_its_member_count() {
     let nodes = store().outline(SNAPSHOT).unwrap();
     let cart = nodes.iter().find(|n| n.name.as_str() == "Cart").unwrap();

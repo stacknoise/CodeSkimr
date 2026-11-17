@@ -2,7 +2,7 @@
 
 #[cfg(test)]
 mod cases {
-    use codeskimr_application::tools::ToolsView;
+    use codeskimr_application::tools::{ToolView, ToolsView};
     use codeskimr_cli::{
         Level2Line, Level2Reason, ScanSummary, WarningLine, scan_finished, scan_json,
     };
@@ -133,5 +133,45 @@ mod cases {
         let de = scan_finished(&messages, "de", &with).unwrap();
         assert!(de.contains("RES-301: 12 Stellen"), "{de}");
         assert!(scan_json(&with).unwrap().contains("\"RES-301\""));
+    }
+
+    fn crashed(found: Option<&str>) -> ScanSummary {
+        let mut with = summary(Vec::new());
+        with.tools = ToolsView {
+            checked_at: Some(1),
+            languages: Vec::new(),
+            tools: vec![ToolView {
+                tool: "scip-dotnet".to_owned(),
+                role: "indexer",
+                state: "not_runnable",
+                languages: vec!["csharp".to_owned()],
+                found: found.map(str::to_owned),
+                required: None,
+                path: None,
+                purpose_key: "tool-scip-dotnet-purpose".to_owned(),
+                install_key: "tool-scip-dotnet-install".to_owned(),
+            }],
+        };
+        with
+    }
+
+    #[test]
+    fn a_tool_that_does_not_start_is_named_with_its_error_in_both_languages() {
+        let messages = Messages::load().unwrap();
+        let with = crashed(Some("SyntaxError: boom"));
+        let en = scan_finished(&messages, "en", &with).unwrap();
+        assert!(en.contains("does not start"), "{en}");
+        assert!(en.contains("SyntaxError: boom"), "{en}");
+        let de = scan_finished(&messages, "de", &with).unwrap();
+        assert!(de.contains("startet aber nicht"), "{de}");
+        assert!(de.contains("SyntaxError: boom"), "{de}");
+    }
+
+    #[test]
+    fn a_tool_that_does_not_start_and_said_nothing_has_no_dangling_colon_or_placeholder() {
+        let messages = Messages::load().unwrap();
+        let en = scan_finished(&messages, "en", &crashed(None)).unwrap();
+        assert!(en.contains("it printed no error"), "{en}");
+        assert!(!en.contains("– ?"), "{en}");
     }
 }

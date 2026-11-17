@@ -111,6 +111,24 @@ impl SymbolKind {
         )
     }
 
+    /// Whether the parse stage takes a content hash of the symbol (ADR 0068): a type and every
+    /// member. A namespace has no hash of its own, it is derived from its children; a module (the
+    /// whole file) and a parameter have none.
+    #[must_use]
+    pub const fn has_content_hash(self) -> bool {
+        self.is_type()
+            || self.is_callable()
+            || matches!(
+                self,
+                Self::Property
+                    | Self::Field
+                    | Self::Constant
+                    | Self::Event
+                    | Self::EnumMember
+                    | Self::TypeAlias
+            )
+    }
+
     /// Whether callables roll up into the symbol: a type, module or namespace (ADR 0015).
     #[must_use]
     pub const fn is_rollup_target(self) -> bool {

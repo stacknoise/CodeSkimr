@@ -17,6 +17,7 @@ pub const MIGRATIONS: &[&str] = &[
     include_str!("../migrations/0013_scan_warnings.sql"),
     include_str!("../migrations/0014_symbol_origin.sql"),
     include_str!("../migrations/0015_annotations.sql"),
+    include_str!("../migrations/0016_symbol_content_hash.sql"),
 ];
 
 /// Name of the pragma that holds the schema version.
@@ -145,3 +146,6 @@ pub const SECONDS_PER_DAY: i64 = 86_400;
 pub const CHANGE_SEPARATOR: char = ',';
 /// The id that a new annotation has in the check for a second critical mark (no annotation has it).
 pub const NO_ANNOTATION: i64 = 0;
+
+/// How many indexes the alert step needs (`ENSURE_STATE_INDEXES`).
+pub const STATE_INDEX_COUNT: i64 = 3;

@@ -5,6 +5,11 @@
 //! `config_files` find and read folders and configuration, `wiring` creates the adapters, `scan`
 //! `mcp`, `serve` and `open` are the commands that need wiring, `watch` is the watch mode of `scan`.
 
+#[cfg(test)]
+mod alert_tests;
+mod annotations_cli;
+#[cfg(test)]
+mod annotations_cli_tests;
 mod browser;
 mod check;
 mod clock;
