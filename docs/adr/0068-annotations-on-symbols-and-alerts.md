@@ -40,4 +40,5 @@ Detecting a change: (D1) compare whole snapshots; (D2) keep a *baseline* per mar
 - A rename shows as `removed` or `orphaned`, not as a move; a move detection is not part of this decision.
 - Git projects alert only after a fetch; several commits between two fetches give one alert (shallow clone).
 - Local only in the first version. The team server needs the author and rights per annotation (ADR 0019); that is a follow-up.
+- Reading annotations (`annotations.list`, `annotations.summary`, `alerts.list`) needs no installation token in the single-user edition, like every read-only command (ADR 0024; the port is loopback only). The team server must not hand out notes, tasks or alerts without a login and the `read` right of the caller (ADR 0019); the decision of the product owner of 2026-11-17.
 - Work packages (in this order): this ADR with blueprint and mocks; domain and storage (tables, migration, content hash); alerts in the scan; commands, REST, CLI, MCP, event; UI marks and tabs; UI alerts and board; documentation and security review (user text).
