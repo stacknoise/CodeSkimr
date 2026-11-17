@@ -268,11 +268,27 @@ export async function applyFocus(project: number, tree: Outline): Promise<void> 
     return;
   }
   requestFocus(null);
+  setFilter("");
   const group = target.kind === null ? null : groupOfKind(target.kind);
+  const owners = await nestedOwners(project, target.type);
   openRows([
-    ...revealKeys(tree, target.type),
+    ...revealKeys(tree, owners[0] ?? target.type),
+    ...owners.flatMap((owner) => [typeKey(owner), groupKey(owner, GROUP.nested)]),
+    typeKey(target.type),
     ...(target.member !== null && group !== null ? [groupKey(target.type, group)] : []),
   ]);
   setCursor(target.member === null ? typeKey(target.type) : memberKey(target.member));
   await selectType(project, target.type, target.member);
+}
+
+/** The types that hold a nested type, outermost first; none for a type that stands in a
+ * namespace. The tree only lists the types of the namespaces, so the way down to a nested type
+ * is read from its breadcrumb, and each holder is read so that its rows can show. */
+async function nestedOwners(project: number, type: number): Promise<number[]> {
+  const info = await loadSymbol(project, type);
+  const owners = (info?.breadcrumb ?? [])
+    .filter((crumb) => crumb.id !== type && TYPE_KINDS.includes(crumb.kind))
+    .map((crumb) => crumb.id);
+  await Promise.all(owners.map((owner) => loadSymbol(project, owner)));
+  return owners;
 }

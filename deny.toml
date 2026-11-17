@@ -9,7 +9,11 @@ yanked = "deny"
 # `paste` is unmaintained (no known vulnerability). It is only a build-time dependency of
 # `dylint_linting` in the lint workspace (tools/lints/no_literals), never of the product, and the
 # newest `dylint_linting` (6.4.0) still uses it. Remove this entry when Dylint drops it (ADR 0043).
+# `chrono` is unmaintained (RUSTSEC-2026-0543, no vulnerability). It is a fixed dependency of `rmcp` (every
+# version, no feature turns it off) and `rmcp` switches on `schemars/chrono04`. Time-limited exception until
+# 2027-02-28 (ADR 0069). Remove this entry when `rmcp` drops `chrono` or the MCP library is replaced.
 ignore = [
+    { id = "RUSTSEC-2026-0543", reason = "chrono only reaches the product through rmcp, which cannot drop it (ADR 0069)" },
     { id = "RUSTSEC-2024-0436", reason = "paste only reaches the lint workspace through dylint_linting" },
 ]
 
