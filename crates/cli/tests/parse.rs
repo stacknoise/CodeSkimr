@@ -331,9 +331,8 @@ fn the_global_options_come_back_as_separate_arguments_the_parser_reads_again() {
     );
     let refs: Vec<&str> = again.iter().map(String::as_str).collect();
     assert_eq!(invocation(&refs).global, original);
-    assert!(
-        codeskimr_cli::GlobalOptions::default()
-            .arguments()
-            .is_empty()
+    assert_eq!(
+        codeskimr_cli::GlobalOptions::default().arguments(),
+        Vec::<std::ffi::OsString>::new()
     );
 }

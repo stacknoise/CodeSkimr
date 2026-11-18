@@ -180,7 +180,7 @@ mod cases {
             code(open_confirmation(&client(), &fixture.desk, KNOWN)),
             ErrorCode::IndexerNotPermitted
         );
-        assert!(fixture.window.asked().is_empty());
+        assert_eq!(fixture.window.asked(), Vec::<u64>::new());
     }
 
     #[test]
@@ -299,7 +299,7 @@ mod cases {
             code(open_confirmation(&client(), &fixture.desk, KNOWN)),
             ErrorCode::Level2SwitchOff
         );
-        assert!(fixture.window.asked().is_empty());
+        assert_eq!(fixture.window.asked(), Vec::<u64>::new());
     }
 
     #[test]
@@ -319,7 +319,7 @@ mod cases {
             open_confirmation(&client(), &copy_only.desk, KNOWN).unwrap(),
             command
         );
-        assert!(copy_only.window.asked().is_empty());
+        assert_eq!(copy_only.window.asked(), Vec::<u64>::new());
     }
 
     #[test]
@@ -336,7 +336,7 @@ mod cases {
                 ErrorCode::IndexerNotPermitted,
                 "{name:?}"
             );
-            assert!(fixture.window.asked().is_empty());
+            assert_eq!(fixture.window.asked(), Vec::<u64>::new());
         }
     }
 
@@ -353,6 +353,6 @@ mod cases {
             code(open_confirmation(&without, &fixture.desk, KNOWN)),
             ErrorCode::PermissionDenied
         );
-        assert!(fixture.window.asked().is_empty());
+        assert_eq!(fixture.window.asked(), Vec::<u64>::new());
     }
 }

@@ -181,7 +181,7 @@ mod tests {
             codeskimr_codes::Coded::code(&denied),
             ErrorCode::IndexerNotPermitted
         );
-        assert!(shown.0.lock().unwrap().is_empty());
+        assert_eq!(*shown.0.lock().unwrap(), Vec::<u8>::new());
     }
 
     #[test]
