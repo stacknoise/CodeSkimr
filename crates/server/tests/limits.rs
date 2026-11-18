@@ -52,7 +52,7 @@ async fn until_closed(stream: &mut TcpStream, limit: Duration) -> Option<Vec<u8>
 
 #[cfg(test)]
 async fn open_stream(server: &Running) -> (TcpStream, Option<String>) {
-    let mut stream = connect(server).await;
+    let mut stream = TcpStream::connect(server.address).await.unwrap();
     let request = format!("{UPGRADE}Host: {}\r\n\r\n", server.address);
     let status = status_of(&mut stream, &request).await;
     (stream, status)
