@@ -1,4 +1,4 @@
-import { createEffect, createSignal, on, onMount, Show } from "solid-js";
+import { createEffect, createSignal, on, onMount, Show, untrack } from "solid-js";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { EXPLORER_ROUTE } from "../../app/consts";
@@ -6,11 +6,14 @@ import { navigate } from "../../app/router";
 import { activeProject, openProject } from "../../shared/project/active";
 import { count } from "./format";
 import { useProjectKeys } from "./keys";
+import { Level2Panel } from "./Level2Panel";
+import { level2Of, loadLevel2 } from "./level2";
 import { NewProjectForm } from "./NewProjectForm";
 import { checkTools, projects, projectsLoaded, refreshProjects, rescanProject } from "./projects";
 import { ProjectTable } from "./ProjectTable";
 import { ToolsPanel } from "./ToolsPanel";
 import { useDropSource } from "./useDropSource";
+import type { ProjectRow } from "./types";
 import { useSelection } from "./useSelection";
 import styles from "./ProjectsScreen.module.css";
 
@@ -79,6 +82,39 @@ function useToolsCheck(selected: () => number | null): void {
   );
 }
 
+/** Reads the level 2 state of every project in the list, and again of the one that is selected. */
+function useLevel2States(selected: () => number | null): void {
+  createEffect(() => {
+    const ids = projects().map((row) => row.id);
+    untrack(() => {
+      for (const id of ids.filter((known) => level2Of(known).status === null)) {
+        void loadLevel2(id);
+      }
+    });
+  });
+  createEffect(
+    on(selected, (id) => {
+      if (id !== null) {
+        void loadLevel2(id);
+      }
+    }),
+  );
+}
+
+/** The sections of the selected project: level 2 and the tool check. */
+function Panels(props: { row: ProjectRow | undefined }) {
+  return (
+    <Show when={props.row}>
+      {(row) => (
+        <>
+          <Level2Panel row={row()} />
+          <ToolsPanel row={row()} />
+        </>
+      )}
+    </Show>
+  );
+}
+
 /** Screen 1, the project list (blueprint B.1, mock `Main.dc.html`). */
 export function ProjectsScreen() {
   const [source, setSource] = createSignal("");
@@ -87,6 +123,7 @@ export function ProjectsScreen() {
   const selection = useSelection(projects, activeProject());
   onMount(() => void refreshProjects());
   useToolsCheck(selection.selected);
+  useLevel2States(selection.selected);
   const selectedRow = () => projects().find((row) => row.id === selection.selected());
   useProjectKeys({
     newProject: () => input?.focus(),
@@ -111,7 +148,7 @@ export function ProjectsScreen() {
       <Show when={projects().length > 0} fallback={<Empty />}>
         <Table selection={selection} />
       </Show>
-      <Show when={selectedRow()}>{(row) => <ToolsPanel row={row()} />}</Show>
+      <Panels row={selectedRow()} />
     </section>
   );
 }

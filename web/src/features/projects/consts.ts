@@ -134,3 +134,64 @@ export const NOT_FOUND = -1;
 
 /** Elements that act on `Enter` themselves. */
 export const PRESSABLE_TAGS = ["BUTTON", "A"] as const;
+
+/** Ids of the commands of the level 2 switch (ADR 0071, decision 4). */
+export const LEVEL2_COMMAND = {
+  status: "level2.status",
+  revoke: "level2.revoke",
+} as const;
+
+/** The route that asks the server for the console window of the confirmation; it is not a command
+ * of the registry (ADR 0071, decision 4). */
+export const CONFIRM_WINDOW_PATH = "/api/v1/level2/confirm-window";
+
+/** What `level2.status` says about a project (ADR 0071, decision 3). */
+export const LEVEL2_STATE = {
+  on: "on",
+  off: "off",
+  notEnabled: "not_enabled",
+  locked: "locked",
+} as const;
+
+/** How the confirmation can be started on this system: in a console window, or by a command
+ * that the user copies. */
+export const LAUNCH = { window: "window", copy: "copy" } as const;
+
+/** What the switch of a project is doing besides showing its state. */
+export const LEVEL2_PHASE = {
+  idle: "idle",
+  opening: "opening",
+  waiting: "waiting",
+  timedOut: "timed_out",
+  askRevoke: "ask_revoke",
+  revoking: "revoking",
+  revoked: "revoked",
+} as const;
+
+/** The command of the terminal that confirms level 2, without the project id. */
+export const CONFIRM_COMMAND_PREFIX = "codeskimr level2 confirm ";
+/** The two lines that the user puts into `config.toml` to allow level 2 (blueprint 14). */
+export const LEVEL2_CONFIG_SNIPPET = "[level2]\nenabled = true";
+
+/** How often the state is asked while the confirmation is open, in seconds, and for how long at
+ * most (`ui.level2_poll_seconds`, `ui.level2_poll_max_seconds`, ADR 0071, decision 3). */
+export const LEVEL2_POLL_SECONDS = 2;
+export const LEVEL2_POLL_MAX_SECONDS = 300;
+/** The pause after a window was opened, in seconds (`level2.confirm_window_cooldown_seconds`). */
+export const LEVEL2_COOLDOWN_SECONDS = 30;
+/** How long "Copied" stays on the copy button, in milliseconds. */
+export const COPIED_MS = 2000;
+
+/** Id of the switch of a project, so that focus can return to it. */
+export const LEVEL2_SWITCH_ID_PREFIX = "level2-switch-";
+/** Key that closes the question before switching off. */
+export const ESCAPE_KEY = "Escape";
+
+/** The error codes that the switch handles itself (ADR 0071, decision 11). */
+export const LEVEL2_ERROR = {
+  windowFailed: "APP-604",
+  switchOff: "CFG-105",
+  rateLimited: "API-504",
+} as const;
+/** Hours and minutes of a time of day. */
+export const CLOCK_OPTIONS: Intl.DateTimeFormatOptions = { hour: "2-digit", minute: "2-digit" };

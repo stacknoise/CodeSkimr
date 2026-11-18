@@ -138,6 +138,14 @@ description = "The program could not start itself in the background or show its 
 since = "0.1.0"
 
 [[codes]]
+id = "APP-604"
+name = "confirm_window_failed"
+severity = "error"
+retryable = true
+description = "The console window for the level 2 confirmation could not be started; the screen shows the command instead."
+since = "0.9.0"
+
+[[codes]]
 id = "CFG-101"
 name = "config_invalid_value"
 severity = "error"
@@ -167,6 +175,14 @@ name = "project_file_not_writable"
 severity = "error"
 retryable = false
 description = "The project file `.codeskimr.toml` could not be written."
+since = "0.9.0"
+
+[[codes]]
+id = "CFG-105"
+name = "level2_switch_off"
+severity = "error"
+retryable = false
+description = "Level 2 is not enabled in the user configuration; the program does not enable it itself."
 since = "0.9.0"
 
 [[codes]]
@@ -600,6 +616,14 @@ severity = "error"
 retryable = true
 description = "The request took longer than the server waits for it."
 since = "0.1.0"
+
+[[codes]]
+id = "API-504"
+name = "confirm_window_rate_limited"
+severity = "error"
+retryable = true
+description = "A confirmation window was opened a moment ago; try again after the pause."
+since = "0.9.0"
 
 [[codes]]
 id = "API-601"

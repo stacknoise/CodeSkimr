@@ -17,6 +17,7 @@ Owner: `codeskimr`
 | APP-601 | `browser_start_failed` | error | yes | 0.1.0 | The system did not start a browser for the launch file. |
 | APP-602 | `language_packs_unavailable` | error | yes | 0.1.0 | The language packs built into the program could not be written to the data directory. |
 | APP-603 | `tray_start_failed` | error | yes | 0.1.0 | The program could not start itself in the background or show its tray icon. |
+| APP-604 | `confirm_window_failed` | error | yes | 0.9.0 | The console window for the level 2 confirmation could not be started; the screen shows the command instead. |
 
 ## CFG – Configuration
 
@@ -28,6 +29,7 @@ Owner: `codeskimr_application`
 | CFG-102 | `config_parse_failed` | error | no | 0.1.0 | A configuration file is not valid TOML. |
 | CFG-103 | `config_unknown_key` | error | no | 0.1.0 | A configuration file or flag sets a key that does not exist. |
 | CFG-104 | `project_file_not_writable` | error | no | 0.9.0 | The project file `.codeskimr.toml` could not be written. |
+| CFG-105 | `level2_switch_off` | error | no | 0.9.0 | Level 2 is not enabled in the user configuration; the program does not enable it itself. |
 
 ## PRJ – Projects and snapshots
 
@@ -152,6 +154,7 @@ Owner: `codeskimr_server`
 | API-501 | `request_too_large` | error | no | 0.1.0 | The request body is larger than the server accepts. |
 | API-502 | `server_busy` | error | yes | 0.1.0 | The server already serves as many event streams as it allows. |
 | API-503 | `request_timed_out` | error | yes | 0.1.0 | The request took longer than the server waits for it. |
+| API-504 | `confirm_window_rate_limited` | error | yes | 0.9.0 | A confirmation window was opened a moment ago; try again after the pause. |
 | API-601 | `server_not_reachable` | error | yes | 0.1.0 | The command needs a running local server and could not reach it. |
 
 ## MCP – MCP server

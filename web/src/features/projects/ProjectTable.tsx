@@ -8,6 +8,7 @@ import { Pill, type PillTone } from "../../shared/ui/Pill";
 import { RESCAN_ICON, SCAN_MODE, SOURCE_KIND } from "./consts";
 import { ago, count, seconds } from "./format";
 import { LanguageBar } from "./LanguageBar";
+import { Level2Switch } from "./Level2Switch";
 import { projectsScanning, scanSeconds, toolsOf } from "./projects";
 import { problemsOf } from "./tools";
 import type { ProjectRow } from "./types";
@@ -73,6 +74,7 @@ export function ProjectTable(props: ProjectTableProps) {
             <th class={styles.number}>{t(I18N_KEYS.PROJECTS_COLUMN_TYPES)}</th>
             <th class={styles.number}>{t(I18N_KEYS.PROJECTS_COLUMN_LOC)}</th>
             <th>{t(I18N_KEYS.PROJECTS_COLUMN_LAST_SCAN)}</th>
+            <th>{t(I18N_KEYS.PROJECTS_LEVEL2_COLUMN)}</th>
             <th>{t(I18N_KEYS.PROJECTS_COLUMN_STATUS)}</th>
           </tr>
         </thead>
@@ -159,6 +161,9 @@ function Row(props: { row: ProjectRow; table: ProjectTableProps }) {
       <td class={styles.number}>{count(props.row.types, currentLanguage())}</td>
       <td class={styles.number}>{count(props.row.loc, currentLanguage())}</td>
       <ScanCell row={props.row} />
+      <td>
+        <Level2Switch row={props.row} />
+      </td>
       <StatusCell row={props.row} onRescan={props.table.onRescan} />
     </tr>
   );
