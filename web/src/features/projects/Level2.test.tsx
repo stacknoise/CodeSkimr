@@ -100,6 +100,15 @@ describe("the level 2 switch: switching on", () => {
     expect(screen.getByText(/Level 2 is on\./)).toBeInTheDocument();
   });
 
+  it("keeps the focus on the switch when the button Switch on disappears", async () => {
+    fake(WINDOW);
+    const toggle = await loaded();
+    fireEvent.click(await screen.findByRole("button", { name: "Switch on" }));
+    await screen.findByText("Finish the confirmation in the console window");
+    expect(screen.queryByRole("button", { name: "Switch on" })).toBeNull();
+    expect(toggle()).toHaveFocus();
+  });
+
   it("does not open a second window while the first one waits", async () => {
     const server = fake(WINDOW);
     const toggle = await loaded();
@@ -195,6 +204,18 @@ describe("the level 2 switch: switching off", () => {
     expect(within(notice.parentElement as HTMLElement).getByRole("button")).toHaveTextContent(
       "Scan again",
     );
+  });
+});
+
+describe("the level 2 switch: focus after the notice of a switch-off", () => {
+  it("puts the focus on the switch when Scan again leaves", async () => {
+    fake({ state: "on", confirmed: true, launch: "window" });
+    const toggle = await loaded();
+    fireEvent.click(toggle());
+    fireEvent.click(await screen.findByRole("button", { name: "Yes, switch off" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Scan again" }));
+    expect(screen.queryByRole("button", { name: "Scan again" })).toBeNull();
+    expect(toggle()).toHaveFocus();
   });
 });
 

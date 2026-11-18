@@ -9,7 +9,6 @@ import {
   LAUNCH,
   LEVEL2_COMMAND,
   LEVEL2_ERROR,
-  LEVEL2_COOLDOWN_SECONDS,
   LEVEL2_PHASE,
   LEVEL2_POLL_MAX_SECONDS,
   LEVEL2_POLL_SECONDS,
@@ -27,8 +26,6 @@ export interface Level2View {
   command: string | null;
   /** When the console window was opened, in milliseconds since the Unix epoch. */
   openedAt: number | null;
-  /** Until when the server refuses a new window (`API-504`), in milliseconds since the epoch. */
-  retryAt: number | null;
   failure: Failure | null;
 }
 
@@ -37,7 +34,6 @@ const EMPTY: Level2View = {
   phase: LEVEL2_PHASE.idle,
   command: null,
   openedAt: null,
-  retryAt: null,
   failure: null,
 };
 
@@ -135,8 +131,7 @@ function onOpenFailed(project: number, failure: Failure): void {
   if (code === LEVEL2_ERROR.windowFailed) {
     showCommand(project, null, failure);
   } else if (code === LEVEL2_ERROR.rateLimited) {
-    const retryAt = Date.now() + LEVEL2_COOLDOWN_SECONDS * MS_PER_SECOND;
-    patch(project, { phase: LEVEL2_PHASE.idle, failure, retryAt });
+    patch(project, { phase: LEVEL2_PHASE.idle, failure });
   } else {
     patch(project, { phase: LEVEL2_PHASE.idle, failure });
     if (code === LEVEL2_ERROR.switchOff) {
@@ -151,7 +146,7 @@ export async function switchOn(project: number): Promise<void> {
   if (level2Of(project).phase === LEVEL2_PHASE.opening) {
     return;
   }
-  patch(project, { phase: LEVEL2_PHASE.opening, failure: null, retryAt: null });
+  patch(project, { phase: LEVEL2_PHASE.opening, failure: null });
   try {
     const opened = await api<ConfirmWindow>(CONFIRM_WINDOW_PATH, {
       method: METHOD_POST,

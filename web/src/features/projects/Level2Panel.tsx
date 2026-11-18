@@ -180,6 +180,7 @@ function Revoked(props: { row: ProjectRow }) {
           onClick={() => {
             dismissRevoked(props.row.id);
             void rescanProject(props.row.id);
+            focusSwitch(props.row.id);
           }}
         >
           {t(I18N_KEYS.PROJECTS_LEVEL2_RESCAN)}
@@ -217,7 +218,14 @@ function Actions(props: { row: ProjectRow; view: Level2View }) {
   return (
     <div class={styles.buttons}>
       <Show when={state() === LEVEL2_STATE.off && idle()}>
-        <button type="button" class={styles.primary} onClick={() => void switchOn(props.row.id)}>
+        <button
+          type="button"
+          class={styles.primary}
+          onClick={() => {
+            void switchOn(props.row.id);
+            focusSwitch(props.row.id);
+          }}
+        >
           {t(I18N_KEYS.PROJECTS_LEVEL2_SWITCH_ON)}
         </button>
       </Show>
