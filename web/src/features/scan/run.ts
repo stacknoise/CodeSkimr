@@ -102,12 +102,6 @@ export function latestRun(runs: readonly Run[], project: number | null): Run | u
   return project === null ? undefined : runs[lastOf(runs, project)];
 }
 
-/** The project of the run that is running now, else of the newest run. */
-export function focusProject(runs: readonly Run[]): number | null {
-  const running = runs.filter((run) => run.state === STATE.running);
-  return (running[running.length - 1] ?? runs[runs.length - 1])?.project ?? null;
-}
-
 /** The report of the stage that counts files. */
 function fileStage(run: Run): StageRun | undefined {
   return run.stages[FILE_STAGE];

@@ -31,6 +31,8 @@ import {
   GRAPH_ROUTE,
   LAYERS_ROUTE,
   MAIN_ROUTES,
+  PROJECT_PATHS,
+  PROJECTS_ROUTE,
   SCAN_ROUTE,
   SETTINGS_ROUTE,
   USAGES_ROUTE,
@@ -38,7 +40,7 @@ import {
 import styles from "./App.module.css";
 import { RailLink, TopBar } from "./Frame";
 import { ProjectCrumb } from "./ProjectCrumb";
-import { currentPath } from "./router";
+import { currentPath, navigate } from "./router";
 
 /** The screens of the app by their path; the projects screen answers every other path. */
 const SCREENS: ScreenTable = [
@@ -56,22 +58,36 @@ function Screen() {
   return <Dynamic component={screenAt(SCREENS, currentPath(), ProjectsScreen)} />;
 }
 
-/** The frame of every screen: top bar, rail, main area and status bar (blueprint 15.2). */
-export function App() {
-  useSearchShortcut(openSearch);
+/** Sends the user to the projects when a screen of a project is shown while none is open. */
+function sendBackWithoutProject() {
   createEffect(() => {
-    if (sessionState().kind === KIND.connected) {
-      onCleanup(listenToScans());
+    if (PROJECT_PATHS.includes(currentPath()) && activeProject() === null) {
+      navigate(PROJECTS_ROUTE.path);
     }
   });
+}
+
+/** The number on the bell follows the project; the drawer belongs to one project. */
+function followProjectOnBell() {
   createEffect(() => {
-    // The number on the bell follows the project; the drawer belongs to one project.
     const project = activeProject();
     hideDrawer();
     if (sessionState().kind === KIND.connected) {
       void refreshCount(project);
     }
   });
+}
+
+/** The frame of every screen: top bar, rail, main area and status bar (blueprint 15.2). */
+export function App() {
+  useSearchShortcut(openSearch);
+  sendBackWithoutProject();
+  createEffect(() => {
+    if (sessionState().kind === KIND.connected) {
+      onCleanup(listenToScans());
+    }
+  });
+  followProjectOnBell();
   return (
     <div class={styles.root}>
       <TopBar>

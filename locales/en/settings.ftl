@@ -4,6 +4,7 @@ nav-label = Views
 nav-projects = Projects
 nav-explorer = Explorer
 nav-settings = Settings
+nav-needs-project = { $name }: open a project first
 settings-title = Settings
 settings-subtitle = Appearance and language
 settings-theme-title = Theme

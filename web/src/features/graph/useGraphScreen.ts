@@ -6,7 +6,7 @@ import { isTyping, useKeydown } from "../../shared/keys/keydown";
 import { loadSummary } from "../annotations/store";
 import { currentType } from "../explorer/explorer";
 import { requestFocus, type Focus } from "../../shared/navigation/navigation";
-import { projects, refreshProjects } from "../projects/projects";
+import { refreshProjects } from "../projects/projects";
 import { KEY, LEVEL } from "./consts";
 import {
   graphData,
@@ -34,7 +34,7 @@ export function useMapState() {
   const filtering = () => violationsOnly() && graphLevel() === LEVEL.layers;
   const [view, setView] = createSignal<View>({ scale: 1, x: 0, y: 0 });
   const [size, setSize] = createSignal<Size>({ width: 0, height: 0 });
-  const project = createMemo(() => activeProject() ?? projects()[0]?.id ?? null);
+  const project = createMemo(() => activeProject());
   const data = () => (graphData() && graphData()!.boxes.length > 0 ? graphData() : null);
   const fitView = () => {
     const current = data();

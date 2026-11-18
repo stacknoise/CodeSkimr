@@ -142,6 +142,20 @@ export async function addScannedProject(
   return row;
 }
 
+/** Adds a scanned project like `addScannedProject` and opens it (the screens of a project stay shut
+ * until one is open); the explorer is shown afterwards. */
+export async function openScannedProject(
+  page: Page,
+  harness: Harness,
+  name: string,
+  source: string,
+) {
+  const row = await addScannedProject(page, harness, name, source);
+  await row.click({ position: { x: 4, y: 4 } });
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("tree")).toBeVisible();
+}
+
 /** The layer file and the two sources of a small project with a Domain and a Presentation layer. */
 function layeredFiles(prefix: string): Record<string, string> {
   return {
