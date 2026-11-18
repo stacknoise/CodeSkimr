@@ -14,6 +14,9 @@ pub const LAUNCH_CODE_PATH: &str = "/api/v1/session/launch-code";
 pub const EXCHANGE_PATH: &str = "/api/v1/session/exchange";
 /// Path of the MCP endpoint (streamable HTTP, blueprint 10.4).
 pub const MCP_PATH: &str = "/mcp";
+/// Route that asks the server to open the console window of the level 2 confirmation. It is the
+/// one route that starts a process, and it lies outside the command registry (ADR 0071).
+pub const CONFIRM_WINDOW_PATH: &str = "/api/v1/level2/confirm-window";
 /// Route with the settings the UI needs before it shows anything.
 pub const UI_CONFIG_PATH: &str = "/api/v1/ui-config";
 /// Start of every API path; what is below it and unknown is an API error, not a page.
@@ -35,10 +38,22 @@ pub const HEX_RADIX: u32 = 16;
 pub const MAX_EXCHANGE_BYTES: usize = 256;
 /// Event name in the log when a launch code was created. The code itself is never logged.
 pub const LOG_LAUNCH_CODE_ISSUED: &str = "launch_code_issued";
+/// Largest body of the confirm-window request: a small JSON object with the project id.
+pub const MAX_CONFIRM_WINDOW_BYTES: usize = 256;
+/// Event name in the log when a confirmation window was requested and opened.
+pub const LOG_CONFIRM_WINDOW_OPENED: &str = "confirm_window_opened";
+/// Event name in the log when a confirmation window was requested and refused.
+pub const LOG_CONFIRM_WINDOW_REFUSED: &str = "confirm_window_refused";
 /// Event name in the log when a launch code was exchanged.
 pub const LOG_LAUNCH_CODE_USED: &str = "launch_code_used";
 /// Event name in the log when an exchange failed.
 pub const LOG_LAUNCH_CODE_REFUSED: &str = "launch_code_refused";
+
+/// Name of the header with which a browser says where a request comes from.
+pub const FETCH_SITE_HEADER: &str = "sec-fetch-site";
+/// Values of `Sec-Fetch-Site` that a request of this server's own page or of the address bar
+/// has. A request from another site (`cross-site`, `same-site`) never does.
+pub const FETCH_SITE_OWN: [&str; 2] = ["same-origin", "none"];
 
 /// Name of the `Content-Security-Policy` header.
 pub const CSP_HEADER: &str = "content-security-policy";

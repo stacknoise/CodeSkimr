@@ -90,6 +90,9 @@ cli-cmd-level2 = Allow or forbid level 2 (indexers) for a project
 cli-cmd-level2-confirm = Allow the indexers to run for a project (asks you first)
 cli-cmd-level2-revoke = Forbid the indexers for a project
 cli-arg-level2-project = Id of the project, or the folder or Git URL it was scanned from
+cli-arg-level2-from-ui = Set by the page in the browser: the window was opened for it
+cli-level2-from-ui-notice = This window was opened by the CodeSkimr page in your browser. If you did not click it, close it.
+cli-level2-from-ui-wait = Press Enter to close this window.
 cli-level2-warning = Level 2 starts the build tools of this project (the compiler, the package manager and the indexer of the language) on this computer. They run the project's own code and scripts with your rights: they can read and change files of your user account and use the network. The indexers are not sandboxed. The confirmation is bound to the source, the location and the branch of the project, not to a commit: whatever the branch contains later is run under it. Only confirm for code you trust.
 cli-level2-target = Project: { $project }
     Location: { $place }

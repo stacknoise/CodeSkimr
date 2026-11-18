@@ -66,3 +66,7 @@ command-alerts-dismiss-title = Dismiss alert
 command-alerts-dismiss-description = Removes one alert from the open list; the symbol as it is now becomes its baseline.
 command-alerts-dismiss-all-title = Dismiss all alerts
 command-alerts-dismiss-all-description = Removes every open alert that matches the filter. It needs the explicit confirmation flag.
+command-level2-status-title = Show level 2 state
+command-level2-status-description = Shows whether level 2 is switched on for a project, whether it is confirmed and whether the server can open the confirmation window or the screen has to show the command. Returns no path and no text of the project.
+command-level2-revoke-title = Switch level 2 off
+command-level2-revoke-description = Takes the confirmation of level 2 back for a project, as `codeskimr level2 revoke` does. Stored results stay until the next scan; a running indexer ends within its limits.

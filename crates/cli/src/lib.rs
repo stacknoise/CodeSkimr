@@ -25,8 +25,8 @@ pub use args::{
 };
 pub use check::{check_json, check_text};
 pub use consent::{
-    confirm_prompt, confirm_target, confirm_warning, level2_confirmed, level2_declined,
-    level2_revoked,
+    confirm_prompt, confirm_target, confirm_warning, from_ui_notice, from_ui_wait,
+    level2_confirmed, level2_declined, level2_revoked,
 };
 pub use error::CliError;
 pub use level2::{Level2Line, Level2Reason};

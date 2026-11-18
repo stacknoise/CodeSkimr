@@ -9,10 +9,12 @@ export type ErrorCode =
   | "APP-601"
   | "APP-602"
   | "APP-603"
+  | "APP-604"
   | "CFG-101"
   | "CFG-102"
   | "CFG-103"
   | "CFG-104"
+  | "CFG-105"
   | "PRJ-101"
   | "PRJ-201"
   | "PRJ-301"
@@ -67,6 +69,7 @@ export type ErrorCode =
   | "API-501"
   | "API-502"
   | "API-503"
+  | "API-504"
   | "API-601"
   | "MCP-101"
   | "MCP-201"
@@ -120,10 +123,12 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "APP-601": { id: "APP-601", name: "browser_start_failed", group: "APP", class: "external", severity: "error", retryable: true, description: "The system did not start a browser for the launch file.", since: "0.1.0", deprecated: false, messageKey: "error-APP-601" },
   "APP-602": { id: "APP-602", name: "language_packs_unavailable", group: "APP", class: "external", severity: "error", retryable: true, description: "The language packs built into the program could not be written to the data directory.", since: "0.1.0", deprecated: false, messageKey: "error-APP-602" },
   "APP-603": { id: "APP-603", name: "tray_start_failed", group: "APP", class: "external", severity: "error", retryable: true, description: "The program could not start itself in the background or show its tray icon.", since: "0.1.0", deprecated: false, messageKey: "error-APP-603" },
+  "APP-604": { id: "APP-604", name: "confirm_window_failed", group: "APP", class: "external", severity: "error", retryable: true, description: "The console window for the level 2 confirmation could not be started; the screen shows the command instead.", since: "0.9.0", deprecated: false, messageKey: "error-APP-604" },
   "CFG-101": { id: "CFG-101", name: "config_invalid_value", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration value is outside its allowed range or has the wrong type.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-101" },
   "CFG-102": { id: "CFG-102", name: "config_parse_failed", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration file is not valid TOML.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-102" },
   "CFG-103": { id: "CFG-103", name: "config_unknown_key", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "A configuration file or flag sets a key that does not exist.", since: "0.1.0", deprecated: false, messageKey: "error-CFG-103" },
   "CFG-104": { id: "CFG-104", name: "project_file_not_writable", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "The project file `.codeskimr.toml` could not be written.", since: "0.9.0", deprecated: false, messageKey: "error-CFG-104" },
+  "CFG-105": { id: "CFG-105", name: "level2_switch_off", group: "CFG", class: "invalid_input", severity: "error", retryable: false, description: "Level 2 is not enabled in the user configuration; the program does not enable it itself.", since: "0.9.0", deprecated: false, messageKey: "error-CFG-105" },
   "PRJ-101": { id: "PRJ-101", name: "project_source_invalid", group: "PRJ", class: "invalid_input", severity: "error", retryable: false, description: "The given source is neither an existing folder nor a valid Git URL.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-101" },
   "PRJ-201": { id: "PRJ-201", name: "project_not_found", group: "PRJ", class: "not_found", severity: "error", retryable: false, description: "No project with this id exists.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-201" },
   "PRJ-301": { id: "PRJ-301", name: "project_already_registered", group: "PRJ", class: "conflict", severity: "error", retryable: false, description: "A project with the same source is already registered.", since: "0.1.0", deprecated: false, messageKey: "error-PRJ-301" },
@@ -178,6 +183,7 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "API-501": { id: "API-501", name: "request_too_large", group: "API", class: "limit", severity: "error", retryable: false, description: "The request body is larger than the server accepts.", since: "0.1.0", deprecated: false, messageKey: "error-API-501" },
   "API-502": { id: "API-502", name: "server_busy", group: "API", class: "limit", severity: "error", retryable: true, description: "The server already serves as many event streams as it allows.", since: "0.1.0", deprecated: false, messageKey: "error-API-502" },
   "API-503": { id: "API-503", name: "request_timed_out", group: "API", class: "limit", severity: "error", retryable: true, description: "The request took longer than the server waits for it.", since: "0.1.0", deprecated: false, messageKey: "error-API-503" },
+  "API-504": { id: "API-504", name: "confirm_window_rate_limited", group: "API", class: "limit", severity: "error", retryable: true, description: "A confirmation window was opened a moment ago; try again after the pause.", since: "0.9.0", deprecated: false, messageKey: "error-API-504" },
   "API-601": { id: "API-601", name: "server_not_reachable", group: "API", class: "external", severity: "error", retryable: true, description: "The command needs a running local server and could not reach it.", since: "0.1.0", deprecated: false, messageKey: "error-API-601" },
   "MCP-101": { id: "MCP-101", name: "tool_arguments_invalid", group: "MCP", class: "invalid_input", severity: "error", retryable: false, description: "MCP tool arguments failed validation.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-101" },
   "MCP-201": { id: "MCP-201", name: "project_not_registered", group: "MCP", class: "not_found", severity: "error", retryable: false, description: "The requested path is not inside a registered project.", since: "0.1.0", deprecated: false, messageKey: "error-MCP-201" },

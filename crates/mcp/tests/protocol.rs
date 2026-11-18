@@ -285,3 +285,41 @@ async fn a_caller_who_may_only_scan_can_rescan() {
     assert_ne!(answer["result"]["isError"], true);
     assert_eq!(answer["result"]["structuredContent"]["snapshot"]["id"], 11);
 }
+
+#[tokio::test]
+async fn the_level_two_switch_is_no_tool_and_cannot_be_called_as_one() {
+    let mut client = connected().await;
+    let listed = client.call(2, "tools/list", json!({})).await;
+    let names: Vec<_> = listed["result"]["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|t| t["name"].as_str().unwrap().to_owned())
+        .collect();
+    assert!(
+        names.iter().all(|name| !name.contains("level2")
+            && !name.contains("confirm")
+            && !name.contains("revoke")),
+        "{names:?}"
+    );
+    // Calling the commands of the screen by their ids finds no tool.
+    for (id, name) in [
+        (3, "level2.status"),
+        (4, "level2.revoke"),
+        (5, "level2_revoke"),
+        (6, "level2_confirm_window"),
+    ] {
+        let called = client
+            .call(
+                id,
+                "tools/call",
+                json!({ "name": name, "arguments": { "project": 1 } }),
+            )
+            .await;
+        assert!(
+            called.get("error").is_some() || called["result"]["isError"] == true,
+            "{name}: {called}"
+        );
+        assert!(called["result"]["structuredContent"]["code"] != "OK");
+    }
+}

@@ -36,6 +36,9 @@ pub const COMMAND_LEVEL2_CONFIRM: &str = "confirm";
 pub const COMMAND_LEVEL2_REVOKE: &str = "revoke";
 /// Argument id of the project of `level2`.
 pub const ARG_LEVEL2_PROJECT: &str = "level2-project";
+/// Flag of `level2 confirm` that marks a window the server opened for the page in the browser
+/// (ADR 0071, decision 5). It changes what the window shows, never what it asks.
+pub const ARG_LEVEL2_FROM_UI: &str = "from-ui";
 
 /// Sub-command that manages credentials for Git sources.
 pub const COMMAND_CREDENTIAL: &str = "credential";
@@ -111,6 +114,8 @@ pub const VALUE_SOURCE: &str = "PATH|GIT-URL";
 
 /// Separates key and value in `--set key=value`.
 pub const OVERRIDE_SEPARATOR: char = '=';
+/// Start of a long flag on the command line.
+pub const LONG_FLAG_PREFIX: &str = "--";
 
 /// German, the second language of the texts.
 pub const LANGUAGE_DE: &str = "de";

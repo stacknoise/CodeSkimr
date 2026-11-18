@@ -20,12 +20,15 @@ use codeskimr_domain::{
 use codeskimr_storage::SqliteStore;
 
 use super::command_api;
-use crate::locations::Locations;
+use crate::locations::{Locations, UserConfig};
 use crate::principal;
 use crate::scan::open_on;
 use crate::source_arg::classify;
 use crate::wiring::Secrets;
 use codeskimr_domain::ScanMode;
+
+/// Name of the user configuration file a fixture may hold.
+pub(super) const USER_CONFIG_FILE: &str = "user-config.toml";
 
 const SOURCE: &str = "namespace Demo;\n\npublic class Calculator\n{\n    public int Add(int a, int b) { return a + b; }\n}\n";
 
@@ -44,6 +47,11 @@ impl Fixture {
 
     /// An installation whose UI folder holds `page` as the export page, or no UI folder at all.
     pub(super) fn installed(page: Option<&str>) -> Self {
+        Self::installed_with(page, None)
+    }
+
+    /// Like [`Fixture::installed`], with a user configuration file that holds `config`.
+    pub(super) fn installed_with(page: Option<&str>, config: Option<&str>) -> Self {
         let root = tempfile::tempdir().unwrap();
         fs::create_dir_all(root.path().join("app")).unwrap();
         fs::write(root.path().join("app/Calculator.cs"), SOURCE).unwrap();
@@ -55,7 +63,14 @@ impl Fixture {
         let locations = Locations {
             data_dir: root.path().join("data"),
             languages_dir: Path::new(env!("CARGO_MANIFEST_DIR")).join("../../languages"),
-            user_config: None,
+            user_config: config.map(|text| {
+                let path = root.path().join(USER_CONFIG_FILE);
+                fs::write(&path, text).unwrap();
+                UserConfig {
+                    path,
+                    required: true,
+                }
+            }),
             bases: Vec::new(),
             program_dir: None,
         };
@@ -137,7 +152,7 @@ impl Fixture {
 }
 
 /// Every command of the registry, in the order the API lists them.
-const COMMAND_IDS: [&str; 33] = [
+const COMMAND_IDS: [&str; 35] = [
     "alerts.dismiss",
     "alerts.dismiss_all",
     "alerts.list",
@@ -159,6 +174,8 @@ const COMMAND_IDS: [&str; 33] = [
     "graph.layers",
     "layers.get",
     "layers.set",
+    "level2.revoke",
+    "level2.status",
     "preferences.get",
     "preferences.set",
     "projects.add",

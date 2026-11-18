@@ -260,6 +260,9 @@ pub struct Level2 {
     /// Most symbols one index may make level 2 create (ADR 0055); an index that wants more fails
     /// as a whole.
     pub max_created_symbols: u32,
+    /// Pause in seconds after the console window of the confirmation was opened, during which no
+    /// other window is opened for any project (ADR 0071, decision 4a).
+    pub confirm_window_cooldown_seconds: u32,
 }
 
 /// The local server (blueprint 10.3).
@@ -290,6 +293,11 @@ pub struct Ui {
     pub dir: String,
     /// How long a one-time launch code is valid, in seconds.
     pub launch_code_seconds: u32,
+    /// How often the projects screen asks for the level 2 state while the confirmation window is
+    /// open, in seconds (ADR 0071, decision 3).
+    pub level2_poll_seconds: u32,
+    /// How long the projects screen keeps asking, in seconds.
+    pub level2_poll_max_seconds: u32,
 }
 
 /// Limits of annotations and alerts (blueprint 14, ADR 0068).

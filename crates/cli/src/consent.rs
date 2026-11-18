@@ -1,18 +1,19 @@
 //! The `level2` command: definition, translation of its arguments and the texts around the
 //! confirmation (ADR 0033, decisions 9 and 10).
 
-use clap::{Arg, ArgMatches, Command};
+use clap::{Arg, ArgAction, ArgMatches, Command};
 use codeskimr_codes::i18n::{
-    CLI_ARG_LEVEL2_PROJECT, CLI_CMD_LEVEL2, CLI_CMD_LEVEL2_CONFIRM, CLI_CMD_LEVEL2_REVOKE,
-    CLI_LEVEL2_CONFIRMED, CLI_LEVEL2_DECLINED, CLI_LEVEL2_PROMPT, CLI_LEVEL2_REVOKED,
-    CLI_LEVEL2_TARGET, CLI_LEVEL2_TARGET_BRANCH, CLI_LEVEL2_WARNING,
+    CLI_ARG_LEVEL2_FROM_UI, CLI_ARG_LEVEL2_PROJECT, CLI_CMD_LEVEL2, CLI_CMD_LEVEL2_CONFIRM,
+    CLI_CMD_LEVEL2_REVOKE, CLI_LEVEL2_CONFIRMED, CLI_LEVEL2_DECLINED, CLI_LEVEL2_FROM_UI_NOTICE,
+    CLI_LEVEL2_FROM_UI_WAIT, CLI_LEVEL2_PROMPT, CLI_LEVEL2_REVOKED, CLI_LEVEL2_TARGET,
+    CLI_LEVEL2_TARGET_BRANCH, CLI_LEVEL2_WARNING,
 };
 use codeskimr_i18n::{I18nError, Messages};
 
 use crate::args::Level2Action;
 use crate::consts::{
-    ARG_LEVEL2_PROJECT, COMMAND_LEVEL2, COMMAND_LEVEL2_CONFIRM, COMMAND_LEVEL2_REVOKE, LINE_BREAK,
-    VALUE_EXPORT_PROJECT, arg,
+    ARG_LEVEL2_FROM_UI, ARG_LEVEL2_PROJECT, COMMAND_LEVEL2, COMMAND_LEVEL2_CONFIRM,
+    COMMAND_LEVEL2_REVOKE, LINE_BREAK, VALUE_EXPORT_PROJECT, arg,
 };
 use crate::error::CliError;
 
@@ -27,7 +28,13 @@ fn project_arg(help: String) -> Arg {
 pub fn command(say: &impl Fn(&str) -> Result<String, CliError>) -> Result<Command, CliError> {
     let confirm = Command::new(COMMAND_LEVEL2_CONFIRM)
         .about(say(CLI_CMD_LEVEL2_CONFIRM)?)
-        .arg(project_arg(say(CLI_ARG_LEVEL2_PROJECT)?));
+        .arg(project_arg(say(CLI_ARG_LEVEL2_PROJECT)?))
+        .arg(
+            Arg::new(ARG_LEVEL2_FROM_UI)
+                .long(ARG_LEVEL2_FROM_UI)
+                .action(ArgAction::SetTrue)
+                .help(say(CLI_ARG_LEVEL2_FROM_UI)?),
+        );
     let revoke = Command::new(COMMAND_LEVEL2_REVOKE)
         .about(say(CLI_CMD_LEVEL2_REVOKE)?)
         .arg(project_arg(say(CLI_ARG_LEVEL2_PROJECT)?));
@@ -49,6 +56,7 @@ pub fn action(matches: &ArgMatches) -> Result<Level2Action, CliError> {
     match matches.subcommand() {
         Some((COMMAND_LEVEL2_CONFIRM, sub)) => Ok(Level2Action::Confirm {
             project: project(sub),
+            from_ui: sub.get_flag(ARG_LEVEL2_FROM_UI),
         }),
         Some((COMMAND_LEVEL2_REVOKE, sub)) => Ok(Level2Action::Revoke {
             project: project(sub),
@@ -111,6 +119,23 @@ pub fn confirm_prompt(
     project: &str,
 ) -> Result<String, I18nError> {
     about_project(messages, language, CLI_LEVEL2_PROMPT, project)
+}
+
+/// The extra line of a window that the server opened for the page in the browser (ADR 0071).
+///
+/// # Errors
+/// `I18N-201` if the message is missing.
+pub fn from_ui_notice(messages: &Messages, language: &str) -> Result<String, I18nError> {
+    messages.format(language, CLI_LEVEL2_FROM_UI_NOTICE, None)
+}
+
+/// The line that asks to press Enter, shown at the end of a window that the server opened, so that
+/// the answer can be read before the window closes (ADR 0071).
+///
+/// # Errors
+/// `I18N-201` if the message is missing.
+pub fn from_ui_wait(messages: &Messages, language: &str) -> Result<String, I18nError> {
+    messages.format(language, CLI_LEVEL2_FROM_UI_WAIT, None)
 }
 
 /// The line that says level 2 is allowed now.

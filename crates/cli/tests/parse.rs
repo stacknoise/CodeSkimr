@@ -3,8 +3,8 @@
 use std::path::PathBuf;
 
 use codeskimr_cli::{
-    Action, CliError, CredentialAction, Parsed, ProviderChoice, ScanArgs, ServeArgs, StartArgs,
-    language_from, parse, serve_started, start_keep_open,
+    Action, CliError, CredentialAction, Level2Action, Parsed, ProviderChoice, ScanArgs, ServeArgs,
+    StartArgs, language_from, parse, serve_started, start_keep_open,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_i18n::Messages;
@@ -277,4 +277,63 @@ fn the_tray_texts_exist_in_both_languages() {
         let line = codeskimr_cli::start_tray(&messages, language, "codeskimr.log").unwrap();
         assert!(line.contains("codeskimr.log"), "{language}: {line}");
     }
+}
+
+#[test]
+fn level2_confirm_knows_the_flag_of_the_window_the_server_opened() {
+    let plain = invocation(&["codeskimr", "level2", "confirm", "4"]);
+    assert_eq!(
+        plain.action,
+        Action::Level2(Level2Action::Confirm {
+            project: "4".to_owned(),
+            from_ui: false
+        })
+    );
+    let from_ui = invocation(&["codeskimr", "level2", "confirm", "--from-ui", "4"]);
+    assert_eq!(
+        from_ui.action,
+        Action::Level2(Level2Action::Confirm {
+            project: "4".to_owned(),
+            from_ui: true
+        })
+    );
+    // `revoke` has no such flag: the window is only for the confirmation.
+    assert!(run(&["codeskimr", "level2", "revoke", "--from-ui", "4"]).is_err());
+}
+
+#[test]
+fn the_global_options_come_back_as_separate_arguments_the_parser_reads_again() {
+    let original = invocation(&[
+        "codeskimr",
+        "--data-dir",
+        "my data",
+        "--config",
+        "c.toml",
+        "--set",
+        "a.b=1",
+        "--set",
+        "x=\"y z\"",
+        "scan",
+        "repo",
+    ])
+    .global;
+    let mut again = vec![
+        "codeskimr".to_owned(),
+        "level2".to_owned(),
+        "confirm".to_owned(),
+        "4".to_owned(),
+    ];
+    again.extend(
+        original
+            .arguments()
+            .into_iter()
+            .map(|argument| argument.into_string().unwrap()),
+    );
+    let refs: Vec<&str> = again.iter().map(String::as_str).collect();
+    assert_eq!(invocation(&refs).global, original);
+    assert!(
+        codeskimr_cli::GlobalOptions::default()
+            .arguments()
+            .is_empty()
+    );
 }

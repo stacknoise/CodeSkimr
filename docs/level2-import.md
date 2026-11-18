@@ -48,6 +48,10 @@ Columns of an occurrence are in the unit the document states (`PositionEncoding`
 
 `ImportStats` has `mapped`, `library`, `unmapped`, `outside_scan`, `ignored`, `files_replaced` and `files_unmatched` (documents without a snapshot file, for example generated code that is not scanned). The second pass hands `outside_scan` to the scan result: `codeskimr scan` prints a second line for the language ("Level 2: rust uses of code in folders the scan skips, not counted: 80"; German: "Stufe 2: rust Verwendungen von Code in Ordnern, die der Scan überspringt, nicht gezählt: 80") and `--json` carries `outside_scan` in the entry of the language.
 
+## Confirming from the Projects screen (ADR 0071)
+
+The consent stays a typed act. The Projects screen shows the state per project (`level2.status`) and a button that asks the server to open a console window running `codeskimr level2 confirm --from-ui <id>`; the window shows the same text and asks the same question as the command line, and nothing is confirmed until the owner types the answer there. The route, its checks and the pause between two requests are described in `docs/server.md`. `consent_origin.rs` pins that only the CLI path writes a consent: the route, the status and the revoke command never name `confirm` or `store_consent`. Withdrawing the consent (`level2.revoke`) is a right of its own (`revoke_indexer`) and needs the token; it only makes the stored record empty, so it needs no confirmation.
+
 ## Measured on two real indexes
 
 Not part of the tests (no foreign data in the repository). The comparison is against the index itself: for each SCIP symbol with a definition and uses, the lines of its uses in the index against the lines of the imported references (parameters left out).

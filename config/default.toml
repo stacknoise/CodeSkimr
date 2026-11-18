@@ -157,6 +157,8 @@ max_index_bytes = 268435456
 min_mapped = 0.5
 # Most symbols one index may make level 2 create (ADR 0055): definitions that the index states and level 1 does not know, such as the types and enum variants a macro generates. An index that wants more fails as a whole with RES-303, nothing of it is stored and level 1 stays.
 max_created_symbols = 100000
+# Pause in seconds after the console window of the level 2 confirmation was opened from the projects screen (ADR 0071). During the pause no other window is opened for any project; a request inside it is refused with API-504. Read from the user config file and command line flags only.
+confirm_window_cooldown_seconds = 30
 
 # Local server (blueprint 10.3, S-04). It listens on the loopback address 127.0.0.1 only.
 [server]
@@ -178,6 +180,10 @@ default_theme = "petrol"
 dir = "ui"
 # How long a one-time launch code is valid, in seconds (ADR 0028).
 launch_code_seconds = 60
+# How often the projects screen asks for the level 2 state while the confirmation window is open, in seconds (ADR 0071).
+level2_poll_seconds = 2
+# How long the projects screen keeps asking, in seconds; then it stops and offers the switch again.
+level2_poll_max_seconds = 300
 
 # Picture of the dependency map (blueprint 15, screen 3). Layout units are pixels.
 [graph]

@@ -84,6 +84,7 @@ mod cases {
         ) -> Result<Done, codeskimr_application::error::CodedError> {
             let action = Level2Action::Confirm {
                 project: argument.to_owned(),
+                from_ui: false,
             };
             run(&action, &GlobalOptions::default(), &self.locations, ask)
         }
@@ -99,8 +100,10 @@ mod cases {
         let store = fixture.store();
         let refused = level2::confirm(&client, &store, ProjectId::new(ID)).unwrap_err();
         assert_eq!(refused.code(), ErrorCode::IndexerNotPermitted);
-        let refused = level2::revoke(&client, &store, ProjectId::new(ID)).unwrap_err();
-        assert_eq!(refused.code(), ErrorCode::IndexerNotPermitted);
+        assert_eq!(fixture.consent(), ConsentRecord::default());
+        // Taking a right back is allowed for a client (ADR 0071), and it confirms nothing.
+        assert!(client.holds(Permission::RevokeIndexer));
+        level2::revoke(&client, &store, ProjectId::new(ID)).unwrap();
         assert_eq!(fixture.consent(), ConsentRecord::default());
         assert!(principal::resolve().holds(Permission::ConfirmIndexer));
     }
