@@ -861,6 +861,7 @@ export const I18N_KEYS = {
   USAGES_ACCURACY_TITLE: "usages-accuracy-title",
   USAGES_ACCURACY: "usages-accuracy",
   USAGES_LEVEL2_UNAVAILABLE: "usages-level2-unavailable",
+  USAGES_LEVEL2_PARTIAL: "usages-level2-partial",
   USAGES_OPEN_EXPLORER: "usages-open-explorer",
   USAGES_NO_PROJECT_TITLE: "usages-no-project-title",
   USAGES_NO_PROJECT_TEXT: "usages-no-project-text",
