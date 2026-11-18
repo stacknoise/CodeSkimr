@@ -85,12 +85,12 @@ mod cases {
                 id,
                 name: ProjectName::new(self.0.clone()).unwrap(),
                 source: ProjectSource::Folder(FolderPath::new("/work/shop").unwrap()),
-                layers: Vec::new(),
+                layers: Vec::default(),
             })
         }
 
         fn latest_files(&self, _id: ProjectId) -> Result<Vec<SourceFile>, CodedError> {
-            Ok(Vec::new())
+            Ok(Vec::default())
         }
 
         fn latest_index(&self, _id: ProjectId) -> Result<PreviousIndex, CodedError> {
@@ -230,9 +230,9 @@ mod cases {
         assert_eq!(fixture.window.asked().len(), 2);
     }
 
-    #[test]
-    fn a_request_refused_before_the_launch_does_not_start_the_pause() {
-        let fixture = fixture();
+    /// An unknown project, then a switch that is off: both are refused for their own reason, and
+    /// the switch stays off afterwards.
+    fn refused_for_project_and_switch(fixture: &Fixture) {
         assert_eq!(
             code(open_confirmation(
                 &client(),
@@ -246,6 +246,12 @@ mod cases {
             code(open_confirmation(&client(), &fixture.desk, KNOWN)),
             ErrorCode::Level2SwitchOff
         );
+    }
+
+    #[test]
+    fn a_request_refused_before_the_launch_does_not_start_the_pause() {
+        let fixture = fixture();
+        refused_for_project_and_switch(&fixture);
         *fixture.switch.0.lock().unwrap() = true;
         fixture.window.answer(Ok(WindowOutcome::AlreadyOpen));
         assert_eq!(
@@ -282,19 +288,7 @@ mod cases {
     fn inside_the_pause_the_real_reason_of_a_refusal_comes_first() {
         let fixture = fixture();
         open_confirmation(&client(), &fixture.desk, KNOWN).unwrap();
-        assert_eq!(
-            code(open_confirmation(
-                &client(),
-                &fixture.desk,
-                ProjectId::new(99)
-            )),
-            ErrorCode::ProjectNotFound
-        );
-        *fixture.switch.0.lock().unwrap() = false;
-        assert_eq!(
-            code(open_confirmation(&client(), &fixture.desk, KNOWN)),
-            ErrorCode::Level2SwitchOff
-        );
+        refused_for_project_and_switch(&fixture);
     }
 
     #[test]

@@ -158,7 +158,7 @@ fn mcp_has_no_tool(url: &str, token: &str) {
         .map_or_else(Vec::new, |tools| {
             tools.iter().filter_map(|t| t["name"].as_str()).collect()
         });
-    assert!(!names.is_empty());
+    assert_ne!(names, [] as [&str; 0]);
     assert!(
         names.iter().all(|name| !name.contains("level2")),
         "{names:?}"

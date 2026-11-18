@@ -1,6 +1,6 @@
 //! Texts that must never be shown in the prompt of a confirmation.
 
-use codeskimr_domain::{Project, ProjectSource};
+use codeskimr_domain::Project;
 
 use crate::consts::INVISIBLE_RANGES;
 
@@ -20,12 +20,7 @@ pub fn hides_text(text: &str) -> bool {
 /// project nobody is asked and no window is opened; revoking still works.
 #[must_use]
 pub fn is_disguised(project: &Project) -> bool {
-    let (place, branch) = match &project.source {
-        ProjectSource::Folder(folder) => (folder.to_string(), None),
-        ProjectSource::Git { url, branch, .. } => {
-            (url.as_str().to_owned(), Some(branch.to_string()))
-        }
-    };
+    let (place, branch) = project.source.place_and_branch();
     [Some(project.name.to_string()), Some(place), branch]
         .into_iter()
         .flatten()

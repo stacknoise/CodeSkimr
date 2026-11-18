@@ -28,16 +28,16 @@ use crate::wiring::Secrets;
 use codeskimr_domain::ScanMode;
 
 /// Name of the user configuration file a fixture may hold.
-pub(super) const USER_CONFIG_FILE: &str = "user-config.toml";
+pub(crate) const USER_CONFIG_FILE: &str = "user-config.toml";
 
 const SOURCE: &str = "namespace Demo;\n\npublic class Calculator\n{\n    public int Add(int a, int b) { return a + b; }\n}\n";
 
-pub(super) struct Fixture {
-    pub(super) root: TempDir,
-    pub(super) locations: Locations,
-    pub(super) api: Arc<CommandApi>,
-    pub(super) secrets: Arc<Secrets>,
-    pub(super) events: EventBus,
+pub(crate) struct Fixture {
+    pub(crate) root: TempDir,
+    pub(crate) locations: Locations,
+    pub(crate) api: Arc<CommandApi>,
+    pub(crate) secrets: Arc<Secrets>,
+    pub(crate) events: EventBus,
 }
 
 impl Fixture {
@@ -46,12 +46,12 @@ impl Fixture {
     }
 
     /// An installation whose UI folder holds `page` as the export page, or no UI folder at all.
-    pub(super) fn installed(page: Option<&str>) -> Self {
+    pub(crate) fn installed(page: Option<&str>) -> Self {
         Self::installed_with(page, None)
     }
 
     /// Like [`Fixture::installed`], with a user configuration file that holds `config`.
-    pub(super) fn installed_with(page: Option<&str>, config: Option<&str>) -> Self {
+    pub(crate) fn installed_with(page: Option<&str>, config: Option<&str>) -> Self {
         let root = tempfile::tempdir().unwrap();
         fs::create_dir_all(root.path().join("app")).unwrap();
         fs::write(root.path().join("app/Calculator.cs"), SOURCE).unwrap();
@@ -120,23 +120,23 @@ impl Fixture {
     }
 
     /// Registers and scans the demo project and returns its id.
-    pub(super) fn scanned(&self) -> u64 {
+    pub(crate) fn scanned(&self) -> u64 {
         let added = self
             .call("projects.add", json!({ "source": self.folder() }))
             .unwrap();
         added["project"].as_u64().unwrap()
     }
 
-    pub(super) fn folder(&self) -> String {
+    pub(crate) fn folder(&self) -> String {
         self.root.path().join("app").to_string_lossy().into_owned()
     }
 
-    pub(super) fn call(&self, id: &str, input: Value) -> Result<Value, &'static str> {
+    pub(crate) fn call(&self, id: &str, input: Value) -> Result<Value, &'static str> {
         self.call_as(principal::resolve(), id, input)
     }
 
     /// The same call for another caller.
-    pub(super) fn call_as(
+    pub(crate) fn call_as(
         &self,
         caller: codeskimr_domain::Principal,
         id: &str,

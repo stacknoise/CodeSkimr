@@ -12,7 +12,7 @@ use codeskimr_application::level2;
 use codeskimr_application::ports::ProjectRepository;
 use codeskimr_cli::{GlobalOptions, Level2Action};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Project, ProjectId, ProjectSource};
+use codeskimr_domain::{Project, ProjectId};
 
 use crate::locations::Locations;
 use crate::wiring::open_store;
@@ -43,12 +43,7 @@ pub struct Target {
 
 impl Target {
     fn of(project: &Project) -> Self {
-        let (place, branch) = match &project.source {
-            ProjectSource::Folder(folder) => (folder.to_string(), None),
-            ProjectSource::Git { url, branch, .. } => {
-                (url.as_str().to_owned(), Some(branch.to_string()))
-            }
-        };
+        let (place, branch) = project.source.place_and_branch();
         Self {
             name: project.name.to_string(),
             place,

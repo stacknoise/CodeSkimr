@@ -15,9 +15,6 @@ const PROCESS_WORDS: [&str; 5] = [
     "CommandExt",
 ];
 
-/// The line that opens the test module at the end of a source file.
-const TEST_MODULE_MARK: &str = "#[cfg(test)]";
-
 fn sources(dir: &Path, found: &mut Vec<std::path::PathBuf>) {
     for entry in fs::read_dir(dir).unwrap().flatten() {
         let path = entry.path();
@@ -41,11 +38,10 @@ fn the_server_crate_never_names_the_ways_to_start_a_process() {
         .iter()
         .filter(|file| {
             let text = fs::read_to_string(file).unwrap();
-            // Comment lines may talk about it, and the test modules at the end of a file may start
-            // helper programs of their own; the product code before them may not.
+            // Comment lines may talk about it; every other line of every file may not, whatever
+            // `#[cfg(test)]` items come before it.
             let code: String = text
                 .lines()
-                .take_while(|line| line.trim() != TEST_MODULE_MARK)
                 .filter(|line| !line.trim_start().starts_with("//"))
                 .collect();
             PROCESS_WORDS.iter().any(|word| code.contains(word))

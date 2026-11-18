@@ -27,9 +27,7 @@ use crate::locations::Locations;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct Level2Input {
-    /// Id of the project. `project_id` is accepted as well, the name the route of the confirmation
-    /// window uses.
-    #[serde(alias = "project_id")]
+    /// Id of the project.
     pub project: u64,
 }
 

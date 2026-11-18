@@ -7,9 +7,9 @@ use codeskimr_cli::{GlobalOptions, Level2Action};
 use codeskimr_codes::ErrorCode;
 use serde_json::{Value, json};
 
-use super::tests::{Fixture, USER_CONFIG_FILE};
 use crate::level2_consent;
 use crate::principal;
+use crate::ui_commands::tests::{Fixture, USER_CONFIG_FILE};
 
 const SWITCH_ON: &str = "[level2]\nenabled = true\n";
 const NAME: &str = "app";
@@ -138,13 +138,6 @@ fn the_input_takes_only_the_project_and_the_status_needs_the_read_right_only() {
             Err("API-101")
         );
     }
-    // The name of the route of the confirmation window works as well.
-    let by_id = json!({ "project_id": project });
-    assert!(
-        fixture
-            .call_as(principal::reader(), "level2.status", by_id)
-            .is_ok()
-    );
     assert_eq!(
         fixture.call_as(
             principal::nobody(),

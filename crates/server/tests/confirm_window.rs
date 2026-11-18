@@ -67,19 +67,19 @@ struct Projects;
 
 impl ProjectRepository for Projects {
     fn project(&self, id: ProjectId) -> Result<Project, CodedError> {
-        if id.get() != KNOWN && id.get() != OTHER {
-            return Err(CodedError::new(ErrorCode::ProjectNotFound));
-        }
-        Ok(Project {
-            id,
-            name: ProjectName::new("shop").unwrap(),
-            source: ProjectSource::Folder(FolderPath::new("/work/shop").unwrap()),
-            layers: Vec::new(),
-        })
+        let known = [KNOWN, OTHER].contains(&id.get());
+        known
+            .then(|| Project {
+                id,
+                name: ProjectName::new("shop").unwrap(),
+                source: ProjectSource::Folder(FolderPath::new("/work/shop").unwrap()),
+                layers: vec![],
+            })
+            .ok_or_else(|| CodedError::new(ErrorCode::ProjectNotFound))
     }
 
     fn latest_files(&self, _id: ProjectId) -> Result<Vec<SourceFile>, CodedError> {
-        Ok(Vec::new())
+        Ok(vec![])
     }
 
     fn latest_index(&self, _id: ProjectId) -> Result<PreviousIndex, CodedError> {
@@ -388,5 +388,5 @@ async fn a_server_without_a_desk_has_no_such_route_and_it_is_no_registry_command
     assert_eq!(as_command.code(), "API-201");
     let get = Call::get(PATH).token(TOKEN).send(&setup.server).await;
     assert_eq!(get.status, 405);
-    assert!(setup.window.asked().is_empty());
+    assert_eq!(setup.window.asked(), [] as [u64; 0]);
 }

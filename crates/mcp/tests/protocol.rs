@@ -35,6 +35,16 @@ impl Client {
             .await;
         self.receive().await
     }
+
+    /// The names of the tools the server lists for this caller.
+    async fn tool_names(&mut self, id: u64) -> Vec<String> {
+        let listed = self.call(id, "tools/list", json!({})).await;
+        let tools = listed["result"]["tools"].as_array().unwrap();
+        tools
+            .iter()
+            .map(|t| t["name"].as_str().unwrap().to_owned())
+            .collect()
+    }
 }
 
 #[cfg(test)]
@@ -233,13 +243,7 @@ async fn a_denied_caller_gets_the_same_answer_for_bad_arguments_and_unknown_tool
 async fn the_tool_list_shows_only_what_the_caller_may_run() {
     let read_only = Principal::limited(PermissionSet::none().with(Permission::Read));
     let mut client = connected_as(read_only).await;
-    let listed = client.call(20, "tools/list", json!({})).await;
-    let names: Vec<_> = listed["result"]["tools"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|t| t["name"].as_str().unwrap().to_owned())
-        .collect();
+    let names = client.tool_names(20).await;
     assert_eq!(names.len(), 12);
     assert!(!names.iter().any(|name| name == "rescan"));
     let nobody = connected_as(Principal::limited(PermissionSet::none())).await;
@@ -289,13 +293,7 @@ async fn a_caller_who_may_only_scan_can_rescan() {
 #[tokio::test]
 async fn the_level_two_switch_is_no_tool_and_cannot_be_called_as_one() {
     let mut client = connected().await;
-    let listed = client.call(2, "tools/list", json!({})).await;
-    let names: Vec<_> = listed["result"]["tools"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|t| t["name"].as_str().unwrap().to_owned())
-        .collect();
+    let names = client.tool_names(2).await;
     assert!(
         names.iter().all(|name| !name.contains("level2")
             && !name.contains("confirm")

@@ -25,8 +25,6 @@ mod layers;
 mod layers_tests;
 mod level2;
 mod level2_revoke;
-#[cfg(test)]
-mod level2_tests;
 mod preferences;
 mod projects;
 #[cfg(test)]
@@ -38,7 +36,7 @@ mod status;
 mod symbol;
 mod temp_file;
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 mod usages;
 mod usages_code;
 
