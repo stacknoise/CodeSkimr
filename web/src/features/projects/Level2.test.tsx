@@ -122,11 +122,66 @@ describe("the level 2 switch: switching on", () => {
   it("stops asking after the longest wait and offers to switch on again", async () => {
     fake(WINDOW);
     const toggle = await loaded();
-    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
+    vi.useFakeTimers({
+      toFake: ["setInterval", "clearInterval", "setTimeout", "clearTimeout", "Date"],
+    });
     fireEvent.click(toggle());
     await screen.findByText("Finish the confirmation in the console window");
     await vi.advanceTimersByTimeAsync(301_000);
     expect(await screen.findByText(/did not arrive/)).toBeInTheDocument();
+    expect(screen.getByText(/You can try again/)).toBeInTheDocument();
+    expect(toggle()).toHaveAttribute("aria-disabled", "false");
+  });
+
+  it("ends the wait even when the question for the state never gets an answer", async () => {
+    const server = fake(WINDOW);
+    const toggle = await loaded();
+    const answerStatus = fetchMock.getMockImplementation();
+    fetchMock.mockImplementation((path: string) =>
+      path.endsWith("level2.status") && server.confirms > 0
+        ? new Promise<Response>(() => undefined)
+        : answerStatus?.(path),
+    );
+    vi.useFakeTimers({
+      toFake: ["setInterval", "clearInterval", "setTimeout", "clearTimeout", "Date"],
+    });
+    fireEvent.click(toggle());
+    await screen.findByText("Finish the confirmation in the console window");
+    await vi.advanceTimersByTimeAsync(301_000);
+    expect(await screen.findByText(/did not arrive/)).toBeInTheDocument();
+    expect(toggle()).toHaveAttribute("aria-disabled", "false");
+  });
+
+  it("cancels the wait: the notice goes, the asking stops and the switch is free", async () => {
+    const server = fake(WINDOW);
+    const toggle = await loaded();
+    fireEvent.click(toggle());
+    await screen.findByText("Finish the confirmation in the console window");
+    expect(screen.getByText(/pause of 30 seconds applies/)).toBeInTheDocument();
+    expect(toggle()).toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Cancel waiting" }));
+    expect(screen.queryByText("Finish the confirmation in the console window")).toBeNull();
+    expect(screen.getByText(/Waiting ended/)).toBeInTheDocument();
+    expect(toggle()).toHaveAttribute("aria-disabled", "false");
+    expect(toggle()).toHaveFocus();
+    const asked = fetchMock.mock.calls.length;
+    vi.useFakeTimers({
+      toFake: ["setInterval", "clearInterval", "setTimeout", "clearTimeout", "Date"],
+    });
+    await vi.advanceTimersByTimeAsync(10 * POLL_MS);
+    expect(fetchMock.mock.calls.length).toBe(asked);
+    fireEvent.click(toggle());
+    await screen.findByText("Finish the confirmation in the console window");
+    expect(server.confirms).toBe(2);
+  });
+
+  it("cancels the wait with Escape", async () => {
+    fake(WINDOW);
+    const toggle = await loaded();
+    fireEvent.click(toggle());
+    const title = await screen.findByText("Finish the confirmation in the console window");
+    fireEvent.keyDown(title, { key: "Escape" });
+    expect(screen.getByText(/Waiting ended/)).toBeInTheDocument();
     expect(toggle()).toHaveAttribute("aria-disabled", "false");
   });
 

@@ -163,6 +163,7 @@ export const LEVEL2_PHASE = {
   opening: "opening",
   waiting: "waiting",
   timedOut: "timed_out",
+  cancelled: "cancelled",
   askRevoke: "ask_revoke",
   revoking: "revoking",
   revoked: "revoked",

@@ -39,6 +39,7 @@ const EMPTY: Level2View = {
 
 const [views, setViews] = createSignal<ReadonlyMap<number, Level2View>>(new Map());
 const timers = new Map<number, ReturnType<typeof setInterval>>();
+const deadlines = new Map<number, ReturnType<typeof setTimeout>>();
 
 /** Forgets everything about the switches and stops all waiting (a new session, or a test). */
 export function resetLevel2(): void {
@@ -76,6 +77,8 @@ export async function loadLevel2(project: number): Promise<Level2Status | null> 
 function stopPolling(project: number): void {
   clearInterval(timers.get(project));
   timers.delete(project);
+  clearTimeout(deadlines.get(project));
+  deadlines.delete(project);
 }
 
 function pollSetting(value: number | undefined, fallback: number): number {
@@ -83,12 +86,13 @@ function pollSetting(value: number | undefined, fallback: number): number {
 }
 
 /** Asks for the state until the confirmation arrived, or until the time is up. The page never
- * learns the result in any other way: the consent is typed in the console, not here. */
+ * learns the result in any other way: the consent is typed in the console, not here. The end of
+ * the time is its own timer, so that a request that never answers cannot keep the wait alive. */
 function watchConfirmation(project: number): void {
   stopPolling(project);
   const config = uiConfig();
   const every = pollSetting(config?.level2_poll_seconds, LEVEL2_POLL_SECONDS);
-  const until = Date.now() + pollSetting(config?.level2_poll_max_seconds, LEVEL2_POLL_MAX_SECONDS);
+  const limit = pollSetting(config?.level2_poll_max_seconds, LEVEL2_POLL_MAX_SECONDS);
   timers.set(
     project,
     setInterval(() => {
@@ -96,13 +100,24 @@ function watchConfirmation(project: number): void {
         if (status?.state === LEVEL2_STATE.on) {
           stopPolling(project);
           patch(project, { phase: LEVEL2_PHASE.idle, command: null, openedAt: null });
-        } else if (Date.now() >= until) {
-          stopPolling(project);
-          patch(project, { phase: LEVEL2_PHASE.timedOut });
         }
       });
     }, every),
   );
+  deadlines.set(
+    project,
+    setTimeout(() => {
+      stopPolling(project);
+      patch(project, { phase: LEVEL2_PHASE.timedOut });
+    }, limit),
+  );
+}
+
+/** Ends the waiting for the console window: nothing was confirmed, the switch is free again. The
+ * page cannot see that the window was closed, so this is the way out for the user. */
+export function cancelWaiting(project: number): void {
+  stopPolling(project);
+  patch(project, { phase: LEVEL2_PHASE.cancelled, command: null, openedAt: null, failure: null });
 }
 
 /** Shows the command to copy; `failure` says why the window did not open, if it was tried. */
