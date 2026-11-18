@@ -246,6 +246,10 @@ fn check_level2(level2: &Level2) -> Result<(), ConfigError> {
         );
     }
     positive(keys::LEVEL2_MAX_CREATED_SYMBOLS, level2.max_created_symbols)?;
+    positive(
+        keys::LEVEL2_CONFIRM_WINDOW_COOLDOWN_SECONDS,
+        level2.confirm_window_cooldown_seconds,
+    )?;
     share(keys::LEVEL2_MIN_MAPPED, level2.min_mapped)
 }
 
@@ -308,6 +312,13 @@ fn check_editor(editor: &Editor) -> Result<(), ConfigError> {
 
 fn check_ui(ui: &Ui) -> Result<(), ConfigError> {
     positive(keys::UI_LAUNCH_CODE_SECONDS, ui.launch_code_seconds)?;
+    positive(keys::UI_LEVEL2_POLL_SECONDS, ui.level2_poll_seconds)?;
+    if ui.level2_poll_max_seconds < ui.level2_poll_seconds {
+        return fail(
+            keys::UI_LEVEL2_POLL_MAX_SECONDS,
+            Violation::MustNotBeBelow(keys::UI_LEVEL2_POLL_SECONDS),
+        );
+    }
     let is_bad = |name: &str| name.is_empty() || name.contains(PATH_SEPARATORS);
     if is_bad(&ui.default_theme) {
         return fail(keys::UI_DEFAULT_THEME, Violation::MustBeFolderName);

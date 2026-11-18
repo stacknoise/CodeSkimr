@@ -12,9 +12,8 @@ use codeskimr_application::level2;
 use codeskimr_application::ports::ProjectRepository;
 use codeskimr_cli::{GlobalOptions, Level2Action};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Project, ProjectId, ProjectSource};
+use codeskimr_domain::{Project, ProjectId};
 
-use crate::consts::INVISIBLE_RANGES;
 use crate::locations::Locations;
 use crate::wiring::open_store;
 use crate::{config_files, export, principal};
@@ -44,33 +43,12 @@ pub struct Target {
 
 impl Target {
     fn of(project: &Project) -> Self {
-        let (place, branch) = match &project.source {
-            ProjectSource::Folder(folder) => (folder.to_string(), None),
-            ProjectSource::Git { url, branch, .. } => {
-                (url.as_str().to_owned(), Some(branch.to_string()))
-            }
-        };
+        let (place, branch) = project.source.place_and_branch();
         Self {
             name: project.name.to_string(),
             place,
             branch,
         }
-    }
-
-    /// Whether name, location or branch holds a control or invisible character (a line break, an
-    /// escape sequence, a direction override): such text could make the prompt show something
-    /// else than what is confirmed.
-    fn is_disguised(&self) -> bool {
-        let hides = |c: char| {
-            c.is_control()
-                || INVISIBLE_RANGES
-                    .iter()
-                    .any(|(low, high)| (*low..=*high).contains(&c))
-        };
-        [Some(&self.name), Some(&self.place), self.branch.as_ref()]
-            .into_iter()
-            .flatten()
-            .any(|text| text.chars().any(hides))
     }
 }
 
@@ -93,11 +71,11 @@ pub fn run(
     let store = open_store(locations, &config)?;
     let owner = principal::resolve();
     match action {
-        Level2Action::Confirm { project } => {
+        Level2Action::Confirm { project, .. } => {
             let id = ProjectId::new(export::resolve(project, &store)?);
             let shown = store.project(id)?;
             let target = Target::of(&shown);
-            if target.is_disguised() {
+            if level2::is_disguised(&shown) {
                 return Err(CodedError::new(ErrorCode::IndexerNotPermitted));
             }
             if ask(&target)?.trim() != target.name {
@@ -112,13 +90,13 @@ pub fn run(
         }
         Level2Action::Revoke { project } => {
             let id = ProjectId::new(export::resolve(project, &store)?);
-            let target = Target::of(&store.project(id)?);
+            let project = store.project(id)?;
             level2::revoke(&owner, store.as_ref(), id)?;
             // Forbidding must always work, but a disguised name is never printed: the id stands in.
-            let shown = if target.is_disguised() {
+            let shown = if level2::is_disguised(&project) {
                 id.get().to_string()
             } else {
-                target.name
+                Target::of(&project).name
             };
             Ok(Done::Revoked(shown))
         }

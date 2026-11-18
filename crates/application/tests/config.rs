@@ -430,6 +430,27 @@ fn the_editor_link_and_the_ui_are_checked() {
 }
 
 #[test]
+fn the_polling_of_the_switch_and_the_pause_of_the_window_are_checked() {
+    assert_rejected(&[
+        (
+            "[ui]\nlevel2_poll_seconds = 0\n",
+            "ui.level2_poll_seconds",
+            Violation::MustBePositive,
+        ),
+        (
+            "[ui]\nlevel2_poll_seconds = 10\nlevel2_poll_max_seconds = 5\n",
+            "ui.level2_poll_max_seconds",
+            Violation::MustNotBeBelow("ui.level2_poll_seconds"),
+        ),
+        (
+            "[level2]\nconfirm_window_cooldown_seconds = 0\n",
+            "level2.confirm_window_cooldown_seconds",
+            Violation::MustBePositive,
+        ),
+    ]);
+}
+
+#[test]
 fn the_size_of_a_graph_box_must_be_positive() {
     assert_rejected(&[
         (

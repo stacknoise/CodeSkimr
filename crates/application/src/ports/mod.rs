@@ -9,6 +9,7 @@ mod analysis;
 mod annotations;
 mod catalog;
 mod clock;
+mod confirmation;
 mod consent;
 mod credentials;
 mod digest;
@@ -37,6 +38,7 @@ pub use annotations::{
 };
 pub use catalog::{LanguageShare, ProjectCatalog, ProjectOverview};
 pub use clock::Clock;
+pub use confirmation::{ConfirmationWindow, Level2Switch, WindowOutcome};
 pub use consent::{ConsentGrant, ConsentRecord, ConsentStore, RunPermit};
 pub use credentials::{AuthError, Credential, CredentialStore};
 pub use digest::ContentDigest;

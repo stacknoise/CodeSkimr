@@ -82,6 +82,7 @@ fn server_parts(locations: &Locations, config: &Config, secrets: &Arc<Secrets>) 
         )
         .unwrap(),
         mcp: Some(http_service(config, locations, (events.clone(), secrets)).unwrap()),
+        confirmation: None,
         events,
         token_lock: None,
     }

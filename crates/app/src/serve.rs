@@ -9,6 +9,7 @@ use std::time::Duration;
 use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
+use codeskimr_application::level2::ConfirmationDesk;
 use codeskimr_application::ports::CredentialStore;
 use codeskimr_cli::GlobalOptions;
 use codeskimr_codes::ErrorCode;
@@ -102,6 +103,8 @@ fn ui_options(config: &codeskimr_application::config::Config, locations: &Locati
                 allowed_schemes: config.editor.allowed_schemes.clone(),
             },
             default_theme: config.ui.default_theme.clone(),
+            level2_poll_seconds: config.ui.level2_poll_seconds,
+            level2_poll_max_seconds: config.ui.level2_poll_max_seconds,
         },
     }
 }
@@ -128,15 +131,20 @@ pub(crate) fn serving_parts(
     (events, secrets): (EventBus, &Arc<Secrets>),
     running: RunningScans,
 ) -> Result<Parts, CodedError> {
+    let (api, confirmation) = ui_commands::command_api_over(
+        catalog,
+        config,
+        (global, locations),
+        (events.clone(), Arc::clone(secrets)),
+        (
+            (None, running.clone()),
+            ui_commands::Window::of_this_system(global),
+        ),
+    )?;
     Ok(Parts {
         ui: ui_options(config, locations),
-        api: ui_commands::command_api_over(
-            catalog,
-            config,
-            (global, locations),
-            (events.clone(), Arc::clone(secrets)),
-            (None, running.clone()),
-        )?,
+        api,
+        confirmation: Some(confirmation),
         mcp: Some(mcp::http_service_sharing(
             Arc::clone(catalog),
             config,
@@ -154,6 +162,8 @@ pub(crate) fn serving_parts(
 pub(crate) struct Parts {
     pub ui: UiOptions,
     pub api: CommandApi,
+    /// The desk of the level 2 confirmation window; `None` where no route for it is wanted.
+    pub confirmation: Option<Arc<ConfirmationDesk>>,
     pub mcp: Option<HttpService>,
     pub events: EventBus,
     /// File that serialises the first start of several programs (`None`: no lock, for tests).
@@ -183,6 +193,10 @@ pub(crate) async fn serve(
         Some(service) => server.with_mcp(service),
         None => server,
     };
+    let server = match parts.confirmation {
+        Some(desk) => server.with_confirmation(desk),
+        None => server,
+    };
     let bound = server
         .bind(SocketAddr::from((Ipv4Addr::LOCALHOST, port)))
         .await?;
@@ -199,6 +213,7 @@ pub(crate) fn bare_parts(ui: UiOptions) -> Parts {
     Parts {
         ui,
         mcp: None,
+        confirmation: None,
         api: CommandApi::new(std::sync::Arc::new(
             codeskimr_application::registry::Registry::new(),
         )),

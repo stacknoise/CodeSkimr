@@ -93,16 +93,20 @@ async fn read_body(headers: &HeaderMap, body: Body, limit: usize) -> Result<Byte
     if bytes.is_empty() {
         return Ok(bytes);
     }
-    let is_json = headers
-        .get(CONTENT_TYPE)
-        .and_then(|value| value.to_str().ok())
-        .and_then(|value| value.split(MEDIA_PARAMETER_SEPARATOR).next())
-        .is_some_and(|media| media.trim().eq_ignore_ascii_case(MEDIA_JSON));
-    if is_json {
+    if is_json(headers) {
         Ok(bytes)
     } else {
         Err(Failure::code(ErrorCode::RequestInvalid))
     }
+}
+
+/// Whether the request says its body is `application/json`.
+pub fn is_json(headers: &HeaderMap) -> bool {
+    headers
+        .get(CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.split(MEDIA_PARAMETER_SEPARATOR).next())
+        .is_some_and(|media| media.trim().eq_ignore_ascii_case(MEDIA_JSON))
 }
 
 /// The layer of the MCP route: reads the whole body within `BODY_READ_TIMEOUT` and `MAX_BODY_BYTES`

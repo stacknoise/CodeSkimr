@@ -7,7 +7,8 @@
 
 use crate::consts::{
     PERMISSION_ADMIN, PERMISSION_ANNOTATE, PERMISSION_CONFIRM_INDEXER, PERMISSION_MANAGE,
-    PERMISSION_READ, PERMISSION_READ_SOURCE, PERMISSION_REGISTER_PROJECT, PERMISSION_RUN_INDEXER,
+    PERMISSION_OPEN_CONFIRMATION, PERMISSION_READ, PERMISSION_READ_SOURCE,
+    PERMISSION_REGISTER_PROJECT, PERMISSION_REVOKE_INDEXER, PERMISSION_RUN_INDEXER,
     PERMISSION_SCAN,
 };
 use crate::vocabulary::labeled_enum;
@@ -37,6 +38,14 @@ labeled_enum!(
         ConfirmIndexer => PERMISSION_CONFIRM_INDEXER,
         /// Start an indexer of level 2 for a confirmed project (ADR 0033, decision 10).
         RunIndexer => PERMISSION_RUN_INDEXER,
+        /// Take the confirmation of level 2 back for one project (ADR 0071, decision 4). It only
+        /// removes a right, so the REST clients hold it too; `level2::revoke` also accepts
+        /// [`Permission::ConfirmIndexer`].
+        RevokeIndexer => PERMISSION_REVOKE_INDEXER,
+        /// Ask the server to open the console window of the confirmation (ADR 0071, decision 4).
+        /// The window is where the owner confirms; asking for it never confirms anything. REST
+        /// clients hold it, an MCP tool never uses it because the route is not a tool.
+        OpenConfirmation => PERMISSION_OPEN_CONFIRMATION,
     }
 );
 
@@ -74,6 +83,8 @@ impl PermissionSet {
             .with(Permission::Admin)
             .with(Permission::ConfirmIndexer)
             .with(Permission::RunIndexer)
+            .with(Permission::RevokeIndexer)
+            .with(Permission::OpenConfirmation)
     }
 
     /// This set plus `permission`.
@@ -173,6 +184,21 @@ mod tests {
         assert!(writer.holds(Permission::Annotate));
         assert!(!writer.holds(Permission::Read));
         assert!(Principal::local_owner().holds(Permission::Annotate));
+    }
+
+    #[test]
+    fn revoking_and_opening_the_confirmation_are_rights_of_their_own() {
+        let revoker = Principal::limited(PermissionSet::none().with(Permission::RevokeIndexer));
+        assert!(!revoker.holds(Permission::ConfirmIndexer));
+        assert!(!revoker.holds(Permission::OpenConfirmation));
+        assert!(!revoker.holds(Permission::RunIndexer));
+        let opener = Principal::limited(PermissionSet::none().with(Permission::OpenConfirmation));
+        assert!(!opener.holds(Permission::RevokeIndexer));
+        assert!(!opener.holds(Permission::ConfirmIndexer));
+        let owner = Principal::local_owner();
+        assert!(
+            owner.holds(Permission::RevokeIndexer) && owner.holds(Permission::OpenConfirmation)
+        );
     }
 
     #[test]

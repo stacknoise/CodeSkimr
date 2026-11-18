@@ -107,3 +107,25 @@ pub const TOKEN_TYPE: &str = "type";
 pub const TOKEN_FUNCTION: &str = "function";
 /// Wire word of `TokenClass::Attribute`.
 pub const TOKEN_ATTRIBUTE: &str = "attribute";
+
+/// Characters besides the control characters that can hide or reorder text on a terminal: the
+/// direction marks and overrides, the zero-width characters, the line and paragraph separators
+/// and the byte order mark. A project whose name, location or branch holds one is never shown in a
+/// prompt, and no window is opened for it (ADR 0033, decision 10; ADR 0071, decision 11).
+pub const INVISIBLE_RANGES: [(char, char); 7] = [
+    ('\u{061C}', '\u{061C}'),
+    ('\u{200B}', '\u{200F}'),
+    ('\u{2028}', '\u{202E}'),
+    ('\u{2060}', '\u{2064}'),
+    ('\u{2066}', '\u{2069}'),
+    ('\u{FEFF}', '\u{FEFF}'),
+    ('\u{00AD}', '\u{00AD}'),
+];
+
+/// The program that the command to copy names. The copy is for a person at a terminal, so it
+/// uses the name the person types, not the path of the running file.
+pub const COPY_COMMAND_PROGRAM: &str = "codeskimr";
+/// The words after the program in the command to copy: the command `level2 confirm`.
+pub const COPY_COMMAND_WORDS: [&str; 2] = ["level2", "confirm"];
+/// Separates the words of the command to copy.
+pub const COPY_COMMAND_SEPARATOR: char = ' ';

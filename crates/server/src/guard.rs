@@ -14,9 +14,9 @@ use codeskimr_codes::ErrorCode;
 
 use crate::consts::{
     BEARER_SCHEME, CACHE_CONTROL_VALUE, CSP_CONNECT, CSP_FIXED, CSP_HEADER, CSP_SEPARATOR,
-    HOST_PORT_SEPARATOR, LOCALHOST_NAME, NO_SNIFF_HEADER, NO_SNIFF_VALUE, OPENER_HEADER,
-    OPENER_VALUE, ORIGIN_SCHEME, PERMISSIONS_HEADER, PERMISSIONS_VALUE, REFERRER_HEADER,
-    REFERRER_VALUE, WEBSOCKET_SCHEME,
+    FETCH_SITE_HEADER, FETCH_SITE_OWN, HOST_PORT_SEPARATOR, LOCALHOST_NAME, NO_SNIFF_HEADER,
+    NO_SNIFF_VALUE, OPENER_HEADER, OPENER_VALUE, ORIGIN_SCHEME, PERMISSIONS_HEADER,
+    PERMISSIONS_VALUE, REFERRER_HEADER, REFERRER_VALUE, WEBSOCKET_SCHEME,
 };
 use crate::error::Failure;
 use crate::token::InstallationToken;
@@ -70,6 +70,28 @@ impl Guard {
                 .is_some_and(|host| self.knows(host))
         });
         if host_ok && origin_ok {
+            Ok(())
+        } else {
+            Err(CodedError::new(ErrorCode::HostOrOriginRejected))
+        }
+    }
+
+    /// Lets a request pass that does not say it comes from another site. A browser adds
+    /// `Sec-Fetch-Site` to every request; clients without a browser send none, and `same-origin`
+    /// (the page of this server) and `none` (typed or bookmarked) are the only own values. The
+    /// route that opens a window checks this on top of `Host`, `Origin` and the token (ADR 0071).
+    ///
+    /// # Errors
+    /// `API-402` if the header is present with any other value.
+    pub fn check_fetch_site(headers: &HeaderMap) -> Result<(), CodedError> {
+        let own = headers
+            .get(HeaderName::from_static(FETCH_SITE_HEADER))
+            .is_none_or(|value| {
+                value
+                    .to_str()
+                    .is_ok_and(|site| FETCH_SITE_OWN.contains(&site))
+            });
+        if own {
             Ok(())
         } else {
             Err(CodedError::new(ErrorCode::HostOrOriginRejected))

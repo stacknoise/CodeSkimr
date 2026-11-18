@@ -23,6 +23,8 @@ mod indexers;
 mod layers;
 #[cfg(test)]
 mod layers_tests;
+mod level2;
+mod level2_revoke;
 mod preferences;
 mod projects;
 #[cfg(test)]
@@ -34,7 +36,7 @@ mod status;
 mod symbol;
 mod temp_file;
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 mod usages;
 mod usages_code;
 
@@ -45,6 +47,7 @@ use codeskimr_application::annotations::AnnotationWrites;
 use codeskimr_application::config::{Config, Graph, MetricThresholds};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
+use codeskimr_application::level2::ConfirmationDesk;
 use codeskimr_application::ports::{IndexRunner, ProjectToolCheck};
 use codeskimr_application::registry::{Command, Registry};
 use codeskimr_cli::GlobalOptions;
@@ -79,6 +82,9 @@ pub(crate) use export::{ExportInput, HtmlExport};
 use graph::{GraphLayers, GraphPorts};
 use indexers::ListIndexers;
 use layers::{LayersGet, LayersSet};
+use level2::Level2StatusCommand;
+pub(crate) use level2::{Window, confirmation_desk};
+use level2_revoke::Level2Revoke;
 use preferences::{GetPreferences, PreferencesFile, SetPreferences};
 use projects::{AddProject, CancelScan, CheckTools, ListProjects, RescanProject};
 use search::{SearchPorts, SearchQuery};
@@ -146,6 +152,21 @@ pub fn command_api(
     )
 }
 
+/// A window that never opens anything and says the system has none: what the tests use in place
+/// of the real adapter, so that no test can open a window.
+#[cfg(test)]
+pub(crate) struct NoWindow;
+
+#[cfg(test)]
+impl codeskimr_application::ports::ConfirmationWindow for NoWindow {
+    fn open(
+        &self,
+        _project: codeskimr_domain::ProjectId,
+    ) -> Result<codeskimr_application::ports::WindowOutcome, CodedError> {
+        Ok(codeskimr_application::ports::WindowOutcome::Unavailable)
+    }
+}
+
 /// Like [`command_api`], but the tools are started through `runner` instead of as real processes
 /// (tests use this to say which tools exist).
 ///
@@ -160,17 +181,24 @@ pub fn command_api_probing(
 ) -> Result<CommandApi, CodedError> {
     let config = crate::config_files::load(locations, global, None)?;
     let catalog = crate::wiring::open_serving_store(locations, &config)?;
+    let window = Window {
+        port: Arc::new(NoWindow),
+        launch: codeskimr_application::level2::Launch::Copy,
+    };
     command_api_over(
         &catalog,
         &config,
         (global, locations),
         (events, secrets),
-        run,
+        (run, window),
     )
+    .map(|(api, _desk)| api)
 }
 
 /// Like [`command_api_probing`], but over a `catalog` that the caller opened, so that the MCP
-/// service can use the same store (#358).
+/// service can use the same store (#358). Besides the commands it returns the desk of the level 2
+/// confirmation, which the server needs for the route that opens the window; `window` is the
+/// adapter of that window and what its system can do.
 ///
 /// # Errors
 /// The same as [`command_api`], without the opening of the database.
@@ -179,8 +207,8 @@ pub fn command_api_over(
     config: &Config,
     (global, locations): (&GlobalOptions, &Locations),
     (events, secrets): (EventBus, Arc<Secrets>),
-    (runner, running): (Option<Arc<dyn IndexRunner>>, RunningScans),
-) -> Result<CommandApi, CodedError> {
+    ((runner, running), window): ((Option<Arc<dyn IndexRunner>>, RunningScans), Window),
+) -> Result<(CommandApi, Arc<ConfirmationDesk>), CodedError> {
     let runner = runner.unwrap_or_else(|| index_runner(locations));
     let indexers = indexer_check(locations, runner.clone())?;
     let tools = tool_checker(catalog, (locations, runner))?;
@@ -210,9 +238,33 @@ pub fn command_api_over(
     register_explorer(&mut registry, catalog, config.metrics.clone(), locations)?;
     register_preferences(&mut registry, locations)?;
     add(&mut registry, export_command(catalog, config, locations))?;
+    let desk = confirmation_desk(catalog, config, (global, locations), window);
+    register_level2(&mut registry, catalog, &desk)?;
     let mut api = CommandApi::new(Arc::new(registry));
     expose_all(&mut api)?;
-    Ok(api)
+    Ok((api, desk))
+}
+
+/// Registers the two commands of the level 2 switch (ADR 0071). Neither is an MCP tool.
+fn register_level2(
+    registry: &mut Registry,
+    catalog: &Arc<SqliteStore>,
+    desk: &Arc<ConfirmationDesk>,
+) -> Result<(), CodedError> {
+    add(
+        registry,
+        Level2StatusCommand {
+            desk: Arc::clone(desk),
+        },
+    )?;
+    add(
+        registry,
+        Level2Revoke {
+            projects: catalog.clone(),
+            store: catalog.clone(),
+            desk: Arc::clone(desk),
+        },
+    )
 }
 
 /// What the commands of annotations and alerts work through: the store, the checks of the texts
@@ -286,6 +338,8 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<RescanProject>()?;
     api.expose::<CheckTools>()?;
     api.expose::<ListIndexers>()?;
+    api.expose::<Level2StatusCommand>()?;
+    api.expose::<Level2Revoke>()?;
     api.expose::<CancelScan>()?;
     api.expose::<ListCredentials>()?;
     api.expose::<SetCredential>()?;
