@@ -1,6 +1,6 @@
 # 0071 – A level 2 switch in the projects screen: the server opens the console for the confirmation, revoking is one click
 
-Status: proposed (decision of the product owner Anton on the decision card cmsg_01BurfeyeHWcU615RsoB5poQT5ZHvQCebXqH6V5UNVNht4, 2026-11-18, option "switch opens console"; the ADR becomes accepted only when Anton sets it)
+Status: accepted (Anton, 2026-11-18 09:55:53 UTC, decision card cmsg_01BurfeyeHWcU615RsoB5poQQLEwLHUSb7bqsFhpJxbaDX "Annehmen"; the decision itself was made on card cmsg_01BurfeyeHWcU615RsoB5poQT5ZHvQCebXqH6V5UNVNht4, option "switch opens console")
 
 ## Context
 
