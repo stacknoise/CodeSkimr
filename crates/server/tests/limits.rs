@@ -12,6 +12,22 @@ use tokio::time::timeout;
 const UPGRADE: &str = "GET /api/v1/events HTTP/1.1\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n";
 const STREAM_CAP: usize = 16;
 const CONNECTION_CAP: usize = 256;
+const ACCEPT_GRACE: Duration = Duration::from_millis(200);
+
+/// Connects and gives the server a moment of real time to accept the connection.
+///
+/// The tests with a paused clock jump ahead as soon as the runtime has nothing to do. On macOS the
+/// accept of a fresh loopback connection can be reported a moment after the client side is
+/// connected, so the paused clock would already have run out the test's own deadline before the
+/// server had seen the connection. A blocking task keeps the clock from jumping meanwhile.
+#[cfg(test)]
+async fn connect(server: &Running) -> TcpStream {
+    let stream = TcpStream::connect(server.address).await.unwrap();
+    tokio::task::spawn_blocking(|| std::thread::sleep(ACCEPT_GRACE))
+        .await
+        .unwrap();
+    stream
+}
 
 /// The status line the server answers to `request`, or none if it closes without an answer.
 #[cfg(test)]
@@ -36,7 +52,7 @@ async fn until_closed(stream: &mut TcpStream, limit: Duration) -> Option<Vec<u8>
 
 #[cfg(test)]
 async fn open_stream(server: &Running) -> (TcpStream, Option<String>) {
-    let mut stream = TcpStream::connect(server.address).await.unwrap();
+    let mut stream = connect(server).await;
     let request = format!("{UPGRADE}Host: {}\r\n\r\n", server.address);
     let status = status_of(&mut stream, &request).await;
     (stream, status)
@@ -115,7 +131,7 @@ async fn a_stream_whose_client_never_answers_the_pings_is_closed() {
 #[tokio::test(start_paused = true)]
 async fn a_connection_without_a_single_byte_is_closed() {
     let server = start(owner()).await;
-    let mut stream = TcpStream::connect(server.address).await.unwrap();
+    let mut stream = connect(&server).await;
     let closed = until_closed(&mut stream, Duration::from_secs(60)).await;
     assert!(
         closed.is_some(),
@@ -126,7 +142,7 @@ async fn a_connection_without_a_single_byte_is_closed() {
 #[tokio::test(start_paused = true)]
 async fn a_head_that_never_ends_closes_the_connection() {
     let server = start(owner()).await;
-    let mut stream = TcpStream::connect(server.address).await.unwrap();
+    let mut stream = connect(&server).await;
     stream
         .write_all(b"GET /api/v1/commands HTTP/1.1\r\nHost: ")
         .await
@@ -138,7 +154,7 @@ async fn a_head_that_never_ends_closes_the_connection() {
 /// The answer to a POST to `path` whose body stops after two bytes and never ends.
 #[cfg(test)]
 async fn answer_to_stalled_body(server: &Running, path: &str) -> String {
-    let mut stream = TcpStream::connect(server.address).await.unwrap();
+    let mut stream = connect(server).await;
     let head = format!(
         "POST {path} HTTP/1.1\r\nHost: {}\r\nAuthorization: Bearer {TOKEN}\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{{\"",
         server.address
@@ -209,7 +225,7 @@ async fn an_mcp_body_that_never_ends_is_answered_with_a_timeout_code() {
 #[tokio::test(start_paused = true)]
 async fn an_mcp_body_without_the_token_is_not_read_at_all() {
     let server = common::start_mcp(owner()).await;
-    let mut stream = TcpStream::connect(server.address).await.unwrap();
+    let mut stream = connect(&server).await;
     let head = format!(
         "POST /mcp HTTP/1.1\r\nHost: {}\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{{\"",
         server.address
@@ -227,7 +243,7 @@ async fn post_answer(
     (length, sent): (usize, &str),
     leave: bool,
 ) -> String {
-    let mut stream = TcpStream::connect(server.address).await.unwrap();
+    let mut stream = connect(server).await;
     let head = format!(
         "POST {path} HTTP/1.1\r\nHost: {}\r\nAuthorization: Bearer {TOKEN}\r\nContent-Type: application/json\r\nContent-Length: {length}\r\n\r\n{sent}",
         server.address
