@@ -65,6 +65,19 @@ afterEach(() => {
   resetLevel2();
 });
 
+const FAKE_TIMERS = ["setInterval", "clearInterval", "setTimeout", "clearTimeout", "Date"] as const;
+
+/** Switches on, lets the longest wait pass and expects the notice "not confirmed" with a free switch. */
+async function waitUntilTimedOut(toggle: () => HTMLElement): Promise<void> {
+  vi.useFakeTimers({ toFake: [...FAKE_TIMERS] });
+  fireEvent.click(toggle());
+  await screen.findByText("Finish the confirmation in the console window");
+  await vi.advanceTimersByTimeAsync(301_000);
+  expect(await screen.findByText(/did not arrive/)).toBeInTheDocument();
+  expect(screen.getByText(/You can try again/)).toBeInTheDocument();
+  expect(toggle()).toHaveAttribute("aria-disabled", "false");
+}
+
 /** Shows the screen with the project selected, so that its level 2 section is there. */
 async function theSwitch(): Promise<() => HTMLElement> {
   // The list is read again after the first render, which replaces the row: ask for the switch
@@ -121,16 +134,7 @@ describe("the level 2 switch: switching on", () => {
 
   it("stops asking after the longest wait and offers to switch on again", async () => {
     fake(WINDOW);
-    const toggle = await loaded();
-    vi.useFakeTimers({
-      toFake: ["setInterval", "clearInterval", "setTimeout", "clearTimeout", "Date"],
-    });
-    fireEvent.click(toggle());
-    await screen.findByText("Finish the confirmation in the console window");
-    await vi.advanceTimersByTimeAsync(301_000);
-    expect(await screen.findByText(/did not arrive/)).toBeInTheDocument();
-    expect(screen.getByText(/You can try again/)).toBeInTheDocument();
-    expect(toggle()).toHaveAttribute("aria-disabled", "false");
+    await waitUntilTimedOut(await loaded());
   });
 
   it("ends the wait even when the question for the state never gets an answer", async () => {
@@ -142,14 +146,7 @@ describe("the level 2 switch: switching on", () => {
         ? new Promise<Response>(() => undefined)
         : answerStatus?.(path),
     );
-    vi.useFakeTimers({
-      toFake: ["setInterval", "clearInterval", "setTimeout", "clearTimeout", "Date"],
-    });
-    fireEvent.click(toggle());
-    await screen.findByText("Finish the confirmation in the console window");
-    await vi.advanceTimersByTimeAsync(301_000);
-    expect(await screen.findByText(/did not arrive/)).toBeInTheDocument();
-    expect(toggle()).toHaveAttribute("aria-disabled", "false");
+    await waitUntilTimedOut(toggle);
   });
 
   it("cancels the wait: the notice goes, the asking stops and the switch is free", async () => {
@@ -165,9 +162,7 @@ describe("the level 2 switch: switching on", () => {
     expect(toggle()).toHaveAttribute("aria-disabled", "false");
     expect(toggle()).toHaveFocus();
     const asked = fetchMock.mock.calls.length;
-    vi.useFakeTimers({
-      toFake: ["setInterval", "clearInterval", "setTimeout", "clearTimeout", "Date"],
-    });
+    vi.useFakeTimers({ toFake: [...FAKE_TIMERS] });
     await vi.advanceTimersByTimeAsync(10 * POLL_MS);
     expect(fetchMock.mock.calls.length).toBe(asked);
     fireEvent.click(toggle());
