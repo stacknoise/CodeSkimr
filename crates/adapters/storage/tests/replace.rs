@@ -361,3 +361,41 @@ fn a_replacement_with_bad_symbols_changes_nothing() {
     assert_eq!(symbols_of_index(&store), []);
     assert_eq!(stored(&store), [(91, false), (92, false)]);
 }
+
+/// What the newest snapshot says about the direct users of `symbol`: `(from, verified)`.
+#[cfg(test)]
+fn verified_users_of(
+    store: &codeskimr_storage::SqliteStore,
+    snapshot: u64,
+    symbol: u64,
+) -> Vec<(u64, bool)> {
+    let query = UsageQuery {
+        symbol: SymbolId::new(symbol),
+        direction: Direction::Incoming,
+        depth: 1,
+        include_tests: true,
+    };
+    let page = store.usages(SnapshotId::new(snapshot), &query, 10).unwrap();
+    page.entries
+        .iter()
+        .map(|e| (e.from.id.get(), e.reference.verified))
+        .collect()
+}
+
+/// Level 2 ran, then the UI rescanned (an incremental scan, level 1 only): the verified usage of an
+/// unchanged file stays verified in the newest snapshot, and a usage that level 2 never checked
+/// stays unchecked.
+#[test]
+fn a_later_incremental_scan_keeps_the_verified_usages_of_unchanged_files() {
+    let store = registered();
+    store
+        .replace_level2(replacement(&[71], vec![verified(900, 71, 82, 83)]))
+        .unwrap();
+    assert_eq!(verified_users_of(&store, SNAPSHOT, 83), [(82, true)]);
+    let mut next = data(header(20, ScanMode::Incremental));
+    next.files = vec![file(20, 73, "gamma.cs", "h-gamma")];
+    store.persist(next).unwrap();
+    assert_eq!(verified_users_of(&store, 20, 83), [(82, true)]);
+    // The reference of `beta.cs` was never checked by level 2.
+    assert_eq!(verified_users_of(&store, 20, 81), [(84, false)]);
+}
