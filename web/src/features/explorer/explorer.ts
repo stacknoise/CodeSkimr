@@ -1,6 +1,11 @@
 import { createSignal } from "solid-js";
 import { runCommand } from "../../shared/api/commands";
-import { pendingFocus, requestFocus, type RowFocus } from "../../shared/navigation/navigation";
+import {
+  pendingFocus,
+  requestFocus,
+  type RowFocus,
+  type TypeFocus,
+} from "../../shared/navigation/navigation";
 import { CHIP, COMMAND, GROUP, NOT_FOUND, TYPE_KINDS, type ChipId } from "./consts";
 import { failed, type Failure } from "./failure";
 import { INITIAL_SORT, tableRows, type MemberSort } from "./memberSort";
@@ -40,6 +45,17 @@ export const treeOutline = outline;
 export const outlineError = outlineFailure;
 /** The failure of reading one symbol. The tree stays; the details show the message. */
 export const symbolError = symbolFailure;
+/** Where the explorer is now, as a focus the way back from another screen can lead to: the type
+ * with the table of its members, or the member that is shown. `null` without a type. */
+export function explorerPlace(): TypeFocus | null {
+  const type = selectedType();
+  const member = selectedMember();
+  if (type === null) {
+    return null;
+  }
+  return { type, member, kind: member === null ? null : (details().get(member)?.kind ?? null) };
+}
+
 /** Whether the tree is being read. */
 export const outlineLoading = loading;
 /** The symbols read so far, by id. */

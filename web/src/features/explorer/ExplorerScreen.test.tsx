@@ -10,7 +10,7 @@ import { openOrder, ORDER, OUTLINE } from "../../tests/explorer";
 import { currentMember, forgetExplorer, setMemberSort, treeScroll } from "./explorer";
 import { INITIAL_SORT } from "./memberSort";
 import { ExplorerScreen } from "./ExplorerScreen";
-import { requestFocus } from "../../shared/navigation/navigation";
+import { originPlace, requestFocus } from "../../shared/navigation/navigation";
 
 useServerSession();
 afterEach(() => {
@@ -317,6 +317,16 @@ describe("a navigation from another screen", () => {
     renderOrder();
     expect(await screen.findByRole("heading", { name: "Order" })).toBeTruthy();
     expect(within(screen.getByRole("tree")).getByText("Sales")).toBeTruthy();
+  });
+});
+
+describe("a jump to the usages", () => {
+  it("remembers the table of the members as the place to come back to", async () => {
+    renderOrder();
+    await openOrder();
+    await screen.findByText("decimal Total()");
+    fireEvent.click(screen.getAllByTitle(/usages/i)[0]!);
+    expect(originPlace()).toEqual({ type: 7, member: null, kind: null });
   });
 });
 

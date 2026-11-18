@@ -20,6 +20,7 @@ export type Focus = TypeFocus | RowFocus;
 const [pending, setPending] = createSignal<Focus | null>(null);
 const [usagesSymbol, setUsagesSymbol] = createSignal<number | null>(null);
 const [usagesOrigin, setUsagesOrigin] = createSignal<number | null>(null);
+const [usagesBack, setUsagesBack] = createSignal<TypeFocus | null>(null);
 
 /** The place the explorer has to show next, `null` if none is asked for. */
 export const pendingFocus = pending;
@@ -33,12 +34,20 @@ export const setFocusSymbol = setUsagesSymbol;
 /** The symbol the user left the explorer from to reach the usages screen; the way back leads to
  * it, however far the user moved through the graph meanwhile. `null` until one is chosen. */
 export const originSymbol = usagesOrigin;
-/** Forgets the symbol the way back leads to. */
-export const clearOrigin = () => setUsagesOrigin(null);
+/** The place of the explorer the user left, as it was (the table of the members of a type, or one
+ * member); the way back leads exactly there. `null` if the explorer did not say. */
+export const originPlace = usagesBack;
+/** Forgets the symbol and the place the way back leads to. */
+export function clearOrigin(): void {
+  setUsagesOrigin(null);
+  setUsagesBack(null);
+}
 
-/** Shows the usages of a symbol from the explorer; the symbol is where the way back leads to. */
-export function showUsages(symbol: number): void {
+/** Shows the usages of a symbol from the explorer; the symbol is where the way back leads to,
+ * unless `back` names the exact place the explorer was at. */
+export function showUsages(symbol: number, back: TypeFocus | null = null): void {
   setUsagesOrigin(symbol);
+  setUsagesBack(back);
   setUsagesSymbol(symbol);
   navigate(USAGES_ROUTE.path);
 }

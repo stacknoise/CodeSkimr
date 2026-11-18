@@ -23,15 +23,32 @@ describe("highlightOf", () => {
     expect(graph.cards.some((card) => !highlight.related(card.place.id))).toBe(true);
   });
 
-  it("follows the paths over all depths, but not into a side branch", () => {
+  it("follows the paths over all depths up to the focus, and not past it", () => {
     const page = graph.cards.find((card) => card.place.qualified_name === "Shop.Ui.Page.Open")!;
     const highlight = highlightOf(graph, page.place.id);
     expect(highlight.related(VIEW.id)).toBe(true);
     expect(highlight.related(FOCUS.id)).toBe(true);
-    expect(highlight.related(PRICE.id)).toBe(true);
+    expect(highlight.related(PRICE.id)).toBe(false);
     expect(highlight.related(HANDLER.id)).toBe(false);
+    const outgoing = graph.edges.find((edge) => edge.to === PRICE.id)!;
+    expect(highlight.lit(outgoing)).toBe(false);
     const handlerEdge = graph.edges.find((edge) => edge.from === HANDLER.id)!;
     expect(highlight.lit(handlerEdge)).toBe(false);
+  });
+
+  it("does not light the callers when a card that is called is picked", () => {
+    const highlight = highlightOf(graph, PRICE.id);
+    expect(highlight.related(FOCUS.id)).toBe(true);
+    expect(highlight.related(VIEW.id)).toBe(false);
+    expect(highlight.related(HANDLER.id)).toBe(false);
+    expect(graph.edges.filter(highlight.lit)).toHaveLength(1);
+  });
+
+  it("lights both sides when the focus is picked", () => {
+    const highlight = highlightOf(graph, FOCUS.id);
+    expect(highlight.related(VIEW.id)).toBe(true);
+    expect(highlight.related(PRICE.id)).toBe(true);
+    expect(graph.edges.every(highlight.lit)).toBe(true);
   });
 
   it("ignores a symbol that is not in the graph", () => {

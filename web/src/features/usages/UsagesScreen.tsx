@@ -12,7 +12,7 @@ import { HitList } from "./HitList";
 import { hitsHeight, panelWidth } from "./layout";
 import { listedHits, listedPlace } from "./hits";
 import { nextHit, useUsagesKeys } from "./keys";
-import { moveUsages, originSymbol } from "../../shared/navigation/navigation";
+import { moveUsages, originPlace, originSymbol } from "../../shared/navigation/navigation";
 import { SidePanel } from "./SidePanel";
 import { Toolbar } from "./Toolbar";
 import type { Hit, UsagesAnswer } from "./types";
@@ -25,6 +25,7 @@ import {
   loadUsages,
   openInExplorer,
   openOriginInExplorer,
+  openPlaceInExplorer,
   previewAnswer,
   selectedHit,
   setSelectedHit,
@@ -93,7 +94,10 @@ function useBack(open: (place: Hit["from"]) => void, focus: Hit["from"]): () => 
   return () => {
     const project = activeProject();
     const origin = originSymbol();
-    if (project !== null && origin !== null) {
+    const place = originPlace();
+    if (place !== null) {
+      openPlaceInExplorer(place);
+    } else if (project !== null && origin !== null) {
       void openOriginInExplorer(project, origin);
     } else {
       open(focus);

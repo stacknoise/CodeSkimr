@@ -7,6 +7,7 @@ import {
   focusSymbol,
   requestFocus,
   setFocusSymbol,
+  type TypeFocus,
 } from "../../shared/navigation/navigation";
 import { COMMAND, TYPE_KINDS } from "../explorer/consts";
 import { failed, type Failure } from "../explorer/failure";
@@ -160,6 +161,13 @@ export async function openInExplorer(project: number, place: Place): Promise<voi
     const owner = holder?.id ?? place.id;
     requestFocus({ type: owner, member: owner === place.id ? null : place.id, kind: place.kind });
   }
+  navigate(EXPLORER_ROUTE.path);
+}
+
+/** Shows the exact place the user left the explorer from: the table of the members of a type, or
+ * one member. */
+export function openPlaceInExplorer(place: TypeFocus): void {
+  requestFocus(place);
   navigate(EXPLORER_ROUTE.path);
 }
 

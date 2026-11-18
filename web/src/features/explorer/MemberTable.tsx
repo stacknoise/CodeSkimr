@@ -21,7 +21,14 @@ import {
   TRUE,
   type ChipId,
 } from "./consts";
-import { currentMember, memberChip, memberSort, setMemberChip, setMemberSort } from "./explorer";
+import {
+  currentMember,
+  explorerPlace,
+  memberChip,
+  memberSort,
+  setMemberChip,
+  setMemberSort,
+} from "./explorer";
 import { memberTarget } from "./annotate";
 import { lineRange, metricValue } from "./format";
 import { KindBadge } from "./KindBadge";
@@ -106,7 +113,7 @@ function MeasureCells(props: { row: MemberRow }) {
           type="button"
           class={styles.uses}
           title={t(I18N_KEYS.EXPLORER_USES_OPEN)}
-          onClick={() => showUsages(row().id)}
+          onClick={() => showUsages(row().id, explorerPlace())}
         >
           {metricValue(row().usages, currentLanguage())}
         </button>
