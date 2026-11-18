@@ -86,11 +86,7 @@ function Explain(props: { view: Level2View }) {
             <Show when={known().state === LEVEL2_STATE.notEnabled}>
               <p class={styles.text}>{t(I18N_KEYS.PROJECTS_LEVEL2_EXPLAIN_NOT_ENABLED)}</p>
               <pre class={styles.snippet}>{LEVEL2_CONFIG_SNIPPET}</pre>
-              <Show when={known().config_path} keyed>
-                {(path) => (
-                  <p class={styles.path}>{t(I18N_KEYS.PROJECTS_LEVEL2_CONFIG_FILE, { path })}</p>
-                )}
-              </Show>
+              <p class={styles.path}>{t(I18N_KEYS.PROJECTS_LEVEL2_CONFIG_FILE)}</p>
             </Show>
           </>
         )}

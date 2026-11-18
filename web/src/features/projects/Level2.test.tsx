@@ -149,6 +149,22 @@ describe("the level 2 switch: switching on", () => {
     expect(alert).toHaveTextContent("Wait 30 seconds");
     expect(screen.queryByText("Finish the confirmation in the console window")).toBeNull();
   });
+
+  it("goes by the code in the body, not by the status (CFG-105 as 409)", async () => {
+    const server = fake(WINDOW, () => answer({ code: "CFG-105" }, 409));
+    fireEvent.click((await loaded())());
+    expect(await screen.findByRole("alert")).toHaveTextContent("not switched on");
+    expect(server.confirms).toBe(1);
+    expect(screen.queryByText(/Wait 30 seconds/)).toBeNull();
+  });
+
+  it("does not treat a 429 without the known code as a pause (API-504 only by code)", async () => {
+    fake(WINDOW, () => answer({ code: "APP-604" }, 429));
+    fireEvent.click((await loaded())());
+    expect(await screen.findByRole("alert")).toHaveTextContent("could not be started");
+    expect(screen.queryByText(/Wait 30 seconds/)).toBeNull();
+    expect(screen.getByText(`codeskimr level2 confirm ${ROW.id}`)).toBeVisible();
+  });
 });
 
 describe("the level 2 switch: switching off", () => {
@@ -188,13 +204,13 @@ describe("the level 2 switch: states that cannot be switched on", () => {
       state: "not_enabled",
       confirmed: false,
       launch: "window",
-      config_path: "/home/me/.config/codeskimr/config.toml",
     });
     render(() => <ProjectsScreen />);
     const toggle = await theSwitch();
     await waitFor(() => expect(screen.getByText(/never changes this setting/)).toBeVisible());
     expect(screen.getByText(/\[level2\]/)).toHaveTextContent("enabled = true");
-    expect(screen.getByText(/config\.toml$/)).toBeVisible();
+    expect(screen.getByText("File: in your config.toml in the data folder")).toBeVisible();
+    expect(screen.queryByText(/\/home\/me/)).toBeNull();
     expect(toggle()).toHaveAttribute("aria-disabled", "true");
     fireEvent.click(toggle());
     expect(server.confirms).toBe(0);

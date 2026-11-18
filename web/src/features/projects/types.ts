@@ -82,8 +82,6 @@ export interface Level2Status {
   confirmed: boolean;
   /** `window` if the server can open the console window, `copy` if the screen shows the command. */
   launch: "window" | "copy";
-  /** The user configuration file, for the hint of `not_enabled`. */
-  config_path?: string | null;
 }
 
 /** The answer of `POST /api/v1/level2/confirm-window`. */
