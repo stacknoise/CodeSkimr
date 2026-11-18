@@ -98,6 +98,5 @@ export const STATUS_DOT = "●";
 export const FLUSH_PATHS: readonly string[] = [
   EXPLORER_ROUTE.path,
   GRAPH_ROUTE.path,
-  ANNOTATIONS_ROUTE.path,
   USAGES_ROUTE.path,
 ];
