@@ -65,6 +65,24 @@ afterEach(() => {
   resetLevel2();
 });
 
+const FAKE_TIMERS = ["setInterval", "clearInterval", "setTimeout", "clearTimeout", "Date"] as const;
+
+/** Switches on, puts the focus where `focusOn` says, lets the longest wait pass and expects the
+ * notice "not confirmed" with a free switch. */
+async function waitUntilTimedOut(
+  toggle: () => HTMLElement,
+  focusOn: () => HTMLElement = () => screen.getByRole("button", { name: "Cancel waiting" }),
+): Promise<void> {
+  vi.useFakeTimers({ toFake: [...FAKE_TIMERS] });
+  fireEvent.click(toggle());
+  await screen.findByText("Finish the confirmation in the console window");
+  focusOn().focus();
+  await vi.advanceTimersByTimeAsync(301_000);
+  expect(await screen.findByText(/did not arrive/)).toBeInTheDocument();
+  expect(screen.getByText(/You can try again/)).toBeInTheDocument();
+  expect(toggle()).toHaveAttribute("aria-disabled", "false");
+}
+
 /** Shows the screen with the project selected, so that its level 2 section is there. */
 async function theSwitch(): Promise<() => HTMLElement> {
   // The list is read again after the first render, which replaces the row: ask for the switch
@@ -122,11 +140,78 @@ describe("the level 2 switch: switching on", () => {
   it("stops asking after the longest wait and offers to switch on again", async () => {
     fake(WINDOW);
     const toggle = await loaded();
-    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval", "Date"] });
+    await waitUntilTimedOut(toggle);
+    expect(toggle()).toHaveFocus();
+  });
+
+  it("keeps the focus where the person is typing when the wait times out", async () => {
+    fake(WINDOW);
+    const toggle = await loaded();
+    const field = document.body.appendChild(document.createElement("input"));
+    await waitUntilTimedOut(toggle, () => field);
+    expect(field).toHaveFocus();
+    field.remove();
+  });
+
+  it("puts the focus on the switch when it was on the switch itself", async () => {
+    fake(WINDOW);
+    const toggle = await loaded();
+    await waitUntilTimedOut(toggle, toggle);
+    expect(toggle()).toHaveFocus();
+  });
+
+  it("ends the wait even when the question for the state never gets an answer", async () => {
+    const server = fake(WINDOW);
+    const toggle = await loaded();
+    const answerStatus = fetchMock.getMockImplementation();
+    fetchMock.mockImplementation((path: string) =>
+      path.endsWith("level2.status") && server.confirms > 0
+        ? new Promise<Response>(() => undefined)
+        : answerStatus?.(path),
+    );
+    await waitUntilTimedOut(toggle);
+    expect(toggle()).toHaveFocus();
+  });
+
+  it("cancels the wait: the notice goes, the asking stops and the switch is free", async () => {
+    const server = fake(WINDOW);
+    const toggle = await loaded();
     fireEvent.click(toggle());
     await screen.findByText("Finish the confirmation in the console window");
-    await vi.advanceTimersByTimeAsync(301_000);
-    expect(await screen.findByText(/did not arrive/)).toBeInTheDocument();
+    expect(screen.getByText(/pause of 30 seconds applies/)).toBeInTheDocument();
+    expect(toggle()).toHaveAttribute("aria-disabled", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Cancel waiting" }));
+    expect(screen.queryByText("Finish the confirmation in the console window")).toBeNull();
+    expect(screen.getByText(/Waiting ended/)).toBeInTheDocument();
+    expect(toggle()).toHaveAttribute("aria-disabled", "false");
+    expect(toggle()).toHaveFocus();
+    const asked = fetchMock.mock.calls.length;
+    vi.useFakeTimers({ toFake: [...FAKE_TIMERS] });
+    await vi.advanceTimersByTimeAsync(10 * POLL_MS);
+    expect(fetchMock.mock.calls.length).toBe(asked);
+    fireEvent.click(toggle());
+    await screen.findByText("Finish the confirmation in the console window");
+    expect(server.confirms).toBe(2);
+  });
+
+  it("cancels the wait with Escape while the focus is on the switch", async () => {
+    fake(WINDOW);
+    const toggle = await loaded();
+    fireEvent.click(toggle());
+    await screen.findByText("Finish the confirmation in the console window");
+    toggle().focus();
+    fireEvent.keyDown(toggle(), { key: "Escape" });
+    expect(screen.getByText(/Waiting ended/)).toBeInTheDocument();
+    expect(toggle()).toHaveFocus();
+  });
+
+  it("cancels the wait with Escape", async () => {
+    fake(WINDOW);
+    const toggle = await loaded();
+    fireEvent.click(toggle());
+    const title = await screen.findByText("Finish the confirmation in the console window");
+    fireEvent.keyDown(title, { key: "Escape" });
+    expect(screen.getByText(/Waiting ended/)).toBeInTheDocument();
     expect(toggle()).toHaveAttribute("aria-disabled", "false");
   });
 

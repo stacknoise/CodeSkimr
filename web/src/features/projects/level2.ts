@@ -6,13 +6,16 @@ import { uiConfig } from "../../shared/settings/ui-config";
 import {
   CONFIRM_COMMAND_PREFIX,
   CONFIRM_WINDOW_PATH,
+  ESCAPE_KEY,
   LAUNCH,
   LEVEL2_COMMAND,
+  LEVEL2_PANEL_ID_PREFIX,
   LEVEL2_ERROR,
   LEVEL2_PHASE,
   LEVEL2_POLL_MAX_SECONDS,
   LEVEL2_POLL_SECONDS,
   LEVEL2_STATE,
+  LEVEL2_SWITCH_ID_PREFIX,
   MS_PER_SECOND,
 } from "./consts";
 import { failed, type Failure } from "./projects";
@@ -39,6 +42,7 @@ const EMPTY: Level2View = {
 
 const [views, setViews] = createSignal<ReadonlyMap<number, Level2View>>(new Map());
 const timers = new Map<number, ReturnType<typeof setInterval>>();
+const deadlines = new Map<number, ReturnType<typeof setTimeout>>();
 
 /** Forgets everything about the switches and stops all waiting (a new session, or a test). */
 export function resetLevel2(): void {
@@ -76,6 +80,8 @@ export async function loadLevel2(project: number): Promise<Level2Status | null> 
 function stopPolling(project: number): void {
   clearInterval(timers.get(project));
   timers.delete(project);
+  clearTimeout(deadlines.get(project));
+  deadlines.delete(project);
 }
 
 function pollSetting(value: number | undefined, fallback: number): number {
@@ -83,12 +89,13 @@ function pollSetting(value: number | undefined, fallback: number): number {
 }
 
 /** Asks for the state until the confirmation arrived, or until the time is up. The page never
- * learns the result in any other way: the consent is typed in the console, not here. */
+ * learns the result in any other way: the consent is typed in the console, not here. The end of
+ * the time is its own timer, so that a request that never answers cannot keep the wait alive. */
 function watchConfirmation(project: number): void {
   stopPolling(project);
   const config = uiConfig();
   const every = pollSetting(config?.level2_poll_seconds, LEVEL2_POLL_SECONDS);
-  const until = Date.now() + pollSetting(config?.level2_poll_max_seconds, LEVEL2_POLL_MAX_SECONDS);
+  const limit = pollSetting(config?.level2_poll_max_seconds, LEVEL2_POLL_MAX_SECONDS);
   timers.set(
     project,
     setInterval(() => {
@@ -96,13 +103,50 @@ function watchConfirmation(project: number): void {
         if (status?.state === LEVEL2_STATE.on) {
           stopPolling(project);
           patch(project, { phase: LEVEL2_PHASE.idle, command: null, openedAt: null });
-        } else if (Date.now() >= until) {
-          stopPolling(project);
-          patch(project, { phase: LEVEL2_PHASE.timedOut });
         }
       });
     }, every),
   );
+  deadlines.set(
+    project,
+    setTimeout(() => {
+      stopPolling(project);
+      const lost = focusWouldBeLost(project);
+      patch(project, { phase: LEVEL2_PHASE.timedOut });
+      if (lost) {
+        focusSwitch(project);
+      }
+    }, limit),
+  );
+}
+
+/** Puts the focus on the switch of the project, so that it is not lost when a notice goes. */
+export function focusSwitch(project: number): void {
+  document.getElementById(`${LEVEL2_SWITCH_ID_PREFIX}${project}`)?.focus();
+}
+
+/** Whether the focus is nowhere (on the page) or inside the level 2 section of the project, which
+ * is where it would be lost when the notice goes. A person typing elsewhere keeps the focus. */
+function focusWouldBeLost(project: number): boolean {
+  const active = document.activeElement;
+  const panel = document.getElementById(`${LEVEL2_PANEL_ID_PREFIX}${project}`);
+  return active === null || active === document.body || (panel?.contains(active) ?? false);
+}
+
+/** Ends the waiting for the console window: nothing was confirmed, the switch is free again. The
+ * page cannot see that the window was closed, so this is the way out for the user. */
+export function cancelWaiting(project: number): void {
+  stopPolling(project);
+  patch(project, { phase: LEVEL2_PHASE.cancelled, command: null, openedAt: null, failure: null });
+  focusSwitch(project);
+}
+
+/** Escape ends the waiting, wherever the focus is (on the switch or in the section). */
+export function escapeWaiting(project: number, event: KeyboardEvent): void {
+  if (event.key === ESCAPE_KEY && level2Of(project).phase === LEVEL2_PHASE.waiting) {
+    event.stopPropagation();
+    cancelWaiting(project);
+  }
 }
 
 /** Shows the command to copy; `failure` says why the window did not open, if it was tried. */

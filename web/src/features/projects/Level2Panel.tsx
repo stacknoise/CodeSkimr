@@ -1,5 +1,5 @@
 import { createSignal, onMount, Show } from "solid-js";
-import { currentLanguage, t } from "../../shared/i18n/i18n";
+import { currentLanguage, t, type MessageKey } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import {
   COPIED_MS,
@@ -7,16 +7,19 @@ import {
   LEVEL2_COOLDOWN_SECONDS,
   LEVEL2_CONFIG_SNIPPET,
   LEVEL2_ERROR,
+  LEVEL2_PANEL_ID_PREFIX,
   LEVEL2_PHASE,
   LEVEL2_STATE,
-  LEVEL2_SWITCH_ID_PREFIX,
 } from "./consts";
 import { failureText } from "./failure";
 import { clock } from "./format";
 import {
   askRevoke,
   cancelRevoke,
+  cancelWaiting,
   dismissRevoked,
+  escapeWaiting,
+  focusSwitch,
   level2Of,
   loadLevel2,
   switchOff,
@@ -28,11 +31,6 @@ import { isChecked, stateLook } from "./Level2Switch";
 import { Pill } from "../../shared/ui/Pill";
 import type { ProjectRow } from "./types";
 import styles from "./Level2Panel.module.css";
-
-/** Puts the focus back on the switch of the project (after a question was answered). */
-function focusSwitch(project: number): void {
-  document.getElementById(`${LEVEL2_SWITCH_ID_PREFIX}${project}`)?.focus();
-}
 
 /** The command of the terminal, with a button that copies it (the fallback of ADR 0071,
  * decision 6). */
@@ -136,11 +134,11 @@ function RevokeAsk(props: { row: ProjectRow }) {
   );
 }
 
-/** The window is open, or the command waits in the terminal of the user. */
-function Waiting(props: { row: ProjectRow; view: Level2View }) {
+/** What was started: the console window that is open, or the command that waits in the terminal. */
+function WaitingWhat(props: { row: ProjectRow; view: Level2View }) {
   const command = () => props.view.command;
   return (
-    <div class={styles.notice}>
+    <>
       <strong>
         {command() === null
           ? t(I18N_KEYS.PROJECTS_LEVEL2_WAITING_TITLE)
@@ -163,7 +161,25 @@ function Waiting(props: { row: ProjectRow; view: Level2View }) {
           </>
         )}
       </Show>
+    </>
+  );
+}
+
+/** The window is open, or the command waits in the terminal of the user. The page cannot see that
+ * the window was closed, so "Cancel waiting" (or Escape) is the way out before the time is up. */
+function Waiting(props: { row: ProjectRow; view: Level2View }) {
+  return (
+    <div class={styles.notice}>
+      <WaitingWhat row={props.row} view={props.view} />
       <p class={styles.waiting}>{t(I18N_KEYS.PROJECTS_LEVEL2_WAITING_STATE)}</p>
+      <p class={styles.waiting}>
+        {t(I18N_KEYS.PROJECTS_LEVEL2_WAITING_PAUSE, { seconds: LEVEL2_COOLDOWN_SECONDS })}
+      </p>
+      <div class={styles.buttons}>
+        <button type="button" class={styles.button} onClick={() => cancelWaiting(props.row.id)}>
+          {t(I18N_KEYS.PROJECTS_LEVEL2_WAITING_CANCEL)}
+        </button>
+      </div>
     </div>
   );
 }
@@ -214,6 +230,7 @@ function Actions(props: { row: ProjectRow; view: Level2View }) {
   const idle = () =>
     props.view.phase === LEVEL2_PHASE.idle ||
     props.view.phase === LEVEL2_PHASE.timedOut ||
+    props.view.phase === LEVEL2_PHASE.cancelled ||
     props.view.phase === LEVEL2_PHASE.revoked;
   return (
     <div class={styles.buttons}>
@@ -243,6 +260,21 @@ function Actions(props: { row: ProjectRow; view: Level2View }) {
   );
 }
 
+/** The phases in which the explanation and the actions of the state are shown. */
+const SETTLED: readonly string[] = [
+  LEVEL2_PHASE.idle,
+  LEVEL2_PHASE.timedOut,
+  LEVEL2_PHASE.cancelled,
+];
+
+/** The one-line notices of the phases that need nothing but words. */
+const NOTE: Readonly<Record<string, MessageKey | undefined>> = {
+  [LEVEL2_PHASE.opening]: I18N_KEYS.PROJECTS_LEVEL2_OPENING,
+  [LEVEL2_PHASE.revoking]: I18N_KEYS.PROJECTS_LEVEL2_REVOKING,
+  [LEVEL2_PHASE.timedOut]: I18N_KEYS.PROJECTS_LEVEL2_TIMED_OUT,
+  [LEVEL2_PHASE.cancelled]: I18N_KEYS.PROJECTS_LEVEL2_CANCELLED,
+};
+
 /** The level 2 section of the selected project: the state in words, what the next click does, the
  * waiting for the console window, the command to copy where no window can open, and errors
  * (ADR 0071). Announced to screen readers as a status region. */
@@ -252,24 +284,20 @@ export function Level2Panel(props: { row: ProjectRow }) {
   return (
     <section
       class={styles.panel}
+      id={`${LEVEL2_PANEL_ID_PREFIX}${props.row.id}`}
       aria-label={t(I18N_KEYS.PROJECTS_LEVEL2_TITLE, { name: props.row.name })}
+      onKeyDown={(event) => escapeWaiting(props.row.id, event)}
     >
       <header class={styles.header}>
         <h2>{t(I18N_KEYS.PROJECTS_LEVEL2_TITLE, { name: props.row.name })}</h2>
         <Pill tone={stateLook(view()).tone}>{t(stateLook(view()).text)}</Pill>
       </header>
       <div aria-live="polite" class={styles.live}>
-        <Show when={phase() === LEVEL2_PHASE.opening}>
-          <p class={styles.text}>{t(I18N_KEYS.PROJECTS_LEVEL2_OPENING)}</p>
-        </Show>
-        <Show when={phase() === LEVEL2_PHASE.revoking}>
-          <p class={styles.text}>{t(I18N_KEYS.PROJECTS_LEVEL2_REVOKING)}</p>
+        <Show when={NOTE[phase()]} keyed>
+          {(note) => <p class={styles.text}>{t(note)}</p>}
         </Show>
         <Show when={phase() === LEVEL2_PHASE.waiting}>
           <Waiting row={props.row} view={view()} />
-        </Show>
-        <Show when={phase() === LEVEL2_PHASE.timedOut}>
-          <p class={styles.text}>{t(I18N_KEYS.PROJECTS_LEVEL2_TIMED_OUT)}</p>
         </Show>
         <Show when={phase() === LEVEL2_PHASE.revoked}>
           <Revoked row={props.row} />
@@ -279,7 +307,7 @@ export function Level2Panel(props: { row: ProjectRow }) {
       <Show when={phase() === LEVEL2_PHASE.askRevoke}>
         <RevokeAsk row={props.row} />
       </Show>
-      <Show when={phase() === LEVEL2_PHASE.idle || phase() === LEVEL2_PHASE.timedOut}>
+      <Show when={SETTLED.includes(phase())}>
         <Explain view={view()} />
         <Actions row={props.row} view={view()} />
       </Show>
