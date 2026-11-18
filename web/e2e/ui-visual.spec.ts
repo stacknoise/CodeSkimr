@@ -14,6 +14,7 @@ import type { Page } from "@playwright/test";
 import {
   addLayeredProject,
   addScannedProject,
+  openScannedProject,
   expect,
   keepLaunchFile,
   SCAN_MS,
@@ -282,7 +283,7 @@ for (const theme of THEMES) {
 
     test("Scan and performance (5)", async ({ page, harness }, info) => {
       await prepare(page, theme);
-      await addScannedProject(page, harness, `visscan${theme}`, SOURCE);
+      await openScannedProject(page, harness, `visscan${theme}`, SOURCE);
       await page.getByRole("link", { name: "Scans and performance" }).click();
       await expect(page.getByRole("heading", { name: "Scan finished" })).toBeVisible();
       const mock = await openMock(page, "Scan");
