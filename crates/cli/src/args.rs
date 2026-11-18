@@ -1,6 +1,11 @@
 //! What the command line asks for, free of any parser type.
 
+use std::ffi::OsString;
 use std::path::PathBuf;
+
+use crate::consts::{
+    ARG_CONFIG, ARG_DATA_DIR, ARG_LANGUAGES, ARG_SET, LONG_FLAG_PREFIX, OVERRIDE_SEPARATOR,
+};
 
 /// Options that every command accepts.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -13,6 +18,33 @@ pub struct GlobalOptions {
     pub config_file: Option<PathBuf>,
     /// Setting overrides as `(dotted key, raw TOML value)`, in the order given.
     pub overrides: Vec<(String, String)>,
+}
+
+impl GlobalOptions {
+    /// The options as separate command line arguments, in the form the parser reads them again, so
+    /// that a program started with them sees the same folders, file and settings (ADR 0071,
+    /// decision 5). Every value is its own argument; nothing is joined for a shell.
+    #[must_use]
+    pub fn arguments(&self) -> Vec<OsString> {
+        let flag = |name: &str| OsString::from(format!("{LONG_FLAG_PREFIX}{name}"));
+        let paths = [
+            (ARG_DATA_DIR, &self.data_dir),
+            (ARG_LANGUAGES, &self.languages_dir),
+            (ARG_CONFIG, &self.config_file),
+        ];
+        let mut arguments = Vec::new();
+        for (name, value) in paths {
+            if let Some(path) = value {
+                arguments.push(flag(name));
+                arguments.push(path.clone().into_os_string());
+            }
+        }
+        for (key, value) in &self.overrides {
+            arguments.push(flag(ARG_SET));
+            arguments.push(OsString::from(format!("{key}{OVERRIDE_SEPARATOR}{value}")));
+        }
+        arguments
+    }
 }
 
 /// Arguments of `codeskimr scan`.
@@ -118,6 +150,9 @@ pub enum Level2Action {
     Confirm {
         /// Id of the project, or the folder or Git URL it was scanned from.
         project: String,
+        /// The window was opened by the server for the page in the browser (`--from-ui`,
+        /// ADR 0071): it says so, and waits for Enter at the end. The consent is the same.
+        from_ui: bool,
     },
     /// Forbids them again.
     Revoke {

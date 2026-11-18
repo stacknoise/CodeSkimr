@@ -203,6 +203,10 @@ pub const PERMISSION_ADMIN: &str = "admin";
 pub const PERMISSION_CONFIRM_INDEXER: &str = "confirm_indexer";
 /// Label of `Permission::RunIndexer`.
 pub const PERMISSION_RUN_INDEXER: &str = "run_indexer";
+/// Label of `Permission::RevokeIndexer`.
+pub const PERMISSION_REVOKE_INDEXER: &str = "revoke_indexer";
+/// Label of `Permission::OpenConfirmation`.
+pub const PERMISSION_OPEN_CONFIRMATION: &str = "open_confirmation";
 
 /// Whole percent of a share of 1.0, for integer percent arithmetic.
 pub const PERCENT_BASE: usize = 100;

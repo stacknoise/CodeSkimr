@@ -151,6 +151,9 @@ pub mod keys {
     pub const LEVEL2_MIN_MAPPED: &str = "level2.min_mapped";
     /// `level2.max_created_symbols`
     pub const LEVEL2_MAX_CREATED_SYMBOLS: &str = "level2.max_created_symbols";
+    /// `level2.confirm_window_cooldown_seconds`
+    pub const LEVEL2_CONFIRM_WINDOW_COOLDOWN_SECONDS: &str =
+        "level2.confirm_window_cooldown_seconds";
     /// `server.port`
     pub const SERVER_PORT: &str = "server.port";
     /// `editor.url_template`
@@ -163,6 +166,10 @@ pub mod keys {
     pub const UI_DIR: &str = "ui.dir";
     /// `ui.launch_code_seconds`
     pub const UI_LAUNCH_CODE_SECONDS: &str = "ui.launch_code_seconds";
+    /// `ui.level2_poll_seconds`
+    pub const UI_LEVEL2_POLL_SECONDS: &str = "ui.level2_poll_seconds";
+    /// `ui.level2_poll_max_seconds`
+    pub const UI_LEVEL2_POLL_MAX_SECONDS: &str = "ui.level2_poll_max_seconds";
 }
 
 /// Characters that make a folder name a path.

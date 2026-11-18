@@ -16,7 +16,9 @@ pub const fn resolve() -> Principal {
 }
 
 /// The caller of an MCP or HTTP request: everything the local owner may do except confirming or
-/// running an indexer. Those two rights stay with the person at the terminal.
+/// running an indexer. Those two rights stay with the person at the terminal. It may take a
+/// confirmation back (`RevokeIndexer`, which only removes a right) and ask the server to open the
+/// window in which the owner confirms (`OpenConfirmation`); neither is an MCP tool (ADR 0071).
 #[must_use]
 pub fn remote_client() -> Principal {
     let rights = [
@@ -27,6 +29,8 @@ pub fn remote_client() -> Principal {
         Permission::Manage,
         Permission::RegisterProject,
         Permission::Admin,
+        Permission::RevokeIndexer,
+        Permission::OpenConfirmation,
     ];
     Principal::limited(
         rights
@@ -54,4 +58,30 @@ pub fn reader() -> Principal {
 #[must_use]
 pub fn annotator() -> Principal {
     Principal::limited(PermissionSet::none().with(Permission::Annotate))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_remote_client_may_revoke_and_ask_for_the_window_but_never_confirm_or_start() {
+        let client = remote_client();
+        assert!(client.holds(Permission::RevokeIndexer));
+        assert!(client.holds(Permission::OpenConfirmation));
+        assert!(!client.holds(Permission::ConfirmIndexer));
+        assert!(!client.holds(Permission::RunIndexer));
+    }
+
+    #[test]
+    fn only_the_owner_at_the_terminal_holds_every_right() {
+        let held = |principal: Principal| {
+            Permission::ALL
+                .iter()
+                .filter(|permission| principal.holds(**permission))
+                .count()
+        };
+        assert_eq!(held(resolve()), Permission::ALL.len());
+        assert_eq!(held(remote_client()), Permission::ALL.len() - 2);
+    }
 }

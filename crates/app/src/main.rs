@@ -14,6 +14,9 @@ mod browser;
 mod check;
 mod clock;
 mod config_files;
+#[cfg(test)]
+mod confirm_window_http_tests;
+mod confirmation_window;
 mod consts;
 mod cpu_time;
 mod credential;
@@ -28,8 +31,11 @@ mod installation_token;
 mod launch_file;
 mod level2_consent;
 mod level2_consent_tests;
+mod level2_console;
 mod level2_link_tests;
 mod level2_redact_tests;
+#[cfg(test)]
+mod level2_switch_tests;
 mod local_http;
 mod locations;
 mod log_writer;

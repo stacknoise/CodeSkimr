@@ -66,3 +66,7 @@ command-alerts-dismiss-title = Alarm entfernen
 command-alerts-dismiss-description = Nimmt einen Alarm aus der offenen Liste; das Symbol im heutigen Zustand wird sein neuer Ausgangszustand.
 command-alerts-dismiss-all-title = Alle Alarme entfernen
 command-alerts-dismiss-all-description = Nimmt jeden offenen Alarm, der zum Filter passt, aus der Liste. Dafür braucht es die ausdrückliche Bestätigung.
+command-level2-status-title = Stufe-2-Zustand anzeigen
+command-level2-status-description = Zeigt, ob Stufe 2 für ein Projekt eingeschaltet und bestätigt ist und ob der Server das Bestätigungsfenster öffnen kann oder die Oberfläche den Befehl anzeigen muss. Liefert keinen Pfad und keinen Text des Projekts.
+command-level2-revoke-title = Stufe 2 ausschalten
+command-level2-revoke-description = Nimmt die Bestätigung von Stufe 2 für ein Projekt zurück, wie `codeskimr level2 revoke`. Geprüfte Ergebnisse bleiben bis zum nächsten Scan; ein laufender Indexer endet innerhalb seiner Grenzen.

@@ -21,6 +21,18 @@ pub const TOOLS_INDEXERS: &str = "tools.indexers";
 pub const INDEXERS_TITLE: &str = i18n::COMMAND_TOOLS_INDEXERS_TITLE;
 /// Description key of `tools.indexers`.
 pub const INDEXERS_DESCRIPTION: &str = i18n::COMMAND_TOOLS_INDEXERS_DESCRIPTION;
+/// Id of the command that reports where level 2 stands for a project (ADR 0071).
+pub const LEVEL2_STATUS: &str = "level2.status";
+/// Title key of `level2.status`.
+pub const LEVEL2_STATUS_TITLE: &str = i18n::COMMAND_LEVEL2_STATUS_TITLE;
+/// Description key of `level2.status`.
+pub const LEVEL2_STATUS_DESCRIPTION: &str = i18n::COMMAND_LEVEL2_STATUS_DESCRIPTION;
+/// Id of the command that takes the level 2 confirmation of a project back (ADR 0071).
+pub const LEVEL2_REVOKE: &str = "level2.revoke";
+/// Title key of `level2.revoke`.
+pub const LEVEL2_REVOKE_TITLE: &str = i18n::COMMAND_LEVEL2_REVOKE_TITLE;
+/// Description key of `level2.revoke`.
+pub const LEVEL2_REVOKE_DESCRIPTION: &str = i18n::COMMAND_LEVEL2_REVOKE_DESCRIPTION;
 /// Id of the command that cancels a running scan.
 pub const PROJECTS_CANCEL: &str = "projects.cancel";
 

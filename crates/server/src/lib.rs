@@ -12,12 +12,14 @@
 
 mod assets;
 mod commands;
+mod confirm_window;
 mod consts;
 mod error;
 mod events;
 mod guard;
 mod launch;
 mod listen;
+mod peer;
 mod routes;
 mod server;
 mod session;

@@ -411,18 +411,56 @@ pub const LOG_TOOL_CHECK_FAILED: &str = "tool_check_failed";
 /// on), in bytes.
 pub const REQUIREMENT_MAX_BYTES: u64 = 65_536;
 
-/// Characters besides the control characters that can hide or reorder text on a terminal: the
-/// direction marks and overrides, the zero-width characters, the line and paragraph separators
-/// and the byte order mark. A name that holds one is not shown in a prompt.
-pub const INVISIBLE_RANGES: [(char, char); 7] = [
-    ('\u{061C}', '\u{061C}'),
-    ('\u{200B}', '\u{200F}'),
-    ('\u{2028}', '\u{202E}'),
-    ('\u{2060}', '\u{2064}'),
-    ('\u{2066}', '\u{2069}'),
-    ('\u{FEFF}', '\u{FEFF}'),
-    ('\u{00AD}', '\u{00AD}'),
-];
+/// Windows process creation flag: the new process gets a console window of its own.
+#[cfg(windows)]
+pub const CREATE_NEW_CONSOLE: u32 = 0x0000_0010;
+/// The program that macOS starts to run an `AppleScript`. An absolute path, never a lookup.
+pub const OSASCRIPT_PROGRAM: &str = "/usr/bin/osascript";
+/// The option of `osascript` that takes the text of the script.
+pub const OSASCRIPT_SCRIPT_OPTION: &str = "-e";
+/// Ends the options of `osascript`: what follows is handed to the script as its arguments, also
+/// words that start with a dash.
+pub const OSASCRIPT_END_OF_OPTIONS: &str = "--";
+/// The constant script that opens Terminal with the command. It holds no value of its own: the
+/// program, the words and the project id arrive as `argv` items, and each one is quoted for the
+/// shell with `quoted form of` before the line is assembled (ADR 0071, decision 5).
+pub const TERMINAL_SCRIPT: &str = "on run argv
+set parts to {}
+repeat with piece in argv
+set end of parts to quoted form of (piece as text)
+end repeat
+set AppleScript's text item delimiters to \" \"
+tell application \"Terminal\"
+activate
+do script (parts as text)
+end tell
+end run";
+/// The words after the program in the command that a confirmation window runs; the flag marks the
+/// window as one that the server opened, and the project id follows.
+pub const CONFIRM_WINDOW_WORDS: [&str; 3] = ["level2", "confirm", "--from-ui"];
+/// Variables that name a remote session: a window opened there would appear on a screen that
+/// nobody sits in front of (ADR 0071, decision 6).
+pub const REMOTE_SESSION_VARIABLES: [&str; 3] = ["SSH_CONNECTION", "SSH_CLIENT", "SSH_TTY"];
+/// Variables of which at least one is set in a session with a screen, per system (ADR 0071,
+/// decision 6): Linux has a display (X11 or Wayland), Windows names its session of the window
+/// station (`Console` or `RDP-Tcp#n`; a service has none), macOS has the id of the login session
+/// of the user. Without one the check cannot decide for "interactive", so the answer is `copy`.
+#[cfg(target_os = "linux")]
+pub const DESKTOP_SESSION_VARIABLES: [&str; 2] = ["DISPLAY", "WAYLAND_DISPLAY"];
+/// See the Linux definition.
+#[cfg(windows)]
+pub const DESKTOP_SESSION_VARIABLES: [&str; 1] = ["SESSIONNAME"];
+/// See the Linux definition.
+#[cfg(not(any(target_os = "linux", windows)))]
+pub const DESKTOP_SESSION_VARIABLES: [&str; 1] = ["SECURITYSESSIONID"];
+/// The console of the process on Windows, for input. A window the server opened reads its
+/// answer from here, because its standard streams may be the ones of a program without a console
+/// (ADR 0071).
+#[cfg(windows)]
+pub const CONSOLE_INPUT: &str = "CONIN$";
+/// The console of the process on Windows, for output.
+#[cfg(windows)]
+pub const CONSOLE_OUTPUT: &str = "CONOUT$";
 
 /// Name of the thread that builds the usages index in the background.
 pub const WARM_THREAD_NAME: &str = "usages-warm-up";
