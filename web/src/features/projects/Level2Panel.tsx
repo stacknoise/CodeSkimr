@@ -7,6 +7,7 @@ import {
   LEVEL2_COOLDOWN_SECONDS,
   LEVEL2_CONFIG_SNIPPET,
   LEVEL2_ERROR,
+  LEVEL2_PANEL_ID_PREFIX,
   LEVEL2_PHASE,
   LEVEL2_STATE,
 } from "./consts";
@@ -283,6 +284,7 @@ export function Level2Panel(props: { row: ProjectRow }) {
   return (
     <section
       class={styles.panel}
+      id={`${LEVEL2_PANEL_ID_PREFIX}${props.row.id}`}
       aria-label={t(I18N_KEYS.PROJECTS_LEVEL2_TITLE, { name: props.row.name })}
       onKeyDown={(event) => escapeWaiting(props.row.id, event)}
     >

@@ -67,16 +67,20 @@ afterEach(() => {
 
 const FAKE_TIMERS = ["setInterval", "clearInterval", "setTimeout", "clearTimeout", "Date"] as const;
 
-/** Switches on, lets the longest wait pass and expects the notice "not confirmed" with a free switch. */
-async function waitUntilTimedOut(toggle: () => HTMLElement): Promise<void> {
+/** Switches on, puts the focus where `focusOn` says, lets the longest wait pass and expects the
+ * notice "not confirmed" with a free switch. */
+async function waitUntilTimedOut(
+  toggle: () => HTMLElement,
+  focusOn: () => HTMLElement = () => screen.getByRole("button", { name: "Cancel waiting" }),
+): Promise<void> {
   vi.useFakeTimers({ toFake: [...FAKE_TIMERS] });
   fireEvent.click(toggle());
   await screen.findByText("Finish the confirmation in the console window");
+  focusOn().focus();
   await vi.advanceTimersByTimeAsync(301_000);
   expect(await screen.findByText(/did not arrive/)).toBeInTheDocument();
   expect(screen.getByText(/You can try again/)).toBeInTheDocument();
   expect(toggle()).toHaveAttribute("aria-disabled", "false");
-  expect(toggle()).toHaveFocus();
 }
 
 /** Shows the screen with the project selected, so that its level 2 section is there. */
@@ -135,7 +139,25 @@ describe("the level 2 switch: switching on", () => {
 
   it("stops asking after the longest wait and offers to switch on again", async () => {
     fake(WINDOW);
-    await waitUntilTimedOut(await loaded());
+    const toggle = await loaded();
+    await waitUntilTimedOut(toggle);
+    expect(toggle()).toHaveFocus();
+  });
+
+  it("keeps the focus where the person is typing when the wait times out", async () => {
+    fake(WINDOW);
+    const toggle = await loaded();
+    const field = document.body.appendChild(document.createElement("input"));
+    await waitUntilTimedOut(toggle, () => field);
+    expect(field).toHaveFocus();
+    field.remove();
+  });
+
+  it("puts the focus on the switch when it was on the switch itself", async () => {
+    fake(WINDOW);
+    const toggle = await loaded();
+    await waitUntilTimedOut(toggle, toggle);
+    expect(toggle()).toHaveFocus();
   });
 
   it("ends the wait even when the question for the state never gets an answer", async () => {
@@ -148,6 +170,7 @@ describe("the level 2 switch: switching on", () => {
         : answerStatus?.(path),
     );
     await waitUntilTimedOut(toggle);
+    expect(toggle()).toHaveFocus();
   });
 
   it("cancels the wait: the notice goes, the asking stops and the switch is free", async () => {

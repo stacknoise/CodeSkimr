@@ -185,6 +185,8 @@ export const COPIED_MS = 2000;
 
 /** Id of the switch of a project, so that focus can return to it. */
 export const LEVEL2_SWITCH_ID_PREFIX = "level2-switch-";
+/** Id of the level 2 section of a project, to tell whether the focus is inside it. */
+export const LEVEL2_PANEL_ID_PREFIX = "level2-panel-";
 /** Key that closes the question before switching off. */
 export const ESCAPE_KEY = "Escape";
 

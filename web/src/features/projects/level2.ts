@@ -9,6 +9,7 @@ import {
   ESCAPE_KEY,
   LAUNCH,
   LEVEL2_COMMAND,
+  LEVEL2_PANEL_ID_PREFIX,
   LEVEL2_ERROR,
   LEVEL2_PHASE,
   LEVEL2_POLL_MAX_SECONDS,
@@ -110,8 +111,11 @@ function watchConfirmation(project: number): void {
     project,
     setTimeout(() => {
       stopPolling(project);
+      const lost = focusWouldBeLost(project);
       patch(project, { phase: LEVEL2_PHASE.timedOut });
-      focusSwitch(project);
+      if (lost) {
+        focusSwitch(project);
+      }
     }, limit),
   );
 }
@@ -119,6 +123,14 @@ function watchConfirmation(project: number): void {
 /** Puts the focus on the switch of the project, so that it is not lost when a notice goes. */
 export function focusSwitch(project: number): void {
   document.getElementById(`${LEVEL2_SWITCH_ID_PREFIX}${project}`)?.focus();
+}
+
+/** Whether the focus is nowhere (on the page) or inside the level 2 section of the project, which
+ * is where it would be lost when the notice goes. A person typing elsewhere keeps the focus. */
+function focusWouldBeLost(project: number): boolean {
+  const active = document.activeElement;
+  const panel = document.getElementById(`${LEVEL2_PANEL_ID_PREFIX}${project}`);
+  return active === null || active === document.body || (panel?.contains(active) ?? false);
 }
 
 /** Ends the waiting for the console window: nothing was confirmed, the switch is free again. The
