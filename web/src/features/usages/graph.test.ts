@@ -91,6 +91,18 @@ describe("buildGraph", () => {
     }
   });
 
+  it("centres several children on their parent, one step apart", () => {
+    const parent = place(80, "Shop.Q.Parent.Run");
+    const kids = [81, 82, 83].map((id) => place(id, `Shop.Q.Kid${id}.Go`));
+    const hits = [hit(parent, FOCUS), ...kids.map((kid) => hit(kid, parent, { depth: 2 }))];
+    const built = buildGraph({ ...ANSWER, incoming: { total: hits.length, hits }, outgoing: null });
+    const at = (id: number) => built.cards.find((x) => x.place.id === id)!;
+    const step = GRAPH.cardHeight + GRAPH.rowGap;
+    expect(at(82).y - at(81).y).toBeCloseTo(step, 5);
+    expect(at(83).y - at(82).y).toBeCloseTo(step, 5);
+    expect(at(82).y).toBeCloseTo(at(80).y, 5);
+  });
+
   it("keeps the children of a card close to it when other cards pile up below", () => {
     const parents = [
       place(60, "Shop.P.Top.Run"),

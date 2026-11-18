@@ -220,14 +220,15 @@ function spread(wished: Wish[]): Wish[] {
   const step = GRAPH.cardHeight + GRAPH.rowGap;
   const runs: Run[] = [];
   wished.forEach((wish, index) => {
-    runs.push({ sum: wish.middle - index * step, size: 1 });
-    for (let last = runs.at(-1), before = runs.at(-2); last && before; before = runs.at(-2)) {
-      if (before.sum / before.size <= last.sum / last.size) {
+    let run: Run = { sum: wish.middle - index * step, size: 1 };
+    for (let before = runs[runs.length - 1]; before; before = runs[runs.length - 1]) {
+      if (before.sum / before.size <= run.sum / run.size) {
         break;
       }
-      runs.splice(-2, 2, { sum: before.sum + last.sum, size: before.size + last.size });
-      last = runs.at(-1);
+      runs.pop();
+      run = { sum: before.sum + run.sum, size: before.size + run.size };
     }
+    runs.push(run);
   });
   const base = runs.flatMap((run) => Array.from({ length: run.size }, () => run.sum / run.size));
   return wished.map((wish, index) => ({
