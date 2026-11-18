@@ -3,7 +3,7 @@ import { I18N_KEYS } from "../../shared/i18n/keys";
 import { TONE } from "../../shared/ui/consts";
 import { Pill, type PillTone } from "../../shared/ui/Pill";
 import { LEVEL2_PHASE, LEVEL2_STATE, LEVEL2_SWITCH_ID_PREFIX } from "./consts";
-import { askRevoke, level2Of, switchOn, type Level2View } from "./level2";
+import { askRevoke, escapeWaiting, level2Of, switchOn, type Level2View } from "./level2";
 import type { ProjectRow } from "./types";
 import styles from "./Level2Switch.module.css";
 
@@ -76,6 +76,7 @@ export function Level2Switch(props: { row: ProjectRow }) {
         aria-busy={view().phase === LEVEL2_PHASE.opening}
         aria-label={t(I18N_KEYS.PROJECTS_LEVEL2_SWITCH_LABEL, { name: props.row.name })}
         onClick={() => press(props.row.id)}
+        onKeyDown={(event) => escapeWaiting(props.row.id, event)}
       >
         <span class={styles.thumb} />
       </button>

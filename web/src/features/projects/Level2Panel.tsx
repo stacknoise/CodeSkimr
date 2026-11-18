@@ -9,7 +9,6 @@ import {
   LEVEL2_ERROR,
   LEVEL2_PHASE,
   LEVEL2_STATE,
-  LEVEL2_SWITCH_ID_PREFIX,
 } from "./consts";
 import { failureText } from "./failure";
 import { clock } from "./format";
@@ -18,6 +17,8 @@ import {
   cancelRevoke,
   cancelWaiting,
   dismissRevoked,
+  escapeWaiting,
+  focusSwitch,
   level2Of,
   loadLevel2,
   switchOff,
@@ -29,11 +30,6 @@ import { isChecked, stateLook } from "./Level2Switch";
 import { Pill } from "../../shared/ui/Pill";
 import type { ProjectRow } from "./types";
 import styles from "./Level2Panel.module.css";
-
-/** Puts the focus back on the switch of the project (after a question was answered). */
-function focusSwitch(project: number): void {
-  document.getElementById(`${LEVEL2_SWITCH_ID_PREFIX}${project}`)?.focus();
-}
 
 /** The command of the terminal, with a button that copies it (the fallback of ADR 0071,
  * decision 6). */
@@ -171,27 +167,15 @@ function WaitingWhat(props: { row: ProjectRow; view: Level2View }) {
 /** The window is open, or the command waits in the terminal of the user. The page cannot see that
  * the window was closed, so "Cancel waiting" (or Escape) is the way out before the time is up. */
 function Waiting(props: { row: ProjectRow; view: Level2View }) {
-  const leave = () => {
-    cancelWaiting(props.row.id);
-    focusSwitch(props.row.id);
-  };
   return (
-    <div
-      class={styles.notice}
-      onKeyDown={(event) => {
-        if (event.key === ESCAPE_KEY) {
-          event.stopPropagation();
-          leave();
-        }
-      }}
-    >
+    <div class={styles.notice}>
       <WaitingWhat row={props.row} view={props.view} />
       <p class={styles.waiting}>{t(I18N_KEYS.PROJECTS_LEVEL2_WAITING_STATE)}</p>
       <p class={styles.waiting}>
         {t(I18N_KEYS.PROJECTS_LEVEL2_WAITING_PAUSE, { seconds: LEVEL2_COOLDOWN_SECONDS })}
       </p>
       <div class={styles.buttons}>
-        <button type="button" class={styles.button} onClick={leave}>
+        <button type="button" class={styles.button} onClick={() => cancelWaiting(props.row.id)}>
           {t(I18N_KEYS.PROJECTS_LEVEL2_WAITING_CANCEL)}
         </button>
       </div>
@@ -275,6 +259,13 @@ function Actions(props: { row: ProjectRow; view: Level2View }) {
   );
 }
 
+/** The phases in which the explanation and the actions of the state are shown. */
+const SETTLED: readonly string[] = [
+  LEVEL2_PHASE.idle,
+  LEVEL2_PHASE.timedOut,
+  LEVEL2_PHASE.cancelled,
+];
+
 /** The one-line notices of the phases that need nothing but words. */
 const NOTE: Readonly<Record<string, MessageKey | undefined>> = {
   [LEVEL2_PHASE.opening]: I18N_KEYS.PROJECTS_LEVEL2_OPENING,
@@ -293,6 +284,7 @@ export function Level2Panel(props: { row: ProjectRow }) {
     <section
       class={styles.panel}
       aria-label={t(I18N_KEYS.PROJECTS_LEVEL2_TITLE, { name: props.row.name })}
+      onKeyDown={(event) => escapeWaiting(props.row.id, event)}
     >
       <header class={styles.header}>
         <h2>{t(I18N_KEYS.PROJECTS_LEVEL2_TITLE, { name: props.row.name })}</h2>
@@ -313,13 +305,7 @@ export function Level2Panel(props: { row: ProjectRow }) {
       <Show when={phase() === LEVEL2_PHASE.askRevoke}>
         <RevokeAsk row={props.row} />
       </Show>
-      <Show
-        when={
-          phase() === LEVEL2_PHASE.idle ||
-          phase() === LEVEL2_PHASE.timedOut ||
-          phase() === LEVEL2_PHASE.cancelled
-        }
-      >
+      <Show when={SETTLED.includes(phase())}>
         <Explain view={view()} />
         <Actions row={props.row} view={view()} />
       </Show>

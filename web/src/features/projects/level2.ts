@@ -6,6 +6,7 @@ import { uiConfig } from "../../shared/settings/ui-config";
 import {
   CONFIRM_COMMAND_PREFIX,
   CONFIRM_WINDOW_PATH,
+  ESCAPE_KEY,
   LAUNCH,
   LEVEL2_COMMAND,
   LEVEL2_ERROR,
@@ -13,6 +14,7 @@ import {
   LEVEL2_POLL_MAX_SECONDS,
   LEVEL2_POLL_SECONDS,
   LEVEL2_STATE,
+  LEVEL2_SWITCH_ID_PREFIX,
   MS_PER_SECOND,
 } from "./consts";
 import { failed, type Failure } from "./projects";
@@ -109,8 +111,14 @@ function watchConfirmation(project: number): void {
     setTimeout(() => {
       stopPolling(project);
       patch(project, { phase: LEVEL2_PHASE.timedOut });
+      focusSwitch(project);
     }, limit),
   );
+}
+
+/** Puts the focus on the switch of the project, so that it is not lost when a notice goes. */
+export function focusSwitch(project: number): void {
+  document.getElementById(`${LEVEL2_SWITCH_ID_PREFIX}${project}`)?.focus();
 }
 
 /** Ends the waiting for the console window: nothing was confirmed, the switch is free again. The
@@ -118,6 +126,15 @@ function watchConfirmation(project: number): void {
 export function cancelWaiting(project: number): void {
   stopPolling(project);
   patch(project, { phase: LEVEL2_PHASE.cancelled, command: null, openedAt: null, failure: null });
+  focusSwitch(project);
+}
+
+/** Escape ends the waiting, wherever the focus is (on the switch or in the section). */
+export function escapeWaiting(project: number, event: KeyboardEvent): void {
+  if (event.key === ESCAPE_KEY && level2Of(project).phase === LEVEL2_PHASE.waiting) {
+    event.stopPropagation();
+    cancelWaiting(project);
+  }
 }
 
 /** Shows the command to copy; `failure` says why the window did not open, if it was tried. */

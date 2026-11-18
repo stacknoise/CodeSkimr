@@ -76,6 +76,7 @@ async function waitUntilTimedOut(toggle: () => HTMLElement): Promise<void> {
   expect(await screen.findByText(/did not arrive/)).toBeInTheDocument();
   expect(screen.getByText(/You can try again/)).toBeInTheDocument();
   expect(toggle()).toHaveAttribute("aria-disabled", "false");
+  expect(toggle()).toHaveFocus();
 }
 
 /** Shows the screen with the project selected, so that its level 2 section is there. */
@@ -168,6 +169,17 @@ describe("the level 2 switch: switching on", () => {
     fireEvent.click(toggle());
     await screen.findByText("Finish the confirmation in the console window");
     expect(server.confirms).toBe(2);
+  });
+
+  it("cancels the wait with Escape while the focus is on the switch", async () => {
+    fake(WINDOW);
+    const toggle = await loaded();
+    fireEvent.click(toggle());
+    await screen.findByText("Finish the confirmation in the console window");
+    toggle().focus();
+    fireEvent.keyDown(toggle(), { key: "Escape" });
+    expect(screen.getByText(/Waiting ended/)).toBeInTheDocument();
+    expect(toggle()).toHaveFocus();
   });
 
   it("cancels the wait with Escape", async () => {
