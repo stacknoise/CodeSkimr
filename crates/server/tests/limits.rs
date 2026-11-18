@@ -12,20 +12,27 @@ use tokio::time::timeout;
 const UPGRADE: &str = "GET /api/v1/events HTTP/1.1\r\nConnection: Upgrade\r\nUpgrade: websocket\r\nSec-WebSocket-Version: 13\r\nSec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n";
 const STREAM_CAP: usize = 16;
 const CONNECTION_CAP: usize = 256;
-const ACCEPT_GRACE: Duration = Duration::from_millis(200);
+const SETTLE_GRACE: Duration = Duration::from_millis(200);
 
-/// Connects and gives the server a moment of real time to accept the connection.
+/// Gives the server a moment of real time to see what the client just did.
 ///
 /// The tests with a paused clock jump ahead as soon as the runtime has nothing to do. On macOS the
-/// accept of a fresh loopback connection can be reported a moment after the client side is
-/// connected, so the paused clock would already have run out the test's own deadline before the
-/// server had seen the connection. A blocking task keeps the clock from jumping meanwhile.
+/// operating system can report a fresh connection or fresh bytes on a loopback socket a moment
+/// after the client side has finished with them, so the paused clock would already have run out a
+/// deadline (the test's own or the server's) before the server had seen anything. A blocking task
+/// keeps the clock from jumping meanwhile.
+#[cfg(test)]
+async fn settle() {
+    tokio::task::spawn_blocking(|| std::thread::sleep(SETTLE_GRACE))
+        .await
+        .unwrap();
+}
+
+/// Connects and lets the server accept the connection (see [`settle`]).
 #[cfg(test)]
 async fn connect(server: &Running) -> TcpStream {
     let stream = TcpStream::connect(server.address).await.unwrap();
-    tokio::task::spawn_blocking(|| std::thread::sleep(ACCEPT_GRACE))
-        .await
-        .unwrap();
+    settle().await;
     stream
 }
 
@@ -33,6 +40,21 @@ async fn connect(server: &Running) -> TcpStream {
 #[cfg(test)]
 async fn status_of(stream: &mut TcpStream, request: &str) -> Option<String> {
     stream.write_all(request.as_bytes()).await.unwrap();
+    status_line(stream).await
+}
+
+/// Like [`status_of`], but lets the server read the request before the answer is awaited (see
+/// [`settle`]), for the tests with a paused clock.
+#[cfg(test)]
+async fn status_of_settled(stream: &mut TcpStream, request: &str) -> Option<String> {
+    stream.write_all(request.as_bytes()).await.unwrap();
+    settle().await;
+    status_line(stream).await
+}
+
+/// The first line of what the server sends next, or none if it sends nothing.
+#[cfg(test)]
+async fn status_line(stream: &mut TcpStream) -> Option<String> {
     let mut buffer = vec![0_u8; 512];
     let read = stream.read(&mut buffer).await.unwrap_or_default();
     let text = String::from_utf8_lossy(buffer.get(..read).unwrap_or_default()).into_owned();
@@ -122,7 +144,9 @@ async fn a_client_that_is_silent_is_not_answered_beyond_the_connection_cap() {
 #[tokio::test(start_paused = true)]
 async fn a_stream_whose_client_never_answers_the_pings_is_closed() {
     let server = start(owner()).await;
-    let (mut stream, status) = open_stream(&server).await;
+    let mut stream = connect(&server).await;
+    let request = format!("{UPGRADE}Host: {}\r\n\r\n", server.address);
+    let status = status_of_settled(&mut stream, &request).await;
     assert!(status.unwrap().contains("101"));
     let rest = until_closed(&mut stream, Duration::from_secs(300)).await;
     assert_ne!(rest.unwrap().len(), 0, "it pinged before it gave up");
@@ -160,6 +184,7 @@ async fn answer_to_stalled_body(server: &Running, path: &str) -> String {
         server.address
     );
     stream.write_all(head.as_bytes()).await.unwrap();
+    settle().await;
     let mut answer = Vec::new();
     let finished = timeout(Duration::from_secs(120), async {
         let mut buffer = [0_u8; 1024];
@@ -230,7 +255,7 @@ async fn an_mcp_body_without_the_token_is_not_read_at_all() {
         "POST /mcp HTTP/1.1\r\nHost: {}\r\nContent-Type: application/json\r\nContent-Length: 100\r\n\r\n{{\"",
         server.address
     );
-    let status = status_of(&mut stream, &head).await.unwrap();
+    let status = status_of_settled(&mut stream, &head).await.unwrap();
     assert!(status.contains("401"), "{status}");
 }
 
