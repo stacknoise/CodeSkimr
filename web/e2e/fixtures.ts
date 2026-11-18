@@ -3,7 +3,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } fro
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline";
-import { test as base, expect, type Locator, type Page } from "@playwright/test";
+import { test as base, expect, type Locator, type Page, type TestInfo } from "@playwright/test";
 
 /** The server of the tests: the real one, over an in-memory keystore (crates/app/src/e2e.rs). */
 export interface Harness {
@@ -185,4 +185,15 @@ export async function selectAdd(page: Page, row: Locator, namespace: string): Pr
   await page.getByText(namespace, { exact: true }).click();
   await page.getByText("Calculator", { exact: true }).click();
   await page.getByRole("button", { name: /Add/ }).first().click();
+}
+
+/** Attaches the screen to the report and, when `UPDATE_SCREENSHOTS` is set, writes it to `dir` for
+ * the review by eye. */
+export async function shot(page: Page, dir: string, name: string, info: TestInfo): Promise<void> {
+  const body = await page.screenshot();
+  await info.attach(name, { body, contentType: "image/png" });
+  if (process.env["UPDATE_SCREENSHOTS"]) {
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, `${name}.png`), body);
+  }
 }

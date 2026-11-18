@@ -3,10 +3,9 @@
 // (they come with the package of the backend), so the page answers `level2.status`,
 // `level2.revoke` and `confirm-window` from a fake that follows the ADR; everything else is the real server.
 // `UPDATE_SCREENSHOTS=1` writes the screens to docs/screenshots/level2-switch/.
-import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import type { Page, Route, TestInfo } from "@playwright/test";
-import { addScannedProject, expect, test } from "./fixtures";
+import type { Page, Route } from "@playwright/test";
+import { addScannedProject, expect, shot, test } from "./fixtures";
 
 const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/level2-switch");
 const VIEWPORT = { width: 1440, height: 900 };
@@ -60,15 +59,6 @@ async function openProject(
   const row = await addScannedProject(page, harness, name, SOURCE);
   await row.click({ position: { x: 4, y: 4 } });
   return page.getByRole("switch", { name: `Level 2 for ${name}` });
-}
-
-async function shot(page: Page, name: string, info: TestInfo): Promise<void> {
-  const body = await page.screenshot();
-  await info.attach(name, { body, contentType: "image/png" });
-  if (process.env["UPDATE_SCREENSHOTS"]) {
-    mkdirSync(SHOTS, { recursive: true });
-    writeFileSync(path.join(SHOTS, `${name}.png`), body);
-  }
 }
 
 test.describe("the level 2 switch (keyboard, ADR 0071)", () => {
@@ -149,7 +139,7 @@ for (const theme of THEMES) {
       const toggle = await openProject(page, harness, `lvshot${theme}`);
       await toggle.click();
       await expect(page.getByText("Finish the confirmation in the console window")).toBeVisible();
-      await shot(page, `level2-switch-${theme}`, info);
+      await shot(page, SHOTS, `level2-switch-${theme}`, info);
     });
   });
 }
