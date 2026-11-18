@@ -114,6 +114,17 @@ describe("UsagesScreen", () => {
     );
   });
 
+  it("leads back to the exact place of the explorer the user left, such as the member table", async () => {
+    openProject(1);
+    serve({ "usages.query": () => answer(ANSWER), "explorer.symbol": () => answer(ORDER_SYMBOL) });
+    showUsages(11, { type: 3, member: null, kind: null });
+    render(() => <UsagesScreen />);
+    await screen.findByRole("heading", { name: "Cart.Total" });
+    fireEvent.click(screen.getByRole("button", { name: /Back to the symbol/ }));
+    await waitFor(() => expect(currentPath()).toBe("/explorer"));
+    expect(pendingFocus()).toEqual({ type: 3, member: null, kind: null });
+  });
+
   it("keeps the graph button of the rail marked on the symbol view", async () => {
     navigate("/usages");
     render(() => <RailLink route={GRAPH_ROUTE} />);

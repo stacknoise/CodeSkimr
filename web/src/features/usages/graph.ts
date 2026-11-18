@@ -172,6 +172,14 @@ function parentsOf(node: Node, side: Side): number[] {
   return side.hits.filter((hit) => hit[own].id === node.place.id).map((hit) => hit[other].id);
 }
 
+/** Whether a parent of the symbol has a card: a card without one would hang in the air, with no
+ * line to the column nearer to the focus. */
+function hasParent(node: Node, side: Side, cards: Map<string, Card>, focus: Card): boolean {
+  return parentsOf(node, side).some(
+    (id) => id === focus.place.id || cards.has(`${side.kind}${id}`),
+  );
+}
+
 /** The middle lines the cards of a column want: the average middle of their parents in the column
  * nearer to the focus, so that children hang around their parent and not around the focus. */
 function wishes(nodes: Node[], side: Side, cards: Map<string, Card>, focus: Card): number[] {
@@ -197,21 +205,36 @@ interface Wish {
   middle: number;
 }
 
-/** Moves the wished middle lines (in ascending order) apart until the cards do not touch, then
- * shifts them all together so that they stay as close to their wish as possible. */
+/** A run of neighbouring cards that move together: the sum of what they want and how many. */
+interface Run {
+  sum: number;
+  size: number;
+}
+
+/** The nearest placement of the wished middle lines (in ascending order) in which no two cards
+ * touch. A card is only moved as far as the cards around it force it to, so children stay at
+ * their parent. Cards at the distance of one step from each other lie on a line; shifting by the
+ * index turns the rule "at least one step apart" into "not decreasing", which a merge of
+ * neighbouring runs by their mean solves with the least movement in total. */
 function spread(wished: Wish[]): Wish[] {
   const step = GRAPH.cardHeight + GRAPH.rowGap;
-  let floor = -Infinity;
-  const placed = wished.map((wish) => {
-    floor = Math.max(wish.middle, floor + step);
-    return { node: wish.node, middle: floor };
+  const runs: Run[] = [];
+  wished.forEach((wish, index) => {
+    let run: Run = { sum: wish.middle - index * step, size: 1 };
+    for (let before = runs[runs.length - 1]; before; before = runs[runs.length - 1]) {
+      if (before.sum / before.size <= run.sum / run.size) {
+        break;
+      }
+      runs.pop();
+      run = { sum: before.sum + run.sum, size: before.size + run.size };
+    }
+    runs.push(run);
   });
-  const missed = placed.reduce(
-    (sum, wish, i) => sum + (wished[i]?.middle ?? wish.middle) - wish.middle,
-    0,
-  );
-  const shift = placed.length === 0 ? 0 : missed / placed.length;
-  return placed.map((wish) => ({ node: wish.node, middle: wish.middle + shift }));
+  const base = runs.flatMap((run) => Array.from({ length: run.size }, () => run.sum / run.size));
+  return wished.map((wish, index) => ({
+    node: wish.node,
+    middle: (base[index] ?? 0) + index * step,
+  }));
 }
 
 function stack(
@@ -225,11 +248,12 @@ function stack(
     (a, b) => a - b,
   );
   for (const level of levels) {
-    const all = [...side.nodes.values()].filter((node) => node.level === level).sort(byWeight);
+    const onLevel = [...side.nodes.values()].filter((node) => node.level === level);
+    const all = onLevel.filter((node) => hasParent(node, side, cards, focus)).sort(byWeight);
     const index = columnOf(reach, side.kind, level);
     const x = GRAPH.left + index * (GRAPH.columnWidth + GRAPH.columnGap);
-    columns.push({ kind: side.kind, level, x, hidden: Math.max(0, all.length - GRAPH.maxCards) });
     const kept = all.slice(0, GRAPH.maxCards).sort(byName);
+    columns.push({ kind: side.kind, level, x, hidden: onLevel.length - kept.length });
     const middles = wishes(kept, side, cards, focus);
     const wished = kept.map((node, i) => ({ node, middle: middles[i] ?? middleOf(focus) }));
     for (const { node, middle } of spread(wished.sort((a, b) => a.middle - b.middle))) {

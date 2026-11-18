@@ -73,7 +73,7 @@ describe("buildGraph", () => {
     expect(Math.min(...wide.cards.map((x) => x.y))).toBe(GRAPH.top);
   });
 
-  it("puts a card without a parent in the graph next to the height of the focus", () => {
+  it("shows no card that has no line to a card nearer the focus, and counts it as hidden", () => {
     const orphan = place(30, "Shop.Lost.Caller");
     const lonely = buildGraph({
       ...ANSWER,
@@ -82,12 +82,50 @@ describe("buildGraph", () => {
         hits: [...ANSWER.incoming!.hits, hit(orphan, place(31, "Shop.Lost.Parent"), { depth: 2 })],
       },
     });
-    const card = lonely.cards.find((x) => x.place.id === 30)!;
-    const focus = lonely.cards.find((x) => x.focus)!;
-    expect(Number.isFinite(card.y)).toBe(true);
-    // Another card of the same column wants the same line, so the two share it, side by side.
-    const apart = Math.abs(card.y + card.height / 2 - (focus.y + focus.height / 2));
-    expect(apart).toBeLessThanOrEqual((GRAPH.cardHeight + GRAPH.rowGap) / 2 + 1e-6);
+    expect(lonely.cards.some((x) => x.place.id === 30)).toBe(false);
+    const level = lonely.columns.find((c) => c.kind === COLUMN.callers && c.level === 2)!;
+    expect(level.hidden).toBeGreaterThanOrEqual(1);
+    for (const edge of lonely.edges) {
+      expect(lonely.cards.some((x) => x.place.id === edge.from)).toBe(true);
+      expect(lonely.cards.some((x) => x.place.id === edge.to)).toBe(true);
+    }
+  });
+
+  it("centres several children on their parent, one step apart", () => {
+    const parent = place(80, "Shop.Q.Parent.Run");
+    const kids = [81, 82, 83].map((id) => place(id, `Shop.Q.Kid${id}.Go`));
+    const hits = [hit(parent, FOCUS), ...kids.map((kid) => hit(kid, parent, { depth: 2 }))];
+    const built = buildGraph({ ...ANSWER, incoming: { total: hits.length, hits }, outgoing: null });
+    const at = (id: number) => built.cards.find((x) => x.place.id === id)!;
+    const step = GRAPH.cardHeight + GRAPH.rowGap;
+    expect(at(82).y - at(81).y).toBeCloseTo(step, 5);
+    expect(at(83).y - at(82).y).toBeCloseTo(step, 5);
+    expect(at(82).y).toBeCloseTo(at(80).y, 5);
+  });
+
+  it("keeps the children of a card close to it when other cards pile up below", () => {
+    const parents = [
+      place(60, "Shop.P.Top.Run"),
+      place(61, "Shop.P.Mid.Run"),
+      place(62, "Shop.P.Low.Run"),
+    ];
+    const children = Array.from({ length: 12 }, (_, i) =>
+      place(70 + i, `Shop.C.Child${String(i).padStart(2, "0")}.Go`),
+    );
+    const hits = [
+      ...parents.map((p) => hit(p, FOCUS)),
+      ...children.map((c, i) => hit(c, parents[i < 2 ? 0 : i < 4 ? 1 : 2]!, { depth: 2 })),
+    ];
+    const built = buildGraph({ ...ANSWER, incoming: { total: hits.length, hits }, outgoing: null });
+    const middle = (id: number) => {
+      const c = built.cards.find((x) => x.place.id === id)!;
+      return c.y + c.height / 2;
+    };
+    for (const edge of built.edges.filter((e) => e.from >= 70)) {
+      expect(Math.abs(middle(edge.from) - middle(edge.to))).toBeLessThanOrEqual(
+        5.5 * (GRAPH.cardHeight + GRAPH.rowGap),
+      );
+    }
   });
 
   it("keeps the column of what is called when nothing is called", () => {

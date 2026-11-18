@@ -12,7 +12,7 @@ import { languageName } from "../projects/format";
 import { showInGraph } from "../graph/show";
 import { showUsages } from "../../shared/navigation/navigation";
 import { openInEditor } from "./editor";
-import { memberFromTable, selectType, shownHasLayer, shownMember } from "./explorer";
+import { explorerPlace, memberFromTable, selectType, shownHasLayer, shownMember } from "./explorer";
 import { MemberTable } from "./MemberTable";
 import { MetricStrip } from "./MetricStrip";
 import type { MemberRow, SymbolInfo, Thresholds } from "./types";
@@ -54,7 +54,7 @@ function Actions(props: { symbol: number }) {
       <Action
         label={t(I18N_KEYS.EXPLORER_ACTION_USES)}
         hotkey={HOTKEY.usages}
-        onClick={() => showUsages(props.symbol)}
+        onClick={() => showUsages(props.symbol, explorerPlace())}
       />
       <Action
         label={t(I18N_KEYS.EXPLORER_ACTION_GRAPH)}

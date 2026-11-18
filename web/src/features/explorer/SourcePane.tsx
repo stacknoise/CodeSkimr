@@ -8,6 +8,7 @@ import { PILL_SEPARATOR } from "./consts";
 import { sourceWidth } from "./layout";
 import { lineRange } from "./format";
 import { type Segment, segments } from "./segments";
+import { explorerPlace } from "./explorer";
 import { sourceError, sourceInfo, sourceLoading } from "./source";
 import type { SourceInfo } from "./types";
 import styles from "./SourcePane.module.css";
@@ -25,7 +26,7 @@ function onNameClick(event: MouseEvent): void {
   const target = event.target;
   const symbol = target instanceof HTMLElement ? target.dataset.symbol : undefined;
   if (event.altKey && symbol !== undefined) {
-    showUsages(Number(symbol));
+    showUsages(Number(symbol), explorerPlace());
     event.preventDefault();
   }
 }

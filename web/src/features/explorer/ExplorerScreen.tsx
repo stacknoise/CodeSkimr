@@ -16,6 +16,7 @@ import {
   collapseAll,
   currentMember,
   currentType,
+  explorerPlace,
   loadOutline,
   shownHasLayer,
   stepMember,
@@ -148,7 +149,7 @@ function useShortcuts(explorer: ReturnType<typeof useExplorer>): void {
     usages: () => {
       const symbol = shownSymbol();
       if (symbol !== null) {
-        showUsages(symbol);
+        showUsages(symbol, explorerPlace());
       }
     },
     graph: () => {
