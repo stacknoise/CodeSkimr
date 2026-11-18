@@ -17,6 +17,18 @@ use codeskimr_i18n::Messages;
 use crate::consts::LINE_BREAK;
 use crate::level2_consent::Target;
 
+/// Opens the console output at `path` (`CONOUT$` on Windows) for reading and writing. Windows asks
+/// for the right to read a screen buffer when it is asked whether the handle is a console
+/// (`GetConsoleMode`); a handle that can only be written looks like a file, the window is then
+/// taken for no terminal and the confirmation is refused (`SEC-403`).
+#[cfg(any(windows, test))]
+fn open_console_output(path: &str) -> io::Result<std::fs::File> {
+    std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(path)
+}
+
 /// Input and output of one confirmation.
 pub(crate) struct Console {
     input: Box<dyn BufRead>,
@@ -42,13 +54,9 @@ impl Console {
     /// `SEC-403` if the window has no console to talk to; nothing is confirmed then.
     #[cfg(windows)]
     pub(crate) fn window() -> Result<Self, CodedError> {
-        use std::fs::{File, OpenOptions};
         let denied = |_| CodedError::new(ErrorCode::IndexerNotPermitted);
-        let input = File::open(crate::consts::CONSOLE_INPUT).map_err(denied)?;
-        let output = OpenOptions::new()
-            .write(true)
-            .open(crate::consts::CONSOLE_OUTPUT)
-            .map_err(denied)?;
+        let input = std::fs::File::open(crate::consts::CONSOLE_INPUT).map_err(denied)?;
+        let output = open_console_output(crate::consts::CONSOLE_OUTPUT).map_err(denied)?;
         Ok(Self {
             interactive: input.is_terminal() && output.is_terminal(),
             input: Box::new(io::BufReader::new(input)),
@@ -190,5 +198,20 @@ mod tests {
         console.borrow_mut().wait_for_enter();
         assert_eq!(console.borrow_mut().answer().unwrap(), "rest\n");
         console.borrow_mut().wait_for_enter();
+    }
+
+    #[test]
+    fn the_console_output_can_be_read_as_well_as_written() {
+        // Windows only calls a handle a console if it may read it; a file stands in for the screen
+        // buffer and shows that both rights are there and that nothing is cut off.
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("screen");
+        std::fs::write(&path, "kept").unwrap();
+        let mut output = open_console_output(path.to_str().unwrap()).unwrap();
+        let mut seen = String::new();
+        std::io::Read::read_to_string(&mut output, &mut seen).unwrap();
+        assert_eq!(seen, "kept");
+        output.write_all(b"!").unwrap();
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), "kept!");
     }
 }
