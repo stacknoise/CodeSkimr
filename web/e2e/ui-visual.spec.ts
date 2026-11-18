@@ -8,9 +8,9 @@
 //
 // `UPDATE_SCREENSHOTS=1` writes the screens to docs/screenshots/visual/ for the review by eye.
 // Runs after ui-usages.spec.ts: the worker shares one server and every scan adds a project.
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
-import type { Page, TestInfo } from "@playwright/test";
+import type { Page } from "@playwright/test";
 import {
   addLayeredProject,
   addScannedProject,
@@ -18,6 +18,7 @@ import {
   keepLaunchFile,
   SCAN_MS,
   selectAdd,
+  shot,
   test,
   type Harness,
 } from "./fixtures";
@@ -129,16 +130,6 @@ async function openUi(page: Page, harness: Harness, theme = "hell"): Promise<voi
   await page.goto(`file://${copy}`);
 }
 
-/** Saves the screen for the review by eye when asked to, and always attaches it to the report. */
-async function shot(page: Page, name: string, info: TestInfo): Promise<void> {
-  const body = await page.screenshot();
-  await info.attach(name, { body, contentType: "image/png" });
-  if (process.env["UPDATE_SCREENSHOTS"]) {
-    mkdirSync(SHOTS, { recursive: true });
-    writeFileSync(path.join(SHOTS, `${name}.png`), body);
-  }
-}
-
 const SOURCE = [
   "namespace Vis;",
   "",
@@ -206,7 +197,7 @@ for (const theme of THEMES) {
         { name: "form", mock: "nav ~ main form", real: "main form", only: ["x", "width"] },
         { name: "list", mock: "nav ~ main table", real: "main table", only: ["x", "width"] },
       ]);
-      await shot(page, `projects-${theme}`, info);
+      await shot(page, SHOTS, `projects-${theme}`, info);
     });
 
     test("Explorer (2)", async ({ page, harness }, info) => {
@@ -233,7 +224,7 @@ for (const theme of THEMES) {
           only: ["x", "width"],
         },
       ]);
-      await shot(page, `explorer-${theme}`, info);
+      await shot(page, SHOTS, `explorer-${theme}`, info);
     });
 
     test("Quick search (4)", async ({ page, harness }, info) => {
@@ -262,7 +253,7 @@ for (const theme of THEMES) {
           only: ["x", "width"],
         },
       ]);
-      await shot(page, `search-${theme}`, info);
+      await shot(page, SHOTS, `search-${theme}`, info);
     });
 
     test("Settings (13)", async ({ page, harness }, info) => {
@@ -286,7 +277,7 @@ for (const theme of THEMES) {
           only: ["x", "width"],
         },
       ]);
-      await shot(page, `settings-${theme}`, info);
+      await shot(page, SHOTS, `settings-${theme}`, info);
     });
 
     test("Scan and performance (5)", async ({ page, harness }, info) => {
@@ -310,7 +301,7 @@ for (const theme of THEMES) {
           only: ["x", "width"],
         },
       ]);
-      await shot(page, `scan-${theme}`, info);
+      await shot(page, SHOTS, `scan-${theme}`, info);
     });
 
     test("Usages (6)", async ({ page, harness }, info) => {
@@ -332,7 +323,7 @@ for (const theme of THEMES) {
         },
         { name: "side panel", mock: "nav ~ aside", real: "main aside" },
       ]);
-      await shot(page, `usages-${theme}`, info);
+      await shot(page, SHOTS, `usages-${theme}`, info);
     });
 
     test("Annotations in the explorer (14)", async ({ page, harness }, info) => {
@@ -350,7 +341,7 @@ for (const theme of THEMES) {
           only: ["height"],
         },
       ]);
-      await shot(page, `annotations-${theme}`, info);
+      await shot(page, SHOTS, `annotations-${theme}`, info);
     });
 
     test("Alerts (15)", async ({ page, harness }, info) => {
@@ -365,7 +356,7 @@ for (const theme of THEMES) {
       await compare(page, mock, [
         { name: "drawer", mock: ".drawer", real: "[role=dialog]", only: ["y", "width"] },
       ]);
-      await shot(page, `alerts-${theme}`, info);
+      await shot(page, SHOTS, `alerts-${theme}`, info);
     });
 
     test("Task board (16)", async ({ page, harness }, info) => {
@@ -381,7 +372,7 @@ for (const theme of THEMES) {
         { name: "top bar", mock: "header", real: "header", only: ["y", "height"] },
         { name: "screen", mock: ".mid", real: "main", only: ["x", "y"] },
       ]);
-      await shot(page, `board-${theme}`, info);
+      await shot(page, SHOTS, `board-${theme}`, info);
     });
 
     test("Dependencies (3)", async ({ page, harness }, info) => {
@@ -403,7 +394,7 @@ for (const theme of THEMES) {
         },
         { name: "side panel", mock: "nav ~ aside", real: "main aside" },
       ]);
-      await shot(page, `graph-${theme}`, info);
+      await shot(page, SHOTS, `graph-${theme}`, info);
     });
   });
 }
@@ -451,7 +442,7 @@ for (const theme of THEMES) {
       expect(actual["footer.background-color"]).toBe(rgb(tokens["surface"] ?? ""));
       expect(actual["footer.border-top-color"]).toBe(rgb(tokens["line"] ?? ""));
       await compare(page, await openMock(page, "Main"), SHELL);
-      await shot(page, `frame-${theme}`, info);
+      await shot(page, SHOTS, `frame-${theme}`, info);
     });
   });
 }

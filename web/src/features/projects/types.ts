@@ -74,3 +74,18 @@ export interface Scanned {
   seconds: number;
   tools: ToolsInfo;
 }
+
+/** The state of the level 2 switch of a project (`level2.status`, ADR 0071, decision 3). */
+export interface Level2Status {
+  state: "on" | "off" | "not_enabled" | "locked";
+  /** Whether a confirmation exists; only informative if the state is `not_enabled`. */
+  confirmed: boolean;
+  /** `window` if the server can open the console window, `copy` if the screen shows the command. */
+  launch: "window" | "copy";
+}
+
+/** The answer of `POST /api/v1/level2/confirm-window`. */
+export interface ConfirmWindow {
+  launch: "window" | "copy";
+  command?: string;
+}
