@@ -49,6 +49,7 @@ export interface UsagesAnswer {
   snapshot: number;
   symbol: Place;
   signature: string | null;
+  doc: string | null;
   path: string;
   depth: number;
   incoming: Walk | null;
