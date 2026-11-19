@@ -1,10 +1,11 @@
-import { createSignal, For, onMount, Show } from "solid-js";
+import { createEffect, createSignal, For, onMount, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
-import { DEFAULT_BRANCH } from "./consts";
+import { SETTINGS_ROUTE } from "../../app/consts";
+import { navigate } from "../../app/router";
+import { DEFAULT_BRANCH, FOLDER_PATH, GIT_ADDRESS, SOURCE_KIND, type SourceKind } from "./consts";
 import { failureText } from "./failure";
-import { CredentialForm } from "./CredentialForm";
 import { credentialNames, refreshCredentials } from "./credentials";
 import { addProject, projectAdding, projectsFailure, type Failure } from "./projects";
 import styles from "./NewProjectForm.module.css";
@@ -19,8 +20,23 @@ export interface NewProjectFormProps {
   notice: string | null;
 }
 
+/** The choice between a folder and a Git repository; the other fields follow it. */
+function KindSelect(props: { kind: SourceKind; onKind: (kind: SourceKind) => void }) {
+  return (
+    <select
+      class={styles.credential}
+      aria-label={t(I18N_KEYS.PROJECTS_FIELD_SOURCE_KIND)}
+      value={props.kind}
+      onChange={(event) => props.onKind(event.currentTarget.value as SourceKind)}
+    >
+      <option value={SOURCE_KIND.folder}>{t(I18N_KEYS.PROJECTS_SOURCE_FOLDER)}</option>
+      <option value={SOURCE_KIND.git}>{t(I18N_KEYS.PROJECTS_SOURCE_GIT)}</option>
+    </select>
+  );
+}
+
 /** The source field with its label (mock 1). */
-function SourceField(props: NewProjectFormProps) {
+function SourceField(props: NewProjectFormProps & { kind: SourceKind }) {
   return (
     <>
       <label for="source" class={styles.title}>
@@ -31,7 +47,11 @@ function SourceField(props: NewProjectFormProps) {
         ref={props.setInput}
         class={styles.source}
         value={props.source}
-        placeholder={t(I18N_KEYS.PROJECTS_SOURCE_PLACEHOLDER)}
+        placeholder={t(
+          props.kind === SOURCE_KIND.git
+            ? I18N_KEYS.PROJECTS_SOURCE_PLACEHOLDER_GIT
+            : I18N_KEYS.PROJECTS_SOURCE_PLACEHOLDER_FOLDER,
+        )}
         onInput={(event) => props.onSource(event.currentTarget.value)}
         spellcheck={false}
         autocomplete="off"
@@ -95,33 +115,73 @@ function Messages(props: { notice: string | null }) {
   );
 }
 
+/** The kind of source: a folder at first; a pasted or dropped text that is clearly an address or a
+ * path chooses it, the select changes it. */
+function useKind(source: () => string) {
+  const [kind, setKind] = createSignal<SourceKind>(SOURCE_KIND.folder);
+  createEffect(() => {
+    if (GIT_ADDRESS.test(source())) {
+      setKind(SOURCE_KIND.git);
+    } else if (FOLDER_PATH.test(source())) {
+      setKind(SOURCE_KIND.folder);
+    }
+  });
+  return [kind, setKind] as const;
+}
+
+/** The fields that only a Git source has: branch, login and the way to manage logins. */
+function GitFields(props: {
+  onBranch: (value: string) => void;
+  credential: string;
+  onCredential: (id: string) => void;
+}) {
+  return (
+    <>
+      <BranchField onBranch={props.onBranch} />
+      <CredentialSelect value={props.credential} onChange={props.onCredential} />
+      <button type="button" class={styles.link} onClick={() => navigate(SETTINGS_ROUTE.path)}>
+        {t(I18N_KEYS.PROJECTS_CREDENTIAL_SETTINGS)}
+      </button>
+    </>
+  );
+}
+
 /** The inline form "New project" (mock 1): source, branch and the button. */
 export function NewProjectForm(props: NewProjectFormProps) {
   let branch = DEFAULT_BRANCH;
   const [credential, setCredential] = createSignal("");
+  const [kind, setKind] = useKind(() => props.source);
   onMount(() => void refreshCredentials());
   const submit = async (event: SubmitEvent) => {
     event.preventDefault();
     if (props.source.trim() === "" || projectAdding()) {
       return;
     }
-    if (await addProject(props.source.trim(), branch.trim(), credential())) {
+    const git = kind() === SOURCE_KIND.git;
+    if (
+      await addProject(
+        props.source.trim(),
+        git ? branch.trim() : DEFAULT_BRANCH,
+        git ? credential() : "",
+      )
+    ) {
       props.onSource("");
     }
   };
-  const stored = (id: string) => {
-    void refreshCredentials();
-    setCredential(id);
-  };
   return (
     <form class={cx(styles.form, props.dragging && styles.dragging)} onSubmit={submit}>
-      <SourceField {...props} />
-      <BranchField onBranch={(value) => (branch = value)} />
-      <CredentialSelect value={credential()} onChange={setCredential} />
+      <KindSelect kind={kind()} onKind={setKind} />
+      <SourceField {...props} kind={kind()} />
+      <Show when={kind() === SOURCE_KIND.git}>
+        <GitFields
+          onBranch={(value) => (branch = value)}
+          credential={credential()}
+          onCredential={setCredential}
+        />
+      </Show>
       <button type="submit" class={styles.button} disabled={projectAdding()}>
         {projectAdding() ? t(I18N_KEYS.PROJECTS_ADDING) : t(I18N_KEYS.PROJECTS_ADD_AND_SCAN)}
       </button>
-      <CredentialForm onStored={stored} />
       <Messages notice={props.notice} />
     </form>
   );

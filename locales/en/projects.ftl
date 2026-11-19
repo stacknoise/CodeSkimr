@@ -116,3 +116,7 @@ projects-level2-revoking = Switching off …
 projects-level2-revoked = Level 2 is off. Checked results stay until the next scan. The next scan runs level 1 only.
 projects-level2-rescan = Scan again
 projects-level2-retry-wait = Wait { $seconds } seconds, then switch on again.
+projects-credential-settings = Manage logins in the settings
+projects-field-source-kind = Source
+projects-source-placeholder-folder = Paste a folder path – or drop a folder here
+projects-source-placeholder-git = Paste the address of a Git repository

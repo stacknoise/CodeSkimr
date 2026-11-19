@@ -7,7 +7,7 @@ use std::collections::BTreeSet;
 
 use codeskimr_application::config::Graph;
 use codeskimr_application::error::CodedError;
-use codeskimr_domain::{Layer, NamespaceGraph, SnapshotId};
+use codeskimr_domain::{Layer, NamespaceGraph, QualifiedName, SnapshotId};
 
 use super::consts::{NAMESPACE_SIDE_MAX, TYPE_ROW_FOCUS, TYPE_ROW_USED, TYPE_ROW_USERS};
 use super::graph::{BoxOut, FocusOut, GraphOut, GraphPorts, LinkOut, layer_index};
@@ -30,20 +30,39 @@ fn degree(graph: &NamespaceGraph, at: usize) -> u32 {
         .sum()
 }
 
-/// The namespace in the middle: the one asked for, else the one with the most references.
-fn middle(graph: &NamespaceGraph, asked: Option<&str>) -> Option<usize> {
-    let named = asked.and_then(|name| {
-        graph
-            .namespaces
-            .iter()
-            .position(|node| node.name.as_str() == name)
-    });
-    named.or_else(|| {
-        (0..graph.namespaces.len()).max_by_key(|&at| {
-            let types = graph.namespaces.get(at).map_or(0, |node| node.types);
-            (degree(graph, at), types)
-        })
+/// Whether two names stand for the same place at different depths: one is the other or a parent
+/// of it. A map with another depth names the same namespace with fewer or more segments.
+fn related(one: &QualifiedName, other: &str) -> bool {
+    one.is_inside(other) || QualifiedName::new(other).is_ok_and(|name| name.is_inside(one.as_str()))
+}
+
+/// The position of the node with the most references among `candidates`.
+fn busiest(graph: &NamespaceGraph, candidates: impl Iterator<Item = usize>) -> Option<usize> {
+    candidates.max_by_key(|&at| {
+        let types = graph.namespaces.get(at).map_or(0, |node| node.types);
+        (degree(graph, at), types)
     })
+}
+
+/// The namespace in the middle: the one asked for, else the busiest one that is the same place at
+/// another depth (a parent or a child of the name), else the one with the most references.
+fn middle(graph: &NamespaceGraph, asked: Option<&str>) -> Option<usize> {
+    let all = || 0..graph.namespaces.len();
+    let named = asked.and_then(|name| {
+        let exact = all().find(|&at| name_of(graph, at) == name);
+        exact.or_else(|| {
+            busiest(
+                graph,
+                all().filter(|&at| {
+                    graph
+                        .namespaces
+                        .get(at)
+                        .is_some_and(|node| related(&node.name, name))
+                }),
+            )
+        })
+    });
+    named.or_else(|| busiest(graph, all()))
 }
 
 /// The neighbours of `at` on one side with the references, the most referenced first.
@@ -200,6 +219,15 @@ mod tests {
         assert_eq!(middle(&all, Some("C")), Some(2));
         assert_eq!(middle(&all, Some("Unknown")), Some(1));
         assert_eq!(middle(&graph(&[], &[]), None), None);
+    }
+
+    #[test]
+    fn the_asked_namespace_is_found_again_at_another_depth() {
+        let merged = graph(&["Shop", "Core"], &[(0, 1, 1)]);
+        assert_eq!(middle(&merged, Some("Shop.Ui.Cart")), Some(0));
+        let deep = graph(&["Shop.Ui", "Shop.App", "Core"], &[(0, 2, 1), (1, 2, 3)]);
+        assert_eq!(middle(&deep, Some("Shop")), Some(1));
+        assert_eq!(middle(&deep, Some("Sho")), Some(2));
     }
 
     #[test]

@@ -32,6 +32,7 @@ const [failure, setFailure] = createSignal<Failure | null>(null);
 const [loading, setLoading] = createSignal(false);
 const [selected, setSelected] = createSignal(NO_HIT);
 const [preview, setPreview] = createSignal<UsagesAnswer | null>(null);
+const [filter, setFilter] = createSignal("");
 const [code, setCode] = createSignal<Map<string, string>>(new Map());
 
 /** Counts the questions asked; the answer to an earlier one is dropped. */
@@ -57,6 +58,10 @@ export const setSelectedHit = setSelected;
 /** The code lines of the hits by place; empty until read, or if the code cannot be read. */
 export const hitCode = code;
 
+/** The text the hit list is filtered by. */
+export const hitFilter = filter;
+export const setHitFilter = setFilter;
+
 /** The answer for the symbol a single click on a card picked, `null` if none is picked. The side
  * panel shows it instead of the answer of the focus. */
 export const previewAnswer = preview;
@@ -68,6 +73,7 @@ let previewGeneration = 0;
 export function clearPreview(): void {
   previewGeneration += 1;
   setPreview(null);
+  setSelected(NO_HIT);
 }
 
 /** Reads the usages of the picked symbol for the side panel; the graph stays as it is. */
@@ -84,6 +90,7 @@ export async function loadPreview(project: number, symbol: number): Promise<void
     });
     if (mine === previewGeneration) {
       setPreview(read);
+      setSelected(NO_HIT);
     }
   } catch {
     // The side panel keeps showing what it showed.
@@ -146,6 +153,7 @@ export function clearUsages(): void {
   clearOrigin();
   setAnswer(null);
   setCode(new Map());
+  setFilter("");
   setFailure(null);
   setLoading(false);
 }

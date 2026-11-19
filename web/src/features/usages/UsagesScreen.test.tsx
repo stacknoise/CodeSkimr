@@ -59,7 +59,11 @@ describe("UsagesScreen", () => {
     shown();
     await screen.findByRole("heading", { name: "Cart.Total" });
     const separators = screen.getAllByRole("separator");
-    const panel = separators.find((item) => item.getAttribute("aria-orientation") === "vertical")!;
+    const panel = separators.find(
+      (item) =>
+        item.getAttribute("aria-orientation") === "vertical" &&
+        !item.getAttribute("aria-label")?.startsWith("Resize column"),
+    )!;
     const before = Number(panel.getAttribute("aria-valuenow"));
     fireEvent.keyDown(panel, { key: "ArrowLeft" });
     const after = Number(panel.getAttribute("aria-valuenow"));
@@ -144,7 +148,7 @@ describe("UsagesScreen", () => {
 
   it("explains the lines and the number on the cards with a legend", async () => {
     shown();
-    await screen.findByText("Hits 4");
+    await screen.findByText("Hits 3");
     expect(screen.getByText("calls")).toBeTruthy();
     expect(screen.getByText("uses")).toBeTruthy();
     expect(screen.getByText("presumed (via interface)")).toBeTruthy();
@@ -171,17 +175,30 @@ describe("UsagesScreen", () => {
     expect(screen.getByText("src/Ui.cs:40")).toBeTruthy();
   });
 
+  it("narrows the hit list with the filter and widens a column with the keys", async () => {
+    shown();
+    await screen.findByText("Hits 3");
+    fireEvent.input(screen.getByRole("searchbox", { name: "Filter hits" }), {
+      target: { value: "handler" },
+    });
+    expect(await screen.findByText("Hits 1")).toBeTruthy();
+    const handle = screen.getByRole("separator", { name: "Resize column Kind" });
+    const before = Number(handle.getAttribute("aria-valuenow"));
+    fireEvent.keyDown(handle, { key: "ArrowRight" });
+    expect(Number(handle.getAttribute("aria-valuenow"))).toBeGreaterThan(before);
+  });
+
   it("keeps the hit list when the code cannot be read", async () => {
     shown();
-    await screen.findByText("Hits 4");
+    await screen.findByText("Hits 3");
     expect(screen.getByText("src/Ui.cs:40")).toBeTruthy();
     expect(document.querySelector("mark")).toBeNull();
   });
 
   it("marks every hit unchecked or presumed and says that the result is preliminary", async () => {
     shown();
-    await screen.findByText("Hits 4");
-    expect(screen.getAllByText("unchecked").length).toBe(3);
+    await screen.findByText("Hits 3");
+    expect(screen.getAllByText("unchecked").length).toBe(2);
     expect(screen.getAllByText("presumed").length).toBeGreaterThan(0);
     expect(screen.getByText(/No indexer is set up for this project/)).toBeTruthy();
     expect(screen.getByText("0 places verified, 3 unchecked, 1 of them presumed.")).toBeTruthy();
@@ -197,13 +214,13 @@ describe("UsagesScreen", () => {
     verified.incoming!.hits[0]!.verified = true;
     verified.summary = { ...verified.summary, verified: 1, unchecked: 2 };
     shown(verified);
-    await screen.findByText("Hits 4");
+    await screen.findByText("Hits 3");
     expect(screen.getByText("verified")).toBeTruthy();
   });
 
   it("reads again with the direction, the depth and the tests of the toolbar", async () => {
     shown();
-    await screen.findByText("Hits 4");
+    await screen.findByText("Hits 3");
     expect(lastRequest()).toMatchObject({ project: 1, symbol: 10, way: "both", depth: 2 });
     fireEvent.click(screen.getByRole("button", { name: "who calls" }));
     await waitFor(() => expect(lastRequest().way).toBe("incoming"));
@@ -247,7 +264,7 @@ describe("UsagesScreen", () => {
 
   it("steps through the hits with F8 and opens the selected one in the explorer", async () => {
     shown();
-    await screen.findByText("Hits 4");
+    await screen.findByText("Hits 3");
     fireEvent.keyDown(document.body, { key: "F8" });
     fireEvent.keyDown(document.body, { key: "Enter" });
     await waitFor(() => expect(currentPath()).toBe("/explorer"));
@@ -276,8 +293,8 @@ describe("UsagesScreen", () => {
   it("speaks German", async () => {
     setLanguage("de");
     shown();
-    expect(await screen.findByText("Fundstellen 4")).toBeTruthy();
-    expect(screen.getAllByText("ungeprüft").length).toBe(3);
+    expect(await screen.findByText("Fundstellen 3")).toBeTruthy();
+    expect(screen.getAllByText("ungeprüft").length).toBe(2);
   });
 });
 

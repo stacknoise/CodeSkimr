@@ -16,7 +16,15 @@ export const INDEXERS_COMMAND = "tools.indexers";
 export const CREDENTIAL_COMMAND = {
   list: "credentials.list",
   set: "credentials.set",
+  remove: "credentials.delete",
 } as const;
+/** Where this browser keeps the names of the credentials it stored. */
+export const CREDENTIAL_NAMES_KEY = "codeskimr.credentials.names";
+
+/** A pasted text that is clearly a path of a folder. */
+export const FOLDER_PATH = /^(?:[/~\\]|[a-z]:[\\/])/i;
+/** A pasted text that is the address of a repository, not a path. */
+export const GIT_ADDRESS = /^(?:[a-z][a-z0-9+.-]*:\/\/|git@)/i;
 
 /** What the check found out about one tool, as the server names it. */
 export const TOOL_STATE = {
@@ -44,6 +52,8 @@ export const DEFAULT_BRANCH = "main";
 
 /** What a project's source is, as the server names it. */
 export const SOURCE_KIND = { folder: "folder", git: "git" } as const;
+/** One of the kinds of source. */
+export type SourceKind = (typeof SOURCE_KIND)[keyof typeof SOURCE_KIND];
 
 /** How a scan is named by the server. */
 export const SCAN_MODE = { full: "full", incremental: "incremental" } as const;
