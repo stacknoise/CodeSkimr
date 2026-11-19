@@ -1,5 +1,5 @@
-//! Coupling between namespaces and modules: efferent coupling (Ce), afferent coupling (Ca) and
-//! instability (ADR 0015, ADR 0037).
+//! Coupling between namespaces and modules and between types: efferent coupling (Ce), afferent
+//! coupling (Ca) and instability (ADR 0015, ADR 0037, ADR 0074).
 //!
 //! A symbol belongs to the nearest enclosing namespace or module, found by its qualified name like
 //! in the namespace graph; a namespace or module belongs to itself. `ce` counts the other units
@@ -21,13 +21,25 @@ type Declared<'a> = HashMap<&'a str, Vec<SymbolId>>;
 /// The position of the unit of every symbol that sits in one.
 type Owners = HashMap<SymbolId, usize, IdHash>;
 
-fn is_unit(kind: SymbolKind) -> bool {
-    matches!(kind, SymbolKind::Namespace | SymbolKind::Module)
+/// What a unit is: a namespace or module, or a type (ADR 0074).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Level {
+    Namespaces,
+    Types,
 }
 
-fn declared_units(symbols: &[Symbol]) -> Declared<'_> {
+impl Level {
+    fn is_unit(self, kind: SymbolKind) -> bool {
+        match self {
+            Self::Namespaces => matches!(kind, SymbolKind::Namespace | SymbolKind::Module),
+            Self::Types => kind.is_type(),
+        }
+    }
+}
+
+fn declared_units(symbols: &[Symbol], level: Level) -> Declared<'_> {
     let mut units = Declared::new();
-    for symbol in symbols.iter().filter(|symbol| is_unit(symbol.kind)) {
+    for symbol in symbols.iter().filter(|symbol| level.is_unit(symbol.kind)) {
         units
             .entry(symbol.qualified_name.as_str())
             .or_default()
@@ -62,12 +74,12 @@ fn unit_at<'a>(
 }
 
 /// The unit of every symbol: a unit is its own, any other symbol sits in the nearest enclosing one.
-fn owners(symbols: &[Symbol], position: &HashMap<&str, usize>) -> Owners {
+fn owners(symbols: &[Symbol], position: &HashMap<&str, usize>, level: Level) -> Owners {
     let mut owner = Owners::default();
     let mut known = HashMap::new();
     for symbol in symbols {
         let name = symbol.qualified_name.as_str();
-        let start = if is_unit(symbol.kind) {
+        let start = if level.is_unit(symbol.kind) {
             Some(name)
         } else {
             parent_name(name)
@@ -135,13 +147,24 @@ fn metric(symbol: SymbolId, kind: MetricKind, value: f64) -> Result<Metric, Mode
 /// # Errors
 /// [`ModelError::NotFinite`] if a value overflows, which counts of `u32` rule out in practice.
 pub fn coupling(symbols: &[Symbol], references: &[Reference]) -> Result<Vec<Metric>, ModelError> {
-    let units = declared_units(symbols);
+    let mut metrics = level_coupling(symbols, references, Level::Namespaces)?;
+    metrics.extend(level_coupling(symbols, references, Level::Types)?);
+    metrics.sort_by_key(|found| found.symbol);
+    Ok(metrics)
+}
+
+fn level_coupling(
+    symbols: &[Symbol],
+    references: &[Reference],
+    level: Level,
+) -> Result<Vec<Metric>, ModelError> {
+    let units = declared_units(symbols, level);
     let position: HashMap<&str, usize> = units
         .keys()
         .enumerate()
         .map(|(index, name)| (*name, index))
         .collect();
-    let owner = owners(symbols, &position);
+    let owner = owners(symbols, &position, level);
     let (efferent, afferent) = dependencies(&owner, references, units.len());
     let mut metrics = Vec::new();
     for (unit, declared) in &units {
@@ -157,6 +180,5 @@ pub fn coupling(symbols: &[Symbol], references: &[Reference]) -> Result<Vec<Metr
             }
         }
     }
-    metrics.sort_by_key(|found| found.symbol);
     Ok(metrics)
 }
