@@ -68,6 +68,7 @@ let previewGeneration = 0;
 export function clearPreview(): void {
   previewGeneration += 1;
   setPreview(null);
+  setSelected(NO_HIT);
 }
 
 /** Reads the usages of the picked symbol for the side panel; the graph stays as it is. */
@@ -84,6 +85,7 @@ export async function loadPreview(project: number, symbol: number): Promise<void
     });
     if (mine === previewGeneration) {
       setPreview(read);
+      setSelected(NO_HIT);
     }
   } catch {
     // The side panel keeps showing what it showed.

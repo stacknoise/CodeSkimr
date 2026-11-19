@@ -1,5 +1,7 @@
 import {
   CONFIDENCE,
+  DIRECT_DEPTH,
+  IDENTIFIER_CHAR,
   LOCATION_JOIN,
   NAME_SEPARATOR,
   NOT_FOUND,
@@ -9,9 +11,13 @@ import {
 } from "./consts";
 import type { CodeLine, Hit, Place, UsagesAnswer } from "./types";
 
-/** The hits the list shows: the callers if the answer has them, else the callees. */
-export function listedHits(answer: UsagesAnswer): Hit[] {
-  return (answer.incoming ?? answer.outgoing)?.hits ?? [];
+/** The hits the list shows: the direct ones of the callers if the answer has them, else of the
+ * callees. A symbol picked in the graph narrows them to the hits between it and the focus. */
+export function listedHits(answer: UsagesAnswer, picked: number | null = null): Hit[] {
+  const direct = ((answer.incoming ?? answer.outgoing)?.hits ?? []).filter(
+    (hit) => hit.depth === DIRECT_DEPTH,
+  );
+  return picked === null ? direct : direct.filter((hit) => listedPlace(answer, hit).id === picked);
 }
 
 /** How sure a hit is: verified by level 2, presumed by level 1 itself, or just unchecked. */
@@ -51,13 +57,28 @@ export function shortName(place: Place): string {
   return place.qualified_name.split(NAME_SEPARATOR).pop() ?? place.qualified_name;
 }
 
-/** A line of code cut around the first occurrence of `word`. A line without the word comes back
- * whole in `before`. */
+/** Where `word` stands as a whole word in `text`, `NOT_FOUND` if it does not. `Accept` is not
+ * found in `AcceptedOperation`, but in `args.Accept`. */
+function wholeWordAt(text: string, word: string): number {
+  let at = text.indexOf(word);
+  while (at !== NOT_FOUND) {
+    const before = text.charAt(at - 1);
+    const after = text.charAt(at + word.length);
+    if (!IDENTIFIER_CHAR.test(before) && !IDENTIFIER_CHAR.test(after)) {
+      return at;
+    }
+    at = text.indexOf(word, at + 1);
+  }
+  return NOT_FOUND;
+}
+
+/** A line of code cut around the first whole-word occurrence of `word`. A line without the word
+ * comes back whole in `before`. */
 export function splitAt(
   text: string,
   word: string,
 ): { before: string; word: string; after: string } {
-  const at = word === "" ? NOT_FOUND : text.indexOf(word);
+  const at = word === "" ? NOT_FOUND : wholeWordAt(text, word);
   if (at === NOT_FOUND) {
     return { before: text, word: "", after: "" };
   }

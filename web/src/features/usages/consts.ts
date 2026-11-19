@@ -90,6 +90,8 @@ export const STEP_NEXT = 1;
 export const STEP_PREVIOUS = -1;
 /** `indexOf` found nothing. */
 export const NOT_FOUND = -1;
+/** The depth of a direct reference; deeper hits reach the symbol only through others. */
+export const DIRECT_DEPTH = 1;
 /** No hit is selected. */
 export const NO_HIT = -1;
 
@@ -140,3 +142,6 @@ export const START_MIN_SCALE = 0.6;
 /** The width of the side panel, and the key under which it is remembered. */
 export const PANEL_PANE_KEY = "usages.panel";
 export const PANEL_PANE_BOUNDS = { initial: 300, min: 240, max: 720 } as const;
+
+/** A character that can be part of an identifier: a word is only a whole word next to others. */
+export const IDENTIFIER_CHAR = /[\p{L}\p{N}_]/u;

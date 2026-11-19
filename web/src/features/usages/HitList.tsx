@@ -104,10 +104,10 @@ function ListHead(props: { answer: UsagesAnswer; hits: Hit[] }) {
           {t(I18N_KEYS.USAGES_PRESUMED)} {kinds().presumed}
         </Pill>
       </Show>
-      <Show when={(walk()?.total ?? 0) > props.hits.length}>
+      <Show when={(walk()?.total ?? 0) > (walk()?.hits.length ?? 0)}>
         <span class={styles.cut}>
           {t(I18N_KEYS.USAGES_HITS_CUT, {
-            shown: props.hits.length,
+            shown: walk()?.hits.length ?? 0,
             total: walk()?.total ?? 0,
           })}
         </span>

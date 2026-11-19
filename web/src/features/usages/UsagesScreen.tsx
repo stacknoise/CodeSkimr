@@ -106,7 +106,7 @@ function useBack(open: (place: Hit["from"]) => void, focus: Hit["from"]): () => 
 }
 
 function Body(props: { answer: UsagesAnswer }) {
-  const hits = () => listedHits(props.answer);
+  const hits = () => listedHits(props.answer, previewAnswer()?.symbol.id ?? null);
   const selectedPlace = () => {
     const hit = hits()[selectedHit()];
     return hit ? listedPlace(props.answer, hit) : undefined;
