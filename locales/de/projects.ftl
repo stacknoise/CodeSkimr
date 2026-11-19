@@ -116,3 +116,7 @@ projects-level2-revoking = Wird ausgeschaltet …
 projects-level2-revoked = Stufe 2 ist aus. Geprüfte Ergebnisse bleiben bis zum nächsten Scan erhalten. Der nächste Scan läuft nur mit Stufe 1.
 projects-level2-rescan = Erneut scannen
 projects-level2-retry-wait = Warte { $seconds } Sekunden und schalte dann erneut ein.
+projects-credential-settings = Zugangsdaten in den Einstellungen verwalten
+projects-field-source-kind = Quelle
+projects-source-placeholder-folder = Ordnerpfad einfügen – oder einen Ordner hierher ziehen
+projects-source-placeholder-git = Adresse eines Git-Repositorys einfügen

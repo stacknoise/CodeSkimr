@@ -6,6 +6,7 @@ import { activeTheme, chosenTheme, followSystem, selectTheme } from "../../share
 import { THEMES } from "../../shared/theme/tokens";
 import { FOLLOW_SYSTEM_ID, LANGUAGE_FIELD_ID, LANGUAGE_NAME_KEYS } from "./consts";
 import styles from "./SettingsScreen.module.css";
+import { CredentialsPanel } from "./CredentialsPanel";
 import { IndexersPanel } from "./IndexersPanel";
 import { ThemeCard } from "./ThemeCard";
 import { LANGUAGES } from "../../shared/i18n/consts";
@@ -112,6 +113,7 @@ export function SettingsScreen() {
       <LanguagePanel />
       <LayersPanel />
       <IndexersPanel />
+      <CredentialsPanel />
       <Show when={uiConfig()}>{(config) => <EditorPanel config={config()} />}</Show>
     </>
   );
