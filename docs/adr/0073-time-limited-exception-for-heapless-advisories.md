@@ -1,6 +1,6 @@
 # 0073 – Time-limited exception for the `heapless` 0.8 advisories
 
-Status: accepted
+Status: proposed
 
 ## Context
 
@@ -10,7 +10,7 @@ On 2026-11-18 nine advisories for the crate `heapless` were published: RUSTSEC-2
 
 ## Is `heapless` reachable in the release binary?
 
-The affected functions are in `sorted_linked_list`, `spsc`, `IndexMap`, `Deque`, `HistoryBuf`, the object pools and `vec::IntoIter`. `faster-hex` 0.10.1 uses `heapless` in one place only: `heapless::String` and `heapless::Vec` in `encode.rs`, in the variant of `hex_string` for builds without the `alloc` feature. It uses none of the affected types or functions. Of the nine advisories, only 0577 names a function of `Vec` (`vec::IntoIter::drop`), and `faster-hex` never turns its `Vec` into an iterator. The pools (0580) and the concurrency problem (0575) are not used either. `heapless` is compiled in, but none of the faulty code paths can be reached from CodeSkimr.
+The affected functions are in `sorted_linked_list`, `spsc`, `IndexMap`, `Deque`, `HistoryBuf`, the object pools and `vec::IntoIter`. `faster-hex` 0.10.1 uses `heapless` in one place only: `heapless::String` and `heapless::Vec` in `encode.rs`, in the variant of `hex_string` for builds without the `alloc` feature. It uses none of the affected types or functions. Of the nine advisories, only 0577 names a function of `Vec` (`vec::IntoIter::drop`), and `faster-hex` never turns its `Vec` into an iterator. The pools (0580) and the concurrency problem (0575) are not used either. The crate `heapless` is only built along, not used: the feature `alloc` of `faster-hex` is active (through `std`, see `cargo tree -e features -i faster-hex@0.10.1`), so the `heapless` branch in `faster-hex` is not compiled, and no call leads into it. No faulty code path can be reached from CodeSkimr. If a new dependency ever uses `heapless`, its reachability must be checked again.
 
 ## Options
 
@@ -25,6 +25,7 @@ Option 4. `deny.toml` and all `cargo audit` steps of the `deps` job that see a l
 
 ## Consequences
 
+- Tracking issue with the deadline 2027-02-28: #548.
 - As soon as a `gix` release uses `faster-hex` 1.x, the dependency is updated, the nine entries are removed and this ADR is set to "superseded". Until then the exception stays in place.
 - On or before 2027-02-28 the exception is reviewed: removed, or renewed by a new ADR.
 - No product code, no behaviour and no dependency changes.
