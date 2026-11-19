@@ -1,4 +1,4 @@
-import { Show } from "solid-js";
+import { batch, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { annotationIndex, annotationsAvailable } from "../annotations/store";
@@ -21,6 +21,7 @@ import {
   graphFocus,
   graphLevel,
   setGraphDepth,
+  setGraphNamespace,
   setGraphLevel,
 } from "./graph";
 import { hasCriticalBox, isCriticalBox, narrowToCritical } from "./critical";
@@ -112,6 +113,18 @@ function criticalSwitches(): CriticalSwitches | null {
   };
 }
 
+/** Changes the depth and keeps the selected namespace in the middle: the map names it with fewer
+ * or more segments, and the server finds it again by its name. */
+function chooseDepth(state: MapState, depth: number): void {
+  batch(() => {
+    const chosen = state.selected();
+    if (graphLevel() === LEVEL.namespaces && chosen !== null) {
+      setGraphNamespace(chosen);
+    }
+    setGraphDepth(depth);
+  });
+}
+
 /** The toolbar of the map; it stays when there is nothing to draw, so that another level can be
  * chosen. */
 function MapToolbar(props: { state: MapState; actions: Actions }) {
@@ -123,7 +136,7 @@ function MapToolbar(props: { state: MapState; actions: Actions }) {
       focusable={currentType() !== null || graphFocus() !== null}
       onTypeFocus={props.actions.focusType}
       depth={graphDepth()}
-      onDepth={setGraphDepth}
+      onDepth={(depth) => chooseDepth(state, depth)}
       weak={state.weak()}
       onWeak={state.setWeak}
       violationsOnly={state.filtering()}

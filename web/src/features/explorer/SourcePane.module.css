@@ -53,6 +53,8 @@
 }
 
 .gutter {
+    margin: 0;
+    font: inherit;
     flex: none;
     min-width: 44px;
     padding-right: 14px;

@@ -20,7 +20,7 @@
    columns of the grid, so a long name that wraps does not push the numbers sideways. */
 .rows {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) max-content max-content;
+    grid-template-columns: minmax(min-content, 1fr) max-content max-content;
     column-gap: var(--space-12);
 }
 
