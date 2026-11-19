@@ -139,16 +139,22 @@ fn scan_with_every_table(snapshot: u64, base: u64) -> SnapshotData {
     scan
 }
 
-#[test]
-fn pruned_snapshots_leave_no_rows_behind() {
-    let db = TempDb::new();
-    let store = SqliteStore::open(&db.0, keep(1)).unwrap();
-    store.save_project(&project(1, "/work/app", &[])).unwrap();
+/// Persists the full scans 10 and 20 of project 1.
+#[cfg(test)]
+fn persist_two_scans(store: &SqliteStore) {
     for (snapshot, base) in [(10, 100), (20, 200)] {
         store
             .persist(scan_with_every_table(snapshot, base))
             .unwrap();
     }
+}
+
+#[test]
+fn pruned_snapshots_leave_no_rows_behind() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(1)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    persist_two_scans(&store);
     let conn = Connection::open(&db.0).unwrap();
     for (table, expected) in [
         ("snapshots", 1),
@@ -167,12 +173,7 @@ fn pruned_snapshots_leave_no_rows_behind() {
         ("snapshot_warnings", 1),
         ("pending_references", 1),
     ] {
-        let rows: i64 = conn
-            .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
-                row.get(0)
-            })
-            .unwrap();
-        assert_eq!(rows, expected, "table {table}");
+        assert_eq!(rows_of(&conn, table), expected, "table {table}");
     }
 }
 
@@ -751,11 +752,7 @@ fn removing_a_project_leaves_no_rows_in_any_table_and_keeps_the_others() {
     let store = SqliteStore::open(&db.0, keep(3)).unwrap();
     store.save_project(&project(1, "/work/app", &[])).unwrap();
     store.save_project(&project(2, "/work/other", &[])).unwrap();
-    for (snapshot, base) in [(10, 100), (20, 200)] {
-        store
-            .persist(scan_with_every_table(snapshot, base))
-            .unwrap();
-    }
+    persist_two_scans(&store);
     let mut other = scan_with_every_table(30, 300);
     other.snapshot.project = codeskimr_domain::ProjectId::new(2);
     store.persist(other).unwrap();
