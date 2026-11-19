@@ -151,10 +151,15 @@ struct Space {
 type Grouped = BTreeMap<String, Space>;
 
 /// Whether a symbol is the module of a file that names its namespace: its qualified name ends
-/// with its own name. A language with real namespaces keeps the path of the file with its
-/// extension (ADR 0036), which is no namespace and gets no row.
+/// with its own name as a whole last segment. A language with real namespaces keeps the path of
+/// the file with its extension (ADR 0036), which is no namespace and gets no row.
 fn is_namespace_module(node: &OutlineNode) -> bool {
-    node.kind == SymbolKind::Module && node.qualified_name.as_str().ends_with(node.name.as_str())
+    node.kind == SymbolKind::Module
+        && node
+            .qualified_name
+            .as_str()
+            .strip_suffix(node.name.as_str())
+            .is_some_and(|before| !before.ends_with(char::is_alphanumeric))
 }
 
 fn type_node(node: &OutlineNode) -> TypeNode {
@@ -245,7 +250,11 @@ pub(super) fn build(layers: &[Layer], nodes: &[OutlineNode]) -> Vec<LayerNode> {
     for node in nodes.iter().filter(|node| is_namespace_module(node)) {
         if let Some(group) = groups.get_mut(layer_index(layers, node)) {
             let name = node.qualified_name.to_string();
-            group.entry(name).or_default().module = Some(type_node(node));
+            group
+                .entry(name)
+                .or_default()
+                .module
+                .get_or_insert_with(|| type_node(node));
         }
     }
     layer_nodes(layers, groups)

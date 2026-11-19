@@ -273,7 +273,7 @@ function segmentRows(layer: string, node: Segment, depth: number, ctx: Context):
   const row: TreeRow = {
     ...base(key, ROW.namespace, depth, node.label || ctx.labels.noNamespace),
     ...moduleFields(node),
-    meta: String(count),
+    meta: count > 0 || !node.module ? String(count) : "",
     expandable: count > 0 || node.children.size > 0,
     open,
     target: node.path === "" ? null : { kind: NAMESPACE_KIND, name: node.path },

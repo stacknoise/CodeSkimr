@@ -51,3 +51,9 @@ fn the_module_of_a_file_with_real_namespaces_is_not_a_namespace() {
     )];
     assert_eq!(build(&[], &nodes).len(), 0);
 }
+
+#[test]
+fn a_name_that_only_ends_like_the_module_is_no_namespace_module() {
+    let nodes = [node(1, SymbolKind::Module, "entry", "pkg.bentry", None)];
+    assert_eq!(build(&[], &nodes).len(), 0);
+}
