@@ -13,6 +13,10 @@ pub const PROJECT_UPSERT: &str = "INSERT INTO projects (id, name, source_kind, l
     location = excluded.location, branch = excluded.branch, credential = excluded.credential";
 /// Whether a project exists: id.
 pub const PROJECT_EXISTS: &str = "SELECT COUNT(*) FROM projects WHERE id = ?1";
+/// Removes a project; layers, consent, tool reports and annotations follow by cascade: id.
+pub const PROJECT_DELETE: &str = "DELETE FROM projects WHERE id = ?1";
+/// All snapshots of a project: project id.
+pub const SNAPSHOTS_OF_PROJECT: &str = "SELECT id FROM snapshots WHERE project_id = ?1";
 /// Removes the layers of a project (their namespaces go with them): project id.
 pub const LAYERS_DELETE: &str = "DELETE FROM layers WHERE project_id = ?1";
 /// Adds a layer: project id, position, name, whether it has a `may_use` list.

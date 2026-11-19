@@ -40,6 +40,12 @@ projects-load-failed = The project list could not be loaded.
 projects-open = Open { $name }
 projects-list-label = Projects
 projects-language-mix = { $name } { $percent } %
+projects-remove-button = Remove
+projects-remove = Remove project { $name }
+projects-remove-question = Remove { $name } from the app? Scans, results and notes of the project are deleted. Its files stay untouched.
+projects-remove-confirm = Remove for good
+projects-remove-cancel = Cancel
+projects-remove-ask = Confirm removal
 projects-never = never
 projects-header = { $summary } · { $hints }
 

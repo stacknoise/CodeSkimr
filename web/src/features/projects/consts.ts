@@ -3,6 +3,7 @@ export const COMMAND = {
   list: "projects.list",
   add: "projects.add",
   rescan: "projects.rescan",
+  remove: "projects.remove",
   tools: "projects.tools",
 } as const;
 

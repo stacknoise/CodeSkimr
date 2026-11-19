@@ -29,6 +29,9 @@ mod level2;
 mod level2_revoke;
 mod preferences;
 mod projects;
+mod projects_remove;
+#[cfg(test)]
+mod projects_remove_tests;
 #[cfg(test)]
 mod projects_tests;
 mod rating;
@@ -89,6 +92,7 @@ pub(crate) use level2::{Window, confirmation_desk};
 use level2_revoke::Level2Revoke;
 use preferences::{GetPreferences, PreferencesFile, SetPreferences};
 use projects::{AddProject, CancelScan, CheckTools, ListProjects, RescanProject};
+use projects_remove::RemoveProject;
 use search::{SearchPorts, SearchQuery};
 use source::ExplorerSource;
 use status::{BudgetTargets, StatusInfo};
@@ -338,6 +342,7 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<ListProjects>()?;
     api.expose::<AddProject>()?;
     api.expose::<RescanProject>()?;
+    api.expose::<RemoveProject>()?;
     api.expose::<CheckTools>()?;
     api.expose::<ListIndexers>()?;
     api.expose::<Level2StatusCommand>()?;
@@ -401,6 +406,14 @@ fn register_projects(
         registry,
         RescanProject {
             catalog: catalog.clone(),
+            context: Arc::clone(context),
+        },
+    )?;
+    add(
+        registry,
+        RemoveProject {
+            projects: catalog.clone(),
+            removal: catalog.clone(),
             context: Arc::clone(context),
         },
     )?;

@@ -6,7 +6,8 @@ mod common;
 use std::num::NonZeroU32;
 
 use codeskimr_application::ports::{
-    PendingReference, ProjectRepository, Receiver, SnapshotData, SnapshotStore, SymbolFingerprints,
+    PendingReference, ProjectRemoval, ProjectRepository, Receiver, SnapshotData, SnapshotStore,
+    SymbolFingerprints,
 };
 use codeskimr_domain::{
     FileId, Fingerprint, Fingerprints, LanguageId, MetricKind, QualifiedName, ReferenceKind,
@@ -138,16 +139,22 @@ fn scan_with_every_table(snapshot: u64, base: u64) -> SnapshotData {
     scan
 }
 
-#[test]
-fn pruned_snapshots_leave_no_rows_behind() {
-    let db = TempDb::new();
-    let store = SqliteStore::open(&db.0, keep(1)).unwrap();
-    store.save_project(&project(1, "/work/app", &[])).unwrap();
+/// Persists the full scans 10 and 20 of project 1.
+#[cfg(test)]
+fn persist_two_scans(store: &SqliteStore) {
     for (snapshot, base) in [(10, 100), (20, 200)] {
         store
             .persist(scan_with_every_table(snapshot, base))
             .unwrap();
     }
+}
+
+#[test]
+fn pruned_snapshots_leave_no_rows_behind() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(1)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    persist_two_scans(&store);
     let conn = Connection::open(&db.0).unwrap();
     for (table, expected) in [
         ("snapshots", 1),
@@ -166,12 +173,7 @@ fn pruned_snapshots_leave_no_rows_behind() {
         ("snapshot_warnings", 1),
         ("pending_references", 1),
     ] {
-        let rows: i64 = conn
-            .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
-                row.get(0)
-            })
-            .unwrap();
-        assert_eq!(rows, expected, "table {table}");
+        assert_eq!(rows_of(&conn, table), expected, "table {table}");
     }
 }
 
@@ -726,4 +728,69 @@ fn symbols_that_level_two_created_are_pruned_with_their_file() {
         .unwrap();
     assert_eq!(origins, 0);
     assert_eq!(rows_of(&conn, "symbol_references"), 1);
+}
+
+/// The names of all tables the migrations created, without the bookkeeping of the migrations.
+#[cfg(test)]
+fn data_tables(conn: &Connection) -> Vec<String> {
+    let mut statement = conn
+        .prepare(
+            "SELECT name FROM sqlite_master WHERE type = 'table' \
+             AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '%migration%'",
+        )
+        .unwrap();
+    statement
+        .query_map([], |row| row.get::<_, String>(0))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect()
+}
+
+#[test]
+fn removing_a_project_leaves_no_rows_in_any_table_and_keeps_the_others() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    store.save_project(&project(2, "/work/other", &[])).unwrap();
+    persist_two_scans(&store);
+    let mut other = scan_with_every_table(30, 300);
+    other.snapshot.project = codeskimr_domain::ProjectId::new(2);
+    store.persist(other).unwrap();
+    Connection::open(&db.0)
+        .unwrap()
+        .execute(
+            "INSERT INTO level2_consent VALUES (1, 1, 1, 'folder', '/work/app', '')",
+            [],
+        )
+        .unwrap();
+    store.remove_project(PROJECT).unwrap();
+    let conn = Connection::open(&db.0).unwrap();
+    assert_eq!(rows_of(&conn, "projects"), 1);
+    assert_eq!(rows_of(&conn, "snapshots"), 1);
+    assert_eq!(rows_of(&conn, "level2_consent"), 0);
+    // Only the rows of project 2 are left.
+    assert_eq!(rows_of(&conn, "files"), 1);
+    store
+        .remove_project(codeskimr_domain::ProjectId::new(2))
+        .unwrap();
+    for table in data_tables(&conn) {
+        assert_eq!(rows_of(&conn, &table), 0, "table {table}");
+    }
+    assert_eq!(
+        code_of(&store.remove_project(PROJECT).unwrap_err()),
+        "PRJ-201"
+    );
+}
+
+#[test]
+fn removing_a_project_with_shared_rows_of_an_incremental_scan_leaves_nothing() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    full_then_incremental(&store);
+    store.remove_project(PROJECT).unwrap();
+    let conn = Connection::open(&db.0).unwrap();
+    for table in data_tables(&conn) {
+        assert_eq!(rows_of(&conn, &table), 0, "table {table}");
+    }
 }
