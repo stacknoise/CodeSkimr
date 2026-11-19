@@ -77,8 +77,9 @@ function useTree() {
     const type = currentType();
     if (outline && type !== null) {
       const keys = revealKeys(outline, type);
-      openRows(keys.slice(0, -1));
-      setTreeCursor(keys.at(-1) ?? typeKey(type));
+      const last = keys.pop();
+      openRows(keys);
+      setTreeCursor(last ?? typeKey(type));
     }
   };
   return { rows, cursor: treeCursor, setCursor: setTreeCursor, reveal };
