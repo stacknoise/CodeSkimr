@@ -3,7 +3,7 @@ import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { ORIENTATION } from "../../shared/layout/consts";
 import { columnWidths, gridColumns } from "./columns";
-import { COLUMN_KEY_STEP_PX, HIT_COLUMNS } from "./consts";
+import { COLUMN_KEY_DELTA, COLUMN_KEY_STEP_PX, HIT_COLUMNS, NO_DELTA } from "./consts";
 import styles from "./HitList.module.css";
 
 type Width = NonNullable<(typeof columnWidths)[string]>;
@@ -37,8 +37,8 @@ function Handle(props: { width: Width; name: string }) {
         dragging = false;
       }}
       onKeyDown={(event) => {
-        const delta = { ArrowRight: 1, ArrowLeft: -1 }[event.key] ?? 0;
-        if (delta !== 0) {
+        const delta = COLUMN_KEY_DELTA[event.key] ?? NO_DELTA;
+        if (delta !== NO_DELTA) {
           event.preventDefault();
           props.width.set(props.width.size() + delta * COLUMN_KEY_STEP_PX);
         }

@@ -165,3 +165,8 @@ export const WORD_SEPARATOR = /\s+/;
 export const CODE_COLUMN_WIDTH = "minmax(0, 1fr)";
 export const PIXEL_UNIT = "px";
 export const COLUMN_JOIN = " ";
+
+/** The keys that move a column handle, and by how many steps (a key not listed moves nothing). */
+export const COLUMN_KEY_DELTA: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1 };
+/** No movement. */
+export const NO_DELTA = 0;
