@@ -39,7 +39,8 @@ function selected(row: TreeRow): boolean {
   if (row.kind === ROW.member) {
     return row.member === currentMember();
   }
-  return row.kind === ROW.type && row.type === currentType() && currentMember() === null;
+  const ownsType = row.kind === ROW.type || (row.kind === ROW.namespace && row.type !== null);
+  return ownsType && row.type === currentType() && currentMember() === null;
 }
 
 /** What the tree reports to the screen. */

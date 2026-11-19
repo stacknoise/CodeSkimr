@@ -12,7 +12,7 @@ use codeskimr_application::ports::{
 };
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Layer, Permission, Project, ProjectId, Snapshot, SymbolId};
+use codeskimr_domain::{Layer, Permission, Project, ProjectId, Snapshot, SymbolId, SymbolKind};
 use serde::{Deserialize, Serialize};
 
 use super::consts::{EXPLORER_OUTLINE, OUTLINE_DESCRIPTION, OUTLINE_TITLE};
@@ -79,6 +79,9 @@ pub struct NamespaceNode {
     pub name: String,
     /// Its types, ordered by name.
     pub types: Vec<TypeNode>,
+    /// The file module that has this very name (Python, Rust, TypeScript, JavaScript: the file
+    /// is the namespace), so the tree can show and open it. `None` if no file is the namespace.
+    pub module: Option<TypeNode>,
 }
 
 /// A layer with its namespaces; the name is empty for types that belong to no layer.
@@ -138,7 +141,26 @@ pub struct OutlineInput {
     pub project: u64,
 }
 
-type Grouped = BTreeMap<String, Vec<TypeNode>>;
+/// What one namespace holds while the tree is built.
+#[derive(Debug, Clone, Default)]
+struct Space {
+    types: Vec<TypeNode>,
+    module: Option<TypeNode>,
+}
+
+type Grouped = BTreeMap<String, Space>;
+
+/// Whether a symbol is the module of a file that names its namespace: its qualified name ends
+/// with its own name as a whole last segment. A language with real namespaces keeps the path of
+/// the file with its extension (ADR 0036), which is no namespace and gets no row.
+fn is_namespace_module(node: &OutlineNode) -> bool {
+    node.kind == SymbolKind::Module
+        && node
+            .qualified_name
+            .as_str()
+            .strip_suffix(node.name.as_str())
+            .is_some_and(|before| !before.ends_with(char::is_alphanumeric))
+}
 
 fn type_node(node: &OutlineNode) -> TypeNode {
     TypeNode {
@@ -199,22 +221,40 @@ fn layer_nodes(layers: &[Layer], mut groups: Vec<Grouped>) -> Vec<LayerNode> {
 fn namespaces(grouped: Grouped) -> Vec<NamespaceNode> {
     grouped
         .into_iter()
-        .map(|(name, mut types)| {
-            types.sort_by(|a, b| a.name.cmp(&b.name));
-            NamespaceNode { name, types }
+        .map(|(name, mut space)| {
+            space.types.sort_by(|a, b| a.name.cmp(&b.name));
+            NamespaceNode {
+                name,
+                types: space.types,
+                module: space.module,
+            }
         })
         .collect()
 }
 
 /// Sorts the top-level types into layers and namespaces.
-fn build(layers: &[Layer], nodes: &[OutlineNode]) -> Vec<LayerNode> {
+pub(super) fn build(layers: &[Layer], nodes: &[OutlineNode]) -> Vec<LayerNode> {
     let by_id: HashMap<SymbolId, &OutlineNode> = nodes.iter().map(|n| (n.id, n)).collect();
     let mut groups: Vec<Grouped> = vec![Grouped::new(); layers.len() + 1];
     for node in nodes.iter().filter(|node| node.kind.is_type()) {
         if let Some(namespace) = namespace_of(node, &by_id)
             && let Some(group) = groups.get_mut(layer_index(layers, node))
         {
-            group.entry(namespace).or_default().push(type_node(node));
+            group
+                .entry(namespace)
+                .or_default()
+                .types
+                .push(type_node(node));
+        }
+    }
+    for node in nodes.iter().filter(|node| is_namespace_module(node)) {
+        if let Some(group) = groups.get_mut(layer_index(layers, node)) {
+            let name = node.qualified_name.to_string();
+            group
+                .entry(name)
+                .or_default()
+                .module
+                .get_or_insert_with(|| type_node(node));
         }
     }
     layer_nodes(layers, groups)

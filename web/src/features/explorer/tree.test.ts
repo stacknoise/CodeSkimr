@@ -422,3 +422,57 @@ describe("revealNamespace", () => {
     expect(revealNamespace(outline, "Shop")).toBeNull();
   });
 });
+
+describe("modules in the tree", () => {
+  const module = (id: number, name: string) => ({
+    id,
+    name,
+    qualified_name: `pkg.${name}`,
+    kind: "module",
+    members: 0,
+    language: "python",
+  });
+  const PYTHON: Outline = {
+    ...OUTLINE,
+    layers: [
+      {
+        name: "",
+        namespaces: [
+          { name: "pkg.__init__", types: [], module: module(10, "__init__") },
+          {
+            name: "pkg.entry",
+            module: module(11, "entry"),
+            types: [
+              {
+                id: 12,
+                name: "Entry",
+                qualified_name: "pkg.entry.Entry",
+                kind: "class",
+                members: 0,
+                language: "python",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+  const open = new Set([namespaceKey("", "pkg")]);
+
+  it("shows a module without types as a row that opens the module", () => {
+    const rows = buildRows(PYTHON, open, new Map(), "", LABELS);
+    const init = rows.find((row) => row.label === "__init__");
+    expect(init?.symbolKind).toBe("module");
+    expect(init?.type).toBe(10);
+    expect(init?.expandable).toBe(false);
+  });
+
+  it("finds a module by its name when filtering", () => {
+    const rows = buildRows(PYTHON, new Set(), new Map(), "init", LABELS);
+    expect(rows.map((row) => row.label)).toEqual(["pkg", "__init__"]);
+  });
+
+  it("reveals a module at its namespace row", () => {
+    expect(revealKeys(PYTHON, 11).at(-1)).toBe(namespaceKey("", "pkg.entry"));
+  });
+});
