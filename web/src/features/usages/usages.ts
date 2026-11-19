@@ -153,6 +153,7 @@ export function clearUsages(): void {
   clearOrigin();
   setAnswer(null);
   setCode(new Map());
+  setFilter("");
   setFailure(null);
   setLoading(false);
 }
