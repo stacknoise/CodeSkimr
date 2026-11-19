@@ -1,6 +1,6 @@
 # 0073 – Time-limited exception for the `heapless` 0.8 advisories
 
-Status: proposed
+Status: accepted (Anton, 2026-11-19, decision card)
 
 ## Context
 
