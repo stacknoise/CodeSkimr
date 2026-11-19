@@ -194,6 +194,7 @@ fn ensure_single_critical(
     Ok(())
 }
 
+// codeskimr: allow CHK-102 looks one row up by id and maps it, like the lookup of alerts
 fn find(conn: &Connection, id: AnnotationId) -> StorageResult<Annotation> {
     conn.query_row(
         sql::ANNOTATION_BY_ID,

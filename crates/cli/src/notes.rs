@@ -164,6 +164,7 @@ fn alert_id(say: Say<'_>) -> Result<Arg, CliError> {
         .required(true))
 }
 
+// codeskimr: allow CHK-102 declares the arguments of one sub-command, like the list of annotations
 fn alerts_list(say: Say<'_>) -> Result<Command, CliError> {
     let command = Command::new(COMMAND_LIST)
         .about(say(CLI_CMD_ALERTS_LIST)?)

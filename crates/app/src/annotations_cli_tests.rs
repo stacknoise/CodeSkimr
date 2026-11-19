@@ -110,6 +110,7 @@ fn list(json: bool) -> AnnotationsAction {
     })
 }
 
+// codeskimr: allow CHK-102 builds the arguments of one test command, like the list of annotations
 fn alert_list(json: bool) -> AlertsAction {
     AlertsAction::List(ListAlerts {
         project: PROJECT.to_owned(),

@@ -32,7 +32,7 @@ fn write(folder: &Path, path: &str, text: &str) {
     fs::write(folder.join(path), text).unwrap();
 }
 
-fn session(folder: &Path, locations: &Locations) -> Session {
+pub(crate) fn session(folder: &Path, locations: &Locations) -> Session {
     let args = ScanArgs {
         source: folder.to_string_lossy().into_owned(),
         branch: None,

@@ -250,6 +250,7 @@ fn add_annotation(add: &AddAnnotation, around: &Surroundings<'_>) -> Result<Stri
     printed(&added, add.json, || saved_text(&added, around))
 }
 
+// codeskimr: allow CHK-102 runs the update command and prints it, like the other commands of the list
 fn update_annotation(
     update: &UpdateAnnotation,
     around: &Surroundings<'_>,
@@ -301,6 +302,7 @@ fn alert_detail(alert: &AlertOut) -> String {
     parts.join(CLI_LIST_SEPARATOR)
 }
 
+// codeskimr: allow CHK-102 puts the fields of an alert into the arguments of its text
 fn alert_line(around: &Surroundings<'_>, alert: &AlertOut) -> Result<String, CodedError> {
     let detail = alert_detail(alert);
     let mut args = FluentArgs::new();
@@ -359,6 +361,7 @@ fn dismiss_alert(dismiss: &ById, around: &Surroundings<'_>) -> Result<String, Co
     printed(&done, dismiss.json, || dismissed_text(done, around))
 }
 
+// codeskimr: allow CHK-102 runs the dismiss-all command and prints it, like the single dismiss
 fn dismiss_alerts(all: &DismissAlerts, around: &Surroundings<'_>) -> Result<String, CodedError> {
     let session = Session::open(&all.project, around)?;
     let done = session.run::<AlertsDismissAll>(DismissAllInput {
