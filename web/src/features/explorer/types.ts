@@ -14,6 +14,9 @@ export interface TypeNode {
 export interface NamespaceNode {
   name: string;
   types: TypeNode[];
+  /** The file module that has this very name, so the row of the namespace opens it; `null` if
+   * no file is the namespace. */
+  module?: TypeNode | null;
 }
 
 /** A layer with its namespaces; the name is empty for types that belong to no layer. */

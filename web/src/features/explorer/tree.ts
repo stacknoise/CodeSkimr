@@ -190,10 +190,12 @@ interface Segment {
   label: string;
   children: Map<string, Segment>;
   types: TypeNode[];
+  /** The file module with this name (a Python file is its own namespace), if there is one. */
+  module: TypeNode | null;
 }
 
 function segment(path: string, label: string): Segment {
-  return { path, label, children: new Map<string, Segment>(), types: [] };
+  return { path, label, children: new Map<string, Segment>(), types: [], module: null };
 }
 
 /** The parts of a namespace name with the name up to and including each part (`App.Domain` gives
@@ -226,6 +228,9 @@ export function segmentsOf(spaces: readonly NamespaceNode[]): Segment[] {
       level = current.children;
     }
     current?.types.push(...space.types);
+    if (current && space.module) {
+      current.module = space.module;
+    }
   }
   return [...roots.values()];
 }
@@ -236,19 +241,40 @@ function matching(node: Segment, ctx: Context): number {
   return [...node.children.values()].reduce((sum, child) => sum + matching(child, ctx), own);
 }
 
+/** Whether a segment has a row: a type below it matches, or it is a module whose name does
+ * (a module without types, like an empty `__init__`, is still a row). */
+function shown(node: Segment, ctx: Context): boolean {
+  return (
+    matching(node, ctx) > 0 ||
+    [node, ...descendants(node)].some((part) => part.module && ctx.matches(part.module.name))
+  );
+}
+
+function descendants(node: Segment): Segment[] {
+  return [...node.children.values()].flatMap((child) => [child, ...descendants(child)]);
+}
+
+/** What the row of a segment says about the module that it stands for. */
+function moduleFields(node: Segment): Partial<TreeRow> {
+  return node.module
+    ? { symbolKind: node.module.kind, language: node.module.language, type: node.module.id }
+    : {};
+}
+
 /** The rows of a segment: its row, and if it is open the segments below, then its own types.
  * A segment without a matching type has no row. `depth` is the depth of its row. */
 function segmentRows(layer: string, node: Segment, depth: number, ctx: Context): TreeRow[] {
   const count = matching(node, ctx);
-  if (count === 0) {
+  if (!shown(node, ctx)) {
     return [];
   }
   const key = namespaceKey(layer, node.path);
   const open = ctx.filtering || ctx.expanded.has(key);
   const row: TreeRow = {
     ...base(key, ROW.namespace, depth, node.label || ctx.labels.noNamespace),
+    ...moduleFields(node),
     meta: String(count),
-    expandable: true,
+    expandable: count > 0 || node.children.size > 0,
     open,
     target: node.path === "" ? null : { kind: NAMESPACE_KIND, name: node.path },
     scope: node.path === "" ? null : node.path,
@@ -310,19 +336,21 @@ export function buildRows(
 }
 
 /** The keys that must be open for the row of `type` to be visible: its layer, every segment of
- * its namespace down to the last one, and the type itself. Empty if the type is not in the
+ * its namespace down to the last one, and the type itself. The last key is the row of `type`; for a
+ * module it is its namespace segment. Empty if the type is not in the
  * outline. */
 export function revealKeys(outline: Outline, type: number): string[] {
   for (const layer of outline.layers) {
     for (const space of layer.namespaces) {
+      const parts = nameParts(space.name);
+      const paths = parts.length === 0 ? [""] : parts.map((part) => part.path);
+      const spaces = paths.map((path) => namespaceKey(layer.name, path));
       if (space.types.some((node) => node.id === type)) {
-        const parts = nameParts(space.name);
-        const paths = parts.length === 0 ? [""] : parts.map((part) => part.path);
-        return [
-          layerKey(layer.name),
-          ...paths.map((path) => namespaceKey(layer.name, path)),
-          typeKey(type),
-        ];
+        return [layerKey(layer.name), ...spaces, typeKey(type)];
+      }
+      if (space.module?.id === type) {
+        // The row of a module is the row of its namespace: it is the last key, not opened.
+        return [layerKey(layer.name), ...spaces];
       }
     }
   }

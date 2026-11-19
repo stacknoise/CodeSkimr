@@ -12,6 +12,8 @@ mod credentials;
 #[cfg(test)]
 mod credentials_tests;
 mod explorer;
+#[cfg(test)]
+mod explorer_tests;
 mod export;
 #[cfg(test)]
 mod export_tests;
