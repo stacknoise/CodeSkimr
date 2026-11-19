@@ -62,7 +62,7 @@ function Impact(props: { answer: UsagesAnswer }) {
   );
 }
 
-/** How sure the usages are, and the reason when no indexer checked them. This is what keeps the
+/** How sure the usages are, and the reason when level 2 did not check them. This is what keeps the
  * screen honest: unchecked results are counted apart from verified ones (ADR 0033). */
 function Accuracy(props: { answer: UsagesAnswer }) {
   const summary = () => props.answer.summary;
@@ -76,8 +76,11 @@ function Accuracy(props: { answer: UsagesAnswer }) {
           presumed: summary().probable,
         })}
       </p>
-      <Show when={props.answer.level2 === LEVEL2_UNAVAILABLE || summary().unchecked > 0}>
+      <Show when={props.answer.level2 === LEVEL2_UNAVAILABLE}>
         <p class={styles.warning}>{t(I18N_KEYS.USAGES_LEVEL2_UNAVAILABLE)}</p>
+      </Show>
+      <Show when={props.answer.level2 !== LEVEL2_UNAVAILABLE && summary().unchecked > 0}>
+        <p class={styles.warning}>{t(I18N_KEYS.USAGES_LEVEL2_PARTIAL)}</p>
       </Show>
     </section>
   );

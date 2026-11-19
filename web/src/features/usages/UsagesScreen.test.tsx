@@ -200,7 +200,8 @@ describe("UsagesScreen", () => {
     await screen.findByText("Hits 3");
     expect(screen.getAllByText("unchecked").length).toBe(2);
     expect(screen.getAllByText("presumed").length).toBeGreaterThan(0);
-    expect(screen.getByText(/No indexer is set up for this project/)).toBeTruthy();
+    expect(screen.getByText(/Level 2 has not checked these hits/)).toBeTruthy();
+    expect(screen.getByText(/never with a scan from the browser/)).toBeTruthy();
     expect(screen.getByText("0 places verified, 3 unchecked, 1 of them presumed.")).toBeTruthy();
     expect(
       screen.getByText(
@@ -213,9 +214,13 @@ describe("UsagesScreen", () => {
     const verified = structuredClone(ANSWER);
     verified.incoming!.hits[0]!.verified = true;
     verified.summary = { ...verified.summary, verified: 1, unchecked: 2 };
+    verified.level2 = "active";
     shown(verified);
     await screen.findByText("Hits 3");
     expect(screen.getByText("verified")).toBeTruthy();
+    // Partly checked: the sentence that says nothing was checked must not appear.
+    expect(screen.queryByText(/Level 2 has not checked these hits/)).toBeNull();
+    expect(screen.getByText(/Level 2 has not checked some of these hits/)).toBeTruthy();
   });
 
   it("reads again with the direction, the depth and the tests of the toolbar", async () => {
