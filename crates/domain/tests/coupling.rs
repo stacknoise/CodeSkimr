@@ -212,15 +212,15 @@ fn a_nested_type_is_its_own_unit_and_its_members_do_not_count_for_the_outer_type
 fn a_type_declared_in_several_files_is_one_unit_and_each_declaration_gets_the_value()
 -> Result<(), ModelError> {
     let symbols = vec![
-        symbol(1, SymbolKind::Class, "Shop.Cart")?,
-        symbol(2, SymbolKind::Class, "Shop.Cart")?,
-        symbol(3, SymbolKind::Method, "Shop.Cart.Total")?,
-        symbol(4, SymbolKind::Class, "Shop.Price")?,
-        symbol(5, SymbolKind::Class, "Shop.Order")?,
+        symbol(1, SymbolKind::Class, "Billing.Invoice")?,
+        symbol(2, SymbolKind::Class, "Billing.Invoice")?,
+        symbol(3, SymbolKind::Method, "Billing.Invoice.Net")?,
+        symbol(4, SymbolKind::Class, "Billing.Tax")?,
+        symbol(5, SymbolKind::Class, "Billing.Payment")?,
     ];
     let references = [
-        reference(1, 3, 4, ReferenceKind::Call)?,
-        reference(2, 5, 1, ReferenceKind::TypeUse)?,
+        reference(10, 3, 4, ReferenceKind::Read)?,
+        reference(11, 5, 2, ReferenceKind::Call)?,
     ];
     let metrics = coupling(&symbols, &references)?;
     for id in [1, 2] {
