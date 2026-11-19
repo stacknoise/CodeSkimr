@@ -140,7 +140,7 @@ fn metric(symbol: SymbolId, kind: MetricKind, value: f64) -> Result<Metric, Mode
     })
 }
 
-/// `ce`, `ca` and, where there is a dependency, `instability` of every namespace and module of
+/// `ce`, `ca` and, where there is a dependency, `instability` of every namespace, module and type of
 /// `symbols`, from the references between them. Pass the symbols and references of the whole
 /// snapshot: the values depend on files other than the unit's own.
 ///

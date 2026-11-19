@@ -161,7 +161,6 @@ fn types_have_their_own_coupling_next_to_the_namespaces() -> Result<(), ModelErr
     let references = [
         reference(1, 3, 4, ReferenceKind::Call)?,
         reference(2, 5, 2, ReferenceKind::TypeUse)?,
-        reference(3, 5, 2, ReferenceKind::Test)?,
     ];
     let metrics = coupling(&symbols, &references)?;
     // The method counts for its type: Cart uses Price, and Order uses Cart.
@@ -175,5 +174,58 @@ fn types_have_their_own_coupling_next_to_the_namespaces() -> Result<(), ModelErr
     assert_eq!(value(&metrics, 1, MetricKind::Instability), None);
     // A method has none of its own.
     assert_eq!(value(&metrics, 3, MetricKind::EfferentCoupling), None);
+    Ok(())
+}
+
+#[test]
+fn test_references_do_not_count_for_types() -> Result<(), ModelError> {
+    let symbols = vec![
+        symbol(1, SymbolKind::Class, "Shop.Cart")?,
+        symbol(2, SymbolKind::Class, "Shop.CartTests")?,
+    ];
+    let references = [reference(1, 2, 1, ReferenceKind::Test)?];
+    let metrics = coupling(&symbols, &references)?;
+    assert_eq!(value(&metrics, 1, MetricKind::AfferentCoupling), Some(0.0));
+    assert_eq!(value(&metrics, 2, MetricKind::EfferentCoupling), Some(0.0));
+    assert_eq!(value(&metrics, 1, MetricKind::Instability), None);
+    Ok(())
+}
+
+#[test]
+fn a_nested_type_is_its_own_unit_and_its_members_do_not_count_for_the_outer_type()
+-> Result<(), ModelError> {
+    let symbols = vec![
+        symbol(1, SymbolKind::Class, "Shop.Outer")?,
+        symbol(2, SymbolKind::Class, "Shop.Outer.Inner")?,
+        symbol(3, SymbolKind::Method, "Shop.Outer.Inner.Run")?,
+        symbol(4, SymbolKind::Class, "Shop.Price")?,
+    ];
+    let references = [reference(1, 3, 4, ReferenceKind::Call)?];
+    let metrics = coupling(&symbols, &references)?;
+    assert_eq!(value(&metrics, 2, MetricKind::EfferentCoupling), Some(1.0));
+    assert_eq!(value(&metrics, 1, MetricKind::EfferentCoupling), Some(0.0));
+    assert_eq!(value(&metrics, 4, MetricKind::AfferentCoupling), Some(1.0));
+    Ok(())
+}
+
+#[test]
+fn a_type_declared_in_several_files_is_one_unit_and_each_declaration_gets_the_value()
+-> Result<(), ModelError> {
+    let symbols = vec![
+        symbol(1, SymbolKind::Class, "Shop.Cart")?,
+        symbol(2, SymbolKind::Class, "Shop.Cart")?,
+        symbol(3, SymbolKind::Method, "Shop.Cart.Total")?,
+        symbol(4, SymbolKind::Class, "Shop.Price")?,
+        symbol(5, SymbolKind::Class, "Shop.Order")?,
+    ];
+    let references = [
+        reference(1, 3, 4, ReferenceKind::Call)?,
+        reference(2, 5, 1, ReferenceKind::TypeUse)?,
+    ];
+    let metrics = coupling(&symbols, &references)?;
+    for id in [1, 2] {
+        assert_eq!(value(&metrics, id, MetricKind::EfferentCoupling), Some(1.0));
+        assert_eq!(value(&metrics, id, MetricKind::AfferentCoupling), Some(1.0));
+    }
     Ok(())
 }
