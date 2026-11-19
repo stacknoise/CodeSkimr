@@ -176,7 +176,7 @@ impl SymbolStates for SqliteStore {
             .map_err(CodedError::from)
     }
 
-    // codeskimr: allow CHK-102 forwards to the query of the same name, like the other reads
+    // codeskimr: allow CHK-102 forwards to the same-name query of the store
     fn same_simple_name(
         &self,
         snapshot: SnapshotId,

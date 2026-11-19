@@ -250,7 +250,7 @@ fn add_annotation(add: &AddAnnotation, around: &Surroundings<'_>) -> Result<Stri
     printed(&added, add.json, || saved_text(&added, around))
 }
 
-// codeskimr: allow CHK-102 runs the update command and prints it, like the other commands of the list
+// codeskimr: allow CHK-102 runs the update command of an annotation and prints its result
 fn update_annotation(
     update: &UpdateAnnotation,
     around: &Surroundings<'_>,
@@ -361,7 +361,7 @@ fn dismiss_alert(dismiss: &ById, around: &Surroundings<'_>) -> Result<String, Co
     printed(&done, dismiss.json, || dismissed_text(done, around))
 }
 
-// codeskimr: allow CHK-102 runs the dismiss-all command and prints it, like the single dismiss
+// codeskimr: allow CHK-102 runs the dismiss-all command of alerts and prints its result
 fn dismiss_alerts(all: &DismissAlerts, around: &Surroundings<'_>) -> Result<String, CodedError> {
     let session = Session::open(&all.project, around)?;
     let done = session.run::<AlertsDismissAll>(DismissAllInput {

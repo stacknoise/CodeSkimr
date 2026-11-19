@@ -35,23 +35,16 @@ impl StageKind {
         Self::Persist,
     ];
 
-    /// The labels of [`Self::ALL`], in the same order.
-    const LABELS: [&'static str; 6] = [
-        STAGE_FETCH,
-        STAGE_DISCOVER,
-        STAGE_ANALYZE,
-        STAGE_RESOLVE,
-        STAGE_MEASURE,
-        STAGE_PERSIST,
-    ];
-
     /// The label used on the wire.
     #[must_use]
-    pub fn label(self) -> &'static str {
-        Self::ALL
-            .iter()
-            .zip(Self::LABELS)
-            .find(|(kind, _)| **kind == self)
-            .map_or(STAGE_FETCH, |(_, label)| label)
+    pub const fn label(self) -> &'static str {
+        match self {
+            Self::Fetch => STAGE_FETCH,
+            Self::Discover => STAGE_DISCOVER,
+            Self::Analyze => STAGE_ANALYZE,
+            Self::Resolve => STAGE_RESOLVE,
+            Self::Measure => STAGE_MEASURE,
+            Self::Persist => STAGE_PERSIST,
+        }
     }
 }
