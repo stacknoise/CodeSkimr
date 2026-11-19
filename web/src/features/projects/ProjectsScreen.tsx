@@ -9,7 +9,14 @@ import { useProjectKeys } from "./keys";
 import { Level2Panel } from "./Level2Panel";
 import { level2Of, loadLevel2 } from "./level2";
 import { NewProjectForm } from "./NewProjectForm";
-import { checkTools, projects, projectsLoaded, refreshProjects, rescanProject } from "./projects";
+import {
+  checkTools,
+  projects,
+  projectsLoaded,
+  refreshProjects,
+  removeProject,
+  rescanProject,
+} from "./projects";
 import { ProjectTable } from "./ProjectTable";
 import { ToolsPanel } from "./ToolsPanel";
 import { useDropSource } from "./useDropSource";
@@ -67,6 +74,13 @@ function Table(props: { selection: ReturnType<typeof useSelection> }) {
         openInExplorer(id);
       }}
       onRescan={(id) => void rescanProject(id)}
+      onRemove={async (id) => {
+        const removed = await removeProject(id);
+        if (removed && selection.selected() === id) {
+          selection.setSelected(null);
+        }
+        return removed;
+      }}
     />
   );
 }

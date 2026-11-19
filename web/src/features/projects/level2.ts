@@ -52,6 +52,17 @@ export function resetLevel2(): void {
   setViews(new Map());
 }
 
+/** Forgets what is known about the switch of a project and stops waiting for it, for a project
+ * that was removed: a new project may get its id. */
+export function forgetLevel2(project: number): void {
+  stopPolling(project);
+  setViews((previous) => {
+    const next = new Map(previous);
+    next.delete(project);
+    return next;
+  });
+}
+
 /** What the screen knows about the switch of a project. */
 export function level2Of(project: number): Level2View {
   return views().get(project) ?? EMPTY;

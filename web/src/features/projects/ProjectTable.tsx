@@ -10,6 +10,7 @@ import { ago, count, seconds } from "./format";
 import { LanguageBar } from "./LanguageBar";
 import { Level2Switch } from "./Level2Switch";
 import { projectsScanning, scanSeconds, toolsOf } from "./projects";
+import { RemoveAction } from "./RemoveAction";
 import { problemsOf } from "./tools";
 import type { ProjectRow } from "./types";
 import styles from "./ProjectTable.module.css";
@@ -59,6 +60,7 @@ export interface ProjectTableProps {
   onSelect: (id: number) => void;
   onOpen: (id: number) => void;
   onRescan: (id: number) => void;
+  onRemove: (id: number) => Promise<boolean>;
 }
 
 /** The project table (mock 1). */
@@ -114,8 +116,12 @@ function ScanCell(props: { row: ProjectRow }) {
   );
 }
 
-/** Status pills and the rescan button. */
-function StatusCell(props: { row: ProjectRow; onRescan: (id: number) => void }) {
+/** Status pills, the rescan button and the removal. */
+function StatusCell(props: {
+  row: ProjectRow;
+  onRescan: (id: number) => void;
+  onRemove: (id: number) => Promise<boolean>;
+}) {
   const state = () => status(props.row, projectsScanning().has(props.row.id));
   const problems = () => problemsOf(toolsOf(props.row)).length;
   return (
@@ -139,6 +145,7 @@ function StatusCell(props: { row: ProjectRow; onRescan: (id: number) => void }) 
           >
             <Icon name={RESCAN_ICON} />
           </button>
+          <RemoveAction name={props.row.name} onRemove={() => props.onRemove(props.row.id)} />
         </Show>
       </div>
     </td>
@@ -164,7 +171,7 @@ function Row(props: { row: ProjectRow; table: ProjectTableProps }) {
       <td>
         <Level2Switch row={props.row} />
       </td>
-      <StatusCell row={props.row} onRescan={props.table.onRescan} />
+      <StatusCell row={props.row} onRescan={props.table.onRescan} onRemove={props.table.onRemove} />
     </tr>
   );
 }

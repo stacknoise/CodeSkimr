@@ -40,6 +40,12 @@ projects-load-failed = Die Projektliste konnte nicht geladen werden.
 projects-open = { $name } öffnen
 projects-list-label = Projekte
 projects-language-mix = { $name } { $percent } %
+projects-remove-button = Entfernen
+projects-remove = Projekt { $name } entfernen
+projects-remove-question = { $name } aus der App entfernen? Scans, Ergebnisse und Notizen des Projekts werden gelöscht. Die Dateien des Projekts bleiben unberührt.
+projects-remove-confirm = Endgültig entfernen
+projects-remove-cancel = Abbrechen
+projects-remove-ask = Entfernung bestätigen
 projects-never = nie
 projects-header = { $summary } · { $hints }
 
