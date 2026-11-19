@@ -7,6 +7,7 @@ import {
   NOT_FOUND,
   REF,
   STATE,
+  WORD_SEPARATOR,
   type State,
 } from "./consts";
 import type { CodeLine, Hit, Place, UsagesAnswer } from "./types";
@@ -83,4 +84,14 @@ export function splitAt(
     return { before: text, word: "", after: "" };
   }
   return { before: text.slice(0, at), word, after: text.slice(at + word.length) };
+}
+
+/** Whether every word of `query` is in `text`, ignoring case; an empty query matches all. */
+export function matchesQuery(text: string, query: string): boolean {
+  const haystack = text.toLowerCase();
+  return query
+    .toLowerCase()
+    .split(WORD_SEPARATOR)
+    .filter((word) => word !== "")
+    .every((word) => haystack.includes(word));
 }

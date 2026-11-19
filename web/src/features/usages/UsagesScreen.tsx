@@ -9,6 +9,7 @@ import type { Card } from "./graph";
 import { ORIENTATION, SIDE } from "../../shared/layout/consts";
 import { Splitter } from "../../shared/layout/Splitter";
 import { HitList } from "./HitList";
+import { filterHits } from "./hitText";
 import { hitsHeight, panelWidth } from "./layout";
 import { listedHits, listedPlace } from "./hits";
 import { nextHit, useUsagesKeys } from "./keys";
@@ -21,6 +22,8 @@ import {
   clearUsages,
   direction,
   focusSymbol,
+  hitCode,
+  hitFilter,
   loadPreview,
   loadUsages,
   openInExplorer,
@@ -105,8 +108,19 @@ function useBack(open: (place: Hit["from"]) => void, focus: Hit["from"]): () => 
   };
 }
 
+/** The hits the list shows: the direct ones, narrowed to the symbol picked and to the filter. */
+function useHits(answer: () => UsagesAnswer): () => Hit[] {
+  return () =>
+    filterHits(
+      answer(),
+      listedHits(answer(), previewAnswer()?.symbol.id ?? null),
+      hitFilter(),
+      hitCode(),
+    );
+}
+
 function Body(props: { answer: UsagesAnswer }) {
-  const hits = () => listedHits(props.answer, previewAnswer()?.symbol.id ?? null);
+  const hits = useHits(() => props.answer);
   const selectedPlace = () => {
     const hit = hits()[selectedHit()];
     return hit ? listedPlace(props.answer, hit) : undefined;

@@ -59,7 +59,11 @@ describe("UsagesScreen", () => {
     shown();
     await screen.findByRole("heading", { name: "Cart.Total" });
     const separators = screen.getAllByRole("separator");
-    const panel = separators.find((item) => item.getAttribute("aria-orientation") === "vertical")!;
+    const panel = separators.find(
+      (item) =>
+        item.getAttribute("aria-orientation") === "vertical" &&
+        !item.getAttribute("aria-label")?.startsWith("Resize column"),
+    )!;
     const before = Number(panel.getAttribute("aria-valuenow"));
     fireEvent.keyDown(panel, { key: "ArrowLeft" });
     const after = Number(panel.getAttribute("aria-valuenow"));
@@ -169,6 +173,19 @@ describe("UsagesScreen", () => {
     expect(mark.tagName).toBe("MARK");
     expect(mark.parentElement?.textContent).toBe("var sum = cart.Total();");
     expect(screen.getByText("src/Ui.cs:40")).toBeTruthy();
+  });
+
+  it("narrows the hit list with the filter and widens a column with the keys", async () => {
+    shown();
+    await screen.findByText("Hits 3");
+    fireEvent.input(screen.getByRole("searchbox", { name: "Filter hits" }), {
+      target: { value: "handler" },
+    });
+    expect(await screen.findByText("Hits 1")).toBeTruthy();
+    const handle = screen.getByRole("separator", { name: "Resize column Kind" });
+    const before = Number(handle.getAttribute("aria-valuenow"));
+    fireEvent.keyDown(handle, { key: "ArrowRight" });
+    expect(Number(handle.getAttribute("aria-valuenow"))).toBeGreaterThan(before);
   });
 
   it("keeps the hit list when the code cannot be read", async () => {

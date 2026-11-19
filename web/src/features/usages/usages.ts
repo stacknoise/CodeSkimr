@@ -32,6 +32,7 @@ const [failure, setFailure] = createSignal<Failure | null>(null);
 const [loading, setLoading] = createSignal(false);
 const [selected, setSelected] = createSignal(NO_HIT);
 const [preview, setPreview] = createSignal<UsagesAnswer | null>(null);
+const [filter, setFilter] = createSignal("");
 const [code, setCode] = createSignal<Map<string, string>>(new Map());
 
 /** Counts the questions asked; the answer to an earlier one is dropped. */
@@ -56,6 +57,10 @@ export const selectedHit = selected;
 export const setSelectedHit = setSelected;
 /** The code lines of the hits by place; empty until read, or if the code cannot be read. */
 export const hitCode = code;
+
+/** The text the hit list is filtered by. */
+export const hitFilter = filter;
+export const setHitFilter = setFilter;
 
 /** The answer for the symbol a single click on a card picked, `null` if none is picked. The side
  * panel shows it instead of the answer of the focus. */
