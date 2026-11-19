@@ -27,6 +27,20 @@ function Tile(props: { value: number; label: string; accent?: boolean }) {
   );
 }
 
+/** The documentation comment of the symbol, left out when the code has none. */
+function Description(props: { doc: string | null }) {
+  return (
+    <Show when={props.doc}>
+      {(doc) => (
+        <section class={styles.block}>
+          <h3>{t(I18N_KEYS.USAGES_DESCRIPTION_TITLE)}</h3>
+          <p class={styles.description}>{doc()}</p>
+        </section>
+      )}
+    </Show>
+  );
+}
+
 function Impact(props: { answer: UsagesAnswer }) {
   const impact = () => props.answer.impact;
   return (
@@ -108,14 +122,7 @@ export function SidePanel(props: { answer: UsagesAnswer; onOpen: () => void }) {
         <Tile value={props.answer.summary.files} label={t(I18N_KEYS.USAGES_FILES)} />
         <Tile value={props.answer.summary.layers} label={t(I18N_KEYS.USAGES_LAYERS)} />
       </div>
-      <Show when={props.answer.doc}>
-        {(doc) => (
-          <section class={styles.block}>
-            <h3>{t(I18N_KEYS.USAGES_DESCRIPTION_TITLE)}</h3>
-            <p class={styles.description}>{doc()}</p>
-          </section>
-        )}
-      </Show>
+      <Description doc={props.answer.doc} />
       <Impact answer={props.answer} />
       <section class={styles.block}>
         <h3>{t(I18N_KEYS.USAGES_WORKS_TITLE)}</h3>
