@@ -380,3 +380,20 @@ fn credentials_in_a_url_never_show_up_in_a_failure() -> TestResult {
     assert!(texts.iter().all(|text| !text.contains(CANARY)), "{texts:?}");
     Ok(())
 }
+
+#[test]
+fn removing_a_clone_deletes_only_that_clone_and_a_missing_one_is_no_failure() -> TestResult {
+    let fixture = fixture()?;
+    let ProjectSource::Git { url, branch, .. } = &fixture.source else {
+        unreachable!("the fixture is a Git source")
+    };
+    let cache = GitCache::new(fixture.cache.path().to_path_buf());
+    let first = fetcher(fixture.cache.path()).fetch(&fixture.source, &CancelToken::new())?;
+    let neighbour = fixture.cache.path().join("neighbour");
+    std::fs::create_dir(&neighbour)?;
+    cache.remove_checkout(url, branch)?;
+    assert!(!Path::new(first.root.as_str()).exists());
+    assert!(neighbour.exists());
+    cache.remove_checkout(url, branch)?;
+    Ok(())
+}

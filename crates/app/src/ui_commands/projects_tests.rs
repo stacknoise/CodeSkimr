@@ -55,7 +55,7 @@ impl ProjectCatalog for TwoProjects {
 }
 
 /// Tool checks whose stored report of project 1 is unreadable.
-struct BrokenFirst;
+pub(super) struct BrokenFirst;
 
 impl ProjectToolCheck for BrokenFirst {
     fn check(&self, _project: ProjectId) -> Result<ToolReport, CodedError> {
@@ -71,10 +71,9 @@ impl ProjectToolCheck for BrokenFirst {
     }
 }
 
-#[test]
-fn an_unreadable_tool_report_does_not_take_the_list_down() {
-    let tools: Arc<dyn ProjectToolCheck> = Arc::new(BrokenFirst);
-    let context = Arc::new(Context {
+/// A context over empty folders, with the given tool checks and scan lock.
+pub(super) fn context(tools: Arc<dyn ProjectToolCheck>, running: RunningScans) -> Arc<Context> {
+    Arc::new(Context {
         global: GlobalOptions::default(),
         locations: Locations {
             data_dir: Path::new("data").to_path_buf(),
@@ -85,11 +84,17 @@ fn an_unreadable_tool_report_does_not_take_the_list_down() {
         },
         events: EventBus::new(),
         secrets: crate::memory_keystore::secrets(),
-        tools: Arc::clone(&tools),
-        running: RunningScans::default(),
+        tools,
+        running,
         registration: Mutex::new(()),
         tiers: OnceLock::new(),
-    });
+    })
+}
+
+#[test]
+fn an_unreadable_tool_report_does_not_take_the_list_down() {
+    let tools: Arc<dyn ProjectToolCheck> = Arc::new(BrokenFirst);
+    let context = context(Arc::clone(&tools), RunningScans::default());
     let list = ListProjects {
         catalog: Arc::new(TwoProjects),
         tools,

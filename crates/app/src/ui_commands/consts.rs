@@ -8,6 +8,8 @@ pub const PROJECTS_LIST: &str = "projects.list";
 pub const PROJECTS_ADD: &str = "projects.add";
 /// Id of the command that scans a registered project again.
 pub const PROJECTS_RESCAN: &str = "projects.rescan";
+/// Id of the command that removes a project from the app.
+pub const PROJECTS_REMOVE: &str = "projects.remove";
 
 /// Id of the command that checks the tools of a project.
 pub const PROJECTS_TOOLS: &str = "projects.tools";
@@ -126,6 +128,11 @@ pub const ADD_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_ADD_DESCRIPTION;
 pub const RESCAN_TITLE: &str = i18n::COMMAND_PROJECTS_RESCAN_TITLE;
 /// Description key of `projects.rescan`.
 pub const RESCAN_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_RESCAN_DESCRIPTION;
+
+/// Title key of `projects.remove`.
+pub const REMOVE_TITLE: &str = i18n::COMMAND_PROJECTS_REMOVE_TITLE;
+/// Description key of `projects.remove`.
+pub const REMOVE_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_REMOVE_DESCRIPTION;
 
 /// Title key of `projects.cancel`.
 pub const CANCEL_TITLE: &str = i18n::COMMAND_PROJECTS_CANCEL_TITLE;

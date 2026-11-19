@@ -292,6 +292,8 @@ export const I18N_KEYS = {
   COMMAND_PROJECTS_TOOLS_DESCRIPTION: "command-projects-tools-description",
   COMMAND_PROJECTS_CANCEL_TITLE: "command-projects-cancel-title",
   COMMAND_PROJECTS_CANCEL_DESCRIPTION: "command-projects-cancel-description",
+  COMMAND_PROJECTS_REMOVE_TITLE: "command-projects-remove-title",
+  COMMAND_PROJECTS_REMOVE_DESCRIPTION: "command-projects-remove-description",
   COMMAND_EXPLORER_OUTLINE_TITLE: "command-explorer-outline-title",
   COMMAND_EXPLORER_OUTLINE_DESCRIPTION: "command-explorer-outline-description",
   COMMAND_EXPLORER_SYMBOL_TITLE: "command-explorer-symbol-title",
