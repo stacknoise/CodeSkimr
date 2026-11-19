@@ -852,6 +852,7 @@ export const I18N_KEYS = {
   USAGES_PLACES: "usages-places",
   USAGES_FILES: "usages-files",
   USAGES_LAYERS: "usages-layers",
+  USAGES_DESCRIPTION_TITLE: "usages-description-title",
   USAGES_IMPACT_TITLE: "usages-impact-title",
   USAGES_IMPACT_TEXT: "usages-impact-text",
   USAGES_IMPACT_ACCURACY: "usages-impact-accuracy",

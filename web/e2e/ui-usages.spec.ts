@@ -1,5 +1,25 @@
 // Runs after the other screens on purpose: the worker shares one server (see projects.spec.ts).
-import { addScannedProject, selectAdd, expect, test, watchPolicy } from "./fixtures";
+import path from "node:path";
+import { addScannedProject, selectAdd, expect, shot, test, watchPolicy } from "./fixtures";
+
+// `UPDATE_SCREENSHOTS=1` writes the screens to docs/screenshots/usages-description/.
+const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/usages-description");
+const THEMES = ["hell", "petrol", "dunkel"];
+const DOCUMENTED = [
+  "namespace Demo;",
+  "",
+  "public class Calculator",
+  "{",
+  "    /// <summary>Adds two whole numbers and returns the sum.</summary>",
+  "    public int Add(int a, int b) { return a + b; }",
+  "}",
+  "",
+  "public class Checkout",
+  "{",
+  "    public int Total(Calculator calculator) { return calculator.Add(1, 2); }",
+  "}",
+  "",
+].join("\n");
 
 const SOURCE = [
   "namespace Demo;",
@@ -63,4 +83,20 @@ test.describe("the usages screen", () => {
     expect(box).not.toBeNull();
     expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(viewport?.height ?? 0);
   });
+
+  for (const theme of THEMES) {
+    test(`shows the description of the code before the impact (${theme})`, async ({
+      page,
+      harness,
+    }, info) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.addInitScript((name) => localStorage.setItem("codeskimr.theme", name), theme);
+      const row = await addScannedProject(page, harness, `usagesdoc${theme}`, DOCUMENTED);
+      await selectAdd(page, row, "Demo");
+      await page.keyboard.press("u");
+      await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
+      await expect(page.getByText("Adds two whole numbers and returns the sum.")).toBeVisible();
+      await shot(page, SHOTS, `usages-description-${theme}`, info);
+    });
+  }
 });

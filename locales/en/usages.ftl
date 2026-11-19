@@ -43,6 +43,7 @@ usages-unchecked-tip = Found by name resolution without type information. Not ch
 usages-places = Places
 usages-files = Files
 usages-layers = Layers
+usages-description-title = Description
 usages-impact-title = Impact of a change
 usages-impact-text = A change reaches { $count } symbols in { $layers } layers, { $public } of them public and so part of an interface.
 usages-impact-accuracy = Of the listed symbols, reached through verified references: { $verified }, only through unchecked references: { $unchecked }.

@@ -143,6 +143,8 @@ pub struct UsagesOut {
     pub symbol: Place,
     /// Signature as written.
     pub signature: Option<String>,
+    /// Documentation comment found in the code.
+    pub doc: Option<String>,
     /// File that declares it.
     pub path: String,
     /// Steps walked.
@@ -347,6 +349,7 @@ impl Command for UsagesQuery {
             snapshot: snapshot.get(),
             symbol: place(&project, &label),
             signature: detail.symbol.signature.clone(),
+            doc: detail.symbol.doc.clone(),
             path: detail.path.to_string(),
             depth,
             incoming,

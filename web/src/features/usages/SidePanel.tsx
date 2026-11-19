@@ -108,6 +108,14 @@ export function SidePanel(props: { answer: UsagesAnswer; onOpen: () => void }) {
         <Tile value={props.answer.summary.files} label={t(I18N_KEYS.USAGES_FILES)} />
         <Tile value={props.answer.summary.layers} label={t(I18N_KEYS.USAGES_LAYERS)} />
       </div>
+      <Show when={props.answer.doc}>
+        {(doc) => (
+          <section class={styles.block}>
+            <h3>{t(I18N_KEYS.USAGES_DESCRIPTION_TITLE)}</h3>
+            <p class={styles.description}>{doc()}</p>
+          </section>
+        )}
+      </Show>
       <Impact answer={props.answer} />
       <section class={styles.block}>
         <h3>{t(I18N_KEYS.USAGES_WORKS_TITLE)}</h3>

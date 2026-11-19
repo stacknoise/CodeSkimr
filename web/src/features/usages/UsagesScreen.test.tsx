@@ -245,6 +245,20 @@ describe("UsagesScreen", () => {
     await waitFor(() => expect(focusSymbol()).toBe(11));
   });
 
+  it("shows the description before the impact", async () => {
+    shown();
+    const title = await screen.findByRole("heading", { name: "Description" });
+    expect(screen.getByText("The total of the cart, tax included.")).toBeTruthy();
+    const impact = screen.getByRole("heading", { name: "Impact of a change" });
+    expect(title.compareDocumentPosition(impact) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it("leaves the description out when the code has none", async () => {
+    shown({ ...ANSWER, doc: null });
+    await screen.findByRole("heading", { name: "Impact of a change" });
+    expect(screen.queryByRole("heading", { name: "Description" })).toBeNull();
+  });
+
   it("steps through the hits with F8 and opens the selected one in the explorer", async () => {
     shown();
     await screen.findByText("Hits 4");

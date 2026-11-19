@@ -43,6 +43,7 @@ usages-unchecked-tip = Per Namensauflösung ohne Typinformation gefunden. Nicht 
 usages-places = Stellen
 usages-files = Dateien
 usages-layers = Schichten
+usages-description-title = Beschreibung
 usages-impact-title = Auswirkung einer Änderung
 usages-impact-text = Eine Änderung erreicht { $count } Symbole in { $layers } Schichten, davon { $public } öffentlich und damit Teil einer Schnittstelle.
 usages-impact-accuracy = Von den aufgelisteten Symbolen über geprüfte Verweise erreicht: { $verified }, nur über ungeprüfte Verweise: { $unchecked }.
