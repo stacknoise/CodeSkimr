@@ -22,4 +22,4 @@ Das Layout berechnet CodeSkimr selbst (geschichtetes Zeichnen), sodass dasselbe 
 
 ## Bekannte Grenzen
 
-Die Karte zeigt nur Beziehungen zwischen Schichten. Welche Richtung zwischen zwei Schichten **erlaubt** ist, gehört noch nicht zum Projektmodell; was als „gegen die Schichtung“ gilt, folgt dem Schichtengraphen, den der Scan aufgezeichnet hat (siehe das offene Issue #45 zur Schichtregel). Nehmen Sie es als Hinweis, nicht als Urteil.
+Die Karte zeigt nur Beziehungen zwischen Schichten. Eine Linie gilt als „gegen die Schichtung“, wenn die Quellschicht eine `may_use`-Liste hat, die die Zielschicht nicht nennt ([Projekte und Scan](projekte-und-scan.md#schichten)); eine Schicht ohne `may_use` ist nicht beschränkt. Nehmen Sie die Karte als Hinweis, nicht als Urteil.
