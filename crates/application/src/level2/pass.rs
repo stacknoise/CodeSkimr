@@ -1,5 +1,5 @@
 //! The second pass of a scan: runs the indexer of each language, if the user allowed it, and
-//! replaces the level 1 references of the files it checked (ADR 0033).
+//! replaces the level 1 references of the files it checked where it answers (ADR 0033).
 //!
 //! The pass never fails the scan. Whatever goes wrong, the snapshot of level 1 stays as it was
 //! written and the report says why a language was skipped.

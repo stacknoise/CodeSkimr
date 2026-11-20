@@ -18,6 +18,7 @@ Each section is generated from the Conventional Commit titles of the squash-merg
 - check macro_rules bodies where they are defined (no_literals) ([#346](https://github.com/stacknoise/CodeSkimr/pull/346))
 
 ### Fixed
+- level 1 usages stay visible where level 2 finds nothing, marked "unchecked (level 1)"; verified ones read "verified (level 2)" (ADR 0033 addendum)
 
 - link check when opening and a hardened answer buffer ([#322](https://github.com/stacknoise/CodeSkimr/pull/322))
 - error text for unreadable sources, storage error tests and stale Git work folders ([#319](https://github.com/stacknoise/CodeSkimr/pull/319))

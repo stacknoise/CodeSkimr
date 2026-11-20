@@ -62,8 +62,16 @@ pub const LATEST_SNAPSHOT: &str = "SELECT id, commit_hash, created, mode, files,
 pub const SNAPSHOT_PROJECT: &str = "SELECT project_id FROM snapshots WHERE id = ?1";
 /// The snapshots that hold a file: file id.
 pub const SNAPSHOTS_WITH_FILE: &str = "SELECT DISTINCT snapshot_id FROM files WHERE id = ?1";
-/// Removes the references that stand in a file: file id.
-pub const REFERENCES_OF_FILE_DELETE: &str = "DELETE FROM symbol_references WHERE file_id = ?1";
+/// Removes the references that level 2 verified in a file: file id.
+pub const VERIFIED_REFERENCES_OF_FILE_DELETE: &str =
+    "DELETE FROM symbol_references WHERE file_id = ?1 AND verified = 1";
+/// Removes the level 1 references of a file that stand where a verified reference stands too (same
+/// start), because the verified one answers there: file id.
+pub const SHADOWED_REFERENCES_DELETE: &str = "DELETE FROM symbol_references WHERE file_id = ?1 \
+    AND verified = 0 AND EXISTS (SELECT 1 FROM symbol_references AS checked \
+    WHERE checked.file_id = symbol_references.file_id AND checked.verified = 1 \
+    AND checked.start_line = symbol_references.start_line \
+    AND checked.start_column = symbol_references.start_column)";
 
 /// Adds a snapshot header: id, project, commit, created, mode, files, symbols, references.
 pub const SNAPSHOT_INSERT: &str = "INSERT INTO snapshots \
