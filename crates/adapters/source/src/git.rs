@@ -80,6 +80,22 @@ impl GitCache {
         self.cache_root.join(folder_name(url, branch))
     }
 
+    /// Deletes the clone of `branch` of `url` below the cache folder, if there is one. Only the
+    /// folder this cache named for the pair is touched, never a path that came from the caller;
+    /// a link in its place is removed, not followed.
+    ///
+    /// # Errors
+    /// The failure of the file system, except that a clone that is not there is no failure.
+    pub fn remove_checkout(&self, url: &GitUrl, branch: &BranchName) -> std::io::Result<()> {
+        let target = self.checkout_dir(url, branch);
+        match fs::symlink_metadata(&target) {
+            Ok(meta) if meta.is_dir() => fs::remove_dir_all(&target),
+            Ok(_) => fs::remove_file(&target),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
+            Err(error) => Err(error),
+        }
+    }
+
     /// Makes the newest commit of `branch` available and returns where it lies.
     ///
     /// Without `login` the system's Git credential helper decides how to log in.

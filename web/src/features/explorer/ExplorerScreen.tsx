@@ -4,38 +4,44 @@ import { errorText, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
 import { pendingFocus, showUsages } from "../../shared/navigation/navigation";
+import { ORIENTATION, SIDE } from "../../shared/layout/consts";
+import { Splitter } from "../../shared/layout/Splitter";
 import { showInGraph } from "../graph/show";
+import { annotationsAvailable, loadSummary, loadTexts } from "../annotations/store";
+import { showAnnotationText } from "../annotations/flags";
+import { noteOnSelection, taskOnSelection, toggleSelectionCritical } from "./annotate";
 import { DetailPane } from "./DetailPane";
 import {
   applyFocus,
   collapseAll,
   currentMember,
   currentType,
+  explorerPlace,
   loadOutline,
+  shownHasLayer,
   stepMember,
   outlineError,
   outlineLoading,
   symbolDetails,
+  shownMember,
   symbolError,
   treeOutline,
   type Failure,
 } from "./explorer";
 import { openInEditor } from "./editor";
 import { useExplorerKeys } from "./keys";
+import { panelWidth, sourceWidth, treeWidth } from "./layout";
 import { Overview } from "./Overview";
 import { clearSource, loadSource } from "./source";
+import { SidePanel } from "./SidePanel";
 import { SourcePane } from "./SourcePane";
+import { NoticeBox } from "../../shared/ui/NoticeBox";
 import { TreePane } from "./TreePane";
 import { useExplorer } from "./useExplorer";
 import styles from "./ExplorerScreen.module.css";
 
 function Message(props: { title?: string; text: string; alert?: boolean }) {
-  return (
-    <div class={styles.message} role={props.alert ? "alert" : undefined}>
-      <Show when={props.title}>{(title) => <h2>{title()}</h2>}</Show>
-      <p>{props.text}</p>
-    </div>
-  );
+  return <NoticeBox class={styles.message} {...props} />;
 }
 
 function failureText(failure: Failure): string {
@@ -73,6 +79,7 @@ function Details(props: { onPickMember: ReturnType<typeof useExplorer>["pickMemb
             info={detail()}
             thresholds={treeOutline()?.thresholds ?? null}
             onPickMember={(row) => props.onPickMember(detail().id, row)}
+            source={<SourcePane shown wide />}
           />
         )}
       </Match>
@@ -105,6 +112,17 @@ function useReadingOfTheProject(): void {
       void applyFocus(project, tree);
     }
   });
+  // The counters of the annotations: one read for each snapshot (ADR 0068, no call for each row).
+  createEffect(() => {
+    const tree = treeOutline();
+    const project = activeProject();
+    if (tree !== null && project !== null) {
+      void loadSummary(project, tree.snapshot);
+      if (showAnnotationText()) {
+        void loadTexts(project, tree.snapshot);
+      }
+    }
+  });
 }
 
 /** The symbol whose source the right column shows: the member if one is picked, else the type. */
@@ -131,13 +149,13 @@ function useShortcuts(explorer: ReturnType<typeof useExplorer>): void {
     usages: () => {
       const symbol = shownSymbol();
       if (symbol !== null) {
-        showUsages(symbol);
+        showUsages(symbol, explorerPlace());
       }
     },
     graph: () => {
       const symbol = shownSymbol();
       const project = activeProject();
-      if (symbol !== null && project !== null) {
+      if (symbol !== null && project !== null && shownHasLayer()) {
         void showInGraph(project, symbol);
       }
     },
@@ -154,7 +172,38 @@ function useShortcuts(explorer: ReturnType<typeof useExplorer>): void {
         void openInEditor(project, symbol);
       }
     },
+    critical: toggleSelectionCritical,
+    note: noteOnSelection,
+    task: taskOnSelection,
   });
+}
+
+/** The three columns: tree, details and source. */
+function Columns(props: { explorer: ReturnType<typeof useExplorer> }) {
+  const { explorer } = props;
+  return (
+    <div class={styles.screen}>
+      <TreePane
+        rows={explorer.rows()}
+        cursor={explorer.cursor()}
+        actions={explorer.actions}
+        note={treeNote(explorer.rows().length)}
+      />
+      <Splitter pane={treeWidth} orientation={ORIENTATION.vertical} side={SIDE.before} />
+      <Details onPickMember={explorer.pickMember} />
+      <Show
+        when={shownMember() !== null}
+        fallback={
+          <Splitter pane={sourceWidth} orientation={ORIENTATION.vertical} side={SIDE.after} />
+        }
+      >
+        <Show when={annotationsAvailable() !== false}>
+          <Splitter pane={panelWidth} orientation={ORIENTATION.vertical} side={SIDE.after} />
+        </Show>
+      </Show>
+      <SidePanel />
+    </div>
+  );
 }
 
 /** Screen 2, the explorer: tree, details and source (blueprint B.2, mock `Explorer.dc.html`). */
@@ -181,16 +230,7 @@ export function ExplorerScreen() {
         )}
       </Match>
       <Match when={true}>
-        <div class={styles.screen}>
-          <TreePane
-            rows={explorer.rows()}
-            cursor={explorer.cursor()}
-            actions={explorer.actions}
-            note={treeNote(explorer.rows().length)}
-          />
-          <Details onPickMember={explorer.pickMember} />
-          <SourcePane shown={shownSymbol() !== null} />
-        </div>
+        <Columns explorer={explorer} />
       </Match>
     </Switch>
   );

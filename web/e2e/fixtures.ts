@@ -3,7 +3,7 @@ import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } fro
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { createInterface } from "node:readline";
-import { test as base, expect, type Locator, type Page } from "@playwright/test";
+import { test as base, expect, type Locator, type Page, type TestInfo } from "@playwright/test";
 
 /** The server of the tests: the real one, over an in-memory keystore (crates/app/src/e2e.rs). */
 export interface Harness {
@@ -18,8 +18,9 @@ export interface Harness {
 const REPO = path.resolve(import.meta.dirname, "../..");
 const STARTUP_MS = 600_000;
 
-function start(): Promise<{ child: ChildProcessWithoutNullStreams; harness: Harness }> {
-  const child = spawn(
+/** Starts the test server of the Rust side: the shell that prints the markers of the harness. */
+function spawnServer(): ChildProcessWithoutNullStreams {
+  return spawn(
     "cargo",
     ["test", "-p", "codeskimr", "e2e_server", "--", "--ignored", "--nocapture", "--test-threads=1"],
     {
@@ -27,6 +28,32 @@ function start(): Promise<{ child: ChildProcessWithoutNullStreams; harness: Harn
       env: { ...process.env, CODESKIMR_E2E_UI_DIR: path.resolve(REPO, "web/dist") },
     },
   );
+}
+
+/** The calls of the harness: each writes a command to the server and waits for its answer. */
+function harnessOf(
+  child: ChildProcessWithoutNullStreams,
+  url: string,
+  waiting: ((file: string) => void)[],
+  resets: (() => void)[],
+): Harness {
+  return {
+    url,
+    launchFile: () =>
+      new Promise((done) => {
+        waiting.push(done);
+        child.stdin.write("launch\n");
+      }),
+    resetPreferences: () =>
+      new Promise((done) => {
+        resets.push(done);
+        child.stdin.write("reset\n");
+      }),
+  };
+}
+
+function start(): Promise<{ child: ChildProcessWithoutNullStreams; harness: Harness }> {
+  const child = spawnServer();
   const waiting: ((file: string) => void)[] = [];
   const resets: (() => void)[] = [];
   return new Promise((resolve, reject) => {
@@ -39,22 +66,7 @@ function start(): Promise<{ child: ChildProcessWithoutNullStreams; harness: Harn
       if (line.includes("E2E_RESET=done")) {
         resets.shift()?.();
       } else if (url !== undefined) {
-        resolve({
-          child,
-          harness: {
-            url,
-            launchFile: () =>
-              new Promise((done) => {
-                waiting.push(done);
-                child.stdin.write("launch\n");
-              }),
-            resetPreferences: () =>
-              new Promise((done) => {
-                resets.push(done);
-                child.stdin.write("reset\n");
-              }),
-          },
-        });
+        resolve({ child, harness: harnessOf(child, url, waiting, resets) });
       } else if (file !== undefined) {
         waiting.shift()?.(file);
       }
@@ -130,6 +142,20 @@ export async function addScannedProject(
   return row;
 }
 
+/** Adds a scanned project like `addScannedProject` and opens it (the screens of a project stay shut
+ * until one is open); the explorer is shown afterwards. */
+export async function openScannedProject(
+  page: Page,
+  harness: Harness,
+  name: string,
+  source: string,
+) {
+  const row = await addScannedProject(page, harness, name, source);
+  await row.click({ position: { x: 4, y: 4 } });
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("tree")).toBeVisible();
+}
+
 /** The layer file and the two sources of a small project with a Domain and a Presentation layer. */
 function layeredFiles(prefix: string): Record<string, string> {
   return {
@@ -166,12 +192,22 @@ export async function addLayeredProject(page: Page, harness: Harness, name: stri
 }
 
 /** From a project row: opens it in the explorer and selects the member `Add` of the type
- * `Calculator` in `namespace` (the layer is "(no layer)"). */
+ * `Calculator` in `namespace` (the project has no layers). */
 export async function selectAdd(page: Page, row: Locator, namespace: string): Promise<void> {
   await row.click({ position: { x: 4, y: 4 } });
   await page.keyboard.press("Enter");
-  await page.getByText("(no layer)").click();
   await page.getByText(namespace, { exact: true }).click();
   await page.getByText("Calculator", { exact: true }).click();
   await page.getByRole("button", { name: /Add/ }).first().click();
+}
+
+/** Attaches the screen to the report and, when `UPDATE_SCREENSHOTS` is set, writes it to `dir` for
+ * the review by eye. */
+export async function shot(page: Page, dir: string, name: string, info: TestInfo): Promise<void> {
+  const body = await page.screenshot();
+  await info.attach(name, { body, contentType: "image/png" });
+  if (process.env["UPDATE_SCREENSHOTS"]) {
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, `${name}.png`), body);
+  }
 }

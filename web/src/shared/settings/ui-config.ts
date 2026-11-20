@@ -8,6 +8,11 @@ import { useDefaultTheme } from "../theme/theme";
 export interface UiConfig {
   editor: EditorConfig;
   default_theme: string;
+  /** Seconds between two questions for the level 2 state while a confirmation is open
+   * (`ui.level2_poll_seconds`); absent in a server that does not tell. */
+  level2_poll_seconds?: number;
+  /** Seconds after which the screen stops asking (`ui.level2_poll_max_seconds`). */
+  level2_poll_max_seconds?: number;
 }
 
 const [config, setConfig] = createSignal<UiConfig | null>(null);

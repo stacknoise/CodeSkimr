@@ -3,8 +3,8 @@
 use std::path::PathBuf;
 
 use codeskimr_cli::{
-    Action, CliError, CredentialAction, Parsed, ProviderChoice, ScanArgs, ServeArgs, language_from,
-    parse, serve_started,
+    Action, CliError, CredentialAction, Level2Action, Parsed, ProviderChoice, ScanArgs, ServeArgs,
+    StartArgs, language_from, parse, serve_started, start_keep_open,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_i18n::Messages;
@@ -110,6 +110,15 @@ fn the_listening_line_names_the_address_in_both_languages() {
 }
 
 #[test]
+fn the_start_tells_to_keep_the_window_open_in_both_languages() {
+    let messages = Messages::load().unwrap();
+    let english = start_keep_open(&messages, "en").unwrap();
+    let german = start_keep_open(&messages, "de").unwrap();
+    assert!(english.contains("window open"), "{english}");
+    assert!(german.contains("offen lassen"), "{german}");
+}
+
+#[test]
 fn missing_and_unknown_arguments_are_cli_101() {
     for arguments in [
         &["codeskimr", "scan"][..],
@@ -128,8 +137,23 @@ fn missing_and_unknown_arguments_are_cli_101() {
 #[test]
 fn no_command_starts_the_app() {
     match run(&["codeskimr"]).unwrap() {
-        Parsed::Run(invocation) => assert_eq!(invocation.action, Action::Start),
+        Parsed::Run(invocation) => {
+            assert_eq!(invocation.action, Action::Start(StartArgs::default()));
+        }
         Parsed::Display(_) => panic!("the bare command runs"),
+    }
+}
+
+#[test]
+fn the_console_flag_keeps_the_app_out_of_the_tray() {
+    match run(&["codeskimr", "--console"]).unwrap() {
+        Parsed::Run(invocation) => {
+            assert_eq!(
+                invocation.action,
+                Action::Start(StartArgs { console: true })
+            );
+        }
+        Parsed::Display(_) => panic!("the flag runs the app"),
     }
 }
 
@@ -239,5 +263,76 @@ fn credential_delete_and_login_are_parsed() {
             client_id: "app".to_owned(),
             host: Some("https://git.example.com".to_owned()),
         })
+    );
+}
+
+#[test]
+fn the_tray_texts_exist_in_both_languages() {
+    let messages = Messages::load().unwrap();
+    for language in ["en", "de"] {
+        let labels = codeskimr_cli::tray_labels(&messages, language).unwrap();
+        for text in [&labels.tooltip, &labels.open, &labels.log, &labels.quit] {
+            assert!(!text.is_empty(), "{language}");
+        }
+        let line = codeskimr_cli::start_tray(&messages, language, "codeskimr.log").unwrap();
+        assert!(line.contains("codeskimr.log"), "{language}: {line}");
+    }
+}
+
+#[test]
+fn level2_confirm_knows_the_flag_of_the_window_the_server_opened() {
+    let plain = invocation(&["codeskimr", "level2", "confirm", "4"]);
+    assert_eq!(
+        plain.action,
+        Action::Level2(Level2Action::Confirm {
+            project: "4".to_owned(),
+            from_ui: false
+        })
+    );
+    let from_ui = invocation(&["codeskimr", "level2", "confirm", "--from-ui", "4"]);
+    assert_eq!(
+        from_ui.action,
+        Action::Level2(Level2Action::Confirm {
+            project: "4".to_owned(),
+            from_ui: true
+        })
+    );
+    // `revoke` has no such flag: the window is only for the confirmation.
+    assert!(run(&["codeskimr", "level2", "revoke", "--from-ui", "4"]).is_err());
+}
+
+#[test]
+fn the_global_options_come_back_as_separate_arguments_the_parser_reads_again() {
+    let original = invocation(&[
+        "codeskimr",
+        "--data-dir",
+        "my data",
+        "--config",
+        "c.toml",
+        "--set",
+        "a.b=1",
+        "--set",
+        "x=\"y z\"",
+        "scan",
+        "repo",
+    ])
+    .global;
+    let mut again = vec![
+        "codeskimr".to_owned(),
+        "level2".to_owned(),
+        "confirm".to_owned(),
+        "4".to_owned(),
+    ];
+    again.extend(
+        original
+            .arguments()
+            .into_iter()
+            .map(|argument| argument.into_string().unwrap()),
+    );
+    let refs: Vec<&str> = again.iter().map(String::as_str).collect();
+    assert_eq!(invocation(&refs).global, original);
+    assert_eq!(
+        codeskimr_cli::GlobalOptions::default().arguments(),
+        Vec::<std::ffi::OsString>::new()
     );
 }

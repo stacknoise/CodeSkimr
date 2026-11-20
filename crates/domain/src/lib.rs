@@ -4,6 +4,8 @@
 //! so a `SymbolId` can never be passed where a `FileId` is expected.
 
 mod access;
+mod alert;
+mod annotation;
 mod consts;
 mod coupling;
 mod error;
@@ -20,6 +22,7 @@ mod namespace_graph;
 mod project;
 mod qualified_name;
 mod reference;
+mod report;
 mod reverse_index;
 mod secret_url;
 mod similar;
@@ -31,6 +34,13 @@ mod type_neighbours;
 mod vocabulary;
 
 pub use access::{Permission, PermissionSet, Principal};
+pub use alert::{
+    Alert, AlertChange, AlertId, AlertKind, AlertSighting, AlertState, AlertTrigger, SymbolBaseline,
+};
+pub use annotation::{
+    Annotation, AnnotationContent, AnnotationId, AnnotationKind, AnnotationLimits,
+    AnnotationTarget, AnnotationText, AnnotationTitle, Assignee, Author, NewAnnotation, TaskStatus,
+};
 pub use coupling::coupling;
 pub use error::ModelError;
 pub use file::{ContentHash, FileId, LanguageId, Loc, RelativePath, SourceFile};
@@ -45,19 +55,24 @@ pub use metric::{Metric, MetricKind, MetricValue};
 pub use metrics::{
     HalsteadCounts, LineKind, cyclomatic_complexity, lines_of_code, maintainability_index,
 };
-pub use namespace_graph::{NamespaceEdge, NamespaceGraph, NamespaceNode, namespace_graph};
+pub use namespace_graph::{
+    NamespaceEdge, NamespaceGraph, NamespaceNode, name_parts, namespace_graph,
+};
 pub use project::{
     BranchName, CredentialId, FolderPath, GitUrl, Layer, LayerName, Project, ProjectId,
     ProjectName, ProjectSource,
 };
 pub use qualified_name::QualifiedName;
 pub use reference::{Confidence, Reference, ReferenceId, ReferenceKind};
+pub use report::{Level2Stage, OutcomeKind, ScanLevel, SkipReason};
 pub use reverse_index::{Direction, Reached, ReverseIndex, Usage, UsageQuery};
 pub use secret_url::{without_secrets, without_userinfo};
 pub use similar::{SimilarPair, similar_pairs};
-pub use snapshot::{CommitHash, ScanMode, Snapshot, SnapshotId, SnapshotStats, Timestamp};
+pub use snapshot::{
+    CommitHash, ScanMode, ScanOrigin, Snapshot, SnapshotId, SnapshotStats, Timestamp,
+};
 pub use span::{Position, Span};
-pub use symbol::{Symbol, SymbolId, SymbolKind, SymbolName, Visibility};
+pub use symbol::{Symbol, SymbolId, SymbolKind, SymbolName, SymbolOrigin, Visibility};
 pub use tool::{
     Ceiling, RequirementFormat, RequirementSpec, RollForwardSpec, ToolEntry, ToolFinding,
     ToolReport, ToolRole, ToolState,

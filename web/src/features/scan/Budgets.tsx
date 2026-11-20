@@ -42,21 +42,23 @@ export function Budgets(props: {
       <div class={styles.hint}>{t(I18N_KEYS.SCAN_BUDGETS_HINT)}</div>
       <Show when={props.targets}>
         {(targets) => (
-          <For each={BUDGET_ROWS}>
-            {(row) => (
-              <div class={styles.row}>
-                <span class={styles.name}>{t(row.name)}</span>
-                <span class={styles.goal}>
-                  {t(I18N_KEYS.SCAN_BUDGET_TARGET, { ms: targets()[row.key] })}
-                </span>
-                <Value
-                  target={targets()[row.key]}
-                  measured={props.measured[row.key]}
-                  rated={!props.unrated?.includes(row.key)}
-                />
-              </div>
-            )}
-          </For>
+          <div class={styles.rows}>
+            <For each={BUDGET_ROWS}>
+              {(row) => (
+                <div class={styles.row}>
+                  <span class={styles.name}>{t(row.name)}</span>
+                  <span class={styles.goal}>
+                    {t(I18N_KEYS.SCAN_BUDGET_TARGET, { ms: targets()[row.key] })}
+                  </span>
+                  <Value
+                    target={targets()[row.key]}
+                    measured={props.measured[row.key]}
+                    rated={!props.unrated?.includes(row.key)}
+                  />
+                </div>
+              )}
+            </For>
+          </div>
         )}
       </Show>
     </div>

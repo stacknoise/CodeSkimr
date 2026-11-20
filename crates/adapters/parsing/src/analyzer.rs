@@ -9,9 +9,10 @@ use codeskimr_application::config::Similarity;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{AnalyzeRequest, FileAnalyzer, FileFacts, SnippetFingerprinter};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Fingerprints, LanguageId, SourceFile, lines_of_code};
+use codeskimr_domain::{Fingerprints, LanguageId, RelativePath, SourceFile, lines_of_code};
 use tree_sitter::{ParseOptions, ParseState, Parser, Point, Tree};
 
+use crate::content_hash;
 use crate::encoding::decode;
 use crate::error::ParsingError;
 use crate::fingerprints::{self, FingerprintSettings};
@@ -86,6 +87,7 @@ impl TreeSitterAnalyzer {
         let fingerprints = self.fingerprinting.map_or_else(Vec::new, |settings| {
             fingerprints::of_callables(pack, root, &table, settings)
         });
+        let hashes = content_hash::of_symbols(pack, root, &source, &table)?;
         Ok(FileFacts {
             file: SourceFile {
                 id: file,
@@ -99,6 +101,7 @@ impl TreeSitterAnalyzer {
             pending,
             fingerprints,
             counts,
+            hashes,
         })
     }
 }
@@ -110,6 +113,16 @@ impl FileAnalyzer for TreeSitterAnalyzer {
 
     fn naming_rules(&self) -> String {
         self.packs.naming_rules()
+    }
+
+    fn pack_load_time(&self) -> Duration {
+        self.packs.load_time()
+    }
+
+    fn is_test_file(&self, language: &LanguageId, path: &RelativePath) -> bool {
+        self.packs
+            .get(language)
+            .is_ok_and(|pack| pack.is_test_file(path.as_str()))
     }
 }
 

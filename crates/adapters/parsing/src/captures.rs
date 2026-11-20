@@ -193,6 +193,7 @@ impl MetricsQuery {
     ///
     /// # Errors
     /// The offending capture name if it is not one of ADR 0015 and ADR 0048.
+    // codeskimr: allow CHK-102 maps the capture names of the metrics query into its roles
     pub fn new(query: Query) -> Result<Self, String> {
         let roles = query
             .capture_names()

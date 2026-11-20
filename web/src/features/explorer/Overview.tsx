@@ -1,7 +1,7 @@
 import { Show } from "solid-js";
-import { currentLanguage, t } from "../../shared/i18n/i18n";
+import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
-import { metricValue } from "./format";
+import { LayersHint } from "../layers/LayersHint";
 import type { Outline } from "./types";
 import styles from "./Overview.module.css";
 
@@ -16,6 +16,11 @@ export function counts(outline: Outline) {
   };
 }
 
+/** Whether any type sits in a layer of the project; the group without a name does not count. */
+export function hasLayers(outline: Outline): boolean {
+  return outline.layers.some((layer) => layer.name !== "");
+}
+
 /** What the middle column shows while no type is selected (blueprint 15.4, initial state). */
 export function Overview(props: { outline: Outline | null }) {
   return (
@@ -25,12 +30,13 @@ export function Overview(props: { outline: Outline | null }) {
           <h2>{t(I18N_KEYS.EXPLORER_OVERVIEW_TITLE)}</h2>
           <p>
             {t(I18N_KEYS.EXPLORER_OVERVIEW_COUNTS, {
-              layers: metricValue(counts(outline()).layers, currentLanguage()),
-              namespaces: metricValue(counts(outline()).namespaces, currentLanguage()),
-              types: metricValue(counts(outline()).types, currentLanguage()),
+              ...counts(outline()),
             })}
           </p>
           <p class={styles.hint}>{t(I18N_KEYS.EXPLORER_OVERVIEW_HINT)}</p>
+          <Show when={!hasLayers(outline())}>
+            <LayersHint />
+          </Show>
         </div>
       )}
     </Show>

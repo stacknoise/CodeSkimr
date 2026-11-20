@@ -8,6 +8,12 @@ pub const PROJECTS_LIST: &str = "projects.list";
 pub const PROJECTS_ADD: &str = "projects.add";
 /// Id of the command that scans a registered project again.
 pub const PROJECTS_RESCAN: &str = "projects.rescan";
+/// Id of the command that removes a project from the app.
+pub const PROJECTS_REMOVE: &str = "projects.remove";
+/// Id of the command that tells whether a folder dialog exists on this machine.
+pub const PROJECTS_FOLDER_DIALOG: &str = "projects.folder_dialog";
+/// Id of the command that shows the folder dialog.
+pub const PROJECTS_PICK_FOLDER: &str = "projects.pick_folder";
 
 /// Id of the command that checks the tools of a project.
 pub const PROJECTS_TOOLS: &str = "projects.tools";
@@ -15,6 +21,24 @@ pub const PROJECTS_TOOLS: &str = "projects.tools";
 pub const TOOLS_TITLE: &str = i18n::COMMAND_PROJECTS_TOOLS_TITLE;
 /// Description key of `projects.tools`.
 pub const TOOLS_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_TOOLS_DESCRIPTION;
+/// Id of the command that lists the indexers of this machine.
+pub const TOOLS_INDEXERS: &str = "tools.indexers";
+/// Title key of `tools.indexers`.
+pub const INDEXERS_TITLE: &str = i18n::COMMAND_TOOLS_INDEXERS_TITLE;
+/// Description key of `tools.indexers`.
+pub const INDEXERS_DESCRIPTION: &str = i18n::COMMAND_TOOLS_INDEXERS_DESCRIPTION;
+/// Id of the command that reports where level 2 stands for a project (ADR 0071).
+pub const LEVEL2_STATUS: &str = "level2.status";
+/// Title key of `level2.status`.
+pub const LEVEL2_STATUS_TITLE: &str = i18n::COMMAND_LEVEL2_STATUS_TITLE;
+/// Description key of `level2.status`.
+pub const LEVEL2_STATUS_DESCRIPTION: &str = i18n::COMMAND_LEVEL2_STATUS_DESCRIPTION;
+/// Id of the command that takes the level 2 confirmation of a project back (ADR 0071).
+pub const LEVEL2_REVOKE: &str = "level2.revoke";
+/// Title key of `level2.revoke`.
+pub const LEVEL2_REVOKE_TITLE: &str = i18n::COMMAND_LEVEL2_REVOKE_TITLE;
+/// Description key of `level2.revoke`.
+pub const LEVEL2_REVOKE_DESCRIPTION: &str = i18n::COMMAND_LEVEL2_REVOKE_DESCRIPTION;
 /// Id of the command that cancels a running scan.
 pub const PROJECTS_CANCEL: &str = "projects.cancel";
 
@@ -109,6 +133,20 @@ pub const RESCAN_TITLE: &str = i18n::COMMAND_PROJECTS_RESCAN_TITLE;
 /// Description key of `projects.rescan`.
 pub const RESCAN_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_RESCAN_DESCRIPTION;
 
+/// Title key of `projects.remove`.
+pub const REMOVE_TITLE: &str = i18n::COMMAND_PROJECTS_REMOVE_TITLE;
+/// Description key of `projects.remove`.
+pub const REMOVE_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_REMOVE_DESCRIPTION;
+
+/// Title key of `projects.folder_dialog`.
+pub const FOLDER_DIALOG_TITLE: &str = i18n::COMMAND_PROJECTS_FOLDER_DIALOG_TITLE;
+/// Description key of `projects.folder_dialog`.
+pub const FOLDER_DIALOG_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_FOLDER_DIALOG_DESCRIPTION;
+/// Title key of `projects.pick_folder`.
+pub const PICK_FOLDER_TITLE: &str = i18n::COMMAND_PROJECTS_PICK_FOLDER_TITLE;
+/// Description key of `projects.pick_folder`.
+pub const PICK_FOLDER_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_PICK_FOLDER_DESCRIPTION;
+
 /// Title key of `projects.cancel`.
 pub const CANCEL_TITLE: &str = i18n::COMMAND_PROJECTS_CANCEL_TITLE;
 /// Description key of `projects.cancel`.
@@ -168,6 +206,14 @@ pub const EXPORT_DIRECT_DEPTH: u32 = 1;
 /// The gap between two rows is divided by this to get the space a layer band adds above and
 /// below its boxes.
 pub const BAND_PAD_DIVISOR: u32 = 2;
+/// A line of a wrapped row is centred: the free space is divided by this and put on the left.
+pub const CENTRE_DIVISOR: u32 = 2;
+/// The fewest boxes in a line of a row, whatever the configuration says.
+pub const MIN_LINE_BOXES: u32 = 1;
+/// Joins the namespaces in the breadcrumb of a type box.
+pub const BREADCRUMB_JOIN: &str = " › ";
+/// The margin of the picture applies on both sides.
+pub const MARGIN_SIDES: u32 = 2;
 /// Id of the command that lists the credentials of the Git projects.
 pub const CREDENTIALS_LIST: &str = "credentials.list";
 /// Id of the command that stores a credential.
@@ -189,6 +235,8 @@ pub const CREDENTIALS_DELETE_DESCRIPTION: &str = i18n::COMMAND_CREDENTIALS_DELET
 
 /// Most types drawn on each side of the type in the middle of the map; the rest is counted.
 pub const TYPE_SIDE_MAX: usize = 12;
+/// The most namespaces drawn on each side of the namespace in the middle.
+pub const NAMESPACE_SIDE_MAX: usize = 24;
 /// Between the qualified name and the id in the name of a box, if two drawn types share a name.
 pub const BOX_ID_SEPARATOR: &str = " #";
 /// Row of the types that use the type in the middle.
@@ -212,8 +260,8 @@ pub const PREFERENCES_SET_TITLE: &str = i18n::COMMAND_PREFERENCES_SET_TITLE;
 pub const PREFERENCES_SET_DESCRIPTION: &str = i18n::COMMAND_PREFERENCES_SET_DESCRIPTION;
 /// File in the data folder that holds the preferences.
 pub const PREFERENCES_FILE: &str = "preferences.json";
-/// Ending of the file the preferences are written to before they replace the real one.
-pub const PREFERENCES_TEMP_SUFFIX: &str = ".tmp";
+/// Ending of the file a content is written to before it replaces the real one.
+pub const TEMP_SUFFIX: &str = ".tmp";
 /// Longest name of a theme or a language that is stored.
 pub const PREFERENCE_MAX_CHARS: usize = 32;
 /// Characters besides lower-case letters and digits that a stored name may contain.
@@ -223,5 +271,58 @@ pub const PREFERENCES_MAX_BYTES: u64 = 4096;
 /// Mode of the preferences file: the owner may read and write, nobody else.
 #[cfg(unix)]
 pub const PREFERENCES_FILE_MODE: u32 = 0o600;
-/// Separator in the name of the file the preferences are written to first.
-pub const PREFERENCES_TEMP_SEPARATOR: &str = ".";
+/// Separator in the name of that file.
+pub const TEMP_SEPARATOR: &str = ".";
+
+/// Id of the command that shows the layers of a project and the namespaces to build them from.
+pub const LAYERS_GET: &str = "layers.get";
+/// Title key of `layers.get`.
+pub const LAYERS_GET_TITLE: &str = i18n::COMMAND_LAYERS_GET_TITLE;
+/// Description key of `layers.get`.
+pub const LAYERS_GET_DESCRIPTION: &str = i18n::COMMAND_LAYERS_GET_DESCRIPTION;
+/// Id of the command that writes the layers into the project file.
+pub const LAYERS_SET: &str = "layers.set";
+/// Title key of `layers.set`.
+pub const LAYERS_SET_TITLE: &str = i18n::COMMAND_LAYERS_SET_TITLE;
+/// Description key of `layers.set`.
+pub const LAYERS_SET_DESCRIPTION: &str = i18n::COMMAND_LAYERS_SET_DESCRIPTION;
+/// Largest project file that is read; a bigger one is refused.
+pub const PROJECT_FILE_MAX_BYTES: u64 = 1_048_576;
+
+/// Id of the command that lists annotations.
+pub const ANNOTATIONS_LIST: &str = "annotations.list";
+/// Id of the command that counts annotations per symbol.
+pub const ANNOTATIONS_SUMMARY: &str = "annotations.summary";
+/// Id of the command that adds an annotation of any kind.
+pub const ANNOTATIONS_CREATE: &str = "annotations.create";
+/// Id of the command that marks a symbol as critical.
+pub const ANNOTATIONS_MARK_CRITICAL: &str = "annotations.mark_critical";
+/// Id of the command that adds a note.
+pub const ANNOTATIONS_ADD_NOTE: &str = "annotations.add_note";
+/// Id of the command that adds a task.
+pub const ANNOTATIONS_ADD_TASK: &str = "annotations.add_task";
+/// Id of the command that changes an annotation.
+pub const ANNOTATIONS_UPDATE: &str = "annotations.update";
+/// Id of the command that deletes an annotation.
+pub const ANNOTATIONS_DELETE: &str = "annotations.delete";
+/// Id of the command that lists alerts.
+pub const ALERTS_LIST: &str = "alerts.list";
+/// Id of the command that dismisses one alert.
+pub const ALERTS_DISMISS: &str = "alerts.dismiss";
+/// Id of the command that dismisses the alerts of a filter.
+pub const ALERTS_DISMISS_ALL: &str = "alerts.dismiss_all";
+/// Default shortcut of `annotations.mark_critical` (blueprint 15.4).
+pub const SHORTCUT_CRITICAL: &str = "K";
+/// Default shortcut of `annotations.add_note`.
+pub const SHORTCUT_NOTE: &str = "N";
+/// Default shortcut of `annotations.add_task`.
+pub const SHORTCUT_TASK: &str = "T";
+/// The author of every annotation until the team edition has accounts (ADR 0068).
+pub const LOCAL_AUTHOR: &str = "local";
+
+/// `Level2Answer::state` when a background task runs level 2.
+pub const LEVEL2_STARTED: &str = "started";
+/// `Level2Answer::state` when level 2 did not start; the reason says why.
+pub const LEVEL2_NOT_STARTED: &str = "not_started";
+/// `Level2Answer::state` when the caller asked for level 1 only.
+pub const LEVEL2_NOT_REQUESTED: &str = "not_requested";

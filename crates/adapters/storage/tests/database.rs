@@ -4,43 +4,18 @@
 mod common;
 
 use std::num::NonZeroU32;
-use std::path::PathBuf;
-use std::sync::atomic::{AtomicU32, Ordering};
 
 use codeskimr_application::ports::{
-    ProjectRepository, SnapshotData, SnapshotStore, SymbolFingerprints,
+    PendingReference, ProjectRemoval, ProjectRepository, Receiver, SnapshotData, SnapshotStore,
+    SymbolFingerprints,
 };
 use codeskimr_domain::{
-    Fingerprint, Fingerprints, LanguageId, MetricKind, ScanMode, SymbolId, SymbolKind,
+    FileId, Fingerprint, Fingerprints, LanguageId, MetricKind, QualifiedName, ReferenceKind,
+    ScanMode, SymbolId, SymbolKind,
 };
 use codeskimr_storage::{SqliteStore, StoreOptions};
-use common::{PROJECT, code_of, data, file, header, metric, project, reference, symbol};
+use common::{PROJECT, TempDb, code_of, data, file, header, metric, project, reference, symbol};
 use rusqlite::Connection;
-
-static NEXT: AtomicU32 = AtomicU32::new(0);
-
-/// A database path in a fresh temporary folder that is removed again on drop.
-#[cfg(test)]
-struct TempDb(PathBuf);
-
-#[cfg(test)]
-impl TempDb {
-    fn new() -> Self {
-        let unique = NEXT.fetch_add(1, Ordering::Relaxed);
-        let folder =
-            std::env::temp_dir().join(format!("codeskimr-storage-{}-{unique}", std::process::id()));
-        Self(folder.join("nested").join("workspace.db"))
-    }
-}
-
-#[cfg(test)]
-impl Drop for TempDb {
-    fn drop(&mut self) {
-        if let Some(root) = self.0.parent().and_then(std::path::Path::parent) {
-            let _ = std::fs::remove_dir_all(root);
-        }
-    }
-}
 
 #[cfg(test)]
 fn keep(count: u32) -> NonZeroU32 {
@@ -69,7 +44,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 10));
+    assert_eq!((mode.as_str(), version), ("wal", 17));
 }
 
 #[test]
@@ -142,6 +117,18 @@ fn scan_with_every_table(snapshot: u64, base: u64) -> SnapshotData {
         metric(base + 1, MetricKind::EfferentCoupling, 1.0),
     ];
     scan.parse_micros = vec![(LanguageId::new("csharp").unwrap(), base)];
+    scan.warnings = vec![codeskimr_application::ports::ScanWarning {
+        code: codeskimr_codes::ErrorCode::AmbiguousReference,
+        count: base,
+    }];
+    scan.pending = vec![PendingReference {
+        from: SymbolId::new(base + 2),
+        file: FileId::new(base),
+        span: common::span(2),
+        kind: ReferenceKind::Call,
+        target: QualifiedName::new("App.A").unwrap(),
+        receiver: Some(Receiver::Own),
+    }];
     scan.fingerprints = vec![SymbolFingerprints {
         symbol: SymbolId::new(base + 1),
         fingerprints: Fingerprints::from_entries(vec![Fingerprint {
@@ -152,16 +139,22 @@ fn scan_with_every_table(snapshot: u64, base: u64) -> SnapshotData {
     scan
 }
 
-#[test]
-fn pruned_snapshots_leave_no_rows_behind() {
-    let db = TempDb::new();
-    let store = SqliteStore::open(&db.0, keep(1)).unwrap();
-    store.save_project(&project(1, "/work/app", &[])).unwrap();
+/// Persists the full scans 10 and 20 of project 1.
+#[cfg(test)]
+fn persist_two_scans(store: &SqliteStore) {
     for (snapshot, base) in [(10, 100), (20, 200)] {
         store
             .persist(scan_with_every_table(snapshot, base))
             .unwrap();
     }
+}
+
+#[test]
+fn pruned_snapshots_leave_no_rows_behind() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(1)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    persist_two_scans(&store);
     let conn = Connection::open(&db.0).unwrap();
     for (table, expected) in [
         ("snapshots", 1),
@@ -177,13 +170,10 @@ fn pruned_snapshots_leave_no_rows_behind() {
         ("type_summary", 1),
         ("fingerprints", 1),
         ("parse_times", 1),
+        ("snapshot_warnings", 1),
+        ("pending_references", 1),
     ] {
-        let rows: i64 = conn
-            .query_row(&format!("SELECT COUNT(*) FROM {table}"), [], |row| {
-                row.get(0)
-            })
-            .unwrap();
-        assert_eq!(rows, expected, "table {table}");
+        assert_eq!(rows_of(&conn, table), expected, "table {table}");
     }
 }
 
@@ -221,6 +211,11 @@ fn an_incremental_scan_shares_references_and_fingerprints_instead_of_copying_the
     // The symbols and metrics of `a.cs` exist once: two of the first scan, one of the second.
     assert_eq!(rows_of(&conn, "symbol_rows"), 3);
     assert_eq!(rows_of(&conn, "metric_rows"), 2);
+    assert_eq!(
+        rows_of(&conn, "pending_references"),
+        1,
+        "the names of the carried file are stored once"
+    );
     let seen = |snapshot: i64| -> i64 {
         conn.query_row(
             "SELECT COUNT(*) FROM snapshot_references WHERE snapshot_id = ?1",
@@ -245,9 +240,11 @@ fn pruning_keeps_the_shared_rows_another_snapshot_still_contains() {
     assert_eq!(rows_of(&conn, "snapshots"), 1);
     assert_eq!(rows_of(&conn, "symbol_references"), 2);
     assert_eq!(rows_of(&conn, "fingerprints"), 1);
+    assert_eq!(rows_of(&conn, "pending_references"), 1);
     store.persist(scan_with_every_table(30, 300)).unwrap();
     // A full scan shares nothing with the snapshot it replaces.
     assert_eq!(rows_of(&conn, "symbol_references"), 1);
+    assert_eq!(rows_of(&conn, "pending_references"), 1);
     assert_eq!(rows_of(&conn, "fingerprints"), 1);
 }
 
@@ -513,6 +510,10 @@ fn a_version_seven_database_has_no_naming_rules_for_its_old_snapshots() {
     drop(conn);
     let store = SqliteStore::open(&db.0, keep(3)).unwrap();
     assert_eq!(store.latest_naming_rules(PROJECT).unwrap(), None);
+    assert!(
+        !store.latest_state(PROJECT).unwrap().names_stored,
+        "a snapshot from before the names were stored cannot be continued incrementally"
+    );
     assert_eq!(
         store.latest_snapshot(PROJECT).unwrap().unwrap().id.get(),
         10
@@ -557,6 +558,41 @@ fn connections_opening_a_new_database_at_once_all_succeed() {
     for worker in workers {
         worker.join().unwrap().unwrap();
     }
+}
+
+#[test]
+fn a_version_eleven_database_keeps_its_layers_without_a_limit() {
+    use codeskimr_application::ports::ProjectRepository;
+    let db = TempDb::new();
+    drop(SqliteStore::open(&db.0, keep(3)).unwrap());
+    let conn = Connection::open(&db.0).unwrap();
+    conn.execute_batch(
+        "DROP TABLE level2_languages;
+         DROP TABLE level2_reports;
+         DROP TABLE scan_reports;
+         DROP TABLE alert;
+         DROP TABLE annotation_baseline;
+         DROP TABLE annotation;
+         DROP TABLE snapshot_warnings;
+         DROP TABLE layer_uses;
+         ALTER TABLE layers DROP COLUMN restricted;
+         DROP VIEW symbols;
+         ALTER TABLE symbol_rows DROP COLUMN content_hash;
+         ALTER TABLE symbol_rows DROP COLUMN origin;
+         PRAGMA user_version = 11;
+         INSERT INTO projects (id, name, source_kind, location, branch)
+           VALUES (1, 'old', 'folder', '/work/app', '');
+         INSERT INTO layers (project_id, position, name) VALUES (1, 0, 'Core');
+         INSERT INTO layer_namespaces (project_id, layer_position, position, namespace)
+           VALUES (1, 0, 0, 'App.Core');",
+    )
+    .unwrap();
+    drop(conn);
+
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    let layers = store.project(PROJECT).unwrap().layers;
+    assert_eq!(layers.len(), 1);
+    assert_eq!(layers[0].may_use, None);
 }
 
 #[test]
@@ -654,4 +690,110 @@ fn a_bulk_load_of_references_keeps_the_indexes_totals_and_usage_counts() {
             "references_by_target"
         ]
     );
+}
+
+#[test]
+fn symbols_that_level_two_created_are_pruned_with_their_file() {
+    use codeskimr_application::ports::Level2Replacement;
+    use codeskimr_domain::{FileId, SnapshotId, SymbolOrigin};
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(1)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    store.persist(scan_with_every_table(10, 100)).unwrap();
+    let created = codeskimr_domain::Symbol {
+        origin: SymbolOrigin::Index,
+        ..symbol(150, 100, SymbolKind::Struct, "App.Gen", Some(101))
+    };
+    store
+        .replace_level2(Level2Replacement {
+            snapshot: SnapshotId::new(10),
+            files: vec![FileId::new(100)],
+            symbols: vec![created],
+            references: vec![codeskimr_domain::Reference {
+                verified: true,
+                ..reference(151, 100, 102, 150)
+            }],
+        })
+        .unwrap();
+    let conn = Connection::open(&db.0).unwrap();
+    assert_eq!(rows_of(&conn, "symbol_rows"), 3);
+    assert_eq!(rows_of(&conn, "symbol_references"), 1);
+    store.persist(scan_with_every_table(20, 200)).unwrap();
+    // The first snapshot is pruned: its file, its symbols (also the created one) and the
+    // references to them leave with it.
+    assert_eq!(rows_of(&conn, "symbol_rows"), 2);
+    let origins: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM symbol_rows WHERE origin = 'index'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(origins, 0);
+    assert_eq!(rows_of(&conn, "symbol_references"), 1);
+}
+
+/// The names of all tables the migrations created, without the bookkeeping of the migrations.
+#[cfg(test)]
+fn data_tables(conn: &Connection) -> Vec<String> {
+    let mut statement = conn
+        .prepare(
+            "SELECT name FROM sqlite_master WHERE type = 'table' \
+             AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '%migration%'",
+        )
+        .unwrap();
+    statement
+        .query_map([], |row| row.get::<_, String>(0))
+        .unwrap()
+        .map(Result::unwrap)
+        .collect()
+}
+
+#[test]
+fn removing_a_project_leaves_no_rows_in_any_table_and_keeps_the_others() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    store.save_project(&project(2, "/work/other", &[])).unwrap();
+    persist_two_scans(&store);
+    let mut other = scan_with_every_table(30, 300);
+    other.snapshot.project = codeskimr_domain::ProjectId::new(2);
+    store.persist(other).unwrap();
+    Connection::open(&db.0)
+        .unwrap()
+        .execute(
+            "INSERT INTO level2_consent VALUES (1, 1, 1, 'folder', '/work/app', '')",
+            [],
+        )
+        .unwrap();
+    store.remove_project(PROJECT).unwrap();
+    let conn = Connection::open(&db.0).unwrap();
+    assert_eq!(rows_of(&conn, "projects"), 1);
+    assert_eq!(rows_of(&conn, "snapshots"), 1);
+    assert_eq!(rows_of(&conn, "level2_consent"), 0);
+    // Only the rows of project 2 are left.
+    assert_eq!(rows_of(&conn, "files"), 1);
+    store
+        .remove_project(codeskimr_domain::ProjectId::new(2))
+        .unwrap();
+    for table in data_tables(&conn) {
+        assert_eq!(rows_of(&conn, &table), 0, "table {table}");
+    }
+    assert_eq!(
+        code_of(&store.remove_project(PROJECT).unwrap_err()),
+        "PRJ-201"
+    );
+}
+
+#[test]
+fn removing_a_project_with_shared_rows_of_an_incremental_scan_leaves_nothing() {
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    full_then_incremental(&store);
+    store.remove_project(PROJECT).unwrap();
+    let conn = Connection::open(&db.0).unwrap();
+    for table in data_tables(&conn) {
+        assert_eq!(rows_of(&conn, &table), 0, "table {table}");
+    }
 }

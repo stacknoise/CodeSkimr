@@ -90,6 +90,7 @@ fn e2e_server() {
         )
         .unwrap(),
         mcp: None,
+        confirmation: None,
         events,
         token_lock: None,
     };

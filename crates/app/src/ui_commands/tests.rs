@@ -20,20 +20,24 @@ use codeskimr_domain::{
 use codeskimr_storage::SqliteStore;
 
 use super::command_api;
-use crate::locations::Locations;
+use crate::locations::{Locations, UserConfig};
 use crate::principal;
 use crate::scan::open_on;
 use crate::source_arg::classify;
 use crate::wiring::Secrets;
 use codeskimr_domain::ScanMode;
 
+/// Name of the user configuration file a fixture may hold.
+pub(crate) const USER_CONFIG_FILE: &str = "user-config.toml";
+
 const SOURCE: &str = "namespace Demo;\n\npublic class Calculator\n{\n    public int Add(int a, int b) { return a + b; }\n}\n";
 
-pub(super) struct Fixture {
-    pub(super) root: TempDir,
-    pub(super) locations: Locations,
-    pub(super) api: Arc<CommandApi>,
-    pub(super) secrets: Arc<Secrets>,
+pub(crate) struct Fixture {
+    pub(crate) root: TempDir,
+    pub(crate) locations: Locations,
+    pub(crate) api: Arc<CommandApi>,
+    pub(crate) secrets: Arc<Secrets>,
+    pub(crate) events: EventBus,
 }
 
 impl Fixture {
@@ -42,7 +46,12 @@ impl Fixture {
     }
 
     /// An installation whose UI folder holds `page` as the export page, or no UI folder at all.
-    pub(super) fn installed(page: Option<&str>) -> Self {
+    pub(crate) fn installed(page: Option<&str>) -> Self {
+        Self::installed_with(page, None)
+    }
+
+    /// Like [`Fixture::installed`], with a user configuration file that holds `config`.
+    pub(crate) fn installed_with(page: Option<&str>, config: Option<&str>) -> Self {
         let root = tempfile::tempdir().unwrap();
         fs::create_dir_all(root.path().join("app")).unwrap();
         fs::write(root.path().join("app/Calculator.cs"), SOURCE).unwrap();
@@ -54,7 +63,14 @@ impl Fixture {
         let locations = Locations {
             data_dir: root.path().join("data"),
             languages_dir: Path::new(env!("CARGO_MANIFEST_DIR")).join("../../languages"),
-            user_config: None,
+            user_config: config.map(|text| {
+                let path = root.path().join(USER_CONFIG_FILE);
+                fs::write(&path, text).unwrap();
+                UserConfig {
+                    path,
+                    required: true,
+                }
+            }),
             bases: Vec::new(),
             program_dir: None,
         };
@@ -63,12 +79,14 @@ impl Fixture {
             ..GlobalOptions::default()
         };
         let secrets = crate::memory_keystore::secrets();
-        let api = command_api(&global, &locations, EventBus::new(), Arc::clone(&secrets)).unwrap();
+        let events = EventBus::new();
+        let api = command_api(&global, &locations, events.clone(), Arc::clone(&secrets)).unwrap();
         Self {
             root,
             locations,
             api: Arc::new(api),
             secrets,
+            events,
         }
     }
 
@@ -79,6 +97,7 @@ impl Fixture {
         stored.layers = layers
             .iter()
             .map(|(name, namespace)| Layer {
+                may_use: None,
                 name: LayerName::new(*name).unwrap(),
                 namespaces: vec![QualifiedName::new(*namespace).unwrap()],
             })
@@ -100,19 +119,79 @@ impl Fixture {
         project.id.get()
     }
 
-    pub(super) fn folder(&self) -> String {
+    /// Registers and scans the demo project and returns its id.
+    pub(crate) fn scanned(&self) -> u64 {
+        let added = self
+            .call("projects.add", json!({ "source": self.folder() }))
+            .unwrap();
+        added["project"].as_u64().unwrap()
+    }
+
+    pub(crate) fn folder(&self) -> String {
         self.root.path().join("app").to_string_lossy().into_owned()
     }
 
-    pub(super) fn call(&self, id: &str, input: Value) -> Result<Value, &'static str> {
+    pub(crate) fn call(&self, id: &str, input: Value) -> Result<Value, &'static str> {
+        self.call_as(principal::resolve(), id, input)
+    }
+
+    /// The same call for another caller.
+    pub(crate) fn call_as(
+        &self,
+        caller: codeskimr_domain::Principal,
+        id: &str,
+        input: Value,
+    ) -> Result<Value, &'static str> {
         let runtime = tokio::runtime::Builder::new_current_thread()
             .build()
             .unwrap();
         runtime
-            .block_on(self.api.run(principal::resolve(), id, input))
+            .block_on(self.api.run(caller, id, input))
             .map_err(|error| error.code().entry().id)
     }
 }
+
+/// Every command of the registry, in the order the API lists them.
+const COMMAND_IDS: [&str; 38] = [
+    "alerts.dismiss",
+    "alerts.dismiss_all",
+    "alerts.list",
+    "annotations.add_note",
+    "annotations.add_task",
+    "annotations.create",
+    "annotations.delete",
+    "annotations.list",
+    "annotations.mark_critical",
+    "annotations.summary",
+    "annotations.update",
+    "credentials.delete",
+    "credentials.list",
+    "credentials.set",
+    "explorer.outline",
+    "explorer.source",
+    "explorer.symbol",
+    "export.html",
+    "graph.layers",
+    "layers.get",
+    "layers.set",
+    "level2.revoke",
+    "level2.status",
+    "preferences.get",
+    "preferences.set",
+    "projects.add",
+    "projects.cancel",
+    "projects.folder_dialog",
+    "projects.list",
+    "projects.pick_folder",
+    "projects.remove",
+    "projects.rescan",
+    "projects.tools",
+    "search.query",
+    "status.info",
+    "tools.indexers",
+    "usages.code",
+    "usages.query",
+];
 
 #[test]
 fn the_commands_are_offered() {
@@ -123,30 +202,21 @@ fn the_commands_are_offered() {
         .into_iter()
         .map(|info| info.id)
         .collect();
-    assert_eq!(
-        ids,
-        [
-            "credentials.delete",
-            "credentials.list",
-            "credentials.set",
-            "explorer.outline",
-            "explorer.source",
-            "explorer.symbol",
-            "export.html",
-            "graph.layers",
-            "preferences.get",
-            "preferences.set",
-            "projects.add",
-            "projects.cancel",
-            "projects.list",
-            "projects.rescan",
-            "projects.tools",
-            "search.query",
-            "status.info",
-            "usages.code",
-            "usages.query"
-        ]
-    );
+    assert_eq!(ids, COMMAND_IDS);
+}
+
+#[test]
+fn the_indexers_are_listed_without_any_project() {
+    let fixture = Fixture::new();
+    let view = fixture.call("tools.indexers", Value::Null).unwrap();
+    let tools: Vec<&str> = view["tools"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter_map(|tool| tool["tool"].as_str())
+        .collect();
+    assert!(tools.contains(&"scip-dotnet"), "{tools:?}");
+    assert!(view["checked_at"].is_i64());
 }
 
 #[test]
@@ -216,6 +286,62 @@ fn a_project_is_scanned_again_incrementally() {
     assert_eq!(again["project"], scanned["project"]);
     let list = fixture.call("projects.list", Value::Null).unwrap();
     assert_eq!(list[0]["scan"]["mode"], "incremental");
+}
+
+#[test]
+fn a_scan_of_the_browser_says_why_level_2_did_not_start_and_stores_the_report() {
+    let fixture = Fixture::new();
+    let scanned = fixture
+        .call("projects.add", json!({ "source": fixture.folder() }))
+        .unwrap();
+    // The switch is off in this configuration and nothing is confirmed.
+    assert_eq!(
+        scanned["level2"],
+        json!({ "state": "not_started", "reason": "not_confirmed" })
+    );
+    let list = fixture.call("projects.list", Value::Null).unwrap();
+    let report = &list[0]["report"];
+    assert_eq!(report["last_scan"]["origin"], "browser");
+    assert_eq!(report["last_scan"]["level"], "1");
+    let languages = report["level2"]["languages"].as_array().unwrap();
+    assert!(
+        languages
+            .iter()
+            .all(|line| line["outcome"] == "skipped" && line["reason"] == "not_confirmed")
+    );
+}
+
+#[test]
+fn a_caller_that_asks_for_level_1_only_gets_no_attempt() {
+    let fixture = Fixture::new();
+    let scanned = fixture
+        .call(
+            "projects.add",
+            json!({ "source": fixture.folder(), "level2": false }),
+        )
+        .unwrap();
+    assert_eq!(
+        scanned["level2"],
+        json!({ "state": "not_requested", "reason": null })
+    );
+}
+
+#[test]
+fn a_client_without_the_right_to_run_indexers_is_told_so_and_level_1_is_stored() {
+    let fixture = Fixture::new();
+    let id = added(&fixture);
+    let result = fixture
+        .call_as(
+            principal::remote_client(),
+            "projects.rescan",
+            json!({ "project": id }),
+        )
+        .unwrap();
+    assert_eq!(
+        result["level2"],
+        json!({ "state": "not_started", "reason": "not_permitted" })
+    );
+    assert_eq!(result["project"], id);
 }
 
 #[test]
@@ -599,6 +725,11 @@ fn the_source_of_a_type_and_of_a_member_comes_from_the_project_folder() {
     assert_eq!(shown["lines"][0], "public class Calculator");
     assert_eq!(shown["lines"].as_array().unwrap().len(), 4);
     assert_eq!(shown["truncated"], false);
+    let tokens = shown["tokens"].as_array().unwrap();
+    assert!(tokens.iter().any(|token| token["line"] == 0
+        && token["start"] == 0
+        && token["end"] == 6
+        && token["class"] == "keyword"));
     let member = fixture
         .call(
             "explorer.symbol",
@@ -819,7 +950,7 @@ fn the_layer_map_has_a_band_behind_every_layer_row() {
 }
 
 #[test]
-fn the_namespace_level_has_one_box_per_namespace_with_its_types_and_dependencies() {
+fn the_namespace_level_puts_one_namespace_in_the_middle_with_its_neighbours() {
     let graph = layered_graph(&json!({ "level": "namespaces" }));
     let boxes = graph["boxes"].as_array().unwrap();
     let found: Vec<_> = boxes
@@ -830,10 +961,41 @@ fn the_namespace_level_has_one_box_per_namespace_with_its_types_and_dependencies
     assert_eq!(typed("Demo.Core").map(|found| found.1), Some(1));
     assert_eq!(typed("Demo.Ui").map(|found| found.1), Some(1));
     assert!(found.iter().all(|(_, types)| *types > 0));
+    assert!(
+        boxes
+            .iter()
+            .all(|b| !b["label"].as_str().unwrap().is_empty())
+    );
+    assert!(graph["focus"]["name"].is_string());
+    assert!(graph["focus"]["symbol"].is_null());
     let links = graph["links"].as_array().unwrap();
     assert_eq!(links.len(), 1);
     assert!(links[0]["from"].as_str().unwrap().ends_with("Demo.Ui"));
     assert!(links[0]["to"].as_str().unwrap().ends_with("Demo.Core"));
+}
+
+#[test]
+fn the_namespace_in_the_middle_can_be_chosen_and_its_neighbours_sit_above_and_below() {
+    let ui = layered_graph(&json!({ "level": "namespaces", "namespace": "Demo.Ui" }));
+    let core = layered_graph(&json!({ "level": "namespaces", "namespace": "Demo.Core" }));
+    let row_of = |graph: &serde_json::Value, suffix: &str| {
+        graph["boxes"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|b| b["name"].as_str().unwrap().ends_with(suffix))
+            .map(|b| b["rank"].as_u64().unwrap())
+    };
+    assert!(ui["focus"]["name"].as_str().unwrap().ends_with("Demo.Ui"));
+    assert!(row_of(&ui, "Demo.Ui") < row_of(&ui, "Demo.Core"));
+    assert!(
+        core["focus"]["name"]
+            .as_str()
+            .unwrap()
+            .ends_with("Demo.Core")
+    );
+    assert!(row_of(&core, "Demo.Core") > row_of(&core, "Demo.Ui"));
+    assert_eq!(core["bands"].as_array().unwrap().len(), 0);
 }
 
 #[test]
@@ -855,21 +1017,7 @@ fn a_depth_merges_the_namespaces_and_leaves_no_dependency_to_itself() {
     for link in top["links"].as_array().unwrap() {
         assert_ne!(link["from"], link["to"]);
     }
-    let types: u64 = top["boxes"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|b| b["types"].as_u64().unwrap())
-        .sum();
-    assert_eq!(
-        types,
-        all["boxes"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .map(|b| b["types"].as_u64().unwrap())
-            .sum::<u64>()
-    );
+    assert_ne!(names(&top), Vec::<String>::new());
 }
 
 /// The id of the type `name` in the explorer outline of the project.
@@ -1053,4 +1201,30 @@ fn only_a_manager_may_change_the_preferences() {
         fixture.call("preferences.get", json!(null)).unwrap(),
         json!({"theme": null, "language": null})
     );
+}
+
+#[test]
+fn a_rescan_in_the_browser_shows_in_the_usages_of_the_running_server_at_once() {
+    let fixture = Fixture::new();
+    let input = add_usages_input(&fixture, CALLER, "incoming", 1);
+    let places = |answer: &Value| answer["summary"]["places"].as_u64().unwrap();
+    let before = fixture.call("usages.query", input.clone()).unwrap();
+    // An unchanged file: a new snapshot that carries everything.
+    fixture
+        .call("projects.rescan", json!({ "project": input["project"] }))
+        .unwrap();
+    let same = fixture.call("usages.query", input.clone()).unwrap();
+    assert_eq!(places(&same), places(&before));
+    // A changed file: the new snapshot, not the one the server asked about before.
+    let twice = CALLER.replace(
+        "        return calculator.Add(1, 2);\n",
+        "        var one = calculator.Add(1, 2);\n        return calculator.Add(one, 3);\n",
+    );
+    fs::write(fixture.root.path().join("app/Checkout.cs"), twice).unwrap();
+    fixture
+        .call("projects.rescan", json!({ "project": input["project"] }))
+        .unwrap();
+    let after = fixture.call("usages.query", input).unwrap();
+    assert!(places(&after) > places(&before));
+    assert!(after["snapshot"].as_u64() > before["snapshot"].as_u64());
 }

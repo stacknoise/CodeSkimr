@@ -2,7 +2,7 @@
 
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{CodeOutline, MemberRow, OutlineNode};
-use codeskimr_domain::{MetricKind, QualifiedName, SnapshotId, SymbolId, SymbolName};
+use codeskimr_domain::{LanguageId, MetricKind, QualifiedName, SnapshotId, SymbolId, SymbolName};
 use rusqlite::{Connection, Row, params};
 
 use crate::codec::{Cols, column_int, id_from, label_from, small_from};
@@ -19,6 +19,7 @@ struct NodeRow {
     qualified: String,
     parent: Option<i64>,
     members: i64,
+    language: String,
 }
 
 impl NodeRow {
@@ -31,6 +32,7 @@ impl NodeRow {
             qualified: cols.take()?,
             parent: cols.take()?,
             members: cols.take()?,
+            language: cols.take()?,
         })
     }
 
@@ -45,6 +47,7 @@ impl NodeRow {
                 .map(|parent| id_from(parent).map(SymbolId::new))
                 .transpose()?,
             members: small_from(self.members)?,
+            language: LanguageId::new(self.language)?,
         })
     }
 }
@@ -85,11 +88,13 @@ struct MemberColumns {
     signature: Option<String>,
     first: i64,
     last: i64,
+    qualified_name: String,
     complexity: Option<f64>,
     usages: i64,
 }
 
 impl MemberColumns {
+    // codeskimr: allow CHK-102 maps a row of the member query into its columns
     fn from_row(row: &Row<'_>) -> rusqlite::Result<Self> {
         let cols = Cols::new(row);
         Ok(Self {
@@ -100,6 +105,7 @@ impl MemberColumns {
             signature: cols.take()?,
             first: cols.take()?,
             last: cols.take()?,
+            qualified_name: cols.take()?,
             complexity: cols.take()?,
             usages: cols.take()?,
         })
@@ -109,6 +115,7 @@ impl MemberColumns {
         Ok(MemberRow {
             id: SymbolId::new(id_from(self.id)?),
             name: SymbolName::new(self.name)?,
+            qualified_name: QualifiedName::new(self.qualified_name)?,
             kind: label_from(&self.kind)?,
             visibility: self.visibility.as_deref().map(label_from).transpose()?,
             signature: self.signature,

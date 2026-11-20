@@ -1,6 +1,8 @@
 //! One scan state of a project.
 
-use crate::consts::{SCAN_FULL, SCAN_INCREMENTAL};
+use crate::consts::{
+    ORIGIN_BROWSER, ORIGIN_MCP, ORIGIN_TERMINAL, ORIGIN_WATCH, SCAN_FULL, SCAN_INCREMENTAL,
+};
 use crate::project::ProjectId;
 use crate::vocabulary::{id_type, labeled_enum, text_type};
 
@@ -24,6 +26,21 @@ labeled_enum!(
         Full => SCAN_FULL,
         /// Only files with a changed hash were processed.
         Incremental => SCAN_INCREMENTAL,
+    }
+);
+
+labeled_enum!(
+    /// Which channel started a scan. The server decides it from the channel that received the
+    /// request, never from a field of the request (ADR 0072, decision 2).
+    ScanOrigin {
+        /// `codeskimr scan` at the terminal of the owner.
+        Terminal => ORIGIN_TERMINAL,
+        /// A command of the HTTP layer of `codeskimr serve`, the page in the browser.
+        Browser => ORIGIN_BROWSER,
+        /// A later scan of `codeskimr scan --watch`.
+        Watch => ORIGIN_WATCH,
+        /// A rescan through MCP.
+        Mcp => ORIGIN_MCP,
     }
 );
 

@@ -29,6 +29,8 @@ fn server() -> Server {
                     allowed_schemes: Vec::new(),
                 },
                 default_theme: String::new(),
+                level2_poll_seconds: 2,
+                level2_poll_max_seconds: 300,
             },
         },
     )

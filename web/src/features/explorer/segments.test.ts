@@ -21,8 +21,8 @@ describe("segments", () => {
 
   it("is one piece per line without spans", () => {
     expect(segments(LINES, [])).toEqual([
-      { text: "return calculator.Add(1, 2);\n", symbol: null },
-      { text: "// ünï Add", symbol: null },
+      { text: "return calculator.Add(1, 2);\n", symbol: null, tokenClass: null },
+      { text: "// ünï Add", symbol: null, tokenClass: null },
     ]);
   });
 
@@ -34,5 +34,40 @@ describe("segments", () => {
     ]);
     expect(pieces.filter((piece) => piece.symbol !== null)).toHaveLength(1);
     expect(pieces.map((piece) => piece.text).join("")).toBe(LINES.join("\n"));
+  });
+
+  it("cuts at every colour and keeps a name inside a coloured run", () => {
+    const pieces = segments(
+      LINES,
+      [{ line: 1, start: 7, end: 10, symbol: 6 }],
+      [
+        { line: 0, start: 0, end: 6, class: "keyword" },
+        { line: 1, start: 0, end: 10, class: "comment" },
+      ],
+    );
+    expect(pieces.map((piece) => piece.text).join("")).toBe(LINES.join("\n"));
+    expect(pieces.filter((piece) => piece.tokenClass === "keyword").map((p) => p.text)).toEqual([
+      "return",
+    ]);
+    const name = pieces.find((piece) => piece.symbol === 6);
+    expect(name).toEqual({ text: "Add", symbol: 6, tokenClass: "comment" });
+    expect(pieces.filter((piece) => piece.tokenClass === "comment").map((p) => p.text)).toEqual([
+      "// ünï ",
+      "Add",
+    ]);
+  });
+
+  it("drops a coloured run that overlaps the one before it or does not fit", () => {
+    const pieces = segments(
+      LINES,
+      [],
+      [
+        { line: 0, start: 0, end: 6, class: "keyword" },
+        { line: 0, start: 3, end: 9, class: "string" },
+        { line: 5, start: 0, end: 3, class: "number" },
+      ],
+    );
+    expect(pieces.map((piece) => piece.text).join("")).toBe(LINES.join("\n"));
+    expect(pieces.filter((piece) => piece.tokenClass !== null)).toHaveLength(1);
   });
 });

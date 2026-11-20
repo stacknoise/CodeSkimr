@@ -67,6 +67,10 @@ fn outcome(tool: &ToolSpec, status: &IndexerStatus, limits: &[ToolLimit]) -> Out
 fn outcome_of_problem(tool: &ToolSpec, problem: &ToolProblem) -> Outcome {
     let (state, found) = match &problem.issue {
         ToolIssue::Missing => (ToolState::Missing, None),
+        ToolIssue::NotRunnable { output } => (
+            ToolState::NotRunnable,
+            Some(output.clone()).filter(|text| !text.is_empty()),
+        ),
         ToolIssue::TooOld { found, .. } => match ToolVersion::find_in(found) {
             Some(version) => (ToolState::TooOld, Some(version.to_string())),
             None => (ToolState::VersionUnknown, None),

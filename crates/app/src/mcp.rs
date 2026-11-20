@@ -8,14 +8,14 @@ use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::ports::{
-    CodeIndex, IndexRunner, ProjectCatalog, ProjectRepository, ProjectScanner, SimilarityIndex,
-    UsageIndex,
+    AnnotationStore, CodeIndex, IndexRunner, ProjectCatalog, ProjectRepository, ProjectScanner,
+    ScanReportStore, SimilarityIndex, UsageIndex,
 };
 use codeskimr_cli::{GlobalOptions, McpArgs};
 use codeskimr_codes::ErrorCode;
 use codeskimr_i18n::Messages;
 use codeskimr_mcp::{HttpService, McpServer, Ports, Tools, serve_stdio};
-use codeskimr_source::FolderKeys;
+use codeskimr_source::{FolderKeys, FolderText};
 use codeskimr_storage::SqliteStore;
 
 use crate::clock::SystemClock;
@@ -166,6 +166,7 @@ fn convention_checker(analysis: &Analysis, config: &Config) -> Arc<ConventionChe
     Arc::new(ConventionChecker::new(
         Arc::clone(&analysis.discovery),
         Arc::clone(&analysis.analyzer),
+        Arc::new(FolderText),
         config.conventions.clone(),
     ))
 }
@@ -196,6 +197,8 @@ fn build_ports(
     let similarity: Arc<dyn SimilarityIndex> = store.clone();
     let catalog: Arc<dyn ProjectCatalog> = store.clone();
     let tool_check = tool_checker(&store, (locations, runner))?;
+    let annotations: Arc<dyn AnnotationStore> = store.clone();
+    let reports: Arc<dyn ScanReportStore> = store.clone();
     let index: Arc<dyn CodeIndex> = store;
     Ok(Ports {
         projects,
@@ -211,5 +214,7 @@ fn build_ports(
         messages,
         keys: Arc::new(FolderKeys),
         key_sources: config.keys.clone(),
+        annotations,
+        reports,
     })
 }

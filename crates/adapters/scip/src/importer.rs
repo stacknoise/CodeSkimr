@@ -10,8 +10,9 @@ use codeskimr_domain::{FolderPath, Reference, RelativePath};
 
 use crate::columns::convert_columns;
 use crate::consts::FIRST_LINE;
+use crate::create::Creation;
 use crate::decode::read_index;
-use crate::mapping::{SnapshotView, import_references};
+use crate::mapping::{SnapshotView, import_with_creation};
 
 /// Imports SCIP indexes. `text` gives the lines of the project files, which the conversion of
 /// UTF-16 and UTF-32 columns needs.
@@ -59,8 +60,14 @@ impl ReferenceImporter for ScipImporter {
             symbols: request.symbols,
             references: request.references,
         };
-        let outcome =
-            import_references(&index, &view, request.min_mapped).map_err(CodedError::caused_by)?;
+        let creation = Creation {
+            kinds: request.symbol_kinds,
+            separator: request.separator,
+            max_symbols: request.max_created_symbols,
+            library_root: request.library_root,
+        };
+        let outcome = import_with_creation(&index, &view, request.min_mapped, &creation)
+            .map_err(CodedError::caused_by)?;
         let references: Vec<Reference> = outcome
             .references
             .into_iter()
@@ -68,9 +75,11 @@ impl ReferenceImporter for ScipImporter {
             .collect();
         Ok(Imported {
             files: outcome.covered,
+            symbols: outcome.symbols,
             references,
             mapped: outcome.stats.mapped,
             dropped: outcome.stats.dropped(),
+            outside_scan: outcome.stats.outside_scan,
         })
     }
 }

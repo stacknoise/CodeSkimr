@@ -3,10 +3,12 @@
 //! compile, because each method exists only in the state where it is allowed.
 
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{ProjectId, ScanMode, Snapshot};
+use codeskimr_domain::{AlertTrigger, FolderPath, ProjectId, ScanMode, ScanOrigin, Snapshot};
 
 use crate::cancel::CancelToken;
 use crate::level2::LanguageReport;
+use crate::ports::{PathsReport, ScanWarning};
+use crate::selection::Selection;
 
 mod sealed {
     /// Keeps the set of job states closed.
@@ -27,6 +29,9 @@ pub struct Running;
 pub struct Finished {
     snapshot: Snapshot,
     level2: Vec<LanguageReport>,
+    warnings: Vec<ScanWarning>,
+    paths: PathsReport,
+    root: FolderPath,
 }
 /// Ended because the user cancelled; no snapshot exists.
 #[derive(Debug)]
@@ -54,6 +59,9 @@ pub struct Job<S: JobState> {
     mode: ScanMode,
     cancel: CancelToken,
     level2: bool,
+    paths: Selection,
+    trigger: AlertTrigger,
+    origin: ScanOrigin,
     state: S,
 }
 
@@ -77,12 +85,34 @@ impl<S: JobState> Job<S> {
         self.level2
     }
 
+    /// The paths an incremental scan is restricted to; none means the whole project.
+    #[must_use]
+    pub const fn paths(&self) -> &Selection {
+        &self.paths
+    }
+
+    /// The channel that started the scan, as the code that built the job knows it (ADR 0072).
+    #[must_use]
+    pub const fn origin(&self) -> ScanOrigin {
+        self.origin
+    }
+
+    /// What started the scan; the alerts it raises name it (ADR 0068). A scan of a Git project is
+    /// a fetch whatever started it.
+    #[must_use]
+    pub const fn trigger(&self) -> AlertTrigger {
+        self.trigger
+    }
+
     fn into_state<T: JobState>(self, state: T) -> Job<T> {
         Job {
             project: self.project,
             mode: self.mode,
             cancel: self.cancel,
             level2: self.level2,
+            paths: self.paths,
+            trigger: self.trigger,
+            origin: self.origin,
             state,
         }
     }
@@ -97,6 +127,9 @@ impl Job<Queued> {
             mode,
             cancel: CancelToken::new(),
             level2: false,
+            paths: Selection::default(),
+            trigger: AlertTrigger::Scan,
+            origin: ScanOrigin::Terminal,
             state: Queued,
         }
     }
@@ -116,6 +149,31 @@ impl Job<Queued> {
     #[must_use]
     pub const fn without_level2(mut self) -> Self {
         self.level2 = false;
+        self
+    }
+
+    /// The same job restricted to the files and folders `paths` name: an incremental scan then
+    /// looks only there for changes, and every other file of the previous snapshot stays as it
+    /// is, deleted or not. A full scan ignores the limit. No path means the whole project.
+    #[must_use]
+    pub fn with_paths(mut self, paths: &[String]) -> Self {
+        self.paths = Selection::new(paths);
+        self
+    }
+
+    /// The same job started by the file watcher, so that its alerts say so.
+    #[must_use]
+    pub const fn from_watcher(mut self) -> Self {
+        self.trigger = AlertTrigger::Watcher;
+        self.origin = ScanOrigin::Watch;
+        self
+    }
+
+    /// The same job started by the channel `origin`. The composition root names the channel, never
+    /// the request (ADR 0072, decision 2).
+    #[must_use]
+    pub const fn started_from(mut self, origin: ScanOrigin) -> Self {
+        self.origin = origin;
         self
     }
 
@@ -145,10 +203,23 @@ impl Job<Running> {
         &self.cancel
     }
 
-    /// Ends the job with its snapshot and what the second pass reports per language.
+    /// Ends the job with its snapshot, what the second pass reports per language, the warnings
+    /// of the scan and what became of its paths.
     #[must_use]
-    pub fn finish(self, snapshot: Snapshot, level2: Vec<LanguageReport>) -> Job<Finished> {
-        self.into_state(Finished { snapshot, level2 })
+    pub fn finish(
+        self,
+        snapshot: Snapshot,
+        level2: Vec<LanguageReport>,
+        warnings: Vec<ScanWarning>,
+        (paths, root): (PathsReport, FolderPath),
+    ) -> Job<Finished> {
+        self.into_state(Finished {
+            snapshot,
+            level2,
+            warnings,
+            paths,
+            root,
+        })
     }
 
     /// Ends the job because the user cancelled.
@@ -176,6 +247,24 @@ impl Job<Finished> {
     pub fn level2(&self) -> &[LanguageReport] {
         &self.state.level2
     }
+
+    /// The folder that holds the files of the scan, where level 2 runs its indexers.
+    #[must_use]
+    pub const fn root(&self) -> &FolderPath {
+        &self.state.root
+    }
+
+    /// What became of the paths the job was asked to look at.
+    #[must_use]
+    pub const fn paths_report(&self) -> &PathsReport {
+        &self.state.paths
+    }
+
+    /// The warnings of the scan, one per code with a count; empty if there is none.
+    #[must_use]
+    pub fn warnings(&self) -> &[ScanWarning] {
+        &self.state.warnings
+    }
 }
 
 impl Job<Failed> {
@@ -183,5 +272,23 @@ impl Job<Failed> {
     #[must_use]
     pub const fn code(&self) -> ErrorCode {
         self.state.code
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn job() -> Job<Queued> {
+        Job::new(ProjectId::new(1), ScanMode::Full)
+    }
+
+    #[test]
+    fn a_job_names_the_channel_that_built_it() {
+        assert_eq!(job().origin(), ScanOrigin::Terminal);
+        assert_eq!(job().from_watcher().origin(), ScanOrigin::Watch);
+        for origin in ScanOrigin::ALL {
+            assert_eq!(job().started_from(*origin).origin(), *origin);
+        }
     }
 }

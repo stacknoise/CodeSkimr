@@ -3,6 +3,7 @@
 use std::sync::Arc;
 
 use codeskimr_application::events::EventBus;
+use codeskimr_application::level2::ConfirmationDesk;
 use codeskimr_domain::Principal;
 use tokio::sync::{Semaphore, watch};
 
@@ -33,4 +34,7 @@ pub struct AppState {
     pub ui: Arc<UiSettings>,
     /// The built UI, if the server has one.
     pub assets: Option<Arc<Assets>>,
+    /// The desk behind the route that opens the confirmation window; without one the route does
+    /// not exist (ADR 0071).
+    pub confirmation: Option<Arc<ConfirmationDesk>>,
 }

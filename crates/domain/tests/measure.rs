@@ -21,6 +21,7 @@ fn symbol(id: u64, kind: SymbolKind, parent: Option<u64>) -> Result<Symbol, Mode
         span: Span::new(at, at)?,
         signature: None,
         doc: None,
+        origin: codeskimr_domain::SymbolOrigin::Syntax,
     })
 }
 

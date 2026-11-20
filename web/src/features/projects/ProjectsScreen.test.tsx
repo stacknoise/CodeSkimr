@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { setLanguage } from "../../shared/i18n/i18n";
+import { activeProject, openProject } from "../../shared/project/active";
 import { describe, expect, it, vi } from "vitest";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { ProjectsScreen } from "./ProjectsScreen";
@@ -161,5 +162,81 @@ describe("ProjectsScreen", () => {
     expect(await screen.findByText(/^1 Projekt · 433 Typen · Enter öffnet/)).toBeInTheDocument();
     expect(screen.getByText("aktuell")).toBeInTheDocument();
     expect(screen.getByText("41.208")).toBeInTheDocument();
+  });
+
+  it("asks before it removes a project and leaves it alone when the user cancels", async () => {
+    serve({ "projects.list": () => answer([ROW]) });
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Remove project shop" }));
+    expect(screen.getByText(/Scans, results and notes of the project are deleted/)).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: "Remove project shop" })).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith("projects.remove"))).toBe(
+      false,
+    );
+  });
+
+  it("removes a project after the confirmation, reads the list again and closes it", async () => {
+    let removed = false;
+    serve({
+      "projects.list": () => answer(removed ? [{ ...ROW, id: 2, name: "other" }] : [ROW]),
+      "projects.remove": () => {
+        removed = true;
+        return answer({ project: 1 });
+      },
+    });
+    openProject(1);
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Remove project shop" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove for good" }));
+    await waitFor(() => expect(screen.queryByText("shop")).not.toBeInTheDocument());
+    expect(screen.getByText("other")).toBeInTheDocument();
+    const call = fetchMock.mock.calls.find(([path]) => String(path).endsWith("projects.remove"));
+    expect(JSON.parse(call?.[1].body)).toEqual({ project: 1 });
+    expect(activeProject()).toBeNull();
+  });
+
+  it("keeps the active project when another one is removed", async () => {
+    serve({
+      "projects.list": () => answer([ROW, { ...ROW, id: 2, name: "other" }]),
+      "projects.remove": () => answer({ project: 2 }),
+    });
+    openProject(1);
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Remove project other" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove for good" }));
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith("projects.remove"))).toBe(
+        true,
+      ),
+    );
+    expect(activeProject()).toBe(1);
+  });
+
+  it("shows why a removal failed and keeps the project", async () => {
+    serve({
+      "projects.list": () => answer([ROW]),
+      "projects.remove": () => answer({ code: "PRJ-302" }, 409),
+    });
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Remove project shop" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove for good" }));
+    expect(await screen.findByText("A scan for this project is already running.")).toBeVisible();
+    expect(screen.getByText("shop")).toBeInTheDocument();
+  });
+
+  it("offers no removal while a scan of the project runs", async () => {
+    serve({ "projects.list": () => answer([{ ...ROW, running: true }]) });
+    render(() => <ProjectsScreen />);
+    await screen.findByText("scan running");
+    expect(screen.queryByRole("button", { name: "Remove project shop" })).not.toBeInTheDocument();
+  });
+
+  it("speaks German when the removal is asked for", async () => {
+    setLanguage("de");
+    serve({ "projects.list": () => answer([ROW]) });
+    render(() => <ProjectsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Projekt shop entfernen" }));
+    expect(screen.getByRole("button", { name: "Endgültig entfernen" })).toBeInTheDocument();
   });
 });

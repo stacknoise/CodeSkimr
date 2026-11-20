@@ -29,6 +29,16 @@ pub const CHECK_FIRST_ID: u64 = 1;
 pub const STORED_DUPLICATE_HITS: u32 = 20;
 /// Snapshot id used for the throw-away analysis of a check; nothing is stored.
 pub const CHECK_SNAPSHOT_ID: u64 = 0;
+/// The words in a comment directly above a pure mapping function that exempt it from `CHK-102`
+/// (ADR 0070). A reason must follow.
+pub const CHECK_ALLOW_MARKER: &str = "codeskimr: allow CHK-102";
+/// How many lines above its declaration a function is searched for the marker, attributes and
+/// doc comments included.
+pub const CHECK_MARKER_LOOKBACK: u32 = 12;
+/// The marker only counts with a reason of at least this many letters and digits after it.
+pub const CHECK_MARKER_MIN_REASON: usize = 8;
+/// Largest file that is read for the marker, in bytes.
+pub const CHECK_MARKER_MAX_FILE_BYTES: u64 = 4_194_304;
 
 /// At least one analysis worker, whatever the machine reports.
 pub const MIN_WORKERS: usize = 1;
@@ -70,3 +80,54 @@ pub const DATE_MIN_DIGITS: usize = 8;
 
 /// The patch numbers of one feature band of the .NET SDK (8.0.100 to 8.0.199).
 pub const FEATURE_BAND_SIZE: u32 = 100;
+
+/// The event name of the log line for a warning of a scan.
+pub const LOG_SCAN_WARNING: &str = "scan_warning";
+
+/// Log event: references that level 2 had verified were discarded because their target is gone.
+pub const LOG_VERIFIED_DISCARDED: &str = "verified_references_discarded";
+
+/// Log event: the critical symbols were compared with their baselines after a snapshot (ADR 0068).
+pub const LOG_ALERTS_CHECKED: &str = "alerts_checked";
+
+/// Log event: the alert step failed; the snapshot stays as it is.
+pub const LOG_ALERT_STEP_FAILED: &str = "alert_step_failed";
+/// Log event: the report of a scan could not be stored (`PRJ-502`).
+pub const LOG_REPORT_NOT_STORED: &str = "scan_report_not_stored";
+
+/// Wire word of `TokenClass::Comment`.
+pub const TOKEN_COMMENT: &str = "comment";
+/// Wire word of `TokenClass::String`.
+pub const TOKEN_STRING: &str = "string";
+/// Wire word of `TokenClass::Number`.
+pub const TOKEN_NUMBER: &str = "number";
+/// Wire word of `TokenClass::Keyword`.
+pub const TOKEN_KEYWORD: &str = "keyword";
+/// Wire word of `TokenClass::Type`.
+pub const TOKEN_TYPE: &str = "type";
+/// Wire word of `TokenClass::Function`.
+pub const TOKEN_FUNCTION: &str = "function";
+/// Wire word of `TokenClass::Attribute`.
+pub const TOKEN_ATTRIBUTE: &str = "attribute";
+
+/// Characters besides the control characters that can hide or reorder text on a terminal: the
+/// direction marks and overrides, the zero-width characters, the line and paragraph separators
+/// and the byte order mark. A project whose name, location or branch holds one is never shown in a
+/// prompt, and no window is opened for it (ADR 0033, decision 10; ADR 0071, decision 11).
+pub const INVISIBLE_RANGES: [(char, char); 7] = [
+    ('\u{061C}', '\u{061C}'),
+    ('\u{200B}', '\u{200F}'),
+    ('\u{2028}', '\u{202E}'),
+    ('\u{2060}', '\u{2064}'),
+    ('\u{2066}', '\u{2069}'),
+    ('\u{FEFF}', '\u{FEFF}'),
+    ('\u{00AD}', '\u{00AD}'),
+];
+
+/// The program that the command to copy names. The copy is for a person at a terminal, so it
+/// uses the name the person types, not the path of the running file.
+pub const COPY_COMMAND_PROGRAM: &str = "codeskimr";
+/// The words after the program in the command to copy: the command `level2 confirm`.
+pub const COPY_COMMAND_WORDS: [&str; 2] = ["level2", "confirm"];
+/// Separates the words of the command to copy.
+pub const COPY_COMMAND_SEPARATOR: char = ' ';

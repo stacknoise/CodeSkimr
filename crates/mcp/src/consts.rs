@@ -29,6 +29,10 @@ pub const TOOL_FIND_CONSTANTS: &str = "find_constants";
 pub const TOOL_CHECK_CONVENTIONS: &str = "check_conventions";
 /// Name of the tool that lists the dependencies of a symbol, namespace or layer.
 pub const TOOL_GET_DEPENDENCIES: &str = "get_dependencies";
+/// Name of the tool that lists the notes, tasks and critical marks of a project or symbol.
+pub const TOOL_LIST_ANNOTATIONS: &str = "list_annotations";
+/// Name of the tool that lists the alerts of critical symbols.
+pub const TOOL_GET_ALERTS: &str = "get_alerts";
 /// Name of the tool that scans the project again.
 pub const TOOL_RESCAN: &str = "rescan";
 
@@ -80,6 +84,10 @@ pub const ARG_KIND: &str = "kind";
 pub const ARG_SYMBOL: &str = "symbol";
 /// Argument name reported when its value is invalid: the direction of a walk.
 pub const ARG_DIRECTION: &str = "direction";
+/// Argument name reported when its value is invalid: the status of a task.
+pub const ARG_STATUS: &str = "status";
+/// Argument name reported when its value is invalid: the state of an alert.
+pub const ARG_STATE: &str = "state";
 /// Argument name reported when its value is invalid: the depth of a walk.
 pub const ARG_DEPTH: &str = "depth";
 

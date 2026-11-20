@@ -12,24 +12,29 @@ mod credential;
 mod error;
 mod level2;
 mod locale;
+mod notes;
 mod parser;
 mod render;
+mod warning;
 
 pub use args::{
-    Action, CheckArgs, CredentialAction, ExportArgs, GlobalOptions, Invocation, Level2Action,
-    McpArgs, OpenArgs, Parsed, ProviderChoice, ScanArgs, ServeArgs,
+    Action, AddAnnotation, AlertsAction, AnnotationFields, AnnotationsAction, ById, CheckArgs,
+    Clears, CredentialAction, DismissAlerts, ExportArgs, GlobalOptions, Invocation, Level2Action,
+    ListAlerts, ListAnnotations, McpArgs, OpenArgs, PageArgs, Parsed, ProviderChoice, ScanArgs,
+    ServeArgs, StartArgs, SymbolArg, UpdateAnnotation,
 };
 pub use check::{check_json, check_text};
 pub use consent::{
-    confirm_prompt, confirm_target, confirm_warning, level2_confirmed, level2_declined,
-    level2_revoked,
+    confirm_prompt, confirm_target, confirm_warning, from_ui_notice, from_ui_wait,
+    level2_confirmed, level2_declined, level2_revoked,
 };
 pub use error::CliError;
 pub use level2::{Level2Line, Level2Reason};
 pub use locale::language_from;
 pub use parser::parse;
 pub use render::{
-    ScanSummary, credential_deleted, credential_stored, device_prompt, error_line, export_written,
-    open_ready, scan_finished, scan_json, scan_started, scan_tools, secret_prompt, serve_started,
-    watch_started, watch_updated,
+    ScanSummary, TrayLabels, credential_deleted, credential_stored, device_prompt, error_line,
+    export_written, open_ready, scan_finished, scan_json, scan_started, scan_tools, secret_prompt,
+    serve_started, start_keep_open, start_tray, tray_labels, watch_started, watch_updated,
 };
+pub use warning::WarningLine;

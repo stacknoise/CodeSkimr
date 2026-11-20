@@ -1,5 +1,6 @@
 .grid {
     display: grid;
+    flex: none;
     grid-template-columns: repeat(5, minmax(0, 1fr));
     border: 1px solid var(--line);
     border-radius: var(--radius-card);

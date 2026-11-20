@@ -82,3 +82,45 @@
    alternative: (identifier) @operand])
 (prefix_unary_expression (identifier) @operand)
 (postfix_unary_expression (identifier) @operand)
+
+; Cognitive complexity (ADR 0048). A structure adds one and one more for every nesting level it
+; stands in; `else` and a run of the same boolean operator add one at any depth. `else if` is an
+; `if_statement` in the `alternative` of another: only its `else` counts, and its body is no
+; deeper than the first `if`. A lambda nests what is in it but adds nothing; a local function is a
+; function of its own. A `goto` adds one at any depth. Not counted: `try`, `finally`, `case`
+; labels and the arms of a `switch` expression (the `switch` counts once), `?.`, recursion.
+(if_statement) @cognitive
+(if_statement) @nesting
+(if_statement alternative: (if_statement) @continuation)
+(if_statement "else" @cognitive_flat)
+(conditional_expression) @cognitive
+(conditional_expression) @nesting
+(for_statement) @cognitive
+(for_statement) @nesting
+(foreach_statement) @cognitive
+(foreach_statement) @nesting
+(while_statement) @cognitive
+(while_statement) @nesting
+(do_statement) @cognitive
+(do_statement) @nesting
+(switch_statement) @cognitive
+(switch_statement) @nesting
+(switch_expression) @cognitive
+(switch_expression) @nesting
+(catch_clause) @cognitive
+(catch_clause) @nesting
+(lambda_expression) @nesting
+(anonymous_method_expression) @nesting
+(goto_statement) @cognitive_flat
+(binary_expression operator: ["&&" "||" "??"] @cognitive_sequence)
+
+; Parameters of a method, an operator, a constructor and a local function. The grammar leaves the
+; parameter of `params` without a `parameter` node, so its keyword stands for it.
+(method_declaration parameters: (parameter_list (parameter) @parameter))
+(operator_declaration parameters: (parameter_list (parameter) @parameter))
+(constructor_declaration parameters: (parameter_list (parameter) @parameter))
+(local_function_statement parameters: (parameter_list (parameter) @parameter))
+(method_declaration parameters: (parameter_list "params" @parameter))
+(operator_declaration parameters: (parameter_list "params" @parameter))
+(constructor_declaration parameters: (parameter_list "params" @parameter))
+(local_function_statement parameters: (parameter_list "params" @parameter))

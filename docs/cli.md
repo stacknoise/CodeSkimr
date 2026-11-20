@@ -1,6 +1,6 @@
 # CLI and composition root (WP-25)
 
-Implements the first part of blueprint section 10.2: `codeskimr scan` and `codeskimr mcp`. `codeskimr serve` came with WP-41 (see `docs/server.md`) and `codeskimr check` with WP-35 (see `docs/conventions.md`). `codeskimr export` came with WP-75 (see `docs/export.md`). The other command, `codes`, follows with its package. The bare `codeskimr` starts the server and opens the browser (see `docs/server.md`).
+Implements the first part of blueprint section 10.2: `codeskimr scan` and `codeskimr mcp`. `codeskimr serve` came with WP-41 (see `docs/server.md`) and `codeskimr check` with WP-35 (see `docs/conventions.md`). `codeskimr export` came with WP-75 (see `docs/export.md`). The other command, `codes`, follows with its package. The bare `codeskimr` starts the server and opens the browser (see `docs/server.md`); on Windows and macOS it does so in the system tray, `--console` keeps it in the window (ADR 0067); its start message ends with the hint to keep the window open, because closing it ends the server.
 
 ## Structure
 
@@ -77,6 +77,20 @@ codeskimr export <project> --html <file>
 
 Writes the explorer, the dependency map, the usages and the search of a scanned project into one self-contained HTML file, without source text (`docs/export.md`). `<project>` is a project id or the folder or Git URL it was scanned from. The export page is the built UI: it is part of the program, and a UI folder (`ui.dir`) that exists is read instead. If the program was built without the UI and there is no folder with the built export page (`npm run build` in `web/`), the command stops with `EXP-201`; an unwritable file is `EXP-601`.
 
+## `codeskimr annotations` and `codeskimr alerts`
+
+```
+codeskimr annotations list <project> [--symbol NAME --symbol-kind KIND [--param TYPE]...] [--kind K] [--status S] [--limit N] [--offset N] [--json]
+codeskimr annotations add <project> --symbol NAME --symbol-kind KIND --kind critical|note|task [--title T] [--text T] [--status S] [--due SECONDS] [--assignee NAME] [--json]
+codeskimr annotations update <project> <id> [--symbol NAME --symbol-kind KIND] [--title T] [--text T] [--status S] [--due SECONDS] [--assignee NAME] [--clear-text] [--clear-due] [--clear-assignee] [--json]
+codeskimr annotations remove <project> <id> [--json]
+codeskimr alerts list <project> [--state open|dismissed] [--kind K]... [--limit N] [--offset N] [--json]
+codeskimr alerts dismiss <project> <alert> [--json]
+codeskimr alerts dismiss-all <project> [--kind K]... --yes [--json]
+```
+
+Notes, tasks and critical marks on symbols and the alerts of critical symbols that changed (ADR 0068). `<project>` is a project id or the folder or Git URL it was scanned from. The commands run the registered commands `annotations.*` and `alerts.*` as the local owner, so they answer the same as the REST routes (`docs/server.md`); `--json` prints that answer, otherwise one line per row in the language of the system. `--symbol` is a qualified name and `--symbol-kind` its kind label (`class`, `method`, ...); `--param` repeats for the parameter types of an overload. `dismiss-all` does nothing without `--yes` and ends with `API-101`. Lists are paged; the text says how to continue (`--offset`). Exit code 0, or 1 with the code on standard error. The parser is written by hand with the other commands; it is not generated from the registry.
+
 ## Global options
 
 | Option | Environment | Default |
@@ -90,7 +104,7 @@ The data folder holds `codeskimr.db` and the Git cache `git/`. A config file nam
 
 ## Configuration chain
 
-Blueprint section 14, in this order, later wins: the defaults of `config/default.toml`, the user config file, `.codeskimr.toml` in the scanned folder (folders only; a Git source is read after the fetch, which is not wired yet), then `--set key=value` flags (`--set scan.excluded_folders=["a","b"]`; the value is TOML). Unknown keys and invalid values fail with `CFG-103` and `CFG-101`. The architecture layers of a project are set with `[[layers]]` tables (`name`, `namespaces` = qualified-name prefixes, `.` or `::` as separator; the first layer that owns a name wins) in the project's `.codeskimr.toml`; they apply at the next scan (ADR 0031, this repository's own file is an example).
+Blueprint section 14, in this order, later wins: the defaults of `config/default.toml`, the user config file, `.codeskimr.toml` in the scanned folder (folders only; a Git source is read after the fetch, which is not wired yet), then `--set key=value` flags (`--set scan.excluded_folders=["a","b"]`; the value is TOML). Unknown keys and invalid values fail with `CFG-103` and `CFG-101`. The architecture layers of a project are set with `[[layers]]` tables (`name`, `namespaces` = qualified-name prefixes, `.` or `::` as separator; the first layer that owns a name wins; optional `may_use` = names of the layers it may depend on, missing means no limit, an empty list means none, an unknown name is `CFG-101`) in the project's `.codeskimr.toml`; they apply at the next scan (ADR 0031, this repository's own file is an example).
 
 The package added two keys: `scan.parse_timeout_ms` (default 5000, `PRS-501` on expiry) and `scan.max_source_mb` (default 2048, `SRC-501` above it).
 

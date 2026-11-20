@@ -4,7 +4,8 @@ use crate::consts::{
     KIND_CLASS, KIND_CONSTANT, KIND_CONSTRUCTOR, KIND_ENUM, KIND_ENUM_MEMBER, KIND_EVENT,
     KIND_FIELD, KIND_FUNCTION, KIND_INTERFACE, KIND_METHOD, KIND_MODULE, KIND_NAMESPACE,
     KIND_PARAMETER, KIND_PROPERTY, KIND_RECORD, KIND_STRUCT, KIND_TRAIT, KIND_TYPE_ALIAS,
-    KIND_UNION, VISIBILITY_INTERNAL, VISIBILITY_PRIVATE, VISIBILITY_PROTECTED, VISIBILITY_PUBLIC,
+    KIND_UNION, ORIGIN_INDEX, ORIGIN_SYNTAX, VISIBILITY_INTERNAL, VISIBILITY_PRIVATE,
+    VISIBILITY_PROTECTED, VISIBILITY_PUBLIC,
 };
 use crate::file::FileId;
 use crate::qualified_name::QualifiedName;
@@ -78,6 +79,16 @@ labeled_enum!(
     }
 );
 
+labeled_enum!(
+    /// Where a symbol comes from (ADR 0055).
+    SymbolOrigin {
+        /// Read from the syntax tree by level 1.
+        Syntax => ORIGIN_SYNTAX,
+        /// Created by level 2 from what an index defines and level 1 does not know.
+        Index => ORIGIN_INDEX,
+    }
+);
+
 impl SymbolKind {
     /// Whether the symbol has a body that is measured: function, method or constructor.
     #[must_use]
@@ -98,6 +109,24 @@ impl SymbolKind {
                 | Self::Enum
                 | Self::Union
         )
+    }
+
+    /// Whether the parse stage takes a content hash of the symbol (ADR 0068): a type and every
+    /// member. A namespace has no hash of its own, it is derived from its children; a module (the
+    /// whole file) and a parameter have none.
+    #[must_use]
+    pub const fn has_content_hash(self) -> bool {
+        self.is_type()
+            || self.is_callable()
+            || matches!(
+                self,
+                Self::Property
+                    | Self::Field
+                    | Self::Constant
+                    | Self::Event
+                    | Self::EnumMember
+                    | Self::TypeAlias
+            )
     }
 
     /// Whether callables roll up into the symbol: a type, module or namespace (ADR 0015).
@@ -132,4 +161,6 @@ pub struct Symbol {
     pub signature: Option<String>,
     /// Documentation comment, if any.
     pub doc: Option<String>,
+    /// Who created the symbol; level 2 never changes a symbol of origin `Syntax`.
+    pub origin: SymbolOrigin,
 }

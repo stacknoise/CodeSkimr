@@ -23,6 +23,7 @@ use tokio::time::{sleep, timeout};
 use tower_service::Service;
 
 use crate::consts::{ACCEPT_RETRY, HEADER_READ_TIMEOUT, MAX_CONNECTIONS, SHUTDOWN_GRACE};
+use crate::peer::PeerAddr;
 
 /// Which of two futures finished first.
 enum First<A, B> {
@@ -103,8 +104,14 @@ async fn serve_connection(
     router: Router,
     mut stop: watch::Receiver<()>,
 ) {
-    let service = service_fn(move |request: Request<Incoming>| {
+    let peer = stream.peer_addr().ok();
+    let service = service_fn(move |mut request: Request<Incoming>| {
         let mut router = router.clone();
+        // The route that opens a window needs to know who is connected, never what the request
+        // says about it.
+        if let Some(address) = peer {
+            request.extensions_mut().insert(PeerAddr(address));
+        }
         async move { router.call(request).await }
     });
     let mut builder = Builder::new();

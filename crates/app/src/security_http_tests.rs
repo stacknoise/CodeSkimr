@@ -15,6 +15,8 @@ use crate::security_tests::{CREDENTIAL_CANARY, assert_answers_clean, command, fo
 const EVENTS: &str = "/api/v1/events";
 const COMMANDS: &str = "/api/v1/commands";
 const FOREIGN: &str = "evil.example";
+/// A project id that no test registers.
+const UNKNOWN_PROJECT: u64 = 9_999;
 /// How long a stream may be silent before the listener looks at its stop flag.
 const QUIET: Duration = Duration::from_millis(300);
 /// The time events need to reach a listener after the last command answered.
@@ -215,6 +217,71 @@ fn host_and_origin(url: &str, token: &str, source: &str) {
     );
 }
 
+/// A call that changes something needs the token and an own host and origin: a missing, wrong or
+/// empty token is 401, a foreign host or origin 403.
+fn assert_guarded(url: &str, token: &str, command: &str, body: &Value) {
+    for wrong in [None, Some("csk_wrong"), Some("")] {
+        let headers: Vec<String> = wrong.map(bearer).into_iter().collect();
+        let answer = command_request(url, command, &headers, body);
+        assert_eq!(status(&answer), 401, "token {wrong:?}");
+        assert!(answer.contains("API-401"));
+    }
+    for (headers, what) in [
+        (
+            vec![bearer(token), format!("Host: {FOREIGN}")],
+            "foreign host",
+        ),
+        (
+            vec![bearer(token), format!("Origin: http://{FOREIGN}")],
+            "foreign origin",
+        ),
+        (
+            vec![bearer(token), "Origin: null".to_owned()],
+            "null origin",
+        ),
+    ] {
+        let answer = command_request(url, command, &headers, body);
+        assert_eq!(status(&answer), 403, "{what}");
+        assert!(answer.contains("API-402"), "{what}");
+    }
+}
+
+/// Removing a project is destructive: like `projects.add` it needs the token and an own host and
+/// origin. The controls use an unknown project, so nothing of the suite is lost.
+fn removal_needs_the_token_and_the_origin(url: &str, token: &str) {
+    let address = url.trim_start_matches(URL_SCHEME);
+    let body = json!({ "project": UNKNOWN_PROJECT });
+    assert_guarded(url, token, "projects.remove", &body);
+    // The controls: with the token and our own origin the call gets to the command, which does
+    // not know the project.
+    for headers in [
+        vec![bearer(token)],
+        vec![bearer(token), format!("Origin: http://{address}")],
+    ] {
+        let answer = command_request(url, "projects.remove", &headers, &body);
+        assert!(answer.contains("PRJ-201"), "{answer}");
+    }
+}
+
+/// The folder dialog opens a window on the machine of the app, so a foreign page must not be able
+/// to open it: the guard refuses it like a removal. No control opens the dialog; the question
+/// whether one exists is a read and is answered.
+fn the_folder_dialog_needs_the_token_and_the_origin(url: &str, token: &str) {
+    assert_guarded(url, token, "projects.pick_folder", &json!({}));
+    let answer = command_request(url, "projects.folder_dialog", &[bearer(token)], &json!({}));
+    assert!(answer.contains("available"), "{answer}");
+}
+
+/// An answer sends the security headers and allows no cross-site read.
+fn assert_safe_headers(answer: &str) {
+    let lower = answer.to_ascii_lowercase();
+    assert!(!lower.contains("access-control-allow-origin"));
+    assert!(lower.contains("content-security-policy:"));
+    assert!(lower.contains("frame-ancestors 'none'"));
+    assert!(lower.contains("x-content-type-options: nosniff"));
+    assert!(lower.contains("cache-control:"));
+}
+
 /// No answer allows a cross-site read, and a preflight from a foreign site is refused.
 fn cors_and_headers(url: &str, token: &str) -> Vec<String> {
     let preflight = raw(
@@ -245,12 +312,7 @@ fn cors_and_headers(url: &str, token: &str) -> Vec<String> {
     );
     let answers = vec![preflight, normal, foreign];
     for answer in &answers {
-        let lower = answer.to_ascii_lowercase();
-        assert!(!lower.contains("access-control-allow-origin"));
-        assert!(lower.contains("content-security-policy:"));
-        assert!(lower.contains("frame-ancestors 'none'"));
-        assert!(lower.contains("x-content-type-options: nosniff"));
-        assert!(lower.contains("cache-control:"));
+        assert_safe_headers(answer);
     }
     assert!(answers[0].contains("API-402"));
     assert_eq!(status(&answers[1]), 200);
@@ -312,6 +374,52 @@ fn event_stream(url: &str, token: &str, source: &str) -> (String, String) {
     (foreign, head + &listener.join().unwrap())
 }
 
+/// Changing an annotation or an alert needs the token; reading them does not (ADR 0068).
+fn annotations_need_the_token_to_change(url: &str, token: &str) {
+    let changes = [
+        ("annotations.add_note", json!({ "project": 1, "text": "x" })),
+        ("annotations.delete", json!({ "project": 1, "id": 1 })),
+        ("alerts.dismiss", json!({ "project": 1, "alert": 1 })),
+        (
+            "alerts.dismiss_all",
+            json!({ "project": 1, "confirm": true }),
+        ),
+    ];
+    let reads = [
+        ("annotations.list", json!({ "project": 1 })),
+        ("annotations.summary", json!({ "project": 1 })),
+        ("alerts.list", json!({ "project": 1 })),
+    ];
+    for wrong in [None, Some("csk_wrong")] {
+        let headers: Vec<String> = wrong.map(bearer).into_iter().collect();
+        for (id, body) in &changes {
+            let answer = command_request(url, id, &headers, body);
+            assert_eq!(status(&answer), 401, "{id}, token {wrong:?}");
+            assert!(answer.contains("API-401"), "{id}");
+        }
+        for (id, body) in &reads {
+            let answer = command_request(url, id, &headers, body);
+            assert_ne!(status(&answer), 401, "{id} needs no token");
+        }
+    }
+    // The control: with the token the call gets past the guard and fails for its own reason.
+    let right = [bearer(token)];
+    for (id, body) in &changes {
+        let answer = command_request(url, id, &right, body);
+        assert_ne!(status(&answer), 401, "{id} with the token");
+    }
+}
+
+#[test]
+fn changing_annotations_and_alerts_over_http_needs_the_token() {
+    let folders = folders();
+    let outcome = run(&folders, |url, token| {
+        annotations_need_the_token_to_change(url, token);
+        Vec::new()
+    });
+    assert_eq!(outcome.answers.len(), 0);
+}
+
 #[test]
 fn bad_tokens_hosts_and_origins_are_refused_and_the_event_stream_leaks_nothing() {
     let folders = folders();
@@ -319,6 +427,8 @@ fn bad_tokens_hosts_and_origins_are_refused_and_the_event_stream_leaks_nothing()
     let outcome = run(&folders, move |url, token| {
         token_per_call(url, token, &source);
         host_and_origin(url, token, &source);
+        removal_needs_the_token_and_the_origin(url, token);
+        the_folder_dialog_needs_the_token_and_the_origin(url, token);
         let mut answers = credentials_need_the_token(url, token);
         answers.extend(cors_and_headers(url, token));
         let (foreign, stream) = event_stream(url, token, &source);

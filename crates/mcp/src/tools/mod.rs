@@ -1,6 +1,8 @@
 //! The tools and the context they share. Everything here is synchronous; `server` wraps it for
 //! the protocol.
 
+mod alerts;
+mod annotations;
 mod architecture;
 mod constants;
 mod conventions;
@@ -14,12 +16,14 @@ mod usages;
 
 use std::sync::Arc;
 
+use codeskimr_application::annotations::PageRequest;
 use codeskimr_application::config::{KeySources, McpLimits};
 use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    Clock, CodeIndex, ProjectCatalog, ProjectKeys, ProjectRepository, ProjectScanner,
-    ProjectToolCheck, SimilarityIndex, SnippetFingerprinter, SymbolDetail, SymbolKey, UsageIndex,
+    AnnotationStore, Clock, CodeIndex, ProjectCatalog, ProjectKeys, ProjectRepository,
+    ProjectScanner, ProjectToolCheck, ScanReportStore, SimilarityIndex, SnippetFingerprinter,
+    SymbolDetail, SymbolKey, UsageIndex,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Project, ProjectId, QualifiedName, Snapshot, SymbolId};
@@ -89,6 +93,10 @@ pub struct Ports {
     pub keys: Arc<dyn ProjectKeys>,
     /// Which folders hold those keys.
     pub key_sources: KeySources,
+    /// The annotations and alerts, for `list_annotations` and `get_alerts` (ADR 0068).
+    pub annotations: Arc<dyn AnnotationStore>,
+    /// What the newest scan says about itself, for `get_project` (ADR 0072).
+    pub reports: Arc<dyn ScanReportStore>,
 }
 
 /// The tools of the server; all of them only read except `rescan`.
@@ -106,6 +114,8 @@ pub struct Tools {
     messages: Arc<Messages>,
     keys: Arc<dyn ProjectKeys>,
     key_sources: KeySources,
+    annotations: Arc<dyn AnnotationStore>,
+    reports: Arc<dyn ScanReportStore>,
     limits: McpLimits,
     default_project: Option<ProjectId>,
 }
@@ -140,6 +150,8 @@ impl Tools {
             messages: ports.messages,
             keys: ports.keys,
             key_sources: ports.key_sources,
+            annotations: ports.annotations,
+            reports: ports.reports,
             limits,
             default_project,
         }
@@ -151,6 +163,14 @@ impl Tools {
         AppliedLimit {
             value: wanted.clamp(MIN_LIMIT, self.limits.max_limit),
             clamped: wanted > self.limits.max_limit,
+        }
+    }
+
+    /// The page a caller asked for, its limit held to `1..=max_limit`.
+    pub(crate) fn page_request(&self, offset: Option<u32>, limit: Option<u32>) -> PageRequest {
+        PageRequest {
+            offset: offset.unwrap_or_default(),
+            limit: self.apply_limit(limit).value,
         }
     }
 
@@ -252,6 +272,14 @@ impl Tools {
         &self.key_sources
     }
 
+    pub(crate) fn reports(&self) -> &dyn ScanReportStore {
+        self.reports.as_ref()
+    }
+
+    pub(crate) fn annotation_store(&self) -> &dyn AnnotationStore {
+        self.annotations.as_ref()
+    }
+
     pub(crate) fn snippets(&self) -> &dyn SnippetFingerprinter {
         self.snippets.as_ref()
     }
@@ -275,6 +303,18 @@ impl Tools {
             .symbol(scope.snapshot.id, &key)?
             .ok_or_else(|| McpError::SymbolNotFound(text.to_owned()))
     }
+}
+
+/// The value a label names; `None` if no label was given.
+pub(crate) fn optional_label<T: std::str::FromStr>(
+    text: Option<&str>,
+    argument: &str,
+) -> Result<Option<T>, McpError> {
+    text.map(|text| {
+        text.parse()
+            .map_err(|_| McpError::ArgumentsInvalid(argument.to_owned()))
+    })
+    .transpose()
 }
 
 /// A symbol id if the text is all digits, otherwise a qualified name.

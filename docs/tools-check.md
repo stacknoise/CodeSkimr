@@ -10,9 +10,10 @@ States of a tool:
 
 - `ready`: it is found and its version fits. The runner reports the version it read and the check shows it.
 - `missing`: the program is not found in the `PATH` of the user.
+- `not_runnable`: the program is found, but its version command fails (a non-zero exit or no answer in time): it crashes on start (scip-python 0.6.x on Windows: `Invalid regular expression` in its own code) or it is the `rustup` shim of a component that was never installed. `found` carries the line of its output that names the error, redacted and shortened.
 - `too_old`: the version is lower than the strictest of the pack's `min_version` and the version the project requires.
 - `too_new`: the version is higher than a file of the project lets through (see below). It is judged only for a tool whose version the runner read; an unreadable version stays `version_unknown`.
-- `version_unknown`: it ran but printed no version that could be read (or did not answer in time).
+- `version_unknown`: its version command succeeded but printed no version that could be read.
 
 A language is `level2_ready` when all its tools are ready, so a `too_new` tool counts as a problem: the build of the project would fail with it.
 
@@ -44,3 +45,7 @@ A failing check never fails a scan: the error is logged and the project is shown
 - Requirement files are searched with a depth and a count limit (see above); a manifest deeper than 6 levels is not seen.
 - The version flags and `min_version` of the indexers are confirmed by the spike of ADR 0033.
 - **A Git project has no clone before its first scan.** The requirement files are read from the clone of the last scan (`GitCache`). At registration and in every check before the first full scan there is no clone, so no requirement is known and only the `min_version` of the pack counts. The check that every full scan runs after the scan finds the clone and reads the files, so the report is complete from the first scan on. The check does not fetch anything itself.
+
+## The listing of all indexers (settings)
+
+The settings screen has a section "Indexers for exact usages (level 2)" (mock 17, `docs/mocks/Indexers.dc.html`). It is fed by the command `tools.indexers` (REST `POST /api/commands/tools.indexers`, permission `scan`, no input), which needs no project: for every language pack with an `[indexer]` it asks `IndexRunner::check` with the pack's own `IndexerSpec` (the version of the project files is not read, so only the pack's `min_version` counts) and joins the findings of all packs into one list, one row per tool with the languages that need it. `IndexRunner::locate` adds the path where the tool was found on the `PATH` of the user (`path` in each row, `null` if it is not found). Nothing is stored; the screen asks when it opens and with "Check again". A tool of state `not_runnable` carries the line of its error in `found`. As everywhere in the tool check, nothing is installed and no project code runs.

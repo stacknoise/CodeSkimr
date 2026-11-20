@@ -1,8 +1,9 @@
 //! `get_project`.
 
 use codeskimr_application::access;
+use codeskimr_application::report_view::ReportView;
 use codeskimr_application::tools::{ToolView, ToolsView};
-use codeskimr_domain::Principal;
+use codeskimr_domain::{Principal, ProjectId};
 use serde::Serialize;
 use serde_json::Value;
 
@@ -25,7 +26,7 @@ struct LanguageInfo {
 pub(super) struct ToolInfo {
     tool: String,
     role: &'static str,
-    /// `ready`, `missing`, `too_old`, `too_new` or `version_unknown`.
+    /// `ready`, `missing`, `not_runnable`, `too_old`, `too_new` or `version_unknown`.
     state: &'static str,
     languages: Vec<String>,
     found: Option<String>,
@@ -46,6 +47,9 @@ struct Answer {
     /// Seconds since the Unix epoch of the check of the tools below.
     tools_checked_at: Option<i64>,
     tools: Vec<ToolInfo>,
+    /// What the newest scan says about itself: its level and channel, and what level 2 did per
+    /// language (counts, reasons and codes only). `None` before a scan stored it.
+    scan_report: Option<ReportView>,
 }
 
 impl Tools {
@@ -65,6 +69,15 @@ impl Tools {
     /// The tools of a project with their texts, from a check that runs now.
     pub(super) fn tool_infos(&self, view: &ToolsView) -> Vec<ToolInfo> {
         view.tools.iter().map(|tool| self.tool_info(tool)).collect()
+    }
+
+    /// The stored report of the newest scan, as a remote client may see it.
+    fn scan_report(&self, project: ProjectId) -> Result<Option<ReportView>, McpError> {
+        Ok(self
+            .reports()
+            .report(project)?
+            .as_ref()
+            .map(ReportView::for_remote))
     }
 
     /// Checks the tools the project needs for level 2 and returns them with its languages. A
@@ -107,6 +120,7 @@ impl Tools {
             languages,
             tools_checked_at: view.checked_at,
             tools: self.tool_infos(&view),
+            scan_report: self.scan_report(project.id)?,
         })
     }
 }

@@ -1,5 +1,5 @@
 //! The second pass of a scan: runs the indexer of each language, if the user allowed it, and
-//! replaces the level 1 references of the files it checked (ADR 0033).
+//! replaces the level 1 references of the files it checked where it answers (ADR 0033).
 //!
 //! The pass never fails the scan. Whatever goes wrong, the snapshot of level 1 stays as it was
 //! written and the report says why a language was skipped.
@@ -10,18 +10,21 @@ use std::sync::Arc;
 
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    FolderPath, LanguageId, Principal, Project, ReferenceId, RelativePath, Snapshot, SourceFile,
+    FolderPath, LanguageId, Level2Stage, Principal, Project, Reference, RelativePath, Snapshot,
+    SourceFile, Symbol,
 };
 
 use super::authorize_run;
+use super::renumber::renumbered;
 use super::report::{LanguageReport, Level2Outcome, Level2Result, Skipped};
 use crate::cancel::CancelToken;
 use crate::config::Level2;
 use crate::error::CodedError;
+use crate::events::{Event, EventBus, Level2Progressed};
 use crate::ids::IdSequence;
 use crate::ports::{
     ConsentStore, FileDiscovery, ImportRequest, Imported, IndexJob, IndexRunner, IndexerSpec,
-    IndexerStatus, PreviousIndex, ProjectRepository, ReferenceImporter, ReferenceReplacement,
+    IndexerStatus, Level2Replacement, PreviousIndex, ProjectRepository, ReferenceImporter,
     SnapshotStore,
 };
 
@@ -48,6 +51,8 @@ pub struct Level2Pass {
     /// How to run the indexer of each language that has one. Languages that name the same
     /// indexer (TypeScript, JavaScript and TSX; Java and Kotlin) share one run.
     pub indexers: Vec<(LanguageId, IndexerSpec)>,
+    /// Where the run tells which language it works on (ADR 0072).
+    pub events: EventBus,
 }
 
 /// The languages that one run of one indexer covers.
@@ -125,6 +130,37 @@ impl Level2Pass {
         })
     }
 
+    /// Whether `principal` may run the indexers of `project` now (`authorize_run`), without
+    /// running anything. The run asks again when it starts, so a consent that goes away in
+    /// between is honoured.
+    ///
+    /// # Errors
+    /// `NotPermitted` (`SEC-403`) or `NotConfirmed` (`SEC-301`).
+    pub fn authorize(
+        &self,
+        principal: &Principal,
+        project: &Project,
+        root: &FolderPath,
+    ) -> Result<(), Skipped> {
+        authorize_run(principal, &self.settings, &self.consent, project, root)
+            .map(|_| ())
+            .map_err(Skipped::from)
+    }
+
+    /// The languages that have an indexer.
+    pub fn languages(&self) -> impl Iterator<Item = &LanguageId> {
+        self.indexers.iter().map(|(language, _)| language)
+    }
+
+    fn announce(&self, snapshot: &Snapshot, language: &LanguageId, stage: Level2Stage) {
+        self.events
+            .publish(&Event::Level2Progressed(Level2Progressed {
+                project: snapshot.project,
+                language: language.clone(),
+                stage,
+            }));
+    }
+
     fn skip_all(&self, reason: &Skipped) -> Vec<LanguageReport> {
         self.indexers
             .iter()
@@ -186,9 +222,11 @@ impl Level2Pass {
             limits: self.settings.limits(),
             permit: &permit,
         };
+        self.announce(scan.snapshot, language, Level2Stage::Running);
         let artifact = self.runner.run(&job, scan.cancel).map_err(Skipped::from)?;
         let (current, stale) = self.unchanged(scan, group)?;
-        let imported = self.import(scan, artifact.path(), &current)?;
+        self.announce(scan.snapshot, language, Level2Stage::Importing);
+        let imported = self.import(scan, group.spec, artifact.path(), &current)?;
         if scan.cancel.is_cancelled() {
             return Err(Skipped::Cancelled);
         }
@@ -199,6 +237,7 @@ impl Level2Pass {
     fn import(
         &self,
         scan: &Scan<'_>,
+        spec: &IndexerSpec,
         index: &Path,
         files: &[SourceFile],
     ) -> Result<Imported, Skipped> {
@@ -212,6 +251,11 @@ impl Level2Pass {
                 max_index_bytes: self.settings.max_index_bytes,
                 max_file_bytes: self.max_file_bytes,
                 min_mapped: self.settings.min_mapped,
+                symbol_kinds: &spec.symbol_kinds,
+                separator: &spec.separator,
+                library_root: &spec.library_root,
+                max_created_symbols: usize::try_from(self.settings.max_created_symbols)
+                    .unwrap_or(usize::MAX),
             })
             .map_err(Skipped::from)
     }
@@ -251,22 +295,13 @@ impl Level2Pass {
         imported: &Imported,
         stale: u64,
     ) -> Result<(Level2Outcome, Snapshot), Skipped> {
-        let count = u64::try_from(imported.references.len()).unwrap_or(u64::MAX);
-        let first = self.ids.reserve(count);
-        let references = imported
-            .references
-            .iter()
-            .zip(first..)
-            .map(|(reference, id)| codeskimr_domain::Reference {
-                id: ReferenceId::new(id),
-                ..*reference
-            })
-            .collect();
+        let (symbols, references) = renumber(imported, &self.ids);
         let fresh = self
             .store
-            .replace_references(ReferenceReplacement {
+            .replace_level2(Level2Replacement {
                 snapshot: snapshot.id,
                 files: imported.files.clone(),
+                symbols,
                 references,
             })
             .map_err(Skipped::from)?;
@@ -275,9 +310,25 @@ impl Level2Pass {
             stale,
             mapped: imported.mapped,
             dropped: imported.dropped,
+            outside_scan: imported.outside_scan,
         };
         Ok((checked, fresh))
     }
+}
+
+/// The created symbols and the references of `imported` with ids reserved from the shared
+/// sequence. The importer numbers the symbols consecutively from the first free id of the
+/// snapshot; every id from there on, as a symbol, parent or target, moves by the same distance.
+fn renumber(imported: &Imported, ids: &IdSequence) -> (Vec<Symbol>, Vec<Reference>) {
+    let count = |len: usize| u64::try_from(len).unwrap_or(u64::MAX);
+    let first_reference = ids.reserve(count(imported.references.len()));
+    let first_symbol = ids.reserve(count(imported.symbols.len()));
+    renumbered(
+        &imported.symbols,
+        imported.references.iter(),
+        first_symbol,
+        first_reference,
+    )
 }
 
 impl From<CodedError> for Skipped {

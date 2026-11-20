@@ -1,6 +1,6 @@
 //! The six concrete stages, each built from the ports it needs, and the values passed between them.
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::num::NonZeroUsize;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
@@ -8,22 +8,28 @@ use std::thread;
 use std::time::Instant;
 
 use codeskimr_domain::{
-    CommitHash, FolderPath, LanguageId, Metric, Project, Reference, ScanMode, Snapshot, SnapshotId,
-    SnapshotStats, SourceFile, Symbol, SymbolCounts,
+    CommitHash, FileId, FolderPath, LanguageId, Metric, Project, Reference, ScanMode, Snapshot,
+    SnapshotId, SnapshotStats, SourceFile, Symbol, SymbolCounts, SymbolOrigin,
 };
 
 use codeskimr_codes::ErrorCode;
 
 use super::carry::Carried;
 use super::flow::{Interruption, Stage, StageContext};
-use crate::consts::{DONE_STEP, FILE_ID_BLOCK, FIRST_INDEX, INDEX_STEP, MIN_WORKERS, NONE_DONE};
+use crate::consts::{
+    DONE_STEP, FILE_ID_BLOCK, FIRST_INDEX, INDEX_STEP, LOG_SCAN_WARNING, LOG_VERIFIED_DISCARDED,
+    MIN_WORKERS, NONE_DONE,
+};
 use crate::error::CodedError;
 use crate::ids::IdSequence;
 use crate::ports::{
     AnalyzeRequest, Clock, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts,
-    MetricsCalculator, PendingReference, ProjectRepository, ReferenceResolver, SnapshotData,
-    SnapshotStore, SourceProvider, SymbolFingerprints,
+    MetricsCalculator, PathsReport, PendingReference, ProjectRepository, ReferenceResolver,
+    ScanWarning, SnapshotData, SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints,
+    SymbolHash,
 };
+use crate::resolve::ambiguous_occurrences;
+use crate::selection::Selection;
 use crate::stage::StageKind;
 
 /// What starts a scan.
@@ -33,6 +39,8 @@ pub struct ScanRequest {
     pub project: Project,
     /// Full or incremental.
     pub mode: ScanMode,
+    /// The paths an incremental scan looks at; empty means all.
+    pub paths: Selection,
 }
 
 /// A scan whose source is available locally; carried through all later stages.
@@ -42,6 +50,10 @@ pub struct ScanRun {
     pub project: Project,
     /// Full or incremental.
     pub mode: ScanMode,
+    /// The paths an incremental scan looks at; empty means all.
+    pub paths: Selection,
+    /// What became of the paths, set by the discover stage.
+    pub paths_report: PathsReport,
     /// The snapshot this scan will create.
     pub snapshot: SnapshotId,
     /// Local folder with the files.
@@ -81,6 +93,8 @@ pub struct Analyzed {
     pub counts: Vec<SymbolCounts>,
     /// The syntax fingerprints of the callables of the analysed files.
     pub fingerprints: Vec<SymbolFingerprints>,
+    /// The content hashes of the types and members of the analysed files.
+    pub hashes: Vec<SymbolHash>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
 }
@@ -94,12 +108,16 @@ pub struct Resolved {
     pub files: Vec<SourceFile>,
     /// Their symbols.
     pub symbols: Vec<Symbol>,
-    /// Resolved references, including those of unchanged files that were resolved again.
+    /// The references to write: those of the analysed files and the new ones of unchanged files.
     pub references: Vec<Reference>,
+    /// The names of the analysed files, to be stored.
+    pub pending: Vec<PendingReference>,
     /// The counts behind the metrics of the analysed files.
     pub counts: Vec<SymbolCounts>,
     /// The syntax fingerprints of the callables of the analysed files.
     pub fingerprints: Vec<SymbolFingerprints>,
+    /// The content hashes of the types and members of the analysed files.
+    pub hashes: Vec<SymbolHash>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
 }
@@ -113,12 +131,16 @@ pub struct Measured {
     pub files: Vec<SourceFile>,
     /// Their symbols.
     pub symbols: Vec<Symbol>,
-    /// Resolved references.
+    /// The references to write.
     pub references: Vec<Reference>,
+    /// The names of the analysed files, to be stored.
+    pub pending: Vec<PendingReference>,
     /// Measured values.
     pub metrics: Vec<Metric>,
     /// The syntax fingerprints of the callables of the analysed files.
     pub fingerprints: Vec<SymbolFingerprints>,
+    /// The content hashes of the types and members of the analysed files.
+    pub hashes: Vec<SymbolHash>,
     /// What an incremental scan keeps of the previous snapshot.
     pub carried: Carried,
 }
@@ -151,6 +173,8 @@ impl Stage for FetchStage {
         Ok(ScanRun {
             project: input.project,
             mode: input.mode,
+            paths: input.paths,
+            paths_report: PathsReport::default(),
             snapshot: self.ids.snapshot(),
             root: fetched.root,
             commit: fetched.commit,
@@ -195,14 +219,23 @@ impl Stage for DiscoverStage {
     }
 
     fn run(&self, run: ScanRun, ctx: &StageContext<'_>) -> Result<Discovered, Interruption> {
-        let run = self.with_naming(run)?;
-        let previous = self.projects.latest_files(run.project.id)?;
+        let mut run = self.with_naming(run)?;
+        let state = self.projects.latest_state(run.project.id)?;
+        if !state.names_stored {
+            // The newest snapshot does not hold the names as written, so the references of its
+            // files cannot be resolved again: a full scan writes them.
+            run.mode = ScanMode::Full;
+        }
         let mut files = self
             .discovery
-            .discover(&run.root, &previous, ctx.cancel_token())?;
-        let carried = if run.mode == ScanMode::Incremental {
-            let index = self.projects.latest_index(run.project.id)?;
-            Carried::from_previous(&mut files, previous, index)
+            .discover(&run.root, &state.files, ctx.cancel_token())?;
+        run.paths_report = report_paths(run.mode, &files, &state.files, &run.paths);
+        if run.mode == ScanMode::Incremental {
+            limit_to_paths(&mut files, &state.files, &run.paths);
+        }
+        let carried = if let (ScanMode::Incremental, Some(snapshot)) = (run.mode, state.snapshot) {
+            let bases = self.projects.stored_names(snapshot, StoredNames::Bases)?;
+            Carried::from_previous(&mut files, state, bases)
         } else {
             Carried::default()
         };
@@ -214,6 +247,44 @@ impl Stage for DiscoverStage {
             carried,
         })
     }
+}
+
+/// What becomes of `paths`: those that name no file now and in the previous snapshot, and whether
+/// a full scan makes the scan ignore them.
+fn report_paths(
+    mode: ScanMode,
+    files: &[DiscoveredFile],
+    previous: &[SourceFile],
+    paths: &Selection,
+) -> PathsReport {
+    let known = files
+        .iter()
+        .map(|file| &file.path)
+        .chain(previous.iter().map(|file| &file.path));
+    PathsReport {
+        unmatched: paths.unmatched_in(known),
+        ignored: !paths.is_empty() && mode == ScanMode::Full,
+    }
+}
+
+/// Limits an incremental scan to `paths`: what lies elsewhere is taken over from `previous`
+/// unchanged, a new file there is not looked at and a file that is gone there is not removed.
+fn limit_to_paths(files: &mut Vec<DiscoveredFile>, previous: &[SourceFile], paths: &Selection) {
+    if paths.is_empty() {
+        return;
+    }
+    files.retain(|file| paths.contains(&file.path));
+    files.extend(
+        previous
+            .iter()
+            .filter(|file| !paths.contains(&file.path))
+            .map(|file| DiscoveredFile {
+                path: file.path.clone(),
+                language: file.language.clone(),
+                content_hash: file.content_hash.clone(),
+                changed: false,
+            }),
+    );
 }
 
 /// Analyze: parse and extract, file by file, skipping unchanged files in incremental scans.
@@ -251,6 +322,7 @@ impl Stage for AnalyzeStage {
             pending: Vec::new(),
             counts: Vec::new(),
             fingerprints: Vec::new(),
+            hashes: Vec::new(),
             carried,
         };
         let mut times: BTreeMap<LanguageId, u64> = BTreeMap::new();
@@ -261,6 +333,7 @@ impl Stage for AnalyzeStage {
             out.pending.extend(facts.pending);
             out.counts.extend(facts.counts);
             out.fingerprints.extend(facts.fingerprints);
+            out.hashes.extend(facts.hashes);
         }
         if run.mode == ScanMode::Full {
             out.run.parse_micros = times.into_iter().collect();
@@ -391,8 +464,12 @@ impl AnalyzeStage {
 
 /// Resolve: map pending names to symbols after the global symbol table is complete.
 pub struct ResolveStage {
+    /// Source of the stored names of the previous snapshot.
+    pub projects: Arc<dyn ProjectRepository>,
     /// The resolver strategy.
     pub resolver: Arc<dyn ReferenceResolver>,
+    /// Tells which files are test files.
+    pub analyzer: Arc<dyn FileAnalyzer>,
     /// Id allocation for references.
     pub ids: Arc<IdSequence>,
 }
@@ -410,28 +487,50 @@ impl Stage for ResolveStage {
             run,
             files,
             symbols,
-            mut pending,
+            pending,
             counts,
             fingerprints,
-            carried,
+            hashes,
+            mut carried,
         } = input;
-        pending.extend(carried.rebuilt.iter().cloned());
-        pending.extend(carried.inheritance_seed());
-        let total = count(&pending);
+        let due = carried.due_names((&symbols, &pending), self.projects.as_ref())?;
+        let names: Vec<PendingReference> = pending.iter().chain(&due).cloned().collect();
+        let total = count(&names);
         ctx.progress(0, total);
-        let table: Vec<Symbol> = carried.symbols.iter().chain(&symbols).cloned().collect();
-        let mut references = self.resolver.resolve(&table, &pending, &self.ids)?;
-        carried.drop_duplicates_of_kept(&mut references);
+        let table = level_one_symbols(&carried.symbols, &symbols);
+        let test_files = self.test_files(files.iter().chain(&carried.files));
+        let resolved = self
+            .resolver
+            .resolve(&table, &names, &test_files, &self.ids)?;
+        let references = carried.reconcile(resolved);
+        if carried.discarded_verified > 0 {
+            tracing::info!(
+                event = LOG_VERIFIED_DISCARDED,
+                count = carried.discarded_verified
+            );
+        }
         ctx.progress(total, total);
         Ok(Resolved {
             run,
             files,
             symbols,
             references,
+            pending,
             counts,
             fingerprints,
+            hashes,
             carried,
         })
+    }
+}
+
+impl ResolveStage {
+    /// Ids of the files among `files` that are test files of their language.
+    fn test_files<'a>(&self, files: impl Iterator<Item = &'a SourceFile>) -> HashSet<FileId> {
+        files
+            .filter(|file| self.analyzer.is_test_file(&file.language, &file.path))
+            .map(|file| file.id)
+            .collect()
     }
 }
 
@@ -475,8 +574,10 @@ impl Stage for MeasureStage {
             files: input.files,
             symbols: input.symbols,
             references: input.references,
+            pending: input.pending,
             metrics,
             fingerprints: input.fingerprints,
+            hashes: input.hashes,
             carried: input.carried,
         })
     }
@@ -498,6 +599,32 @@ pub struct Persisted {
     pub snapshot: Snapshot,
     /// Local folder with the files, which level 2 runs its indexers in.
     pub root: FolderPath,
+    /// What the scan wants to tell besides its result: one entry per code, with a count.
+    pub warnings: Vec<ScanWarning>,
+    /// What became of the paths of the scan.
+    pub paths: PathsReport,
+}
+
+/// Writes one log line per warning of the scan.
+fn log_warnings(warnings: &[ScanWarning]) {
+    for warning in warnings {
+        tracing::warn!(
+            event = LOG_SCAN_WARNING,
+            code = warning.code.id(),
+            count = warning.count
+        );
+    }
+}
+
+/// The warnings of a scan over all references of the snapshot, changed and kept ones.
+fn warnings_of(references: &[Reference], carried: &[Reference]) -> Vec<ScanWarning> {
+    let ambiguous = ambiguous_occurrences(references.iter().chain(carried));
+    let found = [(ErrorCode::AmbiguousReference, ambiguous)];
+    found
+        .into_iter()
+        .filter(|(_, count)| *count > 0)
+        .map(|(code, count)| ScanWarning { code, count })
+        .collect()
 }
 
 impl Stage for PersistStage {
@@ -523,6 +650,7 @@ impl Stage for PersistStage {
                 references: count(&input.references) + count(&input.carried.references),
             },
         };
+        let warnings = warnings_of(&input.references, &input.carried.references);
         let data = SnapshotData {
             snapshot,
             files: input.files,
@@ -530,15 +658,22 @@ impl Stage for PersistStage {
             references: input.references,
             metrics: input.metrics,
             fingerprints: input.fingerprints,
+            hashes: input.hashes,
             removed: input.carried.removed,
+            pending: input.pending,
+            dropped_references: input.carried.dropped,
             naming_rules: input.run.naming_rules,
             parse_micros: input.run.parse_micros,
+            warnings: warnings.clone(),
         };
         let stored = self.store.persist(data)?;
+        log_warnings(&warnings);
         ctx.progress(1, 1);
         Ok(Persisted {
             snapshot: stored,
             root,
+            warnings,
+            paths: input.run.paths_report,
         })
     }
 }
@@ -552,4 +687,16 @@ pub fn analyze_workers(max_workers: u32) -> usize {
         Ok(limit) if limit > 0 => cores.min(limit),
         _ => cores,
     }
+}
+
+/// The symbols the resolver looks names up in. Symbols that level 2 created are not names level 1
+/// resolves to (ADR 0055, decision 5): the result of a scan must not depend on whether level 2 ran
+/// before.
+fn level_one_symbols(carried: &[Symbol], fresh: &[Symbol]) -> Vec<Symbol> {
+    carried
+        .iter()
+        .chain(fresh)
+        .filter(|symbol| symbol.origin == SymbolOrigin::Syntax)
+        .cloned()
+        .collect()
 }

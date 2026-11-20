@@ -9,9 +9,9 @@ Wählen Sie im Explorer ein Member (oder einen Typ) und drücken `U`, klicken �
 ## Werkzeugleiste
 
 - **Richtung:** beide, wer ruft auf (eingehend), was wird aufgerufen (ausgehend).
-- **Tiefe:** 1, 2, 3 oder alle. „Alle“ wird am konfigurierten Höchstwert gekappt (`mcp.max_depth`, Vorgabe 5).
+- **Tiefe:** 1, 2, 3 oder alle. Es beginnt bei 1: nur direkte Verwendungen, nicht die über ein anderes Symbol; wählen Sie mehr, um sie im Diagramm zu sehen (die Trefferliste zeigt immer nur direkte Verwendungen). „Alle“ wird am konfigurierten Höchstwert gekappt (`mcp.max_depth`, Vorgabe 5).
 - **Tests zeigen:** Verweise aus Testcode bleiben weg, solange Sie das nicht einschalten.
-- **Ebene:** Es gibt nur „Symbol“. „Namensräume“ und „Typen“ werden ausgeschaltet gezeigt; sie gehören zur [Abhängigkeitskarte](abhaengigkeitskarte.md).
+- **Ebene:** Dieser Bildschirm ist die Ebene „Symbol“. „Namensräume“ öffnet die [Abhängigkeitskarte](abhaengigkeitskarte.md) auf der Namespace-Ebene, „Typen“ öffnet sie mit dem im Explorer gewählten Typ in der Mitte (ohne gewählten Typ ist der Knopf ausgeschaltet).
 
 Jede Änderung liest die Verwendungen neu.
 
@@ -23,7 +23,7 @@ Links eine Spalte je Schritt der Aufrufer, in der Mitte das Symbol im Fokus (gel
 
 Eine Zeile je Stelle: Art (Aufruf, Lesen, Schreiben, Test usw.), das aufrufende Symbol, Datei und Zeile und die Verlässlichkeit. `F8` und `Umschalt+F8` springen durch die Treffer, `Enter` (oder Doppelklick) zeigt den gewählten Treffer im Explorer, oder das Symbol im Fokus, wenn keiner gewählt ist. Die Liste zeigt Datei und Zeile, nicht den Code selbst.
 
-Das Seitenfeld zeigt Signatur, Zahlen (Stellen, Dateien, Schichten), die **Auswirkung** einer Änderung (erreichte Symbole, Schichten, öffentliche Schnittstellen) und den Knopf „Im Explorer öffnen“. Konstanten, Eigenschaften und Schnittstellen-Member funktionieren wie Methoden.
+Das Seitenfeld zeigt Signatur, die Beschreibung (den Dokumentationskommentar aus dem Code, nur wenn es einen gibt), Zahlen (Stellen, Dateien, Schichten), die **Auswirkung** einer Änderung (erreichte Symbole, Schichten, öffentliche Schnittstellen) und den Knopf „Im Explorer öffnen“. Konstanten, Eigenschaften und Schnittstellen-Member funktionieren wie Methoden.
 
 ## Verlässlichkeit: geprüft, ungeprüft, vermutet
 
@@ -37,7 +37,7 @@ CodeSkimr findet Verwendungen auf zwei Wegen. **Ebene 1** löst Namen ohne Typin
 
 Geprüfte Treffer stehen zuerst. Das Seitenfeld zählt die drei getrennt („N Stellen geprüft, M ungeprüft, davon K vermutet“).
 
-**Solange kein Treffer der Antwort geprüft ist** (kein Indexer lief für das Projekt, [Sprach-Indexer](indexer.md)), ist jeder Treffer ungeprüft, und der Bildschirm sagt das: Verwendungen und Auswirkung sind vorläufig und können unvollständig sein oder falsche Treffer enthalten. Nehmen Sie das für Entscheidungen ernst: Eine fehlende Verwendung kann heißen, dass Sie Code brechen, von dem Sie nichts wussten. Eine leere Liste ohne Ebene 2 schließt Verwendungen nicht aus. Hat Ebene 2 für eine Datei gelaufen, sind ihre Treffer geprüft und stehen zuerst; Dateien, die sie nicht abdeckte (oder die sich danach änderten), bleiben ungeprüft, ein Projekt kann also beides zeigen.
+**Solange kein Treffer der Antwort geprüft ist** (Ebene 2 hat dieses Symbol nicht geprüft: sie lief nicht, wurde übersprungen oder fand dazu nichts, [Sprach-Indexer](indexer.md)), ist jeder Treffer ungeprüft, und der Bildschirm sagt das, und dass Ebene 2 bei `codeskimr scan` im Terminal und bei einem Scan im Browser läuft (wenn sie eingeschaltet und bestätigt ist), bei einem Scan über MCP aber nie: Verwendungen und Auswirkung sind vorläufig und können unvollständig sein oder falsche Treffer enthalten. Nehmen Sie das für Entscheidungen ernst: Eine fehlende Verwendung kann heißen, dass Sie Code brechen, von dem Sie nichts wussten. Eine leere Liste ohne Ebene 2 schließt Verwendungen nicht aus. Hat Ebene 2 für eine Datei gelaufen, sind ihre Treffer geprüft und stehen zuerst; Dateien, die sie nicht abdeckte (oder die sich danach änderten), bleiben ungeprüft, ein Projekt kann also beides zeigen.
 
 ## Dasselbe Wissen anderswo
 

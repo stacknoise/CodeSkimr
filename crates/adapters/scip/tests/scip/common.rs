@@ -63,6 +63,38 @@ pub fn occurrence(range: &[u32], symbol: &str, roles: u32) -> Vec<u8> {
     bytes
 }
 
+/// A definition with the range of the whole definition (`enclosing_range`), as a macro call that
+/// generates the symbol is written.
+pub fn definition_in(range: &[u32], enclosing: &[u32], symbol: &str) -> Vec<u8> {
+    let packed: Vec<u8> = enclosing
+        .iter()
+        .flat_map(|n| varint(u64::from(*n)))
+        .collect();
+    let mut bytes = occurrence(range, symbol, 1);
+    bytes.extend(len_field(7, &packed));
+    bytes
+}
+
+/// What the index states about a symbol (`SymbolInformation`): SCIP kind, display name, signature
+/// and documentation.
+pub fn info(symbol: &str, kind: u64, name: &str, signature: &str, doc: &str) -> Vec<u8> {
+    let mut bytes = len_field(1, symbol.as_bytes());
+    bytes.extend(len_field(3, doc.as_bytes()));
+    bytes.extend(varint_field(5, kind));
+    bytes.extend(len_field(6, name.as_bytes()));
+    bytes.extend(len_field(7, &len_field(5, signature.as_bytes())));
+    bytes
+}
+
+/// A document with the information about its symbols.
+pub fn document_with(path: &str, occurrences: &[Vec<u8>], infos: &[Vec<u8>]) -> Vec<u8> {
+    let mut bytes = document(path, occurrences);
+    for info in infos {
+        bytes.extend(len_field(3, info));
+    }
+    bytes
+}
+
 pub fn definition(range: &[u32], symbol: &str) -> Vec<u8> {
     occurrence(range, symbol, 1)
 }
@@ -145,6 +177,7 @@ pub fn symbol(
         span: span(start, end),
         signature: None,
         doc: None,
+        origin: codeskimr_domain::SymbolOrigin::Syntax,
     }
 }
 
@@ -209,6 +242,10 @@ pub fn request<'a>(
         max_index_bytes: LIMIT,
         max_file_bytes: LIMIT,
         min_mapped: 0.0,
+        symbol_kinds: &[],
+        separator: "",
+        library_root: "",
+        max_created_symbols: 0,
     }
 }
 

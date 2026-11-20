@@ -97,6 +97,17 @@ pub enum ProjectSource {
     },
 }
 
+impl ProjectSource {
+    /// The place the code lives at (folder or repository address) and, for Git, the branch.
+    #[must_use]
+    pub fn place_and_branch(&self) -> (String, Option<String>) {
+        match self {
+            Self::Folder(folder) => (folder.to_string(), None),
+            Self::Git { url, branch, .. } => (url.as_str().to_owned(), Some(branch.to_string())),
+        }
+    }
+}
+
 /// A named architecture layer made of namespace prefixes (blueprint 6.1, `LayerEdge`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Layer {
@@ -104,9 +115,22 @@ pub struct Layer {
     pub name: LayerName,
     /// Namespaces that belong to the layer.
     pub namespaces: Vec<QualifiedName>,
+    /// The other layers this layer may depend on (ADR 0054). `None` sets no limit; `Some` lists
+    /// all allowed targets, so an empty list allows none.
+    pub may_use: Option<Vec<LayerName>>,
 }
 
 impl Layer {
+    /// Whether a dependency on `target` is allowed. Using a layer's own names is always allowed.
+    #[must_use]
+    pub fn allows(&self, target: &LayerName) -> bool {
+        *target == self.name
+            || self
+                .may_use
+                .as_ref()
+                .is_none_or(|allowed| allowed.contains(target))
+    }
+
     /// Whether a qualified name belongs to this layer: it equals one of the namespaces or lies
     /// below it, up to a separator, `.` or `::` (`App.Domain` owns `App.Domain.Order`, not `App.DomainX`).
     #[must_use]

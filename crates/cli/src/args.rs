@@ -1,6 +1,11 @@
 //! What the command line asks for, free of any parser type.
 
+use std::ffi::OsString;
 use std::path::PathBuf;
+
+use crate::consts::{
+    ARG_CONFIG, ARG_DATA_DIR, ARG_LANGUAGES, ARG_SET, LONG_FLAG_PREFIX, OVERRIDE_SEPARATOR,
+};
 
 /// Options that every command accepts.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -13,6 +18,33 @@ pub struct GlobalOptions {
     pub config_file: Option<PathBuf>,
     /// Setting overrides as `(dotted key, raw TOML value)`, in the order given.
     pub overrides: Vec<(String, String)>,
+}
+
+impl GlobalOptions {
+    /// The options as separate command line arguments, in the form the parser reads them again, so
+    /// that a program started with them sees the same folders, file and settings (ADR 0071,
+    /// decision 5). Every value is its own argument; nothing is joined for a shell.
+    #[must_use]
+    pub fn arguments(&self) -> Vec<OsString> {
+        let flag = |name: &str| OsString::from(format!("{LONG_FLAG_PREFIX}{name}"));
+        let paths = [
+            (ARG_DATA_DIR, &self.data_dir),
+            (ARG_LANGUAGES, &self.languages_dir),
+            (ARG_CONFIG, &self.config_file),
+        ];
+        let mut arguments = Vec::new();
+        for (name, value) in paths {
+            if let Some(path) = value {
+                arguments.push(flag(name));
+                arguments.push(path.clone().into_os_string());
+            }
+        }
+        for (key, value) in &self.overrides {
+            arguments.push(flag(ARG_SET));
+            arguments.push(OsString::from(format!("{key}{OVERRIDE_SEPARATOR}{value}")));
+        }
+        arguments
+    }
 }
 
 /// Arguments of `codeskimr scan`.
@@ -54,6 +86,13 @@ pub struct CheckArgs {
 pub struct OpenArgs {
     /// Only create the launch file and print its path; do not start a browser.
     pub no_browser: bool,
+}
+
+/// Arguments of the bare `codeskimr`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct StartArgs {
+    /// Stay in this console window instead of running in the system tray (ADR 0067).
+    pub console: bool,
 }
 
 /// Arguments of `codeskimr export`.
@@ -111,6 +150,9 @@ pub enum Level2Action {
     Confirm {
         /// Id of the project, or the folder or Git URL it was scanned from.
         project: String,
+        /// The window was opened by the server for the page in the browser (`--from-ui`,
+        /// ADR 0071): it says so, and waits for Enter at the end. The consent is the same.
+        from_ui: bool,
     },
     /// Forbids them again.
     Revoke {
@@ -119,15 +161,179 @@ pub enum Level2Action {
     },
 }
 
+/// A symbol as the command line names it.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SymbolArg {
+    /// Kind label, such as `class` or `method`.
+    pub kind: String,
+    /// Qualified name.
+    pub name: String,
+    /// Parameter types, to tell overloads apart.
+    pub parameters: Vec<String>,
+}
+
+/// Where a page of a list starts and how long it may be.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct PageArgs {
+    /// Rows to skip.
+    pub offset: Option<u32>,
+    /// Rows to return.
+    pub limit: Option<u32>,
+}
+
+/// The fields of an annotation that the command line can set. A field that is `None` is not sent.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct AnnotationFields {
+    /// Title of a task.
+    pub title: Option<String>,
+    /// The text.
+    pub text: Option<String>,
+    /// Status of a task.
+    pub status: Option<String>,
+    /// Due date in seconds since the Unix epoch.
+    pub due: Option<i64>,
+    /// Assignee of a task.
+    pub assignee: Option<String>,
+}
+
+/// Arguments of `codeskimr annotations list`. `project` is an id, or the folder or Git URL the
+/// project was scanned from.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListAnnotations {
+    /// The project.
+    pub project: String,
+    /// Only this symbol.
+    pub symbol: Option<SymbolArg>,
+    /// Only this kind.
+    pub kind: Option<String>,
+    /// Only tasks in this status.
+    pub status: Option<String>,
+    /// The page.
+    pub page: PageArgs,
+    /// Print JSON.
+    pub json: bool,
+}
+
+/// Arguments of `codeskimr annotations add`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AddAnnotation {
+    /// The project.
+    pub project: String,
+    /// The symbol.
+    pub symbol: SymbolArg,
+    /// `critical`, `note` or `task`.
+    pub kind: String,
+    /// What it says.
+    pub fields: AnnotationFields,
+    /// Print JSON.
+    pub json: bool,
+}
+
+/// Which fields `codeskimr annotations update` removes.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct Clears {
+    /// Remove the text.
+    pub text: bool,
+    /// Remove the due date.
+    pub due: bool,
+    /// Remove the assignee.
+    pub assignee: bool,
+}
+
+/// Arguments of `codeskimr annotations update`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UpdateAnnotation {
+    /// The project.
+    pub project: String,
+    /// Id of the annotation.
+    pub id: u64,
+    /// Assigns it to another symbol.
+    pub symbol: Option<SymbolArg>,
+    /// What to set.
+    pub fields: AnnotationFields,
+    /// What to remove.
+    pub clears: Clears,
+    /// Print JSON.
+    pub json: bool,
+}
+
+/// Arguments of `codeskimr annotations remove` and `codeskimr alerts dismiss`: one id of a project.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ById {
+    /// The project.
+    pub project: String,
+    /// Id of the annotation or the alert.
+    pub id: u64,
+    /// Print JSON.
+    pub json: bool,
+}
+
+/// What `codeskimr annotations` is asked to do.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AnnotationsAction {
+    /// Lists the annotations of a project.
+    List(ListAnnotations),
+    /// Adds an annotation.
+    Add(AddAnnotation),
+    /// Changes an annotation.
+    Update(UpdateAnnotation),
+    /// Deletes an annotation.
+    Remove(ById),
+}
+
+/// Arguments of `codeskimr alerts list`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ListAlerts {
+    /// The project.
+    pub project: String,
+    /// `open` or `dismissed`.
+    pub state: Option<String>,
+    /// Only these kinds.
+    pub kinds: Vec<String>,
+    /// The page.
+    pub page: PageArgs,
+    /// Print JSON.
+    pub json: bool,
+}
+
+/// Arguments of `codeskimr alerts dismiss-all`.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DismissAlerts {
+    /// The project.
+    pub project: String,
+    /// Only these kinds.
+    pub kinds: Vec<String>,
+    /// The explicit confirmation (`--yes`).
+    pub confirm: bool,
+    /// Print JSON.
+    pub json: bool,
+}
+
+/// What `codeskimr alerts` is asked to do.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AlertsAction {
+    /// Lists the alerts of a project.
+    List(ListAlerts),
+    /// Dismisses one alert.
+    Dismiss(ById),
+    /// Dismisses every open alert of a filter.
+    DismissAll(DismissAlerts),
+}
+
 /// The command to run.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
+    /// `codeskimr annotations`.
+    Annotations(Box<AnnotationsAction>),
+    /// `codeskimr alerts`.
+    Alerts(Box<AlertsAction>),
     /// `codeskimr credential`.
     Credential(CredentialAction),
     /// `codeskimr level2`.
     Level2(Level2Action),
-    /// `codeskimr` without a command: start the server and open the browser.
-    Start,
+    /// `codeskimr` without a command: start the server and open the browser, in the tray where
+    /// the system has one.
+    Start(StartArgs),
     /// `codeskimr scan <source>`.
     Scan(ScanArgs),
     /// `codeskimr mcp`.

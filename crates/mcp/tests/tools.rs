@@ -199,6 +199,22 @@ fn get_architecture_lists_layers_and_dependencies() {
 }
 
 #[test]
+fn get_architecture_names_the_allowed_directions_and_the_conventions() {
+    let answer = tools()
+        .get_architecture(&owner(), &ArchitectureArgs { project: Some(1) })
+        .unwrap();
+    assert!(answer["layers"][0]["may_use"].is_null());
+    assert_eq!(answer["layers"][1]["may_use"][0], "Domain");
+    assert!(
+        answer["conventions"]["max_function_lines"]
+            .as_u64()
+            .unwrap()
+            > 0
+    );
+    assert!(answer["conventions"]["test_folders"].is_array());
+}
+
+#[test]
 fn a_principal_without_read_permission_gets_no_answer_from_any_tool() {
     let nobody = Principal::limited(PermissionSet::none().with(Permission::ReadSource));
     let tools = tools();

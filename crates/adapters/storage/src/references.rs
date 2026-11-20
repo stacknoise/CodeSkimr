@@ -21,6 +21,7 @@ struct ReferenceRow {
     verified: bool,
 }
 
+// codeskimr: allow CHK-102 maps a row of the reference query into its columns
 fn read_reference(cols: &Cols<'_>) -> rusqlite::Result<ReferenceRow> {
     Ok(ReferenceRow {
         id: cols.take()?,

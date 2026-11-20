@@ -111,7 +111,13 @@ fn a_failing_check_is_reported_with_its_code() {
 #[test]
 fn a_rescan_reports_the_tools_it_found_missing() {
     let answer = tools()
-        .rescan(&owner(), &RescanArgs { project: None })
+        .rescan(
+            &owner(),
+            &RescanArgs {
+                project: None,
+                paths: None,
+            },
+        )
         .unwrap();
     assert_eq!(tool_named(&answer, "scip-dotnet")["state"], "missing");
 }
@@ -123,7 +129,39 @@ fn a_rescan_does_not_fail_when_the_check_does() {
         ..FakeToolCheck::default()
     };
     let answer = tools_checking(Arc::new(check))
-        .rescan(&owner(), &RescanArgs { project: None })
+        .rescan(
+            &owner(),
+            &RescanArgs {
+                project: None,
+                paths: None,
+            },
+        )
         .unwrap();
     assert_eq!(answer["tools"].as_array().unwrap().len(), 0);
+}
+
+#[test]
+fn the_answer_carries_the_scan_report_without_the_tool_reason() {
+    let answer = tools().get_project(&owner(), &args(None)).unwrap();
+    let report = &answer["scan_report"];
+    assert_eq!(report["last_scan"]["level"], "2");
+    assert_eq!(report["last_scan"]["origin"], "browser");
+    let languages = report["level2"]["languages"].as_array().unwrap();
+    let names: Vec<_> = languages.iter().map(|entry| &entry["language"]).collect();
+    assert_eq!(
+        names,
+        ["csharp", "rust"],
+        "tools_unavailable stays with the tool report"
+    );
+    assert_eq!(languages[0]["outcome"], "checked");
+    assert_eq!(languages[0]["files"], 7);
+    assert_eq!(languages[0]["stale"], 2);
+    assert_eq!(languages[1]["reason"], "not_confirmed");
+}
+
+#[test]
+fn the_report_holds_no_path_and_no_tool_name() {
+    let answer = tools().get_project(&owner(), &args(None)).unwrap();
+    let text = answer["scan_report"].to_string();
+    assert!(!text.contains('/') && !text.contains("scip"), "{text}");
 }

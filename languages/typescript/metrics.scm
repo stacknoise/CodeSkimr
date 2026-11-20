@@ -86,3 +86,56 @@
 (ternary_expression
   [condition: (identifier) @operand consequence: (identifier) @operand
    alternative: (identifier) @operand])
+
+; Cognitive complexity (ADR 0048). A structure adds one and one more for every nesting level it
+; stands in; `else` and a run of the same boolean operator add one at any depth. `else if` is the
+; `if_statement` in an `else_clause`: only its `else` counts, and its body is no deeper than the
+; first `if`. A function value that is not a declaration of its own (a callback, a returned or
+; assigned function) nests what is in it but adds nothing; a `const f = () => ...` is a function of
+; its own and starts at depth zero. A labelled `break` or `continue` adds one at any depth. Not
+; counted: `try`, `finally`, `case` clauses (the `switch` counts once), `?.`, recursion.
+(if_statement) @cognitive
+(if_statement) @nesting
+(else_clause (if_statement) @continuation)
+(else_clause "else" @cognitive_flat)
+(ternary_expression) @cognitive
+(ternary_expression) @nesting
+(for_statement) @cognitive
+(for_statement) @nesting
+(for_in_statement) @cognitive
+(for_in_statement) @nesting
+(while_statement) @cognitive
+(while_statement) @nesting
+(do_statement) @cognitive
+(do_statement) @nesting
+(switch_statement) @cognitive
+(switch_statement) @nesting
+(catch_clause) @cognitive
+(catch_clause) @nesting
+(break_statement label: (statement_identifier)) @cognitive_flat
+(continue_statement label: (statement_identifier)) @cognitive_flat
+(binary_expression operator: ["&&" "||" "??"] @cognitive_sequence)
+(arguments [(arrow_function) (function_expression) (generator_function)] @nesting)
+(return_statement [(arrow_function) (function_expression) (generator_function)] @nesting)
+(array [(arrow_function) (function_expression) (generator_function)] @nesting)
+(parenthesized_expression [(arrow_function) (function_expression) (generator_function)] @nesting)
+(await_expression [(arrow_function) (function_expression) (generator_function)] @nesting)
+(pair value: [(arrow_function) (function_expression) (generator_function)] @nesting)
+(assignment_expression right: [(arrow_function) (function_expression) (generator_function)] @nesting)
+(ternary_expression [(arrow_function) (function_expression) (generator_function)] @nesting)
+(binary_expression [(arrow_function) (function_expression) (generator_function)] @nesting)
+
+; Parameters, only those of a function of its own: a declaration, a method, and a function value in
+; a `const` or in a class field. The parameters of a callback or of a function type are not the
+; ones of the function around them. A list holds every child but a comment and the `this` type.
+(function_declaration parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])")))
+(generator_function_declaration parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])")))
+(method_definition parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])")))
+(variable_declarator value: (arrow_function parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])"))))
+(variable_declarator value: (function_expression parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])"))))
+(variable_declarator value: (generator_function parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])"))))
+(variable_declarator value: (arrow_function parameter: (identifier) @parameter))
+(class_body (_ value: (arrow_function parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])")))))
+(class_body (_ value: (function_expression parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])")))))
+(class_body (_ value: (generator_function parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])")))))
+(class_body (_ value: (arrow_function parameter: (identifier) @parameter)))

@@ -19,6 +19,7 @@ fn symbol(id: u64, kind: SymbolKind, name: &str) -> Result<Symbol, ModelError> {
         is_static: false,
         visibility: None,
         parent: None,
+        origin: codeskimr_domain::SymbolOrigin::Syntax,
     })
 }
 
@@ -108,7 +109,8 @@ fn references_inside_a_namespace_outside_every_namespace_and_from_tests_do_not_c
         assert_eq!(value(&metrics, id, MetricKind::EfferentCoupling), Some(0.0));
         assert_eq!(value(&metrics, id, MetricKind::AfferentCoupling), Some(0.0));
     }
-    assert_eq!(value(&metrics, 8, MetricKind::EfferentCoupling), None);
+    // The class outside every namespace is no namespace's; as a type it has its own coupling.
+    assert_eq!(value(&metrics, 8, MetricKind::EfferentCoupling), Some(1.0));
     Ok(())
 }
 
@@ -144,5 +146,86 @@ fn a_module_owns_itself_and_nested_modules_are_separate_units() -> Result<(), Mo
     assert_eq!(value(&metrics, 1, MetricKind::EfferentCoupling), Some(1.0));
     assert_eq!(value(&metrics, 2, MetricKind::AfferentCoupling), Some(1.0));
     assert_eq!(value(&metrics, 2, MetricKind::EfferentCoupling), Some(0.0));
+    Ok(())
+}
+
+#[test]
+fn types_have_their_own_coupling_next_to_the_namespaces() -> Result<(), ModelError> {
+    let symbols = vec![
+        symbol(1, SymbolKind::Namespace, "Shop")?,
+        symbol(2, SymbolKind::Class, "Shop.Cart")?,
+        symbol(3, SymbolKind::Method, "Shop.Cart.Total")?,
+        symbol(4, SymbolKind::Class, "Shop.Price")?,
+        symbol(5, SymbolKind::Class, "Shop.Order")?,
+    ];
+    let references = [
+        reference(1, 3, 4, ReferenceKind::Call)?,
+        reference(2, 5, 2, ReferenceKind::TypeUse)?,
+    ];
+    let metrics = coupling(&symbols, &references)?;
+    // The method counts for its type: Cart uses Price, and Order uses Cart.
+    assert_eq!(value(&metrics, 2, MetricKind::EfferentCoupling), Some(1.0));
+    assert_eq!(value(&metrics, 2, MetricKind::AfferentCoupling), Some(1.0));
+    assert_eq!(value(&metrics, 2, MetricKind::Instability), Some(0.5));
+    assert_eq!(value(&metrics, 4, MetricKind::AfferentCoupling), Some(1.0));
+    assert_eq!(value(&metrics, 4, MetricKind::Instability), Some(0.0));
+    // The namespace holds all of them: no dependency of its own, so no instability.
+    assert_eq!(value(&metrics, 1, MetricKind::EfferentCoupling), Some(0.0));
+    assert_eq!(value(&metrics, 1, MetricKind::Instability), None);
+    // A method has none of its own.
+    assert_eq!(value(&metrics, 3, MetricKind::EfferentCoupling), None);
+    Ok(())
+}
+
+#[test]
+fn test_references_do_not_count_for_types() -> Result<(), ModelError> {
+    let symbols = vec![
+        symbol(1, SymbolKind::Class, "Shop.Cart")?,
+        symbol(2, SymbolKind::Class, "Shop.CartTests")?,
+    ];
+    let references = [reference(1, 2, 1, ReferenceKind::Test)?];
+    let metrics = coupling(&symbols, &references)?;
+    assert_eq!(value(&metrics, 1, MetricKind::AfferentCoupling), Some(0.0));
+    assert_eq!(value(&metrics, 2, MetricKind::EfferentCoupling), Some(0.0));
+    assert_eq!(value(&metrics, 1, MetricKind::Instability), None);
+    Ok(())
+}
+
+#[test]
+fn a_nested_type_is_its_own_unit_and_its_members_do_not_count_for_the_outer_type()
+-> Result<(), ModelError> {
+    let symbols = vec![
+        symbol(1, SymbolKind::Class, "Shop.Outer")?,
+        symbol(2, SymbolKind::Class, "Shop.Outer.Inner")?,
+        symbol(3, SymbolKind::Method, "Shop.Outer.Inner.Run")?,
+        symbol(4, SymbolKind::Class, "Shop.Price")?,
+    ];
+    let references = [reference(1, 3, 4, ReferenceKind::Call)?];
+    let metrics = coupling(&symbols, &references)?;
+    assert_eq!(value(&metrics, 2, MetricKind::EfferentCoupling), Some(1.0));
+    assert_eq!(value(&metrics, 1, MetricKind::EfferentCoupling), Some(0.0));
+    assert_eq!(value(&metrics, 4, MetricKind::AfferentCoupling), Some(1.0));
+    Ok(())
+}
+
+#[test]
+fn a_type_declared_in_several_files_is_one_unit_and_each_declaration_gets_the_value()
+-> Result<(), ModelError> {
+    let symbols = vec![
+        symbol(1, SymbolKind::Class, "Billing.Invoice")?,
+        symbol(2, SymbolKind::Class, "Billing.Invoice")?,
+        symbol(3, SymbolKind::Method, "Billing.Invoice.Net")?,
+        symbol(4, SymbolKind::Class, "Billing.Tax")?,
+        symbol(5, SymbolKind::Class, "Billing.Payment")?,
+    ];
+    let references = [
+        reference(10, 3, 4, ReferenceKind::Read)?,
+        reference(11, 5, 2, ReferenceKind::Call)?,
+    ];
+    let metrics = coupling(&symbols, &references)?;
+    for id in [1, 2] {
+        assert_eq!(value(&metrics, id, MetricKind::EfferentCoupling), Some(1.0));
+        assert_eq!(value(&metrics, id, MetricKind::AfferentCoupling), Some(1.0));
+    }
     Ok(())
 }

@@ -8,6 +8,12 @@ pub const MESSAGE_INVERTED_SPAN: &str = "span ends before it starts";
 pub const MESSAGE_UNKNOWN_LABEL: &str = "unknown label";
 /// Message of `ModelError::NotFinite`.
 pub const MESSAGE_NOT_FINITE: &str = "value must be a finite number";
+/// Message of `ModelError::EmptyText`.
+pub const MESSAGE_EMPTY_TEXT: &str = "text must not be empty";
+/// Message of `ModelError::TooLong`.
+pub const MESSAGE_TOO_LONG: &str = "text is longer than the limit";
+/// Message of `ModelError::Inconsistent`.
+pub const MESSAGE_INCONSISTENT: &str = "fields do not fit the kind of the annotation";
 
 /// Separates the parts of a qualified name.
 pub const NAME_SEPARATOR: char = '.';
@@ -101,6 +107,45 @@ pub const METRIC_CA: &str = "ca";
 /// Label of `MetricKind::Instability`.
 pub const METRIC_INSTABILITY: &str = "instability";
 
+/// Label of `ScanLevel::One`.
+pub const LEVEL_ONE: &str = "1";
+/// Label of `ScanLevel::Two`.
+pub const LEVEL_TWO: &str = "2";
+
+/// Label of `SkipReason::NotPermitted`.
+pub const SKIP_NOT_PERMITTED: &str = "not_permitted";
+/// Label of `SkipReason::NotConfirmed`.
+pub const SKIP_NOT_CONFIRMED: &str = "not_confirmed";
+/// Label of `SkipReason::ToolsUnavailable`.
+pub const SKIP_TOOLS_UNAVAILABLE: &str = "tools_unavailable";
+/// Label of `SkipReason::Stale`.
+pub const SKIP_STALE: &str = "stale";
+/// Label of `SkipReason::Cancelled`.
+pub const SKIP_CANCELLED: &str = "cancelled";
+/// Label of `Level2Stage::Running`.
+pub const STAGE_LEVEL2_RUNNING: &str = "level2_running";
+/// Label of `Level2Stage::Importing`.
+pub const STAGE_LEVEL2_IMPORTING: &str = "level2_importing";
+/// Label of `OutcomeKind::Checked`.
+pub const OUTCOME_CHECKED: &str = "checked";
+/// Label of `OutcomeKind::Skipped`.
+pub const OUTCOME_SKIPPED: &str = "skipped";
+/// Label of `OutcomeKind::Failed`.
+pub const OUTCOME_FAILED: &str = "failed";
+/// Label of `SkipReason::Busy`.
+pub const SKIP_BUSY: &str = "busy";
+/// Label of `SkipReason::Paused`.
+pub const SKIP_PAUSED: &str = "paused";
+
+/// Label of `ScanOrigin::Terminal`.
+pub const ORIGIN_TERMINAL: &str = "terminal";
+/// Label of `ScanOrigin::Browser`.
+pub const ORIGIN_BROWSER: &str = "browser";
+/// Label of `ScanOrigin::Watch`.
+pub const ORIGIN_WATCH: &str = "watch";
+/// Label of `ScanOrigin::Mcp`.
+pub const ORIGIN_MCP: &str = "mcp";
+
 /// Label of `ScanMode::Full`.
 pub const SCAN_FULL: &str = "full";
 /// Label of `ScanMode::Incremental`.
@@ -185,6 +230,8 @@ pub const PERMISSION_READ: &str = "read";
 pub const PERMISSION_READ_SOURCE: &str = "read_source";
 /// Label of `Permission::Scan`.
 pub const PERMISSION_SCAN: &str = "scan";
+/// Label of `Permission::Annotate`.
+pub const PERMISSION_ANNOTATE: &str = "annotate";
 /// Label of `Permission::Manage`.
 pub const PERMISSION_MANAGE: &str = "manage";
 /// Label of `Permission::RegisterProject`.
@@ -195,6 +242,10 @@ pub const PERMISSION_ADMIN: &str = "admin";
 pub const PERMISSION_CONFIRM_INDEXER: &str = "confirm_indexer";
 /// Label of `Permission::RunIndexer`.
 pub const PERMISSION_RUN_INDEXER: &str = "run_indexer";
+/// Label of `Permission::RevokeIndexer`.
+pub const PERMISSION_REVOKE_INDEXER: &str = "revoke_indexer";
+/// Label of `Permission::OpenConfirmation`.
+pub const PERMISSION_OPEN_CONFIRMATION: &str = "open_confirmation";
 
 /// Whole percent of a share of 1.0, for integer percent arithmetic.
 pub const PERCENT_BASE: usize = 100;
@@ -213,6 +264,8 @@ pub const TOOL_STATE_TOO_OLD: &str = "too_old";
 pub const TOOL_STATE_VERSION_UNKNOWN: &str = "version_unknown";
 /// Label of `ToolState::TooNew`.
 pub const TOOL_STATE_TOO_NEW: &str = "too_new";
+/// Label of `ToolState::NotRunnable`.
+pub const TOOL_STATE_NOT_RUNNABLE: &str = "not_runnable";
 /// Label of `Ceiling::Exact`.
 pub const CEILING_EXACT: &str = "exact";
 /// Label of `Ceiling::SameBand`.
@@ -237,3 +290,50 @@ pub const ID_HASH_ROTATION: u32 = 5;
 /// Rotation of the id hasher at the end: the best mixed bits of the product are the top ones, and
 /// the hash tables read the bottom ones.
 pub const ID_HASH_FINISH_ROTATION: u32 = 26;
+
+/// Label of the origin of a symbol that level 1 read from the syntax tree.
+pub const ORIGIN_SYNTAX: &str = "syntax";
+/// Label of the origin of a symbol that level 2 created from an index (ADR 0055).
+pub const ORIGIN_INDEX: &str = "index";
+
+/// Label of `AnnotationKind::Critical`.
+pub const ANNOTATION_CRITICAL: &str = "critical";
+/// Label of `AnnotationKind::Note`.
+pub const ANNOTATION_NOTE: &str = "note";
+/// Label of `AnnotationKind::Task`.
+pub const ANNOTATION_TASK: &str = "task";
+
+/// Label of `TaskStatus::Open`.
+pub const TASK_OPEN: &str = "open";
+/// Label of `TaskStatus::InProgress`.
+pub const TASK_IN_PROGRESS: &str = "in_progress";
+/// Label of `TaskStatus::Done`.
+pub const TASK_DONE: &str = "done";
+
+/// Label of `AlertKind::Changed`.
+pub const ALERT_CHANGED: &str = "changed";
+/// Label of `AlertKind::Removed`.
+pub const ALERT_REMOVED: &str = "removed";
+/// Label of `AlertKind::Orphaned`.
+pub const ALERT_ORPHANED: &str = "orphaned";
+
+/// Label of `AlertState::Open`.
+pub const ALERT_STATE_OPEN: &str = "open";
+/// Label of `AlertState::Dismissed`.
+pub const ALERT_STATE_DISMISSED: &str = "dismissed";
+
+/// Label of `AlertTrigger::Scan`.
+pub const TRIGGER_SCAN: &str = "scan";
+/// Label of `AlertTrigger::Watcher`.
+pub const TRIGGER_WATCHER: &str = "watcher";
+/// Label of `AlertTrigger::Fetch`.
+pub const TRIGGER_FETCH: &str = "fetch";
+
+/// Label of `AlertChange::Content`.
+pub const CHANGE_CONTENT: &str = "content";
+/// Label of `AlertChange::Signature`.
+pub const CHANGE_SIGNATURE: &str = "signature";
+/// Label of `AlertChange::Cc`.
+pub const CHANGE_CC: &str = "cc";
+/// Label of `AlertChange::Loc`.
+pub const CHANGE_LOC: &str = "loc";

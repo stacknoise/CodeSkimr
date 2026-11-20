@@ -130,6 +130,10 @@ pub struct PackManifest {
     pub bare_names_reach_members: bool,
     /// Syntax node kinds that are comments.
     pub comment_nodes: Vec<String>,
+    /// Syntax node kinds that are blocks without a token at their start and end (the indentation
+    /// of Python). The content hash of a symbol takes their start and end into account (ADR 0068).
+    #[serde(default)]
+    pub block_nodes: Vec<String>,
     /// Project manifest files such as `Cargo.toml`; used by later stages, not by parsing.
     #[serde(default)]
     pub manifest_files: Vec<String>,

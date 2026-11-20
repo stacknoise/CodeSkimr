@@ -4,7 +4,7 @@ explorer-title = Explorer
 explorer-freshness = Arbeitsordner · { $age } alt
 explorer-filter-tree = Baum filtern
 explorer-action-uses = Verwendungen
-explorer-action-graph = Graph
+explorer-action-graph = Schicht-Graph
 explorer-tab-members = Member { $count }
 explorer-tab-dependencies = Abhängigkeiten { $count }
 explorer-filter-all = Alle
@@ -19,6 +19,7 @@ explorer-column-lines = Zeilen
 explorer-status-totals = { $types } Typen · { $methods } Methoden · { $properties } Properties
 explorer-status-virtualised = Baum virtualisiert: { $rendered } von { $total } Zeilen gerendert
 explorer-action-editor = Im Editor öffnen
+explorer-back-to-members = ← Zurück zu den Members
 explorer-collapse-all = Alles einklappen
 explorer-reveal-selection = Auswahl im Baum zeigen
 explorer-structure-label = Struktur
@@ -31,7 +32,17 @@ explorer-namespace-root = (Wurzel)
 explorer-group-fields = Properties & Felder
 explorer-group-methods = Methoden
 explorer-overview-title = Übersicht
-explorer-overview-counts = { $layers } Schichten · { $namespaces } Namensräume · { $types } Typen
+explorer-overview-counts =
+    { $layers ->
+        [one] { NUMBER($layers) } Schicht
+       *[other] { NUMBER($layers) } Schichten
+    } · { $namespaces ->
+        [one] { NUMBER($namespaces) } Namensraum
+       *[other] { NUMBER($namespaces) } Namensräume
+    } · { $types ->
+        [one] { NUMBER($types) } Typ
+       *[other] { NUMBER($types) } Typen
+    }
 explorer-overview-hint = Öffne eine Schicht und wähle einen Typ, dann siehst du seine Metriken und Members.
 explorer-no-project-title = Kein Projekt geöffnet
 explorer-no-project-text = Öffne zuerst in der Projektliste ein Projekt, dann erscheint hier seine Struktur.

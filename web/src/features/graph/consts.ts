@@ -16,6 +16,10 @@ export const DEPTHS = [
 /** Depth that keeps every namespace. */
 export const DEPTH_ALL = 0;
 
+/** The id that the server adds to the name of a box when two types have the same qualified name
+ * (crates/app/src/ui_commands/consts.rs, `BOX_ID_SEPARATOR`). */
+export const BOX_ID_SUFFIX = / #\d+$/;
+
 /** The look of an edge. */
 export const EDGE = { out: "out", in: "in", violation: "violation", weak: "weak" } as const;
 
@@ -68,6 +72,9 @@ export const KEY = { fit: "f", pan: " ", open: "Enter" } as const;
 
 /** Wheel and pointer values. */
 export const BUTTON_MIDDLE = 1;
+/** The primary mouse button, and the element a drag must not start on. */
+export const BUTTON_PRIMARY = 0;
+export const BUTTON_TAG = "button";
 
 /** How many colours the layers cycle through (`--layer-1` to `--layer-N`). */
 export const LAYER_COLORS = 4;
@@ -103,3 +110,7 @@ export const SPACE = " ";
 export const HALF = 0.5;
 /** The padding applies on both sides. */
 export const PADDING_SIDES = 2;
+
+/** The width of the side panel, and the key under which it is remembered. */
+export const PANEL_PANE_KEY = "graph.panel";
+export const PANEL_PANE_BOUNDS = { initial: 320, min: 240, max: 720 } as const;

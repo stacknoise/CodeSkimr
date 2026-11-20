@@ -20,6 +20,7 @@ use codeskimr_domain::{
 use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::codec::{Cols, column_int, id_from, label_from, small_from};
+use crate::consts::PRAGMA_DATA_VERSION;
 use crate::error::{StorageError, StorageResult};
 use crate::lookup::SnapshotLookup;
 use crate::sql;
@@ -38,13 +39,15 @@ impl SqliteStore {
             return Ok(Arc::new(SnapshotLookup::default()));
         }
         let mut cached = self.reverse.lock().unwrap_or_else(PoisonError::into_inner);
-        if let Some((id, index)) = cached.as_ref()
+        let version = self.read(data_version)?;
+        if let Some((id, index, built_at)) = cached.as_ref()
             && *id == snapshot
+            && *built_at == version
         {
             return Ok(Arc::clone(index));
         }
         let loaded = Arc::new(self.read(|conn| SnapshotLookup::load(conn, raw))?);
-        *cached = Some((snapshot, Arc::clone(&loaded)));
+        *cached = Some((snapshot, Arc::clone(&loaded), version));
         Ok(loaded)
     }
 
@@ -77,7 +80,7 @@ impl SqliteStore {
     #[must_use]
     pub fn kept_snapshot(&self) -> Option<SnapshotId> {
         let cached = self.reverse.lock().unwrap_or_else(PoisonError::into_inner);
-        cached.as_ref().map(|(id, _)| *id)
+        cached.as_ref().map(|(id, _, _)| *id)
     }
 
     /// Replaces the kept index after a write: the references of the snapshot may have changed
@@ -88,21 +91,22 @@ impl SqliteStore {
     /// drops the index, to be built by the next query.
     pub(crate) fn refresh_lookup(&self, snapshot: SnapshotId) {
         let mut cached = self.reverse.lock().unwrap_or_else(PoisonError::into_inner);
-        let Some((kept, _)) = cached.as_ref() else {
+        let Some((kept, _, _)) = cached.as_ref() else {
             return;
         };
         let (kept, raw) = (*kept, column_int(snapshot.get()));
         let loaded = raw.and_then(|raw| {
             self.read(|conn| {
+                let version = data_version(conn)?;
                 let other = project_of(conn, column_int(kept.get())?)?;
                 if other.is_some() && other != project_of(conn, raw)? {
                     return Ok(None);
                 }
-                SnapshotLookup::load(conn, raw).map(Some)
+                SnapshotLookup::load(conn, raw).map(|loaded| Some((loaded, version)))
             })
         });
         match loaded {
-            Ok(Some(loaded)) => *cached = Some((snapshot, Arc::new(loaded))),
+            Ok(Some((loaded, version))) => *cached = Some((snapshot, Arc::new(loaded), version)),
             Ok(None) => {}
             Err(_) => *cached = None,
         }
@@ -170,6 +174,7 @@ struct EdgeRow {
     count: i64,
 }
 
+// codeskimr: allow CHK-102 maps a row of the dependency query into its columns
 fn read_edge(cols: &Cols<'_>) -> rusqlite::Result<EdgeRow> {
     Ok(EdgeRow {
         id: cols.take()?,
@@ -280,4 +285,10 @@ impl UsageIndex for SqliteStore {
         edges.truncate(limit as usize);
         Ok(DependencyPage { total, edges })
     }
+}
+
+/// The `data_version` of the database: it changes when another connection commits, never for the
+/// commits of this one.
+fn data_version(conn: &Connection) -> StorageResult<i64> {
+    Ok(conn.pragma_query_value(None, PRAGMA_DATA_VERSION, |row| row.get(0))?)
 }

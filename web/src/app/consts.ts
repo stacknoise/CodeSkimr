@@ -10,6 +10,8 @@ export interface Route {
   path: string;
   label: MessageKey;
   icon: IconName;
+  /** The screen shows the data of a project, so it stays shut until one is open. */
+  needsProject?: boolean;
 }
 
 export const PROJECTS_ROUTE: Route = { path: "/", label: I18N_KEYS.NAV_PROJECTS, icon: "projects" };
@@ -17,19 +19,60 @@ export const EXPLORER_ROUTE: Route = {
   path: "/explorer",
   label: I18N_KEYS.NAV_EXPLORER,
   icon: "explorer",
+  needsProject: true,
 };
 /** Screen 6; it is reached from the explorer and the graph, so it has no button in the rail. */
 export const USAGES_ROUTE = { path: "/usages", label: I18N_KEYS.USAGES_TITLE } as const;
-export const SCAN_ROUTE: Route = { path: "/scan", label: I18N_KEYS.NAV_SCAN, icon: "scan" };
-export const GRAPH_ROUTE: Route = { path: "/graph", label: I18N_KEYS.NAV_GRAPH, icon: "graph" };
+/** The editor of the layers; it is reached from the settings and from the hints, so it has no
+ * button in the rail. */
+export const LAYERS_ROUTE = { path: "/layers", label: I18N_KEYS.LAYERS_TITLE } as const;
+/** The board of the tasks and the notes of the project (mock 16). */
+export const ANNOTATIONS_ROUTE: Route = {
+  path: "/annotations",
+  label: I18N_KEYS.NAV_ANNOTATIONS,
+  icon: "annotations",
+  needsProject: true,
+};
+export const SCAN_ROUTE: Route = {
+  path: "/scan",
+  label: I18N_KEYS.NAV_SCAN,
+  icon: "scan",
+  needsProject: true,
+};
+export const GRAPH_ROUTE: Route = {
+  path: "/graph",
+  label: I18N_KEYS.NAV_GRAPH,
+  icon: "graph",
+  needsProject: true,
+};
 export const SETTINGS_ROUTE: Route = {
   path: "/settings",
   label: I18N_KEYS.NAV_SETTINGS,
   icon: "settings",
 };
 
+/** The button of the rail that stays marked on a screen that has no button of its own: the symbol
+ * view is the symbol level of the graph. */
+export const RAIL_OWNER: Record<string, string> = { [USAGES_ROUTE.path]: GRAPH_ROUTE.path };
+
+/** Paths of the screens that show the data of a project; the usages screen has no button of its
+ * own but needs a project as well. */
+export const PROJECT_PATHS: readonly string[] = [
+  EXPLORER_ROUTE.path,
+  GRAPH_ROUTE.path,
+  ANNOTATIONS_ROUTE.path,
+  SCAN_ROUTE.path,
+  USAGES_ROUTE.path,
+];
+
 /** Screens in the upper part of the rail. */
-export const MAIN_ROUTES: Route[] = [PROJECTS_ROUTE, EXPLORER_ROUTE, GRAPH_ROUTE, SCAN_ROUTE];
+export const MAIN_ROUTES: Route[] = [
+  PROJECTS_ROUTE,
+  EXPLORER_ROUTE,
+  GRAPH_ROUTE,
+  ANNOTATIONS_ROUTE,
+  SCAN_ROUTE,
+];
 /** Screens in the lower part of the rail. */
 export const FOOTER_ROUTES: Route[] = [SETTINGS_ROUTE];
 

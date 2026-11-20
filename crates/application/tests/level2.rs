@@ -240,6 +240,46 @@ mod cases {
     }
 
     #[test]
+    fn revoking_needs_only_the_revoke_right_and_confirming_stays_with_the_confirm_right() {
+        let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
+        let owner = Principal::local_owner();
+        confirm(&owner, store.as_ref(), PROJECT).unwrap();
+        // What a REST client holds for level 2: it may revoke and ask for the window, nothing more.
+        let client = Principal::limited(PermissionSet::from_iter([
+            Permission::Read,
+            Permission::RevokeIndexer,
+            Permission::OpenConfirmation,
+        ]));
+        assert_eq!(
+            code(confirm(&client, store.as_ref(), PROJECT)),
+            ErrorCode::IndexerNotPermitted
+        );
+        assert!(store.consent(PROJECT).unwrap().confirmed);
+        revoke(&client, store.as_ref(), PROJECT).unwrap();
+        assert_eq!(store.consent(PROJECT).unwrap(), ConsentRecord::default());
+        // The right to confirm still revokes, as the command line does.
+        confirm(&owner, store.as_ref(), PROJECT).unwrap();
+        let confirmer = Principal::limited(PermissionSet::from_iter([Permission::ConfirmIndexer]));
+        revoke(&confirmer, store.as_ref(), PROJECT).unwrap();
+        // Opening the window is no right to revoke or to start.
+        let opener = Principal::limited(PermissionSet::from_iter([Permission::OpenConfirmation]));
+        assert_eq!(
+            code(revoke(&opener, store.as_ref(), PROJECT)),
+            ErrorCode::IndexerNotPermitted
+        );
+        assert_eq!(
+            code(authorize_run(
+                &opener,
+                &config(&[]).level2,
+                &store,
+                &folder_project(),
+                &clone()
+            )),
+            ErrorCode::IndexerNotPermitted
+        );
+    }
+
+    #[test]
     fn the_permit_carries_the_folder_of_its_project() {
         let owner = Principal::local_owner();
         let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());

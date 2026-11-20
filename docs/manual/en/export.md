@@ -33,7 +33,7 @@ The page looks and behaves like the app. Navigation uses the address fragment (`
 
 ## Unchecked usages stay visible
 
-Every usage keeps its mark (verified, unchecked, presumed) and the page shows the same notice as the app when no indexer checked anything ([Usages](usages.md#certainty-verified-unchecked-presumed)). A strip under the top bar counts verified and unchecked direct usages of the whole export, so a page that is read months later still says how far it can be trusted.
+Every usage keeps its mark (verified, unchecked, presumed) and the page shows the same notice as the app when level 2 checked none of the hits ([Usages](usages.md#certainty-verified-unchecked-presumed)). A strip under the top bar counts verified and unchecked direct usages of the whole export, so a page that is read months later still says how far it can be trusted.
 
 ## Limits
 

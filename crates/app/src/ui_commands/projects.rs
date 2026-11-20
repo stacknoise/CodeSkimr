@@ -6,11 +6,11 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    LanguageShare, ProjectCatalog, ProjectOverview, ProjectToolCheck,
+    LanguageShare, ProjectCatalog, ProjectOverview, ProjectToolCheck, ScanReportStore, ScanWarning,
 };
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
+use codeskimr_application::report_view::ReportView;
 use codeskimr_application::tools::ToolsView;
-use codeskimr_cli::ScanSummary;
 use codeskimr_codes::Coded;
 use codeskimr_domain::{Permission, ProjectId, ProjectSource, ScanMode, Snapshot};
 use serde::{Deserialize, Serialize};
@@ -18,11 +18,12 @@ use serde::{Deserialize, Serialize};
 use super::Context;
 use super::consts::{
     ADD_DESCRIPTION, ADD_TITLE, CANCEL_DESCRIPTION, CANCEL_TITLE, KIND_FOLDER, KIND_GIT,
-    LIST_DESCRIPTION, LIST_TITLE, PROJECTS_ADD, PROJECTS_CANCEL, PROJECTS_LIST, PROJECTS_RESCAN,
-    PROJECTS_TOOLS, RESCAN_DESCRIPTION, RESCAN_TITLE, SHORTCUT_NEW, SHORTCUT_RESCAN,
-    TOOLS_DESCRIPTION, TOOLS_TITLE,
+    LEVEL2_NOT_REQUESTED, LEVEL2_NOT_STARTED, LEVEL2_STARTED, LIST_DESCRIPTION, LIST_TITLE,
+    PROJECTS_ADD, PROJECTS_CANCEL, PROJECTS_LIST, PROJECTS_RESCAN, PROJECTS_TOOLS,
+    RESCAN_DESCRIPTION, RESCAN_TITLE, SHORTCUT_NEW, SHORTCUT_RESCAN, TOOLS_DESCRIPTION,
+    TOOLS_TITLE,
 };
-use crate::scan::{open_on, reopen};
+use crate::scan::{BrowserScan, Level2Start, open_on, reopen};
 use crate::source_arg::{SourceError, classify};
 
 /// The newest scan of a project.
@@ -60,6 +61,15 @@ pub struct LanguageRow {
     pub tier: Option<&'static str>,
 }
 
+/// A warning of the newest scan of a project: how often the code was found.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct WarningRow {
+    /// The error code, for example `RES-301`.
+    pub code: &'static str,
+    /// How many times it happened in the scan.
+    pub count: u64,
+}
+
 /// One row of the project list.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct ProjectRow {
@@ -83,10 +93,15 @@ pub struct ProjectRow {
     pub loc: u32,
     /// Languages, the one with the most lines first.
     pub languages: Vec<LanguageRow>,
+    /// The warnings of the newest scan; empty if it had none.
+    pub warnings: Vec<WarningRow>,
     /// Whether a scan of the project is running right now.
     pub running: bool,
     /// What the last check of the tools found; `None` if the project was never checked.
     pub tools: Option<ToolsView>,
+    /// What the newest scan says about itself: level, channel and what level 2 did per language;
+    /// `None` if no scan has stored a report yet.
+    pub report: Option<ReportView>,
 }
 
 fn scan_row(snapshot: &Snapshot) -> ScanRow {
@@ -111,10 +126,18 @@ fn language_row(share: &LanguageShare, context: &Context) -> LanguageRow {
     }
 }
 
+/// The row of one scan warning.
+fn warning_row(warning: &ScanWarning) -> WarningRow {
+    WarningRow {
+        code: warning.code.id(),
+        count: warning.count,
+    }
+}
+
 fn project_row(
     overview: &ProjectOverview,
     running: bool,
-    tools: Option<ToolsView>,
+    (tools, report): (Option<ToolsView>, Option<ReportView>),
     context: &Context,
 ) -> ProjectRow {
     let (kind, location, branch) = match &overview.project.source {
@@ -142,8 +165,10 @@ fn project_row(
             .iter()
             .map(|share| language_row(share, context))
             .collect(),
+        warnings: overview.warnings.iter().map(warning_row).collect(),
         running,
         tools,
+        report,
     }
 }
 
@@ -151,6 +176,7 @@ fn project_row(
 pub struct ListProjects {
     pub(super) catalog: Arc<dyn ProjectCatalog>,
     pub(super) tools: Arc<dyn ProjectToolCheck>,
+    pub(super) reports: Arc<dyn ScanReportStore>,
     pub(super) context: Arc<Context>,
 }
 
@@ -177,7 +203,10 @@ impl Command for ListProjects {
                 project_row(
                     overview,
                     self.context.running.is_running(id),
-                    self.stored_tools(id),
+                    (
+                        self.stored_tools(id),
+                        ReportView::stored(self.reports.as_ref(), id),
+                    ),
                     &self.context,
                 )
             })
@@ -216,11 +245,35 @@ pub struct Scanned {
     pub seconds: f64,
     /// What the check of the tools found after the scan.
     pub tools: ToolsView,
+    /// Whether level 2 follows in the background (ADR 0072).
+    pub level2: Level2Answer,
+}
+
+/// The answer about level 2 of `projects.add` and `projects.rescan`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct Level2Answer {
+    /// `started`, `not_started` or `not_requested`.
+    pub state: &'static str,
+    /// Why it did not start: `not_permitted`, `not_confirmed`, `busy` or `paused`.
+    pub reason: Option<&'static str>,
+}
+
+impl Level2Answer {
+    fn of(start: Level2Start) -> Self {
+        let (state, reason) = match start {
+            Level2Start::Started => (LEVEL2_STARTED, None),
+            Level2Start::NotRequested => (LEVEL2_NOT_REQUESTED, None),
+            Level2Start::NotStarted(reason) => (LEVEL2_NOT_STARTED, Some(reason.label())),
+        };
+        Self { state, reason }
+    }
 }
 
 impl Scanned {
-    fn of(project: ProjectId, summary: &ScanSummary) -> Self {
+    fn of(project: ProjectId, scan: &BrowserScan) -> Self {
+        let summary = &scan.summary;
         Self {
+            level2: Level2Answer::of(scan.level2),
             project: project.get(),
             snapshot: summary.snapshot,
             files: summary.files,
@@ -242,6 +295,10 @@ pub struct AddInput {
     /// Name of the stored credential a Git source logs in with (`credentials.set`).
     #[serde(default)]
     pub credential: Option<String>,
+    /// `false` scans level 1 only; left out means level 2 follows if it is enabled and
+    /// confirmed for the project.
+    #[serde(default)]
+    pub level2: Option<bool>,
 }
 
 /// Registers a folder or a Git repository as a project and scans it.
@@ -285,10 +342,11 @@ impl Command for AddProject {
         .with_tools(Arc::clone(&context.tools));
         drop(registering);
         let id = session.project().id;
-        let _scanning = context.running.start(id)?;
-        let summary =
-            session.scan_with(ScanMode::Full, |token| context.running.attach(id, token))?;
-        Ok(Scanned::of(id, &summary))
+        let scan = session.scan_in_browser(
+            ScanMode::Full,
+            context.browser_run(id, request.input.level2)?,
+        )?;
+        Ok(Scanned::of(id, &scan))
     }
 }
 
@@ -297,6 +355,10 @@ impl Command for AddProject {
 pub struct RescanInput {
     /// Id of the project.
     pub project: u64,
+    /// `false` scans level 1 only; left out means level 2 follows if it is enabled and
+    /// confirmed for the project.
+    #[serde(default)]
+    pub level2: Option<bool>,
 }
 
 /// Scans a registered project again, incrementally if it has been scanned before.
@@ -334,14 +396,14 @@ impl Command for RescanProject {
             (context.events.clone(), &context.secrets),
         )?
         .with_tools(Arc::clone(&context.tools));
-        let _scanning = context.running.start(id)?;
+        let run = context.browser_run(id, request.input.level2)?;
         let mode = if scanned_before {
             ScanMode::Incremental
         } else {
             ScanMode::Full
         };
-        let summary = session.scan_with(mode, |token| context.running.attach(id, token))?;
-        Ok(Scanned::of(id, &summary))
+        let scan = session.scan_in_browser(mode, run)?;
+        Ok(Scanned::of(id, &scan))
     }
 }
 

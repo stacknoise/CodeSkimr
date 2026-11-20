@@ -225,23 +225,23 @@ impl OutputDir {
     }
 }
 
-fn launch_of(
-    job: &IndexJob<'_>,
-    environment: &Environment,
-    output: &OutputDir,
-) -> Result<Launch, IndexerError> {
+/// The program of the indexer, looked up in the `PATH` of its environment.
+fn program_of(job: &IndexJob<'_>, environment: &Environment) -> Result<PathBuf, IndexerError> {
     let path = environment
         .iter()
         .find(|(name, _)| name.to_string_lossy().eq_ignore_ascii_case(PATH_ENV))
         .map(|(_, value)| value.clone())
         .unwrap_or_default();
-    let program =
-        resolve(&job.spec.indexer.program, &path, job.permit.project_root()).ok_or_else(|| {
-            IndexerError::Unavailable(vec![ToolProblem {
-                program: job.spec.indexer.program.clone(),
-                issue: codeskimr_application::ports::ToolIssue::Missing,
-            }])
-        })?;
+    resolve(&job.spec.indexer.program, &path, job.permit.project_root()).ok_or_else(|| {
+        IndexerError::Unavailable(vec![ToolProblem {
+            program: job.spec.indexer.program.clone(),
+            issue: codeskimr_application::ports::ToolIssue::Missing,
+        }])
+    })
+}
+
+/// The arguments of the indexer with the project folder and the index file filled in.
+fn args_of(job: &IndexJob<'_>, output: &OutputDir) -> Vec<OsString> {
     let root = job.permit.project_root().to_string_lossy();
     let index = output.index();
     let index_text = index.to_string_lossy();
@@ -249,15 +249,21 @@ fn launch_of(
         (PLACEHOLDER_PROJECT, root.as_ref()),
         (PLACEHOLDER_OUTPUT, index_text.as_ref()),
     ];
-    let args = job
-        .spec
+    job.spec
         .args
         .iter()
         .map(|arg| OsString::from(substitute(arg, &replacements)))
-        .collect();
+        .collect()
+}
+
+fn launch_of(
+    job: &IndexJob<'_>,
+    environment: &Environment,
+    output: &OutputDir,
+) -> Result<Launch, IndexerError> {
     Ok(Launch {
-        program,
-        args,
+        program: program_of(job, environment)?,
+        args: args_of(job, output),
         env: environment.clone(),
         cwd: job.permit.project_root().to_path_buf(),
         limits: Limits {
@@ -320,6 +326,16 @@ impl IndexRunner for ProcessIndexRunner {
         } else {
             IndexerStatus::Unavailable { problems, found }
         }
+    }
+
+    fn locate(&self, program: &str) -> Option<String> {
+        let path = self
+            .source_env
+            .iter()
+            .find(|(name, _)| name.to_string_lossy().eq_ignore_ascii_case(PATH_ENV))
+            .map(|(_, value)| value.clone())?;
+        // No project here: the data folder stands in for the folder `PATH` must not lead into.
+        resolve(program, &path, &self.data_dir).map(|found| found.to_string_lossy().into_owned())
     }
 
     fn run(&self, job: &IndexJob<'_>, cancel: &CancelToken) -> Result<IndexArtifact, CodedError> {

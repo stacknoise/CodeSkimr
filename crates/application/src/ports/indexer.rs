@@ -8,7 +8,7 @@ use std::any::Any;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use codeskimr_domain::LanguageId;
+use codeskimr_domain::{LanguageId, SymbolKind};
 
 use crate::cancel::CancelToken;
 use crate::error::CodedError;
@@ -52,6 +52,17 @@ pub struct IndexerSpec {
     pub env: Vec<(String, String)>,
     /// How the user installs the indexer, shown when it is missing.
     pub install_hint: String,
+    /// What the index says a definition is, by the name of its SCIP kind (`SymbolInformation.kind`),
+    /// mapped onto the symbol kinds of the model. Level 2 creates symbols only for these kinds
+    /// (ADR 0055); a language without a table gets none.
+    pub symbol_kinds: Vec<(String, SymbolKind)>,
+    /// The separator of qualified names of the language (`::` for Rust), which joins the name of
+    /// a created symbol to the qualified name of its parent.
+    pub separator: String,
+    /// The file name of the root that wins when the index gives one module symbol to several
+    /// files of a package and the folders do not decide (`lib.rs` for Rust, ADR 0061); empty if
+    /// the pack names none.
+    pub library_root: String,
 }
 
 /// Limits of one run, from `level2.*` of the configuration.
@@ -84,6 +95,11 @@ pub struct IndexJob<'a> {
 pub enum ToolIssue {
     /// The program is not found.
     Missing,
+    /// It is found, but its version command fails: it crashes or does not start.
+    NotRunnable {
+        /// What it printed about the failure, shortened and redacted; empty if it printed nothing.
+        output: String,
+    },
     /// It is found but older than required, or its version cannot be read.
     TooOld {
         /// What it reports, shortened and redacted; empty if the output has no version.
@@ -200,6 +216,12 @@ pub trait IndexRunner: Send + Sync {
     /// Checks, without running any project code, whether the indexer and its toolchain exist and
     /// have a usable version. Every tool that is usable is reported with the version it printed.
     fn check(&self, spec: &IndexerSpec) -> IndexerStatus;
+
+    /// Where `program` is found on the search path of the user, for a listing. `None` if it is
+    /// not found, or if the runner cannot tell.
+    fn locate(&self, _program: &str) -> Option<String> {
+        None
+    }
 
     /// Runs the indexer once and returns its index file.
     ///

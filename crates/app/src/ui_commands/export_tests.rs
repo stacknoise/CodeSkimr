@@ -19,13 +19,6 @@ const DATA_START: &str = "type=\"application/json\">";
 const DATA_END: &str = "</script>";
 
 impl Fixture {
-    fn scanned(&self) -> u64 {
-        let added = self
-            .call("projects.add", json!({ "source": self.folder() }))
-            .unwrap();
-        added["project"].as_u64().unwrap()
-    }
-
     /// The data block of the page, read back as JSON.
     fn data(&self, project: u64) -> Value {
         let out = self

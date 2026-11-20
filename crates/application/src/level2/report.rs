@@ -1,7 +1,7 @@
 //! What the second pass of a scan says about each language (ADR 0033, decision 12).
 
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{LanguageId, Snapshot};
+use codeskimr_domain::{LanguageId, SkipReason, Snapshot};
 
 use crate::ports::ToolProblem;
 
@@ -22,6 +22,21 @@ pub enum Skipped {
     Failed(ErrorCode),
 }
 
+impl Skipped {
+    /// The key that the report stores for it; `None` for a failure, which stores its code.
+    #[must_use]
+    pub const fn reason(&self) -> Option<SkipReason> {
+        match self {
+            Self::NotPermitted => Some(SkipReason::NotPermitted),
+            Self::NotConfirmed => Some(SkipReason::NotConfirmed),
+            Self::Unavailable(_) => Some(SkipReason::ToolsUnavailable),
+            Self::Stale => Some(SkipReason::Stale),
+            Self::Cancelled => Some(SkipReason::Cancelled),
+            Self::Failed(_) => None,
+        }
+    }
+}
+
 /// What happened for one language.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Level2Outcome {
@@ -36,6 +51,8 @@ pub enum Level2Outcome {
         mapped: u64,
         /// Uses that were dropped.
         dropped: u64,
+        /// Of the dropped uses, those of code in folders the scan skipped (ADR 0061).
+        outside_scan: u64,
     },
     /// Level 2 did not run or was not used.
     Skipped(Skipped),

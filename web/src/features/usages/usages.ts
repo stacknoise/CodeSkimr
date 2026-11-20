@@ -2,7 +2,13 @@ import { createSignal } from "solid-js";
 import { navigate } from "../../app/router";
 import { EXPLORER_ROUTE } from "../../app/consts";
 import { runCommand } from "../../shared/api/commands";
-import { focusSymbol, requestFocus, setFocusSymbol } from "../../shared/navigation/navigation";
+import {
+  clearOrigin,
+  focusSymbol,
+  requestFocus,
+  setFocusSymbol,
+  type TypeFocus,
+} from "../../shared/navigation/navigation";
 import { COMMAND, TYPE_KINDS } from "../explorer/consts";
 import { failed, type Failure } from "../explorer/failure";
 import type { SymbolInfo } from "../explorer/types";
@@ -25,6 +31,8 @@ const [answer, setAnswer] = createSignal<UsagesAnswer | null>(null);
 const [failure, setFailure] = createSignal<Failure | null>(null);
 const [loading, setLoading] = createSignal(false);
 const [selected, setSelected] = createSignal(NO_HIT);
+const [preview, setPreview] = createSignal<UsagesAnswer | null>(null);
+const [filter, setFilter] = createSignal("");
 const [code, setCode] = createSignal<Map<string, string>>(new Map());
 
 /** Counts the questions asked; the answer to an earlier one is dropped. */
@@ -50,10 +58,50 @@ export const setSelectedHit = setSelected;
 /** The code lines of the hits by place; empty until read, or if the code cannot be read. */
 export const hitCode = code;
 
+/** The text the hit list is filtered by. */
+export const hitFilter = filter;
+export const setHitFilter = setFilter;
+
+/** The answer for the symbol a single click on a card picked, `null` if none is picked. The side
+ * panel shows it instead of the answer of the focus. */
+export const previewAnswer = preview;
+
+/** Counts the previews asked; an earlier one is dropped. */
+let previewGeneration = 0;
+
+/** Forgets the picked symbol, so that the side panel shows the focus again. */
+export function clearPreview(): void {
+  previewGeneration += 1;
+  setPreview(null);
+  setSelected(NO_HIT);
+}
+
+/** Reads the usages of the picked symbol for the side panel; the graph stays as it is. */
+export async function loadPreview(project: number, symbol: number): Promise<void> {
+  previewGeneration += 1;
+  const mine = previewGeneration;
+  try {
+    const read = await runCommand<UsagesAnswer>(USAGES_COMMAND, {
+      project,
+      symbol,
+      way: way(),
+      depth: depth(),
+      include_tests: showTests(),
+    });
+    if (mine === previewGeneration) {
+      setPreview(read);
+      setSelected(NO_HIT);
+    }
+  } catch {
+    // The side panel keeps showing what it showed.
+  }
+}
+
 /** Reads the usages of `symbol` with the settings of the toolbar. */
 export async function loadUsages(project: number, symbol: number): Promise<void> {
   generation += 1;
   const mine = generation;
+  clearPreview();
   setLoading(true);
   setFailure(null);
   const input = {
@@ -100,9 +148,12 @@ async function loadCode(input: Record<string, unknown>, mine: number): Promise<v
  * usages. */
 export function clearUsages(): void {
   generation += 1;
+  clearPreview();
   setFocusSymbol(null);
+  clearOrigin();
   setAnswer(null);
   setCode(new Map());
+  setFilter("");
   setFailure(null);
   setLoading(false);
 }
@@ -114,8 +165,27 @@ export async function openInExplorer(project: number, place: Place): Promise<voi
     requestFocus({ type: place.id, member: null, kind: null });
   } else {
     const info = await runCommand<SymbolInfo>(COMMAND.symbol, { project, symbol: place.id });
-    const owner = info.breadcrumb[info.breadcrumb.length - 1]?.id ?? place.id;
+    const holder = [...info.breadcrumb].reverse().find((crumb) => TYPE_KINDS.includes(crumb.kind));
+    const owner = holder?.id ?? place.id;
     requestFocus({ type: owner, member: owner === place.id ? null : place.id, kind: place.kind });
   }
   navigate(EXPLORER_ROUTE.path);
+}
+
+/** Shows the exact place the user left the explorer from: the table of the members of a type, or
+ * one member. */
+export function openPlaceInExplorer(place: TypeFocus): void {
+  requestFocus(place);
+  navigate(EXPLORER_ROUTE.path);
+}
+
+/** Shows the symbol the user came from in the explorer, as the way back of the usages screen. */
+export async function openOriginInExplorer(project: number, symbol: number): Promise<void> {
+  const info = await runCommand<SymbolInfo>(COMMAND.symbol, { project, symbol });
+  await openInExplorer(project, {
+    id: info.id,
+    qualified_name: info.qualified_name,
+    kind: info.kind,
+    layer: info.layer,
+  });
 }

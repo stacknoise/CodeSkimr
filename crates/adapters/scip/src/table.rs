@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use codeskimr_domain::{FileId, Position, Span, Symbol, SymbolId, SymbolKind};
 
 use crate::consts::{
-    ACCESSOR_PREFIXES, CONSTRUCTOR_NAMES, MAX_LINE_CANDIDATES, NAME_SEGMENT_SEPARATOR,
+    ACCESSOR_PREFIXES, CONSTRUCTOR_NAMES, FILE_START, MAX_LINE_CANDIDATES, NAME_SEGMENT_SEPARATOR,
 };
 use crate::interval::IntervalIndex;
 use crate::symbol::{Descriptor, DescriptorKind};
@@ -135,6 +135,11 @@ impl<'a> SymbolTable<'a> {
         self.by_file.get(&file).map_or(&[], Vec::as_slice)
     }
 
+    /// The symbol of the file with this id.
+    pub(crate) fn find(&self, file: FileId, id: SymbolId) -> Option<&'a Symbol> {
+        self.symbols_of(file).iter().copied().find(|s| s.id == id)
+    }
+
     /// The smallest symbol of the file whose span contains `at`.
     pub(crate) fn innermost(&self, file: FileId, at: Position) -> Option<&'a Symbol> {
         self.enclosing(file, at)
@@ -164,6 +169,25 @@ impl<'a> SymbolTable<'a> {
             })
             .map(|symbol| symbol.id)
             .or_else(|| self.after_name(file, range, descriptor))
+    }
+
+    /// The level 1 module symbol of the file that a definition at `range` stands for, if the range
+    /// is the whole file: it starts at the first position of the file and reaches the end of the
+    /// module symbol, which spans the file (ADR 0061). The name plays no part. With more than one
+    /// module symbol of that shape the lowest id wins.
+    pub(crate) fn file_root(&self, file: FileId, range: Span) -> Option<SymbolId> {
+        if range.start() != FILE_START {
+            return None;
+        }
+        self.symbols_of(file)
+            .iter()
+            .filter(|symbol| {
+                symbol.kind == SymbolKind::Module
+                    && symbol.span.start() == FILE_START
+                    && symbol.span.end() <= range.end()
+            })
+            .map(|symbol| symbol.id)
+            .min()
     }
 
     /// The symbol of that name that starts on the line of `range`, behind it. Several of them

@@ -1,7 +1,7 @@
 //! The events of the application layer.
 
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{ProjectId, Snapshot};
+use codeskimr_domain::{LanguageId, Level2Stage, ProjectId, Snapshot, SnapshotId};
 
 use crate::stage::StageKind;
 
@@ -16,6 +16,38 @@ pub enum Event {
     FilesChanged(FilesChanged),
     /// A scan ended without a snapshot.
     ScanStopped(ScanStopped),
+    /// The alerts of a project changed (ADR 0068).
+    AlertsChanged(AlertsChanged),
+    /// A level 2 run moved on to a language or a stage (ADR 0072).
+    Level2Progressed(Level2Progressed),
+    /// A level 2 run ended, in any way (ADR 0072).
+    Level2Finished(Level2Finished),
+}
+
+/// A level 2 run works on a language. It names ids and labels only, never a path or a tool.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Level2Progressed {
+    /// Project whose run it is.
+    pub project: ProjectId,
+    /// The language the run works on.
+    pub language: LanguageId,
+    /// What it does for it.
+    pub stage: Level2Stage,
+}
+
+/// A level 2 run ended: checked, failed, cancelled or skipped as a whole.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Level2Finished {
+    /// Project whose run it was.
+    pub project: ProjectId,
+    /// The snapshot the run worked on.
+    pub snapshot: SnapshotId,
+    /// Languages an indexer checked.
+    pub checked: u32,
+    /// Languages that were skipped, with a reason in the report.
+    pub skipped: u32,
+    /// Languages whose run failed.
+    pub failed: u32,
 }
 
 /// Progress inside one stage. `total` is zero while the amount of work is unknown.
@@ -68,4 +100,14 @@ pub struct ScanStopped {
     pub project: ProjectId,
     /// Why it stopped.
     pub reason: StopReason,
+}
+
+/// The alert list of a project changed. It names no symbol and no text: events are not filtered
+/// per user, so a subscriber asks for the alerts it may see (ADR 0068, decision 7).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct AlertsChanged {
+    /// The project.
+    pub project: ProjectId,
+    /// How many alerts of the project are open now.
+    pub open: u32,
 }

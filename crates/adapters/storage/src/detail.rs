@@ -5,8 +5,8 @@ use codeskimr_application::ports::{
     CodeIndex, CodeSpan, FileHit, MemberRef, SearchHit, SymbolDetail, SymbolKey, TypeFocus,
 };
 use codeskimr_domain::{
-    FileId, LayerEdge, Metric, MetricValue, NamespaceGraph, ProjectId, QualifiedName, RelativePath,
-    Snapshot, SnapshotId, Symbol, SymbolId, SymbolName,
+    FileId, LanguageId, LayerEdge, Metric, MetricValue, NamespaceGraph, ProjectId, QualifiedName,
+    RelativePath, Snapshot, SnapshotId, Symbol, SymbolId, SymbolName,
 };
 use rusqlite::{Connection, OptionalExtension, params};
 
@@ -28,6 +28,7 @@ pub(crate) struct SymbolRow {
     span: SpanColumns,
     signature: Option<String>,
     doc: Option<String>,
+    origin: String,
     path: String,
 }
 
@@ -44,6 +45,7 @@ pub(crate) fn read_row(cols: &Cols<'_>) -> rusqlite::Result<SymbolRow> {
         span: SpanColumns::read(cols)?,
         signature: cols.take()?,
         doc: cols.take()?,
+        origin: cols.take()?,
         path: cols.take()?,
     })
 }
@@ -64,6 +66,7 @@ pub(crate) fn decode(row: SymbolRow) -> StorageResult<(Symbol, RelativePath)> {
         span: row.span.span()?,
         signature: row.signature,
         doc: row.doc,
+        origin: label_from(&row.origin)?,
     };
     Ok((symbol, RelativePath::new(row.path)?))
 }
@@ -133,6 +136,13 @@ fn metrics(conn: &Connection, snapshot: i64, symbol: SymbolId) -> StorageResult<
     Ok(found)
 }
 
+fn file_language(conn: &Connection, snapshot: i64, file: FileId) -> StorageResult<LanguageId> {
+    let language: String = conn
+        .prepare_cached(sql::FILE_LANGUAGE)?
+        .query_row(params![snapshot, column_int(file.get())?], |row| row.get(0))?;
+    Ok(LanguageId::new(language)?)
+}
+
 fn detail(
     conn: &Connection,
     snapshot: i64,
@@ -155,6 +165,7 @@ fn detail(
         members: members(conn, snapshot, symbol.id)?,
         metrics: metrics(conn, snapshot, symbol.id)?,
         same_name: small_from(same_name)?,
+        language: file_language(conn, snapshot, symbol.file)?,
         symbol,
         path,
     }))
@@ -222,6 +233,7 @@ impl CodeIndex for SqliteStore {
         Self::latest_snapshot(self, project)
     }
 
+    // codeskimr: allow CHK-102 hands the port call to the search of the store
     fn search(
         &self,
         snapshot: SnapshotId,

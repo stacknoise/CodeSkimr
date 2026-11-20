@@ -1,5 +1,6 @@
 # errors/error-codes.toml - single source of truth for all error codes (blueprint section 11).
 # Codes are never reused or renumbered; retire one with `deprecated = true`.
+# Exception (ADR 0060): a code that is in no published release may be renumbered once.
 # Every code needs an `error-<id>` message in locales/<lang>/errors.ftl for each language.
 
 [groups.APP]
@@ -68,6 +69,10 @@ crate = "codeskimr_i18n"
 title = "Export"
 crate = "codeskimr_application"
 
+[groups.ANN]
+title = "Annotations and alerts (ADR 0068)"
+crate = "codeskimr_application, codeskimr_storage"
+
 [groups.UI]
 title = "Frontend"
 crate = "web"
@@ -90,14 +95,6 @@ name = "launch_file_unavailable"
 severity = "error"
 retryable = true
 description = "The private file for starting the browser could not be created."
-since = "0.1.0"
-
-[[codes]]
-id = "APP-203"
-name = "language_packs_unavailable"
-severity = "error"
-retryable = true
-description = "The language packs built into the program could not be written to the data directory."
 since = "0.1.0"
 
 [[codes]]
@@ -125,6 +122,30 @@ description = "The system did not start a browser for the launch file."
 since = "0.1.0"
 
 [[codes]]
+id = "APP-602"
+name = "language_packs_unavailable"
+severity = "error"
+retryable = true
+description = "The language packs built into the program could not be written to the data directory."
+since = "0.1.0"
+
+[[codes]]
+id = "APP-603"
+name = "tray_start_failed"
+severity = "error"
+retryable = true
+description = "The program could not start itself in the background or show its tray icon."
+since = "0.1.0"
+
+[[codes]]
+id = "APP-604"
+name = "confirm_window_failed"
+severity = "error"
+retryable = true
+description = "The console window for the level 2 confirmation could not be started; the screen shows the command instead."
+since = "0.9.0"
+
+[[codes]]
 id = "CFG-101"
 name = "config_invalid_value"
 severity = "error"
@@ -147,6 +168,22 @@ severity = "error"
 retryable = false
 description = "A configuration file or flag sets a key that does not exist."
 since = "0.1.0"
+
+[[codes]]
+id = "CFG-104"
+name = "project_file_not_writable"
+severity = "error"
+retryable = false
+description = "The project file `.codeskimr.toml` could not be written."
+since = "0.9.0"
+
+[[codes]]
+id = "CFG-105"
+name = "level2_switch_off"
+severity = "error"
+retryable = false
+description = "Level 2 is not enabled in the user configuration; the program does not enable it itself."
+since = "0.9.0"
 
 [[codes]]
 id = "PRJ-101"
@@ -195,6 +232,14 @@ severity = "error"
 retryable = true
 description = "As many scans run at the same time as the server allows; try again when one has ended."
 since = "0.1.0"
+
+[[codes]]
+id = "PRJ-502"
+name = "scan_report_not_stored"
+severity = "warning"
+retryable = false
+description = "The report of the scan (its level and what level 2 did per language) could not be stored; the scan and its snapshot are stored."
+since = "0.9.0"
 
 [[codes]]
 id = "SRC-201"
@@ -306,6 +351,14 @@ name = "scip_mapping_too_low"
 severity = "error"
 retryable = false
 description = "Too few occurrences of a SCIP index map onto project symbols; level 1 references stay."
+since = "0.1.0"
+
+[[codes]]
+id = "RES-303"
+name = "scip_too_many_created_symbols"
+severity = "error"
+retryable = false
+description = "A SCIP index wants level 2 to create more symbols than level2.max_created_symbols allows; the whole import is refused and level 1 stays."
 since = "0.1.0"
 
 [[codes]]
@@ -513,7 +566,7 @@ id = "API-201"
 name = "command_not_found"
 severity = "error"
 retryable = false
-description = "The REST request names a command or route that does not exist."
+description = "The request names a command, tool or route that does not exist."
 since = "0.1.0"
 
 [[codes]]
@@ -529,7 +582,7 @@ id = "API-401"
 name = "token_missing_or_invalid"
 severity = "error"
 retryable = false
-description = "A state-changing request lacks a valid installation token."
+description = "The request lacks a valid installation token."
 since = "0.1.0"
 
 [[codes]]
@@ -571,6 +624,14 @@ severity = "error"
 retryable = true
 description = "The request took longer than the server waits for it."
 since = "0.1.0"
+
+[[codes]]
+id = "API-504"
+name = "confirm_window_rate_limited"
+severity = "error"
+retryable = true
+description = "A confirmation window was opened a moment ago; try again after the pause."
+since = "0.9.0"
 
 [[codes]]
 id = "API-601"
@@ -666,6 +727,70 @@ name = "export_write_failed"
 severity = "error"
 retryable = false
 description = "The export file could not be written."
+since = "0.1.0"
+
+[[codes]]
+id = "ANN-101"
+name = "annotation_target_not_found"
+severity = "error"
+retryable = false
+description = "The symbol an annotation is meant for is not in the newest snapshot of the project."
+since = "0.1.0"
+
+[[codes]]
+id = "ANN-102"
+name = "annotation_text_too_long"
+severity = "error"
+retryable = false
+description = "The text or the title of an annotation is longer than the configured limit."
+since = "0.1.0"
+
+[[codes]]
+id = "ANN-103"
+name = "annotation_invalid"
+severity = "error"
+retryable = false
+description = "The fields of an annotation do not fit its kind (for example a due date on a note), or a required text or title is missing or empty."
+since = "0.1.0"
+
+[[codes]]
+id = "ANN-104"
+name = "annotation_assignee_too_long"
+severity = "error"
+retryable = false
+description = "The assignee of a task is longer than the configured limit."
+since = "0.1.0"
+
+[[codes]]
+id = "ANN-105"
+name = "annotation_target_too_long"
+severity = "error"
+retryable = false
+description = "The qualified name or a parameter type of the symbol of an annotation is longer than the configured limit, or the symbol has more parameter types than allowed."
+since = "0.1.0"
+
+[[codes]]
+id = "ANN-201"
+name = "annotation_not_found"
+severity = "error"
+retryable = false
+description = "No annotation with this id exists."
+since = "0.1.0"
+
+[[codes]]
+id = "ANN-202"
+name = "alert_not_found"
+severity = "error"
+retryable = false
+description = "No alert with this id exists."
+since = "0.1.0"
+
+[[codes]]
+id = "ANN-301"
+name = "critical_already_marked"
+severity = "error"
+retryable = false
+description = "The symbol already has a critical mark; a symbol has at most one."
 since = "0.1.0"
 
 [[codes]]

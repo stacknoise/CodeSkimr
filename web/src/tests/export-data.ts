@@ -21,6 +21,7 @@ const FOCUS: UsagesAnswer = {
   snapshot: 4,
   symbol: { id: 1, qualified_name: "a::Foo", kind: "struct", layer: null },
   signature: null,
+  doc: null,
   path: "a.rs",
   depth: 3,
   incoming: { total: 3, hits: [hit(1, "call"), hit(1, "test"), hit(2, "call")] },
@@ -69,7 +70,12 @@ export const DATA = {
     layers: [
       {
         name: "",
-        namespaces: [{ name: "a", types: [{ id: 1, name: "Foo", kind: "struct", members: 1 }] }],
+        namespaces: [
+          {
+            name: "a",
+            types: [{ id: 1, name: "Foo", kind: "struct", members: 1, language: "csharp" }],
+          },
+        ],
       },
     ],
     thresholds: {},

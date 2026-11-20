@@ -2,18 +2,39 @@
 //! the server (blueprint 10.1). The scan runs on the thread of the call; the server runs every
 //! command on its blocking pool, and progress reaches the UI through the event bus.
 
+mod alerts;
+mod annotation_wire;
+mod annotations;
+#[cfg(test)]
+mod annotations_tests;
 mod consts;
 mod credentials;
 #[cfg(test)]
 mod credentials_tests;
 mod explorer;
+#[cfg(test)]
+mod explorer_tests;
 mod export;
 #[cfg(test)]
 mod export_tests;
 mod graph;
+mod graph_focus;
 mod graph_types;
+mod graph_wrap;
+mod indexers;
+mod layers;
+#[cfg(test)]
+mod layers_tests;
+mod level2;
+mod level2_revoke;
 mod preferences;
 mod projects;
+mod projects_pick;
+#[cfg(test)]
+mod projects_pick_tests;
+mod projects_remove;
+#[cfg(test)]
+mod projects_remove_tests;
 #[cfg(test)]
 mod projects_tests;
 mod rating;
@@ -21,37 +42,64 @@ mod search;
 mod source;
 mod status;
 mod symbol;
+mod temp_file;
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;
 mod usages;
 mod usages_code;
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 
+use codeskimr_application::annotations::AnnotationWrites;
 use codeskimr_application::config::{Config, Graph, MetricThresholds};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
+use codeskimr_application::level2::ConfirmationDesk;
 use codeskimr_application::ports::{IndexRunner, ProjectToolCheck};
 use codeskimr_application::registry::{Command, Registry};
 use codeskimr_cli::GlobalOptions;
+use codeskimr_domain::Author;
+use codeskimr_parsing::{Blake3Digest, TreeSitterHighlighter};
 use codeskimr_server::CommandApi;
 use codeskimr_source::FolderText;
 
 pub(crate) use status::{mark_ready, mark_started};
 
+use crate::clock::SystemClock;
+use crate::folder_dialog::{FolderPicker, SystemPicker};
+use crate::level2_runs::Level2Runs;
 use crate::locations::Locations;
 use crate::running::RunningScans;
-use crate::wiring::{Secrets, index_runner, tool_checker};
+use crate::scan::BrowserRun;
+use crate::wiring::{Secrets, index_runner, indexer_check, tool_checker};
+pub(crate) use alerts::{
+    AlertListInput, AlertListOut, AlertsDismiss, AlertsDismissAll, AlertsList, DismissAllInput,
+    DismissInput, Dismissed,
+};
+pub(crate) use annotation_wire::{AlertOut, AnnotationOut, Nullable, PageOut, TargetIn};
+pub(crate) use annotations::{
+    AnnotationPorts, AnnotationsDelete, AnnotationsList, AnnotationsUpdate, AnyKind, Create,
+    CreateInput, DeleteInput, ListInput, UpdateInput,
+};
+use annotations::{AnnotationsSummary, CriticalMark, NoteKind, TaskKind};
 use codeskimr_storage::SqliteStore;
+use consts::LOCAL_AUTHOR;
 #[cfg(test)]
 pub(crate) use consts::PREFERENCES_FILE;
 use credentials::{DeleteCredential, ListCredentials, SetCredential};
 use explorer::{ExplorerOutline, ExplorerPorts};
 pub(crate) use export::{ExportInput, HtmlExport};
 use graph::{GraphLayers, GraphPorts};
+use indexers::ListIndexers;
+use layers::{LayersGet, LayersSet};
+use level2::Level2StatusCommand;
+pub(crate) use level2::{Window, confirmation_desk};
+use level2_revoke::Level2Revoke;
 use preferences::{GetPreferences, PreferencesFile, SetPreferences};
 use projects::{AddProject, CancelScan, CheckTools, ListProjects, RescanProject};
+use projects_pick::{FolderDialogInfo, PickFolder};
+use projects_remove::RemoveProject;
 use search::{SearchPorts, SearchQuery};
 use source::ExplorerSource;
 use status::{BudgetTargets, StatusInfo};
@@ -67,11 +115,33 @@ pub struct Context {
     secrets: Arc<Secrets>,
     tools: Arc<dyn ProjectToolCheck>,
     running: RunningScans,
+    level2_runs: Level2Runs,
     registration: Mutex<()>,
     tiers: OnceLock<BTreeMap<String, &'static str>>,
 }
 
 impl Context {
+    /// What a scan from the browser needs: the mark that the project is being scanned, the
+    /// registry of level 2 runs and whether the caller wants level 2 (it does unless it said
+    /// `false`).
+    ///
+    /// # Errors
+    /// `PRJ-302` or `PRJ-501` as [`RunningScans::start`].
+    fn browser_run(
+        &self,
+        id: codeskimr_domain::ProjectId,
+        level2: Option<bool>,
+    ) -> Result<BrowserRun, CodedError> {
+        let guard = self.running.start(id)?;
+        let running = self.running.clone();
+        Ok(BrowserRun {
+            level2: level2.unwrap_or(true),
+            on_token: Box::new(move |token| running.attach(id, token)),
+            guard,
+            runs: self.level2_runs.clone(),
+        })
+    }
+
     /// The tier of a language pack, `full` or `basic`; `None` if no installed pack has that id (or
     /// the packs cannot be read, which the scan reports on its own).
     fn tier_of(&self, language: &str) -> Option<&'static str> {
@@ -117,6 +187,21 @@ pub fn command_api(
     )
 }
 
+/// A window that never opens anything and says the system has none: what the tests use in place
+/// of the real adapter, so that no test can open a window.
+#[cfg(test)]
+pub(crate) struct NoWindow;
+
+#[cfg(test)]
+impl codeskimr_application::ports::ConfirmationWindow for NoWindow {
+    fn open(
+        &self,
+        _project: codeskimr_domain::ProjectId,
+    ) -> Result<codeskimr_application::ports::WindowOutcome, CodedError> {
+        Ok(codeskimr_application::ports::WindowOutcome::Unavailable)
+    }
+}
+
 /// Like [`command_api`], but the tools are started through `runner` instead of as real processes
 /// (tests use this to say which tools exist).
 ///
@@ -131,17 +216,24 @@ pub fn command_api_probing(
 ) -> Result<CommandApi, CodedError> {
     let config = crate::config_files::load(locations, global, None)?;
     let catalog = crate::wiring::open_serving_store(locations, &config)?;
+    let window = Window {
+        port: Arc::new(NoWindow),
+        launch: codeskimr_application::level2::Launch::Copy,
+    };
     command_api_over(
         &catalog,
         &config,
         (global, locations),
         (events, secrets),
-        run,
+        (run, window),
     )
+    .map(|(api, _desk)| api)
 }
 
 /// Like [`command_api_probing`], but over a `catalog` that the caller opened, so that the MCP
-/// service can use the same store (#358).
+/// service can use the same store (#358). Besides the commands it returns the desk of the level 2
+/// confirmation, which the server needs for the route that opens the window; `window` is the
+/// adapter of that window and what its system can do.
 ///
 /// # Errors
 /// The same as [`command_api`], without the opening of the database.
@@ -150,9 +242,10 @@ pub fn command_api_over(
     config: &Config,
     (global, locations): (&GlobalOptions, &Locations),
     (events, secrets): (EventBus, Arc<Secrets>),
-    (runner, running): (Option<Arc<dyn IndexRunner>>, RunningScans),
-) -> Result<CommandApi, CodedError> {
+    ((runner, running), window): ((Option<Arc<dyn IndexRunner>>, RunningScans), Window),
+) -> Result<(CommandApi, Arc<ConfirmationDesk>), CodedError> {
     let runner = runner.unwrap_or_else(|| index_runner(locations));
+    let indexers = indexer_check(locations, runner.clone())?;
     let tools = tool_checker(catalog, (locations, runner))?;
     let context = Arc::new(Context {
         global: global.clone(),
@@ -161,23 +254,97 @@ pub fn command_api_over(
         secrets,
         tools: tools.clone(),
         running,
+        level2_runs: Level2Runs::default(),
         registration: Mutex::new(()),
         tiers: OnceLock::new(),
     });
     let mut registry = Registry::new();
     register_projects(&mut registry, catalog, &context)?;
     add(&mut registry, CheckTools { tools })?;
+    add(&mut registry, ListIndexers { indexers })?;
     register_credentials(&mut registry, catalog, &context)?;
     register_search(&mut registry, catalog)?;
     register_usages(&mut registry, catalog, config.mcp.max_depth)?;
     register_graph(&mut registry, catalog, config.graph.clone())?;
+    register_annotations(
+        &mut registry,
+        &annotation_ports(catalog, config, &context.events)?,
+    )?;
     add(&mut registry, status_info(config))?;
-    register_explorer(&mut registry, catalog, config.metrics.clone())?;
+    register_explorer(&mut registry, catalog, config.metrics.clone(), locations)?;
     register_preferences(&mut registry, locations)?;
     add(&mut registry, export_command(catalog, config, locations))?;
+    let desk = confirmation_desk(catalog, config, (global, locations), window);
+    register_level2(&mut registry, catalog, &desk)?;
     let mut api = CommandApi::new(Arc::new(registry));
     expose_all(&mut api)?;
-    Ok(api)
+    Ok((api, desk))
+}
+
+/// Registers the two commands of the level 2 switch (ADR 0071). Neither is an MCP tool.
+fn register_level2(
+    registry: &mut Registry,
+    catalog: &Arc<SqliteStore>,
+    desk: &Arc<ConfirmationDesk>,
+) -> Result<(), CodedError> {
+    add(
+        registry,
+        Level2StatusCommand {
+            desk: Arc::clone(desk),
+        },
+    )?;
+    add(
+        registry,
+        Level2Revoke {
+            projects: catalog.clone(),
+            store: catalog.clone(),
+            desk: Arc::clone(desk),
+        },
+    )
+}
+
+/// What the commands of annotations and alerts work through: the store, the checks of the texts
+/// against `config`, and the bus on which `AlertsChanged` goes out.
+pub(crate) fn annotation_ports(
+    store: &Arc<SqliteStore>,
+    config: &Config,
+    events: &EventBus,
+) -> Result<Arc<AnnotationPorts>, CodedError> {
+    let author = Author::new(LOCAL_AUTHOR).map_err(CodedError::caused_by)?;
+    Ok(Arc::new(AnnotationPorts {
+        store: store.clone(),
+        projects: store.clone(),
+        writes: AnnotationWrites {
+            store: store.clone(),
+            index: store.clone(),
+            states: store.clone(),
+            digest: Arc::new(Blake3Digest),
+            clock: Arc::new(SystemClock),
+            events: events.clone(),
+            config: config.annotations.clone(),
+            author,
+        },
+        config: config.annotations.clone(),
+    }))
+}
+
+/// Registers the commands of annotations and alerts.
+pub(crate) fn register_annotations(
+    registry: &mut Registry,
+    ports: &Arc<AnnotationPorts>,
+) -> Result<(), CodedError> {
+    let shared = || Arc::clone(ports);
+    add(registry, AnnotationsList { ports: shared() })?;
+    add(registry, AnnotationsSummary { ports: shared() })?;
+    add(registry, Create::<AnyKind>::new(shared()))?;
+    add(registry, Create::<CriticalMark>::new(shared()))?;
+    add(registry, Create::<NoteKind>::new(shared()))?;
+    add(registry, Create::<TaskKind>::new(shared()))?;
+    add(registry, AnnotationsUpdate { ports: shared() })?;
+    add(registry, AnnotationsDelete { ports: shared() })?;
+    add(registry, AlertsList { ports: shared() })?;
+    add(registry, AlertsDismiss { ports: shared() })?;
+    add(registry, AlertsDismissAll { ports: shared() })
 }
 
 /// The command behind the status bar, with the budgets and the worker limit of `config`.
@@ -205,7 +372,13 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<ListProjects>()?;
     api.expose::<AddProject>()?;
     api.expose::<RescanProject>()?;
+    api.expose::<RemoveProject>()?;
+    api.expose::<FolderDialogInfo>()?;
+    api.expose::<PickFolder>()?;
     api.expose::<CheckTools>()?;
+    api.expose::<ListIndexers>()?;
+    api.expose::<Level2StatusCommand>()?;
+    api.expose::<Level2Revoke>()?;
     api.expose::<CancelScan>()?;
     api.expose::<ListCredentials>()?;
     api.expose::<SetCredential>()?;
@@ -217,10 +390,28 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<UsagesQuery>()?;
     api.expose::<UsagesCode>()?;
     api.expose::<GraphLayers>()?;
+    api.expose::<LayersGet>()?;
+    api.expose::<LayersSet>()?;
     api.expose::<StatusInfo>()?;
     api.expose::<GetPreferences>()?;
     api.expose::<SetPreferences>()?;
     api.expose::<HtmlExport>()?;
+    expose_annotations(api)
+}
+
+/// Makes the commands of annotations and alerts reachable over REST.
+fn expose_annotations(api: &mut CommandApi) -> Result<(), CodedError> {
+    api.expose::<AnnotationsList>()?;
+    api.expose::<AnnotationsSummary>()?;
+    api.expose::<Create<AnyKind>>()?;
+    api.expose::<Create<CriticalMark>>()?;
+    api.expose::<Create<NoteKind>>()?;
+    api.expose::<Create<TaskKind>>()?;
+    api.expose::<AnnotationsUpdate>()?;
+    api.expose::<AnnotationsDelete>()?;
+    api.expose::<AlertsList>()?;
+    api.expose::<AlertsDismiss>()?;
+    api.expose::<AlertsDismissAll>()?;
     Ok(())
 }
 
@@ -234,6 +425,7 @@ fn register_projects(
         ListProjects {
             catalog: catalog.clone(),
             tools: Arc::clone(&context.tools),
+            reports: catalog.clone(),
             context: Arc::clone(context),
         },
     )?;
@@ -252,36 +444,52 @@ fn register_projects(
     )?;
     add(
         registry,
+        RemoveProject {
+            projects: catalog.clone(),
+            removal: catalog.clone(),
+            context: Arc::clone(context),
+        },
+    )?;
+    register_folder_dialog(registry)?;
+    add(
+        registry,
         CancelScan {
             context: Arc::clone(context),
         },
     )
 }
 
+/// The two commands of the "Browse" button, on the dialog of the operating system.
+fn register_folder_dialog(registry: &mut Registry) -> Result<(), CodedError> {
+    let picker: Arc<dyn FolderPicker> = Arc::new(SystemPicker::default());
+    add(
+        registry,
+        FolderDialogInfo {
+            picker: Arc::clone(&picker),
+        },
+    )?;
+    add(registry, PickFolder { picker })
+}
+
 fn register_credentials(
     registry: &mut Registry,
     catalog: &Arc<SqliteStore>,
-    context: &Arc<Context>,
+    context: &Context,
 ) -> Result<(), CodedError> {
-    add(
-        registry,
-        ListCredentials {
-            catalog: catalog.clone(),
-            secrets: Arc::clone(&context.secrets),
-        },
-    )?;
+    let secrets = &context.secrets;
+    let list = ListCredentials {
+        catalog: catalog.clone(),
+        secrets: Arc::clone(secrets),
+    };
+    add(registry, list)?;
     add(
         registry,
         SetCredential {
-            secrets: Arc::clone(&context.secrets),
+            secrets: Arc::clone(secrets),
         },
     )?;
-    add(
-        registry,
-        DeleteCredential {
-            secrets: Arc::clone(&context.secrets),
-        },
-    )
+    let secrets = Arc::clone(secrets);
+    add(registry, DeleteCredential { secrets })
 }
 
 fn register_search(registry: &mut Registry, store: &Arc<SqliteStore>) -> Result<(), CodedError> {
@@ -325,11 +533,24 @@ fn register_explorer(
     registry: &mut Registry,
     store: &Arc<SqliteStore>,
     thresholds: MetricThresholds,
+    locations: &Locations,
 ) -> Result<(), CodedError> {
-    let ports = explorer_ports(store, thresholds);
+    let ports = explorer_ports(store, thresholds, locations);
     add(
         registry,
         ExplorerOutline {
+            ports: Arc::clone(&ports),
+        },
+    )?;
+    add(
+        registry,
+        LayersGet {
+            ports: Arc::clone(&ports),
+        },
+    )?;
+    add(
+        registry,
+        LayersSet {
             ports: Arc::clone(&ports),
         },
     )?;
@@ -348,6 +569,7 @@ fn usages_ports(store: &Arc<SqliteStore>, max_depth: u32) -> Arc<UsagesPorts> {
         index: store.clone(),
         usages: store.clone(),
         text: Arc::new(FolderText),
+        reports: store.clone(),
         max_depth,
     })
 }
@@ -360,12 +582,17 @@ fn graph_ports(store: &Arc<SqliteStore>, look: Graph) -> Arc<GraphPorts> {
     })
 }
 
-fn explorer_ports(store: &Arc<SqliteStore>, thresholds: MetricThresholds) -> Arc<ExplorerPorts> {
+fn explorer_ports(
+    store: &Arc<SqliteStore>,
+    thresholds: MetricThresholds,
+    locations: &Locations,
+) -> Arc<ExplorerPorts> {
     Arc::new(ExplorerPorts {
         projects: store.clone(),
         index: store.clone(),
         outline: store.clone(),
         text: Arc::new(FolderText),
+        highlighter: Arc::new(TreeSitterHighlighter::new(&locations.languages_dir)),
         thresholds,
     })
 }
@@ -377,7 +604,7 @@ pub(crate) fn export_command(
     config: &Config,
     locations: &Locations,
 ) -> HtmlExport {
-    let explorer = explorer_ports(store, config.metrics.clone());
+    let explorer = explorer_ports(store, config.metrics.clone(), locations);
     HtmlExport::new(
         export::ExportParts {
             projects: store.clone(),

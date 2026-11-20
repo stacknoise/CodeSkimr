@@ -80,6 +80,29 @@ fn is_toml_key(key: &str) -> bool {
         })
 }
 
+/// The name of the table a header opens, without the brackets and the spaces.
+fn table_name(header: &str) -> &str {
+    header
+        .trim_start_matches(TABLE_OPEN)
+        .split(TABLE_CLOSE)
+        .next()
+        .unwrap_or_default()
+        .trim()
+}
+
+/// The dotted key path of `key` below `prefix`; `None` if `key` is no TOML key.
+fn full_key(prefix: &str, key: &str) -> Option<String> {
+    if !is_toml_key(key) {
+        return None;
+    }
+    let key = key.trim_matches(QUOTE);
+    Some(if prefix.is_empty() {
+        key.to_owned()
+    } else {
+        [prefix, key].join(KEY_SEPARATOR)
+    })
+}
+
 /// The dotted key paths of a TOML text with their zero-based lines. Section headers set the
 /// prefix; a line `key = value` outside a value that goes on over several lines is a key.
 pub(crate) fn toml_keys(text: &str) -> Vec<(String, usize)> {
@@ -96,21 +119,9 @@ pub(crate) fn toml_keys(text: &str) -> Vec<(String, usize)> {
             continue;
         }
         if let Some(header) = trimmed.strip_prefix(TABLE_OPEN) {
-            let name = header
-                .trim_start_matches(TABLE_OPEN)
-                .split(TABLE_CLOSE)
-                .next()
-                .unwrap_or_default();
-            name.trim().clone_into(&mut prefix);
+            table_name(header).clone_into(&mut prefix);
         } else if let Some((key, rest)) = trimmed.split_once(ASSIGNMENT) {
-            let key = key.trim();
-            if is_toml_key(key) {
-                let key = key.trim_matches(QUOTE);
-                let full = if prefix.is_empty() {
-                    key.to_owned()
-                } else {
-                    [prefix.as_str(), key].join(KEY_SEPARATOR)
-                };
+            if let Some(full) = full_key(&prefix, key.trim()) {
                 found.push((full, line));
             }
             value.advance(rest);

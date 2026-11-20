@@ -221,6 +221,7 @@ impl HtmlExport {
                 level: Level::Layers,
                 depth: 0,
                 focus: None,
+                namespace: None,
             },
         )?;
         Ok(Data {

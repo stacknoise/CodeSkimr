@@ -200,9 +200,16 @@ mod tests {
         );
     }
 
+    /// None of the request paths names a file of the folder.
+    fn assert_no_file(paths: &[&str]) {
+        for path in paths {
+            assert_eq!(relative_file(path), None, "{path}");
+        }
+    }
+
     #[test]
     fn nothing_leaves_the_folder() {
-        for path in [
+        assert_no_file(&[
             "/../secret.txt",
             "/assets/../../x.js",
             "/%2e%2e/x.js",
@@ -211,9 +218,7 @@ mod tests {
             "/a\\b.js",
             "/C:/x.js",
             "//..//x.js",
-        ] {
-            assert_eq!(relative_file(path), None, "{path}");
-        }
+        ]);
     }
 
     #[cfg(unix)]

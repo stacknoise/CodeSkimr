@@ -3,8 +3,8 @@
 use std::collections::BTreeMap;
 
 use crate::consts::{
-    TOOL_STATE_MISSING, TOOL_STATE_READY, TOOL_STATE_TOO_NEW, TOOL_STATE_TOO_OLD,
-    TOOL_STATE_VERSION_UNKNOWN,
+    TOOL_STATE_MISSING, TOOL_STATE_NOT_RUNNABLE, TOOL_STATE_READY, TOOL_STATE_TOO_NEW,
+    TOOL_STATE_TOO_OLD, TOOL_STATE_VERSION_UNKNOWN,
 };
 use crate::file::LanguageId;
 use crate::snapshot::Timestamp;
@@ -25,6 +25,9 @@ labeled_enum!(
         /// It runs, but its version is newer than the project allows (for example through the
         /// `rollForward` of `global.json`).
         TooNew => TOOL_STATE_TOO_NEW,
+        /// The program is found, but it does not run: its version command fails (it crashes, or it
+        /// is the shim of a component that was never added).
+        NotRunnable => TOOL_STATE_NOT_RUNNABLE,
     }
 );
 

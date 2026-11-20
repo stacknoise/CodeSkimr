@@ -1,7 +1,8 @@
 //! The program: reads the command line, runs the command and reports the outcome.
 
+use std::cell::RefCell;
 use std::ffi::OsString;
-use std::io::{self, BufRead, IsTerminal, Write};
+use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -9,11 +10,11 @@ use codeskimr_application::conventions::CheckReport;
 use codeskimr_application::error::CodedError;
 use codeskimr_cli::{
     Action, CliError, CredentialAction, ExportArgs, Invocation, Level2Action, OpenArgs, Parsed,
-    ScanArgs, ScanSummary, check_json, check_text, confirm_prompt, confirm_target, confirm_warning,
-    credential_deleted, credential_stored, device_prompt, error_line, export_written,
+    ScanArgs, ScanSummary, StartArgs, check_json, check_text, credential_deleted,
+    credential_stored, device_prompt, error_line, export_written, from_ui_notice, from_ui_wait,
     language_from, level2_confirmed, level2_declined, level2_revoked, open_ready, parse,
-    scan_finished, scan_json, scan_started, secret_prompt, serve_started, watch_started,
-    watch_updated,
+    scan_finished, scan_json, scan_started, secret_prompt, serve_started, start_keep_open,
+    start_tray, tray_labels, watch_started, watch_updated,
 };
 use codeskimr_codes::i18n::{CLI_CREDENTIAL_UNUSABLE_HINT, CLI_CREDENTIALS_HINT};
 use codeskimr_codes::{Coded, ErrorCode};
@@ -24,6 +25,7 @@ use codeskimr_secrets::Prompt;
 use crate::consts::{
     ENV_LANGUAGE_TAGS, EXIT_FAILURE, EXIT_USAGE, LINE_BREAK, PLAIN_ERROR_SEPARATOR,
 };
+use crate::level2_console::Console;
 use crate::locations::{Locations, Lookup};
 use crate::log_writer::RedactingWriter;
 use crate::logging;
@@ -31,13 +33,17 @@ use crate::source_arg::SourceError;
 use crate::watch::{self, Report};
 use crate::wiring::os_secrets;
 use crate::{
-    check, credential, export, level2_consent, mcp, open, scan, serve, start, ui_commands,
+    annotations_cli, check, credential, export, level2_consent, level2_console, mcp, open, scan,
+    serve, start, tray, ui_commands,
 };
 
 /// Why a command did not finish: a registered code, plus the parser's text for usage errors.
 struct Failure {
     code: ErrorCode,
     detail: Option<String>,
+    /// The failure was already shown to the user (in a window that closes right after), so
+    /// `report` only turns it into the exit status.
+    shown: bool,
 }
 
 impl From<CodedError> for Failure {
@@ -45,6 +51,7 @@ impl From<CodedError> for Failure {
         Self {
             code: error.code(),
             detail: None,
+            shown: false,
         }
     }
 }
@@ -58,6 +65,7 @@ impl From<CliError> for Failure {
         Self {
             code: error.code(),
             detail,
+            shown: false,
         }
     }
 }
@@ -159,6 +167,14 @@ fn run_invocation(
         needs_packs(&invocation.action),
     )?;
     match &invocation.action {
+        Action::Annotations(action) => {
+            let around = surroundings(invocation, &locations, (messages, language));
+            print_text(annotations_cli::run_annotations(action, &around))
+        }
+        Action::Alerts(action) => {
+            let around = surroundings(invocation, &locations, (messages, language));
+            print_text(annotations_cli::run_alerts(action, &around))
+        }
         Action::Credential(action) => run_credential(action, messages, language),
         Action::Level2(action) => run_level2(action, invocation, &locations, messages, language),
         Action::Scan(args) => run_scan(args, invocation, &locations, messages, language),
@@ -166,7 +182,7 @@ fn run_invocation(
             mcp::run(args, &invocation.global, &locations, &current_dir)?;
             Ok(Outcome::Done)
         }
-        Action::Start => run_start(invocation, &locations, env, (messages, language)),
+        Action::Start(args) => run_start(*args, invocation, &locations, env, (messages, language)),
         Action::Open(args) => run_open(*args, invocation, &locations, env, (messages, language)),
         Action::Serve(_) => {
             serve::run(&invocation.global, &locations, |url| {
@@ -219,38 +235,9 @@ fn run_credential(
     Ok(Outcome::Done)
 }
 
-/// Shows what the user is asked to confirm and reads the answer from the terminal. Without a
-/// terminal nothing is confirmed.
-fn ask_on_terminal(
-    (messages, language): (&Messages, &str),
-    target: &level2_consent::Target,
-) -> Result<String, CodedError> {
-    if !(io::stdin().is_terminal() && io::stdout().is_terminal()) {
-        return Err(CodedError::new(ErrorCode::IndexerNotPermitted));
-    }
-    let say = |text: Result<String, _>| text.map_err(CodedError::caused_by);
-    let (target_text, prompt) = (
-        confirm_target(
-            messages,
-            language,
-            &target.name,
-            &target.place,
-            target.branch.as_deref(),
-        ),
-        confirm_prompt(messages, language, &target.name),
-    );
-    write_out(&say(confirm_warning(messages, language))?);
-    write_out(&say(target_text)?);
-    write_out(&say(prompt)?);
-    let mut answer = String::new();
-    io::stdin()
-        .lock()
-        .read_line(&mut answer)
-        .map_err(|_| CodedError::new(ErrorCode::IndexerNotPermitted))?;
-    Ok(answer)
-}
-
-/// `codeskimr level2`: asks the user on the terminal; without one nothing is confirmed.
+/// `codeskimr level2`: asks the user on the terminal; without one nothing is confirmed. In a
+/// window the server opened (`--from-ui`) it says so first and waits for Enter at the end, so that
+/// the answer can be read; the consent is the same.
 fn run_level2(
     action: &Level2Action,
     invocation: &Invocation,
@@ -258,15 +245,61 @@ fn run_level2(
     messages: &Messages,
     language: &str,
 ) -> Result<Outcome, Failure> {
-    let ask = |target: &level2_consent::Target| ask_on_terminal((messages, language), target);
-    let done = level2_consent::run(action, &invocation.global, locations, &ask)?;
-    let line = match &done {
-        level2_consent::Done::Confirmed(name) => level2_confirmed(messages, language, name),
-        level2_consent::Done::Declined(name) => level2_declined(messages, language, name),
-        level2_consent::Done::Revoked(name) => level2_revoked(messages, language, name),
+    let from_ui = matches!(action, Level2Action::Confirm { from_ui: true, .. });
+    // Only Windows needs a console of its own: the window there has no standard streams.
+    #[cfg(windows)]
+    let console = RefCell::new(if from_ui {
+        Console::window()?
+    } else {
+        Console::standard()
+    });
+    #[cfg(not(windows))]
+    let console = RefCell::new(Console::standard());
+    if from_ui {
+        let notice = from_ui_notice(messages, language).map_err(CliError::from)?;
+        console.borrow_mut().say(&notice);
+    }
+    let ask = |target: &level2_consent::Target| {
+        level2_console::ask((messages, language), &console, target)
     };
-    write_out(&line.map_err(CliError::from)?);
-    Ok(Outcome::Done)
+    let result = level2_consent::run(action, &invocation.global, locations, &ask);
+    let line = result.map_err(Failure::from).and_then(|done| {
+        let text = match &done {
+            level2_consent::Done::Confirmed(name) => level2_confirmed(messages, language, name),
+            level2_consent::Done::Declined(name) => level2_declined(messages, language, name),
+            level2_consent::Done::Revoked(name) => level2_revoked(messages, language, name),
+        };
+        text.map_err(|error| Failure::from(CliError::from(error)))
+    });
+    if !from_ui {
+        write_out(&line?);
+        return Ok(Outcome::Done);
+    }
+    finish_window(&mut console.borrow_mut(), line, (messages, language))
+}
+
+/// The end of a window the server opened: the answer or the error is shown in the window itself
+/// (the standard error of the program is not what the user looks at), then the window waits for
+/// Enter. A failure is reported as shown, so that it is not printed a second time.
+fn finish_window(
+    console: &mut Console,
+    line: Result<String, Failure>,
+    (messages, language): (&Messages, &str),
+) -> Result<Outcome, Failure> {
+    let text = match &line {
+        Ok(text) => text.clone(),
+        Err(failure) => error_line(messages, language, failure.code)
+            .unwrap_or_else(|_| failure.code.id().to_owned()),
+    };
+    console.say(&text);
+    if let Ok(wait) = from_ui_wait(messages, language) {
+        console.say(&wait);
+    }
+    console.wait_for_enter();
+    line.map(|_| Outcome::Done).map_err(|failure| Failure {
+        shown: true,
+        ..failure
+    })
 }
 
 /// `codeskimr open`: tells where the launch file is, then waits until the browser has used it.
@@ -287,10 +320,72 @@ fn run_open(
     Ok(Outcome::Done)
 }
 
-/// `codeskimr` without a command: the server runs on its own thread, and as soon as it listens the
-/// browser gets the launch code. The server keeps running until it is interrupted, also when the
-/// browser could not be started.
+/// `codeskimr` without a command. On Windows and macOS the program starts itself in the tray and
+/// ends (ADR 0067); with `--console`, and everywhere else, it stays in this window.
 fn run_start(
+    args: StartArgs,
+    invocation: &Invocation,
+    locations: &Locations,
+    env: Lookup<'_>,
+    texts: (&Messages, &str),
+) -> Result<Outcome, Failure> {
+    match tray::mode(args, env) {
+        tray::Start::Console => run_console_start(invocation, locations, env, texts),
+        tray::Start::Detach => run_detach(locations, texts),
+        tray::Start::Tray => run_tray_start(invocation, locations, texts),
+    }
+}
+
+/// Starts the copy of the program that lives in the tray, tells where its log is and ends.
+fn run_detach(
+    locations: &Locations,
+    (messages, language): (&Messages, &str),
+) -> Result<Outcome, Failure> {
+    let log = tray::detach(locations, std::env::args_os().skip(1))?;
+    if let Ok(line) = start_tray(messages, language, &log.display().to_string()) {
+        write_out(&line);
+    }
+    Ok(Outcome::Done)
+}
+
+/// The tray copy: the server runs on its own thread, the tray icon on this one. "Quit" in its menu
+/// ends the server and the program.
+fn run_tray_start(
+    invocation: &Invocation,
+    locations: &Locations,
+    (messages, language): (&Messages, &str),
+) -> Result<Outcome, Failure> {
+    let labels = tray_labels(messages, language).map_err(CliError::from)?;
+    let (stop, stopped) = tokio::sync::oneshot::channel::<()>();
+    let server_ended = std::sync::atomic::AtomicBool::new(false);
+    let serve = |address: std::sync::mpsc::Sender<String>| {
+        let listening = move |url: &str| {
+            let _ = address.send(url.to_owned());
+        };
+        let shutdown = async move {
+            let _ = stopped.await;
+        };
+        let result = serve::run_until(&invocation.global, locations, listening, shutdown);
+        // The tray looks at this: a server that ended on its own takes the icon with it.
+        server_ended.store(true, std::sync::atomic::Ordering::Release);
+        result
+    };
+    let listening = |_: &str| {
+        let shown = tray::show(&invocation.global, locations, &labels, &server_ended);
+        // However the icon ended, the server ends with it.
+        let _ = stop.send(());
+        shown
+    };
+    let failed = |code: CodedError| {
+        let _ = report(messages, language, &Failure::from(code));
+    };
+    start::together(serve, listening, failed)?;
+    Ok(Outcome::Done)
+}
+
+/// The server runs on its own thread, and as soon as it listens the browser gets the launch code.
+/// The server keeps running until it is interrupted, also when the browser could not be started.
+fn run_console_start(
     invocation: &Invocation,
     locations: &Locations,
     env: Lookup<'_>,
@@ -305,6 +400,9 @@ fn run_start(
         if let Ok(line) = serve_started(messages, language, url) {
             write_out(&line);
         }
+        if let Ok(line) = start_keep_open(messages, language) {
+            write_out(&line);
+        }
         let args = OpenArgs { no_browser: false };
         run_open(args, invocation, locations, env, (messages, language)).map(|_| ())
     };
@@ -312,6 +410,26 @@ fn run_start(
         let _ = report(messages, language, &failure);
     };
     start::together(serve, listening, failed)?;
+    Ok(Outcome::Done)
+}
+
+/// What `codeskimr annotations` and `codeskimr alerts` run in.
+fn surroundings<'a>(
+    invocation: &'a Invocation,
+    locations: &'a Locations,
+    (messages, language): (&'a Messages, &'a str),
+) -> annotations_cli::Surroundings<'a> {
+    annotations_cli::Surroundings {
+        global: &invocation.global,
+        locations,
+        messages,
+        language,
+    }
+}
+
+/// Prints what a command made and ends the run.
+fn print_text(text: Result<String, CodedError>) -> Result<Outcome, Failure> {
+    write_out(&text?);
     Ok(Outcome::Done)
 }
 
@@ -430,6 +548,9 @@ fn show_report(report: Report, json: bool, messages: &Messages, language: &str) 
 
 fn report(messages: &Messages, language: &str, failure: &Failure) -> ExitCode {
     tracing::debug!(code = failure.code.id(), detail = ?failure.detail);
+    if failure.shown {
+        return ExitCode::from(exit_status(failure.code));
+    }
     let Ok(line) = error_line(messages, language, failure.code) else {
         return report_plain(failure.code);
     };
@@ -487,6 +608,7 @@ fn source_failure(error: SourceError, messages: &Messages, language: &str) -> Fa
     Failure {
         code: ErrorCode::ProjectSourceInvalid,
         detail,
+        shown: false,
     }
 }
 
@@ -499,6 +621,6 @@ mod needs_packs_tests {
         let delete = Action::Credential(CredentialAction::Delete { id: "x".to_owned() });
         assert!(!needs_packs(&delete));
         assert!(!needs_packs(&Action::Open(OpenArgs::default())));
-        assert!(needs_packs(&Action::Start));
+        assert!(needs_packs(&Action::Start(StartArgs::default())));
     }
 }

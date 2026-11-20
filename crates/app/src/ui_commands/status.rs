@@ -63,6 +63,7 @@ pub struct BudgetTargets {
 }
 
 impl From<&Budgets> for BudgetTargets {
+    // codeskimr: allow CHK-102 maps the budgets of the configuration into the targets of the status view
     fn from(budgets: &Budgets) -> Self {
         Self {
             cold_start: budgets.cold_start_ms,

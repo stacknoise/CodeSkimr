@@ -10,7 +10,7 @@ Blueprint 10.4 (`check_conventions`), 10.2 (`codeskimr check`), 11.6 (E-04) and 
 | `CHK-102` `duplicate_block` | R-01: two functions whose syntax fingerprints are at least `conventions.duplicate_similarity_percent` similar (default 85) | checked, within the checked files and (MCP) against the stored project |
 | `CHK-101` `literal_found` | R-06: no literals in a function except the exceptions of its language pack (ADR 0058) | checked for the languages whose pack reports literals (Python so far), else listed in `not_checked`. The Dylint lint `no_literals` covers Rust in CI |
 | `CHK-103` `layer_violation` | R-04 | not checked yet: the project model has no allowed directions (issue #45) |
-| `CHK-105` `complexity_too_high` | R-02: cognitive complexity at most `conventions.max_cognitive_complexity` (default 15) | checked for the languages whose pack counts it (ADR 0048; Rust and Python so far), else listed in `not_checked` |
+| `CHK-105` `complexity_too_high` | R-02: cognitive complexity at most `conventions.max_cognitive_complexity` (default 15) | checked for the languages whose pack counts it (ADR 0048; Rust, Python, Java, TypeScript, TSX, JavaScript and C# so far), else listed in `not_checked` |
 | `CHK-106` `too_many_parameters` | R-02: at most `conventions.max_parameters` parameters (default 5), without the receiver | like `CHK-105` |
 
 The report always lists the rules it did not check (`not_checked`), so a clean report is never read as "all rules are met". `CHK-101`, `CHK-105` and `CHK-106` appear there as soon as a function of a language whose pack does not count them is among the checked files.
@@ -28,6 +28,18 @@ The report always lists the rules it did not check (`not_checked`), so a clean r
 - Duplicates are found among the selected files. To find a copy of code that is outside the selection, select the whole project (CI does). `find_similar_code` (WP-37, `docs/mcp.md`) compares against the stored project: the fingerprints are persisted with every snapshot (`docs/storage.md`). `check_conventions` over MCP does the same: a function that no other checked function copies is also compared with the stored functions of the newest snapshot. Stored functions in the checked files themselves (their older versions) and in `test_folders` are never an original. Without a snapshot, or in `codeskimr check` on the command line, only the checked files are compared.
 - A function reports at most one duplicate finding: on the later function in path and line order, naming the earlier one and the similarity (rounded down to a whole percent). Findings are ordered by file, line and code.
 - Length is the code lines of the whole declaration, signature included (ADR 0015: no blank or comment-only lines). Clippy's `too_many_lines` in CI counts from the opening brace of the body, so a function with a signature over several lines can be reported here (`CHK-104`) with 41 to 43 lines while clippy accepts it. CI stays the authority; the difference is at most the extra signature lines. A nested function counts for itself and for the function around it. A function and one nested inside it are never reported as duplicates of each other.
+
+## Reasoned exception for mapping functions (ADR 0070)
+
+A pure mapping function (it copies the fields of one shape into another, no branch, no loop) can be excused from `CHK-102` with a comment directly above its declaration:
+
+```rust
+/// The budgets as the status bar shows them.
+// codeskimr: allow CHK-102 maps the budgets of the configuration into the status view
+fn from(budgets: &Budgets) -> Self { ... }
+```
+
+The marker `codeskimr: allow CHK-102` needs a reason of at least 8 letters or digits after it. It counts only in the comment block right above the declaration (up to 12 lines, attributes and doc comments included, ended by a blank line), only for a function whose cognitive complexity is 0, and only if the language pack counts that (Rust, Python and Java so far). It removes the `CHK-102` finding of that function and nothing else; `CHK-104`, `CHK-105` and `CHK-106` still apply. List all exceptions with `rg "codeskimr: allow CHK-102"`.
 
 ## Configuration
 

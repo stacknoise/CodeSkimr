@@ -4,6 +4,7 @@ export const ICON_SIZE = 20;
 /** Icons that the top bar names. */
 export const ICON_SEARCH = "search";
 export const ICON_BRANCH = "branch";
+export const ICON_BELL = "bell";
 /** Sizes of the small icons of the top bar. */
 export const ICON_SIZE_SMALL = 13;
 export const ICON_SIZE_MEDIUM = 16;
@@ -33,6 +34,11 @@ export const ICON_PATHS = {
     "M16 7a2 2 0 1 0 4 0 2 2 0 1 0-4 0",
     "M6 7v10M18 9c0 5-12 3-12 8",
   ],
+  bell: ["M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8", "M10 20a2 2 0 0 0 4 0"],
+  annotations: [
+    "M9 6h11M9 12h11M9 18h11",
+    "M3.5 6l1.2 1.2L7 5M3.5 12l1.2 1.2L7 11M3.5 18l1.2 1.2L7 17",
+  ],
   settings: [
     "M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z",
     "M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1",
@@ -55,3 +61,6 @@ export const TONE = {
 } as const;
 /** Where a name may break: right after `.`, `_` or `:`. */
 export const BREAK_AFTER = /(?<=[._:])/;
+
+/** The ARIA role of a note that screen readers announce at once. */
+export const ALERT_ROLE = "alert";

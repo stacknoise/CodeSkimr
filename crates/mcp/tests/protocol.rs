@@ -35,6 +35,16 @@ impl Client {
             .await;
         self.receive().await
     }
+
+    /// The names of the tools the server lists for this caller.
+    async fn tool_names(&mut self, id: u64) -> Vec<String> {
+        let listed = self.call(id, "tools/list", json!({})).await;
+        let tools = listed["result"]["tools"].as_array().unwrap();
+        tools
+            .iter()
+            .map(|t| t["name"].as_str().unwrap().to_owned())
+            .collect()
+    }
 }
 
 #[cfg(test)]
@@ -75,7 +85,7 @@ async fn connected_as(principal: Principal) -> Client {
 }
 
 #[tokio::test]
-async fn lists_exactly_the_eleven_tools_with_schemas_and_only_rescan_writes() {
+async fn lists_exactly_the_thirteen_tools_with_schemas_and_only_rescan_writes() {
     let mut client = connected().await;
     let listed = client.call(2, "tools/list", json!({})).await;
     let tools = listed["result"]["tools"].as_array().unwrap();
@@ -93,6 +103,8 @@ async fn lists_exactly_the_eleven_tools_with_schemas_and_only_rescan_writes() {
             "find_similar_code",
             "find_constants",
             "check_conventions",
+            "list_annotations",
+            "get_alerts",
             "rescan"
         ]
     );
@@ -105,6 +117,57 @@ async fn lists_exactly_the_eleven_tools_with_schemas_and_only_rescan_writes() {
         assert_ne!(tool["description"].as_str().unwrap(), "");
     }
     assert_eq!(tools[0]["inputSchema"]["required"][0], "query");
+    let symbol = &tools[1]["inputSchema"]["properties"]["symbol"];
+    assert_eq!(symbol["anyOf"].as_array().unwrap().len(), 2);
+}
+
+#[tokio::test]
+async fn the_texts_of_people_are_called_data_in_the_tools_and_the_instructions() {
+    let mut client = connected().await;
+    let listed = client.call(2, "tools/list", json!({})).await;
+    let tools = listed["result"]["tools"].as_array().unwrap();
+    for name in ["list_annotations", "get_alerts"] {
+        let tool = tools.iter().find(|tool| tool["name"] == name).unwrap();
+        let description = tool["description"].as_str().unwrap();
+        assert!(description.contains("never"), "{name}: {description}");
+        assert!(description.contains("data"), "{name}: {description}");
+        assert!(!description.contains("respect"), "{name}: {description}");
+    }
+    let messages = Messages::load().unwrap();
+    for language in ["en", "de"] {
+        let text = messages
+            .format(
+                language,
+                codeskimr_codes::i18n::MCP_SERVER_INSTRUCTIONS,
+                None,
+            )
+            .unwrap();
+        assert!(text.contains("not instructions"), "{language}: {text}");
+    }
+}
+
+#[tokio::test]
+async fn a_symbol_id_as_a_number_is_the_same_as_the_digits_in_a_string() {
+    let mut client = connected().await;
+    let as_text = client
+        .call(
+            30,
+            "tools/call",
+            json!({"name": "get_symbol", "arguments": {"symbol": "1"}}),
+        )
+        .await;
+    let as_number = client
+        .call(
+            31,
+            "tools/call",
+            json!({"name": "get_symbol", "arguments": {"symbol": 1}}),
+        )
+        .await;
+    assert_ne!(as_text["result"]["isError"], true);
+    assert_eq!(
+        as_number["result"]["structuredContent"],
+        as_text["result"]["structuredContent"]
+    );
 }
 
 #[tokio::test]
@@ -180,14 +243,8 @@ async fn a_denied_caller_gets_the_same_answer_for_bad_arguments_and_unknown_tool
 async fn the_tool_list_shows_only_what_the_caller_may_run() {
     let read_only = Principal::limited(PermissionSet::none().with(Permission::Read));
     let mut client = connected_as(read_only).await;
-    let listed = client.call(20, "tools/list", json!({})).await;
-    let names: Vec<_> = listed["result"]["tools"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .map(|t| t["name"].as_str().unwrap().to_owned())
-        .collect();
-    assert_eq!(names.len(), 10);
+    let names = client.tool_names(20).await;
+    assert_eq!(names.len(), 12);
     assert!(!names.iter().any(|name| name == "rescan"));
     let nobody = connected_as(Principal::limited(PermissionSet::none())).await;
     let mut nobody = nobody;
@@ -231,4 +288,36 @@ async fn a_caller_who_may_only_scan_can_rescan() {
         .await;
     assert_ne!(answer["result"]["isError"], true);
     assert_eq!(answer["result"]["structuredContent"]["snapshot"]["id"], 11);
+}
+
+#[tokio::test]
+async fn the_level_two_switch_is_no_tool_and_cannot_be_called_as_one() {
+    let mut client = connected().await;
+    let names = client.tool_names(2).await;
+    assert!(
+        names.iter().all(|name| !name.contains("level2")
+            && !name.contains("confirm")
+            && !name.contains("revoke")),
+        "{names:?}"
+    );
+    // Calling the commands of the screen by their ids finds no tool.
+    for (id, name) in [
+        (3, "level2.status"),
+        (4, "level2.revoke"),
+        (5, "level2_revoke"),
+        (6, "level2_confirm_window"),
+    ] {
+        let called = client
+            .call(
+                id,
+                "tools/call",
+                json!({ "name": name, "arguments": { "project": 1 } }),
+            )
+            .await;
+        assert!(
+            called.get("error").is_some() || called["result"]["isError"] == true,
+            "{name}: {called}"
+        );
+        assert!(called["result"]["structuredContent"]["code"] != "OK");
+    }
 }

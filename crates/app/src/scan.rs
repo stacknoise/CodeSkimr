@@ -2,7 +2,7 @@
 //! what watch mode scans again and again.
 
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use codeskimr_application::access;
 use codeskimr_application::cancel::CancelToken;
@@ -10,21 +10,31 @@ use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::level2::{LanguageReport, Level2Outcome, Skipped};
+use codeskimr_application::pipeline::Level2Run;
 use codeskimr_application::pipeline::{Job, JobResult, Queued, Scanner};
-use codeskimr_application::ports::{ProjectRepository, ProjectToolCheck};
+use codeskimr_application::ports::{
+    FileAnalyzer, LanguageOutcome, ProjectRepository, ProjectToolCheck, ScanWarning,
+};
 use codeskimr_application::tools::ToolsView;
-use codeskimr_cli::{GlobalOptions, Level2Line, Level2Reason, ScanArgs, ScanSummary};
+use codeskimr_cli::{GlobalOptions, Level2Line, Level2Reason, ScanArgs, ScanSummary, WarningLine};
 use codeskimr_codes::{Coded, ErrorCode};
-use codeskimr_domain::{Permission, Principal, Project, ProjectId, ProjectSource, ScanMode};
+use codeskimr_domain::{
+    FolderPath, Permission, Principal, Project, ProjectId, ProjectSource, ScanMode, ScanOrigin,
+    SkipReason, Snapshot,
+};
 use codeskimr_storage::SqliteStore;
 
 use crate::config_files;
-use crate::consts::LOG_TOOL_CHECK_FAILED;
+use crate::consts::{LEVEL2_THREAD_NAME, LOG_TOOL_CHECK_FAILED};
 use crate::cpu_time::{process_cpu_time, seconds_since};
+use crate::level2_runs::{Level2Runs, RunLimits, RunSlot};
 use crate::locations::Locations;
 use crate::principal;
+use crate::running::ScanGuard;
 use crate::source_arg::{SourceError, SourceSpec, classify};
-use crate::wiring::{Secrets, build_scanner, index_runner, open_store, tool_checker};
+use crate::wiring::{
+    Secrets, build_analysis, index_runner, open_store, scanner_over, tool_checker,
+};
 
 /// Checks the source argument before anything is scanned or printed.
 ///
@@ -42,6 +52,7 @@ pub fn prepare(args: &ScanArgs) -> Result<SourceSpec, SourceError> {
 /// A registered project with everything needed to scan it again and again.
 pub struct Session {
     scanner: Scanner,
+    analyzer: Arc<dyn FileAnalyzer>,
     tools: Arc<dyn ProjectToolCheck>,
     principal: Principal,
     project: Project,
@@ -107,34 +118,175 @@ impl Session {
     /// # Errors
     /// The same as [`Session::scan`].
     pub fn scan_quick(&self, mode: ScanMode) -> Result<ScanSummary, CodedError> {
-        self.run_job(Job::new(self.project.id, mode).without_level2())
+        self.run_job(
+            Job::new(self.project.id, mode)
+                .without_level2()
+                .from_watcher(),
+        )
     }
 
-    /// Like [`Session::scan`], but level 1 only, and it hands the token that cancels this scan to
-    /// `on_token` before the scan starts. The UI uses it; only the scan of the command line runs
-    /// level 2.
+    /// An incremental scan of level 1 that looks for changes only in `paths` (the way MCP
+    /// `rescan` with `paths` does), for the tests.
     ///
     /// # Errors
     /// The same as [`Session::scan`].
+    #[cfg(test)]
+    pub fn scan_paths(&self, paths: &[String]) -> Result<ScanSummary, CodedError> {
+        self.run_job(
+            Job::new(self.project.id, ScanMode::Incremental)
+                .without_level2()
+                .with_paths(paths),
+        )
+    }
+
+    /// Like [`Session::scan`], but level 1 only, and it hands the token that cancels this scan to
+    /// `on_token` before the scan starts, for the tests of the UI commands.
+    ///
+    /// # Errors
+    /// The same as [`Session::scan`].
+    #[cfg(test)]
     pub fn scan_with(
         &self,
         mode: ScanMode,
         on_token: impl FnOnce(CancelToken),
     ) -> Result<ScanSummary, CodedError> {
-        let job = Job::new(self.project.id, mode);
+        let job = Job::new(self.project.id, mode).started_from(ScanOrigin::Browser);
         on_token(job.cancel_token());
         self.run_job(job)
     }
 
     fn run_job(&self, job: Job<Queued>) -> Result<ScanSummary, CodedError> {
+        self.run_ran(job).map(|ran| ran.summary)
+    }
+
+    /// Runs a scan for the browser (`projects.add`, `projects.rescan`): level 1 now, and, if
+    /// `run.level2` is set, level 2 in a background task after it (ADR 0072). The command returns
+    /// with the summary of level 1; the guard of `running` stays until the task has ended, so
+    /// the project counts as scanning until then.
+    ///
+    /// # Errors
+    /// The same as [`Session::scan`], for level 1. Level 2 never fails the call.
+    pub fn scan_in_browser(
+        self,
+        mode: ScanMode,
+        run: BrowserRun,
+    ) -> Result<BrowserScan, CodedError> {
+        let job = Job::new(self.project.id, mode).started_from(ScanOrigin::Browser);
+        let cancel = job.cancel_token();
+        (run.on_token)(cancel.clone());
+        let ran = self.run_ran(job)?;
+        let level2 = if run.level2 {
+            self.start_level2(
+                Level2Handoff {
+                    snapshot: ran.snapshot,
+                    root: ran.root,
+                    cancel,
+                },
+                (run.guard, run.runs),
+            )
+        } else {
+            Level2Start::NotRequested
+        };
+        Ok(BrowserScan {
+            summary: ran.summary,
+            level2,
+        })
+    }
+
+    /// Asks for the permission, takes a place and continues in a task. Whatever stops it is stored
+    /// as the report of the run: level 1 stays.
+    fn start_level2(
+        self,
+        handoff: Level2Handoff,
+        (guard, runs): (ScanGuard, Level2Runs),
+    ) -> Level2Start {
+        let origin = ScanOrigin::Browser;
+        match self.take_place(&handoff, &runs) {
+            Ok(slot) => self.spawn_level2(handoff, (guard, slot)),
+            Err(reason) => {
+                self.scanner.skip_level2(
+                    &handoff.snapshot,
+                    origin,
+                    LanguageOutcome::Skipped(reason),
+                );
+                Level2Start::NotStarted(reason)
+            }
+        }
+    }
+
+    /// The checks before a run from the browser: the right and the consent (as `authorize_run`
+    /// asks them), the master switch of the user configuration, then the place and the pause.
+    fn take_place(
+        &self,
+        handoff: &Level2Handoff,
+        runs: &Level2Runs,
+    ) -> Result<RunSlot, SkipReason> {
+        let gate = self
+            .scanner
+            .level2_gate(&self.principal, self.project.id, &handoff.root)
+            .err()
+            .map(|skipped| skipped.reason().unwrap_or(SkipReason::NotConfirmed));
+        // The switch is read from the user configuration of this command, which the project file
+        // cannot set; a confirmation alone does not start a run from the browser (ADR 0071,
+        // decision 8).
+        let switched_off = (!self.config.level2.enabled).then_some(SkipReason::NotConfirmed);
+        if let Some(reason) = gate.or(switched_off) {
+            return Err(reason);
+        }
+        let limits = RunLimits {
+            max_parallel: self.config.level2.max_parallel_runs,
+            cooldown: Duration::from_secs(u64::from(self.config.level2.ui_cooldown_seconds)),
+        };
+        runs.begin(self.project.id, limits, Instant::now())
+    }
+
+    fn spawn_level2(
+        self,
+        handoff: Level2Handoff,
+        (guard, slot): (ScanGuard, RunSlot),
+    ) -> Level2Start {
+        let snapshot = handoff.snapshot.clone();
+        let session = Arc::new(self);
+        let worker = Arc::clone(&session);
+        let spawned = std::thread::Builder::new()
+            .name(LEVEL2_THREAD_NAME.to_owned())
+            .spawn(move || {
+                let _slot = slot;
+                let _guard = guard;
+                let _ = worker.scanner.run_level2(&Level2Run {
+                    principal: &worker.principal,
+                    snapshot: &handoff.snapshot,
+                    root: &handoff.root,
+                    cancel: &handoff.cancel,
+                    origin: ScanOrigin::Browser,
+                });
+            });
+        if spawned.is_ok() {
+            return Level2Start::Started;
+        }
+        // The thread did not start, so the report says that the run failed.
+        session.scanner.skip_level2(
+            &snapshot,
+            ScanOrigin::Browser,
+            LanguageOutcome::Failed(ErrorCode::UnexpectedInternalError),
+        );
+        Level2Start::NotStarted(SkipReason::Busy)
+    }
+
+    fn run_ran(&self, job: Job<Queued>) -> Result<Ran, CodedError> {
         let started = Instant::now();
+        let loading_before = self.analyzer.pack_load_time();
         let cpu_start = process_cpu_time();
         let mode = job.mode();
         match self.scanner.run(&self.principal, job) {
             JobResult::Finished(job) => {
                 let snapshot = job.snapshot();
-                let seconds = started.elapsed().as_secs_f64();
-                Ok(ScanSummary {
+                let loading = self
+                    .analyzer
+                    .pack_load_time()
+                    .saturating_sub(loading_before);
+                let seconds = without_loading(started.elapsed(), loading);
+                let summary = ScanSummary {
                     project: self.project.name.to_string(),
                     snapshot: snapshot.id.get(),
                     files: snapshot.stats.files,
@@ -142,8 +294,15 @@ impl Session {
                     references: snapshot.stats.references,
                     seconds,
                     cpu_seconds: seconds_since(cpu_start),
+                    pack_load_seconds: loading.as_secs_f64(),
                     level2: job.level2().iter().map(level2_line).collect(),
+                    warnings: job.warnings().iter().map(warning_line).collect(),
                     tools: self.check_tools(mode),
+                };
+                Ok(Ran {
+                    summary,
+                    snapshot: snapshot.clone(),
+                    root: job.root().clone(),
                 })
             }
             JobResult::Failed(job) => Err(CodedError::new(job.code())),
@@ -152,16 +311,87 @@ impl Session {
     }
 }
 
+/// What a finished scan leaves for the caller.
+struct Ran {
+    summary: ScanSummary,
+    snapshot: Snapshot,
+    root: FolderPath,
+}
+
+/// What the background task of level 2 works on.
+struct Level2Handoff {
+    snapshot: Snapshot,
+    root: FolderPath,
+    cancel: CancelToken,
+}
+
+/// What the browser hands to a scan: the registry places and what the caller wants.
+pub struct BrowserRun {
+    /// Whether level 2 should follow level 1 (the command input `level2`).
+    pub level2: bool,
+    /// Receives the token that cancels the scan, and level 2 after it.
+    pub on_token: Box<dyn FnOnce(CancelToken)>,
+    /// Marks the project as scanning; it moves into the task of level 2.
+    pub guard: ScanGuard,
+    /// The registry of level 2 runs.
+    pub runs: Level2Runs,
+}
+
+/// Whether level 2 follows a scan from the browser.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Level2Start {
+    /// A task runs the second pass now.
+    Started,
+    /// The caller asked for level 1 only.
+    NotRequested,
+    /// Level 2 did not start, for this reason; level 1 is stored.
+    NotStarted(SkipReason),
+}
+
+/// The result of a scan from the browser.
+#[derive(Debug)]
+pub struct BrowserScan {
+    /// What level 1 found.
+    pub summary: ScanSummary,
+    /// What became of level 2.
+    pub level2: Level2Start,
+}
+
+/// The time of a scan without loading language packs (ADR 0059), so that it stays comparable
+/// between runs that load different packs. Not below zero.
+fn without_loading(elapsed: Duration, loading: Duration) -> f64 {
+    elapsed.saturating_sub(loading).as_secs_f64()
+}
+
+/// The line of the summary for one warning of the scan.
+fn warning_line(warning: &ScanWarning) -> WarningLine {
+    WarningLine {
+        code: warning.code.id().to_owned(),
+        count: warning.count,
+    }
+}
+
 /// The line of the summary for one language of the second pass.
 fn level2_line(report: &LanguageReport) -> Level2Line {
-    let (files, stale, reason) = match &report.outcome {
-        Level2Outcome::Checked { files, stale, .. } => (*files, *stale, None),
-        Level2Outcome::Skipped(why) => (u64::default(), u64::default(), Some(reason_of(why))),
+    let (files, stale, outside_scan, reason) = match &report.outcome {
+        Level2Outcome::Checked {
+            files,
+            stale,
+            outside_scan,
+            ..
+        } => (*files, *stale, *outside_scan, None),
+        Level2Outcome::Skipped(why) => (
+            u64::default(),
+            u64::default(),
+            u64::default(),
+            Some(reason_of(why)),
+        ),
     };
     Level2Line {
         language: report.language.to_string(),
         files,
         stale,
+        outside_scan,
         reason,
     }
 }
@@ -283,10 +513,16 @@ fn session(
         events,
         secrets,
     } = wiring;
-    let scanner = build_scanner(store, &config, locations, events.clone(), secrets)?;
+    let analysis = build_analysis(&config, locations)?;
+    let scanner = scanner_over(
+        &analysis,
+        (store, &config, locations),
+        (events.clone(), secrets),
+    )?;
     let tools = tool_checker(store, (locations, index_runner(locations)))?;
     Ok(Session {
         scanner,
+        analyzer: analysis.analyzer,
         tools,
         principal,
         project,
@@ -330,4 +566,16 @@ fn with_layers(
 /// so concurrent scans of different sources never share an id).
 fn register(store: &SqliteStore, spec: SourceSpec) -> Result<Project, CodedError> {
     store.register_project(spec.name, spec.source)
+}
+
+#[cfg(test)]
+mod load_time_tests {
+    use super::*;
+
+    #[test]
+    fn the_load_time_is_taken_out_of_the_scan_time_and_never_goes_below_zero() {
+        let second = Duration::from_secs(1);
+        assert!((without_loading(second * 3, second) - 2.0).abs() < f64::EPSILON);
+        assert!(without_loading(second, second * 2).abs() < f64::EPSILON);
+    }
 }

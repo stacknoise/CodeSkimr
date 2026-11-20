@@ -1,5 +1,5 @@
 .panel {
-    width: 300px;
+    width: var(--panel-width, 300px) /* fallback */;
     flex: none;
     overflow: auto;
     display: flex;
@@ -122,4 +122,9 @@
 .open kbd {
     font: 500 11px var(--font-mono);
     opacity: 0.75;
+}
+
+.block p.description {
+    white-space: pre-line;
+    overflow-wrap: anywhere;
 }

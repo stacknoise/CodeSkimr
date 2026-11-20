@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@solidjs/testing-library";
 import { describe, expect, it, vi } from "vitest";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
 import { UNCHECKED } from "../../tests/scanned";
+import { SettingsScreen } from "../settings/SettingsScreen";
 import { ProjectsScreen } from "./ProjectsScreen";
 
 const SECRET = "ghp_CANARY-ui-8e1f";
@@ -33,7 +34,10 @@ function bodyOf(command: string): Record<string, unknown> {
 }
 
 async function type(): Promise<HTMLInputElement> {
-  fireEvent.click(await screen.findByText("Store a new login"));
+  const summary = await screen.findByText("Store a new login");
+  if (!(summary.closest("details") as HTMLDetailsElement).open) {
+    fireEvent.click(summary);
+  }
   fireEvent.input(screen.getByLabelText("Name"), { target: { value: "work" } });
   fireEvent.input(screen.getByLabelText("User name"), { target: { value: "anton" } });
   const secret = screen.getByLabelText("Token or password") as HTMLInputElement;
@@ -56,22 +60,44 @@ function nowhere(spy: ReturnType<typeof vi.spyOn>): void {
 }
 
 describe("the login of a Git project", () => {
-  it("stores a credential, forgets the secret and offers the name", async () => {
+  it("stores a credential in the settings, forgets the secret and lists the name", async () => {
     serve({
       "projects.list": () => answer([]),
       "credentials.list": () => answer([]),
       "credentials.set": () => answer({ id: "work" }),
     });
-    render(() => <ProjectsScreen />);
+    render(() => <SettingsScreen />);
     await fill();
     expect(await screen.findByText("Stored work")).toBeInTheDocument();
     expect(bodyOf("credentials.set")).toEqual({ id: "work", user: "anton", secret: SECRET });
     const secret = screen.getByLabelText("Token or password") as HTMLInputElement;
     expect(secret.type).toBe("password");
     expect(secret.value).toBe("");
-    expect(await screen.findByRole("status")).toHaveTextContent("Stored work");
-    const choice = screen.getByLabelText("Login") as HTMLSelectElement;
-    await waitFor(() => expect(choice.value).toBe("work"));
+    expect(await screen.findByRole("button", { name: "Remove login work" })).toBeInTheDocument();
+  });
+
+  it("removes a stored credential from the list and the keystore", async () => {
+    serve({
+      "credentials.list": () => answer([{ id: "work", stored: true }]),
+      "credentials.delete": () => answer({ id: "work" }),
+    });
+    render(() => <SettingsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Remove login work" }));
+    await waitFor(() => expect(bodyOf("credentials.delete")).toEqual({ id: "work" }));
+    await waitFor(() =>
+      expect(screen.queryByRole("button", { name: "Remove login work" })).toBeNull(),
+    );
+  });
+
+  it("shows branch and login only for a Git source", async () => {
+    serve({ "projects.list": () => answer([]), "credentials.list": () => answer([]) });
+    render(() => <ProjectsScreen />);
+    await screen.findByPlaceholderText(/Paste a folder path/);
+    expect(screen.queryByLabelText("Login")).toBeNull();
+    expect(screen.queryByLabelText("Branch")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Source"), { target: { value: "git" } });
+    expect(await screen.findByLabelText("Login")).toBeInTheDocument();
+    expect(screen.getByLabelText("Branch")).toBeInTheDocument();
   });
 
   it("sends the chosen name with the new project", async () => {
@@ -95,7 +121,7 @@ describe("the login of a Git project", () => {
       "credentials.set": () => answer({ id: "work" }),
       "projects.add": () => answer({ code: "PRJ-101" }, 400),
     });
-    await pasteSource("/work/shop");
+    render(() => <SettingsScreen />);
     const secret = await type();
     fireEvent.keyDown(secret, { key: "Enter" });
     expect(await screen.findByText("Stored work")).toBeInTheDocument();
@@ -105,7 +131,7 @@ describe("the login of a Git project", () => {
 
   it("empties the secret when the section is closed without storing", async () => {
     serve({ "projects.list": () => answer([]), "credentials.list": () => answer([]) });
-    render(() => <ProjectsScreen />);
+    render(() => <SettingsScreen />);
     const secret = await type();
     const section = secret.closest("details") as HTMLDetailsElement;
     section.open = false;
@@ -115,7 +141,7 @@ describe("the login of a Git project", () => {
 
   it("empties the secret when the screen is left without storing", async () => {
     serve({ "projects.list": () => answer([]), "credentials.list": () => answer([]) });
-    const view = render(() => <ProjectsScreen />);
+    const view = render(() => <SettingsScreen />);
     const secret = await type();
     view.unmount();
     expect(secret.value).toBe("");
@@ -130,7 +156,7 @@ describe("the login of a Git project", () => {
       },
     });
     const spy = vi.spyOn(console, "error");
-    render(() => <ProjectsScreen />);
+    render(() => <SettingsScreen />);
     const secret = await type();
     fireEvent.click(screen.getByRole("button", { name: "Store login" }));
     await waitFor(() => expect(secret.value).toBe(""));
@@ -156,7 +182,7 @@ describe("the login of a Git project", () => {
       "projects.list": () => answer([]),
       "credentials.list": () => answer({ code: "API-401" }, 401),
     });
-    render(() => <ProjectsScreen />);
+    await pasteSource("https://git.example.com/team/repo.git");
     const choice = (await screen.findByLabelText("Login")) as HTMLSelectElement;
     expect(choice.value).toBe("");
     expect(screen.queryByRole("alert")).toBeNull();
@@ -169,10 +195,11 @@ describe("the login of a Git project", () => {
       "credentials.set": () => answer({ code: "API-101" }, 400),
     });
     const spy = vi.spyOn(console, "error");
-    render(() => <ProjectsScreen />);
+    render(() => <SettingsScreen />);
     await fill();
-    expect(await screen.findByRole("alert")).toBeInTheDocument();
-    expect((screen.getByLabelText("Token or password") as HTMLInputElement).value).toBe("");
+    const field = screen.getByLabelText("Token or password") as HTMLInputElement;
+    await waitFor(() => expect(field.value).toBe(""));
+    expect((await screen.findAllByRole("alert")).length).toBeGreaterThan(0);
     nowhere(spy);
   });
 });

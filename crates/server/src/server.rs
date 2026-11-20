@@ -12,6 +12,7 @@ use axum::middleware::{from_fn, from_fn_with_state};
 use axum::routing::{MethodRouter, any_service, get, post};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
+use codeskimr_application::level2::ConfirmationDesk;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::Principal;
 use tokio::net::TcpListener;
@@ -20,8 +21,8 @@ use tokio::sync::{Semaphore, watch};
 use crate::assets::Assets;
 use crate::commands::CommandApi;
 use crate::consts::{
-    COMMAND_PATH, COMMANDS_PATH, EVENTS_PATH, EXCHANGE_PATH, LAUNCH_CODE_PATH, MAX_EVENT_STREAMS,
-    MCP_PATH, UI_CONFIG_PATH,
+    COMMAND_PATH, COMMANDS_PATH, CONFIRM_WINDOW_PATH, EVENTS_PATH, EXCHANGE_PATH, LAUNCH_CODE_PATH,
+    MAX_EVENT_STREAMS, MCP_PATH, UI_CONFIG_PATH,
 };
 use crate::guard::{Guard, require_token, screen};
 use crate::launch::LaunchCodes;
@@ -30,7 +31,7 @@ use crate::settings::UiOptions;
 use crate::state::AppState;
 use crate::token::InstallationToken;
 use crate::ui;
-use crate::{events, routes, session};
+use crate::{confirm_window, events, routes, session};
 
 /// The local server before it listens.
 pub struct Server {
@@ -40,6 +41,7 @@ pub struct Server {
     token: InstallationToken,
     ui: UiOptions,
     mcp: Option<MethodRouter<AppState>>,
+    confirmation: Option<Arc<ConfirmationDesk>>,
 }
 
 /// A server that listens and has not started to answer yet.
@@ -75,11 +77,13 @@ fn build_router(state: AppState, guard: Arc<Guard>, mcp: Option<MethodRouter<App
         .route(UI_CONFIG_PATH, get(ui::config))
         .route(LAUNCH_CODE_PATH, post(session::issue).get(session::state))
         .route(EXCHANGE_PATH, post(session::exchange))
+        .route(CONFIRM_WINDOW_PATH, post(confirm_window::open))
         .fallback(routes::not_found)
         .method_not_allowed_fallback(routes::wrong_method);
     if let Some(mcp) = mcp {
         // The last layer runs first: the token is checked before a byte of the body is read.
         let checked = mcp
+            .layer(from_fn(routes::mcp_error_format))
             .layer(from_fn(routes::bound_body))
             .layer(from_fn_with_state(Arc::clone(&guard), require_token));
         router = router.route(MCP_PATH, checked);
@@ -107,7 +111,16 @@ impl Server {
             token,
             ui,
             mcp: None,
+            confirmation: None,
         }
+    }
+
+    /// Offers `POST /api/v1/level2/confirm-window`, which asks `desk` to open the console window
+    /// of the level 2 confirmation (ADR 0071). Without a desk the route answers as an unknown one.
+    #[must_use]
+    pub fn with_confirmation(mut self, desk: Arc<ConfirmationDesk>) -> Self {
+        self.confirmation = Some(desk);
+        self
     }
 
     /// Offers MCP at `/mcp` through `service`, on the same listener, with the same `Host` and
@@ -152,6 +165,7 @@ impl Server {
             launch: Arc::new(LaunchCodes::new(self.ui.launch_lifetime)),
             ui: Arc::new(self.ui.settings),
             assets: assets_of(self.ui.dir, self.ui.embedded),
+            confirmation: self.confirmation,
         };
         let router = build_router(state, guard, self.mcp);
         Ok(BoundServer {

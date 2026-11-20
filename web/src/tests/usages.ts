@@ -36,6 +36,7 @@ export const ANSWER: UsagesAnswer = {
   snapshot: 5,
   symbol: FOCUS,
   signature: "decimal Total()",
+  doc: "The total of the cart, tax included.",
   path: "src/Cart.cs",
   depth: 2,
   incoming: {

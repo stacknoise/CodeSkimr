@@ -93,16 +93,20 @@ async fn read_body(headers: &HeaderMap, body: Body, limit: usize) -> Result<Byte
     if bytes.is_empty() {
         return Ok(bytes);
     }
-    let is_json = headers
-        .get(CONTENT_TYPE)
-        .and_then(|value| value.to_str().ok())
-        .and_then(|value| value.split(MEDIA_PARAMETER_SEPARATOR).next())
-        .is_some_and(|media| media.trim().eq_ignore_ascii_case(MEDIA_JSON));
-    if is_json {
+    if is_json(headers) {
         Ok(bytes)
     } else {
         Err(Failure::code(ErrorCode::RequestInvalid))
     }
+}
+
+/// Whether the request says its body is `application/json`.
+pub fn is_json(headers: &HeaderMap) -> bool {
+    headers
+        .get(CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.split(MEDIA_PARAMETER_SEPARATOR).next())
+        .is_some_and(|media| media.trim().eq_ignore_ascii_case(MEDIA_JSON))
 }
 
 /// The layer of the MCP route: reads the whole body within `BODY_READ_TIMEOUT` and `MAX_BODY_BYTES`
@@ -117,6 +121,20 @@ pub async fn bound_body(request: Request, next: Next) -> Response {
             next.run(Request::from_parts(parts, Body::from(bytes)))
                 .await
         }
+    }
+}
+
+/// Gives the answers of the MCP service that are not JSON-RPC (a method it does not offer, a body it
+/// cannot read) the error format of every other route, so a client always gets `{ code, description }`
+/// (#400). Answers with any other status pass unchanged.
+pub async fn mcp_error_format(request: Request, next: Next) -> Response {
+    let response = next.run(request).await;
+    match response.status() {
+        StatusCode::METHOD_NOT_ALLOWED => wrong_method().await,
+        StatusCode::UNSUPPORTED_MEDIA_TYPE => {
+            Failure::code(ErrorCode::RequestInvalid).into_response()
+        }
+        _ => response,
     }
 }
 

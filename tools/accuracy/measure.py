@@ -51,8 +51,11 @@ def scan(codeskimr, languages, source, data):
 def ours(db, verified_only=False, certain_only=False, skipped=("import",)):
     snapshot = db.execute("select max(id) from snapshots").fetchone()[0]
     files = dict(db.execute("select id, path from files where snapshot_id=?", (snapshot,)))
-    symbols = {r[0]: r for r in db.execute(
-        "select id, file_id, kind, name, qualified_name, start_line, start_column from symbols where snapshot_id=?", (snapshot,))}
+    try:
+        rows = db.execute("select id, file_id, kind, name, qualified_name, start_line, start_column, end_line, origin from symbols where snapshot_id=?", (snapshot,))
+    except sqlite3.OperationalError:  # a database of a version before ADR 0055: every symbol is of level 1
+        rows = db.execute("select id, file_id, kind, name, qualified_name, start_line, start_column, end_line, 'syntax' from symbols where snapshot_id=?", (snapshot,))
+    symbols = {r[0]: r for r in rows}
     used, kinds = {}, {}
     for to, file, line, kind, verified, confidence in db.execute(
             "select to_symbol, file_id, start_line, kind, verified, confidence from snapshot_references where snapshot_id=?", (snapshot,)):
@@ -136,12 +139,18 @@ def import_level2(opt, db, source):
     project_id = db.execute("select id from projects").fetchone()[0]
     scanned = db.execute("select count(*) from files where snapshot_id=(select max(id) from snapshots)").fetchone()[0]
     db.close()
+    pack = tomllib.loads((ROOT / "languages" / opt.language / "language.toml").read_text())
+    kinds = [f"{scip}={kind}" for scip, kind in pack["indexer"].get("symbol_kinds", {}).items()] if not opt.no_created else []
     done = subprocess.run([opt.import_scip, dbfile, str(project_id), opt.scip, str(level2["min_mapped"]), str(source),
-                           str(level2["max_index_bytes"]), str(max_file)], capture_output=True, text=True)
+                           str(level2["max_index_bytes"]), str(max_file), str(level2["max_created_symbols"]), pack["separator"], pack["indexer"].get("library_root", ""), *kinds],
+                          capture_output=True, text=True)
     if done.returncode:
         sys.exit("import failed: " + done.stderr)
     stats = json.loads(done.stdout)
     print("import:", done.stdout.strip(), file=sys.stderr)
+    cause = stats["by_cause"]
+    if cause["skipped_namespace"] + cause["skipped_item"] != stats["outside_scan"]:
+        print(f"warning: the split of outside_scan by cause ({cause['skipped_namespace']} + {cause['skipped_item']}) differs from the counter of the import ({stats['outside_scan']})", file=sys.stderr)
     uncovered = scanned - stats["files_replaced"]
     if uncovered < 0 or uncovered > opt.allow_uncovered:
         sys.exit(f"the index covers {stats['files_replaced']} of {scanned} scanned files (allowed to miss: {opt.allow_uncovered}): it does not belong to this corpus commit")
@@ -152,14 +161,36 @@ def import_level2(opt, db, source):
     return sqlite3.connect(dbfile), stats
 
 
+def by_origin(rows):
+    """Precision and recall per origin of the symbol (ADR 0055): `syntax` is level 1, `index` is created by level 2."""
+    found = {}
+    for r in rows:
+        o = found.setdefault(r["origin"], {"symbols": 0, "exact": 0, "tool": 0, "found": 0, "ours": 0})
+        o["symbols"] += 1; o["exact"] += r["exact"]; o["tool"] += r["tool"]; o["found"] += r["both"]; o["ours"] += r["ours"]
+    for o in found.values():
+        o["precision"] = round(o["found"] / o["ours"], 3) if o["ours"] else None
+        o["recall"] = round(o["found"] / o["tool"], 3) if o["tool"] else None
+    return found
+
+
 def without_symbol(stats):
     """The blind spot of the sample: uses of symbols that the index defines in the project but level 1 has no symbol for
-    (types and variants that a macro generates). The sample is drawn from the symbols of level 1, so it cannot see them.
-    `None` without an index."""
+    (types and variants that a macro generates, module paths). The sample is drawn from the symbols of level 1, so it cannot
+    see them. `uses` is the in-scope part (the symbol lies in a file of the scan), `outside_scan` the uses of symbols that
+    the index defines only in folders the scan skips (ADR 0061); `project_uses` is `mapped + unmapped` (the denominator of
+    `level2.min_mapped`), `share_with_outside_scan` counts both against all of them. `by_cause` splits the uses that
+    needed the file-root rule (`crate_root`, `module_file`), the uses outside the scan (`skipped_namespace`,
+    `skipped_item`) and what stays unmapped (`other`); before ADR 0061 the first four were all unmapped (659 of 8805 on
+    the Rust corpus). `None` without an index."""
     if stats is None:
         return None
     project = stats["mapped"] + stats["unmapped"]
-    return {"uses": stats["unmapped"], "project_uses": project, "share": round(stats["unmapped"] / project, 3) if project else None}
+    outside = stats["outside_scan"]
+    total = project + outside
+    return {"uses": stats["unmapped"], "outside_scan": outside, "project_uses": project,
+            "share": round(stats["unmapped"] / project, 3) if project else None,
+            "share_with_outside_scan": round((stats["unmapped"] + outside) / total, 3) if total else None,
+            "by_cause": stats["by_cause"]}
 
 
 # Kind of a symbol -> category of a declaration for TruthJava and TruthCSharp.
@@ -225,7 +256,8 @@ def truth(lang, source, workspace, targets):
     return [{(f, l) for f, l in result} for result in json.loads(done.stdout)]
 
 
-def main():
+def options():
+    """The command line, checked for options that exclude each other."""
     args = argparse.ArgumentParser()
     args.add_argument("language")
     args.add_argument("--samples", type=int, default=150)
@@ -238,6 +270,7 @@ def main():
     args.add_argument("--workspace", help="checkout prepared by hand for the reference tool instead of the corpus checkout (C#: restored, in the target framework of the container)")
     args.add_argument("--indexer", help="program that made the --scip index, for the version check (default: the usual name)")
     args.add_argument("--import-scip", default=str(ROOT / "target/debug/codeskimr_import_scip"), help="the measuring tool of --scip")
+    args.add_argument("--no-created", action="store_true", help="--scip without the symbols that level 2 creates (ADR 0055): the state before it")
     args.add_argument("--no-overrides", action="store_true", help="leave out the links of a method to the method it overrides (no compiler counts them as uses)")
     args.add_argument("--certain-only", action="store_true", help="count only references with confidence certain (blueprint 17.2: precision of certain)")
     args.add_argument("--verified-only", action="store_true", help="count only references that level 2 produced (verified)")
@@ -253,6 +286,12 @@ def main():
         sys.exit("--scip needs --verified-only: without it level 1 and level 2 references are counted together")
     if opt.scip and opt.language not in SCIP_INDEXERS:
         sys.exit("--scip is only prepared for rust, typescript, python, java and csharp")
+    return opt
+
+
+def measure(opt):
+    """Scans the corpus, draws the symbols and asks the reference tool.
+    Returns (picked, targets, sets, symbols, used, kinds, import_stats, run_report)."""
     project = tomllib.loads((ROOT / "corpus" / opt.language / "corpus.toml").read_text())["project"]
     src = checkout(opt.language, project)
     with tempfile.TemporaryDirectory() as tmp:
@@ -276,8 +315,13 @@ def main():
         pool = sorted((s[4], i) for i, s in symbols.items() if s[2] in KINDS and not s[3].startswith("_"))
         rng = random.Random(opt.seed)
         picked = [i for _, i in rng.sample(pool, min(opt.samples, len(pool)))]
-        targets = [{"file": files[symbols[i][1]].replace("\\", "/"), "line": symbols[i][5] + 1, "column": symbols[i][6], "name": symbols[i][3], "kind": symbols[i][2]} for i in picked]
+        targets = [{"file": files[symbols[i][1]].replace("\\", "/"), "line": symbols[i][5] + 1, "column": symbols[i][6], "end_line": symbols[i][7] + 1, "origin": symbols[i][8], "name": symbols[i][3], "kind": symbols[i][2]} for i in picked]
         sets = truth(opt.language, tmp / "src", Path(opt.workspace) if opt.workspace else src, targets)
+    return picked, targets, sets, symbols, used, kinds, import_stats, run_report
+
+
+def compare(picked, targets, sets, symbols, used, kinds):
+    """Our uses against the uses of the reference tool, per symbol: (rows, exact, tp, fp, fn, wrong_kinds)."""
     rows, exact, tp, fp, fn = [], 0, 0, 0, 0
     wrong_kinds = {}
     for i, t, real in zip(picked, targets, sets):
@@ -290,8 +334,14 @@ def main():
         for key in mine - real:
             for kind in kinds.get((i, key), ()):
                 wrong_kinds[kind] = wrong_kinds.get(kind, 0) + 1
-        rows.append({"symbol": symbols[i][4], "kind": symbols[i][2], "ours": len(mine), "tool": len(real), "both": len(hit), "exact": ok,
+        rows.append({"symbol": symbols[i][4], "kind": symbols[i][2], "origin": symbols[i][8], "ours": len(mine), "tool": len(real), "both": len(hit), "exact": ok,
                      "wrong": sorted(mine - real)[:5], "missed": sorted(real - mine)[:5]})
+    return rows, exact, tp, fp, fn, wrong_kinds
+
+
+def summarize(opt, rows, counts, import_stats, run_report):
+    """The summary of a measurement: rates, tool silence and the numbers per kind."""
+    exact, tp, fp, fn, wrong_kinds = counts
     by_kind = {}
     for r in rows:
         k = by_kind.setdefault(r["kind"], {"symbols": 0, "exact": 0, "tool": 0, "found": 0, "ours": 0})
@@ -308,7 +358,16 @@ def main():
                "precision_where_tool_answers": round(sum(r["both"] for r in judged) / judged_ours, 3) if judged_ours else None,
                "tool_silent": {"symbols": len(blind), "usages_ours": sum(r["ours"] for r in blind)},
                "without_level1_symbol": without_symbol(import_stats),
+               "by_origin": by_origin(rows),
                "level2_run": run_report, "verified_only": opt.verified_only, "certain_only": opt.certain_only, "no_overrides": opt.no_overrides, "by_kind": by_kind}
+    return summary
+
+
+def main():
+    opt = options()
+    picked, targets, sets, symbols, used, kinds, import_stats, run_report = measure(opt)
+    rows, *counts = compare(picked, targets, sets, symbols, used, kinds)
+    summary = summarize(opt, rows, counts, import_stats, run_report)
     if opt.json:
         print(json.dumps({"summary": summary, "rows": rows}, indent=1))
     else:

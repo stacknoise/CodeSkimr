@@ -100,7 +100,11 @@
     display: flex;
     align-items: center;
     gap: var(--space-6);
-    height: 26px;
+    --tree-row-height: 26px;
+    --critical-stripe: 3px;
+    /* Space above the one line of the tail, so that its badges sit in the middle of the row. */
+    --tree-tail-inset: 4px;
+    height: var(--tree-row-height);
     padding-right: var(--space-10);
     cursor: pointer;
 }
@@ -115,6 +119,16 @@
     box-shadow: inset 2px 0 0 var(--accent);
 }
 
+/* A selected critical row carries both stripes: the pink one of the mark lies on the edge, and the
+   stripe of the selection moves next to it, so that neither covers the other. The first shadow is
+   only a filler in the colour of the selected row under the pink stripe; it is not seen. */
+.selected.critical,
+.selected.critical:hover {
+    box-shadow:
+        inset var(--critical-stripe) 0 0 var(--accent-bg),
+        inset calc(var(--critical-stripe) + 2px) 0 0 var(--accent);
+}
+
 .caret {
     width: 12px;
     flex: none;
@@ -123,10 +137,28 @@
 }
 
 .label {
+    flex: 0 1 auto;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+/* Language and marks: one line high; what does not fit wraps below the row and is cut off, so a
+   narrow tree hides whole badges instead of drawing them over the name. */
+.tail {
+    flex: 0 100 auto;
+    min-width: 0;
+    height: 100%;
+    box-sizing: border-box;
+    padding-top: var(--tree-tail-inset);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    align-content: flex-start;
+    gap: var(--space-6);
+    row-gap: var(--tree-row-height);
+    overflow: hidden;
 }
 
 .layer .label {
@@ -138,6 +170,15 @@
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--muted);
+}
+
+.language {
+    flex: none;
+    padding: 0 var(--space-4);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-badge);
+    color: var(--muted);
+    font: 600 9.5px var(--font-sans);
 }
 
 .meta {
@@ -154,4 +195,16 @@
     margin: 0;
     padding: var(--space-10);
     color: var(--muted);
+}
+
+/* A system-critical symbol: the edge stripe (mock 14, variant B). The shield and the number of
+   critical symbols below say the same in a shape, so the stripe is not the only carrier. */
+.critical::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 2px;
+    bottom: 2px;
+    width: var(--critical-stripe);
+    background: var(--critical);
 }

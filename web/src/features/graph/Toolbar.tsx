@@ -18,8 +18,18 @@ type ToolbarProps = {
   onWeak: (on: boolean) => void;
   violationsOnly: boolean;
   onViolationsOnly: (on: boolean) => void;
+  /** The two switches of the system-critical symbols (ADR 0068); `null` where the map has none. */
+  critical: CriticalSwitches | null;
   onFit: () => void;
 };
+
+/** The switches "Highlight critical" and "only critical and their neighbours". */
+export interface CriticalSwitches {
+  highlight: boolean;
+  onHighlight: (on: boolean) => void;
+  only: boolean;
+  onOnly: (on: boolean) => void;
+}
 
 /** One button of a group of exclusive choices. */
 function Choice(props: {
@@ -121,6 +131,22 @@ export function Toolbar(props: ToolbarProps) {
         label={t(I18N_KEYS.GRAPH_TOGGLE_VIOLATIONS_ONLY)}
         onChange={props.onViolationsOnly}
       />
+      <Show when={props.critical}>
+        {(critical) => (
+          <>
+            <Toggle
+              checked={critical().highlight}
+              label={t(I18N_KEYS.GRAPH_TOGGLE_CRITICAL)}
+              onChange={critical().onHighlight}
+            />
+            <Toggle
+              checked={critical().only}
+              label={t(I18N_KEYS.GRAPH_TOGGLE_CRITICAL_ONLY)}
+              onChange={critical().onOnly}
+            />
+          </>
+        )}
+      </Show>
       <button type="button" class={styles.fit} onClick={props.onFit}>
         {t(I18N_KEYS.GRAPH_ACTION_FIT)} <kbd class={styles.kbd}>{t(I18N_KEYS.GRAPH_FIT_KEY)}</kbd>
       </button>

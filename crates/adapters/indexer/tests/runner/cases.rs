@@ -56,6 +56,9 @@ fn spec(mode: &str) -> IndexerSpec {
         ],
         env: vec![("FIXED_BY_PACK".to_owned(), "yes".to_owned())],
         install_hint: "install it".to_owned(),
+        symbol_kinds: Vec::new(),
+        separator: String::new(),
+        library_root: String::new(),
     }
 }
 
@@ -537,6 +540,24 @@ fn a_missing_indexer_is_unavailable_and_nothing_runs() {
 }
 
 #[test]
+fn a_program_whose_version_command_fails_is_found_but_not_runnable() {
+    let fixture = Fixture::new();
+    let mut broken = spec("ok");
+    // The fake indexer exits with an error for an argument it does not know, as the `rustup` shim
+    // of a component that is not installed does (#402).
+    broken.indexer.version_args = vec!["no-such-flag".to_owned()];
+    let IndexerStatus::Unavailable { problems, .. } = fixture.runner.check(&broken) else {
+        panic!("ready");
+    };
+    assert_eq!(
+        problems.first().map(|p| &p.issue),
+        Some(&ToolIssue::NotRunnable {
+            output: String::new()
+        })
+    );
+}
+
+#[test]
 fn an_indexer_older_than_required_is_unavailable() {
     let fixture = Fixture::new();
     assert!(matches!(
@@ -547,6 +568,14 @@ fn an_indexer_older_than_required_is_unavailable() {
         fixture.runner.check(&spec("ok")),
         IndexerStatus::Ready { .. }
     ));
+}
+
+#[test]
+fn the_listing_knows_where_a_tool_is_found_and_nothing_for_a_tool_that_is_not() {
+    let fixture = Fixture::new();
+    let path = fixture.runner.locate("fake_indexer").unwrap();
+    assert!(path.contains("fake_indexer"), "{path}");
+    assert_eq!(fixture.runner.locate("no-such-tool-anywhere"), None);
 }
 
 #[test]

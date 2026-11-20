@@ -8,15 +8,13 @@ import { moveChoice, nextChip, onSearchKey } from "./keys";
 import { parseQuery, splitMatch } from "./parse";
 import type { Hit } from "./types";
 
+const BASE_HIT = { path: "Shop.cs", parent: null, project: 1, project_name: "shop" };
 const hit = (id: number, name: string, kind: string): Hit => ({
+  ...BASE_HIT,
   id,
   name,
   kind,
   qualified_name: `Shop.${name}`,
-  path: "Shop.cs",
-  parent: null,
-  project: 1,
-  project_name: "shop",
 });
 const HITS = [hit(1, "Cart", "class"), hit(2, "Add", "method"), hit(3, "ICart", "interface")];
 

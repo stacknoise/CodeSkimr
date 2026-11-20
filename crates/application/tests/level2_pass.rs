@@ -17,9 +17,8 @@ mod cases {
     };
     use codeskimr_application::ports::{
         ConsentStore, DiscoveredFile, FileDiscovery, ImportRequest, Imported, IndexArtifact,
-        IndexJob, IndexRunner, IndexerSpec, IndexerStatus, PreviousIndex, ProjectRepository,
-        ReferenceImporter, ReferenceReplacement, SnapshotData, SnapshotStore, ToolSpec,
-        ToolVersion,
+        IndexJob, IndexRunner, IndexerSpec, IndexerStatus, Level2Replacement, PreviousIndex,
+        ProjectRepository, ReferenceImporter, SnapshotData, SnapshotStore, ToolSpec, ToolVersion,
     };
     use codeskimr_codes::ErrorCode;
     use codeskimr_domain::{
@@ -76,6 +75,9 @@ mod cases {
             home_dirs: Vec::new(),
             env: Vec::new(),
             install_hint: String::new(),
+            symbol_kinds: Vec::new(),
+            separator: String::new(),
+            library_root: String::new(),
         }
     }
 
@@ -83,7 +85,7 @@ mod cases {
     struct World {
         files: Vec<SourceFile>,
         changed: Vec<&'static str>,
-        replaced: Mutex<Vec<ReferenceReplacement>>,
+        replaced: Mutex<Vec<Level2Replacement>>,
         /// The paths the pass asked to read again, one list per question.
         asked: Mutex<Vec<Vec<String>>>,
         files_fail: bool,
@@ -152,10 +154,7 @@ mod cases {
             Err(CodedError::new(ErrorCode::UnexpectedInternalError))
         }
 
-        fn replace_references(
-            &self,
-            replacement: ReferenceReplacement,
-        ) -> Result<Snapshot, CodedError> {
+        fn replace_level2(&self, replacement: Level2Replacement) -> Result<Snapshot, CodedError> {
             self.replaced
                 .lock()
                 .unwrap_or_else(PoisonError::into_inner)
@@ -196,6 +195,31 @@ mod cases {
         seen: Mutex<Vec<Vec<String>>>,
         fails: Option<ErrorCode>,
         cancels: Option<CancelToken>,
+        /// The ids (of the importer's own numbering) of the symbols the import creates, each the
+        /// child of the one before, and a use of the last.
+        creates: Vec<u64>,
+    }
+
+    /// The symbol an import creates, numbered by the importer from 500.
+    fn created(id: u64, file: FileId, parent: Option<u64>) -> codeskimr_domain::Symbol {
+        codeskimr_domain::Symbol {
+            id: SymbolId::new(id),
+            file,
+            kind: codeskimr_domain::SymbolKind::Enum,
+            name: codeskimr_domain::SymbolName::new("Gen").unwrap(),
+            qualified_name: codeskimr_domain::QualifiedName::new("app::Gen").unwrap(),
+            parent: parent.map(SymbolId::new),
+            visibility: None,
+            is_static: false,
+            span: codeskimr_domain::Span::new(
+                codeskimr_domain::Position { line: 1, column: 0 },
+                codeskimr_domain::Position { line: 2, column: 0 },
+            )
+            .unwrap(),
+            signature: None,
+            doc: None,
+            origin: codeskimr_domain::SymbolOrigin::Index,
+        }
     }
 
     impl ReferenceImporter for Importer {
@@ -217,11 +241,26 @@ mod cases {
                 return Err(CodedError::new(code));
             }
             let first = request.files.first().map(|file| file.id);
+            let symbols = first.map_or_else(Vec::new, |file| {
+                let parents = std::iter::once(1).chain(self.creates.iter().copied());
+                let pairs = self.creates.iter().copied().zip(parents);
+                pairs
+                    .map(|(id, parent)| created(id, file, Some(parent)))
+                    .collect()
+            });
+            let target = self.creates.last().copied().unwrap_or(2);
             Ok(Imported {
                 files: request.files.iter().map(|file| file.id).collect(),
-                references: first.map_or_else(Vec::new, |file| vec![level_two(file)]),
+                symbols,
+                references: first.map_or_else(Vec::new, |file| {
+                    vec![Reference {
+                        to: SymbolId::new(target),
+                        ..level_two(file)
+                    }]
+                }),
                 mapped: 4,
-                dropped: 1,
+                dropped: 3,
+                outside_scan: 2,
             })
         }
     }
@@ -254,6 +293,7 @@ mod cases {
         cancel_in_import: bool,
         files_fail: bool,
         confirmed: bool,
+        creates: Vec<u64>,
     }
 
     impl Default for Setup {
@@ -268,6 +308,7 @@ mod cases {
                 cancel_in_import: false,
                 files_fail: false,
                 confirmed: true,
+                creates: Vec::new(),
             }
         }
     }
@@ -276,7 +317,7 @@ mod cases {
         result: Level2Result,
         runs: u32,
         imports: Vec<Vec<String>>,
-        replaced: Vec<ReferenceReplacement>,
+        replaced: Vec<Level2Replacement>,
         asked: Vec<Vec<String>>,
     }
 
@@ -313,6 +354,7 @@ mod cases {
                 seen: Mutex::default(),
                 fails: setup.import_fails,
                 cancels: setup.cancel_in_import.then(|| cancel.clone()),
+                creates: setup.creates.clone(),
             }),
         }
     }
@@ -337,6 +379,7 @@ mod cases {
             max_file_bytes: 1 << 20,
             settings: Config::resolve(&[]).unwrap().level2,
             indexers,
+            events: codeskimr_application::events::EventBus::new(),
         };
         (pass, fakes)
     }
@@ -392,7 +435,8 @@ mod cases {
                     files: 1,
                     stale: 0,
                     mapped: 4,
-                    dropped: 1
+                    dropped: 3,
+                    outside_scan: 2,
                 },
             }]
         );
@@ -410,6 +454,31 @@ mod cases {
             vec![ReferenceId::new(1000)]
         );
         assert_eq!(outcome.result.snapshot.stats.references, 99);
+    }
+
+    #[test]
+    fn created_symbols_get_ids_from_the_shared_sequence_and_everything_that_points_at_them_follows()
+    {
+        let outcome = run(Setup {
+            creates: vec![500, 501],
+            ..Setup::default()
+        });
+        let [replacement] = outcome.replaced.as_slice() else {
+            panic!("expected one replacement");
+        };
+        // The references are numbered first (1000), then the two symbols (1001 and 1002).
+        let ids: Vec<(u64, Option<u64>)> = replacement
+            .symbols
+            .iter()
+            .map(|s| (s.id.get(), s.parent.map(SymbolId::get)))
+            .collect();
+        // The first symbol keeps its parent 1, a symbol of level 1, and the second follows the first.
+        assert_eq!(ids, [(1001, Some(1)), (1002, Some(1001))]);
+        let reference = replacement.references.first().expect("one reference");
+        assert_eq!(
+            (reference.id.get(), reference.from.get(), reference.to.get()),
+            (1000, 1, 1002)
+        );
     }
 
     #[test]

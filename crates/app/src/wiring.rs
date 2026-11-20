@@ -8,23 +8,25 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 use std::time::Duration;
 
+use codeskimr_application::alerts::AlertStep;
 use codeskimr_application::config::Config;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::ids::IdSequence;
 use codeskimr_application::level2::Level2Pass;
 use codeskimr_application::metrics::StandardMetrics;
+use codeskimr_application::pipeline::ReportStep;
 use codeskimr_application::pipeline::{Scanner, ScannerPorts};
 use codeskimr_application::ports::{AuthError, Credential, CredentialStore};
 use codeskimr_application::ports::{
     FileAnalyzer, FileDiscovery, IndexRunner, IndexerSpec, SnippetFingerprinter,
 };
 use codeskimr_application::resolve::ScopedResolver;
-use codeskimr_application::tools::{ToolCheckPorts, ToolChecker};
+use codeskimr_application::tools::{IndexerCheck, IndexerOverview, ToolCheckPorts, ToolChecker};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{CredentialId, LanguageId};
 use codeskimr_indexer::ProcessIndexRunner;
-use codeskimr_parsing::{LanguagePacks, PackTools, TreeSitterAnalyzer};
+use codeskimr_parsing::{Blake3Digest, LanguagePacks, PackTools, TreeSitterAnalyzer};
 use codeskimr_scip::ScipImporter;
 use codeskimr_secrets::{KeystoreCredentials, OsKeystore};
 use codeskimr_source::{
@@ -105,23 +107,10 @@ pub fn open_serving_store(
     Ok(store)
 }
 
-/// Builds the scanner with every port wired to its adapter; Git logins read from `secrets`.
-///
-/// # Errors
-/// `PRS` failures if the language packs cannot be loaded, `STO` failures of the id lookup.
-pub fn build_scanner(
-    store: &Arc<SqliteStore>,
-    config: &Config,
-    locations: &Locations,
-    events: EventBus,
-    secrets: &Arc<Secrets>,
-) -> Result<Scanner, CodedError> {
-    let analysis = build_analysis(config, locations)?;
-    scanner_over(&analysis, (store, config, locations), (events, secrets))
-}
-
-/// Like [`build_scanner`], but over an [`Analysis`] that was built already, so a caller that
-/// needs the analysis for something else too (the MCP server) loads the language packs once.
+/// Builds the scanner with every port wired to its adapter, over an [`Analysis`] that was built
+/// already, so a caller that needs the analysis for something else too (the session reads the
+/// pack load time, the MCP server searches) loads the language packs once. Git logins read from
+/// `secrets`.
 ///
 /// # Errors
 /// `STO` failures of the id lookup.
@@ -145,6 +134,7 @@ pub fn scanner_over(
         max_file_bytes: u64::from(config.scan.max_source_mb).saturating_mul(BYTES_PER_MB),
         settings: config.level2.clone(),
         indexers,
+        events: events.clone(),
     };
     let ports = ScannerPorts {
         source: Arc::new(RefreshingSource::new(
@@ -163,7 +153,21 @@ pub fn scanner_over(
         clock: Arc::new(SystemClock),
         max_workers: config.scan.max_workers,
     };
-    Ok(Scanner::new(ports, &ids, events).with_level2(pass))
+    Ok(Scanner::new(ports, &ids, events.clone())
+        .with_level2(pass)
+        .with_alerts(alert_step(store, events))
+        .with_reports(ReportStep::new(store.clone(), Arc::new(SystemClock))))
+}
+
+/// The alert step of ADR 0068 over the store; it publishes on `events`.
+fn alert_step(store: &Arc<SqliteStore>, events: EventBus) -> AlertStep {
+    AlertStep {
+        annotations: store.clone(),
+        states: store.clone(),
+        digest: Arc::new(Blake3Digest),
+        clock: Arc::new(SystemClock),
+        events,
+    }
 }
 
 /// The runner that finds out which tools exist, for the check of ADR 0033: version queries only,
@@ -194,6 +198,22 @@ pub fn tool_checker(
         overview: store.clone(),
         clock: Arc::new(SystemClock),
     })))
+}
+
+/// The check of all indexers of the language packs, for the settings; it needs no project.
+///
+/// # Errors
+/// `PRS` failures if the language packs cannot be read.
+pub fn indexer_check(
+    locations: &Locations,
+    runner: Arc<dyn IndexRunner>,
+) -> Result<Arc<dyn IndexerCheck>, CodedError> {
+    let catalog = PackTools::load(&locations.languages_dir).map_err(CodedError::caused_by)?;
+    Ok(Arc::new(IndexerOverview::new(
+        Arc::new(catalog),
+        runner,
+        Arc::new(SystemClock),
+    )))
 }
 
 /// The id sequence of the database file in this process. Scans of different projects run at the

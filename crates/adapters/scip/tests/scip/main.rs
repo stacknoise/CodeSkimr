@@ -3,6 +3,8 @@
 #[cfg(test)]
 mod common;
 #[cfg(test)]
+mod created;
+#[cfg(test)]
 mod decode;
 #[cfg(test)]
 mod fuzz;
@@ -16,6 +18,8 @@ mod importer;
 mod java;
 #[cfg(test)]
 mod mapping;
+#[cfg(test)]
+mod modules;
 #[cfg(test)]
 mod replace;
 #[cfg(test)]

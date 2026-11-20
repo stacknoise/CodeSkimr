@@ -49,6 +49,37 @@ fn patterns(query: &str) -> (String, String) {
     (fuzzy, format!("{}{LIKE_ANY}", escape_like(query)))
 }
 
+/// The columns of one row of the symbol search, in the order of `sql::SEARCH`.
+type SearchRow = (i64, String, String, String, String, Option<i64>);
+
+/// Reads one row of the symbol search.
+fn read_search_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<SearchRow> {
+    let cols = Cols::new(row);
+    Ok((
+        cols.take::<i64>()?,
+        cols.take::<String>()?,
+        cols.take::<String>()?,
+        cols.take::<String>()?,
+        cols.take::<String>()?,
+        cols.take::<Option<i64>>()?,
+    ))
+}
+
+/// Turns a row of the symbol search into a hit.
+fn hit_of(row: SearchRow) -> StorageResult<SearchHit> {
+    let (symbol, name, qualified, kind, path, parent) = row;
+    Ok(SearchHit {
+        symbol: SymbolId::new(id_from(symbol)?),
+        name: SymbolName::new(name)?,
+        qualified_name: QualifiedName::new(qualified)?,
+        kind: label_from(&kind)?,
+        path: RelativePath::new(path)?,
+        parent: parent
+            .map(|id| id_from(id).map(SymbolId::new))
+            .transpose()?,
+    })
+}
+
 fn search(
     conn: &Connection,
     snapshot: i64,
@@ -63,33 +94,9 @@ fn search(
     let mut statement = conn.prepare_cached(sql::SEARCH)?;
     let rows = statement.query_map(
         params![snapshot, fuzzy, query, prefix, query, i64::from(limit)],
-        |row| {
-            let cols = Cols::new(row);
-            Ok((
-                cols.take::<i64>()?,
-                cols.take::<String>()?,
-                cols.take::<String>()?,
-                cols.take::<String>()?,
-                cols.take::<String>()?,
-                cols.take::<Option<i64>>()?,
-            ))
-        },
+        read_search_row,
     )?;
-    let mut hits = Vec::new();
-    for row in rows {
-        let (symbol, name, qualified, kind, path, parent) = row?;
-        hits.push(SearchHit {
-            symbol: SymbolId::new(id_from(symbol)?),
-            name: SymbolName::new(name)?,
-            qualified_name: QualifiedName::new(qualified)?,
-            kind: label_from(&kind)?,
-            path: RelativePath::new(path)?,
-            parent: parent
-                .map(|id| id_from(id).map(SymbolId::new))
-                .transpose()?,
-        });
-    }
-    Ok(hits)
+    rows.map(|row| hit_of(row?)).collect()
 }
 
 fn search_files(
@@ -217,6 +224,7 @@ impl SqliteStore {
     ///
     /// # Errors
     /// A coded `STO` failure.
+    // codeskimr: allow CHK-102 hands the arguments to the read of the file search
     pub fn search_files(
         &self,
         snapshot: SnapshotId,

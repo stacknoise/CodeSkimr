@@ -9,6 +9,7 @@ const [failed, setFailed] = createSignal(false);
 const [level, setLevel] = createSignal<Level>(LEVEL.layers);
 const [depth, setDepth] = createSignal(DEPTH_ALL);
 const [focus, setFocus] = createSignal<number | null>(null);
+const [namespace, setNamespace] = createSignal<string | null>(null);
 /** Counts the loads, so that a slow answer for a project that is no longer shown is dropped. */
 let latest = 0;
 
@@ -36,6 +37,10 @@ export const setGraphDepth = setDepth;
 export const graphFocus = focus;
 /** Chooses the type in the middle; the next load asks for it. */
 export const setGraphFocus = setFocus;
+/** The namespace in the middle of the map on the namespace level, `null` lets the server choose. */
+export const graphNamespace = namespace;
+/** Chooses the namespace in the middle; the next load asks for it. */
+export const setGraphNamespace = setNamespace;
 /** Whether the last load failed. */
 export const graphFailed = failed;
 
@@ -51,6 +56,7 @@ export async function loadGraph(project: number): Promise<void> {
       level: level(),
       depth: depth(),
       focus: focus(),
+      namespace: namespace(),
     });
     if (mine === latest) {
       setData(answer);
@@ -69,6 +75,7 @@ export function resetGraph(): void {
   latest += 1;
   setData(null);
   setFocus(null);
+  setNamespace(null);
   setLevel((chosen) => (chosen === LEVEL.types ? LEVEL.layers : chosen));
   setFailed(false);
 }

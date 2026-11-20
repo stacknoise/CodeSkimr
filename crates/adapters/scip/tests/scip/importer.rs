@@ -48,6 +48,10 @@ fn import(
         max_index_bytes: LIMIT,
         max_file_bytes: FILE_LIMIT,
         min_mapped,
+        symbol_kinds: &[],
+        separator: "",
+        library_root: "",
+        max_created_symbols: 0,
     })
 }
 
@@ -82,6 +86,10 @@ fn a_missing_index_is_a_coded_failure_and_the_threshold_is_kept() {
         max_index_bytes: LIMIT,
         max_file_bytes: FILE_LIMIT,
         min_mapped: 0.5,
+        symbol_kinds: &[],
+        separator: "",
+        library_root: "",
+        max_created_symbols: 0,
     });
     assert_eq!(
         missing.expect_err("fails").code(),
@@ -140,4 +148,39 @@ fn only_files_of_the_snapshot_are_read_and_only_up_to_the_limit() {
         }),
         "{asked:?}"
     );
+}
+
+#[test]
+fn the_importer_returns_the_symbols_it_creates_from_the_kinds_of_the_request() {
+    use crate::common::{definition_in, document_with, info};
+    use codeskimr_domain::{SymbolKind, SymbolOrigin};
+    let symbol = scip("ns/Gen#");
+    let a = document_with(
+        "src/a.cs",
+        &[definition_in(&[2, 9, 12], &[2, 0, 2, 14], &symbol)],
+        &[info(&symbol, 49, "Gen", "struct Gen", "")],
+    );
+    let b = document_with("src/b.cs", &[usage(&[3, 12, 15], &symbol)], &[]);
+    let dir = tempfile::tempdir().expect("temp dir");
+    let path = dir.path().join("index.scip");
+    std::fs::write(&path, index("", &[a, b])).expect("writes");
+    let (files, symbols) = service_world();
+    let root = FolderPath::new("/work").expect("root");
+    let kinds = [("Struct".to_owned(), SymbolKind::Struct)];
+    let imported = ScipImporter::new(Arc::new(NoText))
+        .import(&ImportRequest {
+            symbol_kinds: &kinds,
+            separator: ".",
+            max_created_symbols: 10,
+            min_mapped: 0.0,
+            ..request(&path, &root, (&files, &symbols, &[]))
+        })
+        .expect("imports");
+    let [created] = imported.symbols.as_slice() else {
+        panic!("one created symbol");
+    };
+    assert_eq!(created.origin, SymbolOrigin::Index);
+    assert!(created.qualified_name.as_str().ends_with(".Gen"));
+    assert_eq!(imported.references.len(), 1);
+    assert_eq!(imported.references.first().map(|r| r.to), Some(created.id));
 }

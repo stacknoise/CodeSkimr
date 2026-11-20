@@ -1,9 +1,13 @@
 //! Tests of the scan pipeline, the scanner, the job typestate and the event bus with fake ports.
 
+use std::collections::HashSet;
 use std::sync::{Arc, Mutex, PoisonError};
 
 #[cfg(test)]
 mod common;
+#[cfg(test)]
+#[path = "common/alerts.rs"]
+mod fakes;
 
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::config::Config;
@@ -11,30 +15,38 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::events::{Event, EventBus, StopReason};
 use codeskimr_application::ids::IdSequence;
 use codeskimr_application::level2::{Level2Pass, confirm};
-use codeskimr_application::pipeline::{Job, JobResult, Scanner, ScannerPorts};
+use codeskimr_application::pipeline::{
+    Job, JobResult, Level2Run, ReportStep, Scanner, ScannerPorts,
+};
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, ConsentStore, DiscoveredFile, FetchedSource, FileAnalyzer,
     FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob, IndexRunner,
-    IndexerSpec, IndexerStatus, MetricsCalculator, PendingReference, PreviousIndex,
-    ProjectRepository, ProjectScanner, ReferenceImporter, ReferenceReplacement, ReferenceResolver,
-    SnapshotData, SnapshotStore, SourceProvider, SymbolFingerprints, ToolSpec, ToolVersion,
+    IndexerSpec, IndexerStatus, Level2Replacement, MetricsCalculator, PathsReport,
+    PendingReference, PreviousIndex, PreviousState, ProjectRepository, ProjectScanner, Receiver,
+    ReferenceImporter, ReferenceResolver, ReportWrite, ScanReport, ScanReportStore, SnapshotData,
+    SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints, ToolSpec, ToolVersion,
 };
 use codeskimr_application::stage::StageKind;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    BranchName, CommitHash, Confidence, ContentHash, FileId, Fingerprint, Fingerprints, FolderPath,
-    LanguageId, Loc, Metric, MetricKind, MetricValue, ModelError, Permission, PermissionSet,
-    Position, Principal, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference,
-    ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId, SourceFile, Span,
-    Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName, Timestamp,
+    AlertTrigger, BranchName, CommitHash, Confidence, ContentHash, FileId, Fingerprint,
+    Fingerprints, FolderPath, LanguageId, Loc, Metric, MetricKind, MetricValue, ModelError,
+    Permission, PermissionSet, Position, Principal, Project, ProjectId, ProjectName, ProjectSource,
+    QualifiedName, Reference, ReferenceId, ReferenceKind, RelativePath, ScanLevel, ScanMode,
+    ScanOrigin, Snapshot, SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId, SymbolKind,
+    SymbolName, SymbolOrigin, Timestamp,
 };
 use common::InMemoryConsent;
+use fakes::{MemoryAnnotations, MemoryStates, step, symbol};
 
 /// The newest snapshot as the repository reports it.
 #[derive(Default, Clone)]
 struct Previous {
     files: Vec<SourceFile>,
     index: PreviousIndex,
+    /// The names as written in the files, as the store keeps them.
+    names: Vec<PendingReference>,
+    names_stored: bool,
 }
 
 /// One fake that plays every port. `fail_at` makes that stage fail, `cancel_at` raises the token
@@ -48,10 +60,14 @@ struct World {
     found: Option<Vec<(&'static str, bool)>>,
     missing_project: bool,
     panic_in_analyze: bool,
+    /// The project is a folder, not a Git repository.
+    folder_project: bool,
     /// The naming rules of the packs, and those the previous snapshot was scanned with.
     rules: (&'static str, Option<&'static str>),
     persisted: Mutex<Vec<SnapshotData>>,
     measured: Mutex<Vec<(usize, usize)>>,
+    /// How many names each resolution got.
+    resolved: Mutex<Vec<usize>>,
     counted: Mutex<Vec<usize>>,
 }
 
@@ -117,7 +133,11 @@ fn discovered(path: &str, changed: bool) -> Result<DiscoveredFile, CodedError> {
 }
 
 fn span() -> Result<Span, CodedError> {
-    let at = Position { line: 1, column: 1 };
+    span_at(1)
+}
+
+fn span_at(line: u32) -> Result<Span, CodedError> {
+    let at = Position { line, column: 1 };
     model(Span::new(at, at))
 }
 
@@ -176,34 +196,21 @@ impl FileAnalyzer for World {
             content_hash: request.file.content_hash.clone(),
             loc: Loc(3),
         };
-        let stem = request.file.path.as_str().trim_end_matches(".rs");
-        let symbol = Symbol {
-            id: request.ids.symbol(),
-            file: file.id,
-            kind: SymbolKind::Function,
-            name: model(SymbolName::new(stem))?,
-            qualified_name: model(QualifiedName::new(format!("m::{stem}")))?,
-            parent: None,
-            visibility: None,
-            is_static: false,
-            span: span()?,
-            signature: None,
-            doc: None,
-        };
+        let symbol = stem_symbol(request, &file)?;
         let pending = vec![PendingReference {
             from: symbol.id,
             file: file.id,
             span: span()?,
             kind: ReferenceKind::Call,
-            target: symbol.qualified_name.clone(),
+            target: model(QualifiedName::new(symbol.name.as_str()))?,
             receiver: None,
-            previous: None,
         }];
         Ok(FileFacts {
             file,
             pending,
             fingerprints: vec![fingerprinted(symbol.id)],
             counts: vec![counted(symbol.id)],
+            hashes: Vec::new(),
             symbols: vec![symbol],
         })
     }
@@ -224,15 +231,20 @@ impl ReferenceResolver for World {
         &self,
         symbols: &[Symbol],
         pending: &[PendingReference],
+        _test_files: &HashSet<FileId>,
         ids: &IdSequence,
     ) -> Result<Vec<Reference>, CodedError> {
         self.gate(StageKind::Resolve)?;
+        self.resolved
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .push(pending.len());
         Ok(pending
             .iter()
             .filter_map(|item| {
                 let target = symbols
                     .iter()
-                    .find(|symbol| symbol.qualified_name == item.target)?;
+                    .find(|symbol| symbol.name.as_str() == item.target.as_str())?;
                 Some(Reference {
                     id: ids.reference(),
                     from: item.from,
@@ -280,6 +292,11 @@ impl ProjectRepository for World {
     fn project(&self, _: ProjectId) -> Result<Project, CodedError> {
         if self.missing_project {
             Err(CodedError::new(ErrorCode::ProjectNotFound))
+        } else if self.folder_project {
+            Ok(Project {
+                source: ProjectSource::Folder(model(FolderPath::new("/work/demo"))?),
+                ..project()?
+            })
         } else {
             project()
         }
@@ -291,6 +308,52 @@ impl ProjectRepository for World {
 
     fn latest_index(&self, _: ProjectId) -> Result<PreviousIndex, CodedError> {
         Ok(self.previous.index.clone())
+    }
+
+    fn latest_state(&self, _: ProjectId) -> Result<PreviousState, CodedError> {
+        Ok(PreviousState {
+            files: self.previous.files.clone(),
+            index: self.previous.index.clone(),
+            snapshot: Some(SnapshotId::new(9)),
+            names_stored: self.previous.names_stored,
+        })
+    }
+
+    fn stored_names(
+        &self,
+        _: SnapshotId,
+        which: StoredNames<'_>,
+    ) -> Result<Vec<PendingReference>, CodedError> {
+        Ok(self
+            .previous
+            .names
+            .iter()
+            .filter(|name| match which {
+                StoredNames::Bases => {
+                    matches!(name.kind, ReferenceKind::Inherit | ReferenceKind::Implement)
+                }
+                StoredNames::ImportsOf(files) => {
+                    name.kind == ReferenceKind::Import && files.contains(&name.file)
+                }
+                StoredNames::Callers(files, callers) => {
+                    files.contains(&name.file) && callers.contains(&name.from)
+                }
+                StoredNames::Targeting(names) => {
+                    name.kind != ReferenceKind::Import
+                        && (names.iter().any(|n| n == name.target.as_str())
+                            || matches!(&name.receiver,
+                                Some(Receiver::Typed(r) | Receiver::Named(r))
+                                    if names.iter().any(|n| n == r.as_str())))
+                }
+                StoredNames::ImportsTargeting(names) => {
+                    name.kind == ReferenceKind::Import
+                        && names.iter().any(|n| n == name.target.as_str())
+                }
+                StoredNames::OfFiles(files) => files.contains(&name.file),
+                StoredNames::All => true,
+            })
+            .cloned()
+            .collect())
     }
 
     fn latest_naming_rules(&self, _: ProjectId) -> Result<Option<String>, CodedError> {
@@ -309,7 +372,7 @@ impl SnapshotStore for World {
         Ok(snapshot)
     }
 
-    fn replace_references(&self, _: ReferenceReplacement) -> Result<Snapshot, CodedError> {
+    fn replace_level2(&self, _: Level2Replacement) -> Result<Snapshot, CodedError> {
         Err(CodedError::new(ErrorCode::UnexpectedInternalError))
     }
 }
@@ -409,6 +472,24 @@ fn old_file(id: u64, path: &str) -> Result<SourceFile, CodedError> {
     })
 }
 
+fn stem_symbol(request: &AnalyzeRequest<'_>, file: &SourceFile) -> Result<Symbol, CodedError> {
+    let stem = request.file.path.as_str().trim_end_matches(".rs");
+    Ok(Symbol {
+        id: request.ids.symbol(),
+        file: file.id,
+        kind: SymbolKind::Function,
+        name: model(SymbolName::new(stem))?,
+        qualified_name: model(QualifiedName::new(format!("m::{stem}")))?,
+        parent: None,
+        visibility: None,
+        is_static: false,
+        span: span()?,
+        signature: None,
+        doc: None,
+        origin: SymbolOrigin::Syntax,
+    })
+}
+
 fn old_symbol(id: u64, file: u64, name: &str) -> Result<Symbol, CodedError> {
     Ok(Symbol {
         id: SymbolId::new(id),
@@ -422,6 +503,7 @@ fn old_symbol(id: u64, file: u64, name: &str) -> Result<Symbol, CodedError> {
         span: span()?,
         signature: None,
         doc: None,
+        origin: SymbolOrigin::Syntax,
     })
 }
 
@@ -432,10 +514,23 @@ fn old_call(id: u64, to: u64) -> Result<Reference, CodedError> {
         from: SymbolId::new(200),
         to: SymbolId::new(to),
         file: FileId::new(100),
-        span: span()?,
+        span: span_at(u32::try_from(id).unwrap_or_default())?,
         kind: ReferenceKind::Call,
         confidence: Confidence::Certain,
         verified: false,
+    })
+}
+
+/// The name `a` (symbol 200 in file 100) wrote for a call of `target`, in the place of the call
+/// `id`.
+fn old_name(target: &str, id: u32) -> Result<PendingReference, CodedError> {
+    Ok(PendingReference {
+        from: SymbolId::new(200),
+        file: FileId::new(100),
+        span: span_at(id)?,
+        kind: ReferenceKind::Call,
+        target: model(QualifiedName::new(target))?,
+        receiver: None,
     })
 }
 
@@ -443,6 +538,12 @@ fn old_call(id: u64, to: u64) -> Result<Reference, CodedError> {
 /// and itself.
 fn previous_snapshot() -> Result<Previous, CodedError> {
     Ok(Previous {
+        names_stored: true,
+        names: vec![
+            old_name("b", 300)?,
+            old_name("c", 301)?,
+            old_name("a", 302)?,
+        ],
         files: vec![
             old_file(100, "a.rs")?,
             old_file(101, "b.rs")?,
@@ -506,6 +607,278 @@ fn incremental_scan_analyses_only_changed_files_and_resolves_dependents_again()
         (2, 2, 3),
         "a.rs and b.rs; a and b; two new references and the call from a to itself carried over"
     );
+    Ok(())
+}
+
+/// The world of `a_unchanged_b_changed` over this previous snapshot.
+fn world_over(previous: Previous) -> Arc<World> {
+    Arc::new(World {
+        previous,
+        found: Some(vec![("a.rs", false), ("b.rs", true)]),
+        ..World::default()
+    })
+}
+
+#[test]
+fn a_snapshot_without_stored_names_is_followed_by_a_full_scan() -> Result<(), CodedError> {
+    let mut previous = previous_snapshot()?;
+    previous.names_stored = false;
+    let world = world_over(previous);
+    let (result, _) = run(&world, ScanMode::Incremental);
+    let JobResult::Finished(job) = result else {
+        panic!("scan did not finish");
+    };
+    assert_eq!(job.snapshot().mode, ScanMode::Full);
+    assert_eq!(world.last_persisted()?.files.len(), 2);
+    Ok(())
+}
+
+#[test]
+fn a_name_that_found_nothing_before_finds_a_new_target_in_a_changed_file() -> Result<(), CodedError>
+{
+    let mut previous = previous_snapshot()?;
+    // `a` wrote the name `b` before, but there was no `b` then, so no reference was stored.
+    previous.index.references.retain(|r| r.id.get() != 300);
+    previous.index.symbols.retain(|s| s.id.get() != 201);
+    let world = world_over(previous);
+    let _ = run(&world, ScanMode::Incremental);
+    let persisted = world.last_persisted()?;
+    let new_b = persisted.symbols[0].id;
+    assert!(
+        persisted
+            .references
+            .iter()
+            .any(|r| r.from.get() == 200 && r.to == new_b),
+        "the unchanged caller reaches the new target"
+    );
+    Ok(())
+}
+
+#[test]
+fn a_kept_reference_that_the_full_resolution_no_longer_produces_is_dropped()
+-> Result<(), CodedError> {
+    let mut previous = previous_snapshot()?;
+    // The stored call of `a` to itself is now a name that looks up the removed `c`, so the
+    // resolution is due and finds nothing for it.
+    previous.names.retain(|name| name.target.as_str() != "a");
+    previous.names.push(old_name("c", 302)?);
+    let world = world_over(previous);
+    let _ = run(&world, ScanMode::Incremental);
+    let persisted = world.last_persisted()?;
+    let dropped: Vec<u64> = persisted
+        .dropped_references
+        .iter()
+        .map(|id| id.get())
+        .collect();
+    assert_eq!(dropped, [302]);
+    Ok(())
+}
+
+#[test]
+fn a_kept_reference_that_is_produced_again_is_neither_written_nor_dropped() -> Result<(), CodedError>
+{
+    let world = a_unchanged_b_changed()?;
+    let _ = run(&world, ScanMode::Incremental);
+    let persisted = world.last_persisted()?;
+    assert_eq!(persisted.dropped_references, Vec::new());
+    assert!(
+        persisted.references.iter().all(|r| r.to.get() != 200),
+        "the call from a to itself stays in the store as it is"
+    );
+    Ok(())
+}
+
+fn verified(reference: Reference) -> Reference {
+    Reference {
+        verified: true,
+        ..reference
+    }
+}
+
+#[test]
+fn level_two_references_stay_and_one_whose_target_is_gone_falls_back_to_level_one()
+-> Result<(), CodedError> {
+    let mut previous = previous_snapshot()?;
+    previous.index.references = vec![verified(old_call(300, 201)?), verified(old_call(302, 200)?)];
+    // Level 2 reported nothing for the call of `c`; level 1 must not add what it replaced.
+    previous.names.push(old_name("a", 302)?);
+    let world = world_over(previous);
+    let (result, _) = run(&world, ScanMode::Incremental);
+    let JobResult::Finished(job) = result else {
+        panic!("scan did not finish");
+    };
+    let persisted = world.last_persisted()?;
+    assert_eq!(
+        persisted.dropped_references,
+        Vec::new(),
+        "the verified call of a stays"
+    );
+    let new_b = persisted.symbols[0].id;
+    let again: Vec<bool> = persisted
+        .references
+        .iter()
+        .filter(|r| r.from.get() == 200 && r.to == new_b)
+        .map(|r| r.verified)
+        .collect();
+    assert_eq!(
+        again,
+        [false],
+        "the discarded verified call is an unchecked level 1 one"
+    );
+    assert_eq!(persisted.references.len(), 2, "that and the call inside b");
+    assert_eq!(job.snapshot().stats.references, 3);
+    Ok(())
+}
+
+/// How many names the last scan handed to the resolver.
+fn resolved_names(world: &World) -> Vec<usize> {
+    world
+        .resolved
+        .lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .clone()
+}
+
+/// A symbol that level 2 created (ADR 0055).
+fn created_symbol(id: u64, file: u64, qualified: &str) -> Result<Symbol, CodedError> {
+    Ok(Symbol {
+        qualified_name: model(QualifiedName::new(qualified))?,
+        origin: SymbolOrigin::Index,
+        ..old_symbol(id, file, "Gen")?
+    })
+}
+
+/// What a scan stored as references, as `(from, to, span)` and without the ids it made up.
+fn stored_edges(world: &World) -> Result<Vec<(u64, u64, Span)>, CodedError> {
+    let mut edges: Vec<(u64, u64, Span)> = world
+        .last_persisted()?
+        .references
+        .iter()
+        .map(|r| (r.from.get(), r.to.get(), r.span))
+        .collect();
+    edges.sort_by_key(|(from, to, _)| (*from, *to));
+    Ok(edges)
+}
+
+#[test]
+fn a_scan_gives_the_same_level_one_result_whether_level_two_ran_before_or_not()
+-> Result<(), CodedError> {
+    // Oracle: the same incremental scan over the same snapshot, once plain and once with the
+    // symbols and references that level 2 left in it. 210 has the name of the changed `b`.
+    let plain = world_over(previous_snapshot()?);
+    let mut with_level_two = previous_snapshot()?;
+    with_level_two
+        .index
+        .symbols
+        .push(created_symbol(210, 100, "m::b")?);
+    with_level_two
+        .index
+        .symbols
+        .push(created_symbol(211, 101, "m::Gen")?);
+    with_level_two.index.references.push(old_call(310, 210)?);
+    with_level_two.index.references.push(old_call(311, 211)?);
+    let after_level_two = world_over(with_level_two);
+    let _ = run(&plain, ScanMode::Incremental);
+    let _ = run(&after_level_two, ScanMode::Incremental);
+    assert_eq!(stored_edges(&plain)?, stored_edges(&after_level_two)?);
+    assert_eq!(resolved_names(&plain), resolved_names(&after_level_two));
+    Ok(())
+}
+
+#[test]
+fn a_level_two_reference_from_an_unchanged_file_to_a_symbol_of_a_changed_file_is_dropped()
+-> Result<(), CodedError> {
+    let mut previous = previous_snapshot()?;
+    previous
+        .index
+        .symbols
+        .push(created_symbol(211, 101, "m::Gen")?);
+    previous
+        .index
+        .references
+        .push(verified(old_call(311, 211)?));
+    let world = world_over(previous);
+    let (result, _) = run(&world, ScanMode::Incremental);
+    let JobResult::Finished(job) = result else {
+        panic!("scan did not finish");
+    };
+    let persisted = world.last_persisted()?;
+    assert!(
+        persisted.references.iter().all(|r| r.to.get() != 211),
+        "level 1 does not make the reference again"
+    );
+    assert_eq!(
+        job.snapshot().stats.symbols,
+        2,
+        "a and the new b; 211 left with its file"
+    );
+    Ok(())
+}
+
+/// The module symbol of a file, named after the file as level 1 does (`lib`, `mod`).
+fn module_symbol(id: u64, file: u64, name: &str) -> Result<Symbol, CodedError> {
+    Ok(Symbol {
+        kind: SymbolKind::Module,
+        ..old_symbol(id, file, name)?
+    })
+}
+
+#[test]
+fn a_level_two_use_of_the_module_of_a_changed_file_is_dropped_until_level_two_runs_again()
+-> Result<(), CodedError> {
+    // ADR 0061: `a.rs` (unchanged) names the module of `b.rs` (changed), as `use crate::b` does
+    // in a `lib.rs` or `mod.rs`. Level 1 does not make that reference again; the next level 2 pass
+    // does, from the new module symbol.
+    let mut previous = previous_snapshot()?;
+    previous.index.symbols.push(module_symbol(212, 101, "mod")?);
+    previous.index.references.push(Reference {
+        kind: ReferenceKind::Read,
+        ..verified(old_call(312, 212)?)
+    });
+    let world = world_over(previous);
+    let (result, _) = run(&world, ScanMode::Incremental);
+    let JobResult::Finished(_) = result else {
+        panic!("scan did not finish");
+    };
+    let persisted = world.last_persisted()?;
+    assert!(
+        persisted.references.iter().all(|r| r.to.get() != 212),
+        "the module of the changed file left with its file"
+    );
+    assert!(
+        persisted.symbols.iter().all(|s| s.id.get() != 212),
+        "and its symbol is not carried"
+    );
+    Ok(())
+}
+
+#[test]
+fn a_change_that_keeps_the_declarations_resolves_only_the_names_that_pointed_into_it()
+-> Result<(), CodedError> {
+    // `c.rs` is not gone in this snapshot, so the changed `b.rs` declares what it declared before.
+    let mut previous = previous_snapshot()?;
+    previous.files.retain(|f| f.path.as_str() != "c.rs");
+    previous.index.symbols.retain(|s| s.file.get() != 102);
+    previous.index.references.retain(|r| r.to.get() != 202);
+    previous.names.retain(|n| n.target.as_str() != "c");
+    let world = world_over(previous);
+    let _ = run(&world, ScanMode::Incremental);
+    // The new call in `b.rs` and the call of `a` that pointed at the old `b`; the call of `a` to
+    // itself is not resolved again.
+    assert_eq!(resolved_names(&world), [2]);
+    let persisted = world.last_persisted()?;
+    assert_eq!(persisted.dropped_references, Vec::new());
+    assert_eq!(persisted.references.len(), 2);
+    Ok(())
+}
+
+#[test]
+fn a_gone_declaration_resolves_the_names_that_looked_it_up_again() -> Result<(), CodedError> {
+    let world = a_unchanged_b_changed()?;
+    let _ = run(&world, ScanMode::Incremental);
+    // `c.rs` is gone: the new call of `b.rs`, the name of `a` that looked up `c`, and the name that
+    // pointed at the replaced symbol of `b`; the call of `a` to itself is not resolved again.
+    assert_eq!(resolved_names(&world), [3]);
     Ok(())
 }
 
@@ -703,24 +1076,18 @@ fn ids_are_unique_and_stage_labels_round_trip() {
 #[test]
 fn a_reference_that_is_kept_is_not_resolved_a_second_time() -> Result<(), CodedError> {
     let mut previous = previous_snapshot()?;
-    // `m::b` is declared in the unchanged a.rs as well; a call to it stays valid, and the call to
-    // the `b` in the changed file is resolved again to the same unchanged candidate.
+    // `m::b` is declared in the unchanged a.rs as well; the call at 303 to it stays valid, and the
+    // name is resolved again to the same unchanged candidate and the new `b`.
     previous.index.symbols.push(old_symbol(203, 100, "b")?);
-    previous
-        .index
-        .references
-        .extend([old_call(303, 203)?, old_call(304, 201)?]);
-    let world = Arc::new(World {
-        previous,
-        found: Some(vec![("a.rs", false), ("b.rs", true)]),
-        ..World::default()
-    });
+    previous.index.references.push(old_call(303, 203)?);
+    previous.names.push(old_name("b", 303)?);
+    let world = world_over(previous);
     let _ = run(&world, ScanMode::Incremental);
     let calls_to_203 = world
         .last_persisted()?
         .references
         .iter()
-        .filter(|r| r.to.get() == 203 && r.from.get() == 200)
+        .filter(|r| r.to.get() == 203 && r.span.start().line == 303)
         .count();
     assert_eq!(
         calls_to_203, 0,
@@ -921,12 +1288,32 @@ fn rust_indexer() -> IndexerSpec {
         home_dirs: Vec::new(),
         env: Vec::new(),
         install_hint: String::new(),
+        symbol_kinds: Vec::new(),
+        separator: String::new(),
+        library_root: String::new(),
     }
 }
 
 /// A scanner with a confirmed second pass whose runner counts, and that counter.
 fn level2_scanner(world: &Arc<World>) -> Result<(Scanner, Arc<CountingRunner>), CodedError> {
-    let consent: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
+    level2_scanner_over(world, &Arc::new(InMemoryConsent::default()))
+}
+
+/// The same over the consent that the caller keeps, so that a test can revoke it.
+fn level2_scanner_over(
+    world: &Arc<World>,
+    store: &Arc<InMemoryConsent>,
+) -> Result<(Scanner, Arc<CountingRunner>), CodedError> {
+    level2_scanner_on(world, store, &EventBus::new())
+}
+
+/// The same publishing on `bus`, for the scanner and for the second pass.
+fn level2_scanner_on(
+    world: &Arc<World>,
+    store: &Arc<InMemoryConsent>,
+    bus: &EventBus,
+) -> Result<(Scanner, Arc<CountingRunner>), CodedError> {
+    let consent: Arc<dyn ConsentStore> = store.clone();
     confirm(
         &Principal::local_owner(),
         consent.as_ref(),
@@ -945,9 +1332,9 @@ fn level2_scanner(world: &Arc<World>) -> Result<(Scanner, Arc<CountingRunner>), 
         max_file_bytes: u64::from(u32::MAX),
         settings: Config::resolve(&[]).map_err(CodedError::caused_by)?.level2,
         indexers: vec![(model(LanguageId::new("rust"))?, rust_indexer())],
+        events: bus.clone(),
     };
-    let bus = EventBus::new();
-    Ok((scanner(world, &bus).with_level2(pass), runner))
+    Ok((scanner(world, bus).with_level2(pass), runner))
 }
 
 fn runs(runner: &CountingRunner) -> u32 {
@@ -1045,4 +1432,453 @@ fn the_worker_limit_caps_the_threads_and_zero_means_all_cores() {
     assert!(cores >= 1);
     assert_eq!(analyze_workers(1), 1);
     assert_eq!(analyze_workers(u32::MAX), cores);
+}
+
+/// An incremental scan restricted to `paths` over a world where `found` is what discovery sees.
+fn restricted_scan(
+    found: Vec<(&'static str, bool)>,
+    paths: &[&str],
+) -> Result<SnapshotData, CodedError> {
+    let world = Arc::new(World {
+        found: Some(found),
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let paths: Vec<String> = paths.iter().map(|path| (*path).to_owned()).collect();
+    let job = Job::new(ProjectId::new(7), ScanMode::Incremental).with_paths(&paths);
+    let result = scanner(&world, &EventBus::new()).run(&Principal::local_owner(), job);
+    assert!(
+        matches!(result, JobResult::Finished(_)),
+        "scan did not finish"
+    );
+    world.last_persisted()
+}
+
+fn analysed(data: &SnapshotData) -> Vec<&str> {
+    data.files.iter().map(|file| file.path.as_str()).collect()
+}
+
+#[test]
+fn a_scan_restricted_to_paths_does_not_look_at_a_change_elsewhere() -> Result<(), CodedError> {
+    let found = || vec![("a.rs", false), ("b.rs", true), ("c.rs", false)];
+    assert_eq!(
+        analysed(&restricted_scan(found(), &["a.rs"])?),
+        Vec::<&str>::new()
+    );
+    assert_eq!(analysed(&restricted_scan(found(), &["b.rs"])?), ["b.rs"]);
+    assert_eq!(analysed(&restricted_scan(found(), &[])?), ["b.rs"]);
+    Ok(())
+}
+
+#[test]
+fn a_scan_restricted_to_paths_keeps_a_file_that_is_gone_elsewhere() -> Result<(), CodedError> {
+    let found = || vec![("a.rs", false), ("c.rs", false)];
+    let kept = restricted_scan(found(), &["a.rs"])?;
+    assert_eq!(kept.removed, Vec::<RelativePath>::new());
+    let all = restricted_scan(found(), &[])?;
+    assert_eq!(all.removed, [model(RelativePath::new("b.rs"))?]);
+    let named = restricted_scan(found(), &["b.rs"])?;
+    assert_eq!(named.removed, [model(RelativePath::new("b.rs"))?]);
+    Ok(())
+}
+
+#[test]
+fn a_scan_restricted_to_paths_that_name_no_file_changes_nothing() -> Result<(), CodedError> {
+    let found = vec![("a.rs", false), ("b.rs", true), ("c.rs", false)];
+    let in_folder = restricted_scan(found, &["./src/"])?;
+    assert_eq!(
+        analysed(&in_folder),
+        Vec::<&str>::new(),
+        "no file lies below src"
+    );
+    let found = vec![("a.rs", false), ("b.rs", true), ("c.rs", false)];
+    let escaping = restricted_scan(found, &["../b.rs", "/b.rs"])?;
+    assert_eq!(
+        analysed(&escaping),
+        Vec::<&str>::new(),
+        "a path that leaves the project names nothing"
+    );
+    Ok(())
+}
+
+/// What a scan over the world of `a.rs`, `b.rs` and `c.rs` made of the `paths` it was asked for.
+fn paths_report(mode: ScanMode, paths: &[&str]) -> Result<PathsReport, CodedError> {
+    let world = Arc::new(World {
+        found: Some(vec![("a.rs", false), ("c.rs", false)]),
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let paths: Vec<String> = paths.iter().map(|path| (*path).to_owned()).collect();
+    let job = Job::new(ProjectId::new(7), mode).with_paths(&paths);
+    let JobResult::Finished(job) =
+        scanner(&world, &EventBus::new()).run(&Principal::local_owner(), job)
+    else {
+        return Err(CodedError::new(ErrorCode::UnexpectedInternalError));
+    };
+    Ok(job.paths_report().clone())
+}
+
+#[test]
+fn a_path_that_names_no_file_is_reported_and_a_deleted_file_is_not_unmatched()
+-> Result<(), CodedError> {
+    // `b.rs` is gone from the folder but known to the previous snapshot: a legitimate path.
+    let report = paths_report(
+        ScanMode::Incremental,
+        &["a.rs", "b.rs", "typo.rs", "../a.rs", "/a.rs"],
+    )?;
+    assert_eq!(report.unmatched, ["typo.rs", "../a.rs", "/a.rs"]);
+    assert!(!report.ignored);
+    Ok(())
+}
+
+#[test]
+fn a_scan_without_paths_has_nothing_to_report() -> Result<(), CodedError> {
+    assert_eq!(
+        paths_report(ScanMode::Incremental, &[])?,
+        PathsReport::default()
+    );
+    Ok(())
+}
+
+#[test]
+fn paths_of_a_scan_that_had_to_be_a_full_one_are_reported_as_ignored() -> Result<(), CodedError> {
+    assert!(paths_report(ScanMode::Full, &["a.rs"])?.ignored);
+    let world = world_with_rules("csharp=namespace", Some("csharp=file"))?;
+    let job = Job::new(ProjectId::new(7), ScanMode::Incremental).with_paths(&["a.rs".to_owned()]);
+    let JobResult::Finished(job) =
+        scanner(&world, &EventBus::new()).run(&Principal::local_owner(), job)
+    else {
+        panic!("scan did not finish");
+    };
+    assert_eq!(job.snapshot().mode, ScanMode::Full);
+    assert!(
+        job.paths_report().ignored,
+        "other naming rules make a full scan"
+    );
+    Ok(())
+}
+
+/// The scanner with the alert step over the fakes; the critical symbol `Demo.Box.Work` is in the
+/// snapshot the states hold.
+fn alerting(
+    world: &Arc<World>,
+    bus: &EventBus,
+) -> (Scanner, Arc<MemoryAnnotations>, Arc<MemoryStates>) {
+    let annotations = Arc::new(MemoryAnnotations::default());
+    let states = Arc::new(MemoryStates::default());
+    annotations.critical(SymbolKind::Method, "Demo.Box.Work", &[]);
+    states.set(vec![symbol(SymbolKind::Method, "Demo.Box.Work", "one")]);
+    let scanner = scanner(world, bus).with_alerts(step(&annotations, &states, bus));
+    (scanner, annotations, states)
+}
+
+fn scan_once(scanner: &Scanner, job: Job<codeskimr_application::pipeline::Queued>) -> JobResult {
+    scanner.run(&Principal::local_owner(), job)
+}
+
+#[test]
+fn the_alert_of_a_git_project_says_it_came_with_a_fetch_whatever_started_the_scan() {
+    let world = Arc::new(World::default());
+    let bus = EventBus::new();
+    let (scanner, annotations, states) = alerting(&world, &bus);
+    let job = || Job::new(ProjectId::new(7), ScanMode::Full).from_watcher();
+    assert!(matches!(scan_once(&scanner, job()), JobResult::Finished(_)));
+    states.set(vec![symbol(SymbolKind::Method, "Demo.Box.Work", "two")]);
+    assert!(matches!(scan_once(&scanner, job()), JobResult::Finished(_)));
+    let alerts = annotations.open_alerts();
+    assert_eq!(alerts.len(), 1);
+    assert_eq!(alerts[0].sighting.trigger, AlertTrigger::Fetch);
+}
+
+#[test]
+fn the_alert_of_a_folder_project_names_what_started_the_scan() {
+    let world = Arc::new(World {
+        folder_project: true,
+        ..World::default()
+    });
+    let bus = EventBus::new();
+    let (scanner, annotations, states) = alerting(&world, &bus);
+    scan_once(&scanner, Job::new(ProjectId::new(7), ScanMode::Full));
+    states.set(vec![symbol(SymbolKind::Method, "Demo.Box.Work", "two")]);
+    scan_once(&scanner, Job::new(ProjectId::new(7), ScanMode::Full));
+    states.set(vec![symbol(SymbolKind::Method, "Demo.Box.Work", "three")]);
+    scan_once(
+        &scanner,
+        Job::new(ProjectId::new(7), ScanMode::Incremental).from_watcher(),
+    );
+    let alerts = annotations.open_alerts();
+    assert_eq!(alerts[0].counter, 2);
+    assert_eq!(alerts[0].sighting.trigger, AlertTrigger::Watcher);
+}
+
+#[test]
+fn a_failure_of_the_alert_step_leaves_the_snapshot_and_its_event_as_they_are() {
+    let world = Arc::new(World::default());
+    let bus = EventBus::new();
+    let events = bus.subscribe();
+    let (scanner, annotations, _) = alerting(&world, &bus);
+    *annotations.fail.lock().unwrap() = Some(ErrorCode::DiskFull);
+    let result = scan_once(&scanner, Job::new(ProjectId::new(7), ScanMode::Full));
+    let JobResult::Finished(job) = result else {
+        panic!("a failed alert step must not fail the scan");
+    };
+    assert_eq!(job.snapshot().stats.files, 2);
+    assert_eq!(world.persisted_count(), 1);
+    let events: Vec<Event> = events.try_iter().collect();
+    assert!(matches!(events.last(), Some(Event::SnapshotCreated(_))));
+    assert!(
+        events
+            .iter()
+            .all(|event| !matches!(event, Event::ScanStopped(_)))
+    );
+}
+
+#[test]
+fn the_alert_step_runs_after_the_snapshot_is_stored() {
+    let world = Arc::new(World::default());
+    let bus = EventBus::new();
+    let (scanner, annotations, _) = alerting(&world, &bus);
+    scan_once(&scanner, Job::new(ProjectId::new(7), ScanMode::Full));
+    assert_eq!(world.persisted_count(), 1);
+    assert_eq!(annotations.calls_named("refresh_targets"), 1);
+}
+
+/// Keeps what the scanner stores, or refuses to.
+#[derive(Default)]
+struct MemoryReports {
+    writes: Mutex<Vec<ReportWrite>>,
+    refuse: bool,
+}
+
+impl ScanReportStore for MemoryReports {
+    fn store_report(&self, write: &ReportWrite) -> Result<(), CodedError> {
+        if self.refuse {
+            return Err(CodedError::new(ErrorCode::DatabaseFailed));
+        }
+        self.writes
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .push(write.clone());
+        Ok(())
+    }
+
+    fn report(&self, _: ProjectId) -> Result<Option<ScanReport>, CodedError> {
+        Ok(None)
+    }
+}
+
+fn run_with_reports(
+    reports: &Arc<MemoryReports>,
+    job: Job<codeskimr_application::pipeline::Queued>,
+) -> JobResult {
+    let world = Arc::new(World::default());
+    scanner(&world, &EventBus::new())
+        .with_reports(ReportStep::new(reports.clone(), world.clone()))
+        .run(&Principal::local_owner(), job)
+}
+
+#[test]
+fn a_scan_stores_its_channel_and_level_and_a_scan_without_level_2_leaves_the_second_report_alone() {
+    let reports = Arc::new(MemoryReports::default());
+    let job = Job::new(ProjectId::new(7), ScanMode::Full).started_from(ScanOrigin::Mcp);
+    assert!(matches!(
+        run_with_reports(&reports, job),
+        JobResult::Finished(_)
+    ));
+    let writes = reports.writes.lock().unwrap();
+    assert_eq!(writes.len(), 1);
+    assert_eq!(writes[0].last.origin, ScanOrigin::Mcp);
+    assert_eq!(writes[0].last.level, ScanLevel::One);
+    assert_eq!(writes[0].level2, None);
+}
+
+#[test]
+fn a_report_that_cannot_be_stored_is_a_warning_and_the_snapshot_stays() {
+    let reports = Arc::new(MemoryReports {
+        refuse: true,
+        ..MemoryReports::default()
+    });
+    let job = Job::new(ProjectId::new(7), ScanMode::Full);
+    let JobResult::Finished(job) = run_with_reports(&reports, job) else {
+        panic!("the scan must finish");
+    };
+    let codes: Vec<_> = job.warnings().iter().map(|warning| warning.code).collect();
+    assert_eq!(codes, [ErrorCode::ScanReportNotStored]);
+    assert_eq!(job.snapshot().stats.files, 2);
+}
+
+#[test]
+fn without_a_wired_second_pass_no_level_2_report_is_stored() {
+    let reports = Arc::new(MemoryReports::default());
+    let world = Arc::new(World::default());
+    let scanner = scanner(&world, &EventBus::new())
+        .with_reports(ReportStep::new(reports.clone(), world.clone()));
+    let job = Job::new(ProjectId::new(7), ScanMode::Full).with_level2();
+    // No pass is wired, so nothing runs and nothing is stored for level 2.
+    assert!(matches!(
+        scanner.run(&Principal::local_owner(), job),
+        JobResult::Finished(_)
+    ));
+    assert_eq!(reports.writes.lock().unwrap()[0].level2, None);
+}
+
+/// Level 1 of the browser: stored, no indexer started yet.
+fn level_one_of(
+    world: &Arc<World>,
+    scanner: &Scanner,
+) -> Result<
+    codeskimr_application::pipeline::Job<codeskimr_application::pipeline::Finished>,
+    CodedError,
+> {
+    let job = Job::new(ProjectId::new(7), ScanMode::Full).started_from(ScanOrigin::Browser);
+    match scanner.run(&Principal::local_owner(), job) {
+        JobResult::Finished(job) => {
+            assert_eq!(world.persisted_count(), 1);
+            Ok(job)
+        }
+        _ => Err(CodedError::new(ErrorCode::UnexpectedInternalError)),
+    }
+}
+
+fn run_level_two(
+    scanner: &Scanner,
+    finished: &codeskimr_application::pipeline::Job<codeskimr_application::pipeline::Finished>,
+    (principal, cancel): (&Principal, &CancelToken),
+) -> Vec<codeskimr_application::level2::LanguageReport> {
+    scanner.run_level2(&Level2Run {
+        principal,
+        snapshot: finished.snapshot(),
+        root: finished.root(),
+        cancel,
+        origin: ScanOrigin::Browser,
+    })
+}
+
+#[test]
+fn level_two_after_level_one_starts_the_indexer_once_and_level_one_is_already_stored()
+-> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let (scanner, runner) = level2_scanner(&world)?;
+    let finished = level_one_of(&world, &scanner)?;
+    assert_eq!(runs(&runner), 0, "the scan itself starts no indexer");
+    let reports = run_level_two(
+        &scanner,
+        &finished,
+        (&Principal::local_owner(), &CancelToken::new()),
+    );
+    assert_eq!(runs(&runner), 1);
+    assert_eq!(reports.len(), 1);
+    Ok(())
+}
+
+#[test]
+fn a_cancelled_token_stops_level_two_before_the_indexer_and_keeps_level_one()
+-> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let (scanner, runner) = level2_scanner(&world)?;
+    let finished = level_one_of(&world, &scanner)?;
+    let cancel = CancelToken::new();
+    cancel.cancel();
+    let reports = run_level_two(&scanner, &finished, (&Principal::local_owner(), &cancel));
+    assert_eq!(runs(&runner), 0);
+    assert!(matches!(
+        reports[0].outcome,
+        codeskimr_application::level2::Level2Outcome::Skipped(
+            codeskimr_application::level2::Skipped::Cancelled
+        )
+    ));
+    assert_eq!(world.persisted_count(), 1, "level 1 is as it was");
+    Ok(())
+}
+
+#[test]
+fn a_caller_without_the_right_to_run_indexers_gets_no_run_even_after_level_one()
+-> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let (scanner, runner) = level2_scanner(&world)?;
+    let finished = level_one_of(&world, &scanner)?;
+    let remote = Principal::limited(
+        PermissionSet::none()
+            .with(Permission::Read)
+            .with(Permission::Scan),
+    );
+    let gate = scanner.level2_gate(&remote, ProjectId::new(7), finished.root());
+    assert_eq!(
+        gate,
+        Err(codeskimr_application::level2::Skipped::NotPermitted)
+    );
+    let reports = run_level_two(&scanner, &finished, (&remote, &CancelToken::new()));
+    assert_eq!(runs(&runner), 0);
+    assert!(matches!(
+        reports[0].outcome,
+        codeskimr_application::level2::Level2Outcome::Skipped(
+            codeskimr_application::level2::Skipped::NotPermitted
+        )
+    ));
+    Ok(())
+}
+
+#[test]
+fn a_consent_that_is_gone_when_the_run_starts_stops_it() -> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let consent = Arc::new(InMemoryConsent::default());
+    let (scanner, runner) = level2_scanner_over(&world, &consent)?;
+    let finished = level_one_of(&world, &scanner)?;
+    let owner = Principal::local_owner();
+    assert!(
+        scanner
+            .level2_gate(&owner, ProjectId::new(7), finished.root())
+            .is_ok()
+    );
+    // The owner revokes between the answer of the command and the start of the run.
+    codeskimr_application::level2::revoke(&owner, consent.as_ref(), ProjectId::new(7))?;
+    let reports = run_level_two(&scanner, &finished, (&owner, &CancelToken::new()));
+    assert_eq!(runs(&runner), 0);
+    assert!(matches!(
+        reports[0].outcome,
+        codeskimr_application::level2::Level2Outcome::Skipped(
+            codeskimr_application::level2::Skipped::NotConfirmed
+        )
+    ));
+    Ok(())
+}
+
+#[test]
+fn a_level_two_run_tells_the_language_and_the_end_and_nothing_else() -> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let bus = EventBus::new();
+    let (scanner, _runner) =
+        level2_scanner_on(&world, &Arc::new(InMemoryConsent::default()), &bus)?;
+    let finished = level_one_of(&world, &scanner)?;
+    let events = bus.subscribe();
+    let _ = run_level_two(
+        &scanner,
+        &finished,
+        (&Principal::local_owner(), &CancelToken::new()),
+    );
+    let seen: Vec<Event> = events.try_iter().collect();
+    assert!(matches!(
+        seen.first(),
+        Some(Event::Level2Progressed(progress)) if progress.language.as_str() == "rust"
+    ));
+    assert!(matches!(
+        seen.last(),
+        Some(Event::Level2Finished(done)) if done.project == ProjectId::new(7)
+    ));
+    Ok(())
 }

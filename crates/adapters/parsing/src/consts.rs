@@ -159,6 +159,24 @@ pub const ID_MISMATCH: &str = "id differs from the folder name: ";
 /// Reason of an invalid pack whose `[[tools]]` entry is wrong; the entry follows.
 pub const TOOL_INVALID: &str = "invalid tool: ";
 
+/// Ends every token, and every part of a text, in a content hash, so that where one ends is part of
+/// the hash (the unit separator).
+pub const TOKEN_SEPARATOR: u8 = 0x1f;
+
+/// Bytes of a token stream that are collected before they go to the hasher (one call per token
+/// costs more than hashing the bytes).
+pub const HASH_CHUNK_BYTES: usize = 16_384;
+
+/// Capacity of that buffer: a chunk and the token that crosses its end.
+pub const HASH_BUFFER_BYTES: usize = 32_768;
+
+/// The start of a block that no token delimits, in a content hash (a control character, which no
+/// token of source text consists of on its own).
+pub const BLOCK_OPEN: u8 = 0x02;
+
+/// The end of such a block, in a content hash.
+pub const BLOCK_CLOSE: u8 = 0x03;
+
 /// Replacement extension that removes the extension of a path.
 pub const NO_EXTENSION: &str = "";
 
@@ -188,6 +206,8 @@ pub const INDEXER_BAD_VERSION: &str = "indexer version cannot be read: ";
 pub const INDEXER_UNKNOWN_PLACEHOLDER: &str = "indexer argument has an unknown placeholder: ";
 /// Reason: a `home_dirs` entry of an `[indexer]` is empty, absolute or leaves the home.
 pub const INDEXER_BAD_HOME_DIR: &str = "indexer home_dirs must name a folder below the home: ";
+/// Reason: a kind of `[indexer.symbol_kinds]` is not a symbol kind of the model.
+pub const INDEXER_BAD_SYMBOL_KIND: &str = "indexer symbol_kinds names an unknown symbol kind: ";
 /// Reason: no argument of an `[indexer]` names the index file.
 pub const INDEXER_NO_OUTPUT: &str = "indexer args must contain {output}";
 /// Opens a placeholder in an indexer argument.
@@ -198,6 +218,8 @@ pub const PLACEHOLDER_CLOSE: char = '}';
 pub const PATH_SEPARATORS: [char; 2] = ['/', '\\'];
 /// Character that a folder name taken from a manifest must not contain (no `..`).
 pub const PATH_DOT: char = '.';
+/// Between a broken test pattern and the reason in the message about it.
+pub const TEST_PATTERN_SEPARATOR: &str = ": ";
 /// Nothing: what a placeholder is replaced with when the rest of an argument is checked.
 pub const NOTHING: &str = "";
 
@@ -210,10 +232,47 @@ pub const NAMING_FILE_IN_NAMES: &str = "file";
 /// Rule of a pack whose qualified names start with its own namespaces (ADR 0036).
 pub const NAMING_NAMESPACED: &str = "namespace";
 
+/// Between the naming rule of a pack and its test patterns.
+pub const NAMING_TESTS: &str = "+tests:";
+/// Between two test patterns in the text of the naming rules.
+pub const NAMING_PATTERN_SEPARATOR: &str = ",";
+
 /// Revision of the naming rules of the engine itself, part of the text of the naming rules: it
 /// changes when names change for reasons other than a pack key (2: members of an `impl` carry
-/// their type, ADR 0039; 3: methods of Go and C++ carry their owner, ADR 0042).
-pub const NAMING_REVISION: &str = "revision=3";
+/// their type, ADR 0039; 3: methods of Go and C++ carry their owner, ADR 0042; 4: types and members
+/// carry the hash of their tokens, ADR 0068, which an earlier snapshot lacks).
+pub const NAMING_REVISION: &str = "revision=4";
 
 /// Ends a signature that was cut at `scan.max_signature_chars`.
 pub const SIGNATURE_CUT: &str = "…";
+
+/// Tree-sitter query that colours the code of a language in the UI (blueprint 8.1); optional.
+pub const HIGHLIGHT_QUERY_FILE: &str = "highlights.scm";
+/// Longest time the highlighter may take to parse the code of one answer.
+pub const HIGHLIGHT_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(200);
+/// Separates the parts of a capture name (`function.call`).
+pub const CAPTURE_PART_SEPARATOR: char = '.';
+/// Joins lines into the text that is parsed.
+pub const LINE_BREAK: &str = "\n";
+/// Capture of a comment in `highlights.scm`.
+pub const HIGHLIGHT_COMMENT: &str = "comment";
+/// Capture of a string or character literal, and its escapes.
+pub const HIGHLIGHT_STRING: &str = "string";
+/// Capture of a number.
+pub const HIGHLIGHT_NUMBER: &str = "number";
+/// Capture of a constant, built in or not.
+pub const HIGHLIGHT_CONSTANT: &str = "constant";
+/// Capture of a keyword.
+pub const HIGHLIGHT_KEYWORD: &str = "keyword";
+/// Capture of a type, built in or not.
+pub const HIGHLIGHT_TYPE: &str = "type";
+/// Capture of a tag of a markup language.
+pub const HIGHLIGHT_TAG: &str = "tag";
+/// Capture of a function name, declared or called, and of a macro.
+pub const HIGHLIGHT_FUNCTION: &str = "function";
+/// Capture of an attribute or annotation.
+pub const HIGHLIGHT_ATTRIBUTE: &str = "attribute";
+/// Capture of a label such as a lifetime.
+pub const HIGHLIGHT_LABEL: &str = "label";
+/// Capture of the object itself (`self`, `this`); it is coloured like a keyword.
+pub const HIGHLIGHT_VARIABLE_BUILTIN: &str = "variable.builtin";

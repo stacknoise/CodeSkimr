@@ -6,8 +6,12 @@ import { activeTheme, chosenTheme, followSystem, selectTheme } from "../../share
 import { THEMES } from "../../shared/theme/tokens";
 import { FOLLOW_SYSTEM_ID, LANGUAGE_FIELD_ID, LANGUAGE_NAME_KEYS } from "./consts";
 import styles from "./SettingsScreen.module.css";
+import { CredentialsPanel } from "./CredentialsPanel";
+import { IndexersPanel } from "./IndexersPanel";
 import { ThemeCard } from "./ThemeCard";
 import { LANGUAGES } from "../../shared/i18n/consts";
+import { LAYERS_ROUTE } from "../../app/consts";
+import { navigate } from "../../app/router";
 
 /** The theme cards and the follow-system switch. */
 function ThemePanel() {
@@ -68,6 +72,19 @@ function LanguagePanel() {
   );
 }
 
+/** The way to the layer editor. */
+function LayersPanel() {
+  return (
+    <section class={`${styles.panel} ${styles.narrow}`}>
+      <h2>{t(I18N_KEYS.SETTINGS_LAYERS_TITLE)}</h2>
+      <p class={styles.note}>{t(I18N_KEYS.SETTINGS_LAYERS_NOTE)}</p>
+      <button type="button" class={styles.field} onClick={() => navigate(LAYERS_ROUTE.path)}>
+        {t(I18N_KEYS.SETTINGS_LAYERS_ACTION)}
+      </button>
+    </section>
+  );
+}
+
 /** The read-only editor link settings. */
 function EditorPanel(props: { config: UiConfig }) {
   return (
@@ -94,6 +111,9 @@ export function SettingsScreen() {
       </header>
       <ThemePanel />
       <LanguagePanel />
+      <LayersPanel />
+      <IndexersPanel />
+      <CredentialsPanel />
       <Show when={uiConfig()}>{(config) => <EditorPanel config={config()} />}</Show>
     </>
   );

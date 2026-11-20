@@ -1,4 +1,5 @@
 import { createSignal } from "solid-js";
+import { applyAlertsEvent, parseAlertsEvent } from "../alerts/store";
 import { refreshProjects } from "../projects/projects";
 import {
   EVENT,
@@ -47,6 +48,11 @@ export function parseEvent(text: string): WireEvent | null {
 }
 
 function handle(text: string): void {
+  const alerts = parseAlertsEvent(text);
+  if (alerts !== null) {
+    applyAlertsEvent(alerts.project, alerts.open);
+    return;
+  }
   const event = parseEvent(text);
   if (event === null) {
     return;

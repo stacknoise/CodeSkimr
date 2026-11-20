@@ -53,6 +53,8 @@
 }
 
 .gutter {
+    margin: 0;
+    font: inherit;
     flex: none;
     min-width: 44px;
     padding-right: 14px;
@@ -71,9 +73,55 @@
     font: inherit;
 }
 
+/* Colours of the syntax: tokens of design/tokens.toml, one per class of explorer.source. */
+.comment {
+    color: var(--syn-comment);
+    font-style: italic;
+}
+
+.string {
+    color: var(--syn-string);
+}
+
+.number {
+    color: var(--syn-number);
+}
+
+.keyword {
+    color: var(--syn-keyword);
+}
+
+.type {
+    color: var(--syn-type);
+}
+
+.function {
+    color: var(--syn-function);
+}
+
+.attribute {
+    color: var(--syn-attribute);
+}
+
 .note {
     margin: 0;
     padding: var(--space-12);
     color: var(--muted);
     font-size: 12.5px;
+}
+
+/* Under the header of a selected member: a framed block that fills the rest of the column. */
+.inColumn {
+    flex: 1 1 0;
+    min-width: 0;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-dialog);
+    overflow: hidden;
+}
+
+/* The first tab of the side panel: the panel is the column, the source fills it. */
+.bare {
+    flex: 1 1 0;
+    min-width: 0;
+    border-left: 0;
 }

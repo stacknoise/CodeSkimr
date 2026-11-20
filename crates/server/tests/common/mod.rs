@@ -167,7 +167,11 @@ pub async fn start_mcp(principal: Principal) -> Running {
     run(server.with_mcp(Ping), wipes, events).await
 }
 
-/// The service behind `/mcp` in the tests: it answers every request with `pong`.
+/// A request header that makes [`Ping`] refuse the body as the real service does for broken JSON.
+pub const REFUSE_BODY: &str = "x-refuse-body";
+
+/// The service behind `/mcp` in the tests: it answers every request with `pong`,
+/// except a `GET` (405) and a request with [`REFUSE_BODY`] (415), both in plain text.
 #[derive(Clone)]
 pub struct Ping;
 
@@ -183,10 +187,15 @@ impl tower_service::Service<axum::extract::Request> for Ping {
         std::task::Poll::Ready(Ok(()))
     }
 
-    fn call(&mut self, _: axum::extract::Request) -> Self::Future {
-        std::future::ready(Ok(axum::response::Response::new(axum::body::Body::from(
-            "pong",
-        ))))
+    fn call(&mut self, request: axum::extract::Request) -> Self::Future {
+        let mut response = axum::response::Response::new(axum::body::Body::from("pong"));
+        // Like the real service: a plain-text refusal for a method or a body it does not take.
+        if request.method() == axum::http::Method::GET {
+            *response.status_mut() = axum::http::StatusCode::METHOD_NOT_ALLOWED;
+        } else if request.headers().contains_key(REFUSE_BODY) {
+            *response.status_mut() = axum::http::StatusCode::UNSUPPORTED_MEDIA_TYPE;
+        }
+        std::future::ready(Ok(response))
     }
 }
 
@@ -225,6 +234,8 @@ pub fn ui_options() -> UiOptions {
                 allowed_schemes: vec!["vscode".to_owned()],
             },
             default_theme: "petrol".to_owned(),
+            level2_poll_seconds: 2,
+            level2_poll_max_seconds: 300,
         },
     }
 }

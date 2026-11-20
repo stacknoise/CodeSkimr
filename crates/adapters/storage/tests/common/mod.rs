@@ -2,6 +2,8 @@
 #![allow(dead_code, missing_docs)]
 
 use std::num::NonZeroU32;
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicU32, Ordering};
 
 use codeskimr_application::ports::SnapshotData;
 use codeskimr_codes::Coded;
@@ -21,6 +23,13 @@ pub fn store(retention: u32) -> SqliteStore {
     SqliteStore::open_in_memory(keep).expect("in-memory database opens")
 }
 
+/// A store with the retention 3 and the project 1 registered, as most tests start.
+pub fn registered_store() -> SqliteStore {
+    let store = store(3);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    store
+}
+
 pub fn project(id: u64, folder: &str, layers: &[(&str, &[&str])]) -> Project {
     Project {
         id: ProjectId::new(id),
@@ -29,6 +38,7 @@ pub fn project(id: u64, folder: &str, layers: &[(&str, &[&str])]) -> Project {
         layers: layers
             .iter()
             .map(|(name, namespaces)| Layer {
+                may_use: None,
                 name: LayerName::new(*name).unwrap(),
                 namespaces: namespaces
                     .iter()
@@ -79,6 +89,7 @@ pub fn symbol(
         span: span(1),
         signature: Some(format!("{name}()")),
         doc: None,
+        origin: codeskimr_domain::SymbolOrigin::Syntax,
     }
 }
 
@@ -122,9 +133,13 @@ pub fn data(snapshot: Snapshot) -> SnapshotData {
         references: Vec::new(),
         metrics: Vec::new(),
         fingerprints: Vec::new(),
+        hashes: Vec::new(),
         removed: Vec::new(),
+        pending: Vec::new(),
+        dropped_references: Vec::new(),
         naming_rules: String::new(),
         parse_micros: Vec::new(),
+        warnings: Vec::new(),
     }
 }
 
@@ -141,11 +156,23 @@ pub fn scanned(
     references: Vec<Reference>,
     metrics: Vec<Metric>,
 ) -> SqliteStore {
+    scanned_project(
+        &project(1, "/work/app", layers),
+        symbols,
+        references,
+        metrics,
+    )
+}
+
+pub fn scanned_project(
+    project: &Project,
+    symbols: Vec<Symbol>,
+    references: Vec<Reference>,
+    metrics: Vec<Metric>,
+) -> SqliteStore {
     use codeskimr_application::ports::SnapshotStore;
     let store = store(3);
-    store
-        .save_project(&project(1, "/work/app", layers))
-        .unwrap();
+    store.save_project(project).unwrap();
     let mut scan = data(header(10, ScanMode::Full));
     scan.files = vec![file(10, 11, "src/order.cs", "h")];
     scan.symbols = symbols;
@@ -153,4 +180,26 @@ pub fn scanned(
     scan.metrics = metrics;
     store.persist(scan).unwrap();
     store
+}
+
+static NEXT: AtomicU32 = AtomicU32::new(0);
+
+/// A database path in a fresh temporary folder that is removed again on drop.
+pub struct TempDb(pub PathBuf);
+
+impl TempDb {
+    pub fn new() -> Self {
+        let unique = NEXT.fetch_add(1, Ordering::Relaxed);
+        let folder =
+            std::env::temp_dir().join(format!("codeskimr-storage-{}-{unique}", std::process::id()));
+        Self(folder.join("nested").join("workspace.db"))
+    }
+}
+
+impl Drop for TempDb {
+    fn drop(&mut self) {
+        if let Some(root) = self.0.parent().and_then(std::path::Path::parent) {
+            let _ = std::fs::remove_dir_all(root);
+        }
+    }
 }

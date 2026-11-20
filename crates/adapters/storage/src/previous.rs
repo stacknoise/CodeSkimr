@@ -10,14 +10,18 @@ use crate::error::StorageResult;
 use crate::references::load_references;
 use crate::sql;
 
-/// The index of the newest snapshot of `project`, empty if there is none.
-pub fn load_latest_index(conn: &Connection, project: ProjectId) -> StorageResult<PreviousIndex> {
-    let latest: Option<i64> = conn.query_row(
+/// The id of the newest snapshot of `project`, `None` if there is none.
+pub fn latest_snapshot_id(conn: &Connection, project: ProjectId) -> StorageResult<Option<i64>> {
+    Ok(conn.query_row(
         sql::LATEST_SNAPSHOT_ID,
         params![column_int(project.get())?],
         |row| row.get(0),
-    )?;
-    let Some(snapshot) = latest else {
+    )?)
+}
+
+/// The index of the newest snapshot of `project`, empty if there is none.
+pub fn load_latest_index(conn: &Connection, project: ProjectId) -> StorageResult<PreviousIndex> {
+    let Some(snapshot) = latest_snapshot_id(conn, project)? else {
         return Ok(PreviousIndex::default());
     };
     Ok(PreviousIndex {

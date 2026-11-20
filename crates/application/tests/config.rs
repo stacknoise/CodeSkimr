@@ -12,6 +12,12 @@ fn project(text: &str) -> ConfigLayer {
 }
 
 #[test]
+fn the_budget_of_loading_the_language_packs_is_in_the_defaults() {
+    let config = Config::defaults().expect("shipped defaults are valid");
+    assert_eq!(config.budgets.pack_load_ms, 1500);
+}
+
+#[test]
 fn defaults_match_the_blueprint() {
     let config = Config::defaults().expect("shipped defaults are valid");
     assert_eq!(config.metrics.cyclomatic_good_max, 5);
@@ -43,6 +49,7 @@ fn level2_defaults_are_256_mib_and_half() {
     let config = Config::defaults().expect("shipped defaults are valid");
     assert_eq!(config.level2.max_index_bytes, 256 * 1024 * 1024);
     assert!((config.level2.min_mapped - 0.5).abs() < f64::EPSILON);
+    assert_eq!(config.level2.max_created_symbols, 100_000);
 }
 
 #[test]
@@ -134,6 +141,82 @@ fn the_longest_wait_of_the_watcher_is_not_shorter_than_its_quiet_window() {
         "watcher.max_wait_ms",
         Violation::MustNotBeBelow("watcher.debounce_ms"),
     )]);
+}
+
+#[test]
+fn annotation_limits_are_checked() {
+    assert_rejected(&[
+        (
+            "[annotations]\ndismissed_retention_days = 0\n",
+            "annotations.dismissed_retention_days",
+            Violation::MustBePositive,
+        ),
+        (
+            "[annotations]\nmax_text_chars = 0\n",
+            "annotations.max_text_chars",
+            Violation::MustBePositive,
+        ),
+        (
+            "[annotations]\nmax_title_chars = 0\n",
+            "annotations.max_title_chars",
+            Violation::MustBePositive,
+        ),
+        (
+            "[annotations]\nmax_title_chars = 5000\n",
+            "annotations.max_title_chars",
+            Violation::MustNotExceed("annotations.max_text_chars"),
+        ),
+        (
+            "[annotations]\ndefault_page_size = 0\n",
+            "annotations.default_page_size",
+            Violation::MustBePositive,
+        ),
+        (
+            "[annotations]\ndefault_page_size = 600\n",
+            "annotations.default_page_size",
+            Violation::MustNotExceed("annotations.max_page_size"),
+        ),
+    ]);
+    let limits = Config::defaults().unwrap().annotations.limits();
+    assert_eq!((limits.max_text_chars, limits.max_title_chars), (4000, 500));
+    let pages = Config::defaults().unwrap().annotations;
+    assert_eq!((pages.default_page_size, pages.max_page_size), (100, 500));
+}
+
+#[test]
+fn the_limits_of_assignee_name_and_parameters_are_checked() {
+    assert_rejected(&[
+        (
+            "[annotations]\nmax_assignee_chars = 0\n",
+            "annotations.max_assignee_chars",
+            Violation::MustBePositive,
+        ),
+        (
+            "[annotations]\nmax_name_chars = 0\n",
+            "annotations.max_name_chars",
+            Violation::MustBePositive,
+        ),
+        (
+            "[annotations]\nmax_parameter_chars = 0\n",
+            "annotations.max_parameter_chars",
+            Violation::MustBePositive,
+        ),
+        (
+            "[annotations]\nmax_parameters = 0\n",
+            "annotations.max_parameters",
+            Violation::MustBePositive,
+        ),
+    ]);
+    let defaults = Config::defaults().unwrap().annotations;
+    assert_eq!(
+        (
+            defaults.max_assignee_chars,
+            defaults.max_name_chars,
+            defaults.max_parameter_chars,
+            defaults.max_parameters
+        ),
+        (100, 500, 200, 32)
+    );
 }
 
 #[test]
@@ -292,6 +375,11 @@ fn level2_limits_are_checked() {
             Violation::MustBePositive,
         ),
         (
+            "[level2]\nmax_created_symbols = 0\n",
+            "level2.max_created_symbols",
+            Violation::MustBePositive,
+        ),
+        (
             "[level2]\nmin_mapped = 1.5\n",
             "level2.min_mapped",
             Violation::MustBeShare,
@@ -342,6 +430,42 @@ fn the_editor_link_and_the_ui_are_checked() {
 }
 
 #[test]
+fn the_polling_of_the_switch_and_the_pause_of_the_window_are_checked() {
+    assert_rejected(&[
+        (
+            "[ui]\nlevel2_poll_seconds = 0\n",
+            "ui.level2_poll_seconds",
+            Violation::MustBePositive,
+        ),
+        (
+            "[ui]\nlevel2_poll_seconds = 10\nlevel2_poll_max_seconds = 5\n",
+            "ui.level2_poll_max_seconds",
+            Violation::MustNotBeBelow("ui.level2_poll_seconds"),
+        ),
+        (
+            "[level2]\nconfirm_window_cooldown_seconds = 0\n",
+            "level2.confirm_window_cooldown_seconds",
+            Violation::MustBePositive,
+        ),
+        (
+            "[level2]\nmax_parallel_runs = 0\n",
+            "level2.max_parallel_runs",
+            Violation::MustBePositive,
+        ),
+        (
+            "[level2]\nmax_parallel_runs = 9\n",
+            "level2.max_parallel_runs",
+            Violation::MustNotPass(8),
+        ),
+        (
+            "[level2]\nui_cooldown_seconds = 9\n",
+            "level2.ui_cooldown_seconds",
+            Violation::MustReach(10),
+        ),
+    ]);
+}
+
+#[test]
 fn the_size_of_a_graph_box_must_be_positive() {
     assert_rejected(&[
         (
@@ -352,6 +476,11 @@ fn the_size_of_a_graph_box_must_be_positive() {
         (
             "[graph]\nnode_height = 0\n",
             "graph.node_height",
+            Violation::MustBePositive,
+        ),
+        (
+            "[graph]\nrow_boxes = 0\n",
+            "graph.row_boxes",
             Violation::MustBePositive,
         ),
     ]);
@@ -397,7 +526,23 @@ fn a_layer_needs_a_unique_name_and_a_namespace() {
             "layers",
             Violation::MustBeLayerRule,
         ),
+        (
+            "[[layers]]\nname = \"a\"\nnamespaces = [\"x\"]\nmay_use = [\"missing\"]\n",
+            "layers",
+            Violation::MustBeLayerRule,
+        ),
     ]);
+}
+
+#[test]
+fn a_layer_may_limit_its_dependencies_to_declared_layers() {
+    let text = "[[layers]]\nname = \"a\"\nnamespaces = [\"x\"]\nmay_use = [\"b\"]\n\n[[layers]]\nname = \"b\"\nnamespaces = [\"y\"]\nmay_use = []\n\n[[layers]]\nname = \"c\"\nnamespaces = [\"z\"]\n";
+    let layers = Config::resolve(&[project(text)])
+        .expect("valid")
+        .project_layers();
+    assert_eq!(layers[0].may_use.as_ref().map(Vec::len), Some(1));
+    assert_eq!(layers[1].may_use, Some(Vec::new()));
+    assert_eq!(layers[2].may_use, None);
 }
 
 #[test]

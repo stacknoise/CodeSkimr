@@ -84,13 +84,14 @@ mod cases {
         ) -> Result<Done, codeskimr_application::error::CodedError> {
             let action = Level2Action::Confirm {
                 project: argument.to_owned(),
+                from_ui: false,
             };
             run(&action, &GlobalOptions::default(), &self.locations, ask)
         }
     }
 
     #[test]
-    fn a_client_of_mcp_or_the_server_may_neither_confirm_nor_run_an_indexer() {
+    fn a_client_of_mcp_may_neither_confirm_nor_run_nor_revoke_an_indexer() {
         let fixture = Fixture::with(folder(FOLDER));
         let client = principal::remote_client();
         assert!(!client.holds(Permission::ConfirmIndexer));
@@ -99,8 +100,14 @@ mod cases {
         let store = fixture.store();
         let refused = level2::confirm(&client, &store, ProjectId::new(ID)).unwrap_err();
         assert_eq!(refused.code(), ErrorCode::IndexerNotPermitted);
-        let refused = level2::revoke(&client, &store, ProjectId::new(ID)).unwrap_err();
-        assert_eq!(refused.code(), ErrorCode::IndexerNotPermitted);
+        assert_eq!(fixture.consent(), ConsentRecord::default());
+        // Taking a right back is a right of the browser client only (ADR 0071, ADR 0072), and it
+        // confirms nothing.
+        let revoked = level2::revoke(&client, &store, ProjectId::new(ID)).unwrap_err();
+        assert_eq!(revoked.code(), ErrorCode::IndexerNotPermitted);
+        let browser = principal::browser_client();
+        assert!(!browser.holds(Permission::ConfirmIndexer));
+        level2::revoke(&browser, &store, ProjectId::new(ID)).unwrap();
         assert_eq!(fixture.consent(), ConsentRecord::default());
         assert!(principal::resolve().holds(Permission::ConfirmIndexer));
     }

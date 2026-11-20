@@ -56,9 +56,14 @@ pub fn load_or_create_locked(
     if let Some(folder) = lock_file.parent() {
         fs::create_dir_all(folder).map_err(internal)?;
     }
+    // Read and write access, not append only: Windows refuses to lock a file that was opened for
+    // appending (`LockFileEx` needs read or write data access), which ended every start with
+    // APP-901. The file is never written to.
     let file = File::options()
+        .read(true)
+        .write(true)
         .create(true)
-        .append(true)
+        .truncate(false)
         .open(lock_file)
         .map_err(internal)?;
     acquire(&file)?;
@@ -197,8 +202,10 @@ mod tests {
         let folder = tempfile::tempdir().unwrap();
         let lock = folder.path().join("token.lock");
         let holder = File::options()
+            .read(true)
+            .write(true)
             .create(true)
-            .append(true)
+            .truncate(false)
             .open(&lock)
             .unwrap();
         fs4::FileExt::try_lock(&holder).unwrap();

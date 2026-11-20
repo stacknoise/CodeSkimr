@@ -56,7 +56,7 @@ fn plan_of(
     };
     let language = pack_id(&manifest.id, folder)?;
     let plan = ToolPlan {
-        indexer: indexer.spec().map_err(invalid)?,
+        indexer: indexer.spec(&manifest.separator).map_err(invalid)?,
         requirements: indexer.requirements().map_err(invalid)?,
     };
     Ok(Some((language, plan)))
@@ -65,5 +65,15 @@ fn plan_of(
 impl ToolCatalog for PackTools {
     fn plan_of(&self, language: &LanguageId) -> Option<ToolPlan> {
         self.by_language.get(language).cloned()
+    }
+
+    fn plans(&self) -> Vec<(LanguageId, ToolPlan)> {
+        let mut plans: Vec<_> = self
+            .by_language
+            .iter()
+            .map(|(language, plan)| (language.clone(), plan.clone()))
+            .collect();
+        plans.sort_by(|left, right| left.0.as_str().cmp(right.0.as_str()));
+        plans
     }
 }
