@@ -121,6 +121,7 @@ fn creation(kinds: &[(String, SymbolKind)]) -> Creation<'_> {
         separator: "::",
         max_symbols: 100,
         library_root: "",
+        max_references: 1_000,
     }
 }
 

@@ -200,6 +200,32 @@ impl BoundServer {
     }
 }
 
+impl BoundServer {
+    /// [`BoundServer::serve`], but every request carries `peer` as the address of the connected
+    /// program, whatever the connection says. It exists for tests of the routes that refuse a peer
+    /// that is not on this machine, because a test cannot connect from such an address (issue
+    /// #531). The program never calls it: a test (`tests/peer_seam.rs`) scans every source file of
+    /// the repository for a caller.
+    ///
+    /// # Errors
+    /// As [`BoundServer::serve`].
+    #[doc(hidden)]
+    pub async fn serve_as_peer(
+        self,
+        peer: SocketAddr,
+        shutdown: impl Future<Output = ()> + Send + 'static,
+    ) -> Result<(), CodedError> {
+        let router = self.router.layer(from_fn(
+            move |mut request: Request, next: axum::middleware::Next| async move {
+                request.extensions_mut().insert(crate::peer::PeerAddr(peer));
+                next.run(request).await
+            },
+        ));
+        listen::run(self.listener, router, self.stop, shutdown).await;
+        Ok(())
+    }
+}
+
 /// The UI files: the folder if there is one, else the files in the program, else none.
 fn assets_of(
     dir: Option<std::path::PathBuf>,
