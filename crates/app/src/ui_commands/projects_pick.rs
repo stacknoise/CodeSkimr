@@ -10,17 +10,13 @@ use std::sync::Arc;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_domain::Permission;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use super::consts::{
     FOLDER_DIALOG_DESCRIPTION, FOLDER_DIALOG_TITLE, PICK_FOLDER_DESCRIPTION, PICK_FOLDER_TITLE,
     PROJECTS_FOLDER_DIALOG, PROJECTS_PICK_FOLDER,
 };
 use crate::folder_dialog::FolderPicker;
-
-/// Nothing to say; the commands take no input.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
-pub struct NoInput {}
 
 /// What `projects.folder_dialog` reports back.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -42,7 +38,7 @@ pub struct FolderDialogInfo {
 }
 
 impl Command for FolderDialogInfo {
-    type Input = NoInput;
+    type Input = ();
     type Output = DialogInfo;
 
     const DESCRIPTOR: CommandDescriptor = CommandDescriptor {
@@ -69,7 +65,7 @@ pub struct PickFolder {
 }
 
 impl Command for PickFolder {
-    type Input = NoInput;
+    type Input = ();
     type Output = Picked;
 
     const DESCRIPTOR: CommandDescriptor = CommandDescriptor {
