@@ -86,6 +86,8 @@ export const TYPE_KINDS: readonly string[] = [
   "enum",
   "union",
 ];
+/** Kinds that the tree groups under "Type aliases". */
+export const ALIAS_KINDS: readonly string[] = ["type_alias"];
 /** Kinds that the tree groups under "Methods". */
 export const METHOD_KINDS: readonly string[] = ["method", "constructor", "function"];
 /** Kinds that the "Properties" chip of the member table shows. */
@@ -139,6 +141,9 @@ export const ROW = {
 } as const;
 export type RowKind = (typeof ROW)[keyof typeof ROW];
 
+/** Separates the folders of the path of a file. */
+export const PATH_SEPARATOR = "/";
+
 /** One part of a namespace name; the parts are separated by `.` or `::`. */
 export const NAME_PART = /[^.:]+/g;
 
@@ -153,7 +158,12 @@ export const BASE_INDENT_PX = 8;
 export const CARET = { closed: "▶", open: "▼" } as const;
 
 /** The member groups of the tree. */
-export const GROUP = { fields: "fields", methods: "methods", nested: "nested" } as const;
+export const GROUP = {
+  fields: "fields",
+  methods: "methods",
+  nested: "nested",
+  aliases: "aliases",
+} as const;
 
 /** The chips of the member table. */
 export const CHIP = {
@@ -237,6 +247,10 @@ export const TILES = [
     tip: I18N_KEYS.EXPLORER_METRIC_INSTABILITY_TIP,
   },
 ] as const;
+
+/** The tiles of the coupling counts (ADR 0037); while level 2 has not confirmed the language of the
+ * symbol they say "upper bound". */
+export const BOUND_TILES: readonly string[] = ["ce", "ca", "instability"];
 
 /** Decimals of a metric value with a fraction. */
 export const METRIC_DECIMALS = 2;

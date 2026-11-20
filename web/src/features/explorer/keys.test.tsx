@@ -29,6 +29,7 @@ const row = (key: string, extra: Partial<TreeRow> = {}): TreeRow => ({
   target: null,
   scope: null,
   names: [],
+  held: [],
   ...extra,
 });
 

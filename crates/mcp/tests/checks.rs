@@ -6,7 +6,7 @@ mod common;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Permission, PermissionSet, Principal};
 use codeskimr_mcp::{ConstantsArgs, ConventionsArgs, SimilarArgs};
-use common::tools;
+use common::{tools, tools_listing};
 
 #[cfg(test)]
 fn owner() -> Principal {
@@ -236,17 +236,19 @@ fn the_check_reports_a_long_function_with_its_numbers() {
     let answer = tools()
         .check_conventions(&owner(), &conventions(&["src"]))
         .unwrap();
-    let finding = &answer["findings"][0];
+    let finding = answer["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|finding| finding["code"] == "CHK-104")
+        .unwrap();
     assert_eq!(answer["files_checked"], 1);
     assert_eq!(finding["code"], "CHK-104");
     assert_eq!(finding["path"], "src/big.cs");
     assert_eq!(finding["symbol"], "App.Big.Run");
     assert_eq!(finding["lines"], 50);
     assert_eq!(finding["max_lines"], 40);
-    assert_eq!(
-        answer["not_checked"],
-        serde_json::json!(["CHK-101", "CHK-103"])
-    );
+    assert_eq!(answer["not_checked"], serde_json::json!(["CHK-103"]));
 }
 
 #[test]
@@ -255,7 +257,9 @@ fn the_check_reports_complexity_and_parameters_with_their_limits() {
         limit: Some(10),
         ..conventions(&["src"])
     };
-    let answer = tools().check_conventions(&owner(), &args).unwrap();
+    let answer = tools_listing(10)
+        .check_conventions(&owner(), &args)
+        .unwrap();
     let findings = answer["findings"].as_array().unwrap();
     let find = |code: &str| {
         findings
@@ -267,6 +271,8 @@ fn the_check_reports_complexity_and_parameters_with_their_limits() {
     assert_eq!(find("CHK-105")["max_value"], 15);
     assert_eq!(find("CHK-106")["value"], 7);
     assert_eq!(find("CHK-106")["max_value"], 5);
+    assert_eq!(find("CHK-101")["literals"], 3);
+    assert_eq!(answer["total"], 4);
 }
 
 #[test]
@@ -287,7 +293,7 @@ fn no_paths_check_the_whole_project() {
     };
     let answer = tools().check_conventions(&owner(), &args).unwrap();
     assert_eq!(answer["files_checked"], 1);
-    assert_eq!(answer["total"], 3);
+    assert_eq!(answer["total"], 4);
 }
 
 #[test]

@@ -1,4 +1,4 @@
-import { For } from "solid-js";
+import { For, Show } from "solid-js";
 import { cx } from "../../shared/ui/cx";
 import type { Tile } from "./metrics";
 import { ratingClass } from "./ratingClass";
@@ -18,6 +18,9 @@ export function TileGrid(props: { tiles: Tile[]; classes: TileClasses }) {
               {tile.value}
             </div>
             <div class={props.classes.label}>{tile.label}</div>
+            <Show when={tile.hint}>
+              <div class={props.classes.hint}>{tile.hint}</div>
+            </Show>
           </div>
         )}
       </For>

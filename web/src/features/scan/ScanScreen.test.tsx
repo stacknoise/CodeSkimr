@@ -251,6 +251,23 @@ describe("ScanScreen", () => {
     stop();
   });
 
+  it("leaves the time of loading language packs out of the measured scan time", async () => {
+    setLanguage("en");
+    const stop = await shown();
+    FakeSocket.last?.send({ ...RUNNING, stage: "fetch", done: 1, total: 1 });
+    FakeSocket.last?.send({
+      type: "snapshot_created",
+      project: 1,
+      snapshot: 6,
+      pack_load_ms: 60_000,
+    });
+    await screen.findByText("Scan finished");
+    const row = screen.getByText("Scan 100k lines").parentElement as HTMLElement;
+    // The load took longer than the whole run in the browser, so nothing is left to measure.
+    expect(within(row).getByText("0 ms")).toBeInTheDocument();
+    stop();
+  });
+
   it("follows a scan over the stream, stage by stage", async () => {
     setLanguage("en");
     const stop = await shown();

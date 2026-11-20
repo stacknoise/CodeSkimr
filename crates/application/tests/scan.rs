@@ -1,7 +1,9 @@
 //! Tests of the scan pipeline, the scanner, the job typestate and the event bus with fake ports.
 
 use std::collections::HashSet;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
+use std::time::Duration;
 
 #[cfg(test)]
 mod common;
@@ -10,7 +12,7 @@ mod common;
 mod fakes;
 
 use codeskimr_application::cancel::CancelToken;
-use codeskimr_application::config::Config;
+use codeskimr_application::config::{Config, ConfigLayer, LayerSource};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::{Event, EventBus, StopReason};
 use codeskimr_application::ids::IdSequence;
@@ -69,6 +71,9 @@ struct World {
     /// How many names each resolution got.
     resolved: Mutex<Vec<usize>>,
     counted: Mutex<Vec<usize>>,
+    /// Milliseconds the fake analyzer says it spent loading packs; each question adds a step.
+    pack_load_ms: AtomicU64,
+    pack_load_step_ms: u64,
 }
 
 impl World {
@@ -181,6 +186,11 @@ fn counted(symbol: SymbolId) -> SymbolCounts {
 }
 
 impl FileAnalyzer for World {
+    fn pack_load_time(&self) -> Duration {
+        let step = self.pack_load_step_ms;
+        Duration::from_millis(self.pack_load_ms.fetch_add(step, Ordering::SeqCst))
+    }
+
     fn naming_rules(&self) -> String {
         self.rules.0.to_owned()
     }
@@ -431,6 +441,19 @@ fn full_scan_runs_all_stages_and_persists_once() {
     assert_eq!(world.persisted_count(), 1);
     assert_eq!(stages_seen(&events), StageKind::ALL);
     assert!(matches!(events.last(), Some(Event::SnapshotCreated(_))));
+}
+
+#[test]
+fn the_end_event_tells_how_long_loading_packs_took() {
+    let world = Arc::new(World {
+        pack_load_step_ms: 40,
+        ..World::default()
+    });
+    let (_, events) = run(&world, ScanMode::Full);
+    let Some(Event::SnapshotCreated(created)) = events.last() else {
+        panic!("no end event");
+    };
+    assert_eq!(created.pack_load, Duration::from_millis(40));
 }
 
 /// The previous snapshot with `a.rs` unchanged and `b.rs` changed; `c.rs` is gone.
@@ -1330,7 +1353,13 @@ fn level2_scanner_on(
         store: world.clone(),
         ids,
         max_file_bytes: u64::from(u32::MAX),
-        settings: Config::resolve(&[]).map_err(CodedError::caused_by)?.level2,
+        settings: Config::resolve(&[ConfigLayer::parse(
+            LayerSource::User,
+            "[level2]\nenabled = true\n",
+        )
+        .map_err(CodedError::caused_by)?])
+        .map_err(CodedError::caused_by)?
+        .level2,
         indexers: vec![(model(LanguageId::new("rust"))?, rust_indexer())],
         events: bus.clone(),
     };

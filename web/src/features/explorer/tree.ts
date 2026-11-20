@@ -1,10 +1,12 @@
 import {
+  ALIAS_KINDS,
   BASE_INDENT_PX,
   FIELD_KINDS,
   GROUP,
   INDENT_PX,
   KEY_SEPARATOR,
   NAME_PART,
+  PATH_SEPARATOR,
   METHOD_KINDS,
   ROW,
   TYPE_KINDS,
@@ -42,6 +44,8 @@ export interface TreeRow {
   scope: string | null;
   /** The qualified names of the members a group holds, to count the critical ones. */
   names: readonly string[];
+  /** The symbols to read when a namespace row opens: the ones that hold its members. */
+  held: readonly number[];
 }
 
 /** The texts the tree needs that depend on the language. */
@@ -51,6 +55,7 @@ export interface TreeLabels {
   fields: string;
   methods: string;
   nested: string;
+  aliases: string;
 }
 
 /** Key of the row of a layer, a namespace or a type. */
@@ -66,7 +71,8 @@ export function indent(depth: number): number {
   return BASE_INDENT_PX + depth * INDENT_PX;
 }
 
-function base(key: string, kind: RowKind, depth: number, label: string): TreeRow {
+/** A row with nothing but its identity, for the builders of rows and for tests. */
+export function blankRow(key: string, kind: RowKind, depth: number, label: string): TreeRow {
   return {
     key,
     kind,
@@ -83,12 +89,13 @@ function base(key: string, kind: RowKind, depth: number, label: string): TreeRow
     target: null,
     scope: null,
     names: [],
+    held: [],
   };
 }
 
 function memberRow(owner: number, depth: number, member: MemberRow): TreeRow {
   return {
-    ...base(memberKey(member.id), ROW.member, depth, member.name),
+    ...blankRow(memberKey(member.id), ROW.member, depth, member.name),
     symbolKind: member.kind,
     meta: member.signature ?? "",
     type: owner,
@@ -127,39 +134,60 @@ export function groupOfKind(kind: string): string | null {
   if (METHOD_KINDS.includes(kind)) {
     return GROUP.methods;
   }
+  if (ALIAS_KINDS.includes(kind)) {
+    return GROUP.aliases;
+  }
   return TYPE_KINDS.includes(kind) ? GROUP.nested : null;
 }
 
-function groupRow(info: SymbolInfo, depth: number, id: string, label: string, held: MemberRow[]) {
-  const key = groupKey(info.id, id);
+function groupRow(owner: number, depth: number, id: string, label: string, held: MemberRow[]) {
+  const key = groupKey(owner, id);
   return {
-    ...base(key, ROW.group, depth, label),
+    ...blankRow(key, ROW.group, depth, label),
     meta: String(held.length),
     expandable: true,
-    type: info.id,
+    type: owner,
     names: held.map((member) => member.qualified_name),
   };
 }
 
-function groupRows(info: SymbolInfo, depth: number, ctx: Context): TreeRow[] {
+/** The groups of the members of a symbol, or of the symbols that together hold the members of a
+ * namespace (the first one names the groups). A namespace leaves out the group of nested types:
+ * its types are rows below it already. */
+function groupRows(
+  infos: readonly SymbolInfo[],
+  depth: number,
+  ctx: Context,
+  withTypes = true,
+): TreeRow[] {
+  const [first] = infos;
+  if (!first) {
+    return [];
+  }
   const groups = [
     { id: GROUP.fields, label: ctx.labels.fields, kinds: FIELD_KINDS },
     { id: GROUP.methods, label: ctx.labels.methods, kinds: METHOD_KINDS },
-    { id: GROUP.nested, label: ctx.labels.nested, kinds: TYPE_KINDS },
+    { id: GROUP.aliases, label: ctx.labels.aliases, kinds: ALIAS_KINDS },
+    ...(withTypes ? [{ id: GROUP.nested, label: ctx.labels.nested, kinds: TYPE_KINDS }] : []),
   ];
   return groups.flatMap(({ id, label, kinds }) => {
-    const members = info.members.filter((member) => kinds.includes(member.kind));
+    const owned = infos.flatMap((info) =>
+      info.members
+        .filter((member) => kinds.includes(member.kind))
+        .map((member) => ({ info, member })),
+    );
+    const members = owned.map(({ member }) => member);
     if (members.length === 0) {
       return [];
     }
-    const row = groupRow(info, depth, id, label, members);
+    const row = groupRow(first.id, depth, id, label, members);
     const open = ctx.expanded.has(row.key);
     const children =
       id === GROUP.nested
         ? members.flatMap((member) =>
-            typeRows(nestedNode(member, info.language), depth + 1, ctx, true),
+            typeRows(nestedNode(member, first.language), depth + 1, ctx, true),
           )
-        : members.map((member) => memberRow(info.id, depth + 1, member));
+        : owned.map(({ info, member }) => memberRow(info.id, depth + 1, member));
     return [{ ...row, open }, ...(open ? children : [])];
   });
 }
@@ -168,7 +196,7 @@ function typeRows(node: TypeNode, depth: number, ctx: Context, nested = false): 
   const key = typeKey(node.id);
   const open = ctx.expanded.has(key);
   const row: TreeRow = {
-    ...base(key, ROW.type, depth, node.name),
+    ...blankRow(key, ROW.type, depth, node.name),
     symbolKind: node.kind,
     language: node.language,
     meta: nested ? "" : String(node.members),
@@ -179,7 +207,7 @@ function typeRows(node: TypeNode, depth: number, ctx: Context, nested = false): 
     scope: node.qualified_name,
   };
   const info = ctx.details.get(node.id);
-  return open && info ? [row, ...groupRows(info, depth + 1, ctx)] : [row];
+  return open && info ? [row, ...groupRows([info], depth + 1, ctx)] : [row];
 }
 
 /** A namespace segment of a layer: the types declared exactly here and the segments below. */
@@ -192,10 +220,20 @@ interface Segment {
   types: TypeNode[];
   /** The file module with this name (a Python file is its own namespace), if there is one. */
   module: TypeNode | null;
+  /** Other symbols that hold functions and constants of the namespace (a namespace symbol, the
+   * module of a file without a namespace). */
+  holders: TypeNode[];
 }
 
 function segment(path: string, label: string): Segment {
-  return { path, label, children: new Map<string, Segment>(), types: [], module: null };
+  return {
+    path,
+    label,
+    children: new Map<string, Segment>(),
+    types: [],
+    module: null,
+    holders: [],
+  };
 }
 
 /** The parts of a namespace name with the name up to and including each part (`App.Domain` gives
@@ -208,12 +246,21 @@ export function nameParts(name: string): { label: string; path: string }[] {
   }));
 }
 
+/** The parts of the name of a namespace entry. The name of a file (a file without a namespace) is
+ * no namespace name: it is one part, titled by the last segment of the path. */
+export function spaceParts(space: NamespaceNode): { label: string; path: string }[] {
+  if (!space.file) {
+    return nameParts(space.name);
+  }
+  return [{ label: space.name.split(PATH_SEPARATOR).pop() ?? space.name, path: space.name }];
+}
+
 /** Groups the namespaces of a layer by their parts, so `App.Domain` and `App.Ui` are two rows
  * below one row `App`. A namespace without a name is the segment with the empty path. */
 export function segmentsOf(spaces: readonly NamespaceNode[]): Segment[] {
   const roots = new Map<string, Segment>();
   for (const space of spaces) {
-    const parts = nameParts(space.name);
+    const parts = spaceParts(space);
     if (parts.length === 0) {
       const root = roots.get("") ?? segment("", "");
       roots.set("", root);
@@ -231,6 +278,7 @@ export function segmentsOf(spaces: readonly NamespaceNode[]): Segment[] {
     if (current && space.module) {
       current.module = space.module;
     }
+    current?.holders.push(...(space.holders ?? []));
   }
   return [...roots.values()];
 }
@@ -246,8 +294,15 @@ function matching(node: Segment, ctx: Context): number {
 function shown(node: Segment, ctx: Context): boolean {
   return (
     matching(node, ctx) > 0 ||
-    [node, ...descendants(node)].some((part) => part.module && ctx.matches(part.module.name))
+    [node, ...descendants(node)].some((part) =>
+      holdersOf(part).some((one) => ctx.matches(one.name)),
+    )
   );
+}
+
+/** The symbols that hold members of a segment that are no types: its module and holders. */
+function holdersOf(node: Segment): TypeNode[] {
+  return node.module ? [node.module, ...node.holders] : node.holders;
 }
 
 function descendants(node: Segment): Segment[] {
@@ -271,10 +326,12 @@ function segmentRows(layer: string, node: Segment, depth: number, ctx: Context):
   const key = namespaceKey(layer, node.path);
   const open = ctx.filtering || ctx.expanded.has(key);
   const row: TreeRow = {
-    ...base(key, ROW.namespace, depth, node.label || ctx.labels.noNamespace),
+    ...blankRow(key, ROW.namespace, depth, node.label || ctx.labels.noNamespace),
     ...moduleFields(node),
-    meta: count > 0 || !node.module ? String(count) : "",
-    expandable: count > 0 || node.children.size > 0,
+    meta: count > 0 || holdersOf(node).length === 0 ? String(count) : "",
+    expandable:
+      count > 0 || node.children.size > 0 || holdersOf(node).some((one) => one.members > 0),
+    held: holdersOf(node).map((one) => one.id),
     open,
     target: node.path === "" ? null : { kind: NAMESPACE_KIND, name: node.path },
     scope: node.path === "" ? null : node.path,
@@ -282,13 +339,18 @@ function segmentRows(layer: string, node: Segment, depth: number, ctx: Context):
   if (!open) {
     return [row];
   }
+  // The members that are no types: constants and functions of the module and the holders.
+  const infos = ctx.expanded.has(key)
+    ? holdersOf(node).flatMap((one) => ctx.details.get(one.id) ?? [])
+    : [];
+  const held = groupRows(infos, depth + 1, ctx, false);
   const below = [...node.children.values()].flatMap((child) =>
     segmentRows(layer, child, depth + 1, ctx),
   );
   const own = node.types
     .filter((type) => ctx.matches(type.name))
     .flatMap((type) => typeRows(type, depth + 1, ctx));
-  return [row, ...below, ...own];
+  return [row, ...held, ...below, ...own];
 }
 
 function layerRows(layer: LayerNode, index: number, ctx: Context, flat: boolean): TreeRow[] {
@@ -302,7 +364,7 @@ function layerRows(layer: LayerNode, index: number, ctx: Context, flat: boolean)
   const open = ctx.filtering || ctx.expanded.has(key);
   const types = layer.namespaces.reduce((sum, space) => sum + space.types.length, 0);
   const row: TreeRow = {
-    ...base(key, ROW.layer, 0, layer.name || ctx.labels.noLayer),
+    ...blankRow(key, ROW.layer, 0, layer.name || ctx.labels.noLayer),
     meta: String(types),
     layerIndex: index,
     expandable: true,
@@ -342,7 +404,7 @@ export function buildRows(
 export function revealKeys(outline: Outline, type: number): string[] {
   for (const layer of outline.layers) {
     for (const space of layer.namespaces) {
-      const parts = nameParts(space.name);
+      const parts = spaceParts(space);
       const paths = parts.length === 0 ? [""] : parts.map((part) => part.path);
       const spaces = paths.map((path) => namespaceKey(layer.name, path));
       if (space.types.some((node) => node.id === type)) {
@@ -367,7 +429,7 @@ export function revealNamespace(
 ): { open: string[]; cursor: string } | null {
   for (const layer of outline.layers) {
     for (const space of layer.namespaces) {
-      const parts = nameParts(space.name);
+      const parts = spaceParts(space);
       const at = parts.findIndex((part) => part.path === name);
       if (at >= 0) {
         const paths = parts.slice(0, at + 1).map((part) => namespaceKey(layer.name, part.path));

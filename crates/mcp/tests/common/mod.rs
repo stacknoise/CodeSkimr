@@ -550,6 +550,7 @@ impl FileAnalyzer for FakeDisk {
             body: Some(BodyCounts {
                 cognitive: Some(20),
                 parameters: Some(7),
+                literals: Some(3),
                 ..BodyCounts::default()
             }),
             counted: true,
@@ -628,6 +629,28 @@ pub fn tools_checking(check: Arc<FakeToolCheck>) -> Tools {
 }
 
 fn assemble(
+    setup: (FakeIndex, Arc<FakeUsages>, bool),
+    scanner: Arc<FakeScanner>,
+    tool_check: Arc<FakeToolCheck>,
+) -> Tools {
+    assemble_with(limits(), setup, scanner, tool_check)
+}
+
+/// Tools that may list up to `max_limit` entries, for a test that needs the whole answer.
+pub fn tools_listing(max_limit: u32) -> Tools {
+    assemble_with(
+        McpLimits {
+            max_limit,
+            ..limits()
+        },
+        (scanned(), Arc::new(FakeUsages::default()), true),
+        Arc::new(FakeScanner::default()),
+        Arc::new(FakeToolCheck::default()),
+    )
+}
+
+fn assemble_with(
+    limits: McpLimits,
     (index, usages, has_prints): (FakeIndex, Arc<FakeUsages>, bool),
     scanner: Arc<FakeScanner>,
     tool_check: Arc<FakeToolCheck>,
@@ -653,7 +676,7 @@ fn assemble(
             annotations: Arc::new(FakeAnnotations::default()),
             reports: Arc::new(FakeReports),
         },
-        limits(),
+        limits,
         PROJECT,
     )
 }

@@ -6,7 +6,7 @@
 }
 
 .main {
-    flex: 999 1 560px;
+    flex: 999 1 480px;
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -14,7 +14,7 @@
 }
 
 .aside {
-    flex: 1 1 300px;
+    flex: 1 1 400px;
     min-width: 0;
     display: flex;
     flex-direction: column;
