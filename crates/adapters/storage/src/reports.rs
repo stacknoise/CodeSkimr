@@ -135,7 +135,8 @@ fn languages(conn: &Connection, id: i64) -> StorageResult<Vec<LanguageLine>> {
 fn level2_of(conn: &Connection, id: i64) -> StorageResult<Option<Level2Report>> {
     let header: Option<(i64, String)> = conn
         .query_row(sql::LEVEL2_REPORT_BY_PROJECT, params![id], |row| {
-            Ok((row.get(0)?, row.get(1)?))
+            let cols = Cols::new(row);
+            Ok((cols.take()?, cols.take()?))
         })
         .optional()?;
     header
@@ -153,7 +154,8 @@ fn report_of(conn: &Connection, project: ProjectId) -> StorageResult<Option<Scan
     let id = column_int(project.get())?;
     let header: Option<(i64, String, String)> = conn
         .query_row(sql::SCAN_REPORT_BY_PROJECT, params![id], |row| {
-            Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+            let cols = Cols::new(row);
+            Ok((cols.take()?, cols.take()?, cols.take()?))
         })
         .optional()?;
     header
