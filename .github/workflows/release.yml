@@ -1,5 +1,5 @@
-# Release workflow (preview releases, docs/release.md). Started by hand: Actions -> Release -> Run workflow.
-# It creates a DRAFT pre-release, then builds the UI and the program on Linux, Windows and macOS, adds one single file
+# Release workflow (docs/release.md). Started by hand: Actions -> Release -> Run workflow.
+# It creates a DRAFT release (a pre-release only for a version with a suffix), then builds the UI and the program on Linux, Windows and macOS, adds one single file
 # per system (with SHA-256 checksum and GitHub provenance attestation) and then runs each file on a clean runner of its
 # own system (clean-install probe).
 # Nothing is public until the product owner publishes the draft.
@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Version without the leading v, for example 0.9.0-preview.1 (must match Cargo.toml)"
+        description: "Version without the leading v, for example 1.0.0 (must match Cargo.toml)"
         required: true
         type: string
 
@@ -39,7 +39,7 @@ jobs:
             echo "Cargo.toml has version $found, the input is $VERSION" >&2
             exit 1
           fi
-      - name: Create the draft pre-release (empty, the packages are added by the next jobs)
+      - name: Create the draft release (empty, the packages are added by the next jobs)
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ inputs.version }}
@@ -56,8 +56,11 @@ jobs:
           if [ "$drafts" != "0" ]; then
             gh release delete "v${VERSION}" --repo "$GITHUB_REPOSITORY" --yes
           fi
+          # Only a version with a suffix (1.0.0-rc.1, 0.9.0-preview.1) is marked as a pre-release.
+          flags=(--draft)
+          case "$VERSION" in *-*) flags+=(--prerelease) ;; esac
           gh release create "v${VERSION}" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "CodeSkimr ${VERSION}" --notes-file docs/release/preview-de.md --draft --prerelease
+            --title "CodeSkimr ${VERSION}" --notes-file docs/release/notes-de.md "${flags[@]}"
 
   package:
     name: package (${{ matrix.platform }})
