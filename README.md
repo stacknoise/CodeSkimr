@@ -4,7 +4,7 @@ CodeSkimr reads a code repository once and turns it into navigable documentation
 
 Everything runs on your machine. The server listens on `127.0.0.1` only; your code is not uploaded anywhere.
 
-> **Status:** preview. The first preview version is `0.9.0-preview.1`; 1.0 is not released yet. See [CHANGELOG.md](CHANGELOG.md).
+> **Status:** 1.0. See [CHANGELOG.md](CHANGELOG.md) and the release notes in `docs/release/`.
 
 ## What it does
 

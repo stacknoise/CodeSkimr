@@ -1,0 +1,23 @@
+# CodeSkimr 1.0.0
+
+The first stable version. Built for Windows (x86_64), Linux (x86_64) and macOS (Apple Silicon).
+
+## Install
+
+One single file per system (UI and language packs are inside) plus a `.sha256` file.
+
+Windows: run `.\codeskimr-1.0.0-windows-x86_64.exe` (SmartScreen warns because the file is not signed yet: "More info", then "Run anyway"). Linux: `chmod +x codeskimr-1.0.0-linux-x86_64`, then run it (needs a Secret Service such as GNOME Keyring or KWallet, otherwise `SEC-601`). macOS: `chmod +x codeskimr-1.0.0-macos-aarch64`, then `xattr -d com.apple.quarantine codeskimr-1.0.0-macos-aarch64` (the file is not signed yet) and run it. The program starts the local server and opens the browser. **Keep that window open as long as you use CodeSkimr:** closing it ends the server, and the UI in the browser then shows "Not connected".
+
+Check the sum: `Get-FileHash <file> -Algorithm SHA256` (Windows), `sha256sum -c <file>.sha256` (Linux), `shasum -a 256 -c <file>.sha256` (macOS). Check the origin (optional): `gh attestation verify <file> --repo stacknoise/CodeSkimr`.
+
+Manual: `docs/manual/en/`. Data: `%LOCALAPPDATA%\codeskimr` (Windows), `~/.local/share/codeskimr` (Linux), `~/Library/Application Support/codeskimr` (macOS); delete the folder to reset.
+
+## Known limits
+
+- Usages are not compiler-exact everywhere. Measured with level 2 (exact indexers) on the test corpora: Rust, TypeScript and Java 99 % and above. **Python, C# and Kotlin are below that and are an approximation:** Python finds almost everything (recall 99 %) but also shows wrong hits (precision about 63 %); for C# the indexer scip-dotnet attributes overloads wrongly (recall 34 %, precision 60 %, see `docs/accuracy.md`); Kotlin cannot be measured (no reference tool).
+- Level 2 runs foreign tools in your project and needs your explicit consent; you install the indexers yourself (`indexers.md`).
+- **Large projects:** the goal "100,000 lines in under a second" is not met everywhere. Large C# projects take about 1.4 s per 100,000 lines (Newtonsoft.Json, 197,000 lines: about 3 s, measured in a Linux container); the improvement (#410) comes after 1.0.
+- **.NET preview SDK:** with a .NET preview SDK and `allowPrerelease` the tool check can show a wrong "too new" hint (known limit of the tool check, see #379).
+- No signature (Windows, macOS; first task after 1.0) and no installer: one single file per system.
+
+Feedback as an issue in `stacknoise/CodeSkimr`.

@@ -17,6 +17,8 @@ pub(super) struct Callable {
     pub cognitive: Option<u32>,
     /// Number of parameters; `None` if the language pack does not count them.
     pub parameters: Option<u32>,
+    /// Literals outside the exceptions; `None` if the language pack does not report them.
+    pub literals: Option<u32>,
 }
 
 /// The callables of a file that have a measured body.
@@ -43,6 +45,7 @@ pub(super) fn callables(path: &RelativePath, facts: &FileFacts) -> Vec<Callable>
                 id: symbol.id,
                 cognitive: body.cognitive,
                 parameters: body.parameters,
+                literals: body.literals,
             })
         })
         .collect()
@@ -76,6 +79,21 @@ pub(super) fn too_many_parameters(callables: &[Callable], limit: u32) -> Vec<Fin
     over(callables, ErrorCode::TooManyParameters, limit, |callable| {
         callable.parameters
     })
+}
+
+/// One finding for every callable that contains literals (R-06).
+pub(super) fn with_literals(callables: &[Callable]) -> Vec<Finding> {
+    callables
+        .iter()
+        .filter_map(|callable| {
+            let count = callable.literals.filter(|count| *count > 0)?;
+            Some(Finding {
+                code: ErrorCode::LiteralFound,
+                location: callable.location.clone(),
+                detail: Detail::Literals { count },
+            })
+        })
+        .collect()
 }
 
 fn over(

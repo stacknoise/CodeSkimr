@@ -188,6 +188,28 @@ describe("UsagesScreen", () => {
     expect(Number(handle.getAttribute("aria-valuenow"))).toBeGreaterThan(before);
   });
 
+  it("has a handle on the code column, and none on the place column that takes the rest", async () => {
+    shown();
+    await screen.findByText("Hits 3");
+    const handle = screen.getByRole("separator", { name: "Resize column Code" });
+    const before = Number(handle.getAttribute("aria-valuenow"));
+    fireEvent.keyDown(handle, { key: "ArrowRight" });
+    expect(Number(handle.getAttribute("aria-valuenow"))).toBeGreaterThan(before);
+    expect(screen.queryByRole("separator", { name: "Resize column Place" })).toBeNull();
+  });
+
+  it("lights the path of a hit in the graph when its row is clicked", async () => {
+    shown();
+    await screen.findByText("Hits 3");
+    const graph = screen.getByRole("region", { name: "Usage graph" });
+    const card = (name: string) => within(graph).getByTitle(name);
+    expect(card("Shop.Ui.CartView.Render").className).not.toMatch(/dim/);
+    fireEvent.click(screen.getByText("src/Handler.cs:7"));
+    expect(card("Shop.App.CartHandler.Handle").className).not.toMatch(/dim/);
+    expect(card("Shop.Ui.CartView.Render").className).toMatch(/dim/);
+    expect(card("Shop.Cart.Total").className).not.toMatch(/dim/);
+  });
+
   it("keeps the hit list when the code cannot be read", async () => {
     shown();
     await screen.findByText("Hits 3");

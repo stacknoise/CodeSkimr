@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""List every `expose_secret()` call in product code and compare with the approved list.
+"""List every `expose_secret()` and `expose_user()` call in product code and compare with the approved list.
 
 Blueprint 12.4: CI lists every call site, and each one needs reviewer approval. The approval
 is an entry in tools/ci/expose-secret-approved.toml (file and number of calls). A new call, a
@@ -17,7 +17,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 APPROVED = Path(__file__).with_name("expose-secret-approved.toml")
-CALL = re.compile(r"\.expose_secret\(\)")
+CALL = re.compile(r"\.expose_(?:user|secret)\(\)")
 TEST_MODULE = re.compile(r"^\s*#\[cfg\(test\)\]")
 
 

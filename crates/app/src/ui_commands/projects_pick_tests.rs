@@ -4,9 +4,9 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use codeskimr_application::registry::CommandExt;
-use serde_json::json;
+use serde_json::Value;
 
-use super::projects_pick::{FolderDialogInfo, NoInput, PickFolder};
+use super::projects_pick::{FolderDialogInfo, PickFolder};
 use super::tests::Fixture;
 use crate::folder_dialog::FolderPicker;
 use crate::principal;
@@ -40,7 +40,7 @@ fn the_info_says_whether_a_dialog_exists() {
         let info = FolderDialogInfo {
             picker: told(available, None),
         };
-        let out = info.run(&principal::resolve(), NoInput {}).unwrap();
+        let out = info.run(&principal::resolve(), ()).unwrap();
         assert_eq!(out.available, available);
     }
 }
@@ -50,7 +50,7 @@ fn the_chosen_folder_comes_back_as_text() {
     let pick = PickFolder {
         picker: told(true, Some("/work/shop")),
     };
-    let out = pick.run(&principal::resolve(), NoInput {}).unwrap();
+    let out = pick.run(&principal::resolve(), ()).unwrap();
     assert_eq!(out.path.as_deref(), Some("/work/shop"));
 }
 
@@ -59,18 +59,20 @@ fn a_cancelled_dialog_is_no_error() {
     let pick = PickFolder {
         picker: told(true, None),
     };
-    let out = pick.run(&principal::resolve(), NoInput {}).unwrap();
+    let out = pick.run(&principal::resolve(), ()).unwrap();
     assert_eq!(out.path, None);
 }
 
 #[test]
 fn the_registry_knows_both_commands_and_no_dialog_opens_without_one() {
+    // The browser sends no body, which the server reads as `null` (not `{}`); a body of `{}` was
+    // refused for a long time and the button never showed (found in the first test of the app).
     let fixture = Fixture::installed(None);
-    let info = fixture.call("projects.folder_dialog", json!({})).unwrap();
+    let info = fixture.call("projects.folder_dialog", Value::Null).unwrap();
     // The system dialog exists only on Windows and macOS; the test never opens it.
     assert_eq!(info["available"], cfg!(any(windows, target_os = "macos")));
     if !cfg!(any(windows, target_os = "macos")) {
-        let picked = fixture.call("projects.pick_folder", json!({})).unwrap();
+        let picked = fixture.call("projects.pick_folder", Value::Null).unwrap();
         assert!(picked["path"].is_null());
     }
 }

@@ -347,7 +347,7 @@ languages/csharp/
 ├─ language.toml      metadata and rules
 ├─ symbols.scm        Tree-sitter query: declarations → symbol kinds
 ├─ references.scm     Tree-sitter query: identifiers, calls, imports, scopes
-├─ metrics.scm        Tree-sitter query: comments, decision points, Halstead operators and operands, cognitive complexity and parameters (ADR 0048)
+├─ metrics.scm        Tree-sitter query: comments, decision points, Halstead operators and operands, cognitive complexity, parameters (ADR 0048) and literals (ADR 0058)
 ├─ highlights.scm     syntax highlighting for the UI (captures: ADR 0064)
 └─ tests/             small sample files + expected JSON (golden tests)
 ```
@@ -696,6 +696,7 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
 ### 12.4 Memory hardening
 
 - Secret buffers are locked against swapping (`VirtualLock` / `mlock` via `memsec`) and zeroed on drop (`zeroize`).
+- A `Credential` keeps its user name and secret in **one** locked buffer (ADR 0077); the content is read as `&str` into that buffer through `expose_user()` / `expose_secret()`, never copied into ordinary memory by the credential itself.
 - Core dumps / Windows error-report memory dumps are disabled for the process.
 - Secrets are never `format!`ed, never logged and never sent over IPC. `SecretString` only exposes its content through an explicit, greppable `expose_secret()` call. CI lists every call site, and each one needs reviewer approval.
 - `unsafe` for memory locking lives only in `codeskimr_secrets::memory` (R-08).

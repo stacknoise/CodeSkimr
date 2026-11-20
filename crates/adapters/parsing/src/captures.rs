@@ -8,11 +8,12 @@ use tree_sitter::Query;
 use crate::consts::{
     COGNITIVE_CAPTURE, COGNITIVE_FLAT_CAPTURE, COGNITIVE_SEQUENCE_CAPTURE, COMMENT_CAPTURE,
     CONTAINER_CAPTURE, CONTINUATION_CAPTURE, DECISION_CAPTURE, DECLARED_TYPE_CAPTURE, DOC_CAPTURE,
-    FIELD_CAPTURE, LOCAL_CAPTURE, MODIFIER_CAPTURE, NAME_CAPTURE, NESTING_CAPTURE, OPERAND_CAPTURE,
-    OPERATOR_CAPTURE, OWNER_CAPTURE, PARAMETER_CAPTURE, RECEIVER_BASE_CAPTURE, RECEIVER_CAPTURE,
-    RECEIVER_MEMBER_CAPTURE, RECEIVER_OTHER_CAPTURE, RECEIVER_OWN_CAPTURE, RECEIVER_TYPE_CAPTURE,
-    REFERENCE_CAPTURE_PREFIX, SCOPE_CAPTURE, SCOPE_END_CAPTURE, SIGNATURE_CAPTURE, STATIC_CAPTURE,
-    SYMBOL_CAPTURE_PREFIX, VISIBILITY_CAPTURE,
+    FIELD_CAPTURE, LITERAL_CAPTURE, LITERAL_EXEMPT_CAPTURE, LOCAL_CAPTURE, MODIFIER_CAPTURE,
+    NAME_CAPTURE, NESTING_CAPTURE, OPERAND_CAPTURE, OPERATOR_CAPTURE, OWNER_CAPTURE,
+    PARAMETER_CAPTURE, RECEIVER_BASE_CAPTURE, RECEIVER_CAPTURE, RECEIVER_MEMBER_CAPTURE,
+    RECEIVER_OTHER_CAPTURE, RECEIVER_OWN_CAPTURE, RECEIVER_TYPE_CAPTURE, REFERENCE_CAPTURE_PREFIX,
+    SCOPE_CAPTURE, SCOPE_END_CAPTURE, SIGNATURE_CAPTURE, STATIC_CAPTURE, SYMBOL_CAPTURE_PREFIX,
+    VISIBILITY_CAPTURE,
 };
 
 /// What the syntax says about the receiver in front of a member name.
@@ -155,6 +156,10 @@ pub enum MetricRole {
     Continuation,
     /// A parameter of a callable declaration.
     Parameter,
+    /// A literal the rule of no literals reports.
+    Literal,
+    /// A node whose literal is an exception: it is not reported although `@literal` matches it.
+    LiteralExempt,
 }
 
 /// The compiled `metrics.scm` of a pack.
@@ -168,6 +173,12 @@ impl MetricsQuery {
     #[must_use]
     pub fn counts_cognitive(&self) -> bool {
         self.roles.contains(&MetricRole::Cognitive)
+    }
+
+    /// Whether the pack reports literals (it captures `@literal`, ADR 0058).
+    #[must_use]
+    pub fn counts_literals(&self) -> bool {
+        self.roles.contains(&MetricRole::Literal)
     }
 
     /// Whether the pack counts parameters (it captures `@parameter`).
@@ -205,6 +216,8 @@ fn role_of(name: &str) -> Option<MetricRole> {
         NESTING_CAPTURE => Some(MetricRole::Nesting),
         CONTINUATION_CAPTURE => Some(MetricRole::Continuation),
         PARAMETER_CAPTURE => Some(MetricRole::Parameter),
+        LITERAL_CAPTURE => Some(MetricRole::Literal),
+        LITERAL_EXEMPT_CAPTURE => Some(MetricRole::LiteralExempt),
         _ => None,
     }
 }
