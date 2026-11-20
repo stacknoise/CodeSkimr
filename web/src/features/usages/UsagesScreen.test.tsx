@@ -226,7 +226,7 @@ describe("UsagesScreen", () => {
   it("reads again with the direction, the depth and the tests of the toolbar", async () => {
     shown();
     await screen.findByText("Hits 3");
-    expect(lastRequest()).toMatchObject({ project: 1, symbol: 10, way: "both", depth: 2 });
+    expect(lastRequest()).toMatchObject({ project: 1, symbol: 10, way: "both", depth: 1 });
     fireEvent.click(screen.getByRole("button", { name: "who calls" }));
     await waitFor(() => expect(lastRequest().way).toBe("incoming"));
     fireEvent.change(screen.getByLabelText("Depth"), { target: { value: "0" } });
