@@ -7,6 +7,7 @@ Each section is generated from the Conventional Commit titles of the squash-merg
 
 ### Added
 
+- "Browse" button with the folder dialog of the system (Windows and macOS) next to the folder field of a new project (ADR 0075)
 - remove a project from the app again: command `projects.remove` and a "Remove" button with a confirmation in the project list
 - coupling metrics Ce, Ca and instability per snapshot ([#275](https://github.com/stacknoise/CodeSkimr/pull/275))
 - `#private` members in TypeScript and JavaScript are private (ADR 0047, #81) ([#323](https://github.com/stacknoise/CodeSkimr/pull/323))

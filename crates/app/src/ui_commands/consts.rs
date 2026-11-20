@@ -10,6 +10,10 @@ pub const PROJECTS_ADD: &str = "projects.add";
 pub const PROJECTS_RESCAN: &str = "projects.rescan";
 /// Id of the command that removes a project from the app.
 pub const PROJECTS_REMOVE: &str = "projects.remove";
+/// Id of the command that tells whether a folder dialog exists on this machine.
+pub const PROJECTS_FOLDER_DIALOG: &str = "projects.folder_dialog";
+/// Id of the command that shows the folder dialog.
+pub const PROJECTS_PICK_FOLDER: &str = "projects.pick_folder";
 
 /// Id of the command that checks the tools of a project.
 pub const PROJECTS_TOOLS: &str = "projects.tools";
@@ -133,6 +137,15 @@ pub const RESCAN_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_RESCAN_DESCRIPTION;
 pub const REMOVE_TITLE: &str = i18n::COMMAND_PROJECTS_REMOVE_TITLE;
 /// Description key of `projects.remove`.
 pub const REMOVE_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_REMOVE_DESCRIPTION;
+
+/// Title key of `projects.folder_dialog`.
+pub const FOLDER_DIALOG_TITLE: &str = i18n::COMMAND_PROJECTS_FOLDER_DIALOG_TITLE;
+/// Description key of `projects.folder_dialog`.
+pub const FOLDER_DIALOG_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_FOLDER_DIALOG_DESCRIPTION;
+/// Title key of `projects.pick_folder`.
+pub const PICK_FOLDER_TITLE: &str = i18n::COMMAND_PROJECTS_PICK_FOLDER_TITLE;
+/// Description key of `projects.pick_folder`.
+pub const PICK_FOLDER_DESCRIPTION: &str = i18n::COMMAND_PROJECTS_PICK_FOLDER_DESCRIPTION;
 
 /// Title key of `projects.cancel`.
 pub const CANCEL_TITLE: &str = i18n::COMMAND_PROJECTS_CANCEL_TITLE;
