@@ -5,6 +5,7 @@ import { addScannedProject, selectAdd, expect, shot, test, watchPolicy } from ".
 // `UPDATE_SCREENSHOTS=1` writes the screens to docs/screenshots/usages-description/.
 const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/usages-description");
 const THEMES = ["hell", "petrol", "dunkel"];
+const PATH_SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/usages-path");
 const DOCUMENTED = [
   "namespace Demo;",
   "",
@@ -83,6 +84,30 @@ test.describe("the usages screen", () => {
     expect(box).not.toBeNull();
     expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(viewport?.height ?? 0);
   });
+
+  for (const theme of THEMES) {
+    test(`lights the path of the clicked hit in the graph (${theme})`, async ({
+      page,
+      harness,
+    }, info) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await page.addInitScript((name) => localStorage.setItem("codeskimr.theme", name), theme);
+      const callers = ["Alpha", "Beta", "Gamma"].map(
+        (name) => `public class ${name} { int Run(Calculator c) { return c.Add(1, 2); } }`,
+      );
+      const source = [SOURCE, ...callers, ""].join("\n");
+      const row = await addScannedProject(page, harness, `usagespath${theme}`, source);
+      await selectAdd(page, row, "Demo");
+      await page.keyboard.press("u");
+      const graph = page.getByRole("region", { name: "Usage graph" });
+      await expect(page.getByText("Hits 4")).toBeVisible();
+      await expect(graph.locator("button[class*=dim]")).toHaveCount(0);
+      await page.getByRole("region", { name: "Hits" }).getByText("Demo.Beta.Run").click();
+      await expect(graph.locator("button[class*=dim]")).toHaveCount(3);
+      await expect(graph.locator('button[title="Demo.Beta.Run"]')).not.toHaveClass(/dim/);
+      await shot(page, PATH_SHOTS, `usages-path-${theme}`, info);
+    });
+  }
 
   for (const theme of THEMES) {
     test(`shows the description of the code before the impact (${theme})`, async ({

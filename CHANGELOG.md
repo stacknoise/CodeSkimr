@@ -7,6 +7,7 @@ Each section is generated from the Conventional Commit titles of the squash-merg
 
 ### Added
 
+- a click on a row of the usages hit list lights the path of that hit in the graph
 - "Browse" button with the folder dialog of the system (Windows and macOS) next to the folder field of a new project (ADR 0075)
 - remove a project from the app again: command `projects.remove` and a "Remove" button with a confirmation in the project list
 - coupling metrics Ce, Ca and instability per snapshot ([#275](https://github.com/stacknoise/CodeSkimr/pull/275))
