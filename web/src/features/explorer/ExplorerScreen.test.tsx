@@ -6,6 +6,8 @@ import { clearUsages } from "../usages/usages";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
+import { projectRow } from "../../tests/projectRow";
+import { refreshProjects } from "../projects/projects";
 import { openOrder, ORDER, OUTLINE } from "../../tests/explorer";
 import { currentMember, forgetExplorer, setMemberSort, treeScroll } from "./explorer";
 import { INITIAL_SORT } from "./memberSort";
@@ -39,6 +41,41 @@ describe("ExplorerScreen", () => {
     expect(await screen.findByRole("heading", { name: "Order" })).toBeTruthy();
     expect(within(screen.getByRole("tree")).getByTitle("C#")).toBeTruthy();
     expect(screen.getAllByText("C#").length).toBeGreaterThan(1);
+  });
+
+  it("marks the coupling tiles as an upper bound until level 2 confirmed the language", async () => {
+    openProject(1);
+    serve({
+      "explorer.outline": () => answer(OUTLINE),
+      "explorer.symbol": () => answer(ORDER),
+      "projects.list": () => answer([projectRow({ id: 1 })]),
+    });
+    await refreshProjects();
+    render(() => <ExplorerScreen />);
+    await openOrder();
+    expect(await screen.findAllByText("upper bound")).toHaveLength(3);
+  });
+
+  it("leaves the coupling tiles without a note where level 2 checked the language", async () => {
+    openProject(1);
+    const report = {
+      last_scan: { at: 1, level: "2" as const, origin: "terminal" as const },
+      level2: {
+        at: 1,
+        origin: "terminal" as const,
+        languages: [{ language: "csharp", outcome: "checked" as const, files: 3, stale: 0 }],
+      },
+    };
+    serve({
+      "explorer.outline": () => answer(OUTLINE),
+      "explorer.symbol": () => answer(ORDER),
+      "projects.list": () => answer([projectRow({ id: 1, report })]),
+    });
+    await refreshProjects();
+    render(() => <ExplorerScreen />);
+    await openOrder();
+    await screen.findByText("Fields etc.");
+    expect(screen.queryByText("upper bound")).toBeNull();
   });
 
   it("shows the structure, opens a type and shows its metrics and members", async () => {

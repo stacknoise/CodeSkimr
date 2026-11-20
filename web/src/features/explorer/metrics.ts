@@ -1,5 +1,6 @@
 import { t } from "../../shared/i18n/i18n";
-import { MISSING, TILE_SOURCE, TILES } from "./consts";
+import { I18N_KEYS } from "../../shared/i18n/keys";
+import { BOUND_TILES, MISSING, TILE_SOURCE, TILES } from "./consts";
 import { metricValue } from "./format";
 import type { SymbolInfo, Thresholds } from "./types";
 
@@ -11,6 +12,9 @@ export interface Tile {
   value: string;
   /** `good`, `medium` or `poor` for metrics that have thresholds. */
   rating: string | null;
+  /** A short note under the label, "upper bound" for a coupling count that level 2 has not
+   * confirmed (ADR 0037); `null` for a tile without a note. */
+  hint: string | null;
 }
 
 const LIMITED: readonly string[] = ["cc", "mi", "instability"];
@@ -49,8 +53,14 @@ function kindCount(info: SymbolInfo, kinds: readonly string[]): number {
 }
 
 /** The ten tiles of a symbol (blueprint B.2): member count, the stored metrics and the counts of
- * the member kinds. A metric the scan did not measure has no value. */
-export function tilesOf(info: SymbolInfo, thresholds: Thresholds | null, language: string): Tile[] {
+ * the member kinds. A metric the scan did not measure has no value. With `upperBound` the coupling
+ * tiles carry the note "upper bound" (ADR 0037). */
+export function tilesOf(
+  info: SymbolInfo,
+  thresholds: Thresholds | null,
+  language: string,
+  upperBound = false,
+): Tile[] {
   return TILES.map((tile) => {
     const stored = info.metrics.find((row) => row.kind === tile.id);
     let value: number | undefined = stored?.value;
@@ -59,12 +69,15 @@ export function tilesOf(info: SymbolInfo, thresholds: Thresholds | null, languag
     } else if (tile.source === TILE_SOURCE.kinds) {
       value = kindCount(info, tile.kinds);
     }
+    const bound = upperBound && BOUND_TILES.includes(tile.id);
+    const tip = tipFor(tile.id, tile.tip, thresholds);
     return {
       id: tile.id,
       label: t(tile.label),
-      tip: tipFor(tile.id, tile.tip, thresholds),
+      tip: bound ? `${tip} ${t(I18N_KEYS.EXPLORER_METRIC_BOUND_TIP)}` : tip,
       value: metricValue(value, language),
       rating: stored?.rating ?? null,
+      hint: bound ? t(I18N_KEYS.EXPLORER_METRIC_BOUND) : null,
     };
   });
 }
