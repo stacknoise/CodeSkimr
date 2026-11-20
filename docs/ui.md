@@ -62,7 +62,7 @@ The commands are in `docs/server.md` ("Annotations and alerts"). For the screens
 - **Annotations of one symbol:** `annotations.list` with `symbol`.
 - **Alerts:** `alerts.list`; the count in the top bar is the `open` field and the WebSocket event `alerts_changed` (`project`, `open`), after which the UI reads the list again. The event carries no text.
 - **Shortcuts:** `K` (critical mark), `N` (note) and `T` (task) are the `shortcut` of `annotations.mark_critical`, `annotations.add_note` and `annotations.add_task` in `GET /api/v1/commands`; the registry only names them, the UI binds them.
-- **Rights:** the UI is a remote client of `serve` and holds `annotate`. A caller without it gets `API-201` on a change and may still read.
+- **Rights:** the UI is the browser client of `serve` (ADR 0072) and holds `annotate`. A caller without it gets `API-201` on a change and may still read.
 
 ### The screens of ADR 0068 (marks, notes, tasks, alerts)
 

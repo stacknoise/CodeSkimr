@@ -437,7 +437,7 @@ Every user-facing action is a `Command` with:
 - input and output types
 - a default keyboard shortcut (optional)
 - a flag saying whether it is read-only
-- the `Permission` a caller needs (`read`, `read_source`, `scan`, `annotate` (ADR 0068), `manage`, `register_project`, `admin`, and for level 2 `confirm_indexer`, `run_indexer`, `revoke_indexer` and `open_confirmation`, ADR 0033 and ADR 0071)
+- the `Permission` a caller needs (`read`, `read_source`, `scan`, `annotate` (ADR 0068), `manage`, `register_project`, `admin`, and for level 2 `confirm_indexer`, `run_indexer`, `revoke_indexer` and `open_confirmation`, ADR 0033 and ADR 0071). Two client principals exist in single-user mode (ADR 0072): the commands of the HTTP layer run as `browser_client` (the rights of the MCP client plus `run_indexer`, `revoke_indexer` and `open_confirmation`), every MCP channel (`codeskimr mcp` and `/mcp`) runs as `remote_client` (none of the four level 2 rights); neither holds `confirm_indexer`. `ScanOrigin` (`terminal`, `browser`, `watch`, `mcp`) follows from the channel that received the request, never from a field of it
 
 The registry generates:
 

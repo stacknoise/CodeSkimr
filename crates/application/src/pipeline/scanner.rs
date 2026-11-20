@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    AlertTrigger, Permission, Principal, ProjectId, ProjectSource, ScanMode, Snapshot,
+    AlertTrigger, Permission, Principal, ProjectId, ProjectSource, ScanMode, ScanOrigin, Snapshot,
 };
 
 use super::flow::{Chain, Halt, Pipeline, Single, StageContext};
@@ -265,6 +265,7 @@ impl ProjectScanner for Scanner {
             principal,
             Job::new(project, ScanMode::Incremental)
                 .without_level2()
+                .started_from(ScanOrigin::Mcp)
                 .with_paths(paths),
         ) {
             JobResult::Finished(job) => Ok(Rescanned {

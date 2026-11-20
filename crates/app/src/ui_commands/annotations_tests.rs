@@ -556,10 +556,11 @@ fn every_command_runs_for_exactly_the_callers_that_hold_its_permission() {
     let fixture = Fixture::installed(None);
     let project = fixture.scanned();
     // Who holds what: the owner both, a reader only `read`, an annotator only `annotate`, the
-    // remote client of `serve` both, nobody nothing.
+    // clients of MCP and of `serve` both, nobody nothing.
     let callers = [
         ("owner", principal::resolve(), (true, true)),
-        ("remote client", principal::remote_client(), (true, true)),
+        ("mcp client", principal::remote_client(), (true, true)),
+        ("browser client", principal::browser_client(), (true, true)),
         ("reader", principal::reader(), (true, false)),
         ("annotator", annotate_only(), (false, true)),
         ("nobody", principal::nobody(), (false, false)),

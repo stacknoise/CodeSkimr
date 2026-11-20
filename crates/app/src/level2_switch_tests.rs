@@ -17,7 +17,7 @@ const NAME: &str = "app";
 fn status(fixture: &Fixture, project: u64) -> Value {
     fixture
         .call_as(
-            principal::remote_client(),
+            principal::browser_client(),
             "level2.status",
             json!({ "project": project }),
         )
@@ -75,7 +75,7 @@ fn a_confirmation_at_the_terminal_makes_it_on_and_one_click_switches_it_off() {
     assert_eq!(status(&fixture, project)["confirmed"], true);
     let revoked = fixture
         .call_as(
-            principal::remote_client(),
+            principal::browser_client(),
             "level2.revoke",
             json!({ "project": project }),
         )
@@ -116,7 +116,7 @@ fn revoking_needs_the_right_and_an_unknown_project_is_prj_201() {
     }
     for id in ["level2.revoke", "level2.status"] {
         assert_eq!(
-            fixture.call_as(principal::remote_client(), id, json!({ "project": 99 })),
+            fixture.call_as(principal::browser_client(), id, json!({ "project": 99 })),
             Err("PRJ-201"),
             "{id}"
         );
@@ -134,7 +134,7 @@ fn the_input_takes_only_the_project_and_the_status_needs_the_read_right_only() {
         Value::Null,
     ] {
         assert_eq!(
-            fixture.call_as(principal::remote_client(), "level2.status", input),
+            fixture.call_as(principal::browser_client(), "level2.status", input),
             Err("API-101")
         );
     }
@@ -149,11 +149,11 @@ fn the_input_takes_only_the_project_and_the_status_needs_the_read_right_only() {
 }
 
 #[test]
-fn a_remote_client_sees_both_commands_and_none_of_them_confirms() {
+fn a_browser_client_sees_both_commands_and_none_of_them_confirms() {
     let fixture = Fixture::installed(None);
     let ids: Vec<_> = fixture
         .api
-        .list(&principal::remote_client())
+        .list(&principal::browser_client())
         .into_iter()
         .map(|info| info.id)
         .filter(|id| id.starts_with("level2."))
@@ -163,7 +163,7 @@ fn a_remote_client_sees_both_commands_and_none_of_them_confirms() {
     // Whatever a client sends, revoking never confirms.
     let answer = fixture
         .call_as(
-            principal::remote_client(),
+            principal::browser_client(),
             "level2.revoke",
             json!({ "project": project }),
         )
@@ -188,7 +188,7 @@ fn the_registry_flags_the_two_commands_as_the_token_rule_needs_them() {
     let fixture = Fixture::installed(None);
     let flags: Vec<_> = fixture
         .api
-        .list(&principal::remote_client())
+        .list(&principal::browser_client())
         .into_iter()
         .filter(|info| info.id.starts_with("level2."))
         .map(|info| (info.id, info.read_only))
@@ -196,4 +196,26 @@ fn the_registry_flags_the_two_commands_as_the_token_rule_needs_them() {
     // Revoking changes something, so the route asks for the installation token; reading does not.
     assert_eq!(flags, [("level2.revoke", false), ("level2.status", true)]);
     let _ = (Arc::clone(&fixture.api), ErrorCode::PermissionDenied);
+}
+
+#[test]
+fn an_mcp_client_may_read_the_state_but_not_revoke() {
+    let fixture = Fixture::installed(None);
+    let project = fixture.scanned();
+    let ids: Vec<_> = fixture
+        .api
+        .list(&principal::remote_client())
+        .into_iter()
+        .map(|info| info.id)
+        .filter(|id| id.starts_with("level2."))
+        .collect();
+    assert_eq!(ids, ["level2.status"]);
+    assert_eq!(
+        fixture.call_as(
+            principal::remote_client(),
+            "level2.revoke",
+            json!({ "project": project })
+        ),
+        Err("AUTH-401")
+    );
 }
