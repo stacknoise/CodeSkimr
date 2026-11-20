@@ -1,6 +1,7 @@
 //! The entry point of a scan: builds the pipeline from the ports and drives one job through it.
 
 use std::sync::Arc;
+use std::time::Duration;
 
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
@@ -79,6 +80,7 @@ pub struct Scanner {
     level2: Option<Level2Pass>,
     alerts: Option<AlertStep>,
     reports: Option<ReportStep>,
+    analyzer: Arc<dyn FileAnalyzer>,
 }
 
 impl Scanner {
@@ -119,6 +121,7 @@ impl Scanner {
             level2: None,
             alerts: None,
             reports: None,
+            analyzer: ports.analyzer,
         }
     }
 
@@ -157,6 +160,7 @@ impl Scanner {
         let project_id = job.project();
         let mode = job.mode();
         let job = job.start();
+        let loading_before = self.analyzer.pack_load_time();
         if let Err(denied) = access::require(principal, Permission::Scan) {
             return JobResult::Failed(job.fail(denied.code()));
         }
@@ -174,7 +178,7 @@ impl Scanner {
             },
             &ctx,
         ) {
-            Ok(persisted) => self.finished(*principal, job, (persisted, trigger)),
+            Ok(persisted) => self.finished(*principal, job, (persisted, trigger, loading_before)),
             Err(Halt::Cancelled(_)) => {
                 self.stopped(project_id, StopReason::Cancelled);
                 JobResult::Cancelled(job.cancel())
@@ -189,9 +193,13 @@ impl Scanner {
         &self,
         principal: Principal,
         job: Job<Running>,
-        (persisted, trigger): (Persisted, AlertTrigger),
+        (persisted, trigger, loading_before): (Persisted, AlertTrigger, Duration),
     ) -> JobResult {
-        self.created(&persisted.snapshot);
+        let loading = self
+            .analyzer
+            .pack_load_time()
+            .saturating_sub(loading_before);
+        self.created(&persisted.snapshot, loading);
         self.check_alerts(&persisted.snapshot, trigger);
         let (snapshot, level2) = self.second_pass(
             principal,
@@ -199,7 +207,7 @@ impl Scanner {
             (job.token(), job.level2_wanted()),
         );
         if snapshot != persisted.snapshot {
-            self.created(&snapshot);
+            self.created(&snapshot, loading);
         }
         let mut warnings = persisted.warnings;
         warnings.extend(self.store_report(&snapshot, job.origin(), level2.as_deref()));
@@ -257,7 +265,7 @@ impl Scanner {
         };
         let done = pass.run(run.principal, run.snapshot, run.root, run.cancel);
         if done.snapshot != *run.snapshot {
-            self.created(&done.snapshot);
+            self.created(&done.snapshot, Duration::ZERO);
         }
         // A failure to store is logged by `store_report`; the run itself has ended.
         self.store_report(&done.snapshot, run.origin, Some(&done.reports));
@@ -330,10 +338,11 @@ impl Scanner {
         }
     }
 
-    fn created(&self, snapshot: &Snapshot) {
+    fn created(&self, snapshot: &Snapshot, pack_load: Duration) {
         self.events
             .publish(&Event::SnapshotCreated(SnapshotCreated {
                 snapshot: snapshot.clone(),
+                pack_load,
             }));
     }
 

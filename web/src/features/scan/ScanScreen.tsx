@@ -59,7 +59,9 @@ export function positionText(row: ProjectRow): string | null {
 }
 
 function duration(run: Run | undefined): number | null {
-  return run?.endedAt == null ? null : (run.endedAt - run.startedAt) / MS_PER_SECOND;
+  return run?.endedAt == null
+    ? null
+    : Math.max(run.endedAt - run.startedAt - run.packLoadMs, 0) / MS_PER_SECOND;
 }
 
 /** Lines per second of a finished full scan, else `null`. */

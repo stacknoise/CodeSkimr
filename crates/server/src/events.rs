@@ -53,6 +53,8 @@ pub enum WireEvent {
         project: u64,
         /// The new snapshot.
         snapshot: u64,
+        /// Milliseconds that loading language packs took during the scan.
+        pack_load_ms: u64,
     },
     /// Files changed on disk.
     FilesChanged {
@@ -122,9 +124,13 @@ impl WireEvent {
                 total: *total,
                 elapsed_ms: *elapsed_ms,
             },
-            Event::SnapshotCreated(SnapshotCreated { snapshot }) => Self::SnapshotCreated {
+            Event::SnapshotCreated(SnapshotCreated {
+                snapshot,
+                pack_load,
+            }) => Self::SnapshotCreated {
                 project: snapshot.project.get(),
                 snapshot: snapshot.id.get(),
+                pack_load_ms: u64::try_from(pack_load.as_millis()).unwrap_or(u64::MAX),
             },
             Event::FilesChanged(FilesChanged {
                 project,

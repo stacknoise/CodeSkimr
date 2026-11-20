@@ -70,6 +70,9 @@ pub struct ScanProgressed {
 pub struct SnapshotCreated {
     /// The new snapshot.
     pub snapshot: Snapshot,
+    /// Time that loading language packs took during the scan (ADR 0059). A screen that shows the
+    /// duration of the scan leaves it out; zero if nothing was loaded.
+    pub pack_load: std::time::Duration,
 }
 
 /// File-system changes were detected.
