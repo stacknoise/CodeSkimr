@@ -1,6 +1,6 @@
 # 0077 – Credentials live in one locked buffer
 
-Status: proposed (the rebuild was decided by Anton on 2026-11-15, issue #298; the ADR waits for his acceptance)
+Status: accepted (Anton, 2026-11-20; the rebuild was decided on 2026-11-15, issue #298)
 
 ## Context
 
