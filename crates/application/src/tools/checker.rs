@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use codeskimr_domain::{Ceiling, ProjectId, ProjectSource, ToolReport};
 
-use super::judge::{ToolLimit, findings_of};
+use super::judge::{ToolLimit, findings_of, status_once};
 use crate::error::CodedError;
 use crate::ports::{
     Clock, IndexRunner, IndexerSpec, IndexerStatus, ProjectCatalog, ProjectRepository,
@@ -87,22 +87,6 @@ fn limit_of(
     })
 }
 
-impl ToolChecker {
-    /// What the runner says about `spec`, asked once per distinct spec.
-    fn status_of(
-        &self,
-        checked: &mut Vec<(IndexerSpec, IndexerStatus)>,
-        spec: &IndexerSpec,
-    ) -> IndexerStatus {
-        if let Some((_, status)) = checked.iter().find(|(seen, _)| seen == spec) {
-            return status.clone();
-        }
-        let status = self.ports.runner.check(spec);
-        checked.push((spec.clone(), status.clone()));
-        status
-    }
-}
-
 impl ProjectToolCheck for ToolChecker {
     fn check(&self, project: ProjectId) -> Result<ToolReport, CodedError> {
         let source = self.ports.projects.project(project)?.source;
@@ -114,7 +98,7 @@ impl ProjectToolCheck for ToolChecker {
                 continue;
             };
             let (spec, limits) = self.asked_for(&source, plan);
-            let status = self.status_of(&mut checked, &spec);
+            let status = status_once(self.ports.runner.as_ref(), &mut checked, &spec);
             findings.extend(findings_of(&share.language, &spec, &status, &limits));
         }
         let report = ToolReport {

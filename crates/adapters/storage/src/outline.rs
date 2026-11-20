@@ -23,6 +23,7 @@ struct NodeRow {
 }
 
 impl NodeRow {
+    // codeskimr: allow CHK-102 maps a row of the outline query into its columns
     fn from_row(row: &Row<'_>) -> rusqlite::Result<Self> {
         let cols = Cols::new(row);
         Ok(Self {

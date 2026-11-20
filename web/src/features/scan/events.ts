@@ -1,9 +1,11 @@
 import { createSignal } from "solid-js";
 import { applyAlertsEvent, parseAlertsEvent } from "../alerts/store";
+import { noteLevel2Finished, noteLevel2Progress } from "../projects/level2run";
 import { refreshProjects } from "../projects/projects";
 import {
   EVENT,
   EVENTS_PATH,
+  LEVEL2_EVENT,
   RECONNECT_MS,
   SCHEME_SEPARATOR,
   SOCKET_SCHEME,
@@ -47,7 +49,41 @@ export function parseEvent(text: string): WireEvent | null {
   return typeof event.type === "string" && known.includes(event.type) ? (event as WireEvent) : null;
 }
 
+/** Level 2 events carry a project and counts or labels; anything else is not one. */
+function applyLevel2Event(text: string): boolean {
+  let value: unknown;
+  try {
+    value = JSON.parse(text);
+  } catch {
+    return false;
+  }
+  const event = value as Record<string, unknown> | null;
+  if (typeof event?.project !== "number") {
+    return false;
+  }
+  if (event.type === LEVEL2_EVENT.progressed) {
+    noteLevel2Progress(event.project, {
+      language: String(event.language ?? ""),
+      stage: String(event.stage ?? ""),
+    });
+    return true;
+  }
+  if (event.type === LEVEL2_EVENT.finished) {
+    noteLevel2Finished(event.project, {
+      checked: Number(event.checked ?? 0),
+      skipped: Number(event.skipped ?? 0),
+      failed: Number(event.failed ?? 0),
+    });
+    void refreshProjects();
+    return true;
+  }
+  return false;
+}
+
 function handle(text: string): void {
+  if (applyLevel2Event(text)) {
+    return;
+  }
   const alerts = parseAlertsEvent(text);
   if (alerts !== null) {
     applyAlertsEvent(alerts.project, alerts.open);

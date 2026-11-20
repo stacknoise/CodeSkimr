@@ -16,6 +16,12 @@ export const EVENT = {
   changed: "files_changed",
 } as const;
 
+/** The events of a level 2 pass (ADR 0072, decision 6). */
+export const LEVEL2_EVENT = {
+  progressed: "level2_progressed",
+  finished: "level2_finished",
+} as const;
+
 /** Why a scan stopped without a snapshot. */
 export const STOP = { cancelled: "cancelled", failed: "failed" } as const;
 

@@ -23,6 +23,7 @@ struct StateRow {
 }
 
 impl StateRow {
+    // codeskimr: allow CHK-102 maps the columns of a state row into its fields
     fn read(cols: &Cols<'_>) -> rusqlite::Result<Self> {
         Ok(Self {
             kind: cols.take()?,
@@ -175,6 +176,7 @@ impl SymbolStates for SqliteStore {
             .map_err(CodedError::from)
     }
 
+    // codeskimr: allow CHK-102 forwards to the same-name query of the store
     fn same_simple_name(
         &self,
         snapshot: SnapshotId,

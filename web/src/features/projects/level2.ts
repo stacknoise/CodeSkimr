@@ -136,12 +136,16 @@ export function focusSwitch(project: number): void {
   document.getElementById(`${LEVEL2_SWITCH_ID_PREFIX}${project}`)?.focus();
 }
 
-/** Whether the focus is nowhere (on the page) or inside the level 2 section of the project, which
- * is where it would be lost when the notice goes. A person typing elsewhere keeps the focus. */
-function focusWouldBeLost(project: number): boolean {
+/** Whether the focus is nowhere (on the page) or inside the element with `panelId`, which is where
+ * it would be lost when something in it goes. A person typing elsewhere keeps the focus. */
+export function focusWouldBeLostIn(panelId: string): boolean {
   const active = document.activeElement;
-  const panel = document.getElementById(`${LEVEL2_PANEL_ID_PREFIX}${project}`);
+  const panel = document.getElementById(panelId);
   return active === null || active === document.body || (panel?.contains(active) ?? false);
+}
+
+function focusWouldBeLost(project: number): boolean {
+  return focusWouldBeLostIn(`${LEVEL2_PANEL_ID_PREFIX}${project}`);
 }
 
 /** Ends the waiting for the console window: nothing was confirmed, the switch is free again. The
