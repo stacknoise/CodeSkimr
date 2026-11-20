@@ -25,6 +25,7 @@ Projekt anlegen und scannen: Handbuch unter `docs/manual/de/projekte-und-scan.md
 - **Große Projekte:** Das Ziel „100.000 Zeilen in unter einer Sekunde“ erreichen wir nicht überall. Große C#-Projekte brauchen etwa 1,4 s je 100.000 Zeilen (Newtonsoft.Json mit 197.000 Zeilen: rund 3 s, gemessen im Linux-Container); die Verbesserung (#410) kommt nach 1.0.
 - **HTML-Export:** Die Datei enthält nur die direkten Verwendungen jedes Symbols (keine Tiefenauswahl in der Seite); Wege über mehrere Schritte gibt es nur in der App. Die Größe wächst etwa linear mit dem Projekt (ganzes CodeSkimr-Repository, rund 7.400 Symbole: 64 MB).
 - **.NET-Vorschau-SDK:** Wer ein .NET-Vorschau-SDK mit `allowPrerelease` benutzt, kann in der Werkzeugprüfung einen falschen Hinweis „zu neu“ sehen (bekannte Grenze der Werkzeugprüfung, siehe #379).
+- **macOS:** Die Version wird für macOS (Apple Silicon) automatisch gebaut und in einer frischen Umgebung gestartet (CI), wurde aber nicht von Hand auf einem Mac getestet. Gatekeeper-Verhalten und der Ordner-Dialog sind dort ungeprüft.
 - Keine Signatur (Windows, macOS; kommt als Erstes nach 1.0) und kein Installationsprogramm: eine einzelne Datei je System.
 
 Rückmeldungen bitte als Issue im Repository `stacknoise/CodeSkimr`.
