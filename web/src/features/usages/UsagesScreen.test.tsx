@@ -198,7 +198,7 @@ describe("UsagesScreen", () => {
   it("marks every hit unchecked or presumed and says that the result is preliminary", async () => {
     shown();
     await screen.findByText("Hits 3");
-    expect(screen.getAllByText("unchecked").length).toBe(2);
+    expect(screen.getAllByText("unchecked (level 1)").length).toBe(2);
     expect(screen.getAllByText("presumed").length).toBeGreaterThan(0);
     expect(screen.getByText(/Level 2 has not checked these hits/)).toBeTruthy();
     expect(screen.getByText(/never with a scan from the browser/)).toBeTruthy();
@@ -217,7 +217,7 @@ describe("UsagesScreen", () => {
     verified.level2 = "active";
     shown(verified);
     await screen.findByText("Hits 3");
-    expect(screen.getByText("verified")).toBeTruthy();
+    expect(screen.getByText("verified (level 2)")).toBeTruthy();
     // Partly checked: the sentence that says nothing was checked must not appear.
     expect(screen.queryByText(/Level 2 has not checked these hits/)).toBeNull();
     expect(screen.getByText(/Level 2 has not checked some of these hits/)).toBeTruthy();
@@ -313,7 +313,7 @@ describe("UsagesScreen", () => {
     setLanguage("de");
     shown();
     expect(await screen.findByText("Fundstellen 3")).toBeTruthy();
-    expect(screen.getAllByText("ungeprüft").length).toBe(2);
+    expect(screen.getAllByText("ungeprüft (Stufe 1)").length).toBe(2);
   });
 });
 
