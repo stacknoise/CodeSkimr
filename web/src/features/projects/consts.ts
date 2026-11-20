@@ -7,6 +7,12 @@ export const COMMAND = {
   tools: "projects.tools",
 } as const;
 
+/** Ids of the folder dialog commands (crates/app/src/ui_commands/consts.rs). */
+export const FOLDER_DIALOG_COMMAND = {
+  info: "projects.folder_dialog",
+  pick: "projects.pick_folder",
+} as const;
+
 /** The role of a tool that an indexer needs besides itself. */
 export const TOOL_ROLE_TOOLCHAIN = "toolchain";
 

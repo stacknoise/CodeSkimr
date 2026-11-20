@@ -217,14 +217,12 @@ fn host_and_origin(url: &str, token: &str, source: &str) {
     );
 }
 
-/// Removing a project is destructive: like `projects.add` it needs the token and an own host and
-/// origin. The controls use an unknown project, so nothing of the suite is lost.
-fn removal_needs_the_token_and_the_origin(url: &str, token: &str) {
-    let address = url.trim_start_matches(URL_SCHEME);
-    let body = json!({ "project": UNKNOWN_PROJECT });
+/// A call that changes something needs the token and an own host and origin: a missing, wrong or
+/// empty token is 401, a foreign host or origin 403.
+fn assert_guarded(url: &str, token: &str, command: &str, body: &Value) {
     for wrong in [None, Some("csk_wrong"), Some("")] {
         let headers: Vec<String> = wrong.map(bearer).into_iter().collect();
-        let answer = command_request(url, "projects.remove", &headers, &body);
+        let answer = command_request(url, command, &headers, body);
         assert_eq!(status(&answer), 401, "token {wrong:?}");
         assert!(answer.contains("API-401"));
     }
@@ -242,10 +240,18 @@ fn removal_needs_the_token_and_the_origin(url: &str, token: &str) {
             "null origin",
         ),
     ] {
-        let answer = command_request(url, "projects.remove", &headers, &body);
+        let answer = command_request(url, command, &headers, body);
         assert_eq!(status(&answer), 403, "{what}");
         assert!(answer.contains("API-402"), "{what}");
     }
+}
+
+/// Removing a project is destructive: like `projects.add` it needs the token and an own host and
+/// origin. The controls use an unknown project, so nothing of the suite is lost.
+fn removal_needs_the_token_and_the_origin(url: &str, token: &str) {
+    let address = url.trim_start_matches(URL_SCHEME);
+    let body = json!({ "project": UNKNOWN_PROJECT });
+    assert_guarded(url, token, "projects.remove", &body);
     // The controls: with the token and our own origin the call gets to the command, which does
     // not know the project.
     for headers in [
@@ -255,6 +261,15 @@ fn removal_needs_the_token_and_the_origin(url: &str, token: &str) {
         let answer = command_request(url, "projects.remove", &headers, &body);
         assert!(answer.contains("PRJ-201"), "{answer}");
     }
+}
+
+/// The folder dialog opens a window on the machine of the app, so a foreign page must not be able
+/// to open it: the guard refuses it like a removal. No control opens the dialog; the question
+/// whether one exists is a read and is answered.
+fn the_folder_dialog_needs_the_token_and_the_origin(url: &str, token: &str) {
+    assert_guarded(url, token, "projects.pick_folder", &json!({}));
+    let answer = command_request(url, "projects.folder_dialog", &[bearer(token)], &json!({}));
+    assert!(answer.contains("available"), "{answer}");
 }
 
 /// An answer sends the security headers and allows no cross-site read.
@@ -413,6 +428,7 @@ fn bad_tokens_hosts_and_origins_are_refused_and_the_event_stream_leaks_nothing()
         token_per_call(url, token, &source);
         host_and_origin(url, token, &source);
         removal_needs_the_token_and_the_origin(url, token);
+        the_folder_dialog_needs_the_token_and_the_origin(url, token);
         let mut answers = credentials_need_the_token(url, token);
         answers.extend(cors_and_headers(url, token));
         let (foreign, stream) = event_stream(url, token, &source);
