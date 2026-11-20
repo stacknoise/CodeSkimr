@@ -160,7 +160,7 @@ fn a_pass_without_languages_is_still_a_report() {
         ))
         .unwrap();
     let level2 = store.report(PROJECT).unwrap().unwrap().level2.unwrap();
-    assert!(level2.languages.is_empty());
+    assert_eq!(level2.languages, Vec::new());
 }
 
 #[test]
