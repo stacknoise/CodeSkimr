@@ -9,7 +9,7 @@ Wählen Sie im Explorer ein Member (oder einen Typ) und drücken `U`, klicken �
 ## Werkzeugleiste
 
 - **Richtung:** beide, wer ruft auf (eingehend), was wird aufgerufen (ausgehend).
-- **Tiefe:** 1, 2, 3 oder alle. Es beginnt bei 1: nur direkte Verwendungen, nicht die über ein anderes Symbol; wählen Sie mehr, um sie zu sehen. „Alle“ wird am konfigurierten Höchstwert gekappt (`mcp.max_depth`, Vorgabe 5).
+- **Tiefe:** 1, 2, 3 oder alle. Es beginnt bei 1: nur direkte Verwendungen, nicht die über ein anderes Symbol; wählen Sie mehr, um sie im Diagramm zu sehen (die Trefferliste zeigt immer nur direkte Verwendungen). „Alle“ wird am konfigurierten Höchstwert gekappt (`mcp.max_depth`, Vorgabe 5).
 - **Tests zeigen:** Verweise aus Testcode bleiben weg, solange Sie das nicht einschalten.
 - **Ebene:** Dieser Bildschirm ist die Ebene „Symbol“. „Namensräume“ öffnet die [Abhängigkeitskarte](abhaengigkeitskarte.md) auf der Namespace-Ebene, „Typen“ öffnet sie mit dem im Explorer gewählten Typ in der Mitte (ohne gewählten Typ ist der Knopf ausgeschaltet).
 
