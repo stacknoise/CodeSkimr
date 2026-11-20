@@ -20,6 +20,7 @@ Each section is generated from the Conventional Commit titles of the squash-merg
 
 ### Fixed
 
+- the code column of the usages hit list has a handle to change its width; the place column takes the rest
 - the "Browse" button was never shown: the browser sends no body, which the two folder dialog commands refused
 - the usages screen starts at depth 1, so list and diagram show only direct usages
 - level 1 usages stay visible where level 2 finds nothing, marked "unchecked (level 1)"; verified ones read "verified (level 2)" (ADR 0033 addendum)
