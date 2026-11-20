@@ -1,6 +1,6 @@
 # 0072 – Level 2 runs with scans from the UI, and every scan leaves a report of its level
 
-Status: proposed (decision of the product owner Anton on a decision card, 2026-11-18, issue #540; only Anton sets `accepted`)
+Status: accepted (Anton, 2026-11-20, decision card; first decided on a decision card on 2026-11-18, issue #540)
 
 ## Context
 
