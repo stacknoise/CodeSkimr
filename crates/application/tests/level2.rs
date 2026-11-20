@@ -45,6 +45,11 @@ mod cases {
         Config::resolve(&layers).unwrap()
     }
 
+    /// The settings of an owner who switched level 2 on in the user configuration.
+    fn switched_on() -> Level2 {
+        config(&[(LayerSource::User, "[level2]\nenabled = true\n")]).level2
+    }
+
     fn code<T: std::fmt::Debug>(result: Result<T, CodedError>) -> ErrorCode {
         result.unwrap_err().code()
     }
@@ -67,7 +72,7 @@ mod cases {
         let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
         let owner = Principal::local_owner();
         confirm(&owner, store.as_ref(), PROJECT).unwrap();
-        let settings = config(&[]).level2;
+        let settings = switched_on();
         let folder = authorize_run(&owner, &settings, &store, &folder_project(), &clone()).unwrap();
         assert_eq!(folder.project_root(), Path::new(ROOT));
         let git = Project {
@@ -98,29 +103,25 @@ mod cases {
     }
 
     #[test]
-    fn a_confirmation_alone_is_enough_because_it_enables_the_project() {
+    fn a_confirmation_alone_is_not_enough_without_the_switch() {
         let owner = Principal::local_owner();
         let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
         confirm(&owner, store.as_ref(), PROJECT).unwrap();
-        authorize_run(
-            &owner,
-            &config(&[]).level2,
-            &store,
-            &folder_project(),
-            &clone(),
-        )
-        .unwrap();
+        // The record says "enabled" now, and still the master switch of the user configuration
+        // decides (ADR 0076, issue #556).
+        assert!(store.consent(PROJECT).unwrap().enabled);
+        assert_not_confirmed(&config(&[]).level2, &store);
+    }
+
+    #[test]
+    fn the_switch_and_a_confirmation_together_let_a_run_pass_until_it_is_revoked() {
+        let owner = Principal::local_owner();
+        let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
+        confirm(&owner, store.as_ref(), PROJECT).unwrap();
+        let settings = switched_on();
+        authorize_run(&owner, &settings, &store, &folder_project(), &clone()).unwrap();
         revoke(&owner, store.as_ref(), PROJECT).unwrap();
-        assert_eq!(
-            code(authorize_run(
-                &owner,
-                &config(&[]).level2,
-                &store,
-                &folder_project(),
-                &clone()
-            )),
-            ErrorCode::IndexerNotConfirmed
-        );
+        assert_not_confirmed(&settings, &store);
     }
 
     #[test]
@@ -227,7 +228,7 @@ mod cases {
         );
         authorize_run(
             &starter,
-            &config(&[]).level2,
+            &switched_on(),
             &store,
             &folder_project(),
             &clone(),
@@ -284,14 +285,8 @@ mod cases {
         let owner = Principal::local_owner();
         let store: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
         confirm(&owner, store.as_ref(), PROJECT).unwrap();
-        let permit = authorize_run(
-            &owner,
-            &config(&[]).level2,
-            &store,
-            &folder_project(),
-            &clone(),
-        )
-        .unwrap();
+        let permit =
+            authorize_run(&owner, &switched_on(), &store, &folder_project(), &clone()).unwrap();
         assert_eq!(permit.project_root(), Path::new(ROOT));
         assert_eq!(permit.project(), PROJECT);
     }

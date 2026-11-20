@@ -9,7 +9,7 @@ mod cases {
     use std::sync::{Arc, Mutex, PoisonError};
 
     use codeskimr_application::cancel::CancelToken;
-    use codeskimr_application::config::Config;
+    use codeskimr_application::config::{Config, ConfigLayer, LayerSource};
     use codeskimr_application::error::CodedError;
     use codeskimr_application::ids::IdSequence;
     use codeskimr_application::level2::{
@@ -394,6 +394,12 @@ mod cases {
         }
     }
 
+    /// The settings of an owner who switched level 2 on in the user configuration (ADR 0076).
+    fn switched_on() -> codeskimr_application::config::Level2 {
+        let layer = ConfigLayer::parse(LayerSource::User, "[level2]\nenabled = true\n").unwrap();
+        Config::resolve(&[layer]).unwrap().level2
+    }
+
     fn pass_for(mut setup: Setup, cancel: &CancelToken) -> (Level2Pass, Fakes) {
         let fakes = fakes_for(&mut setup, cancel);
         let (world, runner, importer) = (&fakes.world, &fakes.runner, &fakes.importer);
@@ -412,7 +418,7 @@ mod cases {
             store: world.clone(),
             ids: Arc::new(IdSequence::starting_at(1000)),
             max_file_bytes: 1 << 20,
-            settings: Config::resolve(&[]).unwrap().level2,
+            settings: switched_on(),
             indexers,
             events: codeskimr_application::events::EventBus::new(),
         };

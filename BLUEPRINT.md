@@ -1165,7 +1165,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | STO-901 | `stored_data_invalid` | Data read from the database violates the domain model; this is a bug or a damaged database. |
 | SEC-201 | `credential_not_found` | The referenced credential does not exist in the keystore. |
 | SEC-202 | `credential_damaged` | The keystore entry of the credential cannot be read; delete it and create the credential again. |
-| SEC-301 | `indexer_not_confirmed` | Level 2 is not enabled and confirmed for this project in the user configuration or the user's own project record, so no indexer is started. |
+| SEC-301 | `indexer_not_confirmed` | Level 2 is not enabled in the user configuration (`[level2] enabled`) or not confirmed for this project, so no indexer is started. |
 | SEC-401 | `credential_rejected` | The platform rejected the credential. |
 | SEC-402 | `keystore_access_denied` | The OS keystore denied access. |
 | SEC-403 | `indexer_not_permitted` | The caller may not confirm or start indexers; only the local owner may (ADR 0033, decision 10). |
