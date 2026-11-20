@@ -26,6 +26,8 @@ struct Tally<'t> {
     /// The boolean operators: the operation, the position and the text of each.
     operators_seen: Vec<(Node<'t>, usize, String)>,
     parameters: u32,
+    /// The literals, by node id; an exempt one is taken off when the body is totalled.
+    literals: HashSet<usize>,
 }
 
 /// What the pack of the file counts besides decisions and Halstead (ADR 0048).
@@ -33,10 +35,11 @@ struct Tally<'t> {
 struct Support {
     cognitive: bool,
     parameters: bool,
+    literals: bool,
 }
 
 impl Tally<'_> {
-    fn counts(&self, support: Support, cognitive: u32) -> BodyCounts {
+    fn counts(&self, support: Support, cognitive: u32, literals: u32) -> BodyCounts {
         BodyCounts {
             decisions: self.decisions,
             halstead: HalsteadCounts {
@@ -47,6 +50,7 @@ impl Tally<'_> {
             },
             cognitive: support.cognitive.then_some(cognitive),
             parameters: support.parameters.then_some(self.parameters),
+            literals: support.literals.then_some(literals),
         }
     }
 }
@@ -66,6 +70,8 @@ struct Found<'t> {
     nesting: HashSet<usize>,
     /// Nodes that continue the chain around them and neither count nor nest, by node id.
     continuations: HashSet<usize>,
+    /// Nodes whose literal is an exception of the rule, by node id.
+    exempt: HashSet<usize>,
 }
 
 /// Runs the query once and assigns every capture to the innermost callable that contains it. A
@@ -92,6 +98,7 @@ fn tally<'t>(query: &MetricsQuery, root: Node<'t>, source: &str, table: &SymbolT
             match role {
                 Role::Nesting => drop(found.nesting.insert(capture.node.id())),
                 Role::Continuation => drop(found.continuations.insert(capture.node.id())),
+                Role::LiteralExempt => drop(found.exempt.insert(capture.node.id())),
                 _ => {}
             }
             if owner.kind.is_callable() {
@@ -129,7 +136,8 @@ fn record<'t>(found: &mut Found<'t>, owner: SymbolId, role: Role, node: Node<'t>
             }
         }
         Role::Parameter => entry.parameters += 1,
-        Role::Comment | Role::Nesting | Role::Continuation => {}
+        Role::Literal => drop(entry.literals.insert(node.id())),
+        Role::Comment | Role::Nesting | Role::Continuation | Role::LiteralExempt => {}
     }
 }
 
@@ -262,6 +270,7 @@ impl<'t> Measured<'t> {
             support: Support {
                 cognitive: query.counts_cognitive(),
                 parameters: query.counts_parameters(),
+                literals: query.counts_literals(),
             },
             ranges: table
                 .callables()
@@ -294,7 +303,8 @@ impl<'t> Measured<'t> {
     fn body(&self, id: SymbolId) -> BodyCounts {
         let empty = Tally::default();
         let tally = self.found.tallies.get(&id).unwrap_or(&empty);
-        tally.counts(self.support, self.cognitive(id, tally))
+        let literals = tally.literals.difference(&self.found.exempt).count();
+        tally.counts(self.support, self.cognitive(id, tally), size(literals))
     }
 }
 
