@@ -440,7 +440,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "codeskimr_application",
  "codeskimr_cli",
@@ -479,7 +479,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_application"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "codeskimr_codes",
  "codeskimr_domain",
@@ -492,7 +492,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_bench"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "codeskimr_domain",
  "criterion",
@@ -504,7 +504,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_cli"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "clap",
  "codeskimr_application",
@@ -518,7 +518,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_codegen"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "serde",
  "toml",
@@ -526,21 +526,21 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_codes"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "codeskimr_codegen",
 ]
 
 [[package]]
 name = "codeskimr_domain"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "codeskimr_codes",
 ]
 
 [[package]]
 name = "codeskimr_fsguard"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "libc",
  "tempfile",
@@ -549,7 +549,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_i18n"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "codeskimr_codegen",
  "codeskimr_codes",
@@ -561,7 +561,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_indexer"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "codeskimr_application",
  "codeskimr_codes",
@@ -575,7 +575,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_mcp"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "codeskimr_application",
  "codeskimr_codes",
@@ -589,7 +589,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_parsing"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "blake3",
  "codeskimr_application",
@@ -618,7 +618,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_scip"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "codeskimr_application",
  "codeskimr_codes",
@@ -630,7 +630,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_secrets"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "apple-native-keyring-store",
  "codeskimr_application",
@@ -652,7 +652,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_server"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "axum",
  "blake3",
@@ -675,7 +675,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_source"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "blake3",
  "codeskimr_application",
@@ -697,7 +697,7 @@ dependencies = [
 
 [[package]]
 name = "codeskimr_storage"
-version = "0.9.0-preview.1"
+version = "1.0.0"
 dependencies = [
  "codeskimr_application",
  "codeskimr_codes",
