@@ -131,3 +131,8 @@ pub const COPY_COMMAND_PROGRAM: &str = "codeskimr";
 pub const COPY_COMMAND_WORDS: [&str; 2] = ["level2", "confirm"];
 /// Separates the words of the command to copy.
 pub const COPY_COMMAND_SEPARATOR: char = ' ';
+
+/// The byte between the user name and the secret in the stored form of a credential (ADR 0077).
+pub const FIELD_SEPARATOR: u8 = 0;
+/// Length of [`FIELD_SEPARATOR`] in bytes.
+pub const SEPARATOR_LEN: usize = 1;

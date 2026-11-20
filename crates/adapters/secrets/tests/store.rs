@@ -9,7 +9,6 @@ use codeskimr_application::ports::{AuthError, Credential, CredentialStore};
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::CredentialId;
 use codeskimr_secrets::{Keystore, KeystoreCredentials};
-use secrecy::{ExposeSecret, SecretString};
 use zeroize::Zeroizing;
 
 const CANARY: &str = "CANARY-3f9c61aa";
@@ -45,13 +44,13 @@ impl Keystore for MemoryKeystore {
 
 type TestResult<T = ()> = Result<T, Box<dyn std::error::Error>>;
 
-fn credential(user: &str, secret: &str) -> Credential {
-    Credential::new(SecretString::from(user), SecretString::from(secret))
+fn credential(user: &str, secret: &str) -> Result<Credential, AuthError> {
+    codeskimr_secrets::credential(user, secret)
 }
 
 fn store_with(id: &CredentialId) -> TestResult<KeystoreCredentials<MemoryKeystore>> {
     let store = KeystoreCredentials::new(MemoryKeystore::default());
-    store.store(id, &credential("anton", CANARY))?;
+    store.store(id, &credential("anton", CANARY)?)?;
     Ok(store)
 }
 
@@ -60,10 +59,7 @@ fn a_stored_credential_is_lent_to_the_closure() -> TestResult {
     let id = CredentialId::new("work")?;
     let store = store_with(&id)?;
     let seen = store.with_credential(&id, |c| {
-        Ok((
-            c.user().expose_secret().to_owned(),
-            c.secret().expose_secret().to_owned(),
-        ))
+        Ok((c.expose_user().to_owned(), c.expose_secret().to_owned()))
     })?;
     assert_eq!(seen, ("anton".to_owned(), CANARY.to_owned()));
     Ok(())
@@ -142,7 +138,7 @@ fn a_panic_inside_the_action_leaves_the_store_usable() -> TestResult {
     }));
     assert!(result.is_err());
     store.with_credential(&id, |c| {
-        assert_eq!(c.secret().expose_secret(), CANARY);
+        assert_eq!(c.expose_secret(), CANARY);
         Ok(())
     })?;
     Ok(())
