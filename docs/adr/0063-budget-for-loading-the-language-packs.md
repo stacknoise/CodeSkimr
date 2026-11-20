@@ -1,6 +1,6 @@
 # 0063 – A budget for loading the language packs of a first scan
 
-Status: proposed
+Status: accepted (Anton, 2026-11-20, decision card, option A: the budget of 1.5 s for the Rust and C# packs; the load time of projects with many languages is reported, not budgeted). Implemented: `budgets.pack_load_ms`, blueprint 16.1 and the `bench` job.
 
 ## Context
 
