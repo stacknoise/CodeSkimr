@@ -20,10 +20,11 @@ export const WAYS = [
 
 /** Depth that asks for as many steps as the configuration allows. */
 export const DEPTH_ALL = 0;
-/** Depth shown at first (mock 6). */
-export const DEFAULT_DEPTH = 2;
+/** Depth shown at first: only direct usages, never those that reach a symbol through another one
+ * (product owner, 2026-11-20). The select offers deeper walks on request. */
+export const DEFAULT_DEPTH = 1;
 /** The depths of the select, ascending, "all" last. */
-export const DEPTHS: readonly number[] = [1, DEFAULT_DEPTH, 3, DEPTH_ALL];
+export const DEPTHS: readonly number[] = [DEFAULT_DEPTH, 2, 3, DEPTH_ALL];
 
 /** Tests are shown at first (mock 6). */
 export const DEFAULT_SHOW_TESTS = true;
