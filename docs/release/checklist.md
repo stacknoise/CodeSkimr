@@ -8,13 +8,13 @@ Only the product owner creates the tag and publishes the release (`docs/release.
 - [ ] Milestones M1 to M6 are accepted (reports in `docs/acceptance/`); open acceptance findings are issues with a decision.
 - [ ] All budgets of blueprint 16 are green: `bench` is green on `main`, and the numbers in `docs/benchmarks.md` and the scan screen match the measurement.
 - [ ] Accuracy per language is measured and stated in the release notes (`docs/accuracy.md`); languages below 99 % are named as approximations.
-- [ ] No open issue with the label `security-sensitive` or `status:blocked`; `cargo audit` and `cargo deny` are green (`deps`).
+- [ ] No open issue with the label `security-sensitive` or `status:blocked`, except #289 and #290 (labelled `after-1.0`, deliberately postponed by the product owner on 2026-11-20); `cargo audit` and `cargo deny` are green (`deps`).
 - [ ] The required checks in the ruleset match `docs/ci.md` (including `build (macos-latest)` and `test (windows-latest, indexer)`).
 - [ ] `version` in the root `Cargo.toml` and `Cargo.lock` is the release version (no `-preview` suffix).
 - [ ] `CHANGELOG.md` has the new section (`tools/release/changelog.py`), and breaking changes are under their own heading.
 - [ ] Error-code catalogue is current: `docs/error-codes.md` is generated (`codegen` check is green); the manual chapter "Error codes" (`docs/manual/en/errors.md`, `docs/manual/de/fehler.md`) lists the codes users meet most.
 - [ ] Manual (de and en) is checked against the program: every command and option in the text exists in `codeskimr --help`, every link works, screenshots match the screens.
-- [ ] The release notes are no longer the preview notes: `docs/release/notes-de.md` and `notes-en.md` (the text of the release page) are the notes for 1.0 (draft statement on accuracy: confirm).
+- [ ] The release notes are no longer the preview notes: `docs/release/notes-de.md` and `notes-en.md` (the text of the release page) are the notes for 1.0 (accuracy statement confirmed by the product owner, 2026-11-20).
 - [ ] README and the release notes (`docs/release/`) say what is in this release and what is not (known limits, signing, installers).
 - [ ] Single files exist for all three systems with `.sha256` and provenance attestation (decision on #327: unsigned, language packs embedded); signing is the first task after 1.0.
 - [ ] Product page (repository `stacknoise/homepage`) uses the same texts and version.

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildRows,
   groupKey,
+  groupOfKind,
   layerKey,
   namespaceKey,
   revealKeys,
@@ -19,6 +20,7 @@ const LABELS: TreeLabels = {
   fields: "Fields",
   methods: "Methods",
   nested: "Nested",
+  aliases: "Aliases",
 };
 
 const OUTLINE: Outline = {
@@ -474,5 +476,86 @@ describe("modules in the tree", () => {
 
   it("reveals a module at its namespace row", () => {
     expect(revealKeys(PYTHON, 11).at(-1)).toBe(namespaceKey("", "pkg.entry"));
+  });
+});
+
+describe("members of a module and of every kind", () => {
+  const member = (id: number, name: string, kind: string) => ({
+    ...ORDER.members[0]!,
+    id,
+    name,
+    qualified_name: name,
+    kind,
+  });
+  const MODULE: SymbolInfo = {
+    ...ORDER,
+    id: 11,
+    name: "sensor",
+    kind: "module",
+    language: "python",
+    members: [
+      member(20, "setup", "function"),
+      member(21, "GROUPS", "constant"),
+      member(22, "Sensor", "class"),
+      member(23, "Alias", "type_alias"),
+    ],
+  };
+  const outline: Outline = {
+    ...OUTLINE,
+    layers: [
+      {
+        name: "",
+        namespaces: [
+          {
+            name: "pkg.sensor",
+            types: [
+              {
+                id: 22,
+                name: "Sensor",
+                qualified_name: "pkg.sensor.Sensor",
+                kind: "class",
+                members: 0,
+                language: "python",
+              },
+            ],
+            module: {
+              id: 11,
+              name: "sensor",
+              qualified_name: "pkg.sensor",
+              kind: "module",
+              members: 4,
+              language: "python",
+            },
+          },
+        ],
+      },
+    ],
+  };
+  const open = new Set([namespaceKey("", "pkg"), namespaceKey("", "pkg.sensor")]);
+  const groups = (rows: TreeRow[]) =>
+    rows.filter((row) => row.kind === "group").map((row) => row.label);
+
+  it("shows the constants, functions and aliases of a module next to its types", () => {
+    const rows = buildRows(outline, open, new Map([[11, MODULE]]), "", LABELS);
+    expect(groups(rows)).toEqual(["Fields", "Methods", "Aliases"]);
+    expect(labels(rows)).toContain("Sensor");
+  });
+
+  it("keeps the groups of a module closed until its row is open and read", () => {
+    const closed = new Set([namespaceKey("", "pkg")]);
+    expect(groups(buildRows(outline, closed, new Map([[11, MODULE]]), "", LABELS))).toEqual([]);
+    expect(groups(buildRows(outline, open, new Map(), "", LABELS))).toEqual([]);
+  });
+
+  it("puts every member kind into one group, or into the types of the namespace", () => {
+    const placed = (kind: string) => groupOfKind(kind);
+    expect(["property", "field", "constant", "event", "enum_member"].map(placed)).toEqual(
+      Array(5).fill("fields"),
+    );
+    expect(["method", "constructor", "function"].map(placed)).toEqual(Array(3).fill("methods"));
+    expect(placed("type_alias")).toBe("aliases");
+    expect(
+      ["class", "interface", "trait", "record", "struct", "enum", "union"].map(placed),
+    ).toEqual(Array(7).fill("nested"));
   });
 });

@@ -24,6 +24,8 @@ pub struct BodyCounts {
     pub cognitive: Option<u32>,
     /// Number of parameters, without a receiver (ADR 0048); `None` if the pack does not count them.
     pub parameters: Option<u32>,
+    /// Literals the rule of no literals reports (ADR 0058); `None` if the pack does not report them.
+    pub literals: Option<u32>,
 }
 
 /// The counts of one measurable symbol.

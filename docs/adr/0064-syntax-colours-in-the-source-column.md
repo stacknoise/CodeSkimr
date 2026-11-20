@@ -1,6 +1,6 @@
 # 0064 – Syntax colours in the source column
 
-Status: proposed
+Status: accepted (Anton, 2026-11-20, decision card, option A: the server cuts the colours; the browser highlighter was considered and not chosen). Implemented in #484.
 
 ## Context
 

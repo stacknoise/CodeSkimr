@@ -86,6 +86,8 @@ export const TYPE_KINDS: readonly string[] = [
   "enum",
   "union",
 ];
+/** Kinds that the tree groups under "Type aliases". */
+export const ALIAS_KINDS: readonly string[] = ["type_alias"];
 /** Kinds that the tree groups under "Methods". */
 export const METHOD_KINDS: readonly string[] = ["method", "constructor", "function"];
 /** Kinds that the "Properties" chip of the member table shows. */
@@ -153,7 +155,12 @@ export const BASE_INDENT_PX = 8;
 export const CARET = { closed: "▶", open: "▼" } as const;
 
 /** The member groups of the tree. */
-export const GROUP = { fields: "fields", methods: "methods", nested: "nested" } as const;
+export const GROUP = {
+  fields: "fields",
+  methods: "methods",
+  nested: "nested",
+  aliases: "aliases",
+} as const;
 
 /** The chips of the member table. */
 export const CHIP = {

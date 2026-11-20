@@ -67,6 +67,7 @@ explorer-metric-ca-tip = Incoming coupling
 explorer-metric-instability = Instability
 explorer-metric-instability-tip = Ce / (Ca + Ce): up to { $good } stable, up to { $medium } medium
 explorer-group-types = Nested types
+explorer-group-aliases = Type aliases
 explorer-loading = Reading the structure …
 explorer-metric-properties = Properties
 explorer-metric-properties-tip = Properties of the type

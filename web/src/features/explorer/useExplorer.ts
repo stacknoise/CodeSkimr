@@ -7,6 +7,7 @@ import {
   currentMember,
   currentType,
   expandedRows,
+  loadSymbol,
   openRows,
   revealNested,
   setTreeCursor,
@@ -28,6 +29,7 @@ function labels(): TreeLabels {
     fields: t(I18N_KEYS.EXPLORER_GROUP_FIELDS),
     methods: t(I18N_KEYS.EXPLORER_GROUP_METHODS),
     nested: t(I18N_KEYS.EXPLORER_GROUP_TYPES),
+    aliases: t(I18N_KEYS.EXPLORER_GROUP_ALIASES),
   };
 }
 
@@ -59,8 +61,9 @@ export function activate(project: number, row: TreeRow): void {
 export function fold(project: number, row: TreeRow): void {
   if (row.kind === ROW.type && row.type !== null) {
     void toggleType(project, row.type);
-  } else {
-    toggleRow(row.key);
+  } else if (toggleRow(row.key) && row.kind === ROW.namespace && row.type !== null) {
+    // A module that opens shows its constants and functions, which are read first.
+    void loadSymbol(project, row.type);
   }
 }
 
