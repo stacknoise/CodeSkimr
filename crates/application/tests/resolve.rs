@@ -219,7 +219,8 @@ mod tests {
         let (_, tool) = shop.table.add_tool("Elsewhere", 3);
         let tests = HashSet::from([FileId::new(3), FileId::new(4)]);
         let from_production = [occurrence(shop.save, 2, ReferenceKind::TypeUse, "Tool")];
-        assert!(resolve_with_tests(&shop.table, &from_production, &tests).is_empty());
+        let found = resolve_with_tests(&shop.table, &from_production, &tests);
+        assert_eq!(targets(&found), []);
         // A test file may use the helper, and so may the file that declares it.
         for file in [3, 4] {
             let from_test = [occurrence(shop.save, file, ReferenceKind::TypeUse, "Tool")];
