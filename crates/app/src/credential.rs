@@ -14,7 +14,7 @@ use codeskimr_cli::{CredentialAction, ProviderChoice};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::CredentialId;
 use codeskimr_secrets::{OsCredentialStore, OsKeystore, Prompt, Provider};
-use secrecy::SecretString;
+use secrecy::{ExposeSecret, SecretString};
 use zeroize::Zeroizing;
 
 use crate::consts::{
@@ -91,8 +91,14 @@ fn set(
     }
     let secret = (io.read_secret)()?;
     refresh::forget(store, &id)?;
-    store.store(&id, &Credential::new(SecretString::from(user), secret))?;
+    let credential = secret_credential(user, &secret)?;
+    store.store(&id, &credential)?;
     Ok(Done::Stored(id.to_string()))
+}
+
+/// The credential of a user name and an entered secret, in locked memory.
+fn secret_credential(user: &str, secret: &SecretString) -> Result<Credential, CodedError> {
+    Ok(codeskimr_secrets::credential(user, secret.expose_secret())?)
 }
 
 /// Signs in at `(provider, client id, host)` and stores the token as `id`.
@@ -171,7 +177,6 @@ fn unreadable() -> CodedError {
 mod tests {
     use codeskimr_codes::Coded;
     use codeskimr_secrets::KeystoreCredentials;
-    use secrecy::ExposeSecret;
 
     use super::*;
     use crate::consts::TOKEN_CREDENTIAL_ID;
@@ -215,7 +220,7 @@ mod tests {
     fn holds_canary(store: &Store, id: &str) -> bool {
         let id = CredentialId::new(id).unwrap();
         store
-            .with_credential(&id, |c| Ok(c.secret().expose_secret() == CANARY))
+            .with_credential(&id, |c| Ok(c.expose_secret() == CANARY))
             .unwrap_or(false)
     }
 
@@ -281,8 +286,8 @@ mod tests {
         let id = CredentialId::new(name).unwrap();
         store
             .with_credential(&id, |c| {
-                let user = c.user().expose_secret().to_owned();
-                Ok((user, c.secret().expose_secret().to_owned()))
+                let user = c.expose_user().to_owned();
+                Ok((user, c.expose_secret().to_owned()))
             })
             .ok()
     }

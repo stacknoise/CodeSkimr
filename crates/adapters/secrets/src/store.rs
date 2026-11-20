@@ -3,7 +3,7 @@
 use codeskimr_application::ports::{AuthError, Credential, CredentialStore};
 use codeskimr_domain::CredentialId;
 
-use crate::encoding::{decode, encode};
+use crate::encoding::decode;
 use crate::keystore::{Keystore, OsKeystore};
 use crate::memory::LockedBytes;
 
@@ -40,13 +40,13 @@ impl<K: Keystore> CredentialStore for KeystoreCredentials<K> {
         // every path including a panic inside `action`. The packed bytes lie in locked memory;
         // the copy the keystore returned is wiped as soon as it has been moved there.
         let packed = LockedBytes::copy_of(&self.keystore.read(id.as_str())?)?;
-        let credential = decode(&packed)?;
+        let credential = decode(packed)?;
         action(&credential)
     }
 
     fn store(&self, id: &CredentialId, credential: &Credential) -> Result<(), AuthError> {
-        let packed = encode(credential)?;
-        self.keystore.write(id.as_str(), &packed)
+        // The credential already holds the stored form in locked memory.
+        self.keystore.write(id.as_str(), credential.packed())
     }
 
     fn delete(&self, id: &CredentialId) -> Result<(), AuthError> {

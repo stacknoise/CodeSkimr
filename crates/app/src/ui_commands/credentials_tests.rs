@@ -3,7 +3,6 @@
 use codeskimr_application::ports::{AuthError, CredentialStore};
 use codeskimr_codes::Coded;
 use codeskimr_domain::CredentialId;
-use secrecy::ExposeSecret;
 use serde_json::{Value, json};
 
 use super::tests::Fixture;
@@ -33,9 +32,7 @@ fn a_credential_is_stored_without_the_secret_in_the_answer() {
     let id = CredentialId::new("work").unwrap();
     let stored = fixture
         .secrets
-        .with_credential(&id, |credential| {
-            Ok(credential.secret().expose_secret().to_owned())
-        })
+        .with_credential(&id, |credential| Ok(credential.expose_secret().to_owned()))
         .unwrap();
     assert!(stored == SECRET, "the keystore holds another secret");
 }
@@ -136,14 +133,13 @@ fn a_principal_without_the_rights_cannot_touch_credentials() {
 
 /// A credential that was signed in with a refresh token, as `credential login` leaves it.
 fn signed_in(fixture: &Fixture) {
-    use codeskimr_application::ports::Credential;
     use codeskimr_secrets::{Provider, SignedIn};
     use secrecy::SecretString;
 
     use crate::refresh::{Link, save};
 
     let signed = SignedIn {
-        credential: Credential::new(SecretString::from("oauth2"), SecretString::from("old")),
+        credential: codeskimr_secrets::credential("oauth2", "old").unwrap(),
         refresh: Some(SecretString::from("old-refresh")),
     };
     let link = Link {

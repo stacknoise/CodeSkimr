@@ -12,10 +12,9 @@ use std::sync::Arc;
 use std::sync::mpsc::channel;
 
 use codeskimr_application::config::Config;
-use codeskimr_application::ports::{Credential, CredentialStore};
+use codeskimr_application::ports::CredentialStore;
 use codeskimr_cli::GlobalOptions;
 use codeskimr_domain::CredentialId;
-use secrecy::SecretString;
 use serde_json::{Value, json};
 use tokio::sync::oneshot;
 
@@ -98,10 +97,7 @@ pub(crate) fn run(
     let config = config_files::load(&locations, &GlobalOptions::default(), None).unwrap();
     let secrets = memory_secrets();
     let id = CredentialId::new("work").unwrap();
-    let canary = Credential::new(
-        SecretString::from("anton"),
-        SecretString::from(CREDENTIAL_CANARY),
-    );
+    let canary = codeskimr_secrets::credential("anton", CREDENTIAL_CANARY).unwrap();
     secrets.store(&id, &canary).unwrap();
     installation_token::load_or_create(&*secrets).unwrap();
     let token = installation_token::stored_token(&*secrets);

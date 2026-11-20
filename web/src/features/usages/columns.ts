@@ -1,7 +1,13 @@
 import { createPaneSize } from "../../shared/layout/paneSize";
-import { CODE_COLUMN_WIDTH, COLUMN_JOIN, HIT_COLUMN_KEY, HIT_COLUMNS, PIXEL_UNIT } from "./consts";
+import {
+  LEFTOVER_COLUMN_WIDTH,
+  COLUMN_JOIN,
+  HIT_COLUMN_KEY,
+  HIT_COLUMNS,
+  PIXEL_UNIT,
+} from "./consts";
 
-/** The widths of the columns of the hit list by column id; the code column has none. */
+/** The widths of the columns of the hit list by column id; the column that takes what is left (place) has none. */
 export const columnWidths = Object.fromEntries(
   HIT_COLUMNS.flatMap((column) =>
     column.bounds === null
@@ -14,6 +20,6 @@ export const columnWidths = Object.fromEntries(
 export function gridColumns(): string {
   return HIT_COLUMNS.map((column) => {
     const width = columnWidths[column.id];
-    return width === undefined ? CODE_COLUMN_WIDTH : `${width.size()}${PIXEL_UNIT}`;
+    return width === undefined ? LEFTOVER_COLUMN_WIDTH : `${width.size()}${PIXEL_UNIT}`;
   }).join(COLUMN_JOIN);
 }

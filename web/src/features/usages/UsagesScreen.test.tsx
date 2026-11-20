@@ -188,6 +188,16 @@ describe("UsagesScreen", () => {
     expect(Number(handle.getAttribute("aria-valuenow"))).toBeGreaterThan(before);
   });
 
+  it("has a handle on the code column, and none on the place column that takes the rest", async () => {
+    shown();
+    await screen.findByText("Hits 3");
+    const handle = screen.getByRole("separator", { name: "Resize column Code" });
+    const before = Number(handle.getAttribute("aria-valuenow"));
+    fireEvent.keyDown(handle, { key: "ArrowRight" });
+    expect(Number(handle.getAttribute("aria-valuenow"))).toBeGreaterThan(before);
+    expect(screen.queryByRole("separator", { name: "Resize column Place" })).toBeNull();
+  });
+
   it("keeps the hit list when the code cannot be read", async () => {
     shown();
     await screen.findByText("Hits 3");
