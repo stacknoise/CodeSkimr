@@ -244,20 +244,10 @@ jobs:
         run: python3 -m unittest discover -s tools/release
       - name: Crate dependency direction and module cycles
         run: python3 tools/ci/check_architecture.py
-      # Windows and macOS see two paths that differ only in case as one file (the UI build broke on
-      # Preview.tsx and preview.ts), so the repository must not contain such a pair.
+      # Windows and macOS see two paths, or two folders, that differ only in case as one entry (the
+      # UI build broke on Preview.tsx and preview.ts), so the repository must not contain such a pair.
       - name: No paths that differ only in case
-        run: |
-          git -c core.quotePath=false ls-files | python3 -c '
-          import collections, sys
-          seen = collections.defaultdict(list)
-          for line in sys.stdin.read().splitlines():
-              seen[line.casefold()].append(line)
-          clashes = [names for names in seen.values() if len(names) > 1]
-          for names in clashes:
-              print("Paths that differ only in case:", *names, file=sys.stderr)
-          sys.exit(1 if clashes else 0)
-          '
+        run: python3 tools/ci/check_case_clashes.py
       # Blueprint 12.4: every expose_secret() call in product code is on the approved list.
       - name: Approved expose_secret() call sites
         run: python3 tools/ci/check_expose_secret.py
