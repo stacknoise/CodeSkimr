@@ -190,6 +190,8 @@ launch_code_seconds = 60
 level2_poll_seconds = 2
 # How long the projects screen keeps asking, in seconds; then it stops and offers the switch again.
 level2_poll_max_seconds = 300
+# Languages whose usages the screens mark as an approximation, because their level 2 agrees with the compiler in less than 99 % of the measured places (docs/accuracy.md). Use the ids of the language packs.
+approximate_languages = ["python", "csharp", "kotlin"]
 
 # Picture of the dependency map (blueprint 15, screen 3). Layout units are pixels.
 [graph]

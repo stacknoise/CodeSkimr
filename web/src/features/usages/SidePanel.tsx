@@ -11,6 +11,7 @@ import {
 } from "./consts";
 import { Breakable } from "../../shared/ui/Breakable";
 import { accuracyNote } from "./accuracyNote";
+import { approximationNote, isApproximate } from "./approximation";
 import { shortName } from "./names";
 import type { UsagesAnswer } from "./types";
 import { panelStyle } from "../../shared/layout/panelStyle";
@@ -83,7 +84,15 @@ function Accuracy(props: { answer: UsagesAnswer }) {
   const summary = () => props.answer.summary;
   return (
     <section class={styles.accuracy}>
-      <h3>{t(I18N_KEYS.USAGES_ACCURACY_TITLE)}</h3>
+      <h3>
+        {t(I18N_KEYS.USAGES_ACCURACY_TITLE)}
+        <Show when={isApproximate(props.answer.language)}>
+          <span class={styles.approx}>{t(I18N_KEYS.USAGES_APPROX_CHIP)}</span>
+        </Show>
+      </h3>
+      <Show when={approximationNote(props.answer.language)}>
+        {(note) => <p class={styles.warning}>{note()}</p>}
+      </Show>
       <p>
         {t(I18N_KEYS.USAGES_ACCURACY, {
           verified: summary().verified,
