@@ -30,9 +30,11 @@ struct Declaration {
 #[derive(Debug, Clone, Copy)]
 pub struct Declared<'a> {
     /// The declared type, if the syntax names one.
-    pub declared_type: Option<&'a str>,
+    pub type_name: Option<&'a str>,
     /// Whether the name is a local variable or parameter.
     pub local: bool,
+    /// Byte offset of the declared name.
+    pub at: usize,
 }
 
 /// All declarations of a file with their scopes.
@@ -91,8 +93,9 @@ impl Scopes {
             .filter(|found| found.raw.name == name && found.scope.contains(&at) && accept(found))
             .min_by_key(|found| (found.scope.len(), usize::MAX - found.raw.at))
             .map(|found| Declared {
-                declared_type: found.raw.declared_type.as_deref(),
+                type_name: found.raw.declared_type.as_deref(),
                 local: found.raw.local,
+                at: found.raw.at,
             })
     }
 }

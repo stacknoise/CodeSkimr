@@ -43,6 +43,8 @@ pub struct SymbolTable {
     /// Symbols in source order; the first one is the module of the file.
     pub symbols: Vec<Symbol>,
     ranges: Vec<Range<usize>>,
+    /// Byte offset of the name of every symbol, parallel to `symbols`.
+    name_starts: Vec<usize>,
     parents: Vec<Option<usize>>,
     with_body: HashSet<SymbolId>,
     /// Blocks without a symbol whose members belong to a type: byte range and index of the owner.
@@ -102,6 +104,17 @@ impl SymbolTable {
     /// Every symbol with the byte range of its declaration, in source order.
     pub fn spans(&self) -> impl Iterator<Item = (&Symbol, &Range<usize>)> {
         self.symbols.iter().zip(&self.ranges)
+    }
+
+    /// Whether the name at byte offset `at` is the name of a function, method or constructor
+    /// symbol: a local function such as `const inner = () => ...` is a symbol, so its uses are
+    /// references, unlike those of a local variable or a parameter, which have no symbol.
+    #[must_use]
+    pub fn declares_callable(&self, at: usize) -> bool {
+        self.symbols
+            .iter()
+            .zip(&self.name_starts)
+            .any(|(symbol, start)| *start == at && CALLABLE_KINDS.contains(&symbol.kind))
     }
 
     /// The callable symbols (functions, methods, constructors) with the byte range of their
@@ -293,6 +306,8 @@ struct NewSymbol {
     name: String,
     span: Span,
     range: Range<usize>,
+    /// Byte offset of the name; a module has none and gets 0.
+    name_start: usize,
     visibility: Option<Visibility>,
     is_static: bool,
     signature: Option<String>,
@@ -304,6 +319,7 @@ struct Builder<'a, 'c> {
     ctx: &'c SymbolContext<'a>,
     symbols: Vec<Symbol>,
     ranges: Vec<Range<usize>>,
+    name_starts: Vec<usize>,
     parents: Vec<Option<usize>>,
     with_body: HashSet<SymbolId>,
     containers: Vec<(Range<usize>, usize)>,
@@ -319,6 +335,7 @@ pub fn extract(ctx: &SymbolContext<'_>, root: Node<'_>) -> Result<SymbolTable, P
         ctx,
         symbols: Vec::new(),
         ranges: Vec::new(),
+        name_starts: Vec::new(),
         parents: Vec::new(),
         with_body: HashSet::new(),
         containers: Vec::new(),
@@ -331,6 +348,7 @@ pub fn extract(ctx: &SymbolContext<'_>, root: Node<'_>) -> Result<SymbolTable, P
     Ok(SymbolTable {
         symbols: builder.symbols,
         ranges: builder.ranges,
+        name_starts: builder.name_starts,
         parents: builder.parents,
         with_body: builder.with_body,
         containers: builder.containers,
@@ -362,6 +380,7 @@ impl Builder<'_, '_> {
                 name,
                 span: span_of(root)?,
                 range: 0..root.end_byte(),
+                name_start: 0,
                 visibility: None,
                 is_static: false,
                 signature: None,
@@ -492,6 +511,7 @@ impl Builder<'_, '_> {
             qualified: prefix,
         });
         self.ranges.push(new.range);
+        self.name_starts.push(new.name_start);
         Ok(())
     }
 }
@@ -521,6 +541,7 @@ fn new_symbol(
         name,
         span,
         range: node.start_byte()..end,
+        name_start: declaration.name.start_byte(),
         visibility,
         is_static: declaration.is_static
             || words
