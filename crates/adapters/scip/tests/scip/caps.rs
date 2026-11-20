@@ -7,7 +7,7 @@ use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::SymbolKind;
 use codeskimr_scip::{Creation, ScipError, SnapshotView, decode_index, import_with_creation};
 
-use crate::common::{definition, document, file, index, scip, symbol, usage};
+use crate::common::{definition, document, file, index, run_index, scip, symbol, usage};
 use crate::mapping::{run, service_world};
 
 /// `MAX_TARGETS_PER_SYMBOL` of the crate; the test names the number on purpose.
@@ -79,20 +79,7 @@ fn limited(max_references: usize) -> Creation<'static> {
 /// Two calls of `Run` from `Go`, and the import with the given limit.
 fn import_two_calls(max_references: usize) -> Result<usize, ScipError> {
     let (files, symbols) = service_world();
-    let run_symbol = scip("ns/Svc#Run().");
-    let bytes = index(
-        "",
-        &[
-            document("src/a.cs", &[definition(&[2, 16, 19], &run_symbol)]),
-            document(
-                "src/b.cs",
-                &[
-                    usage(&[3, 12, 15], &run_symbol),
-                    usage(&[4, 12, 15], &run_symbol),
-                ],
-            ),
-        ],
-    );
+    let bytes = run_index(&[[3, 12, 15], [4, 12, 15]]);
     let decoded = decode_index(&bytes, 1 << 30).expect("decodes");
     let view = SnapshotView {
         files: &files,
