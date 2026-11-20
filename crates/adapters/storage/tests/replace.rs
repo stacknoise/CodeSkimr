@@ -7,8 +7,8 @@ use codeskimr_application::ports::{
     Level2Replacement, ProjectRepository, SnapshotData, SnapshotStore, SymbolKey, UsageIndex,
 };
 use codeskimr_domain::{
-    Direction, FileId, MetricKind, Reference, ScanMode, SnapshotId, Symbol, SymbolId, SymbolKind,
-    SymbolOrigin, UsageQuery,
+    Direction, FileId, MetricKind, Position, Reference, ScanMode, SnapshotId, Span, Symbol,
+    SymbolId, SymbolKind, SymbolOrigin, UsageQuery,
 };
 use common::{
     PROJECT, code_of, data, file, header, metric, project, reference, span, store, symbol,
@@ -418,4 +418,17 @@ fn a_later_incremental_scan_keeps_the_verified_usages_of_unchanged_files() {
     assert_eq!(verified_users_of(&store, 20, 83), [(82, true)]);
     // The reference of `beta.cs` was never checked by level 2.
     assert_eq!(verified_users_of(&store, 20, 81), [(84, false)]);
+}
+
+#[test]
+fn a_level_one_reference_that_starts_before_the_verified_one_is_answered_by_it() {
+    let store = registered();
+    // Level 1 stands from line 2, column 0; the verified reference starts later, inside it.
+    let mut inner = verified(900, 71, 82, 84);
+    let at = |line, column| Position { line, column };
+    inner.span = Span::new(at(2, 4), at(2, 8)).unwrap();
+    store
+        .replace_level2(replacement(&[71], vec![inner]))
+        .unwrap();
+    assert_eq!(stored(&store), [(92, false), (900, true)]);
 }

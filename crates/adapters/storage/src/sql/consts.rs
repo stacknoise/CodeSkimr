@@ -65,13 +65,16 @@ pub const SNAPSHOTS_WITH_FILE: &str = "SELECT DISTINCT snapshot_id FROM files WH
 /// Removes the references that level 2 verified in a file: file id.
 pub const VERIFIED_REFERENCES_OF_FILE_DELETE: &str =
     "DELETE FROM symbol_references WHERE file_id = ?1 AND verified = 1";
-/// Removes the level 1 references of a file that stand where a verified reference stands too (same
-/// start), because the verified one answers there: file id.
+/// Removes the level 1 references of a file whose range overlaps the range of a verified reference
+/// (level 1 may start earlier than the indexer, as with `a::foo()`), because the verified one
+/// answers there: file id.
 pub const SHADOWED_REFERENCES_DELETE: &str = "DELETE FROM symbol_references WHERE file_id = ?1 \
     AND verified = 0 AND EXISTS (SELECT 1 FROM symbol_references AS checked \
     WHERE checked.file_id = symbol_references.file_id AND checked.verified = 1 \
-    AND checked.start_line = symbol_references.start_line \
-    AND checked.start_column = symbol_references.start_column)";
+    AND (checked.start_line, checked.start_column) \
+        <= (symbol_references.end_line, symbol_references.end_column) \
+    AND (symbol_references.start_line, symbol_references.start_column) \
+        <= (checked.end_line, checked.end_column))";
 
 /// Adds a snapshot header: id, project, commit, created, mode, files, symbols, references.
 pub const SNAPSHOT_INSERT: &str = "INSERT INTO snapshots \
