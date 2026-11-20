@@ -182,6 +182,9 @@ pub(crate) const MAX_LOCAL_NAME_TOTAL_BYTES: usize = 16 * 1024 * 1024;
 pub(crate) const IDENTIFIER_EXTRA_CHARS: [char; 2] = ['_', '$'];
 /// Most targets one symbol gets by adopting overload heads; more is not an overload set.
 pub(crate) const MAX_OVERLOAD_TARGETS: usize = 64;
+/// Most targets one SCIP symbol keeps over all its definitions (a partial class has one per file,
+/// real ones stay far below); further definitions of the symbol add no target.
+pub(crate) const MAX_TARGETS_PER_SYMBOL: usize = 1024;
 /// Most same-named symbols of one line that are weighed up to find the one declared at a place.
 pub(crate) const MAX_LINE_CANDIDATES: usize = 16;
 /// The first segment of a path that starts at the crate root.
@@ -200,6 +203,9 @@ pub(crate) const GROUP_OPENED_DEPTH: u32 = 1;
 pub(crate) const MAX_DOCUMENTS: usize = 1_000_000;
 /// Most occurrences, over all documents, an index may hold (24 bytes each in memory).
 pub(crate) const MAX_OCCURRENCES: usize = 16_000_000;
+/// Most references one import may produce over all documents (24 bytes each in memory); more
+/// fails the import, level 1 stays.
+pub(crate) const MAX_REFERENCES_PER_IMPORT: usize = 16_000_000;
 /// Most distinct symbols an index may hold.
 pub(crate) const MAX_SYMBOLS: usize = 4_000_000;
 

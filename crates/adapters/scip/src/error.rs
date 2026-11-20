@@ -64,13 +64,19 @@ pub enum ScipError {
         /// The limit from `level2.max_created_symbols`.
         limit: usize,
     },
+    /// The index would produce more references than allowed.
+    #[error("{}", ErrorCode::ScipIndexTooLarge.description())]
+    TooManyReferences {
+        /// The limit of references per import.
+        limit: usize,
+    },
 }
 
 impl Coded for ScipError {
     fn code(&self) -> ErrorCode {
         match self {
             Self::Corrupt(_) | Self::Unreadable(_) => ErrorCode::ScipIndexInvalid,
-            Self::TooLarge { .. } => ErrorCode::ScipIndexTooLarge,
+            Self::TooLarge { .. } | Self::TooManyReferences { .. } => ErrorCode::ScipIndexTooLarge,
             Self::MappingTooLow { .. } => ErrorCode::ScipMappingTooLow,
             Self::TooManyCreatedSymbols { .. } => ErrorCode::ScipTooManyCreatedSymbols,
         }
