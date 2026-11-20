@@ -22,6 +22,10 @@ class FindClashes(unittest.TestCase):
         clashes = check.find_clashes(["x/Foo/a.rs", "x/foo/b.rs"])
         self.assertEqual(clashes, [["x/Foo", "x/foo"]])
 
+    def test_file_and_folder_of_same_name_fail(self):
+        clashes = check.find_clashes(["Foo", "foo/x.rs"])
+        self.assertEqual(clashes, [["Foo", "foo"]])
+
 
 if __name__ == "__main__":
     unittest.main()

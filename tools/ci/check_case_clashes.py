@@ -28,6 +28,7 @@ def find_clashes(paths):
 
 
 def tracked_paths():
+    """All paths git tracks, unquoted, one per entry."""
     out = subprocess.run(
         ["git", "-c", "core.quotePath=false", "ls-files"],
         check=True, capture_output=True, text=True,
@@ -36,6 +37,7 @@ def tracked_paths():
 
 
 def main():
+    """Print every clash to stderr; return the exit code."""
     clashes = find_clashes(tracked_paths())
     for names in clashes:
         print("Paths that differ only in case:", *names, file=sys.stderr)
