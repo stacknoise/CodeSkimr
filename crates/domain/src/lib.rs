@@ -66,7 +66,9 @@ pub use reference::{Confidence, Reference, ReferenceId, ReferenceKind};
 pub use reverse_index::{Direction, Reached, ReverseIndex, Usage, UsageQuery};
 pub use secret_url::{without_secrets, without_userinfo};
 pub use similar::{SimilarPair, similar_pairs};
-pub use snapshot::{CommitHash, ScanMode, Snapshot, SnapshotId, SnapshotStats, Timestamp};
+pub use snapshot::{
+    CommitHash, ScanMode, ScanOrigin, Snapshot, SnapshotId, SnapshotStats, Timestamp,
+};
 pub use span::{Position, Span};
 pub use symbol::{Symbol, SymbolId, SymbolKind, SymbolName, SymbolOrigin, Visibility};
 pub use tool::{

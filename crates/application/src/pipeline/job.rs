@@ -3,7 +3,7 @@
 //! compile, because each method exists only in the state where it is allowed.
 
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{AlertTrigger, ProjectId, ScanMode, Snapshot};
+use codeskimr_domain::{AlertTrigger, ProjectId, ScanMode, ScanOrigin, Snapshot};
 
 use crate::cancel::CancelToken;
 use crate::level2::LanguageReport;
@@ -60,6 +60,7 @@ pub struct Job<S: JobState> {
     level2: bool,
     paths: Selection,
     trigger: AlertTrigger,
+    origin: ScanOrigin,
     state: S,
 }
 
@@ -89,6 +90,12 @@ impl<S: JobState> Job<S> {
         &self.paths
     }
 
+    /// The channel that started the scan, as the code that built the job knows it (ADR 0072).
+    #[must_use]
+    pub const fn origin(&self) -> ScanOrigin {
+        self.origin
+    }
+
     /// What started the scan; the alerts it raises name it (ADR 0068). A scan of a Git project is
     /// a fetch whatever started it.
     #[must_use]
@@ -104,6 +111,7 @@ impl<S: JobState> Job<S> {
             level2: self.level2,
             paths: self.paths,
             trigger: self.trigger,
+            origin: self.origin,
             state,
         }
     }
@@ -120,6 +128,7 @@ impl Job<Queued> {
             level2: false,
             paths: Selection::default(),
             trigger: AlertTrigger::Scan,
+            origin: ScanOrigin::Terminal,
             state: Queued,
         }
     }
@@ -155,6 +164,15 @@ impl Job<Queued> {
     #[must_use]
     pub const fn from_watcher(mut self) -> Self {
         self.trigger = AlertTrigger::Watcher;
+        self.origin = ScanOrigin::Watch;
+        self
+    }
+
+    /// The same job started by the channel `origin`. The composition root names the channel, never
+    /// the request (ADR 0072, decision 2).
+    #[must_use]
+    pub const fn started_from(mut self, origin: ScanOrigin) -> Self {
+        self.origin = origin;
         self
     }
 
@@ -246,5 +264,23 @@ impl Job<Failed> {
     #[must_use]
     pub const fn code(&self) -> ErrorCode {
         self.state.code
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn job() -> Job<Queued> {
+        Job::new(ProjectId::new(1), ScanMode::Full)
+    }
+
+    #[test]
+    fn a_job_names_the_channel_that_built_it() {
+        assert_eq!(job().origin(), ScanOrigin::Terminal);
+        assert_eq!(job().from_watcher().origin(), ScanOrigin::Watch);
+        for origin in ScanOrigin::ALL {
+            assert_eq!(job().started_from(*origin).origin(), *origin);
+        }
     }
 }

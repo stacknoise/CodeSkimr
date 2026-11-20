@@ -119,6 +119,17 @@ fn status_and_revoke(url: &str) {
     );
 }
 
+/// The commands of the HTTP layer run as the browser client: with the token the revoke goes
+/// through, while the same server's MCP endpoint refuses it (`mcp_has_no_tool`, ADR 0072).
+fn http_runs_as_the_browser_client(url: &str, token: &str) {
+    let bearer = format!("Authorization: Bearer {token}");
+    let status = json!({ "project": 1 }).to_string();
+    let revoke = ("POST", "/api/v1/commands/level2.revoke");
+    let (got, answer) = call(url, revoke, &[JSON, bearer.as_str()], &status);
+    assert_eq!(got, 200, "{answer}");
+    assert!(answer.contains("\"confirmed\":false"), "{answer}");
+}
+
 /// One click opens one window and confirms nothing; the second is inside the pause.
 fn one_click_and_the_pause(url: &str, token: &str, opened: &AtomicUsize) {
     let bearer = format!("Authorization: Bearer {token}");
@@ -233,6 +244,7 @@ fn the_window_route_and_the_commands_of_the_switch_follow_the_guard_end_to_end()
         refusals(&url, &token, &seen);
         status_and_revoke(&url);
         one_click_and_the_pause(&url, &token, &seen);
+        http_runs_as_the_browser_client(&url, &token);
         mcp_has_no_tool(&url, &token);
         stop.send(()).unwrap();
     });

@@ -185,7 +185,7 @@ pub(crate) async fn serve(
     let server = Server::new(
         parts.api,
         parts.events,
-        principal::remote_client(),
+        principal::browser_client(),
         token,
         parts.ui,
     );

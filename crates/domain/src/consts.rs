@@ -107,6 +107,15 @@ pub const METRIC_CA: &str = "ca";
 /// Label of `MetricKind::Instability`.
 pub const METRIC_INSTABILITY: &str = "instability";
 
+/// Label of `ScanOrigin::Terminal`.
+pub const ORIGIN_TERMINAL: &str = "terminal";
+/// Label of `ScanOrigin::Browser`.
+pub const ORIGIN_BROWSER: &str = "browser";
+/// Label of `ScanOrigin::Watch`.
+pub const ORIGIN_WATCH: &str = "watch";
+/// Label of `ScanOrigin::Mcp`.
+pub const ORIGIN_MCP: &str = "mcp";
+
 /// Label of `ScanMode::Full`.
 pub const SCAN_FULL: &str = "full";
 /// Label of `ScanMode::Incremental`.

@@ -17,7 +17,9 @@ use codeskimr_application::ports::{
 use codeskimr_application::tools::ToolsView;
 use codeskimr_cli::{GlobalOptions, Level2Line, Level2Reason, ScanArgs, ScanSummary, WarningLine};
 use codeskimr_codes::{Coded, ErrorCode};
-use codeskimr_domain::{Permission, Principal, Project, ProjectId, ProjectSource, ScanMode};
+use codeskimr_domain::{
+    Permission, Principal, Project, ProjectId, ProjectSource, ScanMode, ScanOrigin,
+};
 use codeskimr_storage::SqliteStore;
 
 use crate::config_files;
@@ -144,7 +146,7 @@ impl Session {
         mode: ScanMode,
         on_token: impl FnOnce(CancelToken),
     ) -> Result<ScanSummary, CodedError> {
-        let job = Job::new(self.project.id, mode);
+        let job = Job::new(self.project.id, mode).started_from(ScanOrigin::Browser);
         on_token(job.cancel_token());
         self.run_job(job)
     }
