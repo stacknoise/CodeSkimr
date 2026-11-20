@@ -1,6 +1,6 @@
 # 0076 – The master switch of level 2 is the user configuration only
 
-Status: proposed (to be accepted by Anton on a decision card; issue #556)
+Status: accepted (Anton, 2026-11-20, decision card; issue #556)
 
 ## Context
 
