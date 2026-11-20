@@ -40,7 +40,7 @@ The program is `target/release/codeskimr` (`codeskimr.exe` on Windows). The buil
 codeskimr
 ```
 
-starts the server and opens the browser; the UI is part of the program (build `web/` before `cargo build`). **Keep the console window open as long as you use CodeSkimr:** the program runs in that window, and closing it ends the server. The status bar of the UI then shows "Not connected" and "Is CodeSkimr still running? Do not close the console window."; it switches back once the server answers again after you started CodeSkimr anew. The two steps also work on their own:
+starts the server and opens the browser; the UI is part of the program (build `web/` before `cargo build`). On Windows and macOS CodeSkimr moves into the system tray: the console window closes at once, and the tray icon has the menu "Open CodeSkimr", "Show log" and "Quit CodeSkimr" (the log is `codeskimr.log` in the data folder). With `codeskimr --console`, and on Linux, **keep the console window open as long as you use CodeSkimr:** the program runs in that window, and closing it ends the server. The status bar of the UI then shows "Not connected" and "Is CodeSkimr still running? Do not close the console window."; it switches back once the server answers again after you started CodeSkimr anew. The two steps also work on their own:
 
 ```
 codeskimr serve

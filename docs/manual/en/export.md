@@ -12,7 +12,7 @@ codeskimr export <project> --html <file>
 - The project must have been scanned; the **newest snapshot** is exported. Export while no scan is running, otherwise the file can mix two snapshots.
 - The command prints where the file went and how many symbols it holds. A file that already exists is replaced.
 
-The command needs the built export page of the UI: `npm run build` in `web/` makes it (`dist/export/export.html`), The page is part of the program; if there is a UI folder (`ui.dir`, see [Installation](installation.md)), the page from that folder is used instead. If it is missing in both places, the command stops with `EXP-201`.
+The command needs the built export page of the UI: `npm run build` in `web/` makes it (`dist/export/export.html`). The page is part of the program; if there is a UI folder (`ui.dir`, see [Installation](installation.md)), the page from that folder is used instead. If it is missing in both places, the command stops with `EXP-201`.
 
 ## What is in the file
 
