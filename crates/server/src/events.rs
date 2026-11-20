@@ -162,6 +162,7 @@ impl WireEvent {
         }
     }
 
+    /// The wire form of a created snapshot, with the pack load time in milliseconds.
     fn snapshot_created(created: &SnapshotCreated) -> Self {
         Self::SnapshotCreated {
             project: created.snapshot.project.get(),

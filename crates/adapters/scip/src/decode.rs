@@ -191,10 +191,12 @@ fn take_occurrence(
     Ok(())
 }
 
+/// The safe, project-relative path of a document from its raw field.
 fn document_path(bytes: &[u8]) -> Result<RelativePath, Corruption> {
     normalize_path(text(bytes, MAX_PATH_BYTES)?)
 }
 
+/// The symbol information of one `Document.symbols` field, if it names a symbol.
 fn info_of(
     bytes: &[u8],
     symbols: &mut Interner,
