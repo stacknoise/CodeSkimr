@@ -8,9 +8,11 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    CodeIndex, ProjectRepository, SourceText, SymbolKey, SymbolLabel, UsageEntry, UsageIndex,
+    CodeIndex, ProjectRepository, ScanReportStore, SourceText, SymbolKey, SymbolLabel, UsageEntry,
+    UsageIndex,
 };
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
+use codeskimr_application::report_view::ReportView;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
     Confidence, Direction, Permission, Project, ProjectId, SnapshotId, SymbolId, UsageQuery,
@@ -159,6 +161,12 @@ pub struct UsagesOut {
     pub impact: Impact,
     /// `active` if an indexer verified at least one hit of this answer, else `unavailable`.
     pub level2: &'static str,
+    /// Id of the language of the symbol's file, to find its line in the report.
+    pub language: String,
+    /// What the newest scan stored about itself (level, channel, what level 2 did per language);
+    /// `None` if no scan stored it. The accuracy card tells apart checked, checked in part,
+    /// skipped with a reason and failed from it (ADR 0072).
+    pub scan_report: Option<ReportView>,
 }
 
 /// What the usages screen reads.
@@ -167,6 +175,7 @@ pub struct UsagesPorts {
     pub(super) index: Arc<dyn CodeIndex>,
     pub(super) usages: Arc<dyn UsageIndex>,
     pub(super) text: Arc<dyn SourceText>,
+    pub(super) reports: Arc<dyn ScanReportStore>,
     pub(super) max_depth: u32,
 }
 
@@ -355,6 +364,8 @@ impl Command for UsagesQuery {
             incoming,
             outgoing,
             level2: level2_state(&summary),
+            language: detail.language.to_string(),
+            scan_report: ReportView::stored(ports.reports.as_ref(), id),
             summary,
             impact: ports.impact(&project, snapshot, detail.symbol.id)?,
         })

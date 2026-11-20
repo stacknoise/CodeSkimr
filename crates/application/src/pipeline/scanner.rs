@@ -9,6 +9,7 @@ use codeskimr_domain::{
 
 use super::flow::{Chain, Halt, Pipeline, Single, StageContext};
 use super::job::{Cancelled, Failed, Finished, Job, Queued, Running};
+use super::report_step::ReportStep;
 use super::stages::{
     AnalyzeStage, DiscoverStage, FetchStage, MeasureStage, PersistStage, Persisted, ResolveStage,
     ScanRequest,
@@ -16,14 +17,14 @@ use super::stages::{
 use crate::access;
 use crate::alerts::AlertStep;
 use crate::cancel::CancelToken;
-use crate::consts::{LOG_ALERT_STEP_FAILED, LOG_ALERTS_CHECKED};
+use crate::consts::{LOG_ALERT_STEP_FAILED, LOG_ALERTS_CHECKED, LOG_REPORT_NOT_STORED};
 use crate::error::CodedError;
 use crate::events::{Event, EventBus, ScanStopped, SnapshotCreated, StopReason};
 use crate::ids::IdSequence;
 use crate::level2::{LanguageReport, Level2Pass};
 use crate::ports::{
     Clock, FileAnalyzer, FileDiscovery, MetricsCalculator, ProjectRepository, ProjectScanner,
-    ReferenceResolver, Rescanned, SnapshotStore, SourceProvider,
+    ReferenceResolver, Rescanned, ScanWarning, SnapshotStore, SourceProvider,
 };
 
 /// Everything the scanner needs from the adapters, wired by the composition root.
@@ -75,6 +76,7 @@ pub struct Scanner {
     events: EventBus,
     level2: Option<Level2Pass>,
     alerts: Option<AlertStep>,
+    reports: Option<ReportStep>,
 }
 
 impl Scanner {
@@ -114,6 +116,7 @@ impl Scanner {
             events,
             level2: None,
             alerts: None,
+            reports: None,
         }
     }
 
@@ -131,6 +134,14 @@ impl Scanner {
     #[must_use]
     pub fn with_alerts(mut self, step: AlertStep) -> Self {
         self.alerts = Some(step);
+        self
+    }
+
+    /// Adds the report step: after each scan its level, channel and level 2 outcomes are stored
+    /// (ADR 0072). A failure to store them becomes the warning `PRJ-502`; the snapshot stays.
+    #[must_use]
+    pub fn with_reports(mut self, step: ReportStep) -> Self {
+        self.reports = Some(step);
         self
     }
 
@@ -180,7 +191,7 @@ impl Scanner {
     ) -> JobResult {
         self.created(&persisted.snapshot);
         self.check_alerts(&persisted.snapshot, trigger);
-        let (snapshot, reports) = self.second_pass(
+        let (snapshot, level2) = self.second_pass(
             principal,
             persisted.clone(),
             (job.token(), job.level2_wanted()),
@@ -188,24 +199,44 @@ impl Scanner {
         if snapshot != persisted.snapshot {
             self.created(&snapshot);
         }
-        JobResult::Finished(job.finish(snapshot, reports, persisted.warnings, persisted.paths))
+        let mut warnings = persisted.warnings;
+        warnings.extend(self.store_report(&snapshot, job.origin(), level2.as_deref()));
+        JobResult::Finished(job.finish(
+            snapshot,
+            level2.unwrap_or_default(),
+            warnings,
+            persisted.paths,
+        ))
     }
 
     /// Level 2 runs after level 1 is stored, so a cancel or a failure of it leaves level 1 as it
-    /// is. Without the pass the snapshot is final.
+    /// is. Without the pass the snapshot is final and there is no level 2 report (`None`).
     fn second_pass(
         &self,
         principal: Principal,
         persisted: Persisted,
         (cancel, wanted): (&CancelToken, bool),
-    ) -> (Snapshot, Vec<LanguageReport>) {
+    ) -> (Snapshot, Option<Vec<LanguageReport>>) {
         match &self.level2 {
             Some(pass) if wanted => {
                 let done = pass.run(&principal, &persisted.snapshot, &persisted.root, cancel);
-                (done.snapshot, done.reports)
+                (done.snapshot, Some(done.reports))
             }
-            _ => (persisted.snapshot, Vec::new()),
+            _ => (persisted.snapshot, None),
         }
+    }
+
+    /// Stores the report of the scan. A failure is a warning of the scan, never the end of it.
+    fn store_report(
+        &self,
+        snapshot: &Snapshot,
+        origin: ScanOrigin,
+        level2: Option<&[LanguageReport]>,
+    ) -> Option<ScanWarning> {
+        let step = self.reports.as_ref()?;
+        let code = step.store(snapshot, origin, level2).err()?;
+        tracing::warn!(event = LOG_REPORT_NOT_STORED, code = code.id());
+        Some(ScanWarning { code, count: 1 })
     }
 
     /// Runs the alert step on the snapshot that was just stored. A failure is logged and goes no

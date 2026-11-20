@@ -9,7 +9,7 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::ports::{
     AnnotationStore, CodeIndex, IndexRunner, ProjectCatalog, ProjectRepository, ProjectScanner,
-    SimilarityIndex, UsageIndex,
+    ScanReportStore, SimilarityIndex, UsageIndex,
 };
 use codeskimr_cli::{GlobalOptions, McpArgs};
 use codeskimr_codes::ErrorCode;
@@ -198,6 +198,7 @@ fn build_ports(
     let catalog: Arc<dyn ProjectCatalog> = store.clone();
     let tool_check = tool_checker(&store, (locations, runner))?;
     let annotations: Arc<dyn AnnotationStore> = store.clone();
+    let reports: Arc<dyn ScanReportStore> = store.clone();
     let index: Arc<dyn CodeIndex> = store;
     Ok(Ports {
         projects,
@@ -214,5 +215,6 @@ fn build_ports(
         keys: Arc::new(FolderKeys),
         key_sources: config.keys.clone(),
         annotations,
+        reports,
     })
 }

@@ -6,9 +6,10 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
-    LanguageShare, ProjectCatalog, ProjectOverview, ProjectToolCheck, ScanWarning,
+    LanguageShare, ProjectCatalog, ProjectOverview, ProjectToolCheck, ScanReportStore, ScanWarning,
 };
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
+use codeskimr_application::report_view::ReportView;
 use codeskimr_application::tools::ToolsView;
 use codeskimr_cli::ScanSummary;
 use codeskimr_codes::Coded;
@@ -98,6 +99,9 @@ pub struct ProjectRow {
     pub running: bool,
     /// What the last check of the tools found; `None` if the project was never checked.
     pub tools: Option<ToolsView>,
+    /// What the newest scan says about itself: level, channel and what level 2 did per language;
+    /// `None` if no scan has stored a report yet.
+    pub report: Option<ReportView>,
 }
 
 fn scan_row(snapshot: &Snapshot) -> ScanRow {
@@ -133,7 +137,7 @@ fn warning_row(warning: &ScanWarning) -> WarningRow {
 fn project_row(
     overview: &ProjectOverview,
     running: bool,
-    tools: Option<ToolsView>,
+    (tools, report): (Option<ToolsView>, Option<ReportView>),
     context: &Context,
 ) -> ProjectRow {
     let (kind, location, branch) = match &overview.project.source {
@@ -164,6 +168,7 @@ fn project_row(
         warnings: overview.warnings.iter().map(warning_row).collect(),
         running,
         tools,
+        report,
     }
 }
 
@@ -171,6 +176,7 @@ fn project_row(
 pub struct ListProjects {
     pub(super) catalog: Arc<dyn ProjectCatalog>,
     pub(super) tools: Arc<dyn ProjectToolCheck>,
+    pub(super) reports: Arc<dyn ScanReportStore>,
     pub(super) context: Arc<Context>,
 }
 
@@ -197,7 +203,10 @@ impl Command for ListProjects {
                 project_row(
                     overview,
                     self.context.running.is_running(id),
-                    self.stored_tools(id),
+                    (
+                        self.stored_tools(id),
+                        ReportView::stored(self.reports.as_ref(), id),
+                    ),
                     &self.context,
                 )
             })

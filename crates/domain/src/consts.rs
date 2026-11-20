@@ -107,6 +107,32 @@ pub const METRIC_CA: &str = "ca";
 /// Label of `MetricKind::Instability`.
 pub const METRIC_INSTABILITY: &str = "instability";
 
+/// Label of `ScanLevel::One`.
+pub const LEVEL_ONE: &str = "1";
+/// Label of `ScanLevel::Two`.
+pub const LEVEL_TWO: &str = "2";
+
+/// Label of `SkipReason::NotPermitted`.
+pub const SKIP_NOT_PERMITTED: &str = "not_permitted";
+/// Label of `SkipReason::NotConfirmed`.
+pub const SKIP_NOT_CONFIRMED: &str = "not_confirmed";
+/// Label of `SkipReason::ToolsUnavailable`.
+pub const SKIP_TOOLS_UNAVAILABLE: &str = "tools_unavailable";
+/// Label of `SkipReason::Stale`.
+pub const SKIP_STALE: &str = "stale";
+/// Label of `SkipReason::Cancelled`.
+pub const SKIP_CANCELLED: &str = "cancelled";
+/// Label of `OutcomeKind::Checked`.
+pub const OUTCOME_CHECKED: &str = "checked";
+/// Label of `OutcomeKind::Skipped`.
+pub const OUTCOME_SKIPPED: &str = "skipped";
+/// Label of `OutcomeKind::Failed`.
+pub const OUTCOME_FAILED: &str = "failed";
+/// Label of `SkipReason::Busy`.
+pub const SKIP_BUSY: &str = "busy";
+/// Label of `SkipReason::Paused`.
+pub const SKIP_PAUSED: &str = "paused";
+
 /// Label of `ScanOrigin::Terminal`.
 pub const ORIGIN_TERMINAL: &str = "terminal";
 /// Label of `ScanOrigin::Browser`.

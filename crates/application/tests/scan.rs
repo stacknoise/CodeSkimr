@@ -15,14 +15,14 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::events::{Event, EventBus, StopReason};
 use codeskimr_application::ids::IdSequence;
 use codeskimr_application::level2::{Level2Pass, confirm};
-use codeskimr_application::pipeline::{Job, JobResult, Scanner, ScannerPorts};
+use codeskimr_application::pipeline::{Job, JobResult, ReportStep, Scanner, ScannerPorts};
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, ConsentStore, DiscoveredFile, FetchedSource, FileAnalyzer,
     FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob, IndexRunner,
     IndexerSpec, IndexerStatus, Level2Replacement, MetricsCalculator, PathsReport,
     PendingReference, PreviousIndex, PreviousState, ProjectRepository, ProjectScanner, Receiver,
-    ReferenceImporter, ReferenceResolver, SnapshotData, SnapshotStore, SourceProvider, StoredNames,
-    SymbolFingerprints, ToolSpec, ToolVersion,
+    ReferenceImporter, ReferenceResolver, ReportWrite, ScanReport, ScanReportStore, SnapshotData,
+    SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints, ToolSpec, ToolVersion,
 };
 use codeskimr_application::stage::StageKind;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -30,9 +30,9 @@ use codeskimr_domain::{
     AlertTrigger, BranchName, CommitHash, Confidence, ContentHash, FileId, Fingerprint,
     Fingerprints, FolderPath, LanguageId, Loc, Metric, MetricKind, MetricValue, ModelError,
     Permission, PermissionSet, Position, Principal, Project, ProjectId, ProjectName, ProjectSource,
-    QualifiedName, Reference, ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot,
-    SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId, SymbolKind, SymbolName,
-    SymbolOrigin, Timestamp,
+    QualifiedName, Reference, ReferenceId, ReferenceKind, RelativePath, ScanLevel, ScanMode,
+    ScanOrigin, Snapshot, SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId, SymbolKind,
+    SymbolName, SymbolOrigin, Timestamp,
 };
 use common::InMemoryConsent;
 use fakes::{MemoryAnnotations, MemoryStates, step, symbol};
@@ -1622,4 +1622,83 @@ fn the_alert_step_runs_after_the_snapshot_is_stored() {
     scan_once(&scanner, Job::new(ProjectId::new(7), ScanMode::Full));
     assert_eq!(world.persisted_count(), 1);
     assert_eq!(annotations.calls_named("refresh_targets"), 1);
+}
+
+/// Keeps what the scanner stores, or refuses to.
+#[derive(Default)]
+struct MemoryReports {
+    writes: Mutex<Vec<ReportWrite>>,
+    refuse: bool,
+}
+
+impl ScanReportStore for MemoryReports {
+    fn store_report(&self, write: &ReportWrite) -> Result<(), CodedError> {
+        if self.refuse {
+            return Err(CodedError::new(ErrorCode::DatabaseFailed));
+        }
+        self.writes
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .push(write.clone());
+        Ok(())
+    }
+
+    fn report(&self, _: ProjectId) -> Result<Option<ScanReport>, CodedError> {
+        Ok(None)
+    }
+}
+
+fn run_with_reports(
+    reports: &Arc<MemoryReports>,
+    job: Job<codeskimr_application::pipeline::Queued>,
+) -> JobResult {
+    let world = Arc::new(World::default());
+    scanner(&world, &EventBus::new())
+        .with_reports(ReportStep::new(reports.clone(), world.clone()))
+        .run(&Principal::local_owner(), job)
+}
+
+#[test]
+fn a_scan_stores_its_channel_and_level_and_a_scan_without_level_2_leaves_the_second_report_alone() {
+    let reports = Arc::new(MemoryReports::default());
+    let job = Job::new(ProjectId::new(7), ScanMode::Full).started_from(ScanOrigin::Mcp);
+    assert!(matches!(
+        run_with_reports(&reports, job),
+        JobResult::Finished(_)
+    ));
+    let writes = reports.writes.lock().unwrap();
+    assert_eq!(writes.len(), 1);
+    assert_eq!(writes[0].last.origin, ScanOrigin::Mcp);
+    assert_eq!(writes[0].last.level, ScanLevel::One);
+    assert_eq!(writes[0].level2, None);
+}
+
+#[test]
+fn a_report_that_cannot_be_stored_is_a_warning_and_the_snapshot_stays() {
+    let reports = Arc::new(MemoryReports {
+        refuse: true,
+        ..MemoryReports::default()
+    });
+    let job = Job::new(ProjectId::new(7), ScanMode::Full);
+    let JobResult::Finished(job) = run_with_reports(&reports, job) else {
+        panic!("the scan must finish");
+    };
+    let codes: Vec<_> = job.warnings().iter().map(|warning| warning.code).collect();
+    assert_eq!(codes, [ErrorCode::ScanReportNotStored]);
+    assert_eq!(job.snapshot().stats.files, 2);
+}
+
+#[test]
+fn without_a_wired_second_pass_no_level_2_report_is_stored() {
+    let reports = Arc::new(MemoryReports::default());
+    let world = Arc::new(World::default());
+    let scanner = scanner(&world, &EventBus::new())
+        .with_reports(ReportStep::new(reports.clone(), world.clone()));
+    let job = Job::new(ProjectId::new(7), ScanMode::Full).with_level2();
+    // No pass is wired, so nothing runs and nothing is stored for level 2.
+    assert!(matches!(
+        scanner.run(&Principal::local_owner(), job),
+        JobResult::Finished(_)
+    ));
+    assert_eq!(reports.writes.lock().unwrap()[0].level2, None);
 }

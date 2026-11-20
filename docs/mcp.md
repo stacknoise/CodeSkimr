@@ -32,7 +32,7 @@ All of them are read-only (`readOnlyHint`) except `rescan`, which is announced w
 | `list_annotations` | `symbol?`, `kind?` (`critical`, `note`, `task`), `status?` (`open`, `in_progress`, `done`), `project?`, `limit?`, `offset?` | `annotations` (id, `kind`, `symbol_kind`, `symbol`, `parameters`, `title`, `text`, `status`, `due`, `assignee`, `without_target`; empty fields are left out), `total`, `offset`, `next_offset` (absent on the last page) |
 | `get_alerts` | `state?` (`open`, the default, or `dismissed`), `kind?` (`changed`, `removed`, `orphaned`), `project?`, `limit?`, `offset?` | `alerts` (id, `kind`, `state`, `symbol_kind`, `symbol`, `reason`, `changes`, `references`, `closest`, `count`, `snapshot`, `first_seen`, `last_seen`), `open` (open alerts whatever the filter says), `total`, `offset`, `next_offset` |
 | `rescan` | `project?`, `paths?` | `snapshot` (the new one), `mode` (`incremental`), `files`, `symbols`, `references`, `duration_ms`, `tools` (the tool check of the new snapshot), `paths` (the paths the scan was restricted to), `unmatched_paths`, `paths_ignored` |
-| `get_project` | `project?` | `project`, `name`, `snapshot`, `languages` (`language`, `files`, `loc`, `level2_ready`), `tools_checked_at`, `tools` (`tool`, `role`, `state`, `languages`, `found`, `required`, `purpose`, `install`); see `docs/tools-check.md` |
+| `get_project` | `project?` | `project`, `name`, `snapshot`, `languages` (`language`, `files`, `loc`, `level2_ready`), `tools_checked_at`, `tools` (`tool`, `role`, `state`, `languages`, `found`, `required`, `purpose`, `install`), `scan_report` (`last_scan` with `at`, `level` and `origin`; `level2` with `at`, `origin` and `languages` of `language`, `outcome`, `files`, `stale`, `reason`, `code`; `null` before a scan stored it); see `docs/tools-check.md` |
 
 ## Usages and impact
 
@@ -92,4 +92,4 @@ Tool descriptions and the server instructions are written for code agents and li
 - Paths from arguments (blueprint S-05): `check_conventions` takes paths, but only to select among the files of the project's own file list; a path is never opened, so `..` or an absolute path selects nothing. `rescan` takes no paths, so there is nothing to canonicalise.
 - A qualified name shared by several symbols (overloads) answers with the lowest symbol id; use the id from `search_symbols` to be exact.
 
-- `get_project` needs `read`. It runs the tool check on every call (a few short processes, `docs/tools-check.md`), stores the result and answers from it. `purpose` and `install` are in English, like all MCP texts.
+- `get_project` needs `read`. `scan_report` is read only and holds ids, counts, reason keys and error codes (ADR 0072); the reason `tools_unavailable` is left out, because the tool report next to it says which tool is missing. It runs the tool check on every call (a few short processes, `docs/tools-check.md`), stores the result and answers from it. `purpose` and `install` are in English, like all MCP texts.

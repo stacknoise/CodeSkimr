@@ -234,6 +234,14 @@ description = "As many scans run at the same time as the server allows; try agai
 since = "0.1.0"
 
 [[codes]]
+id = "PRJ-502"
+name = "scan_report_not_stored"
+severity = "warning"
+retryable = false
+description = "The report of the scan (its level and what level 2 did per language) could not be stored; the scan and its snapshot are stored."
+since = "0.9.0"
+
+[[codes]]
 id = "SRC-201"
 name = "source_path_not_found"
 severity = "error"

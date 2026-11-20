@@ -15,6 +15,7 @@ use codeskimr_application::events::EventBus;
 use codeskimr_application::ids::IdSequence;
 use codeskimr_application::level2::Level2Pass;
 use codeskimr_application::metrics::StandardMetrics;
+use codeskimr_application::pipeline::ReportStep;
 use codeskimr_application::pipeline::{Scanner, ScannerPorts};
 use codeskimr_application::ports::{AuthError, Credential, CredentialStore};
 use codeskimr_application::ports::{
@@ -153,7 +154,8 @@ pub fn scanner_over(
     };
     Ok(Scanner::new(ports, &ids, events.clone())
         .with_level2(pass)
-        .with_alerts(alert_step(store, events)))
+        .with_alerts(alert_step(store, events))
+        .with_reports(ReportStep::new(store.clone(), Arc::new(SystemClock))))
 }
 
 /// The alert step of ADR 0068 over the store; it publishes on `events`.

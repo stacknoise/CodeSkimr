@@ -28,6 +28,7 @@ mod read_models;
 mod references;
 mod removal;
 mod replace;
+mod reports;
 mod similarity;
 mod snapshots;
 mod sql;

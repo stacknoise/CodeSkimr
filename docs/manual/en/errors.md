@@ -41,6 +41,7 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | `PRJ-302` | a scan of this project is already running (also when removing the project) | wait for it or cancel it |
 | `PRJ-303` | the scan was cancelled, no new snapshot exists | start it again if needed |
 | `PRJ-501` | as many scans run at the same time as allowed (4) | wait until one has ended |
+| `PRJ-502` | the report of a scan (its level) could not be stored; the scan itself is stored | scan again; check the free space of the data folder |
 | `SRC-201` | a source folder, a source file or a language pack folder does not exist or cannot be read | check the path and rights |
 | `SRC-401`, `SEC-*` | login to a Git remote or the keystore failed | see [Sources and credentials](sources-and-credentials.md#problems) |
 | `NET-601` | the browser sign-in of `credential login` did not finish | run it again |

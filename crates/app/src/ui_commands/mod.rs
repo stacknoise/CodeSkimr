@@ -400,6 +400,7 @@ fn register_projects(
         ListProjects {
             catalog: catalog.clone(),
             tools: Arc::clone(&context.tools),
+            reports: catalog.clone(),
             context: Arc::clone(context),
         },
     )?;
@@ -543,6 +544,7 @@ fn usages_ports(store: &Arc<SqliteStore>, max_depth: u32) -> Arc<UsagesPorts> {
         index: store.clone(),
         usages: store.clone(),
         text: Arc::new(FolderText),
+        reports: store.clone(),
         max_depth,
     })
 }

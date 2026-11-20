@@ -19,6 +19,7 @@ error-PRJ-301 = A project with the same source is already registered.
 error-PRJ-302 = A scan for this project is already running.
 error-PRJ-303 = The scan was cancelled. No snapshot was written.
 error-PRJ-501 = Too many scans are running at the moment. Try again when one has ended.
+error-PRJ-502 = The report of the scan could not be stored. The scan itself is stored; the screens may not show its level until the next scan.
 error-SRC-201 = A source folder, a source file or a language pack folder does not exist or cannot be read.
 error-SRC-202 = The requested branch does not exist in the remote repository.
 error-SRC-401 = The remote repository requires authentication and no usable credential is available.

@@ -287,6 +287,7 @@ codeskimr/
 | `LayerEdge` | aggregated dependency between namespaces / layers | from, to, count, violates layering, part of cycle |
 | `Annotation` | user mark, note or task on a symbol, not part of a snapshot (ADR 0068) | id, project, target, kind (`critical` \| `note` \| `task`), text, status, due, assignee, author |
 | `Alert` | message that a system-critical symbol changed, was removed or lost its target (ADR 0068) | id, annotation, kind, counter, snapshot, commit (if Git), state (`open` \| `dismissed`) |
+| `ScanReport` | what the newest scan of a project says about itself, not part of a snapshot (ADR 0072) | project, scanned at, level (`1` \| `2`), origin (`terminal` \| `browser` \| `watch` \| `mcp`); with it the newest second pass: run at, origin and per language the outcome (`checked` \| `skipped` \| `failed`), file counts, reason key or error code; no path, tool name or output |
 
 **Symbol kinds** are language-neutral: `module`, `namespace`, `class`, `interface`, `trait`, `record`, `struct`, `enum`, `union`, `function`, `method`, `constructor`, `property`, `field`, `constant`, `event`, `enum_member`, `parameter`, `type_alias`. Language packs map their syntax onto these kinds. Free functions belong to a `module` symbol, one per file.
 
@@ -1133,6 +1134,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | PRJ-302 | `snapshot_in_progress` | A scan for this project is already running. |
 | PRJ-303 | `scan_cancelled` | The scan was cancelled by the user; no snapshot was written. (info) |
 | PRJ-501 | `too_many_scans` | As many scans run at the same time as the server allows; try again when one has ended. |
+| PRJ-502 | `scan_report_not_stored` | The report of the scan (its level and what level 2 did per language) could not be stored; the scan and its snapshot are stored. |
 | SRC-201 | `source_path_not_found` | A source folder, a source file or a language pack folder does not exist or cannot be read. |
 | SRC-202 | `git_branch_not_found` | The requested branch does not exist on the remote. |
 | SRC-401 | `git_auth_required` | The remote requires authentication and no usable credential is available. |

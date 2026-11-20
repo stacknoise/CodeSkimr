@@ -6,6 +6,7 @@
 mod carry;
 mod flow;
 mod job;
+mod report_step;
 mod scanner;
 mod shape;
 mod stages;
@@ -15,6 +16,7 @@ pub use flow::{
     Chain, Flow, Halt, Interruption, Pipeline, PipelineError, Single, Stage, StageContext,
 };
 pub use job::{Cancelled, Failed, Finished, Job, JobState, Queued, Running};
+pub use report_step::ReportStep;
 pub use scanner::{JobResult, Scanner, ScannerPorts};
 pub use stages::{
     Analyzed, Discovered, Measured, Persisted, Resolved, ScanRequest, ScanRun, analyze_workers,

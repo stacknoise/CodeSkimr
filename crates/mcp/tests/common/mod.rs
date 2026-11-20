@@ -12,20 +12,21 @@ use codeskimr_application::ports::{
     AnnotationFilter, AnnotationStore, AnnotationUpdate, Clock, CodeIndex, CodeSpan,
     DependencyEdge, DependencyPage, DependencyQuery, DiscoveredFile, Excerpt, FileAnalyzer,
     FileDiscovery, FileFacts, FileHit, ImpactPage, ImpactedSymbol, KeyEntry, KeyKind, KeySearch,
-    LanguageShare, MemberRef, PathsReport, PreviousIndex, ProjectCatalog, ProjectKeys,
-    ProjectOverview, ProjectRepository, ProjectScanner, ProjectToolCheck, Rescanned, SearchHit,
-    SimilarHit, SimilarQuery, SimilarityIndex, SnippetFingerprinter, SourceText, SymbolDetail,
-    SymbolKey, SymbolLabel, TypeFocus, UsageEntry, UsageIndex, UsagePage,
+    LanguageLine, LanguageOutcome, LanguageShare, LastScan, Level2Report, MemberRef, PathsReport,
+    PreviousIndex, ProjectCatalog, ProjectKeys, ProjectOverview, ProjectRepository, ProjectScanner,
+    ProjectToolCheck, ReportWrite, Rescanned, ScanReport, ScanReportStore, SearchHit, SimilarHit,
+    SimilarQuery, SimilarityIndex, SnippetFingerprinter, SourceText, SymbolDetail, SymbolKey,
+    SymbolLabel, TypeFocus, UsageEntry, UsageIndex, UsagePage,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
     Alert, Annotation, AnnotationId, BodyCounts, Confidence, ContentHash, Direction, FileId,
     Fingerprint, Fingerprints, FolderPath, LanguageId, Layer, LayerEdge, LayerName, Loc, Metric,
     MetricKind, MetricValue, NamespaceGraph, Position, Principal, Project, ProjectId, ProjectName,
-    ProjectSource, QualifiedName, Reference, ReferenceId, ReferenceKind, RelativePath, ScanMode,
-    Snapshot, SnapshotId, SnapshotStats, SourceFile, Span, Symbol, SymbolBaseline, SymbolCounts,
-    SymbolId, SymbolKind, SymbolName, Timestamp, ToolFinding, ToolReport, ToolRole, ToolState,
-    UsageQuery, Visibility,
+    ProjectSource, QualifiedName, Reference, ReferenceId, ReferenceKind, RelativePath, ScanLevel,
+    ScanMode, ScanOrigin, SkipReason, Snapshot, SnapshotId, SnapshotStats, SourceFile, Span,
+    Symbol, SymbolBaseline, SymbolCounts, SymbolId, SymbolKind, SymbolName, Timestamp, ToolFinding,
+    ToolReport, ToolRole, ToolState, UsageQuery, Visibility,
 };
 use codeskimr_i18n::Messages;
 use codeskimr_mcp::{Ports, Tools};
@@ -650,6 +651,7 @@ fn assemble(
             keys: Arc::new(FakeKeys),
             key_sources: key_sources(),
             annotations: Arc::new(FakeAnnotations::default()),
+            reports: Arc::new(FakeReports),
         },
         limits(),
         PROJECT,
@@ -682,6 +684,39 @@ impl ProjectCatalog for FakeCatalog {
                 parse_micros: None,
             })
             .collect())
+    }
+}
+
+/// A stored report of a browser scan at level 2: C# checked in part, Go without its tools, and
+/// Rust not confirmed.
+pub struct FakeReports;
+
+impl ScanReportStore for FakeReports {
+    fn store_report(&self, _write: &ReportWrite) -> Result<(), CodedError> {
+        Err(CodedError::new(ErrorCode::DatabaseFailed))
+    }
+
+    fn report(&self, _project: ProjectId) -> Result<Option<ScanReport>, CodedError> {
+        let line = |language: &str, outcome| LanguageLine {
+            language: LanguageId::new(language).unwrap(),
+            outcome,
+        };
+        Ok(Some(ScanReport {
+            last: LastScan {
+                at: Timestamp(500),
+                level: ScanLevel::Two,
+                origin: ScanOrigin::Browser,
+            },
+            level2: Some(Level2Report {
+                at: Timestamp(510),
+                origin: ScanOrigin::Browser,
+                languages: vec![
+                    line("csharp", LanguageOutcome::Checked { files: 7, stale: 2 }),
+                    line("go", LanguageOutcome::Skipped(SkipReason::ToolsUnavailable)),
+                    line("rust", LanguageOutcome::Skipped(SkipReason::NotConfirmed)),
+                ],
+            }),
+        }))
     }
 }
 
@@ -889,6 +924,7 @@ pub fn tools_annotated(annotations: FakeAnnotations) -> Tools {
             keys: Arc::new(FakeKeys),
             key_sources: key_sources(),
             annotations: Arc::new(annotations),
+            reports: Arc::new(FakeReports),
         },
         limits(),
         PROJECT,
