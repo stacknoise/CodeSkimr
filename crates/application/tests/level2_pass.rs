@@ -17,15 +17,16 @@ mod cases {
     };
     use codeskimr_application::ports::{
         ConsentStore, DiscoveredFile, FileDiscovery, ImportRequest, Imported, IndexArtifact,
-        IndexJob, IndexRunner, IndexerSpec, IndexerStatus, Level2Replacement, PreviousIndex,
-        ProjectRepository, ReferenceImporter, SnapshotData, SnapshotStore, ToolSpec, ToolVersion,
+        IndexJob, IndexRunner, IndexerSpec, IndexerStatus, Level2Replacement, PendingReference,
+        PreviousIndex, ProjectRepository, ReferenceImporter, SnapshotData, SnapshotStore,
+        StoredNames, ToolSpec, ToolVersion,
     };
     use codeskimr_codes::ErrorCode;
     use codeskimr_domain::{
-        ContentHash, FileId, FolderPath, LanguageId, Loc, Permission, PermissionSet, Principal,
-        Project, ProjectId, ProjectName, ProjectSource, Reference, ReferenceId, ReferenceKind,
-        RelativePath, ScanMode, Snapshot, SnapshotId, SnapshotStats, SourceFile, SymbolId,
-        Timestamp,
+        ContentHash, FileId, FolderPath, LanguageId, Loc, Permission, PermissionSet, Position,
+        Principal, Project, ProjectId, ProjectName, ProjectSource, QualifiedName, Reference,
+        ReferenceId, ReferenceKind, RelativePath, ScanMode, Snapshot, SnapshotId, SnapshotStats,
+        SourceFile, Span, SymbolId, Timestamp,
     };
 
     const PROJECT: ProjectId = ProjectId::new(7);
@@ -89,6 +90,9 @@ mod cases {
         /// The paths the pass asked to read again, one list per question.
         asked: Mutex<Vec<Vec<String>>>,
         files_fail: bool,
+        /// The names of imports the store holds, and the failure it reports instead.
+        import_names: Vec<PendingReference>,
+        names_fail: Option<ErrorCode>,
     }
 
     impl ProjectRepository for World {
@@ -110,6 +114,17 @@ mod cases {
 
         fn latest_index(&self, _: ProjectId) -> Result<PreviousIndex, CodedError> {
             Ok(PreviousIndex::default())
+        }
+
+        fn stored_names(
+            &self,
+            _: SnapshotId,
+            _: StoredNames<'_>,
+        ) -> Result<Vec<PendingReference>, CodedError> {
+            self.names_fail.map_or_else(
+                || Ok(self.import_names.clone()),
+                |code| Err(CodedError::new(code)),
+            )
         }
     }
 
@@ -193,6 +208,8 @@ mod cases {
     /// An importer that remembers which files it was given and covers all of them.
     struct Importer {
         seen: Mutex<Vec<Vec<String>>>,
+        /// The import sites of the requests.
+        sites: Mutex<Vec<(FileId, Span)>>,
         fails: Option<ErrorCode>,
         cancels: Option<CancelToken>,
         /// The ids (of the importer's own numbering) of the symbols the import creates, each the
@@ -222,18 +239,28 @@ mod cases {
         }
     }
 
-    impl ReferenceImporter for Importer {
-        fn import(&self, request: &ImportRequest<'_>) -> Result<Imported, CodedError> {
+    impl Importer {
+        /// Remembers the files and the import sites of a request.
+        fn remember(&self, request: &ImportRequest<'_>) {
+            let paths = request
+                .files
+                .iter()
+                .map(|f| f.path.as_str().to_owned())
+                .collect();
             self.seen
                 .lock()
                 .unwrap_or_else(PoisonError::into_inner)
-                .push(
-                    request
-                        .files
-                        .iter()
-                        .map(|f| f.path.as_str().to_owned())
-                        .collect(),
-                );
+                .push(paths);
+            self.sites
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .extend_from_slice(request.import_sites);
+        }
+    }
+
+    impl ReferenceImporter for Importer {
+        fn import(&self, request: &ImportRequest<'_>) -> Result<Imported, CodedError> {
+            self.remember(request);
             if let Some(token) = &self.cancels {
                 token.cancel();
             }
@@ -294,6 +321,8 @@ mod cases {
         files_fail: bool,
         confirmed: bool,
         creates: Vec<u64>,
+        import_names: Vec<PendingReference>,
+        names_fail: Option<ErrorCode>,
     }
 
     impl Default for Setup {
@@ -309,6 +338,8 @@ mod cases {
                 files_fail: false,
                 confirmed: true,
                 creates: Vec::new(),
+                import_names: Vec::new(),
+                names_fail: None,
             }
         }
     }
@@ -319,6 +350,7 @@ mod cases {
         imports: Vec<Vec<String>>,
         replaced: Vec<Level2Replacement>,
         asked: Vec<Vec<String>>,
+        sites: Vec<(FileId, Span)>,
     }
 
     /// The ports of a case, kept to read what the pass did to them.
@@ -344,6 +376,8 @@ mod cases {
                 replaced: Mutex::default(),
                 asked: Mutex::default(),
                 files_fail: setup.files_fail,
+                import_names: std::mem::take(&mut setup.import_names),
+                names_fail: setup.names_fail,
             }),
             runner: Arc::new(Runner {
                 runs: Mutex::default(),
@@ -352,6 +386,7 @@ mod cases {
             }),
             importer: Arc::new(Importer {
                 seen: Mutex::default(),
+                sites: Mutex::default(),
                 fails: setup.import_fails,
                 cancels: setup.cancel_in_import.then(|| cancel.clone()),
                 creates: setup.creates.clone(),
@@ -392,12 +427,14 @@ mod cases {
         let imports = fakes.importer.seen.lock().unwrap().clone();
         let replaced = fakes.world.replaced.lock().unwrap().clone();
         let asked = fakes.world.asked.lock().unwrap().clone();
+        let sites = fakes.importer.sites.lock().unwrap().clone();
         Outcome {
             result,
             runs,
             imports,
             replaced,
             asked,
+            sites,
         }
     }
 
@@ -621,6 +658,45 @@ mod cases {
             &import_failed,
             &Skipped::Failed(ErrorCode::ScipMappingTooLow),
         );
+    }
+
+    fn import_name(file: u64) -> PendingReference {
+        let span = Span::new(
+            Position { line: 0, column: 7 },
+            Position {
+                line: 0,
+                column: 12,
+            },
+        )
+        .unwrap();
+        PendingReference {
+            from: SymbolId::new(1),
+            file: FileId::new(file),
+            span,
+            kind: ReferenceKind::Import,
+            target: QualifiedName::new("a.b").unwrap(),
+            receiver: None,
+        }
+    }
+
+    #[test]
+    fn the_import_gets_the_places_of_the_import_names_of_level_one() {
+        let outcome = run(Setup {
+            import_names: vec![import_name(1)],
+            ..Setup::default()
+        });
+        assert_eq!(outcome.sites, [(FileId::new(1), import_name(1).span)]);
+        assert_eq!(outcome.replaced.len(), 1);
+    }
+
+    #[test]
+    fn a_store_that_cannot_give_the_import_names_keeps_level_one_and_names_the_code() {
+        let outcome = run(Setup {
+            names_fail: Some(ErrorCode::ProjectNotFound),
+            ..Setup::default()
+        });
+        assert_level_one_stays(&outcome, &Skipped::Failed(ErrorCode::ProjectNotFound));
+        assert_eq!(outcome.sites, Vec::<(FileId, Span)>::new());
     }
 
     #[test]
