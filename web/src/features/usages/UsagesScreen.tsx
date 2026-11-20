@@ -139,6 +139,7 @@ function Body(props: { answer: UsagesAnswer }) {
         <GraphView
           answer={props.answer}
           picked={previewAnswer()?.symbol.id ?? null}
+          marked={selectedPlace()?.id ?? null}
           onPick={pick}
           onOpen={(card) => !card.focus && moveUsages(card.place.id)}
         />

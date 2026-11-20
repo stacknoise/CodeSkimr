@@ -21,7 +21,7 @@ Links eine Spalte je Schritt der Aufrufer, in der Mitte das Symbol im Fokus (gel
 
 ## Die Trefferliste
 
-Eine Zeile je Stelle: Art (Aufruf, Lesen, Schreiben, Test usw.), das aufrufende Symbol, Datei und Zeile und die Verlässlichkeit. `F8` und `Umschalt+F8` springen durch die Treffer, `Enter` (oder Doppelklick) zeigt den gewählten Treffer im Explorer, oder das Symbol im Fokus, wenn keiner gewählt ist. Die Liste zeigt Datei und Zeile, nicht den Code selbst.
+Eine Zeile je Stelle: Art (Aufruf, Lesen, Schreiben, Test usw.), das aufrufende Symbol, Datei und Zeile und die Verlässlichkeit. Ein Klick auf eine Zeile hebt im Diagramm den Pfad dieses Treffers hervor; alles andere tritt zurück. `F8` und `Umschalt+F8` springen durch die Treffer, `Enter` (oder Doppelklick) zeigt den gewählten Treffer im Explorer, oder das Symbol im Fokus, wenn keiner gewählt ist. Die Liste zeigt Datei und Zeile, nicht den Code selbst.
 
 Das Seitenfeld zeigt Signatur, die Beschreibung (den Dokumentationskommentar aus dem Code, nur wenn es einen gibt), Zahlen (Stellen, Dateien, Schichten), die **Auswirkung** einer Änderung (erreichte Symbole, Schichten, öffentliche Schnittstellen) und den Knopf „Im Explorer öffnen“. Konstanten, Eigenschaften und Schnittstellen-Member funktionieren wie Methoden.
 
