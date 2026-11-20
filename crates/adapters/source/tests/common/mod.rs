@@ -11,10 +11,9 @@ use std::process::Command;
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use codeskimr_application::ports::{AuthError, Credential, CredentialStore};
+use codeskimr_application::ports::{AuthError, Credential, CredentialStore, LockedSecret};
 use codeskimr_domain::{CredentialId, FolderPath, LanguageId};
 use codeskimr_source::LanguageMap;
-use secrecy::SecretString;
 
 pub type TestResult<T = ()> = Result<T, Box<dyn Error>>;
 
@@ -70,6 +69,15 @@ impl TestStore {
     }
 }
 
+/// Test double of a locked buffer: plain memory is enough where nothing is swapped.
+struct Plain(Vec<u8>);
+
+impl LockedSecret for Plain {
+    fn bytes(&self) -> &[u8] {
+        &self.0
+    }
+}
+
 impl CredentialStore for TestStore {
     fn with_credential<T>(
         &self,
@@ -78,10 +86,10 @@ impl CredentialStore for TestStore {
     ) -> Result<T, AuthError> {
         let (user, secret) = self.entries.get(id.as_str()).ok_or(AuthError::NotFound)?;
         self.lent.fetch_add(1, Ordering::Relaxed);
-        action(&Credential::new(
-            SecretString::from(user.as_str()),
-            SecretString::from(secret.as_str()),
-        ))
+        let mut packed = user.clone().into_bytes();
+        packed.push(0);
+        packed.extend_from_slice(secret.as_bytes());
+        action(&Credential::from_packed(Box::new(Plain(packed)))?)
     }
 
     fn store(&self, _id: &CredentialId, _credential: &Credential) -> Result<(), AuthError> {

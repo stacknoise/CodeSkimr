@@ -135,8 +135,8 @@ fn the_user_approves_and_a_token_comes_back() -> TestResult {
         |pause| waits.borrow_mut().push(pause),
     )?;
 
-    assert_eq!(credential.user().expose_secret(), "token-user");
-    assert_eq!(credential.secret().expose_secret(), TOKEN);
+    assert_eq!(credential.expose_user(), "token-user");
+    assert_eq!(credential.expose_secret(), TOKEN);
     let prompt = shown.borrow().clone().ok_or("no prompt")?;
     assert_eq!(prompt.user_code, "WDJB-MJHT");
     assert_eq!(prompt.verification_uri, "https://example.com/device");
@@ -303,8 +303,8 @@ fn the_refresh_token_of_a_sign_in_is_kept_and_trades_for_a_new_token() -> TestRe
     assert_eq!(refresh.expose_secret(), REFRESH);
 
     let renewed = flow.refresh(&refresh)?;
-    assert_eq!(renewed.credential.user().expose_secret(), "token-user");
-    assert_eq!(renewed.credential.secret().expose_secret(), RENEWED);
+    assert_eq!(renewed.credential.expose_user(), "token-user");
+    assert_eq!(renewed.credential.expose_secret(), RENEWED);
     let next = renewed.refresh.ok_or("no rotated refresh token")?;
     assert_eq!(next.expose_secret(), NEXT_REFRESH);
     assert_eq!(

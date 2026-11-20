@@ -10,10 +10,10 @@ use std::sync::{Arc, Mutex, PoisonError};
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::SourceProvider;
-use codeskimr_application::ports::{AuthError, Credential, CredentialStore, FetchedSource};
+use codeskimr_application::ports::{AuthError, CredentialStore, FetchedSource};
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{CredentialId, ProjectSource};
-use codeskimr_secrets::{Provider, SignedIn};
+use codeskimr_secrets::{Provider, SignedIn, credential};
 use secrecy::{ExposeSecret, SecretString};
 
 use crate::consts::{
@@ -60,7 +60,7 @@ pub fn save(
                 link.host.unwrap_or_default(),
             ]
             .join(&REFRESH_LINK_SEPARATOR.to_string());
-            store.store(&entry, &Credential::new(SecretString::from(user), token))?;
+            store.store(&entry, &credential(&user, token.expose_secret())?)?;
         }
         None => store.delete(&entry)?,
     }
@@ -103,8 +103,8 @@ fn read_entry(
     id: &CredentialId,
 ) -> Result<Option<Entry>, CodedError> {
     let found = store.with_credential(&refresh_id(id)?, |credential| {
-        let user = credential.user().expose_secret().to_owned();
-        let token = SecretString::from(credential.secret().expose_secret().to_owned());
+        let user = credential.expose_user().to_owned();
+        let token = SecretString::from(credential.expose_secret().to_owned());
         Ok((user, token))
     });
     let (user, token) = match found {
@@ -272,8 +272,7 @@ mod tests {
     }
 
     fn signed_in(store: &Secrets, id: &CredentialId, host: &str) {
-        let credential =
-            Credential::new(SecretString::from("oauth2"), SecretString::from(OLD_ACCESS));
+        let credential = credential("oauth2", OLD_ACCESS).unwrap();
         let signed = SignedIn {
             credential,
             refresh: Some(SecretString::from(OLD_REFRESH)),
@@ -288,9 +287,7 @@ mod tests {
 
     fn read(store: &Secrets, id: &str) -> Result<String, AuthError> {
         let id = CredentialId::new(id).unwrap();
-        store.with_credential(&id, |credential| {
-            Ok(credential.secret().expose_secret().to_owned())
-        })
+        store.with_credential(&id, |credential| Ok(credential.expose_secret().to_owned()))
     }
 
     fn setup(

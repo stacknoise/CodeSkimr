@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use codeskimr_application::access;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{AuthError, Credential, CredentialStore, ProjectCatalog};
+use codeskimr_application::ports::{AuthError, CredentialStore, ProjectCatalog};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{CredentialId, Permission, ProjectSource};
@@ -135,7 +135,7 @@ impl Command for SetCredential {
         if input.user.trim().is_empty() || input.secret.expose_secret().is_empty() {
             return Err(CodedError::new(ErrorCode::RequestInvalid));
         }
-        let credential = Credential::new(SecretString::from(input.user), input.secret);
+        let credential = codeskimr_secrets::credential(&input.user, input.secret.expose_secret())?;
         // Forget first: a failure in between must not leave the old refresh token behind a new secret.
         crate::refresh::forget(&*self.secrets, &id)?;
         self.secrets.store(&id, &credential)?;
