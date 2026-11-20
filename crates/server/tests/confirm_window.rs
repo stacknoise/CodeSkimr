@@ -4,6 +4,7 @@
 
 mod common;
 
+use std::net::SocketAddr;
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
@@ -121,6 +122,15 @@ async fn start_with(
     principal: Principal,
     desk: Option<(Arc<Window>, Arc<ConfirmationDesk>)>,
 ) -> Setup {
+    start_as_peer(principal, desk, None).await
+}
+
+/// Starts the server; with `peer` every request counts as coming from that address (issue #531).
+async fn start_as_peer(
+    principal: Principal,
+    desk: Option<(Arc<Window>, Arc<ConfirmationDesk>)>,
+    peer: Option<SocketAddr>,
+) -> Setup {
     let api = CommandApi::new(Arc::new(Registry::new()));
     let events = EventBus::new();
     let mut server = Server::new(
@@ -138,7 +148,12 @@ async fn start_with(
     }
     let bound = server.bind(([127, 0, 0, 1], 0).into()).await.unwrap();
     let address = bound.address().unwrap();
-    tokio::spawn(bound.serve(std::future::pending()));
+    tokio::spawn(async move {
+        match peer {
+            Some(peer) => bound.serve_as_peer(peer, std::future::pending()).await,
+            None => bound.serve(std::future::pending()).await,
+        }
+    });
     let server = Running {
         address,
         wipes: Arc::default(),
@@ -389,4 +404,29 @@ async fn a_server_without_a_desk_has_no_such_route_and_it_is_no_registry_command
     let get = Call::get(PATH).token(TOKEN).send(&setup.server).await;
     assert_eq!(get.status, 405);
     assert_eq!(setup.window.asked(), [] as [u64; 0]);
+}
+
+#[tokio::test]
+async fn a_peer_that_is_not_on_this_machine_gets_sec_403_and_no_window() {
+    for peer in ["10.0.0.5:50000", "192.168.1.2:1", "[2001:db8::1]:1"] {
+        let window = Arc::new(Window::default());
+        let desk = desk(&window, true, Launch::Window, false);
+        let setup = start_as_peer(owner(), Some((window, desk)), Some(peer.parse().unwrap())).await;
+        refused(&setup, request(KNOWN), 403, "SEC-403").await;
+    }
+}
+
+#[tokio::test]
+async fn a_peer_on_this_machine_passes_the_same_route() {
+    let window = Arc::new(Window::default());
+    let desk = desk(&window, true, Launch::Window, false);
+    let setup = start_as_peer(
+        owner(),
+        Some((window, desk)),
+        Some("[::1]:50000".parse().unwrap()),
+    )
+    .await;
+    let reply = request(KNOWN).send(&setup.server).await;
+    assert_eq!(reply.status, 200, "{}", reply.body);
+    assert_eq!(setup.window.asked(), [KNOWN]);
 }
