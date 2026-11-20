@@ -196,24 +196,21 @@ mod tests {
         assert_eq!(mode(console, &no_env), Start::Console);
     }
 
+    /// `start` where a tray exists, the console window everywhere else.
+    fn where_a_tray_exists(start: Start) -> Start {
+        if AVAILABLE { start } else { Start::Console }
+    }
+
     #[test]
     fn the_bare_start_detaches_only_where_a_tray_exists() {
-        let expected = if AVAILABLE {
-            Start::Detach
-        } else {
-            Start::Console
-        };
-        assert_eq!(mode(StartArgs::default(), &no_env), expected);
+        let seen = mode(StartArgs::default(), &no_env);
+        assert_eq!(seen, where_a_tray_exists(Start::Detach));
     }
 
     #[test]
     fn the_marked_copy_runs_the_tray() {
-        let expected = if AVAILABLE {
-            Start::Tray
-        } else {
-            Start::Console
-        };
-        assert_eq!(mode(StartArgs::default(), &tray_env), expected);
+        let seen = mode(StartArgs::default(), &tray_env);
+        assert_eq!(seen, where_a_tray_exists(Start::Tray));
     }
 
     #[test]

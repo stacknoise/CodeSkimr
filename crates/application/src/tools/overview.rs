@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use codeskimr_domain::ToolReport;
 
-use super::judge::findings_of;
+use super::judge::{findings_of, status_once};
 use super::view::ToolsView;
 use crate::ports::{Clock, IndexRunner, IndexerSpec, IndexerStatus, ToolCatalog};
 
@@ -38,20 +38,6 @@ impl IndexerOverview {
             clock,
         }
     }
-
-    /// What the runner says about `spec`, asked once per distinct spec.
-    fn status_of(
-        &self,
-        asked: &mut Vec<(IndexerSpec, IndexerStatus)>,
-        spec: &IndexerSpec,
-    ) -> IndexerStatus {
-        if let Some((_, status)) = asked.iter().find(|(seen, _)| seen == spec) {
-            return status.clone();
-        }
-        let status = self.runner.check(spec);
-        asked.push((spec.clone(), status.clone()));
-        status
-    }
 }
 
 impl IndexerCheck for IndexerOverview {
@@ -61,7 +47,7 @@ impl IndexerCheck for IndexerOverview {
         let mut findings = Vec::new();
         for (language, plan) in self.catalog.plans() {
             let spec = plan.indexer;
-            let status = self.status_of(&mut asked, &spec);
+            let status = status_once(self.runner.as_ref(), &mut asked, &spec);
             findings.extend(findings_of(&language, &spec, &status, &[]));
         }
         let report = ToolReport {
