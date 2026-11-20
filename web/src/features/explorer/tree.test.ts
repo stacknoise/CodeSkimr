@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  blankRow,
   buildRows,
   groupKey,
   groupOfKind,
@@ -364,24 +365,7 @@ describe("revealKeys", () => {
 });
 
 describe("siblingPlaces", () => {
-  const base: TreeRow = {
-    key: "k",
-    kind: "type",
-    depth: 0,
-    label: "",
-    meta: "",
-    language: null,
-    symbolKind: null,
-    layerIndex: null,
-    expandable: false,
-    open: false,
-    type: null,
-    member: null,
-    target: null,
-    scope: null,
-    names: [],
-    held: [],
-  };
+  const base: TreeRow = blankRow("k", "type", 0, "");
   it("counts the siblings of each parent, not the rows of the list", () => {
     const at = (depth: number): TreeRow => ({ ...base, depth });
     const places = siblingPlaces([at(0), at(1), at(1), at(2), at(1), at(0)]);

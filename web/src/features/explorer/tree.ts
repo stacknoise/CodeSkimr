@@ -70,7 +70,8 @@ export function indent(depth: number): number {
   return BASE_INDENT_PX + depth * INDENT_PX;
 }
 
-function base(key: string, kind: RowKind, depth: number, label: string): TreeRow {
+/** A row with nothing but its identity, for the builders of rows and for tests. */
+export function blankRow(key: string, kind: RowKind, depth: number, label: string): TreeRow {
   return {
     key,
     kind,
@@ -93,7 +94,7 @@ function base(key: string, kind: RowKind, depth: number, label: string): TreeRow
 
 function memberRow(owner: number, depth: number, member: MemberRow): TreeRow {
   return {
-    ...base(memberKey(member.id), ROW.member, depth, member.name),
+    ...blankRow(memberKey(member.id), ROW.member, depth, member.name),
     symbolKind: member.kind,
     meta: member.signature ?? "",
     type: owner,
@@ -141,7 +142,7 @@ export function groupOfKind(kind: string): string | null {
 function groupRow(owner: number, depth: number, id: string, label: string, held: MemberRow[]) {
   const key = groupKey(owner, id);
   return {
-    ...base(key, ROW.group, depth, label),
+    ...blankRow(key, ROW.group, depth, label),
     meta: String(held.length),
     expandable: true,
     type: owner,
@@ -194,7 +195,7 @@ function typeRows(node: TypeNode, depth: number, ctx: Context, nested = false): 
   const key = typeKey(node.id);
   const open = ctx.expanded.has(key);
   const row: TreeRow = {
-    ...base(key, ROW.type, depth, node.name),
+    ...blankRow(key, ROW.type, depth, node.name),
     symbolKind: node.kind,
     language: node.language,
     meta: nested ? "" : String(node.members),
@@ -315,7 +316,7 @@ function segmentRows(layer: string, node: Segment, depth: number, ctx: Context):
   const key = namespaceKey(layer, node.path);
   const open = ctx.filtering || ctx.expanded.has(key);
   const row: TreeRow = {
-    ...base(key, ROW.namespace, depth, node.label || ctx.labels.noNamespace),
+    ...blankRow(key, ROW.namespace, depth, node.label || ctx.labels.noNamespace),
     ...moduleFields(node),
     meta: count > 0 || holdersOf(node).length === 0 ? String(count) : "",
     expandable:
@@ -353,7 +354,7 @@ function layerRows(layer: LayerNode, index: number, ctx: Context, flat: boolean)
   const open = ctx.filtering || ctx.expanded.has(key);
   const types = layer.namespaces.reduce((sum, space) => sum + space.types.length, 0);
   const row: TreeRow = {
-    ...base(key, ROW.layer, 0, layer.name || ctx.labels.noLayer),
+    ...blankRow(key, ROW.layer, 0, layer.name || ctx.labels.noLayer),
     meta: String(types),
     layerIndex: index,
     expandable: true,
