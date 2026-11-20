@@ -113,6 +113,21 @@ pub trait CodeIndex: Send + Sync {
         key: &SymbolKey,
     ) -> Result<Option<SymbolDetail>, CodedError>;
 
+    /// One symbol with its path, language and metrics but without the member list and the
+    /// same-name count (`members` is empty, `same_name` is 0): the cheap lookup for screens that
+    /// need neither, such as the explorer, which reads its member table separately. The default
+    /// is the full lookup.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn symbol_card(
+        &self,
+        snapshot: SnapshotId,
+        id: SymbolId,
+    ) -> Result<Option<SymbolDetail>, CodedError> {
+        self.symbol(snapshot, &SymbolKey::Id(id))
+    }
+
     /// Fuzzy search over the paths of the files of a snapshot that declare a type, best match
     /// first, at most `limit` hits.
     ///

@@ -2,7 +2,8 @@
 
 use codeskimr_domain::{Confidence, Reference, ReferenceKind, SourceFile, Symbol, SymbolKind};
 use codeskimr_scip::{
-    ImportOutcome, ScipError, SnapshotView, convert_columns, decode_index, import_references,
+    Creation, ImportOutcome, ScipError, SnapshotView, convert_columns, decode_index,
+    import_references, import_with_sites,
 };
 
 use crate::common::{
@@ -346,4 +347,30 @@ fn repeated_occurrences_give_one_reference_and_new_ids_follow_the_old() {
     assert_eq!(outcome.stats.mapped, 2);
     let ids: Vec<_> = outcome.references.iter().map(|r| r.id.get()).collect();
     assert_eq!(ids, [41]);
+}
+
+#[test]
+fn the_name_in_an_import_statement_is_no_use_and_the_other_uses_stay() {
+    let (files, symbols) = service_world();
+    let decoded = decode_index(&run_index(&[[0, 12, 15], [3, 12, 15]]), LIMIT).expect("decodes");
+    let view = SnapshotView {
+        files: &files,
+        symbols: &symbols,
+        references: &[],
+    };
+    // Level 1 read the name of an import of file 2 at line 0, columns 10 to 20.
+    let sites = [(codeskimr_domain::FileId::new(2), span((0, 10), (0, 20)))];
+    let creation = Creation::off();
+    let outcome = import_with_sites(&decoded, &view, (0.0, &creation), &sites).expect("imports");
+    assert_eq!(target(&outcome), [(5, 2, ReferenceKind::Call)]);
+    assert_eq!(outcome.references[0].span, span((3, 12), (3, 15)));
+    assert_eq!(outcome.stats.mapped, 1);
+    // The range holds every part of a dotted path, not only its start.
+    let parts =
+        decode_index(&run_index(&[[0, 12, 15], [0, 16, 19], [3, 12, 15]]), LIMIT).expect("decodes");
+    let all = import_with_sites(&parts, &view, (0.0, &creation), &sites).expect("imports");
+    assert_eq!(target(&all), [(5, 2, ReferenceKind::Call)]);
+    // Without the sites the import counts as a use, as before.
+    let kept = import_with_sites(&decoded, &view, (0.0, &creation), &[]).expect("imports");
+    assert_eq!(kept.references.len(), 2);
 }

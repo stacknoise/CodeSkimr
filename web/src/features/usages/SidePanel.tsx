@@ -10,6 +10,7 @@ import {
   MISSING,
 } from "./consts";
 import { Breakable } from "../../shared/ui/Breakable";
+import { accuracyNote } from "./accuracyNote";
 import { shortName } from "./names";
 import type { UsagesAnswer } from "./types";
 import { panelStyle } from "../../shared/layout/panelStyle";
@@ -90,6 +91,7 @@ function Accuracy(props: { answer: UsagesAnswer }) {
           presumed: summary().probable,
         })}
       </p>
+      <Show when={accuracyNote(props.answer)}>{(note) => <p>{note()}</p>}</Show>
       <Show when={props.answer.level2 === LEVEL2_UNAVAILABLE}>
         <p class={styles.warning}>{t(I18N_KEYS.USAGES_LEVEL2_UNAVAILABLE)}</p>
       </Show>
