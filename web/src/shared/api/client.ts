@@ -6,6 +6,7 @@ import {
   HEADER_RETRY_AFTER,
   MEDIA_JSON,
   METHOD_GET,
+  RETRY_AFTER_MAX_SECONDS,
   SECONDS_ONLY,
   STATUS_UNAUTHORIZED,
 } from "./consts";
@@ -39,7 +40,11 @@ function knownCode(value: unknown): ErrorCode | null {
 /** The wait in seconds of a `Retry-After` header; a date or a text is not used. */
 function retryAfterOf(response: Response): number | null {
   const value = response.headers.get(HEADER_RETRY_AFTER);
-  return value !== null && SECONDS_ONLY.test(value) ? Number(value) : null;
+  if (value === null || !SECONDS_ONLY.test(value)) {
+    return null;
+  }
+  const seconds = Number(value);
+  return seconds > 0 && seconds <= RETRY_AFTER_MAX_SECONDS ? seconds : null;
 }
 
 async function codeOf(response: Response): Promise<ErrorCode | null> {

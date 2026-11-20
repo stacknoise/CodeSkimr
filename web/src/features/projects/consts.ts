@@ -209,8 +209,6 @@ export const LEVEL2_PHASE = {
 
 /** The command of the terminal that confirms level 2, without the project id. */
 export const CONFIRM_COMMAND_PREFIX = "codeskimr level2 confirm ";
-/** The only form of the command that the page shows and copies: the prefix and the project id. */
-export const CONFIRM_COMMAND_PATTERN = /^codeskimr level2 confirm \d+$/;
 /** The two lines that the user puts into `config.toml` to allow level 2 (blueprint 14). */
 export const LEVEL2_CONFIG_SNIPPET = "[level2]\nenabled = true";
 

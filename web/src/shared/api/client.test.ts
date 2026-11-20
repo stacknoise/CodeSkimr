@@ -57,6 +57,12 @@ describe("api", () => {
     await expect(api("/x")).rejects.toMatchObject({ retryAfter: null });
     fetchMock.mockResolvedValue(answer(null));
     await expect(api("/x")).rejects.toMatchObject({ retryAfter: null });
+    fetchMock.mockResolvedValue(answer("3600"));
+    await expect(api("/x")).rejects.toMatchObject({ retryAfter: 3600 });
+    for (const unlikely of ["0", "3601", "999999"]) {
+      fetchMock.mockResolvedValue(answer(unlikely));
+      await expect(api("/x")).rejects.toMatchObject({ retryAfter: null });
+    }
   });
 
   it("drops a token that the server refuses", async () => {

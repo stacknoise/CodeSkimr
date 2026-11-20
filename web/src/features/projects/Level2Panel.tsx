@@ -173,9 +173,7 @@ function Waiting(props: { row: ProjectRow; view: Level2View }) {
       <WaitingWhat row={props.row} view={props.view} />
       <p class={styles.waiting}>{t(I18N_KEYS.PROJECTS_LEVEL2_WAITING_STATE)}</p>
       <p class={styles.waiting}>
-        {t(I18N_KEYS.PROJECTS_LEVEL2_WAITING_PAUSE, {
-          seconds: LEVEL2_COOLDOWN_SECONDS,
-        })}
+        {t(I18N_KEYS.PROJECTS_LEVEL2_WAITING_PAUSE, { seconds: LEVEL2_COOLDOWN_SECONDS })}
       </p>
       <div class={styles.buttons}>
         <button type="button" class={styles.button} onClick={() => cancelWaiting(props.row.id)}>
