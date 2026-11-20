@@ -88,6 +88,8 @@ fn import(store: &SqliteStore, job: &Job<'_>) -> Result<Imported, String> {
         separator: job.separator,
         max_symbols: job.max_created,
         library_root: job.library_root,
+        // The limit of references per import stays at its default, as in the program.
+        ..Creation::off()
     };
     let outcome = import_with_creation(&index, &view, job.min_mapped, &creation)
         .map_err(|e| e.to_string())?;
