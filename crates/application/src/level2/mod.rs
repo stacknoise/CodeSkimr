@@ -2,9 +2,9 @@
 //!
 //! An indexer runs the build tools of the project, which means project code. So it runs only if
 //! the local owner switched level 2 on in the **user configuration** (`[level2] enabled`, the
-//! master switch, ADR 0076) and confirmed it once for the project. The `level2` table of the project's
-//! `.codeskimr.toml` never counts (see `config`). Confirming and starting need their own
-//! permissions; MCP, REST tokens, watch mode and CI have no way to confirm, and a missing
+//! master switch, ADR 0076) and confirmed it once for the project. The `level2` table of the
+//! project's `.codeskimr.toml` never counts (see `config`). Confirming and starting need their
+//! own permissions; MCP, REST tokens, watch mode and CI have no way to confirm, and a missing
 //! confirmation stops them like everybody else.
 
 mod disguise;
