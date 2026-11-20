@@ -1200,3 +1200,29 @@ fn only_a_manager_may_change_the_preferences() {
         json!({"theme": null, "language": null})
     );
 }
+
+#[test]
+fn a_rescan_in_the_browser_shows_in_the_usages_of_the_running_server_at_once() {
+    let fixture = Fixture::new();
+    let input = add_usages_input(&fixture, CALLER, "incoming", 1);
+    let places = |answer: &Value| answer["summary"]["places"].as_u64().unwrap();
+    let before = fixture.call("usages.query", input.clone()).unwrap();
+    // An unchanged file: a new snapshot that carries everything.
+    fixture
+        .call("projects.rescan", json!({ "project": input["project"] }))
+        .unwrap();
+    let same = fixture.call("usages.query", input.clone()).unwrap();
+    assert_eq!(places(&same), places(&before));
+    // A changed file: the new snapshot, not the one the server asked about before.
+    let twice = CALLER.replace(
+        "        return calculator.Add(1, 2);\n",
+        "        var one = calculator.Add(1, 2);\n        return calculator.Add(one, 3);\n",
+    );
+    fs::write(fixture.root.path().join("app/Checkout.cs"), twice).unwrap();
+    fixture
+        .call("projects.rescan", json!({ "project": input["project"] }))
+        .unwrap();
+    let after = fixture.call("usages.query", input).unwrap();
+    assert!(places(&after) > places(&before));
+    assert!(after["snapshot"].as_u64() > before["snapshot"].as_u64());
+}

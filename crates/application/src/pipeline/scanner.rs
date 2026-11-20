@@ -5,7 +5,7 @@ use std::sync::Arc;
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
     AlertTrigger, FolderPath, Permission, Principal, ProjectId, ProjectSource, ScanMode,
-    ScanOrigin, SkipReason, Snapshot,
+    ScanOrigin, Snapshot,
 };
 
 use super::flow::{Chain, Halt, Pipeline, Single, StageContext};
@@ -265,9 +265,10 @@ impl Scanner {
         done.reports
     }
 
-    /// Stores that level 2 did not run for any language, for `reason` (`busy` or `paused`), and
-    /// tells the event bus that the run is over.
-    pub fn skip_level2(&self, snapshot: &Snapshot, origin: ScanOrigin, reason: SkipReason) {
+    /// Stores that level 2 did not run for any language, with `outcome` for each (a skip reason
+    /// such as `busy` or `paused`, or the code of a failure), and tells the event bus that the
+    /// run is over.
+    pub fn skip_level2(&self, snapshot: &Snapshot, origin: ScanOrigin, outcome: LanguageOutcome) {
         let Some(pass) = &self.level2 else {
             return;
         };
@@ -275,16 +276,18 @@ impl Scanner {
             .languages()
             .map(|language| LanguageLine {
                 language: language.clone(),
-                outcome: LanguageOutcome::Skipped(reason),
+                outcome,
             })
             .collect();
-        let skipped = u32::try_from(lines.len()).unwrap_or(u32::MAX);
+        let count = u32::try_from(lines.len()).unwrap_or(u32::MAX);
+        let failed = matches!(outcome, LanguageOutcome::Failed(_));
         if let Some(step) = &self.reports
             && let Err(code) = step.store_lines(snapshot, origin, Some(lines))
         {
             tracing::warn!(event = LOG_REPORT_NOT_STORED, code = code.id());
         }
-        self.finished_level2(snapshot, (0, skipped, 0));
+        let counts = if failed { (0, 0, count) } else { (0, count, 0) };
+        self.finished_level2(snapshot, counts);
     }
 
     fn finished_level2(&self, snapshot: &Snapshot, (checked, skipped, failed): (u32, u32, u32)) {

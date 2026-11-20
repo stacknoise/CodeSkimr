@@ -44,6 +44,8 @@ pub const PRAGMA_TEMP_STORE: &str = "temp_store";
 pub const TEMP_STORE_MEMORY: i64 = 2;
 /// How long a connection waits for a lock before reporting a conflict.
 pub const BUSY_TIMEOUT_MS: u64 = 5_000;
+/// Name of the pragma that changes when another connection commits.
+pub const PRAGMA_DATA_VERSION: &str = "data_version";
 /// Name of the pragma that reports how many pages the database file has.
 pub const PRAGMA_PAGE_COUNT: &str = "page_count";
 /// Name of the pragma that caps how many pages the database file may have.

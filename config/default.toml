@@ -160,8 +160,10 @@ max_created_symbols = 100000
 # Pause in seconds after the console window of the level 2 confirmation was opened from the projects screen (ADR 0071). During the pause no other window is opened for any project; a request inside it is refused with API-504. Read from the user config file and command line flags only.
 confirm_window_cooldown_seconds = 30
 # Most level 2 runs at the same time over all projects (ADR 0072). A scan that finds no free place stores level 1 and reports the skip reason "busy". Read from the user config file and command line flags only.
+# Between 1 and 8.
 max_parallel_runs = 1
 # Pause in seconds after a level 2 run that the browser started has ended in any way (checked, failed, cancelled), before the same project may start another one from the browser (ADR 0072). Inside the pause the scan stores level 1 and reports "paused". The command line is not paused. Read from the user config file and command line flags only.
+# At least 10.
 ui_cooldown_seconds = 60
 
 # Local server (blueprint 10.3, S-04). It listens on the loopback address 127.0.0.1 only.

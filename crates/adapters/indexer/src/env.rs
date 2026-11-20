@@ -243,6 +243,35 @@ mod home_dir_tests {
     }
 
     #[test]
+    fn the_token_of_the_installation_and_other_secrets_of_the_server_do_not_reach_the_indexer() {
+        let real = std::env::temp_dir().join("codeskimr-env-secrets");
+        std::fs::create_dir_all(&real).unwrap();
+        let secret = "ck_0123456789abcdef";
+        let source = [
+            (OsString::from("CODESKIMR_TOKEN"), OsString::from(secret)),
+            (
+                OsString::from("CODESKIMR_INSTALLATION_TOKEN"),
+                OsString::from(secret),
+            ),
+            (OsString::from("GITHUB_TOKEN"), OsString::from(secret)),
+            (OsString::from("DB_PASSWORD"), OsString::from(secret)),
+            (OsString::from("HOME"), real.clone().into_os_string()),
+        ];
+        let folders = Folders {
+            scratch: &real,
+            home: &real,
+            project_root: &real,
+        };
+        let built = build(source, &spec(&[]), &folders);
+        assert!(
+            built
+                .iter()
+                .all(|(name, value)| value != secret && !name.to_string_lossy().contains("TOKEN")),
+            "{built:?}"
+        );
+    }
+
+    #[test]
     fn a_home_folder_that_leaves_the_home_or_has_a_bad_name_is_not_set() {
         let real = std::env::temp_dir().join("codeskimr-env-home-dirs");
         std::fs::create_dir_all(real.join("good")).unwrap();
