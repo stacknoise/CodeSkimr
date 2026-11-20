@@ -19,6 +19,8 @@ export interface NamespaceNode {
   module?: TypeNode | null;
   /** Other symbols that hold functions and constants of the namespace. */
   holders?: TypeNode[];
+  /** The name is the path of a file, not a namespace: one row, titled by the file. */
+  file?: boolean;
 }
 
 /** A layer with its namespaces; the name is empty for types that belong to no layer. */

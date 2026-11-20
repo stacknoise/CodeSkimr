@@ -86,6 +86,9 @@ pub struct NamespaceNode {
     /// TypeScript `namespace`, a Kotlin package, declared in one or more files) or the module of
     /// a file without a namespace. `members` counts the members that are no rows of the tree.
     pub holders: Vec<TypeNode>,
+    /// Whether the name is the path of a file (a file without a namespace in a language that has
+    /// them, ADR 0036) and no namespace name: the tree shows it as one row, named by the file.
+    pub file: bool,
 }
 
 /// A layer with its namespaces; the name is empty for types that belong to no layer.
@@ -151,6 +154,7 @@ struct Space {
     types: Vec<TypeNode>,
     module: Option<TypeNode>,
     holders: Vec<TypeNode>,
+    file: bool,
 }
 
 type Grouped = BTreeMap<String, Space>;
@@ -233,9 +237,20 @@ fn namespaces(grouped: Grouped) -> Vec<NamespaceNode> {
                 types: space.types,
                 module: space.module,
                 holders: space.holders,
+                file: space.file,
             }
         })
         .collect()
+}
+
+/// Whether a top-level type sits directly in the module of its file and that module is no
+/// namespace: the type has no namespace and its namespace name is the path of the file.
+fn in_file_module(node: &OutlineNode, names: &HashMap<SymbolId, &OutlineNode>) -> bool {
+    node.parent
+        .and_then(|parent| names.get(&parent))
+        .is_some_and(|container| {
+            container.kind == SymbolKind::Module && !is_namespace_module(container)
+        })
 }
 
 /// How many members of each container are no rows of the tree: its functions, constants, fields
@@ -272,11 +287,9 @@ pub(super) fn build(layers: &[Layer], nodes: &[OutlineNode]) -> Vec<LayerNode> {
         if let Some(namespace) = namespace_of(node, &by_id)
             && let Some(group) = groups.get_mut(layer_index(layers, node))
         {
-            group
-                .entry(namespace)
-                .or_default()
-                .types
-                .push(type_node(node));
+            let space = group.entry(namespace).or_default();
+            space.file |= in_file_module(node, &by_id);
+            space.types.push(type_node(node));
         }
     }
     let own = own_members(nodes);
@@ -293,7 +306,9 @@ pub(super) fn build(layers: &[Layer], nodes: &[OutlineNode]) -> Vec<LayerNode> {
             let mut shown = type_node(node);
             shown.members = own.get(&node.id).copied().unwrap_or_default();
             let name = node.qualified_name.to_string();
-            group.entry(name).or_default().holders.push(shown);
+            let space = group.entry(name).or_default();
+            space.file |= node.kind == SymbolKind::Module;
+            space.holders.push(shown);
         }
     }
     layer_nodes(layers, groups)

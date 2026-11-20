@@ -141,6 +141,9 @@ export const ROW = {
 } as const;
 export type RowKind = (typeof ROW)[keyof typeof ROW];
 
+/** Separates the folders of the path of a file. */
+export const PATH_SEPARATOR = "/";
+
 /** One part of a namespace name; the parts are separated by `.` or `::`. */
 export const NAME_PART = /[^.:]+/g;
 

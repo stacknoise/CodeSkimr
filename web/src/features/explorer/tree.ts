@@ -6,6 +6,7 @@ import {
   INDENT_PX,
   KEY_SEPARATOR,
   NAME_PART,
+  PATH_SEPARATOR,
   METHOD_KINDS,
   ROW,
   TYPE_KINDS,
@@ -245,12 +246,21 @@ export function nameParts(name: string): { label: string; path: string }[] {
   }));
 }
 
+/** The parts of the name of a namespace entry. The name of a file (a file without a namespace) is
+ * no namespace name: it is one part, titled by the last segment of the path. */
+export function spaceParts(space: NamespaceNode): { label: string; path: string }[] {
+  if (!space.file) {
+    return nameParts(space.name);
+  }
+  return [{ label: space.name.split(PATH_SEPARATOR).pop() ?? space.name, path: space.name }];
+}
+
 /** Groups the namespaces of a layer by their parts, so `App.Domain` and `App.Ui` are two rows
  * below one row `App`. A namespace without a name is the segment with the empty path. */
 export function segmentsOf(spaces: readonly NamespaceNode[]): Segment[] {
   const roots = new Map<string, Segment>();
   for (const space of spaces) {
-    const parts = nameParts(space.name);
+    const parts = spaceParts(space);
     if (parts.length === 0) {
       const root = roots.get("") ?? segment("", "");
       roots.set("", root);
@@ -394,7 +404,7 @@ export function buildRows(
 export function revealKeys(outline: Outline, type: number): string[] {
   for (const layer of outline.layers) {
     for (const space of layer.namespaces) {
-      const parts = nameParts(space.name);
+      const parts = spaceParts(space);
       const paths = parts.length === 0 ? [""] : parts.map((part) => part.path);
       const spaces = paths.map((path) => namespaceKey(layer.name, path));
       if (space.types.some((node) => node.id === type)) {
@@ -419,7 +429,7 @@ export function revealNamespace(
 ): { open: string[]; cursor: string } | null {
   for (const layer of outline.layers) {
     for (const space of layer.namespaces) {
-      const parts = nameParts(space.name);
+      const parts = spaceParts(space);
       const at = parts.findIndex((part) => part.path === name);
       if (at >= 0) {
         const paths = parts.slice(0, at + 1).map((part) => namespaceKey(layer.name, part.path));

@@ -107,3 +107,24 @@ fn the_module_of_a_file_without_a_namespace_holds_its_functions() {
     assert_eq!(held[0].name, "app/Util.kt");
     assert_eq!(held[0].holders[0].members, 2);
 }
+
+#[test]
+fn a_type_in_a_file_without_a_namespace_gets_the_file_as_its_namespace_entry() {
+    let nodes = [
+        node(1, SymbolKind::Module, "Plain", "app/Plain.cs", None),
+        node(2, SymbolKind::Class, "Plain", "Plain", Some(1)),
+        node(3, SymbolKind::Module, "entry", "pkg.entry", None),
+        node(4, SymbolKind::Class, "Entry", "pkg.entry.Entry", Some(3)),
+    ];
+    let spaces = &build(&[], &nodes)[0].namespaces;
+    let file = spaces
+        .iter()
+        .find(|space| space.name == "app/Plain.cs")
+        .unwrap();
+    assert!(file.file);
+    let python = spaces
+        .iter()
+        .find(|space| space.name == "pkg.entry")
+        .unwrap();
+    assert!(!python.file);
+}

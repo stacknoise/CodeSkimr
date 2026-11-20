@@ -596,3 +596,49 @@ describe("holders of a namespace", () => {
     expect(members.map((one) => one.type)).toEqual([5, 6]);
   });
 });
+
+describe("files without a namespace", () => {
+  const outline: Outline = {
+    ...OUTLINE,
+    layers: [
+      {
+        name: "",
+        namespaces: [
+          {
+            name: "app/Plain.cs",
+            file: true,
+            types: [
+              {
+                id: 1,
+                name: "Plain",
+                qualified_name: "Plain",
+                kind: "class",
+                members: 0,
+                language: "csharp",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  it("shows a file as one row titled by the file, not as a namespace app/Plain and cs", () => {
+    const rows = buildRows(
+      outline,
+      new Set([namespaceKey("", "app/Plain.cs")]),
+      new Map(),
+      "",
+      LABELS,
+    );
+    expect(labels(rows)).toEqual(["Plain.cs", "Plain"]);
+  });
+
+  it("reveals a type of such a file at its row", () => {
+    expect(revealKeys(outline, 1)).toEqual([
+      layerKey(""),
+      namespaceKey("", "app/Plain.cs"),
+      typeKey(1),
+    ]);
+  });
+});
