@@ -40,7 +40,7 @@ Every usage keeps its mark (verified, unchecked, presumed) and the page shows th
 - It is a snapshot. Scanning, adding projects and settings are not part of it.
 - Only types and the members of types are listed, like in the explorer; free functions outside a type are not.
 - The quick search is a plain match on names (start, part, letters in order), not the ranking of the app.
-- The size grows about linearly with the references, because the direct usages of every symbol are embedded. Large projects give files of many megabytes. Walks through other symbols (depth 2 and more) are only in the app: they grow much faster than the project and made the file too big to open.
+- The size grows about linearly with the references, because the direct usages of every symbol are embedded. As a guide: about 1.4 MB for 400 symbols, about 5 MB for 1,300 and about 64 MB for 7,400 (the whole CodeSkimr source). Very large projects give files of many megabytes. Walks through other symbols (depth 2 and more) are only in the app: they grow much faster than the project and made the file too big to open.
 
 ## Errors
 

@@ -40,7 +40,7 @@ Jede Verwendung behält ihre Markierung (geprüft, ungeprüft, vermutet), und di
 - Es ist eine Momentaufnahme. Scannen, Projekte hinzufügen und Einstellungen gehören nicht dazu.
 - Aufgelistet werden nur Typen und die Member von Typen, wie im Explorer; freie Funktionen außerhalb eines Typs nicht.
 - Die Schnellsuche ist ein einfacher Abgleich auf Namen (Anfang, Teil, Buchstaben in Reihenfolge), nicht die Rangfolge der App.
-- Die Größe wächst etwa linear mit den Verweisen, weil die direkten Verwendungen jedes Symbols eingebettet sind. Große Projekte ergeben Dateien von vielen Megabyte. Wege über weitere Symbole (Tiefe 2 und mehr) gibt es nur in der App: Sie wachsen viel schneller als das Projekt und machten die Datei zu groß zum Öffnen.
+- Die Größe wächst etwa linear mit den Verweisen, weil die direkten Verwendungen jedes Symbols eingebettet sind. Als Anhaltspunkt: etwa 1,4 MB bei 400 Symbolen, etwa 5 MB bei 1.300 und etwa 64 MB bei 7.400 (der ganze CodeSkimr-Quelltext). Sehr große Projekte ergeben Dateien von vielen Megabyte. Wege über weitere Symbole (Tiefe 2 und mehr) gibt es nur in der App: Sie wachsen viel schneller als das Projekt und machten die Datei zu groß zum Öffnen.
 
 ## Fehler
 
