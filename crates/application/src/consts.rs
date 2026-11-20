@@ -12,6 +12,15 @@ pub const STAGE_RESOLVE: &str = "resolve";
 pub const STAGE_MEASURE: &str = "measure";
 /// Label of `StageKind::Persist`.
 pub const STAGE_PERSIST: &str = "persist";
+/// The stage labels in execution order, the same order as `StageKind::ALL`.
+pub const STAGE_LABELS: [&str; 6] = [
+    STAGE_FETCH,
+    STAGE_DISCOVER,
+    STAGE_ANALYZE,
+    STAGE_RESOLVE,
+    STAGE_MEASURE,
+    STAGE_PERSIST,
+];
 
 /// Separator of the parts of a project-relative path.
 pub const PATH_SEPARATOR: char = '/';
