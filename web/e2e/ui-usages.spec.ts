@@ -130,6 +130,45 @@ test.describe("the usages screen", () => {
     });
   }
 
+  test("the accuracy card says what the stored report knows about the language (ADR 0072)", async ({
+    page,
+    harness,
+  }) => {
+    const row = await addScannedProject(page, harness, "usagesreport", SOURCE);
+    await selectAdd(page, row, "Demo");
+    await page.keyboard.press("u");
+    // The real report of a scan from the browser without a confirmation: stage 2 was skipped.
+    await expect(
+      page.getByText("Level 2 skipped C#: level 2 is not confirmed for this project."),
+    ).toBeVisible();
+  });
+
+  test("the accuracy card tells a stage 2 run of the language that checked in part", async ({
+    page,
+    harness,
+  }) => {
+    await page.route("**/api/v1/commands/usages.query", async (route) => {
+      const response = await route.fetch();
+      const body = (await response.json()) as Record<string, unknown>;
+      const level2 = {
+        at: 1_700_000_000,
+        origin: "browser",
+        languages: [{ language: "csharp", outcome: "checked", files: 5, stale: 2 }],
+      };
+      const last_scan = { at: 1_700_000_000, level: "2", origin: "browser" };
+      await route.fulfill({ response, json: { ...body, scan_report: { last_scan, level2 } } });
+    });
+    const row = await addScannedProject(page, harness, "usagespart", SOURCE);
+    await selectAdd(page, row, "Demo");
+    await page.keyboard.press("u");
+    await expect(
+      page.getByText(
+        "Level 2 checked C# in part: 5 files, 2 changed since the run and keep level 1.",
+      ),
+    ).toBeVisible();
+    await page.unrouteAll({ behavior: "ignoreErrors" });
+  });
+
   for (const theme of THEMES) {
     test(`shows the description of the code before the impact (${theme})`, async ({
       page,

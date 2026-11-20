@@ -29,3 +29,7 @@ export const TIMED_COMMANDS: Record<string, string> = {
   "usages.query": "usages_query",
   "graph.layers": "graph_layout",
 };
+
+/** The header with which the server asks to wait, and the form of its value that is used: whole seconds. */
+export const HEADER_RETRY_AFTER = "Retry-After";
+export const SECONDS_ONLY = /^\d{1,6}$/;

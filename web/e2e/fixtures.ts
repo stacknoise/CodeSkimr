@@ -142,6 +142,18 @@ export async function addScannedProject(
   return row;
 }
 
+/** Adds a scanned project like `addScannedProject` and selects its row in the project list, so that
+ * the sections of the project (level 2, scan, tools) are shown below the list. */
+export async function selectScannedProject(
+  page: Page,
+  harness: Harness,
+  name: string,
+  source: string,
+): Promise<void> {
+  const row = await addScannedProject(page, harness, name, source);
+  await row.click({ position: { x: 4, y: 4 } });
+}
+
 /** Adds a scanned project like `addScannedProject` and opens it (the screens of a project stay shut
  * until one is open); the explorer is shown afterwards. */
 export async function openScannedProject(

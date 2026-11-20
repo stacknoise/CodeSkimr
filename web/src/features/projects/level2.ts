@@ -4,6 +4,7 @@ import { runCommand } from "../../shared/api/commands";
 import { METHOD_POST } from "../../shared/api/consts";
 import { uiConfig } from "../../shared/settings/ui-config";
 import {
+  CONFIRM_COMMAND_PATTERN,
   CONFIRM_COMMAND_PREFIX,
   CONFIRM_WINDOW_PATH,
   ESCAPE_KEY,
@@ -166,9 +167,11 @@ export function escapeWaiting(project: number, event: KeyboardEvent): void {
 
 /** Shows the command to copy; `failure` says why the window did not open, if it was tried. */
 function showCommand(project: number, command: string | null, failure: Failure | null): void {
+  // The command of the server is shown and copied only in its one known form: a terminal runs it.
+  const known = command !== null && CONFIRM_COMMAND_PATTERN.test(command);
   patch(project, {
     phase: LEVEL2_PHASE.waiting,
-    command: command ?? confirmCommand(project),
+    command: known ? command : confirmCommand(project),
     openedAt: null,
     failure,
   });

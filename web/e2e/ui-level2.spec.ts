@@ -1,11 +1,11 @@
 // The level 2 switch of the projects screen (ADR 0071, blueprint 15.4): the keyboard path and the
-// look in the three themes. The server of this branch does not have the routes of the switch yet
-// (they come with the package of the backend), so the page answers `level2.status`,
-// `level2.revoke` and `confirm-window` from a fake that follows the ADR; everything else is the real server.
+// look in the three themes. Most tests answer `level2.status`, `level2.revoke` and `confirm-window`
+// from a fake that follows the ADR, because the consent is typed in a console window; everything
+// else is the real server, and the two tests of "against the real server" use no fake at all.
 // `UPDATE_SCREENSHOTS=1` writes the screens to docs/screenshots/level2-switch/.
 import path from "node:path";
 import type { Page, Route } from "@playwright/test";
-import { addScannedProject, expect, shot, test } from "./fixtures";
+import { expect, selectScannedProject, shot, test } from "./fixtures";
 
 const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/level2-switch");
 const VIEWPORT = { width: 1440, height: 900 };
@@ -53,15 +53,38 @@ function newFake(state: Fake["state"] = "off"): Fake {
 
 async function openProject(
   page: Page,
-  harness: Parameters<typeof addScannedProject>[1],
+  harness: Parameters<typeof selectScannedProject>[1],
   name: string,
 ) {
-  const row = await addScannedProject(page, harness, name, SOURCE);
-  await row.click({ position: { x: 4, y: 4 } });
+  await selectScannedProject(page, harness, name, SOURCE);
   return page.getByRole("switch", { name: `Level 2 for ${name}` });
 }
 
 test.describe("the level 2 switch (keyboard, ADR 0071)", () => {
+  test("Escape ends the waiting for the console window, and so does the button", async ({
+    page,
+    harness,
+  }) => {
+    const fake = newFake();
+    await serveSwitch(page, fake);
+    const toggle = await openProject(page, harness, "lvwait");
+    await toggle.focus();
+    await page.keyboard.press("Space");
+    await expect(page.getByText("Finish the confirmation in the console window")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByText(/Waiting ended\. Nothing was confirmed/)).toBeVisible();
+    await expect(toggle).toBeFocused();
+    expect(fake.revokes).toBe(0);
+
+    await page.keyboard.press("Space");
+    const stop = page.getByRole("button", { name: "Cancel waiting" });
+    await stop.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByText(/Waiting ended\. Nothing was confirmed/)).toBeVisible();
+    await expect(toggle).toBeFocused();
+    expect(fake.windows).toBe(2);
+  });
+
   test("Space switches on and waits, Space then asks before switching off, Escape and Enter answer", async ({
     page,
     harness,
@@ -129,6 +152,29 @@ test.describe("the level 2 switch (keyboard, ADR 0071)", () => {
   });
 });
 
+test.describe("the level 2 switch against the real server (ADR 0071)", () => {
+  test("a fresh installation says not enabled, shows the two config lines and offers no click", async ({
+    page,
+    harness,
+  }) => {
+    const toggle = await openProject(page, harness, "lvreal");
+    await expect(toggle).toHaveAttribute("aria-disabled", "true");
+    await expect(page.getByText(/enabled = true/)).toBeVisible();
+    await expect(page.getByText("File: in your config.toml in the data folder")).toBeVisible();
+    await toggle.click({ force: true });
+    await expect(page.getByText("Finish the confirmation in the console window")).toHaveCount(0);
+  });
+
+  test("the server tells the poll values of the page", async ({ page, harness }) => {
+    await openProject(page, harness, "lvconfig");
+    const config = await page.evaluate(async () => {
+      const response = await fetch("/api/v1/ui-config");
+      return response.json();
+    });
+    expect(config).toMatchObject({ level2_poll_seconds: 2, level2_poll_max_seconds: 300 });
+  });
+});
+
 for (const theme of THEMES) {
   test.describe(`the level 2 switch (1440 x 900, ${theme})`, () => {
     test.use({ viewport: VIEWPORT });
@@ -139,7 +185,22 @@ for (const theme of THEMES) {
       const toggle = await openProject(page, harness, `lvshot${theme}`);
       await toggle.click();
       await expect(page.getByText("Finish the confirmation in the console window")).toBeVisible();
+      await page
+        .getByRole("region", { name: /Level 2 for/ })
+        .evaluate((el) => el.scrollIntoView({ block: "center" }));
       await shot(page, SHOTS, `level2-switch-${theme}`, info);
+    });
+
+    test(`not enabled, ${theme}`, async ({ page, harness }, info) => {
+      await page.addInitScript((name) => localStorage.setItem("codeskimr.theme", name), theme);
+      await serveSwitch(page, newFake("not_enabled"));
+      const toggle = await openProject(page, harness, `lvhint${theme}`);
+      await expect(toggle).toHaveAttribute("aria-disabled", "true");
+      await expect(page.getByText("File: in your config.toml in the data folder")).toBeVisible();
+      await page
+        .getByRole("region", { name: /Level 2 for/ })
+        .evaluate((el) => el.scrollIntoView({ block: "center" }));
+      await shot(page, SHOTS, `level2-switch-not-enabled-${theme}`, info);
     });
   });
 }
