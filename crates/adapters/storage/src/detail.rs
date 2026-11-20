@@ -171,6 +171,22 @@ fn detail(
     }))
 }
 
+/// Like `detail`, without the member list and the same-name count: neither is needed by the
+/// explorer, and the count scans every symbol of the snapshot that has the name.
+fn card(conn: &Connection, snapshot: i64, key: &SymbolKey) -> StorageResult<Option<SymbolDetail>> {
+    let Some((symbol, path)) = find_symbol(conn, snapshot, key)? else {
+        return Ok(None);
+    };
+    Ok(Some(SymbolDetail {
+        members: Vec::new(),
+        metrics: metrics(conn, snapshot, symbol.id)?,
+        same_name: 0,
+        language: file_language(conn, snapshot, symbol.file)?,
+        symbol,
+        path,
+    }))
+}
+
 impl SqliteStore {
     /// One symbol with its members and metrics, `None` if the snapshot has no such symbol.
     ///
@@ -249,6 +265,15 @@ impl CodeIndex for SqliteStore {
         key: &SymbolKey,
     ) -> Result<Option<SymbolDetail>, CodedError> {
         self.symbol_detail(snapshot, key)
+    }
+
+    fn symbol_card(
+        &self,
+        snapshot: SnapshotId,
+        id: SymbolId,
+    ) -> Result<Option<SymbolDetail>, CodedError> {
+        self.read(|conn| card(conn, column_int(snapshot.get())?, &SymbolKey::Id(id)))
+            .map_err(CodedError::from)
     }
 
     fn layer_edges(&self, snapshot: SnapshotId) -> Result<Vec<LayerEdge>, CodedError> {

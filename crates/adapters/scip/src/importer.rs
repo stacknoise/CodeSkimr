@@ -12,7 +12,7 @@ use crate::columns::convert_columns;
 use crate::consts::FIRST_LINE;
 use crate::create::Creation;
 use crate::decode::read_index;
-use crate::mapping::{SnapshotView, import_with_creation};
+use crate::mapping::{SnapshotView, import_with_sites};
 
 /// Imports SCIP indexes. `text` gives the lines of the project files, which the conversion of
 /// UTF-16 and UTF-32 columns needs.
@@ -66,8 +66,13 @@ impl ReferenceImporter for ScipImporter {
             max_symbols: request.max_created_symbols,
             library_root: request.library_root,
         };
-        let outcome = import_with_creation(&index, &view, request.min_mapped, &creation)
-            .map_err(CodedError::caused_by)?;
+        let outcome = import_with_sites(
+            &index,
+            &view,
+            (request.min_mapped, &creation),
+            request.import_sites,
+        )
+        .map_err(CodedError::caused_by)?;
         let references: Vec<Reference> = outcome
             .references
             .into_iter()

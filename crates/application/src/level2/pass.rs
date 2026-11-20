@@ -10,8 +10,8 @@ use std::sync::Arc;
 
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    FolderPath, LanguageId, Level2Stage, Principal, Project, Reference, RelativePath, Snapshot,
-    SourceFile, Symbol,
+    FileId, FolderPath, LanguageId, Level2Stage, Principal, Project, Reference, RelativePath,
+    Snapshot, SourceFile, Span, Symbol,
 };
 
 use super::authorize_run;
@@ -25,7 +25,7 @@ use crate::ids::IdSequence;
 use crate::ports::{
     ConsentStore, FileDiscovery, ImportRequest, Imported, IndexJob, IndexRunner, IndexerSpec,
     IndexerStatus, Level2Replacement, PreviousIndex, ProjectRepository, ReferenceImporter,
-    SnapshotStore,
+    SnapshotStore, StoredNames,
 };
 
 /// The ports and settings of the second pass, wired by the composition root.
@@ -241,6 +241,7 @@ impl Level2Pass {
         index: &Path,
         files: &[SourceFile],
     ) -> Result<Imported, Skipped> {
+        let import_sites = self.import_sites(scan, files)?;
         self.importer
             .import(&ImportRequest {
                 index,
@@ -256,8 +257,28 @@ impl Level2Pass {
                 library_root: &spec.library_root,
                 max_created_symbols: usize::try_from(self.settings.max_created_symbols)
                     .unwrap_or(usize::MAX),
+                import_sites: &import_sites,
             })
             .map_err(Skipped::from)
+    }
+
+    /// Where level 1 read the names of the imports of `files`. A snapshot that does not hold its
+    /// names gives none (its imports then count as uses, as before); a failure of the store
+    /// fails the import.
+    fn import_sites(
+        &self,
+        scan: &Scan<'_>,
+        files: &[SourceFile],
+    ) -> Result<Vec<(FileId, Span)>, Skipped> {
+        let ids: Vec<FileId> = files.iter().map(|file| file.id).collect();
+        let names = self
+            .projects
+            .stored_names(scan.snapshot.id, StoredNames::ImportsOf(&ids))
+            .map_err(Skipped::from)?;
+        Ok(names
+            .into_iter()
+            .map(|name| (name.file, name.span))
+            .collect())
     }
 
     /// The files of the group whose content is still the one of the snapshot, and the number of
