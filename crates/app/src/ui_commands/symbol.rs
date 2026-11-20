@@ -5,10 +5,10 @@ use std::sync::Arc;
 use codeskimr_application::access;
 use codeskimr_application::config::MetricThresholds;
 use codeskimr_application::error::CodedError;
-use codeskimr_application::ports::{MemberRow, SymbolDetail, SymbolKey};
+use codeskimr_application::ports::{MemberRow, SymbolDetail};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Permission, ProjectId, SnapshotId, SymbolId, Visibility};
+use codeskimr_domain::{Permission, SnapshotId, SymbolId, Visibility};
 use serde::{Deserialize, Serialize};
 
 use super::consts::{
@@ -149,7 +149,7 @@ impl ExplorerPorts {
         id: SymbolId,
     ) -> Result<SymbolDetail, CodedError> {
         self.index
-            .symbol(snapshot, &SymbolKey::Id(id))?
+            .symbol_card(snapshot, id)?
             .ok_or_else(|| CodedError::new(ErrorCode::SymbolNotFound))
     }
 
@@ -238,13 +238,13 @@ impl Command for ExplorerSymbol {
     fn execute(&self, request: Request<'_, Self>) -> Result<SymbolOut, CodedError> {
         access::require(request.principal, Permission::Read)?;
         let ports = &self.ports;
-        let snapshot = ports.newest(request.input.project)?.id;
+        let (project, newest) = ports.project_and_newest(request.input.project)?;
+        let snapshot = newest
+            .ok_or_else(|| CodedError::new(ErrorCode::ProjectNotScanned))?
+            .id;
         let id = SymbolId::new(request.input.symbol);
         let detail = ports.lookup(snapshot, id)?;
         let breadcrumb = ports.breadcrumb(snapshot, &detail)?;
-        let project = ports
-            .projects
-            .project(ProjectId::new(request.input.project))?;
         let layer = project.layer_name_of(detail.symbol.qualified_name.as_str());
         let place = Place { layer, breadcrumb };
         let rows = ports.outline.member_rows(snapshot, id)?;
