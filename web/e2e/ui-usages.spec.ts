@@ -60,10 +60,16 @@ function withCallers(names: string[] | number): string {
 }
 
 /** Opens the usages screen of `Demo` for the given source in a wide window with the theme set. */
-async function openThemed(page: Page, harness: Harness, theme: string, source: string) {
+async function openThemed(
+  page: Page,
+  harness: Harness,
+  theme: string,
+  project: string,
+  source: string,
+) {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.addInitScript((name) => localStorage.setItem("codeskimr.theme", name), theme);
-  const row = await addScannedProject(page, harness, `usages${theme}`, source);
+  const row = await addScannedProject(page, harness, `${project}${theme}`, source);
   await selectAdd(page, row, "Demo");
   await page.keyboard.press("u");
 }
@@ -113,7 +119,7 @@ test.describe("the usages screen", () => {
       page,
       harness,
     }, info) => {
-      await openThemed(page, harness, theme, withCallers(["Alpha", "Beta", "Gamma"]));
+      await openThemed(page, harness, theme, "usagespath", withCallers(["Alpha", "Beta", "Gamma"]));
       const graph = page.getByRole("region", { name: "Usage graph" });
       await expect(page.getByText("Hits 4")).toBeVisible();
       await expect(graph.locator("button[class*=dim]")).toHaveCount(0);
@@ -129,7 +135,7 @@ test.describe("the usages screen", () => {
       page,
       harness,
     }, info) => {
-      await openThemed(page, harness, theme, DOCUMENTED);
+      await openThemed(page, harness, theme, "usagesdoc", DOCUMENTED);
       await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
       await expect(page.getByText("Adds two whole numbers and returns the sum.")).toBeVisible();
       await shot(page, SHOTS, `usages-description-${theme}`, info);
