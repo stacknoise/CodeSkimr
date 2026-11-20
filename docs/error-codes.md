@@ -43,6 +43,7 @@ Owner: `codeskimr_application`
 | PRJ-302 | `snapshot_in_progress` | error | no | 0.1.0 | A scan for this project is already running. |
 | PRJ-303 | `scan_cancelled` | info | yes | 0.1.0 | The scan was cancelled by the user; no snapshot was written. |
 | PRJ-501 | `too_many_scans` | error | yes | 0.1.0 | As many scans run at the same time as the server allows; try again when one has ended. |
+| PRJ-502 | `scan_report_not_stored` | warning | no | 0.9.0 | The report of the scan (its level and what level 2 did per language) could not be stored; the scan and its snapshot are stored. |
 
 ## SRC – Sources: file system, Git, watcher
 

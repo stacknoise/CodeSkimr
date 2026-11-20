@@ -41,6 +41,7 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 | `PRJ-302` | ein Scan dieses Projekts läuft schon (auch beim Entfernen des Projekts) | abwarten oder abbrechen |
 | `PRJ-303` | der Scan wurde abgebrochen, es gibt keinen neuen Snapshot | bei Bedarf neu starten |
 | `PRJ-501` | so viele Scans wie erlaubt (4) laufen gleichzeitig | warten, bis einer beendet ist |
+| `PRJ-502` | der Bericht eines Scans (seine Stufe) konnte nicht gespeichert werden; der Scan selbst ist gespeichert | erneut scannen; freien Platz im Datenordner prüfen |
 | `SRC-201` | ein Quellordner, eine Quelldatei oder ein Sprachpaket-Ordner existiert nicht oder ist nicht lesbar | Pfad und Rechte prüfen |
 | `SRC-401`, `SEC-*` | Anmeldung an einer Git-Gegenstelle oder der Schlüsselspeicher ist fehlgeschlagen | siehe [Quellen und Zugangsdaten](quellen-und-zugangsdaten.md#probleme) |
 | `NET-601` | die Browser-Anmeldung von `credential login` wurde nicht abgeschlossen | erneut ausführen |

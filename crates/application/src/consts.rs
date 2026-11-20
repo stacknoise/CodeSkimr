@@ -92,6 +92,8 @@ pub const LOG_ALERTS_CHECKED: &str = "alerts_checked";
 
 /// Log event: the alert step failed; the snapshot stays as it is.
 pub const LOG_ALERT_STEP_FAILED: &str = "alert_step_failed";
+/// Log event: the report of a scan could not be stored (`PRJ-502`).
+pub const LOG_REPORT_NOT_STORED: &str = "scan_report_not_stored";
 
 /// Wire word of `TokenClass::Comment`.
 pub const TOKEN_COMMENT: &str = "comment";

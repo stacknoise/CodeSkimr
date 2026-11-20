@@ -44,8 +44,8 @@ fn known_codes_carry_their_data() {
 #[test]
 fn appendix_a_is_complete() {
     // 47 codes from blueprint Appendix A plus CFG-103 (WP-17), STO-601 and STO-901 (WP-21),
-    // MCP-202 and MCP-203 (WP-26), AUTH-401 (WP-59), CLI-102 (WP-33), API-403, API-601, APP-202 and APP-601 (WP-42), SEC-202 and CLI-103 (WP-73), EXP-201 (WP-75), PRJ-303 (cancelling a scan, #168), RES-101, RES-302 and RES-501 (SCIP import, ADR 0033), RES-303 (symbols created by level 2, ADR 0055), RES-201, RES-502, RES-503, RES-504, RES-601, SEC-301 and SEC-403 (indexer runner, ADR 0033), API-502 and API-503 (server limits, #88), PRJ-501 (parallel scans, #125), CHK-106 (parameter limit, ADR 0048), APP-602 (embedded language packs, #327), CFG-104 (layers written from the UI, ADR 0065), APP-603 (tray start, ADR 0067), ANN-101, ANN-102, ANN-103, ANN-104, ANN-105, ANN-201, ANN-202 and ANN-301 (annotations and alerts, ADR 0068), CFG-105, APP-604 and API-504 (level 2 switch, ADR 0071).
-    assert_eq!(ErrorCode::ALL.len(), 96);
+    // MCP-202 and MCP-203 (WP-26), AUTH-401 (WP-59), CLI-102 (WP-33), API-403, API-601, APP-202 and APP-601 (WP-42), SEC-202 and CLI-103 (WP-73), EXP-201 (WP-75), PRJ-303 (cancelling a scan, #168), RES-101, RES-302 and RES-501 (SCIP import, ADR 0033), RES-303 (symbols created by level 2, ADR 0055), RES-201, RES-502, RES-503, RES-504, RES-601, SEC-301 and SEC-403 (indexer runner, ADR 0033), API-502 and API-503 (server limits, #88), PRJ-501 (parallel scans, #125), CHK-106 (parameter limit, ADR 0048), APP-602 (embedded language packs, #327), CFG-104 (layers written from the UI, ADR 0065), APP-603 (tray start, ADR 0067), ANN-101, ANN-102, ANN-103, ANN-104, ANN-105, ANN-201, ANN-202 and ANN-301 (annotations and alerts, ADR 0068), CFG-105, APP-604 and API-504 (level 2 switch, ADR 0071), PRJ-502 (scan report, ADR 0072).
+    assert_eq!(ErrorCode::ALL.len(), 97);
     assert_eq!(Group::ALL.len(), 19);
 }
 

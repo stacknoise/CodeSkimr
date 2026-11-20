@@ -44,7 +44,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 16));
+    assert_eq!((mode.as_str(), version), ("wal", 17));
 }
 
 #[test]
@@ -567,7 +567,10 @@ fn a_version_eleven_database_keeps_its_layers_without_a_limit() {
     drop(SqliteStore::open(&db.0, keep(3)).unwrap());
     let conn = Connection::open(&db.0).unwrap();
     conn.execute_batch(
-        "DROP TABLE alert;
+        "DROP TABLE level2_languages;
+         DROP TABLE level2_reports;
+         DROP TABLE scan_reports;
+         DROP TABLE alert;
          DROP TABLE annotation_baseline;
          DROP TABLE annotation;
          DROP TABLE snapshot_warnings;

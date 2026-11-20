@@ -19,6 +19,7 @@ mod keys;
 mod level2;
 mod outline;
 mod query;
+mod report;
 mod rescan;
 mod similarity;
 mod source;
@@ -53,6 +54,9 @@ pub use outline::{CodeOutline, MemberRow, OutlineNode};
 pub use query::{
     CodeIndex, CodeSpan, FileHit, MemberRef, SearchHit, SymbolDetail, SymbolKey, TypeFocus,
     TypeNeighbour,
+};
+pub use report::{
+    LanguageLine, LanguageOutcome, LastScan, Level2Report, ReportWrite, ScanReport, ScanReportStore,
 };
 pub use rescan::{PathsReport, ProjectScanner, Rescanned};
 pub use similarity::{SimilarHit, SimilarQuery, SimilarityIndex};

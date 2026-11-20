@@ -22,8 +22,8 @@ use codeskimr_application::conventions::ConventionChecker;
 use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{
     AnnotationStore, Clock, CodeIndex, ProjectCatalog, ProjectKeys, ProjectRepository,
-    ProjectScanner, ProjectToolCheck, SimilarityIndex, SnippetFingerprinter, SymbolDetail,
-    SymbolKey, UsageIndex,
+    ProjectScanner, ProjectToolCheck, ScanReportStore, SimilarityIndex, SnippetFingerprinter,
+    SymbolDetail, SymbolKey, UsageIndex,
 };
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{Project, ProjectId, QualifiedName, Snapshot, SymbolId};
@@ -95,6 +95,8 @@ pub struct Ports {
     pub key_sources: KeySources,
     /// The annotations and alerts, for `list_annotations` and `get_alerts` (ADR 0068).
     pub annotations: Arc<dyn AnnotationStore>,
+    /// What the newest scan says about itself, for `get_project` (ADR 0072).
+    pub reports: Arc<dyn ScanReportStore>,
 }
 
 /// The tools of the server; all of them only read except `rescan`.
@@ -113,6 +115,7 @@ pub struct Tools {
     keys: Arc<dyn ProjectKeys>,
     key_sources: KeySources,
     annotations: Arc<dyn AnnotationStore>,
+    reports: Arc<dyn ScanReportStore>,
     limits: McpLimits,
     default_project: Option<ProjectId>,
 }
@@ -148,6 +151,7 @@ impl Tools {
             keys: ports.keys,
             key_sources: ports.key_sources,
             annotations: ports.annotations,
+            reports: ports.reports,
             limits,
             default_project,
         }
@@ -266,6 +270,10 @@ impl Tools {
 
     pub(crate) const fn key_sources(&self) -> &KeySources {
         &self.key_sources
+    }
+
+    pub(crate) fn reports(&self) -> &dyn ScanReportStore {
+        self.reports.as_ref()
     }
 
     pub(crate) fn annotation_store(&self) -> &dyn AnnotationStore {

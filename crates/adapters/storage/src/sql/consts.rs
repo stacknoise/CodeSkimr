@@ -625,3 +625,28 @@ pub const ENSURE_STATE_INDEXES: &str = "\
 pub const STATE_SAME_NAME: &str = "SELECT s.kind, s.qualified_name FROM symbol_rows s \
     JOIN files f ON f.id = s.file_id AND f.snapshot_id = ?1 \
     WHERE s.name = ?2 AND s.origin = ?3 ORDER BY s.id";
+
+/// Replaces the header of the newest scan: project id, time, level, origin. Inserts nothing for a
+/// project that does not exist.
+pub const SCAN_REPORT_UPSERT: &str = "INSERT INTO scan_reports (project_id, scanned_at, level, origin) \
+    SELECT id, ?2, ?3, ?4 FROM projects WHERE id = ?1 \
+    ON CONFLICT (project_id) DO UPDATE SET scanned_at = excluded.scanned_at, \
+    level = excluded.level, origin = excluded.origin";
+/// The header of the newest scan: project id.
+pub const SCAN_REPORT_BY_PROJECT: &str =
+    "SELECT scanned_at, level, origin FROM scan_reports WHERE project_id = ?1";
+/// Replaces the header of the newest second pass: project id, time, origin.
+pub const LEVEL2_REPORT_UPSERT: &str = "INSERT INTO level2_reports (project_id, run_at, origin) \
+    SELECT id, ?2, ?3 FROM projects WHERE id = ?1 \
+    ON CONFLICT (project_id) DO UPDATE SET run_at = excluded.run_at, origin = excluded.origin";
+/// The header of the newest second pass: project id.
+pub const LEVEL2_REPORT_BY_PROJECT: &str =
+    "SELECT run_at, origin FROM level2_reports WHERE project_id = ?1";
+/// Removes the language lines of a project: project id.
+pub const LEVEL2_LANGUAGES_DELETE: &str = "DELETE FROM level2_languages WHERE project_id = ?1";
+/// Adds one language line: project id, language, outcome, files, stale, reason, code.
+pub const LEVEL2_LANGUAGE_INSERT: &str = "INSERT INTO level2_languages \
+    (project_id, language, outcome, files, stale, reason, code) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)";
+/// The language lines of a project in the order of the language id: project id.
+pub const LEVEL2_LANGUAGES_BY_PROJECT: &str = "SELECT language, outcome, files, stale, reason, code \
+    FROM level2_languages WHERE project_id = ?1 ORDER BY language";
