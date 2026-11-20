@@ -24,18 +24,34 @@ pub struct SystemPicker {
     open: AtomicBool,
 }
 
+/// The one place for an open dialog; it is free again when this is dropped, also if the dialog
+/// panics.
+struct Open<'a>(&'a AtomicBool);
+
+impl Drop for Open<'_> {
+    fn drop(&mut self) {
+        self.0.store(false, Ordering::Release);
+    }
+}
+
+impl SystemPicker {
+    /// Takes the place for a dialog; `None` if a dialog is open already.
+    fn claim(&self) -> Option<Open<'_>> {
+        (!self.open.swap(true, Ordering::AcqRel)).then_some(Open(&self.open))
+    }
+}
+
 impl FolderPicker for SystemPicker {
     fn available(&self) -> bool {
         cfg!(any(windows, target_os = "macos"))
     }
 
     fn pick(&self) -> Option<PathBuf> {
-        if !self.available() || self.open.swap(true, Ordering::AcqRel) {
+        if !self.available() {
             return None;
         }
-        let chosen = show();
-        self.open.store(false, Ordering::Release);
-        chosen
+        let _open = self.claim()?;
+        show()
     }
 }
 
@@ -47,4 +63,22 @@ fn show() -> Option<PathBuf> {
 #[cfg(not(any(windows, target_os = "macos")))]
 fn show() -> Option<PathBuf> {
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_second_dialog_is_refused_while_one_is_open() {
+        let picker = SystemPicker::default();
+        let first = picker.claim();
+        assert!(first.is_some());
+        assert!(picker.claim().is_none(), "the second click gets no dialog");
+        drop(first);
+        assert!(
+            picker.claim().is_some(),
+            "the place is free after the dialog closed"
+        );
+    }
 }
