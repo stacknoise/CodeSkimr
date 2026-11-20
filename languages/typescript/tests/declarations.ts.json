@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 61,
+      "loc": 63,
       "operands": null,
       "operators": null,
       "symbol": "declarations"
@@ -201,7 +201,7 @@
     },
     {
       "decisions": null,
-      "loc": 3,
+      "loc": 5,
       "operands": null,
       "operators": null,
       "symbol": "declarations.Util"
@@ -255,7 +255,7 @@
       "symbol": "declarations.Empty"
     }
   ],
-  "loc": 61,
+  "loc": 63,
   "references": [
     {
       "at": "0:9",
@@ -293,7 +293,7 @@
       "target": "Order"
     },
     {
-      "at": "85:17",
+      "at": "88:17",
       "from": "declarations.Ambient.make",
       "kind": "type_use",
       "receiver": null,
@@ -307,7 +307,7 @@
       "name": "declarations",
       "parent": null,
       "signature": null,
-      "span": "0:0-95:0",
+      "span": "0:0-98:0",
       "static": false,
       "visibility": null
     },
@@ -627,9 +627,29 @@
       "name": "declarations.Util",
       "parent": "declarations",
       "signature": null,
-      "span": "78:7-80:1",
+      "span": "78:7-83:1",
       "static": false,
       "visibility": "public"
+    },
+    {
+      "doc": "The most that helps.",
+      "kind": "constant",
+      "name": "declarations.Util.LIMIT",
+      "parent": "declarations.Util",
+      "signature": "LIMIT = 3",
+      "span": "80:15-80:24",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constant",
+      "name": "declarations.Util.hidden",
+      "parent": "declarations.Util",
+      "signature": "hidden = 'x'",
+      "span": "81:8-81:20",
+      "static": false,
+      "visibility": "private"
     },
     {
       "doc": null,
@@ -637,7 +657,7 @@
       "name": "declarations.Util.help",
       "parent": "declarations.Util",
       "signature": null,
-      "span": "79:9-79:27",
+      "span": "82:9-82:27",
       "static": false,
       "visibility": "public"
     },
@@ -647,7 +667,7 @@
       "name": "declarations.legacy",
       "parent": "declarations",
       "signature": null,
-      "span": "82:8-82:41",
+      "span": "85:8-85:41",
       "static": false,
       "visibility": "private"
     },
@@ -657,7 +677,7 @@
       "name": "declarations.VERSION",
       "parent": "declarations",
       "signature": "VERSION: string",
-      "span": "83:21-83:36",
+      "span": "86:21-86:36",
       "static": false,
       "visibility": "public"
     },
@@ -667,7 +687,7 @@
       "name": "declarations.Ambient",
       "parent": "declarations",
       "signature": null,
-      "span": "84:8-87:1",
+      "span": "87:8-90:1",
       "static": false,
       "visibility": "private"
     },
@@ -677,7 +697,7 @@
       "name": "declarations.Ambient.make",
       "parent": "declarations.Ambient",
       "signature": null,
-      "span": "85:2-85:24",
+      "span": "88:2-88:24",
       "static": true,
       "visibility": "public"
     },
@@ -687,7 +707,7 @@
       "name": "declarations.Ambient.run",
       "parent": "declarations.Ambient",
       "signature": null,
-      "span": "86:2-86:13",
+      "span": "89:2-89:13",
       "static": false,
       "visibility": "public"
     },
@@ -697,7 +717,7 @@
       "name": "declarations.handlers",
       "parent": "declarations",
       "signature": "handlers = {\n  onClick() {},\n}",
-      "span": "89:13-91:1",
+      "span": "92:13-94:1",
       "static": false,
       "visibility": "public"
     },
@@ -707,7 +727,7 @@
       "name": "declarations.Empty",
       "parent": "declarations",
       "signature": null,
-      "span": "94:7-94:21",
+      "span": "97:7-97:21",
       "static": false,
       "visibility": "public"
     }
