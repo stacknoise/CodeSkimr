@@ -36,7 +36,7 @@ describe("the accuracy note of the usages card", () => {
     ]);
     expect(accuracyNote(answer("rust", scan))).toBe("Level 2 checked Rust: 12 files.");
     expect(accuracyNote(answer("csharp", scan))).toMatch(/in part: 5 files, 2 changed since/);
-    expect(accuracyNote(answer("java", scan))).toMatch(/skipped Java: another stage 2 run/);
+    expect(accuracyNote(answer("java", scan))).toMatch(/skipped Java: not started again because another stage 2 run/);
     expect(accuracyNote(answer("python", scan))).toMatch(/failed for Python \(RES-502\)/);
     expect(accuracyNote(answer("go", scan))).toMatch(/no indexer for Go/);
   });
