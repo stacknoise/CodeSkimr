@@ -21,7 +21,7 @@ import {
   WAY,
   type Way,
 } from "./consts";
-import { codeByPlace } from "./hits";
+import { codeByPlace, depthsUpTo } from "./hits";
 import type { CodeAnswer, Place, UsagesAnswer } from "./types";
 
 const [way, setWay] = createSignal<Way>(WAY.both);
@@ -44,6 +44,10 @@ export { focusSymbol };
 export const direction = way;
 export const setDirection = setWay;
 export const walkDepth = depth;
+const [depthLimit, setDepthLimit] = createSignal<number | null>(null);
+/** The depths the toolbar offers; the export holds only one step and limits them. */
+export const depthChoices = () => depthsUpTo(depthLimit());
+export const limitDepths = setDepthLimit;
 export const setWalkDepth = setDepth;
 export const testsShown = showTests;
 export const setTestsShown = setShowTests;

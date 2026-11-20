@@ -128,3 +128,29 @@ fn an_existing_ui_folder_wins_over_the_program() {
     let empty = tempfile::tempdir().unwrap();
     assert!(page_from(Some(empty.path()), EMBEDDED).is_err());
 }
+
+#[test]
+fn the_hits_name_their_places_by_id_and_the_walk_is_direct_only() {
+    let fixture = Fixture::installed(Some(PAGE));
+    let caller = "namespace Demo;\n\npublic class Use\n{\n    public int Run(Calculator c) { return c.Add(1, 2); }\n}\n";
+    std::fs::write(fixture.root.path().join("app/Use.cs"), caller).unwrap();
+    let project = fixture.scanned();
+    let data = fixture.data(project);
+    let places = data["places"].as_object().unwrap();
+    let hits: Vec<_> = data["usages"]
+        .as_object()
+        .unwrap()
+        .values()
+        .flat_map(|u| ["incoming", "outgoing"].map(|way| u["answer"][way]["hits"].clone()))
+        .filter_map(|hits| hits.as_array().cloned())
+        .flatten()
+        .collect();
+    assert!(!hits.is_empty(), "the scan has references");
+    for hit in &hits {
+        assert_eq!(hit["depth"], 1);
+        for end in ["from", "to"] {
+            let id = hit[end].as_u64().expect("a place is named by its id");
+            assert!(places.contains_key(&id.to_string()));
+        }
+    }
+}

@@ -2,13 +2,14 @@ import { For } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { cx } from "../../shared/ui/cx";
-import { DEPTH_ALL, DEPTHS, ROLE, WAYS } from "./consts";
+import { DEPTH_ALL, ROLE, WAYS } from "./consts";
 import {
   direction,
   setDirection,
   setTestsShown,
   setWalkDepth,
   testsShown,
+  depthChoices,
   walkDepth,
 } from "./usages";
 import styles from "./Toolbar.module.css";
@@ -48,7 +49,7 @@ export function Toolbar(props: { onBack: () => void }) {
           value={walkDepth()}
           onChange={(event) => setWalkDepth(Number(event.currentTarget.value))}
         >
-          <For each={DEPTHS}>
+          <For each={depthChoices()}>
             {(depth) => (
               <option value={depth} selected={depth === walkDepth()}>
                 {depth === DEPTH_ALL ? t(I18N_KEYS.USAGES_DEPTH_ALL) : depth}

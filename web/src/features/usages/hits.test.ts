@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { ANSWER, HANDLER, VIEW } from "../../tests/usages";
-import { listedHits, splitAt } from "./hits";
+import { depthsUpTo, listedHits, splitAt } from "./hits";
 
 describe("listedHits", () => {
   it("lists only the direct hits", () => {
@@ -22,5 +22,16 @@ describe("splitAt", () => {
 
   it("marks nothing if the word is only part of other names", () => {
     expect(splitAt("AcceptedOperation", "Accept").word).toBe("");
+  });
+});
+
+describe("depthsUpTo", () => {
+  it("offers every depth and `all` when nothing limits the walk", () => {
+    expect(depthsUpTo(null)).toEqual([1, 2, 3, 0]);
+  });
+
+  it("offers only the steps up to the limit and never `all`", () => {
+    expect(depthsUpTo(1)).toEqual([1]);
+    expect(depthsUpTo(2)).toEqual([1, 2]);
   });
 });
