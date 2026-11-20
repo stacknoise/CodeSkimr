@@ -267,8 +267,13 @@ fn removal_needs_the_token_and_the_origin(url: &str, token: &str) {
 /// to open it: the guard refuses it like a removal. No control opens the dialog; the question
 /// whether one exists is a read and is answered.
 fn the_folder_dialog_needs_the_token_and_the_origin(url: &str, token: &str) {
-    assert_guarded(url, token, "projects.pick_folder", &json!({}));
-    let answer = command_request(url, "projects.folder_dialog", &[bearer(token)], &json!({}));
+    assert_guarded(url, token, "projects.pick_folder", &Value::Null);
+    let answer = command_request(
+        url,
+        "projects.folder_dialog",
+        &[bearer(token)],
+        &Value::Null,
+    );
     assert!(answer.contains("available"), "{answer}");
 }
 
