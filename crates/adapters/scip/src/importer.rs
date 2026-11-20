@@ -9,7 +9,7 @@ use codeskimr_application::ports::{ImportRequest, Imported, ReferenceImporter, S
 use codeskimr_domain::{FolderPath, Reference, RelativePath};
 
 use crate::columns::convert_columns;
-use crate::consts::FIRST_LINE;
+use crate::consts::{FIRST_LINE, MAX_REFERENCES_PER_IMPORT};
 use crate::create::Creation;
 use crate::decode::read_index;
 use crate::mapping::{SnapshotView, import_with_creation};
@@ -65,6 +65,7 @@ impl ReferenceImporter for ScipImporter {
             separator: request.separator,
             max_symbols: request.max_created_symbols,
             library_root: request.library_root,
+            max_references: MAX_REFERENCES_PER_IMPORT,
         };
         let outcome = import_with_creation(&index, &view, request.min_mapped, &creation)
             .map_err(CodedError::caused_by)?;

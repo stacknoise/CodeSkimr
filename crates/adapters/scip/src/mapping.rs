@@ -11,7 +11,9 @@ use codeskimr_domain::{
     SymbolId, SymbolKind, SymbolOrigin,
 };
 
-use crate::consts::{MAX_OVERLOAD_TARGETS, MAX_SYMBOLS_PER_KEY, NO_OWNER, SUFFIX_TYPE};
+use crate::consts::{
+    MAX_OVERLOAD_TARGETS, MAX_SYMBOLS_PER_KEY, MAX_TARGETS_PER_SYMBOL, NO_OWNER, SUFFIX_TYPE,
+};
 use crate::create::{Creation, created_symbols};
 use crate::error::ScipError;
 use crate::fitting::Fitting;
@@ -335,7 +337,7 @@ impl<'a> Importer<'a> {
         match self.table.definition(file, occurrence.range, descriptor) {
             Some(target) => {
                 let targets = self.targets.entry(occurrence.symbol).or_default();
-                if !targets.contains(&target) {
+                if targets.len() < MAX_TARGETS_PER_SYMBOL && !targets.contains(&target) {
                     targets.push(target);
                 }
             }
@@ -788,7 +790,8 @@ impl<'a> Importer<'a> {
         document: &ScipDocument,
         file: FileId,
         level_one: &LevelOne<'_>,
-    ) -> Vec<Reference> {
+        limit: usize,
+    ) -> Result<Vec<Reference>, ScipError> {
         self.locals = self
             .locals_of(document, file)
             .into_iter()
@@ -808,9 +811,12 @@ impl<'a> Importer<'a> {
             } else {
                 self.place(file, occurrence, level_one)
             });
+            if found.len() > limit {
+                return Err(ScipError::TooManyReferences { limit });
+            }
         }
         found.extend(self.implicit_calls(file, document));
-        found
+        Ok(found)
     }
 
     /// The level 2 references of all covered documents, each place once.
@@ -818,7 +824,8 @@ impl<'a> Importer<'a> {
         &mut self,
         covered: &[(&ScipDocument, FileId)],
         level_one: &LevelOne<'_>,
-    ) -> Vec<Reference> {
+        limit: usize,
+    ) -> Result<Vec<Reference>, ScipError> {
         let mut seen: HashSet<(FileId, SymbolId, SymbolId, Span)> = HashSet::new();
         let mut placed = Vec::new();
         self.frozen = self
@@ -829,15 +836,18 @@ impl<'a> Importer<'a> {
             .collect();
         self.collect_superclasses(covered, level_one);
         for (document, file) in covered {
-            let found = self.place_document(document, *file, level_one);
+            let found = self.place_document(document, *file, level_one, limit)?;
             for reference in found {
                 let key = (reference.file, reference.from, reference.to, reference.span);
                 if seen.insert(key) {
                     placed.push(reference);
                 }
             }
+            if placed.len() > limit {
+                return Err(ScipError::TooManyReferences { limit });
+            }
         }
-        placed
+        Ok(placed)
     }
 }
 
@@ -1002,8 +1012,12 @@ pub fn import_with_creation(
         symbols: &all,
         ..*snapshot
     };
-    let mut outcome =
-        place_references(index, &view, &covered, (min_mapped, creation.library_root))?;
+    let mut outcome = place_references(
+        index,
+        &view,
+        &covered,
+        (min_mapped, creation.library_root, creation.max_references),
+    )?;
     outcome.stats.files_unmatched = unmatched;
     outcome.symbols = created;
     Ok(outcome)
@@ -1014,7 +1028,7 @@ fn place_references(
     index: &ScipIndex,
     snapshot: &SnapshotView<'_>,
     covered: &[(&ScipDocument, FileId)],
-    (min_mapped, library_root): (f64, &str),
+    (min_mapped, library_root, max_references): (f64, &str, usize),
 ) -> Result<ImportOutcome, ScipError> {
     let mut importer = Importer::new(index, *snapshot, library_root);
     let covered_files: HashSet<FileId> = covered.iter().map(|(_, file)| *file).collect();
@@ -1023,7 +1037,7 @@ fn place_references(
     importer.collect_overload_heads(covered);
     importer.link_impls();
     let level_one = LevelOne::new(snapshot.references, &covered_files);
-    let fresh = importer.place_all(covered, &level_one);
+    let fresh = importer.place_all(covered, &level_one, max_references)?;
     check_threshold(&importer.stats, min_mapped)?;
     let mut references: Vec<Reference> = snapshot
         .references
