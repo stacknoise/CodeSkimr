@@ -214,6 +214,21 @@ mod tests {
     }
 
     #[test]
+    fn a_helper_of_a_test_file_is_no_target_of_a_file_that_is_no_test_file() {
+        let mut shop = shop();
+        let (_, tool) = shop.table.add_tool("Elsewhere", 3);
+        let tests = HashSet::from([FileId::new(3), FileId::new(4)]);
+        let from_production = [occurrence(shop.save, 2, ReferenceKind::TypeUse, "Tool")];
+        assert!(resolve_with_tests(&shop.table, &from_production, &tests).is_empty());
+        // A test file may use the helper, and so may the file that declares it.
+        for file in [3, 4] {
+            let from_test = [occurrence(shop.save, file, ReferenceKind::TypeUse, "Tool")];
+            let found = resolve_with_tests(&shop.table, &from_test, &tests);
+            assert_eq!(targets(&found), [tool]);
+        }
+    }
+
+    #[test]
     fn an_import_makes_the_name_certain() {
         let mut shop = shop();
         let (elsewhere, tool) = shop.table.add_tool("Elsewhere", 3);

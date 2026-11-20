@@ -70,10 +70,10 @@ impl ReferenceResolver for ScopedResolver {
             for occurrence in pending.iter().filter(|p| Pass::of(p.kind) == pass) {
                 let hits = context.lookup(occurrence);
                 context.learn(occurrence, &hits);
-                for mut hit in hits {
-                    if test_files.contains(&occurrence.file) {
-                        hit.kind = kinds::in_test(hit.kind);
-                    }
+                for hit in hits {
+                    let Some(hit) = context.placed(occurrence, hit, test_files) else {
+                        continue;
+                    };
                     if seen.insert(edge_of(occurrence, &hit)) {
                         references.push(reference_of(occurrence, hit, ids));
                     }
@@ -81,6 +81,28 @@ impl ReferenceResolver for ScopedResolver {
             }
         }
         Ok(references)
+    }
+}
+
+impl Context<'_> {
+    /// The hit as it is stored: `None` if it points from production code into a test file (test
+    /// helpers are no target of code that ships, however unique their name is, so a library call
+    /// of the same name is not taken for the helper; a test file may use them, and a file always
+    /// sees its own symbols), and a test reference if the occurrence is in a test file.
+    fn placed(
+        &self,
+        occurrence: &PendingReference,
+        mut hit: Hit,
+        test_files: &HashSet<FileId>,
+    ) -> Option<Hit> {
+        if test_files.contains(&occurrence.file) {
+            hit.kind = kinds::in_test(hit.kind);
+            return Some(hit);
+        }
+        let into_test_file = self.table.get(hit.to).is_some_and(|target| {
+            target.file != occurrence.file && test_files.contains(&target.file)
+        });
+        (!into_test_file).then_some(hit)
     }
 }
 

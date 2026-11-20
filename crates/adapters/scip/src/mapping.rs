@@ -258,6 +258,8 @@ struct Importer<'a> {
     trait_members: HashSet<SymbolId>,
     stats: ImportStats,
     next_id: u64,
+    /// Where level 1 read the name of an import: a use at such a place is no usage (issue #250).
+    import_sites: HashSet<(FileId, Position)>,
 }
 
 impl<'a> Importer<'a> {
@@ -297,6 +299,7 @@ impl<'a> Importer<'a> {
             frozen: HashMap::new(),
             stats: ImportStats::default(),
             next_id: highest.map_or(0, |id| id.saturating_add(1)),
+            import_sites: HashSet::new(),
         }
     }
 
@@ -700,6 +703,13 @@ impl<'a> Importer<'a> {
         occurrence: &Occurrence,
         level_one: &LevelOne<'_>,
     ) -> Vec<Reference> {
+        if self
+            .import_sites
+            .contains(&(file, occurrence.range.start()))
+        {
+            // The name in an import statement is not a use (issue #250), as at level 1.
+            return self.count(Count::Ignored);
+        }
         let targets = match self.fate(file, occurrence.symbol) {
             Fate::Ignore => return self.count(Count::Ignored),
             Fate::Library => return self.count(Count::Library),
@@ -978,6 +988,22 @@ pub fn import_with_creation(
     min_mapped: f64,
     creation: &Creation<'_>,
 ) -> Result<ImportOutcome, ScipError> {
+    import_with_sites(index, snapshot, (min_mapped, creation), &[])
+}
+
+/// As [`import_with_creation`], and the occurrences that start at one of `import_sites` (file and
+/// start of the name in an import statement, as level 1 read it) are not uses: the import of a
+/// name is no usage of it, in any language (issue #250). Level 1 keeps no reference for such a
+/// place either.
+///
+/// # Errors
+/// As [`import_with_creation`].
+pub fn import_with_sites(
+    index: &ScipIndex,
+    snapshot: &SnapshotView<'_>,
+    (min_mapped, creation): (f64, &Creation<'_>),
+    import_sites: &[(FileId, Position)],
+) -> Result<ImportOutcome, ScipError> {
     let (covered, unmatched) = covered_documents(index, snapshot.files);
     let syntax = syntax_symbols(snapshot.symbols);
     let first_id = snapshot
@@ -1002,8 +1028,12 @@ pub fn import_with_creation(
         symbols: &all,
         ..*snapshot
     };
-    let mut outcome =
-        place_references(index, &view, &covered, (min_mapped, creation.library_root))?;
+    let mut outcome = place_references(
+        index,
+        &view,
+        &covered,
+        (min_mapped, creation.library_root, import_sites),
+    )?;
     outcome.stats.files_unmatched = unmatched;
     outcome.symbols = created;
     Ok(outcome)
@@ -1014,9 +1044,10 @@ fn place_references(
     index: &ScipIndex,
     snapshot: &SnapshotView<'_>,
     covered: &[(&ScipDocument, FileId)],
-    (min_mapped, library_root): (f64, &str),
+    (min_mapped, library_root, import_sites): (f64, &str, &[(FileId, Position)]),
 ) -> Result<ImportOutcome, ScipError> {
     let mut importer = Importer::new(index, *snapshot, library_root);
+    importer.import_sites = import_sites.iter().copied().collect();
     let covered_files: HashSet<FileId> = covered.iter().map(|(_, file)| *file).collect();
     importer.stats.files_replaced = u64::try_from(covered_files.len()).unwrap_or(u64::MAX);
     importer.collect_definitions(covered);
