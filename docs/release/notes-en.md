@@ -16,8 +16,8 @@ Manual: `docs/manual/en/`. Data: `%LOCALAPPDATA%\codeskimr` (Windows), `~/.local
 
 - Usages are not compiler-exact everywhere. Measured with level 2 (exact indexers) on the test corpora: Rust, TypeScript and Java 99 % and above. **Python, C# and Kotlin are below that and are an approximation:** Python finds almost everything (recall 99 %) but also shows wrong hits (precision about 63 %); for C# the indexer scip-dotnet attributes overloads wrongly (recall 34 %, precision 60 %, see `docs/accuracy.md`); Kotlin cannot be measured (no reference tool).
 - Level 2 runs foreign tools in your project and needs your explicit consent; you install the indexers yourself (`indexers.md`).
-- **Large projects:** the goal "100,000 lines in under a second" is not met everywhere. Large C# projects such as Newtonsoft.Json take about 1.4 s for a full scan; the improvement (#410) comes after 1.0.
-- **.NET preview SDK:** with a .NET preview SDK and `allowPrerelease` the tool check can show a wrong "too new" or "missing" hint (#379, comes after 1.0).
+- **Large projects:** the goal "100,000 lines in under a second" is not met everywhere. Large C# projects take about 1.4 s per 100,000 lines (Newtonsoft.Json, 197,000 lines: about 3 s, measured in a Linux container); the improvement (#410) comes after 1.0.
+- **.NET preview SDK:** with a .NET preview SDK and `allowPrerelease` the tool check can show a wrong "too new" hint (known limit of the tool check, see #379).
 - No signature (Windows, macOS; first task after 1.0) and no installer: one single file per system.
 
 Feedback as an issue in `stacknoise/CodeSkimr`.
