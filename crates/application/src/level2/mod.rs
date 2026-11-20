@@ -1,8 +1,8 @@
 //! Who may run indexers for level 2, and when (ADR 0033, decisions 9 and 10).
 //!
 //! An indexer runs the build tools of the project, which means project code. So it runs only if
-//! the local owner enabled level 2 for the project in the **user configuration or the user's own
-//! project record** and confirmed it once. The `level2` table of the project's `.codeskimr.toml`
+//! the local owner switched level 2 on in the **user configuration** (`[level2] enabled`, the
+//! master switch, ADR 0076) and confirmed it once for the project. The `level2` table of the project's `.codeskimr.toml`
 //! never counts (see `config`). Confirming and starting need their own permissions; MCP, REST
 //! tokens, watch mode and CI have no way to confirm, and a missing confirmation stops them like
 //! everybody else.
@@ -88,7 +88,7 @@ fn run_folder<'a>(project: &'a Project, clone: &'a FolderPath) -> &'a Path {
 }
 
 /// Lets a run of indexers for `project` pass and returns the proof the runner needs: the principal
-/// may start them, level 2 is enabled in the user configuration or the project record, and the
+/// may start them, `[level2] enabled` is set in the user configuration (the master switch, ADR 0076), and the
 /// project record holds a confirmation for the source the project has now. The indexer runs in
 /// the folder of the project record (a folder source) or in `clone`, the folder the source adapter
 /// made of a Git source.

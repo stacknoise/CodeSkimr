@@ -114,7 +114,7 @@ Owner: `codeskimr_secrets, codeskimr_application`
 |---|---|---|---|---|---|
 | SEC-201 | `credential_not_found` | error | no | 0.1.0 | The referenced credential does not exist in the keystore. |
 | SEC-202 | `credential_damaged` | error | no | 0.1.0 | The keystore entry of the credential cannot be read; delete it and create the credential again. |
-| SEC-301 | `indexer_not_confirmed` | error | no | 0.1.0 | Level 2 is not enabled and confirmed for this project in the user configuration or the user's own project record, so no indexer is started. |
+| SEC-301 | `indexer_not_confirmed` | error | no | 0.1.0 | Level 2 is not enabled in the user configuration (`[level2] enabled`) or not confirmed for this project, so no indexer is started. |
 | SEC-401 | `credential_rejected` | error | no | 0.1.0 | The platform rejected the credential. |
 | SEC-402 | `keystore_access_denied` | error | no | 0.1.0 | The OS keystore denied access. |
 | SEC-403 | `indexer_not_permitted` | error | no | 0.1.0 | The caller may not confirm or start indexers; only the local owner may (ADR 0033, decision 10). |
