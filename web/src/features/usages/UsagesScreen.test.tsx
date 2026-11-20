@@ -198,6 +198,18 @@ describe("UsagesScreen", () => {
     expect(screen.queryByRole("separator", { name: "Resize column Place" })).toBeNull();
   });
 
+  it("lights the path of a hit in the graph when its row is clicked", async () => {
+    shown();
+    await screen.findByText("Hits 3");
+    const graph = screen.getByRole("region", { name: "Usage graph" });
+    const card = (name: string) => within(graph).getByTitle(name);
+    expect(card("Shop.Ui.CartView.Render").className).not.toMatch(/dim/);
+    fireEvent.click(screen.getByText("src/Handler.cs:7"));
+    expect(card("Shop.App.CartHandler.Handle").className).not.toMatch(/dim/);
+    expect(card("Shop.Ui.CartView.Render").className).toMatch(/dim/);
+    expect(card("Shop.Cart.Total").className).not.toMatch(/dim/);
+  });
+
   it("keeps the hit list when the code cannot be read", async () => {
     shown();
     await screen.findByText("Hits 3");

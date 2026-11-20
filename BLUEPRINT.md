@@ -347,7 +347,7 @@ languages/csharp/
 ├─ language.toml      metadata and rules
 ├─ symbols.scm        Tree-sitter query: declarations → symbol kinds
 ├─ references.scm     Tree-sitter query: identifiers, calls, imports, scopes
-├─ metrics.scm        Tree-sitter query: comments, decision points, Halstead operators and operands, cognitive complexity and parameters (ADR 0048)
+├─ metrics.scm        Tree-sitter query: comments, decision points, Halstead operators and operands, cognitive complexity, parameters (ADR 0048) and literals (ADR 0058)
 ├─ highlights.scm     syntax highlighting for the UI (captures: ADR 0064)
 └─ tests/             small sample files + expected JSON (golden tests)
 ```

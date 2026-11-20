@@ -20,9 +20,10 @@ Projekt anlegen und scannen: Handbuch unter `docs/manual/de/projekte-und-scan.md
 
 ## Bekannte Grenzen
 
-<!-- ENTWURF: Die Aussage zur Genauigkeit ist Antons Entscheidung (Empfehlung: so nennen). Zahlen: docs/accuracy.md, docs/acceptance/level2.md; vor dem Veröffentlichen neu prüfen. -->
 - **Verwendungen (Wo wird das benutzt?)** sind nicht überall compilergenau. Mit Stufe 2 (genaue Indexer) gemessen auf den Testkorpora: Rust, TypeScript und Java 99 % und mehr. **Python, C# und Kotlin liegen darunter und sind eine Näherung:** Python findet fast alles (Trefferquote 99 %), zeigt aber auch falsche Treffer (Genauigkeit rund 63 %); bei C# ordnet der Indexer scip-dotnet Überladungen falsch zu (Trefferquote 34 %, Genauigkeit 60 %, siehe `docs/accuracy.md`); Kotlin lässt sich nicht messen (kein Referenzwerkzeug).
 - Stufe 2 startet fremde Werkzeuge im Projekt und braucht Ihre ausdrückliche Zustimmung; die Indexer installieren Sie selbst (Handbuch: `indexer.md`).
+- **Große Projekte:** Das Ziel „100.000 Zeilen in unter einer Sekunde“ erreichen wir nicht überall. Große C#-Projekte brauchen etwa 1,4 s je 100.000 Zeilen (Newtonsoft.Json mit 197.000 Zeilen: rund 3 s, gemessen im Linux-Container); die Verbesserung (#410) kommt nach 1.0.
+- **.NET-Vorschau-SDK:** Wer ein .NET-Vorschau-SDK mit `allowPrerelease` benutzt, kann in der Werkzeugprüfung einen falschen Hinweis „zu neu“ sehen (bekannte Grenze der Werkzeugprüfung, siehe #379).
 - Keine Signatur (Windows, macOS; kommt als Erstes nach 1.0) und kein Installationsprogramm: eine einzelne Datei je System.
 
 Rückmeldungen bitte als Issue im Repository `stacknoise/CodeSkimr`.

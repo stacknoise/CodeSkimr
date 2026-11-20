@@ -58,6 +58,11 @@ pub enum Detail {
         /// The configured maximum.
         limit: u32,
     },
+    /// `CHK-101`: the function contains literals outside the exceptions of rule R-06.
+    Literals {
+        /// How many there are.
+        count: u32,
+    },
     /// `CHK-102`: the function is a near copy of an earlier one.
     Duplicate {
         /// The function that came first in path and line order.
@@ -77,6 +82,8 @@ pub struct Measure<'a> {
     pub value: Option<u32>,
     /// The most that is allowed: the maximum of the lines or of the value.
     pub limit: Option<u32>,
+    /// `CHK-101`: the number of literals in the function.
+    pub literals: Option<u32>,
     /// `CHK-102`: the earlier function this one copies.
     pub duplicate_of: Option<&'a Location>,
     /// `CHK-102`: the similarity in whole percent.
@@ -96,6 +103,10 @@ impl Detail {
             Self::Over { value, limit } => Measure {
                 value: Some(*value),
                 limit: Some(*limit),
+                ..Measure::default()
+            },
+            Self::Literals { count } => Measure {
+                literals: Some(*count),
                 ..Measure::default()
             },
             Self::Duplicate {

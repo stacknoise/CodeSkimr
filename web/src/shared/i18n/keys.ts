@@ -188,6 +188,7 @@ export const I18N_KEYS = {
   CLI_CHECK_FINDING: "cli-check-finding",
   CLI_CHECK_TOO_COMPLEX: "cli-check-too-complex",
   CLI_CHECK_TOO_MANY_PARAMETERS: "cli-check-too-many-parameters",
+  CLI_CHECK_LITERALS: "cli-check-literals",
   CLI_CHECK_TOO_LONG: "cli-check-too-long",
   CLI_CHECK_DUPLICATE: "cli-check-duplicate",
   CLI_CHECK_UNCHECKED: "cli-check-unchecked",

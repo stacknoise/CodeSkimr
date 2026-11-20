@@ -267,12 +267,14 @@ function Plane(props: {
 export function GraphView(props: {
   answer: UsagesAnswer;
   picked: number | null;
+  /** The symbol of the hit selected in the list: its path is lit while no card is picked. */
+  marked: number | null;
   onPick: (card: Card) => void;
   onOpen: (card: Card) => void;
 }) {
   const graph = createMemo(() => buildGraph(props.answer));
   const state = useView(graph);
-  const highlight = createMemo(() => highlightOf(graph(), props.picked));
+  const highlight = createMemo(() => highlightOf(graph(), props.picked ?? props.marked));
   return (
     <div class={styles.frame}>
       <div
