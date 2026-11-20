@@ -177,6 +177,8 @@ pub mod keys {
     pub const UI_LAUNCH_CODE_SECONDS: &str = "ui.launch_code_seconds";
     /// `ui.level2_poll_seconds`
     pub const UI_LEVEL2_POLL_SECONDS: &str = "ui.level2_poll_seconds";
+    /// `ui.approximate_languages`
+    pub const UI_APPROXIMATE_LANGUAGES: &str = "ui.approximate_languages";
     /// `ui.level2_poll_max_seconds`
     pub const UI_LEVEL2_POLL_MAX_SECONDS: &str = "ui.level2_poll_max_seconds";
 }

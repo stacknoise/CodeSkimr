@@ -13,6 +13,9 @@ export interface UiConfig {
   level2_poll_seconds?: number;
   /** Seconds after which the screen stops asking (`ui.level2_poll_max_seconds`). */
   level2_poll_max_seconds?: number;
+  /** Ids of the languages whose usages are an approximation (`ui.approximate_languages`); absent
+   * in a server that does not tell. */
+  approximate_languages?: string[];
 }
 
 const [config, setConfig] = createSignal<UiConfig | null>(null);

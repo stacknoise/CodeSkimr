@@ -340,5 +340,12 @@ fn check_ui(ui: &Ui) -> Result<(), ConfigError> {
     if ui.dir.is_empty() {
         return fail(keys::UI_DIR, Violation::MustNotBeEmpty);
     }
+    if ui
+        .approximate_languages
+        .iter()
+        .any(|id| id.trim().is_empty())
+    {
+        return fail(keys::UI_APPROXIMATE_LANGUAGES, Violation::MustNotBeEmpty);
+    }
     Ok(())
 }

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "@solidjs/testing-library";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { currentPath, navigate } from "../../app/router";
 import { setLanguage } from "../../shared/i18n/i18n";
 import { openProject } from "../../shared/project/active";
@@ -14,6 +14,10 @@ import { RailLink } from "../../app/Frame";
 import { GRAPH_ROUTE } from "../../app/consts";
 import { moveUsages, showUsages } from "../../shared/navigation/navigation";
 import { clearUsages, focusSymbol } from "./usages";
+
+vi.mock("../../shared/settings/ui-config", () => ({
+  uiConfig: () => ({ approximate_languages: ["python"] }),
+}));
 
 useServerSession();
 afterEach(() => {
@@ -404,5 +408,18 @@ describe("the graph of the usages", () => {
     expect(centred.scale).toBe(0.6);
     expect(centred.x).toBe(350);
     expect(centred.y).toBeCloseTo(300 - 2020 * 0.6, 5);
+  });
+
+  it("marks the usages of an approximate language", async () => {
+    shown({ ...ANSWER, language: "python" });
+    expect(await screen.findByText("Approximation")).toBeTruthy();
+    expect(screen.getByText(/Python is an approximation/)).toBeTruthy();
+  });
+
+  it("marks the usages of no other language", async () => {
+    shown({ ...ANSWER, language: "rust" });
+    await screen.findByRole("heading", { name: "Cart.Total" });
+    expect(screen.queryByText("Approximation")).toBeNull();
+    expect(screen.queryByText(/is an approximation/)).toBeNull();
   });
 });

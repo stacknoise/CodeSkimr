@@ -108,6 +108,7 @@ fn ui_options(config: &codeskimr_application::config::Config, locations: &Locati
             default_theme: config.ui.default_theme.clone(),
             level2_poll_seconds: config.ui.level2_poll_seconds,
             level2_poll_max_seconds: config.ui.level2_poll_max_seconds,
+            approximate_languages: config.ui.approximate_languages.clone(),
         },
     }
 }
