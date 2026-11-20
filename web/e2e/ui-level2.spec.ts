@@ -22,7 +22,12 @@ interface Fake {
   launch: "window" | "copy";
   windows: number;
   revokes: number;
+  /** The command the fake gave for the project that asked last. */
+  command: string;
 }
+
+/** The terminal command of the page for a project; the fake answers it with the real id. */
+const confirmCommandOf = (id: number) => `codeskimr level2 confirm ${id}`;
 
 /** Answers the three calls of the switch from `fake`; nothing else is touched. */
 async function serveSwitch(page: Page, fake: Fake): Promise<void> {
@@ -38,17 +43,24 @@ async function serveSwitch(page: Page, fake: Fake): Promise<void> {
   });
   await page.route("**/api/v1/level2/confirm-window", (route) => {
     fake.windows += 1;
+    const { project_id: id } = route.request().postDataJSON() as { project_id: number };
+    fake.command = confirmCommandOf(id);
     return json(
       route,
-      fake.launch === "copy"
-        ? { launch: "copy", command: "codeskimr level2 confirm 1" }
-        : { launch: "window" },
+      fake.launch === "copy" ? { launch: "copy", command: fake.command } : { launch: "window" },
     );
   });
 }
 
 function newFake(state: Fake["state"] = "off"): Fake {
-  return { state, confirmed: state === "on", launch: "window", windows: 0, revokes: 0 };
+  return {
+    state,
+    confirmed: state === "on",
+    launch: "window",
+    windows: 0,
+    revokes: 0,
+    command: "",
+  };
 }
 
 async function openProject(
@@ -132,13 +144,13 @@ test.describe("the level 2 switch (keyboard, ADR 0071)", () => {
     const toggle = await openProject(page, harness, "lvcopy");
     await toggle.focus();
     await page.keyboard.press("Space");
-    await expect(page.getByText("codeskimr level2 confirm 1", { exact: true })).toBeVisible();
+    await expect.poll(() => fake.command).toMatch(/^codeskimr level2 confirm \d+$/);
+    const command = fake.command;
+    await expect(page.getByText(command, { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "Copy", exact: true }).focus();
     await page.keyboard.press("Enter");
     await expect(page.getByRole("button", { name: "Copied" })).toBeVisible();
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
-      "codeskimr level2 confirm 1",
-    );
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(command);
   });
 
   test("not enabled offers no click and shows the two config lines", async ({ page, harness }) => {
