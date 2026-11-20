@@ -435,6 +435,9 @@ fn a_store_that_kept_the_index_sees_what_another_connection_replaced() {
         .unwrap();
     assert_eq!(users_of(&serving, 83), Vec::<u64>::new());
     assert_eq!(users_of(&serving, 84), [82]);
+}
+
+#[test]
 fn a_level_one_reference_that_starts_before_the_verified_one_is_answered_by_it() {
     let store = registered();
     // Level 1 stands from line 2, column 0; the verified reference starts later, inside it.

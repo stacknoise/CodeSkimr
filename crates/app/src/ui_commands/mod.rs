@@ -67,8 +67,8 @@ use codeskimr_source::FolderText;
 pub(crate) use status::{mark_ready, mark_started};
 
 use crate::clock::SystemClock;
-use crate::level2_runs::Level2Runs;
 use crate::folder_dialog::{FolderPicker, SystemPicker};
+use crate::level2_runs::Level2Runs;
 use crate::locations::Locations;
 use crate::running::RunningScans;
 use crate::scan::BrowserRun;
