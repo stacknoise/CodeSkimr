@@ -412,6 +412,8 @@ export const I18N_KEYS = {
   EXPLORER_METRIC_CA_TIP: "explorer-metric-ca-tip",
   EXPLORER_METRIC_INSTABILITY: "explorer-metric-instability",
   EXPLORER_METRIC_INSTABILITY_TIP: "explorer-metric-instability-tip",
+  EXPLORER_METRIC_BOUND: "explorer-metric-bound",
+  EXPLORER_METRIC_BOUND_TIP: "explorer-metric-bound-tip",
   EXPLORER_GROUP_TYPES: "explorer-group-types",
   EXPLORER_LOADING: "explorer-loading",
   EXPLORER_METRIC_PROPERTIES: "explorer-metric-properties",

@@ -238,6 +238,10 @@ export const TILES = [
   },
 ] as const;
 
+/** The tiles of the coupling counts (ADR 0037); while level 2 has not confirmed the language of the
+ * symbol they say "upper bound". */
+export const BOUND_TILES: readonly string[] = ["ce", "ca", "instability"];
+
 /** Decimals of a metric value with a fraction. */
 export const METRIC_DECIMALS = 2;
 /** Shown for a missing value. */

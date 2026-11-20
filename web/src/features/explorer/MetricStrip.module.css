@@ -24,6 +24,12 @@
     color: var(--muted);
 }
 
+.hint {
+    font-size: 11px;
+    color: var(--muted);
+    font-style: italic;
+}
+
 .good {
     color: var(--good);
 }
