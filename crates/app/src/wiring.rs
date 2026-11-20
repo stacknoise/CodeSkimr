@@ -289,13 +289,11 @@ pub fn build_analysis(config: &Config, locations: &Locations) -> Result<Analysis
 
 #[cfg(test)]
 mod tests {
-    use secrecy::SecretString;
-
     use super::*;
     use crate::memory_keystore::secrets;
 
     fn credential() -> Credential {
-        Credential::new(SecretString::from("user"), SecretString::from("secret"))
+        codeskimr_secrets::credential("user", "secret").unwrap()
     }
 
     #[test]

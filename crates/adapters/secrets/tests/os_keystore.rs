@@ -11,7 +11,6 @@ use codeskimr_application::ports::{Credential, CredentialStore};
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::CredentialId;
 use codeskimr_secrets::{Keystore, OsCredentialStore, OsKeystore};
-use secrecy::{ExposeSecret, SecretString};
 
 const SWITCH: &str = "CODESKIMR_REAL_KEYSTORE";
 const CANARY: &str = "CANARY-os-keystore-7d41c0";
@@ -41,8 +40,8 @@ fn own_id(tag: &str) -> TestResult<CredentialId> {
     ))?)
 }
 
-fn credential(secret: &str) -> Credential {
-    Credential::new(SecretString::from("anton"), SecretString::from(secret))
+fn credential(secret: &str) -> Result<Credential, codeskimr_application::ports::AuthError> {
+    codeskimr_secrets::credential("anton", secret)
 }
 
 /// A store, an id of its own and the cleanup of its entry, with `secret` already stored under it.
@@ -50,7 +49,7 @@ fn stored(tag: &str, secret: &str) -> TestResult<(OsCredentialStore, CredentialI
     let store = OsCredentialStore::new(OsKeystore);
     let id = own_id(tag)?;
     let cleanup = Cleanup(id.as_str().to_owned());
-    store.store(&id, &credential(secret))?;
+    store.store(&id, &credential(secret)?)?;
     Ok((store, id, cleanup))
 }
 
@@ -60,8 +59,8 @@ fn a_credential_survives_the_round_trip_through_the_real_keystore() -> TestResul
         return Ok(());
     }
     let (store, id, _cleanup) = stored("round", CANARY)?;
-    let secret = store.with_credential(&id, |c| Ok(c.secret().expose_secret().to_owned()));
-    let user = store.with_credential(&id, |c| Ok(c.user().expose_secret().to_owned()));
+    let secret = store.with_credential(&id, |c| Ok(c.expose_secret().to_owned()));
+    let user = store.with_credential(&id, |c| Ok(c.expose_user().to_owned()));
     store.delete(&id)?;
     assert_eq!(secret?, CANARY);
     assert_eq!(user?, "anton");
@@ -74,8 +73,8 @@ fn a_stored_credential_can_be_replaced_and_a_deleted_one_is_gone() -> TestResult
         return Ok(());
     }
     let (store, id, _cleanup) = stored("replace", "first")?;
-    store.store(&id, &credential(CANARY))?;
-    let second = store.with_credential(&id, |c| Ok(c.secret().expose_secret().to_owned()))?;
+    store.store(&id, &credential(CANARY)?)?;
+    let second = store.with_credential(&id, |c| Ok(c.expose_secret().to_owned()))?;
     store.delete(&id)?;
     store.delete(&id)?;
     let gone = store.with_credential(&id, |_| Ok(())).unwrap_err();

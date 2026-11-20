@@ -41,7 +41,7 @@ pub use catalog::{LanguageShare, ProjectCatalog, ProjectOverview};
 pub use clock::Clock;
 pub use confirmation::{ConfirmationWindow, Level2Switch, WindowOutcome};
 pub use consent::{ConsentGrant, ConsentRecord, ConsentStore, RunPermit};
-pub use credentials::{AuthError, Credential, CredentialStore};
+pub use credentials::{AuthError, Credential, CredentialStore, FIELD_SEPARATOR, LockedSecret};
 pub use digest::ContentDigest;
 pub use highlight::{SyntaxHighlighter, TokenClass, TokenSpan};
 pub use indexer::{

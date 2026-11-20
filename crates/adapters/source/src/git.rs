@@ -27,7 +27,6 @@ use codeskimr_domain::{BranchName, CommitHash, FolderPath, GitUrl};
 use gix::credentials::helper::Action;
 use gix::credentials::protocol::Outcome;
 use gix::sec::identity::Account;
-use secrecy::ExposeSecret;
 
 use crate::consts::{
     AUTH_FAILURE_HINTS, BRANCH_REF_PREFIX, CANCEL_POLL_MS, CANCELLED_DETAIL,
@@ -355,8 +354,8 @@ fn answer(
     let lent = (login.lender)(&mut |credential| {
         outcome = Some(Outcome {
             identity: Account {
-                username: credential.user().expose_secret().to_owned(),
-                password: credential.secret().expose_secret().to_owned(),
+                username: credential.expose_user().to_owned(),
+                password: credential.expose_secret().to_owned(),
                 oauth_refresh_token: None,
             },
             next: context.clone().into(),
