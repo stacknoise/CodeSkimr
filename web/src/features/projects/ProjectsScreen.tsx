@@ -18,6 +18,7 @@ import {
   rescanProject,
 } from "./projects";
 import { ProjectTable } from "./ProjectTable";
+import { ScanPanel } from "./ScanPanel";
 import { ToolsPanel } from "./ToolsPanel";
 import { useDropSource } from "./useDropSource";
 import type { ProjectRow } from "./types";
@@ -122,6 +123,7 @@ function Panels(props: { row: ProjectRow | undefined }) {
       {(row) => (
         <>
           <Level2Panel row={row()} />
+          <ScanPanel row={row()} />
           <ToolsPanel row={row()} />
         </>
       )}

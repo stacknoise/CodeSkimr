@@ -70,3 +70,22 @@ describe("listenToScans", () => {
     expect(FakeSocket.all[1]?.closed).toBe(true);
   });
 });
+
+describe("the events of a level 2 run", () => {
+  it("shows what the run does and clears it when it ended", async () => {
+    const { level2DoneOf, level2RunOf, resetLevel2Runs } = await import("../projects/level2run");
+    resetLevel2Runs();
+    const stop = listenToScans();
+    const [socket] = FakeSocket.all;
+    socket?.onmessage?.({
+      data: '{"type":"level2_progressed","project":3,"language":"csharp","stage":"level2_running"}',
+    });
+    expect(level2RunOf(3)).toEqual({ language: "csharp", stage: "level2_running" });
+    socket?.onmessage?.({
+      data: '{"type":"level2_finished","project":3,"snapshot":8,"checked":1,"skipped":2,"failed":0}',
+    });
+    expect(level2RunOf(3)).toBeNull();
+    expect(level2DoneOf(3)).toEqual({ checked: 1, skipped: 2, failed: 0 });
+    stop();
+  });
+});
