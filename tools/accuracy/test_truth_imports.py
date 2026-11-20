@@ -47,6 +47,28 @@ class ImportsAreNoUses(unittest.TestCase):
             uses = answer(["node", str(HERE / "truth_typescript.js")], root, [target])
             self.assertEqual(uses, [[["b.ts", 5]]])
 
+    @unittest.skipUnless(has_typescript(), "Node with TypeScript is not available")
+    def test_typescript_keeps_a_re_export(self):
+        # `export { x } from` is no import declaration of level 1: it stays a use.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "a.ts").write_text("export function helper() {\n  return 1;\n}\n")
+            (root / "b.ts").write_text('export { helper } from "./a";\n')
+            target = {"file": "a.ts", "line": 1, "column": 16, "name": "helper"}
+            uses = answer(["node", str(HERE / "truth_typescript.js")], root, [target])
+            self.assertEqual(uses, [[["b.ts", 1]]])
+
+    @unittest.skipUnless(has_typescript(), "Node with TypeScript is not available")
+    def test_typescript_keeps_an_import_equals(self):
+        # `import h = N.helper` is no import declaration (level 1 has no import there): it stays a use.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "a.ts").write_text("export namespace N {\n  export function helper() {}\n}\n")
+            (root / "c.ts").write_text('import { N } from "./a";\nimport h = N.helper;\nh();\n')
+            target = {"file": "a.ts", "line": 2, "column": 18, "name": "helper"}
+            uses = answer(["node", str(HERE / "truth_typescript.js")], root, [target])
+            self.assertEqual(uses, [[["c.ts", 2]]])
+
 
 if __name__ == "__main__":
     unittest.main()
