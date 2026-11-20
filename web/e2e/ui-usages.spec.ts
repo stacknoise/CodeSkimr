@@ -40,6 +40,16 @@ const SOURCE = [
   "",
 ].join("\n");
 
+/** The demo source plus one extra caller class per name (or `count` numbered ones). */
+function withCallers(names: string[] | number): string {
+  const list =
+    typeof names === "number" ? Array.from({ length: names }, (_, i) => `Caller${i}`) : names;
+  const callers = list.map(
+    (name) => `public class ${name} { int Run(Calculator c) { return c.Add(1, 2); } }`,
+  );
+  return [SOURCE, ...callers, ""].join("\n");
+}
+
 test.describe("the usages screen", () => {
   test("U in the explorer shows who calls a member, marked as unchecked", async ({
     page,
@@ -68,12 +78,7 @@ test.describe("the usages screen", () => {
   });
 
   test("keeps the hit list in view however many callers there are", async ({ page, harness }) => {
-    const callers = Array.from(
-      { length: 40 },
-      (_, index) => `public class Caller${index} { int Run(Calculator c) { return c.Add(1, 2); } }`,
-    );
-    const source = [SOURCE, ...callers, ""].join("\n");
-    const row = await addScannedProject(page, harness, "usagesmany", source);
+    const row = await addScannedProject(page, harness, "usagesmany", withCallers(40));
     await selectAdd(page, row, "Demo");
     await page.keyboard.press("u");
     await expect(page.getByText("Hits 41")).toBeVisible();
@@ -92,10 +97,7 @@ test.describe("the usages screen", () => {
     }, info) => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await page.addInitScript((name) => localStorage.setItem("codeskimr.theme", name), theme);
-      const callers = ["Alpha", "Beta", "Gamma"].map(
-        (name) => `public class ${name} { int Run(Calculator c) { return c.Add(1, 2); } }`,
-      );
-      const source = [SOURCE, ...callers, ""].join("\n");
+      const source = withCallers(["Alpha", "Beta", "Gamma"]);
       const row = await addScannedProject(page, harness, `usagespath${theme}`, source);
       await selectAdd(page, row, "Demo");
       await page.keyboard.press("u");
