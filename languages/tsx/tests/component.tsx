@@ -16,3 +16,20 @@ export class Panel extends Base<Props> {
 export const Card = (props: Props) => <div className="card">{props.title}</div>;
 
 export const element = <div />;
+
+function Row(props: { id: string }) {
+  return <li>{props.id}</li>;
+}
+
+const Item = (props: { id: string }) => <Row id={props.id} />;
+
+export function List() {
+  return (
+    <ul>
+      <Item id="a" />
+      <Wrapper.Slot>
+        <Row id="b" />
+      </Wrapper.Slot>
+    </ul>
+  );
+}
