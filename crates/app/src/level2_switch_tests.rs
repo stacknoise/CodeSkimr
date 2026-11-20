@@ -219,3 +219,22 @@ fn an_mcp_client_may_read_the_state_but_not_revoke() {
         Err("AUTH-401")
     );
 }
+
+#[test]
+fn a_confirmed_project_without_the_switch_gets_no_run_from_the_browser() {
+    let fixture = Fixture::installed(None);
+    let project = fixture.scanned();
+    // The owner confirmed in the terminal; the switch is not in the user configuration.
+    confirm_at_the_terminal(&fixture, project);
+    let result = fixture
+        .call_as(
+            principal::browser_client(),
+            "projects.rescan",
+            json!({ "project": project }),
+        )
+        .unwrap();
+    assert_eq!(
+        result["level2"],
+        json!({ "state": "not_started", "reason": "not_confirmed" })
+    );
+}

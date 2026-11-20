@@ -10,8 +10,8 @@ use std::sync::Arc;
 
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    FolderPath, LanguageId, Principal, Project, Reference, RelativePath, Snapshot, SourceFile,
-    Symbol,
+    FolderPath, LanguageId, Level2Stage, Principal, Project, Reference, RelativePath, Snapshot,
+    SourceFile, Symbol,
 };
 
 use super::authorize_run;
@@ -20,6 +20,7 @@ use super::report::{LanguageReport, Level2Outcome, Level2Result, Skipped};
 use crate::cancel::CancelToken;
 use crate::config::Level2;
 use crate::error::CodedError;
+use crate::events::{Event, EventBus, Level2Progressed};
 use crate::ids::IdSequence;
 use crate::ports::{
     ConsentStore, FileDiscovery, ImportRequest, Imported, IndexJob, IndexRunner, IndexerSpec,
@@ -50,6 +51,8 @@ pub struct Level2Pass {
     /// How to run the indexer of each language that has one. Languages that name the same
     /// indexer (TypeScript, JavaScript and TSX; Java and Kotlin) share one run.
     pub indexers: Vec<(LanguageId, IndexerSpec)>,
+    /// Where the run tells which language it works on (ADR 0072).
+    pub events: EventBus,
 }
 
 /// The languages that one run of one indexer covers.
@@ -127,6 +130,37 @@ impl Level2Pass {
         })
     }
 
+    /// Whether `principal` may run the indexers of `project` now (`authorize_run`), without
+    /// running anything. The run asks again when it starts, so a consent that goes away in
+    /// between is honoured.
+    ///
+    /// # Errors
+    /// `NotPermitted` (`SEC-403`) or `NotConfirmed` (`SEC-301`).
+    pub fn authorize(
+        &self,
+        principal: &Principal,
+        project: &Project,
+        root: &FolderPath,
+    ) -> Result<(), Skipped> {
+        authorize_run(principal, &self.settings, &self.consent, project, root)
+            .map(|_| ())
+            .map_err(Skipped::from)
+    }
+
+    /// The languages that have an indexer.
+    pub fn languages(&self) -> impl Iterator<Item = &LanguageId> {
+        self.indexers.iter().map(|(language, _)| language)
+    }
+
+    fn announce(&self, snapshot: &Snapshot, language: &LanguageId, stage: Level2Stage) {
+        self.events
+            .publish(&Event::Level2Progressed(Level2Progressed {
+                project: snapshot.project,
+                language: language.clone(),
+                stage,
+            }));
+    }
+
     fn skip_all(&self, reason: &Skipped) -> Vec<LanguageReport> {
         self.indexers
             .iter()
@@ -188,8 +222,10 @@ impl Level2Pass {
             limits: self.settings.limits(),
             permit: &permit,
         };
+        self.announce(scan.snapshot, language, Level2Stage::Running);
         let artifact = self.runner.run(&job, scan.cancel).map_err(Skipped::from)?;
         let (current, stale) = self.unchanged(scan, group)?;
+        self.announce(scan.snapshot, language, Level2Stage::Importing);
         let imported = self.import(scan, group.spec, artifact.path(), &current)?;
         if scan.cancel.is_cancelled() {
             return Err(Skipped::Cancelled);

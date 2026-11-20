@@ -35,6 +35,7 @@ mod level2_consent_tests;
 mod level2_console;
 mod level2_link_tests;
 mod level2_redact_tests;
+mod level2_runs;
 #[cfg(test)]
 mod level2_switch_tests;
 mod local_http;

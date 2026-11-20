@@ -201,7 +201,7 @@ describe("UsagesScreen", () => {
     expect(screen.getAllByText("unchecked (level 1)").length).toBe(2);
     expect(screen.getAllByText("presumed").length).toBeGreaterThan(0);
     expect(screen.getByText(/Level 2 has not checked these hits/)).toBeTruthy();
-    expect(screen.getByText(/never with a scan from the browser/)).toBeTruthy();
+    expect(screen.getByText(/with a scan through MCP it never runs/)).toBeTruthy();
     expect(screen.getByText("0 places verified, 3 unchecked, 1 of them presumed.")).toBeTruthy();
     expect(
       screen.getByText(

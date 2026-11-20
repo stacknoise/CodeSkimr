@@ -447,6 +447,21 @@ fn the_polling_of_the_switch_and_the_pause_of_the_window_are_checked() {
             "level2.confirm_window_cooldown_seconds",
             Violation::MustBePositive,
         ),
+        (
+            "[level2]\nmax_parallel_runs = 0\n",
+            "level2.max_parallel_runs",
+            Violation::MustBePositive,
+        ),
+        (
+            "[level2]\nmax_parallel_runs = 9\n",
+            "level2.max_parallel_runs",
+            Violation::MustNotPass(8),
+        ),
+        (
+            "[level2]\nui_cooldown_seconds = 9\n",
+            "level2.ui_cooldown_seconds",
+            Violation::MustReach(10),
+        ),
     ]);
 }
 

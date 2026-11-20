@@ -3,7 +3,7 @@
 use crate::consts::{
     LEVEL_ONE, LEVEL_TWO, OUTCOME_CHECKED, OUTCOME_FAILED, OUTCOME_SKIPPED, SKIP_BUSY,
     SKIP_CANCELLED, SKIP_NOT_CONFIRMED, SKIP_NOT_PERMITTED, SKIP_PAUSED, SKIP_STALE,
-    SKIP_TOOLS_UNAVAILABLE,
+    SKIP_TOOLS_UNAVAILABLE, STAGE_LEVEL2_IMPORTING, STAGE_LEVEL2_RUNNING,
 };
 use crate::vocabulary::labeled_enum;
 
@@ -46,5 +46,15 @@ labeled_enum!(
         Skipped => OUTCOME_SKIPPED,
         /// The run failed with an error code.
         Failed => OUTCOME_FAILED,
+    }
+);
+
+labeled_enum!(
+    /// What a level 2 run is doing for a language right now.
+    Level2Stage {
+        /// The indexer runs the build tools of the project.
+        Running => STAGE_LEVEL2_RUNNING,
+        /// The index is read and mapped onto the symbols.
+        Importing => STAGE_LEVEL2_IMPORTING,
     }
 );

@@ -36,7 +36,19 @@ impl ReportStep {
         origin: ScanOrigin,
         level2: Option<&[LanguageReport]>,
     ) -> Result<(), ErrorCode> {
-        let lines = level2.map(lines_of);
+        self.store_lines(snapshot, origin, level2.map(lines_of))
+    }
+
+    /// Like [`ReportStep::store`], with the lines of the second pass already made.
+    ///
+    /// # Errors
+    /// `PRJ-502` if the report could not be stored.
+    pub fn store_lines(
+        &self,
+        snapshot: &Snapshot,
+        origin: ScanOrigin,
+        lines: Option<Vec<LanguageLine>>,
+    ) -> Result<(), ErrorCode> {
         let checked = lines.as_deref().is_some_and(any_checked);
         let write = ReportWrite {
             project: snapshot.project,
@@ -89,13 +101,11 @@ fn outcome_of(outcome: &Level2Outcome) -> LanguageOutcome {
 }
 
 fn skipped_outcome(skipped: &Skipped) -> LanguageOutcome {
-    match skipped {
-        Skipped::NotPermitted => LanguageOutcome::Skipped(SkipReason::NotPermitted),
-        Skipped::NotConfirmed => LanguageOutcome::Skipped(SkipReason::NotConfirmed),
-        Skipped::Unavailable(_) => LanguageOutcome::Skipped(SkipReason::ToolsUnavailable),
-        Skipped::Stale => LanguageOutcome::Skipped(SkipReason::Stale),
-        Skipped::Cancelled => LanguageOutcome::Skipped(SkipReason::Cancelled),
-        Skipped::Failed(code) => LanguageOutcome::Failed(*code),
+    match (skipped.reason(), skipped) {
+        (Some(reason), _) => LanguageOutcome::Skipped(reason),
+        (None, Skipped::Failed(code)) => LanguageOutcome::Failed(*code),
+        // `reason` is `None` only for a failure.
+        (None, _) => LanguageOutcome::Skipped(SkipReason::Cancelled),
     }
 }
 

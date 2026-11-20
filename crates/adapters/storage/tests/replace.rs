@@ -421,6 +421,23 @@ fn a_later_incremental_scan_keeps_the_verified_usages_of_unchanged_files() {
 }
 
 #[test]
+fn a_store_that_kept_the_index_sees_what_another_connection_replaced() {
+    // The server answers queries from one store and keeps the index of the snapshot; a scan of
+    // the browser, or `codeskimr scan` in another process, writes through its own store.
+    let db = common::TempDb::new();
+    let serving = codeskimr_storage::SqliteStore::open(&db.0, std::num::NonZeroU32::MIN).unwrap();
+    serving.save_project(&project(1, "/work/app", &[])).unwrap();
+    serving.persist(scan()).unwrap();
+    assert_eq!(users_of(&serving, 83), [82], "the index is built and kept");
+    let writer = codeskimr_storage::SqliteStore::open(&db.0, std::num::NonZeroU32::MIN).unwrap();
+    writer
+        .replace_level2(replacement(&[71], vec![verified(900, 71, 82, 84)]))
+        .unwrap();
+    assert_eq!(users_of(&serving, 83), Vec::<u64>::new());
+    assert_eq!(users_of(&serving, 84), [82]);
+}
+
+#[test]
 fn a_level_one_reference_that_starts_before_the_verified_one_is_answered_by_it() {
     let store = registered();
     // Level 1 stands from line 2, column 0; the verified reference starts later, inside it.

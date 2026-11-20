@@ -15,7 +15,9 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::events::{Event, EventBus, StopReason};
 use codeskimr_application::ids::IdSequence;
 use codeskimr_application::level2::{Level2Pass, confirm};
-use codeskimr_application::pipeline::{Job, JobResult, ReportStep, Scanner, ScannerPorts};
+use codeskimr_application::pipeline::{
+    Job, JobResult, Level2Run, ReportStep, Scanner, ScannerPorts,
+};
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, ConsentStore, DiscoveredFile, FetchedSource, FileAnalyzer,
     FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob, IndexRunner,
@@ -1294,7 +1296,24 @@ fn rust_indexer() -> IndexerSpec {
 
 /// A scanner with a confirmed second pass whose runner counts, and that counter.
 fn level2_scanner(world: &Arc<World>) -> Result<(Scanner, Arc<CountingRunner>), CodedError> {
-    let consent: Arc<dyn ConsentStore> = Arc::new(InMemoryConsent::default());
+    level2_scanner_over(world, &Arc::new(InMemoryConsent::default()))
+}
+
+/// The same over the consent that the caller keeps, so that a test can revoke it.
+fn level2_scanner_over(
+    world: &Arc<World>,
+    store: &Arc<InMemoryConsent>,
+) -> Result<(Scanner, Arc<CountingRunner>), CodedError> {
+    level2_scanner_on(world, store, &EventBus::new())
+}
+
+/// The same publishing on `bus`, for the scanner and for the second pass.
+fn level2_scanner_on(
+    world: &Arc<World>,
+    store: &Arc<InMemoryConsent>,
+    bus: &EventBus,
+) -> Result<(Scanner, Arc<CountingRunner>), CodedError> {
+    let consent: Arc<dyn ConsentStore> = store.clone();
     confirm(
         &Principal::local_owner(),
         consent.as_ref(),
@@ -1313,9 +1332,9 @@ fn level2_scanner(world: &Arc<World>) -> Result<(Scanner, Arc<CountingRunner>), 
         max_file_bytes: u64::from(u32::MAX),
         settings: Config::resolve(&[]).map_err(CodedError::caused_by)?.level2,
         indexers: vec![(model(LanguageId::new("rust"))?, rust_indexer())],
+        events: bus.clone(),
     };
-    let bus = EventBus::new();
-    Ok((scanner(world, &bus).with_level2(pass), runner))
+    Ok((scanner(world, bus).with_level2(pass), runner))
 }
 
 fn runs(runner: &CountingRunner) -> u32 {
@@ -1701,4 +1720,165 @@ fn without_a_wired_second_pass_no_level_2_report_is_stored() {
         JobResult::Finished(_)
     ));
     assert_eq!(reports.writes.lock().unwrap()[0].level2, None);
+}
+
+/// Level 1 of the browser: stored, no indexer started yet.
+fn level_one_of(
+    world: &Arc<World>,
+    scanner: &Scanner,
+) -> Result<
+    codeskimr_application::pipeline::Job<codeskimr_application::pipeline::Finished>,
+    CodedError,
+> {
+    let job = Job::new(ProjectId::new(7), ScanMode::Full).started_from(ScanOrigin::Browser);
+    match scanner.run(&Principal::local_owner(), job) {
+        JobResult::Finished(job) => {
+            assert_eq!(world.persisted_count(), 1);
+            Ok(job)
+        }
+        _ => Err(CodedError::new(ErrorCode::UnexpectedInternalError)),
+    }
+}
+
+fn run_level_two(
+    scanner: &Scanner,
+    finished: &codeskimr_application::pipeline::Job<codeskimr_application::pipeline::Finished>,
+    (principal, cancel): (&Principal, &CancelToken),
+) -> Vec<codeskimr_application::level2::LanguageReport> {
+    scanner.run_level2(&Level2Run {
+        principal,
+        snapshot: finished.snapshot(),
+        root: finished.root(),
+        cancel,
+        origin: ScanOrigin::Browser,
+    })
+}
+
+#[test]
+fn level_two_after_level_one_starts_the_indexer_once_and_level_one_is_already_stored()
+-> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let (scanner, runner) = level2_scanner(&world)?;
+    let finished = level_one_of(&world, &scanner)?;
+    assert_eq!(runs(&runner), 0, "the scan itself starts no indexer");
+    let reports = run_level_two(
+        &scanner,
+        &finished,
+        (&Principal::local_owner(), &CancelToken::new()),
+    );
+    assert_eq!(runs(&runner), 1);
+    assert_eq!(reports.len(), 1);
+    Ok(())
+}
+
+#[test]
+fn a_cancelled_token_stops_level_two_before_the_indexer_and_keeps_level_one()
+-> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let (scanner, runner) = level2_scanner(&world)?;
+    let finished = level_one_of(&world, &scanner)?;
+    let cancel = CancelToken::new();
+    cancel.cancel();
+    let reports = run_level_two(&scanner, &finished, (&Principal::local_owner(), &cancel));
+    assert_eq!(runs(&runner), 0);
+    assert!(matches!(
+        reports[0].outcome,
+        codeskimr_application::level2::Level2Outcome::Skipped(
+            codeskimr_application::level2::Skipped::Cancelled
+        )
+    ));
+    assert_eq!(world.persisted_count(), 1, "level 1 is as it was");
+    Ok(())
+}
+
+#[test]
+fn a_caller_without_the_right_to_run_indexers_gets_no_run_even_after_level_one()
+-> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let (scanner, runner) = level2_scanner(&world)?;
+    let finished = level_one_of(&world, &scanner)?;
+    let remote = Principal::limited(
+        PermissionSet::none()
+            .with(Permission::Read)
+            .with(Permission::Scan),
+    );
+    let gate = scanner.level2_gate(&remote, ProjectId::new(7), finished.root());
+    assert_eq!(
+        gate,
+        Err(codeskimr_application::level2::Skipped::NotPermitted)
+    );
+    let reports = run_level_two(&scanner, &finished, (&remote, &CancelToken::new()));
+    assert_eq!(runs(&runner), 0);
+    assert!(matches!(
+        reports[0].outcome,
+        codeskimr_application::level2::Level2Outcome::Skipped(
+            codeskimr_application::level2::Skipped::NotPermitted
+        )
+    ));
+    Ok(())
+}
+
+#[test]
+fn a_consent_that_is_gone_when_the_run_starts_stops_it() -> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let consent = Arc::new(InMemoryConsent::default());
+    let (scanner, runner) = level2_scanner_over(&world, &consent)?;
+    let finished = level_one_of(&world, &scanner)?;
+    let owner = Principal::local_owner();
+    assert!(
+        scanner
+            .level2_gate(&owner, ProjectId::new(7), finished.root())
+            .is_ok()
+    );
+    // The owner revokes between the answer of the command and the start of the run.
+    codeskimr_application::level2::revoke(&owner, consent.as_ref(), ProjectId::new(7))?;
+    let reports = run_level_two(&scanner, &finished, (&owner, &CancelToken::new()));
+    assert_eq!(runs(&runner), 0);
+    assert!(matches!(
+        reports[0].outcome,
+        codeskimr_application::level2::Level2Outcome::Skipped(
+            codeskimr_application::level2::Skipped::NotConfirmed
+        )
+    ));
+    Ok(())
+}
+
+#[test]
+fn a_level_two_run_tells_the_language_and_the_end_and_nothing_else() -> Result<(), CodedError> {
+    let world = Arc::new(World {
+        previous: previous_snapshot()?,
+        ..World::default()
+    });
+    let bus = EventBus::new();
+    let (scanner, _runner) =
+        level2_scanner_on(&world, &Arc::new(InMemoryConsent::default()), &bus)?;
+    let finished = level_one_of(&world, &scanner)?;
+    let events = bus.subscribe();
+    let _ = run_level_two(
+        &scanner,
+        &finished,
+        (&Principal::local_owner(), &CancelToken::new()),
+    );
+    let seen: Vec<Event> = events.try_iter().collect();
+    assert!(matches!(
+        seen.first(),
+        Some(Event::Level2Progressed(progress)) if progress.language.as_str() == "rust"
+    ));
+    assert!(matches!(
+        seen.last(),
+        Some(Event::Level2Finished(done)) if done.project == ProjectId::new(7)
+    ));
+    Ok(())
 }

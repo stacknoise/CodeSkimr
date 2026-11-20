@@ -379,6 +379,7 @@ mod cases {
             max_file_bytes: 1 << 20,
             settings: Config::resolve(&[]).unwrap().level2,
             indexers,
+            events: codeskimr_application::events::EventBus::new(),
         };
         (pass, fakes)
     }

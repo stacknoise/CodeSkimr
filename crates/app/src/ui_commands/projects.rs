@@ -11,7 +11,6 @@ use codeskimr_application::ports::{
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_application::report_view::ReportView;
 use codeskimr_application::tools::ToolsView;
-use codeskimr_cli::ScanSummary;
 use codeskimr_codes::Coded;
 use codeskimr_domain::{Permission, ProjectId, ProjectSource, ScanMode, Snapshot};
 use serde::{Deserialize, Serialize};
@@ -19,11 +18,12 @@ use serde::{Deserialize, Serialize};
 use super::Context;
 use super::consts::{
     ADD_DESCRIPTION, ADD_TITLE, CANCEL_DESCRIPTION, CANCEL_TITLE, KIND_FOLDER, KIND_GIT,
-    LIST_DESCRIPTION, LIST_TITLE, PROJECTS_ADD, PROJECTS_CANCEL, PROJECTS_LIST, PROJECTS_RESCAN,
-    PROJECTS_TOOLS, RESCAN_DESCRIPTION, RESCAN_TITLE, SHORTCUT_NEW, SHORTCUT_RESCAN,
-    TOOLS_DESCRIPTION, TOOLS_TITLE,
+    LEVEL2_NOT_REQUESTED, LEVEL2_NOT_STARTED, LEVEL2_STARTED, LIST_DESCRIPTION, LIST_TITLE,
+    PROJECTS_ADD, PROJECTS_CANCEL, PROJECTS_LIST, PROJECTS_RESCAN, PROJECTS_TOOLS,
+    RESCAN_DESCRIPTION, RESCAN_TITLE, SHORTCUT_NEW, SHORTCUT_RESCAN, TOOLS_DESCRIPTION,
+    TOOLS_TITLE,
 };
-use crate::scan::{open_on, reopen};
+use crate::scan::{BrowserScan, Level2Start, open_on, reopen};
 use crate::source_arg::{SourceError, classify};
 
 /// The newest scan of a project.
@@ -245,11 +245,35 @@ pub struct Scanned {
     pub seconds: f64,
     /// What the check of the tools found after the scan.
     pub tools: ToolsView,
+    /// Whether level 2 follows in the background (ADR 0072).
+    pub level2: Level2Answer,
+}
+
+/// The answer about level 2 of `projects.add` and `projects.rescan`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub struct Level2Answer {
+    /// `started`, `not_started` or `not_requested`.
+    pub state: &'static str,
+    /// Why it did not start: `not_permitted`, `not_confirmed`, `busy` or `paused`.
+    pub reason: Option<&'static str>,
+}
+
+impl Level2Answer {
+    fn of(start: Level2Start) -> Self {
+        let (state, reason) = match start {
+            Level2Start::Started => (LEVEL2_STARTED, None),
+            Level2Start::NotRequested => (LEVEL2_NOT_REQUESTED, None),
+            Level2Start::NotStarted(reason) => (LEVEL2_NOT_STARTED, Some(reason.label())),
+        };
+        Self { state, reason }
+    }
 }
 
 impl Scanned {
-    fn of(project: ProjectId, summary: &ScanSummary) -> Self {
+    fn of(project: ProjectId, scan: &BrowserScan) -> Self {
+        let summary = &scan.summary;
         Self {
+            level2: Level2Answer::of(scan.level2),
             project: project.get(),
             snapshot: summary.snapshot,
             files: summary.files,
@@ -271,6 +295,10 @@ pub struct AddInput {
     /// Name of the stored credential a Git source logs in with (`credentials.set`).
     #[serde(default)]
     pub credential: Option<String>,
+    /// `false` scans level 1 only; left out means level 2 follows if it is enabled and
+    /// confirmed for the project.
+    #[serde(default)]
+    pub level2: Option<bool>,
 }
 
 /// Registers a folder or a Git repository as a project and scans it.
@@ -314,10 +342,11 @@ impl Command for AddProject {
         .with_tools(Arc::clone(&context.tools));
         drop(registering);
         let id = session.project().id;
-        let _scanning = context.running.start(id)?;
-        let summary =
-            session.scan_with(ScanMode::Full, |token| context.running.attach(id, token))?;
-        Ok(Scanned::of(id, &summary))
+        let scan = session.scan_in_browser(
+            ScanMode::Full,
+            context.browser_run(id, request.input.level2)?,
+        )?;
+        Ok(Scanned::of(id, &scan))
     }
 }
 
@@ -326,6 +355,10 @@ impl Command for AddProject {
 pub struct RescanInput {
     /// Id of the project.
     pub project: u64,
+    /// `false` scans level 1 only; left out means level 2 follows if it is enabled and
+    /// confirmed for the project.
+    #[serde(default)]
+    pub level2: Option<bool>,
 }
 
 /// Scans a registered project again, incrementally if it has been scanned before.
@@ -363,14 +396,14 @@ impl Command for RescanProject {
             (context.events.clone(), &context.secrets),
         )?
         .with_tools(Arc::clone(&context.tools));
-        let _scanning = context.running.start(id)?;
+        let run = context.browser_run(id, request.input.level2)?;
         let mode = if scanned_before {
             ScanMode::Incremental
         } else {
             ScanMode::Full
         };
-        let summary = session.scan_with(mode, |token| context.running.attach(id, token))?;
-        Ok(Scanned::of(id, &summary))
+        let scan = session.scan_in_browser(mode, run)?;
+        Ok(Scanned::of(id, &scan))
     }
 }
 

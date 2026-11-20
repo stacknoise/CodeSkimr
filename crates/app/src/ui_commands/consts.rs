@@ -319,3 +319,10 @@ pub const SHORTCUT_NOTE: &str = "N";
 pub const SHORTCUT_TASK: &str = "T";
 /// The author of every annotation until the team edition has accounts (ADR 0068).
 pub const LOCAL_AUTHOR: &str = "local";
+
+/// `Level2Answer::state` when a background task runs level 2.
+pub const LEVEL2_STARTED: &str = "started";
+/// `Level2Answer::state` when level 2 did not start; the reason says why.
+pub const LEVEL2_NOT_STARTED: &str = "not_started";
+/// `Level2Answer::state` when the caller asked for level 1 only.
+pub const LEVEL2_NOT_REQUESTED: &str = "not_requested";

@@ -289,6 +289,62 @@ fn a_project_is_scanned_again_incrementally() {
 }
 
 #[test]
+fn a_scan_of_the_browser_says_why_level_2_did_not_start_and_stores_the_report() {
+    let fixture = Fixture::new();
+    let scanned = fixture
+        .call("projects.add", json!({ "source": fixture.folder() }))
+        .unwrap();
+    // The switch is off in this configuration and nothing is confirmed.
+    assert_eq!(
+        scanned["level2"],
+        json!({ "state": "not_started", "reason": "not_confirmed" })
+    );
+    let list = fixture.call("projects.list", Value::Null).unwrap();
+    let report = &list[0]["report"];
+    assert_eq!(report["last_scan"]["origin"], "browser");
+    assert_eq!(report["last_scan"]["level"], "1");
+    let languages = report["level2"]["languages"].as_array().unwrap();
+    assert!(
+        languages
+            .iter()
+            .all(|line| line["outcome"] == "skipped" && line["reason"] == "not_confirmed")
+    );
+}
+
+#[test]
+fn a_caller_that_asks_for_level_1_only_gets_no_attempt() {
+    let fixture = Fixture::new();
+    let scanned = fixture
+        .call(
+            "projects.add",
+            json!({ "source": fixture.folder(), "level2": false }),
+        )
+        .unwrap();
+    assert_eq!(
+        scanned["level2"],
+        json!({ "state": "not_requested", "reason": null })
+    );
+}
+
+#[test]
+fn a_client_without_the_right_to_run_indexers_is_told_so_and_level_1_is_stored() {
+    let fixture = Fixture::new();
+    let id = added(&fixture);
+    let result = fixture
+        .call_as(
+            principal::remote_client(),
+            "projects.rescan",
+            json!({ "project": id }),
+        )
+        .unwrap();
+    assert_eq!(
+        result["level2"],
+        json!({ "state": "not_started", "reason": "not_permitted" })
+    );
+    assert_eq!(result["project"], id);
+}
+
+#[test]
 fn an_unknown_project_cannot_be_scanned() {
     let fixture = Fixture::new();
     let result = fixture.call("projects.rescan", json!({ "project": 99 }));
@@ -1145,4 +1201,30 @@ fn only_a_manager_may_change_the_preferences() {
         fixture.call("preferences.get", json!(null)).unwrap(),
         json!({"theme": null, "language": null})
     );
+}
+
+#[test]
+fn a_rescan_in_the_browser_shows_in_the_usages_of_the_running_server_at_once() {
+    let fixture = Fixture::new();
+    let input = add_usages_input(&fixture, CALLER, "incoming", 1);
+    let places = |answer: &Value| answer["summary"]["places"].as_u64().unwrap();
+    let before = fixture.call("usages.query", input.clone()).unwrap();
+    // An unchanged file: a new snapshot that carries everything.
+    fixture
+        .call("projects.rescan", json!({ "project": input["project"] }))
+        .unwrap();
+    let same = fixture.call("usages.query", input.clone()).unwrap();
+    assert_eq!(places(&same), places(&before));
+    // A changed file: the new snapshot, not the one the server asked about before.
+    let twice = CALLER.replace(
+        "        return calculator.Add(1, 2);\n",
+        "        var one = calculator.Add(1, 2);\n        return calculator.Add(one, 3);\n",
+    );
+    fs::write(fixture.root.path().join("app/Checkout.cs"), twice).unwrap();
+    fixture
+        .call("projects.rescan", json!({ "project": input["project"] }))
+        .unwrap();
+    let after = fixture.call("usages.query", input).unwrap();
+    assert!(places(&after) > places(&before));
+    assert!(after["snapshot"].as_u64() > before["snapshot"].as_u64());
 }
