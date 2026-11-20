@@ -8,7 +8,7 @@ Binding UI reference for the web frontend (blueprint section 15). One file per s
 | 2 | Explorer | `Explorer.dc.html` |
 | 3 | Dependencies | `Graph.dc.html` |
 | 4 | Quick search (Ctrl+K) | `Palette.dc.html` |
-| 5 | Scan and performance | `Scan.dc.html` |
+| 5 | Scan and performance (side column at least 400 px wide, so the target values fit; changed at the product owner's request) | `Scan.dc.html` |
 | 6 | Usages (symbol level) | `Usages.dc.html` |
 | 7 | Sign-in (team server) | `Login.dc.html` |
 | 8 | Users and project grants | `Users.dc.html` |
