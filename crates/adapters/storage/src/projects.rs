@@ -223,13 +223,7 @@ pub fn load_layers(conn: &Connection, project: ProjectId) -> StorageResult<Vec<L
 }
 
 fn load_used(conn: &Connection, project: i64, layer: i64) -> StorageResult<Vec<LayerName>> {
-    let mut statement = conn.prepare_cached(sql::USED_OF_LAYER)?;
-    let rows = statement.query_map(params![project, layer], |row| row.get::<_, String>(0))?;
-    let mut names = Vec::new();
-    for row in rows {
-        names.push(LayerName::new(row?)?);
-    }
-    Ok(names)
+    load_names(conn, sql::USED_OF_LAYER, (project, layer), LayerName::new)
 }
 
 fn load_namespaces(
@@ -237,11 +231,29 @@ fn load_namespaces(
     project: i64,
     layer: i64,
 ) -> StorageResult<Vec<QualifiedName>> {
-    let mut statement = conn.prepare_cached(sql::NAMESPACES_OF_LAYER)?;
+    load_names(
+        conn,
+        sql::NAMESPACES_OF_LAYER,
+        (project, layer),
+        QualifiedName::new,
+    )
+}
+
+/// The names that `query` selects for one layer, each made into its type by `make`.
+fn load_names<T, E>(
+    conn: &Connection,
+    query: &str,
+    (project, layer): (i64, i64),
+    make: impl Fn(String) -> Result<T, E>,
+) -> StorageResult<Vec<T>>
+where
+    StorageError: From<E>,
+{
+    let mut statement = conn.prepare_cached(query)?;
     let rows = statement.query_map(params![project, layer], |row| row.get::<_, String>(0))?;
     let mut names = Vec::new();
     for row in rows {
-        names.push(QualifiedName::new(row?)?);
+        names.push(make(row?)?);
     }
     Ok(names)
 }
@@ -254,6 +266,7 @@ struct LayerRow {
 }
 
 impl LayerRow {
+    // codeskimr: allow CHK-102 maps a row of the layer query into its columns
     fn from_row(row: &Row<'_>) -> rusqlite::Result<Self> {
         let cols = Cols::new(row);
         Ok(Self {
