@@ -14,7 +14,13 @@ export type WireEvent =
       /** Milliseconds since the stage started, as the server measured them. */
       elapsed_ms?: number;
     }
-  | { type: typeof EVENT.created; project: number; snapshot: number }
+  | {
+      type: typeof EVENT.created;
+      project: number;
+      snapshot: number;
+      /** Milliseconds that loading language packs took; the scan time leaves them out. */
+      pack_load_ms?: number;
+    }
   | { type: typeof EVENT.changed; project: number; files: number; rescan: boolean }
   | {
       type: typeof EVENT.stopped;
@@ -45,6 +51,8 @@ export interface Run {
   /** The registered code of a failure. */
   code: string | null;
   stages: Partial<Record<Stage, StageRun>>;
+  /** Milliseconds the server spent loading language packs during the run (ADR 0059). */
+  packLoadMs: number;
 }
 
 /** The measurements of the budgets that `status.info` returns. */

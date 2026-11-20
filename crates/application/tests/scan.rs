@@ -1,7 +1,9 @@
 //! Tests of the scan pipeline, the scanner, the job typestate and the event bus with fake ports.
 
 use std::collections::HashSet;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
+use std::time::Duration;
 
 #[cfg(test)]
 mod common;
@@ -69,6 +71,9 @@ struct World {
     /// How many names each resolution got.
     resolved: Mutex<Vec<usize>>,
     counted: Mutex<Vec<usize>>,
+    /// Milliseconds the fake analyzer says it spent loading packs; each question adds a step.
+    pack_load_ms: AtomicU64,
+    pack_load_step_ms: u64,
 }
 
 impl World {
@@ -181,6 +186,11 @@ fn counted(symbol: SymbolId) -> SymbolCounts {
 }
 
 impl FileAnalyzer for World {
+    fn pack_load_time(&self) -> Duration {
+        let step = self.pack_load_step_ms;
+        Duration::from_millis(self.pack_load_ms.fetch_add(step, Ordering::SeqCst))
+    }
+
     fn naming_rules(&self) -> String {
         self.rules.0.to_owned()
     }
@@ -431,6 +441,19 @@ fn full_scan_runs_all_stages_and_persists_once() {
     assert_eq!(world.persisted_count(), 1);
     assert_eq!(stages_seen(&events), StageKind::ALL);
     assert!(matches!(events.last(), Some(Event::SnapshotCreated(_))));
+}
+
+#[test]
+fn the_end_event_tells_how_long_loading_packs_took() {
+    let world = Arc::new(World {
+        pack_load_step_ms: 40,
+        ..World::default()
+    });
+    let (_, events) = run(&world, ScanMode::Full);
+    let Some(Event::SnapshotCreated(created)) = events.last() else {
+        panic!("no end event");
+    };
+    assert_eq!(created.pack_load, Duration::from_millis(40));
 }
 
 /// The previous snapshot with `a.rs` unchanged and `b.rs` changed; `c.rs` is gone.

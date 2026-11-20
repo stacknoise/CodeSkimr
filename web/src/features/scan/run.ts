@@ -52,7 +52,15 @@ function advance(run: Run, event: ProgressEvent, now: number): Run {
 }
 
 function fresh(project: number, now: number): Run {
-  return { project, startedAt: now, endedAt: null, state: STATE.running, code: null, stages: {} };
+  return {
+    project,
+    startedAt: now,
+    endedAt: null,
+    state: STATE.running,
+    code: null,
+    stages: {},
+    packLoadMs: 0,
+  };
 }
 
 function isOpen(run: Run | undefined): run is Run {
@@ -91,7 +99,14 @@ export function applyEvent(runs: readonly Run[], event: WireEvent, now: number):
   }
   if (event.type === EVENT.created) {
     const stages = closeStages(current.stages, now);
-    return replace(runs, index, { ...current, state: STATE.done, endedAt: now, stages });
+    const packLoadMs = event.pack_load_ms ?? 0;
+    return replace(runs, index, {
+      ...current,
+      state: STATE.done,
+      endedAt: now,
+      stages,
+      packLoadMs,
+    });
   }
   const state = event.reason === STOP.cancelled ? STATE.cancelled : STATE.failed;
   return replace(runs, index, { ...current, state, code: event.code, endedAt: now });

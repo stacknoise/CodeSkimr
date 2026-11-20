@@ -32,6 +32,22 @@ function fold(events: [WireEvent, number][]): Run[] {
 }
 
 describe("applyEvent", () => {
+  it("keeps the time of loading language packs from the end event", () => {
+    const [run] = fold([
+      [progress("fetch", 1, 1), 1000],
+      [{ type: "snapshot_created", project: 1, snapshot: 5, pack_load_ms: 700 }, 2500],
+    ]);
+    expect(run?.packLoadMs).toBe(700);
+  });
+
+  it("counts no pack load time when the server tells none", () => {
+    const [run] = fold([
+      [progress("fetch", 1, 1), 1000],
+      [created, 2000],
+    ]);
+    expect(run?.packLoadMs).toBe(0);
+  });
+
   it("starts a run on the first report and ends the earlier stages when a later one starts", () => {
     const [run] = fold([
       [progress("fetch", 1, 1), 1000],
