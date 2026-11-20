@@ -10,7 +10,7 @@ import type { ProjectRow, Scanned, ToolsInfo } from "./types";
 
 /** Why the last action failed: a registered code, or `null` for a failure without one (the
  * server could not be reached). */
-export type Failure = { code: ErrorCode | null };
+export type Failure = { code: ErrorCode | null; retryAfter?: number | null };
 
 const [rows, setRows] = createSignal<ProjectRow[]>([]);
 const [loaded, setLoaded] = createSignal(false);
@@ -44,7 +44,9 @@ export const scanSeconds = lastSeconds;
 
 /** The failure of a caught error, in the shape the screen shows. */
 export function failed(error: unknown): Failure {
-  return { code: error instanceof ApiError ? error.code : null };
+  return error instanceof ApiError
+    ? { code: error.code, retryAfter: error.retryAfter }
+    : { code: null };
 }
 
 /** Reads the list again. A failure is kept for the screen; the old rows stay. */

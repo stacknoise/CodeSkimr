@@ -215,7 +215,9 @@ function Failure(props: { view: Level2View }) {
           <p class={styles.text}>{failureText(failure)}</p>
           <Show when={failure.code === LEVEL2_ERROR.rateLimited}>
             <p class={styles.text}>
-              {t(I18N_KEYS.PROJECTS_LEVEL2_RETRY_WAIT, { seconds: LEVEL2_COOLDOWN_SECONDS })}
+              {t(I18N_KEYS.PROJECTS_LEVEL2_RETRY_WAIT, {
+                seconds: failure.retryAfter ?? LEVEL2_COOLDOWN_SECONDS,
+              })}
             </p>
           </Show>
         </div>

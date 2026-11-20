@@ -166,9 +166,12 @@ export function escapeWaiting(project: number, event: KeyboardEvent): void {
 
 /** Shows the command to copy; `failure` says why the window did not open, if it was tried. */
 function showCommand(project: number, command: string | null, failure: Failure | null): void {
+  // The command of the server is shown and copied only if it is exactly the command of this
+  // project: a terminal runs it, so a command for another project is not shown either.
+  const known = command === confirmCommand(project);
   patch(project, {
     phase: LEVEL2_PHASE.waiting,
-    command: command ?? confirmCommand(project),
+    command: known ? command : confirmCommand(project),
     openedAt: null,
     failure,
   });
