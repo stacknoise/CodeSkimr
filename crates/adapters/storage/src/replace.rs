@@ -74,15 +74,28 @@ fn check_references(held: &HashSet<i64>, change: &Level2Replacement) -> StorageR
 }
 
 /// Removes the symbols of origin `index` of the files, and with them every reference that points
-/// at one or starts in one (also from another file: its target is gone), and the level 1
-/// references of the files.
+/// at one or starts in one (also from another file: its target is gone), and the references that
+/// an earlier level 2 run verified in the files. Level 1 references stay until a new verified
+/// reference answers at their place (`drop_shadowed`).
 fn clear(conn: &Connection, files: &[FileId]) -> StorageResult<()> {
     for file in files {
         let id = column_int(file.get())?;
-        conn.execute(sql::REFERENCES_OF_FILE_DELETE, params![id])?;
+        conn.execute(sql::VERIFIED_REFERENCES_OF_FILE_DELETE, params![id])?;
         let origin = SymbolOrigin::Index.label();
         conn.execute(sql::ORIGIN_REFERENCES_DELETE, params![id, origin])?;
         conn.execute(sql::ORIGIN_SYMBOLS_DELETE, params![id, origin])?;
+    }
+    Ok(())
+}
+
+/// Removes the level 1 references of the files that stand where a verified reference stands now.
+/// A level 1 reference where level 2 found nothing stays, shown as unchecked (ADR 0033).
+fn drop_shadowed(conn: &Connection, files: &[FileId]) -> StorageResult<()> {
+    for file in files {
+        conn.execute(
+            sql::SHADOWED_REFERENCES_DELETE,
+            params![column_int(file.get())?],
+        )?;
     }
     Ok(())
 }
@@ -100,7 +113,8 @@ fn project_of(conn: &Connection, snapshot: i64) -> StorageResult<ProjectId> {
     Ok(ProjectId::new(id_from(id)?))
 }
 
-/// Replaces the symbols of origin `index` and the references of the files in the newest snapshot of its project; any other snapshot
+/// Replaces the symbols of origin `index` and the verified references of the files in the newest
+/// snapshot of its project; level 1 references stay where level 2 found nothing. Any other snapshot
 /// is refused, because its files may be shared with newer ones.
 pub(crate) fn replace_level2(
     conn: &Connection,
@@ -130,6 +144,7 @@ pub(crate) fn replace_level2(
             .unwrap_or(snapshot);
         insert_reference(&mut insert, first, reference)?;
     }
+    drop_shadowed(conn, &change.files)?;
     for affected in &holders.all {
         refresh(conn, *affected, project)?;
     }

@@ -25,6 +25,7 @@ mod e2e;
 mod embedded_packs;
 mod embedded_ui;
 mod export;
+mod folder_dialog;
 #[cfg(test)]
 mod incremental_tests;
 mod installation_token;

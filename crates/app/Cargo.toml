@@ -48,6 +48,7 @@ windows-permissions.workspace = true
 # Windows and macOS: the tray icon with its menu and the event loop it needs (ADR 0067). Linux has
 # no common tray without extra system libraries, so it keeps the console.
 [target.'cfg(any(windows, target_os = "macos"))'.dependencies]
+rfd.workspace = true
 tray-icon.workspace = true
 winit.workspace = true
 

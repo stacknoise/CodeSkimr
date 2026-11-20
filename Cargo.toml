@@ -91,6 +91,8 @@ tracing = { version = "0.1", default-features = false, features = ["std"] }
 tracing-subscriber = { version = "0.3", default-features = false, features = ["fmt", "std"] }
 # The tray icon with its menu (ADR 0067) and the event loop it needs (no window backends: Linux has no tray), on Windows and macOS only.
 tray-icon = { version = "0.26", default-features = false }
+# The folder dialog of the operating system for "Browse" in the new-project form (ADR 0075), on Windows and macOS only.
+rfd = { version = "0.17", default-features = false }
 winresource = { version = "0.1", default-features = false }
 winit = { version = "0.30", default-features = false, features = ["rwh_06"] }
 clap = { version = "4", default-features = false, features = ["std", "help", "usage", "error-context"] }

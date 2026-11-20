@@ -5,7 +5,9 @@ import { cx } from "../../shared/ui/cx";
 import { SETTINGS_ROUTE } from "../../app/consts";
 import { navigate } from "../../app/router";
 import { DEFAULT_BRANCH, FOLDER_PATH, GIT_ADDRESS, SOURCE_KIND, type SourceKind } from "./consts";
+import { BrowseButton, BrowseWaiting, useBrowse } from "./BrowseButton";
 import { failureText } from "./failure";
+import { readFolderDialog } from "./folderDialog";
 import { credentialNames, refreshCredentials } from "./credentials";
 import { addProject, projectAdding, projectsFailure, type Failure } from "./projects";
 import styles from "./NewProjectForm.module.css";
@@ -146,42 +148,55 @@ function GitFields(props: {
   );
 }
 
-/** The inline form "New project" (mock 1): source, branch and the button. */
-export function NewProjectForm(props: NewProjectFormProps) {
+/** Sends the form: the source, and for a Git source the branch and the stored login. */
+function useSubmit(props: NewProjectFormProps, kind: () => SourceKind) {
   let branch = DEFAULT_BRANCH;
   const [credential, setCredential] = createSignal("");
-  const [kind, setKind] = useKind(() => props.source);
-  onMount(() => void refreshCredentials());
   const submit = async (event: SubmitEvent) => {
     event.preventDefault();
     if (props.source.trim() === "" || projectAdding()) {
       return;
     }
     const git = kind() === SOURCE_KIND.git;
-    if (
-      await addProject(
-        props.source.trim(),
-        git ? branch.trim() : DEFAULT_BRANCH,
-        git ? credential() : "",
-      )
-    ) {
+    const source = props.source.trim();
+    if (await addProject(source, git ? branch.trim() : DEFAULT_BRANCH, git ? credential() : "")) {
       props.onSource("");
     }
   };
+  const gitFields = () => (
+    <GitFields
+      onBranch={(value) => (branch = value)}
+      credential={credential()}
+      onCredential={setCredential}
+    />
+  );
+  return { submit, gitFields };
+}
+
+/** The inline form "New project" (mock 1): source, branch and the button. */
+export function NewProjectForm(props: NewProjectFormProps) {
+  const [kind, setKind] = useKind(() => props.source);
+  const browse = useBrowse(props);
+  const { submit, gitFields } = useSubmit(props, kind);
+  onMount(() => {
+    void refreshCredentials();
+    void readFolderDialog();
+  });
   return (
     <form class={cx(styles.form, props.dragging && styles.dragging)} onSubmit={submit}>
       <KindSelect kind={kind()} onKind={setKind} />
-      <SourceField {...props} kind={kind()} />
-      <Show when={kind() === SOURCE_KIND.git}>
-        <GitFields
-          onBranch={(value) => (branch = value)}
-          credential={credential()}
-          onCredential={setCredential}
-        />
+      <SourceField {...props} onSource={browse.typed} kind={kind()} />
+      <Show when={kind() === SOURCE_KIND.folder}>
+        <BrowseButton onPicked={browse.picked} />
       </Show>
+      <BrowseWaiting />
+      <Show when={kind() === SOURCE_KIND.git}>{gitFields()}</Show>
       <button type="submit" class={styles.button} disabled={projectAdding()}>
         {projectAdding() ? t(I18N_KEYS.PROJECTS_ADDING) : t(I18N_KEYS.PROJECTS_ADD_AND_SCAN)}
       </button>
+      <Show when={browse.taken()}>
+        <p class={styles.message}>{t(I18N_KEYS.PROJECTS_BROWSE_DONE)}</p>
+      </Show>
       <Messages notice={props.notice} />
     </form>
   );
