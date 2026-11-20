@@ -896,7 +896,8 @@ fn check_threshold(stats: &ImportStats, min_mapped: f64) -> Result<(), ScipError
     }
 }
 
-/// Replaces the level 1 references of every file the index covers by level 2 references.
+/// Adds level 2 references for every file the index covers; they replace the level 1 references
+/// where they answer.
 ///
 /// * A definition occurrence (role bit 1) is mapped onto the smallest project symbol of its file
 ///   that contains its position and bears the name of the last descriptor of its SCIP symbol.

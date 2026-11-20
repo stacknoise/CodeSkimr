@@ -29,6 +29,9 @@ mod level2;
 mod level2_revoke;
 mod preferences;
 mod projects;
+mod projects_pick;
+#[cfg(test)]
+mod projects_pick_tests;
 mod projects_remove;
 #[cfg(test)]
 mod projects_remove_tests;
@@ -64,6 +67,7 @@ use codeskimr_source::FolderText;
 pub(crate) use status::{mark_ready, mark_started};
 
 use crate::clock::SystemClock;
+use crate::folder_dialog::{FolderPicker, SystemPicker};
 use crate::locations::Locations;
 use crate::running::RunningScans;
 use crate::wiring::{Secrets, index_runner, indexer_check, tool_checker};
@@ -92,6 +96,7 @@ pub(crate) use level2::{Window, confirmation_desk};
 use level2_revoke::Level2Revoke;
 use preferences::{GetPreferences, PreferencesFile, SetPreferences};
 use projects::{AddProject, CancelScan, CheckTools, ListProjects, RescanProject};
+use projects_pick::{FolderDialogInfo, PickFolder};
 use projects_remove::RemoveProject;
 use search::{SearchPorts, SearchQuery};
 use source::ExplorerSource;
@@ -343,6 +348,8 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<AddProject>()?;
     api.expose::<RescanProject>()?;
     api.expose::<RemoveProject>()?;
+    api.expose::<FolderDialogInfo>()?;
+    api.expose::<PickFolder>()?;
     api.expose::<CheckTools>()?;
     api.expose::<ListIndexers>()?;
     api.expose::<Level2StatusCommand>()?;
@@ -418,12 +425,25 @@ fn register_projects(
             context: Arc::clone(context),
         },
     )?;
+    register_folder_dialog(registry)?;
     add(
         registry,
         CancelScan {
             context: Arc::clone(context),
         },
     )
+}
+
+/// The two commands of the "Browse" button, on the dialog of the operating system.
+fn register_folder_dialog(registry: &mut Registry) -> Result<(), CodedError> {
+    let picker: Arc<dyn FolderPicker> = Arc::new(SystemPicker::default());
+    add(
+        registry,
+        FolderDialogInfo {
+            picker: Arc::clone(&picker),
+        },
+    )?;
+    add(registry, PickFolder { picker })
 }
 
 fn register_credentials(

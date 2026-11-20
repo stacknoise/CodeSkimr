@@ -37,7 +37,7 @@ A call, read, write or type use in a test file is reported with the kind `test` 
 
 ## Level 2 (ADR 0033)
 
-Level 2 references come from SCIP indexes of the language tooling and replace the level 1 references of every file the index covers; they are `certain` and `verified`. The import (decoder, mapping, replacing per file) is `crates/adapters/scip`, see `docs/level2-import.md`. It is not wired into the scan yet.
+Level 2 references come from SCIP indexes of the language tooling and replace the level 1 references at the places where they answer; they are `certain` and `verified`. Level 1 references of a covered file where level 2 found nothing stay, unchecked. The import (decoder, mapping, replacing per file) is `crates/adapters/scip`, see `docs/level2-import.md`. It is not wired into the scan yet.
 
 ## Ambiguous references (`RES-301`)
 
