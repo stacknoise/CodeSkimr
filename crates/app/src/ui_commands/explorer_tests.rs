@@ -23,6 +23,11 @@ fn node(
     }
 }
 
+/// The node with a number of direct members.
+fn counted(node: OutlineNode, members: u32) -> OutlineNode {
+    OutlineNode { members, ..node }
+}
+
 #[test]
 fn a_module_without_types_gets_its_own_namespace_entry() {
     let nodes = [
@@ -56,4 +61,70 @@ fn the_module_of_a_file_with_real_namespaces_is_not_a_namespace() {
 fn a_name_that_only_ends_like_the_module_is_no_namespace_module() {
     let nodes = [node(1, SymbolKind::Module, "entry", "pkg.bentry", None)];
     assert_eq!(build(&[], &nodes).len(), 0);
+}
+
+#[test]
+fn a_namespace_symbol_with_functions_holds_them_and_one_without_does_not() {
+    let nodes = [
+        counted(node(1, SymbolKind::Namespace, "util", "app.util", None), 3),
+        node(2, SymbolKind::Class, "Tool", "app.util.Tool", Some(1)),
+        counted(
+            node(3, SymbolKind::Namespace, "empty", "app.empty", None),
+            1,
+        ),
+        node(4, SymbolKind::Class, "Other", "app.empty.Other", Some(3)),
+    ];
+    let spaces = &build(&[], &nodes)[0].namespaces;
+    let util = spaces
+        .iter()
+        .find(|space| space.name == "app.util")
+        .unwrap();
+    assert_eq!(util.holders.len(), 1);
+    assert_eq!(util.holders[0].members, 2);
+    let empty = spaces
+        .iter()
+        .find(|space| space.name == "app.empty")
+        .unwrap();
+    assert_eq!(empty.holders.len(), 0);
+}
+
+#[test]
+fn the_module_of_a_file_without_a_namespace_holds_its_functions() {
+    let nodes = [
+        counted(node(1, SymbolKind::Module, "Util", "app/Util.kt", None), 2),
+        counted(
+            node(2, SymbolKind::Module, "Named", "app/Named.kt", None),
+            1,
+        ),
+        node(3, SymbolKind::Namespace, "app", "app", Some(2)),
+    ];
+    let spaces = &build(&[], &nodes)[0].namespaces;
+    let held: Vec<_> = spaces
+        .iter()
+        .filter(|space| !space.holders.is_empty())
+        .collect();
+    assert_eq!(held.len(), 1);
+    assert_eq!(held[0].name, "app/Util.kt");
+    assert_eq!(held[0].holders[0].members, 2);
+}
+
+#[test]
+fn a_type_in_a_file_without_a_namespace_gets_the_file_as_its_namespace_entry() {
+    let nodes = [
+        node(1, SymbolKind::Module, "Plain", "app/Plain.cs", None),
+        node(2, SymbolKind::Class, "Plain", "Plain", Some(1)),
+        node(3, SymbolKind::Module, "entry", "pkg.entry", None),
+        node(4, SymbolKind::Class, "Entry", "pkg.entry.Entry", Some(3)),
+    ];
+    let spaces = &build(&[], &nodes)[0].namespaces;
+    let file = spaces
+        .iter()
+        .find(|space| space.name == "app/Plain.cs")
+        .unwrap();
+    assert!(file.file);
+    let python = spaces
+        .iter()
+        .find(|space| space.name == "pkg.entry")
+        .unwrap();
+    assert!(!python.file);
 }

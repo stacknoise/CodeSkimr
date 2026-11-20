@@ -103,14 +103,16 @@ impl RunPermit {
         &self.project_root
     }
 
-    /// Reads the consent again.
+    /// Reads the consent again. The master switch `[level2] enabled` of the user configuration is
+    /// the one the permit was made with (ADR 0076); the `enabled` flag of the record does not
+    /// replace it.
     ///
     /// # Errors
-    /// `SEC-301` if it was withdrawn or no longer fits the project in the meantime, otherwise the
-    /// failure of the store.
+    /// `SEC-301` if the switch is off, or the confirmation was withdrawn or no longer fits the
+    /// project in the meantime, otherwise the failure of the store.
     pub fn recheck(&self) -> Result<(), CodedError> {
         let record = self.store.consent(self.project)?;
-        if (self.enabled_in_config || record.enabled) && record.confirmed {
+        if self.enabled_in_config && record.confirmed {
             Ok(())
         } else {
             Err(CodedError::new(ErrorCode::IndexerNotConfirmed))

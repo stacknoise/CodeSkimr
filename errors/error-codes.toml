@@ -470,7 +470,7 @@ id = "SEC-301"
 name = "indexer_not_confirmed"
 severity = "error"
 retryable = false
-description = "Level 2 is not enabled and confirmed for this project in the user configuration or the user's own project record, so no indexer is started."
+description = "Level 2 is not enabled in the user configuration (`[level2] enabled`) or not confirmed for this project, so no indexer is started."
 since = "0.1.0"
 
 [[codes]]
