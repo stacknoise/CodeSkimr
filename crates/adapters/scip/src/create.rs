@@ -11,7 +11,7 @@ use codeskimr_domain::{
     FileId, Position, QualifiedName, Span, Symbol, SymbolId, SymbolKind, SymbolName, SymbolOrigin,
 };
 
-use crate::consts::{NO_LIBRARY_ROOT, NO_SEPARATOR, SCIP_KIND_NAMES};
+use crate::consts::{MAX_REFERENCES_PER_IMPORT, NO_LIBRARY_ROOT, NO_SEPARATOR, SCIP_KIND_NAMES};
 use crate::error::ScipError;
 use crate::model::{Occurrence, ScipDocument, ScipIndex, SymbolInfo, SymbolRef};
 use crate::symbol::{last_descriptor, parent_text};
@@ -30,6 +30,8 @@ pub struct Creation<'a> {
     /// The file name of the root that wins when a symbol is the module of several files and the
     /// folders do not decide (`[indexer] library_root` of the pack, ADR 0061); empty for none.
     pub library_root: &'a str,
+    /// Most references one import may produce; more fails the whole import.
+    pub max_references: usize,
 }
 
 impl Creation<'static> {
@@ -41,6 +43,7 @@ impl Creation<'static> {
             separator: NO_SEPARATOR,
             max_symbols: 0,
             library_root: NO_LIBRARY_ROOT,
+            max_references: MAX_REFERENCES_PER_IMPORT,
         }
     }
 }

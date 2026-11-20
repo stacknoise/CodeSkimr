@@ -1,6 +1,8 @@
 //! Tests of the SCIP import with index bytes that are built by hand.
 
 #[cfg(test)]
+mod caps;
+#[cfg(test)]
 mod common;
 #[cfg(test)]
 mod created;

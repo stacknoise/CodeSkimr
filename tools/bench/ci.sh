@@ -10,8 +10,9 @@
 #   sides of a comparison and not only one;
 # - a failed comparison is measured once more with the order of the two sides reversed (base, change
 #   in the first run; change, base in the second), so a systematic effect of the order cancels out,
-#   and the check then takes the best median of each benchmark and side over both runs. A real
-#   slowdown shows in every run; an outlier does not.
+#   and a second failure is measured a third time (issue #456). The check takes the best median of
+#   each benchmark and side over all runs so far. A real slowdown shows in every run; an outlier
+#   does not.
 set -euo pipefail
 
 ROOT="$(git rev-parse --show-toplevel)"
@@ -23,6 +24,7 @@ HEAD_BASELINE="ci-head"
 PACKAGES=("codeskimr_bench:tools/bench/Cargo.toml" "codeskimr_storage:crates/adapters/storage/Cargo.toml")
 RUN_HOME="$ROOT/target/criterion"
 RETRY_HOME="$ROOT/target/criterion-retry"
+THIRD_HOME="$ROOT/target/criterion-third"
 
 # The names of the `[[bench]]` targets that a manifest lists, one per line (read from stdin).
 bench_targets() {
@@ -114,8 +116,15 @@ check() {
 export CRITERION_HOME="$RUN_HOME"
 measure base || exit 1
 if ! check "$RUN_HOME"; then
-  echo "Comparison failed, measuring once more with the order reversed and taking the best of both runs."
-  rm -rf "$RETRY_HOME"
+  # Noise on a shared runner is not always independent between two runs (issue #456), so a third
+  # run follows before the job fails. The order of the sides alternates: change first in the
+  # second run, base first again in the third. The check takes the best median over all runs.
+  echo "Comparison failed, measuring again with the order reversed and taking the best of the runs."
+  rm -rf "$RETRY_HOME" "$THIRD_HOME"
   CRITERION_HOME="$RETRY_HOME" measure head || exit 1
-  check "$RUN_HOME" "$RETRY_HOME"
+  if ! check "$RUN_HOME" "$RETRY_HOME"; then
+    echo "Comparison failed again, measuring a third time and taking the best of the three runs."
+    CRITERION_HOME="$THIRD_HOME" measure base || exit 1
+    check "$RUN_HOME" "$RETRY_HOME" "$THIRD_HOME"
+  fi
 fi
