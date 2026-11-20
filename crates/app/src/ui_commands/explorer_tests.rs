@@ -12,26 +12,20 @@ fn node(
     qualified: &str,
     parent: Option<u64>,
 ) -> OutlineNode {
-    with_members(id, kind, name, qualified, parent, 0)
-}
-
-fn with_members(
-    id: u64,
-    kind: SymbolKind,
-    name: &str,
-    qualified: &str,
-    parent: Option<u64>,
-    members: u32,
-) -> OutlineNode {
     OutlineNode {
         id: SymbolId::new(id),
         name: SymbolName::new(name).unwrap(),
         qualified_name: QualifiedName::new(qualified).unwrap(),
         kind,
         parent: parent.map(SymbolId::new),
-        members,
+        members: 0,
         language: LanguageId::new("python").unwrap(),
     }
+}
+
+/// The node with a number of direct members.
+fn counted(node: OutlineNode, members: u32) -> OutlineNode {
+    OutlineNode { members, ..node }
 }
 
 #[test]
@@ -72,9 +66,12 @@ fn a_name_that_only_ends_like_the_module_is_no_namespace_module() {
 #[test]
 fn a_namespace_symbol_with_functions_holds_them_and_one_without_does_not() {
     let nodes = [
-        with_members(1, SymbolKind::Namespace, "util", "app.util", None, 3),
+        counted(node(1, SymbolKind::Namespace, "util", "app.util", None), 3),
         node(2, SymbolKind::Class, "Tool", "app.util.Tool", Some(1)),
-        with_members(3, SymbolKind::Namespace, "empty", "app.empty", None, 1),
+        counted(
+            node(3, SymbolKind::Namespace, "empty", "app.empty", None),
+            1,
+        ),
         node(4, SymbolKind::Class, "Other", "app.empty.Other", Some(3)),
     ];
     let spaces = &build(&[], &nodes)[0].namespaces;
@@ -94,8 +91,11 @@ fn a_namespace_symbol_with_functions_holds_them_and_one_without_does_not() {
 #[test]
 fn the_module_of_a_file_without_a_namespace_holds_its_functions() {
     let nodes = [
-        with_members(1, SymbolKind::Module, "Util", "app/Util.kt", None, 2),
-        with_members(2, SymbolKind::Module, "Named", "app/Named.kt", None, 1),
+        counted(node(1, SymbolKind::Module, "Util", "app/Util.kt", None), 2),
+        counted(
+            node(2, SymbolKind::Module, "Named", "app/Named.kt", None),
+            1,
+        ),
         node(3, SymbolKind::Namespace, "app", "app", Some(2)),
     ];
     let spaces = &build(&[], &nodes)[0].namespaces;
