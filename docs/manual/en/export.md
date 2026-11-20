@@ -18,7 +18,7 @@ The command needs the built export page of the UI: `npm run build` in `web/` mak
 
 - The tree of layers, namespaces and types.
 - For every type and member: breadcrumb, metrics, signature, documentation comment, file and line range.
-- The usages of every symbol (callers and callees, as deep as `mcp.max_depth` allows, tests included; the toolbar filters work in the page) and the impact of a change.
+- The usages of every symbol (callers and callees, direct usages only, tests included; the toolbar filters work in the page; the depth select is not offered) and the impact of a change.
 - The dependency map as CodeSkimr laid it out.
 - Name, commit and date of the scan.
 
@@ -40,7 +40,7 @@ Every usage keeps its mark (verified, unchecked, presumed) and the page shows th
 - It is a snapshot. Scanning, adding projects and settings are not part of it.
 - Only types and the members of types are listed, like in the explorer; free functions outside a type are not.
 - The quick search is a plain match on names (start, part, letters in order), not the ranking of the app.
-- The size grows with the references, because the usages of every symbol are embedded. Large projects give files of many megabytes.
+- The size grows about linearly with the references, because the direct usages of every symbol are embedded. Large projects give files of many megabytes. Walks through other symbols (depth 2 and more) are only in the app: they grow much faster than the project and made the file too big to open.
 
 ## Errors
 

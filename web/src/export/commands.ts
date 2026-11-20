@@ -6,10 +6,10 @@ import { COMMAND as PROJECTS, SCAN_MODE, SOURCE_KIND } from "../features/project
 import type { ProjectRow } from "../features/projects/types";
 import { SEARCH_COMMAND } from "../features/search/consts";
 import { REF, USAGES_COMMAND, WAY } from "../features/usages/consts";
-import type { Walk, UsagesAnswer } from "../features/usages/types";
+import type { Place, Walk, UsagesAnswer } from "../features/usages/types";
 import { NO_LINES, STATUS_NOT_FOUND } from "./consts";
 import { searchSymbols } from "./search";
-import type { ExportData } from "./types";
+import type { ExportData, StoredUsages } from "./types";
 
 /** What the usages screen asks for (crates/app/src/ui_commands/usages.rs). */
 interface UsagesInput {
@@ -49,13 +49,19 @@ function projectRow(data: ExportData): ProjectRow {
 
 /** The hits that the depth and the tests switch of the toolbar leave. The count of a walk that
  * was cut stays a count of what was found. */
-function narrowed(walk: Walk | null, input: UsagesInput, depth: number): Walk | null {
+function narrowed(
+  data: ExportData,
+  walk: StoredUsages["answer"]["incoming"],
+  input: UsagesInput,
+  depth: number,
+): Walk | null {
   if (walk === null) {
     return null;
   }
-  const hits = walk.hits.filter(
-    (hit) => hit.depth <= depth && (input.include_tests || hit.kind !== REF.test),
-  );
+  const place = (id: number): Place => data.places[id] ?? fail();
+  const hits = walk.hits
+    .filter((hit) => hit.depth <= depth && (input.include_tests || hit.kind !== REF.test))
+    .map((hit) => ({ ...hit, from: place(hit.from), to: place(hit.to) }));
   const complete = walk.hits.length === walk.total;
   return { total: complete ? hits.length : walk.total - (walk.hits.length - hits.length), hits };
 }
@@ -70,8 +76,8 @@ function usages(data: ExportData, input: UsagesInput): UsagesAnswer {
   return {
     ...answer,
     depth,
-    incoming: input.way === WAY.outgoing ? null : narrowed(answer.incoming, input, depth),
-    outgoing: input.way === WAY.incoming ? null : narrowed(answer.outgoing, input, depth),
+    incoming: input.way === WAY.outgoing ? null : narrowed(data, answer.incoming, input, depth),
+    outgoing: input.way === WAY.incoming ? null : narrowed(data, answer.outgoing, input, depth),
     summary: input.include_tests ? answer.summary : stored.summary_without_tests,
   };
 }
