@@ -21,13 +21,15 @@ Binding UI reference for the web frontend (blueprint section 15). One file per s
 | 15 | Alerts | `Alerts.dc.html` |
 | 16 | Task board | `Tasks.dc.html` |
 | 17 | Settings: indexers (tool check of level 2) | `Indexers.dc.html` |
-| 18 | Projects: level 2 switch per project (ADR 0071) | `Level2Switch.dc.html` |
+| 18 | Projects: level 2 switch per project (ADR 0071) and the scan section: progress, cancel, reasons, report (ADR 0072) | `Level2Switch.dc.html` |
 
 Mocks 7 to 13 have a `theme` property (`hell`, `petrol`, `dunkel`; values in blueprint 15.3, ADR 0021). Mocks 1 to 6 are drawn in Hell. Screens 7 to 12 belong to the team edition (ADR 0019), screen 13 to 1.0.
 
 The files are written in a design-canvas format and do not render on their own in a browser. Read them for exact values (inline styles); to look at the rendered screens, open the published canvas: <https://claude.ai/artifact/FRpzF7hdgZVdHCm2mxRuNZ> (the link works for the owner of the canvas).
 
 Mocks 14 to 18 (14 to 16: ADR 0068; 17: indexer section of the settings, approved by the product owner on 2026-11-17; 18: the level 2 switch in the projects screen, ADR 0071, added with the web package because mock 1 did not show it) are plain static pages with several boards each; they open in any browser. The theme is the class of `body` (`hell`, `petrol`, `dunkel`), the default is Petrol. They are not part of `canvas.json`.
+
+Mock 1 shows under "Last scan" the level and origin of the last scan and what stage 2 did (ADR 0072); mock 6 shows the same report on the accuracy card; mock 18 has the scan section with its states.
 
 All names and numbers in the mocks are sample data.
 
