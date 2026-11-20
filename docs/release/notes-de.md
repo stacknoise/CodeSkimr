@@ -21,9 +21,8 @@ Projekt anlegen und scannen: Handbuch unter `docs/manual/de/projekte-und-scan.md
 ## Bekannte Grenzen
 
 <!-- ENTWURF: Die Aussage zur Genauigkeit ist Antons Entscheidung (Empfehlung: so nennen). Zahlen: docs/accuracy.md, docs/acceptance/level2.md; vor dem Veröffentlichen neu prüfen. -->
-- **Verwendungen (Wo wird das benutzt?)** sind nicht überall compilergenau. Mit Stufe 2 (genaue Indexer) gemessen auf den Testkorpora: Rust, TypeScript und Java 99 % und mehr. **Python, C# und Kotlin liegen darunter und sind eine Näherung:** Python findet fast alles (Trefferquote 99 %), zeigt aber auch falsche Treffer (Genauigkeit 63 %); bei C# stürzt der Indexer teilweise ab (Fehler in scip-dotnet, gemeldet), Kotlin ist nicht messbar. Die Oberfläche kennzeichnet diese Sprachen.
+- **Verwendungen (Wo wird das benutzt?)** sind nicht überall compilergenau. Mit Stufe 2 (genaue Indexer) gemessen auf den Testkorpora: Rust, TypeScript und Java 99 % und mehr. **Python, C# und Kotlin liegen darunter und sind eine Näherung:** Python findet fast alles (Trefferquote 99 %), zeigt aber auch falsche Treffer (Genauigkeit rund 63 %); bei C# ordnet der Indexer scip-dotnet Überladungen falsch zu (Trefferquote 34 %, Genauigkeit 60 %, siehe `docs/accuracy.md`); Kotlin lässt sich nicht messen (kein Referenzwerkzeug).
 - Stufe 2 startet fremde Werkzeuge im Projekt und braucht Ihre ausdrückliche Zustimmung; die Indexer installieren Sie selbst (Handbuch: `indexer.md`).
-- Sehr große Projekte brauchen länger: ein Voll-Scan von 100.000 Zeilen dauert je nach Sprache ein bis zwei Sekunden (bekannte Grenze, Verbesserung nach 1.0).
 - Keine Signatur (Windows, macOS; kommt als Erstes nach 1.0) und kein Installationsprogramm: eine einzelne Datei je System.
 
 Rückmeldungen bitte als Issue im Repository `stacknoise/CodeSkimr`.
