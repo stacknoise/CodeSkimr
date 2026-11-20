@@ -208,15 +208,20 @@ describe("buildRows", () => {
   });
 });
 
-describe("namespaces grouped by their parts", () => {
-  const type = (id: number, name: string) => ({
+/** A symbol row of the outline: `qualified` defaults to the name. */
+const symbolOf =
+  (kind: string, language: string) =>
+  (id: number, name: string, qualified = name) => ({
     id,
     name,
-    qualified_name: name,
-    kind: "class",
+    qualified_name: qualified,
+    kind,
     members: 0,
-    language: "csharp",
+    language,
   });
+
+describe("namespaces grouped by their parts", () => {
+  const type = symbolOf("class", "csharp");
   const GROUPED: Outline = {
     ...OUTLINE,
     layers: [
@@ -411,14 +416,8 @@ describe("revealNamespace", () => {
 });
 
 describe("modules in the tree", () => {
-  const module = (id: number, name: string) => ({
-    id,
-    name,
-    qualified_name: `pkg.${name}`,
-    kind: "module",
-    members: 0,
-    language: "python",
-  });
+  const python = symbolOf("module", "python");
+  const module = (id: number, name: string) => python(id, name, `pkg.${name}`);
   const PYTHON: Outline = {
     ...OUTLINE,
     layers: [

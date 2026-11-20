@@ -5,7 +5,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
-use codeskimr_domain::{LanguageId, ModelError, SymbolKind};
+use codeskimr_domain::{LanguageId, SymbolKind};
 use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
 use tree_sitter::{Language, Query};
 
@@ -90,8 +90,7 @@ impl LanguagePack {
         let invalid = |reason: String| ParsingError::invalid(folder, reason);
         let id = pack_id(&manifest.id, folder)?;
         let visibility = Visibilities::resolve(manifest.visibility).map_err(invalid)?;
-        let modifier_kinds =
-            modifier_kinds(manifest.modifier_kinds).map_err(|e| invalid(e.to_string()))?;
+        let modifier_kinds = modifier_kinds(manifest.modifier_kinds).map_err(invalid)?;
         let kinds_by_parent = parent_kinds(manifest.kinds_by_parent).map_err(invalid)?;
         Ok(Self {
             kinds_by_parent,
@@ -170,12 +169,15 @@ impl LanguagePack {
 }
 
 /// The kinds that a modifier keyword gives to a declaration.
-fn modifier_kinds(
-    labels: HashMap<String, String>,
-) -> Result<HashMap<String, SymbolKind>, ModelError> {
+fn modifier_kinds(labels: HashMap<String, String>) -> Result<HashMap<String, SymbolKind>, String> {
     labels
         .into_iter()
-        .map(|(keyword, label)| Ok((keyword, SymbolKind::from_str(&label)?)))
+        .map(|(keyword, label)| {
+            Ok((
+                keyword,
+                SymbolKind::from_str(&label).map_err(|e| e.to_string())?,
+            ))
+        })
         .collect()
 }
 

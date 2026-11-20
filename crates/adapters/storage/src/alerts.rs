@@ -131,6 +131,7 @@ pub(crate) fn raise(conn: &Connection, raise: &AlertRaise) -> StorageResult<Aler
     let annotation = column_int(raise.annotation.get())?;
     let changes = join_changes(&sighting.changes);
     let snapshot = column_int(sighting.snapshot.get())?;
+    let observed = sighting.observed.as_ref();
     let values = params![
         annotation,
         raise.now.0,
@@ -141,16 +142,10 @@ pub(crate) fn raise(conn: &Connection, raise: &AlertRaise) -> StorageResult<Aler
         changes,
         sighting.references,
         sighting.closest.as_ref().map(QualifiedName::as_str),
-        sighting
-            .observed
-            .as_ref()
-            .map(|seen| seen.content_hash.as_str()),
-        sighting
-            .observed
-            .as_ref()
-            .map(|seen| seen.signature_hash.as_str()),
-        sighting.observed.as_ref().map(|seen| i64::from(seen.loc.0)),
-        sighting.observed.as_ref().map(|seen| i64::from(seen.cc))
+        observed.map(|seen| seen.content_hash.as_str()),
+        observed.map(|seen| seen.signature_hash.as_str()),
+        observed.map(|seen| i64::from(seen.loc.0)),
+        observed.map(|seen| i64::from(seen.cc))
     ];
     let update = if raise.counted {
         sql::ALERT_RAISE_OPEN

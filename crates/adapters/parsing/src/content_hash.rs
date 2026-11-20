@@ -27,7 +27,7 @@ use std::ops::Range;
 
 use codeskimr_application::ports::SymbolHash;
 use codeskimr_domain::ContentHash;
-use tree_sitter::Node;
+use tree_sitter::{Node, TreeCursor};
 
 use crate::consts::{
     BLOCK_CLOSE, BLOCK_OPEN, HASH_BUFFER_BYTES, HASH_CHUNK_BYTES, TOKEN_SEPARATOR,
@@ -141,27 +141,45 @@ fn token_ranges(pack: &LanguagePack, root: Node<'_>) -> Vec<Token> {
         let current = cursor.node();
         let flags = kinds.of(current);
         let is_leaf = flags.comment || current.child_count() == 0;
-        if flags.block {
-            tokens.push(Token::Open(current.start_byte()));
-        }
-        if is_leaf && !flags.comment && current.end_byte() > current.start_byte() {
-            tokens.push(Token::Text(current.start_byte()..current.end_byte()));
-        }
+        push_opening(&mut tokens, current, flags, is_leaf);
         if !is_leaf && cursor.goto_first_child() {
             continue;
         }
         if flags.block {
             tokens.push(Token::Close(current.end_byte()));
         }
-        while !cursor.goto_next_sibling() {
-            if !cursor.goto_parent() {
-                return tokens;
-            }
-            if kinds.of(cursor.node()).block {
-                tokens.push(Token::Close(cursor.node().end_byte()));
-            }
+        if !advance(&mut cursor, &mut kinds, &mut tokens) {
+            return tokens;
         }
     }
+}
+
+/// The tokens a node opens: the start of its block and, for a leaf that is no comment, its text.
+fn push_opening(tokens: &mut Vec<Token>, node: Node<'_>, flags: KindFlags, is_leaf: bool) {
+    if flags.block {
+        tokens.push(Token::Open(node.start_byte()));
+    }
+    if is_leaf && !flags.comment && node.end_byte() > node.start_byte() {
+        tokens.push(Token::Text(node.start_byte()..node.end_byte()));
+    }
+}
+
+/// Moves to the next sibling, closing the blocks of the parents it leaves; `false` at the end of
+/// the tree.
+fn advance(
+    cursor: &mut TreeCursor<'_>,
+    kinds: &mut KindCache<'_>,
+    tokens: &mut Vec<Token>,
+) -> bool {
+    while !cursor.goto_next_sibling() {
+        if !cursor.goto_parent() {
+            return false;
+        }
+        if kinds.of(cursor.node()).block {
+            tokens.push(Token::Close(cursor.node().end_byte()));
+        }
+    }
+    true
 }
 
 /// The tokens that lie inside `range`; `tokens` is sorted by start.

@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
 
-use codeskimr_domain::{Position, Span};
+use codeskimr_domain::{Position, RelativePath, Span};
 
 use crate::consts::{
     DOCUMENT_OCCURRENCES, DOCUMENT_POSITION_ENCODING, DOCUMENT_RELATIVE_PATH, DOCUMENT_SYMBOLS,
@@ -19,7 +19,9 @@ use crate::consts::{
 };
 use crate::error::{Corruption, ScipError};
 use crate::info::{InfoBudget, decode_info};
-use crate::model::{Occurrence, PositionEncoding, ScipDocument, ScipIndex, SymbolRef, TextFacts};
+use crate::model::{
+    Occurrence, PositionEncoding, ScipDocument, ScipIndex, SymbolInfo, SymbolRef, TextFacts,
+};
 use crate::path::normalize_path;
 use crate::wire::{Fields, Value, packed_varints};
 
@@ -189,6 +191,18 @@ fn take_occurrence(
     Ok(())
 }
 
+fn document_path(bytes: &[u8]) -> Result<RelativePath, Corruption> {
+    normalize_path(text(bytes, MAX_PATH_BYTES)?)
+}
+
+fn info_of(
+    bytes: &[u8],
+    symbols: &mut Interner,
+    budget: &mut InfoBudget,
+) -> Result<Option<SymbolInfo>, Corruption> {
+    decode_info(bytes, budget, &mut |text| symbols.intern(text))
+}
+
 fn decode_document(
     message: &[u8],
     symbols: &mut Interner,
@@ -202,15 +216,13 @@ fn decode_document(
     for field in Fields::new(message) {
         match field? {
             (DOCUMENT_RELATIVE_PATH, Value::Bytes(bytes)) => {
-                path = Some(normalize_path(text(bytes, MAX_PATH_BYTES)?)?);
+                path = Some(document_path(bytes)?);
             }
             (DOCUMENT_OCCURRENCES, Value::Bytes(bytes)) => {
                 take_occurrence(bytes, symbols, &mut occurrences, &mut extents)?;
             }
             (DOCUMENT_SYMBOLS, Value::Bytes(bytes)) => {
-                infos.extend(decode_info(bytes, budget, &mut |text| {
-                    symbols.intern(text)
-                })?);
+                infos.extend(info_of(bytes, symbols, budget)?);
             }
             (DOCUMENT_POSITION_ENCODING, Value::Varint(value)) => encoding = encoding_of(value),
             (
@@ -223,6 +235,15 @@ fn decode_document(
             _ => {}
         }
     }
+    document_of(path, encoding, (occurrences, infos, extents))
+}
+
+/// The document of the decoded parts; without a safe path there is none.
+fn document_of(
+    path: Option<RelativePath>,
+    encoding: PositionEncoding,
+    (occurrences, infos, extents): (Vec<Occurrence>, Vec<SymbolInfo>, HashMap<Span, Span>),
+) -> Result<ScipDocument, Corruption> {
     Ok(ScipDocument {
         path: path.ok_or(Corruption::UnsafePath)?,
         encoding,
@@ -259,6 +280,14 @@ impl RangeNumbers {
         Ok(())
     }
 
+    /// Takes the numbers of one field: a single varint or a packed list of them.
+    fn absorb(&mut self, value: Value<'_>) -> Result<(), Corruption> {
+        match value {
+            Value::Varint(number) => self.push(number),
+            Value::Bytes(bytes) => packed_varints(bytes).try_for_each(|number| self.push(number?)),
+        }
+    }
+
     fn span(&self) -> Result<Span, Corruption> {
         let at = |line, column| Position { line, column };
         let (start, end) = match self.values.get(..self.len) {
@@ -282,18 +311,8 @@ fn decode_occurrence(
     let mut roles = 0;
     for field in Fields::new(message) {
         match field? {
-            (OCCURRENCE_RANGE, Value::Varint(number)) => range.push(number)?,
-            (OCCURRENCE_RANGE, Value::Bytes(bytes)) => {
-                for number in packed_varints(bytes) {
-                    range.push(number?)?;
-                }
-            }
-            (OCCURRENCE_ENCLOSING_RANGE, Value::Varint(number)) => enclosing.push(number)?,
-            (OCCURRENCE_ENCLOSING_RANGE, Value::Bytes(bytes)) => {
-                for number in packed_varints(bytes) {
-                    enclosing.push(number?)?;
-                }
-            }
+            (OCCURRENCE_RANGE, value) => range.absorb(value)?,
+            (OCCURRENCE_ENCLOSING_RANGE, value) => enclosing.absorb(value)?,
             (OCCURRENCE_SYMBOL, Value::Bytes(bytes)) => {
                 symbol = Some(symbols.intern(text(bytes, MAX_SYMBOL_BYTES)?)?);
             }

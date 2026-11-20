@@ -124,14 +124,7 @@ impl WireEvent {
                 total: *total,
                 elapsed_ms: *elapsed_ms,
             },
-            Event::SnapshotCreated(SnapshotCreated {
-                snapshot,
-                pack_load,
-            }) => Self::SnapshotCreated {
-                project: snapshot.project.get(),
-                snapshot: snapshot.id.get(),
-                pack_load_ms: u64::try_from(pack_load.as_millis()).unwrap_or(u64::MAX),
-            },
+            Event::SnapshotCreated(created) => Self::snapshot_created(created),
             Event::FilesChanged(FilesChanged {
                 project,
                 files,
@@ -166,6 +159,14 @@ impl WireEvent {
             checked: done.checked,
             skipped: done.skipped,
             failed: done.failed,
+        }
+    }
+
+    fn snapshot_created(created: &SnapshotCreated) -> Self {
+        Self::SnapshotCreated {
+            project: created.snapshot.project.get(),
+            snapshot: created.snapshot.id.get(),
+            pack_load_ms: u64::try_from(created.pack_load.as_millis()).unwrap_or(u64::MAX),
         }
     }
 

@@ -263,22 +263,33 @@ pub fn command_api_over(
     add(&mut registry, CheckTools { tools })?;
     add(&mut registry, ListIndexers { indexers })?;
     register_credentials(&mut registry, catalog, &context)?;
-    register_search(&mut registry, catalog)?;
-    register_usages(&mut registry, catalog, config.mcp.max_depth)?;
-    register_graph(&mut registry, catalog, config.graph.clone())?;
     register_annotations(
         &mut registry,
         &annotation_ports(catalog, config, &context.events)?,
     )?;
-    add(&mut registry, status_info(config))?;
-    register_explorer(&mut registry, catalog, config.metrics.clone(), locations)?;
-    register_preferences(&mut registry, locations)?;
-    add(&mut registry, export_command(catalog, config, locations))?;
+    register_views(&mut registry, catalog, config, locations)?;
     let desk = confirmation_desk(catalog, config, (global, locations), window);
     register_level2(&mut registry, catalog, &desk)?;
     let mut api = CommandApi::new(Arc::new(registry));
     expose_all(&mut api)?;
     Ok((api, desk))
+}
+
+/// Registers the commands that read the index and the settings: search, usages, graph, status,
+/// explorer, preferences and export.
+fn register_views(
+    registry: &mut Registry,
+    catalog: &Arc<SqliteStore>,
+    config: &Config,
+    locations: &Locations,
+) -> Result<(), CodedError> {
+    register_search(registry, catalog)?;
+    register_usages(registry, catalog, config.mcp.max_depth)?;
+    register_graph(registry, catalog, config.graph.clone())?;
+    add(registry, status_info(config))?;
+    register_explorer(registry, catalog, config.metrics.clone(), locations)?;
+    register_preferences(registry, locations)?;
+    add(registry, export_command(catalog, config, locations))
 }
 
 /// Registers the two commands of the level 2 switch (ADR 0071). Neither is an MCP tool.
@@ -432,6 +443,24 @@ fn register_projects(
     )?;
     add(
         registry,
+        RemoveProject {
+            projects: catalog.clone(),
+            removal: catalog.clone(),
+            context: Arc::clone(context),
+        },
+    )?;
+    register_folder_dialog(registry)?;
+    register_scans(registry, catalog, context)
+}
+
+// codeskimr: allow CHK-102 lists the commands of one area, one entry per command
+fn register_scans(
+    registry: &mut Registry,
+    catalog: &Arc<SqliteStore>,
+    context: &Arc<Context>,
+) -> Result<(), CodedError> {
+    add(
+        registry,
         AddProject {
             context: Arc::clone(context),
         },
@@ -443,15 +472,6 @@ fn register_projects(
             context: Arc::clone(context),
         },
     )?;
-    add(
-        registry,
-        RemoveProject {
-            projects: catalog.clone(),
-            removal: catalog.clone(),
-            context: Arc::clone(context),
-        },
-    )?;
-    register_folder_dialog(registry)?;
     add(
         registry,
         CancelScan {

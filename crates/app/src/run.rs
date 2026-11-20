@@ -178,26 +178,32 @@ fn run_invocation(
         Action::Credential(action) => run_credential(action, messages, language),
         Action::Level2(action) => run_level2(action, invocation, &locations, messages, language),
         Action::Scan(args) => run_scan(args, invocation, &locations, messages, language),
-        Action::Mcp(args) => {
-            mcp::run(args, &invocation.global, &locations, &current_dir)?;
-            Ok(Outcome::Done)
-        }
+        Action::Mcp(args) => mcp::run(args, &invocation.global, &locations, &current_dir)
+            .map(|()| Outcome::Done)
+            .map_err(Into::into),
         Action::Start(args) => run_start(*args, invocation, &locations, env, (messages, language)),
         Action::Open(args) => run_open(*args, invocation, &locations, env, (messages, language)),
-        Action::Serve(_) => {
-            serve::run(&invocation.global, &locations, |url| {
-                if let Ok(line) = serve_started(messages, language, url) {
-                    write_out(&line);
-                }
-            })?;
-            Ok(Outcome::Done)
-        }
+        Action::Serve(_) => run_serve(invocation, &locations, (messages, language)),
         Action::Export(args) => run_export(args, invocation, &locations, messages, language),
         Action::Check(args) => {
             let report = check::run(args, &invocation.global, &locations, &current_dir)?;
             print_check(args.json, &report, messages, language)
         }
     }
+}
+
+/// `codeskimr serve`: runs until the server stops and prints the address once it listens.
+fn run_serve(
+    invocation: &Invocation,
+    locations: &Locations,
+    (messages, language): (&Messages, &str),
+) -> Result<Outcome, Failure> {
+    serve::run(&invocation.global, locations, |url| {
+        if let Ok(line) = serve_started(messages, language, url) {
+            write_out(&line);
+        }
+    })?;
+    Ok(Outcome::Done)
 }
 
 /// `codeskimr credential ...`: the secret comes from the terminal or standard input, and only the

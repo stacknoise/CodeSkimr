@@ -19,7 +19,7 @@ use codeskimr_application::pipeline::ReportStep;
 use codeskimr_application::pipeline::{Scanner, ScannerPorts};
 use codeskimr_application::ports::{AuthError, Credential, CredentialStore};
 use codeskimr_application::ports::{
-    FileAnalyzer, FileDiscovery, IndexRunner, IndexerSpec, SnippetFingerprinter,
+    FileAnalyzer, FileDiscovery, IndexRunner, IndexerSpec, SnippetFingerprinter, SourceProvider,
 };
 use codeskimr_application::resolve::ScopedResolver;
 use codeskimr_application::tools::{IndexerCheck, IndexerOverview, ToolCheckPorts, ToolChecker};
@@ -137,13 +137,7 @@ pub fn scanner_over(
         events: events.clone(),
     };
     let ports = ScannerPorts {
-        source: Arc::new(RefreshingSource::new(
-            SourceFetcher::new(
-                GitCache::new(locations.git_cache()),
-                Arc::new(ForRemotes(Arc::clone(secrets))),
-            ),
-            Refresher::new(Arc::clone(secrets)),
-        )),
+        source: Arc::new(scan_source(locations, secrets)),
         discovery,
         analyzer,
         resolver: Arc::new(ScopedResolver),
@@ -157,6 +151,18 @@ pub fn scanner_over(
         .with_level2(pass)
         .with_alerts(alert_step(store, events))
         .with_reports(ReportStep::new(store.clone(), Arc::new(SystemClock))))
+}
+
+/// The source of a scan: the git cache, with the credentials of the remotes and the refresh of an
+/// expired token.
+fn scan_source(locations: &Locations, secrets: &Arc<Secrets>) -> impl SourceProvider + 'static {
+    RefreshingSource::new(
+        SourceFetcher::new(
+            GitCache::new(locations.git_cache()),
+            Arc::new(ForRemotes(Arc::clone(secrets))),
+        ),
+        Refresher::new(Arc::clone(secrets)),
+    )
 }
 
 /// The alert step of ADR 0068 over the store; it publishes on `events`.
