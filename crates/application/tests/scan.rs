@@ -1097,6 +1097,15 @@ fn ids_are_unique_and_stage_labels_round_trip() {
 }
 
 #[test]
+fn every_stage_has_its_own_label_in_execution_order() {
+    let expected = [
+        "fetch", "discover", "analyze", "resolve", "measure", "persist",
+    ];
+    let labels: Vec<_> = StageKind::ALL.iter().map(|s| s.label()).collect();
+    assert_eq!(labels, expected);
+}
+
+#[test]
 fn a_reference_that_is_kept_is_not_resolved_a_second_time() -> Result<(), CodedError> {
     let mut previous = previous_snapshot()?;
     // `m::b` is declared in the unchanged a.rs as well; the call at 303 to it stays valid, and the

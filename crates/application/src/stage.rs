@@ -35,7 +35,8 @@ impl StageKind {
 
     /// The label used on the wire.
     ///
-    /// The labels sit in a table in execution order; the variants are declared in that order.
+    /// The labels sit in a table in execution order; the variants are declared in that order and
+    /// a test pins the labels against [`Self::ALL`]. The fallback is therefore never reached.
     #[must_use]
     pub fn label(self) -> &'static str {
         STAGE_LABELS
