@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 12,
+      "loc": 26,
       "operands": null,
       "operators": null,
       "symbol": "component"
@@ -52,9 +52,48 @@
         2
       ],
       "symbol": "component.Card"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "component.Row"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "component.Item"
+    },
+    {
+      "decisions": 0,
+      "loc": 10,
+      "operands": [
+        4,
+        6
+      ],
+      "operators": [
+        2,
+        3
+      ],
+      "symbol": "component.List"
     }
   ],
-  "loc": 12,
+  "loc": 26,
   "references": [
     {
       "at": "0:9",
@@ -73,7 +112,7 @@
     {
       "at": "5:10",
       "from": "component.Greeting",
-      "kind": "type_use",
+      "kind": "read",
       "receiver": null,
       "target": "Button"
     },
@@ -108,7 +147,7 @@
     {
       "at": "11:33",
       "from": "component.Panel.render",
-      "kind": "type_use",
+      "kind": "read",
       "receiver": null,
       "target": "Greeting"
     },
@@ -125,6 +164,62 @@
       "kind": "read",
       "receiver": "typed Props",
       "target": "title"
+    },
+    {
+      "at": "20:20",
+      "from": "component.Row",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "id"
+    },
+    {
+      "at": "23:41",
+      "from": "component.Item",
+      "kind": "read",
+      "receiver": null,
+      "target": "Row"
+    },
+    {
+      "at": "23:55",
+      "from": "component.Item",
+      "kind": "read",
+      "receiver": "unknown",
+      "target": "id"
+    },
+    {
+      "at": "28:7",
+      "from": "component.List",
+      "kind": "read",
+      "receiver": null,
+      "target": "Item"
+    },
+    {
+      "at": "29:7",
+      "from": "component.List",
+      "kind": "read",
+      "receiver": null,
+      "target": "Wrapper"
+    },
+    {
+      "at": "29:15",
+      "from": "component.List",
+      "kind": "read",
+      "receiver": "named Wrapper",
+      "target": "Slot"
+    },
+    {
+      "at": "30:9",
+      "from": "component.List",
+      "kind": "read",
+      "receiver": null,
+      "target": "Row"
+    },
+    {
+      "at": "31:8",
+      "from": "component.List",
+      "kind": "read",
+      "receiver": null,
+      "target": "Wrapper"
     }
   ],
   "symbols": [
@@ -134,7 +229,7 @@
       "name": "component",
       "parent": null,
       "signature": null,
-      "span": "0:0-18:0",
+      "span": "0:0-35:0",
       "static": false,
       "visibility": null
     },
@@ -185,6 +280,36 @@
       "parent": "component",
       "signature": "element = <div />",
       "span": "17:13-17:30",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "component.Row",
+      "parent": "component",
+      "signature": null,
+      "span": "19:0-21:1",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "component.Item",
+      "parent": "component",
+      "signature": null,
+      "span": "23:13-23:61",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "component.List",
+      "parent": "component",
+      "signature": null,
+      "span": "25:7-34:1",
       "static": false,
       "visibility": "public"
     }
