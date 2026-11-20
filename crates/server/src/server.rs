@@ -204,11 +204,12 @@ impl BoundServer {
     /// [`BoundServer::serve`], but every request carries `peer` as the address of the connected
     /// program, whatever the connection says. It exists for tests of the routes that refuse a peer
     /// that is not on this machine, because a test cannot connect from such an address (issue
-    /// #531). The program never calls it: a test (`tests/peer_seam.rs`) scans the sources of all
-    /// crates for a caller.
+    /// #531). The program never calls it: a test (`tests/peer_seam.rs`) scans every source file of
+    /// the repository for a caller.
     ///
     /// # Errors
     /// As [`BoundServer::serve`].
+    #[doc(hidden)]
     pub async fn serve_as_peer(
         self,
         peer: SocketAddr,
