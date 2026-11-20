@@ -48,9 +48,53 @@
     color: var(--muted);
 }
 
+.filter {
+    margin-left: auto;
+    width: 200px;
+    padding: var(--space-4) var(--space-8);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-badge);
+    background: var(--bg);
+    color: var(--ink-2);
+    font: 12px var(--font-mono);
+}
+.filter + .keys {
+    margin-left: 0;
+}
+.columns {
+    flex: none;
+    display: grid;
+    align-items: center;
+    gap: var(--space-12);
+    padding: var(--space-4) var(--space-16);
+    border-bottom: 1px solid var(--line-soft);
+    color: var(--muted);
+    font-size: 11.5px;
+    font-weight: 500;
+}
+.cell {
+    position: relative;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.handle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+    border-right: 1px solid var(--line);
+}
+.handle:hover,
+.handle:focus-visible {
+    border-right-color: var(--accent);
+    outline: none;
+}
+
 .hit {
     display: grid;
-    grid-template-columns: 84px minmax(0, 220px) minmax(0, 1fr) minmax(0, 200px) 84px;
     align-items: center;
     gap: var(--space-12);
     padding: var(--space-6) var(--space-16);

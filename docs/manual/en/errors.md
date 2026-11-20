@@ -38,7 +38,7 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | `APP-602` | the language packs built into the program could not be written to the data folder | free space and check the rights of the data folder; a `languages/` folder next to the program (with at least one `<language>/language.toml`) is used instead ([Installation](installation.md#build)) |
 | `PRJ-101` | the source is no existing folder and no valid Git address, or the address contains secrets, blanks or starts with a dash, or the branch name is not valid, or the folder is relative | give an absolute path; take secrets out of the address ([Sources and credentials](sources-and-credentials.md)) |
 | `PRJ-201` | no such project | add and scan it first |
-| `PRJ-302` | a scan of this project is already running | wait for it |
+| `PRJ-302` | a scan of this project is already running (also when removing the project) | wait for it or cancel it |
 | `PRJ-303` | the scan was cancelled, no new snapshot exists | start it again if needed |
 | `PRJ-501` | as many scans run at the same time as allowed (4) | wait until one has ended |
 | `SRC-201` | a source folder, a source file or a language pack folder does not exist or cannot be read | check the path and rights |

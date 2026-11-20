@@ -2,7 +2,9 @@ import { createSignal } from "solid-js";
 import { ApiError } from "../../shared/api/client";
 import { runCommand } from "../../shared/api/commands";
 import type { ErrorCode } from "../../shared/api/error-codes.generated";
+import { closeProject } from "../../shared/project/active";
 import { COMMAND, POLL_MS } from "./consts";
+import { forgetLevel2 } from "./level2";
 import type { ProjectRow, Scanned, ToolsInfo } from "./types";
 
 /** Why the last action failed: a registered code, or `null` for a failure without one (the
@@ -142,6 +144,35 @@ export async function rescanProject(project: number): Promise<void> {
     setActionFailure(failed(error));
   } finally {
     mark(project, false);
+    await refreshProjects();
+  }
+}
+
+/** Forgets what this tab keeps per project, so a project that gets the id later starts clean. */
+function forget(project: number): void {
+  const without = <V>(previous: ReadonlyMap<number, V>) => {
+    const next = new Map(previous);
+    next.delete(project);
+    return next;
+  };
+  setCheckedTools(without);
+  setLastSeconds(without);
+  forgetLevel2(project);
+  closeProject(project);
+}
+
+/** Removes a project from the app: its scans and stored results go, its files do not. Returns
+ * whether it worked; a failure is kept for the screen. */
+export async function removeProject(project: number): Promise<boolean> {
+  setActionFailure(null);
+  try {
+    await runCommand(COMMAND.remove, { project });
+    forget(project);
+    return true;
+  } catch (error) {
+    setActionFailure(failed(error));
+    return false;
+  } finally {
     await refreshProjects();
   }
 }

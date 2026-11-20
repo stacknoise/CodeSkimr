@@ -1,42 +1,18 @@
 import { createEffect, For, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
-import type { MessageKey } from "../../shared/i18n/i18n";
+import { ColumnHead } from "./ColumnHead";
+import { gridColumns } from "./columns";
 import { hitsHeight } from "./layout";
 import { Pill } from "../../shared/ui/Pill";
 import { TONE as PILL_TONE } from "../../shared/ui/consts";
 import { cx } from "../../shared/ui/cx";
-import {
-  KEY,
-  LEVEL2_UNAVAILABLE,
-  LOCATION_JOIN,
-  SCROLL_NEAREST,
-  REF,
-  REF_LABEL,
-  ROLE,
-  STATE,
-  TRUE,
-  type State,
-} from "./consts";
+import { KEY, NO_HIT, LEVEL2_UNAVAILABLE, SCROLL_NEAREST, REF, ROLE, STATE, TRUE } from "./consts";
 import { countKinds, listedPlace, placeKey, shortName, splitAt, stateOf } from "./hits";
-import { hitCode, selectedHit, setSelectedHit } from "./usages";
+import { kindText, location, STATE_LABEL } from "./hitText";
+import { hitCode, hitFilter, selectedHit, setHitFilter, setSelectedHit } from "./usages";
 import type { Hit, Place, UsagesAnswer } from "./types";
 import styles from "./HitList.module.css";
-
-const STATE_LABEL: Record<State, MessageKey> = {
-  [STATE.verified]: I18N_KEYS.USAGES_VERIFIED,
-  [STATE.unchecked]: I18N_KEYS.USAGES_UNCHECKED,
-  [STATE.presumed]: I18N_KEYS.USAGES_PRESUMED,
-};
-
-function kindText(hit: Hit): string {
-  const label = REF_LABEL[hit.kind];
-  return label ? t(label) : hit.kind;
-}
-
-function location(hit: Hit): string {
-  return `${hit.path}${LOCATION_JOIN}${hit.line}`;
-}
 
 /** The code line of a hit with the used symbol marked; empty while the code is not there. */
 function CodeText(props: { hit: Hit }) {
@@ -66,6 +42,7 @@ function Row(props: { hit: Hit; place: Place; index: number; onOpen: (hit: Hit) 
       ref={row}
       class={cx(styles.hit, selectedHit() === props.index && styles.selected)}
       aria-current={selectedHit() === props.index ? TRUE : undefined}
+      style={{ "grid-template-columns": gridColumns() }}
       onClick={() => setSelectedHit(props.index)}
       onDblClick={() => props.onOpen(props.hit)}
     >
@@ -87,6 +64,23 @@ function Row(props: { hit: Hit; place: Place; index: number; onOpen: (hit: Hit) 
   );
 }
 
+/** The box that narrows the list to the rows that contain what the user types. */
+function FilterBox() {
+  return (
+    <input
+      class={styles.filter}
+      type="search"
+      value={hitFilter()}
+      placeholder={t(I18N_KEYS.USAGES_HITS_FILTER)}
+      aria-label={t(I18N_KEYS.USAGES_HITS_FILTER)}
+      onInput={(event) => {
+        setHitFilter(event.currentTarget.value);
+        setSelectedHit(NO_HIT);
+      }}
+    />
+  );
+}
+
 /** The head of the list: the count and the counts by kind, the cut note and the keys. */
 function ListHead(props: { answer: UsagesAnswer; hits: Hit[] }) {
   const kinds = () => countKinds(props.hits);
@@ -104,14 +98,15 @@ function ListHead(props: { answer: UsagesAnswer; hits: Hit[] }) {
           {t(I18N_KEYS.USAGES_PRESUMED)} {kinds().presumed}
         </Pill>
       </Show>
-      <Show when={(walk()?.total ?? 0) > props.hits.length}>
+      <Show when={(walk()?.total ?? 0) > (walk()?.hits.length ?? 0)}>
         <span class={styles.cut}>
           {t(I18N_KEYS.USAGES_HITS_CUT, {
-            shown: props.hits.length,
+            shown: walk()?.hits.length ?? 0,
             total: walk()?.total ?? 0,
           })}
         </span>
       </Show>
+      <FilterBox />
       <span class={styles.keys}>
         <kbd>{KEY.next}</kbd>
         <span>{t(I18N_KEYS.USAGES_HITS_NEXT)}</span>
@@ -160,6 +155,7 @@ export function HitList(props: { answer: UsagesAnswer; hits: Hit[]; onOpen: (hit
       aria-label={t(I18N_KEYS.USAGES_HITS_LABEL)}
     >
       <ListHead answer={props.answer} hits={props.hits} />
+      <ColumnHead />
       <div class={styles.rows}>
         <Hits answer={props.answer} hits={props.hits} onOpen={props.onOpen} />
       </div>

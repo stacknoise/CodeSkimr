@@ -9,3 +9,8 @@ export const activeProject = active;
 export function openProject(id: number): void {
   setActive(id);
 }
+
+/** Forgets the active project if it is `id`, for example because it was removed. */
+export function closeProject(id: number): void {
+  setActive((current) => (current === id ? null : current));
+}

@@ -15,6 +15,8 @@ use crate::security_tests::{CREDENTIAL_CANARY, assert_answers_clean, command, fo
 const EVENTS: &str = "/api/v1/events";
 const COMMANDS: &str = "/api/v1/commands";
 const FOREIGN: &str = "evil.example";
+/// A project id that no test registers.
+const UNKNOWN_PROJECT: u64 = 9_999;
 /// How long a stream may be silent before the listener looks at its stop flag.
 const QUIET: Duration = Duration::from_millis(300);
 /// The time events need to reach a listener after the last command answered.
@@ -215,6 +217,46 @@ fn host_and_origin(url: &str, token: &str, source: &str) {
     );
 }
 
+/// Removing a project is destructive: like `projects.add` it needs the token and an own host and
+/// origin. The controls use an unknown project, so nothing of the suite is lost.
+fn removal_needs_the_token_and_the_origin(url: &str, token: &str) {
+    let address = url.trim_start_matches(URL_SCHEME);
+    let body = json!({ "project": UNKNOWN_PROJECT });
+    for wrong in [None, Some("csk_wrong"), Some("")] {
+        let headers: Vec<String> = wrong.map(bearer).into_iter().collect();
+        let answer = command_request(url, "projects.remove", &headers, &body);
+        assert_eq!(status(&answer), 401, "token {wrong:?}");
+        assert!(answer.contains("API-401"));
+    }
+    for (headers, what) in [
+        (
+            vec![bearer(token), format!("Host: {FOREIGN}")],
+            "foreign host",
+        ),
+        (
+            vec![bearer(token), format!("Origin: http://{FOREIGN}")],
+            "foreign origin",
+        ),
+        (
+            vec![bearer(token), "Origin: null".to_owned()],
+            "null origin",
+        ),
+    ] {
+        let answer = command_request(url, "projects.remove", &headers, &body);
+        assert_eq!(status(&answer), 403, "{what}");
+        assert!(answer.contains("API-402"), "{what}");
+    }
+    // The controls: with the token and our own origin the call gets to the command, which does
+    // not know the project.
+    for headers in [
+        vec![bearer(token)],
+        vec![bearer(token), format!("Origin: http://{address}")],
+    ] {
+        let answer = command_request(url, "projects.remove", &headers, &body);
+        assert!(answer.contains("PRJ-201"), "{answer}");
+    }
+}
+
 /// An answer sends the security headers and allows no cross-site read.
 fn assert_safe_headers(answer: &str) {
     let lower = answer.to_ascii_lowercase();
@@ -370,6 +412,7 @@ fn bad_tokens_hosts_and_origins_are_refused_and_the_event_stream_leaks_nothing()
     let outcome = run(&folders, move |url, token| {
         token_per_call(url, token, &source);
         host_and_origin(url, token, &source);
+        removal_needs_the_token_and_the_origin(url, token);
         let mut answers = credentials_need_the_token(url, token);
         answers.extend(cors_and_headers(url, token));
         let (foreign, stream) = event_stream(url, token, &source);

@@ -206,3 +206,14 @@ pub trait SnapshotStore: Send + Sync {
     /// nothing is changed then.
     fn replace_level2(&self, replacement: Level2Replacement) -> Result<Snapshot, CodedError>;
 }
+
+/// Removes a project and everything stored about it.
+pub trait ProjectRemoval: Send + Sync {
+    /// Deletes the project with all its snapshots, layers, consent, tool reports and annotations
+    /// in one transaction; nothing is deleted if one step fails. Files on disk and the
+    /// credentials of the keystore are not touched.
+    ///
+    /// # Errors
+    /// `PRJ-201` if the project does not exist, otherwise a coded failure of the `STO` group.
+    fn remove_project(&self, id: ProjectId) -> Result<(), CodedError>;
+}

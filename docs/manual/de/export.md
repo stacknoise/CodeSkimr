@@ -33,7 +33,7 @@ Die Seite sieht aus und verhält sich wie die App. Die Navigation nutzt das Adre
 
 ## Ungeprüfte Verwendungen bleiben sichtbar
 
-Jede Verwendung behält ihre Markierung (geprüft, ungeprüft, vermutet), und die Seite zeigt denselben Hinweis wie die App, wenn kein Indexer etwas geprüft hat ([Verwendungen](verwendungen.md#verlässlichkeit-geprüft-ungeprüft-vermutet)). Ein Streifen unter der Kopfleiste zählt die geprüften und ungeprüften direkten Verwendungen des ganzen Exports, sodass eine Seite, die Monate später gelesen wird, noch sagt, wie weit man ihr trauen kann.
+Jede Verwendung behält ihre Markierung (geprüft, ungeprüft, vermutet), und die Seite zeigt denselben Hinweis wie die App, wenn Ebene 2 keine der Fundstellen geprüft hat ([Verwendungen](verwendungen.md#verlässlichkeit-geprüft-ungeprüft-vermutet)). Ein Streifen unter der Kopfleiste zählt die geprüften und ungeprüften direkten Verwendungen des ganzen Exports, sodass eine Seite, die Monate später gelesen wird, noch sagt, wie weit man ihr trauen kann.
 
 ## Grenzen
 

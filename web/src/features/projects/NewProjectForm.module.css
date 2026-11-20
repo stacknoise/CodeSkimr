@@ -81,3 +81,13 @@
     padding: 0 var(--space-10);
     font: 12px var(--font-mono);
 }
+
+.link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--accent);
+    font: 13px var(--font-sans);
+    text-decoration: underline;
+    cursor: pointer;
+}

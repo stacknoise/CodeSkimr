@@ -23,7 +23,7 @@ One column per step of callers on the left, the symbol in focus in the middle (y
 
 One row per place: kind (call, read, write, test and so on), the calling symbol, file and line, and the certainty. `F8` and `Shift+F8` step through the hits, `Enter` (or a double click) shows the selected hit in the explorer, or the symbol in focus if none is selected. The list shows file and line, not the code itself.
 
-The side panel shows signature, counts (places, files, layers), the **impact** of a change (symbols reached, layers, public interfaces) and the button "Open in Explorer". Constants, properties and interface members work the same way as methods.
+The side panel shows signature, the description (the documentation comment from the code, only if there is one), counts (places, files, layers), the **impact** of a change (symbols reached, layers, public interfaces) and the button "Open in Explorer". Constants, properties and interface members work the same way as methods.
 
 ## Certainty: verified, unchecked, presumed
 
@@ -37,7 +37,7 @@ CodeSkimr finds usages in two ways. **Level 1** resolves names without type info
 
 Verified hits come first. The side panel counts the three apart ("N places verified, M unchecked, K of them presumed").
 
-**While no hit of the answer is verified** (no indexer ran for the project, [Language indexers](indexers.md)), every hit is unchecked, and the screen says so: the usages and the impact are preliminary and may be incomplete or contain wrong hits. Take this seriously for decisions: a missing usage can mean you break code you did not know about. An empty list without level 2 does not rule out usages. Once level 2 has run for a file, its hits are verified and sorted first; files it did not cover (or that changed afterwards) stay unchecked, so a project can show both.
+**While no hit of the answer is verified** (level 2 did not check this symbol: it did not run, was skipped or found nothing for it, [Language indexers](indexers.md)), every hit is unchecked, and the screen says so, and that level 2 runs only with `codeskimr scan` in a terminal and never with a scan from the browser: the usages and the impact are preliminary and may be incomplete or contain wrong hits. Take this seriously for decisions: a missing usage can mean you break code you did not know about. An empty list without level 2 does not rule out usages. Once level 2 has run for a file, its hits are verified and sorted first; files it did not cover (or that changed afterwards) stay unchecked, so a project can show both.
 
 ## Same knowledge elsewhere
 

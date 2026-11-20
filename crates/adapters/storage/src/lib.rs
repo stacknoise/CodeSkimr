@@ -26,6 +26,7 @@ mod projects;
 mod queries;
 mod read_models;
 mod references;
+mod removal;
 mod replace;
 mod similarity;
 mod snapshots;

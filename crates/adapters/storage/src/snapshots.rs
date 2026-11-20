@@ -80,14 +80,20 @@ fn prune(conn: &Connection, project: i64, keep: u32) -> StorageResult<()> {
         .query_map(params![project, keep], |row| row.get::<_, i64>(0))?
         .collect::<Result<Vec<_>, _>>()?;
     for snapshot in expired {
-        for delete in sql::SHARED_ROWS_DELETE
-            .iter()
-            .chain(sql::SNAPSHOT_CONTENT_DELETE)
-        {
-            conn.prepare_cached(delete)?.execute(params![snapshot])?;
-        }
-        conn.execute(sql::SNAPSHOT_PRUNE, params![snapshot])?;
+        delete_snapshot(conn, snapshot)?;
     }
+    Ok(())
+}
+
+/// Deletes one snapshot with everything it owns, table by table (issue #108).
+pub(crate) fn delete_snapshot(conn: &Connection, snapshot: i64) -> StorageResult<()> {
+    for delete in sql::SHARED_ROWS_DELETE
+        .iter()
+        .chain(sql::SNAPSHOT_CONTENT_DELETE)
+    {
+        conn.prepare_cached(delete)?.execute(params![snapshot])?;
+    }
+    conn.execute(sql::SNAPSHOT_PRUNE, params![snapshot])?;
     Ok(())
 }
 

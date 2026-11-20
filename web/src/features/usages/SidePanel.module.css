@@ -123,3 +123,8 @@
     font: 500 11px var(--font-mono);
     opacity: 0.75;
 }
+
+.block p.description {
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+}

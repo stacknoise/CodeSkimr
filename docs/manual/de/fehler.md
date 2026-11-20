@@ -38,7 +38,7 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 | `APP-602` | die im Programm enthaltenen Sprachpakete konnten nicht in den Datenordner geschrieben werden | Platz schaffen und Rechte des Datenordners prüfen; ein Ordner `languages/` neben dem Programm (mit mindestens einem `<Sprache>/language.toml`) wird stattdessen genutzt ([Installation](installation.md#bauen)) |
 | `PRJ-101` | die Quelle ist weder ein vorhandener Ordner noch eine gültige Git-Adresse, oder die Adresse enthält Geheimnisse oder Leerzeichen oder beginnt mit einem Bindestrich, oder der Branchname ist ungültig, oder der Ordner ist relativ | absoluten Pfad angeben; Geheimnisse aus der Adresse nehmen ([Quellen und Zugangsdaten](quellen-und-zugangsdaten.md)) |
 | `PRJ-201` | kein solches Projekt | zuerst eintragen und scannen |
-| `PRJ-302` | ein Scan dieses Projekts läuft schon | abwarten |
+| `PRJ-302` | ein Scan dieses Projekts läuft schon (auch beim Entfernen des Projekts) | abwarten oder abbrechen |
 | `PRJ-303` | der Scan wurde abgebrochen, es gibt keinen neuen Snapshot | bei Bedarf neu starten |
 | `PRJ-501` | so viele Scans wie erlaubt (4) laufen gleichzeitig | warten, bis einer beendet ist |
 | `SRC-201` | ein Quellordner, eine Quelldatei oder ein Sprachpaket-Ordner existiert nicht oder ist nicht lesbar | Pfad und Rechte prüfen |
