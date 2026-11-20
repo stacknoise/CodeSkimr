@@ -151,3 +151,62 @@ describe("stage 2 running", () => {
     await waitFor(() => expect(within(panel).queryByText(/Stage 2 running/)).toBeNull());
   });
 });
+
+describe("focus and announcements", () => {
+  const switchOf = () => screen.getByRole("switch", { name: /(Level 2|Stufe 2) (for|für) shop/ });
+
+  it("puts the focus on the switch when a scan button goes away under it", async () => {
+    const panel = await selected();
+    for (const name of ["Scan again", "Stage 1 only"]) {
+      const button = within(panel).getByRole("button", { name });
+      button.focus();
+      fireEvent.click(button);
+      expect(button).not.toBeInTheDocument();
+      expect(switchOf()).toHaveFocus();
+      await refreshProjects();
+      resetLevel2Runs();
+      await waitFor(() => expect(within(panel).queryByRole("button", { name })).not.toBeNull());
+    }
+  });
+
+  it("leaves the focus alone where a person is typing elsewhere", async () => {
+    const panel = await selected();
+    const field = screen.getByPlaceholderText(/Paste a folder path/);
+    field.focus();
+    fireEvent.click(within(panel).getByRole("button", { name: "Scan again" }));
+    expect(field).toHaveFocus();
+  });
+
+  it("puts the focus on the switch when the run ends under the cancel button", async () => {
+    const panel = await selected({ ...ROW, running: true });
+    noteLevel2Progress(4, { language: "csharp", stage: "level2_running" });
+    const cancel = await within(panel).findByRole("button", { name: "Cancel stage 2" });
+    cancel.focus();
+    noteLevel2Finished(4, { checked: 1, skipped: 0, failed: 0 });
+    await waitFor(() => expect(switchOf()).toHaveFocus());
+  });
+
+  it("does not take the focus from another place when the run ends", async () => {
+    const panel = await selected({ ...ROW, running: true });
+    noteLevel2Progress(4, { language: "csharp", stage: "level2_running" });
+    await within(panel).findByRole("button", { name: "Cancel stage 2" });
+    const field = screen.getByPlaceholderText(/Paste a folder path/);
+    field.focus();
+    noteLevel2Finished(4, { checked: 1, skipped: 0, failed: 0 });
+    await waitFor(() =>
+      expect(within(panel).queryByRole("button", { name: "Cancel stage 2" })).toBeNull(),
+    );
+    expect(field).toHaveFocus();
+  });
+
+  it("announces the start and the phase of stage 2 in a region that was there before", async () => {
+    const panel = await selected({ ...ROW, running: true });
+    const before = [...panel.querySelectorAll("[aria-live=polite]")];
+    noteLevel2Progress(4, { language: "csharp", stage: "level2_running" });
+    const title = await within(panel).findByText("Stage 2 running (C#)");
+    expect(before).toContain(title.closest("[aria-live=polite]"));
+    noteLevel2Progress(4, { language: "csharp", stage: "level2_importing" });
+    const importing = await within(panel).findByText("Stage 2 importing results (C#)");
+    expect(before).toContain(importing.closest("[aria-live=polite]"));
+  });
+});

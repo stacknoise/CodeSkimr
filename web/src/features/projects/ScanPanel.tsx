@@ -1,23 +1,39 @@
-import { For, Show } from "solid-js";
+import { createEffect, For, on, Show } from "solid-js";
 import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
-import { ORIGIN_TEXT } from "../../shared/project/report";
+import { ORIGIN_TEXT, OUTCOME } from "../../shared/project/report";
 import { cancelScan } from "../scan/cancel";
-import { LEVEL2_START, LEVEL2_STAGE, MS_PER_SECOND, NOT_STARTED_TEXT } from "./consts";
+import {
+  LEVEL2_START,
+  LEVEL2_STAGE,
+  MS_PER_SECOND,
+  NOT_STARTED_TEXT,
+  SCAN_PANEL_ID_PREFIX,
+} from "./consts";
 import { clock, languageName } from "./format";
+import { focusSwitch, focusWouldBeLostIn } from "./level2";
 import { level2DoneOf, level2RunOf, level2StartOf } from "./level2run";
 import { projectsScanning, rescanProject } from "./projects";
 import { languageLine } from "./reportText";
 import type { ProjectRow } from "./types";
 import styles from "./Level2Panel.module.css";
 
-/** "Stage 2 running (C#)" with the way to stop it; stage 1 stays as it is. */
-function Running(props: { row: ProjectRow }) {
+/** Puts the focus on the switch of the project when it would be lost, because the button that had
+ * it went away. A person who is typing elsewhere keeps the focus. */
+function keepFocus(project: number): void {
+  if (focusWouldBeLostIn(`${SCAN_PANEL_ID_PREFIX}${project}`)) {
+    focusSwitch(project);
+  }
+}
+
+/** The title of the running pass; the region exists before the pass starts, so that a screen
+ * reader announces the start and the change of the phase. */
+function RunningTitle(props: { row: ProjectRow }) {
   const run = () => level2RunOf(props.row.id);
   return (
-    <Show when={run()}>
-      {(current) => (
-        <div class={styles.notice}>
+    <div aria-live="polite" class={styles.live}>
+      <Show when={run()}>
+        {(current) => (
           <strong>
             {t(
               current().stage === LEVEL2_STAGE.importing
@@ -26,20 +42,38 @@ function Running(props: { row: ProjectRow }) {
               { language: languageName(current().language) },
             )}
           </strong>
-          <p class={styles.text}>{t(I18N_KEYS.PROJECTS_LEVEL2_BUILD_NOTE)}</p>
-          <div class={styles.buttons}>
-            <button
-              type="button"
-              class={styles.button}
-              onClick={() => void cancelScan(props.row.id)}
-            >
-              {t(I18N_KEYS.PROJECTS_LEVEL2_CANCEL)}
-            </button>
-            <span class={styles.text}>{t(I18N_KEYS.PROJECTS_LEVEL2_CANCEL_NOTE)}</span>
-          </div>
+        )}
+      </Show>
+    </div>
+  );
+}
+
+/** "Stage 2 running (C#)" with the way to stop it; stage 1 stays as it is. */
+function Running(props: { row: ProjectRow }) {
+  const run = () => level2RunOf(props.row.id);
+  createEffect(
+    on(
+      () => run() !== null,
+      (running, was) => {
+        if (was && !running) {
+          keepFocus(props.row.id);
+        }
+      },
+    ),
+  );
+  return (
+    <div class={run() === null ? undefined : styles.notice}>
+      <RunningTitle row={props.row} />
+      <Show when={run()}>
+        <p class={styles.text}>{t(I18N_KEYS.PROJECTS_LEVEL2_BUILD_NOTE)}</p>
+        <div class={styles.buttons}>
+          <button type="button" class={styles.button} onClick={() => void cancelScan(props.row.id)}>
+            {t(I18N_KEYS.PROJECTS_LEVEL2_CANCEL)}
+          </button>
+          <span class={styles.text}>{t(I18N_KEYS.PROJECTS_LEVEL2_CANCEL_NOTE)}</span>
         </div>
-      )}
-    </Show>
+      </Show>
+    </div>
   );
 }
 
@@ -66,7 +100,7 @@ function Messages(props: { row: ProjectRow }) {
 /** What stage 2 did in the last run that stored a report, one line per language. */
 function Report(props: { row: ProjectRow }) {
   const second = () => props.row.report?.level2 ?? null;
-  const failed = () => second()?.languages.some((line) => line.outcome === "failed") ?? false;
+  const failed = () => second()?.languages.some((line) => line.outcome === OUTCOME.failed) ?? false;
   return (
     <Show
       when={second()}
@@ -106,7 +140,10 @@ function Buttons(props: { row: ProjectRow }) {
         <button
           type="button"
           class={styles.button}
-          onClick={() => void rescanProject(props.row.id)}
+          onClick={() => {
+            void rescanProject(props.row.id);
+            keepFocus(props.row.id);
+          }}
         >
           {t(I18N_KEYS.PROJECTS_LEVEL2_RESCAN)}
         </button>
@@ -114,7 +151,10 @@ function Buttons(props: { row: ProjectRow }) {
           type="button"
           class={styles.button}
           title={t(I18N_KEYS.PROJECTS_LEVEL2_STAGE1_ONLY_HINT)}
-          onClick={() => void rescanProject(props.row.id, false)}
+          onClick={() => {
+            void rescanProject(props.row.id, false);
+            keepFocus(props.row.id);
+          }}
         >
           {t(I18N_KEYS.PROJECTS_LEVEL2_STAGE1_ONLY)}
         </button>
@@ -127,7 +167,11 @@ function Buttons(props: { row: ProjectRow }) {
  * the report of the last run and the scan buttons (ADR 0072, decision 10). */
 export function ScanPanel(props: { row: ProjectRow }) {
   return (
-    <section class={styles.panel} aria-label={t(I18N_KEYS.PROJECTS_LEVEL2_SCAN_TITLE)}>
+    <section
+      id={`${SCAN_PANEL_ID_PREFIX}${props.row.id}`}
+      class={styles.panel}
+      aria-label={t(I18N_KEYS.PROJECTS_LEVEL2_SCAN_TITLE)}
+    >
       <header class={styles.header}>
         <h2>{t(I18N_KEYS.PROJECTS_LEVEL2_SCAN_TITLE)}</h2>
       </header>
