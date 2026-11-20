@@ -15,7 +15,6 @@ use codeskimr_cli::{GlobalOptions, OpenArgs};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::CredentialId;
 use codeskimr_secrets::{OsCredentialStore, OsKeystore};
-use secrecy::ExposeSecret;
 use serde_json::Value;
 use zeroize::Zeroizing;
 
@@ -107,9 +106,7 @@ fn read_token(store: &impl CredentialStore) -> Result<Zeroizing<String>, CodedEr
     let id = CredentialId::new(TOKEN_CREDENTIAL_ID)
         .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?;
     match store.with_credential(&id, |credential| {
-        Ok(Zeroizing::new(
-            credential.secret().expose_secret().to_owned(),
-        ))
+        Ok(Zeroizing::new(credential.expose_secret().to_owned()))
     }) {
         Err(AuthError::NotFound) => Err(CodedError::new(ErrorCode::ServerNotReachable)),
         other => Ok(other?),

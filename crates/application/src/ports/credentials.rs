@@ -1,41 +1,78 @@
 //! Logging in to a remote with a stored credential (blueprint section 12, adapter: `codeskimr_secrets`).
 //!
-//! A secret is only ever lent: the store reads it, hands a reference to a closure and wipes it
+//! A secret is only ever lent: the store reads it into locked memory, hands a reference to a closure and wipes it
 //! again, so it cannot be kept, cloned or printed by accident (loan pattern, blueprint 12.3).
 
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::CredentialId;
-use secrecy::SecretString;
 
+pub use crate::consts::FIELD_SEPARATOR;
+use crate::consts::SEPARATOR_LEN;
 use crate::error::CodedError;
+
+/// Bytes that the operating system may not write to the swap file and that are wiped when the
+/// value is dropped. The adapter `codeskimr_secrets` implements it (`LockedBytes`); the application
+/// layer holds no `unsafe` (R-08) and only borrows the bytes.
+pub trait LockedSecret: Send + Sync {
+    /// The bytes of the buffer.
+    fn bytes(&self) -> &[u8];
+}
 
 /// A user name and a secret (password or token) for one login.
 ///
-/// It is neither `Clone`, `Debug` nor `Serialize`, and the memory of both texts is wiped when the
-/// value is dropped (`SecretString` zeroizes on drop, which is the `ZeroizeOnDrop` of blueprint 12.3). The only way to read the content is the explicit `expose_secret()` of
-/// `secrecy`, which CI lists for review.
+/// Both texts lie in one locked buffer, as the stored form `user`, a zero byte, `secret` (ADR 0077),
+/// so neither is ever copied into ordinary memory by this type. It is neither `Clone`, `Debug` nor
+/// `Serialize`; the buffer is wiped and unlocked when the value is dropped. The only ways to read
+/// the content are the explicit `expose_user()` and `expose_secret()`, which CI lists for review.
 pub struct Credential {
-    user: SecretString,
-    secret: SecretString,
+    packed: Box<dyn LockedSecret>,
+    user_len: usize,
 }
 
 impl Credential {
-    /// Combines a user name and a secret.
-    #[must_use]
-    pub fn new(user: SecretString, secret: SecretString) -> Self {
-        Self { user, secret }
+    /// Wraps a locked buffer that holds the user name, a zero byte and the secret.
+    ///
+    /// # Errors
+    /// `SEC-202` if the separator is missing or one of the two parts is not UTF-8 text.
+    pub fn from_packed(packed: Box<dyn LockedSecret>) -> Result<Self, AuthError> {
+        let bytes = packed.bytes();
+        let user_len = bytes
+            .iter()
+            .position(|byte| *byte == FIELD_SEPARATOR)
+            .ok_or(AuthError::Damaged)?;
+        let (user, rest) = bytes.split_at(user_len);
+        let secret = rest.get(SEPARATOR_LEN..).unwrap_or_default();
+        if std::str::from_utf8(user).is_err() || std::str::from_utf8(secret).is_err() {
+            return Err(AuthError::Damaged);
+        }
+        Ok(Self { packed, user_len })
     }
 
-    /// The user name.
+    /// The stored form for the keystore: user name, a zero byte, secret.
     #[must_use]
-    pub fn user(&self) -> &SecretString {
-        &self.user
+    pub fn packed(&self) -> &[u8] {
+        self.packed.bytes()
     }
 
-    /// The password or token.
+    /// The user name. The text stays in the locked buffer.
     #[must_use]
-    pub fn secret(&self) -> &SecretString {
-        &self.secret
+    pub fn expose_user(&self) -> &str {
+        self.part(..self.user_len)
+    }
+
+    /// The password or token. The text stays in the locked buffer.
+    #[must_use]
+    pub fn expose_secret(&self) -> &str {
+        self.part(self.user_len.saturating_add(SEPARATOR_LEN)..)
+    }
+
+    /// One part of the buffer; both parts were checked to be UTF-8 by `from_packed`.
+    fn part(&self, range: impl std::slice::SliceIndex<[u8], Output = [u8]>) -> &str {
+        self.packed
+            .bytes()
+            .get(range)
+            .and_then(|bytes| std::str::from_utf8(bytes).ok())
+            .unwrap_or_default()
     }
 }
 
