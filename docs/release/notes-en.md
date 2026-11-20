@@ -19,6 +19,7 @@ Manual: `docs/manual/en/`. Data: `%LOCALAPPDATA%\codeskimr` (Windows), `~/.local
 - **Large projects:** the goal "100,000 lines in under a second" is not met everywhere. Large C# projects take about 1.4 s per 100,000 lines (Newtonsoft.Json, 197,000 lines: about 3 s, measured in a Linux container); the improvement (#410) comes after 1.0.
 - **HTML export:** the file holds only the direct usages of each symbol (no depth select in the page); walks over several steps are only in the app. The size grows about linearly with the project (whole CodeSkimr repository, about 7,400 symbols: 64 MB).
 - **.NET preview SDK:** with a .NET preview SDK and `allowPrerelease` the tool check can show a wrong "too new" hint (known limit of the tool check, see #379).
+- **macOS:** the version is built for macOS (Apple Silicon) and started in a clean environment automatically (CI), but it was not tested by hand on a Mac. Gatekeeper behaviour and the folder dialog are unchecked there.
 - No signature (Windows, macOS; first task after 1.0) and no installer: one single file per system.
 
 Feedback as an issue in `stacknoise/CodeSkimr`.
