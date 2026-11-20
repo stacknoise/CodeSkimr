@@ -3,7 +3,9 @@
 use codeskimr_domain::{Ceiling, LanguageId, ToolFinding, ToolRole, ToolState};
 
 use crate::consts::{TOOL_INSTALL_SUFFIX, TOOL_KEY_PREFIX, TOOL_PURPOSE_SUFFIX};
-use crate::ports::{IndexerSpec, IndexerStatus, ToolIssue, ToolProblem, ToolSpec, ToolVersion};
+use crate::ports::{
+    IndexRunner, IndexerSpec, IndexerStatus, ToolIssue, ToolProblem, ToolSpec, ToolVersion,
+};
 
 /// A file of the project that names a version of a tool and limits how new the tool may be
 /// (`rollForward` of `global.json`).
@@ -123,4 +125,19 @@ pub fn findings_of(
         )
         .map(|(role, tool)| finding(language, role, tool, status, limits))
         .collect()
+}
+
+/// What the runner says about `spec`, asked once per distinct spec: languages that share an
+/// indexer (TypeScript, JavaScript, TSX) share its answer in `asked`.
+pub(super) fn status_once(
+    runner: &dyn IndexRunner,
+    asked: &mut Vec<(IndexerSpec, IndexerStatus)>,
+    spec: &IndexerSpec,
+) -> IndexerStatus {
+    if let Some((_, status)) = asked.iter().find(|(seen, _)| seen == spec) {
+        return status.clone();
+    }
+    let status = runner.check(spec);
+    asked.push((spec.clone(), status.clone()));
+    status
 }

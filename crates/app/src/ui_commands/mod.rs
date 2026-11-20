@@ -415,6 +415,7 @@ fn expose_annotations(api: &mut CommandApi) -> Result<(), CodedError> {
     Ok(())
 }
 
+// codeskimr: allow CHK-102 lists the commands of one area, one entry per command
 fn register_projects(
     registry: &mut Registry,
     catalog: &Arc<SqliteStore>,
