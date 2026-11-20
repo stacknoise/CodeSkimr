@@ -12,7 +12,7 @@ Pro System eine einzelne Datei (Oberfläche und Sprachpakete stecken darin), daz
 
 **macOS (Apple Silicon):** `chmod +x codeskimr-1.0.0-macos-aarch64`, dann `xattr -d com.apple.quarantine codeskimr-1.0.0-macos-aarch64` (nimmt die Sperre von Gatekeeper weg, die Datei ist noch nicht signiert) und `./codeskimr-1.0.0-macos-aarch64`. Prüfsumme: `shasum -a 256 -c codeskimr-1.0.0-macos-aarch64.sha256`.
 
-Das Programm startet den lokalen Server und öffnet den Browser. **Dieses Fenster offen lassen, solange du CodeSkimr benutzt:** Schließt du es, endet der Server, und die Oberfläche im Browser zeigt „Nicht verbunden“. Herkunft prüfen (optional): `gh attestation verify <Datei> --repo stacknoise/CodeSkimr` zeigt, dass GitHub die Datei aus diesem Repository gebaut hat.
+Das Programm startet den lokalen Server und öffnet den Browser. Unter Windows und macOS läuft es danach im Infobereich (Tray): Das Konsolenfenster schließt sich, das Symbol hat das Menü „CodeSkimr öffnen“, „Log anzeigen“ und „CodeSkimr beenden“. Unter Linux (und mit `--console`) **lass das Fenster offen, solange du CodeSkimr benutzt:** Schließt du es, endet der Server, und die Oberfläche im Browser zeigt „Nicht verbunden“. Herkunft prüfen (optional): `gh attestation verify <Datei> --repo stacknoise/CodeSkimr` zeigt, dass GitHub die Datei aus diesem Repository gebaut hat.
 
 ## Erste Schritte
 
