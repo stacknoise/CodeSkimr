@@ -132,7 +132,8 @@ a{color:#2457D6;text-decoration:none}a:hover{color:#1A43A8}
         <div style="font-size: 12.5px; color: #3A414C; line-height: 1.5">Konstante <span style="font-family: 'JetBrains Mono', monospace">KerfWidth</span>: 7 Stellen lesen den Wert, 0 schreiben. Property: getrennt nach Lesen und Schreiben. Interface-Methode: alle Implementierungen.</div>
       </div>
       <div style="border: 1px solid #E3E6EB; background: #FAFBFC; border-radius: 8px; padding: 10px 12px; font-size: 12px; color: #3A414C; line-height: 1.45">
-        <strong>Genauigkeit:</strong> 13 Stellen sicher aufgelöst, 1 vermutet (Aufruf über <span style="font-family: 'JetBrains Mono', monospace">ICutPlanner</span>).
+        <strong>Genauigkeit:</strong> <span style="margin-left: 4px; padding: 1px 8px; border: 1px solid #92400E; border-radius: 6px; color: #92400E; font-size: 11px; font-weight: 600">Näherung</span> 13 Stellen sicher aufgelöst, 1 vermutet (Aufruf über <span style="font-family: 'JetBrains Mono', monospace">ICutPlanner</span>).
+        <div style="margin-top: 6px; color: #92400E">Nur bei Python, C# und Kotlin (unter 99 % Genauigkeit): „C# ist eine Näherung: Stufe 2 findet die meisten, aber nicht alle Stellen, die der Compiler finden würde. Eine Verwendung kann hier fehlen, prüfen Sie wichtige Änderungen deshalb auch im Code.“</div>
         <div style="margin-top: 6px">Stufe 2 hat C# geprüft: 328 Dateien.</div>
         <div style="margin-top: 6px; color: #92400E; display: flex; flex-direction: column; gap: 4px">
           <span>Weitere Zustände derselben Zeile, je nach letztem Lauf:</span>

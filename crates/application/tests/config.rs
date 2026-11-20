@@ -439,6 +439,15 @@ fn the_editor_link_and_the_ui_are_checked() {
 }
 
 #[test]
+fn an_empty_language_id_in_the_approximate_list_is_rejected() {
+    assert_rejected(&[(
+        "[ui]\napproximate_languages = [\"python\", \" \"]\n",
+        "ui.approximate_languages",
+        Violation::MustNotBeEmpty,
+    )]);
+}
+
+#[test]
 fn the_polling_of_the_switch_and_the_pause_of_the_window_are_checked() {
     assert_rejected(&[
         (
