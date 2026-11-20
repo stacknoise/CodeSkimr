@@ -3,10 +3,13 @@
 All notable changes of CodeSkimr. The format follows [Keep a Changelog](https://keepachangelog.com/), the versions follow [SemVer](https://semver.org/).
 Each section is generated from the Conventional Commit titles of the squash-merged pull requests with `tools/release/changelog.py` (see `docs/release.md`); the titles are English, as CLAUDE.md requires for commit messages (`changelog.py` refuses German titles).
 
-## [Unreleased] - 2026-11-15
+## [Unreleased]
+
+## [1.0.0] - 2026-11-20
 
 ### Added
 
+- level 2 runs in the background for scans from the UI, and every project keeps a scan report (ADR 0072)
 - "Browse" button with the folder dialog of the system (Windows and macOS) next to the folder field of a new project (ADR 0075)
 - remove a project from the app again: command `projects.remove` and a "Remove" button with a confirmation in the project list
 - coupling metrics Ce, Ca and instability per snapshot ([#275](https://github.com/stacknoise/CodeSkimr/pull/275))
@@ -47,6 +50,7 @@ Each section is generated from the Conventional Commit titles of the squash-merg
 
 ### Changed
 
+- the rights of the browser client are split from those of the MCP client
 - split remaining long web components and enforce max-lines-per-function ([#371](https://github.com/stacknoise/CodeSkimr/pull/371))
 - split long web components and add golden cases for owner lookup limits ([#360](https://github.com/stacknoise/CodeSkimr/pull/360))
 

@@ -13,6 +13,10 @@ const UPGRADE: &str = "GET /api/v1/events HTTP/1.1\r\nConnection: Upgrade\r\nUpg
 const STREAM_CAP: usize = 16;
 const CONNECTION_CAP: usize = 256;
 const SETTLE_GRACE: Duration = Duration::from_millis(200);
+/// How far the paused clock moves before the server gets real time to react (see [`collect_stepped`]).
+const CLOCK_STEP: Duration = Duration::from_secs(5);
+/// How long a stalled body may stay unanswered, in paused-clock time.
+const STALL_LIMIT: Duration = Duration::from_secs(120);
 
 /// Gives the server a moment of real time to see what the client just did.
 ///
@@ -61,15 +65,48 @@ async fn status_line(stream: &mut TcpStream) -> Option<String> {
     text.lines().next().map(str::to_owned)
 }
 
-/// What the server sends until it closes the connection, or none if it does not within `limit`.
+/// What the server sends until it closes the connection, or none if it does not within `limit`
+/// of paused-clock time (see [`collect_stepped`]).
 #[cfg(test)]
 async fn until_closed(stream: &mut TcpStream, limit: Duration) -> Option<Vec<u8>> {
-    let mut rest = Vec::new();
-    timeout(limit, stream.read_to_end(&mut rest))
-        .await
-        .ok()?
-        .ok()?;
-    Some(rest)
+    collect_stepped(stream, limit, |_| false).await
+}
+
+/// Reads what the server sends while the paused clock moves in steps of `CLOCK_STEP`.
+///
+/// A single long wait on a paused clock lets the runtime jump to the deadline as soon as it is
+/// idle, even if the operating system has not yet reported the server's answer or its close on the
+/// loopback socket (macOS, issue #528). After every step the server gets real time to act and to
+/// be seen (see [`settle`]). The result is the bytes received once the server closed the
+/// connection or `is_complete` accepted them, or none if `limit` of clock time passed before.
+#[cfg(test)]
+async fn collect_stepped(
+    stream: &mut TcpStream,
+    limit: Duration,
+    is_complete: fn(&[u8]) -> bool,
+) -> Option<Vec<u8>> {
+    let mut collected = Vec::new();
+    let mut buffer = [0_u8; 1024];
+    let mut waited = Duration::ZERO;
+    loop {
+        match stream.try_read(&mut buffer) {
+            Ok(read) if read > 0 => {
+                collected.extend_from_slice(buffer.get(..read).unwrap_or_default());
+                if is_complete(&collected) {
+                    return Some(collected);
+                }
+                continue;
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {}
+            Ok(_) | Err(_) => return Some(collected),
+        }
+        if waited >= limit {
+            return None;
+        }
+        tokio::time::advance(CLOCK_STEP).await;
+        waited += CLOCK_STEP;
+        settle().await;
+    }
 }
 
 #[cfg(test)]
@@ -185,22 +222,12 @@ async fn answer_to_stalled_body(server: &Running, path: &str) -> String {
     );
     stream.write_all(head.as_bytes()).await.unwrap();
     settle().await;
-    let mut answer = Vec::new();
-    let finished = timeout(Duration::from_secs(120), async {
-        let mut buffer = [0_u8; 1024];
-        loop {
-            let read = stream.read(&mut buffer).await.unwrap_or_default();
-            answer.extend_from_slice(buffer.get(..read).unwrap_or_default());
-            if read == 0
-                || answer.windows(4).any(|part| part == b"\r\n\r\n") && answer.ends_with(b"}")
-            {
-                break;
-            }
-        }
+    let answer = collect_stepped(&mut stream, STALL_LIMIT, |answer| {
+        answer.windows(4).any(|part| part == b"\r\n\r\n") && answer.ends_with(b"}")
     })
     .await;
-    assert!(finished.is_ok());
-    String::from_utf8_lossy(&answer).into_owned()
+    assert!(answer.is_some(), "the server answered the stalled body");
+    String::from_utf8_lossy(&answer.unwrap_or_default()).into_owned()
 }
 
 #[tokio::test(start_paused = true)]
