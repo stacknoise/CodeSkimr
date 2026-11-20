@@ -696,7 +696,7 @@ mod cases {
             ..Setup::default()
         });
         assert_level_one_stays(&outcome, &Skipped::Failed(ErrorCode::ProjectNotFound));
-        assert!(outcome.sites.is_empty());
+        assert_eq!(outcome.sites, Vec::<(FileId, Span)>::new());
     }
 
     #[test]
