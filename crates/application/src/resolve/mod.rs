@@ -87,8 +87,10 @@ impl ReferenceResolver for ScopedResolver {
 impl Context<'_> {
     /// The hit as it is stored: `None` if it points from production code into a test file (test
     /// helpers are no target of code that ships, however unique their name is, so a library call
-    /// of the same name is not taken for the helper; a test file may use them, and a file always
-    /// sees its own symbols), and a test reference if the occurrence is in a test file.
+    /// of the same name is not taken for the helper; a test file may use them), and a test
+    /// reference if the occurrence is in a test file. The hits are dropped after `learn`, which
+    /// sees all of them: what a file imports or a type inherits does not depend on the target
+    /// being kept.
     fn placed(
         &self,
         occurrence: &PendingReference,
@@ -99,9 +101,10 @@ impl Context<'_> {
             hit.kind = kinds::in_test(hit.kind);
             return Some(hit);
         }
-        let into_test_file = self.table.get(hit.to).is_some_and(|target| {
-            target.file != occurrence.file && test_files.contains(&target.file)
-        });
+        let into_test_file = self
+            .table
+            .get(hit.to)
+            .is_some_and(|target| test_files.contains(&target.file));
         (!into_test_file).then_some(hit)
     }
 }

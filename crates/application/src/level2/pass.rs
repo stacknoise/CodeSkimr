@@ -10,8 +10,8 @@ use std::sync::Arc;
 
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    FileId, FolderPath, LanguageId, Level2Stage, Position, Principal, Project, Reference,
-    RelativePath, Snapshot, SourceFile, Symbol,
+    FileId, FolderPath, LanguageId, Level2Stage, Principal, Project, Reference, RelativePath,
+    Snapshot, SourceFile, Span, Symbol,
 };
 
 use super::authorize_run;
@@ -241,7 +241,7 @@ impl Level2Pass {
         index: &Path,
         files: &[SourceFile],
     ) -> Result<Imported, Skipped> {
-        let import_sites = self.import_sites(scan, files);
+        let import_sites = self.import_sites(scan, files)?;
         self.importer
             .import(&ImportRequest {
                 index,
@@ -263,15 +263,22 @@ impl Level2Pass {
     }
 
     /// Where level 1 read the names of the imports of `files`. A snapshot that does not hold its
-    /// names gives none: its imports then count as uses, as before.
-    fn import_sites(&self, scan: &Scan<'_>, files: &[SourceFile]) -> Vec<(FileId, Position)> {
+    /// names gives none (its imports then count as uses, as before); a failure of the store
+    /// fails the import.
+    fn import_sites(
+        &self,
+        scan: &Scan<'_>,
+        files: &[SourceFile],
+    ) -> Result<Vec<(FileId, Span)>, Skipped> {
         let ids: Vec<FileId> = files.iter().map(|file| file.id).collect();
-        self.projects
+        let names = self
+            .projects
             .stored_names(scan.snapshot.id, StoredNames::ImportsOf(&ids))
-            .unwrap_or_default()
+            .map_err(Skipped::from)?;
+        Ok(names
             .into_iter()
-            .map(|name| (name.file, name.span.start()))
-            .collect()
+            .map(|name| (name.file, name.span))
+            .collect())
     }
 
     /// The files of the group whose content is still the one of the snapshot, and the number of

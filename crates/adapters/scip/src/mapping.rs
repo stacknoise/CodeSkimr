@@ -258,8 +258,9 @@ struct Importer<'a> {
     trait_members: HashSet<SymbolId>,
     stats: ImportStats,
     next_id: u64,
-    /// Where level 1 read the name of an import: a use at such a place is no usage (issue #250).
-    import_sites: HashSet<(FileId, Position)>,
+    /// Where level 1 read the name of an import, by file and line: a use inside such a range is no
+    /// usage (issue #250).
+    import_sites: HashMap<(FileId, u32), Vec<Span>>,
 }
 
 impl<'a> Importer<'a> {
@@ -299,7 +300,7 @@ impl<'a> Importer<'a> {
             frozen: HashMap::new(),
             stats: ImportStats::default(),
             next_id: highest.map_or(0, |id| id.saturating_add(1)),
-            import_sites: HashSet::new(),
+            import_sites: HashMap::new(),
         }
     }
 
@@ -696,6 +697,18 @@ impl<'a> Importer<'a> {
         aims
     }
 
+    /// Whether `range` lies inside the name of an import statement as level 1 read it. The range
+    /// of a dotted path (`import a.b.c`) holds the occurrences of all its parts.
+    fn in_import(&self, file: FileId, range: Span) -> bool {
+        self.import_sites
+            .get(&(file, range.start().line))
+            .is_some_and(|sites| {
+                sites
+                    .iter()
+                    .any(|site| site.start() <= range.start() && range.end() <= site.end())
+            })
+    }
+
     /// Step (c): the references of one occurrence, one per target; empty if it is dropped.
     fn place(
         &mut self,
@@ -703,10 +716,7 @@ impl<'a> Importer<'a> {
         occurrence: &Occurrence,
         level_one: &LevelOne<'_>,
     ) -> Vec<Reference> {
-        if self
-            .import_sites
-            .contains(&(file, occurrence.range.start()))
-        {
+        if self.in_import(file, occurrence.range) {
             // The name in an import statement is not a use (issue #250), as at level 1.
             return self.count(Count::Ignored);
         }
@@ -991,10 +1001,9 @@ pub fn import_with_creation(
     import_with_sites(index, snapshot, (min_mapped, creation), &[])
 }
 
-/// As [`import_with_creation`], and the occurrences that start at one of `import_sites` (file and
-/// start of the name in an import statement, as level 1 read it) are not uses: the import of a
-/// name is no usage of it, in any language (issue #250). Level 1 keeps no reference for such a
-/// place either.
+/// As [`import_with_creation`], and the occurrences inside one of `import_sites` (file and range
+/// of the name in an import statement, as level 1 read it) are not uses: the import of a name is
+/// no usage of it (issue #250). Level 1 keeps no reference for such a place either.
 ///
 /// # Errors
 /// As [`import_with_creation`].
@@ -1002,7 +1011,7 @@ pub fn import_with_sites(
     index: &ScipIndex,
     snapshot: &SnapshotView<'_>,
     (min_mapped, creation): (f64, &Creation<'_>),
-    import_sites: &[(FileId, Position)],
+    import_sites: &[(FileId, Span)],
 ) -> Result<ImportOutcome, ScipError> {
     let (covered, unmatched) = covered_documents(index, snapshot.files);
     let syntax = syntax_symbols(snapshot.symbols);
@@ -1044,10 +1053,16 @@ fn place_references(
     index: &ScipIndex,
     snapshot: &SnapshotView<'_>,
     covered: &[(&ScipDocument, FileId)],
-    (min_mapped, library_root, import_sites): (f64, &str, &[(FileId, Position)]),
+    (min_mapped, library_root, import_sites): (f64, &str, &[(FileId, Span)]),
 ) -> Result<ImportOutcome, ScipError> {
     let mut importer = Importer::new(index, *snapshot, library_root);
-    importer.import_sites = import_sites.iter().copied().collect();
+    for (file, span) in import_sites {
+        importer
+            .import_sites
+            .entry((*file, span.start().line))
+            .or_default()
+            .push(*span);
+    }
     let covered_files: HashSet<FileId> = covered.iter().map(|(_, file)| *file).collect();
     importer.stats.files_replaced = u64::try_from(covered_files.len()).unwrap_or(u64::MAX);
     importer.collect_definitions(covered);
