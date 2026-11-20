@@ -1,6 +1,15 @@
 // Runs after the other screens on purpose: the worker shares one server (see projects.spec.ts).
 import path from "node:path";
-import { addScannedProject, selectAdd, expect, shot, test, watchPolicy } from "./fixtures";
+import type { Page } from "@playwright/test";
+import {
+  addScannedProject,
+  selectAdd,
+  expect,
+  shot,
+  test,
+  watchPolicy,
+  type Harness,
+} from "./fixtures";
 
 // `UPDATE_SCREENSHOTS=1` writes the screens to docs/screenshots/usages-description/.
 const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/usages-description");
@@ -50,6 +59,15 @@ function withCallers(names: string[] | number): string {
   return [SOURCE, ...callers, ""].join("\n");
 }
 
+/** Opens the usages screen of `Demo` for the given source in a wide window with the theme set. */
+async function openThemed(page: Page, harness: Harness, theme: string, source: string) {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.addInitScript((name) => localStorage.setItem("codeskimr.theme", name), theme);
+  const row = await addScannedProject(page, harness, `usages${theme}`, source);
+  await selectAdd(page, row, "Demo");
+  await page.keyboard.press("u");
+}
+
 test.describe("the usages screen", () => {
   test("U in the explorer shows who calls a member, marked as unchecked", async ({
     page,
@@ -95,12 +113,7 @@ test.describe("the usages screen", () => {
       page,
       harness,
     }, info) => {
-      await page.setViewportSize({ width: 1440, height: 900 });
-      await page.addInitScript((name) => localStorage.setItem("codeskimr.theme", name), theme);
-      const source = withCallers(["Alpha", "Beta", "Gamma"]);
-      const row = await addScannedProject(page, harness, `usagespath${theme}`, source);
-      await selectAdd(page, row, "Demo");
-      await page.keyboard.press("u");
+      await openThemed(page, harness, theme, withCallers(["Alpha", "Beta", "Gamma"]));
       const graph = page.getByRole("region", { name: "Usage graph" });
       await expect(page.getByText("Hits 4")).toBeVisible();
       await expect(graph.locator("button[class*=dim]")).toHaveCount(0);
@@ -116,11 +129,7 @@ test.describe("the usages screen", () => {
       page,
       harness,
     }, info) => {
-      await page.setViewportSize({ width: 1440, height: 900 });
-      await page.addInitScript((name) => localStorage.setItem("codeskimr.theme", name), theme);
-      const row = await addScannedProject(page, harness, `usagesdoc${theme}`, DOCUMENTED);
-      await selectAdd(page, row, "Demo");
-      await page.keyboard.press("u");
+      await openThemed(page, harness, theme, DOCUMENTED);
       await expect(page.getByRole("heading", { name: "Description" })).toBeVisible();
       await expect(page.getByText("Adds two whole numbers and returns the sum.")).toBeVisible();
       await shot(page, SHOTS, `usages-description-${theme}`, info);
