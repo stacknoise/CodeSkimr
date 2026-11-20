@@ -406,26 +406,23 @@ async fn a_server_without_a_desk_has_no_such_route_and_it_is_no_registry_command
     assert_eq!(setup.window.asked(), [] as [u64; 0]);
 }
 
+/// A server with a window whose requests all come from `peer`.
+async fn start_from(peer: &str) -> Setup {
+    let window = Arc::new(Window::default());
+    let desk = desk(&window, true, Launch::Window, false);
+    start_as_peer(owner(), Some((window, desk)), Some(peer.parse().unwrap())).await
+}
+
 #[tokio::test]
 async fn a_peer_that_is_not_on_this_machine_gets_sec_403_and_no_window() {
     for peer in ["10.0.0.5:50000", "192.168.1.2:1", "[2001:db8::1]:1"] {
-        let window = Arc::new(Window::default());
-        let desk = desk(&window, true, Launch::Window, false);
-        let setup = start_as_peer(owner(), Some((window, desk)), Some(peer.parse().unwrap())).await;
-        refused(&setup, request(KNOWN), 403, "SEC-403").await;
+        refused(&start_from(peer).await, request(KNOWN), 403, "SEC-403").await;
     }
 }
 
 #[tokio::test]
 async fn a_peer_on_this_machine_passes_the_same_route() {
-    let window = Arc::new(Window::default());
-    let desk = desk(&window, true, Launch::Window, false);
-    let setup = start_as_peer(
-        owner(),
-        Some((window, desk)),
-        Some("[::1]:50000".parse().unwrap()),
-    )
-    .await;
+    let setup = start_from("[::1]:50000").await;
     let reply = request(KNOWN).send(&setup.server).await;
     assert_eq!(reply.status, 200, "{}", reply.body);
     assert_eq!(setup.window.asked(), [KNOWN]);
