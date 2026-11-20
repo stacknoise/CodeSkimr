@@ -1,0 +1,116 @@
+{
+  "counts": [
+    {
+      "decisions": null,
+      "loc": 9,
+      "operands": null,
+      "operators": null,
+      "symbol": "local_functions"
+    },
+    {
+      "decisions": 0,
+      "loc": 5,
+      "operands": [
+        6,
+        7
+      ],
+      "operators": [
+        3,
+        4
+      ],
+      "symbol": "local_functions.outer"
+    },
+    {
+      "decisions": 0,
+      "loc": 1,
+      "operands": [
+        2,
+        2
+      ],
+      "operators": [
+        2,
+        2
+      ],
+      "symbol": "local_functions.outer.double"
+    },
+    {
+      "decisions": 0,
+      "loc": 3,
+      "operands": [
+        2,
+        4
+      ],
+      "operators": [
+        3,
+        4
+      ],
+      "symbol": "local_functions.outer.twice"
+    }
+  ],
+  "loc": 9,
+  "references": [
+    {
+      "at": "5:11",
+      "from": "local_functions.outer.twice",
+      "kind": "call",
+      "receiver": null,
+      "target": "double"
+    },
+    {
+      "at": "5:23",
+      "from": "local_functions.outer.twice",
+      "kind": "call",
+      "receiver": null,
+      "target": "double"
+    },
+    {
+      "at": "8:9",
+      "from": "local_functions.outer",
+      "kind": "call",
+      "receiver": null,
+      "target": "twice"
+    }
+  ],
+  "symbols": [
+    {
+      "doc": null,
+      "kind": "module",
+      "name": "local_functions",
+      "parent": null,
+      "signature": null,
+      "span": "0:0-10:0",
+      "static": false,
+      "visibility": null
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "local_functions.outer",
+      "parent": "local_functions",
+      "signature": null,
+      "span": "1:7-9:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "local_functions.outer.double",
+      "parent": "local_functions.outer",
+      "signature": null,
+      "span": "2:17-2:37",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "function",
+      "name": "local_functions.outer.twice",
+      "parent": "local_functions.outer",
+      "signature": null,
+      "span": "4:2-6:3",
+      "static": false,
+      "visibility": "public"
+    }
+  ]
+}

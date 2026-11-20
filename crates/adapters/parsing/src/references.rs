@@ -202,7 +202,7 @@ fn pending_reference(
     let hidden = seen.is_none()
         && scopes
             .find(name, node.start_byte())
-            .is_some_and(|d| d.local);
+            .is_some_and(|d| d.local && !table.declares_callable(d.at));
     let (Some(from), Ok(target), false) = (
         table.innermost(node.start_byte()),
         QualifiedName::new(name),
@@ -247,7 +247,7 @@ fn declared_receiver(name: &str, declared: Option<Declared<'_>>) -> Option<Recei
     match declared {
         Some(declared) => Some(
             declared
-                .declared_type
+                .type_name
                 .and_then(|text| QualifiedName::new(text).ok())
                 .map_or(Receiver::Unknown, Receiver::Typed),
         ),
