@@ -303,6 +303,8 @@ pub struct Ui {
     pub level2_poll_seconds: u32,
     /// How long the projects screen keeps asking, in seconds.
     pub level2_poll_max_seconds: u32,
+    /// Ids of the languages whose usages the screens mark as an approximation.
+    pub approximate_languages: Vec<String>,
 }
 
 /// Limits of annotations and alerts (blueprint 14, ADR 0068).

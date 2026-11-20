@@ -27,6 +27,8 @@ pub struct UiSettings {
     pub level2_poll_seconds: u32,
     /// How long the projects screen keeps asking, in seconds.
     pub level2_poll_max_seconds: u32,
+    /// Ids of the languages whose usages the screens mark as an approximation.
+    pub approximate_languages: Vec<String>,
 }
 
 /// Everything the UI side of the server needs from the configuration.

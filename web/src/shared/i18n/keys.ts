@@ -933,6 +933,8 @@ export const I18N_KEYS = {
   USAGES_WORKS_TITLE: "usages-works-title",
   USAGES_WORKS_TEXT: "usages-works-text",
   USAGES_ACCURACY_TITLE: "usages-accuracy-title",
+  USAGES_APPROX_CHIP: "usages-approx-chip",
+  USAGES_APPROX_NOTE: "usages-approx-note",
   USAGES_ACCURACY: "usages-accuracy",
   USAGES_LEVEL2_UNAVAILABLE: "usages-level2-unavailable",
   USAGES_LEVEL2_PARTIAL: "usages-level2-partial",

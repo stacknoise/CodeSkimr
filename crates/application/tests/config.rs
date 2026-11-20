@@ -18,6 +18,15 @@ fn the_budget_of_loading_the_language_packs_is_in_the_defaults() {
 }
 
 #[test]
+fn the_languages_below_99_percent_are_marked_in_the_defaults() {
+    let config = Config::defaults().expect("shipped defaults are valid");
+    assert_eq!(
+        config.ui.approximate_languages,
+        ["python", "csharp", "kotlin"]
+    );
+}
+
+#[test]
 fn defaults_match_the_blueprint() {
     let config = Config::defaults().expect("shipped defaults are valid");
     assert_eq!(config.metrics.cyclomatic_good_max, 5);
