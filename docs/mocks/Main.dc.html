@@ -85,7 +85,7 @@ a{color:#2457D6;text-decoration:none}a:hover{color:#1A43A8}
                 </td>
                 <td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right; font-variant-numeric: tabular-nums">{{p.types}}</td>
                 <td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; text-align: right; font-variant-numeric: tabular-nums">{{p.loc}}</td>
-                <td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; color: #5B6370">{{p.when}}<div style="font: 12px 'JetBrains Mono', monospace">{{p.dur}}</div></td>
+                <td style="padding: 12px 8px; border-bottom: 1px solid #EEF0F3; color: #5B6370">{{p.when}}<div style="font: 12px 'JetBrains Mono', monospace">{{p.dur}}</div><div style="font: 12px 'JetBrains Mono', monospace">{{p.stage}}</div><div style="font: 12px 'JetBrains Mono', monospace">{{p.stageCounts}}</div></td>
                 <td style="padding: 12px 16px; border-bottom: 1px solid #EEF0F3"><span style="{{p.pill}}">{{p.status}}</span></td>
               </tr>
             </sc-for>
@@ -112,10 +112,10 @@ class Component extends DCLogic {
     const seg = (col, pct) => ({ style: 'width:' + pct + '%;background:' + col });
     const pill = (bg, fg) => 'display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:500;background:' + bg + ';color:' + fg;
     const projects = [
-      { name: 'Beispielprojekt', path: '~/projekte/beispielprojekt', src: 'Ordner', langs: [seg(c.cs, 92), seg(c.xaml, 8)], langText: 'C# 92 % · XAML 8 %', types: '433', loc: '41.208', when: 'vor 3 min', dur: '1,4 s · inkrementell 0,2 s', status: 'aktuell', pill: pill('#EAF7EF', '#15803D'), rowStyle: 'background:#F3F6FD' },
-      { name: 'haac-bridge', path: 'git · main @ 8c21f0e', src: 'Git', langs: [seg(c.kt, 71), seg(c.java, 29)], langText: 'Kotlin 71 % · Java 29 %', types: '318', loc: '27.940', when: 'gestern', dur: '0,9 s', status: '12 neue Commits', pill: pill('#FFF4E5', '#B45309'), rowStyle: '' },
-      { name: 'energy-card', path: 'git · main @ 51ab9d2', src: 'Git', langs: [seg(c.ts, 100)], langText: 'TypeScript 100 %', types: '146', loc: '12.317', when: 'vor 2 Tagen', dur: '0,4 s', status: 'aktuell', pill: pill('#EAF7EF', '#15803D'), rowStyle: '' },
-      { name: 'hass-test-data-creator', path: 'git · main @ e07c4a1', src: 'Git', langs: [seg(c.py, 100)], langText: 'Python 100 %', types: '315', loc: '18.602', when: 'läuft …', dur: '62 % · 3.810 Dateien/s', status: 'Scan läuft', pill: pill('#EAF0FD', '#2457D6'), rowStyle: '' }
+      { name: 'Beispielprojekt', path: '~/projekte/beispielprojekt', src: 'Ordner', langs: [seg(c.cs, 92), seg(c.xaml, 8)], langText: 'C# 92 % · XAML 8 %', types: '433', loc: '41.208', when: 'vor 3 min', dur: '1,4 s · inkrementell 0,2 s', stage: 'Stufe 2 (Browser)', stageCounts: '1 geprüft, 0 übersprungen, 0 fehlgeschlagen', status: 'aktuell', pill: pill('#EAF7EF', '#15803D'), rowStyle: 'background:#F3F6FD' },
+      { name: 'haac-bridge', path: 'git · main @ 8c21f0e', src: 'Git', langs: [seg(c.kt, 71), seg(c.java, 29)], langText: 'Kotlin 71 % · Java 29 %', types: '318', loc: '27.940', when: 'gestern', dur: '0,9 s', stage: 'Stufe 1 (Terminal)', stageCounts: '', status: '12 neue Commits', pill: pill('#FFF4E5', '#B45309'), rowStyle: '' },
+      { name: 'energy-card', path: 'git · main @ 51ab9d2', src: 'Git', langs: [seg(c.ts, 100)], langText: 'TypeScript 100 %', types: '146', loc: '12.317', when: 'vor 2 Tagen', dur: '0,4 s', stage: 'Stufe 2 (Terminal)', stageCounts: '1 geprüft, 0 übersprungen, 0 fehlgeschlagen · 3 Dateien seitdem geändert', status: 'aktuell', pill: pill('#EAF7EF', '#15803D'), rowStyle: '' },
+      { name: 'hass-test-data-creator', path: 'git · main @ e07c4a1', src: 'Git', langs: [seg(c.py, 100)], langText: 'Python 100 %', types: '315', loc: '18.602', when: 'läuft …', dur: '62 % · 3.810 Dateien/s', stage: 'Stufe 2 läuft (Python)', stageCounts: 'Abbrechen lässt Stufe 1 bestehen', status: 'Scan läuft', pill: pill('#EAF0FD', '#2457D6'), rowStyle: '' }
     ];
     return { appName, initial: appName.charAt(0).toUpperCase(), projects };
   }

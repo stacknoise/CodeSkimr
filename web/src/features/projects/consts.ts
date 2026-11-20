@@ -1,3 +1,6 @@
+import type { MessageKey } from "../../shared/i18n/i18n";
+import { I18N_KEYS } from "../../shared/i18n/keys";
+
 /** Ids of the commands of the project list (crates/app/src/ui_commands/consts.rs). */
 export const COMMAND = {
   list: "projects.list",
@@ -158,6 +161,24 @@ export const LEVEL2_COMMAND = {
   revoke: "level2.revoke",
 } as const;
 
+/** The answers of a scan about stage 2 (ADR 0072, decision 4). */
+export const LEVEL2_START = {
+  started: "started",
+  notStarted: "not_started",
+  notRequested: "not_requested",
+} as const;
+
+/** The stage labels of the events of a level 2 run. */
+export const LEVEL2_STAGE = { running: "level2_running", importing: "level2_importing" } as const;
+
+/** The texts of the reasons why stage 2 did not start. */
+export const NOT_STARTED_TEXT: Record<string, MessageKey> = {
+  not_permitted: I18N_KEYS.PROJECTS_LEVEL2_NOT_STARTED_NOT_PERMITTED,
+  not_confirmed: I18N_KEYS.PROJECTS_LEVEL2_NOT_STARTED_NOT_CONFIRMED,
+  busy: I18N_KEYS.PROJECTS_LEVEL2_NOT_STARTED_BUSY,
+  paused: I18N_KEYS.PROJECTS_LEVEL2_NOT_STARTED_PAUSED,
+};
+
 /** The route that asks the server for the console window of the confirmation; it is not a command
  * of the registry (ADR 0071, decision 4). */
 export const CONFIRM_WINDOW_PATH = "/api/v1/level2/confirm-window";
@@ -204,6 +225,8 @@ export const COPIED_MS = 2000;
 export const LEVEL2_SWITCH_ID_PREFIX = "level2-switch-";
 /** Id of the level 2 section of a project, to tell whether the focus is inside it. */
 export const LEVEL2_PANEL_ID_PREFIX = "level2-panel-";
+/** Id of the scan section of a project. */
+export const SCAN_PANEL_ID_PREFIX = "scan-panel-";
 /** Key that closes the question before switching off. */
 export const ESCAPE_KEY = "Escape";
 

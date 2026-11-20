@@ -11,6 +11,7 @@ import { LanguageBar } from "./LanguageBar";
 import { Level2Switch } from "./Level2Switch";
 import { projectsScanning, scanSeconds, toolsOf } from "./projects";
 import { RemoveAction } from "./RemoveAction";
+import { lastScanLine, level2Summary } from "./reportText";
 import { problemsOf } from "./tools";
 import type { ProjectRow } from "./types";
 import styles from "./ProjectTable.module.css";
@@ -112,6 +113,16 @@ function ScanCell(props: { row: ProjectRow }) {
     <td class={styles.muted}>
       {scan().when}
       <div class={styles.mono}>{scan().detail}</div>
+      <Show when={props.row.report}>
+        {(report) => (
+          <>
+            <div class={styles.mono}>{lastScanLine(report())}</div>
+            <For each={level2Summary(report())}>
+              {(line) => <div class={styles.mono}>{line}</div>}
+            </For>
+          </>
+        )}
+      </Show>
     </td>
   );
 }

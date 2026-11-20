@@ -4,22 +4,10 @@ import { setLanguage } from "../../shared/i18n/i18n";
 import { answer, fetchMock, useServerSession } from "../../tests/commands";
 import { resetLevel2 } from "./level2";
 import { ProjectsScreen } from "./ProjectsScreen";
+import { projectRow } from "../../tests/projectRow";
 import type { ProjectRow } from "./types";
 
-const ROW: ProjectRow = {
-  id: 4,
-  name: "shop",
-  kind: "folder",
-  location: "/work/shop",
-  branch: null,
-  commit: null,
-  scan: null,
-  types: 0,
-  loc: 0,
-  languages: [],
-  running: false,
-  tools: null,
-};
+const ROW: ProjectRow = projectRow();
 
 const CONFIRM = "/api/v1/level2/confirm-window";
 const POLL_MS = 2000;
@@ -298,8 +286,10 @@ describe("the level 2 switch: focus after the notice of a switch-off", () => {
     const toggle = await loaded();
     fireEvent.click(toggle());
     fireEvent.click(await screen.findByRole("button", { name: "Yes, switch off" }));
-    fireEvent.click(await screen.findByRole("button", { name: "Scan again" }));
-    expect(screen.queryByRole("button", { name: "Scan again" })).toBeNull();
+    const notice = (await screen.findByText(/Level 2 is off\. Checked results stay/)).parentElement;
+    const again = within(notice as HTMLElement).getByRole("button", { name: "Scan again" });
+    fireEvent.click(again);
+    expect(again).not.toBeInTheDocument();
     expect(toggle()).toHaveFocus();
   });
 });
