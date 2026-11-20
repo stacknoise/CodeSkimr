@@ -112,7 +112,7 @@ pub struct PreviousState {
 }
 
 /// What level 2 stores for some files of a snapshot: the symbols it creates (ADR 0055) and the
-/// references that replace the level 1 references of those files.
+/// references that replace the level 1 references of those files where they answer; the others stay.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Level2Replacement {
     /// The snapshot the references belong to.

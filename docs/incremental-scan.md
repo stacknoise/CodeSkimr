@@ -120,7 +120,7 @@ declaration costs about 40 ms more. A change of a base list still resolves all n
 References that level 2 verified (ADR 0033) are not touched by level 1:
 
 - A file with verified references keeps them. Level 1 does not add references to it and does not drop
-  any, because level 2 replaced its level 1 references.
+  any, because level 2 replaced its level 1 references at the places where it answered.
 - A verified reference whose target is in a changed or removed file and is gone is discarded and
   counted (log event `verified_references_discarded`, with the count). It is not valid any more and
   is not kept silently. The occurrence falls back to level 1: if the name still resolves, the new

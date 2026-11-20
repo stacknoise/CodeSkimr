@@ -7,6 +7,7 @@ Each section is generated from the Conventional Commit titles of the squash-merg
 
 ### Added
 
+- "Browse" button with the folder dialog of the system (Windows and macOS) next to the folder field of a new project (ADR 0075)
 - remove a project from the app again: command `projects.remove` and a "Remove" button with a confirmation in the project list
 - coupling metrics Ce, Ca and instability per snapshot ([#275](https://github.com/stacknoise/CodeSkimr/pull/275))
 - `#private` members in TypeScript and JavaScript are private (ADR 0047, #81) ([#323](https://github.com/stacknoise/CodeSkimr/pull/323))
@@ -19,6 +20,8 @@ Each section is generated from the Conventional Commit titles of the squash-merg
 
 ### Fixed
 
+- the usages screen starts at depth 1, so list and diagram show only direct usages
+- level 1 usages stay visible where level 2 finds nothing, marked "unchecked (level 1)"; verified ones read "verified (level 2)" (ADR 0033 addendum)
 - link check when opening and a hardened answer buffer ([#322](https://github.com/stacknoise/CodeSkimr/pull/322))
 - error text for unreadable sources, storage error tests and stale Git work folders ([#319](https://github.com/stacknoise/CodeSkimr/pull/319))
 - finish the follow-ups of the embedded packs: directory sync, open without packs, pack check beside the program (#351) ([#383](https://github.com/stacknoise/CodeSkimr/pull/383))

@@ -19,6 +19,11 @@ pub const ASSIGNMENT: &str = " = ";
 pub const NO_PREFIX: &str = "";
 
 /// Smallest allowed share (instability).
+/// Shortest pause after a level 2 run of the browser, in seconds (`level2.ui_cooldown_seconds`).
+pub const UI_COOLDOWN_MIN_SECONDS: u32 = 10;
+/// Most level 2 runs at the same time that the configuration may allow.
+pub const MAX_PARALLEL_RUNS_LIMIT: u32 = 8;
+
 pub const UNIT_MIN: f64 = 0.0;
 /// Largest allowed share (instability).
 pub const UNIT_MAX: f64 = 1.0;
@@ -154,6 +159,8 @@ pub mod keys {
     /// `level2.confirm_window_cooldown_seconds`
     pub const LEVEL2_CONFIRM_WINDOW_COOLDOWN_SECONDS: &str =
         "level2.confirm_window_cooldown_seconds";
+    /// `level2.ui_cooldown_seconds`
+    pub const LEVEL2_UI_COOLDOWN_SECONDS: &str = "level2.ui_cooldown_seconds";
     /// `level2.max_parallel_runs`
     pub const LEVEL2_MAX_PARALLEL_RUNS: &str = "level2.max_parallel_runs";
     /// `server.port`

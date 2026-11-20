@@ -191,6 +191,27 @@ mod tests {
     }
 
     #[test]
+    fn a_second_scan_during_level_2_is_prj_302_until_the_task_has_ended() {
+        let scans = RunningScans::default();
+        let id = ProjectId::new(7);
+        // The command returns after level 1; the guard moves into the task of level 2.
+        let guard = scans.start(id).unwrap();
+        let (end, ended) = std::sync::mpsc::channel::<()>();
+        let task = std::thread::spawn(move || {
+            let _guard = guard;
+            ended.recv().unwrap();
+        });
+        assert_eq!(
+            scans.start(id).unwrap_err().code(),
+            ErrorCode::SnapshotInProgress
+        );
+        assert!(scans.is_running(id));
+        end.send(()).unwrap();
+        task.join().unwrap();
+        assert!(scans.start(id).is_ok());
+    }
+
+    #[test]
     fn the_end_of_the_server_cancels_every_run_and_waits_for_it() {
         let scans = RunningScans::default();
         let id = ProjectId::new(7);

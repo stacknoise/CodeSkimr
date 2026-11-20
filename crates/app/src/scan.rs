@@ -13,7 +13,7 @@ use codeskimr_application::level2::{LanguageReport, Level2Outcome, Skipped};
 use codeskimr_application::pipeline::Level2Run;
 use codeskimr_application::pipeline::{Job, JobResult, Queued, Scanner};
 use codeskimr_application::ports::{
-    FileAnalyzer, ProjectRepository, ProjectToolCheck, ScanWarning,
+    FileAnalyzer, LanguageOutcome, ProjectRepository, ProjectToolCheck, ScanWarning,
 };
 use codeskimr_application::tools::ToolsView;
 use codeskimr_cli::{GlobalOptions, Level2Line, Level2Reason, ScanArgs, ScanSummary, WarningLine};
@@ -27,7 +27,7 @@ use codeskimr_storage::SqliteStore;
 use crate::config_files;
 use crate::consts::{LEVEL2_THREAD_NAME, LOG_TOOL_CHECK_FAILED};
 use crate::cpu_time::{process_cpu_time, seconds_since};
-use crate::level2_runs::{Level2Runs, RunLimits};
+use crate::level2_runs::{Level2Runs, RunLimits, RunSlot};
 use crate::locations::Locations;
 use crate::principal;
 use crate::running::ScanGuard;
@@ -200,44 +200,77 @@ impl Session {
         handoff: Level2Handoff,
         (guard, runs): (ScanGuard, Level2Runs),
     ) -> Level2Start {
-        let (snapshot, origin) = (handoff.snapshot.clone(), ScanOrigin::Browser);
-        let denied = self
+        let origin = ScanOrigin::Browser;
+        match self.take_place(&handoff, &runs) {
+            Ok(slot) => self.spawn_level2(handoff, (guard, slot)),
+            Err(reason) => {
+                self.scanner.skip_level2(
+                    &handoff.snapshot,
+                    origin,
+                    LanguageOutcome::Skipped(reason),
+                );
+                Level2Start::NotStarted(reason)
+            }
+        }
+    }
+
+    /// The checks before a run from the browser: the right and the consent (as `authorize_run`
+    /// asks them), the master switch of the user configuration, then the place and the pause.
+    fn take_place(
+        &self,
+        handoff: &Level2Handoff,
+        runs: &Level2Runs,
+    ) -> Result<RunSlot, SkipReason> {
+        let gate = self
             .scanner
             .level2_gate(&self.principal, self.project.id, &handoff.root)
             .err()
-            .and_then(|skipped| skipped.reason().or(Some(SkipReason::NotConfirmed)));
+            .map(|skipped| skipped.reason().unwrap_or(SkipReason::NotConfirmed));
+        // The switch is read from the user configuration of this command, which the project file
+        // cannot set; a confirmation alone does not start a run from the browser (ADR 0071,
+        // decision 8).
+        let switched_off = (!self.config.level2.enabled).then_some(SkipReason::NotConfirmed);
+        if let Some(reason) = gate.or(switched_off) {
+            return Err(reason);
+        }
         let limits = RunLimits {
             max_parallel: self.config.level2.max_parallel_runs,
             cooldown: Duration::from_secs(u64::from(self.config.level2.ui_cooldown_seconds)),
         };
-        let slot = match denied {
-            Some(reason) => Err(reason),
-            None => runs.begin(self.project.id, limits, Instant::now()),
-        };
-        let slot = match slot {
-            Ok(slot) => slot,
-            Err(reason) => {
-                self.scanner.skip_level2(&snapshot, origin, reason);
-                return Level2Start::NotStarted(reason);
-            }
-        };
+        runs.begin(self.project.id, limits, Instant::now())
+    }
+
+    fn spawn_level2(
+        self,
+        handoff: Level2Handoff,
+        (guard, slot): (ScanGuard, RunSlot),
+    ) -> Level2Start {
+        let snapshot = handoff.snapshot.clone();
+        let session = Arc::new(self);
+        let worker = Arc::clone(&session);
         let spawned = std::thread::Builder::new()
             .name(LEVEL2_THREAD_NAME.to_owned())
             .spawn(move || {
                 let _slot = slot;
                 let _guard = guard;
-                let _ = self.scanner.run_level2(&Level2Run {
-                    principal: &self.principal,
+                let _ = worker.scanner.run_level2(&Level2Run {
+                    principal: &worker.principal,
                     snapshot: &handoff.snapshot,
                     root: &handoff.root,
                     cancel: &handoff.cancel,
-                    origin,
+                    origin: ScanOrigin::Browser,
                 });
             });
-        match spawned {
-            Ok(_) => Level2Start::Started,
-            Err(_) => Level2Start::NotStarted(SkipReason::Busy),
+        if spawned.is_ok() {
+            return Level2Start::Started;
         }
+        // The thread did not start, so the report says that the run failed.
+        session.scanner.skip_level2(
+            &snapshot,
+            ScanOrigin::Browser,
+            LanguageOutcome::Failed(ErrorCode::UnexpectedInternalError),
+        );
+        Level2Start::NotStarted(SkipReason::Busy)
     }
 
     fn run_ran(&self, job: Job<Queued>) -> Result<Ran, CodedError> {

@@ -3,8 +3,9 @@
 use std::collections::HashSet;
 
 use super::consts::{
-    FORBIDDEN_EDITOR_SCHEMES, PATH_SEPARATORS, PERCENT_MAX, PLACEHOLDER_PATH, SCHEME_EXTRA_CHARS,
-    UNIT_MAX, UNIT_MIN, URL_SCHEME_SEPARATOR, keys,
+    FORBIDDEN_EDITOR_SCHEMES, MAX_PARALLEL_RUNS_LIMIT, PATH_SEPARATORS, PERCENT_MAX,
+    PLACEHOLDER_PATH, SCHEME_EXTRA_CHARS, UI_COOLDOWN_MIN_SECONDS, UNIT_MAX, UNIT_MIN,
+    URL_SCHEME_SEPARATOR, keys,
 };
 use super::error::{ConfigError, Violation};
 use super::model::{
@@ -251,6 +252,18 @@ fn check_level2(level2: &Level2) -> Result<(), ConfigError> {
         level2.confirm_window_cooldown_seconds,
     )?;
     positive(keys::LEVEL2_MAX_PARALLEL_RUNS, level2.max_parallel_runs)?;
+    if level2.max_parallel_runs > MAX_PARALLEL_RUNS_LIMIT {
+        return fail(
+            keys::LEVEL2_MAX_PARALLEL_RUNS,
+            Violation::MustNotPass(MAX_PARALLEL_RUNS_LIMIT),
+        );
+    }
+    if level2.ui_cooldown_seconds < UI_COOLDOWN_MIN_SECONDS {
+        return fail(
+            keys::LEVEL2_UI_COOLDOWN_SECONDS,
+            Violation::MustReach(UI_COOLDOWN_MIN_SECONDS),
+        );
+    }
     share(keys::LEVEL2_MIN_MAPPED, level2.min_mapped)
 }
 
