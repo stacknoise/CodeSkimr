@@ -77,6 +77,9 @@ export function run(): void {
 export default class Main {}
 
 export namespace Util {
+  /** The most that helps. */
+  export const LIMIT = 3;
+  const hidden = 'x';
   export function help() {}
 }
 

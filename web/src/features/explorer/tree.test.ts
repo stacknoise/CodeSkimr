@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  blankRow,
   buildRows,
   groupKey,
   groupOfKind,
@@ -364,23 +365,7 @@ describe("revealKeys", () => {
 });
 
 describe("siblingPlaces", () => {
-  const base: TreeRow = {
-    key: "k",
-    kind: "type",
-    depth: 0,
-    label: "",
-    meta: "",
-    language: null,
-    symbolKind: null,
-    layerIndex: null,
-    expandable: false,
-    open: false,
-    type: null,
-    member: null,
-    target: null,
-    scope: null,
-    names: [],
-  };
+  const base: TreeRow = blankRow("k", "type", 0, "");
   it("counts the siblings of each parent, not the rows of the list", () => {
     const at = (depth: number): TreeRow => ({ ...base, depth });
     const places = siblingPlaces([at(0), at(1), at(1), at(2), at(1), at(0)]);
@@ -557,5 +542,103 @@ describe("members of a module and of every kind", () => {
     expect(
       ["class", "interface", "trait", "record", "struct", "enum", "union"].map(placed),
     ).toEqual(Array(7).fill("nested"));
+  });
+});
+
+describe("holders of a namespace", () => {
+  const holder = (id: number, members: number) => ({
+    id,
+    name: "util",
+    qualified_name: "app.util",
+    kind: "namespace",
+    members,
+    language: "typescript",
+  });
+  const fn = (id: number, name: string) => ({ ...ORDER.members[0]!, id, name, kind: "function" });
+  const info = (id: number, ...members: ReturnType<typeof fn>[]): SymbolInfo => ({
+    ...ORDER,
+    id,
+    kind: "namespace",
+    members,
+  });
+  const outline: Outline = {
+    ...OUTLINE,
+    layers: [
+      {
+        name: "",
+        namespaces: [
+          { name: "app.util", types: [], module: null, holders: [holder(5, 1), holder(6, 1)] },
+        ],
+      },
+    ],
+  };
+  const open = new Set([namespaceKey("", "app"), namespaceKey("", "app.util")]);
+
+  it("shows a namespace with functions but no types, and reads its holders when it opens", () => {
+    const closed = buildRows(outline, new Set([namespaceKey("", "app")]), new Map(), "", LABELS);
+    const row = closed.find((one) => one.label === "util");
+    expect(row?.expandable).toBe(true);
+    expect(row?.held).toEqual([5, 6]);
+    expect(row?.type).toBeNull();
+  });
+
+  it("joins the functions of every holder into one group", () => {
+    const details = new Map([
+      [5, info(5, fn(30, "a"))],
+      [6, info(6, fn(31, "b"))],
+    ]);
+    const opened = new Set([...open, groupKey(5, "methods")]);
+    const rows = buildRows(outline, opened, details, "", LABELS);
+    const group = rows.find((one) => one.kind === "group");
+    expect(group?.label).toBe("Methods");
+    expect(group?.meta).toBe("2");
+    const members = rows.filter((one) => one.kind === "member");
+    expect(members.map((one) => one.type)).toEqual([5, 6]);
+  });
+});
+
+describe("files without a namespace", () => {
+  const outline: Outline = {
+    ...OUTLINE,
+    layers: [
+      {
+        name: "",
+        namespaces: [
+          {
+            name: "app/Plain.cs",
+            file: true,
+            types: [
+              {
+                id: 1,
+                name: "Plain",
+                qualified_name: "Plain",
+                kind: "class",
+                members: 0,
+                language: "csharp",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  };
+
+  it("shows a file as one row titled by the file, not as a namespace app/Plain and cs", () => {
+    const rows = buildRows(
+      outline,
+      new Set([namespaceKey("", "app/Plain.cs")]),
+      new Map(),
+      "",
+      LABELS,
+    );
+    expect(labels(rows)).toEqual(["Plain.cs", "Plain"]);
+  });
+
+  it("reveals a type of such a file at its row", () => {
+    expect(revealKeys(outline, 1)).toEqual([
+      layerKey(""),
+      namespaceKey("", "app/Plain.cs"),
+      typeKey(1),
+    ]);
   });
 });
