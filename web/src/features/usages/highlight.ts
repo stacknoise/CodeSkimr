@@ -19,6 +19,11 @@ interface Reached {
   edges: Set<Edge>;
 }
 
+/** The two ends of `edge` in the direction of the walk: where it is left, and where it leads. */
+function ends(edge: Edge, forward: boolean): [number, number] {
+  return forward ? [edge.from, edge.to] : [edge.to, edge.from];
+}
+
 /** Follows the edges from `start`, one way: `from` to `to`, or back. The walk enters `stop` but
  * does not go on from it, unless it starts there. */
 function reach(edges: Edge[], start: number, forward: boolean, stop: number | null): Reached {
@@ -27,14 +32,16 @@ function reach(edges: Edge[], start: number, forward: boolean, stop: number | nu
   const queue = [start];
   for (let id = queue.shift(); id !== undefined; id = queue.shift()) {
     for (const edge of edges) {
-      const [here, next] = forward ? [edge.from, edge.to] : [edge.to, edge.from];
+      const [here, next] = ends(edge, forward);
       if (here !== id) {
         continue;
       }
       lit.add(edge);
       if (!ids.has(next)) {
         ids.add(next);
-        queue.push(...(next === stop ? [] : [next]));
+        if (next !== stop) {
+          queue.push(next);
+        }
       }
     }
   }

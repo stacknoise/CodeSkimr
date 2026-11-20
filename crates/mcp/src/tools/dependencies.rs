@@ -264,10 +264,7 @@ impl Tools {
         let dependencies = listed(placed, limit);
         Ok(Answer {
             snapshot: scope.info,
-            target: Target {
-                kind: crate::consts::TARGET_SYMBOL,
-                name: found.symbol.qualified_name.as_str().to_owned(),
-            },
+            target: symbol_target(&found.symbol),
             direction: direction_label(direction),
             total: page.total,
             violations,
@@ -275,6 +272,14 @@ impl Tools {
             dependencies,
             notice: None,
         })
+    }
+}
+
+/// The target of an answer about one symbol.
+fn symbol_target(symbol: &codeskimr_domain::Symbol) -> Target {
+    Target {
+        kind: crate::consts::TARGET_SYMBOL,
+        name: symbol.qualified_name.as_str().to_owned(),
     }
 }
 

@@ -1011,6 +1011,24 @@ pub fn import_with_creation(
     import_with_sites(index, snapshot, (min_mapped, creation), &[])
 }
 
+/// The first symbol id that no symbol of the snapshot uses.
+fn first_free_id(symbols: &[Symbol]) -> u64 {
+    symbols
+        .iter()
+        .map(|symbol| symbol.id.get())
+        .max()
+        .map_or(0, |id| id.saturating_add(1))
+}
+
+/// The symbols of the syntax and the created ones, copied only if something was created.
+fn with_created<'a>(syntax: Cow<'a, [Symbol]>, created: &[Symbol]) -> Cow<'a, [Symbol]> {
+    if created.is_empty() {
+        syntax
+    } else {
+        Cow::Owned(syntax.iter().chain(created).cloned().collect())
+    }
+}
+
 /// As [`import_with_creation`], and the occurrences inside one of `import_sites` (file and range
 /// of the name in an import statement, as level 1 read it) are not uses: the import of a name is
 /// no usage of it (issue #250). Level 1 keeps no reference for such a place either.
@@ -1025,24 +1043,10 @@ pub fn import_with_sites(
 ) -> Result<ImportOutcome, ScipError> {
     let (covered, unmatched) = covered_documents(index, snapshot.files);
     let syntax = syntax_symbols(snapshot.symbols);
-    let first_id = snapshot
-        .symbols
-        .iter()
-        .map(|symbol| symbol.id.get())
-        .max()
-        .map_or(0, |id| id.saturating_add(1));
-    let created = created_symbols(
-        index,
-        &covered,
-        &SymbolTable::new(&syntax),
-        creation,
-        first_id,
-    )?;
-    let all: Cow<'_, [Symbol]> = if created.is_empty() {
-        syntax
-    } else {
-        Cow::Owned(syntax.iter().chain(&created).cloned().collect())
-    };
+    let first_id = first_free_id(snapshot.symbols);
+    let table = SymbolTable::new(&syntax);
+    let created = created_symbols(index, &covered, &table, creation, first_id)?;
+    let all = with_created(syntax, &created);
     let view = SnapshotView {
         symbols: &all,
         ..*snapshot

@@ -9,7 +9,7 @@ use std::time::Instant;
 
 use codeskimr_domain::{
     CommitHash, FileId, FolderPath, LanguageId, Metric, Project, Reference, ScanMode, Snapshot,
-    SnapshotId, SnapshotStats, SourceFile, Symbol, SymbolCounts, SymbolOrigin,
+    SnapshotId, SnapshotStats, SourceFile, Symbol, SymbolCounts, SymbolOrigin, Timestamp,
 };
 
 use codeskimr_codes::ErrorCode;
@@ -638,18 +638,7 @@ impl Stage for PersistStage {
     fn run(&self, input: Measured, ctx: &StageContext<'_>) -> Result<Persisted, Interruption> {
         ctx.progress(0, 1);
         let root = input.run.root.clone();
-        let snapshot = Snapshot {
-            id: input.run.snapshot,
-            project: input.run.project.id,
-            commit: input.run.commit,
-            created: self.clock.now(),
-            mode: input.run.mode,
-            stats: SnapshotStats {
-                files: count(&input.files) + count(&input.carried.files),
-                symbols: count(&input.symbols) + count(&input.carried.symbols),
-                references: count(&input.references) + count(&input.carried.references),
-            },
-        };
+        let snapshot = snapshot_of(&input, self.clock.now());
         let warnings = warnings_of(&input.references, &input.carried.references);
         let data = SnapshotData {
             snapshot,
@@ -675,6 +664,22 @@ impl Stage for PersistStage {
             warnings,
             paths: input.run.paths_report,
         })
+    }
+}
+
+/// The snapshot row of a run: who it belongs to and how many files, symbols and references it holds.
+fn snapshot_of(input: &Measured, created: Timestamp) -> Snapshot {
+    Snapshot {
+        id: input.run.snapshot,
+        project: input.run.project.id,
+        commit: input.run.commit.clone(),
+        created,
+        mode: input.run.mode,
+        stats: SnapshotStats {
+            files: count(&input.files) + count(&input.carried.files),
+            symbols: count(&input.symbols) + count(&input.carried.symbols),
+            references: count(&input.references) + count(&input.carried.references),
+        },
     }
 }
 
