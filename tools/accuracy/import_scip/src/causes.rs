@@ -66,6 +66,51 @@ fn targets_by_place(outcome: &ImportOutcome) -> HashMap<(FileId, Position), Vec<
     targets
 }
 
+/// What the import is compared with: the symbols the index defines, the ones the scan covers, and
+/// where the import put its references.
+struct Known<'a> {
+    defined: HashSet<SymbolRef>,
+    scanned: HashSet<SymbolRef>,
+    names: HashMap<SymbolId, &'a str>,
+    targets: HashMap<(FileId, Position), Vec<SymbolId>>,
+}
+
+impl Known<'_> {
+    /// Whether the import put a reference of another name than `namespace` at `place`.
+    fn by_position(&self, namespace: Option<&str>, place: (FileId, Position)) -> bool {
+        namespace.is_some_and(|name| {
+            self.targets
+                .get(&place)
+                .is_some_and(|ids| ids.iter().any(|id| self.names.get(id) != Some(&name)))
+        })
+    }
+
+    /// Counts one use of `symbol` (SCIP text `text`) at `place` by what it needed.
+    fn count(
+        &self,
+        found: &mut Causes,
+        (symbol, text): (SymbolRef, &str),
+        place: (FileId, Position),
+    ) {
+        if text.starts_with(LOCAL_PREFIX) || !self.defined.contains(&symbol) {
+            return;
+        }
+        let namespace = namespace_name(text);
+        if self.scanned.contains(&symbol) {
+            let by_position = self.by_position(namespace, place);
+            match namespace {
+                Some(CRATE_ROOT_NAME) if by_position => found.crate_root += 1,
+                Some(_) if by_position => found.module_file += 1,
+                _ => {}
+            }
+        } else if namespace.is_some() {
+            found.skipped_namespace += 1;
+        } else {
+            found.skipped_item += 1;
+        }
+    }
+}
+
 /// What the import did with the uses of the covered documents, by cause.
 pub fn causes(
     index: &ScipIndex,
@@ -74,39 +119,21 @@ pub fn causes(
     outcome: &ImportOutcome,
 ) -> Causes {
     let covered = covered_documents(index, files);
-    let defined = defined_in(index.documents.iter());
-    let scanned = defined_in(covered.iter().map(|(document, _)| *document));
-    let names: HashMap<SymbolId, &str> = symbols
-        .iter()
-        .map(|symbol| (symbol.id, symbol.name.as_str()))
-        .collect();
-    let targets = targets_by_place(outcome);
+    let known = Known {
+        defined: defined_in(index.documents.iter()),
+        scanned: defined_in(covered.iter().map(|(document, _)| *document)),
+        names: symbols
+            .iter()
+            .map(|symbol| (symbol.id, symbol.name.as_str()))
+            .collect(),
+        targets: targets_by_place(outcome),
+    };
     let mut found = Causes::default();
     for (document, file) in covered {
         for occurrence in document.occurrences.iter().filter(|o| !o.is_definition()) {
-            let Some(text) = index.symbol(occurrence.symbol) else {
-                continue;
-            };
-            if text.starts_with(LOCAL_PREFIX) || !defined.contains(&occurrence.symbol) {
-                continue;
-            }
-            let namespace = namespace_name(text);
-            if scanned.contains(&occurrence.symbol) {
+            if let Some(text) = index.symbol(occurrence.symbol) {
                 let place = (file, occurrence.range.start());
-                let by_position = namespace.is_some_and(|name| {
-                    targets
-                        .get(&place)
-                        .is_some_and(|ids| ids.iter().any(|id| names.get(id) != Some(&name)))
-                });
-                match namespace {
-                    Some(CRATE_ROOT_NAME) if by_position => found.crate_root += 1,
-                    Some(_) if by_position => found.module_file += 1,
-                    _ => {}
-                }
-            } else if namespace.is_some() {
-                found.skipped_namespace += 1;
-            } else {
-                found.skipped_item += 1;
+                known.count(&mut found, (occurrence.symbol, text), place);
             }
         }
     }

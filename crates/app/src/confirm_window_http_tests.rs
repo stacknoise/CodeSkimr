@@ -208,6 +208,14 @@ fn switched_on(data: &std::path::Path) -> (Locations, GlobalOptions, Config, Arc
     (locations, global, config, catalog)
 }
 
+/// A window that only counts how often it was opened.
+fn counting_window(opened: &Arc<AtomicUsize>) -> Window {
+    Window {
+        port: Arc::new(Counting(Arc::clone(opened))),
+        launch: Launch::Window,
+    }
+}
+
 #[test]
 fn the_window_route_and_the_commands_of_the_switch_follow_the_guard_end_to_end() {
     let data = tempfile::tempdir().unwrap();
@@ -215,10 +223,7 @@ fn the_window_route_and_the_commands_of_the_switch_follow_the_guard_end_to_end()
     let opened = Arc::new(AtomicUsize::new(0));
     let events = EventBus::new();
     let secrets = crate::memory_keystore::secrets();
-    let window = Window {
-        port: Arc::new(Counting(Arc::clone(&opened))),
-        launch: Launch::Window,
-    };
+    let window = counting_window(&opened);
     let (api, desk) = command_api_over(
         &catalog,
         &config,
