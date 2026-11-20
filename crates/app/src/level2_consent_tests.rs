@@ -103,7 +103,8 @@ mod cases {
         assert_eq!(fixture.consent(), ConsentRecord::default());
         // Taking a right back is a right of the browser client only (ADR 0071, ADR 0072), and it
         // confirms nothing.
-        assert!(level2::revoke(&client, &store, ProjectId::new(ID)).is_err());
+        let revoked = level2::revoke(&client, &store, ProjectId::new(ID)).unwrap_err();
+        assert_eq!(revoked.code(), ErrorCode::IndexerNotPermitted);
         let browser = principal::browser_client();
         assert!(!browser.holds(Permission::ConfirmIndexer));
         level2::revoke(&browser, &store, ProjectId::new(ID)).unwrap();

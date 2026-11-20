@@ -128,3 +128,19 @@ fn the_manifest_check_sees_every_form_of_switching_the_feature_on() {
         "[features]\nissue-principals = []\n"
     ));
 }
+
+/// The file of the MCP channels, which share process and token with the HTTP commands of `serve`.
+const MCP_FILE: &str = "app/src/mcp.rs";
+
+/// Every MCP channel runs as `remote_client`: the file that builds them never names the principal
+/// of the browser, so it cannot hand it to a tool by accident (ADR 0072, decision 2).
+#[test]
+fn the_mcp_channels_never_name_the_browser_client() {
+    let file = product::product_sources()
+        .into_iter()
+        .find(|file| file.ends_with(MCP_FILE))
+        .unwrap();
+    let code = fs::read_to_string(file).unwrap();
+    assert!(!code.contains("browser_client"));
+    assert!(code.contains("remote_client"));
+}
