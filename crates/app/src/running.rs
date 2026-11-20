@@ -2,6 +2,7 @@
 
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
+use std::time::{Duration, Instant};
 
 use codeskimr_application::cancel::CancelToken;
 use codeskimr_application::error::CodedError;
@@ -9,7 +10,7 @@ use codeskimr_application::ports::{ProjectScanner, Rescanned};
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{Principal, ProjectId};
 
-use crate::consts::MAX_PARALLEL_SCANS;
+use crate::consts::{IDLE_POLL, MAX_PARALLEL_SCANS};
 
 /// The projects with a running scan; a second scan of the same project is refused (`PRJ-302`).
 #[derive(Debug, Clone, Default)]
@@ -63,6 +64,19 @@ impl RunningScans {
                 true
             })
         })
+    }
+
+    /// Cancels every running scan and level 2 run, for the end of the server (ADR 0072), and
+    /// waits until they have ended or `grace` has passed, so that the process group of an
+    /// indexer is killed before the program exits.
+    pub fn cancel_all(&self, grace: Duration) {
+        for slot in self.lock().values().flatten() {
+            slot.cancel();
+        }
+        let until = Instant::now() + grace;
+        while !self.lock().is_empty() && Instant::now() < until {
+            std::thread::sleep(IDLE_POLL);
+        }
     }
 
     /// Whether a scan of `project` is running.
@@ -174,6 +188,28 @@ mod tests {
         );
         drop(guards);
         assert!(scans.start(extra).is_ok());
+    }
+
+    #[test]
+    fn the_end_of_the_server_cancels_every_run_and_waits_for_it() {
+        let scans = RunningScans::default();
+        let id = ProjectId::new(7);
+        let guard = scans.start(id).unwrap();
+        let token = CancelToken::new();
+        scans.attach(id, token.clone());
+        let waiting = std::thread::spawn({
+            let token = token.clone();
+            move || {
+                while !token.is_cancelled() {
+                    std::thread::sleep(IDLE_POLL);
+                }
+                drop(guard);
+            }
+        });
+        scans.cancel_all(Duration::from_secs(5));
+        waiting.join().unwrap();
+        assert!(token.is_cancelled());
+        assert!(!scans.is_running(id));
     }
 
     #[test]

@@ -113,6 +113,7 @@ pub(super) fn context(tools: Arc<dyn ProjectToolCheck>, running: RunningScans) -
         secrets: crate::memory_keystore::secrets(),
         tools,
         running,
+        level2_runs: crate::level2_runs::Level2Runs::default(),
         registration: Mutex::new(()),
         tiers: OnceLock::new(),
     })

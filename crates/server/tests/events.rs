@@ -5,7 +5,8 @@ mod common;
 use std::time::Duration;
 
 use codeskimr_application::events::{
-    AlertsChanged, Event, FilesChanged, ScanProgressed, ScanStopped, StopReason,
+    AlertsChanged, Event, FilesChanged, Level2Finished, Level2Progressed, ScanProgressed,
+    ScanStopped, StopReason,
 };
 use codeskimr_application::stage::StageKind;
 use codeskimr_codes::ErrorCode;
@@ -116,6 +117,38 @@ async fn alerts_changed_carries_the_project_and_a_count_and_no_text() {
         object
             .values()
             .all(|value| !value.is_string() || value == "alerts_changed")
+    );
+}
+
+#[tokio::test]
+async fn the_two_level_2_events_carry_ids_counts_and_labels_only() {
+    let server = start(owner()).await;
+    let (mut stream, _status) = open(&server, "").await;
+    server
+        .events
+        .publish(&Event::Level2Progressed(Level2Progressed {
+            project: ProjectId::new(7),
+            language: codeskimr_domain::LanguageId::new("csharp").unwrap(),
+            stage: codeskimr_domain::Level2Stage::Running,
+        }));
+    server
+        .events
+        .publish(&Event::Level2Finished(Level2Finished {
+            project: ProjectId::new(7),
+            snapshot: codeskimr_domain::SnapshotId::new(3),
+            checked: 1,
+            skipped: 2,
+            failed: 0,
+        }));
+    let first: serde_json::Value = serde_json::from_str(&frame(&mut stream).await).unwrap();
+    let second: serde_json::Value = serde_json::from_str(&frame(&mut stream).await).unwrap();
+    assert_eq!(
+        first,
+        serde_json::json!({"type":"level2_progressed","project":7,"language":"csharp","stage":"level2_running"})
+    );
+    assert_eq!(
+        second,
+        serde_json::json!({"type":"level2_finished","project":7,"snapshot":3,"checked":1,"skipped":2,"failed":0})
     );
 }
 

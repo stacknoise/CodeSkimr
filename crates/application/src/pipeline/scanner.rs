@@ -4,7 +4,8 @@ use std::sync::Arc;
 
 use codeskimr_codes::{Coded, ErrorCode};
 use codeskimr_domain::{
-    AlertTrigger, Permission, Principal, ProjectId, ProjectSource, ScanMode, ScanOrigin, Snapshot,
+    AlertTrigger, FolderPath, Permission, Principal, ProjectId, ProjectSource, ScanMode,
+    ScanOrigin, SkipReason, Snapshot,
 };
 
 use super::flow::{Chain, Halt, Pipeline, Single, StageContext};
@@ -19,12 +20,13 @@ use crate::alerts::AlertStep;
 use crate::cancel::CancelToken;
 use crate::consts::{LOG_ALERT_STEP_FAILED, LOG_ALERTS_CHECKED, LOG_REPORT_NOT_STORED};
 use crate::error::CodedError;
-use crate::events::{Event, EventBus, ScanStopped, SnapshotCreated, StopReason};
+use crate::events::{Event, EventBus, Level2Finished, ScanStopped, SnapshotCreated, StopReason};
 use crate::ids::IdSequence;
-use crate::level2::{LanguageReport, Level2Pass};
+use crate::level2::{LanguageReport, Level2Outcome, Level2Pass, Skipped};
 use crate::ports::{
-    Clock, FileAnalyzer, FileDiscovery, MetricsCalculator, ProjectRepository, ProjectScanner,
-    ReferenceResolver, Rescanned, ScanWarning, SnapshotStore, SourceProvider,
+    Clock, FileAnalyzer, FileDiscovery, LanguageLine, LanguageOutcome, MetricsCalculator,
+    ProjectRepository, ProjectScanner, ReferenceResolver, Rescanned, ScanWarning, SnapshotStore,
+    SourceProvider,
 };
 
 /// Everything the scanner needs from the adapters, wired by the composition root.
@@ -205,7 +207,7 @@ impl Scanner {
             snapshot,
             level2.unwrap_or_default(),
             warnings,
-            persisted.paths,
+            (persisted.paths, persisted.root),
         ))
     }
 
@@ -224,6 +226,75 @@ impl Scanner {
             }
             _ => (persisted.snapshot, None),
         }
+    }
+
+    /// Whether `principal` may run the indexers of `project` now, without running anything.
+    ///
+    /// # Errors
+    /// `NotPermitted`, `NotConfirmed`, or `Failed` if the project cannot be read. A scanner
+    /// without a second pass cannot run level 2, which is `NotConfirmed`.
+    pub fn level2_gate(
+        &self,
+        principal: &Principal,
+        project: ProjectId,
+        root: &FolderPath,
+    ) -> Result<(), Skipped> {
+        let pass = self.level2.as_ref().ok_or(Skipped::NotConfirmed)?;
+        let project = self
+            .projects
+            .project(project)
+            .map_err(|cause| Skipped::Failed(cause.code()))?;
+        pass.authorize(principal, &project, root)
+    }
+
+    /// Runs the second pass on a snapshot that level 1 stored, stores the report and tells the
+    /// event bus. It asks for the permission again when each indexer starts, so what the owner
+    /// revokes before then holds. Level 1 stays as it is whatever happens.
+    #[must_use]
+    pub fn run_level2(&self, run: &Level2Run<'_>) -> Vec<LanguageReport> {
+        let Some(pass) = &self.level2 else {
+            return Vec::new();
+        };
+        let done = pass.run(run.principal, run.snapshot, run.root, run.cancel);
+        if done.snapshot != *run.snapshot {
+            self.created(&done.snapshot);
+        }
+        // A failure to store is logged by `store_report`; the run itself has ended.
+        self.store_report(&done.snapshot, run.origin, Some(&done.reports));
+        self.finished_level2(run.snapshot, tally(&done.reports));
+        done.reports
+    }
+
+    /// Stores that level 2 did not run for any language, for `reason` (`busy` or `paused`), and
+    /// tells the event bus that the run is over.
+    pub fn skip_level2(&self, snapshot: &Snapshot, origin: ScanOrigin, reason: SkipReason) {
+        let Some(pass) = &self.level2 else {
+            return;
+        };
+        let lines: Vec<LanguageLine> = pass
+            .languages()
+            .map(|language| LanguageLine {
+                language: language.clone(),
+                outcome: LanguageOutcome::Skipped(reason),
+            })
+            .collect();
+        let skipped = u32::try_from(lines.len()).unwrap_or(u32::MAX);
+        if let Some(step) = &self.reports
+            && let Err(code) = step.store_lines(snapshot, origin, Some(lines))
+        {
+            tracing::warn!(event = LOG_REPORT_NOT_STORED, code = code.id());
+        }
+        self.finished_level2(snapshot, (0, skipped, 0));
+    }
+
+    fn finished_level2(&self, snapshot: &Snapshot, (checked, skipped, failed): (u32, u32, u32)) {
+        self.events.publish(&Event::Level2Finished(Level2Finished {
+            project: snapshot.project,
+            snapshot: snapshot.id,
+            checked,
+            skipped,
+            failed,
+        }));
     }
 
     /// Stores the report of the scan. A failure is a warning of the scan, never the end of it.
@@ -272,6 +343,34 @@ impl Scanner {
         self.events
             .publish(&Event::ScanStopped(ScanStopped { project, reason }));
     }
+}
+
+/// What the second pass needs after level 1 is stored.
+#[derive(Debug)]
+pub struct Level2Run<'a> {
+    /// The caller that asked for level 2.
+    pub principal: &'a Principal,
+    /// The snapshot level 1 stored.
+    pub snapshot: &'a Snapshot,
+    /// The folder with its files.
+    pub root: &'a FolderPath,
+    /// Stops the run.
+    pub cancel: &'a CancelToken,
+    /// The channel that started the scan.
+    pub origin: ScanOrigin,
+}
+
+/// Languages checked, skipped and failed.
+fn tally(reports: &[LanguageReport]) -> (u32, u32, u32) {
+    let (mut checked, mut skipped, mut failed) = (0, 0, 0);
+    for report in reports {
+        match &report.outcome {
+            Level2Outcome::Checked { .. } => checked += 1,
+            Level2Outcome::Skipped(Skipped::Failed(_)) => failed += 1,
+            Level2Outcome::Skipped(_) => skipped += 1,
+        }
+    }
+    (checked, skipped, failed)
 }
 
 /// What started the scan: the trigger of the job, but a project that lives in a Git repository

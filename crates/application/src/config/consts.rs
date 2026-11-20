@@ -154,6 +154,8 @@ pub mod keys {
     /// `level2.confirm_window_cooldown_seconds`
     pub const LEVEL2_CONFIRM_WINDOW_COOLDOWN_SECONDS: &str =
         "level2.confirm_window_cooldown_seconds";
+    /// `level2.max_parallel_runs`
+    pub const LEVEL2_MAX_PARALLEL_RUNS: &str = "level2.max_parallel_runs";
     /// `server.port`
     pub const SERVER_PORT: &str = "server.port";
     /// `editor.url_template`

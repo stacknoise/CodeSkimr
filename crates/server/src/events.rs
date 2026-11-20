@@ -11,8 +11,8 @@ use axum::extract::ws::{CloseFrame, Message, WebSocket, WebSocketUpgrade, close_
 use axum::response::{IntoResponse, Response};
 use codeskimr_application::access;
 use codeskimr_application::events::{
-    AlertsChanged, Event, EventBus, FilesChanged, ScanProgressed, ScanStopped, SnapshotCreated,
-    StopReason, Subscription,
+    AlertsChanged, Event, EventBus, FilesChanged, Level2Finished, Level2Progressed, ScanProgressed,
+    ScanStopped, SnapshotCreated, StopReason, Subscription,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::Permission;
@@ -80,6 +80,28 @@ pub enum WireEvent {
         /// Number of open alerts of the project now.
         open: u32,
     },
+    /// A level 2 run works on a language (ADR 0072). Ids and labels only.
+    Level2Progressed {
+        /// Project whose run it is.
+        project: u64,
+        /// Id of the language.
+        language: String,
+        /// `level2_running` or `level2_importing`.
+        stage: &'static str,
+    },
+    /// A level 2 run ended, in any way (ADR 0072).
+    Level2Finished {
+        /// Project whose run it was.
+        project: u64,
+        /// The snapshot it worked on.
+        snapshot: u64,
+        /// Languages that were checked.
+        checked: u32,
+        /// Languages that were skipped.
+        skipped: u32,
+        /// Languages whose run failed.
+        failed: u32,
+    },
 }
 
 impl WireEvent {
@@ -118,6 +140,26 @@ impl WireEvent {
                 project: project.get(),
                 open: *open,
             },
+            Event::Level2Progressed(progress) => Self::level2_progressed(progress),
+            Event::Level2Finished(done) => Self::level2_finished(done),
+        }
+    }
+
+    fn level2_progressed(progress: &Level2Progressed) -> Self {
+        Self::Level2Progressed {
+            project: progress.project.get(),
+            language: progress.language.to_string(),
+            stage: progress.stage.label(),
+        }
+    }
+
+    fn level2_finished(done: &Level2Finished) -> Self {
+        Self::Level2Finished {
+            project: done.project.get(),
+            snapshot: done.snapshot.get(),
+            checked: done.checked,
+            skipped: done.skipped,
+            failed: done.failed,
         }
     }
 

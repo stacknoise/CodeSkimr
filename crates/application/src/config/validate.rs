@@ -250,6 +250,7 @@ fn check_level2(level2: &Level2) -> Result<(), ConfigError> {
         keys::LEVEL2_CONFIRM_WINDOW_COOLDOWN_SECONDS,
         level2.confirm_window_cooldown_seconds,
     )?;
+    positive(keys::LEVEL2_MAX_PARALLEL_RUNS, level2.max_parallel_runs)?;
     share(keys::LEVEL2_MIN_MAPPED, level2.min_mapped)
 }
 

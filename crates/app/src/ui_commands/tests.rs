@@ -287,6 +287,62 @@ fn a_project_is_scanned_again_incrementally() {
 }
 
 #[test]
+fn a_scan_of_the_browser_says_why_level_2_did_not_start_and_stores_the_report() {
+    let fixture = Fixture::new();
+    let scanned = fixture
+        .call("projects.add", json!({ "source": fixture.folder() }))
+        .unwrap();
+    // The switch is off in this configuration and nothing is confirmed.
+    assert_eq!(
+        scanned["level2"],
+        json!({ "state": "not_started", "reason": "not_confirmed" })
+    );
+    let list = fixture.call("projects.list", Value::Null).unwrap();
+    let report = &list[0]["report"];
+    assert_eq!(report["last_scan"]["origin"], "browser");
+    assert_eq!(report["last_scan"]["level"], "1");
+    let languages = report["level2"]["languages"].as_array().unwrap();
+    assert!(
+        languages
+            .iter()
+            .all(|line| line["outcome"] == "skipped" && line["reason"] == "not_confirmed")
+    );
+}
+
+#[test]
+fn a_caller_that_asks_for_level_1_only_gets_no_attempt() {
+    let fixture = Fixture::new();
+    let scanned = fixture
+        .call(
+            "projects.add",
+            json!({ "source": fixture.folder(), "level2": false }),
+        )
+        .unwrap();
+    assert_eq!(
+        scanned["level2"],
+        json!({ "state": "not_requested", "reason": null })
+    );
+}
+
+#[test]
+fn a_client_without_the_right_to_run_indexers_is_told_so_and_level_1_is_stored() {
+    let fixture = Fixture::new();
+    let id = added(&fixture);
+    let result = fixture
+        .call_as(
+            principal::remote_client(),
+            "projects.rescan",
+            json!({ "project": id }),
+        )
+        .unwrap();
+    assert_eq!(
+        result["level2"],
+        json!({ "state": "not_started", "reason": "not_permitted" })
+    );
+    assert_eq!(result["project"], id);
+}
+
+#[test]
 fn an_unknown_project_cannot_be_scanned() {
     let fixture = Fixture::new();
     let result = fixture.call("projects.rescan", json!({ "project": 99 }));

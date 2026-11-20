@@ -1,7 +1,7 @@
 //! What the second pass of a scan says about each language (ADR 0033, decision 12).
 
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{LanguageId, Snapshot};
+use codeskimr_domain::{LanguageId, SkipReason, Snapshot};
 
 use crate::ports::ToolProblem;
 
@@ -20,6 +20,21 @@ pub enum Skipped {
     Cancelled,
     /// The run, the import or the storage failed with this code.
     Failed(ErrorCode),
+}
+
+impl Skipped {
+    /// The key that the report stores for it; `None` for a failure, which stores its code.
+    #[must_use]
+    pub const fn reason(&self) -> Option<SkipReason> {
+        match self {
+            Self::NotPermitted => Some(SkipReason::NotPermitted),
+            Self::NotConfirmed => Some(SkipReason::NotConfirmed),
+            Self::Unavailable(_) => Some(SkipReason::ToolsUnavailable),
+            Self::Stale => Some(SkipReason::Stale),
+            Self::Cancelled => Some(SkipReason::Cancelled),
+            Self::Failed(_) => None,
+        }
+    }
 }
 
 /// What happened for one language.

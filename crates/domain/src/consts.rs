@@ -122,6 +122,10 @@ pub const SKIP_TOOLS_UNAVAILABLE: &str = "tools_unavailable";
 pub const SKIP_STALE: &str = "stale";
 /// Label of `SkipReason::Cancelled`.
 pub const SKIP_CANCELLED: &str = "cancelled";
+/// Label of `Level2Stage::Running`.
+pub const STAGE_LEVEL2_RUNNING: &str = "level2_running";
+/// Label of `Level2Stage::Importing`.
+pub const STAGE_LEVEL2_IMPORTING: &str = "level2_importing";
 /// Label of `OutcomeKind::Checked`.
 pub const OUTCOME_CHECKED: &str = "checked";
 /// Label of `OutcomeKind::Skipped`.

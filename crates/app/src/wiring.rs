@@ -134,6 +134,7 @@ pub fn scanner_over(
         max_file_bytes: u64::from(config.scan.max_source_mb).saturating_mul(BYTES_PER_MB),
         settings: config.level2.clone(),
         indexers,
+        events: events.clone(),
     };
     let ports = ScannerPorts {
         source: Arc::new(RefreshingSource::new(

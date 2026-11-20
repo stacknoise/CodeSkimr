@@ -64,8 +64,10 @@ use codeskimr_source::FolderText;
 pub(crate) use status::{mark_ready, mark_started};
 
 use crate::clock::SystemClock;
+use crate::level2_runs::Level2Runs;
 use crate::locations::Locations;
 use crate::running::RunningScans;
+use crate::scan::BrowserRun;
 use crate::wiring::{Secrets, index_runner, indexer_check, tool_checker};
 pub(crate) use alerts::{
     AlertListInput, AlertListOut, AlertsDismiss, AlertsDismissAll, AlertsList, DismissAllInput,
@@ -108,11 +110,33 @@ pub struct Context {
     secrets: Arc<Secrets>,
     tools: Arc<dyn ProjectToolCheck>,
     running: RunningScans,
+    level2_runs: Level2Runs,
     registration: Mutex<()>,
     tiers: OnceLock<BTreeMap<String, &'static str>>,
 }
 
 impl Context {
+    /// What a scan from the browser needs: the mark that the project is being scanned, the
+    /// registry of level 2 runs and whether the caller wants level 2 (it does unless it said
+    /// `false`).
+    ///
+    /// # Errors
+    /// `PRJ-302` or `PRJ-501` as [`RunningScans::start`].
+    fn browser_run(
+        &self,
+        id: codeskimr_domain::ProjectId,
+        level2: Option<bool>,
+    ) -> Result<BrowserRun, CodedError> {
+        let guard = self.running.start(id)?;
+        let running = self.running.clone();
+        Ok(BrowserRun {
+            level2: level2.unwrap_or(true),
+            on_token: Box::new(move |token| running.attach(id, token)),
+            guard,
+            runs: self.level2_runs.clone(),
+        })
+    }
+
     /// The tier of a language pack, `full` or `basic`; `None` if no installed pack has that id (or
     /// the packs cannot be read, which the scan reports on its own).
     fn tier_of(&self, language: &str) -> Option<&'static str> {
@@ -225,6 +249,7 @@ pub fn command_api_over(
         secrets,
         tools: tools.clone(),
         running,
+        level2_runs: Level2Runs::default(),
         registration: Mutex::new(()),
         tiers: OnceLock::new(),
     });

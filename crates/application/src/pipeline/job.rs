@@ -3,7 +3,7 @@
 //! compile, because each method exists only in the state where it is allowed.
 
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{AlertTrigger, ProjectId, ScanMode, ScanOrigin, Snapshot};
+use codeskimr_domain::{AlertTrigger, FolderPath, ProjectId, ScanMode, ScanOrigin, Snapshot};
 
 use crate::cancel::CancelToken;
 use crate::level2::LanguageReport;
@@ -31,6 +31,7 @@ pub struct Finished {
     level2: Vec<LanguageReport>,
     warnings: Vec<ScanWarning>,
     paths: PathsReport,
+    root: FolderPath,
 }
 /// Ended because the user cancelled; no snapshot exists.
 #[derive(Debug)]
@@ -210,13 +211,14 @@ impl Job<Running> {
         snapshot: Snapshot,
         level2: Vec<LanguageReport>,
         warnings: Vec<ScanWarning>,
-        paths: PathsReport,
+        (paths, root): (PathsReport, FolderPath),
     ) -> Job<Finished> {
         self.into_state(Finished {
             snapshot,
             level2,
             warnings,
             paths,
+            root,
         })
     }
 
@@ -244,6 +246,12 @@ impl Job<Finished> {
     #[must_use]
     pub fn level2(&self) -> &[LanguageReport] {
         &self.state.level2
+    }
+
+    /// The folder that holds the files of the scan, where level 2 runs its indexers.
+    #[must_use]
+    pub const fn root(&self) -> &FolderPath {
+        &self.state.root
     }
 
     /// What became of the paths the job was asked to look at.

@@ -464,6 +464,12 @@ pub const CONSOLE_OUTPUT: &str = "CONOUT$";
 
 /// Name of the thread that builds the usages index in the background.
 pub const WARM_THREAD_NAME: &str = "usages-warm-up";
+/// Pause between two looks at whether the runs have ended.
+pub const IDLE_POLL: Duration = Duration::from_millis(50);
+/// How long the end of the server waits for the runs it cancelled (ADR 0072).
+pub const SHUTDOWN_GRACE: Duration = Duration::from_secs(5);
+/// Name of the thread that runs level 2 after a scan from the browser (ADR 0072).
+pub const LEVEL2_THREAD_NAME: &str = "level2-run";
 
 /// Environment variable that marks the program started by the bare `codeskimr` for the tray: it
 /// runs the server and the tray icon, the starting program only starts it and ends (ADR 0067).

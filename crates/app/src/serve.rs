@@ -18,7 +18,7 @@ use codeskimr_secrets::{OsCredentialStore, OsKeystore};
 use codeskimr_server::{CommandApi, EditorSettings, Server, UiOptions, UiSettings};
 use codeskimr_storage::SqliteStore;
 
-use crate::consts::URL_SCHEME;
+use crate::consts::{SHUTDOWN_GRACE, URL_SCHEME};
 use crate::locations::Locations;
 use crate::running::RunningScans;
 use crate::wiring::{Secrets, open_serving_store, os_secrets};
@@ -66,9 +66,9 @@ pub fn run_until(
         &config,
         (global, locations),
         (events, &secrets),
-        running,
+        running.clone(),
     )?;
-    tokio::runtime::Builder::new_current_thread()
+    let served = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
         .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?
@@ -78,7 +78,10 @@ pub fn run_until(
             parts,
             listening,
             shutdown,
-        ))
+        ));
+    // A level 2 run that is still going is cancelled the way `projects.cancel` does it.
+    running.cancel_all(SHUTDOWN_GRACE);
+    served
 }
 
 /// What the browser UI gets from the configuration. Without a built UI folder the server answers

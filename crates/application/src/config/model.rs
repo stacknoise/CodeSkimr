@@ -263,6 +263,11 @@ pub struct Level2 {
     /// Pause in seconds after the console window of the confirmation was opened, during which no
     /// other window is opened for any project (ADR 0071, decision 4a).
     pub confirm_window_cooldown_seconds: u32,
+    /// Most level 2 runs at the same time over all projects (ADR 0072).
+    pub max_parallel_runs: u32,
+    /// Pause in seconds after a run that the browser started has ended, before the same project
+    /// may start another one from the browser (ADR 0072).
+    pub ui_cooldown_seconds: u32,
 }
 
 /// The local server (blueprint 10.3).
