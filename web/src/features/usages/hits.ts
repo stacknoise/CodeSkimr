@@ -1,5 +1,7 @@
 import {
   CONFIDENCE,
+  DEPTH_ALL,
+  DEPTHS,
   DIRECT_DEPTH,
   IDENTIFIER_CHAR,
   LOCATION_JOIN,
@@ -94,4 +96,9 @@ export function matchesQuery(text: string, query: string): boolean {
     .split(WORD_SEPARATOR)
     .filter((word) => word !== "")
     .every((word) => haystack.includes(word));
+}
+
+/** The depths a select offers up to `limit` steps, "all" only if nothing limits the walk. */
+export function depthsUpTo(limit: number | null): readonly number[] {
+  return limit === null ? DEPTHS : DEPTHS.filter((step) => step !== DEPTH_ALL && step <= limit);
 }

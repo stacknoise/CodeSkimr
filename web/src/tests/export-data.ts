@@ -1,8 +1,10 @@
 import type { Hit, UsagesAnswer } from "../features/usages/types";
 import type { ExportData } from "../export/types";
 
+const PLACE = { id: 1, qualified_name: "a::b", kind: "method", layer: null };
+
 function hit(depth: number, kind: string): Hit {
-  const place = { id: 1, qualified_name: "a::b", kind: "method", layer: null };
+  const place = PLACE;
   return {
     depth,
     kind,
@@ -51,6 +53,13 @@ function symbol(id: number, name: string, qualified: string, parent: number | nu
   };
 }
 
+/** The answer as the export stores it: the hits name their places by id. */
+function stored(answer: UsagesAnswer) {
+  const pack = (walk: UsagesAnswer["incoming"]) =>
+    walk && { ...walk, hits: walk.hits.map((h) => ({ ...h, from: h.from.id, to: h.to.id })) };
+  return { ...answer, incoming: pack(answer.incoming), outgoing: pack(answer.outgoing) };
+}
+
 export const FOCUS_ANSWER = FOCUS;
 export const DATA = {
   format: 1,
@@ -85,6 +94,9 @@ export const DATA = {
     2: symbol(2, "frobnicate", "a::Foo::frobnicate", 1),
     3: symbol(3, "bar", "a::bar", null),
   },
-  usages: { 1: { answer: FOCUS, summary_without_tests: { ...SUMMARY, places: 1, unchecked: 1 } } },
+  places: { 1: PLACE },
+  usages: {
+    1: { answer: stored(FOCUS), summary_without_tests: { ...SUMMARY, places: 1, unchecked: 1 } },
+  },
   graph: { snapshot: 4, width: 0, height: 0, boxes: [], links: [] },
 } as unknown as ExportData;

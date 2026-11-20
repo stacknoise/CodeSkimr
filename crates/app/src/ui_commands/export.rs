@@ -17,16 +17,18 @@ use codeskimr_application::registry::{Command, CommandDescriptor, CommandExt, Co
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{Permission, Principal, ProjectId, Snapshot};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use super::consts::{
     EXPORT_BUNDLE_DIR, EXPORT_BUNDLE_FILE, EXPORT_DATA_PLACEHOLDER, EXPORT_DEPTH,
     EXPORT_DESCRIPTION, EXPORT_DIRECT_DEPTH, EXPORT_ESCAPE, EXPORT_ESCAPED_CHAR, EXPORT_FORMAT,
-    EXPORT_HTML, EXPORT_PATH_SEPARATOR, EXPORT_TITLE,
+    EXPORT_FROM, EXPORT_HITS, EXPORT_HTML, EXPORT_ID, EXPORT_INCOMING, EXPORT_OUTGOING,
+    EXPORT_PATH_SEPARATOR, EXPORT_TITLE, EXPORT_TO,
 };
 use super::explorer::{ExplorerOutline, Outline, OutlineInput};
 use super::graph::{GraphInput, GraphLayers, GraphOut, Level};
 use super::symbol::{ExplorerSymbol, SymbolInput, SymbolOut};
-use super::usages::{Summary, UsagesInput, UsagesOut, UsagesQuery, Way};
+use super::usages::{Place, Summary, UsagesInput, UsagesOut, UsagesQuery, Way};
 
 /// The input of `export.html`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
@@ -64,11 +66,12 @@ pub struct HtmlExport {
 /// The files of the UI that are part of the program: path below the UI folder and content.
 pub(super) type Embedded = &'static [(&'static str, &'static [u8])];
 
-/// The usages of one symbol: the full walk, and the direct usages without tests for the switch of
-/// the screen that hides them.
+/// The usages of one symbol: the walk, and the direct usages without tests for the switch of the
+/// screen that hides them. The hits name their places by id; `Data::places` holds the places, so
+/// a long qualified name is written once however often it is used.
 #[derive(Debug, Serialize)]
 struct Usages {
-    answer: UsagesOut,
+    answer: Value,
     summary_without_tests: Summary,
 }
 
@@ -93,8 +96,49 @@ struct Data {
     project: Project,
     outline: Outline,
     symbols: BTreeMap<u64, SymbolOut>,
+    places: BTreeMap<u64, Place>,
     usages: BTreeMap<u64, Usages>,
     graph: GraphOut,
+}
+
+/// Replaces the places `from` and `to` of one hit by their ids.
+fn name_ends_by_id(hit: &mut Value) {
+    for end in [EXPORT_FROM, EXPORT_TO] {
+        if let Some(place) = hit.get_mut(end) {
+            *place = place.get(EXPORT_ID).cloned().unwrap_or(Value::Null);
+        }
+    }
+}
+
+/// The answer as JSON in which every hit names `from` and `to` by the id of the place; the places
+/// themselves go into `places`.
+///
+/// # Errors
+/// `UnexpectedInternalError` if the answer cannot be written as JSON.
+fn pack(answer: &UsagesOut, places: &mut BTreeMap<u64, Place>) -> Result<Value, CodedError> {
+    let mut value = serde_json::to_value(answer)
+        .map_err(|_| CodedError::new(ErrorCode::UnexpectedInternalError))?;
+    for walk in [answer.incoming.as_ref(), answer.outgoing.as_ref()]
+        .into_iter()
+        .flatten()
+    {
+        for hit in &walk.hits {
+            places
+                .entry(hit.from.id)
+                .or_insert_with(|| hit.from.clone());
+            places.entry(hit.to.id).or_insert_with(|| hit.to.clone());
+        }
+    }
+    for key in [EXPORT_INCOMING, EXPORT_OUTGOING] {
+        if let Some(hits) = value
+            .get_mut(key)
+            .and_then(|walk| walk.get_mut(EXPORT_HITS))
+            .and_then(Value::as_array_mut)
+        {
+            hits.iter_mut().for_each(name_ends_by_id);
+        }
+    }
+    Ok(value)
 }
 
 /// The export page: from the UI folder if there is one, else from the files in the program.
@@ -164,6 +208,7 @@ impl HtmlExport {
         principal: Principal,
         project: u64,
         symbol: u64,
+        places: &mut BTreeMap<u64, Place>,
     ) -> Result<Usages, CodedError> {
         let ask = |way, depth, include_tests| {
             let input = UsagesInput {
@@ -178,7 +223,7 @@ impl HtmlExport {
         let answer = ask(Way::Both, EXPORT_DEPTH, true)?;
         let summary_without_tests = ask(Way::Incoming, EXPORT_DIRECT_DEPTH, false)?.summary;
         Ok(Usages {
-            answer,
+            answer: pack(&answer, places)?,
             summary_without_tests,
         })
     }
@@ -210,10 +255,11 @@ impl HtmlExport {
             .outline
             .run(&principal, OutlineInput { project })?;
         let symbols = self.symbols(principal, project, &outline)?;
-        let usages = symbols
-            .keys()
-            .map(|id| Ok((*id, self.usages_of(principal, project, *id)?)))
-            .collect::<Result<BTreeMap<_, _>, CodedError>>()?;
+        let mut places = BTreeMap::new();
+        let mut usages = BTreeMap::new();
+        for id in symbols.keys() {
+            usages.insert(*id, self.usages_of(principal, project, *id, &mut places)?);
+        }
         let graph = self.parts.graph.run(
             &principal,
             GraphInput {
@@ -230,6 +276,7 @@ impl HtmlExport {
             project: info,
             outline,
             symbols,
+            places,
             usages,
             graph,
         })
