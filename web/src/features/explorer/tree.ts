@@ -43,6 +43,8 @@ export interface TreeRow {
   scope: string | null;
   /** The qualified names of the members a group holds, to count the critical ones. */
   names: readonly string[];
+  /** The symbols to read when a namespace row opens: the ones that hold its members. */
+  held: readonly number[];
 }
 
 /** The texts the tree needs that depend on the language. */
@@ -85,6 +87,7 @@ function base(key: string, kind: RowKind, depth: number, label: string): TreeRow
     target: null,
     scope: null,
     names: [],
+    held: [],
   };
 }
 
@@ -135,20 +138,30 @@ export function groupOfKind(kind: string): string | null {
   return TYPE_KINDS.includes(kind) ? GROUP.nested : null;
 }
 
-function groupRow(info: SymbolInfo, depth: number, id: string, label: string, held: MemberRow[]) {
-  const key = groupKey(info.id, id);
+function groupRow(owner: number, depth: number, id: string, label: string, held: MemberRow[]) {
+  const key = groupKey(owner, id);
   return {
     ...base(key, ROW.group, depth, label),
     meta: String(held.length),
     expandable: true,
-    type: info.id,
+    type: owner,
     names: held.map((member) => member.qualified_name),
   };
 }
 
-/** The groups of the members of a symbol. A module leaves out the group of nested types: its
- * types are rows of the namespace below it already. */
-function groupRows(info: SymbolInfo, depth: number, ctx: Context, withTypes = true): TreeRow[] {
+/** The groups of the members of a symbol, or of the symbols that together hold the members of a
+ * namespace (the first one names the groups). A namespace leaves out the group of nested types:
+ * its types are rows below it already. */
+function groupRows(
+  infos: readonly SymbolInfo[],
+  depth: number,
+  ctx: Context,
+  withTypes = true,
+): TreeRow[] {
+  const [first] = infos;
+  if (!first) {
+    return [];
+  }
   const groups = [
     { id: GROUP.fields, label: ctx.labels.fields, kinds: FIELD_KINDS },
     { id: GROUP.methods, label: ctx.labels.methods, kinds: METHOD_KINDS },
@@ -156,18 +169,23 @@ function groupRows(info: SymbolInfo, depth: number, ctx: Context, withTypes = tr
     ...(withTypes ? [{ id: GROUP.nested, label: ctx.labels.nested, kinds: TYPE_KINDS }] : []),
   ];
   return groups.flatMap(({ id, label, kinds }) => {
-    const members = info.members.filter((member) => kinds.includes(member.kind));
+    const owned = infos.flatMap((info) =>
+      info.members
+        .filter((member) => kinds.includes(member.kind))
+        .map((member) => ({ info, member })),
+    );
+    const members = owned.map(({ member }) => member);
     if (members.length === 0) {
       return [];
     }
-    const row = groupRow(info, depth, id, label, members);
+    const row = groupRow(first.id, depth, id, label, members);
     const open = ctx.expanded.has(row.key);
     const children =
       id === GROUP.nested
         ? members.flatMap((member) =>
-            typeRows(nestedNode(member, info.language), depth + 1, ctx, true),
+            typeRows(nestedNode(member, first.language), depth + 1, ctx, true),
           )
-        : members.map((member) => memberRow(info.id, depth + 1, member));
+        : owned.map(({ info, member }) => memberRow(info.id, depth + 1, member));
     return [{ ...row, open }, ...(open ? children : [])];
   });
 }
@@ -187,7 +205,7 @@ function typeRows(node: TypeNode, depth: number, ctx: Context, nested = false): 
     scope: node.qualified_name,
   };
   const info = ctx.details.get(node.id);
-  return open && info ? [row, ...groupRows(info, depth + 1, ctx)] : [row];
+  return open && info ? [row, ...groupRows([info], depth + 1, ctx)] : [row];
 }
 
 /** A namespace segment of a layer: the types declared exactly here and the segments below. */
@@ -200,10 +218,20 @@ interface Segment {
   types: TypeNode[];
   /** The file module with this name (a Python file is its own namespace), if there is one. */
   module: TypeNode | null;
+  /** Other symbols that hold functions and constants of the namespace (a namespace symbol, the
+   * module of a file without a namespace). */
+  holders: TypeNode[];
 }
 
 function segment(path: string, label: string): Segment {
-  return { path, label, children: new Map<string, Segment>(), types: [], module: null };
+  return {
+    path,
+    label,
+    children: new Map<string, Segment>(),
+    types: [],
+    module: null,
+    holders: [],
+  };
 }
 
 /** The parts of a namespace name with the name up to and including each part (`App.Domain` gives
@@ -239,6 +267,7 @@ export function segmentsOf(spaces: readonly NamespaceNode[]): Segment[] {
     if (current && space.module) {
       current.module = space.module;
     }
+    current?.holders.push(...(space.holders ?? []));
   }
   return [...roots.values()];
 }
@@ -254,8 +283,15 @@ function matching(node: Segment, ctx: Context): number {
 function shown(node: Segment, ctx: Context): boolean {
   return (
     matching(node, ctx) > 0 ||
-    [node, ...descendants(node)].some((part) => part.module && ctx.matches(part.module.name))
+    [node, ...descendants(node)].some((part) =>
+      holdersOf(part).some((one) => ctx.matches(one.name)),
+    )
   );
+}
+
+/** The symbols that hold members of a segment that are no types: its module and holders. */
+function holdersOf(node: Segment): TypeNode[] {
+  return node.module ? [node.module, ...node.holders] : node.holders;
 }
 
 function descendants(node: Segment): Segment[] {
@@ -281,8 +317,10 @@ function segmentRows(layer: string, node: Segment, depth: number, ctx: Context):
   const row: TreeRow = {
     ...base(key, ROW.namespace, depth, node.label || ctx.labels.noNamespace),
     ...moduleFields(node),
-    meta: count > 0 || !node.module ? String(count) : "",
-    expandable: count > 0 || node.children.size > 0 || (node.module?.members ?? 0) > 0,
+    meta: count > 0 || holdersOf(node).length === 0 ? String(count) : "",
+    expandable:
+      count > 0 || node.children.size > 0 || holdersOf(node).some((one) => one.members > 0),
+    held: holdersOf(node).map((one) => one.id),
     open,
     target: node.path === "" ? null : { kind: NAMESPACE_KIND, name: node.path },
     scope: node.path === "" ? null : node.path,
@@ -290,9 +328,11 @@ function segmentRows(layer: string, node: Segment, depth: number, ctx: Context):
   if (!open) {
     return [row];
   }
-  // The members of a module that are no types: its constants and functions.
-  const info = node.module && ctx.expanded.has(key) ? ctx.details.get(node.module.id) : undefined;
-  const held = info ? groupRows(info, depth + 1, ctx, false) : [];
+  // The members that are no types: constants and functions of the module and the holders.
+  const infos = ctx.expanded.has(key)
+    ? holdersOf(node).flatMap((one) => ctx.details.get(one.id) ?? [])
+    : [];
+  const held = groupRows(infos, depth + 1, ctx, false);
   const below = [...node.children.values()].flatMap((child) =>
     segmentRows(layer, child, depth + 1, ctx),
   );
