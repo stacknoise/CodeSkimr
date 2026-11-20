@@ -5,10 +5,6 @@ Each section is generated from the Conventional Commit titles of the squash-merg
 
 ## [Unreleased]
 
-### Fixed
-
-- the HTML export holds only the direct usages of each symbol: its size now grows about linearly with the project (150 MB for 1,286 symbols before) and the page has no depth select ([#602](https://github.com/stacknoise/CodeSkimr/issues/602))
-
 ## [1.0.0] - 2026-11-20
 
 ### Added
