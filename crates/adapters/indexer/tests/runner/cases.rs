@@ -6,7 +6,7 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use codeskimr_application::cancel::CancelToken;
-use codeskimr_application::config::Config;
+use codeskimr_application::config::{Config, ConfigLayer, LayerSource};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::level2;
 use codeskimr_application::ports::{
@@ -165,7 +165,8 @@ impl Fixture {
         let runner =
             ProcessIndexRunner::new(data.path().to_path_buf(), mask).with_environment(source);
         let store = confirmed_store();
-        let config = Config::defaults().unwrap();
+        let switch = ConfigLayer::parse(LayerSource::User, "[level2]\nenabled = true\n").unwrap();
+        let config = Config::resolve(&[switch]).unwrap();
         let permit = level2::authorize_run(
             &Principal::local_owner(),
             &config.level2,

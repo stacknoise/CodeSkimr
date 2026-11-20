@@ -10,7 +10,7 @@ mod common;
 mod fakes;
 
 use codeskimr_application::cancel::CancelToken;
-use codeskimr_application::config::Config;
+use codeskimr_application::config::{Config, ConfigLayer, LayerSource};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::{Event, EventBus, StopReason};
 use codeskimr_application::ids::IdSequence;
@@ -1330,7 +1330,13 @@ fn level2_scanner_on(
         store: world.clone(),
         ids,
         max_file_bytes: u64::from(u32::MAX),
-        settings: Config::resolve(&[]).map_err(CodedError::caused_by)?.level2,
+        settings: Config::resolve(&[ConfigLayer::parse(
+            LayerSource::User,
+            "[level2]\nenabled = true\n",
+        )
+        .map_err(CodedError::caused_by)?])
+        .map_err(CodedError::caused_by)?
+        .level2,
         indexers: vec![(model(LanguageId::new("rust"))?, rust_indexer())],
         events: bus.clone(),
     };
