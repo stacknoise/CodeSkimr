@@ -58,10 +58,7 @@ impl MemoryLimit {
     pub fn watch(&self, cancel: CancelToken) -> MemoryWatch {
         let tripped = Arc::new(AtomicBool::new(false));
         if self.gauge.used_mb().is_none() {
-            tracing::warn!(
-                max_mb = self.max_mb,
-                "memory reading unavailable, scan runs without memory limit"
-            );
+            tracing::warn!(event = LOG_MEMORY_READING_MISSING, max_mb = self.max_mb);
         }
         let (stop, wake) = mpsc::channel::<()>();
         let limit = self.clone();
