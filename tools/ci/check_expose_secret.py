@@ -88,27 +88,43 @@ def blank(text):
     return code
 
 
+def list_ends(line, index, state):
+    """True at a `|`, or at a `>` without its `<`, before the item opened its own brace.
+
+    Such a sign closes the list of closure or type parameters the item stands in. Angle brackets
+    of the item itself (`Vec<u8>`) are paired off first.
+    """
+    if state["depth"] != 0 or state["braced"]:
+        return False
+    if line[index] == "<":
+        state["angles"] += 1
+    elif LIST_END.match(line, index):
+        state["angles"] -= 1
+        return line[index] == "|" or state["angles"] < 0
+    return False
+
+
 def item_end(line, state):
     """Follows the brackets of the item after `#[cfg(test)]`.
 
     Returns the index in `line` behind the item, or None while the item goes on. The item ends
     with its closing brace, with a semicolon or comma outside all brackets (a statement, a field,
-    a variant, a match arm), or before a closing bracket of the code around it. Before its first
-    brace it also ends before a `>` or `|` outside all brackets, which may close the parameter
-    list the item stands in.
+    a variant, a match arm), or before a closing sign of the code around it: a bracket, or the
+    `>` or `|` of a parameter list (see `list_ends`). Only a brace outside all brackets is the
+    item's own; one inside `[]` or `()` belongs to a type or an expression.
     """
     for index, sign in enumerate(line):
+        if list_ends(line, index, state):
+            return index
         if sign in OPENING:
+            state["braced"] = state["braced"] or (sign == "{" and state["depth"] == 0)
             state["depth"] += 1
-            state["braced"] = state["braced"] or sign == "{"
         elif sign in CLOSING:
             state["depth"] -= 1
             if state["depth"] < 0:
                 return index
         if state["depth"] == 0 and (sign in ENDING or (sign == "}" and state["braced"])):
             return index + 1
-        if state["depth"] == 0 and not state["braced"] and LIST_END.match(line, index):
-            return index
     return None
 
 
@@ -119,7 +135,7 @@ def count_calls(text):
     for number, line in enumerate(blank(text).splitlines(), start=1):
         marker = TEST_MODULE.match(line)
         if marker:
-            skipped = {"depth": 0, "braced": False}
+            skipped = {"depth": 0, "braced": False, "angles": 0}
             line = line[marker.end():]
         if skipped is not None:
             end = item_end(line, skipped)

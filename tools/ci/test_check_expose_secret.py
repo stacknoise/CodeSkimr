@@ -88,6 +88,19 @@ class CountCalls(unittest.TestCase):
         braced = closure.replace("| c.expose_secret())", "| { c.expose_secret() });")
         self.assertEqual(check.count_calls(braced), [4])
 
+    def test_a_brace_in_the_type_of_a_marked_parameter_changes_nothing(self):
+        generic = "fn bound<\n    #[cfg(test)] T: Tr<[u8; { 1 }]>\n>(x: &C) -> &str { x.expose_secret() }\n"
+        self.assertEqual(check.count_calls(generic), [3])
+        constant = generic.replace("T: Tr<[u8; { 1 }]>", "const N: [u8; { 1 }]")
+        self.assertEqual(check.count_calls(constant), [3])
+        closure = "fn g(c: &C) {\n    run(|a,\n    #[cfg(test)] b: [u8; { 2 }]\n    | c.expose_secret())\n}\n"
+        self.assertEqual(check.count_calls(closure), [4])
+
+    def test_angle_brackets_of_the_item_itself_do_not_end_it(self):
+        text = "#[cfg(test)]\nimpl From<A> for B<C> {\n    fn from(a: A) -> Vec<Option<u8>> { a.expose_secret() }\n}\n"
+        text += "#[cfg(test)]\nfn helper<T: Into<String>>(c: &C) -> Vec<String> {\n    c.expose_user()\n}\n"
+        self.assertEqual(check.count_calls(text), [])
+
     def test_arrows_do_not_end_a_test_item(self):
         text = "#[cfg(test)]\nfn helper(c: &C) -> &str {\n    match c { _ => c.expose_secret() }\n}\n"
         self.assertEqual(check.count_calls(text), [])
