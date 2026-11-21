@@ -1,14 +1,15 @@
 //! Finds registered error codes that no product code uses (blueprint rule E-02).
 //!
 //! A code counts as used when production Rust names its enum variant (`ErrorCode::Variant`) or
-//! production TypeScript names its id (`"UI-901"`). Tests, generated files and this generator do
-//! not count: a code that only a test mentions is still dead. Retired codes are skipped.
+//! production TypeScript names its id (`"UI-901"`). Test folders, test files, inline test modules
+//! (everything from the first `#[cfg(test)]` on), generated files and this generator do not
+//! count: a code that only a test mentions is still dead. Retired codes are skipped.
 
 use std::path::{Path, PathBuf};
 
 use crate::consts::{
-    GENERATED_MARKER, SCANNED_DIRS, SKIPPED_DIRS, SKIPPED_FILE_PARTS, SOURCE_EXTENSIONS,
-    VARIANT_PATH,
+    GENERATED_MARKER, INLINE_TEST_MARKER, SCANNED_DIRS, SKIPPED_DIRS, SKIPPED_FILE_PARTS,
+    SOURCE_EXTENSIONS, TEST_MODULE_START, VARIANT_PATH,
 };
 use crate::registry::{Code, Registry};
 
@@ -89,13 +90,30 @@ fn read_source(root: &Path, path: &Path, sources: &mut Vec<Source>, problems: &m
     }
 }
 
-/// `true` when `text` contains `needle` and the next character does not continue an identifier.
+/// The text up to the first inline test module; test modules close a Rust file by convention.
+/// A `#[cfg(test)]` on an import or a function does not start one.
+fn without_inline_tests(text: &str) -> &str {
+    text.match_indices(INLINE_TEST_MARKER)
+        .find(|(at, _)| {
+            text[at + INLINE_TEST_MARKER.len()..]
+                .trim_start()
+                .starts_with(TEST_MODULE_START)
+        })
+        .map_or(text, |(at, _)| &text[..at])
+}
+
+/// `true` for a character that can be part of an identifier.
+fn is_identifier_char(c: char) -> bool {
+    c.is_alphanumeric() || c == '_'
+}
+
+/// `true` when `text` contains `needle` as a whole name: no identifier character right before or
+/// right after it.
 fn names_whole(text: &str, needle: &str) -> bool {
     text.match_indices(needle).any(|(at, _)| {
-        text[at + needle.len()..]
-            .chars()
-            .next()
-            .is_none_or(|c| !(c.is_alphanumeric() || c == '_'))
+        let before = text[..at].chars().next_back();
+        let after = text[at + needle.len()..].chars().next();
+        !before.is_some_and(is_identifier_char) && !after.is_some_and(is_identifier_char)
     })
 }
 
@@ -103,9 +121,10 @@ fn names_whole(text: &str, needle: &str) -> bool {
 fn is_used(code: &Code, sources: &[Source]) -> bool {
     let variant = format!("{VARIANT_PATH}{}", code.variant());
     let quoted = format!("\"{}\"", code.id);
-    sources
-        .iter()
-        .any(|(_, text)| names_whole(text, &variant) || text.contains(&quoted))
+    sources.iter().any(|(_, text)| {
+        let text = without_inline_tests(text);
+        names_whole(text, &variant) || text.contains(&quoted)
+    })
 }
 
 /// One message per code that is registered, not retired and used nowhere in `sources`.

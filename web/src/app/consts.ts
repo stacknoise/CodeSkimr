@@ -110,3 +110,5 @@ export const ERROR_CODE_FIELD = "code";
 export const DETAILS_SEPARATOR = "\n";
 /** The code of an exception nobody expected: it is a bug (blueprint 11.6, E-03). */
 export const UNEXPECTED_CODE: ErrorCode = "UI-901";
+/** Height of the box that shows the details when they cannot be copied. */
+export const DETAILS_ROWS = 4;

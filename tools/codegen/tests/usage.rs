@@ -68,3 +68,31 @@ fn a_retired_code_is_not_reported() {
     let registry = Registry::parse(&text).expect("parses");
     assert_eq!(unused_codes(&registry, &[]).len(), 0);
 }
+
+#[test]
+fn a_mention_in_an_inline_test_module_does_not_count() {
+    let text = "fn f() {}\n#[cfg(test)]\nmod tests { fn t() { ErrorCode::SourcePathNotFound; } }";
+    assert_eq!(unused_codes(&registry(), &source(text)).len(), 2);
+}
+
+#[test]
+fn a_longer_type_name_in_front_does_not_count() {
+    let found = unused_codes(&registry(), &source("FooErrorCode::SourcePathNotFound"));
+    assert!(found.iter().any(|p| p.contains("SRC-201")));
+}
+
+#[test]
+fn a_full_path_counts() {
+    let found = unused_codes(
+        &registry(),
+        &source("codeskimr_codes::ErrorCode::SourcePathNotFound"),
+    );
+    assert!(found.iter().all(|p| !p.contains("SRC-201")));
+}
+
+#[test]
+fn a_test_attribute_on_an_import_does_not_hide_the_code_below() {
+    let text = "#[cfg(test)]\nuse x::y;\nfn f() { ErrorCode::SourcePathNotFound; }";
+    let found = unused_codes(&registry(), &source(text));
+    assert!(found.iter().all(|p| !p.contains("SRC-201")));
+}

@@ -52,6 +52,26 @@ describe("UnexpectedError", () => {
     vi.unstubAllGlobals();
   });
 
+  it("shows the details to select when there is no clipboard", () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    vi.stubGlobal("navigator", {});
+    renderBroken();
+    fireEvent.click(screen.getByRole("button", { name: "Copy details" }));
+    const box = screen.getByRole("textbox", { name: "Copy details" }) as HTMLTextAreaElement;
+    expect(box.value).toContain("code=UI-901");
+    vi.unstubAllGlobals();
+  });
+
+  it("shows the details to select when the browser refuses to copy", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => undefined);
+    const writeText = vi.fn(() => Promise.reject(new Error("denied")));
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    renderBroken();
+    fireEvent.click(screen.getByRole("button", { name: "Copy details" }));
+    await vi.waitFor(() => expect(screen.getByRole("textbox")).toBeTruthy());
+    vi.unstubAllGlobals();
+  });
+
   it("names a thrown value that is no exception", () => {
     expect(detailsOf("text", "/x")).toBe("code=UI-901\n/x\ntext");
   });

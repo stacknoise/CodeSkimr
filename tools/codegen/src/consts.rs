@@ -66,3 +66,7 @@ pub const SOURCE_EXTENSIONS: [&str; 3] = ["rs", "ts", "tsx"];
 pub const GENERATED_MARKER: &str = "Do not edit.";
 /// How production Rust names a code: `ErrorCode::` in front of the variant.
 pub const VARIANT_PATH: &str = "ErrorCode::";
+/// Starts the inline test module of a Rust file; what follows is test code.
+pub const INLINE_TEST_MARKER: &str = "#[cfg(test)]";
+/// What follows the marker when it opens a test module.
+pub const TEST_MODULE_START: &str = "mod ";
