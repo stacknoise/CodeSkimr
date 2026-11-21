@@ -168,3 +168,4 @@ cli-codes-explain =
         [yes] ein neuer Versuch kann gelingen
        *[no] ein neuer Versuch hilft nicht
     }, seit Version { $since }.
+cli-codes-retired = Dieser Code ist stillgelegt: nichts löst ihn mehr aus, die Nummer bleibt reserviert.

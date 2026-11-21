@@ -12,6 +12,7 @@ pub mod render_md;
 pub mod render_rust;
 pub mod render_ts;
 pub mod tokens;
+pub mod usage;
 pub mod validate;
 
 use std::path::Path;

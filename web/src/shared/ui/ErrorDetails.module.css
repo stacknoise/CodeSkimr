@@ -10,13 +10,3 @@
     color: var(--muted);
     font: 11px var(--font-mono);
 }
-
-.copy {
-    padding: var(--space-4) var(--space-12);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-badge);
-    background: var(--surface);
-    color: var(--ink);
-    font: 500 12px var(--font-sans);
-    cursor: pointer;
-}

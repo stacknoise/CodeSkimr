@@ -49,6 +49,22 @@ fn a_code_is_explained_in_both_languages_whatever_its_case() {
 }
 
 #[test]
+fn a_retired_code_is_explained_as_retired_and_left_out_of_the_list() {
+    let messages = Messages::load().unwrap();
+    for language in ["en", "de"] {
+        let text = codes_text(&messages, language, &args(Some("APP-301"))).unwrap();
+        assert!(text.starts_with("APP-301: "), "{language}: {text}");
+        let last = text.lines().last().unwrap();
+        assert!(
+            last.contains("retired") || last.contains("stillgelegt"),
+            "{text}"
+        );
+    }
+    let list = codes_text(&messages, "en", &args(None)).unwrap();
+    assert!(!list.lines().any(|line| line.starts_with("APP-301")));
+}
+
+#[test]
 fn an_unknown_code_is_a_usage_error_that_says_so() {
     let messages = Messages::load().unwrap();
     let error = codes_text(&messages, "en", &args(Some("XXX-1"))).unwrap_err();

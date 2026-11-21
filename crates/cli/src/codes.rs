@@ -4,6 +4,7 @@ use clap::{Arg, ArgMatches, Command};
 use codeskimr_codes::ErrorCode;
 use codeskimr_codes::i18n::{
     CLI_ARG_CODE, CLI_CMD_CODES, CLI_CODES_EXPLAIN, CLI_CODES_LINE, CLI_CODES_NOT_FOUND,
+    CLI_CODES_RETIRED,
 };
 use codeskimr_i18n::{FluentArgs, I18nError, Messages};
 
@@ -74,7 +75,12 @@ fn explanation(messages: &Messages, language: &str, code: ErrorCode) -> Result<S
     args.set(arg::SEVERITY, entry.severity.label());
     args.set(arg::RETRYABLE, yes_no(code.retryable()));
     args.set(arg::SINCE, entry.since);
-    messages.format(language, CLI_CODES_EXPLAIN, Some(&args))
+    let text = messages.format(language, CLI_CODES_EXPLAIN, Some(&args))?;
+    if !entry.deprecated {
+        return Ok(text);
+    }
+    let retired = messages.format(language, CLI_CODES_RETIRED, None)?;
+    Ok([text, retired].join(LINE_BREAK))
 }
 
 fn message(messages: &Messages, language: &str, code: ErrorCode) -> Result<String, I18nError> {

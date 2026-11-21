@@ -168,3 +168,4 @@ cli-codes-explain =
         [yes] a retry can succeed
        *[no] a retry does not help
     }, since version { $since }.
+cli-codes-retired = This code is retired: nothing raises it any more, and its number stays reserved.

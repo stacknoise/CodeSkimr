@@ -75,7 +75,7 @@ Runs the convention checks (`docs/conventions.md`) over the current folder, or o
 codeskimr codes [<code>]
 ```
 
-Without an argument it prints every registered error code with its message in the language of the user, one line each (`SRC-201  <message>`). With a code (any case, `src-201` works) it explains it: the message, the English developer description, the group, the severity, whether a retry can help and the version since which the code exists. An id that is not registered fails with `CLI-101` and says so. The data come from the generated registry (`errors/error-codes.toml`), so the command knows no list of its own; nothing is read from disk and no scan is needed.
+Without an argument it prints every active error code (retired ones, ADR 0078, are left out) with its message in the language of the user, one line each (`SRC-201  <message>`). With a code (any case, `src-201` works) it explains it: the message, the English developer description, the group, the severity, whether a retry can help and the version since which the code exists; a retired code says so. An id that is not registered fails with `CLI-101` and says so. The data come from the generated registry (`errors/error-codes.toml`), so the command knows no list of its own; nothing is read from disk and no scan is needed.
 
 ## `codeskimr export`
 

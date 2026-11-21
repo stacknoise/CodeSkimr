@@ -1,5 +1,6 @@
 import { I18N_KEYS } from "../shared/i18n/keys";
 import type { MessageKey } from "../shared/i18n/i18n";
+import type { ErrorCode } from "../shared/api/error-codes.generated";
 import type { IconName } from "../shared/ui/Icon";
 
 /** Id of the element the UI is drawn into. */
@@ -100,3 +101,10 @@ export const FLUSH_PATHS: readonly string[] = [
   GRAPH_ROUTE.path,
   USAGES_ROUTE.path,
 ];
+
+/** The line in the console and in the copied details that names the code. */
+export const ERROR_CODE_FIELD = "code";
+/** Separates the lines of the copied details of the error panel. */
+export const DETAILS_LINE_BREAK = "\n";
+/** The code of an exception nobody expected: it is a bug (blueprint 11.6, E-03). */
+export const UNEXPECTED_CODE: ErrorCode = "UI-901";
