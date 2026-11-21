@@ -13,10 +13,10 @@ Comments, string literals and character literals are blanked before counting, so
 name inside them means nothing. Test code is not product code: files below `tests/`, files
 named `*_tests.rs` and the one item that follows a `#[cfg(test)]` are skipped. The item ends
 with its closing brace, with a semicolon or comma outside all brackets, or before a closing
-bracket of the code around it (a marked field, variant or match arm). Code behind the item is
-counted again, also on the same line. Where the end is unclear the check counts rather too
-much, and it fails closed: a file whose comment, raw string or test item is still open at its
-end is an error.
+bracket of the code around it (a marked field, variant, match arm or parameter). Code behind
+the item is counted again, also on the same line. Where the end is unclear the check counts
+rather too much, and it fails closed: a file whose comment, string or test item is still open
+at its end, or that holds a string of a kind the check does not know, is an error.
 
 Exit code 0 = fine, 1 = list and code differ or a file cannot be read safely, 2 = setup problem.
 """
@@ -32,12 +32,14 @@ TEST_MODULE = re.compile(r"^\s*#\[cfg\(test\)\]")
 # What must not be read as code: line comment, start of a block comment, start of a raw string,
 # string literal, character literal (a lifetime has no closing quote and stays).
 NO_CODE = re.compile(
-    r"""//[^\n]*|/\*|\bb?r(#*)"|b?"(?:\\.|[^"\\])*"|b?'(?:\\.[^'\n]*|[^'\\\n])'""", re.DOTALL
+    r"""//[^\n]*|/\*|\b[bc]?r(#*)"|[bc]?"(?:\\.|[^"\\])*"|b?'(?:\\.[^'\n]*|[^'\\\n])'""", re.DOTALL
 )
 BLOCK_EDGE = re.compile(r"/\*|\*/")
 OPENING = "{(["
 CLOSING = "})]"
 ENDING = ";,"
+# Close a list of type parameters or of closure parameters; `->` and `=>` are arrows.
+LIST_END = re.compile(r"(?<![-=])>|\|")
 
 
 class Unfinished(Exception):
@@ -80,7 +82,10 @@ def blank(text):
         parts.append(re.sub(r"[^\n]", " ", text[token.start():end]))
         position = end
     parts.append(text[position:])
-    return "".join(parts)
+    code = "".join(parts)
+    if '"' in code:
+        raise Unfinished("a string is not closed or of an unknown kind")
+    return code
 
 
 def item_end(line, state):
@@ -88,7 +93,9 @@ def item_end(line, state):
 
     Returns the index in `line` behind the item, or None while the item goes on. The item ends
     with its closing brace, with a semicolon or comma outside all brackets (a statement, a field,
-    a variant, a match arm), or before a closing bracket of the code around it.
+    a variant, a match arm), or before a closing bracket of the code around it. Before its first
+    brace it also ends before a `>` or `|` outside all brackets, which may close the parameter
+    list the item stands in.
     """
     for index, sign in enumerate(line):
         if sign in OPENING:
@@ -100,6 +107,8 @@ def item_end(line, state):
                 return index
         if state["depth"] == 0 and (sign in ENDING or (sign == "}" and state["braced"])):
             return index + 1
+        if state["depth"] == 0 and not state["braced"] and LIST_END.match(line, index):
+            return index
     return None
 
 

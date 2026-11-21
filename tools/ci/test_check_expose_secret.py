@@ -69,6 +69,33 @@ class CountCalls(unittest.TestCase):
         text += "#[cfg(test)]\nfn helper(a: [u8; 2], c: &C) { c.expose_secret(); } fn more(c: &C) { c.expose_user(); }\n"
         self.assertEqual(check.count_calls(text), [1, 3])
 
+    def test_raw_c_strings_are_literals(self):
+        text = 'let a = cr"\\";\nlet n = x.expose_secret();\nlet b = "";\n'
+        self.assertEqual(check.count_calls(text), [2])
+        text = 'let a = cr#"a"b"#; x.expose_secret(); let b = c"q";\n'
+        self.assertEqual(check.count_calls(text), [1])
+
+    def test_a_string_that_is_left_over_fails(self):
+        for text in ('let a = "open;\nx.expose_secret();\n', 'let a = zr"\\"; x.expose_secret(); let b = "";\n'):
+            with self.assertRaises(check.Unfinished, msg=text):
+                check.count_calls(text)
+
+    def test_a_marked_last_parameter_does_not_hide_the_body(self):
+        generic = "fn two<\n    #[cfg(test)] T\n>(x: &C) -> &str { x.expose_secret() }\n"
+        self.assertEqual(check.count_calls(generic), [3])
+        closure = "fn g(c: &C) {\n    run(|a,\n    #[cfg(test)] b\n    | c.expose_secret())\n}\n"
+        self.assertEqual(check.count_calls(closure), [4])
+        braced = closure.replace("| c.expose_secret())", "| { c.expose_secret() });")
+        self.assertEqual(check.count_calls(braced), [4])
+
+    def test_arrows_do_not_end_a_test_item(self):
+        text = "#[cfg(test)]\nfn helper(c: &C) -> &str {\n    match c { _ => c.expose_secret() }\n}\n"
+        self.assertEqual(check.count_calls(text), [])
+
+    def test_an_unclear_end_counts_too_much_rather_than_too_little(self):
+        text = "#[cfg(test)]\nfn user(c: &C) -> &str\nwhere\n    C: Clone,\n{\n    c.expose_user()\n}\n"
+        self.assertEqual(check.count_calls(text), [6])
+
     def test_test_files_are_skipped(self):
         from pathlib import Path
         self.assertTrue(check.is_test_file(Path("crates/x/tests/a.rs")))
