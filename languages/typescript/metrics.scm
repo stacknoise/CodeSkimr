@@ -139,3 +139,43 @@
 (class_body (_ value: (function_expression parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])")))))
 (class_body (_ value: (generator_function parameters: (formal_parameters (_) @parameter (#not-match? @parameter "^(//|/\\*|this[ :])")))))
 (class_body (_ value: (arrow_function parameter: (identifier) @parameter)))
+
+; Literals the rule of no literals reports (ADR 0058, R-06): numbers, strings and template strings
+; in a function, in the places where they are values. The list of parents keeps out the literals
+; of types (`"a" | "b"`), property keys, module names and directives, and is the part of the
+; grammar that TypeScript and JavaScript share. `true`, `false`, `null` and `undefined` are no
+; literals here. Exceptions: the integers 0 and 1, and a literal that is a direct argument of a
+; decorator, and the initialiser of a `const` declaration when it is a literal itself (`const MAX = 99`; the
+; parts of `2 * 50` still count).
+; Known gaps: the default value of a TypeScript parameter, and a literal behind `as`, `satisfies` or
+; `!` are not seen in TypeScript (the grammar of JavaScript, which shares this file, lacks them;
+; TSX adds the casts), nor is a literal in JSX in TypeScript.
+[
+  (arguments [(number) (string) (template_string)] @literal)
+  (binary_expression [(number) (string) (template_string)] @literal)
+  (unary_expression argument: [(number) (string) (template_string)] @literal)
+  (pair value: [(number) (string) (template_string)] @literal)
+  (variable_declarator value: [(number) (string) (template_string)] @literal)
+  (return_statement [(number) (string) (template_string)] @literal)
+  (assignment_expression right: [(number) (string) (template_string)] @literal)
+  (augmented_assignment_expression right: [(number) (string) (template_string)] @literal)
+  (assignment_pattern right: [(number) (string) (template_string)] @literal)
+  (array [(number) (string) (template_string)] @literal)
+  (ternary_expression [(number) (string) (template_string)] @literal)
+  (parenthesized_expression [(number) (string) (template_string)] @literal)
+  (await_expression [(number) (string) (template_string)] @literal)
+  (arrow_function body: [(number) (string) (template_string)] @literal)
+  (subscript_expression index: [(number) (string) (template_string)] @literal)
+  (template_substitution [(number) (string) (template_string)] @literal)
+  (spread_element [(number) (string) (template_string)] @literal)
+  (yield_expression [(number) (string) (template_string)] @literal)
+  (throw_statement [(number) (string) (template_string)] @literal)
+  (switch_case value: [(number) (string) (template_string)] @literal)
+  (member_expression object: [(number) (string) (template_string)] @literal)
+  (object_assignment_pattern right: [(number) (string) (template_string)] @literal)
+  (computed_property_name [(number) (string) (template_string)] @literal)
+  (for_in_statement right: [(number) (string) (template_string)] @literal)
+  (call_expression arguments: (template_string) @literal)]
+((number) @literal_exempt (#any-of? @literal_exempt "0" "1"))
+(decorator (call_expression arguments: (arguments (_) @literal_exempt)))
+(lexical_declaration "const" (variable_declarator value: (_) @literal_exempt))

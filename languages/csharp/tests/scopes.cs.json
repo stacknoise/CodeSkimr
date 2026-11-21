@@ -205,6 +205,13 @@
       "target": "Line"
     },
     {
+      "at": "23:30",
+      "from": "Shop.Orders.Order.Save",
+      "kind": "read",
+      "receiver": null,
+      "target": "lines"
+    },
+    {
       "at": "25:17",
       "from": "Shop.Orders.Order.Save",
       "kind": "call",

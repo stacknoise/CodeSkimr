@@ -61,6 +61,13 @@ impl CredentialStore for ForRemotes {
         self.0.with_credential(id, action)
     }
 
+    fn exists(&self, id: &CredentialId) -> Result<bool, AuthError> {
+        if is_reserved_credential(id.as_str()) {
+            return Ok(false);
+        }
+        self.0.exists(id)
+    }
+
     fn store(&self, id: &CredentialId, credential: &Credential) -> Result<(), AuthError> {
         self.0.store(id, credential)
     }
@@ -318,6 +325,10 @@ mod tests {
             Err(AuthError::NotFound)
         ));
         assert!(remotes.with_credential(&work, |_| Ok(())).is_ok());
+        // The same for the question whether it exists.
+        assert!(secrets.exists(&token).unwrap());
+        assert!(!remotes.exists(&token).unwrap());
+        assert!(remotes.exists(&work).unwrap());
     }
 
     #[test]

@@ -9,6 +9,9 @@ import { languageList, toolTexts } from "../projects/tools";
 import { stateText } from "../projects/ToolsPanel";
 import type { ToolInfo } from "../projects/types";
 import { useNow } from "../projects/useNow";
+import { createTableColumns } from "../../shared/table/columns";
+import { ColumnWidths, ResizableTh, RestHead } from "../../shared/table/ResizableHead";
+import { INDEXER_COLUMNS, INDEXER_TABLE_KEY } from "./consts";
 import { checkIndexers, commandOf, indexers, indexersChecking, indexersFailed } from "./indexers";
 import { COPIED_MS, NO_VALUE } from "./consts";
 import styles from "./IndexersPanel.module.css";
@@ -137,21 +140,33 @@ function Header() {
   );
 }
 
+const columns = createTableColumns(
+  INDEXER_TABLE_KEY,
+  INDEXER_COLUMNS.map((column) => column.id),
+);
+
 function Table(props: { tools: ToolInfo[] }) {
   return (
-    <table class={styles.table}>
-      <thead>
-        <tr>
-          <th>{t(I18N_KEYS.SETTINGS_INDEXERS_COLUMN_TOOL)}</th>
-          <th>{t(I18N_KEYS.SETTINGS_INDEXERS_COLUMN_STATE)}</th>
-          <th>{t(I18N_KEYS.SETTINGS_INDEXERS_COLUMN_VERSION)}</th>
-          <th>{t(I18N_KEYS.SETTINGS_INDEXERS_COLUMN_PATH)}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <For each={props.tools}>{(tool) => <Row tool={tool} />}</For>
-      </tbody>
-    </table>
+    <div class={styles.scroll}>
+      <table class={styles.table} style={columns.style()}>
+        <ColumnWidths columns={columns} />
+        <thead>
+          <tr>
+            <For each={INDEXER_COLUMNS}>
+              {(column) => (
+                <ResizableTh columns={columns} id={column.id} name={t(column.label)}>
+                  {t(column.label)}
+                </ResizableTh>
+              )}
+            </For>
+            <RestHead columns={columns} />
+          </tr>
+        </thead>
+        <tbody>
+          <For each={props.tools}>{(tool) => <Row tool={tool} />}</For>
+        </tbody>
+      </table>
+    </div>
   );
 }
 

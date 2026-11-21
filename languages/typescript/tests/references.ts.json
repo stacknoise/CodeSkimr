@@ -154,7 +154,7 @@
     },
     {
       "at": "6:37",
-      "from": "references.Cart.constructor",
+      "from": "references.Cart.repo",
       "kind": "type_use",
       "receiver": null,
       "target": "Repo"
@@ -427,6 +427,16 @@
       "span": "6:2-8:3",
       "static": false,
       "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "references.Cart.repo",
+      "parent": "references.Cart",
+      "signature": null,
+      "span": "6:14-6:41",
+      "static": false,
+      "visibility": "private"
     },
     {
       "doc": null,

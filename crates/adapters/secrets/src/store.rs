@@ -44,6 +44,10 @@ impl<K: Keystore> CredentialStore for KeystoreCredentials<K> {
         action(&credential)
     }
 
+    fn exists(&self, id: &CredentialId) -> Result<bool, AuthError> {
+        self.keystore.exists(id.as_str())
+    }
+
     fn store(&self, id: &CredentialId, credential: &Credential) -> Result<(), AuthError> {
         // The credential already holds the stored form in locked memory.
         self.keystore.write(id.as_str(), credential.packed())

@@ -3,7 +3,7 @@
 # source of the card is scanned (the 62 files of `src` and the two configuration files in the
 # root, `playwright.config.ts` and `vite.config.ts`). Counts were measured with the TypeScript pack and checked against
 # an independent count with the TypeScript compiler API (same mapping rules, different parser);
-# every kind agrees. Parameter properties of constructors are not symbols (ADR 0022).
+# every kind agrees. Parameter properties of constructors are fields of the class (ADR 0083, 0022 section 3 changed).
 
 [project]
 repository = "https://github.com/stacknoise/detailed-energy-card"
@@ -24,7 +24,7 @@ function = 428       # functions and `const` arrow functions, local ones include
 constructor = 6
 method = 293         # includes class fields with an arrow function
 property = 660       # interface properties and get/set accessors
-field = 130
+field = 141
 
 # Hand-checked symbols: file, kind, name, visibility and parent.
 [[sample]]

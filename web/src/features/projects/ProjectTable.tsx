@@ -3,9 +3,11 @@ import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { TONE } from "../../shared/ui/consts";
 import { cx } from "../../shared/ui/cx";
+import { createTableColumns } from "../../shared/table/columns";
+import { ColumnWidths, ResizableTh, RestHead } from "../../shared/table/ResizableHead";
 import { Icon } from "../../shared/ui/Icon";
 import { Pill, type PillTone } from "../../shared/ui/Pill";
-import { RESCAN_ICON, SCAN_MODE, SOURCE_KIND } from "./consts";
+import { PROJECT_COLUMNS, PROJECT_TABLE_KEY, RESCAN_ICON, SCAN_MODE, SOURCE_KIND } from "./consts";
 import { ago, count, seconds } from "./format";
 import { LanguageBar } from "./LanguageBar";
 import { Level2Switch } from "./Level2Switch";
@@ -64,21 +66,42 @@ export interface ProjectTableProps {
   onRemove: (id: number) => Promise<boolean>;
 }
 
-/** The project table (mock 1). */
+const columns = createTableColumns(
+  PROJECT_TABLE_KEY,
+  PROJECT_COLUMNS.map((column) => column.id),
+);
+/** The classes of the head cells that are not plain. */
+const HEAD_CLASS: Record<string, string> = {
+  languages: styles.languages ?? "",
+  types: styles.number ?? "",
+  loc: styles.number ?? "",
+};
+
+/** The project table (mock 1). Every column can be widened and narrowed at the handle on its right edge. */
 export function ProjectTable(props: ProjectTableProps) {
   return (
     <div class={styles.wrap}>
-      <table class={styles.table} aria-label={t(I18N_KEYS.PROJECTS_LIST_LABEL)}>
+      <table
+        class={styles.table}
+        style={columns.style()}
+        aria-label={t(I18N_KEYS.PROJECTS_LIST_LABEL)}
+      >
+        <ColumnWidths columns={columns} />
         <thead>
           <tr>
-            <th>{t(I18N_KEYS.PROJECTS_COLUMN_PROJECT)}</th>
-            <th>{t(I18N_KEYS.PROJECTS_COLUMN_SOURCE)}</th>
-            <th class={styles.languages}>{t(I18N_KEYS.PROJECTS_COLUMN_LANGUAGES)}</th>
-            <th class={styles.number}>{t(I18N_KEYS.PROJECTS_COLUMN_TYPES)}</th>
-            <th class={styles.number}>{t(I18N_KEYS.PROJECTS_COLUMN_LOC)}</th>
-            <th>{t(I18N_KEYS.PROJECTS_COLUMN_LAST_SCAN)}</th>
-            <th>{t(I18N_KEYS.PROJECTS_LEVEL2_COLUMN)}</th>
-            <th>{t(I18N_KEYS.PROJECTS_COLUMN_STATUS)}</th>
+            <For each={PROJECT_COLUMNS}>
+              {(column) => (
+                <ResizableTh
+                  columns={columns}
+                  id={column.id}
+                  name={t(column.label)}
+                  class={HEAD_CLASS[column.id]}
+                >
+                  {t(column.label)}
+                </ResizableTh>
+              )}
+            </For>
+            <RestHead columns={columns} />
           </tr>
         </thead>
         <tbody>

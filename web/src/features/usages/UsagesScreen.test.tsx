@@ -66,7 +66,7 @@ describe("UsagesScreen", () => {
     const panel = separators.find(
       (item) =>
         item.getAttribute("aria-orientation") === "vertical" &&
-        !item.getAttribute("aria-label")?.startsWith("Resize column"),
+        !item.getAttribute("aria-label")?.startsWith("Change width of column"),
     )!;
     const before = Number(panel.getAttribute("aria-valuenow"));
     fireEvent.keyDown(panel, { key: "ArrowLeft" });
@@ -186,20 +186,25 @@ describe("UsagesScreen", () => {
       target: { value: "handler" },
     });
     expect(await screen.findByText("Hits 1")).toBeTruthy();
-    const handle = screen.getByRole("separator", { name: "Resize column Kind" });
+    const handle = screen.getByRole("separator", {
+      name: "Change width of column Kind (drag, or arrow keys)",
+    });
     const before = Number(handle.getAttribute("aria-valuenow"));
     fireEvent.keyDown(handle, { key: "ArrowRight" });
     expect(Number(handle.getAttribute("aria-valuenow"))).toBeGreaterThan(before);
   });
 
-  it("has a handle on the code column, and none on the place column that takes the rest", async () => {
+  it("has a handle on every column, the place and the certainty column included", async () => {
     shown();
     await screen.findByText("Hits 3");
-    const handle = screen.getByRole("separator", { name: "Resize column Code" });
-    const before = Number(handle.getAttribute("aria-valuenow"));
-    fireEvent.keyDown(handle, { key: "ArrowRight" });
-    expect(Number(handle.getAttribute("aria-valuenow"))).toBeGreaterThan(before);
-    expect(screen.queryByRole("separator", { name: "Resize column Place" })).toBeNull();
+    for (const name of ["Kind", "Used in", "Code", "Place", "Certainty"]) {
+      const handle = screen.getByRole("separator", {
+        name: `Change width of column ${name} (drag, or arrow keys)`,
+      });
+      const before = Number(handle.getAttribute("aria-valuenow"));
+      fireEvent.keyDown(handle, { key: "ArrowRight" });
+      expect(Number(handle.getAttribute("aria-valuenow"))).toBeGreaterThan(before);
+    }
   });
 
   it("lights the path of a hit in the graph when its row is clicked", async () => {

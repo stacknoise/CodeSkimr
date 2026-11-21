@@ -14,8 +14,8 @@ use tree_sitter::{Node, QueryCapture, QueryCursor, StreamingIterator};
 
 use crate::captures::Capture;
 use crate::consts::{
-    BODY_FIELD, CALLABLE_KINDS, COMMENT_KIND, HEADER_SEPARATOR, LINE_SEPARATOR, NO_EXTENSION,
-    PATH_SEPARATOR, SIGNATURE_CUT, VALUE_FIELD, WORD_SEPARATOR,
+    BODY_FIELD, CALLABLE_KINDS, COMMENT_KIND, HEADER_SEPARATOR, LIFT_MIN_FRAMES, LINE_SEPARATOR,
+    NO_EXTENSION, PATH_SEPARATOR, SIGNATURE_CUT, VALUE_FIELD, WORD_SEPARATOR,
 };
 use crate::error::ParsingError;
 use crate::location::{span_between, span_of, text_of};
@@ -140,6 +140,9 @@ struct Declaration<'t> {
     container: bool,
     /// The type the declaration belongs to although it is written outside it (`@owner`).
     owner: Option<Node<'t>>,
+    /// The declaration is written inside a symbol but belongs to the parent of that symbol
+    /// (`@lift`).
+    lift: bool,
 }
 
 #[derive(Default)]
@@ -153,6 +156,7 @@ struct Parts<'t> {
     scope_end: Option<Node<'t>>,
     container: Option<Node<'t>>,
     owner: Option<Node<'t>>,
+    lift: bool,
 }
 
 impl<'t> Parts<'t> {
@@ -167,6 +171,7 @@ impl<'t> Parts<'t> {
             Capture::ScopeEnd => self.scope_end = Some(node),
             Capture::Container => self.container = Some(node),
             Capture::Owner => self.owner = Some(node),
+            Capture::Lift => self.lift = true,
             Capture::Reference(_)
             | Capture::Receiver(_)
             | Capture::Local
@@ -184,6 +189,7 @@ impl<'t> Parts<'t> {
         Some(Declaration {
             container,
             owner: self.owner,
+            lift: self.lift,
             node,
             kind,
             name: self.name?,
@@ -278,6 +284,7 @@ impl<'t> Declaration<'t> {
         self.is_static |= other.is_static;
         self.scope_end = self.scope_end.or(other.scope_end);
         self.owner = self.owner.or(other.owner);
+        self.lift |= other.lift;
         self.signature = self.signature.or(other.signature);
         merge_nodes(&mut self.modifiers, &mut other.modifiers);
         merge_nodes(&mut self.docs, &mut other.docs);
@@ -405,6 +412,33 @@ impl Builder<'_, '_> {
             let owner = text_of(owner, ctx.source);
             self.enter_owner(owner, declaration.node.end_byte(), true);
         }
+        if declaration.lift && self.stack.len() >= LIFT_MIN_FRAMES {
+            return self.add_lifted(declaration);
+        }
+        self.add_member(declaration)
+    }
+
+    /// A lifted declaration (`@lift`) is a child of the parent of the symbol it is written in. That
+    /// symbol stays its lexical parent, so references around it are still assigned to that symbol.
+    fn add_lifted(&mut self, declaration: &Declaration<'_>) -> Result<(), ParsingError> {
+        let Some(held) = self.stack.pop() else {
+            return self.add_member(declaration);
+        };
+        let added = self.add_member(declaration);
+        if added.is_ok() {
+            // The lifted symbol has no children: its own frame gives way to the held one.
+            self.stack.pop();
+            if let Some(last) = self.parents.last_mut() {
+                *last = Some(held.index);
+            }
+        }
+        self.stack.push(held);
+        added
+    }
+
+    /// Adds the symbol of `declaration` as a child of the innermost open frame.
+    fn add_member(&mut self, declaration: &Declaration<'_>) -> Result<(), ParsingError> {
+        let ctx = self.ctx;
         let name = text_of(declaration.name, ctx.source).to_owned();
         let prefix = self
             .stack
