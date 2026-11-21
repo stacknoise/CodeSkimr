@@ -209,7 +209,9 @@
  [(required_parameter (accessibility_modifier) @modifier pattern: (identifier) @name) @symbol.field
   (required_parameter "readonly" @modifier pattern: (identifier) @name) @symbol.field
   (optional_parameter (accessibility_modifier) @modifier pattern: (identifier) @name) @symbol.field
-  (optional_parameter "readonly" @modifier pattern: (identifier) @name) @symbol.field] @lift)
+  (optional_parameter "readonly" @modifier pattern: (identifier) @name) @symbol.field
+  (required_parameter (override_modifier) @modifier pattern: (identifier) @name) @symbol.field
+  (optional_parameter (override_modifier) @modifier pattern: (identifier) @name) @symbol.field] @lift)
 
 ; Members of an interface and of a declared class, and the members of an enum.
 (interface_body

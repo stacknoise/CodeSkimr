@@ -14,8 +14,8 @@ use tree_sitter::{Node, QueryCapture, QueryCursor, StreamingIterator};
 
 use crate::captures::Capture;
 use crate::consts::{
-    BODY_FIELD, CALLABLE_KINDS, LINE_SEPARATOR, NO_EXTENSION, PATH_SEPARATOR, SIGNATURE_CUT,
-    WORD_SEPARATOR,
+    BODY_FIELD, CALLABLE_KINDS, LIFT_MIN_FRAMES, LINE_SEPARATOR, NO_EXTENSION, PATH_SEPARATOR,
+    SIGNATURE_CUT, WORD_SEPARATOR,
 };
 use crate::error::ParsingError;
 use crate::location::{span_between, span_of, text_of};
@@ -412,7 +412,7 @@ impl Builder<'_, '_> {
             let owner = text_of(owner, ctx.source);
             self.enter_owner(owner, declaration.node.end_byte(), true);
         }
-        if declaration.lift && self.stack.len() > 2 {
+        if declaration.lift && self.stack.len() >= LIFT_MIN_FRAMES {
             return self.add_lifted(declaration);
         }
         self.add_member(declaration)

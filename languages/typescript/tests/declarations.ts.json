@@ -2,7 +2,7 @@
   "counts": [
     {
       "decisions": null,
-      "loc": 74,
+      "loc": 88,
       "operands": null,
       "operators": null,
       "symbol": "declarations"
@@ -299,9 +299,29 @@
         0
       ],
       "symbol": "declarations.Account.close"
+    },
+    {
+      "decisions": null,
+      "loc": 14,
+      "operands": null,
+      "operators": null,
+      "symbol": "declarations.Service"
+    },
+    {
+      "decisions": 0,
+      "loc": 12,
+      "operands": [
+        4,
+        4
+      ],
+      "operators": [
+        1,
+        2
+      ],
+      "symbol": "declarations.Service.constructor"
     }
   ],
-  "loc": 74,
+  "loc": 88,
   "references": [
     {
       "at": "0:9",
@@ -344,6 +364,62 @@
       "kind": "type_use",
       "receiver": null,
       "target": "Ambient"
+    },
+    {
+      "at": "114:29",
+      "from": "declarations.Service",
+      "kind": "inherit",
+      "receiver": null,
+      "target": "Account"
+    },
+    {
+      "at": "116:5",
+      "from": "declarations.Service.store",
+      "kind": "call",
+      "receiver": null,
+      "target": "Inject"
+    },
+    {
+      "at": "116:12",
+      "from": "declarations.Service.store",
+      "kind": "read",
+      "receiver": null,
+      "target": "TOKEN"
+    },
+    {
+      "at": "116:43",
+      "from": "declarations.Service.store",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Store"
+    },
+    {
+      "at": "117:5",
+      "from": "declarations.Service.cache",
+      "kind": "call",
+      "receiver": null,
+      "target": "Optional"
+    },
+    {
+      "at": "117:32",
+      "from": "declarations.Service.cache",
+      "kind": "type_use",
+      "receiver": null,
+      "target": "Cache"
+    },
+    {
+      "at": "122:5",
+      "from": "declarations.Service.constructor",
+      "kind": "call",
+      "receiver": null,
+      "target": "Inject"
+    },
+    {
+      "at": "122:12",
+      "from": "declarations.Service.constructor",
+      "kind": "read",
+      "receiver": null,
+      "target": "KEY"
     }
   ],
   "symbols": [
@@ -353,7 +429,7 @@
       "name": "declarations",
       "parent": null,
       "signature": null,
-      "span": "0:0-113:0",
+      "span": "0:0-128:0",
       "static": false,
       "visibility": null
     },
@@ -854,6 +930,96 @@
       "parent": "declarations.Account",
       "signature": null,
       "span": "111:2-111:18",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "class",
+      "name": "declarations.Service",
+      "parent": "declarations",
+      "signature": null,
+      "span": "114:7-127:1",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "constructor",
+      "name": "declarations.Service.constructor",
+      "parent": "declarations.Service",
+      "signature": null,
+      "span": "115:2-126:3",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Service.store",
+      "parent": "declarations.Service",
+      "signature": null,
+      "span": "116:4-116:48",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Service.cache",
+      "parent": "declarations.Service",
+      "signature": null,
+      "span": "117:4-117:37",
+      "static": false,
+      "visibility": "private"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Service.owner",
+      "parent": "declarations.Service",
+      "signature": null,
+      "span": "118:4-118:38",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Service.limit",
+      "parent": "declarations.Service",
+      "signature": null,
+      "span": "119:4-119:31",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Service.name",
+      "parent": "declarations.Service",
+      "signature": null,
+      "span": "120:4-120:30",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Service.extra",
+      "parent": "declarations.Service",
+      "signature": null,
+      "span": "121:4-121:27",
+      "static": false,
+      "visibility": "public"
+    },
+    {
+      "doc": null,
+      "kind": "field",
+      "name": "declarations.Service.callback",
+      "parent": "declarations.Service",
+      "signature": null,
+      "span": "123:4-123:31",
       "static": false,
       "visibility": "public"
     }

@@ -111,3 +111,18 @@ export class Account {
   /** A method next to the constructor. */
   close(): void {}
 }
+
+export class Service extends Account {
+  constructor(
+    @Inject(TOKEN) private readonly store: Store,
+    @Optional() private cache?: Cache,
+    public override owner: string = "",
+    override readonly limit = 1,
+    override name: string = "",
+    override extra?: string,
+    @Inject(KEY) plain: string = "",
+    readonly callback = () => 1,
+  ) {
+    super(owner);
+  }
+}
