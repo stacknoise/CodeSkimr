@@ -91,4 +91,24 @@ describe("resizable table", () => {
     fireEvent.keyDown(grip("three"), { key: "Home" });
     expect(screen.getByTestId("table").style.tableLayout).toBe("");
   });
+
+  it("starts from the width of now, not of the focus, and forgets the width after Home", () => {
+    const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetWidth");
+    const width = (value: number) =>
+      Object.defineProperty(HTMLElement.prototype, "offsetWidth", { configurable: true, value });
+    try {
+      width(90);
+      render(() => <Sample name="sixth" />);
+      fireEvent.focus(grip("two"));
+      width(140);
+      fireEvent.keyDown(grip("two"), { key: "ArrowRight" });
+      expect(Number(grip("two").getAttribute("aria-valuenow"))).toBe(152);
+      fireEvent.keyDown(grip("two"), { key: "Home" });
+      expect(grip("two").getAttribute("aria-valuenow")).toBeNull();
+    } finally {
+      if (original) {
+        Object.defineProperty(HTMLElement.prototype, "offsetWidth", original);
+      }
+    }
+  });
 });

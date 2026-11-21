@@ -24,17 +24,20 @@ function onKey(
   event: KeyboardEvent & { currentTarget: HTMLElement },
   props: { width: ColumnWidth; before?: ((grip: Element) => void) | undefined },
   current: number,
+  reset: () => void,
 ): void {
   if (event.key === COLUMN_RESET_KEY) {
     event.preventDefault();
-    props.width.reset();
+    reset();
     return;
   }
   const move = keyMove(event);
   if (move !== NO_DELTA) {
     event.preventDefault();
     props.before?.(event.currentTarget);
-    props.width.set(current + move);
+    // Read the width again: fixing the widths may have measured a cell that moved since the focus.
+    const now = props.width.size();
+    props.width.set((now > 0 ? now : current) + move);
   }
 }
 
@@ -72,6 +75,10 @@ export function ColumnGrip(props: {
   const drag = useDrag(props);
   // A table that sizes itself has no width yet: the width on the screen is the value until it has.
   const [shown, setShown] = createSignal(0);
+  const reset = () => {
+    props.width.reset();
+    setShown(0);
+  };
   const value = () => (props.width.size() > 0 ? props.width.size() : shown());
   return (
     <span
@@ -90,8 +97,8 @@ export function ColumnGrip(props: {
       onPointerMove={drag.move}
       onPointerUp={drag.stop}
       onPointerCancel={drag.stop}
-      onKeyDown={(event) => onKey(event, props, value())}
-      onDblClick={() => props.width.reset()}
+      onKeyDown={(event) => onKey(event, props, value(), reset)}
+      onDblClick={reset}
     />
   );
 }
