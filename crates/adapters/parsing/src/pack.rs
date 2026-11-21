@@ -4,6 +4,7 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
+use std::thread;
 
 use codeskimr_domain::{LanguageId, SymbolKind};
 use globset::{GlobBuilder, GlobSet, GlobSetBuilder};
@@ -11,9 +12,10 @@ use tree_sitter::{Language, Query};
 
 use crate::captures::{MetricsQuery, Vocabulary};
 use crate::consts::{
-    ID_MISMATCH, METRICS_QUERY_FILE, PATH_DOT, PATH_SEPARATORS, QUERIES_FILE_UNKNOWN,
-    QUERIES_FROM_CHAINED, QUERIES_FROM_INVALID, QUERIES_FROM_SELF, QUERY_JOIN,
-    REFERENCES_QUERY_FILE, SHAREABLE_QUERY_FILES, SYMBOLS_QUERY_FILE, TEST_PATTERN_SEPARATOR,
+    ID_MISMATCH, LOAD_PANICKED, METRICS_QUERY_FILE, PATH_DOT, PATH_SEPARATORS,
+    QUERIES_FILE_UNKNOWN, QUERIES_FROM_CHAINED, QUERIES_FROM_INVALID, QUERIES_FROM_SELF,
+    QUERY_JOIN, REFERENCES_QUERY_FILE, SHAREABLE_QUERY_FILES, SYMBOLS_QUERY_FILE,
+    TEST_PATTERN_SEPARATOR,
 };
 use crate::error::ParsingError;
 use crate::grammar;
@@ -69,15 +71,30 @@ impl LanguagePack {
             grammar::builtin(&manifest.grammar).ok_or_else(|| invalid(manifest.grammar.clone()))?;
         let shared = shared_queries(dir, &manifest, &folder)?;
         let text = |file: &str| query_text(dir, shared.as_ref(), file, &folder);
-        let symbols = text(SYMBOLS_QUERY_FILE)?
-            .ok_or_else(|| invalid(SYMBOLS_QUERY_FILE.to_owned()))
-            .and_then(|source| compile(&language, &source, &folder))?;
-        let references = text(REFERENCES_QUERY_FILE)?
-            .map(|source| compile(&language, &source, &folder))
-            .transpose()?;
-        let metrics = text(METRICS_QUERY_FILE)?
-            .map(|source| load_metrics(&language, &source, &folder))
-            .transpose()?;
+        let symbols =
+            text(SYMBOLS_QUERY_FILE)?.ok_or_else(|| invalid(SYMBOLS_QUERY_FILE.to_owned()))?;
+        let references = text(REFERENCES_QUERY_FILE)?;
+        let metrics = text(METRICS_QUERY_FILE)?;
+        // Compiling a query of a full-tier pack takes long, so the three compile side by side.
+        let (symbols, references, metrics) = thread::scope(|scope| {
+            let references = scope.spawn(|| {
+                references
+                    .map(|source| compile(&language, &source, &folder))
+                    .transpose()
+            });
+            let metrics = scope.spawn(|| {
+                metrics
+                    .map(|source| load_metrics(&language, &source, &folder))
+                    .transpose()
+            });
+            let symbols = compile(&language, &symbols, &folder);
+            (
+                symbols,
+                joined(references, &folder),
+                joined(metrics, &folder),
+            )
+        });
+        let (symbols, references, metrics) = (symbols?, references?, metrics?);
         Self::assemble(manifest, language, (symbols, references, metrics), &folder)
     }
 
@@ -218,6 +235,16 @@ fn folder_name(dir: &Path) -> String {
     dir.file_name()
         .map(|name| name.to_string_lossy().into_owned())
         .unwrap_or_default()
+}
+
+/// The result of a thread that compiled a query; a panic there is reported as an invalid pack.
+fn joined<T>(
+    handle: thread::ScopedJoinHandle<'_, Result<T, ParsingError>>,
+    folder: &str,
+) -> Result<T, ParsingError> {
+    handle
+        .join()
+        .unwrap_or_else(|_| Err(ParsingError::invalid(folder, LOAD_PANICKED.to_owned())))
 }
 
 fn load_metrics(
