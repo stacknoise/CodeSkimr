@@ -359,3 +359,7 @@ pub const STATS_LIMIT: u32 = 100;
 pub const STATS_LIMIT_MAX: u32 = 500;
 /// Rows of each card of the overview.
 pub const STATS_TOP: u32 = 5;
+
+/// The separator between the namespace and the name in the qualified name of a type that the tree
+/// leaves out of its answer (the reader puts it together again).
+pub(super) const QUALIFIED_SEPARATOR: &str = ".";

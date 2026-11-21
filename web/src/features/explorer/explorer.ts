@@ -8,6 +8,7 @@ import {
 } from "../../shared/navigation/navigation";
 import { CHIP, COMMAND, GROUP, NOT_FOUND, TYPE_KINDS, type ChipId } from "./consts";
 import { failed, type Failure } from "./failure";
+import { expandOutline, type WireOutline } from "./outlineWire";
 import { INITIAL_SORT, tableRows, type MemberSort } from "./memberSort";
 import {
   groupKey,
@@ -143,7 +144,7 @@ function keepRead(
 async function refreshOutline(project: number): Promise<void> {
   const mine = generation;
   try {
-    const read = await runCommand<Outline>(COMMAND.outline, { project });
+    const read = expandOutline(await runCommand<WireOutline>(COMMAND.outline, { project }));
     const known = [...details().keys()];
     const symbols = await Promise.all(known.map((id) => rereadSymbol(project, id)));
     if (mine === generation) {
@@ -188,7 +189,7 @@ async function readOutline(project: number): Promise<void> {
   setOutlineFailure(null);
   setLoading(true);
   try {
-    const read = await runCommand<Outline>(COMMAND.outline, { project });
+    const read = expandOutline(await runCommand<WireOutline>(COMMAND.outline, { project }));
     if (mine === generation) {
       setOutline(read);
     }
