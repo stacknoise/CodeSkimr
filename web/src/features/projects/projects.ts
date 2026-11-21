@@ -2,7 +2,9 @@ import { createSignal } from "solid-js";
 import { ApiError } from "../../shared/api/client";
 import { runCommand } from "../../shared/api/commands";
 import type { ErrorCode } from "../../shared/api/error-codes.generated";
-import { closeProject } from "../../shared/project/active";
+import { navigate } from "../../app/router";
+import { SCAN_ROUTE } from "../../app/consts";
+import { closeProject, openProject } from "../../shared/project/active";
 import { COMMAND, POLL_MS } from "./consts";
 import { forgetLevel2 } from "./level2";
 import { keepRunningOnly, noteLevel2Start, resetLevel2Runs } from "./level2run";
@@ -17,10 +19,14 @@ const [loaded, setLoaded] = createSignal(false);
 const [listFailure, setListFailure] = createSignal<Failure | null>(null);
 const [actionFailure, setActionFailure] = createSignal<Failure | null>(null);
 const [scanning, setScanning] = createSignal<ReadonlySet<number>>(new Set());
+const [requested, setRequested] = createSignal<ReadonlyMap<number, number>>(new Map());
 const [adding, setAdding] = createSignal(false);
 const [checkedTools, setCheckedTools] = createSignal<ReadonlyMap<number, ToolsInfo>>(new Map());
 const [checking, setChecking] = createSignal<ReadonlySet<number>>(new Set());
 const [lastSeconds, setLastSeconds] = createSignal<ReadonlyMap<number, number>>(new Map());
+
+/** Ids of the projects that existed when the user added a new one; `null` while none is added. */
+let knownAtAdd: ReadonlySet<number> | null = null;
 
 /** The registered projects. */
 export const projects = rows;
@@ -30,6 +36,11 @@ export const projectsLoaded = loaded;
 export const projectsFailure = () => actionFailure() ?? listFailure();
 /** Whether a new project is being added and scanned. */
 export const projectAdding = adding;
+/** When this tab asked for the scan that it runs for the project, in milliseconds; `null` if it
+ * runs none. */
+export function scanRequestedAt(project: number): number | null {
+  return scanning().has(project) ? (requested().get(project) ?? null) : null;
+}
 /** Ids of the projects that this tab is scanning again. */
 export const projectsScanning = scanning;
 /** Ids of the projects whose tools are being checked right now. */
@@ -112,6 +123,7 @@ export async function addProject(
 ): Promise<boolean> {
   setAdding(true);
   setActionFailure(null);
+  knownAtAdd = new Set(rows().map((row) => row.id));
   const input = credential ? { source, branch, credential } : { source, branch };
   try {
     remember(await whileReading(() => runCommand<Scanned>(COMMAND.add, input)));
@@ -121,8 +133,24 @@ export async function addProject(
     return false;
   } finally {
     setAdding(false);
+    knownAtAdd = null;
     await refreshProjects();
   }
+}
+
+/** The first report of a scan of a project that did not exist before shows the scan screen: it is
+ * the scan that the user just started by adding the project. The project has no id before this. */
+export function noteScanReport(project: number): void {
+  if (knownAtAdd !== null && !knownAtAdd.has(project)) {
+    knownAtAdd = null;
+    showScan(project);
+  }
+}
+
+/** Opens the project and shows its scan and performance screen. */
+function showScan(project: number): void {
+  openProject(project);
+  navigate(SCAN_ROUTE.path);
 }
 
 function mark(project: number, on: boolean): void {
@@ -145,7 +173,9 @@ export async function rescanProject(project: number, level2 = true): Promise<voi
     return;
   }
   mark(project, true);
+  setRequested((previous) => new Map(previous).set(project, Date.now()));
   setActionFailure(null);
+  showScan(project);
   try {
     remember(
       await whileReading(() =>

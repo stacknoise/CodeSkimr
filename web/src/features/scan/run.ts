@@ -5,6 +5,7 @@ import {
   MIN_FILES_FOR_ESTIMATE,
   NOT_FOUND,
   MS_PER_SECOND,
+  LAST_RUNNING_PERCENT,
   PERCENT,
   STAGE_STATE,
   STAGES,
@@ -38,9 +39,11 @@ function advance(run: Run, event: ProgressEvent, now: number): Run {
       stages[name] = known.endedAt === null ? { ...known, endedAt: now } : known;
     } else if (name === stage) {
       stages[name] = {
-        done,
+        // A report that was queued before the stream replayed a later one must not move the bar
+        // back: within one stage and one total the count only grows.
+        done: known && known.total === total ? Math.max(known.done, done) : done,
         total,
-        startedAt: known?.startedAt ?? now,
+        startedAt: known?.startedAt ?? now - (event.elapsed_ms ?? 0),
         endedAt: null,
         tookMs: Math.max(known?.tookMs ?? 0, event.elapsed_ms ?? 0) || null,
       };
@@ -51,10 +54,13 @@ function advance(run: Run, event: ProgressEvent, now: number): Run {
   return { ...run, stages };
 }
 
-function fresh(project: number, now: number): Run {
+/** A run that begins with the report `first`. A report that comes from a stage that began
+ * earlier (a page that was reloaded in the middle of a scan) puts the start back by the time the
+ * stage has run, so that the times and rates are those of the scan and not of the page. */
+function fresh(project: number, now: number, first: ProgressEvent): Run {
   return {
     project,
-    startedAt: now,
+    startedAt: now - (first.elapsed_ms ?? 0),
     endedAt: null,
     state: STATE.running,
     code: null,
@@ -89,7 +95,7 @@ export function applyEvent(runs: readonly Run[], event: WireEvent, now: number):
   const index = lastOf(runs, event.project);
   const current = isOpen(runs[index]) ? runs[index] : undefined;
   if (event.type === EVENT.progressed) {
-    const base = current ?? fresh(event.project, now);
+    const base = current ?? fresh(event.project, now, event);
     const next = advance(base, event, now);
     const list = current ? replace(runs, index, next) : [...runs, next];
     return list.slice(-MAX_RUNS);
@@ -128,7 +134,8 @@ export function files(run: Run): { done: number; total: number } | null {
   return stage ? { done: stage.done, total: stage.total } : null;
 }
 
-/** Percent of the files that are done. 100 once the scan is done; 0 before the file stage. */
+/** Percent of the files that are done, at most 99 while the scan runs. 100 once the scan is done; 0
+ * before the file stage. */
 export function percent(run: Run): number {
   if (run.state === STATE.done) {
     return PERCENT;
@@ -137,10 +144,9 @@ export function percent(run: Run): number {
   if (!stage) {
     return 0;
   }
-  if (stage.endedAt !== null) {
-    return PERCENT;
-  }
-  return stage.total === 0 ? 0 : Math.floor((stage.done / stage.total) * PERCENT);
+  const share = stage.total === 0 ? 0 : Math.floor((stage.done / stage.total) * PERCENT);
+  // The later stages still have to run: a scan says 100 only when it is done.
+  return Math.min(stage.endedAt !== null ? PERCENT : share, LAST_RUNNING_PERCENT);
 }
 
 /** Files per second since the file stage began (until it ended), or `null` if not measurable. */
@@ -199,4 +205,25 @@ export function stageState(run: Run, stage: Stage): StageState {
     return STAGE_STATE.waiting;
   }
   return run.state === STATE.running ? STAGE_STATE.running : STAGE_STATE.stopped;
+}
+
+/** Percent of one stage that is done: 100 once it is over, the share of its units while they
+ * count, `null` while the stage waits or runs without a count that says anything (it has told
+ * no total, or has not finished a unit yet). */
+export function stagePercent(run: Run, stage: Stage): number | null {
+  const state = stageState(run, stage);
+  if (state === STAGE_STATE.done) {
+    return PERCENT;
+  }
+  const report = run.stages[stage];
+  if (report === undefined || report.total === 0 || report.done === 0) {
+    return null;
+  }
+  return Math.floor((report.done / report.total) * PERCENT);
+}
+
+/** Whether a stage works but cannot say how far it has come: the bar then moves without a length
+ * instead of claiming a share. */
+export function isUnmeasured(run: Run, stage: Stage): boolean {
+  return stageState(run, stage) === STAGE_STATE.running && stagePercent(run, stage) === null;
 }

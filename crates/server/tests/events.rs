@@ -98,6 +98,23 @@ async fn events_arrive_as_json_in_order() {
 }
 
 #[tokio::test]
+async fn a_stream_opened_during_a_scan_starts_with_the_last_report_of_the_scan() {
+    let server = start(owner()).await;
+    let project = ProjectId::new(7);
+    server.events.publish(&progressed(project));
+    let (mut stream, status) = open(&server, "").await;
+    assert!(status.contains("101"), "{status}");
+    let first: serde_json::Value = serde_json::from_str(&frame(&mut stream).await).unwrap();
+    assert_eq!(first["type"], "scan_progressed");
+    assert_eq!(first["project"], 7);
+    assert_eq!(first["stage"], "analyze");
+    assert_eq!(
+        (first["done"].as_u64(), first["total"].as_u64()),
+        (Some(3), Some(10))
+    );
+}
+
+#[tokio::test]
 async fn alerts_changed_carries_the_project_and_a_count_and_no_text() {
     let server = start(owner()).await;
     let (mut stream, status) = open(&server, "").await;
