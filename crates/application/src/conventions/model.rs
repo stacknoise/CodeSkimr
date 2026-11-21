@@ -1,9 +1,11 @@
 //! What a convention check is asked and what it answers.
 
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{FolderPath, Principal, QualifiedName, RelativePath, SnapshotId, Span};
+use codeskimr_domain::{
+    FolderPath, Layer, Principal, QualifiedName, RelativePath, SnapshotId, Span,
+};
 
-use crate::ports::SimilarityIndex;
+use crate::ports::{ReferenceSites, SimilarityIndex};
 
 /// One call of the check.
 #[derive(Clone, Copy)]
@@ -20,11 +22,15 @@ pub struct CheckRequest<'a> {
     pub stored: Option<StoredProject<'a>>,
 }
 
-/// The newest snapshot of a project and the index of its fingerprints.
+/// The newest snapshot of a project, the index of its fingerprints and its references.
 #[derive(Clone, Copy)]
 pub struct StoredProject<'a> {
     /// Where the stored fingerprints are looked up.
     pub index: &'a dyn SimilarityIndex,
+    /// Where the stored references are looked up, for the layer rule.
+    pub references: &'a dyn ReferenceSites,
+    /// The layers of the project; the layer rule needs at least one with `may_use`.
+    pub layers: &'a [Layer],
     /// The snapshot to compare with.
     pub snapshot: SnapshotId,
 }
@@ -63,6 +69,15 @@ pub enum Detail {
         /// How many there are.
         count: u32,
     },
+    /// `CHK-103`: the function uses a layer that its own layer may not use.
+    Layering {
+        /// The layer of the function.
+        from_layer: String,
+        /// The layer it reaches into.
+        to_layer: String,
+        /// How many references of the function point into that layer.
+        count: u32,
+    },
     /// `CHK-102`: the function is a near copy of an earlier one.
     Duplicate {
         /// The function that came first in path and line order.
@@ -84,6 +99,9 @@ pub struct Measure<'a> {
     pub limit: Option<u32>,
     /// `CHK-101`: the number of literals in the function.
     pub literals: Option<u32>,
+    /// `CHK-103`: the layer of the function and the layer it must not use, with the number of
+    /// references into it.
+    pub layering: Option<(&'a str, &'a str, u32)>,
     /// `CHK-102`: the earlier function this one copies.
     pub duplicate_of: Option<&'a Location>,
     /// `CHK-102`: the similarity in whole percent.
@@ -107,6 +125,14 @@ impl Detail {
             },
             Self::Literals { count } => Measure {
                 literals: Some(*count),
+                ..Measure::default()
+            },
+            Self::Layering {
+                from_layer,
+                to_layer,
+                count,
+            } => Measure {
+                layering: Some((from_layer, to_layer, *count)),
                 ..Measure::default()
             },
             Self::Duplicate {

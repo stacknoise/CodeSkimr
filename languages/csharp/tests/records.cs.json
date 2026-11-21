@@ -1029,7 +1029,7 @@
       "kind": "method",
       "name": "Demo.Holder.Pick",
       "parent": "Demo.Holder",
-      "signature": null,
+      "signature": "public Entry Pick()",
       "span": "9:4-9:32",
       "static": false,
       "visibility": "public"
@@ -1049,7 +1049,7 @@
       "kind": "method",
       "name": "Demo.Reader.Negated",
       "parent": "Demo.Reader",
-      "signature": null,
+      "signature": "public bool Negated(Holder h)",
       "span": "14:4-14:57",
       "static": false,
       "visibility": "public"
@@ -1059,7 +1059,7 @@
       "kind": "method",
       "name": "Demo.Reader.Chain",
       "parent": "Demo.Reader",
-      "signature": null,
+      "signature": "public bool Chain(Entry entry)",
       "span": "15:4-15:53",
       "static": false,
       "visibility": "public"
@@ -1069,7 +1069,7 @@
       "kind": "method",
       "name": "Demo.Reader.Deep",
       "parent": "Demo.Reader",
-      "signature": null,
+      "signature": "public bool Deep(Entry a)",
       "span": "16:4-16:48",
       "static": false,
       "visibility": "public"
@@ -1079,7 +1079,7 @@
       "kind": "method",
       "name": "Demo.Reader.Twice",
       "parent": "Demo.Reader",
-      "signature": null,
+      "signature": "public bool Twice(Holder x)",
       "span": "17:4-17:102",
       "static": false,
       "visibility": "public"
@@ -1089,7 +1089,7 @@
       "kind": "method",
       "name": "Demo.Reader.Both",
       "parent": "Demo.Reader",
-      "signature": null,
+      "signature": "public bool Both(Entry c)",
       "span": "18:4-18:94",
       "static": false,
       "visibility": "public"
@@ -1099,7 +1099,7 @@
       "kind": "method",
       "name": "Demo.Reader.Returned",
       "parent": "Demo.Reader",
-      "signature": null,
+      "signature": "public bool Returned(Holder h)",
       "span": "19:4-19:65",
       "static": false,
       "visibility": "public"
@@ -1109,7 +1109,7 @@
       "kind": "method",
       "name": "Demo.Reader.Picked",
       "parent": "Demo.Reader",
-      "signature": null,
+      "signature": "public bool Picked(Holder h)",
       "span": "20:4-20:54",
       "static": false,
       "visibility": "public"
@@ -1119,7 +1119,7 @@
       "kind": "method",
       "name": "Demo.Reader.Local",
       "parent": "Demo.Reader",
-      "signature": null,
+      "signature": "public bool Local(Holder h)",
       "span": "21:4-21:73",
       "static": false,
       "visibility": "public"
@@ -1139,7 +1139,7 @@
       "kind": "method",
       "name": "Demo.IStore.Load",
       "parent": "Demo.IStore",
-      "signature": null,
+      "signature": "int Load(string key);",
       "span": "24:26-24:47",
       "static": false,
       "visibility": "public"
@@ -1169,7 +1169,7 @@
       "kind": "constructor",
       "name": "Demo.Consumer.Consumer",
       "parent": "Demo.Consumer",
-      "signature": null,
+      "signature": "public Consumer(IStore store)",
       "span": "29:4-29:53",
       "static": false,
       "visibility": "public"
@@ -1179,7 +1179,7 @@
       "kind": "method",
       "name": "Demo.Consumer.Go",
       "parent": "Demo.Consumer",
-      "signature": null,
+      "signature": "public int Go()",
       "span": "30:4-30:40",
       "static": false,
       "visibility": "public"
@@ -1209,7 +1209,7 @@
       "kind": "method",
       "name": "Demo.ConsumerTests.Arranged",
       "parent": "Demo.ConsumerTests",
-      "signature": null,
+      "signature": "public void Arranged()",
       "span": "36:4-36:96",
       "static": false,
       "visibility": "public"
@@ -1219,7 +1219,7 @@
       "kind": "method",
       "name": "Demo.ConsumerTests.Field",
       "parent": "Demo.ConsumerTests",
-      "signature": null,
+      "signature": "public void Field()",
       "span": "37:4-37:86",
       "static": false,
       "visibility": "public"
@@ -1229,7 +1229,7 @@
       "kind": "method",
       "name": "Demo.ConsumerTests.Wrapped",
       "parent": "Demo.ConsumerTests",
-      "signature": null,
+      "signature": "public void Wrapped()",
       "span": "38:4-38:73",
       "static": false,
       "visibility": "public"
@@ -1249,7 +1249,7 @@
       "kind": "method",
       "name": "Demo.IDisk.Exists",
       "parent": "Demo.IDisk",
-      "signature": null,
+      "signature": "bool Exists(string path);",
       "span": "41:25-41:50",
       "static": false,
       "visibility": "public"
@@ -1269,7 +1269,7 @@
       "kind": "method",
       "name": "Demo.Index.IndexOf",
       "parent": "Demo.Index",
-      "signature": null,
+      "signature": "public int IndexOf(string key)",
       "span": "42:21-42:57",
       "static": false,
       "visibility": "public"
@@ -1289,7 +1289,7 @@
       "kind": "method",
       "name": "Demo.Foreign.Static",
       "parent": "Demo.Foreign",
-      "signature": null,
+      "signature": "public bool Static(string p)",
       "span": "46:4-46:74",
       "static": false,
       "visibility": "public"
@@ -1299,7 +1299,7 @@
       "kind": "method",
       "name": "Demo.Foreign.Listed",
       "parent": "Demo.Foreign",
-      "signature": null,
+      "signature": "public int Listed(List<string> names)",
       "span": "47:4-47:64",
       "static": false,
       "visibility": "public"
@@ -1309,7 +1309,7 @@
       "kind": "method",
       "name": "Demo.Foreign.Own",
       "parent": "Demo.Foreign",
-      "signature": null,
+      "signature": "public int Own(Index index)",
       "span": "48:4-48:54",
       "static": false,
       "visibility": "public"
@@ -1319,7 +1319,7 @@
       "kind": "method",
       "name": "Demo.Foreign.Disk",
       "parent": "Demo.Foreign",
-      "signature": null,
+      "signature": "public bool Disk(IDisk disk)",
       "span": "49:4-49:53",
       "static": false,
       "visibility": "public"
@@ -1329,7 +1329,7 @@
       "kind": "method",
       "name": "Demo.Foreign.Unknown",
       "parent": "Demo.Foreign",
-      "signature": null,
+      "signature": "public bool Unknown(string p)",
       "span": "50:4-50:74",
       "static": false,
       "visibility": "public"
@@ -1379,7 +1379,7 @@
       "kind": "method",
       "name": "Demo.Counting.Bump",
       "parent": "Demo.Counting",
-      "signature": null,
+      "signature": "public void Bump(Counter c)",
       "span": "57:4-57:66",
       "static": false,
       "visibility": "public"

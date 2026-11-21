@@ -204,7 +204,7 @@
       "kind": "method",
       "name": "M.PlainMethod",
       "parent": "M",
-      "signature": null,
+      "signature": "int PlainMethod()",
       "span": "2:4-2:35",
       "static": false,
       "visibility": "private"
@@ -214,7 +214,7 @@
       "kind": "method",
       "name": "M.Branches",
       "parent": "M",
-      "signature": null,
+      "signature": "int Branches(int a, int b)",
       "span": "4:4-11:5",
       "static": false,
       "visibility": "private"
@@ -224,7 +224,7 @@
       "kind": "method",
       "name": "M.Loops",
       "parent": "M",
-      "signature": null,
+      "signature": "void Loops(int[] xs)",
       "span": "13:4-19:5",
       "static": false,
       "visibility": "private"
@@ -234,7 +234,7 @@
       "kind": "method",
       "name": "M.Cases",
       "parent": "M",
-      "signature": null,
+      "signature": "string Cases(int k)",
       "span": "21:4-31:5",
       "static": false,
       "visibility": "private"
@@ -244,7 +244,7 @@
       "kind": "method",
       "name": "M.Arms",
       "parent": "M",
-      "signature": null,
+      "signature": "string Arms(int k)",
       "span": "33:4-33:76",
       "static": false,
       "visibility": "private"
@@ -254,7 +254,7 @@
       "kind": "method",
       "name": "M.Catches",
       "parent": "M",
-      "signature": null,
+      "signature": "void Catches()",
       "span": "35:4-41:5",
       "static": false,
       "visibility": "private"
@@ -264,7 +264,7 @@
       "kind": "method",
       "name": "M.Outer",
       "parent": "M",
-      "signature": null,
+      "signature": "int Outer()",
       "span": "43:4-48:5",
       "static": false,
       "visibility": "private"
@@ -274,7 +274,7 @@
       "kind": "function",
       "name": "M.Outer.Local",
       "parent": "M.Outer",
-      "signature": null,
+      "signature": "int Local(int y)",
       "span": "46:8-46:63",
       "static": false,
       "visibility": "private"
@@ -294,7 +294,7 @@
       "kind": "method",
       "name": "Shape.NoBody",
       "parent": "Shape",
-      "signature": null,
+      "signature": "public abstract int NoBody();",
       "span": "53:4-53:33",
       "static": false,
       "visibility": "public"

@@ -10,6 +10,7 @@ const row = (name: string, over: Partial<MemberRow> = {}): MemberRow => ({
   kind: "method",
   visibility: "public",
   signature: null,
+  parameters: [],
   complexity: null,
   complexity_rating: null,
   usages: 0,

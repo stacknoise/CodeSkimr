@@ -317,7 +317,7 @@
       "kind": "method",
       "name": "declarations.Order.handler",
       "parent": "declarations.Order",
-      "signature": null,
+      "signature": "() =>",
       "span": "10:12-12:3",
       "static": false,
       "visibility": "public"
@@ -327,7 +327,7 @@
       "kind": "constructor",
       "name": "declarations.Order.constructor",
       "parent": "declarations.Order",
-      "signature": null,
+      "signature": "constructor(id)",
       "span": "15:2-18:3",
       "static": false,
       "visibility": "public"
@@ -347,7 +347,7 @@
       "kind": "method",
       "name": "declarations.Order.create",
       "parent": "declarations.Order",
-      "signature": null,
+      "signature": "static async create(id)",
       "span": "24:2-27:3",
       "static": true,
       "visibility": "public"
@@ -357,7 +357,7 @@
       "kind": "method",
       "name": "declarations.Order.generate",
       "parent": "declarations.Order",
-      "signature": null,
+      "signature": "*generate()",
       "span": "29:2-29:16",
       "static": false,
       "visibility": "public"
@@ -387,7 +387,7 @@
       "kind": "function",
       "name": "declarations.add",
       "parent": "declarations",
-      "signature": null,
+      "signature": "(a, b) =>",
       "span": "34:19-34:34",
       "static": false,
       "visibility": "public"
@@ -397,7 +397,7 @@
       "kind": "function",
       "name": "declarations.sub",
       "parent": "declarations",
-      "signature": null,
+      "signature": "function (a, b)",
       "span": "35:12-37:1",
       "static": false,
       "visibility": "private"
@@ -407,7 +407,7 @@
       "kind": "function",
       "name": "declarations.run",
       "parent": "declarations",
-      "signature": null,
+      "signature": "function run(items)",
       "span": "41:7-49:1",
       "static": false,
       "visibility": "public"
@@ -417,7 +417,7 @@
       "kind": "function",
       "name": "declarations.run.inner",
       "parent": "declarations.run",
-      "signature": null,
+      "signature": "function inner()",
       "span": "42:2-42:21",
       "static": false,
       "visibility": "public"
@@ -437,7 +437,7 @@
       "kind": "function",
       "name": "declarations.gen",
       "parent": "declarations",
-      "signature": null,
+      "signature": "function* ()",
       "span": "52:19-52:34",
       "static": false,
       "visibility": "public"

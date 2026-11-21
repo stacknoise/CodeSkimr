@@ -340,7 +340,7 @@
       "kind": "method",
       "name": "references.Child.run",
       "parent": "references.Child",
-      "signature": null,
+      "signature": "def run(self, item: Thing, count=0) -> Other:",
       "span": "12:4-23:21",
       "static": false,
       "visibility": "public"
@@ -350,7 +350,7 @@
       "kind": "method",
       "name": "references.Child.stop",
       "parent": "references.Child",
-      "signature": null,
+      "signature": "def stop(self):",
       "span": "25:4-26:12",
       "static": false,
       "visibility": "public"
@@ -360,7 +360,7 @@
       "kind": "function",
       "name": "references.make",
       "parent": "references",
-      "signature": null,
+      "signature": "def make() -> Child:",
       "span": "29:0-32:16",
       "static": false,
       "visibility": "public"
@@ -390,7 +390,7 @@
       "kind": "method",
       "name": "references.Holder.rename",
       "parent": "references.Holder",
-      "signature": null,
+      "signature": "def rename(self, label: str | None = None):",
       "span": "38:4-41:20",
       "static": false,
       "visibility": "public"

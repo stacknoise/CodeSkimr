@@ -125,7 +125,7 @@
       "kind": "method",
       "name": "Demo.Literals.Clean",
       "parent": "Demo.Literals",
-      "signature": null,
+      "signature": "public int Clean(int[] items)",
       "span": "4:4-9:5",
       "static": false,
       "visibility": "public"
@@ -135,7 +135,7 @@
       "kind": "method",
       "name": "Demo.Literals.Numbers",
       "parent": "Demo.Literals",
-      "signature": null,
+      "signature": "public double Numbers()",
       "span": "11:4-11:48",
       "static": false,
       "visibility": "public"
@@ -145,7 +145,7 @@
       "kind": "method",
       "name": "Demo.Literals.Strings",
       "parent": "Demo.Literals",
-      "signature": null,
+      "signature": "public string Strings(string name, int count)",
       "span": "13:4-17:5",
       "static": false,
       "visibility": "public"
@@ -155,7 +155,7 @@
       "kind": "method",
       "name": "Demo.Literals.Local",
       "parent": "Demo.Literals",
-      "signature": null,
+      "signature": "public int Local()",
       "span": "19:4-23:5",
       "static": false,
       "visibility": "public"
@@ -165,7 +165,7 @@
       "kind": "method",
       "name": "Demo.Literals.Flags",
       "parent": "Demo.Literals",
-      "signature": null,
+      "signature": "[Obsolete(\"old\")] public bool Flags(object value)",
       "span": "25:4-26:70",
       "static": false,
       "visibility": "public"

@@ -228,6 +228,10 @@ pub mod arg {
     pub const LANGUAGE: &str = "language";
     /// `{ $count }`: how many times something happened.
     pub const COUNT: &str = "count";
+    /// `{ $from_layer }`: the layer of a function that breaks the layer rule.
+    pub const FROM_LAYER: &str = "from_layer";
+    /// `{ $to_layer }`: the layer that function must not use.
+    pub const TO_LAYER: &str = "to_layer";
     /// `{ $stale }`: files that changed since the scan.
     pub const STALE: &str = "stale";
     /// `{ $reason }`: why level 2 was skipped.

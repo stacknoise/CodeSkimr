@@ -140,6 +140,7 @@ pub fn data(snapshot: Snapshot) -> SnapshotData {
         naming_rules: String::new(),
         parse_micros: Vec::new(),
         warnings: Vec::new(),
+        left_out: Vec::new(),
     }
 }
 

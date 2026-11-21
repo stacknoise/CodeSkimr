@@ -14,9 +14,9 @@ use codeskimr_application::ports::{
     FileDiscovery, FileFacts, FileHit, ImpactPage, ImpactedSymbol, KeyEntry, KeyKind, KeySearch,
     LanguageLine, LanguageOutcome, LanguageShare, LastScan, Level2Report, MemberRef, PathsReport,
     PreviousIndex, ProjectCatalog, ProjectKeys, ProjectOverview, ProjectRepository, ProjectScanner,
-    ProjectToolCheck, ReportWrite, Rescanned, ScanReport, ScanReportStore, SearchHit, SimilarHit,
-    SimilarQuery, SimilarityIndex, SnippetFingerprinter, SourceText, SymbolDetail, SymbolKey,
-    SymbolLabel, TypeFocus, UsageEntry, UsageIndex, UsagePage,
+    ProjectToolCheck, ReferenceSite, ReferenceSites, ReportWrite, Rescanned, ScanReport,
+    ScanReportStore, SearchHit, SimilarHit, SimilarQuery, SimilarityIndex, SnippetFingerprinter,
+    SourceText, SymbolDetail, SymbolKey, SymbolLabel, TypeFocus, UsageEntry, UsageIndex, UsagePage,
 };
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
@@ -223,6 +223,11 @@ impl ProjectRepository for FakeProjects {
                     name: LayerName::new("Application").unwrap(),
                     namespaces: vec![QualifiedName::new("App.Application").unwrap()],
                 },
+                Layer {
+                    may_use: Some(vec![LayerName::new("Application").unwrap()]),
+                    name: LayerName::new("Web").unwrap(),
+                    namespaces: vec![QualifiedName::new("App.Web").unwrap()],
+                },
             ],
         })
     }
@@ -428,6 +433,40 @@ pub struct FakeSimilarity {
     pub asked: Mutex<Vec<(u32, Option<SymbolId>, u32)>>,
     /// Whether symbol 1 has stored fingerprints.
     pub has_prints: bool,
+}
+
+/// Stored references: every file has one of a Web page into the domain, which the Web layer may
+/// not use, and one into the application, which it may.
+pub struct FakeReferences;
+
+impl ReferenceSites for FakeReferences {
+    fn references_from(
+        &self,
+        _snapshot: SnapshotId,
+        files: &[RelativePath],
+    ) -> Result<Vec<ReferenceSite>, CodedError> {
+        let span = Span::new(
+            Position { line: 6, column: 0 },
+            Position { line: 9, column: 1 },
+        )
+        .unwrap();
+        let site = |path: &RelativePath, to: &str| ReferenceSite {
+            path: path.clone(),
+            from: QualifiedName::new("App.Web.Page.Show").unwrap(),
+            span,
+            to: QualifiedName::new(to).unwrap(),
+        };
+        Ok(files
+            .iter()
+            .flat_map(|path| {
+                [
+                    site(path, "App.Domain.Order"),
+                    site(path, "App.Application.Service.Place"),
+                    site(path, "App.Domain.Customer"),
+                ]
+            })
+            .collect())
+    }
 }
 
 pub fn prints(hashes: &[u64]) -> Fingerprints {
@@ -664,6 +703,7 @@ fn assemble_with(
                 asked: Mutex::default(),
                 has_prints,
             }),
+            references: Arc::new(FakeReferences),
             snippets: Arc::new(FakeSnippets),
             checker: checker(),
             clock: Arc::new(FixedClock),
@@ -937,6 +977,7 @@ pub fn tools_annotated(annotations: FakeAnnotations) -> Tools {
                 asked: Mutex::default(),
                 has_prints: true,
             }),
+            references: Arc::new(FakeReferences),
             snippets: Arc::new(FakeSnippets),
             checker: checker(),
             clock: Arc::new(FixedClock),

@@ -6,7 +6,7 @@ use codeskimr_domain::{
     SnapshotId, SourceFile, Symbol, SymbolId,
 };
 
-use super::{PendingReference, SymbolFingerprints, SymbolHash};
+use super::{LeftOut, PendingReference, SymbolFingerprints, SymbolHash};
 use crate::error::CodedError;
 
 /// Everything one scan produced, written as one unit.
@@ -53,6 +53,9 @@ pub struct SnapshotData {
     pub parse_micros: Vec<(LanguageId, u64)>,
     /// The warnings of the scan, one per code, counted over the whole snapshot.
     pub warnings: Vec<ScanWarning>,
+    /// The files the scan left out by name, at most `scan.max_left_out_listed` of them (ADR 0085);
+    /// the warnings count all of them.
+    pub left_out: Vec<LeftOut>,
 }
 
 /// A warning of a scan: how often something happened, not one message per occurrence.

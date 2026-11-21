@@ -102,6 +102,7 @@ pub const SNAPSHOT_CONTENT_DELETE: &[&str] = &[
     "DELETE FROM layer_graph WHERE snapshot_id = ?1",
     "DELETE FROM parse_times WHERE snapshot_id = ?1",
     "DELETE FROM snapshot_warnings WHERE snapshot_id = ?1",
+    "DELETE FROM snapshot_left_out WHERE snapshot_id = ?1",
     "DELETE FROM coupling_rows WHERE snapshot_id = ?1",
     "DELETE FROM files WHERE snapshot_id = ?1",
 ];
@@ -269,6 +270,16 @@ pub const SYMBOL_NAMES: &str = "SELECT id, qualified_name FROM symbols WHERE sna
 /// matches several symbols are no layer edges (issue #464).
 pub const REFERENCE_ENDS: &str = "SELECT from_symbol, to_symbol FROM snapshot_references \
     WHERE snapshot_id = ?1 AND kind <> ?2 AND confidence = ?3";
+/// The certain references of a snapshot that start in one file, with both ends named:
+/// snapshot, excluded kind (`test`), confidence (`certain`), path.
+pub const REFERENCE_SITES: &str = "SELECT f.path, a.qualified_name, a.start_line, a.start_column, \
+    a.end_line, a.end_column, b.qualified_name FROM snapshot_references r \
+    JOIN symbols a ON a.snapshot_id = r.snapshot_id AND a.id = r.from_symbol \
+    JOIN files f ON f.snapshot_id = a.snapshot_id AND f.id = a.file_id \
+    JOIN symbols b ON b.snapshot_id = r.snapshot_id AND b.id = r.to_symbol \
+    WHERE r.snapshot_id = ?1 AND r.kind <> ?2 AND r.confidence = ?3 \
+    AND f.path = ?4 \
+    ORDER BY a.start_line, a.start_column, r.id";
 /// Adds a layer graph edge: snapshot, from, to, count, violates, in cycle.
 pub const EDGE_INSERT: &str = "INSERT INTO layer_graph \
     (snapshot_id, from_layer, to_layer, edge_count, violates_layering, in_cycle) \
@@ -447,6 +458,13 @@ pub const WARNING_INSERT: &str =
 /// The warnings of a snapshot: snapshot.
 pub const WARNINGS: &str =
     "SELECT code, count FROM snapshot_warnings WHERE snapshot_id = ?1 ORDER BY code";
+
+/// Records one file that a scan left out: snapshot, path, code, whether the snapshot kept it.
+pub const LEFT_OUT_INSERT: &str =
+    "INSERT INTO snapshot_left_out (snapshot_id, path, code, kept) VALUES (?1, ?2, ?3, ?4)";
+/// The files a scan left out, in the order of their paths: snapshot.
+pub const LEFT_OUT: &str =
+    "SELECT path, code, kept FROM snapshot_left_out WHERE snapshot_id = ?1 ORDER BY path";
 
 /// Adds a name as written: file, from, start line and column, end line and column, kind, target,
 /// receiver kind, receiver name.

@@ -25,6 +25,7 @@ import {
 } from "./consts";
 import { scanRuns } from "./events";
 import { Languages } from "./Languages";
+import { LeftOut } from "./LeftOut";
 import { Pipeline } from "./Pipeline";
 import { Progress } from "./Progress";
 import { Recent } from "./Recent";
@@ -261,6 +262,7 @@ export function ScanScreen() {
         <Show when={(row()?.languages.length ?? 0) > 0}>
           <Languages languages={row()?.languages ?? []} />
         </Show>
+        <LeftOut row={row()} />
       </div>
       <Aside row={row()} run={run()} />
     </section>

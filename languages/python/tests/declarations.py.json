@@ -462,7 +462,7 @@
       "kind": "constructor",
       "name": "declarations.Shape.__init__",
       "parent": "declarations.Shape",
-      "signature": null,
+      "signature": "def __init__(self, sides):",
       "span": "19:4-21:26",
       "static": false,
       "visibility": "public"
@@ -472,7 +472,7 @@
       "kind": "method",
       "name": "declarations.Shape.area",
       "parent": "declarations.Shape",
-      "signature": null,
+      "signature": "def area(self):",
       "span": "23:4-25:16",
       "static": false,
       "visibility": "public"
@@ -482,7 +482,7 @@
       "kind": "method",
       "name": "declarations.Shape._helper",
       "parent": "declarations.Shape",
-      "signature": null,
+      "signature": "def _helper(self):",
       "span": "27:4-28:12",
       "static": false,
       "visibility": "internal"
@@ -492,7 +492,7 @@
       "kind": "method",
       "name": "declarations.Shape.__mangled",
       "parent": "declarations.Shape",
-      "signature": null,
+      "signature": "def __mangled(self):",
       "span": "30:4-31:12",
       "static": false,
       "visibility": "private"
@@ -502,7 +502,7 @@
       "kind": "method",
       "name": "declarations.Shape.__repr__",
       "parent": "declarations.Shape",
-      "signature": null,
+      "signature": "def __repr__(self):",
       "span": "33:4-34:22",
       "static": false,
       "visibility": "public"
@@ -512,7 +512,7 @@
       "kind": "method",
       "name": "declarations.Shape.create",
       "parent": "declarations.Shape",
-      "signature": null,
+      "signature": "def create():",
       "span": "37:4-39:23",
       "static": true,
       "visibility": "public"
@@ -522,7 +522,7 @@
       "kind": "method",
       "name": "declarations.Shape.from_text",
       "parent": "declarations.Shape",
-      "signature": null,
+      "signature": "def from_text(cls, text):",
       "span": "42:4-43:29",
       "static": false,
       "visibility": "public"
@@ -562,7 +562,7 @@
       "kind": "method",
       "name": "declarations.Shape.Inner.method",
       "parent": "declarations.Shape.Inner",
-      "signature": null,
+      "signature": "def method(self):",
       "span": "55:8-59:26",
       "static": false,
       "visibility": "public"
@@ -572,7 +572,7 @@
       "kind": "function",
       "name": "declarations.Shape.Inner.method.local",
       "parent": "declarations.Shape.Inner.method",
-      "signature": null,
+      "signature": "def local():",
       "span": "56:12-57:24",
       "static": false,
       "visibility": "public"
@@ -582,7 +582,7 @@
       "kind": "function",
       "name": "declarations.top_level",
       "parent": "declarations",
-      "signature": null,
+      "signature": "def top_level(a, b=1):",
       "span": "62:0-68:19",
       "static": false,
       "visibility": "public"
@@ -592,7 +592,7 @@
       "kind": "function",
       "name": "declarations.top_level.nested",
       "parent": "declarations.top_level",
-      "signature": null,
+      "signature": "def nested():",
       "span": "65:4-66:16",
       "static": false,
       "visibility": "public"
@@ -602,7 +602,7 @@
       "kind": "function",
       "name": "declarations.fetch",
       "parent": "declarations",
-      "signature": null,
+      "signature": "async def fetch(url):",
       "span": "71:0-72:14",
       "static": false,
       "visibility": "public"
@@ -612,7 +612,7 @@
       "kind": "function",
       "name": "declarations.decorated",
       "parent": "declarations",
-      "signature": null,
+      "signature": "def decorated():",
       "span": "76:0-77:8",
       "static": false,
       "visibility": "public"
@@ -622,7 +622,7 @@
       "kind": "function",
       "name": "declarations.platform",
       "parent": "declarations",
-      "signature": null,
+      "signature": "def platform():",
       "span": "82:4-83:12",
       "static": false,
       "visibility": "public"
@@ -632,7 +632,7 @@
       "kind": "function",
       "name": "declarations.property",
       "parent": "declarations",
-      "signature": null,
+      "signature": "def property(value):",
       "span": "86:0-92:17",
       "static": false,
       "visibility": "public"
@@ -642,7 +642,7 @@
       "kind": "function",
       "name": "declarations.property._inner",
       "parent": "declarations.property",
-      "signature": null,
+      "signature": "def _inner():",
       "span": "89:4-90:20",
       "static": false,
       "visibility": "internal"
@@ -652,7 +652,7 @@
       "kind": "constructor",
       "name": "declarations.__init__",
       "parent": "declarations",
-      "signature": null,
+      "signature": "def __init__():",
       "span": "95:0-96:8",
       "static": false,
       "visibility": "public"

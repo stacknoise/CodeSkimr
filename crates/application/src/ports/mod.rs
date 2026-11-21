@@ -20,6 +20,7 @@ mod level2;
 mod memory;
 mod outline;
 mod query;
+mod references;
 mod report;
 mod rescan;
 mod similarity;
@@ -58,6 +59,7 @@ pub use query::{
     CodeIndex, CodeSpan, FileHit, MemberRef, SearchHit, SymbolDetail, SymbolKey, TypeFocus,
     TypeNeighbour,
 };
+pub use references::{ReferenceSite, ReferenceSites};
 pub use report::{
     LanguageLine, LanguageOutcome, LastScan, Level2Report, ReportWrite, ScanReport, ScanReportStore,
 };

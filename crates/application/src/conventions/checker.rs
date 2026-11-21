@@ -8,6 +8,7 @@ use codeskimr_domain::{FolderPath, Permission, RelativePath, SnapshotId};
 
 use super::allowed::is_allowed;
 use super::duplicates::{Fingerprinted, duplicates};
+use super::layering::{can_be_checked, layering};
 use super::length::{
     Callable, callables, too_complex, too_long, too_many_parameters, with_literals,
 };
@@ -23,11 +24,6 @@ use crate::ports::{
     AnalyzeRequest, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, SourceText,
 };
 use crate::selection::Selection;
-
-/// The rules with a `CHK` code that this version cannot check yet: layering needs the layer of
-/// every reference (issue #45). The cognitive complexity, the parameters and the literals are added
-/// for the languages whose pack does not report them (ADR 0048, ADR 0058).
-const NOT_CHECKED: &[ErrorCode] = &[ErrorCode::LayerViolation];
 
 /// A file after analysis, with the callables it declares.
 struct Analysed {
@@ -146,6 +142,8 @@ impl ConventionChecker {
         );
         if let Some(stored) = stored {
             findings.extend(self.outside((analysed, &items), stored, &inside)?);
+            let files: Vec<RelativePath> = analysed.iter().map(|done| done.path.clone()).collect();
+            findings.extend(layering(stored, &files)?);
         }
         findings.extend(inside);
         findings.retain(|finding| !self.allowed(analysed, root, finding));
@@ -160,7 +158,7 @@ impl ConventionChecker {
             files_checked: u32::try_from(analysed.len()).unwrap_or(u32::MAX),
             findings,
             unchecked,
-            not_checked: not_checked(analysed),
+            not_checked: not_checked(analysed, stored),
             unmatched,
         })
     }
@@ -205,11 +203,14 @@ impl ConventionChecker {
     }
 }
 
-/// The rules this check did not (fully) check: the fixed ones, and the cognitive complexity, the
-/// parameters and the literals when a function of a language whose pack does not report them was
-/// among the files.
-fn not_checked(analysed: &[Analysed]) -> Vec<ErrorCode> {
-    let mut rules = NOT_CHECKED.to_vec();
+/// The rules this check did not (fully) check: the layering without a stored project that sets
+/// limits between its layers (ADR 0082), and the cognitive complexity, the parameters and the
+/// literals when a function of a language whose pack does not report them was among the files.
+fn not_checked(analysed: &[Analysed], stored: Option<&StoredProject<'_>>) -> Vec<ErrorCode> {
+    let mut rules = Vec::new();
+    if !stored.is_some_and(|stored| can_be_checked(stored.layers)) {
+        rules.push(ErrorCode::LayerViolation);
+    }
     let all = || analysed.iter().flat_map(|done| &done.callables);
     if all().any(|callable| callable.cognitive.is_none()) {
         rules.push(ErrorCode::ComplexityTooHigh);
