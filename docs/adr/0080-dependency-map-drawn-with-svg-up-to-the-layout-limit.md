@@ -1,4 +1,4 @@
-# 0078 – The dependency map is drawn with SVG up to the layout limit, canvas follows after 1.0
+# 0080 – The dependency map is drawn with SVG up to the layout limit, canvas follows after 1.0
 
 Status: accepted (Anton, 2026-11-21; issue #198)
 
@@ -18,6 +18,6 @@ Drawing on canvas looks the same when done well, but costs the elements: boxes a
 
 ## Consequences
 
-- Blueprint 15.5 changes: "Graph layout is computed in Rust and drawn with SVG up to 200 nodes; beyond that on canvas (ADR 0078)."
+- Blueprint 15.5 changes: "Graph layout is computed in Rust and drawn with SVG up to 200 nodes; beyond that on canvas (ADR 0080)."
 - `docs/ui.md` and `docs/graph-layout.md` no longer list the SVG drawing as an unexplained deviation.
 - Issue #198 is closed; the canvas work becomes its own issue after 1.0.

@@ -900,7 +900,7 @@ In Hell, `good-bg` is `#EAF7EF`; the value `#E7F6EC` of the first mock version r
 ### 15.5 Performance rules for the UI
 
 - Trees, tables and hit lists are virtualised.
-- Graph layout is computed in Rust and drawn with SVG up to 200 nodes, beyond that on canvas (ADR 0078).
+- Graph layout is computed in Rust and drawn with SVG up to 200 nodes, beyond that on canvas (ADR 0080).
 - No request on hover beyond the first; preview data comes from the read models and is cached per snapshot.
 - The status bar shows real measurements, not decoration.
 
