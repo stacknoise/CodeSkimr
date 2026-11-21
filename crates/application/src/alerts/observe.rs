@@ -9,7 +9,7 @@ use crate::ports::{ContentDigest, SymbolState, SymbolStates};
 use super::target;
 
 /// Kinds that had no signature before functions and methods got one.
-const CALLABLES: [SymbolKind; 3] = [
+const CALLABLES: &[SymbolKind] = &[
     SymbolKind::Function,
     SymbolKind::Method,
     SymbolKind::Constructor,
