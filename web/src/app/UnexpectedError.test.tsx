@@ -57,7 +57,7 @@ describe("UnexpectedError", () => {
     vi.stubGlobal("navigator", {});
     renderBroken();
     fireEvent.click(screen.getByRole("button", { name: "Copy details" }));
-    const box = screen.getByRole("textbox", { name: "Copy details" }) as HTMLTextAreaElement;
+    const box = screen.getByRole("textbox", { name: "Details to copy" }) as HTMLTextAreaElement;
     expect(box.value).toContain("code=UI-901");
     vi.unstubAllGlobals();
   });

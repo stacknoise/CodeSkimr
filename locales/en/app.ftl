@@ -32,3 +32,4 @@ app-error-title = Something went wrong
 app-error-copy = Copy details
 app-error-copied = Copied
 app-error-retry = Try again
+app-error-details = Details to copy

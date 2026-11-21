@@ -8,8 +8,8 @@
 use std::path::{Path, PathBuf};
 
 use crate::consts::{
-    GENERATED_MARKER, INLINE_TEST_MARKER, SCANNED_DIRS, SKIPPED_DIRS, SKIPPED_FILE_PARTS,
-    SOURCE_EXTENSIONS, TEST_MODULE_START, VARIANT_PATH,
+    BODY_OPEN, GENERATED_MARKER, INLINE_TEST_MARKER, MODULE_KEYWORD, SCANNED_DIRS, SKIPPED_DIRS,
+    SKIPPED_FILE_PARTS, SOURCE_EXTENSIONS, STATEMENT_END, VARIANT_PATH,
 };
 use crate::registry::{Code, Registry};
 
@@ -90,15 +90,22 @@ fn read_source(root: &Path, path: &Path, sources: &mut Vec<Source>, problems: &m
     }
 }
 
+/// `true` when `rest`, the text after `#[cfg(test)]`, opens a module with a body: `mod name {` or
+/// `pub(crate) mod name {`. A declaration that ends in `;`, an import or a function does not.
+fn opens_test_module(rest: &str) -> bool {
+    let head = rest.trim_start();
+    let end = head.find([BODY_OPEN, STATEMENT_END]).unwrap_or(head.len());
+    let (declaration, delimiter) = head.split_at(end);
+    let is_module = declaration
+        .split_whitespace()
+        .any(|word| word == MODULE_KEYWORD);
+    is_module && delimiter.starts_with(BODY_OPEN)
+}
+
 /// The text up to the first inline test module; test modules close a Rust file by convention.
-/// A `#[cfg(test)]` on an import or a function does not start one.
 fn without_inline_tests(text: &str) -> &str {
     text.match_indices(INLINE_TEST_MARKER)
-        .find(|(at, _)| {
-            text[at + INLINE_TEST_MARKER.len()..]
-                .trim_start()
-                .starts_with(TEST_MODULE_START)
-        })
+        .find(|(at, _)| opens_test_module(&text[at + INLINE_TEST_MARKER.len()..]))
         .map_or(text, |(at, _)| &text[..at])
 }
 

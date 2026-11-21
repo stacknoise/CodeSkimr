@@ -96,3 +96,16 @@ fn a_test_attribute_on_an_import_does_not_hide_the_code_below() {
     let found = unused_codes(&registry(), &source(text));
     assert!(found.iter().all(|p| !p.contains("SRC-201")));
 }
+
+#[test]
+fn a_test_module_declaration_without_a_body_does_not_hide_the_code_below() {
+    let text = "#[cfg(test)]\nmod x;\nmod y;\nfn main() { ErrorCode::SourcePathNotFound; }";
+    let found = unused_codes(&registry(), &source(text));
+    assert!(found.iter().all(|p| !p.contains("SRC-201")));
+}
+
+#[test]
+fn a_restricted_test_module_with_a_body_at_the_end_does_not_count() {
+    let text = "fn f() {}\n#[cfg(test)]\npub(crate) mod tests {\n fn t() { ErrorCode::SourcePathNotFound; }\n}";
+    assert_eq!(unused_codes(&registry(), &source(text)).len(), 2);
+}

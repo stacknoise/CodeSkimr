@@ -32,3 +32,4 @@ app-error-title = Etwas ist schiefgelaufen
 app-error-copy = Details kopieren
 app-error-copied = Kopiert
 app-error-retry = Erneut versuchen
+app-error-details = Details zum Kopieren

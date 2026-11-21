@@ -150,6 +150,7 @@ export const I18N_KEYS = {
   APP_ERROR_COPY: "app-error-copy",
   APP_ERROR_COPIED: "app-error-copied",
   APP_ERROR_RETRY: "app-error-retry",
+  APP_ERROR_DETAILS: "app-error-details",
   CLI_ERROR_LINE: "cli-error-line",
   CLI_SCAN_STARTED: "cli-scan-started",
   CLI_SCAN_FINISHED: "cli-scan-finished",

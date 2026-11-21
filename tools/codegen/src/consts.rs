@@ -68,5 +68,9 @@ pub const GENERATED_MARKER: &str = "Do not edit.";
 pub const VARIANT_PATH: &str = "ErrorCode::";
 /// Starts the inline test module of a Rust file; what follows is test code.
 pub const INLINE_TEST_MARKER: &str = "#[cfg(test)]";
-/// What follows the marker when it opens a test module.
-pub const TEST_MODULE_START: &str = "mod ";
+/// The word that declares a module.
+pub const MODULE_KEYWORD: &str = "mod";
+/// Opens the body of a module.
+pub const BODY_OPEN: char = '{';
+/// Ends a declaration without a body.
+pub const STATEMENT_END: char = ';';

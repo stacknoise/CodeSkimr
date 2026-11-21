@@ -63,7 +63,7 @@ export function UnexpectedError(props: { error: unknown; reset: () => void }) {
           class={styles.details}
           readonly
           rows={DETAILS_ROWS}
-          aria-label={t(I18N_KEYS.APP_ERROR_COPY)}
+          aria-label={t(I18N_KEYS.APP_ERROR_DETAILS)}
           value={details()}
           onFocus={(event) => event.currentTarget.select()}
         />

@@ -10,7 +10,7 @@ The blueprint (11.2) says codes are never reused or renumbered and that a retire
 
 ## Options
 
-1. Raise the four codes somewhere. Nothing in the planned scope for 1.0 needs them: sources are local folders and `file://` (issue #388), there is no remote platform client, a second instance is handled without a user-facing error, and a stale read model is rebuilt silently.
+1. Raise the four codes somewhere. Nothing in the planned scope for 1.0 needs them. `NET-501` and `NET-502`: there is no client of a remote platform; sources are local folders and `file://` (issue #388). `APP-301`: the program has no detection of a second instance; a second one that wants the same address fails at `TcpListener::bind` in `crates/server/src/server.rs` (`BoundServer`, `ErrorCode::ServerBindFailed`). `IDX-301`: the read models are written in the same transaction as the snapshot (`ports/storage.rs`, "Writes `data` in one transaction, updates the read models"), so there is no state in which one is older than the snapshot.
 2. Remove them (ADR 0060). Smallest catalogue, but the numbers could come back with another meaning in a later PR by accident.
 3. Retire them with `deprecated = true`. The numbers stay reserved, messages stay, the check skips them.
 
