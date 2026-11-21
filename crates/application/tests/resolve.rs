@@ -456,8 +456,13 @@ mod tests {
     fn a_name_that_reaches_more_symbols_than_the_limit_is_given_up_and_counted() {
         let (table, call) = many_closers(3);
         let found = limited(2, &table, &call);
-        assert!(found.references.is_empty());
-        assert_eq!(found.given_up, 1);
+        assert_eq!(
+            found,
+            Resolution {
+                references: Vec::new(),
+                given_up: 1
+            }
+        );
     }
 
     #[test]
