@@ -1,4 +1,4 @@
-//! `CHK-103` against the stored project: a function that uses a layer its own layer may not use.
+//! `CHK-103` against the stored project: a symbol that uses a layer its own layer may not use.
 
 use std::collections::BTreeMap;
 
@@ -19,7 +19,7 @@ fn layer_of<'a>(layers: &'a [Layer], name: &QualifiedName) -> Option<&'a Layer> 
     layers.iter().find(|layer| layer.owns(name.as_str()))
 }
 
-/// What one finding is made of: the function and the layer it reaches into.
+/// What one finding is made of: the symbol and the layer it reaches into.
 type Key = (RelativePath, QualifiedName, String);
 
 /// One finding for every symbol and forbidden layer, with the number of references. Only the
@@ -62,7 +62,7 @@ pub(super) fn layering(
         .collect())
 }
 
-/// The layer of the function and the layer it reaches into, if the reference leaves what the
+/// The layer of the symbol and the layer it reaches into, if the reference leaves what the
 /// first one allows.
 fn violation<'a>(
     layers: &'a [Layer],
