@@ -107,6 +107,7 @@ cli-level2-declined = Nichts geändert: Stufe 2 bleibt für Projekt { $project }
 cli-level2-revoked = Stufe 2 ist für Projekt { $project } wieder verboten.
 cli-scan-warning-ambiguous-reference = Warnung RES-301: { $count } Stellen passen auf mehrere Symbole und sind als wahrscheinlich gespeichert.
 cli-scan-warning-other = Warnung { $code }: { $count }-mal.
+cli-scan-warning-files-left-out = Warnung { $code }: { $count } Dateien konnten nicht analysiert werden und fehlen im Ergebnis. Das Protokoll nennt jede Datei.
 cli-cmd-annotations = Notizen, Aufgaben und Kritisch-Markierungen an Symbolen
 cli-cmd-annotations-list = Die Anmerkungen eines Projekts auflisten
 cli-cmd-annotations-add = Einem Symbol eine Kritisch-Markierung, eine Notiz oder eine Aufgabe hinzufügen

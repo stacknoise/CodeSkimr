@@ -48,7 +48,8 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 | `CLI-103` | es konnte kein Geheimnis gelesen werden, oder es war leer | per Pipe übergeben oder am Prompt eingeben |
 | `SRC-501` | die Quelle oder eine Datei ist zu groß | `scan.max_source_mb` erhöhen oder Ordner ausschließen (`scan.excluded_folders`) |
 | `PRS-201` | kein Sprachpaket für einen Dateityp | die Dateien dieses Typs werden nicht analysiert; Paket installieren |
-| `PRS-501` | eine Datei brauchte zu lange zum Parsen | `scan.parse_timeout_ms` erhöhen, wenn die Datei in Ordnung ist |
+| `PRS-501` | eine Datei brauchte zu lange zum Parsen und fehlt im Ergebnis; der Scan läuft weiter | `scan.parse_timeout_ms` erhöhen, wenn die Datei in Ordnung ist |
+| `PRS-101` | eine Datei ist kein gültiges UTF-8 oder UTF-16 und fehlt im Ergebnis; der Scan läuft weiter | die Datei als UTF-8 speichern; das Protokoll nennt sie |
 | `CFG-101`, `CFG-102`, `CFG-103` | ungültiger Wert, nicht lesbare Datei, unbekannter Schlüssel in der Konfiguration | die in der Meldung genannte Einstellung korrigieren |
 | `CFG-104` | die Datei `.codeskimr.toml` ließ sich beim Speichern der Schichten in der Oberfläche nicht schreiben | Projektordner beschreibbar machen oder die `[[layers]]`-Tabellen von Hand eintragen |
 | `CFG-105` | Ebene 2 ist in der Benutzerkonfiguration nicht eingeschaltet | `[level2]` / `enabled = true` in die eigene `config.toml` schreiben; CodeSkimr tut das nie selbst |

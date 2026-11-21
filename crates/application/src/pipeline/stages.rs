@@ -8,17 +8,17 @@ use std::thread;
 use std::time::Instant;
 
 use codeskimr_domain::{
-    CommitHash, FileId, FolderPath, LanguageId, Metric, Project, Reference, ScanMode, Snapshot,
-    SnapshotId, SnapshotStats, SourceFile, Symbol, SymbolCounts, SymbolOrigin, Timestamp,
+    CommitHash, FileId, FolderPath, LanguageId, Metric, Project, Reference, RelativePath, ScanMode,
+    Snapshot, SnapshotId, SnapshotStats, SourceFile, Symbol, SymbolCounts, SymbolOrigin, Timestamp,
 };
 
-use codeskimr_codes::ErrorCode;
+use codeskimr_codes::{Coded, ErrorCode};
 
 use super::carry::Carried;
 use super::flow::{Interruption, Stage, StageContext};
 use crate::consts::{
-    DONE_STEP, FILE_ID_BLOCK, FIRST_INDEX, INDEX_STEP, LOG_SCAN_WARNING, LOG_VERIFIED_DISCARDED,
-    MIN_WORKERS, NONE_DONE,
+    DONE_STEP, FILE_ID_BLOCK, FIRST_INDEX, INDEX_STEP, LOG_FILE_SKIPPED, LOG_SCAN_WARNING,
+    LOG_VERIFIED_DISCARDED, MIN_WORKERS, NONE_DONE, SKIPPED_STEP,
 };
 use crate::error::CodedError;
 use crate::ids::IdSequence;
@@ -65,6 +65,8 @@ pub struct ScanRun {
     /// Time spent analysing (parse, symbols, metrics, fingerprints), summed over the files of each
     /// language in microseconds; set by the analyze stage, empty in an incremental scan.
     pub parse_micros: Vec<(LanguageId, u64)>,
+    /// The files the analyze stage left out, as one warning per code with the number of files.
+    pub skipped: Vec<ScanWarning>,
 }
 
 /// Output of the discover stage.
@@ -180,6 +182,7 @@ impl Stage for FetchStage {
             commit: fetched.commit,
             naming_rules: String::new(),
             parse_micros: Vec::new(),
+            skipped: Vec::new(),
         })
         .inspect(|_| ctx.progress(1, 1))
     }
@@ -326,20 +329,61 @@ impl Stage for AnalyzeStage {
             carried,
         };
         let mut times: BTreeMap<LanguageId, u64> = BTreeMap::new();
-        for (facts, micros) in self.analyze_all(&run, &due, ctx)? {
-            *times.entry(facts.file.language.clone()).or_default() += micros;
-            out.files.push(facts.file);
-            out.symbols.extend(facts.symbols);
-            out.pending.extend(facts.pending);
-            out.counts.extend(facts.counts);
-            out.fingerprints.extend(facts.fingerprints);
-            out.hashes.extend(facts.hashes);
+        for outcome in self.analyze_all(&run, &due, ctx)? {
+            match outcome {
+                Outcome::Done(facts, micros) => {
+                    *times.entry(facts.file.language.clone()).or_default() += micros;
+                    out.take(*facts);
+                }
+                Outcome::Skipped(path, code) => out.skip(path, code),
+            }
         }
         if run.mode == ScanMode::Full {
             out.run.parse_micros = times.into_iter().collect();
         }
         Ok(out)
     }
+}
+
+impl Analyzed {
+    /// Adds the facts of one analysed file.
+    fn take(&mut self, facts: FileFacts) {
+        self.files.push(facts.file);
+        self.symbols.extend(facts.symbols);
+        self.pending.extend(facts.pending);
+        self.counts.extend(facts.counts);
+        self.fingerprints.extend(facts.fingerprints);
+        self.hashes.extend(facts.hashes);
+    }
+
+    /// Leaves the file at `path` out of the snapshot and counts it under `code`. An incremental
+    /// scan must not keep what the previous snapshot knew of it either, because that is stale.
+    fn skip(&mut self, path: RelativePath, code: ErrorCode) {
+        self.carried.removed.push(path);
+        match self.run.skipped.iter_mut().find(|known| known.code == code) {
+            Some(known) => known.count += SKIPPED_STEP,
+            None => self.run.skipped.push(ScanWarning {
+                code,
+                count: SKIPPED_STEP,
+            }),
+        }
+    }
+}
+
+/// Whether a failure with `code` concerns the one file only. Such a file is left out and the scan
+/// goes on; any other failure (a broken language pack, a bug) stops the scan.
+fn leaves_file_out(code: ErrorCode) -> bool {
+    ScanWarning::FILE_LEFT_OUT.contains(&code)
+}
+
+/// The outcome for a file that is left out, with a log line that names it.
+fn skipped(file: &DiscoveredFile, code: ErrorCode) -> Outcome {
+    tracing::warn!(
+        event = LOG_FILE_SKIPPED,
+        code = code.id(),
+        path = file.path.as_str()
+    );
+    Outcome::Skipped(file.path.clone(), code)
 }
 
 /// The failure for a worker that panicked.
@@ -359,10 +403,15 @@ struct Shared {
 }
 
 /// The result of one file, with the index of the file in the list of due files.
-type Slot = (usize, Result<Timed, Interruption>);
+type Slot = (usize, Result<Outcome, Interruption>);
 
-/// The facts of one file with the microseconds its analysis took.
-type Timed = (FileFacts, u64);
+/// What became of one file in the analyze stage.
+enum Outcome {
+    /// The facts of the file with the microseconds its analysis took.
+    Done(Box<FileFacts>, u64),
+    /// The file was left out of the snapshot; the code says why.
+    Skipped(RelativePath, ErrorCode),
+}
 
 impl Shared {
     /// First id of the block of the file at `index`.
@@ -384,7 +433,7 @@ impl AnalyzeStage {
         run: &ScanRun,
         due: &[&DiscoveredFile],
         ctx: &StageContext<'_>,
-    ) -> Result<Vec<Timed>, Interruption> {
+    ) -> Result<Vec<Outcome>, Interruption> {
         let shared = Shared {
             next: AtomicUsize::new(FIRST_INDEX),
             done: Mutex::new(NONE_DONE),
@@ -441,7 +490,7 @@ impl AnalyzeStage {
         file: &DiscoveredFile,
         first_id: u64,
         ctx: &StageContext<'_>,
-    ) -> Result<Timed, Interruption> {
+    ) -> Result<Outcome, Interruption> {
         if ctx.is_cancelled() {
             return Err(Interruption::Cancelled);
         }
@@ -453,12 +502,16 @@ impl AnalyzeStage {
             ids: &ids,
         };
         let started = Instant::now();
-        let facts = self.analyzer.analyze(&request)?;
+        let facts = match self.analyzer.analyze(&request) {
+            Ok(facts) => facts,
+            Err(cause) if leaves_file_out(cause.code()) => return Ok(skipped(file, cause.code())),
+            Err(cause) => return Err(cause.into()),
+        };
         let micros = u64::try_from(started.elapsed().as_micros()).unwrap_or(u64::MAX);
         if ids.peek() - first_id > FILE_ID_BLOCK {
             return Err(internal_failure());
         }
-        Ok((facts, micros))
+        Ok(Outcome::Done(Box::new(facts), micros))
     }
 }
 
@@ -639,7 +692,8 @@ impl Stage for PersistStage {
         ctx.progress(0, 1);
         let root = input.run.root.clone();
         let snapshot = snapshot_of(&input, self.clock.now());
-        let warnings = warnings_of(&input.references, &input.carried.references);
+        let mut warnings = warnings_of(&input.references, &input.carried.references);
+        warnings.extend(input.run.skipped.iter().copied());
         let data = SnapshotData {
             snapshot,
             files: input.files,

@@ -129,9 +129,16 @@ mod cases {
         ];
         let en = scan_finished(&messages, "en", &with).unwrap();
         assert!(en.contains("RES-301: 12 places"), "{en}");
-        assert!(en.contains("PRS-101: 3 times"), "{en}");
+        assert!(
+            en.contains("PRS-101: 3 files could not be analysed"),
+            "{en}"
+        );
         let de = scan_finished(&messages, "de", &with).unwrap();
         assert!(de.contains("RES-301: 12 Stellen"), "{de}");
+        assert!(
+            de.contains("PRS-101: 3 Dateien konnten nicht analysiert"),
+            "{de}"
+        );
         assert!(scan_json(&with).unwrap().contains("\"RES-301\""));
     }
 

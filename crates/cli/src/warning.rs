@@ -1,7 +1,10 @@
 //! The lines of a scan summary for the warnings of the scan, one per code with a count.
 
+use codeskimr_application::ports::ScanWarning;
 use codeskimr_codes::ErrorCode;
-use codeskimr_codes::i18n::{CLI_SCAN_WARNING_AMBIGUOUS_REFERENCE, CLI_SCAN_WARNING_OTHER};
+use codeskimr_codes::i18n::{
+    CLI_SCAN_WARNING_AMBIGUOUS_REFERENCE, CLI_SCAN_WARNING_FILES_LEFT_OUT, CLI_SCAN_WARNING_OTHER,
+};
 use codeskimr_i18n::{FluentArgs, FluentValue, I18nError, Messages};
 use serde::Serialize;
 
@@ -17,6 +20,13 @@ pub struct WarningLine {
 }
 
 impl WarningLine {
+    /// Whether the warning counts files that the scan left out.
+    fn is_file_left_out(&self) -> bool {
+        ScanWarning::FILE_LEFT_OUT
+            .iter()
+            .any(|code| code.id() == self.code)
+    }
+
     /// The line for the user.
     ///
     /// # Errors
@@ -26,6 +36,9 @@ impl WarningLine {
         args.set(arg::COUNT, FluentValue::from(self.count));
         let key = if self.code == ErrorCode::AmbiguousReference.id() {
             CLI_SCAN_WARNING_AMBIGUOUS_REFERENCE
+        } else if self.is_file_left_out() {
+            args.set(arg::CODE, self.code.clone());
+            CLI_SCAN_WARNING_FILES_LEFT_OUT
         } else {
             args.set(arg::CODE, self.code.clone());
             CLI_SCAN_WARNING_OTHER

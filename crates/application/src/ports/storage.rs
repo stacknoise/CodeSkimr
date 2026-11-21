@@ -64,6 +64,17 @@ pub struct ScanWarning {
     pub count: u64,
 }
 
+impl ScanWarning {
+    /// The codes of failures that concern one file only: its encoding, the time its parsing took,
+    /// or that it could not be read any more. The scan leaves such a file out and goes on; the
+    /// warning counts the files. Any other failure of the analysis stops the scan.
+    pub const FILE_LEFT_OUT: &[ErrorCode] = &[
+        ErrorCode::FileEncodingUnsupported,
+        ErrorCode::ParseTimeout,
+        ErrorCode::SourcePathNotFound,
+    ];
+}
+
 /// Symbols and references of the newest snapshot of a project, the starting point of an
 /// incremental scan.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -205,6 +216,16 @@ pub trait SnapshotStore: Send + Sync {
     /// `STO-901` if the snapshot is not the newest of its project or the data does not fit it;
     /// nothing is changed then.
     fn replace_level2(&self, replacement: Level2Replacement) -> Result<Snapshot, CodedError>;
+
+    /// The first id that is higher than every stored id. The scanner moves its id sequence up to
+    /// it when a scan starts, so ids that another process wrote in the meantime are not handed
+    /// out again. The default knows no stored id and leaves the sequence where it is.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn next_free_id(&self) -> Result<u64, CodedError> {
+        Ok(u64::MIN)
+    }
 }
 
 /// Removes a project and everything stored about it.

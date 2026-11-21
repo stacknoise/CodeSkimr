@@ -19,7 +19,9 @@ use super::stages::{
 use crate::access;
 use crate::alerts::AlertStep;
 use crate::cancel::CancelToken;
-use crate::consts::{LOG_ALERT_STEP_FAILED, LOG_ALERTS_CHECKED, LOG_REPORT_NOT_STORED};
+use crate::consts::{
+    LOG_ALERT_STEP_FAILED, LOG_ALERTS_CHECKED, LOG_IDS_NOT_CAUGHT_UP, LOG_REPORT_NOT_STORED,
+};
 use crate::error::CodedError;
 use crate::events::{Event, EventBus, Level2Finished, ScanStopped, SnapshotCreated, StopReason};
 use crate::ids::IdSequence;
@@ -81,10 +83,13 @@ pub struct Scanner {
     alerts: Option<AlertStep>,
     reports: Option<ReportStep>,
     analyzer: Arc<dyn FileAnalyzer>,
+    ids: Arc<IdSequence>,
+    store: Arc<dyn SnapshotStore>,
 }
 
 impl Scanner {
-    /// Wires the six stages from `ports`; `ids` must continue after the highest stored id.
+    /// Wires the six stages from `ports`. `ids` is moved up to the store when a scan starts, so it
+    /// only has to be shared by the scanners that write to the same store in this process.
     #[must_use]
     pub fn new(ports: ScannerPorts, ids: &Arc<IdSequence>, events: EventBus) -> Self {
         let pipeline = Pipeline::new(FetchStage {
@@ -111,7 +116,7 @@ impl Scanner {
             calculator: ports.metrics,
         })
         .then(PersistStage {
-            store: ports.store,
+            store: Arc::clone(&ports.store),
             clock: ports.clock,
         });
         Self {
@@ -122,6 +127,8 @@ impl Scanner {
             alerts: None,
             reports: None,
             analyzer: ports.analyzer,
+            ids: Arc::clone(ids),
+            store: ports.store,
         }
     }
 
@@ -170,6 +177,9 @@ impl Scanner {
             Ok(project) => project,
             Err(cause) => return self.fail(job.fail(cause.code()), project_id),
         };
+        if let Err(cause) = self.catch_up() {
+            return self.fail(job.fail(cause.code()), project_id);
+        }
         let trigger = trigger_of(&project.source, job.trigger());
         let ctx = StageContext::new(project_id, job.token(), &self.events);
         match self.pipeline.run(
@@ -187,6 +197,14 @@ impl Scanner {
             }
             Err(Halt::Failed(error)) => self.fail(job.fail(error.code()), project_id),
         }
+    }
+
+    /// Moves the id sequence above every stored id. Another process (a scan in the terminal while
+    /// the app or an MCP server runs) may have written rows since this scanner was built; without
+    /// this its ids would be handed out a second time and the snapshot would be refused.
+    fn catch_up(&self) -> Result<(), CodedError> {
+        self.ids.advance_to(self.store.next_free_id()?);
+        Ok(())
     }
 
     /// Level 1 is complete and usable now; level 2 may take minutes. Tells so, runs the second
@@ -265,6 +283,9 @@ impl Scanner {
         let Some(pass) = &self.level2 else {
             return Vec::new();
         };
+        if let Err(cause) = self.catch_up() {
+            tracing::warn!(event = LOG_IDS_NOT_CAUGHT_UP, code = cause.code().id());
+        }
         let done = pass.run(run.principal, run.snapshot, run.root, run.cancel);
         if done.snapshot != *run.snapshot {
             self.created(&done.snapshot, Duration::ZERO);

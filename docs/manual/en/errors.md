@@ -48,7 +48,8 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | `CLI-103` | no secret could be read, or it was empty | pipe it in or type it at the prompt |
 | `SRC-501` | the source or a file is too large | raise `scan.max_source_mb` or exclude folders (`scan.excluded_folders`) |
 | `PRS-201` | no language pack for a file type | the files of that type are not analysed; install the pack |
-| `PRS-501` | a file took too long to parse | raise `scan.parse_timeout_ms` if the file is legitimate |
+| `PRS-501` | a file took too long to parse and is missing in the result; the scan goes on | raise `scan.parse_timeout_ms` if the file is legitimate |
+| `PRS-101` | a file is not valid UTF-8 or UTF-16 and is missing in the result; the scan goes on | save the file as UTF-8; the log names it |
 | `CFG-101`, `CFG-102`, `CFG-103` | invalid value, unreadable file, unknown key in the configuration | correct the setting named in the message |
 | `CFG-104` | the file `.codeskimr.toml` could not be written when layers were saved in the UI | make the project folder writable, or write the `[[layers]]` tables by hand |
 | `CFG-105` | level 2 is not enabled in the user configuration | put `[level2]` / `enabled = true` into your `config.toml`; CodeSkimr never does it for you |

@@ -92,6 +92,10 @@ pub const FEATURE_BAND_SIZE: u32 = 100;
 
 /// The event name of the log line for a warning of a scan.
 pub const LOG_SCAN_WARNING: &str = "scan_warning";
+/// Log event: a file was left out of the snapshot because it alone could not be analysed.
+pub const LOG_FILE_SKIPPED: &str = "scan_file_skipped";
+/// One more file left out under a code.
+pub const SKIPPED_STEP: u64 = 1;
 
 /// Log event: references that level 2 had verified were discarded because their target is gone.
 pub const LOG_VERIFIED_DISCARDED: &str = "verified_references_discarded";
@@ -103,6 +107,8 @@ pub const LOG_ALERTS_CHECKED: &str = "alerts_checked";
 pub const LOG_ALERT_STEP_FAILED: &str = "alert_step_failed";
 /// Log event: the report of a scan could not be stored (`PRJ-502`).
 pub const LOG_REPORT_NOT_STORED: &str = "scan_report_not_stored";
+/// Log event: the id sequence could not be moved up to the store before level 2 ran.
+pub const LOG_IDS_NOT_CAUGHT_UP: &str = "ids_not_caught_up";
 
 /// Wire word of `TokenClass::Comment`.
 pub const TOKEN_COMMENT: &str = "comment";
