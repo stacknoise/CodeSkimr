@@ -159,7 +159,10 @@ fn only_an_overloaded_member_names_the_parameters_of_its_signature() {
     assert_eq!(overload_parameters(&rows[0], &rows), ["int x"]);
     assert_eq!(overload_parameters(&rows[1], &rows), ["int x", "string s"]);
     // Same name but another kind: no overload.
-    assert!(overload_parameters(&rows[2], &rows).is_empty());
+    assert_eq!(overload_parameters(&rows[2], &rows), Vec::<String>::new());
     // Alone, it names none: its annotations keep the key without parameters.
-    assert!(overload_parameters(&rows[0], &rows[..1]).is_empty());
+    assert_eq!(
+        overload_parameters(&rows[0], &rows[..1]),
+        Vec::<String>::new()
+    );
 }
