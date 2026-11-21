@@ -152,7 +152,8 @@ pub(crate) fn reference_pairs(
     let mut rows = prepared.query(params![snapshot, ReferenceKind::Test.label()])?;
     let mut found = BTreeSet::new();
     while let Some(row) = rows.next()? {
-        let (file, from, to): (i64, i64, i64) = (row.get(0)?, row.get(1)?, row.get(2)?);
+        let cols = Cols::new(row);
+        let (file, from, to): (i64, i64, i64) = (cols.take()?, cols.take()?, cols.take()?);
         if files.contains(&file) && symbols.contains(&to) && !skipped.contains(&from) {
             found.insert((id_from(from)?, id_from(to)?));
         }
