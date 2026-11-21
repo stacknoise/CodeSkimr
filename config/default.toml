@@ -121,7 +121,7 @@ test_folders = ["tests", "benches"]
 [scan]
 # Folder names that are never scanned, at any depth.
 excluded_folders = ["bin", "obj", ".git", "node_modules", "target", "dist"]
-# The next two limits protect the machine that scans: the `.codeskimr.toml` of a scanned project may
+# Three limits protect the machine that scans (parse_timeout_ms, max_source_mb, max_candidates): the `.codeskimr.toml` of a scanned project may
 # lower them but not raise them above what the defaults and the user config file say. Only the user
 # config file and command line flags can raise them.
 # Time limit for parsing one file, in milliseconds; a file that takes longer is left out (PRS-501).
@@ -134,6 +134,11 @@ max_source_mb = 2048
 # Longest signature of a symbol, in characters. A constant's signature is its whole declaration with
 # the value, so a large object or array literal is cut here and ends with "…".
 max_signature_chars = 400
+# Level 1 gives up a place in the code whose name reaches more than this many symbols only through the name
+# alone (a property `id`, a call `dispose()` on a receiver of unknown type): such a place is no usage of any
+# one of them. It is counted and reported as RES-304; level 2 resolves it exactly (ADR 0084). A place that
+# scope, receiver type or imports narrow down is never given up, however many candidates it has.
+max_candidates = 100
 # Most files that a scan names when it had to leave them out (wrong encoding, parse time limit, not
 # readable); the summary counts the others.
 max_left_out_listed = 20

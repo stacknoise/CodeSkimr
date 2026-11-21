@@ -403,7 +403,7 @@ Name resolution is based on Tree-sitter, in this order:
 
 - A reference resolved through steps 1–4 is `certain`.
 - A reference resolved through step 5, through an interface or base-class dispatch, or with several candidates is `probable`. It points to all candidates.
-- **Level 1 never drops a candidate** (ADR 0033). A name that matches members of unrelated types is reported for all of them, as `probable`. A missing usage makes an impact analysis worthless, so recall ranks above precision here; level 1 makes up for it by marking what it found as unchecked (section 9.4).
+- **Level 1 never drops a candidate** (ADR 0033). A name that matches members of unrelated types is reported for all of them, as `probable`. A missing usage makes an impact analysis worthless, so recall ranks above precision here; level 1 makes up for it by marking what it found as unchecked (section 9.4). Bound (ADR 0084): a place that reaches more than `scan.max_candidates` (default 100) symbols through the bare name alone (step 5, or a receiver of unknown type) is given up, counted and reported as `RES-304`; a place that a scope, a receiver type or an import narrows down is never given up.
 
 ### 9.3 Level 2 – compiler-precise (before 1.0, optional, off by default)
 
@@ -746,7 +746,7 @@ fn login_with_retry(store: &impl CredentialStore, client: &impl LoginClient, id:
   - level 2 (`level2.*`: switch, time, memory and output limits, index size, share of mappable uses). Only the user config and CLI flags may set them; the project file cannot
   - excluded folders (`bin`, `obj`, `.git`, `node_modules`, `target`, `dist` …)
   - annotations (`annotations.*`, ADR 0068): `dismissed_retention_days` (30), `max_text_chars` (4000), `max_title_chars` (500), `max_assignee_chars` (100), `max_name_chars` (500), `max_parameter_chars` (200), `max_parameters` (32), `default_page_size` (100), `max_page_size` (500)
-- **Overrides,** applied in this order: user config file → project config (`.codeskimr.toml` in the repository) → CLI flags. The project config may only lower `scan.max_source_mb` and `scan.parse_timeout_ms`, not raise them above the value of the defaults and the user file, so that a scanned repository cannot lift the protection of the scanning machine (ADR 0040).
+- **Overrides,** applied in this order: user config file → project config (`.codeskimr.toml` in the repository) → CLI flags. The project config may only lower `scan.max_source_mb`, `scan.parse_timeout_ms` and `scan.max_candidates`, not raise them above the value of the defaults and the user file, so that a scanned repository cannot lift the protection of the scanning machine (ADR 0040).
 - **Typed config:** the config is deserialised into typed structs and validated at start-up. Invalid values produce `CFG-1xx` errors. There is no `config.get("string")` anywhere in the code.
 - **`consts.rs` / `consts.ts`:** technical constants that are not tunable. One file per crate or feature, never a global constants file.
 
@@ -1153,6 +1153,7 @@ This is the catalogue of `errors/error-codes.toml` as of 2026-11-14 (`docs/error
 | RES-301 | `ambiguous_reference` | A reference matches several symbols; it was stored as probable. (warning) |
 | RES-302 | `scip_mapping_too_low` | Too few occurrences of a SCIP index map onto project symbols; level 1 references stay. |
 | RES-303 | `scip_too_many_created_symbols` | A SCIP index wants level 2 to create more symbols than level2.max_created_symbols allows; the whole import is refused and level 1 stays. |
+| RES-304 | `name_too_common` | A name reaches more symbols than `scan.max_candidates` and nothing narrows it down; the place was given up (ADR 0084). (warning) |
 | RES-501 | `scip_index_too_large` | A SCIP index is larger than the configured limit and was refused; level 1 references stay. |
 | RES-502 | `indexer_timeout` | An indexer ran longer than level2.timeout_seconds and was stopped with all its child processes; level 1 references stay. |
 | RES-503 | `indexer_output_too_large` | An indexer wrote more than level2.max_output_bytes and was stopped; level 1 references stay. |

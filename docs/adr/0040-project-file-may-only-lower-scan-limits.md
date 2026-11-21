@@ -20,4 +20,5 @@ Option 3. While the layers are merged, a value of the project file for `scan.max
 
 - A scanned repository cannot raise the limits of the machine that scans it. A project that really is larger than 2048 MB needs `--set scan.max_source_mb=…` or an entry in the user file.
 - Other project file settings that act on the machine (`editor.allowed_schemes`, `ui.dir`, `server.port`) are not covered here and are tracked in a separate issue.
+- ADR 0084 adds `scan.max_candidates` to the list: a repository that raised it would bring back the memory explosion of a large TypeScript project. The project file can lower it, not raise it.
 - The rule is one function (`lower_only` in `crates/application/src/config/mod.rs`) with its tests; further limits join the list `LOWER_ONLY_SCAN_KEYS`.

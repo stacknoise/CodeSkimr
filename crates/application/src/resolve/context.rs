@@ -20,16 +20,19 @@ pub struct Context<'a> {
     pub(super) hierarchy: Hierarchy,
     /// The members that replace a member, by that member; valid for the hierarchy as it is now.
     pub(super) replacements: RefCell<HashMap<SymbolId, Vec<&'a Symbol>>>,
+    /// Most candidates a place may reach through the bare name.
+    pub(super) max_candidates: usize,
 }
 
 impl<'a> Context<'a> {
     /// Starts with an empty state over `table`.
-    pub fn new(table: SymbolTable<'a>) -> Self {
+    pub fn new(table: SymbolTable<'a>, max_candidates: usize) -> Self {
         Self {
             table,
             imports: HashMap::new(),
             hierarchy: Hierarchy::default(),
             replacements: RefCell::default(),
+            max_candidates,
         }
     }
 

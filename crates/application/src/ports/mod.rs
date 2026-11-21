@@ -32,7 +32,7 @@ mod version;
 
 pub use analysis::{
     AnalyzeRequest, FileAnalyzer, FileFacts, MetricsCalculator, PendingReference, Receiver,
-    ReferenceResolver, SnippetFingerprinter, SymbolFingerprints, SymbolHash,
+    ReferenceResolver, Resolution, SnippetFingerprinter, SymbolFingerprints, SymbolHash,
 };
 pub use annotations::{
     AlertDismissal, AlertFilter, AlertPurge, AlertRaise, AnnotationCreation, AnnotationFilter,

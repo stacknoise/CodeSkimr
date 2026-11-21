@@ -50,6 +50,7 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 | `PRS-501` | eine Datei brauchte zu lange zum Parsen und wurde ausgelassen; der Scan läuft weiter | `scan.parse_timeout_ms` erhöhen, wenn die Datei in Ordnung ist |
 | `PRS-101` | eine Datei ist kein gültiges UTF-8 oder UTF-16 und fehlt im Ergebnis; der Scan läuft weiter. Gilt das für alle Dateien, scheitert der Scan mit diesem Code | die genannte Datei als UTF-8 speichern |
 | `PRS-102` | eine Datei war während des Scans weg oder gesperrt und wurde ausgelassen; der Scan läuft weiter | erneut scannen, wenn die Datei wieder lesbar ist |
+| `RES-304` | ein Name trifft mehr Symbole als `scan.max_candidates` und nichts grenzt ihn ein; die Stelle wurde nicht zugeordnet (nur Warnung) | Stufe 2 aktivieren oder `scan.max_candidates` erhöhen (eigene Konfigurationsdatei) |
 | `CFG-101`, `CFG-102`, `CFG-103` | ungültiger Wert, nicht lesbare Datei, unbekannter Schlüssel in der Konfiguration | die in der Meldung genannte Einstellung korrigieren |
 | `CFG-104` | die Datei `.codeskimr.toml` ließ sich beim Speichern der Schichten in der Oberfläche nicht schreiben | Projektordner beschreibbar machen oder die `[[layers]]`-Tabellen von Hand eintragen |
 | `CFG-105` | Ebene 2 ist in der Benutzerkonfiguration nicht eingeschaltet | `[level2]` / `enabled = true` in die eigene `config.toml` schreiben; CodeSkimr tut das nie selbst |
