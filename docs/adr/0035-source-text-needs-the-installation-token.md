@@ -22,3 +22,7 @@ Option 2. The route checks the token for a command that is not `read_only` and f
 - `GET /api/v1/commands` still lists the command with `read_only: true`; the field means "does not change anything".
 - Only folder projects show source in 1.0. A Git project's clone lies in the cache folder and is not read from the UI yet.
 - The reader (`codeskimr_source::FolderText`) resolves the path and the root and refuses anything that lies outside the root, also through a link; files over 4 MiB are refused with `SRC-501`; a declaration is cut at 400 lines.
+
+## Amendment (2026-11-21, code review findings S1 and S2)
+
+Two commands that only read still gave away more than numbers and names. `export.html` dumps the whole index of a project in one go, and `credentials.list` names every login that the keystore holds. Both now declare the permission `read_source`, so the existing rule of `needs_token` applies to them without a new concept: the route wants the installation token, a caller without the right is refused. The browser UI holds the token and is not affected. `credentials.list` also no longer reads and decodes each credential to learn whether it exists: `CredentialStore::exists` only asks whether an entry is there: the OS keystore answers it from the attributes of the entry and, only if the platform store cannot, falls back to reading the bytes and wiping them at once; nothing is decoded and no credential is lent. The command still lists only the names that Git projects use, not every entry of the keystore.

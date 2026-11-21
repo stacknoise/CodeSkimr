@@ -5,6 +5,7 @@ export const ICON_SIZE = 20;
 export const ICON_SEARCH = "search";
 export const ICON_BRANCH = "branch";
 export const ICON_BELL = "bell";
+export const ICON_DOWNLOAD = "download";
 /** Sizes of the small icons of the top bar. */
 export const ICON_SIZE_SMALL = 13;
 export const ICON_SIZE_MEDIUM = 16;
@@ -35,6 +36,7 @@ export const ICON_PATHS = {
     "M16 7a2 2 0 1 0 4 0 2 2 0 1 0-4 0",
     "M6 7v10M18 9c0 5-12 3-12 8",
   ],
+  download: ["M12 4v11M7 10l5 5 5-5", "M5 20h14"],
   bell: ["M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8", "M10 20a2 2 0 0 0 4 0"],
   annotations: [
     "M9 6h11M9 12h11M9 18h11",

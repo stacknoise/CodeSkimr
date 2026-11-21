@@ -4,6 +4,8 @@
 
 ## Use
 
+In the browser UI the button "Export HTML" in the top bar (`web/src/features/export/`) and the quick-search entry "Export project as HTML" run `export.html` through the session of the UI (with its token) and hand the page to the browser as a download named after the project. Both need a scan.
+
 ```
 codeskimr export <project> --html <file>
 ```
@@ -19,7 +21,7 @@ codeskimr export <project> --html <file>
 
 ## Structure
 
-- The action is the registered command `export.html` (`crates/app/src/ui_commands/export.rs`, permission `read`). The CLI runs it through `Registry::execute`; the local server exposes it as `POST /api/v1/commands/export.html` and answers `{ "html": …, "symbols": … }`. It reads through the commands `explorer.outline`, `explorer.symbol`, `usages.query` and `graph.layers`, so the page shows exactly what the browser UI shows and nothing is computed twice.
+- The action is the registered command `export.html` (`crates/app/src/ui_commands/export.rs`, permission `read_source`, so the route needs the installation token). The CLI runs it through `Registry::execute`; the local server exposes it as `POST /api/v1/commands/export.html` and answers `{ "html": …, "symbols": … }`. It reads through the commands `explorer.outline`, `explorer.symbol`, `usages.query` and `graph.layers`, so the page shows exactly what the browser UI shows and nothing is computed twice.
 - The page is the built UI. `npm run build` in `web/` makes a second build (`vite build --mode export`, `web/vite.export.ts`) with the script, the styles and all assets inlined into `dist/export/export.html`. That file has one place for the data (`__CODESKIMR_EXPORT_DATA__`); the command finds it below `ui.dir`, in `export/export.html`, if that folder exists, and else in the files embedded in the program, and fills it. Without either the command stops with `EXP-201`.
 - In that build two modules of the UI are swapped: `shared/api/commands.ts` (the call of the server) for `export/commands.ts`, which answers from the embedded data, and `app/router.ts` for a router that keeps the screen in the address fragment (`#/graph`), because a file cannot take another path. The screens do not know the difference.
 - The data is JSON in a `<script type="application/json">` element. `<` is written as `<`, so no text of the project can end the element. The bundle is made safe for the same reason (`</script`, `<!--`).

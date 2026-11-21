@@ -27,6 +27,8 @@ use crate::serve::{Parts, serve_for_test, test_ui};
 use crate::ui_commands::command_api;
 
 const UI_DIR_VARIABLE: &str = "CODESKIMR_E2E_UI_DIR";
+/// The setting that names the UI folder, so that the export command finds its page there.
+const UI_DIR_KEY: &str = "ui.dir";
 const LAUNCH_COMMAND: &str = "launch";
 const RESET_COMMAND: &str = "reset";
 const RESET_DONE_LINE: &str = "E2E_RESET=done";
@@ -78,12 +80,20 @@ fn e2e_server() {
     let ui_dir = PathBuf::from(std::env::var(UI_DIR_VARIABLE).unwrap());
     let events = EventBus::new();
     let mut ui = test_ui();
+    // The export command reads its page from the same folder: a test build embeds no UI.
+    let options = GlobalOptions {
+        overrides: vec![(
+            UI_DIR_KEY.to_owned(),
+            format!("{:?}", ui_dir.display().to_string()),
+        )],
+        ..GlobalOptions::default()
+    };
     ui.dir = Some(ui_dir);
     let data = tempfile::tempdir().unwrap();
     let parts = Parts {
         ui,
         api: command_api(
-            &GlobalOptions::default(),
+            &options,
             &locations(data.path()),
             events.clone(),
             crate::memory_keystore::secrets(),
