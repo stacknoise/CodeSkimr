@@ -193,7 +193,7 @@
       "kind": "method",
       "name": "sample::Shop::Order::initialize",
       "parent": "sample::Shop::Order",
-      "signature": null,
+      "signature": "def initialize(id)",
       "span": "4:4-6:7",
       "static": false,
       "visibility": null
@@ -203,7 +203,7 @@
       "kind": "method",
       "name": "sample::Shop::Order::total",
       "parent": "sample::Shop::Order",
-      "signature": null,
+      "signature": "def total",
       "span": "9:4-15:7",
       "static": false,
       "visibility": null
@@ -213,7 +213,7 @@
       "kind": "method",
       "name": "sample::Shop::Order::build",
       "parent": "sample::Shop::Order",
-      "signature": null,
+      "signature": "def self.build(id)",
       "span": "17:4-19:7",
       "static": false,
       "visibility": null
@@ -223,7 +223,7 @@
       "kind": "function",
       "name": "sample::helper",
       "parent": "sample",
-      "signature": null,
+      "signature": "def helper(x)",
       "span": "23:0-25:3",
       "static": false,
       "visibility": null
@@ -233,7 +233,7 @@
       "kind": "function",
       "name": "sample::with_gem",
       "parent": "sample",
-      "signature": null,
+      "signature": "def with_gem",
       "span": "28:2-30:5",
       "static": false,
       "visibility": null
@@ -243,7 +243,7 @@
       "kind": "function",
       "name": "sample::without_gem",
       "parent": "sample",
-      "signature": null,
+      "signature": "def without_gem",
       "span": "32:2-34:5",
       "static": false,
       "visibility": null
@@ -253,7 +253,7 @@
       "kind": "function",
       "name": "sample::guarded",
       "parent": "sample",
-      "signature": null,
+      "signature": "def guarded",
       "span": "38:2-40:5",
       "static": false,
       "visibility": null
@@ -273,7 +273,7 @@
       "kind": "method",
       "name": "sample::Late::conditional",
       "parent": "sample::Late",
-      "signature": null,
+      "signature": "def conditional",
       "span": "47:4-49:7",
       "static": false,
       "visibility": null

@@ -306,7 +306,7 @@
       "kind": "constructor",
       "name": "Shop.Orders.Order.Order",
       "parent": "Shop.Orders.Order",
-      "signature": null,
+      "signature": "public Order(Printer printer, int total)",
       "span": "8:4-13:5",
       "static": false,
       "visibility": "public"
@@ -316,7 +316,7 @@
       "kind": "method",
       "name": "Shop.Orders.Order.Save",
       "parent": "Shop.Orders.Order",
-      "signature": null,
+      "signature": "public override void Save()",
       "span": "15:4-28:5",
       "static": false,
       "visibility": "public"

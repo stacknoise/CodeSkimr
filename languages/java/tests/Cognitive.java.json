@@ -396,7 +396,7 @@
       "kind": "constructor",
       "name": "demo.Cognitive.Cognitive",
       "parent": "demo.Cognitive",
-      "signature": null,
+      "signature": "public Cognitive(int a, String b)",
       "span": "7:4-11:5",
       "static": false,
       "visibility": "public"
@@ -406,7 +406,7 @@
       "kind": "method",
       "name": "demo.Cognitive.straight",
       "parent": "demo.Cognitive",
-      "signature": null,
+      "signature": "public int straight(int a)",
       "span": "13:4-15:5",
       "static": false,
       "visibility": "public"
@@ -416,7 +416,7 @@
       "kind": "method",
       "name": "demo.Cognitive.nested",
       "parent": "demo.Cognitive",
-      "signature": null,
+      "signature": "public int nested(int a, int b)",
       "span": "17:4-26:5",
       "static": false,
       "visibility": "public"
@@ -426,7 +426,7 @@
       "kind": "method",
       "name": "demo.Cognitive.chain",
       "parent": "demo.Cognitive",
-      "signature": null,
+      "signature": "public int chain(int a)",
       "span": "28:4-36:5",
       "static": false,
       "visibility": "public"
@@ -436,7 +436,7 @@
       "kind": "method",
       "name": "demo.Cognitive.runs",
       "parent": "demo.Cognitive",
-      "signature": null,
+      "signature": "public boolean runs(boolean a, boolean b, boolean c, boolean d)",
       "span": "38:4-40:5",
       "static": false,
       "visibility": "public"
@@ -446,7 +446,7 @@
       "kind": "method",
       "name": "demo.Cognitive.handler",
       "parent": "demo.Cognitive",
-      "signature": null,
+      "signature": "public int handler(String x)",
       "span": "42:4-51:5",
       "static": false,
       "visibility": "public"
@@ -456,7 +456,7 @@
       "kind": "method",
       "name": "demo.Cognitive.callbacks",
       "parent": "demo.Cognitive",
-      "signature": null,
+      "signature": "public void callbacks(List<Integer> items)",
       "span": "53:4-59:5",
       "static": false,
       "visibility": "public"
@@ -466,7 +466,7 @@
       "kind": "method",
       "name": "demo.Cognitive.branches",
       "parent": "demo.Cognitive",
-      "signature": null,
+      "signature": "public int branches(int a)",
       "span": "61:4-70:5",
       "static": false,
       "visibility": "public"
@@ -476,7 +476,7 @@
       "kind": "method",
       "name": "demo.Cognitive.loops",
       "parent": "demo.Cognitive",
-      "signature": null,
+      "signature": "public int loops(int a)",
       "span": "72:4-88:5",
       "static": false,
       "visibility": "public"
@@ -486,7 +486,7 @@
       "kind": "method",
       "name": "demo.Cognitive.method",
       "parent": "demo.Cognitive",
-      "signature": null,
+      "signature": "public int method(int a, String b, int c, int... rest)",
       "span": "90:4-92:5",
       "static": false,
       "visibility": "public"
@@ -496,7 +496,7 @@
       "kind": "method",
       "name": "demo.Cognitive.arrows",
       "parent": "demo.Cognitive",
-      "signature": null,
+      "signature": "public int arrows(int a)",
       "span": "94:4-100:5",
       "static": false,
       "visibility": "public"
@@ -506,7 +506,7 @@
       "kind": "method",
       "name": "demo.Cognitive.ternaries",
       "parent": "demo.Cognitive",
-      "signature": null,
+      "signature": "public int ternaries(int a, int b)",
       "span": "102:4-104:5",
       "static": false,
       "visibility": "public"
@@ -516,7 +516,7 @@
       "kind": "method",
       "name": "demo.Cognitive.deep",
       "parent": "demo.Cognitive",
-      "signature": null,
+      "signature": "public int deep(int a, int b)",
       "span": "106:4-117:5",
       "static": false,
       "visibility": "public"
@@ -526,7 +526,7 @@
       "kind": "method",
       "name": "demo.Cognitive.anonymous",
       "parent": "demo.Cognitive",
-      "signature": null,
+      "signature": "public int anonymous(int a)",
       "span": "119:4-128:5",
       "static": false,
       "visibility": "public"
@@ -536,7 +536,7 @@
       "kind": "method",
       "name": "demo.Cognitive.anonymous.run",
       "parent": "demo.Cognitive.anonymous",
-      "signature": null,
+      "signature": "public void run()",
       "span": "121:12-125:13",
       "static": false,
       "visibility": "public"

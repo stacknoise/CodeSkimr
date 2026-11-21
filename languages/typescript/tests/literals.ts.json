@@ -180,7 +180,7 @@
       "kind": "function",
       "name": "literals.clean",
       "parent": "literals",
-      "signature": null,
+      "signature": "function clean(items: number[]): number",
       "span": "3:7-9:1",
       "static": false,
       "visibility": "public"
@@ -190,7 +190,7 @@
       "kind": "function",
       "name": "literals.numbers",
       "parent": "literals",
-      "signature": null,
+      "signature": "function numbers(): number",
       "span": "11:7-13:1",
       "static": false,
       "visibility": "public"
@@ -200,7 +200,7 @@
       "kind": "function",
       "name": "literals.strings",
       "parent": "literals",
-      "signature": null,
+      "signature": "function strings(name: string): string",
       "span": "15:7-18:1",
       "static": false,
       "visibility": "public"
@@ -210,7 +210,7 @@
       "kind": "function",
       "name": "literals.types",
       "parent": "literals",
-      "signature": null,
+      "signature": "function types(kind: \"a\" | \"b\", count: 3 = 3): \"a\" | \"b\"",
       "span": "20:7-22:1",
       "static": false,
       "visibility": "public"
@@ -220,7 +220,7 @@
       "kind": "function",
       "name": "literals.flags",
       "parent": "literals",
-      "signature": null,
+      "signature": "function flags(value?: object): boolean",
       "span": "24:7-27:1",
       "static": false,
       "visibility": "public"
@@ -230,7 +230,7 @@
       "kind": "function",
       "name": "literals.register",
       "parent": "literals",
-      "signature": null,
+      "signature": "function register(items: string[]): void",
       "span": "29:0-32:1",
       "static": false,
       "visibility": "private"
@@ -260,7 +260,7 @@
       "kind": "method",
       "name": "literals.Holder.method",
       "parent": "literals.Holder",
-      "signature": null,
+      "signature": "method(): number[]",
       "span": "38:2-40:3",
       "static": false,
       "visibility": "public"
@@ -270,7 +270,7 @@
       "kind": "function",
       "name": "literals.localConst",
       "parent": "literals",
-      "signature": null,
+      "signature": "function localConst(): number",
       "span": "43:7-48:1",
       "static": false,
       "visibility": "public"

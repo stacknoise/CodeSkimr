@@ -100,7 +100,7 @@
       "kind": "function",
       "name": "literals.defaults",
       "parent": "literals",
-      "signature": null,
+      "signature": "function defaults(n = 5, { a = 6 } = {})",
       "span": "3:7-5:1",
       "static": false,
       "visibility": "public"
@@ -110,7 +110,7 @@
       "kind": "function",
       "name": "literals.constants",
       "parent": "literals",
-      "signature": null,
+      "signature": "function constants()",
       "span": "7:7-11:1",
       "static": false,
       "visibility": "public"
@@ -120,7 +120,7 @@
       "kind": "function",
       "name": "literals.tagged",
       "parent": "literals",
-      "signature": null,
+      "signature": "function tagged()",
       "span": "13:7-15:1",
       "static": false,
       "visibility": "public"
@@ -130,7 +130,7 @@
       "kind": "function",
       "name": "literals.view",
       "parent": "literals",
-      "signature": null,
+      "signature": "function view()",
       "span": "17:7-19:1",
       "static": false,
       "visibility": "public"

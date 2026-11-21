@@ -316,7 +316,7 @@
       "kind": "constructor",
       "name": "Shop.Orders.Cart.Cart",
       "parent": "Shop.Orders.Cart",
-      "signature": null,
+      "signature": "public Cart(int id) : base(id)",
       "span": "10:4-10:38",
       "static": false,
       "visibility": "public"
@@ -326,7 +326,7 @@
       "kind": "method",
       "name": "Shop.Orders.Cart.Run",
       "parent": "Shop.Orders.Cart",
-      "signature": null,
+      "signature": "public override void Run()",
       "span": "12:4-12:34",
       "static": false,
       "visibility": "public"
@@ -336,7 +336,7 @@
       "kind": "method",
       "name": "Shop.Orders.Cart.Find",
       "parent": "Shop.Orders.Cart",
-      "signature": null,
+      "signature": "public Item Find(Guid key, Item? fallback)",
       "span": "14:4-23:5",
       "static": false,
       "visibility": "public"

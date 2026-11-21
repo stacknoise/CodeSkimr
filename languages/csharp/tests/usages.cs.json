@@ -632,7 +632,7 @@
       "kind": "method",
       "name": "Demo.IOne.Close",
       "parent": "Demo.IOne",
-      "signature": null,
+      "signature": "void Close();",
       "span": "13:24-13:37",
       "static": false,
       "visibility": "public"
@@ -662,7 +662,7 @@
       "kind": "method",
       "name": "Demo.ITwo.Close",
       "parent": "Demo.ITwo",
-      "signature": null,
+      "signature": "void Close();",
       "span": "14:24-14:37",
       "static": false,
       "visibility": "public"
@@ -682,7 +682,7 @@
       "kind": "method",
       "name": "Demo.Svc.Make",
       "parent": "Demo.Svc",
-      "signature": null,
+      "signature": "public IOne Make()",
       "span": "18:4-18:31",
       "static": false,
       "visibility": "public"
@@ -692,7 +692,7 @@
       "kind": "method",
       "name": "Demo.Svc.Load",
       "parent": "Demo.Svc",
-      "signature": null,
+      "signature": "public static T Load<T>()",
       "span": "19:4-19:41",
       "static": true,
       "visibility": "public"
@@ -732,7 +732,7 @@
       "kind": "method",
       "name": "Demo.Caller.Take",
       "parent": "Demo.Caller",
-      "signature": null,
+      "signature": "public void Take(string s)",
       "span": "26:4-26:34",
       "static": false,
       "visibility": "public"
@@ -742,7 +742,7 @@
       "kind": "method",
       "name": "Demo.Caller.A",
       "parent": "Demo.Caller",
-      "signature": null,
+      "signature": "public void A()",
       "span": "27:4-27:40",
       "static": false,
       "visibility": "public"
@@ -752,7 +752,7 @@
       "kind": "method",
       "name": "Demo.Caller.B",
       "parent": "Demo.Caller",
-      "signature": null,
+      "signature": "public string B()",
       "span": "28:4-28:43",
       "static": false,
       "visibility": "public"
@@ -762,7 +762,7 @@
       "kind": "method",
       "name": "Demo.Caller.C",
       "parent": "Demo.Caller",
-      "signature": null,
+      "signature": "public int C(string s)",
       "span": "29:4-36:5",
       "static": false,
       "visibility": "public"
@@ -772,7 +772,7 @@
       "kind": "method",
       "name": "Demo.Caller.D",
       "parent": "Demo.Caller",
-      "signature": null,
+      "signature": "[System.Obsolete(Names.Attr)] public void D()",
       "span": "37:4-38:23",
       "static": false,
       "visibility": "public"
@@ -782,7 +782,7 @@
       "kind": "method",
       "name": "Demo.Caller.E",
       "parent": "Demo.Caller",
-      "signature": null,
+      "signature": "public int E(Item item)",
       "span": "39:4-39:50",
       "static": false,
       "visibility": "public"
@@ -792,7 +792,7 @@
       "kind": "method",
       "name": "Demo.Caller.F",
       "parent": "Demo.Caller",
-      "signature": null,
+      "signature": "public int F(IOne one)",
       "span": "40:4-40:47",
       "static": false,
       "visibility": "public"
@@ -802,7 +802,7 @@
       "kind": "method",
       "name": "Demo.Caller.G",
       "parent": "Demo.Caller",
-      "signature": null,
+      "signature": "public System.Func<string> G()",
       "span": "41:4-41:57",
       "static": false,
       "visibility": "public"
@@ -812,7 +812,7 @@
       "kind": "method",
       "name": "Demo.Caller.H",
       "parent": "Demo.Caller",
-      "signature": null,
+      "signature": "public void H()",
       "span": "42:4-42:89",
       "static": false,
       "visibility": "public"
@@ -832,7 +832,7 @@
       "kind": "method",
       "name": "Demo.Client.Go",
       "parent": "Demo.Client",
-      "signature": null,
+      "signature": "void Go(Svc svc)",
       "span": "47:4-55:5",
       "static": false,
       "visibility": "private"
@@ -882,7 +882,7 @@
       "kind": "method",
       "name": "Demo.Chooser.Pick",
       "parent": "Demo.Chooser",
-      "signature": null,
+      "signature": "public string Pick(bool flag)",
       "span": "66:4-66:69",
       "static": false,
       "visibility": "public"

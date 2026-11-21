@@ -141,7 +141,7 @@
       "kind": "function",
       "name": "metrics.rules",
       "parent": "metrics",
-      "signature": null,
+      "signature": "function rules(a: number, b: string[]): number",
       "span": "0:7-52:1",
       "static": false,
       "visibility": "public"
@@ -151,7 +151,7 @@
       "kind": "function",
       "name": "metrics.rules.lambda",
       "parent": "metrics.rules",
-      "signature": null,
+      "signature": "(x: number) =>",
       "span": "50:17-50:47",
       "static": false,
       "visibility": "public"
@@ -161,7 +161,7 @@
       "kind": "function",
       "name": "metrics.arrow",
       "parent": "metrics",
-      "signature": null,
+      "signature": "(x: number): number =>",
       "span": "54:21-57:1",
       "static": false,
       "visibility": "public"
@@ -171,7 +171,7 @@
       "kind": "function",
       "name": "metrics.arrow.nested",
       "parent": "metrics.arrow",
-      "signature": null,
+      "signature": "() =>",
       "span": "55:17-55:29",
       "static": false,
       "visibility": "public"
@@ -191,7 +191,7 @@
       "kind": "method",
       "name": "metrics.Counter.tick",
       "parent": "metrics.Counter",
-      "signature": null,
+      "signature": "() =>",
       "span": "60:9-65:3",
       "static": false,
       "visibility": "public"

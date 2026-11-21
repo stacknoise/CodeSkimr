@@ -152,7 +152,7 @@
       "kind": "function",
       "name": "literals.clean",
       "parent": "literals",
-      "signature": null,
+      "signature": "def clean(items):",
       "span": "3:0-8:29",
       "static": false,
       "visibility": "public"
@@ -162,7 +162,7 @@
       "kind": "function",
       "name": "literals.numbers",
       "parent": "literals",
-      "signature": null,
+      "signature": "def numbers():",
       "span": "11:0-12:27",
       "static": false,
       "visibility": "public"
@@ -172,7 +172,7 @@
       "kind": "function",
       "name": "literals.strings",
       "parent": "literals",
-      "signature": null,
+      "signature": "def strings(name):",
       "span": "15:0-17:29",
       "static": false,
       "visibility": "public"
@@ -182,7 +182,7 @@
       "kind": "function",
       "name": "literals.annotated",
       "parent": "literals",
-      "signature": null,
+      "signature": "def annotated(first: \"Order\", second: int = 7) -> \"Order\":",
       "span": "20:0-21:16",
       "static": false,
       "visibility": "public"
@@ -192,7 +192,7 @@
       "kind": "function",
       "name": "literals.joined",
       "parent": "literals",
-      "signature": null,
+      "signature": "def joined():",
       "span": "24:0-25:18",
       "static": false,
       "visibility": "public"
@@ -202,7 +202,7 @@
       "kind": "function",
       "name": "literals.interpolated",
       "parent": "literals",
-      "signature": null,
+      "signature": "def interpolated(data):",
       "span": "28:0-29:25",
       "static": false,
       "visibility": "public"
@@ -212,7 +212,7 @@
       "kind": "function",
       "name": "literals.flags",
       "parent": "literals",
-      "signature": null,
+      "signature": "def flags():",
       "span": "32:0-33:32",
       "static": false,
       "visibility": "public"
@@ -242,7 +242,7 @@
       "kind": "method",
       "name": "literals.Holder.method",
       "parent": "literals.Holder",
-      "signature": null,
+      "signature": "def method(self):",
       "span": "39:4-41:24",
       "static": false,
       "visibility": "public"

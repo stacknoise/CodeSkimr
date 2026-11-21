@@ -499,7 +499,7 @@
       "kind": "method",
       "name": "refs.Dog.walk",
       "parent": "refs.Dog",
-      "signature": null,
+      "signature": "override fun walk()",
       "span": "14:4-36:5",
       "static": false,
       "visibility": "public"
@@ -509,7 +509,7 @@
       "kind": "method",
       "name": "refs.Dog.bark",
       "parent": "refs.Dog",
-      "signature": null,
+      "signature": "fun bark(n: Int): Result<Sound>",
       "span": "38:4-40:5",
       "static": false,
       "visibility": "public"
@@ -519,7 +519,7 @@
       "kind": "method",
       "name": "refs.Dog.handle",
       "parent": "refs.Dog",
-      "signature": null,
+      "signature": "@Deprecated(\"old\") fun handle(item: Item)",
       "span": "42:4-43:29",
       "static": false,
       "visibility": "public"

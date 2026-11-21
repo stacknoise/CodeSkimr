@@ -276,7 +276,7 @@
       "kind": "function",
       "name": "metrics::plain",
       "parent": "metrics",
-      "signature": null,
+      "signature": "pub fn plain() -> i32",
       "span": "2:0-4:1",
       "static": false,
       "visibility": "public"
@@ -286,7 +286,7 @@
       "kind": "function",
       "name": "metrics::branches",
       "parent": "metrics",
-      "signature": null,
+      "signature": "pub fn branches(a: i32, b: i32) -> i32",
       "span": "7:0-15:1",
       "static": false,
       "visibility": "public"
@@ -296,7 +296,7 @@
       "kind": "function",
       "name": "metrics::patterns",
       "parent": "metrics",
-      "signature": null,
+      "signature": "pub fn patterns(items: Vec<Option<i32>>) -> i32",
       "span": "18:0-28:1",
       "static": false,
       "visibility": "public"
@@ -306,7 +306,7 @@
       "kind": "function",
       "name": "metrics::loops",
       "parent": "metrics",
-      "signature": null,
+      "signature": "pub fn loops(limit: i32) -> i32",
       "span": "31:0-43:1",
       "static": false,
       "visibility": "public"
@@ -316,7 +316,7 @@
       "kind": "function",
       "name": "metrics::arms",
       "parent": "metrics",
-      "signature": null,
+      "signature": "pub fn arms(value: i32) -> &'static str",
       "span": "46:0-52:1",
       "static": false,
       "visibility": "public"
@@ -326,7 +326,7 @@
       "kind": "function",
       "name": "metrics::wildcard_guard",
       "parent": "metrics",
-      "signature": null,
+      "signature": "pub fn wildcard_guard(a: i32, b: i32) -> i32",
       "span": "55:0-60:1",
       "static": false,
       "visibility": "public"
@@ -336,7 +336,7 @@
       "kind": "function",
       "name": "metrics::not_counted",
       "parent": "metrics",
-      "signature": null,
+      "signature": "pub fn not_counted(text: &str) -> Option<i32>",
       "span": "63:0-69:1",
       "static": false,
       "visibility": "public"
@@ -346,7 +346,7 @@
       "kind": "function",
       "name": "metrics::outer",
       "parent": "metrics",
-      "signature": null,
+      "signature": "pub fn outer(values: &[i32]) -> Vec<i32>",
       "span": "72:0-77:1",
       "static": false,
       "visibility": "public"
@@ -356,7 +356,7 @@
       "kind": "function",
       "name": "metrics::outer::local",
       "parent": "metrics::outer",
-      "signature": null,
+      "signature": "fn local(value: i32) -> i32",
       "span": "73:4-75:5",
       "static": false,
       "visibility": "private"
@@ -366,7 +366,7 @@
       "kind": "function",
       "name": "metrics::calls",
       "parent": "metrics",
-      "signature": null,
+      "signature": "pub fn calls(items: &[i32]) -> i32",
       "span": "79:0-82:1",
       "static": false,
       "visibility": "public"
