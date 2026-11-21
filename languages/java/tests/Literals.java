@@ -36,7 +36,8 @@ public class Literals {
         return value == null || true || false || names.contains("a");
     }
 
-    @Deprecated(since = "1.0", forRemoval = true)
+    @Deprecated(since = "1.0" + "x", forRemoval = true)
+    @Timeout(unit = 60 * 1000)
     public void annotated(@SuppressWarnings({"a", "b"}) String arg) {
         Runnable task = () -> System.out.println("lambda " + 5);
         task.run();

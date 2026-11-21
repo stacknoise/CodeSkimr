@@ -126,10 +126,15 @@
 ; Exceptions: the integers 0 and 1 (also with the suffix `L`), the value of a local `final`
 ; variable when it is a literal itself (`final int LIMIT = 99;`; the parts of `2 * 50` still
 ; count), and a literal that is the value of an annotation (`@SuppressWarnings("unchecked")`,
-; `@Size(max = 10)`, also an element of an array value).
+; `@Size(max = 10)`, also an element of an array value and the operands of one binary expression such as
+; `60 * 1000`; deeper expressions are a known gap).
 [(decimal_integer_literal) (hex_integer_literal) (octal_integer_literal) (binary_integer_literal) (decimal_floating_point_literal) (hex_floating_point_literal) (string_literal) (character_literal)] @literal
 ((decimal_integer_literal) @literal_exempt (#any-of? @literal_exempt "0" "1" "0L" "1L" "0l" "1l"))
 (local_variable_declaration (modifiers "final") (variable_declarator value: (_) @literal_exempt))
 (annotation_argument_list (_) @literal_exempt)
 (element_value_pair value: (_) @literal_exempt)
 (element_value_array_initializer (_) @literal_exempt)
+; the operands of a simple expression in an annotation value (`@Scheduled(fixedRate = 60 * 1000)`)
+(annotation_argument_list (binary_expression (_) @literal_exempt))
+(element_value_pair value: (binary_expression (_) @literal_exempt))
+(element_value_array_initializer (binary_expression (_) @literal_exempt))
