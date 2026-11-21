@@ -1,7 +1,7 @@
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { expect, keepLaunchFile, test, watchPolicy } from "./fixtures";
+import { expect, keepLaunchFile, leaveScanScreen, test, watchPolicy } from "./fixtures";
 
 /** A scan in a debug build loads the language packs and takes a few seconds. */
 const SCAN_MS = 60_000;
@@ -28,6 +28,7 @@ test.describe("the project list", () => {
 
     await page.getByLabel("New project").fill(folder);
     await page.getByRole("button", { name: "Add and scan" }).click();
+    await leaveScanScreen(page, name);
 
     await expect(page.getByRole("button", { name: `Open ${name}` })).toBeVisible({
       timeout: SCAN_MS,
@@ -43,7 +44,8 @@ test.describe("the project list", () => {
     await expect(page.getByRole("button", { name: `Open ${name}` })).toBeVisible();
     await page.keyboard.press("ArrowDown");
     await page.keyboard.press("r");
-    await expect(page.getByText(/^incremental/)).toBeVisible({ timeout: SCAN_MS });
+    // Starting a scan shows the scan screen; its header says what kind of scan runs.
+    await expect(page.getByText(/· incremental/)).toBeVisible({ timeout: SCAN_MS });
   });
 
   test("a relative path is refused in words", async ({ page, harness }) => {

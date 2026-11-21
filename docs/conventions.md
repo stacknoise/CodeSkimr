@@ -8,7 +8,7 @@ Blueprint 10.4 (`check_conventions`), 10.2 (`codeskimr check`), 11.6 (E-04) and 
 |---|---|---|
 | `CHK-104` `function_too_long` | R-02: at most `conventions.max_function_lines` code lines per function (default 40) | checked |
 | `CHK-102` `duplicate_block` | R-01: two functions whose syntax fingerprints are at least `conventions.duplicate_similarity_percent` similar (default 85) | checked, within the checked files and (MCP) against the stored project |
-| `CHK-101` `literal_found` | R-06: no literals in a function except the exceptions of its language pack (ADR 0058) | checked for the languages whose pack reports literals (Python, TypeScript, TSX, JavaScript and C# so far), else listed in `not_checked`. The Dylint lint `no_literals` covers Rust in CI |
+| `CHK-101` `literal_found` | R-06: no literals in a function except the exceptions of its language pack (ADR 0058) | checked for the languages whose pack reports literals (Python, TypeScript, TSX, JavaScript, C# and Java so far), else listed in `not_checked`. The Dylint lint `no_literals` covers Rust in CI |
 | `CHK-103` `layer_violation` | R-04 | a symbol (function or type) uses a layer that its layer may not use (`may_use`, ADR 0054); checked by the MCP tool against the stored references of the last scan, not by `codeskimr check` (ADR 0082) |
 | `CHK-105` `complexity_too_high` | R-02: cognitive complexity at most `conventions.max_cognitive_complexity` (default 15) | checked for the languages whose pack counts it (ADR 0048; Rust, Python, Java, TypeScript, TSX, JavaScript and C# so far), else listed in `not_checked` |
 | `CHK-106` `too_many_parameters` | R-02: at most `conventions.max_parameters` parameters (default 5), without the receiver | like `CHK-105` |
