@@ -1,8 +1,12 @@
 # HTML export
 
-`codeskimr export` writes one **self-contained HTML file** with the explorer, the dependency map, the usages and the quick search of a scanned project. The file needs no server and no network: open it from disk, mail it or put it into a wiki. Use it for documentation and for planning changes with people who do not run CodeSkimr.
+The export is available two ways: the **Export HTML** button in the app and the command `codeskimr export`. Both write one **self-contained HTML file** with the explorer, the dependency map, the usages and the quick search of a scanned project. The file needs no server and no network: open it from disk, mail it or put it into a wiki. Use it for documentation and for planning changes with people who do not run CodeSkimr.
 
-## Use
+## In the app
+
+Open the project (Projects, choose the row, Enter). The top bar has the button **Export HTML** next to the name and the branch. A click makes the page from the newest scan, and the browser downloads it as `<project name>.html` into its download folder. Nothing is sent anywhere else. The button is grey while the project has not been scanned. The quick search does the same (`Ctrl K`, then `>` and "Export project as HTML"). If the export fails, the reason with its error code appears next to the button.
+
+## On the command line
 
 ```
 codeskimr export <project> --html <file>

@@ -58,6 +58,22 @@ mod tests {
     }
 
     #[test]
+    fn literals_follow_the_exceptions_of_the_rule() {
+        let found = by_name(&facts("csharp", "literals.cs"));
+        let literals = |name: &str| body(&found, name).literals;
+        // 0 and 1 are exceptions
+        assert_eq!(literals("Clean"), Some(0));
+        // 42 and 2.5; 0 and 1 are exceptions
+        assert_eq!(literals("Numbers"), Some(2));
+        // "x", 'y', the interpolated string, the 2 in its hole and @"raw"
+        assert_eq!(literals("Strings"), Some(5));
+        // the value of a local const is an exception, the 7 is not
+        assert_eq!(literals("Local"), Some(1));
+        // the attribute argument is an exception; true, false and null are no literals
+        assert_eq!(literals("Flags"), Some(0));
+    }
+
+    #[test]
     fn halstead_counts_of_a_small_body() {
         let found = by_name(&facts("csharp", "metrics.cs"));
         // `return 1;` is one operator and one operand.

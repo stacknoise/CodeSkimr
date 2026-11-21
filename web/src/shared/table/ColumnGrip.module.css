@@ -1,0 +1,27 @@
+/* The handle is 16 px wide so that it is easy to hit; only the line on its right edge is drawn. */
+.grip {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 16px;
+    cursor: col-resize;
+    touch-action: none;
+}
+.grip::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    border-right: 1px solid var(--line);
+}
+.grip:hover::after,
+.dragging::after {
+    border-right-color: var(--accent);
+}
+/* Inside the handle, because the head cell clips what lies outside it. */
+.grip:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: -2px;
+}

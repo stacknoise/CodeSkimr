@@ -4,6 +4,8 @@
 
 ## Use
 
+In the browser UI the button "Export HTML" in the top bar (`web/src/features/export/`) and the quick-search entry "Export project as HTML" run `export.html` through the session of the UI (with its token) and hand the page to the browser as a download named after the project. Both need a scan.
+
 ```
 codeskimr export <project> --html <file>
 ```

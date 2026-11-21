@@ -3,6 +3,8 @@ import { currentLanguage, t } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import type { MessageKey } from "../../shared/i18n/i18n";
 import { cx } from "../../shared/ui/cx";
+import { createTableColumns } from "../../shared/table/columns";
+import { ColumnWidths, ResizableTh, RestHead } from "../../shared/table/ResizableHead";
 import { showUsages } from "../../shared/navigation/navigation";
 import { showAnnotationText } from "../annotations/flags";
 import { InlineText, ShowTextSwitch } from "../annotations/InlineText";
@@ -13,6 +15,10 @@ import {
   CC_METRIC,
   CHIP,
   COLUMN_COUNT,
+  MEMBER_COLUMNS,
+  MEMBER_COLUMNS_WITH_NOTES,
+  MEMBER_TABLE_KEY,
+  NOTES_COLUMN,
   MISSING,
   SORT_COLUMN,
   SORT_DIRECTION,
@@ -166,6 +172,11 @@ function Chips(props: { chip: ChipId; onChip: (chip: ChipId) => void }) {
   );
 }
 
+const plainColumns = createTableColumns(MEMBER_TABLE_KEY, MEMBER_COLUMNS);
+const noteColumns = createTableColumns(MEMBER_TABLE_KEY + NOTES_COLUMN, MEMBER_COLUMNS_WITH_NOTES);
+/** The widths of the columns: the notes column is there only while the annotations are. */
+const columns = () => (annotationsAvailable() === false ? plainColumns : noteColumns);
+
 /** The head of a column that sorts the table when it is pressed. */
 function SortHead(props: {
   column: SortColumn;
@@ -177,7 +188,14 @@ function SortHead(props: {
   const sorted = () => current()?.column === props.column;
   const direction = () => current()?.direction;
   return (
-    <th class={props.number ? styles.number : undefined} title={props.tip} aria-sort={direction()}>
+    <ResizableTh
+      columns={columns()}
+      id={props.column}
+      name={t(props.label)}
+      class={props.number ? styles.number : undefined}
+      title={props.tip}
+      sort={direction()}
+    >
       <button
         type="button"
         class={cx(styles.sort, sorted() && styles.sorted)}
@@ -190,7 +208,7 @@ function SortHead(props: {
           </span>
         </Show>
       </button>
-    </th>
+    </ResizableTh>
   );
 }
 
@@ -200,7 +218,9 @@ function Head(props: { thresholds: Thresholds | null }) {
       <tr>
         <SortHead column={SORT_COLUMN.name} label={I18N_KEYS.EXPLORER_COLUMN_NAME} />
         <Show when={annotationsAvailable() !== false}>
-          <th>{t(I18N_KEYS.ANNOTATIONS_COLUMN)}</th>
+          <ResizableTh columns={columns()} id={NOTES_COLUMN} name={t(I18N_KEYS.ANNOTATIONS_COLUMN)}>
+            {t(I18N_KEYS.ANNOTATIONS_COLUMN)}
+          </ResizableTh>
         </Show>
         <SortHead column={SORT_COLUMN.signature} label={I18N_KEYS.EXPLORER_COLUMN_SIGNATURE} />
         <SortHead column={SORT_COLUMN.access} label={I18N_KEYS.EXPLORER_COLUMN_ACCESS} />
@@ -217,6 +237,7 @@ function Head(props: { thresholds: Thresholds | null }) {
           number
         />
         <SortHead column={SORT_COLUMN.lines} label={I18N_KEYS.EXPLORER_COLUMN_LINES} number />
+        <RestHead columns={columns()} />
       </tr>
     </thead>
   );
@@ -248,7 +269,8 @@ export function MemberTable(props: {
         fallback={<p class={styles.empty}>{t(I18N_KEYS.EXPLORER_NO_MEMBERS)}</p>}
       >
         <div class={styles.scroll}>
-          <table>
+          <table style={columns().style()}>
+            <ColumnWidths columns={columns()} />
             <Head thresholds={props.thresholds} />
             <tbody>
               <For each={rows()}>{(row) => <Row row={row} onPick={props.onPick} />}</For>
