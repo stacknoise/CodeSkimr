@@ -80,6 +80,8 @@ describe("exportFileName", () => {
     expect(exportFileName("nul")).toBe("project-nul.html");
     expect(exportFileName("com1")).toBe("project-com1.html");
     expect(exportFileName("console")).toBe("console.html");
+    expect(exportFileName("nul.backup")).toBe("project-nul.backup.html");
+    expect(exportFileName("CON.v2")).toBe("project-CON.v2.html");
     expect(exportFileName("a".repeat(300)).length).toBe(100 + ".html".length);
   });
 });
