@@ -53,7 +53,7 @@ impl DailyPurge {
                 }
             });
         if started.is_err() {
-            tracing::warn!("the thread that purges dismissed alerts could not start");
+            tracing::warn!(thread = PURGE_THREAD_NAME, started = false);
         }
         Self { _stop: stop }
     }
@@ -67,7 +67,7 @@ impl DailyPurge {
 /// Writes the outcome of a purge to the log; a failure never stops the server.
 fn log(outcome: Result<u64, CodedError>) {
     match outcome {
-        Ok(removed) => tracing::debug!(removed, "purged dismissed alerts"),
-        Err(error) => tracing::warn!(code = error.code().id(), "purging dismissed alerts failed"),
+        Ok(removed) => tracing::debug!(removed, thread = PURGE_THREAD_NAME),
+        Err(error) => tracing::warn!(code = error.code().id(), thread = PURGE_THREAD_NAME),
     }
 }
