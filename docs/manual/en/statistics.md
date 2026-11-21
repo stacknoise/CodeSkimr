@@ -1,0 +1,43 @@
+# Statistics
+
+The statistics rank the symbols of the open project: which are used most, for which no usage was found, which functions are the most complex, the largest and the most coupled. The entry in the navigation rail is available as soon as a project is open.
+
+![The overview of the statistics](../../screenshots/stats-petrol.png)
+
+## Overview
+
+Four numbers (symbols, usages, symbols without a usage, functions above the complexity limit) and four cards with the first five rows of a ranking. A click on a row opens the symbol in the explorer; "Show all" opens the full ranking.
+
+## The rankings
+
+| Tab | Shows | Sorted by |
+|---|---|---|
+| Most used | types and functions that others use | certain usages (or all, the upper bound) |
+| No usage found | symbols for which the scan found no usage | file and name |
+| Complexity | functions and methods | cyclomatic complexity |
+| Size | types and functions | lines of code |
+| Coupling | types | how many others they depend on (Ce) |
+
+Filters: kind (all, types, functions) and language. Select a row and the panel at the right shows its numbers. `Enter` or a double click opens the symbol in the explorer, `U` shows its usages, the arrow keys move the selection.
+
+"Include tests" at the top right counts test code as well. It is off by default, because the test runner calls test functions and nobody else does: they would fill the list of unused symbols.
+
+## Certain and "up to"
+
+Usages are always two numbers, for example "28 certain, up to 73". Level 1 reads the source text. A usage is certain if the name could be resolved without doubt. The others are probable: they may belong to another symbol with the same name. The second number is therefore an upper bound. With level 2 (see [Language indexers](indexers.md)) the compiler confirms the usages and the two numbers move together.
+
+Only direct usages are counted. Usages from test code and of a symbol by itself are not.
+
+## "No usage found" does not mean dead code
+
+The scan does not see calls through macros or reflection, entry points that a framework or the operating system calls (`main`, handlers), and users in other projects. Every row therefore has an assessment:
+
+- **very likely unused**: not public, in a language with exact usages. Worth a look first.
+- **public**: may be used from outside the project.
+- **uncertain**: the usages of this language are an approximation (Python, C#, Kotlin).
+
+Check before you delete.
+
+## Complexity
+
+The histogram shows how many functions have each complexity; the bars above the limit (10 by default, `metrics.cyclomatic_medium_max`) are marked. The picture "Hotspots" puts the most complex functions against their usages: a function at the upper right is complex and much used, so a change there is risky. The dot stands at the certain usages, the line reaches up to the upper bound.

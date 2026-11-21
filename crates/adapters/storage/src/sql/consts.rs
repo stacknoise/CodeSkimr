@@ -661,3 +661,12 @@ pub const LEVEL2_LANGUAGE_INSERT: &str = "INSERT INTO level2_languages \
 /// The language lines of a project in the order of the language id: project id.
 pub const LEVEL2_LANGUAGES_BY_PROJECT: &str = "SELECT language, outcome, files, stale, reason, code \
     FROM level2_languages WHERE project_id = ?1 ORDER BY language";
+
+/// Every symbol of a snapshot with its file, for the statistics: snapshot.
+pub const STATISTICS_SYMBOLS: &str = "SELECT s.id, s.name, s.qualified_name, s.kind, s.parent_id, \
+    s.visibility, s.file_id, f.path, f.language \
+    FROM symbols s JOIN files f ON f.snapshot_id = s.snapshot_id AND f.id = s.file_id \
+    WHERE s.snapshot_id = ?1 ORDER BY s.id";
+/// Every measured value of a snapshot: snapshot.
+pub const STATISTICS_METRICS: &str =
+    "SELECT symbol_id, kind, value FROM metrics WHERE snapshot_id = ?1";
