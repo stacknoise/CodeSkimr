@@ -1,7 +1,7 @@
 import { createSignal } from "solid-js";
 import { applyAlertsEvent, parseAlertsEvent } from "../alerts/store";
 import { noteLevel2Finished, noteLevel2Progress } from "../projects/level2run";
-import { refreshProjects } from "../projects/projects";
+import { noteScanReport, refreshProjects } from "../projects/projects";
 import {
   EVENT,
   EVENTS_PATH,
@@ -92,6 +92,9 @@ function handle(text: string): void {
   const event = parseEvent(text);
   if (event === null) {
     return;
+  }
+  if (event.type === EVENT.progressed) {
+    noteScanReport(event.project);
   }
   const now = Date.now();
   setRuns((previous) => applyEvent(previous, event, now));
