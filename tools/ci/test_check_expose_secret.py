@@ -9,6 +9,18 @@ class CountCalls(unittest.TestCase):
         text += "#[cfg(test)]\nmod t { e.expose_secret(); }\n"
         self.assertEqual(check.count_calls(text), [1, 3, 3])
 
+    def test_counts_path_calls_and_function_references(self):
+        text = "let a = Credential::expose_secret(&x);\n"
+        text += "let b = y.as_ref().map(Credential::expose_user);\n"
+        text += "let c = <Credential>::expose_secret\n    (&z);\n"
+        self.assertEqual(check.count_calls(text), [1, 2, 3])
+
+    def test_definitions_and_other_names_are_no_calls(self):
+        text = "pub fn expose_secret(&self) -> &str {\n"
+        text += "    fn  expose_user() {}\n"
+        text += "use secrecy::ExposeSecret;\nlet expose_secrets = 1; re_expose_user();\n"
+        self.assertEqual(check.count_calls(text), [])
+
     def test_test_files_are_skipped(self):
         from pathlib import Path
         self.assertTrue(check.is_test_file(Path("crates/x/tests/a.rs")))

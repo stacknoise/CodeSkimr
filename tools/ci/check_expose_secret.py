@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""List every `expose_secret()` and `expose_user()` call in product code and compare with the approved list.
+"""List every use of `expose_secret` and `expose_user` in product code and compare with the approved list.
 
 Blueprint 12.4: CI lists every call site, and each one needs reviewer approval. The approval
 is an entry in tools/ci/expose-secret-approved.toml (file and number of calls). A new call, a
 removed call or a file without an entry fails the check; the reviewer approves by merging a
-change of the list. Test code is not product code: files below `tests/`, files named
-`*_tests.rs` and everything after the first `#[cfg(test)]` of a file are skipped, and so are
-comments.
+change of the list. A use is every mention of one of the two names: the method call
+`x.expose_secret()`, the path call `Credential::expose_secret(&x)` and the function reference
+`.map(Credential::expose_secret)`. Only the definition (`fn expose_secret`) is not a use. Test
+code is not product code: files below `tests/`, files named `*_tests.rs` and everything after
+the first `#[cfg(test)]` of a file are skipped, and so are comment lines.
 
 Exit code 0 = fine, 1 = list and code differ, 2 = setup problem.
 """
@@ -17,7 +19,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 APPROVED = Path(__file__).with_name("expose-secret-approved.toml")
-CALL = re.compile(r"\.expose_(?:user|secret)\(\)")
+CALL = re.compile(r"(\bfn\s+)?\bexpose_(?:user|secret)\b")
 TEST_MODULE = re.compile(r"^\s*#\[cfg\(test\)\]")
 
 
@@ -33,7 +35,7 @@ def count_calls(text):
             break
         if line.lstrip().startswith("//"):
             continue
-        found.extend([number] * len(CALL.findall(line)))
+        found.extend(number for definition in CALL.findall(line) if not definition)
     return found
 
 
