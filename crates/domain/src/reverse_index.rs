@@ -6,7 +6,9 @@
 
 use std::collections::{HashMap, HashSet};
 
+use crate::file::FileId;
 use crate::reference::{Reference, ReferenceKind};
+use crate::statistics::UsageTally;
 use crate::symbol::SymbolId;
 
 /// Which way a walk follows the references.
@@ -113,6 +115,43 @@ impl ReverseIndex {
                 .filter(|reference| reference.kind != ReferenceKind::Test)
                 .count()
         })
+    }
+
+    /// How often every symbol is used by others, for the statistics (ADR 0081): references of kind
+    /// `test` and references of a symbol to itself do not count. A reference is certain if its
+    /// resolution is, or if level 2 verified it.
+    #[must_use]
+    pub fn tallies(&self) -> HashMap<SymbolId, UsageTally> {
+        let mut tallies: HashMap<SymbolId, UsageTally> = HashMap::new();
+        for reference in &self.references {
+            if reference.kind == ReferenceKind::Test || reference.from == reference.to {
+                continue;
+            }
+            let certain = reference.verified || !reference.confidence.is_probable();
+            tallies.entry(reference.to).or_default().count(certain);
+        }
+        tallies
+    }
+
+    /// The files that hold a reference of kind `test`: files the scan knew as test files.
+    #[must_use]
+    pub fn test_files(&self) -> HashSet<FileId> {
+        self.references
+            .iter()
+            .filter(|reference| reference.kind == ReferenceKind::Test)
+            .map(|reference| reference.file)
+            .collect()
+    }
+
+    /// The symbols that override or implement a member of another type: the sources of the
+    /// references of kind `override`. They are called through the member they stand in for.
+    #[must_use]
+    pub fn overriding(&self) -> HashSet<SymbolId> {
+        self.references
+            .iter()
+            .filter(|reference| reference.kind == ReferenceKind::Override)
+            .map(|reference| reference.from)
+            .collect()
     }
 
     /// The references a walk finds: the verified ones first, then, within each group, step by

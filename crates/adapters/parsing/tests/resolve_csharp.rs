@@ -116,7 +116,12 @@ mod tests {
 
     /// The `(line, confidence)` of every usage in `receivers.cs` of the member `name`.
     fn receiver_usages(name: &str) -> Vec<(u32, Confidence)> {
-        let (facts, found) = resolved("receivers.cs");
+        receiver_usages_in("receivers.cs", name)
+    }
+
+    /// The `(line, confidence)` of every usage in `file` of the member `name`.
+    fn receiver_usages_in(file: &str, name: &str) -> Vec<(u32, Confidence)> {
+        let (facts, found) = resolved(file);
         let target = format!("Demo.{name}");
         found
             .iter()
@@ -205,5 +210,70 @@ mod tests {
         let against = receiver_usages("Guard.Against");
         assert_eq!(lines(&against), [71]);
         assert_eq!(lines(&receiver_usages("Clause.Null")), [71]);
+    }
+
+    #[test]
+    fn negated_and_chained_record_properties_are_usages() {
+        // Positional record properties reached through chains (`h.Settings.Enabled`,
+        // `a.Child.IsOpen`) and negated (`!x.Settings.Enabled`, `!c.IsActive`); lines are
+        // 0-based.
+        let through_chain = lines(&receiver_usages_in("records.cs", "Settings.Enabled"));
+        assert_eq!(through_chain, [14, 17, 19]);
+        let direct = lines(&receiver_usages_in("records.cs", "Entry.IsActive"));
+        assert_eq!(direct, [15, 18, 20, 21]);
+        let second_chain = lines(&receiver_usages_in("records.cs", "Inner.IsOpen"));
+        assert_eq!(second_chain, [16, 18]);
+    }
+
+    #[test]
+    fn calls_through_fields_and_interfaces_in_tests_are_usages() {
+        // `_store.Load`, `store.Load(..).Returns(..)` and `_stub.Load(Arg.Any<string>())`.
+        let load = lines(&receiver_usages_in("records.cs", "IStore.Load"));
+        assert_eq!(load, [30, 36, 37]);
+    }
+
+    #[test]
+    fn members_of_types_outside_the_project_are_no_usages() {
+        // `File.Exists`, `Directory.Exists` and `List<string>.IndexOf` are not project symbols;
+        // only the typed `disk.Exists` and the receiver of unknown type are kept.
+        assert_eq!(
+            lines(&receiver_usages_in("records.cs", "IDisk.Exists")),
+            [49, 50]
+        );
+        assert_eq!(
+            lines(&receiver_usages_in("records.cs", "Index.IndexOf")),
+            [48]
+        );
+    }
+
+    #[test]
+    fn an_increment_is_one_write_and_no_extra_read() {
+        // `c.Total++`, `++c.Step` and `c.Step--` (0-based line 57) stay writes only.
+        let (facts, found) = resolved("records.cs");
+        let at_bump: Vec<_> = found
+            .iter()
+            .filter(|r| r.span.start().line == 57)
+            .filter(|r| {
+                facts.symbols.iter().any(|s| {
+                    s.id == r.to
+                        && (s.qualified_name.to_string() == "Demo.Counter.Total"
+                            || s.qualified_name.to_string() == "Demo.Counter.Step")
+                })
+            })
+            .collect();
+        assert_eq!(at_bump.len(), 3);
+        assert!(at_bump.iter().all(|r| r.kind == ReferenceKind::Write));
+    }
+
+    #[test]
+    fn typed_receivers_are_certain_and_chains_and_unknown_receivers_are_not() {
+        let direct = receiver_usages_in("records.cs", "Entry.IsActive");
+        assert!(direct.contains(&(15, Confidence::Certain)));
+        let chain = receiver_usages_in("records.cs", "Settings.Enabled");
+        assert!(chain.iter().all(|(_, c)| *c != Confidence::Certain));
+        // `d.Exists(p)` on a receiver of unknown type (0-based line 50) is never certain.
+        let unknown = receiver_usages_in("records.cs", "IDisk.Exists");
+        assert!(unknown.contains(&(50, Confidence::Probable)));
+        assert!(unknown.iter().all(|(_, c)| *c != Confidence::Certain));
     }
 }

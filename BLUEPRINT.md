@@ -778,8 +778,9 @@ The screens (details in Appendix B):
 | 14 | Annotations: marks, notes, tasks | `docs/mocks/Annotations.dc.html` |
 | 15 | Alerts | `docs/mocks/Alerts.dc.html` |
 | 16 | Task board | `docs/mocks/Tasks.dc.html` |
+| 20 | Statistics: rankings over the symbols of a project (ADR 0081) | `docs/mocks/Statistics.html` |
 
-Screens 7 to 12 belong to the team edition (after 1.0, ADR 0019, milestone T2) and exist as mocks so that the UI can be built to them; screen 13 belongs to 1.0 (ADR 0021); screens 14 to 16 belong to the annotations (ADR 0068). Mocks 14 to 16 are static pages: they show all three themes by the class of `body`. The mocks 7 to 13 take a `theme` property (15.3); mocks 1 to 6 are drawn in the theme Hell (layout binding, colours follow the active theme, see 15.3).
+Screens 7 to 12 belong to the team edition (after 1.0, ADR 0019, milestone T2) and exist as mocks so that the UI can be built to them; screen 13 belongs to 1.0 (ADR 0021); screens 14 to 16 belong to the annotations (ADR 0068); screen 20 belongs to 1.0 (ADR 0081; the numbers 17 to 19 are mocks of parts of other screens, see `docs/mocks/README.md`). Mock 20 is a static page with all three themes. Mocks 14 to 16 are static pages: they show all three themes by the class of `body`. The mocks 7 to 13 take a `theme` property (15.3); mocks 1 to 6 are drawn in the theme Hell (layout binding, colours follow the active theme, see 15.3).
 
 The mock sources are written in a design-canvas format; render them through the link above. Read the files for exact values (inline styles). All numbers and names in them are **sample data**.
 
@@ -788,7 +789,7 @@ The mock sources are written in a design-canvas format; render them through the 
 | Element | Size | Content |
 |---|---|---|
 | Top bar | height 48 px | logo + product name, project breadcrumb, branch / working-folder chip, search field opening the quick search (shows `Strg K` / `Ctrl K`); in team mode also server name and user menu |
-| Navigation rail | width 56 px | Projects, Explorer, Dependencies, Scans & performance at the top; at the bottom Administration (admins in team mode only) and Settings; active item tinted |
+| Navigation rail | width 56 px | Projects, Explorer, Dependencies, Statistics (ADR 0081), Scans & performance at the top; at the bottom Administration (admins in team mode only) and Settings; active item tinted |
 | Status bar | height 28 px | live measurements (watch state, counts, last query time, memory), monospace |
 | Explorer tree | width 290 px | filter, collapse all, show selection |
 | Source pane | width 560 px (shrinks) | file path, member position, code |

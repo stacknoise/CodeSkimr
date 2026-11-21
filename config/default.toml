@@ -124,7 +124,7 @@ excluded_folders = ["bin", "obj", ".git", "node_modules", "target", "dist"]
 # Three limits protect the machine that scans (parse_timeout_ms, max_source_mb, max_candidates): the `.codeskimr.toml` of a scanned project may
 # lower them but not raise them above what the defaults and the user config file say. Only the user
 # config file and command line flags can raise them.
-# Time limit for parsing one file, in milliseconds; a file that takes longer fails with PRS-501.
+# Time limit for parsing one file, in milliseconds; a file that takes longer is left out (PRS-501).
 parse_timeout_ms = 5000
 # Most threads that analyse files at the same time; 0 means one per core. A lower number leaves cores to
 # the rest of the machine (a laptop on battery, a build that runs next to the scan).
@@ -139,6 +139,9 @@ max_signature_chars = 400
 # one of them. It is counted and reported as RES-304; level 2 resolves it exactly (ADR 0084). A place that
 # scope, receiver type or imports narrow down is never given up, however many candidates it has.
 max_candidates = 100
+# Most files that a scan names when it had to leave them out (wrong encoding, parse time limit, not
+# readable); the summary counts the others.
+max_left_out_listed = 20
 
 # Level 2 references from SCIP indexes (ADR 0033). The whole table is read from the default file, the
 # user config file and command line flags only; a `level2` table in the `.codeskimr.toml` of a project

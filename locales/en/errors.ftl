@@ -27,6 +27,7 @@ error-SRC-501 = The source is larger than the configured limit.
 error-SRC-601 = Fetching from the Git remote failed. Please try again later.
 error-SRC-602 = The file watcher could not be started or stopped unexpectedly.
 error-PRS-101 = A source file is not valid UTF-8 or UTF-16 and was skipped.
+error-PRS-102 = A source file could not be read during the scan (it is gone or locked) and was skipped.
 error-PRS-201 = No language pack is installed for this file type.
 error-PRS-301 = The TOML or query files of a language pack are invalid.
 error-PRS-501 = Parsing a file exceeded the configured time limit.

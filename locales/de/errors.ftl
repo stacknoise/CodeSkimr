@@ -27,6 +27,7 @@ error-SRC-501 = Die Quelle ist größer als das eingestellte Limit.
 error-SRC-601 = Das Abrufen aus dem Git-Remote ist fehlgeschlagen. Bitte später erneut versuchen.
 error-SRC-602 = Die Dateiüberwachung konnte nicht gestartet werden oder wurde unerwartet beendet.
 error-PRS-101 = Eine Quelldatei ist nicht gültig als UTF-8 oder UTF-16 kodiert und wurde übersprungen.
+error-PRS-102 = Eine Quelldatei konnte während des Scans nicht gelesen werden (sie ist weg oder gesperrt) und wurde übersprungen.
 error-PRS-201 = Für diesen Dateityp ist kein Sprachpaket installiert.
 error-PRS-301 = Die TOML- oder Query-Dateien eines Sprachpakets sind ungültig.
 error-PRS-501 = Das Parsen einer Datei hat das eingestellte Zeitlimit überschritten.

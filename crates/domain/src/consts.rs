@@ -337,3 +337,36 @@ pub const CHANGE_SIGNATURE: &str = "signature";
 pub const CHANGE_CC: &str = "cc";
 /// Label of `AlertChange::Loc`.
 pub const CHANGE_LOC: &str = "loc";
+
+/// Separator of the parts of a relative path.
+pub const PATH_SEPARATOR: char = '/';
+/// Separates the name of a file from its extension.
+pub const EXTENSION_SEPARATOR: char = '.';
+/// Joins a prefix to a test name: `search_tests` is test code like `tests`.
+pub const TEST_NAME_JOINT: char = '_';
+/// Label of `Ranking::MostUsed`.
+pub const RANKING_MOST_USED: &str = "most_used";
+/// Label of `Ranking::Unused`.
+pub const RANKING_UNUSED: &str = "unused";
+/// Label of `Ranking::Complexity`.
+pub const RANKING_COMPLEXITY: &str = "complexity";
+/// Label of `Ranking::Size`.
+pub const RANKING_SIZE: &str = "size";
+/// Label of `Ranking::Coupling`.
+pub const RANKING_COUPLING: &str = "coupling";
+/// Label of `KindGroup::All`.
+pub const GROUP_ALL: &str = "all";
+/// Label of `KindGroup::Types`.
+pub const GROUP_TYPES: &str = "types";
+/// Label of `KindGroup::Functions`.
+pub const GROUP_FUNCTIONS: &str = "functions";
+/// Label of `UsageOrder::Certain`.
+pub const ORDER_CERTAIN: &str = "certain";
+/// Label of `UsageOrder::All`.
+pub const ORDER_ALL: &str = "all";
+/// Label of `Assessment::Likely`.
+pub const ASSESSMENT_LIKELY: &str = "likely";
+/// Label of `Assessment::Public`.
+pub const ASSESSMENT_PUBLIC: &str = "public";
+/// Label of `Assessment::Approximate`.
+pub const ASSESSMENT_APPROXIMATE: &str = "approximate";

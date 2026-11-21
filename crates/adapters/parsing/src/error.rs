@@ -9,9 +9,13 @@ pub enum ParsingError {
     /// The file is neither valid UTF-8 nor UTF-16.
     #[error("{}", ErrorCode::FileEncodingUnsupported.description())]
     EncodingUnsupported,
-    /// The file could not be read.
+    /// A folder of language packs could not be read.
     #[error("{}", ErrorCode::SourcePathNotFound.description())]
     Unreadable(#[source] std::io::Error),
+    /// The source file itself could not be read: it is gone or locked. Only this file is concerned,
+    /// so a scan leaves it out and goes on.
+    #[error("{}", ErrorCode::FileUnreadable.description())]
+    FileUnreadable(#[source] std::io::Error),
     /// No language pack is installed for the language of the file.
     #[error("{}", ErrorCode::LanguagePackMissing.description())]
     PackMissing(String),
@@ -46,6 +50,7 @@ impl Coded for ParsingError {
         match self {
             Self::EncodingUnsupported => ErrorCode::FileEncodingUnsupported,
             Self::Unreadable(_) => ErrorCode::SourcePathNotFound,
+            Self::FileUnreadable(_) => ErrorCode::FileUnreadable,
             Self::PackMissing(_) => ErrorCode::LanguagePackMissing,
             Self::PackInvalid { .. } => ErrorCode::LanguagePackInvalid,
             Self::Timeout => ErrorCode::ParseTimeout,
