@@ -5,7 +5,7 @@
 mod bus;
 mod event;
 
-pub use bus::{EventBus, Subscription};
+pub use bus::{EventBus, ScanTracking, Subscription};
 pub use event::{
     AlertsChanged, Event, FilesChanged, Level2Finished, Level2Progressed, ScanProgressed,
     ScanStopped, SnapshotCreated, StopReason,

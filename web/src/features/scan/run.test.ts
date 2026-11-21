@@ -6,6 +6,8 @@ import {
   latestRun,
   percent,
   secondsLeft,
+  isUnmeasured,
+  stagePercent,
   stageSeconds,
   stageState,
 } from "./run";
@@ -133,5 +135,62 @@ describe("applyEvent", () => {
       [{ type: "files_changed", project: 1, files: 3, rescan: false }, 1],
     ]);
     expect(runs).toEqual([]);
+  });
+});
+
+describe("the share of one stage", () => {
+  const at = (events: [WireEvent, number][]) => fold(events)[0] as Run;
+
+  it("is the share of its units while they count, 100 when it is over, none before", () => {
+    const run = at([
+      [progress("fetch", 1, 1), 0],
+      [progress("analyze", 25, 100), 10],
+    ]);
+    expect(stagePercent(run, "fetch")).toBe(100);
+    expect(stagePercent(run, "analyze")).toBe(25);
+    expect(stagePercent(run, "resolve")).toBeNull();
+  });
+
+  it("is unknown for a stage that runs without a count that says anything", () => {
+    const run = at([[progress("resolve", 0, 4000), 0]]);
+    expect(stagePercent(run, "resolve")).toBeNull();
+    expect(isUnmeasured(run, "resolve")).toBe(true);
+    expect(isUnmeasured(run, "analyze")).toBe(false);
+  });
+
+  it("puts the start of a run back by the time its stage had run when the page came late", () => {
+    const run = at([[progress("analyze", 50, 100, 1, 5000), 20_000]]);
+    expect(run.startedAt).toBe(15_000);
+    expect(run.stages.analyze?.startedAt).toBe(15_000);
+    expect(filesPerSecond(run, 20_000)).toBe(10);
+  });
+});
+
+describe("the percent of a scan", () => {
+  it("stays under 100 while later stages still run, and says 100 once it is done", () => {
+    const events: [WireEvent, number][] = [
+      [progress("analyze", 10, 10), 0],
+      [progress("resolve", 0, 40), 5],
+    ];
+    expect(percent(fold(events)[0] as Run)).toBe(99);
+    expect(percent(fold([...events, [created, 9]])[0] as Run)).toBe(100);
+  });
+});
+
+describe("a report that arrives late", () => {
+  it("does not move the count of a stage back", () => {
+    const run = fold([
+      [progress("analyze", 6, 10), 0],
+      [progress("analyze", 5, 10), 1],
+    ])[0] as Run;
+    expect(run.stages.analyze?.done).toBe(6);
+  });
+
+  it("lets a stage with a new total start again", () => {
+    const run = fold([
+      [progress("resolve", 0, 0), 0],
+      [progress("resolve", 3, 9), 1],
+    ])[0] as Run;
+    expect(run.stages.resolve?.done).toBe(3);
   });
 });

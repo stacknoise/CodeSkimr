@@ -1,5 +1,6 @@
 //! The event stream (blueprint 10.3): domain events as JSON text messages over a WebSocket.
 
+use std::collections::VecDeque;
 use std::sync::Arc;
 use std::sync::mpsc::RecvTimeoutError;
 use std::thread;
@@ -223,12 +224,24 @@ pub async fn stream(State(app): State<AppState>, upgrade: WebSocketUpgrade) -> R
         return Failure::code(ErrorCode::ServerBusy).into_response();
     };
     let stop = app.stop.clone();
+    // Subscribe first, then look at the running scans: an event may then arrive twice but is
+    // never lost between the two.
     let Some(events) = bridge(&app.events) else {
         return Failure::code(ErrorCode::UnexpectedInternalError).into_response();
     };
+    let replay = replay(&app.events);
     upgrade
         .max_message_size(MAX_SOCKET_MESSAGE_BYTES)
-        .on_upgrade(move |socket| pump(socket, events, slot, stop))
+        .on_upgrade(move |socket| pump(socket, (replay, events), slot, stop))
+}
+
+/// The last report of each stage of each scan that runs now, as events: a client that connects
+/// in the middle of a scan (a page that was reloaded) learns how far it has come.
+fn replay(bus: &EventBus) -> VecDeque<Event> {
+    bus.running_scans()
+        .into_iter()
+        .map(Event::ScanProgressed)
+        .collect()
 }
 
 /// When the client was last heard and last pinged.
@@ -244,7 +257,7 @@ struct Liveness {
 /// noticed without waiting for the next event. The slot is given back when the stream ends.
 async fn pump(
     mut socket: WebSocket,
-    mut events: Receiver<Event>,
+    (mut replay, mut events): (VecDeque<Event>, Receiver<Event>),
     slot: OwnedSemaphorePermit,
     stop: watch::Receiver<()>,
 ) {
@@ -258,7 +271,11 @@ async fn pump(
             close(&mut socket, close_code::AWAY).await;
             break;
         }
-        match timeout(EVENT_POLL, events.recv()).await {
+        let next = match replay.pop_front() {
+            Some(event) => Ok(Some(event)),
+            None => timeout(EVENT_POLL, events.recv()).await,
+        };
+        match next {
             Ok(Some(event)) => {
                 let Ok(text) = serde_json::to_string(&WireEvent::of(&event)) else {
                     continue;

@@ -108,6 +108,27 @@ mod tests {
     }
 
     #[test]
+    fn literals_follow_the_exceptions_of_the_rule() {
+        let found = by_name(&facts("java", "Literals.java"));
+        let literals = |name: &str| body(&found, name).literals;
+        // 0, 1 and the long forms 0L and 1L are exceptions
+        assert_eq!(literals("clean"), Some(0));
+        // 42, 2.5, 0x10, 0b11 and 017; 0 and 1 are exceptions
+        assert_eq!(literals("numbers"), Some(5));
+        // "x", 'y', the text block and "tail"
+        assert_eq!(literals("strings"), Some(4));
+        // the value of a local final is an exception, the 2 and 50 of its sibling and the 7 are not
+        assert_eq!(literals("local"), Some(3));
+        // the annotation value is an exception; true, false and null are no literals; "a" is one
+        assert_eq!(literals("flags"), Some(1));
+        // the values of both annotations (also the array elements) are exceptions; the lambda counts
+        // for its method: "lambda " and 5
+        assert_eq!(literals("annotated"), Some(2));
+        // a constant outside any callable counts for nobody, reading it is no literal
+        assert_eq!(literals("viaField"), Some(0));
+    }
+
+    #[test]
     fn highlights_compile_against_the_grammar() {
         highlights_compile("java", &tree_sitter_java::LANGUAGE.into());
     }
