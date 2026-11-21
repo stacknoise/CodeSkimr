@@ -151,6 +151,17 @@ describe("ProjectsScreen", () => {
     expect(activeProject()).toBe(JSON.parse(call?.[1].body).project);
   });
 
+  it("ignores the report of a project that was known before when a new one is added", async () => {
+    serve({ "projects.list": () => answer([ROW]) });
+    render(() => <ProjectsScreen />);
+    await screen.findByText("shop");
+    const before = currentPath();
+    const adding = addProject("/work/new", "main");
+    noteScanReport(ROW.id);
+    expect(currentPath()).toBe(before);
+    await adding;
+  });
+
   it("shows the scan screen of a new project with its first report", async () => {
     serve({ "projects.list": () => answer([ROW]) });
     render(() => <ProjectsScreen />);

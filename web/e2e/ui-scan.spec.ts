@@ -15,7 +15,10 @@ test.describe("the scan and performance screen", () => {
     await page.getByRole("link", { name: "Scans and performance" }).click();
     // The stream was open while the scan ran, so the finished run is listed.
     await expect(page.getByRole("heading", { name: "Scan finished" })).toBeVisible();
-    await expect(page.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "100");
+    await expect(page.getByRole("progressbar", { name: "Progress of the scan" })).toHaveAttribute(
+      "aria-valuenow",
+      "100",
+    );
     await expect(page.getByText("Pipeline")).toBeVisible();
     await expect(page.getByText("Parse", { exact: true })).toBeVisible();
 

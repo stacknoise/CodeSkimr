@@ -745,6 +745,7 @@ export const I18N_KEYS = {
   SCAN_CANCEL_KEY: "scan-cancel-key",
   SCAN_METRIC_CORES: "scan-metric-cores",
   SCAN_METRIC_MEMORY: "scan-metric-memory",
+  SCAN_PROGRESS_LABEL: "scan-progress-label",
   SCAN_PIPELINE: "scan-pipeline",
   SCAN_COLUMN_LANGUAGE: "scan-column-language",
   SCAN_COLUMN_TIER: "scan-column-tier",

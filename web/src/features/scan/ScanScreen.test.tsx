@@ -288,7 +288,10 @@ describe("ScanScreen", () => {
     expect(await screen.findByText("Scan running")).toBeInTheDocument();
     // Once in the card of the scan and once on the row of the stage.
     expect(screen.getAllByText("62 %")).toHaveLength(2);
-    expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "62");
+    expect(screen.getByRole("progressbar", { name: "Progress of the scan" })).toHaveAttribute(
+      "aria-valuenow",
+      "62",
+    );
     expect(screen.getByText("2,364 of 3,812 files", { exact: false })).toBeInTheDocument();
     const pipeline = screen.getByText("Pipeline").parentElement as HTMLElement;
     expect(within(pipeline).getByText("Fetch source")).toBeInTheDocument();
@@ -309,10 +312,17 @@ describe("ScanScreen", () => {
     FakeSocket.last?.send({ ...RUNNING, stage: "resolve", done: 0, total: 5000 });
     const pipeline = (await screen.findByText("Pipeline")).parentElement as HTMLElement;
     expect(within(pipeline).getAllByText("100 %")).toHaveLength(2);
-    expect(pipeline.querySelectorAll("[title]")).toHaveLength(1);
+    const resolving = within(pipeline).getByRole("progressbar", { name: "Resolve dependencies" });
+    expect(resolving).not.toHaveAttribute("aria-valuenow");
+    expect(resolving).toHaveAccessibleDescription(/cannot be measured/);
+    expect(within(pipeline).getByRole("progressbar", { name: "Parse" })).toHaveAttribute(
+      "aria-valuenow",
+      "100",
+    );
     FakeSocket.last?.send({ ...RUNNING, stage: "resolve", done: 2500, total: 5000 });
     expect(await within(pipeline).findByText("50 %")).toBeInTheDocument();
-    expect(pipeline.querySelectorAll("[title]")).toHaveLength(0);
+    expect(resolving).toHaveAttribute("aria-valuenow", "50");
+    expect(within(pipeline).queryByText(/cannot be measured/)).toBeNull();
     stop();
   });
 

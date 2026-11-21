@@ -5,7 +5,10 @@ import { count, seconds } from "../projects/format";
 import {
   FILE_STAGE,
   PERCENT,
+  NOTE_ID_PREFIX,
   PERCENT_SIGN,
+  PROGRESS_MAX,
+  PROGRESS_MIN,
   STAGE_MARKS,
   STAGE_STATE,
   STAGE_TEXT,
@@ -38,6 +41,37 @@ function barWidth(run: Run | undefined, stage: Stage, state: StageState): number
   return run === undefined ? 0 : (stagePercent(run, stage) ?? 0);
 }
 
+/** The id of the note that says why a stage has no share. */
+function noteId(stage: Stage): string {
+  return `${NOTE_ID_PREFIX}${stage}`;
+}
+
+/** The bar of a stage: its share, or a moving bar for a stage that cannot say how far it is. */
+function Bar(props: { run: Run | undefined; stage: Stage; state: StageState }) {
+  const share = () => (props.run ? stagePercent(props.run, props.stage) : null);
+  const unmeasured = () => (props.run ? isUnmeasured(props.run, props.stage) : false);
+  return (
+    <div
+      class={styles.track}
+      role="progressbar"
+      aria-label={t(STAGE_TEXT[props.stage].name)}
+      aria-valuemin={PROGRESS_MIN}
+      aria-valuemax={PROGRESS_MAX}
+      aria-valuenow={share() ?? undefined}
+      aria-describedby={unmeasured() ? noteId(props.stage) : undefined}
+    >
+      <div
+        class={cx(styles.fill, unmeasured() && styles.unmeasured)}
+        style={
+          unmeasured()
+            ? undefined
+            : { width: barWidth(props.run, props.stage, props.state) + PERCENT_SIGN }
+        }
+      />
+    </div>
+  );
+}
+
 function Row(props: { run: Run | undefined; stage: Stage }) {
   const state = () => (props.run ? stageState(props.run, props.stage) : STAGE_STATE.waiting);
   const share = () => (props.run ? stagePercent(props.run, props.stage) : null);
@@ -49,20 +83,13 @@ function Row(props: { run: Run | undefined; stage: Stage }) {
       <div>
         <div class={styles.name}>{t(STAGE_TEXT[props.stage].name)}</div>
         <div class={styles.detail}>{detail(props.run, props.stage)}</div>
+        <Show when={unmeasured()}>
+          <div class={styles.detail} id={noteId(props.stage)}>
+            {t(I18N_KEYS.SCAN_STAGE_UNMEASURED)}
+          </div>
+        </Show>
       </div>
-      <div
-        class={styles.track}
-        title={unmeasured() ? t(I18N_KEYS.SCAN_STAGE_UNMEASURED) : undefined}
-      >
-        <div
-          class={cx(styles.fill, unmeasured() && styles.unmeasured)}
-          style={
-            unmeasured()
-              ? undefined
-              : { width: barWidth(props.run, props.stage, state()) + PERCENT_SIGN }
-          }
-        />
-      </div>
+      <Bar run={props.run} stage={props.stage} state={state()} />
       <span class={styles.share}>
         <Show when={share() !== null}>
           {share()} {PERCENT_SIGN}

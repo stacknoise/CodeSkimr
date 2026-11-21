@@ -130,3 +130,6 @@ export const IDLE = "idle";
 
 /** The most a scan that still runs says of itself: the stages after the files are not counted. */
 export const LAST_RUNNING_PERCENT = 99;
+
+/** Start of the id of the note under a stage that cannot say how far it has come. */
+export const NOTE_ID_PREFIX = "scan-stage-note-";

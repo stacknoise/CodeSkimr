@@ -176,3 +176,21 @@ describe("the percent of a scan", () => {
     expect(percent(fold([...events, [created, 9]])[0] as Run)).toBe(100);
   });
 });
+
+describe("a report that arrives late", () => {
+  it("does not move the count of a stage back", () => {
+    const run = fold([
+      [progress("analyze", 6, 10), 0],
+      [progress("analyze", 5, 10), 1],
+    ])[0] as Run;
+    expect(run.stages.analyze?.done).toBe(6);
+  });
+
+  it("lets a stage with a new total start again", () => {
+    const run = fold([
+      [progress("resolve", 0, 0), 0],
+      [progress("resolve", 3, 9), 1],
+    ])[0] as Run;
+    expect(run.stages.resolve?.done).toBe(3);
+  });
+});

@@ -4,6 +4,8 @@ use std::collections::BTreeMap;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
+use codeskimr_domain::ProjectId;
+
 use crate::stage::StageKind;
 
 use super::{Event, ScanProgressed};
@@ -22,6 +24,19 @@ pub type Subscription = Receiver<Event>;
 pub struct EventBus {
     subscribers: Arc<Mutex<Vec<Sender<Event>>>>,
     running: Arc<Mutex<Running>>,
+}
+
+/// Forgets the reports of a project when it is dropped; see [`EventBus::track`].
+#[derive(Debug)]
+pub struct ScanTracking {
+    bus: EventBus,
+    project: ProjectId,
+}
+
+impl Drop for ScanTracking {
+    fn drop(&mut self) {
+        self.bus.forget(self.project.get());
+    }
 }
 
 /// The last report of each stage of each scan that has not ended, by project and stage.
@@ -56,6 +71,21 @@ impl EventBus {
         self.running_lock().values().copied().collect()
     }
 
+    /// Starts to track the scan of `project`. When the returned guard is dropped, the project is
+    /// no longer listed by [`Self::running_scans`], even if the scan thread ended without telling
+    /// (a panic): a browser that connects later must not be shown a scan that is gone.
+    #[must_use]
+    pub fn track(&self, project: ProjectId) -> ScanTracking {
+        ScanTracking {
+            bus: self.clone(),
+            project,
+        }
+    }
+
+    fn forget(&self, project: u64) {
+        self.running_lock().retain(|(id, _), _| *id != project);
+    }
+
     /// Keeps the last report of each stage of a running scan, and forgets a scan that ended.
     fn remember(&self, event: &Event) {
         let mut running = self.running_lock();
@@ -87,9 +117,9 @@ impl EventBus {
 
 #[cfg(test)]
 mod tests {
-    use codeskimr_domain::ProjectId;
+    use codeskimr_domain::{ProjectId, ScanMode, Snapshot, SnapshotId, SnapshotStats, Timestamp};
 
-    use super::super::{ScanStopped, StopReason};
+    use super::super::{ScanStopped, SnapshotCreated, StopReason};
     use super::*;
 
     fn report(project: u64, stage: StageKind, done: u32, total: u32) -> Event {
@@ -133,6 +163,54 @@ mod tests {
             project: ProjectId::new(1),
             reason: StopReason::Cancelled,
         }));
+        let projects: Vec<_> = bus
+            .running_scans()
+            .iter()
+            .map(|r| r.project.get())
+            .collect();
+        assert_eq!(projects, [2]);
+    }
+
+    fn created(project: u64) -> Event {
+        Event::SnapshotCreated(SnapshotCreated {
+            snapshot: Snapshot {
+                id: SnapshotId::new(1),
+                project: ProjectId::new(project),
+                commit: None,
+                created: Timestamp(0),
+                mode: ScanMode::Full,
+                stats: SnapshotStats {
+                    files: 1,
+                    symbols: 1,
+                    references: 1,
+                },
+            },
+            pack_load: std::time::Duration::ZERO,
+        })
+    }
+
+    #[test]
+    fn a_scan_that_ends_with_a_snapshot_is_forgotten_and_the_next_one_starts_from_nothing() {
+        let bus = EventBus::new();
+        bus.publish(&report(1, StageKind::Persist, 1, 1));
+        bus.publish(&created(1));
+        assert!(bus.running_scans().is_empty());
+        bus.publish(&report(1, StageKind::Fetch, 0, 0));
+        let seen: Vec<_> = bus.running_scans().iter().map(|r| r.stage).collect();
+        assert_eq!(
+            seen,
+            [StageKind::Fetch],
+            "no stage of the first scan is left"
+        );
+    }
+
+    #[test]
+    fn a_scan_whose_thread_ends_without_an_event_is_forgotten_when_its_guard_is_dropped() {
+        let bus = EventBus::new();
+        let tracking = bus.track(ProjectId::new(1));
+        bus.publish(&report(1, StageKind::Analyze, 4, 10));
+        bus.publish(&report(2, StageKind::Analyze, 5, 10));
+        drop(tracking);
         let projects: Vec<_> = bus
             .running_scans()
             .iter()

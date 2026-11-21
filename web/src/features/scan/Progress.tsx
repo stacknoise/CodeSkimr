@@ -86,6 +86,7 @@ export function Progress(props: { run: Run; linesPerSecond: number | null }) {
       <div
         class={styles.track}
         role="progressbar"
+        aria-label={t(I18N_KEYS.SCAN_PROGRESS_LABEL)}
         aria-valuemin={PROGRESS_MIN}
         aria-valuemax={PROGRESS_MAX}
         aria-valuenow={percent(props.run)}

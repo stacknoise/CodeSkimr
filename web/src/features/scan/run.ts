@@ -39,7 +39,9 @@ function advance(run: Run, event: ProgressEvent, now: number): Run {
       stages[name] = known.endedAt === null ? { ...known, endedAt: now } : known;
     } else if (name === stage) {
       stages[name] = {
-        done,
+        // A report that was queued before the stream replayed a later one must not move the bar
+        // back: within one stage and one total the count only grows.
+        done: known && known.total === total ? Math.max(known.done, done) : done,
         total,
         startedAt: known?.startedAt ?? now - (event.elapsed_ms ?? 0),
         endedAt: null,
