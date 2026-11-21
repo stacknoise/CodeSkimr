@@ -247,8 +247,8 @@ pub const LIFT_MIN_FRAMES: usize = 3;
 /// Revision of the naming rules of the engine itself, part of the text of the naming rules: it
 /// changes when names change for reasons other than a pack key (2: members of an `impl` carry
 /// their type, ADR 0039; 3: methods of Go and C++ carry their owner, ADR 0042; 4: types and members
-/// carry the hash of their tokens, ADR 0068, which an earlier snapshot lacks; 5: a parameter property of a TypeScript constructor is a
-/// field of the class, ADR 0083).
+/// carry the hash of their tokens, ADR 0068, which an earlier snapshot lacks; 5: a parameter
+/// property of a TypeScript constructor is a field of the class, ADR 0083).
 pub const NAMING_REVISION: &str = "revision=5";
 
 /// Ends a signature that was cut at `scan.max_signature_chars`.
