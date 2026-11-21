@@ -248,7 +248,28 @@ fn the_check_reports_a_long_function_with_its_numbers() {
     assert_eq!(finding["symbol"], "App.Big.Run");
     assert_eq!(finding["lines"], 50);
     assert_eq!(finding["max_lines"], 40);
-    assert_eq!(answer["not_checked"], serde_json::json!(["CHK-103"]));
+    assert_eq!(answer["not_checked"], serde_json::json!([]));
+}
+
+#[test]
+fn the_check_reports_a_function_that_uses_a_forbidden_layer() {
+    let args = ConventionsArgs {
+        limit: Some(10),
+        ..conventions(&["src"])
+    };
+    let answer = tools_listing(10)
+        .check_conventions(&owner(), &args)
+        .unwrap();
+    let finding = answer["findings"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|finding| finding["code"] == "CHK-103")
+        .unwrap();
+    assert_eq!(finding["symbol"], "App.Web.Page.Show");
+    assert_eq!(finding["from_layer"], "Web");
+    assert_eq!(finding["to_layer"], "Domain");
+    assert_eq!(finding["uses"], 2);
 }
 
 #[test]
@@ -272,7 +293,7 @@ fn the_check_reports_complexity_and_parameters_with_their_limits() {
     assert_eq!(find("CHK-106")["value"], 7);
     assert_eq!(find("CHK-106")["max_value"], 5);
     assert_eq!(find("CHK-101")["literals"], 3);
-    assert_eq!(answer["total"], 4);
+    assert_eq!(answer["total"], 5);
 }
 
 #[test]
@@ -293,7 +314,7 @@ fn no_paths_check_the_whole_project() {
     };
     let answer = tools().check_conventions(&owner(), &args).unwrap();
     assert_eq!(answer["files_checked"], 1);
-    assert_eq!(answer["total"], 4);
+    assert_eq!(answer["total"], 5);
 }
 
 #[test]
