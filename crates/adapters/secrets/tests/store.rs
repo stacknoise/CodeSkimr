@@ -66,6 +66,40 @@ fn a_stored_credential_is_lent_to_the_closure() -> TestResult {
 }
 
 #[test]
+fn the_existence_of_a_credential_is_known_without_lending_it() -> TestResult {
+    let id = CredentialId::new("work")?;
+    let store = store_with(&id)?;
+    assert!(store.exists(&id)?);
+    assert!(!store.exists(&CredentialId::new("other")?)?);
+    Ok(())
+}
+
+/// A keystore that cannot be used.
+struct Locked;
+
+impl Keystore for Locked {
+    fn read(&self, _name: &str) -> Result<Zeroizing<Vec<u8>>, AuthError> {
+        Err(AuthError::AccessDenied)
+    }
+
+    fn write(&self, _name: &str, _bytes: &[u8]) -> Result<(), AuthError> {
+        Err(AuthError::AccessDenied)
+    }
+
+    fn remove(&self, _name: &str) -> Result<(), AuthError> {
+        Err(AuthError::AccessDenied)
+    }
+}
+
+#[test]
+fn a_keystore_failure_is_not_taken_for_a_missing_credential() -> TestResult {
+    let store = KeystoreCredentials::new(Locked);
+    let result = store.exists(&CredentialId::new("work")?);
+    assert!(matches!(result, Err(AuthError::AccessDenied)));
+    Ok(())
+}
+
+#[test]
 fn every_attempt_reads_again() -> TestResult {
     let id = CredentialId::new("work")?;
     let store = store_with(&id)?;

@@ -4,8 +4,10 @@ import "./shared/session/capture";
 import "./app/fonts.css";
 import "./shared/theme/tokens.css";
 import "./app/global.css";
+import { ErrorBoundary } from "solid-js";
 import { render } from "solid-js/web";
 import { App } from "./app/App";
+import { UnexpectedError } from "./app/UnexpectedError";
 import { ROOT_ID } from "./app/consts";
 import { currentLanguage, setLanguage } from "./shared/i18n/i18n";
 import { startSession } from "./shared/session/session";
@@ -17,7 +19,14 @@ const root = document.getElementById(ROOT_ID);
 if (root) {
   applyTheme();
   setLanguage(currentLanguage());
-  render(() => <App />, root);
+  render(
+    () => (
+      <ErrorBoundary fallback={(error, reset) => <UnexpectedError error={error} reset={reset} />}>
+        <App />
+      </ErrorBoundary>
+    ),
+    root,
+  );
   void loadUiConfig();
   syncPreferences();
   void startSession();

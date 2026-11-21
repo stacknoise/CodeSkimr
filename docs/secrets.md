@@ -38,7 +38,7 @@ The browser UI and other REST callers manage logins with three commands (bluepri
 
 - `credentials.set` takes `id`, `user` and `secret` and stores them in the keystore of the system. The secret travels in this one request (it needs the installation token), is wrapped in a `SecretString` at once and is wiped after storing (the request body and the JSON value it came from are not wiped: residual risk, blueprint 15). The answer holds the name only. An empty name, user or secret and the name `installation-token` are refused with `API-101`; a body that does not parse is `API-101` as well and never echoes the value (checked over HTTP in the security suite).
 - `credentials.delete` takes `id`; a missing credential is not an error.
-- `credentials.list` names the credentials that Git projects log in with and whether the keystore holds each (`stored`). It never shows a secret and needs only the read right.
+- `credentials.list` names the credentials that the Git projects name (not every entry of the keystore) and whether the keystore holds each (`stored`, through `CredentialStore::exists`, which decodes and lends nothing; the OS keystores answer it from the attributes of the entry, a store that cannot falls back to reading and wiping the bytes). It never shows a secret. Because the names tell which logins this machine holds, it needs the installation token and the right to read source text.
 - `projects.add` takes `credential` for a Git source. The project row holds the name only.
 
 The scanner and the commands share one credential store (`wiring::Secrets`). The fetcher of Git sources sees it through `wiring::ForRemotes`, which hides the installation token: a project row that names `installation-token` cannot make a clone send it to a remote (`SEC-201`).

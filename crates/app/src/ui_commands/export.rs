@@ -2,8 +2,9 @@
 //!
 //! The page is the built UI with the answers of the read commands embedded: the tree of the
 //! explorer, every symbol with its members, the usages of every symbol and the dependency map. It
-//! needs no server. The export holds no source text: that needs `read_source`, and a page that is
-//! passed on must not carry code by accident.
+//! needs no server. The export holds no source text, so a page that is passed on does not carry code
+//! by accident. It dumps the whole index of a project in one go, so it needs `read_source` like
+//! the other bulk readouts, and the HTTP route asks for the installation token (ADR 0035).
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
@@ -306,11 +307,11 @@ impl Command for HtmlExport {
         description_key: EXPORT_DESCRIPTION,
         shortcut: None,
         read_only: true,
-        permission: Permission::Read,
+        permission: Permission::ReadSource,
     };
 
     fn execute(&self, request: Request<'_, Self>) -> Result<ExportOut, CodedError> {
-        access::require(request.principal, Permission::Read)?;
+        access::require(request.principal, Permission::ReadSource)?;
         let page = self.page()?;
         let data = self.collect(*request.principal, request.input.project)?;
         let json = serde_json::to_string(&data)

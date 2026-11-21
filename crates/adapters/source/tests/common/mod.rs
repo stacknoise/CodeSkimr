@@ -92,6 +92,10 @@ impl CredentialStore for TestStore {
         action(&Credential::from_packed(Box::new(Plain(packed)))?)
     }
 
+    fn exists(&self, id: &CredentialId) -> Result<bool, AuthError> {
+        Ok(self.entries.contains_key(id.as_str()))
+    }
+
     fn store(&self, _id: &CredentialId, _credential: &Credential) -> Result<(), AuthError> {
         Err(AuthError::AccessDenied)
     }
