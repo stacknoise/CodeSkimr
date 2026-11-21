@@ -174,6 +174,7 @@ impl AlertStep {
             self.annotations.store_baseline(annotation.id, &now)?;
             return Ok(Outcome::Baselined);
         };
+        let baseline = self.migrated(annotation.id, baseline, state, &now)?;
         let changes = compare::differences(&baseline, &now);
         let open = look.open.get(&annotation.id);
         let seen = open.is_some_and(|alert| {
@@ -201,6 +202,32 @@ impl AlertStep {
                 counted: !seen,
             },
         )
+    }
+
+    /// A baseline that an older version stored takes over the signature hash of today, without an
+    /// alert: the symbol has not changed, only the way its signature is hashed (and, for a
+    /// function or method, that it has one). The content hash stays, so a change of the code still
+    /// raises an alert.
+    fn migrated(
+        &self,
+        annotation: AnnotationId,
+        baseline: SymbolBaseline,
+        state: &SymbolState,
+        now: &SymbolBaseline,
+    ) -> Result<SymbolBaseline, CodedError> {
+        if baseline.signature_hash == now.signature_hash {
+            return Ok(baseline);
+        }
+        let legacy = observe::legacy_signature_hashes(self.digest.as_ref(), state)?;
+        if !legacy.contains(&baseline.signature_hash) {
+            return Ok(baseline);
+        }
+        let taken = SymbolBaseline {
+            signature_hash: now.signature_hash.clone(),
+            ..baseline
+        };
+        self.annotations.store_baseline(annotation, &taken)?;
+        Ok(taken)
     }
 
     /// The symbol is not in the snapshot: `orphaned` if a symbol of the same simple name exists

@@ -128,3 +128,38 @@ fn a_type_in_a_file_without_a_namespace_gets_the_file_as_its_namespace_entry() {
         .unwrap();
     assert!(!python.file);
 }
+
+fn member(
+    id: u64,
+    kind: SymbolKind,
+    signature: Option<&str>,
+) -> codeskimr_application::ports::MemberRow {
+    codeskimr_application::ports::MemberRow {
+        id: SymbolId::new(id),
+        name: SymbolName::new("Work").unwrap(),
+        qualified_name: QualifiedName::new("Demo.Box.Work").unwrap(),
+        kind,
+        visibility: None,
+        signature: signature.map(str::to_owned),
+        complexity: None,
+        usages: 0,
+        first_line: 0,
+        last_line: 0,
+    }
+}
+
+#[test]
+fn only_an_overloaded_member_names_the_parameters_of_its_signature() {
+    use super::symbol::overload_parameters;
+    let rows = [
+        member(1, SymbolKind::Method, Some("void Work(int x)")),
+        member(2, SymbolKind::Method, Some("void Work(int x, string s)")),
+        member(3, SymbolKind::Field, Some("int Work")),
+    ];
+    assert_eq!(overload_parameters(&rows[0], &rows), ["int x"]);
+    assert_eq!(overload_parameters(&rows[1], &rows), ["int x", "string s"]);
+    // Same name but another kind: no overload.
+    assert!(overload_parameters(&rows[2], &rows).is_empty());
+    // Alone, it names none: its annotations keep the key without parameters.
+    assert!(overload_parameters(&rows[0], &rows[..1]).is_empty());
+}

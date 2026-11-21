@@ -331,6 +331,122 @@ fn an_overload_with_more_parameters_is_not_taken_for_the_shorter_one() {
     assert_eq!(baseline.content_hash, hash("short-version"));
 }
 
+/// A baseline in the format of an older version: the signature hash over the words, or over
+/// nothing for a symbol that had no signature then.
+#[cfg(test)]
+fn legacy_baseline(world: &Fixture, annotation: &codeskimr_domain::Annotation, signature: &str) {
+    let baseline = SymbolBaseline {
+        content_hash: hash("one"),
+        signature_hash: hash(&format!("digest({signature})")),
+        loc: Loc(10),
+        cc: 2,
+    };
+    world
+        .annotations
+        .store_baseline(annotation.id, &baseline)
+        .unwrap();
+}
+
+#[test]
+fn a_method_that_had_no_signature_raises_no_alert_after_the_update_and_is_rebased() {
+    let world = fixture();
+    let annotation = world.annotations.critical(SymbolKind::Method, WORK, &[]);
+    legacy_baseline(&world, &annotation, "");
+    world.with_work("one");
+    assert_eq!(world.run(1, AlertTrigger::Scan).raised, 0);
+    let rebased = world.annotations.baseline(annotation.id).unwrap().unwrap();
+    assert_eq!(rebased.signature_hash, hash("digest(Demo.Box.Work())"));
+    // A real change of the signature afterwards still tells.
+    let mut changed = symbol(SymbolKind::Method, WORK, "one");
+    changed.signature = Some("Work(int x)".to_owned());
+    world.states.set(vec![changed]);
+    assert_eq!(world.run(2, AlertTrigger::Scan).raised, 1);
+    assert_eq!(
+        world.annotations.open_alerts()[0].sighting.changes,
+        [AlertChange::Signature]
+    );
+}
+
+#[test]
+fn a_field_hashed_by_words_raises_no_alert_after_the_update_and_is_rebased() {
+    let world = fixture();
+    let annotation = world.annotations.critical(SymbolKind::Field, WORK, &[]);
+    legacy_baseline(&world, &annotation, "int|Max|=|5");
+    let mut field = symbol(SymbolKind::Field, WORK, "one");
+    field.signature = Some("int  Max = 5".to_owned());
+    world.states.set(vec![field]);
+    assert_eq!(world.run(1, AlertTrigger::Scan).raised, 0);
+    let rebased = world.annotations.baseline(annotation.id).unwrap().unwrap();
+    assert_eq!(rebased.signature_hash, hash("digest(intMax=5)"));
+    let mut changed = symbol(SymbolKind::Field, WORK, "one");
+    changed.signature = Some("int Max = 6".to_owned());
+    world.states.set(vec![changed]);
+    assert_eq!(world.run(2, AlertTrigger::Scan).raised, 1);
+}
+
+#[test]
+fn a_changed_signature_of_an_old_baseline_still_tells_and_a_code_change_is_not_swallowed() {
+    let world = fixture();
+    let annotation = world.annotations.critical(SymbolKind::Field, WORK, &[]);
+    legacy_baseline(&world, &annotation, "int|Max|=|5");
+    let mut field = symbol(SymbolKind::Field, WORK, "two");
+    field.signature = Some("long Max = 5".to_owned());
+    world.states.set(vec![field]);
+    assert_eq!(world.run(1, AlertTrigger::Scan).raised, 1);
+    assert_eq!(
+        world.annotations.open_alerts()[0].sighting.changes[..2],
+        [AlertChange::Content, AlertChange::Signature]
+    );
+}
+
+#[test]
+fn a_renamed_parameter_keeps_the_target_while_one_overload_has_that_many_parameters() {
+    let world = fixture();
+    let mut one = symbol(SymbolKind::Method, WORK, "one-version");
+    one.signature = Some("Work(int y)".to_owned());
+    let mut two = symbol(SymbolKind::Method, WORK, "two-version");
+    two.signature = Some("Work(int a, int b)".to_owned());
+    world.states.set(vec![one, two]);
+    let annotation = world
+        .annotations
+        .critical(SymbolKind::Method, WORK, &["int x"]);
+    world.run(1, AlertTrigger::Scan);
+    let baseline = world.annotations.baseline(annotation.id).unwrap().unwrap();
+    assert_eq!(baseline.content_hash, hash("one-version"));
+}
+
+#[test]
+fn the_long_overload_is_chosen_by_its_own_parameters() {
+    let world = fixture();
+    let mut long = symbol(SymbolKind::Method, WORK, "long-version");
+    long.signature = Some("Work(int x, string s)".to_owned());
+    let mut short = symbol(SymbolKind::Method, WORK, "short-version");
+    short.signature = Some("Work(int x)".to_owned());
+    world.states.set(vec![short, long]);
+    let annotation = world
+        .annotations
+        .critical(SymbolKind::Method, WORK, &["int x", "string s"]);
+    world.run(1, AlertTrigger::Scan);
+    let baseline = world.annotations.baseline(annotation.id).unwrap().unwrap();
+    assert_eq!(baseline.content_hash, hash("long-version"));
+}
+
+#[test]
+fn a_cut_signature_still_finds_its_overload_by_the_parameters_taken_from_it() {
+    let world = fixture();
+    let mut long = symbol(SymbolKind::Method, WORK, "long-version");
+    long.signature = Some("Work(int x, string…".to_owned());
+    let mut short = symbol(SymbolKind::Method, WORK, "short-version");
+    short.signature = Some("Work(int x)".to_owned());
+    world.states.set(vec![short, long]);
+    let annotation = world
+        .annotations
+        .critical(SymbolKind::Method, WORK, &["int x", "string…"]);
+    world.run(1, AlertTrigger::Scan);
+    let baseline = world.annotations.baseline(annotation.id).unwrap().unwrap();
+    assert_eq!(baseline.content_hash, hash("long-version"));
+}
+
 #[test]
 fn an_overload_that_no_longer_matches_the_parameter_types_is_gone() {
     let world = fixture();

@@ -121,7 +121,7 @@ pub struct SymbolInput {
 }
 
 /// The parameters of an overloaded member, none for a member whose kind and name are unique.
-fn overload_parameters(row: &MemberRow, rows: &[MemberRow]) -> Vec<String> {
+pub(super) fn overload_parameters(row: &MemberRow, rows: &[MemberRow]) -> Vec<String> {
     let overloaded = rows.iter().any(|other| {
         other.id != row.id && other.kind == row.kind && other.qualified_name == row.qualified_name
     });

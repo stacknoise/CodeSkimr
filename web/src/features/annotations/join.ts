@@ -48,9 +48,15 @@ export function buildIndex(rows: readonly SummaryRow[]): Index {
 
 /** The counters of a symbol, `undefined` if it has no annotation. */
 export function countersOf(index: Index, target: Target | null): Counters | undefined {
-  return target === null
-    ? undefined
-    : index.exact.get(targetKey(target.kind, target.name, target.parameters));
+  if (target === null) {
+    return undefined;
+  }
+  // An annotation made before overloads were told apart has no parameters and belongs to every
+  // overload: it is the fallback when no annotation names these parameters.
+  return (
+    index.exact.get(targetKey(target.kind, target.name, target.parameters)) ??
+    index.exact.get(targetKey(target.kind, target.name))
+  );
 }
 
 /** How many critical symbols stand below `name` (a namespace or a type), the symbol itself not

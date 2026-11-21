@@ -7,7 +7,9 @@ use crate::consts::{
 
 /// The parameters of the first parameter list of `signature` as written, in order, each trimmed
 /// (`int Total(int a, Map<K, V> b)` gives `int a` and `Map<K, V> b`). Commas inside brackets or
-/// angle brackets do not split. A signature without a parameter list, or an empty one, gives none.
+/// angle brackets do not split. The list starts at the first parenthesis, so a generic bound
+/// with one (`fn f<T: Fn(i32)>(x: T)`) gives a different list; it is still the same for the same
+/// signature, which is all that tells overloads apart. A signature without a parameter list, or an empty one, gives none.
 #[must_use]
 pub fn signature_parameters(signature: &str) -> Vec<String> {
     let Some(start) = signature.find(PARAMETER_LIST_START) else {
@@ -17,7 +19,7 @@ pub fn signature_parameters(signature: &str) -> Vec<String> {
         .get(start + PARAMETER_LIST_START.len_utf8()..)
         .unwrap_or_default();
     let mut parameters = Vec::new();
-    let mut depth = 0_usize;
+    let mut depth = usize::default();
     let mut from = 0;
     let mut previous = None;
     for (at, character) in list.char_indices() {
