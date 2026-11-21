@@ -14,10 +14,10 @@ Drawing on canvas looks the same when done well, but costs the elements: boxes a
 
 1. Up to the layout limit of 200 nodes the map is drawn with HTML and SVG. Blueprint 15.5 says so.
 2. Drawing on canvas is a separate work package after 1.0, started when a real project goes beyond that limit or the measurement of the map (zoom, move) misses a frame budget. It has to keep what the SVG map offers: keyboard control, accessible names, tooltips and the tests of the map.
-3. Until then the map shows at most the nodes the layout budget covers; a project with more namespaces uses the depth levels and the type focus to stay below it (already built, #215 and #233).
+3. Above 200 nodes the map is not guaranteed to stay smooth, and nothing caps the namespace level without depth at that number. The depth levels and the type focus (already built, #215 and #233) keep a large project below it.
 
 ## Consequences
 
 - Blueprint 15.5 changes: "Graph layout is computed in Rust and drawn with SVG up to 200 nodes; beyond that on canvas (ADR 0080)."
 - `docs/ui.md` and `docs/graph-layout.md` no longer list the SVG drawing as an unexplained deviation.
-- Issue #198 is closed; the canvas work becomes its own issue after 1.0.
+- Issue #198 is closed; the canvas work is issue #625, after 1.0.
