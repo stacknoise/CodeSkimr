@@ -55,6 +55,9 @@ mod principal;
 mod private_acl;
 mod redact;
 mod refresh;
+mod retention;
+#[cfg(test)]
+mod retention_tests;
 mod run;
 mod running;
 mod scan;

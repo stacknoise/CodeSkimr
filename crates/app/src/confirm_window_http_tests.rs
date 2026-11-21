@@ -239,6 +239,7 @@ fn the_window_route_and_the_commands_of_the_switch_follow_the_guard_end_to_end()
         mcp: Some(http_service(&config, &locations, (events.clone(), &secrets)).unwrap()),
         events,
         token_lock: None,
+        purge: None,
     };
     let (store, token) = token_store();
     let (stop, stopped) = oneshot::channel::<()>();

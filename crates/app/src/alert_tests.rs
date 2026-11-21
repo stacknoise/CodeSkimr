@@ -109,7 +109,7 @@ fn critical(store: &SqliteStore, kind: SymbolKind, name: &str) {
         .unwrap();
 }
 
-fn open_alerts(store: &SqliteStore) -> Vec<codeskimr_domain::Alert> {
+pub(crate) fn open_alerts(store: &SqliteStore) -> Vec<codeskimr_domain::Alert> {
     store
         .list_alerts(&AlertFilter {
             project: PROJECT,
@@ -119,7 +119,7 @@ fn open_alerts(store: &SqliteStore) -> Vec<codeskimr_domain::Alert> {
 }
 
 /// A project of two files under `root` with a critical annotation on `name`, scanned twice.
-fn watched(
+pub(crate) fn watched(
     root: &tempfile::TempDir,
     kind: SymbolKind,
     name: &str,

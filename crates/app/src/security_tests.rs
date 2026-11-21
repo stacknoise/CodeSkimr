@@ -84,6 +84,7 @@ fn server_parts(locations: &Locations, config: &Config, secrets: &Arc<Secrets>) 
         confirmation: None,
         events,
         token_lock: None,
+        purge: None,
     }
 }
 
