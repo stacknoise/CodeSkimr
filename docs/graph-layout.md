@@ -1,6 +1,6 @@
 # Graph layout
 
-The dependency map (blueprint 15, screen 3) needs positions for namespace and type boxes. They are computed in Rust (`codeskimr_domain::LayoutGraph`) and drawn on canvas by the UI (blueprint 15.5). The module is pure: nodes and edges in, positions out. It does not touch use cases, ports or storage.
+The dependency map (blueprint 15, screen 3) needs positions for namespace and type boxes. They are computed in Rust (`codeskimr_domain::LayoutGraph`) and drawn by the UI with SVG up to 200 nodes (blueprint 15.5, ADR 0078). The module is pure: nodes and edges in, positions out. It does not touch use cases, ports or storage.
 
 ## Interface
 
