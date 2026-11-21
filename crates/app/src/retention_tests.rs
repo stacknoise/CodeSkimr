@@ -7,10 +7,11 @@ use std::time::{Duration, Instant};
 use codeskimr_application::events::EventBus;
 use codeskimr_application::ports::{AlertDismissal, AlertFilter, AnnotationStore, Clock};
 use codeskimr_cli::GlobalOptions;
+use codeskimr_domain::Timestamp as Time;
 use codeskimr_domain::{AlertState, ScanMode, SymbolKind, Timestamp};
 use codeskimr_storage::SqliteStore;
 
-use crate::alert_tests::{open_alerts, watched};
+use crate::alert_tests::{critical, open_alerts, watched};
 use crate::clock::SystemClock;
 use crate::config_files;
 use crate::mcp_http_tests::locations;
@@ -86,6 +87,7 @@ fn the_server_purges_expired_alerts_when_it_starts() {
         RunningScans::default(),
     )
     .unwrap();
+    // `store` and `catalog` are two handles on the same database file under `data`.
     wait_until(|| dismissed(&store) == 0);
     drop(parts);
 }
@@ -96,4 +98,52 @@ fn the_timer_purges_again_after_its_interval() {
     let store = dismissed_at(&root, 1);
     let _timer = DailyPurge::start(store.clone(), 30, Duration::from_millis(10));
     wait_until(|| dismissed(&store) == 0);
+}
+
+/// A clock that stands still, to try the edge of the retention.
+struct Fixed(i64);
+
+impl Clock for Fixed {
+    fn now(&self) -> Timestamp {
+        Timestamp(self.0)
+    }
+}
+
+const DAY: i64 = 86_400;
+
+#[test]
+fn the_retention_keeps_29_days_and_30_and_deletes_31_and_spares_open_alerts() {
+    let root = tempfile::tempdir().unwrap();
+    let (folder, session, store) = watched(&root, SymbolKind::Class, "Demo.Target");
+    critical(&store, SymbolKind::Class, "Demo.Other");
+    std::fs::remove_file(folder.join("Target.cs")).unwrap();
+    std::fs::remove_file(folder.join("Other.cs")).unwrap();
+    session.scan_with(ScanMode::Full, |_| {}).unwrap();
+    let alerts = open_alerts(&store);
+    assert_eq!(alerts.len(), 2);
+    let at = 100 * DAY;
+    store
+        .dismiss_alert(&AlertDismissal {
+            alert: alerts[0].id,
+            baseline: None,
+            now: Time(at),
+        })
+        .unwrap();
+
+    assert_eq!(
+        purge_expired(&*store, &Fixed(at + 29 * DAY), 30).unwrap(),
+        0
+    );
+    assert_eq!(
+        purge_expired(&*store, &Fixed(at + 30 * DAY), 30).unwrap(),
+        0
+    );
+    assert_eq!(dismissed(&store), 1);
+    assert_eq!(
+        purge_expired(&*store, &Fixed(at + 31 * DAY), 30).unwrap(),
+        1
+    );
+    assert_eq!(dismissed(&store), 0);
+    // The open alert is still there, however old the clock says it is.
+    assert_eq!(open_alerts(&store).len(), 1);
 }

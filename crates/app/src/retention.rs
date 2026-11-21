@@ -35,14 +35,14 @@ pub(crate) struct DailyPurge {
 
 impl DailyPurge {
     /// Purges now and then after every `every`, until the value is dropped. A thread that cannot
-    /// start leaves the alerts to the next start of the program.
+    /// start is logged and leaves the alerts to the next start of the program.
     pub(crate) fn start(
         store: Arc<dyn AnnotationStore>,
         retention_days: u32,
         every: Duration,
     ) -> Self {
         let (stop, stopped) = mpsc::channel::<()>();
-        std::thread::Builder::new()
+        let started = std::thread::Builder::new()
             .name(PURGE_THREAD_NAME.to_owned())
             .spawn(move || {
                 loop {
@@ -51,8 +51,10 @@ impl DailyPurge {
                         break;
                     }
                 }
-            })
-            .ok();
+            });
+        if started.is_err() {
+            tracing::warn!("the thread that purges dismissed alerts could not start");
+        }
         Self { _stop: stop }
     }
 

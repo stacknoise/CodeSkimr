@@ -80,7 +80,7 @@ fn hashes_of(locations: &Locations) -> Vec<(String, String)> {
     found
 }
 
-fn critical(store: &SqliteStore, kind: SymbolKind, name: &str) {
+pub(crate) fn critical(store: &SqliteStore, kind: SymbolKind, name: &str) {
     let limits = AnnotationLimits {
         max_text_chars: 100,
         max_title_chars: 20,
