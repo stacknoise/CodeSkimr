@@ -340,3 +340,22 @@ pub const LEVEL2_STARTED: &str = "started";
 pub const LEVEL2_NOT_STARTED: &str = "not_started";
 /// `Level2Answer::state` when the caller asked for level 1 only.
 pub const LEVEL2_NOT_REQUESTED: &str = "not_requested";
+
+/// Id of the command that summarises a project for the statistics screen (ADR 0081).
+pub const STATS_OVERVIEW: &str = "stats.overview";
+/// Title key of `stats.overview`.
+pub const STATS_OVERVIEW_TITLE: &str = i18n::COMMAND_STATS_OVERVIEW_TITLE;
+/// Description key of `stats.overview`.
+pub const STATS_OVERVIEW_DESCRIPTION: &str = i18n::COMMAND_STATS_OVERVIEW_DESCRIPTION;
+/// Id of the command that ranks the symbols of a project (ADR 0081).
+pub const STATS_RANKING: &str = "stats.ranking";
+/// Title key of `stats.ranking`.
+pub const STATS_RANKING_TITLE: &str = i18n::COMMAND_STATS_RANKING_TITLE;
+/// Description key of `stats.ranking`.
+pub const STATS_RANKING_DESCRIPTION: &str = i18n::COMMAND_STATS_RANKING_DESCRIPTION;
+/// Rows of a ranking if the caller names no limit.
+pub const STATS_LIMIT: u32 = 100;
+/// Most rows of a ranking, whatever the caller asks for.
+pub const STATS_LIMIT_MAX: u32 = 500;
+/// Rows of each card of the overview.
+pub const STATS_TOP: u32 = 5;
