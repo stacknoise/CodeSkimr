@@ -194,8 +194,8 @@ pub fn render_rust(catalog: &Catalog) -> String {
             file = key.file,
         );
     }
-    out.push_str("\n/// Every message key listed above, for completeness tests.\n");
-    let _ = writeln!(out, "pub const ALL: [&str; {}] = [", keys.len());
+    out.push_str("\n/// Every message key listed above, for completeness tests. A static, because the list is too\n/// large for a constant that is copied to every place of use.\n");
+    let _ = writeln!(out, "pub static ALL: [&str; {}] = [", keys.len());
     for key in &keys {
         let _ = writeln!(out, "    {},", key.const_name());
     }

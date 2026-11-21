@@ -40,6 +40,9 @@ mod projects_tests;
 mod rating;
 mod search;
 mod source;
+mod stats;
+#[cfg(test)]
+mod stats_tests;
 mod status;
 mod symbol;
 mod temp_file;
@@ -102,6 +105,7 @@ use projects_pick::{FolderDialogInfo, PickFolder};
 use projects_remove::RemoveProject;
 use search::{SearchPorts, SearchQuery};
 use source::ExplorerSource;
+use stats::{StatsOverview, StatsPorts, StatsRanking};
 use status::{BudgetTargets, StatusInfo};
 use symbol::ExplorerSymbol;
 use usages::{UsagesPorts, UsagesQuery};
@@ -286,6 +290,7 @@ fn register_views(
     register_search(registry, catalog)?;
     register_usages(registry, catalog, config.mcp.max_depth)?;
     register_graph(registry, catalog, config.graph.clone())?;
+    register_stats(registry, catalog, config)?;
     add(registry, status_info(config))?;
     register_explorer(registry, catalog, config.metrics.clone(), locations)?;
     register_preferences(registry, locations)?;
@@ -404,6 +409,8 @@ fn expose_all(api: &mut CommandApi) -> Result<(), CodedError> {
     api.expose::<LayersGet>()?;
     api.expose::<LayersSet>()?;
     api.expose::<StatusInfo>()?;
+    api.expose::<StatsOverview>()?;
+    api.expose::<StatsRanking>()?;
     api.expose::<GetPreferences>()?;
     api.expose::<SetPreferences>()?;
     api.expose::<HtmlExport>()?;
@@ -582,6 +589,28 @@ fn register_explorer(
         },
     )?;
     add(registry, ExplorerSymbol { ports })
+}
+
+fn register_stats(
+    registry: &mut Registry,
+    store: &Arc<SqliteStore>,
+    config: &Config,
+) -> Result<(), CodedError> {
+    let ports = Arc::new(StatsPorts {
+        projects: store.clone(),
+        index: store.clone(),
+        statistics: store.clone(),
+        thresholds: config.metrics.clone(),
+        test_names: config.conventions.test_folders.clone(),
+        approximate: config.ui.approximate_languages.clone(),
+    });
+    add(
+        registry,
+        StatsOverview {
+            ports: Arc::clone(&ports),
+        },
+    )?;
+    add(registry, StatsRanking { ports })
 }
 
 fn usages_ports(store: &Arc<SqliteStore>, max_depth: u32) -> Arc<UsagesPorts> {

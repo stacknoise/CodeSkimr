@@ -24,6 +24,7 @@ mod rescan;
 mod similarity;
 mod source;
 mod states;
+mod statistics;
 mod storage;
 mod tools;
 mod usages;
@@ -64,6 +65,7 @@ pub use source::{
     DiscoveredFile, Excerpt, FetchedSource, FileDiscovery, SourceProvider, SourceText,
 };
 pub use states::{SameName, SymbolState, SymbolStates};
+pub use statistics::CodeStatistics;
 pub use storage::{
     Level2Replacement, PreviousIndex, PreviousState, ProjectRemoval, ProjectRepository,
     ScanWarning, SnapshotData, SnapshotStore, StoredNames,
