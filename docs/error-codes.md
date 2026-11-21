@@ -65,6 +65,7 @@ Owner: `codeskimr_parsing`
 | Code | Name | Severity | Retryable | Since | Description |
 |---|---|---|---|---|---|
 | PRS-101 | `file_encoding_unsupported` | error | no | 0.1.0 | A source file is not valid UTF-8/UTF-16 and was skipped. |
+| PRS-102 | `file_unreadable` | error | yes | 1.0.0 | A source file could not be read during the scan (gone or locked) and was skipped. |
 | PRS-201 | `language_pack_missing` | error | no | 0.1.0 | No language pack is installed for this file type. |
 | PRS-301 | `language_pack_invalid` | error | no | 0.1.0 | A language pack's TOML or query files are invalid. |
 | PRS-501 | `parse_timeout` | error | no | 0.1.0 | Parsing a single file exceeded the configured time limit. |

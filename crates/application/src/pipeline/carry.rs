@@ -121,6 +121,12 @@ impl Level2 {
 }
 
 impl Carried {
+    /// The previous snapshot this was split from; `None` in a full scan.
+    #[must_use]
+    pub const fn snapshot(&self) -> Option<SnapshotId> {
+        self.snapshot
+    }
+
     /// Splits the previous snapshot into what is kept and what is gone, and marks every
     /// discovered file that the previous snapshot does not know as changed.
     #[must_use]

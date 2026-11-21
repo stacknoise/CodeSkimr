@@ -4,7 +4,8 @@
 mod cases {
     use codeskimr_application::tools::{ToolView, ToolsView};
     use codeskimr_cli::{
-        Level2Line, Level2Reason, ScanSummary, WarningLine, scan_finished, scan_json,
+        LeftOutLine, LeftOutView, Level2Line, Level2Reason, ScanSummary, WarningLine,
+        scan_finished, scan_json,
     };
     use codeskimr_i18n::Messages;
 
@@ -20,6 +21,7 @@ mod cases {
             pack_load_seconds: 0.5,
             level2,
             warnings: Vec::new(),
+            left_out: LeftOutView::default(),
             tools: ToolsView::unchecked(),
         }
     }
@@ -140,6 +142,55 @@ mod cases {
             "{de}"
         );
         assert!(scan_json(&with).unwrap().contains("\"RES-301\""));
+    }
+
+    /// A summary with one file missing, one kept as the previous scan saw it, and three more.
+    fn with_files_left_out() -> ScanSummary {
+        let line = |path: &str, code: &str, kept| LeftOutLine {
+            path: path.to_owned(),
+            code: code.to_owned(),
+            kept,
+        };
+        let mut with = summary(Vec::new());
+        with.warnings = vec![WarningLine {
+            code: "PRS-101".to_owned(),
+            count: 1,
+        }];
+        with.left_out = LeftOutView {
+            files: vec![
+                line("src/alt.cs", "PRS-101", false),
+                line("src/gross.cs", "PRS-501", true),
+            ],
+            more: 3,
+        };
+        with
+    }
+
+    #[test]
+    fn the_files_left_out_are_named_and_the_others_counted_in_both_languages() {
+        let messages = Messages::load().unwrap();
+        let with = with_files_left_out();
+        let en = scan_finished(&messages, "en", &with).unwrap();
+        for part in [
+            "PRS-101: one file could not be analysed",
+            "  src/alt.cs (PRS-101): missing in the result",
+            "  src/gross.cs (PRS-501): shown as the previous scan saw it",
+            "  and 3 more files",
+        ] {
+            assert!(en.contains(part), "{part}: {en}");
+        }
+        let de = scan_finished(&messages, "de", &with).unwrap();
+        for part in [
+            "PRS-101: Eine Datei konnte nicht analysiert",
+            "  src/alt.cs (PRS-101): fehlt im Ergebnis",
+            "  src/gross.cs (PRS-501): Stand des vorigen Scans bleibt",
+            "  und 3 weitere Dateien",
+        ] {
+            assert!(de.contains(part), "{part}: {de}");
+        }
+        let json = scan_json(&with).unwrap();
+        assert!(json.contains("\"path\":\"src/alt.cs\""), "{json}");
+        assert!(json.contains("\"more\":3"), "{json}");
     }
 
     fn crashed(found: Option<&str>) -> ScanSummary {

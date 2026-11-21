@@ -95,7 +95,7 @@ pub const LOG_SCAN_WARNING: &str = "scan_warning";
 /// Log event: a file was left out of the snapshot because it alone could not be analysed.
 pub const LOG_FILE_SKIPPED: &str = "scan_file_skipped";
 /// One more file left out under a code.
-pub const SKIPPED_STEP: u64 = 1;
+pub const LEFT_OUT_STEP: u64 = 1;
 
 /// Log event: references that level 2 had verified were discarded because their target is gone.
 pub const LOG_VERIFIED_DISCARDED: &str = "verified_references_discarded";

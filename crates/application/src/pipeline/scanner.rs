@@ -52,6 +52,8 @@ pub struct ScannerPorts {
     pub clock: Arc<dyn Clock>,
     /// Most threads that analyse files at the same time; 0 means one per core (`scan.max_workers`).
     pub max_workers: u32,
+    /// Most files a scan names when it left them out (`scan.max_left_out_listed`).
+    pub max_left_out_listed: u32,
 }
 
 /// The six stages in order, with every type spelled out by the compiler.
@@ -105,6 +107,7 @@ impl Scanner {
             analyzer: Arc::clone(&ports.analyzer),
             ids: Arc::clone(ids),
             max_workers: ports.max_workers,
+            projects: Arc::clone(&ports.projects),
         })
         .then(ResolveStage {
             projects: Arc::clone(&ports.projects),
@@ -118,6 +121,7 @@ impl Scanner {
         .then(PersistStage {
             store: Arc::clone(&ports.store),
             clock: ports.clock,
+            max_left_out_listed: ports.max_left_out_listed,
         });
         Self {
             pipeline,

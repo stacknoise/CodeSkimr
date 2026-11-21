@@ -64,17 +64,6 @@ pub struct ScanWarning {
     pub count: u64,
 }
 
-impl ScanWarning {
-    /// The codes of failures that concern one file only: its encoding, the time its parsing took,
-    /// or that it could not be read any more. The scan leaves such a file out and goes on; the
-    /// warning counts the files. Any other failure of the analysis stops the scan.
-    pub const FILE_LEFT_OUT: &[ErrorCode] = &[
-        ErrorCode::FileEncodingUnsupported,
-        ErrorCode::ParseTimeout,
-        ErrorCode::SourcePathNotFound,
-    ];
-}
-
 /// Symbols and references of the newest snapshot of a project, the starting point of an
 /// incremental scan.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -219,13 +208,11 @@ pub trait SnapshotStore: Send + Sync {
 
     /// The first id that is higher than every stored id. The scanner moves its id sequence up to
     /// it when a scan starts, so ids that another process wrote in the meantime are not handed
-    /// out again. The default knows no stored id and leaves the sequence where it is.
+    /// out again. Every store answers this itself: a default would hide ids handed out twice.
     ///
     /// # Errors
     /// A coded failure of the `STO` group.
-    fn next_free_id(&self) -> Result<u64, CodedError> {
-        Ok(u64::MIN)
-    }
+    fn next_free_id(&self) -> Result<u64, CodedError>;
 }
 
 /// Removes a project and everything stored about it.

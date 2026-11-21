@@ -146,6 +146,7 @@ pub fn scanner_over(
         store: store.clone(),
         clock: Arc::new(SystemClock),
         max_workers: config.scan.max_workers,
+        max_left_out_listed: config.scan.max_left_out_listed,
     };
     Ok(Scanner::new(ports, &ids, events.clone())
         .with_level2(pass)

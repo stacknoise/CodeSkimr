@@ -420,6 +420,7 @@ fn scanner(world: &Arc<World>, bus: &EventBus) -> Scanner {
         store: world.clone(),
         clock: world.clone(),
         max_workers: 0,
+        max_left_out_listed: 2,
     };
     Scanner::new(ports, &Arc::new(IdSequence::starting_at(1)), bus.clone())
 }
@@ -459,18 +460,32 @@ fn full_scan_runs_all_stages_and_persists_once() {
     assert!(matches!(events.last(), Some(Event::SnapshotCreated(_))));
 }
 
+/// The paths, codes and `kept` marks of the files a finished scan left out; none for a scan that
+/// did not finish.
+fn left_out(result: &JobResult) -> Vec<(String, ErrorCode, bool)> {
+    let JobResult::Finished(job) = result else {
+        return Vec::new();
+    };
+    job.paths_report()
+        .left_out
+        .iter()
+        .map(|left| (left.path.as_str().to_owned(), left.code, left.kept))
+        .collect()
+}
+
 #[test]
 fn a_file_that_cannot_be_analysed_is_left_out_and_the_scan_finishes() -> Result<(), CodedError> {
     for code in [
         ErrorCode::FileEncodingUnsupported,
         ErrorCode::ParseTimeout,
-        ErrorCode::SourcePathNotFound,
+        ErrorCode::FileUnreadable,
     ] {
         let world = Arc::new(World {
             broken: vec![("b.rs", code)],
             ..World::default()
         });
         let (result, _) = run(&world, ScanMode::Full);
+        assert_eq!(left_out(&result), [("b.rs".to_owned(), code, false)]);
         let JobResult::Finished(job) = result else {
             panic!("scan did not finish for {}", code.id());
         };
@@ -487,6 +502,7 @@ fn a_file_that_cannot_be_analysed_is_left_out_and_the_scan_finishes() -> Result<
 fn files_left_out_for_the_same_reason_are_one_warning_with_their_number() {
     let code = ErrorCode::FileEncodingUnsupported;
     let world = Arc::new(World {
+        found: Some(vec![("a.rs", true), ("b.rs", true), ("c.rs", true)]),
         broken: vec![("a.rs", code), ("b.rs", code)],
         ..World::default()
     });
@@ -494,37 +510,87 @@ fn files_left_out_for_the_same_reason_are_one_warning_with_their_number() {
     let JobResult::Finished(job) = result else {
         panic!("scan did not finish");
     };
-    assert_eq!(job.snapshot().stats.files, 0);
+    assert_eq!(job.snapshot().stats.files, 1);
     assert_eq!(job.warnings(), [ScanWarning { code, count: 2 }]);
 }
 
 #[test]
-fn a_failure_that_is_not_about_one_file_still_stops_the_scan() {
+fn a_scan_in_which_no_file_can_be_analysed_fails_with_the_reason() {
+    let code = ErrorCode::FileEncodingUnsupported;
     let world = Arc::new(World {
-        broken: vec![("b.rs", ErrorCode::LanguagePackInvalid)],
+        broken: vec![("a.rs", code), ("b.rs", code)],
         ..World::default()
     });
     let (result, _) = run(&world, ScanMode::Full);
     let JobResult::Failed(job) = result else {
-        panic!("scan did not fail");
+        panic!("a scan without any file must fail");
     };
-    assert_eq!(job.code(), ErrorCode::LanguagePackInvalid);
+    assert_eq!(job.code(), code);
     assert_eq!(world.persisted_count(), 0);
 }
 
 #[test]
-fn an_incremental_scan_drops_what_it_knew_of_a_file_it_leaves_out() -> Result<(), CodedError> {
-    let world = Arc::new(World {
+fn a_failure_that_is_not_about_one_file_still_stops_the_scan() {
+    for code in [
+        ErrorCode::LanguagePackInvalid,
+        ErrorCode::LanguagePackMissing,
+        ErrorCode::SourcePathNotFound,
+    ] {
+        let world = Arc::new(World {
+            broken: vec![("b.rs", code)],
+            ..World::default()
+        });
+        let (result, _) = run(&world, ScanMode::Full);
+        let JobResult::Failed(job) = result else {
+            panic!("scan did not fail for {}", code.id());
+        };
+        assert_eq!(job.code(), code);
+        assert_eq!(world.persisted_count(), 0);
+    }
+}
+
+/// `a.rs` unchanged, `b.rs` changed and failing with `code` in an incremental scan.
+fn b_changed_and_broken(code: ErrorCode) -> Result<Arc<World>, CodedError> {
+    Ok(Arc::new(World {
         previous: previous_snapshot()?,
         found: Some(vec![("a.rs", false), ("b.rs", true)]),
-        broken: vec![("b.rs", ErrorCode::ParseTimeout)],
+        broken: vec![("b.rs", code)],
         ..World::default()
-    });
+    }))
+}
+
+#[test]
+fn an_incremental_scan_drops_a_file_whose_failure_will_not_pass() -> Result<(), CodedError> {
+    let world = b_changed_and_broken(ErrorCode::FileEncodingUnsupported)?;
     let (result, _) = run(&world, ScanMode::Incremental);
-    assert!(matches!(result, JobResult::Finished(_)));
+    assert_eq!(
+        left_out(&result),
+        [("b.rs".to_owned(), ErrorCode::FileEncodingUnsupported, false)]
+    );
     let stored = world.last_persisted()?;
     assert!(stored.files.is_empty());
     assert!(stored.removed.iter().any(|path| path.as_str() == "b.rs"));
+    Ok(())
+}
+
+#[test]
+fn an_incremental_scan_keeps_what_it_knew_of_a_file_whose_failure_may_pass()
+-> Result<(), CodedError> {
+    for code in [ErrorCode::ParseTimeout, ErrorCode::FileUnreadable] {
+        let world = b_changed_and_broken(code)?;
+        let (result, _) = run(&world, ScanMode::Incremental);
+        assert_eq!(left_out(&result), [("b.rs".to_owned(), code, true)]);
+        let JobResult::Finished(job) = result else {
+            panic!("scan did not finish");
+        };
+        // Both files of the previous snapshot are still there, with their symbols.
+        assert_eq!(job.snapshot().stats.files, 2);
+        assert_eq!(job.snapshot().stats.symbols, 2);
+        let stored = world.last_persisted()?;
+        assert!(stored.files.is_empty());
+        assert!(!stored.removed.iter().any(|path| path.as_str() == "b.rs"));
+        assert_eq!(stored.warnings, [ScanWarning { code, count: 1 }]);
+    }
     Ok(())
 }
 
