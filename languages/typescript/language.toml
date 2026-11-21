@@ -8,7 +8,7 @@
 #   method, abstract method         -> method      constructor                 -> constructor
 #   get / set accessor              -> property    interface property          -> property
 #   class field                     -> field       field with an arrow function-> method
-# Parameter properties (`constructor(private x: T)`) are fields of the class (`@lift`, ADR 0079).
+# Parameter properties (`constructor(private x: T)`) are fields of the class (`@lift`, ADR 0083).
 # Not symbols: plain parameters, local variables, `let` and `var`, overload
 # signatures, index and call signatures, class static blocks, `export { x }` lists, anonymous
 # default exports. Names that are strings, numbers or computed are skipped.

@@ -84,7 +84,7 @@ pub const CONTAINER_CAPTURE: &str = "container";
 /// the type (a Go method, a C++ method defined out of its class), see ADR 0042.
 pub const OWNER_CAPTURE: &str = "owner";
 /// Marker of a declaration that is written inside a symbol but belongs to the parent of that symbol,
-/// such as a TypeScript parameter property of a constructor (ADR 0079).
+/// such as a TypeScript parameter property of a constructor (ADR 0083).
 pub const LIFT_CAPTURE: &str = "lift";
 /// Capture of a receiver that is a name: a variable, a field or a type.
 pub const RECEIVER_CAPTURE: &str = "receiver";

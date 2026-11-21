@@ -3,7 +3,7 @@
 # source of the card is scanned (the 62 files of `src` and the two configuration files in the
 # root, `playwright.config.ts` and `vite.config.ts`). Counts were measured with the TypeScript pack and checked against
 # an independent count with the TypeScript compiler API (same mapping rules, different parser);
-# every kind agrees. Parameter properties of constructors are fields of the class (ADR 0079, 0022 section 3 changed).
+# every kind agrees. Parameter properties of constructors are fields of the class (ADR 0083, 0022 section 3 changed).
 
 [project]
 repository = "https://github.com/stacknoise/detailed-energy-card"

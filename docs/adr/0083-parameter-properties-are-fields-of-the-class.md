@@ -1,4 +1,4 @@
-# 0079 – Parameter properties are fields of the class (`@lift`)
+# 0083 – Parameter properties are fields of the class (`@lift`)
 
 Status: accepted
 
