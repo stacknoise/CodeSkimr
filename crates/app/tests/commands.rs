@@ -388,6 +388,38 @@ fn layers_of_the_project_file_reach_get_architecture() {
     assert_eq!(result["structuredContent"]["layers"][0]["name"], "core");
 }
 
+/// A second C# file that uses the class of `SOURCE` from another namespace.
+const CLIENT_SOURCE: &str = "namespace Demo.Ui;\n\nusing Demo.Core;\n\npublic class Screen\n{\n    public int Show() { return new Calculator().Add(1, 2); }\n}\n";
+
+#[test]
+fn csharp_namespaces_give_layer_edges_in_get_architecture() {
+    let workspace = Workspace::new();
+    fs::write(workspace.project().join("src/Screen.cs"), CLIENT_SOURCE).unwrap();
+    fs::write(
+        workspace.project().join(".codeskimr.toml"),
+        "[[layers]]\nname = \"ui\"\nnamespaces = [\"Demo.Ui\"]\n\n[[layers]]\nname = \"core\"\nnamespaces = [\"Demo.Core\"]\n",
+    )
+    .unwrap();
+    json_of(&workspace.scan(&[]));
+    let mut session = initialized(&workspace);
+    let answer = session.call(
+        2,
+        "tools/call",
+        &json!({"name": "get_architecture", "arguments": {}}),
+    );
+    let result = &answer["result"];
+    assert_ne!(result["isError"], true, "{result}");
+    let edges = result["structuredContent"]["dependencies"]
+        .as_array()
+        .unwrap();
+    assert!(
+        edges
+            .iter()
+            .any(|edge| edge["from"] == "ui" && edge["to"] == "core"),
+        "{edges:?}"
+    );
+}
+
 #[cfg(test)]
 fn mcp_without_input(workspace: &Workspace) -> Output {
     workspace
