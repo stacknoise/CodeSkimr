@@ -29,6 +29,7 @@ export type ErrorCode =
   | "SRC-601"
   | "SRC-602"
   | "PRS-101"
+  | "PRS-102"
   | "PRS-201"
   | "PRS-301"
   | "PRS-501"
@@ -144,6 +145,7 @@ export const ERROR_CODES: Record<ErrorCode, ErrorCodeInfo> = {
   "SRC-601": { id: "SRC-601", name: "git_fetch_failed", group: "SRC", class: "external", severity: "error", retryable: true, description: "Fetching from the Git remote failed (network or remote error).", since: "0.1.0", deprecated: false, messageKey: "error-SRC-601" },
   "SRC-602": { id: "SRC-602", name: "watcher_failed", group: "SRC", class: "external", severity: "error", retryable: false, description: "The file-system watcher could not be started or stopped unexpectedly.", since: "0.1.0", deprecated: false, messageKey: "error-SRC-602" },
   "PRS-101": { id: "PRS-101", name: "file_encoding_unsupported", group: "PRS", class: "invalid_input", severity: "error", retryable: false, description: "A source file is not valid UTF-8/UTF-16 and was skipped.", since: "0.1.0", deprecated: false, messageKey: "error-PRS-101" },
+  "PRS-102": { id: "PRS-102", name: "file_unreadable", group: "PRS", class: "invalid_input", severity: "error", retryable: true, description: "A source file could not be read during the scan (gone or locked) and was skipped.", since: "1.0.0", deprecated: false, messageKey: "error-PRS-102" },
   "PRS-201": { id: "PRS-201", name: "language_pack_missing", group: "PRS", class: "not_found", severity: "error", retryable: false, description: "No language pack is installed for this file type.", since: "0.1.0", deprecated: false, messageKey: "error-PRS-201" },
   "PRS-301": { id: "PRS-301", name: "language_pack_invalid", group: "PRS", class: "conflict", severity: "error", retryable: false, description: "A language pack's TOML or query files are invalid.", since: "0.1.0", deprecated: false, messageKey: "error-PRS-301" },
   "PRS-501": { id: "PRS-501", name: "parse_timeout", group: "PRS", class: "limit", severity: "error", retryable: false, description: "Parsing a single file exceeded the configured time limit.", since: "0.1.0", deprecated: false, messageKey: "error-PRS-501" },

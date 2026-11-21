@@ -16,7 +16,7 @@ use serde::Serialize;
 
 use crate::consts::{LINE_BREAK, LIST_SEPARATOR, NO_VERSION, SECONDS_BASE, SECONDS_DECIMALS, arg};
 use crate::level2::Level2Line;
-use crate::warning::WarningLine;
+use crate::warning::{LeftOutView, WarningLine};
 
 /// The outcome of a scan as shown to the user and written by `--json`.
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -44,6 +44,8 @@ pub struct ScanSummary {
     pub level2: Vec<Level2Line>,
     /// What the scan warns about, one line per code with a count; empty if nothing.
     pub warnings: Vec<WarningLine>,
+    /// The files the scan left out because they could not be analysed; empty if none.
+    pub left_out: LeftOutView,
     /// What the check of the tools found (ADR 0033); a tool that is not ready is shown below the
     /// summary.
     pub tools: ToolsView,
@@ -330,6 +332,7 @@ pub fn scan_finished(
     for line in &summary.warnings {
         lines.push(line.render(messages, language)?);
     }
+    lines.extend(summary.left_out.render(messages, language)?);
     lines.extend(scan_tools(messages, language, &summary.tools)?);
     Ok(lines.join(LINE_BREAK))
 }

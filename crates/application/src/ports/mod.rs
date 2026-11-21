@@ -24,6 +24,7 @@ mod rescan;
 mod similarity;
 mod source;
 mod states;
+mod statistics;
 mod storage;
 mod tools;
 mod usages;
@@ -58,12 +59,13 @@ pub use query::{
 pub use report::{
     LanguageLine, LanguageOutcome, LastScan, Level2Report, ReportWrite, ScanReport, ScanReportStore,
 };
-pub use rescan::{PathsReport, ProjectScanner, Rescanned};
+pub use rescan::{LeftOut, PathsReport, ProjectScanner, Rescanned};
 pub use similarity::{SimilarHit, SimilarQuery, SimilarityIndex};
 pub use source::{
     DiscoveredFile, Excerpt, FetchedSource, FileDiscovery, SourceProvider, SourceText,
 };
 pub use states::{SameName, SymbolState, SymbolStates};
+pub use statistics::CodeStatistics;
 pub use storage::{
     Level2Replacement, PreviousIndex, PreviousState, ProjectRemoval, ProjectRepository,
     ScanWarning, SnapshotData, SnapshotStore, StoredNames,

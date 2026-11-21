@@ -29,6 +29,7 @@ mod signature;
 mod similar;
 mod snapshot;
 mod span;
+mod statistics;
 mod symbol;
 mod tool;
 mod type_neighbours;
@@ -74,6 +75,10 @@ pub use snapshot::{
     CommitHash, ScanMode, ScanOrigin, Snapshot, SnapshotId, SnapshotStats, Timestamp,
 };
 pub use span::{Position, Span};
+pub use statistics::{
+    Assessment, KindGroup, Measures, Ranked, Ranking, RankingQuery, SymbolFacts, UsageOrder,
+    UsageTally, complexity_histogram, mark_tests, rank,
+};
 pub use symbol::{Symbol, SymbolId, SymbolKind, SymbolName, SymbolOrigin, Visibility};
 pub use tool::{
     Ceiling, RequirementFormat, RequirementSpec, RollForwardSpec, ToolEntry, ToolFinding,

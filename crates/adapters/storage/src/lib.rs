@@ -33,6 +33,7 @@ mod similarity;
 mod snapshots;
 mod sql;
 mod states;
+mod statistics;
 mod store;
 mod tools;
 mod usages;

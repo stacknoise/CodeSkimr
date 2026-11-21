@@ -3,7 +3,7 @@
 use std::time::Instant;
 
 use codeskimr_application::access;
-use codeskimr_application::ports::Rescanned;
+use codeskimr_application::ports::{LeftOut, Rescanned};
 use codeskimr_application::tools::ToolsView;
 use codeskimr_domain::Principal;
 use serde::Serialize;
@@ -33,6 +33,31 @@ struct Answer {
     unmatched_paths: Vec<String>,
     /// Whether the scan had to be a full one and so ignored `paths`.
     paths_ignored: bool,
+    /// Files the scan could not analyse (wrong encoding, parse time limit, not readable) and left
+    /// out; empty if none.
+    left_out: Vec<LeftOutInfo>,
+    /// How many more files were left out than `left_out` names.
+    left_out_more: u64,
+}
+
+/// A file the scan left out.
+#[derive(Serialize)]
+struct LeftOutInfo {
+    path: String,
+    /// The error code that says why.
+    code: &'static str,
+    /// Whether the snapshot still shows the file as the previous scan saw it; otherwise the file
+    /// is missing in the snapshot.
+    kept: bool,
+}
+
+/// The answer's entry for a file that was left out.
+fn left_out_info(left: &LeftOut) -> LeftOutInfo {
+    LeftOutInfo {
+        path: left.path.as_str().to_owned(),
+        code: left.code.id(),
+        kept: left.kept,
+    }
 }
 
 impl Tools {
@@ -68,6 +93,8 @@ impl Tools {
             paths: args.paths.clone().unwrap_or_default(),
             unmatched_paths: paths.unmatched,
             paths_ignored: paths.ignored,
+            left_out: paths.left_out.iter().map(left_out_info).collect(),
+            left_out_more: paths.left_out_more,
         })
     }
 }
