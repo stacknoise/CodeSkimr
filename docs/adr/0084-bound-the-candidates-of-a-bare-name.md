@@ -20,9 +20,15 @@ Option 2 with the limit `scan.max_candidates`, default **100**, configurable (us
 - A place with at most `max_candidates` candidates behaves exactly as before.
 - Level 2 (SCIP) is unaffected: its references are exact and are not bounded.
 - The scan reports one warning `RES-304` with the number of places given up. An incremental scan counts only the places it resolved again.
+- `scan.max_candidates` is a protection of the machine like `scan.max_source_mb`: the project file `.codeskimr.toml` may lower it but not raise it (ADR 0040, `LOWER_ONLY_SCAN_KEYS`).
+
+## Incremental scans
+
+The number of candidates of a name is a property of the whole project. An incremental scan resolves again every place whose name looks up a name that the changed files add or remove (`Carried::due_names`), so it also gives a place up, or takes it back, when the count of a name crosses the limit because of a changed file. Two tests in `crates/app/src/incremental_tests.rs` compare the incremental result with a full scan for both directions (a third candidate appears; it disappears again). A place whose name is looked up by unchanged files only keeps its result, as before.
 
 ## Consequences
 
 - `BLUEPRINT.md` 9.2 and the code table get the bound and `RES-304`; ADR 0033 decision 6 now has this one exception.
 - Recall of level 1 drops for names with more than 100 same-named symbols and no other hint; the hand-made samples of the acceptance report are to be repeated after the change. The limit can be lowered without a schema change.
+- The recall check is tracked in issue #642 (sample of the acceptance report to repeat).
 - Follow-up: show "places given up" in the project summary of the UI (the warnings are stored per snapshot already).

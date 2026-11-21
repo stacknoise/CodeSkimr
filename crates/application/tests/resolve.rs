@@ -469,6 +469,50 @@ mod tests {
     }
 
     #[test]
+    fn a_name_that_the_enclosing_scope_finds_is_never_given_up_however_many_candidates_it_has() {
+        let mut table = Table::default();
+        let owner = table.add(SymbolKind::Class, "Demo.Owner", None, 1);
+        for _ in 0..3 {
+            table.add(SymbolKind::Method, "Demo.Owner.Close", Some(owner), 1);
+        }
+        let caller = table.add(SymbolKind::Method, "Demo.Owner.Go", Some(owner), 1);
+        let call = occurrence(caller, 1, ReferenceKind::Call, "Close");
+        let found = limited(1, &table, &call);
+        assert_eq!(found.references.len(), 3);
+        assert_eq!(found.given_up, 0);
+    }
+
+    #[test]
+    fn a_name_that_an_import_makes_visible_is_never_given_up_however_many_candidates_it_has() {
+        let mut table = Table::default();
+        let (first, _) = table.add_tool("First", 1);
+        let (second, _) = table.add_tool("Second", 2);
+        table.add_tool("Third", 3);
+        let caller = table.add(SymbolKind::Method, "Demo.Client.Go", None, 9);
+        let pending = [
+            occurrence(caller, 9, ReferenceKind::Import, "First"),
+            occurrence(caller, 9, ReferenceKind::Import, "Second"),
+            occurrence(caller, 9, ReferenceKind::TypeUse, "Tool"),
+        ];
+        let found = ScopedResolver::new(1)
+            .resolve(
+                &table.symbols,
+                &pending,
+                &HashSet::new(),
+                &IdSequence::starting_at(1000),
+            )
+            .expect("resolves");
+        let tools = found
+            .references
+            .iter()
+            .filter(|r| r.kind == ReferenceKind::TypeUse)
+            .count();
+        assert_eq!((tools, found.given_up), (2, 0));
+        assert!(found.references.iter().any(|r| r.to == first));
+        assert!(found.references.iter().any(|r| r.to == second));
+    }
+
+    #[test]
     fn a_typed_receiver_is_never_given_up_however_many_symbols_share_the_name() {
         let (table, mut call) = many_closers(3);
         call.receiver = Some(Receiver::Typed(QualifiedName::new("I1").expect("type")));

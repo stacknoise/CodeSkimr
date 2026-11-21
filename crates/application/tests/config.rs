@@ -582,6 +582,20 @@ fn the_project_file_may_lower_the_scan_limits_but_not_raise_them() {
 }
 
 #[test]
+fn the_project_file_may_lower_the_candidate_limit_but_not_raise_it() {
+    let defaults = Config::defaults().expect("defaults").scan;
+    let lowered = project("[scan]\nmax_candidates = 10\n");
+    let scan = Config::resolve(&[lowered]).expect("valid").scan;
+    assert_eq!(scan.max_candidates, 10);
+    let raised = project("[scan]\nmax_candidates = 4000000000\n");
+    let scan = Config::resolve(&[raised]).expect("valid").scan;
+    assert_eq!(scan.max_candidates, defaults.max_candidates);
+    let user_file = user("[scan]\nmax_candidates = 500\n");
+    let scan = Config::resolve(&[user_file]).expect("valid").scan;
+    assert_eq!(scan.max_candidates, 500);
+}
+
+#[test]
 fn the_user_file_and_flags_can_raise_the_scan_limits_and_the_project_stays_below_them() {
     let user_file = user("[scan]\nmax_source_mb = 4096\n");
     let raised_by_project = project("[scan]\nmax_source_mb = 8192\n");
