@@ -3,9 +3,9 @@
 #[cfg(test)]
 mod common;
 
-use codeskimr_application::ports::{ProjectCatalog, ScanWarning, SnapshotStore};
+use codeskimr_application::ports::{LeftOut, ProjectCatalog, ScanWarning, SnapshotStore};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{ScanMode, SymbolKind};
+use codeskimr_domain::{RelativePath, ScanMode, SymbolKind};
 use common::{data, file, header, project, scanned, store, symbol};
 
 #[test]
@@ -129,6 +129,40 @@ fn the_warnings_of_the_newest_scan_are_read_back_and_not_carried_over() {
     assert_eq!(newest(&store), expected(9));
     store
         .persist(timed_scan(40, ScanMode::Incremental, None))
+        .unwrap();
+    assert_eq!(newest(&store), Vec::new());
+}
+
+#[test]
+fn the_files_the_newest_scan_left_out_are_read_back_and_not_carried_over() {
+    let store = store(3);
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    let left = |path: &str, code: ErrorCode, kept: bool| LeftOut {
+        path: RelativePath::new(path).unwrap(),
+        code,
+        kept,
+    };
+    let newest =
+        |store: &codeskimr_storage::SqliteStore| store.overviews().unwrap().remove(0).left_out;
+    store.persist(timed_scan(10, ScanMode::Full, None)).unwrap();
+    assert_eq!(newest(&store), Vec::new());
+    let mut scan = timed_scan(20, ScanMode::Full, None);
+    scan.left_out = vec![
+        left("src/z.txt", ErrorCode::ParseTimeout, true),
+        left("src/a.txt", ErrorCode::FileEncodingUnsupported, false),
+    ];
+    store.persist(scan).unwrap();
+    // In the order of the paths.
+    assert_eq!(
+        newest(&store),
+        [
+            left("src/a.txt", ErrorCode::FileEncodingUnsupported, false),
+            left("src/z.txt", ErrorCode::ParseTimeout, true),
+        ]
+    );
+    // An incremental scan has its own list, it carries nothing over.
+    store
+        .persist(timed_scan(30, ScanMode::Incremental, None))
         .unwrap();
     assert_eq!(newest(&store), Vec::new());
 }

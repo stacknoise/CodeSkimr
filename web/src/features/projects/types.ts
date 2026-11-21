@@ -47,6 +47,15 @@ export interface ToolsInfo {
   tools: ToolInfo[];
 }
 
+/** A file the newest scan left out because it alone could not be analysed (ADR 0085). */
+export interface LeftOutFile {
+  path: string;
+  /** The registered code, for example `PRS-101`. */
+  code: string;
+  /** Whether the file is shown as the previous scan saw it; otherwise it is missing. */
+  kept: boolean;
+}
+
 /** One row of `projects.list`. */
 export interface ProjectRow {
   id: number;
@@ -60,6 +69,10 @@ export interface ProjectRow {
   loc: number;
   languages: LanguageInfo[];
   running: boolean;
+  /** The files the newest scan left out, as far as it names them; absent in an export. */
+  left_out?: LeftOutFile[];
+  /** How many more files it left out than `left_out` names. */
+  left_out_more?: number;
   /** The last check of the tools, `null` if the project was never checked (absent in an export,
    * which does not run on the machine of the reader). */
   tools?: ToolsInfo | null;
