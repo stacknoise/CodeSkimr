@@ -124,3 +124,9 @@ export const FULL_SCAN_LOC = 100_000;
  * are shown. */
 export const BRANCH_COMMIT_JOIN = " @ ";
 export const SHORT_COMMIT_LENGTH = 7;
+
+/** The state of a screen that has no run to show. */
+export const IDLE = "idle";
+
+/** The most a scan that still runs says of itself: the stages after the files are not counted. */
+export const LAST_RUNNING_PERCENT = 99;

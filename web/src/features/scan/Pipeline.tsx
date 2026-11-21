@@ -13,8 +13,9 @@ import {
   STATE_ATTRIBUTE,
 } from "./consts";
 import { lastEventAt } from "./events";
-import { stageSeconds, stageState, type StageState } from "./run";
+import { isUnmeasured, stagePercent, stageSeconds, stageState, type StageState } from "./run";
 import type { Run, Stage } from "./types";
+import { cx } from "../../shared/ui/cx";
 import styles from "./Pipeline.module.css";
 
 function detail(run: Run | undefined, stage: Stage): string {
@@ -31,18 +32,16 @@ function detail(run: Run | undefined, stage: Stage): string {
 /** Width of the bar of a stage in percent: full when done, the share of its units while it
  * counts, empty otherwise (a stage without a total has no honest share). */
 function barWidth(run: Run | undefined, stage: Stage, state: StageState): number {
-  const report = run?.stages[stage];
   if (state === STAGE_STATE.done) {
     return PERCENT;
   }
-  if (report === undefined || report.total === 0) {
-    return 0;
-  }
-  return Math.floor((report.done / report.total) * PERCENT);
+  return run === undefined ? 0 : (stagePercent(run, stage) ?? 0);
 }
 
 function Row(props: { run: Run | undefined; stage: Stage }) {
   const state = () => (props.run ? stageState(props.run, props.stage) : STAGE_STATE.waiting);
+  const share = () => (props.run ? stagePercent(props.run, props.stage) : null);
+  const unmeasured = () => (props.run ? isUnmeasured(props.run, props.stage) : false);
   const took = () => (props.run ? stageSeconds(props.run, props.stage, lastEventAt()) : null);
   return (
     <div class={styles.row} {...{ [STATE_ATTRIBUTE]: state() }}>
@@ -51,12 +50,24 @@ function Row(props: { run: Run | undefined; stage: Stage }) {
         <div class={styles.name}>{t(STAGE_TEXT[props.stage].name)}</div>
         <div class={styles.detail}>{detail(props.run, props.stage)}</div>
       </div>
-      <div class={styles.track}>
+      <div
+        class={styles.track}
+        title={unmeasured() ? t(I18N_KEYS.SCAN_STAGE_UNMEASURED) : undefined}
+      >
         <div
-          class={styles.fill}
-          style={{ width: barWidth(props.run, props.stage, state()) + PERCENT_SIGN }}
+          class={cx(styles.fill, unmeasured() && styles.unmeasured)}
+          style={
+            unmeasured()
+              ? undefined
+              : { width: barWidth(props.run, props.stage, state()) + PERCENT_SIGN }
+          }
         />
       </div>
+      <span class={styles.share}>
+        <Show when={share() !== null}>
+          {share()} {PERCENT_SIGN}
+        </Show>
+      </span>
       <span class={styles.time}>
         <Show when={took() !== null}>
           {t(I18N_KEYS.SCAN_STAGE_TIME, { seconds: seconds(took() ?? 0, currentLanguage()) })}

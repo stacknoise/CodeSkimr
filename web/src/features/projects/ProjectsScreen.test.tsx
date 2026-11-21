@@ -3,7 +3,9 @@ import { setLanguage } from "../../shared/i18n/i18n";
 import { activeProject, openProject } from "../../shared/project/active";
 import { describe, expect, it, vi } from "vitest";
 import { answer, fetchMock, serve, useServerSession } from "../../tests/commands";
+import { currentPath } from "../../app/router";
 import { ProjectsScreen } from "./ProjectsScreen";
+import { addProject, noteScanReport } from "./projects";
 import { UNCHECKED, rescanAsked, rescanned } from "../../tests/scanned";
 import type { ProjectRow } from "./types";
 
@@ -133,6 +135,31 @@ describe("ProjectsScreen", () => {
     await rescanAsked();
     const call = fetchMock.mock.calls.find(([path]) => String(path).endsWith("projects.rescan"));
     expect(JSON.parse(call?.[1].body)).toEqual({ project: 2 });
+  });
+
+  it("shows the scan screen of the project when a scan is started", async () => {
+    serve({
+      "projects.list": () => answer([ROW]),
+      "projects.rescan": () => answer(rescanned(1)),
+    });
+    render(() => <ProjectsScreen />);
+    await screen.findByText("shop");
+    fireEvent.keyDown(document, { key: "r" });
+    await rescanAsked();
+    expect(currentPath()).toBe("/scan");
+    const call = fetchMock.mock.calls.find(([path]) => String(path).endsWith("projects.rescan"));
+    expect(activeProject()).toBe(JSON.parse(call?.[1].body).project);
+  });
+
+  it("shows the scan screen of a new project with its first report", async () => {
+    serve({ "projects.list": () => answer([ROW]) });
+    render(() => <ProjectsScreen />);
+    await screen.findByText("shop");
+    const adding = addProject("/work/new", "main");
+    noteScanReport(7);
+    expect(currentPath()).toBe("/scan");
+    expect(activeProject()).toBe(7);
+    await adding;
   });
 
   it("leaves the keys alone while typing in a field", async () => {

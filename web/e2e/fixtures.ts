@@ -119,6 +119,17 @@ export async function watchPolicy(page: Page): Promise<() => Promise<string[]>> 
 /** A scan in a debug build loads the language packs and takes a few seconds. */
 export const SCAN_MS = 60_000;
 
+/** Adding a project shows its scan screen once the stream reports the scan; this goes back to the
+ * list of projects. A test whose stream is a stand-in sees no report and stays on the list. */
+export async function leaveScanScreen(page: Page, name: string): Promise<void> {
+  const heading = page.getByRole("heading", { name: /^Scan (starting|running|finished)/ });
+  const listed = page.getByRole("button", { name: `Open ${name}` });
+  await expect(heading.or(listed)).toBeVisible({ timeout: SCAN_MS });
+  if (await heading.isVisible()) {
+    await page.getByRole("link", { name: "Projects", exact: true }).click();
+  }
+}
+
 /** Opens the UI, adds a folder with one C# file as the project `name` and waits until its scan
  * is listed. Returns the row of the project. */
 export async function addScannedProject(
@@ -135,6 +146,7 @@ export async function addScannedProject(
   const add = page.getByRole("button", { name: "Add and scan" });
   await page.getByLabel("New project").fill(folder);
   await add.click();
+  await leaveScanScreen(page, name);
   const open = page.getByRole("button", { name: `Open ${name}` });
   await expect(open).toBeVisible({ timeout: SCAN_MS });
   const row = page.getByRole("row", { name: new RegExp(name) });
@@ -195,6 +207,7 @@ export async function addLayeredProject(page: Page, harness: Harness, name: stri
   }
   await page.getByLabel("New project").fill(folder);
   await page.getByRole("button", { name: "Add and scan" }).click();
+  await leaveScanScreen(page, name);
   const open = page.getByRole("button", { name: `Open ${name}` });
   await expect(open).toBeVisible({ timeout: SCAN_MS });
   await expect(

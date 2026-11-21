@@ -286,7 +286,8 @@ describe("ScanScreen", () => {
       total: 3812,
     });
     expect(await screen.findByText("Scan running")).toBeInTheDocument();
-    expect(screen.getByText("62 %")).toBeInTheDocument();
+    // Once in the card of the scan and once on the row of the stage.
+    expect(screen.getAllByText("62 %")).toHaveLength(2);
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "62");
     expect(screen.getByText("2,364 of 3,812 files", { exact: false })).toBeInTheDocument();
     const pipeline = screen.getByText("Pipeline").parentElement as HTMLElement;
@@ -296,7 +297,39 @@ describe("ScanScreen", () => {
     ).toBeInTheDocument();
     FakeSocket.last?.send({ type: "snapshot_created", project: 1, snapshot: 6 });
     expect(await screen.findByText("Scan finished")).toBeInTheDocument();
-    expect(screen.getByText("100 %")).toBeInTheDocument();
+    expect(screen.getAllByText("100 %")[0]).toBeInTheDocument();
+    stop();
+  });
+
+  it("shows a share only for a stage that counts, and a moving bar for one that cannot", async () => {
+    setLanguage("en");
+    const stop = await shown();
+    FakeSocket.last?.send({ ...RUNNING, stage: "fetch", done: 1, total: 1 });
+    FakeSocket.last?.send({ ...RUNNING, stage: "analyze", done: 100, total: 100 });
+    FakeSocket.last?.send({ ...RUNNING, stage: "resolve", done: 0, total: 5000 });
+    const pipeline = (await screen.findByText("Pipeline")).parentElement as HTMLElement;
+    expect(within(pipeline).getAllByText("100 %")).toHaveLength(2);
+    expect(pipeline.querySelectorAll("[title]")).toHaveLength(1);
+    FakeSocket.last?.send({ ...RUNNING, stage: "resolve", done: 2500, total: 5000 });
+    expect(await within(pipeline).findByText("50 %")).toBeInTheDocument();
+    expect(pipeline.querySelectorAll("[title]")).toHaveLength(0);
+    stop();
+  });
+
+  it("picks up a scan that was running before the page was loaded", async () => {
+    setLanguage("en");
+    serve({
+      "projects.list": () => answer([{ ...ROW, running: true }]),
+      "status.info": () => answer(STATUS),
+    });
+    const stop = await shown();
+    expect(await screen.findByText("Scan starting")).toBeInTheDocument();
+    expect(screen.getByText(/The progress shows up with the next report/)).toBeInTheDocument();
+    // What the server replays when the stream opens: the stages that are over and the open one.
+    FakeSocket.last?.send({ ...RUNNING, stage: "fetch", done: 1, total: 1, elapsed_ms: 900 });
+    FakeSocket.last?.send({ ...RUNNING, stage: "analyze", done: 50, total: 100, elapsed_ms: 5000 });
+    expect(await screen.findByText("Scan running")).toBeInTheDocument();
+    expect(screen.getAllByText("50 %")).toHaveLength(2);
     stop();
   });
 
