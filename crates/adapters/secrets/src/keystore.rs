@@ -61,6 +61,21 @@ impl Keystore for OsKeystore {
             .map_err(|error| map_error(&error))
     }
 
+    /// Asks for the attributes of the entry, which the platform stores answer without handing out
+    /// the secret. A store that cannot tell falls back to reading and wiping the bytes.
+    fn exists(&self, name: &str) -> Result<bool, AuthError> {
+        match Self::entry(name)?.get_attributes() {
+            Ok(_) => Ok(true),
+            Err(Error::NoEntry) => Ok(false),
+            Err(Error::NotSupportedByStore(_)) => match self.read(name) {
+                Ok(_) => Ok(true),
+                Err(AuthError::NotFound) => Ok(false),
+                Err(other) => Err(other),
+            },
+            Err(error) => Err(map_error(&error)),
+        }
+    }
+
     fn write(&self, name: &str, bytes: &[u8]) -> Result<(), AuthError> {
         Self::entry(name)?
             .set_secret(bytes)
