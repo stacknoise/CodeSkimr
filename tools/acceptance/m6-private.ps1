@@ -40,16 +40,27 @@ $secret = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr)
 if ([string]::IsNullOrEmpty($secret)) { throw 'Leeres Geheimnis.' }
 
 $script:runs = 0
-function Run-App([string[]]$arguments) {
+# Quotes one argument for the command line that Start-Process builds.
+function Quote-Arg([string]$a) { if ($a -match '[\s"]' -or $a -eq '') { '"' + ($a -replace '"', '\"') + '"' } else { $a } }
+# Runs the program with stdout and stderr in separate files (PowerShell 5.1 would wrap and break long
+# lines such as the JSON summary when it merges them). `lauf-N.txt` holds both, for the search.
+function Run-App([string[]]$arguments, [hashtable]$extraEnv = @{}) {
     $script:runs++
     $log = Join-Path $Out "lauf-$($script:runs).txt"
-    $watch = [Diagnostics.Stopwatch]::StartNew()
+    $outFile = "$log.out"; $errFile = "$log.err"
     $env:CODESKIMR_LOG = 'trace'
-    & $exe --data-dir $data @arguments *> $log
-    $code = $LASTEXITCODE
-    Remove-Item Env:CODESKIMR_LOG
+    foreach ($k in $extraEnv.Keys) { Set-Item -Path "Env:$k" -Value $extraEnv[$k] }
+    $all = @('--data-dir', $data) + $arguments
+    $watch = [Diagnostics.Stopwatch]::StartNew()
+    $p = Start-Process -FilePath $exe -ArgumentList (($all | ForEach-Object { Quote-Arg $_ }) -join ' ') -NoNewWindow -Wait -PassThru -RedirectStandardOutput $outFile -RedirectStandardError $errFile
     $watch.Stop()
-    [pscustomobject]@{ Code = $code; Ms = [int]$watch.Elapsed.TotalMilliseconds; Text = (Get-Content $log -Raw); Log = $log }
+    Remove-Item Env:CODESKIMR_LOG
+    foreach ($k in $extraEnv.Keys) { Remove-Item "Env:$k" -ErrorAction SilentlyContinue }
+    $out = [IO.File]::ReadAllBytes($outFile); $err = [IO.File]::ReadAllBytes($errFile)
+    [IO.File]::WriteAllBytes($log, $out + $err)
+    Remove-Item $outFile, $errFile
+    $outText = [Text.Encoding]::UTF8.GetString($out); $errText = [Text.Encoding]::UTF8.GetString($err)
+    [pscustomobject]@{ Code = $p.ExitCode; Ms = [int]$watch.Elapsed.TotalMilliseconds; Out = $outText; Text = ($outText + "`n" + $errText); Log = $log }
 }
 
 # Searches a file for the secret as UTF-8 and as UTF-16, without printing anything of it.
@@ -64,7 +75,7 @@ function Has-Secret([string]$file, [string[]]$needles) {
 function Log-Failure($run) {
     if ($run.Code -eq 0) { return }
     if (Has-Secret $run.Log $needles) { Log '  Fehlerausgabe enthaelt das Geheimnis, nicht gezeigt (das ist selbst ein Befund)'; return }
-    $lines = @($run.Text -split "`r?`n" | Where-Object { $_ -match '[A-Z]{3}-\d{3}|[Ee]rror|[Ff]ehler|failed' } | Select-Object -First 5)
+    $lines = @($run.Text -split "`r?`n" | Where-Object { $_ -match '^error\[' } | Select-Object -First 5)
     if ($lines.Count -eq 0) { $lines = @($run.Text -split "`r?`n" | Where-Object { $_.Trim() } | Select-Object -Last 3) }
     if ($lines.Count -eq 0) { Log '  Keine Ausgabe des Programms (Exit ungleich 0 ohne Text)' }
     foreach ($l in $lines) { Log ('  > ' + ($l -replace '[A-Za-z][A-Za-z0-9+.-]*://\S+', '<adresse>').Trim()) }
@@ -76,7 +87,7 @@ $needles = @(
 
 Log '== 3. Erster Scan mit Login (klonen und scannen)'
 $first = Run-App @('scan', $Url, '--branch', $Branch, '--credential', $Credential, '--json')
-$summary = $first.Text -split "`n" | Where-Object { $_ -match '^\{' } | Select-Object -First 1 | ConvertFrom-Json -ErrorAction SilentlyContinue
+$summary = $first.Out -split "`r?`n" | Where-Object { $_ -match '^\s*\{' } | Select-Object -First 1 | ConvertFrom-Json -ErrorAction SilentlyContinue
 Log ("Exit: $($first.Code), Dauer gesamt: $($first.Ms) ms, Dateien: $($summary.files), Symbole: $($summary.symbols), Verweise: $($summary.references)")
 Log-Failure $first
 
@@ -110,6 +121,13 @@ Log ("Dateien (ohne Git-Cache) mit einem Token-Muster (ghp_, github_pat_, gho_, 
 $secret = $null; $needles = $null; [GC]::Collect()
 
 Log '== 7. Ohne Login muss der Scan scheitern, nicht fragen'
-$none = Run-App @('scan', $Url, '--branch', $Branch, '--json')
-Log ("Exit ohne Login: $($none.Code) (erwartet: ungleich 0 mit SRC-401, ohne Rueckfrage im Terminal oder Anmeldefenster; kann auch 0 sein, wenn der Git-Credential-Helper des Systems das Repository oeffnet)")
+# The Git credential helpers of the system (for example Git Credential Manager) are switched off for this
+# run, so that only CodeSkimr's own login could open the repository; without it the scan must fail.
+$emptyConfig = Join-Path $Out 'leere-gitconfig'; Set-Content $emptyConfig ''
+$noHelper = @{ GIT_CONFIG_NOSYSTEM = '1'; GIT_CONFIG_GLOBAL = $emptyConfig; GIT_TERMINAL_PROMPT = '0'; GCM_INTERACTIVE = 'never' }
+$none = Run-App @('scan', $Url, '--branch', $Branch, '--json') $noHelper
+Log ("Exit ohne Login und ohne Git-Helper des Systems: $($none.Code) (erwartet: ungleich 0 mit Fehlercode, ohne Rueckfrage im Terminal oder Anmeldefenster)")
+Log-Failure $none
+$withHelper = Run-App @('scan', $Url, '--branch', $Branch, '--json')
+Log ("Exit ohne Login, mit Git-Helper des Systems: $($withHelper.Code) (0 ist zulaessig: der Helper des Systems meldet dann an, Blueprint 12)")
 Log "Fertig. Ergebnis: $report"
