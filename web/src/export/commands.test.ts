@@ -4,6 +4,7 @@ import type { UsagesAnswer } from "../features/usages/types";
 import { DATA, FOCUS_ANSWER as FOCUS, SUMMARY } from "../tests/export-data";
 import { answer, installData, runCommand } from "./commands";
 import { searchSymbols } from "./search";
+import { expandOutline, type WireOutline } from "../features/explorer/outlineWire";
 
 const ASK = { symbol: 1, way: "both", depth: 0, include_tests: true };
 
@@ -16,6 +17,27 @@ describe("the commands of the export", () => {
     expect(answer(DATA, "projects.list", undefined)).toMatchObject([{ id: 9, name: "demo" }]);
     expect(answer(DATA, "explorer.outline", { project: 9 })).toBe(DATA.outline);
     expect(answer(DATA, "graph.layers", { project: 9 })).toBe(DATA.graph);
+  });
+
+  it("hand the short outline to the tree reader, which puts the full types back", () => {
+    const short = {
+      ...DATA.outline,
+      layers: [
+        {
+          name: "",
+          namespaces: [
+            {
+              name: "App.Domain",
+              language: "csharp",
+              types: [{ id: 5, name: "Order", kind: "class", members: 1 }],
+            },
+          ],
+        },
+      ],
+    } as unknown as WireOutline;
+    const handed = answer({ ...DATA, outline: short as never }, "explorer.outline", { project: 9 });
+    const type = expandOutline(handed as WireOutline).layers[0]?.namespaces[0]?.types[0];
+    expect(type).toMatchObject({ qualified_name: "App.Domain.Order", language: "csharp" });
   });
 
   it("name no folder in the project list", () => {
