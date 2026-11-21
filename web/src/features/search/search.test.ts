@@ -73,7 +73,9 @@ describe("buildEntries", () => {
 
   it("offers every command for a bare > and the matching ones for a text", () => {
     setLanguage("en");
-    expect(buildEntries([], [], UI_COMMANDS, FILTER.commands, "")).toHaveLength(UI_COMMANDS.length);
+    // The export is only offered with a scanned project, and none is open here.
+    const always = UI_COMMANDS.filter((command) => command.available === undefined);
+    expect(buildEntries([], [], UI_COMMANDS, FILTER.commands, "")).toHaveLength(always.length);
     const found = buildEntries([], [], UI_COMMANDS, FILTER.commands, "explorer");
     expect(found.map((entry) => entry.command?.label)).toEqual([I18N_KEYS.NAV_EXPLORER]);
   });
@@ -140,5 +142,12 @@ describe("the keys", () => {
     expect(both.actions.editor).not.toHaveBeenCalled();
     expect(both.actions.graph).not.toHaveBeenCalled();
     expect(both.actions.activate).not.toHaveBeenCalled();
+  });
+});
+
+describe("a command that is not available", () => {
+  it("is not offered", () => {
+    const command = { label: I18N_KEYS.NAV_PROJECTS, run: () => undefined, available: () => false };
+    expect(buildEntries([], [], [command], FILTER.commands, "")).toEqual([]);
   });
 });

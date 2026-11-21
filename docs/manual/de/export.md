@@ -1,8 +1,12 @@
 # HTML-Export
 
-`codeskimr export` schreibt eine **eigenständige HTML-Datei** mit Explorer, Abhängigkeitskarte, Verwendungen und Schnellsuche eines gescannten Projekts. Die Datei braucht keinen Server und kein Netzwerk: Sie öffnen sie von der Platte, schicken sie per Mail oder legen sie in ein Wiki. Nutzen Sie sie für Dokumentation und für die Planung von Änderungen mit Menschen, die CodeSkimr nicht betreiben.
+Der Export steht auf zwei Wegen zur Verfügung: als Knopf **HTML exportieren** in der App und als Befehl `codeskimr export`. Beide schreiben eine **eigenständige HTML-Datei** mit Explorer, Abhängigkeitskarte, Verwendungen und Schnellsuche eines gescannten Projekts. Die Datei braucht keinen Server und kein Netzwerk: Sie öffnen sie von der Platte, schicken sie per Mail oder legen sie in ein Wiki. Nutzen Sie sie für Dokumentation und für die Planung von Änderungen mit Menschen, die CodeSkimr nicht betreiben.
 
-## Benutzung
+## In der App
+
+Öffnen Sie das Projekt (Projekte, Zeile wählen, Enter). In der Kopfleiste steht rechts neben dem Namen und dem Zweig der Knopf **HTML exportieren**. Ein Klick erzeugt die Seite aus dem neuesten Scan, und der Browser lädt sie als `<Projektname>.html` in seinen Download-Ordner. Nichts wird an einen anderen Ort gesendet. Der Knopf ist grau, solange das Projekt nicht gescannt ist. Dasselbe geht über die Schnellsuche (`Strg K`, dann `>` und „Projekt als HTML exportieren“). Schlägt der Export fehl, steht der Grund mit Fehlercode neben dem Knopf.
+
+## Auf der Kommandozeile
 
 ```
 codeskimr export <Projekt> --html <Datei>

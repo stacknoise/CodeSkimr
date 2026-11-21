@@ -4,6 +4,7 @@ import { I18N_KEYS } from "../shared/i18n/keys";
 import { activeProject } from "../shared/project/active";
 import { ICON_BRANCH, ICON_SIZE_SMALL } from "../shared/ui/consts";
 import { Icon } from "../shared/ui/Icon";
+import { ExportButton } from "../features/export/ExportButton";
 import { ago } from "../features/projects/format";
 import { SOURCE_KIND } from "../features/projects/consts";
 import { projects } from "../features/projects/projects";
@@ -37,6 +38,7 @@ export function ProjectCrumb() {
             <Icon name={ICON_BRANCH} size={ICON_SIZE_SMALL} />
             {chipText(row())}
           </span>
+          <ExportButton project={row()} />
         </>
       )}
     </Show>
