@@ -563,7 +563,39 @@ fn a_file_that_cannot_be_analysed_is_left_out_and_the_scan_finishes() -> Result<
         let stored = world.last_persisted()?;
         assert_eq!(stored.files.len(), 1);
         assert_eq!(stored.warnings, [ScanWarning { code, count: 1 }]);
+        let named: Vec<_> = stored
+            .left_out
+            .iter()
+            .map(|left| (left.path.as_str().to_owned(), left.code, left.kept))
+            .collect();
+        assert_eq!(named, [("b.rs".to_owned(), code, false)]);
     }
+    Ok(())
+}
+
+#[test]
+fn the_store_gets_only_as_many_left_out_files_as_the_limit_allows() -> Result<(), CodedError> {
+    let code = ErrorCode::FileEncodingUnsupported;
+    let world = Arc::new(World {
+        found: Some(vec![
+            ("a.rs", true),
+            ("b.rs", true),
+            ("c.rs", true),
+            ("d.rs", true),
+            ("e.rs", true),
+        ]),
+        broken: vec![
+            ("b.rs", code),
+            ("c.rs", code),
+            ("d.rs", code),
+            ("e.rs", code),
+        ],
+        ..World::default()
+    });
+    let (_, _) = run(&world, ScanMode::Full);
+    let stored = world.last_persisted()?;
+    assert_eq!(stored.left_out.len(), 2);
+    assert_eq!(stored.warnings, [ScanWarning { code, count: 4 }]);
     Ok(())
 }
 

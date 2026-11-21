@@ -32,6 +32,23 @@ fn place(location: &Location) -> Place {
     }
 }
 
+/// `CHK-103`: the layer of the symbol, the layer it must not use and the number of references
+/// into it.
+#[derive(Serialize)]
+struct LayerUse {
+    from_layer: String,
+    to_layer: String,
+    uses: u32,
+}
+
+fn layer_use((from, to, uses): (&str, &str, u32)) -> LayerUse {
+    LayerUse {
+        from_layer: from.to_owned(),
+        to_layer: to.to_owned(),
+        uses,
+    }
+}
+
 #[derive(Serialize)]
 struct Violation {
     code: &'static str,
@@ -48,6 +65,8 @@ struct Violation {
     max_value: Option<u32>,
     /// `CHK-101`: how many literals outside the exceptions the function contains.
     literals: Option<u32>,
+    #[serde(flatten)]
+    layering: Option<LayerUse>,
     /// `CHK-102`: the earlier function this one copies.
     duplicate_of: Option<Place>,
     /// `CHK-102`: how similar the two are, in whole percent.
@@ -66,6 +85,7 @@ fn violation(finding: &Finding) -> Violation {
         value: measure.value,
         max_value: measure.value.and(measure.limit),
         literals: measure.literals,
+        layering: measure.layering.map(layer_use),
         duplicate_of: measure.duplicate_of.map(place),
         similarity_percent: measure.similarity_percent,
     }
@@ -147,6 +167,8 @@ impl Tools {
             paths: &paths,
             stored: snapshot.map(|snapshot| StoredProject {
                 index: self.similarity(),
+                references: self.references(),
+                layers: &project.layers,
                 snapshot: snapshot.id,
             }),
         })?;

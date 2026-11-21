@@ -141,6 +141,7 @@ pub fn data(snapshot: Snapshot) -> SnapshotData {
         parse_micros: Vec::new(),
         warnings: Vec::new(),
         ambiguous_places: None,
+        left_out: Vec::new(),
     }
 }
 

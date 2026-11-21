@@ -66,6 +66,7 @@ fn write_snapshot(conn: &Connection, data: &SnapshotData, keep: u32) -> StorageR
     insert_facts(conn, data)?;
     insert_parse_times(conn, data)?;
     insert_warnings(conn, data)?;
+    insert_left_out(conn, data)?;
     if header.mode == ScanMode::Incremental {
         carry_over(conn, header.project, header.id, &data.removed)?;
     }
@@ -196,6 +197,21 @@ fn insert_warnings(conn: &Connection, data: &SnapshotData) -> StorageResult<()> 
             snapshot,
             warning.code.id(),
             column_int(warning.count)?
+        ])?;
+    }
+    Ok(())
+}
+
+/// The files the scan left out by name.
+fn insert_left_out(conn: &Connection, data: &SnapshotData) -> StorageResult<()> {
+    let snapshot = column_int(data.snapshot.id.get())?;
+    let mut insert = conn.prepare_cached(sql::LEFT_OUT_INSERT)?;
+    for left in &data.left_out {
+        insert.execute(params![
+            snapshot,
+            left.path.as_str(),
+            left.code.id(),
+            left.kept
         ])?;
     }
     Ok(())

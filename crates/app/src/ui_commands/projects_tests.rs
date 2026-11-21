@@ -6,19 +6,19 @@ use std::sync::{Arc, Mutex, OnceLock};
 use codeskimr_application::error::CodedError;
 use codeskimr_application::events::EventBus;
 use codeskimr_application::ports::{
-    LanguageShare, LastScan, ProjectCatalog, ProjectOverview, ProjectToolCheck, ReportWrite,
-    ScanReport, ScanReportStore, ScanWarning,
+    LanguageShare, LastScan, LeftOut, ProjectCatalog, ProjectOverview, ProjectToolCheck,
+    ReportWrite, ScanReport, ScanReportStore, ScanWarning,
 };
 use codeskimr_application::registry::CommandExt;
 use codeskimr_cli::GlobalOptions;
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
-    FolderPath, Project, ProjectId, ProjectName, ProjectSource, ScanLevel, ScanOrigin, Timestamp,
-    ToolReport,
+    FolderPath, Project, ProjectId, ProjectName, ProjectSource, RelativePath, ScanLevel,
+    ScanOrigin, Timestamp, ToolReport,
 };
 
 use super::Context;
-use super::projects::{ListProjects, WarningRow};
+use super::projects::{LeftOutRow, ListProjects, WarningRow};
 use crate::locations::Locations;
 use crate::principal;
 use crate::running::RunningScans;
@@ -37,11 +37,27 @@ fn overview(id: u64, name: &str) -> ProjectOverview {
         latest: None,
         types: 0,
         languages: Vec::new(),
-        // The first project carries a warning of its newest scan.
-        warnings: (id == 1)
-            .then_some(ScanWarning {
-                code: ErrorCode::AmbiguousReference,
-                count: 4,
+        // The first project carries two warnings of its newest scan.
+        warnings: if id == 1 {
+            vec![
+                ScanWarning {
+                    code: ErrorCode::AmbiguousReference,
+                    count: 4,
+                },
+                ScanWarning {
+                    code: ErrorCode::FileEncodingUnsupported,
+                    count: 3,
+                },
+            ]
+        } else {
+            Vec::new()
+        },
+        // The first project left out three files of which it names one.
+        left_out: (id == 1)
+            .then(|| LeftOut {
+                path: RelativePath::new("src/legacy.txt").unwrap(),
+                code: ErrorCode::FileEncodingUnsupported,
+                kept: false,
             })
             .into_iter()
             .collect(),
@@ -142,12 +158,34 @@ fn an_unreadable_tool_report_does_not_take_the_list_down() {
     assert!(rows.iter().all(|row| row.tools.is_none()));
     assert_eq!(
         rows[0].warnings,
-        [WarningRow {
-            code: "RES-301",
-            count: 4
-        }]
+        [
+            WarningRow {
+                code: "RES-301",
+                count: 4
+            },
+            WarningRow {
+                code: "PRS-101",
+                count: 3
+            }
+        ]
     );
     assert_eq!(rows[1].warnings, Vec::<WarningRow>::new());
+}
+
+#[test]
+fn the_list_names_the_files_a_scan_left_out_and_counts_the_rest() {
+    let rows = list_of_two().run(&principal::resolve(), ()).unwrap();
+    assert_eq!(
+        rows[0].left_out,
+        [LeftOutRow {
+            path: "src/legacy.txt".to_owned(),
+            code: "PRS-101",
+            kept: false
+        }]
+    );
+    // The warning counts three files, the list names one of them.
+    assert_eq!(rows[0].left_out_more, 2);
+    assert_eq!((rows[1].left_out.len(), rows[1].left_out_more), (0, 0));
 }
 
 #[test]

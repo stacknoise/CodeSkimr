@@ -826,6 +826,7 @@ impl Stage for PersistStage {
         let ambiguous = input.carried.ambiguous_places(&input.references);
         let mut warnings = warnings_of(ambiguous, input.given_up);
         warnings.extend(left_out_warnings(&input.run.paths_report.left_out));
+        let paths = listed(input.run.paths_report, self.max_left_out_listed);
         let data = SnapshotData {
             snapshot,
             files: input.files,
@@ -841,6 +842,7 @@ impl Stage for PersistStage {
             parse_micros: input.run.parse_micros,
             warnings: warnings.clone(),
             ambiguous_places: Some(ambiguous),
+            left_out: paths.left_out.clone(),
         };
         let stored = self.store.persist(data)?;
         log_warnings(&warnings);
@@ -849,7 +851,7 @@ impl Stage for PersistStage {
             snapshot: stored,
             root,
             warnings,
-            paths: listed(input.run.paths_report, self.max_left_out_listed),
+            paths,
         })
     }
 }

@@ -77,7 +77,7 @@ The stored count is not trusted blindly: if it is lower than the ambiguous place
 
 ## Consequences
 
-- Migration 0018 adds the nullable column `snapshots.ambiguous_places` and the partial index `references_verified` (only rows with `verified = 1`). No new table: a full scan at level 1 writes nothing more than before, so its budget is not touched.
+- Migration 0019 adds the nullable column `snapshots.ambiguous_places` and the partial index `references_verified` (only rows with `verified = 1`). No new table: a full scan at level 1 writes nothing more than before, so its budget is not touched.
 - The first incremental scan after the update and the first one after a level 2 run take the fallback and are as slow as before.
 - Measured on Newtonsoft.Json (median of seven re-scans of one file, before and after, in ms): a test file used nowhere else 608 to 404, `BsonObjectId.cs` 636 to 506, `StringUtils.cs` 669 to 503. Files that much of the project uses touch every sixth symbol and gain nothing: `JsonSerializer.cs` 678 to 687, `JsonConvert.cs` 926 to 929.
 - The budget of 300 ms is still not met for a project of this size. The main reason is not addressed here: an edited file gets new symbol ids, so every reference into it loses its target and its name is resolved again, even if only a comment changed. Keeping the ids of symbols that did not change would shrink the touched set at its root and needs its own decision. The rest of the time is in the read models, which are built again in full, and in the totals.
