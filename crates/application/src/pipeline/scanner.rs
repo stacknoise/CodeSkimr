@@ -171,6 +171,8 @@ impl Scanner {
         let project_id = job.project();
         let mode = job.mode();
         let job = job.start();
+        // Whatever ends this run, a panic included, the bus stops listing the scan as running.
+        let _tracking = self.events.track(project_id);
         // A clock of the whole analyzer: scans that run at the same time can count each other's
         // loads, so the value can be a little too long (see `FileAnalyzer::pack_load_time`).
         let loading_before = self.analyzer.pack_load_time();

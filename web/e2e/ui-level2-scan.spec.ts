@@ -122,7 +122,11 @@ test.describe("the scan section (keyboard, ADR 0072)", () => {
     const only = panel.getByRole("button", { name: "Stage 1 only" });
     await only.focus();
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("switch", { name: "Level 2 for lvsreport" })).toBeFocused();
+    // Starting a scan shows the scan screen.
+    await expect(page.getByRole("link", { name: "Scans and performance" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
     expect(fake.rescans.at(-1)).toMatchObject({ level2: false });
   });
 
@@ -175,6 +179,8 @@ test.describe("the scan section (keyboard, ADR 0072)", () => {
       fake.rescanLevel2 = { state: "not_started", reason };
       const panel = await openProject(page, harness, `lvs${reason.replace("_", "")}`);
       await panel.getByRole("button", { name: "Scan again" }).click();
+      // The scan screen opens; the message waits on the list.
+      await page.getByRole("link", { name: "Projects", exact: true }).click();
       await expect(panel.getByText(text)).toBeVisible();
       await expect(panel.getByText(/Stage 1 is stored/)).toBeVisible();
     });
