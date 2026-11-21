@@ -48,19 +48,25 @@ function Run-App([string[]]$arguments, [hashtable]$extraEnv = @{}) {
     $script:runs++
     $log = Join-Path $Out "lauf-$($script:runs).txt"
     $outFile = "$log.out"; $errFile = "$log.err"
-    $env:CODESKIMR_LOG = 'trace'
-    foreach ($k in $extraEnv.Keys) { Set-Item -Path "Env:$k" -Value $extraEnv[$k] }
     $all = @('--data-dir', $data) + $arguments
+    $argLine = ($all | ForEach-Object { Quote-Arg $_ }) -join ' '
     $watch = [Diagnostics.Stopwatch]::StartNew()
-    $p = Start-Process -FilePath $exe -ArgumentList (($all | ForEach-Object { Quote-Arg $_ }) -join ' ') -NoNewWindow -Wait -PassThru -RedirectStandardOutput $outFile -RedirectStandardError $errFile
+    try {
+        $env:CODESKIMR_LOG = 'trace'
+        foreach ($k in $extraEnv.Keys) { Set-Item -Path "Env:$k" -Value $extraEnv[$k] }
+        $p = Start-Process -FilePath $exe -ArgumentList $argLine -NoNewWindow -Wait -PassThru -RedirectStandardOutput $outFile -RedirectStandardError $errFile
+    } finally {
+        Remove-Item Env:CODESKIMR_LOG -ErrorAction SilentlyContinue
+        foreach ($k in $extraEnv.Keys) { Remove-Item "Env:$k" -ErrorAction SilentlyContinue }
+    }
     $watch.Stop()
-    Remove-Item Env:CODESKIMR_LOG
-    foreach ($k in $extraEnv.Keys) { Remove-Item "Env:$k" -ErrorAction SilentlyContinue }
-    $out = [IO.File]::ReadAllBytes($outFile); $err = [IO.File]::ReadAllBytes($errFile)
-    [IO.File]::WriteAllBytes($log, $out + $err)
+    $outBytes = [IO.File]::ReadAllBytes($outFile); $errBytes = [IO.File]::ReadAllBytes($errFile)
+    $fs = [IO.File]::Create($log)
+    try { $fs.Write($outBytes, 0, $outBytes.Length); $fs.Write($errBytes, 0, $errBytes.Length) } finally { $fs.Dispose() }
     Remove-Item $outFile, $errFile
-    $outText = [Text.Encoding]::UTF8.GetString($out); $errText = [Text.Encoding]::UTF8.GetString($err)
-    [pscustomobject]@{ Code = $p.ExitCode; Ms = [int]$watch.Elapsed.TotalMilliseconds; Out = $outText; Text = ($outText + "`n" + $errText); Log = $log }
+    $outText = [Text.Encoding]::UTF8.GetString($outBytes); $errText = [Text.Encoding]::UTF8.GetString($errBytes)
+    [pscustomobject]@{ Code = $p.ExitCode; Ms = [int]$watch.Elapsed.TotalMilliseconds; Out = $outText; Text = ($outText + "`
+" + $errText); Log = $log }
 }
 
 # Searches a file for the secret as UTF-8 and as UTF-16, without printing anything of it.
@@ -70,15 +76,16 @@ function Has-Secret([string]$file, [string[]]$needles) {
     foreach ($n in $needles) { if ($latin.Contains($n)) { return $true } }
     $false
 }
-# After a failed run: the error lines (code and text) of the run, so that the report says why. Addresses
-# are replaced, and nothing is shown if the output holds the secret.
+# After a failed run: the lines `error[CODE]: message` of the run (the message is the fixed text of the code, no
+# names or paths), so that the report says why. Other output is only counted, never copied, because the trace
+# log can hold paths and names. Nothing is shown if the output holds the secret.
 function Log-Failure($run) {
     if ($run.Code -eq 0) { return }
-    if (Has-Secret $run.Log $needles) { Log '  Fehlerausgabe enthaelt das Geheimnis, nicht gezeigt (das ist selbst ein Befund)'; return }
-    $lines = @($run.Text -split "`r?`n" | Where-Object { $_ -match '^error\[' } | Select-Object -First 5)
-    if ($lines.Count -eq 0) { $lines = @($run.Text -split "`r?`n" | Where-Object { $_.Trim() } | Select-Object -Last 3) }
-    if ($lines.Count -eq 0) { Log '  Keine Ausgabe des Programms (Exit ungleich 0 ohne Text)' }
-    foreach ($l in $lines) { Log ('  > ' + ($l -replace '[A-Za-z][A-Za-z0-9+.-]*://\S+', '<adresse>').Trim()) }
+    if ($null -ne $needles -and (Has-Secret $run.Log $needles)) { Log '  Fehlerausgabe enthaelt das Geheimnis, nicht gezeigt (das ist selbst ein Befund)'; return }
+    $all = @($run.Text -split "`r?`n" | Where-Object { $_.Trim() })
+    $errors = @($all | Where-Object { $_ -match '^error\[[A-Z]{3}-\d{3}\]: [^/\\:]*$' } | Select-Object -First 5)
+    foreach ($l in $errors) { Log ('  > ' + $l.Trim()) }
+    if ($errors.Count -eq 0) { Log "  Keine error[...]-Zeile, $($all.Count) Zeilen Ausgabe in $(Split-Path $run.Log -Leaf)" }
 }
 $needles = @(
     [Text.Encoding]::GetEncoding(28591).GetString([Text.Encoding]::UTF8.GetBytes($secret)),
@@ -118,16 +125,18 @@ $patterns = 'ghp_[A-Za-z0-9]{20,}', 'github_pat_[A-Za-z0-9_]{20,}', 'gho_[A-Za-z
 $hits = 0
 foreach ($path in (@($other | ForEach-Object { $_.FullName }) + @($first.Log, $second.Log, $export.Log, $page))) { $t = [Text.Encoding]::GetEncoding(28591).GetString([IO.File]::ReadAllBytes($path)); foreach ($p in $patterns) { if ($t -match $p) { $hits++ } } }
 Log ("Dateien (ohne Git-Cache) mit einem Token-Muster (ghp_, github_pat_, gho_, glpat-): $hits")
-$secret = $null; $needles = $null; [GC]::Collect()
 
 Log '== 7. Ohne Login muss der Scan scheitern, nicht fragen'
-# The Git credential helpers of the system (for example Git Credential Manager) are switched off for this
-# run, so that only CodeSkimr's own login could open the repository; without it the scan must fail.
+# Step 7 runs without the login, so no secret is involved. The Git credential helpers of the system (for example
+# Git Credential Manager) are switched off for the first run, so that only CodeSkimr's own login could open the
+# repository; without it the scan must fail.
 $emptyConfig = Join-Path $Out 'leere-gitconfig'; Set-Content $emptyConfig ''
-$noHelper = @{ GIT_CONFIG_NOSYSTEM = '1'; GIT_CONFIG_GLOBAL = $emptyConfig; GIT_TERMINAL_PROMPT = '0'; GCM_INTERACTIVE = 'never' }
+$noHelper = @{ GIT_CONFIG_NOSYSTEM = '1'; GIT_CONFIG_GLOBAL = $emptyConfig; GIT_CONFIG_COUNT = '1'; GIT_CONFIG_KEY_0 = 'credential.helper'; GIT_CONFIG_VALUE_0 = ''; GIT_TERMINAL_PROMPT = '0'; GCM_INTERACTIVE = 'never' }
 $none = Run-App @('scan', $Url, '--branch', $Branch, '--json') $noHelper
-Log ("Exit ohne Login und ohne Git-Helper des Systems: $($none.Code) (erwartet: ungleich 0 mit Fehlercode, ohne Rueckfrage im Terminal oder Anmeldefenster)")
+Log ("Exit ohne Login und ohne Git-Helper des Systems: $($none.Code) -> " + $(if ($none.Code -ne 0) { 'OK (scheitert, keine Rueckfrage)' } else { 'NICHT ERFUELLT (Scan ohne Login gelang)' }))
 Log-Failure $none
 $withHelper = Run-App @('scan', $Url, '--branch', $Branch, '--json')
 Log ("Exit ohne Login, mit Git-Helper des Systems: $($withHelper.Code) (0 ist zulaessig: der Helper des Systems meldet dann an, Blueprint 12)")
+Log-Failure $withHelper
+$secret = $null; $needles = $null; [GC]::Collect()
 Log "Fertig. Ergebnis: $report"
