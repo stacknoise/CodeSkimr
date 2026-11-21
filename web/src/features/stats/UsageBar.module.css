@@ -1,0 +1,23 @@
+.defs {
+    position: absolute;
+    width: 0;
+    height: 0;
+}
+
+.bar {
+    flex: none;
+    display: block;
+}
+
+.track {
+    fill: var(--line-soft);
+}
+
+.certain {
+    fill: var(--accent);
+}
+
+.hatch {
+    fill: var(--accent);
+    opacity: 0.55;
+}
