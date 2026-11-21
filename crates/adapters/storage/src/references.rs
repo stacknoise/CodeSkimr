@@ -132,7 +132,7 @@ pub(crate) fn verified_files(conn: &Connection, snapshot: i64) -> StorageResult<
 
 /// Each pair of start and target of the references of a snapshot once, in ascending order: those
 /// that stand in `of` and do not start in `without`, references of kind `test` left out. It is
-/// what coupling needs of them (ADR 0085).
+/// what coupling needs of them (ADR 0086).
 pub(crate) fn reference_pairs(
     conn: &Connection,
     snapshot: i64,

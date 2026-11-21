@@ -12,7 +12,7 @@
 //! tell the resolver what a file sees; all names only if a base list changed (issue #408).
 //!
 //! The references of the previous snapshot are read only as far as the scan needs them
-//! (ADR 0085). An unchanged file is touched if one of its names is resolved again or one of its
+//! (ADR 0086). An unchanged file is touched if one of its names is resolved again or one of its
 //! references lost its target; only the references of touched files come into memory. Of the
 //! untouched files the scan takes what coupling needs ([`Carried::pairs`]) and the number of
 //! ambiguous places, which the previous snapshot counted.
@@ -25,7 +25,6 @@ use codeskimr_domain::{
 };
 
 use super::shape::{Delta, Shape, is_structural};
-use crate::consts::{NARROW_READ_MAX_SYMBOLS, NARROW_READ_SYMBOL_SHARE};
 use crate::error::CodedError;
 use crate::ports::{
     DiscoveredFile, PendingReference, PreviousState, ProjectRepository, StoredNames,
@@ -217,7 +216,7 @@ impl Carried {
     /// Reads the references that [`Carried::reconcile`] compares: those that start in a touched
     /// symbol, or all if every name is resolved again or the previous snapshot did not count its
     /// ambiguous places. Of the other references it takes the pairs for coupling and the number
-    /// of ambiguous places, which is the count of the snapshot without what is read (ADR 0085).
+    /// of ambiguous places, which is the count of the snapshot without what is read (ADR 0086).
     fn read_touched(&mut self, store: &dyn ProjectRepository) -> Result<(), CodedError> {
         let Some(snapshot) = self.snapshot else {
             return Ok(());
@@ -243,8 +242,7 @@ impl Carried {
     }
 
     /// The touched symbols in ascending order: those in which a name is resolved again or a
-    /// reference lost its target. `None` if all names are resolved again, or if so many symbols
-    /// are touched that reading every reference in one pass is as fast.
+    /// reference lost its target. `None` if all names are resolved again.
     fn touched(&self) -> Option<Vec<SymbolId>> {
         let scope = self.scope.as_ref()?;
         let touched: BTreeSet<SymbolId> = scope
@@ -252,9 +250,7 @@ impl Carried {
             .chain(&self.dead)
             .map(|(from, _, _)| *from)
             .collect();
-        let few = touched.len() <= NARROW_READ_MAX_SYMBOLS
-            || touched.len().saturating_mul(NARROW_READ_SYMBOL_SHARE) <= self.symbols.len();
-        few.then(|| touched.into_iter().collect())
+        Some(touched.into_iter().collect())
     }
 
     /// How many places of the whole snapshot match several symbols, given the references

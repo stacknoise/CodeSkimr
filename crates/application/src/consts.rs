@@ -49,14 +49,6 @@ pub const CHECK_MARKER_MIN_REASON: usize = 8;
 /// Largest file that is read for the marker, in bytes.
 pub const CHECK_MARKER_MAX_FILE_BYTES: u64 = 4_194_304;
 
-/// Up to this many touched symbols an incremental scan always reads their references through
-/// the index (ADR 0085): on a C# project of 138k LOC that took under 50 ms.
-pub const NARROW_READ_MAX_SYMBOLS: usize = 2_000;
-/// Beyond [`NARROW_READ_MAX_SYMBOLS`] the scan reads through the index only if at most one symbol
-/// in this many is touched. Past that share, one pass over all references is as fast: on the same
-/// project both took the same time at one touched symbol in six.
-pub const NARROW_READ_SYMBOL_SHARE: usize = 8;
-
 /// At least one analysis worker, whatever the machine reports.
 pub const MIN_WORKERS: usize = 1;
 /// Index of the first file handed to the analysis workers.

@@ -54,7 +54,7 @@ pub struct SnapshotData {
     /// The warnings of the scan, one per code, counted over the whole snapshot.
     pub warnings: Vec<ScanWarning>,
     /// How many places of the whole snapshot match several symbols, `None` if the writer did not
-    /// count. The next incremental scan starts from this number (ADR 0085).
+    /// count. The next incremental scan starts from this number (ADR 0086).
     pub ambiguous_places: Option<u64>,
 }
 
@@ -114,7 +114,7 @@ pub enum StoredReferences<'a> {
 /// The newest snapshot of a project as one consistent read: files and symbols. Read in one
 /// transaction, so a snapshot written in between cannot make the parts disagree. The names as
 /// written and the references are read from `snapshot` afterwards, as far as they are needed
-/// (ADR 0085).
+/// (ADR 0086).
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct PreviousState {
     /// The files.
@@ -204,7 +204,7 @@ pub trait ProjectRepository: Send + Sync {
 
     /// What coupling needs of the references of `snapshot` that stand in `files` and do not start
     /// in one of the symbols `without`: each pair of the symbol a reference starts in and its
-    /// target once, references of kind `test` left out (ADR 0085). The default holds none.
+    /// target once, references of kind `test` left out (ADR 0086). The default holds none.
     ///
     /// # Errors
     /// A coded failure of the `STO` group.

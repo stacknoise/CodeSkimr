@@ -158,7 +158,7 @@ pub fn coupling(symbols: &[Symbol], references: &[Reference]) -> Result<Vec<Metr
 }
 
 /// [`coupling`] for a snapshot of which only a part of the references is at hand: `pairs` stand
-/// for the others, one pair for every symbol that refers to another outside test code (ADR 0085).
+/// for the others, one pair for every symbol that refers to another outside test code (ADR 0086).
 /// A unit counts another once however many references there are, so the pairs give the values the
 /// references would.
 ///

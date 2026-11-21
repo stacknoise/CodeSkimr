@@ -167,7 +167,7 @@ pub trait MetricsCalculator: Send + Sync {
     /// Measures what the scan analysed. `symbols` are those of the whole snapshot, also of
     /// unchanged files in an incremental scan, and `references` with `pairs` cover all its
     /// references, so coupling is computed on complete data: `pairs` stand for the references of
-    /// the files that an incremental scan left in the store (ADR 0085). `counts` come from the
+    /// the files that an incremental scan left in the store (ADR 0086). `counts` come from the
     /// files that were analysed; the metrics of the other files stay as they are.
     ///
     /// # Errors

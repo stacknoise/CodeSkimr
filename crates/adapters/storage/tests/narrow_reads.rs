@@ -1,4 +1,4 @@
-//! What an incremental scan reads of the references instead of all of them (ADR 0085): those that
+//! What an incremental scan reads of the references instead of all of them (ADR 0086): those that
 //! point at some symbols, those of some files, the files level 2 verified, the pairs for coupling
 //! and the number of ambiguous places the snapshot stores.
 

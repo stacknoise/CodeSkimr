@@ -1,4 +1,4 @@
--- Schema version 18: a snapshot remembers how many of its places match several symbols (ADR 0085).
+-- Schema version 18: a snapshot remembers how many of its places match several symbols (ADR 0086).
 --
 -- The next incremental scan starts from this number and reads only the references of the files it
 -- touches. NULL means that the number is not known: for snapshots written before this version and

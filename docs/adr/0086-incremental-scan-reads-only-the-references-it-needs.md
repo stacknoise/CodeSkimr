@@ -1,4 +1,4 @@
-# 0085 – An incremental scan reads only the references it needs
+# 0086 – An incremental scan reads only the references it needs
 
 Status: accepted
 
@@ -59,8 +59,9 @@ The column is `NULL` when the count is unknown: for snapshots written before thi
 The scan reads all references of the unchanged files in one pass, as before, when
 
 - all names are resolved again (a base list changed, issue #408), or
-- the stored count of the previous snapshot is `NULL`, or
-- more than 2,000 symbols and more than one symbol in eight are touched (`NARROW_READ_MAX_SYMBOLS`, `NARROW_READ_SYMBOL_SHARE`): reading through the index costs about twice as much per reference as the pass over the table, so beyond that share nothing is gained. Up to 2,000 touched symbols the read through the index is cheap whatever the share.
+- the stored count of the previous snapshot is `NULL`.
+
+A limit on the share of touched symbols was tried and dropped: even when every sixth symbol is touched, the reads through the indexes were not slower than the pass over all references.
 
 In the fallback nothing comes from the stored count or from pairs; the result is computed exactly as before this decision.
 

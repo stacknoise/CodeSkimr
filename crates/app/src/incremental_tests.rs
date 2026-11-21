@@ -140,7 +140,7 @@ fn references_of(locations: &Locations) -> Vec<String> {
 
 /// Coupling and instability of every symbol of the newest snapshot as text, sorted. They come
 /// from the references of the whole snapshot (ADR 0037), so both ways of scanning must agree on
-/// them too (ADR 0085).
+/// them too (ADR 0086).
 fn coupling_of(store: &SqliteStore, state: &PreviousState) -> Vec<String> {
     let snapshot = state.snapshot.unwrap();
     let mut lines = Vec::new();

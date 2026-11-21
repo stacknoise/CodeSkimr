@@ -208,7 +208,7 @@ scan on that event is the watch mode of the composition root (`crates/app/src/wa
 
 ## Which references are read
 
-ADR 0085. A symbol of an unchanged file is **touched** if a name written in it is resolved again or
+ADR 0086. A symbol of an unchanged file is **touched** if a name written in it is resolved again or
 one of its references lost its target. The scan reads
 
 - the references that point at a symbol of a changed or removed file (`StoredReferences::To`),
@@ -222,7 +222,5 @@ snapshot (`snapshots.ambiguous_places`); the new one is the stored one minus the
 references that were read plus the count over the references in memory after the scan.
 
 The scan reads every reference in one pass instead (`StoredReferences::All`), and counts and
-measures from them alone, when all names are resolved again, when the stored number is unknown
-(a snapshot from before migration 18, or level 2 replaced references since), or when many symbols are
-touched (more than 2,000 and more than one in eight), because then the pass is as fast as the reads
-through the indexes.
+measures from them alone, when all names are resolved again or when the stored number is unknown
+(a snapshot from before the column existed, or level 2 replaced references since).
