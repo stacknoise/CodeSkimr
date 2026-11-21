@@ -1,8 +1,11 @@
-//! Who owns the launch folder on Windows (issue #372).
+//! Who owns the launch folder and the folders above it on Windows (issue #372).
 //!
 //! The access rules (see `private_acl`) cannot take rights away from the owner of a folder that
-//! someone else made beforehand, so the owner is read from the open handle and must be the user,
-//! the administrators or the system, like the Unix check accepts the user and root.
+//! someone else made beforehand, and the owner of a folder above can replace a part of the path.
+//! So the owner of the launch folder, of every folder above it and of the launch file is read
+//! from an open handle and must be the user, the administrators, the system or the service that
+//! installs Windows (the usual owner of a drive root), like the Unix check accepts the user and
+//! root.
 
 use std::fs::{File, OpenOptions};
 use std::io;
@@ -68,12 +71,19 @@ pub(crate) fn check_folder(dir: &Path) -> io::Result<()> {
 /// Fails unless every folder above `dir`, up to the drive root, belongs to a trusted owner: the
 /// owner of a folder can always take the right to replace what lies in it, and with that lead the
 /// path of the launch folder somewhere else. `dir` must be a resolved path, so that no part of it
-/// is a link. The first folder that is refused is written to the log, because the error that the
+/// is a link. A volume that is mounted into a folder is not seen as such: the owner of that folder
+/// is read, not the owner of the root of the mounted volume (only an administrator can mount one).
+/// The first folder that is refused is written to the log with the kind of the failure (a folder
+/// of someone else and a folder that cannot be opened both end here), because the error that the
 /// user sees cannot name it.
 pub(crate) fn check_parents(dir: &Path) -> io::Result<()> {
     for parent in dir.ancestors().skip(1) {
         if let Err(error) = check_folder(parent) {
-            tracing::warn!(event = LOG_LAUNCH_PARENT_REFUSED, folder = %parent.display());
+            tracing::warn!(
+                event = LOG_LAUNCH_PARENT_REFUSED,
+                folder = %parent.display(),
+                kind = ?error.kind(),
+            );
             return Err(error);
         }
     }
@@ -121,7 +131,12 @@ mod tests {
         std::fs::create_dir_all(&inner).unwrap();
         assert!(check_parents(&inner).is_ok());
         if !give_away(&outer) {
-            // Without elevation the owner cannot be changed, so there is nothing to refuse.
+            // Without elevation the owner cannot be changed, so there is nothing to refuse on the
+            // machine of a developer. The CI runner is elevated: there the test must not run empty.
+            assert!(
+                std::env::var_os("CI").is_none(),
+                "the CI runner could not give the folder to another owner"
+            );
             return;
         }
         assert!(check_folder(&outer).is_err());

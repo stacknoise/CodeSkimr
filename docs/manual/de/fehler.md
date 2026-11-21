@@ -30,7 +30,7 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 | Code | Bedeutung | Was tun |
 |---|---|---|
 | `APP-201` | der Datenordner kann nicht angelegt oder geöffnet werden | Pfad und Rechte prüfen (`--data-dir`) |
-| `APP-202` | die private Datei zum Starten des Browsers konnte nicht angelegt werden; wird auch abgelehnt, wenn ihr Ordner ein Link oder eine Junction ist (Windows) | Rechte des Datenordners prüfen; `codeskimr serve` starten und die Adresse von Hand öffnen |
+| `APP-202` | die private Datei zum Starten des Browsers konnte nicht angelegt werden; wird auch abgelehnt, wenn ihr Ordner ein Link oder eine Junction ist oder wenn ein Ordner darüber einem fremden Konto gehört (Windows; kann Firmenprofile auf Netzlaufwerken und Ordner auf einem zweiten Laufwerk treffen) | Rechte des Datenordners prüfen; unter Windows nennt das Protokoll (`codeskimr.log`, Ereignis `launch_parent_refused`) den abgelehnten Ordner: den Datenordner mit `--data-dir` an einen Ort legen, dessen Ordner alle dem eigenen Konto gehören; `codeskimr serve` starten und die Adresse von Hand öffnen |
 | `APP-601` | das System hat keinen Browser gestartet | die von `codeskimr serve` ausgegebene Adresse von Hand öffnen |
 | `APP-603` | das Programm konnte sich nicht im Hintergrund starten oder sein Tray-Symbol nicht anzeigen | mit `--console` starten, dann bleibt es im Fenster; das Log liegt im Datenordner (`codeskimr.log`) |
 | `APP-604` | das Konsolenfenster für die Bestätigung von Ebene 2 ließ sich nicht starten | den angezeigten Befehl kopieren und in einem Terminal ausführen |

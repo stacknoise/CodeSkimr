@@ -122,8 +122,11 @@ fn check_private(dir: &Path) -> std::io::Result<PathBuf> {
         return Err(std::io::ErrorKind::PermissionDenied.into());
     }
     let resolved = fs::canonicalize(dir)?;
-    // Before the rules are set: a folder of someone else is refused as it is.
+    // Before the rules are set: a folder of someone else, or below a folder of someone else, is
+    // refused as it is. Nothing is changed and no file is made in a place that another account
+    // could lead elsewhere.
     crate::windows_owner::check_folder(&resolved)?;
+    crate::windows_owner::check_parents(&resolved)?;
     crate::private_acl::restrict_to_user(&resolved)?;
     Ok(resolved)
 }
