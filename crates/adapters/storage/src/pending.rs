@@ -178,7 +178,8 @@ fn text_list(names: &[String]) -> String {
     list
 }
 
-fn id_list(ids: impl Iterator<Item = u64>) -> StorageResult<String> {
+/// The ids as the JSON text that `json_each` reads.
+pub(crate) fn id_list(ids: impl Iterator<Item = u64>) -> StorageResult<String> {
     let mut columns = Vec::new();
     for id in ids {
         columns.push(column_int(id)?);

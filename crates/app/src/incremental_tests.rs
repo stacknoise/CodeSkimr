@@ -4,9 +4,12 @@
 use std::fs;
 use std::path::Path;
 
-use codeskimr_application::ports::ProjectRepository;
+use codeskimr_application::ports::{
+    CodeIndex, PreviousState, ProjectCatalog, ProjectRepository, SymbolKey,
+};
 use codeskimr_cli::GlobalOptions;
 use codeskimr_domain::{ProjectId, ScanMode};
+use codeskimr_storage::SqliteStore;
 
 use crate::alert_tests::session;
 use crate::config_files;
@@ -92,14 +95,15 @@ fn apply(folder: &Path, changes: &[Change]) {
     }
 }
 
-/// Every reference of the newest snapshot as text: file, place, kind, confidence, from and to.
+/// What both ways of scanning must agree on, as text: every reference of the newest snapshot
+/// (file, place, kind, confidence, from and to), then coupling, then the warnings.
 fn references_of(locations: &Locations) -> Vec<String> {
     let config = config_files::load(locations, &GlobalOptions::default(), None).unwrap();
     let store = open_store(locations, &config).unwrap();
     let state = store.latest_state(PROJECT).unwrap();
+    let references = store.latest_index(PROJECT).unwrap().references;
     let name_of = |id| {
         state
-            .index
             .symbols
             .iter()
             .find(|symbol| symbol.id == id)
@@ -114,9 +118,7 @@ fn references_of(locations: &Locations) -> Vec<String> {
             .map(|file| file.path.as_str().to_owned())
             .unwrap()
     };
-    let mut lines: Vec<String> = state
-        .index
-        .references
+    let mut lines: Vec<String> = references
         .iter()
         .map(|r| {
             format!(
@@ -131,7 +133,44 @@ fn references_of(locations: &Locations) -> Vec<String> {
         })
         .collect();
     lines.sort();
+    lines.extend(coupling_of(&store, &state));
+    lines.extend(warnings_stored(&store));
     lines
+}
+
+/// Coupling and instability of every symbol of the newest snapshot as text, sorted. They come
+/// from the references of the whole snapshot (ADR 0037), so both ways of scanning must agree on
+/// them too (ADR 0085).
+fn coupling_of(store: &SqliteStore, state: &PreviousState) -> Vec<String> {
+    let snapshot = state.snapshot.unwrap();
+    let mut lines = Vec::new();
+    for symbol in &state.symbols {
+        let detail = store
+            .symbol(snapshot, &SymbolKey::Id(symbol.id))
+            .unwrap()
+            .unwrap();
+        for metric in detail.metrics.iter().filter(|m| m.kind.is_per_snapshot()) {
+            lines.push(format!(
+                "{} {} {}",
+                symbol.qualified_name.as_str(),
+                metric.kind.label(),
+                metric.value.get()
+            ));
+        }
+    }
+    lines.sort();
+    lines
+}
+
+/// The warnings the newest snapshot stores, as text.
+fn warnings_stored(store: &SqliteStore) -> Vec<String> {
+    let overviews = store.overviews().unwrap();
+    let project = overviews.iter().find(|o| o.project.id == PROJECT).unwrap();
+    project
+        .warnings
+        .iter()
+        .map(|warning| format!("{} {}", warning.code.id(), warning.count))
+        .collect()
 }
 
 /// The references after a full scan of `base` with all `steps` applied, and after a full scan of

@@ -497,6 +497,28 @@ pub const PENDING_OF_SNAPSHOT: &str = "SELECT file_id, from_symbol, start_line, 
 pub const SNAPSHOT_NAMES_SET: &str = "UPDATE snapshots SET names_stored = 1 WHERE id = ?1";
 /// Whether the snapshot holds the names as written: snapshot.
 pub const SNAPSHOT_NAMES_STORED: &str = "SELECT names_stored FROM snapshots WHERE id = ?1";
+/// Records how many places of a snapshot match several symbols, `NULL` for unknown: count,
+/// snapshot.
+pub const SNAPSHOT_AMBIGUOUS_SET: &str = "UPDATE snapshots SET ambiguous_places = ?1 WHERE id = ?2";
+/// How many places of the snapshot match several symbols, `NULL` if not known: snapshot.
+pub const SNAPSHOT_AMBIGUOUS: &str = "SELECT ambiguous_places FROM snapshots WHERE id = ?1";
+/// The references that point at some symbols, in the column order of `REFERENCES_OF_SNAPSHOT`:
+/// snapshot, JSON list of symbol ids.
+pub const REFERENCES_TO: &str = "SELECT id, from_symbol, to_symbol, file_id, start_line, \
+    start_column, end_line, end_column, kind, confidence, verified FROM symbol_references \
+    WHERE first_snapshot <= ?1 AND to_symbol IN (SELECT value FROM json_each(?2)) ORDER BY id";
+/// The references that stand in some files, in the column order of `REFERENCES_OF_SNAPSHOT`:
+/// snapshot, JSON list of file ids.
+pub const REFERENCES_IN: &str = "SELECT id, from_symbol, to_symbol, file_id, start_line, \
+    start_column, end_line, end_column, kind, confidence, verified FROM symbol_references \
+    WHERE first_snapshot <= ?1 AND file_id IN (SELECT value FROM json_each(?2)) ORDER BY id";
+/// File and target of every verified reference that is not newer than a snapshot: snapshot.
+pub const VERIFIED_REFERENCE_FILES: &str = "SELECT DISTINCT file_id, to_symbol \
+    FROM symbol_references WHERE verified = 1 AND first_snapshot <= ?1";
+/// File, start and target of every reference that is not newer than a snapshot and not of the
+/// given kind: snapshot, excluded kind (`test`).
+pub const REFERENCE_PAIRS: &str = "SELECT file_id, from_symbol, to_symbol FROM symbol_references \
+    WHERE first_snapshot <= ?1 AND kind <> ?2";
 /// Removes a reference that the new snapshot does not contain: id.
 pub const REFERENCE_DELETE: &str = "DELETE FROM symbol_references WHERE id = ?1";
 

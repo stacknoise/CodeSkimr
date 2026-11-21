@@ -1,12 +1,15 @@
 //! The references of a snapshot as stored.
 
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 
-use codeskimr_domain::{Confidence, FileId, Reference, ReferenceId, ReferenceKind, SymbolId};
+use codeskimr_domain::{
+    Confidence, FileId, Reference, ReferenceId, ReferenceKind, SymbolId, SymbolPair,
+};
 use rusqlite::{Connection, params};
 
-use crate::codec::{Cols, SpanColumns, id_from, label_from};
+use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from};
 use crate::error::StorageResult;
+use crate::pending::id_list;
 use crate::sql;
 
 /// The columns of `REFERENCES_OF_SNAPSHOT`, still raw.
@@ -59,18 +62,94 @@ pub(crate) fn id_set(
     Ok(rows.collect::<Result<_, _>>()?)
 }
 
+/// Which references of a snapshot to read.
+pub(crate) enum Which<'a> {
+    /// Those that point at one of these symbols.
+    To(&'a [SymbolId]),
+    /// Those that stand in one of these files.
+    In(&'a [FileId]),
+    /// Every reference.
+    All,
+}
+
 /// The references of a snapshot: those whose file and target it holds.
 pub(crate) fn load_references(conn: &Connection, snapshot: i64) -> StorageResult<Vec<Reference>> {
+    load(conn, snapshot, &Which::All)
+}
+
+/// The references of a snapshot that `which` asks for: those whose file and target it holds.
+pub(crate) fn load(
+    conn: &Connection,
+    snapshot: i64,
+    which: &Which<'_>,
+) -> StorageResult<Vec<Reference>> {
     let files = id_set(conn, sql::FILE_IDS, snapshot)?;
     let symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
-    let mut prepared = conn.prepare_cached(sql::REFERENCES_OF_SNAPSHOT)?;
-    let rows = prepared.query_map(params![snapshot], |row| read_reference(&Cols::new(row)))?;
+    let (statement, list) = match which {
+        Which::To(ids) => (
+            sql::REFERENCES_TO,
+            Some(id_list(ids.iter().map(|id| id.get()))?),
+        ),
+        Which::In(ids) => (
+            sql::REFERENCES_IN,
+            Some(id_list(ids.iter().map(|id| id.get()))?),
+        ),
+        Which::All => (sql::REFERENCES_OF_SNAPSHOT, None),
+    };
+    let mut prepared = conn.prepare_cached(statement)?;
+    let mut rows = match &list {
+        Some(list) => prepared.query(params![snapshot, list])?,
+        None => prepared.query(params![snapshot])?,
+    };
     let mut references = Vec::new();
-    for row in rows {
-        let row = row?;
+    while let Some(row) = rows.next()? {
+        let row = read_reference(&Cols::new(row))?;
         if files.contains(&row.file) && symbols.contains(&row.to) {
             references.push(decode_reference(&row)?);
         }
     }
     Ok(references)
+}
+
+/// The files of a snapshot that hold a reference verified by level 2, in ascending order.
+pub(crate) fn verified_files(conn: &Connection, snapshot: i64) -> StorageResult<Vec<FileId>> {
+    let files = id_set(conn, sql::FILE_IDS, snapshot)?;
+    let symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
+    let mut prepared = conn.prepare_cached(sql::VERIFIED_REFERENCE_FILES)?;
+    let mut rows = prepared.query(params![snapshot])?;
+    let mut found = BTreeSet::new();
+    while let Some(row) = rows.next()? {
+        let (file, to): (i64, i64) = (row.get(0)?, row.get(1)?);
+        if files.contains(&file) && symbols.contains(&to) {
+            found.insert(id_from(file)?);
+        }
+    }
+    Ok(found.into_iter().map(FileId::new).collect())
+}
+
+/// Each pair of start and target of the references of a snapshot in `of` once, in ascending
+/// order, references of kind `test` left out: what coupling needs of them (ADR 0085).
+pub(crate) fn reference_pairs(
+    conn: &Connection,
+    snapshot: i64,
+    of: &[FileId],
+) -> StorageResult<Vec<SymbolPair>> {
+    let files = of
+        .iter()
+        .map(|file| column_int(file.get()))
+        .collect::<StorageResult<HashSet<i64>>>()?;
+    let symbols = id_set(conn, sql::SYMBOL_IDS, snapshot)?;
+    let mut prepared = conn.prepare_cached(sql::REFERENCE_PAIRS)?;
+    let mut rows = prepared.query(params![snapshot, ReferenceKind::Test.label()])?;
+    let mut found = BTreeSet::new();
+    while let Some(row) = rows.next()? {
+        let (file, from, to): (i64, i64, i64) = (row.get(0)?, row.get(1)?, row.get(2)?);
+        if files.contains(&file) && symbols.contains(&to) {
+            found.insert((id_from(from)?, id_from(to)?));
+        }
+    }
+    Ok(found
+        .into_iter()
+        .map(|(from, to)| (SymbolId::new(from), SymbolId::new(to)))
+        .collect())
 }

@@ -3,7 +3,7 @@
 use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{
     FileId, LanguageId, Metric, Project, ProjectId, Reference, ReferenceId, RelativePath, Snapshot,
-    SnapshotId, SourceFile, Symbol, SymbolId,
+    SnapshotId, SourceFile, Symbol, SymbolId, SymbolPair,
 };
 
 use super::{PendingReference, SymbolFingerprints, SymbolHash};
@@ -53,6 +53,9 @@ pub struct SnapshotData {
     pub parse_micros: Vec<(LanguageId, u64)>,
     /// The warnings of the scan, one per code, counted over the whole snapshot.
     pub warnings: Vec<ScanWarning>,
+    /// How many places of the whole snapshot match several symbols, `None` if the writer did not
+    /// count. The next incremental scan starts from this number (ADR 0085).
+    pub ambiguous_places: Option<u64>,
 }
 
 /// A warning of a scan: how often something happened, not one message per occurrence.
@@ -95,20 +98,35 @@ pub enum StoredNames<'a> {
     All,
 }
 
-/// The newest snapshot of a project as one consistent read: files, symbols and references. Read in
-/// one transaction, so a snapshot written in between cannot make the parts disagree. The names as
-/// written are read from `snapshot` afterwards, as far as they are needed.
+/// Which of the references of a snapshot to read (see [`ProjectRepository::stored_references`]).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum StoredReferences<'a> {
+    /// Those that point at one of these symbols.
+    To(&'a [SymbolId]),
+    /// Those that stand in one of these files.
+    In(&'a [FileId]),
+    /// Every reference.
+    All,
+}
+
+/// The newest snapshot of a project as one consistent read: files and symbols. Read in one
+/// transaction, so a snapshot written in between cannot make the parts disagree. The names as
+/// written and the references are read from `snapshot` afterwards, as far as they are needed
+/// (ADR 0085).
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct PreviousState {
     /// The files.
     pub files: Vec<SourceFile>,
-    /// All symbols and references.
-    pub index: PreviousIndex,
+    /// All symbols.
+    pub symbols: Vec<Symbol>,
     /// The snapshot that was read, `None` if the project has none.
     pub snapshot: Option<SnapshotId>,
     /// Whether the snapshot stores the names as written. One written before the store did cannot
     /// be continued by an incremental scan, because it could not resolve the names again.
     pub names_stored: bool,
+    /// How many places of the snapshot match several symbols (`RES-301`), `None` if the store
+    /// does not know: the next scan then reads every reference and counts again.
+    pub ambiguous_places: Option<u64>,
 }
 
 /// What level 2 stores for some files of a snapshot: the symbols it creates (ADR 0055) and the
@@ -147,7 +165,7 @@ pub trait ProjectRepository: Send + Sync {
     /// A coded failure of the `STO` group.
     fn latest_index(&self, id: ProjectId) -> Result<PreviousIndex, CodedError>;
 
-    /// Files and index of the newest snapshot in one read. The default calls `latest_files` and
+    /// Files and symbols of the newest snapshot in one read. The default calls `latest_files` and
     /// `latest_index` one after the other and knows no stored names, so a scan over it is always a
     /// full one; an adapter that can read them in one transaction overrides it.
     ///
@@ -156,10 +174,44 @@ pub trait ProjectRepository: Send + Sync {
     fn latest_state(&self, id: ProjectId) -> Result<PreviousState, CodedError> {
         Ok(PreviousState {
             files: self.latest_files(id)?,
-            index: self.latest_index(id)?,
-            snapshot: None,
-            names_stored: false,
+            symbols: self.latest_index(id)?.symbols,
+            ..PreviousState::default()
         })
+    }
+
+    /// The references of `snapshot` (one of `latest_state`) that `which` asks for: those whose
+    /// file and target the snapshot holds. The default holds none.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn stored_references(
+        &self,
+        _snapshot: SnapshotId,
+        _which: StoredReferences<'_>,
+    ) -> Result<Vec<Reference>, CodedError> {
+        Ok(Vec::new())
+    }
+
+    /// The files of `snapshot` that hold a reference verified by level 2. The default knows none.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn verified_files(&self, _snapshot: SnapshotId) -> Result<Vec<FileId>, CodedError> {
+        Ok(Vec::new())
+    }
+
+    /// What coupling needs of the references of `snapshot` in `files`: each pair of the symbol a
+    /// reference starts in and its target once, references of kind `test` left out (ADR 0085).
+    /// The default holds none.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn reference_pairs(
+        &self,
+        _snapshot: SnapshotId,
+        _files: &[FileId],
+    ) -> Result<Vec<SymbolPair>, CodedError> {
+        Ok(Vec::new())
     }
 
     /// The names as written in the files of `snapshot` (one of `latest_state`), as far as `which`

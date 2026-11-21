@@ -68,7 +68,7 @@ pub use states::{SameName, SymbolState, SymbolStates};
 pub use statistics::CodeStatistics;
 pub use storage::{
     Level2Replacement, PreviousIndex, PreviousState, ProjectRemoval, ProjectRepository,
-    ScanWarning, SnapshotData, SnapshotStore, StoredNames,
+    ScanWarning, SnapshotData, SnapshotStore, StoredNames, StoredReferences,
 };
 pub use tools::{
     ProjectToolCheck, RequirementReader, RequirementValue, ToolCatalog, ToolPlan, ToolReportStore,

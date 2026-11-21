@@ -91,31 +91,38 @@ fn owners(symbols: &[Symbol], position: &HashMap<&str, usize>, level: Level) -> 
     owner
 }
 
-/// How many other units each unit refers to and how many refer to it, by position. References from
-/// test code do not count, so that a test namespace does not make the code it checks look depended
-/// upon.
+/// One unit referring to another: the symbol a reference starts in and the one it points at.
+pub type SymbolPair = (SymbolId, SymbolId);
+
+/// The pairs of `references` that count: references from test code do not, so that a test
+/// namespace does not make the code it checks look depended upon.
+fn counted(references: &[Reference]) -> impl Iterator<Item = SymbolPair> + '_ {
+    references
+        .iter()
+        .filter(|reference| reference.kind != ReferenceKind::Test)
+        .map(|reference| (reference.from, reference.to))
+}
+
+/// How many other units each unit refers to and how many refer to it, by position.
 fn dependencies(
     owner: &Owners,
-    references: &[Reference],
+    pairs: impl Iterator<Item = SymbolPair>,
     units: usize,
 ) -> (Vec<usize>, Vec<usize>) {
-    let mut pairs: HashSet<(usize, usize), IdHash> = HashSet::default();
+    let mut found: HashSet<(usize, usize), IdHash> = HashSet::default();
     let mut last = None;
-    for reference in references {
-        if reference.kind == ReferenceKind::Test {
-            continue;
-        }
-        if let (Some(&from), Some(&to)) = (owner.get(&reference.from), owner.get(&reference.to))
+    for (from, to) in pairs {
+        if let (Some(&from), Some(&to)) = (owner.get(&from), owner.get(&to))
             && from != to
             && last != Some((from, to))
         {
-            pairs.insert((from, to));
+            found.insert((from, to));
             last = Some((from, to));
         }
     }
     let mut efferent = vec![0; units];
     let mut afferent = vec![0; units];
-    for (from, to) in pairs {
+    for (from, to) in found {
         bump(&mut efferent, from);
         bump(&mut afferent, to);
     }
@@ -147,8 +154,23 @@ fn metric(symbol: SymbolId, kind: MetricKind, value: f64) -> Result<Metric, Mode
 /// # Errors
 /// [`ModelError::NotFinite`] if a value overflows, which counts of `u32` rule out in practice.
 pub fn coupling(symbols: &[Symbol], references: &[Reference]) -> Result<Vec<Metric>, ModelError> {
-    let mut metrics = level_coupling(symbols, references, Level::Namespaces)?;
-    metrics.extend(level_coupling(symbols, references, Level::Types)?);
+    coupling_with(symbols, references, &[])
+}
+
+/// [`coupling`] for a snapshot of which only a part of the references is at hand: `pairs` stand
+/// for the others, one pair for every symbol that refers to another outside test code (ADR 0085).
+/// A unit counts another once however many references there are, so the pairs give the values the
+/// references would.
+///
+/// # Errors
+/// [`ModelError::NotFinite`] if a value overflows, which counts of `u32` rule out in practice.
+pub fn coupling_with(
+    symbols: &[Symbol],
+    references: &[Reference],
+    pairs: &[SymbolPair],
+) -> Result<Vec<Metric>, ModelError> {
+    let mut metrics = level_coupling(symbols, references, pairs, Level::Namespaces)?;
+    metrics.extend(level_coupling(symbols, references, pairs, Level::Types)?);
     metrics.sort_by_key(|found| found.symbol);
     Ok(metrics)
 }
@@ -156,6 +178,7 @@ pub fn coupling(symbols: &[Symbol], references: &[Reference]) -> Result<Vec<Metr
 fn level_coupling(
     symbols: &[Symbol],
     references: &[Reference],
+    pairs: &[SymbolPair],
     level: Level,
 ) -> Result<Vec<Metric>, ModelError> {
     let units = declared_units(symbols, level);
@@ -165,7 +188,8 @@ fn level_coupling(
         .map(|(index, name)| (*name, index))
         .collect();
     let owner = owners(symbols, &position, level);
-    let (efferent, afferent) = dependencies(&owner, references, units.len());
+    let all = counted(references).chain(pairs.iter().copied());
+    let (efferent, afferent) = dependencies(&owner, all, units.len());
     let mut metrics = Vec::new();
     for (unit, declared) in &units {
         let at = position.get(unit).copied();

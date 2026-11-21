@@ -180,9 +180,12 @@ fn holders(conn: &Connection, change: &Level2Replacement) -> StorageResult<Holde
     Ok(found)
 }
 
-/// Builds the read models of `snapshot` again and writes its totals.
+/// Builds the read models of `snapshot` again and writes its totals. The number of ambiguous
+/// places is forgotten, because verified references change it; the next scan counts again
+/// (ADR 0085).
 fn refresh(conn: &Connection, snapshot: SnapshotId, project: ProjectId) -> StorageResult<()> {
     let id = column_int(snapshot.get())?;
+    conn.execute(sql::SNAPSHOT_AMBIGUOUS_SET, params![None::<i64>, id])?;
     for delete in sql::READ_MODELS_DELETE {
         conn.execute(delete, params![id])?;
     }

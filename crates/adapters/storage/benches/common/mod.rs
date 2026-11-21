@@ -93,6 +93,7 @@ pub fn data(snapshot: u64, first_file: u64, content: Content) -> SnapshotData {
         parse_micros: Vec::new(),
         hashes: content.hashes,
         warnings: Vec::new(),
+        ambiguous_places: None,
         naming_rules: String::new(),
     }
 }

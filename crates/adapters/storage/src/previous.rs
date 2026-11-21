@@ -30,7 +30,8 @@ pub fn load_latest_index(conn: &Connection, project: ProjectId) -> StorageResult
     })
 }
 
-fn load_symbols(conn: &Connection, snapshot: i64) -> StorageResult<Vec<Symbol>> {
+/// All symbols of a snapshot.
+pub(crate) fn load_symbols(conn: &Connection, snapshot: i64) -> StorageResult<Vec<Symbol>> {
     let statement = format!("{}{}", sql::SYMBOL_SELECT, sql::SYMBOL_ALL);
     let mut prepared = conn.prepare_cached(&statement)?;
     let rows = prepared.query_map(params![snapshot], |row| read_row(&Cols::new(row)))?;

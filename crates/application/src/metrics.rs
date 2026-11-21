@@ -2,7 +2,9 @@
 //! per symbol, rolled up to types, namespaces and modules, and the coupling of namespaces and
 //! modules (ADR 0015, ADR 0037).
 
-use codeskimr_domain::{Metric, Reference, Symbol, SymbolCounts, coupling, measure};
+use codeskimr_domain::{
+    Metric, Reference, Symbol, SymbolCounts, SymbolPair, coupling_with, measure,
+};
 
 use crate::error::CodedError;
 use crate::ports::MetricsCalculator;
@@ -17,10 +19,11 @@ impl MetricsCalculator for StandardMetrics {
         &self,
         symbols: &[Symbol],
         references: &[Reference],
+        pairs: &[SymbolPair],
         counts: &[SymbolCounts],
     ) -> Result<Vec<Metric>, CodedError> {
         let mut metrics = measure(symbols, counts).map_err(CodedError::caused_by)?;
-        metrics.extend(coupling(symbols, references).map_err(CodedError::caused_by)?);
+        metrics.extend(coupling_with(symbols, references, pairs).map_err(CodedError::caused_by)?);
         Ok(metrics)
     }
 }
