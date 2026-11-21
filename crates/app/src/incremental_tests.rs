@@ -293,6 +293,27 @@ fn places_with_several_candidates_are_one_warning_in_both_ways_of_scanning() {
     assert_eq!(warnings_of(&full), expected);
 }
 
+/// The stored count of ambiguous places is carried from scan to scan (ADR 0086): it rises with a
+/// second overload, stays over an edit elsewhere and over an edit of one caller, and falls when
+/// the overload goes. After every step it is the one of a full scan.
+#[test]
+fn the_count_of_ambiguous_places_follows_a_full_scan_over_several_scans() {
+    let overloads = "namespace Demo;\n\npublic class Target\n{\n    public static void Do() { }\n    public static void Do(int n) { }\n}\n";
+    let one = "namespace Demo;\n\npublic class Target\n{\n    public static void Do() { }\n}\n";
+    let other = "namespace Demo;\n\npublic class Other\n{\n    public void New() { }\n}\n";
+    let util = "namespace Demo;\n\npublic class Util\n{\n    public void Work()\n    {\n        Target.Do();\n        Target.Do();\n    }\n}\n";
+    let steps: [&[Change]; 5] = [
+        &[("Target.cs", Some(overloads))],
+        &[("Other.cs", Some(other))],
+        &[("Util.cs", Some(util))],
+        &[("Util.cs", None)],
+        &[("Target.cs", Some(one))],
+    ];
+    for upto in 1..=steps.len() {
+        assert_same_in_steps(&steps[..upto]);
+    }
+}
+
 #[test]
 fn an_added_overload_is_found_by_the_unchanged_callers() {
     assert_same(&[(

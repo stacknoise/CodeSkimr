@@ -25,6 +25,7 @@ use codeskimr_domain::{
 };
 
 use super::shape::{Delta, Shape, is_structural};
+use crate::consts::LOG_AMBIGUOUS_COUNT_TOO_LOW;
 use crate::error::CodedError;
 use crate::ports::{
     DiscoveredFile, PendingReference, PreviousState, ProjectRepository, StoredNames,
@@ -225,8 +226,7 @@ impl Carried {
         let old = if let (Some(counted), Some(touched)) = (self.counted, self.touched()) {
             let old = store.stored_references(snapshot, StoredReferences::From(&touched))?;
             let left = store.stored_references(snapshot, StoredReferences::In(&self.left))?;
-            let read = ambiguous_occurrences(old.iter().chain(&left));
-            self.elsewhere = counted.saturating_sub(read);
+            self.elsewhere = elsewhere(counted, &old, &left);
             self.pairs = store.reference_pairs(snapshot, &kept, &touched)?;
             old
         } else {
@@ -452,4 +452,20 @@ impl Carried {
             .as_ref()
             .is_none_or(|scope| scope.contains(&site(reference)))
     }
+}
+
+/// The ambiguous places of a snapshot with the count `counted` that lie outside the references
+/// read: those that start in a touched symbol (`old`) and those of the files that left (`left`).
+/// A reference in both lists counts once. A count below what was read means the stored count is
+/// wrong; it is logged and the places elsewhere count as none.
+fn elsewhere(counted: u64, old: &[Reference], left: &[Reference]) -> u64 {
+    let seen: HashSet<_> = old.iter().map(|reference| reference.id).collect();
+    let only_left = left
+        .iter()
+        .filter(|reference| !seen.contains(&reference.id));
+    let read = ambiguous_occurrences(old.iter().chain(only_left));
+    counted.checked_sub(read).unwrap_or_else(|| {
+        tracing::warn!(event = LOG_AMBIGUOUS_COUNT_TOO_LOW, counted, read);
+        u64::default()
+    })
 }

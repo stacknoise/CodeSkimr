@@ -65,6 +65,12 @@ A limit on the share of touched symbols was tried and dropped: even when every s
 
 In the fallback nothing comes from the stored count or from pairs; the result is computed exactly as before this decision.
 
+### Several reads instead of one
+
+The reads are separate calls and not one transaction. That is safe because every read names the previous snapshot, and the rows of a snapshot change only when a later scan of the same project is stored or level 2 refreshes it. A project runs one scan at a time (`PRJ-302`), and level 2 belongs to the scan before. Before this decision the state was also read in a call of its own, long before the new snapshot was stored, so nothing is given up.
+
+The stored count is not trusted blindly: if it is lower than the ambiguous places among the references read, the scan logs `ambiguous_count_too_low` and counts the rest as none. A reference that starts in a touched symbol and stands in a file that left is read twice and counted once.
+
 ### Ports
 
 `PreviousState` no longer carries the references. `ProjectRepository` gets the reads listed above; `MetricsCalculator::measure` takes the pairs in addition to the references. `latest_index`, which level 2 uses, is unchanged.
