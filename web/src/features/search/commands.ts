@@ -4,6 +4,7 @@ import type { MessageKey } from "../../shared/i18n/i18n";
 import { I18N_KEYS } from "../../shared/i18n/keys";
 import { activeProject } from "../../shared/project/active";
 import { noteOnSelection, taskOnSelection, toggleSelectionCritical } from "../explorer/annotate";
+import { exportActiveProject } from "../export/exportHtml";
 import { rescanProject } from "../projects/projects";
 
 /** An action of the UI that the quick search offers with `>` (blueprint 15.4: every action has a
@@ -28,6 +29,7 @@ export const UI_COMMANDS: readonly UiCommand[] = [
       }
     },
   },
+  { label: I18N_KEYS.EXPORT_COMMAND_HTML, run: exportActiveProject },
   { label: I18N_KEYS.ANNOTATIONS_COMMAND_CRITICAL, run: toggleSelectionCritical },
   { label: I18N_KEYS.ANNOTATIONS_COMMAND_NOTE, run: noteOnSelection },
   { label: I18N_KEYS.ANNOTATIONS_COMMAND_TASK, run: taskOnSelection },

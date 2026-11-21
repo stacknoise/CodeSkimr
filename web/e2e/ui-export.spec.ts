@@ -1,0 +1,46 @@
+// The export button of the top bar and its quick-search entry (blueprint 10.2, 15.4).
+// `UPDATE_SCREENSHOTS=1` writes the screens to docs/screenshots/export/.
+import { readFileSync } from "node:fs";
+import path from "node:path";
+import { addScannedProject, expect, shot, test } from "./fixtures";
+
+const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/export");
+const THEMES = ["hell", "petrol", "dunkel"];
+const SECRET_BODY = "return a + b;";
+const SOURCE = `namespace Shop;\n\npublic class Basket\n{\n    public int Total(int a, int b) { ${SECRET_BODY} }\n}\n`;
+
+for (const theme of THEMES) {
+  test(`downloads the page of the open project (${theme})`, async ({ page, harness }, info) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.addInitScript((name) => localStorage.setItem("codeskimr.theme", name), theme);
+    const name = `export${theme}`;
+    const row = await addScannedProject(page, harness, name, SOURCE);
+    await row.click({ position: { x: 4, y: 4 } });
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("tree")).toBeVisible();
+
+    const button = page.getByRole("button", { name: "Export HTML" });
+    await expect(button).toBeEnabled();
+    await shot(page, SHOTS, `export-knopf-${theme}`, info);
+
+    const download = page.waitForEvent("download");
+    await button.click();
+    const file = await download;
+    expect(file.suggestedFilename()).toBe(`${name}.html`);
+    const html = readFileSync((await file.path()) ?? "", "utf8");
+    expect(html).toContain("Basket");
+    expect(html).not.toContain(SECRET_BODY);
+  });
+}
+
+test("the quick search offers the export", async ({ page, harness }) => {
+  const row = await addScannedProject(page, harness, "exportsearch", SOURCE);
+  await row.click({ position: { x: 4, y: 4 } });
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("tree")).toBeVisible();
+  await page.keyboard.press("Control+k");
+  await page.getByRole("combobox").fill(">export");
+  const download = page.waitForEvent("download");
+  await page.getByRole("option", { name: /Export project as HTML/ }).click();
+  expect((await download).suggestedFilename()).toBe("exportsearch.html");
+});
