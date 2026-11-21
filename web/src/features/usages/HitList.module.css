@@ -38,9 +38,14 @@
     font: 500 11px var(--font-mono);
 }
 
-.rows {
+/* The head and the rows scroll sideways together; the head stays in view when the rows scroll down. */
+.scroller {
     flex: 1;
+    min-height: 0;
     overflow: auto;
+}
+.rows {
+    min-width: max-content;
 }
 .empty {
     margin: 0;
@@ -62,7 +67,11 @@
     margin-left: 0;
 }
 .columns {
-    flex: none;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--surface);
+    min-width: max-content;
     display: grid;
     align-items: center;
     gap: var(--space-12);
@@ -78,22 +87,8 @@
     white-space: nowrap;
     text-overflow: ellipsis;
 }
-.handle {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 6px;
-    cursor: col-resize;
-    border-right: 1px solid var(--line);
-}
-.handle:hover,
-.handle:focus-visible {
-    border-right-color: var(--accent);
-    outline: none;
-}
-
 .hit {
+    min-width: max-content;
     display: grid;
     align-items: center;
     gap: var(--space-12);

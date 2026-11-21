@@ -41,3 +41,12 @@ export const PREVIEW_OTHER_PROJECT = "haac-bridge";
 export const NO_VALUE = "–";
 /** How long "Copied" stays on the button, in milliseconds. */
 export const COPIED_MS = 2000;
+
+/** The columns of the indexer table by id, with their head texts, and the key the widths are kept under. */
+export const INDEXER_TABLE_KEY = "indexers";
+export const INDEXER_COLUMNS = [
+  { id: "tool", label: I18N_KEYS.SETTINGS_INDEXERS_COLUMN_TOOL },
+  { id: "state", label: I18N_KEYS.SETTINGS_INDEXERS_COLUMN_STATE },
+  { id: "version", label: I18N_KEYS.SETTINGS_INDEXERS_COLUMN_VERSION },
+  { id: "path", label: I18N_KEYS.SETTINGS_INDEXERS_COLUMN_PATH },
+] as const;

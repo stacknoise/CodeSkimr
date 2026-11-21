@@ -96,3 +96,33 @@ export const handlers = {
 
 /**/
 export class Empty {}
+
+/** Parameter properties declare fields of the class. */
+export class Account {
+  constructor(
+    public readonly owner: string,
+    protected balance?: number,
+    readonly limit = 100,
+    plain: string = "",
+  ) {
+    const local = () => plain;
+  }
+
+  /** A method next to the constructor. */
+  close(): void {}
+}
+
+export class Service extends Account {
+  constructor(
+    @Inject(TOKEN) private readonly store: Store,
+    @Optional() private cache?: Cache,
+    public override owner: string = "",
+    override readonly limit = 1,
+    override name: string = "",
+    override extra?: string,
+    @Inject(KEY) plain: string = "",
+    readonly callback = () => 1,
+  ) {
+    super(owner);
+  }
+}

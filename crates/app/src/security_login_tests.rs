@@ -59,6 +59,15 @@ fn a_stored_credential_reaches_the_remote_and_nothing_else() {
             command(url, Some(token), "projects.add", &add),
             command(url, Some(token), "credentials.list", &json!(null)),
             command(url, Some(token), "projects.list", &json!(null)),
+            command(url, None, "credentials.list", &json!(null)),
+            command(url, None, "export.html", &json!({ "project": 1 })),
+            command(url, Some("csk_wrong"), "credentials.list", &json!(null)),
+            command(
+                url,
+                Some("csk_wrong"),
+                "export.html",
+                &json!({ "project": 1 }),
+            ),
         ]
     });
     // The controls: the credential was stored, used for a login and the remote refused it.
@@ -68,6 +77,11 @@ fn a_stored_credential_reaches_the_remote_and_nothing_else() {
         "the refused login must fail the add"
     );
     assert!(outcome.answers[2].contains("\"stored\":true"));
+    // The real commands, without the token: refused by the route, nothing of the keystore named.
+    for answer in &outcome.answers[4..] {
+        assert!(answer.contains("401 Unauthorized"), "{answer}");
+        assert!(!answer.contains("stored") && !answer.contains("work"));
+    }
     let headers = seen.lock().unwrap().clone();
     assert!(!headers.is_empty(), "the remote never saw a login");
     // The secret itself reached the remote, as the login of the stored credential and nothing else.

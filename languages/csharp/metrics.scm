@@ -124,3 +124,14 @@
 (operator_declaration parameters: (parameter_list "params" @parameter))
 (constructor_declaration parameters: (parameter_list "params" @parameter))
 (local_function_statement parameters: (parameter_list "params" @parameter))
+
+; Literals the rule of no literals reports (ADR 0058, R-06): numbers, strings and characters in a
+; method. `true`, `false` and `null` are no literals here. Exceptions: the integers 0 and 1, the
+; value of a local `const`, and a literal that is a direct argument of an attribute. An
+; interpolated string counts once as a string, and the literals inside its holes count on top of
+; that. The initialiser of a local `const` is exempt when it is a literal itself (`const int X = 99`; the
+; parts of `2 * 50` still count).
+[(integer_literal) (real_literal) (string_literal) (verbatim_string_literal) (raw_string_literal) (character_literal) (interpolated_string_expression)] @literal
+((integer_literal) @literal_exempt (#any-of? @literal_exempt "0" "1"))
+(local_declaration_statement (modifier "const") (variable_declaration (variable_declarator (_) @literal_exempt)))
+(attribute_argument (_) @literal_exempt)

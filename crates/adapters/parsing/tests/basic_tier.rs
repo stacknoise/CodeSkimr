@@ -115,7 +115,7 @@ mod tests {
     fn the_naming_rules_carry_the_revision_of_the_engine() {
         let packs = LanguagePacks::load(&languages()).expect("packs load");
         let rules = packs.naming_rules();
-        assert!(rules.contains("revision=4"), "{rules}");
+        assert!(rules.contains("revision=5"), "{rules}");
         assert!(rules.contains("rust=file"), "{rules}");
         // The test patterns are part of the rules: other patterns, other kinds of references.
         assert!(
@@ -176,6 +176,33 @@ mod tests {
     fn every_installed_pack_loads() {
         let packs = LanguagePacks::load(&languages()).expect("packs list");
         packs.verify().expect("every pack compiles");
+    }
+
+    /// The queries of a pack compile on threads of their own; the error must still be the one of
+    /// the first broken file in the order symbols, references, metrics, whichever thread ends first.
+    #[test]
+    fn the_first_broken_query_in_file_order_is_reported() {
+        let root = broken_pack("full", "order");
+        let dir = root.join("rust");
+        fs::copy(fixture_pack().join("symbols.scm"), dir.join("symbols.scm")).expect("copy");
+        fs::write(dir.join("metrics.scm"), "(broken_metrics) @x").expect("write");
+        for _ in 0..20 {
+            let error = LanguagePack::load(&dir).err().expect("metrics are broken");
+            assert!(format!("{error:?}").contains("broken_metrics"), "{error:?}");
+        }
+        fs::write(dir.join("references.scm"), "(broken_references) @x").expect("write");
+        for _ in 0..20 {
+            let error = LanguagePack::load(&dir).err().expect("both are broken");
+            assert_eq!(error.code(), ErrorCode::LanguagePackInvalid);
+            assert!(
+                format!("{error:?}").contains("broken_references"),
+                "{error:?}"
+            );
+        }
+        fs::write(dir.join("symbols.scm"), "(broken_symbols) @x").expect("write");
+        let error = LanguagePack::load(&dir).err().expect("all are broken");
+        assert!(format!("{error:?}").contains("broken_symbols"), "{error:?}");
+        fs::remove_dir_all(root).ok();
     }
 
     #[test]

@@ -83,6 +83,9 @@ pub const CONTAINER_CAPTURE: &str = "container";
 /// Capture of the simple name of the type a declaration belongs to although it is written outside
 /// the type (a Go method, a C++ method defined out of its class), see ADR 0042.
 pub const OWNER_CAPTURE: &str = "owner";
+/// Marker of a declaration that is written inside a symbol but belongs to the parent of that symbol,
+/// such as a TypeScript parameter property of a constructor (ADR 0083).
+pub const LIFT_CAPTURE: &str = "lift";
 /// Capture of a receiver that is a name: a variable, a field or a type.
 pub const RECEIVER_CAPTURE: &str = "receiver";
 /// Capture of the type name of a receiver that is a creation expression.
@@ -192,6 +195,13 @@ pub const MIN_LOAD_THREADS: usize = 1;
 
 /// Reason of the error when the thread that loads a pack panics.
 pub const LOAD_PANICKED: &str = "loading the pack panicked";
+/// Stands between `LOAD_PANICKED` and the message of the panic.
+pub const LOAD_PANIC_SEPARATOR: &str = ": ";
+/// Name of the threads that compile the queries of a pack.
+pub const COMPILE_THREAD_NAME: &str = "codeskimr-pack-query";
+/// Stack of a thread that compiles a query: that of a main thread on Linux (8 MiB), because the
+/// query compiler of tree-sitter recurses and a spawned thread gets 2 MiB by default.
+pub const COMPILE_STACK_BYTES: usize = 8 * 1024 * 1024;
 
 /// Label of the full tier, as the language table shows it.
 pub const TIER_FULL: &str = "full";
@@ -237,11 +247,16 @@ pub const NAMING_TESTS: &str = "+tests:";
 /// Between two test patterns in the text of the naming rules.
 pub const NAMING_PATTERN_SEPARATOR: &str = ",";
 
+/// Open frames a lifted declaration (`@lift`) needs: the module, the type it joins and the symbol it
+/// is written in.
+pub const LIFT_MIN_FRAMES: usize = 3;
+
 /// Revision of the naming rules of the engine itself, part of the text of the naming rules: it
 /// changes when names change for reasons other than a pack key (2: members of an `impl` carry
 /// their type, ADR 0039; 3: methods of Go and C++ carry their owner, ADR 0042; 4: types and members
-/// carry the hash of their tokens, ADR 0068, which an earlier snapshot lacks).
-pub const NAMING_REVISION: &str = "revision=4";
+/// carry the hash of their tokens, ADR 0068, which an earlier snapshot lacks; 5: a parameter
+/// property of a TypeScript constructor is a field of the class, ADR 0083).
+pub const NAMING_REVISION: &str = "revision=5";
 
 /// Ends a signature that was cut at `scan.max_signature_chars`.
 pub const SIGNATURE_CUT: &str = "…";

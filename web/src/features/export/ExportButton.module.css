@@ -1,0 +1,28 @@
+.button {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-6);
+    font: inherit;
+    font-size: 12px;
+    color: var(--muted);
+    background: none;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-badge);
+    padding: 3px var(--space-8);
+    cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+    color: var(--text);
+    border-color: var(--muted);
+}
+
+.button:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.failure {
+    font-size: 12px;
+    color: var(--bad);
+}
