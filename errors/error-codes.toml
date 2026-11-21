@@ -104,6 +104,7 @@ severity = "error"
 retryable = false
 description = "Another CodeSkimr instance holds the workspace; connecting to it failed."
 since = "0.1.0"
+deprecated = true
 
 [[codes]]
 id = "APP-901"
@@ -416,6 +417,7 @@ severity = "info"
 retryable = false
 description = "A read model is older than the current snapshot and is being rebuilt."
 since = "0.1.0"
+deprecated = true
 
 [[codes]]
 id = "STO-301"
@@ -528,6 +530,7 @@ severity = "error"
 retryable = true
 description = "A request to an external platform timed out."
 since = "0.1.0"
+deprecated = true
 
 [[codes]]
 id = "NET-502"
@@ -536,6 +539,7 @@ severity = "error"
 retryable = true
 description = "The external platform rate-limited the request."
 since = "0.1.0"
+deprecated = true
 
 [[codes]]
 id = "NET-601"

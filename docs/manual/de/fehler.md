@@ -31,7 +31,6 @@ Die vollständige Liste der Codes mit Name, Schweregrad, ob ein Wiederholen hilf
 |---|---|---|
 | `APP-201` | der Datenordner kann nicht angelegt oder geöffnet werden | Pfad und Rechte prüfen (`--data-dir`) |
 | `APP-202` | die private Datei zum Starten des Browsers konnte nicht angelegt werden; wird auch abgelehnt, wenn ihr Ordner ein Link oder eine Junction ist (Windows) | Rechte des Datenordners prüfen; `codeskimr serve` starten und die Adresse von Hand öffnen |
-| `APP-301` | eine andere CodeSkimr-Instanz hält den Arbeitsbereich, die Verbindung zu ihr ist fehlgeschlagen | die andere Instanz schließen oder `--data-dir` nutzen |
 | `APP-601` | das System hat keinen Browser gestartet | die von `codeskimr serve` ausgegebene Adresse von Hand öffnen |
 | `APP-603` | das Programm konnte sich nicht im Hintergrund starten oder sein Tray-Symbol nicht anzeigen | mit `--console` starten, dann bleibt es im Fenster; das Log liegt im Datenordner (`codeskimr.log`) |
 | `APP-604` | das Konsolenfenster für die Bestätigung von Ebene 2 ließ sich nicht starten | den angezeigten Befehl kopieren und in einem Terminal ausführen |

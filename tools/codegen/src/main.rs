@@ -46,6 +46,11 @@ fn render(root: &Path) -> Result<Vec<codeskimr_codegen::Output>, Vec<String>> {
     let registry = codeskimr_codegen::load(root)?;
     let catalog = codeskimr_codegen::i18n::load(root)?;
     let tokens = codeskimr_codegen::load_tokens(root)?;
+    let sources = codeskimr_codegen::usage::collect_sources(root)?;
+    let unused = codeskimr_codegen::usage::unused_codes(&registry, &sources);
+    if !unused.is_empty() {
+        return Err(unused);
+    }
     Ok(codeskimr_codegen::checked_in_outputs(&registry, &catalog, &tokens).into())
 }
 

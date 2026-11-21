@@ -20,6 +20,7 @@ use codeskimr_storage::SqliteStore;
 
 use crate::consts::{SHUTDOWN_GRACE, URL_SCHEME};
 use crate::locations::Locations;
+use crate::retention::DailyPurge;
 use crate::running::RunningScans;
 use crate::wiring::{Secrets, open_serving_store, os_secrets};
 use crate::{config_files, installation_token, mcp, principal, ui_commands};
@@ -158,6 +159,10 @@ pub(crate) fn serving_parts(
         )?),
         events,
         token_lock: Some(locations.token_lock()),
+        purge: Some(DailyPurge::daily(
+            catalog.clone(),
+            config.annotations.dismissed_retention_days,
+        )),
     })
 }
 
@@ -172,6 +177,8 @@ pub(crate) struct Parts {
     pub events: EventBus,
     /// File that serialises the first start of several programs (`None`: no lock, for tests).
     pub token_lock: Option<PathBuf>,
+    /// The timer that deletes expired dismissed alerts; it ends with the server (ADR 0068).
+    pub purge: Option<DailyPurge>,
 }
 
 /// Wires the server and runs it until `shutdown` completes.
@@ -182,6 +189,8 @@ pub(crate) async fn serve(
     listening: impl FnOnce(&str),
     shutdown: impl Future<Output = ()> + Send + 'static,
 ) -> Result<(), CodedError> {
+    // Kept until the server ends, so the purge timer runs as long as the server does.
+    let _purge = parts.purge;
     let token = match &parts.token_lock {
         Some(lock) => installation_token::load_or_create_locked(store, lock)?,
         None => installation_token::load_or_create(store)?,
@@ -223,6 +232,7 @@ pub(crate) fn bare_parts(ui: UiOptions) -> Parts {
         )),
         events: EventBus::new(),
         token_lock: None,
+        purge: None,
     }
 }
 
