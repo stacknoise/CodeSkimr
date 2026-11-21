@@ -194,7 +194,7 @@ mod tests {
         let bus = EventBus::new();
         bus.publish(&report(1, StageKind::Persist, 1, 1));
         bus.publish(&created(1));
-        assert!(bus.running_scans().is_empty());
+        assert_eq!(bus.running_scans(), Vec::new());
         bus.publish(&report(1, StageKind::Fetch, 0, 0));
         let seen: Vec<_> = bus.running_scans().iter().map(|r| r.stage).collect();
         assert_eq!(
