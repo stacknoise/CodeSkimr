@@ -814,6 +814,7 @@ impl Stage for PersistStage {
         let snapshot = snapshot_of(&input, self.clock.now());
         let mut warnings = warnings_of(&input.references, &input.carried.references);
         warnings.extend(left_out_warnings(&input.run.paths_report.left_out));
+        let paths = listed(input.run.paths_report, self.max_left_out_listed);
         let data = SnapshotData {
             snapshot,
             files: input.files,
@@ -828,6 +829,7 @@ impl Stage for PersistStage {
             naming_rules: input.run.naming_rules,
             parse_micros: input.run.parse_micros,
             warnings: warnings.clone(),
+            left_out: paths.left_out.clone(),
         };
         let stored = self.store.persist(data)?;
         log_warnings(&warnings);
@@ -836,7 +838,7 @@ impl Stage for PersistStage {
             snapshot: stored,
             root,
             warnings,
-            paths: listed(input.run.paths_report, self.max_left_out_listed),
+            paths,
         })
     }
 }

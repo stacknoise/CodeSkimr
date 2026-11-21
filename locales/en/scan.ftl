@@ -70,3 +70,11 @@ scan-stage-counts = { $text } · { $done } / { $total }
 scan-stage-time = { $seconds } s
 scan-tier-full = full
 scan-tier-basic = basic
+scan-left-out-title = Files left out
+scan-left-out-hint = These files could not be analysed. The rest of the project was scanned.
+scan-left-out-missing = missing in the result
+scan-left-out-kept = shown as the previous scan saw it
+scan-left-out-more = { $count ->
+    [one] and one more file
+   *[other] and { $count } more files
+}

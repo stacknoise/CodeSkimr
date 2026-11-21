@@ -126,6 +126,41 @@ describe("ScanScreen", () => {
     stop();
   });
 
+  it("names the files the scan left out with their code, and how many more there were", async () => {
+    setLanguage("en");
+    serve({
+      "projects.list": () =>
+        answer([
+          {
+            ...ROW,
+            left_out: [
+              { path: "src/legacy.txt", code: "PRS-101", kept: false },
+              { path: "src/big.cs", code: "PRS-501", kept: true },
+            ],
+            left_out_more: 3,
+          },
+        ]),
+      "status.info": () => answer(STATUS),
+    });
+    const stop = await shown();
+    expect(await screen.findByText("Files left out")).toBeInTheDocument();
+    expect(screen.getByText("src/legacy.txt")).toBeInTheDocument();
+    expect(screen.getByText("PRS-101")).toBeInTheDocument();
+    expect(screen.getByText("missing in the result")).toBeInTheDocument();
+    expect(screen.getByText("PRS-501")).toBeInTheDocument();
+    expect(screen.getByText("shown as the previous scan saw it")).toBeInTheDocument();
+    expect(screen.getByText("and 3 more files")).toBeInTheDocument();
+    stop();
+  });
+
+  it("shows no list of left-out files if the scan left none out", async () => {
+    setLanguage("en");
+    const stop = await shown();
+    expect(await screen.findByText("No scan running")).toBeInTheDocument();
+    expect(screen.queryByText("Files left out")).not.toBeInTheDocument();
+    stop();
+  });
+
   it("lists tier, files, lines and symbols per language and the place of the scan", async () => {
     setLanguage("en");
     serve({

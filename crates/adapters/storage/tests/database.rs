@@ -11,7 +11,7 @@ use codeskimr_application::ports::{
 };
 use codeskimr_domain::{
     FileId, Fingerprint, Fingerprints, LanguageId, MetricKind, QualifiedName, ReferenceKind,
-    ScanMode, SymbolId, SymbolKind,
+    RelativePath, ScanMode, SymbolId, SymbolKind,
 };
 use codeskimr_storage::{SqliteStore, StoreOptions};
 use common::{PROJECT, TempDb, code_of, data, file, header, metric, project, reference, symbol};
@@ -44,7 +44,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 17));
+    assert_eq!((mode.as_str(), version), ("wal", 18));
 }
 
 #[test]
@@ -95,6 +95,20 @@ fn a_folder_instead_of_a_file_is_a_database_failure() {
     assert_eq!(code_of(&error), "STO-601");
 }
 
+/// The warning and the left-out file of a scan.
+#[cfg(test)]
+fn add_notes_of_the_scan(scan: &mut SnapshotData, base: u64) {
+    scan.warnings = vec![codeskimr_application::ports::ScanWarning {
+        code: codeskimr_codes::ErrorCode::AmbiguousReference,
+        count: base,
+    }];
+    scan.left_out = vec![codeskimr_application::ports::LeftOut {
+        path: RelativePath::new("old.txt").unwrap(),
+        code: codeskimr_codes::ErrorCode::FileEncodingUnsupported,
+        kept: false,
+    }];
+}
+
 /// A scan with one file, a class with a method, a reference, metrics and a fingerprint.
 #[cfg(test)]
 fn scan_with_every_table(snapshot: u64, base: u64) -> SnapshotData {
@@ -117,10 +131,7 @@ fn scan_with_every_table(snapshot: u64, base: u64) -> SnapshotData {
         metric(base + 1, MetricKind::EfferentCoupling, 1.0),
     ];
     scan.parse_micros = vec![(LanguageId::new("csharp").unwrap(), base)];
-    scan.warnings = vec![codeskimr_application::ports::ScanWarning {
-        code: codeskimr_codes::ErrorCode::AmbiguousReference,
-        count: base,
-    }];
+    add_notes_of_the_scan(&mut scan, base);
     scan.pending = vec![PendingReference {
         from: SymbolId::new(base + 2),
         file: FileId::new(base),
@@ -171,6 +182,7 @@ fn pruned_snapshots_leave_no_rows_behind() {
         ("fingerprints", 1),
         ("parse_times", 1),
         ("snapshot_warnings", 1),
+        ("snapshot_left_out", 1),
         ("pending_references", 1),
     ] {
         assert_eq!(rows_of(&conn, table), expected, "table {table}");
@@ -567,7 +579,8 @@ fn a_version_eleven_database_keeps_its_layers_without_a_limit() {
     drop(SqliteStore::open(&db.0, keep(3)).unwrap());
     let conn = Connection::open(&db.0).unwrap();
     conn.execute_batch(
-        "DROP TABLE level2_languages;
+        "DROP TABLE snapshot_left_out;
+         DROP TABLE level2_languages;
          DROP TABLE level2_reports;
          DROP TABLE scan_reports;
          DROP TABLE alert;

@@ -2,7 +2,7 @@
 
 use codeskimr_domain::{LanguageId, Project, ProjectId, Snapshot};
 
-use super::ScanWarning;
+use super::{LeftOut, ScanWarning};
 use crate::error::CodedError;
 
 /// The share of one language in the newest snapshot of a project.
@@ -35,6 +35,9 @@ pub struct ProjectOverview {
     /// The warnings of the scan that wrote it; empty if it had none or the snapshot is older than
     /// the record.
     pub warnings: Vec<ScanWarning>,
+    /// The files that scan left out by name (ADR 0085); the warnings count all of them. Empty if
+    /// it left none out or the snapshot is older than the record.
+    pub left_out: Vec<LeftOut>,
 }
 
 /// Reads the registered projects.

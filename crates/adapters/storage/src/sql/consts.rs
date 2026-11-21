@@ -102,6 +102,7 @@ pub const SNAPSHOT_CONTENT_DELETE: &[&str] = &[
     "DELETE FROM layer_graph WHERE snapshot_id = ?1",
     "DELETE FROM parse_times WHERE snapshot_id = ?1",
     "DELETE FROM snapshot_warnings WHERE snapshot_id = ?1",
+    "DELETE FROM snapshot_left_out WHERE snapshot_id = ?1",
     "DELETE FROM coupling_rows WHERE snapshot_id = ?1",
     "DELETE FROM files WHERE snapshot_id = ?1",
 ];
@@ -447,6 +448,13 @@ pub const WARNING_INSERT: &str =
 /// The warnings of a snapshot: snapshot.
 pub const WARNINGS: &str =
     "SELECT code, count FROM snapshot_warnings WHERE snapshot_id = ?1 ORDER BY code";
+
+/// Records one file that a scan left out: snapshot, path, code, whether the snapshot kept it.
+pub const LEFT_OUT_INSERT: &str =
+    "INSERT INTO snapshot_left_out (snapshot_id, path, code, kept) VALUES (?1, ?2, ?3, ?4)";
+/// The files a scan left out, in the order of their paths: snapshot.
+pub const LEFT_OUT: &str =
+    "SELECT path, code, kept FROM snapshot_left_out WHERE snapshot_id = ?1 ORDER BY path";
 
 /// Adds a name as written: file, from, start line and column, end line and column, kind, target,
 /// receiver kind, receiver name.
