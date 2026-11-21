@@ -65,8 +65,7 @@ function Run-App([string[]]$arguments, [hashtable]$extraEnv = @{}) {
     try { $fs.Write($outBytes, 0, $outBytes.Length); $fs.Write($errBytes, 0, $errBytes.Length) } finally { $fs.Dispose() }
     Remove-Item $outFile, $errFile
     $outText = [Text.Encoding]::UTF8.GetString($outBytes); $errText = [Text.Encoding]::UTF8.GetString($errBytes)
-    [pscustomobject]@{ Code = $p.ExitCode; Ms = [int]$watch.Elapsed.TotalMilliseconds; Out = $outText; Text = ($outText + "`
-" + $errText); Log = $log }
+    [pscustomobject]@{ Code = $p.ExitCode; Ms = [int]$watch.Elapsed.TotalMilliseconds; Out = $outText; Text = ($outText + "`n" + $errText); Log = $log }
 }
 
 # Searches a file for the secret as UTF-8 and as UTF-16, without printing anything of it.
