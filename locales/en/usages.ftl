@@ -33,7 +33,6 @@ usages-col-where = Used in
 usages-col-code = Code
 usages-col-place = Place
 usages-col-state = Certainty
-usages-col-resize = Resize column { $name }
 usages-ref-call = call
 usages-ref-read = read
 usages-ref-write = write

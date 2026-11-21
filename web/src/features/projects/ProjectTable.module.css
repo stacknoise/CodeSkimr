@@ -32,8 +32,11 @@
 
 .table td {
     padding: var(--space-12) var(--space-8);
-    border-bottom: 1px solid var(--line-soft);
     vertical-align: top;
+}
+
+.table tbody tr {
+    border-bottom: 1px solid var(--line-soft);
 }
 
 .languages {

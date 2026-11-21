@@ -248,8 +248,8 @@ jobs:
       # UI build broke on Preview.tsx and preview.ts), so the repository must not contain such a pair.
       - name: No paths that differ only in case
         run: python3 tools/ci/check_case_clashes.py
-      # Blueprint 12.4: every expose_secret() call in product code is on the approved list.
-      - name: Approved expose_secret() call sites
+      # Blueprint 12.4: every use of expose_secret and expose_user in product code is on the approved list.
+      - name: Approved uses of expose_secret and expose_user
         run: python3 tools/ci/check_expose_secret.py
 
   duplicates:
