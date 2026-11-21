@@ -201,6 +201,7 @@ mod tests {
             pack_load_seconds: 0.0,
             level2: Vec::new(),
             warnings: Vec::new(),
+            left_out: codeskimr_cli::LeftOutView::default(),
             tools: codeskimr_application::tools::ToolsView::unchecked(),
         }
     }

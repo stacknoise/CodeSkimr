@@ -205,6 +205,14 @@ pub trait SnapshotStore: Send + Sync {
     /// `STO-901` if the snapshot is not the newest of its project or the data does not fit it;
     /// nothing is changed then.
     fn replace_level2(&self, replacement: Level2Replacement) -> Result<Snapshot, CodedError>;
+
+    /// The first id that is higher than every stored id. The scanner moves its id sequence up to
+    /// it when a scan starts, so ids that another process wrote in the meantime are not handed
+    /// out again. Every store answers this itself: a default would hide ids handed out twice.
+    ///
+    /// # Errors
+    /// A coded failure of the `STO` group.
+    fn next_free_id(&self) -> Result<u64, CodedError>;
 }
 
 /// Removes a project and everything stored about it.

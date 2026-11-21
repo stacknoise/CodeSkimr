@@ -299,6 +299,14 @@ description = "A source file is not valid UTF-8/UTF-16 and was skipped."
 since = "0.1.0"
 
 [[codes]]
+id = "PRS-102"
+name = "file_unreadable"
+severity = "error"
+retryable = true
+description = "A source file could not be read during the scan (gone or locked) and was skipped."
+since = "1.0.0"
+
+[[codes]]
 id = "PRS-201"
 name = "language_pack_missing"
 severity = "error"

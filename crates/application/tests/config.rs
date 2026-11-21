@@ -27,6 +27,12 @@ fn the_languages_below_99_percent_are_marked_in_the_defaults() {
 }
 
 #[test]
+fn a_scan_names_twenty_files_it_left_out_by_default() {
+    let config = Config::defaults().expect("shipped defaults are valid");
+    assert_eq!(config.scan.max_left_out_listed, 20);
+}
+
+#[test]
 fn defaults_match_the_blueprint() {
     let config = Config::defaults().expect("shipped defaults are valid");
     assert_eq!(config.metrics.cyclomatic_good_max, 5);
