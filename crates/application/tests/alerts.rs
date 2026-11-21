@@ -316,6 +316,22 @@ fn overloads_are_told_apart_by_the_parameter_types_of_the_target() {
 }
 
 #[test]
+fn an_overload_with_more_parameters_is_not_taken_for_the_shorter_one() {
+    let world = fixture();
+    let mut long = symbol(SymbolKind::Method, WORK, "long-version");
+    long.signature = Some("Work(int x, string s)".to_owned());
+    let mut short = symbol(SymbolKind::Method, WORK, "short-version");
+    short.signature = Some("Work(int x)".to_owned());
+    world.states.set(vec![long, short]);
+    let annotation = world
+        .annotations
+        .critical(SymbolKind::Method, WORK, &["int x"]);
+    world.run(1, AlertTrigger::Scan);
+    let baseline = world.annotations.baseline(annotation.id).unwrap().unwrap();
+    assert_eq!(baseline.content_hash, hash("short-version"));
+}
+
+#[test]
 fn an_overload_that_no_longer_matches_the_parameter_types_is_gone() {
     let world = fixture();
     let mut int = symbol(SymbolKind::Method, WORK, "int-version");

@@ -2,13 +2,16 @@
 
 use std::cmp::Reverse;
 
-use codeskimr_domain::{AnnotationTarget, QualifiedName, SymbolName, name_parts};
+use codeskimr_domain::{
+    AnnotationTarget, QualifiedName, SymbolName, name_parts, signature_parameters,
+};
 
 use crate::ports::{SameName, SymbolState};
 
 /// The symbol that the target names. Kind and qualified name decide. If several symbols share
-/// them (overloads), the parameter types of the target pick the one whose signature names them in
-/// order; none of them matching means the target is gone. A single symbol is the target whatever
+/// them (overloads), the parameters of the target pick the one whose signature has exactly them,
+/// else the first whose signature names them in order; none of them matching means the target is
+/// gone. A single symbol is the target whatever
 /// its parameters say, so a changed parameter list is a change of the signature, not a loss.
 #[must_use]
 pub fn pick<'a>(states: &'a [SymbolState], target: &AnnotationTarget) -> Option<&'a SymbolState> {
@@ -19,9 +22,21 @@ pub fn pick<'a>(states: &'a [SymbolState], target: &AnnotationTarget) -> Option<
     if target.parameters.is_empty() || candidates.clone().next().is_none() {
         return Some(first);
     }
-    std::iter::once(first)
-        .chain(candidates)
-        .find(|state| names_in_order(state.signature.as_deref(), &target.parameters))
+    let overloads: Vec<&SymbolState> = std::iter::once(first).chain(candidates).collect();
+    overloads
+        .iter()
+        .find(|state| has_parameters(state.signature.as_deref(), &target.parameters))
+        .or_else(|| {
+            overloads
+                .iter()
+                .find(|state| names_in_order(state.signature.as_deref(), &target.parameters))
+        })
+        .copied()
+}
+
+/// Whether the parameter list of the signature is exactly `parameters`.
+fn has_parameters(signature: Option<&str>, parameters: &[String]) -> bool {
+    signature.is_some_and(|text| signature_parameters(text) == parameters)
 }
 
 /// Whether every parameter type stands in the signature, one after the other.

@@ -722,7 +722,7 @@
       "kind": "method",
       "name": "declarations::shapes::Shape::area",
       "parent": "declarations::shapes::Shape",
-      "signature": null,
+      "signature": "fn area(&self) -> f64;",
       "span": "40:8-40:30",
       "static": false,
       "visibility": "public"
@@ -732,7 +732,7 @@
       "kind": "method",
       "name": "declarations::shapes::Shape::describe",
       "parent": "declarations::shapes::Shape",
-      "signature": null,
+      "signature": "fn describe(&self) -> String",
       "span": "42:8-44:9",
       "static": false,
       "visibility": "public"
@@ -742,7 +742,7 @@
       "kind": "method",
       "name": "declarations::shapes::Shape::unit",
       "parent": "declarations::shapes::Shape",
-      "signature": null,
+      "signature": "fn unit() -> &'static str;",
       "span": "46:8-46:34",
       "static": true,
       "visibility": "public"
@@ -752,7 +752,7 @@
       "kind": "method",
       "name": "declarations::shapes::Point::new",
       "parent": "declarations::shapes::Point",
-      "signature": null,
+      "signature": "pub fn new(x: f64, y: f64) -> Self",
       "span": "52:8-54:9",
       "static": true,
       "visibility": "public"
@@ -762,7 +762,7 @@
       "kind": "method",
       "name": "declarations::shapes::Point::shifted",
       "parent": "declarations::shapes::Point",
-      "signature": null,
+      "signature": "pub(crate) fn shifted(&self, dx: f64) -> Self",
       "span": "56:8-58:9",
       "static": false,
       "visibility": "internal"
@@ -772,7 +772,7 @@
       "kind": "method",
       "name": "declarations::shapes::Point::parent_only",
       "parent": "declarations::shapes::Point",
-      "signature": null,
+      "signature": "pub(super) fn parent_only(&self)",
       "span": "60:8-60:43",
       "static": false,
       "visibility": "protected"
@@ -782,7 +782,7 @@
       "kind": "method",
       "name": "declarations::shapes::Point::in_path",
       "parent": "declarations::shapes::Point",
-      "signature": null,
+      "signature": "pub(in crate::shapes) fn in_path(&self)",
       "span": "62:8-62:50",
       "static": false,
       "visibility": "internal"
@@ -792,7 +792,7 @@
       "kind": "method",
       "name": "declarations::shapes::Point::private_helper",
       "parent": "declarations::shapes::Point",
-      "signature": null,
+      "signature": "fn private_helper(&mut self)",
       "span": "64:8-64:39",
       "static": false,
       "visibility": "private"
@@ -802,7 +802,7 @@
       "kind": "method",
       "name": "declarations::shapes::Point::origin",
       "parent": "declarations::shapes::Point",
-      "signature": null,
+      "signature": "pub const fn origin() -> Self",
       "span": "66:8-68:9",
       "static": true,
       "visibility": "public"
@@ -822,7 +822,7 @@
       "kind": "method",
       "name": "declarations::shapes::Point::area",
       "parent": "declarations::shapes::Point",
-      "signature": null,
+      "signature": "fn area(&self) -> f64",
       "span": "74:8-76:9",
       "static": false,
       "visibility": "public"
@@ -832,7 +832,7 @@
       "kind": "method",
       "name": "declarations::shapes::Point::unit",
       "parent": "declarations::shapes::Point",
-      "signature": null,
+      "signature": "fn unit() -> &'static str",
       "span": "78:8-80:9",
       "static": true,
       "visibility": "public"
@@ -892,7 +892,7 @@
       "kind": "function",
       "name": "declarations::double",
       "parent": "declarations",
-      "signature": null,
+      "signature": "pub fn double(value: i32) -> i32",
       "span": "95:0-100:1",
       "static": false,
       "visibility": "public"
@@ -902,7 +902,7 @@
       "kind": "function",
       "name": "declarations::double::twice",
       "parent": "declarations::double",
-      "signature": null,
+      "signature": "fn twice(inner: i32) -> i32",
       "span": "96:4-98:5",
       "static": false,
       "visibility": "private"
@@ -912,7 +912,7 @@
       "kind": "function",
       "name": "declarations::private_function",
       "parent": "declarations",
-      "signature": null,
+      "signature": "fn private_function()",
       "span": "103:0-103:24",
       "static": false,
       "visibility": "private"
@@ -922,7 +922,7 @@
       "kind": "function",
       "name": "declarations::run",
       "parent": "declarations",
-      "signature": null,
+      "signature": "pub async fn run()",
       "span": "106:0-106:21",
       "static": false,
       "visibility": "public"
@@ -932,7 +932,7 @@
       "kind": "function",
       "name": "declarations::raw",
       "parent": "declarations",
-      "signature": null,
+      "signature": "pub unsafe fn raw()",
       "span": "108:0-108:22",
       "static": false,
       "visibility": "public"
@@ -952,7 +952,7 @@
       "kind": "function",
       "name": "declarations::tests::doubles",
       "parent": "declarations::tests",
-      "signature": null,
+      "signature": "fn doubles()",
       "span": "123:4-125:5",
       "static": false,
       "visibility": "private"
@@ -962,7 +962,7 @@
       "kind": "function",
       "name": "declarations::documented_around_attributes",
       "parent": "declarations",
-      "signature": null,
+      "signature": "pub fn documented_around_attributes()",
       "span": "132:0-132:40",
       "static": false,
       "visibility": "public"
@@ -982,7 +982,7 @@
       "kind": "function",
       "name": "declarations::without_documentation",
       "parent": "declarations",
-      "signature": null,
+      "signature": "pub fn without_documentation()",
       "span": "136:0-136:33",
       "static": false,
       "visibility": "public"

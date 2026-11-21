@@ -58,6 +58,15 @@ pub const LITERAL_EXEMPT_CAPTURE: &str = "literal_exempt";
 /// (abstract, interface member, extern) is not measured.
 pub const BODY_FIELD: &str = "body";
 
+/// Field that holds the value of a declaration (`const f = () => {}`).
+pub const VALUE_FIELD: &str = "value";
+
+/// Part of the node kind of every comment in the grammars (`comment`, `line_comment`, ...).
+pub const COMMENT_KIND: &str = "comment";
+
+/// Joins the words of a signature header.
+pub const HEADER_SEPARATOR: &str = " ";
+
 /// Prefix of a capture that marks a whole declaration; the rest is the symbol kind label.
 pub const SYMBOL_CAPTURE_PREFIX: &str = "symbol.";
 /// Prefix of a capture that marks an occurrence; the rest is the reference kind label.

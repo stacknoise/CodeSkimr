@@ -15,8 +15,8 @@ export interface Index {
 export const EMPTY_INDEX: Index = { exact: new Map(), byName: new Map(), critical: [] };
 
 /** The key of a symbol in the index. */
-export function targetKey(kind: string, name: string): string {
-  return [kind, name].join(TARGET_SEPARATOR);
+export function targetKey(kind: string, name: string, parameters: readonly string[] = []): string {
+  return [kind, name, ...parameters].join(TARGET_SEPARATOR);
 }
 
 function merge(known: Counters | undefined, row: SummaryRow): Counters {
@@ -36,7 +36,7 @@ export function buildIndex(rows: readonly SummaryRow[]): Index {
   const byName = new Map<string, Counters>();
   const critical = new Set<string>();
   for (const row of rows.filter((one) => !one.without_target)) {
-    const key = targetKey(row.target.kind, row.target.name);
+    const key = targetKey(row.target.kind, row.target.name, row.target.parameters);
     exact.set(key, merge(exact.get(key), row));
     byName.set(row.target.name, merge(byName.get(row.target.name), row));
     if (row.critical) {
@@ -48,7 +48,9 @@ export function buildIndex(rows: readonly SummaryRow[]): Index {
 
 /** The counters of a symbol, `undefined` if it has no annotation. */
 export function countersOf(index: Index, target: Target | null): Counters | undefined {
-  return target === null ? undefined : index.exact.get(targetKey(target.kind, target.name));
+  return target === null
+    ? undefined
+    : index.exact.get(targetKey(target.kind, target.name, target.parameters));
 }
 
 /** How many critical symbols stand below `name` (a namespace or a type), the symbol itself not

@@ -8,7 +8,7 @@ use codeskimr_application::error::CodedError;
 use codeskimr_application::ports::{MemberRow, SymbolDetail};
 use codeskimr_application::registry::{Command, CommandDescriptor, CommandId, Request};
 use codeskimr_codes::ErrorCode;
-use codeskimr_domain::{Permission, SnapshotId, SymbolId, Visibility};
+use codeskimr_domain::{Permission, SnapshotId, SymbolId, Visibility, signature_parameters};
 use serde::{Deserialize, Serialize};
 
 use super::consts::{
@@ -54,6 +54,10 @@ pub struct MemberOut {
     pub visibility: Option<&'static str>,
     /// Signature as written.
     pub signature: Option<String>,
+    /// The parameters of the signature as written if another member of the type has the same kind
+    /// and name (an overload), else empty: with the kind and the qualified name they are the key
+    /// of the annotations of the member (ADR 0068).
+    pub parameters: Vec<String>,
     /// Cyclomatic complexity, if measured.
     pub complexity: Option<f64>,
     /// Rating of the complexity.
@@ -116,7 +120,18 @@ pub struct SymbolInput {
     pub symbol: u64,
 }
 
-fn member_out(row: &MemberRow, thresholds: &MetricThresholds) -> MemberOut {
+/// The parameters of an overloaded member, none for a member whose kind and name are unique.
+fn overload_parameters(row: &MemberRow, rows: &[MemberRow]) -> Vec<String> {
+    let overloaded = rows.iter().any(|other| {
+        other.id != row.id && other.kind == row.kind && other.qualified_name == row.qualified_name
+    });
+    match (&row.signature, overloaded) {
+        (Some(signature), true) => signature_parameters(signature),
+        _ => Vec::new(),
+    }
+}
+
+fn member_out(row: &MemberRow, rows: &[MemberRow], thresholds: &MetricThresholds) -> MemberOut {
     MemberOut {
         id: row.id.get(),
         name: row.name.to_string(),
@@ -124,6 +139,7 @@ fn member_out(row: &MemberRow, thresholds: &MetricThresholds) -> MemberOut {
         kind: row.kind.label(),
         visibility: row.visibility.map(Visibility::label),
         signature: row.signature.clone(),
+        parameters: overload_parameters(row, rows),
         complexity: row.complexity,
         complexity_rating: row
             .complexity
@@ -213,7 +229,10 @@ fn answer(
                 rating: rating::metric(metric.kind, metric.value.get(), thresholds),
             })
             .collect(),
-        members: rows.iter().map(|row| member_out(row, thresholds)).collect(),
+        members: rows
+            .iter()
+            .map(|row| member_out(row, rows, thresholds))
+            .collect(),
     }
 }
 

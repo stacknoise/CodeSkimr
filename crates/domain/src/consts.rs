@@ -337,3 +337,18 @@ pub const CHANGE_SIGNATURE: &str = "signature";
 pub const CHANGE_CC: &str = "cc";
 /// Label of `AlertChange::Loc`.
 pub const CHANGE_LOC: &str = "loc";
+
+/// Opens the parameter list of a signature.
+pub const PARAMETER_LIST_START: char = '(';
+/// Closes the parameter list of a signature.
+pub const PARAMETER_LIST_END: char = ')';
+/// Separates the parameters of a signature.
+pub const PARAMETER_SEPARATOR: char = ',';
+/// Brackets that open a group inside a parameter list.
+pub const OPENERS: [char; 4] = ['(', '[', '{', '<'];
+/// Brackets that close a group inside a parameter list.
+pub const CLOSERS: [char; 4] = [')', ']', '}', '>'];
+/// The `>` of an arrow (`->`, `=>`) closes nothing.
+pub const ARROW_TAIL: char = '>';
+/// Characters that make a following `>` an arrow.
+pub const ARROW_HEADS: [char; 2] = ['-', '='];

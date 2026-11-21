@@ -165,7 +165,7 @@
       "kind": "function",
       "name": "metrics.plain",
       "parent": "metrics",
-      "signature": null,
+      "signature": "def plain():",
       "span": "0:0-1:12",
       "static": false,
       "visibility": "public"
@@ -175,7 +175,7 @@
       "kind": "function",
       "name": "metrics.branches",
       "parent": "metrics",
-      "signature": null,
+      "signature": "def branches(a, b):",
       "span": "4:0-10:16",
       "static": false,
       "visibility": "public"
@@ -185,7 +185,7 @@
       "kind": "function",
       "name": "metrics.conditional",
       "parent": "metrics",
-      "signature": null,
+      "signature": "def conditional(a):",
       "span": "13:0-14:24",
       "static": false,
       "visibility": "public"
@@ -195,7 +195,7 @@
       "kind": "function",
       "name": "metrics.loops",
       "parent": "metrics",
-      "signature": null,
+      "signature": "def loops(xs):",
       "span": "17:0-24:35",
       "static": false,
       "visibility": "public"
@@ -205,7 +205,7 @@
       "kind": "function",
       "name": "metrics.cases",
       "parent": "metrics",
-      "signature": null,
+      "signature": "def cases(k):",
       "span": "27:0-34:22",
       "static": false,
       "visibility": "public"
@@ -215,7 +215,7 @@
       "kind": "function",
       "name": "metrics.handlers",
       "parent": "metrics",
-      "signature": null,
+      "signature": "def handlers():",
       "span": "37:0-47:12",
       "static": false,
       "visibility": "public"
@@ -225,7 +225,7 @@
       "kind": "function",
       "name": "metrics.outer",
       "parent": "metrics",
-      "signature": null,
+      "signature": "def outer(items):",
       "span": "50:0-56:30",
       "static": false,
       "visibility": "public"
@@ -235,7 +235,7 @@
       "kind": "function",
       "name": "metrics.outer.local",
       "parent": "metrics.outer",
-      "signature": null,
+      "signature": "def local(z):",
       "span": "52:4-55:16",
       "static": false,
       "visibility": "public"
@@ -245,7 +245,7 @@
       "kind": "function",
       "name": "metrics.calls",
       "parent": "metrics",
-      "signature": null,
+      "signature": "def calls(d):",
       "span": "59:0-63:27",
       "static": false,
       "visibility": "public"

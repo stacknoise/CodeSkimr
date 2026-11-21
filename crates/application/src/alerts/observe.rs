@@ -32,7 +32,8 @@ pub fn baseline_of(
             None => digest.digest(&[])?,
         }
     };
-    let words: Vec<&str> = state
+    // Layout around brackets and commas is no change of the signature: hash it without whitespace.
+    let compact: String = state
         .signature
         .as_deref()
         .unwrap_or_default()
@@ -40,7 +41,7 @@ pub fn baseline_of(
         .collect();
     Ok(SymbolBaseline {
         content_hash,
-        signature_hash: digest.digest(&words)?,
+        signature_hash: digest.digest(&[compact.as_str()])?,
         loc: state.loc,
         cc: state.cc,
     })

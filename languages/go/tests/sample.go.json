@@ -206,7 +206,7 @@
       "kind": "function",
       "name": "sample.NewOrder",
       "parent": "sample",
-      "signature": null,
+      "signature": "func NewOrder(id int) *Order",
       "span": "18:0-25:1",
       "static": false,
       "visibility": null
@@ -216,7 +216,7 @@
       "kind": "method",
       "name": "sample.Order.Add",
       "parent": "sample.Order",
-      "signature": null,
+      "signature": "func (o *Order) Add(x float64)",
       "span": "28:0-35:1",
       "static": false,
       "visibility": null
@@ -226,7 +226,7 @@
       "kind": "method",
       "name": "sample.Pricer2.Run",
       "parent": "sample",
-      "signature": null,
+      "signature": "func (p Pricer2) Run()",
       "span": "38:0-38:25",
       "static": false,
       "visibility": null
@@ -236,7 +236,7 @@
       "kind": "method",
       "name": "sample.Queue.Run",
       "parent": "sample",
-      "signature": null,
+      "signature": "func (q *Queue) Run()",
       "span": "40:0-40:24",
       "static": false,
       "visibility": null
@@ -246,7 +246,7 @@
       "kind": "method",
       "name": "sample.Code.String",
       "parent": "sample.Code",
-      "signature": null,
+      "signature": "func (c Code) String() string",
       "span": "42:0-42:47",
       "static": false,
       "visibility": null
@@ -256,7 +256,7 @@
       "kind": "method",
       "name": "sample.Box.Get",
       "parent": "sample",
-      "signature": null,
+      "signature": "func (b *Box[T]) Get() T",
       "span": "44:0-44:52",
       "static": false,
       "visibility": null
@@ -266,7 +266,7 @@
       "kind": "method",
       "name": "sample.Order.Run",
       "parent": "sample.Order",
-      "signature": null,
+      "signature": "func (o Order) Run()",
       "span": "46:0-46:23",
       "static": false,
       "visibility": null
@@ -276,7 +276,7 @@
       "kind": "method",
       "name": "sample.Later.Run",
       "parent": "sample",
-      "signature": null,
+      "signature": "func (a Later) Run()",
       "span": "50:0-50:23",
       "static": false,
       "visibility": null

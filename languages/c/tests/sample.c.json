@@ -147,7 +147,7 @@
       "kind": "function",
       "name": "sample.find",
       "parent": "sample",
-      "signature": null,
+      "signature": "static int *find(int *items, int n)",
       "span": "14:0-21:1",
       "static": false,
       "visibility": null
@@ -157,7 +157,7 @@
       "kind": "function",
       "name": "sample.main",
       "parent": "sample",
-      "signature": null,
+      "signature": "int main(void)",
       "span": "23:0-25:1",
       "static": false,
       "visibility": null
@@ -167,7 +167,7 @@
       "kind": "function",
       "name": "sample.getcb",
       "parent": "sample",
-      "signature": null,
+      "signature": "int (*getcb(void))(int)",
       "span": "27:0-29:1",
       "static": false,
       "visibility": null
@@ -177,7 +177,7 @@
       "kind": "function",
       "name": "sample.getname",
       "parent": "sample",
-      "signature": null,
+      "signature": "char *(*getname(int n))(void)",
       "span": "31:0-33:1",
       "static": false,
       "visibility": null

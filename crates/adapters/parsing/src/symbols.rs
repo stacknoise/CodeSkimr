@@ -14,8 +14,8 @@ use tree_sitter::{Node, QueryCapture, QueryCursor, StreamingIterator};
 
 use crate::captures::Capture;
 use crate::consts::{
-    BODY_FIELD, CALLABLE_KINDS, LINE_SEPARATOR, NO_EXTENSION, PATH_SEPARATOR, SIGNATURE_CUT,
-    WORD_SEPARATOR,
+    BODY_FIELD, CALLABLE_KINDS, COMMENT_KIND, HEADER_SEPARATOR, LINE_SEPARATOR, NO_EXTENSION,
+    PATH_SEPARATOR, SIGNATURE_CUT, VALUE_FIELD, WORD_SEPARATOR,
 };
 use crate::error::ParsingError;
 use crate::location::{span_between, span_of, text_of};
@@ -554,26 +554,83 @@ fn new_symbol(
 }
 
 /// The signature text: the `@signature` capture of the pack. A constant without one gets its whole
-/// declaration, so that its value is visible (`find_constants`).
+/// declaration, so that its value is visible (`find_constants`); a function, method or constructor
+/// without one gets its header, the declaration up to its body, on one line (so that overloads
+/// can be told apart, ADR 0068).
 fn signature_of(
     kind: SymbolKind,
     declaration: &Declaration<'_>,
     ctx: &SymbolContext<'_>,
 ) -> Option<String> {
-    let node = match (declaration.signature, kind) {
-        (Some(node), _) => node,
-        (None, SymbolKind::Constant) => declaration.node,
+    let text = match (declaration.signature, kind) {
+        (Some(node), _) => text_of(node, ctx.source).trim().to_owned(),
+        (None, SymbolKind::Constant) => text_of(declaration.node, ctx.source).trim().to_owned(),
+        (None, kind) if CALLABLE_KINDS.contains(&kind) => header_of(declaration.node, ctx)?,
         (None, _) => return None,
     };
-    let text = text_of(node, ctx.source).trim();
     if text.chars().count() <= ctx.signature_limit {
-        return Some(text.to_owned());
+        return Some(text);
     }
     let room = ctx
         .signature_limit
         .saturating_sub(SIGNATURE_CUT.chars().count());
     let kept: String = text.chars().take(room).collect();
     Some([kept.trim_end(), SIGNATURE_CUT].concat())
+}
+
+/// The declaration of a callable up to its body without comments, whitespace runs folded into one
+/// space; `None` if that leaves nothing.
+fn header_of(node: Node<'_>, ctx: &SymbolContext<'_>) -> Option<String> {
+    let end = body_start(ctx.pack, node).unwrap_or_else(|| node.end_byte());
+    let mut comments = Vec::new();
+    collect_comments(node, end, &mut comments);
+    let mut text = String::new();
+    let mut at = node.start_byte();
+    for comment in comments {
+        text.push_str(ctx.source.get(at..comment.start)?);
+        text.push_str(HEADER_SEPARATOR);
+        at = comment.end;
+    }
+    text.push_str(ctx.source.get(at..end)?);
+    let header = text
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(HEADER_SEPARATOR);
+    (!header.is_empty()).then_some(header)
+}
+
+/// The byte ranges of the comments in `node` that start before `end`, in source order.
+fn collect_comments(node: Node<'_>, end: usize, found: &mut Vec<Range<usize>>) {
+    for index in 0..node.child_count() {
+        let Some(child) = node.child(index) else {
+            continue;
+        };
+        if child.start_byte() >= end {
+            break;
+        }
+        if child.kind().contains(COMMENT_KIND) {
+            found.push(child.start_byte()..child.end_byte().min(end));
+        } else {
+            collect_comments(child, end, found);
+        }
+    }
+}
+
+/// Where the body of a declaration starts. A declaration that holds its function in a value
+/// (`const f = () => {}`) has the body of that function.
+fn body_start(pack: &LanguagePack, node: Node<'_>) -> Option<usize> {
+    let own = node
+        .child_by_field_name(BODY_FIELD)
+        .or_else(|| {
+            (0..node.child_count())
+                .filter_map(|index| node.child(index))
+                .find(|child| pack.body_nodes.contains(child.kind()))
+        })
+        .map(|body| body.start_byte());
+    own.or_else(|| {
+        node.child_by_field_name(VALUE_FIELD)
+            .and_then(|value| body_start(pack, value))
+    })
 }
 
 /// The kind of the declaration: a modifier can change it, and the parent can give it another one.

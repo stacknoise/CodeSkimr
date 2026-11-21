@@ -366,7 +366,7 @@
       "kind": "method",
       "name": "declarations.Order.handler",
       "parent": "declarations.Order",
-      "signature": null,
+      "signature": "() =>",
       "span": "13:12-15:3",
       "static": false,
       "visibility": "public"
@@ -376,7 +376,7 @@
       "kind": "constructor",
       "name": "declarations.Order.constructor",
       "parent": "declarations.Order",
-      "signature": null,
+      "signature": "constructor(private readonly id: number)",
       "span": "18:2-20:3",
       "static": false,
       "visibility": "public"
@@ -406,7 +406,7 @@
       "kind": "method",
       "name": "declarations.Order.create",
       "parent": "declarations.Order",
-      "signature": null,
+      "signature": "public static async create(id: number): Promise<Order<string>>",
       "span": "28:2-30:3",
       "static": true,
       "visibility": "public"
@@ -416,7 +416,7 @@
       "kind": "method",
       "name": "declarations.Order.validate",
       "parent": "declarations.Order",
-      "signature": null,
+      "signature": "protected abstract validate(): boolean",
       "span": "32:2-32:40",
       "static": false,
       "visibility": "protected"
@@ -426,7 +426,7 @@
       "kind": "method",
       "name": "declarations.Order.helper",
       "parent": "declarations.Order",
-      "signature": null,
+      "signature": "private helper()",
       "span": "34:2-34:21",
       "static": false,
       "visibility": "private"
@@ -436,7 +436,7 @@
       "kind": "method",
       "name": "declarations.Order.plain",
       "parent": "declarations.Order",
-      "signature": null,
+      "signature": "plain()",
       "span": "37:2-37:12",
       "static": false,
       "visibility": "public"
@@ -446,7 +446,7 @@
       "kind": "method",
       "name": "declarations.Order.overload",
       "parent": "declarations.Order",
-      "signature": null,
+      "signature": "overload(a: number): void",
       "span": "40:2-40:30",
       "static": false,
       "visibility": "public"
@@ -456,7 +456,7 @@
       "kind": "method",
       "name": "declarations.Order.generate",
       "parent": "declarations.Order",
-      "signature": null,
+      "signature": "*generate()",
       "span": "42:2-42:16",
       "static": false,
       "visibility": "public"
@@ -496,7 +496,7 @@
       "kind": "method",
       "name": "declarations.Priced.format",
       "parent": "declarations.Priced",
-      "signature": null,
+      "signature": "format(locale: string): string",
       "span": "50:2-50:32",
       "static": false,
       "visibility": "public"
@@ -576,7 +576,7 @@
       "kind": "function",
       "name": "declarations.add",
       "parent": "declarations",
-      "signature": null,
+      "signature": "(a: number, b: number) =>",
       "span": "65:19-65:50",
       "static": false,
       "visibility": "public"
@@ -586,7 +586,7 @@
       "kind": "function",
       "name": "declarations.sub",
       "parent": "declarations",
-      "signature": null,
+      "signature": "function (a: number, b: number)",
       "span": "66:12-68:1",
       "static": false,
       "visibility": "private"
@@ -596,7 +596,7 @@
       "kind": "function",
       "name": "declarations.run",
       "parent": "declarations",
-      "signature": null,
+      "signature": "function run(): void",
       "span": "72:7-74:1",
       "static": false,
       "visibility": "public"
@@ -606,7 +606,7 @@
       "kind": "function",
       "name": "declarations.run.inner",
       "parent": "declarations.run",
-      "signature": null,
+      "signature": "function inner()",
       "span": "73:2-73:21",
       "static": false,
       "visibility": "public"
@@ -656,7 +656,7 @@
       "kind": "function",
       "name": "declarations.Util.help",
       "parent": "declarations.Util",
-      "signature": null,
+      "signature": "function help()",
       "span": "82:9-82:27",
       "static": false,
       "visibility": "public"
@@ -666,7 +666,7 @@
       "kind": "function",
       "name": "declarations.legacy",
       "parent": "declarations",
-      "signature": null,
+      "signature": "function legacy(a: string): void;",
       "span": "85:8-85:41",
       "static": false,
       "visibility": "private"
@@ -696,7 +696,7 @@
       "kind": "method",
       "name": "declarations.Ambient.make",
       "parent": "declarations.Ambient",
-      "signature": null,
+      "signature": "static make(): Ambient",
       "span": "88:2-88:24",
       "static": true,
       "visibility": "public"
@@ -706,7 +706,7 @@
       "kind": "method",
       "name": "declarations.Ambient.run",
       "parent": "declarations.Ambient",
-      "signature": null,
+      "signature": "run(): void",
       "span": "89:2-89:13",
       "static": false,
       "visibility": "public"

@@ -631,7 +631,7 @@
       "kind": "constructor",
       "name": "com.example.shop.Cart.Cart",
       "parent": "com.example.shop.Cart",
-      "signature": null,
+      "signature": "public Cart()",
       "span": "23:4-25:5",
       "static": false,
       "visibility": "public"
@@ -641,7 +641,7 @@
       "kind": "constructor",
       "name": "com.example.shop.Cart.Cart",
       "parent": "com.example.shop.Cart",
-      "signature": null,
+      "signature": "Cart(List<T> items)",
       "span": "27:4-29:5",
       "static": false,
       "visibility": "internal"
@@ -651,7 +651,7 @@
       "kind": "method",
       "name": "com.example.shop.Cart.add",
       "parent": "com.example.shop.Cart",
-      "signature": null,
+      "signature": "@Override public void add(T item)",
       "span": "36:4-39:5",
       "static": false,
       "visibility": "public"
@@ -661,7 +661,7 @@
       "kind": "method",
       "name": "com.example.shop.Cart.count",
       "parent": "com.example.shop.Cart",
-      "signature": null,
+      "signature": "private static int count(List<?> list)",
       "span": "41:4-43:5",
       "static": true,
       "visibility": "private"
@@ -681,7 +681,7 @@
       "kind": "method",
       "name": "com.example.shop.Cart.Inner.run",
       "parent": "com.example.shop.Cart.Inner",
-      "signature": null,
+      "signature": "abstract void run();",
       "span": "46:8-46:28",
       "static": false,
       "visibility": "internal"
@@ -711,7 +711,7 @@
       "kind": "method",
       "name": "com.example.shop.Cart.Priced.price",
       "parent": "com.example.shop.Cart.Priced",
-      "signature": null,
+      "signature": "double price();",
       "span": "53:8-53:23",
       "static": false,
       "visibility": "public"
@@ -721,7 +721,7 @@
       "kind": "method",
       "name": "com.example.shop.Cart.Priced.label",
       "parent": "com.example.shop.Cart.Priced",
-      "signature": null,
+      "signature": "default String label()",
       "span": "55:8-57:9",
       "static": false,
       "visibility": "public"
@@ -731,7 +731,7 @@
       "kind": "method",
       "name": "com.example.shop.Cart.Priced.hidden",
       "parent": "com.example.shop.Cart.Priced",
-      "signature": null,
+      "signature": "private void hidden()",
       "span": "59:8-59:32",
       "static": false,
       "visibility": "private"
@@ -751,7 +751,7 @@
       "kind": "method",
       "name": "com.example.shop.Cart.Marker.value",
       "parent": "com.example.shop.Cart.Marker",
-      "signature": null,
+      "signature": "String value() default \"\";",
       "span": "63:8-63:34",
       "static": false,
       "visibility": "public"
@@ -791,7 +791,7 @@
       "kind": "method",
       "name": "com.example.shop.Cart.Colour.GREEN.paint",
       "parent": "com.example.shop.Cart.Colour.GREEN",
-      "signature": null,
+      "signature": "@Override void paint()",
       "span": "71:12-72:27",
       "static": false,
       "visibility": "internal"
@@ -811,7 +811,7 @@
       "kind": "constructor",
       "name": "com.example.shop.Cart.Colour.Colour",
       "parent": "com.example.shop.Cart.Colour",
-      "signature": null,
+      "signature": "Colour()",
       "span": "77:8-79:9",
       "static": false,
       "visibility": "internal"
@@ -821,7 +821,7 @@
       "kind": "constructor",
       "name": "com.example.shop.Cart.Colour.Colour",
       "parent": "com.example.shop.Cart.Colour",
-      "signature": null,
+      "signature": "Colour(String code)",
       "span": "81:8-83:9",
       "static": false,
       "visibility": "internal"
@@ -831,7 +831,7 @@
       "kind": "method",
       "name": "com.example.shop.Cart.Colour.paint",
       "parent": "com.example.shop.Cart.Colour",
-      "signature": null,
+      "signature": "void paint()",
       "span": "85:8-85:23",
       "static": false,
       "visibility": "internal"
@@ -871,7 +871,7 @@
       "kind": "constructor",
       "name": "com.example.shop.Cart.Point.Point",
       "parent": "com.example.shop.Cart.Point",
-      "signature": null,
+      "signature": "public Point",
       "span": "90:8-94:9",
       "static": false,
       "visibility": "public"
@@ -881,7 +881,7 @@
       "kind": "method",
       "name": "com.example.shop.Cart.Point.length",
       "parent": "com.example.shop.Cart.Point",
-      "signature": null,
+      "signature": "double length()",
       "span": "96:8-98:9",
       "static": false,
       "visibility": "internal"
@@ -891,7 +891,7 @@
       "kind": "method",
       "name": "com.example.shop.Cart.local",
       "parent": "com.example.shop.Cart",
-      "signature": null,
+      "signature": "void local()",
       "span": "101:4-107:5",
       "static": false,
       "visibility": "internal"
@@ -901,7 +901,7 @@
       "kind": "method",
       "name": "com.example.shop.Cart.local.run",
       "parent": "com.example.shop.Cart.local",
-      "signature": null,
+      "signature": "@Override public void run()",
       "span": "103:12-104:32",
       "static": false,
       "visibility": "public"
