@@ -192,6 +192,13 @@ pub const MIN_LOAD_THREADS: usize = 1;
 
 /// Reason of the error when the thread that loads a pack panics.
 pub const LOAD_PANICKED: &str = "loading the pack panicked";
+/// Stands between `LOAD_PANICKED` and the message of the panic.
+pub const LOAD_PANIC_SEPARATOR: &str = ": ";
+/// Name of the threads that compile the queries of a pack.
+pub const COMPILE_THREAD_NAME: &str = "codeskimr-pack-query";
+/// Stack of a thread that compiles a query: that of a main thread on Linux (8 MiB), because the
+/// query compiler of tree-sitter recurses and a spawned thread gets 2 MiB by default.
+pub const COMPILE_STACK_BYTES: usize = 8 * 1024 * 1024;
 
 /// Label of the full tier, as the language table shows it.
 pub const TIER_FULL: &str = "full";

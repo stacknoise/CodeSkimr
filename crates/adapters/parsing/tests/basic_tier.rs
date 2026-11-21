@@ -178,6 +178,33 @@ mod tests {
         packs.verify().expect("every pack compiles");
     }
 
+    /// The queries of a pack compile on threads of their own; the error must still be the one of
+    /// the first broken file in the order symbols, references, metrics, whichever thread ends first.
+    #[test]
+    fn the_first_broken_query_in_file_order_is_reported() {
+        let root = broken_pack("full", "order");
+        let dir = root.join("rust");
+        fs::copy(fixture_pack().join("symbols.scm"), dir.join("symbols.scm")).expect("copy");
+        fs::write(dir.join("metrics.scm"), "(broken_metrics) @x").expect("write");
+        for _ in 0..20 {
+            let error = LanguagePack::load(&dir).err().expect("metrics are broken");
+            assert!(format!("{error:?}").contains("broken_metrics"), "{error:?}");
+        }
+        fs::write(dir.join("references.scm"), "(broken_references) @x").expect("write");
+        for _ in 0..20 {
+            let error = LanguagePack::load(&dir).err().expect("both are broken");
+            assert_eq!(error.code(), ErrorCode::LanguagePackInvalid);
+            assert!(
+                format!("{error:?}").contains("broken_references"),
+                "{error:?}"
+            );
+        }
+        fs::write(dir.join("symbols.scm"), "(broken_symbols) @x").expect("write");
+        let error = LanguagePack::load(&dir).err().expect("all are broken");
+        assert!(format!("{error:?}").contains("broken_symbols"), "{error:?}");
+        fs::remove_dir_all(root).ok();
+    }
+
     #[test]
     fn the_tiers_are_read_from_the_manifests_alone() {
         let tiers = codeskimr_parsing::tiers(&languages()).expect("tiers");
