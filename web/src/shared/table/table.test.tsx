@@ -66,4 +66,29 @@ describe("resizable table", () => {
     expect(parseWidths("not json", IDS)).toEqual({});
     expect(parseWidths(null, IDS)).toEqual({});
   });
+
+  it("reports the width on focus while the table sizes itself, and keeps sizing itself", () => {
+    const original = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetWidth");
+    Object.defineProperty(HTMLElement.prototype, "offsetWidth", { configurable: true, value: 90 });
+    try {
+      render(() => <Sample name="fourth" />);
+      const handle = grip("two");
+      expect(handle.getAttribute("aria-valuenow")).toBeNull();
+      fireEvent.focus(handle);
+      expect(Number(handle.getAttribute("aria-valuenow"))).toBe(90);
+      expect(screen.getByTestId("table").style.tableLayout).toBe("");
+    } finally {
+      if (original) {
+        Object.defineProperty(HTMLElement.prototype, "offsetWidth", original);
+      }
+    }
+  });
+
+  it("takes all columns back to their first widths with Home", () => {
+    render(() => <Sample name="fifth" />);
+    fireEvent.keyDown(grip("one"), { key: "ArrowRight" });
+    expect(screen.getByTestId("table").style.tableLayout).toBe("fixed");
+    fireEvent.keyDown(grip("three"), { key: "Home" });
+    expect(screen.getByTestId("table").style.tableLayout).toBe("");
+  });
 });

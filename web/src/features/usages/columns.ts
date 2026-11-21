@@ -15,6 +15,11 @@ export const columnWidths = Object.fromEntries(
   ]),
 );
 
+/** Takes every column back to its first width. */
+export function resetColumnWidths(): void {
+  Object.values(columnWidths).forEach((width) => width.reset());
+}
+
 /** The `grid-template-columns` of the head and of every row of the list: a width for every column and
  * a last track that takes what is left, so that the last column can be widened too. */
 export function gridColumns(): string {

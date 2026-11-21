@@ -29,3 +29,4 @@ app-action-copy-name = Namen kopieren
 app-resize-width = Breite ändern (ziehen oder Pfeiltasten)
 app-resize-height = Höhe ändern (ziehen oder Pfeiltasten)
 table-col-resize = Breite der Spalte { $name } ändern (ziehen oder Pfeiltasten)
+table-col-reset-tip = Pos1 oder Doppelklick: alle Spalten dieser Tabelle auf die Ausgangsbreiten

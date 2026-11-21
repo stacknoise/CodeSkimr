@@ -1,7 +1,7 @@
 import { For, Show } from "solid-js";
 import { t } from "../../shared/i18n/i18n";
 import { ColumnGrip } from "../../shared/table/ColumnGrip";
-import { columnWidths, gridColumns } from "./columns";
+import { columnWidths, gridColumns, resetColumnWidths } from "./columns";
 import { HIT_COLUMNS } from "./consts";
 import styles from "./HitList.module.css";
 
@@ -14,7 +14,12 @@ export function ColumnHead() {
           <span class={styles.cell}>
             {t(column.label)}
             <Show when={columnWidths[column.id]}>
-              {(width) => <ColumnGrip width={width()} name={t(column.label)} />}
+              {(width) => (
+                <ColumnGrip
+                  width={{ ...width(), reset: resetColumnWidths }}
+                  name={t(column.label)}
+                />
+              )}
             </Show>
           </span>
         )}

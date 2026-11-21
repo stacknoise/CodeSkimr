@@ -8,6 +8,8 @@ export const COLUMN_KEY_STEP_PX = 12;
 export const COLUMN_KEY_STEP_LARGE_PX = 48;
 /** The keys that move a column handle, and by how many steps (a key not listed moves nothing). */
 export const COLUMN_KEY_DELTA: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1 };
+/** The key that takes the widths back to the first ones (the double click does the same). */
+export const COLUMN_RESET_KEY = "Home";
 /** No movement. */
 export const NO_DELTA = 0;
 /** The unit of a width, and the CSS that a table with fixed column widths needs. */

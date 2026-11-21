@@ -29,3 +29,4 @@ app-action-copy-name = Copy name
 app-resize-width = Change width (drag, or arrow keys)
 app-resize-height = Change height (drag, or arrow keys)
 table-col-resize = Change width of column { $name } (drag, or arrow keys)
+table-col-reset-tip = Home or double click: all columns of this table back to their first widths

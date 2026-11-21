@@ -147,6 +147,7 @@ export const I18N_KEYS = {
   APP_RESIZE_WIDTH: "app-resize-width",
   APP_RESIZE_HEIGHT: "app-resize-height",
   TABLE_COL_RESIZE: "table-col-resize",
+  TABLE_COL_RESET_TIP: "table-col-reset-tip",
   CLI_ERROR_LINE: "cli-error-line",
   CLI_SCAN_STARTED: "cli-scan-started",
   CLI_SCAN_FINISHED: "cli-scan-finished",
