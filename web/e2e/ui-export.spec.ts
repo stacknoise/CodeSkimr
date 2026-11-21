@@ -2,7 +2,7 @@
 // `UPDATE_SCREENSHOTS=1` writes the screens to docs/screenshots/export/.
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { addScannedProject, expect, shot, test } from "./fixtures";
+import { expect, openScannedProject, shot, test } from "./fixtures";
 
 const SHOTS = path.resolve(import.meta.dirname, "../../docs/screenshots/export");
 const THEMES = ["hell", "petrol", "dunkel"];
@@ -14,10 +14,7 @@ for (const theme of THEMES) {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.addInitScript((name) => localStorage.setItem("codeskimr.theme", name), theme);
     const name = `export${theme}`;
-    const row = await addScannedProject(page, harness, name, SOURCE);
-    await row.click({ position: { x: 4, y: 4 } });
-    await page.keyboard.press("Enter");
-    await expect(page.getByRole("tree")).toBeVisible();
+    await openScannedProject(page, harness, name, SOURCE);
 
     const button = page.getByRole("button", { name: "Export HTML" });
     await expect(button).toBeEnabled();
@@ -34,10 +31,7 @@ for (const theme of THEMES) {
 }
 
 test("the quick search offers the export", async ({ page, harness }) => {
-  const row = await addScannedProject(page, harness, "exportsearch", SOURCE);
-  await row.click({ position: { x: 4, y: 4 } });
-  await page.keyboard.press("Enter");
-  await expect(page.getByRole("tree")).toBeVisible();
+  await openScannedProject(page, harness, "exportsearch", SOURCE);
   await page.keyboard.press("Control+k");
   await page.getByRole("combobox").fill(">export");
   const download = page.waitForEvent("download");
