@@ -468,6 +468,10 @@ pub const WARM_THREAD_NAME: &str = "usages-warm-up";
 pub const IDLE_POLL: Duration = Duration::from_millis(50);
 /// How long the end of the server waits for the runs it cancelled (ADR 0072).
 pub const SHUTDOWN_GRACE: Duration = Duration::from_secs(5);
+/// Name of the thread that deletes the dismissed alerts that are past their retention (ADR 0068).
+pub const PURGE_THREAD_NAME: &str = "alert-purge";
+/// How long the server waits between two purges of dismissed alerts: one day (ADR 0068).
+pub const PURGE_INTERVAL: Duration = Duration::from_secs(24 * 60 * 60);
 /// Name of the thread that runs level 2 after a scan from the browser (ADR 0072).
 pub const LEVEL2_THREAD_NAME: &str = "level2-run";
 

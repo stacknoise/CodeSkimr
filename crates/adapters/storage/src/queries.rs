@@ -266,3 +266,33 @@ impl SqliteStore {
             .map_err(CodedError::from)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use rusqlite::Connection;
+
+    use crate::{migrate, sql};
+
+    /// The plan of the symbol search must not read the wide rows of `search_index` while it ranks
+    /// (budget `search_keystroke_ms`): only its name index may be scanned.
+    #[test]
+    fn the_symbol_search_ranks_over_the_covering_name_index() {
+        let mut conn = Connection::open_in_memory().unwrap();
+        migrate::apply(&mut conn).unwrap();
+        let mut statement = conn
+            .prepare(&format!("EXPLAIN QUERY PLAN {}", sql::SEARCH))
+            .unwrap();
+        let plan: Vec<String> = statement
+            .query_map(rusqlite::params![1, "%a%", "a", "a%", "a", 20], |row| {
+                row.get::<_, String>(3)
+            })
+            .unwrap()
+            .map(Result::unwrap)
+            .collect();
+        assert!(
+            plan.iter()
+                .any(|step| step.contains("COVERING INDEX search_by_name")),
+            "{plan:?}"
+        );
+    }
+}

@@ -236,7 +236,7 @@ pub const SEARCH_REBUILD: &str = "INSERT INTO search_index \
     (snapshot_id, symbol_id, name_lower, name, qualified_name, kind, path) \
     SELECT f.snapshot_id, s.id, lower(s.name), s.name, s.qualified_name, s.kind, f.path \
     FROM files f JOIN symbol_rows s ON s.file_id = f.id \
-    WHERE f.snapshot_id = ?1 AND s.kind <> ?2";
+    WHERE f.snapshot_id = ?1 AND s.kind <> ?2 ORDER BY s.id";
 /// The ids of the files of a snapshot: snapshot.
 pub const FILE_IDS: &str = "SELECT id FROM files WHERE snapshot_id = ?1";
 /// The ids of the symbols of a snapshot: snapshot.
@@ -278,13 +278,19 @@ pub const EDGE_INSERT: &str = "INSERT INTO layer_graph \
 pub const USAGES_OF: &str =
     "SELECT usages FROM usage_counts WHERE snapshot_id = ?1 AND symbol_id = ?2";
 /// Fuzzy search: snapshot, subsequence pattern, exact text, prefix pattern, substring text,
-/// limit. Exact matches come first, then prefix, substring and the rest, shorter names first.
+/// limit. Exact matches come first, then prefix, substring and the rest, shorter names first. The
+/// limit is applied before the join with `symbols`, which only the few hits need. Names that
+/// are equal are told apart by the row id, which `SEARCH_REBUILD` hands out in symbol id order.
 pub const SEARCH: &str = "SELECT i.symbol_id, i.name, i.qualified_name, i.kind, i.path, s.parent_id \
-    FROM search_index i JOIN symbols s ON s.snapshot_id = i.snapshot_id AND s.id = i.symbol_id \
-    WHERE i.snapshot_id = ?1 AND i.name_lower LIKE ?2 ESCAPE '\\' \
-    ORDER BY CASE WHEN i.name_lower = ?3 THEN 0 WHEN i.name_lower LIKE ?4 ESCAPE '\\' THEN 1 \
-    WHEN instr(i.name_lower, ?5) > 0 THEN 2 ELSE 3 END, length(i.name_lower), i.name_lower \
-    LIMIT ?6";
+    FROM (SELECT x.rowid AS hit_row, x.name_lower, \
+    CASE WHEN x.name_lower = ?3 THEN 0 WHEN x.name_lower LIKE ?4 ESCAPE '\\' THEN 1 \
+    WHEN instr(x.name_lower, ?5) > 0 THEN 2 ELSE 3 END AS rank \
+    FROM search_index x INDEXED BY search_by_name \
+    WHERE x.snapshot_id = ?1 AND x.name_lower LIKE ?2 ESCAPE '\\' \
+    ORDER BY rank, length(x.name_lower), x.name_lower, x.rowid LIMIT ?6) h \
+    JOIN search_index i ON i.rowid = h.hit_row \
+    JOIN symbols s ON s.snapshot_id = i.snapshot_id AND s.id = i.symbol_id \
+    ORDER BY h.rank, length(h.name_lower), h.name_lower, i.symbol_id";
 /// Fuzzy search over file paths: snapshot, subsequence pattern, substring text, limit. Only files
 /// that declare a type count; the first type is the one with the lowest id.
 pub const SEARCH_FILES: &str = "SELECT f.path, f.loc, MIN(t.symbol_id) FROM files f \

@@ -1,4 +1,4 @@
-import { createEffect, For, onCleanup, Show } from "solid-js";
+import { createEffect, ErrorBoundary, For, onCleanup, Show } from "solid-js";
 import { Dynamic } from "solid-js/web";
 import { AlertsDrawer } from "../features/alerts/Drawer";
 import { hideDrawer, refreshCount } from "../features/alerts/store";
@@ -41,6 +41,7 @@ import {
 } from "./consts";
 import styles from "./App.module.css";
 import { RailLink, TopBar } from "./Frame";
+import { UnexpectedError } from "./UnexpectedError";
 import { ProjectCrumb } from "./ProjectCrumb";
 import { currentPath, navigate } from "./router";
 
@@ -107,7 +108,11 @@ export function App() {
             when={sessionState().kind === KIND.connected}
             fallback={<ConnectionScreen state={sessionState()} />}
           >
-            <Screen />
+            <ErrorBoundary
+              fallback={(error, reset) => <UnexpectedError error={error} reset={reset} />}
+            >
+              <Screen />
+            </ErrorBoundary>
           </Show>
         </main>
       </div>
