@@ -2,13 +2,13 @@
 
 use std::fs;
 use std::num::NonZeroU32;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::time::Duration;
 
 use codeskimr_application::error::CodedError;
 use codeskimr_domain::SnapshotId;
-use rusqlite::{Connection, ErrorCode, Transaction, TransactionBehavior};
+use rusqlite::{Connection, ErrorCode, OpenFlags, Transaction, TransactionBehavior};
 
 use crate::consts::{
     BUSY_TIMEOUT_MS, CACHE_SIZE_KIB, FIRST_ID, ID_STEP, JOURNAL_MODE_WAL, PRAGMA_CACHE_SIZE,
@@ -54,6 +54,9 @@ fn limit_growth(conn: &Connection, pages: NonZeroU32) -> rusqlite::Result<()> {
 #[derive(Debug)]
 pub struct SqliteStore {
     conn: Mutex<Connection>,
+    /// The database file, so that a long read can use a connection of its own and leave `conn`
+    /// to the queries of the screens; `None` for an in-memory database.
+    file: Option<PathBuf>,
     retention: NonZeroU32,
     /// The reverse index and the places of the snapshot that was asked about last. They are kept
     /// only while no other connection has committed since (`data_version`): the level 2 import of
@@ -95,7 +98,7 @@ impl SqliteStore {
     pub fn open_in_memory(retention: NonZeroU32) -> Result<Self, CodedError> {
         Connection::open_in_memory()
             .map_err(Into::into)
-            .and_then(|conn| Self::prepared(conn, retention, StoreOptions::default()))
+            .and_then(|conn| Self::prepared(conn, None, retention, StoreOptions::default()))
             .map_err(CodedError::from)
     }
 
@@ -107,11 +110,17 @@ impl SqliteStore {
         if let Some(folder) = path.parent() {
             fs::create_dir_all(folder)?;
         }
-        Self::prepared(Connection::open(path)?, retention, options)
+        Self::prepared(
+            Connection::open(path)?,
+            Some(path.to_path_buf()),
+            retention,
+            options,
+        )
     }
 
     fn prepared(
         mut conn: Connection,
+        file: Option<PathBuf>,
         retention: NonZeroU32,
         options: StoreOptions,
     ) -> StorageResult<Self> {
@@ -127,6 +136,7 @@ impl SqliteStore {
         }
         Ok(Self {
             conn: Mutex::new(conn),
+            file,
             retention,
             reverse: Mutex::new(None),
         })
@@ -147,6 +157,27 @@ impl SqliteStore {
         work: impl FnOnce(&Connection) -> StorageResult<T>,
     ) -> StorageResult<T> {
         work(&self.connection())
+    }
+
+    /// Runs a long read on a read-only connection of its own, so that the other queries and the
+    /// writers are not held up by it (the write-ahead log lets readers run side by side). Without
+    /// a file (in-memory database), or if the extra connection cannot be opened, it runs on the
+    /// shared connection.
+    pub(crate) fn read_apart<T>(
+        &self,
+        work: impl FnOnce(&Connection) -> StorageResult<T>,
+    ) -> StorageResult<T> {
+        let own = self.file.as_deref().and_then(|file| {
+            Connection::open_with_flags(
+                file,
+                OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+            )
+            .ok()
+        });
+        match own {
+            Some(conn) => work(&conn),
+            None => self.read(work),
+        }
     }
 
     /// Runs `work` in one write transaction: committed if it succeeds, rolled back otherwise.
