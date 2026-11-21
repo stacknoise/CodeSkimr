@@ -27,6 +27,12 @@ fn the_languages_below_99_percent_are_marked_in_the_defaults() {
 }
 
 #[test]
+fn level_one_gives_up_a_bare_name_above_one_hundred_candidates() {
+    let config = Config::defaults().expect("shipped defaults are valid");
+    assert_eq!(config.scan.max_candidates, 100);
+}
+
+#[test]
 fn a_scan_names_twenty_files_it_left_out_by_default() {
     let config = Config::defaults().expect("shipped defaults are valid");
     assert_eq!(config.scan.max_left_out_listed, 20);
@@ -579,6 +585,20 @@ fn the_project_file_may_lower_the_scan_limits_but_not_raise_them() {
     let scan = Config::resolve(&[raised]).expect("valid").scan;
     assert_eq!(scan.max_source_mb, defaults.max_source_mb);
     assert_eq!(scan.parse_timeout_ms, defaults.parse_timeout_ms);
+}
+
+#[test]
+fn the_project_file_may_lower_the_candidate_limit_but_not_raise_it() {
+    let defaults = Config::defaults().expect("defaults").scan;
+    let lowered = project("[scan]\nmax_candidates = 10\n");
+    let scan = Config::resolve(&[lowered]).expect("valid").scan;
+    assert_eq!(scan.max_candidates, 10);
+    let raised = project("[scan]\nmax_candidates = 4000000000\n");
+    let scan = Config::resolve(&[raised]).expect("valid").scan;
+    assert_eq!(scan.max_candidates, defaults.max_candidates);
+    let user_file = user("[scan]\nmax_candidates = 500\n");
+    let scan = Config::resolve(&[user_file]).expect("valid").scan;
+    assert_eq!(scan.max_candidates, 500);
 }
 
 #[test]

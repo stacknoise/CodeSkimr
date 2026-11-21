@@ -44,6 +44,9 @@ for (const theme of THEMES) {
       });
       await expect(page.getByText("Old00.cs")).toBeVisible();
       await expect(page.getByText("PRS-101")).toHaveCount(LISTED);
+      await expect(page.getByText(/is not valid UTF-8 or UTF-16/)).toHaveCount(1);
+      await page.getByText("Files left out", { exact: true }).scrollIntoViewIfNeeded();
+      await shot(page, SHOTS, `scan-left-out-start-${theme}`, info);
       await page.getByText("and 2 more files").scrollIntoViewIfNeeded();
       await expect(page.getByText("and 2 more files")).toBeVisible();
       await shot(page, SHOTS, `scan-left-out-${theme}`, info);

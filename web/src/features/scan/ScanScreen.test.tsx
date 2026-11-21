@@ -136,6 +136,7 @@ describe("ScanScreen", () => {
             left_out: [
               { path: "src/legacy.txt", code: "PRS-101", kept: false },
               { path: "src/big.cs", code: "PRS-501", kept: true },
+              { path: "src/old.txt", code: "PRS-101", kept: false },
             ],
             left_out_more: 3,
           },
@@ -145,12 +146,14 @@ describe("ScanScreen", () => {
     const stop = await shown();
     expect(await screen.findByText("Files left out")).toBeInTheDocument();
     expect(screen.getByText("src/legacy.txt")).toBeInTheDocument();
-    expect(screen.getByText("PRS-101")).toBeInTheDocument();
-    expect(screen.getByText("missing in the result")).toBeInTheDocument();
+    expect(screen.getAllByText("PRS-101")).toHaveLength(2);
+    expect(screen.getAllByText("missing in the result")).toHaveLength(2);
     expect(screen.getByText("PRS-501")).toBeInTheDocument();
     expect(screen.getByText("shown as the previous scan saw it")).toBeInTheDocument();
     expect(screen.getByText("and 3 more files")).toBeInTheDocument();
-    expect(screen.getAllByText(/skipped/i).length).toBeGreaterThan(0);
+    expect(
+      screen.getAllByText("A source file is not valid UTF-8 or UTF-16 and was skipped."),
+    ).toHaveLength(1);
     stop();
   });
 

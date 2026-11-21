@@ -26,9 +26,10 @@ mod tests {
         let root = FolderPath::new(languages.join("csharp/tests").to_string_lossy()).expect("root");
         let ids = IdSequence::starting_at(1);
         let facts = analyze_file(&analyzer, &ids, &root, file, "csharp");
-        let found = ScopedResolver
+        let found = ScopedResolver::default()
             .resolve(&facts.symbols, &facts.pending, &HashSet::new(), &ids)
-            .expect("resolves");
+            .expect("resolves")
+            .references;
         (facts, found)
     }
 

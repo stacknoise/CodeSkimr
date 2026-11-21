@@ -5,7 +5,7 @@ mod tests {
     use std::collections::HashSet;
 
     use codeskimr_application::ids::IdSequence;
-    use codeskimr_application::ports::{PendingReference, Receiver, ReferenceResolver};
+    use codeskimr_application::ports::{PendingReference, Receiver, ReferenceResolver, Resolution};
     use codeskimr_application::resolve::ScopedResolver;
     use codeskimr_domain::{
         Confidence, FileId, Position, QualifiedName, Reference, ReferenceKind, Span, Symbol,
@@ -99,7 +99,15 @@ mod tests {
         pending: &[PendingReference],
         test_files: &HashSet<FileId>,
     ) -> Vec<Reference> {
-        ScopedResolver
+        resolution(table, pending, test_files).references
+    }
+
+    fn resolution(
+        table: &Table,
+        pending: &[PendingReference],
+        test_files: &HashSet<FileId>,
+    ) -> Resolution {
+        ScopedResolver::default()
             .resolve(
                 &table.symbols,
                 pending,
@@ -409,6 +417,113 @@ mod tests {
             both.iter()
                 .all(|r| r.confidence == Confidence::Probable && !r.verified)
         );
+    }
+
+    /// `count` unrelated interfaces, each with a method `Close`, and a caller of `Close`.
+    fn many_closers(count: u64) -> (Table, PendingReference) {
+        let mut table = Table::default();
+        for number in 1..=count {
+            let owner = table.add(
+                SymbolKind::Interface,
+                &format!("Demo.I{number}"),
+                None,
+                number,
+            );
+            table.add(
+                SymbolKind::Method,
+                &format!("Demo.I{number}.Close"),
+                Some(owner),
+                number,
+            );
+        }
+        let caller = table.add(SymbolKind::Method, "Demo.Client.Go", None, 99);
+        let call = unknown(occurrence(caller, 99, ReferenceKind::Call, "Close"));
+        (table, call)
+    }
+
+    fn limited(limit: usize, table: &Table, call: &PendingReference) -> Resolution {
+        ScopedResolver::new(limit)
+            .resolve(
+                &table.symbols,
+                std::slice::from_ref(call),
+                &HashSet::new(),
+                &IdSequence::starting_at(1000),
+            )
+            .expect("resolves")
+    }
+
+    #[test]
+    fn a_name_that_reaches_more_symbols_than_the_limit_is_given_up_and_counted() {
+        let (table, call) = many_closers(3);
+        let found = limited(2, &table, &call);
+        assert_eq!(
+            found,
+            Resolution {
+                references: Vec::new(),
+                given_up: 1
+            }
+        );
+    }
+
+    #[test]
+    fn a_name_that_reaches_exactly_the_limit_keeps_every_candidate() {
+        let (table, call) = many_closers(3);
+        let found = limited(3, &table, &call);
+        assert_eq!(found.references.len(), 3);
+        assert_eq!(found.given_up, 0);
+    }
+
+    #[test]
+    fn a_name_that_the_enclosing_scope_finds_is_never_given_up_however_many_candidates_it_has() {
+        let mut table = Table::default();
+        let owner = table.add(SymbolKind::Class, "Demo.Owner", None, 1);
+        for _ in 0..3 {
+            table.add(SymbolKind::Method, "Demo.Owner.Close", Some(owner), 1);
+        }
+        let caller = table.add(SymbolKind::Method, "Demo.Owner.Go", Some(owner), 1);
+        let call = occurrence(caller, 1, ReferenceKind::Call, "Close");
+        let found = limited(1, &table, &call);
+        assert_eq!(found.references.len(), 3);
+        assert_eq!(found.given_up, 0);
+    }
+
+    #[test]
+    fn a_name_that_an_import_makes_visible_is_never_given_up_however_many_candidates_it_has() {
+        let mut table = Table::default();
+        let (first, _) = table.add_tool("First", 1);
+        let (second, _) = table.add_tool("Second", 2);
+        table.add_tool("Third", 3);
+        let caller = table.add(SymbolKind::Method, "Demo.Client.Go", None, 9);
+        let pending = [
+            occurrence(caller, 9, ReferenceKind::Import, "First"),
+            occurrence(caller, 9, ReferenceKind::Import, "Second"),
+            occurrence(caller, 9, ReferenceKind::TypeUse, "Tool"),
+        ];
+        let found = ScopedResolver::new(1)
+            .resolve(
+                &table.symbols,
+                &pending,
+                &HashSet::new(),
+                &IdSequence::starting_at(1000),
+            )
+            .expect("resolves");
+        let tools = found
+            .references
+            .iter()
+            .filter(|r| r.kind == ReferenceKind::TypeUse)
+            .count();
+        assert_eq!((tools, found.given_up), (2, 0));
+        assert!(found.references.iter().any(|r| r.to == first));
+        assert!(found.references.iter().any(|r| r.to == second));
+    }
+
+    #[test]
+    fn a_typed_receiver_is_never_given_up_however_many_symbols_share_the_name() {
+        let (table, mut call) = many_closers(3);
+        call.receiver = Some(Receiver::Typed(QualifiedName::new("I1").expect("type")));
+        let found = limited(1, &table, &call);
+        assert_eq!(found.references.len(), 1);
+        assert_eq!(found.given_up, 0);
     }
 
     #[test]
