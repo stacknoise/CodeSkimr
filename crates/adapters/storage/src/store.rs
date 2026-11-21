@@ -236,3 +236,59 @@ fn enable_wal(conn: &Connection) -> rusqlite::Result<()> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::num::NonZeroU32;
+
+    use super::SqliteStore;
+
+    fn file_store(name: &str) -> (SqliteStore, std::path::PathBuf) {
+        let folder =
+            std::env::temp_dir().join(format!("codeskimr-apart-{}-{name}", std::process::id()));
+        let path = folder.join("workspace.db");
+        let store = SqliteStore::open(&path, NonZeroU32::new(3).unwrap()).unwrap();
+        (store, folder)
+    }
+
+    #[test]
+    fn a_read_apart_does_not_hold_up_a_write_on_the_shared_connection() {
+        let (store, folder) = file_store("write");
+        let written = store
+            .read_apart(|_| store.write(|tx| Ok(tx.execute("CREATE TABLE probe (x)", [])?)))
+            .unwrap();
+        assert_eq!(written, 0);
+        std::fs::remove_dir_all(folder).unwrap();
+    }
+
+    #[test]
+    fn a_read_apart_sees_one_state_although_a_writer_commits_meanwhile() {
+        let (store, folder) = file_store("state");
+        store
+            .write(|tx| {
+                Ok(tx.execute_batch("CREATE TABLE probe (x); INSERT INTO probe VALUES (1);")?)
+            })
+            .unwrap();
+        let (before, after) = store
+            .read_apart(|conn| {
+                let count = |c: &rusqlite::Connection| -> i64 {
+                    c.query_row("SELECT COUNT(*) FROM probe", [], |row| row.get(0))
+                        .unwrap()
+                };
+                let before = count(conn);
+                store.write(|tx| Ok(tx.execute("INSERT INTO probe VALUES (2)", [])?))?;
+                Ok((before, count(conn)))
+            })
+            .unwrap();
+        assert_eq!((before, after), (1, 1));
+        assert_eq!(
+            store
+                .read(
+                    |c| Ok(c.query_row("SELECT COUNT(*) FROM probe", [], |r| r.get::<_, i64>(0))?)
+                )
+                .unwrap(),
+            2
+        );
+        std::fs::remove_dir_all(folder).unwrap();
+    }
+}
