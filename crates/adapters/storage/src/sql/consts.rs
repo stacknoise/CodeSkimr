@@ -278,13 +278,18 @@ pub const EDGE_INSERT: &str = "INSERT INTO layer_graph \
 pub const USAGES_OF: &str =
     "SELECT usages FROM usage_counts WHERE snapshot_id = ?1 AND symbol_id = ?2";
 /// Fuzzy search: snapshot, subsequence pattern, exact text, prefix pattern, substring text,
-/// limit. Exact matches come first, then prefix, substring and the rest, shorter names first.
+/// limit. Exact matches come first, then prefix, substring and the rest, shorter names first. The
+/// limit is applied before the join with `symbols`, which only the few hits need.
 pub const SEARCH: &str = "SELECT i.symbol_id, i.name, i.qualified_name, i.kind, i.path, s.parent_id \
-    FROM search_index i JOIN symbols s ON s.snapshot_id = i.snapshot_id AND s.id = i.symbol_id \
-    WHERE i.snapshot_id = ?1 AND i.name_lower LIKE ?2 ESCAPE '\\' \
-    ORDER BY CASE WHEN i.name_lower = ?3 THEN 0 WHEN i.name_lower LIKE ?4 ESCAPE '\\' THEN 1 \
-    WHEN instr(i.name_lower, ?5) > 0 THEN 2 ELSE 3 END, length(i.name_lower), i.name_lower \
-    LIMIT ?6";
+    FROM (SELECT x.rowid AS row, x.name_lower, \
+    CASE WHEN x.name_lower = ?3 THEN 0 WHEN x.name_lower LIKE ?4 ESCAPE '\\' THEN 1 \
+    WHEN instr(x.name_lower, ?5) > 0 THEN 2 ELSE 3 END AS rank \
+    FROM search_index x INDEXED BY search_by_name \
+    WHERE x.snapshot_id = ?1 AND x.name_lower LIKE ?2 ESCAPE '\\' \
+    ORDER BY rank, length(x.name_lower), x.name_lower LIMIT ?6) h \
+    JOIN search_index i ON i.rowid = h.row \
+    JOIN symbols s ON s.snapshot_id = i.snapshot_id AND s.id = i.symbol_id \
+    ORDER BY h.rank, length(h.name_lower), h.name_lower";
 /// Fuzzy search over file paths: snapshot, subsequence pattern, substring text, limit. Only files
 /// that declare a type count; the first type is the one with the lowest id.
 pub const SEARCH_FILES: &str = "SELECT f.path, f.loc, MIN(t.symbol_id) FROM files f \
