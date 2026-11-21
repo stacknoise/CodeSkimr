@@ -153,3 +153,7 @@ pub const NO_ANNOTATION: i64 = 0;
 
 /// How many indexes the alert step needs (`ENSURE_STATE_INDEXES`).
 pub const STATE_INDEX_COUNT: i64 = 3;
+
+/// Log event: the extra read connection of a long read could not be opened; the read runs on the
+/// shared connection and holds up the other queries.
+pub const LOG_READ_CONNECTION_UNAVAILABLE: &str = "read_connection_unavailable";

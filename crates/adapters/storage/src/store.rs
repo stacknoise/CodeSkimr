@@ -11,10 +11,10 @@ use codeskimr_domain::SnapshotId;
 use rusqlite::{Connection, ErrorCode, OpenFlags, Transaction, TransactionBehavior};
 
 use crate::consts::{
-    BUSY_TIMEOUT_MS, CACHE_SIZE_KIB, FIRST_ID, ID_STEP, JOURNAL_MODE_WAL, PRAGMA_CACHE_SIZE,
-    PRAGMA_FOREIGN_KEYS, PRAGMA_JOURNAL_MODE, PRAGMA_MAX_PAGE_COUNT, PRAGMA_ON, PRAGMA_PAGE_COUNT,
-    PRAGMA_SYNCHRONOUS, PRAGMA_TEMP_STORE, SYNCHRONOUS_NORMAL, TEMP_STORE_MEMORY,
-    WAL_SWITCH_ATTEMPTS, WAL_SWITCH_PAUSE_MS,
+    BUSY_TIMEOUT_MS, CACHE_SIZE_KIB, FIRST_ID, ID_STEP, JOURNAL_MODE_WAL,
+    LOG_READ_CONNECTION_UNAVAILABLE, PRAGMA_CACHE_SIZE, PRAGMA_FOREIGN_KEYS, PRAGMA_JOURNAL_MODE,
+    PRAGMA_MAX_PAGE_COUNT, PRAGMA_ON, PRAGMA_PAGE_COUNT, PRAGMA_SYNCHRONOUS, PRAGMA_TEMP_STORE,
+    SYNCHRONOUS_NORMAL, TEMP_STORE_MEMORY, WAL_SWITCH_ATTEMPTS, WAL_SWITCH_PAUSE_MS,
 };
 use crate::error::StorageResult;
 use crate::sql;
@@ -160,23 +160,33 @@ impl SqliteStore {
     }
 
     /// Runs a long read on a read-only connection of its own, so that the other queries and the
-    /// writers are not held up by it (the write-ahead log lets readers run side by side). Without
-    /// a file (in-memory database), or if the extra connection cannot be opened, it runs on the
-    /// shared connection.
+    /// writers are not held up by it (the write-ahead log lets readers run side by side). The
+    /// whole read is one read transaction, so it sees one consistent state even if a writer
+    /// commits meanwhile. While it runs, the log cannot be checkpointed past its start, so the
+    /// log file may grow until it ends. Without a file (in-memory database) it runs on the shared
+    /// connection; so it does if the extra connection cannot be opened, which is logged.
     pub(crate) fn read_apart<T>(
         &self,
         work: impl FnOnce(&Connection) -> StorageResult<T>,
     ) -> StorageResult<T> {
-        let own = self.file.as_deref().and_then(|file| {
-            Connection::open_with_flags(
-                file,
-                OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
-            )
-            .ok()
-        });
-        match own {
-            Some(conn) => work(&conn),
-            None => self.read(work),
+        let Some(file) = self.file.as_deref() else {
+            return self.read(work);
+        };
+        let opened = Connection::open_with_flags(
+            file,
+            OpenFlags::SQLITE_OPEN_READ_ONLY | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+        );
+        match opened {
+            Ok(conn) => {
+                let tx = conn.unchecked_transaction()?;
+                let value = work(&tx)?;
+                tx.commit()?;
+                Ok(value)
+            }
+            Err(cause) => {
+                tracing::warn!(event = LOG_READ_CONNECTION_UNAVAILABLE, %cause);
+                self.read(work)
+            }
         }
     }
 

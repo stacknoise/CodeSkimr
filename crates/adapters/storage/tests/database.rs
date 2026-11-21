@@ -810,3 +810,31 @@ fn removing_a_project_with_shared_rows_of_an_incremental_scan_leaves_nothing() {
         assert_eq!(rows_of(&conn, &table), 0, "table {table}");
     }
 }
+
+#[test]
+fn the_reverse_index_of_a_file_database_is_loaded_on_its_own_connection() {
+    use codeskimr_application::ports::UsageIndex;
+    use codeskimr_domain::{Direction, ScanMode, UsageQuery};
+
+    let db = TempDb::new();
+    let store = SqliteStore::open(&db.0, keep(3)).unwrap();
+    store.save_project(&project(1, "/work/app", &[])).unwrap();
+    let mut scan = data(header(10, ScanMode::Full));
+    scan.files = vec![file(10, 11, "src/order.cs", "h")];
+    scan.symbols = vec![
+        symbol(21, 11, SymbolKind::Method, "App.Main", None),
+        symbol(22, 11, SymbolKind::Method, "App.Run", None),
+    ];
+    scan.references = vec![reference(31, 11, 21, 22)];
+    store.persist(scan).unwrap();
+    let query = UsageQuery {
+        symbol: SymbolId::new(22),
+        direction: Direction::Incoming,
+        depth: 1,
+        include_tests: true,
+    };
+    let page = store
+        .usages(codeskimr_domain::SnapshotId::new(10), &query, 10)
+        .unwrap();
+    assert_eq!(page.total, 1);
+}
