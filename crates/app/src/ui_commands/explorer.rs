@@ -15,7 +15,7 @@ use codeskimr_codes::ErrorCode;
 use codeskimr_domain::{Layer, Permission, Project, ProjectId, Snapshot, SymbolId, SymbolKind};
 use serde::{Deserialize, Serialize};
 
-use super::consts::{EXPLORER_OUTLINE, OUTLINE_DESCRIPTION, OUTLINE_TITLE};
+use super::consts::{EXPLORER_OUTLINE, OUTLINE_DESCRIPTION, OUTLINE_TITLE, QUALIFIED_SEPARATOR};
 
 /// What the explorer reads: the project repository for the layers, the index for one symbol, the
 /// outline for the tree and the project folder for the source of a declaration.
@@ -63,13 +63,18 @@ pub struct TypeNode {
     /// Simple name.
     pub name: String,
     /// Qualified name: with `kind` it is the key of the annotations of the type (ADR 0068).
-    pub qualified_name: String,
+    /// Left out of the answer for a type in the list of its namespace whose name is the name of
+    /// the namespace, a dot and the type name; the reader puts it together again (#651).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub qualified_name: Option<String>,
     /// Kind label.
     pub kind: &'static str,
     /// Number of direct members.
     pub members: u32,
-    /// Id of the language pack of the declaring file.
-    pub language: String,
+    /// Id of the language pack of the declaring file. Left out of the answer for a type in the
+    /// list of its namespace that has the language of the namespace (#651).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
 }
 
 /// A namespace with its types.
@@ -77,17 +82,25 @@ pub struct TypeNode {
 pub struct NamespaceNode {
     /// Qualified name of the namespace, empty for types without one.
     pub name: String,
-    /// Its types, ordered by name.
+    /// Its types, ordered by name. Left out of the answer when there are none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub types: Vec<TypeNode>,
+    /// The language most of its types have, `None` without types.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub language: Option<String>,
     /// The file module that has this very name (Python, Rust, TypeScript, JavaScript: the file
     /// is the namespace), so the tree can show and open it. `None` if no file is the namespace.
     pub module: Option<TypeNode>,
     /// Other symbols that hold functions or constants of this namespace: a namespace symbol (a
     /// TypeScript `namespace`, a Kotlin package, declared in one or more files) or the module of
     /// a file without a namespace. `members` counts the members that are no rows of the tree.
+    /// Left out of the answer when there are none.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
     pub holders: Vec<TypeNode>,
     /// Whether the name is the path of a file (a file without a namespace in a language that has
     /// them, ADR 0036) and no namespace name: the tree shows it as one row, named by the file.
+    /// Left out of the answer when it is false.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
     pub file: bool,
 }
 
@@ -175,10 +188,10 @@ fn type_node(node: &OutlineNode) -> TypeNode {
     TypeNode {
         id: node.id.get(),
         name: node.name.to_string(),
-        qualified_name: node.qualified_name.to_string(),
+        qualified_name: Some(node.qualified_name.to_string()),
         kind: node.kind.label(),
         members: node.members,
-        language: node.language.to_string(),
+        language: Some(node.language.to_string()),
     }
 }
 
@@ -227,14 +240,70 @@ fn layer_nodes(layers: &[Layer], mut groups: Vec<Grouped>) -> Vec<LayerNode> {
     nodes
 }
 
+/// The language that most of the types have; the first one of those that have the most.
+fn common_language(types: &[TypeNode]) -> Option<String> {
+    let mut counts: Vec<(&str, usize)> = Vec::new();
+    for language in types.iter().filter_map(|node| node.language.as_deref()) {
+        match counts.iter_mut().find(|(known, _)| *known == language) {
+            Some((_, count)) => *count += 1,
+            None => counts.push((language, 1)),
+        }
+    }
+    let most = counts.iter().map(|(_, count)| *count).max()?;
+    counts
+        .into_iter()
+        .find(|(_, count)| *count == most)
+        .map(|(language, _)| language.to_owned())
+}
+
+/// Leaves out of the types of a namespace what the reader can put together again: the language of
+/// the namespace and a qualified name made of the namespace, a dot and the name (#651).
+fn compact(namespace: &str, language: Option<&str>, types: &mut [TypeNode]) {
+    for node in types {
+        if node.language.as_deref() == language {
+            node.language = None;
+        }
+        let derived = if namespace.is_empty() {
+            node.name.clone()
+        } else {
+            format!("{namespace}{QUALIFIED_SEPARATOR}{}", node.name)
+        };
+        if node.qualified_name.as_deref() == Some(derived.as_str()) {
+            node.qualified_name = None;
+        }
+    }
+}
+
+/// Leaves out of the module of a namespace its qualified name, which is the name of the namespace,
+/// and the language of the namespace.
+fn compact_module(namespace: &str, language: Option<&str>, module: &mut TypeNode) {
+    if module.language.as_deref() == language {
+        module.language = None;
+    }
+    if module.qualified_name.as_deref() == Some(namespace) {
+        module.qualified_name = None;
+    }
+}
+
 fn namespaces(grouped: Grouped) -> Vec<NamespaceNode> {
     grouped
         .into_iter()
         .map(|(name, mut space)| {
             space.types.sort_by(|a, b| a.name.cmp(&b.name));
+            let language = common_language(&space.types).or_else(|| {
+                space
+                    .module
+                    .as_ref()
+                    .and_then(|module| module.language.clone())
+            });
+            compact(&name, language.as_deref(), &mut space.types);
+            if let Some(module) = space.module.as_mut() {
+                compact_module(&name, language.as_deref(), module);
+            }
             NamespaceNode {
                 name,
                 types: space.types,
+                language,
                 module: space.module,
                 holders: space.holders,
                 file: space.file,

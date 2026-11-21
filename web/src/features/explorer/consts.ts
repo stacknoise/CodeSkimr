@@ -354,3 +354,10 @@ export const NAME_COLLATION: Intl.CollatorOptions = { sensitivity: "base", numer
 
 /** The sign that turns the order of a comparison for the direction of a sort. */
 export const SORT_SIGN = { ascending: 1, descending: -1 } as const;
+
+/** The separator between a namespace and a name in the qualified name of a type
+ * (crates/app/src/ui_commands/consts.rs). */
+export const QUALIFIED_SEPARATOR = ".";
+
+/** The language of a type of an answer that names none. */
+export const NO_LANGUAGE = "";

@@ -166,3 +166,53 @@ fn only_an_overloaded_member_names_the_parameters_of_its_signature() {
         Vec::<String>::new()
     );
 }
+
+#[test]
+fn a_type_leaves_out_what_the_reader_can_put_together_again() {
+    let nodes = [
+        node(1, SymbolKind::Class, "A", "pkg.A", None),
+        node(2, SymbolKind::Class, "B", "pkg.B", None),
+        OutlineNode {
+            language: LanguageId::new("java").unwrap(),
+            ..node(3, SymbolKind::Class, "C", "pkg.C", None)
+        },
+        node(4, SymbolKind::Class, "D", "pkg.sub.D", Some(1)),
+    ];
+    let space = &build(&[], &nodes)[0].namespaces[0];
+    assert_eq!(space.language.as_deref(), Some("python"));
+    let kept: Vec<_> = space
+        .types
+        .iter()
+        .map(|node| {
+            (
+                node.name.as_str(),
+                node.qualified_name.is_some(),
+                node.language.as_deref(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        kept,
+        [
+            ("A", false, None),
+            ("B", false, None),
+            ("C", false, Some("java"))
+        ]
+    );
+}
+
+#[test]
+fn the_answer_leaves_out_empty_lists_and_what_the_module_repeats() {
+    let nodes = [node(1, SymbolKind::Module, "util", "pkg.util", None)];
+    let space = &build(&[], &nodes)[0].namespaces[0];
+    let wire = serde_json::to_value(space).unwrap();
+    assert_eq!(wire["name"], "pkg.util");
+    assert_eq!(wire["language"], "python");
+    for left_out in ["types", "holders", "file"] {
+        assert!(wire.get(left_out).is_none(), "{left_out} is sent");
+    }
+    let module = &wire["module"];
+    assert!(module.get("qualified_name").is_none());
+    assert!(module.get("language").is_none());
+    assert_eq!(module["name"], "util");
+}

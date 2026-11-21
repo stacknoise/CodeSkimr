@@ -43,3 +43,4 @@ Detecting a change: (D1) compare whole snapshots; (D2) keep a *baseline* per mar
 - Local only in the first version. The team server needs the author and rights per annotation (ADR 0019); that is a follow-up.
 - Token and login for reading annotations: see decision 7.
 - Work packages (in this order): this ADR with blueprint and mocks; domain and storage (tables, migration, content hash); alerts in the scan; commands, REST, CLI, MCP, event; UI marks and tabs; UI alerts and board; documentation and security review (user text).
+- Note (#651): `explorer.outline` leaves the `qualified_name` of a type out when it is the name of its namespace, a dot and the name, and the web reader puts it back (`web/src/features/explorer/outlineWire.ts`), so the key stays complete in the tree; `explorer.symbol` always sends it.
