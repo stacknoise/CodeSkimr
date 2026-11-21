@@ -59,6 +59,16 @@ function Has-Secret([string]$file, [string[]]$needles) {
     foreach ($n in $needles) { if ($latin.Contains($n)) { return $true } }
     $false
 }
+# After a failed run: the error lines (code and text) of the run, so that the report says why. Addresses
+# are replaced, and nothing is shown if the output holds the secret.
+function Log-Failure($run) {
+    if ($run.Code -eq 0) { return }
+    if (Has-Secret $run.Log $needles) { Log '  Fehlerausgabe enthaelt das Geheimnis, nicht gezeigt (das ist selbst ein Befund)'; return }
+    $lines = @($run.Text -split "`r?`n" | Where-Object { $_ -match '[A-Z]{3}-\d{3}|[Ee]rror|[Ff]ehler|failed' } | Select-Object -First 5)
+    if ($lines.Count -eq 0) { $lines = @($run.Text -split "`r?`n" | Where-Object { $_.Trim() } | Select-Object -Last 3) }
+    if ($lines.Count -eq 0) { Log '  Keine Ausgabe des Programms (Exit ungleich 0 ohne Text)' }
+    foreach ($l in $lines) { Log ('  > ' + ($l -replace '[A-Za-z][A-Za-z0-9+.-]*://\S+', '<adresse>').Trim()) }
+}
 $needles = @(
     [Text.Encoding]::GetEncoding(28591).GetString([Text.Encoding]::UTF8.GetBytes($secret)),
     [Text.Encoding]::GetEncoding(28591).GetString([Text.Encoding]::Unicode.GetBytes($secret))
@@ -68,15 +78,18 @@ Log '== 3. Erster Scan mit Login (klonen und scannen)'
 $first = Run-App @('scan', $Url, '--branch', $Branch, '--credential', $Credential, '--json')
 $summary = $first.Text -split "`n" | Where-Object { $_ -match '^\{' } | Select-Object -First 1 | ConvertFrom-Json -ErrorAction SilentlyContinue
 Log ("Exit: $($first.Code), Dauer gesamt: $($first.Ms) ms, Dateien: $($summary.files), Symbole: $($summary.symbols), Verweise: $($summary.references)")
+Log-Failure $first
 
 Log '== 4. Zweiter Scan (Update, nichts Neues erwartet)'
 $second = Run-App @('scan', $Url, '--branch', $Branch, '--credential', $Credential, '--json')
 Log ("Exit: $($second.Code), Dauer gesamt: $($second.Ms) ms")
+Log-Failure $second
 
 Log '== 5. Export'
 $page = Join-Path $Out 'export.html'
 $export = Run-App @('export', $Url, '--html', $page)
 Log ("Exit: $($export.Code), Seite vorhanden: $(Test-Path $page)")
+Log-Failure $export
 
 Log '== 6. Suche nach dem Geheimnis (Anzahl Treffer, 0 ist das Ziel)'
 $outputs = @($first, $second, $export)
