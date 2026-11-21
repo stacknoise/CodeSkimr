@@ -243,6 +243,14 @@ description = "The report of the scan (its level and what level 2 did per langua
 since = "0.9.0"
 
 [[codes]]
+id = "PRJ-503"
+name = "scan_memory_limit"
+severity = "error"
+retryable = false
+description = "The scan held more memory than scan.max_memory_mb allows and was stopped before the machine ran out of memory; no snapshot was written (ADR 0087)."
+since = "1.0.0"
+
+[[codes]]
 id = "SRC-201"
 name = "source_path_not_found"
 severity = "error"

@@ -9,6 +9,7 @@ use codeskimr_domain::{
 };
 
 use super::DiscoveredFile;
+use crate::cancel::CancelToken;
 use crate::error::CodedError;
 use crate::ids::IdSequence;
 
@@ -160,14 +161,16 @@ pub trait ReferenceResolver: Send + Sync {
     /// dropped; ambiguous ones become `Confidence::Probable`. A call, read, write or type use in
     /// one of the `test_files` is reported with the kind `test`.
     ///
+    /// A run that sees `cancel` raised stops with `PRJ-303`.
+    ///
     /// # Errors
-    /// A coded failure of the `RES` group.
+    /// A coded failure of the `RES` group, or `PRJ-303` if the scan was cancelled.
     fn resolve(
         &self,
         symbols: &[Symbol],
         pending: &[PendingReference],
         test_files: &HashSet<FileId>,
-        ids: &IdSequence,
+        run: (&IdSequence, &CancelToken),
     ) -> Result<Resolution, CodedError>;
 }
 

@@ -588,6 +588,21 @@ fn the_project_file_may_lower_the_scan_limits_but_not_raise_them() {
 }
 
 #[test]
+fn the_project_file_may_lower_the_memory_limit_but_not_raise_it() {
+    let defaults = Config::defaults().expect("defaults").scan;
+    assert_eq!(defaults.max_memory_mb, 16384);
+    let lowered = project("[scan]\nmax_memory_mb = 2048\n");
+    let scan = Config::resolve(&[lowered]).expect("valid").scan;
+    assert_eq!(scan.max_memory_mb, 2048);
+    let raised = project("[scan]\nmax_memory_mb = 4000000000\n");
+    let scan = Config::resolve(&[raised]).expect("valid").scan;
+    assert_eq!(scan.max_memory_mb, defaults.max_memory_mb);
+    let user_file = user("[scan]\nmax_memory_mb = 32768\n");
+    let scan = Config::resolve(&[user_file]).expect("valid").scan;
+    assert_eq!(scan.max_memory_mb, 32768);
+}
+
+#[test]
 fn the_project_file_may_lower_the_candidate_limit_but_not_raise_it() {
     let defaults = Config::defaults().expect("defaults").scan;
     let lowered = project("[scan]\nmax_candidates = 10\n");

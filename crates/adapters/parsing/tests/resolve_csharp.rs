@@ -10,6 +10,7 @@ mod tests {
     use std::time::Duration;
 
     use super::common::analyze_file;
+    use codeskimr_application::cancel::CancelToken;
     use codeskimr_application::ids::IdSequence;
     use codeskimr_application::ports::{FileFacts, ReferenceResolver};
     use codeskimr_application::resolve::ScopedResolver;
@@ -27,7 +28,12 @@ mod tests {
         let ids = IdSequence::starting_at(1);
         let facts = analyze_file(&analyzer, &ids, &root, file, "csharp");
         let found = ScopedResolver::default()
-            .resolve(&facts.symbols, &facts.pending, &HashSet::new(), &ids)
+            .resolve(
+                &facts.symbols,
+                &facts.pending,
+                &HashSet::new(),
+                (&ids, &CancelToken::new()),
+            )
             .expect("resolves")
             .references;
         (facts, found)

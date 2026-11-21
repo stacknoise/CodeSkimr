@@ -146,6 +146,8 @@ pub mod keys {
     pub const MAX_SIGNATURE_CHARS: &str = "scan.max_signature_chars";
     /// `scan.max_candidates`
     pub const MAX_CANDIDATES: &str = "scan.max_candidates";
+    /// `scan.max_memory_mb`
+    pub const MAX_MEMORY_MB: &str = "scan.max_memory_mb";
     /// `scan.max_left_out_listed`
     pub const MAX_LEFT_OUT_LISTED: &str = "scan.max_left_out_listed";
     /// `level2.max_index_bytes`
@@ -211,7 +213,12 @@ pub const SCAN_TABLE: &str = "scan";
 /// Settings of [`SCAN_TABLE`] that the project file may only lower: a scanned repository must not
 /// lift the protection of the machine that scans it (#54). The user file and the flags may still
 /// raise them.
-pub const LOWER_ONLY_SCAN_KEYS: [&str; 3] = ["max_source_mb", "parse_timeout_ms", "max_candidates"];
+pub const LOWER_ONLY_SCAN_KEYS: [&str; 4] = [
+    "max_source_mb",
+    "parse_timeout_ms",
+    "max_candidates",
+    "max_memory_mb",
+];
 
 /// Header of a table in an array of tables, as it starts a layer in `.codeskimr.toml`.
 pub const LAYER_TABLE_HEADER: &str = "[[layers]]";

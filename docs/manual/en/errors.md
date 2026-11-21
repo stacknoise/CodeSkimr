@@ -50,6 +50,7 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | `PRS-501` | a file took too long to parse and was left out; the scan goes on | raise `scan.parse_timeout_ms` if the file is legitimate |
 | `PRS-101` | a file is not valid UTF-8 or UTF-16 and is missing in the result; the scan goes on. If that holds for every file, the scan fails with this code | save the named file as UTF-8 |
 | `PRS-102` | a file was gone or locked during the scan and was left out; the scan goes on | scan again once the file can be read |
+| `PRJ-503` | the scan held more memory than `scan.max_memory_mb` (at most 70 % of the installed memory) and was stopped; no snapshot was written | exclude folders (`scan.excluded_folders`), lower `scan.max_candidates` or raise the limit in your own config file |
 | `RES-304` | a name reaches more symbols than `scan.max_candidates` and nothing narrows it down; the place was not assigned (warning only) | enable level 2 or raise `scan.max_candidates` (own config file) |
 | `CFG-101`, `CFG-102`, `CFG-103` | invalid value, unreadable file, unknown key in the configuration | correct the setting named in the message |
 | `CFG-104` | the file `.codeskimr.toml` could not be written when layers were saved in the UI | make the project folder writable, or write the `[[layers]]` tables by hand |

@@ -23,11 +23,11 @@ use codeskimr_application::pipeline::{
 use codeskimr_application::ports::{
     AnalyzeRequest, Clock, ConsentStore, DiscoveredFile, FetchedSource, FileAnalyzer,
     FileDiscovery, FileFacts, ImportRequest, Imported, IndexArtifact, IndexJob, IndexRunner,
-    IndexerSpec, IndexerStatus, Level2Replacement, MetricsCalculator, PathsReport,
-    PendingReference, PreviousIndex, PreviousState, ProjectRepository, ProjectScanner, Receiver,
-    ReferenceImporter, ReferenceResolver, ReportWrite, Resolution, ScanReport, ScanReportStore,
-    ScanWarning, SnapshotData, SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints,
-    ToolSpec, ToolVersion,
+    IndexerSpec, IndexerStatus, Level2Replacement, MemoryGauge, MemoryLimit, MetricsCalculator,
+    PathsReport, PendingReference, PreviousIndex, PreviousState, ProjectRepository, ProjectScanner,
+    Receiver, ReferenceImporter, ReferenceResolver, ReportWrite, Resolution, ScanReport,
+    ScanReportStore, ScanWarning, SnapshotData, SnapshotStore, SourceProvider, StoredNames,
+    SymbolFingerprints, ToolSpec, ToolVersion,
 };
 use codeskimr_application::stage::StageKind;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -79,6 +79,9 @@ struct World {
     broken: Vec<(&'static str, ErrorCode)>,
     /// The first id the store says is free; another process may have written rows.
     first_free_id: u64,
+    /// How many steps of ten milliseconds the resolution waits for the token to be raised, as a
+    /// long one would, before it stops; zero for no waiting.
+    resolve_wait_steps: u32,
 }
 
 impl World {
@@ -254,9 +257,17 @@ impl ReferenceResolver for World {
         symbols: &[Symbol],
         pending: &[PendingReference],
         _test_files: &HashSet<FileId>,
-        ids: &IdSequence,
+        (ids, cancel): (&IdSequence, &CancelToken),
     ) -> Result<Resolution, CodedError> {
         self.gate(StageKind::Resolve)?;
+        if self.resolve_wait_steps > 0 {
+            for _ in 0..self.resolve_wait_steps {
+                if cancel.is_cancelled() {
+                    return Err(CodedError::new(ErrorCode::ScanCancelled));
+                }
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+        }
         self.resolved
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
@@ -413,7 +424,20 @@ impl Clock for World {
     }
 }
 
+/// A gauge that reports a fixed value.
+struct FixedGauge(u64);
+
+impl MemoryGauge for FixedGauge {
+    fn used_mb(&self) -> Option<u64> {
+        Some(self.0)
+    }
+}
+
 fn scanner(world: &Arc<World>, bus: &EventBus) -> Scanner {
+    scanner_with(world, bus, None)
+}
+
+fn scanner_with(world: &Arc<World>, bus: &EventBus, memory: Option<MemoryLimit>) -> Scanner {
     let ports = ScannerPorts {
         source: world.clone(),
         discovery: world.clone(),
@@ -426,7 +450,11 @@ fn scanner(world: &Arc<World>, bus: &EventBus) -> Scanner {
         max_workers: 0,
         max_left_out_listed: 2,
     };
-    Scanner::new(ports, &Arc::new(IdSequence::starting_at(1)), bus.clone())
+    let scanner = Scanner::new(ports, &Arc::new(IdSequence::starting_at(1)), bus.clone());
+    match memory {
+        Some(limit) => scanner.with_memory(limit),
+        None => scanner,
+    }
 }
 
 fn run(world: &Arc<World>, mode: ScanMode) -> (JobResult, Vec<Event>) {
@@ -2192,4 +2220,41 @@ fn a_level_two_run_tells_the_language_and_the_end_and_nothing_else() -> Result<(
         Some(Event::Level2Finished(done)) if done.project == ProjectId::new(7)
     ));
     Ok(())
+}
+
+fn memory_run(used_mb: u64, max_mb: u64) -> (JobResult, Arc<World>) {
+    let bus = EventBus::new();
+    let world = Arc::new(World {
+        resolve_wait_steps: 500,
+        ..World::default()
+    });
+    let limit = MemoryLimit::new(
+        Arc::new(FixedGauge(used_mb)),
+        max_mb,
+        std::time::Duration::from_millis(1),
+    );
+    let job = Job::new(ProjectId::new(7), ScanMode::Full);
+    let result = scanner_with(&world, &bus, Some(limit)).run(&Principal::local_owner(), job);
+    (result, world)
+}
+
+#[test]
+fn a_scan_that_holds_more_memory_than_allowed_fails_with_its_own_code_and_writes_nothing() {
+    let (result, world) = memory_run(900, 800);
+    assert!(matches!(result, JobResult::Failed(job) if job.code() == ErrorCode::ScanMemoryLimit));
+    assert_eq!(world.persisted_count(), 0);
+}
+
+#[test]
+fn a_scan_within_the_memory_limit_is_not_stopped() {
+    let bus = EventBus::new();
+    let world = Arc::new(World::default());
+    let limit = MemoryLimit::new(
+        Arc::new(FixedGauge(100)),
+        800,
+        std::time::Duration::from_millis(1),
+    );
+    let job = Job::new(ProjectId::new(7), ScanMode::Full);
+    let result = scanner_with(&world, &bus, Some(limit)).run(&Principal::local_owner(), job);
+    assert!(matches!(result, JobResult::Finished(_)));
 }

@@ -158,6 +158,7 @@ pub fn scanner_over(
         max_left_out_listed: config.scan.max_left_out_listed,
     };
     Ok(Scanner::new(ports, &ids, events.clone())
+        .with_memory(crate::memory_limit::scan_limit(config))
         .with_level2(pass)
         .with_alerts(alert_step(store, events))
         .with_reports(ReportStep::new(store.clone(), Arc::new(SystemClock))))
