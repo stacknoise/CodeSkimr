@@ -66,6 +66,15 @@ fn a_stored_credential_is_lent_to_the_closure() -> TestResult {
 }
 
 #[test]
+fn the_existence_of_a_credential_is_known_without_lending_it() -> TestResult {
+    let id = CredentialId::new("work")?;
+    let store = store_with(&id)?;
+    assert!(store.exists(&id)?);
+    assert!(!store.exists(&CredentialId::new("other")?)?);
+    Ok(())
+}
+
+#[test]
 fn every_attempt_reads_again() -> TestResult {
     let id = CredentialId::new("work")?;
     let store = store_with(&id)?;

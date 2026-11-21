@@ -16,6 +16,19 @@ pub trait Keystore: Send + Sync {
     /// `SEC-201` if there is no entry, `SEC-402` or `SEC-601` if the keystore cannot be used.
     fn read(&self, name: &str) -> Result<Zeroizing<Vec<u8>>, AuthError>;
 
+    /// Whether an entry exists under `name`. The bytes are read and wiped at once, nothing is
+    /// decoded or returned.
+    ///
+    /// # Errors
+    /// `SEC-402` or `SEC-601` if the keystore cannot be used.
+    fn exists(&self, name: &str) -> Result<bool, AuthError> {
+        match self.read(name) {
+            Ok(_) => Ok(true),
+            Err(AuthError::NotFound) => Ok(false),
+            Err(other) => Err(other),
+        }
+    }
+
     /// Stores `bytes` under `name`, replacing an existing entry.
     ///
     /// # Errors

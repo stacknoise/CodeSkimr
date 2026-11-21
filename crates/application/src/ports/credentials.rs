@@ -132,6 +132,14 @@ pub trait CredentialStore: Send + Sync {
         action: impl FnOnce(&Credential) -> Result<T, AuthError>,
     ) -> Result<T, AuthError>;
 
+    /// Whether the keystore holds a credential under `id`. Unlike [`Self::with_credential`] it
+    /// never decodes the entry and never lends it, so a caller that only needs the fact (the list
+    /// of the logins) does not touch the secret.
+    ///
+    /// # Errors
+    /// `SEC-402` or `SEC-601` if the keystore cannot be used.
+    fn exists(&self, id: &CredentialId) -> Result<bool, AuthError>;
+
     /// Saves `credential` under `id` and replaces an existing one.
     ///
     /// # Errors

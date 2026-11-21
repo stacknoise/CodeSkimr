@@ -61,6 +61,13 @@ impl CredentialStore for ForRemotes {
         self.0.with_credential(id, action)
     }
 
+    fn exists(&self, id: &CredentialId) -> Result<bool, AuthError> {
+        if is_reserved_credential(id.as_str()) {
+            return Ok(false);
+        }
+        self.0.exists(id)
+    }
+
     fn store(&self, id: &CredentialId, credential: &Credential) -> Result<(), AuthError> {
         self.0.store(id, credential)
     }
