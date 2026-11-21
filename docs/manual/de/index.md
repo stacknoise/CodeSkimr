@@ -12,6 +12,7 @@ Alles läuft auf Ihrem Rechner. Der Server hört nur auf `127.0.0.1`; Ihr Code w
 | Explorer und Suche | Schichten, Namensräume, Typen und Member durchsehen; Symbole schnell finden | [Explorer](explorer.md) |
 | Abhängigkeitskarte | die Schichten des Programms sehen und welche welche nutzt | [Abhängigkeitskarte](abhaengigkeitskarte.md) |
 | Verwendungen | wer ein Member nutzt und was bricht, wenn man es ändert | [Verwendungen](verwendungen.md) |
+| Statistik | Ranglisten: die meistverwendeten Symbole, die ohne Verwendung, die komplexesten | [Statistik](statistik.md) |
 | Notizen, Aufgaben, kritische Markierungen | Symbole als kritisch markieren, Notizen schreiben, Aufgaben verfolgen, Meldungen erhalten, wenn sich ein kritisches Symbol ändert | [Notizen, Aufgaben und kritische Markierungen](anmerkungen.md) |
 | Sprach-Indexer (Ebene 2) | Verwendungen exakt machen, indem das Werkzeug der Sprache sie prüft; standardmäßig aus | [Sprach-Indexer](indexer.md) |
 | MCP-Server | Code-Agenten dasselbe Wissen geben | [MCP einrichten](mcp.md) |

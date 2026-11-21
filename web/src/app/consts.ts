@@ -46,6 +46,13 @@ export const GRAPH_ROUTE: Route = {
   icon: "graph",
   needsProject: true,
 };
+/** The statistics of the project (ADR 0081). */
+export const STATS_ROUTE: Route = {
+  path: "/stats",
+  label: I18N_KEYS.NAV_STATS,
+  icon: "stats",
+  needsProject: true,
+};
 export const SETTINGS_ROUTE: Route = {
   path: "/settings",
   label: I18N_KEYS.NAV_SETTINGS,
@@ -63,6 +70,7 @@ export const PROJECT_PATHS: readonly string[] = [
   GRAPH_ROUTE.path,
   ANNOTATIONS_ROUTE.path,
   SCAN_ROUTE.path,
+  STATS_ROUTE.path,
   USAGES_ROUTE.path,
 ];
 
@@ -71,6 +79,7 @@ export const MAIN_ROUTES: Route[] = [
   PROJECTS_ROUTE,
   EXPLORER_ROUTE,
   GRAPH_ROUTE,
+  STATS_ROUTE,
   ANNOTATIONS_ROUTE,
   SCAN_ROUTE,
 ];
