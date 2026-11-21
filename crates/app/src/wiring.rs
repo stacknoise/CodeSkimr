@@ -325,17 +325,7 @@ mod tests {
             Err(AuthError::NotFound)
         ));
         assert!(remotes.with_credential(&work, |_| Ok(())).is_ok());
-    }
-
-    #[test]
-    fn the_fetcher_is_told_that_the_installation_token_does_not_exist() {
-        use crate::consts::TOKEN_CREDENTIAL_ID;
-        let secrets = secrets();
-        let token = CredentialId::new(TOKEN_CREDENTIAL_ID).unwrap();
-        let work = CredentialId::new("work").unwrap();
-        secrets.store(&token, &credential()).unwrap();
-        secrets.store(&work, &credential()).unwrap();
-        let remotes = ForRemotes(Arc::clone(&secrets));
+        // The same for the question whether it exists.
         assert!(secrets.exists(&token).unwrap());
         assert!(!remotes.exists(&token).unwrap());
         assert!(remotes.exists(&work).unwrap());
