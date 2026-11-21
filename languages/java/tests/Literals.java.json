@@ -295,7 +295,7 @@
       "kind": "method",
       "name": "demo.Literals.clean",
       "parent": "demo.Literals",
-      "signature": null,
+      "signature": "public int clean(int[] items)",
       "span": "7:4-13:5",
       "static": false,
       "visibility": "public"
@@ -305,7 +305,7 @@
       "kind": "method",
       "name": "demo.Literals.numbers",
       "parent": "demo.Literals",
-      "signature": null,
+      "signature": "public double numbers()",
       "span": "15:4-17:5",
       "static": false,
       "visibility": "public"
@@ -315,7 +315,7 @@
       "kind": "method",
       "name": "demo.Literals.strings",
       "parent": "demo.Literals",
-      "signature": null,
+      "signature": "public String strings(String name, int count)",
       "span": "19:4-25:5",
       "static": false,
       "visibility": "public"
@@ -325,7 +325,7 @@
       "kind": "method",
       "name": "demo.Literals.local",
       "parent": "demo.Literals",
-      "signature": null,
+      "signature": "public int local()",
       "span": "27:4-31:5",
       "static": false,
       "visibility": "public"
@@ -335,7 +335,7 @@
       "kind": "method",
       "name": "demo.Literals.flags",
       "parent": "demo.Literals",
-      "signature": null,
+      "signature": "@SuppressWarnings(\"unchecked\") public boolean flags(Object value, List<String> names)",
       "span": "33:4-36:5",
       "static": false,
       "visibility": "public"
@@ -345,7 +345,7 @@
       "kind": "method",
       "name": "demo.Literals.annotated",
       "parent": "demo.Literals",
-      "signature": null,
+      "signature": "@Deprecated(since = \"1.0\" + \"x\", forRemoval = true) @Timeout(unit = 60 * 1000) public void annotated(@SuppressWarnings({\"a\", \"b\"}) String arg)",
       "span": "38:4-43:5",
       "static": false,
       "visibility": "public"
@@ -355,7 +355,7 @@
       "kind": "method",
       "name": "demo.Literals.viaField",
       "parent": "demo.Literals",
-      "signature": null,
+      "signature": "public int viaField()",
       "span": "45:4-47:5",
       "static": false,
       "visibility": "public"
