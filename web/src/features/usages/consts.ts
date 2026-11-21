@@ -147,27 +147,20 @@ export const PANEL_PANE_BOUNDS = { initial: 300, min: 240, max: 720 } as const;
 /** A character that can be part of an identifier: a word is only a whole word next to others. */
 export const IDENTIFIER_CHAR = /[\p{L}\p{N}_]/u;
 
-/** The columns of the hit list; every one can be widened with its handle except the place column, which takes what is left. */
+/** The columns of the hit list; every one can be widened and narrowed with its handle. */
 export const HIT_COLUMNS = [
   { id: "kind", label: I18N_KEYS.USAGES_COL_KIND, bounds: { initial: 84, min: 50, max: 240 } },
-  { id: "where", label: I18N_KEYS.USAGES_COL_WHERE, bounds: { initial: 220, min: 60, max: 600 } },
-  { id: "code", label: I18N_KEYS.USAGES_COL_CODE, bounds: { initial: 520, min: 120, max: 1600 } },
-  { id: "place", label: I18N_KEYS.USAGES_COL_PLACE, bounds: null },
+  { id: "where", label: I18N_KEYS.USAGES_COL_WHERE, bounds: { initial: 200, min: 60, max: 600 } },
+  { id: "code", label: I18N_KEYS.USAGES_COL_CODE, bounds: { initial: 380, min: 120, max: 1600 } },
+  { id: "place", label: I18N_KEYS.USAGES_COL_PLACE, bounds: { initial: 180, min: 60, max: 800 } },
   { id: "state", label: I18N_KEYS.USAGES_COL_STATE, bounds: { initial: 84, min: 50, max: 240 } },
 ] as const;
 /** Storage key prefix of the widths of the columns. */
 export const HIT_COLUMN_KEY = "usages.hits.col.";
-/** Pixels a column grows or shrinks with one press of an arrow key. */
-export const COLUMN_KEY_STEP_PX = 12;
 
 /** Separates the words of a filter text. */
 export const WORD_SEPARATOR = /\s+/;
-/** The width of the column that takes what is left, the unit of the others and what joins the widths. */
+/** The track after the last column that takes what is left, the unit of the widths and what joins them. */
 export const LEFTOVER_COLUMN_WIDTH = "minmax(0, 1fr)";
 export const PIXEL_UNIT = "px";
 export const COLUMN_JOIN = " ";
-
-/** The keys that move a column handle, and by how many steps (a key not listed moves nothing). */
-export const COLUMN_KEY_DELTA: Record<string, number> = { ArrowRight: 1, ArrowLeft: -1 };
-/** No movement. */
-export const NO_DELTA = 0;
