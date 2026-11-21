@@ -7,8 +7,9 @@ removed call or a file without an entry fails the check; the reviewer approves b
 change of the list. A use is every mention of one of the two names: the method call
 `x.expose_secret()`, the path call `Credential::expose_secret(&x)` and the function reference
 `.map(Credential::expose_secret)`. Only the definition (`fn expose_secret`) is not a use. Test
-code is not product code: files below `tests/`, files named `*_tests.rs` and everything after
-the first `#[cfg(test)]` of a file are skipped, and so are comment lines.
+code is not product code: files below `tests/`, files named `*_tests.rs` and the one item that
+follows a `#[cfg(test)]` (up to its closing brace or its semicolon) are skipped, and so are
+comment lines. Product code below such an item is counted again.
 
 Exit code 0 = fine, 1 = list and code differ, 2 = setup problem.
 """
@@ -27,13 +28,33 @@ def is_test_file(path):
     return "tests" in path.parts or path.stem.endswith("_tests")
 
 
+def item_ends(line, state):
+    """Follows the braces of the item after `#[cfg(test)]`; true once the item is complete."""
+    for sign in line:
+        if sign == "{":
+            state["depth"] += 1
+            state["opened"] = True
+        elif sign == "}":
+            state["depth"] -= 1
+        if state["depth"] == 0 and (state["opened"] or sign == ";"):
+            return True
+    return False
+
+
 def count_calls(text):
-    """Number of calls outside comments and test modules."""
+    """Line numbers of the uses outside comment lines and items marked `#[cfg(test)]`."""
     found = []
+    skipped = None
     for number, line in enumerate(text.splitlines(), start=1):
-        if TEST_MODULE.match(line):
-            break
         if line.lstrip().startswith("//"):
+            continue
+        marker = TEST_MODULE.match(line)
+        if marker:
+            skipped = {"depth": 0, "opened": False}
+            line = line[marker.end():]
+        if skipped is not None:
+            if item_ends(line, skipped):
+                skipped = None
             continue
         found.extend(number for definition in CALL.findall(line) if not definition)
     return found

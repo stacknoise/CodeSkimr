@@ -21,6 +21,13 @@ class CountCalls(unittest.TestCase):
         text += "use secrecy::ExposeSecret;\nlet expose_secrets = 1; re_expose_user();\n"
         self.assertEqual(check.count_calls(text), [])
 
+    def test_only_the_item_after_cfg_test_is_skipped(self):
+        text = "#[cfg(test)]\nuse foo::bar;\nfn real(c: &C) { c.expose_secret(); }\n"
+        text += "#[cfg(test)]\n#[allow(dead_code)]\nfn helper(c: &C) {\n    if x { c.expose_secret(); }\n}\n"
+        text += "fn later(c: &C) { c.expose_user(); }\n"
+        text += "#[cfg(test)] mod tests;\nfn last(c: &C) { c.expose_user(); }\n"
+        self.assertEqual(check.count_calls(text), [3, 9, 11])
+
     def test_test_files_are_skipped(self):
         from pathlib import Path
         self.assertTrue(check.is_test_file(Path("crates/x/tests/a.rs")))
