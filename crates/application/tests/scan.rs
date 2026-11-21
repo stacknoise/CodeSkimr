@@ -594,6 +594,75 @@ fn an_incremental_scan_keeps_what_it_knew_of_a_file_whose_failure_may_pass()
     Ok(())
 }
 
+/// `b.rs` failing with `code` in a full scan after a snapshot made under the rules `kept`.
+fn b_broken_in_a_full_scan(
+    code: ErrorCode,
+    kept: Option<&'static str>,
+) -> Result<Arc<World>, CodedError> {
+    Ok(Arc::new(World {
+        previous: previous_snapshot()?,
+        found: Some(vec![("a.rs", false), ("b.rs", false)]),
+        broken: vec![("b.rs", code)],
+        rules: ("csharp=namespace", kept),
+        ..World::default()
+    }))
+}
+
+#[test]
+fn a_full_scan_keeps_what_it_knew_of_a_file_whose_failure_may_pass() -> Result<(), CodedError> {
+    for code in [ErrorCode::ParseTimeout, ErrorCode::FileUnreadable] {
+        let world = b_broken_in_a_full_scan(code, Some("csharp=namespace"))?;
+        let (result, _) = run(&world, ScanMode::Full);
+        assert_eq!(left_out(&result), [("b.rs".to_owned(), code, true)]);
+        let JobResult::Finished(job) = result else {
+            panic!("scan did not finish");
+        };
+        assert_eq!(job.snapshot().stats.files, 2);
+        assert_eq!(job.snapshot().stats.symbols, 2);
+        // The store copies the former rows of `b.rs` only into an incremental snapshot.
+        assert_eq!(job.snapshot().mode, ScanMode::Incremental);
+        let stored = world.last_persisted()?;
+        let paths: Vec<_> = stored.files.iter().map(|f| f.path.as_str()).collect();
+        assert_eq!(paths, ["a.rs"], "every other file is analysed again");
+        assert!(!stored.removed.iter().any(|path| path.as_str() == "b.rs"));
+        assert_eq!(stored.parse_micros, Vec::new());
+    }
+    Ok(())
+}
+
+#[test]
+fn a_full_scan_cannot_keep_a_file_of_a_snapshot_with_other_naming_rules() -> Result<(), CodedError>
+{
+    for kept in [None, Some("csharp=file")] {
+        let world = b_broken_in_a_full_scan(ErrorCode::ParseTimeout, kept)?;
+        let (result, _) = run(&world, ScanMode::Full);
+        assert_eq!(
+            left_out(&result),
+            [("b.rs".to_owned(), ErrorCode::ParseTimeout, false)]
+        );
+        let JobResult::Finished(job) = result else {
+            panic!("scan did not finish");
+        };
+        assert_eq!(job.snapshot().mode, ScanMode::Full);
+        assert_eq!(job.snapshot().stats.files, 1);
+    }
+    Ok(())
+}
+
+#[test]
+fn a_full_scan_drops_a_file_whose_failure_will_not_pass() -> Result<(), CodedError> {
+    let code = ErrorCode::FileEncodingUnsupported;
+    let world = b_broken_in_a_full_scan(code, Some("csharp=namespace"))?;
+    let (result, _) = run(&world, ScanMode::Full);
+    assert_eq!(left_out(&result), [("b.rs".to_owned(), code, false)]);
+    let JobResult::Finished(job) = result else {
+        panic!("scan did not finish");
+    };
+    assert_eq!(job.snapshot().mode, ScanMode::Full);
+    assert_eq!(job.snapshot().stats.files, 1);
+    Ok(())
+}
+
 #[test]
 fn a_scan_starts_above_the_ids_another_process_stored() -> Result<(), CodedError> {
     let world = Arc::new(World {

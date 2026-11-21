@@ -24,9 +24,9 @@ use crate::error::CodedError;
 use crate::ids::IdSequence;
 use crate::ports::{
     AnalyzeRequest, Clock, DiscoveredFile, FileAnalyzer, FileDiscovery, FileFacts, LeftOut,
-    MetricsCalculator, PathsReport, PendingReference, ProjectRepository, ReferenceResolver,
-    ScanWarning, SnapshotData, SnapshotStore, SourceProvider, StoredNames, SymbolFingerprints,
-    SymbolHash,
+    MetricsCalculator, PathsReport, PendingReference, PreviousState, ProjectRepository,
+    ReferenceResolver, ScanWarning, SnapshotData, SnapshotStore, SourceProvider, StoredNames,
+    SymbolFingerprints, SymbolHash,
 };
 use crate::resolve::ambiguous_occurrences;
 use crate::selection::Selection;
@@ -459,18 +459,19 @@ impl AnalyzeStage {
     }
 
     /// Gives the files whose failure may pass (a busy machine, a locked file) their former state
-    /// back in an incremental scan, so that their symbols, references, notes and critical marks
-    /// do not vanish for one scan. The discover stage counted them as changed; the previous
-    /// snapshot is split again with them as unchanged. Their stored content hash stays the old
-    /// one, so the next scan tries them again.
+    /// back, so that their symbols, references, notes and critical marks do not vanish for one
+    /// scan. The previous snapshot is split again with them as unchanged. Their stored content
+    /// hash stays the old one, so the next scan tries them again.
+    ///
+    /// A full scan goes on as an incremental one in which every other file changed, which gives
+    /// what a full scan gives for those and the former state for these (see [`Carried`]). It
+    /// cannot when the previous snapshot holds other naming rules or no names: then the files
+    /// are left out.
     fn keep_previous(
         &self,
         out: &mut Analyzed,
         files: &mut [DiscoveredFile],
     ) -> Result<(), CodedError> {
-        let (ScanMode::Incremental, Some(snapshot)) = (out.run.mode, out.carried.snapshot()) else {
-            return Ok(());
-        };
         let may_pass: HashSet<&RelativePath> = out
             .run
             .paths_report
@@ -482,16 +483,40 @@ impl AnalyzeStage {
         if may_pass.is_empty() {
             return Ok(());
         }
-        for file in files
-            .iter_mut()
-            .filter(|file| may_pass.contains(&file.path))
-        {
-            file.changed = false;
-        }
         let state = self.projects.latest_state(out.run.project.id)?;
+        let Some(snapshot) = state.snapshot else {
+            return Ok(());
+        };
+        if out.run.mode == ScanMode::Full && !self.can_follow(&out.run, &state)? {
+            return Ok(());
+        }
+        let full = out.run.mode == ScanMode::Full;
+        for file in files.iter_mut() {
+            if may_pass.contains(&file.path) {
+                file.changed = false;
+            } else if full {
+                file.changed = true;
+            }
+        }
         let bases = self.projects.stored_names(snapshot, StoredNames::Bases)?;
         out.carried = Carried::from_previous(files, state, bases);
+        if full {
+            // The times of a scan that missed a file are not those of a full scan.
+            out.run.parse_micros.clear();
+            out.run.mode = ScanMode::Incremental;
+        }
         Ok(())
+    }
+
+    /// Whether a full scan can build on the previous snapshot: it holds the names as written, and
+    /// they were made under the naming rules of this run (the same test the discover stage makes
+    /// for an incremental scan).
+    fn can_follow(&self, run: &ScanRun, state: &PreviousState) -> Result<bool, CodedError> {
+        if !state.names_stored {
+            return Ok(false);
+        }
+        let kept = self.projects.latest_naming_rules(run.project.id)?;
+        Ok(kept.unwrap_or_default() == run.naming_rules)
     }
 
     /// Analyses the files on all cores. The result keeps the order of `due`; the first failure
