@@ -109,6 +109,8 @@ pub const LOG_ALERT_STEP_FAILED: &str = "alert_step_failed";
 pub const LOG_REPORT_NOT_STORED: &str = "scan_report_not_stored";
 /// Log event: the id sequence could not be moved up to the store before level 2 ran.
 pub const LOG_IDS_NOT_CAUGHT_UP: &str = "ids_not_caught_up";
+/// Log event: a snapshot stores fewer ambiguous places than its references show (ADR 0086).
+pub const LOG_AMBIGUOUS_COUNT_TOO_LOW: &str = "ambiguous_count_too_low";
 /// Log event: the system gave no memory reading, so the memory limit of a scan does not protect (ADR 0087).
 pub const LOG_MEMORY_READING_MISSING: &str = "memory_reading_missing";
 /// Log event: the memory watch thread could not be started, the scan runs unwatched (ADR 0087).

@@ -4,9 +4,12 @@
 use std::fs;
 use std::path::Path;
 
-use codeskimr_application::ports::ProjectRepository;
+use codeskimr_application::ports::{
+    CodeIndex, PreviousState, ProjectCatalog, ProjectRepository, SymbolKey,
+};
 use codeskimr_cli::GlobalOptions;
 use codeskimr_domain::{ProjectId, ScanMode};
+use codeskimr_storage::SqliteStore;
 
 use crate::alert_tests::session;
 use crate::config_files;
@@ -92,14 +95,15 @@ fn apply(folder: &Path, changes: &[Change]) {
     }
 }
 
-/// Every reference of the newest snapshot as text: file, place, kind, confidence, from and to.
+/// What both ways of scanning must agree on, as text: every reference of the newest snapshot
+/// (file, place, kind, confidence, from and to), then coupling, then the warnings.
 fn references_of(locations: &Locations) -> Vec<String> {
     let config = config_files::load(locations, &GlobalOptions::default(), None).unwrap();
     let store = open_store(locations, &config).unwrap();
     let state = store.latest_state(PROJECT).unwrap();
+    let references = store.latest_index(PROJECT).unwrap().references;
     let name_of = |id| {
         state
-            .index
             .symbols
             .iter()
             .find(|symbol| symbol.id == id)
@@ -114,9 +118,7 @@ fn references_of(locations: &Locations) -> Vec<String> {
             .map(|file| file.path.as_str().to_owned())
             .unwrap()
     };
-    let mut lines: Vec<String> = state
-        .index
-        .references
+    let mut lines: Vec<String> = references
         .iter()
         .map(|r| {
             format!(
@@ -131,7 +133,44 @@ fn references_of(locations: &Locations) -> Vec<String> {
         })
         .collect();
     lines.sort();
+    lines.extend(coupling_of(&store, &state));
+    lines.extend(warnings_stored(&store));
     lines
+}
+
+/// Coupling and instability of every symbol of the newest snapshot as text, sorted. They come
+/// from the references of the whole snapshot (ADR 0037), so both ways of scanning must agree on
+/// them too (ADR 0086).
+fn coupling_of(store: &SqliteStore, state: &PreviousState) -> Vec<String> {
+    let snapshot = state.snapshot.unwrap();
+    let mut lines = Vec::new();
+    for symbol in &state.symbols {
+        let detail = store
+            .symbol(snapshot, &SymbolKey::Id(symbol.id))
+            .unwrap()
+            .unwrap();
+        for metric in detail.metrics.iter().filter(|m| m.kind.is_per_snapshot()) {
+            lines.push(format!(
+                "{} {} {}",
+                symbol.qualified_name.as_str(),
+                metric.kind.label(),
+                metric.value.get()
+            ));
+        }
+    }
+    lines.sort();
+    lines
+}
+
+/// The warnings the newest snapshot stores, as text.
+fn warnings_stored(store: &SqliteStore) -> Vec<String> {
+    let overviews = store.overviews().unwrap();
+    let project = overviews.iter().find(|o| o.project.id == PROJECT).unwrap();
+    project
+        .warnings
+        .iter()
+        .map(|warning| format!("{} {}", warning.code.id(), warning.count))
+        .collect()
 }
 
 /// The references after a full scan of `base` with all `steps` applied, and after a full scan of
@@ -252,6 +291,27 @@ fn places_with_several_candidates_are_one_warning_in_both_ways_of_scanning() {
     assert_eq!(warnings_of(&incremental), expected);
     let full = session.scan_quick(ScanMode::Full).unwrap();
     assert_eq!(warnings_of(&full), expected);
+}
+
+/// The stored count of ambiguous places is carried from scan to scan (ADR 0086): it rises with a
+/// second overload, stays over an edit elsewhere and over an edit of one caller, and falls when
+/// the overload goes. After every step it is the one of a full scan.
+#[test]
+fn the_count_of_ambiguous_places_follows_a_full_scan_over_several_scans() {
+    let overloads = "namespace Demo;\n\npublic class Target\n{\n    public static void Do() { }\n    public static void Do(int n) { }\n}\n";
+    let one = "namespace Demo;\n\npublic class Target\n{\n    public static void Do() { }\n}\n";
+    let other = "namespace Demo;\n\npublic class Other\n{\n    public void New() { }\n}\n";
+    let util = "namespace Demo;\n\npublic class Util\n{\n    public void Work()\n    {\n        Target.Do();\n        Target.Do();\n    }\n}\n";
+    let steps: [&[Change]; 5] = [
+        &[("Target.cs", Some(overloads))],
+        &[("Other.cs", Some(other))],
+        &[("Util.cs", Some(util))],
+        &[("Util.cs", None)],
+        &[("Target.cs", Some(one))],
+    ];
+    for upto in 1..=steps.len() {
+        assert_same_in_steps(&steps[..upto]);
+    }
 }
 
 #[test]

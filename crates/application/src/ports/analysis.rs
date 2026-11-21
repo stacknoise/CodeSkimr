@@ -6,6 +6,7 @@ use std::time::Duration;
 use codeskimr_domain::{
     ContentHash, FileId, Fingerprints, FolderPath, LanguageId, Metric, QualifiedName, Reference,
     ReferenceKind, RelativePath, SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId,
+    SymbolPair,
 };
 
 use super::DiscoveredFile;
@@ -176,10 +177,11 @@ pub trait ReferenceResolver: Send + Sync {
 
 /// Computes the metrics of blueprint section 6.1 (strategy: interchangeable by configuration).
 pub trait MetricsCalculator: Send + Sync {
-    /// Measures what the scan analysed. `symbols` and `references` are those of the whole
-    /// snapshot, also of unchanged files in an incremental scan, so coupling is computed on
-    /// complete data. `counts` come from the files that were analysed; the metrics of the other
-    /// files stay as they are.
+    /// Measures what the scan analysed. `symbols` are those of the whole snapshot, also of
+    /// unchanged files in an incremental scan, and `references` with `pairs` cover all its
+    /// references, so coupling is computed on complete data: `pairs` stand for the references of
+    /// the files that an incremental scan left in the store (ADR 0086). `counts` come from the
+    /// files that were analysed; the metrics of the other files stay as they are.
     ///
     /// # Errors
     /// A coded failure if a value cannot be computed.
@@ -187,6 +189,7 @@ pub trait MetricsCalculator: Send + Sync {
         &self,
         symbols: &[Symbol],
         references: &[Reference],
+        pairs: &[SymbolPair],
         counts: &[SymbolCounts],
     ) -> Result<Vec<Metric>, CodedError>;
 }

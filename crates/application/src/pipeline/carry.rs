@@ -10,19 +10,28 @@
 //! pointed into the changed files, the names the resolver looks up by a symbol whose [`Shape`]
 //! differs, the files that import a changed qualified name, and the imports and base lists, which
 //! tell the resolver what a file sees; all names only if a base list changed (issue #408).
+//!
+//! The references of the previous snapshot are read only as far as the scan needs them
+//! (ADR 0086). An unchanged file is touched if one of its names is resolved again or one of its
+//! references lost its target; only the references of touched files come into memory. Of the
+//! untouched files the scan takes what coupling needs ([`Carried::pairs`]) and the number of
+//! ambiguous places, which the previous snapshot counted.
 
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 
 use codeskimr_domain::{
     Confidence, FileId, Reference, ReferenceId, ReferenceKind, RelativePath, SnapshotId,
-    SourceFile, Span, Symbol, SymbolId, SymbolOrigin,
+    SourceFile, Span, Symbol, SymbolId, SymbolOrigin, SymbolPair,
 };
 
 use super::shape::{Delta, Shape, is_structural};
+use crate::consts::LOG_AMBIGUOUS_COUNT_TOO_LOW;
 use crate::error::CodedError;
 use crate::ports::{
-    DiscoveredFile, PendingReference, PreviousIndex, PreviousState, ProjectRepository, StoredNames,
+    DiscoveredFile, PendingReference, PreviousState, ProjectRepository, StoredNames,
+    StoredReferences,
 };
+use crate::resolve::ambiguous_occurrences;
 
 /// The kept part of the previous snapshot. Empty in a full scan.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -33,9 +42,13 @@ pub struct Carried {
     pub removed: Vec<RelativePath>,
     /// Symbols of the unchanged files.
     pub symbols: Vec<Symbol>,
-    /// References from unchanged files to symbols that still exist. [`Carried::reconcile`] removes
-    /// those that a full scan would no longer produce.
+    /// References from the touched unchanged files to symbols that still exist, read by
+    /// [`Carried::reconcile`], which removes those that a full scan would no longer produce. The
+    /// references of the untouched files stay in the store.
     pub references: Vec<Reference>,
+    /// What coupling needs of the references of the untouched files: start and target, each pair
+    /// once, references of kind `test` left out.
+    pub pairs: Vec<SymbolPair>,
     /// The base lists of the unchanged files, which every scan resolves again.
     pub bases: Vec<PendingReference>,
     /// The snapshot the other names are read from when they are needed.
@@ -55,6 +68,12 @@ pub struct Carried {
     previous_shape: Shape,
     /// The places whose names are resolved again, `None` if all are.
     scope: Option<HashSet<Site>>,
+    /// The files of the previous snapshot that changed or are gone.
+    left: Vec<FileId>,
+    /// How many places of the previous snapshot match several symbols, `None` if it did not count.
+    counted: Option<u64>,
+    /// How many places of the untouched files match several symbols.
+    elsewhere: u64,
 }
 
 /// The place of an occurrence of a name; one place can hold several names of different kinds.
@@ -91,35 +110,6 @@ fn edge(reference: &Reference) -> Edge {
     (occurrence(reference), reference.to, reference.confidence)
 }
 
-/// What level 2 left in the unchanged files.
-struct Level2 {
-    files: HashSet<FileId>,
-    lost: HashSet<Site>,
-    discarded: u32,
-}
-
-impl Level2 {
-    /// Reads it from the references that stay and those whose target is gone.
-    fn of(stay: &[Reference], gone: &[Reference]) -> Self {
-        let lost: HashSet<Site> = gone
-            .iter()
-            .filter(|reference| reference.verified)
-            .map(site)
-            .collect();
-        Self {
-            files: stay
-                .iter()
-                .chain(gone)
-                .filter(|reference| reference.verified)
-                .map(|reference| reference.file)
-                .collect(),
-            discarded: u32::try_from(gone.iter().filter(|r| r.verified).count())
-                .unwrap_or(u32::MAX),
-            lost,
-        }
-    }
-}
-
 impl Carried {
     /// The previous snapshot this was split from; `None` in a full scan.
     #[must_use]
@@ -128,19 +118,18 @@ impl Carried {
     }
 
     /// Splits the previous snapshot into what is kept and what is gone, and marks every
-    /// discovered file that the previous snapshot does not know as changed.
-    #[must_use]
+    /// discovered file that the previous snapshot does not know as changed. Of the references it
+    /// reads those that lost their target and which files level 2 verified.
+    ///
+    /// # Errors
+    /// A coded failure of the store.
     pub fn from_previous(
         discovered: &mut [DiscoveredFile],
         previous: PreviousState,
         bases: Vec<PendingReference>,
-    ) -> Self {
-        let PreviousState {
-            files,
-            index,
-            snapshot,
-            names_stored: _,
-        } = previous;
+        store: &dyn ProjectRepository,
+    ) -> Result<Self, CodedError> {
+        let files = previous.files;
         let known: HashSet<&RelativePath> = files.iter().map(|file| &file.path).collect();
         for file in discovered
             .iter_mut()
@@ -159,50 +148,117 @@ impl Carried {
             .filter(|file| !current.contains(&file.path))
             .map(|file| file.path.clone())
             .collect();
-        let kept: Vec<SourceFile> = files
+        let (kept, left): (Vec<SourceFile>, Vec<SourceFile>) = files
             .into_iter()
-            .filter(|file| unchanged.contains(&file.path))
-            .collect();
-        Self {
-            removed,
-            snapshot,
-            ..Self::keep(kept, index, bases)
+            .partition(|file| unchanged.contains(&file.path));
+        let (mut carried, vanished) = Self::keep(kept, previous.symbols, bases);
+        carried.removed = removed;
+        carried.left = left.iter().map(|file| file.id).collect();
+        carried.counted = previous.ambiguous_places;
+        if let Some(snapshot) = previous.snapshot {
+            carried.snapshot = Some(snapshot);
+            carried.mark_gone(snapshot, &vanished, store)?;
         }
+        Ok(carried)
     }
 
-    /// Keeps the symbols, references and names of `files`; the other fields stay empty, except
-    /// what the resolver saw of the files that are not kept.
-    fn keep(files: Vec<SourceFile>, index: PreviousIndex, bases: Vec<PendingReference>) -> Self {
+    /// Keeps the symbols and names of `files`; the other fields stay empty, except what the
+    /// resolver saw of the files that are not kept. Returns the symbols of those files with it.
+    fn keep(
+        files: Vec<SourceFile>,
+        symbols: Vec<Symbol>,
+        bases: Vec<PendingReference>,
+    ) -> (Self, Vec<SymbolId>) {
         let kept: HashSet<FileId> = files.iter().map(|file| file.id).collect();
-        let PreviousIndex {
-            symbols,
-            references,
-        } = index;
         let (symbols, vanished): (Vec<Symbol>, Vec<Symbol>) = symbols
             .into_iter()
             .partition(|symbol| kept.contains(&symbol.file));
         let (names, vanished_names): (Vec<PendingReference>, Vec<PendingReference>) = bases
             .into_iter()
             .partition(|name| kept.contains(&name.file));
-        let alive: HashSet<SymbolId> = symbols.iter().map(|symbol| symbol.id).collect();
-        let (stay, gone): (Vec<Reference>, Vec<Reference>) = references
-            .into_iter()
-            .filter(|reference| kept.contains(&reference.file))
-            .partition(|reference| alive.contains(&reference.to));
-        let level_two = Level2::of(&stay, &gone);
-        Self {
+        let gone = vanished.iter().map(|symbol| symbol.id).collect();
+        let carried = Self {
             files,
             symbols,
-            references: stay,
             bases: names,
-            discarded_verified: level_two.discarded,
-            verified_files: level_two.files,
-            lost: level_two.lost,
-            dead: gone.iter().map(site).collect(),
             // The symbols level 2 created are not part of what level 1 sees (ADR 0055).
             previous_shape: Shape::of(&level_one(vanished), &vanished_names),
             ..Self::default()
-        }
+        };
+        (carried, gone)
+    }
+
+    /// Reads the references of unchanged files whose target `vanished` is gone, and what level 2
+    /// left in the unchanged files.
+    fn mark_gone(
+        &mut self,
+        snapshot: SnapshotId,
+        vanished: &[SymbolId],
+        store: &dyn ProjectRepository,
+    ) -> Result<(), CodedError> {
+        let kept: HashSet<FileId> = self.files.iter().map(|file| file.id).collect();
+        let gone: Vec<Reference> = store
+            .stored_references(snapshot, StoredReferences::To(vanished))?
+            .into_iter()
+            .filter(|reference| kept.contains(&reference.file))
+            .collect();
+        self.verified_files = store
+            .verified_files(snapshot)?
+            .into_iter()
+            .filter(|file| kept.contains(file))
+            .collect();
+        self.lost = gone.iter().filter(|r| r.verified).map(site).collect();
+        self.discarded_verified =
+            u32::try_from(gone.iter().filter(|r| r.verified).count()).unwrap_or(u32::MAX);
+        self.dead = gone.iter().map(site).collect();
+        Ok(())
+    }
+
+    /// Reads the references that [`Carried::reconcile`] compares: those that start in a touched
+    /// symbol, or all if every name is resolved again or the previous snapshot did not count its
+    /// ambiguous places. Of the other references it takes the pairs for coupling and the number
+    /// of ambiguous places, which is the count of the snapshot without what is read (ADR 0086).
+    fn read_touched(&mut self, store: &dyn ProjectRepository) -> Result<(), CodedError> {
+        let Some(snapshot) = self.snapshot else {
+            return Ok(());
+        };
+        let kept: Vec<FileId> = self.files.iter().map(|file| file.id).collect();
+        let old = if let (Some(counted), Some(touched)) = (self.counted, self.touched()) {
+            let old = store.stored_references(snapshot, StoredReferences::From(&touched))?;
+            let left = store.stored_references(snapshot, StoredReferences::In(&self.left))?;
+            self.elsewhere = elsewhere(counted, &old, &left);
+            self.pairs = store.reference_pairs(snapshot, &kept, &touched)?;
+            old
+        } else {
+            store.stored_references(snapshot, StoredReferences::All)?
+        };
+        let kept: HashSet<FileId> = kept.into_iter().collect();
+        let alive: HashSet<SymbolId> = self.symbols.iter().map(|symbol| symbol.id).collect();
+        self.references = old
+            .into_iter()
+            .filter(|r| kept.contains(&r.file) && alive.contains(&r.to))
+            .collect();
+        Ok(())
+    }
+
+    /// The touched symbols in ascending order: those in which a name is resolved again or a
+    /// reference lost its target. `None` if all names are resolved again.
+    fn touched(&self) -> Option<Vec<SymbolId>> {
+        let scope = self.scope.as_ref()?;
+        let touched: BTreeSet<SymbolId> = scope
+            .iter()
+            .chain(&self.dead)
+            .map(|(from, _, _)| *from)
+            .collect();
+        Some(touched.into_iter().collect())
+    }
+
+    /// How many places of the whole snapshot match several symbols, given the references
+    /// `written` by this scan.
+    #[must_use]
+    pub fn ambiguous_places(&self, written: &[Reference]) -> u64 {
+        let here = ambiguous_occurrences(written.iter().chain(&self.references));
+        self.elsewhere.saturating_add(here)
     }
 
     /// The names to resolve again besides the new ones `fresh`, written in the files `symbols`
@@ -345,7 +401,15 @@ impl Carried {
     /// A file with references verified by level 2 keeps them (level 2 replaced its level 1
     /// references, ADR 0033), and level 1 adds nothing to it except the occurrences whose verified
     /// reference was discarded because its target is gone.
-    pub fn reconcile(&mut self, resolved: Vec<Reference>) -> Vec<Reference> {
+    ///
+    /// # Errors
+    /// A coded failure of the store, which the kept references are read from.
+    pub fn reconcile(
+        &mut self,
+        resolved: Vec<Reference>,
+        store: &dyn ProjectRepository,
+    ) -> Result<Vec<Reference>, CodedError> {
+        self.read_touched(store)?;
         let kept_files: HashSet<FileId> = self.files.iter().map(|file| file.id).collect();
         let produced: HashSet<Edge> = resolved
             .iter()
@@ -368,13 +432,13 @@ impl Carried {
         self.dropped
             .extend(stale.iter().map(|reference| reference.id));
         self.references = stay;
-        resolved
+        Ok(resolved
             .into_iter()
             .filter(|reference| {
                 !kept_files.contains(&reference.file)
                     || self.is_wanted(reference) && !held.contains(&edge(reference))
             })
-            .collect()
+            .collect())
     }
 
     /// Whether level 1 may write the reference of an unchanged file.
@@ -388,4 +452,20 @@ impl Carried {
             .as_ref()
             .is_none_or(|scope| scope.contains(&site(reference)))
     }
+}
+
+/// The ambiguous places of a snapshot with the count `counted` that lie outside the references
+/// read: those that start in a touched symbol (`old`) and those of the files that left (`left`).
+/// A reference in both lists counts once. A count below what was read means the stored count is
+/// wrong; it is logged and the places elsewhere count as none.
+fn elsewhere(counted: u64, old: &[Reference], left: &[Reference]) -> u64 {
+    let seen: HashSet<_> = old.iter().map(|reference| reference.id).collect();
+    let only_left = left
+        .iter()
+        .filter(|reference| !seen.contains(&reference.id));
+    let read = ambiguous_occurrences(old.iter().chain(only_left));
+    counted.checked_sub(read).unwrap_or_else(|| {
+        tracing::warn!(event = LOG_AMBIGUOUS_COUNT_TOO_LOW, counted, read);
+        u64::default()
+    })
 }

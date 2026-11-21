@@ -58,6 +58,11 @@ fn write_snapshot(conn: &Connection, data: &SnapshotData, keep: u32) -> StorageR
         sql::SNAPSHOT_NAMING_SET,
         params![data.naming_rules, column_int(header.id.get())?],
     )?;
+    let ambiguous = data.ambiguous_places.map(column_int).transpose()?;
+    conn.execute(
+        sql::SNAPSHOT_AMBIGUOUS_SET,
+        params![ambiguous, column_int(header.id.get())?],
+    )?;
     insert_facts(conn, data)?;
     insert_parse_times(conn, data)?;
     insert_warnings(conn, data)?;

@@ -44,7 +44,7 @@ fn file_database_uses_wal_and_the_current_schema_version() {
     let version: i64 = conn
         .pragma_query_value(None, "user_version", |row| row.get(0))
         .unwrap();
-    assert_eq!((mode.as_str(), version), ("wal", 18));
+    assert_eq!((mode.as_str(), version), ("wal", 19));
 }
 
 #[test]
@@ -579,7 +579,9 @@ fn a_version_eleven_database_keeps_its_layers_without_a_limit() {
     drop(SqliteStore::open(&db.0, keep(3)).unwrap());
     let conn = Connection::open(&db.0).unwrap();
     conn.execute_batch(
-        "DROP TABLE snapshot_left_out;
+        "DROP INDEX references_verified;
+         ALTER TABLE snapshots DROP COLUMN ambiguous_places;
+                 DROP TABLE snapshot_left_out;
          DROP TABLE level2_languages;
          DROP TABLE level2_reports;
          DROP TABLE scan_reports;
@@ -700,7 +702,8 @@ fn a_bulk_load_of_references_keeps_the_indexes_totals_and_usage_counts() {
         [
             "references_by_file",
             "references_by_source",
-            "references_by_target"
+            "references_by_target",
+            "references_verified"
         ]
     );
 }

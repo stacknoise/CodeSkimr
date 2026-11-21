@@ -43,7 +43,7 @@ pub use annotation::{
     Annotation, AnnotationContent, AnnotationId, AnnotationKind, AnnotationLimits,
     AnnotationTarget, AnnotationText, AnnotationTitle, Assignee, Author, NewAnnotation, TaskStatus,
 };
-pub use coupling::coupling;
+pub use coupling::{SymbolPair, coupling, coupling_with};
 pub use error::ModelError;
 pub use file::{ContentHash, FileId, LanguageId, Loc, RelativePath, SourceFile};
 pub use fingerprint::{Fingerprint, FingerprintParams, Fingerprints, TokenId, winnow};

@@ -28,7 +28,6 @@ use crate::ports::{
     ReferenceResolver, ScanWarning, SnapshotData, SnapshotStore, SourceProvider, StoredNames,
     SymbolFingerprints, SymbolHash,
 };
-use crate::resolve::ambiguous_occurrences;
 use crate::selection::Selection;
 use crate::stage::StageKind;
 
@@ -239,7 +238,7 @@ impl Stage for DiscoverStage {
         }
         let carried = if let (ScanMode::Incremental, Some(snapshot)) = (run.mode, state.snapshot) {
             let bases = self.projects.stored_names(snapshot, StoredNames::Bases)?;
-            Carried::from_previous(&mut files, state, bases)
+            Carried::from_previous(&mut files, state, bases, self.projects.as_ref())?
         } else {
             Carried::default()
         };
@@ -503,7 +502,7 @@ impl AnalyzeStage {
             }
         }
         let bases = self.projects.stored_names(snapshot, StoredNames::Bases)?;
-        out.carried = Carried::from_previous(files, state, bases);
+        out.carried = Carried::from_previous(files, state, bases, self.projects.as_ref())?;
         if full {
             // The times of a scan that missed a file are not those of a full scan.
             out.run.parse_micros.clear();
@@ -653,7 +652,7 @@ impl Stage for ResolveStage {
             self.resolver
                 .resolve(&table, &names, &test_files, (&self.ids, ctx.cancel_token()))?;
         let given_up = resolved.given_up;
-        let references = carried.reconcile(resolved.references);
+        let references = carried.reconcile(resolved.references, self.projects.as_ref())?;
         if carried.discarded_verified > 0 {
             tracing::info!(
                 event = LOG_VERIFIED_DISCARDED,
@@ -717,9 +716,9 @@ impl Stage for MeasureStage {
             .collect();
         let total = count(&symbols);
         ctx.progress(0, total);
-        let metrics = self
-            .calculator
-            .measure(&symbols, &references, &input.counts)?;
+        let metrics =
+            self.calculator
+                .measure(&symbols, &references, &input.carried.pairs, &input.counts)?;
         ctx.progress(total, total);
         Ok(Measured {
             run: input.run,
@@ -775,8 +774,7 @@ fn log_warnings(warnings: &[ScanWarning]) {
 ///
 /// `given_up` counts only the places resolved in this scan: an incremental scan does not know how
 /// many a kept file gave up before.
-fn warnings_of(references: &[Reference], carried: &[Reference], given_up: u64) -> Vec<ScanWarning> {
-    let ambiguous = ambiguous_occurrences(references.iter().chain(carried));
+fn warnings_of(ambiguous: u64, given_up: u64) -> Vec<ScanWarning> {
     let found = [
         (ErrorCode::AmbiguousReference, ambiguous),
         (ErrorCode::NameTooCommon, given_up),
@@ -825,8 +823,8 @@ impl Stage for PersistStage {
         ctx.progress(0, 1);
         let root = input.run.root.clone();
         let snapshot = snapshot_of(&input, self.clock.now());
-        let mut warnings =
-            warnings_of(&input.references, &input.carried.references, input.given_up);
+        let ambiguous = input.carried.ambiguous_places(&input.references);
+        let mut warnings = warnings_of(ambiguous, input.given_up);
         warnings.extend(left_out_warnings(&input.run.paths_report.left_out));
         let paths = listed(input.run.paths_report, self.max_left_out_listed);
         let data = SnapshotData {
@@ -843,6 +841,7 @@ impl Stage for PersistStage {
             naming_rules: input.run.naming_rules,
             parse_micros: input.run.parse_micros,
             warnings: warnings.clone(),
+            ambiguous_places: Some(ambiguous),
             left_out: paths.left_out.clone(),
         };
         let stored = self.store.persist(data)?;

@@ -13,10 +13,8 @@ use codeskimr_domain::{
 };
 use rusqlite::{Connection, params};
 
-use crate::codec::{Cols, SpanColumns, column_int, id_from, label_from, small_from};
-use crate::consts::{
-    HASH_BYTES, JSON_LIST_CLOSE, JSON_LIST_OPEN, JSON_LIST_SEPARATOR, PERCENT_BASE,
-};
+use crate::codec::{Cols, SpanColumns, column_int, id_from, json_list, label_from, small_from};
+use crate::consts::{HASH_BYTES, PERCENT_BASE};
 use crate::error::StorageResult;
 use crate::sql;
 use crate::store::SqliteStore;
@@ -46,16 +44,6 @@ pub fn insert_all(conn: &Connection, fingerprints: &[SymbolFingerprints]) -> Sto
         }
     }
     Ok(())
-}
-
-/// A list of numbers as the JSON text that `json_each` reads, so one statement takes any number
-/// of values.
-pub(crate) fn json_list(values: impl Iterator<Item = i64>) -> String {
-    let items: Vec<String> = values.map(|value| value.to_string()).collect();
-    format!(
-        "{JSON_LIST_OPEN}{}{JSON_LIST_CLOSE}",
-        items.join(&JSON_LIST_SEPARATOR.to_string())
-    )
 }
 
 fn stored(conn: &Connection, snapshot: i64, symbol: SymbolId) -> StorageResult<Fingerprints> {

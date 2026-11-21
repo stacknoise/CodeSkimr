@@ -1,6 +1,6 @@
 //! Tests of the scan pipeline, the scanner, the job typestate and the event bus with fake ports.
 
-use std::collections::HashSet;
+use std::collections::{BTreeSet, HashSet};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
@@ -27,7 +27,7 @@ use codeskimr_application::ports::{
     PathsReport, PendingReference, PreviousIndex, PreviousState, ProjectRepository, ProjectScanner,
     Receiver, ReferenceImporter, ReferenceResolver, ReportWrite, Resolution, ScanReport,
     ScanReportStore, ScanWarning, SnapshotData, SnapshotStore, SourceProvider, StoredNames,
-    SymbolFingerprints, ToolSpec, ToolVersion,
+    StoredReferences, SymbolFingerprints, ToolSpec, ToolVersion,
 };
 use codeskimr_application::stage::StageKind;
 use codeskimr_codes::{Coded, ErrorCode};
@@ -37,7 +37,7 @@ use codeskimr_domain::{
     Permission, PermissionSet, Position, Principal, Project, ProjectId, ProjectName, ProjectSource,
     QualifiedName, Reference, ReferenceId, ReferenceKind, RelativePath, ScanLevel, ScanMode,
     ScanOrigin, Snapshot, SnapshotId, SourceFile, Span, Symbol, SymbolCounts, SymbolId, SymbolKind,
-    SymbolName, SymbolOrigin, Timestamp,
+    SymbolName, SymbolOrigin, SymbolPair, Timestamp,
 };
 use common::InMemoryConsent;
 use fakes::{MemoryAnnotations, MemoryStates, step, symbol};
@@ -50,6 +50,8 @@ struct Previous {
     /// The names as written in the files, as the store keeps them.
     names: Vec<PendingReference>,
     names_stored: bool,
+    /// The number of ambiguous places the snapshot stores; without it a scan reads every reference.
+    ambiguous: Option<u64>,
 }
 
 /// One fake that plays every port. `fail_at` makes that stage fail, `cancel_at` raises the token
@@ -69,6 +71,10 @@ struct World {
     rules: (&'static str, Option<&'static str>),
     persisted: Mutex<Vec<SnapshotData>>,
     measured: Mutex<Vec<(usize, usize)>>,
+    /// The pairs each measurement got for the references that stayed in the store.
+    pairs: Mutex<Vec<Vec<SymbolPair>>>,
+    /// Which references each read asked for.
+    reads: Mutex<Vec<String>>,
     /// How many names each resolution got.
     resolved: Mutex<Vec<usize>>,
     counted: Mutex<Vec<usize>>,
@@ -302,9 +308,14 @@ impl MetricsCalculator for World {
         &self,
         symbols: &[Symbol],
         references: &[Reference],
+        pairs: &[SymbolPair],
         counts: &[SymbolCounts],
     ) -> Result<Vec<Metric>, CodedError> {
         self.gate(StageKind::Measure)?;
+        self.pairs
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .push(pairs.to_vec());
         self.counted
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
@@ -350,10 +361,64 @@ impl ProjectRepository for World {
     fn latest_state(&self, _: ProjectId) -> Result<PreviousState, CodedError> {
         Ok(PreviousState {
             files: self.previous.files.clone(),
-            index: self.previous.index.clone(),
+            symbols: self.previous.index.symbols.clone(),
             snapshot: Some(SnapshotId::new(9)),
             names_stored: self.previous.names_stored,
+            ambiguous_places: self.previous.ambiguous,
         })
+    }
+
+    fn stored_references(
+        &self,
+        _: SnapshotId,
+        which: StoredReferences<'_>,
+    ) -> Result<Vec<Reference>, CodedError> {
+        self.reads
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .push(format!("{which:?}"));
+        let held: HashSet<SymbolId> = self.previous.index.symbols.iter().map(|s| s.id).collect();
+        let references = self.previous.index.references.iter();
+        Ok(references
+            .filter(|r| held.contains(&r.to))
+            .filter(|r| match which {
+                StoredReferences::To(symbols) => symbols.contains(&r.to),
+                StoredReferences::From(symbols) => symbols.contains(&r.from),
+                StoredReferences::In(files) => files.contains(&r.file),
+                StoredReferences::All => true,
+            })
+            .copied()
+            .collect())
+    }
+
+    fn verified_files(&self, _: SnapshotId) -> Result<Vec<FileId>, CodedError> {
+        let files: BTreeSet<FileId> = self
+            .previous
+            .index
+            .references
+            .iter()
+            .filter(|r| r.verified)
+            .map(|r| r.file)
+            .collect();
+        Ok(files.into_iter().collect())
+    }
+
+    fn reference_pairs(
+        &self,
+        _: SnapshotId,
+        files: &[FileId],
+        without: &[SymbolId],
+    ) -> Result<Vec<SymbolPair>, CodedError> {
+        let pairs: BTreeSet<SymbolPair> = self
+            .previous
+            .index
+            .references
+            .iter()
+            .filter(|r| files.contains(&r.file) && !without.contains(&r.from))
+            .filter(|r| r.kind != ReferenceKind::Test)
+            .map(|r| (r.from, r.to))
+            .collect();
+        Ok(pairs.into_iter().collect())
     }
 
     fn stored_names(
@@ -863,6 +928,9 @@ fn old_name(target: &str, id: u32) -> Result<PendingReference, CodedError> {
 fn previous_snapshot() -> Result<Previous, CodedError> {
     Ok(Previous {
         names_stored: true,
+        // No place of this snapshot matches several symbols, so scans over it read only the
+        // references they need (ADR 0086).
+        ambiguous: Some(0),
         names: vec![
             old_name("b", 300)?,
             old_name("c", 301)?,
@@ -886,6 +954,120 @@ fn previous_snapshot() -> Result<Previous, CodedError> {
             ],
         },
     })
+}
+
+/// [`previous_snapshot`] with a fourth file `d.rs` (file 103) that no change reaches: its symbol
+/// `d` refers to `a` and, in one place that matches two symbols, to `a` or itself.
+fn previous_with_an_untouched_file(counted: Option<u64>) -> Result<Arc<World>, CodedError> {
+    let mut previous = previous_snapshot()?;
+    previous.ambiguous = counted;
+    previous.files.push(old_file(103, "d.rs")?);
+    previous.index.symbols.push(old_symbol(203, 103, "d")?);
+    let in_d = |id: u64, line: u32, to: u64, confidence| -> Result<Reference, CodedError> {
+        Ok(Reference {
+            id: ReferenceId::new(id),
+            from: SymbolId::new(203),
+            to: SymbolId::new(to),
+            file: FileId::new(103),
+            span: span_at(line)?,
+            kind: ReferenceKind::Call,
+            confidence,
+            verified: false,
+        })
+    };
+    previous.index.references.extend([
+        in_d(310, 5, 200, Confidence::Certain)?,
+        in_d(311, 6, 200, Confidence::Probable)?,
+        in_d(312, 6, 203, Confidence::Probable)?,
+    ]);
+    Ok(Arc::new(World {
+        previous,
+        found: Some(vec![("a.rs", false), ("b.rs", true), ("d.rs", false)]),
+        ..World::default()
+    }))
+}
+
+impl World {
+    /// Which references the scan asked the store for, one text per read.
+    fn reads(&self) -> Vec<String> {
+        self.reads
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()
+    }
+
+    /// The pairs the last measurement got for the references that stayed in the store.
+    fn last_pairs(&self) -> Vec<SymbolPair> {
+        let pairs = self.pairs.lock().unwrap_or_else(PoisonError::into_inner);
+        pairs.last().cloned().unwrap_or_default()
+    }
+}
+
+#[test]
+fn an_incremental_scan_leaves_the_references_of_untouched_files_in_the_store()
+-> Result<(), CodedError> {
+    let world = previous_with_an_untouched_file(Some(1))?;
+    let (result, _) = run(&world, ScanMode::Incremental);
+    assert!(matches!(result, JobResult::Finished(_)));
+    let (a, b, c) = (SymbolId::new(200), SymbolId::new(201), SymbolId::new(202));
+    let left = [FileId::new(101), FileId::new(102)];
+    let expected = [
+        format!("{:?}", StoredReferences::To(&[b, c])),
+        format!("{:?}", StoredReferences::From(&[a])),
+        format!("{:?}", StoredReferences::In(&left)),
+    ];
+    assert_eq!(
+        world.reads(),
+        expected,
+        "nothing that starts in the symbol of the untouched file is read"
+    );
+    let d = SymbolId::new(203);
+    assert_eq!(
+        world.last_pairs(),
+        [(d, SymbolId::new(200)), (d, d)],
+        "coupling gets the references of the untouched file as pairs"
+    );
+    let persisted = world.last_persisted()?;
+    assert_eq!(
+        persisted.ambiguous_places,
+        Some(1),
+        "the place in the untouched file is counted without its references"
+    );
+    let ambiguous = ScanWarning {
+        code: ErrorCode::AmbiguousReference,
+        count: 1,
+    };
+    assert_eq!(persisted.warnings, [ambiguous]);
+    Ok(())
+}
+
+#[test]
+fn without_a_stored_count_an_incremental_scan_reads_every_reference() -> Result<(), CodedError> {
+    let world = previous_with_an_untouched_file(None)?;
+    let (result, _) = run(&world, ScanMode::Incremental);
+    assert!(matches!(result, JobResult::Finished(_)));
+    let all = format!("{:?}", StoredReferences::All);
+    assert!(world.reads().contains(&all), "{:?}", world.reads());
+    assert_eq!(world.last_pairs(), []);
+    assert_eq!(world.last_persisted()?.ambiguous_places, Some(1));
+    Ok(())
+}
+
+#[test]
+fn a_stored_count_and_a_count_over_every_reference_give_the_same_snapshot() -> Result<(), CodedError>
+{
+    let narrow = previous_with_an_untouched_file(Some(1))?;
+    let wide = previous_with_an_untouched_file(None)?;
+    for world in [&narrow, &wide] {
+        let (result, _) = run(world, ScanMode::Incremental);
+        assert!(matches!(result, JobResult::Finished(_)));
+    }
+    let (narrow, wide) = (narrow.last_persisted()?, wide.last_persisted()?);
+    assert_eq!(narrow.references, wide.references);
+    assert_eq!(narrow.dropped_references, wide.dropped_references);
+    assert_eq!(narrow.warnings, wide.warnings);
+    assert_eq!(narrow.ambiguous_places, wide.ambiguous_places);
+    Ok(())
 }
 
 #[test]

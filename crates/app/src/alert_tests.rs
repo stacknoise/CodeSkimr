@@ -66,7 +66,6 @@ fn hashes_of(locations: &Locations) -> Vec<(String, String)> {
     let store = store_of(locations);
     let state = store.latest_state(PROJECT).unwrap();
     let names: Vec<QualifiedName> = state
-        .index
         .symbols
         .iter()
         .map(|symbol| symbol.qualified_name.clone())
@@ -287,7 +286,6 @@ fn a_full_scan_that_times_out_on_the_file_of_a_critical_symbol_raises_no_alert()
     paths.sort_unstable();
     assert_eq!(paths, ["Other.cs", "Target.cs"]);
     let names: Vec<&str> = state
-        .index
         .symbols
         .iter()
         .map(|symbol| symbol.qualified_name.as_str())
