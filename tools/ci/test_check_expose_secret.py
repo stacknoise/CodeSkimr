@@ -28,6 +28,47 @@ class CountCalls(unittest.TestCase):
         text += "#[cfg(test)] mod tests;\nfn last(c: &C) { c.expose_user(); }\n"
         self.assertEqual(check.count_calls(text), [3, 9, 11])
 
+    def test_mut_variants_count(self):
+        text = "a.expose_secret_mut();\nb.map(Secret::expose_user_mut);\nc.expose_secret_mutable();\n"
+        self.assertEqual(check.count_calls(text), [1, 2])
+
+    def test_braces_in_literals_do_not_hide_product_code(self):
+        for literal in ('"{"', "'{'", 'r#"{"#', 'b"{{"', '"\\"{"', "'\\''; let b = '{'"):
+            text = "#[cfg(test)]\nmod t { fn a() { let s = " + literal + "; } }\n"
+            text += "fn p(x: &C) { x.expose_secret(); }\n"
+            self.assertEqual(check.count_calls(text), [3], literal)
+
+    def test_lifetimes_are_no_character_literals(self):
+        text = "fn p<'a, 'b>(x: &'a C, y: &'b str) -> &'a str { x.expose_secret() }\n"
+        self.assertEqual(check.count_calls(text), [1])
+
+    def test_comments_and_literals_are_no_code(self):
+        text = "/* a /* nested */\n#[cfg(test)]\n x.expose_secret() */\n"
+        text += "fn p(x: &C) { x.expose_secret(); } // y.expose_secret()\n"
+        text += 'let s = "z.expose_secret()";\n'
+        self.assertEqual(check.count_calls(text), [4])
+
+    def test_an_open_test_item_comment_or_raw_string_fails(self):
+        for text in ("#[cfg(test)]\nmod t {\n", "fn a() {}\n/* open\n", 'let s = r#"open";\n'):
+            with self.assertRaises(check.Unfinished, msg=text):
+                check.count_calls(text)
+
+    def test_marked_arms_variants_and_fields_end_at_their_own_end(self):
+        real = "fn real(c: &C) { c.expose_secret(); }\n"
+        arm = "fn f(x: E) {\n    match x {\n        E::A => 1,\n        #[cfg(test)]\n        E::B => 2\n    }\n}\n"
+        self.assertEqual(check.count_calls(arm + real), [8])
+        braced_arm = arm.replace("E::B => 2", "E::B => { x.expose_secret(); 2 }")
+        self.assertEqual(check.count_calls(braced_arm + real), [8])
+        field = "mod m {\n    struct S {\n        #[cfg(test)]\n        fake: [u8; 2]\n    }\n}\n"
+        self.assertEqual(check.count_calls(field + real), [7])
+        variant = "enum E {\n    #[cfg(test)]\n    Fake,\n}\nconst F: fn(&C) -> &str = C::expose_secret;\n"
+        self.assertEqual(check.count_calls(variant + real), [5, 6])
+
+    def test_code_behind_the_item_on_the_same_line_counts(self):
+        text = "#[cfg(test)] use a::b; fn real(c: &C) { c.expose_secret(); }\n"
+        text += "#[cfg(test)]\nfn helper(a: [u8; 2], c: &C) { c.expose_secret(); } fn more(c: &C) { c.expose_user(); }\n"
+        self.assertEqual(check.count_calls(text), [1, 3])
+
     def test_test_files_are_skipped(self):
         from pathlib import Path
         self.assertTrue(check.is_test_file(Path("crates/x/tests/a.rs")))
