@@ -10,9 +10,9 @@ mod tests {
     use tempfile::TempDir;
 
     /// Two methods with the same body, one of them in a file of its own.
-    const FIRST: &str = "namespace Demo;\n\npublic class Calculator\n{\n    public int Total(int[] values)\n    {\n        var sum = 0;\n        foreach (var value in values)\n        {\n            if (value > 0) { sum += value * 2; } else { sum -= value; }\n        }\n        return sum;\n    }\n}\n";
-    const SECOND: &str = "namespace Demo;\n\npublic class Ledger\n{\n    public int Balance(int[] amounts)\n    {\n        var sum = 0;\n        foreach (var value in amounts)\n        {\n            if (value > 0) { sum += value * 2; } else { sum -= value; }\n        }\n        return sum;\n    }\n}\n";
-    const OTHER: &str = "namespace Demo;\n\npublic class Greeter\n{\n    public string Hello() { return \"hello\"; }\n}\n";
+    const FIRST: &str = "namespace Demo;\n\npublic class Calculator\n{\n    public int Total(int[] values)\n    {\n        var sum = 0;\n        foreach (var value in values)\n        {\n            if (value > 0) { sum += value * value; } else { sum -= value; }\n        }\n        return sum;\n    }\n}\n";
+    const SECOND: &str = "namespace Demo;\n\npublic class Ledger\n{\n    public int Balance(int[] amounts)\n    {\n        var sum = 0;\n        foreach (var value in amounts)\n        {\n            if (value > 0) { sum += value * value; } else { sum -= value; }\n        }\n        return sum;\n    }\n}\n";
+    const OTHER: &str = "namespace Demo;\n\npublic class Greeter\n{\n    public string Hello(string name) { return name; }\n}\n";
 
     /// Two functions of one Python file: one with two literals, one with a single one.
     const PYTHON: &str =
@@ -89,7 +89,7 @@ mod tests {
         let json = report(&output);
         assert_eq!(json["files_checked"], 2);
         assert_eq!(json["findings"], serde_json::json!([]));
-        assert_eq!(json["not_checked"].as_array().unwrap().len(), 2);
+        assert_eq!(json["not_checked"], serde_json::json!(["CHK-103"]));
     }
 
     #[test]
