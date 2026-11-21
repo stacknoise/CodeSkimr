@@ -68,7 +68,7 @@ impl TreeSitterAnalyzer {
     fn run(&self, request: &AnalyzeRequest<'_>) -> Result<FileFacts, ParsingError> {
         let pack = self.packs.get(&request.file.language)?;
         let location = Path::new(request.root.as_str()).join(request.file.path.as_str());
-        let source = decode(&fs::read(location).map_err(ParsingError::Unreadable)?)?;
+        let source = decode(&fs::read(location).map_err(ParsingError::FileUnreadable)?)?;
         let tree = parse(pack, &source, self.parse_timeout)?;
         let root = tree.root_node();
         let file = request.ids.file();

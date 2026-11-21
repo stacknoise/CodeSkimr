@@ -30,7 +30,7 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | Code | Meaning | What to do |
 |---|---|---|
 | `APP-201` | the data folder cannot be created or opened | check the path and rights (`--data-dir`) |
-| `APP-202` | the private file for starting the browser could not be created; also refused when its folder is a link or a junction (Windows) | check the rights of the data folder; `codeskimr serve` and open the address by hand |
+| `APP-202` | the private file for starting the browser could not be created; also refused when its folder is a link or a junction, or when a folder above it belongs to another account (Windows; this can hit company profiles on network drives and folders on a second drive) | check the rights of the data folder; on Windows the log (`codeskimr.log`, event `launch_parent_refused`) names the refused folder: put the data folder with `--data-dir` in a place whose folders all belong to your own account; `codeskimr serve` and open the address by hand |
 | `APP-601` | the system did not start a browser | open the address printed by `codeskimr serve` by hand |
 | `APP-603` | the program could not start itself in the background or show its tray icon | start it with `--console` to stay in the window and look at the log in the data folder (`codeskimr.log`) |
 | `APP-604` | the console window for the level 2 confirmation could not be started | copy the command the screen shows and run it in a terminal |
@@ -47,7 +47,9 @@ The complete list of codes with name, severity, whether retrying helps, the vers
 | `CLI-103` | no secret could be read, or it was empty | pipe it in or type it at the prompt |
 | `SRC-501` | the source or a file is too large | raise `scan.max_source_mb` or exclude folders (`scan.excluded_folders`) |
 | `PRS-201` | no language pack for a file type | the files of that type are not analysed; install the pack |
-| `PRS-501` | a file took too long to parse | raise `scan.parse_timeout_ms` if the file is legitimate |
+| `PRS-501` | a file took too long to parse and was left out; the scan goes on | raise `scan.parse_timeout_ms` if the file is legitimate |
+| `PRS-101` | a file is not valid UTF-8 or UTF-16 and is missing in the result; the scan goes on. If that holds for every file, the scan fails with this code | save the named file as UTF-8 |
+| `PRS-102` | a file was gone or locked during the scan and was left out; the scan goes on | scan again once the file can be read |
 | `CFG-101`, `CFG-102`, `CFG-103` | invalid value, unreadable file, unknown key in the configuration | correct the setting named in the message |
 | `CFG-104` | the file `.codeskimr.toml` could not be written when layers were saved in the UI | make the project folder writable, or write the `[[layers]]` tables by hand |
 | `CFG-105` | level 2 is not enabled in the user configuration | put `[level2]` / `enabled = true` into your `config.toml`; CodeSkimr never does it for you |

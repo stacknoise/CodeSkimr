@@ -144,6 +144,8 @@ pub mod keys {
     pub const MAX_SOURCE_MB: &str = "scan.max_source_mb";
     /// `scan.max_signature_chars`
     pub const MAX_SIGNATURE_CHARS: &str = "scan.max_signature_chars";
+    /// `scan.max_left_out_listed`
+    pub const MAX_LEFT_OUT_LISTED: &str = "scan.max_left_out_listed";
     /// `level2.max_index_bytes`
     pub const LEVEL2_MAX_INDEX_BYTES: &str = "level2.max_index_bytes";
     /// `level2.timeout_seconds`

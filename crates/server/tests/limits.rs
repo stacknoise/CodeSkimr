@@ -327,6 +327,12 @@ async fn a_client_that_leaves_in_the_middle_is_an_invalid_request_not_too_large(
     let server = common::start_mcp(owner()).await;
     for path in [MCP_PATH, REST_PATH] {
         let text = post_answer(&server, path, (100, "{\""), true).await;
-        assert!(!text.contains("413"), "{path}: {text}");
+        // The status line only: the headers carry the random port of the server, and a port such
+        // as 41357 contains "413".
+        let status = text.lines().next().unwrap_or_default();
+        assert!(
+            status.is_empty() || status.starts_with("HTTP/1.1 400"),
+            "{path}: {text}"
+        );
     }
 }

@@ -237,6 +237,8 @@ pub struct Scan {
     /// Most characters of a signature (for a constant: its declaration with the value); a longer
     /// one is cut and ends with `…`.
     pub max_signature_chars: u32,
+    /// Most files a scan names when it left them out; the others are only counted.
+    pub max_left_out_listed: u32,
 }
 
 /// Settings and limits of level 2: running indexers and importing their indexes (ADR 0033).
