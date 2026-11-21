@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><title>Statistik-Mocks</title>
+<style>
+.hell{--bg:#F6F7F9;--surface:#FFFFFF;--line:#E3E6EB;--soft:#EEF0F3;--ink:#14171C;--ink2:#3A414C;--muted:#5B6370;--accent:#2457D6;--accentbg:#EAF0FD;--fg:#fff;--good:#15803D;--goodbg:#EAF7EF;--warn:#B45309;--warnbg:#FFF4E5;--bad:#B91C1C;--badbg:#FDF2F2;--crit:#A3197A;--critbg:#FBE8F5;--hl:#FFF7D6;--k1:#2457D6;--k2:#7C3AED;--k3:#0F766E;--k4:#B45309;--k5:#BE185D}
+.petrol{--bg:#F4F6F8;--surface:#FFFFFF;--line:#DDE3EA;--soft:#E8EDF2;--ink:#1B2430;--ink2:#3A4656;--muted:#5D6B7C;--accent:#0C727B;--accentbg:#DFF1F2;--fg:#fff;--good:#1F7A45;--goodbg:#DDF3E5;--warn:#8A5A00;--warnbg:#FBECCB;--bad:#A82D2D;--badbg:#F9DCDC;--crit:#A3197A;--critbg:#FBE8F5;--hl:#FFF7D6;--k1:#2457D6;--k2:#7C3AED;--k3:#0F766E;--k4:#B45309;--k5:#BE185D}
+.dunkel{--bg:#12171D;--surface:#1A212A;--line:#2C3643;--soft:#232C37;--ink:#E6EBF1;--ink2:#C5CED9;--muted:#97A4B4;--accent:#3BB6C1;--accentbg:#16363B;--fg:#06222A;--good:#5FD18B;--goodbg:#173826;--warn:#F0BD5A;--warnbg:#3A2D10;--bad:#FF8C8C;--badbg:#401B1B;--crit:#F08BD0;--critbg:#3D1634;--hl:#3A3413;--k1:#6E9BFF;--k2:#A78BFA;--k3:#2DD4BF;--k4:#F59E0B;--k5:#F472B6}
+*{box-sizing:border-box}html,body{margin:0;background:#888}
+.board{position:relative;width:1400px;height:860px;overflow:hidden;background:var(--bg);color:var(--ink);font:13px Inter,system-ui,sans-serif;display:flex;flex-direction:column}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace;font-size:12px}
+header{height:48px;flex:none;display:flex;align-items:center;gap:14px;padding:0 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.logo{width:24px;height:24px;border-radius:6px;background:var(--ink);color:var(--surface);display:grid;place-items:center;font-weight:700}
+.search{margin-left:auto;margin-right:auto;width:420px;border:1px solid var(--line);border-radius:8px;padding:6px 12px;color:var(--muted);display:flex;justify-content:space-between;background:var(--bg)}
+.chip{font:12px 'JetBrains Mono',monospace;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:3px 8px}
+.main{display:flex;flex:1;min-height:0}
+.rail{width:56px;flex:none;background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:6px}
+.rb{width:40px;height:40px;border-radius:8px;display:grid;place-items:center;color:var(--ink2);position:relative}
+.rb svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.rb.on{background:var(--accentbg);color:var(--accent)}.rb.shut{opacity:.4}
+.rb.new::after{content:"";position:absolute;right:6px;top:6px;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.tip{position:absolute;left:52px;top:4px;z-index:5;background:var(--ink);color:var(--surface);border-radius:6px;padding:6px 10px;font-size:12px;white-space:nowrap}
+.spacer{flex:1}
+.content{flex:1;min-width:0;display:flex;flex-direction:column}
+.status{height:28px;flex:none;border-top:1px solid var(--line);background:var(--surface);display:flex;align-items:center;gap:16px;padding:0 16px;font:12px 'JetBrains Mono',monospace;color:var(--muted)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--good);margin-right:6px}
+.page{padding:20px 28px;flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:14px}
+.title{display:flex;align-items:baseline;gap:12px}.title h1{margin:0;font-size:20px}.title .sub{color:var(--muted)}
+.right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.btn{font:12px Inter,sans-serif;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:4px 10px;white-space:nowrap}
+.btn.pri{background:var(--accent);color:var(--fg);border-color:var(--accent);font-weight:600}
+.btn.on,.seg .on{background:var(--accentbg);border-color:var(--accent);color:var(--accent);font-weight:600}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--surface)}
+.seg span{padding:4px 10px;font-size:12px;border-right:1px solid var(--line);white-space:nowrap}.seg span:last-child{border:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+.pad{padding:14px 16px}
+.k{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tab{padding:8px 14px;border-bottom:2px solid transparent;color:var(--ink2);white-space:nowrap;display:flex;gap:6px;align-items:center}
+.tab.on{border-color:var(--accent);color:var(--accent);font-weight:600}
+.tab .n{font:11px 'JetBrains Mono',monospace;color:var(--muted);background:var(--soft);border-radius:9px;padding:1px 7px}
+.badge{display:inline-block;font-size:11px;font-weight:700;border-radius:4px;padding:1px 6px;background:var(--soft);color:var(--ink2);white-space:nowrap}
+.pill{display:inline-block;font-size:11px;font-weight:700;border-radius:9px;padding:2px 9px;white-space:nowrap}
+.pill.good{background:var(--goodbg);color:var(--good)}.pill.warn{background:var(--warnbg);color:var(--warn)}.pill.bad{background:var(--badbg);color:var(--bad)}.pill.n{background:var(--soft);color:var(--ink2)}.pill.acc{background:var(--accentbg);color:var(--accent)}
+.row .badge{min-width:62px;text-align:center;flex:none}.row>*{flex-shrink:0}.row>.path{flex-shrink:1}.kind-type{color:var(--k1)}.kind-fn{color:var(--k3)}
+.name{font:500 13px 'JetBrains Mono',monospace;color:var(--ink)}.path{color:var(--muted);font-size:12px}
+.row{display:flex;align-items:center;gap:10px;padding:7px 14px;border-bottom:1px solid var(--soft)}
+.row:last-child{border:0}.row.sel{background:var(--accentbg);box-shadow:inset 3px 0 0 var(--accent)}
+.row .go{margin-left:auto;color:var(--accent);font-size:12px;white-space:nowrap;display:flex;gap:4px;align-items:center}
+.rk{width:22px;color:var(--muted);font:12px 'JetBrains Mono',monospace;text-align:right}
+.num{font:600 13px 'JetBrains Mono',monospace;min-width:34px;text-align:right}
+.bar{height:8px;border-radius:4px;background:var(--soft);position:relative;overflow:hidden;flex:none}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:4px 0 0 4px}
+.bar b{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(135deg,var(--accent) 0 2px,transparent 2px 5px);opacity:.45}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.kpi{padding:12px 14px}.kpi .v{font:600 22px 'JetBrains Mono',monospace;margin:4px 0 2px}.kpi .d{font-size:12px;color:var(--muted)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;min-height:0}
+.ch{display:flex;align-items:center;gap:8px;padding:12px 14px 8px}.ch h2{margin:0;font-size:14px}.ch .more{margin-left:auto;color:var(--accent);font-size:12px}
+.note{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--warn);background:var(--warnbg);color:var(--ink);border-radius:10px;padding:10px 14px;line-height:1.45}
+.note.info{border-color:var(--accent);background:var(--accentbg)}
+.note b{white-space:nowrap}
+.lang{display:flex;height:10px;border-radius:5px;overflow:hidden;gap:2px}.lang i{display:block}
+.legend{display:flex;gap:14px;color:var(--muted);font-size:12px;flex-wrap:wrap}.legend span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;background:var(--c)}
+.split{display:grid;grid-template-columns:1fr 340px;gap:14px;flex:1;min-height:0}
+.table{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.th{display:flex;gap:10px;padding:8px 14px;border-bottom:1px solid var(--line);font-size:11px;font-weight:600;color:var(--muted);align-items:center}
+.side h3{margin:0 0 2px;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.side .big{font:600 18px 'JetBrains Mono',monospace;margin:2px 0 10px}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 12px}
+.tile{border:1px solid var(--line);border-radius:8px;padding:8px 10px}.tile .v{font:600 16px 'JetBrains Mono',monospace}.tile .l{font-size:11px;color:var(--muted)}
+.open{display:flex;justify-content:space-between;align-items:center;background:var(--ink);color:var(--surface);border-radius:6px;padding:9px 12px;font-weight:600;margin-top:10px}
+.open.alt{background:var(--surface);color:var(--ink);border:1px solid var(--line);font-weight:500}
+kbd{font:11px 'JetBrains Mono',monospace;opacity:.75}
+.cap{position:absolute;right:16px;bottom:36px;background:var(--ink);color:var(--surface);border-radius:8px;padding:8px 12px;font-size:12px}
+.hist{display:flex;align-items:flex-end;gap:5px;height:150px;padding:0 4px;position:relative}
+.hist div{flex:1;background:var(--accent);border-radius:3px 3px 0 0;position:relative;min-width:8px}
+.hist span{position:absolute;bottom:-18px;left:0;right:0;text-align:center;font:10px 'JetBrains Mono',monospace;color:var(--muted)}
+.hist em{position:absolute;top:-16px;left:0;right:0;text-align:center;font:10px 'JetBrains Mono',monospace;color:var(--muted);font-style:normal}
+svg text{font-family:'JetBrains Mono',monospace;font-size:10px;fill:var(--muted)}
+</style></head><body><div id="root"></div>
+<script>
+const I = {
+ folder:'<path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+ list:'<path d="M5 5h14M5 10h8M5 15h14M5 20h8"/>',
+ graph:'<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="8" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M8 7l8 1M7 8l4 8M17 10l-4 6"/>',
+ bolt:'<path d="M13 3L5 14h6l-1 7 8-11h-6z"/>',
+ stat:'<path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>'
+};
+const ic = n => `<svg viewBox="0 0 24 24">${I[n]}</svg>`;
+function frame(theme, body, opt={}){
+  const rb=(n,on,x='')=>`<div class="rb ${on?'on':''} ${x}">${ic(n)}</div>`;
+  return `<div class="board ${theme}" data-name="${opt.name}">
+  <header><div class="logo">C</div><b>CodeSkimr</b>
+   <span class="chip">${opt.project??'CodeSkimr · Scan 1'}</span>
+   <div class="search"><span>Typ, Member oder Befehl …</span><span class="mono">Strg K</span></div>
+   <span class="muted" style="color:var(--muted)">Arbeitsbereich <b style="color:var(--ink)">Lokal</b></span></header>
+  <div class="main"><nav class="rail">
+    ${rb('folder',opt.rail==='projects')}${rb('list',false)}${rb('graph',false)}
+    <div style="position:relative">${rb('stat',opt.rail==='stat', opt.shut?'shut':'new')}${opt.shut?'<div class="tip">Statistik · erst ein Projekt öffnen</div>':''}</div>
+    ${rb('bolt',false)}<div class="spacer"></div>${rb('gear',false)}</nav>
+   <div class="content">${body}
+    <div class="status"><span><span class="dot"></span>Verbunden</span><span>${opt.project?1:1} Projekt · 13 Sprachen</span><span>RAM 31 MB</span><span style="margin-left:auto">DE | EN</span></div></div></div>
+  ${opt.cap?`<div class="cap">${opt.cap}</div>`:''}</div>`;
+}
+const GO = '<span class="go" style="width:98px;justify-content:flex-end;flex:none">Im Explorer <kbd>↵</kbd></span>';
+const kind = k => ({struct:['Struct','kind-type'],enum:['Enum','kind-type'],interface:['Interface','kind-type'],type_alias:['Alias','kind-type'],trait:['Trait','kind-type'],function:['Funktion','kind-fn'],method:['Methode','kind-fn']})[k];
+const kb = k => `<span class="badge ${kind(k)[1]}">${kind(k)[0]}</span>`;
+const fmt = n => n.toLocaleString('de-DE');
+function title(t, sub, extra=''){ return `<div class="title"><h1>${t}</h1><span class="sub">${sub}</span><div class="right">${extra}</div></div>`; }
+const filters = `<span class="seg"><span class="on">Alle Sprachen</span><span>Rust</span><span>TypeScript</span><span>…</span></span><span class="btn">Tests ausblenden ✓</span>`;
+
+/* ---------- Daten (echter Scan des CodeSkimr-Quelltexts, Stand Snapshot 1) ---------- */
+const TYPES=[ // kind, name, path, sicher, bis
+ ['struct','Failure','crates/app/src/run.rs',28,73],['enum','Outcome','crates/app/src/run.rs',27,29],
+ ['struct','Surroundings','crates/app/src/annotations_cli.rs',17,20],['enum','DeviceFlowError','crates/adapters/secrets/src/device_flow.rs',17,19],
+ ['interface','Card','web/src/features/usages/graph.ts',16,27],['enum','Fate','crates/adapters/scip/src/mapping.rs',15,15],
+ ['type_alias','Say','crates/cli/src/notes.rs',15,15],['enum','MetricRole','crates/adapters/parsing/src/captures.rs',14,14],
+ ['struct','ScanRun','crates/application/src/pipeline/stages.rs',14,14],['interface','Segment','web/src/features/explorer/tree.ts',13,14],
+ ['interface','TreeRow','web/src/features/explorer/tree.ts',12,36],['enum','Outcome','crates/application/src/alerts/mod.rs',12,14]];
+const UNUSED=[ // kind,name,path,vis,Einschätzung
+ ['function','modifier_kinds','crates/adapters/parsing/src/pack.rs','privat','good','sehr wahrscheinlich ungenutzt'],
+ ['function','symbol_text_opt','crates/mcp/src/args.rs','privat','good','sehr wahrscheinlich ungenutzt'],
+ ['function','holders','crates/adapters/storage/src/replace.rs','privat','good','sehr wahrscheinlich ungenutzt'],
+ ['method','purge_dismissed','crates/adapters/storage/src/annotations.rs','öffentlich','warn','öffentlich: von außen möglich'],
+ ['method','kept_snapshot','crates/adapters/storage/src/usages.rs','öffentlich','warn','öffentlich: von außen möglich'],
+ ['struct','GroupInfo','crates/codes/src/lib.rs','öffentlich','warn','öffentlich: von außen möglich'],
+ ['struct','ForRemotes','crates/app/src/wiring.rs','öffentlich','warn','öffentlich: von außen möglich'],
+ ['method','user_event','crates/app/src/tray_ui.rs','öffentlich','n','Trait-Methode: wird vom Framework gerufen'],
+ ['function','Panel','web/src/features/alerts/Drawer.tsx','privat','bad','unsicher: Komponente (JSX), Lücke #611'],
+ ['function','List','web/src/features/alerts/Drawer.tsx','privat','bad','unsicher: Komponente (JSX), Lücke #611'],
+ ['function','Column','web/src/features/annotations/BoardScreen.tsx','privat','bad','unsicher: Komponente (JSX), Lücke #611']];
+const CC=[['method','Capture::parse','crates/adapters/parsing/src/captures.rs',22,30],['function','onTreeKey','web/src/features/explorer/keys.ts',16,24],
+ ['method','McpServer::run','crates/mcp/src/server.rs',15,39],['function','status_of','crates/server/src/error.rs',14,21],
+ ['function','accuracyNote','web/src/features/usages/accuracyNote.ts',14,30],['function','role_of','crates/adapters/parsing/src/captures.rs',13,17],
+ ['function','segmentRows','web/src/features/explorer/tree.ts',13,33],['method','StorageError::code','crates/adapters/storage/src/error.rs',13,18],
+ ['function','run_invocation','crates/app/src/run.rs',12,39],['function','invocation','crates/cli/src/parser.rs',12,30]];
+const CE=[['struct','Importer','crates/adapters/scip/src/mapping.rs',370],['struct','Level2Pass','crates/application/src/level2/pass.rs',310],
+ ['struct','HtmlExport','crates/app/src/ui_commands/export.rs',294],['struct','Builder','crates/adapters/parsing/src/symbols.rs',274],['struct','ExplorerSource','crates/app/src/ui_commands/source.rs',272]];
+const HIST=[[1,2214],[2,694],[3,437],[4,226],[5,121],[6,71],[7,49],[8,38],[9,16],[10,7],[11,4],[12,3],[13,3],[14,2],[15,1],[16,1],[22,1]];
+const LANG=[['Rust',72.9,'var(--k1)'],['TypeScript',12.5,'var(--k3)'],['TSX',11.6,'var(--k2)'],['Übrige (7 Sprachen)',3.0,'var(--k4)']];
+
+const note = (b,t,cls='') => `<div class="note ${cls}"><b>${b}</b><span>${t}</span></div>`;
+const bar = (s,t,max,w=170)=>`<span class="bar" style="width:${w}px"><i style="width:${s/max*w}px"></i><b style="left:${s/max*w}px;width:${(t-s)/max*w}px"></b></span>`;
+
+/* ---------- 1 Übersicht ---------- */
+function overview(th){
+  const card=(h,sub,rows)=>`<section class="card"><div class="ch"><h2>${h}</h2><span style="color:var(--muted);font-size:12px">${sub}</span><span class="more">Alle ansehen →</span></div>${rows.join('')}</section>`;
+  const r=(i,k,n,p,val,sel)=>`<div class="row ${sel?'sel':''}"><span class="rk">${i}</span>${kb(k)}<span class="name">${n}</span><span class="path">${p}</span><span class="go" style="margin-left:auto"><span class="num" style="color:var(--ink)">${val}</span><span style="margin-left:8px">↗</span></span></div>`;
+  const short = p=>p.split('/').slice(-2).join('/');
+  const body=`<div class="page">${title('Statistik','Projekt CodeSkimr · Scan vom 20.11.2026 · 962 Dateien',filters)}
+  <div class="kpis">
+   <div class="card kpi"><div class="k">Symbole</div><div class="v">17.767</div><div class="d">5.158 Typen und Funktionen</div></div>
+   <div class="card kpi"><div class="k">Verwendungen</div><div class="v">283.813</div><div class="d">davon <b>24.332 sicher</b>, 259.481 wahrscheinlich</div></div>
+   <div class="card kpi"><div class="k">Ohne Verwendung</div><div class="v">123</div><div class="d">ohne Tests · <b style="color:var(--warn)">Näherung, bitte prüfen</b></div></div>
+   <div class="card kpi"><div class="k">Komplexeste Funktion</div><div class="v">22</div><div class="d">Capture::parse · Grenzwert 15</div></div>
+   <div class="card kpi"><div class="k">Kopplung (Ce), Spitze</div><div class="v">370</div><div class="d">Importer · 24 Verweise hinein</div></div></div>
+  <div class="grid2" style="flex:1">
+   ${card('Meist verwendet','Typen · sicher',TYPES.slice(0,5).map((t,i)=>r(i+1,t[0],t[1],short(t[2]),t[3]+' <span style="color:var(--muted);font-weight:400">bis '+t[4]+'</span>',i===0)))}
+   ${card('Ohne Verwendung','gefunden: keine · Einschätzung',UNUSED.slice(0,5).map((u,i)=>`<div class="row"><span class="rk">${i+1}</span>${kb(u[0])}<span class="name">${u[1]}</span><span class="path">${short(u[2])}</span><span class="go" style="margin-left:auto"><span class="pill ${u[4]}">${u[3]}</span><span>↗</span></span></div>`))}
+   ${card('Komplexeste Funktionen','zyklomatische Komplexität',CC.slice(0,5).map((c,i)=>r(i+1,c[0],c[1],short(c[2]),c[3]+' <span style="color:var(--muted);font-weight:400">· '+c[4]+' Zeilen</span>')))}
+   ${card('Stärkste Kopplung','Abhängig von … (Ce)',CE.map((c,i)=>r(i+1,c[0],c[1],short(c[2]),c[3])))}
+  </div>
+  <div class="card pad" style="display:flex;flex-direction:column;gap:8px"><div class="lang">${LANG.map(l=>`<i style="width:${l[1]}%;background:${l[2]}"></i>`).join('')}</div>
+   <div class="legend">${LANG.map(l=>`<span style="--c:${l[2]}">${l[0]} ${String(l[1]).replace('.',',')} %</span>`).join('')}</div></div>
+  </div>`;
+  return frame(th,body,{name:'uebersicht',rail:'stat',cap:'Jede Zeile springt in den Explorer · Pfeil ↗ oder Enter'});
+}
+
+/* ---------- 2 Meist verwendet ---------- */
+function ranking(th){
+  const max=73;
+  const rows=TYPES.map((t,i)=>`<div class="row ${i===0?'sel':''}"><span class="rk">${i+1}</span>${kb(t[0])}<span class="name" style="width:150px">${t[1]}</span><span class="path" style="flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${t[2]}</span>${bar(t[3],t[4],max,150)}<span class="num" style="width:96px;text-align:left"><span>${t[3]}</span> <span style="color:var(--muted);font-weight:400">${t[4]>t[3]?'bis '+t[4]:'sicher'}</span></span>${i===0?GO:'<span class="go" style="width:98px;justify-content:flex-end">↗</span>'}</div>`).join('');
+  const body=`<div class="page">${title('Statistik','Projekt CodeSkimr · Scan vom 20.11.2026',filters)}
+  <div class="tabs"><div class="tab on">Meist verwendet</div><div class="tab">Ohne Verwendung <span class="n">123</span></div><div class="tab">Komplexität</div><div class="tab">Größe</div><div class="tab">Kopplung</div></div>
+  <div style="display:flex;gap:10px;align-items:center"><span class="k">Art</span><span class="seg"><span class="on">Typen</span><span>Funktionen</span><span>Konstanten</span><span>Alle</span></span>
+   <span class="k" style="margin-left:12px">Sortieren nach</span><span class="seg"><span class="on">Sichere Verwendungen</span><span>Alle (Obergrenze)</span></span>
+   <span class="right"><span class="legend"><span style="--c:var(--accent)">sicher</span><span style="--c:color-mix(in srgb,var(--accent) 45%,var(--surface))">wahrscheinlich, nicht bestätigt</span></span></span></div>
+  <div class="split"><section class="card table"><div class="th"><span style="width:22px"></span><span style="width:60px">ART</span><span style="width:150px">NAME</span><span style="flex:1">DATEI</span><span style="width:150px">VERWENDUNGEN</span><span style="width:98px"></span></div>${rows}</section>
+   <aside class="card pad side"><h3>Struct</h3><div class="big">Failure</div><div class="path" style="margin-top:-6px">crates/app/src/run.rs</div>
+    <div class="tiles"><div class="tile"><div class="v">28</div><div class="l">sicher</div></div><div class="tile"><div class="v">45</div><div class="l">wahrscheinlich</div></div><div class="tile"><div class="v">9</div><div class="l">Dateien</div></div></div>
+    ${note('Obergrenze.','Ohne Compiler-Import (Stufe 2) bleiben 45 von 73 Treffern unbestätigt. Es sind Treffer auf gleichnamige Symbole möglich.','')}
+    <div class="open"><span>Im Explorer öffnen</span><kbd>Enter</kbd></div><div class="open alt"><span>Verwendungen ansehen</span><kbd>U</kbd></div></aside></div>
+  </div>`;
+  return frame(th,body,{name:'meistverwendet',rail:'stat'});
+}
+
+/* ---------- 3 Ohne Verwendung ---------- */
+function unused(th){
+  const rows=UNUSED.map((u,i)=>`<div class="row ${i===3?'sel':''}"><span class="rk">${i+1}</span>${kb(u[0])}<span class="name" style="width:170px">${u[1]}</span><span class="path" style="flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${u[2]}</span><span class="badge" style="width:78px;text-align:center">${u[3]}</span><span class="pill ${u[4]}" style="width:290px;text-align:center">${u[5]}</span>${i===3?GO:'<span class="go" style="width:98px;justify-content:flex-end">↗</span>'}</div>`).join('');
+  const body=`<div class="page">${title('Statistik','Projekt CodeSkimr · Scan vom 20.11.2026',filters)}
+  <div class="tabs"><div class="tab">Meist verwendet</div><div class="tab on">Ohne Verwendung <span class="n">123</span></div><div class="tab">Komplexität</div><div class="tab">Größe</div><div class="tab">Kopplung</div></div>
+  ${note('„Ohne Verwendung“ heißt: keine gefunden – nicht: nachweislich tot.','Stufe 1 liest nur den Quelltext. Nicht gezählt werden zum Beispiel einzelne Komponenten, die als &lt;Name /&gt; benutzt werden (bekannte Lücke), Aufrufe über Makros, Reflection und Einstiegspunkte, die ein Framework ruft. Mit Stufe 2 (Compiler) werden die Angaben genauer.')}
+  <div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+   <div class="card kpi"><div class="k">Sehr wahrscheinlich ungenutzt</div><div class="v" style="color:var(--good)">25</div><div class="d">nicht öffentlich, Rust und TypeScript</div></div>
+   <div class="card kpi"><div class="k">Öffentlich, von außen möglich</div><div class="v" style="color:var(--warn)">43</div><div class="d">Bibliothek oder Schnittstelle?</div></div>
+   <div class="card kpi"><div class="k">Tests ausgeblendet</div><div class="v">330</div><div class="d">Testfunktionen ohne Aufrufer</div></div>
+   <div class="card kpi"><div class="k">Unsicher: Komponenten (JSX)</div><div class="v" style="color:var(--bad)">55</div><div class="d">bekannte Lücke, Issue #611</div></div></div>
+  <div style="display:flex;gap:10px;align-items:center"><span class="k">Einschätzung</span><span class="seg"><span class="on">Alle</span><span>Sehr wahrscheinlich</span><span>Öffentlich</span><span>Unsicher</span></span><span class="k" style="margin-left:12px">Art</span><span class="seg"><span class="on">Alle</span><span>Typen</span><span>Funktionen</span></span></div>
+  <section class="card table" style="flex:1"><div class="th"><span style="width:22px"></span><span style="width:60px">ART</span><span style="width:170px">NAME</span><span style="flex:1">DATEI</span><span style="width:78px">SICHTBAR</span><span style="width:290px">EINSCHÄTZUNG</span><span style="width:98px"></span></div>${rows}</section></div>`;
+  return frame(th,body,{name:'ohne-verwendung',rail:'stat'});
+}
+
+/* ---------- 4 Komplexität und Hotspots ---------- */
+function hotspots(th){
+  const mx=Math.max(...HIST.map(h=>h[1]));
+  const hist=HIST.map(h=>`<div style="height:${Math.max(3,Math.log10(h[1]+1)/Math.log10(mx+1)*130)}px;${h[0]>15?'background:var(--bad)':''}"><em>${h[1]}</em><span>${h[0]}</span></div>`).join('');
+  // Streudiagramm: x = Komplexität, y = Verwendungen (Skala log), Fehlerbalken bis Obergrenze
+  const P=[['run_invocation',12,1,1],['status_of',14,1,1],['role_of',13,1,1],['record',11,1,1],['materialize',7,14,14],['serve',7,3,113],['Scanner::run',7,3,101],['build',7,1,20],['answer',10,1,275],['tokens_in',10,2,2],['class_of',9,1,1],['allowed',7,2,14],['Capture::parse',22,1,1],['onTreeKey',16,1,1]];
+  const X=c=>50+(c-5)*28.5, Y=v=>500-Math.log10(v)/Math.log10(300)*450;
+  let svg=`<svg viewBox="0 0 560 540" width="100%" height="100%"><line x1="50" y1="500" x2="545" y2="500" stroke="var(--line)"/><line x1="50" y1="20" x2="50" y2="500" stroke="var(--line)"/>
+   <rect x="${X(15)}" y="20" width="${545-X(15)}" height="480" fill="var(--badbg)" opacity=".7"/><text x="${X(15)+6}" y="34" style="fill:var(--bad)">über Grenzwert 15</text>
+   <line x1="${X(15)}" y1="20" x2="${X(15)}" y2="500" stroke="var(--bad)" stroke-dasharray="4 3"/>`;
+  [1,10,100].forEach(v=>svg+=`<line x1="50" x2="545" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--soft)"/><text x="12" y="${Y(v)+3}">${v}</text>`);
+  [5,10,15,20,25].forEach(c=>svg+=`<text x="${X(c)-4}" y="518">${c}</text>`);
+  svg+=`<text x="300" y="535">Komplexität (zyklomatisch)</text><text x="4" y="14">Verwendungen (log)</text>`;
+  P.forEach((p,i)=>{const x=X(p[1]),y=Y(p[2]),y2=Y(p[3]);const hi=i===12;
+    if(p[3]>p[2])svg+=`<line x1="${x}" x2="${x}" y1="${y}" y2="${y2}" stroke="var(--accent)" stroke-width="2" opacity=".35"/>`;
+    svg+=`<circle cx="${x}" cy="${y}" r="${hi?7:5}" fill="var(--accent)" ${hi?'stroke="var(--ink)" stroke-width="2"':''}/>`;});
+  svg+='</svg>';
+  const body=`<div class="page">${title('Statistik','Projekt CodeSkimr · Scan vom 20.11.2026',filters)}
+  <div class="tabs"><div class="tab">Meist verwendet</div><div class="tab">Ohne Verwendung <span class="n">123</span></div><div class="tab on">Komplexität</div><div class="tab">Größe</div><div class="tab">Kopplung</div></div>
+  <div class="split" style="grid-template-columns:1fr 1fr 340px"><section class="card pad" style="display:flex;flex-direction:column;gap:10px"><div class="ch" style="padding:0"><h2>Wie komplex sind die Funktionen?</h2></div><div class="path">Anzahl Funktionen je Komplexität (logarithmisch). Rot: über dem Grenzwert 15.</div><div class="hist" style="margin-top:22px;height:170px">${hist}</div>
+    <div style="margin-top:26px">${note('Gut zu wissen.','2.214 von 3.888 Funktionen haben Komplexität 1. Nur 2 liegen über dem Grenzwert.','info')}</div></section>
+   <section class="card pad" style="display:flex;flex-direction:column;gap:6px"><div class="ch" style="padding:0"><h2>Hotspots: komplex <u style="text-decoration:none;color:var(--muted)">und</u> viel verwendet</h2></div><div class="path">Änderungen oben rechts sind riskant. Der Strich zeigt „bis zu“, die Obergrenze der Verwendungen.</div><div style="flex:1;min-height:0">${svg}</div></section>
+   <aside class="card pad side"><h3>Methode</h3><div class="big">Capture::parse</div><div class="path" style="margin-top:-6px">crates/adapters/parsing/src/captures.rs</div>
+    <div class="tiles"><div class="tile"><div class="v" style="color:var(--bad)">22</div><div class="l">Komplexität</div></div><div class="tile"><div class="v">30</div><div class="l">Zeilen</div></div><div class="tile"><div class="v">1</div><div class="l">Verwendung</div></div></div>
+    <div class="note" style="margin-bottom:6px"><b>Über dem Grenzwert.</b><span>Grenzwert 15 (config/default.toml).</span></div>
+    <div class="open"><span>Im Explorer öffnen</span><kbd>Enter</kbd></div></aside></div></div>`;
+  return frame(th,body,{name:'komplexitaet',rail:'stat'});
+}
+
+/* ---------- 5 Ohne Projekt ---------- */
+function locked(th){
+  const body=`<div class="page">${title('Projekte','Wähle ein Projekt, um zu starten')}
+   <section class="card table"><div class="th"><span style="width:200px">PROJEKT</span><span style="flex:1">QUELLE</span><span style="width:120px">STAND</span></div>
+   <div class="row" style="padding:12px 14px"><b style="width:200px">CodeSkimr</b><span class="path" style="flex:1">/work/CodeSkimr</span><span class="pill good">bereit</span></div>
+   <div class="row" style="padding:12px 14px"><b style="width:200px">pallets/click</b><span class="path" style="flex:1">https://github.com/pallets/click</span><span class="pill good">bereit</span></div></section>
+   ${note('Statistik ist erst mit geöffnetem Projekt aktiv.','Der Eintrag in der Leiste ist abgeblendet, genau wie Explorer und Abhängigkeiten. Öffne ein Projekt mit Enter, dann wird er frei.','info')}</div>`;
+  return frame(th,body,{name:'ohne-projekt',rail:'projects',shut:true,project:'Kein Projekt geöffnet'});
+}
+
+const q=new URLSearchParams(location.search);
+const themes=q.get('themes')?q.get('themes').split(','):['petrol'];
+const screens={uebersicht:overview,meistverwendet:ranking,'ohne-verwendung':unused,komplexitaet:hotspots,'ohne-projekt':locked};
+document.getElementById('root').innerHTML=themes.map(t=>Object.values(screens).map(f=>f(t)).join('')).join('');
+</script></body></html>

@@ -41,6 +41,8 @@
 (assignment_expression left: (member_access_expression name: (identifier) @name)) @reference.write
 (postfix_unary_expression (identifier) @name) @reference.write
 (prefix_unary_expression ["++" "--"] (identifier) @name) @reference.write
+(postfix_unary_expression (member_access_expression name: (identifier) @name) ["++" "--"]) @reference.write
+(prefix_unary_expression ["++" "--"] (member_access_expression name: (identifier) @name)) @reference.write
 
 ; Reads: names in value positions (not the function of a call, not an assignment target)
 ; One pattern per parent: an alternation in front of the children never matches (issue #77).
@@ -109,6 +111,22 @@
    condition: (member_access_expression name: (identifier) @name)
    consequence: (member_access_expression name: (identifier) @name)
    alternative: (member_access_expression name: (identifier) @name)]) @reference.read
+; Any other member access in a value position reads the member: `!a.B`, `a.B is null`, `a.B!`,
+; `a.B[0]`, `if (a.B)`, `foreach (var x in a.B)`, `switch (a.B)`, `lock (a.B)` (a negated access was
+; lost before). A name that is called or written is no read (the extraction keeps call and write only).
+(member_access_expression name: (identifier) @name) @reference.read
+(prefix_unary_expression ["!" "-" "+" "~" "^"] (identifier) @name) @reference.read
+(postfix_unary_expression (identifier) @name "!") @reference.read
+(if_statement condition: (identifier) @name) @reference.read
+(while_statement condition: (identifier) @name) @reference.read
+(foreach_statement right: (identifier) @name) @reference.read
+(is_expression left: (identifier) @name) @reference.read
+(is_pattern_expression expression: (identifier) @name) @reference.read
+(switch_statement value: (identifier) @name) @reference.read
+(element_access_expression expression: (identifier) @name) @reference.read
+(lock_statement (identifier) @name) @reference.read
+(do_statement condition: (identifier) @name) @reference.read
+(for_statement condition: (identifier) @name) @reference.read
 ; The receiver of a member access: a variable or a type
 (member_access_expression expression: (identifier) @name) @reference.read
 ; A member that is itself the receiver of a chain: `Against` in `Guard.Against.Null(x)` (issue #183)

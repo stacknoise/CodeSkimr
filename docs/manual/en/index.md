@@ -12,6 +12,7 @@ Everything runs on your machine. The server only listens on `127.0.0.1`; your co
 | Explorer and search | browse layers, namespaces, types and members; find symbols fast | [Explorer](explorer.md) |
 | Dependency map | see the layers of your program and which one uses which | [Dependency map](dependency-map.md) |
 | Usages | who uses this member, and what breaks if you change it | [Usages](usages.md) |
+| Statistics | rankings: the most used symbols, the ones nobody uses, the most complex | [Statistics](statistics.md) |
 | Notes, tasks, critical marks | mark symbols as critical, write notes, track tasks, get alerts when a critical symbol changes | [Notes, tasks and critical marks](annotations.md) |
 | Language indexers (level 2) | make usages exact by letting the language's own tool check them; off by default | [Language indexers](indexers.md) |
 | MCP server | give code agents the same knowledge | [MCP setup](mcp.md) |

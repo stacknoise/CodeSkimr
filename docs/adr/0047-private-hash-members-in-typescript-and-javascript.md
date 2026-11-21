@@ -12,7 +12,7 @@ The pack vocabulary already has a rule by the spelling of a name (`visibility.na
 
 The packs `typescript`, `tsx` and `javascript` get one name rule: a name that starts with `#` is `private`. It applies to fields, methods and accessors with a `#` name and only when no keyword decides (a `#name` cannot have `private` anyway). All other rules of ADR 0022 stay.
 
-The limit "`#private` fields get the default (public)" in ADR 0022, section 3, no longer holds. Parameter properties of constructors stay out of the symbol tree (see issue #81): the nesting of symbols follows the syntax tree, so such a field would become a child of the constructor, not of the class. That needs a change of the pack vocabulary of its own.
+The limit "`#private` fields get the default (public)" in ADR 0022, section 3, no longer holds. Parameter properties of constructors stay out of the symbol tree (see issue #81): the nesting of symbols follows the syntax tree, so such a field would become a child of the constructor, not of the class. That needs a change of the pack vocabulary of its own (done by ADR 0083: they are fields of the class now).
 
 ## Consequences
 

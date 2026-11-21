@@ -169,6 +169,10 @@ mod cases {
             Err(CodedError::new(ErrorCode::UnexpectedInternalError))
         }
 
+        fn next_free_id(&self) -> Result<u64, CodedError> {
+            Ok(1)
+        }
+
         fn replace_level2(&self, replacement: Level2Replacement) -> Result<Snapshot, CodedError> {
             self.replaced
                 .lock()

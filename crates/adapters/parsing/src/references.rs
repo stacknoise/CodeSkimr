@@ -165,14 +165,17 @@ pub fn extract(
     };
     let facts = Facts::collect(ctx, vocabulary, root);
     let scopes = Scopes::new(&facts.scopes, facts.declarations.clone());
-    let called = called_names(&facts.occurrences);
+    let called = names_of_kind(&facts.occurrences, ReferenceKind::Call);
+    let written = names_of_kind(&facts.occurrences, ReferenceKind::Write);
     let mut seen = HashSet::new();
     let mut pending = Vec::new();
     for occurrence in &facts.occurrences {
         let range = occurrence.name.byte_range();
-        // A name that is called is no read: `a?.B()` is a call of `B`, not a read of it as well.
-        let is_call_read = occurrence.kind == ReferenceKind::Read && called.contains(&range);
-        if is_call_read || !seen.insert((occurrence.kind, range)) {
+        // A name that is called or written is no read: `a?.B()` is a call of `B` and `a.B = 1` a
+        // write of it, not a read as well.
+        let is_shadowed_read = occurrence.kind == ReferenceKind::Read
+            && (called.contains(&range) || written.contains(&range));
+        if is_shadowed_read || !seen.insert((occurrence.kind, range)) {
             continue;
         }
         pending.extend(pending_reference(ctx, table, &facts, &scopes, occurrence)?);
@@ -180,11 +183,11 @@ pub fn extract(
     Ok(pending)
 }
 
-/// The byte ranges of the names that some pattern of the query reports as a call.
-fn called_names(occurrences: &[Occurrence<'_>]) -> HashSet<Range<usize>> {
+/// The byte ranges of the names that some pattern of the query reports with `kind`.
+fn names_of_kind(occurrences: &[Occurrence<'_>], kind: ReferenceKind) -> HashSet<Range<usize>> {
     occurrences
         .iter()
-        .filter(|o| o.kind == ReferenceKind::Call)
+        .filter(|o| o.kind == kind)
         .map(|o| o.name.byte_range())
         .collect()
 }

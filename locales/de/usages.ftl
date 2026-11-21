@@ -33,7 +33,6 @@ usages-col-where = Verwendet in
 usages-col-code = Code
 usages-col-place = Stelle
 usages-col-state = Sicherheit
-usages-col-resize = Spalte { $name } verbreitern
 usages-ref-call = Aufruf
 usages-ref-read = Lesen
 usages-ref-write = Schreiben

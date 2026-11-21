@@ -155,9 +155,11 @@ export function HitList(props: { answer: UsagesAnswer; hits: Hit[]; onOpen: (hit
       aria-label={t(I18N_KEYS.USAGES_HITS_LABEL)}
     >
       <ListHead answer={props.answer} hits={props.hits} />
-      <ColumnHead />
-      <div class={styles.rows}>
-        <Hits answer={props.answer} hits={props.hits} onOpen={props.onOpen} />
+      <div class={styles.scroller}>
+        <ColumnHead />
+        <div class={styles.rows}>
+          <Hits answer={props.answer} hits={props.hits} onOpen={props.onOpen} />
+        </div>
       </div>
     </div>
   );

@@ -41,7 +41,7 @@ pub(crate) struct Fixture {
 }
 
 impl Fixture {
-    fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self::installed(None)
     }
 
@@ -106,7 +106,7 @@ impl Fixture {
     }
 
     /// Registers the folder without scanning it, so the project has no snapshot.
-    fn register_unscanned(&self) -> u64 {
+    pub(super) fn register_unscanned(&self) -> u64 {
         let store = SqliteStore::open(&self.locations.database(), NonZeroU32::MIN).unwrap();
         let source = ProjectSource::Folder(FolderPath::new(self.folder()).unwrap());
         let project = Project {
@@ -152,7 +152,7 @@ impl Fixture {
 }
 
 /// Every command of the registry, in the order the API lists them.
-const COMMAND_IDS: [&str; 38] = [
+const COMMAND_IDS: [&str; 40] = [
     "alerts.dismiss",
     "alerts.dismiss_all",
     "alerts.list",
@@ -187,6 +187,8 @@ const COMMAND_IDS: [&str; 38] = [
     "projects.rescan",
     "projects.tools",
     "search.query",
+    "stats.overview",
+    "stats.ranking",
     "status.info",
     "tools.indexers",
     "usages.code",
@@ -512,6 +514,8 @@ fn a_token_without_the_read_right_is_refused() {
         "explorer.symbol",
         "graph.layers",
         "search.query",
+        "stats.overview",
+        "stats.ranking",
         "status.info",
         "usages.code",
         "usages.query",

@@ -111,6 +111,16 @@ cli-level2-declined = Nothing changed: level 2 stays off for project { $project 
 cli-level2-revoked = Level 2 is forbidden again for project { $project }.
 cli-scan-warning-ambiguous-reference = Warning RES-301: { $count } places match several symbols and are stored as probable.
 cli-scan-warning-other = Warning { $code }: { $count } times.
+cli-scan-warning-files-left-out = { $count ->
+    [one] Warning { $code }: one file could not be analysed and was left out.
+   *[other] Warning { $code }: { $count } files could not be analysed and were left out.
+}
+cli-scan-left-out-file = {"  "}{ $path } ({ $code }): missing in the result
+cli-scan-left-out-file-kept = {"  "}{ $path } ({ $code }): shown as the previous scan saw it
+cli-scan-left-out-more = { $count ->
+    [one] {"  "}and one more file
+   *[other] {"  "}and { $count } more files
+}
 cli-cmd-annotations = Notes, tasks and critical marks on symbols
 cli-cmd-annotations-list = List the annotations of a project
 cli-cmd-annotations-add = Add a critical mark, a note or a task to a symbol
